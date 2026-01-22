@@ -1,6 +1,6 @@
 # DQ Language Specification
 
-**Version:** 0.1 (Draft)
+**Version:** 0.1.7 (Draft)
 **Status:** Work in Progress
 **Last Updated:** 2026-01-22
 
@@ -248,6 +248,12 @@ char16  // 16-bit UTF-16 code unit
 char8   // 8-bit code unit / byte
 ```
 
+**Character from Unicode code point**:
+```dq
+c : char = char(0x30);      // '0' (digit zero)
+c : char = char(0x1F600);   // 😀 (emoji)
+```
+
 ### 4.2 String Types
 
 #### Dynamic String (`str` / `string`)
@@ -288,16 +294,23 @@ arr[0] = 10;
 len : int = arr.length;     // == 4 (compile-time known)
 ```
 
-#### Dynamic Array (`array<T>`)
+#### Dynamic Array (`T[...]`)
 - Heap-backed
 - Variable length
 - Reference semantics (TBD: copy vs reference)
 
 ```dq
-arr : array<int32>;
+arr : int32[...];
 arr.append(10);
 arr.append(20);
 len : int = arr.length;     // runtime value
+```
+
+#### Multi-dimensional Arrays
+```dq
+matrix : int[3][4];      // fixed 3x4 matrix
+grid : int[...][...];    // fully dynamic 2D
+rows : int[...][4];      // dynamic rows, fixed 4 columns per row
 ```
 
 ### 4.4 Pointer Types
@@ -314,6 +327,73 @@ ptr : pointer;              // untyped pointer (like void*)
 type MyInt = int32;
 type Callback = function(x: int) -> int;
 type MethodCallback = function(x: int) -> int of object;
+```
+
+### 4.6 Enumeration Types
+
+Enumerations define a set of named constant values with a mandatory underlying storage type.
+
+#### Declaration Syntax
+
+```dq
+// Storage type is mandatory
+type TProcState : uint8 = (psIdle, psRising, psFalling, psSaving);
+
+// With explicit values (for protocols, hardware registers, etc.)
+type TCmd : uint8 = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF);
+
+// Auto-increment from last explicit value
+type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1, 2, 3
+```
+
+#### Scope and Naming
+
+Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
+
+```dq
+state : TProcState = psIdle;
+
+if state = psRising {
+    // ...
+}
+```
+
+**Naming convention**: Use a short prefix derived from the type name to avoid conflicts:
+- `TProcState` → `ps` prefix: `psIdle`, `psRising`
+- `TCommand` → `cmd` prefix: `cmdRead`, `cmdWrite`
+- `TResult` → `res` prefix: `resOk`, `resError`
+
+This convention prevents name collisions when multiple enum types are in scope.
+
+#### Type Conversions
+
+Conversions between enum types and their underlying integer type must be **explicit**:
+
+```dq
+cmd : TCmd = cmdRead;
+
+// Enum to integer: explicit cast
+val : uint8 = uint8(cmd);           // val = 0x10
+
+// Integer to enum: explicit cast
+cmd2 : TCmd = TCmd(0x20);           // cmd2 = cmdWrite
+
+// Comparison with integer literals: requires cast
+if uint8(cmd) = 0x10 { ... }        // OK: explicit
+// if cmd = 0x10 { ... }            // ERROR: type mismatch
+```
+
+#### Supported Underlying Types
+
+Any integer type can be used as the underlying storage:
+- `uint8`, `int8`
+- `uint16`, `int16`
+- `uint32`, `int32`
+- `uint64`, `int64`
+
+```dq
+type TSmallEnum : uint8 = (seA, seB, seC);          // 1 byte
+type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
 ```
 
 ---
@@ -342,10 +422,34 @@ x : auto = some_function(); // inferred from return type
 
 ### 5.3 Constants
 
+Constants are declared with `const(type)` syntax, where the type is mandatory.
+
+#### Single-Line Form
+
 ```dq
-const PI : float = 3.14159265358979;
-const MAX_SIZE : int = 1024;
+const(float)  PI = 3.14159265358979;
+const(uint32) MAGIC = 0xDEADBEEF;
+const(int)    MAX_SIZE = 1024;
 ```
+
+#### Block Form
+
+Use the block form to group related constants of the same type:
+
+```dq
+const(uint) {
+    BUFFER_SIZE = 1024;
+    BUFFER_MASK = BUFFER_SIZE - 1;
+    MAX_ITEMS = 256;
+}
+
+const(float) {
+    PI = 3.14159265358979;
+    E  = 2.71828182845904;
+}
+```
+
+Constants are evaluated at compile time and can reference other constants in expressions.
 
 ---
 
@@ -609,6 +713,16 @@ function ParseInt(in s : str, out value : int) -> bool {
 - They cannot be stored in heap objects or returned
 - They cannot be null
 - They are always typed (no untyped references)
+
+**Argument Namespace**: Parameters can be accessed explicitly via `@arg.`:
+
+```dq
+function Foo(par1 : int) -> int {
+    result := @arg.par1 * 2;    // explicit argument access
+}
+```
+
+This is useful when a local variable shadows a parameter name.
 
 ### 8.4 Function Types and Delegates
 
@@ -1041,7 +1155,7 @@ typeof(x)           // type information (TBD)
 length(s)           // character count (Pascal-style function)
 s.length            // also available as property
 s[i]                // indexed access (char)
-s.split(',')        // split into array<str>
+s.split(',')        // split into str[...]
 s1 + s2             // concatenation
 ```
 
@@ -1186,7 +1300,7 @@ function main() -> int {
 import io;
 
 object WorkHelper {
-    worklog : array<int>;
+    worklog : int[...];
 
     function help(anum : int) {
         worklog.append(anum);
@@ -1291,6 +1405,24 @@ function main() -> int {
 ---
 
 ## Appendix B: Changelog
+
+### v0.1.7 (2026-01-22)
+- Changed constant syntax to `const(type)` for both single-line and block forms
+- Added block form `const(type) { ... }` for grouping related constants
+
+### v0.1.6 (2026-01-22)
+- Added enumeration types with mandatory underlying storage type
+- Enum values use Pascal-style module scope (no qualification needed)
+- Support for explicit values (for protocols, hardware registers)
+- Explicit conversions required between enum and integer types
+
+### v0.1.5 (2026-01-22)
+- Changed dynamic array syntax from `array<T>` to `T[...]` for consistency with fixed arrays
+- Added multi-dimensional array examples
+- Added `char(codepoint)` syntax for creating characters from Unicode values
+
+### v0.1.4 (2026-01-22)
+- Added `@arg.` namespace for explicit argument access within functions
 
 ### v0.1.3 (2026-01-22)
 - Added multi-line string literals using triple quotes (`"""..."""` or `'''...'''`)

@@ -1,0 +1,18 @@
+// DQ Constants Syntax
+
+// Single-line form
+const(uint)   BUFFER_SIZE = 1024;
+const(uint)   BUFFER_MASK = BUFFER_SIZE - 1;
+const(uint32) MAGIC = 0xDEADBEEF;
+
+// Block form for related constants
+const(uint) {
+    RING_SIZE = 256;
+    RING_MASK = RING_SIZE - 1;
+    MAX_ITEMS = 128;
+}
+
+const(float) {
+    PI = 3.14159265358979;
+    E  = 2.71828182845904;
+}

@@ -1,0 +1,15 @@
+// DQ Array Syntax Test
+
+// Current
+
+arr : array<int>;
+arr2 : int[5];
+
+// A
+
+arr : array[5]<int>;  // syntax consistent, but the most important info is in the middle
+
+// B
+
+arr : int[5];
+arr : int[...]; // dynamic array

@@ -164,6 +164,45 @@ Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably.
 s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
 ```
 
+#### Multi-line Strings
+
+Triple-quoted strings (`"""..."""` or `'''...'''`) allow multi-line content with automatic indentation handling:
+
+```dq
+sql := """
+    select
+      d.MTIME, d.SENSID, d.VALUE
+    from
+      MDATA d
+    where
+      (d.MTYPE=1)
+    order by
+      d.MTIME asc
+    """;
+```
+
+**Rules**:
+- **Auto-dedent**: Common leading whitespace is stripped based on the closing `"""` indentation
+- **Newline trimming**: The first newline after opening quotes and the last newline before closing quotes are ignored (when quotes are on their own lines)
+- **Escape sequences**: Still processed (`\n`, `\t`, `\\`, etc.)
+- **Type**: Always `str`, regardless of content length
+
+**Example with indentation**:
+```dq
+function example() {
+    msg := """
+        Line 1
+        Line 2
+        """;
+    // Result: "Line 1\nLine 2" (8 spaces stripped, no trailing newline)
+}
+```
+
+**Single-line usage** (useful for strings containing both quote types):
+```dq
+json := """{"key": "value with 'quotes'"}""";
+```
+
 #### Boolean Literals
 ```dq
 true
@@ -1253,7 +1292,12 @@ function main() -> int {
 
 ## Appendix B: Changelog
 
-### v0.1 (2026-01-22)
+### v0.1.3 (2026-01-22)
+- Added multi-line string literals using triple quotes (`"""..."""` or `'''...'''`)
+- Auto-dedent based on closing quote indentation
+- Newline trimming at start/end when quotes are on their own lines
+
+### v0.1.2 (2026-01-22)
 - Changed address-of operator from `ptr()` function to `&` symbol
 - Changed integer modulo from `mod` to `IMOD` keyword (consistency with `IDIV`)
 - Added attribute syntax using `[[ ... ]]` brackets
@@ -1262,7 +1306,7 @@ function main() -> int {
 - Changed compiler directive syntax from `#{comp ...}` to `#{opt ...}`
 - Unified string/char literals: both quote styles allowed, type determined by length
 
-### v0.1 (2026-01-21)
+### v0.1.1 (2026-01-21)
 - Initial draft specification
 - Consolidated from multiple ChatGPT design conversations
 - Core language features defined

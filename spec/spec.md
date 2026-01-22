@@ -1,8 +1,8 @@
 # DQ Language Specification
 
-**Version:** 0.1 (Draft)  
-**Status:** Work in Progress  
-**Last Updated:** 2026-01-21
+**Version:** 0.1 (Draft)
+**Status:** Work in Progress
+**Last Updated:** 2026-01-22
 
 ---
 
@@ -90,15 +90,15 @@ DQ is **case-sensitive**.
 and         array       auto        break       case        const
 continue    delete      else        ensure      except      false
 for         function    if          implementation          import
-in          interface   mod         module      new         not
-null        object      or          out         packed      private
-property    public      raise       ref         return      specialize
-struct      to          true        try         type        use
-var         virtual     while       xor
+in          interface   module      new         not         null
+object      or          out         packed      private     property
+public      raise       ref         return      specialize  struct
+to          true        try         type        use         var
+virtual     while       xor
 ```
 
 #### Operator Keywords (Case-Sensitive)
-- **Uppercase (bitwise)**: `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR`, `IDIV`
+- **Uppercase (integer/bitwise)**: `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR`, `IDIV`, `IMOD`
 - **Lowercase (logical)**: `and`, `or`, `not`
 
 ### 3.4 Identifiers
@@ -106,7 +106,23 @@ var         virtual     while       xor
 - May contain letters, digits, and underscores
 - ASCII only — no Unicode identifiers allowed
 
-### 3.5 Literals
+### 3.5 Attributes
+
+Attributes are specified using double square brackets `[[ ... ]]` syntax:
+
+```dq
+[[attribute_name]]                  // single attribute
+[[attr1, attr2]]                    // multiple attributes
+[[attribute("value")]]              // attribute with argument
+```
+
+Attributes can be placed:
+- Before a declaration
+- After a function signature (before the body)
+
+See section 8.5 for function-specific attributes.
+
+### 3.6 Literals
 
 #### Numeric Literals
 ```dq
@@ -119,16 +135,33 @@ var         virtual     while       xor
 
 **Note**: No type suffixes on literals (like `10i32`). Types are always clear from context or explicit declarations.
 
-#### String Literals
+#### String and Character Literals
+
+Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably. The **type is determined by length**:
+
 ```dq
-"Hello, World!"     // dynamic string (str)
-"Line 1\nLine 2"    // escape sequences supported
+// Character literals (exactly one character)
+'A'             // char
+"A"             // char
+'\n'            // char (escape sequence)
+"\t"            // char (escape sequence)
+
+// String literals (zero or multiple characters)
+"Hello, World!" // str
+'Hello, World!' // str
+""              // str (empty string)
+''              // str (empty string)
+"Line 1\nLine 2"// str (with escape sequence)
 ```
 
-#### Character Literals
+**Rules**:
+- **Exactly one character** (including escape sequences) → `char`
+- **Zero or multiple characters** → `str`
+- Both quote styles are equivalent — use whichever is convenient for the content
+
+**Concatenation**: When using `+`, `char` is implicitly promoted to `str`:
 ```dq
-'A'         // char (Unicode scalar value)
-'\n'        // escape sequence
+s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
 ```
 
 #### Boolean Literals
@@ -288,7 +321,7 @@ const MAX_SIZE : int = 1024;
 | `*` | Multiplication | |
 | `/` | Division | **Always returns float** |
 | `IDIV` | Integer division | Returns integer |
-| `mod` | Modulo | |
+| `IMOD` | Integer modulo | Returns integer |
 
 **Division Rule**: `/` always yields `float`. Integer division requires explicit `IDIV`.
 
@@ -346,7 +379,7 @@ The precedence is designed to avoid the classic C trap where `a AND b == 0` pars
 1. Primary: `()`, `.`, `[]`, function calls
 2. Unary arithmetic: `-`, `^` (dereference)
 3. Bitwise NOT: `NOT`
-4. Multiplicative: `*`, `/`, `IDIV`, `mod`
+4. Multiplicative: `*`, `/`, `IDIV`, `IMOD`
 5. Additive: `+`, `-`
 6. Shift: `SHL`, `SHR`, `<<`, `>>`
 7. Bitwise AND: `AND`
@@ -382,17 +415,16 @@ x /= 2;                     // compound: divide (result is float!)
 
 **Important**: Assignment is a **statement**, not an expression.
 
-### 6.7 Named Arguments / Association Operator
+### 6.7 Named Arguments
+
+Named arguments use the `:=` assignment operator for clarity:
 
 ```dq
-=>      // association operator (VHDL-style)
+connect(port := 80, timeout_ms := 5000);
+cfg : TConfig = (baud := 115200, parity := .None);
 ```
 
-Used for named arguments and record initialization:
-```dq
-connect(80 => port, 5000 => timeout_ms);
-cfg : TConfig = (115200 => baud, .None => parity);
-```
+**Note**: The `:=` operator is required for named arguments (not `=`) to avoid confusion with equality comparison.
 
 ---
 
@@ -411,7 +443,7 @@ if condition {
 
 #### Indentation Mode (optional)
 ```dq
-#{comp blockmode indent}
+#{opt blockmode indent}
 if condition:
     // statements
 ```
@@ -553,6 +585,59 @@ cb : Callback = obj.method;
 cb(42);
 ```
 
+### 8.5 Function Attributes
+
+Attributes modify function behavior and properties. They use the `[[ ... ]]` syntax and can be placed:
+- Before the function declaration
+- After the function signature (before the opening brace)
+
+Multiple attributes can be specified in a single bracket pair (comma-separated) or in separate brackets.
+
+```dq
+// Attribute before declaration
+[[section("ramcode")]]
+function Foo(x : int) -> int {
+    px : ^int = &x;
+    @io.println("x = ", px^);
+}
+
+// Attributes after signature
+function Bar(x : int) -> int [[stdcall, override]] {
+    return x * 2;
+}
+
+// Static function
+[[static]]
+function Helper(x : int) -> int {
+    return x + 1;
+}
+
+// Alternative: attribute after signature
+function Helper2(x : int) -> int [[static]] {
+    return x + 1;
+}
+
+// Inline function
+function GetValue() -> int [[inline]] {
+    return 42;
+}
+```
+
+#### Common Function Attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `[[inline]]` | Suggest inlining the function |
+| `[[static]]` | Static linkage (not exported) |
+| `[[stdcall]]` | Use stdcall calling convention |
+| `[[cdecl]]` | Use cdecl calling convention (default) |
+| `[[override]]` | Override base class method (see section 9.5) |
+| `[[section("name")]]` | Place function in specific memory section |
+| `[[naked]]` | Emit function without prologue/epilogue (embedded use) |
+| `[[noreturn]]` | Function never returns (for panic/abort functions) |
+
+**Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
+
 ---
 
 ## 9. Objects
@@ -564,24 +649,24 @@ object Worker {
     // Fields
     name : str;
     counter : int;
-    
+
     // Constructor
     function __ctor(aname : str) {
         name = aname;
         counter = 0;
     }
-    
+
     // Destructor
     function __dtor() {
         // cleanup
     }
-    
+
     // Methods
     function DoWork() {
         counter += 1;
         write(name + " work #" + str(counter));
     }
-    
+
     function write(msg : str) {
         .print(msg);        // leading dot = global function
     }
@@ -611,7 +696,7 @@ delete w;                           // explicit deletion
 object MyClass {
 public
     // visible outside the object
-    
+
 private
     // only visible within the object
 }
@@ -623,10 +708,10 @@ private
 object TSocket {
 public
     property port : uint16 read mport write SetPort;
-    
+
 private
     mport : uint16;
-    
+
     function SetPort(value : uint16) {
         mport = value;
     }
@@ -663,11 +748,11 @@ use math;
 
 object Circle {
     radius : float;
-    
+
     function Area() -> float {
         return .PI * radius * radius;   // .PI = global PI from math
     }
-    
+
     function Area2() -> float {
         use math;                        // local injection
         return PI * radius * radius;     // PI found in injected namespace
@@ -683,11 +768,11 @@ object Circle {
 
 ```dq
 p : ^int32;                 // pointer to int32
-p = ptr(x);                 // address-of (ptr function)
+p = &x;                     // address-of (C-style)
 y = p^;                     // dereference (Pascal-style)
 ```
 
-**Note**: The `@` symbol is reserved for namespace references. Use `ptr()` function to get the address of a variable.
+**Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
 
 ### 10.2 Pointer Arithmetic
 
@@ -840,16 +925,16 @@ comptime if (@def.WINDOWS) {
 ### 12.5 Compiler Directives
 
 ```dq
-#{comp blockmode indent}    // switch to indentation mode
-#{comp blockmode braces}    // switch to brace mode
+#{opt blockmode indent}     // switch to indentation mode
+#{opt blockmode braces}     // switch to brace mode
 
 #{push}                     // save directive state
-#{comp blockmode indent}
+#{opt blockmode indent}
 // indentation-mode code here
 #{pop}                      // restore previous state
 
-#{comp warn disable W001}   // disable warning (TBD)
-#{comp opt level 2}         // optimization level (TBD)
+#{opt warn disable W001}    // disable warning (TBD)
+#{opt optimize 2}           // optimization level (TBD)
 ```
 
 ---
@@ -880,7 +965,7 @@ delete null;                        // safe (no-op)
 function Example() {
     p : ^Worker = new("Test");
     ensure { delete p; }            // guaranteed cleanup at scope exit
-    
+
     // use p...
 }
 ```
@@ -909,7 +994,6 @@ println(...)        // output with newline
 length(x)           // length of array/string (Pascal-style)
 sizeof(T)           // size in bytes
 typeof(x)           // type information (TBD)
-ptr(x)              // address of variable (returns ^T)
 ```
 
 ### 14.2 String Operations
@@ -1027,17 +1111,17 @@ function main() -> int {
     var i2 : int = 3;
     var f : float = i1 / i2;
     println("f =", f);
-    
+
     var res : int = imul(i1, i2);
     println("mul(i1, i2) =", res);
-    
+
     // for-loop example
     var sum_for : int = 0;
     for i = 0 to 4 {
         sum_for += i;
     }
     println("sum_for =", sum_for);
-    
+
     // while-loop example
     var sum_while : int = 0;
     var j : int = 0;
@@ -1046,13 +1130,13 @@ function main() -> int {
         j += 1;
     }
     println("sum_while =", sum_while);
-    
+
     // if / else with boolean expression
     if (i1 < i2 and sum_for == sum_while) or (res > 0 and f < 1.0) {
         println("condition is TRUE");
     }
     else: println("condition is FALSE");
-    
+
     return 0;
 }
 ```
@@ -1064,7 +1148,7 @@ import io;
 
 object WorkHelper {
     worklog : array<int>;
-    
+
     function help(anum : int) {
         worklog.append(anum);
     }
@@ -1074,23 +1158,23 @@ object Worker {
     name    : str;
     counter : int;
     helper  : ^WorkHelper;
-    
+
     function __ctor(aname : str) {
         name = aname;
         counter = 0;
         helper = new WorkHelper();
     }
-    
+
     function __dtor() {
         delete helper;
     }
-    
+
     function DoWork(anum : int) {
         helper.help(anum);
         counter += 1;
         write(name + " work #" + str(counter));
     }
-    
+
     function write(msg : str) {
         .print(msg);            // global print
     }
@@ -1101,7 +1185,7 @@ function main() {
     w1 : Worker("Alice");
     w1.DoWork(5);
     w1.DoWork(3);
-    
+
     // heap-allocated object
     w2 : ^Worker = new("Bob");
     ensure { delete w2; }
@@ -1120,15 +1204,15 @@ object TSockTester {
 public
     property port : uint16 read mport write SetPort;
     onevent : TSockCallBackFunc = null;
-    
+
     function __ctor(aport : uint16) {
         mport = aport;
     }
-    
+
 private
     mport : uint16;
     msocket : int = -1;
-    
+
     function SetPort(avalue : uint16) {
         mport = avalue;
     }
@@ -1136,31 +1220,31 @@ private
 
 function main() -> int {
     println("Hello from DQ!");
-    
+
     i1 : int = 3;
     i2 : int = 12345;
-    
+
     i3 : int = i2 AND i1;           // bitwise AND
-    
+
     // if (i3)                      // ERROR: bool expression expected
-    
+
     if i3 <> 0 {                    // OK: explicit comparison
         println("i3 is not null!");
     }
-    
+
     // Precedence: no parentheses needed
     if i2 AND i1 <> 0 and (i1 SHL 1) > 5 {
         println("both are true!");
     }
-    
+
     // i4 : int = i2 / i1;          // ERROR: / returns float
     f1 : float = i2 / i1;           // OK
     i5 : int = i2 IDIV i1;          // OK: integer division
     i6 : int = round(i2 / i1);      // OK: explicit rounding
-    
+
     b : bool = i2 <> i1;
     b2 : bool = (i6 == i5);         // '==' or '=' both work
-    
+
     return 0;
 }
 ```
@@ -1168,6 +1252,15 @@ function main() -> int {
 ---
 
 ## Appendix B: Changelog
+
+### v0.1 (2026-01-22)
+- Changed address-of operator from `ptr()` function to `&` symbol
+- Changed integer modulo from `mod` to `IMOD` keyword (consistency with `IDIV`)
+- Added attribute syntax using `[[ ... ]]` brackets
+- Added function attributes section with common attributes
+- Changed named parameter syntax from `=>` to `:=` for clarity
+- Changed compiler directive syntax from `#{comp ...}` to `#{opt ...}`
+- Unified string/char literals: both quote styles allowed, type determined by length
 
 ### v0.1 (2026-01-21)
 - Initial draft specification

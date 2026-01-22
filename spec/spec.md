@@ -1,6 +1,6 @@
 # DQ Language Specification
 
-**Version:** 0.1.7 (Draft)
+**Version:** 0.1.8 (Draft)
 **Status:** Work in Progress
 **Last Updated:** 2026-01-22
 
@@ -219,7 +219,7 @@ false
 | Type | Size | Range |
 |------|------|-------|
 | `int8` | 8-bit | -128 to 127 |
-| `uint8` | 8-bit | 0 to 255 |
+| `byte`, `uint8` | 8-bit | 0 to 255 |
 | `int16` | 16-bit | -32,768 to 32,767 |
 | `uint16` | 16-bit | 0 to 65,535 |
 | `int32` | 32-bit | -2³¹ to 2³¹-1 |
@@ -228,6 +228,8 @@ false
 | `uint64` | 64-bit | 0 to 2⁶⁴-1 |
 | `int` | pointer-sized | platform dependent |
 | `uint` | pointer-sized | platform dependent |
+
+**Note**: `byte` and `uint8` are interchangeable. The type `word` is intentionally not provided due to ambiguity (16-bit vs 32-bit depending on platform conventions).
 
 #### Floating Point Types
 | Type | Size | Description |
@@ -337,10 +339,10 @@ Enumerations define a set of named constant values with a mandatory underlying s
 
 ```dq
 // Storage type is mandatory
-type TProcState : uint8 = (psIdle, psRising, psFalling, psSaving);
+type TProcState : byte = (psIdle, psRising, psFalling, psSaving);
 
 // With explicit values (for protocols, hardware registers, etc.)
-type TCmd : uint8 = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF);
+type TCmd : byte = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF);
 
 // Auto-increment from last explicit value
 type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1, 2, 3
@@ -373,26 +375,26 @@ Conversions between enum types and their underlying integer type must be **expli
 cmd : TCmd = cmdRead;
 
 // Enum to integer: explicit cast
-val : uint8 = uint8(cmd);           // val = 0x10
+val : byte = byte(cmd);             // val = 0x10
 
 // Integer to enum: explicit cast
 cmd2 : TCmd = TCmd(0x20);           // cmd2 = cmdWrite
 
 // Comparison with integer literals: requires cast
-if uint8(cmd) = 0x10 { ... }        // OK: explicit
+if byte(cmd) = 0x10 { ... }         // OK: explicit
 // if cmd = 0x10 { ... }            // ERROR: type mismatch
 ```
 
 #### Supported Underlying Types
 
 Any integer type can be used as the underlying storage:
-- `uint8`, `int8`
+- `byte`, `uint8`, `int8`
 - `uint16`, `int16`
 - `uint32`, `int32`
 - `uint64`, `int64`
 
 ```dq
-type TSmallEnum : uint8 = (seA, seB, seC);          // 1 byte
+type TSmallEnum : byte = (seA, seB, seC);           // 1 byte
 type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
 ```
 
@@ -490,10 +492,6 @@ i : int = round(10 / 3);    // == 3 (explicit rounding)
 | `<=` | Less than or equal |
 | `>=` | Greater than or equal |
 
-**Notes**:
-- Comparisons are non-associative: `a = b = c` is a syntax error
-- Comparison chaining is forbidden
-
 ### 6.3 Logical Operators (lowercase, for `bool` only)
 
 | Operator | Description | Short-circuit |
@@ -539,10 +537,12 @@ The precedence is designed to avoid the classic C trap where `a AND b == 0` pars
 
 ```dq
 // This works as expected without parentheses:
-if i2 AND i1 <> 0       // parses as (i2 AND i1) <> 0
+if i2 AND i1 <> 0: ...       // parses as (i2 AND i1) <> 0
 
-// Full example:
-if (i2 AND i1 <> 0) and ((i1 SHL 1) > 5)
+// This results to same:
+if i2 AND i1 <> 0 and i1 << 1 > 5: ...
+// as this:
+if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
 ```
 
 ### 6.6 Assignment Operators
@@ -556,7 +556,8 @@ x *= 2;                     // compound: multiply
 x /= 2;                     // compound: divide (result is float!)
 ```
 
-**Important**: Assignment is a **statement**, not an expression.
+**Important**: Assignment is a **statement**, assignments are not allowed in expressions (like after `if`).
+An assignment chaining is not possible (e.g. `a := b := 1;` is a compiler error);
 
 ### 6.7 Named Arguments
 
@@ -653,6 +654,9 @@ continue;                   // skip to next iteration
 return value;               // return from function
 return;                     // return from void function
 ```
+
+**note**: function return values also can be set using the built-in `result` variable.
+
 
 ### 7.7 Ensure Statement (Defer)
 
@@ -876,7 +880,7 @@ private
 ```dq
 object Dog : Animal {
     // inherits from Animal
-    override function Speak() {
+    function Speak() [[override]] {
         print("woof");
     }
 }
@@ -930,8 +934,8 @@ y = p^;                     // dereference (Pascal-style)
 ### 10.2 Pointer Arithmetic
 
 ```dq
-p : ^uint8 = buffer;
-pend : ^uint8 = p + length;  // pointer arithmetic allowed
+p : ^byte = buffer;
+pend : ^byte = p + length;   // pointer arithmetic allowed
 while p < pend {
     // ...
     p += 1;
@@ -966,14 +970,15 @@ if p != null {
 module Net.Socket
 
 // Interface section (public declarations)
-export type Socket;
-export function open(host : str, port : uint16) -> Socket;
-export function close(ref s : Socket);
+
+type Socket = int32;
+
+function open(host : str, port : uint16) -> Socket;
+function close(ref s : Socket);
 
 implementation
 
 // Implementation section (private + bodies)
-type Socket { fd : int32; }
 
 function open(host : str, port : uint16) -> Socket {
     // ...
@@ -984,14 +989,18 @@ function close(ref s : Socket) {
 }
 
 initialization
+{
     // runs at program start (optional)
+}
 
 finalization
+{
     // runs at shutdown (optional)
+}
+
 ```
 
 **Structure**:
-- Interface section comes first (all `export` declarations)
 - `implementation` keyword separates interface from implementation
 - `initialization` and `finalization` sections are optional
 - No braces around sections — keyword alone marks the boundary
@@ -1001,8 +1010,6 @@ finalization
 ```dq
 use math;                           // merge into module-global namespace
 use Drivers.UART as UART;           // alias
-use Net.Socket interface;           // interface only (breaks cycles)
-use math for objects;               // inject into all object contexts
 ```
 
 ### 11.3 Qualified Access
@@ -1018,8 +1025,7 @@ use math for objects;               // inject into all object contexts
 1. Object/type scope (members)
 2. Block injected namespace (local `use`)
 3. Type injected namespace (type-level `use`)
-4. Module object-injected set (`use X for objects`)
-5. ERROR (module-global requires `.name`)
+4. ERROR (module-global requires `.name`)
 
 **For `.name`**:
 1. Module-global namespace (module scope + top-level `use`)
@@ -1046,27 +1052,33 @@ DQ source -> Preprocessor (#ifdef/#include) -> comp1 (comptime) -> comp2 (codege
 
 ```dq
 #{ifdef WINDOWS}
-    import "windows";
+    use windows;
 #{elifdef LINUX}
-    import "linux";
+    use linux;
 #{else}
     #{error "Platform not supported"}
 #{endif}
 ```
 
-### 12.3 Compile-Time Conditions (comp1)
+### 12.3 Compile-Time (comp1) Access of the Defines
+
+**TODO**: Full behaviour is to be defined.
+
 
 ```dq
-comptime if (@def.WINDOWS) {
-    import("uart_windows.dq");
-} else if (@def.LINUX) {
+comptime if (defined(WINDOWS) {
+    useimport("uart_windows.dq");
+} else if (defined(LINUX) {
     import("uart_linux.dq");
 } else {
     compile_error("Platform not supported");
 }
 ```
 
-### 12.4 Defines (`@def.*`)
+The defined() is a special built-in function which never gives a compiler error, returns true, when a symbol defined.
+
+The defines are accessible with a @def. namespace.
+
 
 ```dq
 @def.WINDOWS        // platform define (bool)
@@ -1120,18 +1132,6 @@ function Example() {
     ensure { delete p; }            // guaranteed cleanup at scope exit
 
     // use p...
-}
-```
-
-### 13.4 Copy Semantics
-
-- Objects are copyable by default (field-wise copy)
-- Use `nocopy` to prevent copying
-
-```dq
-object FileHandle nocopy {
-    fd : int32;
-    // ...
 }
 ```
 
@@ -1405,6 +1405,17 @@ function main() -> int {
 ---
 
 ## Appendix B: Changelog
+
+### v0.1.8 (2026-01-22)
+- Added `byte` as alias for `uint8` (no `word` due to platform ambiguity)
+- Clarified assignment is statement-only, no chaining allowed (`a := b := 1` is error)
+- Added note about `result` variable for function return values
+- Changed override syntax to attribute style: `function Speak() [[override]]`
+- Simplified module declaration: removed `export` keyword, added braces to `initialization`/`finalization`
+- Simplified `use` statements (removed `interface` and `for objects` variants)
+- Simplified name resolution rules
+- Added `defined()` function for compile-time conditionals (marked TODO for full spec)
+- Updated operator precedence examples with `<<` shorthand
 
 ### v0.1.7 (2026-01-22)
 - Changed constant syntax to `const(type)` for both single-line and block forms

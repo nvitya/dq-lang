@@ -1,6 +1,6 @@
 // DQ Enum Syntax
 
-type TProcState : uint8 = (psIdle, psRising, psFalling, psSaving);
+type TProcState : byte = (psIdle, psRising, psFalling, psSaving);
 
 var curstate : TProcState := psIdle;
 var prevvalue : int = 0;

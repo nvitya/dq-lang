@@ -939,7 +939,7 @@ endfunc
 ### 9.1 Object Declaration
 
 ```dq
-object Worker:
+object OWorker:
     // Fields
     name : str;
     counter : int;
@@ -971,15 +971,15 @@ endobject
 
 #### Stack Allocation (Value)
 ```dq
-w : Worker("Alice");        // constructor called directly
+w : OWorker("Alice");        // constructor called directly
 w.DoWork();
 // destructor called automatically at scope exit
 ```
 
 #### Heap Allocation (Pointer)
 ```dq
-w : ^Worker = new Worker("Bob");   // explicit type at new
-w : ^Worker = new("Bob");           // target-typed new (type inferred from LHS)
+w : ^OWorker = new OWorker("Bob");   // explicit type at new
+w : ^OWorker = new("Bob");           // target-typed new (type inferred from LHS)
 w.DoWork();
 delete w;                           // explicit deletion
 ```
@@ -987,7 +987,7 @@ delete w;                           // explicit deletion
 ### 9.3 Visibility
 
 ```dq
-object MyClass:
+object OMyObj:
 public
     // visible outside the object
 
@@ -999,7 +999,7 @@ endobject
 ### 9.4 Properties
 
 ```dq
-object TSocket:
+object OSocket:
 public
     property port : uint16 read mport write SetPort;
 
@@ -1015,8 +1015,15 @@ endobject
 ### 9.5 Inheritance
 
 ```dq
-object Dog : Animal:
-    // inherits from Animal
+object OAnimal:
+public
+    function Speak() [[virtual]]:
+        print("beep");
+    endfunc
+endobject
+
+object ODog(OAnimal):  // inherits from OAnimal
+public
     function Speak() [[override]]:
         print("woof");
     endfunc
@@ -1040,7 +1047,8 @@ Inside object methods:
 ```dq
 use math;
 
-object Circle:
+object OCircle:
+public
     radius : float;
 
     function Area() -> float:
@@ -1266,7 +1274,6 @@ delete null;                        // safe (no-op)
 function Example():
     p : ^Worker := new("Test");
     ensure: delete p; endensure    // guaranteed cleanup at scope exit
-
     // use p...
 endfunc
 ```
@@ -1434,7 +1441,7 @@ endfunc
 ```dq
 use io;
 
-object WorkHelper:
+object OWorkHelper:
 public
     worklog : int[...];
 
@@ -1443,16 +1450,16 @@ public
     endfunc
 endobject
 
-object Worker:
+object OWorker:
 public
     name    : str;
     counter : int;
-    helper  : ^WorkHelper;
+    helper  : ^OWorkHelper;
 
     function __ctor(aname : str):
         name := aname;
         counter := 0;
-        helper := new WorkHelper();
+        helper := new OWorkHelper();
     endfunc
 
     function __dtor():
@@ -1472,12 +1479,12 @@ endobject
 
 function main():
     // stack-allocated object
-    w1 : Worker("Alice");
+    w1 : OWorker("Alice");
     w1.DoWork(5);
     w1.DoWork(3);
 
     // heap-allocated object
-    w2 : ^Worker := new("Bob");
+    w2 : ^OWorker := new("Bob");
     ensure:
         delete w2;
     endensure
@@ -1492,7 +1499,7 @@ use sockets;
 
 type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
 
-object TSockTester:
+object OSockTester:
 public
     property port : uint16 read mport write SetPort;
     onevent : TSockCallBackFunc := null;
@@ -1524,8 +1531,8 @@ function main() -> int:
         println("i3 is not null!");
     endif
 
-    // Precedence: no parentheses needed
-    if i2 AND i1 <> 0 and (i1 SHL 1) > 5:
+    // Precedence: no parentheses needed here to evaluate this correct
+    if i2 AND i1 <> 0 and i1 SHL 1 > 5:
         println("both are true!");
     endif
 

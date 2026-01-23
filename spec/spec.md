@@ -1,8 +1,8 @@
 # DQ Language Specification
 
-**Version:** 0.1.8 (Draft)
+**Version:** 0.1.9 (Draft)
 **Status:** Work in Progress
-**Last Updated:** 2026-01-22
+**Last Updated:** 2026-01-23
 
 ---
 
@@ -88,13 +88,15 @@ DQ is **case-sensitive**.
 #### Reserved Keywords
 ```
 and         array       auto        break       case        const
-continue    delete      else        ensure      except      false
-for         function    if          implementation          import
-in          interface   module      new         not         null
-object      or          out         packed      private     property
-public      raise       ref         return      specialize  struct
-to          true        try         type        use         var
-virtual     while       xor
+continue    delete      elif        else        endconst    endensure
+endfinalization         endfor      endfunc     endif       endinitialization
+endobject   endtry      endwhile    ensure      except      false
+finalization            for         function    if          implementation
+in          initialization          interface   module      new
+not         null        object      or          out         packed
+private     property    public      raise       ref         return
+specialize  struct      to          true        try         type
+use         var         virtual     while       xor
 ```
 
 #### Operator Keywords (Case-Sensitive)
@@ -189,13 +191,13 @@ sql := """
 
 **Example with indentation**:
 ```dq
-function example() {
+function example():
     msg := """
         Line 1
         Line 2
         """;
     // Result: "Line 1\nLine 2" (8 spaces stripped, no trailing newline)
-}
+endfunc
 ```
 
 **Single-line usage** (useful for strings containing both quote types):
@@ -279,8 +281,8 @@ ch : char = s1[0];          // indexed access (Unicode-aware)
 
 ```dq
 name : cstring[32];         // 32-byte inline buffer
-name = "Viktor";            // copies UTF-8, truncates to N-1, adds NUL
-s : str = name;             // converts to dynamic string
+name := "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
+s : str := name;            // converts to dynamic string
 ```
 
 ### 4.3 Array Types
@@ -292,8 +294,8 @@ s : str = name;             // converts to dynamic string
 
 ```dq
 arr : int32[4];
-arr[0] = 10;
-len : int = arr.length;     // == 4 (compile-time known)
+arr[0] := 10;
+len : int := arr.length;    // == 4 (compile-time known)
 ```
 
 #### Dynamic Array (`T[...]`)
@@ -305,7 +307,7 @@ len : int = arr.length;     // == 4 (compile-time known)
 arr : int32[...];
 arr.append(10);
 arr.append(20);
-len : int = arr.length;     // runtime value
+len : int := arr.length;    // runtime value
 ```
 
 #### Multi-dimensional Arrays
@@ -353,11 +355,11 @@ type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1,
 Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
 
 ```dq
-state : TProcState = psIdle;
+state : TProcState := psIdle;
 
-if state = psRising {
+if state = psRising:
     // ...
-}
+endif
 ```
 
 **Naming convention**: Use a short prefix derived from the type name to avoid conflicts:
@@ -372,17 +374,17 @@ This convention prevents name collisions when multiple enum types are in scope.
 Conversions between enum types and their underlying integer type must be **explicit**:
 
 ```dq
-cmd : TCmd = cmdRead;
+cmd : TCmd := cmdRead;
 
 // Enum to integer: explicit cast
-val : byte = byte(cmd);             // val = 0x10
+val : byte := byte(cmd);            // val = 0x10
 
 // Integer to enum: explicit cast
-cmd2 : TCmd = TCmd(0x20);           // cmd2 = cmdWrite
+cmd2 : TCmd := TCmd(0x20);          // cmd2 = cmdWrite
 
 // Comparison with integer literals: requires cast
-if byte(cmd) = 0x10 { ... }         // OK: explicit
-// if cmd = 0x10 { ... }            // ERROR: type mismatch
+if byte(cmd) = 0x10:  ...  endif    // OK: explicit
+// if cmd = 0x10:  ...  endif       // ERROR: type mismatch
 ```
 
 #### Supported Underlying Types
@@ -439,16 +441,16 @@ const(int)    MAX_SIZE = 1024;
 Use the block form to group related constants of the same type:
 
 ```dq
-const(uint) {
+const(uint):
     BUFFER_SIZE = 1024;
     BUFFER_MASK = BUFFER_SIZE - 1;
     MAX_ITEMS = 256;
-}
+endconst
 
-const(float) {
+const(float):
     PI = 3.14159265358979;
     E  = 2.71828182845904;
-}
+endconst
 ```
 
 Constants are evaluated at compile time and can reference other constants in expressions.
@@ -548,16 +550,19 @@ if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
 ### 6.6 Assignment Operators
 
 ```dq
-x = 10;                     // assignment
-x := 10;                    // also assignment (optional Pascal style)
+x = 10;                     // assignment (relaxed mode only)
+x := 10;                    // assignment (required in strict mode)
 x += 5;                     // compound: add
 x -= 5;                     // compound: subtract
 x *= 2;                     // compound: multiply
 x /= 2;                     // compound: divide (result is float!)
 ```
 
-**Important**: Assignment is a **statement**, assignments are not allowed in expressions (like after `if`).
-An assignment chaining is not possible (e.g. `a := b := 1;` is a compiler error);
+**Important**:
+- Assignment is a **statement** — not allowed in expressions (like after `if`)
+- Assignment chaining is not possible (e.g. `a := b := 1;` is a compiler error)
+- In **strict mode**, only `:=` is allowed for assignment; `=` in statements is an error
+- In **relaxed mode**, both `=` and `:=` are accepted
 
 ### 6.7 Named Arguments
 
@@ -574,26 +579,113 @@ cfg : TConfig = (baud := 115200, parity := .None);
 
 ## 7. Statements and Control Flow
 
-### 7.1 Block Modes
+### 7.1 Syntax Modes
 
-DQ supports two block modes (selectable via compiler directive):
+DQ supports two syntax modes: **Strict Mode** and **Relaxed Mode** (selectable via compiler directive or flag).
 
-#### Brace Mode (default)
+#### Strict Mode
+
+In strict mode, DQ enforces a consistent, unambiguous syntax:
+
+- **Assignments**: Must use `:=` (not `=`)
+- **Blocks**: Must use `: ... endXXX` delimiters
+- **Indentation**: Proper indentation is required (violations produce warnings)
+
 ```dq
-if condition {
-    // statements
+#{opt syntax strict}
+
+function HandleState(value : int):
+    if curstate = psIdle:
+        if value > prevvalue:
+            curstate := psRising;
+        elif value < prevvalue:
+            curstate := psFalling;
+        else:
+            println('state not handled!');
+        endif
+    elif curstate = psRising:
+        // ...
+    endif
+endfunc
+```
+
+**Block closing keywords**:
+| Opener | Closer |
+|--------|--------|
+| `function name():` | `endfunc` |
+| `if condition:` | `endif` |
+| `while condition:` | `endwhile` |
+| `for ... :` | `endfor` |
+| `object Name:` | `endobject` |
+| `try:` | `endtry` |
+| `ensure:` | `endensure` |
+| `const(type):` | `endconst` |
+| `initialization:` | `endinitialization` |
+| `finalization:` | `endfinalization` |
+
+**Key rule**: The colon `:` opens a block, `endXXX` closes it. Indentation is for readability and style enforcement only — the syntax is delimiter-based, not indentation-based. This means code is technically valid on a single line:
+
+```dq
+function Foo():  if a:  x := 1;  endif  endfunc   // valid but discouraged
+```
+
+**Compact form**: Single statements can follow the colon on the same line:
+
+```dq
+if   value > prevvalue:  curstate := psRising;
+elif value < prevvalue:  curstate := psFalling;
+else:                    println('not handled!');
+endif
+```
+
+**One-liner blocks**: A complete block (opener + statement + closer) may appear on a single line when:
+1. The block contains exactly **one statement**
+2. The line does not exceed **80 columns**
+
+```dq
+// One-liner blocks (accepted in strict mode):
+if condition:  doSomething();  endif
+while hasMore():  process();  endwhile
+ensure:  cleanup();  endensure
+
+// Typical usage with ensure:
+p : ^Worker := new("Test");
+ensure:  delete p;  endensure
+p.DoWork();
+```
+
+This is purely a style rule — the syntax is always valid regardless of line length.
+
+#### Relaxed Mode (default)
+
+In relaxed mode, additional syntax forms are allowed without warnings:
+
+- **Assignments**: Both `=` and `:=` are allowed
+- **Blocks**: Both `{ ... }` braces and `: ... endXXX` are allowed
+
+```dq
+function HandleState(value : int) {
+    if curstate = psIdle {
+        if value > prevvalue {
+            curstate = psRising;
+        }
+        else if value < prevvalue {
+            curstate = psFalling;
+        }
+    }
 }
 ```
 
-#### Indentation Mode (optional)
+#### Mode Selection
+
 ```dq
-#{opt blockmode indent}
-if condition:
-    // statements
+#{opt syntax strict}        // enable strict mode
+#{opt syntax relaxed}       // enable relaxed mode (default)
 ```
 
 ### 7.2 If Statement
 
+#### Relaxed Mode (braces)
 ```dq
 if condition {
     // then branch
@@ -604,41 +696,83 @@ else if other_condition {
 else {
     // else branch
 }
-
-// Single-statement form:
-if condition: statement;
-else: statement;
 ```
 
-**Important**: Condition must be of type `bool`. No implicit int→bool conversion.
+#### Strict Mode (colon + endif)
+```dq
+if condition:
+    // then branch
+elif other_condition:
+    // else-if branch
+else:
+    // else branch
+endif
+```
+
+**Important rules**:
+- Condition must be of type `bool`. No implicit int→bool conversion.
+- In strict mode, use `elif` for chained conditions (not `else if`)
+- `else if` as two tokens is **invalid** in strict mode
+- `else: if` creates a **nested** if-block requiring two `endif`s:
+
+```dq
+// elif - single chain, one endif:
+if a:
+    x := 1;
+elif b:
+    x := 2;
+endif
+
+// else: if - nested blocks, two endifs:
+if a:
+    x := 1;
+else:
+    if b:
+        x := 2;
+    endif
+endif
+```
 
 ### 7.3 While Loop
 
 ```dq
+// Relaxed mode:
 while condition {
     // body
 }
+
+// Strict mode:
+while condition:
+    // body
+endwhile
 ```
 
 ### 7.4 For Loop
 
 ```dq
+// Relaxed mode:
 for i = 0 to 10 {           // inclusive: 0, 1, 2, ..., 10
     // body
 }
 
-for i = 10 to 0 {           // descending (TBD: step)
+// Strict mode:
+for i := 0 to 10:
     // body
-}
+endfor
+
+// Descending (TBD: step)
+for i := 10 to 0:
+    // body
+endfor
 
 // Iteration over collections:
-for ch : char in str_value {
+for ch : char in str_value:
     // iterate over characters
-}
+endfor
 
-for item in array_value {
+for item in array_value:
     // iterate over elements
-}
+endfor
 ```
 
 ### 7.5 Break and Continue
@@ -658,10 +792,13 @@ return;                     // return from void function
 **note**: function return values also can be set using the built-in `result` variable.
 
 
-### 7.7 Ensure Statement (Defer)
+### 7.7 Ensure Statement
 
 ```dq
-ensure { cleanup_code(); }  // executes at scope exit
+ensure:
+    cleanup_code1();
+    cleanup_code2();
+endensure
 ```
 
 ---
@@ -671,26 +808,26 @@ ensure { cleanup_code(); }  // executes at scope exit
 ### 8.1 Function Declaration
 
 ```dq
-function name(param1 : Type1, param2 : Type2) -> ReturnType {
+function name(param1 : Type1, param2 : Type2) -> ReturnType:
     // body
-}
+endfunc
 
-function void_func(x : int) {
+function void_func(x : int):
     // no return type means void
-}
+endfunc
 ```
 
 ### 8.2 Return Value
 
 ```dq
-function add(a : int, b : int) -> int {
+function add(a : int, b : int) -> int:
     return a + b;
-}
+endfunc
 
 // Alternative (Pascal-style): assign to 'result'
-function add(a : int, b : int) -> int {
-    result = a + b;
-}
+function add(a : int, b : int) -> int:
+    result := a + b;
+endfunc
 ```
 
 ### 8.3 Parameter Passing Modes
@@ -703,13 +840,13 @@ function add(a : int, b : int) -> int {
 | Out | `out param : T` | Must be assigned before function returns |
 
 ```dq
-function Inc(ref x : int, amount : int) {
+function Inc(ref x : int, amount : int):
     x += amount;
-}
+endfunc
 
-function ParseInt(in s : str, out value : int) -> bool {
+function ParseInt(in s : str, out value : int) -> bool:
     // ...
-}
+endfunc
 ```
 
 **Rules**:
@@ -721,9 +858,9 @@ function ParseInt(in s : str, out value : int) -> bool {
 **Argument Namespace**: Parameters can be accessed explicitly via `@arg.`:
 
 ```dq
-function Foo(par1 : int) -> int {
+function Foo(par1 : int) -> int:
     result := @arg.par1 * 2;    // explicit argument access
-}
+endfunc
 ```
 
 This is useful when a local variable shadows a parameter name.
@@ -738,7 +875,7 @@ type IntFunc = function(x : int) -> int;
 type Callback = function(x : int) -> int of object;
 
 // Usage
-cb : Callback = obj.method;
+cb : Callback := obj.method;
 cb(42);
 ```
 
@@ -753,31 +890,31 @@ Multiple attributes can be specified in a single bracket pair (comma-separated) 
 ```dq
 // Attribute before declaration
 [[section("ramcode")]]
-function Foo(x : int) -> int {
-    px : ^int = &x;
+function Foo(x : int) -> int:
+    px : ^int := &x;
     @io.println("x = ", px^);
-}
+endfunc
 
 // Attributes after signature
-function Bar(x : int) -> int [[stdcall, override]] {
+function Bar(x : int) -> int [[stdcall, override]]:
     return x * 2;
-}
+endfunc
 
 // Static function
 [[static]]
-function Helper(x : int) -> int {
+function Helper(x : int) -> int:
     return x + 1;
-}
+endfunc
 
 // Alternative: attribute after signature
-function Helper2(x : int) -> int [[static]] {
+function Helper2(x : int) -> int [[static]]:
     return x + 1;
-}
+endfunc
 
 // Inline function
-function GetValue() -> int [[inline]] {
+function GetValue() -> int [[inline]]:
     return 42;
-}
+endfunc
 ```
 
 #### Common Function Attributes
@@ -802,32 +939,32 @@ function GetValue() -> int [[inline]] {
 ### 9.1 Object Declaration
 
 ```dq
-object Worker {
+object Worker:
     // Fields
     name : str;
     counter : int;
 
     // Constructor
-    function __ctor(aname : str) {
-        name = aname;
-        counter = 0;
-    }
+    function __ctor(aname : str):
+        name := aname;
+        counter := 0;
+    endfunc
 
     // Destructor
-    function __dtor() {
+    function __dtor():
         // cleanup
-    }
+    endfunc
 
     // Methods
-    function DoWork() {
+    function DoWork():
         counter += 1;
         write(name + " work #" + str(counter));
-    }
+    endfunc
 
-    function write(msg : str) {
+    function write(msg : str):
         .print(msg);        // leading dot = global function
-    }
-}
+    endfunc
+endobject
 ```
 
 ### 9.2 Object Instantiation
@@ -850,40 +987,40 @@ delete w;                           // explicit deletion
 ### 9.3 Visibility
 
 ```dq
-object MyClass {
+object MyClass:
 public
     // visible outside the object
 
 private
     // only visible within the object
-}
+endobject
 ```
 
 ### 9.4 Properties
 
 ```dq
-object TSocket {
+object TSocket:
 public
     property port : uint16 read mport write SetPort;
 
 private
     mport : uint16;
 
-    function SetPort(value : uint16) {
-        mport = value;
-    }
-}
+    function SetPort(value : uint16):
+        mport := value;
+    endfunc
+endobject
 ```
 
 ### 9.5 Inheritance
 
 ```dq
-object Dog : Animal {
+object Dog : Animal:
     // inherits from Animal
-    function Speak() [[override]] {
+    function Speak() [[override]]:
         print("woof");
-    }
-}
+    endfunc
+endobject
 ```
 
 **Rules**:
@@ -903,18 +1040,18 @@ Inside object methods:
 ```dq
 use math;
 
-object Circle {
+object Circle:
     radius : float;
 
-    function Area() -> float {
+    function Area() -> float:
         return .PI * radius * radius;   // .PI = global PI from math
-    }
+    endfunc
 
-    function Area2() -> float {
+    function Area2() -> float:
         use math;                        // local injection
         return PI * radius * radius;     // PI found in injected namespace
-    }
-}
+    endfunc
+endobject
 ```
 
 ---
@@ -925,8 +1062,8 @@ object Circle {
 
 ```dq
 p : ^int32;                 // pointer to int32
-p = &x;                     // address-of (C-style)
-y = p^;                     // dereference (Pascal-style)
+p := &x;                    // address-of (C-style)
+y := p^;                    // dereference (Pascal-style)
 ```
 
 **Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
@@ -934,30 +1071,30 @@ y = p^;                     // dereference (Pascal-style)
 ### 10.2 Pointer Arithmetic
 
 ```dq
-p : ^byte = buffer;
-pend : ^byte = p + length;   // pointer arithmetic allowed
-while p < pend {
+p : ^byte := buffer;
+pend : ^byte := p + length;  // pointer arithmetic allowed
+while p < pend:
     // ...
     p += 1;
-}
+endwhile
 ```
 
 ### 10.3 Null
 
 ```dq
-p : ^Worker = null;
-if p == null { ... }
+p : ^Worker := null;
+if p = null:  ...  endif
 delete null;                 // safe (no-op)
 ```
 
 ### 10.4 Ref Binding to Pointer
 
 ```dq
-p : ^MyStruct = ...;
-if p != null {
-    ref s : MyStruct = p^;  // bind ref to pointee
-    s.field = 10;           // modify through ref
-}
+p : ^MyStruct := ...;
+if p <> null:
+    ref s : MyStruct := p^; // bind ref to pointee
+    s.field := 10;          // modify through ref
+endif
 ```
 
 ---
@@ -980,32 +1117,29 @@ implementation
 
 // Implementation section (private + bodies)
 
-function open(host : str, port : uint16) -> Socket {
+function open(host : str, port : uint16) -> Socket:
     // ...
-}
+endfunc
 
-function close(ref s : Socket) {
+function close(ref s : Socket):
     // ...
-}
+endfunc
 
-initialization
-{
+initialization:
     // runs at program start (optional)
-}
+endinitialization
 
-finalization
-{
-    // runs at shutdown (optional)
-}
+finalization:
+    // runs at program shutdown (optional)
+endfinalization
 
 ```
 
 **Structure**:
 - `implementation` keyword separates interface from implementation
 - `initialization` and `finalization` sections are optional
-- No braces around sections — keyword alone marks the boundary
 
-### 11.2 Import/Use Statements
+### 11.2 Use Statements
 
 ```dq
 use math;                           // merge into module-global namespace
@@ -1066,13 +1200,15 @@ DQ source -> Preprocessor (#ifdef/#include) -> comp1 (comptime) -> comp2 (codege
 
 
 ```dq
-comptime if (defined(WINDOWS) {
-    useimport("uart_windows.dq");
-} else if (defined(LINUX) {
-    import("uart_linux.dq");
-} else {
+comptime if defined(WINDOWS):
+    use uart_impl_windows;
+    ...
+elif defined(LINUX):
+    use uart_impl_linux;
+    ...
+else:
     compile_error("Platform not supported");
-}
+endif
 ```
 
 The defined() is a special built-in function which never gives a compiler error, returns true, when a symbol defined.
@@ -1090,12 +1226,12 @@ The defines are accessible with a @def. namespace.
 ### 12.5 Compiler Directives
 
 ```dq
-#{opt blockmode indent}     // switch to indentation mode
-#{opt blockmode braces}     // switch to brace mode
+#{opt syntax strict}        // switch to strict mode
+#{opt syntax relaxed}       // switch to relaxed mode
 
 #{push}                     // save directive state
-#{opt blockmode indent}
-// indentation-mode code here
+#{opt syntax strict}
+// strict-mode code here
 #{pop}                      // restore previous state
 
 #{opt warn disable W001}    // disable warning (TBD)
@@ -1113,8 +1249,8 @@ The defines are accessible with a @def. namespace.
 x : MyStruct;
 
 // Heap allocation
-p : ^MyStruct = new MyStruct();
-p : ^MyStruct = new();              // target-typed
+p : ^MyStruct := new MyStruct();
+p : ^MyStruct := new();             // target-typed
 ```
 
 ### 13.2 Deallocation
@@ -1127,12 +1263,12 @@ delete null;                        // safe (no-op)
 ### 13.3 Scope-Based Cleanup
 
 ```dq
-function Example() {
-    p : ^Worker = new("Test");
-    ensure { delete p; }            // guaranteed cleanup at scope exit
+function Example():
+    p : ^Worker := new("Test");
+    ensure: delete p; endensure    // guaranteed cleanup at scope exit
 
     // use p...
-}
+endfunc
 ```
 
 ---
@@ -1208,9 +1344,9 @@ Generics will use Pascal-style `specialize` syntax:
 
 ```dq
 // Generic type definition (syntax TBD)
-type TFPGMapObject<TKey, TValue> = object {
+type TFPGMapObject<TKey, TValue> = object:
     // ...
-}
+endobject
 
 // Specialization
 type TNanoSocketMap = specialize TFPGMapObject<TSocket, TNanoSocket>;
@@ -1225,15 +1361,13 @@ Exceptions will follow Pascal/Python style with `raise`:
 raise EInvalidArgument("value out of range");
 
 // Handling exceptions (syntax TBD, likely try/except)
-try {
+try:
     risky_operation();
-}
-except EFileNotFound as e {
+except EFileNotFound as e:
     println("File not found: ", e.message);
-}
-except {
+except:
     // catch all
-}
+endtry
 ```
 
 ### 16.5 Standard Library Questions
@@ -1255,156 +1389,172 @@ except {
 ### A.1 Basic Syntax Example
 
 ```dq
-function imul(a : int, b : int) -> int {
+function imul(a : int, b : int) -> int:
     return a * b;
-}
+endfunc
 
-function main() -> int {
-    var i1 : int = 2;
-    var i2 : int = 3;
-    var f : float = i1 / i2;
+function main() -> int:
+    var i1 : int := 2;
+    var i2 : int := 3;
+    var f : float := i1 / i2;
     println("f =", f);
 
-    var res : int = imul(i1, i2);
+    var res : int := imul(i1, i2);
     println("mul(i1, i2) =", res);
 
     // for-loop example
-    var sum_for : int = 0;
-    for i = 0 to 4 {
+    var sum_for : int := 0;
+    for i := 0 to 4:
         sum_for += i;
-    }
+    endfor
     println("sum_for =", sum_for);
 
     // while-loop example
-    var sum_while : int = 0;
-    var j : int = 0;
-    while j < 5 {
+    var sum_while : int := 0;
+    var j : int := 0;
+    while j < 5:
         sum_while += j;
         j += 1;
-    }
+    endwhile
     println("sum_while =", sum_while);
 
     // if / else with boolean expression
-    if (i1 < i2 and sum_for == sum_while) or (res > 0 and f < 1.0) {
+    if (i1 < i2 and sum_for = sum_while) or (res > 0 and f < 1.0):
         println("condition is TRUE");
-    }
-    else: println("condition is FALSE");
+    else:
+        println("condition is FALSE");
+    endif
 
     return 0;
-}
+endfunc
 ```
 
 ### A.2 Object Example
 
 ```dq
-import io;
+use io;
 
-object WorkHelper {
+object WorkHelper:
+public
     worklog : int[...];
 
-    function help(anum : int) {
+    function help(anum : int):
         worklog.append(anum);
-    }
-}
+    endfunc
+endobject
 
-object Worker {
+object Worker:
+public
     name    : str;
     counter : int;
     helper  : ^WorkHelper;
 
-    function __ctor(aname : str) {
-        name = aname;
-        counter = 0;
-        helper = new WorkHelper();
-    }
+    function __ctor(aname : str):
+        name := aname;
+        counter := 0;
+        helper := new WorkHelper();
+    endfunc
 
-    function __dtor() {
+    function __dtor():
         delete helper;
-    }
+    endfunc
 
-    function DoWork(anum : int) {
+    function DoWork(anum : int):
         helper.help(anum);
         counter += 1;
         write(name + " work #" + str(counter));
-    }
+    endfunc
 
-    function write(msg : str) {
+    function write(msg : str):
         .print(msg);            // global print
-    }
-}
+    endfunc
+endobject
 
-function main() {
+function main():
     // stack-allocated object
     w1 : Worker("Alice");
     w1.DoWork(5);
     w1.DoWork(3);
 
     // heap-allocated object
-    w2 : ^Worker = new("Bob");
-    ensure { delete w2; }
+    w2 : ^Worker := new("Bob");
+    ensure:
+        delete w2;
+    endensure
     w2.DoWork(7);
-}
+endfunc
 ```
 
 ### A.3 Expressions Example
 
 ```dq
-import sockets;
+use sockets;
 
 type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
 
-object TSockTester {
+object TSockTester:
 public
     property port : uint16 read mport write SetPort;
-    onevent : TSockCallBackFunc = null;
+    onevent : TSockCallBackFunc := null;
 
-    function __ctor(aport : uint16) {
-        mport = aport;
-    }
+    function __ctor(aport : uint16):
+        mport := aport;
+    endfunc
 
 private
     mport : uint16;
-    msocket : int = -1;
+    msocket : int := -1;
 
-    function SetPort(avalue : uint16) {
-        mport = avalue;
-    }
-}
+    function SetPort(avalue : uint16):
+        mport := avalue;
+    endfunc
+endobject
 
-function main() -> int {
+function main() -> int:
     println("Hello from DQ!");
 
-    i1 : int = 3;
-    i2 : int = 12345;
+    i1 : int := 3;
+    i2 : int := 12345;
 
-    i3 : int = i2 AND i1;           // bitwise AND
+    i3 : int := i2 AND i1;          // bitwise AND
 
-    // if (i3)                      // ERROR: bool expression expected
+    // if (i3):  ...  endif         // ERROR: bool expression expected
 
-    if i3 <> 0 {                    // OK: explicit comparison
+    if i3 <> 0:                     // OK: explicit comparison
         println("i3 is not null!");
-    }
+    endif
 
     // Precedence: no parentheses needed
-    if i2 AND i1 <> 0 and (i1 SHL 1) > 5 {
+    if i2 AND i1 <> 0 and (i1 SHL 1) > 5:
         println("both are true!");
-    }
+    endif
 
-    // i4 : int = i2 / i1;          // ERROR: / returns float
-    f1 : float = i2 / i1;           // OK
-    i5 : int = i2 IDIV i1;          // OK: integer division
-    i6 : int = round(i2 / i1);      // OK: explicit rounding
+    // i4 : int := i2 / i1;         // ERROR: / returns float
+    f1 : float := i2 / i1;          // OK
+    i5 : int := i2 IDIV i1;         // OK: integer division
+    i6 : int := round(i2 / i1);     // OK: explicit rounding
 
-    b : bool = i2 <> i1;
-    b2 : bool = (i6 == i5);         // '==' or '=' both work
+    b : bool := i2 <> i1;
+    b2 : bool := (i6 = i5);         // comparison uses '='
 
     return 0;
-}
+endfunc
 ```
 
 ---
 
 ## Appendix B: Changelog
+
+### v0.1.9 (2026-01-23)
+- Added **Strict Mode** vs **Relaxed Mode** syntax distinction
+- Strict mode: assignments require `:=`, blocks use `: ... endXXX` delimiters
+- Relaxed mode (default): allows `=` for assignment and `{ ... }` braces
+- Added `elif` keyword for chained conditions in strict mode (`else if` is invalid)
+- Block closers are delimiter-based (not indentation-based) — indentation is style-enforced only
+- Added block closing keywords: `endif`, `endwhile`, `endfor`, `endfunc`, `endobject`, `endtry`, `endensure`, `endconst`, `endinitialization`, `endfinalization`
+- Compact single-line form: `if cond: statement;` followed by `endif`
+- One-liner blocks allowed when single statement and line ≤ 80 columns
+- Updated all specification examples to use strict mode syntax
 
 ### v0.1.8 (2026-01-22)
 - Added `byte` as alias for `uint8` (no `word` due to platform ambiguity)
@@ -1419,7 +1569,7 @@ function main() -> int {
 
 ### v0.1.7 (2026-01-22)
 - Changed constant syntax to `const(type)` for both single-line and block forms
-- Added block form `const(type) { ... }` for grouping related constants
+- Added block form `const(type): ... endconst` for grouping related constants
 
 ### v0.1.6 (2026-01-22)
 - Added enumeration types with mandatory underlying storage type

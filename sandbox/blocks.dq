@@ -1,0 +1,83 @@
+// DQ – Block Modes (scratchpad)
+// Source spec: https://raw.githubusercontent.com/nvitya/dq-lang/refs/heads/main/spec/spec.md
+// Focus: block modes, parsing rules, and style conventions.
+
+// Full Python Mode:
+
+function HandleState(value : int):
+    if curstate = psIdle:
+        if value > prevvalue:
+            curstate = psRising;
+        elif value < prevvalue:
+            curstate = psFalling;
+        else:
+             println('state not handled!');
+    elif curstate = psRising:
+        ...
+    prevvalue = value;
+
+    while a < 0:
+       println('a = ', a);
+       a += 1;
+
+    for a := 0 to 10:
+       println('a = ', a);
+
+function Foo():
+    println('next function foo');
+
+
+// Ident mode with closing:
+
+function HandleState(value : int):
+    if curstate = psIdle:
+        if value > prevvalue:
+            curstate := psRising;
+        elif value < prevvalue:
+            curstate := psFalling;
+        else:
+             println('state not handled!');
+        endif
+    elif curstate = psRising:
+        ...
+    endif
+
+    // compact form:
+    if curstate = psIdle:
+        if   value > prevvalue:  curstate := psRising;
+        elif value < prevvalue:  curstate := psFalling;  a += 1;
+        else:                    println('state not handled!');
+        endif
+    elif curstate = psRising:
+        ...
+    elif x < 0:  if y > 0: foo(); endif
+    elif x < 0:  while y > 0: y -= 1; endwhile
+    endif
+
+
+
+
+    prevvalue = value;
+
+    var a : int := 0;
+    while a < 10:
+       println('while a = ', a);
+       a += 1;
+    endwhile
+
+    for a := 0 to 10 - 1:
+       println('for a = ', a);
+    endfor
+endfunc
+
+function Foo():
+    println('next function foo');
+endfunc
+
+
+// strict block closer clarification
+
+function Foo():
+  if a:  else if b:  foo();  endif  endif    // incorrect
+  if a:  else: if b:  foo();  endif  endif   // correct
+endfunc

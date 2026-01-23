@@ -1,4 +1,4 @@
 # dq-lang
 DQ Programming Language
 
-[Specification](spec/spec.md)
+[Specification](spec/dq-lang-spec.md)

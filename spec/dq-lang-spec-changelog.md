@@ -1,5 +1,22 @@
 ## Appendix B: Changelog
 
+### v0.1.13 (2026-01-23)
+- **Major syntax change**: Assignment and equality operators now follow C/Python conventions
+- Assignment uses single `=` operator (previously `:=` in strict mode)
+- Named arguments now also use `=` operator (previously `:=`)
+- Equality comparison uses `==` operator only (single `=` no longer allowed for comparison)
+- Updated section 6.2 (Comparison Operators): removed single `=` from equality checks
+- Updated section 6.7 (Assignment Operators): changed from `:=` to `=` for assignments
+- Updated section 7.1 (Syntax Modes): removed assignment syntax differences between strict and relaxed modes
+- Updated all code examples throughout the specification to use new syntax
+- Rationale: Improved readability in declarations (e.g., `x : int = 0` vs `x : int := 0`)
+
+### v0.1.12 (2026-01-23)
+- Added section 6.5: Unary Operators
+- Documented address-of operator `&` alongside dereference `^` and unary minus `-`
+- Updated operator precedence table to include `&` (address-of) in unary operators group
+- Renumbered sections 6.6-6.8 to 6.7-6.9
+
 ### v0.1.11 (2026-01-23)
 - Complete redesign of for loop syntax (section 7.4)
 - Added three distinct for loop forms: `to`/`downto` (range-based), `count`/`downcount` (iteration-based), and `while` (condition-based)

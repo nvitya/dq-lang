@@ -1,6 +1,6 @@
 # DQ Language Specification
 
-**Version:** 0.1.11 (Draft)
+**Version:** 0.1.13 (Draft)
 **Status:** Work in Progress
 **Last Updated:** 2026-01-23
 
@@ -96,7 +96,7 @@ in          initialization          interface   module      new
 not         null        object      or          out         packed
 private     property    public      raise       ref         return
 specialize  struct      to          true        try         type
-use         var         virtual     while       xor
+use         var         virtual     while
 ```
 
 #### Operator Keywords (Case-Sensitive)
@@ -171,7 +171,7 @@ s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is s
 Triple-quoted strings (`"""..."""` or `'''...'''`) allow multi-line content with automatic indentation handling:
 
 ```dq
-sql := """
+sql = """
     select
       d.MTIME, d.SENSID, d.VALUE
     from
@@ -192,7 +192,7 @@ sql := """
 **Example with indentation**:
 ```dq
 function example():
-    msg := """
+    msg = """
         Line 1
         Line 2
         """;
@@ -202,7 +202,7 @@ endfunc
 
 **Single-line usage** (useful for strings containing both quote types):
 ```dq
-json := """{"key": "value with 'quotes'"}""";
+json = """{"key": "value with 'quotes'"}""";
 ```
 
 #### Boolean Literals
@@ -280,9 +280,9 @@ ch : char = s1[0];          // indexed access (Unicode-aware)
 - For protocols, ABI, packed structs
 
 ```dq
-name : cstring[32];         // 32-byte inline buffer
-name := "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
-s : str := name;            // converts to dynamic string
+name : cstring[32];        // 32-byte inline buffer
+name = "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
+s : str = name;            // converts to dynamic string
 ```
 
 ### 4.3 Array Types
@@ -294,8 +294,8 @@ s : str := name;            // converts to dynamic string
 
 ```dq
 arr : int32[4];
-arr[0] := 10;
-len : int := arr.length;    // == 4 (compile-time known)
+arr[0] = 10;
+len : int = arr.length;    // == 4 (compile-time known)
 ```
 
 #### Dynamic Array (`T[...]`)
@@ -307,7 +307,7 @@ len : int := arr.length;    // == 4 (compile-time known)
 arr : int32[...];
 arr.append(10);
 arr.append(20);
-len : int := arr.length;    // runtime value
+len : int = arr.length;    // runtime value
 ```
 
 #### Multi-dimensional Arrays
@@ -355,9 +355,9 @@ type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1,
 Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
 
 ```dq
-state : TProcState := psIdle;
+state : TProcState = psIdle;
 
-if state = psRising:
+if state == psRising:
     // ...
 endif
 ```
@@ -374,17 +374,17 @@ This convention prevents name collisions when multiple enum types are in scope.
 Conversions between enum types and their underlying integer type must be **explicit**:
 
 ```dq
-cmd : TCmd := cmdRead;
+cmd : TCmd = cmdRead;
 
 // Enum to integer: explicit cast
-val : byte := byte(cmd);            // val = 0x10
+val : byte = byte(cmd);            // val = 0x10
 
 // Integer to enum: explicit cast
-cmd2 : TCmd := TCmd(0x20);          // cmd2 = cmdWrite
+cmd2 : TCmd = TCmd(0x20);          // cmd2 = cmdWrite
 
 // Comparison with integer literals: requires cast
-if byte(cmd) = 0x10:  ...  endif    // OK: explicit
-// if cmd = 0x10:  ...  endif       // ERROR: type mismatch
+if byte(cmd) == 0x10:  ...  endif    // OK: explicit
+// if cmd == 0x10:  ...  endif       // ERROR: type mismatch
 ```
 
 #### Supported Underlying Types
@@ -406,7 +406,7 @@ type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
 
 ### 5.1 Variable Declaration
 
-Types must always be specified explicitly. This signals a declaration.
+Variables are declared in `[var] identifier : type [= initial_value];` form
 
 ```dq
 var x : int32 = 10;         // explicit type with initialization
@@ -487,12 +487,14 @@ i : int = round(10 / 3);    // == 3 (explicit rounding)
 
 | Operator | Description |
 |----------|-------------|
-| `==`, `=` | Equality (both accepted) |
+| `==` | Equality |
 | `!=`, `<>` | Inequality (both accepted) |
 | `<` | Less than |
 | `>` | Greater than |
 | `<=` | Less than or equal |
 | `>=` | Greater than or equal |
+
+**Note**: Only `==` is allowed for equality checks. Single `=` is reserved for assignment and cannot be used in comparisons.
 
 ### 6.3 Logical Operators (lowercase, for `bool` only)
 
@@ -513,14 +515,36 @@ i : int = round(10 / 3);    // == 3 (explicit rounding)
 | `SHL`, `<<` | Shift left |
 | `SHR`, `>>` | Shift right |
 
-### 6.5 Operator Precedence
+### 6.5 Unary Operators
+
+| Operator | Description |
+|----------|-------------|
+| `-` | Unary minus (negation) |
+| `&` | Address-of (get pointer to variable) |
+| `^` | Dereference (access value at pointer) |
+| `NOT` | Bitwise NOT (complement) |
+| `not` | Logical NOT |
+
+**Examples**:
+```dq
+x : int = 10;
+y : int = -x;              // unary minus: y = -10
+
+p : ^int = &x;             // address-of: p points to x
+z : int = p^;              // dereference: z = 10
+
+mask : int = NOT 0xFF;     // bitwise NOT
+flag : bool = not true;    // logical NOT
+```
+
+### 6.6 Operator Precedence
 
 The precedence is designed to avoid the classic C trap where `a AND b == 0` parses as `a AND (b == 0)`.
 
 **DQ Precedence (highest to lowest)**:
 
 1. Primary: `()`, `.`, `[]`, function calls
-2. Unary arithmetic: `-`, `^` (dereference)
+2. Unary: `-`, `&` (address-of), `^` (dereference)
 3. Bitwise NOT: `NOT`
 4. Multiplicative: `*`, `/`, `IDIV`, `IMOD`
 5. Additive: `+`, `-`
@@ -528,7 +552,7 @@ The precedence is designed to avoid the classic C trap where `a AND b == 0` pars
 7. Bitwise AND: `AND`
 8. Bitwise XOR: `XOR`
 9. Bitwise OR: `OR`
-10. **Comparison**: `<`, `>`, `<=`, `>=`, `==`, `=`, `!=`, `<>`
+10. **Comparison**: `<`, `>`, `<=`, `>=`, `==`, `!=`, `<>`
 11. Logical NOT: `not`
 12. Logical AND: `and`
 13. Logical OR: `or`
@@ -547,11 +571,10 @@ if i2 AND i1 <> 0 and i1 << 1 > 5: ...
 if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
 ```
 
-### 6.6 Assignment Operators
+### 6.7 Assignment Operators
 
 ```dq
-x = 10;                     // assignment (relaxed mode only)
-x := 10;                    // assignment (required in strict mode)
+x = 10;                     // assignment (single =)
 x += 5;                     // compound: add
 x -= 5;                     // compound: subtract
 x *= 2;                     // compound: multiply
@@ -559,23 +582,23 @@ x /= 2;                     // compound: divide (result is float!)
 ```
 
 **Important**:
+- Assignment uses single `=` operator
 - Assignment is a **statement** — not allowed in expressions (like after `if`)
-- Assignment chaining is not possible (e.g. `a := b := 1;` is a compiler error)
-- In **strict mode**, only `:=` is allowed for assignment; `=` in statements is an error
-- In **relaxed mode**, both `=` and `:=` are accepted
+- Assignment chaining is not possible (e.g. `a = b = 1;` is a compiler error)
+- Single `=` is **only** for assignment, never for comparison (use `==` for equality checks)
 
-### 6.7 Named Arguments
+### 6.8 Named Arguments
 
-Named arguments use the `:=` assignment operator for clarity:
+Named arguments use the `=` operator, following Python conventions:
 
 ```dq
-connect(port := 80, timeout_ms := 5000);
-cfg : TConfig = (baud := 115200, parity := .None);
+connect(port = 80, timeout_ms = 5000);
+cfg : TConfig = (baud = 115200, parity = .None);
 ```
 
-**Note**: The `:=` operator is required for named arguments (not `=`) to avoid confusion with equality comparison.
+**Note**: Context makes it clear whether `=` is used for assignment (in statements) or named argument binding (in function/constructor calls).
 
-### 6.8 Inline Conditional Expression: iif()
+### 6.9 Inline Conditional Expression: iif()
 
 DQ provides an inline conditional expression in the form of the intrinsic `iif()` construct. It is a value-producing expression intended for concise conditional selection without introducing block syntax.
 
@@ -614,25 +637,25 @@ The result type is determined as follows:
 
 ```dq
 // Integer selection
-maxv : int := iif(a > b, a, b);
+maxv : int = iif(a > b, a, b);
 
 // String selection
-msg : str := iif(ok, "OK", FormatError(code));
+msg : str = iif(ok, "OK", FormatError(code));
 
 // Numeric promotion: int and float → float
 f : float = iif(flag, 1, 2.1);      // result type is float
 
 // Nested iif (ternary chains)
-sign : str := iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
+sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
 
 // Used in expressions
-result : int := iif(enabled, base * 2, base) + offset;
+result : int = iif(enabled, base * 2, base) + offset;
 
-var i1 : int := iif(count, 1, 3);     // ERROR: condition is not bool
-var i2 : int := iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
+var i1 : int = iif(count, 1, 3);     // ERROR: condition is not bool
+var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
 
 // Invalid: incompatible types
-// s : str := iif(flag, "text", 42);     // ERROR: str vs int
+// s : str = iif(flag, "text", 42);     // ERROR: str vs int
 
 ```
 
@@ -645,14 +668,14 @@ var i2 : int := iif(count, 1, 3.3);   // ERROR: result type is float, explicit c
 
 ```dq
 // Good use of iif: concise value selection
-max : int := iif(a > b, a, b);
+max : int = iif(a > b, a, b);
 
 // Better as if-else when branches have side effects:
 if condition:
-    result := compute1();
+    result =  compute1();
     result += compute2();
 else:
-    result := fallback();
+    result = fallback();
 endif
 ```
 
@@ -668,7 +691,6 @@ DQ supports two syntax modes: **Strict Mode** and **Relaxed Mode** (selectable v
 
 In strict mode, DQ enforces a consistent, unambiguous syntax:
 
-- **Assignments**: Must use `:=` (not `=`)
 - **Blocks**: Must use `: ... endXXX` delimiters
 - **Indentation**: Proper indentation is required (violations produce warnings)
 
@@ -676,15 +698,15 @@ In strict mode, DQ enforces a consistent, unambiguous syntax:
 #{opt syntax strict}
 
 function HandleState(value : int):
-    if curstate = psIdle:
+    if curstate == psIdle:
         if value > prevvalue:
-            curstate := psRising;
+            curstate = psRising;
         elif value < prevvalue:
-            curstate := psFalling;
+            curstate = psFalling;
         else:
             println('state not handled!');
         endif
-    elif curstate = psRising:
+    elif curstate == psRising:
         // ...
     endif
 endfunc
@@ -707,14 +729,14 @@ endfunc
 **Key rule**: The colon `:` opens a block, `endXXX` closes it. Indentation is for readability and style enforcement only — the syntax is delimiter-based, not indentation-based. This means code is technically valid on a single line:
 
 ```dq
-function Foo():  if a:  x := 1;  endif  endfunc   // valid but discouraged
+function Foo():  if a:  x = 1;  endif  endfunc   // valid but discouraged
 ```
 
 **Compact form**: Single statements can follow the colon on the same line:
 
 ```dq
-if   value > prevvalue:  curstate := psRising;
-elif value < prevvalue:  curstate := psFalling;
+if   value > prevvalue:  curstate = psRising;
+elif value < prevvalue:  curstate = psFalling;
 else:                    println('not handled!');
 endif
 ```
@@ -730,7 +752,7 @@ while hasMore():  process();  endwhile
 ensure:  cleanup();  endensure
 
 // Typical usage with ensure:
-p : ^Worker := new("Test");
+p : ^Worker = new("Test");
 ensure:  delete p;  endensure
 p.DoWork();
 ```
@@ -739,14 +761,14 @@ This is purely a style rule — the syntax is always valid regardless of line le
 
 #### Relaxed Mode (default)
 
-In relaxed mode, additional syntax forms are allowed without warnings:
+In relaxed mode, alternative syntax forms are allowed:
 
-- **Assignments**: Both `=` and `:=` are allowed
 - **Blocks**: Both `{ ... }` braces and `: ... endXXX` are allowed
+- **Chained conditions**: Both `else if` and `elif` are accepted
 
 ```dq
 function HandleState(value : int) {
-    if curstate = psIdle {
+    if curstate == psIdle {
         if value > prevvalue {
             curstate = psRising;
         }
@@ -761,8 +783,10 @@ function HandleState(value : int) {
 
 ```dq
 #{opt syntax strict}        // enable strict mode
-#{opt syntax relaxed}       // enable relaxed mode (default)
+#{opt syntax relaxed}       // enable relaxed mode
 ```
+
+**Note**: The choice of mode affects block delimiters and certain syntactic conveniences, but assignment (`=`) and equality (`==`) operators are the same in both modes.
 
 ### 7.2 If Statement
 
@@ -799,17 +823,17 @@ endif
 ```dq
 // elif - single chain, one endif:
 if a:
-    x := 1;
+    x = 1;
 elif b:
-    x := 2;
+    x = 2;
 endif
 
 // else: if - nested blocks, two endifs:
 if a:
-    x := 1;
+    x = 1;
 else:
     if b:
-        x := 2;
+        x = 2;
     endif
 endif
 ```
@@ -838,27 +862,23 @@ Use when you know the start and end values. Both bounds are **inclusive** (Pasca
 
 ```dq
 // Strict mode:
-for i := 0 to 10:           // 11 iterations: 0, 1, 2, ..., 10
+for i = 0 to 10:           // 11 iterations: 0, 1, 2, ..., 10
     // body
 endfor
 
-for i := 10 downto 0:       // 11 iterations: 10, 9, 8, ..., 0
+for i = 10 downto 0:       // 11 iterations: 10, 9, 8, ..., 0
     // body
 endfor
 
 // With explicit step
-for i := 0 to 10 step 2:    // 6 iterations: 0, 2, 4, 6, 8, 10
+for i = 0 to 10 step 2:    // 6 iterations: 0, 2, 4, 6, 8, 10
     // body
 endfor
 
-for i := 10 downto 0 step 3:  // 4 iterations: 10, 7, 4, 1
+for i = 10 downto 0 step 3:  // 4 iterations: 10, 7, 4, 1
     // body
 endfor
 
-// Relaxed mode:
-for i = 0 to 10 {           // inclusive: 0, 1, 2, ..., 10
-    // body
-}
 ```
 
 **Semantics**:
@@ -872,12 +892,12 @@ for i = 0 to 10 {           // inclusive: 0, 1, 2, ..., 10
 arr : int[...] = [1, 2, 3, 4, 5];
 
 // Iterate through array indices
-for i := 0 to arr.length - 1:
+for i = 0 to arr.length - 1:
     println(arr[i]);
 endfor
 
 // Reverse iteration
-for i := arr.length - 1 downto 0:
+for i = arr.length - 1 downto 0:
     println(arr[i]);
 endfor
 ```
@@ -888,21 +908,21 @@ Use when you know how many iterations you need. The keyword specifies **N iterat
 
 ```dq
 // Count upward: N iterations starting from initial value
-for i := 0 count 5:         // 5 iterations: 0, 1, 2, 3, 4
+for i = 0 count 5:         // 5 iterations: 0, 1, 2, 3, 4
     // body
 endfor
 
 // Count downward: N iterations starting from initial value
-for i := 10 downcount 5:    // 5 iterations: 10, 9, 8, 7, 6
+for i = 10 downcount 5:    // 5 iterations: 10, 9, 8, 7, 6
     // body
 endfor
 
 // With explicit step (must be positive)
-for i := 0 count 10 step 2:        // 10 iterations: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18
+for i = 0 count 10 step 2:        // 10 iterations: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18
     // body
 endfor
 
-for i := 20 downcount 5 step 3:    // 5 iterations: 20, 17, 14, 11, 8
+for i = 20 downcount 5 step 3:    // 5 iterations: 20, 17, 14, 11, 8
     // body
 endfor
 ```
@@ -918,12 +938,12 @@ endfor
 arr : int[...] = [1, 2, 3, 4, 5];
 
 // Iterate exactly arr.length times
-for i := 0 count arr.length:
+for i = 0 count arr.length:
     println(arr[i]);
 endfor
 
 // Reverse: iterate exactly arr.length times going down
-for i := arr.length - 1 downcount arr.length:
+for i = arr.length - 1 downcount arr.length:
     println(arr[i]);
 endfor
 ```
@@ -934,27 +954,27 @@ Use for complex conditions that don't fit simple ranges. This is DQ's equivalent
 
 ```dq
 // Basic form (step +1 default)
-for i := 0 while i < arr.length:
+for i = 0 while i < arr.length:
     // body
 endfor
 
 // With explicit step
-for i := 0 while i < arr.length step 2:
+for i = 0 while i < arr.length step 2:
     // body
 endfor
 
 // With inline variable declaration
-for var i : int := 0 while i < arr.length:
+for var i : int = 0 while i < arr.length:
     // body
 endfor
 
 // Descending (requires explicit negative step)
-for i := arr.length - 1 while i >= 0 step -1:
+for i = arr.length - 1 while i >= 0 step -1:
     // body
 endfor
 
 // Complex condition
-for i := 0 while i < limit and arr[i] <> sentinel step 1:
+for i = 0 while i < limit and arr[i] <> sentinel step 1:
     // body
 endfor
 ```
@@ -975,12 +995,12 @@ endfor
 **Example**:
 ```dq
 // Skip over invalid entries
-for i := 0 while i < arr.length and arr[i] >= 0:
+for i = 0 while i < arr.length and arr[i] >= 0:
     process(arr[i]);
 endfor
 
 // Custom increment logic with step
-for i := 1 while i < 1000 step (i * 2):  // exponential growth
+for i = 1 while i < 1000 step (i * 2):  // exponential growth
     println(i);
 endfor
 ```
@@ -1071,7 +1091,7 @@ endfunc
 
 // Alternative (Pascal-style): assign to 'result'
 function add(a : int, b : int) -> int:
-    result := a + b;
+    result = a + b;
 endfunc
 ```
 
@@ -1104,7 +1124,7 @@ endfunc
 
 ```dq
 function Foo(par1 : int) -> int:
-    result := @arg.par1 * 2;    // explicit argument access
+    result = @arg.par1 * 2;    // explicit argument access
 endfunc
 ```
 
@@ -1120,7 +1140,7 @@ type IntFunc = function(x : int) -> int;
 type Callback = function(x : int) -> int of object;
 
 // Usage
-cb : Callback := obj.method;
+cb : Callback = obj.method;
 cb(42);
 ```
 
@@ -1136,7 +1156,7 @@ Multiple attributes can be specified in a single bracket pair (comma-separated) 
 // Attribute before declaration
 [[section("ramcode")]]
 function Foo(x : int) -> int:
-    px : ^int := &x;
+    px : ^int = &x;
     @io.println("x = ", px^);
 endfunc
 
@@ -1191,8 +1211,8 @@ object OWorker:
 
     // Constructor
     function __ctor(aname : str):
-        name := aname;
-        counter := 0;
+        name = aname;
+        counter = 0;
     endfunc
 
     // Destructor
@@ -1252,7 +1272,7 @@ private
     mport : uint16;
 
     function SetPort(value : uint16):
-        mport := value;
+        mport = value;
     endfunc
 endobject
 ```
@@ -1315,8 +1335,8 @@ endobject
 
 ```dq
 p : ^int32;                 // pointer to int32
-p := &x;                    // address-of (C-style)
-y := p^;                    // dereference (Pascal-style)
+p = &x;                    // address-of (C-style)
+y = p^;                    // dereference (Pascal-style)
 ```
 
 **Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
@@ -1324,8 +1344,8 @@ y := p^;                    // dereference (Pascal-style)
 ### 10.2 Pointer Arithmetic
 
 ```dq
-p : ^byte := buffer;
-pend : ^byte := p + length;  // pointer arithmetic allowed
+p : ^byte = buffer;
+pend : ^byte = p + length;  // pointer arithmetic allowed
 while p < pend:
     // ...
     p += 1;
@@ -1335,18 +1355,18 @@ endwhile
 ### 10.3 Null
 
 ```dq
-p : ^Worker := null;
-if p = null:  ...  endif
+p : ^Worker = null;
+if p == null:  ...  endif
 delete null;                 // safe (no-op)
 ```
 
 ### 10.4 Ref Binding to Pointer
 
 ```dq
-p : ^MyStruct := ...;
+p : ^MyStruct = ...;
 if p <> null:
-    ref s : MyStruct := p^; // bind ref to pointee
-    s.field := 10;          // modify through ref
+    ref s : MyStruct = p^; // bind ref to pointee
+    s.field = 10;          // modify through ref
 endif
 ```
 
@@ -1502,8 +1522,8 @@ The defines are accessible with a @def. namespace.
 x : MyStruct;
 
 // Heap allocation
-p : ^MyStruct := new MyStruct();
-p : ^MyStruct := new();             // target-typed
+p : ^MyStruct = new MyStruct();
+p : ^MyStruct = new();             // target-typed
 ```
 
 ### 13.2 Deallocation
@@ -1517,7 +1537,7 @@ delete null;                        // safe (no-op)
 
 ```dq
 function Example():
-    p : ^Worker := new("Test");
+    p : ^Worker = new("Test");
     ensure: delete p; endensure    // guaranteed cleanup at scope exit
     // use p...
 endfunc
@@ -1646,24 +1666,24 @@ function imul(a : int, b : int) -> int:
 endfunc
 
 function main() -> int:
-    var i1 : int := 2;
-    var i2 : int := 3;
-    var f : float := i1 / i2;
+    var i1 : int = 2;
+    var i2 : int = 3;
+    var f : float = i1 / i2;
     println("f =", f);
 
-    var res : int := imul(i1, i2);
+    var res : int = imul(i1, i2);
     println("mul(i1, i2) =", res);
 
     // for-loop example
-    var sum_for : int := 0;
-    for i := 0 to 4:
+    var sum_for : int = 0;
+    for i = 0 to 4:
         sum_for += i;
     endfor
     println("sum_for =", sum_for);
 
     // while-loop example
-    var sum_while : int := 0;
-    var j : int := 0;
+    var sum_while : int = 0;
+    var j : int = 0;
     while j < 5:
         sum_while += j;
         j += 1;
@@ -1671,7 +1691,7 @@ function main() -> int:
     println("sum_while =", sum_while);
 
     // if / else with boolean expression
-    if (i1 < i2 and sum_for = sum_while) or (res > 0 and f < 1.0):
+    if (i1 < i2 and sum_for == sum_while) or (res > 0 and f < 1.0):
         println("condition is TRUE");
     else:
         println("condition is FALSE");
@@ -1698,13 +1718,12 @@ endobject
 object OWorker:
 public
     name    : str;
-    counter : int;
+    counter : int = 0;
     helper  : ^OWorkHelper;
 
     function __ctor(aname : str):
-        name := aname;
-        counter := 0;
-        helper := new OWorkHelper();
+        name = aname;
+        helper = new OWorkHelper();
     endfunc
 
     function __dtor():
@@ -1729,7 +1748,7 @@ function main():
     w1.DoWork(3);
 
     // heap-allocated object
-    w2 : ^OWorker := new("Bob");
+    w2 : ^OWorker = new("Bob");
     ensure:
         delete w2;
     endensure
@@ -1747,28 +1766,28 @@ type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
 object OSockTester:
 public
     property port : uint16 read mport write SetPort;
-    onevent : TSockCallBackFunc := null;
+    onevent : TSockCallBackFunc = null;
 
     function __ctor(aport : uint16):
-        mport := aport;
+        mport = aport;
     endfunc
 
 private
     mport : uint16;
-    msocket : int := -1;
+    msocket : int = -1;
 
     function SetPort(avalue : uint16):
-        mport := avalue;
+        mport = avalue;
     endfunc
 endobject
 
 function main() -> int:
     println("Hello from DQ!");
 
-    i1 : int := 3;
-    i2 : int := 12345;
+    i1 : int = 3;
+    i2 : int = 12345;
 
-    i3 : int := i2 AND i1;          // bitwise AND
+    i3 : int = i2 AND i1;          // bitwise AND
 
     // if (i3):  ...  endif         // ERROR: bool expression expected
 
@@ -1781,13 +1800,13 @@ function main() -> int:
         println("both are true!");
     endif
 
-    // i4 : int := i2 / i1;         // ERROR: / returns float
-    f1 : float := i2 / i1;          // OK
-    i5 : int := i2 IDIV i1;         // OK: integer division
-    i6 : int := round(i2 / i1);     // OK: explicit rounding
+    // i4 : int = i2 / i1;         // ERROR: / returns float
+    f1 : float = i2 / i1;          // OK
+    i5 : int = i2 IDIV i1;         // OK: integer division
+    i6 : int = round(i2 / i1);     // OK: explicit rounding
 
-    b : bool := i2 <> i1;
-    b2 : bool := (i6 = i5);         // comparison uses '='
+    b : bool = i2 <> i1;
+    b2 : bool = (i6 == i5);         // comparison uses '=='
 
     return 0;
 endfunc

@@ -1,6 +1,6 @@
 # DQ Language Specification
 
-**Version:** 0.1.9 (Draft)
+**Version:** 0.1.11 (Draft)
 **Status:** Work in Progress
 **Last Updated:** 2026-01-23
 
@@ -575,6 +575,87 @@ cfg : TConfig = (baud := 115200, parity := .None);
 
 **Note**: The `:=` operator is required for named arguments (not `=`) to avoid confusion with equality comparison.
 
+### 6.8 Inline Conditional Expression: iif()
+
+DQ provides an inline conditional expression in the form of the intrinsic `iif()` construct. It is a value-producing expression intended for concise conditional selection without introducing block syntax.
+
+#### Syntax
+
+```dq
+iif(condition, true_expression, false_expression)
+```
+
+#### Semantics
+
+`iif()` is a **conditional expression**, not a regular function. The key behavioral properties are:
+
+- **Short-circuit evaluation**: Exactly one of `true_expression` or `false_expression` is evaluated.
+  - If `condition` evaluates to `true`, only `true_expression` is evaluated and returned.
+  - If `condition` evaluates to `false`, only `false_expression` is evaluated and returned.
+
+#### Result Type Inference
+
+The result type of `iif()` is determined **exclusively from the two branch expressions**, independent of any surrounding target type.
+
+Let `T1` be the type of `true_expression` and `T2` the type of `false_expression`.
+
+The result type is determined as follows:
+
+1. **Identical types**: If `T1` and `T2` are identical, the result type is that type.
+
+2. **Numeric promotion**: If `T1` and `T2` are both numeric types, the result type is their common numeric supertype, using the standard numeric promotion rules.
+   - Example: `int` and `float` → `float`
+   - Example: `int32` and `int64` → `int64`
+
+3. **No implicit type joining for non-numerical type**: `T1` and `T2` type must be identical
+
+
+#### Examples
+
+```dq
+// Integer selection
+maxv : int := iif(a > b, a, b);
+
+// String selection
+msg : str := iif(ok, "OK", FormatError(code));
+
+// Numeric promotion: int and float → float
+f : float = iif(flag, 1, 2.1);      // result type is float
+
+// Nested iif (ternary chains)
+sign : str := iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
+
+// Used in expressions
+result : int := iif(enabled, base * 2, base) + offset;
+
+var i1 : int := iif(count, 1, 3);     // ERROR: condition is not bool
+var i2 : int := iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
+
+// Invalid: incompatible types
+// s : str := iif(flag, "text", 42);     // ERROR: str vs int
+
+```
+
+#### Comparison with if-else Statements
+
+`iif()` complements rather than replaces `if`-`else` statements:
+
+- Use `iif()` for **value selection** in expressions
+- Use `if`-`else` for **control flow** and multi-statement branches
+
+```dq
+// Good use of iif: concise value selection
+max : int := iif(a > b, a, b);
+
+// Better as if-else when branches have side effects:
+if condition:
+    result := compute1();
+    result += compute2();
+else:
+    result := fallback();
+endif
+```
+
 ---
 
 ## 7. Statements and Control Flow
@@ -749,31 +830,195 @@ endwhile
 
 ### 7.4 For Loop
 
+DQ provides three distinct forms of for loops, each optimized for different use cases.
+
+#### 7.4.1 Range-Based Loop: `to` / `downto`
+
+Use when you know the start and end values. Both bounds are **inclusive** (Pascal-style).
+
 ```dq
+// Strict mode:
+for i := 0 to 10:           // 11 iterations: 0, 1, 2, ..., 10
+    // body
+endfor
+
+for i := 10 downto 0:       // 11 iterations: 10, 9, 8, ..., 0
+    // body
+endfor
+
+// With explicit step
+for i := 0 to 10 step 2:    // 6 iterations: 0, 2, 4, 6, 8, 10
+    // body
+endfor
+
+for i := 10 downto 0 step 3:  // 4 iterations: 10, 7, 4, 1
+    // body
+endfor
+
 // Relaxed mode:
 for i = 0 to 10 {           // inclusive: 0, 1, 2, ..., 10
     // body
 }
+```
 
-// Strict mode:
-for i := 0 to 10:
-    // body
+**Semantics**:
+- `to` - ascending iteration, default step is `+1`
+- `downto` - descending iteration, default step is `-1` (internally)
+- `step` must be positive for both `to` and `downto`
+- If start > end with `to`, or start < end with `downto`: compiler warning (loop never executes)
+
+**Example**:
+```dq
+arr : int[...] = [1, 2, 3, 4, 5];
+
+// Iterate through array indices
+for i := 0 to arr.length - 1:
+    println(arr[i]);
 endfor
 
-// Descending (TBD: step)
-for i := 10 to 0:
-    // body
-endfor
-
-// Iteration over collections:
-for ch : char in str_value:
-    // iterate over characters
-endfor
-
-for item in array_value:
-    // iterate over elements
+// Reverse iteration
+for i := arr.length - 1 downto 0:
+    println(arr[i]);
 endfor
 ```
+
+#### 7.4.2 Count-Based Loop: `count` / `downcount`
+
+Use when you know how many iterations you need. The keyword specifies **N iterations**, not a target value.
+
+```dq
+// Count upward: N iterations starting from initial value
+for i := 0 count 5:         // 5 iterations: 0, 1, 2, 3, 4
+    // body
+endfor
+
+// Count downward: N iterations starting from initial value
+for i := 10 downcount 5:    // 5 iterations: 10, 9, 8, 7, 6
+    // body
+endfor
+
+// With explicit step (must be positive)
+for i := 0 count 10 step 2:        // 10 iterations: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18
+    // body
+endfor
+
+for i := 20 downcount 5 step 3:    // 5 iterations: 20, 17, 14, 11, 8
+    // body
+endfor
+```
+
+**Semantics**:
+- `count` - increment by step (default `+1`), perform N iterations
+- `downcount` - decrement by step (default `-1` internally), perform N iterations
+- `step` **must be positive** (direction is determined by `count`/`downcount`)
+- Negative step with `count`/`downcount` is a compile error
+
+**Example**:
+```dq
+arr : int[...] = [1, 2, 3, 4, 5];
+
+// Iterate exactly arr.length times
+for i := 0 count arr.length:
+    println(arr[i]);
+endfor
+
+// Reverse: iterate exactly arr.length times going down
+for i := arr.length - 1 downcount arr.length:
+    println(arr[i]);
+endfor
+```
+
+#### 7.4.3 Condition-Based Loop: `while`
+
+Use for complex conditions that don't fit simple ranges. This is DQ's equivalent to C's `for(init; condition; step)`.
+
+```dq
+// Basic form (step +1 default)
+for i := 0 while i < arr.length:
+    // body
+endfor
+
+// With explicit step
+for i := 0 while i < arr.length step 2:
+    // body
+endfor
+
+// With inline variable declaration
+for var i : int := 0 while i < arr.length:
+    // body
+endfor
+
+// Descending (requires explicit negative step)
+for i := arr.length - 1 while i >= 0 step -1:
+    // body
+endfor
+
+// Complex condition
+for i := 0 while i < limit and arr[i] <> sentinel step 1:
+    // body
+endfor
+```
+
+**Semantics**:
+- Condition is evaluated **before** each iteration (like C's for loop)
+- `step` can be positive or negative (default is `+1`)
+- Loop variable is incremented **after** the loop body executes
+- Use when the exit condition is more complex than a simple range
+
+**Execution order**:
+1. Initialize loop variable with start value
+2. Evaluate condition → if false, exit loop
+3. Execute loop body
+4. Increment loop variable by step
+5. Go to step 2
+
+**Example**:
+```dq
+// Skip over invalid entries
+for i := 0 while i < arr.length and arr[i] >= 0:
+    process(arr[i]);
+endfor
+
+// Custom increment logic with step
+for i := 1 while i < 1000 step (i * 2):  // exponential growth
+    println(i);
+endfor
+```
+
+#### 7.4.4 Collection Iteration: `in`
+
+Iterate directly over collection elements without manual indexing.
+
+```dq
+// Iterate over string characters
+for ch : char in str_value:
+    println(ch);
+endfor
+
+// Iterate over array elements (type inference)
+for item in array_value:
+    println(item);
+endfor
+
+// Iterate with explicit type
+for value : int in numbers:
+    sum += value;
+endfor
+```
+
+**Semantics**:
+- Loop variable is read-only (cannot be modified)
+- Type can be inferred or explicitly specified
+- Works with any iterable collection (arrays, strings, etc.)
+
+#### 7.4.5 Summary Table
+
+| Form | Use Case | Step Default | Step Sign |
+|------|----------|--------------|-----------|
+| `to` / `downto` | Known start and end values (inclusive) | `+1` / `-1` | Must be positive |
+| `count` / `downcount` | Known number of iterations | `+1` / `-1` | Must be positive |
+| `while` | Complex conditions | `+1` | Can be positive or negative |
+| `in` | Collection iteration | N/A | N/A |
 
 ### 7.5 Break and Continue
 
@@ -1551,6 +1796,18 @@ endfunc
 ---
 
 ## Appendix B: Changelog
+
+### v0.1.11 (2026-01-23)
+- Complete redesign of for loop syntax (section 7.4)
+- Added three distinct for loop forms: `to`/`downto` (range-based), `count`/`downcount` (iteration-based), and `while` (condition-based)
+- `to`/`downto`: Pascal-style inclusive ranges with optional `step` modifier
+- `count`/`downcount`: Iterate exactly N times with optional positive `step`
+- `while`: C-style for loop with condition and optional `step` (can be negative)
+- All forms support inline variable declaration
+- Clarified step defaults: +1 for ascending, -1 for descending
+
+### v0.1.10 (2026-01-23)
+- Added section 6.8: Inline Conditional Expression (`iif()`)
 
 ### v0.1.9 (2026-01-23)
 - Added **Strict Mode** vs **Relaxed Mode** syntax distinction

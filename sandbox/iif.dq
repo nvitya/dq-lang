@@ -1,0 +1,53 @@
+// DQ – Inline conditional Expesssion: iif()s (scratchpad)
+// Source spec: https://raw.githubusercontent.com/nvitya/dq-lang/refs/heads/main/spec/spec.md
+
+
+Inline Conditional Expression: iif()
+
+DQ provides an inline conditional expression in the form of the intrinsic iif() construct.
+It is a value-producing expression intended for concise conditional selection without introducing block syntax.
+
+Syntax
+iif(condition, true_expression, false_expression)
+
+Semantics
+
+iif() is a conditional expression, not a regular function.
+
+Exactly one of true_expression or false_expression is evaluated.
+
+Evaluation is short-circuit:
+
+If condition evaluates to true, only true_expression is evaluated.
+
+If condition evaluates to false, only false_expression is evaluated.
+
+Condition Type
+
+condition must be of type bool.
+
+No implicit conversion from integer or other scalar types to bool is permitted.
+
+Result Type Inference
+
+The result type of iif() is determined exclusively from the two branch expressions, independent of any surrounding target type.
+
+Let T1 be the type of true_expression and T2 the type of false_expression.
+
+The result type is determined as follows:
+
+If T1 and T2 are identical, the result type is that type.
+
+If T1 and T2 are both numeric types, the result type is their common numeric supertype, using the standard numeric promotion rules.
+
+Example: int and float → float
+
+Otherwise, T1 and T2 must be identical; no implicit type joining is performed.
+
+If no valid common type can be determined, the program is ill-formed.
+
+Examples:
+
+var maxv : int := iif(a > b, a, b);
+var msg : str := iif(ok, "OK", FormatError(code));
+var f : float = iif(flag, 1, 2.1);

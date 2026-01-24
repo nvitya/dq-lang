@@ -1,5 +1,13 @@
 ## Appendix B: Changelog
 
+### v0.1.14 (2026-01-24)
+- **Enhanced array handling and variadic arguments**:
+- Added new **Open Array (Slice)** type (`T[]`) as a universal, non-owning view for flexible data processing (Section 4.3).
+- Refined **Dynamic Array** (`T[...]`) to be a dedicated heap-allocated, resizable container, distinct from slices.
+- Updated parameter passing rules (Section 8.3) with a detailed matrix clarifying the behavior of `T[]`, `in T[]`, `T[...]`, and `ref T[...]`.
+- Added section on **Variadic Arguments** (Section 8.6), showing how they are implemented type-safely using the Open Array (`vararg[]`) pattern, not special syntax.
+- Renumbered sections 9 through 16 to accommodate the new section.
+
 ### v0.1.13 (2026-01-23)
 - **Major syntax change**: Assignment and equality operators now follow C/Python conventions
 - Assignment uses single `=` operator (previously `:=` in strict mode)

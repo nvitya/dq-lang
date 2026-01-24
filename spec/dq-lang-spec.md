@@ -16,14 +16,14 @@
 6. [Expressions and Operators](#6-expressions-and-operators)
 7. [Statements and Control Flow](#7-statements-and-control-flow)
 8. [Functions](#8-functions)
-9. [Objects](#9-objects)
-10. [Pointers and References](#10-pointers-and-references)
-11. [Modules and Namespaces](#11-modules-and-namespaces)
-12. [Preprocessor and Compiler Directives](#12-preprocessor-and-compiler-directives)
-13. [Memory Management](#13-memory-management)
-14. [Standard Library](#14-standard-library)
-15. [Explicitly Rejected Features](#15-explicitly-rejected-features)
-16. [Open Questions](#16-open-questions)
+9. [Objects](#10-objects)
+10. [Pointers and References](#11-pointers-and-references)
+11. [Modules and Namespaces](#12-modules-and-namespaces)
+12. [Preprocessor and Compiler Directives](#13-preprocessor-and-compiler-directives)
+13. [Memory Management](#14-memory-management)
+14. [Standard Library](#15-standard-library)
+15. [Explicitly Rejected Features](#16-explicitly-rejected-features)
+16. [Open Questions](#17-open-questions)
 
 ---
 
@@ -287,34 +287,67 @@ s : str = name;            // converts to dynamic string
 
 ### 4.3 Array Types
 
+DQ provides three distinct array types, each serving a specific purpose: fixed-size arrays for stack-based value semantics, open arrays (slices) for flexible views into data, and dynamic arrays for heap-based mutable containers.
+
 #### Fixed-Size Array (`T[N]`)
-- Inline storage
-- Compile-time constant length
-- Value semantics
+- **Storage**: Inline (typically on the stack). The size `N` must be a compile-time constant.
+- **Semantics**: Value type. When passed as a value parameter, the entire array is copied.
+- **Use Case**: Small, fixed-size data structures where performance and stack allocation are critical.
 
 ```dq
-arr : int32[4];
+arr : int32[4];          // 4 integers allocated on the stack
 arr[0] = 10;
 len : int = arr.length;    // == 4 (compile-time known)
 ```
 
-#### Dynamic Array (`T[...]`)
-- Heap-backed
-- Variable length
-- Reference semantics (TBD: copy vs reference)
+#### Open Array / Slice (`T[]`)
+- **Storage**: A view or "slice" into a contiguous block of memory. It does not own the data itself. Internally, it is a fat pointer: a struct containing `{ data: ^T, length: int }`.
+- **Semantics**: Universal, non-owning view.
+  - Can bind to **Fixed-Size Arrays**, **Dynamic Arrays**, and **Array Literals**.
+  - The view itself cannot be resized (no `append`/`delete` operations).
+  - Elements can be modified unless the `in` modifier is used in a function parameter.
+- **Use Case**: The default choice for function parameters that need to read or process data from any array-like source without taking ownership or needing to resize it. This is the key to implementing variadic arguments.
 
 ```dq
-arr : int32[...];
-arr.append(10);
-arr.append(20);
+// A function accepting any kind of integer array
+function sum(values: int[]) -> int:
+    result = 0;
+    for v in values:
+        result += v;
+    endfor
+endfunc
+
+// It can be called with different array types:
+fixed_arr : int[3] = [1, 2, 3];
+dyn_arr : int[...] = [4, 5, 6];
+
+s1 : int = sum(fixed_arr);      // slice points to fixed array
+s2 : int = sum(dyn_arr);        // slice points to dynamic array data
+s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
+```
+
+#### Dynamic Array (`T[...]`)
+- **Storage**: Heap-allocated, resizable container. The variable holds a handle (pointer/reference) to the heap object.
+- **Semantics**: Reference-like container type.
+  - Can be resized with methods like `append`, `clear`, etc.
+  - **Cannot** bind to Fixed-Size Arrays or array literals.
+  - Passing as a `ref` parameter is required if the function needs to reallocate or resize the array (e.g., `append`).
+- **Use Case**: General-purpose mutable collections of elements, where the size is not known at compile-time.
+
+```dq
+arr : int[...];            // Handle is null initially
+arr = [10, 20];            // Assign a new dynamic array from a literal
+arr.append(30);
 len : int = arr.length;    // runtime value
 ```
 
 #### Multi-dimensional Arrays
+Multi-dimensional arrays are combinations of the above types.
+
 ```dq
 matrix : int[3][4];      // fixed 3x4 matrix
-grid : int[...][...];    // fully dynamic 2D
-rows : int[...][4];      // dynamic rows, fixed 4 columns per row
+grid : int[...][...];    // fully dynamic 2D array (array of dynamic arrays)
+rows : int[][4];         // array of slices, with each slice pointing to 4 columns
 ```
 
 ### 4.4 Pointer Types
@@ -1097,12 +1130,14 @@ endfunc
 
 ### 8.3 Parameter Passing Modes
 
+DQ supports several parameter passing modes to control how arguments are passed to functions, enabling fine-grained control over mutability, performance, and ownership.
+
 | Mode | Syntax | Description |
 |------|--------|-------------|
-| Value | `param : T` | Copy of value (default for small types) |
-| In | `in param : T` | Read-only reference (default for large types) |
-| Ref | `ref param : T` | Mutable reference |
-| Out | `out param : T` | Must be assigned before function returns |
+| Value | `param : T` | A copy of the value is passed. This is the default for primitive types and small structs. |
+| In | `in param : T` | A read-only reference to the argument is passed. This is the default for large types (like objects and arrays) to avoid expensive copies. The parameter cannot be modified within the function. |
+| Ref | `ref param : T` | A mutable reference is passed, allowing the function to modify the original caller's variable. |
+| Out | `out param : T` | The function is expected to assign a value to the parameter before it returns. The initial value of the argument is not passed to the function. |
 
 ```dq
 function Inc(ref x : int, amount : int):
@@ -1110,15 +1145,14 @@ function Inc(ref x : int, amount : int):
 endfunc
 
 function ParseInt(in s : str, out value : int) -> bool:
-    // ...
+    // ... function body that parses s and assigns to value ...
 endfunc
 ```
 
 **Rules**:
-- `ref`, `in`, `out` parameters cannot escape the function
-- They cannot be stored in heap objects or returned
-- They cannot be null
-- They are always typed (no untyped references)
+- `ref`, `in`, `out` parameters cannot escape the function (i.e., they cannot be stored in heap objects or returned).
+- They cannot be null.
+- They are always typed (no untyped references).
 
 **Argument Namespace**: Parameters can be accessed explicitly via `@arg.`:
 
@@ -1127,8 +1161,22 @@ function Foo(par1 : int) -> int:
     result = @arg.par1 * 2;    // explicit argument access
 endfunc
 ```
-
 This is useful when a local variable shadows a parameter name.
+
+#### Array Parameter Passing
+
+The combination of parameter modes with different array types (Open vs. Dynamic) results in specific, predictable behaviors. The following matrix details these interactions:
+
+| Syntax | Type Name | Input Compatibility | Can Resize? | Semantics |
+| --- | --- | --- | --- | --- |
+| `a : T[]` | **Open Array** | Fixed, Dynamic, Literal | **NO** | Universal view. Read/Write access to elements. |
+| `in a : T[]` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
+| `a : T[...]` | **Dynamic Array** | Dynamic Array Only | **NO*** | Passes the container handle by value. The function can modify elements but cannot resize the original array in a way that is visible to the caller. |
+| `ref a : T[...]` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
+
+_*Note: Without `ref`, changing the length of a dynamic array inside a function (e.g., `a.append(...)`) modifies the local handle's copy of the array, a change that will not be reflected for the caller._
+
+This clear distinction allows for safe and efficient handling of array data structures, preventing unintended side effects while providing maximum flexibility.
 
 ### 8.4 Function Types and Delegates
 
@@ -1190,16 +1238,50 @@ endfunc
 | `[[static]]` | Static linkage (not exported) |
 | `[[stdcall]]` | Use stdcall calling convention |
 | `[[cdecl]]` | Use cdecl calling convention (default) |
-| `[[override]]` | Override base class method (see section 9.5) |
+| `[[override]]` | Override base class method (see section 10.5) |
 | `[[section("name")]]` | Place function in specific memory section |
 | `[[naked]]` | Emit function without prologue/epilogue (embedded use) |
 | `[[noreturn]]` | Function never returns (for panic/abort functions) |
 
 **Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
 
+### 8.6 Variadic Arguments (`varargs`)
+
+DQ does not have special syntactic sugar for variadic arguments (like C's `...`). Instead, variadic functionality is a standard application of **Open Arrays (Slices)**, providing a type-safe mechanism for handling a variable number of arguments.
+
+This pattern relies on two helper types that would be defined in the Standard Library prelude:
+- `type vararg = struct ... endstruct`: A variant struct capable of holding different types of data, typically including a type identifier and a data payload.
+- `type varargs = vararg[]`: A type alias for an open array of these variant structs.
+
+#### Usage Pattern
+
+A function that accepts a variable number of arguments is declared with a parameter of type `vararg[]` (or the `varargs` alias).
+
+```dq
+// A variadic print function (simplified)
+function print(fmt: str, args: vararg[]):
+    // Implementation would iterate through the `args` slice
+    // and format them according to the `fmt` string.
+endfunc
+```
+
+When such a function is called, the compiler automatically handles array literals by constructing a temporary, stack-allocated array and passing it as a slice to the function.
+
+```dq
+// Call site
+print("Values: %d, %s", [10, "text", true]);
+```
+
+**Mechanism**:
+1. The compiler encounters the array literal `[10, "text", true]`.
+2. It creates a temporary fixed-size array on the stack, with each element being a `vararg` struct initialized from the literal values.
+3. It then passes a slice (`vararg[]`) of this temporary array to the `print` function's `args` parameter.
+
+This approach ensures that variadic arguments are handled with the same type-safe, efficient, and explicit mechanisms used throughout the rest of the language.
+
 ---
 
-## 9. Objects
+## 10. Objects
 
 ### 9.1 Object Declaration
 
@@ -1329,7 +1411,7 @@ endobject
 
 ---
 
-## 10. Pointers and References
+## 11. Pointers and References
 
 ### 10.1 Pointer Syntax
 
@@ -1372,7 +1454,7 @@ endif
 
 ---
 
-## 11. Modules and Namespaces
+## 12. Modules and Namespaces
 
 ### 11.1 Module Declaration
 
@@ -1447,7 +1529,7 @@ package root contains dq.toml (or dq.pkg)
 
 ---
 
-## 12. Preprocessor and Compiler Directives
+## 13. Preprocessor and Compiler Directives
 
 ### 12.1 Compilation Pipeline
 
@@ -1513,7 +1595,7 @@ The defines are accessible with a @def. namespace.
 
 ---
 
-## 13. Memory Management
+## 14. Memory Management
 
 ### 13.1 Allocation
 
@@ -1545,7 +1627,7 @@ endfunc
 
 ---
 
-## 14. Standard Library
+## 15. Standard Library
 
 ### 14.1 Built-in Functions
 
@@ -1577,7 +1659,7 @@ arr.append(x)       // add element (dynamic arrays)
 
 ---
 
-## 15. Explicitly Rejected Features
+## 16. Explicitly Rejected Features
 
 The following features have been explicitly rejected for DQ:
 
@@ -1596,13 +1678,13 @@ The following features have been explicitly rejected for DQ:
 
 ---
 
-## 16. Open Questions
+## 17. Open Questions
 
-### 16.1 Syntax Questions
+### 17.1 Syntax Questions
 - [ ] Lambda syntax (if supported)
 - [ ] Pattern matching syntax
 
-### 16.2 Semantic Questions
+### 17.2 Semantic Questions
 - [ ] Full generics design (planned, Pascal-style syntax)
 - [ ] Interface/trait system
 - [ ] Nullable types (`?T` syntax?)
@@ -1610,7 +1692,7 @@ The following features have been explicitly rejected for DQ:
 - [ ] Move semantics
 - [ ] Concurrency primitives
 
-### 16.3 Generics (Planned)
+### 17.3 Generics (Planned)
 
 Generics will use Pascal-style `specialize` syntax:
 
@@ -1624,7 +1706,7 @@ endobject
 type TNanoSocketMap = specialize TFPGMapObject<TSocket, TNanoSocket>;
 ```
 
-### 16.4 Exception Handling (Planned)
+### 17.4 Exception Handling (Planned)
 
 Exceptions will follow Pascal/Python style with `raise`:
 
@@ -1642,13 +1724,13 @@ except:
 endtry
 ```
 
-### 16.5 Standard Library Questions
+### 17.5 Standard Library Questions
 - [ ] Prelude contents (what's auto-imported?)
 - [ ] Collection types
 - [ ] I/O abstractions
 - [ ] Error handling conventions
 
-### 16.6 Tooling Questions
+### 17.6 Tooling Questions
 - [ ] Canonical formatter style
 - [ ] Package manager design
 - [ ] Debug format (DWARF)

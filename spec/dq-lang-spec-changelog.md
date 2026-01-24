@@ -1,5 +1,8 @@
 ## Appendix B: Changelog
 
+### v0.1.18 (2026-01-24)
+- Core philosophy chapter adjusted
+
 ### v0.1.17 (2026-01-24)
 - The `var` keyword is now also mandatory for object field declarations.
 

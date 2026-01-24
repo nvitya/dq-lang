@@ -29,10 +29,10 @@
 
 ## 1. Overview
 
-DQ is a compiled, strongly-typed programming language designed to combine:
+DQ is a compiled, universal strongly-typed programming language designed to combine:
 - Pascal-like readability and explicitness
 - C++-style object model (stack or heap allocation)
-- No implicit type conversions (unlike C/C++)
+- No harmful implicit type conversions (unlike in C/C++)
 - Predictable operator precedence (avoiding the classic C traps)
 - Embedded-friendly design with manual memory control
 
@@ -52,16 +52,16 @@ DQ is a compiled, strongly-typed programming language designed to combine:
 ## 2. Design Principles
 
 ### 2.1 Core Philosophy
-- **Explicit over implicit**: No hidden conversions, allocations, or behaviors
-- **Readability preferred over minimal keystrokes**: Code should be self-documenting
-- **Object context has priority**: Inside objects, member names take precedence over imported names
-- **Predictable behavior**: Same code produces same results regardless of context
+- **Readability preferred over minimal keystrokes**: Code should be self-documenting, good naturally readable by humans
+- **Signal-over-noise**: Eliminate repetitive qualifiers, ensuring code focuses on logic
+- **More natural syntax and behavior for humans**: For example, `(3/2)*10` evaluates to `15.0` (unlike in C or Rust where it yields `10.0`).
+- **Support humans as much as possible**: Human friendly behavior, and error messages (don't expect humans to learn lot of unnatural stuff)
 
 ### 2.2 Key Differentiators from Other Languages
 
 | Feature | DQ Approach | Why |
 |---------|-------------|-----|
-| Type conversions | Always explicit | Avoids `3/2*10 != 3*10/2` bugs |
+| Unsafe type conversions | Always explicit | Prevents silent data loss or unexpected results from automatic conversions. |
 | Boolean type | Strict, no int↔bool | Prevents accidental truthy/falsy bugs |
 | Division | `/` always returns float | Clear semantics, use `IDIV` for integers |
 | Operator precedence | Bitwise before comparison | Prevents `a AND b == 0` ambiguity |
@@ -1664,7 +1664,7 @@ The following features have been explicitly rejected for DQ:
 | Feature | Reason |
 |---------|--------|
 | Implicit int↔bool conversion | Major source of bugs in C |
-| Implicit numeric widening | Causes `3/2*10 != 3*10/2` bugs |
+| Implicit integer division | Causes bugs like `(3/2)*10` evaluating to `10.0` instead of `15.0`. In DQ, `/` is always float division. |
 | C-style `::` namespace operator | Visual noise; use `.` and `@` instead |
 | Mandatory `this.` / `self.` | Reduces readability |
 | Textual macros | Unsafe, no types, no scope |

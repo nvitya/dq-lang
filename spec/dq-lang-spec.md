@@ -163,7 +163,7 @@ Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably.
 
 **Concatenation**: When using `+`, `char` is implicitly promoted to `str`:
 ```dq
-s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
+var s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
 ```
 
 #### Multi-line Strings
@@ -171,7 +171,7 @@ s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is s
 Triple-quoted strings (`"""..."""` or `'''...'''`) allow multi-line content with automatic indentation handling:
 
 ```dq
-sql = """
+var sql = """
     select
       d.MTIME, d.SENSID, d.VALUE
     from
@@ -192,7 +192,7 @@ sql = """
 **Example with indentation**:
 ```dq
 function example():
-    msg = """
+    var msg = """
         Line 1
         Line 2
         """;
@@ -202,7 +202,7 @@ endfunc
 
 **Single-line usage** (useful for strings containing both quote types):
 ```dq
-json = """{"key": "value with 'quotes'"}""";
+var json : str = """{"key": "value with 'quotes'"}""";
 ```
 
 #### Boolean Literals
@@ -254,8 +254,8 @@ char8   // 8-bit code unit / byte
 
 **Character from Unicode code point**:
 ```dq
-c : char = char(0x30);      // '0' (digit zero)
-c : char = char(0x1F600);   // 😀 (emoji)
+var c : char = char(0x30);      // '0' (digit zero)
+var c : char = char(0x1F600);   // 😀 (emoji)
 ```
 
 ### 4.2 String Types
@@ -267,11 +267,11 @@ c : char = char(0x1F600);   // 😀 (emoji)
 - `str` is the primary spelling; `string` is an alias
 
 ```dq
-s1 : str = "Hello";
-s2 : str = s1 + " World";
-len : int = length(s1);     // Pascal-style function
-len : int = s1.length;      // also available as property
-ch : char = s1[0];          // indexed access (Unicode-aware)
+var s1 : str = "Hello";
+var s2 : str = s1 + " World";
+var len : int = length(s1);     // Pascal-style function
+var len : int = s1.length;      // also available as property
+var ch : char = s1[0];          // indexed access (Unicode-aware)
 ```
 
 #### Fixed-Size String Buffer (`cstring[N]`)
@@ -280,9 +280,9 @@ ch : char = s1[0];          // indexed access (Unicode-aware)
 - For protocols, ABI, packed structs
 
 ```dq
-name : cstring[32];        // 32-byte inline buffer
+var name : cstring[32];        // 32-byte inline buffer
 name = "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
-s : str = name;            // converts to dynamic string
+var s : str = name;            // converts to dynamic string
 ```
 
 ### 4.3 Array Types
@@ -295,9 +295,9 @@ DQ provides three distinct array types, each serving a specific purpose: fixed-s
 - **Use Case**: Small, fixed-size data structures where performance and stack allocation are critical.
 
 ```dq
-arr : int32[4];          // 4 integers allocated on the stack
+var arr : int32[4];          // 4 integers allocated on the stack
 arr[0] = 10;
-len : int = arr.length;    // == 4 (compile-time known)
+var len : int = arr.length;
 ```
 
 #### Open Array / Slice (`T[]`)
@@ -318,12 +318,12 @@ function sum(values: int[]) -> int:
 endfunc
 
 // It can be called with different array types:
-fixed_arr : int[3] = [1, 2, 3];
-dyn_arr : int[...] = [4, 5, 6];
+var fixed_arr : int[3] = [1, 2, 3];
+var dyn_arr : int[...] = [4, 5, 6];
 
-s1 : int = sum(fixed_arr);      // slice points to fixed array
-s2 : int = sum(dyn_arr);        // slice points to dynamic array data
-s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
+var s1 : int = sum(fixed_arr);      // slice points to fixed array
+var s2 : int = sum(dyn_arr);        // slice points to dynamic array data
+var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
 ```
 
 #### Dynamic Array (`T[...]`)
@@ -335,27 +335,27 @@ s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the liter
 - **Use Case**: General-purpose mutable collections of elements, where the size is not known at compile-time.
 
 ```dq
-arr : int[...];            // Handle is null initially
-arr = [10, 20];            // Assign a new dynamic array from a literal
+var arr : int[...];            // Handle is null initially
+arr = [10, 20];                // Assign a new dynamic array from a literal
 arr.append(30);
-len : int = arr.length;    // runtime value
+var len : int = arr.length;    // runtime value
 ```
 
 #### Multi-dimensional Arrays
 Multi-dimensional arrays are combinations of the above types.
 
 ```dq
-matrix : int[3][4];      // fixed 3x4 matrix
-grid : int[...][...];    // fully dynamic 2D array (array of dynamic arrays)
-rows : int[][4];         // array of slices, with each slice pointing to 4 columns
+var matrix : int[3][4];      // fixed 3x4 matrix
+var grid : int[...][...];    // fully dynamic 2D array (array of dynamic arrays)
+var rows : int[][4];         // array of slices, with each slice pointing to 4 columns
 ```
 
 ### 4.4 Pointer Types
 
 ```dq
-p : ^int32;                 // pointer to int32
-p : ^MyStruct;              // pointer to object/struct
-ptr : pointer;              // untyped pointer (like void*)
+var p : ^int32;                 // pointer to int32
+var p : ^MyStruct;              // pointer to object/struct
+var ptr : pointer;              // untyped pointer (like void*)
 ```
 
 ### 4.5 Type Aliases
@@ -388,7 +388,7 @@ type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1,
 Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
 
 ```dq
-state : TProcState = psIdle;
+var state : TProcState = psIdle;
 
 if state == psRising:
     // ...
@@ -407,13 +407,13 @@ This convention prevents name collisions when multiple enum types are in scope.
 Conversions between enum types and their underlying integer type must be **explicit**:
 
 ```dq
-cmd : TCmd = cmdRead;
+var cmd : TCmd = cmdRead;
 
 // Enum to integer: explicit cast
-val : byte = byte(cmd);            // val = 0x10
+var val : byte = byte(cmd);            // val = 0x10
 
 // Integer to enum: explicit cast
-cmd2 : TCmd = TCmd(0x20);          // cmd2 = cmdWrite
+var cmd2 : TCmd = TCmd(0x20);          // cmd2 = cmdWrite
 
 // Comparison with integer literals: requires cast
 if byte(cmd) == 0x10:  ...  endif    // OK: explicit
@@ -439,12 +439,11 @@ type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
 
 ### 5.1 Variable Declaration
 
-Variables are declared in `[var] identifier : type [= initial_value];` form
+Variables are declared in `var identifier : type [= initial_value];` form
 
 ```dq
 var x : int32 = 10;         // explicit type with initialization
 var y : int32;              // uninitialized (must be assigned before use)
-x : int32 = 10;             // 'var' keyword is optional
 ```
 
 ### 5.2 Type Inference with `auto`
@@ -454,7 +453,7 @@ Use the special type `auto` when you want the compiler to infer the type:
 ```dq
 var x : auto = 10;          // inferred as int
 var s : auto = "hello";     // inferred as str
-x : auto = some_function(); // inferred from return type
+var x : auto = some_function(); // inferred from return type
 ```
 
 ### 5.3 Constants
@@ -506,9 +505,9 @@ Constants are evaluated at compile time and can reference other constants in exp
 **Division Rule**: `/` always yields `float`. Integer division requires explicit `IDIV`.
 
 ```dq
-f : float = 10 / 3;         // == 3.333...
-i : int = 10 IDIV 3;        // == 3
-i : int = round(10 / 3);    // == 3 (explicit rounding)
+var f : float = 10 / 3;         // == 3.333...
+var i : int = 10 IDIV 3;        // == 3
+var i : int = round(10 / 3);    // == 3 (explicit rounding)
 ```
 
 **Rounding Functions**:
@@ -560,14 +559,14 @@ i : int = round(10 / 3);    // == 3 (explicit rounding)
 
 **Examples**:
 ```dq
-x : int = 10;
-y : int = -x;              // unary minus: y = -10
+var x : int = 10;
+var y : int = -x;              // unary minus: y = -10
 
-p : ^int = &x;             // address-of: p points to x
-z : int = p^;              // dereference: z = 10
+var p : ^int = &x;             // address-of: p points to x
+var z : int = p^;              // dereference: z = 10
 
-mask : int = NOT 0xFF;     // bitwise NOT
-flag : bool = not true;    // logical NOT
+var mask : int = NOT 0xFF;     // bitwise NOT
+var flag : bool = not true;    // logical NOT
 ```
 
 ### 6.6 Operator Precedence
@@ -607,7 +606,7 @@ if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
 ### 6.7 Assignment Operators
 
 ```dq
-x = 10;                     // assignment (single =)
+var x : int = 10;
 x += 5;                     // compound: add
 x -= 5;                     // compound: subtract
 x *= 2;                     // compound: multiply
@@ -626,7 +625,7 @@ Named arguments use the `=` operator, following Python conventions:
 
 ```dq
 connect(port = 80, timeout_ms = 5000);
-cfg : TConfig = (baud = 115200, parity = .None);
+var cfg : TConfig = (baud = 115200, parity = .None);
 ```
 
 **Note**: Context makes it clear whether `=` is used for assignment (in statements) or named argument binding (in function/constructor calls).
@@ -670,25 +669,25 @@ The result type is determined as follows:
 
 ```dq
 // Integer selection
-maxv : int = iif(a > b, a, b);
+var maxv : int = iif(a > b, a, b);
 
 // String selection
-msg : str = iif(ok, "OK", FormatError(code));
+var msg : str = iif(ok, "OK", FormatError(code));
 
 // Numeric promotion: int and float → float
-f : float = iif(flag, 1, 2.1);      // result type is float
+var f : float = iif(flag, 1, 2.1);      // result type is float
 
 // Nested iif (ternary chains)
-sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
+var sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
 
 // Used in expressions
-result : int = iif(enabled, base * 2, base) + offset;
+var result : int = iif(enabled, base * 2, base) + offset;
 
 var i1 : int = iif(count, 1, 3);     // ERROR: condition is not bool
 var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
 
 // Invalid: incompatible types
-// s : str = iif(flag, "text", 42);     // ERROR: str vs int
+// var s : str = iif(flag, "text", 42);     // ERROR: str vs int
 
 ```
 
@@ -701,7 +700,7 @@ var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit co
 
 ```dq
 // Good use of iif: concise value selection
-max : int = iif(a > b, a, b);
+var max : int = iif(a > b, a, b);
 
 // Better as if-else when branches have side effects:
 if condition:
@@ -716,19 +715,19 @@ endif
 
 ## 7. Statements and Control Flow
 
-### 7.1 Syntax Modes
+### 7.1 Block Modes
 
-DQ supports two syntax modes: **Strict Mode** and **Relaxed Mode** (selectable via compiler directive or flag).
+DQ supports two block modes: **Indent Mode** and **Braces Mode** (selectable via compiler directive). The default mode is **Indent Mode**.
 
-#### Strict Mode
+#### Indent Block Mode (default)
 
-In strict mode, DQ enforces a consistent, unambiguous syntax:
+In indent mode, DQ enforces a consistent, unambiguous syntax using colons and `endXXX` keywords to delimit blocks.
 
-- **Blocks**: Must use `: ... endXXX` delimiters
-- **Indentation**: Proper indentation is required (violations produce warnings)
+- **Blocks**: Must use `: ... endXXX` delimiters.
+- **Indentation**: Proper indentation is required (violations produce warnings).
 
 ```dq
-#{opt syntax strict}
+#{syn blockmode indent}
 
 function HandleState(value : int):
     if curstate == psIdle:
@@ -762,7 +761,7 @@ endfunc
 **Key rule**: The colon `:` opens a block, `endXXX` closes it. Indentation is for readability and style enforcement only — the syntax is delimiter-based, not indentation-based. This means code is technically valid on a single line:
 
 ```dq
-function Foo():  if a:  x = 1;  endif  endfunc   // valid but discouraged
+function Foo():  if a:  var x : int = 1;  endif  endfunc   // valid but discouraged
 ```
 
 **Compact form**: Single statements can follow the colon on the same line:
@@ -779,25 +778,25 @@ endif
 2. The line does not exceed **80 columns**
 
 ```dq
-// One-liner blocks (accepted in strict mode):
+// One-liner blocks (accepted in indent mode):
 if condition:  doSomething();  endif
 while hasMore():  process();  endwhile
 ensure:  cleanup();  endensure
 
 // Typical usage with ensure:
-p : ^Worker = new("Test");
+    var p : ^Worker = new("Test");
 ensure:  delete p;  endensure
 p.DoWork();
 ```
 
 This is purely a style rule — the syntax is always valid regardless of line length.
 
-#### Relaxed Mode (default)
+#### Braces Block Mode
 
-In relaxed mode, alternative syntax forms are allowed:
+In braces mode, alternative syntax forms are allowed:
 
-- **Blocks**: Both `{ ... }` braces and `: ... endXXX` are allowed
-- **Chained conditions**: Both `else if` and `elif` are accepted
+- **Blocks**: Both `{ ... }` braces and `: ... endXXX` are allowed.
+- **Chained conditions**: Both `else if` and `elif` are accepted.
 
 ```dq
 function HandleState(value : int) {
@@ -815,15 +814,15 @@ function HandleState(value : int) {
 #### Mode Selection
 
 ```dq
-#{opt syntax strict}        // enable strict mode
-#{opt syntax relaxed}       // enable relaxed mode
+#{syn blockmode indent}     // switch to indent block mode
+#{syn blockmode braces}     // switch to braces block mode
 ```
 
-**Note**: The choice of mode affects block delimiters and certain syntactic conveniences, but assignment (`=`) and equality (`==`) operators are the same in both modes.
+**Note**: The choice of mode affects only the block delimiters.
 
 ### 7.2 If Statement
 
-#### Relaxed Mode (braces)
+#### Braces Mode
 ```dq
 if condition {
     // then branch
@@ -836,7 +835,7 @@ else {
 }
 ```
 
-#### Strict Mode (colon + endif)
+#### Indent Mode
 ```dq
 if condition:
     // then branch
@@ -849,8 +848,8 @@ endif
 
 **Important rules**:
 - Condition must be of type `bool`. No implicit int→bool conversion.
-- In strict mode, use `elif` for chained conditions (not `else if`)
-- `else if` as two tokens is **invalid** in strict mode
+- In indent mode, use `elif` for chained conditions (not `else if`)
+- `else if` as two tokens is **invalid** in indent mode
 - `else: if` creates a **nested** if-block requiring two `endif`s:
 
 ```dq
@@ -874,12 +873,12 @@ endif
 ### 7.3 While Loop
 
 ```dq
-// Relaxed mode:
+// Braces mode:
 while condition {
     // body
 }
 
-// Strict mode:
+// Indent mode:
 while condition:
     // body
 endwhile
@@ -894,7 +893,6 @@ DQ provides three distinct forms of for loops, each optimized for different use 
 Use when you know the start and end values. Both bounds are **inclusive** (Pascal-style).
 
 ```dq
-// Strict mode:
 for i = 0 to 10:           // 11 iterations: 0, 1, 2, ..., 10
     // body
 endfor
@@ -922,7 +920,7 @@ endfor
 
 **Example**:
 ```dq
-arr : int[...] = [1, 2, 3, 4, 5];
+var arr : int[...] = [1, 2, 3, 4, 5];
 
 // Iterate through array indices
 for i = 0 to arr.length - 1:
@@ -968,7 +966,7 @@ endfor
 
 **Example**:
 ```dq
-arr : int[...] = [1, 2, 3, 4, 5];
+var arr : int[...] = [1, 2, 3, 4, 5];
 
 // Iterate exactly arr.length times
 for i = 0 count arr.length:
@@ -1188,7 +1186,7 @@ type IntFunc = function(x : int) -> int;
 type Callback = function(x : int) -> int of object;
 
 // Usage
-cb : Callback = obj.method;
+var cb : Callback = obj.method;
 cb(42);
 ```
 
@@ -1204,7 +1202,7 @@ Multiple attributes can be specified in a single bracket pair (comma-separated) 
 // Attribute before declaration
 [[section("ramcode")]]
 function Foo(x : int) -> int:
-    px : ^int = &x;
+    var px : ^int = &x;
     @io.println("x = ", px^);
 endfunc
 
@@ -1288,8 +1286,8 @@ This approach ensures that variadic arguments are handled with the same type-saf
 ```dq
 object OWorker:
     // Fields
-    name : str;
-    counter : int;
+    var name : str;
+    var counter : int;
 
     // Constructor
     function __ctor(aname : str):
@@ -1318,15 +1316,15 @@ endobject
 
 #### Stack Allocation (Value)
 ```dq
-w : OWorker("Alice");        // constructor called directly
+var w : OWorker("Alice");        // constructor called directly
 w.DoWork();
 // destructor called automatically at scope exit
 ```
 
 #### Heap Allocation (Pointer)
 ```dq
-w : ^OWorker = new OWorker("Bob");   // explicit type at new
-w : ^OWorker = new("Bob");           // target-typed new (type inferred from LHS)
+var w : ^OWorker = new OWorker("Bob");   // explicit type at new
+var w : ^OWorker = new("Bob");           // target-typed new (type inferred from LHS)
 w.DoWork();
 delete w;                           // explicit deletion
 ```
@@ -1351,7 +1349,7 @@ public
     property port : uint16 read mport write SetPort;
 
 private
-    mport : uint16;
+    var mport : uint16;
 
     function SetPort(value : uint16):
         mport = value;
@@ -1396,7 +1394,7 @@ use math;
 
 object OCircle:
 public
-    radius : float;
+    var radius : float;
 
     function Area() -> float:
         return .PI * radius * radius;   // .PI = global PI from math
@@ -1416,9 +1414,9 @@ endobject
 ### 10.1 Pointer Syntax
 
 ```dq
-p : ^int32;                 // pointer to int32
+var p : ^int32;                 // pointer to int32
 p = &x;                    // address-of (C-style)
-y = p^;                    // dereference (Pascal-style)
+var y : int32 = p^;                    // dereference (Pascal-style)
 ```
 
 **Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
@@ -1426,8 +1424,8 @@ y = p^;                    // dereference (Pascal-style)
 ### 10.2 Pointer Arithmetic
 
 ```dq
-p : ^byte = buffer;
-pend : ^byte = p + length;  // pointer arithmetic allowed
+var p : ^byte = buffer;
+var pend : ^byte = p + length;  // pointer arithmetic allowed
 while p < pend:
     // ...
     p += 1;
@@ -1437,7 +1435,7 @@ endwhile
 ### 10.3 Null
 
 ```dq
-p : ^Worker = null;
+var p : ^Worker = null;
 if p == null:  ...  endif
 delete null;                 // safe (no-op)
 ```
@@ -1445,7 +1443,7 @@ delete null;                 // safe (no-op)
 ### 10.4 Ref Binding to Pointer
 
 ```dq
-p : ^MyStruct = ...;
+var p : ^MyStruct = ...;
 if p <> null:
     ref s : MyStruct = p^; // bind ref to pointee
     s.field = 10;          // modify through ref
@@ -1581,12 +1579,12 @@ The defines are accessible with a @def. namespace.
 ### 12.5 Compiler Directives
 
 ```dq
-#{opt syntax strict}        // switch to strict mode
-#{opt syntax relaxed}       // switch to relaxed mode
+#{syn blockmode indent}     // switch to indent block mode
+#{syn blockmode braces}     // switch to braces block mode
 
 #{push}                     // save directive state
-#{opt syntax strict}
-// strict-mode code here
+#{syn blockmode indent}
+// indent-mode code here
 #{pop}                      // restore previous state
 
 #{opt warn disable W001}    // disable warning (TBD)
@@ -1601,11 +1599,11 @@ The defines are accessible with a @def. namespace.
 
 ```dq
 // Stack allocation (automatic)
-x : MyStruct;
+var x : MyStruct;
 
 // Heap allocation
-p : ^MyStruct = new MyStruct();
-p : ^MyStruct = new();             // target-typed
+var p : ^MyStruct = new MyStruct();
+var p : ^MyStruct = new();             // target-typed
 ```
 
 ### 13.2 Deallocation
@@ -1619,7 +1617,7 @@ delete null;                        // safe (no-op)
 
 ```dq
 function Example():
-    p : ^Worker = new("Test");
+    var p : ^Worker = new("Test");
     ensure: delete p; endensure    // guaranteed cleanup at scope exit
     // use p...
 endfunc
@@ -1681,12 +1679,10 @@ The following features have been explicitly rejected for DQ:
 ## 17. Open Questions
 
 ### 17.1 Syntax Questions
-- [ ] Lambda syntax (if supported)
 - [ ] Pattern matching syntax
 
 ### 17.2 Semantic Questions
 - [ ] Full generics design (planned, Pascal-style syntax)
-- [ ] Interface/trait system
 - [ ] Nullable types (`?T` syntax?)
 - [ ] Operator overloading rules
 - [ ] Move semantics
@@ -1790,7 +1786,7 @@ use io;
 
 object OWorkHelper:
 public
-    worklog : int[...];
+    var worklog : int[...];
 
     function help(anum : int):
         worklog.append(anum);
@@ -1799,9 +1795,9 @@ endobject
 
 object OWorker:
 public
-    name    : str;
-    counter : int = 0;
-    helper  : ^OWorkHelper;
+    var name    : str;
+    var counter : int = 0;
+    var helper  : ^OWorkHelper;
 
     function __ctor(aname : str):
         name = aname;
@@ -1825,12 +1821,12 @@ endobject
 
 function main():
     // stack-allocated object
-    w1 : OWorker("Alice");
+    var w1 : OWorker("Alice");
     w1.DoWork(5);
     w1.DoWork(3);
 
     // heap-allocated object
-    w2 : ^OWorker = new("Bob");
+    var w2 : ^OWorker = new("Bob");
     ensure:
         delete w2;
     endensure
@@ -1848,15 +1844,15 @@ type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
 object OSockTester:
 public
     property port : uint16 read mport write SetPort;
-    onevent : TSockCallBackFunc = null;
+    var onevent : TSockCallBackFunc = null;
 
     function __ctor(aport : uint16):
         mport = aport;
     endfunc
 
 private
-    mport : uint16;
-    msocket : int = -1;
+    var mport : uint16;
+    var msocket : int = -1;
 
     function SetPort(avalue : uint16):
         mport = avalue;
@@ -1866,10 +1862,10 @@ endobject
 function main() -> int:
     println("Hello from DQ!");
 
-    i1 : int = 3;
-    i2 : int = 12345;
+    var i1 : int = 3;
+    var i2 : int = 12345;
 
-    i3 : int = i2 AND i1;          // bitwise AND
+    var i3 : int = i2 AND i1;          // bitwise AND
 
     // if (i3):  ...  endif         // ERROR: bool expression expected
 
@@ -1883,12 +1879,12 @@ function main() -> int:
     endif
 
     // i4 : int = i2 / i1;         // ERROR: / returns float
-    f1 : float = i2 / i1;          // OK
-    i5 : int = i2 IDIV i1;         // OK: integer division
-    i6 : int = round(i2 / i1);     // OK: explicit rounding
+    var f1 : float = i2 / i1;          // OK
+    var i5 : int = i2 IDIV i1;         // OK: integer division
+    var i6 : int = round(i2 / i1);     // OK: explicit rounding
 
-    b : bool = i2 <> i1;
-    b2 : bool = (i6 == i5);         // comparison uses '=='
+    var b : bool = i2 <> i1;
+    var b2 : bool = (i6 == i5);         // comparison uses '=='
 
     return 0;
 endfunc

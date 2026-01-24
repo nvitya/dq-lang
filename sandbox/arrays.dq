@@ -3,7 +3,7 @@
 // Current
 
 arr : array<int>;
-arr2 : int[5];
+var arr2 : int[5];
 
 // A
 

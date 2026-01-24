@@ -1,5 +1,17 @@
 ## Appendix B: Changelog
 
+### v0.1.17 (2026-01-24)
+- The `var` keyword is now also mandatory for object field declarations.
+
+### v0.1.16 (2026-01-24)
+- Renamed "Strict Mode" to "Indent Block Mode" and "Relaxed Mode" to "Braces Block Mode" for clarity.
+- Changed the default block mode from braces (`relaxed`) to `indent` (strict).
+- Updated compiler directives for mode selection to `#{syn blockmode indent}` and `#{syn blockmode braces}`.
+
+### v0.1.15 (2026-01-24)
+- **Breaking change**: The `var` keyword is now mandatory for all variable declarations. The optional syntax has been removed to improve clarity and consistency.
+- Updated all variable declarations in the specification document to include the `var` keyword.
+
 ### v0.1.14 (2026-01-24)
 - **Enhanced array handling and variadic arguments**:
 - Added new **Open Array (Slice)** type (`T[]`) as a universal, non-owning view for flexible data processing (Section 4.3).

@@ -2,12 +2,12 @@
 
 type TProcState : byte = (psIdle, psRising, psFalling, psSaving);
 
-var curstate : TProcState := psIdle;
+var curstate : TProcState = psIdle;
 var prevvalue : int = 0;
 
 function HandleState(value : int)
 {
-  if curstate = psIdle
+  if curstate == psIdle
   {
     if value > prevvalue
     {
@@ -18,7 +18,7 @@ function HandleState(value : int)
       curstate = psFalling;
     }
   }
-  else if curstate = psRising
+  else if curstate == psRising
   {
     ...
   }

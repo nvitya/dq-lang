@@ -3,7 +3,7 @@
 //#{define FULLCODE}
 
 const CFLOAT1  : float = 0.5;
-var g_float   : float = CFLOAT1 + 1;
+var   g_float  : float = CFLOAT1 / 2;
 
 #{ifdef FULLCODE}
 

@@ -109,3 +109,8 @@ void OValSym::GenDeclaration(bool apublic, OValue * ainitval)
     //ll_globals[vs->name] = gv;
   }
 }
+
+OExpr::OExpr()
+{
+  ptype = g_builtins->type_int;
+}

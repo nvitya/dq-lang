@@ -21,6 +21,8 @@
 #include "expressions.h"
 #include "statements.h"
 
+using namespace std;
+
 ODqCompParser::ODqCompParser()
 {
 }
@@ -703,7 +705,7 @@ OExpr * ODqCompParser::ParseExprAdd()
       right = ParseExprMul();
       if (right)
       {
-        return new OBinExpr(BINOP_ADD, left, right);
+        return CreateBinExpr(BINOP_ADD, left, right);
       }
     }
     else if (scf->CheckSymbol("-"))
@@ -711,7 +713,7 @@ OExpr * ODqCompParser::ParseExprAdd()
       right = ParseExprMul();
       if (right)
       {
-        return new OBinExpr(BINOP_SUB, left, right);
+        return CreateBinExpr(BINOP_SUB, left, right);
       }
     }
     else
@@ -738,7 +740,7 @@ OExpr * ODqCompParser::ParseExprMul()
       right = ParseExprDiv();
       if (right)
       {
-        return new OBinExpr(BINOP_MUL, left, right);
+        return CreateBinExpr(BINOP_MUL, left, right);
       }
     }
     else
@@ -765,7 +767,7 @@ OExpr * ODqCompParser::ParseExprDiv()
       right = ParseExprPrimary();
       if (right)
       {
-        return new OBinExpr(BINOP_DIV, left, right);
+        return CreateBinExpr(BINOP_DIV, left, right);
       }
     }
     else if (scf->CheckSymbol("IDIV"))
@@ -773,7 +775,7 @@ OExpr * ODqCompParser::ParseExprDiv()
       right = ParseExprPrimary();
       if (right)
       {
-        return new OBinExpr(BINOP_IDIV, left, right);
+        return CreateBinExpr(BINOP_IDIV, left, right);
       }
     }
     else if (scf->CheckSymbol("IMOD"))
@@ -781,7 +783,7 @@ OExpr * ODqCompParser::ParseExprDiv()
       right = ParseExprPrimary();
       if (right)
       {
-        return new OBinExpr(BINOP_IMOD, left, right);
+        return CreateBinExpr(BINOP_IMOD, left, right);
       }
     }
     else
@@ -792,6 +794,42 @@ OExpr * ODqCompParser::ParseExprDiv()
 
   return left;
 }
+
+OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
+{
+  OExpr * result = nullptr;
+  OExpr * newleft  = left;
+  OExpr * newright = right;
+
+  // check type compatibilities
+  ETypeKind tkl = left->ptype->kind;
+  ETypeKind tkr = right->ptype->kind;
+
+  if (tkl != tkr)
+  {
+    if ((TK_INT == tkl) and (TK_FLOAT == tkr))
+    {
+      newleft  = new OExprTypeConv(g_builtins->type_float, left);
+    }
+    else if ((TK_INT == tkr) and (TK_FLOAT == tkl))
+    {
+      newright = new OExprTypeConv(g_builtins->type_float, right);
+    }
+    else
+    {
+      Error(format("Types mismatch for BinOp({}): \"{}\", \"{}\"", int(op), left->ptype->name, right->ptype->name));
+      return nullptr;
+    }
+  }
+  else if ((TK_INT == tkl) and (BINOP_DIV == op))  // division results to floating point
+  {
+    newleft  = new OExprTypeConv(g_builtins->type_float, left);
+    newright = new OExprTypeConv(g_builtins->type_float, right);
+  }
+
+  return new OBinExpr(op, newleft, newright);
+}
+
 
 OExpr * ODqCompParser::ParseExprNeg()
 {
@@ -1004,6 +1042,12 @@ void ODqCompParser::ParseStmtVar()
   {
     scf->SkipWhite();
     initexpr = ParseExpression();
+    if (not CheckAssignType(ptype, &initexpr))  // might add implicit conversion
+    {
+      // error message is already provided.
+      delete initexpr;
+      return;
+    }
   }
 
   scf->SkipWhite();
@@ -1023,7 +1067,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   // note: identifier(=sid) is already consumed, assign operation expected
 
   string     stype;
-  OType *    ptype;
+  OType *    ptype = pvalsym->ptype;
   EBinOp     op = BINOP_NONE;
 
   scf->SkipWhite();
@@ -1062,6 +1106,13 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
 
   OExpr * expr = ParseExpression();
 
+  if (not CheckAssignType(ptype, &expr))  // might add implicit conversion
+  {
+    // error message is already provided.
+    delete expr;
+    return false;
+  }
+
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
@@ -1075,6 +1126,27 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   else
   {
     curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, pvalsym, op, expr));
+  }
+
+  return true;
+}
+
+bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr)
+{
+  ETypeKind tkd = dsttype->kind;
+  ETypeKind tke = (*rexpr)->ptype->kind;
+
+  if (tkd != tke)
+  {
+    if ((TK_FLOAT == tkd) and (TK_INT == tke))
+    {
+      *rexpr = new OExprTypeConv(dsttype, *rexpr);
+    }
+    else
+    {
+      Error(format("Assignment type mismatch: \"{}\" = \"{}\"", dsttype->name, (*rexpr)->ptype->name));
+      return false;
+    }
   }
 
   return true;

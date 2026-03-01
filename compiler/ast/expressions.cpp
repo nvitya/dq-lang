@@ -14,10 +14,43 @@
 #include "expressions.h"
 #include "scope_builtins.h"
 
+/* ctor */ OExprTypeConv::OExprTypeConv(OType * dsttype, OExpr * asrc)
+{
+  ptype = dsttype;
+  src   = asrc;
+}
+
+LlValue * OExprTypeConv::Generate(OScope * scope)
+{
+  return ptype->GenerateConversion(scope, src);
+}
+
+/* ctor */ OIntLit::OIntLit(int64_t v)
+{
+  ptype = g_builtins->type_int;
+  value = v;
+}
 
 LlValue * OIntLit::Generate(OScope * scope)
 {
   return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
+}
+
+/* ctor */ OFloatLit::OFloatLit(double v)
+{
+  ptype = g_builtins->type_float;
+  value = v;
+}
+
+LlValue * OFloatLit::Generate(OScope *scope)
+{
+  return llvm::ConstantInt::get(g_builtins->type_float->GetLlType(), value);
+}
+
+/* ctor */ OBoolLit::OBoolLit(bool v)
+{
+  ptype = g_builtins->type_bool;
+  value = v;
 }
 
 LlValue * OBoolLit::Generate(OScope * scope)
@@ -25,9 +58,10 @@ LlValue * OBoolLit::Generate(OScope * scope)
   return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), (value ? 1 : 0));
 }
 
-LlValue * OFloatLit::Generate(OScope * scope)
+/* ctor */ OVarRef::OVarRef(OValSym * avalsym)
 {
-  return llvm::ConstantInt::get(g_builtins->type_float->GetLlType(), value);
+  ptype = avalsym->ptype;
+  pvalsym = avalsym;
 }
 
 LlValue * OVarRef::Generate(OScope * scope)
@@ -48,17 +82,62 @@ LlValue * OVarRef::Generate(OScope * scope)
   }
 }
 
+/* ctor */ OBinExpr::OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright)
+{
+  op    = aop;
+  left  = aleft;
+  right = aright;
+
+  ptype = aleft->ptype;  // the right shuld be the same or compatible
+  if (TK_INT == ptype->kind)
+  {
+    if (TK_FLOAT == right->ptype->kind)
+    {
+      ptype = right->ptype;  // change to float
+    }
+    else if (BINOP_DIV == op)  // the division of two integers results to float
+    {
+      ptype = g_builtins->type_float;
+    }
+  }
+}
+
 LlValue * OBinExpr::Generate(OScope * scope)
 {
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
 
-  if      (BINOP_ADD == op)   return ll_builder.CreateAdd(ll_left, ll_right);
-  else if (BINOP_SUB == op)   return ll_builder.CreateSub(ll_left, ll_right);
-  else if (BINOP_MUL == op)   return ll_builder.CreateMul(ll_left, ll_right);
-  else if (BINOP_IDIV == op)  return ll_builder.CreateSDiv(ll_left, ll_right);
+  if (TK_INT == ptype->kind)
+  {
+    if      (BINOP_ADD == op)   return ll_builder.CreateAdd(ll_left, ll_right);
+    else if (BINOP_SUB == op)   return ll_builder.CreateSub(ll_left, ll_right);
+    else if (BINOP_MUL == op)   return ll_builder.CreateMul(ll_left, ll_right);
+    else if (BINOP_IDIV == op)  return ll_builder.CreateSDiv(ll_left, ll_right);
 
-  throw logic_error(std::format("GenerateExpr(): Unhandled binop = {} ", int(op)));
+    throw logic_error(std::format("OBinExpr.Generate(): Unhandled int binop = {} ", int(op)));
+  }
+  else if (TK_FLOAT == ptype->kind)
+  {
+    if      (BINOP_ADD == op)   return ll_builder.CreateFAdd(ll_left, ll_right);
+    else if (BINOP_SUB == op)   return ll_builder.CreateFSub(ll_left, ll_right);
+    else if (BINOP_MUL == op)   return ll_builder.CreateFMul(ll_left, ll_right);
+    else if (BINOP_DIV == op)   return ll_builder.CreateFDiv(ll_left, ll_right);
+
+    throw logic_error(std::format("OBinExpr.Generate(): Unhandled float binop = {} ", int(op)));
+  }
+  else
+  {
+    throw logic_error(std::format("OBinExpr.Generate(): Unhandled type kind = {} ", int(ptype->kind)));
+  }
+}
+
+/* ctor */ OCompareExpr::OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright)
+{
+  op    = aop;
+  left  = aleft;
+  right = aright;
+
+  ptype = g_builtins->type_bool;
 }
 
 LlValue * OCompareExpr::Generate(OScope * scope)
@@ -78,6 +157,15 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   throw logic_error(std::format("GenerateExpr(): Unhandled compare operation= {} ", int(op)));
 }
 
+/* ctor */ OLogicalExpr::OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright)
+{
+  op    = aop;
+  left  = aleft;
+  right = aright;
+
+  ptype = g_builtins->type_bool;
+}
+
 LlValue * OLogicalExpr::Generate(OScope * scope)
 {
   LlValue * ll_left  = left->Generate(scope);
@@ -90,10 +178,22 @@ LlValue * OLogicalExpr::Generate(OScope * scope)
   throw logic_error(std::format("GenerateExpr(): Unhandled logical operation= {} ", int(op)));
 }
 
+/* ctor */ ONotExpr::ONotExpr(OExpr * expr)
+{
+  operand = expr;
+  ptype = g_builtins->type_bool;
+}
+
 LlValue * ONotExpr::Generate(OScope * scope)
 {
   LlValue * ll_val = operand->Generate(scope);
   return ll_builder.CreateXor(ll_val, llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), 1));
+}
+
+/* ctor */ ONegExpr::ONegExpr(OExpr * expr)
+{
+  operand = expr;
+  ptype = operand->ptype;
 }
 
 LlValue * ONegExpr::Generate(OScope * scope)
@@ -116,4 +216,10 @@ LlValue * OCallExpr::Generate(OScope * scope)
     ll_args.push_back(arg->Generate(scope));
   }
   return ll_builder.CreateCall(ll_func, ll_args);
+}
+
+/* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
+{
+  vsfunc = avsfunc;
+  ptype = static_cast<OTypeFunc *>(vsfunc->ptype)->rettype;
 }

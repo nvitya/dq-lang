@@ -95,6 +95,8 @@ enum ETypeKind
   TK_FUNCTION
 };
 
+class OExpr;
+
 class OType : public OSymbol
 {
 private:
@@ -115,9 +117,8 @@ public:
   {
   }
 
-  virtual LlType * CreateLlType() { return nullptr; }
-
-  virtual LlType * GetLlType()
+  virtual LlType *  CreateLlType() { return nullptr; }
+  virtual LlType *  GetLlType()
   {
     if (!ll_type)
     {
@@ -126,8 +127,8 @@ public:
     return ll_type;
   }
 
-  virtual LlDiType * CreateDiType() { return nullptr; }
-  virtual LlDiType * GetDiType()
+  virtual LlDiType *  CreateDiType() { return nullptr; }
+  virtual LlDiType *  GetDiType()
   {
     if (!di_type)
     {
@@ -136,11 +137,10 @@ public:
     return di_type;
   }
 
-  inline bool IsCompound()   { return (kind == TK_COMPOUND);  }
-
-  virtual OValSym * CreateValSym(const string aname);
-
-  virtual OValue * CreateValue() { return nullptr; }
+  inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
+  virtual OValSym *  CreateValSym(const string aname);
+  virtual OValue *   CreateValue()  { return nullptr; }
+  virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
 };
 
 class OTypeVoid : public OType
@@ -248,6 +248,10 @@ public:
 class OExpr
 {
 public:
+  OType *  ptype; // result type (of this node), defaults to int
+
+  OExpr();
+
   virtual ~OExpr() {};
 
   virtual LlValue * Generate(OScope * scope)
@@ -255,7 +259,6 @@ public:
     throw logic_error(std::format("Unhandled OExpr::Generate for \"{}\"", typeid(this).name()));
   }
 };
-
 
 // Value Symbols
 

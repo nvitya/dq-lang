@@ -78,4 +78,8 @@ public: // expressions
   OExpr * ParseExprNeg();
   OExpr * ParseExprPrimary();
 
+protected:
+  OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);  // handles implicit conversions
+  bool    CheckAssignType(OType * dsttype, OExpr ** rexpr);       // returns false when the assignment is not possible
+                                                                  // adds implicit conversion if necessary
 };

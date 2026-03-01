@@ -20,52 +20,46 @@
 
 using namespace std;
 
+class OExprTypeConv : public OExpr
+{
+public:
+  OExpr *    src;
+
+  /* ctor */ OExprTypeConv(OType * dsttype, OExpr * asrc);
+  LlValue *  Generate(OScope * scope) override;
+};
+
 class OIntLit : public OExpr
 {
 public:
-  int64_t   value;
-  OIntLit(int64_t v)
-  :
-    value(v)
-  {}
+  int64_t    value;
 
-  LlValue * Generate(OScope * scope) override;
+  /* ctor */ OIntLit(int64_t v);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 class OFloatLit : public OExpr
 {
 public:
-  double    value;
-  OFloatLit(double v)
-  :
-    value(v)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  double     value;
+  /* ctor */ OFloatLit(double v);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 class OBoolLit : public OExpr
 {
 public:
-  bool  value;
-  OBoolLit(bool v)
-  :
-    value(v)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  bool       value;
+  /* ctor */ OBoolLit(bool v);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 class OVarRef : public OExpr
 {
 public:
   OValSym *  pvalsym;
-  OVarRef(OValSym * avalsym)
-  :
-    pvalsym(avalsym)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  /* ctor */ OVarRef(OValSym * avalsym);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 enum EBinOp
@@ -92,14 +86,8 @@ public:
   OExpr *      left;
   OExpr *      right;
 
-  OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright)
-  :
-    op(aop),
-    left(aleft),
-    right(aright)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  /* ctor */ OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 enum ECompareOp
@@ -118,14 +106,8 @@ public:
   ECompareOp   op;
   OExpr *      left;
   OExpr *      right;
-  OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright)
-  :
-    op(aop),
-    left(aleft),
-    right(aright)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  /* ctor */   OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright);
+  LlValue *    Generate(OScope * scope) override;
 };
 
 enum ELogicalOp
@@ -142,38 +124,24 @@ public:
   ELogicalOp   op;
   OExpr *      left;
   OExpr *      right;
-  OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright)
-  :
-    op(aop),
-    left(aleft),
-    right(aright)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  /* ctor */   OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright);
+  LlValue *    Generate(OScope * scope) override;
 };
 
 class ONotExpr : public OExpr
 {
 public:
-  OExpr *  operand;
-  ONotExpr(OExpr * expr)
-  :
-    operand(expr)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  OExpr *    operand;
+  /* ctor */ ONotExpr(OExpr * expr);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 class ONegExpr : public OExpr
 {
 public:
-  OExpr *  operand;
-  ONegExpr(OExpr * expr)
-  :
-    operand(expr)
-  {}
-
-  LlValue * Generate(OScope * scope) override;
+  OExpr *    operand;
+  /* ctor */ ONegExpr(OExpr * expr);
+  LlValue *  Generate(OScope * scope) override;
 };
 
 class OValSymFunc;  // forward declaration for otype_func.h
@@ -183,15 +151,12 @@ class OCallExpr : public OExpr
 public:
   OValSymFunc *     vsfunc;
   vector<OExpr *>   args;
-  OCallExpr(OValSymFunc * avsfunc)
-  :
-    vsfunc(avsfunc)
-  {}
+  /* ctor */        OCallExpr(OValSymFunc * avsfunc);
+  LlValue *         Generate(OScope * scope) override;
 
+public:
   void AddArgument(OExpr * aarg)
   {
     args.push_back(aarg);
   }
-
-  LlValue * Generate(OScope * scope) override;
 };

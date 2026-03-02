@@ -23,6 +23,7 @@
 #include <filesystem>
 
 #include "scf_base.h"
+#include "comp_options.h"
 
 bool PCharUCCompare(char * * ReadPtr, int len, const char * checkstring)
 {
@@ -251,7 +252,10 @@ bool OScFile::Load(const string aname, const string afullpath)
     pend = pstart + length;
   }
 
-  di_file = di_builder->createFile(name, ExtractFilePath(afullpath));
+  if (g_opt.dbg_info)
+  {
+    di_file = di_builder->createFile(name, ExtractFilePath(afullpath));
+  }
 
   return true;
 }

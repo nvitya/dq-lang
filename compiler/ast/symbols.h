@@ -62,6 +62,8 @@ public:
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;
 
+  LlDiScope * di_scope = nullptr;
+
 public:
   OScope(OScope * aparent, const string & adebugname)
   :
@@ -75,6 +77,8 @@ public:
 
   OType *     FindType(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
   OValSym *   FindValSym(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
+
+  LlDiScope *  GetDiScope();
 };
 
 // Types
@@ -138,7 +142,7 @@ public:
   }
 
   inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
-  virtual OValSym *  CreateValSym(const string aname);
+  virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
 };
@@ -279,11 +283,12 @@ public:
   EValSymKind  kind;
   LlValue *    ll_value = nullptr;
 
-  OValSym(const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
+  OValSym(OScPosition & apos, const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
   :
     super(aname, atype),  // Types usually don't have a "type" themselves, or are meta-types
     kind(akind)
   {
+    scpos = apos;
   }
 
   virtual void GenDeclaration(bool apublic, OValue * ainitval = nullptr);
@@ -297,9 +302,9 @@ private:
 public:
   OValue *     pvalue;
 
-  OValSymConst(const string aname, OType * atype, OValue * avalue = nullptr)
+  OValSymConst(OScPosition & apos, const string aname, OType * atype, OValue * avalue = nullptr)
   :
-    super(aname, atype, VSK_CONST)
+    super(apos, aname, atype, VSK_CONST)
   {
     if (avalue)
     {

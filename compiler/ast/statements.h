@@ -38,6 +38,8 @@ public:
   {
     throw logic_error(std::format("Unhandled OStmt::Generate for \"{}\"", typeid(this).name()));
   }
+
+  void EmitDebugLocation(OScope * scope, OScPosition * ascpos = nullptr);
 };
 
 struct OStmtReturn : public OStmt

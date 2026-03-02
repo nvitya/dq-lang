@@ -54,6 +54,7 @@ extern LlModule *    ll_module;
 
 extern LlDiBuilder * di_builder;
 extern LlDiUnit *    di_unit;
+extern LlDiFile *    di_main_file;
 
 // Loop context for break/continue
 struct SLoopContext

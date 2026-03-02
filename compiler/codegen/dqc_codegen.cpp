@@ -69,7 +69,10 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
-  di_builder->finalize();
+  if (g_opt.dbg_info)
+  {
+    di_builder->finalize();
+  }
 
   OptimizeIr(0);
   //OptimizeIr(1);

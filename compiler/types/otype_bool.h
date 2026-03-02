@@ -52,10 +52,10 @@ public:
     return new OValueBool(this, false);
   }
 
-  OValSymConst * CreateConst(const string aname, bool avalue)
+  OValSymConst * CreateConst(OScPosition & apos, const string aname, bool avalue)
   {
     OValueBool * v = new OValueBool(this, avalue);
-    return new OValSymConst(aname, this, v);  // takes over the ownership of v
+    return new OValSymConst(apos, aname, this, v);  // takes over the ownership of v
   }
 
   LlType * CreateLlType() override

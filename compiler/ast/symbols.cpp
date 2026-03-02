@@ -88,9 +88,24 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
   return nullptr;
 }
 
-OValSym * OType::CreateValSym(const string aname)
+LlDiScope * OScope::GetDiScope()
 {
-  OValSym * result = new OValSym(aname, this);
+  if (di_scope)
+  {
+    return di_scope;
+  }
+
+  if (parent_scope)
+  {
+    return parent_scope->GetDiScope();
+  }
+
+  return di_main_file;
+}
+
+OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
+{
+  OValSym * result = new OValSym(apos, aname, this);
   return result;
 }
 

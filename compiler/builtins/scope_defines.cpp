@@ -38,26 +38,27 @@ void OScopeDefines::Init()
     #error "unsupported target platform"
   #endif
 
+  OScPosition scpos;
 
   if (target_win)
   {
-    DefineValSym(g_builtins->type_bool->CreateConst("WINDOWS", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WINDOWS", true));
   }
 
   if (target_linux)
   {
-    DefineValSym(g_builtins->type_bool->CreateConst("LINUX", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "LINUX", true));
   }
 
   if (target_32bit)
   {
-    DefineValSym(g_builtins->type_bool->CreateConst("TARGET_32BIT", true));
-    DefineValSym(g_builtins->type_int->CreateConst("PTRSIZE", 4));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));
+    DefineValSym(g_builtins->type_int->CreateConst(scpos, "PTRSIZE", 4));
   }
   else
   {
-    DefineValSym(g_builtins->type_bool->CreateConst("TARGET_64BIT", true));
-    DefineValSym(g_builtins->type_int->CreateConst("PTRSIZE", 8));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_64BIT", true));
+    DefineValSym(g_builtins->type_int->CreateConst(scpos, "PTRSIZE", 8));
   }
 }
 

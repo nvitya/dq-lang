@@ -31,13 +31,14 @@ void test_symbols()
 
   OScope * global_scope = new OScope(nullptr, "global");
   OScope * scope = global_scope;
+  OScPosition scpos;
 
   OType * type_int = global_scope->DefineType(new OTypeInt("int", 64, true));
 
   OCompoundType * type_class = new OCompoundType("OMyClass", global_scope);
   scope = type_class->Members();
-  scope->DefineValSym(new OValSym("field1", type_int));
-  scope->DefineValSym(new OValSym("field2", type_int));
+  scope->DefineValSym(new OValSym(scpos, "field1", type_int));
+  scope->DefineValSym(new OValSym(scpos, "field2", type_int));
 
   global_scope->DefineType(type_class);
 

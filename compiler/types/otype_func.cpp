@@ -61,8 +61,6 @@ LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the functio
 
 LlDiType * OTypeFunc::CreateDiType()
 {
-  OTypeFunc * tfunc = (OTypeFunc *)ptype;
-
   vector<llvm::Metadata *> di_param_types;
 
   if (rettype)
@@ -81,7 +79,7 @@ LlDiType * OTypeFunc::CreateDiType()
 #endif
 
   // Regular parameters
-  for (OFuncParam * fpar : tfunc->params)
+  for (OFuncParam * fpar : params)
   {
     di_param_types.push_back(fpar->ptype->GetDiType());
   }
@@ -114,9 +112,22 @@ void OValSymFunc::GenerateFuncBody()
 
   OTypeFunc * tfunc = (OTypeFunc *)ptype;
 
+  if (g_opt.dbg_info)
+  {
+    llvm::DISubroutineType * di_func_type = static_cast<llvm::DISubroutineType *>(tfunc->GetDiType()); // debugFuncType = getDebugFuncType(f);
+    di_func = di_builder->createFunction(
+        scpos.scfile->di_file, name, name, scpos.scfile->di_file, scpos.line,
+        di_func_type, scpos.line,
+        llvm::DINode::FlagZero, llvm::DISubprogram::SPFlagDefinition
+    );
+    body->scope->di_scope = di_func;
+    ll_func->setSubprogram(di_func);
+  }
+
   // Create entry block and generate body
   auto * entry = LlBasicBlock::Create(ll_ctx, "entry", ll_func);
   ll_builder.SetInsertPoint(entry);
+  //TODO: emit debug info line ?
 
   // Create implicit 'result' variable for functions with return type
   LlType * ll_rettype = nullptr;
@@ -124,8 +135,14 @@ void OValSymFunc::GenerateFuncBody()
   {
     ll_rettype = vsresult->ptype->GetLlType();
     vsresult->ll_value = ll_builder.CreateAlloca(ll_rettype, nullptr, "result");
-    // TODO: support other types
     ll_builder.CreateStore(llvm::ConstantInt::get(ll_rettype, 0), vsresult->ll_value);
+    if (g_opt.dbg_info)
+    {
+      llvm::DILocalVariable * di_var = di_builder->createAutoVariable(
+          di_func, name, scpos.scfile->di_file, scpos.line, vsresult->ptype->GetDiType() );
+      di_builder->insertDeclare(vsresult->ll_value, di_var, di_builder->createExpression(),
+          llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, di_func), ll_builder.GetInsertBlock() );
+    }
   }
 
   // Create allocas for parameters
@@ -138,36 +155,26 @@ void OValSymFunc::GenerateFuncBody()
     arg.setName(fpar->name);
     vsarg->ll_value = ll_builder.CreateAlloca(fpar->ptype->GetLlType(), nullptr, fpar->name);
     ll_builder.CreateStore(&arg, vsarg->ll_value);
-    ++i;
-  }
-
-  if (g_opt.dbg_info)
-  {
-    llvm::DISubroutineType *  di_func_type = (llvm::DISubroutineType *)ptype->GetDiType();
-    LlDiScope * di_scope = di_unit;
-    if (!di_scope_stack.empty())
+    if (g_opt.dbg_info)
     {
-      di_scope = di_scope_stack.back();
+      llvm::DILocalVariable * di_var = di_builder->createParameterVariable(
+          di_func, name, i, vsarg->scpos.scfile->di_file, vsarg->scpos.line,
+          fpar->ptype->GetDiType()
+      );
+      di_builder->insertDeclare(vsarg->ll_value, di_var,
+          di_builder->createExpression(),
+          llvm::DILocation::get(ll_ctx, vsarg->scpos.line, vsarg->scpos.col, di_func),
+          ll_builder.GetInsertBlock()
+      );
     }
-
-    llvm::DISubprogram * debug_func = di_builder->createFunction(
-        di_scope,
-        name,
-        llvm::StringRef(),
-        scpos.scfile->di_file,
-        scpos.line,
-        di_func_type,
-        scpos.line,
-        llvm::DINode::FlagPrototyped,
-        llvm::DISubprogram::SPFlagDefinition
-    );
-    ll_func->setSubprogram(debug_func);
+    ++i;
   }
 
   // STATEMENTS
 
   for (OStmt * stmt : body->stlist)
   {
+    stmt->EmitDebugLocation(body->scope);
     stmt->Generate(body->scope);
   }
 

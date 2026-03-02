@@ -313,7 +313,7 @@ void OScFeederDq::ParseDirectiveDefine()
 
   // Override the source code position, to point to the #{define ...} statement start
   g_compiler->errorpos = &scpos_start_directive;
-  g_defines->DefineValSym(g_builtins->type_bool->CreateConst(sid, true));
+  g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos_start_directive, sid, true));
   g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
 }
 

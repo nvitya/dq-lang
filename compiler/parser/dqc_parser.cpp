@@ -256,7 +256,7 @@ void ODqCompParser::ParseFunction()
   }
 
   OTypeFunc    * tfunc  = new OTypeFunc(sid);
-  OValSymFunc  * vsfunc = new OValSymFunc(sid, tfunc, cur_mod_scope);
+  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, sid, tfunc, cur_mod_scope);
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))  // parameter list start
@@ -1121,7 +1121,7 @@ void ODqCompParser::ParseStmtVar()
     return;
   }
 
-  pvalsym = ptype->CreateValSym(sid);
+  pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
   curscope->DefineValSym(pvalsym);
   curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, initexpr));
 }

@@ -72,6 +72,8 @@ public:
   OScope *         scope_pub;
   OScope *         scope_priv;
 
+  LlDiScope *      di_scope = nullptr;
+
   OModule()
   {
     scope_pub  = new OScope(g_builtins, "module_pub");

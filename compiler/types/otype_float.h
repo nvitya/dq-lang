@@ -55,10 +55,10 @@ public:
     return new OValueFloat(this, 0.0);
   }
 
-  OValSymConst * CreateConst(const string aname, double avalue)
+  OValSymConst * CreateConst(OScPosition & apos, const string aname, double avalue)
   {
     OValueFloat * v = new OValueFloat(this, avalue);
-    return new OValSymConst(aname, this, v);  // takes over the ownership of v
+    return new OValSymConst(apos, aname, this, v);  // takes over the ownership of v
   }
 
   LlType * CreateLlType() override

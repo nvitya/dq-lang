@@ -14,8 +14,27 @@
 #include <format>
 #include "scope_builtins.h"
 #include "statements.h"
+#include "comp_options.h"
 
 using namespace std;
+
+void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
+{
+  if (not g_opt.dbg_info)
+  {
+    return;
+  }
+
+  if (not scope)
+  {
+    ll_builder.SetCurrentDebugLocation(llvm::DebugLoc());
+    return;
+  }
+
+  OScPosition * scp = (ascpos ? ascpos : &scpos);
+
+  ll_builder.SetCurrentDebugLocation(llvm::DILocation::get(ll_ctx, scp->line, scp->col, scope->GetDiScope()));
+}
 
 void OStmtReturn::Generate(OScope * scope)
 {
@@ -94,6 +113,7 @@ void OStmtWhile::Generate(OScope * scope)
 
   // Generate condition
   ll_builder.SetInsertPoint(ll_cond_bb);
+  EmitDebugLocation(scope);
   LlValue * ll_cond = condition->Generate(scope);
   if (ll_cond->getType() != g_builtins->type_bool->GetLlType())
   {
@@ -106,6 +126,7 @@ void OStmtWhile::Generate(OScope * scope)
   ll_builder.SetInsertPoint(ll_body_bb);
   for (OStmt * bstmt : body->stlist)
   {
+    bstmt->EmitDebugLocation(body->scope);
     bstmt->Generate(body->scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
   }
@@ -155,6 +176,7 @@ void OStmtIf::Generate(OScope * scope)
       // else branch - just emit the body
       for (OStmt * bstmt : branch->body->stlist)
       {
+        bstmt->EmitDebugLocation(branch->body->scope);
         bstmt->Generate(branch->body->scope);
         if (ll_builder.GetInsertBlock()->getTerminator()) break;
       }
@@ -190,6 +212,7 @@ void OStmtIf::Generate(OScope * scope)
       ll_builder.SetInsertPoint(bb_then);
       for (OStmt * bstmt : branch->body->stlist)
       {
+        bstmt->EmitDebugLocation(branch->body->scope);
         bstmt->Generate(branch->body->scope);
         if (ll_builder.GetInsertBlock()->getTerminator()) break;
       }
@@ -209,3 +232,4 @@ void OStmtIf::Generate(OScope * scope)
 
   ll_builder.SetInsertPoint(bb_merge);
 }
+

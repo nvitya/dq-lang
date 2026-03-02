@@ -22,7 +22,7 @@ class OCompOptions
 {
 public:
   bool     blockmode_braces = false;
-  bool     dbg_info = false;
+  bool     dbg_info = true;
 
   // include dirs
   // module dirs

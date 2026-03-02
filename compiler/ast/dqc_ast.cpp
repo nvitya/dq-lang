@@ -26,7 +26,7 @@ ODqCompAst::~ODqCompAst()
 
 ODecl * ODqCompAst::AddDeclVar(OScPosition & scpos, string aid, OType * atype)
 {
-  OValSym * pvalsym = new OValSym(aid, atype, VSK_VARIABLE);
+  OValSym * pvalsym = new OValSym(scpos, aid, atype, VSK_VARIABLE);
   pvalsym->scpos.Assign(scpos);
 
   ODecl * result = g_module->DeclareValSym(section_public, pvalsym);
@@ -42,7 +42,7 @@ ODecl * ODqCompAst::AddDeclVar(OScPosition & scpos, string aid, OType * atype)
 
 ODecl * ODqCompAst::AddDeclConst(OScPosition & scpos, string aid, OType * atype, OValue * avalue)
 {
-  OValSym * pvalsym = new OValSymConst(aid, atype, avalue);
+  OValSym * pvalsym = new OValSymConst(scpos, aid, atype, avalue);
   pvalsym->scpos.Assign(scpos);
 
   ODecl * result = g_module->DeclareValSym(section_public, pvalsym);
@@ -68,7 +68,7 @@ ODecl * ODqCompAst::AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc)
   // push the parameters into the scope
   for (OFuncParam * fp : tfunc->params)
   {
-    OValSym * vsarg = new OValSym(fp->name, fp->ptype, VSK_PARAMETER);
+    OValSym * vsarg = new OValSym(scpos, fp->name, fp->ptype, VSK_PARAMETER);
     avsfunc->args.push_back(vsarg);
     avsfunc->body->scope->DefineValSym(vsarg);
   }
@@ -76,7 +76,7 @@ ODecl * ODqCompAst::AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc)
   // add the implicit result variable
   if (tfunc->rettype)
   {
-    avsfunc->vsresult = new OValSym("result", tfunc->rettype, VSK_VARIABLE);
+    avsfunc->vsresult = new OValSym(scpos, "result", tfunc->rettype, VSK_VARIABLE);
     avsfunc->body->scope->DefineValSym(avsfunc->vsresult);
   }
 

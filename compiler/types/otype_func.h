@@ -101,16 +101,17 @@ public:
   OStmtBlock *       body;
 
   LlFunction *       ll_func = nullptr;
+  LlDiSubPrg *       di_func = nullptr;
 
-  OValSymFunc(const string aname, OTypeFunc * atype, OScope * aparentscope = nullptr)
+  OValSymFunc(OScPosition & apos, const string aname, OTypeFunc * atype, OScope * aparentscope = nullptr)
   :
-    super(aname, atype, VSK_FUNCTION)
+    super(apos, aname, atype, VSK_FUNCTION)
   {
     body  = new OStmtBlock(aparentscope, "function_"+aname);
 
     if (atype->rettype)
     {
-      vsresult = atype->CreateValSym("result");
+      vsresult = atype->CreateValSym(apos, "result");
       body->scope->DefineValSym(vsresult);
     }
   }

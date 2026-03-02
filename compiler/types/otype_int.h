@@ -67,10 +67,10 @@ public:
     return di_builder->createBasicType("int", 64, llvm::dwarf::DW_ATE_signed);
   }
 
-  OValSymConst * CreateConst(const string aname, const int64_t avalue)
+  OValSymConst * CreateConst(OScPosition & apos, const string aname, const int64_t avalue)
   {
     OValueInt * v = new OValueInt(this, avalue);
-    return new OValSymConst(aname, this, v);  // takes over the ownership of v
+    return new OValSymConst(apos, aname, this, v);  // takes over the ownership of v
   }
 };
 

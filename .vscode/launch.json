@@ -6,9 +6,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "args": ["tests/basic/dq_basic1.dq", "-v", "-ir", "-O0"],
-            "argsx": ["tests/basic/dq_basic1.dq", "-g", "-ir", "-O1"],
-            "argsx": ["tests/preprocessor/dq_preproc_test1.dq"],
+            "args": ["tests/basic/intexpr/dq_intexpr.dq", "tests/basic/intexpr/dq_intexpr.o", "-g"],
+            "xargs": ["tests/basic/dq_basic1.dq", "-v", "-ir", "-O0"],
+            "xargs": ["tests/basic/dq_basic1.dq", "-g", "-ir", "-O1"],
+            "xargs": ["tests/preprocessor/dq_preproc_test1.dq"],
             "stopAtEntry": false,
 
             "sourceFileMap": {

@@ -258,6 +258,7 @@ void ODqCompParser::ParseFunction()
 
   OTypeFunc    * tfunc  = new OTypeFunc(sid);
   OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, sid, tfunc, cur_mod_scope);
+  curvsfunc = vsfunc;
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))  // parameter list start
@@ -353,6 +354,9 @@ void ODqCompParser::ParseFunction()
   // go on with the function body
 
   ReadStatementBlock(vsfunc->body, "endfunc");
+
+  vsfunc->scpos_endfunc = scf->prevpos;
+  curvsfunc = nullptr;
 }
 
 void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)
@@ -432,8 +436,6 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
       else if ("return" == sid)
       {
         ParseStmtReturn();
-        //StatementError("return statement parsing is not implemented");
-        //ParseStatementVaxr(block->scope);
         continue;
       }
       else if ("while" == sid)
@@ -491,8 +493,13 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 void ODqCompParser::ParseStmtReturn()
 {
   // "return" is already consumed.
-
   scf->SkipWhite();
+  if (scf->CheckSymbol(";"))  // return without value, use the result variable to return
+  {
+    curblock->AddStatement(new OStmtReturn(scpos_statement_start, nullptr, curvsfunc));
+    return;
+  }
+
   OExpr * expr = ParseExpression();
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
@@ -501,7 +508,7 @@ void ODqCompParser::ParseStmtReturn()
   }
   if (expr)
   {
-    curblock->AddStatement(new OStmtReturn(scpos_statement_start, expr));
+    curblock->AddStatement(new OStmtReturn(scpos_statement_start, expr, curvsfunc));
   }
 }
 

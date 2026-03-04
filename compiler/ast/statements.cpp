@@ -38,7 +38,18 @@ void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 
 void OStmtReturn::Generate(OScope * scope)
 {
-  ll_builder.CreateRet(value->Generate(scope));
+  LlValue * ll_value = nullptr;
+  if (value)
+  {
+    if (not vsfunc->vsresult)
+    {
+      throw logic_error("OStmtReturn::Generate(): return value provided for void function");
+    }
+    ll_value = value->Generate(scope);
+    ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
+  }
+
+  vsfunc->GenerateFuncRet();
 }
 
 void OStmtVarDecl::Generate(OScope * scope)
@@ -46,6 +57,14 @@ void OStmtVarDecl::Generate(OScope * scope)
   // Local variable declaration
   LlType * ll_type = variable->ptype->GetLlType();
   variable->ll_value = ll_builder.CreateAlloca(ll_type, nullptr, variable->name);
+  if (g_opt.dbg_info)
+  {
+    llvm::DILocalVariable * di_var = di_builder->createAutoVariable(
+        scope->GetDiScope(), variable->name, scpos.scfile->di_file, scpos.line, variable->ptype->GetDiType() );
+    di_builder->insertDeclare(variable->ll_value, di_var, di_builder->createExpression(),
+        llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, scope->GetDiScope()), ll_builder.GetInsertBlock() );
+  }
+
   if (initvalue)
   {
     LlValue * ll_initval = initvalue->Generate(scope);

@@ -3,10 +3,11 @@ NAME = intexpr
 # Tools
 CC = gcc
 DQ = dq-comp
+#DQ = dqc
 
 # --- Default to Debug Mode ---
 CFLAGS = -g -O0
-DQFLAGS = -g -O0
+DQFLAGS = -g
 BUILD_TYPE = DEBUG
 
 # Switch to Release if requested (e.g., 'make RELEASE=1')

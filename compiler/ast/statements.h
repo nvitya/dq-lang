@@ -42,16 +42,21 @@ public:
   void EmitDebugLocation(OScope * scope, OScPosition * ascpos = nullptr);
 };
 
+class OValSymFunc;
+
 struct OStmtReturn : public OStmt
 {
 private:
   using        super = OStmt;
 public:
-  OExpr *     value;
-  OStmtReturn(OScPosition & ascpos, OExpr * v)
+  OExpr *       value;
+  OValSymFunc * vsfunc;
+
+  OStmtReturn(OScPosition & ascpos, OExpr * v, OValSymFunc * avsfunc)
   :
     super(ascpos),
-    value(v)
+    value(v),
+    vsfunc(avsfunc)
   {}
 
   void Generate(OScope * scope) override;

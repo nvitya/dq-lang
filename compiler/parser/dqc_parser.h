@@ -30,6 +30,7 @@ private:
 public:
   OScPosition       scpos_statement_start;
   OScPosition *     errorpos = nullptr;  // if nullptr then uses the scpos_statement_start
+  OValSymFunc *     curvsfunc = nullptr;
 
 public:
   ODqCompParser();

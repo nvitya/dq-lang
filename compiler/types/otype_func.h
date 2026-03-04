@@ -98,6 +98,7 @@ private:
 public:
   vector<OValSym *>  args;  // will be filled in GenerateFuncBody()
   OValSym *          vsresult = nullptr;
+  OScPosition        scpos_endfunc;
   OStmtBlock *       body;
 
   LlFunction *       ll_func = nullptr;
@@ -129,4 +130,5 @@ public:
   void GenDeclaration(bool apublic, OValue * ainitval = nullptr) override;
 
   void GenerateFuncBody();
+  void GenerateFuncRet();
 };

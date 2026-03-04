@@ -127,7 +127,10 @@ void OValSymFunc::GenerateFuncBody()
   // Create entry block and generate body
   auto * entry = LlBasicBlock::Create(ll_ctx, "entry", ll_func);
   ll_builder.SetInsertPoint(entry);
-  //TODO: emit debug info line ?
+  if (g_opt.dbg_info)
+  {
+    ll_builder.SetCurrentDebugLocation(llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, di_func));
+  }
 
   // Create implicit 'result' variable for functions with return type
   LlType * ll_rettype = nullptr;
@@ -139,7 +142,7 @@ void OValSymFunc::GenerateFuncBody()
     if (g_opt.dbg_info)
     {
       llvm::DILocalVariable * di_var = di_builder->createAutoVariable(
-          di_func, name, scpos.scfile->di_file, scpos.line, vsresult->ptype->GetDiType() );
+          di_func, vsresult->name, scpos.scfile->di_file, scpos.line, vsresult->ptype->GetDiType() );
       di_builder->insertDeclare(vsresult->ll_value, di_var, di_builder->createExpression(),
           llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, di_func), ll_builder.GetInsertBlock() );
     }
@@ -158,7 +161,7 @@ void OValSymFunc::GenerateFuncBody()
     if (g_opt.dbg_info)
     {
       llvm::DILocalVariable * di_var = di_builder->createParameterVariable(
-          di_func, name, i, vsarg->scpos.scfile->di_file, vsarg->scpos.line,
+          di_func, fpar->name, i + 1, vsarg->scpos.scfile->di_file, vsarg->scpos.line,
           fpar->ptype->GetDiType()
       );
       di_builder->insertDeclare(vsarg->ll_value, di_var,
@@ -181,17 +184,33 @@ void OValSymFunc::GenerateFuncBody()
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    if (!ll_rettype)
-    {
-      ll_builder.CreateRetVoid();
-    }
-    else
-    {
-      // Return the value of 'result'
-      LlValue * ll_result = ll_builder.CreateLoad(ll_rettype, vsresult->ll_value, "result");
-      ll_builder.CreateRet(ll_result);
-    }
+    GenerateFuncRet();
   }
 
   verifyFunction(*ll_func);
+}
+
+void OValSymFunc::GenerateFuncRet()
+{
+  LlType * ll_rettype = nullptr;
+  if (vsresult)
+  {
+    ll_rettype = vsresult->ptype->GetLlType();
+  }
+
+  if (g_opt.dbg_info)  // this jumps to the "endfunc"
+  {
+    ll_builder.SetCurrentDebugLocation(llvm::DILocation::get(ll_ctx, scpos_endfunc.line, scpos_endfunc.col, di_func));
+  }
+
+  if (!ll_rettype)
+  {
+    ll_builder.CreateRetVoid();
+  }
+  else
+  {
+    // Return the value of 'result'
+    LlValue * ll_result = ll_builder.CreateLoad(ll_rettype, vsresult->ll_value, "result");
+    ll_builder.CreateRet(ll_result);
+  }
 }

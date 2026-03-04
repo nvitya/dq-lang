@@ -1,16 +1,16 @@
 // single integer expression tests
 
-const GVINT    : int = 99;
+//const GVINT    : int = 99;
 
 var g_cnt : int = 0;
-var g_var : int = GVINT + 1;
+var g_var : int = 100; //GVINT + 1;
 
 function dq_add(a : int, b : int) -> int:
-  return a + b;
+  result = a + b;
 endfunc
 
 function dq_mul(a : int, b : int) -> int:
-  return a * b;
+  result = a * b;
 endfunc
 
 function dq_voidfunc(a : int):
@@ -18,18 +18,22 @@ function dq_voidfunc(a : int):
 endfunc
 
 function dq_call(a : int) -> int:
-  var i : int = dq_add(3, a);
-  dq_voidfunc(1);
+  var i : int;
+  i = dq_add(3, a);
+  //dq_voidfunc(1);
   result = i * a;
 endfunc
 
 function dq_testfunc(a : int, b : int) -> int:
   var i : int = 0;
   var x : int = 0;
+  result = 0;
   while i < b:
     x += i;
     i += 1;
+    //result += x;
   endwhile
+  //return;
   return a + x;
 endfunc
 

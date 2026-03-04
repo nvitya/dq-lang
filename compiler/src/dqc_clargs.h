@@ -27,12 +27,15 @@ private:
   using            super = ODqCompCodegen;
 
 public:
-  string           filename = "";
+  string           in_filename = "";
+  string           out_filename = "";
 
 public:
   ODqCompClargs();
   virtual ~ODqCompClargs();
 
   int ParseCmdLineArgs(int argc, char ** argv);
+
+  void PrintUsage();
 
 };

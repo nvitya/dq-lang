@@ -21,8 +21,10 @@ using namespace std;
 class OCompOptions
 {
 public:
+  bool     verbose = false;   // -v
+  bool     dbg_info = false;  // -g
+
   bool     blockmode_braces = false;
-  bool     dbg_info = true;
 
   // include dirs
   // module dirs

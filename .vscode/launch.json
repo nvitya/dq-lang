@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "args": ["tests/basic/dq_basic1.dq"],
+            "args": ["tests/basic/dq_basic1.dq", "-gx"],
             "argsx": ["tests/preprocessor/dq_preproc_test1.dq"],
             "stopAtEntry": false,
 

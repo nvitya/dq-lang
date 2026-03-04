@@ -8,10 +8,14 @@
  * file:    dqc_clargs.cpp
  * authors: nvitya
  * created: 2026-01-31
- * brief:   
+ * brief:
  */
 
+#include <string>
 #include "dqc_clargs.h"
+#include "comp_options.h"
+
+using namespace std;
 
 ODqCompClargs::ODqCompClargs()
 {
@@ -23,16 +27,52 @@ ODqCompClargs::~ODqCompClargs()
 
 int ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
 {
-  if (argc < 2)
+  for (int i = 1; i < argc; i++)
   {
-    printf("Usage: dq-comp <file.dq>\n");
+    string v(argv[i]);
 
-    return SetError(1, "Invalid arguments");
+    if ('-' == v[0])  // some compiler switch
+    {
+      if ("-v" == v)
+      {
+        g_opt.verbose = true;
+      }
+      else if ("-g" == v)
+      {
+        g_opt.dbg_info = true;
+      }
+    }
+    else if ("" == in_filename)
+    {
+      in_filename = v;
+    }
+    else if ("" == out_filename)
+    {
+      out_filename = v;
+    }
+    else
+    {
+
+    }
   }
 
-  filename = string(argv[1]);
+  if ("" == in_filename)
+  {
+    printf("Input file name is missing.\n");
+    PrintUsage();
+    return 1;
+  }
 
-  printf("Compiling: \"%s\"...\n", filename.c_str());
+  if ("" == out_filename)
+  {
+    out_filename = in_filename + ".o";
+  }
 
+  printf("Compiling: \"%s\"...\n", in_filename.c_str());
   return 0;
+}
+
+void ODqCompClargs::PrintUsage()
+{
+  printf("Usage: dq-comp <file.dq> [output.o] [-v] [-g]\n");
 }

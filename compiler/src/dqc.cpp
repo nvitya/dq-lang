@@ -42,7 +42,7 @@ int ODqCompiler::Run(int argc, char ** argv)
   }
 
   // initialize the source code feeder:
-  if (scf->Init(filename) != 0)
+  if (scf->Init(in_filename) != 0)
   {
     return SetError(1, "Error opening file");
   }
@@ -65,7 +65,7 @@ int ODqCompiler::Run(int argc, char ** argv)
 
   PrintIr();
 
-  EmitObject(filename+".o");
+  EmitObject(out_filename);
 
   return error;
 }

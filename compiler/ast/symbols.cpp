@@ -88,6 +88,35 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
   return nullptr;
 }
 
+void OScope::SetVarInitialized(OValSym * vs)
+{
+  if (not vs->initialized)
+  {
+    firstassign.push_back(vs);
+    vs->initialized = true;
+  }
+}
+
+void OScope::RevertFirstAssignments()
+{
+  for (OValSym * vs : firstassign)
+  {
+    vs->initialized = false;
+  }
+}
+
+bool OScope::FirstAssigned(OValSym * avs)
+{
+  for (OValSym * vs : firstassign)
+  {
+    if (avs == vs)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 LlDiScope * OScope::GetDiScope()
 {
   if (di_scope)

@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.1.1"
+#define DQ_COMPILER_VERSION  "0.1.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.1.2:
+  - Generating error messages
+    - when accessing unitialized variables
+    - when not setting the function result value
 v0.1.1:
   - Binary integer operations (AND, OR, XOR, SHL, SHR)
 v0.1.0:

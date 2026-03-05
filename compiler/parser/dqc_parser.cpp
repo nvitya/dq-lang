@@ -86,7 +86,7 @@ void ODqCompParser::ParseModule()
   }
 }
 
-void ODqCompParser::ParseVarDecl()
+void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is a statement)
 {
   // syntax form: "var identifier : type [ = initial value];"
   // note: "var" is already consumed
@@ -356,6 +356,13 @@ void ODqCompParser::ParseFunction()
   ReadStatementBlock(vsfunc->body, "endfunc");
 
   vsfunc->scpos_endfunc = scf->prevpos;
+
+  // check if the result is set
+  if (vsfunc->vsresult and not vsfunc->vsresult->initialized)
+  {
+    Error(format("Function \"{}\" result is not set", vsfunc->name), &vsfunc->scpos_endfunc);
+  }
+
   curvsfunc = nullptr;
 }
 
@@ -417,6 +424,12 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
     }
 
     scf->SaveCurPos(scpos_statement_start);
+
+    if (scf->CheckSymbol(";"))  // empty ";", just ignore it
+    {
+      Hint("Meaningless \";\" was found.");
+      continue;
+    }
 
     // there should be a normal statement
     if (!scf->ReadIdentifier(sid))
@@ -500,6 +513,12 @@ void ODqCompParser::ParseStmtReturn()
     return;
   }
 
+  if (not curvsfunc->vsresult)
+  {
+    Error(format("The function \"{}\" has no return value, \";\" expected after the return", curvsfunc->name));
+    return;
+  }
+
   OExpr * expr = ParseExpression();
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
@@ -508,6 +527,7 @@ void ODqCompParser::ParseStmtReturn()
   }
   if (expr)
   {
+    curblock->scope->SetVarInitialized(curvsfunc->vsresult);
     curblock->AddStatement(new OStmtReturn(scpos_statement_start, expr, curvsfunc));
   }
 }
@@ -530,6 +550,8 @@ void ODqCompParser::ParseStmtWhile()
   curblock->AddStatement(st);
 
   ReadStatementBlock(st->body, "endwhile");
+
+  st->body->scope->RevertFirstAssignments();
 }
 
 void ODqCompParser::ParseStmtIf()
@@ -549,12 +571,11 @@ void ODqCompParser::ParseStmtIf()
   OIfBranch * branch = st->AddBranch(cond);
   curblock->AddStatement(st);
 
-  bool else_already = false;
-
   while (not scf->Eof())
   {
     string endstr = "";
     ReadStatementBlock(branch->body, "endif|elif|else", &endstr);
+    branch->body->scope->RevertFirstAssignments();
 
     if ("endif" == endstr)
     {
@@ -575,12 +596,12 @@ void ODqCompParser::ParseStmtIf()
 
     if ("else" == endstr)
     {
-      if (else_already)
+      if (st->else_present)
       {
         StatementError("if: else branch was already presented.");
         break;
       }
-      else_already = true;
+      st->else_present = true;
       branch = st->AddBranch(nullptr);
       continue;
     }
@@ -606,6 +627,30 @@ void ODqCompParser::ParseStmtIf()
     }
 
     break;
+  }
+
+  // re-set variable initializations when else was present and first-assigns present in all branches
+  if (st->else_present)
+  {
+    OScope * sfirst = st->branches[0]->body->scope;
+    for (OValSym * vs : sfirst->firstassign)
+    {
+      // check if this vs presents in all the other scopes
+      bool initok = true;
+      for (int bi = 1; bi < st->branches.size(); ++bi)
+      {
+        OScope * scp = st->branches[bi]->body->scope;
+        if (not scp->FirstAssigned(vs))
+        {
+          initok = false;
+          break;
+        }
+      }
+      if (initok)
+      {
+        vs->initialized = true;
+      }
+    }
   }
 }
 
@@ -1060,6 +1105,9 @@ OExpr * ODqCompParser::ParseExprPrimary()
 
   // identifier
 
+  OScPosition scpos_sid;
+  scf->SaveCurPos(scpos_sid);
+
   string  sid;
   if (!scf->ReadIdentifier(sid))
   {
@@ -1113,6 +1161,10 @@ OExpr * ODqCompParser::ParseExprPrimary()
   }
 
   result = new OVarRef(vs);
+  if (not vs->initialized)
+  {
+    Error(format("Accessing uninitialized variable \"{}\"", vs->name), &scpos_sid);
+  }
   return result;
 }
 
@@ -1308,7 +1360,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
 
   if (!expr)
   {
-    return true;
+    return true;  // signalizes processed, not error-free here !
   }
 
   if (not CheckAssignType(ptype, &expr, "Modify assignment"))  // might add implicit conversion
@@ -1321,13 +1373,21 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   if (BINOP_NONE == op)
   {
     curblock->AddStatement(new OStmtAssign(scpos_statement_start, pvalsym, expr));
+    curblock->scope->SetVarInitialized(pvalsym);
   }
   else
   {
-    curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, pvalsym, op, expr));
+    if (not pvalsym->initialized)
+    {
+      Error(format("Variable \"{}\" is not initialized.", pvalsym->name));
+    }
+    else
+    {
+      curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, pvalsym, op, expr));
+    }
   }
 
-  return true;
+  return true; // signalizes processed, not error-free here !
 }
 
 void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)

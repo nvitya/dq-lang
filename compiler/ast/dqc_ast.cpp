@@ -76,6 +76,7 @@ ODecl * ODqCompAst::AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc)
   for (OFuncParam * fp : tfunc->params)
   {
     OValSym * vsarg = new OValSym(scpos, fp->name, fp->ptype, VSK_PARAMETER);
+    vsarg->initialized = true;
     avsfunc->args.push_back(vsarg);
     avsfunc->body->scope->DefineValSym(vsarg);
   }

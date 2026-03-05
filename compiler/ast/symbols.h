@@ -62,6 +62,8 @@ public:
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;
 
+  vector<OValSym *>       firstassign; // list of the variables assigned here first
+
   LlDiScope * di_scope = nullptr;
 
 public:
@@ -79,6 +81,10 @@ public:
   OValSym *   FindValSym(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
 
   LlDiScope *  GetDiScope();
+
+  void        SetVarInitialized(OValSym * vs);
+  void        RevertFirstAssignments();
+  bool        FirstAssigned(OValSym * avs);
 };
 
 // Types
@@ -281,6 +287,7 @@ private:
 
 public:
   EValSymKind  kind;
+  bool         initialized = false;  // reading of uninitialized results to an error
   LlValue *    ll_value = nullptr;
 
   OValSym(OScPosition & apos, const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
@@ -306,6 +313,7 @@ public:
   :
     super(apos, aname, atype, VSK_CONST)
   {
+    initialized = true;
     if (avalue)
     {
       pvalue = avalue;

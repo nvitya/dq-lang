@@ -91,6 +91,8 @@ public:
     stlist.push_back(astmt);
     return astmt;
   }
+
+  void Generate();
 };
 
 class OStmtVarDecl : public OStmt
@@ -106,7 +108,12 @@ public:
     super(ascpos),
     variable(avariable),
     initvalue(ainitvalue)
-  {}
+  {
+    if (ainitvalue)
+    {
+      variable->initialized = true;
+    }
+  }
 
   void Generate(OScope * scope) override;
 };
@@ -209,6 +216,7 @@ private:
   using        super = OStmt;
 public:
   OScope *             parentscope;
+  bool                 else_present = false;
   vector<OIfBranch *>  branches; // if, elif..., else
   OStmtIf(OScPosition & ascpos, OScope * aparentscope)
   :

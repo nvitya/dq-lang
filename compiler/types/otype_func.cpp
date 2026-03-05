@@ -174,12 +174,7 @@ void OValSymFunc::GenerateFuncBody()
   }
 
   // STATEMENTS
-
-  for (OStmt * stmt : body->stlist)
-  {
-    stmt->EmitDebugLocation(body->scope);
-    stmt->Generate(body->scope);
-  }
+  body->Generate();
 
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())

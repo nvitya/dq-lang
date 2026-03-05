@@ -36,6 +36,16 @@ void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
   ll_builder.SetCurrentDebugLocation(llvm::DILocation::get(ll_ctx, scp->line, scp->col, scope->GetDiScope()));
 }
 
+void OStmtBlock::Generate()
+{
+  for (OStmt * bstmt : stlist)
+  {
+    bstmt->EmitDebugLocation(scope);
+    bstmt->Generate(scope);
+    if (ll_builder.GetInsertBlock()->getTerminator()) break;
+  }
+}
+
 void OStmtReturn::Generate(OScope * scope)
 {
   LlValue * ll_value = nullptr;
@@ -143,12 +153,7 @@ void OStmtWhile::Generate(OScope * scope)
 
   // Generate body
   ll_builder.SetInsertPoint(ll_body_bb);
-  for (OStmt * bstmt : body->stlist)
-  {
-    bstmt->EmitDebugLocation(body->scope);
-    bstmt->Generate(body->scope);
-    if (ll_builder.GetInsertBlock()->getTerminator()) break;
-  }
+  body->Generate();
 
   // Jump back to condition
   if (!ll_builder.GetInsertBlock()->getTerminator())
@@ -193,12 +198,7 @@ void OStmtIf::Generate(OScope * scope)
     if (branch->condition == nullptr)
     {
       // else branch - just emit the body
-      for (OStmt * bstmt : branch->body->stlist)
-      {
-        bstmt->EmitDebugLocation(branch->body->scope);
-        bstmt->Generate(branch->body->scope);
-        if (ll_builder.GetInsertBlock()->getTerminator()) break;
-      }
+      branch->body->Generate();
       if (!ll_builder.GetInsertBlock()->getTerminator())
       {
         ll_builder.CreateBr(bb_merge);
@@ -229,12 +229,7 @@ void OStmtIf::Generate(OScope * scope)
 
       // Generate then body
       ll_builder.SetInsertPoint(bb_then);
-      for (OStmt * bstmt : branch->body->stlist)
-      {
-        bstmt->EmitDebugLocation(branch->body->scope);
-        bstmt->Generate(branch->body->scope);
-        if (ll_builder.GetInsertBlock()->getTerminator()) break;
-      }
+      branch->body->Generate();
 
       if (!ll_builder.GetInsertBlock()->getTerminator())
       {
@@ -251,4 +246,3 @@ void OStmtIf::Generate(OScope * scope)
 
   ll_builder.SetInsertPoint(bb_merge);
 }
-

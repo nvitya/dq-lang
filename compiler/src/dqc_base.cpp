@@ -27,6 +27,7 @@ const string dq_reserved_words =
    "|var|for|while|if|else|return|break|continue"
    "|and|not|or"
    "|NOT|AND|OR|XOR|IDIV|IMOD"
+   "|null"
    "|function|use|implementation|initialization|finalization"
    "|"
 ;

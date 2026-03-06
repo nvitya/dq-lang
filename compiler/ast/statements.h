@@ -154,6 +154,23 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtDerefAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   ptrvariable;
+  OExpr *     value;
+  OStmtDerefAssign(OScPosition & ascpos, OValSym * aptrvariable, OExpr * avalue)
+  :
+    super(ascpos),
+    ptrvariable(aptrvariable),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OStmtVoidCall : public OStmt
 {
 private:

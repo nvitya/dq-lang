@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.1.4"
+#define DQ_COMPILER_VERSION  "0.1.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.1.5:
+  - Pointer handling added
 v0.1.4:
   - Compiler directives can be written also without braces: #define ..., #ifdef ...
     (The directives without braces are terminated by the end of line)

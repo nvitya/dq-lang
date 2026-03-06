@@ -52,6 +52,7 @@ public: // statement blocks
   void ParseStmtWhile();
   void ParseStmtIf();
   void ParseStmtVoidCall(OValSymFunc * vsfunc);
+  void ParseStmtDerefAssign(OValSym * ptrvalsym);
 
 public: // utility
   bool CheckStatementClose();

@@ -122,6 +122,14 @@ void OStmtModifyAssign::Generate(OScope *scope)
   }
 }
 
+void OStmtDerefAssign::Generate(OScope * scope)
+{
+  // Load the pointer value from the pointer variable, then store the value through it
+  LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptrvariable->ll_value, "ptr");
+  LlValue * ll_val = value->Generate(scope);
+  ll_builder.CreateStore(ll_val, ll_ptr);
+}
+
 void OStmtVoidCall::Generate(OScope * scope)
 {
   LlValue * ll_value = callexpr->Generate(scope);

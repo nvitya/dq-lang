@@ -224,6 +224,44 @@ LlValue * ONegExpr::Generate(OScope * scope)
   return ll_builder.CreateNeg(ll_val);
 }
 
+/* ctor */ OAddrOfExpr::OAddrOfExpr(OValSym * avalsym)
+{
+  pvalsym = avalsym;
+  ptype = avalsym->ptype->GetPointerType();
+}
+
+LlValue * OAddrOfExpr::Generate(OScope * scope)
+{
+  if (!pvalsym->ll_value)
+  {
+    throw logic_error(std::format("OAddrOfExpr: Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
+  }
+  return pvalsym->ll_value;  // the alloca pointer IS the address
+}
+
+/* ctor */ ODerefExpr::ODerefExpr(OExpr * aoperand)
+{
+  operand = aoperand;
+  OTypePointer * ptrtype = static_cast<OTypePointer *>(aoperand->ptype);
+  ptype = ptrtype->basetype;
+}
+
+LlValue * ODerefExpr::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = operand->Generate(scope);
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_ptr, "deref");
+}
+
+/* ctor */ ONullLit::ONullLit()
+{
+  ptype = OTypePointer::GetNullPtrType();
+}
+
+LlValue * ONullLit::Generate(OScope * scope)
+{
+  return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+}
+
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
 {
   vsfunc = avsfunc;

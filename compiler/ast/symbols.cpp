@@ -132,6 +132,20 @@ LlDiScope * OScope::GetDiScope()
   return di_main_file;
 }
 
+OType::~OType()
+{
+  delete ptr_type;
+}
+
+OTypePointer * OType::GetPointerType()
+{
+  if (!ptr_type)
+  {
+    ptr_type = new OTypePointer(this);
+  }
+  return ptr_type;
+}
+
 OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
 {
   OValSym * result = new OValSym(apos, aname, this);

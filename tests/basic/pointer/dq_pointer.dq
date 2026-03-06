@@ -1,0 +1,45 @@
+// pointer tests
+
+function dq_ptr_basic(a : int) -> int:
+  var x : int = a;
+  var p : ^int = &x;
+  p^ = 100;
+  result = x;
+endfunc
+
+function dq_ptr_read(a : int) -> int:
+  var x : int = a;
+  var p : ^int = &x;
+  result = p^;
+endfunc
+
+function dq_ptr_null() -> int:
+  var p : ^int = null;
+  if p == null:
+    result = 1;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function dq_ptr_cmp(a : int, b : int) -> int:
+  var x : int = a;
+  var y : int = b;
+  var px : ^int = &x;
+  var py : ^int = &y;
+  if px == py:
+    result = 1;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function dq_ptr_notnull(a : int) -> int:
+  var x : int = a;
+  var p : ^int = &x;
+  if p != null:
+    result = p^;
+  else:
+    result = -1;
+  endif
+endfunc

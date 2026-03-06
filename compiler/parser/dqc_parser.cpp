@@ -116,6 +116,13 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
     return;
   }
 
+  bool is_pointer = false;
+  scf->SkipWhite();
+  if (scf->CheckSymbol("^"))
+  {
+    is_pointer = true;
+  }
+
   scf->SkipWhite();
   if (not scf->ReadIdentifier(stype))
   {
@@ -129,6 +136,11 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
   {
     StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
     return;
+  }
+
+  if (is_pointer)
+  {
+    ptype = ptype->GetPointerType();
   }
 
   ODecl * vdecl = AddDeclVar(scpos_statement_start, sid, ptype);
@@ -478,6 +490,12 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 
       if (VSK_VARIABLE == pvalsym->kind)
       {
+        scf->SkipWhite();
+        if (TK_POINTER == pvalsym->ptype->kind and scf->CheckSymbol("^"))
+        {
+          ParseStmtDerefAssign(pvalsym);
+          continue;
+        }
         if (ParseStmtAssign(pvalsym))
         {
           continue;
@@ -1103,6 +1121,37 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return result;
   }
 
+  if (scf->CheckSymbol("null"))
+  {
+    result = new ONullLit();
+    return result;
+  }
+
+  // address-of operator: &variable
+  if (scf->CheckSymbol("&"))
+  {
+    scf->SkipWhite();
+    string addrname;
+    if (!scf->ReadIdentifier(addrname))
+    {
+      Error("Variable name expected after \"&\"");
+      return nullptr;
+    }
+    OValSym * addrvs = curscope->FindValSym(addrname);
+    if (!addrvs)
+    {
+      Error(format("Unknown variable \"{}\"", addrname));
+      return nullptr;
+    }
+    if (VSK_VARIABLE != addrvs->kind and VSK_PARAMETER != addrvs->kind)
+    {
+      Error(format("\"{}\" is not a variable, cannot take its address", addrname));
+      return nullptr;
+    }
+    result = new OAddrOfExpr(addrvs);
+    return result;
+  }
+
   // identifier
 
   OScPosition scpos_sid;
@@ -1165,6 +1214,14 @@ OExpr * ODqCompParser::ParseExprPrimary()
   {
     Error(format("Accessing uninitialized variable \"{}\"", vs->name), &scpos_sid);
   }
+
+  // postfix dereference: p^
+  scf->SkipWhite();
+  if (TK_POINTER == vs->ptype->kind and scf->CheckSymbol("^"))
+  {
+    result = new ODerefExpr(result);
+  }
+
   return result;
 }
 
@@ -1266,6 +1323,13 @@ void ODqCompParser::ParseStmtVar()
     return;
   }
 
+  bool is_pointer = false;
+  scf->SkipWhite();
+  if (scf->CheckSymbol("^"))
+  {
+    is_pointer = true;
+  }
+
   scf->SkipWhite();
   if (not scf->ReadIdentifier(stype))
   {
@@ -1279,6 +1343,11 @@ void ODqCompParser::ParseStmtVar()
   {
     StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
     return;
+  }
+
+  if (is_pointer)
+  {
+    ptype = ptype->GetPointerType();
   }
 
   OExpr * initexpr = nullptr;
@@ -1390,6 +1459,40 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   return true; // signalizes processed, not error-free here !
 }
 
+void ODqCompParser::ParseStmtDerefAssign(OValSym * ptrvalsym)
+{
+  // syntax form: "ptrvar^ = expression;"
+  // note: identifier and "^" are already consumed
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("="))
+  {
+    StatementError("\"=\" is expected after pointer dereference \"^\"");
+    return;
+  }
+
+  OExpr * expr = ParseExpression();
+  if (!expr)
+  {
+    return;
+  }
+
+  OTypePointer * ptrtype = static_cast<OTypePointer *>(ptrvalsym->ptype);
+  if (not CheckAssignType(ptrtype->basetype, &expr, "Pointer dereference assignment"))
+  {
+    delete expr;
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    Error("\";\" is missing after the assignment");
+  }
+
+  curblock->AddStatement(new OStmtDerefAssign(scpos_statement_start, ptrvalsym, expr));
+}
+
 void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
 {
   scf->SkipWhite();
@@ -1428,6 +1531,17 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     else
     {
       Error(format("{} type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      return false;
+    }
+  }
+  else if (TK_POINTER == tkd)
+  {
+    // both are pointers: allow null (basetype == nullptr) or matching base types
+    OTypePointer * ptrdst = static_cast<OTypePointer *>(dsttype);
+    OTypePointer * ptrsrc = static_cast<OTypePointer *>((*rexpr)->ptype);
+    if (ptrsrc->basetype and ptrdst->basetype and (ptrsrc->basetype->kind != ptrdst->basetype->kind))
+    {
+      Error(format("{} pointer type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
       return false;
     }
   }

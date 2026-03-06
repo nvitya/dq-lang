@@ -107,10 +107,14 @@ enum ETypeKind
 
 class OExpr;
 
+class OTypePointer;  // forward declaration
+
 class OType : public OSymbol
 {
 private:
-  using        super = OSymbol;
+  using           super = OSymbol;
+
+  OTypePointer *  ptr_type = nullptr;  // cached pointer-to-this type
 
 public:
   ETypeKind    kind;
@@ -126,6 +130,8 @@ public:
     kind(akind)
   {
   }
+
+  virtual ~OType();
 
   virtual LlType *  CreateLlType() { return nullptr; }
   virtual LlType *  GetLlType()
@@ -148,6 +154,7 @@ public:
   }
 
   inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
+  OTypePointer *     GetPointerType();
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
@@ -220,6 +227,42 @@ public:
   }
 
   inline OScope * Members() { return &member_scope; }
+};
+
+class OTypePointer : public OType
+{
+private:
+  using        super = OType;
+
+public:
+  OType *      basetype;
+
+  OTypePointer(OType * abasetype)
+  :
+    super("^" + (abasetype ? abasetype->name : "void"), TK_POINTER),
+    basetype(abasetype)
+  {
+    bytesize = TARGET_PTRSIZE;
+  }
+
+  LlType * CreateLlType() override
+  {
+    return llvm::PointerType::get(ll_ctx, 0);
+  }
+
+  LlDiType * CreateDiType() override
+  {
+    return di_builder->createPointerType(
+        basetype ? basetype->GetDiType() : nullptr,
+        bytesize * 8
+    );
+  }
+
+  static OTypePointer * GetNullPtrType()
+  {
+    static OTypePointer instance(nullptr);
+    return &instance;
+  }
 };
 
 // Values

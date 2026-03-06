@@ -152,6 +152,29 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+class OAddrOfExpr : public OExpr
+{
+public:
+  OValSym *  pvalsym;
+  /* ctor */ OAddrOfExpr(OValSym * avalsym);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+class ODerefExpr : public OExpr
+{
+public:
+  OExpr *    operand;
+  /* ctor */ ODerefExpr(OExpr * aoperand);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+class ONullLit : public OExpr
+{
+public:
+  /* ctor */ ONullLit();
+  LlValue *  Generate(OScope * scope) override;
+};
+
 class OValSymFunc;  // forward declaration for otype_func.h
 
 class OCallExpr : public OExpr

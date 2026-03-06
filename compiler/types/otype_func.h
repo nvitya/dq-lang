@@ -125,6 +125,7 @@ public:
     }
     if (vsresult)  delete vsresult;
     delete body;
+    delete ptype;  // OTypeFunc owned by this function symbol
   }
 
   void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;

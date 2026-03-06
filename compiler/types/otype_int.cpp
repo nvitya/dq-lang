@@ -86,9 +86,22 @@ bool OValueInt::CalculateConstant(OExpr * expr)
       if      (BINOP_ADD  == ex->op)  value = vleft.value + vright.value;
       else if (BINOP_SUB  == ex->op)  value = vleft.value - vright.value;
       else if (BINOP_MUL  == ex->op)  value = vleft.value * vright.value;
+
       else if (BINOP_IDIV == ex->op)  value = vleft.value / vright.value;
       else if (BINOP_IMOD == ex->op)  value = vleft.value % vright.value;
-      else                            return false;
+
+      else if (BINOP_IAND == ex->op)  value = (vleft.value & vright.value);
+      else if (BINOP_IOR  == ex->op)  value = (vleft.value | vright.value);
+      else if (BINOP_IXOR == ex->op)  value = (vleft.value ^ vright.value);
+
+      else if (BINOP_ISHL == ex->op)  value = (vleft.value << vright.value);
+      else if (BINOP_ISHR == ex->op)  value = (vleft.value >> vright.value);
+
+      else
+      {
+        g_compiler->ExpressionError(format("Int constant expression unhandled operator: {}", int(ex->op)));
+      }
+
       return true;
     }
   }

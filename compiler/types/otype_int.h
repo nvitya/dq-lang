@@ -59,12 +59,19 @@ public:
 
   LlType * CreateLlType() override
   {
-    return LlType::getIntNTy(ll_ctx, bitlength);
+    return LlType::getIntNTy(ll_ctx, bitlength);  // no signed/unsigned difference here
   }
 
   LlDiType * CreateDiType() override
   {
-    return di_builder->createBasicType("int", 64, llvm::dwarf::DW_ATE_signed);
+    if (issigned)
+    {
+      return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_signed);
+    }
+    else
+    {
+      return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_unsigned);
+    }
   }
 
   OValSymConst * CreateConst(OScPosition & apos, const string aname, const int64_t avalue)

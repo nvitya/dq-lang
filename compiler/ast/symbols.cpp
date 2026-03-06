@@ -138,7 +138,7 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
   return result;
 }
 
-void OValSym::GenDeclaration(bool apublic, OValue * ainitval)
+void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   if (VSK_VARIABLE == kind)
   {
@@ -149,7 +149,24 @@ void OValSym::GenDeclaration(bool apublic, OValue * ainitval)
     LlType *          ll_type  = ptype->GetLlType();
     LlConst *         ll_init_val = ainitval->GetLlConst();
 
-    ll_value = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, name);
+    llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, name);
+    ll_value = gv;
+
+    if (g_opt.dbg_info)
+    {
+      LlDiType * di_type = ptype->GetDiType();
+      llvm::DIGlobalVariableExpression * debug_expr = di_builder->createGlobalVariableExpression(
+          di_unit,            // The scope (usually the compile unit)
+          name,               // The name in the source code
+          name,               // The linkage name (mangled name, if applicable)
+          scpos.scfile->di_file, // The file where it is declared
+          scpos.line,         // The line number in the source code (example: line 10)
+          di_type,            // The debug type we created above
+          not apublic         // Is it local to the compile unit? (false for true globals)
+      );
+      gv->addDebugInfo(debug_expr);
+    }
+
   }
 }
 

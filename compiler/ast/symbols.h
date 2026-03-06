@@ -298,7 +298,7 @@ public:
     scpos = apos;
   }
 
-  virtual void GenDeclaration(bool apublic, OValue * ainitval = nullptr);
+  virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
 };
 
 class OValSymConst : public OValSym

@@ -127,7 +127,7 @@ public:
     delete body;
   }
 
-  void GenDeclaration(bool apublic, OValue * ainitval = nullptr) override;
+  void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;
 
   void GenerateFuncBody();
   void GenerateFuncRet();

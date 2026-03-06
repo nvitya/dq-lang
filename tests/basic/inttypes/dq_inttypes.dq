@@ -1,0 +1,11 @@
+// test for different integer sizes
+
+var g_int8  : int8  = 127;
+var g_int16 : int16 = 32767;
+var g_int32 : int32 = 0x7FFFFFFF;
+var g_int64 : int64 = (1 << 62);
+
+var g_uint64 : int64 = (1 << 63);
+
+var g_uint8  : uint8  = 255;
+var g_uint16 : uint16 = 0xFFFF;

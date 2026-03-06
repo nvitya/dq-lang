@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.1.2"
+#define DQ_COMPILER_VERSION  "0.1.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.1.3:
+  - Integer type fixes
+  - debug info for global variables
 v0.1.2:
   - Generating error messages
     - when accessing unitialized variables

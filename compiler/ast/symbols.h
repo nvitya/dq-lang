@@ -97,6 +97,7 @@ enum ETypeKind
   TK_BOOL,
   TK_POINTER,
   TK_ARRAY,
+  TK_ARRAY_SLICE,  // array descriptor {ptr, length} for function parameters
   TK_STRING,    // ODynString, OCString
 
   TK_ALIAS,
@@ -107,14 +108,18 @@ enum ETypeKind
 
 class OExpr;
 
-class OTypePointer;  // forward declaration
+class OTypePointer;      // forward declaration
+class OTypeArray;        // forward declaration
+class OTypeArraySlice;   // forward declaration
 
 class OType : public OSymbol
 {
 private:
   using           super = OSymbol;
 
-  OTypePointer *  ptr_type = nullptr;  // cached pointer-to-this type
+  OTypePointer *     ptr_type = nullptr;    // cached pointer-to-this type
+  OTypeArraySlice *  slice_type = nullptr;  // cached slice type
+  map<uint32_t, OTypeArray *>  array_types; // cached fixed-size array types
 
 public:
   ETypeKind    kind;
@@ -155,6 +160,8 @@ public:
 
   inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
   OTypePointer *     GetPointerType();
+  OTypeArray *       GetArrayType(uint32_t alength);
+  OTypeArraySlice *  GetSliceType();
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }

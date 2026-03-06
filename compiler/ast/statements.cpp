@@ -14,6 +14,7 @@
 #include <format>
 #include "scope_builtins.h"
 #include "statements.h"
+#include "otype_array.h"
 #include "comp_options.h"
 
 using namespace std;
@@ -128,6 +129,35 @@ void OStmtDerefAssign::Generate(OScope * scope)
   LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptrvariable->ll_value, "ptr");
   LlValue * ll_val = value->Generate(scope);
   ll_builder.CreateStore(ll_val, ll_ptr);
+}
+
+void OStmtArrayAssign::Generate(OScope * scope)
+{
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_val = value->Generate(scope);
+
+  if (TK_ARRAY == arrayvalsym->ptype->kind)
+  {
+    // Fixed array: GEP with {0, index} into [N x T]
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_gep = ll_builder.CreateGEP(
+        arrayvalsym->ptype->GetLlType(),
+        arrayvalsym->ll_value,
+        {ll_zero, ll_index},
+        "arr.elem"
+    );
+    ll_builder.CreateStore(ll_val, ll_gep);
+  }
+  else // TK_ARRAY_SLICE
+  {
+    // Slice: use StructGEP to get the pointer field, then GEP into the data
+    OTypeArraySlice * slicetype = static_cast<OTypeArraySlice *>(arrayvalsym->ptype);
+    LlType * ll_slicetype = arrayvalsym->ptype->GetLlType();
+    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, arrayvalsym->ll_value, 0, "slice.ptr.addr");
+    LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "slice.ptr");
+    LlValue * ll_gep = ll_builder.CreateGEP(slicetype->elemtype->GetLlType(), ll_ptr, {ll_index}, "slice.elem");
+    ll_builder.CreateStore(ll_val, ll_gep);
+  }
 }
 
 void OStmtVoidCall::Generate(OScope * scope)

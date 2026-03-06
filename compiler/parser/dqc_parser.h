@@ -53,6 +53,10 @@ public: // statement blocks
   void ParseStmtIf();
   void ParseStmtVoidCall(OValSymFunc * vsfunc);
   void ParseStmtDerefAssign(OValSym * ptrvalsym);
+  void ParseStmtArrayAssign(OValSym * arrayvalsym);
+
+public: // type parsing
+  OType * ParseTypeSpec();  // parses type after ":" — handles ^, [N], []
 
 public: // utility
   bool CheckStatementClose();
@@ -90,6 +94,7 @@ public: // expressions
   OExpr * ParseExprPrimary();
 
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
+  OExpr * ParseBuiltinLen();
 
 protected:
   OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);  // handles implicit conversions

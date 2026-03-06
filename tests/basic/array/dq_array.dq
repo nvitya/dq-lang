@@ -1,0 +1,47 @@
+// array tests
+
+function dq_arr_basic() -> int:
+  var a : int[3];
+  a[0] = 10;
+  a[1] = 20;
+  a[2] = 30;
+  result = a[0] + a[1] + a[2];
+endfunc
+
+function dq_arr_index(i : int) -> int:
+  var a : int[4];
+  a[0] = 100;
+  a[1] = 200;
+  a[2] = 300;
+  a[3] = 400;
+  result = a[i];
+endfunc
+
+function dq_arr_sum(arr : int[]) -> int:
+  var i : int = 0;
+  var s : int = 0;
+  while i < len(arr):
+    s = s + arr[i];
+    i = i + 1;
+  endwhile
+  result = s;
+endfunc
+
+function dq_arr_slice_test() -> int:
+  var a : int[3];
+  a[0] = 1;
+  a[1] = 2;
+  a[2] = 3;
+  result = dq_arr_sum(a);
+endfunc
+
+function dq_arr_len() -> int:
+  var a : int[5];
+  a[0] = 0;
+  result = len(a);
+endfunc
+
+function dq_arr_modify(arr : int[]) -> int:
+  arr[0] = 999;
+  result = arr[0];
+endfunc

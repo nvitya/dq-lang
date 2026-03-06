@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.1.5"
+#define DQ_COMPILER_VERSION  "0.2.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.2.0:
+  - Fixed size array handling added
+  - Expression parsing loops fixed
 v0.1.5:
   - Pointer handling added
 v0.1.4:

@@ -175,6 +175,34 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+// Array element access: arr[index]
+class OArrayIndexExpr : public OExpr
+{
+public:
+  OValSym *  arrayvalsym;  // the array variable (need alloca address for GEP)
+  OExpr *    indexexpr;
+  /* ctor */ OArrayIndexExpr(OValSym * aarray, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Implicit conversion from fixed array to slice when passing to int[] parameter
+class OArrayToSliceExpr : public OExpr
+{
+public:
+  OValSym *  arrayvalsym;  // source fixed-size array variable
+  /* ctor */ OArrayToSliceExpr(OValSym * aarray, OType * slicetype);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Extract length from an array slice: len(slice_var)
+class OSliceLengthExpr : public OExpr
+{
+public:
+  OValSym *  slicevalsym;
+  /* ctor */ OSliceLengthExpr(OValSym * aslice);
+  LlValue *  Generate(OScope * scope) override;
+};
+
 class OValSymFunc;  // forward declaration for otype_func.h
 
 class OCallExpr : public OExpr

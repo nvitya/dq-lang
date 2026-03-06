@@ -16,6 +16,7 @@
 #include <format>
 
 #include "symbols.h"
+#include "otype_array.h"
 #include "dqc.h"
 
 using namespace std;
@@ -135,6 +136,11 @@ LlDiScope * OScope::GetDiScope()
 OType::~OType()
 {
   delete ptr_type;
+  delete slice_type;
+  for (auto & [len, arrtype] : array_types)
+  {
+    delete arrtype;
+  }
 }
 
 OTypePointer * OType::GetPointerType()
@@ -144,6 +150,27 @@ OTypePointer * OType::GetPointerType()
     ptr_type = new OTypePointer(this);
   }
   return ptr_type;
+}
+
+OTypeArray * OType::GetArrayType(uint32_t alength)
+{
+  auto it = array_types.find(alength);
+  if (it != array_types.end())
+  {
+    return it->second;
+  }
+  OTypeArray * result = new OTypeArray(this, alength);
+  array_types[alength] = result;
+  return result;
+}
+
+OTypeArraySlice * OType::GetSliceType()
+{
+  if (!slice_type)
+  {
+    slice_type = new OTypeArraySlice(this);
+  }
+  return slice_type;
 }
 
 OValSym * OType::CreateValSym(OScPosition & apos, const string aname)

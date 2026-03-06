@@ -18,6 +18,7 @@
 #include "dq_module.h"
 #include "dqc_parser.h"
 #include "otype_func.h"
+#include "otype_array.h"
 #include "expressions.h"
 #include "statements.h"
 
@@ -116,32 +117,8 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
     return;
   }
 
-  bool is_pointer = false;
-  scf->SkipWhite();
-  if (scf->CheckSymbol("^"))
-  {
-    is_pointer = true;
-  }
-
-  scf->SkipWhite();
-  if (not scf->ReadIdentifier(stype))
-  {
-    StatementError("Type identifier is expected after \"var\". Syntax: \"var identifier : type [ = initial value];\"");
-    return;
-  }
-
-  // check the type here for proper source code position (scf->prevpos)
-  ptype = g_module->scope_priv->FindType(stype);
-  if (not ptype)
-  {
-    StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
-    return;
-  }
-
-  if (is_pointer)
-  {
-    ptype = ptype->GetPointerType();
-  }
+  ptype = ParseTypeSpec();
+  if (not ptype)  return;
 
   ODecl * vdecl = AddDeclVar(scpos_statement_start, sid, ptype);
 
@@ -320,18 +297,9 @@ void ODqCompParser::ParseFunction()
         continue;
       }
 
-      scf->SkipWhite();
-      if (not scf->ReadIdentifier(sptype))
-      {
-        Error("Function parameter type name expected", &scf->prevpos);
-        scf->ReadTo(",)");  // try to skip to next parameter
-        continue;
-      }
-
-      OType * ptype = cur_mod_scope->FindType(sptype);
+      OType * ptype = ParseTypeSpec();
       if (!ptype)
       {
-        Error(format("Unknown function parameter type \"{}\"", sptype), &scf->prevpos);
         scf->ReadTo(",)");  // try to skip to next parameter
         continue;
       }
@@ -488,12 +456,18 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
         continue;
       }
 
-      if (VSK_VARIABLE == pvalsym->kind)
+      if (VSK_VARIABLE == pvalsym->kind or VSK_PARAMETER == pvalsym->kind)
       {
         scf->SkipWhite();
         if (TK_POINTER == pvalsym->ptype->kind and scf->CheckSymbol("^"))
         {
           ParseStmtDerefAssign(pvalsym);
+          continue;
+        }
+        if ((TK_ARRAY == pvalsym->ptype->kind or TK_ARRAY_SLICE == pvalsym->ptype->kind)
+            and scf->CheckSymbol("["))
+        {
+          ParseStmtArrayAssign(pvalsym);
           continue;
         }
         if (ParseStmtAssign(pvalsym))
@@ -519,6 +493,88 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 
   curscope = prev_scope;
   curblock = prev_block;
+}
+
+OType * ODqCompParser::ParseTypeSpec()
+{
+  // Parses type specification after ":"
+  // Handles: ^type (pointer), type[N] (fixed array), type[] (slice)
+
+  bool is_pointer = false;
+  scf->SkipWhite();
+  if (scf->CheckSymbol("^"))
+  {
+    is_pointer = true;
+  }
+
+  string stype;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(stype))
+  {
+    Error("Type identifier expected");
+    return nullptr;
+  }
+
+  OType * ptype = cur_mod_scope->FindType(stype);
+  if (not ptype)
+  {
+    Error(format("Unknown type \"{}\"", stype), &scf->prevpos);
+    return nullptr;
+  }
+
+  if (is_pointer)
+  {
+    ptype = ptype->GetPointerType();
+  }
+
+  // Check for array suffix: [N] or []
+  scf->SkipWhite();
+  if (scf->CheckSymbol("["))
+  {
+    if (is_pointer)
+    {
+      Error("Pointer-to-array is not supported");
+      return nullptr;
+    }
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]"))
+    {
+      // Empty brackets: type[] — array slice
+      ptype = ptype->GetSliceType();
+    }
+    else if (scf->CheckSymbol("..."))
+    {
+      Error("Dynamic arrays (int[...]) are not yet implemented");
+      scf->ReadTo("]");
+      scf->CheckSymbol("]");
+      return nullptr;
+    }
+    else
+    {
+      // Read array size: type[N]
+      int64_t arrlen;
+      if (not scf->ReadInt64Value(arrlen))
+      {
+        Error("Array size (integer) or \"]\" expected");
+        return nullptr;
+      }
+      if (arrlen <= 0)
+      {
+        Error("Array size must be a positive integer");
+        return nullptr;
+      }
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("]"))
+      {
+        Error("\"]\" expected after array size");
+        return nullptr;
+      }
+      ptype = ptype->GetArrayType(uint32_t(arrlen));
+    }
+  }
+
+  return ptype;
 }
 
 void ODqCompParser::ParseStmtReturn()
@@ -772,31 +828,21 @@ OExpr * ODqCompParser::ParseExprAdd()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprMul();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("+"))
     {
-      right = ParseExprMul();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_ADD, left, right);
-      }
+      left = CreateBinExpr(BINOP_ADD, left, ParseExprMul());
+      continue;
     }
-    else if (scf->CheckSymbol("-"))
+    if (scf->CheckSymbol("-"))
     {
-      right = ParseExprMul();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_SUB, left, right);
-      }
+      left = CreateBinExpr(BINOP_SUB, left, ParseExprMul());
+      continue;
     }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -807,23 +853,16 @@ OExpr * ODqCompParser::ParseExprMul()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprDiv();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("*"))
     {
-      right = ParseExprDiv();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_MUL, left, right);
-      }
+      left = CreateBinExpr(BINOP_MUL, left, ParseExprDiv());
+      continue;
     }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -834,39 +873,26 @@ OExpr * ODqCompParser::ParseExprDiv()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprBinOr();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("/"))
     {
-      right = ParseExprBinOr();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_DIV, left, right);
-      }
+      left = CreateBinExpr(BINOP_DIV, left, ParseExprBinOr());
+      continue;
     }
-    else if (scf->CheckSymbol("IDIV"))
+    if (scf->CheckSymbol("IDIV"))
     {
-      right = ParseExprBinOr();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_IDIV, left, right);
-      }
+      left = CreateBinExpr(BINOP_IDIV, left, ParseExprBinOr());
+      continue;
     }
-    else if (scf->CheckSymbol("IMOD"))
+    if (scf->CheckSymbol("IMOD"))
     {
-      right = ParseExprBinOr();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_IMOD, left, right);
-      }
+      left = CreateBinExpr(BINOP_IMOD, left, ParseExprBinOr());
+      continue;
     }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -877,31 +903,21 @@ OExpr * ODqCompParser::ParseExprBinOr()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprBinAnd();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("OR"))
     {
-      right = ParseExprBinAnd();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_IOR, left, right);
-      }
+      left = CreateBinExpr(BINOP_IOR, left, ParseExprBinAnd());
+      continue;
     }
-    else if (scf->CheckSymbol("XOR"))
+    if (scf->CheckSymbol("XOR"))
     {
-      right = ParseExprBinAnd();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_IXOR, left, right);
-      }
+      left = CreateBinExpr(BINOP_IXOR, left, ParseExprBinAnd());
+      continue;
     }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -912,23 +928,16 @@ OExpr * ODqCompParser::ParseExprBinAnd()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprShift();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("AND"))
     {
-      right = ParseExprShift();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_IAND, left, right);
-      }
+      left = CreateBinExpr(BINOP_IAND, left, ParseExprShift());
+      continue;
     }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -940,47 +949,21 @@ OExpr * ODqCompParser::ParseExprShift()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprNeg();
-  OExpr * right = nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
-    if (scf->CheckSymbol("<<"))
+    if (scf->CheckSymbol("<<") or scf->CheckSymbol("SHL"))
     {
-      right = ParseExprNeg();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_ISHL, left, right);
-      }
+      left = CreateBinExpr(BINOP_ISHL, left, ParseExprNeg());
+      continue;
     }
-    else if (scf->CheckSymbol("SHL"))
+    if (scf->CheckSymbol(">>") or scf->CheckSymbol("SHR"))
     {
-      right = ParseExprNeg();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_ISHL, left, right);
-      }
+      left = CreateBinExpr(BINOP_ISHR, left, ParseExprNeg());
+      continue;
     }
-    if (scf->CheckSymbol(">>"))
-    {
-      right = ParseExprNeg();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_ISHR, left, right);
-      }
-    }
-    else if (scf->CheckSymbol("SHR"))
-    {
-      right = ParseExprNeg();
-      if (right)
-      {
-        return CreateBinExpr(BINOP_ISHR, left, right);
-      }
-    }
-    else
-    {
-      break;
-    }
+    break;
   }
 
   return left;
@@ -1171,6 +1154,13 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return result;
   }
 
+  // builtin specials
+
+  if ("len" == sid)
+  {
+    return ParseBuiltinLen();
+  }
+
   OValSym * vs = curscope->FindValSym(sid);
   if (!vs)
   {
@@ -1207,6 +1197,22 @@ OExpr * ODqCompParser::ParseExprPrimary()
   {
     Error(format("Object/Struct reference \"{}\" not implemented", sid));
     return result;
+  }
+
+  // array element access: arr[index]
+  if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk) and scf->CheckSymbol("["))
+  {
+    if (not vs->initialized)
+    {
+      Error(format("Accessing uninitialized array \"{}\"", vs->name), &scpos_sid);
+    }
+    OExpr * indexexpr = ParseExpression();
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("]"))
+    {
+      Error("\"]\" expected after array index");
+    }
+    return new OArrayIndexExpr(vs, indexexpr);
   }
 
   result = new OVarRef(vs);
@@ -1273,6 +1279,8 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
       bok = false;
       break;
     }
+    // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
+    result->args[pcnt] = argexpr;
 
     ++pcnt;
   }
@@ -1290,6 +1298,49 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
   }
 
   return result;
+}
+
+OExpr * ODqCompParser::ParseBuiltinLen()
+{
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error("\"(\" expected after \"len\"");
+    return nullptr;
+  }
+  scf->SkipWhite();
+  string lenarg;
+  if (not scf->ReadIdentifier(lenarg))
+  {
+    Error("Variable name expected in len()");
+    return nullptr;
+  }
+  OValSym * lenvs = curscope->FindValSym(lenarg);
+  if (!lenvs)
+  {
+    Error(format("Unknown variable \"{}\"", lenarg));
+    return nullptr;
+  }
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(")"))
+  {
+    Error("\")\" expected after len() argument");
+    return nullptr;
+  }
+  if (TK_ARRAY == lenvs->ptype->kind)
+  {
+    OTypeArray * arrtype = static_cast<OTypeArray *>(lenvs->ptype);
+    return new OIntLit(arrtype->arraylength);
+  }
+  else if (TK_ARRAY_SLICE == lenvs->ptype->kind)
+  {
+    return new OSliceLengthExpr(lenvs);
+  }
+  else
+  {
+    Error(format("len() requires an array or slice, got \"{}\"", lenvs->ptype->name));
+    return nullptr;
+  }
 }
 
 void ODqCompParser::ParseStmtVar()
@@ -1323,32 +1374,8 @@ void ODqCompParser::ParseStmtVar()
     return;
   }
 
-  bool is_pointer = false;
-  scf->SkipWhite();
-  if (scf->CheckSymbol("^"))
-  {
-    is_pointer = true;
-  }
-
-  scf->SkipWhite();
-  if (not scf->ReadIdentifier(stype))
-  {
-    StatementError("Type identifier is expected after \"var\". Syntax: \"var identifier : type [ = expression];\"");
-    return;
-  }
-
-  // check the type here for proper source code position (scf->prevpos)
-  ptype = g_module->scope_priv->FindType(stype);
-  if (not ptype)
-  {
-    StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
-    return;
-  }
-
-  if (is_pointer)
-  {
-    ptype = ptype->GetPointerType();
-  }
+  ptype = ParseTypeSpec();
+  if (not ptype)  return;
 
   OExpr * initexpr = nullptr;
   scf->SkipWhite();
@@ -1493,6 +1520,70 @@ void ODqCompParser::ParseStmtDerefAssign(OValSym * ptrvalsym)
   curblock->AddStatement(new OStmtDerefAssign(scpos_statement_start, ptrvalsym, expr));
 }
 
+void ODqCompParser::ParseStmtArrayAssign(OValSym * arrayvalsym)
+{
+  // syntax form: "arr[index] = expression;"
+  // note: identifier and "[" are already consumed
+
+  OExpr * indexexpr = ParseExpression();
+  if (!indexexpr)
+  {
+    return;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("]"))
+  {
+    Error("\"]\" expected after array index");
+    delete indexexpr;
+    return;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("="))
+  {
+    StatementError("\"=\" is expected after array index");
+    delete indexexpr;
+    return;
+  }
+
+  OExpr * expr = ParseExpression();
+  if (!expr)
+  {
+    delete indexexpr;
+    return;
+  }
+
+  // Determine the element type for type checking
+  OType * elemtype = nullptr;
+  if (TK_ARRAY == arrayvalsym->ptype->kind)
+  {
+    elemtype = static_cast<OTypeArray *>(arrayvalsym->ptype)->elemtype;
+  }
+  else // TK_ARRAY_SLICE
+  {
+    elemtype = static_cast<OTypeArraySlice *>(arrayvalsym->ptype)->elemtype;
+  }
+
+  if (not CheckAssignType(elemtype, &expr, "Array element assignment"))
+  {
+    delete indexexpr;
+    delete expr;
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    Error("\";\" is missing after the assignment");
+  }
+
+  // First element assignment marks the whole array as initialized
+  curblock->scope->SetVarInitialized(arrayvalsym);
+
+  curblock->AddStatement(new OStmtArrayAssign(scpos_statement_start, arrayvalsym, indexexpr, expr));
+}
+
 void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
 {
   scf->SkipWhite();
@@ -1528,6 +1619,26 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     {
       *rexpr = new OExprTypeConv(dsttype, *rexpr);
     }
+    else if ((TK_ARRAY_SLICE == tkd) and (TK_ARRAY == tke))
+    {
+      // Implicit conversion: fixed array -> slice
+      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(dsttype);
+      OTypeArray * arrsrc = static_cast<OTypeArray *>((*rexpr)->ptype);
+      if (slicedst->elemtype->kind != arrsrc->elemtype->kind)
+      {
+        Error(format("{} array element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+        return false;
+      }
+      // The source expression must be a variable reference so we can get its alloca
+      OVarRef * varref = dynamic_cast<OVarRef *>(*rexpr);
+      if (!varref)
+      {
+        Error(format("{}: cannot convert non-variable array to slice", astmt));
+        return false;
+      }
+      *rexpr = new OArrayToSliceExpr(varref->pvalsym, dsttype);
+      delete varref;
+    }
     else
     {
       Error(format("{} type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
@@ -1542,6 +1653,17 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     if (ptrsrc->basetype and ptrdst->basetype and (ptrsrc->basetype->kind != ptrdst->basetype->kind))
     {
       Error(format("{} pointer type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      return false;
+    }
+  }
+  else if (TK_ARRAY_SLICE == tkd)
+  {
+    // both are slices: check element types match
+    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(dsttype);
+    OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>((*rexpr)->ptype);
+    if (slicedst->elemtype->kind != slicesrc->elemtype->kind)
+    {
+      Error(format("{} slice element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
       return false;
     }
   }

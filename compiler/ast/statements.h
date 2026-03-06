@@ -260,6 +260,25 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtArrayAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   arrayvalsym;
+  OExpr *     indexexpr;
+  OExpr *     value;
+  OStmtArrayAssign(OScPosition & ascpos, OValSym * aarray, OExpr * aindex, OExpr * avalue)
+  :
+    super(ascpos),
+    arrayvalsym(aarray),
+    indexexpr(aindex),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OBreakStmt : public OStmt
 {
 public:

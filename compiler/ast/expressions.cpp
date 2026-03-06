@@ -13,6 +13,7 @@
 
 #include "expressions.h"
 #include "scope_builtins.h"
+#include "otype_array.h"
 
 /* ctor */ OExprTypeConv::OExprTypeConv(OType * dsttype, OExpr * asrc)
 {
@@ -260,6 +261,86 @@ LlValue * ODerefExpr::Generate(OScope * scope)
 LlValue * ONullLit::Generate(OScope * scope)
 {
   return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+}
+
+/* ctor */ OArrayIndexExpr::OArrayIndexExpr(OValSym * aarray, OExpr * aindex)
+{
+  arrayvalsym = aarray;
+  indexexpr   = aindex;
+
+  if (TK_ARRAY == aarray->ptype->kind)
+  {
+    ptype = static_cast<OTypeArray *>(aarray->ptype)->elemtype;
+  }
+  else // TK_ARRAY_SLICE
+  {
+    ptype = static_cast<OTypeArraySlice *>(aarray->ptype)->elemtype;
+  }
+}
+
+LlValue * OArrayIndexExpr::Generate(OScope * scope)
+{
+  LlValue * ll_index = indexexpr->Generate(scope);
+
+  if (TK_ARRAY == arrayvalsym->ptype->kind)
+  {
+    // Fixed array: GEP with {0, index} into [N x T]
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_gep = ll_builder.CreateGEP(
+        arrayvalsym->ptype->GetLlType(),
+        arrayvalsym->ll_value,
+        {ll_zero, ll_index},
+        "arr.elem"
+    );
+    return ll_builder.CreateLoad(ptype->GetLlType(), ll_gep, "arr.load");
+  }
+  else // TK_ARRAY_SLICE
+  {
+    // Slice: use StructGEP to get the pointer field from the alloca, then GEP into the data
+    LlType * ll_slicetype = arrayvalsym->ptype->GetLlType();
+    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, arrayvalsym->ll_value, 0, "slice.ptr.addr");
+    LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "slice.ptr");
+    LlValue * ll_gep = ll_builder.CreateGEP(ptype->GetLlType(), ll_ptr, {ll_index}, "slice.elem");
+    return ll_builder.CreateLoad(ptype->GetLlType(), ll_gep, "slice.load");
+  }
+}
+
+/* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OValSym * aarray, OType * slicetype)
+{
+  arrayvalsym = aarray;
+  ptype = slicetype;
+}
+
+LlValue * OArrayToSliceExpr::Generate(OScope * scope)
+{
+  OTypeArray * arrtype = static_cast<OTypeArray *>(arrayvalsym->ptype);
+
+  // Get pointer to first element of the fixed array
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elemptr = ll_builder.CreateGEP(
+      arrtype->GetLlType(), arrayvalsym->ll_value, {ll_zero, ll_zero}, "arr.data");
+
+  // Build the slice struct {ptr, i64}
+  LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
+  ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
+  ll_slice = ll_builder.CreateInsertValue(ll_slice,
+      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength),
+      1, "slice.len");
+  return ll_slice;
+}
+
+/* ctor */ OSliceLengthExpr::OSliceLengthExpr(OValSym * aslice)
+{
+  slicevalsym = aslice;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OSliceLengthExpr::Generate(OScope * scope)
+{
+  // Use StructGEP to access the length field (index 1) of the slice struct
+  LlType * ll_slicetype = slicevalsym->ptype->GetLlType();
+  LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, slicevalsym->ll_value, 1, "slice.len.addr");
+  return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
 }
 
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)

@@ -110,16 +110,21 @@ LlValue * OBinExpr::Generate(OScope * scope)
 
   if (TK_INT == ptype->kind)
   {
+    bool issigned = static_cast<OTypeInt *>(ptype)->issigned;
+
     if      (BINOP_ADD == op)   return ll_builder.CreateAdd(ll_left, ll_right);
     else if (BINOP_SUB == op)   return ll_builder.CreateSub(ll_left, ll_right);
     else if (BINOP_MUL == op)   return ll_builder.CreateMul(ll_left, ll_right);
-    else if (BINOP_IDIV == op)  return ll_builder.CreateSDiv(ll_left, ll_right);
-
+    else if (BINOP_IDIV == op)  return ( issigned ? ll_builder.CreateSDiv(ll_left, ll_right)
+                                                  : ll_builder.CreateUDiv(ll_left, ll_right) );
+    else if (BINOP_IMOD == op)  return ( issigned ? ll_builder.CreateSRem(ll_left, ll_right)
+                                                  : ll_builder.CreateURem(ll_left, ll_right) );
     else if (BINOP_IOR  == op)  return ll_builder.CreateOr(ll_left, ll_right);
     else if (BINOP_IAND == op)  return ll_builder.CreateAnd(ll_left, ll_right);
     else if (BINOP_IXOR == op)  return ll_builder.CreateXor(ll_left, ll_right);
     else if (BINOP_ISHL == op)  return ll_builder.CreateShl(ll_left, ll_right);
-    else if (BINOP_ISHR == op)  return ll_builder.CreateAShr(ll_left, ll_right);
+    else if (BINOP_ISHR == op)  return ( issigned ? ll_builder.CreateAShr(ll_left, ll_right)
+                                                  : ll_builder.CreateLShr(ll_left, ll_right) );
 
     throw logic_error(std::format("OBinExpr.Generate(): Unhandled int binop = {} ", int(op)));
   }
@@ -152,14 +157,38 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
 
-  // TODO: handle unsigned !!!
+  OType * optype = left->ptype;
 
-  if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
-  else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);
-  else if (COMPOP_LT == op)   return ll_builder.CreateICmpSLT(ll_left, ll_right);
-  else if (COMPOP_GT == op)   return ll_builder.CreateICmpSGT(ll_left, ll_right);
-  else if (COMPOP_LE == op)   return ll_builder.CreateICmpSLE(ll_left, ll_right);
-  else if (COMPOP_GE == op)   return ll_builder.CreateICmpSGE(ll_left, ll_right);
+  if (TK_FLOAT == optype->kind)
+  {
+    if      (COMPOP_EQ == op)   return ll_builder.CreateFCmpOEQ(ll_left, ll_right);
+    else if (COMPOP_NE == op)   return ll_builder.CreateFCmpONE(ll_left, ll_right);
+    else if (COMPOP_LT == op)   return ll_builder.CreateFCmpOLT(ll_left, ll_right);
+    else if (COMPOP_GT == op)   return ll_builder.CreateFCmpOGT(ll_left, ll_right);
+    else if (COMPOP_LE == op)   return ll_builder.CreateFCmpOLE(ll_left, ll_right);
+    else if (COMPOP_GE == op)   return ll_builder.CreateFCmpOGE(ll_left, ll_right);
+  }
+  else if (TK_INT == optype->kind)
+  {
+    bool issigned = static_cast<OTypeInt *>(optype)->issigned;
+
+    if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
+    else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);
+    else if (issigned)
+    {
+      if      (COMPOP_LT == op)   return ll_builder.CreateICmpSLT(ll_left, ll_right);
+      else if (COMPOP_GT == op)   return ll_builder.CreateICmpSGT(ll_left, ll_right);
+      else if (COMPOP_LE == op)   return ll_builder.CreateICmpSLE(ll_left, ll_right);
+      else if (COMPOP_GE == op)   return ll_builder.CreateICmpSGE(ll_left, ll_right);
+    }
+    else
+    {
+      if      (COMPOP_LT == op)   return ll_builder.CreateICmpULT(ll_left, ll_right);
+      else if (COMPOP_GT == op)   return ll_builder.CreateICmpUGT(ll_left, ll_right);
+      else if (COMPOP_LE == op)   return ll_builder.CreateICmpULE(ll_left, ll_right);
+      else if (COMPOP_GE == op)   return ll_builder.CreateICmpUGE(ll_left, ll_right);
+    }
+  }
 
   throw logic_error(std::format("GenerateExpr(): Unhandled compare operation= {} ", int(op)));
 }

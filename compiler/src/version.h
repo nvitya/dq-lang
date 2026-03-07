@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.2.2"
+#define DQ_COMPILER_VERSION  "0.2.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.2.3:
+  - Expression evaluation and code generation fixes for float and unsigned handling
+  - nicer expression parsing functions
 v0.2.2:
   - Array literals ([1,2,3])
   - Array type checking

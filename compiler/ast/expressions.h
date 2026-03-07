@@ -92,6 +92,7 @@ public:
 
 enum ECompareOp
 {
+  COMPOP_NONE = 0,
   COMPOP_EQ,
   COMPOP_NE,
   COMPOP_LT,
@@ -112,6 +113,7 @@ public:
 
 enum ELogicalOp
 {
+  LOGIOP_NONE = 0,
   LOGIOP_OR,
   LOGIOP_AND,
   LOGIOP_XOR

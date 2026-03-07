@@ -117,12 +117,34 @@ void OStmtModifyAssign::Generate(OScope *scope)
     else if (BINOP_SUB == op)
       ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_builder.CreateNeg(ll_mod_value)}, "ptr.rev");
   }
-  else
+  else if (TK_FLOAT == variable->ptype->kind)
   {
+    if      (BINOP_ADD == op)  ll_newval = ll_builder.CreateFAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB == op)  ll_newval = ll_builder.CreateFSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL == op)  ll_newval = ll_builder.CreateFMul(ll_curval, ll_mod_value);
+    else if (BINOP_DIV == op)  ll_newval = ll_builder.CreateFDiv(ll_curval, ll_mod_value);
+  }
+  else if (TK_INT == variable->ptype->kind)
+  {
+    bool issigned = static_cast<OTypeInt *>(variable->ptype)->issigned;
+
     if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
     else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
     else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
-    else if (BINOP_IDIV == op)  ll_newval = ll_builder.CreateSDiv(ll_curval, ll_mod_value);
+    else if (BINOP_IDIV == op)  ll_newval = ( issigned ? ll_builder.CreateSDiv(ll_curval, ll_mod_value)
+                                                       : ll_builder.CreateUDiv(ll_curval, ll_mod_value) );
+    else if (BINOP_IMOD == op)  ll_newval = ( issigned ? ll_builder.CreateSRem(ll_curval, ll_mod_value)
+                                                       : ll_builder.CreateURem(ll_curval, ll_mod_value) );
+    else if (BINOP_IAND == op)  ll_newval = ll_builder.CreateAnd(ll_curval, ll_mod_value);
+    else if (BINOP_IOR  == op)  ll_newval = ll_builder.CreateOr (ll_curval, ll_mod_value);
+    else if (BINOP_IXOR == op)  ll_newval = ll_builder.CreateXor(ll_curval, ll_mod_value);
+    else if (BINOP_ISHL == op)  ll_newval = ll_builder.CreateShl (ll_curval, ll_mod_value);
+    else if (BINOP_ISHR == op)  ll_newval = ( issigned ? ll_builder.CreateAShr(ll_curval, ll_mod_value)
+                                                       : ll_builder.CreateLShr(ll_curval, ll_mod_value) );
+  }
+  else
+  {
+    throw logic_error(std::format("Unsupported modify-assign type: {}", variable->ptype->name));
   }
 
   if (ll_newval)

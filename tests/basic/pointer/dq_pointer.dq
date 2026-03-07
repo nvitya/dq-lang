@@ -43,3 +43,11 @@ function dq_ptr_notnull(a : int) -> int:
     result = -1;
   endif
 endfunc
+
+function dq_ptr_and_arr() -> int:
+  var arr : int[3] = [3,4,5];
+  var p : ^int = &arr[1];
+  result = p^;
+  p += 1;
+  result += p^;
+endfunc

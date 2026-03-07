@@ -1,5 +1,7 @@
 // array tests
 
+#define ERRORTEST
+
 function dq_arr_basic() -> int:
   var a : int[3];
   a[0] = 10;
@@ -45,3 +47,19 @@ function dq_arr_modify(arr : int[]) -> int:
   arr[0] = 999;
   result = arr[0];
 endfunc
+
+function dq_arr_fixed_arg(arr : int[3]) -> int:
+  result = arr[0] + arr[1] + arr[2];
+endfunc
+
+function dq_arr_fixed_test() -> int:
+  result = dq_arr_fixed_arg([1,2,3]);
+endfunc
+
+#ifdef ERRORTEST
+
+function dq_arr_fixed_test_error() -> int:
+  result = dq_arr_fixed_arg([1,2,3,4]);
+endfunc
+
+#endif

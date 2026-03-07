@@ -1159,6 +1159,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return result;
   }
 
+  if (scf->CheckSymbol("["))
+  {
+    return ParseArrayLit();
+  }
+
   if (scf->CheckSymbol("0x"))  // hex number ?
   {
     uint64_t  hexval;
@@ -1239,6 +1244,27 @@ OExpr * ODqCompParser::ParseExprPrimary()
     {
       Error(format("\"{}\" is not a variable, cannot take its address", addrname));
       return nullptr;
+    }
+    // address of array element: &arr[index]
+    if (TK_ARRAY == addrvs->ptype->kind)
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("["))
+      {
+        if (not addrvs->initialized)
+        {
+          Error(format("Accessing uninitialized array \"{}\"", addrvs->name));
+        }
+        OExpr * indexexpr = ParseExpression();
+        scf->SkipWhite();
+        if (not scf->CheckSymbol("]"))
+        {
+          Error("\"]\" expected after array index in address-of");
+          delete indexexpr;
+          return nullptr;
+        }
+        return new OAddrOfArrayElemExpr(addrvs, indexexpr);
+      }
     }
     result = new OAddrOfExpr(addrvs);
     return result;
@@ -1338,6 +1364,37 @@ OExpr * ODqCompParser::ParseExprPrimary()
   }
 
   return result;
+}
+
+OExpr * ODqCompParser::ParseArrayLit()
+{
+  // "[" is already consumed
+  vector<OExpr *> elems;
+
+  while (not scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]"))
+    {
+      break;
+    }
+
+    if (elems.size() > 0)
+    {
+      if (not scf->CheckSymbol(","))
+      {
+        Error("\",\" expected in array literal");
+      }
+    }
+
+    OExpr * val = ParseExpression();
+    if (val)
+    {
+      elems.push_back(val);
+    }
+  }
+
+  return new OArrayLit(elems);
 }
 
 OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
@@ -1560,12 +1617,30 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
-    Error("\";\" is missing after the var declaration");
+    OScPosition scpos;
+    scf->SaveCurPos(scpos);
+    StatementError("\";\" is missing after the assignment statement", &scpos);
   }
 
   if (!expr)
   {
     return true;  // signalizes processed, not error-free here !
+  }
+
+  // Pointer arithmetic: p += int  or  p -= int
+  if (TK_POINTER == ptype->kind and (BINOP_ADD == op or BINOP_SUB == op))
+  {
+    if (TK_INT != expr->ptype->kind)
+    {
+      Error(format("Pointer arithmetic requires an integer offset, got \"{}\"", expr->ptype->name));
+      delete expr;
+      return true;
+    }
+    if (not pvalsym->initialized)
+      Error(format("Variable \"{}\" is not initialized.", pvalsym->name));
+    else
+      curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, pvalsym, op, expr));
+    return true;
   }
 
   if (not CheckAssignType(ptype, &expr, "Modify assignment"))  // might add implicit conversion
@@ -1773,6 +1848,21 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     if (slicedst->elemtype->kind != slicesrc->elemtype->kind)
     {
       Error(format("{} slice element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      return false;
+    }
+  }
+  else if (TK_ARRAY == tkd)
+  {
+    OTypeArray * arrdst = static_cast<OTypeArray *>(dsttype);
+    OTypeArray * arrsrc = static_cast<OTypeArray *>((*rexpr)->ptype);
+    if (arrdst->elemtype != arrsrc->elemtype)
+    {
+      Error(format("{} array element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      return false;
+    }
+    if (arrdst->arraylength != arrsrc->arraylength)
+    {
+      Error(format("{} array size mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
       return false;
     }
   }

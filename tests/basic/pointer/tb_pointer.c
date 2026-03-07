@@ -6,6 +6,7 @@ extern int64_t  dq_ptr_read(int64_t a);
 extern int64_t  dq_ptr_null();
 extern int64_t  dq_ptr_cmp(int64_t a, int64_t b);
 extern int64_t  dq_ptr_notnull(int64_t a);
+extern int64_t  dq_ptr_and_arr();
 
 int main()
 {
@@ -27,6 +28,9 @@ int main()
 
   r = dq_ptr_notnull(77);
   printf("dq_ptr_notnull(77) = %li (expected 77)\n", r);
+
+  r = dq_ptr_and_arr();
+  printf("dq_ptr_and_arr() = %li (expected 9)\n", r);
 
   return 0;
 }

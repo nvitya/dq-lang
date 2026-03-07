@@ -240,6 +240,25 @@ LlValue * OAddrOfExpr::Generate(OScope * scope)
   return pvalsym->ll_value;  // the alloca pointer IS the address
 }
 
+/* ctor */ OAddrOfArrayElemExpr::OAddrOfArrayElemExpr(OValSym * aarray, OExpr * aindex)
+{
+  arrayvalsym = aarray;
+  indexexpr   = aindex;
+  ptype = static_cast<OTypeArray *>(aarray->ptype)->elemtype->GetPointerType();
+}
+
+LlValue * OAddrOfArrayElemExpr::Generate(OScope * scope)
+{
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero  = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  return ll_builder.CreateGEP(
+      arrayvalsym->ptype->GetLlType(),
+      arrayvalsym->ll_value,
+      {ll_zero, ll_index},
+      "arr.elem.addr"
+  );
+}
+
 /* ctor */ ODerefExpr::ODerefExpr(OExpr * aoperand)
 {
   operand = aoperand;
@@ -372,4 +391,36 @@ OCallExpr::~OCallExpr()
     delete arg;
   }
   args.clear();
+}
+
+/* ctor */ OArrayLit::OArrayLit(const vector<OExpr *> & aelements)
+{
+  elements = aelements;
+
+  if (elements.empty())
+  {
+    // Default to int[0] or handle error? For now assuming int.
+    ptype = g_builtins->type_int->GetArrayType(0);
+  }
+  else
+  {
+    // Infer type from the first element
+    // TODO: Check if all elements are compatible
+    OType * elemtype = elements[0]->ptype;
+    ptype = elemtype->GetArrayType(elements.size());
+  }
+}
+
+LlValue * OArrayLit::Generate(OScope * scope)
+{
+  // Create an undefined array value and insert elements one by one
+  LlValue * ll_arr = llvm::UndefValue::get(ptype->GetLlType());
+
+  for (size_t i = 0; i < elements.size(); ++i)
+  {
+    LlValue * ll_val = elements[i]->Generate(scope);
+    ll_arr = ll_builder.CreateInsertValue(ll_arr, ll_val, {(unsigned)i});
+  }
+
+  return ll_arr;
 }

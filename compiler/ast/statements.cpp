@@ -105,13 +105,25 @@ void OStmtModifyAssign::Generate(OScope *scope)
   }
 
   // Load current value
-  LlValue * ll_curval = ll_builder.CreateLoad(variable->ll_value->getType(), variable->ll_value, variable->name);
+  LlValue * ll_curval = ll_builder.CreateLoad(variable->ptype->GetLlType(), variable->ll_value, variable->name);
 
   LlValue * ll_newval = nullptr;
-  if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
-  else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
-  else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
-  else if (BINOP_IDIV == op)  ll_newval = ll_builder.CreateSDiv(ll_curval, ll_mod_value);
+  if (TK_POINTER == variable->ptype->kind)
+  {
+    OTypePointer * ptrtype = static_cast<OTypePointer *>(variable->ptype);
+    LlType * ll_elemtype = ptrtype->basetype->GetLlType();
+    if (BINOP_ADD == op)
+      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_mod_value}, "ptr.adv");
+    else if (BINOP_SUB == op)
+      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_builder.CreateNeg(ll_mod_value)}, "ptr.rev");
+  }
+  else
+  {
+    if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
+    else if (BINOP_IDIV == op)  ll_newval = ll_builder.CreateSDiv(ll_curval, ll_mod_value);
+  }
 
   if (ll_newval)
   {

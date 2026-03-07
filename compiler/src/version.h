@@ -11,10 +11,16 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.2.1"
+#define DQ_COMPILER_VERSION  "0.2.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.2.2:
+  - Array literals ([1,2,3])
+  - Array type checking
+  - Pointer improvements:
+     - pointer arithmetic
+     - getting address of array element
 v0.2.1:
   - Expression parsing possible memory leak fixes (at errors)
   - Global variable initialisation set

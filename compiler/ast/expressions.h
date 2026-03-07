@@ -160,6 +160,16 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+// Address of an array element: &arr[index]
+class OAddrOfArrayElemExpr : public OExpr
+{
+public:
+  OValSym *  arrayvalsym;
+  OExpr *    indexexpr;
+  /* ctor */ OAddrOfArrayElemExpr(OValSym * aarray, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};
+
 class ODerefExpr : public OExpr
 {
 public:
@@ -219,4 +229,13 @@ public:
   {
     args.push_back(aarg);
   }
+};
+
+class OArrayLit : public OExpr
+{
+public:
+  vector<OExpr *> elements;
+
+  /* ctor */ OArrayLit(const vector<OExpr *> & aelements);
+  LlValue *  Generate(OScope * scope) override;
 };

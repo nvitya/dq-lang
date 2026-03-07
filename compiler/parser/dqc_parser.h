@@ -95,6 +95,7 @@ public: // expressions
 
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseBuiltinLen();
+  OExpr * ParseArrayLit();
 
 protected:
   OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);  // handles implicit conversions

@@ -101,4 +101,5 @@ protected:
   bool    CheckAssignType(OType * dsttype, OExpr ** rexpr,
                           const string astmt);                    // returns false when the assignment is not possible
                                                                   // adds implicit conversion if necessary
+  OExpr * FreeLeftRight(OExpr * left, OExpr * right);
 };

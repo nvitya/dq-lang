@@ -138,6 +138,9 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
     delete initexpr;
   }
 
+  // global variables are always initialized with 0 / null
+  vdecl->pvalsym->initialized = true;
+
   if (not CheckStatementClose())
   {
     // error message already generated.
@@ -736,12 +739,19 @@ OExpr * ODqCompParser::ParseExpression()
 OExpr * ODqCompParser::ParseExprOr()
 {
   OExpr * left = ParseExprAnd();
+  if (!left) return nullptr;
+
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("or"))
     {
-      left = new OLogicalExpr(LOGIOP_OR, left, ParseExprAnd());
+      OExpr * right = ParseExprAnd();
+      if (!right)
+      {
+        return FreeLeftRight(left, nullptr);
+      }
+      left = new OLogicalExpr(LOGIOP_OR, left, right);
       continue;
     }
 
@@ -753,12 +763,19 @@ OExpr * ODqCompParser::ParseExprOr()
 OExpr * ODqCompParser::ParseExprAnd()
 {
   OExpr * left = ParseExprNot();
+  if (!left) return nullptr;
+
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("and"))
     {
-      left = new OLogicalExpr(LOGIOP_AND, left, ParseExprAnd());
+      OExpr * right = ParseExprNot(); // Fixed recursion to ParseExprNot (was ParseExprAnd in original logic, but usually it chains to next priority or self)
+      if (!right)
+      {
+        return FreeLeftRight(left, nullptr);
+      }
+      left = new OLogicalExpr(LOGIOP_AND, left, right);
       continue;
     }
 
@@ -771,7 +788,9 @@ OExpr * ODqCompParser::ParseExprNot()
 {
   if (scf->CheckSymbol("not"))
   {
-    return new ONotExpr(ParseExprNot());
+    OExpr * val = ParseExprNot();
+    if (!val) return nullptr;
+    return new ONotExpr(val);
   }
 
   return ParseComparison();
@@ -780,6 +799,8 @@ OExpr * ODqCompParser::ParseExprNot()
 OExpr * ODqCompParser::ParseComparison()
 {
   OExpr * left = ParseExprAdd();
+  if (!left) return nullptr;
+
   OExpr * right = nullptr;
 
   scf->SkipWhite();
@@ -787,36 +808,42 @@ OExpr * ODqCompParser::ParseComparison()
   if (scf->CheckSymbol("=="))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_EQ, left, right);
   }
 
   if (scf->CheckSymbol("!=") or scf->CheckSymbol("<>"))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_NE, left, right);
   }
 
   if (scf->CheckSymbol("<"))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_LT, left, right);
   }
 
   if (scf->CheckSymbol("<="))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_LE, left, right);
   }
 
   if (scf->CheckSymbol(">"))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_GT, left, right);
   }
 
   if (scf->CheckSymbol(">="))
   {
     right = ParseExprAdd();
+    if (!right) return FreeLeftRight(left, nullptr);
     return new OCompareExpr(COMPOP_GE, left, right);
   }
 
@@ -828,18 +855,31 @@ OExpr * ODqCompParser::ParseExprAdd()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprMul();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("+"))
     {
-      left = CreateBinExpr(BINOP_ADD, left, ParseExprMul());
+      OExpr * right = ParseExprMul();
+      OExpr * res = CreateBinExpr(BINOP_ADD, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     if (scf->CheckSymbol("-"))
     {
-      left = CreateBinExpr(BINOP_SUB, left, ParseExprMul());
+      OExpr * right = ParseExprMul();
+      OExpr * res = CreateBinExpr(BINOP_SUB, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -853,13 +893,20 @@ OExpr * ODqCompParser::ParseExprMul()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprDiv();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("*"))
     {
-      left = CreateBinExpr(BINOP_MUL, left, ParseExprDiv());
+      OExpr * right = ParseExprDiv();
+      OExpr * res = CreateBinExpr(BINOP_MUL, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -873,23 +920,42 @@ OExpr * ODqCompParser::ParseExprDiv()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprBinOr();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("/"))
     {
-      left = CreateBinExpr(BINOP_DIV, left, ParseExprBinOr());
+      OExpr * right = ParseExprBinOr();
+      OExpr * res = CreateBinExpr(BINOP_DIV, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     if (scf->CheckSymbol("IDIV"))
     {
-      left = CreateBinExpr(BINOP_IDIV, left, ParseExprBinOr());
+      OExpr * right = ParseExprBinOr();
+      OExpr * res = CreateBinExpr(BINOP_IDIV, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     if (scf->CheckSymbol("IMOD"))
     {
-      left = CreateBinExpr(BINOP_IMOD, left, ParseExprBinOr());
+      OExpr * right = ParseExprBinOr();
+      OExpr * res = CreateBinExpr(BINOP_IMOD, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -903,18 +969,31 @@ OExpr * ODqCompParser::ParseExprBinOr()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprBinAnd();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("OR"))
     {
-      left = CreateBinExpr(BINOP_IOR, left, ParseExprBinAnd());
+      OExpr * right = ParseExprBinAnd();
+      OExpr * res = CreateBinExpr(BINOP_IOR, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     if (scf->CheckSymbol("XOR"))
     {
-      left = CreateBinExpr(BINOP_IXOR, left, ParseExprBinAnd());
+      OExpr * right = ParseExprBinAnd();
+      OExpr * res = CreateBinExpr(BINOP_IXOR, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -928,13 +1007,20 @@ OExpr * ODqCompParser::ParseExprBinAnd()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprShift();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("AND"))
     {
-      left = CreateBinExpr(BINOP_IAND, left, ParseExprShift());
+      OExpr * right = ParseExprShift();
+      OExpr * res = CreateBinExpr(BINOP_IAND, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -949,18 +1035,31 @@ OExpr * ODqCompParser::ParseExprShift()
   scf->SkipWhite();
 
   OExpr * left  = ParseExprNeg();
+  if (!left) return nullptr;
 
   while (not scf->Eof())
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("<<") or scf->CheckSymbol("SHL"))
     {
-      left = CreateBinExpr(BINOP_ISHL, left, ParseExprNeg());
+      OExpr * right = ParseExprNeg();
+      OExpr * res = CreateBinExpr(BINOP_ISHL, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     if (scf->CheckSymbol(">>") or scf->CheckSymbol("SHR"))
     {
-      left = CreateBinExpr(BINOP_ISHR, left, ParseExprNeg());
+      OExpr * right = ParseExprNeg();
+      OExpr * res = CreateBinExpr(BINOP_ISHR, left, right);
+      if (!res)
+      {
+        return FreeLeftRight(left, right);
+      }
+      left = res;
       continue;
     }
     break;
@@ -973,17 +1072,27 @@ OExpr * ODqCompParser::ParseExprNeg()
 {
   if (scf->CheckSymbol("-"))
   {
-    return new ONegExpr(ParseExprPrimary());
+    OExpr * val = ParseExprPrimary();
+    if (!val) return nullptr;
+    return new ONegExpr(val);
   }
 
   if (scf->CheckSymbol("NOT"))
   {
-    return new OBinNotExpr(ParseExprPrimary());
+    OExpr * val = ParseExprPrimary();
+    if (!val) return nullptr;
+    return new OBinNotExpr(val);
   }
 
   return ParseExprPrimary();
 }
 
+OExpr * ODqCompParser::FreeLeftRight(OExpr * left, OExpr * right)
+{
+  if (left) delete left;
+  if (right) delete right;
+  return nullptr;
+}
 
 OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
 {

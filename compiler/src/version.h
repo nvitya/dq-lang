@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.2.0"
+#define DQ_COMPILER_VERSION  "0.2.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.2.1:
+  - Expression parsing possible memory leak fixes (at errors)
+  - Global variable initialisation set
 v0.2.0:
   - Fixed size array handling added
   - Expression parsing loops fixed

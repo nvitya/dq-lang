@@ -14,6 +14,7 @@
 #include "expressions.h"
 #include "scope_builtins.h"
 #include "otype_array.h"
+#include "otype_cstring.h"
 #include <llvm/IR/Intrinsics.h>
 
 /* ctor */ OExprTypeConv::OExprTypeConv(OType * dsttype, OExpr * asrc)
@@ -102,12 +103,27 @@ LlValue * OVarRef::Generate(OScope * scope)
       ptype = g_builtins->type_float;
     }
   }
+  // pointer arithmetic: ptr +/- int → result is pointer
+  // ptype is already set to left->ptype which is the pointer type
 }
 
 LlValue * OBinExpr::Generate(OScope * scope)
 {
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
+
+  if (TK_POINTER == ptype->kind)
+  {
+    // Pointer arithmetic: ptr + int or ptr - int
+    OTypePointer * ptrtype = static_cast<OTypePointer *>(ptype);
+    LlType * ll_elemtype = ptrtype->basetype->GetLlType();
+    if (BINOP_ADD == op)
+      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_right}, "ptr.add");
+    else if (BINOP_SUB == op)
+      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_builder.CreateNeg(ll_right)}, "ptr.sub");
+
+    throw logic_error(std::format("OBinExpr.Generate(): Unhandled pointer binop = {} ", int(op)));
+  }
 
   if (TK_INT == ptype->kind)
   {
@@ -189,6 +205,16 @@ LlValue * OCompareExpr::Generate(OScope * scope)
       else if (COMPOP_LE == op)   return ll_builder.CreateICmpULE(ll_left, ll_right);
       else if (COMPOP_GE == op)   return ll_builder.CreateICmpUGE(ll_left, ll_right);
     }
+  }
+  else if (TK_POINTER == optype->kind)
+  {
+    // Pointer comparisons (unsigned — comparing addresses)
+    if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
+    else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);
+    else if (COMPOP_LT == op)   return ll_builder.CreateICmpULT(ll_left, ll_right);
+    else if (COMPOP_GT == op)   return ll_builder.CreateICmpUGT(ll_left, ll_right);
+    else if (COMPOP_LE == op)   return ll_builder.CreateICmpULE(ll_left, ll_right);
+    else if (COMPOP_GE == op)   return ll_builder.CreateICmpUGE(ll_left, ll_right);
   }
 
   throw logic_error(std::format("GenerateExpr(): Unhandled compare operation= {} ", int(op)));
@@ -476,4 +502,157 @@ LlValue * OArrayLit::Generate(OScope * scope)
   }
 
   return ll_arr;
+}
+
+// --- cstring expressions ---
+
+/* ctor */ OCStringLit::OCStringLit(const string & avalue)
+{
+  value = avalue;
+  ptype = g_builtins->type_cchar->GetPointerType();  // ^cchar
+}
+
+LlValue * OCStringLit::Generate(OScope * scope)
+{
+  return ll_builder.CreateGlobalString(value, ".str");
+}
+
+/* ctor */ OCStringSizeExpr::OCStringSizeExpr(OValSym * avs)
+{
+  cstrvalsym = avs;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OCStringSizeExpr::Generate(OScope * scope)
+{
+  // Extract size field (index 1) from the cstring descriptor {ptr, i64}
+  LlType * ll_desctype = cstrvalsym->ptype->GetLlType();
+  LlValue * ll_size_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 1, "cstr.size.addr");
+  return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_size_addr, "cstr.size");
+}
+
+/* ctor */ OCStringLenExpr::OCStringLenExpr(OValSym * avs)
+{
+  cstrvalsym = avs;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OCStringLenExpr::Generate(OScope * scope)
+{
+  LlValue * ll_charptr;
+  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+
+  if (cstrtype->maxlen > 0)
+  {
+    // Fixed cstring[N]: GEP to element 0
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    ll_charptr = ll_builder.CreateGEP(cstrtype->GetLlType(), cstrvalsym->ll_value,
+        {ll_zero, ll_zero}, "cstr.ptr");
+  }
+  else
+  {
+    // Unsized cstring param: extract pointer from descriptor
+    LlType * ll_desctype = cstrtype->GetLlType();
+    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 0, "cstr.ptr.addr");
+    ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
+  }
+
+  // Inline strlen loop
+  LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * entry_bb = ll_builder.GetInsertBlock();
+  LlBasicBlock * scan_bb = LlBasicBlock::Create(ll_ctx, "strlen.scan", func);
+  LlBasicBlock * done_bb = LlBasicBlock::Create(ll_ctx, "strlen.done", func);
+
+  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
+  LlType * ll_i8  = LlType::getInt8Ty(ll_ctx);
+
+  ll_builder.CreateBr(scan_bb);
+  ll_builder.SetInsertPoint(scan_bb);
+
+  llvm::PHINode * ll_i = ll_builder.CreatePHI(ll_i64, 2, "strlen.i");
+  ll_i->addIncoming(llvm::ConstantInt::get(ll_i64, 0), entry_bb);
+
+  LlValue * ll_ch_ptr = ll_builder.CreateGEP(ll_i8, ll_charptr, {ll_i}, "strlen.ch.ptr");
+  LlValue * ll_ch = ll_builder.CreateLoad(ll_i8, ll_ch_ptr, "strlen.ch");
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_ch, llvm::ConstantInt::get(ll_i8, 0), "strlen.is_null");
+  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, llvm::ConstantInt::get(ll_i64, 1), "strlen.i.next");
+
+  ll_i->addIncoming(ll_i_next, scan_bb);
+  ll_builder.CreateCondBr(ll_is_null, done_bb, scan_bb);
+
+  ll_builder.SetInsertPoint(done_bb);
+  return ll_i;
+}
+
+/* ctor */ OCStringToDescExpr::OCStringToDescExpr(OValSym * avs, OType * desctype)
+{
+  cstrvalsym = avs;
+  ptype = desctype;
+}
+
+LlValue * OCStringToDescExpr::Generate(OScope * scope)
+{
+  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+
+  // Get pointer to first element
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elemptr = ll_builder.CreateGEP(
+      cstrtype->GetLlType(), cstrvalsym->ll_value, {ll_zero, ll_zero}, "cstr.data");
+
+  // Build descriptor {ptr, i64}
+  LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
+  ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_elemptr, 0, "cstr.desc.ptr");
+  ll_desc = ll_builder.CreateInsertValue(ll_desc,
+      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), cstrtype->maxlen),
+      1, "cstr.desc.size");
+  return ll_desc;
+}
+
+/* ctor */ OCStringLitToDescExpr::OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype)
+{
+  litexpr = alit;
+  litlen  = alen;
+  ptype   = desctype;
+}
+
+LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = litexpr->Generate(scope);
+
+  LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
+  ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");
+  ll_desc = ll_builder.CreateInsertValue(ll_desc,
+      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), litlen),
+      1, "strlit.desc.size");
+  return ll_desc;
+}
+
+/* ctor */ OCStringElemAddrExpr::OCStringElemAddrExpr(OValSym * avs, OExpr * aindex)
+{
+  cstrvalsym = avs;
+  indexexpr  = aindex;
+  ptype = g_builtins->type_cchar->GetPointerType();  // ^cchar
+}
+
+LlValue * OCStringElemAddrExpr::Generate(OScope * scope)
+{
+  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+  LlValue * ll_index = indexexpr->Generate(scope);
+
+  if (cstrtype->maxlen > 0)
+  {
+    // Sized cstring[N]: GEP into [N x i8] with {0, index}
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    return ll_builder.CreateGEP(
+        cstrtype->GetLlType(), cstrvalsym->ll_value,
+        {ll_zero, ll_index}, "cstr.elem.addr");
+  }
+  else
+  {
+    // Unsized cstring param: extract ptr from descriptor, then GEP
+    LlType * ll_desctype = cstrtype->GetLlType();
+    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 0, "cstr.ptr.addr");
+    LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
+    return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem.addr");
+  }
 }

@@ -15,6 +15,7 @@
 #include "scope_builtins.h"
 #include "statements.h"
 #include "otype_array.h"
+#include "otype_cstring.h"
 #include "comp_options.h"
 
 using namespace std;
@@ -76,6 +77,38 @@ void OStmtVarDecl::Generate(OScope * scope)
         llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, scope->GetDiScope()), ll_builder.GetInsertBlock() );
   }
 
+  if (TK_STRING == variable->ptype->kind)
+  {
+    OTypeCString * cstrtype = static_cast<OTypeCString *>(variable->ptype);
+    if (cstrtype->maxlen > 0)
+    {
+      // Sized cstring: handle init specially
+      OCStringLit * strlit = initvalue ? dynamic_cast<OCStringLit *>(initvalue) : nullptr;
+      if (strlit)
+      {
+        // Create padded [N x i8] constant and store
+        OValueCString val(cstrtype, cstrtype->maxlen);
+        val.value = strlit->value;
+        LlConst * ll_const = val.CreateLlConst();
+        ll_builder.CreateStore(ll_const, variable->ll_value);
+      }
+      else if (!initvalue)
+      {
+        // No initializer: zero-fill
+        LlConst * ll_zero = llvm::ConstantAggregateZero::get(ll_type);
+        ll_builder.CreateStore(ll_zero, variable->ll_value);
+        variable->initialized = true;
+      }
+      else
+      {
+        // Some other expression — fallback
+        LlValue * ll_initval = initvalue->Generate(scope);
+        ll_builder.CreateStore(ll_initval, variable->ll_value);
+      }
+      return;
+    }
+  }
+
   if (initvalue)
   {
     LlValue * ll_initval = initvalue->Generate(scope);
@@ -85,13 +118,30 @@ void OStmtVarDecl::Generate(OScope * scope)
 
 void OStmtAssign::Generate(OScope * scope)
 {
-  LlValue * ll_set_value = value->Generate(scope);
-
   if (!variable->ll_value)
   {
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", variable->name));
   }
 
+  // Special handling: cstring[N] = "literal"
+  if (TK_STRING == variable->ptype->kind)
+  {
+    OTypeCString * cstrtype = static_cast<OTypeCString *>(variable->ptype);
+    if (cstrtype->maxlen > 0)
+    {
+      OCStringLit * strlit = dynamic_cast<OCStringLit *>(value);
+      if (strlit)
+      {
+        OValueCString val(cstrtype, cstrtype->maxlen);
+        val.value = strlit->value;
+        LlConst * ll_const = val.CreateLlConst();
+        ll_builder.CreateStore(ll_const, variable->ll_value);
+        return;
+      }
+    }
+  }
+
+  LlValue * ll_set_value = value->Generate(scope);
   ll_builder.CreateStore(ll_set_value, variable->ll_value);
 }
 

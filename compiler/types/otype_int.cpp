@@ -127,3 +127,35 @@ bool OValueInt::CalculateConstant(OExpr * expr)
   g_compiler->ExpressionError("Int constant expression error");
   return false;
 }
+
+LlValue * OTypeInt::GenerateConversion(OScope * scope, OExpr * src)
+{
+  OTypeInt * srcint = dynamic_cast<OTypeInt *>(src->ptype);
+  if (srcint)
+  {
+    LlValue * ll_value = src->Generate(scope);
+    if (bitlength > srcint->bitlength)
+    {
+      // Widen: sext or zext
+      return srcint->issigned
+          ? ll_builder.CreateSExt(ll_value, GetLlType())
+          : ll_builder.CreateZExt(ll_value, GetLlType());
+    }
+    else
+    {
+      // Narrow: trunc
+      return ll_builder.CreateTrunc(ll_value, GetLlType());
+    }
+  }
+
+  OTypeFloat * srcfloat = dynamic_cast<OTypeFloat *>(src->ptype);
+  if (srcfloat)
+  {
+    LlValue * ll_value = src->Generate(scope);
+    return issigned
+        ? ll_builder.CreateFPToSI(ll_value, GetLlType())
+        : ll_builder.CreateFPToUI(ll_value, GetLlType());
+  }
+
+  throw logic_error(format("Unsupported int conversion from \"{}\"", src->ptype->name));
+}

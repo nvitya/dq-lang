@@ -1,0 +1,72 @@
+// C string test
+
+// new type: "cchar": 8-bit char, same as "char" in C
+// new type: "cstring", declaration: cstring[maxlen]: array of cchar, includes the terminating zero, it can store strings up to length (maxlen-1)
+
+var dq_cstr  : cstring[256] = "DQ String Test\n";
+var dq_cstr2 : cstring[40]  = 'Using signle quotes\n';
+
+// These functions come from LIBC, so the program must be linked with the libc.
+[[external]] function putchar(c : cchar) -> int;
+[[external]] function puts(c : ^cchar) -> int;
+
+function dq_writestr(s : cstring):
+  var pc : ^cchar = &s[0];
+  while pc^ <> 0:
+    putchar(pc^);
+    pc += 1;
+  endwhile
+endfunc
+
+function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
+  var ps     : ^cchar = &src[0];
+  var psend  : ^cchar = ps + sizeof(src);
+  var pd     : ^cchar = &dst[0];
+  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
+  pd += len(dst);
+  var pdstart : ^cchar = pd;
+
+  while pd < pdend and ps < psend and ps^ <> 0:
+    pd^ = ps^;
+    pd += 1;
+    ps += 1;
+  endwhile
+
+  if pd <> pdstart:
+    pd^ = 0; // terminate
+  endif
+endfunc
+
+function dq_str_append(a : cstring, b : cstring):
+
+  // len(cstring): length of the actual contents
+  // sizeof(cstring): storage size of the argument variable
+
+  if len(a) + len(b) > sizeof(a) - 1:  // append to the a only when the whole will fit.
+    return;
+  endif
+  cstr_add(a, b);
+endfunc
+
+function dq_test_cstring():
+
+  dq_writestr(dq_cstr);
+
+  var s : cstring[128] = "";
+
+  cstr_add(s, "Hello");
+  cstr_add(s, " World!\n");
+
+  dq_writestr(s);
+
+  // string length checking test
+  var s2 : cstring[8];
+  s2 = "abc";
+  dq_str_append(s2, "def");
+  dq_str_append(s2, "ghijklmnopqr");
+
+  dq_writestr('s2 = "');
+  dq_writestr(s2);
+  dq_writestr('"\n');
+
+endfunc

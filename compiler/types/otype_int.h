@@ -74,6 +74,8 @@ public:
     }
   }
 
+  LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
+
   OValSymConst * CreateConst(OScPosition & apos, const string aname, const int64_t avalue)
   {
     OValueInt * v = new OValueInt(this, avalue);

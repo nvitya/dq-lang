@@ -57,6 +57,11 @@ void OScopeBuiltins::Init()
   DefineType(type_float32);
   DefineType(type_float64);
   DefineType(type_float);
+
+  type_cchar   = new OTypeInt("cchar", 8, true);
+  type_cstring = new OTypeCString(0);  // base unsized type
+  DefineType(type_cchar);
+  DefineType(type_cstring);
 }
 
 void init_scope_builtins()

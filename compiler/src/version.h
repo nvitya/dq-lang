@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.2.4"
+#define DQ_COMPILER_VERSION  "0.3.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.3.0:
+  - Some simple C string support
 v0.2.4:
   - Float to int conversion with round(), ceil(), floor()
   - const definition fix

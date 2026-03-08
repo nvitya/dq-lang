@@ -19,6 +19,7 @@
 #include "dqc_parser.h"
 #include "otype_func.h"
 #include "otype_array.h"
+#include "otype_cstring.h"
 #include "expressions.h"
 #include "statements.h"
 
@@ -51,6 +52,35 @@ void ODqCompParser::ParseModule()
 
     scf->SaveCurPos(scpos_statement_start);  // to display the statement start
 
+    // check for [[attribute]] prefix
+    bool has_external = false;
+    if (scf->CheckSymbol("[["))
+    {
+      string attrname;
+      scf->SkipWhite();
+      if (not scf->ReadIdentifier(attrname))
+      {
+        StatementError("Attribute name expected after \"[[\"");
+        continue;
+      }
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("]]"))
+      {
+        StatementError("\"]]\" expected after attribute name");
+        continue;
+      }
+      if ("external" == attrname)
+      {
+        has_external = true;
+      }
+      else
+      {
+        StatementError("Unknown attribute: \"" + attrname + "\"");
+        continue;
+      }
+      scf->SkipWhite();
+    }
+
     // module root starters
     if (not scf->ReadIdentifier(sid))
     {
@@ -71,7 +101,7 @@ void ODqCompParser::ParseModule()
     }
     else if ("function" == sid)
     {
-      ParseFunction();
+      ParseFunction(has_external);
       curscope = cur_mod_scope;
       curblock = nullptr;
     }
@@ -232,7 +262,7 @@ void ODqCompParser::ParseConstDecl()
   }
 }
 
-void ODqCompParser::ParseFunction()
+void ODqCompParser::ParseFunction(bool aexternal)
 {
   // note: "function" is already consumed
   // syntax form: "function identifier[(arglist)] [-> return_type] <statement_block | ;>"
@@ -332,7 +362,24 @@ void ODqCompParser::ParseFunction()
     }
   }
 
+  if (aexternal)
+  {
+    vsfunc->is_external = true;
+  }
+
   AddDeclFunc(scpos_statement_start, vsfunc);
+
+  if (aexternal)
+  {
+    // external functions have no body, expect ";"
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(";"))
+    {
+      Error("';' expected after external function declaration");
+    }
+    curvsfunc = nullptr;
+    return;
+  }
 
   // go on with the function body
 
@@ -528,6 +575,34 @@ OType * ODqCompParser::ParseTypeSpec()
   if (is_pointer)
   {
     ptype = ptype->GetPointerType();
+  }
+
+  // cstring[N] handling: [N] means sized cstring, not array
+  if (TK_STRING == ptype->kind and not is_pointer)
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("["))
+    {
+      int64_t maxlen;
+      if (not scf->ReadInt64Value(maxlen))
+      {
+        Error("cstring size (integer) expected");
+        return nullptr;
+      }
+      if (maxlen <= 0)
+      {
+        Error("cstring size must be a positive integer");
+        return nullptr;
+      }
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("]"))
+      {
+        Error("\"]\" expected after cstring size");
+        return nullptr;
+      }
+      return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
+    }
+    return ptype;  // unsized cstring (for parameters)
   }
 
   // Check for array suffix: [N] or []
@@ -828,6 +903,23 @@ OExpr * ODqCompParser::ParseComparison()
   {
     return FreeLeftRight(left, nullptr);
   }
+
+  // Widen int operands to matching width before comparison
+  ETypeKind tkl = left->ptype->kind;
+  ETypeKind tkr = right->ptype->kind;
+  if (TK_INT == tkl and TK_INT == tkr)
+  {
+    OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
+    OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+    if (intl->bitlength != intr->bitlength)
+    {
+      if (intl->bitlength > intr->bitlength)
+        right = new OExprTypeConv(left->ptype, right);
+      else
+        left = new OExprTypeConv(right->ptype, left);
+    }
+  }
+
   return new OCompareExpr(op, left, right);
 }
 
@@ -1094,16 +1186,45 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     {
       newright = new OExprTypeConv(g_builtins->type_float, right);
     }
+    else if ((TK_POINTER == tkl) and (TK_INT == tkr)
+             and (BINOP_ADD == op or BINOP_SUB == op))
+    {
+      // Pointer arithmetic: ptr + int or ptr - int
+      // Handled directly in OBinExpr::Generate
+    }
+    else if ((TK_INT == tkl) and (TK_INT == tkr))
+    {
+      // Both int but different widths — widen the narrower
+      OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
+      OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+      if (intl->bitlength > intr->bitlength)
+        newright = new OExprTypeConv(left->ptype, right);
+      else
+        newleft = new OExprTypeConv(right->ptype, left);
+    }
     else
     {
       Error(format("Types mismatch for BinOp({}): \"{}\", \"{}\"", int(op), left->ptype->name, right->ptype->name));
       return nullptr;
     }
   }
-  else if ((TK_INT == tkl) and (BINOP_DIV == op))  // division results to floating point
+  else if ((TK_INT == tkl) and (TK_INT == tkr))
   {
-    newleft  = new OExprTypeConv(g_builtins->type_float, left);
-    newright = new OExprTypeConv(g_builtins->type_float, right);
+    OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
+    OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+    if (intl->bitlength != intr->bitlength)
+    {
+      // Same TK_INT kind but different widths — widen the narrower
+      if (intl->bitlength > intr->bitlength)
+        newright = new OExprTypeConv(left->ptype, right);
+      else
+        newleft = new OExprTypeConv(right->ptype, left);
+    }
+    else if (BINOP_DIV == op)  // division results to floating point
+    {
+      newleft  = new OExprTypeConv(g_builtins->type_float, left);
+      newright = new OExprTypeConv(g_builtins->type_float, right);
+    }
   }
 
   return new OBinExpr(op, newleft, newright);
@@ -1173,6 +1294,21 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return result;
   }
 
+  // String literal: "..." or '...'
+  if (*scf->curp == '"' or *scf->curp == '\'')
+  {
+    string strval;
+    if (scf->ReadQuotedString(strval))
+    {
+      return new OCStringLit(strval);
+    }
+    else
+    {
+      Error("Unterminated string literal");
+      return nullptr;
+    }
+  }
+
   if (scf->CheckSymbol("true"))
   {
     result = new OBoolLit(true);
@@ -1233,6 +1369,23 @@ OExpr * ODqCompParser::ParseExprPrimary()
         return new OAddrOfArrayElemExpr(addrvs, indexexpr);
       }
     }
+    // address of cstring element: &s[index]
+    if (TK_STRING == addrvs->ptype->kind)
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("["))
+      {
+        OExpr * indexexpr = ParseExpression();
+        scf->SkipWhite();
+        if (not scf->CheckSymbol("]"))
+        {
+          Error("\"]\" expected after cstring index in address-of");
+          delete indexexpr;
+          return nullptr;
+        }
+        return new OCStringElemAddrExpr(addrvs, indexexpr);
+      }
+    }
     result = new OAddrOfExpr(addrvs);
     return result;
   }
@@ -1261,6 +1414,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
   if ("len" == sid)
   {
     return ParseBuiltinLen();
+  }
+
+  if ("sizeof" == sid)
+  {
+    return ParseBuiltinSizeof();
   }
 
   if ("round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
@@ -1500,11 +1658,62 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   {
     return new OSliceLengthExpr(lenvs);
   }
+  else if (TK_STRING == lenvs->ptype->kind)
+  {
+    return new OCStringLenExpr(lenvs);
+  }
   else
   {
-    Error(format("len() requires an array or slice, got \"{}\"", lenvs->ptype->name));
+    Error(format("len() requires an array, slice, or cstring, got \"{}\"", lenvs->ptype->name));
     return nullptr;
   }
+}
+
+OExpr * ODqCompParser::ParseBuiltinSizeof()
+{
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error("\"(\" expected after \"sizeof\"");
+    return nullptr;
+  }
+  scf->SkipWhite();
+  string sarg;
+  if (not scf->ReadIdentifier(sarg))
+  {
+    Error("Variable name expected in sizeof()");
+    return nullptr;
+  }
+  OValSym * vs = curscope->FindValSym(sarg);
+  if (!vs)
+  {
+    Error(format("Unknown variable \"{}\"", sarg));
+    return nullptr;
+  }
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(")"))
+  {
+    Error("\")\" expected after sizeof() argument");
+    return nullptr;
+  }
+
+  if (TK_STRING == vs->ptype->kind)
+  {
+    OTypeCString * cstrtype = static_cast<OTypeCString *>(vs->ptype);
+    if (cstrtype->maxlen > 0)
+    {
+      // Sized cstring[N]: compile-time constant
+      return new OIntLit(cstrtype->maxlen);
+    }
+    else
+    {
+      // Unsized cstring param: extract size from descriptor at runtime
+      return new OCStringSizeExpr(vs);
+    }
+  }
+
+  // For other types: return compile-time bytesize
+  return new OIntLit(vs->ptype->bytesize);
 }
 
 void ODqCompParser::ParseStmtVar()
@@ -1842,6 +2051,36 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
       *rexpr = new OArrayToSliceExpr(varref->pvalsym, dsttype);
       delete varref;
     }
+    else if ((TK_STRING == tkd) and (TK_POINTER == tke))
+    {
+      // String literal (^cchar) assigned to cstring
+      OTypeCString * cstrdst = static_cast<OTypeCString *>(dsttype);
+      if (cstrdst->maxlen == 0)
+      {
+        // Unsized cstring param: create descriptor from string literal
+        OCStringLit * strlit = dynamic_cast<OCStringLit *>(*rexpr);
+        if (strlit)
+        {
+          *rexpr = new OCStringLitToDescExpr(*rexpr, strlit->value.size() + 1, dsttype);
+        }
+        else
+        {
+          Error(format("{}: cannot convert pointer to cstring descriptor", astmt));
+          return false;
+        }
+      }
+      // Sized cstring[N]: assignment from literal handled in statement codegen
+    }
+    else if ((TK_INT == tkd) and (TK_INT == tke))
+    {
+      // Integer width conversion (e.g., cchar/int8 <-> int64)
+      OTypeInt * intdst = static_cast<OTypeInt *>(dsttype);
+      OTypeInt * intsrc = static_cast<OTypeInt *>((*rexpr)->ptype);
+      if (intdst->bitlength != intsrc->bitlength)
+      {
+        *rexpr = new OExprTypeConv(dsttype, *rexpr);
+      }
+    }
     else
     {
       Error(format("{} type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
@@ -1883,6 +2122,24 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     {
       Error(format("{} array size mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
       return false;
+    }
+  }
+  else if (TK_STRING == tkd)
+  {
+    // Both are TK_STRING: check if conversion needed (cstring[N] → unsized cstring)
+    OTypeCString * cstrdst = static_cast<OTypeCString *>(dsttype);
+    OTypeCString * cstrsrc = static_cast<OTypeCString *>((*rexpr)->ptype);
+    if (cstrdst->maxlen == 0 and cstrsrc->maxlen > 0)
+    {
+      // cstring[N] variable → unsized cstring descriptor conversion
+      OVarRef * varref = dynamic_cast<OVarRef *>(*rexpr);
+      if (!varref)
+      {
+        Error(format("{}: cannot convert non-variable cstring to descriptor", astmt));
+        return false;
+      }
+      *rexpr = new OCStringToDescExpr(varref->pvalsym, dsttype);
+      delete varref;
     }
   }
 

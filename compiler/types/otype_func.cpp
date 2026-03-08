@@ -104,6 +104,11 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 
 void OValSymFunc::GenerateFuncBody()
 {
+  if (is_external)
+  {
+    return;  // external functions have no body to generate
+  }
+
   // Get the pre-declared function
   if (!ll_func)
   {

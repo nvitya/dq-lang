@@ -41,7 +41,7 @@ public:
 public: // top level items
   void ParseVarDecl();
   void ParseConstDecl();
-  void ParseFunction();
+  void ParseFunction(bool aexternal = false);
 
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);
@@ -95,6 +95,7 @@ public: // expressions
 
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseBuiltinLen();
+  OExpr * ParseBuiltinSizeof();
   OExpr * ParseBuiltinFloatRound(ERoundMode amode);
   OExpr * ParseArrayLit();
 

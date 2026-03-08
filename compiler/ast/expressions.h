@@ -258,3 +258,62 @@ public:
   /* ctor */ OArrayLit(const vector<OExpr *> & aelements);
   LlValue *  Generate(OScope * scope) override;
 };
+
+// --- cstring expressions ---
+
+// String literal: "hello" — type is ^cchar, creates global constant
+class OCStringLit : public OExpr
+{
+public:
+  string     value;  // resolved string content (escape-processed)
+
+  /* ctor */ OCStringLit(const string & avalue);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// sizeof() for unsized cstring parameter: extracts size from {ptr, i64} descriptor
+class OCStringSizeExpr : public OExpr
+{
+public:
+  OValSym *  cstrvalsym;
+  /* ctor */ OCStringSizeExpr(OValSym * avs);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// len() for cstring: runtime strlen (inline loop scanning for null terminator)
+class OCStringLenExpr : public OExpr
+{
+public:
+  OValSym *  cstrvalsym;
+  /* ctor */ OCStringLenExpr(OValSym * avs);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Convert cstring[N] variable to cstring descriptor {ptr, i64}
+class OCStringToDescExpr : public OExpr
+{
+public:
+  OValSym *  cstrvalsym;
+  /* ctor */ OCStringToDescExpr(OValSym * avs, OType * desctype);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Convert string literal (^cchar) to cstring descriptor {ptr, i64}
+class OCStringLitToDescExpr : public OExpr
+{
+public:
+  OExpr *    litexpr;
+  uint32_t   litlen;  // buffer size: strlen + 1 (includes null terminator)
+  /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Address of cstring element: &s[index] — handles both sized and unsized
+class OCStringElemAddrExpr : public OExpr
+{
+public:
+  OValSym *  cstrvalsym;
+  OExpr *    indexexpr;
+  /* ctor */ OCStringElemAddrExpr(OValSym * avs, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};

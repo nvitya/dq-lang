@@ -101,6 +101,8 @@ public:
   OScPosition        scpos_endfunc;
   OStmtBlock *       body;
 
+  bool               is_external = false;
+
   LlFunction *       ll_func = nullptr;
   LlDiSubPrg *       di_func = nullptr;
 

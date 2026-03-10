@@ -62,6 +62,8 @@ void OScopeBuiltins::Init()
   type_cstring = new OTypeCString(0);  // base unsized type
   DefineType(type_cchar);
   DefineType(type_cstring);
+
+  DefineType(new OTypeInt("byte", 8, false));  // same as uint8
 }
 
 void init_scope_builtins()

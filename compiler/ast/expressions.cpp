@@ -712,3 +712,100 @@ LlValue * OCStringElemAddrExpr::Generate(OScope * scope)
     return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem.addr");
   }
 }
+
+// --- struct member expressions ---
+
+/* ctor */ OStructMemberExpr::OStructMemberExpr(OValSym * astruct, uint32_t aidx, OType * amembertype)
+{
+  structvalsym = astruct;
+  memberindex  = aidx;
+  ptype = amembertype;
+}
+
+LlValue * OStructMemberExpr::Generate(OScope * scope)
+{
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.addr");
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_gep, "member.val");
+}
+
+/* ctor */ ODerefMemberExpr::ODerefMemberExpr(OExpr * aptr, OType * astructtype, uint32_t aidx, OType * amembertype)
+{
+  ptrexpr     = aptr;
+  structtype  = astructtype;
+  memberindex = aidx;
+  ptype = amembertype;
+}
+
+LlValue * ODerefMemberExpr::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = ptrexpr->Generate(scope);
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structtype->GetLlType(), ll_ptr, memberindex, "deref.member.addr");
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_gep, "deref.member.val");
+}
+
+/* ctor */ OStructMemberArrayIndexExpr::OStructMemberArrayIndexExpr(
+    OValSym * astruct, uint32_t aidx, OType * aarrtype, OExpr * aindex)
+{
+  structvalsym = astruct;
+  memberindex  = aidx;
+  arraytype    = aarrtype;
+  indexexpr    = aindex;
+  // element type from the array
+  ptype = static_cast<OTypeArray *>(aarrtype)->elemtype;
+}
+
+LlValue * OStructMemberArrayIndexExpr::Generate(OScope * scope)
+{
+  LlValue * ll_member_addr = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.arr.addr");
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elem = ll_builder.CreateGEP(
+      arraytype->GetLlType(), ll_member_addr, {ll_zero, ll_index}, "member.arr.elem");
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_elem, "member.arr.load");
+}
+
+/* ctor */ ODerefMemberArrayIndexExpr::ODerefMemberArrayIndexExpr(
+    OExpr * aptr, OType * astructtype, uint32_t aidx, OType * aarrtype, OExpr * aindex)
+{
+  ptrexpr     = aptr;
+  structtype  = astructtype;
+  memberindex = aidx;
+  arraytype   = aarrtype;
+  indexexpr   = aindex;
+  ptype = static_cast<OTypeArray *>(aarrtype)->elemtype;
+}
+
+LlValue * ODerefMemberArrayIndexExpr::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = ptrexpr->Generate(scope);
+  LlValue * ll_member_addr = ll_builder.CreateStructGEP(
+      structtype->GetLlType(), ll_ptr, memberindex, "deref.member.arr.addr");
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elem = ll_builder.CreateGEP(
+      arraytype->GetLlType(), ll_member_addr, {ll_zero, ll_index}, "deref.member.arr.elem");
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_elem, "deref.member.arr.load");
+}
+
+/* ctor */ OAddrOfStructMemberArrayElemExpr::OAddrOfStructMemberArrayElemExpr(
+    OValSym * astruct, uint32_t aidx, OType * aarrtype, OExpr * aindex)
+{
+  structvalsym = astruct;
+  memberindex  = aidx;
+  arraytype    = aarrtype;
+  indexexpr    = aindex;
+  ptype = static_cast<OTypeArray *>(aarrtype)->elemtype->GetPointerType();
+}
+
+LlValue * OAddrOfStructMemberArrayElemExpr::Generate(OScope * scope)
+{
+  LlValue * ll_member_addr = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.arr.addr");
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  return ll_builder.CreateGEP(
+      arraytype->GetLlType(), ll_member_addr, {ll_zero, ll_index}, "member.arr.elem.addr");
+}

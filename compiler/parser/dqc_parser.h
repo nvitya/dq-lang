@@ -42,6 +42,7 @@ public: // top level items
   void ParseVarDecl();
   void ParseConstDecl();
   void ParseFunction(bool aexternal = false);
+  void ParseStructDecl();
 
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);
@@ -54,6 +55,8 @@ public: // statement blocks
   void ParseStmtVoidCall(OValSymFunc * vsfunc);
   void ParseStmtDerefAssign(OValSym * ptrvalsym);
   void ParseStmtArrayAssign(OValSym * arrayvalsym);
+  void ParseStmtStructMemberAssign(OValSym * structvalsym);
+  void ParseStmtDerefMemberAssign(OValSym * ptrvalsym);
 
 public: // type parsing
   OType * ParseTypeSpec();  // parses type after ":" — handles ^, [N], []

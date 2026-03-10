@@ -109,6 +109,14 @@ void OStmtVarDecl::Generate(OScope * scope)
     }
   }
 
+  // Compound type zero-initialization: var sm : SMain = {};
+  if (TK_COMPOUND == variable->ptype->kind and not initvalue and variable->initialized)
+  {
+    LlConst * ll_zero = llvm::ConstantAggregateZero::get(ll_type);
+    ll_builder.CreateStore(ll_zero, variable->ll_value);
+    return;
+  }
+
   if (initvalue)
   {
     LlValue * ll_initval = initvalue->Generate(scope);
@@ -367,4 +375,105 @@ void OStmtIf::Generate(OScope * scope)
   }
 
   ll_builder.SetInsertPoint(bb_merge);
+}
+
+// --- struct member assignment statements ---
+
+void OStmtStructMemberAssign::Generate(OScope * scope)
+{
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.addr");
+  LlValue * ll_val = value->Generate(scope);
+  ll_builder.CreateStore(ll_val, ll_gep);
+}
+
+void OStmtStructMemberModifyAssign::Generate(OScope * scope)
+{
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.addr");
+  LlValue * ll_curval = ll_builder.CreateLoad(membertype->GetLlType(), ll_gep, "member.cur");
+  LlValue * ll_mod_value = value->Generate(scope);
+  LlValue * ll_newval = nullptr;
+
+  if (TK_FLOAT == membertype->kind)
+  {
+    if      (BINOP_ADD == op)  ll_newval = ll_builder.CreateFAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB == op)  ll_newval = ll_builder.CreateFSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL == op)  ll_newval = ll_builder.CreateFMul(ll_curval, ll_mod_value);
+    else if (BINOP_DIV == op)  ll_newval = ll_builder.CreateFDiv(ll_curval, ll_mod_value);
+  }
+  else if (TK_INT == membertype->kind)
+  {
+    if      (BINOP_ADD == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
+  }
+
+  if (ll_newval)
+  {
+    ll_builder.CreateStore(ll_newval, ll_gep);
+  }
+}
+
+void OStmtStructMemberArrayAssign::Generate(OScope * scope)
+{
+  LlValue * ll_member_addr = ll_builder.CreateStructGEP(
+      structvalsym->ptype->GetLlType(), structvalsym->ll_value, memberindex, "member.arr.addr");
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elem = ll_builder.CreateGEP(
+      arraytype->GetLlType(), ll_member_addr, {ll_zero, ll_index}, "member.arr.elem");
+  LlValue * ll_val = value->Generate(scope);
+  ll_builder.CreateStore(ll_val, ll_elem);
+}
+
+void OStmtDerefMemberAssign::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptrvalsym->ll_value, "ptr");
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structtype->GetLlType(), ll_ptr, memberindex, "deref.member.addr");
+  LlValue * ll_val = value->Generate(scope);
+  ll_builder.CreateStore(ll_val, ll_gep);
+}
+
+void OStmtDerefMemberModifyAssign::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptrvalsym->ll_value, "ptr");
+  LlValue * ll_gep = ll_builder.CreateStructGEP(
+      structtype->GetLlType(), ll_ptr, memberindex, "deref.member.addr");
+  LlValue * ll_curval = ll_builder.CreateLoad(membertype->GetLlType(), ll_gep, "deref.member.cur");
+  LlValue * ll_mod_value = value->Generate(scope);
+  LlValue * ll_newval = nullptr;
+
+  if (TK_FLOAT == membertype->kind)
+  {
+    if      (BINOP_ADD == op)  ll_newval = ll_builder.CreateFAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB == op)  ll_newval = ll_builder.CreateFSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL == op)  ll_newval = ll_builder.CreateFMul(ll_curval, ll_mod_value);
+    else if (BINOP_DIV == op)  ll_newval = ll_builder.CreateFDiv(ll_curval, ll_mod_value);
+  }
+  else if (TK_INT == membertype->kind)
+  {
+    if      (BINOP_ADD == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
+    else if (BINOP_SUB == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
+    else if (BINOP_MUL == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
+  }
+
+  if (ll_newval)
+  {
+    ll_builder.CreateStore(ll_newval, ll_gep);
+  }
+}
+
+void OStmtDerefMemberArrayAssign::Generate(OScope * scope)
+{
+  LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptrvalsym->ll_value, "ptr");
+  LlValue * ll_member_addr = ll_builder.CreateStructGEP(
+      structtype->GetLlType(), ll_ptr, memberindex, "deref.member.arr.addr");
+  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elem = ll_builder.CreateGEP(
+      arraytype->GetLlType(), ll_member_addr, {ll_zero, ll_index}, "deref.member.arr.elem");
+  LlValue * ll_val = value->Generate(scope);
+  ll_builder.CreateStore(ll_val, ll_elem);
 }

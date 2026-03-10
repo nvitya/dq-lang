@@ -225,6 +225,7 @@ private:
 
 public:
   OScope       member_scope;
+  vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
 
   OCompoundType(const string name, OScope * aparent_scope)
   :
@@ -234,6 +235,12 @@ public:
   }
 
   inline OScope * Members() { return &member_scope; }
+
+  void AddMember(OValSym * amember);
+  int  FindMemberIndex(const string & aname);
+
+  LlType *    CreateLlType() override;
+  LlDiType *  CreateDiType() override;
 };
 
 class OTypePointer : public OType

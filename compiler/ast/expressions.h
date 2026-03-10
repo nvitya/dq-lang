@@ -327,3 +327,63 @@ public:
   /* ctor */ OCStringElemAddrExpr(OValSym * avs, OExpr * aindex);
   LlValue *  Generate(OScope * scope) override;
 };
+
+// --- struct member expressions ---
+
+// Read a member of a struct variable: sm.id
+class OStructMemberExpr : public OExpr
+{
+public:
+  OValSym *  structvalsym;
+  uint32_t   memberindex;
+  /* ctor */ OStructMemberExpr(OValSym * astruct, uint32_t aidx, OType * amembertype);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Read a member of a struct through pointer dereference: ep^.id
+class ODerefMemberExpr : public OExpr
+{
+public:
+  OExpr *    ptrexpr;      // expression that yields the pointer
+  OType *    structtype;   // the compound type being pointed to
+  uint32_t   memberindex;
+  /* ctor */ ODerefMemberExpr(OExpr * aptr, OType * astructtype, uint32_t aidx, OType * amembertype);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Read an array element within a struct member: sm.member[i]
+class OStructMemberArrayIndexExpr : public OExpr
+{
+public:
+  OValSym *  structvalsym;
+  uint32_t   memberindex;
+  OType *    arraytype;    // the array member type
+  OExpr *    indexexpr;
+  /* ctor */ OStructMemberArrayIndexExpr(OValSym * astruct, uint32_t aidx, OType * aarrtype, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Read an array element within a struct member through pointer: ep^.member[i]
+class ODerefMemberArrayIndexExpr : public OExpr
+{
+public:
+  OExpr *    ptrexpr;
+  OType *    structtype;
+  uint32_t   memberindex;
+  OType *    arraytype;
+  OExpr *    indexexpr;
+  /* ctor */ ODerefMemberArrayIndexExpr(OExpr * aptr, OType * astructtype, uint32_t aidx, OType * aarrtype, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};
+
+// Address of struct member array element: &sm.elem[i]
+class OAddrOfStructMemberArrayElemExpr : public OExpr
+{
+public:
+  OValSym *  structvalsym;
+  uint32_t   memberindex;
+  OType *    arraytype;
+  OExpr *    indexexpr;
+  /* ctor */ OAddrOfStructMemberArrayElemExpr(OValSym * astruct, uint32_t aidx, OType * aarrtype, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+};

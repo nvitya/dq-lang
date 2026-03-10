@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.3.3"
+#define DQ_COMPILER_VERSION  "0.4.0"
+
+// TODO: Parser generic handling of & (address-of) and member access !
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.4.0:
+  - struct support added, preliminary version
 v0.3.3:
   - Expression parsing cleanup, more advanced postfix parsing
 v0.3.2:

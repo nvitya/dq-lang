@@ -179,6 +179,58 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
   return result;
 }
 
+void OCompoundType::AddMember(OValSym * amember)
+{
+  member_scope.DefineValSym(amember);
+  member_order.push_back(amember);
+}
+
+int OCompoundType::FindMemberIndex(const string & aname)
+{
+  for (int i = 0; i < (int)member_order.size(); ++i)
+  {
+    if (member_order[i]->name == aname)  return i;
+  }
+  return -1;
+}
+
+LlType * OCompoundType::CreateLlType()
+{
+  vector<LlType *> member_types;
+  for (OValSym * m : member_order)
+  {
+    member_types.push_back(m->ptype->GetLlType());
+  }
+  return llvm::StructType::create(ll_ctx, member_types, name);
+}
+
+LlDiType * OCompoundType::CreateDiType()
+{
+  LlType * ll_stype = GetLlType();
+  const llvm::DataLayout & dl = ll_module->getDataLayout();
+  const llvm::StructLayout * sl = dl.getStructLayout(static_cast<llvm::StructType *>(ll_stype));
+
+  vector<llvm::Metadata *> elements;
+  for (int i = 0; i < (int)member_order.size(); ++i)
+  {
+    OValSym * m = member_order[i];
+    uint64_t offset_bits = sl->getElementOffsetInBits(i);
+    uint64_t size_bits = dl.getTypeSizeInBits(m->ptype->GetLlType());
+    elements.push_back(di_builder->createMemberType(
+        nullptr, m->name, nullptr, 0, size_bits, 0,
+        offset_bits, llvm::DINode::FlagZero, m->ptype->GetDiType()));
+  }
+
+  uint64_t total_bits = dl.getTypeSizeInBits(ll_stype);
+  bytesize = total_bits / 8;
+
+  return di_builder->createStructType(
+      nullptr, name, nullptr, 0, total_bits, 0,
+      llvm::DINode::FlagZero, nullptr,
+      di_builder->getOrCreateArray(elements)
+  );
+}
+
 void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   if (VSK_VARIABLE == kind)

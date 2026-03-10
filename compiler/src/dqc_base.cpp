@@ -29,6 +29,7 @@ const string dq_reserved_words =
    "|NOT|AND|OR|XOR|IDIV|IMOD"
    "|null"
    "|function|use|implementation|initialization|finalization"
+   "|struct|endstruct"
    "|"
 ;
 

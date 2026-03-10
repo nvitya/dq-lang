@@ -105,6 +105,10 @@ void ODqCompParser::ParseModule()
       curscope = cur_mod_scope;
       curblock = nullptr;
     }
+    else if ("struct" == sid)
+    {
+      ParseStructDecl();
+    }
     else  // unknown
     {
       StatementError("Unknown module root statement qualifier: \"" + sid + "\"", &scpos_statement_start);
@@ -260,6 +264,69 @@ void ODqCompParser::ParseConstDecl()
     // error message already generated.
     return;
   }
+}
+
+void ODqCompParser::ParseStructDecl()
+{
+  // note: "struct" is already consumed
+  // syntax form: "struct Name\n  field : type;\n  ...\nendstruct"
+
+  string sname;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(sname))
+  {
+    StatementError("Struct name expected after \"struct\"");
+    return;
+  }
+
+  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope);
+
+  OScPosition mempos;
+  string membername;
+
+  while (not scf->Eof())
+  {
+    scf->SkipWhite();
+
+    if (scf->CheckSymbol("endstruct"))
+    {
+      break;
+    }
+
+    scf->SaveCurPos(mempos);
+
+    if (not scf->ReadIdentifier(membername))
+    {
+      StatementError("Member name or \"endstruct\" expected");
+      break;
+    }
+
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(":"))
+    {
+      StatementError("\":\" expected after member name");
+      break;
+    }
+
+    OType * mtype = ParseTypeSpec();
+    if (not mtype)  break;
+
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(";"))
+    {
+      StatementError("\";\" expected after member type");
+      break;
+    }
+
+    OValSym * mvsym = new OValSym(mempos, membername, mtype);
+    mvsym->initialized = true;  // struct members are always accessible
+    ctype->AddMember(mvsym);
+  }
+
+  // Compute byte size from LLVM type
+  ctype->GetLlType();  // force creation
+
+  cur_mod_scope->DefineType(ctype);
 }
 
 void ODqCompParser::ParseFunction(bool aexternal)
@@ -509,8 +576,21 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
       if (VSK_VARIABLE == pvalsym->kind or VSK_PARAMETER == pvalsym->kind)
       {
         scf->SkipWhite();
+        if (TK_COMPOUND == pvalsym->ptype->kind and scf->CheckSymbol("."))
+        {
+          ParseStmtStructMemberAssign(pvalsym);
+          continue;
+        }
         if (TK_POINTER == pvalsym->ptype->kind and scf->CheckSymbol("^"))
         {
+          // Check if the pointer points to a compound type — handle ep^.member
+          OTypePointer * ptrtype = static_cast<OTypePointer *>(pvalsym->ptype);
+          scf->SkipWhite();
+          if (TK_COMPOUND == ptrtype->basetype->kind and scf->CheckSymbol("."))
+          {
+            ParseStmtDerefMemberAssign(pvalsym);
+            continue;
+          }
           ParseStmtDerefAssign(pvalsym);
           continue;
         }
@@ -1152,6 +1232,49 @@ OExpr * ODqCompParser::ParseExprUnary()
       Error(format("\"{}\" is not a variable, cannot take its address", addrname));
       return nullptr;
     }
+    // address of struct member array element: &sm.member[index]
+    if (TK_COMPOUND == addrvs->ptype->kind)
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("."))
+      {
+        string membername;
+        scf->SkipWhite();
+        if (not scf->ReadIdentifier(membername))
+        {
+          Error("Member name expected after \".\"");
+          return nullptr;
+        }
+        OCompoundType * ctype = static_cast<OCompoundType *>(addrvs->ptype);
+        int midx = ctype->FindMemberIndex(membername);
+        if (midx < 0)
+        {
+          Error(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+          return nullptr;
+        }
+        OType * mtype = ctype->member_order[midx]->ptype;
+        if (TK_ARRAY == mtype->kind)
+        {
+          scf->SkipWhite();
+          if (scf->CheckSymbol("["))
+          {
+            OExpr * indexexpr = ParseExpression();
+            scf->SkipWhite();
+            if (not scf->CheckSymbol("]"))
+            {
+              Error("\"]\" expected after array index in address-of");
+              delete indexexpr;
+              return nullptr;
+            }
+            return new OAddrOfStructMemberArrayElemExpr(addrvs, midx, mtype, indexexpr);
+          }
+        }
+        // address of a simple member (not an array)
+        // For now, not needed by the test — can be added later
+        Error(format("Address-of struct member \"{}\" without array subscript not yet supported", membername));
+        return nullptr;
+      }
+    }
     // address of array element: &arr[index]
     if (TK_ARRAY == addrvs->ptype->kind)
     {
@@ -1308,10 +1431,45 @@ OExpr * ODqCompParser::ParseExprPostfix()
 
     if (varref)
     {
-      if (TK_COMPOUND == tk)
+      if (TK_COMPOUND == tk and scf->CheckSymbol("."))
       {
-        Error(format("Object/Struct reference \"{}\" not implemented", varref->pvalsym->name));
-        return result;
+        // Struct member access: sm.field
+        OCompoundType * ctype = static_cast<OCompoundType *>(varref->pvalsym->ptype);
+        string membername;
+        scf->SkipWhite();
+        if (not scf->ReadIdentifier(membername))
+        {
+          Error("Member name expected after \".\"");
+          return result;
+        }
+        int midx = ctype->FindMemberIndex(membername);
+        if (midx < 0)
+        {
+          Error(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+          return result;
+        }
+        OType * mtype = ctype->member_order[midx]->ptype;
+
+        // Check for array subscript on the member: sm.member[i]
+        scf->SkipWhite();
+        if (TK_ARRAY == mtype->kind and scf->CheckSymbol("["))
+        {
+          OExpr * indexexpr = ParseExpression();
+          scf->SkipWhite();
+          if (not scf->CheckSymbol("]"))
+          {
+            Error("\"]\" expected after array index");
+          }
+          OValSym * vs = varref->pvalsym;
+          delete result;
+          result = new OStructMemberArrayIndexExpr(vs, midx, mtype, indexexpr);
+          continue;
+        }
+
+        OValSym * vs = varref->pvalsym;
+        delete result;
+        result = new OStructMemberExpr(vs, midx, mtype);
+        continue;
       }
 
       OValSymFunc * vsfunc = dynamic_cast<OValSymFunc *>(varref->pvalsym);
@@ -1366,6 +1524,44 @@ OExpr * ODqCompParser::ParseExprPostfix()
 
       if (scf->CheckSymbol("^")) // p^: dereference
       {
+        OTypePointer * ptrtype = static_cast<OTypePointer *>(result->ptype);
+        // Check for ^.member (dereference + member access on compound)
+        scf->SkipWhite();
+        if (TK_COMPOUND == ptrtype->basetype->kind and scf->CheckSymbol("."))
+        {
+          OCompoundType * ctype = static_cast<OCompoundType *>(ptrtype->basetype);
+          string membername;
+          scf->SkipWhite();
+          if (not scf->ReadIdentifier(membername))
+          {
+            Error("Member name expected after \"^.\"");
+            return result;
+          }
+          int midx = ctype->FindMemberIndex(membername);
+          if (midx < 0)
+          {
+            Error(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+            return result;
+          }
+          OType * mtype = ctype->member_order[midx]->ptype;
+
+          // Check for array subscript: ep^.member[i]
+          scf->SkipWhite();
+          if (TK_ARRAY == mtype->kind and scf->CheckSymbol("["))
+          {
+            OExpr * indexexpr = ParseExpression();
+            scf->SkipWhite();
+            if (not scf->CheckSymbol("]"))
+            {
+              Error("\"]\" expected after array index");
+            }
+            result = new ODerefMemberArrayIndexExpr(result, ctype, midx, mtype, indexexpr);
+            continue;
+          }
+
+          result = new ODerefMemberExpr(result, ctype, midx, mtype);
+          continue;
+        }
         result = new ODerefExpr(result);
         continue;
       }
@@ -1780,11 +1976,26 @@ void ODqCompParser::ParseStmtVar()
   if (not ptype)  return;
 
   OExpr * initexpr = nullptr;
+  bool zero_init = false;
   scf->SkipWhite();
   if (scf->CheckSymbol("="))  // variable initializer specified
   {
     scf->SkipWhite();
-    initexpr = ParseExpression();
+    // Check for {} zero-initializer (for compound types)
+    if (scf->CheckSymbol("{"))
+    {
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("}"))
+      {
+        Error("\"}\" expected for zero-initializer");
+        return;
+      }
+      zero_init = true;
+    }
+    else
+    {
+      initexpr = ParseExpression();
+    }
   }
 
   scf->SkipWhite();
@@ -1801,6 +2012,7 @@ void ODqCompParser::ParseStmtVar()
   }
 
   pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
+  if (zero_init)  pvalsym->initialized = true;
   curscope->DefineValSym(pvalsym);
   curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, initexpr));
 }
@@ -2023,6 +2235,206 @@ void ODqCompParser::ParseStmtArrayAssign(OValSym * arrayvalsym)
   curblock->scope->SetVarInitialized(arrayvalsym);
 
   curblock->AddStatement(new OStmtArrayAssign(scpos_statement_start, arrayvalsym, indexexpr, expr));
+}
+
+void ODqCompParser::ParseStmtStructMemberAssign(OValSym * structvalsym)
+{
+  // syntax: "structvar.member = expression;"  or  "structvar.member += expression;"
+  // note: identifier and "." are already consumed
+
+  string membername;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(membername))
+  {
+    StatementError("Member name expected after \".\"");
+    return;
+  }
+
+  OCompoundType * ctype = static_cast<OCompoundType *>(structvalsym->ptype);
+  int midx = ctype->FindMemberIndex(membername);
+  if (midx < 0)
+  {
+    StatementError(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+    return;
+  }
+
+  OType * mtype = ctype->member_order[midx]->ptype;
+
+  // Check for array subscript on member: sm.member[idx] = ...
+  scf->SkipWhite();
+  if (TK_ARRAY == mtype->kind and scf->CheckSymbol("["))
+  {
+    OExpr * indexexpr = ParseExpression();
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("]"))
+    {
+      Error("\"]\" expected after array index");
+      delete indexexpr;
+      return;
+    }
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("="))
+    {
+      StatementError("\"=\" expected after array index");
+      delete indexexpr;
+      return;
+    }
+    OExpr * expr = ParseExpression();
+    if (!expr) { delete indexexpr; return; }
+
+    OType * elemtype = static_cast<OTypeArray *>(mtype)->elemtype;
+    if (not CheckAssignType(elemtype, &expr, "Struct member array assignment"))
+    {
+      delete indexexpr;
+      delete expr;
+      return;
+    }
+
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(";"))  Error("\";\" is missing after the assignment");
+
+    curblock->AddStatement(new OStmtStructMemberArrayAssign(
+        scpos_statement_start, structvalsym, midx, mtype, indexexpr, expr));
+    return;
+  }
+
+  // Parse assignment operator
+  EBinOp op = BINOP_NONE;
+  if      (scf->CheckSymbol("="))    op = BINOP_NONE;
+  else if (scf->CheckSymbol("+="))   op = BINOP_ADD;
+  else if (scf->CheckSymbol("-="))   op = BINOP_SUB;
+  else if (scf->CheckSymbol("*="))   op = BINOP_MUL;
+  else if (scf->CheckSymbol("/="))   op = BINOP_DIV;
+  else
+  {
+    StatementError("Assignment operator expected after member name");
+    return;
+  }
+
+  OExpr * expr = ParseExpression();
+  if (!expr) return;
+
+  if (not CheckAssignType(mtype, &expr, "Struct member assignment"))
+  {
+    delete expr;
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    Error("\";\" is missing after the assignment");
+  }
+
+  if (BINOP_NONE == op)
+  {
+    curblock->AddStatement(new OStmtStructMemberAssign(scpos_statement_start, structvalsym, midx, mtype, expr));
+  }
+  else
+  {
+    curblock->AddStatement(new OStmtStructMemberModifyAssign(scpos_statement_start, structvalsym, midx, mtype, op, expr));
+  }
+}
+
+void ODqCompParser::ParseStmtDerefMemberAssign(OValSym * ptrvalsym)
+{
+  // syntax: "ptrvar^.member = expression;"  or  "ptrvar^.member[idx] = expression;"
+  // note: identifier, "^", and "." are already consumed
+
+  OTypePointer * ptrtype = static_cast<OTypePointer *>(ptrvalsym->ptype);
+  OCompoundType * ctype = static_cast<OCompoundType *>(ptrtype->basetype);
+
+  string membername;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(membername))
+  {
+    StatementError("Member name expected after \"^.\"");
+    return;
+  }
+
+  int midx = ctype->FindMemberIndex(membername);
+  if (midx < 0)
+  {
+    StatementError(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+    return;
+  }
+
+  OType * mtype = ctype->member_order[midx]->ptype;
+
+  // Check for array subscript on member: ep^.member[idx] = ...
+  scf->SkipWhite();
+  if (TK_ARRAY == mtype->kind and scf->CheckSymbol("["))
+  {
+    OExpr * indexexpr = ParseExpression();
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("]"))
+    {
+      Error("\"]\" expected after array index");
+      delete indexexpr;
+      return;
+    }
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("="))
+    {
+      StatementError("\"=\" expected after array index");
+      delete indexexpr;
+      return;
+    }
+    OExpr * expr = ParseExpression();
+    if (!expr) { delete indexexpr; return; }
+
+    OType * elemtype = static_cast<OTypeArray *>(mtype)->elemtype;
+    if (not CheckAssignType(elemtype, &expr, "Deref member array assignment"))
+    {
+      delete indexexpr;
+      delete expr;
+      return;
+    }
+
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(";"))  Error("\";\" is missing after the assignment");
+
+    curblock->AddStatement(new OStmtDerefMemberArrayAssign(
+        scpos_statement_start, ptrvalsym, ctype, midx, mtype, indexexpr, expr));
+    return;
+  }
+
+  // Parse assignment operator
+  EBinOp op = BINOP_NONE;
+  if      (scf->CheckSymbol("="))    op = BINOP_NONE;
+  else if (scf->CheckSymbol("+="))   op = BINOP_ADD;
+  else if (scf->CheckSymbol("-="))   op = BINOP_SUB;
+  else if (scf->CheckSymbol("*="))   op = BINOP_MUL;
+  else if (scf->CheckSymbol("/="))   op = BINOP_DIV;
+  else
+  {
+    StatementError("Assignment operator expected after member name");
+    return;
+  }
+
+  OExpr * expr = ParseExpression();
+  if (!expr) return;
+
+  if (not CheckAssignType(mtype, &expr, "Deref member assignment"))
+  {
+    delete expr;
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    Error("\";\" is missing after the assignment");
+  }
+
+  if (BINOP_NONE == op)
+  {
+    curblock->AddStatement(new OStmtDerefMemberAssign(scpos_statement_start, ptrvalsym, ctype, midx, mtype, expr));
+  }
+  else
+  {
+    curblock->AddStatement(new OStmtDerefMemberModifyAssign(scpos_statement_start, ptrvalsym, ctype, midx, mtype, op, expr));
+  }
 }
 
 void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)

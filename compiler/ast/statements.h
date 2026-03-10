@@ -290,3 +290,151 @@ class OContinueStmt : public OStmt
 public:
   void Generate(OScope * scope) override;
 };
+
+// --- struct member assignment statements ---
+
+// sm.field = expr;
+class OStmtStructMemberAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   structvalsym;
+  uint32_t    memberindex;
+  OType *     membertype;
+  OExpr *     value;
+  OStmtStructMemberAssign(OScPosition & ascpos, OValSym * astruct, uint32_t aidx, OType * amtype, OExpr * avalue)
+  :
+    super(ascpos),
+    structvalsym(astruct),
+    memberindex(aidx),
+    membertype(amtype),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
+// sm.field += expr;
+class OStmtStructMemberModifyAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   structvalsym;
+  uint32_t    memberindex;
+  OType *     membertype;
+  EBinOp      op;
+  OExpr *     value;
+  OStmtStructMemberModifyAssign(OScPosition & ascpos, OValSym * astruct, uint32_t aidx, OType * amtype, EBinOp aop, OExpr * avalue)
+  :
+    super(ascpos),
+    structvalsym(astruct),
+    memberindex(aidx),
+    membertype(amtype),
+    op(aop),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
+// ep^.field = expr;
+class OStmtDerefMemberAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   ptrvalsym;
+  OType *     structtype;
+  uint32_t    memberindex;
+  OType *     membertype;
+  OExpr *     value;
+  OStmtDerefMemberAssign(OScPosition & ascpos, OValSym * aptr, OType * astype, uint32_t aidx, OType * amtype, OExpr * avalue)
+  :
+    super(ascpos),
+    ptrvalsym(aptr),
+    structtype(astype),
+    memberindex(aidx),
+    membertype(amtype),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
+// ep^.field += expr;
+class OStmtDerefMemberModifyAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   ptrvalsym;
+  OType *     structtype;
+  uint32_t    memberindex;
+  OType *     membertype;
+  EBinOp      op;
+  OExpr *     value;
+  OStmtDerefMemberModifyAssign(OScPosition & ascpos, OValSym * aptr, OType * astype, uint32_t aidx, OType * amtype, EBinOp aop, OExpr * avalue)
+  :
+    super(ascpos),
+    ptrvalsym(aptr),
+    structtype(astype),
+    memberindex(aidx),
+    membertype(amtype),
+    op(aop),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
+// sm.field[index] = expr;
+class OStmtStructMemberArrayAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   structvalsym;
+  uint32_t    memberindex;
+  OType *     arraytype;
+  OExpr *     indexexpr;
+  OExpr *     value;
+  OStmtStructMemberArrayAssign(OScPosition & ascpos, OValSym * astruct, uint32_t aidx, OType * aarrtype, OExpr * aindex, OExpr * avalue)
+  :
+    super(ascpos),
+    structvalsym(astruct),
+    memberindex(aidx),
+    arraytype(aarrtype),
+    indexexpr(aindex),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
+// ep^.field[index] = expr;
+class OStmtDerefMemberArrayAssign : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *   ptrvalsym;
+  OType *     structtype;
+  uint32_t    memberindex;
+  OType *     arraytype;
+  OExpr *     indexexpr;
+  OExpr *     value;
+  OStmtDerefMemberArrayAssign(OScPosition & ascpos, OValSym * aptr, OType * astype, uint32_t aidx, OType * aarrtype, OExpr * aindex, OExpr * avalue)
+  :
+    super(ascpos),
+    ptrvalsym(aptr),
+    structtype(astype),
+    memberindex(aidx),
+    arraytype(aarrtype),
+    indexexpr(aindex),
+    value(avalue)
+  {}
+
+  void Generate(OScope * scope) override;
+};

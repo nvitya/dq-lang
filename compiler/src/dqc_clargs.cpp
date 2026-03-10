@@ -28,6 +28,8 @@ ODqCompClargs::~ODqCompClargs()
 
 void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
 {
+  string explicit_output;
+
   for (int i = 1; i < argc; i++)
   {
     string v(argv[i]);
@@ -37,10 +39,27 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
       if      ("-v"  == v)    g_opt.verbose = true;
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
+      else if ("-c"  == v)    g_opt.compile_only = true;
       else if ("-O0" == v)    g_opt.optlevel = 0;
       else if ("-O1" == v)    g_opt.optlevel = 1;
       else if ("-O2" == v)    g_opt.optlevel = 2;
       else if ("-O3" == v)    g_opt.optlevel = 3;
+      else if ("-o"  == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          explicit_output = argv[i];
+          has_dash_o = true;
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing filename after -o\n");
+          PrintUsage();
+          return;
+        }
+      }
       else
       {
         ++errorcnt;
@@ -49,44 +68,69 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
         return;
       }
     }
-    else if ("" == in_filename)
+    else if (in_filename.empty())
     {
       in_filename = v;
     }
-    else if ("" == out_filename)
+    else if (!has_dash_o)
     {
-      out_filename = v;
+      // backward compatibility: second positional arg = output name
+      explicit_output = v;
+      has_dash_o = true;
     }
     else
     {
-
+      ++errorcnt;
+      print("Unexpected argument: {}\n", v);
+      PrintUsage();
+      return;
     }
   }
 
-  if ("" == in_filename)
+  if (in_filename.empty())
   {
     ++errorcnt;
-    printf("Input file name is missing.\n");
+    print("Input file name is missing.\n");
     PrintUsage();
     return;
   }
 
-  if ("" == out_filename)
+  // derive base_name by stripping .dq extension
+  if (in_filename.size() > 3 && in_filename.substr(in_filename.size() - 3) == ".dq")
   {
-    out_filename = in_filename + ".o";
+    base_name = in_filename.substr(0, in_filename.size() - 3);
+  }
+  else
+  {
+    base_name = in_filename;
   }
 
-  printf("Compiling: \"%s\"...\n", in_filename.c_str());
+  if (g_opt.compile_only)
+  {
+    // -c: compile only, no linking
+    out_filename = has_dash_o ? explicit_output : base_name + ".o";
+  }
+  else
+  {
+    // object file always goes to base_name.o
+    out_filename = base_name + ".o";
+    // link_output is where the final result should go
+    link_output = has_dash_o ? explicit_output : base_name;
+  }
+
+  print("Compiling: \"{}\"...\n", in_filename);
   return;
 }
 
 void ODqCompClargs::PrintUsage()
 {
   print("Usage:\n");
-  print("  dq-comp <file.dq> [output.o] [switches]\n");
-  print("Switches:\n");
-  print("  -On: optimization level, n=0-3\n");
-  print("  -g: generate debug info\n");
-  print("  -v: print compiler internal trace messages\n");
-  print("  -ir: print LLVM IR code\n");
+  print("  dq-comp [options] <file.dq>\n");
+  print("Options:\n");
+  print("  -o <file> : set output filename\n");
+  print("  -c        : compile only (do not link)\n");
+  print("  -On       : optimization level, n=0-3\n");
+  print("  -g        : generate debug info\n");
+  print("  -v        : print compiler internal trace messages\n");
+  print("  -ir       : print LLVM IR code\n");
 }

@@ -26,6 +26,8 @@ public:
 
   bool     ir_print = false;  // -ir
 
+  bool     compile_only = false;  // -c
+
   int      optlevel = 0;
 
   bool     blockmode_braces = false;

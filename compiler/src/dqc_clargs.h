@@ -28,7 +28,10 @@ private:
 
 public:
   string           in_filename = "";
-  string           out_filename = "";
+  string           out_filename = "";  // object file path (.o)
+  string           base_name = "";     // in_filename with .dq stripped
+  string           link_output = "";   // final executable/output name
+  bool             has_dash_o = false; // -o was specified
 
 public:
   ODqCompClargs();

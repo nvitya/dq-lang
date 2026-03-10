@@ -12,6 +12,9 @@
  */
 
 #include <print>
+#include <format>
+#include <cstdlib>
+#include <cstdio>
 
 #include "ll_defs.h"
 #include "scope_builtins.h"
@@ -69,6 +72,39 @@ void ODqCompiler::Run(int argc, char ** argv)
   }
 
   EmitObject(out_filename);
+  if (errorcnt)
+  {
+    return;
+  }
+
+  // linking decision
+  if (!g_opt.compile_only)
+  {
+    OValSym * main_sym = nullptr;
+    bool has_main = g_module->ValSymDeclared("main", &main_sym);
+
+    if (has_main)
+    {
+      string link_cmd = format("gcc {} -o {}", out_filename, link_output);
+      if (g_opt.verbose)  print("Linking: {}\n", link_cmd);
+      print("Linking: \"{}\"...\n", link_output);
+
+      int rc = system(link_cmd.c_str());
+      if (rc != 0)
+      {
+        ++errorcnt;
+        print("Link error.\n");
+      }
+    }
+    else if (has_dash_o)
+    {
+      // no main(), no linking — rename .o to -o target if different
+      if (out_filename != link_output)
+      {
+        rename(out_filename.c_str(), link_output.c_str());
+      }
+    }
+  }
 
   if (0 == errorcnt)
   {

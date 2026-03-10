@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.0"
+#define DQ_COMPILER_VERSION  "0.5.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.1:
+  - "dq-comp file_with_main.dq" calls the linker and produces executable.
 v0.5.0:
   - First standalone DQ example: dq_hello.dq (without C testbed)
 v0.4.4:

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.4.4"
+#define DQ_COMPILER_VERSION  "0.5.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.0:
+  - First standalone DQ example: dq_hello.dq (without C testbed)
 v0.4.4:
   - Support for calling printf() from the libc
   - varargs support for external functions

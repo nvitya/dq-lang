@@ -1,0 +1,10 @@
+// Standalone DQ hello world - no C testbed, linked directly to libc
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int:
+  printf("Hello from DQ!\n");
+  printf("DQ can call %s functions like %s directly.\n", "libc", "printf");
+  printf("The answer is %ld.\n", 42);
+  result = 0;
+endfunc

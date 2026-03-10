@@ -62,6 +62,7 @@ private:
 public:
   OType *               rettype;
   vector<OFuncParam *>  params;
+  bool                  has_varargs = false;
 
   OTypeFunc(const string aname, OType * arettype = nullptr)
   :

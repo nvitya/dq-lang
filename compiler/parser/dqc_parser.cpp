@@ -372,6 +372,18 @@ void ODqCompParser::ParseFunction(bool aexternal)
         else { scf-> SkipWhite(); }
       }
 
+      // check for variadic "..."
+      if (scf->CheckSymbol("..."))
+      {
+        tfunc->has_varargs = true;
+        scf->SkipWhite();
+        if (!scf->CheckSymbol(")"))
+        {
+          Error("')' expected after '...'");
+        }
+        break;
+      }
+
       if (not scf->ReadIdentifier(spname))
       {
         Error("Parameter name expected", &scf->prevpos);
@@ -408,6 +420,15 @@ void ODqCompParser::ParseFunction(bool aexternal)
       tfunc->AddParam(spname, ptype);
 
     }  // while function parameters
+  }
+
+  if (tfunc->has_varargs && !aexternal)
+  {
+    Error("Variadic '...' is only allowed on [[external]] functions");
+  }
+  if (tfunc->has_varargs && tfunc->params.empty())
+  {
+    Error("Variadic functions must have at least one named parameter before '...'");
   }
 
   scf->SkipWhite();
@@ -1482,7 +1503,7 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
       break;
     }
 
-    if (pcnt >= tfunc->params.size())
+    if (pcnt >= (int)tfunc->params.size() && !tfunc->has_varargs)
     {
       Error(format("Too many arguments provided, expected {}", tfunc->params.size()));
       bok = false;
@@ -1499,19 +1520,22 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 
     result->AddArgument(argexpr);  // to avoid memory leak, this must come before the type check
 
-    OType * argtype = tfunc->params[pcnt]->ptype;
-    if (not CheckAssignType(argtype, &argexpr, "Argument"))
+    if (pcnt < (int)tfunc->params.size())
     {
-      bok = false;
-      break;
+      OType * argtype = tfunc->params[pcnt]->ptype;
+      if (not CheckAssignType(argtype, &argexpr, "Argument"))
+      {
+        bok = false;
+        break;
+      }
+      // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
+      result->args[pcnt] = argexpr;
     }
-    // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
-    result->args[pcnt] = argexpr;
 
     ++pcnt;
   }
 
-  if (result->args.size() != tfunc->params.size())
+  if (result->args.size() < tfunc->params.size())
   {
     Error(format("Too few arguments provided: {}, expected: {}", result->args.size(), tfunc->params.size()));
     bok = false;

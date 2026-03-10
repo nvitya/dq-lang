@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.4.3"
+#define DQ_COMPILER_VERSION  "0.4.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.4.4:
+  - Support for calling printf() from the libc
+  - varargs support for external functions
 v0.4.3:
   - Parser improvement with Addressable Expressions
 v0.4.2:

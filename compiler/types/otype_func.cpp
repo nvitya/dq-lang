@@ -56,7 +56,7 @@ LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the functio
   {
     ll_rettype = llvm::Type::getVoidTy(ll_ctx);
   }
-  return LlFuncType::get(ll_rettype, ll_partypes, false);
+  return LlFuncType::get(ll_rettype, ll_partypes, has_varargs);
 }
 
 LlDiType * OTypeFunc::CreateDiType()

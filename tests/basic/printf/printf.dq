@@ -1,0 +1,11 @@
+// printf test - variadic external function support
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function dq_test_printf():
+  printf("Hello %s!\n", "World");
+  printf("Integer: %ld\n", 42);
+  printf("Float: %f\n", 3.14159);
+  printf("Multiple: %s is %ld years old\n", "Alice", 30);
+  printf("Char: %c\n", 65);  // 'A'
+endfunc

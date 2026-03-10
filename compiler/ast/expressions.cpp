@@ -47,7 +47,7 @@ LlValue * OIntLit::Generate(OScope * scope)
 
 LlValue * OFloatLit::Generate(OScope *scope)
 {
-  return llvm::ConstantInt::get(g_builtins->type_float->GetLlType(), value);
+  return llvm::ConstantFP::get(g_builtins->type_float->GetLlType(), value);
 }
 
 /* ctor */ OBoolLit::OBoolLit(bool v)
@@ -505,10 +505,29 @@ LlValue * OCallExpr::Generate(OScope * scope)
     throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
   }
 
+  OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   vector<LlValue *>   ll_args;
-  for (OExpr * arg : args)
+  for (size_t i = 0; i < args.size(); ++i)
   {
-    ll_args.push_back(arg->Generate(scope));
+    LlValue * val = args[i]->Generate(scope);
+
+    // C varargs default argument promotions for extra arguments
+    if (tfunc->has_varargs && i >= tfunc->params.size())
+    {
+      LlType * valtype = val->getType();
+      if (valtype->isFloatTy())
+      {
+        // float32 -> double promotion
+        val = ll_builder.CreateFPExt(val, llvm::Type::getDoubleTy(ll_ctx));
+      }
+      else if (valtype->isIntegerTy() && valtype->getIntegerBitWidth() < 32)
+      {
+        // small int (cchar, int8, int16) -> i32 promotion
+        val = ll_builder.CreateSExt(val, llvm::Type::getInt32Ty(ll_ctx));
+      }
+    }
+
+    ll_args.push_back(val);
   }
   return ll_builder.CreateCall(ll_func, ll_args);
 }

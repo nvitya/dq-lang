@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.4.2"
+#define DQ_COMPILER_VERSION  "0.4.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.4.3:
+  - Parser improvement with Addressable Expressions
 v0.4.2:
   - Unitialized variable fix for function symbols
 v0.4.1:

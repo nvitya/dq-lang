@@ -8,6 +8,7 @@ extern int64_t  dq_ptr_cmp(int64_t a, int64_t b);
 extern int64_t  dq_ptr_notnull(int64_t a);
 extern int64_t  dq_ptr_and_arr();
 extern int64_t  dq_ptr_and_arr2();
+extern int64_t  dq_ptr_addr_chain();
 
 int main()
 {
@@ -35,6 +36,9 @@ int main()
 
   r = dq_ptr_and_arr2();
   printf("dq_ptr_and_arr2() = %li (expected 9)\n", r);
+
+  r = dq_ptr_addr_chain();
+  printf("dq_ptr_addr_chain() = %li (expected 77)\n", r);
 
   return 0;
 }

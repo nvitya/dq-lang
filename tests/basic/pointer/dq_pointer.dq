@@ -1,5 +1,9 @@
 // pointer tests
 
+struct SPtrItem
+  value : int;
+endstruct
+
 function dq_ptr_basic(a : int) -> int:
   var x : int = a;
   var p : ^int = &x;
@@ -57,4 +61,14 @@ function dq_ptr_and_arr2() -> int:
   var p : ^int = &arr[0];
   result = (p + 1)^;
   result += p[2]^;  // sane as (p + 2)^, but this syntax is more readable. [] at pointer do not do dereferencing as in C !
+endfunc
+
+function dq_ptr_addr_chain() -> int:
+  var items : SPtrItem[2];
+  items[0].value = 0;
+  items[1].value = 0;
+  var p     : ^SPtrItem = &items[0];
+  var pv    : ^int = &(p[1]^.value);
+  pv^ = 77;
+  result = items[1].value;
 endfunc

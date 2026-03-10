@@ -979,9 +979,7 @@ OExpr * ODqCompParser::ParseComparison()
 }
 
 // Table-driven binary operator parser: shared logic for all precedence levels
-OExpr * ODqCompParser::ParseBinOpLevel(
-    OExpr * (ODqCompParser::*parse_next)(),
-    const BinOpEntry ops[], int nops)
+OExpr * ODqCompParser::ParseBinOpLevel(OExpr * (ODqCompParser::*parse_next)(), const BinOpEntry ops[], int nops)
 {
   scf->SkipWhite();
   OExpr * left = (this->*parse_next)();
@@ -1049,29 +1047,11 @@ OExpr * ODqCompParser::ParseExprUnary()
 {
   scf->SkipWhite();
 
-  // address-of operator: &variable, &arr[index], &s[index], &sm.field, &sm.field[index], etc.
+  // address-of operator: consume a full postfix-capable lvalue operand
   if (scf->CheckSymbol("&"))
   {
-    scf->SkipWhite();
-    string addrname;
-    if (!scf->ReadIdentifier(addrname))
-    {
-      Error("Variable name expected after \"&\"");
-      return nullptr;
-    }
-    OValSym * addrvs = curscope->FindValSym(addrname);
-    if (!addrvs)
-    {
-      Error(format("Unknown variable \"{}\"", addrname));
-      return nullptr;
-    }
-    if (VSK_VARIABLE != addrvs->kind and VSK_PARAMETER != addrvs->kind)
-    {
-      Error(format("\"{}\" is not a variable, cannot take its address", addrname));
-      return nullptr;
-    }
-    OLValueExpr * lval = new OLValueVar(addrvs);
-    lval = ParseLValuePostfix(lval);
+    OLValueExpr * lval = ParseAddressableExpr();
+    if (!lval) return nullptr;
     return new OAddrOfExpr(lval);
   }
 
@@ -1090,6 +1070,30 @@ OExpr * ODqCompParser::ParseExprUnary()
   }
 
   return ParseExprPostfix();
+}
+
+OLValueExpr * ODqCompParser::ParseAddressableExpr()
+{
+  OExpr * expr = ParseExprPostfix();
+  if (!expr) return nullptr;
+
+  OLValueExpr * lval = dynamic_cast<OLValueExpr *>(expr);
+  if (!lval)
+  {
+    Error("Address-of requires an lvalue expression");
+    delete expr;
+    return nullptr;
+  }
+
+  OValSym * varref = dynamic_cast<OLValueVar *>(lval) ? static_cast<OLValueVar *>(lval)->pvalsym : nullptr;
+  if (varref and VSK_VARIABLE != varref->kind and VSK_PARAMETER != varref->kind)
+  {
+    Error(format("\"{}\" is not a variable, cannot take its address", varref->name));
+    delete expr;
+    return nullptr;
+  }
+
+  return lval;
 }
 
 OExpr * ODqCompParser::FreeLeftRight(OExpr * left, OExpr * right)
@@ -1837,9 +1841,13 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
       return true;
     }
     if (not pvalsym->initialized)
+    {
       Error(format("Variable \"{}\" is not initialized.", pvalsym->name));
+    }
     else
+    {
       curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, lval, op, expr));
+    }
     return true;
   }
 

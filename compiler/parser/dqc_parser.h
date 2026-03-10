@@ -93,6 +93,7 @@ public: // expressions
   OExpr * ParseExprBinAnd();
   OExpr * ParseExprShift();
   OExpr * ParseExprUnary();
+  OLValueExpr * ParseAddressableExpr();
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
 

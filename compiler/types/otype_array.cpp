@@ -13,10 +13,81 @@
 
 #include <vector>
 #include "otype_array.h"
+#include "expressions.h"
+#include "dqc.h"
 
 using namespace std;
 
+OValueArray::OValueArray(OTypeArray * atype)
+:
+  super(atype)
+{
+  elements.reserve(atype->arraylength);
+  for (uint32_t i = 0; i < atype->arraylength; ++i)
+  {
+    OValue * elemvalue = atype->elemtype->CreateValue();
+    if (!elemvalue)
+    {
+      throw logic_error(format("Array element type \"{}\" does not support constant values", atype->elemtype->name));
+    }
+    elements.push_back(elemvalue);
+  }
+}
+
+OValueArray::~OValueArray()
+{
+  for (OValue * elem : elements)
+  {
+    delete elem;
+  }
+}
+
+LlConst * OValueArray::CreateLlConst()
+{
+  vector<LlConst *> ll_elems;
+  ll_elems.reserve(elements.size());
+  for (OValue * elem : elements)
+  {
+    ll_elems.push_back(elem->GetLlConst());
+  }
+
+  auto * ll_arrtype = static_cast<llvm::ArrayType *>(ptype->GetLlType());
+  return llvm::ConstantArray::get(ll_arrtype, ll_elems);
+}
+
+bool OValueArray::CalculateConstant(OExpr * expr)
+{
+  auto * arrtype = static_cast<OTypeArray *>(ptype);
+
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(expr))
+  {
+    if (arrlit->elements.size() != arrtype->arraylength)
+    {
+      g_compiler->ExpressionError(format("Array constant size mismatch: expected {}, got {}", arrtype->arraylength, arrlit->elements.size()));
+      return false;
+    }
+
+    for (size_t i = 0; i < arrlit->elements.size(); ++i)
+    {
+      if (!elements[i]->CalculateConstant(arrlit->elements[i]))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  g_compiler->ExpressionError("Array constant expression error");
+  return false;
+}
+
 // OTypeArray -- Fixed-size array
+
+OValue * OTypeArray::CreateValue()
+{
+  return new OValueArray(this);
+}
 
 LlType * OTypeArray::CreateLlType()
 {

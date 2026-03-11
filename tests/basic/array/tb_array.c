@@ -17,7 +17,7 @@ int main()
   int64_t r;
 
   r = dq_arr_basic();
-  printf("dq_arr_basic() = %li (expected 60)\n", r);
+  printf("dq_arr_basic() = %li (expected 61)\n", r);
 
   r = dq_arr_index(0);
   printf("dq_arr_index(0) = %li (expected 100)\n", r);

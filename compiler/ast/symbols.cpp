@@ -263,7 +263,23 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
   else if (VSK_CONST == kind)
   {
     OValSymConst * vsconst = static_cast<OValSymConst *>(this);
-    ll_value = vsconst->pvalue->GetLlConst();
+    if (TK_ARRAY == ptype->kind)
+    {
+      LlLinkType  linktype =
+        (apublic ? LlLinkType::ExternalLinkage
+                 : LlLinkType::InternalLinkage);
+
+      LlType * ll_type = ptype->GetLlType();
+      LlConst * ll_init_val = vsconst->pvalue->GetLlConst();
+
+      llvm::GlobalVariable * gv =
+          new llvm::GlobalVariable(*ll_module, ll_type, true, linktype, ll_init_val, name);
+      ll_value = gv;
+    }
+    else
+    {
+      ll_value = vsconst->pvalue->GetLlConst();
+    }
   }
 }
 

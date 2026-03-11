@@ -15,6 +15,21 @@
 
 #include "symbols.h"
 
+class OValueArray : public OValue
+{
+private:
+  using        super = OValue;
+
+public:
+  vector<OValue *> elements;
+
+  OValueArray(OTypeArray * atype);
+  ~OValueArray() override;
+
+  LlConst *  CreateLlConst() override;
+  bool       CalculateConstant(OExpr * expr) override;
+};
+
 // Fixed-size array type, e.g. int[3]
 // LLVM representation: [N x T], e.g. [3 x i32]
 
@@ -36,6 +51,7 @@ public:
     bytesize = aelemtype->bytesize * alength;
   }
 
+  OValue * CreateValue() override;
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
 };

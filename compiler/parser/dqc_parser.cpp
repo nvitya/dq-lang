@@ -215,7 +215,6 @@ void ODqCompParser::ParseConstDecl()
   // note: "const" is already consumed
 
   string       sid;
-  string       stype;
   OValSym *    pvalsym;
   OType *      ptype;
   OScPosition  expos;
@@ -240,21 +239,11 @@ void ODqCompParser::ParseConstDecl()
     return;
   }
 
-  scf->SkipWhite();
-  if (not scf->ReadIdentifier(stype))
-  {
-    StatementError("Type identifier is expected after \"const\". Syntax: \"const identifier : type = value;\"");
-    return;
-  }
-
-  // check the type here for proper source code position (scf->prevpos)
-  ptype = g_module->scope_priv->FindType(stype);
+  ptype = ParseTypeSpec();
   if (not ptype)
   {
-    StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
     return;
   }
-  ptype = ptype->ResolveAlias();
 
   scf->SkipWhite();
   if (not scf->CheckSymbol("="))  // variable initializer specified
@@ -2056,7 +2045,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
   {
     OTypeArray * arrdst = static_cast<OTypeArray *>(dsttype);
     OTypeArray * arrsrc = static_cast<OTypeArray *>((*rexpr)->ptype);
-    if (arrdst->elemtype != arrsrc->elemtype)
+    if (arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
     {
       Error(format("{} array element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
       return false;

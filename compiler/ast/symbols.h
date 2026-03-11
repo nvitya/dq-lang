@@ -50,6 +50,8 @@ public:
 
   }
 
+  OType * ResolvedType() const;
+
   virtual ~OSymbol() = default;
 };
 
@@ -159,6 +161,7 @@ public:
   }
 
   inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
+  virtual OType *    ResolveAlias() { return this; }
   OTypePointer *     GetPointerType();
   OTypeArray *       GetArrayType(uint32_t alength);
   OTypeArraySlice *  GetSliceType();
@@ -166,6 +169,11 @@ public:
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
 };
+
+inline OType * OSymbol::ResolvedType() const
+{
+  return (ptype ? ptype->ResolveAlias() : nullptr);
+}
 
 class OTypeVoid : public OType
 {
@@ -201,9 +209,25 @@ public:
 
   OTypeAlias(const string aname, OType * aptype)
   :
-    super(aname, TK_ALIAS),
+    super(aname, (aptype ? aptype->kind : TK_ALIAS)),
     ptype(aptype)
   {
+    bytesize = (ptype ? ptype->bytesize : 0);
+  }
+
+  OType * ResolveAlias() override
+  {
+    return (ptype ? ptype->ResolveAlias() : this);
+  }
+
+  OValue * CreateValue() override
+  {
+    return (ptype ? ptype->CreateValue() : nullptr);
+  }
+
+  LlValue * GenerateConversion(OScope * scope, OExpr * src) override
+  {
+    return (ptype ? ptype->GenerateConversion(scope, src) : nullptr);
   }
 
   LlType * GetLlType() override
@@ -308,6 +332,11 @@ public:
   }
 
   virtual bool CalculateConstant(OExpr * expr) { return false; }
+
+  inline OType * ResolvedType() const
+  {
+    return (ptype ? ptype->ResolveAlias() : nullptr);
+  }
 };
 
 // Expression Base
@@ -324,6 +353,11 @@ public:
   virtual LlValue * Generate(OScope * scope)
   {
     throw logic_error(std::format("Unhandled OExpr::Generate for \"{}\"", typeid(this).name()));
+  }
+
+  inline OType * ResolvedType() const
+  {
+    return (ptype ? ptype->ResolveAlias() : nullptr);
   }
 };
 

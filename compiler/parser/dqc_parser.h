@@ -41,6 +41,7 @@ public:
 public: // top level items
   void ParseVarDecl();
   void ParseConstDecl();
+  void ParseTypeDecl();
   void ParseFunction(bool aexternal = false);
   void ParseStructDecl();
 

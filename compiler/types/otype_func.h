@@ -81,6 +81,7 @@ public:
 
   OFuncParam *  AddParam(const string aname, OType * atype, EParamMode amode = FPM_VALUE);
   bool          ParNameValid(const string aname);
+  OType *       ResolvedRetType() const;
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;

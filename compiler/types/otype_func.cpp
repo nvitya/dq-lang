@@ -40,6 +40,11 @@ bool OTypeFunc::ParNameValid(const string aname)
   return true;
 }
 
+OType * OTypeFunc::ResolvedRetType() const
+{
+  return (rettype ? rettype->ResolveAlias() : nullptr);
+}
+
 LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the function arguments fully prepared
 {
   vector<LlType *> ll_partypes;
@@ -50,7 +55,7 @@ LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the functio
   LlType *  ll_rettype;
   if (rettype)
   {
-    ll_rettype = rettype->GetLlType();
+    ll_rettype = ResolvedRetType()->GetLlType();
   }
   else
   {
@@ -65,7 +70,7 @@ LlDiType * OTypeFunc::CreateDiType()
 
   if (rettype)
   {
-    di_param_types.push_back(rettype->GetDiType());
+    di_param_types.push_back(ResolvedRetType()->GetDiType());
   }
   else
   {

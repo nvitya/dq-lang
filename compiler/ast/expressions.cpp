@@ -96,10 +96,19 @@ LlValue * OLValueVar::Generate(OScope * scope)
   {
     return ll_builder.CreateLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name);
   }
-  else
+
+  auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value);
+  if (global)
+  {
+    return ll_builder.CreateLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name);
+  }
+
+  if (VSK_PARAMETER == pvalsym->kind)
   {
     return pvalsym->ll_value;  // function parameter (direct value)
   }
+
+  throw logic_error(std::format("Unhandled variable storage for \"{}\"", pvalsym->name));
 }
 
 /* ctor */ OLValueDeref::OLValueDeref(OExpr * aptr)
@@ -239,7 +248,7 @@ LlValue * OBinExpr::Generate(OScope * scope)
 
   if (TK_INT == ptype->kind)
   {
-    bool issigned = static_cast<OTypeInt *>(ptype)->issigned;
+    bool issigned = static_cast<OTypeInt *>(ResolvedType())->issigned;
 
     if      (BINOP_ADD == op)   return ll_builder.CreateAdd(ll_left, ll_right);
     else if (BINOP_SUB == op)   return ll_builder.CreateSub(ll_left, ll_right);
@@ -299,7 +308,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   }
   else if (TK_INT == optype->kind)
   {
-    bool issigned = static_cast<OTypeInt *>(optype)->issigned;
+    bool issigned = static_cast<OTypeInt *>(left->ResolvedType())->issigned;
 
     if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
     else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);
@@ -523,7 +532,7 @@ LlValue * OCallExpr::Generate(OScope * scope)
       else if (valtype->isIntegerTy() && valtype->getIntegerBitWidth() < 32)
       {
         // small integers use the C default argument promotions
-        OTypeInt * inttype = dynamic_cast<OTypeInt *>(args[i]->ptype);
+        OTypeInt * inttype = dynamic_cast<OTypeInt *>(args[i]->ResolvedType());
         if (inttype && inttype->issigned)
         {
           val = ll_builder.CreateSExt(val, llvm::Type::getInt32Ty(ll_ctx));

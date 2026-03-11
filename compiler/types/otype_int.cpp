@@ -130,7 +130,7 @@ bool OValueInt::CalculateConstant(OExpr * expr)
 
 LlValue * OTypeInt::GenerateConversion(OScope * scope, OExpr * src)
 {
-  OTypeInt * srcint = dynamic_cast<OTypeInt *>(src->ptype);
+  OTypeInt * srcint = dynamic_cast<OTypeInt *>(src->ResolvedType());
   if (srcint)
   {
     LlValue * ll_value = src->Generate(scope);
@@ -148,7 +148,7 @@ LlValue * OTypeInt::GenerateConversion(OScope * scope, OExpr * src)
     }
   }
 
-  OTypeFloat * srcfloat = dynamic_cast<OTypeFloat *>(src->ptype);
+  OTypeFloat * srcfloat = dynamic_cast<OTypeFloat *>(src->ResolvedType());
   if (srcfloat)
   {
     LlValue * ll_value = src->Generate(scope);

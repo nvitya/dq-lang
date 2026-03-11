@@ -53,12 +53,12 @@ void OScopeDefines::Init()
   if (target_32bit)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));
-    DefineValSym(g_builtins->type_int->CreateConst(scpos, "PTRSIZE", 4));
+    DefineValSym(g_builtins->native_int->CreateConst(scpos, "PTRSIZE", 4));
   }
   else
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_64BIT", true));
-    DefineValSym(g_builtins->type_int->CreateConst(scpos, "PTRSIZE", 8));
+    DefineValSym(g_builtins->native_int->CreateConst(scpos, "PTRSIZE", 8));
   }
 }
 
@@ -70,4 +70,3 @@ bool OScopeDefines::Defined(const string aname)
   }
   return false;
 }
-

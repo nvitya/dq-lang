@@ -113,7 +113,7 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
 
 LlValue * OTypeFloat::GenerateConversion(OScope * scope, OExpr * src)
 {
-  OTypeInt * tint = dynamic_cast<OTypeInt *>(src->ptype);
+  OTypeInt * tint = dynamic_cast<OTypeInt *>(src->ResolvedType());
   if (tint)
   {
     LlValue * ll_value = src->Generate(scope);

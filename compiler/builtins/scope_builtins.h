@@ -31,17 +31,20 @@ public:
   OTypeBool *   type_bool;
   OTypeFunc *   type_func;
 
-  OTypeInt *    type_int;
+  OTypeAlias *  type_int;
   OTypeInt *    type_int8;
   OTypeInt *    type_int16;
   OTypeInt *    type_int32;
   OTypeInt *    type_int64;
 
-  OTypeInt *    type_uint;
+  OTypeAlias *  type_uint;
   OTypeInt *    type_uint8;
   OTypeInt *    type_uint16;
   OTypeInt *    type_uint32;
   OTypeInt *    type_uint64;
+
+  OTypeInt *    native_int;
+  OTypeInt *    native_uint;
 
   OTypeFloat *  type_float;
   OTypeFloat *  type_float32;

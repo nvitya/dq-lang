@@ -122,6 +122,10 @@ void ODqCompParser::ParseModule()
     {
       ParseConstDecl();
     }
+    else if ("type" == sid)
+    {
+      ParseTypeDecl();
+    }
     else if ("function" == sid)
     {
       ParseFunction(has_external);
@@ -250,6 +254,7 @@ void ODqCompParser::ParseConstDecl()
     StatementError(format("Unknown type \"{}\"", stype), &scf->prevpos);
     return;
   }
+  ptype = ptype->ResolveAlias();
 
   scf->SkipWhite();
   if (not scf->CheckSymbol("="))  // variable initializer specified
@@ -285,6 +290,46 @@ void ODqCompParser::ParseConstDecl()
   if (not CheckStatementClose())
   {
     // error message already generated.
+    return;
+  }
+}
+
+void ODqCompParser::ParseTypeDecl()
+{
+  // syntax form: "type identifier = type;"
+  // note: "type" is already consumed
+
+  string sid;
+  OType * ptype;
+  OType * foundtype = nullptr;
+
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(sid))
+  {
+    StatementError("Identifier is expected after \"type\". Syntax: \"type identifier = type;\"");
+    return;
+  }
+
+  if (g_module->TypeDeclared(sid, &foundtype))
+  {
+    StatementError(format("Type \"{}\" is already declared", sid), &scf->prevpos);
+    return;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("="))
+  {
+    StatementError("Assignment \"=\" is expected after type name. Syntax: \"type identifier = type;\"");
+    return;
+  }
+
+  ptype = ParseTypeSpec();
+  if (not ptype)  return;
+
+  cur_mod_scope->DefineType(new OTypeAlias(sid, ptype));
+
+  if (not CheckStatementClose())
+  {
     return;
   }
 }
@@ -672,6 +717,7 @@ OType * ODqCompParser::ParseTypeSpec()
     Error(format("Unknown type \"{}\"", stype), &scf->prevpos);
     return nullptr;
   }
+  ptype = ptype->ResolveAlias();
 
   while (pointer_level > 0)
   {
@@ -1011,8 +1057,8 @@ OExpr * ODqCompParser::ParseComparison()
   ETypeKind tkr = right->ptype->kind;
   if (TK_INT == tkl and TK_INT == tkr)
   {
-    OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
-    OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+    OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
+    OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
     if (intl->bitlength != intr->bitlength)
     {
       if (intl->bitlength > intr->bitlength)
@@ -1192,8 +1238,8 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     else if ((TK_INT == tkl) and (TK_INT == tkr))
     {
       // Both int but different widths — widen the narrower
-      OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
-      OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+      OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
+      OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
       if (intl->bitlength > intr->bitlength)
         newright = new OExprTypeConv(left->ptype, right);
       else
@@ -1207,8 +1253,8 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   }
   else if ((TK_INT == tkl) and (TK_INT == tkr))
   {
-    OTypeInt * intl = static_cast<OTypeInt *>(left->ptype);
-    OTypeInt * intr = static_cast<OTypeInt *>(right->ptype);
+    OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
+    OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
     if (intl->bitlength != intr->bitlength)
     {
       // Same TK_INT kind but different widths — widen the narrower
@@ -1971,8 +2017,8 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     else if ((TK_INT == tkd) and (TK_INT == tke))
     {
       // Integer width conversion (e.g., cchar/int8 <-> int64)
-      OTypeInt * intdst = static_cast<OTypeInt *>(dsttype);
-      OTypeInt * intsrc = static_cast<OTypeInt *>((*rexpr)->ptype);
+      OTypeInt * intdst = static_cast<OTypeInt *>(dsttype->ResolveAlias());
+      OTypeInt * intsrc = static_cast<OTypeInt *>((*rexpr)->ResolvedType());
       if (intdst->bitlength != intsrc->bitlength)
       {
         *rexpr = new OExprTypeConv(dsttype, *rexpr);

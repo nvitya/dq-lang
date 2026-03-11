@@ -178,7 +178,7 @@ void OStmtModifyAssign::Generate(OScope * scope)
   }
   else if (TK_INT == valtype->kind)
   {
-    bool issigned = static_cast<OTypeInt *>(valtype)->issigned;
+    bool issigned = static_cast<OTypeInt *>(valtype->ResolveAlias())->issigned;
 
     if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
     else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
@@ -333,4 +333,3 @@ void OStmtIf::Generate(OScope * scope)
 
   ll_builder.SetInsertPoint(bb_merge);
 }
-

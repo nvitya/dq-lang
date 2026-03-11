@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.4"
+#define DQ_COMPILER_VERSION  "0.5.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.5:
+  - Working type aliases, type definitions with the syntax "type PByte = ^byte;"
+  - loading global variables fix
 v0.5.4:
   - Double pointer parsing fix
   - printf() varargs unsigned fix

@@ -55,7 +55,7 @@ target_link_libraries(dq-comp PRIVATE stdc++exp ${llvm_libs})
 
 # for early compiler development:
 add_custom_command(TARGET dq-comp POST_BUILD
-    COMMAND sudo cp $<TARGET_FILE:dq-comp> /usr/local/bin/dq-comp
+    COMMAND cp $<TARGET_FILE:dq-comp> /usr/local/bin/dq-comp
     COMMENT "Copying dq-comp to /usr/local/bin..."
 )
 

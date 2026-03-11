@@ -42,12 +42,14 @@ void OScopeBuiltins::Init()
   DefineType(type_uint64);
 
   #if defined(TARGET_32BIT)
-    type_int   = new OTypeInt("int",  32, true);
-    type_uint  = new OTypeInt("uint", 32, false);
+    native_int  = type_int32;
+    native_uint = type_uint32;
   #else
-    type_int   = new OTypeInt("int",  64, true);
-    type_uint  = new OTypeInt("uint", 64, false);
+    native_int  = type_int64;
+    native_uint = type_uint64;
   #endif
+  type_int  = new OTypeAlias("int", native_int);
+  type_uint = new OTypeAlias("uint", native_uint);
   DefineType(type_int);
   DefineType(type_uint);
 
@@ -63,7 +65,7 @@ void OScopeBuiltins::Init()
   DefineType(type_cchar);
   DefineType(type_cstring);
 
-  DefineType(new OTypeInt("byte", 8, false));  // same as uint8
+  DefineType(new OTypeAlias("byte", type_uint8));
 }
 
 void init_scope_builtins()

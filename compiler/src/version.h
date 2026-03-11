@@ -11,10 +11,15 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.1"
+#define DQ_COMPILER_VERSION  "0.5.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.2:
+  - "." makes auto pointer de-reference when the pointed type is a compound type (struct or object):
+    var ep : ^StructElem = &arr_elems[0];
+    ep^.id = 1;  // explicit dereferencing
+    ep.id  = 1;  // implicit dereferencing
 v0.5.1:
   - "dq-comp file_with_main.dq" calls the linker and produces executable.
 v0.5.0:

@@ -211,6 +211,7 @@ public:
 };
 
 // Pointer subscript: p[i] computes address of element i (no dereference). Use p[i]^ to read.
+// Member access is the only implicit dereference: p.field is allowed for ^compound.
 class OPointerIndexExpr : public OExpr
 {
 public:
@@ -330,4 +331,3 @@ public:
   /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
 };
-

@@ -25,6 +25,29 @@
 
 using namespace std;
 
+static bool ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype)
+{
+  if (TK_COMPOUND == srctype->kind)
+  {
+    memberbase = lval;
+    ctype = static_cast<OCompoundType *>(srctype);
+    return true;
+  }
+
+  if (TK_POINTER == srctype->kind)
+  {
+    OTypePointer * ptype = static_cast<OTypePointer *>(srctype);
+    if (ptype->basetype && TK_COMPOUND == ptype->basetype->kind)
+    {
+      memberbase = new OLValueDeref(lval);
+      ctype = static_cast<OCompoundType *>(ptype->basetype);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 ODqCompParser::ODqCompParser()
 {
 }
@@ -1215,10 +1238,17 @@ OExpr * ODqCompParser::ParseExprPostfix()
 
     if (lval)
     {
-      // Struct member access on any lvalue: x.field
-      if (TK_COMPOUND == tk and scf->CheckSymbol("."))
+      // Struct member access on a compound lvalue or a ^compound pointer: x.field / p.field
+      if (scf->CheckSymbol("."))
       {
-        OCompoundType * ctype = static_cast<OCompoundType *>(lval->ptype);
+        OLValueExpr * memberbase = nullptr;
+        OCompoundType * ctype = nullptr;
+        if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
+        {
+          Error("Member access requires a compound value or a ^compound pointer");
+          return result;
+        }
+
         string membername;
         scf->SkipWhite();
         if (not scf->ReadIdentifier(membername))
@@ -1233,7 +1263,7 @@ OExpr * ODqCompParser::ParseExprPostfix()
           return result;
         }
         OType * mtype = ctype->member_order[midx]->ptype;
-        result = new OLValueMember(lval, ctype, midx, mtype);
+        result = new OLValueMember(memberbase, ctype, midx, mtype);
         continue;
       }
 
@@ -1755,9 +1785,16 @@ OLValueExpr * ODqCompParser::ParseLValuePostfix(OLValueExpr * base)
     ETypeKind tk = base->ptype->kind;
 
     // Struct member access: x.field
-    if (TK_COMPOUND == tk and scf->CheckSymbol("."))
+    if (scf->CheckSymbol("."))
     {
-      OCompoundType * ctype = static_cast<OCompoundType *>(base->ptype);
+      OLValueExpr * memberbase = nullptr;
+      OCompoundType * ctype = nullptr;
+      if (!ResolveCompoundMemberBase(base, base->ptype, memberbase, ctype))
+      {
+        Error("Member access requires a compound value or a ^compound pointer");
+        return base;
+      }
+
       string membername;
       scf->SkipWhite();
       if (not scf->ReadIdentifier(membername))
@@ -1772,7 +1809,7 @@ OLValueExpr * ODqCompParser::ParseLValuePostfix(OLValueExpr * base)
         return base;
       }
       OType * mtype = ctype->member_order[midx]->ptype;
-      base = new OLValueMember(base, ctype, midx, mtype);
+      base = new OLValueMember(memberbase, ctype, midx, mtype);
       continue;
     }
 

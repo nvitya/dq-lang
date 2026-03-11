@@ -31,3 +31,22 @@ function dq_struct_test():
     sm.elemcnt += 1;
   endwhile
 endfunc
+
+function dq_struct_test_noderef():
+  var sm : SMain = {};  // this initializes all the struct members with zeroes
+  var ep : ^SElem;
+
+  sm.id = 5;
+  sm.elemcnt = 0;
+  while sm.elemcnt < 5:
+    ep = &sm.elem[sm.elemcnt];
+    ep.id = sm.elemcnt;
+    ep.membercnt = 0;
+    while ep.membercnt < 3:
+      ep.member[ep.membercnt] = ep.membercnt + sm.elemcnt * 10;
+      ep.weight = 1 / (1 + sm.elemcnt);
+      ep.membercnt += 1;
+    endwhile
+    sm.elemcnt += 1;
+  endwhile
+endfunc

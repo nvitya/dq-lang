@@ -20,6 +20,7 @@
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "scope_defines.h"
 #include "expressions.h"
 #include "statements.h"
 
@@ -2123,6 +2124,122 @@ bool ODqCompParser::CheckStatementClose()
     return false;
   }
   return true;
+}
+
+OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const string & sid)
+{
+  OScPosition    saved_stmtpos = scpos_statement_start;
+  OScPosition *  saved_errorpos = errorpos;
+  OScope *       saved_scope = curscope;
+  OStmtBlock *   saved_block = curblock;
+
+  scpos_statement_start = scpos;
+  errorpos = &scpos_statement_start;
+  curscope = g_defines;
+  curblock = nullptr;
+  scf->SetDirectiveExprMode(true);
+
+  OValSymConst *  result = nullptr;
+  OExpr *         valueexpr = nullptr;
+
+  scf->SkipWhite();
+  valueexpr = ParseExpression();
+  if (!valueexpr)
+  {
+    goto cleanup;
+  }
+
+  if (!valueexpr->ptype)
+  {
+    Error(format("Unable to determine the type of #define \"{}\"", sid));
+    goto cleanup;
+  }
+
+  {
+    OType *   valuetype = valueexpr->ResolvedType();
+    OValue *  value = valuetype->CreateValue();
+    if (!value)
+    {
+      Error(format("Unsupported #define value type: \"{}\"", valuetype->name));
+      goto cleanup;
+    }
+
+    if (!value->CalculateConstant(valueexpr))
+    {
+      delete value;
+      goto cleanup;
+    }
+
+    result = new OValSymConst(scpos_statement_start, sid, valuetype, value);
+  }
+
+cleanup:
+  delete valueexpr;
+
+  scpos_statement_start = saved_stmtpos;
+  errorpos = saved_errorpos;
+  curscope = saved_scope;
+  curblock = saved_block;
+  scf->SetDirectiveExprMode(false);
+
+  return result;
+}
+
+bool ODqCompParser::ParseDefineCondition(const OScPosition & scpos, bool * rok)
+{
+  OScPosition    saved_stmtpos = scpos_statement_start;
+  OScPosition *  saved_errorpos = errorpos;
+  OScope *       saved_scope = curscope;
+  OStmtBlock *   saved_block = curblock;
+
+  scpos_statement_start = scpos;
+  errorpos = &scpos_statement_start;
+  curscope = g_defines;
+  curblock = nullptr;
+  scf->SetDirectiveExprMode(true);
+
+  bool     result = false;
+  bool     ok = false;
+  OExpr *  valueexpr = nullptr;
+
+  scf->SkipWhite();
+  valueexpr = ParseExpression();
+  if (!valueexpr)
+  {
+    goto cleanup;
+  }
+
+  if (!valueexpr->ResolvedType() || (TK_BOOL != valueexpr->ResolvedType()->kind))
+  {
+    Error("Preprocessor condition must be a boolean expression");
+    goto cleanup;
+  }
+
+  {
+    OValueBool cond(g_builtins->type_bool, false);
+    if (!cond.CalculateConstant(valueexpr))
+    {
+      goto cleanup;
+    }
+    result = cond.value;
+    ok = true;
+  }
+
+cleanup:
+  delete valueexpr;
+
+  scpos_statement_start = saved_stmtpos;
+  errorpos = saved_errorpos;
+  curscope = saved_scope;
+  curblock = saved_block;
+  scf->SetDirectiveExprMode(false);
+
+  if (rok)
+  {
+    *rok = ok;
+  }
+
+  return result;
 }
 
 void ODqCompParser::Error(const string amsg, OScPosition * ascpos)

@@ -121,6 +121,12 @@ void OScFeederDq::SkipWhite()
 
   // this is a pretty complex function
 
+  if (directive_expr_mode)
+  {
+    SkipSpaces(false);
+    return;
+  }
+
 repeat_skip:  // jumped here when returning from an include
 
   while (curp < bufend)
@@ -323,16 +329,33 @@ void OScFeederDq::ParseDirectiveDefine()
     return;
   }
 
-  if (not FindDirectiveEnd())
-  {
-    return;
-  }
-
-  // TODO: handle advanced constructs like #define MAXLEN : int = 32
-
   // Override the source code position, to point to the #define ... statement start
   g_compiler->errorpos = &scpos_start_directive;
-  g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos_start_directive, sid, true));
+  SkipSpaces();
+  if (CheckSymbol("="))
+  {
+    OValSymConst * defineval = g_compiler->ParseDefineConst(scpos_start_directive, sid);
+    if (defineval)
+    {
+      g_defines->DefineValSym(defineval);
+    }
+
+    if (not FindDirectiveEnd())
+    {
+      g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
+      return;
+    }
+  }
+  else
+  {
+    if (not FindDirectiveEnd())
+    {
+      g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
+      return;
+    }
+
+    g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos_start_directive, sid, true));
+  }
   g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
 }
 
@@ -420,6 +443,8 @@ void OScFeederDq::PreprocError(const string amsg, OScPosition * ascpos, bool atr
 bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a conditional processed
 {
   string sid;
+  bool condok = false;
+  bool condval = false;
 
   // starters
 
@@ -457,9 +482,24 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
   }
   else if ("if" == aid)
   {
+    curcond = new OScfCondition(curcond, scpos_start_directive, inactive_code);
+
+    if (not inactive_code)
+    {
+      condval = g_compiler->ParseDefineCondition(scpos_start_directive, &condok);
+      if (condok and condval)
+      {
+        curcond->branch_taken = true;
+      }
+      else
+      {
+        inactive_code = true;
+      }
+    }
+
     if (g_opt.verbose)
     {
-      print("{}: #if found, NOT IMPLEMENTED YET!\n", scpos_start_directive.Format());
+      print("{}: #if = {} {}\n", scpos_start_directive.Format(), (condval ? "true" : "false"), (inactive_code ? "(inactive)" : ""));
     }
   }
 
@@ -576,13 +616,46 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
   }
   else if ("elif" == aid)
   {
-   PreprocError(format("{}: #elif found, NOT IMPLEMENTED YET!\n", scpos_start_directive.Format()));
-   return false;
+    if (!curcond)
+    {
+      PreprocError("#elif without #if...");
+      inactive_code = true;
+    }
+    else if (FCOND_ELSE == curcond->state)
+    {
+      PreprocError(format("#elif directive after previous #else at {}", curcond->elsepos.Format()));
+      inactive_code = true;
+    }
+    else
+    {
+      inactive_code = (curcond->parent_inactive or curcond->branch_taken);
 
-   if (g_opt.verbose)
-   {
-      print("{}: #elif found, NOT IMPLEMENTED YET!\n", scpos_start_directive.Format());
-   }
+      if (curcond->startpos.scfile != curfile)
+      {
+        PreprocError("#elif for #if... in different include file!");
+        curcond = new OScfCondition(curcond, scpos_start_directive, inactive_code);
+        inactive_code = true;
+      }
+
+      curcond->state = FCOND_ELIF;
+      if (not inactive_code)
+      {
+        condval = g_compiler->ParseDefineCondition(scpos_start_directive, &condok);
+        if (condok and condval)
+        {
+          curcond->branch_taken = true;
+        }
+        else
+        {
+          inactive_code = true;
+        }
+      }
+    }
+
+    if (g_opt.verbose)
+    {
+      print("{}: #elif = {} {}\n", scpos_start_directive.Format(), (condval ? "true" : "false"), (inactive_code ? "(inactive)" : ""));
+    }
   }
   else
   {

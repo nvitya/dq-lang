@@ -71,6 +71,7 @@ public:
 
 public: // parsing functions
   inline bool Eof() { return ((curp >= bufend) and (returnpos.size() == 0)); }
+  inline void SetDirectiveExprMode(bool avalue) { directive_expr_mode = avalue; }
 
   void SkipWhite(); // jumps to the first normal token
 
@@ -79,6 +80,7 @@ protected:
   OScfCondition *      curcond = nullptr;
   bool                 inactive_code = false;
   bool                 preproc_closer_brace = true;
+  bool                 directive_expr_mode = false;
 
   void ParseDirective();
   void PreprocError(const string amsg, OScPosition * ascpos = nullptr, bool atryrecover = true);

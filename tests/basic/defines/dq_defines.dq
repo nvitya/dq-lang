@@ -1,0 +1,47 @@
+// define tests
+
+//#define ERRORTEST
+
+#define MAXVAL  = 1024 - 500
+#define MAXMASK = MAXVAL - 1
+#define BOOLVAL = false
+#define SOMEDEF
+
+// #define STRVAL = "Defined String"  // string defines not supported yet
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int:
+  printf('Testing defines...\n');
+
+  #ifdef BOOLVAL
+    printf('BOOLVAL is defined.\n');
+    #if BOOLVAL
+      printf('  BOOLVAL is true\n');
+    #else
+      printf('  BOOLVAL is false\n');
+    #endif
+  #else
+    printf('BOOLVAL is not defined.\n');
+  #endif
+
+  #ifdef ERRORTEST
+    #if NONEXISTING
+      // non-existing define
+    #endif
+
+    #if MAXVAL
+      // maxval is not boolean, compare operator required
+    #endif
+  #endif
+
+  #if MAXVAL > 2000
+    printf('MAXVAL > 2000\n');
+  #elif MAXVAL >= 1000
+    printf('MAXVAL >= 1000\n');
+  #else
+    printf('MAXVAL < 1000\n');
+  #endif
+
+  return 0;
+endfunc

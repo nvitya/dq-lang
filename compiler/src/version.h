@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.6"
+#define DQ_COMPILER_VERSION  "0.5.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.7:
+  - Preprocessor improvements
+    - #define symbols with values
+    - #if, #elif conditions
 v0.5.6:
   - constant arrays
 v0.5.5:

@@ -91,6 +91,52 @@ bool OValueBool::CalculateConstant(OExpr * expr)
     }
   }
 
+  {
+    auto * ex = dynamic_cast<OCompareExpr *>(expr);
+    if (ex)
+    {
+      ETypeKind exprkind = ex->left->ResolvedType()->kind;
+
+      if (TK_INT == exprkind)
+      {
+        OValueInt vleft(g_builtins->type_int, 0);
+        OValueInt vright(g_builtins->type_int, 0);
+        if (!vleft.CalculateConstant(ex->left) || !vright.CalculateConstant(ex->right))
+        {
+          return false;
+        }
+
+        if      (COMPOP_EQ == ex->op)  value = (vleft.value == vright.value);
+        else if (COMPOP_NE == ex->op)  value = (vleft.value != vright.value);
+        else if (COMPOP_LT == ex->op)  value = (vleft.value <  vright.value);
+        else if (COMPOP_LE == ex->op)  value = (vleft.value <= vright.value);
+        else if (COMPOP_GT == ex->op)  value = (vleft.value >  vright.value);
+        else if (COMPOP_GE == ex->op)  value = (vleft.value >= vright.value);
+        else                           return false;
+        return true;
+      }
+
+      if (TK_FLOAT == exprkind)
+      {
+        OValueFloat vleft(g_builtins->type_float, 0);
+        OValueFloat vright(g_builtins->type_float, 0);
+        if (!vleft.CalculateConstant(ex->left) || !vright.CalculateConstant(ex->right))
+        {
+          return false;
+        }
+
+        if      (COMPOP_EQ == ex->op)  value = (vleft.value == vright.value);
+        else if (COMPOP_NE == ex->op)  value = (vleft.value != vright.value);
+        else if (COMPOP_LT == ex->op)  value = (vleft.value <  vright.value);
+        else if (COMPOP_LE == ex->op)  value = (vleft.value <= vright.value);
+        else if (COMPOP_GT == ex->op)  value = (vleft.value >  vright.value);
+        else if (COMPOP_GE == ex->op)  value = (vleft.value >= vright.value);
+        else                           return false;
+        return true;
+      }
+    }
+  }
+
   g_compiler->ExpressionError("Bool constant expression error");
   return false;
 }

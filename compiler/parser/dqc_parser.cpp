@@ -20,6 +20,7 @@
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "named_scopes.h"
 #include "scope_defines.h"
 #include "expressions.h"
 #include "statements.h"
@@ -604,6 +605,33 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
     if (scf->CheckSymbol(";"))  // empty ";", just ignore it
     {
       Hint("Meaningless \";\" was found.");
+      continue;
+    }
+
+    if (scf->CheckSymbol("@"))
+    {
+      pvalsym = ResolveNamespaceValSym();
+      if (!pvalsym)
+      {
+        continue;
+      }
+
+      if (VSK_VARIABLE == pvalsym->kind or VSK_PARAMETER == pvalsym->kind or VSK_CONST == pvalsym->kind)
+      {
+        if (ParseStmtAssign(pvalsym))
+        {
+          continue;
+        }
+      }
+
+      OValSymFunc * vsfunc = dynamic_cast<OValSymFunc *>(pvalsym);
+      if (vsfunc)
+      {
+        ParseStmtVoidCall(vsfunc);
+        continue;
+      }
+
+      StatementError(format("Unknown statement/function \"{}\"", pvalsym->name));
       continue;
     }
 
@@ -1472,6 +1500,22 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return result;
   }
 
+  if (scf->CheckSymbol("@"))
+  {
+    OValSym * vs = ResolveNamespaceValSym();
+    if (!vs)
+    {
+      return nullptr;
+    }
+
+    result = new OLValueVar(vs);
+    if (vs->kind != VSK_FUNCTION and not vs->initialized)
+    {
+      Error(format("Accessing uninitialized variable \"{}\"", vs->name));
+    }
+    return result;
+  }
+
   // identifier
 
   OScPosition scpos_sid;
@@ -1521,6 +1565,50 @@ OExpr * ODqCompParser::ParseExprPrimary()
   }
 
   return result;
+}
+
+OValSym * ODqCompParser::ResolveNamespaceValSym()
+{
+  string nsname;
+  string symname;
+
+  if (scf->CheckSymbol("."))
+  {
+    nsname = ".";
+  }
+  else if (!scf->ReadIdentifier(nsname))
+  {
+    Error("Namespace name expected after \"@\"");
+    return nullptr;
+  }
+
+  if ("." != nsname && !scf->CheckSymbol("."))
+  {
+    Error("\".\" expected after namespace name");
+    return nullptr;
+  }
+
+  if (!scf->ReadIdentifier(symname))
+  {
+    Error("Symbol name expected after namespace selector");
+    return nullptr;
+  }
+
+  auto it = g_namespaces.find(nsname);
+  if (it == g_namespaces.end())
+  {
+    Error(format("Unknown namespace \"{}\"", nsname));
+    return nullptr;
+  }
+
+  OValSym * vs = it->second->FindValSym(symname, nullptr, true);
+  if (!vs)
+  {
+    Error(format("Unknown symbol \"{}\" in namespace \"{}\"", symname, nsname));
+    return nullptr;
+  }
+
+  return vs;
 }
 
 OExpr * ODqCompParser::ParseArrayLit()
@@ -1846,6 +1934,12 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
 {
   // Unified assignment parsing for all lvalue targets
   // identifier is already consumed
+
+  if (VSK_CONST == pvalsym->kind)
+  {
+    Error(format("Assignment target \"{}\" is constant", pvalsym->name));
+    return true;
+  }
 
   OExpr * targetexpr = ParsePostfix(new OLValueVar(pvalsym));
   OLValueExpr * lval = dynamic_cast<OLValueExpr *>(targetexpr);

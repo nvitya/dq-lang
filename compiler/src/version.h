@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.7"
+#define DQ_COMPILER_VERSION  "0.5.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.5.8:
+  - Namespaces with @ symbol:  @def for defines, @. for current module root, @dq for builtins
 v0.5.7:
   - Preprocessor improvements
     - #define symbols with values

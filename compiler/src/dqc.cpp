@@ -17,6 +17,7 @@
 #include <cstdio>
 
 #include "ll_defs.h"
+#include "named_scopes.h"
 #include "scope_builtins.h"
 #include "scope_defines.h"
 
@@ -121,6 +122,7 @@ void dqc_init()
   init_scope_defines();
 
   init_dq_module();
+  init_named_scopes();
 
   g_compiler = new ODqCompiler();
 }

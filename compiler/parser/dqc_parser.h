@@ -64,6 +64,7 @@ public: // utility
   bool CheckStatementClose();
   OValSymConst * ParseDefineConst(const OScPosition & scpos, const string & sid);
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
+  OValSym * ResolveNamespaceValSym();
 
   void StatementError(const string amsg, OScPosition * scpos = nullptr, bool atryrecover = true);
   void ExpressionError(const string amsg, OScPosition * scpos = nullptr);

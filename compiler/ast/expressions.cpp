@@ -77,6 +77,11 @@ LlValue * OLValueExpr::Generate(OScope * scope)
 
 LlValue * OLValueVar::GenerateAddress(OScope * scope)
 {
+  if (VSK_CONST == pvalsym->kind)
+  {
+    throw logic_error(std::format("Constant \"{}\" has no addressable storage", pvalsym->name));
+  }
+
   if (!pvalsym->ll_value)
   {
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
@@ -86,6 +91,16 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
 
 LlValue * OLValueVar::Generate(OScope * scope)
 {
+  if (VSK_CONST == pvalsym->kind)
+  {
+    OValSymConst * vsconst = dynamic_cast<OValSymConst *>(pvalsym);
+    if (!vsconst)
+    {
+      throw logic_error(std::format("Constant \"{}\" has invalid value storage", pvalsym->name));
+    }
+    return vsconst->pvalue->GetLlConst();
+  }
+
   if (!pvalsym->ll_value)
   {
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));

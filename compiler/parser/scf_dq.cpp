@@ -331,7 +331,7 @@ void OScFeederDq::ParseDirectiveDefine()
 
   // Override the source code position, to point to the #define ... statement start
   g_compiler->errorpos = &scpos_start_directive;
-  SkipSpaces();
+  SkipSpaces(false);
   if (CheckSymbol("="))
   {
     OValSymConst * defineval = g_compiler->ParseDefineConst(scpos_start_directive, sid);

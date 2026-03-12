@@ -7,6 +7,8 @@
 #define BOOLVAL = false
 #define SOMEDEF
 
+var g_var : int = 555;
+
 // #define STRVAL = "Defined String"  // string defines not supported yet
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
@@ -23,6 +25,14 @@ function main() -> int:
     #endif
   #else
     printf('BOOLVAL is not defined.\n');
+  #endif
+
+  #ifdef BOOLVAL
+    if @def.BOOLVAL:
+      printf('  BOOLVAL (from normal source) is true\n');
+    else:
+      printf('  BOOLVAL (from normal source) is false\n');
+    endif
   #endif
 
   #ifdef ERRORTEST
@@ -42,6 +52,15 @@ function main() -> int:
   #else
     printf('MAXVAL < 1000\n');
   #endif
+
+  printf('MAXVAL = %ld\n', @def.MAXVAL);  // @ is used for namespace (scope) access.
+                                          // The @def namespace points to the g_defines scope
+
+  g_var = 123;
+  @.g_var = 444;
+  printf('g_var = %ld\n', @.g_var);
+
+  @def.MAXVAL = 123;   // this should fail
 
   return 0;
 endfunc

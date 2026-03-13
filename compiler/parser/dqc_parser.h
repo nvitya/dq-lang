@@ -18,6 +18,7 @@
 #include "comp_options.h"
 #include "expressions.h"
 #include "statements.h"
+#include "errorcodes.h"
 #include "dqc_ast.h"
 
 using namespace std;
@@ -27,10 +28,6 @@ class ODqCompParser : public ODqCompAst
 private:
   using             super = ODqCompAst;
 
-public:
-  OScPosition       scpos_statement_start;
-  OScPosition *     errorpos = nullptr;  // if nullptr then uses the scpos_statement_start
-  OValSymFunc *     curvsfunc = nullptr;
 
 public:
   ODqCompParser();
@@ -65,13 +62,6 @@ public: // utility
   OValSymConst * ParseDefineConst(const OScPosition & scpos, const string & sid);
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
   OValSym * ResolveNamespaceValSym();
-
-  void StatementError(const string amsg, OScPosition * scpos = nullptr, bool atryrecover = true);
-  void ExpressionError(const string amsg, OScPosition * scpos = nullptr);
-
-  void Error(const string amsg, OScPosition * ascpos = nullptr);
-  void Warning(const string amsg, OScPosition * ascpos = nullptr);
-  void Hint(const string amsg, OScPosition * ascpos = nullptr);
 
 public: // expressions
   OStmtBlock *  curblock = nullptr;

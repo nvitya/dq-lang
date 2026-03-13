@@ -2173,42 +2173,6 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
   return true;
 }
 
-void ODqCompParser::StatementError(const string amsg, OScPosition * scpos, bool atryrecover)
-{
-  OScPosition log_scpos(scf->curfile, scf->curp);
-
-  if (scpos and scpos->scfile) // use the position provided
-  {
-    log_scpos.Assign(*scpos);
-  }
-
-  Error(amsg, &log_scpos);
-  //print("{}: {}\n", log_scpos.Format(), amsg);
-
-  // try to recover
-  if (atryrecover)
-  {
-    if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
-    {
-
-    }
-  }
-
-  scf->SkipWhite();
-}
-
-void ODqCompParser::ExpressionError(const string amsg, OScPosition *scpos)
-{
-  OScPosition log_scpos(scpos_statement_start);
-
-  if (scpos and scpos->scfile) // use the position provided
-  {
-    log_scpos.Assign(*scpos);
-  }
-
-  Error(amsg, &log_scpos);
-}
-
 bool ODqCompParser::CheckStatementClose()
 {
   scf->SkipWhite();
@@ -2334,33 +2298,4 @@ cleanup:
   }
 
   return result;
-}
-
-void ODqCompParser::Error(const string amsg, OScPosition * ascpos)
-{
-  OScPosition * epos = ascpos;
-  if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
-
-  print("{} ERROR: {}\n", epos->Format(), amsg);
-
-  ++errorcnt;
-}
-
-void ODqCompParser::Warning(const string amsg, OScPosition * ascpos)
-{
-  OScPosition * epos = ascpos;
-  if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
-
-  print("{} WARNING: {}\n", epos->Format(), amsg);
-}
-
-void ODqCompParser::Hint(const string amsg, OScPosition * ascpos)
-{
-  OScPosition * epos = ascpos;
-  if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
-
-  print("{} HINT: {}\n", epos->Format(), amsg);
 }

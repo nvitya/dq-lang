@@ -46,7 +46,15 @@ struct TDiagDefHint
 // ERRORS
 //-----------------------------------------------------------------------------
 
-DEF_DQ_ERR(DQERR_TYPE_01, "EType1", "Types $1 and $2 are incompatible");
+DEF_DQ_ERR(DQERR_ID_EXP_AFTER,     "EIdExpectedAfter",
+           "Identifier is expected after \"$1\"");
+
+DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER_SYM,     "ETypeSpecExpected",
+           "Type specifier \":\" is expected after symbol \"$1\"");
+
+DEF_DQ_ERR(DQERR_VAR_ALREADY_DECLARED_WITH_TYPE,   "EVarAlreadyDeclared",
+           "Variable \"$1\" is already declared with type \"$2\"");
+
 
 //-----------------------------------------------------------------------------
 // WARNINGS

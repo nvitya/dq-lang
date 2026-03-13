@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.5.9"
+#define DQ_COMPILER_VERSION  "0.6.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.0:
+  - New error handling with central error symbols
 v0.5.9:
   - Error handling rework (work in progress)
 v0.5.8:

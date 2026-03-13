@@ -44,21 +44,27 @@ public:
 
   bool ReservedWord(const string aname);
 
+  string FormatDiagMsg(string_view atext, string_view par1, string_view par2);
+
   void Error(const string amsg, OScPosition * ascpos = nullptr);
   void Warning(const string amsg, OScPosition * ascpos = nullptr);
   void Hint(const string amsg, OScPosition * ascpos = nullptr);
 
   // new error definition until the old-style is eliminated
-  void Error2(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr);  // with no str params
-  void Error2(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos = nullptr);  // with one str param
   void Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);  // with two str params
+  void Error2(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos = nullptr);  // with one str param
+  void Error2(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr);  // with no str params
 
   void StatementError(const string amsg, OScPosition * scpos = nullptr, bool atryrecover = true);
 
-  void StatementError2(const TDiagDefErr & adiag, OScPosition * scpos = nullptr, bool atryrecover = true);
-  void StatementError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos = nullptr, bool atryrecover = true);
   void StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos = nullptr, bool atryrecover = true);
+  void StatementError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos = nullptr, bool atryrecover = true);
+  void StatementError2(const TDiagDefErr & adiag, OScPosition * scpos = nullptr, bool atryrecover = true);
 
   void ExpressionError(const string amsg, OScPosition * scpos = nullptr);
+
+  void ExpressionError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos = nullptr);
+  void ExpressionError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos = nullptr);
+  void ExpressionError2(const TDiagDefErr & adiag, OScPosition * scpos = nullptr);
 
 };

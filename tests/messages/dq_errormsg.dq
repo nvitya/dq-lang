@@ -1,0 +1,9 @@
+// test for various compiler messages
+
+var g_cnt = 1;  //#comp-error("EtypeSpecExp")
+
+var g_cnt2 : int = 1;
+var g_cnt2 : bool = false;   //#comp-error("EVarAlreadyDecl")
+
+var 12345;
+

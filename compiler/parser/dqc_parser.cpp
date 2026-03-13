@@ -163,20 +163,20 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
   scf->SkipWhite();
   if (not scf->ReadIdentifier(sid))
   {
-    StatementError("Identifier is expected after \"var\". Syntax: \"var identifier : type [ = initial value];\"");
+    StatementError2(DQERR_ID_EXP_AFTER, "var");
     return;
   }
 
   if (g_module->ValSymDeclared(sid, &pvalsym))
   {
-    StatementError(format("Variable \"{}\" is already declared with the type \"{}\"", sid, pvalsym->ptype->name), &scf->prevpos);
+    StatementError2(DQERR_VAR_ALREADY_DECLARED_WITH_TYPE, sid, pvalsym->ptype->name, &scf->prevpos);
     return;
   }
 
   scf->SkipWhite();
   if (not scf->CheckSymbol(":"))
   {
-    StatementError("Type specifier \":\" is expected after \"var\". Syntax: \"var identifier : type [ = initial value];\"");
+    StatementError2(DQERR_TYPE_SPECIFIER_EXP_AFTER_SYM, sid);
     return;
   }
 

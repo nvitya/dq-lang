@@ -51,22 +51,28 @@ public:
   void Hint(const string amsg, OScPosition * ascpos = nullptr);
 
   // new error definition until the old-style is eliminated
+
+  // With internal error text
   void Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);  // with three str params
   void Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);  // with two str params
   void Error2(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos = nullptr);  // with one str param
   void Error2(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr);  // with no str params
 
-  void StatementError(const string amsg, OScPosition * scpos = nullptr, bool atryrecover = true);
+  // with custom error text:
+  void ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);
+  void ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, OScPosition * ascpos = nullptr);
+  void ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, OScPosition * ascpos = nullptr);
+  void ErrorTxt(const TDiagDefErr & adiag, string_view atext, OScPosition * ascpos = nullptr);
 
+  // same as Error2() + calls SkipCurStatement()
   void StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * scpos = nullptr, bool atryrecover = true);
   void StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos = nullptr, bool atryrecover = true);
   void StatementError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos = nullptr, bool atryrecover = true);
   void StatementError2(const TDiagDefErr & adiag, OScPosition * scpos = nullptr, bool atryrecover = true);
 
-  void ExpressionError(const string amsg, OScPosition * scpos = nullptr);
-
-  void ExpressionError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos = nullptr);
-  void ExpressionError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos = nullptr);
-  void ExpressionError2(const TDiagDefErr & adiag, OScPosition * scpos = nullptr);
+  // Error recovery utilities
+  void SkipToStatementEnd();
+  void SkipCurStatement();
+  void SkipToSymbol(const char * asym);
 
 };

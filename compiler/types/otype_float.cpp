@@ -69,14 +69,14 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
       OValSymConst * vsconst = dynamic_cast<OValSymConst *>(ex->pvalsym);
       if (not vsconst)
       {
-        g_compiler->ExpressionError2(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "float");
+        g_compiler->Error2(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "float");
         return false;
       }
 
       OValueFloat * v = dynamic_cast<OValueFloat *>(vsconst->pvalue);
       if (not v)
       {
-        g_compiler->ExpressionError2(DQERR_TYPE_EXPECTED, "float", ex->ResolvedType()->name);
+        g_compiler->Error2(DQERR_TYPE_EXPECTED, "float", ex->ResolvedType()->name);
         return false;
       }
 
@@ -104,14 +104,14 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
       else if (BINOP_DIV == ex->op)  value = vleft.value / vright.value;
       else
       {
-        g_compiler->ExpressionError2(DQERR_OP_INVALID_FOR, GetBinopSymbol(ex->op), "float expression");
+        g_compiler->Error2(DQERR_OP_INVALID_FOR, GetBinopSymbol(ex->op), "float expression");
         return false;
       }
       return true;
     }
   }
 
-  g_compiler->ExpressionError2(DQERR_CONSTEXPR_ERROR, "float");
+  g_compiler->Error2(DQERR_CONSTEXPR_ERROR, "float");
   return false;
 }
 

@@ -63,7 +63,7 @@ bool OValueArray::CalculateConstant(OExpr * expr)
   {
     if (arrlit->elements.size() != arrtype->arraylength)
     {
-      g_compiler->ExpressionError2(DQERR_ARR_ELEMCOUNT_MISM, to_string(arrtype->arraylength), to_string(arrlit->elements.size()));
+      g_compiler->Error2(DQERR_ARR_ELEMCOUNT_MISM, to_string(arrtype->arraylength), to_string(arrlit->elements.size()));
       return false;
     }
 
@@ -78,7 +78,7 @@ bool OValueArray::CalculateConstant(OExpr * expr)
     return true;
   }
 
-  g_compiler->ExpressionError2(DQERR_ARRAY_CONSTEXPR);
+  g_compiler->Error2(DQERR_ARRAY_CONSTEXPR);
   return false;
 }
 

@@ -51,6 +51,7 @@ DEF_DQ_ERR(DQERR_KW_OR_ID_MISSING,                 "EKeywordOrIdMissing",     "K
 DEF_DQ_ERR(DQERR_SYM_EXPECTED,                     "ESymExpected",            "\"$1\" is expected");
 DEF_DQ_ERR(DQERR_SYM_EXPECTED_AFTER,               "ESymExpected",            "\"$1\" is expected after $2");
 DEF_DQ_ERR(DQERR_MISSING_SEMICOLON,                "EMissingSemicolon",       "\";\" is missing");
+DEF_DQ_ERR(DQERR_MISSING_SEMICOLON_TO_CLOSE,       "EMissingSemicolon",       "\";\" is missing to close the $1");
 DEF_DQ_ERR(DQERR_MISSING_SEMICOLON_AFTER,          "EMissingSemicolon",       "\";\" is missing after $1");
 DEF_DQ_ERR(DQERR_MISSING_COMMA,                    "EMissingComma",           "\",\" is missing");
 DEF_DQ_ERR(DQERR_MISSING_ASSIGN_FOR,               "EMissingAssign",          "Missing assignment \"=\" for \"$1\"");
@@ -70,6 +71,9 @@ DEF_DQ_ERR(DQERR_STMTBLK_CLOSE_MISSING,            "EStmtBlockCloseMissing",  "S
 DEF_DQ_ERR(DQERR_STMT_UNKNOWN,                     "EStmtUnknown",            "Unknown statement or function \"$1\"");
 
 DEF_DQ_ERR(DQERR_EXPR_WRONG_VALUE_FOR,             "EExprWrongValue",         "Wrong value expression for \"$1\"");
+DEF_DQ_ERR(DQERR_EXPR_INITVALUE,                   "EExprInitValue",          "Initial value expression error");
+DEF_DQ_ERR(DQERR_EXPR_INITVALUE_FOR,               "EExprInitValue",          "Initial value expression error for \"$1\"");
+
 DEF_DQ_ERR(DQERR_CONSTEXPR_ERROR,                  "EConstExprError",         "$1 constant expressions error");
 DEF_DQ_ERR(DQERR_CONSTEXPR_INVALID_FOR,            "EConstExprInvalid",       "Invalid constant expression for \"$1\"");
 DEF_DQ_ERR(DQERR_CONSTEXPR_NONCONST_SYM,           "EConstExprNonConstVs",    "Non-constant symbol \"$1\" in $2 constant expression");
@@ -113,6 +117,7 @@ DEF_DQ_ERR(DQERR_FUNC_RETTYPE_EXPECTED,            "EFuncRettypeExpected",    "F
 DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "EFuncNoBodyAllowed",      "\";\" is expected after $1");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "EFuncResultNotSet",       "Function \"$1\" result is not set");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_SPECIFIED,            "EFuncResultSet",          "Function \"$1\" result is set for function returning no value");
+DEF_DQ_ERR(DQERR_FUNC_CALL_PARENTH,                "EFuncCall",               "Function call \"$1\" missing parentheses: \"(\"");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "ECondExprMissing",        "Condition expression is mission for \"$1\"");
 DEF_DQ_ERR(DQERR_MULTIPLE_ELSE,                    "EMultipleElse",           "Multiple else branches detected");
@@ -134,6 +139,8 @@ DEF_DQ_ERR(DQERR_CDIR_MULTIPLE_ELSE_PREVPOS,       "ECDirMultipleElse",       "M
 DEF_DQ_ERR(DQERR_CDIR_COND_WRONG_INC,              "ECDirCondWrongInc",       "$1 for $2 in a different include file!");
 DEF_DQ_ERR(DQERR_CDIR_INC_FN_MISSING,              "ECDirIncFileNameMissing", "#include error: file name is missing");
 DEF_DQ_ERR(DQERR_CDIR_INC_LOADING,                 "ECDirIncFileLoad",        "Error loading #include file \"$1\"");
+DEF_DQ_ERR(DQERR_CDIR_EXPR,                        "ECDirExpr",               "Compiler directive expression error");
+DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "ECDirExprType",           "Compiler directive expression type error");
 
 
 //-----------------------------------------------------------------------------

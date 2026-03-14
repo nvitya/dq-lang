@@ -85,13 +85,14 @@ void ODqCompParser::ParseModule()
       scf->SkipWhite();
       if (not scf->ReadIdentifier(attrname))
       {
-        StatementError2(DQERR_ATTR_NAME_EXPECTED);
+        Error2(DQERR_ATTR_NAME_EXPECTED);
+        SkipToSymbol("]]");
         continue;
       }
       scf->SkipWhite();
       if (not scf->CheckSymbol("]]"))
       {
-        StatementError2(DQERR_SYM_EXPECTED_AFTER, "attribute name");
+        Error2(DQERR_SYM_EXPECTED_AFTER, "attribute name");
         continue;
       }
       if ("external" == attrname)
@@ -100,7 +101,7 @@ void ODqCompParser::ParseModule()
       }
       else
       {
-        StatementError2(DQERR_ATTR_UNKNOWN, attrname);
+        Error2(DQERR_ATTR_UNKNOWN, attrname);
         continue;
       }
       scf->SkipWhite();
@@ -1847,21 +1848,21 @@ void ODqCompParser::ParseStmtVar()
   scf->SkipWhite();
   if (not scf->ReadIdentifier(sid))
   {
-    StatementError("Identifier is expected after \"var\". Syntax: \"var identifier : type [ = expression];\"");
+    StatementError2(DQERR_ID_EXP_AFTER, "var");
     return;
   }
 
   pvalsym = curscope->FindValSym(sid, nullptr, false);  // do not search in the parent scopes this time !
   if (pvalsym)
   {
-    StatementError(format("Variable \"{}\" is already declared with the type \"{}\"", sid, pvalsym->ptype->name), &scf->prevpos);
+    StatementError2(DQERR_VS_ALREADY_DECL_TYPE, sid, pvalsym->ptype->name, &scf->prevpos);
     return;
   }
 
   scf->SkipWhite();
   if (not scf->CheckSymbol(":"))
   {
-    StatementError("Type specifier \":\" is expected after \"var\". Syntax: \"var identifier : type [ = expression];\"");
+    StatementError2(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
     return;
   }
 
@@ -1880,7 +1881,7 @@ void ODqCompParser::ParseStmtVar()
       scf->SkipWhite();
       if (not scf->CheckSymbol("}"))
       {
-        Error("\"}\" expected for zero-initializer");
+        ErrorTxt(DQERR_EXPR_INITVALUE, "\"}\" expected for zero-initializer");
         return;
       }
       zero_init = true;
@@ -1894,7 +1895,7 @@ void ODqCompParser::ParseStmtVar()
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
-    Error("\";\" is missing after the var declaration");
+    StatementError2(DQERR_MISSING_SEMICOLON_TO_CLOSE, "variable declaration");
   }
 
   if (initexpr and (not CheckAssignType(ptype, &initexpr, "Assignment")))  // might add implicit conversion
@@ -1963,7 +1964,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   {
     OScPosition scpos;
     scf->SaveCurPos(scpos);
-    StatementError("\";\" is missing after the assignment statement", &scpos);
+    StatementError2(DQERR_MISSING_SEMICOLON_TO_CLOSE, "assignment statement", &scpos);
   }
 
   if (!expr)
@@ -2027,7 +2028,7 @@ void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    StatementError("\"(\" is missing for the function call");
+    StatementError2(DQERR_FUNC_CALL_PARENTH, vsfunc->name);
     return;
   }
 
@@ -2040,7 +2041,7 @@ void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
-    Error("\";\" is missing after the var declaration");
+    Error2(DQERR_MISSING_SEMICOLON_TO_CLOSE, "function call statement");
   }
 
   curblock->AddStatement(new OStmtVoidCall(scpos_statement_start, callexpr));
@@ -2177,7 +2178,7 @@ bool ODqCompParser::CheckStatementClose()
   scf->SkipWhite();
   if (not scf->CheckSymbol(";"))
   {
-    StatementError("\";\" is expected to close the previous statement");
+    StatementError2(DQERR_MISSING_SEMICOLON_TO_CLOSE, "previous statement");
     return false;
   }
   return true;
@@ -2208,7 +2209,7 @@ OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const 
 
   if (!valueexpr->ptype)
   {
-    Error(format("Unable to determine the type of #define \"{}\"", sid));
+    ErrorTxt(DQERR_CDIR_EXPR_TYPE, "Unable to determine the type of #define \"$1\"", sid);
     goto cleanup;
   }
 
@@ -2217,7 +2218,7 @@ OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const 
     OValue *  value = valuetype->CreateValue();
     if (!value)
     {
-      Error(format("Unsupported #define value type: \"{}\"", valuetype->name));
+      ErrorTxt(DQERR_CDIR_EXPR_TYPE, "Unsupported #define value type: \"$1\"", valuetype->name);
       goto cleanup;
     }
 
@@ -2268,7 +2269,7 @@ bool ODqCompParser::ParseDefineCondition(const OScPosition & scpos, bool * rok)
 
   if (!valueexpr->ResolvedType() || (TK_BOOL != valueexpr->ResolvedType()->kind))
   {
-    Error("Preprocessor condition must be a boolean expression");
+    ErrorTxt(DQERR_CDIR_EXPR, "Preprocessor condition must be a boolean expression");
     goto cleanup;
   }
 

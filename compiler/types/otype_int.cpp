@@ -56,14 +56,14 @@ bool OValueInt::CalculateConstant(OExpr * expr)
       OValSymConst * vsconst = dynamic_cast<OValSymConst *>(ex->pvalsym);
       if (not vsconst)
       {
-        g_compiler->ExpressionError2(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "int");
+        g_compiler->Error2(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "int");
         return false;
       }
 
       OValueInt * vint = dynamic_cast<OValueInt *>(vsconst->pvalue);
       if (not vint)
       {
-        g_compiler->ExpressionError2(DQERR_TYPE_EXPECTED, "int", ex->ResolvedType()->name);
+        g_compiler->Error2(DQERR_TYPE_EXPECTED, "int", ex->ResolvedType()->name);
         return false;
       }
 
@@ -101,7 +101,7 @@ bool OValueInt::CalculateConstant(OExpr * expr)
 
       else
       {
-        g_compiler->ExpressionError2(DQERR_OP_UNHANDLED_FOR, GetBinopSymbol(ex->op), "int const expression");
+        g_compiler->Error2(DQERR_OP_UNHANDLED_FOR, GetBinopSymbol(ex->op), "int const expression");
       }
 
       return true;
@@ -124,7 +124,7 @@ bool OValueInt::CalculateConstant(OExpr * expr)
     }
   }
 
-  g_compiler->ExpressionError2(DQERR_CONSTEXPR_ERROR, "int");
+  g_compiler->Error2(DQERR_CONSTEXPR_ERROR, "int");
   return false;
 }
 

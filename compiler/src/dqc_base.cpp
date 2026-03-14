@@ -99,11 +99,47 @@ void ODqCompBase::Error(const string amsg, OScPosition * ascpos)
   ++errorcnt;
 }
 
-void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, string_view par3, OScPosition *ascpos)
 {
-  OScPosition * epos = ascpos;
+ OScPosition * epos = ascpos;
   if (!epos) epos = errorpos;
   if (!epos) epos = &scpos_statement_start;
+
+  print("{} ERROR({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(atext, par1, par2, par3));
+
+  ++errorcnt;
+}
+
+void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, OScPosition * ascpos)
+{
+  ErrorTxt(adiag, atext, par1, par2, "", ascpos);
+}
+
+void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, OScPosition * ascpos)
+{
+  ErrorTxt(adiag, atext, par1, "", "", ascpos);
+}
+
+void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, OScPosition * ascpos)
+{
+  ErrorTxt(adiag, atext, "", "", "", ascpos);
+}
+
+void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+{
+  OScPosition log_scpos;
+
+  OScPosition * epos = ascpos;
+  if (!epos) epos = errorpos;
+  if (!epos)
+  {
+    // use the current parser position by default
+    scf->SaveCurPos(log_scpos);
+    epos = &log_scpos;
+
+    // old behaviour: statement_start
+    //epos = &scpos_statement_start;
+  }
 
   print("{} ERROR({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
 
@@ -125,51 +161,39 @@ void ODqCompBase::Error2(const TDiagDefErr & adiag, OScPosition * ascpos)
   Error2(adiag, "", "", "", ascpos);
 }
 
-void ODqCompBase::StatementError(const string amsg, OScPosition * scpos, bool atryrecover)
+
+void ODqCompBase::SkipToStatementEnd()
 {
-  OScPosition log_scpos(scf->curfile, scf->curp);
-
-  if (scpos and scpos->scfile) // use the position provided
+  if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
   {
-    log_scpos.Assign(*scpos);
+  }
+}
+
+void ODqCompBase::SkipCurStatement()
+{
+  // usually called for error recovery, to find the next statement
+  if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
+  {
+    return;
   }
 
-  Error(amsg, &log_scpos);
-  //print("{}: {}\n", log_scpos.Format(), amsg);
+  scf->CheckSymbol(";"); // consume the ";"
+}
 
-  // try to recover
-  if (atryrecover)
+void ODqCompBase::SkipToSymbol(const char * asym)
+{
+  // for error recovery only
+
+  if (scf->SearchPattern(asym))
   {
-    if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
-    {
-
-    }
+    scf->CheckSymbol(asym); // consume the symbol
   }
-
-  scf->SkipWhite();
 }
 
 void ODqCompBase::StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * scpos, bool atryrecover)
 {
-  OScPosition log_scpos(scf->curfile, scf->curp);
-
-  if (scpos and scpos->scfile) // use the position provided
-  {
-    log_scpos.Assign(*scpos);
-  }
-
-  Error2(adiag, par1, par2, par3, &log_scpos);
-
-  // try to recover
-  if (atryrecover)
-  {
-    if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
-    {
-
-    }
-  }
-
-  scf->SkipWhite();
+  Error2(adiag, par1, par2, par3, scpos);
+  SkipCurStatement();
 }
 
 void ODqCompBase::StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos, bool atryrecover)
@@ -186,42 +210,6 @@ void ODqCompBase::StatementError2(const TDiagDefErr & adiag, OScPosition * scpos
 {
   StatementError2(adiag, "", "", "", scpos, atryrecover);
 }
-
-
-void ODqCompBase::ExpressionError(const string amsg, OScPosition * scpos)
-{
-  OScPosition log_scpos(scpos_statement_start);
-
-  if (scpos and scpos->scfile) // use the position provided
-  {
-    log_scpos.Assign(*scpos);
-  }
-
-  Error(amsg, &log_scpos);
-}
-
-void ODqCompBase::ExpressionError2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * scpos)
-{
-  OScPosition log_scpos(scpos_statement_start);
-
-  if (scpos and scpos->scfile) // use the position provided
-  {
-    log_scpos.Assign(*scpos);
-  }
-
-  Error2(adiag, par1, par2, &log_scpos);
-}
-
-void ODqCompBase::ExpressionError2(const TDiagDefErr & adiag, string_view par1, OScPosition * scpos)
-{
-  ExpressionError2(adiag, par1, "", scpos);
-}
-
-void ODqCompBase::ExpressionError2(const TDiagDefErr & adiag, OScPosition * scpos)
-{
-  ExpressionError2(adiag, "", "", scpos);
-}
-
 
 void ODqCompBase::Warning(const string amsg, OScPosition * ascpos)
 {

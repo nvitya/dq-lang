@@ -1364,7 +1364,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         {
           if (not scf->CheckSymbol("("))
           {
-            Error("\"(\" is required for function call");
+            Error2(DQERR_FUNC_CALL_PARENTH, vsfunc->name);
           }
           OExpr * callexpr = ParseExprFuncCall(vsfunc);
           delete result;
@@ -1415,7 +1415,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     scf->SkipWhite();
     if (!scf->CheckSymbol(")"))
     {
-      Error("\")\" expected");
+      Error2(DQERR_MISSING_PARENTH, ")");
     }
     return result;
   }
@@ -1434,7 +1434,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     }
     else
     {
-      Error("hexadecimal numbers expected after \"0x\"");
+      ErrorTxt(DQERR_LIT_HEXNUM, "hexadecimal numbers expected after \"0x\"");
     }
     return result;
   }
@@ -1451,7 +1451,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
         double fpval = intval;
         if (not scf->ReadFloatFracExp(fpval))
         {
-          Error("Floating point literal parsing error.");
+          Error2(DQERR_LIT_FLOAT);
         }
         result = new OFloatLit(fpval);
       }
@@ -1462,7 +1462,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     }
     else  // impossible case
     {
-      Error("Integer literal parsing error.");
+      Error2(DQERR_LIT_INT);
     }
     return result;
   }
@@ -1477,7 +1477,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     }
     else
     {
-      Error("Unterminated string literal");
+      ErrorTxt(DQERR_LIT_STRING, "Unterminated string literal");
       return nullptr;
     }
   }
@@ -1511,7 +1511,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     result = new OLValueVar(vs);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
-      Error(format("Accessing uninitialized variable \"{}\"", vs->name));
+      Error2(DQERR_VAR_NOT_INITIALIZED, vs->name);
     }
     return result;
   }
@@ -1554,14 +1554,14 @@ OExpr * ODqCompParser::ParseExprPrimary()
   OValSym * vs = curscope->FindValSym(sid);
   if (!vs)
   {
-    Error(format("Unknown identifier \"{}\"", sid));
+    Error2(DQERR_VS_UNKNOWN, sid);
     return result;
   }
 
   result = new OLValueVar(vs);
   if (vs->kind != VSK_FUNCTION and not vs->initialized)
   {
-    Error(format("Accessing uninitialized variable \"{}\"", vs->name), &scpos_sid);
+    Error2(DQERR_VAR_NOT_INITIALIZED, vs->name, &scpos_sid);
   }
 
   return result;
@@ -1662,14 +1662,14 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 
     if ((pcnt > 0) and not scf->CheckSymbol(","))
     {
-      Error("\",\" or \")\" is missing at function call arguments");
+      Error2(DQERR_FUNC_ARGS_LIST, "\",\" or \")\" is missing at function \"$1\"call arguments", vsfunc->name);
       bok = false;
       break;
     }
 
     if (pcnt >= (int)tfunc->params.size() && !tfunc->has_varargs)
     {
-      Error(format("Too many arguments provided, expected {}", tfunc->params.size()));
+      Error2(DQERR_FUNC_ARGS_TOO_MANY, vsfunc->name, to_string(tfunc->params.size()));
       bok = false;
       break;
     }
@@ -1701,7 +1701,7 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 
   if (result->args.size() < tfunc->params.size())
   {
-    Error(format("Too few arguments provided: {}, expected: {}", result->args.size(), tfunc->params.size()));
+    Error2(DQERR_FUNC_ARGS_TOO_FEW, vsfunc->name, to_string(result->args.size()), to_string(tfunc->params.size()));
     bok = false;
   }
 
@@ -1719,7 +1719,7 @@ OExpr * ODqCompParser::ParseBuiltinFloatRound(ERoundMode amode)
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error("\"(\" expected");
+    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, GetRoundModeName(amode));
     return nullptr;
   }
   OExpr * argexpr = ParseExpression();
@@ -1727,14 +1727,14 @@ OExpr * ODqCompParser::ParseBuiltinFloatRound(ERoundMode amode)
 
   if (TK_FLOAT != argexpr->ptype->kind)
   {
-    Error(format("round/ceil/floor requires a float argument, got \"{}\"", argexpr->ptype->name));
+    Error2(DQERR_TYPE_FLOAT_EXPECTED_FOR, GetRoundModeName(amode), argexpr->ptype->name);
     delete argexpr;
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error("\")\" expected");
+    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, GetRoundModeName(amode));
     delete argexpr;
     return nullptr;
   }
@@ -1746,26 +1746,26 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error("\"(\" expected after \"len\"");
+    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, "len");
     return nullptr;
   }
   scf->SkipWhite();
   string lenarg;
   if (not scf->ReadIdentifier(lenarg))
   {
-    Error("Variable name expected in len()");
+    Error2(DQERR_VARNAME_EXP_AFTER, "len");
     return nullptr;
   }
   OValSym * lenvs = curscope->FindValSym(lenarg);
   if (!lenvs)
   {
-    Error(format("Unknown variable \"{}\"", lenarg));
+    Error2(DQERR_VAR_UNKNOWN, lenarg);
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error("\")\" expected after len() argument");
+    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, "len");
     return nullptr;
   }
   if (TK_ARRAY == lenvs->ptype->kind)
@@ -1793,26 +1793,26 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error("\"(\" expected after \"sizeof\"");
+    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, "sizeof");
     return nullptr;
   }
   scf->SkipWhite();
   string sarg;
   if (not scf->ReadIdentifier(sarg))
   {
-    Error("Variable name expected in sizeof()");
+    Error2(DQERR_VARNAME_EXP_AFTER, "sizeof");
     return nullptr;
   }
   OValSym * vs = curscope->FindValSym(sarg);
   if (!vs)
   {
-    Error(format("Unknown variable \"{}\"", sarg));
+    Error2(DQERR_VAR_UNKNOWN, sarg);
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error("\")\" expected after sizeof() argument");
+    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, "sizeof");
     return nullptr;
   }
 
@@ -1987,7 +1987,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
     }
     if (not pvalsym->initialized)
     {
-      Error(format("Variable \"{}\" is not initialized.", pvalsym->name));
+      Error2(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
     }
     else
     {
@@ -2012,7 +2012,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   {
     if (not pvalsym->initialized)
     {
-      Error(format("Variable \"{}\" is not initialized.", pvalsym->name));
+      Error2(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
     }
     else
     {
@@ -2110,7 +2110,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     }
     else
     {
-      Error(format("{} type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      Error2(DQERR_TYPEMISM_STMT_ASSIGN, astmt, dsttype->name, (*rexpr)->ptype->name);
       return false;
     }
   }

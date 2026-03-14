@@ -56,6 +56,15 @@ string GetLogiOpSymbol(ELogicalOp op)
   return format("int({})", int(op));
 }
 
+string GetRoundModeName(ERoundMode mode)
+{
+  if (RNDMODE_ROUND == mode)  return "round";
+  if (RNDMODE_CEIL  == mode)  return "ceil";
+  if (RNDMODE_FLOOR == mode)  return "floor";
+
+  return format("int({})", int(mode));
+}
+
 /* ctor */ OExprTypeConv::OExprTypeConv(OType * dsttype, OExpr * asrc)
 {
   ptype = dsttype;

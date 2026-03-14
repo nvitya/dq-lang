@@ -47,6 +47,7 @@ struct TDiagDefHint
 //-----------------------------------------------------------------------------
 
 DEF_DQ_ERR(DQERR_ID_EXP_AFTER,                     "EIdExpected",             "Identifier is expected after \"$1\"");
+DEF_DQ_ERR(DQERR_VARNAME_EXP_AFTER,                "EVarNameExpected",        "Variable name is expected after \"$1\"");
 DEF_DQ_ERR(DQERR_KW_OR_ID_MISSING,                 "EKeywordOrIdMissing",     "Keyword or identifier is missing");
 DEF_DQ_ERR(DQERR_SYM_EXPECTED,                     "ESymExpected",            "\"$1\" is expected");
 DEF_DQ_ERR(DQERR_SYM_EXPECTED_AFTER,               "ESymExpected",            "\"$1\" is expected after $2");
@@ -55,6 +56,18 @@ DEF_DQ_ERR(DQERR_MISSING_SEMICOLON_TO_CLOSE,       "EMissingSemicolon",       "\
 DEF_DQ_ERR(DQERR_MISSING_SEMICOLON_AFTER,          "EMissingSemicolon",       "\";\" is missing after $1");
 DEF_DQ_ERR(DQERR_MISSING_COMMA,                    "EMissingComma",           "\",\" is missing");
 DEF_DQ_ERR(DQERR_MISSING_ASSIGN_FOR,               "EMissingAssign",          "Missing assignment \"=\" for \"$1\"");
+DEF_DQ_ERR(DQERR_MISSING_PARENTH,                  "EMissingParenth",         "Missing parenthesis \"$1\"");
+DEF_DQ_ERR(DQERR_MISSING_OPEN_PARENTH,             "EMissingOpenParenth",     "Missing parenthesis \"(\"");
+DEF_DQ_ERR(DQERR_MISSING_OPEN_PARENTH_FOR,         "EMissingOpenParenth",     "Missing parenthesis \"(\" for $1");
+DEF_DQ_ERR(DQERR_MISSING_OPEN_PARENTH_AFTER,       "EMissingOpenParenth",     "Missing parenthesis \"(\" after \"$1\"");
+DEF_DQ_ERR(DQERR_MISSING_CLOSE_PARENTH,            "EMissingCloseParenth",    "Missing parenthesis \")\"");
+DEF_DQ_ERR(DQERR_MISSING_CLOSE_PARENTH_FOR,        "EMissingCloseParenth",    "Missing parenthesis \")\" for $1");
+DEF_DQ_ERR(DQERR_MISSING_PARENTH_AFTER,            "EMissingParenth",         "Missing parenthesis \"$1\" after \"$1\"");
+
+DEF_DQ_ERR(DQERR_LIT_HEXNUM,                       "ELitHex",                 "Hexadecimal literal error");
+DEF_DQ_ERR(DQERR_LIT_STRING,                       "ELitStr",                 "String literal error");
+DEF_DQ_ERR(DQERR_LIT_FLOAT,                        "ELitFloat",               "Floating point literal error");
+DEF_DQ_ERR(DQERR_LIT_INT,                          "ELitInt",                 "Integer literal error");
 
 DEF_DQ_ERR(DQERR_SIZE_SPEC,                        "ESizeSpec",               "$1 size must be a positive integer");
 DEF_DQ_ERR(DQERR_ARRAY_SIZESPEC,                   "EArraySizeSpec",          "Array size (or \"]\" is expected");
@@ -93,13 +106,16 @@ DEF_DQ_ERR(DQERR_TYPE_ALREADY_DEFINED_IN,          "ETypeAlreadyDef",         "T
 DEF_DQ_ERR(DQERR_TYPEDEF_ASSIGN_FOR,               "ETypeDefAssign",          "Missing type definition assignment \"=\" for \"$1\"");
 
 DEF_DQ_ERR(DQERR_TYPEMISM_FOR_OP,                  "ETypeMismatchOp",         "Type mismatch for operation: \"$1\" $2 \"$3\"");
+DEF_DQ_ERR(DQERR_TYPEMISM_STMT_ASSIGN,             "ETypeMismatchAssign",     "$1 type mismatch: \"$1\" = \"$2\"");
 DEF_DQ_ERR(DQERR_TYPE_EXPECTED,                    "ETypeExpected",           "\"$1\" type expected, got \"$2\"");
-
+DEF_DQ_ERR(DQERR_TYPE_FLOAT_EXPECTED_FOR,          "ETypeFloatExpected",      "float type expected for \"$1\", got \"$2\"");
 
 DEF_DQ_ERR(DQERR_VS_UNKNOWN,                       "EVsUnknown",              "Unknown symbol \"$1\"");
+DEF_DQ_ERR(DQERR_VAR_UNKNOWN,                      "EVarUnknown",             "Unknown variable \"$1\"");
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_SCOPE,            "EVsAlreadyDeclScope",     "Symbol \"$1\" is already defined in scope \"$2\"");
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_TYPE,             "EVsAlreadyDeclType",      "Symbol \"$1\" is already declared with type \"$2\"");
 DEF_DQ_ERR(DQERR_GLOBALVAR_INITVALUE,              "EGlobVarInitvalue",       "Invalid initialization value for the global variable \"$1\"");
+DEF_DQ_ERR(DQERR_VAR_NOT_INITIALIZED,              "EVarNotInit",             "Accessing unitialized variable \"$1\"");
 
 DEF_DQ_ERR(DQERR_STRUCT_MBID_EXPECTED,             "EStructMemberId",         "Member id or \"enstruct\" expected");
 
@@ -118,6 +134,9 @@ DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "EFuncNoBodyAllowed",      "\
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "EFuncResultNotSet",       "Function \"$1\" result is not set");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_SPECIFIED,            "EFuncResultSet",          "Function \"$1\" result is set for function returning no value");
 DEF_DQ_ERR(DQERR_FUNC_CALL_PARENTH,                "EFuncCall",               "Function call \"$1\" missing parentheses: \"(\"");
+DEF_DQ_ERR(DQERR_FUNC_ARGS_LIST,                   "EFuncArgList",            "Function \"$1\" argument list error");  // used with custom text
+DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_MANY,               "EFuncArgsTooMany",        "Too many arguments are provided for the function \"$1\" call. Expected $2");
+DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_FEW,                "EFuncArgsTooFew",         "Too few arguments ($1) are provided for the function \"$2\" call. Expected $3");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "ECondExprMissing",        "Condition expression is mission for \"$1\"");
 DEF_DQ_ERR(DQERR_MULTIPLE_ELSE,                    "EMultipleElse",           "Multiple else branches detected");

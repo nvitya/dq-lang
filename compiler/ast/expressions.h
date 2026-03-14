@@ -252,6 +252,8 @@ enum ERoundMode
   RNDMODE_FLOOR
 };
 
+string GetRoundModeName(ERoundMode mode);
+
 class OFloatRoundExpr : public OExpr
 {
 public:

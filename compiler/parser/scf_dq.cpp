@@ -418,7 +418,7 @@ void OScFeederDq::PreprocError2(const TDiagDefErr & adiag, string_view par1, str
   OScPosition * epos = ascpos;
   if (!epos)  epos = &scpos_start_directive;
 
-  g_compiler->Error2(adiag, par1, par2, par3, epos);
+  g_compiler->Error(adiag, par1, par2, par3, epos);
 
   // try to recover
   if (atryrecover)

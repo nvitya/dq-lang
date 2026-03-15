@@ -88,17 +88,6 @@ string ODqCompBase::FormatDiagMsg(string_view atext, string_view par1, string_vi
   return msg;
 }
 
-void ODqCompBase::Error(const string amsg, OScPosition * ascpos)
-{
-  OScPosition * epos = ascpos;
-  if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
-
-  print("{} ERROR: {}\n", epos->Format(), amsg);
-
-  ++errorcnt;
-}
-
 void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, string_view par3, OScPosition *ascpos)
 {
  OScPosition * epos = ascpos;
@@ -125,7 +114,7 @@ void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, OScPosi
   ErrorTxt(adiag, atext, "", "", "", ascpos);
 }
 
-void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
 {
   OScPosition log_scpos;
 
@@ -146,19 +135,19 @@ void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, string_vie
   ++errorcnt;
 }
 
-void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos)
+void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos)
 {
-  Error2(adiag, par1, par2, "", ascpos);
+  Error(adiag, par1, par2, "", ascpos);
 }
 
-void ODqCompBase::Error2(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos)
+void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos)
 {
-  Error2(adiag, par1, "", "", ascpos);
+  Error(adiag, par1, "", "", ascpos);
 }
 
-void ODqCompBase::Error2(const TDiagDefErr & adiag, OScPosition * ascpos)
+void ODqCompBase::Error(const TDiagDefErr & adiag, OScPosition * ascpos)
 {
-  Error2(adiag, "", "", "", ascpos);
+  Error(adiag, "", "", "", ascpos);
 }
 
 
@@ -192,7 +181,7 @@ void ODqCompBase::SkipToSymbol(const char * asym)
 
 void ODqCompBase::StatementError2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * scpos, bool atryrecover)
 {
-  Error2(adiag, par1, par2, par3, scpos);
+  Error(adiag, par1, par2, par3, scpos);
   SkipCurStatement();
 }
 
@@ -211,24 +200,74 @@ void ODqCompBase::StatementError2(const TDiagDefErr & adiag, OScPosition * scpos
   StatementError2(adiag, "", "", "", scpos, atryrecover);
 }
 
-void ODqCompBase::Warning(const string amsg, OScPosition * ascpos)
+void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
 {
+  OScPosition log_scpos;
+
   OScPosition * epos = ascpos;
   if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
+  if (!epos)
+  {
+    // use the current parser position by default
+    scf->SaveCurPos(log_scpos);
+    epos = &log_scpos;
 
-  print("{} WARNING: {}\n", epos->Format(), amsg);
+    // old behaviour: statement_start
+    //epos = &scpos_statement_start;
+  }
+
+  print("{} WARNING({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
 
   ++warncnt;
 }
 
-void ODqCompBase::Hint(const string amsg, OScPosition * ascpos)
+void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, OScPosition * ascpos)
 {
+  Warning(adiag, par1, par2, "", ascpos);
+}
+
+void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, OScPosition * ascpos)
+{
+  Warning(adiag, par1, "", "", ascpos);
+}
+
+void ODqCompBase::Warning(const TDiagDefWarn & adiag, OScPosition * ascpos)
+{
+  Warning(adiag, "", "", "", ascpos);
+}
+
+void ODqCompBase::Hint(const TDiagDefHint & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+{
+  OScPosition log_scpos;
+
   OScPosition * epos = ascpos;
   if (!epos) epos = errorpos;
-  if (!epos) epos = &scpos_statement_start;
+  if (!epos)
+  {
+    // use the current parser position by default
+    scf->SaveCurPos(log_scpos);
+    epos = &log_scpos;
 
-  print("{} HINT: {}\n", epos->Format(), amsg);
+    // old behaviour: statement_start
+    //epos = &scpos_statement_start;
+  }
+
+  print("{} HINT({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
 
   ++hintcnt;
+}
+
+void ODqCompBase::Hint(const TDiagDefHint & adiag, string_view par1, string_view par2, OScPosition * ascpos)
+{
+  Hint(adiag, par1, par2, "", ascpos);
+}
+
+void ODqCompBase::Hint(const TDiagDefHint & adiag, string_view par1, OScPosition * ascpos)
+{
+  Hint(adiag, par1, "", "", ascpos);
+}
+
+void ODqCompBase::Hint(const TDiagDefHint & adiag, OScPosition * ascpos)
+{
+  Hint(adiag, "", "", "", ascpos);
 }

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.1"
+#define DQ_COMPILER_VERSION  "0.6.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.2:
+  - Error system migration finished, all errors/warnings/hints produce short text identifiers
 v0.6.1:
   - The new error handling applied for some parts (work in progress)
 v0.6.0:

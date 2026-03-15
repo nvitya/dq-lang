@@ -46,17 +46,15 @@ public:
 
   string FormatDiagMsg(string_view atext, string_view par1, string_view par2, string_view par3);
 
-  void Error(const string amsg, OScPosition * ascpos = nullptr);
-  void Warning(const string amsg, OScPosition * ascpos = nullptr);
-  void Hint(const string amsg, OScPosition * ascpos = nullptr);
+  //void Error(const string amsg, OScPosition * ascpos = nullptr);
 
   // new error definition until the old-style is eliminated
 
   // With internal error text
-  void Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);  // with three str params
-  void Error2(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);  // with two str params
-  void Error2(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos = nullptr);  // with one str param
-  void Error2(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr);  // with no str params
+  void Error(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);  // with three str params
+  void Error(const TDiagDefErr & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);  // with two str params
+  void Error(const TDiagDefErr & adiag, string_view par1, OScPosition * ascpos = nullptr);  // with one str param
+  void Error(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr);  // with no str params
 
   // with custom error text:
   void ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);
@@ -74,5 +72,19 @@ public:
   void SkipToStatementEnd();
   void SkipCurStatement();
   void SkipToSymbol(const char * asym);
+
+  // Warnings
+
+  void Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);
+  void Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);
+  void Warning(const TDiagDefWarn & adiag, string_view par1, OScPosition * ascpos = nullptr);
+  void Warning(const TDiagDefWarn & adiag, OScPosition * ascpos = nullptr);
+
+  // Hints
+
+  void Hint(const TDiagDefHint & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);
+  void Hint(const TDiagDefHint & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);
+  void Hint(const TDiagDefHint & adiag, string_view par1, OScPosition * ascpos = nullptr);
+  void Hint(const TDiagDefHint & adiag, OScPosition * ascpos = nullptr);
 
 };

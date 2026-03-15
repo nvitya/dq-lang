@@ -85,14 +85,14 @@ void ODqCompParser::ParseModule()
       scf->SkipWhite();
       if (not scf->ReadIdentifier(attrname))
       {
-        Error2(DQERR_ATTR_NAME_EXPECTED);
+        Error(DQERR_ATTR_NAME_EXPECTED);
         SkipToSymbol("]]");
         continue;
       }
       scf->SkipWhite();
       if (not scf->CheckSymbol("]]"))
       {
-        Error2(DQERR_SYM_EXPECTED_AFTER, "attribute name");
+        Error(DQERR_MISSING_ATTR_CLOSE_AFTER, attrname);
         continue;
       }
       if ("external" == attrname)
@@ -101,7 +101,7 @@ void ODqCompParser::ParseModule()
       }
       else
       {
-        Error2(DQERR_ATTR_UNKNOWN, attrname);
+        Error(DQERR_ATTR_UNKNOWN, attrname);
         continue;
       }
       scf->SkipWhite();
@@ -311,7 +311,7 @@ void ODqCompParser::ParseTypeDecl()
   scf->SkipWhite();
   if (not scf->CheckSymbol("="))
   {
-    StatementError2(DQERR_TYPEDEF_ASSIGN_FOR, sid);
+    StatementError2(DQERR_MISSING_ASSIGN_FOR, sid);
     return;
   }
 
@@ -401,7 +401,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
   scf->SkipWhite();
   if (not scf->ReadIdentifier(sid))
   {
-    Error2(DQERR_ID_EXP_AFTER, "function");
+    Error(DQERR_ID_EXP_AFTER, "function");
     return;
   }
 
@@ -427,7 +427,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
       {
         if (not scf->CheckSymbol(","))
         {
-          Error2(DQERR_MISSING_COMMA, &scf->prevpos);
+          Error(DQERR_MISSING_COMMA, &scf->prevpos);
         }
         else { scf-> SkipWhite(); }
       }
@@ -439,14 +439,14 @@ void ODqCompParser::ParseFunction(bool aexternal)
         scf->SkipWhite();
         if (!scf->CheckSymbol(")"))
         {
-          Error2(DQERR_SYM_EXPECTED_AFTER, ")", "\"...\"");
+          Error(DQERR_MISSING_CLOSE_PAREN_AFTER, "...");
         }
         break;
       }
 
       if (not scf->ReadIdentifier(spname))
       {
-        Error2(DQERR_FUNCPAR_NAME_EXP, &scf->prevpos);
+        Error(DQERR_FUNCPAR_NAME_EXP, &scf->prevpos);
         if (not scf->ReadTo(",)"))  // try to skip to next parameter
         {
           break;  // serious problem, would lead to endless-loop
@@ -456,7 +456,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
 
       if (not tfunc->ParNameValid(spname))
       {
-        Error2(DQERR_FUNCPAR_NAME_INVALID, spname, &scf->prevpos);
+        Error(DQERR_FUNCPAR_NAME_INVALID, spname, &scf->prevpos);
         scf->ReadTo(",)");  // try to skip to next parameter
         continue;
       }
@@ -464,7 +464,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
       scf->SkipWhite();
       if (not scf->CheckSymbol(":"))
       {
-        Error2(DQERR_TYPE_SPECIFIER_EXP_AFTER, spname, &scf->prevpos);
+        Error(DQERR_TYPE_SPECIFIER_EXP_AFTER, spname, &scf->prevpos);
         scf->ReadTo(",)");  // try to skip to next parameter
         continue;
       }
@@ -484,11 +484,11 @@ void ODqCompParser::ParseFunction(bool aexternal)
 
   if (tfunc->has_varargs && !aexternal)
   {
-    Error2(DQERR_VARARGS_NOT_ALLOWED);
+    Error(DQERR_VARARGS_NOT_ALLOWED);
   }
   else if (tfunc->has_varargs && tfunc->params.empty())
   {
-    Error2(DQERR_VARARGS_ALONE);
+    Error(DQERR_VARARGS_ALONE);
   }
 
   scf->SkipWhite();
@@ -498,14 +498,14 @@ void ODqCompParser::ParseFunction(bool aexternal)
     string frtname;
     if (not scf->ReadIdentifier(frtname))
     {
-      Error2(DQERR_FUNC_RETTYPE_EXPECTED);
+      Error(DQERR_FUNC_RETTYPE_EXPECTED);
     }
     else
     {
       tfunc->rettype = cur_mod_scope->FindType(frtname);
       if (not tfunc->rettype)
       {
-        Error2(DQERR_TYPE_UNKNOWN, frtname);
+        Error(DQERR_TYPE_UNKNOWN, frtname);
       }
     }
   }
@@ -523,7 +523,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
     scf->SkipWhite();
     if (not scf->CheckSymbol(";"))
     {
-      Error2(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, "external function declaration");
+      Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, "external function declaration");
     }
     curvsfunc = nullptr;
     return;
@@ -538,7 +538,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
   // check if the result is set
   if (vsfunc->vsresult and not vsfunc->vsresult->initialized)
   {
-    Error2(DQERR_FUNC_RESULT_NOT_SET, vsfunc->name, &vsfunc->scpos_endfunc);
+    Error(DQERR_FUNC_RESULT_NOT_SET, vsfunc->name, &vsfunc->scpos_endfunc);
   }
 
   curvsfunc = nullptr;
@@ -605,7 +605,7 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 
     if (scf->CheckSymbol(";"))  // empty ";", just ignore it
     {
-      Hint("Meaningless \";\" was found.");
+      Hint(DQHINT_MEANINGLESS_SEMICOLON);
       continue;
     }
 
@@ -725,14 +725,14 @@ OType * ODqCompParser::ParseTypeSpec()
   scf->SkipWhite();
   if (not scf->ReadIdentifier(stype))
   {
-    Error2(DQERR_TYPE_ID_EXP);
+    Error(DQERR_TYPE_ID_EXP);
     return nullptr;
   }
 
   OType * ptype = cur_mod_scope->FindType(stype);
   if (not ptype)
   {
-    Error2(DQERR_TYPE_UNKNOWN, stype, &scf->prevpos);
+    Error(DQERR_TYPE_UNKNOWN, stype, &scf->prevpos);
     return nullptr;
   }
   ptype = ptype->ResolveAlias();
@@ -752,18 +752,18 @@ OType * ODqCompParser::ParseTypeSpec()
       int64_t maxlen;
       if (not scf->ReadInt64Value(maxlen))
       {
-        Error2(DQERR_CSTR_SIZE_EXPECTED);
+        Error(DQERR_CSTR_SIZE_EXPECTED);
         return nullptr;
       }
       if (maxlen <= 0)
       {
-        Error2(DQERR_CSTR_SIZE_EXPECTED);
+        Error(DQERR_CSTR_SIZE_EXPECTED);
         return nullptr;
       }
       scf->SkipWhite();
       if (not scf->CheckSymbol("]"))
       {
-        Error2(DQERR_SYM_EXPECTED_AFTER, "]", "cstring size");
+        Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "cstring size");
         return nullptr;
       }
       return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
@@ -777,7 +777,7 @@ OType * ODqCompParser::ParseTypeSpec()
   {
     if (is_pointer)
     {
-      Error2(DQERR_NOT_SUPPORTED, "Pointer-to-array");
+      Error(DQERR_NOT_SUPPORTED, "Pointer-to-array");
       return nullptr;
     }
 
@@ -789,7 +789,7 @@ OType * ODqCompParser::ParseTypeSpec()
     }
     else if (scf->CheckSymbol("..."))
     {
-      Error2(DQERR_NOT_IMPLEMENTED_YET, "Dynamic array (int[...])");
+      Error(DQERR_NOT_IMPLEMENTED_YET, "Dynamic array (int[...])");
       scf->ReadTo("]");
       scf->CheckSymbol("]");
       return nullptr;
@@ -800,18 +800,18 @@ OType * ODqCompParser::ParseTypeSpec()
       int64_t arrlen;
       if (not scf->ReadInt64Value(arrlen))
       {
-        Error2(DQERR_ARRAY_SIZESPEC);
+        Error(DQERR_ARRAY_SIZESPEC);
         return nullptr;
       }
       if (arrlen <= 0)
       {
-        Error2(DQERR_SIZE_SPEC, "Array");
+        Error(DQERR_SIZE_SPEC, "Array");
         return nullptr;
       }
       scf->SkipWhite();
       if (not scf->CheckSymbol("]"))
       {
-        Error2(DQERR_SYM_EXPECTED_AFTER, "array size");
+        Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "array size");
         return nullptr;
       }
       ptype = ptype->GetArrayType(uint32_t(arrlen));
@@ -833,7 +833,7 @@ void ODqCompParser::ParseStmtReturn()
 
   if (not curvsfunc->vsresult)
   {
-    Error2(DQERR_FUNC_RESULT_SPECIFIED, curvsfunc->name);
+    Error(DQERR_FUNC_RESULT_SPECIFIED, curvsfunc->name);
     return;
   }
 
@@ -841,7 +841,7 @@ void ODqCompParser::ParseStmtReturn()
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
-    Error2(DQERR_MISSING_SEMICOLON_AFTER, "the return expression");
+    Error(DQERR_MISSING_SEMICOLON_AFTER, "the return expression");
   }
   if (expr)
   {
@@ -1191,7 +1191,7 @@ OLValueExpr * ODqCompParser::ParseAddressableExpr()
   OLValueExpr * lval = dynamic_cast<OLValueExpr *>(expr);
   if (!lval)
   {
-    Error2(DQERR_EXPR_INVALID_ADDROF);  // Address-of requires an lvalue expression;
+    Error(DQERR_EXPR_INVALID_ADDROF);  // Address-of requires an lvalue expression;
     delete expr;
     return nullptr;
   }
@@ -1199,7 +1199,7 @@ OLValueExpr * ODqCompParser::ParseAddressableExpr()
   OValSym * varref = dynamic_cast<OLValueVar *>(lval) ? static_cast<OLValueVar *>(lval)->pvalsym : nullptr;
   if (varref and VSK_VARIABLE != varref->kind and VSK_PARAMETER != varref->kind)
   {
-    Error2(DQERR_EXPR_VS_NOT_ADDRESSABLE, varref->name);
+    Error(DQERR_EXPR_VS_NOT_ADDRESSABLE, varref->name);
     delete expr;
     return nullptr;
   }
@@ -1233,7 +1233,7 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   {
     if ((tkl != TK_INT) or (tkr != TK_INT))
     {
-      Error2(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
       return nullptr;
     }
   }
@@ -1265,7 +1265,7 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     }
     else
     {
-      Error2(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
       return nullptr;
     }
   }
@@ -1319,7 +1319,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         OCompoundType * ctype = nullptr;
         if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
         {
-          Error("Member access requires a compound value or a ^compound pointer");
+          Error(DQERR_TYPE_NO_MEMBERS);
           return result;
         }
 
@@ -1327,13 +1327,13 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         scf->SkipWhite();
         if (not scf->ReadIdentifier(membername))
         {
-          Error("Member name expected after \".\"");
+          Error(DQERR_MEMBER_NAME_EXPECTED);
           return result;
         }
         int midx = ctype->FindMemberIndex(membername);
         if (midx < 0)
         {
-          Error(format("Unknown member \"{}\" in struct \"{}\"", membername, ctype->name));
+          Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
           return result;
         }
         OType * mtype = ctype->member_order[midx]->ptype;
@@ -1349,7 +1349,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         scf->SkipWhite();
         if (not scf->CheckSymbol("]"))
         {
-          Error("\"]\" expected after index");
+          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
         }
         result = new OLValueIndex(lval, lval->ptype, indexexpr);
         continue;
@@ -1364,7 +1364,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         {
           if (not scf->CheckSymbol("("))
           {
-            Error2(DQERR_FUNC_CALL_PARENTH, vsfunc->name);
+            Error(DQERR_FUNC_CALL_PARENTH, vsfunc->name);
           }
           OExpr * callexpr = ParseExprFuncCall(vsfunc);
           delete result;
@@ -1384,7 +1384,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         scf->SkipWhite();
         if (not scf->CheckSymbol("]"))
         {
-          Error("\"]\" expected after pointer index");
+          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "pointer index");
         }
         result = new OPointerIndexExpr(result, indexexpr);
         continue;
@@ -1415,7 +1415,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     scf->SkipWhite();
     if (!scf->CheckSymbol(")"))
     {
-      Error2(DQERR_MISSING_PARENTH, ")");
+      Error(DQERR_MISSING_CLOSE_PAREN);
     }
     return result;
   }
@@ -1451,7 +1451,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
         double fpval = intval;
         if (not scf->ReadFloatFracExp(fpval))
         {
-          Error2(DQERR_LIT_FLOAT);
+          Error(DQERR_LIT_FLOAT);
         }
         result = new OFloatLit(fpval);
       }
@@ -1462,7 +1462,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     }
     else  // impossible case
     {
-      Error2(DQERR_LIT_INT);
+      Error(DQERR_LIT_INT);
     }
     return result;
   }
@@ -1511,7 +1511,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
     result = new OLValueVar(vs);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
-      Error2(DQERR_VAR_NOT_INITIALIZED, vs->name);
+      Error(DQERR_VAR_NOT_INITIALIZED, vs->name);
     }
     return result;
   }
@@ -1526,11 +1526,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
   {
     if (!scf->Eof())
     {
-      Error(format("Unexpected expression char \"{}\"", *scf->curp));
+      Error(DQERR_EXPR_UNEXPECTED_CHAR, to_string(*scf->curp));
     }
     else
     {
-      Error("Expression expected.");
+      Error(DQERR_EXPR_EXPECTED);
     }
     return result;
   }
@@ -1554,14 +1554,14 @@ OExpr * ODqCompParser::ParseExprPrimary()
   OValSym * vs = curscope->FindValSym(sid);
   if (!vs)
   {
-    Error2(DQERR_VS_UNKNOWN, sid);
+    Error(DQERR_VS_UNKNOWN, sid);
     return result;
   }
 
   result = new OLValueVar(vs);
   if (vs->kind != VSK_FUNCTION and not vs->initialized)
   {
-    Error2(DQERR_VAR_NOT_INITIALIZED, vs->name, &scpos_sid);
+    Error(DQERR_VAR_NOT_INITIALIZED, vs->name, &scpos_sid);
   }
 
   return result;
@@ -1578,33 +1578,33 @@ OValSym * ODqCompParser::ResolveNamespaceValSym()
   }
   else if (!scf->ReadIdentifier(nsname))
   {
-    Error("Namespace name expected after \"@\"");
+    Error(DQERR_NS_NAME_EXPECTED);
     return nullptr;
   }
 
   if ("." != nsname && !scf->CheckSymbol("."))
   {
-    Error("\".\" expected after namespace name");
+    Error(DQERR_DOT_MISSING_AFTER_NS_NAME);
     return nullptr;
   }
 
   if (!scf->ReadIdentifier(symname))
   {
-    Error("Symbol name expected after namespace selector");
+    Error(DQERR_ID_EXP_AFTER, "@"+nsname);
     return nullptr;
   }
 
   auto it = g_namespaces.find(nsname);
   if (it == g_namespaces.end())
   {
-    Error(format("Unknown namespace \"{}\"", nsname));
+    Error(DQERR_NS_UNKNOWN, "@"+nsname);
     return nullptr;
   }
 
   OValSym * vs = it->second->FindValSym(symname, nullptr, true);
   if (!vs)
   {
-    Error(format("Unknown symbol \"{}\" in namespace \"{}\"", symname, nsname));
+    Error(DQERR_VS_UNKNOWN_IN_NAMESPACE, symname, "@"+nsname);
     return nullptr;
   }
 
@@ -1628,7 +1628,7 @@ OExpr * ODqCompParser::ParseArrayLit()
     {
       if (not scf->CheckSymbol(","))
       {
-        Error("\",\" expected in array literal");
+        Error(DQERR_MISSING_COMMA_IN, "array literal");
       }
     }
 
@@ -1662,14 +1662,14 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 
     if ((pcnt > 0) and not scf->CheckSymbol(","))
     {
-      Error2(DQERR_FUNC_ARGS_LIST, "\",\" or \")\" is missing at function \"$1\"call arguments", vsfunc->name);
+      Error(DQERR_FUNC_ARGS_LIST, "\",\" or \")\" is missing at function \"$1\"call arguments", vsfunc->name);
       bok = false;
       break;
     }
 
     if (pcnt >= (int)tfunc->params.size() && !tfunc->has_varargs)
     {
-      Error2(DQERR_FUNC_ARGS_TOO_MANY, vsfunc->name, to_string(tfunc->params.size()));
+      Error(DQERR_FUNC_ARGS_TOO_MANY, vsfunc->name, to_string(tfunc->params.size()));
       bok = false;
       break;
     }
@@ -1701,7 +1701,7 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 
   if (result->args.size() < tfunc->params.size())
   {
-    Error2(DQERR_FUNC_ARGS_TOO_FEW, vsfunc->name, to_string(result->args.size()), to_string(tfunc->params.size()));
+    Error(DQERR_FUNC_ARGS_TOO_FEW, vsfunc->name, to_string(result->args.size()), to_string(tfunc->params.size()));
     bok = false;
   }
 
@@ -1719,7 +1719,7 @@ OExpr * ODqCompParser::ParseBuiltinFloatRound(ERoundMode amode)
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, GetRoundModeName(amode));
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, GetRoundModeName(amode));
     return nullptr;
   }
   OExpr * argexpr = ParseExpression();
@@ -1727,14 +1727,14 @@ OExpr * ODqCompParser::ParseBuiltinFloatRound(ERoundMode amode)
 
   if (TK_FLOAT != argexpr->ptype->kind)
   {
-    Error2(DQERR_TYPE_FLOAT_EXPECTED_FOR, GetRoundModeName(amode), argexpr->ptype->name);
+    Error(DQERR_TYPE_FLOAT_EXPECTED_FOR, GetRoundModeName(amode), argexpr->ptype->name);
     delete argexpr;
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, GetRoundModeName(amode));
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, GetRoundModeName(amode));
     delete argexpr;
     return nullptr;
   }
@@ -1746,26 +1746,26 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, "len");
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "len");
     return nullptr;
   }
   scf->SkipWhite();
   string lenarg;
   if (not scf->ReadIdentifier(lenarg))
   {
-    Error2(DQERR_VARNAME_EXP_AFTER, "len");
+    Error(DQERR_VARNAME_EXP_AFTER, "len");
     return nullptr;
   }
   OValSym * lenvs = curscope->FindValSym(lenarg);
   if (!lenvs)
   {
-    Error2(DQERR_VAR_UNKNOWN, lenarg);
+    Error(DQERR_VAR_UNKNOWN, lenarg);
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, "len");
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "len");
     return nullptr;
   }
   if (TK_ARRAY == lenvs->ptype->kind)
@@ -1783,7 +1783,7 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   }
   else
   {
-    Error(format("len() requires an array, slice, or cstring, got \"{}\"", lenvs->ptype->name));
+    Error(DQERR_LEN_INVALID_TYPE, lenvs->ptype->name);
     return nullptr;
   }
 }
@@ -1793,26 +1793,26 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error2(DQERR_MISSING_OPEN_PARENTH_AFTER, "sizeof");
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "sizeof");
     return nullptr;
   }
   scf->SkipWhite();
   string sarg;
   if (not scf->ReadIdentifier(sarg))
   {
-    Error2(DQERR_VARNAME_EXP_AFTER, "sizeof");
+    Error(DQERR_VARNAME_EXP_AFTER, "sizeof");
     return nullptr;
   }
   OValSym * vs = curscope->FindValSym(sarg);
   if (!vs)
   {
-    Error2(DQERR_VAR_UNKNOWN, sarg);
+    Error(DQERR_VAR_UNKNOWN, sarg);
     return nullptr;
   }
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error2(DQERR_MISSING_CLOSE_PARENTH_FOR, "sizeof");
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "sizeof");
     return nullptr;
   }
 
@@ -1937,7 +1937,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
 
   if (VSK_CONST == pvalsym->kind)
   {
-    Error(format("Assignment target \"{}\" is constant", pvalsym->name));
+    Error(DQERR_TYPE_ASSIGN_TO_CONST, pvalsym->name);
     return true;
   }
 
@@ -1945,7 +1945,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   OLValueExpr * lval = dynamic_cast<OLValueExpr *>(targetexpr);
   if (!lval)
   {
-    Error("Assignment requires an lvalue target");
+    Error(DQERR_LVALUE_NOT_WRITEABLE);
     delete targetexpr;
     return true;
   }
@@ -1980,14 +1980,14 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   {
     if (TK_INT != expr->ptype->kind)
     {
-      Error(format("Pointer arithmetic requires an integer offset, got \"{}\"", expr->ptype->name));
+      Error(DQERR_PTRARITH_TYPE, expr->ptype->name);
       delete expr;
       delete lval;
       return true;
     }
     if (not pvalsym->initialized)
     {
-      Error2(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
+      Error(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
     }
     else
     {
@@ -2012,7 +2012,7 @@ bool ODqCompParser::ParseStmtAssign(OValSym * pvalsym)
   {
     if (not pvalsym->initialized)
     {
-      Error2(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
+      Error(DQERR_VAR_NOT_INITIALIZED, pvalsym->name);
     }
     else
     {
@@ -2041,7 +2041,7 @@ void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
-    Error2(DQERR_MISSING_SEMICOLON_TO_CLOSE, "function call statement");
+    Error(DQERR_MISSING_SEMICOLON_TO_CLOSE, "function call statement");
   }
 
   curblock->AddStatement(new OStmtVoidCall(scpos_statement_start, callexpr));
@@ -2065,14 +2065,14 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
       OTypeArray * arrsrc = static_cast<OTypeArray *>((*rexpr)->ptype);
       if (slicedst->elemtype->kind != arrsrc->elemtype->kind)
       {
-        Error(format("{} array element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+        Error(DQERR_ARR_ELEM_TYPE_MISM, dsttype->name, (*rexpr)->ptype->name);
         return false;
       }
       // The source expression must be a variable reference so we can get its alloca
       OLValueVar * varref = dynamic_cast<OLValueVar *>(*rexpr);
       if (!varref)
       {
-        Error(format("{}: cannot convert non-variable array to slice", astmt));
+        Error(DQERR_ARR_SLICE_CONVERSION);
         return false;
       }
       *rexpr = new OArrayToSliceExpr(varref->pvalsym, dsttype);
@@ -2092,7 +2092,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
         }
         else
         {
-          Error(format("{}: cannot convert pointer to cstring descriptor", astmt));
+          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert pointer to cstring descriptor");
           return false;
         }
       }
@@ -2110,7 +2110,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     }
     else
     {
-      Error2(DQERR_TYPEMISM_STMT_ASSIGN, astmt, dsttype->name, (*rexpr)->ptype->name);
+      Error(DQERR_TYPEMISM_STMT_ASSIGN, astmt, dsttype->name, (*rexpr)->ptype->name);
       return false;
     }
   }
@@ -2121,7 +2121,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     OTypePointer * ptrsrc = static_cast<OTypePointer *>((*rexpr)->ptype);
     if (ptrsrc->basetype and ptrdst->basetype and (ptrsrc->basetype->kind != ptrdst->basetype->kind))
     {
-      Error(format("{} pointer type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      Error(DQERR_PTR_TYPEMISM, dsttype->name, (*rexpr)->ptype->name);
       return false;
     }
   }
@@ -2132,7 +2132,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>((*rexpr)->ptype);
     if (slicedst->elemtype->kind != slicesrc->elemtype->kind)
     {
-      Error(format("{} slice element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      Error(DQERR_ARR_ELEM_TYPE_MISM, dsttype->name, (*rexpr)->ptype->name);
       return false;
     }
   }
@@ -2142,12 +2142,12 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     OTypeArray * arrsrc = static_cast<OTypeArray *>((*rexpr)->ptype);
     if (arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
     {
-      Error(format("{} array element type mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      Error(DQERR_ARR_ELEM_TYPE_MISM, dsttype->name, (*rexpr)->ptype->name);
       return false;
     }
     if (arrdst->arraylength != arrsrc->arraylength)
     {
-      Error(format("{} array size mismatch: \"{}\" = \"{}\"", astmt, dsttype->name, (*rexpr)->ptype->name));
+      Error(DQERR_ARR_SIZE_MISM, to_string(arrdst->arraylength), to_string(arrsrc->arraylength));
       return false;
     }
   }
@@ -2162,7 +2162,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
       OLValueVar * varref = dynamic_cast<OLValueVar *>(*rexpr);
       if (!varref)
       {
-        Error(format("{}: cannot convert non-variable cstring to descriptor", astmt));
+        ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-variable cstring to descriptor");
         return false;
       }
       *rexpr = new OCStringToDescExpr(varref->pvalsym, dsttype);

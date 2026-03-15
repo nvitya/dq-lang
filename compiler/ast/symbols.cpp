@@ -27,7 +27,7 @@ OType * OScope::DefineType(OType * atype)
   auto found = typesyms.find(atype->name);
   if (found != typesyms.end())
   {
-    g_compiler->Error2(DQERR_TYPE_ALREADY_DEFINED_IN, atype->name, this->debugname);
+    g_compiler->Error(DQERR_TYPE_ALREADY_DEFINED_IN, atype->name, this->debugname);
     return found->second;
   }
 
@@ -40,7 +40,7 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   auto found = valsyms.find(avalsym->name);
   if (found != valsyms.end())
   {
-    g_compiler->Error2(DQERR_VS_ALREADY_DECL_SCOPE, avalsym->name, this->debugname);
+    g_compiler->Error(DQERR_VS_ALREADY_DECL_SCOPE, avalsym->name, this->debugname);
     return found->second;
   }
 

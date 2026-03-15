@@ -123,6 +123,6 @@ bool OValueCString::CalculateConstant(OExpr * expr)
     return true;
   }
 
-  g_compiler->Error2(DQERR_CSTR_CONSTEXPR);
+  g_compiler->Error(DQERR_CSTR_CONSTEXPR);
   return false;
 }

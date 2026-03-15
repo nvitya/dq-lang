@@ -11,7 +11,11 @@ var i = 1; //?error(TypeSpecExpected)
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function main() -> int:
-  printf("Hello\n");      //?stdout-cap("Hello\n")
+  var strvar : cstring[64] = "abcd";
+  printf("Hello\n");      //?check(Hello)
+  printf("Hello2=5\n");   //?check(Hello2, 5)
+  printf("strvar = \"%s\"\n", strvar);  //?check(strvar,  "abcd")
+  printf("strvar2 = %s\n", strvar);     //?check(strvar2, abcd)
   return 0;
 endfunc
 

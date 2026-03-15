@@ -147,8 +147,10 @@ The initial framework shall support:
 //?error(...)
 //?warning(...)
 //?hint(...)
-//?stdout-cap(...)
-//?stderr-cap(...)
+//?check(...)
+//?checkerr(...)
+//?ignore(...)
+//?ignoreerr(...)
 //?exit(...)
 ```
 
@@ -180,17 +182,173 @@ Example future extension:
 
 This is not required for the first implementation.
 
-### 6.5 Multiple inline directives on one line
+### 6.5 Runtime output syntax
 
-A single source line may contain multiple directives.
+The initial runtime output syntax shall use a simple custom parser rather than regular expressions.
+
+Examples:
+
+```dq
+//?check(Hello)
+//?check(Test1Result, 1.234)
+//?check(strtest1, "abcd")
+//?ignore(Debug line)
+```
+
+The framework shall support two forms:
+
+```text
+//?check(Text)
+//?check(Key, Value)
+//?ignore(Text)
+//?ignore(Key, Value)
+```
+
+In the one-argument form, the argument is matched as literal output text for the full runtime line.
+
+In the two-argument form, the first argument is the expected output key and the second argument is the expected value.
+
+The expected text or value shall be matched against the runtime output as literal text.
+
+`ignore(...)` and `ignoreerr(...)` shall use the same one-argument and two-argument forms and matching rules as `check(...)` and `checkerr(...)`, but matched lines shall be consumed without creating a required expectation.
+
+If text is written in quotes in the directive, the quotes are part of the expected output text and must also appear in the runtime output.
+
+For example:
+
+```dq
+//?check(strtest1, "abcd")
+```
+
+matches output such as:
+
+```text
+strtest1 = "abcd"
+```
+
+and does not match:
+
+```text
+strtest1 = abcd
+```
+
+String values are recommended to be printed with quotes in program output so that string expectations are visually clear and unambiguous.
+
+### 6.6 Runtime output line matching rules
+
+Each `check(...)` expectation shall match one line from the program stdout stream.
+
+Each `checkerr(...)` expectation shall match one line from the program stderr stream.
+
+Each `ignore(...)` directive shall consume at most one line from the program stdout stream.
+
+Each `ignoreerr(...)` directive shall consume at most one line from the program stderr stream.
+
+For a directive of the form:
+
+```text
+//?check(Text)
+```
+
+the matched runtime line shall exactly equal `Text`.
+
+Example of accepted match for:
+
+```dq
+//?check(Hello)
+```
+
+```text
+Hello
+```
+
+For a directive of the form:
+
+```text
+//?check(Key, Value)
+```
+
+the matched runtime line shall satisfy all of the following:
+
+1. the line shall begin with `Key`
+2. zero or more spaces may follow the key
+3. an `=` character may optionally appear
+4. zero or more spaces may follow the optional `=`
+5. the remainder of the line shall exactly equal `Value`
+
+Examples of accepted matches for:
+
+```dq
+//?check(Test1Result, 1.234)
+```
+
+```text
+Test1Result=1.234
+Test1Result = 1.234
+Test1Result    1.234
+```
+
+Example of accepted match for:
+
+```dq
+//?check(strtest1, "abcd")
+```
+
+```text
+strtest1="abcd"
+```
+
+The framework shall not require the `check(...)` or `checkerr(...)` expectations to appear in any particular order.
+
+The runner shall consider `check(...)`, `checkerr(...)`, `ignore(...)`, and `ignoreerr(...)` as unordered matches against the set of produced output lines in the corresponding stream.
+
+Within one test file, every `check(...)` directive shall be unique.
+
+Within one test file, every `checkerr(...)` directive shall be unique.
+
+Within one test file, every `ignore(...)` directive shall be unique.
+
+Within one test file, every `ignoreerr(...)` directive shall be unique.
+
+If duplicate `check(...)`, `checkerr(...)`, `ignore(...)`, or `ignoreerr(...)` directives are present in the same test file, the runner shall report this as a test specification error before runtime matching begins.
+
+Any stdout or stderr line that is not matched by a corresponding `check(...)`, `checkerr(...)`, `ignore(...)`, or `ignoreerr(...)` directive shall be considered unchecked output.
+
+The test system shall report unchecked output from the runtime execution.
+
+Unchecked output shall not by itself cause the test to fail unless a stricter mode is added in a later version.
+
+When a runtime variant fails for any reason, the failure report shall include:
+
+- unmatched stdout lines
+- unmatched stderr lines
+- expected `check(...)` entries that were not matched
+- expected `checkerr(...)` entries that were not matched
+- matched `ignore(...)` entries when useful for diagnosis
+- matched `ignoreerr(...)` entries when useful for diagnosis
+
+### 6.7 Placement of runtime directives
+
+Runtime directives need not be attached to the source line that produces the output.
+
+They may appear:
+
+- on the same line as test code
+- multiple times on the same physical line after one `//?` introducer, separated by commas
+- on separate lines after the relevant code
+- grouped together at the end of the file
+
+The parser shall collect all runtime directives from the full file, regardless of placement.
 
 Example:
 
 ```dq
-var a : int = true;  //?error(TypeIncompatible), hint(DeclHere)
+some_test_code();  //?check(Test1Result, 1.234), check(strtest1, "abcd")
 ```
 
-The parser shall treat `//?` as the start of an inline expectation list and shall parse additional directives on that line as comma-separated entries.
+When more than one test instruction appears in one line, they shall be separated by commas after the same `//?` marker.
+
+The parser shall treat `//?` as the start of an inline expectation list and parse additional directives on that line as comma-separated entries.
 
 ---
 
@@ -216,8 +374,10 @@ If at least one runtime marker is found anywhere in the source file, the runner 
 
 Initial runtime markers are:
 
-- `//?stdout-cap(...)`
-- `//?stderr-cap(...)`
+- `//?check(...)`
+- `//?checkerr(...)`
+- `//?ignore(...)`
+- `//?ignoreerr(...)`
 - `//?exit(...)`
 
 The runtime variant:
@@ -268,5 +428,7 @@ Recommended naming:
 
 - `file.dq:error`
 - `file.dq:run`
+
+For failed runtime variants, the preserved artifacts and console report shall include the full stdout stream, the full stderr stream, and the subset of output lines that remained unchecked after expectation matching.
 
 ---

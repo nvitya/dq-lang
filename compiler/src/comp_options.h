@@ -31,6 +31,7 @@ public:
 class OCompOptions
 {
 public:
+  bool     print_version = false;  // --version
   bool     verbose = false;   // -v
   bool     dbg_info = false;  // -g
 

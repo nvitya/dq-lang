@@ -45,6 +45,11 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
+  if (g_opt.print_version)
+  {
+    return;
+  }
+
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
     if (def.has_bool_value)

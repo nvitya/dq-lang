@@ -146,7 +146,8 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
 
     if ('-' == v[0])  // some compiler switch
     {
-      if      ("-v"  == v)    g_opt.verbose = true;
+      if      ("--version" == v)  g_opt.print_version = true;
+      else if ("-v"  == v)    g_opt.verbose = true;
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
       else if ("-c"  == v)    g_opt.compile_only = true;
@@ -241,6 +242,11 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
     }
   }
 
+  if (g_opt.print_version)
+  {
+    return;
+  }
+
   if (in_filename.empty())
   {
     ++errorcnt;
@@ -283,6 +289,7 @@ void ODqCompClargs::PrintUsage()
   print("Options:\n");
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
+  print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");
   print("  -On       : optimization level, n=0-3\n");

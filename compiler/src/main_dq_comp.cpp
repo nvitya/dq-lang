@@ -117,9 +117,28 @@ void signal_handler(int signal)
 
 //--------------------------------------------------------------------
 
+static bool HasVersionArg(int argc, char ** argv)
+{
+  for (int i = 1; i < argc; ++i)
+  {
+    if (string(argv[i]) == "--version")
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 int main(int argc, char ** argv)
 {
   int r;
+
+  if (HasVersionArg(argc, argv))
+  {
+    print("{}\n", DQ_COMPILER_VERSION);
+    return 0;
+  }
 
   print("DQ Compiler - v{}\n", DQ_COMPILER_VERSION);
 

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.4"
+#define DQ_COMPILER_VERSION  "0.6.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.5:
+  - Printing compiler version with --version switch
 v0.6.4:
   - Adding defines (-D<name>) from the command line
 v0.6.3:

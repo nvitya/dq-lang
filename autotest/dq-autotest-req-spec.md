@@ -119,6 +119,23 @@ The compiler shall receive the source file unchanged.
 
 The runner shall not rewrite or preprocess the file before passing it to the compiler.
 
+### 5.3 Implementation hints
+
+The following notes are non-normative implementation hints.
+
+For simple scanner implementations, it is recommended to treat `//?` as the unique inline test marker introducer in autotest source files and search for it directly in the raw text.
+
+A practical implementation strategy is:
+
+- search for the next `//?` occurrence
+- parse only from that position to the end of the current physical line
+- ignore all other source text between such matches
+- repeat until the end of the source buffer
+
+For pointer-based scanners, it is recommended to treat the current read position as the primary parser state and to copy out recognized tokens immediately.
+
+Short-lived helper results such as previously matched spans should be considered temporary scratch values that may be overwritten by the next helper call.
+
 ---
 
 ## 6. Inline Test Directives

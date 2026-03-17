@@ -529,6 +529,58 @@ Run test FAILED: 3 failures detected.
 
 In the failed form, the failure count shall equal the number of reported run-test mismatches.
 
+### 7.9 Batch console format
+
+For batch execution, the runner shall be optimized for large numbers of files and parallel execution.
+
+The batch console report shall print only failures by default.
+
+The batch report may begin with a header section similar to:
+
+```text
+DQ Autotest v0.1
+Compiler:  ../build/dq-comp
+C. ver.:   v0.6.3
+Test root: ./autotest
+Testing 112 files...
+```
+
+The header values shown above are examples. The actual values shall reflect the current runner version, compiler path, compiler version, configured test root, and number of discovered test files.
+
+Error-test failures shall be reported on one line each, prefixed with `err(<file>)`:
+
+```text
+err(test1.dq): - test1.dq(7) missing ERROR(TypeUnknown)
+err(test1.dq): ? test1.dq(10,1) ERROR(ModStatementUnknown): Unknown module statement "asdf"
+```
+
+Run-test failures shall be reported on one line each, prefixed with `run(<file>)`.
+
+The run-test line shall preserve the backtick delimiter from the single-file run-test format.
+
+The runner should align the backtick to a preferred report column such as column 40 when practical, but the backtick itself shall remain the actual delimiter.
+
+Examples:
+
+```text
+run(test1.dq): Hello2 ` != 6
+run(test1.dq): strvar = "abcd" ` unchecked
+run(test1.dq): ` missing strvar2 = "efg"
+```
+
+The batch summary shall include separate totals for executed error variants, executed runtime variants, reported error-test failures, and reported run-test failures.
+
+A summary in the following form is recommended:
+
+```text
+Error tests executed:   89
+Run tests executed:     75
+Error tests failed:      2  (1 file)
+Run tests failed:        3  (2 files)
+```
+
+In the `failed` lines, the first number shall be the number of reported failures, and the parenthesized file count shall be the number of affected source files.
+
 For failed runtime variants, the preserved artifacts and console report shall include the full stdout stream, the full stderr stream, and the subset of output lines that remained unchecked after expectation matching.
 
 ---

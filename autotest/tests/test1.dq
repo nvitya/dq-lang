@@ -65,3 +65,37 @@ strvar = "abcd"                        `
 Run test PASSED.
 
 */
+
+/* dqatrun BATCH RUN output:
+
+<Header>
+
+DQ Autotest v0.1
+Compiler:  ../build/dq-comp
+C. ver.:   v0.6.3
+Test root: ./autotest
+Testing 112 files...
+
+(one new line as separator)
+
+<report>
+
+err(test1.dq): - test1.dq(7) missing ERROR(TypeUnknown)
+err(test1.dq): ? test1.dq(10,1) ERROR(ModStatementUnknown): Unknown module statement "asdf"
+run(test1.dq): Hello2 ` != 6
+run(test1.dq): strvar = "abcd" ` unchecked
+run(test1.dq): ` missing strvar2 = "efg"
+
+Error tests executed:   89
+Run tests executed:     75
+Error tests failed:      2  (1 file)
+Run tests failed:        3  (2 files)
+
+<report when success>
+
+Error tests executed:   89
+Run tests executed:     75
+Error tests failed:      0
+Run tests failed:        0
+
+*/

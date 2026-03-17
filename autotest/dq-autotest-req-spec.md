@@ -581,6 +581,35 @@ Run tests failed:        3  (2 files)
 
 In the `failed` lines, the first number shall be the number of reported failures, and the parenthesized file count shall be the number of affected source files.
 
+### 7.10 Generated artifact handling
+
+For runtime variants, the compiler may produce transient build artifacts such as an object file and an executable in the same directory as the `.dq` source file.
+
+The runner shall treat these build artifacts as temporary and shall remove them after test execution.
+
+This cleanup rule applies regardless of whether the test passes or fails.
+
+The executable artifact should use the `.exe` extension so that the runner can use a stable and easily identifiable output filename.
+
+For a failed source file, the runner shall preserve one report artifact beside the source file, using the same base filename and the `.atr` extension.
+
+Example:
+
+```text
+test1.dq
+test1.atr
+```
+
+The `.atr` report shall be written only when the source file has at least one failing variant.
+
+If the error variant fails and the runtime variant passes, the `.atr` report shall contain only the failing `Error test:` section.
+
+If the runtime variant fails and the error variant passes, the `.atr` report shall contain only the failing `Run test:` section.
+
+If both variants fail, the `.atr` report shall contain both failing sections, in the same order as single-file execution: error first, runtime second.
+
+Successful variant sections shall not be written to the `.atr` report.
+
 For failed runtime variants, the preserved artifacts and console report shall include the full stdout stream, the full stderr stream, and the subset of output lines that remained unchecked after expectation matching.
 
 ---

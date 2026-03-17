@@ -13,10 +13,120 @@
 
 #include <print>
 #include <string>
+#include <limits>
 #include "dqc_clargs.h"
 #include "comp_options.h"
 
 using namespace std;
+
+static bool IsValidDefineName(const string & name)
+{
+  if (name.empty())
+  {
+    return false;
+  }
+
+  char c = name[0];
+  if (!(((c >= 'A') and (c <= 'Z')) or ((c >= 'a') and (c <= 'z')) or (c == '_')))
+  {
+    return false;
+  }
+
+  for (size_t i = 1; i < name.size(); ++i)
+  {
+    c = name[i];
+    if (!(((c >= 'A') and (c <= 'Z')) or ((c >= 'a') and (c <= 'z')) or (c == '_')
+          or ((c >= '0') and (c <= '9'))))
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+static bool ParseDefineIntValue(const string & text, int64_t & rvalue)
+{
+  if (text.empty())
+  {
+    return false;
+  }
+
+  size_t pos = 0;
+  bool negative = false;
+  if ((text[pos] == '+') or (text[pos] == '-'))
+  {
+    negative = (text[pos] == '-');
+    ++pos;
+  }
+
+  if (pos >= text.size())
+  {
+    return false;
+  }
+
+  uint64_t accum = 0;
+  for (; pos < text.size(); ++pos)
+  {
+    char c = text[pos];
+    if ((c < '0') or (c > '9'))
+    {
+      return false;
+    }
+
+    uint64_t digit = (c - '0');
+    if (accum > ((numeric_limits<uint64_t>::max() - digit) / 10))
+    {
+      return false;
+    }
+    accum = accum * 10 + digit;
+  }
+
+  if (negative)
+  {
+    if (accum > uint64_t(numeric_limits<int64_t>::max()) + 1)
+    {
+      return false;
+    }
+
+    if (accum == uint64_t(numeric_limits<int64_t>::max()) + 1)
+    {
+      rvalue = numeric_limits<int64_t>::min();
+    }
+    else
+    {
+      rvalue = -int64_t(accum);
+    }
+  }
+  else
+  {
+    if (accum > uint64_t(numeric_limits<int64_t>::max()))
+    {
+      return false;
+    }
+
+    rvalue = int64_t(accum);
+  }
+
+  return true;
+}
+
+static bool ParseDefineBoolValue(const string & text, bool & rvalue)
+{
+  if ("true" == text)
+  {
+    rvalue = true;
+    return true;
+  }
+
+  if ("false" == text)
+  {
+    rvalue = false;
+    return true;
+  }
+
+  return false;
+}
 
 ODqCompClargs::ODqCompClargs()
 {
@@ -40,6 +150,50 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char **argv)
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
       else if ("-c"  == v)    g_opt.compile_only = true;
+      else if ((v.size() > 2) and ('D' == v[1]))
+      {
+        string defspec = v.substr(2);
+        string defname = defspec;
+        string defvalue;
+        size_t eqpos = defspec.find('=');
+        if (eqpos != string::npos)
+        {
+          defname = defspec.substr(0, eqpos);
+          defvalue = defspec.substr(eqpos + 1);
+        }
+
+        if (!IsValidDefineName(defname))
+        {
+          ++errorcnt;
+          print("Invalid command line define name: {}\n", defname);
+          PrintUsage();
+          return;
+        }
+
+        OCmdLineDefine def;
+        def.name = defname;
+
+        if (eqpos != string::npos)
+        {
+          if (ParseDefineBoolValue(defvalue, def.bool_value))
+          {
+            def.has_bool_value = true;
+          }
+          else if (ParseDefineIntValue(defvalue, def.int_value))
+          {
+            def.has_int_value = true;
+          }
+          else
+          {
+            ++errorcnt;
+            print("Invalid command line define value: {}\n", v);
+            PrintUsage();
+            return;
+          }
+        }
+
+        g_opt.cmdline_defines.push_back(def);
+      }
       else if ("-O0" == v)    g_opt.optlevel = 0;
       else if ("-O1" == v)    g_opt.optlevel = 1;
       else if ("-O2" == v)    g_opt.optlevel = 2;
@@ -129,6 +283,8 @@ void ODqCompClargs::PrintUsage()
   print("Options:\n");
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
+  print("  -D<name>  : defines the <name> symbol with boolean true\n");
+  print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");
   print("  -On       : optimization level, n=0-3\n");
   print("  -g        : generate debug info\n");
   print("  -v        : print compiler internal trace messages\n");

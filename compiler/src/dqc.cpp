@@ -37,8 +37,29 @@ ODqCompiler::~ODqCompiler()
 void ODqCompiler::Run(int argc, char ** argv)
 {
   errorcnt = 0;
+  OScPosition scpos;
 
   ParseCmdLineArgs(argc, argv);
+  if (errorcnt)
+  {
+    return;
+  }
+
+  for (const OCmdLineDefine & def : g_opt.cmdline_defines)
+  {
+    if (def.has_bool_value)
+    {
+      g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos, def.name, def.bool_value));
+    }
+    else if (def.has_int_value)
+    {
+      g_defines->DefineValSym(g_builtins->native_int->CreateConst(scpos, def.name, def.int_value));
+    }
+    else
+    {
+      g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos, def.name, true));
+    }
+  }
   if (errorcnt)
   {
     return;

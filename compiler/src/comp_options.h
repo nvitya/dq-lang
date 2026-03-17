@@ -18,6 +18,16 @@
 
 using namespace std;
 
+class OCmdLineDefine
+{
+public:
+  string   name;
+  bool     has_bool_value = false;
+  bool     bool_value = false;
+  bool     has_int_value = false;
+  int64_t  int_value = 0;
+};
+
 class OCompOptions
 {
 public:
@@ -31,6 +41,8 @@ public:
   int      optlevel = 0;
 
   bool     blockmode_braces = false;
+
+  vector<OCmdLineDefine>  cmdline_defines;
 
   // include dirs
   // module dirs

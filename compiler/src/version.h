@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.3"
+#define DQ_COMPILER_VERSION  "0.6.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.4:
+  - Adding defines (-D<name>) from the command line
 v0.6.3:
   - Improved statement error recovery
   - quoted string escape sequences parsing fix

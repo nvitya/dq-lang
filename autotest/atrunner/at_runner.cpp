@@ -255,12 +255,12 @@ void OAtRunner::ProcessResults()
   }
 
   // display the results
-  print("Error tests executed:   {}\n", testcnt_err);
-  print("Run tests executed:     {}\n", testcnt_run);
-  print("Error tests failed:     {}", errorcnt_err);
+  print("Error tests executed: {:3}\n", testcnt_err);
+  print("Run tests executed:   {:3}\n", testcnt_run);
+  print("Error tests failed:   {:3}",   errorcnt_err);
   if (errorcnt_err) print(" ({} files)",  errorcnt_err_files);
   print("\n");
-  print("Run tests failed:       {}", errorcnt_run);
+  print("Run tests failed:     {:3}",   errorcnt_run);
   if (errorcnt_err) print(" ({} files)",  errorcnt_run_files);
   print("\n");
 

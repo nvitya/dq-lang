@@ -1,0 +1,2 @@
+var err12_missing_type = 12;  //?error(TypeSpecExpected)
+

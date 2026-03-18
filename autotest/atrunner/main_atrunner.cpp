@@ -60,34 +60,34 @@ void my_crash_handler()
   }
 
   // 2. Filter the backtrace
-  auto trace = std::stacktrace::current();
+  auto trace = stacktrace::current();
   bool user_code_reached = false;
 
-  std::cerr << "Backtrace:\n";
+  cerr << "Backtrace:\n";
 
   for (const auto & entry : trace)
   {
     // If we already passed the noise, print the frame
     if (user_code_reached)
     {
-      std::cerr << "  " << entry << "\n";
+      cerr << "  " << entry << "\n";
       continue;
     }
 
     // DETECT THE BOUNDARY:
     // "__cxa_throw" is the specific GCC/Clang function that handles throws.
     // Once we see this, we know the NEXT frame is your code.
-    if (entry.description().find("__cxa_throw") != std::string::npos)
+    if (entry.description().find("__cxa_throw") != string::npos)
     {
       user_code_reached = true;
     }
   }
 
-  // Safety Fallback: If we never found "__cxa_throw" (e.g., a pure std::abort()
+  // Safety Fallback: If we never found "__cxa_throw" (e.g., a pure abort()
   // without an exception), print the raw trace so you don't lose info.
   if (!user_code_reached)
   {
-      std::cerr << "  (Full Raw Trace)\n" << trace << "\n";
+      cerr << "  (Full Raw Trace)\n" << trace << "\n";
   }
 
   // 3. Must abort manually (standard requirement)

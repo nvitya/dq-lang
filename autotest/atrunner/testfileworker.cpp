@@ -13,16 +13,80 @@
 
 #include "testfileworker.h"
 
+#include <print>
+
+using namespace std;
+
 OTestFileWorker::OTestFileWorker()
 {
 }
 
 OTestFileWorker::~OTestFileWorker()
 {
+  Stop();
 }
 
-void OTestFileWorker::Process(OTestFile * atestfile)
+void OTestFileWorker::Start(int aworker_id)
 {
-  testfile = atestfile;
+  worker_id = aworker_id;
+  thr = thread(&OTestFileWorker::ThreadFunc, this);
 }
 
+void OTestFileWorker::Stop()
+{
+  terminate_requested = true;
+  cond.notify_all();
+
+  if (thr.joinable())
+  {
+    thr.join();
+  }
+}
+
+bool OTestFileWorker::ProcessFile(OTestFile * atestfile) // called by the distributor !
+{
+  if (busy or run_requested)
+  {
+    return false;
+  }
+
+  testfile = atestfile;
+  run_requested = true;
+  cond.notify_all();
+
+  return true;
+}
+
+bool OTestFileWorker::IsIdle()
+{
+  return (!busy and !run_requested and (nullptr == testfile));
+}
+
+void OTestFileWorker::ThreadFunc()
+{
+  while (true)
+  {
+    {
+      unique_lock<mutex> lock(wait_mtx);
+      cond.wait(lock, [this]{ return run_requested or terminate_requested; });
+
+      if (terminate_requested)
+      {
+        return;
+      }
+    }
+
+    busy = true;
+    run_requested = false;
+
+    if (testfile and !testfile->processed)
+    {
+      print("W{}: {} starting\n", worker_id, testfile->filename);
+      testfile->Process();
+      testfile->processed = true;  // ensure 
+      print("W{}: {} finished\n", worker_id, testfile->filename);
+    }
+
+    busy = false;
+  }
+}

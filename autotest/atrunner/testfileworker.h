@@ -13,17 +13,38 @@
 
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+
 #include "testfile.h"
+
+using namespace std;
 
 class OTestFileWorker
 {
 public:
+  int               worker_id = 0;
   OTestFile *       testfile = nullptr;
+
+  thread            thr;
+  mutex             wait_mtx;
+  condition_variable cond;
+
+  atomic<bool>      busy = false;
+  atomic<bool>      run_requested = false;
+  atomic<bool>      terminate_requested = false;
 
 public:
   OTestFileWorker();
   virtual ~OTestFileWorker();
 
-  virtual void Process(OTestFile * atestfile);
-};
+  virtual void Start(int aworker_id);
+  virtual void Stop();
+  virtual bool ProcessFile(OTestFile * atestfile);
+  virtual bool IsIdle();
 
+protected:
+  virtual void ThreadFunc();
+};

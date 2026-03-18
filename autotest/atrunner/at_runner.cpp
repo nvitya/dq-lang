@@ -12,9 +12,11 @@
  */
 
 #include <print>
+#include <chrono>
 #include <filesystem>
 #include <string>
 #include <algorithm>
+#include <thread>
 #include <vector>
 
 #include "at_runner.h"
@@ -42,9 +44,7 @@ static string QueryCompilerVersion()
   OProcessRunner procrunner;
   SProcessResult procresult;
 
-  vector<string> args;
-  args.push_back(g_atropt->compiler_filename);
-  args.push_back("--version");
+  vector<string> args { g_atropt->compiler_filename, "--version" };
 
   if (!procrunner.Run(args, &procresult))
   {
@@ -79,10 +79,17 @@ OAtRunner::OAtRunner()
 
 OAtRunner::~OAtRunner()
 {
+  StopWorkers();
+
   for (OTestFile * tf : testfiles)
   {
     delete tf;
   }
+}
+
+void OAtRunner::SleepMs(unsigned ms)
+{
+  this_thread::sleep_for(chrono::milliseconds(ms));
 }
 
 void OAtRunner::CollectTestFiles()
@@ -121,8 +128,7 @@ void OAtRunner::CollectTestFiles()
 
   for (const fs::path & rp : foundfiles)
   {
-    OTestFile * tf = new OTestFile(rp.generic_string());
-    testfiles.push_back(tf);
+    testfiles.push_back(new OTestFile(rp.generic_string()));
   }
 }
 
@@ -132,6 +138,132 @@ void OAtRunner::DebugPrintCollectedFiles()
   {
     print("{}\n", tf->filename);
   }
+}
+
+void OAtRunner::StartWorkers()
+{
+  StopWorkers();
+
+  int worker_count = g_atropt->worker_count;
+  if (worker_count < 1)
+  {
+    worker_count = 1;
+  }
+
+  for (int i = 0; i < worker_count; ++i)
+  {
+    OTestFileWorker * worker = new OTestFileWorker();
+    workers.push_back(worker);
+    worker->Start(i + 1);
+  }
+}
+
+void OAtRunner::StopWorkers()
+{
+  for (OTestFileWorker * worker : workers)
+  {
+    worker->Stop();
+    delete worker;
+  }
+
+  workers.clear();
+}
+
+void OAtRunner::ProcessBatchFiles()
+{
+  StartWorkers();
+
+  // assign all the work to workers, keep the workers always busy
+
+  size_t fileidx = 0;
+  while (fileidx < testfiles.size())
+  {
+    bool allbusy = true;
+
+    for (OTestFileWorker * worker : workers)
+    {
+      if (not worker->busy)
+      {
+        allbusy = false;
+        if (worker->ProcessFile(testfiles[fileidx]))
+        {
+          ++fileidx;
+          if (fileidx >= testfiles.size())
+          {
+            break;
+          }
+        }
+      }
+    }
+
+    if (allbusy)
+    {
+      SleepMs(2);
+    }
+  }
+
+  // wait for the last completions
+
+  while (true)
+  {
+    bool allidle = true;
+
+    for (OTestFileWorker * worker : workers)
+    {
+      if (worker->busy)
+      {
+        allidle = false;
+      }
+    }
+
+    if (allidle)
+    {
+      break;
+    }
+
+    SleepMs(2);
+  }
+
+  StopWorkers();
+}
+
+void OAtRunner::ProcessResults()
+{
+  // collect the results
+
+  for (OTestFile * tf : testfiles)
+  {
+    if (tf->exec_err)
+    {
+      ++testcnt_err;
+      if (tf->errorcnt_err > 0)
+      {
+        ++errorcnt_err_files;
+        errorcnt_err += tf->errorcnt_err;
+      }
+    }
+
+    if (tf->exec_run)
+    {
+      ++testcnt_run;
+      if (tf->errorcnt_run > 0)
+      {
+        ++errorcnt_run_files;
+        errorcnt_run += tf->errorcnt_run;
+      }
+    }
+  }
+
+  // display the results
+  print("Error tests executed:   {}\n", testcnt_err);
+  print("Run tests executed:     {}\n", testcnt_run);
+  print("Error tests failed:     {}", errorcnt_err);
+  if (errorcnt_err) print(" ({} files)",  errorcnt_err_files);
+  print("\n");
+  print("Run tests failed:       {}", errorcnt_run);
+  if (errorcnt_err) print(" ({} files)",  errorcnt_run_files);
+  print("\n");
+
 }
 
 int OAtRunner::Run()
@@ -153,8 +285,10 @@ int OAtRunner::RunBatch()
 {
   PrintBatchHeader();
   CollectTestFiles();
-  DebugPrintCollectedFiles();
-  return 0;
+  ProcessBatchFiles();
+  ProcessResults();
+
+  return errorcnt_run + errorcnt_err;
 }
 
 int OAtRunner::RunSingle()

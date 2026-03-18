@@ -1,0 +1,4 @@
+var err08_missing_type = 8;  //?error(TypeSpecExpected)
+wrong08
+bad08
+

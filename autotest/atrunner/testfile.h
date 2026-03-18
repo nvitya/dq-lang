@@ -14,6 +14,7 @@
 #pragma once
 
 #include <string>
+#include "strparse.h"
 
 using namespace std;
 
@@ -23,7 +24,19 @@ public:
   string            filename;
   string            text;
 
+  bool              processed  = false;
+
+  bool              exec_run   = false;
+  bool              exec_err   = false;
+
+  int               errorcnt_err = 0;
+  int               errorcnt_run = 0;
+
+  TStrParseObj      sp;
+
 public:
   OTestFile(const string & afilename);
   virtual ~OTestFile();
+
+  virtual void Process();
 };

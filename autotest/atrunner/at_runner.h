@@ -17,11 +17,24 @@
 #include <vector>
 
 #include "testfile.h"
+#include "testfileworker.h"
+
+using namespace std;
 
 class OAtRunner
 {
 public:
-  std::vector<OTestFile *>   testfiles;
+  vector<OTestFile *>        testfiles;
+  vector<OTestFileWorker *>  workers;
+
+public: // stats
+  int                        testcnt_run = 0;
+  int                        testcnt_err = 0;
+
+  int                        errorcnt_run = 0;
+  int                        errorcnt_run_files = 0;
+  int                        errorcnt_err = 0;
+  int                        errorcnt_err_files = 0;
 
   OAtRunner();
   virtual ~OAtRunner();
@@ -29,8 +42,14 @@ public:
   int Run();
 
 protected:
+
+  void SleepMs(unsigned ms);
   void CollectTestFiles();
   void DebugPrintCollectedFiles();
+  void StartWorkers();
+  void StopWorkers();
+  void ProcessBatchFiles();
+  void ProcessResults();
 
   int RunBatch();
   int RunSingle();

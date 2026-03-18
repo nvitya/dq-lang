@@ -32,7 +32,7 @@ public:
   string            test_root = ".";
   string            single_test_filename;
 
-  int               worker_count = 0;
+  int               worker_count = 16;
   bool              verbose = false;
 
   int               arg_error_count = 0;

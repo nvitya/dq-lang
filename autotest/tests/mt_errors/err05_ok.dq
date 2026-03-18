@@ -1,0 +1,3 @@
+var err05_missing_type = 5;  //?error(TypeSpecExpected)
+wrong05                  //?error(ModStatementUnknown)
+

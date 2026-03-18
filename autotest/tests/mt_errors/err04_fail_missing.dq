@@ -1,0 +1,3 @@
+var err04_missing_type = 4;  //?error(TypeSpecExpected)
+wrong04                  //?error(TypeUnknown)
+

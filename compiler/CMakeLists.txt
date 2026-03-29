@@ -24,6 +24,7 @@ include_directories(builtins)
 include_directories(codegen)
 include_directories(src_test)
 include_directories(utils)
+include_directories(tools)
 
 file(GLOB SRC_SRC       CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB SRC_AST       CONFIGURE_DEPENDS "ast/*.cpp")
@@ -34,8 +35,8 @@ file(GLOB SRC_BUILTINS  CONFIGURE_DEPENDS "builtins/*.cpp")
 file(GLOB SRC_SRC_TEST  CONFIGURE_DEPENDS "src_test/*.cpp")
 file(GLOB SRC_UTILS     CONFIGURE_DEPENDS "utils/*.cpp")
 
-
 add_executable(dq-comp ${SRC_SRC} ${SRC_AST} ${SRC_TYPES} ${SRC_PARSER} ${SRC_CODEGEN} ${SRC_BUILTINS} ${SRC_SRC_TEST} ${SRC_UTILS})
+add_executable(dq-run tools/main_dq_run.cpp ${SRC_UTILS})
 
 # on exception I want to have a nice backtrace
 set_target_properties(dq-comp PROPERTIES ENABLE_EXPORTS ON)
@@ -52,6 +53,7 @@ llvm_map_components_to_libnames(llvm_libs
 #target_link_libraries(dqc ${llvm_libs})
 
 target_link_libraries(dq-comp PRIVATE stdc++exp ${llvm_libs})
+target_link_libraries(dq-run PRIVATE stdc++exp)
 
 # for early compiler development:
 add_custom_command(TARGET dq-comp POST_BUILD
@@ -59,5 +61,10 @@ add_custom_command(TARGET dq-comp POST_BUILD
     COMMENT "Copying dq-comp to /usr/local/bin..."
 )
 
+add_custom_command(TARGET dq-run POST_BUILD
+    COMMAND cp $<TARGET_FILE:dq-run> /usr/local/bin/dq-run
+    COMMENT "Copying dq-run to /usr/local/bin..."
+)
+
 # Define the installation destination
-install(TARGETS dq-comp DESTINATION /usr/local/bin)
+install(TARGETS dq-comp dq-run DESTINATION /usr/local/bin)

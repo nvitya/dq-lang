@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.6"
+#define DQ_COMPILER_VERSION  "0.6.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.7:
+  - New dq-run utility: compile and run a DQ file in one step
 v0.6.6:
   - verbosity switches
   - Default compiler verbosity changed to NONE (gcc like behaviour)

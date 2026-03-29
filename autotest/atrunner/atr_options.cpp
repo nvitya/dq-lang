@@ -59,7 +59,31 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
     {
       if ("-v" == v)
       {
-        verbose = true;
+        verblevel = VERBLEVEL_STATUS;
+      }
+      else if ("-vv" == v)
+      {
+        verblevel = VERBLEVEL_INFO;
+      }
+      else if ("-vvv" == v)
+      {
+        verblevel = VERBLEVEL_DEBUG;
+      }
+      else if ("-v0" == v)
+      {
+        verblevel = VERBLEVEL_NONE;
+      }
+      else if ("-v1" == v)
+      {
+        verblevel = VERBLEVEL_STATUS;
+      }
+      else if ("-v2" == v)
+      {
+        verblevel = VERBLEVEL_INFO;
+      }
+      else if ("-v3" == v)
+      {
+        verblevel = VERBLEVEL_DEBUG;
       }
       else if ("-c" == v)
       {
@@ -164,7 +188,10 @@ void OAtrOptions::PrintUsage()
   print("  -c <file> : set compiler executable filename\n");
   print("  -r <dir>  : set batch test root directory\n");
   print("  -j <n>    : set batch worker count, 0 = auto detect\n");
-  print("  -v        : verbose output\n");
+  print("  -v,-v1    : status output\n");
+  print("  -vv,-v2   : info output\n");
+  print("  -vvv,-v3  : debug output\n");
+  print("  -v0       : no extra output (default)\n");
 }
 
 void init_atr_options(int argc, char ** argv)

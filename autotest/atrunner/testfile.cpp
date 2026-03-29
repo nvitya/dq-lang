@@ -36,7 +36,9 @@ OTestFile::~OTestFile()
 
 void OTestFile::Process()
 {
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  procrunner.exec_timeout_ms = 5000; // compile or run should finish in 5s
+
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_STATUS)
   {
     print("Processing \"{}\"...\n", filename);
   }
@@ -73,7 +75,7 @@ void OTestFile::Process()
 
 void OTestFile::ExecRunTest()
 {
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_STATUS)
   {
     print("Executing run test...\n");
   }
@@ -86,7 +88,7 @@ void OTestFile::ExecRunTest()
     return;
   }
 
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_INFO)
   {
     print("Compiler output:\n{}\n", comp_stdout);
   }
@@ -97,7 +99,7 @@ void OTestFile::ExecRunTest()
     exename += ".exe";
   #endif
 
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_STATUS)
   {
     print("Running {}...\n", exename);
   }
@@ -108,7 +110,7 @@ void OTestFile::ExecRunTest()
     return;
   }
 
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_INFO)
   {
     print("Run output:\n{}\n", procrunner.stdout_text);
   }
@@ -135,7 +137,7 @@ void OTestFile::ShowRunResults()
 
 void OTestFile::ExecErrorTest()
 {
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_STATUS)
   {
     print("Executing error test...\n");
   }
@@ -148,7 +150,7 @@ void OTestFile::ExecErrorTest()
     return;
   }
 
-  if (!g_atropt->batchmode and g_atropt->verbose)
+  if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_INFO)
   {
     print("Compiler output:\n{}\n", comp_stdout);
   }
@@ -327,7 +329,6 @@ bool OTestFile::ExecCompiler(bool errmode)
   {
     procrunner.args.push_back("-DERRORTEST");
   }
-
   if (!procrunner.Run())
   {
     result = false;

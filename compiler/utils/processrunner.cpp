@@ -18,6 +18,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -25,6 +26,12 @@
 #include "processrunner.h"
 
 using namespace std;
+
+struct SExecErrorInfo
+{
+  int runner_exit_code;
+  int sys_errno;
+};
 
 static void SetNonBlocking(int afd)
 {
@@ -89,6 +96,41 @@ static void ReadPipeData(int afd, string * adst, bool * aeof)
   }
 }
 
+static bool ReadExecError(int afd, int & aexit_code, string * astderr_text)
+{
+  SExecErrorInfo errinfo { 0, 0 };
+  ssize_t execerr_read = read(afd, &errinfo, sizeof(errinfo));
+
+  if (execerr_read == sizeof(errinfo))
+  {
+    aexit_code = errinfo.runner_exit_code;
+    if (astderr_text && astderr_text->empty())
+    {
+      *astderr_text = string(strerror(errinfo.sys_errno));
+    }
+    return true;
+  }
+
+  return false;
+}
+
+static bool PrepareExecErrorPipe(int execerrpipe[2])
+{
+  if (pipe(execerrpipe) < 0)
+  {
+    return false;
+  }
+
+  if (!SetCloseOnExec(execerrpipe[1]))
+  {
+    CloseFd(execerrpipe[0]);
+    CloseFd(execerrpipe[1]);
+    return false;
+  }
+
+  return true;
+}
+
 OProcessRunner::OProcessRunner()
 {
 }
@@ -107,6 +149,7 @@ bool OProcessRunner::Run()
 
   if (args.empty())
   {
+    exit_code = PROCRUNERR_INVALID_ARGS;
     return false;
   }
 
@@ -116,6 +159,7 @@ bool OProcessRunner::Run()
 
   if (pipe(outpipe) < 0)
   {
+    exit_code = PROCRUNERR_PIPE_CREATE;
     return false;
   }
 
@@ -123,26 +167,17 @@ bool OProcessRunner::Run()
   {
     CloseFd(outpipe[0]);
     CloseFd(outpipe[1]);
+    exit_code = PROCRUNERR_PIPE_CREATE;
     return false;
   }
 
-  if (pipe(execerrpipe) < 0)
+  if (!PrepareExecErrorPipe(execerrpipe))
   {
     CloseFd(outpipe[0]);
     CloseFd(outpipe[1]);
     CloseFd(errpipe[0]);
     CloseFd(errpipe[1]);
-    return false;
-  }
-
-  if (!SetCloseOnExec(execerrpipe[1]))
-  {
-    CloseFd(outpipe[0]);
-    CloseFd(outpipe[1]);
-    CloseFd(errpipe[0]);
-    CloseFd(errpipe[1]);
-    CloseFd(execerrpipe[0]);
-    CloseFd(execerrpipe[1]);
+    exit_code = PROCRUNERR_SETUP;
     return false;
   }
 
@@ -157,6 +192,7 @@ bool OProcessRunner::Run()
     CloseFd(errpipe[1]);
     CloseFd(execerrpipe[0]);
     CloseFd(execerrpipe[1]);
+    exit_code = PROCRUNERR_FORK;
     return false;
   }
 
@@ -168,8 +204,8 @@ bool OProcessRunner::Run()
     {
       if (chdir(workdir.c_str()) < 0)
       {
-        int err = errno;
-        (void)write(execerrpipe[1], &err, sizeof(err));
+        SExecErrorInfo errinfo { PROCRUNERR_CHDIR, errno };
+        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
         _exit(127);
       }
     }
@@ -191,8 +227,8 @@ bool OProcessRunner::Run()
     argv.push_back(nullptr);
 
     execvp(argv[0], argv.data());
-    int err = errno;
-    (void)write(execerrpipe[1], &err, sizeof(err));
+    SExecErrorInfo errinfo { PROCRUNERR_EXEC, errno };
+    (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
     CloseFd(execerrpipe[1]);
     _exit(127);
   }
@@ -212,16 +248,36 @@ bool OProcessRunner::Run()
     CloseFd(errpipe[0]);
     CloseFd(execerrpipe[0]);
     waitpid(pid, nullptr, 0);
+    exit_code = PROCRUNERR_SETUP;
     return false;
   }
 
   bool out_eof = false;
   bool err_eof = false;
+  bool timed_out = false;
+  bool poll_failed = false;
 
   while (!out_eof or !err_eof)
   {
     pollfd fds[2];
     nfds_t fdcount = 0;
+    int poll_timeout_ms = -1;
+
+    if (!timed_out and (exec_timeout_ms >= 0))
+    {
+      auto now_tp = chrono::steady_clock::now();
+      auto elapsed_ms = chrono::duration_cast<chrono::milliseconds>(now_tp - start_tp).count();
+      int64_t remaining_ms = int64_t(exec_timeout_ms) - elapsed_ms;
+
+      if (remaining_ms <= 0)
+      {
+        kill(pid, SIGKILL);
+        timed_out = true;
+        continue;
+      }
+
+      poll_timeout_ms = static_cast<int>(remaining_ms);
+    }
 
     if (!out_eof)
     {
@@ -239,10 +295,22 @@ bool OProcessRunner::Run()
       ++fdcount;
     }
 
-    int pr = poll(fds, fdcount, -1);
+    int pr = poll(fds, fdcount, poll_timeout_ms);
     if (pr < 0)
     {
+      if (errno == EINTR)
+      {
+        continue;
+      }
+      poll_failed = true;
+      kill(pid, SIGKILL);
       break;
+    }
+    else if (0 == pr)
+    {
+      kill(pid, SIGKILL);
+      timed_out = true;
+      continue;
     }
 
     nfds_t idx = 0;
@@ -268,14 +336,24 @@ bool OProcessRunner::Run()
   CloseFd(errpipe[0]);
 
   int status = 0;
-  waitpid(pid, &status, 0);
+  pid_t wait_rv = waitpid(pid, &status, 0);
 
-  int exec_errno = 0;
-  ssize_t execerr_read = read(execerrpipe[0], &exec_errno, sizeof(exec_errno));
+  CloseFd(execerrpipe[1]);
+  bool has_exec_error = ReadExecError(execerrpipe[0], exit_code, &stderr_text);
   CloseFd(execerrpipe[0]);
 
   auto end_tp = chrono::steady_clock::now();
   duration_us = chrono::duration_cast<chrono::microseconds>(end_tp - start_tp).count();
+
+  if (wait_rv < 0)
+  {
+    exit_code = PROCRUNERR_WAIT;
+    if (stderr_text.empty())
+    {
+      stderr_text = string(strerror(errno));
+    }
+    return false;
+  }
 
   if (WIFEXITED(status))
   {
@@ -290,11 +368,27 @@ bool OProcessRunner::Run()
     exit_code = -1;
   }
 
-  if (execerr_read == sizeof(exec_errno))
+  if (has_exec_error)
   {
+    return false;
+  }
+
+  if (timed_out)
+  {
+    exit_code = PROCRUNERR_TIMEOUT;
     if (stderr_text.empty())
     {
-      stderr_text = string(strerror(exec_errno));
+      stderr_text = "Process execution timed out.";
+    }
+    return false;
+  }
+
+  if (poll_failed)
+  {
+    exit_code = PROCRUNERR_POLL;
+    if (stderr_text.empty())
+    {
+      stderr_text = "Process polling failed.";
     }
     return false;
   }
@@ -317,4 +411,110 @@ string OProcessRunner::BuildCmdLine()
   }
 
   return s;
+}
+
+bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text, const string & aworkdir)
+{
+  aexit_code = -1;
+  if (astderr_text)
+  {
+    astderr_text->clear();
+  }
+
+  if (aargs.empty())
+  {
+    aexit_code = PROCRUNERR_INVALID_ARGS;
+    return false;
+  }
+
+  int execerrpipe[2] = {-1, -1};
+  if (!PrepareExecErrorPipe(execerrpipe))
+  {
+    aexit_code = PROCRUNERR_SETUP;
+    if (astderr_text)
+    {
+      *astderr_text = "Failed to create process setup pipe.";
+    }
+    return false;
+  }
+
+  pid_t pid = fork();
+  if (pid < 0)
+  {
+    CloseFd(execerrpipe[0]);
+    CloseFd(execerrpipe[1]);
+    aexit_code = PROCRUNERR_FORK;
+    if (astderr_text)
+    {
+      *astderr_text = string(strerror(errno));
+    }
+    return false;
+  }
+
+  if (0 == pid)
+  {
+    CloseFd(execerrpipe[0]);
+
+    if (!aworkdir.empty())
+    {
+      if (chdir(aworkdir.c_str()) < 0)
+      {
+        SExecErrorInfo errinfo { PROCRUNERR_CHDIR, errno };
+        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
+        _exit(127);
+      }
+    }
+
+    vector<char *> argv;
+    argv.reserve(aargs.size() + 1);
+    for (const string & s : aargs)
+    {
+      argv.push_back(const_cast<char *>(s.c_str()));
+    }
+    argv.push_back(nullptr);
+
+    execvp(argv[0], argv.data());
+    SExecErrorInfo errinfo { PROCRUNERR_EXEC, errno };
+    (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
+    CloseFd(execerrpipe[1]);
+    _exit(127);
+  }
+
+  CloseFd(execerrpipe[1]);
+
+  int status = 0;
+  pid_t wait_rv = waitpid(pid, &status, 0);
+
+  bool has_exec_error = ReadExecError(execerrpipe[0], aexit_code, astderr_text);
+  CloseFd(execerrpipe[0]);
+
+  if (wait_rv < 0)
+  {
+    aexit_code = PROCRUNERR_WAIT;
+    if (astderr_text && astderr_text->empty())
+    {
+      *astderr_text = string(strerror(errno));
+    }
+    return false;
+  }
+
+  if (has_exec_error)
+  {
+    return false;
+  }
+
+  if (WIFEXITED(status))
+  {
+    aexit_code = WEXITSTATUS(status);
+  }
+  else if (WIFSIGNALED(status))
+  {
+    aexit_code = -WTERMSIG(status);
+  }
+  else
+  {
+    aexit_code = -1;
+  }
+
+  return true;
 }

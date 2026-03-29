@@ -17,6 +17,14 @@
 
 using namespace std;
 
+enum EVerboseLevel
+{
+  VERBLEVEL_NONE   = 0,   // -v0 (default)
+  VERBLEVEL_STATUS = 1,   // -v or -v1
+  VERBLEVEL_INFO   = 2,   // -vv or -v2
+  VERBLEVEL_DEBUG  = 3,   // -vvv or -v3
+};
+
 class OAtrOptions
 {
 public:
@@ -27,7 +35,7 @@ public:
   string            single_test_filename;
 
   int               worker_count = 0;  // 0 = auto detect thread count
-  bool              verbose = false;
+  int               verblevel = VERBLEVEL_NONE;
 
   int               arg_error_count = 0;
 
@@ -42,4 +50,3 @@ public:
 extern OAtrOptions *  g_atropt;
 
 void init_atr_options(int argc, char ** argv);
-

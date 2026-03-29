@@ -19,10 +19,24 @@
 
 using namespace std;
 
+enum
+{
+  PROCRUNERR_INVALID_ARGS = -1000,
+  PROCRUNERR_PIPE_CREATE  = -1001,
+  PROCRUNERR_FORK         = -1002,
+  PROCRUNERR_SETUP        = -1003,
+  PROCRUNERR_CHDIR        = -1004,
+  PROCRUNERR_EXEC         = -1005,
+  PROCRUNERR_TIMEOUT      = -1006,
+  PROCRUNERR_WAIT         = -1007,
+  PROCRUNERR_POLL         = -1008
+};
+
 class OProcessRunner
 {
 public:
   string            workdir;
+  int               exec_timeout_ms = -1;
   vector<string>    args;
 
   int               exit_code = 0;
@@ -40,6 +54,6 @@ public:
 
 protected:
   string BuildCmdLine();
-
 };
 
+bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text = nullptr, const string & aworkdir = "");

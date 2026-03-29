@@ -13,7 +13,8 @@
             "xargs": ["tests/basic/array/dq_array.dq", "tests/basic/array/dq_array.o", "-g"],
             "xargs": ["tests/basic/pointer/dq_pointer.dq", "tests/basic/pointer/dq_pointer.o", "-g", "-ir"],
             "xargs": ["tests/basic/dq_basic1.dq", "-v", "-ir", "-O0"],
-            "args": ["tests/basic/printf/printf.dq", "-g"],
+            "xargs": ["tests/basic/printf/printf.dq", "-g"],
+            "args": ["tests/basic/cstring/cstring.dq", "-g", "-v"],
             "xargs": ["tests/preprocessor/dq_preproc_test1.dq"],
             "stopAtEntry": false,
 

@@ -1,0 +1,75 @@
+// Float arithmetic and rounding tests
+
+// --- constant expressions ---
+
+const CONST_ROUND : int = round(3.1 / 1.13);   // round(2.7433...) = 3
+const CONST_CEIL  : int = ceil(2.1 * 3.0);     // ceil(6.3) = 7
+const CONST_FLOOR : int = floor(10.0 / 3.0);   // floor(3.333...) = 3
+
+function dq_get_const_round() -> int:
+  result = CONST_ROUND;
+endfunc
+
+function dq_get_const_ceil() -> int:
+  result = CONST_CEIL;
+endfunc
+
+function dq_get_const_floor() -> int:
+  result = CONST_FLOOR;
+endfunc
+
+// --- float64 arithmetic ---
+
+function dq_fl_add(a : float64, b : float64) -> float64:
+  result = a + b;
+endfunc
+
+function dq_fl_sub(a : float64, b : float64) -> float64:
+  result = a - b;
+endfunc
+
+function dq_fl_mul(a : float64, b : float64) -> float64:
+  result = a * b;
+endfunc
+
+function dq_fl_div(a : float64, b : float64) -> float64:
+  result = a / b;
+endfunc
+
+// --- float32 arithmetic ---
+
+function dq_fl32_add(a : float32, b : float32) -> float32:
+  result = a + b;
+endfunc
+
+function dq_fl32_mul(a : float32, b : float32) -> float32:
+  result = a * b;
+endfunc
+
+// --- round/ceil/floor on float64 ---
+
+function dq_fl_round(v : float64) -> int:
+  result = round(v);
+endfunc
+
+function dq_fl_ceil(v : float64) -> int:
+  result = ceil(v);
+endfunc
+
+function dq_fl_floor(v : float64) -> int:
+  result = floor(v);
+endfunc
+
+// --- round/ceil/floor on float32 ---
+
+function dq_fl32_round(v : float32) -> int:
+  result = round(v);
+endfunc
+
+function dq_fl32_ceil(v : float32) -> int:
+  result = ceil(v);
+endfunc
+
+function dq_fl32_floor(v : float32) -> int:
+  result = floor(v);
+endfunc

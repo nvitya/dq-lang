@@ -6,7 +6,7 @@
  * See the LICENSE file in the project root for the full license text.
  * ---------------------------------------------------------------------------------
  * file:    processrunner.cpp
- * authors: Codex
+ * authors: Codex, nvitya
  * created: 2026-03-17
  * brief:
  */
@@ -18,29 +18,13 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "processrunner.h"
 
 using namespace std;
-
-static string BuildCmdLine(const vector<string> & aargs)
-{
-  string s;
-
-  for (size_t i = 0; i < aargs.size(); ++i)
-  {
-    if (i > 0)
-    {
-      s += " ";
-    }
-
-    s += aargs[i];
-  }
-
-  return s;
-}
 
 static void SetNonBlocking(int afd)
 {
@@ -63,6 +47,17 @@ static void CloseFd(int & afd)
     close(afd);
     afd = -1;
   }
+}
+
+static bool SetCloseOnExec(int afd)
+{
+  int flags = fcntl(afd, F_GETFD, 0);
+  if (flags < 0)
+  {
+    return false;
+  }
+
+  return (fcntl(afd, F_SETFD, flags | FD_CLOEXEC) >= 0);
 }
 
 static void ReadPipeData(int afd, string * adst, bool * aeof)
@@ -102,26 +97,22 @@ OProcessRunner::~OProcessRunner()
 {
 }
 
-bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
+bool OProcessRunner::Run()
 {
-  if (!aresult)
-  {
-    return false;
-  }
+  exit_code = -1;
+  duration_us = 0;
+  stdout_text.clear();
+  stderr_text.clear();
+  cmdline = BuildCmdLine();
 
-  aresult->exit_code = -1;
-  aresult->duration_us = 0;
-  aresult->stdout_text.clear();
-  aresult->stderr_text.clear();
-  aresult->cmdline = BuildCmdLine(aargs);
-
-  if (aargs.empty())
+  if (args.empty())
   {
     return false;
   }
 
   int outpipe[2] = {-1, -1};
   int errpipe[2] = {-1, -1};
+  int execerrpipe[2] = {-1, -1};
 
   if (pipe(outpipe) < 0)
   {
@@ -135,6 +126,26 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
     return false;
   }
 
+  if (pipe(execerrpipe) < 0)
+  {
+    CloseFd(outpipe[0]);
+    CloseFd(outpipe[1]);
+    CloseFd(errpipe[0]);
+    CloseFd(errpipe[1]);
+    return false;
+  }
+
+  if (!SetCloseOnExec(execerrpipe[1]))
+  {
+    CloseFd(outpipe[0]);
+    CloseFd(outpipe[1]);
+    CloseFd(errpipe[0]);
+    CloseFd(errpipe[1]);
+    CloseFd(execerrpipe[0]);
+    CloseFd(execerrpipe[1]);
+    return false;
+  }
+
   auto start_tp = chrono::steady_clock::now();
 
   pid_t pid = fork();
@@ -144,14 +155,23 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
     CloseFd(outpipe[1]);
     CloseFd(errpipe[0]);
     CloseFd(errpipe[1]);
+    CloseFd(execerrpipe[0]);
+    CloseFd(execerrpipe[1]);
     return false;
   }
 
   if (0 == pid)
   {
+    CloseFd(execerrpipe[0]);
+
     if (!workdir.empty())
     {
-      chdir(workdir.c_str());
+      if (chdir(workdir.c_str()) < 0)
+      {
+        int err = errno;
+        (void)write(execerrpipe[1], &err, sizeof(err));
+        _exit(127);
+      }
     }
 
     dup2(outpipe[1], STDOUT_FILENO);
@@ -163,19 +183,23 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
     CloseFd(errpipe[1]);
 
     vector<char *> argv;
-    argv.reserve(aargs.size() + 1);
-    for (const string & s : aargs)
+    argv.reserve(args.size() + 1);
+    for (const string & s : args)
     {
       argv.push_back(const_cast<char *>(s.c_str()));
     }
     argv.push_back(nullptr);
 
     execvp(argv[0], argv.data());
+    int err = errno;
+    (void)write(execerrpipe[1], &err, sizeof(err));
+    CloseFd(execerrpipe[1]);
     _exit(127);
   }
 
   CloseFd(outpipe[1]);
   CloseFd(errpipe[1]);
+  CloseFd(execerrpipe[1]);
 
   try
   {
@@ -186,6 +210,7 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
   {
     CloseFd(outpipe[0]);
     CloseFd(errpipe[0]);
+    CloseFd(execerrpipe[0]);
     waitpid(pid, nullptr, 0);
     return false;
   }
@@ -225,7 +250,7 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
     {
       if (fds[idx].revents & (POLLIN | POLLHUP))
       {
-        ReadPipeData(outpipe[0], &aresult->stdout_text, &out_eof);
+        ReadPipeData(outpipe[0], &stdout_text, &out_eof);
       }
       ++idx;
     }
@@ -234,7 +259,7 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
     {
       if (fds[idx].revents & (POLLIN | POLLHUP))
       {
-        ReadPipeData(errpipe[0], &aresult->stderr_text, &err_eof);
+        ReadPipeData(errpipe[0], &stderr_text, &err_eof);
       }
     }
   }
@@ -245,21 +270,51 @@ bool OProcessRunner::Run(const vector<string> & aargs, SProcessResult * aresult)
   int status = 0;
   waitpid(pid, &status, 0);
 
+  int exec_errno = 0;
+  ssize_t execerr_read = read(execerrpipe[0], &exec_errno, sizeof(exec_errno));
+  CloseFd(execerrpipe[0]);
+
   auto end_tp = chrono::steady_clock::now();
-  aresult->duration_us = chrono::duration_cast<chrono::microseconds>(end_tp - start_tp).count();
+  duration_us = chrono::duration_cast<chrono::microseconds>(end_tp - start_tp).count();
 
   if (WIFEXITED(status))
   {
-    aresult->exit_code = WEXITSTATUS(status);
+    exit_code = WEXITSTATUS(status);
   }
   else if (WIFSIGNALED(status))
   {
-    aresult->exit_code = -WTERMSIG(status);
+    exit_code = -WTERMSIG(status);
   }
   else
   {
-    aresult->exit_code = -1;
+    exit_code = -1;
+  }
+
+  if (execerr_read == sizeof(exec_errno))
+  {
+    if (stderr_text.empty())
+    {
+      stderr_text = string(strerror(exec_errno));
+    }
+    return false;
   }
 
   return true;
+}
+
+string OProcessRunner::BuildCmdLine()
+{
+  string s;
+
+  for (size_t i = 0; i < args.size(); ++i)
+  {
+    if (i > 0)
+    {
+      s += " ";
+    }
+
+    s += args[i];
+  }
+
+  return s;
 }

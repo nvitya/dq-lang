@@ -42,23 +42,21 @@ static string TrimLineEnd(string s)
 static string QueryCompilerVersion()
 {
   OProcessRunner procrunner;
-  SProcessResult procresult;
 
-  vector<string> args { g_atropt->compiler_filename, "--version" };
-
-  if (!procrunner.Run(args, &procresult))
+  procrunner.args = { g_atropt->compiler_filename, "--version" };
+  if (!procrunner.Run())
   {
     return "?";
   }
 
-  if (!procresult.stdout_text.empty())
+  if (!procrunner.stdout_text.empty())
   {
-    return TrimLineEnd(procresult.stdout_text);
+    return TrimLineEnd(procrunner.stdout_text);
   }
 
-  if (!procresult.stderr_text.empty())
+  if (!procrunner.stderr_text.empty())
   {
-    return TrimLineEnd(procresult.stderr_text);
+    return TrimLineEnd(procrunner.stderr_text);
   }
 
   return "?";
@@ -350,7 +348,7 @@ int OAtRunner::RunSingle()
   tf->processed = true;
   int result = tf->errorcnt_err + tf->errorcnt_run + tf->errorcnt_tf;
 
-  
+
 
   delete tf;
   return result;

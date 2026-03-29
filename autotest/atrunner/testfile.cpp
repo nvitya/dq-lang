@@ -19,8 +19,11 @@
 #include <print>
 #include <format>
 #include <fstream>
+#include <filesystem>
 
 #include "atr_options.h"
+
+namespace fs = std::filesystem;
 
 OTestFile::OTestFile(const string & afilename)
 {
@@ -51,27 +54,117 @@ void OTestFile::Process()
     return;
   }
 
-#if 0
-
-  static thread_local mt19937 rng(random_device{}());
-  uniform_int_distribution<int> dist(10, 500);
-
-  int sleeptime = dist(rng);
-  if (sleeptime < 220)
+  if (not run_captures.empty())
   {
-    exec_err = true;
-    errorcnt_err = (sleeptime % 3);
+    ExecRunTest();
+    if (!g_atropt->batchmode)
+    {
+      ShowRunResults();
+    }
+  }
+
+  if (not err_captures.empty())
+  {
+    ExecErrorTest();
+  }
+
+  processed = true;
+}
+
+void OTestFile::ExecRunTest()
+{
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Executing run test...\n");
+  }
+
+  // 1. Compile the test file: dq-comp <filename>, capture the compiler output to comp_output
+  if (not ExecCompiler(false))
+  {
+    // error executing the compiler
+    AddRunError(format("Error executing the compiler {}", g_atropt->compiler_filename));
+    return;
+  }
+
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Compiler output:\n{}\n", comp_stdout);
+  }
+
+  // 2. Executing the compiled test file
+  string exename = fs::path(filename).replace_extension("").generic_string();
+  #ifdef _WIN32
+    exename += ".exe";
+  #endif
+
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Running {}...\n", exename);
+  }
+  procrunner.args = { exename };
+  if (not procrunner.Run())
+  {
+    AddRunError(format("Error executing {}", exename));
+    return;
+  }
+
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Run output:\n{}\n", procrunner.stdout_text);
+  }
+
+}
+
+void OTestFile::ShowRunResults()
+{
+  for (string s : msg_run)
+  {
+    print("RUNERR: {}\n", s);
+  }
+
+  if (0 == errorcnt_run)
+  {
+    print("Run test result: OK\n");
   }
   else
   {
-    exec_run = true;
-    errorcnt_run = (sleeptime % 3);
+    print("Run test result: FAILED\n");
+  }
+  print("\n");
+}
+
+void OTestFile::ExecErrorTest()
+{
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Executing error test...\n");
   }
 
-  this_thread::sleep_for(chrono::milliseconds(sleeptime));
-#endif
+  // 1. Compile the test file: dq-comp <filename> -DERRTEST, capture the compiler output to comp_output
+  if (not ExecCompiler(true))
+  {
+    // error executing the compiler
+    AddEtError(format("Error executing the compiler {}", g_atropt->compiler_filename));
+    return;
+  }
 
-  processed = true;
+  if (!g_atropt->batchmode and g_atropt->verbose)
+  {
+    print("Compiler output:\n{}\n", comp_stdout);
+  }
+
+}
+
+void OTestFile::AddRunError(const string astr)
+{
+  msg_run.push_back(astr);
+  ++errorcnt_run;
+}
+
+void OTestFile::AddEtError(const string astr)
+{
+  msg_err.push_back(astr);
+  ++errorcnt_err;
 }
 
 bool OTestFile::LoadText()
@@ -223,4 +316,25 @@ void OTestFile::AddTfError(const string astr)
   int linenum = sp.GetLineNum(sp.prevptr);
   msg_tf.push_back(format("line {}: {}", linenum, astr));
   ++errorcnt_tf;
+}
+
+bool OTestFile::ExecCompiler(bool errmode)
+{
+  bool result = true;
+
+  procrunner.args = { g_atropt->compiler_filename, filename };
+  if (errmode)
+  {
+    procrunner.args.push_back("-DERRORTEST");
+  }
+
+  if (!procrunner.Run())
+  {
+    result = false;
+  }
+
+  comp_result = procrunner.exit_code;
+  comp_stdout = procrunner.stdout_text;
+  comp_stderr = procrunner.stderr_text;
+  return result;
 }

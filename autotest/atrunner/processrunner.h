@@ -6,7 +6,7 @@
  * See the LICENSE file in the project root for the full license text.
  * ---------------------------------------------------------------------------------
  * file:    processrunner.h
- * authors: Codex
+ * authors: Codex, nvitya
  * created: 2026-03-17
  * brief:   subprocess runner
  */
@@ -19,25 +19,27 @@
 
 using namespace std;
 
-struct SProcessResult
+class OProcessRunner
 {
+public:
+  string            workdir;
+  vector<string>    args;
+
   int               exit_code = 0;
   int64_t           duration_us = 0;
 
   string            cmdline;
   string            stdout_text;
   string            stderr_text;
-};
-
-class OProcessRunner
-{
-public:
-  string            workdir;
 
 public:
   OProcessRunner();
   virtual ~OProcessRunner();
 
-  bool Run(const vector<string> & aargs, SProcessResult * aresult);
+  bool Run();
+
+protected:
+  string BuildCmdLine();
+
 };
 

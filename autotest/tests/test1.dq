@@ -4,8 +4,8 @@
 
 #ifdef ERRORTEST
 
-var i : int = 5;  //?error(TypeUnknown)
-var i = 1;        //?error(TypeSpecExpected)
+var i : inte = 5;  //?error(TypeUnknown)
+var i2 = 1;       //?error(TypeSpecExpected)
 
 asdf
 

@@ -11,10 +11,11 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "0.1.1"
+#define ATR_VERSION  "0.0.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.0.3: processrunner fixes, printing compiler output and run test output
 v0.0.2: Threaded processing
 v0.0.1: initial version
 ------------------------------------------------------------------------------------

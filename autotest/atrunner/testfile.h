@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "strparse.h"
+#include "processrunner.h"
 
 using namespace std;
 
@@ -52,6 +53,12 @@ public:
   string            filename;
   string            text;
 
+  string            comp_stdout;
+  string            comp_stderr;
+  int               comp_result;
+
+  string            run_output;
+
   bool              processed  = false;
 
   bool              exec_run   = false;
@@ -70,11 +77,19 @@ public:
 
   TStrParseObj      sp;
 
+  OProcessRunner    procrunner;
+
 public:
   OTestFile(const string & afilename);
   virtual ~OTestFile();
 
   void Process();
+  void ExecRunTest();
+  void ShowRunResults();
+  void ExecErrorTest();  // check the expected compiler errors
+
+  void AddRunError(const string astr);
+  void AddEtError(const string astr);
 
 protected:
   bool LoadText();
@@ -83,4 +98,7 @@ protected:
   void ParseMarkerCheck();
 
   void AddTfError(const string astr);
+
+protected:
+  bool ExecCompiler(bool errmode);
 };

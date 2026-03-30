@@ -61,7 +61,7 @@ endfunc
 #ifdef ERRORTEST
 
 function dq_arr_fixed_test_error() -> int:
-  result = dq_arr_fixed_arg([1,2,3,4]);
-endfunc
+  result = dq_arr_fixed_arg([1,2,3,4]);   //?error(ArrSize)
+endfunc                                   //?error(FuncResultNotSet)
 
 #endif

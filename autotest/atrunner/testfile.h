@@ -54,8 +54,7 @@ public:
   string            filename;
   string            text;
 
-  string            comp_stdout;
-  string            comp_stderr;
+  string            comp_out;
   int               comp_result;
 
   string            run_output;
@@ -94,6 +93,8 @@ public:
 
   void ShowTestFileErrors();
   void ExecErrorTest();  // check the expected compiler errors
+  void AnalyzeErrOutput();
+  void ShowErrResults();
 
   void PrintSeparator();
   void AddRunError(const string astr);
@@ -108,6 +109,7 @@ protected:
   void ParseMarkerCheck(bool aignore);
 
   void AddTfError(const string astr);
+  void AddTfErrorNoLine(const string astr);
 
 protected:
   bool ExecCompiler(bool errmode);

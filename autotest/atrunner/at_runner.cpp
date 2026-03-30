@@ -137,7 +137,7 @@ void OAtRunner::CollectTestFiles()
 
   for (const fs::path & rp : foundfiles)
   {
-    testfiles.push_back(new OTestFile(rp.generic_string()));
+    testfiles.push_back(new OTestFile((rootpath / rp).generic_string()));
   }
 }
 
@@ -247,9 +247,20 @@ void OAtRunner::ProcessResults()
   {
     if (tf->errorcnt_tf)
     {
+      for (string s : tf->msg_tf)
+      {
+        print("INV({}): {}\n", tf->filename, s);
+      }
       ++invalid_tf_cnt;
     }
+  }
+  if (invalid_tf_cnt)
+  {
+    print("\n");
+  }
 
+  for (OTestFile * tf : testfiles)
+  {
     if (tf->exec_err)
     {
       ++testcnt_err;
@@ -257,9 +268,21 @@ void OAtRunner::ProcessResults()
       {
         ++errorcnt_err_files;
         errorcnt_err += tf->errorcnt_err;
+
+        for (string s : tf->msg_err)
+        {
+          print("ERR({}): {}\n", tf->filename, s);
+        }
       }
     }
+  }
+  if (errorcnt_err)
+  {
+    print("\n");
+  }
 
+  for (OTestFile * tf : testfiles)
+  {
     if (tf->exec_run)
     {
       ++testcnt_run;
@@ -267,18 +290,28 @@ void OAtRunner::ProcessResults()
       {
         ++errorcnt_run_files;
         errorcnt_run += tf->errorcnt_run;
+
+        for (string s : tf->msg_run)
+        {
+          print("RUN({}): {}\n", tf->filename, s);
+        }
       }
     }
   }
+  if (errorcnt_run)
+  {
+    print("\n");
+  }
+
 
   // display the results
   print("Error tests executed: {:3}\n", testcnt_err);
   print("Run tests executed:   {:3}\n", testcnt_run);
-  print("Error tests failed:   {:3}",   errorcnt_err);
+  print("Error tests fails:    {:3}",   errorcnt_err);
   if (errorcnt_err) print(" ({} files)",  errorcnt_err_files);
   print("\n");
-  print("Run tests failed:     {:3}",   errorcnt_run);
-  if (errorcnt_err) print(" ({} files)",  errorcnt_run_files);
+  print("Run tests fails:      {:3}",   errorcnt_run);
+  if (errorcnt_run) print(" ({} files)",  errorcnt_run_files);
   print("\n");
 
   if (invalid_tf_cnt > 0)

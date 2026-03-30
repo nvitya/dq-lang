@@ -6,12 +6,17 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "xargs": ["tests/basic/dq_float.dq"],
-            "xargs": ["tests/basic/dq_defines.dq"],
-            "args": ["tests/sample_combined.dq", "-v"],
+
+            "xargs": ["basic/dq_float.dq"],
+            "xargs": ["basic/dq_defines.dq"],
+            "xargs": ["sample_combined.dq", "-v"],
+            "args": ["basic/dq_array.dq", "-v3"],
+
+            "xargs": ["-r", "basic", "-j", "1"],
+
             "stopAtEntry": false,
 
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/tests",
             "environment": [
                 {
                     "name": "PATH",

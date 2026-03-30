@@ -48,14 +48,13 @@ function dq_str_append(a : cstring, b : cstring):
   cstr_add(a, b);
 endfunc
 
-function dq_test_cstring():
-
-  dq_writestr(dq_cstr);
+function main() -> int:
+  dq_writestr(dq_cstr);  //?check('DQ String Test')
 
   var s : cstring[128] = "";
 
   cstr_add(s, "Hello");
-  cstr_add(s, " World!\n");
+  cstr_add(s, " World!\n");  //?check('Hello World!')
 
   dq_writestr(s);
 
@@ -67,11 +66,6 @@ function dq_test_cstring():
 
   dq_writestr('s2 = "');
   dq_writestr(s2);
-  dq_writestr('"\n');
-
-endfunc
-
-function main() -> int:
-  dq_test_cstring();
+  dq_writestr('"\n');     //?check(s2, '"abcdef"')
   return 0;
 endfunc

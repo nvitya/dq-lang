@@ -11,10 +11,11 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "0.0.5"
+#define ATR_VERSION  "0.0.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.0.6: adding .exe extension for linux too for universal .gitignore matching
 v0.0.5: run-test: handling compiper errors
 v0.0.4: proper single run-test output
 v0.0.3: processrunner fixes, printing compiler output and run test output

@@ -46,6 +46,10 @@ void OTestFile::Process()
   if (not LoadText())
   {
     msg_tf.push_back("File load error.");
+    if (!g_atropt->batchmode)
+    {
+      print("TF_ERROR: {}\n", msg_tf.back());
+    }
     processed = true;
     return;
   }
@@ -53,6 +57,18 @@ void OTestFile::Process()
   if (not ParseText())
   {
     ShowTestFileErrors();
+    processed = true;
+    return;
+  }
+
+  if (run_captures.empty() and err_captures.empty())
+  {
+    // no atr marker was found
+    msg_tf.push_back("Neither run test markers nor error test markers were found.");
+    if (!g_atropt->batchmode)
+    {
+      print("TF_ERROR: {}\n", msg_tf.back());
+    }
     processed = true;
     return;
   }
@@ -119,10 +135,8 @@ void OTestFile::ExecRunTest()
   }
 
   // 2. Executing the compiled test file
-  string exename = fs::path(filename).replace_extension("").generic_string();
-  #ifdef _WIN32
-    exename += ".exe";
-  #else
+  string exename = fs::path(filename).replace_extension("exe").generic_string();
+  #ifndef _WIN32
     // adding "./" to the front for local files
     if (not exename.empty() and exename[0] != '/' and exename.find('/') == string::npos)
     {
@@ -507,7 +521,9 @@ bool OTestFile::ExecCompiler(bool errmode)
 {
   bool result = true;
 
-  procrunner.args = { g_atropt->compiler_filename, filename };
+  string exename = fs::path(filename).replace_extension("exe").generic_string();
+
+  procrunner.args = { g_atropt->compiler_filename, filename, "-o", exename };
   if (errmode)
   {
     procrunner.args.push_back("-DERRORTEST");

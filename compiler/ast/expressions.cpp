@@ -462,6 +462,11 @@ LlValue * OBinNotExpr::Generate(OScope * scope)
 LlValue * ONegExpr::Generate(OScope * scope)
 {
   LlValue * ll_val = operand->Generate(scope);
+  if (ll_val->getType()->isFloatingPointTy())
+  {
+    return ll_builder.CreateFNeg(ll_val);
+  }
+
   return ll_builder.CreateNeg(ll_val);
 }
 
@@ -815,4 +820,3 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
       1, "strlit.desc.size");
   return ll_desc;
 }
-

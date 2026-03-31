@@ -14,8 +14,11 @@
             "xargs": ["tests/basic/pointer/dq_pointer.dq", "tests/basic/pointer/dq_pointer.o", "-g", "-ir"],
             "xargs": ["tests/basic/dq_basic1.dq", "-v", "-ir", "-O0"],
             "xargs": ["tests/basic/printf/printf.dq", "-g"],
-            "args": ["tests/basic/cstring/cstring.dq", "-g", "-v"],
+            "xargs": ["tests/basic/cstring/cstring.dq", "-g", "-v"],
             "xargs": ["tests/preprocessor/dq_preproc_test1.dq"],
+
+            "args": ["autotest/tests/basic/dq_float.dq", "-g", "-v"],
+
             "stopAtEntry": false,
 
             "sourceFileMap": {

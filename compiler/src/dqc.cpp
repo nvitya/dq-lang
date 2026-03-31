@@ -128,7 +128,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
     if (has_main)
     {
-      string link_cmd = format("gcc {} -o {}", out_filename, link_output);
+      string link_cmd = format("gcc {} -o {} -lm", out_filename, link_output);
       if (g_opt.verblevel >= VERBLEVEL_STATUS)
       {
         print("Linking: \"{}\"...\n", link_output);

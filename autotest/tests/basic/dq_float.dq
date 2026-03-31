@@ -46,8 +46,6 @@ function dq_fl32_mul(a : float32, b : float32) -> float32:
   result = a * b;
 endfunc
 
-#if false
-
 // --- round/ceil/floor on float64 ---
 
 function dq_fl_round(v : float64) -> int:
@@ -76,22 +74,20 @@ function dq_fl32_floor(v : float32) -> int:
   result = floor(v);
 endfunc
 
-#endif
-
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function main() -> int:
   printf("Testing DQ float operations:\n\n");     //?ignore('Testing DQ float operations:')
 
   printf("--- float64 arithmetic ---\n");         //?ignore('--- float64 arithmetic ---')
-  printf('dq_fl_add(1.5, 2.5) = %.3f\n',     dq_fl_add(1.5, 3.5)  );  //?check('dq_fl_add(1.5, 2.5)', 4.000)
-  //printf("dq_fl_add(-1.5, 2.5) = %.3f\n",    dq_fl_add(-1.5, 2.5) );  //-?check('dq_fl_add(-1.5, 2.5)', 1.000)
+  printf('dq_fl_add(1.5, 2.5) = %.3f\n',     dq_fl_add(1.5, 2.5)  );  //?check('dq_fl_add(1.5, 2.5)', 4.000)
+  printf("dq_fl_add(-1.5, 2.5) = %.3f\n",    dq_fl_add(-1.5, 2.5) );  //?check('dq_fl_add(-1.5, 2.5)', 1.000)
   printf("dq_fl_sub(5.5, 2.5) = %.3f\n",     dq_fl_sub(5.5, 2.5)  );  //?check('dq_fl_sub(5.5, 2.5)', 3.000)
   printf("dq_fl_sub(1.0, 3.5) = %.3f\n",     dq_fl_sub(1.0, 3.5)  );  //?check('dq_fl_sub(1.0, 3.5)',   -2.500)
   printf("dq_fl_mul(2.5, 4.0) = %.3f\n",     dq_fl_mul(2.5, 4.0)  );  //?check('dq_fl_mul(2.5, 4.0)',   10.000)
-  //printf("dq_fl_mul(-3.0, 2.5) = %.3f\n",    dq_fl_mul(-3.0, 2.5) );  //-?check('dq_fl_mul(-3.0, 2.5)',  -7.500)
+  printf("dq_fl_mul(-3.0, 2.5) = %.3f\n",    dq_fl_mul(-3.0, 2.5) );  //?check('dq_fl_mul(-3.0, 2.5)',  -7.500)
   printf("dq_fl_div(10.0, 4.0) = %.3f\n",    dq_fl_div(10.0, 4.0) );  //?check('dq_fl_div(10.0, 4.0)',   2.500)
-  //printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) );  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
+  printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) );  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
 
   // to be migrated:
 

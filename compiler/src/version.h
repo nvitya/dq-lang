@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.7"
+#define DQ_COMPILER_VERSION  "0.6.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.6.8:
+  - fixed code generation error at floating point negation
+  - fixed linking adding -lm option for the possible math functions
 v0.6.7:
   - New dq-run utility: compile and run a DQ file in one step
 v0.6.6:

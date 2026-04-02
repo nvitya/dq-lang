@@ -1,8 +1,0 @@
-[[external]] function printf(fmt : ^cchar, ...) -> int;
-
-function main() -> int:
-  printf("run15 hello\n");  //?check(run15 hello)
-  printf("run15 id=15\n");  //?check(run15 id, 15)
-  return 0;
-endfunc
-

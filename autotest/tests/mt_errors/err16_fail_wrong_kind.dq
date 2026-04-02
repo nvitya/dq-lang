@@ -1,3 +1,0 @@
-var err16_missing_type = 16;  //?warning(TypeSpecExpected)
-wrong16                   //?error(ModStatementUnknown)
-

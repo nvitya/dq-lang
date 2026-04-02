@@ -11,6 +11,7 @@
             "xargs": ["basic/dq_defines.dq"],
             "xargs": ["sample_combined.dq", "-v"],
             "xargs": ["basic/dq_array.dq"],
+            "xargs": ["preprocessor/dq_preproc_test1.dq"],
 
             "args": ["-r", "basic", "-j", "1"],
 

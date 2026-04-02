@@ -1,0 +1,19 @@
+// this file is included
+
+#include_once
+
+var includevar1 : int = 101;
+
+#include "dq_preproc_inc2.dqi"
+
+// comment
+
+#ifdef INC2_VALUE
+
+var includevar2 : int = @def.INC2_VALUE;
+
+#else
+
+var includevar2 : int = 102;
+
+#endif

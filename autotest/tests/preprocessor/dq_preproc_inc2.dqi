@@ -1,0 +1,5 @@
+// this file is included from an include
+
+var includevar21 : int = 2101;
+
+#define INC2_VALUE = 2033;

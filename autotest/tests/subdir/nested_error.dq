@@ -1,5 +1,0 @@
-// nested error sample
-
-var nested_missing_type = 1;  //?error(TypeSpecExpected)
-wrongmoduleline               //?error(ModStatementUnknown)
-

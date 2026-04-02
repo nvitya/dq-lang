@@ -1,3 +1,0 @@
-var err13_missing_type = 13;  //?error(TypeSpecExpected)
-wrong13                   //?error(ModStatementUnknown)
-

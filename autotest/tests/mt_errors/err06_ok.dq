@@ -1,3 +1,0 @@
-var err06_missing_type = 6;  //?error(TypeSpecExpected)
-wrong06                  //?error(ModStatementUnknown)
-

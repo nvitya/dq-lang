@@ -117,7 +117,7 @@ void OTestFile::ExecRunTest()
 
   if (comp_result != 0)
   {
-    if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_STATUS)
+    if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_INFO)
     {
       print("Compile error:\n");
       if (not comp_out.empty())
@@ -192,6 +192,10 @@ void OTestFile::AddRunTestCompileErrors(string & astr)
     if (not curline.empty())
     {
       AddRunError("COMPERR: "+curline);
+      if (!g_atropt->batchmode)
+      {
+        print("{}\n", msg_run.back());
+      }
     }
   }
 

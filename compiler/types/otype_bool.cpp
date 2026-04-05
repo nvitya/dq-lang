@@ -137,6 +137,6 @@ bool OValueBool::CalculateConstant(OExpr * expr)
     }
   }
 
-  g_compiler->Error(DQERR_CONSTEXPR_ERROR, "bool");
+  g_compiler->Error(DQERR_BOOL_CONSTEXPR_ERROR);
   return false;
 }

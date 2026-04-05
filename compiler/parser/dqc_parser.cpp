@@ -200,7 +200,7 @@ void ODqCompParser::ParseVarDecl()  // global var declaration (the local var is 
     {
       if (not vdecl->initvalue->CalculateConstant(initexpr))
       {
-        StatementError(DQERR_GLOBALVAR_INITVALUE, sid, &scf->prevpos);
+        // the error message is already generated
       }
     }
     delete initexpr;
@@ -889,6 +889,12 @@ void ODqCompParser::ParseStmtIf()
     return;
   }
 
+  if (TK_BOOL != cond->ResolvedType()->kind)
+  {
+    Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType()->name);
+    // continue parsing the if branch for better error recovery
+  }
+
   OStmtIf * st = new OStmtIf(scpos_statement_start, curscope);
   OIfBranch * branch = st->AddBranch(cond);
   curblock->AddStatement(st);
@@ -912,6 +918,12 @@ void ODqCompParser::ParseStmtIf()
         StatementError(DQERR_CONDEXPR_MISSING_FOR, "elif");
         break;
       }
+      if (TK_BOOL != cond->ResolvedType()->kind)
+      {
+        Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType()->name);
+        // continue for better error recovery
+      }
+
       branch = st->AddBranch(cond);
       continue;
     }
@@ -1531,7 +1543,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
   {
     if (!scf->Eof())
     {
-      Error(DQERR_EXPR_UNEXPECTED_CHAR, to_string(*scf->curp));
+      Error(DQERR_EXPR_UNEXPECTED_CHAR, string(1, *scf->curp));
     }
     else
     {

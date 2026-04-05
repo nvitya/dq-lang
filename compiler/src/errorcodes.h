@@ -93,6 +93,9 @@ DEF_DQ_ERR(DQERR_EXPR_WRONG_VALUE_FOR,             "ExprWrongValue",         "Wr
 DEF_DQ_ERR(DQERR_EXPR_INITVALUE,                   "ExprInitValue",          "Initial value expression error");
 DEF_DQ_ERR(DQERR_EXPR_INITVALUE_FOR,               "ExprInitValue",          "Initial value expression error for \"$1\"");
 
+DEF_DQ_ERR(DQERR_INT_CONSTEXPR_ERROR,              "IntConstExpr",           "Integer constant expressions error");
+DEF_DQ_ERR(DQERR_BOOL_CONSTEXPR_ERROR,             "BoolConstExpr",          "Boolean constant expressions error");
+DEF_DQ_ERR(DQERR_FLOAT_CONSTEXPR_ERROR,            "FloatConstExpr",         "Floating point constant expressions error");
 DEF_DQ_ERR(DQERR_CONSTEXPR_ERROR,                  "ConstExpr",              "$1 constant expressions error");
 DEF_DQ_ERR(DQERR_CONSTEXPR_INVALID_FOR,            "ConstExprInvalid",       "Invalid constant expression for \"$1\"");
 DEF_DQ_ERR(DQERR_CONSTEXPR_NONCONST_SYM,           "ConstExprNonConstVs",    "Non-constant symbol \"$1\" in $2 constant expression");
@@ -114,7 +117,7 @@ DEF_DQ_ERR(DQERR_TYPE_ASSIGN_TO_CONST,             "TypeAssignToConst",      "As
 DEF_DQ_ERR(DQERR_TYPEMISM,                         "TypeMismatch",           "Type mismatch: \"$1\" = \"$2\"");
 DEF_DQ_ERR(DQERR_TYPEMISM_FOR_OP,                  "TypeMismatchOp",         "Type mismatch for operation: \"$1\" $2 \"$3\"");
 DEF_DQ_ERR(DQERR_PTR_TYPEMISM,                     "TypeMismatchPtr",        "Pointer type mismatch: \"$1\" = \"$2\"");
-DEF_DQ_ERR(DQERR_TYPEMISM_STMT_ASSIGN,             "TypeMismatchAssign",     "$1 type mismatch: \"$1\" = \"$2\"");
+DEF_DQ_ERR(DQERR_TYPEMISM_STMT_ASSIGN,             "TypeMismatchAssign",     "$1 type mismatch: \"$2\" = \"$3\"");
 DEF_DQ_ERR(DQERR_LVALUE_NOT_WRITEABLE,             "NotWriteable",           "The left side of the assignment \"=\" must be writable");
 DEF_DQ_ERR(DQERR_TYPE_EXPECTED,                    "TypeExpected",           "\"$1\" type expected, got \"$2\"");
 DEF_DQ_ERR(DQERR_TYPE_FLOAT_EXPECTED_FOR,          "TypeFloatExpected",      "float type expected for \"$1\", got \"$2\"");
@@ -164,6 +167,7 @@ DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_MANY,               "FuncArgsTooMany",        "To
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_FEW,                "FuncArgsTooFew",         "Too few arguments ($1) are provided for the function \"$2\" call. Expected $3");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "CondExprMissing",        "Condition expression is mission for \"$1\"");
+DEF_DQ_ERR(DQERR_BOOL_EXPR_EXPECTED,               "BoolExprExpected",       "bool expression expected, got \"$1\"");
 DEF_DQ_ERR(DQERR_MULTIPLE_ELSE,                    "MultipleElse",           "Multiple else branches detected");
 
 DEF_DQ_ERR(DQERR_EXPR_INVALID_ADDROF,              "ExprAddrofInvalid",      "Invalid expression for the address of \"&\" operator");

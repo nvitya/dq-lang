@@ -124,7 +124,7 @@ bool OValueInt::CalculateConstant(OExpr * expr)
     }
   }
 
-  g_compiler->Error(DQERR_CONSTEXPR_ERROR, "int");
+  g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
   return false;
 }
 

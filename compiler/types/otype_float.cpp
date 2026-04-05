@@ -111,7 +111,7 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
     }
   }
 
-  g_compiler->Error(DQERR_CONSTEXPR_ERROR, "float");
+  g_compiler->Error(DQERR_FLOAT_CONSTEXPR_ERROR);
   return false;
 }
 

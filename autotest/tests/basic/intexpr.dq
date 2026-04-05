@@ -1,0 +1,133 @@
+// DQ integer expression auto-test
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function compare_ints(a : int, b : int) -> int:
+  if a < b:
+    return -1;
+  elif a > b:
+    return 1;
+  else:
+    return 0;
+  endif
+endfunc
+
+function compare_uint16(a : uint16, b : uint16) -> int:
+  if a < b:
+    return -1;
+  elif a > b:
+    return 1;
+  else:
+    return 0;
+  endif
+endfunc
+
+function compare_int16(a : int16, b : int16) -> int:
+  if a < b:
+    return -1;
+  elif a > b:
+    return 1;
+  else:
+    return 0;
+  endif
+endfunc
+
+function sum_ints(a : int, b : int) -> int:
+  result = 0;
+  var i : int = a;
+  while i <= b:
+    result += i;
+    i += 1;
+  endwhile
+endfunc
+
+function sum_ints2(a : int, b : int) -> int
+{
+  result = 0;
+  var i : int = a;
+  while i <= b
+  {
+    result += i;
+    i += 1;
+  }
+}
+
+function mask_bit(a : int, bitnum : int) -> int:
+  result = a AND 1 << bitnum;
+endfunc
+
+function main() -> int:
+  var i : int;
+
+  printf("DQ Integer expression test\n");  //?ignore('DQ Integer expression test')
+
+  i = 2 + 3 + 4 - 1 - 2;
+  printf("intexpr1 = %d\n", i);        //?check(intexpr1, 6)
+
+  var i1 : int = 2;
+  var i2 : int = 3;
+  var i3 : int = 4;
+  var i4 : int = 1;
+  var i5 : int = 2;
+  i = i1 + i2 + i3 - i4 - i5;
+  printf("intexpr2 = %d\n", i);        //?check(intexpr2, 6)
+
+  i = i1 + i2 * i3 IDIV i5 - i4;
+  printf("intexpr3 = %d\n", i);        //?check(intexpr3, 7)
+
+  printf("compare_ints(1, 1)   = %d\n", compare_ints(1, 1)   ); //?check('compare_ints(1, 1)'  , 0)
+  printf("compare_ints(1, 0)   = %d\n", compare_ints(1, 0)   ); //?check('compare_ints(1, 0)'  , 1)
+  printf("compare_ints(2, 3)   = %d\n", compare_ints(2, 3)   ); //?check('compare_ints(2, 3)'  , -1)
+  printf("compare_ints(-1, -2) = %d\n", compare_ints(-1, -2) ); //?check('compare_ints(-1, -2)', 1)
+
+  printf("compare_uint16(0xF000, 0x0F00) = %d\n",  compare_uint16(0xF000, 0x0F00)  ); //?check('compare_uint16(0xF000, 0x0F00)' , 1)
+  printf("compare_int16(0xF000, 0x0F00)  = %d\n",  compare_int16(0xF000, 0x0F00)  ); //?check('compare_int16(0xF000, 0x0F00)' , -1)
+
+  printf("sum_ints(1, 5)  = %d\n", sum_ints(1, 5)  );  //?check('sum_ints(1, 5)',  15)
+  printf("sum_ints(5, 1)  = %d\n", sum_ints(5, 1)  );  //?check('sum_ints(5, 1)',   0)
+  printf("sum_ints(-3, 5) = %d\n", sum_ints(-3, 5) );  //?check('sum_ints(-3, 5)',  9)
+  printf("sum_ints2(6, 8) = %d\n", sum_ints2(6, 8) );  //?check('sum_ints2(6, 8)', 21)
+
+  printf("mask_bit(0x1234, 1) = %d\n", mask_bit(0x1234, 1));  //?check('mask_bit(0x1234, 1)', 0)
+  printf("mask_bit(0x1234, 2) = %d\n", mask_bit(0x1234, 2));  //?check('mask_bit(0x1234, 2)', 4)
+  printf("mask_bit(0x1234, 9) = %d\n", mask_bit(0x1234, 9));  //?check('mask_bit(0x1234, 9)', 512)
+
+  // bitwise operation
+  i = (1 << 1) OR (1 << 0) AND 0x0001;
+  printf("bitwise1 = %d\n", i);              //?check(bitwise1, 3)
+  i = ((1 << 1) OR (1 << 0)) AND 0x0001;
+  printf("bitwise2 = %d\n", i);              //?check(bitwise2, 1)
+
+  i = 0xFF00 XOR 0x0FF0;
+  printf("0xFF00 XOR 0x0FF00 = 0x%08X\n", i);  //?check('0xFF00 XOR 0x0FF00', 0x0000F0F0)
+
+  var ui8 : uint8;
+  var si8 : int8 = 127;
+  si8 += 1;
+  printf("int8 overflow = %d\n", si8);  //?check('int8 overflow', -128)
+
+  si8 = 0xF0;
+  printf("int8  <- 0xF0 = %d\n", si8);  //?check('int8  <- 0xF0', -16)
+  ui8 = si8;
+  printf("uint8 <- 0xF0 = %d\n", ui8);  //?check('uint8 <- 0xF0', 240)
+
+  si8 = 0x70;
+  printf("int8  <- 0x70 = %d\n", si8);  //?check('int8  <- 0x70', 112)
+
+  var si16 : int16 = 0xFF00;
+  printf("int16 <- 0xFF00 = %d\n", si16);  //?check('int16 <- 0xFF00', -256)
+  si16 = 0x7F00;
+  printf("int16 <- 0x7F00 = %d\n", si16);  //?check('int16 <- 0x7F00', 32512)
+
+  var si32 : int32 = 0xFFFFFF00;
+  printf("int32 <- 0xFFFFFF00 = %d\n", si32);  //?check('int32 <- 0xFFFFFF00', -256)
+  si32 = 0x7FFFFF00;
+  printf("int32 <- 0x7FFFFF00 = %d\n", si32);  //?check('int32 <- 0x7FFFFF00', 2147483392)
+
+  var si64 : int64 = 0xFFFFFFFFFFFFFF00;
+  printf("int64 <- 0xFFFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0xFFFFFFFFFFFFFF00', -256)
+  si64 = 0x7FFFFFFFFFFFFF00;
+  printf("int64 <- 0x7FFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0x7FFFFFFFFFFFFF00', 9223372036854775552)
+
+  return 0;
+endfunc

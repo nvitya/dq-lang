@@ -1,0 +1,35 @@
+// DQ Type Checking test (ERROR test)
+
+var i : int = 3 / 2; //?error(IntConstExpr)
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int:
+  var i : int = 0;
+  var f : float = 0;
+  i = 3 / 2;       //?error(TypeMismatchAssign)
+  f = 10 * 3 / 2;
+
+  if i < f:  // int-float comparison ok
+    printf('OK');
+  endif
+
+  i = f;  //?error(TypeMismatchAssign)
+
+  if i:   //?error(BoolExprExpected)
+    printf('?');
+  endif
+
+  if f > 5 and f < 10 or i > f:  // no parentheses required
+    printf('ok');
+  endif
+
+  f = f AND NOT 1; //?error(TypeMismatchOp)
+  f = round(f) AND NOT 1;
+
+  f = i;
+  f = i > 5; //?error(TypeMismatchAssign)
+  i = round(f);
+
+  return 0;
+endfunc

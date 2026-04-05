@@ -79,6 +79,10 @@ function main() -> int:
   i = 1234 IMOD 10;
   printf("1234 IMOD 10 = %d\n", i);        //?check('1234 IMOD 10', 4)
 
+  // famous example, in C: 10 * 3 / 2 != 3 / 2 * 10
+  printf("10 * 3 IDIV 2 = %d\n", 10 * 3 IDIV 2);  //?check('10 * 3 IDIV 2', 10)
+  printf("3 IDIV 2 * 10 = %d\n", 3 IDIV 2 * 10);  //?check('3 IDIV 2 * 10', 10)
+
   printf("compare_ints(1, 1)   = %d\n", compare_ints(1, 1)   ); //?check('compare_ints(1, 1)'  , 0)
   printf("compare_ints(1, 0)   = %d\n", compare_ints(1, 0)   ); //?check('compare_ints(1, 0)'  , 1)
   printf("compare_ints(2, 3)   = %d\n", compare_ints(2, 3)   ); //?check('compare_ints(2, 3)'  , -1)

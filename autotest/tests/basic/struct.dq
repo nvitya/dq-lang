@@ -13,27 +13,25 @@ struct SMain
   elem     : SElem[8];
 endstruct
 
-function dq_struct_test():
-  var sm : SMain = {};  // this initializes all the struct members with zeroes
+function dq_struct_test(sm : ^SMain):
   var ep : ^SElem;
 
-  sm.id = 5;
-  sm.elemcnt = 0;
-  while sm.elemcnt < 5:
-    ep = &sm.elem[sm.elemcnt];
-    ep^.id = sm.elemcnt;
+  sm^.id = 5;
+  sm^.elemcnt = 0;
+  while sm^.elemcnt < 5:
+    ep = &sm^.elem[sm.elemcnt];
+    ep^.id = sm^.elemcnt;
     ep^.membercnt = 0;
     while ep^.membercnt < 3:
-      ep^.member[ep^.membercnt] = ep^.membercnt + sm.elemcnt * 10;
-      ep^.weight = 1 / (1 + sm.elemcnt);
+      ep^.member[ep^.membercnt] = ep^.membercnt + sm^.elemcnt * 10;
+      ep^.weight = 1 / (1 + sm^.elemcnt);
       ep^.membercnt += 1;
     endwhile
-    sm.elemcnt += 1;
+    sm^.elemcnt += 1;
   endwhile
 endfunc
 
-function dq_struct_test_noderef():
-  var sm : SMain = {};  // this initializes all the struct members with zeroes
+function dq_struct_test_noderef(sm : ^SMain):
   var ep : ^SElem;
 
   sm.id = 5;
@@ -49,4 +47,56 @@ function dq_struct_test_noderef():
     endwhile
     sm.elemcnt += 1;
   endwhile
+endfunc
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function show_struct(aprefix : ^cchar, sm : ^SMain):
+  var ep : ^SElem;
+  printf('%s sm.id = %d\n', aprefix, sm.id);
+  var n : int = 0;
+  while n < sm.elemcnt:
+    ep = &sm.elem[n];
+    printf('%s sm.elem[%u] = id: %i, wheight: %.5f, members: [', aprefix, n, ep.id, ep.weight);
+    var m : int = 0;
+    while m < ep.membercnt:
+      printf(' %02X', ep.member[m]);
+      m += 1;
+    endwhile
+    printf(' ]\n');
+    n += 1;
+  endwhile
+endfunc
+
+
+// FIX THIS !
+// var sm : SMain;
+
+function main() -> int:
+
+  printf("DQ Struct test\n");  //?check('DQ Struct test')
+
+  var sm : SMain = {};
+
+  dq_struct_test(&sm);
+  show_struct("t1", &sm);
+
+  //?check('t1 sm.id', 5)
+  //?check('t1 sm.elem[0]', 'id: 0, wheight: 1.00000, members: [ 00 01 02 ]')
+  //?check('t1 sm.elem[1]', 'id: 1, wheight: 0.50000, members: [ 0A 0B 0C ]')
+  //?check('t1 sm.elem[2]', 'id: 2, wheight: 0.33333, members: [ 14 15 16 ]')
+  //?check('t1 sm.elem[3]', 'id: 3, wheight: 0.25000, members: [ 1E 1F 20 ]')
+  //?check('t1 sm.elem[4]', 'id: 4, wheight: 0.20000, members: [ 28 29 2A ]')
+
+  dq_struct_test_noderef(&sm);
+  show_struct("t2", &sm);
+
+  //?check('t2 sm.id', 5)
+  //?check('t2 sm.elem[0]', 'id: 0, wheight: 1.00000, members: [ 00 01 02 ]')
+  //?check('t2 sm.elem[1]', 'id: 1, wheight: 0.50000, members: [ 0A 0B 0C ]')
+  //?check('t2 sm.elem[2]', 'id: 2, wheight: 0.33333, members: [ 14 15 16 ]')
+  //?check('t2 sm.elem[3]', 'id: 3, wheight: 0.25000, members: [ 1E 1F 20 ]')
+  //?check('t2 sm.elem[4]', 'id: 4, wheight: 0.20000, members: [ 28 29 2A ]')
+
+  return 0;
 endfunc

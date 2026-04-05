@@ -72,3 +72,37 @@ function dq_ptr_addr_chain() -> int:
   pv^ = 77;
   result = items[1].value;
 endfunc
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int:
+  printf("Testing DQ pointer operations:\n\n");  //?check('Testing DQ pointer operations:')
+
+  var r : int;
+
+  r = dq_ptr_basic(42);
+  printf("dq_ptr_basic(42) = %li\n", r);  //?check('dq_ptr_basic(42)', 100)
+
+  r = dq_ptr_read(55);
+  printf("dq_ptr_read(55) = %li\n", r);  //?check('dq_ptr_read(55)', 55)
+
+  r = dq_ptr_null();
+  printf("dq_ptr_null() = %li\n", r);    //?check('dq_ptr_null()', 1)
+
+  r = dq_ptr_cmp(10, 20);
+  printf("dq_ptr_cmp(10, 20) = %li\n", r);  //?check('dq_ptr_cmp(10, 20)', 0)
+
+  r = dq_ptr_notnull(77);
+  printf("dq_ptr_notnull(77) = %li\n", r);  //?check('dq_ptr_notnull(77)', 77)
+
+  r = dq_ptr_and_arr();
+  printf("dq_ptr_and_arr() = %li\n", r);  //?check('dq_ptr_and_arr()', 9)
+
+  r = dq_ptr_and_arr2();
+  printf("dq_ptr_and_arr2() = %li\n", r);  //?check('dq_ptr_and_arr2()', 9)
+
+  r = dq_ptr_addr_chain();
+  printf("dq_ptr_addr_chain() = %li\n", r);  //?check('dq_ptr_addr_chain()', 77)
+
+  return 0;
+endfunc

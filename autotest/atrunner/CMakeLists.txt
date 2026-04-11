@@ -19,4 +19,4 @@ set_target_properties(dqatrun PROPERTIES ENABLE_EXPORTS ON)
 
 target_link_libraries(dqatrun PRIVATE stdc++exp)
 
-install(TARGETS dqatrun DESTINATION /usr/local/bin)
+install(TARGETS dqatrun DESTINATION bin)

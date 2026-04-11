@@ -1102,6 +1102,26 @@ OExpr * ODqCompParser::ParseComparison()
         left = new OExprTypeConv(right->ptype, left);
     }
   }
+  else if ((TK_INT == tkl) and (TK_FLOAT == tkr))
+  {
+    left = new OExprTypeConv(right->ptype, left);
+  }
+  else if ((TK_INT == tkr) and (TK_FLOAT == tkl))
+  {
+    right = new OExprTypeConv(left->ptype, right);
+  }
+  else if (TK_FLOAT == tkl and TK_FLOAT == tkr)
+  {
+    OTypeFloat * floatl = static_cast<OTypeFloat *>(left->ResolvedType());
+    OTypeFloat * floatr = static_cast<OTypeFloat *>(right->ResolvedType());
+    if (floatl->bitlength != floatr->bitlength)
+    {
+      if (floatl->bitlength > floatr->bitlength)
+        right = new OExprTypeConv(left->ptype, right);
+      else
+        left = new OExprTypeConv(right->ptype, left);
+    }
+  }
 
   return new OCompareExpr(op, left, right);
 }
@@ -1258,11 +1278,11 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   {
     if ((TK_INT == tkl) and (TK_FLOAT == tkr))
     {
-      newleft  = new OExprTypeConv(g_builtins->type_float, left);
+      newleft  = new OExprTypeConv(right->ptype, left);
     }
     else if ((TK_INT == tkr) and (TK_FLOAT == tkl))
     {
-      newright = new OExprTypeConv(g_builtins->type_float, right);
+      newright = new OExprTypeConv(left->ptype, right);
     }
     else if ((TK_POINTER == tkl) and (TK_INT == tkr)
              and (BINOP_ADD == op or BINOP_SUB == op))
@@ -1302,6 +1322,18 @@ OExpr * ODqCompParser::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     {
       newleft  = new OExprTypeConv(g_builtins->type_float, left);
       newright = new OExprTypeConv(g_builtins->type_float, right);
+    }
+  }
+  else if ((TK_FLOAT == tkl) and (TK_FLOAT == tkr))
+  {
+    OTypeFloat * floatl = static_cast<OTypeFloat *>(left->ResolvedType());
+    OTypeFloat * floatr = static_cast<OTypeFloat *>(right->ResolvedType());
+    if (floatl->bitlength != floatr->bitlength)
+    {
+      if (floatl->bitlength > floatr->bitlength)
+        newright = new OExprTypeConv(left->ptype, right);
+      else
+        newleft = new OExprTypeConv(right->ptype, left);
     }
   }
 
@@ -2140,6 +2172,15 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     {
       Error(DQERR_PTR_TYPEMISM, dsttype->name, (*rexpr)->ptype->name);
       return false;
+    }
+  }
+  else if (TK_FLOAT == tkd)
+  {
+    OTypeFloat * floatdst = static_cast<OTypeFloat *>(dsttype->ResolveAlias());
+    OTypeFloat * floatsrc = static_cast<OTypeFloat *>((*rexpr)->ResolvedType());
+    if (floatdst->bitlength != floatsrc->bitlength)
+    {
+      *rexpr = new OExprTypeConv(dsttype, *rexpr);
     }
   }
   else if (TK_ARRAY_SLICE == tkd)

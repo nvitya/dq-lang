@@ -131,5 +131,20 @@ LlValue * OTypeFloat::GenerateConversion(OScope * scope, OExpr * src)
     }
   }
 
+  OTypeFloat * tfloat = dynamic_cast<OTypeFloat *>(src->ResolvedType());
+  if (tfloat)
+  {
+    LlValue * ll_value = src->Generate(scope);
+    if (bitlength > tfloat->bitlength)
+    {
+      return ll_builder.CreateFPExt(ll_value, GetLlType());
+    }
+    else if (bitlength < tfloat->bitlength)
+    {
+      return ll_builder.CreateFPTrunc(ll_value, GetLlType());
+    }
+    return ll_value;
+  }
+
   throw logic_error(format("Unsupported float conversion from \"{}\"", src->ptype->name));
 }

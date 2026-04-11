@@ -78,12 +78,10 @@ function main() -> int:
   printf("dq_fl_div(10.0, 4.0) = %.3f\n",    dq_fl_div(10.0, 4.0) );  //?check('dq_fl_div(10.0, 4.0)',   2.500)
   printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) );  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
 
-#if false
   printf("\n--- float32 arithmetic ---\n");  //?ignore('--- float32 arithmetic ---')
 
-  printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) );  //-?check('dq_fl32_add(1.5, 2.5)', 4.000)
-  printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) );  //-?check('dq_fl32_mul(2.5, 4.0)', 10.000)
-#endif
+  printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) );  //?check('dq_fl32_add(1.5, 2.5)', 4.000)
+  printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) );  //?check('dq_fl32_mul(2.5, 4.0)', 10.000)
 
   printf("\n--- round(float64) -> int ---\n"); //?ignore('--- round(float64) -> int ---')
 
@@ -114,16 +112,14 @@ function main() -> int:
   printf("floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  );   //?check('floor(-1.9)', -2)
   printf("floor(0.0) = %i\n",    dq_fl_floor(0.0)   );   //?check('floor(0.0)', 0)
 
-#if false
   printf("\n--- round/ceil/floor(float32) -> int ---\n");  //?ignore('--- round/ceil/floor(float32) -> int ---')
 
-  printf("round32(1.5) = %i\n",   dq_fl32_round(1.5)  );  //-?check('round32(1.5)', 2)
-  printf("round32(-1.5) = %i\n",  dq_fl32_round(-1.5) );  //-?check('round32(-1.5)', -2)
-  printf("ceil32(1.1) = %i\n",    dq_fl32_ceil(1.1)   );  //-?check('ceil32(1.1)', 2)
-  printf("ceil32(-1.9) = %i\n",   dq_fl32_ceil(-1.9)  );  //-?check('ceil32(-1.9)', -1)
-  printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //-?check('floor32(1.9)', 1)
-  printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //-?check('floor32(-1.1)', -2)
-#endif
+  printf("round32(1.5) = %i\n",   dq_fl32_round(1.5)  );  //?check('round32(1.5)', 2)
+  printf("round32(-1.5) = %i\n",  dq_fl32_round(-1.5) );  //?check('round32(-1.5)', -2)
+  printf("ceil32(1.1) = %i\n",    dq_fl32_ceil(1.1)   );  //?check('ceil32(1.1)', 2)
+  printf("ceil32(-1.9) = %i\n",   dq_fl32_ceil(-1.9)  );  //?check('ceil32(-1.9)', -1)
+  printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //?check('floor32(1.9)', 1)
+  printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //?check('floor32(-1.1)', -2)
 
   // ---- constant expressions ----
   printf("\n--- constant expressions (compile-time evaluation) ---\n"); //?ignore('--- constant expressions (compile-time evaluation) ---')

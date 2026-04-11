@@ -1,5 +1,0 @@
-// this file is included from an include
-
-var iivar55 : int = 55;
-
-#{opt blockmode indent}

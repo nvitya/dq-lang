@@ -20,6 +20,7 @@ make test
 Aliases are also available:
 
 ```sh
+make autotest
 make check
 make comptest
 ```

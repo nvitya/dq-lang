@@ -17,34 +17,24 @@ if(CMAKE_CONFIGURATION_TYPES)
   endforeach()
 endif()
 
-# On newer CMake versions this makes "make test" build the default targets first.
-set(CMAKE_SKIP_TEST_ALL_DEPENDENCY FALSE)
-
 add_subdirectory(compiler build/compiler)
 add_subdirectory(autotest/atrunner build/autotest/atrunner)
 
-include(CTest)
+add_custom_target(autotest
+  COMMAND "$<TARGET_FILE:dqatrun>" -c build/dq-comp -r autotest/tests
+  DEPENDS dq-comp dqatrun
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+)
 
-if(BUILD_TESTING)
-  add_test(
-    NAME compiler-autotest
-    COMMAND "${CMAKE_SOURCE_DIR}/autotest/run-all.sh"
-  )
-  set_tests_properties(compiler-autotest PROPERTIES
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  )
-endif()
+add_custom_target(test
+  DEPENDS autotest
+)
 
 add_custom_target(check
-  COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure
-  DEPENDS dq-comp dqatrun
-  USES_TERMINAL
-  COMMENT "Running compiler autotests"
+  DEPENDS autotest
 )
 
 add_custom_target(comptest
-  COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure
-  DEPENDS dq-comp dqatrun
-  USES_TERMINAL
-  COMMENT "Running compiler autotests"
+  DEPENDS autotest
 )

@@ -20,7 +20,7 @@ LlConst * OValueBool::CreateLlConst()
   return llvm::ConstantInt::get(ptype->GetLlType(), (value ? 1 : 0));
 }
 
-bool OValueBool::CalculateConstant(OExpr * expr)
+bool OValueBool::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   value = 0;
 
@@ -38,7 +38,7 @@ bool OValueBool::CalculateConstant(OExpr * expr)
     if (ex)
     {
       OValueBool v(this->ptype, false);
-      if (not v.CalculateConstant(ex->operand))
+      if (not v.CalculateConstant(ex->operand, emit_errors))
       {
         return false;
       }
@@ -54,14 +54,20 @@ bool OValueBool::CalculateConstant(OExpr * expr)
       OValSymConst * vsconst = dynamic_cast<OValSymConst *>(ex->pvalsym);
       if (not vsconst)
       {
-        g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "bool");
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "bool");
+        }
         return false;
       }
 
       OValueBool * vint = dynamic_cast<OValueBool *>(vsconst->pvalue);
       if (not vint)
       {
-        g_compiler->Error(DQERR_TYPE_EXPECTED, "bool", ex->ResolvedType()->name);
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_TYPE_EXPECTED, "bool", ex->ResolvedType()->name);
+        }
         return false;
       }
 
@@ -77,8 +83,8 @@ bool OValueBool::CalculateConstant(OExpr * expr)
       OValueBool vleft(this->ptype, 0);
       OValueBool vright(this->ptype, 0);
 
-      if (not vleft.CalculateConstant(ex->left)
-          or not vright.CalculateConstant(ex->right))
+      if (not vleft.CalculateConstant(ex->left, emit_errors)
+          or not vright.CalculateConstant(ex->right, emit_errors))
       {
         return false;
       }
@@ -101,7 +107,7 @@ bool OValueBool::CalculateConstant(OExpr * expr)
       {
         OValueInt vleft(g_builtins->type_int, 0);
         OValueInt vright(g_builtins->type_int, 0);
-        if (!vleft.CalculateConstant(ex->left) || !vright.CalculateConstant(ex->right))
+        if (!vleft.CalculateConstant(ex->left, emit_errors) || !vright.CalculateConstant(ex->right, emit_errors))
         {
           return false;
         }
@@ -120,7 +126,7 @@ bool OValueBool::CalculateConstant(OExpr * expr)
       {
         OValueFloat vleft(g_builtins->type_float, 0);
         OValueFloat vright(g_builtins->type_float, 0);
-        if (!vleft.CalculateConstant(ex->left) || !vright.CalculateConstant(ex->right))
+        if (!vleft.CalculateConstant(ex->left, emit_errors) || !vright.CalculateConstant(ex->right, emit_errors))
         {
           return false;
         }
@@ -137,6 +143,9 @@ bool OValueBool::CalculateConstant(OExpr * expr)
     }
   }
 
-  g_compiler->Error(DQERR_BOOL_CONSTEXPR_ERROR);
+  if (emit_errors)
+  {
+    g_compiler->Error(DQERR_BOOL_CONSTEXPR_ERROR);
+  }
   return false;
 }

@@ -121,6 +121,10 @@ function main() -> int:
   printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //?check('floor32(1.9)', 1)
   printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //?check('floor32(-1.1)', -2)
 
+  printf("round(1.25 + 1.25) = %i\n", round(1.25 + 1.25));  //?check('round(1.25 + 1.25)', 3)
+  printf("ceil(2.0 + 0.1) = %i\n", ceil(2.0 + 0.1));        //?check('ceil(2.0 + 0.1)', 3)
+  printf("3 / 2 = %.3f\n", 3 / 2);                          //?check('3 / 2', 1.500)
+
   // ---- constant expressions ----
   printf("\n--- constant expressions (compile-time evaluation) ---\n"); //?ignore('--- constant expressions (compile-time evaluation) ---')
   printf("CONST_ROUND = %i\n", CONST_ROUND);  //?check(CONST_ROUND, 3)

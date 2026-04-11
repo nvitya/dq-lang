@@ -140,5 +140,13 @@ function main() -> int:
   si64 = 0x7FFFFFFFFFFFFF00;
   printf("int64 <- 0x7FFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0x7FFFFFFFFFFFFF00', 9223372036854775552)
 
+  var folded_si8 : int8 = 0x70 + 0x10;
+  printf("folded int8 = %d\n", folded_si8);  //?check('folded int8', -128)
+
+  var arr3 : int16[3];
+  printf("sizeof(arr3) = %d\n", sizeof(arr3));                //?check('sizeof(arr3)', 6)
+  printf("sizeof(int32) = %d\n", sizeof(int32));              //?check('sizeof(int32)', 4)
+  printf("sizeof(cstring[12]) = %d\n", sizeof(cstring[12]));  //?check('sizeof(cstring[12])', 12)
+
   return 0;
 endfunc

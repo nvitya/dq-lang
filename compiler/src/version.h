@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.6.12"
+#define DQ_COMPILER_VERSION  "0.7.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.7.0:
+  - scalar constant folding
 v0.6.12:
   - Better compiler error recovery to find the next root statements
 v0.6.11:

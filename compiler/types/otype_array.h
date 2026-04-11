@@ -27,7 +27,7 @@ public:
   ~OValueArray() override;
 
   LlConst *  CreateLlConst() override;
-  bool       CalculateConstant(OExpr * expr) override;
+  bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
 };
 
 // Fixed-size array type, e.g. int[3]

@@ -31,7 +31,7 @@ public:
   }
 
   LlConst *  CreateLlConst() override;
-  bool       CalculateConstant(OExpr * expr) override;
+  bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
 };
 
 class OTypeFloat : public OType
@@ -80,5 +80,4 @@ public:
 
   LlValue *  GenerateConversion(OScope * scope, OExpr * src)  override;
 };
-
 

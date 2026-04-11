@@ -114,7 +114,7 @@ LlConst * OValueCString::CreateLlConst()
   return llvm::ConstantArray::get(arrtype, chars);
 }
 
-bool OValueCString::CalculateConstant(OExpr * expr)
+bool OValueCString::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   auto * strlit = dynamic_cast<OCStringLit *>(expr);
   if (strlit)
@@ -123,6 +123,9 @@ bool OValueCString::CalculateConstant(OExpr * expr)
     return true;
   }
 
-  g_compiler->Error(DQERR_CSTR_CONSTEXPR);
+  if (emit_errors)
+  {
+    g_compiler->Error(DQERR_CSTR_CONSTEXPR);
+  }
   return false;
 }

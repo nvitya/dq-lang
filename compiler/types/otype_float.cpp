@@ -20,7 +20,7 @@ LlConst * OValueFloat::CreateLlConst()
   return llvm::ConstantFP::get(ptype->GetLlType(), value);
 }
 
-bool OValueFloat::CalculateConstant(OExpr * expr)
+bool OValueFloat::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   value = 0;
 
@@ -44,7 +44,29 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
     auto * ex = dynamic_cast<OExprTypeConv *>(expr);
     if (ex)
     {
-      return CalculateConstant(ex->src);
+      OType * srctype = ex->src->ResolvedType();
+      if (!srctype)
+      {
+        return false;
+      }
+
+      if (TK_FLOAT == srctype->kind)
+      {
+        return CalculateConstant(ex->src, emit_errors);
+      }
+
+      if (TK_INT == srctype->kind)
+      {
+        OValueInt srcvalue(srctype, 0);
+        if (!srcvalue.CalculateConstant(ex->src, emit_errors))
+        {
+          return false;
+        }
+        value = srcvalue.value;
+        return true;
+      }
+
+      return false;
     }
   }
 
@@ -53,7 +75,7 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
     if (ex)
     {
       OValueFloat v(this->ptype, 0);
-      if (not v.CalculateConstant(ex->operand))
+      if (not v.CalculateConstant(ex->operand, emit_errors))
       {
         return false;
       }
@@ -69,14 +91,20 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
       OValSymConst * vsconst = dynamic_cast<OValSymConst *>(ex->pvalsym);
       if (not vsconst)
       {
-        g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "float");
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "float");
+        }
         return false;
       }
 
       OValueFloat * v = dynamic_cast<OValueFloat *>(vsconst->pvalue);
       if (not v)
       {
-        g_compiler->Error(DQERR_TYPE_EXPECTED, "float", ex->ResolvedType()->name);
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_TYPE_EXPECTED, "float", ex->ResolvedType()->name);
+        }
         return false;
       }
 
@@ -92,8 +120,8 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
       OValueFloat vleft(this->ptype, 0);
       OValueFloat vright(this->ptype, 0);
 
-      if (not vleft.CalculateConstant(ex->left)
-          or not vright.CalculateConstant(ex->right))
+      if (not vleft.CalculateConstant(ex->left, emit_errors)
+          or not vright.CalculateConstant(ex->right, emit_errors))
       {
         return false;
       }
@@ -104,14 +132,20 @@ bool OValueFloat::CalculateConstant(OExpr * expr)
       else if (BINOP_DIV == ex->op)  value = vleft.value / vright.value;
       else
       {
-        g_compiler->Error(DQERR_OP_INVALID_FOR, GetBinopSymbol(ex->op), "float expression");
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_OP_INVALID_FOR, GetBinopSymbol(ex->op), "float expression");
+        }
         return false;
       }
       return true;
     }
   }
 
-  g_compiler->Error(DQERR_FLOAT_CONSTEXPR_ERROR);
+  if (emit_errors)
+  {
+    g_compiler->Error(DQERR_FLOAT_CONSTEXPR_ERROR);
+  }
   return false;
 }
 

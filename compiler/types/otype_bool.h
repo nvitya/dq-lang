@@ -31,7 +31,7 @@ public:
   }
 
   LlConst *  CreateLlConst() override;
-  bool       CalculateConstant(OExpr * expr) override;
+  bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
 };
 
 class OTypeBool : public OType
@@ -68,5 +68,4 @@ public:
     return di_builder->createBasicType("bool", 1, llvm::dwarf::DW_ATE_boolean);
   }
 };
-
 

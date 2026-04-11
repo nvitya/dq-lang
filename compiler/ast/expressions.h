@@ -34,7 +34,7 @@ class OIntLit : public OExpr
 public:
   int64_t    value;
 
-  /* ctor */ OIntLit(int64_t v);
+  /* ctor */ OIntLit(int64_t v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
 };
 
@@ -42,7 +42,7 @@ class OFloatLit : public OExpr
 {
 public:
   double     value;
-  /* ctor */ OFloatLit(double v);
+  /* ctor */ OFloatLit(double v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
 };
 
@@ -50,7 +50,7 @@ class OBoolLit : public OExpr
 {
 public:
   bool       value;
-  /* ctor */ OBoolLit(bool v);
+  /* ctor */ OBoolLit(bool v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
 };
 
@@ -339,3 +339,5 @@ public:
   /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
 };
+
+OExpr * FoldExprTree(OExpr * expr);

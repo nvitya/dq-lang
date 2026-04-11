@@ -990,7 +990,7 @@ void ODqCompParser::ParseStmtIf()
 
 OExpr * ODqCompParser::ParseExpression()
 {
-  return ParseExprOr();
+  return FoldExprTree(ParseExprOr());
 }
 
 OExpr * ODqCompParser::ParseExprOr()
@@ -1846,18 +1846,48 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
     return nullptr;
   }
   scf->SkipWhite();
-  string sarg;
-  if (not scf->ReadIdentifier(sarg))
+
+  OType * sizetype = nullptr;
+  OScPosition argpos;
+  scf->SaveCurPos(argpos);
+
+  if (scf->CheckSymbol("^", false))
   {
-    Error(DQERR_VARNAME_EXP_AFTER, "sizeof");
+    sizetype = ParseTypeSpec();
+  }
+  else
+  {
+    string sarg;
+    if (not scf->ReadIdentifier(sarg))
+    {
+      ErrorTxt(DQERR_VARNAME_EXP_AFTER, "Variable or type name is expected after \"sizeof\"");
+      return nullptr;
+    }
+
+    OValSym * vs = curscope->FindValSym(sarg);
+    if (vs)
+    {
+      sizetype = vs->ptype;
+    }
+    else
+    {
+      OType * foundtype = cur_mod_scope->FindType(sarg);
+      if (!foundtype)
+      {
+        ErrorTxt(DQERR_EXPR_EXPECTED, "sizeof() expects a variable or type name");
+        return nullptr;
+      }
+
+      scf->SetCurPos(argpos);
+      sizetype = ParseTypeSpec();
+    }
+  }
+
+  if (!sizetype)
+  {
     return nullptr;
   }
-  OValSym * vs = curscope->FindValSym(sarg);
-  if (!vs)
-  {
-    Error(DQERR_VAR_UNKNOWN, sarg);
-    return nullptr;
-  }
+
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
@@ -1865,23 +1895,13 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
     return nullptr;
   }
 
-  if (TK_STRING == vs->ptype->kind)
+  if (0 == sizetype->bytesize)
   {
-    OTypeCString * cstrtype = static_cast<OTypeCString *>(vs->ptype);
-    if (cstrtype->maxlen > 0)
-    {
-      // Sized cstring[N]: compile-time constant
-      return new OIntLit(cstrtype->maxlen);
-    }
-    else
-    {
-      // Unsized cstring param: extract size from descriptor at runtime
-      return new OCStringSizeExpr(vs);
-    }
+    ErrorTxt(DQERR_NOT_SUPPORTED, "sizeof() requires a statically sized type or value");
+    return nullptr;
   }
 
-  // For other types: return compile-time bytesize
-  return new OIntLit(vs->ptype->bytesize);
+  return new OIntLit(sizetype->bytesize);
 }
 
 void ODqCompParser::ParseStmtVar()
@@ -2228,6 +2248,7 @@ bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const strin
     }
   }
 
+  *rexpr = FoldExprTree(*rexpr);
   return true;
 }
 

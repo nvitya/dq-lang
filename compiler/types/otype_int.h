@@ -31,7 +31,7 @@ public:
   }
 
   LlConst *  CreateLlConst() override;
-  bool       CalculateConstant(OExpr * expr) override;
+  bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
 };
 
 class OTypeInt : public OType
@@ -84,4 +84,3 @@ public:
 };
 
 // later OTypeUint will be created for unsigned
-

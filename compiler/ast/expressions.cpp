@@ -13,6 +13,9 @@
 
 #include "expressions.h"
 #include "scope_builtins.h"
+#include "otype_bool.h"
+#include "otype_float.h"
+#include "otype_int.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include <llvm/IR/Intrinsics.h>
@@ -76,37 +79,37 @@ LlValue * OExprTypeConv::Generate(OScope * scope)
   return ptype->GenerateConversion(scope, src);
 }
 
-/* ctor */ OIntLit::OIntLit(int64_t v)
+/* ctor */ OIntLit::OIntLit(int64_t v, OType * atype)
 {
-  ptype = g_builtins->type_int;
+  ptype = (atype ? atype : g_builtins->type_int);
   value = v;
 }
 
 LlValue * OIntLit::Generate(OScope * scope)
 {
-  return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
+  return llvm::ConstantInt::get(ptype->GetLlType(), value);
 }
 
-/* ctor */ OFloatLit::OFloatLit(double v)
+/* ctor */ OFloatLit::OFloatLit(double v, OType * atype)
 {
-  ptype = g_builtins->type_float;
+  ptype = (atype ? atype : g_builtins->type_float);
   value = v;
 }
 
 LlValue * OFloatLit::Generate(OScope *scope)
 {
-  return llvm::ConstantFP::get(g_builtins->type_float->GetLlType(), value);
+  return llvm::ConstantFP::get(ptype->GetLlType(), value);
 }
 
-/* ctor */ OBoolLit::OBoolLit(bool v)
+/* ctor */ OBoolLit::OBoolLit(bool v, OType * atype)
 {
-  ptype = g_builtins->type_bool;
+  ptype = (atype ? atype : g_builtins->type_bool);
   value = v;
 }
 
 LlValue * OBoolLit::Generate(OScope * scope)
 {
-  return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), (value ? 1 : 0));
+  return llvm::ConstantInt::get(ptype->GetLlType(), (value ? 1 : 0));
 }
 
 // --- LValue expression implementations ---
@@ -819,4 +822,173 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
       llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), litlen),
       1, "strlit.desc.size");
   return ll_desc;
+}
+
+static OExpr * FoldScalarExpr(OExpr * expr)
+{
+  if (!expr)
+  {
+    return nullptr;
+  }
+
+  OType * exprtype = expr->ResolvedType();
+  if (!exprtype)
+  {
+    return expr;
+  }
+
+  if ((TK_INT != exprtype->kind) && (TK_FLOAT != exprtype->kind) && (TK_BOOL != exprtype->kind))
+  {
+    return expr;
+  }
+
+  OValue * folded_value = exprtype->CreateValue();
+  if (!folded_value)
+  {
+    return expr;
+  }
+
+  bool fold_ok = folded_value->CalculateConstant(expr, false);
+  if (!fold_ok)
+  {
+    delete folded_value;
+    return expr;
+  }
+
+  OExpr * result = expr;
+  if (TK_INT == exprtype->kind)
+  {
+    auto * vint = static_cast<OValueInt *>(folded_value);
+    result = new OIntLit(vint->value, exprtype);
+  }
+  else if (TK_FLOAT == exprtype->kind)
+  {
+    auto * vfloat = static_cast<OValueFloat *>(folded_value);
+    result = new OFloatLit(vfloat->value, exprtype);
+  }
+  else if (TK_BOOL == exprtype->kind)
+  {
+    auto * vbool = static_cast<OValueBool *>(folded_value);
+    result = new OBoolLit(vbool->value, exprtype);
+  }
+
+  delete folded_value;
+  return result;
+}
+
+OExpr * FoldExprTree(OExpr * expr)
+{
+  if (!expr)
+  {
+    return nullptr;
+  }
+
+  if (auto * ex = dynamic_cast<OExprTypeConv *>(expr))
+  {
+    ex->src = FoldExprTree(ex->src);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OBinExpr *>(expr))
+  {
+    ex->left = FoldExprTree(ex->left);
+    ex->right = FoldExprTree(ex->right);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OCompareExpr *>(expr))
+  {
+    ex->left = FoldExprTree(ex->left);
+    ex->right = FoldExprTree(ex->right);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OLogicalExpr *>(expr))
+  {
+    ex->left = FoldExprTree(ex->left);
+    ex->right = FoldExprTree(ex->right);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<ONotExpr *>(expr))
+  {
+    ex->operand = FoldExprTree(ex->operand);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OBinNotExpr *>(expr))
+  {
+    ex->operand = FoldExprTree(ex->operand);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<ONegExpr *>(expr))
+  {
+    ex->operand = FoldExprTree(ex->operand);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OFloatRoundExpr *>(expr))
+  {
+    ex->src = FoldExprTree(ex->src);
+    return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OLValueDeref *>(expr))
+  {
+    ex->ptrexpr = FoldExprTree(ex->ptrexpr);
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OLValueMember *>(expr))
+  {
+    ex->base = static_cast<OLValueExpr *>(FoldExprTree(ex->base));
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OLValueIndex *>(expr))
+  {
+    ex->base = static_cast<OLValueExpr *>(FoldExprTree(ex->base));
+    ex->indexexpr = FoldExprTree(ex->indexexpr);
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OAddrOfExpr *>(expr))
+  {
+    ex->target = static_cast<OLValueExpr *>(FoldExprTree(ex->target));
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OPointerIndexExpr *>(expr))
+  {
+    ex->ptrexpr = FoldExprTree(ex->ptrexpr);
+    ex->indexexpr = FoldExprTree(ex->indexexpr);
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OCallExpr *>(expr))
+  {
+    for (OExpr *& arg : ex->args)
+    {
+      arg = FoldExprTree(arg);
+    }
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OArrayLit *>(expr))
+  {
+    for (OExpr *& elem : ex->elements)
+    {
+      elem = FoldExprTree(elem);
+    }
+    return ex;
+  }
+
+  if (auto * ex = dynamic_cast<OCStringLitToDescExpr *>(expr))
+  {
+    ex->litexpr = FoldExprTree(ex->litexpr);
+    return ex;
+  }
+
+  return expr;
 }

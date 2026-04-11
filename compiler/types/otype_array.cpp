@@ -55,7 +55,7 @@ LlConst * OValueArray::CreateLlConst()
   return llvm::ConstantArray::get(ll_arrtype, ll_elems);
 }
 
-bool OValueArray::CalculateConstant(OExpr * expr)
+bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   auto * arrtype = static_cast<OTypeArray *>(ptype);
 
@@ -69,7 +69,7 @@ bool OValueArray::CalculateConstant(OExpr * expr)
 
     for (size_t i = 0; i < arrlit->elements.size(); ++i)
     {
-      if (!elements[i]->CalculateConstant(arrlit->elements[i]))
+      if (!elements[i]->CalculateConstant(arrlit->elements[i], emit_errors))
       {
         return false;
       }
@@ -78,7 +78,10 @@ bool OValueArray::CalculateConstant(OExpr * expr)
     return true;
   }
 
-  g_compiler->Error(DQERR_ARRAY_CONSTEXPR);
+  if (emit_errors)
+  {
+    g_compiler->Error(DQERR_ARRAY_CONSTEXPR);
+  }
   return false;
 }
 

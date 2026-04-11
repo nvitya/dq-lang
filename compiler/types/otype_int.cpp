@@ -17,12 +17,35 @@
 #include "dqc.h"
 #include <cmath>
 
+static int64_t NormalizeIntConstant(OTypeInt * dsttype, uint64_t rawbits)
+{
+  if (dsttype->bitlength >= 64)
+  {
+    return int64_t(rawbits);
+  }
+
+  uint64_t mask = ((uint64_t(1) << dsttype->bitlength) - 1);
+  rawbits &= mask;
+
+  if (dsttype->issigned && (rawbits & (uint64_t(1) << (dsttype->bitlength - 1))))
+  {
+    rawbits |= ~mask;
+  }
+
+  return int64_t(rawbits);
+}
+
+static int64_t ConvertIntConstant(OTypeInt * dsttype, int64_t value)
+{
+  return NormalizeIntConstant(dsttype, uint64_t(value));
+}
+
 LlConst * OValueInt::CreateLlConst()
 {
   return llvm::ConstantInt::get(ptype->GetLlType(), value);
 }
 
-bool OValueInt::CalculateConstant(OExpr * expr)
+bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   value = 0;
 
@@ -30,7 +53,7 @@ bool OValueInt::CalculateConstant(OExpr * expr)
     auto * ex = dynamic_cast<OIntLit *>(expr);
     if (ex)
     {
-      value = ex->value;
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), ex->value);
       return true;
     }
   }
@@ -40,12 +63,69 @@ bool OValueInt::CalculateConstant(OExpr * expr)
     if (ex)
     {
       OValueInt v(this->ptype, 0);
-      if (not v.CalculateConstant(ex->operand))
+      if (not v.CalculateConstant(ex->operand, emit_errors))
       {
         return false;
       }
-      value = -v.value;
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), -v.value);
       return true;
+    }
+  }
+
+  {
+    auto * ex = dynamic_cast<OBinNotExpr *>(expr);
+    if (ex)
+    {
+      OValueInt v(this->ptype, 0);
+      if (not v.CalculateConstant(ex->operand, emit_errors))
+      {
+        return false;
+      }
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), ~v.value);
+      return true;
+    }
+  }
+
+  {
+    auto * ex = dynamic_cast<OExprTypeConv *>(expr);
+    if (ex)
+    {
+      OType * srctype = ex->src->ResolvedType();
+      if (not srctype)
+      {
+        return false;
+      }
+
+      if (TK_INT == srctype->kind)
+      {
+        OValueInt srcvalue(srctype, 0);
+        if (not srcvalue.CalculateConstant(ex->src, emit_errors))
+        {
+          return false;
+        }
+
+        value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), srcvalue.value);
+        return true;
+      }
+
+      if (TK_FLOAT == srctype->kind)
+      {
+        OValueFloat srcvalue(srctype, 0.0);
+        if (not srcvalue.CalculateConstant(ex->src, emit_errors))
+        {
+          return false;
+        }
+
+        if (static_cast<OTypeInt *>(ResolvedType())->issigned)
+        {
+          value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), int64_t(srcvalue.value));
+        }
+        else
+        {
+          value = NormalizeIntConstant(static_cast<OTypeInt *>(ResolvedType()), uint64_t(srcvalue.value));
+        }
+        return true;
+      }
     }
   }
 
@@ -56,18 +136,24 @@ bool OValueInt::CalculateConstant(OExpr * expr)
       OValSymConst * vsconst = dynamic_cast<OValSymConst *>(ex->pvalsym);
       if (not vsconst)
       {
-        g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "int");
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, ex->pvalsym->name, "int");
+        }
         return false;
       }
 
       OValueInt * vint = dynamic_cast<OValueInt *>(vsconst->pvalue);
       if (not vint)
       {
-        g_compiler->Error(DQERR_TYPE_EXPECTED, "int", ex->ResolvedType()->name);
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_TYPE_EXPECTED, "int", ex->ResolvedType()->name);
+        }
         return false;
       }
 
-      value = vint->value;
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), vint->value);
       return true;
     }
   }
@@ -79,8 +165,8 @@ bool OValueInt::CalculateConstant(OExpr * expr)
       OValueInt vleft(this->ptype, 0);
       OValueInt vright(this->ptype, 0);
 
-      if (not vleft.CalculateConstant(ex->left)
-          or not vright.CalculateConstant(ex->right))
+      if (not vleft.CalculateConstant(ex->left, emit_errors)
+          or not vright.CalculateConstant(ex->right, emit_errors))
       {
         return false;
       }
@@ -101,9 +187,14 @@ bool OValueInt::CalculateConstant(OExpr * expr)
 
       else
       {
-        g_compiler->Error(DQERR_OP_UNHANDLED_FOR, GetBinopSymbol(ex->op), "int const expression");
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_OP_UNHANDLED_FOR, GetBinopSymbol(ex->op), "int const expression");
+        }
+        return false;
       }
 
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), value);
       return true;
     }
   }
@@ -113,18 +204,22 @@ bool OValueInt::CalculateConstant(OExpr * expr)
     if (ex)
     {
       OValueFloat vf(g_builtins->type_float, 0);
-      if (not vf.CalculateConstant(ex->src))
+      if (not vf.CalculateConstant(ex->src, emit_errors))
       {
         return false;
       }
       if      (RNDMODE_ROUND == ex->mode)  value = (int64_t)std::round(vf.value);
       else if (RNDMODE_CEIL  == ex->mode)  value = (int64_t)std::ceil(vf.value);
       else                                 value = (int64_t)std::floor(vf.value);
+      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), value);
       return true;
     }
   }
 
-  g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+  if (emit_errors)
+  {
+    g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+  }
   return false;
 }
 

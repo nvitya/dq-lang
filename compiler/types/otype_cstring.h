@@ -36,7 +36,7 @@ public:
   }
 
   LlConst *  CreateLlConst() override;
-  bool       CalculateConstant(OExpr * expr) override;
+  bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
 };
 
 // OTypeCString: C-compatible null-terminated string type

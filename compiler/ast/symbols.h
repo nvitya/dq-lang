@@ -331,7 +331,7 @@ public:
     return ll_const;
   }
 
-  virtual bool CalculateConstant(OExpr * expr) { return false; }
+  virtual bool CalculateConstant(OExpr * expr, bool emit_errors = true) { return false; }
 
   inline OType * ResolvedType() const
   {

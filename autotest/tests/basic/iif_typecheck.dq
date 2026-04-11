@@ -1,0 +1,6 @@
+// DQ iif() type checking test (ERROR test)
+
+var i : int = iif(1, 2, 3);  //?error(BoolExprExpected)
+var j : int = iif(true, 1, "x");  //?error(TypeMismatchAssign)
+var k : int = iif(true, 1);  //?error(FuncArgsTooFew)
+var m : int = iif(true, 1, 2, 3);  //?error(FuncArgsTooMany)

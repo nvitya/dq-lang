@@ -407,6 +407,54 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   throw logic_error(std::format("GenerateExpr(): Unhandled compare operation= {} ", int(op)));
 }
 
+/* ctor */ OIifExpr::OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type)
+{
+  condition  = acond;
+  true_expr  = atrue;
+  false_expr = afalse;
+  ptype      = aresult_type;
+}
+
+OIifExpr::~OIifExpr()
+{
+  delete condition;
+  delete true_expr;
+  delete false_expr;
+}
+
+LlValue * OIifExpr::Generate(OScope * scope)
+{
+  LlValue * ll_cond = condition->Generate(scope);
+  if (ll_cond->getType() != g_builtins->type_bool->GetLlType())
+  {
+    throw logic_error("OIifExpr::Generate(): condition must be bool");
+  }
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * cond_bb  = ll_builder.GetInsertBlock();
+  LlBasicBlock * true_bb  = LlBasicBlock::Create(ll_ctx, "iif.true", ll_func);
+  LlBasicBlock * false_bb = LlBasicBlock::Create(ll_ctx, "iif.false", ll_func);
+  LlBasicBlock * merge_bb = LlBasicBlock::Create(ll_ctx, "iif.end", ll_func);
+
+  ll_builder.CreateCondBr(ll_cond, true_bb, false_bb);
+
+  ll_builder.SetInsertPoint(true_bb);
+  LlValue * ll_true = true_expr->Generate(scope);
+  LlBasicBlock * true_end_bb = ll_builder.GetInsertBlock();
+  ll_builder.CreateBr(merge_bb);
+
+  ll_builder.SetInsertPoint(false_bb);
+  LlValue * ll_false = false_expr->Generate(scope);
+  LlBasicBlock * false_end_bb = ll_builder.GetInsertBlock();
+  ll_builder.CreateBr(merge_bb);
+
+  ll_builder.SetInsertPoint(merge_bb);
+  llvm::PHINode * ll_result = ll_builder.CreatePHI(ptype->GetLlType(), 2, "iif.result");
+  ll_result->addIncoming(ll_true, true_end_bb);
+  ll_result->addIncoming(ll_false, false_end_bb);
+  return ll_result;
+}
+
 /* ctor */ OLogicalExpr::OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright)
 {
   op    = aop;
@@ -901,6 +949,31 @@ OExpr * FoldExprTree(OExpr * expr)
     ex->left = FoldExprTree(ex->left);
     ex->right = FoldExprTree(ex->right);
     return FoldScalarExpr(ex);
+  }
+
+  if (auto * ex = dynamic_cast<OIifExpr *>(expr))
+  {
+    ex->condition = FoldExprTree(ex->condition);
+
+    if (auto * cond = dynamic_cast<OBoolLit *>(ex->condition))
+    {
+      OExpr * selected = (cond->value ? ex->true_expr : ex->false_expr);
+      if (cond->value)
+      {
+        ex->true_expr = nullptr;
+      }
+      else
+      {
+        ex->false_expr = nullptr;
+      }
+
+      delete ex;
+      return FoldExprTree(selected);
+    }
+
+    ex->true_expr = FoldExprTree(ex->true_expr);
+    ex->false_expr = FoldExprTree(ex->false_expr);
+    return ex;
   }
 
   if (auto * ex = dynamic_cast<OLogicalExpr *>(expr))

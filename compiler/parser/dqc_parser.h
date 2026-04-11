@@ -92,6 +92,7 @@ public: // expressions
   OExpr * ParseExprPrimary();
 
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
+  OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();
   OExpr * ParseBuiltinFloatRound(ERoundMode amode);
@@ -103,6 +104,8 @@ protected:
                           const BinOpEntry ops[], int nops);
 
   OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);  // handles implicit conversions
+  bool    TryConvertExprToType(OType * dsttype, OExpr * src, OExpr ** rout);
+  bool    ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype);
   bool    CheckAssignType(OType * dsttype, OExpr ** rexpr,
                           const string astmt);                    // returns false when the assignment is not possible
                                                                   // adds implicit conversion if necessary

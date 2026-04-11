@@ -1,0 +1,90 @@
+// iif() intrinsic tests
+
+var g_true_hits  : int = 0;
+var g_false_hits : int = 0;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function hit_true() -> int:
+  g_true_hits += 1;
+  result = 10;
+endfunc
+
+function hit_false() -> int:
+  g_false_hits += 1;
+  result = 20;
+endfunc
+
+function dq_iif_basic_true() -> int:
+  result = iif(true, 11, 22);
+endfunc
+
+function dq_iif_basic_false() -> int:
+  result = iif(false, 11, 22);
+endfunc
+
+function dq_iif_float(flag : bool) -> int:
+  var f : float = iif(flag, 1, 2.5);
+  result = round(f);
+endfunc
+
+function dq_iif_ptr(flag : bool) -> int:
+  var x : int = 33;
+  var p : ^int = iif(flag, &x, null);
+  if p != null:
+    result = p^;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function dq_iif_guarded(aptrint : ^int) -> int:
+  result = iif(aptrint <> null, aptrint^, 0);
+endfunc
+
+function dq_iif_side(flag : bool) -> int:
+  g_true_hits = 0;
+  g_false_hits = 0;
+  result = iif(flag, hit_true(), hit_false());
+  result += 100 * g_true_hits;
+  result += 1000 * g_false_hits;
+endfunc
+
+function main() -> int:
+  printf("DQ iif test\n");  //?check('DQ iif test')
+
+  var x : int = 77;
+  var r : int;
+
+  r = dq_iif_basic_true();
+  printf("dq_iif_basic_true() = %li\n", r);  //?check('dq_iif_basic_true()', 11)
+
+  r = dq_iif_basic_false();
+  printf("dq_iif_basic_false() = %li\n", r);  //?check('dq_iif_basic_false()', 22)
+
+  r = dq_iif_float(true);
+  printf("dq_iif_float(true) = %li\n", r);  //?check('dq_iif_float(true)', 1)
+
+  r = dq_iif_float(false);
+  printf("dq_iif_float(false) = %li\n", r);  //?check('dq_iif_float(false)', 3)
+
+  r = dq_iif_ptr(true);
+  printf("dq_iif_ptr(true) = %li\n", r);  //?check('dq_iif_ptr(true)', 33)
+
+  r = dq_iif_ptr(false);
+  printf("dq_iif_ptr(false) = %li\n", r);  //?check('dq_iif_ptr(false)', 0)
+
+  r = dq_iif_guarded(&x);
+  printf("dq_iif_guarded(&x) = %li\n", r);  //?check('dq_iif_guarded(&x)', 77)
+
+  r = dq_iif_guarded(null);
+  printf("dq_iif_guarded(null) = %li\n", r);  //?check('dq_iif_guarded(null)', 0)
+
+  r = dq_iif_side(true);
+  printf("dq_iif_side(true) = %li\n", r);  //?check('dq_iif_side(true)', 110)
+
+  r = dq_iif_side(false);
+  printf("dq_iif_side(false) = %li\n", r);  //?check('dq_iif_side(false)', 1020)
+
+  return 0;
+endfunc

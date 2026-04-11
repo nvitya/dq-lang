@@ -156,6 +156,18 @@ public:
   LlValue *    Generate(OScope * scope) override;
 };
 
+class OIifExpr : public OExpr
+{
+public:
+  OExpr *      condition;
+  OExpr *      true_expr;
+  OExpr *      false_expr;
+
+  /* ctor */   OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type);
+               ~OIifExpr() override;
+  LlValue *    Generate(OScope * scope) override;
+};
+
 enum ELogicalOp
 {
   LOGIOP_NONE = 0,

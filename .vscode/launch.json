@@ -8,6 +8,7 @@
             "program": "${command:cmake.launchTargetPath}",
 
             "args": ["autotest/tests/basic/typecheck.dq", "-g", "-v"],
+            "args": ["autotest/tests/basic/iif.dq", "-g", "-v"],
 
             "stopAtEntry": false,
 

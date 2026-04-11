@@ -1591,6 +1591,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return ParseBuiltinLen();
   }
 
+  if ("iif" == sid)
+  {
+    return ParseBuiltinIif();
+  }
+
   if ("sizeof" == sid)
   {
     return ParseBuiltinSizeof();
@@ -1761,6 +1766,107 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
   }
 
   return result;
+}
+
+OExpr * ODqCompParser::ParseBuiltinIif()
+{
+  auto recover_iif_tail = [this]()
+  {
+    scf->ReadTo(");");
+    scf->CheckSymbol(")");
+  };
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "iif");
+    return nullptr;
+  }
+
+  OExpr * condexpr = ParseExpression();
+  if (!condexpr)
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "0", "iif", "3");
+    return nullptr;
+  }
+
+  OType * condtype = condexpr->ResolvedType();
+  if (!condtype || (TK_BOOL != condtype->kind))
+  {
+    Error(DQERR_BOOL_EXPR_EXPECTED, condtype ? condtype->name : "void");
+    recover_iif_tail();
+    delete condexpr;
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(","))
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "1", "iif", "3");
+    recover_iif_tail();
+    delete condexpr;
+    return nullptr;
+  }
+
+  OExpr * trueexpr = ParseExpression();
+  if (!trueexpr)
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "iif", "1", "3");
+    delete condexpr;
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(","))
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "2", "iif", "3");
+    recover_iif_tail();
+    delete condexpr;
+    delete trueexpr;
+    return nullptr;
+  }
+
+  OExpr * falseexpr = ParseExpression();
+  if (!falseexpr)
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "2", "iif", "3");
+    recover_iif_tail();
+    delete condexpr;
+    delete trueexpr;
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (scf->CheckSymbol(","))
+  {
+    Error(DQERR_FUNC_ARGS_TOO_MANY, "iif", "3");
+    recover_iif_tail();
+    delete condexpr;
+    delete trueexpr;
+    delete falseexpr;
+    return nullptr;
+  }
+
+  if (not scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "iif");
+    recover_iif_tail();
+    delete condexpr;
+    delete trueexpr;
+    delete falseexpr;
+    return nullptr;
+  }
+
+  OType * resulttype = nullptr;
+  if (not ResolveIifType(&trueexpr, &falseexpr, &resulttype))
+  {
+    delete condexpr;
+    delete trueexpr;
+    delete falseexpr;
+    return nullptr;
+  }
+
+  return FoldExprTree(new OIifExpr(condexpr, trueexpr, falseexpr, resulttype));
 }
 
 OExpr * ODqCompParser::ParseBuiltinFloatRound(ERoundMode amode)
@@ -2114,6 +2220,303 @@ void ODqCompParser::ParseStmtVoidCall(OValSymFunc * vsfunc)
   }
 
   curblock->AddStatement(new OStmtVoidCall(scpos_statement_start, callexpr));
+}
+
+bool ODqCompParser::TryConvertExprToType(OType * dsttype, OExpr * src, OExpr ** rout)
+{
+  *rout = nullptr;
+  if (!dsttype || !src || !src->ptype)
+  {
+    return false;
+  }
+
+  OType * resolved_dst = dsttype->ResolveAlias();
+  OType * resolved_src = src->ResolvedType();
+  if (!resolved_dst || !resolved_src)
+  {
+    return false;
+  }
+
+  ETypeKind tkd = resolved_dst->kind;
+  ETypeKind tks = resolved_src->kind;
+  OExpr * result = src;
+
+  if (resolved_dst == resolved_src)
+  {
+    if (TK_STRING == tkd)
+    {
+      OTypeCString * cstrdst = static_cast<OTypeCString *>(dsttype);
+      OTypeCString * cstrsrc = static_cast<OTypeCString *>(src->ptype);
+      if (cstrdst->maxlen == 0 and cstrsrc->maxlen > 0)
+      {
+        OLValueVar * varref = dynamic_cast<OLValueVar *>(src);
+        if (!varref)
+        {
+          return false;
+        }
+        result = new OCStringToDescExpr(varref->pvalsym, dsttype);
+      }
+      else if (cstrdst->maxlen != cstrsrc->maxlen)
+      {
+        return false;
+      }
+    }
+
+    *rout = FoldExprTree(result);
+    return true;
+  }
+
+  if ((TK_FLOAT == tkd) and (TK_INT == tks))
+  {
+    *rout = FoldExprTree(new OExprTypeConv(dsttype, src));
+    return true;
+  }
+
+  if ((TK_INT == tkd) and (TK_INT == tks))
+  {
+    OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
+    OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+    if (intdst->bitlength == intsrc->bitlength && intdst->issigned == intsrc->issigned)
+    {
+      *rout = FoldExprTree(src);
+    }
+    else
+    {
+      *rout = FoldExprTree(new OExprTypeConv(dsttype, src));
+    }
+    return true;
+  }
+
+  if ((TK_FLOAT == tkd) and (TK_FLOAT == tks))
+  {
+    OTypeFloat * floatdst = static_cast<OTypeFloat *>(resolved_dst);
+    OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+    if (floatdst->bitlength == floatsrc->bitlength)
+    {
+      *rout = FoldExprTree(src);
+    }
+    else
+    {
+      *rout = FoldExprTree(new OExprTypeConv(dsttype, src));
+    }
+    return true;
+  }
+
+  if ((TK_ARRAY_SLICE == tkd) and (TK_ARRAY == tks))
+  {
+    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+    OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+    if (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+    {
+      return false;
+    }
+    OLValueVar * varref = dynamic_cast<OLValueVar *>(src);
+    if (!varref)
+    {
+      return false;
+    }
+    *rout = FoldExprTree(new OArrayToSliceExpr(varref->pvalsym, dsttype));
+    return true;
+  }
+
+  if ((TK_STRING == tkd) and (TK_POINTER == tks))
+  {
+    OTypeCString * cstrdst = static_cast<OTypeCString *>(dsttype);
+    if (cstrdst->maxlen != 0)
+    {
+      return false;
+    }
+
+    OCStringLit * strlit = dynamic_cast<OCStringLit *>(src);
+    if (!strlit)
+    {
+      return false;
+    }
+
+    *rout = FoldExprTree(new OCStringLitToDescExpr(src, strlit->value.size() + 1, dsttype));
+    return true;
+  }
+
+  if ((TK_POINTER == tkd) and (TK_POINTER == tks))
+  {
+    OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
+    OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+    if (ptrsrc->basetype == nullptr || ptrdst->basetype == nullptr)
+    {
+      *rout = FoldExprTree(src);
+      return true;
+    }
+    if (ptrsrc->basetype->ResolveAlias() != ptrdst->basetype->ResolveAlias())
+    {
+      return false;
+    }
+
+    *rout = FoldExprTree(src);
+    return true;
+  }
+
+  if ((TK_ARRAY_SLICE == tkd) and (TK_ARRAY_SLICE == tks))
+  {
+    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+    OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+    if (slicedst->elemtype->ResolveAlias() != slicesrc->elemtype->ResolveAlias())
+    {
+      return false;
+    }
+    *rout = FoldExprTree(src);
+    return true;
+  }
+
+  if ((TK_ARRAY == tkd) and (TK_ARRAY == tks))
+  {
+    OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
+    OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+    if (arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+    {
+      return false;
+    }
+    if (arrdst->arraylength != arrsrc->arraylength)
+    {
+      return false;
+    }
+    *rout = FoldExprTree(src);
+    return true;
+  }
+
+  *rout = nullptr;
+  return false;
+}
+
+bool ODqCompParser::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype)
+{
+  OExpr * trueexpr = *rtrueexpr;
+  OExpr * falseexpr = *rfalseexpr;
+  OType * truetype = trueexpr->ResolvedType();
+  OType * falsetype = falseexpr->ResolvedType();
+
+  if (!truetype || !falsetype)
+  {
+    ErrorTxt(DQERR_TYPE_EXPECTED, "iif() expects non-void value expressions");
+    return false;
+  }
+
+  if (truetype == falsetype)
+  {
+    *rtrueexpr = FoldExprTree(trueexpr);
+    *rfalseexpr = FoldExprTree(falseexpr);
+    *rresulttype = trueexpr->ptype;
+    return true;
+  }
+
+  if ((TK_INT == truetype->kind) and (TK_FLOAT == falsetype->kind))
+  {
+    *rtrueexpr = FoldExprTree(new OExprTypeConv(falseexpr->ptype, trueexpr));
+    *rfalseexpr = FoldExprTree(falseexpr);
+    *rresulttype = falseexpr->ptype;
+    return true;
+  }
+
+  if ((TK_FLOAT == truetype->kind) and (TK_INT == falsetype->kind))
+  {
+    *rtrueexpr = FoldExprTree(trueexpr);
+    *rfalseexpr = FoldExprTree(new OExprTypeConv(trueexpr->ptype, falseexpr));
+    *rresulttype = trueexpr->ptype;
+    return true;
+  }
+
+  if ((TK_INT == truetype->kind) and (TK_INT == falsetype->kind))
+  {
+    OTypeInt * trueint = static_cast<OTypeInt *>(truetype);
+    OTypeInt * falseint = static_cast<OTypeInt *>(falsetype);
+    if ((trueint->bitlength > falseint->bitlength)
+        || ((trueint->bitlength == falseint->bitlength) && (trueint->issigned == falseint->issigned)))
+    {
+      *rtrueexpr = FoldExprTree(trueexpr);
+      *rfalseexpr = FoldExprTree(new OExprTypeConv(trueexpr->ptype, falseexpr));
+      *rresulttype = trueexpr->ptype;
+      return true;
+    }
+    if (falseint->bitlength > trueint->bitlength)
+    {
+      *rtrueexpr = FoldExprTree(new OExprTypeConv(falseexpr->ptype, trueexpr));
+      *rfalseexpr = FoldExprTree(falseexpr);
+      *rresulttype = falseexpr->ptype;
+      return true;
+    }
+  }
+
+  if ((TK_FLOAT == truetype->kind) and (TK_FLOAT == falsetype->kind))
+  {
+    OTypeFloat * truefloat = static_cast<OTypeFloat *>(truetype);
+    OTypeFloat * falsefloat = static_cast<OTypeFloat *>(falsetype);
+    if (truefloat->bitlength >= falsefloat->bitlength)
+    {
+      *rtrueexpr = FoldExprTree(trueexpr);
+      *rfalseexpr = FoldExprTree(new OExprTypeConv(trueexpr->ptype, falseexpr));
+      *rresulttype = trueexpr->ptype;
+      return true;
+    }
+
+    *rtrueexpr = FoldExprTree(new OExprTypeConv(falseexpr->ptype, trueexpr));
+    *rfalseexpr = FoldExprTree(falseexpr);
+    *rresulttype = falseexpr->ptype;
+    return true;
+  }
+
+  if ((TK_POINTER == truetype->kind) and (TK_POINTER == falsetype->kind))
+  {
+    OTypePointer * trueptr = static_cast<OTypePointer *>(truetype);
+    OTypePointer * falseptr = static_cast<OTypePointer *>(falsetype);
+
+    if (trueptr->basetype == nullptr and falseptr->basetype != nullptr)
+    {
+      *rtrueexpr = FoldExprTree(trueexpr);
+      *rfalseexpr = FoldExprTree(falseexpr);
+      *rresulttype = falseexpr->ptype;
+      return true;
+    }
+
+    if (falseptr->basetype == nullptr and trueptr->basetype != nullptr)
+    {
+      *rtrueexpr = FoldExprTree(trueexpr);
+      *rfalseexpr = FoldExprTree(falseexpr);
+      *rresulttype = trueexpr->ptype;
+      return true;
+    }
+
+    if (trueptr->basetype && falseptr->basetype
+        && (trueptr->basetype->ResolveAlias() == falseptr->basetype->ResolveAlias()))
+    {
+      *rtrueexpr = FoldExprTree(trueexpr);
+      *rfalseexpr = FoldExprTree(falseexpr);
+      *rresulttype = trueexpr->ptype;
+      return true;
+    }
+
+    Error(DQERR_PTR_TYPEMISM, trueexpr->ptype->name, falseexpr->ptype->name);
+    return false;
+  }
+
+  OExpr * converted_false = nullptr;
+  if (TryConvertExprToType(trueexpr->ptype, falseexpr, &converted_false))
+  {
+    *rtrueexpr = FoldExprTree(trueexpr);
+    *rfalseexpr = converted_false;
+    *rresulttype = trueexpr->ptype;
+    return true;
+  }
+
+  OExpr * converted_true = nullptr;
+  if (TryConvertExprToType(falseexpr->ptype, trueexpr, &converted_true))
+  {
+    *rtrueexpr = converted_true;
+    *rfalseexpr = FoldExprTree(falseexpr);
+    *rresulttype = falseexpr->ptype;
+    return true;
+  }
+
+  Error(DQERR_TYPEMISM_STMT_ASSIGN, "iif()", trueexpr->ptype->name, falseexpr->ptype->name);
+  return false;
 }
 
 bool ODqCompParser::CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt)

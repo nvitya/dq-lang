@@ -15,13 +15,22 @@
 
 #include "stdint.h"
 #include <string>
+#include <vector>
 #include "comp_options.h"
+#include "expressions.h"
 #include "symbols.h"
 #include "dq_module.h"
 
 #include "dqc_base.h"
 
 using namespace std;
+
+enum EExprConvFlags
+{
+  EXPCF_GENERATE_ERRORS    = 1,
+  EXPCF_ALLOW_LAZY_CSTRING = 2,
+  EXPCF_EXPLICIT_CAST      = 4
+};
 
 class ODqCompAst : public ODqCompBase
 {
@@ -39,5 +48,13 @@ public:
   ODecl * AddDeclVar(OScPosition & scpos, string aid, OType * atype);
   ODecl * AddDeclConst(OScPosition & scpos, string aid, OType * atype, OValue * avalue);
   ODecl * AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc);
+  bool    ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype);
+  void    CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OLValueVar *> & ignored);
+  OValSym * GetAssignRootValSym(OLValueExpr * leftexpr);
+  OExpr * FreeLeftRight(OExpr * left, OExpr * right);
+  OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);
+  bool    ConvertExprToType(OType * dsttype, OExpr * src, OExpr ** rout, uint32_t aflags = 0);
+  bool    ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype);
+  bool    CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt);
 
 };

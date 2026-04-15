@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------------
 v0.7.8:
   - eliminated some duplicated code parts
+  - functions moved from dqc_parser to dqc_ast
 v0.7.7:
   - improved variable not initialized checks
 v0.7.6:

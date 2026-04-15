@@ -16,19 +16,11 @@
 #include "stdint.h"
 #include <string>
 #include "comp_options.h"
-#include "expressions.h"
 #include "statements.h"
 #include "errorcodes.h"
 #include "dqc_ast.h"
 
 using namespace std;
-
-enum EExprConvFlags
-{
-  EXPCF_GENERATE_ERRORS    = 1,
-  EXPCF_ALLOW_LAZY_CSTRING = 2,
-  EXPCF_EXPLICIT_CAST      = 4
-};
 
 #if 0
 enum EExprConvError
@@ -136,17 +128,8 @@ protected:
   OExpr * ParseBinOpLevel(OExpr * (ODqCompParser::*parse_next)(),
                           const BinOpEntry ops[], int nops);
 
-  OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);  // handles implicit conversions
-  bool    ConvertExprToType(OType * dsttype, OExpr * src, OExpr ** rout, uint32_t aflags = 0);
-  bool    ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype);
-  bool    CheckAssignType(OType * dsttype, OExpr ** rexpr,
-                          const string astmt);                    // returns false when the assignment is not possible
-                                                                  // adds implicit conversion if necessary
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    EmitSuppressedVarInitDiags();
-  void    CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OLValueVar *> & ignored);
   void    EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op);
-  OValSym * GetAssignRootValSym(OLValueExpr * leftexpr);
-  OExpr * FreeLeftRight(OExpr * left, OExpr * right);
 };

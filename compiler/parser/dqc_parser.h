@@ -22,20 +22,6 @@
 
 using namespace std;
 
-#if 0
-enum EExprConvError
-{
-  ECONVERR_NONE = 0,
-  ECONVERR_TYPE_MISMATCH,
-  ECONVERR_PTR_TYPE_MISMATCH,
-  ECONVERR_ARRELEM_TYPE_MISMATCH,
-  ECONVERR_ARRSIZE_MISMATCH,
-  ECONVERR_ArrayToSliceNeedsVariable,
-  ECONVERR_CStringPointerNeedsLiteral,
-  ECONVERR_CStringDescNeedsVariable
-};
-#endif
-
 class ODqCompParser : public ODqCompAst
 {
 private:
@@ -92,11 +78,6 @@ public: // expressions
   vector<TSuppressedVarInitDiag>  suppressed_varinit_diags;
 
   OExpr * ParseExpression(); // calls ParseExprOr()
-
-  // if a == 1 or 1 SHL 5 AND 0xFFFF != 0
-  // if a == 1 or regval >> 5 AND 0xF != 0
-
-  //   5 + -x << 2
 
   // Expression parsing in increasing operator priority:
   OExpr * ParseExprOr();

@@ -7,8 +7,8 @@
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
 
-            "args": ["autotest/tests/basic/typecheck.dq", "-g", "-v"],
-            "xargs": ["autotest/tests/basic/iif.dq", "-g", "-v"],
+            "xargs": ["autotest/tests/basic/typecheck.dq", "-g", "-v"],
+            "args": ["autotest/tests/basic/iif.dq", "-g", "-v"],
 
             "stopAtEntry": false,
 

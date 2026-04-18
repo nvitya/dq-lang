@@ -805,10 +805,8 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
 bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype)
 {
-  OExpr * trueexpr = *rtrueexpr;
-  OExpr * falseexpr = *rfalseexpr;
-  OType * truetype = trueexpr->ResolvedType();
-  OType * falsetype = falseexpr->ResolvedType();
+  OType * truetype = (*rtrueexpr)->ResolvedType();
+  OType * falsetype = (*rfalseexpr)->ResolvedType();
 
   if (!truetype || !falsetype)
   {
@@ -818,54 +816,44 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
 
   if (truetype == falsetype)
   {
-    *rtrueexpr = trueexpr;
-    *rfalseexpr = falseexpr;
-    *rresulttype = trueexpr->ptype;
+    *rresulttype = truetype;
     return true;
   }
 
-  if (HarmonizeNumericOperands(&trueexpr, &falseexpr))
+  if (HarmonizeNumericOperands(rtrueexpr, rfalseexpr))
   {
-    FoldExprTreeAfterTypeRewrite(&trueexpr);
-    FoldExprTreeAfterTypeRewrite(&falseexpr);
-    *rtrueexpr = trueexpr;
-    *rfalseexpr = falseexpr;
-    *rresulttype = trueexpr->ptype;
+    FoldExprTreeAfterTypeRewrite(rtrueexpr);
+    FoldExprTreeAfterTypeRewrite(rfalseexpr);
+    *rresulttype = (*rtrueexpr)->ptype;
     return true;
   }
 
   OType * resulttype = nullptr;
-  if (ResolveCommonPointerType(trueexpr, falseexpr, &resulttype))
+  if (ResolveCommonPointerType(*rtrueexpr, *rfalseexpr, &resulttype))
   {
-    *rtrueexpr = trueexpr;
-    *rfalseexpr = falseexpr;
     *rresulttype = resulttype;
     return true;
   }
 
   if ((TK_POINTER == truetype->kind) and (TK_POINTER == falsetype->kind))
   {
-    Error(DQERR_PTR_TYPEMISM, trueexpr->ptype->name, falseexpr->ptype->name);
+    Error(DQERR_PTR_TYPEMISM, (*rtrueexpr)->ptype->name, (*rfalseexpr)->ptype->name);
     return false;
   }
 
-  if (ConvertExprToType(trueexpr->ptype, &falseexpr, EXPCF_ALLOW_LAZY_CSTRING))
+  if (ConvertExprToType(truetype, rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING))
   {
-    *rtrueexpr = trueexpr;
-    *rfalseexpr = falseexpr;
-    *rresulttype = trueexpr->ptype;
+    *rresulttype = truetype;
     return true;
   }
 
-  if (ConvertExprToType(falseexpr->ptype, &trueexpr, EXPCF_ALLOW_LAZY_CSTRING))
+  if (ConvertExprToType(falsetype, rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING))
   {
-    *rtrueexpr = trueexpr;
-    *rfalseexpr = falseexpr;
-    *rresulttype = falseexpr->ptype;
+    *rresulttype = falsetype;
     return true;
   }
 
-  Error(DQERR_TYPEMISM_STMT_ASSIGN, "iif()", trueexpr->ptype->name, falseexpr->ptype->name);
+  Error(DQERR_TYPEMISM_STMT_ASSIGN, "iif()", (*rtrueexpr)->ptype->name, (*rfalseexpr)->ptype->name);
   return false;
 }
 

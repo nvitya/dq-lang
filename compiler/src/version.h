@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.7.14"
+#define DQ_COMPILER_VERSION  "0.7.15"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.7.15:
+  - iif() type conversion cleanup
 v0.7.14:
   - Expression folding improvements, better tree re-writing
 v0.7.13:

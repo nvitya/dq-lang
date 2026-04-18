@@ -371,9 +371,26 @@ public:
 
   virtual ~OExpr() {};
 
+  static void DeleteTree(OExpr * expr);
+  static void FoldTree(OExpr ** rexpr);
+
   virtual LlValue * Generate(OScope * scope)
   {
     throw logic_error(std::format("Unhandled OExpr::Generate for \"{}\"", typeid(this).name()));
+  }
+
+  virtual void FoldChildren()
+  {
+  }
+
+  virtual bool TryFoldSelf(OExpr ** rreplacement)
+  {
+    (void)rreplacement;
+    return false;
+  }
+
+  virtual void DeleteChildTree()
+  {
   }
 
   inline OType * ResolvedType() const

@@ -102,7 +102,7 @@ static void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
 {
   // ParseExpression() already folds the original parse tree. Re-fold only after type
   // resolution injects conversion nodes so constant casts collapse immediately.
-  FoldExprTree(rexpr);
+  OExpr::FoldTree(rexpr);
 }
 
 ODqCompAst::ODqCompAst()

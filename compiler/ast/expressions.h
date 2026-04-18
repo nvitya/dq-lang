@@ -27,6 +27,9 @@ public:
 
   /* ctor */ OExprTypeConv(OType * dsttype, OExpr * asrc);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       DeleteChildTree() override;
 };
 
 class OIntLit : public OExpr
@@ -81,6 +84,8 @@ public:
   OExpr *  ptrexpr;
   /* ctor */ OLValueDeref(OExpr * aptr);
   LlValue *  GenerateAddress(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 class OLValueMember : public OLValueExpr
@@ -91,6 +96,8 @@ public:
   uint32_t       memberindex;
   /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
   LlValue *  GenerateAddress(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 class OLValueIndex : public OLValueExpr
@@ -101,6 +108,8 @@ public:
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
   LlValue *  GenerateAddress(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 enum EBinOp
@@ -131,6 +140,9 @@ public:
 
   /* ctor */ OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       DeleteChildTree() override;
 };
 
 enum ECompareOp
@@ -154,6 +166,9 @@ public:
   OExpr *      right;
   /* ctor */   OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright);
   LlValue *    Generate(OScope * scope) override;
+  void         FoldChildren() override;
+  bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         DeleteChildTree() override;
 };
 
 class OIifExpr : public OExpr
@@ -166,6 +181,9 @@ public:
   /* ctor */   OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type);
                ~OIifExpr() override;
   LlValue *    Generate(OScope * scope) override;
+  void         FoldChildren() override;
+  bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         DeleteChildTree() override;
 };
 
 enum ELogicalOp
@@ -187,6 +205,9 @@ public:
   OExpr *      right;
   /* ctor */   OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright);
   LlValue *    Generate(OScope * scope) override;
+  void         FoldChildren() override;
+  bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         DeleteChildTree() override;
 };
 
 class ONotExpr : public OExpr
@@ -195,6 +216,9 @@ public:
   OExpr *    operand;
   /* ctor */ ONotExpr(OExpr * expr);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       DeleteChildTree() override;
 };
 
 class OBinNotExpr : public OExpr
@@ -203,6 +227,9 @@ public:
   OExpr *    operand;
   /* ctor */ OBinNotExpr(OExpr * expr);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       DeleteChildTree() override;
 };
 
 class ONegExpr : public OExpr
@@ -211,6 +238,9 @@ public:
   OExpr *    operand;
   /* ctor */ ONegExpr(OExpr * expr);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       DeleteChildTree() override;
 };
 
 class OAddrOfExpr : public OExpr
@@ -219,6 +249,8 @@ public:
   OLValueExpr *  target;
   /* ctor */ OAddrOfExpr(OLValueExpr * atarget);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 class ONullLit : public OExpr
@@ -237,6 +269,8 @@ public:
   OExpr *  indexexpr;
   /* ctor */ OPointerIndexExpr(OExpr * aptr, OExpr * aindex);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 // Implicit conversion from fixed array to slice when passing to int[] parameter
@@ -274,6 +308,9 @@ public:
   /* ctor */  OFloatRoundExpr(ERoundMode amode, OExpr * asrc);
              ~OFloatRoundExpr();
   LlValue *   Generate(OScope * scope) override;
+  void        FoldChildren() override;
+  bool        TryFoldSelf(OExpr ** rreplacement) override;
+  void        DeleteChildTree() override;
 };
 
 class OValSymFunc;  // forward declaration for otype_func.h
@@ -286,6 +323,8 @@ public:
   /* ctor */        OCallExpr(OValSymFunc * avsfunc);
                    ~OCallExpr();
   LlValue *         Generate(OScope * scope) override;
+  void              FoldChildren() override;
+  void              DeleteChildTree() override;
 
 public:
   void AddArgument(OExpr * aarg)
@@ -301,6 +340,8 @@ public:
 
   /* ctor */ OArrayLit(const vector<OExpr *> & aelements);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 // --- cstring expressions ---
@@ -350,6 +391,6 @@ public:
   uint32_t   litlen;  // buffer size: strlen + 1 (includes null terminator)
   /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
-
-void FoldExprTree(OExpr ** rexpr);

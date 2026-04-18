@@ -68,6 +68,49 @@ string GetRoundModeName(ERoundMode mode)
   return format("int({})", int(mode));
 }
 
+static OExpr * FoldScalarExpr(OExpr * expr);
+
+static bool TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement)
+{
+  OExpr * replacement = FoldScalarExpr(expr);
+  if (replacement == expr)
+  {
+    return false;
+  }
+
+  *rreplacement = replacement;
+  return true;
+}
+
+void OExpr::DeleteTree(OExpr * expr)
+{
+  if (!expr)
+  {
+    return;
+  }
+
+  expr->DeleteChildTree();
+  delete expr;
+}
+
+void OExpr::FoldTree(OExpr ** rexpr)
+{
+  OExpr * expr = (rexpr ? *rexpr : nullptr);
+  if (!expr)
+  {
+    return;
+  }
+
+  expr->FoldChildren();
+
+  OExpr * replacement = nullptr;
+  if (expr->TryFoldSelf(&replacement))
+  {
+    *rexpr = replacement;
+    delete expr;
+  }
+}
+
 /* ctor */ OExprTypeConv::OExprTypeConv(OType * dsttype, OExpr * asrc)
 {
   ptype = dsttype;
@@ -77,6 +120,29 @@ string GetRoundModeName(ERoundMode mode)
 LlValue * OExprTypeConv::Generate(OScope * scope)
 {
   return ptype->GenerateConversion(scope, src);
+}
+
+void OExprTypeConv::FoldChildren()
+{
+  OExpr::FoldTree(&src);
+}
+
+bool OExprTypeConv::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(src);
+  src = nullptr;
+  return true;
+}
+
+void OExprTypeConv::DeleteChildTree()
+{
+  OExpr::DeleteTree(src);
+  src = nullptr;
 }
 
 /* ctor */ OIntLit::OIntLit(int64_t v, OType * atype)
@@ -189,6 +255,17 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
   return ptrexpr->Generate(scope);  // the pointer value IS the address
 }
 
+void OLValueDeref::FoldChildren()
+{
+  OExpr::FoldTree(&ptrexpr);
+}
+
+void OLValueDeref::DeleteChildTree()
+{
+  OExpr::DeleteTree(ptrexpr);
+  ptrexpr = nullptr;
+}
+
 /* ctor */ OLValueMember::OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype)
 {
   base        = abase;
@@ -201,6 +278,19 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
 {
   LlValue * baseaddr = base->GenerateAddress(scope);
   return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, memberindex, "member.addr");
+}
+
+void OLValueMember::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+}
+
+void OLValueMember::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  base = nullptr;
 }
 
 /* ctor */ OLValueIndex::OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex)
@@ -270,6 +360,22 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
+}
+
+void OLValueIndex::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&indexexpr);
+}
+
+void OLValueIndex::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  OExpr::DeleteTree(indexexpr);
+  base = nullptr;
+  indexexpr = nullptr;
 }
 
 /* ctor */ OBinExpr::OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright)
@@ -347,6 +453,34 @@ LlValue * OBinExpr::Generate(OScope * scope)
   }
 }
 
+void OBinExpr::FoldChildren()
+{
+  OExpr::FoldTree(&left);
+  OExpr::FoldTree(&right);
+}
+
+bool OBinExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+  return true;
+}
+
+void OBinExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+}
+
 /* ctor */ OCompareExpr::OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright)
 {
   op    = aop;
@@ -407,6 +541,34 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   throw logic_error(std::format("GenerateExpr(): Unhandled compare operation= {} ", int(op)));
 }
 
+void OCompareExpr::FoldChildren()
+{
+  OExpr::FoldTree(&left);
+  OExpr::FoldTree(&right);
+}
+
+bool OCompareExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+  return true;
+}
+
+void OCompareExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+}
+
 /* ctor */ OIifExpr::OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type)
 {
   condition  = acond;
@@ -455,6 +617,51 @@ LlValue * OIifExpr::Generate(OScope * scope)
   return ll_result;
 }
 
+void OIifExpr::FoldChildren()
+{
+  OExpr::FoldTree(&condition);
+  if (dynamic_cast<OBoolLit *>(condition))
+  {
+    return;
+  }
+
+  OExpr::FoldTree(&true_expr);
+  OExpr::FoldTree(&false_expr);
+}
+
+bool OIifExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  auto * cond = dynamic_cast<OBoolLit *>(condition);
+  if (!cond)
+  {
+    return false;
+  }
+
+  bool select_true = cond->value;
+  OExpr * selected = (select_true ? true_expr : false_expr);
+  OExpr * discarded = (select_true ? false_expr : true_expr);
+
+  condition = nullptr;
+  true_expr = nullptr;
+  false_expr = nullptr;
+
+  OExpr::DeleteTree(cond);
+  OExpr::DeleteTree(discarded);
+  OExpr::FoldTree(&selected);
+  *rreplacement = selected;
+  return true;
+}
+
+void OIifExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(condition);
+  OExpr::DeleteTree(true_expr);
+  OExpr::DeleteTree(false_expr);
+  condition = nullptr;
+  true_expr = nullptr;
+  false_expr = nullptr;
+}
+
 /* ctor */ OLogicalExpr::OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright)
 {
   op    = aop;
@@ -476,6 +683,34 @@ LlValue * OLogicalExpr::Generate(OScope * scope)
   throw logic_error(std::format("GenerateExpr(): Unhandled logical operation= {} ", int(op)));
 }
 
+void OLogicalExpr::FoldChildren()
+{
+  OExpr::FoldTree(&left);
+  OExpr::FoldTree(&right);
+}
+
+bool OLogicalExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+  return true;
+}
+
+void OLogicalExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(left);
+  OExpr::DeleteTree(right);
+  left = nullptr;
+  right = nullptr;
+}
+
 /* ctor */ ONotExpr::ONotExpr(OExpr * expr)
 {
   operand = expr;
@@ -486,6 +721,29 @@ LlValue * ONotExpr::Generate(OScope * scope)
 {
   LlValue * ll_val = operand->Generate(scope);
   return ll_builder.CreateXor(ll_val, llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), 1));
+}
+
+void ONotExpr::FoldChildren()
+{
+  OExpr::FoldTree(&operand);
+}
+
+bool ONotExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
+  return true;
+}
+
+void ONotExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
 }
 
 /* ctor */ OBinNotExpr::OBinNotExpr(OExpr * expr)
@@ -502,6 +760,29 @@ LlValue * OBinNotExpr::Generate(OScope * scope)
 {
   LlValue * ll_val = operand->Generate(scope);
   return ll_builder.CreateNot(ll_val);
+}
+
+void OBinNotExpr::FoldChildren()
+{
+  OExpr::FoldTree(&operand);
+}
+
+bool OBinNotExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
+  return true;
+}
+
+void OBinNotExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
 }
 
 /* ctor */ ONegExpr::ONegExpr(OExpr * expr)
@@ -521,6 +802,29 @@ LlValue * ONegExpr::Generate(OScope * scope)
   return ll_builder.CreateNeg(ll_val);
 }
 
+void ONegExpr::FoldChildren()
+{
+  OExpr::FoldTree(&operand);
+}
+
+bool ONegExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
+  return true;
+}
+
+void ONegExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(operand);
+  operand = nullptr;
+}
+
 /* ctor */ OAddrOfExpr::OAddrOfExpr(OLValueExpr * atarget)
 {
   target = atarget;
@@ -530,6 +834,19 @@ LlValue * ONegExpr::Generate(OScope * scope)
 LlValue * OAddrOfExpr::Generate(OScope * scope)
 {
   return target->GenerateAddress(scope);
+}
+
+void OAddrOfExpr::FoldChildren()
+{
+  OExpr * tmp = target;
+  OExpr::FoldTree(&tmp);
+  target = static_cast<OLValueExpr *>(tmp);
+}
+
+void OAddrOfExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(target);
+  target = nullptr;
 }
 
 /* ctor */ ONullLit::ONullLit()
@@ -556,6 +873,20 @@ LlValue * OPointerIndexExpr::Generate(OScope * scope)
   OTypePointer * ptrtype  = static_cast<OTypePointer *>(ptype);
   LlType *       ll_elem  = ptrtype->basetype->GetLlType();
   return ll_builder.CreateGEP(ll_elem, ll_ptr, {ll_index}, "ptr.idx");
+}
+
+void OPointerIndexExpr::FoldChildren()
+{
+  OExpr::FoldTree(&ptrexpr);
+  OExpr::FoldTree(&indexexpr);
+}
+
+void OPointerIndexExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(ptrexpr);
+  OExpr::DeleteTree(indexexpr);
+  ptrexpr = nullptr;
+  indexexpr = nullptr;
 }
 
 /* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OValSym * aarray, OType * slicetype)
@@ -619,6 +950,29 @@ LlValue * OFloatRoundExpr::Generate(OScope * scope)
   return ll_builder.CreateFPToSI(ll_rounded, g_builtins->type_int->GetLlType());
 }
 
+void OFloatRoundExpr::FoldChildren()
+{
+  OExpr::FoldTree(&src);
+}
+
+bool OFloatRoundExpr::TryFoldSelf(OExpr ** rreplacement)
+{
+  if (!TryFoldScalarReplacement(this, rreplacement))
+  {
+    return false;
+  }
+
+  OExpr::DeleteTree(src);
+  src = nullptr;
+  return true;
+}
+
+void OFloatRoundExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(src);
+  src = nullptr;
+}
+
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
 {
   vsfunc = avsfunc;
@@ -668,6 +1022,24 @@ LlValue * OCallExpr::Generate(OScope * scope)
   return ll_builder.CreateCall(ll_func, ll_args);
 }
 
+void OCallExpr::FoldChildren()
+{
+  for (OExpr *& arg : args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void OCallExpr::DeleteChildTree()
+{
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
+}
+
 OCallExpr::~OCallExpr()
 {
   for (OExpr * arg : args)
@@ -707,6 +1079,24 @@ LlValue * OArrayLit::Generate(OScope * scope)
   }
 
   return ll_arr;
+}
+
+void OArrayLit::FoldChildren()
+{
+  for (OExpr *& elem : elements)
+  {
+    OExpr::FoldTree(&elem);
+  }
+}
+
+void OArrayLit::DeleteChildTree()
+{
+  for (OExpr *& elem : elements)
+  {
+    OExpr::DeleteTree(elem);
+    elem = nullptr;
+  }
+  elements.clear();
 }
 
 // --- cstring expressions ---
@@ -872,6 +1262,17 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
   return ll_desc;
 }
 
+void OCStringLitToDescExpr::FoldChildren()
+{
+  OExpr::FoldTree(&litexpr);
+}
+
+void OCStringLitToDescExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(litexpr);
+  litexpr = nullptr;
+}
+
 static OExpr * FoldScalarExpr(OExpr * expr)
 {
   if (!expr)
@@ -922,161 +1323,4 @@ static OExpr * FoldScalarExpr(OExpr * expr)
 
   delete folded_value;
   return result;
-}
-
-void FoldExprTree(OExpr ** rexpr)
-{
-  OExpr * expr = (rexpr ? *rexpr : nullptr);
-  if (!expr)
-  {
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OExprTypeConv *>(expr))
-  {
-    FoldExprTree(&ex->src);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OBinExpr *>(expr))
-  {
-    FoldExprTree(&ex->left);
-    FoldExprTree(&ex->right);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OCompareExpr *>(expr))
-  {
-    FoldExprTree(&ex->left);
-    FoldExprTree(&ex->right);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OIifExpr *>(expr))
-  {
-    FoldExprTree(&ex->condition);
-
-    if (auto * cond = dynamic_cast<OBoolLit *>(ex->condition))
-    {
-      OExpr * selected = (cond->value ? ex->true_expr : ex->false_expr);
-      if (cond->value)
-      {
-        ex->true_expr = nullptr;
-      }
-      else
-      {
-        ex->false_expr = nullptr;
-      }
-
-      delete ex;
-      *rexpr = selected;
-      FoldExprTree(rexpr);
-      return;
-    }
-
-    FoldExprTree(&ex->true_expr);
-    FoldExprTree(&ex->false_expr);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OLogicalExpr *>(expr))
-  {
-    FoldExprTree(&ex->left);
-    FoldExprTree(&ex->right);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<ONotExpr *>(expr))
-  {
-    FoldExprTree(&ex->operand);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OBinNotExpr *>(expr))
-  {
-    FoldExprTree(&ex->operand);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<ONegExpr *>(expr))
-  {
-    FoldExprTree(&ex->operand);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OFloatRoundExpr *>(expr))
-  {
-    FoldExprTree(&ex->src);
-    *rexpr = FoldScalarExpr(ex);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OLValueDeref *>(expr))
-  {
-    FoldExprTree(&ex->ptrexpr);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OLValueMember *>(expr))
-  {
-    OExpr * tmp = ex->base;
-    FoldExprTree(&tmp);
-    ex->base = static_cast<OLValueExpr *>(tmp);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OLValueIndex *>(expr))
-  {
-    OExpr * tmp = ex->base;
-    FoldExprTree(&tmp);
-    ex->base = static_cast<OLValueExpr *>(tmp);
-    FoldExprTree(&ex->indexexpr);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OAddrOfExpr *>(expr))
-  {
-    OExpr * tmp = ex->target;
-    FoldExprTree(&tmp);
-    ex->target = static_cast<OLValueExpr *>(tmp);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OPointerIndexExpr *>(expr))
-  {
-    FoldExprTree(&ex->ptrexpr);
-    FoldExprTree(&ex->indexexpr);
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OCallExpr *>(expr))
-  {
-    for (OExpr *& arg : ex->args)
-    {
-      FoldExprTree(&arg);
-    }
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OArrayLit *>(expr))
-  {
-    for (OExpr *& elem : ex->elements)
-    {
-      FoldExprTree(&elem);
-    }
-    return;
-  }
-
-  if (auto * ex = dynamic_cast<OCStringLitToDescExpr *>(expr))
-  {
-    FoldExprTree(&ex->litexpr);
-    return;
-  }
 }

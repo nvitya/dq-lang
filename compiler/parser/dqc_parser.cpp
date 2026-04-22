@@ -1308,12 +1308,11 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
     return false;
   }
 
+  bool berror = false;
+
   auto fail_or_recover = [&, this]() -> bool
   {
-    if (atypespec)
-    {
-      return false;
-    }
+    berror = true;
 
     if (!scf->ReadTo(",)"))
     {
@@ -1359,10 +1358,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           }
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1398,10 +1393,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
         }
         if (!fail_or_recover())
         {
-          if (atypespec)
-          {
-            return false;
-          }
           break;
         }
         continue;
@@ -1419,10 +1410,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           }
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1437,10 +1424,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
         }
         if (!fail_or_recover())
         {
-          if (atypespec)
-          {
-            return false;
-          }
           break;
         }
         continue;
@@ -1455,10 +1438,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
         }
         if (!fail_or_recover())
         {
-          if (atypespec)
-          {
-            return false;
-          }
           break;
         }
         continue;
@@ -1474,10 +1453,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
 
         if (!fail_or_recover())
         {
-          if (atypespec)
-          {
-            return false;
-          }
           break;
         }
         continue;
@@ -1496,10 +1471,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           }
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1513,10 +1484,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           }
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1538,10 +1505,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
 
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1557,10 +1520,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
 
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1581,10 +1540,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
 
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1601,10 +1556,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
 
           if (!fail_or_recover())
           {
-            if (atypespec)
-            {
-              return false;
-            }
             break;
           }
           continue;
@@ -1625,7 +1576,13 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           return false;
         }
       }
+    } // while
+
+    if (berror and atypespec)
+    {
+      return false;
     }
+
   }
 
   if (tfunc->has_varargs && tfunc->params.empty())

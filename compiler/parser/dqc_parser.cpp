@@ -29,11 +29,226 @@ using namespace std;
 
 ODqCompParser::ODqCompParser()
 {
+  attr = new OAttr(this);
 }
 
 ODqCompParser::~ODqCompParser()
 {
+  delete attr;
+}
 
+bool ODqCompParser::ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only)
+{
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, attrname);
+    return false;
+  }
+
+  scf->SkipWhite();
+  if (!scf->ReadInt64Value(rvalue))
+  {
+    Error(DQERR_ATTR_ARG_INT, attrname);
+    return false;
+  }
+
+  if (positive_only && (rvalue <= 0))
+  {
+    Error(DQERR_ATTR_ARG_POSITIVE_INT, attrname);
+    return false;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_AFTER, attrname);
+    return false;
+  }
+
+  return true;
+}
+
+bool ODqCompParser::ParseAttrStringArg(const string & attrname, string & rvalue)
+{
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, attrname);
+    return false;
+  }
+
+  scf->SkipWhite();
+  if (!scf->ReadQuotedString(rvalue))
+  {
+    Error(DQERR_ATTR_ARG_STRING, attrname);
+    return false;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_AFTER, attrname);
+    return false;
+  }
+
+  return true;
+}
+
+bool ODqCompParser::ParseSingleAttribute(const string & attrname)
+{
+  scf->SkipWhite();
+
+  if ("external" == attrname)
+  {
+    attr->external_specified = true;
+    attr->external = true;
+    attr->external_linkage_name = "";
+    if (scf->CheckSymbol("(", false))
+    {
+      if (!ParseAttrStringArg(attrname, attr->external_linkage_name))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if ("align" == attrname)
+  {
+    attr->align_specified = true;
+    return ParseAttrIntArg(attrname, attr->align_value, true);
+  }
+
+  if ("section" == attrname)
+  {
+    attr->section_specified = true;
+    return ParseAttrStringArg(attrname, attr->section_name);
+  }
+
+  if ("overload" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->overload_specified = true;
+    attr->attr_overload = true;
+    return true;
+  }
+
+  if ("override" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->override_specified = true;
+    attr->attr_override = true;
+    return true;
+  }
+
+  if ("virtual" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->virtual_specified = true;
+    attr->attr_virtual = true;
+    return true;
+  }
+
+  if ("volatile" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->volatile_specified = true;
+    attr->attr_volatile = true;
+    return true;
+  }
+
+  Error(DQERR_ATTR_UNKNOWN, attrname);
+  return false;
+}
+
+bool ODqCompParser::ParseAttributeBlock()
+{
+  OScPosition attrpos;
+
+  scf->SaveCurPos(attrpos);
+  if (!scf->CheckSymbol("[["))
+  {
+    return true;
+  }
+
+  attr->present = true;
+  attr->scpos = attrpos;
+
+  while (!scf->Eof())
+  {
+    string attrname;
+
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(attrname))
+    {
+      Error(DQERR_ATTR_NAME_EXPECTED);
+      SkipToSymbol("]]");
+      return false;
+    }
+
+    if (!ParseSingleAttribute(attrname))
+    {
+      SkipToSymbol("]]");
+      return false;
+    }
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]]"))
+    {
+      return true;
+    }
+
+    if (!scf->CheckSymbol(","))
+    {
+      Error(DQERR_ATTR_SEPARATOR);
+      SkipToSymbol("]]");
+      return false;
+    }
+  }
+
+  Error(DQERR_MISSING_ATTR_CLOSE_AFTER, attr->present ? "attribute list" : "");
+  return false;
+}
+
+bool ODqCompParser::ParseAttributes(bool areset)
+{
+  if (areset && attr)
+  {
+    attr->Reset();
+  }
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("[[", false))
+    {
+      break;
+    }
+
+    if (!ParseAttributeBlock())
+    {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void ODqCompParser::ParseModule()
@@ -54,34 +269,10 @@ void ODqCompParser::ParseModule()
 
     scf->SaveCurPos(scpos_statement_start);  // to display the statement start
 
-    // check for [[attribute]] prefix
-    bool has_external = false;
-    if (scf->CheckSymbol("[["))
+    if (!ParseAttributes(true))
     {
-      string attrname;
-      scf->SkipWhite();
-      if (not scf->ReadIdentifier(attrname))
-      {
-        Error(DQERR_ATTR_NAME_EXPECTED);
-        SkipToSymbol("]]");
-        continue;
-      }
-      scf->SkipWhite();
-      if (not scf->CheckSymbol("]]"))
-      {
-        Error(DQERR_MISSING_ATTR_CLOSE_AFTER, attrname);
-        continue;
-      }
-      if ("external" == attrname)
-      {
-        has_external = true;
-      }
-      else
-      {
-        Error(DQERR_ATTR_UNKNOWN, attrname);
-        continue;
-      }
-      scf->SkipWhite();
+      SkipToModuleStatementStart();
+      continue;
     }
 
     // module root starters
@@ -108,7 +299,7 @@ void ODqCompParser::ParseModule()
     }
     else if ("function" == sid)
     {
-      ParseFunction(has_external);
+      ParseFunction();
       curscope = cur_mod_scope;
       curblock = nullptr;
     }
@@ -185,6 +376,16 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     }
   }
 
+  if (arootstmt)
+  {
+    if (!ParseAttributes(false))
+    {
+      delete initexpr;
+      SkipToModuleStatementStart();
+      return;
+    }
+  }
+
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
@@ -201,6 +402,7 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
   if (arootstmt)
   {
     ODecl * vdecl = AddDeclVar(scpos_statement_start, sid, ptype);
+    vdecl->pvalsym->ApplyAttributes(attr, ATGT_GLOBAL_VAR);
     if (initexpr)
     {
       if (not vdecl->initvalue->CalculateConstant(initexpr))
@@ -312,7 +514,18 @@ void ODqCompParser::ParseStmtConst(bool arootstmt)
 
   if (arootstmt)
   {
-    AddDeclConst(scpos_statement_start, sid, ptype, pvalue);
+    if (!ParseAttributes(false))
+    {
+      SkipToModuleStatementStart();
+      delete pvalue;
+      return;
+    }
+  }
+
+  if (arootstmt)
+  {
+    ODecl * decl = AddDeclConst(scpos_statement_start, sid, ptype, pvalue);
+    decl->pvalsym->ApplyAttributes(attr, ATGT_GLOBAL_CONST);
   }
   else
   {
@@ -358,6 +571,17 @@ void ODqCompParser::ParseRootTypeDecl()
   ptype = ParseTypeSpec();
   if (not ptype)  return;
 
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    return;
+  }
+
+  if (attr->present)
+  {
+    attr->CheckInvalidAttributes(ATGT_NONE);
+  }
+
   cur_mod_scope->DefineType(new OTypeAlias(sid, ptype));
 
   if (not CheckStatementClose())
@@ -379,6 +603,11 @@ void ODqCompParser::ParseStructDecl()
     return;
   }
 
+  if (attr->present)
+  {
+    attr->CheckInvalidAttributes(ATGT_NONE);
+  }
+
   OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope);
 
   OScPosition mempos;
@@ -390,6 +619,22 @@ void ODqCompParser::ParseStructDecl()
 
     if (scf->CheckSymbol("endstruct"))
     {
+      break;
+    }
+
+    if (!ParseAttributes(true))
+    {
+      SkipCurStatement();
+      continue;
+    }
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("endstruct"))
+    {
+      if (attr->present)
+      {
+        attr->CheckInvalidAttributes(ATGT_NONE);
+      }
       break;
     }
 
@@ -411,6 +656,12 @@ void ODqCompParser::ParseStructDecl()
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
 
+    if (!ParseAttributes(false))
+    {
+      SkipCurStatement();
+      continue;
+    }
+
     scf->SkipWhite();
     if (not scf->CheckSymbol(";"))
     {
@@ -420,6 +671,7 @@ void ODqCompParser::ParseStructDecl()
 
     OValSym * mvsym = new OValSym(mempos, membername, mtype);
     mvsym->initialized = true;  // struct members are always accessible
+    mvsym->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
     ctype->AddMember(mvsym);
   }
 
@@ -429,7 +681,7 @@ void ODqCompParser::ParseStructDecl()
   cur_mod_scope->DefineType(ctype);
 }
 
-void ODqCompParser::ParseFunction(bool aexternal)
+void ODqCompParser::ParseFunction()
 {
   // note: "function" is already consumed
   // syntax form: "function identifier[(arglist)] [-> return_type] <statement_block | ;>"
@@ -522,11 +774,7 @@ void ODqCompParser::ParseFunction(bool aexternal)
     }  // while function parameters
   }
 
-  if (tfunc->has_varargs && !aexternal)
-  {
-    Error(DQERR_VARARGS_NOT_ALLOWED);
-  }
-  else if (tfunc->has_varargs && tfunc->params.empty())
+  if (tfunc->has_varargs && tfunc->params.empty())
   {
     Error(DQERR_VARARGS_ALONE);
   }
@@ -550,14 +798,24 @@ void ODqCompParser::ParseFunction(bool aexternal)
     }
   }
 
-  if (aexternal)
+  if (!ParseAttributes(false))
   {
-    vsfunc->is_external = true;
+    SkipToModuleStatementStart();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return;
+  }
+
+  vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
+
+  if (tfunc->has_varargs && !vsfunc->is_external)
+  {
+    Error(DQERR_VARARGS_NOT_ALLOWED);
   }
 
   AddDeclFunc(scpos_statement_start, vsfunc);
 
-  if (aexternal)
+  if (vsfunc->is_external)
   {
     // external functions have no body, expect ";"
     scf->SkipWhite();
@@ -839,6 +1097,10 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
   if (TK_STRING == ptype->kind and not is_pointer)
   {
     scf->SkipWhite();
+    if (scf->CheckSymbol("[[", false))
+    {
+      return ptype;
+    }
     if (scf->CheckSymbol("["))
     {
       int64_t maxlen;
@@ -874,6 +1136,10 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
 
   // Check for array suffix: [N] or []
   scf->SkipWhite();
+  if (scf->CheckSymbol("[[", false))
+  {
+    return ptype;
+  }
   if (scf->CheckSymbol("["))
   {
     if (is_pointer)

@@ -37,7 +37,7 @@ public:
 public: // root level items
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
   void ParseRootTypeDecl();
-  void ParseFunction(bool aexternal = false);
+  void ParseFunction();
   void ParseStructDecl();
 
   void ParseStmtVar(bool arootstmt);  // used for statement blocks too
@@ -57,6 +57,7 @@ public: // type parsing
   OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^, [N], []
 
 public: // utility
+  bool ParseAttributes(bool areset);
   bool CheckStatementClose();
   OValSymConst * ParseDefineConst(const OScPosition & scpos, const string & sid);
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
@@ -109,8 +110,16 @@ protected:
   OExpr * ParseBinOpLevel(OExpr * (ODqCompParser::*parse_next)(),
                           const BinOpEntry ops[], int nops);
 
+  bool    ParseAttributeBlock();
+  bool    ParseSingleAttribute(const string & attrname);
+  bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
+  bool    ParseAttrStringArg(const string & attrname, string & rvalue);
+
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    EmitSuppressedVarInitDiags();
   void    EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op);
+
+public:
+  OAttr * attr = nullptr;
 };

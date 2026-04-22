@@ -104,6 +104,7 @@ public:
   OStmtBlock *       body;
 
   bool               is_external = false;
+  string             external_linkage_name = "";
 
   LlFunction *       ll_func = nullptr;
   LlDiSubPrg *       di_func = nullptr;
@@ -132,6 +133,7 @@ public:
     delete ptype;  // OTypeFunc owned by this function symbol
   }
 
+  void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;
   void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;
 
   void GenerateFuncBody();

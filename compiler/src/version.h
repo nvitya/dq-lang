@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.7.15"
+#define DQ_COMPILER_VERSION  "0.8.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.8.0:
+  - Generalized [[attribute]] parsing
 v0.7.15:
   - iif() type conversion cleanup
 v0.7.14:

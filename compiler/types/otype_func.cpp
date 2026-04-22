@@ -15,6 +15,22 @@
 #include "dqc.h"
 #include "ll_defs.h"
 
+void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
+{
+  super::ApplyAttributes(attr, atarget);
+
+  if (!attr || !attr->present)
+  {
+    return;
+  }
+
+  if ((ATGT_FUNCTION == atarget) && attr->external_specified)
+  {
+    is_external = attr->external;
+    external_linkage_name = attr->external_linkage_name;
+  }
+}
+
 OFuncParam * OTypeFunc::AddParam(const string aname, OType * atype, EParamMode amode)
 {
   OFuncParam * result = new OFuncParam(aname, atype, amode);
@@ -102,7 +118,12 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 
   LlFuncType *  ll_functype = (LlFuncType *)(ptype->GetLlType());  // calls CreateLlType()
 
-  ll_func     = LlFunction::Create(ll_functype, linktype, name, ll_module);
+  string ll_name = (external_linkage_name.empty() ? name : external_linkage_name);
+  ll_func = LlFunction::Create(ll_functype, linktype, ll_name, ll_module);
+  if (!attr_section_name.empty())
+  {
+    ll_func->setSection(attr_section_name);
+  }
 
   //ll_functions[ptfunc->name] = ll_func;
 }

@@ -107,6 +107,11 @@ DEF_DQ_ERR(DQERR_MODULE_STATEMENT_UNKNOWN,         "ModStatementUnknown",    "Un
 
 DEF_DQ_ERR(DQERR_ATTR_NAME_EXPECTED,               "AttrNameMissing",        "Attribute name expected after \"[[\"");
 DEF_DQ_ERR(DQERR_ATTR_UNKNOWN,                     "AttrUnknown",            "Unknown attribute \"$1\"");
+DEF_DQ_ERR(DQERR_ATTR_SEPARATOR,                   "AttrSeparator",          "\",\" or \"]]\" expected in the attribute list");
+DEF_DQ_ERR(DQERR_ATTR_PAREN_NOT_ALLOWED,           "AttrNoArgs",             "Attribute \"$1\" does not take arguments");
+DEF_DQ_ERR(DQERR_ATTR_ARG_INT,                     "AttrArgInt",             "Attribute \"$1\" expects an integer literal argument");
+DEF_DQ_ERR(DQERR_ATTR_ARG_POSITIVE_INT,            "AttrArgPosInt",          "Attribute \"$1\" expects a positive integer argument");
+DEF_DQ_ERR(DQERR_ATTR_ARG_STRING,                  "AttrArgString",          "Attribute \"$1\" expects a string literal argument");
 
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXPECTED,          "TypeSpecExpected",       "Type specifier \":\" is expected");
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER,         "TypeSpecExpected",       "Type specifier \":\" is expected after \"$1\"");
@@ -200,6 +205,8 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 //-----------------------------------------------------------------------------
 // WARNINGS
 //-----------------------------------------------------------------------------
+
+DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
 
 //-----------------------------------------------------------------------------
 // HINTS

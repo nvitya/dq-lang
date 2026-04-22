@@ -27,10 +27,60 @@
 
 using namespace std;
 
+class ODqCompBase;
 class OType;
 class OValue;
 class OValSym;
 class OScope;
+
+enum EAttrTarget
+{
+  ATGT_NONE = 0,
+  ATGT_FUNCTION,
+  ATGT_GLOBAL_VAR,
+  ATGT_GLOBAL_CONST,
+  ATGT_STRUCT_MEMBER
+};
+
+class OAttr
+{
+public:
+  ODqCompBase *  diagctx = nullptr;
+
+  bool           present = false;
+  OScPosition    scpos;
+
+  bool           external_specified = false;
+  bool           external = false;
+  string         external_linkage_name = "";
+
+  bool           align_specified = false;
+  int64_t        align_value = 0;
+
+  bool           section_specified = false;
+  string         section_name = "";
+
+  bool           overload_specified = false;
+  bool           attr_overload = false;
+
+  bool           override_specified = false;
+  bool           attr_override = false;
+
+  bool           virtual_specified = false;
+  bool           attr_virtual = false;
+
+  bool           volatile_specified = false;
+  bool           attr_volatile = false;
+
+  OAttr(ODqCompBase * adiagctx = nullptr)
+  :
+    diagctx(adiagctx)
+  {
+  }
+
+  void Reset();
+  void CheckInvalidAttributes(EAttrTarget atarget);
+};
 
 // Symbol and Scope
 
@@ -419,6 +469,13 @@ public:
   bool         initialized = false;  // reading of uninitialized results to an error
   LlValue *    ll_value = nullptr;
 
+  uint32_t     attr_align = 0;
+  string       attr_section_name = "";
+  bool         attr_is_overload = false;
+  bool         attr_is_override = false;
+  bool         attr_is_virtual = false;
+  bool         attr_is_volatile = false;
+
   OValSym(OScPosition & apos, const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
   :
     super(aname, atype),  // Types usually don't have a "type" themselves, or are meta-types
@@ -427,6 +484,7 @@ public:
     scpos = apos;
   }
 
+  virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
 };
 

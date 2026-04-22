@@ -80,7 +80,7 @@ LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the functio
   vector<LlType *> ll_partypes;
   for (OFuncParam * fpar : params)
   {
-    ll_partypes.push_back(fpar->ptype->GetLlType());
+    ll_partypes.push_back(fpar->GetLlArgType()->GetLlType());
   }
   LlType *  ll_rettype;
   if (rettype)
@@ -116,7 +116,7 @@ LlDiType * OTypeFunc::CreateDiType()
   // Regular parameters
   for (OFuncParam * fpar : params)
   {
-    di_param_types.push_back(fpar->ptype->GetDiType());
+    di_param_types.push_back(fpar->GetLlArgType()->GetDiType());
   }
 
   return di_builder->createSubroutineType(di_builder->getOrCreateTypeArray(di_param_types));
@@ -201,13 +201,13 @@ void OValSymFunc::GenerateFuncBody()
     OValSym *     vsarg = args[i];
 
     arg.setName(fpar->name);
-    vsarg->ll_value = ll_builder.CreateAlloca(fpar->ptype->GetLlType(), nullptr, fpar->name);
+    vsarg->ll_value = ll_builder.CreateAlloca(fpar->GetLlArgType()->GetLlType(), nullptr, fpar->name);
     ll_builder.CreateStore(&arg, vsarg->ll_value);
     if (g_opt.dbg_info)
     {
       llvm::DILocalVariable * di_var = di_builder->createParameterVariable(
           di_func, fpar->name, i + 1, vsarg->scpos.scfile->di_file, vsarg->scpos.line,
-          fpar->ptype->GetDiType()
+          fpar->GetLlArgType()->GetDiType()
       );
       di_builder->insertDeclare(vsarg->ll_value, di_var,
           di_builder->createExpression(),

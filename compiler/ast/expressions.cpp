@@ -194,6 +194,8 @@ LlValue * OLValueExpr::Generate(OScope * scope)
 
 LlValue * OLValueVar::GenerateAddress(OScope * scope)
 {
+  (void)scope;
+
   if (VSK_CONST == pvalsym->kind)
   {
     throw logic_error(std::format("Constant \"{}\" has no addressable storage", pvalsym->name));
@@ -203,6 +205,27 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   {
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
   }
+
+  if (pvalsym->IsRefLike())
+  {
+    if (auto * alloca = dyn_cast<llvm::AllocaInst>(pvalsym->ll_value))
+    {
+      return ll_builder.CreateLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name + ".addr");
+    }
+
+    if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
+    {
+      return ll_builder.CreateLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name + ".addr");
+    }
+
+    if (VSK_PARAMETER == pvalsym->kind)
+    {
+      return pvalsym->ll_value;
+    }
+
+    throw logic_error(std::format("Unhandled reference storage for \"{}\"", pvalsym->name));
+  }
+
   return pvalsym->ll_value;
 }
 
@@ -221,6 +244,12 @@ LlValue * OLValueVar::Generate(OScope * scope)
   if (!pvalsym->ll_value)
   {
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
+  }
+
+  if (pvalsym->IsRefLike())
+  {
+    LlValue * addr = GenerateAddress(scope);
+    return ll_builder.CreateLoad(ptype->GetLlType(), addr, pvalsym->name);
   }
 
   auto * alloca = dyn_cast<llvm::AllocaInst>(pvalsym->ll_value);

@@ -22,14 +22,6 @@ using namespace std;
 
 class OValSymFunc;
 
-enum EParamMode
-{
-  FPM_VALUE,
-  FPM_REF,
-  FPM_IN,
-  FPM_OUT
-};
-
 class OFuncParam
 {
 public:
@@ -49,6 +41,16 @@ public:
   virtual ~ OFuncParam()
   {
     delete defvalue;
+  }
+
+  inline bool IsRefLike() const
+  {
+    return ParamModeIsRefLike(mode);
+  }
+
+  inline OType * GetLlArgType() const
+  {
+    return (IsRefLike() ? ptype->GetPointerType() : ptype);
   }
 };
 

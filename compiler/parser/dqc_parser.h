@@ -41,6 +41,7 @@ public: // root level items
   void ParseStructDecl();
 
   void ParseStmtVar(bool arootstmt);  // used for statement blocks too
+  void ParseStmtRef();
 
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);

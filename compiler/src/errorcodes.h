@@ -152,6 +152,13 @@ DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_SCOPE,            "VsAlreadyDecl",          "Sy
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_TYPE,             "VsAlreadyDecl",          "Symbol \"$1\" is already declared with type \"$2\"");
 DEF_DQ_ERR(DQERR_GLOBALVAR_INITVALUE,              "GlobVarInitvalue",       "Invalid initialization value for the global variable \"$1\"");
 DEF_DQ_ERR(DQERR_VAR_NOT_INITIALIZED,              "VarNotInit",             "Accessing unitialized variable \"$1\"");
+DEF_DQ_ERR(DQERR_REF_LOCAL_INIT_REQUIRED,          "RefLocalInit",           "Local ref \"$1\" requires an initializer");
+DEF_DQ_ERR(DQERR_REF_LOCAL_BIND_TARGET,            "RefLocalBind",           "Local ref \"$1\" must bind to an addressable writable variable");
+DEF_DQ_ERR(DQERR_REF_LOCAL_TYPE_INFER,             "RefLocalTypeInfer",      "Local ref \"$1\" type cannot be inferred");
+DEF_DQ_ERR(DQERR_REF_LOCAL_TYPE_MISM,              "RefLocalType",           "Local ref \"$1\" type mismatch: \"$2\" = \"$3\"");
+DEF_DQ_ERR(DQERR_REF_LOCAL_MODE_UNSUPPORTED,       "RefLocalMode",           "Local \"$1\" declarations are not supported");
+DEF_DQ_ERR(DQERR_REF_ASSIGN_READONLY,              "RefReadonly",            "Assignment target \"$1\" is read-only");
+DEF_DQ_ERR(DQERR_REFOUT_READ_BEFORE_WRITE,         "RefOutRead",             "Output-only reference \"$1\" is read before assignment");
 
 DEF_DQ_ERR(DQERR_ARR_ELEMCOUNT_MISM,               "ArrElemCount",           "Array element count mismatch: expected $1, got $2");  // for array literal definitions
 DEF_DQ_ERR(DQERR_ARR_ELEM_TYPE_MISM,               "ArrElemType",            "Array element type mismatch: expected \"$1\", got \"$2\"");
@@ -171,6 +178,7 @@ DEF_DQ_ERR(DQERR_FUNCPAR_NAME_EXP,                 "FuncParNameExpected",    "Fu
 DEF_DQ_ERR(DQERR_FUNCPAR_NAME_INVALID,             "FuncParNameInvalid",     "Invalid function parameter name \"$1\"");
 DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_ORDER,            "FuncParDefaultOrder",    "Function parameter \"$1\" without default value cannot follow defaulted parameters");
 DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_TYPE,             "FuncParDefaultType",     "Function parameter \"$1\" default value is not supported for type \"$2\"");
+DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_REF,              "FuncParDefaultRef",      "Reference parameter \"$1\" cannot have a default value");
 DEF_DQ_ERR(DQERR_FUNC_RETTYPE_EXPECTED,            "FuncRettypeExpected",    "Function return type identifier expected after \"->\"");
 DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "FuncNoBodyAllowed",      "\";\" is expected after $1");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "FuncResultNotSet",       "Function \"$1\" result is not set");
@@ -179,6 +187,10 @@ DEF_DQ_ERR(DQERR_FUNC_CALL_PARENTH,                "FuncCall",               "Fu
 DEF_DQ_ERR(DQERR_FUNC_ARGS_LIST,                   "FuncArgList",            "Function \"$1\" argument list error");  // used with custom text
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_MANY,               "FuncArgsTooMany",        "Too many arguments are provided for the function \"$1\" call. Expected $2");
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_FEW,                "FuncArgsTooFew",         "Too few arguments ($1) are provided for the function \"$2\" call. Expected $3");
+DEF_DQ_ERR(DQERR_FUNC_ARG_REF_BIND,                "FuncArgRefBind",         "Argument $1 for function \"$2\" must be an addressable writable variable");
+DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NULL,                "FuncArgRefNull",         "Argument $1 for function \"$2\" cannot be null");
+DEF_DQ_ERR(DQERR_FUNC_ARG_REF_TYPE,                "FuncArgRefType",         "Reference argument $1 type mismatch for function \"$2\": expected \"$3\"");
+DEF_DQ_ERR(DQERR_FUNC_ARG_REF_UNINIT,              "FuncArgRefInit",         "Reference argument \"$1\" is not initialized");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "CondExprMissing",        "Condition expression is mission for \"$1\"");
 DEF_DQ_ERR(DQERR_BOOL_EXPR_EXPECTED,               "BoolExprExpected",       "bool expression expected, got \"$1\"");

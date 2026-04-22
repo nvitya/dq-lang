@@ -189,14 +189,26 @@ void OStmtReturn::Generate(OScope * scope)
 void OStmtVarDecl::Generate(OScope * scope)
 {
   // Local variable declaration
-  LlType * ll_type = variable->ptype->GetLlType();
+  LlType * ll_type = variable->GetStorageType()->GetLlType();
   variable->ll_value = ll_builder.CreateAlloca(ll_type, nullptr, variable->name);
   if (g_opt.dbg_info)
   {
     llvm::DILocalVariable * di_var = di_builder->createAutoVariable(
-        scope->GetDiScope(), variable->name, scpos.scfile->di_file, scpos.line, variable->ptype->GetDiType() );
+        scope->GetDiScope(), variable->name, scpos.scfile->di_file, scpos.line, variable->GetStorageType()->GetDiType() );
     di_builder->insertDeclare(variable->ll_value, di_var, di_builder->createExpression(),
         llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, scope->GetDiScope()), ll_builder.GetInsertBlock() );
+  }
+
+  if (variable->IsRefLike())
+  {
+    if (!initvalue)
+    {
+      throw logic_error(std::format("Reference variable \"{}\" requires an initializer", variable->name));
+    }
+
+    LlValue * ll_initaddr = initvalue->Generate(scope);
+    ll_builder.CreateStore(ll_initaddr, variable->ll_value);
+    return;
   }
 
   if (TK_STRING == variable->ptype->kind)

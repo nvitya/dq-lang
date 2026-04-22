@@ -242,6 +242,10 @@
               "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|cstring|float|float32|float64)\\b"
             },
             {
+              "name": "keyword.control.dq",
+              "match": "\\b(?:ref|refin|refout|refnull)\\b"
+            },
+            {
               "name": "variable.parameter.dq",
               "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*:)"
             },
@@ -269,7 +273,7 @@
         },
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:var|const|struct|object)\\b"
+          "match": "\\b(?:var|const|struct|object|ref|refin|refout|refnull)\\b"
         },
         {
           "name": "keyword.operator.word.dq",

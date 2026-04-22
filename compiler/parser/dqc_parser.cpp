@@ -51,6 +51,42 @@ static bool SupportsFuncParamDefaultType(OType * ptype)
   return false;
 }
 
+static bool ParseParamModeKeyword(const string & sid, EParamMode & rmode)
+{
+  if ("ref" == sid)
+  {
+    rmode = FPM_REF;
+    return true;
+  }
+
+  if ("refin" == sid)
+  {
+    rmode = FPM_REFIN;
+    return true;
+  }
+
+  if ("refout" == sid)
+  {
+    rmode = FPM_REFOUT;
+    return true;
+  }
+
+  if ("refnull" == sid)
+  {
+    rmode = FPM_REFNULL;
+    return true;
+  }
+
+  return false;
+}
+
+static bool SameRefBindingType(OType * dsttype, OType * srctype)
+{
+  OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
+  OType * resolved_src = (srctype ? srctype->ResolveAlias() : nullptr);
+  return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
+}
+
 ODqCompParser::ODqCompParser()
 {
   attr = new OAttr();
@@ -442,6 +478,91 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
   }
 }
 
+void ODqCompParser::ParseStmtRef()
+{
+  string     sid;
+  OValSym *  pvalsym = nullptr;
+  OType *    ptype = nullptr;
+
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(sid))
+  {
+    StatementError(DQERR_ID_EXP_AFTER, "ref");
+    return;
+  }
+
+  pvalsym = curscope->FindValSym(sid, nullptr, false);
+  if (pvalsym)
+  {
+    StatementError(DQERR_VS_ALREADY_DECL_TYPE, sid, pvalsym->ptype->name, &scf->prevpos);
+    return;
+  }
+
+  scf->SkipWhite();
+  if (scf->CheckSymbol(":"))
+  {
+    ptype = ParseTypeSpec();
+    if (!ptype)
+    {
+      return;
+    }
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("="))
+  {
+    StatementError(DQERR_REF_LOCAL_INIT_REQUIRED, sid);
+    return;
+  }
+
+  scf->SkipWhite();
+  OExpr * bindexpr = ParseExpression();
+  if (!bindexpr)
+  {
+    return;
+  }
+
+  OLValueExpr * bindlval = dynamic_cast<OLValueExpr *>(bindexpr);
+  OValSym * rootvalsym = (bindlval ? GetAssignRootValSym(bindlval) : nullptr);
+  if (!bindlval || (rootvalsym && (VSK_CONST == rootvalsym->kind || !rootvalsym->IsRefWriteable())))
+  {
+    delete bindexpr;
+    StatementError(DQERR_REF_LOCAL_BIND_TARGET, sid);
+    return;
+  }
+
+  if (!ptype)
+  {
+    ptype = bindexpr->ptype;
+    if (!ptype)
+    {
+      delete bindexpr;
+      StatementError(DQERR_REF_LOCAL_TYPE_INFER, sid);
+      return;
+    }
+  }
+  else if (!SameRefBindingType(ptype, bindexpr->ptype))
+  {
+    string srcname = (bindexpr->ptype ? bindexpr->ptype->name : "?");
+    delete bindexpr;
+    StatementError(DQERR_REF_LOCAL_TYPE_MISM, sid, ptype->name, srcname);
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "ref declaration");
+  }
+
+  pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
+  pvalsym->param_mode = FPM_REF;
+  pvalsym->is_ref_alias = true;
+  pvalsym->initialized = true;
+  curscope->DefineValSym(pvalsym);
+  curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, new OAddrOfExpr(bindlval)));
+}
+
 
 void ODqCompParser::ParseStmtConst(bool arootstmt)
 {
@@ -754,7 +875,9 @@ void ODqCompParser::ParseFunction()
         break;
       }
 
-      if (not scf->ReadIdentifier(spname))
+      EParamMode pmode = FPM_VALUE;
+      string pname_or_mode;
+      if (not scf->ReadIdentifier(pname_or_mode))
       {
         Error(DQERR_FUNCPAR_NAME_EXP, &scf->prevpos);
         if (not scf->ReadTo(",)"))  // try to skip to next parameter
@@ -762,6 +885,21 @@ void ODqCompParser::ParseFunction()
           break;  // serious problem, would lead to endless-loop
         }
         continue;
+      }
+
+      spname = pname_or_mode;
+      if (ParseParamModeKeyword(pname_or_mode, pmode))
+      {
+        scf->SkipWhite();
+        if (not scf->ReadIdentifier(spname))
+        {
+          Error(DQERR_FUNCPAR_NAME_EXP, &scf->prevpos);
+          if (not scf->ReadTo(",)"))
+          {
+            break;
+          }
+          continue;
+        }
       }
 
       if (not tfunc->ParNameValid(spname))
@@ -786,12 +924,17 @@ void ODqCompParser::ParseFunction()
         continue;
       }
 
-      OFuncParam * fparam = tfunc->AddParam(spname, ptype);
+      OFuncParam * fparam = tfunc->AddParam(spname, ptype, pmode);
 
       scf->SkipWhite();
       if (scf->CheckSymbol("="))
       {
-        default_seen = true;
+        if (ParamModeIsRefLike(pmode))
+        {
+          Error(DQERR_FUNCPAR_DEFAULT_REF, spname);
+          scf->ReadTo(",)");
+          continue;
+        }
 
         if (!SupportsFuncParamDefaultType(ptype))
         {
@@ -799,6 +942,8 @@ void ODqCompParser::ParseFunction()
           scf->ReadTo(",)");
           continue;
         }
+
+        default_seen = true;
 
         scf->SkipWhite();
         OScPosition defexpr_pos;
@@ -986,6 +1131,16 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
       if ("var" == sid)  // local variable declaration
       {
         ParseStmtVar(false);
+        continue;
+      }
+      else if ("ref" == sid)
+      {
+        ParseStmtRef();
+        continue;
+      }
+      else if ("refin" == sid || "refout" == sid || "refnull" == sid)
+      {
+        StatementError(DQERR_REF_LOCAL_MODE_UNSUPPORTED, sid);
         continue;
       }
       else if ("const" == sid)
@@ -2002,7 +2157,21 @@ OExpr * ODqCompParser::ParseExprPrimary()
     result = new OLValueVar(vs);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
-      VarInitError(static_cast<OLValueVar *>(result), vs, scpos_ns);
+      if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
+      {
+        if (supress_varinit_check)
+        {
+          AddSuppressedVarInitDiag(static_cast<OLValueVar *>(result), vs, scpos_ns);
+        }
+        else
+        {
+          Error(DQERR_REFOUT_READ_BEFORE_WRITE, vs->name, &scpos_ns);
+        }
+      }
+      else
+      {
+        VarInitError(static_cast<OLValueVar *>(result), vs, scpos_ns);
+      }
     }
     return result;
   }
@@ -2057,7 +2226,21 @@ OExpr * ODqCompParser::ParseExprPrimary()
   result = new OLValueVar(vs);
   if (vs->kind != VSK_FUNCTION and not vs->initialized)
   {
-    VarInitError(static_cast<OLValueVar *>(result), vs, scpos_sid);
+    if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
+    {
+      if (supress_varinit_check)
+      {
+        AddSuppressedVarInitDiag(static_cast<OLValueVar *>(result), vs, scpos_sid);
+      }
+      else
+      {
+        Error(DQERR_REFOUT_READ_BEFORE_WRITE, vs->name, &scpos_sid);
+      }
+    }
+    else
+    {
+      VarInitError(static_cast<OLValueVar *>(result), vs, scpos_sid);
+    }
   }
 
   return result;
@@ -2171,32 +2354,132 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
       break;
     }
 
+    OFuncParam * fparam = ((pcnt < (int)tfunc->params.size()) ? tfunc->params[pcnt] : nullptr);
+    bool is_ref_arg = (fparam && fparam->IsRefLike());
+
+    size_t suppressed_start = suppressed_varinit_diags.size();
+    bool saved_suppress = supress_varinit_check;
+    if (is_ref_arg)
+    {
+      supress_varinit_check = true;
+    }
+
     OExpr * argexpr = ParseExpression();
+
+    if (is_ref_arg)
+    {
+      supress_varinit_check = saved_suppress;
+    }
+
     if (!argexpr)
     {
       // error message already produced ?
+      if (is_ref_arg)
+      {
+        suppressed_varinit_diags.resize(suppressed_start);
+      }
       bok = false;
       break;
     }
 
-    result->AddArgument(argexpr);  // to avoid memory leak, this must come before the type check
-
-    if (pcnt < (int)tfunc->params.size())
+    if (!is_ref_arg)
     {
-      OType * argtype = tfunc->params[pcnt]->ptype;
-      if (not CheckAssignType(argtype, &argexpr, "Argument"))
+      result->AddArgument(argexpr);  // to avoid memory leak, this must come before the type check
+      if (pcnt < (int)tfunc->params.size())
       {
-        bok = false;
-        break;
+        OType * argtype = tfunc->params[pcnt]->ptype;
+        if (not CheckAssignType(argtype, &argexpr, "Argument"))
+        {
+          bok = false;
+          break;
+        }
+        // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
+        result->args[pcnt] = argexpr;
       }
-      // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
-      result->args[pcnt] = argexpr;
+    }
+    else
+    {
+      auto clear_suppressed = [&]()
+      {
+        suppressed_varinit_diags.resize(suppressed_start);
+      };
+
+      bool is_null_arg = dynamic_cast<ONullLit *>(argexpr);
+      if (is_null_arg)
+      {
+        if (FPM_REFNULL != fparam->mode)
+        {
+          Error(DQERR_FUNC_ARG_REF_NULL, to_string(pcnt + 1), vsfunc->name);
+          delete argexpr;
+          clear_suppressed();
+          bok = false;
+          break;
+        }
+
+        result->AddArgument(argexpr);
+        clear_suppressed();
+      }
+      else
+      {
+        OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(argexpr);
+        OValSym * rootvalsym = (arglval ? GetAssignRootValSym(arglval) : nullptr);
+        bool bind_ok = (arglval != nullptr);
+        if (bind_ok && rootvalsym)
+        {
+          if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())
+          {
+            bind_ok = false;
+          }
+        }
+
+        if (!bind_ok)
+        {
+          Error(DQERR_FUNC_ARG_REF_BIND, to_string(pcnt + 1), vsfunc->name);
+          delete argexpr;
+          clear_suppressed();
+          bok = false;
+          break;
+        }
+
+        if (!SameRefBindingType(fparam->ptype, argexpr->ptype))
+        {
+          string type_text = format("{} = {}", fparam->ptype->name, argexpr->ptype->name);
+          ErrorTxt(DQERR_FUNC_ARG_REF_TYPE,
+                   format("Reference argument {} type mismatch for function \"{}\": {}", pcnt + 1, vsfunc->name, type_text));
+          delete argexpr;
+          clear_suppressed();
+          bok = false;
+          break;
+        }
+
+        if ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode))
+        {
+          if (suppressed_varinit_diags.size() > suppressed_start)
+          {
+            OValSym * uninitvs = suppressed_varinit_diags[suppressed_start].valsym;
+            Error(DQERR_FUNC_ARG_REF_UNINIT, uninitvs->name);
+            delete argexpr;
+            clear_suppressed();
+            bok = false;
+            break;
+          }
+        }
+
+        result->AddArgument(new OAddrOfExpr(arglval));
+        clear_suppressed();
+
+        if ((FPM_REFOUT == fparam->mode) && curblock && rootvalsym
+            && (VSK_VARIABLE == rootvalsym->kind || VSK_PARAMETER == rootvalsym->kind))
+        {
+          curblock->scope->SetVarInitialized(rootvalsym);
+        }
+      }
     }
 
     ++pcnt;
   }
 
-  if (result->args.size() < required_param_count)
+  if (bok && (result->args.size() < required_param_count))
   {
     Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(result->args.size()), vsfunc->name, to_string(required_param_count));
     bok = false;
@@ -2515,7 +2798,14 @@ void ODqCompParser::EmitSuppressedVarInitDiags()
 
   for (auto & diag : suppressed_varinit_diags)
   {
-    Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
+    if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+    {
+      Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &diag.scpos);
+    }
+    else
+    {
+      Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
+    }
   }
 
   suppressed_varinit_diags.clear();
@@ -2552,7 +2842,14 @@ void ODqCompParser::EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinO
 
     if (emit)
     {
-      Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
+      if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+      {
+        Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &diag.scpos);
+      }
+      else
+      {
+        Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
+      }
     }
   }
 
@@ -2572,6 +2869,14 @@ bool ODqCompParser::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr 
   if (rootvalsym && VSK_CONST == rootvalsym->kind)
   {
     Error(DQERR_TYPE_ASSIGN_TO_CONST, rootvalsym->name);
+    delete leftexpr;
+    delete rightexpr;
+    return false;
+  }
+
+  if (rootvalsym && !rootvalsym->IsRefWriteable())
+  {
+    Error(DQERR_REF_ASSIGN_READONLY, rootvalsym->name);
     delete leftexpr;
     delete rightexpr;
     return false;

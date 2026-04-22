@@ -1,0 +1,41 @@
+// reference type checking test (ERROR test)
+
+function bad_default(ref a : int = 1):  //?error(FuncParDefaultRef)
+endfunc
+
+function takes_ref(ref a : int):
+endfunc
+
+function takes_refout(refout a : int):
+  a = 1;
+endfunc
+
+function takes_refnull(refnull a : int):
+  if &a == null:
+    return;
+  endif
+endfunc
+
+function bad_refin(refin a : int):
+  a = 1;  //?error(RefReadonly)
+endfunc
+
+function bad_refout_read(refout a : int) -> int:
+  result = a;  //?error(RefOutRead)
+endfunc
+
+function main():
+  var x : int = 1;
+  var y : int;
+
+  takes_ref(1);  //?error(FuncArgRefBind)
+  takes_ref(y);  //?error(FuncArgRefInit)
+  takes_ref(null);  //?error(FuncArgRefNull)
+  takes_refout(1);  //?error(FuncArgRefBind)
+  takes_refnull(null);
+
+  ref bad : int;  //?error(RefLocalInit)
+  ref infer = 1;  //?error(RefLocalBind)
+  ref mismatch : bool = x;  //?error(RefLocalType)
+  refnull badnull : int;  //?error(RefLocalMode)
+endfunc

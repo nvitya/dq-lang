@@ -430,6 +430,20 @@ enum EValSymKind
   VSK_FUNCTION
 };
 
+enum EParamMode
+{
+  FPM_VALUE = 0,
+  FPM_REF,
+  FPM_REFIN,
+  FPM_REFOUT,
+  FPM_REFNULL
+};
+
+inline bool ParamModeIsRefLike(EParamMode amode)
+{
+  return (FPM_VALUE != amode);
+}
+
 class OValSym : public OSymbol
 {
 private:
@@ -439,6 +453,9 @@ public:
   EValSymKind  kind;
   bool         initialized = false;  // reading of uninitialized results to an error
   LlValue *    ll_value = nullptr;
+  EParamMode   param_mode = FPM_VALUE;
+  bool         is_ref_alias = false;
+  bool         ref_nullable = false;
 
   uint32_t     attr_align = 0;
   string       attr_section_name = "";
@@ -457,6 +474,26 @@ public:
 
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
+
+  inline bool IsRefLike() const
+  {
+    return (is_ref_alias || ParamModeIsRefLike(param_mode));
+  }
+
+  inline bool IsRefNullable() const
+  {
+    return (IsRefLike() && (ref_nullable || (FPM_REFNULL == param_mode)));
+  }
+
+  inline bool IsRefWriteable() const
+  {
+    return (!IsRefLike() || (FPM_REFIN != param_mode));
+  }
+
+  inline OType * GetStorageType() const
+  {
+    return (IsRefLike() ? ptype->GetPointerType() : ptype);
+  }
 };
 
 class OValSymConst : public OValSym

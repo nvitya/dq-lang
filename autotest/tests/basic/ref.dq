@@ -1,0 +1,107 @@
+// reference tests
+
+struct SRefItem
+  value : int;
+endstruct
+
+function dq_ref_local_basic() -> int:
+  var a : int = 1;
+  ref ra = a;
+  ra = 7;
+  result = a;
+endfunc
+
+function dq_ref_local_typed() -> int:
+  var a : int = 2;
+  ref ra : int = a;
+  ra += 3;
+  result = a;
+endfunc
+
+function dq_ref_local_member() -> int:
+  var s : SRefItem;
+  s.value = 11;
+  ref rv = s.value;
+  rv = 12;
+  result = s.value;
+endfunc
+
+function dq_ref_local_array() -> int:
+  var arr : int[3] = [1, 2, 3];
+  ref rv = arr[1];
+  rv = 9;
+  result = arr[1];
+endfunc
+
+function dq_set_ref(ref a : int):
+  a = 5;
+endfunc
+
+function dq_sum_refin(refin a : int) -> int:
+  result = a + 1;
+endfunc
+
+function dq_make_refout(refout a : int):
+  a = 33;
+endfunc
+
+function dq_refnull_state(refnull a : int) -> int:
+  if &a == null:
+    result = 1;
+  else:
+    result = 2;
+  endif
+endfunc
+
+function dq_set_refnull(refnull a : int):
+  if &a == null:
+    return;
+  endif
+
+  a = 44;
+endfunc
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int:
+  printf("Testing DQ refs:\n\n");  //?check('Testing DQ refs:')
+
+  var r : int;
+  var x : int = 10;
+  var outv : int;
+
+  r = dq_ref_local_basic();
+  printf("dq_ref_local_basic() = %li\n", r);  //?check('dq_ref_local_basic()', 7)
+
+  r = dq_ref_local_typed();
+  printf("dq_ref_local_typed() = %li\n", r);  //?check('dq_ref_local_typed()', 5)
+
+  r = dq_ref_local_member();
+  printf("dq_ref_local_member() = %li\n", r);  //?check('dq_ref_local_member()', 12)
+
+  r = dq_ref_local_array();
+  printf("dq_ref_local_array() = %li\n", r);  //?check('dq_ref_local_array()', 9)
+
+  dq_set_ref(x);
+  printf("dq_set_ref(x) = %li\n", x);  //?check('dq_set_ref(x)', 5)
+
+  r = dq_sum_refin(x);
+  printf("dq_sum_refin(x) = %li\n", r);  //?check('dq_sum_refin(x)', 6)
+
+  dq_make_refout(outv);
+  printf("dq_make_refout(outv) = %li\n", outv);  //?check('dq_make_refout(outv)', 33)
+
+  r = dq_refnull_state(null);
+  printf("dq_refnull_state(null) = %li\n", r);  //?check('dq_refnull_state(null)', 1)
+
+  r = dq_refnull_state(x);
+  printf("dq_refnull_state(x) = %li\n", r);  //?check('dq_refnull_state(x)', 2)
+
+  dq_set_refnull(x);
+  printf("dq_set_refnull(x) = %li\n", x);  //?check('dq_set_refnull(x)', 44)
+
+  dq_set_refnull(null);
+  printf("dq_set_refnull(null) ok\n");  //?check('dq_set_refnull(null) ok')
+
+  return 0;
+endfunc

@@ -11,10 +11,11 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "0.0.10"
+#define ATR_VERSION  "0.0.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.0.11: parallel run termination fix
 v0.0.10: single mode compiler error show fix
 v0.0.9: working error tests
 v0.0.8: some progress with the error tests

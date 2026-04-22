@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -32,9 +31,9 @@ public:
   mutex             wait_mtx;
   condition_variable cond;
 
-  atomic<bool>      busy = false;
-  atomic<bool>      run_requested = false;
-  atomic<bool>      terminate_requested = false;
+  bool              busy = false;
+  bool              run_requested = false;
+  bool              terminate_requested = false;
 
 public:
   OTestFileWorker();

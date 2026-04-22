@@ -34,7 +34,10 @@ void OTestFileWorker::Start(int aworker_id)
 
 void OTestFileWorker::Stop()
 {
-  terminate_requested = true;
+  {
+    lock_guard<mutex> lock(wait_mtx);
+    terminate_requested = true;
+  }
   cond.notify_all();
 
   if (thr.joinable())
@@ -45,7 +48,9 @@ void OTestFileWorker::Stop()
 
 bool OTestFileWorker::ProcessFile(OTestFile * atestfile) // called by the distributor !
 {
-  if (busy or run_requested)
+  lock_guard<mutex> lock(wait_mtx);
+
+  if (busy or run_requested or (nullptr != testfile))
   {
     return false;
   }
@@ -59,6 +64,7 @@ bool OTestFileWorker::ProcessFile(OTestFile * atestfile) // called by the distri
 
 bool OTestFileWorker::IsIdle()
 {
+  lock_guard<mutex> lock(wait_mtx);
   return (!busy and !run_requested and (nullptr == testfile));
 }
 
@@ -66,33 +72,42 @@ void OTestFileWorker::ThreadFunc()
 {
   while (true)
   {
+    OTestFile * ltestfile = nullptr;
+
     {
       unique_lock<mutex> lock(wait_mtx);
       cond.wait(lock, [this]{ return run_requested or terminate_requested; });
 
-      if (terminate_requested)
+      if (terminate_requested and !run_requested)
       {
         return;
       }
+
+      busy = true;
+      run_requested = false;
+      ltestfile = testfile;
     }
 
-    busy = true;
-    run_requested = false;
-
-    if (testfile and !testfile->processed)
+    if (ltestfile and !ltestfile->processed)
     {
       if (g_atropt->verblevel >= VERBLEVEL_DEBUG)
       {
-        print("W{}: {} starting\n", worker_id, testfile->filename);
+        print("W{}: {} starting\n", worker_id, ltestfile->filename);
       }
-      testfile->Process();
-      testfile->processed = true;  // ensure
+      ltestfile->Process();
+      ltestfile->processed = true;  // ensure
       if (g_atropt->verblevel >= VERBLEVEL_DEBUG)
       {
-        print("W{}: {} finished\n", worker_id, testfile->filename);
+        print("W{}: {} finished\n", worker_id, ltestfile->filename);
       }
     }
 
-    busy = false;
+    {
+      lock_guard<mutex> lock(wait_mtx);
+      testfile = nullptr;
+      busy = false;
+    }
+
+    cond.notify_all();
   }
 }

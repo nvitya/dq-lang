@@ -185,7 +185,7 @@ void OAtRunner::ProcessBatchFilesParallel()
 
     for (OTestFileWorker * worker : workers)
     {
-      if (not worker->busy)
+      if (worker->IsIdle())
       {
         allbusy = false;
         if (worker->ProcessFile(testfiles[fileidx]))
@@ -213,7 +213,7 @@ void OAtRunner::ProcessBatchFilesParallel()
 
     for (OTestFileWorker * worker : workers)
     {
-      if (worker->busy)
+      if (not worker->IsIdle())
       {
         allidle = false;
       }

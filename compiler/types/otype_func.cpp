@@ -19,14 +19,14 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 {
   super::ApplyAttributes(attr, atarget);
 
-  if (!attr || !attr->present)
+  if (!attr || !attr->flags)
   {
     return;
   }
 
-  if ((ATGT_FUNCTION == atarget) && attr->external_specified)
+  if ((ATGT_FUNCTION == atarget) && attr->IsSet(ATTF_EXTERNAL))
   {
-    is_external = attr->external;
+    is_external = true;
     external_linkage_name = attr->external_linkage_name;
   }
 }

@@ -29,7 +29,7 @@ using namespace std;
 
 ODqCompParser::ODqCompParser()
 {
-  attr = new OAttr(this);
+  attr = new OAttr();
 }
 
 ODqCompParser::~ODqCompParser()
@@ -101,8 +101,7 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
 
   if ("external" == attrname)
   {
-    attr->external_specified = true;
-    attr->external = true;
+    attr->SetFlag(ATTF_EXTERNAL);
     attr->external_linkage_name = "";
     if (scf->CheckSymbol("(", false))
     {
@@ -116,13 +115,13 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
 
   if ("align" == attrname)
   {
-    attr->align_specified = true;
+    attr->SetFlag(ATTF_ALIGN);
     return ParseAttrIntArg(attrname, attr->align_value, true);
   }
 
   if ("section" == attrname)
   {
-    attr->section_specified = true;
+    attr->SetFlag(ATTF_SECTION);
     return ParseAttrStringArg(attrname, attr->section_name);
   }
 
@@ -133,8 +132,7 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
       Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
       return false;
     }
-    attr->overload_specified = true;
-    attr->attr_overload = true;
+    attr->SetFlag(ATTF_OVERLOAD);
     return true;
   }
 
@@ -145,8 +143,7 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
       Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
       return false;
     }
-    attr->override_specified = true;
-    attr->attr_override = true;
+    attr->SetFlag(ATTF_OVERRIDE);
     return true;
   }
 
@@ -157,8 +154,7 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
       Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
       return false;
     }
-    attr->virtual_specified = true;
-    attr->attr_virtual = true;
+    attr->SetFlag(ATTF_VIRTUAL);
     return true;
   }
 
@@ -169,8 +165,7 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
       Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
       return false;
     }
-    attr->volatile_specified = true;
-    attr->attr_volatile = true;
+    attr->SetFlag(ATTF_VOLATILE);
     return true;
   }
 
@@ -188,7 +183,6 @@ bool ODqCompParser::ParseAttributeBlock()
     return true;
   }
 
-  attr->present = true;
   attr->scpos = attrpos;
 
   while (!scf->Eof())
@@ -223,7 +217,7 @@ bool ODqCompParser::ParseAttributeBlock()
     }
   }
 
-  Error(DQERR_MISSING_ATTR_CLOSE_AFTER, attr->present ? "attribute list" : "");
+  Error(DQERR_MISSING_ATTR_CLOSE_AFTER, "attribute list");
   return false;
 }
 
@@ -577,7 +571,7 @@ void ODqCompParser::ParseRootTypeDecl()
     return;
   }
 
-  if (attr->present)
+  if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_NONE);
   }
@@ -603,7 +597,7 @@ void ODqCompParser::ParseStructDecl()
     return;
   }
 
-  if (attr->present)
+  if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_NONE);
   }
@@ -631,7 +625,7 @@ void ODqCompParser::ParseStructDecl()
     scf->SkipWhite();
     if (scf->CheckSymbol("endstruct"))
     {
-      if (attr->present)
+      if (attr->flags)
       {
         attr->CheckInvalidAttributes(ATGT_NONE);
       }

@@ -18,88 +18,6 @@
 #include "symbols.h"
 #include "dqc_base.h"
 
-static uint32_t AttrTargetMask(EAttrTarget atarget)
-{
-  return (1u << uint32_t(atarget));
-}
-
-static string AttrTargetName(EAttrTarget atarget)
-{
-  switch (atarget)
-  {
-    case ATGT_FUNCTION:      return "function";
-    case ATGT_GLOBAL_VAR:    return "global variable";
-    case ATGT_GLOBAL_CONST:  return "global constant";
-    case ATGT_STRUCT_MEMBER: return "struct member";
-    default:                 return "this declaration";
-  }
-}
-
-static void WarnInvalidAttr(ODqCompBase * diagctx, OScPosition * scpos, const char * attrname, EAttrTarget atarget)
-{
-  if (!diagctx)
-  {
-    return;
-  }
-
-  diagctx->Warning(DQWARN_ATTR_IGNORED_FOR, attrname, AttrTargetName(atarget), scpos);
-}
-
-static void CheckAttrAllowed(ODqCompBase * diagctx, OScPosition * scpos, bool specified, const char * attrname,
-                             EAttrTarget atarget, uint32_t allowed_mask)
-{
-  if (!specified)
-  {
-    return;
-  }
-
-  if ((allowed_mask & AttrTargetMask(atarget)) == 0)
-  {
-    WarnInvalidAttr(diagctx, scpos, attrname, atarget);
-  }
-}
-
-void OAttr::Reset()
-{
-  present = false;
-  scpos = OScPosition();
-
-  external_specified = false;
-  external = false;
-  external_linkage_name = "";
-
-  align_specified = false;
-  align_value = 0;
-
-  section_specified = false;
-  section_name = "";
-
-  overload_specified = false;
-  attr_overload = false;
-
-  override_specified = false;
-  attr_override = false;
-
-  virtual_specified = false;
-  attr_virtual = false;
-
-  volatile_specified = false;
-  attr_volatile = false;
-}
-
-void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
-{
-  CheckAttrAllowed(diagctx, &scpos, external_specified, "external", atarget, AttrTargetMask(ATGT_FUNCTION));
-  CheckAttrAllowed(diagctx, &scpos, align_specified, "align", atarget,
-                   AttrTargetMask(ATGT_FUNCTION) | AttrTargetMask(ATGT_GLOBAL_VAR) | AttrTargetMask(ATGT_GLOBAL_CONST));
-  CheckAttrAllowed(diagctx, &scpos, section_specified, "section", atarget,
-                   AttrTargetMask(ATGT_FUNCTION) | AttrTargetMask(ATGT_GLOBAL_VAR) | AttrTargetMask(ATGT_GLOBAL_CONST));
-  CheckAttrAllowed(diagctx, &scpos, overload_specified, "overload", atarget, AttrTargetMask(ATGT_FUNCTION));
-  CheckAttrAllowed(diagctx, &scpos, override_specified, "override", atarget, AttrTargetMask(ATGT_FUNCTION));
-  CheckAttrAllowed(diagctx, &scpos, virtual_specified, "virtual", atarget, AttrTargetMask(ATGT_FUNCTION));
-  CheckAttrAllowed(diagctx, &scpos, volatile_specified, "volatile", atarget,
-                   AttrTargetMask(ATGT_GLOBAL_VAR) | AttrTargetMask(ATGT_STRUCT_MEMBER));
-}
 #include "otype_array.h"
 #include "otype_int.h"
 #include "dqc.h"
@@ -420,7 +338,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 
 void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 {
-  if (!attr || !attr->present)
+  if (!attr || !attr->flags)
   {
     return;
   }
@@ -429,11 +347,11 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 
   if ((ATGT_FUNCTION == atarget) || (ATGT_GLOBAL_VAR == atarget) || (ATGT_GLOBAL_CONST == atarget))
   {
-    if (attr->align_specified)
+    if (attr->IsSet(ATTF_ALIGN))
     {
       attr_align = attr->align_value;
     }
-    if (attr->section_specified)
+    if (attr->IsSet(ATTF_SECTION))
     {
       attr_section_name = attr->section_name;
     }
@@ -441,26 +359,14 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 
   if (ATGT_FUNCTION == atarget)
   {
-    if (attr->overload_specified)
-    {
-      attr_is_overload = attr->attr_overload;
-    }
-    if (attr->override_specified)
-    {
-      attr_is_override = attr->attr_override;
-    }
-    if (attr->virtual_specified)
-    {
-      attr_is_virtual = attr->attr_virtual;
-    }
+    attr_is_overload = attr->IsSet(ATTF_OVERLOAD);
+    attr_is_override = attr->IsSet(ATTF_OVERRIDE);
+    attr_is_virtual  = attr->IsSet(ATTF_VIRTUAL);
   }
 
   if ((ATGT_GLOBAL_VAR == atarget) || (ATGT_STRUCT_MEMBER == atarget))
   {
-    if (attr->volatile_specified)
-    {
-      attr_is_volatile = attr->attr_volatile;
-    }
+    attr_is_volatile = attr->IsSet(ATTF_VOLATILE);
   }
 }
 

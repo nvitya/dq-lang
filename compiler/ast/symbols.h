@@ -23,7 +23,7 @@
 #include "ll_defs.h"
 
 #include "comp_config.h"
-#include "scf_base.h"
+#include "attributes.h"
 
 using namespace std;
 
@@ -32,55 +32,6 @@ class OType;
 class OValue;
 class OValSym;
 class OScope;
-
-enum EAttrTarget
-{
-  ATGT_NONE = 0,
-  ATGT_FUNCTION,
-  ATGT_GLOBAL_VAR,
-  ATGT_GLOBAL_CONST,
-  ATGT_STRUCT_MEMBER
-};
-
-class OAttr
-{
-public:
-  ODqCompBase *  diagctx = nullptr;
-
-  bool           present = false;
-  OScPosition    scpos;
-
-  bool           external_specified = false;
-  bool           external = false;
-  string         external_linkage_name = "";
-
-  bool           align_specified = false;
-  int64_t        align_value = 0;
-
-  bool           section_specified = false;
-  string         section_name = "";
-
-  bool           overload_specified = false;
-  bool           attr_overload = false;
-
-  bool           override_specified = false;
-  bool           attr_override = false;
-
-  bool           virtual_specified = false;
-  bool           attr_virtual = false;
-
-  bool           volatile_specified = false;
-  bool           attr_volatile = false;
-
-  OAttr(ODqCompBase * adiagctx = nullptr)
-  :
-    diagctx(adiagctx)
-  {
-  }
-
-  void Reset();
-  void CheckInvalidAttributes(EAttrTarget atarget);
-};
 
 // Symbol and Scope
 

@@ -24,7 +24,26 @@ function oltest_int(a : float) -> float [[overload]]:  //?error(OverloadReturnTy
   return 0;
 endfunc
 
-function oltest_int(b : int) -> int [[overload]];  //?error(OverloadDupSignature)
+function oltest_int(b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+  return 0;
+endfunc
+
+function oltest_int(ref b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+  return 0;
+endfunc
+
+function oltest_int(refin b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+  return 0;
+endfunc
+
+function oltest_int(refout b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+  return 0;
+endfunc
+
+function oltest_int(refnull b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+  return 0;
+endfunc
+
 
 type TIntAlias = int;
 

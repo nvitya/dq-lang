@@ -928,7 +928,7 @@ void ODqCompParser::ParseFunction()
         return;
       }
 
-      if (ovset->HasMatchingSignature(static_cast<OTypeFunc *>(vsfunc->ptype)))
+      if (ovset->HasMatchingOverloadDecl(static_cast<OTypeFunc *>(vsfunc->ptype)))
       {
         Error(DQERR_OVERLOAD_DUP_SIGNATURE, sid);
         RecoverFailedFunctionDecl();

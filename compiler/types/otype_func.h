@@ -88,6 +88,7 @@ public:
   bool          ParNameValid(const string aname);
   size_t        RequiredParamCount() const;
   OType *       ResolvedRetType() const;
+  bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const;
   bool          MatchesSignature(const OTypeFunc * other) const;
 
   LlType * CreateLlType() override;
@@ -173,6 +174,7 @@ public:
   void AddFunc(OValSymFunc * afunc);
   OType * ResolvedRetType() const;
   bool HasMatchingReturnType(const OTypeFunc * atype) const;
+  bool HasMatchingOverloadDecl(const OTypeFunc * atype) const;
   bool HasMatchingSignature(const OTypeFunc * atype) const;
 
   inline size_t Count() const

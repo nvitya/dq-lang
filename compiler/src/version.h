@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.8.9"
+#define DQ_COMPILER_VERSION  "0.8.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.8.10:
+  - Ignore argument mode for overload duplicate checks
 v0.8.9:
   - Restrict same return type for the overloaded functions
 v0.8.8:

@@ -75,6 +75,51 @@ OType * OTypeFunc::ResolvedRetType() const
   return (rettype ? rettype->ResolveAlias() : nullptr);
 }
 
+bool OTypeFunc::MatchesOverloadDeclIdentity(const OTypeFunc * other) const
+{
+  if (!other)
+  {
+    return false;
+  }
+
+  if (has_varargs != other->has_varargs)
+  {
+    return false;
+  }
+
+  if (params.size() != other->params.size())
+  {
+    return false;
+  }
+
+  if (ResolvedRetType() != other->ResolvedRetType())
+  {
+    return false;
+  }
+
+  for (size_t i = 0; i < params.size(); ++i)
+  {
+    OFuncParam * left = params[i];
+    OFuncParam * right = other->params[i];
+    if (!left || !right)
+    {
+      return false;
+    }
+
+    if (!left->ptype || !right->ptype)
+    {
+      return false;
+    }
+
+    if (left->ptype->ResolveAlias() != right->ptype->ResolveAlias())
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool OTypeFunc::MatchesSignature(const OTypeFunc * other) const
 {
   if (!other)
@@ -155,6 +200,20 @@ bool OValSymOverloadSet::HasMatchingReturnType(const OTypeFunc * atype) const
   }
 
   return (ResolvedRetType() == atype->ResolvedRetType());
+}
+
+bool OValSymOverloadSet::HasMatchingOverloadDecl(const OTypeFunc * atype) const
+{
+  for (OValSymFunc * fn : funcs)
+  {
+    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+    if (ftype && ftype->MatchesOverloadDeclIdentity(atype))
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool OValSymOverloadSet::HasMatchingSignature(const OTypeFunc * atype) const

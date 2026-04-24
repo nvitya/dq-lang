@@ -20,7 +20,21 @@ function oltest_int(a : int, b : int) -> int [[overload]]:
   return 0;
 endfunc
 
+function oltest_int(a : float) -> float [[overload]]:  //?error(OverloadReturnType)
+  return 0;
+endfunc
+
 function oltest_int(b : int) -> int [[overload]];  //?error(OverloadDupSignature)
+
+type TIntAlias = int;
+
+function olalias(a : int) -> int [[overload]]:
+  return 0;
+endfunc
+
+function olalias(a : float) -> TIntAlias [[overload]]:
+  return 0;
+endfunc
 
 type CB1 = function(a : int) -> int;
 var bad_cb : CB1 = oltest_int;  //?error(NotImplementedYet)
@@ -34,12 +48,22 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+type TIntAlias = int;
+
 function oltest_int(a : int) -> int [[overload]]:
   return a;
 endfunc
 
 function oltest_int(a : int, b : int) -> int [[overload]]:
   return a * b;
+endfunc
+
+function olalias(a : int) -> int [[overload]]:
+  return a;
+endfunc
+
+function olalias(a : float) -> TIntAlias [[overload]]:
+  return 1;
 endfunc
 
 function main() -> int:

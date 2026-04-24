@@ -151,6 +151,7 @@ DEF_DQ_ERR(DQERR_VAR_UNKNOWN,                      "VarUnknown",             "Un
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_SCOPE,            "VsAlreadyDecl",          "Symbol \"$1\" is already defined in scope \"$2\"");
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_TYPE,             "VsAlreadyDecl",          "Symbol \"$1\" is already declared with type \"$2\"");
 DEF_DQ_ERR(DQERR_OVERLOAD_MIXED_DECL,              "OverloadMixedDecl",      "Function \"$1\" cannot mix overloaded and non-overloaded declarations");
+DEF_DQ_ERR(DQERR_OVERLOAD_RETURN_TYPE,             "OverloadReturnType",     "Function \"$1\" overloads must have the same return type");
 DEF_DQ_ERR(DQERR_OVERLOAD_DUP_SIGNATURE,           "OverloadDupSignature",   "Function \"$1\" already has an overloaded variant with the same signature");
 DEF_DQ_ERR(DQERR_GLOBALVAR_INITVALUE,              "GlobVarInitvalue",       "Invalid initialization value for the global variable \"$1\"");
 DEF_DQ_ERR(DQERR_VAR_NOT_INITIALIZED,              "VarNotInit",             "Accessing unitialized variable \"$1\"");

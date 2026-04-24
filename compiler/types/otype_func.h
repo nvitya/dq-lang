@@ -171,6 +171,8 @@ public:
   }
 
   void AddFunc(OValSymFunc * afunc);
+  OType * ResolvedRetType() const;
+  bool HasMatchingReturnType(const OTypeFunc * atype) const;
   bool HasMatchingSignature(const OTypeFunc * atype) const;
 
   inline size_t Count() const

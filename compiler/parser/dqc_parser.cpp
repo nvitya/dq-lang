@@ -108,6 +108,31 @@ bool ODqCompParser::RejectUnsupportedOverloadUse(OValSym * vs, const string & sy
   return true;
 }
 
+void ODqCompParser::RecoverFailedFunctionDecl()
+{
+  scf->SkipWhite();
+  if (scf->CheckSymbol(";"))
+  {
+    return;
+  }
+
+  if (scf->CheckSymbol(":", false))
+  {
+    scf->CheckSymbol(":");
+    scf->SearchPattern("endfunc", true);
+    return;
+  }
+
+  if (scf->CheckSymbol("{", false))
+  {
+    scf->CheckSymbol("{");
+    scf->SearchPattern("}", true);
+    return;
+  }
+
+  SkipToModuleStatementStart();
+}
+
 void ODqCompParser::SkipUnsupportedCallRecovery()
 {
   scf->ReadTo(")");
@@ -894,10 +919,19 @@ void ODqCompParser::ParseFunction()
     }
     else if (ovset)
     {
+      if (!ovset->HasMatchingReturnType(static_cast<OTypeFunc *>(vsfunc->ptype)))
+      {
+        Error(DQERR_OVERLOAD_RETURN_TYPE, sid);
+        RecoverFailedFunctionDecl();
+        curvsfunc = nullptr;
+        delete vsfunc;
+        return;
+      }
+
       if (ovset->HasMatchingSignature(static_cast<OTypeFunc *>(vsfunc->ptype)))
       {
         Error(DQERR_OVERLOAD_DUP_SIGNATURE, sid);
-        SkipToModuleStatementStart();
+        RecoverFailedFunctionDecl();
         curvsfunc = nullptr;
         delete vsfunc;
         return;
@@ -909,7 +943,7 @@ void ODqCompParser::ParseFunction()
     else
     {
       Error(DQERR_OVERLOAD_MIXED_DECL, sid);
-      SkipToModuleStatementStart();
+      RecoverFailedFunctionDecl();
       curvsfunc = nullptr;
       delete vsfunc;
       return;
@@ -920,7 +954,7 @@ void ODqCompParser::ParseFunction()
     if (dynamic_cast<OValSymOverloadSet *>(existing))
     {
       Error(DQERR_OVERLOAD_MIXED_DECL, sid);
-      SkipToModuleStatementStart();
+      RecoverFailedFunctionDecl();
       curvsfunc = nullptr;
       delete vsfunc;
       return;

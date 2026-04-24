@@ -136,6 +136,27 @@ void OValSymOverloadSet::AddFunc(OValSymFunc * afunc)
   funcs.push_back(afunc);
 }
 
+OType * OValSymOverloadSet::ResolvedRetType() const
+{
+  if (funcs.empty())
+  {
+    return nullptr;
+  }
+
+  OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(funcs[0] ? funcs[0]->ptype : nullptr);
+  return (ftype ? ftype->ResolvedRetType() : nullptr);
+}
+
+bool OValSymOverloadSet::HasMatchingReturnType(const OTypeFunc * atype) const
+{
+  if (!atype)
+  {
+    return false;
+  }
+
+  return (ResolvedRetType() == atype->ResolvedRetType());
+}
+
 bool OValSymOverloadSet::HasMatchingSignature(const OTypeFunc * atype) const
 {
   for (OValSymFunc * fn : funcs)

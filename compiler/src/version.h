@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.8.8"
+#define DQ_COMPILER_VERSION  "0.8.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.8.9:
+  - Restrict same return type for the overloaded functions
 v0.8.8:
   - Function overload v1: collection, no call resolution yet
 v0.8.7:

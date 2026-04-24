@@ -287,11 +287,20 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 
   LlFuncType *  ll_functype = (LlFuncType *)(ptype->GetLlType());  // calls CreateLlType()
 
-  string ll_name = generated_linkage_name;
-  if (ll_name.empty())
+  string ll_name;
+  if (is_external && !external_linkage_name.empty())
   {
-    ll_name = (external_linkage_name.empty() ? name : external_linkage_name);
+    ll_name = external_linkage_name;
   }
+  else
+  {
+    ll_name = generated_linkage_name;
+    if (ll_name.empty())
+    {
+      ll_name = (external_linkage_name.empty() ? name : external_linkage_name);
+    }
+  }
+
   ll_func = LlFunction::Create(ll_functype, linktype, ll_name, ll_module);
   if (!attr_section_name.empty())
   {

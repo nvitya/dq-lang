@@ -44,7 +44,6 @@ function oltest_int(refnull b : int) -> int [[overload]]:  //?error(OverloadDupS
   return 0;
 endfunc
 
-
 type TIntAlias = int;
 
 function olalias(a : int) -> int [[overload]]:
@@ -55,19 +54,75 @@ function olalias(a : float) -> TIntAlias [[overload]]:
   return 0;
 endfunc
 
+function oldefault(a : int) -> int [[overload]]:
+  return 0;
+endfunc
+
+function oldefault(a : int, b : int = 1) -> int [[overload]]:
+  return 0;
+endfunc
+
+function oconv(a : int) -> int [[overload]]:
+  return 0;
+endfunc
+
+function oconv(a : float) -> int [[overload]]:
+  return 0;
+endfunc
+
+function oambig(a : int8) -> int [[overload]]:
+  return 0;
+endfunc
+
+function oambig(a : uint8) -> int [[overload]]:
+  return 0;
+endfunc
+
+function orescue(a : float) -> int [[overload]]:
+  return 0;
+endfunc
+
+function orescue(refout a : int, b : int = 0) -> int [[overload]]:
+  return 0;
+endfunc
+
+[[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
+[[external("printf")]] function extpick(fmt : ^cchar, value : int = 77, ...) -> int [[overload]];
+
 type CB1 = function(a : int) -> int;
-var bad_cb : CB1 = oltest_int;  //?error(NotImplementedYet)
+type CBBad = function(a : float) -> int;
+
+function use_cb(cb : CB1) -> int:
+  return cb(1);
+endfunc
+
+var good_cb : CB1 = oltest_int;
+var bad_cb : CBBad = oltest_int;  //?error(OverloadNoMatch)
 
 function main() -> int:
-  oltest_int(2);  //?error(NotImplementedYet)
+  oltest_int(2);
+  oldefault(2);
+  oconv(2);
+  use_cb(oltest_int);
+  extpick("extpick %d");
+
+  oltest_int(true);  //?error(OverloadNoMatch)
+  oambig(1);  //?error(OverloadAmbiguous)
+
+  var x : int;
+  orescue(x);  //?error(OverloadNoMatch)
+
   return 0;
 endfunc
 
 #else
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
+[[external("printf")]] function extpick(fmt : ^cchar, value : int = 77, ...) -> int [[overload]];
 
 type TIntAlias = int;
+type CB1 = function(a : int) -> int;
 
 function oltest_int(a : int) -> int [[overload]]:
   return a;
@@ -85,8 +140,43 @@ function olalias(a : float) -> TIntAlias [[overload]]:
   return 1;
 endfunc
 
+function oldefault(a : int) -> int [[overload]]:
+  return a;
+endfunc
+
+function oldefault(a : int, b : int = 1) -> int [[overload]]:
+  return a + b + 100;
+endfunc
+
+function oconv(a : int) -> int [[overload]]:
+  return a + 100;
+endfunc
+
+function oconv(a : float) -> int [[overload]]:
+  return 200 + round(a);
+endfunc
+
+function use_cb(cb : CB1, v : int) -> int:
+  return cb(v);
+endfunc
+
 function main() -> int:
   printf("Overload collection test\n");  //?check('Overload collection test')
+
+  var cb : CB1 = oltest_int;
+
+  printf("oltest_int(2) = %d\n", oltest_int(2));  //?check('oltest_int(2)', 2)
+  printf("oltest_int(2, 3) = %d\n", oltest_int(2, 3));  //?check('oltest_int(2, 3)', 6)
+  printf("cb(4) = %d\n", cb(4));  //?check('cb(4)', 4)
+  printf("use_cb(oltest_int, 5) = %d\n", use_cb(oltest_int, 5));  //?check('use_cb(oltest_int, 5)', 5)
+  printf("olalias(2.5) = %d\n", olalias(2.5));  //?check('olalias(2.5)', 1)
+  printf("oldefault(7) = %d\n", oldefault(7));  //?check('oldefault(7)', 7)
+  printf("oldefault(7, 2) = %d\n", oldefault(7, 2));  //?check('oldefault(7, 2)', 109)
+  printf("oconv(2) = %d\n", oconv(2));  //?check('oconv(2)', 102)
+  printf("oconv(2.5) = %d\n", oconv(2.5));  //?check('oconv(2.5)', 203)
+
+  extpick("extpick fixed %d");  //?check('extpick fixed %d')
+
   return 0;
 endfunc
 

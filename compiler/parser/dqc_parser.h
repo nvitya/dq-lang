@@ -81,6 +81,13 @@ public: // expressions
     OScPosition   scpos;
   };
 
+  struct TRawCallArg
+  {
+    OExpr *                        expr = nullptr;
+    OScPosition                    scpos_start;
+    vector<TSuppressedVarInitDiag> init_diags;
+  };
+
   vector<TSuppressedVarInitDiag>  suppressed_varinit_diags;
 
   OExpr * ParseExpression(); // calls ParseExprOr()
@@ -104,7 +111,13 @@ public: // expressions
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);
 
   bool ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs);
+  bool ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs);
+  void FreeRawCallArguments(vector<TRawCallArg> & rawargs);
+  void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
+  bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
+  bool AnalyzeOverloadCallCandidate(const vector<TRawCallArg> & rawargs, OTypeFunc * tfunc, int & rconversions, int & rdefaults, bool & ruses_varargs);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
+  OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
@@ -123,8 +136,6 @@ protected:
   bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
   bool    ParseAttrStringArg(const string & attrname, string & rvalue);
   void    RecoverFailedFunctionDecl();
-  bool    RejectUnsupportedOverloadUse(OValSym * vs, const string & symname, OScPosition * scpos = nullptr);
-  void    SkipUnsupportedCallRecovery();
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

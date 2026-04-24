@@ -130,6 +130,43 @@ static bool CanAssignFuncRefImplicitly(OTypeFuncRef * dst, OType * srctype)
   return false;
 }
 
+enum EOverloadFuncRefMatch
+{
+  OFRM_NOT_OVERLOAD = 0,
+  OFRM_NO_MATCH,
+  OFRM_UNIQUE_MATCH,
+  OFRM_AMBIGUOUS
+};
+
+static EOverloadFuncRefMatch ResolveOverloadFuncRefMatch(OTypeFuncRef * dst, OExpr * src, OValSymFunc *& rfunc)
+{
+  rfunc = nullptr;
+
+  auto * varref = dynamic_cast<OLValueVar *>(src);
+  auto * ovset = dynamic_cast<OValSymOverloadSet *>(varref ? varref->pvalsym : nullptr);
+  if (!dst || !ovset || !dst->functype)
+  {
+    return OFRM_NOT_OVERLOAD;
+  }
+
+  for (OValSymFunc * fn : ovset->funcs)
+  {
+    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+    if (ftype && dst->functype->MatchesSignature(ftype))
+    {
+      if (rfunc)
+      {
+        rfunc = nullptr;
+        return OFRM_AMBIGUOUS;
+      }
+
+      rfunc = fn;
+    }
+  }
+
+  return (rfunc ? OFRM_UNIQUE_MATCH : OFRM_NO_MATCH);
+}
+
 static void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
 {
   // ParseExpression() already folds the original parse tree. Re-fold only after type
@@ -572,6 +609,36 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     if (TK_FUNCREF == tkd)
     {
       OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
+      OValSymFunc * matched_func = nullptr;
+      EOverloadFuncRefMatch ovmatch = ResolveOverloadFuncRefMatch(cbdst, src, matched_func);
+      if (OFRM_UNIQUE_MATCH == ovmatch)
+      {
+        delete src;
+        *rexpr = new OExprTypeConv(dsttype, new OLValueVar(matched_func));
+        FoldExprTreeAfterTypeRewrite(rexpr);
+        return true;
+      }
+
+      if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          auto * srcvar = dynamic_cast<OLValueVar *>(src);
+          string srcname = (srcvar && srcvar->pvalsym ? srcvar->pvalsym->name : string("?"));
+          if (OFRM_AMBIGUOUS == ovmatch)
+          {
+            ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS,
+                     format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, resolved_dst->name));
+          }
+          else
+          {
+            ErrorTxt(DQERR_OVERLOAD_NO_MATCH,
+                     format("No overload of function \"{}\" matches callback type \"{}\"", srcname, resolved_dst->name));
+          }
+        }
+        return false;
+      }
+
       if (CanAssignFuncRefImplicitly(cbdst, resolved_src))
       {
         *rexpr = new OExprTypeConv(dsttype, src);
@@ -928,6 +995,206 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   }
 
   return true;
+}
+
+int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags)
+{
+  if (!dsttype || !expr || !expr->ptype)
+  {
+    return -1;
+  }
+
+  OType * resolved_dst = dsttype->ResolveAlias();
+  OType * resolved_src = expr->ResolvedType();
+  if (!resolved_dst || !resolved_src)
+  {
+    return -1;
+  }
+
+  ETypeKind tkd = resolved_dst->kind;
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (tkd != tks)
+  {
+    if (TK_FUNCREF == tkd)
+    {
+      OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
+      OValSymFunc * matched_func = nullptr;
+      EOverloadFuncRefMatch ovmatch = ResolveOverloadFuncRefMatch(cbdst, expr, matched_func);
+      if (OFRM_UNIQUE_MATCH == ovmatch)
+      {
+        return 1;
+      }
+
+      if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
+      {
+        return -1;
+      }
+
+      return (CanAssignFuncRefImplicitly(cbdst, resolved_src) ? 1 : -1);
+    }
+
+    if ((TK_FLOAT == tkd) && (TK_INT == tks))
+    {
+      return 1;
+    }
+
+    if (is_explicit_cast && (TK_INT == tkd) && (TK_BOOL == tks))
+    {
+      return 1;
+    }
+
+    if (is_explicit_cast && (TK_INT == tkd) && (TK_FLOAT == tks))
+    {
+      return -1;
+    }
+
+    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_INT == tks))
+    {
+      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+      int64_t const_value = 0;
+      bool is_const = TryCalculateIntConstant(expr, const_value);
+      if (!IsPointerWidthIntegerType(resolved_src))
+      {
+        if (!is_const || !FitsPointerWidthConstant(intsrc, const_value))
+        {
+          return -1;
+        }
+      }
+
+      return 1;
+    }
+
+    if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
+    {
+      return (IsPointerWidthIntegerType(resolved_dst) ? 1 : -1);
+    }
+
+    if ((TK_ARRAY_SLICE == tkd) && (TK_ARRAY == tks))
+    {
+      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if (is_explicit_cast
+          || (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+          || !dynamic_cast<OLValueVar *>(expr))
+      {
+        return -1;
+      }
+
+      return 1;
+    }
+
+    if ((TK_STRING == tkd) && (TK_POINTER == tks))
+    {
+      if (is_explicit_cast)
+      {
+        return -1;
+      }
+
+      OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
+      OCStringLit * strlit = dynamic_cast<OCStringLit *>(expr);
+      if (cstrdst->maxlen != 0)
+      {
+        return ((strlit && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) ? 0 : -1);
+      }
+
+      return (strlit ? 1 : -1);
+    }
+
+    return -1;
+  }
+
+  if (TK_INT == tkd)
+  {
+    OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
+    OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+    return (((intdst->bitlength == intsrc->bitlength) && (intdst->issigned == intsrc->issigned)) ? 0 : 1);
+  }
+
+  if (TK_FLOAT == tkd)
+  {
+    OTypeFloat * floatdst = static_cast<OTypeFloat *>(resolved_dst);
+    OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+    return ((floatdst->bitlength == floatsrc->bitlength) ? 0 : 1);
+  }
+
+  if (TK_POINTER == tkd)
+  {
+    OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
+    OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+    if (is_explicit_cast)
+    {
+      return 1;
+    }
+
+    return (CanAssignPointerImplicitly(ptrdst, ptrsrc) ? 0 : -1);
+  }
+
+  if (TK_FUNCREF == tkd)
+  {
+    OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
+    if (!CanAssignFuncRefImplicitly(cbdst, resolved_src))
+    {
+      return -1;
+    }
+
+    return ((resolved_dst == resolved_src) ? 0 : 1);
+  }
+
+  if (TK_ARRAY_SLICE == tkd)
+  {
+    if (is_explicit_cast)
+    {
+      return -1;
+    }
+
+    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+    OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+    return ((slicedst->elemtype->ResolveAlias() == slicesrc->elemtype->ResolveAlias()) ? 0 : -1);
+  }
+
+  if (TK_ARRAY == tkd)
+  {
+    if (is_explicit_cast)
+    {
+      return -1;
+    }
+
+    OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
+    OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+    if ((arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+        || (arrdst->arraylength != arrsrc->arraylength))
+    {
+      return -1;
+    }
+
+    return 0;
+  }
+
+  if (TK_STRING == tkd)
+  {
+    if (is_explicit_cast)
+    {
+      return -1;
+    }
+
+    OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
+    OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
+    if ((cstrdst->maxlen == 0) && (cstrsrc->maxlen > 0))
+    {
+      return (dynamic_cast<OLValueVar *>(expr) ? 1 : -1);
+    }
+
+    if ((cstrdst->maxlen > 0) && (aflags & EXPCF_ALLOW_LAZY_CSTRING))
+    {
+      return 0;
+    }
+
+    return ((cstrdst->maxlen == cstrsrc->maxlen) ? 0 : -1);
+  }
+
+  return 0;
 }
 
 bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype)

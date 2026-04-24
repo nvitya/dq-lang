@@ -54,7 +54,7 @@ void ODqCompCodegen::GenerateIr()
       }
       else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
       {
-        for (OValSymFunc * fn : ovset->GetFuncs())
+        for (OValSymFunc * fn : ovset->funcs)
         {
           fn->GenGlobalDecl(decl->ispublic, nullptr);
         }
@@ -101,7 +101,7 @@ void ODqCompCodegen::GenerateIr()
       }
       else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
       {
-        for (OValSymFunc * fn : ovset->GetFuncs())
+        for (OValSymFunc * fn : ovset->funcs)
         {
           fn->GenerateFuncBody();
         }

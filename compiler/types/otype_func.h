@@ -181,11 +181,6 @@ public:
   {
     return funcs.size();
   }
-
-  inline const vector<OValSymFunc *> & GetFuncs() const
-  {
-    return funcs;
-  }
 };
 
 class OValueFuncRef : public OValue

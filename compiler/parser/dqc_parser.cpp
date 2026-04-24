@@ -87,6 +87,27 @@ static bool SameRefBindingType(OType * dsttype, OType * srctype)
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }
 
+static int CompareOverloadCandidateScore(int left_conv, int left_defaults, bool left_varargs,
+                                         int right_conv, int right_defaults, bool right_varargs)
+{
+  if (left_conv != right_conv)
+  {
+    return (left_conv < right_conv ? -1 : 1);
+  }
+
+  if (left_defaults != right_defaults)
+  {
+    return (left_defaults < right_defaults ? -1 : 1);
+  }
+
+  if (left_varargs != right_varargs)
+  {
+    return (left_varargs ? 1 : -1);
+  }
+
+  return 0;
+}
+
 ODqCompParser::ODqCompParser()
 {
   attr = new OAttr();
@@ -95,17 +116,6 @@ ODqCompParser::ODqCompParser()
 ODqCompParser::~ODqCompParser()
 {
   delete attr;
-}
-
-bool ODqCompParser::RejectUnsupportedOverloadUse(OValSym * vs, const string & symname, OScPosition * scpos)
-{
-  if (!dynamic_cast<OValSymOverloadSet *>(vs))
-  {
-    return false;
-  }
-
-  Error(DQERR_NOT_IMPLEMENTED_YET, format("Function overload resolution for \"{}\"", symname), scpos);
-  return true;
 }
 
 void ODqCompParser::RecoverFailedFunctionDecl()
@@ -131,12 +141,6 @@ void ODqCompParser::RecoverFailedFunctionDecl()
   }
 
   SkipToModuleStatementStart();
-}
-
-void ODqCompParser::SkipUnsupportedCallRecovery()
-{
-  scf->ReadTo(")");
-  scf->CheckSymbol(")");
 }
 
 bool ODqCompParser::ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only)
@@ -2288,10 +2292,11 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
       {
         if (dynamic_cast<OValSymOverloadSet *>(varref->pvalsym) && scf->CheckSymbol("("))
         {
-          SkipUnsupportedCallRecovery();
-          Error(DQERR_NOT_IMPLEMENTED_YET, format("Function overload resolution for \"{}\"", varref->pvalsym->name));
+          OExpr * callexpr = ParseExprOverloadCall(static_cast<OValSymOverloadSet *>(varref->pvalsym));
           delete result;
-          return nullptr;
+          result = callexpr;
+          if (!result) return nullptr;
+          continue;
         }
 
         OValSymFunc * vsfunc = dynamic_cast<OValSymFunc *>(varref->pvalsym);
@@ -2488,11 +2493,6 @@ OExpr * ODqCompParser::ParseExprPrimary()
       return nullptr;
     }
 
-    if (!scf->CheckSymbol("(", false) && RejectUnsupportedOverloadUse(vs, vs->name, &scpos_ns))
-    {
-      return nullptr;
-    }
-
     result = new OLValueVar(vs);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
@@ -2560,11 +2560,6 @@ OExpr * ODqCompParser::ParseExprPrimary()
   {
     Error(DQERR_VS_UNKNOWN, sid);
     return result;
-  }
-
-  if (!scf->CheckSymbol("(", false) && RejectUnsupportedOverloadUse(vs, sid, &scpos_sid))
-  {
-    return nullptr;
   }
 
   result = new OLValueVar(vs);
@@ -2667,18 +2662,21 @@ OExpr * ODqCompParser::ParseArrayLit()
 
 bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs)
 {
-  // "(" was already consumed
-
-  if (!tfunc)
+  vector<TRawCallArg> rawargs;
+  if (!ParseRawCallArguments(callname, rawargs))
   {
-    Error(DQERR_EXPR_NOT_CALLABLE, callname);
     return false;
   }
 
-  bool        bok = true;
-  size_t      required_param_count = tfunc->RequiredParamCount();
+  bool result = BindCallArguments(callname, tfunc, rawargs, rargs);
+  FreeRawCallArguments(rawargs);
+  return result;
+}
 
-  // parse and check the arguments
+bool ODqCompParser::ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs)
+{
+  // "(" was already consumed
+
   int pcnt = 0;
   while (true)
   {
@@ -2691,49 +2689,109 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
     if ((pcnt > 0) and not scf->CheckSymbol(","))
     {
       Error(DQERR_FUNC_ARGS_LIST, "\",\" or \")\" is missing at function \"$1\"call arguments", callname);
-      bok = false;
-      break;
+      FreeRawCallArguments(rargs);
+      return false;
     }
 
-    if (pcnt >= (int)tfunc->params.size() && !tfunc->has_varargs)
+    TRawCallArg rawarg;
+    scf->SaveCurPos(rawarg.scpos_start);
+
+    size_t suppressed_start = suppressed_varinit_diags.size();
+    bool saved_suppress = supress_varinit_check;
+    supress_varinit_check = true;
+    rawarg.expr = ParseExpression();
+    supress_varinit_check = saved_suppress;
+
+    rawarg.init_diags.assign(suppressed_varinit_diags.begin() + suppressed_start, suppressed_varinit_diags.end());
+    suppressed_varinit_diags.resize(suppressed_start);
+
+    if (!rawarg.expr)
+    {
+      FreeRawCallArguments(rargs);
+      return false;
+    }
+
+    rargs.push_back(rawarg);
+    ++pcnt;
+  }
+
+  return true;
+}
+
+void ODqCompParser::FreeRawCallArguments(vector<TRawCallArg> & rawargs)
+{
+  for (TRawCallArg & rawarg : rawargs)
+  {
+    OExpr::DeleteTree(rawarg.expr);
+    rawarg.expr = nullptr;
+    rawarg.init_diags.clear();
+  }
+
+  rawargs.clear();
+}
+
+void ODqCompParser::EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags)
+{
+  for (const auto & diag : diags)
+  {
+    OScPosition scpos = diag.scpos;
+    if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+    {
+      Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &scpos);
+    }
+    else
+    {
+      Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &scpos);
+    }
+  }
+}
+
+bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs)
+{
+
+  if (!tfunc)
+  {
+    Error(DQERR_EXPR_NOT_CALLABLE, callname);
+    return false;
+  }
+
+  bool        bok = true;
+  size_t      required_param_count = tfunc->RequiredParamCount();
+
+  for (size_t pcnt = 0; pcnt < rawargs.size(); ++pcnt)
+  {
+    if (pcnt >= tfunc->params.size() && !tfunc->has_varargs)
     {
       Error(DQERR_FUNC_ARGS_TOO_MANY, callname, to_string(tfunc->params.size()));
       bok = false;
       break;
     }
 
-    OFuncParam * fparam = ((pcnt < (int)tfunc->params.size()) ? tfunc->params[pcnt] : nullptr);
+    TRawCallArg & rawarg = rawargs[pcnt];
+    OExpr * argexpr = rawarg.expr;
+    rawarg.expr = nullptr;
+
+    OFuncParam * fparam = ((pcnt < tfunc->params.size()) ? tfunc->params[pcnt] : nullptr);
     bool is_ref_arg = (fparam && fparam->IsRefLike());
-
-    size_t suppressed_start = suppressed_varinit_diags.size();
-    bool saved_suppress = supress_varinit_check;
-    if (is_ref_arg)
-    {
-      supress_varinit_check = true;
-    }
-
-    OExpr * argexpr = ParseExpression();
-
-    if (is_ref_arg)
-    {
-      supress_varinit_check = saved_suppress;
-    }
 
     if (!argexpr)
     {
-      // error message already produced ?
-      if (is_ref_arg)
-      {
-        suppressed_varinit_diags.resize(suppressed_start);
-      }
       bok = false;
       break;
     }
 
     if (!is_ref_arg)
     {
-      rargs.push_back(argexpr);  // to avoid memory leak, this must come before the type check
-      if (pcnt < (int)tfunc->params.size())
+      if (!rawarg.init_diags.empty())
+      {
+        EmitStoredVarInitDiags(rawarg.init_diags);
+        OExpr::DeleteTree(argexpr);
+        bok = false;
+        break;
+      }
+
+      rargs.push_back(argexpr);
+      if (pcnt < tfunc->params.size())
       {
         OType * argtype = tfunc->params[pcnt]->ptype;
         if (not CheckAssignType(argtype, &argexpr, "Argument"))
@@ -2747,25 +2805,18 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
     }
     else
     {
-      auto clear_suppressed = [&]()
-      {
-        suppressed_varinit_diags.resize(suppressed_start);
-      };
-
       bool is_null_arg = dynamic_cast<ONullLit *>(argexpr);
       if (is_null_arg)
       {
         if (FPM_REFNULL != fparam->mode)
         {
           Error(DQERR_FUNC_ARG_REF_NULL, to_string(pcnt + 1), callname);
-          delete argexpr;
-          clear_suppressed();
+          OExpr::DeleteTree(argexpr);
           bok = false;
           break;
         }
 
         rargs.push_back(argexpr);
-        clear_suppressed();
       }
       else
       {
@@ -2783,8 +2834,7 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
         if (!bind_ok)
         {
           Error(DQERR_FUNC_ARG_REF_BIND, to_string(pcnt + 1), callname);
-          delete argexpr;
-          clear_suppressed();
+          OExpr::DeleteTree(argexpr);
           bok = false;
           break;
         }
@@ -2794,27 +2844,21 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
           string type_text = format("{} = {}", fparam->ptype->name, argexpr->ptype->name);
           ErrorTxt(DQERR_FUNC_ARG_REF_TYPE,
                    format("Reference argument {} type mismatch for function \"{}\": {}", pcnt + 1, callname, type_text));
-          delete argexpr;
-          clear_suppressed();
+          OExpr::DeleteTree(argexpr);
           bok = false;
           break;
         }
 
-        if ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode))
+        if (!rawarg.init_diags.empty() && ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode)))
         {
-          if (suppressed_varinit_diags.size() > suppressed_start)
-          {
-            OValSym * uninitvs = suppressed_varinit_diags[suppressed_start].valsym;
-            Error(DQERR_FUNC_ARG_REF_UNINIT, uninitvs->name);
-            delete argexpr;
-            clear_suppressed();
-            bok = false;
-            break;
-          }
+          OValSym * uninitvs = rawarg.init_diags[0].valsym;
+          Error(DQERR_FUNC_ARG_REF_UNINIT, uninitvs->name);
+          OExpr::DeleteTree(argexpr);
+          bok = false;
+          break;
         }
 
         rargs.push_back(new OAddrOfExpr(arglval));
-        clear_suppressed();
 
         if ((FPM_REFOUT == fparam->mode) && curblock && rootvalsym
             && (VSK_VARIABLE == rootvalsym->kind || VSK_PARAMETER == rootvalsym->kind))
@@ -2823,13 +2867,11 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
         }
       }
     }
-
-    ++pcnt;
   }
 
-  if (bok && (rargs.size() < required_param_count))
+  if (bok && (rawargs.size() < required_param_count))
   {
-    Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rargs.size()), callname, to_string(required_param_count));
+    Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), callname, to_string(required_param_count));
     bok = false;
   }
 
@@ -2838,7 +2880,7 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
     OFuncParam * fparam = tfunc->params[rargs.size()];
     if (!fparam->defvalue)
     {
-      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rargs.size()), callname, to_string(required_param_count));
+      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), callname, to_string(required_param_count));
       bok = false;
       break;
     }
@@ -2860,6 +2902,96 @@ bool ODqCompParser::ParseCallArguments(const string & callname, OTypeFunc * tfun
   return true;
 }
 
+bool ODqCompParser::AnalyzeOverloadCallCandidate(const vector<TRawCallArg> & rawargs, OTypeFunc * tfunc,
+                                                 int & rconversions, int & rdefaults, bool & ruses_varargs)
+{
+  rconversions = 0;
+  rdefaults = 0;
+  ruses_varargs = false;
+
+  if (!tfunc)
+  {
+    return false;
+  }
+
+  if (rawargs.size() < tfunc->RequiredParamCount())
+  {
+    return false;
+  }
+
+  if (!tfunc->has_varargs && (rawargs.size() > tfunc->params.size()))
+  {
+    return false;
+  }
+
+  for (size_t i = 0; i < rawargs.size(); ++i)
+  {
+    const TRawCallArg & rawarg = rawargs[i];
+    if (!rawarg.expr || !rawarg.init_diags.empty())
+    {
+      return false;
+    }
+
+    if (i >= tfunc->params.size())
+    {
+      ruses_varargs = true;
+      continue;
+    }
+
+    OFuncParam * fparam = tfunc->params[i];
+    if (!fparam->IsRefLike())
+    {
+      int conv_cost = GetAssignTypeConversionCost(fparam->ptype, rawarg.expr, EXPCF_ALLOW_LAZY_CSTRING);
+      if (conv_cost < 0)
+      {
+        return false;
+      }
+
+      rconversions += conv_cost;
+      continue;
+    }
+
+    bool is_null_arg = dynamic_cast<ONullLit *>(rawarg.expr);
+    if (is_null_arg)
+    {
+      if (FPM_REFNULL != fparam->mode)
+      {
+        return false;
+      }
+
+      continue;
+    }
+
+    OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(rawarg.expr);
+    OValSym * rootvalsym = (arglval ? GetAssignRootValSym(arglval) : nullptr);
+    bool bind_ok = (arglval != nullptr);
+    if (bind_ok && rootvalsym)
+    {
+      if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())
+      {
+        bind_ok = false;
+      }
+    }
+
+    if (!bind_ok || !SameRefBindingType(fparam->ptype, rawarg.expr->ptype))
+    {
+      return false;
+    }
+  }
+
+  for (size_t i = rawargs.size(); i < tfunc->params.size(); ++i)
+  {
+    if (!tfunc->params[i]->defvalue)
+    {
+      return false;
+    }
+
+    ++rdefaults;
+  }
+
+  return true;
+}
+
 OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 {
   OCallExpr * result = new OCallExpr(vsfunc);
@@ -2869,6 +3001,89 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
     return nullptr;
   }
 
+  return result;
+}
+
+OExpr * ODqCompParser::ParseExprOverloadCall(OValSymOverloadSet * ovset)
+{
+  if (!ovset)
+  {
+    Error(DQERR_EXPR_NOT_CALLABLE, "function");
+    return nullptr;
+  }
+
+  vector<TRawCallArg> rawargs;
+  if (!ParseRawCallArguments(ovset->name, rawargs))
+  {
+    return nullptr;
+  }
+
+  OValSymFunc * best_func = nullptr;
+  int best_conv = 0;
+  int best_defaults = 0;
+  bool best_varargs = false;
+  bool ambiguous = false;
+
+  for (OValSymFunc * fn : ovset->funcs)
+  {
+    OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+    int conv_count = 0;
+    int default_count = 0;
+    bool uses_varargs = false;
+    if (!AnalyzeOverloadCallCandidate(rawargs, tfunc, conv_count, default_count, uses_varargs))
+    {
+      continue;
+    }
+
+    if (!best_func)
+    {
+      best_func = fn;
+      best_conv = conv_count;
+      best_defaults = default_count;
+      best_varargs = uses_varargs;
+      ambiguous = false;
+      continue;
+    }
+
+    int cmp = CompareOverloadCandidateScore(conv_count, default_count, uses_varargs,
+                                            best_conv, best_defaults, best_varargs);
+    if (cmp < 0)
+    {
+      best_func = fn;
+      best_conv = conv_count;
+      best_defaults = default_count;
+      best_varargs = uses_varargs;
+      ambiguous = false;
+    }
+    else if (0 == cmp)
+    {
+      ambiguous = true;
+    }
+  }
+
+  if (!best_func || ambiguous)
+  {
+    FreeRawCallArguments(rawargs);
+    if (ambiguous)
+    {
+      Error(DQERR_OVERLOAD_AMBIGUOUS, ovset->name);
+    }
+    else
+    {
+      Error(DQERR_OVERLOAD_NO_MATCH, ovset->name);
+    }
+    return nullptr;
+  }
+
+  OCallExpr * result = new OCallExpr(best_func);
+  if (!BindCallArguments(ovset->name, static_cast<OTypeFunc *>(best_func->ptype), rawargs, result->args))
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  FreeRawCallArguments(rawargs);
   return result;
 }
 

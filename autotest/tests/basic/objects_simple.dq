@@ -18,7 +18,27 @@ object OElem
     @.printf("OElem(%d, %.2f)\n", id, weight);  // call the module-root printf()
   endfunc
 
+  function MethodFwd() -> int;
+
+  function Pick(v : int) -> int [[overload]];
+
 endobj
+
+function OElem.MethodFwd() -> int:
+  result = 5;
+endfunc
+
+function OElem.NewMethod() -> int:
+  result = 6;
+endfunc
+
+function OElem.Pick(v : int) -> int [[overload]]:
+  result = v + id;
+endfunc
+
+function OElem.Pick(v : float) -> int [[overload]]:
+  result = round(v) + 10;
+endfunc
 
 function main() -> int:
   printf('DQ Object test\n');  //?check('DQ Object test')
@@ -31,6 +51,11 @@ function main() -> int:
   printf('elem.Factor(2) = %.2f\n', elem.Factor(2)); //?check('elem.Factor(2)', 6.28)
 
   elem.printf();  //?check('OElem(2, 3.14)')
+
+  printf('elem.MethodFwd() = %d\n', elem.MethodFwd()); //?check('elem.MethodFwd()', 5)
+  printf('elem.NewMethod() = %d\n', elem.NewMethod()); //?check('elem.NewMethod()', 6)
+  printf('elem.Pick(5) = %d\n', elem.Pick(5)); //?check('elem.Pick(5)', 7)
+  printf('elem.Pick(2.4) = %d\n', elem.Pick(2.4)); //?check('elem.Pick(2.4)', 12)
 
   return 0;
 endfunc

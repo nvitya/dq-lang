@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.9.0"
+#define DQ_COMPILER_VERSION  "0.9.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.9.1:
+  - Object methods share the capabilities like normal root functions
 v0.9.0:
   - Simple object type introduced
 v0.8.15:

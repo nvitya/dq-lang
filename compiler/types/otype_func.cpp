@@ -322,7 +322,8 @@ void OValSymOverloadSet::AddFunc(OValSymFunc * afunc)
     return;
   }
 
-  afunc->generated_linkage_name = name + "__ovl" + to_string(funcs.size());
+  string prefix = (generated_linkage_prefix.empty() ? name : generated_linkage_prefix);
+  afunc->generated_linkage_name = prefix + "__ovl" + to_string(funcs.size());
   funcs.push_back(afunc);
 }
 

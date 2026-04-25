@@ -119,6 +119,7 @@ public: // expressions
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
+  OExpr * ParseExprMethodOverloadCall(OValSymOverloadSet * ovset, OLValueExpr * receiver);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
@@ -137,6 +138,11 @@ protected:
   bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
   bool    ParseAttrStringArg(const string & attrname, string & rvalue);
   void    RecoverFailedFunctionDecl();
+  bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
+                             bool ahidden_decl, bool aallow_external, const string & aowner_desc);
+  void    InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype);
+  void    ParseQualifiedObjectFunction(const string & object_name);
+  OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
   bool    ReadObjectMethod(OCompoundType * ctype);
 

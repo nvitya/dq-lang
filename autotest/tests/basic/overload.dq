@@ -86,6 +86,47 @@ function orescue(refout a : int, b : int = 0) -> int [[overload]]:
   return 0;
 endfunc
 
+object OOverloadErr
+  id : int;
+  function fwd(a : int) -> int;
+endobj
+
+function OOverloadErr.fwd(a : float) -> int:  //?error(FuncSigType)
+  return 0;
+endfunc
+
+function OOverloadErr.fwd(a : int) -> int:
+  return a;
+endfunc
+
+function OOverloadErr.dupe() -> int:
+  return 1;
+endfunc
+
+function OOverloadErr.dupe() -> int:  //?error(VsAlreadyDecl)
+  return 2;
+endfunc
+
+function OOverloadErr.id() -> int:  //?error(VsAlreadyDecl)
+  return 0;
+endfunc
+
+function OOverloadErr.mix(a : int) -> int:
+  return a;
+endfunc
+
+function OOverloadErr.mix(a : float) -> int [[overload]];  //?error(OverloadMixedDecl)
+
+function OMissingObject.method() -> int:  //?error(TypeUnknown)
+  return 0;
+endfunc
+
+type ONotObject = int;
+
+function ONotObject.method() -> int:  //?error(TypeExpected)
+  return 0;
+endfunc
+
 [[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
 [[external("printf")]] function extpick(fmt : ^cchar, value : int = 77, ...) -> int [[overload]];
 

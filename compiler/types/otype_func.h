@@ -191,6 +191,8 @@ private:
 
 public:
   vector<OValSymFunc *>  funcs;
+  OCompoundType *        owner_compound_type = nullptr;
+  string                 generated_linkage_prefix = "";
 
   OValSymOverloadSet(OScPosition & apos, const string aname, OType * atype = nullptr)
   :

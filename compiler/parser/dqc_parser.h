@@ -115,7 +115,6 @@ public: // expressions
   void FreeRawCallArguments(vector<TRawCallArg> & rawargs);
   void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
   bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
-  bool AnalyzeOverloadCallCandidate(const vector<TRawCallArg> & rawargs, OTypeFunc * tfunc, int & rconversions, int & rdefaults, bool & ruses_varargs);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);

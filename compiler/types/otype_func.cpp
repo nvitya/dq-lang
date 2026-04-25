@@ -170,6 +170,117 @@ bool OTypeFunc::MatchesSignature(const OTypeFunc * other) const
   return true;
 }
 
+bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
+{
+  OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
+  OType * resolved_src = (srctype ? srctype->ResolveAlias() : nullptr);
+  return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
+}
+
+bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
+                                     TFuncCallMatchScore & rscore) const
+{
+  rscore = TFuncCallMatchScore();
+
+  if (callargs.size() < RequiredParamCount())
+  {
+    return false;
+  }
+
+  if (!has_varargs && (callargs.size() > params.size()))
+  {
+    return false;
+  }
+
+  for (size_t i = 0; i < callargs.size(); ++i)
+  {
+    const TFuncCallArgMatch & callarg = callargs[i];
+    if (!callarg.expr || callarg.has_init_diags)
+    {
+      return false;
+    }
+
+    if (i >= params.size())
+    {
+      rscore.uses_varargs = true;
+      continue;
+    }
+
+    OFuncParam * fparam = params[i];
+    if (!fparam->IsRefLike())
+    {
+      int conv_cost = g_compiler->GetAssignTypeConversionCost(fparam->ptype, callarg.expr, EXPCF_ALLOW_LAZY_CSTRING);
+      if (conv_cost < 0)
+      {
+        return false;
+      }
+
+      rscore.conversions += conv_cost;
+      continue;
+    }
+
+    bool is_null_arg = dynamic_cast<ONullLit *>(callarg.expr);
+    if (is_null_arg)
+    {
+      if (FPM_REFNULL != fparam->mode)
+      {
+        return false;
+      }
+
+      continue;
+    }
+
+    OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(callarg.expr);
+    OValSym * rootvalsym = (arglval ? g_compiler->GetAssignRootValSym(arglval) : nullptr);
+    bool bind_ok = (arglval != nullptr);
+    if (bind_ok && rootvalsym)
+    {
+      if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())
+      {
+        bind_ok = false;
+      }
+    }
+
+    if (!bind_ok || !SameRefBindingType(fparam->ptype, callarg.expr->ptype))
+    {
+      return false;
+    }
+  }
+
+  for (size_t i = callargs.size(); i < params.size(); ++i)
+  {
+    if (!params[i]->defvalue)
+    {
+      return false;
+    }
+
+    ++rscore.defaults;
+  }
+
+  return true;
+}
+
+int OTypeFunc::CompareCallCandidateScore(const TFuncCallMatchScore & left,
+                                         const TFuncCallMatchScore & right)
+{
+  if (left.conversions != right.conversions)
+  {
+    return (left.conversions < right.conversions ? -1 : 1);
+  }
+
+  if (left.defaults != right.defaults)
+  {
+    return (left.defaults < right.defaults ? -1 : 1);
+  }
+
+  if (left.uses_varargs != right.uses_varargs)
+  {
+    return (left.uses_varargs ? 1 : -1);
+  }
+
+  return 0;
+}
+
 void OValSymOverloadSet::AddFunc(OValSymFunc * afunc)
 {
   if (!afunc)
@@ -228,6 +339,32 @@ bool OValSymOverloadSet::HasMatchingSignature(const OTypeFunc * atype) const
   }
 
   return false;
+}
+
+EOverloadFuncRefMatch OValSymOverloadSet::FindMatchingSignature(const OTypeFunc * atype, OValSymFunc *& rfunc) const
+{
+  rfunc = nullptr;
+  if (!atype)
+  {
+    return OFRM_NOT_OVERLOAD;
+  }
+
+  for (OValSymFunc * fn : funcs)
+  {
+    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+    if (ftype && atype->MatchesSignature(ftype))
+    {
+      if (rfunc)
+      {
+        rfunc = nullptr;
+        return OFRM_AMBIGUOUS;
+      }
+
+      rfunc = fn;
+    }
+  }
+
+  return (rfunc ? OFRM_UNIQUE_MATCH : OFRM_NO_MATCH);
 }
 
 LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the function arguments fully prepared
@@ -508,6 +645,51 @@ LlDiType * OTypeFuncRef::CreateDiType()
 OValue * OTypeFuncRef::CreateValue()
 {
   return new OValueFuncRef(this, true);
+}
+
+bool OTypeFuncRef::CanAccept(OType * srctype) const
+{
+  if (!srctype)
+  {
+    return false;
+  }
+
+  OType * resolved_src = srctype->ResolveAlias();
+  if (!resolved_src)
+  {
+    return false;
+  }
+
+  if (auto * src_cb = dynamic_cast<OTypeFuncRef *>(resolved_src))
+  {
+    return functype && src_cb->functype && functype->MatchesSignature(src_cb->functype);
+  }
+
+  if (auto * src_ptr = dynamic_cast<OTypePointer *>(resolved_src))
+  {
+    return src_ptr->IsNullPointer();
+  }
+
+  if (auto * src_func = dynamic_cast<OTypeFunc *>(resolved_src))
+  {
+    return functype && functype->MatchesSignature(src_func);
+  }
+
+  return false;
+}
+
+EOverloadFuncRefMatch OTypeFuncRef::FindAcceptingOverload(OExpr * src, OValSymFunc *& rfunc) const
+{
+  rfunc = nullptr;
+
+  auto * varref = dynamic_cast<OLValueVar *>(src);
+  auto * ovset = dynamic_cast<OValSymOverloadSet *>(varref ? varref->pvalsym : nullptr);
+  if (!ovset || !functype)
+  {
+    return OFRM_NOT_OVERLOAD;
+  }
+
+  return ovset->FindMatchingSignature(functype, rfunc);
 }
 
 LlValue * OTypeFuncRef::GenerateConversion(OScope * scope, OExpr * src)

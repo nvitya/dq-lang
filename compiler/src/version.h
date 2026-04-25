@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.8.11"
+#define DQ_COMPILER_VERSION  "0.8.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.8.12:
+  - Some code for function overloading was moved to otype_func
 v0.8.11:
   - Function overload resolution for direct calls and callbacks
 v0.8.10:

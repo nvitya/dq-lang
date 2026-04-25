@@ -80,34 +80,6 @@ static bool ParseParamModeKeyword(const string & sid, EParamMode & rmode)
   return false;
 }
 
-static bool SameRefBindingType(OType * dsttype, OType * srctype)
-{
-  OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
-  OType * resolved_src = (srctype ? srctype->ResolveAlias() : nullptr);
-  return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
-}
-
-static int CompareOverloadCandidateScore(int left_conv, int left_defaults, bool left_varargs,
-                                         int right_conv, int right_defaults, bool right_varargs)
-{
-  if (left_conv != right_conv)
-  {
-    return (left_conv < right_conv ? -1 : 1);
-  }
-
-  if (left_defaults != right_defaults)
-  {
-    return (left_defaults < right_defaults ? -1 : 1);
-  }
-
-  if (left_varargs != right_varargs)
-  {
-    return (left_varargs ? 1 : -1);
-  }
-
-  return 0;
-}
-
 ODqCompParser::ODqCompParser()
 {
   attr = new OAttr();
@@ -591,7 +563,7 @@ void ODqCompParser::ParseStmtRef()
       return;
     }
   }
-  else if (!SameRefBindingType(ptype, bindexpr->ptype))
+  else if (!OTypeFunc::SameRefBindingType(ptype, bindexpr->ptype))
   {
     string srcname = (bindexpr->ptype ? bindexpr->ptype->name : "?");
     delete bindexpr;
@@ -2839,7 +2811,7 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
           break;
         }
 
-        if (!SameRefBindingType(fparam->ptype, argexpr->ptype))
+        if (!OTypeFunc::SameRefBindingType(fparam->ptype, argexpr->ptype))
         {
           string type_text = format("{} = {}", fparam->ptype->name, argexpr->ptype->name);
           ErrorTxt(DQERR_FUNC_ARG_REF_TYPE,
@@ -2902,96 +2874,6 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
   return true;
 }
 
-bool ODqCompParser::AnalyzeOverloadCallCandidate(const vector<TRawCallArg> & rawargs, OTypeFunc * tfunc,
-                                                 int & rconversions, int & rdefaults, bool & ruses_varargs)
-{
-  rconversions = 0;
-  rdefaults = 0;
-  ruses_varargs = false;
-
-  if (!tfunc)
-  {
-    return false;
-  }
-
-  if (rawargs.size() < tfunc->RequiredParamCount())
-  {
-    return false;
-  }
-
-  if (!tfunc->has_varargs && (rawargs.size() > tfunc->params.size()))
-  {
-    return false;
-  }
-
-  for (size_t i = 0; i < rawargs.size(); ++i)
-  {
-    const TRawCallArg & rawarg = rawargs[i];
-    if (!rawarg.expr || !rawarg.init_diags.empty())
-    {
-      return false;
-    }
-
-    if (i >= tfunc->params.size())
-    {
-      ruses_varargs = true;
-      continue;
-    }
-
-    OFuncParam * fparam = tfunc->params[i];
-    if (!fparam->IsRefLike())
-    {
-      int conv_cost = GetAssignTypeConversionCost(fparam->ptype, rawarg.expr, EXPCF_ALLOW_LAZY_CSTRING);
-      if (conv_cost < 0)
-      {
-        return false;
-      }
-
-      rconversions += conv_cost;
-      continue;
-    }
-
-    bool is_null_arg = dynamic_cast<ONullLit *>(rawarg.expr);
-    if (is_null_arg)
-    {
-      if (FPM_REFNULL != fparam->mode)
-      {
-        return false;
-      }
-
-      continue;
-    }
-
-    OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(rawarg.expr);
-    OValSym * rootvalsym = (arglval ? GetAssignRootValSym(arglval) : nullptr);
-    bool bind_ok = (arglval != nullptr);
-    if (bind_ok && rootvalsym)
-    {
-      if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())
-      {
-        bind_ok = false;
-      }
-    }
-
-    if (!bind_ok || !SameRefBindingType(fparam->ptype, rawarg.expr->ptype))
-    {
-      return false;
-    }
-  }
-
-  for (size_t i = rawargs.size(); i < tfunc->params.size(); ++i)
-  {
-    if (!tfunc->params[i]->defvalue)
-    {
-      return false;
-    }
-
-    ++rdefaults;
-  }
-
-  return true;
-}
-
 OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 {
   OCallExpr * result = new OCallExpr(vsfunc);
@@ -3018,19 +2900,22 @@ OExpr * ODqCompParser::ParseExprOverloadCall(OValSymOverloadSet * ovset)
     return nullptr;
   }
 
+  vector<TFuncCallArgMatch> callargs;
+  callargs.reserve(rawargs.size());
+  for (const TRawCallArg & rawarg : rawargs)
+  {
+    callargs.push_back({rawarg.expr, !rawarg.init_diags.empty()});
+  }
+
   OValSymFunc * best_func = nullptr;
-  int best_conv = 0;
-  int best_defaults = 0;
-  bool best_varargs = false;
+  TFuncCallMatchScore best_score;
   bool ambiguous = false;
 
   for (OValSymFunc * fn : ovset->funcs)
   {
     OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
-    int conv_count = 0;
-    int default_count = 0;
-    bool uses_varargs = false;
-    if (!AnalyzeOverloadCallCandidate(rawargs, tfunc, conv_count, default_count, uses_varargs))
+    TFuncCallMatchScore score;
+    if (!tfunc || !tfunc->AnalyzeCallCandidate(callargs, score))
     {
       continue;
     }
@@ -3038,21 +2923,16 @@ OExpr * ODqCompParser::ParseExprOverloadCall(OValSymOverloadSet * ovset)
     if (!best_func)
     {
       best_func = fn;
-      best_conv = conv_count;
-      best_defaults = default_count;
-      best_varargs = uses_varargs;
+      best_score = score;
       ambiguous = false;
       continue;
     }
 
-    int cmp = CompareOverloadCandidateScore(conv_count, default_count, uses_varargs,
-                                            best_conv, best_defaults, best_varargs);
+    int cmp = OTypeFunc::CompareCallCandidateScore(score, best_score);
     if (cmp < 0)
     {
       best_func = fn;
-      best_conv = conv_count;
-      best_defaults = default_count;
-      best_varargs = uses_varargs;
+      best_score = score;
       ambiguous = false;
     }
     else if (0 == cmp)

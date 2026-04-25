@@ -99,74 +99,6 @@ static bool CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src)
   return dst->basetype->ResolveAlias() == src->basetype->ResolveAlias();
 }
 
-static bool CanAssignFuncRefImplicitly(OTypeFuncRef * dst, OType * srctype)
-{
-  if (!dst || !srctype)
-  {
-    return false;
-  }
-
-  OType * resolved_src = srctype->ResolveAlias();
-  if (!resolved_src)
-  {
-    return false;
-  }
-
-  if (auto * src_cb = dynamic_cast<OTypeFuncRef *>(resolved_src))
-  {
-    return dst->functype && src_cb->functype && dst->functype->MatchesSignature(src_cb->functype);
-  }
-
-  if (auto * src_ptr = dynamic_cast<OTypePointer *>(resolved_src))
-  {
-    return src_ptr->IsNullPointer();
-  }
-
-  if (auto * src_func = dynamic_cast<OTypeFunc *>(resolved_src))
-  {
-    return dst->functype && dst->functype->MatchesSignature(src_func);
-  }
-
-  return false;
-}
-
-enum EOverloadFuncRefMatch
-{
-  OFRM_NOT_OVERLOAD = 0,
-  OFRM_NO_MATCH,
-  OFRM_UNIQUE_MATCH,
-  OFRM_AMBIGUOUS
-};
-
-static EOverloadFuncRefMatch ResolveOverloadFuncRefMatch(OTypeFuncRef * dst, OExpr * src, OValSymFunc *& rfunc)
-{
-  rfunc = nullptr;
-
-  auto * varref = dynamic_cast<OLValueVar *>(src);
-  auto * ovset = dynamic_cast<OValSymOverloadSet *>(varref ? varref->pvalsym : nullptr);
-  if (!dst || !ovset || !dst->functype)
-  {
-    return OFRM_NOT_OVERLOAD;
-  }
-
-  for (OValSymFunc * fn : ovset->funcs)
-  {
-    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
-    if (ftype && dst->functype->MatchesSignature(ftype))
-    {
-      if (rfunc)
-      {
-        rfunc = nullptr;
-        return OFRM_AMBIGUOUS;
-      }
-
-      rfunc = fn;
-    }
-  }
-
-  return (rfunc ? OFRM_UNIQUE_MATCH : OFRM_NO_MATCH);
-}
-
 static void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
 {
   // ParseExpression() already folds the original parse tree. Re-fold only after type
@@ -610,7 +542,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     {
       OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
       OValSymFunc * matched_func = nullptr;
-      EOverloadFuncRefMatch ovmatch = ResolveOverloadFuncRefMatch(cbdst, src, matched_func);
+      EOverloadFuncRefMatch ovmatch = (cbdst ? cbdst->FindAcceptingOverload(src, matched_func) : OFRM_NOT_OVERLOAD);
       if (OFRM_UNIQUE_MATCH == ovmatch)
       {
         delete src;
@@ -639,7 +571,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
-      if (CanAssignFuncRefImplicitly(cbdst, resolved_src))
+      if (cbdst->CanAccept(resolved_src))
       {
         *rexpr = new OExprTypeConv(dsttype, src);
         FoldExprTreeAfterTypeRewrite(rexpr);
@@ -870,7 +802,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   if (TK_FUNCREF == tkd)
   {
     OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-    if (!CanAssignFuncRefImplicitly(cbdst, resolved_src))
+    if (!cbdst->CanAccept(resolved_src))
     {
       if (aflags & EXPCF_GENERATE_ERRORS)
       {
@@ -1021,7 +953,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     {
       OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
       OValSymFunc * matched_func = nullptr;
-      EOverloadFuncRefMatch ovmatch = ResolveOverloadFuncRefMatch(cbdst, expr, matched_func);
+      EOverloadFuncRefMatch ovmatch = (cbdst ? cbdst->FindAcceptingOverload(expr, matched_func) : OFRM_NOT_OVERLOAD);
       if (OFRM_UNIQUE_MATCH == ovmatch)
       {
         return 1;
@@ -1032,7 +964,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
         return -1;
       }
 
-      return (CanAssignFuncRefImplicitly(cbdst, resolved_src) ? 1 : -1);
+      return (cbdst->CanAccept(resolved_src) ? 1 : -1);
     }
 
     if ((TK_FLOAT == tkd) && (TK_INT == tks))
@@ -1134,7 +1066,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
   if (TK_FUNCREF == tkd)
   {
     OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-    if (!CanAssignFuncRefImplicitly(cbdst, resolved_src))
+    if (!cbdst->CanAccept(resolved_src))
     {
       return -1;
     }

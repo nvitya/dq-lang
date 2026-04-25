@@ -22,6 +22,27 @@ using namespace std;
 
 class OValSymFunc;
 
+enum EOverloadFuncRefMatch
+{
+  OFRM_NOT_OVERLOAD = 0,
+  OFRM_NO_MATCH,
+  OFRM_UNIQUE_MATCH,
+  OFRM_AMBIGUOUS
+};
+
+struct TFuncCallArgMatch
+{
+  OExpr *  expr = nullptr;
+  bool     has_init_diags = false;
+};
+
+struct TFuncCallMatchScore
+{
+  int   conversions = 0;
+  int   defaults = 0;
+  bool  uses_varargs = false;
+};
+
 class OFuncParam
 {
 public:
@@ -90,6 +111,12 @@ public:
   OType *       ResolvedRetType() const;
   bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const;
   bool          MatchesSignature(const OTypeFunc * other) const;
+  bool          AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
+                                     TFuncCallMatchScore & rscore) const;
+
+  static bool   SameRefBindingType(OType * dsttype, OType * srctype);
+  static int    CompareCallCandidateScore(const TFuncCallMatchScore & left,
+                                          const TFuncCallMatchScore & right);
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
@@ -176,6 +203,7 @@ public:
   bool HasMatchingReturnType(const OTypeFunc * atype) const;
   bool HasMatchingOverloadDecl(const OTypeFunc * atype) const;
   bool HasMatchingSignature(const OTypeFunc * atype) const;
+  EOverloadFuncRefMatch FindMatchingSignature(const OTypeFunc * atype, OValSymFunc *& rfunc) const;
 
   inline size_t Count() const
   {
@@ -215,6 +243,8 @@ public:
   LlDiType * CreateDiType() override;
   OValue *   CreateValue() override;
   LlValue *  GenerateConversion(OScope * scope, OExpr * src) override;
+  bool       CanAccept(OType * srctype) const;
+  EOverloadFuncRefMatch FindAcceptingOverload(OExpr * src, OValSymFunc *& rfunc) const;
 };
 
 extern string FuncTypeName(OTypeFunc * sigtype);

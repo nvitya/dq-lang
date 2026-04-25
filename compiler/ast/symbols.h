@@ -61,6 +61,7 @@ class OScope
 public:
   OScope *    parent_scope;
   string      debugname; // Helpful for debugging (e.g., "Class Body", "Func Body")
+  bool        vs_lookup_parent = true;
 
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;
@@ -253,12 +254,18 @@ private:
 public:
   OScope       member_scope;
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
+  bool         is_object = false;
 
-  OCompoundType(const string name, OScope * aparent_scope)
+  OCompoundType(const string name, OScope * aparent_scope, bool ais_object = false)
   :
     super(name, TK_COMPOUND),
-    member_scope(aparent_scope, name)
+    member_scope(aparent_scope, name),
+    is_object(ais_object)
   {
+    if (is_object)
+    {
+      member_scope.vs_lookup_parent = false;
+    }
   }
 
   inline OScope * Members() { return &member_scope; }

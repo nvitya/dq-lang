@@ -1,0 +1,36 @@
+// simple DQ objects
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+var id  : int = 9;
+var id2 : int = 8;
+var g_factor : float = 1;
+
+object OElem
+  id        : int;
+  weight    : float;
+
+  function Factor(f : float) -> float:
+    return f * weight * @.g_factor;  // without "@." the "g_factor" is unaccessible in the object method context
+  endfunc
+
+  function printf():
+    @.printf("OElem(%d, %.2f)\n", id, weight);  // call the module-root printf()
+  endfunc
+
+endobj
+
+function main() -> int:
+  printf('DQ Object test\n');  //?check('DQ Object test')
+
+  var elem : OElem = {};
+
+  elem.id = 2;
+  elem.weight = 3.14;
+
+  printf('elem.Factor(2) = %.2f\n', elem.Factor(2)); //?check('elem.Factor(2)', 6.28)
+
+  elem.printf();  //?check('OElem(2, 3.14)')
+
+  return 0;
+endfunc

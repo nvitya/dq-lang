@@ -86,7 +86,7 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
   }
 
   // If not found here, check the parent scope
-  if (arecursive and (parent_scope != nullptr))
+  if (arecursive and vs_lookup_parent and (parent_scope != nullptr))
   {
     return parent_scope->FindValSym(name, rscope);
   }

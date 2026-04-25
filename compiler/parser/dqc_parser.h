@@ -42,6 +42,7 @@ public: // root level items
   void ParseRootTypeDecl();
   void ParseFunction();
   void ParseStructDecl();
+  void ParseObjectDecl();
 
   void ParseStmtVar(bool arootstmt);  // used for statement blocks too
   void ParseStmtRef();
@@ -116,6 +117,7 @@ public: // expressions
   void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
   bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
+  OExpr * ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);
   OExpr * ParseBuiltinIif();
@@ -135,6 +137,8 @@ protected:
   bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
   bool    ParseAttrStringArg(const string & attrname, string & rvalue);
   void    RecoverFailedFunctionDecl();
+  OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
+  bool    ReadObjectMethod(OCompoundType * ctype);
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

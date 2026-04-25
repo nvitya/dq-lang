@@ -187,6 +187,10 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
     vsarg->initialized = (FPM_REFOUT != fp->mode);
     avsfunc->args.push_back(vsarg);
     avsfunc->body->scope->DefineValSym(vsarg);
+    if (avsfunc->owner_compound_type && ("__this" == fp->name))
+    {
+      avsfunc->receiver_arg = vsarg;
+    }
   }
 
   // add the implicit result variable

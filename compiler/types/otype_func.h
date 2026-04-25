@@ -137,6 +137,8 @@ private:
 public:
   vector<OValSym *>  args;  // will be filled in GenerateFuncBody()
   OValSym *          vsresult = nullptr;
+  OCompoundType *    owner_compound_type = nullptr;
+  OValSym *          receiver_arg = nullptr;
   OScPosition        scpos_endfunc;
   OStmtBlock *       body;
 

@@ -379,6 +379,10 @@ void ODqCompParser::ParseModule()
     {
       ParseStructDecl();
     }
+    else if ("object" == sid)
+    {
+      ParseObjectDecl();
+    }
     else  // unknown
     {
       RootStatementError(DQERR_MODULE_STATEMENT_UNKNOWN, sid, &scpos_statement_start);
@@ -845,6 +849,183 @@ void ODqCompParser::ParseStructDecl()
   // Compute byte size from LLVM type
   ctype->GetLlType();  // force creation
 
+  cur_mod_scope->DefineType(ctype);
+}
+
+bool ODqCompParser::ReadObjectMethod(OCompoundType * ctype)
+{
+  string sid;
+
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(sid))
+  {
+    Error(DQERR_ID_EXP_AFTER, "function");
+    return false;
+  }
+
+  if (ctype->Members()->FindValSym(sid, nullptr, false))
+  {
+    Error(DQERR_VS_ALREADY_DECL_SCOPE, sid, ctype->Members()->debugname);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+
+  OTypeFunc    * tfunc  = new OTypeFunc(sid);
+
+  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, sid, tfunc, ctype->Members());
+  vsfunc->owner_compound_type = ctype;
+  vsfunc->generated_linkage_name = ctype->name + "." + sid;
+  curvsfunc = vsfunc;
+
+  ParseFunctionSignature(tfunc, false, sid, true);
+
+  if (!tfunc->ParNameValid("__this"))
+  {
+    Error(DQERR_FUNCPAR_NAME_INVALID, "__this");
+  }
+  tfunc->params.insert(tfunc->params.begin(), new OFuncParam("__this", ctype, FPM_REF));
+
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
+
+  vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
+
+  if (vsfunc->is_external)
+  {
+    Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, "object method declaration");
+  }
+
+  if (tfunc->has_varargs)
+  {
+    Error(DQERR_VARARGS_NOT_ALLOWED);
+  }
+
+  scf->SkipWhite();
+  if (scf->CheckSymbol(";", false))
+  {
+    Error(DQERR_FUNC_FORWARD_NOT_DEFINED, sid);
+    scf->CheckSymbol(";");
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
+
+  ctype->Members()->DefineValSym(vsfunc);
+  g_module->DeclareHiddenValSym(false, vsfunc);
+  PrepareFuncDecl(scpos_statement_start, vsfunc);
+
+  ReadStatementBlock(vsfunc->body, "endfunc");
+
+  vsfunc->scpos_endfunc = scf->prevpos;
+  vsfunc->has_body = true;
+
+  if (vsfunc->vsresult and not vsfunc->vsresult->initialized)
+  {
+    Error(DQERR_FUNC_RESULT_NOT_SET, vsfunc->name, &vsfunc->scpos_endfunc);
+  }
+
+  curvsfunc = nullptr;
+  return true;
+}
+
+void ODqCompParser::ParseObjectDecl()
+{
+  // note: "object" is already consumed
+  // syntax form: "object Name\n  field : type;  function Method(...): ... endfunc\nendobj"
+
+  string sname;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(sname))
+  {
+    RootStatementError(DQERR_ID_EXP_AFTER, "object");
+    return;
+  }
+
+  if (attr->flags)
+  {
+    attr->CheckInvalidAttributes(ATGT_NONE);
+  }
+
+  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope, true);
+
+  OScPosition mempos;
+  string membername;
+
+  while (not scf->Eof())
+  {
+    scf->SkipWhite();
+
+    if (scf->CheckSymbol("endobj"))
+    {
+      break;
+    }
+
+    if (!ParseAttributes(true))
+    {
+      SkipCurStatement();
+      continue;
+    }
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("endobj"))
+    {
+      if (attr->flags)
+      {
+        attr->CheckInvalidAttributes(ATGT_NONE);
+      }
+      break;
+    }
+
+    scf->SaveCurPos(mempos);
+    scpos_statement_start = mempos;
+
+    if (scf->CheckSymbol("function"))
+    {
+      ReadObjectMethod(ctype);
+      continue;
+    }
+
+    if (not scf->ReadIdentifier(membername))
+    {
+      StatementError(DQERR_STRUCT_MBID_EXPECTED);
+      break;
+    }
+
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(":"))
+    {
+      StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, membername);
+      break;
+    }
+
+    OType * mtype = ParseTypeSpec();
+    if (not mtype)  break;
+
+    if (!ParseAttributes(false))
+    {
+      SkipCurStatement();
+      continue;
+    }
+
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(";"))
+    {
+      StatementError(DQERR_MISSING_SEMICOLON_AFTER, "member definition");
+      break;
+    }
+
+    OValSym * mvsym = new OValSym(mempos, membername, mtype);
+    mvsym->initialized = true;
+    mvsym->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
+    ctype->AddMember(mvsym);
+  }
+
+  ctype->GetLlType();
   cur_mod_scope->DefineType(ctype);
 }
 
@@ -2305,6 +2486,22 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           Error(DQERR_MEMBER_NAME_EXPECTED);
           return result;
         }
+
+        OValSym * objsym = (ctype->is_object ? ctype->Members()->FindValSym(membername, nullptr, false) : nullptr);
+        if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
+        {
+          if (!scf->CheckSymbol("("))
+          {
+            Error(DQERR_FUNC_CALL_PARENTH, membername);
+            return result;
+          }
+
+          OExpr * callexpr = ParseExprMethodCall(method, memberbase);
+          result = callexpr;
+          if (!result) return nullptr;
+          continue;
+        }
+
         int midx = ctype->FindMemberIndex(membername);
         if (midx < 0)
         {
@@ -2599,14 +2796,19 @@ OExpr * ODqCompParser::ParseExprPrimary()
   if ("ceil"  == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
-  OValSym * vs = curscope->FindValSym(sid);
+  OScope * found_scope = nullptr;
+  OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
     Error(DQERR_VS_UNKNOWN, sid);
     return result;
   }
 
-  result = new OLValueVar(vs);
+  result = CreateImplicitObjectMemberExpr(sid, vs, found_scope);
+  if (!result)
+  {
+    result = new OLValueVar(vs);
+  }
   if (vs->kind != VSK_FUNCTION and not vs->initialized)
   {
     if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
@@ -2790,6 +2992,33 @@ void ODqCompParser::EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> 
   }
 }
 
+OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope)
+{
+  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->receiver_arg || !vs || !found_scope)
+  {
+    return nullptr;
+  }
+
+  OCompoundType * ctype = curvsfunc->owner_compound_type;
+  if (found_scope != ctype->Members())
+  {
+    return nullptr;
+  }
+
+  if (VSK_FUNCTION == vs->kind)
+  {
+    return nullptr;
+  }
+
+  int midx = ctype->FindMemberIndex(sid);
+  if (midx < 0)
+  {
+    return nullptr;
+  }
+
+  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), ctype, midx, vs->ptype);
+}
+
 bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs)
 {
 
@@ -2948,6 +3177,11 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
 
 OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
 {
+  if (vsfunc && vsfunc->owner_compound_type)
+  {
+    return ParseExprMethodCall(vsfunc, nullptr);
+  }
+
   OCallExpr * result = new OCallExpr(vsfunc);
   if (!ParseCallArguments(vsfunc->name, static_cast<OTypeFunc *>(vsfunc->ptype), result->args))
   {
@@ -2955,6 +3189,51 @@ OExpr * ODqCompParser::ParseExprFuncCall(OValSymFunc * vsfunc)
     return nullptr;
   }
 
+  return result;
+}
+
+OExpr * ODqCompParser::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver)
+{
+  if (!vsfunc || !vsfunc->owner_compound_type)
+  {
+    Error(DQERR_EXPR_NOT_CALLABLE, "method");
+    OExpr::DeleteTree(receiver);
+    return nullptr;
+  }
+
+  vector<TRawCallArg> rawargs;
+
+  TRawCallArg thisarg;
+  scf->SaveCurPos(thisarg.scpos_start);
+  if (receiver)
+  {
+    thisarg.expr = receiver;
+  }
+  else if (curvsfunc && curvsfunc->owner_compound_type == vsfunc->owner_compound_type && curvsfunc->receiver_arg)
+  {
+    thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
+  }
+  else
+  {
+    Error(DQERR_EXPR_NOT_CALLABLE, vsfunc->name);
+    return nullptr;
+  }
+  rawargs.push_back(thisarg);
+
+  if (!ParseRawCallArguments(vsfunc->name, rawargs))
+  {
+    return nullptr;
+  }
+
+  OCallExpr * result = new OCallExpr(vsfunc);
+  if (!BindCallArguments(vsfunc->name, static_cast<OTypeFunc *>(vsfunc->ptype), rawargs, result->args))
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  FreeRawCallArguments(rawargs);
   return result;
 }
 

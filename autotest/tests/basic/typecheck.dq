@@ -1,6 +1,15 @@
 // DQ Type Checking test (ERROR test)
 
 var i : int = 3 / 2; //?error(TypeMismatchAssign)
+var object_scope_global : int = 1;
+
+object TObjectScopeCheck
+  id : int;
+
+  function BadScope():
+    object_scope_global;  //?error(VsUnknown)
+  endfunc
+endobj
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 

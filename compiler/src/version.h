@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.8.15"
+#define DQ_COMPILER_VERSION  "0.9.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.9.0:
+  - Simple object type introduced
 v0.8.15:
   - #linklib directive
 v0.8.14:

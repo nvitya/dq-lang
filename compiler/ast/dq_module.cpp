@@ -42,6 +42,13 @@ ODecl * OModule::DeclareValSym(bool apublic, OValSym * avalsym)
   return result;
 }
 
+ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
+{
+  ODecl * result = new ODecl(apublic, avalsym);
+  declarations.push_back(result);
+  return result;
+}
+
 bool OModule::TypeDeclared(const string aname, OType ** rtype)
 {
   OType * found;

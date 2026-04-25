@@ -11,8 +11,12 @@
  * brief:   function type
  */
 
+#include <algorithm>
+
 #include "otype_func.h"
 #include "dqc.h"
+#include "dq_module.h"
+#include "errorcodes.h"
 #include "ll_defs.h"
 
 void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
@@ -170,6 +174,36 @@ bool OTypeFunc::MatchesSignature(const OTypeFunc * other) const
   return true;
 }
 
+void OTypeFunc::MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names)
+{
+  if (!other)
+  {
+    return;
+  }
+
+  size_t cnt = min(params.size(), other->params.size());
+  for (size_t i = 0; i < cnt; ++i)
+  {
+    OFuncParam * dpar = params[i];
+    OFuncParam * spar = other->params[i];
+    if (!dpar || !spar)
+    {
+      continue;
+    }
+
+    if (copy_param_names)
+    {
+      dpar->name = spar->name;
+    }
+
+    if (!dpar->defvalue && spar->defvalue)
+    {
+      dpar->defvalue = spar->defvalue;
+      spar->defvalue = nullptr;
+    }
+  }
+}
+
 bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
 {
   OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
@@ -315,16 +349,7 @@ bool OValSymOverloadSet::HasMatchingReturnType(const OTypeFunc * atype) const
 
 bool OValSymOverloadSet::HasMatchingOverloadDecl(const OTypeFunc * atype) const
 {
-  for (OValSymFunc * fn : funcs)
-  {
-    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
-    if (ftype && ftype->MatchesOverloadDeclIdentity(atype))
-    {
-      return true;
-    }
-  }
-
-  return false;
+  return (nullptr != FindMatchingOverloadDecl(atype));
 }
 
 bool OValSymOverloadSet::HasMatchingSignature(const OTypeFunc * atype) const
@@ -339,6 +364,25 @@ bool OValSymOverloadSet::HasMatchingSignature(const OTypeFunc * atype) const
   }
 
   return false;
+}
+
+OValSymFunc * OValSymOverloadSet::FindMatchingOverloadDecl(const OTypeFunc * atype) const
+{
+  if (!atype)
+  {
+    return nullptr;
+  }
+
+  for (OValSymFunc * fn : funcs)
+  {
+    OTypeFunc * ftype = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+    if (ftype && ftype->MatchesOverloadDeclIdentity(atype))
+    {
+      return fn;
+    }
+  }
+
+  return nullptr;
 }
 
 EOverloadFuncRefMatch OValSymOverloadSet::FindMatchingSignature(const OTypeFunc * atype, OValSymFunc *& rfunc) const
@@ -365,6 +409,43 @@ EOverloadFuncRefMatch OValSymOverloadSet::FindMatchingSignature(const OTypeFunc 
   }
 
   return (rfunc ? OFRM_UNIQUE_MATCH : OFRM_NO_MATCH);
+}
+
+void OValSymOverloadSet::ValidateForwardDecls() const
+{
+  for (OValSymFunc * fn : funcs)
+  {
+    if (fn)
+    {
+      fn->ValidateForwardDecl();
+    }
+  }
+}
+
+void ValidateModuleForwardFuncDecls(OModule * module)
+{
+  if (!module)
+  {
+    return;
+  }
+
+  for (ODecl * decl : module->declarations)
+  {
+    if (!decl || (DK_VALSYM != decl->kind))
+    {
+      continue;
+    }
+
+    OValSym * vs = decl->pvalsym;
+    if (auto * vsfunc = dynamic_cast<OValSymFunc *>(vs))
+    {
+      vsfunc->ValidateForwardDecl();
+    }
+    else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      ovset->ValidateForwardDecls();
+    }
+  }
 }
 
 LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the function arguments fully prepared
@@ -447,11 +528,81 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   //ll_functions[ptfunc->name] = ll_func;
 }
 
+bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
+{
+  OTypeFunc * this_type = dynamic_cast<OTypeFunc *>(ptype);
+  OTypeFunc * other_type = dynamic_cast<OTypeFunc *>(other ? other->ptype : nullptr);
+  if (!this_type || !other_type)
+  {
+    return false;
+  }
+
+  if (this_type->MatchesSignature(other_type))
+  {
+    return true;
+  }
+
+  g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, FuncTypeName(this_type), FuncTypeName(other_type));
+  return false;
+}
+
+void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_names)
+{
+  OTypeFunc * this_type = dynamic_cast<OTypeFunc *>(ptype);
+  OTypeFunc * other_type = dynamic_cast<OTypeFunc *>(other ? other->ptype : nullptr);
+  if (!this_type || !other_type)
+  {
+    return;
+  }
+
+  this_type->MergeForwardDeclFrom(other_type, copy_param_names);
+
+  is_external = other->is_external;
+  external_linkage_name = other->external_linkage_name;
+  if (other->attr_align)
+  {
+    attr_align = other->attr_align;
+  }
+  if (!other->attr_section_name.empty())
+  {
+    attr_section_name = other->attr_section_name;
+  }
+  attr_is_override = other->attr_is_override;
+  attr_is_virtual  = other->attr_is_virtual;
+}
+
+void OValSymFunc::ValidateForwardDecl() const
+{
+  if (IsForwardDecl())
+  {
+    g_compiler->Error(DQERR_FUNC_FORWARD_NOT_DEFINED, name, const_cast<OScPosition *>(&scpos));
+  }
+}
+
+void OValSymFunc::ResetBodyScope(OScope * aparentscope)
+{
+  for (OValSym * a : args)
+  {
+    delete a;
+  }
+  args.clear();
+
+  if (vsresult)
+  {
+    delete vsresult;
+    vsresult = nullptr;
+  }
+
+  delete body;
+  body = new OStmtBlock(aparentscope, "function_"+name);
+  has_body = false;
+}
+
 void OValSymFunc::GenerateFuncBody()
 {
-  if (is_external)
+  if (is_external || !has_body)
   {
-    return;  // external functions have no body to generate
+    return;  // external functions and unresolved forward declarations have no body to generate
   }
 
   // Get the pre-declared function

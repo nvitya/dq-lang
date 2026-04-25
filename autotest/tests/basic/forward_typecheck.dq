@@ -1,0 +1,11 @@
+#ifdef ERRORTEST
+
+function missing_forward(a : int) -> int;  //?error(FuncForwardNotDefined)
+
+#else
+
+function main() -> int:
+  return 0;
+endfunc
+
+#endif

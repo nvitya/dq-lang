@@ -21,6 +21,7 @@
 using namespace std;
 
 class OValSymFunc;
+class OModule;
 
 enum EOverloadFuncRefMatch
 {
@@ -111,6 +112,7 @@ public:
   OType *       ResolvedRetType() const;
   bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const;
   bool          MatchesSignature(const OTypeFunc * other) const;
+  void          MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names);
   bool          AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
                                      TFuncCallMatchScore & rscore) const;
 
@@ -138,6 +140,7 @@ public:
   OScPosition        scpos_endfunc;
   OStmtBlock *       body;
 
+  bool               has_body = false;
   bool               is_external = false;
   string             external_linkage_name = "";
   string             generated_linkage_name = "";
@@ -150,12 +153,6 @@ public:
     super(apos, aname, atype, VSK_FUNCTION)
   {
     body  = new OStmtBlock(aparentscope, "function_"+aname);
-
-    if (atype->rettype)
-    {
-      vsresult = atype->CreateValSym(apos, "result");
-      body->scope->DefineValSym(vsresult);
-    }
   }
 
   virtual ~OValSymFunc()
@@ -169,9 +166,18 @@ public:
     delete ptype;  // OTypeFunc owned by this function symbol
   }
 
+  inline bool IsForwardDecl() const
+  {
+    return (!is_external && !has_body);
+  }
+
   void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;
   void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;
 
+  bool CheckForwardDeclMatch(OValSymFunc * other) const;
+  void MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_names);
+  void ValidateForwardDecl() const;
+  void ResetBodyScope(OScope * aparentscope);
   void GenerateFuncBody();
   void GenerateFuncRet();
 };
@@ -203,7 +209,9 @@ public:
   bool HasMatchingReturnType(const OTypeFunc * atype) const;
   bool HasMatchingOverloadDecl(const OTypeFunc * atype) const;
   bool HasMatchingSignature(const OTypeFunc * atype) const;
+  OValSymFunc * FindMatchingOverloadDecl(const OTypeFunc * atype) const;
   EOverloadFuncRefMatch FindMatchingSignature(const OTypeFunc * atype, OValSymFunc *& rfunc) const;
+  void ValidateForwardDecls() const;
 
   inline size_t Count() const
   {
@@ -248,3 +256,4 @@ public:
 };
 
 extern string FuncTypeName(OTypeFunc * sigtype);
+void ValidateModuleForwardFuncDecls(OModule * module);

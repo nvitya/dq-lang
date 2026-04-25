@@ -188,6 +188,7 @@ DEF_DQ_ERR(DQERR_FUNC_RETTYPE_EXPECTED,            "FuncRettypeExpected",    "Fu
 DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "FuncNoBodyAllowed",      "\";\" is expected after $1");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "FuncResultNotSet",       "Function \"$1\" result is not set");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_SPECIFIED,            "FuncResultSet",          "Function \"$1\" result is set for function returning no value");
+DEF_DQ_ERR(DQERR_FUNC_FORWARD_NOT_DEFINED,         "FuncForwardNotDefined",  "Function \"$1\" is declared but not defined");
 DEF_DQ_ERR(DQERR_FUNC_CALL_PARENTH,                "FuncCall",               "Function call \"$1\" missing parentheses: \"(\"");
 DEF_DQ_ERR(DQERR_FUNC_ARGS_LIST,                   "FuncArgList",            "Function \"$1\" argument list error");  // used with custom text
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_MANY,               "FuncArgsTooMany",        "Too many arguments are provided for the function \"$1\" call. Expected $2");

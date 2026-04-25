@@ -336,7 +336,7 @@ void ODqCompParser::ParseModule()
     scf->SkipWhite(); // jumps to the first normal token
     if (scf->Eof())
     {
-      return; // end of module
+      break; // end of module
     }
 
     scf->SaveCurPos(scpos_statement_start);  // to display the statement start
@@ -384,6 +384,8 @@ void ODqCompParser::ParseModule()
       RootStatementError(DQERR_MODULE_STATEMENT_UNKNOWN, sid, &scpos_statement_start);
     }
   }
+
+  ValidateModuleForwardFuncDecls(g_module);
 
   if (g_opt.verblevel >= VERBLEVEL_DEBUG)
   {
@@ -882,6 +884,83 @@ void ODqCompParser::ParseFunction()
     Error(DQERR_VARARGS_NOT_ALLOWED);
   }
 
+  scf->SkipWhite();
+  bool is_declaration_only = scf->CheckSymbol(";", false);
+
+  auto cleanup_new_func = [&]()
+  {
+    if (curvsfunc == vsfunc)
+    {
+      curvsfunc = nullptr;
+    }
+    delete vsfunc;
+    vsfunc = nullptr;
+  };
+
+  auto consume_declaration_semicolon = [&](const string & what)
+  {
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(";"))
+    {
+      Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, what);
+    }
+  };
+
+  auto read_function_body = [&](OValSymFunc * bodyfunc)
+  {
+    curvsfunc = bodyfunc;
+    ReadStatementBlock(bodyfunc->body, "endfunc");
+
+    bodyfunc->scpos_endfunc = scf->prevpos;
+    bodyfunc->has_body = true;
+
+    // check if the result is set
+    if (bodyfunc->vsresult and not bodyfunc->vsresult->initialized)
+    {
+      Error(DQERR_FUNC_RESULT_NOT_SET, bodyfunc->name, &bodyfunc->scpos_endfunc);
+    }
+
+    curvsfunc = nullptr;
+  };
+
+  auto fill_forward_decl = [&](OValSymFunc * fwdfunc) -> bool
+  {
+    if (!fwdfunc || !vsfunc)
+    {
+      return false;
+    }
+
+    if (!fwdfunc->CheckForwardDeclMatch(vsfunc))
+    {
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return true;
+    }
+
+    if (vsfunc->is_external)
+    {
+      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+      consume_declaration_semicolon("external function declaration");
+      cleanup_new_func();
+      return true;
+    }
+
+    if (is_declaration_only)
+    {
+      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+      consume_declaration_semicolon("function declaration");
+      cleanup_new_func();
+      return true;
+    }
+
+    fwdfunc->MergeForwardDeclFrom(vsfunc, true);
+    fwdfunc->ResetBodyScope(cur_mod_scope);
+    PrepareFuncDecl(scpos_statement_start, fwdfunc);
+    cleanup_new_func();
+    read_function_body(fwdfunc);
+    return true;
+  };
+
   OValSym * existing = cur_mod_scope->FindValSym(sid, nullptr, false);
   if (vsfunc->attr_is_overload)
   {
@@ -904,12 +983,20 @@ void ODqCompParser::ParseFunction()
         return;
       }
 
-      if (ovset->HasMatchingOverloadDecl(static_cast<OTypeFunc *>(vsfunc->ptype)))
+      OValSymFunc * matching_decl = ovset->FindMatchingOverloadDecl(static_cast<OTypeFunc *>(vsfunc->ptype));
+      if (matching_decl)
       {
-        Error(DQERR_OVERLOAD_DUP_SIGNATURE, sid);
-        RecoverFailedFunctionDecl();
-        curvsfunc = nullptr;
-        delete vsfunc;
+        if (matching_decl->IsForwardDecl())
+        {
+          fill_forward_decl(matching_decl);
+        }
+        else
+        {
+          Error(DQERR_OVERLOAD_DUP_SIGNATURE, sid);
+          RecoverFailedFunctionDecl();
+          curvsfunc = nullptr;
+          delete vsfunc;
+        }
         return;
       }
 
@@ -936,34 +1023,42 @@ void ODqCompParser::ParseFunction()
       return;
     }
 
+    if (auto * existing_func = dynamic_cast<OValSymFunc *>(existing))
+    {
+      if (existing_func->IsForwardDecl())
+      {
+        fill_forward_decl(existing_func);
+      }
+      else
+      {
+        Error(DQERR_VS_ALREADY_DECL_SCOPE, sid, cur_mod_scope->debugname);
+        RecoverFailedFunctionDecl();
+        cleanup_new_func();
+      }
+      return;
+    }
+
     AddDeclFunc(scpos_statement_start, vsfunc);
   }
 
   if (vsfunc->is_external)
   {
     // external functions have no body, expect ";"
-    scf->SkipWhite();
-    if (not scf->CheckSymbol(";"))
-    {
-      Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, "external function declaration");
-    }
+    consume_declaration_semicolon("external function declaration");
+    curvsfunc = nullptr;
+    return;
+  }
+
+  if (is_declaration_only)
+  {
+    consume_declaration_semicolon("function declaration");
     curvsfunc = nullptr;
     return;
   }
 
   // go on with the function body
 
-  ReadStatementBlock(vsfunc->body, "endfunc");
-
-  vsfunc->scpos_endfunc = scf->prevpos;
-
-  // check if the result is set
-  if (vsfunc->vsresult and not vsfunc->vsresult->initialized)
-  {
-    Error(DQERR_FUNC_RESULT_NOT_SET, vsfunc->name, &vsfunc->scpos_endfunc);
-  }
-
-  curvsfunc = nullptr;
+  read_function_body(vsfunc);
 }
 
 void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)

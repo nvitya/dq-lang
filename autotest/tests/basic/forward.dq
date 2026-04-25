@@ -1,0 +1,78 @@
+#ifdef ERRORTEST
+
+function mismatch(a : int) -> int;
+
+function mismatch(a : float) -> int:  //?error(FuncSigType)
+  return 1;
+endfunc
+
+function mismatch(a : int) -> int:
+  return a;
+endfunc
+
+function duplicate_body(a : int) -> int:
+  return a;
+endfunc
+
+function duplicate_body(a : int) -> int:  //?error(VsAlreadyDecl)
+  return a;
+endfunc
+
+function ov_mismatch(ref a : int) -> int [[overload]];
+
+function ov_mismatch(refout a : int) -> int [[overload]]:  //?error(FuncSigType)
+  a = 1;
+  return a;
+endfunc
+
+function ov_mismatch(ref a : int) -> int [[overload]]:
+  return a;
+endfunc
+
+#else
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+type CBOne = function(a : int) -> int;
+
+function later_add(a : int, b : int) -> int;
+function later_default(a : int, b : int = 4) -> int;
+function later_cb(a : int) -> int;
+function pick(a : int) -> int [[overload]];
+function pick(a : float) -> int [[overload]];
+
+var g_cb : CBOne = later_cb;
+
+function main() -> int:
+  printf("Forward declaration test\n");  //?check('Forward declaration test')
+
+  printf("later_add(2, 3) = %li\n", later_add(2, 3));  //?check('later_add(2, 3)', 15)
+  printf("later_default(6) = %li\n", later_default(6));  //?check('later_default(6)', 10)
+  printf("g_cb(7) = %li\n", g_cb(7));  //?check('g_cb(7)', 21)
+  printf("pick(5) = %li\n", pick(5));  //?check('pick(5)', 105)
+  printf("pick(2.4) = %li\n", pick(2.4));  //?check('pick(2.4)', 202)
+
+  return 0;
+endfunc
+
+function later_add(x : int, y : int) -> int:
+  return x + y + 10;
+endfunc
+
+function later_default(x : int, y : int) -> int:
+  return x + y;
+endfunc
+
+function later_cb(x : int) -> int:
+  return x * 3;
+endfunc
+
+function pick(x : int) -> int [[overload]]:
+  return x + 100;
+endfunc
+
+function pick(x : float) -> int [[overload]]:
+  return round(x) + 200;
+endfunc
+
+#endif

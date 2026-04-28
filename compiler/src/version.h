@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.9.1"
+#define DQ_COMPILER_VERSION  "0.9.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.9.2:
+  - Constant array generation fix
 v0.9.1:
   - Object methods share the capabilities like normal root functions
 v0.9.0:

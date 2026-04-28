@@ -1,8 +1,28 @@
 // array tests
 
+function dq_arr_fixed_arg(arr : int[3]) -> int:
+  result = arr[0] + arr[1] + arr[2];
+endfunc
+
+function dq_arr_fixed_test() -> int:
+  result = dq_arr_fixed_arg([1,2,3]);
+endfunc
+
+#ifdef ERRORTEST
+
+function dq_arr_fixed_test_error() -> int:
+  result = dq_arr_fixed_arg([1,2,3,4]);   //?error(ArrSize)
+endfunc                                   //?error(FuncResultNotSet)
+
+#else  // run tests
+
 const const_arr : int[4] = [1, 2, 3, 4];
 
-// #define ERRORTEST
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function dq_arr_const_index(i : int) -> int:
+  result = const_arr[i];
+endfunc
 
 function dq_arr_basic() -> int:
   var a : int[3];
@@ -50,18 +70,36 @@ function dq_arr_modify(arr : int[]) -> int:
   result = arr[0];
 endfunc
 
-function dq_arr_fixed_arg(arr : int[3]) -> int:
-  result = arr[0] + arr[1] + arr[2];
+
+function main() -> int:
+  printf("Testing DQ arrays:\n");  //?check('Testing DQ arrays:')
+
+  var r : int;
+
+  r = dq_arr_fixed_test();
+  printf("dq_arr_fixed_test() = %li\n", r);  //?check('dq_arr_fixed_test()', 6)
+
+  r = dq_arr_basic();
+  printf("dq_arr_basic() = %li\n", r);  //?check('dq_arr_basic()', 61)
+
+  r = dq_arr_const_index(3);
+  printf("dq_arr_const_index(3) = %li\n", r);  //?check('dq_arr_const_index(3)', 4)
+
+  r = dq_arr_index(2);
+  printf("dq_arr_index(2) = %li\n", r);  //?check('dq_arr_index(2)', 300)
+
+  r = dq_arr_slice_test();
+  printf("dq_arr_slice_test() = %li\n", r);  //?check('dq_arr_slice_test()', 6)
+
+  r = dq_arr_len();
+  printf("dq_arr_len() = %li\n", r);  //?check('dq_arr_len()', 5)
+
+  var a : int[2] = [1, 2];
+  r = dq_arr_modify(a);
+  printf("dq_arr_modify() = %li\n", r);  //?check('dq_arr_modify()', 999)
+  printf("dq_arr_modify source = %li\n", a[0]);  //?check('dq_arr_modify source', 999)
+
+  return 0;
 endfunc
-
-function dq_arr_fixed_test() -> int:
-  result = dq_arr_fixed_arg([1,2,3]);
-endfunc
-
-#ifdef ERRORTEST
-
-function dq_arr_fixed_test_error() -> int:
-  result = dq_arr_fixed_arg([1,2,3,4]);   //?error(ArrSize)
-endfunc                                   //?error(FuncResultNotSet)
 
 #endif

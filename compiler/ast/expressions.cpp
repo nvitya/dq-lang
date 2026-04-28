@@ -199,6 +199,15 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
 
   if (VSK_CONST == pvalsym->kind)
   {
+    OType * resolved_type = pvalsym->ResolvedType();
+    if (resolved_type && (TK_ARRAY == resolved_type->kind))
+    {
+      if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
+      {
+        return global;
+      }
+    }
+
     throw logic_error(std::format("Constant \"{}\" has no addressable storage", pvalsym->name));
   }
 

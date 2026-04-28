@@ -1,4 +1,5 @@
 build
+tools/vscode-dq/node_modules/
 /CMakeCache.txt
 /CMakeFiles/
 /CTestTestfile.cmake

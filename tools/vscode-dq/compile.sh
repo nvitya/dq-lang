@@ -1,2 +1,8 @@
 #!/bin/bash
-npx @vscode/vsce package
+
+# npx @vscode/vsce package
+
+set -euo pipefail
+
+npm ci
+npm run package

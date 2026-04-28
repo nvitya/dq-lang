@@ -5,6 +5,9 @@
   "version": "0.0.1",
   "publisher": "local",
   "license": "UNLICENSED",
+  "scripts": {
+    "package": "vsce package"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:nvitya/dq-comp.git"
@@ -80,5 +83,11 @@
         "path": "./snippets/dq.json"
       }
     ]
+  },
+  "devDependencies": {
+    "@vscode/vsce": "2.20.0"
+  },
+  "overrides": {
+    "cheerio": "1.0.0-rc.12"
   }
 }

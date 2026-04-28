@@ -1,7 +1,7 @@
 {
   "name": "dq-syntax",
-  "displayName": "DQ Syntax",
-  "description": "Syntax highlighting and basic editor support for DQ files.",
+  "displayName": "DQ Language Support",
+  "description": "Minimal editor, build, and debug configuration support for DQ files.",
   "version": "0.0.1",
   "publisher": "local",
   "license": "UNLICENSED",
@@ -17,6 +17,8 @@
     "package.json",
     "README.md",
     "LICENSE.txt",
+    "examples/**",
+    "snippets/**",
     "syntaxes/**"
   ],
   "categories": [
@@ -46,6 +48,31 @@
         "language": "dq",
         "scopeName": "source.dq",
         "path": "./syntaxes/dq.tmLanguage.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "dq",
+        "owner": "dq",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.*)\\((\\d+),(\\d+)\\)\\s+(error|warning|ERROR|WARNING)\\(([^)]+)\\):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "dq",
+        "path": "./snippets/dq.json"
       }
     ]
   }

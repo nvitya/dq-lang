@@ -1,0 +1,61 @@
+{
+  "Function": {
+    "prefix": "function",
+    "body": [
+      "function ${1:name}(${2:args}) -> ${3:int}:",
+      "  ${0}",
+      "endfunc"
+    ],
+    "description": "DQ function definition"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition}:",
+      "  ${0}",
+      "endif"
+    ],
+    "description": "DQ if statement"
+  },
+  "While": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition}:",
+      "  ${0}",
+      "endwhile"
+    ],
+    "description": "DQ while loop"
+  },
+  "For": {
+    "prefix": "for",
+    "body": [
+      "for ${1:condition}:",
+      "  ${0}",
+      "endfor"
+    ],
+    "description": "DQ for loop"
+  },
+  "Object": {
+    "prefix": "object",
+    "body": [
+      "object ${1:Name}:",
+      "  ${0}",
+      "endobj"
+    ],
+    "description": "DQ object definition"
+  },
+  "External Function": {
+    "prefix": "external",
+    "body": [
+      "[[external]] function ${1:name}(${2:args}) -> ${3:int};"
+    ],
+    "description": "DQ external function declaration"
+  },
+  "External Function With Symbol": {
+    "prefix": "externalname",
+    "body": [
+      "[[external(\"${1:c_name}\")]] function ${2:name}(${3:args}) -> ${4:int};"
+    ],
+    "description": "DQ external function declaration with explicit C symbol"
+  }
+}

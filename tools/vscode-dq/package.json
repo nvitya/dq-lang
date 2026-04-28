@@ -69,6 +69,11 @@
         }
       }
     ],
+    "breakpoints": [
+      {
+        "language": "dq"
+      }
+    ],
     "snippets": [
       {
         "language": "dq",

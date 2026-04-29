@@ -1,0 +1,1907 @@
+# DQ Language Specification
+
+**Version:** 0.1.13 (Draft)
+**Status:** Work in Progress
+**Last Updated:** 2026-01-23
+
+---
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Design Principles](#2-design-principles)
+3. [Lexical Structure](#3-lexical-structure)
+4. [Types](#4-types)
+5. [Variables and Constants](#5-variables-and-constants)
+6. [Expressions and Operators](#6-expressions-and-operators)
+7. [Statements and Control Flow](#7-statements-and-control-flow)
+8. [Functions](#8-functions)
+9. [Objects](#10-objects)
+10. [Pointers and References](#11-pointers-and-references)
+11. [Modules and Namespaces](#12-modules-and-namespaces)
+12. [Preprocessor and Compiler Directives](#13-preprocessor-and-compiler-directives)
+13. [Memory Management](#14-memory-management)
+14. [Standard Library](#15-standard-library)
+15. [Explicitly Rejected Features](#16-explicitly-rejected-features)
+16. [Open Questions](#17-open-questions)
+
+---
+
+## 1. Overview
+
+DQ is a compiled, universal strongly-typed programming language designed to combine:
+- Hunman Friendly
+- Pascal-like readability and explicitness
+- C++-style object model (stack or heap allocation)
+- No harmful implicit type conversions (unlike in C/C++)
+- Predictable operator precedence (avoiding the classic C traps)
+- Embedded-friendly design with manual memory control
+
+### 1.1 Target Use Cases
+- Systems programming
+- Embedded development
+- Desktop applications
+- Cross-platform development
+
+### 1.2 Compilation Model
+- Ahead-of-time (AOT) compilation
+- LLVM backend (planned)
+- Future: Embedded profile with reduced runtime overhead (no exceptions, minimal RTL)
+
+---
+
+## 2. Design Principles
+
+### 2.1 Core Philosophy
+- **Human Friendly**: Avoid unnatural behavior and error messages
+- **Readability preferred over minimal keystrokes**: Code should be self-documenting, good naturally readable by humans
+- **Signal-over-noise**: Eliminate repetitive qualifiers, ensuring code focuses on logic
+- **More natural syntax and behavior for humans**: For example, `(3/2)*10` evaluates to `15.0` (unlike in C or Rust where it yields `10.0`).
+
+
+### 2.2 Key Differentiators from Other Languages
+
+| Feature | DQ Approach | Why |
+|---------|-------------|-----|
+| Unsafe type conversions | Always explicit | Prevents silent data loss or unexpected results from automatic conversions. |
+| Boolean type | Strict, no int↔bool | Prevents accidental truthy/falsy bugs |
+| Division | `/` always returns float | Clear semantics, use `IDIV` for integers |
+| Operator precedence | Bitwise before comparison | Prevents `a AND b == 0` ambiguity |
+| Object allocation | Choice of stack or heap | Same type, different storage |
+| Self reference | Not required in objects | Clean method bodies |
+
+---
+
+## 3. Lexical Structure
+
+### 3.1 Case Sensitivity
+DQ is **case-sensitive**.
+
+### 3.2 Comments
+```dq
+// Single-line comment
+
+/* Multi-line
+   comment */
+```
+
+### 3.3 Keywords
+
+#### Reserved Keywords
+```
+and         array       auto        break       case        const
+continue    delete      elif        else        endconst    endensure
+endfinalization         endfor      endfunc     endif       endinitialization
+endobject   endtry      endwhile    ensure      except      false
+finalization            for         function    if          implementation
+in          initialization          interface   module      new
+not         null        object      or          out         packed
+private     property    public      raise       ref         return
+specialize  struct      to          true        try         type
+use         var         virtual     while
+```
+
+#### Operator Keywords (Case-Sensitive)
+- **Uppercase (integer/bitwise)**: `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR`, `IDIV`, `IMOD`
+- **Lowercase (logical)**: `and`, `or`, `not`
+
+### 3.4 Identifiers
+- Must begin with a letter (A-Z, a-z) or underscore
+- May contain letters, digits, and underscores
+- ASCII only — no Unicode identifiers allowed
+
+### 3.5 Attributes
+
+Attributes are specified using double square brackets `[[ ... ]]` syntax:
+
+```dq
+[[attribute_name]]                  // single attribute
+[[attr1, attr2]]                    // multiple attributes
+[[attribute("value")]]              // attribute with argument
+```
+
+Attributes can be placed:
+- Before a declaration
+- After a function signature (before the body)
+
+See section 8.5 for function-specific attributes.
+
+### 3.6 Literals
+
+#### Numeric Literals
+```dq
+42          // int
+3.14        // float (float64)
+0xFF        // hexadecimal int
+0b1010      // binary int
+1_000_000   // underscores allowed for readability
+```
+
+**Note**: No type suffixes on literals (like `10i32`). Types are always clear from context or explicit declarations.
+
+#### String and Character Literals
+
+Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably. The **type is determined by length**:
+
+```dq
+// Character literals (exactly one character)
+'A'             // char
+"A"             // char
+'\n'            // char (escape sequence)
+"\t"            // char (escape sequence)
+
+// String literals (zero or multiple characters)
+"Hello, World!" // str
+'Hello, World!' // str
+""              // str (empty string)
+''              // str (empty string)
+"Line 1\nLine 2"// str (with escape sequence)
+```
+
+**Rules**:
+- **Exactly one character** (including escape sequences) → `char`
+- **Zero or multiple characters** → `str`
+- Both quote styles are equivalent — use whichever is convenient for the content
+
+**Concatenation**: When using `+`, `char` is implicitly promoted to `str`:
+```dq
+var s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
+```
+
+**Assignment Compatibility**: A `char` value (or literal) can be implicitly assigned to a `str` variable or parameter. The result is a string of length 1. This provides an explicit exception to the "no implicit conversions" rule for this common and intuitive case.
+```dq
+var c : char = 'A';
+var s : str = c;    // OK: implicit conversion from char to str
+var s2 : str = "B"; // OK: "B" is a char literal, implicitly converted
+```
+
+#### Multi-line Strings
+
+Triple-quoted strings (`"""..."""` or `'''...'''`) allow multi-line content with automatic indentation handling:
+
+```dq
+var sql = """
+    select
+      d.MTIME, d.SENSID, d.VALUE
+    from
+      MDATA d
+    where
+      (d.MTYPE=1)
+    order by
+      d.MTIME asc
+    """;
+```
+
+**Rules**:
+- **Auto-dedent**: Common leading whitespace is stripped based on the closing `"""` indentation
+- **Newline trimming**: The first newline after opening quotes and the last newline before closing quotes are ignored (when quotes are on their own lines)
+- **Escape sequences**: Still processed (`\n`, `\t`, `\\`, etc.)
+- **Type**: Always `str`, regardless of content length
+
+**Example with indentation**:
+```dq
+function example():
+    var msg = """
+        Line 1
+        Line 2
+        """;
+    // Result: "Line 1\nLine 2" (8 spaces stripped, no trailing newline)
+endfunc
+```
+
+**Single-line usage** (useful for strings containing both quote types):
+```dq
+var json : str = """{"key": "value with 'quotes'"}""";
+```
+
+#### Boolean Literals
+```dq
+true
+false
+```
+
+---
+
+## 4. Types
+
+### 4.1 Primitive Types
+
+#### Integer Types
+| Type | Size | Range |
+|------|------|-------|
+| `int8` | 8-bit | -128 to 127 |
+| `byte`, `uint8` | 8-bit | 0 to 255 |
+| `int16` | 16-bit | -32,768 to 32,767 |
+| `uint16` | 16-bit | 0 to 65,535 |
+| `int32` | 32-bit | -2³¹ to 2³¹-1 |
+| `uint32` | 32-bit | 0 to 2³²-1 |
+| `int64` | 64-bit | -2⁶³ to 2⁶³-1 |
+| `uint64` | 64-bit | 0 to 2⁶⁴-1 |
+| `int` | pointer-sized | platform dependent |
+| `uint` | pointer-sized | platform dependent |
+
+**Note**: `byte` and `uint8` are interchangeable. The type `word` is intentionally not provided due to ambiguity (16-bit vs 32-bit depending on platform conventions).
+
+#### Floating Point Types
+| Type | Size | Description |
+|------|------|-------------|
+| `float32` | 32-bit | IEEE 754 single precision |
+| `float64` | 64-bit | IEEE 754 double precision |
+| `float` | 64-bit | Alias for `float64` |
+
+#### Boolean Type
+```dq
+bool    // true or false, no implicit conversion to/from integers
+```
+
+#### Character Types
+```dq
+char    // 32-bit Unicode scalar value (0..0x10FFFF, excluding surrogates)
+char16  // 16-bit UTF-16 code unit
+char8   // 8-bit code unit / byte
+```
+
+**Character from Unicode code point**:
+```dq
+var c : char = char(0x30);      // '0' (digit zero)
+var c : char = char(0x1F600);   // 😀 (emoji)
+```
+
+### 4.2 String Types
+
+#### Dynamic String (`str` / `string`)
+- Python-like semantics
+- Unicode-aware
+- Heap-backed, variable length
+- `str` is the primary spelling; `string` is an alias
+
+```dq
+var s1 : str = "Hello";
+var s2 : str = s1 + " World";
+var len : int = length(s1);     // Pascal-style function
+var len : int = s1.length;      // also available as property
+var ch : char = s1[0];          // indexed access (Unicode-aware)
+```
+
+#### Fixed-Size String Buffer (`cstring[N]`)
+- N bytes inline (no heap)
+- NUL-terminated
+- For protocols, ABI, packed structs
+
+```dq
+var name : cstring[32];        // 32-byte inline buffer
+name = "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
+var s : str = name;            // converts to dynamic string
+```
+
+### 4.3 Array Types
+
+DQ provides three distinct array types, each serving a specific purpose: fixed-size arrays for stack-based value semantics, open arrays (slices) for flexible views into data, and dynamic arrays for heap-based mutable containers.
+
+#### Fixed-Size Array (`T[N]`)
+- **Storage**: Inline (typically on the stack). The size `N` must be a compile-time constant.
+- **Semantics**: Value type. When passed as a value parameter, the entire array is copied.
+- **Use Case**: Small, fixed-size data structures where performance and stack allocation are critical.
+
+```dq
+var arr : int32[4];          // 4 integers allocated on the stack
+arr[0] = 10;
+var len : int = arr.length;
+```
+
+#### Open Array / Slice (`T[]`)
+- **Storage**: A view or "slice" into a contiguous block of memory. It does not own the data itself. Internally, it is a fat pointer: a struct containing `{ data: ^T, length: int }`.
+- **Semantics**: Universal, non-owning view.
+  - Can bind to **Fixed-Size Arrays**, **Dynamic Arrays**, and **Array Literals**.
+  - The view itself cannot be resized (no `append`/`delete` operations).
+  - Elements can be modified unless the `in` modifier is used in a function parameter.
+- **Use Case**: The default choice for function parameters that need to read or process data from any array-like source without taking ownership or needing to resize it. This is the key to implementing variadic arguments.
+
+```dq
+// A function accepting any kind of integer array
+function sum(values: int[]) -> int:
+    result = 0;
+    for v in values:
+        result += v;
+    endfor
+endfunc
+
+// It can be called with different array types:
+var fixed_arr : int[3] = [1, 2, 3];
+var dyn_arr : int[...] = [4, 5, 6];
+
+var s1 : int = sum(fixed_arr);      // slice points to fixed array
+var s2 : int = sum(dyn_arr);        // slice points to dynamic array data
+var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
+```
+
+#### Dynamic Array (`T[...]`)
+- **Storage**: Heap-allocated, resizable container. The variable holds a handle (pointer/reference) to the heap object.
+- **Semantics**: Reference-like container type.
+  - Can be resized with methods like `append`, `clear`, etc.
+  - **Cannot** bind to Fixed-Size Arrays or array literals.
+  - Passing as a `ref` parameter is required if the function needs to reallocate or resize the array (e.g., `append`).
+- **Use Case**: General-purpose mutable collections of elements, where the size is not known at compile-time.
+
+```dq
+var arr : int[...];            // Handle is null initially
+arr = [10, 20];                // Assign a new dynamic array from a literal
+arr.append(30);
+var len : int = arr.length;    // runtime value
+```
+
+#### Multi-dimensional Arrays
+Multi-dimensional arrays are combinations of the above types.
+
+```dq
+var matrix : int[3][4];      // fixed 3x4 matrix
+var grid : int[...][...];    // fully dynamic 2D array (array of dynamic arrays)
+var rows : int[][4];         // array of slices, with each slice pointing to 4 columns
+```
+
+### 4.4 Pointer Types
+
+```dq
+var p : ^int32;                 // pointer to int32
+var p : ^MyStruct;              // pointer to object/struct
+var ptr : pointer;              // untyped pointer (like void*)
+```
+
+### 4.5 Type Aliases
+
+```dq
+type MyInt = int32;
+type Callback = function(x: int) -> int;
+type MethodCallback = function(x: int) -> int of object;
+```
+
+### 4.6 Enumeration Types
+
+Enumerations define a set of named constant values with a mandatory underlying storage type.
+
+#### Declaration Syntax
+
+```dq
+// Storage type is mandatory
+type TProcState : byte = (psIdle, psRising, psFalling, psSaving);
+
+// With explicit values (for protocols, hardware registers, etc.)
+type TCmd : byte = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF);
+
+// Auto-increment from last explicit value
+type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1, 2, 3
+```
+
+#### Scope and Naming
+
+Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
+
+```dq
+var state : TProcState = psIdle;
+
+if state == psRising:
+    // ...
+endif
+```
+
+**Naming convention**: Use a short prefix derived from the type name to avoid conflicts:
+- `TProcState` → `ps` prefix: `psIdle`, `psRising`
+- `TCommand` → `cmd` prefix: `cmdRead`, `cmdWrite`
+- `TResult` → `res` prefix: `resOk`, `resError`
+
+This convention prevents name collisions when multiple enum types are in scope.
+
+#### Type Conversions
+
+Conversions between enum types and their underlying integer type must be **explicit**:
+
+```dq
+var cmd : TCmd = cmdRead;
+
+// Enum to integer: explicit cast
+var val : byte = byte(cmd);            // val = 0x10
+
+// Integer to enum: explicit cast
+var cmd2 : TCmd = TCmd(0x20);          // cmd2 = cmdWrite
+
+// Comparison with integer literals: requires cast
+if byte(cmd) == 0x10:  ...  endif    // OK: explicit
+// if cmd == 0x10:  ...  endif       // ERROR: type mismatch
+```
+
+#### Supported Underlying Types
+
+Any integer type can be used as the underlying storage:
+- `byte`, `uint8`, `int8`
+- `uint16`, `int16`
+- `uint32`, `int32`
+- `uint64`, `int64`
+
+```dq
+type TSmallEnum : byte = (seA, seB, seC);           // 1 byte
+type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
+```
+
+---
+
+## 5. Variables and Constants
+
+### 5.1 Variable Declaration
+
+Variables are declared in `var identifier : type [= initial_value];` form
+
+```dq
+var x : int32 = 10;         // explicit type with initialization
+var y : int32;              // uninitialized (must be assigned before use)
+```
+
+### 5.2 Type Inference with `auto`
+
+Use the special type `auto` when you want the compiler to infer the type:
+
+```dq
+var x : auto = 10;          // inferred as int
+var s : auto = "hello";     // inferred as str
+var x : auto = some_function(); // inferred from return type
+```
+
+### 5.3 Constants
+
+Constants are declared with `const(type)` syntax, where the type is mandatory.
+
+#### Single-Line Form
+
+```dq
+const(float)  PI = 3.14159265358979;
+const(uint32) MAGIC = 0xDEADBEEF;
+const(int)    MAX_SIZE = 1024;
+```
+
+#### Block Form
+
+Use the block form to group related constants of the same type:
+
+```dq
+const(uint):
+    BUFFER_SIZE = 1024;
+    BUFFER_MASK = BUFFER_SIZE - 1;
+    MAX_ITEMS = 256;
+endconst
+
+const(float):
+    PI = 3.14159265358979;
+    E  = 2.71828182845904;
+endconst
+```
+
+Constants are evaluated at compile time and can reference other constants in expressions.
+
+---
+
+## 6. Expressions and Operators
+
+### 6.1 Arithmetic Operators
+
+| Operator | Description | Notes |
+|----------|-------------|-------|
+| `+` | Addition | |
+| `-` | Subtraction / Unary minus | |
+| `*` | Multiplication | |
+| `/` | Division | **Always returns float** |
+| `IDIV` | Integer division | Returns integer |
+| `IMOD` | Integer modulo | Returns integer |
+
+**Division Rule**: `/` always yields `float`. Integer division requires explicit `IDIV`.
+
+```dq
+var f : float = 10 / 3;         // == 3.333...
+var i : int = 10 IDIV 3;        // == 3
+var i : int = round(10 / 3);    // == 3 (explicit rounding)
+```
+
+**Rounding Functions**:
+- `round(x)`: Scientific rounding (half away from zero)
+- `floor(x)`: Round toward negative infinity
+- `ceil(x)`: Round toward positive infinity
+
+### 6.2 Comparison Operators
+
+| Operator | Description |
+|----------|-------------|
+| `==` | Equality |
+| `!=`, `<>` | Inequality (both accepted) |
+| `<` | Less than |
+| `>` | Greater than |
+| `<=` | Less than or equal |
+| `>=` | Greater than or equal |
+
+**Note**: Only `==` is allowed for equality checks. Single `=` is reserved for assignment and cannot be used in comparisons.
+
+### 6.3 Logical Operators (lowercase, for `bool` only)
+
+| Operator | Description | Short-circuit |
+|----------|-------------|---------------|
+| `and` | Logical AND | Yes |
+| `or` | Logical OR | Yes |
+| `not` | Logical NOT | N/A |
+
+### 6.4 Bitwise Operators (UPPERCASE, for integers only)
+
+| Operator | Description |
+|----------|-------------|
+| `AND` | Bitwise AND |
+| `OR` | Bitwise OR |
+| `XOR` | Bitwise XOR |
+| `NOT` | Bitwise NOT (complement) |
+| `SHL`, `<<` | Shift left |
+| `SHR`, `>>` | Shift right |
+
+### 6.5 Unary Operators
+
+| Operator | Description |
+|----------|-------------|
+| `-` | Unary minus (negation) |
+| `&` | Address-of (get pointer to variable) |
+| `^` | Dereference (access value at pointer) |
+| `NOT` | Bitwise NOT (complement) |
+| `not` | Logical NOT |
+
+**Examples**:
+```dq
+var x : int = 10;
+var y : int = -x;              // unary minus: y = -10
+
+var p : ^int = &x;             // address-of: p points to x
+var z : int = p^;              // dereference: z = 10
+
+var mask : int = NOT 0xFF;     // bitwise NOT
+var flag : bool = not true;    // logical NOT
+```
+
+### 6.6 Operator Precedence
+
+The precedence is designed to avoid the classic C trap where `a AND b == 0` parses as `a AND (b == 0)`.
+
+**DQ Precedence (highest to lowest)**:
+
+1. Primary: `()`, `.`, `[]`, function calls
+2. Unary: `-`, `&` (address-of), `^` (dereference)
+3. Bitwise NOT: `NOT`
+4. Multiplicative: `*`, `/`, `IDIV`, `IMOD`
+5. Additive: `+`, `-`
+6. Shift: `SHL`, `SHR`, `<<`, `>>`
+7. Bitwise AND: `AND`
+8. Bitwise XOR: `XOR`
+9. Bitwise OR: `OR`
+10. **Comparison**: `<`, `>`, `<=`, `>=`, `==`, `!=`, `<>`
+11. Logical NOT: `not`
+12. Logical AND: `and`
+13. Logical OR: `or`
+
+**Key design points**:
+- Bitwise operators bind **tighter** than comparisons
+- Logical `not` is **lower** than comparisons (enables braceless expressions)
+
+```dq
+// This works as expected without parentheses:
+if i2 AND i1 <> 0: ...       // parses as (i2 AND i1) <> 0
+
+// This results to same:
+if i2 AND i1 <> 0 and i1 << 1 > 5: ...
+// as this:
+if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
+```
+
+### 6.7 Assignment Operators
+
+```dq
+var x : int = 10;
+x += 5;                     // compound: add
+x -= 5;                     // compound: subtract
+x *= 2;                     // compound: multiply
+x /= 2;                     // compound: divide (result is float!)
+```
+
+**Important**:
+- Assignment uses single `=` operator
+- Assignment is a **statement** — not allowed in expressions (like after `if`)
+- Assignment chaining is not possible (e.g. `a = b = 1;` is a compiler error)
+- Single `=` is **only** for assignment, never for comparison (use `==` for equality checks)
+
+### 6.8 Named Arguments
+
+Named arguments use the `=` operator, following Python conventions:
+
+```dq
+connect(port = 80, timeout_ms = 5000);
+var cfg : TConfig = (baud = 115200, parity = .None);
+```
+
+**Note**: Context makes it clear whether `=` is used for assignment (in statements) or named argument binding (in function/constructor calls).
+
+### 6.9 Inline Conditional Expression: iif()
+
+DQ provides an inline conditional expression in the form of the intrinsic `iif()` construct. It is a value-producing expression intended for concise conditional selection without introducing block syntax.
+
+#### Syntax
+
+```dq
+iif(condition, true_expression, false_expression)
+```
+
+#### Semantics
+
+`iif()` is a **conditional expression**, not a regular function. The key behavioral properties are:
+
+- **Short-circuit evaluation**: Exactly one of `true_expression` or `false_expression` is evaluated.
+  - If `condition` evaluates to `true`, only `true_expression` is evaluated and returned.
+  - If `condition` evaluates to `false`, only `false_expression` is evaluated and returned.
+
+#### Result Type Inference
+
+The result type of `iif()` is determined **exclusively from the two branch expressions**, independent of any surrounding target type.
+
+Let `T1` be the type of `true_expression` and `T2` the type of `false_expression`.
+
+The result type is determined as follows:
+
+1. **Identical types**: If `T1` and `T2` are identical, the result type is that type.
+
+2. **Numeric promotion**: If `T1` and `T2` are both numeric types, the result type is their common numeric supertype, using the standard numeric promotion rules.
+   - Example: `int` and `float` → `float`
+   - Example: `int32` and `int64` → `int64`
+
+3. **No implicit type joining for non-numerical type**: `T1` and `T2` type must be identical
+
+
+#### Examples
+
+```dq
+// Integer selection
+var maxv : int = iif(a > b, a, b);
+
+// String selection
+var msg : str = iif(ok, "OK", FormatError(code));
+
+// Numeric promotion: int and float → float
+var f : float = iif(flag, 1, 2.1);      // result type is float
+
+// Nested iif (ternary chains)
+var sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
+
+// Used in expressions
+var result : int = iif(enabled, base * 2, base) + offset;
+
+var i1 : int = iif(count, 1, 3);     // ERROR: condition is not bool
+var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
+
+// Invalid: incompatible types
+// var s : str = iif(flag, "text", 42);     // ERROR: str vs int
+
+```
+
+#### Comparison with if-else Statements
+
+`iif()` complements rather than replaces `if`-`else` statements:
+
+- Use `iif()` for **value selection** in expressions
+- Use `if`-`else` for **control flow** and multi-statement branches
+
+```dq
+// Good use of iif: concise value selection
+var max : int = iif(a > b, a, b);
+
+// Better as if-else when branches have side effects:
+if condition:
+    result =  compute1();
+    result += compute2();
+else:
+    result = fallback();
+endif
+```
+
+---
+
+## 7. Statements and Control Flow
+
+### 7.1 Block Modes
+
+DQ supports two block modes: **Indent Mode** and **Braces Mode** (selectable via compiler directive). The default mode is **Indent Mode**.
+
+#### Indent Block Mode (default)
+
+In indent mode, DQ enforces a consistent, unambiguous syntax using colons and `endXXX` keywords to delimit blocks.
+
+- **Blocks**: Must use `: ... endXXX` delimiters.
+- **Indentation**: Proper indentation is required (violations produce warnings).
+
+```dq
+#{syn blockmode indent}
+
+function HandleState(value : int):
+    if curstate == psIdle:
+        if value > prevvalue:
+            curstate = psRising;
+        elif value < prevvalue:
+            curstate = psFalling;
+        else:
+            println('state not handled!');
+        endif
+    elif curstate == psRising:
+        // ...
+    endif
+endfunc
+```
+
+**Block closing keywords**:
+| Opener | Closer |
+|--------|--------|
+| `function name():` | `endfunc` |
+| `if condition:` | `endif` |
+| `while condition:` | `endwhile` |
+| `for ... :` | `endfor` |
+| `object Name:` | `endobject` |
+| `try:` | `endtry` |
+| `ensure:` | `endensure` |
+| `const(type):` | `endconst` |
+| `initialization:` | `endinitialization` |
+| `finalization:` | `endfinalization` |
+
+**Key rule**: The colon `:` opens a block, `endXXX` closes it. Indentation is for readability and style enforcement only — the syntax is delimiter-based, not indentation-based. This means code is technically valid on a single line:
+
+```dq
+function Foo():  if a:  var x : int = 1;  endif  endfunc   // valid but discouraged
+```
+
+**Compact form**: Single statements can follow the colon on the same line:
+
+```dq
+if   value > prevvalue:  curstate = psRising;
+elif value < prevvalue:  curstate = psFalling;
+else:                    println('not handled!');
+endif
+```
+
+**One-liner blocks**: A complete block (opener + statement + closer) may appear on a single line when:
+1. The block contains exactly **one statement**
+2. The line does not exceed **80 columns**
+
+```dq
+// One-liner blocks (accepted in indent mode):
+if condition:  doSomething();  endif
+while hasMore():  process();  endwhile
+ensure:  cleanup();  endensure
+
+// Typical usage with ensure:
+    var p : ^Worker = new("Test");
+ensure:  delete p;  endensure
+p.DoWork();
+```
+
+This is purely a style rule — the syntax is always valid regardless of line length.
+
+#### Braces Block Mode
+
+In braces mode, alternative syntax forms are allowed:
+
+- **Blocks**: Both `{ ... }` braces and `: ... endXXX` are allowed.
+- **Chained conditions**: Both `else if` and `elif` are accepted.
+
+```dq
+function HandleState(value : int) {
+    if curstate == psIdle {
+        if value > prevvalue {
+            curstate = psRising;
+        }
+        else if value < prevvalue {
+            curstate = psFalling;
+        }
+    }
+}
+```
+
+#### Mode Selection
+
+```dq
+#{syn blockmode indent}     // switch to indent block mode
+#{syn blockmode braces}     // switch to braces block mode
+```
+
+**Note**: The choice of mode affects only the block delimiters.
+
+### 7.2 If Statement
+
+#### Braces Mode
+```dq
+if condition {
+    // then branch
+}
+else if other_condition {
+    // else-if branch
+}
+else {
+    // else branch
+}
+```
+
+#### Indent Mode
+```dq
+if condition:
+    // then branch
+elif other_condition:
+    // else-if branch
+else:
+    // else branch
+endif
+```
+
+**Important rules**:
+- Condition must be of type `bool`. No implicit int→bool conversion.
+- In indent mode, use `elif` for chained conditions (not `else if`)
+- `else if` as two tokens is **invalid** in indent mode
+- `else: if` creates a **nested** if-block requiring two `endif`s:
+
+```dq
+// elif - single chain, one endif:
+if a:
+    x = 1;
+elif b:
+    x = 2;
+endif
+
+// else: if - nested blocks, two endifs:
+if a:
+    x = 1;
+else:
+    if b:
+        x = 2;
+    endif
+endif
+```
+
+### 7.3 While Loop
+
+```dq
+// Braces mode:
+while condition {
+    // body
+}
+
+// Indent mode:
+while condition:
+    // body
+endwhile
+```
+
+### 7.4 For Loop
+
+DQ provides three distinct forms of for loops, each optimized for different use cases.
+
+#### 7.4.1 Range-Based Loop: `to` / `downto`
+
+Use when you know the start and end values. Both bounds are **inclusive** (Pascal-style).
+
+```dq
+for i = 0 to 10:           // 11 iterations: 0, 1, 2, ..., 10
+    // body
+endfor
+
+for i = 10 downto 0:       // 11 iterations: 10, 9, 8, ..., 0
+    // body
+endfor
+
+// With explicit step
+for i = 0 to 10 step 2:    // 6 iterations: 0, 2, 4, 6, 8, 10
+    // body
+endfor
+
+for i = 10 downto 0 step 3:  // 4 iterations: 10, 7, 4, 1
+    // body
+endfor
+
+```
+
+**Semantics**:
+- `to` - ascending iteration, default step is `+1`
+- `downto` - descending iteration, default step is `-1` (internally)
+- `step` must be positive for both `to` and `downto`
+- If start > end with `to`, or start < end with `downto`: compiler warning (loop never executes)
+
+**Example**:
+```dq
+var arr : int[...] = [1, 2, 3, 4, 5];
+
+// Iterate through array indices
+for i = 0 to arr.length - 1:
+    println(arr[i]);
+endfor
+
+// Reverse iteration
+for i = arr.length - 1 downto 0:
+    println(arr[i]);
+endfor
+```
+
+#### 7.4.2 Count-Based Loop: `count` / `downcount`
+
+Use when you know how many iterations you need. The keyword specifies **N iterations**, not a target value.
+
+```dq
+// Count upward: N iterations starting from initial value
+for i = 0 count 5:         // 5 iterations: 0, 1, 2, 3, 4
+    // body
+endfor
+
+// Count downward: N iterations starting from initial value
+for i = 10 downcount 5:    // 5 iterations: 10, 9, 8, 7, 6
+    // body
+endfor
+
+// With explicit step (must be positive)
+for i = 0 count 10 step 2:        // 10 iterations: 0, 2, 4, 6, 8, 10, 12, 14, 16, 18
+    // body
+endfor
+
+for i = 20 downcount 5 step 3:    // 5 iterations: 20, 17, 14, 11, 8
+    // body
+endfor
+```
+
+**Semantics**:
+- `count` - increment by step (default `+1`), perform N iterations
+- `downcount` - decrement by step (default `-1` internally), perform N iterations
+- `step` **must be positive** (direction is determined by `count`/`downcount`)
+- Negative step with `count`/`downcount` is a compile error
+
+**Example**:
+```dq
+var arr : int[...] = [1, 2, 3, 4, 5];
+
+// Iterate exactly arr.length times
+for i = 0 count arr.length:
+    println(arr[i]);
+endfor
+
+// Reverse: iterate exactly arr.length times going down
+for i = arr.length - 1 downcount arr.length:
+    println(arr[i]);
+endfor
+```
+
+#### 7.4.3 Condition-Based Loop: `while`
+
+Use for complex conditions that don't fit simple ranges. This is DQ's equivalent to C's `for(init; condition; step)`.
+
+```dq
+// Basic form (step +1 default)
+for i = 0 while i < arr.length:
+    // body
+endfor
+
+// With explicit step
+for i = 0 while i < arr.length step 2:
+    // body
+endfor
+
+// With inline variable declaration
+for var i : int = 0 while i < arr.length:
+    // body
+endfor
+
+// Descending (requires explicit negative step)
+for i = arr.length - 1 while i >= 0 step -1:
+    // body
+endfor
+
+// Complex condition
+for i = 0 while i < limit and arr[i] <> sentinel step 1:
+    // body
+endfor
+```
+
+**Semantics**:
+- Condition is evaluated **before** each iteration (like C's for loop)
+- `step` can be positive or negative (default is `+1`)
+- Loop variable is incremented **after** the loop body executes
+- Use when the exit condition is more complex than a simple range
+
+**Execution order**:
+1. Initialize loop variable with start value
+2. Evaluate condition → if false, exit loop
+3. Execute loop body
+4. Increment loop variable by step
+5. Go to step 2
+
+**Example**:
+```dq
+// Skip over invalid entries
+for i = 0 while i < arr.length and arr[i] >= 0:
+    process(arr[i]);
+endfor
+
+// Custom increment logic with step
+for i = 1 while i < 1000 step (i * 2):  // exponential growth
+    println(i);
+endfor
+```
+
+#### 7.4.4 Collection Iteration: `in`
+
+Iterate directly over collection elements without manual indexing.
+
+```dq
+// Iterate over string characters
+for ch : char in str_value:
+    println(ch);
+endfor
+
+// Iterate over array elements (type inference)
+for item in array_value:
+    println(item);
+endfor
+
+// Iterate with explicit type
+for value : int in numbers:
+    sum += value;
+endfor
+```
+
+**Semantics**:
+- Loop variable is read-only (cannot be modified)
+- Type can be inferred or explicitly specified
+- Works with any iterable collection (arrays, strings, etc.)
+
+#### 7.4.5 Summary Table
+
+| Form | Use Case | Step Default | Step Sign |
+|------|----------|--------------|-----------|
+| `to` / `downto` | Known start and end values (inclusive) | `+1` / `-1` | Must be positive |
+| `count` / `downcount` | Known number of iterations | `+1` / `-1` | Must be positive |
+| `while` | Complex conditions | `+1` | Can be positive or negative |
+| `in` | Collection iteration | N/A | N/A |
+
+### 7.5 Break and Continue
+
+```dq
+break;                      // exit innermost loop
+continue;                   // skip to next iteration
+```
+
+### 7.6 Return Statement
+
+```dq
+return value;               // return from function
+return;                     // return from void function
+```
+
+**note**: function return values also can be set using the built-in `result` variable.
+
+
+### 7.7 Ensure Statement
+
+```dq
+ensure:
+    cleanup_code1();
+    cleanup_code2();
+endensure
+```
+
+---
+
+## 8. Functions
+
+### 8.1 Function Declaration
+
+```dq
+function name(param1 : Type1, param2 : Type2) -> ReturnType:
+    // body
+endfunc
+
+function void_func(x : int):
+    // no return type means void
+endfunc
+```
+
+### 8.2 Return Value
+
+```dq
+function add(a : int, b : int) -> int:
+    return a + b;
+endfunc
+
+// Alternative (Pascal-style): assign to 'result'
+function add(a : int, b : int) -> int:
+    result = a + b;
+endfunc
+```
+
+### 8.3 Parameter Passing Modes
+
+DQ supports several parameter passing modes to control how arguments are passed to functions, enabling fine-grained control over mutability, performance, and ownership.
+
+| Mode | Syntax | Description |
+|------|--------|-------------|
+| Value | `param : T` | A copy of the value is passed. This is the default for primitive types and small structs. |
+| In | `in param : T` | A read-only reference to the argument is passed. This is the default for large types (like objects and arrays) to avoid expensive copies. The parameter cannot be modified within the function. |
+| Ref | `ref param : T` | A mutable reference is passed, allowing the function to modify the original caller's variable. |
+| Out | `out param : T` | The function is expected to assign a value to the parameter before it returns. The initial value of the argument is not passed to the function. |
+
+```dq
+function Inc(ref x : int, amount : int):
+    x += amount;
+endfunc
+
+function ParseInt(in s : str, out value : int) -> bool:
+    // ... function body that parses s and assigns to value ...
+endfunc
+```
+
+**Rules**:
+- `ref`, `in`, `out` parameters cannot escape the function (i.e., they cannot be stored in heap objects or returned).
+- They cannot be null.
+- They are always typed (no untyped references).
+
+**Argument Namespace**: Parameters can be accessed explicitly via `@arg.`:
+
+```dq
+function Foo(par1 : int) -> int:
+    result = @arg.par1 * 2;    // explicit argument access
+endfunc
+```
+This is useful when a local variable shadows a parameter name.
+
+#### Array Parameter Passing
+
+The combination of parameter modes with different array types (Open vs. Dynamic) results in specific, predictable behaviors. The following matrix details these interactions:
+
+| Syntax | Type Name | Input Compatibility | Can Resize? | Semantics |
+| --- | --- | --- | --- | --- |
+| `a : T[]` | **Open Array** | Fixed, Dynamic, Literal | **NO** | Universal view. Read/Write access to elements. |
+| `in a : T[]` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
+| `a : T[...]` | **Dynamic Array** | Dynamic Array Only | **NO*** | Passes the container handle by value. The function can modify elements but cannot resize the original array in a way that is visible to the caller. |
+| `ref a : T[...]` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
+
+_*Note: Without `ref`, changing the length of a dynamic array inside a function (e.g., `a.append(...)`) modifies the local handle's copy of the array, a change that will not be reflected for the caller._
+
+This clear distinction allows for safe and efficient handling of array data structures, preventing unintended side effects while providing maximum flexibility.
+
+### 8.4 Function Types and Delegates
+
+```dq
+// Function pointer type
+type IntFunc = function(x : int) -> int;
+
+// Method pointer (delegate)
+type Callback = function(x : int) -> int of object;
+
+// Usage
+var cb : Callback = obj.method;
+cb(42);
+```
+
+### 8.5 Function Attributes
+
+Attributes modify function behavior and properties. They use the `[[ ... ]]` syntax and can be placed:
+- Before the function declaration
+- After the function signature (before the opening brace)
+
+Multiple attributes can be specified in a single bracket pair (comma-separated) or in separate brackets.
+
+```dq
+// Attribute before declaration
+[[section("ramcode")]]
+function Foo(x : int) -> int:
+    var px : ^int = &x;
+    @io.println("x = ", px^);
+endfunc
+
+// Attributes after signature
+function Bar(x : int) -> int [[stdcall, override]]:
+    return x * 2;
+endfunc
+
+// Static function
+[[static]]
+function Helper(x : int) -> int:
+    return x + 1;
+endfunc
+
+// Alternative: attribute after signature
+function Helper2(x : int) -> int [[static]]:
+    return x + 1;
+endfunc
+
+// Inline function
+function GetValue() -> int [[inline]]:
+    return 42;
+endfunc
+```
+
+#### Common Function Attributes
+
+| Attribute | Description |
+|-----------|-------------|
+| `[[inline]]` | Suggest inlining the function |
+| `[[static]]` | Static linkage (not exported) |
+| `[[stdcall]]` | Use stdcall calling convention |
+| `[[cdecl]]` | Use cdecl calling convention (default) |
+| `[[override]]` | Override base class method (see section 10.5) |
+| `[[section("name")]]` | Place function in specific memory section |
+| `[[naked]]` | Emit function without prologue/epilogue (embedded use) |
+| `[[noreturn]]` | Function never returns (for panic/abort functions) |
+
+**Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
+
+### 8.6 Variadic Arguments (`varargs`)
+
+DQ does not have special syntactic sugar for variadic arguments (like C's `...`). Instead, variadic functionality is a standard application of **Open Arrays (Slices)**, providing a type-safe mechanism for handling a variable number of arguments.
+
+This pattern relies on two helper types that would be defined in the Standard Library prelude:
+- `type vararg = struct ... endstruct`: A variant struct capable of holding different types of data, typically including a type identifier and a data payload.
+- `type varargs = vararg[]`: A type alias for an open array of these variant structs.
+
+#### Usage Pattern
+
+A function that accepts a variable number of arguments is declared with a parameter of type `vararg[]` (or the `varargs` alias).
+
+```dq
+// A variadic print function (simplified)
+function print(fmt: str, args: vararg[]):
+    // Implementation would iterate through the `args` slice
+    // and format them according to the `fmt` string.
+endfunc
+```
+
+When such a function is called, the compiler automatically handles array literals by constructing a temporary, stack-allocated array and passing it as a slice to the function.
+
+```dq
+// Call site
+print("Values: %d, %s", [10, "text", true]);
+```
+
+**Mechanism**:
+1. The compiler encounters the array literal `[10, "text", true]`.
+2. It creates a temporary fixed-size array on the stack, with each element being a `vararg` struct initialized from the literal values.
+3. It then passes a slice (`vararg[]`) of this temporary array to the `print` function's `args` parameter.
+
+This approach ensures that variadic arguments are handled with the same type-safe, efficient, and explicit mechanisms used throughout the rest of the language.
+
+---
+
+## 10. Objects
+
+### 9.1 Object Declaration
+
+```dq
+object OWorker:
+    // Fields
+    var name : str;
+    var counter : int;
+
+    // Constructor
+    function __ctor(aname : str):
+        name = aname;
+        counter = 0;
+    endfunc
+
+    // Destructor
+    function __dtor():
+        // cleanup
+    endfunc
+
+    // Methods
+    function DoWork():
+        counter += 1;
+        write(name + " work #" + str(counter));
+    endfunc
+
+    function write(msg : str):
+        .print(msg);        // leading dot = global function
+    endfunc
+endobject
+```
+
+### 9.2 Object Instantiation
+
+#### Stack Allocation (Value)
+```dq
+var w : OWorker("Alice");        // constructor called directly
+w.DoWork();
+// destructor called automatically at scope exit
+```
+
+#### Heap Allocation (Pointer)
+```dq
+var w : ^OWorker = new OWorker("Bob");   // explicit type at new
+var w : ^OWorker = new("Bob");           // target-typed new (type inferred from LHS)
+w.DoWork();
+delete w;                           // explicit deletion
+```
+
+### 9.3 Visibility
+
+```dq
+object OMyObj:
+public
+    // visible outside the object
+
+private
+    // only visible within the object
+endobject
+```
+
+### 9.4 Properties
+
+```dq
+object OSocket:
+public
+    property port : uint16 read mport write SetPort;
+
+private
+    var mport : uint16;
+
+    function SetPort(value : uint16):
+        mport = value;
+    endfunc
+endobject
+```
+
+### 9.5 Inheritance
+
+```dq
+object OAnimal:
+public
+    function Speak() [[virtual]]:
+        print("beep");
+    endfunc
+endobject
+
+object ODog(OAnimal):  // inherits from OAnimal
+public
+    function Speak() [[override]]:
+        print("woof");
+    endfunc
+endobject
+```
+
+**Rules**:
+- Single inheritance only
+- Methods are non-virtual by default
+- Mark base methods as `virtual` to allow override
+- Use `override` keyword in derived types
+- Polymorphism requires reference semantics (`^Animal`)
+
+### 9.6 Name Resolution in Objects
+
+Inside object methods:
+1. Bare `name` resolves to **object members first**
+2. If not found, looks in local injected namespace (from local `use`)
+3. `.name` always resolves to **global/module namespace**
+
+```dq
+use math;
+
+object OCircle:
+public
+    var radius : float;
+
+    function Area() -> float:
+        return .PI * radius * radius;   // .PI = global PI from math
+    endfunc
+
+    function Area2() -> float:
+        use math;                        // local injection
+        return PI * radius * radius;     // PI found in injected namespace
+    endfunc
+endobject
+```
+
+---
+
+## 11. Pointers and References
+
+### 10.1 Pointer Syntax
+
+```dq
+var p : ^int32;            // pointer to int32
+p = &x;                    // address-of (C-style)
+var y : int32 = p^;        // dereference (Pascal-style)
+var sp : ^MyStruct;
+sp^.field1 = 1;            // explicit pointer dereferencing for field access
+sp.field1  = 1;            // implicit pointer dereferencing for field access
+```
+
+**Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
+
+### 10.2 Pointer Arithmetic
+
+```dq
+var p : ^byte = buffer;
+var pend : ^byte = p + length;  // pointer arithmetic allowed
+pend = p[length];               // (preferred syntax) same as p + length, still pointer, no dereferencing like in C
+while p < pend:
+    // ...
+    p += 1;
+endwhile
+```
+
+### 10.3 Null
+
+```dq
+var p : ^Worker = null;
+if p == null:  ...  endif
+delete null;                 // safe (no-op)
+```
+
+### 10.4 Ref Binding to Pointer
+
+```dq
+var p : ^MyStruct = ...;
+if p <> null:
+    ref s : MyStruct = p^; // bind ref to pointee
+    s.field = 10;          // modify through ref
+endif
+```
+
+---
+
+## 12. Modules and Namespaces
+
+### 11.1 Module Declaration
+
+```dq
+module Net.Socket
+
+// Interface section (public declarations)
+
+type Socket = int32;
+
+function open(host : str, port : uint16) -> Socket;
+function close(ref s : Socket);
+
+implementation
+
+// Implementation section (private + bodies)
+
+function open(host : str, port : uint16) -> Socket:
+    // ...
+endfunc
+
+function close(ref s : Socket):
+    // ...
+endfunc
+
+initialization:
+    // runs at program start (optional)
+endinitialization
+
+finalization:
+    // runs at program shutdown (optional)
+endfinalization
+
+```
+
+**Structure**:
+- `implementation` keyword separates interface from implementation
+- `initialization` and `finalization` sections are optional
+
+### 11.2 Use Statements
+
+```dq
+use math;                           // merge into module-global namespace
+use Drivers.UART as UART;           // alias
+```
+
+### 11.3 Qualified Access
+
+```dq
+@math.PI                            // qualified access to module symbol
+@Drivers.UART.init()               // nested module access
+```
+
+### 11.4 Name Resolution Order
+
+**In object context for bare `name`**:
+1. Object/type scope (members)
+2. Block injected namespace (local `use`)
+3. Type injected namespace (type-level `use`)
+4. ERROR (module-global requires `.name`)
+
+**For `.name`**:
+1. Module-global namespace (module scope + top-level `use`)
+2. Prelude / builtins
+
+### 11.5 File Layout
+
+```
+module path 'A.B.C' -> file 'A/B/C.dq'
+package root contains dq.toml (or dq.pkg)
+```
+
+---
+
+## 13. Compiler Directives
+
+### 12.1 Compilation Pipeline
+
+```
+DQ source -> Preprocessor (#ifdef/#include) -> comp1 (comptime) -> comp2 (codegen)
+```
+
+### 12.2 Preprocessor Compiler Directives
+
+```dq
+#{ifdef WINDOWS}
+    use windows;
+#{elifdef LINUX}
+    use linux;
+#{else}
+    #{error "Platform not supported"}
+#{endif}
+```
+
+### 12.3 Compile-Time (comp1) Access of the Defines
+
+**TODO**: Full behaviour is to be defined.
+
+
+```dq
+comptime if defined(WINDOWS):
+    use uart_impl_windows;
+    ...
+elif defined(LINUX):
+    use uart_impl_linux;
+    ...
+else:
+    compile_error("Platform not supported");
+endif
+```
+
+The defined() is a special built-in function which never gives a compiler error, returns true, when a symbol defined.
+
+The defines are accessible with a @def. namespace.
+
+
+```dq
+@def.WINDOWS        // platform define (bool)
+@def.TARGET_ARM     // architecture
+@def.DEBUG          // build configuration
+@def.CUSTOM_FLAG    // user-defined
+```
+
+### 12.5 Compiler Options with Directives
+
+```dq
+#{opt blockmode indent}     // switch to indent block mode
+#{opt blockmode braces}     // switch to braces block mode
+
+#{push} #{opt blockmode indent}  // save previous and set
+// indent-mode code here
+#{pop}                      // restore previous state
+
+#{opt warn disable W001}    // disable warning (TBD)
+#{opt optimize 2}           // optimization level (TBD)
+```
+
+---
+
+## 14. Memory Management
+
+### 13.1 Allocation
+
+```dq
+// Stack allocation (automatic)
+var x : MyStruct;
+
+// Heap allocation
+var p : ^MyStruct = new MyStruct();
+var p : ^MyStruct = new();             // target-typed
+```
+
+### 13.2 Deallocation
+
+```dq
+delete p;                           // calls destructor, frees memory
+delete null;                        // safe (no-op)
+```
+
+### 13.3 Scope-Based Cleanup
+
+```dq
+function Example():
+    var p : ^Worker = new("Test");
+    ensure: delete p; endensure    // guaranteed cleanup at scope exit
+    // use p...
+endfunc
+```
+
+---
+
+## 15. Standard Library
+
+### 14.1 Built-in Functions
+
+```dq
+print(...)          // output without newline
+println(...)        // output with newline
+length(x)           // length of array/string (Pascal-style)
+sizeof(T)           // size in bytes
+typeof(x)           // type information (TBD)
+```
+
+### 14.2 String Operations
+
+```dq
+length(s)           // character count (Pascal-style function)
+s.length            // also available as property
+s[i]                // indexed access (char)
+s.split(',')        // split into str[...]
+s1 + s2             // concatenation
+```
+
+### 14.3 Array Operations
+
+```dq
+arr.length          // element count
+arr[i]              // indexed access
+arr.append(x)       // add element (dynamic arrays)
+```
+
+---
+
+## 16. Explicitly Rejected Features
+
+The following features have been explicitly rejected for DQ:
+
+| Feature | Reason |
+|---------|--------|
+| Implicit int↔bool conversion | Major source of bugs in C |
+| Implicit integer division | Causes bugs like `(3/2)*10` evaluating to `10.0` instead of `15.0`. In DQ, `/` is always float division. |
+| C-style `::` namespace operator | Visual noise; use `.` and `@` instead |
+| Mandatory `this.` / `self.` | Reduces readability |
+| Textual macros | Unsafe, no types, no scope |
+| Assignment as expression | Assignment is statement-only; `=` in expressions means comparison |
+| C operator precedence | `a & b == 0` trap |
+| Case-insensitive identifiers | Causes problems at scale |
+| Unicode identifiers | Keep identifiers ASCII-only |
+| Numeric literal suffixes | Types should be clear from declarations |
+
+---
+
+## 17. Open Questions
+
+### 17.1 Syntax Questions
+- [ ] Pattern matching syntax
+
+### 17.2 Semantic Questions
+- [ ] Full generics design (planned, Pascal-style syntax)
+- [ ] Nullable types (`?T` syntax?)
+- [ ] Operator overloading rules
+- [ ] Move semantics
+- [ ] Concurrency primitives
+
+### 17.3 Generics (Planned)
+
+Generics will use Pascal-style `specialize` syntax:
+
+```dq
+// Generic type definition (syntax TBD)
+type TFPGMapObject<TKey, TValue> = object:
+    // ...
+endobject
+
+// Specialization
+type TNanoSocketMap = specialize TFPGMapObject<TSocket, TNanoSocket>;
+```
+
+### 17.4 Exception Handling (Planned)
+
+Exceptions will follow Pascal/Python style with `raise`:
+
+```dq
+// Raising exceptions
+raise EInvalidArgument("value out of range");
+
+// Handling exceptions (syntax TBD, likely try/except)
+try:
+    risky_operation();
+except EFileNotFound as e:
+    println("File not found: ", e.message);
+except:
+    // catch all
+endtry
+```
+
+### 17.5 Standard Library Questions
+- [ ] Prelude contents (what's auto-imported?)
+- [ ] Collection types
+- [ ] I/O abstractions
+- [ ] Error handling conventions
+
+### 17.6 Tooling Questions
+- [ ] Canonical formatter style
+- [ ] Package manager design
+- [ ] Debug format (DWARF)
+- [ ] Language server protocol support
+
+---
+
+## Appendix A: Example Programs
+
+### A.1 Basic Syntax Example
+
+```dq
+function imul(a : int, b : int) -> int:
+    return a * b;
+endfunc
+
+function main() -> int:
+    var i1 : int = 2;
+    var i2 : int = 3;
+    var f : float = i1 / i2;
+    println("f =", f);
+
+    var res : int = imul(i1, i2);
+    println("mul(i1, i2) =", res);
+
+    // for-loop example
+    var sum_for : int = 0;
+    for i = 0 to 4:
+        sum_for += i;
+    endfor
+    println("sum_for =", sum_for);
+
+    // while-loop example
+    var sum_while : int = 0;
+    var j : int = 0;
+    while j < 5:
+        sum_while += j;
+        j += 1;
+    endwhile
+    println("sum_while =", sum_while);
+
+    // if / else with boolean expression
+    if (i1 < i2 and sum_for == sum_while) or (res > 0 and f < 1.0):
+        println("condition is TRUE");
+    else:
+        println("condition is FALSE");
+    endif
+
+    return 0;
+endfunc
+```
+
+### A.2 Object Example
+
+```dq
+use io;
+
+object OWorkHelper:
+public
+    var worklog : int[...];
+
+    function help(anum : int):
+        worklog.append(anum);
+    endfunc
+endobject
+
+object OWorker:
+public
+    var name    : str;
+    var counter : int = 0;
+    var helper  : ^OWorkHelper;
+
+    function __ctor(aname : str):
+        name = aname;
+        helper = new OWorkHelper();
+    endfunc
+
+    function __dtor():
+        delete helper;
+    endfunc
+
+    function DoWork(anum : int):
+        helper.help(anum);
+        counter += 1;
+        write(name + " work #" + str(counter));
+    endfunc
+
+    function write(msg : str):
+        .print(msg);            // global print
+    endfunc
+endobject
+
+function main():
+    // stack-allocated object
+    var w1 : OWorker("Alice");
+    w1.DoWork(5);
+    w1.DoWork(3);
+
+    // heap-allocated object
+    var w2 : ^OWorker = new("Bob");
+    ensure:
+        delete w2;
+    endensure
+    w2.DoWork(7);
+endfunc
+```
+
+### A.3 Expressions Example
+
+```dq
+use sockets;
+
+type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
+
+object OSockTester:
+public
+    property port : uint16 read mport write SetPort;
+    var onevent : TSockCallBackFunc = null;
+
+    function __ctor(aport : uint16):
+        mport = aport;
+    endfunc
+
+private
+    var mport : uint16;
+    var msocket : int = -1;
+
+    function SetPort(avalue : uint16):
+        mport = avalue;
+    endfunc
+endobject
+
+function main() -> int:
+    println("Hello from DQ!");
+
+    var i1 : int = 3;
+    var i2 : int = 12345;
+
+    var i3 : int = i2 AND i1;          // bitwise AND
+
+    // if (i3):  ...  endif         // ERROR: bool expression expected
+
+    if i3 <> 0:                     // OK: explicit comparison
+        println("i3 is not null!");
+    endif
+
+    // Precedence: no parentheses needed here to evaluate this correct
+    if i2 AND i1 <> 0 and i1 SHL 1 > 5:
+        println("both are true!");
+    endif
+
+    // i4 : int = i2 / i1;         // ERROR: / returns float
+    var f1 : float = i2 / i1;          // OK
+    var i5 : int = i2 IDIV i1;         // OK: integer division
+    var i6 : int = round(i2 / i1);     // OK: explicit rounding
+
+    var b : bool = i2 <> i1;
+    var b2 : bool = (i6 == i5);         // comparison uses '=='
+
+    return 0;
+endfunc
+```
+
+---
+
+*This specification is a work in progress. Feedback and contributions are welcome.*

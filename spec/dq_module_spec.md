@@ -1,7 +1,7 @@
 # DQ Module System Specification
 
-Status: draft  
-Scope: module naming, file mapping, `use` declarations, public interface handling, re-exporting, aliases, and relative module paths.
+Status: draft
+Scope: module naming, file mapping, `use`, `usepath`, public interface handling, re-exporting, namespaces, aliases, and relative module paths.
 
 ---
 
@@ -126,6 +126,7 @@ Examples:
 ```dq
 use dqgui/widgets;
 use ./button reexport;
+usepath dqgui/widgets as w;
 x = y + 1;
 return x;
 ```
@@ -142,42 +143,142 @@ endobj
 
 ---
 
-## 5. Qualified Module Access
+## 5. Module Paths vs Namespaces
 
-Qualified module access uses `@`.
-
-The module path ends at the first `.`.
-
-```dq
-@dqgui/widgets.TButton
-@dqgui/widgets/button.TButton
-@dqgui/paint/image.TImage
-```
-
-Meaning:
+DQ separates module paths from namespace names.
 
 ```text
-@dqgui/widgets.TButton
- ^^^^^^^^^^^^^ module path
-              ^ symbol separator
-               ^^^^^^^ exported symbol
+module path  = used by `use` and `usepath` to resolve source files
+namespace    = local name created by `use` for qualified access
 ```
 
-Everything after the first `.` is normal symbol/member lookup.
+Module paths may contain `/`:
+
+```dq
+use dqgui/widgets/button;
+```
+
+Namespace usage after `@` does not contain module paths.
+
+Valid:
+
+```dq
+@button.TButton
+@widgets.TButton
+@img.TImage
+```
+
+Invalid:
+
+```dq
+@dqgui/widgets/button.TButton
+@dqgui/widgets.TButton
+@w/button.TButton
+```
+
+Qualified lookup has the form:
+
+```text
+@namespace.Symbol
+@namespace.Symbol.member
+@namespace.Symbol.method()
+```
+
+Only a local namespace identifier may appear after `@`.
+
+---
+
+## 6. Local Namespace Creation
+
+Every `use` declaration creates exactly one local namespace, unless this is disallowed by a namespace conflict.
+
+Without `as`, the namespace name is the last component of the resolved module path.
+
+```dq
+use dqgui/widgets;
+```
+
+creates namespace:
+
+```dq
+@widgets
+```
+
+```dq
+use dqgui/widgets/button;
+```
+
+creates namespace:
+
+```dq
+@button
+```
+
+With `as`, the alias is the namespace name:
+
+```dq
+use dqgui/widgets/button as btnmod;
+```
+
+creates namespace:
+
+```dq
+@btnmod
+```
 
 Examples:
 
 ```dq
-btn = @dqgui/widgets.TButton("OK");
-btn2 = @dqgui/widgets/button.TButton("Cancel");
+use dqgui/widgets/button;
 
-w = @dqgui/widgets.TWindow();
-w.Show();
+btn = @button.TButton("OK");
 ```
+
+```dq
+use dqgui/widgets/button as btnmod;
+
+btn = @btnmod.TButton("OK");
+```
+
+The canonical module path is used internally by the compiler. The namespace name is local to the source file.
 
 ---
 
-## 6. Basic `use`
+## 7. Namespace Uniqueness
+
+Namespace names must be unique within the current source file.
+
+This is an error:
+
+```dq
+use dqgui/widgets/button;
+use mygui/widgets/button;
+```
+
+Both declarations try to create namespace `@button`.
+
+The fix is to use explicit aliases:
+
+```dq
+use dqgui/widgets/button as dqbutton;
+use mygui/widgets/button as mybutton;
+
+b1 = @dqbutton.TButton();
+b2 = @mybutton.TButton();
+```
+
+The uniqueness rule also applies to `nomerge` imports:
+
+```dq
+use dqgui/widgets/button nomerge;
+use mygui/widgets/button nomerge;  // error: namespace `button` already exists
+```
+
+`nomerge` disables symbol merging, not namespace creation.
+
+---
+
+## 8. Basic `use`
 
 The `use` declaration imports another module.
 
@@ -190,8 +291,9 @@ use dqgui/widgets;
 Effects:
 
 ```text
-1. The namespace @dqgui/widgets becomes available.
-2. All public symbols of dqgui/widgets are merged into the current namespace.
+1. Resolves canonical module dqgui/widgets.
+2. Creates local namespace @widgets.
+3. Merges all public symbols of dqgui/widgets into the current namespace.
 ```
 
 Example:
@@ -200,14 +302,60 @@ Example:
 use dqgui/widgets;
 
 btn = TButton("OK");
-btn2 = @dqgui/widgets.TButton("Cancel");
+btn2 = @widgets.TButton("Cancel");
+```
+
+For a leaf module:
+
+```dq
+use dqgui/widgets/button;
+
+btn = TButton("OK");
+btn2 = @button.TButton("Cancel");
+```
+
+`use` may import a comma-separated list of independent module-use items:
+
+```dq
+use dqgui/widgets/button, dqgui/widgets/list, dqgui/widgets/edit;
+```
+
+This is exactly equivalent to:
+
+```dq
+use dqgui/widgets/button;
+use dqgui/widgets/list;
+use dqgui/widgets/edit;
+```
+
+Each item creates its own namespace, using the same rules as a separate `use`
+declaration:
+
+```dq
+@button
+@list
+@edit
+```
+
+Each item may also have its own alias and modifiers:
+
+```dq
+use dqgui/widgets/button as btn, dqgui/widgets/list only(TList), dqgui/widgets/edit nomerge;
+```
+
+This is exactly equivalent to:
+
+```dq
+use dqgui/widgets/button as btn;
+use dqgui/widgets/list only(TList);
+use dqgui/widgets/edit nomerge;
 ```
 
 ---
 
-## 7. Module Aliases
+## 9. Module Namespace Aliases
 
-A module can be given a local alias:
+A module can be given a local namespace alias:
 
 ```dq
 use dqgui/widgets as w;
@@ -216,9 +364,9 @@ use dqgui/widgets as w;
 Effects:
 
 ```text
-1. The namespace @w becomes available.
-2. All public symbols of dqgui/widgets are merged into the current namespace.
-3. The original namespace spelling @dqgui/widgets is not automatically introduced by this use declaration.
+1. Resolves canonical module dqgui/widgets.
+2. Creates local namespace @w.
+3. Merges all public symbols of dqgui/widgets into the current namespace.
 ```
 
 Example:
@@ -230,33 +378,29 @@ btn = TButton("OK");
 btn2 = @w.TButton("Cancel");
 ```
 
-A module alias may also be used as the first component of later module paths in the same source file:
+The original namespace spelling is not automatically introduced by this declaration:
 
 ```dq
 use dqgui/widgets as w;
-use w/button;
-use w/window;
+
+@w.TButton("OK");       // OK
+@widgets.TButton("OK"); // error, unless another use created @widgets
 ```
 
-This is equivalent to:
+A `use ... as ...` alias is a namespace alias only. It is not a module path shortcut.
+
+This is invalid unless a separate `usepath` defines `w` as a path alias:
 
 ```dq
 use dqgui/widgets as w;
-use dqgui/widgets/button;
-use dqgui/widgets/window;
+use w/button;  // error: `w` is not a path alias
 ```
 
-Qualified access with alias paths is allowed:
-
-```dq
-btn = @w/button.TButton("OK");
-```
-
-Aliases are local to the current source file.
+Use `usepath` for path shortcuts.
 
 ---
 
-## 8. `nomerge`
+## 10. `nomerge`
 
 The `nomerge` modifier imports only the module namespace and does not merge public symbols into the current namespace.
 
@@ -267,8 +411,9 @@ use dqgui/widgets nomerge;
 Effects:
 
 ```text
-1. @dqgui/widgets is available.
-2. TButton, TWindow, etc. are not directly available.
+1. Resolves canonical module dqgui/widgets.
+2. Creates local namespace @widgets.
+3. Does not merge public symbols.
 ```
 
 Example:
@@ -276,8 +421,8 @@ Example:
 ```dq
 use dqgui/widgets nomerge;
 
-btn = @dqgui/widgets.TButton("OK");  // OK
-btn = TButton("OK");                 // error
+btn = @widgets.TButton("OK");  // OK
+btn = TButton("OK");           // error
 ```
 
 With alias:
@@ -285,17 +430,17 @@ With alias:
 ```dq
 use dqgui/widgets as w nomerge;
 
-btn = @w.TButton("OK");              // OK
-btn = TButton("OK");                 // error
+btn = @w.TButton("OK");        // OK
+btn = TButton("OK");           // error
 ```
 
 ---
 
-## 9. `only(...)`
+## 11. `only(...)`
 
 The `only(...)` modifier merges only selected public symbols into the current namespace.
 
-The full module namespace remains available.
+The module namespace remains available.
 
 ```dq
 use dqgui/widgets only(TButton, TLabel);
@@ -304,9 +449,9 @@ use dqgui/widgets only(TButton, TLabel);
 Effects:
 
 ```text
-1. @dqgui/widgets is available.
-2. TButton and TLabel are directly available.
-3. Other public symbols remain available only through @dqgui/widgets.
+1. Resolves canonical module dqgui/widgets.
+2. Creates local namespace @widgets.
+3. Merges only TButton and TLabel into the current namespace.
 ```
 
 Example:
@@ -314,10 +459,10 @@ Example:
 ```dq
 use dqgui/widgets only(TButton, TLabel);
 
-btn = TButton("OK");                 // OK
-lbl = TLabel("Name:");               // OK
-win = TWindow();                     // error
-win = @dqgui/widgets.TWindow();      // OK
+btn = TButton("OK");       // OK
+lbl = TLabel("Name:");     // OK
+win = TWindow();           // error
+win = @widgets.TWindow();  // OK
 ```
 
 With alias:
@@ -339,7 +484,7 @@ Symbol aliases inside `only(...)` are not required for the first implementation,
 
 ---
 
-## 10. `reexport`
+## 12. `reexport`
 
 The `reexport` modifier makes imported public symbols part of the current module's public interface.
 
@@ -365,10 +510,7 @@ dqgui/widgets.dq
 ```
 
 ```dq
-use ./widget reexport;
-use ./window reexport;
-use ./button reexport;
-use ./label reexport;
+use ./widget reexport, ./window reexport, ./button reexport, ./label reexport;
 ```
 
 Then user code can write:
@@ -380,11 +522,13 @@ btn = TButton("OK");
 win = TWindow();
 ```
 
-and qualified access is also available:
+and qualified access is through the namespace created by the user's `use`:
 
 ```dq
-btn = @dqgui/widgets.TButton("OK");
+btn = @widgets.TButton("OK");
 ```
+
+The local child namespaces used inside the facade module, such as `@button` and `@label`, are not automatically exposed to users of the facade module.
 
 Selective re-export:
 
@@ -397,7 +541,7 @@ Effects:
 ```text
 1. Only TButton is merged.
 2. Only TButton is re-exported.
-3. The full @.../button namespace is still available locally.
+3. The local namespace @button is still available inside the current source file.
 ```
 
 Invalid combination:
@@ -408,14 +552,136 @@ use ./button nomerge reexport;
 
 Reason: `nomerge` says symbols are not inserted into the current namespace, while `reexport` says imported symbols become part of the current module's public namespace.
 
+A modifier belongs only to the module-use item immediately before it.
+
+For `reexport`, write it on every item that should be re-exported:
+
+```dq
+use ./button reexport, ./list reexport, ./edit reexport;
+```
+
+This declaration:
+
+```dq
+use ./button, ./list, ./edit reexport;
+```
+
+is valid, but means:
+
+```dq
+use ./button;
+use ./list;
+use ./edit reexport;
+```
+
+Style guide: do not rely on a trailing modifier to visually suggest that it
+applies to the whole list. Repeat `reexport` for each re-exported item.
+
 ---
 
-## 11. Relative Module Paths
+## 13. `usepath`
+
+`usepath` defines a local module path shortcut.
+
+It does not import a module.
+
+It does not create a namespace.
+
+It does not require the target path itself to be an existing module file.
+
+Example:
+
+```dq
+usepath dqgui/widgets as w;
+
+use w/button, w/textedit, w/list;
+```
+
+This is equivalent to:
+
+```dq
+use dqgui/widgets/button;
+use dqgui/widgets/textedit;
+use dqgui/widgets/list;
+```
+
+The namespaces created are:
+
+```dq
+@button
+@textedit
+@list
+```
+
+No namespace `@w` is created.
+
+Therefore:
+
+```dq
+@w.TButton();       // error
+@button.TButton();  // OK, if `use w/button;` was used
+```
+
+Path aliases are expanded independently for each comma-separated `use` item:
+
+```dq
+usepath dqgui/widgets as w;
+
+use w/button as btn, w/list as lst, w/edit;
+```
+
+This is equivalent to:
+
+```dq
+use dqgui/widgets/button as btn;
+use dqgui/widgets/list as lst;
+use dqgui/widgets/edit;
+```
+
+Qualified access uses the namespace created by each item:
+
+```dq
+b = @btn.TButton();
+l = @lst.TList();
+e = @edit.TEdit();
+```
+
+`usepath` aliases are usable only as the first component of later `use` or `usepath` module paths.
+
+Example:
+
+```dq
+usepath dqgui/widgets as w;
+usepath w/internal as wi;
+
+use wi/platformbutton nomerge;
+```
+
+`usepath` aliases are local to the current source file.
+
+`usepath` affects only declarations that appear after it.
+
+A `usepath` alias may be redefined without warning:
+
+```dq
+usepath dqgui/widgets as w;
+use w/button;       // dqgui/widgets/button
+
+usepath mygui/widgets as w;
+use w/button;       // mygui/widgets/button
+```
+
+The compiler expands path aliases before module resolution.
+
+---
+
+## 14. Relative Module Paths
 
 Module paths are absolute by default:
 
 ```dq
 use dqgui/widgets/button;
+usepath dqgui/widgets as w;
 ```
 
 A path starting with `./` or `../` is relative to the current module path.
@@ -462,7 +728,7 @@ dqgui/paint/image
 
 Relative paths are source-level shortcuts only. The compiler canonicalizes them to absolute module names before semantic analysis.
 
-Qualified access uses either the canonical absolute module name or an explicit alias.
+Qualified access uses the local namespace created by `use`, not the canonical module path.
 
 Example:
 
@@ -470,7 +736,7 @@ Example:
 use ./button;
 
 btn = TButton("OK");
-btn2 = @dqgui/widgets/button.TButton("Cancel");
+btn2 = @button.TButton("Cancel");
 ```
 
 With alias:
@@ -483,9 +749,16 @@ btn = @btnmod.TButton("OK");
 
 A relative path that escapes above the module root is an error.
 
+`usepath` can also use relative paths:
+
+```dq
+usepath ./internal as i;
+use i/platformbutton nomerge;
+```
+
 ---
 
-## 12. Facade Modules
+## 15. Facade Modules
 
 Facade modules collect and re-export public APIs from child modules.
 
@@ -508,9 +781,9 @@ dqgui.dq
 ```
 
 ```dq
-use ./dqgui/core reexport;
-use ./dqgui/widgets reexport;
-use ./dqgui/paint reexport;
+use ./core reexport;
+use ./widgets reexport;
+use ./paint reexport;
 ```
 
 Sub-facade:
@@ -520,65 +793,71 @@ dqgui/widgets.dq
 ```
 
 ```dq
-use ./widgets/widget reexport;
-use ./widgets/window reexport;
-use ./widgets/button reexport;
-use ./widgets/label reexport;
-```
-
-Alternative layout with module path `dqgui/widgets` stored in `dqgui/widgets.dq`:
-
-```text
-dqgui/widgets.dq
-dqgui/widgets/button.dq
-```
-
-Inside `dqgui/widgets.dq`:
-
-```dq
 use ./button reexport;
 use ./label reexport;
+use ./textinput reexport;
+use ./list reexport;
 ```
 
-This is the preferred compact facade style.
+User code:
+
+```dq
+use dqgui/widgets;
+
+btn = TButton("OK");
+lbl = TLabel("Name:");
+btn2 = @widgets.TButton("Cancel");
+```
+
+For repeated leaf imports without requiring a facade module:
+
+```dq
+usepath dqgui/widgets as w;
+
+use w/button;
+use w/textinput;
+use w/list;
+```
+
+This does not require `dqgui/widgets.dq` to exist.
 
 ---
 
-## 13. Conflict Rules
+## 16. Conflict Rules
 
-Merged symbols must not silently overwrite each other.
+Merged symbols should not silently overwrite each other.
 
-This is an error if both modules export `TButton`:
+This is a warning if both modules export `TButton`:
 
 ```dq
-use gui1/widgets;
-use gui2/widgets;
+use gui1/widgets as gw1;
+use gui2/widgets as gw2;
 ```
 
 Example diagnostic:
 
 ```text
-ERROR(UseNameConflict): symbol 'TButton' imported from both @gui1/widgets and @gui2/widgets
+WARN(UseNameConflict): symbol 'TButton' imported from both @gw1 and @gw2
 ```
 
-The user must resolve the ambiguity:
+The user should resolve ambiguity with aliases, `only(...)`, or `nomerge`:
 
 ```dq
-use gui1/widgets only(TWindow, TLabel);
-use gui2/widgets only(TButton);
+use gui1/widgets as gw1 only(TWindow, TLabel);
+use gui2/widgets as gw2 only(TButton);
 ```
 
 or:
 
 ```dq
-use gui1/widgets nomerge;
-use gui2/widgets;
+use gui1/widgets as gw1 nomerge;
+use gui2/widgets as gw2;
 
 btn = TButton("OK");
-other = @gui1/widgets.TButton("Other");
+other = @gw1.TButton("Other");
 ```
 
-`reexport` conflicts are also errors.
+`reexport` conflicts are also issue warning.
 
 Example:
 
@@ -587,11 +866,25 @@ use ./widgets reexport;
 use ./graphics reexport;
 ```
 
-If both export `TItem`, the facade module must explicitly restrict or rename one side.
+If both export `TItem`, the facade module should explicitly restrict or rename one side.
+
+Namespace conflicts are errors:
+
+```dq
+use dqgui/widgets/button;
+use mygui/widgets/button;  // error: namespace `button` already exists
+```
+
+Fix:
+
+```dq
+use dqgui/widgets/button as dqbutton;
+use mygui/widgets/button as mybutton;
+```
 
 ---
 
-## 14. Circular Module References
+## 17. Circular Module References
 
 The implicit interface/implementation split is intended to support Pascal-like circular handling.
 
@@ -645,7 +938,7 @@ The exact incomplete-type rules are defined separately.
 
 ---
 
-## 15. Grammar Sketch
+## 18. Grammar Sketch
 
 Informal grammar:
 
@@ -656,15 +949,23 @@ module-file:
 
 interface-item:
     use-declaration
+  | usepath-declaration
   | public-declaration
 
 implementation-item:
     use-declaration
+  | usepath-declaration
   | private-declaration
   | implementation-definition
 
 use-declaration:
-    "use" module-path [ "as" identifier ] use-modifier* ";"
+    "use" module-use-item { "," module-use-item } ";"
+
+module-use-item:
+    module-path [ "as" identifier ] use-modifier*
+
+usepath-declaration:
+    "usepath" module-path "as" identifier ";"
 
 use-modifier:
     "nomerge"
@@ -674,9 +975,13 @@ use-modifier:
 module-path:
     absolute-module-path
   | relative-module-path
+  | path-alias-module-path
 
 absolute-module-path:
     identifier { "/" identifier }
+
+path-alias-module-path:
+    identifier "/" path-tail
 
 relative-module-path:
     "." "/" path-tail
@@ -696,13 +1001,19 @@ Semantic restrictions:
 - `nomerge` and `only(...)` are mutually exclusive.
 - `nomerge` and `reexport` are mutually exclusive.
 - `only(...) reexport` is valid.
-- `as alias` creates a local module alias.
-- A module alias may be used as the first component of later module paths.
+- In a comma-separated `use` declaration, each `module-use-item` is equivalent to
+  a separate `use` declaration.
+- A `use` modifier belongs only to the `module-use-item` immediately before it.
+- `use ... as alias` creates a local namespace alias.
+- `usepath ... as alias` creates a local path alias only.
+- A path alias may be used only as the first component of later `use` or `usepath` paths.
+- Path aliases may be redefined without warning.
+- Namespace names created by `use` must be unique in the current source file.
 ```
 
 ---
 
-## 16. Summary of Supported Forms
+## 19. Summary of Supported Forms
 
 ```dq
 use xmodule;
@@ -717,12 +1028,17 @@ use xmodule as xm only(Symbol1, Symbol2);
 use xmodule reexport;
 use xmodule only(Symbol1, Symbol2) reexport;
 
+use xmodule/a, xmodule/b, xmodule/c;
+use xmodule/a as a, xmodule/b only(SymbolB), xmodule/c nomerge;
+use ./button reexport, ./list reexport, ./edit reexport;
+
 use ./child;
 use ../sibling;
 use ../../other/module;
 
-use package/submodule as sm;
+usepath package/submodule as sm;
 use sm/child;
+use sm/child as childmod;
 ```
 
 Examples:
@@ -735,6 +1051,22 @@ use dqgui/widgets only(TButton, TLabel);
 use dqgui/widgets only(TButton, TLabel) reexport;
 
 use ./button reexport;
+use ./button reexport, ./list reexport, ./edit reexport;
 use ../core only(TEvent);
 use ../../paint/image as img nomerge;
+
+usepath dqgui/widgets as widgets_path;
+use widgets_path/button, widgets_path/list, widgets_path/textinput as ti;
+```
+
+Qualified access examples:
+
+```dq
+use dqgui/widgets;
+use dqgui/widgets/button as btnmod;
+use ../../paint/image as img nomerge;
+
+w = @widgets.TWindow();
+b = @btnmod.TButton("OK");
+i = @img.TImage("logo.png");
 ```

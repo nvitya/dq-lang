@@ -1,8 +1,14 @@
-# DQ Compiler
+# DQ Programming Language
 
-Compiler for the DQ Universal Programming Language
+The DQ is an universal, human-friendly, compiled programming language.
 
-## Build
+This repository contains the language specification and a compiler.
+
+## DQ Language Specification
+
+[Specification](doc/dq-lang-spec/dq-lang-spec.md)
+
+## DQ Compiler
 
 Configure the project from the repository root:
 

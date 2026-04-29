@@ -4,6 +4,8 @@ The DQ is an universal, human-friendly, compiled programming language.
 
 This repository contains the language specification and a compiler.
 
+__Warning: The compiler and the DQ language is under development, not recommended for production use yet__
+
 ## DQ Language Specification
 
 [Specification](doc/dq-lang-spec/dq-lang-spec.md)

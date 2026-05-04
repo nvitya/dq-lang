@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.9.2"
+#define DQ_COMPILER_VERSION  "0.10.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.1:
+  - Work in progress: Module interface generation with --ifgen
 v0.9.2:
   - Constant array generation fix
 v0.9.1:

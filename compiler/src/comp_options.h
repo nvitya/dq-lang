@@ -41,16 +41,13 @@ class OCompOptions
 public:
   bool     print_version = false;  // --version
   int      verblevel = VERBLEVEL_NONE;
-
   bool     dbg_info = false;  // -g
-
   bool     ir_print = false;  // -ir
-
   bool     compile_only = false;  // -c
-
   int      optlevel = 0;
 
-  bool     blockmode_braces = false;
+  bool     ifgen  = false;  // --ifgen
+  bool     ifdump = false;  // --ifdump
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;

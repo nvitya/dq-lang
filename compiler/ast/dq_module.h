@@ -17,6 +17,7 @@
 #include <format>
 #include "symbols.h"
 #include "scope_builtins.h"
+#include "modintf.h"
 
 using namespace std;
 
@@ -62,28 +63,28 @@ public:
   }
 };
 
-class OModule
+class OModule : public OModIntf
 {
-public:
-  //string           name;
+private:
+  typedef OModIntf  super;
 
+public:
   vector<ODecl *>  declarations;
 
-  OScope *         scope_pub;
   OScope *         scope_priv;
 
   LlDiScope *      di_scope = nullptr;
 
   OModule()
+  :
+    super(g_builtins, "module_pub")
   {
-    scope_pub  = new OScope(g_builtins, "module_pub");
     scope_priv = new OScope(scope_pub,  "module_priv");
   }
 
   virtual ~OModule()
   {
     delete scope_priv;
-    delete scope_pub;
   }
 
   ODecl * DeclareType(bool apublic, OType * atype);

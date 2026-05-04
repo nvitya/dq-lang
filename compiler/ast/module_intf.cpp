@@ -5,10 +5,10 @@
  * This source code is licensed under the MIT License.
  * See the LICENSE file in the project root for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    modintf.h
+ * file:    module_intf.h
  * authors: nvitya
  * created: 2026-05-04
  * brief:   DQ Module Interface Class
  */
 
-#include "modintf.h"
+#include "module_intf.h"

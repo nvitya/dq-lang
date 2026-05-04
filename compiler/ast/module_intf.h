@@ -5,7 +5,7 @@
  * This source code is licensed under the MIT License.
  * See the LICENSE file in the project root for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    modintf.h
+ * file:    module_intf.h
  * authors: nvitya
  * created: 2026-05-04
  * brief:   DQ Module Interface Class
@@ -19,20 +19,20 @@
 
 using namespace std;
 
-class OModIntf
+class OModuleIntf
 {
 public:
   string           name;
   OScope *         scope_pub;
 
-  OModIntf(OScope * aparent, const string aname)
+  OModuleIntf(OScope * aparent, const string aname)
   :
     name(aname)
   {
     scope_pub = new OScope(aparent, aname);
   }
 
-  virtual ~OModIntf()
+  virtual ~OModuleIntf()
   {
     delete scope_pub;
   }

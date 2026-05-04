@@ -17,7 +17,7 @@
 #include <format>
 #include "symbols.h"
 #include "scope_builtins.h"
-#include "modintf.h"
+#include "module_intf.h"
 
 using namespace std;
 
@@ -63,10 +63,10 @@ public:
   }
 };
 
-class OModule : public OModIntf
+class OModule : public OModuleIntf
 {
 private:
-  typedef OModIntf  super;
+  typedef OModuleIntf  super;
 
 public:
   vector<ODecl *>  declarations;

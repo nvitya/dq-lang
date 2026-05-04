@@ -14,7 +14,339 @@
 #include "module_intf.h"
 
 #include <fstream>
+#include <ostream>
 #include <print>
+
+#include "otype_func.h"
+#include "otype_int.h"
+#include "otype_float.h"
+#include "otype_bool.h"
+#include "otype_cstring.h"
+
+static string TypeName(OType * atype)
+{
+  return (atype ? atype->name : "?");
+}
+
+static string TypeKindName(ETypeKind akind)
+{
+  switch (akind)
+  {
+    case TK_VOID:         return "void";
+    case TK_INT:          return "int";
+    case TK_FLOAT:        return "float";
+    case TK_BOOL:         return "bool";
+    case TK_POINTER:      return "pointer";
+    case TK_ARRAY:        return "array";
+    case TK_ARRAY_SLICE:  return "array_slice";
+    case TK_STRING:       return "string";
+    case TK_ALIAS:        return "alias";
+    case TK_ENUM:         return "enum";
+    case TK_COMPOUND:     return "compound";
+    case TK_FUNCTION:     return "function";
+    case TK_FUNCREF:      return "funcref";
+  }
+
+  return "unknown";
+}
+
+static string ParamModeText(EParamMode amode)
+{
+  switch (amode)
+  {
+    case FPM_VALUE:    return "";
+    case FPM_REF:      return "ref ";
+    case FPM_REFIN:    return "refin ";
+    case FPM_REFOUT:   return "refout ";
+    case FPM_REFNULL:  return "refnull ";
+  }
+
+  return "";
+}
+
+static string EscapeStringLiteral(const string & avalue)
+{
+  string result = "\"";
+  for (char c : avalue)
+  {
+    if ('\\' == c)
+    {
+      result += "\\\\";
+    }
+    else if ('"' == c)
+    {
+      result += "\\\"";
+    }
+    else if ('\n' == c)
+    {
+      result += "\\n";
+    }
+    else if ('\r' == c)
+    {
+      result += "\\r";
+    }
+    else if ('\t' == c)
+    {
+      result += "\\t";
+    }
+    else
+    {
+      result += c;
+    }
+  }
+  result += "\"";
+  return result;
+}
+
+static string ConstValueText(OValue * avalue)
+{
+  if (!avalue)
+  {
+    return "<null>";
+  }
+  if (auto * v = dynamic_cast<OValueInt *>(avalue))
+  {
+    return to_string(v->value);
+  }
+  if (auto * v = dynamic_cast<OValueFloat *>(avalue))
+  {
+    return to_string(v->value);
+  }
+  if (auto * v = dynamic_cast<OValueBool *>(avalue))
+  {
+    return (v->value ? "true" : "false");
+  }
+  if (auto * v = dynamic_cast<OValueCString *>(avalue))
+  {
+    return EscapeStringLiteral(v->value);
+  }
+  if (auto * v = dynamic_cast<OValuePointer *>(avalue))
+  {
+    return (v->is_null ? "null" : "<pointer>");
+  }
+
+  return "<unsupported>";
+}
+
+static OTypeFunc * FuncTypeOf(OValSymFunc * afunc)
+{
+  return (afunc ? dynamic_cast<OTypeFunc *>(afunc->ptype) : nullptr);
+}
+
+static bool IsImplicitReceiverParam(OValSymFunc * afunc, OFuncParam * aparam, bool afirst_param)
+{
+  return (afirst_param && afunc && afunc->owner_compound_type
+          && aparam && ("__this" == aparam->name));
+}
+
+static string FunctionSignature(OValSymFunc * afunc)
+{
+  OTypeFunc * sigtype = FuncTypeOf(afunc);
+  string result = "function ";
+  result += (afunc ? afunc->name : "?");
+  result += "(";
+
+  bool first = true;
+  if (sigtype)
+  {
+    for (OFuncParam * param : sigtype->params)
+    {
+      if (IsImplicitReceiverParam(afunc, param, first))
+      {
+        continue;
+      }
+
+      if (!first)
+      {
+        result += ", ";
+      }
+
+      result += ParamModeText(param->mode);
+      result += param->name;
+      result += " : ";
+      result += TypeName(param->ptype);
+      first = false;
+    }
+
+    if (sigtype->has_varargs)
+    {
+      if (!first)
+      {
+        result += ", ";
+      }
+      result += "...";
+    }
+
+    result += ")";
+    if (sigtype->rettype)
+    {
+      result += " -> ";
+      result += TypeName(sigtype->rettype);
+    }
+  }
+  else
+  {
+    result += ")";
+  }
+
+  return result;
+}
+
+static string FunctionState(OValSymFunc * afunc)
+{
+  if (!afunc)
+  {
+    return "unknown";
+  }
+  if (afunc->is_external)
+  {
+    return "external";
+  }
+  if (afunc->IsForwardDecl())
+  {
+    return "forward";
+  }
+  if (afunc->has_body)
+  {
+    return "body";
+  }
+  return "decl";
+}
+
+static void WriteValSym(ostream & out, OValSym * avsym, const string & indent);
+
+static void WriteFunction(ostream & out, OValSymFunc * afunc, const string & indent)
+{
+  out << indent << FunctionSignature(afunc) << " [" << FunctionState(afunc) << "]\n";
+}
+
+static void WriteOverloadSet(ostream & out, OValSymOverloadSet * aovset, const string & indent)
+{
+  out << indent << "overload " << (aovset ? aovset->name : "?") << "\n";
+  if (aovset)
+  {
+    for (OValSymFunc * fn : aovset->funcs)
+    {
+      WriteFunction(out, fn, indent + "  ");
+    }
+  }
+  out << indent << "endoverload\n";
+}
+
+static void WriteCompoundType(ostream & out, OCompoundType * atype, const string & indent)
+{
+  out << indent << (atype->is_object ? "object " : "struct ") << atype->name << "\n";
+
+  for (OValSym * member : atype->member_order)
+  {
+    out << indent << "  field " << member->name << " : " << TypeName(member->ptype) << "\n";
+  }
+
+  if (atype->is_object)
+  {
+    for (auto & [name, vs] : atype->Members()->valsyms)
+    {
+      (void)name;
+      if (VSK_FUNCTION == vs->kind)
+      {
+        WriteValSym(out, vs, indent + "  ");
+      }
+    }
+  }
+
+  out << indent << (atype->is_object ? "endobj" : "endstruct") << "\n";
+}
+
+static void WriteType(ostream & out, OType * atype, const string & indent)
+{
+  if (!atype)
+  {
+    out << indent << "type ?\n";
+    return;
+  }
+
+  if (auto * alias = dynamic_cast<OTypeAlias *>(atype))
+  {
+    out << indent << "type " << alias->name << " = " << TypeName(alias->ptype) << "\n";
+  }
+  else if (auto * ctype = dynamic_cast<OCompoundType *>(atype))
+  {
+    WriteCompoundType(out, ctype, indent);
+  }
+  else if (auto * fref = dynamic_cast<OTypeFuncRef *>(atype))
+  {
+    out << indent << "type " << fref->name << " = " << FuncTypeName(fref->functype) << "\n";
+  }
+  else if (auto * ftype = dynamic_cast<OTypeFunc *>(atype))
+  {
+    out << indent << "type " << ftype->name << " = " << FuncTypeName(ftype) << "\n";
+  }
+  else
+  {
+    out << indent << "type " << atype->name << " [kind=" << TypeKindName(atype->kind)
+        << ", size=" << atype->bytesize << "]\n";
+  }
+}
+
+static void WriteValSym(ostream & out, OValSym * avsym, const string & indent)
+{
+  if (!avsym)
+  {
+    out << indent << "val ?\n";
+    return;
+  }
+
+  if (auto * fn = dynamic_cast<OValSymFunc *>(avsym))
+  {
+    WriteFunction(out, fn, indent);
+  }
+  else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(avsym))
+  {
+    WriteOverloadSet(out, ovset, indent);
+  }
+  else
+  {
+    if (auto * vconst = dynamic_cast<OValSymConst *>(avsym))
+    {
+      out << indent << "const " << avsym->name << " : " << TypeName(avsym->ptype)
+          << " = " << ConstValueText(vconst->pvalue) << "\n";
+    }
+    else
+    {
+      string kind;
+      if (VSK_PARAMETER == avsym->kind) kind = "param";
+      else                              kind = "var";
+
+      out << indent << kind << " " << avsym->name << " : " << TypeName(avsym->ptype) << "\n";
+    }
+  }
+}
+
+OIntfDecl * OModuleIntf::AddPublicType(OType * atype)
+{
+  OType * deftype = scope_pub->DefineType(atype);
+  if (deftype != atype)
+  {
+    return nullptr;
+  }
+
+  OIntfDecl * result = new OIntfDecl(atype);
+  declarations.push_back(result);
+  return result;
+}
+
+OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
+{
+  OValSym * defvs = scope_pub->DefineValSym(avalsym);
+  if (defvs != avalsym)
+  {
+    return nullptr;
+  }
+
+  OIntfDecl * result = new OIntfDecl(avalsym);
+  declarations.push_back(result);
+  return result;
+}
 
 bool OModuleIntf::WriteInterface(const string & filename)
 {
@@ -25,8 +357,26 @@ bool OModuleIntf::WriteInterface(const string & filename)
     return false;
   }
 
-  outf << "DQMIF-STUB\n";
-  outf << "name=" << name << "\n";
+  outf << "DQMIF-TEXT 0\n";
+  outf << "module: " << name << "\n";
+  outf << "interface:\n";
+
+  for (OIntfDecl * decl : declarations)
+  {
+    if (!decl)
+    {
+      continue;
+    }
+
+    if (IDK_TYPE == decl->kind)
+    {
+      WriteType(outf, decl->ptype, "  ");
+    }
+    else if (IDK_VALSYM == decl->kind)
+    {
+      WriteValSym(outf, decl->pvalsym, "  ");
+    }
+  }
 
   if (!outf)
   {

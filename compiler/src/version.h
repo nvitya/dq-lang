@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.1"
+#define DQ_COMPILER_VERSION  "0.10.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.2:
+  - Interface writing preparation (text format so far)
 v0.10.1:
   - Work in progress: Module interface generation with --ifgen
 v0.9.2:

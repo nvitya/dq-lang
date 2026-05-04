@@ -81,9 +81,7 @@ void ODqCompCodegen::GenerateIr()
     }
     else if (DK_TYPE == decl->kind)
     {
-      OType * pt = decl->ptype;
-      print("ERROR: Unhandled type declaration \"{}\"\n", pt->name);
-      ++errorcnt;
+      // Type declarations are semantic interface data. They do not emit globals.
     }
   }
 

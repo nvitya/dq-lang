@@ -25,8 +25,14 @@ ODecl * OModule::DeclareType(bool apublic, OType * atype)
   ODecl * result = new ODecl(apublic, atype);
   declarations.push_back(result);
 
-  OScope * pscope = (apublic ? scope_pub : scope_priv);
-  pscope->DefineType(atype);
+  if (apublic)
+  {
+    AddPublicType(atype);
+  }
+  else
+  {
+    scope_priv->DefineType(atype);
+  }
 
   return result;
 }
@@ -36,8 +42,14 @@ ODecl * OModule::DeclareValSym(bool apublic, OValSym * avalsym)
   ODecl * result = new ODecl(apublic, avalsym);
   declarations.push_back(result);
 
-  OScope * pscope = (apublic ? scope_pub : scope_priv);
-  pscope->DefineValSym(avalsym);
+  if (apublic)
+  {
+    AddPublicValSym(avalsym);
+  }
+  else
+  {
+    scope_priv->DefineValSym(avalsym);
+  }
 
   return result;
 }

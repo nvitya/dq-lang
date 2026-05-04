@@ -767,7 +767,7 @@ void ODqCompParser::ParseRootTypeDecl()
     attr->CheckInvalidAttributes(ATGT_NONE);
   }
 
-  cur_mod_scope->DefineType(new OTypeAlias(sid, ptype));
+  g_module->DeclareType(section_public, new OTypeAlias(sid, ptype));
 
   if (not CheckStatementClose())
   {
@@ -863,7 +863,7 @@ void ODqCompParser::ParseStructDecl()
   // Compute byte size from LLVM type
   ctype->GetLlType();  // force creation
 
-  cur_mod_scope->DefineType(ctype);
+  g_module->DeclareType(section_public, ctype);
 }
 
 void ODqCompParser::InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype)
@@ -1245,7 +1245,7 @@ void ODqCompParser::ParseObjectDecl()
   }
 
   ctype->GetLlType();
-  cur_mod_scope->DefineType(ctype);
+  g_module->DeclareType(section_public, ctype);
 }
 
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)

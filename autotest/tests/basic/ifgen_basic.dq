@@ -1,0 +1,44 @@
+// Basic source fixture for module interface generation.
+// Keep this free of use/usepath until imported module interfaces exist.
+
+const IFGEN_BASE : int = 7;
+
+type TIfgenValue = int;
+
+struct SIfgenPair
+  left  : int;
+  right : int;
+endstruct
+
+object OIfgenBox
+  value : TIfgenValue;
+
+  function Get() -> int:
+    result = value;
+  endfunc
+endobj
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function IfgenAdd(a : int, b : int) -> int:
+  result = a + b + IFGEN_BASE;
+endfunc
+
+function main() -> int:
+  var pair : SIfgenPair = {};
+  pair.left = 2;
+  pair.right = 3;
+
+  var box : OIfgenBox = {};
+  box.value = IfgenAdd(pair.left, pair.right);
+
+  printf("ifgen value = %d\n", box.Get());  //?check('ifgen value', 12)
+
+  return 0;
+endfunc
+
+implementation
+
+function IfgenPrivateHelper(v : int) -> int:
+  result = v + 1;
+endfunc

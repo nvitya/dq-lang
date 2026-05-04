@@ -37,5 +37,8 @@ public:
     delete scope_pub;
   }
 
+  bool WriteInterface(const string & filename);
+  bool ReadInterface(const string & filename);
 };
 
+bool DumpModuleInterface(const string & filename);

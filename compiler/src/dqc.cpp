@@ -58,6 +58,15 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
+  if (g_opt.ifdump)
+  {
+    if (!DumpModuleInterface(in_filename))
+    {
+      ++errorcnt;
+    }
+    return;
+  }
+
   if ((g_opt.verblevel >= VERBLEVEL_STATUS) and not in_filename.empty())
   {
     print("Compiling: \"{}\"...\n", in_filename);
@@ -98,6 +107,15 @@ void ODqCompiler::Run(int argc, char ** argv)
     if (g_opt.verblevel >= VERBLEVEL_STATUS)
     {
       print("Compile error.\n");
+    }
+    return;
+  }
+
+  if (g_opt.ifgen)
+  {
+    if (!g_module->WriteInterface(out_filename))
+    {
+      ++errorcnt;
     }
     return;
   }

@@ -177,6 +177,8 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     if ('-' == v[0])  // some compiler switch
     {
       if      ("--version" == v)  g_opt.print_version = true;
+      else if ("--ifgen"   == v)  g_opt.ifgen = true;
+      else if ("--ifdump"  == v)  g_opt.ifdump = true;
       else if (VerblevelSwitch(v))  { /* already handled in the function */ }
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
@@ -277,11 +279,30 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     return;
   }
 
+  if (g_opt.ifgen and g_opt.ifdump)
+  {
+    ++errorcnt;
+    print("--ifgen and --ifdump can not be used together.\n");
+    PrintUsage();
+    return;
+  }
+
   if (in_filename.empty())
   {
     ++errorcnt;
     print("Input file name is missing.\n");
     PrintUsage();
+    return;
+  }
+
+  if (g_opt.ifdump)
+  {
+    if (has_dash_o)
+    {
+      ++errorcnt;
+      print("--ifdump expects only one input .dqm_if file.\n");
+      PrintUsage();
+    }
     return;
   }
 
@@ -295,7 +316,11 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     base_name = in_filename;
   }
 
-  if (g_opt.compile_only)
+  if (g_opt.ifgen)
+  {
+    out_filename = has_dash_o ? explicit_output : base_name + ".dqm_if";
+  }
+  else if (g_opt.compile_only)
   {
     // -c: compile only, no linking
     out_filename = has_dash_o ? explicit_output : base_name + ".o";
@@ -319,6 +344,8 @@ void ODqCompClargs::PrintUsage()
   print("Options:\n");
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
+  print("  --ifgen   : generate module interface file (.dqm_if)\n");
+  print("  --ifdump  : dump module interface file (.dqm_if)\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

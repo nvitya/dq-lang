@@ -357,7 +357,18 @@ void ODqCompParser::ParseModule()
     // The module root statement must start with a keyword like
     //   use, module, var, type, function, implementation
 
-    if ("var" == sid) // global variable definition
+    if ("implementation" == sid)
+    {
+      if (g_opt.ifgen)
+      {
+        break;  // do not parse the implementation part in --ifgen mode
+      }
+
+      section_public = false;
+      cur_mod_scope = g_module->scope_priv;
+      curscope = cur_mod_scope;
+    }
+    else if ("var" == sid) // global variable definition
     {
       ParseStmtVar(true);
     }
@@ -389,7 +400,10 @@ void ODqCompParser::ParseModule()
     }
   }
 
-  ValidateModuleForwardFuncDecls(g_module);
+  if (!g_opt.ifgen)
+  {
+    ValidateModuleForwardFuncDecls(g_module);
+  }
 
   if (g_opt.verblevel >= VERBLEVEL_DEBUG)
   {

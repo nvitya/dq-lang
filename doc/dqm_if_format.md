@@ -47,7 +47,13 @@ If loading fails because the file is missing, stale, unsupported, corrupt, or in
 
 ```text
 +-----------------------------+
-| fixed DQMIF header          |
+| compact global DQMIF header |
++-----------------------------+
+| header record group         |
+|   HEADER_BEGIN              |
+|   HEADER_DATA               |
+|   ...                       |
+|   HEADER_END                |
 +-----------------------------+
 | record stream               |
 |   record                    |
@@ -57,11 +63,20 @@ If loading fails because the file is missing, stale, unsupported, corrupt, or in
 +-----------------------------+
 ```
 
+The compact global header contains only the fields needed for fast rejection and for finding the
+record stream. Descriptive metadata such as module path, compiler version text, target
+triple, ABI name, and build configuration is stored in the header record group.
+
 The record stream is a strict binary token stream. Records are interpreted according to parser state.
 
 Example conceptual stream:
 
 ```text
+HEADER_BEGIN
+  HEADER_DATA module_path "dqgui/widgets/button"
+  HEADER_DATA target_triple "x86_64-linux-gnu"
+HEADER_END
+
 MODULE_START
   NAME "dqgui/widgets/button"
   TARGET "x86_64-linux-gnu"
@@ -110,16 +125,18 @@ integer encoding: little-endian
 record-header alignment: 4 bytes
 payload alignment: payload padded with zero bytes to next 4-byte boundary
 record length: excludes padding
-strings: UTF-8 bytes, not zero-terminated unless explicitly stated
+strings: UTF-8 bytes; length from record header; not zero-terminated
 ```
 
 The target endianness is stored as metadata. It does not affect the `.dqm_if` file encoding.
 
 ---
 
-## 4. Fixed Header
+## 4. Compact Global Header
 
-The payload begins with a fixed-size header. The header contains fast-reject fields and plenty of reserved space for future expansion.
+The payload begins with a compact fixed-size global header. The fixed header exists so the
+reader can quickly reject files that are definitely not readable before running the
+stateful record parser.
 
 Suggested v1 header shape:
 
@@ -140,27 +157,69 @@ struct TDqmIfHeader
   uint64_t payload_hash;          // hash/checksum of record stream or full payload
   uint64_t interface_hash;        // semantic public interface hash
 
-  uint64_t source_hash;           // hash of source or interface-relevant source data
-  uint64_t options_hash;          // relevant compiler options
-  uint64_t defines_hash;          // relevant preprocessor defines
-  uint64_t dependency_hash;       // aggregate dependency interface hash
-
   uint32_t compiler_if_version;   // compiler interface compatibility version
-  uint32_t language_version;      // DQ language version
-  uint32_t target_key_hash;       // target triple/config hash
-  uint32_t abi_key_hash;          // ABI/layout/calling-convention hash
-
-  uint8_t  reserved[128];         // must be zero in v1
+  uint32_t header_record_offset;   // offset of HEADER_BEGIN from file start
+  uint32_t first_body_record_offset; // offset after HEADER_END padding
+  uint32_t reserved0;              // must be zero in v1
 };
 ```
 
-Header strings such as module path, target triple, ABI name, compiler name, and build configuration name are stored as records, not directly in the fixed header.
+Header strings and configuration details are stored as records, not directly in the
+fixed header.
 
-The header should be large enough to reject obviously incompatible artifacts before the record parser starts.
+The fixed header should stay small. New header metadata should normally be added as
+`HEADER_DATA` records instead of expanding `TDqmIfHeader`.
 
 ---
 
-## 5. Record Header
+## 5. Header Records
+
+After the fixed header, the stream starts with a header record group:
+
+```text
+HEADER_BEGIN
+  HEADER_DATA <key, value>
+  HEADER_DATA <key, value>
+  ...
+HEADER_END
+```
+
+The header group is still encoded with the normal record header described below.
+This keeps the file flexible without making the global header large.
+
+Suggested required v1 header data keys:
+
+```text
+module_path
+language_version
+target_triple
+object_format
+abi_key
+pointer_size
+target_endianness
+source_hash
+options_hash
+defines_hash
+dependency_hash
+compiler_name
+compiler_version
+```
+
+Suggested `HEADER_DATA` payload:
+
+```text
+u16 key_id
+u16 value_kind
+u8  value[rec_len - 4]
+```
+
+For string values, `value` is the UTF-8 string bytes directly. For integer and hash
+values, `value` is the fixed-width little-endian scalar. The record header gives the
+total payload length, so string values do not carry an additional length field.
+
+---
+
+## 6. Record Header
 
 Every record starts with a 32-bit header:
 
@@ -205,7 +264,7 @@ Record length excludes alignment padding.
 
 ---
 
-## 6. Record Padding
+## 7. Record Padding
 
 After the payload, zero padding is added until the next record header is 4-byte aligned.
 
@@ -222,7 +281,7 @@ The writer must emit zero padding. The reader may validate padding bytes and rej
 
 ---
 
-## 7. Record Stream Model
+## 8. Record Stream Model
 
 The stream is token-like and stateful.
 
@@ -234,6 +293,9 @@ Example parser structure:
 ParseDqmIf()
 {
   ParseHeader();
+  Expect(REC_HEADER_BEGIN);
+  ParseHeaderRecords();
+  Expect(REC_HEADER_END);
   Expect(REC_MODULE_START);
   ParseModuleBody();
   Expect(REC_MODULE_END);
@@ -265,7 +327,7 @@ An unknown record ID or a valid record in an invalid parser state is a load fail
 
 ---
 
-## 8. Symbolic References
+## 9. Symbolic References
 
 The v1 format uses symbolic string references for language-level identifiers.
 
@@ -294,7 +356,7 @@ During loading, the compiler may create internal temporary objects and native po
 
 ---
 
-## 9. Canonical Names
+## 10. Canonical Names
 
 Module paths and imported module references must be canonicalized before writing `.dqm_if`.
 
@@ -325,24 +387,23 @@ BASE_TYPE "dqgui/widgets/widget.TWidget"
 
 ---
 
-## 10. String Payloads
+## 11. String Payloads
 
 String records store UTF-8 bytes.
 
-A simple string record payload may be:
+A string record payload is exactly:
 
 ```text
-u32 byte_length
-u8  bytes[byte_length]
+u8 bytes[rec_len]
 ```
 
-The string is not zero-terminated. The record-level padding handles alignment.
-
-For small strings, a record-specific shorter length field may be used, but v1 should prefer `u32 byte_length` for simplicity and consistency.
+The string byte length is taken from the record header. The string is not
+zero-terminated and does not include a separate length field. The record-level
+padding handles alignment and is not part of the string.
 
 ---
 
-## 11. Binary Scalar Payloads
+## 12. Binary Scalar Payloads
 
 String identifiers stay symbolic. Stable scalar metadata should remain binary.
 
@@ -381,7 +442,7 @@ A later version may use 128-bit hashes if desired.
 
 ---
 
-## 12. Suggested Record ID Ranges
+## 13. Suggested Record ID Ranges
 
 The 16-bit record ID space should be grouped by purpose.
 
@@ -389,7 +450,7 @@ The 16-bit record ID space should be grouped by purpose.
 0x0000  INVALID
 0x0001  END
 
-0x0100..0x01FF  file/module/build records
+0x0100..0x01FF  header/file/module/build records
 0x0200..0x02FF  imports/dependencies/reexports
 0x0300..0x03FF  type records
 0x0400..0x04FF  object/member records
@@ -407,14 +468,17 @@ Suggested initial records:
 ```text
 0x0001  END
 
-0x0100  MODULE_START
-0x0101  MODULE_END
-0x0102  NAME
-0x0103  TARGET
-0x0104  ABI
-0x0105  BUILD_OPTIONS_HASH
-0x0106  SOURCE_HASH
-0x0107  INTERFACE_HASH
+0x0100  HEADER_BEGIN
+0x0101  HEADER_DATA
+0x0102  HEADER_END
+0x0110  MODULE_START
+0x0111  MODULE_END
+0x0112  NAME
+0x0113  TARGET
+0x0114  ABI
+0x0115  BUILD_OPTIONS_HASH
+0x0116  SOURCE_HASH
+0x0117  INTERFACE_HASH
 
 0x0200  IMPORT
 0x0201  DEPENDENCY
@@ -457,6 +521,7 @@ Suggested initial records:
 0x0701  NAMESPACE
 
 0x0800  ATTR
+0x0801  ATTR_VALUE
 
 0x0900  SOURCE_FILE
 0x0901  SOURCE_LOC
@@ -466,7 +531,7 @@ The exact numeric values are provisional and should be centralized in one compil
 
 ---
 
-## 13. Module Records
+## 14. Module Records
 
 A module stream starts with `MODULE_START` and ends with `MODULE_END`.
 
@@ -490,7 +555,7 @@ The module name must be the canonical module path.
 
 ---
 
-## 14. Import and Dependency Records
+## 15. Import and Dependency Records
 
 `IMPORT` records describe imported public interfaces required to restore this module interface.
 
@@ -499,8 +564,7 @@ Suggested payload:
 ```text
 u64 interface_hash
 u32 flags
-u32 module_path_len
-u8  module_path[module_path_len]
+u8  module_path[rec_len - 12]
 ```
 
 Flags may describe semantic import role:
@@ -516,7 +580,7 @@ Dependency hash validation is strict. If an imported module's current interface 
 
 ---
 
-## 15. Type Records
+## 16. Type Records
 
 Types are represented as tokenized declaration streams.
 
@@ -568,7 +632,7 @@ The precise representation of compound type expressions may evolve, but the v1 p
 
 ---
 
-## 16. Function and Method Records
+## 17. Function and Method Records
 
 Functions and methods may be complex and are represented as nested token streams.
 
@@ -625,7 +689,7 @@ Normal function bodies are not stored in `.dqm_if`. Bodies are stored only for c
 
 ---
 
-## 17. Attributes
+## 18. Attributes
 
 Attributes are represented as token records so the format can grow without changing every parent record.
 
@@ -639,21 +703,27 @@ ATTR inline
 ATTR comptime_required
 ```
 
-Suggested generic attribute payload:
+Suggested v1 representation:
 
 ```text
-u32 name_len
-u8  name[name_len]
-u32 value_kind
-u32 value_len
-u8  value[value_len]
+ATTR "public"
+
+ATTR "external_name"
+  ATTR_VALUE "printf"
+
+ATTR "varargs"
 ```
+
+`ATTR` payload is the UTF-8 attribute name. `ATTR_VALUE` payload is either a string
+value or a fixed-width scalar value interpreted according to the current attribute
+parser state. For string attribute values, the record payload is the UTF-8 bytes
+directly and the length is `rec_len`.
 
 For common attributes, specialized records may be added later if needed.
 
 ---
 
-## 18. Source Location Records
+## 19. Source Location Records
 
 Source locations are optional but recommended for diagnostics.
 
@@ -668,7 +738,7 @@ Source paths should be stored in a build-reproducible form where possible, such 
 
 ---
 
-## 19. Validation Rules
+## 20. Validation Rules
 
 A reader must reject the file if any of these occur:
 
@@ -680,6 +750,7 @@ header_size smaller than required v1 header
 non-zero reserved fields where v1 requires zero
 file_size mismatch
 payload hash mismatch
+missing or malformed HEADER_BEGIN / HEADER_END group
 unsupported compiler interface version
 unsupported language version
 target/config mismatch
@@ -702,7 +773,7 @@ Rejection means the artifact is unusable for the current compilation.
 
 ---
 
-## 20. Regeneration Policy
+## 21. Regeneration Policy
 
 When an interface is needed:
 
@@ -762,18 +833,37 @@ compiler error during regeneration
 
 ---
 
-## 21. Dump Tool
+## 22. Compiler Commands
+
+The DQ compiler is already prepared with these interface-related options:
+
+```bash
+dq-comp --ifgen <file.dq>
+dq-comp --ifgen <file.dq> -o <file.dqm_if>
+dq-comp --ifdump <file.dqm_if>
+```
+
+`--ifgen` writes a standalone `.dqm_if` file and stops before normal IR/object-code
+generation. Without `-o`, the output filename is derived from the input by replacing
+`.dq` with `.dqm_if`.
+
+`--ifdump` reads one `.dqm_if` input and prints a diagnostic dump. It is mutually
+exclusive with `--ifgen` and does not take an output filename.
+
+---
+
+## 23. Dump Tool
 
 A dump tool should be implemented early.
 
 Example commands:
 
 ```bash
-dq-comp --dump-module button.dqm_if
-dq-comp --dump-module button.dqm
+dq-comp --ifdump button.dqm_if
 ```
 
-For `.dqm`, the tool extracts the `.dqm_if` section first, then dumps the same payload format.
+Later, the same dump path may also accept `.dqm` files by extracting the embedded
+`.dqm_if` section first.
 
 Example output:
 
@@ -800,12 +890,13 @@ The dump tool should parse the same record stream as the compiler loader, but ma
 
 ---
 
-## 22. Version 1 Summary
+## 24. Version 1 Summary
 
 The recommended v1 `.dqm_if` format is:
 
 ```text
-fixed header with reserved bytes
+compact fixed header for fast rejection
+HEADER_BEGIN / HEADER_DATA / HEADER_END records for flexible header metadata
 little-endian canonical encoding
 strict binary token record stream
 16-bit record ID
@@ -813,6 +904,7 @@ strict binary token record stream
 0xFFFF length escape followed by u32 extended length
 4-byte aligned record headers
 zero padding between records
+string length taken from record header; string payload is UTF-8 bytes only
 symbolic string identifiers for module/type/function references
 binary scalar records for hashes, flags, sizes, offsets, and source positions
 strict stateful parser

@@ -60,63 +60,71 @@ TDqmIfRecId  DQMIF_H_TARGET_RTL           = 0x0109;  // str: AKA OS
 TDqmIfRecId  DQMIF_H_BUILD_OPTIONS        = 0x010A;  // str
 
 
-// 0200: Constants
+// 0200: Type aliases
 
-TDqmIfRecId  DQMIF_CONST_BEGIN            = 0x0200;  // str: constant name
+TDqmIfRecId  DQMIF_TYPE_BEGIN             = 0x0200;  // str: type alias name
+// exp.:     DQMIF_TYPE_SPEC
+TDqmIfRecId  DQMIF_TYPE_END               = 0x02FF;  // 0
+
+
+// 0300: Constants
+
+TDqmIfRecId  DQMIF_CONST_BEGIN            = 0x0300;  // str: constant name
 // exp.:     DQMIF_TYPE_SPEC
 // exp.:     DQMIF_VALUE_INLINE / DQMIF_VALUE_LINKED
-TDqmIfRecId  DQMIF_CONST_END              = 0x02FF;  // 0
+TDqmIfRecId  DQMIF_CONST_END              = 0x03FF;  // 0
 
-// 0300: Type aliases
+// 0400: Global Variables
 
-TDqmIfRecId  DQMIF_TYPE_BEGIN             = 0x0300;  // str: type alias name
-// exp.:     DQMIF_TYPE_SPEC
-TDqmIfRecId  DQMIF_TYPE_END               = 0x03FF;  // 0
-
-// 0400: Functions
-
-TDqmIfRecId  DQMIF_FUNC_BEGIN             = 0x0400;  // str: function name
-TDqmIfRecId  DQMIF_FUNC_END               = 0x04FF;  // 0
+TDqmIfRecId  DQMIF_VAR_BEGIN              = 0x0400;  // str: variable name
 // opt.:     attributes (at the front only)
-TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0401;  // str: like the DQMIF_TYPE_SPEC
+// exp.:     DQMIF_TYPE_SPEC
+TDqmIfRecId  DQMIF_VAR_END                = 0x04FF;  // 0
 
-// 0500: function Parameters
 
-TDqmIfRecId  DQMIF_FUNC_PARAM_BEGIN       = 0x0500;  // str
-TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REF    = 0x0513;  // 0
-TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFIN  = 0x0511;  // 0
-TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFOUT = 0x0512;  // 0
+// 0500: Functions
+
+TDqmIfRecId  DQMIF_FUNC_BEGIN             = 0x0500;  // str: function name
+TDqmIfRecId  DQMIF_FUNC_END               = 0x05FF;  // 0
+// opt.:     attributes (at the front only)
+TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // str: like the DQMIF_TYPE_SPEC
+
+// 0600: function Parameters
+
+TDqmIfRecId  DQMIF_FUNC_PARAM_BEGIN       = 0x0600;  // str
+TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REF    = 0x0613;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFIN  = 0x0611;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFOUT = 0x0612;  // 0
 // exp.:     DQMIF_TYPE_SPEC
 // opt.:     DQMIF_VALUE_INLINE (for default value)
-TDqmIfRecId  DQMIF_FUNC_PARAM_END         = 0x05FF;  // 0
-TDqmIfRecId  DQMIF_FUNC_PARAM_VARARGS     = 0x05A0;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_END         = 0x06FF;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_VARARGS     = 0x06A0;  // 0
 
-// 0600: Structures, objects
+// 0700: Structures, objects
 
-TDqmIfRecId  DQMIF_STRUCT_BEGIN           = 0x0600;  // str: name
-TDqmIfRecId  DQMIF_STRUCT_END             = 0x06FF;  // 0
-TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0601;  // str: name
-TDqmIfRecId  DQMIF_OBJ_END                = 0x06FE;  // 0
+TDqmIfRecId  DQMIF_STRUCT_BEGIN           = 0x0700;  // str: name
+TDqmIfRecId  DQMIF_STRUCT_END             = 0x07FF;  // 0
+TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
+TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
 
-TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0610;  // str
-TDqmIfRecId  DQMIF_FIELD_END              = 0x061F;  // 0
-TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0611;  // int32
+TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str
+TDqmIfRecId  DQMIF_FIELD_END              = 0x071F;  // 0
+TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0711;  // int32
 // exp.:     DQMIF_TYPE_SPEC
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 // opt.:     attributes (at the front only)
 
-TDqmIfRecId  DQMIF_METHOD_BEGIN           = 0x0680;  // str
-TDqmIfRecId  DQMIF_METHOD_END             = 0x068F;  // 0
+TDqmIfRecId  DQMIF_METHOD_BEGIN           = 0x0780;  // str
+TDqmIfRecId  DQMIF_METHOD_END             = 0x078F;  // 0
 
-// 0700: Linking
-TDqmIfRecId  DQMIF_LINKLIB                = 0x0700;  // str, no end marker
+// 0800: Linking
+TDqmIfRecId  DQMIF_LINKLIB                = 0x0800;  // str, no end marker
 
-// 0800: Uses
-TDqmIfRecId  DQMIF_USE_BEGIN              = 0x0800;  // str
-TDqmIfRecId  DQMIF_USE_ALIAS              = 0x0801;  // str
-TDqmIfRecId  DQMIF_USE_ONLY               = 0x0802;  // str
-TDqmIfRecId  DQMIF_USE_REEXPORT           = 0x08E0;  // 0
-TDqmIfRecId  DQMIF_USE_END                = 0x08FF;  // 0
+// 0900: Uses
+TDqmIfRecId  DQMIF_USE_BEGIN              = 0x0900;  // str
+TDqmIfRecId  DQMIF_USE_ALIAS              = 0x0901;  // str
+TDqmIfRecId  DQMIF_USE_ONLY               = 0x0902;  // str
+TDqmIfRecId  DQMIF_USE_REEXPORT           = 0x09E0;  // 0
+TDqmIfRecId  DQMIF_USE_END                = 0x09FF;  // 0
 
-
-// 0900: ?
+// 0A00: ?

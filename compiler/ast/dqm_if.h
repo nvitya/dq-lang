@@ -13,7 +13,12 @@
 
 #pragma once
 
+#include <cstddef>
+#include <string>
+#include <vector>
 #include "stdint.h"
+
+using namespace std;
 
 //                                    MAJOR          MINOR
 const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     0 );  // generated version
@@ -31,13 +36,52 @@ struct TDqmIfHeader // compact global header (32 bytes)
 
 typedef const uint16_t  TDqmIfRecId;
 
+struct TDqmIfRec
+{
+  uint16_t  recid;
+  uint16_t  len;
+};
+
+class ODqmIfWriter
+{
+public:
+  vector<uint8_t>  payload;
+  string           error;
+
+  bool Ok() const { return error.empty(); }
+  bool Fail(const string & amsg);
+
+  bool AddRec(TDqmIfRecId arecid, const void * adata, size_t alen);
+  bool AddRec(TDqmIfRecId arecid, const vector<uint8_t> & adata);
+  bool AddRecStr(TDqmIfRecId arecid, const string & avalue);
+  bool AddRecEmpty(TDqmIfRecId arecid);
+  bool AddRecU8(TDqmIfRecId arecid, uint8_t avalue);
+  bool AddRecU32(TDqmIfRecId arecid, uint32_t avalue);
+  bool AddRecI32(TDqmIfRecId arecid, int32_t avalue);
+  bool AddRecU64(TDqmIfRecId arecid, uint64_t avalue);
+  bool AddRecI64(TDqmIfRecId arecid, int64_t avalue);
+
+  void AddU8(vector<uint8_t> & rdst, uint8_t avalue) const;
+  void AddU16(vector<uint8_t> & rdst, uint16_t avalue) const;
+  void AddU32(vector<uint8_t> & rdst, uint32_t avalue) const;
+  void AddU64(vector<uint8_t> & rdst, uint64_t avalue) const;
+
+  uint64_t Checksum(const vector<uint8_t> & adata) const;
+  bool WriteToFile(const string & filename);
+};
+
+// DQM Record Ids
+
 // Universal records
 
 TDqmIfRecId  DQMIF_INVALID                = 0x0000;
 
 TDqmIfRecId  DQMIF_TYPE_SPEC              = 0x8000;  // str, simple type spec
-TDqmIfRecId  DQMIF_TYPE_SPEC_PTR          = 0x8080;  // str, simple type spec
-TDqmIfRecId  DQMIF_TYPE_SPEC_FUNC_BEGIN   = 0x80F0;  // str, simple type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_PTR1         = 0x8081;  // (^)   str, simple type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_PTR2         = 0x8082;  // (^^)  str, simple type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_PTR3         = 0x8083;  // (^^^) str, simple type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // str
+TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // str
 TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: used only for complex types
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length
@@ -87,7 +131,7 @@ TDqmIfRecId  DQMIF_VAR_END                = 0x04FF;  // 0
 TDqmIfRecId  DQMIF_FUNC_BEGIN             = 0x0500;  // str: function name
 TDqmIfRecId  DQMIF_FUNC_END               = 0x05FF;  // 0
 // opt.:     attributes (at the front only)
-TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // str: like the DQMIF_TYPE_SPEC
+TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // 0, followed by DQMIF_TYPE_SPEC
 
 // 0600: function Parameters
 

@@ -318,7 +318,8 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
                : LlLinkType::InternalLinkage);
 
     LlType *          ll_type  = ptype->GetLlType();
-    LlConst *         ll_init_val = ainitval->GetLlConst();
+    LlConst *         ll_init_val = (ainitval ? ainitval->GetLlConst()
+                                              : llvm::Constant::getNullValue(ll_type));
 
     llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, name);
     ll_value = gv;

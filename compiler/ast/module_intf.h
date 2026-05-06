@@ -78,7 +78,7 @@ public:
   OIntfDecl * AddPublicType(OType * atype);
   OIntfDecl * AddPublicValSym(OValSym * avalsym);
 
-  bool WriteInterface(const string & filename);
+  bool WriteInterface(const string & filename, const string & source_filename);
   bool ReadInterface(const string & filename);
 };
 

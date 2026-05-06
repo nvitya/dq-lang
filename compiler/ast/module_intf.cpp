@@ -13,10 +13,14 @@
 
 #include "module_intf.h"
 
+#include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <ostream>
 #include <print>
 
+#include "comp_options.h"
+#include "dqm_if.h"
 #include "otype_func.h"
 #include "otype_int.h"
 #include "otype_float.h"
@@ -348,18 +352,109 @@ OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
   return result;
 }
 
-bool OModuleIntf::WriteInterface(const string & filename)
+static string DqmIfTargetArch()
 {
-  ofstream outf(filename, ios::binary);
-  if (!outf)
+#if defined(HOST_X86)
+  #if defined(TARGET_64BIT)
+    return "x86_64";
+  #else
+    return "x86";
+  #endif
+#elif defined(HOST_ARM)
+  #if defined(TARGET_64BIT)
+    return "aarch64";
+  #else
+    return "arm";
+  #endif
+#elif defined(HOST_RISCV)
+  #if defined(TARGET_64BIT)
+    return "riscv64";
+  #else
+    return "riscv32";
+  #endif
+#else
+  return "unknown";
+#endif
+}
+
+static string DqmIfTargetRtl()
+{
+#if defined(TARGET_WIN)
+  return "win";
+#elif defined(TARGET_LINUX)
+  return "linux";
+#else
+  return "unknown";
+#endif
+}
+
+static string DqmIfBuildOptions()
+{
+  string result = "O" + to_string(g_opt.optlevel);
+  if (g_opt.dbg_info)      result += ";g";
+  if (g_opt.compile_only)  result += ";c";
+
+  for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
-    print("Can not create module interface file: {}\n", filename);
+    result += ";D";
+    result += def.name;
+    if (def.has_bool_value)
+    {
+      result += "=";
+      result += (def.bool_value ? "true" : "false");
+    }
+    else if (def.has_int_value)
+    {
+      result += "=";
+      result += to_string(def.int_value);
+    }
+  }
+
+  return result;
+}
+
+static bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)
+{
+  if (!writer.AddRecEmpty(DQMIF_H_BEGIN)) return false;
+  if (!source_filename.empty()
+      && !writer.AddRecStr(DQMIF_H_SRC_FILENAME, source_filename)) return false;
+
+  error_code ec;
+  uintmax_t fsize = filesystem::file_size(source_filename, ec);
+  if (!ec && !writer.AddRecI64(DQMIF_H_SRC_FILESIZE, int64_t(fsize))) return false;
+
+  ec.clear();
+  auto ftime = filesystem::last_write_time(source_filename, ec);
+  if (!ec)
+  {
+    auto ticks = chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count();
+    if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, int64_t(ticks))) return false;
+  }
+
+  if (!writer.AddRecStr(DQMIF_H_TARGET_ARCH, DqmIfTargetArch())) return false;
+  if (!writer.AddRecStr(DQMIF_H_TARGET_RTL, DqmIfTargetRtl())) return false;
+  if (!writer.AddRecStr(DQMIF_H_BUILD_OPTIONS, DqmIfBuildOptions())) return false;
+  return writer.AddRecEmpty(DQMIF_H_END);
+}
+
+bool OModuleIntf::WriteInterface(const string & filename, const string & source_filename)
+{
+  ODqmIfWriter writer;
+
+  if (!WriteDqmIfSourceMetadata(writer, source_filename))
+  {
+    print("Can not write module interface file: {}\n{}\n", filename, writer.error);
     return false;
   }
 
-  outf << "DQMIF-TEXT 0\n";
-  outf << "module: " << name << "\n";
-  outf << "interface:\n";
+  for (const string & libname : g_opt.link_libraries)
+  {
+    if (!writer.AddRecStr(DQMIF_LINKLIB, libname))
+    {
+      print("Can not write module interface file: {}\n{}\n", filename, writer.error);
+      return false;
+    }
+  }
 
   for (OIntfDecl * decl : declarations)
   {
@@ -370,17 +465,25 @@ bool OModuleIntf::WriteInterface(const string & filename)
 
     if (IDK_TYPE == decl->kind)
     {
-      WriteType(outf, decl->ptype, "  ");
+      if (!decl->ptype || !decl->ptype->WriteDqmIfDecl(writer))
+      {
+        print("Can not write module interface file: {}\n{}\n", filename, writer.error);
+        return false;
+      }
     }
     else if (IDK_VALSYM == decl->kind)
     {
-      WriteValSym(outf, decl->pvalsym, "  ");
+      if (!decl->pvalsym || !decl->pvalsym->WriteDqmIfDecl(writer))
+      {
+        print("Can not write module interface file: {}\n{}\n", filename, writer.error);
+        return false;
+      }
     }
   }
 
-  if (!outf)
+  if (!writer.WriteToFile(filename))
   {
-    print("Can not write module interface file: {}\n", filename);
+    print("Can not write module interface file: {}\n{}\n", filename, writer.error);
     return false;
   }
 

@@ -74,6 +74,8 @@ public:
   {
     return (IsRefLike() ? ptype->GetPointerType() : ptype);
   }
+
+  bool WriteDqmIf(ODqmIfWriter & writer) const;
 };
 
 // A function signature is a type (TK_FUNCTION).
@@ -122,6 +124,7 @@ public:
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
+  bool WriteDqmIfTypeSpec(ODqmIfWriter & writer) override;
 };
 
 
@@ -182,6 +185,8 @@ public:
   void ResetBodyScope(OScope * aparentscope);
   void GenerateFuncBody();
   void GenerateFuncRet();
+  bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
+  bool WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod);
 };
 
 class OValSymOverloadSet : public OValSym
@@ -221,6 +226,9 @@ public:
   {
     return funcs.size();
   }
+
+  bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
+  bool WriteDqmIfMethods(ODqmIfWriter & writer);
 };
 
 class OValueFuncRef : public OValue
@@ -238,6 +246,7 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
 class OTypeFuncRef : public OType
@@ -257,6 +266,7 @@ public:
   LlValue *  GenerateConversion(OScope * scope, OExpr * src) override;
   bool       CanAccept(OType * srctype) const;
   EOverloadFuncRefMatch FindAcceptingOverload(OExpr * src, OValSymFunc *& rfunc) const;
+  bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer) override;
 };
 
 extern string FuncTypeName(OTypeFunc * sigtype);

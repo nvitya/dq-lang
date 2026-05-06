@@ -37,6 +37,7 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
 // OTypeCString: C-compatible null-terminated string type

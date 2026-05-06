@@ -113,7 +113,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (g_opt.ifgen)
   {
-    if (!g_module->WriteInterface(out_filename))
+    if (!g_module->WriteInterface(out_filename, in_filename))
     {
       ++errorcnt;
     }

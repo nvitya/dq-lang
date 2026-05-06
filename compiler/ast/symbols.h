@@ -32,6 +32,7 @@ class OType;
 class OValue;
 class OValSym;
 class OScope;
+class ODqmIfWriter;
 
 // Symbol and Scope
 
@@ -172,6 +173,8 @@ public:
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
+  virtual bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer);
+  virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
 };
 
 inline OType * OSymbol::ResolvedType() const
@@ -243,6 +246,8 @@ public:
   {
     return ptype->GetDiType();
   }
+
+  bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
 };
 
 
@@ -275,6 +280,7 @@ public:
 
   LlType *    CreateLlType() override;
   LlDiType *  CreateDiType() override;
+  bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
 };
 
 class OTypePointer : public OType
@@ -364,6 +370,7 @@ public:
   }
 
   virtual bool CalculateConstant(OExpr * expr, bool emit_errors = true) { return false; }
+  virtual bool WriteDqmIfValue(ODqmIfWriter & writer);
 
   inline OType * ResolvedType() const
   {
@@ -388,6 +395,7 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
 // Expression Base
@@ -483,6 +491,7 @@ public:
 
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
+  virtual bool WriteDqmIfDecl(ODqmIfWriter & writer);
 
   inline bool IsRefLike() const
   {
@@ -532,4 +541,6 @@ public:
   {
     delete pvalue;
   }
+
+  bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
 };

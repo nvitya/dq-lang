@@ -28,6 +28,7 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
 // Fixed-size array type, e.g. int[3]

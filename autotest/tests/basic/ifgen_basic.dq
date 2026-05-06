@@ -5,10 +5,14 @@ const IFGEN_BASE : int = 7;
 
 type TIfgenValue = int;
 
+var g_var1 : int = 3;
+
 struct SIfgenPair
   left  : int;
   right : int;
 endstruct
+
+var g_struct : SIfgenPair;
 
 object OIfgenBox
   value : TIfgenValue;

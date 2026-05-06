@@ -12,12 +12,18 @@
  */
 
 #include "otype_bool.h"
+#include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
 
 LlConst * OValueBool::CreateLlConst()
 {
   return llvm::ConstantInt::get(ptype->GetLlType(), (value ? 1 : 0));
+}
+
+bool OValueBool::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  return writer.AddRecU8(DQMIF_VALUE_INLINE, value ? 1 : 0);
 }
 
 bool OValueBool::CalculateConstant(OExpr * expr, bool emit_errors)

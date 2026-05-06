@@ -13,6 +13,7 @@
 
 #include <vector>
 #include "otype_cstring.h"
+#include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
 
@@ -112,6 +113,11 @@ LlConst * OValueCString::CreateLlConst()
 
   llvm::ArrayType * arrtype = llvm::ArrayType::get(i8type, maxlen);
   return llvm::ConstantArray::get(arrtype, chars);
+}
+
+bool OValueCString::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  return writer.AddRecStr(DQMIF_VALUE_INLINE, value);
 }
 
 bool OValueCString::CalculateConstant(OExpr * expr, bool emit_errors)

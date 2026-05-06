@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include "otype_func.h"
+#include "dqm_if.h"
 #include "dqc.h"
 #include "dq_module.h"
 #include "errorcodes.h"
@@ -35,11 +36,80 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   }
 }
 
+bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
+{
+  OTypeFunc * sigtype = dynamic_cast<OTypeFunc *>(ptype);
+  if (!sigtype)
+  {
+    return writer.Fail(format("Function {} has no function signature type", name));
+  }
+
+  if (!writer.AddRecStr(amethod ? DQMIF_METHOD_BEGIN : DQMIF_FUNC_BEGIN, name)) return false;
+
+  uint64_t flags = 0;
+  if (is_external) flags |= 1u << 6;
+  if (!WriteDqmIfAttributes(writer, flags)) return false;
+  if (!external_linkage_name.empty()
+      && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;
+
+  if (sigtype->rettype && TK_VOID != sigtype->rettype->kind)
+  {
+    if (!writer.AddRecEmpty(DQMIF_FUNC_RETVAL)) return false;
+    if (!sigtype->rettype->WriteDqmIfTypeSpec(writer)) return false;
+  }
+
+  for (size_t i = 0; i < sigtype->params.size(); ++i)
+  {
+    OFuncParam * param = sigtype->params[i];
+    if (!param)
+    {
+      return writer.Fail(format("Function {} has a null parameter", name));
+    }
+    if (amethod && (0 == i) && owner_compound_type && ("__this" == param->name))
+    {
+      continue;
+    }
+    if (!param->WriteDqmIf(writer)) return false;
+  }
+
+  if (sigtype->has_varargs && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_VARARGS)) return false;
+
+  return writer.AddRecEmpty(amethod ? DQMIF_METHOD_END : DQMIF_FUNC_END);
+}
+
+bool OValSymFunc::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  return WriteDqmIfFunction(writer, false);
+}
+
 OFuncParam * OTypeFunc::AddParam(const string aname, OType * atype, EParamMode amode)
 {
   OFuncParam * result = new OFuncParam(aname, atype, amode);
   params.push_back(result);
   return result;
+}
+
+bool OFuncParam::WriteDqmIf(ODqmIfWriter & writer) const
+{
+  if (!ptype)
+  {
+    return writer.Fail(format("Function parameter {} has no type", name));
+  }
+
+  if (!writer.AddRecStr(DQMIF_FUNC_PARAM_BEGIN, name)) return false;
+
+  switch (mode)
+  {
+    case FPM_VALUE:    break;
+    case FPM_REF:      if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REF)) return false; break;
+    case FPM_REFIN:    if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFIN)) return false; break;
+    case FPM_REFOUT:   if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) return false; break;
+    case FPM_REFNULL:  return writer.Fail(format("refnull parameter {} is not supported in DQM interface generation", name));
+  }
+
+  if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
+  if (defvalue && defvalue->pvalue && !defvalue->pvalue->WriteDqmIfValue(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_FUNC_PARAM_END);
 }
 
 bool OTypeFunc::ParNameValid(const string aname)
@@ -77,6 +147,11 @@ size_t OTypeFunc::RequiredParamCount() const
 OType * OTypeFunc::ResolvedRetType() const
 {
   return (rettype ? rettype->ResolveAlias() : nullptr);
+}
+
+bool OTypeFunc::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
+{
+  return writer.AddRecStr(DQMIF_TYPE_SPEC_FUNCREF, FuncTypeName(this));
 }
 
 bool OTypeFunc::MatchesOverloadDeclIdentity(const OTypeFunc * other) const
@@ -325,6 +400,32 @@ void OValSymOverloadSet::AddFunc(OValSymFunc * afunc)
   string prefix = (generated_linkage_prefix.empty() ? name : generated_linkage_prefix);
   afunc->generated_linkage_name = prefix + "__ovl" + to_string(funcs.size());
   funcs.push_back(afunc);
+}
+
+bool OValSymOverloadSet::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  for (OValSymFunc * fn : funcs)
+  {
+    if (!fn)
+    {
+      return writer.Fail(format("Overload set {} has a null function", name));
+    }
+    if (!fn->WriteDqmIfFunction(writer, false)) return false;
+  }
+  return true;
+}
+
+bool OValSymOverloadSet::WriteDqmIfMethods(ODqmIfWriter & writer)
+{
+  for (OValSymFunc * fn : funcs)
+  {
+    if (!fn)
+    {
+      return writer.Fail(format("Overload set {} has a null method", name));
+    }
+    if (!fn->WriteDqmIfFunction(writer, true)) return false;
+  }
+  return true;
 }
 
 OType * OValSymOverloadSet::ResolvedRetType() const
@@ -781,6 +882,11 @@ OTypeFuncRef::~OTypeFuncRef()
   functype = nullptr;
 }
 
+bool OTypeFuncRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
+{
+  return writer.AddRecStr(DQMIF_TYPE_SPEC_FUNCREF, name);
+}
+
 LlType * OTypeFuncRef::CreateLlType()
 {
   return llvm::PointerType::get(ll_ctx, 0);
@@ -879,6 +985,15 @@ LlConst * OValueFuncRef::CreateLlConst()
   }
 
   return target_func->ll_func;
+}
+
+bool OValueFuncRef::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  if (!is_null)
+  {
+    return writer.Fail("Only null function reference constants are supported in DQM interface generation");
+  }
+  return writer.AddRecU64(DQMIF_VALUE_INLINE, 0);
 }
 
 bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)

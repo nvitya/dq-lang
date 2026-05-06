@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.3"
+#define DQ_COMPILER_VERSION  "0.10.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.4:
+  - Small interface wrinting refactoring
 v0.10.3:
   - Interface writing (--ifgen) in binary format
 v0.10.2:

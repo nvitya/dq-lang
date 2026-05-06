@@ -13,6 +13,7 @@
 
 #include <vector>
 #include "otype_array.h"
+#include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
 
@@ -53,6 +54,11 @@ LlConst * OValueArray::CreateLlConst()
 
   auto * ll_arrtype = static_cast<llvm::ArrayType *>(ptype->GetLlType());
   return llvm::ConstantArray::get(ll_arrtype, ll_elems);
+}
+
+bool OValueArray::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
 }
 
 bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)

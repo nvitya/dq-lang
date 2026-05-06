@@ -60,6 +60,7 @@ public:
   bool AddRecI32(TDqmIfRecId arecid, int32_t avalue);
   bool AddRecU64(TDqmIfRecId arecid, uint64_t avalue);
   bool AddRecI64(TDqmIfRecId arecid, int64_t avalue);
+  bool AddTypeSpecRec(TDqmIfRecId arecid, const string & atypename);
 
   void AddU8(vector<uint8_t> & rdst, uint8_t avalue) const;
   void AddU16(vector<uint8_t> & rdst, uint16_t avalue) const;

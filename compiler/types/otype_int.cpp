@@ -14,6 +14,7 @@
 #include "otype_int.h"
 #include "otype_bool.h"
 #include "otype_float.h"
+#include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
 #include <cmath>
@@ -44,6 +45,11 @@ static int64_t ConvertIntConstant(OTypeInt * dsttype, int64_t value)
 LlConst * OValueInt::CreateLlConst()
 {
   return llvm::ConstantInt::get(ptype->GetLlType(), value);
+}
+
+bool OValueInt::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  return writer.AddRecI64(DQMIF_VALUE_INLINE, value);
 }
 
 bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)

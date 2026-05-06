@@ -12,12 +12,23 @@
  */
 
 #include "otype_float.h"
+#include <cstring>
+
+#include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
 
 LlConst * OValueFloat::CreateLlConst()
 {
   return llvm::ConstantFP::get(ptype->GetLlType(), value);
+}
+
+bool OValueFloat::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  uint64_t bits = 0;
+  static_assert(sizeof(bits) == sizeof(value));
+  memcpy(&bits, &value, sizeof(bits));
+  return writer.AddRecU64(DQMIF_VALUE_INLINE, bits);
 }
 
 bool OValueFloat::CalculateConstant(OExpr * expr, bool emit_errors)

@@ -18,8 +18,10 @@
 #include "symbols.h"
 #include "dqc_base.h"
 
+#include "dqm_if.h"
 #include "expressions.h"
 #include "otype_array.h"
+#include "otype_func.h"
 #include "otype_int.h"
 #include "dqc.h"
 #include "errorcodes.h"
@@ -184,6 +186,51 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
   return result;
 }
 
+bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
+{
+  OType * base = this;
+  int ptrdepth = 0;
+
+  while (auto * ptrtype = dynamic_cast<OTypePointer *>(base))
+  {
+    ++ptrdepth;
+    if (ptrdepth > 3)
+    {
+      return writer.Fail(format("DQM interface supports only up to 3 pointer levels: {}", name));
+    }
+    base = ptrtype->basetype;
+  }
+
+  switch (ptrdepth)
+  {
+    case 0:  return base ? writer.AddTypeSpecRec(DQMIF_TYPE_SPEC, base->name)
+                          : writer.Fail("Can not write null type spec");
+    case 1:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR1, base ? base->name : "void");
+    case 2:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR2, base ? base->name : "void");
+    case 3:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR3, base ? base->name : "void");
+  }
+
+  return writer.Fail(format("Invalid pointer depth while writing type spec: {}", name));
+}
+
+bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  if (!writer.AddRecStr(DQMIF_TYPE_BEGIN, name)) return false;
+  if (!WriteDqmIfTypeSpec(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_TYPE_END);
+}
+
+bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  if (!ptype)
+  {
+    return writer.Fail(format("Type alias {} has no target type", name));
+  }
+  if (!writer.AddRecStr(DQMIF_TYPE_BEGIN, name)) return false;
+  if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_TYPE_END);
+}
+
 OValue * OTypePointer::CreateValue()
 {
   return new OValuePointer(this, false);
@@ -214,6 +261,20 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
     g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
   }
   return false;
+}
+
+bool OValue::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  return writer.Fail(format("Unsupported constant value type in DQM interface: {}", ptype ? ptype->name : "?"));
+}
+
+bool OValuePointer::WriteDqmIfValue(ODqmIfWriter & writer)
+{
+  if (!is_null)
+  {
+    return writer.Fail("Only null pointer constants are supported in DQM interface generation");
+  }
+  return writer.AddRecU64(DQMIF_VALUE_INLINE, 0);
 }
 
 LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)
@@ -309,6 +370,74 @@ LlDiType * OCompoundType::CreateDiType()
   );
 }
 
+bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
+{
+  uint64_t flags = aextra_flags;
+  if (attr_is_overload) flags |= 1u << 0;
+  if (attr_is_override) flags |= 1u << 1;
+  if (attr_is_virtual)  flags |= 1u << 2;
+  if (attr_is_volatile) flags |= 1u << 3;
+  if (is_ref_alias)     flags |= 1u << 4;
+  if (ref_nullable)     flags |= 1u << 5;
+
+  if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
+  if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
+  if (!attr_section_name.empty()
+      && !writer.AddRecStr(DQMIF_ATTR_SECTION_NAME, attr_section_name)) return false;
+
+  return true;
+}
+
+bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  TDqmIfRecId begin_rec = (is_object ? DQMIF_OBJ_BEGIN : DQMIF_STRUCT_BEGIN);
+  TDqmIfRecId end_rec   = (is_object ? DQMIF_OBJ_END   : DQMIF_STRUCT_END);
+
+  if (!writer.AddRecStr(begin_rec, name)) return false;
+
+  for (OValSym * member : member_order)
+  {
+    if (!member)
+    {
+      return writer.Fail(format("Compound type {} has a null member", name));
+    }
+    if (!writer.AddRecStr(DQMIF_FIELD_BEGIN, member->name)) return false;
+    if (!member->WriteDqmIfAttributes(writer)) return false;
+    if (!member->ptype)
+    {
+      return writer.Fail(format("Field {}.{} has no type", name, member->name));
+    }
+    if (!member->ptype->WriteDqmIfTypeSpec(writer)) return false;
+    if (!writer.AddRecEmpty(DQMIF_FIELD_END)) return false;
+  }
+
+  if (is_object)
+  {
+    for (auto & [mname, vs] : Members()->valsyms)
+    {
+      (void)mname;
+      if (!vs || VSK_FUNCTION != vs->kind)
+      {
+        continue;
+      }
+      if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
+      {
+        if (!fn->WriteDqmIfFunction(writer, true)) return false;
+      }
+      else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+      {
+        if (!ovset->WriteDqmIfMethods(writer)) return false;
+      }
+      else
+      {
+        return writer.Fail(format("Unsupported object method symbol: {}", vs->name));
+      }
+    }
+  }
+
+  return writer.AddRecEmpty(end_rec);
+}
+
 void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   if (VSK_VARIABLE == kind)
@@ -368,6 +497,40 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
       ll_value = vsconst->pvalue->GetLlConst();
     }
   }
+}
+
+bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  if (VSK_VARIABLE != kind)
+  {
+    return writer.Fail(format("Unsupported value symbol in DQM interface: {}", name));
+  }
+  if (!ptype)
+  {
+    return writer.Fail(format("Variable {} has no type", name));
+  }
+
+  if (!writer.AddRecStr(DQMIF_VAR_BEGIN, name)) return false;
+  if (!WriteDqmIfAttributes(writer)) return false;
+  if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_VAR_END);
+}
+
+bool OValSymConst::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  if (!ptype)
+  {
+    return writer.Fail(format("Constant {} has no type", name));
+  }
+  if (!pvalue)
+  {
+    return writer.Fail(format("Constant {} has no value", name));
+  }
+
+  if (!writer.AddRecStr(DQMIF_CONST_BEGIN, name)) return false;
+  if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
+  if (!pvalue->WriteDqmIfValue(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_CONST_END);
 }
 
 void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)

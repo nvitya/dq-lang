@@ -7,6 +7,7 @@ In general try to find the most elegant solution (least code), which is not alwa
 - Avoid repeating code patterns
 - Make human readable code
 - Add comments when necessary to describe non-trivial solutions
+- Put helper behavior on the objects that own the responsibility, avoiding new broad file-static helper clusters.
 
 ## Build Defaults
 

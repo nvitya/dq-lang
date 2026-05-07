@@ -210,3 +210,255 @@ bool ODqmIfWriter::WriteToFile(const string & filename)
 
   return true;
 }
+
+bool ODqmIfReader::Fail(const string & amsg)
+{
+  if (error.empty())
+  {
+    error = amsg;
+  }
+  return false;
+}
+
+uint64_t ODqmIfReader::Checksum(const vector<uint8_t> & adata) const
+{
+  uint64_t result = 0;
+  for (uint8_t b : adata)
+  {
+    result += b;
+  }
+  return result;
+}
+
+static uint16_t DqmIfReadU16At(const vector<uint8_t> & data, size_t pos)
+{
+  return uint16_t(data[pos]) | (uint16_t(data[pos + 1]) << 8);
+}
+
+static uint32_t DqmIfReadU32At(const vector<uint8_t> & data, size_t pos)
+{
+  return uint32_t(data[pos])
+       | (uint32_t(data[pos + 1]) << 8)
+       | (uint32_t(data[pos + 2]) << 16)
+       | (uint32_t(data[pos + 3]) << 24);
+}
+
+static uint64_t DqmIfReadU64At(const vector<uint8_t> & data, size_t pos)
+{
+  return uint64_t(DqmIfReadU32At(data, pos))
+       | (uint64_t(DqmIfReadU32At(data, pos + 4)) << 32);
+}
+
+bool ODqmIfReader::ReadFromFile(const string & filename)
+{
+  ifstream inf(filename, ios::binary | ios::ate);
+  if (!inf)
+  {
+    return Fail(format("Can not read module interface file: {}", filename));
+  }
+
+  streamsize fsize = inf.tellg();
+  if (fsize < streamsize(sizeof(TDqmIfHeader)))
+  {
+    return Fail(format("Module interface file is too small: {}", filename));
+  }
+
+  vector<uint8_t> data(static_cast<size_t>(fsize));
+  inf.seekg(0, ios::beg);
+  inf.read(reinterpret_cast<char *>(data.data()), fsize);
+  if (!inf)
+  {
+    return Fail(format("Can not read module interface file: {}", filename));
+  }
+
+  if (memcmp(data.data(), "DQMIF\0", 6) != 0)
+  {
+    return Fail(format("Invalid module interface magic: {}", filename));
+  }
+
+  uint16_t header_size = DqmIfReadU16At(data, 6);
+  if (header_size != sizeof(TDqmIfHeader))
+  {
+    return Fail(format("Unsupported module interface header size: {}", header_size));
+  }
+
+  uint32_t version = DqmIfReadU32At(data, 8);
+  if ((version < DQMIF_MIN_VERSION) || (version > DQMIF_VERSION))
+  {
+    return Fail(format("Unsupported module interface version: {}.{}",
+        version >> 16, version & 0xFFFF));
+  }
+
+  uint32_t payload_size = DqmIfReadU32At(data, 12);
+  if (uint64_t(header_size) + payload_size != uint64_t(data.size()))
+  {
+    return Fail(format("Module interface payload size mismatch: header says {}, file has {}",
+        payload_size, data.size() - header_size));
+  }
+
+  uint64_t payload_hash = DqmIfReadU64At(data, 16);
+  uint64_t header_csum = DqmIfReadU64At(data, 24);
+
+  vector<uint8_t> header(data.begin(), data.begin() + header_size);
+  for (size_t i = 24; i < 32; ++i)
+  {
+    header[i] = 0;
+  }
+  if (Checksum(header) != header_csum)
+  {
+    return Fail(format("Module interface header checksum mismatch: {}", filename));
+  }
+
+  payload.assign(data.begin() + header_size, data.end());
+  if (Checksum(payload) != payload_hash)
+  {
+    return Fail(format("Module interface payload checksum mismatch: {}", filename));
+  }
+
+  pos = 0;
+  recid = 0;
+  reclen = 0;
+  recpos = 0;
+  return true;
+}
+
+bool ODqmIfReader::NextRec()
+{
+  if (!Ok())
+  {
+    return false;
+  }
+  if (Eof())
+  {
+    return Fail("Unexpected end of DQM interface record stream");
+  }
+  if (pos + sizeof(TDqmIfRec) > payload.size())
+  {
+    return Fail("Truncated DQM interface record header");
+  }
+
+  recid = DqmIfReadU16At(payload, pos);
+  reclen = DqmIfReadU16At(payload, pos + 2);
+  recpos = pos + sizeof(TDqmIfRec);
+
+  size_t nextpos = recpos + reclen;
+  if (nextpos > payload.size())
+  {
+    return Fail(format("DQM interface record 0x{:04X} is truncated", recid));
+  }
+  while (nextpos & 3)
+  {
+    ++nextpos;
+  }
+  if (nextpos > payload.size())
+  {
+    return Fail(format("DQM interface record 0x{:04X} padding is truncated", recid));
+  }
+
+  pos = nextpos;
+  return true;
+}
+
+bool ODqmIfReader::ExpectEmpty(TDqmIfRecId arecid)
+{
+  if (recid != arecid)
+  {
+    return Fail(format("Expected DQM interface record 0x{:04X}, got 0x{:04X}", arecid, recid));
+  }
+  if (reclen != 0)
+  {
+    return Fail(format("DQM interface record 0x{:04X} must be empty", recid));
+  }
+  return true;
+}
+
+bool ODqmIfReader::ReadString(string & rvalue)
+{
+  rvalue.assign(reinterpret_cast<const char *>(payload.data() + recpos), reclen);
+  return true;
+}
+
+bool ODqmIfReader::ReadU8(uint8_t & rvalue)
+{
+  if (reclen != 1)
+  {
+    return Fail(format("DQM interface record 0x{:04X} must contain an uint8", recid));
+  }
+  rvalue = payload[recpos];
+  return true;
+}
+
+bool ODqmIfReader::ReadU32(uint32_t & rvalue)
+{
+  if (reclen != 4)
+  {
+    return Fail(format("DQM interface record 0x{:04X} must contain an uint32", recid));
+  }
+  rvalue = DqmIfReadU32At(payload, recpos);
+  return true;
+}
+
+bool ODqmIfReader::ReadI32(int32_t & rvalue)
+{
+  uint32_t value = 0;
+  if (!ReadU32(value))
+  {
+    return false;
+  }
+  rvalue = int32_t(value);
+  return true;
+}
+
+bool ODqmIfReader::ReadU64(uint64_t & rvalue)
+{
+  if (reclen != 8)
+  {
+    return Fail(format("DQM interface record 0x{:04X} must contain an uint64", recid));
+  }
+  rvalue = DqmIfReadU64At(payload, recpos);
+  return true;
+}
+
+bool ODqmIfReader::ReadI64(int64_t & rvalue)
+{
+  uint64_t value = 0;
+  if (!ReadU64(value))
+  {
+    return false;
+  }
+  rvalue = int64_t(value);
+  return true;
+}
+
+bool ODqmIfReader::ReadBlob(vector<uint8_t> & rvalue)
+{
+  rvalue.assign(payload.begin() + recpos, payload.begin() + recpos + reclen);
+  return true;
+}
+
+bool ODqmIfReader::SkipGroup(TDqmIfRecId abegin_recid, TDqmIfRecId aend_recid)
+{
+  if (recid != abegin_recid)
+  {
+    return Fail(format("Expected DQM interface group 0x{:04X}, got 0x{:04X}",
+        abegin_recid, recid));
+  }
+
+  int depth = 1;
+  while (depth > 0)
+  {
+    if (!NextRec())
+    {
+      return false;
+    }
+    if (recid == abegin_recid)
+    {
+      ++depth;
+    }
+    else if (recid == aend_recid)
+    {
+      --depth;
+    }
+  }
+  return true;
+}

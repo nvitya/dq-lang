@@ -71,6 +71,36 @@ public:
   bool WriteToFile(const string & filename);
 };
 
+class ODqmIfReader
+{
+public:
+  vector<uint8_t>  payload;
+  string           error;
+
+  size_t           pos = 0;
+  uint16_t         recid = 0;
+  uint16_t         reclen = 0;
+  size_t           recpos = 0;
+
+  bool Ok() const { return error.empty(); }
+  bool Fail(const string & amsg);
+
+  uint64_t Checksum(const vector<uint8_t> & adata) const;
+  bool ReadFromFile(const string & filename);
+
+  bool Eof() const { return pos >= payload.size(); }
+  bool NextRec();
+  bool ExpectEmpty(TDqmIfRecId arecid);
+  bool ReadString(string & rvalue);
+  bool ReadU8(uint8_t & rvalue);
+  bool ReadU32(uint32_t & rvalue);
+  bool ReadI32(int32_t & rvalue);
+  bool ReadU64(uint64_t & rvalue);
+  bool ReadI64(int64_t & rvalue);
+  bool ReadBlob(vector<uint8_t> & rvalue);
+  bool SkipGroup(TDqmIfRecId abegin_recid, TDqmIfRecId aend_recid);
+};
+
 // DQM Record Ids
 
 // Universal records

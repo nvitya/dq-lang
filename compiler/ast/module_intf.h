@@ -16,6 +16,8 @@
 #include <string>
 #include <format>
 #include <vector>
+#include <ostream>
+#include "dqm_if.h"
 #include "symbols.h"
 
 using namespace std;
@@ -52,8 +54,43 @@ public:
   }
 };
 
+class OValSymFunc;
+class OValSymOverloadSet;
+class OTypeFunc;
+
 class OModuleIntf
 {
+private:
+  struct SDqmIfAttributes
+  {
+    uint64_t  flags = 0;
+    uint32_t  align = 0;
+    string    external_linkage_name;
+    string    section_name;
+  };
+
+  bool ReadDqmIfRecords(ODqmIfReader & reader);
+  bool ReadTypeSpec(ODqmIfReader & reader, OType *& rtype);
+  bool ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmIfRecId aend_recid);
+  bool ReadTypeDecl(ODqmIfReader & reader);
+  bool ReadConstDecl(ODqmIfReader & reader);
+  bool ReadVarDecl(ODqmIfReader & reader);
+  bool ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner_type, bool amethod);
+  bool ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype);
+  bool ReadCompoundDecl(ODqmIfReader & reader, bool ais_object);
+  bool ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_type);
+  bool ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattrs);
+  bool ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *& rvalue);
+  bool ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes & attrs);
+  bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
+  OType * ResolveDqmIfTypeName(const string & atype_name);
+
+  void WriteTypeDump(ostream & out, OType * atype, const string & indent);
+  void WriteValSymDump(ostream & out, OValSym * avsym, const string & indent);
+  void WriteFunctionDump(ostream & out, OValSymFunc * afunc, const string & indent);
+  void WriteOverloadSetDump(ostream & out, OValSymOverloadSet * aovset, const string & indent);
+  void WriteCompoundDump(ostream & out, OCompoundType * atype, const string & indent);
+
 public:
   string           name;
   OScope *         scope_pub;
@@ -80,6 +117,7 @@ public:
 
   bool WriteInterface(const string & filename, const string & source_filename);
   bool ReadInterface(const string & filename);
+  void WriteDump(ostream & out);
 };
 
 bool DumpModuleInterface(const string & filename);

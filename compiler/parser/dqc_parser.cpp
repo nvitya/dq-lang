@@ -15,8 +15,6 @@
 #include <format>
 #include <filesystem>
 #include <ranges>
-#include <algorithm>
-#include <chrono>
 
 #include "dq_module.h"
 #include "dqc_parser.h"
@@ -30,174 +28,6 @@
 #include "processrunner.h"
 
 using namespace std;
-
-static string JoinModuleStack(const vector<string> & stack)
-{
-  string result;
-  for (size_t i = 0; i < stack.size(); ++i)
-  {
-    if (i > 0)
-    {
-      result += ",";
-    }
-    result += stack[i];
-  }
-  return result;
-}
-
-static string FormatModuleCycle(const vector<string> & stack, const string & module_path)
-{
-  auto it = find(stack.begin(), stack.end(), module_path);
-  string result;
-
-  if (it == stack.end())
-  {
-    for (const string & item : stack)
-    {
-      if (!result.empty()) result += " -> ";
-      result += item;
-    }
-  }
-  else
-  {
-    for (; it != stack.end(); ++it)
-    {
-      if (!result.empty()) result += " -> ";
-      result += *it;
-    }
-  }
-
-  if (!result.empty()) result += " -> ";
-  result += module_path;
-  return result;
-}
-
-static string DefineArg(const OCmdLineDefine & def)
-{
-  string result = "-D" + def.name;
-  if (def.has_bool_value)
-  {
-    result += "=";
-    result += (def.bool_value ? "true" : "false");
-  }
-  else if (def.has_int_value)
-  {
-    result += "=";
-    result += to_string(def.int_value);
-  }
-  return result;
-}
-
-static int64_t SourceFileTimeTicks(const filesystem::path & source_path, error_code & rec)
-{
-  auto ftime = filesystem::last_write_time(source_path, rec);
-  if (rec)
-  {
-    return 0;
-  }
-
-  return int64_t(chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count());
-}
-
-static bool DqmMetadataMatchesSource(const TDqmIfMetadata & metadata, const filesystem::path & source_path,
-                                     string & rreason)
-{
-  if (!metadata.has_source_filesize || !metadata.has_source_filetime)
-  {
-    rreason = "missing source freshness metadata";
-    return false;
-  }
-
-  error_code ec;
-  uintmax_t source_size = filesystem::file_size(source_path, ec);
-  if (ec)
-  {
-    rreason = format("can not read source file size: {}", source_path.string());
-    return false;
-  }
-
-  if (metadata.source_filesize != int64_t(source_size))
-  {
-    rreason = format("source file size changed: {} != {}", metadata.source_filesize, source_size);
-    return false;
-  }
-
-  ec.clear();
-  int64_t source_time = SourceFileTimeTicks(source_path, ec);
-  if (ec)
-  {
-    rreason = format("can not read source file time: {}", source_path.string());
-    return false;
-  }
-
-  if (metadata.source_filetime != source_time)
-  {
-    rreason = "source file modification time changed";
-    return false;
-  }
-
-  return true;
-}
-
-static bool IsCompiledModuleFresh(const filesystem::path & artifact_path, const filesystem::path & source_path,
-                                  string & rreason)
-{
-  error_code ec;
-  if (!filesystem::exists(artifact_path, ec) || ec)
-  {
-    rreason = "compiled module artifact is missing";
-    return false;
-  }
-
-  TDqmIfMetadata metadata;
-  string metadata_error;
-  if (!ReadDqmIfMetadata(artifact_path.string(), metadata, metadata_error))
-  {
-    rreason = metadata_error;
-    return false;
-  }
-
-  if (!DqmMetadataMatchesSource(metadata, source_path, rreason))
-  {
-    return false;
-  }
-
-  return DqmIfMetadataMatchesCurrentBuild(metadata, rreason);
-}
-
-static vector<string> ChildCompileArgs(const filesystem::path & source_path, const filesystem::path & artifact_path,
-                                       const string & module_path)
-{
-  vector<string> args;
-  args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
-  args.push_back("-c");
-  args.push_back(source_path.string());
-  args.push_back("-o");
-  args.push_back(artifact_path.string());
-  args.push_back(format("-O{}", g_opt.optlevel));
-
-  if (g_opt.dbg_info)
-  {
-    args.push_back("-g");
-  }
-
-  if (g_opt.verblevel > VERBLEVEL_NONE)
-  {
-    args.push_back(format("-v{}", g_opt.verblevel));
-  }
-
-  for (const OCmdLineDefine & def : g_opt.cmdline_defines)
-  {
-    args.push_back(DefineArg(def));
-  }
-
-  vector<string> child_stack = g_opt.module_use_stack;
-  child_stack.push_back(module_path);
-  args.push_back("--ifstack");
-  args.push_back(JoinModuleStack(child_stack));
-
-  return args;
-}
 
 static bool SupportsFuncParamDefaultType(OType * ptype)
 {
@@ -649,8 +479,9 @@ void ODqCompParser::ParseUseStatement()
   filesystem::path artifact_path = module_base;
   artifact_path += ".dqm";
 
+  OModuleIntf artifact_intf(g_builtins, module_path);
   string stale_reason;
-  if (!IsCompiledModuleFresh(artifact_path, source_path, stale_reason))
+  if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
   {
     error_code ec;
     if (!filesystem::exists(source_path, ec) || ec)
@@ -659,15 +490,14 @@ void ODqCompParser::ParseUseStatement()
       return;
     }
 
-    if (find(g_opt.module_use_stack.begin(), g_opt.module_use_stack.end(), module_path)
-        != g_opt.module_use_stack.end())
+    if (artifact_intf.IsInModuleUseStack(module_path))
     {
-      Error(DQERR_USE_CYCLE, FormatModuleCycle(g_opt.module_use_stack, module_path), &scpos_statement_start);
+      Error(DQERR_USE_CYCLE, artifact_intf.FormatModuleCycle(module_path), &scpos_statement_start);
       return;
     }
 
     OProcessRunner procrunner;
-    procrunner.args = ChildCompileArgs(source_path, artifact_path, module_path);
+    procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path);
     bool exec_ok = procrunner.Run();
     if (!exec_ok || (0 != procrunner.exit_code))
     {
@@ -689,7 +519,7 @@ void ODqCompParser::ParseUseStatement()
       return;
     }
 
-    if (!IsCompiledModuleFresh(artifact_path, source_path, stale_reason))
+    if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
     {
       Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
       return;

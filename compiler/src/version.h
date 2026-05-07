@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.15"
+#define DQ_COMPILER_VERSION  "0.10.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.16:
+  - Code refactoring
 v0.10.15:
   - Automatic compiling / recompiling of the used modules
 v0.10.14:

@@ -14,6 +14,7 @@
 #include "module_intf.h"
 
 #include <chrono>
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -386,7 +387,7 @@ OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
   return result;
 }
 
-static string DqmIfTargetArch()
+string OModuleIntf::DqmIfTargetArch() const
 {
 #if defined(HOST_X86)
   #if defined(TARGET_64BIT)
@@ -411,7 +412,7 @@ static string DqmIfTargetArch()
 #endif
 }
 
-static string DqmIfTargetRtl()
+string OModuleIntf::DqmIfTargetRtl() const
 {
 #if defined(TARGET_WIN)
   return "win";
@@ -422,7 +423,7 @@ static string DqmIfTargetRtl()
 #endif
 }
 
-static string DqmIfBuildOptions()
+string OModuleIntf::DqmIfBuildOptions() const
 {
   string result = "O" + to_string(g_opt.optlevel);
   if (g_opt.dbg_info)      result += ";g";
@@ -446,7 +447,24 @@ static string DqmIfBuildOptions()
   return result;
 }
 
-static bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, TDqmIfMetadata & rmetadata)
+void OModuleIntf::ClearDqmIfMetadata()
+{
+  source_filename.clear();
+  source_filesize = 0;
+  source_filetime = 0;
+  target_arch.clear();
+  target_rtl.clear();
+  build_options.clear();
+
+  has_source_filename = false;
+  has_source_filesize = false;
+  has_source_filetime = false;
+  has_target_arch = false;
+  has_target_rtl = false;
+  has_build_options = false;
+}
+
+bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader)
 {
   while (!reader.Eof())
   {
@@ -479,33 +497,33 @@ static bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, TDqmIfMetadata & rmet
 
       if (DQMIF_H_SRC_FILENAME == reader.recid)
       {
-        if (!reader.ReadString(rmetadata.source_filename)) return false;
-        rmetadata.has_source_filename = true;
+        if (!reader.ReadString(source_filename)) return false;
+        has_source_filename = true;
       }
       else if (DQMIF_H_SRC_FILESIZE == reader.recid)
       {
-        if (!reader.ReadI64(rmetadata.source_filesize)) return false;
-        rmetadata.has_source_filesize = true;
+        if (!reader.ReadI64(source_filesize)) return false;
+        has_source_filesize = true;
       }
       else if (DQMIF_H_SRC_FILETIME == reader.recid)
       {
-        if (!reader.ReadI64(rmetadata.source_filetime)) return false;
-        rmetadata.has_source_filetime = true;
+        if (!reader.ReadI64(source_filetime)) return false;
+        has_source_filetime = true;
       }
       else if (DQMIF_H_TARGET_ARCH == reader.recid)
       {
-        if (!reader.ReadString(rmetadata.target_arch)) return false;
-        rmetadata.has_target_arch = true;
+        if (!reader.ReadString(target_arch)) return false;
+        has_target_arch = true;
       }
       else if (DQMIF_H_TARGET_RTL == reader.recid)
       {
-        if (!reader.ReadString(rmetadata.target_rtl)) return false;
-        rmetadata.has_target_rtl = true;
+        if (!reader.ReadString(target_rtl)) return false;
+        has_target_rtl = true;
       }
       else if (DQMIF_H_BUILD_OPTIONS == reader.recid)
       {
-        if (!reader.ReadString(rmetadata.build_options)) return false;
-        rmetadata.has_build_options = true;
+        if (!reader.ReadString(build_options)) return false;
+        has_build_options = true;
       }
     }
   }
@@ -513,13 +531,13 @@ static bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, TDqmIfMetadata & rmet
   return reader.Fail("DQM interface header metadata is missing");
 }
 
-bool ReadDqmIfMetadata(const string & filename, TDqmIfMetadata & rmetadata, string & rerror)
+bool OModuleIntf::ReadMetadata(const string & filename, string & rerror)
 {
-  rmetadata = TDqmIfMetadata();
+  ClearDqmIfMetadata();
   rerror.clear();
 
   ODqmIfReader reader;
-  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfHeaderMetadata(reader, rmetadata))
+  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfHeaderMetadata(reader))
   {
     rerror = reader.error;
     return false;
@@ -528,36 +546,184 @@ bool ReadDqmIfMetadata(const string & filename, TDqmIfMetadata & rmetadata, stri
   return true;
 }
 
-bool DqmIfMetadataMatchesCurrentBuild(const TDqmIfMetadata & metadata, string & rreason)
+bool OModuleIntf::MetadataMatchesCurrentBuild(string & rreason) const
 {
-  if (!metadata.has_target_arch || !metadata.has_target_rtl || !metadata.has_build_options)
+  if (!has_target_arch || !has_target_rtl || !has_build_options)
   {
     rreason = "missing target or build option metadata";
     return false;
   }
 
-  if (metadata.target_arch != DqmIfTargetArch())
+  if (target_arch != DqmIfTargetArch())
   {
-    rreason = format("target architecture changed: {} != {}", metadata.target_arch, DqmIfTargetArch());
+    rreason = format("target architecture changed: {} != {}", target_arch, DqmIfTargetArch());
     return false;
   }
 
-  if (metadata.target_rtl != DqmIfTargetRtl())
+  if (target_rtl != DqmIfTargetRtl())
   {
-    rreason = format("target runtime changed: {} != {}", metadata.target_rtl, DqmIfTargetRtl());
+    rreason = format("target runtime changed: {} != {}", target_rtl, DqmIfTargetRtl());
     return false;
   }
 
-  if (metadata.build_options != DqmIfBuildOptions())
+  if (build_options != DqmIfBuildOptions())
   {
-    rreason = format("build options changed: {} != {}", metadata.build_options, DqmIfBuildOptions());
+    rreason = format("build options changed: {} != {}", build_options, DqmIfBuildOptions());
     return false;
   }
 
   return true;
 }
 
-static bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)
+bool OModuleIntf::MetadataMatchesSource(const filesystem::path & source_path, string & rreason) const
+{
+  if (!has_source_filesize || !has_source_filetime)
+  {
+    rreason = "missing source freshness metadata";
+    return false;
+  }
+
+  error_code ec;
+  uintmax_t cur_source_filesize = filesystem::file_size(source_path, ec);
+  if (ec)
+  {
+    rreason = format("can not read source file size: {}", source_path.string());
+    return false;
+  }
+
+  if (source_filesize != int64_t(cur_source_filesize))
+  {
+    rreason = format("source file size changed: {} != {}", source_filesize, cur_source_filesize);
+    return false;
+  }
+
+  ec.clear();
+  auto cur_source_filetime = filesystem::last_write_time(source_path, ec);
+  if (ec)
+  {
+    rreason = format("can not read source file time: {}", source_path.string());
+    return false;
+  }
+
+  int64_t cur_source_filetime_ticks =
+      int64_t(chrono::duration_cast<chrono::nanoseconds>(cur_source_filetime.time_since_epoch()).count());
+  if (source_filetime != cur_source_filetime_ticks)
+  {
+    rreason = "source file modification time changed";
+    return false;
+  }
+
+  return true;
+}
+
+bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path,
+                                          const filesystem::path & source_path,
+                                          string & rreason)
+{
+  error_code ec;
+  if (!filesystem::exists(artifact_path, ec) || ec)
+  {
+    rreason = "compiled module artifact is missing";
+    return false;
+  }
+
+  string metadata_error;
+  if (!ReadMetadata(artifact_path.string(), metadata_error))
+  {
+    rreason = metadata_error;
+    return false;
+  }
+
+  return MetadataMatchesSource(source_path, rreason) && MetadataMatchesCurrentBuild(rreason);
+}
+
+bool OModuleIntf::IsInModuleUseStack(const string & module_path) const
+{
+  return find(g_opt.module_use_stack.begin(), g_opt.module_use_stack.end(), module_path)
+      != g_opt.module_use_stack.end();
+}
+
+string OModuleIntf::FormatModuleCycle(const string & module_path) const
+{
+  auto it = find(g_opt.module_use_stack.begin(), g_opt.module_use_stack.end(), module_path);
+  string result;
+
+  if (it == g_opt.module_use_stack.end())
+  {
+    for (const string & item : g_opt.module_use_stack)
+    {
+      if (!result.empty()) result += " -> ";
+      result += item;
+    }
+  }
+  else
+  {
+    for (; it != g_opt.module_use_stack.end(); ++it)
+    {
+      if (!result.empty()) result += " -> ";
+      result += *it;
+    }
+  }
+
+  if (!result.empty()) result += " -> ";
+  result += module_path;
+  return result;
+}
+
+vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_path,
+                                             const filesystem::path & artifact_path,
+                                             const string & module_path) const
+{
+  vector<string> args;
+  args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
+  args.push_back("-c");
+  args.push_back(source_path.string());
+  args.push_back("-o");
+  args.push_back(artifact_path.string());
+  args.push_back(format("-O{}", g_opt.optlevel));
+
+  if (g_opt.dbg_info)
+  {
+    args.push_back("-g");
+  }
+
+  if (g_opt.verblevel > VERBLEVEL_NONE)
+  {
+    args.push_back(format("-v{}", g_opt.verblevel));
+  }
+
+  for (const OCmdLineDefine & def : g_opt.cmdline_defines)
+  {
+    string defarg = "-D" + def.name;
+    if (def.has_bool_value)
+    {
+      defarg += "=";
+      defarg += (def.bool_value ? "true" : "false");
+    }
+    else if (def.has_int_value)
+    {
+      defarg += "=";
+      defarg += to_string(def.int_value);
+    }
+    args.push_back(defarg);
+  }
+
+  string stack_text;
+  for (const string & item : g_opt.module_use_stack)
+  {
+    if (!stack_text.empty()) stack_text += ",";
+    stack_text += item;
+  }
+  if (!stack_text.empty()) stack_text += ",";
+  stack_text += module_path;
+
+  args.push_back("--ifstack");
+  args.push_back(stack_text);
+
+  return args;
+}
+
+bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)
 {
   if (!writer.AddRecEmpty(DQMIF_H_BEGIN)) return false;
   if (!source_filename.empty()

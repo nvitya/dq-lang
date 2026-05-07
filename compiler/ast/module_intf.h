@@ -17,6 +17,7 @@
 #include <format>
 #include <vector>
 #include <ostream>
+#include <filesystem>
 #include "dqm_if.h"
 #include "symbols.h"
 
@@ -58,23 +59,6 @@ class OValSymFunc;
 class OValSymOverloadSet;
 class OTypeFunc;
 
-struct TDqmIfMetadata
-{
-  string   source_filename;
-  int64_t  source_filesize = 0;
-  int64_t  source_filetime = 0;
-  string   target_arch;
-  string   target_rtl;
-  string   build_options;
-
-  bool     has_source_filename = false;
-  bool     has_source_filesize = false;
-  bool     has_source_filetime = false;
-  bool     has_target_arch = false;
-  bool     has_target_rtl = false;
-  bool     has_build_options = false;
-};
-
 class OModuleIntf
 {
 private:
@@ -101,6 +85,12 @@ private:
   bool ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes & attrs);
   bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
   OType * ResolveDqmIfTypeName(const string & atype_name);
+  void ClearDqmIfMetadata();
+  bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader);
+  string DqmIfTargetArch() const;
+  string DqmIfTargetRtl() const;
+  string DqmIfBuildOptions() const;
+  bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename);
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename);
 
   void WriteTypeDump(ostream & out, OType * atype, const string & indent);
@@ -113,6 +103,20 @@ public:
   string           name;
   OScope *         scope_pub;
   vector<OIntfDecl *>  declarations;
+
+  string   source_filename;
+  int64_t  source_filesize = 0;
+  int64_t  source_filetime = 0;
+  string   target_arch;
+  string   target_rtl;
+  string   build_options;
+
+  bool     has_source_filename = false;
+  bool     has_source_filesize = false;
+  bool     has_source_filetime = false;
+  bool     has_target_arch = false;
+  bool     has_target_rtl = false;
+  bool     has_build_options = false;
 
   OModuleIntf(OScope * aparent, const string aname)
   :
@@ -136,9 +140,16 @@ public:
   bool BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename);
   bool WriteInterface(const string & filename, const string & source_filename);
   bool ReadInterface(const string & filename);
+  bool ReadMetadata(const string & filename, string & rerror);
+  bool MetadataMatchesCurrentBuild(string & rreason) const;
+  bool MetadataMatchesSource(const filesystem::path & source_path, string & rreason) const;
+  bool CompiledArtifactIsFresh(const filesystem::path & artifact_path, const filesystem::path & source_path,
+                               string & rreason);
+  bool IsInModuleUseStack(const string & module_path) const;
+  string FormatModuleCycle(const string & module_path) const;
+  vector<string> ChildCompileArgs(const filesystem::path & source_path, const filesystem::path & artifact_path,
+                                  const string & module_path) const;
   void WriteDump(ostream & out);
 };
 
 bool DumpModuleInterface(const string & filename);
-bool ReadDqmIfMetadata(const string & filename, TDqmIfMetadata & rmetadata, string & rerror);
-bool DqmIfMetadataMatchesCurrentBuild(const TDqmIfMetadata & metadata, string & rreason);

@@ -21,7 +21,7 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     0 );  // generated version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     1 );  // generated version
 const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     0 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
@@ -77,13 +77,17 @@ public:
 
 TDqmIfRecId  DQMIF_INVALID                = 0x0000;
 
-TDqmIfRecId  DQMIF_TYPE_SPEC              = 0x8000;  // str, simple type spec
-TDqmIfRecId  DQMIF_TYPE_SPEC_PTR1         = 0x8081;  // (^)   str, simple type spec
-TDqmIfRecId  DQMIF_TYPE_SPEC_PTR2         = 0x8082;  // (^^)  str, simple type spec
-TDqmIfRecId  DQMIF_TYPE_SPEC_PTR3         = 0x8083;  // (^^^) str, simple type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_SIMPLE       = 0x8000;  // str, simple named type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_BEGIN        = 0x8001;  // 0: complex type spec begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_NAME         = 0x8002;  // str, named type inside complex type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_PTR          = 0x8003;  // 0: pointer wrapper inside complex type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_ARRAY_BEGIN  = 0x8010;  // int32: fixed array wrapper begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_ARRAY_END    = 0x801F;  // 0
+TDqmIfRecId  DQMIF_TYPE_SPEC_SLICE_BEGIN  = 0x8020;  // 0: array slice wrapper begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_SLICE_END    = 0x802F;  // 0
 TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // str
 TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // str
-TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: used only for complex types
+TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length
 TDqmIfRecId  DQMIF_VALUE_LINKED           = 0x8101;  // 0: signalizes value in the object data (arrays)
@@ -110,14 +114,14 @@ TDqmIfRecId  DQMIF_H_BUILD_OPTIONS        = 0x010A;  // str
 // 0200: Type aliases
 
 TDqmIfRecId  DQMIF_TYPE_BEGIN             = 0x0200;  // str: type alias name
-// exp.:     DQMIF_TYPE_SPEC
+// exp.:     type spec
 TDqmIfRecId  DQMIF_TYPE_END               = 0x02FF;  // 0
 
 
 // 0300: Constants
 
 TDqmIfRecId  DQMIF_CONST_BEGIN            = 0x0300;  // str: constant name
-// exp.:     DQMIF_TYPE_SPEC
+// exp.:     type spec
 // exp.:     DQMIF_VALUE_INLINE / DQMIF_VALUE_LINKED
 TDqmIfRecId  DQMIF_CONST_END              = 0x03FF;  // 0
 
@@ -125,7 +129,7 @@ TDqmIfRecId  DQMIF_CONST_END              = 0x03FF;  // 0
 
 TDqmIfRecId  DQMIF_VAR_BEGIN              = 0x0400;  // str: variable name
 // opt.:     attributes (at the front only)
-// exp.:     DQMIF_TYPE_SPEC
+// exp.:     type spec
 TDqmIfRecId  DQMIF_VAR_END                = 0x04FF;  // 0
 
 
@@ -134,7 +138,7 @@ TDqmIfRecId  DQMIF_VAR_END                = 0x04FF;  // 0
 TDqmIfRecId  DQMIF_FUNC_BEGIN             = 0x0500;  // str: function name
 TDqmIfRecId  DQMIF_FUNC_END               = 0x05FF;  // 0
 // opt.:     attributes (at the front only)
-TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // 0, followed by DQMIF_TYPE_SPEC
+TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // 0, followed by type spec
 
 // 0600: function Parameters
 
@@ -142,7 +146,7 @@ TDqmIfRecId  DQMIF_FUNC_PARAM_BEGIN       = 0x0600;  // str
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REF    = 0x0613;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFIN  = 0x0611;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFOUT = 0x0612;  // 0
-// exp.:     DQMIF_TYPE_SPEC
+// exp.:     type spec
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 TDqmIfRecId  DQMIF_FUNC_PARAM_END         = 0x06FF;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_VARARGS     = 0x06A0;  // 0
@@ -157,7 +161,7 @@ TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
 TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str
 TDqmIfRecId  DQMIF_FIELD_END              = 0x071F;  // 0
 TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0711;  // int32
-// exp.:     DQMIF_TYPE_SPEC
+// exp.:     type spec
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 // opt.:     attributes (at the front only)
 

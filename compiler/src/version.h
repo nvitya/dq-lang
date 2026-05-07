@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.6"
+#define DQ_COMPILER_VERSION  "0.10.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.7:
+  - Structural type specs in binary module interfaces
 v0.10.6:
   - added offsetof() internal function
 v0.10.5:

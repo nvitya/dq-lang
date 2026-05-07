@@ -8,6 +8,7 @@ tools/vscode-dq/node_modules/
 /Testing/
 /cmake_install.cmake
 /install_manifest.txt
+/.vscode/numbered-bookmarks.json
 
 # Prerequisites
 *.d

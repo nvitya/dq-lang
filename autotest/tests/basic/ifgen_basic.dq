@@ -4,16 +4,21 @@
 // Keep this free of use/usepath until imported module interfaces exist.
 
 const IFGEN_BASE : int = 7;
+const IFGEN_VALUES : int[3] = [1, 2, 3];
 
 type TIfgenValue = int;
 
 var g_var1 : int = 3;
+var g_ptr : ^int;
+var g_pptr : ^^int;
 
 struct SIfgenPair
-  tag   : byte;
-  left  : int;
-  right : int;
-  small : uint16;
+  tag    : byte;
+  left   : int;
+  right  : int;
+  small  : uint16;
+  values : int[3];
+  ptr    : ^int;
 endstruct
 
 var g_struct : SIfgenPair;
@@ -31,6 +36,10 @@ endobj
 
 function IfgenAdd(a : int, b : int) -> int:
   result = a + b + IFGEN_BASE;
+endfunc
+
+function IfgenSliceLen(values : int[]) -> int:
+  result = len(values);
 endfunc
 
 function main() -> int:

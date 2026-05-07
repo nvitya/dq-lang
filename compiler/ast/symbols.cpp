@@ -188,31 +188,76 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
   return result;
 }
 
+static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
+{
+  if (!atype)
+  {
+    return writer.Fail("Can not write null type spec");
+  }
+
+  if (auto * ptrtype = dynamic_cast<OTypePointer *>(atype))
+  {
+    if (ptrtype->IsNullPointer())
+    {
+      return writer.Fail("Can not write null pointer as a DQM interface type spec");
+    }
+    if (!ptrtype->IsTypedPointer())
+    {
+      return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_NAME, ptrtype->name);
+    }
+    if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_PTR)) return false;
+    return WriteDqmIfTypeSpecInner(writer, ptrtype->basetype);
+  }
+
+  if (auto * arrtype = dynamic_cast<OTypeArray *>(atype))
+  {
+    if (arrtype->arraylength > uint32_t(numeric_limits<int32_t>::max()))
+    {
+      return writer.Fail(format("Array type {} is too large for DQM interface: {}",
+          arrtype->name, arrtype->arraylength));
+    }
+    if (!writer.AddRecI32(DQMIF_TYPE_SPEC_ARRAY_BEGIN, int32_t(arrtype->arraylength))) return false;
+    if (!WriteDqmIfTypeSpecInner(writer, arrtype->elemtype)) return false;
+    return writer.AddRecEmpty(DQMIF_TYPE_SPEC_ARRAY_END);
+  }
+
+  if (auto * slicetype = dynamic_cast<OTypeArraySlice *>(atype))
+  {
+    if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_BEGIN)) return false;
+    if (!WriteDqmIfTypeSpecInner(writer, slicetype->elemtype)) return false;
+    return writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_END);
+  }
+
+  if ((TK_FUNCTION == atype->kind) || (TK_FUNCREF == atype->kind))
+  {
+    return atype->WriteDqmIfTypeSpec(writer);
+  }
+
+  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_NAME, atype->name);
+}
+
 bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 {
-  OType * base = this;
-  int ptrdepth = 0;
-
-  while (auto * ptrtype = dynamic_cast<OTypePointer *>(base))
+  if (auto * ptrtype = dynamic_cast<OTypePointer *>(this))
   {
-    ++ptrdepth;
-    if (ptrdepth > 3)
+    if (ptrtype->IsNullPointer())
     {
-      return writer.Fail(format("DQM interface supports only up to 3 pointer levels: {}", name));
+      return writer.Fail("Can not write null pointer as a DQM interface type spec");
     }
-    base = ptrtype->basetype;
+    if (!ptrtype->IsTypedPointer())
+    {
+      return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_SIMPLE, ptrtype->name);
+    }
   }
 
-  switch (ptrdepth)
+  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind))
   {
-    case 0:  return base ? writer.AddTypeSpecRec(DQMIF_TYPE_SPEC, base->name)
-                          : writer.Fail("Can not write null type spec");
-    case 1:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR1, base ? base->name : "void");
-    case 2:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR2, base ? base->name : "void");
-    case 3:  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_PTR3, base ? base->name : "void");
+    if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_BEGIN)) return false;
+    if (!WriteDqmIfTypeSpecInner(writer, this)) return false;
+    return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
   }
 
-  return writer.Fail(format("Invalid pointer depth while writing type spec: {}", name));
+  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_SIMPLE, name);
 }
 
 bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)

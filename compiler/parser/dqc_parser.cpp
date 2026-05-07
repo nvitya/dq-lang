@@ -197,6 +197,17 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
     return ParseAttrIntArg(attrname, attr->align_value, true);
   }
 
+  if ("packed" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_PACKED);
+    return true;
+  }
+
   if ("section" == attrname)
   {
     attr->SetFlag(ATTF_SECTION);
@@ -788,12 +799,12 @@ void ODqCompParser::ParseStructDecl()
     return;
   }
 
+  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope);
   if (attr->flags)
   {
-    attr->CheckInvalidAttributes(ATGT_NONE);
+    attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
+    ctype->is_packed = attr->IsSet(ATTF_PACKED);
   }
-
-  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope);
 
   OScPosition mempos;
   string membername;
@@ -860,8 +871,7 @@ void ODqCompParser::ParseStructDecl()
     ctype->AddMember(mvsym);
   }
 
-  // Compute byte size from LLVM type
-  ctype->GetLlType();  // force creation
+  ctype->EnsureLayout();
 
   g_module->DeclareType(section_public, ctype);
 }
@@ -1165,12 +1175,12 @@ void ODqCompParser::ParseObjectDecl()
     return;
   }
 
+  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope, true);
   if (attr->flags)
   {
-    attr->CheckInvalidAttributes(ATGT_NONE);
+    attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
+    ctype->is_packed = attr->IsSet(ATTF_PACKED);
   }
-
-  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope, true);
 
   OScPosition mempos;
   string membername;
@@ -1244,7 +1254,7 @@ void ODqCompParser::ParseObjectDecl()
     ctype->AddMember(mvsym);
   }
 
-  ctype->GetLlType();
+  ctype->EnsureLayout();
   g_module->DeclareType(section_public, ctype);
 }
 
@@ -3686,6 +3696,7 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
   {
     return nullptr;
   }
+  sizetype->EnsureLayout();
 
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))

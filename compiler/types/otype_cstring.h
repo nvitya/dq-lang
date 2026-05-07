@@ -62,10 +62,12 @@ public:
     if (amaxlen > 0)
     {
       bytesize = amaxlen;
+      alignsize = 1;
     }
     else
     {
       bytesize = TARGET_PTRSIZE * 2;  // descriptor: ptr + size
+      alignsize = TARGET_PTRSIZE;
     }
   }
 

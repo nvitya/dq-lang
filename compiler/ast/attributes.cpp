@@ -25,9 +25,10 @@ void OAttr::Reset()
 void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
 {
   CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION);
-  CheckAttrAllowed(ATTF_ALIGN,    atarget, ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
+  CheckAttrAllowed(ATTF_ALIGN,    atarget, ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER);
   CheckAttrAllowed(ATTF_SECTION,  atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_OVERLOAD, atarget, ATGT_FUNCTION);
+  CheckAttrAllowed(ATTF_PACKED,   atarget, ATGT_COMPOUND_TYPE);
   CheckAttrAllowed(ATTF_OVERRIDE, atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_VIRTUAL,  atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_VOLATILE, atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
@@ -50,6 +51,7 @@ string AttrName(EAttrFlag aflag)
     case ATTF_ALIGN:         return "align";
     case ATTF_VOLATILE:      return "volatile";
     case ATTF_OVERLOAD:      return "overload";
+    case ATTF_PACKED:        return "packed";
     case ATTF_EXTERNAL:      return "external";
     case ATTF_SECTION:       return "section";
     case ATTF_VIRTUAL:       return "virtual";
@@ -67,6 +69,7 @@ string AttrTargetName(EAttrTarget atarget)
     case ATGT_GLOBAL_VAR:    return "global variable";
     case ATGT_GLOBAL_CONST:  return "global constant";
     case ATGT_STRUCT_MEMBER: return "struct member";
+    case ATGT_COMPOUND_TYPE: return "struct/object";
 
     default:                 return "ATGT_"+to_string(atarget);
   }

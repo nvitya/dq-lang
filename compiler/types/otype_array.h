@@ -50,9 +50,16 @@ public:
     arraylength(alength)
   {
     bytesize = aelemtype->bytesize * alength;
+    alignsize = aelemtype->alignsize;
   }
 
   OValue * CreateValue() override;
+  void EnsureLayout() override
+  {
+    elemtype->EnsureLayout();
+    bytesize = elemtype->bytesize * arraylength;
+    alignsize = elemtype->alignsize;
+  }
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
 };
@@ -75,6 +82,7 @@ public:
     elemtype(aelemtype)
   {
     bytesize = TARGET_PTRSIZE * 2;  // pointer + length
+    alignsize = TARGET_PTRSIZE;
   }
 
   LlType * CreateLlType() override;

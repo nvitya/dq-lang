@@ -11,6 +11,8 @@
  * brief:   Compiler Symbol Objects
  */
 
+#include <algorithm>
+#include <limits>
 #include <stdexcept>
 #include "string.h"
 #include <format>
@@ -322,6 +324,7 @@ void OCompoundType::AddMember(OValSym * amember)
 {
   member_scope.DefineValSym(amember);
   member_order.push_back(amember);
+  layout_ready = false;
 }
 
 int OCompoundType::FindMemberIndex(const string & aname)
@@ -333,35 +336,134 @@ int OCompoundType::FindMemberIndex(const string & aname)
   return -1;
 }
 
-LlType * OCompoundType::CreateLlType()
+static uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
 {
-  vector<LlType *> member_types;
+  if (aalign <= 1)
+  {
+    return avalue;
+  }
+  uint64_t value = avalue;
+  uint64_t align = aalign;
+  return uint32_t(((value + align - 1) / align) * align);
+}
+
+uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align)
+{
+  if (!atype)
+  {
+    return max<uint32_t>(1, aattr_align);
+  }
+  atype->EnsureLayout();
+  return max<uint32_t>(max<uint32_t>(1, atype->alignsize), aattr_align);
+}
+
+void OCompoundType::EnsureLayout()
+{
+  if (layout_ready)
+  {
+    return;
+  }
+  if (layout_busy)
+  {
+    throw logic_error(format("Recursive compound layout is not supported: {}", name));
+  }
+
+  layout_busy = true;
+
+  uint32_t offset = 0;
+  uint32_t max_align = 1;
+  manual_ll_layout = is_packed;
+
   for (OValSym * m : member_order)
   {
-    member_types.push_back(m->ptype->GetLlType());
+    if (!m || !m->ptype)
+    {
+      continue;
+    }
+
+    m->ptype->EnsureLayout();
+
+    uint32_t field_align = 1;
+    if (!is_packed)
+    {
+      field_align = max<uint32_t>(m->ptype->alignsize, 1);
+      if (m->attr_align)
+      {
+        if (m->attr_align > m->ptype->alignsize)
+        {
+          manual_ll_layout = true;
+        }
+        field_align = max(field_align, m->attr_align);
+      }
+      offset = AlignUpU32(offset, field_align);
+      max_align = max(max_align, field_align);
+    }
+
+    m->field_offset = offset;
+    offset += m->ptype->bytesize;
   }
-  return llvm::StructType::create(ll_ctx, member_types, name);
+
+  alignsize = (is_packed ? 1 : max_align);
+  bytesize = (is_packed ? offset : AlignUpU32(offset, alignsize));
+
+  layout_ready = true;
+  layout_busy = false;
+}
+
+LlType * OCompoundType::CreateLlType()
+{
+  EnsureLayout();
+
+  vector<LlType *> member_types;
+  if (!manual_ll_layout)
+  {
+    for (int i = 0; i < (int)member_order.size(); ++i)
+    {
+      OValSym * m = member_order[i];
+      m->ll_field_index = uint32_t(i);
+      member_types.push_back(m->ptype->GetLlType());
+    }
+    return llvm::StructType::create(ll_ctx, member_types, name);
+  }
+
+  uint32_t offset = 0;
+  for (OValSym * m : member_order)
+  {
+    if (m->field_offset > offset)
+    {
+      member_types.push_back(llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), m->field_offset - offset));
+      offset = m->field_offset;
+    }
+
+    m->ll_field_index = uint32_t(member_types.size());
+    member_types.push_back(m->ptype->GetLlType());
+    offset += m->ptype->bytesize;
+  }
+
+  if (bytesize > offset)
+  {
+    member_types.push_back(llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), bytesize - offset));
+  }
+
+  return llvm::StructType::create(ll_ctx, member_types, name, true);
 }
 
 LlDiType * OCompoundType::CreateDiType()
 {
-  LlType * ll_stype = GetLlType();
-  const llvm::DataLayout & dl = ll_module->getDataLayout();
-  const llvm::StructLayout * sl = dl.getStructLayout(static_cast<llvm::StructType *>(ll_stype));
+  EnsureLayout();
 
   vector<llvm::Metadata *> elements;
   for (int i = 0; i < (int)member_order.size(); ++i)
   {
     OValSym * m = member_order[i];
-    uint64_t offset_bits = sl->getElementOffsetInBits(i);
-    uint64_t size_bits = dl.getTypeSizeInBits(m->ptype->GetLlType());
+    uint64_t offset_bits = uint64_t(m->field_offset) * 8;
+    uint64_t size_bits = uint64_t(m->ptype->bytesize) * 8;
     elements.push_back(di_builder->createMemberType(
         nullptr, m->name, nullptr, 0, size_bits, 0,
         offset_bits, llvm::DINode::FlagZero, m->ptype->GetDiType()));
   }
 
-  uint64_t total_bits = dl.getTypeSizeInBits(ll_stype);
-  bytesize = total_bits / 8;
+  uint64_t total_bits = uint64_t(bytesize) * 8;
 
   return di_builder->createStructType(
       nullptr, name, nullptr, 0, total_bits, 0,
@@ -390,10 +492,17 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
 
 bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
+  EnsureLayout();
+
   TDqmIfRecId begin_rec = (is_object ? DQMIF_OBJ_BEGIN : DQMIF_STRUCT_BEGIN);
   TDqmIfRecId end_rec   = (is_object ? DQMIF_OBJ_END   : DQMIF_STRUCT_END);
 
   if (!writer.AddRecStr(begin_rec, name)) return false;
+  if (bytesize > uint32_t(numeric_limits<int32_t>::max()))
+  {
+    return writer.Fail(format("Compound type {} is too large for DQM interface: {}", name, bytesize));
+  }
+  if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
 
   for (OValSym * member : member_order)
   {
@@ -407,6 +516,12 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     {
       return writer.Fail(format("Field {}.{} has no type", name, member->name));
     }
+    if (member->field_offset > uint32_t(numeric_limits<int32_t>::max()))
+    {
+      return writer.Fail(format("Field {}.{} offset is too large for DQM interface: {}",
+          name, member->name, member->field_offset));
+    }
+    if (!writer.AddRecI32(DQMIF_FIELD_OFFSET, int32_t(member->field_offset))) return false;
     if (!member->ptype->WriteDqmIfTypeSpec(writer)) return false;
     if (!writer.AddRecEmpty(DQMIF_FIELD_END)) return false;
   }
@@ -446,12 +561,14 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
       (apublic ? LlLinkType::ExternalLinkage
                : LlLinkType::InternalLinkage);
 
-    LlType *          ll_type  = ptype->GetLlType();
+    OType *           storage_type = GetStorageType();
+    LlType *          ll_type  = storage_type->GetLlType();
     LlConst *         ll_init_val = (ainitval ? ainitval->GetLlConst()
                                               : llvm::Constant::getNullValue(ll_type));
 
     llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, name);
     ll_value = gv;
+    gv->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, attr_align)));
     if (!attr_section_name.empty())
     {
       gv->setSection(attr_section_name);
@@ -487,6 +604,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
       llvm::GlobalVariable * gv =
           new llvm::GlobalVariable(*ll_module, ll_type, true, linktype, ll_init_val, name);
       ll_value = gv;
+      gv->setAlignment(llvm::Align(EffectiveStorageAlign(ptype, attr_align)));
       if (!attr_section_name.empty())
       {
         gv->setSection(attr_section_name);
@@ -542,12 +660,17 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 
   attr->CheckInvalidAttributes(atarget);
 
-  if ((ATGT_FUNCTION == atarget) || (ATGT_GLOBAL_VAR == atarget) || (ATGT_GLOBAL_CONST == atarget))
+  if ((ATGT_FUNCTION == atarget) || (ATGT_GLOBAL_VAR == atarget) || (ATGT_GLOBAL_CONST == atarget)
+      || (ATGT_STRUCT_MEMBER == atarget))
   {
     if (attr->IsSet(ATTF_ALIGN))
     {
       attr_align = attr->align_value;
     }
+  }
+
+  if ((ATGT_FUNCTION == atarget) || (ATGT_GLOBAL_VAR == atarget) || (ATGT_GLOBAL_CONST == atarget))
+  {
     if (attr->IsSet(ATTF_SECTION))
     {
       attr_section_name = attr->section_name;

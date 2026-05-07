@@ -37,7 +37,9 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
     }
     else
     {
-      srcaddr = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+      auto * src_alloca = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+      src_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(srctype)));
+      srcaddr = src_alloca;
       ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);
     }
 
@@ -189,8 +191,11 @@ void OStmtReturn::Generate(OScope * scope)
 void OStmtVarDecl::Generate(OScope * scope)
 {
   // Local variable declaration
-  LlType * ll_type = variable->GetStorageType()->GetLlType();
-  variable->ll_value = ll_builder.CreateAlloca(ll_type, nullptr, variable->name);
+  OType * storage_type = variable->GetStorageType();
+  LlType * ll_type = storage_type->GetLlType();
+  auto * alloca = ll_builder.CreateAlloca(ll_type, nullptr, variable->name);
+  alloca->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, variable->attr_align)));
+  variable->ll_value = alloca;
   if (g_opt.dbg_info)
   {
     llvm::DILocalVariable * di_var = di_builder->createAutoVariable(

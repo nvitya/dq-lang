@@ -11,8 +11,6 @@
  * brief:   function type
  */
 
-#include <algorithm>
-
 #include "otype_func.h"
 #include "dqm_if.h"
 #include "dqc.h"
@@ -740,7 +738,9 @@ void OValSymFunc::GenerateFuncBody()
   if (vsresult)
   {
     ll_rettype = vsresult->ptype->GetLlType();
-    vsresult->ll_value = ll_builder.CreateAlloca(ll_rettype, nullptr, "result");
+    auto * result_alloca = ll_builder.CreateAlloca(ll_rettype, nullptr, "result");
+    result_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(vsresult->ptype)));
+    vsresult->ll_value = result_alloca;
     ll_builder.CreateStore(llvm::Constant::getNullValue(ll_rettype), vsresult->ll_value);
     if (g_opt.dbg_info)
     {
@@ -759,7 +759,10 @@ void OValSymFunc::GenerateFuncBody()
     OValSym *     vsarg = args[i];
 
     arg.setName(fpar->name);
-    vsarg->ll_value = ll_builder.CreateAlloca(fpar->GetLlArgType()->GetLlType(), nullptr, fpar->name);
+    OType * ll_arg_type = fpar->GetLlArgType();
+    auto * arg_alloca = ll_builder.CreateAlloca(ll_arg_type->GetLlType(), nullptr, fpar->name);
+    arg_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(ll_arg_type)));
+    vsarg->ll_value = arg_alloca;
     ll_builder.CreateStore(&arg, vsarg->ll_value);
     if (g_opt.dbg_info)
     {
@@ -874,6 +877,7 @@ OTypeFuncRef::OTypeFuncRef(OTypeFunc * afunctype, const string & aname)
   functype(afunctype)
 {
   bytesize = TARGET_PTRSIZE;
+  alignsize = TARGET_PTRSIZE;
 }
 
 OTypeFuncRef::~OTypeFuncRef()

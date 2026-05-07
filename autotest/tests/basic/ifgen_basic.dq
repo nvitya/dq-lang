@@ -10,13 +10,16 @@ type TIfgenValue = int;
 var g_var1 : int = 3;
 
 struct SIfgenPair
+  tag   : byte;
   left  : int;
   right : int;
+  small : uint16;
 endstruct
 
 var g_struct : SIfgenPair;
 
 object OIfgenBox
+  tag   : byte;
   value : TIfgenValue;
 
   function Get() -> int:

@@ -46,6 +46,7 @@ public:
     super("bool", TK_BOOL)
   {
     bytesize = 1;
+    alignsize = 1;
   }
 
   OValue * CreateValue() override

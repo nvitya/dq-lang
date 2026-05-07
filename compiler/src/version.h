@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.4"
+#define DQ_COMPILER_VERSION  "0.10.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.5:
+  - Struct / object field alignment + [[packed]]
 v0.10.4:
   - Small interface wrinting refactoring
 v0.10.3:

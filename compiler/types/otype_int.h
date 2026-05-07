@@ -51,6 +51,7 @@ public:
     super(name, TK_INT)
   {
     bytesize = ((abitlength + 7) >> 3);
+    alignsize = bytesize;
   }
 
   OValue * CreateValue() override

@@ -93,6 +93,8 @@ TDqmIfRecId  DQMIF_ATTR_ALIGN_VALUE       = 0x8201;  // int32
 TDqmIfRecId  DQMIF_ATTR_EXT_LINK_NAME     = 0x8202;  // str
 TDqmIfRecId  DQMIF_ATTR_SECTION_NAME      = 0x8203;  // str
 
+TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
+
 // 0100: Header records
 
 TDqmIfRecId  DQMIF_H_BEGIN                = 0x0100;  // 0
@@ -151,7 +153,7 @@ TDqmIfRecId  DQMIF_STRUCT_BEGIN           = 0x0700;  // str: name
 TDqmIfRecId  DQMIF_STRUCT_END             = 0x07FF;  // 0
 TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
 TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
-
+// exp.:     DQMIF_SIZE_SPEC
 TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str
 TDqmIfRecId  DQMIF_FIELD_END              = 0x071F;  // 0
 TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0711;  // int32

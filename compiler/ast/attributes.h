@@ -21,6 +21,7 @@ enum EAttrFlag
   ATTF_ALIGN          = 0x00000001,
   ATTF_VOLATILE       = 0x00000002,
   ATTF_OVERLOAD       = 0x00000004,
+  ATTF_PACKED         = 0x00000008,
 
   ATTF_EXTERNAL       = 0x00000100,
 
@@ -37,7 +38,8 @@ enum EAttrTarget
   ATGT_GLOBAL_VAR     = 0x0002,
   ATGT_GLOBAL_CONST   = 0x0004,
 
-  ATGT_STRUCT_MEMBER  = 0x0008   //TODO: member var, member func would be better
+  ATGT_STRUCT_MEMBER  = 0x0008,  //TODO: member var, member func would be better
+  ATGT_COMPOUND_TYPE  = 0x0010
 };
 
 class OAttr

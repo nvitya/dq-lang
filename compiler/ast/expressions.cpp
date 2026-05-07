@@ -316,7 +316,13 @@ void OLValueDeref::DeleteChildTree()
 LlValue * OLValueMember::GenerateAddress(OScope * scope)
 {
   LlValue * baseaddr = base->GenerateAddress(scope);
-  return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, memberindex, "member.addr");
+  uint32_t ll_index = memberindex;
+  if (auto * ctype = dynamic_cast<OCompoundType *>(structtype->ResolveAlias()))
+  {
+    ctype->GetLlType();
+    ll_index = ctype->member_order[memberindex]->ll_field_index;
+  }
+  return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, ll_index, "member.addr");
 }
 
 void OLValueMember::FoldChildren()

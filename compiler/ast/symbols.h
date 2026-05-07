@@ -132,6 +132,7 @@ public:
   ETypeKind    kind;
   bool         incomplete = false;
   uint32_t     bytesize = 0;  // 0 = size is not fixed (string, dyn. array)
+  uint32_t     alignsize = 1;
 
   LlType *     ll_type = nullptr;
   LlDiType *   di_type = nullptr;
@@ -145,9 +146,11 @@ public:
 
   virtual ~OType();
 
+  virtual void EnsureLayout() {}
   virtual LlType *  CreateLlType() { return nullptr; }
   virtual LlType *  GetLlType()
   {
+    EnsureLayout();
     if (!ll_type)
     {
       ll_type = CreateLlType();
@@ -177,6 +180,8 @@ public:
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
 };
 
+uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align = 0);
+
 inline OType * OSymbol::ResolvedType() const
 {
   return (ptype ? ptype->ResolveAlias() : nullptr);
@@ -193,6 +198,7 @@ public:
     super("void", TK_VOID)
   {
     bytesize = 1;
+    alignsize = 1;
   }
 
   LlType * CreateLlType() override
@@ -220,6 +226,17 @@ public:
     ptype(aptype)
   {
     bytesize = (ptype ? ptype->bytesize : 0);
+    alignsize = (ptype ? ptype->alignsize : 1);
+  }
+
+  void EnsureLayout() override
+  {
+    if (ptype)
+    {
+      ptype->EnsureLayout();
+      bytesize = ptype->bytesize;
+      alignsize = ptype->alignsize;
+    }
   }
 
   OType * ResolveAlias() override
@@ -260,6 +277,10 @@ public:
   OScope       member_scope;
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
   bool         is_object = false;
+  bool         is_packed = false;
+  bool         layout_ready = false;
+  bool         layout_busy = false;
+  bool         manual_ll_layout = false;
 
   OCompoundType(const string name, OScope * aparent_scope, bool ais_object = false)
   :
@@ -278,6 +299,7 @@ public:
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
 
+  void        EnsureLayout() override;
   LlType *    CreateLlType() override;
   LlDiType *  CreateDiType() override;
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
@@ -301,6 +323,7 @@ public:
     is_null_literal(anull_literal)
   {
     bytesize = TARGET_PTRSIZE;
+    alignsize = TARGET_PTRSIZE;
   }
 
   bool IsTypedPointer() const
@@ -473,6 +496,8 @@ public:
   EParamMode   param_mode = FPM_VALUE;
   bool         is_ref_alias = false;
   bool         ref_nullable = false;
+  uint32_t     field_offset = 0;
+  uint32_t     ll_field_index = 0;
 
   uint32_t     attr_align = 0;
   string       attr_section_name = "";

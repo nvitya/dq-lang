@@ -169,7 +169,13 @@ The initial framework shall support:
 //?ignore(...)
 //?ignoreerr(...)
 //?exit(...)
+//?notest
+//?skip_test
 ```
+
+`//?notest` and `//?skip_test` are file-level directives. If either one is
+present anywhere in a test source, the runner shall skip the file completely.
+`//?skip_test` is the preferred spelling and the internal runner concept.
 
 ### 6.3 Diagnostic matching key
 

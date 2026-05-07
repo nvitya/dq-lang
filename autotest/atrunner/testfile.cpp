@@ -61,6 +61,16 @@ void OTestFile::Process()
     return;
   }
 
+  if (skip_test)
+  {
+    if (!g_atropt->batchmode and g_atropt->verblevel >= VERBLEVEL_INFO)
+    {
+      print("Skipping test \"{}\"\n", filename);
+    }
+    processed = true;
+    return;
+  }
+
   if (run_captures.empty() and err_captures.empty())
   {
     // no atr marker was found
@@ -623,6 +633,12 @@ bool OTestFile::ParseText()
       else if ("hint" == sid)
       {
         ParseMarkerError("HINT");
+      }
+
+      // file control markers
+      else if (("notest" == sid) or ("skip_test" == sid))
+      {
+        skip_test = true;
       }
 
       // run test markers

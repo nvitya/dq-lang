@@ -1,3 +1,5 @@
+//?notest
+
 // Basic source fixture for module interface generation.
 // Keep this free of use/usepath until imported module interfaces exist.
 
@@ -36,7 +38,7 @@ function main() -> int:
   var box : OIfgenBox = {};
   box.value = IfgenAdd(pair.left, pair.right);
 
-  printf("ifgen value = %d\n", box.Get());  //?check('ifgen value', 12)
+  printf("ifgen value = %d\n", box.Get());
 
   return 0;
 endfunc

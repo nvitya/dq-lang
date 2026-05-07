@@ -66,6 +66,7 @@ public:
 
   bool              processed  = false;
 
+  bool              skip_test  = false;
   bool              exec_run   = false;
   bool              exec_err   = false;
 

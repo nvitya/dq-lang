@@ -66,6 +66,10 @@ void ODqCompCodegen::GenerateIr()
           fn->GenGlobalDecl(true, nullptr);
         }
       }
+      else
+      {
+        vs->GenGlobalImportDecl();
+      }
     }
   }
 

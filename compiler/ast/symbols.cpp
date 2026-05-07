@@ -662,6 +662,42 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
   }
 }
 
+void OValSym::GenGlobalImportDecl()
+{
+  if (ll_value)
+  {
+    return;
+  }
+
+  if (VSK_VARIABLE == kind)
+  {
+    OType *  storage_type = GetStorageType();
+    LlType * ll_type = storage_type->GetLlType();
+
+    llvm::GlobalVariable * gv =
+        new llvm::GlobalVariable(*ll_module, ll_type, false, LlLinkType::ExternalLinkage, nullptr, name);
+    ll_value = gv;
+    gv->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, attr_align)));
+    if (!attr_section_name.empty())
+    {
+      gv->setSection(attr_section_name);
+    }
+  }
+  else if ((VSK_CONST == kind) && (TK_ARRAY == ptype->kind))
+  {
+    LlType * ll_type = ptype->GetLlType();
+
+    llvm::GlobalVariable * gv =
+        new llvm::GlobalVariable(*ll_module, ll_type, true, LlLinkType::ExternalLinkage, nullptr, name);
+    ll_value = gv;
+    gv->setAlignment(llvm::Align(EffectiveStorageAlign(ptype, attr_align)));
+    if (!attr_section_name.empty())
+    {
+      gv->setSection(attr_section_name);
+    }
+  }
+}
+
 bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
   if (VSK_VARIABLE != kind)

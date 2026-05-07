@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.13"
+#define DQ_COMPILER_VERSION  "0.10.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.14:
+  - use fixes for global variables
 v0.10.13:
   - Simple use statement implementation (no chained compiling yet)
 v0.10.12:

@@ -1,5 +1,9 @@
 //?notest
 
+const MOD_CONST : int = 99;
+
+var g_mod_var : int = 5;
+
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function mod_func_test(a : int) -> int:

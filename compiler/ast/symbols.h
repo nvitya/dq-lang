@@ -516,6 +516,7 @@ public:
 
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
+  void GenGlobalImportDecl();
   virtual bool WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags = 0);
   virtual bool WriteDqmIfDecl(ODqmIfWriter & writer);
 

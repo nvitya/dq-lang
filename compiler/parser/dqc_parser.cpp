@@ -433,6 +433,7 @@ void ODqCompParser::ParseUseStatement()
   string module_path;
   string namespace_name;
   string sid;
+  bool merge_public_symbols = true;
 
   scf->SkipWhite();
   if (!scf->ReadIdentifier(sid))
@@ -460,6 +461,43 @@ void ODqCompParser::ParseUseStatement()
 
     module_path += "/" + sid;
     namespace_name = sid;
+  }
+
+  while (true)
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol(";", false))
+    {
+      break;
+    }
+
+    if (!scf->ReadIdentifier(sid))
+    {
+      if (!CheckStatementClose())
+      {
+        return;
+      }
+      break;
+    }
+
+    if ("as" == sid)
+    {
+      scf->SkipWhite();
+      if (!scf->ReadIdentifier(namespace_name))
+      {
+        RootStatementError(DQERR_ID_EXP_AFTER, "as");
+        return;
+      }
+    }
+    else if ("nomerge" == sid)
+    {
+      merge_public_symbols = false;
+    }
+    else
+    {
+      StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "previous statement");
+      return;
+    }
   }
 
   if (!CheckStatementClose())
@@ -533,7 +571,7 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string()))
+  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), merge_public_symbols))
   {
     Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
     return;

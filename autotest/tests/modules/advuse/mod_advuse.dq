@@ -1,0 +1,6 @@
+//?notest
+
+var g_mod_var  : int = 5;
+var g_mod_var2 : int = 25;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;

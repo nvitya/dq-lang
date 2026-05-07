@@ -64,7 +64,8 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   return result;
 }
 
-bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name, const string & artifact_path)
+bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name,
+                                const string & artifact_path, bool amerge_public_symbols)
 {
   OModuleIntf * intf = new OModuleIntf(scope_pub->parent_scope, module_path);
   if (!intf->ReadInterface(artifact_path))
@@ -73,8 +74,11 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     return false;
   }
 
-  intf->scope_pub->parent_scope = scope_pub->parent_scope;
-  scope_pub->parent_scope = intf->scope_pub;
+  if (amerge_public_symbols)
+  {
+    intf->scope_pub->parent_scope = scope_pub->parent_scope;
+    scope_pub->parent_scope = intf->scope_pub;
+  }
   g_namespaces[namespace_name] = intf->scope_pub;
 
   used_modules.push_back(intf);

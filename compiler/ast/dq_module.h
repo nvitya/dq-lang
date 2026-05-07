@@ -97,7 +97,8 @@ public:
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
-  bool UseCompiledModule(const string & module_path, const string & namespace_name, const string & artifact_path);
+  bool UseCompiledModule(const string & module_path, const string & namespace_name,
+                         const string & artifact_path, bool amerge_public_symbols = true);
 
   bool TypeDeclared(const string aname, OType ** rtype = nullptr);
   bool ValSymDeclared(const string aname, OValSym ** rvalsym = nullptr);

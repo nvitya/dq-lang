@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.16"
+#define DQ_COMPILER_VERSION  "0.10.17"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.17:
+  - Implementing advanced use: as, nomerge
 v0.10.16:
   - Code refactoring
 v0.10.15:

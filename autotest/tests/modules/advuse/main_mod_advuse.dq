@@ -1,0 +1,29 @@
+
+use mod_advuse as advm nomerge;
+use mod_advuse2 as adv2;
+
+#ifdef ERRORTEST
+
+function main() -> int:
+  printf("printf error\n");  //?error(VsUnknown)
+  var i : int;
+  i = g_mod_var;  //?error(VsUnknown)
+  i = @advm.g_mod_var;
+
+  return 0;
+endfunc
+
+#else
+
+function main() -> int:
+  @advm.printf("DQ advanced use test\n");  //?check('DQ advanced use test')
+
+  @advm.printf("g_mod_var = %d\n", @advm.g_mod_var);  //?check('g_mod_var', 5)
+  @advm.printf("g_mod_var2 = %d\n", @advm.g_mod_var2);  //?check('g_mod_var2', 25)
+
+  @advm.printf("g_mod2_var = %d\n", g_mod2_var);  //?check('g_mod2_var', 6)
+
+  return 0;
+endfunc
+
+#endif

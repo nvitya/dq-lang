@@ -1,0 +1,4 @@
+//?notest
+
+var mod_var_typerr : intxx;  // invalid type
+

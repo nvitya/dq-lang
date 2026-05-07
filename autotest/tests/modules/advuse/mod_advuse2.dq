@@ -1,0 +1,5 @@
+//?notest
+
+var g_mod2_var  : int = 6;
+var g_mod2_var2 : int = 33;
+

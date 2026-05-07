@@ -300,7 +300,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     if (has_dash_o)
     {
       ++errorcnt;
-      print("--ifdump expects only one input .dqm_if file.\n");
+      print("--ifdump expects only one input .dqm_if or .dqm file.\n");
       PrintUsage();
     }
     return;
@@ -345,7 +345,7 @@ void ODqCompClargs::PrintUsage()
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
-  print("  --ifdump  : dump module interface file (.dqm_if)\n");
+  print("  --ifdump  : dump module interface artifact (.dqm_if or .dqm)\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

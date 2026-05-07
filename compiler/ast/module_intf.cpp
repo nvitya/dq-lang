@@ -1307,9 +1307,9 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 bool OModuleIntf::ReadInterface(const string & filename)
 {
   ODqmIfReader reader;
-  if (!reader.ReadFromFile(filename) || !ReadDqmIfRecords(reader))
+  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfRecords(reader))
   {
-    print("Can not read module interface file: {}\n{}\n", filename, reader.error);
+    print("Can not read module interface artifact: {}\n{}\n", filename, reader.error);
     return false;
   }
 

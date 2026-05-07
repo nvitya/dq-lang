@@ -87,7 +87,9 @@ public:
   bool Fail(const string & amsg);
 
   uint64_t Checksum(const vector<uint8_t> & adata) const;
+  bool ReadFromData(const vector<uint8_t> & data, const string & filename);
   bool ReadFromFile(const string & filename);
+  bool ReadFromArtifact(const string & filename);
 
   bool Eof() const { return pos >= payload.size(); }
   bool NextRec();

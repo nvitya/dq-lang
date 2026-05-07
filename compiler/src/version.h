@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.5"
+#define DQ_COMPILER_VERSION  "0.10.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.6:
+  - added offsetof() internal function
 v0.10.5:
   - Struct / object field alignment + [[packed]]
 v0.10.4:

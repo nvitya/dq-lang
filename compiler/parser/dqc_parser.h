@@ -124,6 +124,7 @@ public: // expressions
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();
+  OExpr * ParseBuiltinOffsetof();
   OExpr * ParseBuiltinFloatRound(ERoundMode amode);
   OExpr * ParseArrayLit();
 

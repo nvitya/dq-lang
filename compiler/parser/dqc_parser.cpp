@@ -2891,6 +2891,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return ParseBuiltinSizeof();
   }
 
+  if ("offsetof" == sid)
+  {
+    return ParseBuiltinOffsetof();
+  }
+
   if ("round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
   if ("ceil"  == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
@@ -3712,6 +3717,62 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
   }
 
   return new OIntLit(sizetype->bytesize);
+}
+
+OExpr * ODqCompParser::ParseBuiltinOffsetof()
+{
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "offsetof");
+    return nullptr;
+  }
+
+  OType * ptype = ParseTypeSpec();
+  if (!ptype)
+  {
+    return nullptr;
+  }
+  ptype = ptype->ResolveAlias();
+
+  OCompoundType * ctype = dynamic_cast<OCompoundType *>(ptype);
+  if (!ctype)
+  {
+    Error(DQERR_TYPE_EXPECTED, "compound", ptype->name);
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(","))
+  {
+    Error(DQERR_MISSING_COMMA);
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  string membername;
+  if (not scf->ReadIdentifier(membername))
+  {
+    Error(DQERR_MEMBER_NAME_EXPECTED);
+    return nullptr;
+  }
+
+  ctype->EnsureLayout();
+  int midx = ctype->FindMemberIndex(membername);
+  if (midx < 0)
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "offsetof");
+    return nullptr;
+  }
+
+  return new OIntLit(ctype->member_order[midx]->field_offset);
 }
 
 EBinOp ODqCompParser::ParseAssignOp()

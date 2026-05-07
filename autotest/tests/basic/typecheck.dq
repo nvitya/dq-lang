@@ -3,6 +3,10 @@
 var i : int = 3 / 2; //?error(TypeMismatchAssign)
 var object_scope_global : int = 1;
 
+struct TOffsetCheck
+  field : int;
+endstruct
+
 object TObjectScopeCheck
   id : int;
 
@@ -26,6 +30,8 @@ function main() -> int:
   endif
 
   i = f;  //?error(TypeMismatchAssign)
+  i = offsetof(int, field);            //?error(TypeExpected)
+  i = offsetof(TOffsetCheck, missing); //?error(MemberUnknown)
 
   if i:   //?error(BoolExprExpected)
     printf('?');

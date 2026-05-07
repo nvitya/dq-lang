@@ -14,6 +14,7 @@
 #include <print>
 #include <string>
 #include <limits>
+#include <filesystem>
 #include "dqc_clargs.h"
 #include "comp_options.h"
 
@@ -43,6 +44,44 @@ static bool IsValidDefineName(const string & name)
   }
 
   return true;
+}
+
+static string NormalizeCompilerExecutable(const string & argv0)
+{
+  if (argv0.empty())
+  {
+    return "dq-comp";
+  }
+
+  if (argv0.find('/') == string::npos)
+  {
+    return argv0;
+  }
+
+  error_code ec;
+  filesystem::path p = filesystem::absolute(argv0, ec);
+  return (ec ? argv0 : p.string());
+}
+
+static void ParseModuleUseStack(const string & text, vector<string> & rstack)
+{
+  rstack.clear();
+
+  size_t start = 0;
+  while (start <= text.size())
+  {
+    size_t comma = text.find(',', start);
+    string item = (comma == string::npos ? text.substr(start) : text.substr(start, comma - start));
+    if (!item.empty())
+    {
+      rstack.push_back(item);
+    }
+    if (comma == string::npos)
+    {
+      break;
+    }
+    start = comma + 1;
+  }
 }
 
 static bool ParseDefineIntValue(const string & text, int64_t & rvalue)
@@ -169,6 +208,7 @@ void ODqCompClargs::ParseCmdLineArgsVerblevel(int argc, char ** argv)
 void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 {
   string explicit_output;
+  g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
 
   for (int i = 1; i < argc; i++)
   {
@@ -179,6 +219,21 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       if      ("--version" == v)  g_opt.print_version = true;
       else if ("--ifgen"   == v)  g_opt.ifgen = true;
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
+      else if ("--ifstack" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          ParseModuleUseStack(argv[i], g_opt.module_use_stack);
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing module stack after --ifstack\n");
+          PrintUsage();
+          return;
+        }
+      }
       else if (VerblevelSwitch(v))  { /* already handled in the function */ }
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;

@@ -58,6 +58,23 @@ class OValSymFunc;
 class OValSymOverloadSet;
 class OTypeFunc;
 
+struct TDqmIfMetadata
+{
+  string   source_filename;
+  int64_t  source_filesize = 0;
+  int64_t  source_filetime = 0;
+  string   target_arch;
+  string   target_rtl;
+  string   build_options;
+
+  bool     has_source_filename = false;
+  bool     has_source_filesize = false;
+  bool     has_source_filetime = false;
+  bool     has_target_arch = false;
+  bool     has_target_rtl = false;
+  bool     has_build_options = false;
+};
+
 class OModuleIntf
 {
 private:
@@ -123,3 +140,5 @@ public:
 };
 
 bool DumpModuleInterface(const string & filename);
+bool ReadDqmIfMetadata(const string & filename, TDqmIfMetadata & rmetadata, string & rerror);
+bool DqmIfMetadataMatchesCurrentBuild(const TDqmIfMetadata & metadata, string & rreason);

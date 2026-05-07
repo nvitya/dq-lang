@@ -49,6 +49,9 @@ public:
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump
 
+  string   compiler_executable;
+  vector<string>  module_use_stack;
+
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;
 

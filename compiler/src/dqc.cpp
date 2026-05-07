@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
+#include <filesystem>
 
 #include "ll_defs.h"
 #include "named_scopes.h"
@@ -34,6 +35,12 @@ ODqCompiler::ODqCompiler()
 
 ODqCompiler::~ODqCompiler()
 {
+}
+
+static string ModuleStackNameFromInput(const string & base_name)
+{
+  filesystem::path p(base_name);
+  return p.filename().string();
 }
 
 void ODqCompiler::Run(int argc, char ** argv)
@@ -66,6 +73,11 @@ void ODqCompiler::Run(int argc, char ** argv)
       ++errorcnt;
     }
     return;
+  }
+
+  if (g_opt.module_use_stack.empty())
+  {
+    g_opt.module_use_stack.push_back(ModuleStackNameFromInput(base_name));
   }
 
   if ((g_opt.verblevel >= VERBLEVEL_STATUS) and not in_filename.empty())

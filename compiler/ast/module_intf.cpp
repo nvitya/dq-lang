@@ -426,7 +426,6 @@ static string DqmIfBuildOptions()
 {
   string result = "O" + to_string(g_opt.optlevel);
   if (g_opt.dbg_info)      result += ";g";
-  if (g_opt.compile_only)  result += ";c";
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -445,6 +444,117 @@ static string DqmIfBuildOptions()
   }
 
   return result;
+}
+
+static bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, TDqmIfMetadata & rmetadata)
+{
+  while (!reader.Eof())
+  {
+    if (!reader.NextRec())
+    {
+      return false;
+    }
+
+    if (DQMIF_H_BEGIN != reader.recid)
+    {
+      continue;
+    }
+
+    if (!reader.ExpectEmpty(DQMIF_H_BEGIN))
+    {
+      return false;
+    }
+
+    while (true)
+    {
+      if (!reader.NextRec())
+      {
+        return false;
+      }
+
+      if (DQMIF_H_END == reader.recid)
+      {
+        return reader.ExpectEmpty(DQMIF_H_END);
+      }
+
+      if (DQMIF_H_SRC_FILENAME == reader.recid)
+      {
+        if (!reader.ReadString(rmetadata.source_filename)) return false;
+        rmetadata.has_source_filename = true;
+      }
+      else if (DQMIF_H_SRC_FILESIZE == reader.recid)
+      {
+        if (!reader.ReadI64(rmetadata.source_filesize)) return false;
+        rmetadata.has_source_filesize = true;
+      }
+      else if (DQMIF_H_SRC_FILETIME == reader.recid)
+      {
+        if (!reader.ReadI64(rmetadata.source_filetime)) return false;
+        rmetadata.has_source_filetime = true;
+      }
+      else if (DQMIF_H_TARGET_ARCH == reader.recid)
+      {
+        if (!reader.ReadString(rmetadata.target_arch)) return false;
+        rmetadata.has_target_arch = true;
+      }
+      else if (DQMIF_H_TARGET_RTL == reader.recid)
+      {
+        if (!reader.ReadString(rmetadata.target_rtl)) return false;
+        rmetadata.has_target_rtl = true;
+      }
+      else if (DQMIF_H_BUILD_OPTIONS == reader.recid)
+      {
+        if (!reader.ReadString(rmetadata.build_options)) return false;
+        rmetadata.has_build_options = true;
+      }
+    }
+  }
+
+  return reader.Fail("DQM interface header metadata is missing");
+}
+
+bool ReadDqmIfMetadata(const string & filename, TDqmIfMetadata & rmetadata, string & rerror)
+{
+  rmetadata = TDqmIfMetadata();
+  rerror.clear();
+
+  ODqmIfReader reader;
+  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfHeaderMetadata(reader, rmetadata))
+  {
+    rerror = reader.error;
+    return false;
+  }
+
+  return true;
+}
+
+bool DqmIfMetadataMatchesCurrentBuild(const TDqmIfMetadata & metadata, string & rreason)
+{
+  if (!metadata.has_target_arch || !metadata.has_target_rtl || !metadata.has_build_options)
+  {
+    rreason = "missing target or build option metadata";
+    return false;
+  }
+
+  if (metadata.target_arch != DqmIfTargetArch())
+  {
+    rreason = format("target architecture changed: {} != {}", metadata.target_arch, DqmIfTargetArch());
+    return false;
+  }
+
+  if (metadata.target_rtl != DqmIfTargetRtl())
+  {
+    rreason = format("target runtime changed: {} != {}", metadata.target_rtl, DqmIfTargetRtl());
+    return false;
+  }
+
+  if (metadata.build_options != DqmIfBuildOptions())
+  {
+    rreason = format("build options changed: {} != {}", metadata.build_options, DqmIfBuildOptions());
+    return false;
+  }
+
+  return true;
 }
 
 static bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)

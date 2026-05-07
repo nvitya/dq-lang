@@ -42,7 +42,7 @@ function IfgenSliceLen(values : int[]) -> int:
   result = len(values);
 endfunc
 
-function main() -> int:
+function testfunc() -> int:
   var pair : SIfgenPair = {};
   pair.left = 2;
   pair.right = 3;

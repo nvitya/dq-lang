@@ -323,12 +323,12 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
   else if (g_opt.compile_only)
   {
     // -c: compile only, no linking
-    out_filename = has_dash_o ? explicit_output : base_name + ".o";
+    out_filename = has_dash_o ? explicit_output : base_name + ".dqm";
   }
   else
   {
-    // object file always goes to base_name.o
-    out_filename = base_name + ".o";
+    // full compilation produces a compiled DQ module object
+    out_filename = base_name + ".dqm";
     // link_output is where the final result should go
     link_output = has_dash_o ? explicit_output : base_name;
   }

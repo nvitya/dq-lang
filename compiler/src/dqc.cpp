@@ -170,7 +170,7 @@ void ODqCompiler::Run(int argc, char ** argv)
     }
     else if (has_dash_o)
     {
-      // no main(), no linking — rename .o to -o target if different
+      // no main(), no linking: rename the module object to the requested target
       if (out_filename != link_output)
       {
         rename(out_filename.c_str(), link_output.c_str());

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.12"
+#define DQ_COMPILER_VERSION  "0.10.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.13:
+  - Simple use statement implementation (no chained compiling yet)
 v0.10.12:
   - Handle --ifdump with .dqm files (extract from object files)
 v0.10.11:

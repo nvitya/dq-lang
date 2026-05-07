@@ -38,6 +38,7 @@ public:
   void ParseModule();
 
 public: // root level items
+  void ParseUseStatement();
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
   void ParseRootTypeDecl();
   void ParseFunction();

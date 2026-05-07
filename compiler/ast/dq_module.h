@@ -15,6 +15,7 @@
 
 #include <string>
 #include <format>
+#include <vector>
 #include "symbols.h"
 #include "scope_builtins.h"
 #include "module_intf.h"
@@ -70,6 +71,8 @@ private:
 
 public:
   vector<ODecl *>  declarations;
+  vector<OModuleIntf *>  used_modules;
+  vector<string>   link_module_artifacts;
 
   OScope *         scope_priv;
 
@@ -84,12 +87,17 @@ public:
 
   virtual ~OModule()
   {
+    for (OModuleIntf * intf : used_modules)
+    {
+      delete intf;
+    }
     delete scope_priv;
   }
 
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
+  bool UseCompiledModule(const string & module_path, const string & namespace_name, const string & artifact_path);
 
   bool TypeDeclared(const string aname, OType ** rtype = nullptr);
   bool ValSymDeclared(const string aname, OValSym ** rvalsym = nullptr);

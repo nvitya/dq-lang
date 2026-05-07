@@ -13,6 +13,7 @@
 
 #include <print>
 #include <format>
+#include <filesystem>
 #include <ranges>
 
 #include "dq_module.h"
@@ -379,6 +380,10 @@ void ODqCompParser::ParseModule()
       cur_mod_scope = g_module->scope_priv;
       curscope = cur_mod_scope;
     }
+    else if ("use" == sid)
+    {
+      ParseUseStatement();
+    }
     else if ("var" == sid) // global variable definition
     {
       ParseStmtVar(true);
@@ -419,6 +424,66 @@ void ODqCompParser::ParseModule()
   if (g_opt.verblevel >= VERBLEVEL_DEBUG)
   {
     printf("ParseModule finished.");
+  }
+}
+
+void ODqCompParser::ParseUseStatement()
+{
+  string module_path;
+  string namespace_name;
+  string sid;
+
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(sid))
+  {
+    RootStatementError(DQERR_ID_EXP_AFTER, "use");
+    return;
+  }
+
+  module_path = sid;
+  namespace_name = sid;
+
+  while (true)
+  {
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("/"))
+    {
+      break;
+    }
+
+    if (!scf->ReadIdentifier(sid))
+    {
+      RootStatementError(DQERR_ID_EXP_AFTER, "/");
+      return;
+    }
+
+    module_path += "/" + sid;
+    namespace_name = sid;
+  }
+
+  if (!CheckStatementClose())
+  {
+    return;
+  }
+
+  if (g_namespaces.end() != g_namespaces.find(namespace_name))
+  {
+    Error(DQERR_USE_NAMESPACE_CONFLICT, namespace_name, &scpos_statement_start);
+    return;
+  }
+
+  filesystem::path artifact_path = filesystem::path(scf->basedir) / filesystem::path(module_path + ".dqm");
+  error_code ec;
+  if (!filesystem::exists(artifact_path, ec) || ec)
+  {
+    Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
+    return;
+  }
+
+  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string()))
+  {
+    Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+    return;
   }
 }
 

@@ -155,7 +155,12 @@ void ODqCompiler::Run(int argc, char ** argv)
 
     if (has_main)
     {
-      string link_cmd = format("gcc {} -o {} -lm", out_filename, link_output);
+      string link_cmd = format("gcc {}", out_filename);
+      for (const string & artifact_path : g_module->link_module_artifacts)
+      {
+        link_cmd += format(" {}", artifact_path);
+      }
+      link_cmd += format(" -o {} -lm", link_output);
       for (const string & libname : g_opt.link_libraries)
       {
         link_cmd += format(" -l{}", libname);

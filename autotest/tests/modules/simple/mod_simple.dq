@@ -1,0 +1,7 @@
+//?notest
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function mod_func_test(a : int) -> int:
+  result = a * 2;
+endfunc

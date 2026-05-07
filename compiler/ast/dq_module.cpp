@@ -11,7 +11,10 @@
  * brief:   DQ Module Classes
  */
 
+#include <algorithm>
+
 #include "dq_module.h"
+#include "named_scopes.h"
 
 OModule *  g_module = nullptr;
 
@@ -59,6 +62,28 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   ODecl * result = new ODecl(apublic, avalsym);
   declarations.push_back(result);
   return result;
+}
+
+bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name, const string & artifact_path)
+{
+  OModuleIntf * intf = new OModuleIntf(scope_pub->parent_scope, module_path);
+  if (!intf->ReadInterface(artifact_path))
+  {
+    delete intf;
+    return false;
+  }
+
+  intf->scope_pub->parent_scope = scope_pub->parent_scope;
+  scope_pub->parent_scope = intf->scope_pub;
+  g_namespaces[namespace_name] = intf->scope_pub;
+
+  used_modules.push_back(intf);
+  if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), artifact_path))
+  {
+    link_module_artifacts.push_back(artifact_path);
+  }
+
+  return true;
 }
 
 bool OModule::TypeDeclared(const string aname, OType ** rtype)

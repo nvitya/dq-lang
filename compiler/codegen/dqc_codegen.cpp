@@ -45,6 +45,29 @@ void ODqCompCodegen::GenerateIr()
   PrepareTarget();
 
   // predeclare functions first so later global initializers can reference them
+  for (OModuleIntf * intf : g_module->used_modules)
+  {
+    for (OIntfDecl * decl : intf->declarations)
+    {
+      if (!decl || (IDK_VALSYM != decl->kind))
+      {
+        continue;
+      }
+
+      OValSym * vs = decl->pvalsym;
+      if (auto * vsfunc = dynamic_cast<OValSymFunc *>(vs))
+      {
+        vsfunc->GenGlobalDecl(true, nullptr);
+      }
+      else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+      {
+        for (OValSymFunc * fn : ovset->funcs)
+        {
+          fn->GenGlobalDecl(true, nullptr);
+        }
+      }
+    }
+  }
 
   for (ODecl * decl : g_module->declarations)
   {

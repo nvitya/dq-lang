@@ -15,6 +15,7 @@
 
 #include "stdint.h"
 #include <string>
+#include <vector>
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -47,6 +48,7 @@ public:
   void OptimizeIr(int aoptlevel);
   void PrintIr();
 
+  void EmbedDqmIfSection(const vector<uint8_t> & adata);
   void EmitObject(const string afilename);
 
 };

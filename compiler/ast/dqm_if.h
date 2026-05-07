@@ -21,7 +21,7 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     1 );  // generated version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     2 );  // generated version
 const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     0 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
@@ -68,6 +68,7 @@ public:
   void AddU64(vector<uint8_t> & rdst, uint64_t avalue) const;
 
   uint64_t Checksum(const vector<uint8_t> & adata) const;
+  bool BuildFileData(vector<uint8_t> & rdata);
   bool WriteToFile(const string & filename);
 };
 
@@ -176,6 +177,7 @@ TDqmIfRecId  DQMIF_FUNC_PARAM_BEGIN       = 0x0600;  // str
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REF    = 0x0613;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFIN  = 0x0611;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFOUT = 0x0612;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFNULL = 0x0614;  // 0
 // exp.:     type spec
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 TDqmIfRecId  DQMIF_FUNC_PARAM_END         = 0x06FF;  // 0

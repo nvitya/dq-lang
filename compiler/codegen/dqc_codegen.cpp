@@ -24,6 +24,9 @@
 
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/IR/PassManager.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/DerivedTypes.h>
 
 #include <print>
 #include <format>
@@ -172,6 +175,38 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
 
   llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(ll_optlevel);
   MPM.run(*ll_module, MAM);
+}
+
+void ODqCompCodegen::EmbedDqmIfSection(const vector<uint8_t> & adata)
+{
+  if (adata.empty())
+  {
+    return;
+  }
+
+  llvm::ArrayRef<uint8_t> bytes(adata.data(), adata.size());
+  llvm::Constant * init = llvm::ConstantDataArray::get(ll_ctx, bytes);
+  auto * gv = new llvm::GlobalVariable(
+      *ll_module,
+      init->getType(),
+      true,
+      llvm::GlobalValue::PrivateLinkage,
+      init,
+      "__dq_dqm_if");
+  gv->setSection(".dqm_if");
+  gv->setAlignment(llvm::Align(1));
+
+  llvm::Type * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+  llvm::ArrayType * used_type = llvm::ArrayType::get(ptr_type, 1);
+  llvm::Constant * used_init = llvm::ConstantArray::get(used_type, { gv });
+  auto * used = new llvm::GlobalVariable(
+      *ll_module,
+      used_type,
+      false,
+      llvm::GlobalValue::AppendingLinkage,
+      used_init,
+      "llvm.compiler.used");
+  used->setSection("llvm.metadata");
 }
 
 void ODqCompCodegen::EmitObject(const string afilename)

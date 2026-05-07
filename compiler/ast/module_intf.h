@@ -84,6 +84,7 @@ private:
   bool ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes & attrs);
   bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
   OType * ResolveDqmIfTypeName(const string & atype_name);
+  bool WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename);
 
   void WriteTypeDump(ostream & out, OType * atype, const string & indent);
   void WriteValSymDump(ostream & out, OValSym * avsym, const string & indent);
@@ -115,6 +116,7 @@ public:
   OIntfDecl * AddPublicType(OType * atype);
   OIntfDecl * AddPublicValSym(OValSym * avalsym);
 
+  bool BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename);
   bool WriteInterface(const string & filename, const string & source_filename);
   bool ReadInterface(const string & filename);
   void WriteDump(ostream & out);

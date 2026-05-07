@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.10"
+#define DQ_COMPILER_VERSION  "0.10.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.11:
+  - Embed .dqm_if section into compiled .dqm objects
 v0.10.10:
   - Full compilation emits .dqm object artifacts by default
 v0.10.9:

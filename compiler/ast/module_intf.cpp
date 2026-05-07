@@ -471,13 +471,10 @@ static bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & sourc
   return writer.AddRecEmpty(DQMIF_H_END);
 }
 
-bool OModuleIntf::WriteInterface(const string & filename, const string & source_filename)
+bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename)
 {
-  ODqmIfWriter writer;
-
   if (!WriteDqmIfSourceMetadata(writer, source_filename))
   {
-    print("Can not write module interface file: {}\n{}\n", filename, writer.error);
     return false;
   }
 
@@ -485,7 +482,6 @@ bool OModuleIntf::WriteInterface(const string & filename, const string & source_
   {
     if (!writer.AddRecStr(DQMIF_LINKLIB, libname))
     {
-      print("Can not write module interface file: {}\n{}\n", filename, writer.error);
       return false;
     }
   }
@@ -501,7 +497,6 @@ bool OModuleIntf::WriteInterface(const string & filename, const string & source_
     {
       if (!decl->ptype || !decl->ptype->WriteDqmIfDecl(writer))
       {
-        print("Can not write module interface file: {}\n{}\n", filename, writer.error);
         return false;
       }
     }
@@ -509,10 +504,35 @@ bool OModuleIntf::WriteInterface(const string & filename, const string & source_
     {
       if (!decl->pvalsym || !decl->pvalsym->WriteDqmIfDecl(writer))
       {
-        print("Can not write module interface file: {}\n{}\n", filename, writer.error);
         return false;
       }
     }
+  }
+
+  return true;
+}
+
+bool OModuleIntf::BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename)
+{
+  ODqmIfWriter writer;
+
+  if (!WriteInterfaceRecords(writer, source_filename) || !writer.BuildFileData(rdata))
+  {
+    print("Can not build module interface data for: {}\n{}\n", source_filename, writer.error);
+    return false;
+  }
+
+  return true;
+}
+
+bool OModuleIntf::WriteInterface(const string & filename, const string & source_filename)
+{
+  ODqmIfWriter writer;
+
+  if (!WriteInterfaceRecords(writer, source_filename))
+  {
+    print("Can not write module interface file: {}\n{}\n", filename, writer.error);
+    return false;
   }
 
   if (!writer.WriteToFile(filename))
@@ -929,6 +949,11 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
     {
       if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) { delete defvalue; return false; }
       mode = FPM_REFOUT;
+    }
+    else if (DQMIF_FUNC_PARAM_MODE_REFNULL == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) { delete defvalue; return false; }
+      mode = FPM_REFNULL;
     }
     else if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid)

@@ -152,8 +152,9 @@ uint64_t ODqmIfWriter::Checksum(const vector<uint8_t> & adata) const
   return result;
 }
 
-bool ODqmIfWriter::WriteToFile(const string & filename)
+bool ODqmIfWriter::BuildFileData(vector<uint8_t> & rdata)
 {
+  rdata.clear();
   if (!Ok())
   {
     return false;
@@ -194,14 +195,27 @@ bool ODqmIfWriter::WriteToFile(const string & filename)
   AddU64(hdata, header.payload_hash);
   AddU64(hdata, header.header_csum);
 
+  rdata = hdata;
+  rdata.insert(rdata.end(), payload.begin(), payload.end());
+
+  return true;
+}
+
+bool ODqmIfWriter::WriteToFile(const string & filename)
+{
+  vector<uint8_t> data;
+  if (!BuildFileData(data))
+  {
+    return false;
+  }
+
   ofstream outf(filename, ios::binary);
   if (!outf)
   {
     return Fail(format("Can not create module interface file: {}", filename));
   }
 
-  outf.write(reinterpret_cast<const char *>(hdata.data()), hdata.size());
-  outf.write(reinterpret_cast<const char *>(payload.data()), payload.size());
+  outf.write(reinterpret_cast<const char *>(data.data()), data.size());
 
   if (!outf)
   {

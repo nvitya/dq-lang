@@ -15,6 +15,7 @@
 #include <format>
 #include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 #include "ll_defs.h"
 #include "named_scopes.h"
@@ -126,6 +127,14 @@ void ODqCompiler::Run(int argc, char ** argv)
     print("Code generation error.\n");
     return;
   }
+
+  vector<uint8_t> dqm_if_data;
+  if (!g_module->BuildInterfaceBytes(dqm_if_data, in_filename))
+  {
+    ++errorcnt;
+    return;
+  }
+  EmbedDqmIfSection(dqm_if_data);
 
   if (g_opt.ir_print)
   {

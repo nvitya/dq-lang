@@ -102,7 +102,7 @@ bool OFuncParam::WriteDqmIf(ODqmIfWriter & writer) const
     case FPM_REF:      if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REF)) return false; break;
     case FPM_REFIN:    if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFIN)) return false; break;
     case FPM_REFOUT:   if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) return false; break;
-    case FPM_REFNULL:  return writer.Fail(format("refnull parameter {} is not supported in DQM interface generation", name));
+    case FPM_REFNULL:  if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) return false; break;
   }
 
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;

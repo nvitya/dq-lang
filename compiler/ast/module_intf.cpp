@@ -20,6 +20,7 @@
 #include <iostream>
 #include <ostream>
 #include <print>
+#include <typeinfo>
 
 #include "comp_options.h"
 #include "dqm_if.h"
@@ -132,6 +133,10 @@ static string ConstValueText(OValue * avalue)
   {
     return (v->is_null ? "null" : "<pointer>");
   }
+  if (typeid(*avalue) == typeid(OValue))
+  {
+    return "[linked]";
+  }
 
   return "<unsupported>";
 }
@@ -223,7 +228,13 @@ static string FunctionState(OValSymFunc * afunc)
 
 void OModuleIntf::WriteFunctionDump(ostream & out, OValSymFunc * afunc, const string & indent)
 {
-  out << indent << FunctionSignature(afunc) << " [" << FunctionState(afunc) << "]\n";
+  string state = FunctionState(afunc);
+  out << indent << FunctionSignature(afunc);
+  if ("forward" != state)
+  {
+    out << " [" << state << "]";
+  }
+  out << "\n";
 }
 
 void OModuleIntf::WriteOverloadSetDump(ostream & out, OValSymOverloadSet * aovset, const string & indent)
@@ -241,11 +252,13 @@ void OModuleIntf::WriteOverloadSetDump(ostream & out, OValSymOverloadSet * aovse
 
 void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const string & indent)
 {
-  out << indent << (atype->is_object ? "object " : "struct ") << atype->name << "\n";
+  out << indent << (atype->is_object ? "object " : "struct ")
+      << atype->name << "(" << atype->bytesize << ")\n";
 
   for (OValSym * member : atype->member_order)
   {
-    out << indent << "  field " << member->name << " : " << TypeName(member->ptype) << "\n";
+    out << indent << "  field(" << member->field_offset << ") "
+        << member->name << " : " << TypeName(member->ptype) << "\n";
   }
 
   if (atype->is_object)

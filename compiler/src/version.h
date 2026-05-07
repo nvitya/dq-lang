@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.8"
+#define DQ_COMPILER_VERSION  "0.10.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.9:
+  - --ifdump format adjustments
 v0.10.8:
   - .dqm_if loading and --ifdump implementation
 v0.10.7:

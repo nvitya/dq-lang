@@ -1,57 +1,32 @@
 # DQ Package Specification
 
 Status: draft  
-Scope: package directories, package search paths, package root modules, source lookup, optional manifests, installation locations, package cache, and standard runtime package layout.
+Scope: package directories, package search paths, package root modules, optional manifests, installation locations, package cache, and standard runtime package layout.
 
-This document extends `dq_module_spec.md`. The module specification defines canonical module ids, `use`, `usepath`, `#opt module_root_depth`, relative paths, namespaces, re-exporting, and linker-visible identity. This package specification defines how package names are found on disk.
+This document extends `dq_module_spec.md`. That spec owns canonical module ids, `use`, `usepath`, `#opt module_root_depth`, relative paths, namespaces, re-exporting, and linker-visible identity. This document defines how package names are found on disk.
 
 ---
 
-## 1. Basic Model
+## 1. Model
 
 A DQ package is a named module tree stored in one package directory.
-
-A package has:
-
-```text
-package name
-package directory
-module root directory
-package root module
-package-local modules
-canonical module ids
-```
-
-The package name is normally the final directory name of the package directory.
-
-Example:
 
 ```text
 package search root:   /usr/local/share/dq-packages
 package directory:     /usr/local/share/dq-packages/json
 package name:          json
 module root directory: /usr/local/share/dq-packages/json
-package root module:   /usr/local/share/dq-packages/json/json.dq
+root module:           /usr/local/share/dq-packages/json/json.dq
 canonical module id:   json
 ```
 
-User code:
-
-```dq
-use json;
-use os;
-use serial;
-```
-
-The source-level style should remain close to Python package/module naming where practical, but the filesystem layout is stricter.
+The package name is normally the final directory name of the package directory. Source names should stay close to Python package/module naming where practical, but the filesystem layout is stricter.
 
 ---
 
-## 2. Package Search Roots
+## 2. Search Roots
 
-A package search root is a directory that contains package directories.
-
-Example:
+A package search root contains package directories only:
 
 ```text
 /usr/local/share/dq-packages/
@@ -59,137 +34,63 @@ Example:
     json.dq
   os/
     os.dq
-  serial/
-    serial.dq
   sqlite/
     sqlite.dq
     connection.dq
-    stmt.dq
 ```
 
-A package search root must not contain importable `.dq` files directly.
+Files such as `/usr/local/share/dq-packages/json.dq` are not import targets. A compiler may ignore them and warn in diagnostic or verbose mode.
 
-Valid:
+Recommended search priority:
 
 ```text
-/usr/local/share/dq-packages/json/json.dq
-/usr/local/share/dq-packages/os/os.dq
+1. explicit package mappings: --pkg name=path
+2. current application package
+3. project-local roots: ./dq-packages or ./.dq/packages
+4. command-line roots: --pkg-path path
+5. environment roots: DQ_PACKAGE_PATH
+6. user package roots
+7. system package roots
+8. compiler-shipped standard roots
 ```
 
-Invalid as import targets:
-
-```text
-/usr/local/share/dq-packages/json.dq
-/usr/local/share/dq-packages/os.dq
-```
-
-A compiler may ignore direct `.dq` files in a package search root. In diagnostic or verbose mode, it may warn:
-
-```text
-WARN(PackageSearchRootFileIgnored): ignoring '/usr/local/share/dq-packages/json.dq';
-  package search roots contain package directories only
-```
+Search order must be deterministic. If the same package is found more than once, the first match wins unless strict duplicate checking is enabled.
 
 ---
 
-## 3. Package Root Module
+## 3. Source Mapping
 
-An absolute module path with exactly one component imports the root module of a package.
-
-Example:
-
-```dq
-use json;
-```
-
-Resolution:
+For package `P` with module root `<root>`:
 
 ```text
-package name:          json
-package-local path:    <root>
-canonical module id:   json
-source file:           <module-root>/json.dq
-namespace:             @json
-```
-
-For this package directory:
-
-```text
-/usr/local/share/dq-packages/json/
-```
-
-this source file is used:
-
-```text
-/usr/local/share/dq-packages/json/json.dq
-```
-
-This rule is intentionally different from the normal non-root module mapping. It makes single-module utility packages pleasant to use while preserving a uniform package-directory layout.
-
----
-
-## 4. Source File Mapping
-
-For a package named `P` with module root directory `<root>`, source files map as follows:
-
-```text
-canonical module id   source file
--------------------   -----------------------
-P                     <root>/P.dq
-P/a                   <root>/a.dq
-P/a/b                 <root>/a/b.dq
-P/a/b/c               <root>/a/b/c.dq
+P       -> <root>/P.dq
+P/a     -> <root>/a.dq
+P/a/b   -> <root>/a/b.dq
 ```
 
 Examples:
 
 ```text
-json                  json/json.dq
-serial                serial/serial.dq
-serial/port           serial/port.dq
-serial/platform/linux serial/platform/linux.dq
-sqlite                sqlite/sqlite.dq
-sqlite/connection     sqlite/connection.dq
+json              -> json/json.dq
+serial/port       -> serial/port.dq
+sqlite/connection -> sqlite/connection.dq
 ```
 
-Imports:
+The one-component absolute module path imports the package root module:
 
 ```dq
-use json;
-use serial;
-use serial/port;
-use serial/platform/linux;
-use sqlite;
-use sqlite/connection;
+use json;              // @json
+use serial/port;       // @port
+use sqlite/connection; // @connection
 ```
 
-Namespaces created by default:
-
-```text
-use json;                  -> @json
-use serial;                -> @serial
-use serial/port;           -> @port
-use serial/platform/linux; -> @linux
-use sqlite/connection;     -> @connection
-```
-
-Aliases still work according to the module specification:
-
-```dq
-use serial/port as sp;
-```
-
-creates:
-
-```text
-@sp
-```
+Aliases, `only`, `nomerge`, re-exporting, and namespace conflicts follow the module specification.
 
 ---
 
-## 5. Single-Module Utility Packages
+## 4. Layouts
 
-A small package should use this layout:
+Small packages should use a root module named after the package:
 
 ```text
 crc/
@@ -197,22 +98,9 @@ crc/
 
 json/
   json.dq
-
-serial/
-  serial.dq
 ```
 
-User code:
-
-```dq
-use crc;
-use json;
-use serial;
-```
-
-This is the preferred form for small RTL modules and small third-party utility packages.
-
-A package can later grow without changing the root import:
+A package can grow without changing the root import:
 
 ```text
 serial/
@@ -221,32 +109,23 @@ serial/
   config.dq
   platform/
     linux.dq
-    windows.dq
 ```
-
-Then all of these are valid:
 
 ```dq
 use serial;
 use serial/port;
-use serial/config;
 use serial/platform/linux;
 ```
 
-The package root module can become a facade:
+The root module may be a facade:
 
 ```dq
 // serial/serial.dq
-
 use ./port reexport;
 use ./config reexport;
 ```
 
----
-
-## 6. Multi-Module Packages
-
-A larger package may have a root facade and child modules:
+The same pattern applies to larger packages:
 
 ```text
 sqlite/
@@ -258,36 +137,11 @@ sqlite/
     api.dq
 ```
 
-Root facade example:
-
-```dq
-// sqlite/sqlite.dq
-
-use ./connection reexport;
-use ./stmt reexport;
-use ./result reexport;
-```
-
-User code can import the facade:
-
-```dq
-use sqlite;
-```
-
-or a specific child module:
-
-```dq
-use sqlite/connection;
-use sqlite/stmt;
-```
-
 ---
 
-## 7. Manifest-Free Packages
+## 5. Manifests
 
-A package manifest is not required for simple packages.
-
-If no manifest exists:
+A manifest is optional. Without one:
 
 ```text
 package directory     = directory found in a package search root
@@ -296,34 +150,7 @@ module root directory = package directory
 root module source    = <package-directory>/<package-name>.dq
 ```
 
-Example:
-
-```text
-/usr/local/share/dq-packages/json/json.dq
-```
-
-means:
-
-```text
-package name          = json
-module root directory = /usr/local/share/dq-packages/json
-root module source    = /usr/local/share/dq-packages/json/json.dq
-canonical module id   = json
-```
-
----
-
-## 8. Optional Package Manifest
-
-A package may contain a manifest for installed or complex packages.
-
-Recommended manifest name:
-
-```text
-dqpkg.toml
-```
-
-Minimal example:
+Installed or complex packages may contain `dqpkg.toml`:
 
 ```toml
 [package]
@@ -332,439 +159,67 @@ source_root = "src"
 version = "0.1.0"
 ```
 
-Layout:
-
 ```text
 sqlite/
   dqpkg.toml
   src/
     sqlite.dq
     connection.dq
-    stmt.dq
 ```
 
-Resolution:
+Then:
 
 ```text
-use sqlite;            -> sqlite/src/sqlite.dq
-use sqlite/connection; -> sqlite/src/connection.dq
+sqlite            -> sqlite/src/sqlite.dq
+sqlite/connection -> sqlite/src/connection.dq
 ```
 
-Initial required fields:
-
-```text
-name         package name
-source_root  relative source/module root directory
-```
-
-The `version` field is recommended but not required for the first implementation.
-
-If `name` is present, it must match the resolved package name unless the package was selected through an explicit package override.
+Initial required fields are `name` and `source_root`. `version` is recommended but not required for the first implementation. If `name` is present, it must match the resolved package name unless an explicit package override allows otherwise.
 
 ---
 
-## 9. Package Search Path
+## 6. Resolution
 
-The compiler has a list of package search roots.
-
-Recommended sources, in priority order:
+For `use P;`:
 
 ```text
-1. explicit package mappings:        --pkg name=path
-2. current application package
-3. project-local package roots:      ./dq-packages or ./.dq/packages
-4. command-line package roots:       --pkg-path path
-5. environment package roots:        DQ_PACKAGE_PATH
-6. user package roots
-7. system package roots
-8. compiler-shipped standard roots
+1. Resolve package P to a package directory.
+2. Determine module root from dqpkg.toml source_root, or use the package directory.
+3. Load <module-root>/P.dq.
+4. Assign canonical module id P.
+5. Create default namespace @P.
 ```
 
-The package search order must be deterministic.
+For `use P/a/b;`, use the same package and module root, then load `<module-root>/a/b.dq`, assign canonical module id `P/a/b`, and create default namespace `@b`.
 
-If the same package name is found in multiple roots, the first match wins unless strict duplicate checking is enabled.
-
-In verbose mode, the compiler should print resolved package locations:
-
-```text
-package json resolved to /usr/local/share/dq-packages/json
-package sqlite resolved to /home/me/project/dq-packages/sqlite
-```
-
----
-
-## 10. Explicit Package Mapping
-
-An explicit package mapping binds a package name directly to a package directory.
-
-Example:
-
-```sh
-dq build app.dq --pkg sqlite=/home/me/work/sqlite
-```
-
-This is useful for package development.
-
-The mapped directory may be either:
-
-```text
-/home/me/work/sqlite/sqlite.dq
-```
-
-or, with a manifest:
-
-```text
-/home/me/work/sqlite/dqpkg.toml
-/home/me/work/sqlite/src/sqlite.dq
-```
-
-An explicit package mapping has higher priority than package search roots.
-
----
-
-## 11. Package Root Import Resolution
-
-For:
-
-```dq
-use P;
-```
-
-resolution is:
-
-```text
-1. Resolve package name P to a package directory.
-2. Determine module root directory:
-   - if dqpkg.toml exists, use its source_root
-   - otherwise use the package directory itself
-3. Load root module file:
-   <module-root>/P.dq
-4. Assign canonical module id:
-   P
-5. Create default namespace:
-   @P
-```
-
-Example:
-
-```dq
-use os;
-```
-
-maps to:
-
-```text
-/usr/local/share/dq-packages/os/os.dq
-```
-
-and creates:
-
-```text
-@os
-```
-
----
-
-## 12. Child Module Import Resolution
-
-For:
-
-```dq
-use P/a/b;
-```
-
-resolution is:
-
-```text
-1. Resolve package name P to a package directory.
-2. Determine module root directory.
-3. Load module file:
-   <module-root>/a/b.dq
-4. Assign canonical module id:
-   P/a/b
-5. Create default namespace from the last path component:
-   @b
-```
-
-Example:
-
-```dq
-use sqlite/connection;
-```
-
-maps to:
-
-```text
-/usr/local/share/dq-packages/sqlite/connection.dq
-```
-
-and creates:
-
-```text
-@connection
-```
-
----
-
-## 13. Relative and Package-Root-Relative Imports
-
-Inside a package, relative imports use the already-known package root. They do not search package paths again.
-
-Example package:
-
-```text
-serial/
-  serial.dq
-  port.dq
-  platform/
-    linux.dq
-```
-
-Inside `serial/serial.dq`:
+Inside a package, relative imports use the already-known package root and do not search package paths again:
 
 ```dq
 use ./port;
 use ^/platform/linux;
 ```
 
-Both resolve inside package `serial`:
-
-```text
-serial/port
-serial/platform/linux
-```
-
 A relative path must not escape above the package/module root.
 
----
-
-## 14. Interaction with `#opt module_root_depth`
-
-When a source file is loaded through package resolution, the package root is already known.
-
-Therefore `#opt module_root_depth` is usually unnecessary inside installed packages.
-
-If present, it must compute the same module root directory as the package resolver. A mismatch is an error.
-
-Example:
-
-```text
-ERROR(ModuleRootMismatch): source file declares module root '/x/y',
-  but it was imported as part of package root '/a/b'
-```
-
-For directly compiled source files outside package resolution, `#opt module_root_depth` remains the source-level way to infer the package root from the file location.
+When a source file is loaded through package resolution, `#opt module_root_depth` is usually unnecessary. If present, it must compute the same module root as the package resolver. Directly compiled source files outside package resolution still use `#opt module_root_depth` as defined by the module specification.
 
 ---
 
-## 15. Standard Library and Runtime Packages
+## 7. Explicit Mappings and Options
 
-The compiler distribution may provide standard packages in a compiler-shipped package root.
+An explicit package mapping binds a package name directly to a package directory and has higher priority than search roots:
 
-Recommended public standard modules:
+```sh
+dq build app.dq --pkg sqlite=/home/me/work/sqlite
+```
+
+The mapped directory may be manifest-free or manifest-based:
 
 ```text
-os/
-  os.dq
-json/
-  json.dq
-math/
-  math.dq
-io/
-  io.dq
-fs/
-  fs.dq
-str/
-  str.dq
-time/
-  time.dq
+/home/me/work/sqlite/sqlite.dq
+/home/me/work/sqlite/dqpkg.toml
+/home/me/work/sqlite/src/sqlite.dq
 ```
-
-User code:
-
-```dq
-use os;
-use json;
-use math;
-use io;
-```
-
-Compiler-internal runtime support should preferably be separate from public standard modules.
-
-Recommended internal/runtime package name:
-
-```text
-dqrt
-```
-
-Example:
-
-```text
-dqrt/
-  dqrt.dq
-  string.dq
-  array.dq
-  exception.dq
-  memory.dq
-```
-
-User code should normally not import `dqrt` directly. The compiler may import or link it implicitly when needed.
-
----
-
-## 16. Installation Locations
-
-Recommended Unix-like package roots:
-
-```text
-project-local:
-  ./dq-packages
-  ./.dq/packages
-
-user:
-  ~/.local/share/dq/packages
-
-system:
-  /usr/local/share/dq-packages
-  /usr/share/dq-packages
-
-compiler-shipped:
-  <compiler-prefix>/share/dq/packages
-```
-
-Recommended cache roots:
-
-```text
-user cache:
-  ~/.cache/dq
-
-system/compiler cache:
-  <compiler-prefix>/lib/dq/cache
-```
-
-Package search roots contain package directories. Cache roots contain compiler-generated artifacts and are not source package roots.
-
----
-
-## 17. Installation Modes
-
-### 17.1 Source Package
-
-The first implementation should support source packages.
-
-Example:
-
-```text
-json/
-  json.dq
-```
-
-or:
-
-```text
-sqlite/
-  dqpkg.toml
-  src/
-    sqlite.dq
-    connection.dq
-```
-
-The compiler compiles the required modules for the current target.
-
-### 17.2 Source Package with Cache
-
-The package still contains source files. The compiler may cache compiled module interfaces and object files elsewhere.
-
-Example cache layout:
-
-```text
-~/.cache/dq/
-  x86_64-linux-gnu/
-    <compiler-abi-hash>/
-      sqlite/
-        connection.dqm
-        connection.o
-```
-
-The cache is not authoritative. It can be deleted and rebuilt.
-
-### 17.3 Binary Package
-
-A future binary package may provide precompiled artifacts:
-
-```text
-sqlite/
-  dqpkg.toml
-  src/
-    sqlite.dq
-  lib/
-    x86_64-linux-gnu/
-      <compiler-abi-hash>/
-        release/
-          sqlite.dqm
-          libsqlite_dq.a
-```
-
-Binary package compatibility must include at least:
-
-```text
-target triple
-compiler ABI/interface format version
-build mode or optimization mode
-relevant compile options
-```
-
-Binary packages are not required for the first implementation.
-
----
-
-## 18. Collision and Error Rules
-
-A package search root must not contain two package directories with the same effective package name.
-
-If a manifest package name differs from the expected package name, it is an error unless explicitly allowed by an override.
-
-Example:
-
-```text
-ERROR(PackageNameMismatch): package directory 'json' contains manifest name 'json2'
-```
-
-If a package root module is requested but the root module source is missing:
-
-```dq
-use json;
-```
-
-and no file exists at:
-
-```text
-<module-root>/json.dq
-```
-
-then the compiler reports:
-
-```text
-ERROR(ModuleNotFound): package root module 'json' not found
-```
-
-If a child module is requested but the source is missing:
-
-```dq
-use sqlite/connection;
-```
-
-then the compiler reports:
-
-```text
-ERROR(ModuleNotFound): module 'sqlite/connection' not found
-```
-
-If two imported modules would create the same local namespace, that remains a module-level namespace conflict handled by the module specification.
-
----
-
-## 19. Command-Line Options
 
 Recommended first implementation options:
 
@@ -785,47 +240,87 @@ The path separator follows the host platform convention.
 
 ---
 
-## 20. Summary
+## 8. Standard and Runtime Packages
 
-A package search root contains package directories only:
-
-```text
-/usr/local/share/dq-packages/
-  json/
-    json.dq
-  os/
-    os.dq
-  serial/
-    serial.dq
-```
-
-No importable `.dq` files are allowed directly in the package search root.
-
-Root module imports are concise:
-
-```dq
-use json;
-use os;
-use serial;
-```
-
-Root module mapping:
+The compiler distribution may provide public standard packages in a compiler-shipped package root:
 
 ```text
-P -> <package-dir>/<P>.dq
+os/os.dq
+json/json.dq
+math/math.dq
+io/io.dq
+fs/fs.dq
+str/str.dq
+time/time.dq
 ```
 
-Child module mapping:
+Compiler-internal runtime support should preferably be separate from public standard modules. Recommended internal package name: `dqrt`.
 
 ```text
+dqrt/
+  dqrt.dq
+  string.dq
+  array.dq
+  exception.dq
+  memory.dq
+```
+
+User code should normally not import `dqrt` directly. The compiler may import or link it implicitly when needed.
+
+---
+
+## 9. Installation and Cache
+
+Recommended Unix-like roots:
+
+```text
+project-local packages: ./dq-packages, ./.dq/packages
+user packages:          ~/.local/share/dq/packages
+system packages:        /usr/local/share/dq-packages, /usr/share/dq-packages
+compiler packages:      <compiler-prefix>/share/dq/packages
+user cache:             ~/.cache/dq
+compiler cache:         <compiler-prefix>/lib/dq/cache
+```
+
+Package roots contain source package directories. Cache roots contain compiler-generated artifacts and are not source package roots.
+
+The first implementation should support source packages. The compiler may cache compiled module interfaces and object files elsewhere; the cache is not authoritative and can be rebuilt.
+
+Future binary packages may provide precompiled artifacts. Compatibility must include at least the target triple, compiler ABI/interface format version, build or optimization mode, and relevant compile options. Binary packages are not required for the first implementation.
+
+---
+
+## 10. Errors
+
+Important package-level errors:
+
+```text
+PackageNameMismatch
+  The manifest package name differs from the expected package name,
+  unless explicitly allowed by an override.
+
+ModuleNotFound
+  use P; requested missing <module-root>/P.dq
+  use P/a/b; requested missing <module-root>/a/b.dq
+
+ModuleRootMismatch
+  A loaded source file's #opt module_root_depth computes a different
+  root than the package resolver.
+```
+
+Namespace conflicts remain module-level errors handled by `dq_module_spec.md`.
+
+---
+
+## 11. Summary
+
+```text
+P     -> <package-dir>/<P>.dq
 P/a/b -> <package-dir>/a/b.dq
-```
 
-With a manifest and `source_root = "src"`:
-
-```text
+with source_root = "src":
 P     -> <package-dir>/src/P.dq
 P/a/b -> <package-dir>/src/a/b.dq
 ```
 
-This gives DQ Python-like import names while keeping package discovery, installation, and future package management regular and deterministic.
+This gives DQ concise package imports while keeping discovery, installation, and future package management regular and deterministic.

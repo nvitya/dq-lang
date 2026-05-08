@@ -649,7 +649,48 @@ Symbol aliases inside `only(...)` are not required for the first implementation,
 
 ---
 
-## 14. `reexport`
+## 14. `exclude(...)`
+
+The `exclude(...)` modifier merges all public symbols into the current namespace except the selected symbols.
+
+The module namespace remains available.
+
+```dq
+use dqgui/widgets exclude(TList);
+```
+
+Effects:
+
+```text
+1. Resolves canonical module dqgui/widgets.
+2. Creates local namespace @widgets.
+3. Merges all public symbols except TList into the current namespace.
+```
+
+Example:
+
+```dq
+use dqgui/widgets exclude(TList);
+
+btn = TButton("OK");     // OK
+lst = TList();           // error
+lst = @widgets.TList();  // OK
+```
+
+With alias:
+
+```dq
+use dqgui/widgets as w exclude(TList);
+
+btn = TButton("OK");
+lst = @w.TList();
+```
+
+`exclude(...)` is useful when a module's public interface should mostly be merged, but one or more names would conflict with local code or another import.
+
+---
+
+## 15. `reexport`
 
 The `reexport` modifier makes imported public symbols part of the current module's public interface.
 
@@ -699,14 +740,15 @@ Selective re-export:
 
 ```dq
 use ./button only(TButton) reexport;
+use ./widgets exclude(TList) reexport;
 ```
 
 Effects:
 
 ```text
-1. Only TButton is merged.
-2. Only TButton is re-exported.
-3. The local namespace @button is still available inside the current source file.
+1. The imported symbols selected by `only(...)`, or left after `exclude(...)`, are merged.
+2. Those merged symbols are re-exported.
+3. The local namespace, such as @button or @widgets, is still available inside the current source file.
 ```
 
 Invalid combination:
@@ -743,7 +785,7 @@ Style guide: do not rely on a trailing modifier to visually suggest that it appl
 
 ---
 
-## 15. `usepath`
+## 16. `usepath`
 
 `usepath` defines a local module path shortcut.
 
@@ -846,7 +888,7 @@ The compiler expands path aliases before module resolution.
 
 ---
 
-## 16. Package-Root and Relative Module Paths
+## 17. Package-Root and Relative Module Paths
 
 Module paths have four source-level forms:
 
@@ -965,7 +1007,7 @@ use w/button;
 
 ---
 
-## 17. Above-Root Path Errors
+## 18. Above-Root Path Errors
 
 A relative module path must not escape above the current module root directory.
 
@@ -1060,7 +1102,7 @@ For `./` and `../`, the initial stack is the current package-local module direct
 
 ---
 
-## 18. Facade Modules
+## 19. Facade Modules
 
 Facade modules collect and re-export public APIs from child modules.
 
@@ -1132,7 +1174,7 @@ use ^/widgets/label reexport;
 
 ---
 
-## 19. Linker Symbol Identity
+## 20. Linker Symbol Identity
 
 All linker-visible symbols across all packages and modules must be unique.
 
@@ -1180,7 +1222,7 @@ These are source-local conveniences only.
 
 ---
 
-## 20. Conflict Rules
+## 21. Conflict Rules
 
 Merged symbols should not silently overwrite each other.
 
@@ -1197,11 +1239,18 @@ Example diagnostic:
 WARN(UseNameConflict): symbol 'TButton' imported from both @gw1 and @gw2
 ```
 
-The user should resolve ambiguity with aliases, `only(...)`, or `nomerge`:
+The user should resolve ambiguity with aliases, `only(...)`, `exclude(...)`, or `nomerge`:
 
 ```dq
 use gui1/widgets as gw1 only(TWindow, TLabel);
 use gui2/widgets as gw2 only(TButton);
+```
+
+or:
+
+```dq
+use gui1/widgets as gw1 exclude(TButton);
+use gui2/widgets as gw2;
 ```
 
 or:
@@ -1241,7 +1290,7 @@ use mygui/widgets/button as mybutton;
 
 ---
 
-## 21. Circular Module References
+## 22. Circular Module References
 
 The implicit interface/implementation split is intended to support Pascal-like circular handling.
 
@@ -1295,7 +1344,7 @@ The exact incomplete-type rules are defined separately.
 
 ---
 
-## 22. Grammar Sketch
+## 23. Grammar Sketch
 
 Informal grammar:
 
@@ -1334,6 +1383,7 @@ usepath-declaration:
 use-modifier:
     "nomerge"
   | "only" "(" symbol-list ")"
+  | "exclude" "(" symbol-list ")"
   | "reexport"
 
 module-path:
@@ -1374,9 +1424,10 @@ Semantic restrictions:
 - `./path` and `../path` resolve relative to the current module directory.
 - Relative paths and package-root-relative paths must not escape above the module root directory.
 - The compiler canonicalizes all module paths before semantic analysis.
-- `nomerge` and `only(...)` are mutually exclusive.
+- `nomerge`, `only(...)`, and `exclude(...)` are mutually exclusive.
 - `nomerge` and `reexport` are mutually exclusive.
 - `only(...) reexport` is valid.
+- `exclude(...) reexport` is valid.
 - In a comma-separated `use` declaration, each `module-use-item` is equivalent to a separate `use` declaration.
 - A `use` modifier belongs only to the `module-use-item` immediately before it.
 - `use ... as alias` creates a local namespace alias.
@@ -1388,7 +1439,7 @@ Semantic restrictions:
 
 ---
 
-## 23. Summary of Supported Forms
+## 24. Summary of Supported Forms
 
 ```dq
 #opt module_root_depth = 0
@@ -1402,9 +1453,12 @@ use xpackage/xmodule as xm nomerge;
 
 use xpackage/xmodule only(Symbol1, Symbol2);
 use xpackage/xmodule as xm only(Symbol1, Symbol2);
+use xpackage/xmodule exclude(Symbol1, Symbol2);
+use xpackage/xmodule as xm exclude(Symbol1, Symbol2);
 
 use xpackage/xmodule reexport;
 use xpackage/xmodule only(Symbol1, Symbol2) reexport;
+use xpackage/xmodule exclude(Symbol1, Symbol2) reexport;
 
 use xpackage/a, xpackage/b, xpackage/c;
 use xpackage/a as a, xpackage/b only(SymbolB), xpackage/c nomerge;
@@ -1435,7 +1489,9 @@ use dqgui/widgets;
 use dqgui/widgets as w;
 use dqgui/widgets nomerge;
 use dqgui/widgets only(TButton, TLabel);
+use dqgui/widgets exclude(TList);
 use dqgui/widgets only(TButton, TLabel) reexport;
+use dqgui/widgets exclude(TList) reexport;
 
 use ^/system/utils nomerge;
 use ^/widgets/button reexport;

@@ -606,17 +606,14 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   LlFuncType *  ll_functype = (LlFuncType *)(ptype->GetLlType());  // calls CreateLlType()
 
   string ll_name;
-  if (is_external && !external_linkage_name.empty())
+  if (is_external)
   {
-    ll_name = external_linkage_name;
+    ll_name = (external_linkage_name.empty() ? name : external_linkage_name);
   }
   else
   {
-    ll_name = generated_linkage_name;
-    if (ll_name.empty())
-    {
-      ll_name = (external_linkage_name.empty() ? name : external_linkage_name);
-    }
+    string symbol_name = generated_linkage_name.empty() ? name : generated_linkage_name;
+    ll_name = GetLinkageName(apublic, 'F', symbol_name);
   }
 
   ll_func = LlFunction::Create(ll_functype, linktype, ll_name, ll_module);

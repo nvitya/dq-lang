@@ -129,6 +129,7 @@ TDqmIfRecId  DQMIF_ATTR_FLAGS             = 0x8200;  // uint64
 TDqmIfRecId  DQMIF_ATTR_ALIGN_VALUE       = 0x8201;  // int32
 TDqmIfRecId  DQMIF_ATTR_EXT_LINK_NAME     = 0x8202;  // str
 TDqmIfRecId  DQMIF_ATTR_SECTION_NAME      = 0x8203;  // str
+TDqmIfRecId  DQMIF_ATTR_LINK_NAME         = 0x8204;  // str
 
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
 

@@ -3,6 +3,7 @@
 var bad_float_to_int : int = int(3.14);  //?error(CastFloatToInt)
 var bad_int_to_bool : bool = bool(1);  //?error(CastInvalid)
 
+[[cexport]]
 function main() -> int:
   var addr16 : uint16 = 0x1234;
   var bad_ptr : ^byte = ^byte(addr16);  //?error(CastPtrWidth)

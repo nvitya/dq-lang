@@ -228,6 +228,8 @@ DEF_DQ_ERR(DQERR_CDIR_INC_FN_MISSING,              "CDirIncFileNameMissing", "#i
 DEF_DQ_ERR(DQERR_CDIR_INC_LOADING,                 "CDirIncFileLoad",        "Error loading #include file \"$1\"");
 DEF_DQ_ERR(DQERR_CDIR_LINKLIB_SYNTAX,              "CDirLinkLibSyntax",      "#linklib syntax: expected #linklib(\"name\")");
 DEF_DQ_ERR(DQERR_CDIR_LINKLIB_INVALID,             "CDirLinkLibInvalid",     "#linklib error: invalid library name \"$1\"");
+DEF_DQ_ERR(DQERR_CDIR_OPT_SYNTAX,                  "CDirOptSyntax",          "#opt syntax: expected #opt module_root_depth = <non-negative integer>");
+DEF_DQ_ERR(DQERR_CDIR_OPT_UNKNOWN,                 "CDirOptUnknown",         "Unknown #opt option \"$1\"");
 DEF_DQ_ERR(DQERR_CDIR_EXPR,                        "CDirExpr",               "Compiler directive expression error");
 DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Compiler directive expression type error");
 

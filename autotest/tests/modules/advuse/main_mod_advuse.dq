@@ -4,10 +4,11 @@ use mod_advuse2 as adv2;
 
 #ifdef ERRORTEST
 
+[[cexport]]
 function main() -> int:
   printf("printf error\n");  //?error(VsUnknown)
   var i : int;
-  i = g_mod_var;  //?error(VsUnknown)
+  i = g_mod_var;
   i = @advm.g_mod_var;
 
   return 0;
@@ -15,6 +16,7 @@ endfunc
 
 #else
 
+[[cexport]]
 function main() -> int:
   @advm.printf("DQ advanced use test\n");  //?check('DQ advanced use test')
 
@@ -22,6 +24,8 @@ function main() -> int:
   @advm.printf("g_mod_var2 = %d\n", @advm.g_mod_var2);  //?check('g_mod_var2', 25)
 
   @advm.printf("g_mod2_var = %d\n", g_mod2_var);  //?check('g_mod2_var', 6)
+
+  @advm.printf("g_mod_var(adv2) = %d\n", g_mod_var);  //?check('g_mod_var(adv2)', 99)
 
   return 0;
 endfunc

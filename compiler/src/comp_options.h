@@ -48,6 +48,7 @@ public:
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump
+  int      module_root_depth = 0;
 
   string   compiler_executable;
   vector<string>  module_use_stack;

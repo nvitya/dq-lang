@@ -8,6 +8,7 @@ var f64 : float = 5.5;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   printf('DQ Typedef test\n');    //?check('DQ Typedef test')
   var f : TFloat = f1;

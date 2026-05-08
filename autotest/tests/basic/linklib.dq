@@ -12,6 +12,7 @@ endfunc
 
 [[external]] function zlibVersion() -> ^cchar;
 
+[[cexport]]
 function main() -> int:
   printf('Linked library test\n'); //?check('Linked library test')
 

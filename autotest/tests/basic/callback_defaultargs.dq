@@ -14,6 +14,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   var cb : CBOne = add;
   var cb_src : CBSrc = add;

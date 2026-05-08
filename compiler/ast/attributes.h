@@ -24,6 +24,8 @@ enum EAttrFlag
   ATTF_PACKED         = 0x00000008,
 
   ATTF_EXTERNAL       = 0x00000100,
+  ATTF_EXPORT         = 0x00000200,
+  ATTF_CEXPORT        = 0x00000400,
 
   ATTF_SECTION        = 0x00001000,  // special linker section
 
@@ -51,6 +53,7 @@ public:
 
   int64_t        align_value = 0;
   string         external_linkage_name = "";
+  string         export_linkage_name = "";
   string         section_name = "";
 
   void Reset();

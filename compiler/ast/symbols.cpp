@@ -526,11 +526,14 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (attr_is_volatile) flags |= 1u << 3;
   if (is_ref_alias)     flags |= 1u << 4;
   if (ref_nullable)     flags |= 1u << 5;
+  if (attr_has_linkage_name) flags |= 1u << 7;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
   if (!attr_section_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_SECTION_NAME, attr_section_name)) return false;
+  if (attr_has_linkage_name
+      && !writer.AddRecStr(DQMIF_ATTR_LINK_NAME, attr_linkage_name)) return false;
 
   return true;
 }
@@ -610,8 +613,9 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
     LlType *          ll_type  = storage_type->GetLlType();
     LlConst *         ll_init_val = (ainitval ? ainitval->GetLlConst()
                                               : llvm::Constant::getNullValue(ll_type));
+    string            ll_name = GetLinkageName(apublic, 'V');
 
-    llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, name);
+    llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, ll_name);
     ll_value = gv;
     gv->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, attr_align)));
     if (!attr_section_name.empty())
@@ -624,7 +628,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
       llvm::DIGlobalVariableExpression * debug_expr = di_builder->createGlobalVariableExpression(
           di_unit,            // The scope (usually the compile unit)
           name,               // The name in the source code
-          name,               // The linkage name (mangled name, if applicable)
+          ll_name,            // The linkage name (mangled name, if applicable)
           scpos.scfile->di_file, // The file where it is declared
           scpos.line,         // The line number in the source code (example: line 10)
           ptype->GetDiType(), // The debug type
@@ -645,9 +649,10 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 
       LlType * ll_type = ptype->GetLlType();
       LlConst * ll_init_val = vsconst->pvalue->GetLlConst();
+      string ll_name = GetLinkageName(apublic, 'C');
 
       llvm::GlobalVariable * gv =
-          new llvm::GlobalVariable(*ll_module, ll_type, true, linktype, ll_init_val, name);
+          new llvm::GlobalVariable(*ll_module, ll_type, true, linktype, ll_init_val, ll_name);
       ll_value = gv;
       gv->setAlignment(llvm::Align(EffectiveStorageAlign(ptype, attr_align)));
       if (!attr_section_name.empty())
@@ -673,9 +678,10 @@ void OValSym::GenGlobalImportDecl()
   {
     OType *  storage_type = GetStorageType();
     LlType * ll_type = storage_type->GetLlType();
+    string   ll_name = GetLinkageName(true, 'V');
 
     llvm::GlobalVariable * gv =
-        new llvm::GlobalVariable(*ll_module, ll_type, false, LlLinkType::ExternalLinkage, nullptr, name);
+        new llvm::GlobalVariable(*ll_module, ll_type, false, LlLinkType::ExternalLinkage, nullptr, ll_name);
     ll_value = gv;
     gv->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, attr_align)));
     if (!attr_section_name.empty())
@@ -686,9 +692,10 @@ void OValSym::GenGlobalImportDecl()
   else if ((VSK_CONST == kind) && (TK_ARRAY == ptype->kind))
   {
     LlType * ll_type = ptype->GetLlType();
+    string   ll_name = GetLinkageName(true, 'C');
 
     llvm::GlobalVariable * gv =
-        new llvm::GlobalVariable(*ll_module, ll_type, true, LlLinkType::ExternalLinkage, nullptr, name);
+        new llvm::GlobalVariable(*ll_module, ll_type, true, LlLinkType::ExternalLinkage, nullptr, ll_name);
     ll_value = gv;
     gv->setAlignment(llvm::Align(EffectiveStorageAlign(ptype, attr_align)));
     if (!attr_section_name.empty())
@@ -696,6 +703,23 @@ void OValSym::GenGlobalImportDecl()
       gv->setSection(attr_section_name);
     }
   }
+}
+
+string OValSym::GetLinkageName(bool apublic, char atype_prefix, const string & asymbol_name) const
+{
+  string symbol_name = (asymbol_name.empty() ? name : asymbol_name);
+  if (attr_has_linkage_name)
+  {
+    return attr_linkage_name;
+  }
+
+  if (!apublic)
+  {
+    return symbol_name;
+  }
+
+  string module_name = owner_module_name.empty() ? (g_module ? g_module->name : "") : owner_module_name;
+  return OModuleIntf::LinkerSymbolNameForModule(atype_prefix, module_name, symbol_name);
 }
 
 bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)
@@ -727,6 +751,7 @@ bool OValSymConst::WriteDqmIfDecl(ODqmIfWriter & writer)
   }
 
   if (!writer.AddRecStr(DQMIF_CONST_BEGIN, name)) return false;
+  if (!WriteDqmIfAttributes(writer)) return false;
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
   if (!pvalue->WriteDqmIfValue(writer)) return false;
   return writer.AddRecEmpty(DQMIF_CONST_END);
@@ -755,6 +780,16 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
     if (attr->IsSet(ATTF_SECTION))
     {
       attr_section_name = attr->section_name;
+    }
+    if (attr->IsSet(ATTF_EXPORT))
+    {
+      attr_has_linkage_name = true;
+      attr_linkage_name = attr->export_linkage_name;
+    }
+    else if (attr->IsSet(ATTF_CEXPORT))
+    {
+      attr_has_linkage_name = true;
+      attr_linkage_name = name;
     }
   }
 

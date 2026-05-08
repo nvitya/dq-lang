@@ -193,6 +193,24 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
+  if ("export" == attrname)
+  {
+    attr->SetFlag(ATTF_EXPORT);
+    return ParseAttrStringArg(attrname, attr->export_linkage_name);
+  }
+
+  if ("cexport" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_CEXPORT);
+    attr->export_linkage_name = "";
+    return true;
+  }
+
   if ("align" == attrname)
   {
     attr->SetFlag(ATTF_ALIGN);

@@ -63,6 +63,7 @@ function dq_iif_side(flag : bool) -> int:
   result += 1000 * g_false_hits;
 endfunc
 
+[[cexport]]
 function main() -> int:
   printf("DQ iif test\n");  //?check('DQ iif test')
 

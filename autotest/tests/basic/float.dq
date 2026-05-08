@@ -64,6 +64,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   printf("Testing DQ float operations:\n\n");     //?ignore('Testing DQ float operations:')
 

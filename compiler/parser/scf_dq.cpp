@@ -322,6 +322,10 @@ void OScFeederDq::ParseDirective()
   {
     ParseDirectiveLinkLib();
   }
+  else if ("opt" == sid)
+  {
+    ParseDirectiveOpt();
+  }
   else if ("include_once" == sid)
   {
     FindDirectiveEnd();
@@ -342,6 +346,46 @@ void OScFeederDq::ParseDirective()
     PreprocError2(DQERR_CDIR_UNKNOWN, sid);
     return;
   }
+}
+
+void OScFeederDq::ParseDirectiveOpt()
+{
+  string optname;
+
+  SkipSpaces(false);
+  if (!ReadIdentifier(optname))
+  {
+    PreprocError2(DQERR_CDIR_OPT_SYNTAX);
+    return;
+  }
+
+  if ("module_root_depth" != optname)
+  {
+    PreprocError2(DQERR_CDIR_OPT_UNKNOWN, optname);
+    return;
+  }
+
+  SkipSpaces(false);
+  if (!CheckSymbol("="))
+  {
+    PreprocError2(DQERR_CDIR_OPT_SYNTAX);
+    return;
+  }
+
+  int64_t value = 0;
+  SkipSpaces(false);
+  if (!ReadInt64Value(value) || (value < 0))
+  {
+    PreprocError2(DQERR_CDIR_OPT_SYNTAX);
+    return;
+  }
+
+  if (!FindDirectiveEnd())
+  {
+    return;
+  }
+
+  g_opt.module_root_depth = int(value);
 }
 
 void OScFeederDq::ParseDirectiveDefine()

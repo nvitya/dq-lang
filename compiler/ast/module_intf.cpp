@@ -387,6 +387,47 @@ OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
   return result;
 }
 
+string OModuleIntf::LinkerSymbolName(char atype_prefix, const string & symbol_name) const
+{
+  return LinkerSymbolNameForModule(atype_prefix, name, symbol_name);
+}
+
+string OModuleIntf::LinkerSymbolNameForModule(char atype_prefix, const string & module_name,
+                                              const string & symbol_name)
+{
+  string result;
+  result += atype_prefix;
+  result += "dq__";
+
+  auto append_part = [&](const string & text)
+  {
+    bool last_was_sep = false;
+    for (char c : text)
+    {
+      bool keep = ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z'))
+                  || ((c >= '0') && (c <= '9')) || ('_' == c);
+      if (keep)
+      {
+        result += c;
+        last_was_sep = false;
+      }
+      else if (!last_was_sep)
+      {
+        result += "_";
+        last_was_sep = true;
+      }
+    }
+  };
+
+  append_part(module_name);
+  if (!result.ends_with("_"))
+  {
+    result += "_";
+  }
+  append_part(symbol_name);
+  return result;
+}
+
 string OModuleIntf::DqmIfTargetArch() const
 {
 #if defined(HOST_X86)
@@ -425,7 +466,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions() const
 {
-  string result = "O" + to_string(g_opt.optlevel);
+  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1";
   if (g_opt.dbg_info)      result += ";g";
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
@@ -967,7 +1008,8 @@ bool OModuleIntf::ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmI
 bool OModuleIntf::ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattrs)
 {
   while ((DQMIF_ATTR_FLAGS == reader.recid) || (DQMIF_ATTR_ALIGN_VALUE == reader.recid)
-         || (DQMIF_ATTR_EXT_LINK_NAME == reader.recid) || (DQMIF_ATTR_SECTION_NAME == reader.recid))
+         || (DQMIF_ATTR_EXT_LINK_NAME == reader.recid) || (DQMIF_ATTR_SECTION_NAME == reader.recid)
+         || (DQMIF_ATTR_LINK_NAME == reader.recid))
   {
     if (DQMIF_ATTR_FLAGS == reader.recid)
     {
@@ -986,6 +1028,10 @@ bool OModuleIntf::ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattr
     else if (DQMIF_ATTR_SECTION_NAME == reader.recid)
     {
       if (!reader.ReadString(rattrs.section_name)) return false;
+    }
+    else if (DQMIF_ATTR_LINK_NAME == reader.recid)
+    {
+      if (!reader.ReadString(rattrs.linkage_name)) return false;
     }
 
     if (!reader.NextRec())
@@ -1009,6 +1055,8 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   avalsym->attr_is_volatile = (attrs.flags & (1u << 3));
   avalsym->is_ref_alias     = (attrs.flags & (1u << 4));
   avalsym->ref_nullable     = (attrs.flags & (1u << 5));
+  avalsym->attr_has_linkage_name = (attrs.flags & (1u << 7));
+  avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;
   avalsym->attr_section_name = attrs.section_name;
   return true;
@@ -1131,6 +1179,12 @@ bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
     return false;
   }
 
+  SDqmIfAttributes attrs;
+  if (!ReadAttributes(reader, attrs))
+  {
+    return false;
+  }
+
   OType * ptype = nullptr;
   if (!ReadTypeSpec(reader, ptype) || !reader.NextRec())
   {
@@ -1149,7 +1203,10 @@ bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
   }
 
   OScPosition scpos;
-  return AddPublicValSym(new OValSymConst(scpos, declname, ptype, pvalue)) != nullptr;
+  OValSymConst * vsym = new OValSymConst(scpos, declname, ptype, pvalue);
+  vsym->owner_module_name = name;
+  ApplyDqmIfAttributes(vsym, attrs);
+  return AddPublicValSym(vsym) != nullptr;
 }
 
 bool OModuleIntf::ReadVarDecl(ODqmIfReader & reader)
@@ -1179,6 +1236,7 @@ bool OModuleIntf::ReadVarDecl(ODqmIfReader & reader)
   OScPosition scpos;
   OValSym * vsym = new OValSym(scpos, declname, ptype);
   vsym->initialized = true;
+  vsym->owner_module_name = name;
   ApplyDqmIfAttributes(vsym, attrs);
   return AddPublicValSym(vsym) != nullptr;
 }
@@ -1388,6 +1446,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
 
   OScPosition scpos;
   OValSymFunc * fn = new OValSymFunc(scpos, declname, sigtype, nullptr);
+  fn->owner_module_name = name;
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & (1u << 6));
   fn->external_linkage_name = attrs.external_linkage_name;

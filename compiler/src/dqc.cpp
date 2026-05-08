@@ -79,6 +79,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     g_opt.module_use_stack.push_back(ModuleStackNameFromInput(base_name));
   }
+  g_module->name = g_opt.module_use_stack.back();
 
   if ((g_opt.verblevel >= VERBLEVEL_STATUS) and not in_filename.empty())
   {

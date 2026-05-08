@@ -35,6 +35,7 @@ function dq_cast_address_constant() -> uint:
   result = uint(p);
 endfunc
 
+[[cexport]]
 function main() -> int:
   printf("Testing DQ explicit casts:\n");  //?check('Testing DQ explicit casts:')
 

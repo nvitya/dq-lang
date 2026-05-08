@@ -71,6 +71,7 @@ function dq_arr_modify(arr : int[]) -> int:
 endfunc
 
 
+[[cexport]]
 function main() -> int:
   printf("Testing DQ arrays:\n");  //?check('Testing DQ arrays:')
 

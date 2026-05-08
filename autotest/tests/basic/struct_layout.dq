@@ -87,6 +87,7 @@ function off_packed_obj_b() -> int:
   result = int(uint(&o.b) - uint(&o.a));
 endfunc
 
+[[cexport]]
 function main() -> int:
   printf("Testing struct layout:\n");  //?check('Testing struct layout:')
 

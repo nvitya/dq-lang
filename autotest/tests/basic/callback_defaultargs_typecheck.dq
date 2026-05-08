@@ -18,6 +18,7 @@ var bad_slice : function(arr : int[] = rootarr) -> int;  //?error(FuncParDefault
 type CBGood = function(a : int, b : int = 1) -> int;
 type CBBadSig = function(a : int, b : int, c : int = 1) -> int;
 
+[[cexport]]
 function main() -> int:
   var cb_ok : CBGood = add;
   var cb_bad : CBBadSig = add;  //?error(FuncSigType)

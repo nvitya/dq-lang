@@ -24,6 +24,7 @@ function bad_refout_read(refout a : int) -> int:
   result = a;  //?error(RefOutRead)
 endfunc
 
+[[cexport]]
 function main():
   var x : int = 1;
   var y : int;

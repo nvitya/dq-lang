@@ -75,6 +75,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   printf("Testing DQ pointer operations:\n\n");  //?check('Testing DQ pointer operations:')
 

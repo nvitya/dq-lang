@@ -24,6 +24,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, value : int = 77, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   var x : int = 12;
 

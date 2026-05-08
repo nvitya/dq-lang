@@ -4,6 +4,7 @@ function missing_forward(a : int) -> int;  //?error(FuncForwardNotDefined)
 
 #else
 
+[[cexport]]
 function main() -> int:
   return 0;
 endfunc

@@ -48,6 +48,7 @@ function dq_str_append(a : cstring, b : cstring):
   cstr_add(a, b);
 endfunc
 
+[[cexport]]
 function main() -> int:
   dq_writestr(dq_cstr);  //?check('DQ String Test')
 

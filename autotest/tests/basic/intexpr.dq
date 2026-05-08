@@ -67,6 +67,7 @@ function mask_bit(a : int, bitnum : int) -> int:
 endfunc
 
 
+[[cexport]]
 function main() -> int:
   var i : int;
 

@@ -16,7 +16,8 @@
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
 v0.10.17:
-  - Implementing advanced use: as, nomerge
+  - Mangled linker symbol names
+  - [[export('name')]] and [[cexport]] implementation
 v0.10.16:
   - Code refactoring
 v0.10.15:

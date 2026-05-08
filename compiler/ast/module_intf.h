@@ -67,6 +67,7 @@ private:
     uint64_t  flags = 0;
     uint32_t  align = 0;
     string    external_linkage_name;
+    string    linkage_name;
     string    section_name;
   };
 
@@ -136,6 +137,9 @@ public:
 
   OIntfDecl * AddPublicType(OType * atype);
   OIntfDecl * AddPublicValSym(OValSym * avalsym);
+  string LinkerSymbolName(char atype_prefix, const string & symbol_name) const;
+  static string LinkerSymbolNameForModule(char atype_prefix, const string & module_name,
+                                          const string & symbol_name);
 
   bool BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename);
   bool WriteInterface(const string & filename, const string & source_filename);

@@ -501,6 +501,9 @@ public:
 
   uint32_t     attr_align = 0;
   string       attr_section_name = "";
+  bool         attr_has_linkage_name = false;
+  string       attr_linkage_name = "";
+  string       owner_module_name = "";
   bool         attr_is_overload = false;
   bool         attr_is_override = false;
   bool         attr_is_virtual = false;
@@ -517,6 +520,7 @@ public:
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
   void GenGlobalImportDecl();
+  string GetLinkageName(bool apublic, char atype_prefix, const string & asymbol_name = "") const;
   virtual bool WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags = 0);
   virtual bool WriteDqmIfDecl(ODqmIfWriter & writer);
 

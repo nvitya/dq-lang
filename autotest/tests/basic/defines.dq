@@ -13,6 +13,7 @@ var g_var : int = 555;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+[[cexport]]
 function main() -> int:
   printf('Testing defines...\n');  //?check('Testing defines...')
 

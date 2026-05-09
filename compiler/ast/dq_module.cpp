@@ -72,93 +72,19 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   return result;
 }
 
-static bool SymbolNameExistsInScope(OScope * ascope, const string & aname)
-{
-  return ascope && (ascope->FindType(aname, nullptr, false) || ascope->FindValSym(aname, nullptr, false));
-}
-
-static bool ValidateUseSymbolNames(OModuleIntf * aintf, const vector<string> & anames)
-{
-  if (!aintf)
-  {
-    return false;
-  }
-
-  for (const string & name : anames)
-  {
-    if (!SymbolNameExistsInScope(aintf->scope_pub, name))
-    {
-      g_compiler->Error(DQERR_USE_SYMBOL_UNKNOWN, aintf->name, name);
-      return false;
-    }
-  }
-  return true;
-}
-
-static void CopyUseSymbol(OScope * adst, OScope * asrc, const string & aname)
-{
-  if (OType * type = asrc->FindType(aname, nullptr, false))
-  {
-    adst->typesyms[type->name] = type;
-  }
-  if (OValSym * vs = asrc->FindValSym(aname, nullptr, false))
-  {
-    adst->valsyms[vs->name] = vs;
-  }
-}
-
 static void FillUseScope(OModuleUse * ause)
 {
   if (!ause || !ause->module || !ause->scope_use)
   {
     return;
   }
-
-  OScope * srcscope = ause->module->scope_pub;
-  if (MUM_ALL == ause->merge_mode)
-  {
-    for (auto & it : srcscope->typesyms)
-    {
-      ause->scope_use->typesyms[it.first] = it.second;
-    }
-    for (auto & it : srcscope->valsyms)
-    {
-      ause->scope_use->valsyms[it.first] = it.second;
-    }
-    return;
-  }
-
-  if (MUM_ONLY == ause->merge_mode)
-  {
-    for (const string & name : ause->symbol_names)
-    {
-      CopyUseSymbol(ause->scope_use, srcscope, name);
-    }
-    return;
-  }
-
-  if (MUM_EXCLUDE == ause->merge_mode)
-  {
-    for (auto & it : srcscope->typesyms)
-    {
-      if (find(ause->symbol_names.begin(), ause->symbol_names.end(), it.first) == ause->symbol_names.end())
-      {
-        ause->scope_use->typesyms[it.first] = it.second;
-      }
-    }
-    for (auto & it : srcscope->valsyms)
-    {
-      if (find(ause->symbol_names.begin(), ause->symbol_names.end(), it.first) == ause->symbol_names.end())
-      {
-        ause->scope_use->valsyms[it.first] = it.second;
-      }
-    }
-  }
+  ause->CopySelectedSymbolsTo(ause->scope_use);
 }
 
 bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name,
                                 const string & artifact_path, OScope * amerge_scope, bool ais_private,
-                                EModuleUseMergeMode amerge_mode, const vector<string> & asymbol_names)
+                                EModuleUseMergeMode amerge_mode, const vector<string> & asymbol_names,
+                                bool areexport)
 {
   OModuleIntf * intf = nullptr;
   for (OModuleIntf * loaded_intf : loaded_modules)
@@ -181,12 +107,13 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     loaded_modules.push_back(intf);
   }
 
-  if ((MUM_ONLY == amerge_mode || MUM_EXCLUDE == amerge_mode) && !ValidateUseSymbolNames(intf, asymbol_names))
+  OModuleUse * use = new OModuleUse(intf, ais_private, amerge_mode, asymbol_names, areexport);
+  if (!use->ValidateSymbolNames())
   {
+    delete use;
     return false;
   }
 
-  OModuleUse * use = new OModuleUse(intf, ais_private, amerge_mode, asymbol_names);
   used_modules.push_back(use);
 
   if ((MUM_ALL == amerge_mode || MUM_ONLY == amerge_mode || MUM_EXCLUDE == amerge_mode) && amerge_scope)
@@ -200,6 +127,13 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), artifact_path))
   {
     link_module_artifacts.push_back(artifact_path);
+  }
+  for (const string & reexport_artifact : intf->reexport_artifacts)
+  {
+    if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), reexport_artifact))
+    {
+      link_module_artifacts.push_back(reexport_artifact);
+    }
   }
 
   return true;

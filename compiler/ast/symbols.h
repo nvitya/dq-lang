@@ -141,14 +141,16 @@ public:
   OModuleBase *        module = nullptr;
   OScope *             scope_use = nullptr;
   bool                 is_private = false;
+  bool                 reexport = false;
   EModuleUseMergeMode  merge_mode = MUM_ALL;
   vector<string>       symbol_names;
 
   OModuleUse(OModuleBase * amodule, bool ais_private, EModuleUseMergeMode amerge_mode,
-             const vector<string> & asymbol_names)
+             const vector<string> & asymbol_names, bool areexport = false)
   :
     module(amodule),
     is_private(ais_private),
+    reexport(areexport),
     merge_mode(amerge_mode),
     symbol_names(asymbol_names)
   {
@@ -158,6 +160,11 @@ public:
   {
     delete scope_use;
   }
+
+  bool SymbolSelected(const string & aname) const;
+  bool ValidateSymbolNames() const;
+  void CopySelectedSymbolsTo(OScope * adst) const;
+  vector<string> EffectiveSymbolNames() const;
 };
 
 class OModuleBase

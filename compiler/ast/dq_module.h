@@ -100,7 +100,8 @@ public:
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
                          const string & artifact_path, OScope * amerge_scope, bool ais_private,
                          EModuleUseMergeMode amerge_mode = MUM_ALL,
-                         const vector<string> & asymbol_names = {});
+                         const vector<string> & asymbol_names = {},
+                         bool areexport = false);
 
   bool TypeDeclared(const string aname, OType ** rtype = nullptr);
   bool ValSymDeclared(const string aname, OValSym ** rvalsym = nullptr);

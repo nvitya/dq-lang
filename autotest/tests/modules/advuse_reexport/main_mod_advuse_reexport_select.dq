@@ -1,0 +1,10 @@
+use mod_advuse_reexport_facade_only as onlyf nomerge;
+use mod_advuse_reexport_facade_exclude as exclf nomerge;
+
+[[cexport]]
+function main() -> int:
+  @onlyf.printf("reexport only = %d\n", @onlyf.re_func(@onlyf.RE_VAL));  //?check('reexport only', 12)
+  @onlyf.printf("reexport exclude = %d\n", @exclf.re_func(@exclf.ONLY_VAL));  //?check('reexport exclude', 7)
+  return 0;
+endfunc
+

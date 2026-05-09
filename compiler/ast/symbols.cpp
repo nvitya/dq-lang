@@ -127,6 +127,103 @@ bool OScope::FirstAssigned(OValSym * avs)
   return false;
 }
 
+bool OModuleUse::SymbolSelected(const string & aname) const
+{
+  if (MUM_ALL == merge_mode)
+  {
+    return true;
+  }
+  if (MUM_ONLY == merge_mode)
+  {
+    return symbol_names.end() != find(symbol_names.begin(), symbol_names.end(), aname);
+  }
+  if (MUM_EXCLUDE == merge_mode)
+  {
+    return symbol_names.end() == find(symbol_names.begin(), symbol_names.end(), aname);
+  }
+  return false;
+}
+
+bool OModuleUse::ValidateSymbolNames() const
+{
+  if (!module)
+  {
+    return false;
+  }
+  if (MUM_ONLY != merge_mode && MUM_EXCLUDE != merge_mode)
+  {
+    return true;
+  }
+
+  for (const string & name : symbol_names)
+  {
+    if (!module->scope_pub->FindType(name, nullptr, false)
+        && !module->scope_pub->FindValSym(name, nullptr, false))
+    {
+      g_compiler->Error(DQERR_USE_SYMBOL_UNKNOWN, module->name, name);
+      return false;
+    }
+  }
+  return true;
+}
+
+void OModuleUse::CopySelectedSymbolsTo(OScope * adst) const
+{
+  if (!adst || !module)
+  {
+    return;
+  }
+
+  OScope * srcscope = module->scope_pub;
+  for (auto & it : srcscope->typesyms)
+  {
+    if (SymbolSelected(it.first))
+    {
+      adst->typesyms[it.first] = it.second;
+    }
+  }
+  for (auto & it : srcscope->valsyms)
+  {
+    if (SymbolSelected(it.first))
+    {
+      adst->valsyms[it.first] = it.second;
+    }
+  }
+}
+
+vector<string> OModuleUse::EffectiveSymbolNames() const
+{
+  vector<string> result;
+  if (!module)
+  {
+    return result;
+  }
+
+  auto add_name = [&result](const string & name)
+  {
+    if (result.end() == find(result.begin(), result.end(), name))
+    {
+      result.push_back(name);
+    }
+  };
+
+  for (auto & it : module->scope_pub->typesyms)
+  {
+    if (SymbolSelected(it.first))
+    {
+      add_name(it.first);
+    }
+  }
+  for (auto & it : module->scope_pub->valsyms)
+  {
+    if (SymbolSelected(it.first))
+    {
+      add_name(it.first);
+    }
+  }
+  return result;
+}
+
 LlDiScope * OScope::GetDiScope()
 {
   if (di_scope)
@@ -679,6 +776,11 @@ void OValSym::GenGlobalImportDecl()
     OType *  storage_type = GetStorageType();
     LlType * ll_type = storage_type->GetLlType();
     string   ll_name = GetLinkageName(true, 'V');
+    if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
+    {
+      ll_value = existing;
+      return;
+    }
 
     llvm::GlobalVariable * gv =
         new llvm::GlobalVariable(*ll_module, ll_type, false, LlLinkType::ExternalLinkage, nullptr, ll_name);
@@ -693,6 +795,11 @@ void OValSym::GenGlobalImportDecl()
   {
     LlType * ll_type = ptype->GetLlType();
     string   ll_name = GetLinkageName(true, 'C');
+    if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
+    {
+      ll_value = existing;
+      return;
+    }
 
     llvm::GlobalVariable * gv =
         new llvm::GlobalVariable(*ll_module, ll_type, true, LlLinkType::ExternalLinkage, nullptr, ll_name);

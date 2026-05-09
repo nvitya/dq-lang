@@ -1,0 +1,8 @@
+use mod_advuse_reexport_facade_alias;
+
+[[cexport]]
+function main() -> int:
+  var i : int;
+  i = @leaf_alias.re_func(RE_VAL);  //?error(NsUnknown)
+  return 0;
+endfunc

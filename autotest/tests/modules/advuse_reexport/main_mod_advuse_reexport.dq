@@ -1,0 +1,8 @@
+use mod_advuse_reexport_facade;
+
+[[cexport]]
+function main() -> int:
+  printf("reexport basic = %d\n", RE_VAL + ONLY_VAL);  //?check('reexport basic', 11)
+  printf("reexport namespace = %d\n", @mod_advuse_reexport_facade.RE_VAL + @mod_advuse_reexport_facade.ONLY_VAL);  //?check('reexport namespace', 11)
+  return 0;
+endfunc

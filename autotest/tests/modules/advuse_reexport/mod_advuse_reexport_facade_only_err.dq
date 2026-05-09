@@ -1,0 +1,4 @@
+//?notest
+
+use mod_advuse_reexport_leaf_select_err as local_leaf reexport only(RE_VAL, re_func, printf);
+

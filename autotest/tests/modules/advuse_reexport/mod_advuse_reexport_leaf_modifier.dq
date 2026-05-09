@@ -1,0 +1,3 @@
+//?notest
+
+const RE_VAL : int = 8;

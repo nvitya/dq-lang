@@ -42,6 +42,7 @@ private:
   };
 
   bool ReadDqmIfRecords(ODqmIfReader & reader);
+  bool ReadUseDecl(ODqmIfReader & reader);
   bool ReadTypeSpec(ODqmIfReader & reader, OType *& rtype);
   bool ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmIfRecId aend_recid);
   bool ReadTypeDecl(ODqmIfReader & reader);
@@ -62,7 +63,9 @@ private:
   string DqmIfTargetRtl() const;
   string DqmIfBuildOptions() const;
   bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename);
+  bool WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause);
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename);
+  vector<OModuleIntf *> reexport_modules;
 
   void WriteTypeDump(ostream & out, OType * atype, const string & indent);
   void WriteValSymDump(ostream & out, OValSym * avsym, const string & indent);
@@ -77,6 +80,8 @@ public:
   string   target_arch;
   string   target_rtl;
   string   build_options;
+  string   interface_filename;
+  vector<string> reexport_artifacts;
 
   bool     has_source_filename = false;
   bool     has_source_filesize = false;
@@ -91,9 +96,7 @@ public:
   {
   }
 
-  virtual ~OModuleIntf()
-  {
-  }
+  virtual ~OModuleIntf();
 
   OIntfDecl * AddPublicType(OType * atype);
   OIntfDecl * AddPublicValSym(OValSym * avalsym);

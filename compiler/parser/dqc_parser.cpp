@@ -453,6 +453,7 @@ void ODqCompParser::ParseUseStatement()
   string sid;
   EModuleUseMergeMode merge_mode = MUM_ALL;
   vector<string> symbol_names;
+  bool reexport = false;
 
   scf->SkipWhite();
   if (!scf->ReadIdentifier(sid))
@@ -510,9 +511,13 @@ void ODqCompParser::ParseUseStatement()
     }
     else if ("nomerge" == sid)
     {
-      if (MUM_ALL != merge_mode)
+      if ((MUM_ALL != merge_mode) || reexport)
       {
-        Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude", &scpos_statement_start);
+        OScPosition errpos;
+        errpos.Assign(scpos_statement_start);
+        CheckStatementClose();
+        errpos.RecalcLineCol();
+        Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude/reexport", &errpos);
         return;
       }
       merge_mode = MUM_NONE;
@@ -548,6 +553,28 @@ void ODqCompParser::ParseUseStatement()
       {
         return;
       }
+    }
+    else if ("reexport" == sid)
+    {
+      if (!section_public)
+      {
+        OScPosition errpos;
+        errpos.Assign(scpos_statement_start);
+        CheckStatementClose();
+        errpos.RecalcLineCol();
+        Error(DQERR_USE_MODIFIER_CONFLICT, "reexport in implementation section", &errpos);
+        return;
+      }
+      if (MUM_NONE == merge_mode)
+      {
+        OScPosition errpos;
+        errpos.Assign(scpos_statement_start);
+        CheckStatementClose();
+        errpos.RecalcLineCol();
+        Error(DQERR_USE_MODIFIER_CONFLICT, "reexport with nomerge", &errpos);
+        return;
+      }
+      reexport = true;
     }
     else
     {
@@ -629,7 +656,7 @@ void ODqCompParser::ParseUseStatement()
 
   int prev_errorcnt = errorcnt;
   if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), cur_mod_scope,
-                                   !section_public, merge_mode, symbol_names))
+                                   !section_public, merge_mode, symbol_names, reexport))
   {
     if (prev_errorcnt == errorcnt)
     {

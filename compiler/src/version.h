@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.19"
+#define DQ_COMPILER_VERSION  "0.10.20"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.20:
+  - 'use ... reexport' implemented
 v0.10.19:
   - implmmented advanced 'use' cases: only, exclude
 v0.10.18:

@@ -108,6 +108,14 @@ static string EscapeStringLiteral(const string & avalue)
   return result;
 }
 
+OModuleIntf::~OModuleIntf()
+{
+  for (OModuleIntf * intf : reexport_modules)
+  {
+    delete intf;
+  }
+}
+
 static string ConstValueText(OValue * avalue)
 {
   if (!avalue)
@@ -796,6 +804,22 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string &
   return writer.AddRecEmpty(DQMIF_H_END);
 }
 
+bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
+{
+  if (!ause || !ause->module || !ause->reexport || ause->is_private)
+  {
+    return true;
+  }
+
+  if (!writer.AddRecStr(DQMIF_USE_BEGIN, ause->module->name)) return false;
+  if (!writer.AddRecEmpty(DQMIF_USE_REEXPORT)) return false;
+  for (const string & name : ause->EffectiveSymbolNames())
+  {
+    if (!writer.AddRecStr(DQMIF_USE_ONLY, name)) return false;
+  }
+  return writer.AddRecEmpty(DQMIF_USE_END);
+}
+
 bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename)
 {
   if (!WriteDqmIfSourceMetadata(writer, source_filename))
@@ -806,6 +830,14 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
   for (const string & libname : g_opt.link_libraries)
   {
     if (!writer.AddRecStr(DQMIF_LINKLIB, libname))
+    {
+      return false;
+    }
+  }
+
+  for (OModuleUse * use : used_modules)
+  {
+    if (!WriteDqmIfUse(writer, use))
     {
       return false;
     }
@@ -1592,6 +1624,139 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   return AddPublicType(ctype) != nullptr;
 }
 
+bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
+{
+  string module_path;
+  if (!reader.ReadString(module_path))
+  {
+    return false;
+  }
+
+  bool reexport = false;
+  bool has_selection = false;
+  vector<string> symbol_names;
+
+  while (true)
+  {
+    if (!reader.NextRec())
+    {
+      return false;
+    }
+    if (DQMIF_USE_END == reader.recid)
+    {
+      break;
+    }
+    if (DQMIF_USE_ALIAS == reader.recid)
+    {
+      string ignored_alias;
+      if (!reader.ReadString(ignored_alias)) return false;
+    }
+    else if (DQMIF_USE_ONLY == reader.recid)
+    {
+      string name;
+      if (!reader.ReadString(name)) return false;
+      has_selection = true;
+      symbol_names.push_back(name);
+    }
+    else if (DQMIF_USE_REEXPORT == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_USE_REEXPORT)) return false;
+      reexport = true;
+    }
+    else
+    {
+      return reader.Fail(format("Unexpected DQM interface use record 0x{:04X}", reader.recid));
+    }
+  }
+
+  if (!reexport)
+  {
+    return true;
+  }
+
+  filesystem::path artifact_path(module_path);
+  artifact_path += ".dqm";
+  if (!interface_filename.empty() && !artifact_path.is_absolute())
+  {
+    artifact_path = filesystem::path(interface_filename).parent_path() / artifact_path;
+  }
+
+  OModuleIntf * intf = new OModuleIntf(scope_pub->parent_scope, module_path);
+  if (!intf->ReadInterface(artifact_path.string()))
+  {
+    delete intf;
+    return reader.Fail(format("Can not load reexported module interface: {}", artifact_path.string()));
+  }
+
+  EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
+  OModuleUse * use = new OModuleUse(intf, false, merge_mode, symbol_names, true);
+  if (has_selection)
+  {
+    for (const string & name : symbol_names)
+    {
+      if (!intf->scope_pub->FindType(name, nullptr, false)
+          && !intf->scope_pub->FindValSym(name, nullptr, false))
+      {
+        delete use;
+        delete intf;
+        return reader.Fail(format("Reexported module \"{}\" has no public symbol \"{}\"", module_path, name));
+      }
+    }
+  }
+
+  for (const string & name : use->EffectiveSymbolNames())
+  {
+    if (OType * type = intf->scope_pub->FindType(name, nullptr, false))
+    {
+      auto found = scope_pub->typesyms.find(type->name);
+      if (found != scope_pub->typesyms.end() && found->second != type)
+      {
+        delete use;
+        delete intf;
+        return reader.Fail(format("Reexported type \"{}\" conflicts in module \"{}\"", type->name, this->name));
+      }
+      if (found == scope_pub->typesyms.end())
+      {
+        scope_pub->typesyms[type->name] = type;
+        declarations.push_back(new OIntfDecl(type));
+      }
+    }
+
+    if (OValSym * vs = intf->scope_pub->FindValSym(name, nullptr, false))
+    {
+      auto found = scope_pub->valsyms.find(vs->name);
+      if (found != scope_pub->valsyms.end() && found->second != vs)
+      {
+        delete use;
+        delete intf;
+        return reader.Fail(format("Reexported symbol \"{}\" conflicts in module \"{}\"", vs->name, this->name));
+      }
+      if (found == scope_pub->valsyms.end())
+      {
+        scope_pub->valsyms[vs->name] = vs;
+        declarations.push_back(new OIntfDecl(vs));
+      }
+    }
+  }
+
+  string artifact_name = artifact_path.string();
+  if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), artifact_name))
+  {
+    reexport_artifacts.push_back(artifact_name);
+  }
+  for (const string & child_artifact : intf->reexport_artifacts)
+  {
+    if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), child_artifact))
+    {
+      reexport_artifacts.push_back(child_artifact);
+    }
+  }
+
+  reexport_modules.push_back(intf);
+  used_modules.push_back(use);
+  return true;
+}
+
 bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 {
   while (!reader.Eof())
@@ -1612,7 +1777,7 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     }
     else if (DQMIF_USE_BEGIN == reader.recid)
     {
-      if (!reader.SkipGroup(DQMIF_USE_BEGIN, DQMIF_USE_END)) return false;
+      if (!ReadUseDecl(reader)) return false;
     }
     else if (DQMIF_TYPE_BEGIN == reader.recid)
     {
@@ -1649,6 +1814,7 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 
 bool OModuleIntf::ReadInterface(const string & filename)
 {
+  interface_filename = filename;
   ODqmIfReader reader;
   if (!reader.ReadFromArtifact(filename) || !ReadDqmIfRecords(reader))
   {

@@ -23,45 +23,15 @@
 
 using namespace std;
 
-enum EIntfDeclKind
-{
-  IDK_TYPE,
-  IDK_VALSYM
-};
-
-class OIntfDecl
-{
-public:
-  EIntfDeclKind  kind;
-
-  union
-  {
-    OType *      ptype;
-    OValSym *    pvalsym;
-  };
-
-  OIntfDecl(OType * atype)
-  :
-    kind(IDK_TYPE),
-    ptype(atype)
-  {
-  }
-
-  OIntfDecl(OValSym * avalsym)
-  :
-    kind(IDK_VALSYM),
-    pvalsym(avalsym)
-  {
-  }
-};
-
 class OValSymFunc;
 class OValSymOverloadSet;
 class OTypeFunc;
 
-class OModuleIntf
+class OModuleIntf : public OModuleBase
 {
 private:
+  typedef OModuleBase  super;
+
   struct SDqmIfAttributes
   {
     uint64_t  flags = 0;
@@ -101,10 +71,6 @@ private:
   void WriteCompoundDump(ostream & out, OCompoundType * atype, const string & indent);
 
 public:
-  string           name;
-  OScope *         scope_pub;
-  vector<OIntfDecl *>  declarations;
-
   string   source_filename;
   int64_t  source_filesize = 0;
   int64_t  source_filetime = 0;
@@ -121,18 +87,12 @@ public:
 
   OModuleIntf(OScope * aparent, const string aname)
   :
-    name(aname)
+    super(aparent, aname)
   {
-    scope_pub = new OScope(aparent, aname);
   }
 
   virtual ~OModuleIntf()
   {
-    for (OIntfDecl * decl : declarations)
-    {
-      delete decl;
-    }
-    delete scope_pub;
   }
 
   OIntfDecl * AddPublicType(OType * atype);

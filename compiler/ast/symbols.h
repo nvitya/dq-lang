@@ -33,23 +33,25 @@ class OValue;
 class OValSym;
 class OScope;
 class ODqmIfWriter;
+class OModuleBase;
 
 // Symbol and Scope
 
 class OSymbol
 {
 public:
-  string       name;
-  OType *      ptype;
+  string         name;
+  OType *        ptype;
 
-  OScPosition  scpos;
+  OModuleBase *  module = nullptr;
+  OScPosition    scpos;
 
-  OSymbol(const string aname, OType * atype = nullptr)
+  OSymbol(const string aname, OType * atype = nullptr, OModuleBase * amodule = nullptr)
   :
     name(aname),
-    ptype(atype)
+    ptype(atype),
+    module(amodule)
   {
-
   }
 
   OType * ResolvedType() const;
@@ -90,6 +92,63 @@ public:
   void        SetVarInitialized(OValSym * vs);
   void        RevertFirstAssignments();
   bool        FirstAssigned(OValSym * avs);
+};
+
+enum EIntfDeclKind
+{
+  IDK_TYPE,
+  IDK_VALSYM
+};
+
+class OIntfDecl
+{
+public:
+  EIntfDeclKind  kind;
+
+  union
+  {
+    OType *      ptype;
+    OValSym *    pvalsym;
+  };
+
+  OIntfDecl(OType * atype)
+  :
+    kind(IDK_TYPE),
+    ptype(atype)
+  {
+  }
+
+  OIntfDecl(OValSym * avalsym)
+  :
+    kind(IDK_VALSYM),
+    pvalsym(avalsym)
+  {
+  }
+};
+
+class OModuleBase
+{
+public:
+  string           name;
+  OScope *         scope_pub;
+
+  vector<OIntfDecl *>  declarations;  // interface declarations in source code order
+
+  OModuleBase(OScope * aparent, const string aname)
+  :
+    name(aname)
+  {
+    scope_pub = new OScope(aparent, aname);
+  }
+
+  virtual ~OModuleBase()
+  {
+    for (OIntfDecl * decl : declarations)
+    {
+      delete decl;
+    }
+    delete scope_pub;
+  }
 };
 
 // Types

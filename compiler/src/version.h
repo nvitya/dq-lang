@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.18"
+#define DQ_COMPILER_VERSION  "0.10.19"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.19:
+  - implmmented advanced 'use' cases: only, exclude
 v0.10.18:
   - [WIP] Symbols now can be linked to modules
 v0.10.17:

@@ -368,6 +368,10 @@ OIntfDecl * OModuleIntf::AddPublicType(OType * atype)
   {
     return nullptr;
   }
+  if (!atype->module)
+  {
+    atype->module = this;
+  }
 
   OIntfDecl * result = new OIntfDecl(atype);
   declarations.push_back(result);
@@ -380,6 +384,10 @@ OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
   if (defvs != avalsym)
   {
     return nullptr;
+  }
+  if (!avalsym->module)
+  {
+    avalsym->module = this;
   }
 
   OIntfDecl * result = new OIntfDecl(avalsym);

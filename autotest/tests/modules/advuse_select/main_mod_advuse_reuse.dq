@@ -1,0 +1,9 @@
+use mod_advuse_select as all1;
+use mod_advuse_select as all2;
+
+[[cexport]]
+function main() -> int:
+  @all1.printf("reuse result = %d\n", sel_func(SEL_CONST) + @all2.hidden_func(2));  //?check('reuse result', 14)
+  return 0;
+endfunc
+

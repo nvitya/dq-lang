@@ -451,7 +451,8 @@ void ODqCompParser::ParseUseStatement()
   string module_path;
   string namespace_name;
   string sid;
-  bool merge_public_symbols = true;
+  EModuleUseMergeMode merge_mode = MUM_ALL;
+  vector<string> symbol_names;
 
   scf->SkipWhite();
   if (!scf->ReadIdentifier(sid))
@@ -509,7 +510,44 @@ void ODqCompParser::ParseUseStatement()
     }
     else if ("nomerge" == sid)
     {
-      merge_public_symbols = false;
+      if (MUM_ALL != merge_mode)
+      {
+        Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude", &scpos_statement_start);
+        return;
+      }
+      merge_mode = MUM_NONE;
+    }
+    else if ("only" == sid)
+    {
+      if (MUM_ALL != merge_mode)
+      {
+        vector<string> dummy_names;
+        ParseUseSymbolList("only", dummy_names);
+        CheckStatementClose();
+        Error(DQERR_USE_MODIFIER_CONFLICT, "only with nomerge/exclude", &scpos_statement_start);
+        return;
+      }
+      merge_mode = MUM_ONLY;
+      if (!ParseUseSymbolList("only", symbol_names))
+      {
+        return;
+      }
+    }
+    else if ("exclude" == sid)
+    {
+      if (MUM_ALL != merge_mode)
+      {
+        vector<string> dummy_names;
+        ParseUseSymbolList("exclude", dummy_names);
+        CheckStatementClose();
+        Error(DQERR_USE_MODIFIER_CONFLICT, "exclude with nomerge/only", &scpos_statement_start);
+        return;
+      }
+      merge_mode = MUM_EXCLUDE;
+      if (!ParseUseSymbolList("exclude", symbol_names))
+      {
+        return;
+      }
     }
     else
     {
@@ -589,10 +627,57 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), merge_public_symbols))
+  int prev_errorcnt = errorcnt;
+  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), cur_mod_scope,
+                                   !section_public, merge_mode, symbol_names))
   {
-    Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+    if (prev_errorcnt == errorcnt)
+    {
+      Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+    }
     return;
+  }
+}
+
+bool ODqCompParser::ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names)
+{
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, amodifier);
+    return false;
+  }
+
+  while (true)
+  {
+    string name;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(name))
+    {
+      Error(DQERR_ID_EXP_AFTER, amodifier);
+      return false;
+    }
+
+    scf->SkipWhite();
+    string sid;
+    if (scf->ReadIdentifier(sid, false) && ("as" == sid))
+    {
+      Error(DQERR_NOT_IMPLEMENTED_YET, "symbol aliases in use only/exclude", &scf->prevpos);
+      return false;
+    }
+
+    rsymbol_names.push_back(name);
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol(")"))
+    {
+      return true;
+    }
+    if (!scf->CheckSymbol(","))
+    {
+      Error(DQERR_MISSING_COMMA_IN, amodifier);
+      return false;
+    }
   }
 }
 

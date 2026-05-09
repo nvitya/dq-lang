@@ -45,7 +45,7 @@ void ODqCompCodegen::GenerateIr()
   PrepareTarget();
 
   // predeclare functions first so later global initializers can reference them
-  for (OModuleIntf * intf : g_module->used_modules)
+  for (OModuleIntf * intf : g_module->loaded_modules)
   {
     for (OIntfDecl * decl : intf->declarations)
     {

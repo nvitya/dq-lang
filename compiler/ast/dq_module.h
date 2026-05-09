@@ -71,7 +71,7 @@ private:
 
 public:
   vector<ODecl *>  declarations;
-  vector<OModuleIntf *>  used_modules;
+  vector<OModuleIntf *>  loaded_modules;
   vector<string>   link_module_artifacts;
 
   OScope *         scope_priv;
@@ -87,7 +87,7 @@ public:
 
   virtual ~OModule()
   {
-    for (OModuleIntf * intf : used_modules)
+    for (OModuleIntf * intf : loaded_modules)
     {
       delete intf;
     }
@@ -98,7 +98,9 @@ public:
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
-                         const string & artifact_path, bool amerge_public_symbols = true);
+                         const string & artifact_path, OScope * amerge_scope, bool ais_private,
+                         EModuleUseMergeMode amerge_mode = MUM_ALL,
+                         const vector<string> & asymbol_names = {});
 
   bool TypeDeclared(const string aname, OType ** rtype = nullptr);
   bool ValSymDeclared(const string aname, OValSym ** rvalsym = nullptr);

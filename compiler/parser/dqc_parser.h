@@ -39,6 +39,7 @@ public:
 
 public: // root level items
   void ParseUseStatement();
+  bool ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names);
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
   void ParseRootTypeDecl();
   void ParseFunction();

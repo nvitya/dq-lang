@@ -718,7 +718,7 @@ string OValSym::GetLinkageName(bool apublic, char atype_prefix, const string & a
     return symbol_name;
   }
 
-  string module_name = owner_module_name.empty() ? (g_module ? g_module->name : "") : owner_module_name;
+  string module_name = owner_module_name.empty() ? (module ? module->name : (g_module ? g_module->name : "")) : owner_module_name;
   return OModuleIntf::LinkerSymbolNameForModule(atype_prefix, module_name, symbol_name);
 }
 

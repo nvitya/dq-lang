@@ -1,0 +1,11 @@
+//?notest
+
+const PRIVATE_MARK : int = 21;
+
+implementation
+
+use mod_advuse_select as privsel only(hidden_func);
+
+function private_only_value() -> int:
+  result = hidden_func(6);
+endfunc

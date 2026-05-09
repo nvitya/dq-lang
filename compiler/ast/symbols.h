@@ -34,6 +34,7 @@ class OValSym;
 class OScope;
 class ODqmIfWriter;
 class OModuleBase;
+class OModuleUse;
 
 // Symbol and Scope
 
@@ -100,6 +101,14 @@ enum EIntfDeclKind
   IDK_VALSYM
 };
 
+enum EModuleUseMergeMode
+{
+  MUM_ALL,
+  MUM_NONE,
+  MUM_ONLY,
+  MUM_EXCLUDE
+};
+
 class OIntfDecl
 {
 public:
@@ -126,6 +135,31 @@ public:
   }
 };
 
+class OModuleUse
+{
+public:
+  OModuleBase *        module = nullptr;
+  OScope *             scope_use = nullptr;
+  bool                 is_private = false;
+  EModuleUseMergeMode  merge_mode = MUM_ALL;
+  vector<string>       symbol_names;
+
+  OModuleUse(OModuleBase * amodule, bool ais_private, EModuleUseMergeMode amerge_mode,
+             const vector<string> & asymbol_names)
+  :
+    module(amodule),
+    is_private(ais_private),
+    merge_mode(amerge_mode),
+    symbol_names(asymbol_names)
+  {
+  }
+
+  ~OModuleUse()
+  {
+    delete scope_use;
+  }
+};
+
 class OModuleBase
 {
 public:
@@ -133,6 +167,7 @@ public:
   OScope *         scope_pub;
 
   vector<OIntfDecl *>  declarations;  // interface declarations in source code order
+  vector<OModuleUse *>  used_modules;  // semantic use records
 
   OModuleBase(OScope * aparent, const string aname)
   :
@@ -146,6 +181,10 @@ public:
     for (OIntfDecl * decl : declarations)
     {
       delete decl;
+    }
+    for (OModuleUse * use : used_modules)
+    {
+      delete use;
     }
     delete scope_pub;
   }

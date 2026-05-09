@@ -107,6 +107,8 @@ DEF_DQ_ERR(DQERR_MODULE_STATEMENT_UNKNOWN,         "ModStatementUnknown",    "Un
 DEF_DQ_ERR(DQERR_USE_ARTIFACT_MISSING,             "UseArtifactMissing",     "Module \"$1\" requires missing compiled artifact \"$2\"");
 DEF_DQ_ERR(DQERR_USE_INTERFACE_LOAD,               "UseInterfaceLoad",       "Can not load module interface from \"$1\"");
 DEF_DQ_ERR(DQERR_USE_NAMESPACE_CONFLICT,           "UseNamespaceConflict",   "Module namespace \"$1\" is already defined");
+DEF_DQ_ERR(DQERR_USE_MODIFIER_CONFLICT,           "UseModifierConflict",    "Conflicting modifiers in use statement: $1");
+DEF_DQ_ERR(DQERR_USE_SYMBOL_UNKNOWN,              "UseSymbolUnknown",       "Module \"$1\" has no public symbol \"$2\"");
 DEF_DQ_ERR(DQERR_USE_SOURCE_MISSING,               "UseSourceMissing",       "Module \"$1\" requires source file \"$2\" to regenerate \"$3\"");
 DEF_DQ_ERR(DQERR_USE_REGEN_FAILED,                 "UseRegenFailed",         "Can not regenerate module \"$1\" from \"$2\": $3");
 DEF_DQ_ERR(DQERR_USE_CYCLE,                        "UseCycle",               "Module use cycle: $1");

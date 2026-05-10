@@ -25,6 +25,7 @@
 
 #include "comp_options.h"
 #include "dqm_if.h"
+#include "module_path.h"
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_int.h"
@@ -482,7 +483,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions() const
 {
-  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1";
+  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1;module=" + name;
   if (g_opt.dbg_info)      result += ";g";
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
@@ -729,7 +730,8 @@ string OModuleIntf::FormatModuleCycle(const string & module_path) const
 
 vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_path,
                                              const filesystem::path & artifact_path,
-                                             const string & module_path) const
+                                             const string & module_path,
+                                             const filesystem::path & module_root_dir) const
 {
   vector<string> args;
   args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
@@ -737,6 +739,10 @@ vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_pat
   args.push_back(source_path.string());
   args.push_back("-o");
   args.push_back(artifact_path.string());
+  args.push_back("--mod-root");
+  args.push_back(module_root_dir.string());
+  args.push_back("--mod-name");
+  args.push_back(module_path);
   args.push_back(format("-O{}", g_opt.optlevel));
 
   if (g_opt.dbg_info)
@@ -763,6 +769,12 @@ vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_pat
       defarg += to_string(def.int_value);
     }
     args.push_back(defarg);
+  }
+
+  for (const string & package_path : g_opt.package_paths)
+  {
+    args.push_back("--pkg-path");
+    args.push_back(package_path);
   }
 
   string stack_text;
@@ -1674,11 +1686,10 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     return true;
   }
 
-  filesystem::path artifact_path(module_path);
-  artifact_path += ".dqm";
-  if (!interface_filename.empty() && !artifact_path.is_absolute())
+  filesystem::path artifact_path;
+  if (!DqResolveCanonicalModuleArtifact(module_path, name, interface_filename, artifact_path))
   {
-    artifact_path = filesystem::path(interface_filename).parent_path() / artifact_path;
+    return reader.Fail(format("Can not resolve reexported module artifact: {}", module_path));
   }
 
   OModuleIntf * intf = new OModuleIntf(scope_pub->parent_scope, module_path);

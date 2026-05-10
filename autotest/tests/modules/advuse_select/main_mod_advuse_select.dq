@@ -1,6 +1,6 @@
-use mod_advuse_select as onlym only(SEL_CONST, sel_var, sel_func);
-use mod_advuse_select as exclm exclude(hidden_var, hidden_func);
-use mod_advuse_private_impl;
+use ./mod_advuse_select as onlym only(SEL_CONST, sel_var, sel_func);
+use ./mod_advuse_select as exclm exclude(hidden_var, hidden_func);
+use ./mod_advuse_private_impl;
 
 [[cexport]]
 function main() -> int:

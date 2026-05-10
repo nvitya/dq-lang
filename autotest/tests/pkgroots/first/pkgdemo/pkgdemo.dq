@@ -1,0 +1,5 @@
+//?notest
+
+const PKG_VAL : int = 1000;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;

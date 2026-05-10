@@ -26,6 +26,7 @@
 #include "expressions.h"
 #include "statements.h"
 #include "processrunner.h"
+#include "module_path.h"
 
 using namespace std;
 
@@ -80,6 +81,15 @@ static bool ParseParamModeKeyword(const string & sid, EParamMode & rmode)
   }
 
   return false;
+}
+
+static filesystem::path CurrentSourcePath(OScFeederDq * scf)
+{
+  if (scf && scf->curfile && !scf->curfile->fullpath.empty())
+  {
+    return scf->curfile->fullpath;
+  }
+  return "";
 }
 
 ODqCompParser::ODqCompParser()
@@ -370,6 +380,17 @@ void ODqCompParser::ParseModule()
       break; // end of module
     }
 
+    SCurrentModulePath current_module;
+    string module_error;
+    if (DqComputeCurrentModulePath(CurrentSourcePath(scf), current_module, module_error))
+    {
+      g_module->name = current_module.module_id;
+      if (!g_opt.module_use_stack.empty())
+      {
+        g_opt.module_use_stack.back() = current_module.module_id;
+      }
+    }
+
     scf->SaveCurPos(scpos_statement_start);  // to display the statement start
 
     if (!ParseAttributes(true))
@@ -446,24 +467,34 @@ void ODqCompParser::ParseModule()
   }
 }
 
-void ODqCompParser::ParseUseStatement()
+bool ODqCompParser::ParseUseModulePath(SModuleUsePath & rpath)
 {
-  string module_path;
-  string namespace_name;
+  string path_text;
   string sid;
-  EModuleUseMergeMode merge_mode = MUM_ALL;
-  vector<string> symbol_names;
-  bool reexport = false;
 
   scf->SkipWhite();
+  if (scf->CheckSymbol("^/"))
+  {
+    path_text = "^/";
+  }
+  else
+  {
+    while (scf->CheckSymbol("../"))
+    {
+      path_text += "../";
+    }
+    if (path_text.empty() && scf->CheckSymbol("./"))
+    {
+      path_text = "./";
+    }
+  }
+
   if (!scf->ReadIdentifier(sid))
   {
     RootStatementError(DQERR_ID_EXP_AFTER, "use");
-    return;
+    return false;
   }
-
-  module_path = sid;
-  namespace_name = sid;
+  path_text += sid;
 
   while (true)
   {
@@ -476,12 +507,39 @@ void ODqCompParser::ParseUseStatement()
     if (!scf->ReadIdentifier(sid))
     {
       RootStatementError(DQERR_ID_EXP_AFTER, "/");
-      return;
+      return false;
     }
 
-    module_path += "/" + sid;
-    namespace_name = sid;
+    path_text += "/" + sid;
   }
+
+  string path_error;
+  if (!DqParseModuleUsePath(path_text, rpath, path_error))
+  {
+    OScPosition errpos;
+    errpos.Assign(scpos_statement_start);
+    errpos.RecalcLineCol();
+    Error(DQERR_MODULE_PATH_INVALID, path_text, &errpos);
+    return false;
+  }
+  return true;
+}
+
+void ODqCompParser::ParseUseStatement()
+{
+  SModuleUsePath use_path;
+  SResolvedModulePath resolved_module;
+  string namespace_name;
+  string sid;
+  EModuleUseMergeMode merge_mode = MUM_ALL;
+  vector<string> symbol_names;
+  bool reexport = false;
+
+  if (!ParseUseModulePath(use_path))
+  {
+    return;
+  }
+  namespace_name = use_path.namespace_name;
 
   while (true)
   {
@@ -594,11 +652,36 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  filesystem::path module_base = filesystem::path(scf->basedir) / filesystem::path(module_path);
-  filesystem::path source_path = module_base;
-  source_path += ".dq";
-  filesystem::path artifact_path = module_base;
-  artifact_path += ".dqm";
+  SCurrentModulePath current_module;
+  string path_error;
+  if (!DqComputeCurrentModulePath(CurrentSourcePath(scf), current_module, path_error))
+  {
+    OScPosition errpos;
+    errpos.Assign(scpos_statement_start);
+    errpos.RecalcLineCol();
+    Error(DQERR_MODULE_ROOT_INVALID, path_error, &errpos);
+    return;
+  }
+
+  if (!DqResolveModuleUsePath(current_module, use_path, resolved_module, path_error))
+  {
+    OScPosition errpos;
+    errpos.Assign(scpos_statement_start);
+    errpos.RecalcLineCol();
+    if ((EModulePathKind::LOCAL_RELATIVE == use_path.kind) || (EModulePathKind::ROOT_RELATIVE == use_path.kind))
+    {
+      Error(DQERR_MODULE_PATH_ABOVE_ROOT, use_path.source_text, current_module.root_dir.string(), &errpos);
+    }
+    else
+    {
+      Error(DQERR_PACKAGE_NOT_FOUND, path_error, &errpos);
+    }
+    return;
+  }
+
+  const string module_path = resolved_module.module_id;
+  filesystem::path source_path = resolved_module.source_path;
+  filesystem::path artifact_path = resolved_module.artifact_path;
 
   OModuleIntf artifact_intf(g_builtins, module_path);
   string stale_reason;
@@ -607,7 +690,10 @@ void ODqCompParser::ParseUseStatement()
     error_code ec;
     if (!filesystem::exists(source_path, ec) || ec)
     {
-      Error(DQERR_USE_SOURCE_MISSING, module_path, source_path.string(), artifact_path.string(), &scpos_statement_start);
+      OScPosition errpos;
+      errpos.Assign(scpos_statement_start);
+      errpos.RecalcLineCol();
+      Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
       return;
     }
 
@@ -618,7 +704,8 @@ void ODqCompParser::ParseUseStatement()
     }
 
     OProcessRunner procrunner;
-    procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path);
+    procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
+                                                     resolved_module.module_root_dir);
     bool exec_ok = procrunner.Run();
     if (!exec_ok || (0 != procrunner.exit_code))
     {

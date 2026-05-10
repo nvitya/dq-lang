@@ -1,0 +1,6 @@
+use local_module;  //?error(PackageNotFound)
+
+[[cexport]]
+function main() -> int:
+  return 0;
+endfunc

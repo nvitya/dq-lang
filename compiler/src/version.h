@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.20"
+#define DQ_COMPILER_VERSION  "0.10.21"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.21:
+  - use extensions: ^/pkg/mod, and ./mod_local
+  - package search paths
 v0.10.20:
   - 'use ... reexport' implemented
 v0.10.19:

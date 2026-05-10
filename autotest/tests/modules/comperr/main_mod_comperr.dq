@@ -1,7 +1,7 @@
 // the current autotest cannot handle this:
 //?notest
 
-use mod_comperr;  //?error(UseRegenFailed)
+use ./mod_comperr;  //?error(UseRegenFailed)
 
 [[cexport]]
 function main() -> int:

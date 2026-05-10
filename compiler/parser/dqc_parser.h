@@ -19,6 +19,7 @@
 #include "statements.h"
 #include "errorcodes.h"
 #include "dqc_ast.h"
+#include "module_path.h"
 
 using namespace std;
 
@@ -38,6 +39,7 @@ public:
   void ParseModule();
 
 public: // root level items
+  bool ParseUseModulePath(SModuleUsePath & rpath);
   void ParseUseStatement();
   bool ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names);
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too

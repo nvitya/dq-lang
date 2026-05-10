@@ -1,5 +1,5 @@
-use mod_advuse_reexport_facade_only as onlyf nomerge;
-use mod_advuse_reexport_facade_exclude as exclf nomerge;
+use ./mod_advuse_reexport_facade_only as onlyf nomerge;
+use ./mod_advuse_reexport_facade_exclude as exclf nomerge;
 
 [[cexport]]
 function main() -> int:

@@ -52,6 +52,9 @@ public:
 
   string   compiler_executable;
   vector<string>  module_use_stack;
+  vector<string>  package_paths;
+  string          module_root_dir;
+  string          module_name;
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;

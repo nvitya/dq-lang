@@ -1,4 +1,4 @@
 //?notest
 
-use mod_advuse_reexport_leaf_alias as leaf_alias reexport;
+use ./mod_advuse_reexport_leaf_alias as leaf_alias reexport;
 

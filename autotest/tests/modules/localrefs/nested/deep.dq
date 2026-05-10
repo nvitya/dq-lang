@@ -1,0 +1,9 @@
+//?notest
+
+use ../child;
+use ./sibling;
+use ^/root_child;
+
+function deep_value() -> int:
+  result = CHILD_VAL + SIBLING_VAL + ROOT_VAL - 5;
+endfunc

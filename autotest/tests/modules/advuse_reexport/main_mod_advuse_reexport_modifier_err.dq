@@ -1,5 +1,5 @@
-use mod_advuse_reexport_leaf_modifier nomerge reexport;  //?error(UseModifierConflict)
+use ./mod_advuse_reexport_leaf_modifier nomerge reexport;  //?error(UseModifierConflict)
 
 implementation
 
-use mod_advuse_reexport_leaf_modifier reexport;  //?error(UseModifierConflict)
+use ./mod_advuse_reexport_leaf_modifier reexport;  //?error(UseModifierConflict)

@@ -1,6 +1,6 @@
 #ifdef ERRORTEST
 
-use mod_advuse_select as bad1 nomerge only(SEL_CONST);  //?error(UseModifierConflict)
-use mod_advuse_select as bad2 only(SEL_CONST) exclude(EXCL_CONST);  //?error(UseModifierConflict)
+use ./mod_advuse_select as bad1 nomerge only(SEL_CONST);  //?error(UseModifierConflict)
+use ./mod_advuse_select as bad2 only(SEL_CONST) exclude(EXCL_CONST);  //?error(UseModifierConflict)
 
 #endif

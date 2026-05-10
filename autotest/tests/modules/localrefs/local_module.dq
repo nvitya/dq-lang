@@ -1,0 +1,3 @@
+//?notest
+
+const LOCAL_VAL : int = 1;

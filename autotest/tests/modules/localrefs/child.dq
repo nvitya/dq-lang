@@ -1,0 +1,5 @@
+//?notest
+
+const CHILD_VAL : int = 10;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;

@@ -1,0 +1,3 @@
+//?notest
+
+const ROOT_VAL : int = 100;

@@ -1,4 +1,4 @@
-use mod_advuse_reexport_facade;
+use ./mod_advuse_reexport_facade;
 
 [[cexport]]
 function main() -> int:

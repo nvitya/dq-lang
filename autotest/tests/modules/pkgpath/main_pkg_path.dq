@@ -1,0 +1,10 @@
+//?skip_test
+
+use pkgdemo;
+use pkgdemo/submod as sub;
+
+[[cexport]]
+function main() -> int:
+  printf("pkg path = %d\n", PKG_VAL + @sub.sub_value());
+  return 0;
+endfunc

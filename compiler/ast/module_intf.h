@@ -115,7 +115,7 @@ public:
   bool IsInModuleUseStack(const string & module_path) const;
   string FormatModuleCycle(const string & module_path) const;
   vector<string> ChildCompileArgs(const filesystem::path & source_path, const filesystem::path & artifact_path,
-                                  const string & module_path) const;
+                                  const string & module_path, const filesystem::path & module_root_dir) const;
   void WriteDump(ostream & out);
 };
 

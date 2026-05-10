@@ -1,5 +1,5 @@
-use mod_advuse_select as all1;
-use mod_advuse_select as all2;
+use ./mod_advuse_select as all1;
+use ./mod_advuse_select as all2;
 
 [[cexport]]
 function main() -> int:

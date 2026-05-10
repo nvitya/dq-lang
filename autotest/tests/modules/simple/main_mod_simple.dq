@@ -1,5 +1,5 @@
 
-use mod_simple;
+use ./mod_simple;
 
 [[cexport]]
 function main() -> int:

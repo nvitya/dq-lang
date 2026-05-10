@@ -112,6 +112,11 @@ DEF_DQ_ERR(DQERR_USE_SYMBOL_UNKNOWN,              "UseSymbolUnknown",       "Mod
 DEF_DQ_ERR(DQERR_USE_SOURCE_MISSING,               "UseSourceMissing",       "Module \"$1\" requires source file \"$2\" to regenerate \"$3\"");
 DEF_DQ_ERR(DQERR_USE_REGEN_FAILED,                 "UseRegenFailed",         "Can not regenerate module \"$1\" from \"$2\": $3");
 DEF_DQ_ERR(DQERR_USE_CYCLE,                        "UseCycle",               "Module use cycle: $1");
+DEF_DQ_ERR(DQERR_PACKAGE_NOT_FOUND,                "PackageNotFound",        "Package \"$1\" was not found in --pkg-path roots");
+DEF_DQ_ERR(DQERR_MODULE_NOT_FOUND,                 "ModuleNotFound",         "Module \"$1\" source file \"$2\" was not found");
+DEF_DQ_ERR(DQERR_MODULE_PATH_ABOVE_ROOT,           "ModulePathAboveRoot",    "Module path \"$1\" escapes above module root \"$2\"");
+DEF_DQ_ERR(DQERR_MODULE_PATH_INVALID,              "ModulePathInvalid",      "Invalid module path \"$1\"");
+DEF_DQ_ERR(DQERR_MODULE_ROOT_INVALID,              "ModuleRootInvalid",      "Invalid module root: $1");
 
 DEF_DQ_ERR(DQERR_ATTR_NAME_EXPECTED,               "AttrNameMissing",        "Attribute name expected after \"[[\"");
 DEF_DQ_ERR(DQERR_ATTR_UNKNOWN,                     "AttrUnknown",            "Unknown attribute \"$1\"");

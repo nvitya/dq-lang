@@ -234,6 +234,51 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
           return;
         }
       }
+      else if ("--pkg-path" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          g_opt.package_paths.push_back(argv[i]);
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing path after --pkg-path\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--mod-root" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          g_opt.module_root_dir = argv[i];
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing path after --mod-root\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--mod-name" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          g_opt.module_name = argv[i];
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing module name after --mod-name\n");
+          PrintUsage();
+          return;
+        }
+      }
       else if (VerblevelSwitch(v))  { /* already handled in the function */ }
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
@@ -401,6 +446,7 @@ void ODqCompClargs::PrintUsage()
   print("  -c        : compile only (do not link)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if or .dqm)\n");
+  print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

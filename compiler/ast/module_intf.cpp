@@ -728,14 +728,15 @@ string OModuleIntf::FormatModuleCycle(const string & module_path) const
   return result;
 }
 
-vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_path,
-                                             const filesystem::path & artifact_path,
-                                             const string & module_path,
-                                             const filesystem::path & module_root_dir) const
+static vector<string> ModuleChildArgs(const filesystem::path & source_path,
+                                      const filesystem::path & artifact_path,
+                                      const string & module_path,
+                                      const filesystem::path & module_root_dir,
+                                      bool interface_only)
 {
   vector<string> args;
   args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
-  args.push_back("-c");
+  args.push_back(interface_only ? "--ifgen" : "-c");
   args.push_back(source_path.string());
   args.push_back("-o");
   args.push_back(artifact_path.string());
@@ -790,6 +791,22 @@ vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_pat
   args.push_back(stack_text);
 
   return args;
+}
+
+vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_path,
+                                             const filesystem::path & artifact_path,
+                                             const string & module_path,
+                                             const filesystem::path & module_root_dir) const
+{
+  return ModuleChildArgs(source_path, artifact_path, module_path, module_root_dir, false);
+}
+
+vector<string> OModuleIntf::ChildInterfaceArgs(const filesystem::path & source_path,
+                                               const filesystem::path & interface_artifact_path,
+                                               const string & module_path,
+                                               const filesystem::path & module_root_dir) const
+{
+  return ModuleChildArgs(source_path, interface_artifact_path, module_path, module_root_dir, true);
 }
 
 bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)

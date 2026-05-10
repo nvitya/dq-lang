@@ -4,7 +4,11 @@ const MOD_CONST : int = 99;
 
 var g_mod_var : int = 5;
 
+function mod_func_test(a : int) -> int;
+
 [[external]] function printf(fmt : ^cchar, ...) -> int;
+
+implementation
 
 function mod_func_test(a : int) -> int:
   result = a * 2;

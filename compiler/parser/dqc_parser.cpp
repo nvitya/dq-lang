@@ -690,30 +690,35 @@ void ODqCompParser::ParseUseStatement()
     const string module_path = use_path.module_id;
     filesystem::path source_path = use_path.source_path;
     filesystem::path artifact_path = use_path.artifact_path;
+    filesystem::path interface_artifact_path = use_path.interface_artifact_path;
 
     OModuleIntf artifact_intf(g_builtins, module_path);
-    string stale_reason;
-    if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
+    bool in_module_stack = artifact_intf.IsInModuleUseStack(module_path);
+    if (in_module_stack && section_public)
+    {
+      Error(DQERR_USE_CYCLE, artifact_intf.FormatModuleCycle(module_path), &scpos_statement_start);
+      return;
+    }
+
+    auto source_exists = [&]() -> bool
     {
       error_code ec;
-      if (!filesystem::exists(source_path, ec) || ec)
+      if (filesystem::exists(source_path, ec) && !ec)
       {
-        OScPosition errpos;
-        errpos.Assign(scpos_statement_start);
-        errpos.RecalcLineCol();
-        Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
-        return;
+        return true;
       }
 
-      if (artifact_intf.IsInModuleUseStack(module_path))
-      {
-        Error(DQERR_USE_CYCLE, artifact_intf.FormatModuleCycle(module_path), &scpos_statement_start);
-        return;
-      }
+      OScPosition errpos;
+      errpos.Assign(scpos_statement_start);
+      errpos.RecalcLineCol();
+      Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
+      return false;
+    };
 
+    auto run_child_compile = [&](const vector<string> & args, const string & stale_reason) -> bool
+    {
       OProcessRunner procrunner;
-      procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
-                                                      use_path.root_dir);
+      procrunner.args = args;
       bool exec_ok = procrunner.Run();
       if (!exec_ok || (0 != procrunner.exit_code))
       {
@@ -732,6 +737,46 @@ void ODqCompParser::ParseUseStatement()
           reason += format(" after stale artifact ({})", stale_reason);
         }
         Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), reason, &scpos_statement_start);
+        return false;
+      }
+
+      return true;
+    };
+
+    string stale_reason;
+    if (!artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
+    {
+      if (!source_exists())
+      {
+        return;
+      }
+
+      if (!run_child_compile(artifact_intf.ChildInterfaceArgs(source_path, interface_artifact_path,
+                                                              module_path, use_path.root_dir),
+                             stale_reason))
+      {
+        return;
+      }
+
+      if (!artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
+      {
+        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
+        return;
+      }
+    }
+
+    if (!g_opt.ifgen && !in_module_stack
+        && !artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
+    {
+      if (!source_exists())
+      {
+        return;
+      }
+
+      if (!run_child_compile(artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
+                                                            use_path.root_dir),
+                             stale_reason))
+      {
         return;
       }
 
@@ -742,20 +787,24 @@ void ODqCompParser::ParseUseStatement()
       }
     }
 
-    error_code ec;
-    if (!filesystem::exists(artifact_path, ec) || ec)
+    if (!g_opt.ifgen && !in_module_stack)
     {
-      Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
-      return;
+      error_code ec;
+      if (!filesystem::exists(artifact_path, ec) || ec)
+      {
+        Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
+        return;
+      }
     }
 
     int prev_errorcnt = errorcnt;
-    if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), cur_mod_scope,
-                                    !section_public, merge_mode, symbol_names, reexport))
+    if (!g_module->UseCompiledModule(module_path, namespace_name, interface_artifact_path.string(),
+                                    artifact_path.string(), cur_mod_scope, !section_public, merge_mode,
+                                    symbol_names, reexport))
     {
       if (prev_errorcnt == errorcnt)
       {
-        Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+        Error(DQERR_USE_INTERFACE_LOAD, interface_artifact_path.string(), &scpos_statement_start);
       }
       return;
     }
@@ -1430,6 +1479,29 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   };
 
   OValSym * existing = decl_scope->FindValSym(vsfunc->name, nullptr, false);
+  if (!existing && !section_public)
+  {
+    OValSym * public_existing = g_module->scope_pub->FindValSym(vsfunc->name, nullptr, false);
+    if (vsfunc->attr_is_overload)
+    {
+      if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(public_existing))
+      {
+        OValSymFunc * matching_decl = ovset->FindMatchingOverloadDecl(tfunc);
+        if (matching_decl && matching_decl->IsForwardDecl())
+        {
+          existing = ovset;
+        }
+      }
+    }
+    else if (auto * public_func = dynamic_cast<OValSymFunc *>(public_existing))
+    {
+      if (public_func->IsForwardDecl())
+      {
+        existing = public_func;
+      }
+    }
+  }
+
   if (vsfunc->attr_is_overload)
   {
     OValSymOverloadSet * ovset = dynamic_cast<OValSymOverloadSet *>(existing);

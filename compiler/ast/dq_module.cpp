@@ -82,7 +82,8 @@ static void FillUseScope(OModuleUse * ause)
 }
 
 bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name,
-                                const string & artifact_path, OScope * amerge_scope, bool ais_private,
+                                const string & interface_artifact_path, const string & link_artifact_path,
+                                OScope * amerge_scope, bool ais_private,
                                 EModuleUseMergeMode amerge_mode, const vector<string> & asymbol_names,
                                 bool areexport)
 {
@@ -99,7 +100,7 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   if (!intf)
   {
     intf = new OModuleIntf(scope_pub->parent_scope, module_path);
-    if (!intf->ReadInterface(artifact_path))
+    if (!intf->ReadInterface(interface_artifact_path))
     {
       delete intf;
       return false;
@@ -124,9 +125,9 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   }
   g_namespaces[namespace_name] = intf->scope_pub;
 
-  if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), artifact_path))
+  if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), link_artifact_path))
   {
-    link_module_artifacts.push_back(artifact_path);
+    link_module_artifacts.push_back(link_artifact_path);
   }
   for (const string & reexport_artifact : intf->reexport_artifacts)
   {

@@ -98,7 +98,8 @@ public:
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
-                         const string & artifact_path, OScope * amerge_scope, bool ais_private,
+                         const string & interface_artifact_path, const string & link_artifact_path,
+                         OScope * amerge_scope, bool ais_private,
                          EModuleUseMergeMode amerge_mode = MUM_ALL,
                          const vector<string> & asymbol_names = {},
                          bool areexport = false);

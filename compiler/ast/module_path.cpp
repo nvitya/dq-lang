@@ -31,6 +31,7 @@ void OModulePath::Clear()
   module_id.clear();
   source_path.clear();
   artifact_path.clear();
+  interface_artifact_path.clear();
 }
 
 filesystem::path OModulePath::AbsNorm(const filesystem::path & path)
@@ -132,6 +133,14 @@ filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_
   return result;
 }
 
+filesystem::path OModulePath::BuildInterfaceArtifactPath(const filesystem::path & source_path)
+{
+  filesystem::path result = source_path;
+  string suffix = BuildArtifactSuffix();
+  result.replace_extension(suffix + ".dqm_if");
+  return result;
+}
+
 string OModulePath::ModuleIdFromPackageLocal(const string & package_name, const string & local_path)
 {
   if (local_path == package_name)
@@ -192,6 +201,7 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
     package_name = idparts[0];
     local_path = (idparts.size() == 1 ? package_name : Join(idparts, 1));
     artifact_path = BuildArtifactPath(source_path);
+    interface_artifact_path = BuildInterfaceArtifactPath(source_path);
     namespace_name = Split(local_path).back();
     return true;
   }
@@ -222,6 +232,7 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
 
   module_id = ModuleIdFromPackageLocal(package_name, local_path);
   artifact_path = BuildArtifactPath(source_path);
+  interface_artifact_path = BuildInterfaceArtifactPath(source_path);
   namespace_name = Split(local_path).back();
   return true;
 }
@@ -324,6 +335,7 @@ bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
   module_id = ModuleIdFromPackageLocal(package_name, local_path);
   source_path = SourcePathForLocal(root_dir, local_path);
   artifact_path = BuildArtifactPath(source_path);
+  interface_artifact_path = BuildInterfaceArtifactPath(source_path);
   return true;
 }
 

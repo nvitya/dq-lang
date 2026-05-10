@@ -7,7 +7,7 @@ use ./mod_circ_a, ./mod_circ_b;
 
 function main() -> int [[cexport]]:
   printf('DQ Circular module reference test\n');  //?check('DQ Circular module reference test')
-  printf('func_a() = %d\n', func_a());  //?check('func_a()', 1)
-  printf('func_b() = %d\n', func_b());  //?check('func_b()', 2)
+  printf('func_a() = %d\n', func_a());  //?check('func_a()', 21)
+  printf('func_b() = %d\n', func_b());  //?check('func_b()', 12)
   return 0;
 endfunc

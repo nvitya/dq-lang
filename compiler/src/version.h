@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.23"
+#define DQ_COMPILER_VERSION  "0.10.24"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.24:
+  - 'use' statements:
+    - handling forward declarations properly
+    - handling circular references trough the implementation block
 v0.10.23:
   - Handling multiple, comma separated blocks in the use statements
 v0.10.22:

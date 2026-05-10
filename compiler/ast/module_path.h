@@ -40,6 +40,7 @@ public:
   string            module_id;
   filesystem::path  source_path;
   filesystem::path  artifact_path;
+  filesystem::path  interface_artifact_path;
 
 public:
   void Clear();
@@ -54,6 +55,7 @@ public:
                                        const filesystem::path & context_artifact,
                                        filesystem::path & rartifact_path);
   static filesystem::path BuildArtifactPath(const filesystem::path & source_path);
+  static filesystem::path BuildInterfaceArtifactPath(const filesystem::path & source_path);
 
 private:
   static filesystem::path AbsNorm(const filesystem::path & path);

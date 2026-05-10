@@ -20,6 +20,7 @@
 #include <fstream>
 #include <format>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 using namespace std;
@@ -36,41 +37,51 @@ OArtifactLock::~OArtifactLock()
   Unlock();
 }
 
-filesystem::path OArtifactLock::LockPathFor(const filesystem::path & artifact_path)
-{
-  filesystem::path result = artifact_path;
-  result += ".lock";
-  return result;
-}
-
 bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMode mode)
 {
   Unlock();
   error.clear();
 
-  filesystem::path lock_path = LockPathFor(artifact_path);
-  fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
-  if (fd < 0)
-  {
-    error = format("Can not open artifact lock {}: {}", lock_path.string(), strerror(errno));
-    return false;
-  }
+  int open_flags = (EArtifactLockMode::SHARED == mode ? O_RDONLY : (O_CREAT | O_RDWR));
 
-  int op = (EArtifactLockMode::SHARED == mode ? LOCK_SH : LOCK_EX);
-  while (flock(fd, op) < 0)
+  while (true)
   {
-    if (EINTR == errno)
+    int new_fd = open(artifact_path.c_str(), open_flags | O_CLOEXEC, 0666);
+    if (new_fd < 0)
     {
-      continue;
+      error = format("Can not open artifact for locking {}: {}", artifact_path.string(), strerror(errno));
+      return false;
     }
 
-    error = format("Can not lock artifact {}: {}", lock_path.string(), strerror(errno));
-    close(fd);
-    fd = -1;
-    return false;
-  }
+    int op = (EArtifactLockMode::SHARED == mode ? LOCK_SH : LOCK_EX);
+    while (flock(new_fd, op) < 0)
+    {
+      if (EINTR == errno)
+      {
+        continue;
+      }
 
-  return true;
+      error = format("Can not lock artifact {}: {}", artifact_path.string(), strerror(errno));
+      close(new_fd);
+      return false;
+    }
+
+    struct stat fd_st = {};
+    struct stat path_st = {};
+    bool same_path = (0 == fstat(new_fd, &fd_st))
+        && (0 == stat(artifact_path.c_str(), &path_st))
+        && (fd_st.st_dev == path_st.st_dev)
+        && (fd_st.st_ino == path_st.st_ino);
+
+    if (same_path)
+    {
+      fd = new_fd;
+      return true;
+    }
+
+    flock(new_fd, LOCK_UN);
+    close(new_fd);
+  }
 }
 
 void OArtifactLock::Unlock()

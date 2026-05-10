@@ -45,8 +45,6 @@ public:
   bool Lock(const filesystem::path & artifact_path, EArtifactLockMode mode);
   void Unlock();
   bool Locked() const { return fd >= 0; }
-
-  static filesystem::path LockPathFor(const filesystem::path & artifact_path);
 };
 
 filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path);

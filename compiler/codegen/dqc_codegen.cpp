@@ -30,8 +30,10 @@
 
 #include <print>
 #include <format>
+#include <filesystem>
 
 #include "dqc_codegen.h"
+#include "artifact_lock.h"
 
 using namespace std;
 
@@ -243,14 +245,26 @@ void ODqCompCodegen::EmitObject(const string afilename)
     print("Writing object file \"{}\"...\n", afilename);
   }
 
+  filesystem::path tmp_path = ArtifactTempPathFor(afilename);
   error_code ec;
-  llvm::raw_fd_ostream out(afilename, ec, llvm::sys::fs::OF_None);
-  if (ec) throw runtime_error(ec.message());
+  llvm::raw_fd_ostream out(tmp_path.string(), ec, llvm::sys::fs::OF_None);
+  if (ec)
+  {
+    ArtifactRemoveNoError(tmp_path);
+    throw runtime_error(ec.message());
+  }
 
   llvm::legacy::PassManager pm;
   ll_machine->addPassesToEmitFile(pm, out, nullptr, llvm::CodeGenFileType::ObjectFile);
   pm.run(*ll_module);
   out.flush();
+  out.close();
+
+  string publish_error;
+  if (!ArtifactAtomicReplace(tmp_path, afilename, publish_error))
+  {
+    throw runtime_error(publish_error);
+  }
 }
 
 void ODqCompCodegen::PrintIr()

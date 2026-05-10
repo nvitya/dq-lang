@@ -743,8 +743,26 @@ void ODqCompParser::ParseUseStatement()
       return true;
     };
 
+    filesystem::path interface_load_path;
     string stale_reason;
-    if (!artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
+
+    auto interface_is_fresh = [&]() -> bool
+    {
+      if (in_module_stack)
+      {
+        if (artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
+        {
+          interface_load_path = interface_artifact_path;
+          return true;
+        }
+        return false;
+      }
+
+      return artifact_intf.FindFreshInterfaceArtifact(interface_artifact_path, artifact_path, source_path,
+                                                     interface_load_path, stale_reason);
+    };
+
+    if (!interface_is_fresh())
     {
       if (!source_exists())
       {
@@ -758,7 +776,7 @@ void ODqCompParser::ParseUseStatement()
         return;
       }
 
-      if (!artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
+      if (!interface_is_fresh())
       {
         Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
         return;
@@ -785,6 +803,13 @@ void ODqCompParser::ParseUseStatement()
         Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
         return;
       }
+
+      if (!artifact_intf.FindFreshInterfaceArtifact(interface_artifact_path, artifact_path, source_path,
+                                                   interface_load_path, stale_reason))
+      {
+        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
+        return;
+      }
     }
 
     if (!g_opt.ifgen && !in_module_stack)
@@ -798,13 +823,13 @@ void ODqCompParser::ParseUseStatement()
     }
 
     int prev_errorcnt = errorcnt;
-    if (!g_module->UseCompiledModule(module_path, namespace_name, interface_artifact_path.string(),
+    if (!g_module->UseCompiledModule(module_path, namespace_name, interface_load_path.string(),
                                     artifact_path.string(), cur_mod_scope, !section_public, merge_mode,
                                     symbol_names, reexport))
     {
       if (prev_errorcnt == errorcnt)
       {
-        Error(DQERR_USE_INTERFACE_LOAD, interface_artifact_path.string(), &scpos_statement_start);
+        Error(DQERR_USE_INTERFACE_LOAD, interface_load_path.string(), &scpos_statement_start);
       }
       return;
     }

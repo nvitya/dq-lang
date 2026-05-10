@@ -107,11 +107,17 @@ public:
   bool BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename);
   bool WriteInterface(const string & filename, const string & source_filename);
   bool ReadInterface(const string & filename);
-  bool ReadMetadata(const string & filename, string & rerror);
+  bool ReadInterface(const string & filename, bool alock, bool aquiet = false);
+  bool ReadMetadata(const string & filename, string & rerror, bool alock = true);
   bool MetadataMatchesCurrentBuild(string & rreason) const;
   bool MetadataMatchesSource(const filesystem::path & source_path, string & rreason) const;
   bool CompiledArtifactIsFresh(const filesystem::path & artifact_path, const filesystem::path & source_path,
-                               string & rreason);
+                               string & rreason, bool alock = true);
+  bool FindFreshInterfaceArtifact(const filesystem::path & interface_artifact_path,
+                                  const filesystem::path & object_artifact_path,
+                                  const filesystem::path & source_path,
+                                  filesystem::path & rinterface_path,
+                                  string & rreason);
   bool IsInModuleUseStack(const string & module_path) const;
   string FormatModuleCycle(const string & module_path) const;
   vector<string> ChildCompileArgs(const filesystem::path & source_path, const filesystem::path & artifact_path,

@@ -219,6 +219,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       if      ("--version" == v)  g_opt.print_version = true;
       else if ("--ifgen"   == v)  g_opt.ifgen = true;
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
+      else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
       else if ("--ifstack" == v)
       {
         if (i + 1 < argc)

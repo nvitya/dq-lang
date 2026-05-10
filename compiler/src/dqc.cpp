@@ -26,6 +26,7 @@
 #include "dqc.h"
 #include "dq_module.h"
 #include "version.h"
+#include "artifact_lock.h"
 
 ODqCompiler *  g_compiler = nullptr;
 
@@ -73,6 +74,31 @@ void ODqCompiler::Run(int argc, char ** argv)
       ++errorcnt;
     }
     return;
+  }
+
+  OArtifactLock output_artifact_lock;
+  if (!out_filename.empty())
+  {
+    if (!output_artifact_lock.Lock(out_filename, EArtifactLockMode::EXCLUSIVE))
+    {
+      ++errorcnt;
+      print("{}\n", output_artifact_lock.error);
+      return;
+    }
+
+    if (g_opt.regen_if_stale)
+    {
+      OModuleIntf artifact_intf(g_builtins, "regen_check");
+      string stale_reason;
+      if (artifact_intf.CompiledArtifactIsFresh(out_filename, in_filename, stale_reason, false))
+      {
+        if (!g_opt.ifgen)
+        {
+          ArtifactCleanupInterfaceSidecarForObject(out_filename);
+        }
+        return;
+      }
+    }
   }
 
   if (g_opt.module_use_stack.empty())
@@ -159,6 +185,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     return;
   }
+  ArtifactCleanupInterfaceSidecarForObject(out_filename);
 
   // linking decision
   if (!g_opt.compile_only)

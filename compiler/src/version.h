@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.24"
+#define DQ_COMPILER_VERSION  "0.10.25"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.25:
+  - removing .dqm_if files after creating .dqm
+  - lock files for multi-process generation of .dqm files
 v0.10.24:
   - 'use' statements:
     - handling forward declarations properly

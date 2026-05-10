@@ -48,6 +48,7 @@ public:
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump
+  bool     regen_if_stale = false;  // internal child module regeneration mode
   int      module_root_depth = 0;
 
   string   compiler_executable;

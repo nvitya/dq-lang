@@ -21,6 +21,8 @@
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Support/Error.h>
 
+#include "artifact_lock.h"
+
 using namespace std;
 
 static_assert(sizeof(TDqmIfHeader) == 32);
@@ -212,20 +214,9 @@ bool ODqmIfWriter::WriteToFile(const string & filename)
     return false;
   }
 
-  ofstream outf(filename, ios::binary);
-  if (!outf)
-  {
-    return Fail(format("Can not create module interface file: {}", filename));
-  }
-
-  outf.write(reinterpret_cast<const char *>(data.data()), data.size());
-
-  if (!outf)
-  {
-    return Fail(format("Can not write module interface file: {}", filename));
-  }
-
-  return true;
+  string write_error;
+  return ArtifactAtomicWrite(filename, data, write_error)
+      || Fail(format("Can not write module interface file: {}\n{}", filename, write_error));
 }
 
 bool ODqmIfReader::Fail(const string & amsg)

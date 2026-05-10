@@ -33,6 +33,7 @@
 #include "otype_bool.h"
 #include "otype_cstring.h"
 #include "scope_builtins.h"
+#include "artifact_lock.h"
 
 static string TypeName(OType * atype)
 {
@@ -589,10 +590,17 @@ bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader)
   return reader.Fail("DQM interface header metadata is missing");
 }
 
-bool OModuleIntf::ReadMetadata(const string & filename, string & rerror)
+bool OModuleIntf::ReadMetadata(const string & filename, string & rerror, bool alock)
 {
   ClearDqmIfMetadata();
   rerror.clear();
+
+  OArtifactLock lock;
+  if (alock && !lock.Lock(filename, EArtifactLockMode::SHARED))
+  {
+    rerror = lock.error;
+    return false;
+  }
 
   ODqmIfReader reader;
   if (!reader.ReadFromArtifact(filename) || !ReadDqmIfHeaderMetadata(reader))
@@ -676,7 +684,7 @@ bool OModuleIntf::MetadataMatchesSource(const filesystem::path & source_path, st
 
 bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path,
                                           const filesystem::path & source_path,
-                                          string & rreason)
+                                          string & rreason, bool alock)
 {
   error_code ec;
   if (!filesystem::exists(artifact_path, ec) || ec)
@@ -686,13 +694,41 @@ bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path
   }
 
   string metadata_error;
-  if (!ReadMetadata(artifact_path.string(), metadata_error))
+  if (!ReadMetadata(artifact_path.string(), metadata_error, alock))
   {
     rreason = metadata_error;
     return false;
   }
 
   return MetadataMatchesSource(source_path, rreason) && MetadataMatchesCurrentBuild(rreason);
+}
+
+bool OModuleIntf::FindFreshInterfaceArtifact(const filesystem::path & interface_artifact_path,
+                                             const filesystem::path & object_artifact_path,
+                                             const filesystem::path & source_path,
+                                             filesystem::path & rinterface_path,
+                                             string & rreason)
+{
+  string object_reason;
+  if (CompiledArtifactIsFresh(object_artifact_path, source_path, object_reason))
+  {
+    ArtifactCleanupInterfaceSidecarForObject(object_artifact_path);
+    rinterface_path = object_artifact_path;
+    rreason.clear();
+    return true;
+  }
+
+  string interface_reason;
+  if (CompiledArtifactIsFresh(interface_artifact_path, source_path, interface_reason))
+  {
+    rinterface_path = interface_artifact_path;
+    rreason.clear();
+    return true;
+  }
+
+  rinterface_path.clear();
+  rreason = format("interface artifact: {}; compiled artifact: {}", interface_reason, object_reason);
+  return false;
 }
 
 bool OModuleIntf::IsInModuleUseStack(const string & module_path) const
@@ -740,6 +776,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back(source_path.string());
   args.push_back("-o");
   args.push_back(artifact_path.string());
+  args.push_back("--regen-if-stale");
   args.push_back("--mod-root");
   args.push_back(module_root_dir.string());
   args.push_back("--mod-name");
@@ -1842,11 +1879,29 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 
 bool OModuleIntf::ReadInterface(const string & filename)
 {
+  return ReadInterface(filename, true);
+}
+
+bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet)
+{
   interface_filename = filename;
+  OArtifactLock lock;
+  if (alock && !lock.Lock(filename, EArtifactLockMode::SHARED))
+  {
+    if (!aquiet)
+    {
+      print("Can not read module interface artifact: {}\n{}\n", filename, lock.error);
+    }
+    return false;
+  }
+
   ODqmIfReader reader;
   if (!reader.ReadFromArtifact(filename) || !ReadDqmIfRecords(reader))
   {
-    print("Can not read module interface artifact: {}\n{}\n", filename, reader.error);
+    if (!aquiet)
+    {
+      print("Can not read module interface artifact: {}\n{}\n", filename, reader.error);
+    }
     return false;
   }
 

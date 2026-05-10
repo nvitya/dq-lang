@@ -100,7 +100,8 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   if (!intf)
   {
     intf = new OModuleIntf(scope_pub->parent_scope, module_path);
-    if (!intf->ReadInterface(interface_artifact_path))
+    if (!intf->ReadInterface(interface_artifact_path, true, true)
+        && ((interface_artifact_path == link_artifact_path) || !intf->ReadInterface(link_artifact_path)))
     {
       delete intf;
       return false;

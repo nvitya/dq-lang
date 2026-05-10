@@ -8,7 +8,7 @@
  * file:    module_path.h
  * authors: nvitya
  * created: 2026-05-10
- * brief:   DQ module path resolution helpers
+ * brief:   DQ module path resolution
  */
 
 #pragma once
@@ -19,42 +19,49 @@
 
 using namespace std;
 
-enum class EModulePathKind
+class OModulePath
 {
-  LOCAL_RELATIVE,
-  ROOT_RELATIVE,
-  PACKAGE
-};
+public:
+  enum class EKind
+  {
+    LOCAL_RELATIVE,
+    ROOT_RELATIVE,
+    PACKAGE
+  };
 
-struct SCurrentModulePath
-{
+public:
+  string            source_text;
+  string            namespace_name;
+  EKind             kind = EKind::PACKAGE;
+
   filesystem::path  root_dir;
   string            package_name;
   string            local_path;
   string            module_id;
-};
-
-struct SModuleUsePath
-{
-  string           source_text;
-  string           namespace_name;
-  EModulePathKind  kind = EModulePathKind::PACKAGE;
-};
-
-struct SResolvedModulePath
-{
-  string            module_id;
-  filesystem::path  module_root_dir;
   filesystem::path  source_path;
   filesystem::path  artifact_path;
-};
 
-bool DqComputeCurrentModulePath(const filesystem::path & source_path, SCurrentModulePath & rcur,
-                                string & rerror);
-bool DqParseModuleUsePath(const string & first_id, SModuleUsePath & rpath, string & rerror);
-bool DqResolveModuleUsePath(const SCurrentModulePath & current, const SModuleUsePath & use_path,
-                            SResolvedModulePath & rresolved, string & rerror);
-bool DqResolveCanonicalModuleArtifact(const string & module_id, const string & context_module_id,
-                                      const filesystem::path & context_artifact,
-                                      filesystem::path & rartifact_path);
-filesystem::path DqBuildArtifactPath(const filesystem::path & source_path);
+public:
+  void Clear();
+
+  bool InitCurrent(const filesystem::path & asource_path, string & rerror);
+  bool ParseUsePath(const string & apath_text, string & rerror);
+  bool ResolveFrom(const OModulePath & current, string & rerror);
+
+  bool IsLocalReference() const;
+
+  static bool ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
+                                       const filesystem::path & context_artifact,
+                                       filesystem::path & rartifact_path);
+  static filesystem::path BuildArtifactPath(const filesystem::path & source_path);
+
+private:
+  static filesystem::path AbsNorm(const filesystem::path & path);
+  static vector<string> Split(const string & path);
+  static string Join(const vector<string> & items, size_t start = 0);
+  static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, const string & local_path);
+  static string BuildArtifactSuffix();
+  static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path);
+  static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,
+                                 const string & source_text, string & rerror);
+};

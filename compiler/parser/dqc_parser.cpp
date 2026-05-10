@@ -380,9 +380,9 @@ void ODqCompParser::ParseModule()
       break; // end of module
     }
 
-    SCurrentModulePath current_module;
+    OModulePath current_module;
     string module_error;
-    if (DqComputeCurrentModulePath(CurrentSourcePath(scf), current_module, module_error))
+    if (current_module.InitCurrent(CurrentSourcePath(scf), module_error))
     {
       g_module->name = current_module.module_id;
       if (!g_opt.module_use_stack.empty())
@@ -467,7 +467,7 @@ void ODqCompParser::ParseModule()
   }
 }
 
-bool ODqCompParser::ParseUseModulePath(SModuleUsePath & rpath)
+bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
 {
   string path_text;
   string sid;
@@ -514,7 +514,7 @@ bool ODqCompParser::ParseUseModulePath(SModuleUsePath & rpath)
   }
 
   string path_error;
-  if (!DqParseModuleUsePath(path_text, rpath, path_error))
+  if (!rpath.ParseUsePath(path_text, path_error))
   {
     OScPosition errpos;
     errpos.Assign(scpos_statement_start);
@@ -527,8 +527,7 @@ bool ODqCompParser::ParseUseModulePath(SModuleUsePath & rpath)
 
 void ODqCompParser::ParseUseStatement()
 {
-  SModuleUsePath use_path;
-  SResolvedModulePath resolved_module;
+  OModulePath use_path;
   string namespace_name;
   string sid;
   EModuleUseMergeMode merge_mode = MUM_ALL;
@@ -652,9 +651,9 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  SCurrentModulePath current_module;
+  OModulePath current_module;
   string path_error;
-  if (!DqComputeCurrentModulePath(CurrentSourcePath(scf), current_module, path_error))
+  if (!current_module.InitCurrent(CurrentSourcePath(scf), path_error))
   {
     OScPosition errpos;
     errpos.Assign(scpos_statement_start);
@@ -663,12 +662,12 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  if (!DqResolveModuleUsePath(current_module, use_path, resolved_module, path_error))
+  if (!use_path.ResolveFrom(current_module, path_error))
   {
     OScPosition errpos;
     errpos.Assign(scpos_statement_start);
     errpos.RecalcLineCol();
-    if ((EModulePathKind::LOCAL_RELATIVE == use_path.kind) || (EModulePathKind::ROOT_RELATIVE == use_path.kind))
+    if (use_path.IsLocalReference())
     {
       Error(DQERR_MODULE_PATH_ABOVE_ROOT, use_path.source_text, current_module.root_dir.string(), &errpos);
     }
@@ -679,9 +678,9 @@ void ODqCompParser::ParseUseStatement()
     return;
   }
 
-  const string module_path = resolved_module.module_id;
-  filesystem::path source_path = resolved_module.source_path;
-  filesystem::path artifact_path = resolved_module.artifact_path;
+  const string module_path = use_path.module_id;
+  filesystem::path source_path = use_path.source_path;
+  filesystem::path artifact_path = use_path.artifact_path;
 
   OModuleIntf artifact_intf(g_builtins, module_path);
   string stale_reason;
@@ -705,7 +704,7 @@ void ODqCompParser::ParseUseStatement()
 
     OProcessRunner procrunner;
     procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
-                                                     resolved_module.module_root_dir);
+                                                     use_path.root_dir);
     bool exec_ok = procrunner.Run();
     if (!exec_ok || (0 != procrunner.exit_code))
     {

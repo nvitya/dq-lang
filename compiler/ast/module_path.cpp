@@ -8,19 +8,32 @@
  * file:    module_path.cpp
  * authors: nvitya
  * created: 2026-05-10
- * brief:   DQ module path resolution helpers
+ * brief:   DQ module path resolution
  */
 
 #include "module_path.h"
 
-#include <algorithm>
 #include <format>
 
 #include "comp_options.h"
 
 using namespace std;
 
-static filesystem::path AbsNorm(const filesystem::path & path)
+void OModulePath::Clear()
+{
+  source_text.clear();
+  namespace_name.clear();
+  kind = EKind::PACKAGE;
+
+  root_dir.clear();
+  package_name.clear();
+  local_path.clear();
+  module_id.clear();
+  source_path.clear();
+  artifact_path.clear();
+}
+
+filesystem::path OModulePath::AbsNorm(const filesystem::path & path)
 {
   error_code ec;
   filesystem::path result = filesystem::absolute(path, ec);
@@ -31,7 +44,7 @@ static filesystem::path AbsNorm(const filesystem::path & path)
   return result.lexically_normal();
 }
 
-static vector<string> SplitModulePath(const string & path)
+vector<string> OModulePath::Split(const string & path)
 {
   vector<string> result;
   size_t start = 0;
@@ -52,7 +65,7 @@ static vector<string> SplitModulePath(const string & path)
   return result;
 }
 
-static string JoinModulePath(const vector<string> & items, size_t start = 0)
+string OModulePath::Join(const vector<string> & items, size_t start)
 {
   string result;
   for (size_t i = start; i < items.size(); ++i)
@@ -63,10 +76,10 @@ static string JoinModulePath(const vector<string> & items, size_t start = 0)
   return result;
 }
 
-static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, const string & local_path)
+filesystem::path OModulePath::SourcePathForLocal(const filesystem::path & root_dir, const string & local_path)
 {
   filesystem::path result = root_dir;
-  for (const string & item : SplitModulePath(local_path))
+  for (const string & item : Split(local_path))
   {
     result /= item;
   }
@@ -74,7 +87,7 @@ static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, co
   return result.lexically_normal();
 }
 
-static string BuildArtifactSuffix()
+string OModulePath::BuildArtifactSuffix()
 {
   string suffix;
   if (g_opt.optlevel != 0)
@@ -111,7 +124,7 @@ static string BuildArtifactSuffix()
   return suffix;
 }
 
-filesystem::path DqBuildArtifactPath(const filesystem::path & source_path)
+filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_path)
 {
   filesystem::path result = source_path;
   string suffix = BuildArtifactSuffix();
@@ -119,7 +132,7 @@ filesystem::path DqBuildArtifactPath(const filesystem::path & source_path)
   return result;
 }
 
-static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path)
+string OModulePath::ModuleIdFromPackageLocal(const string & package_name, const string & local_path)
 {
   if (local_path == package_name)
   {
@@ -128,8 +141,8 @@ static string ModuleIdFromPackageLocal(const string & package_name, const string
   return package_name + "/" + local_path;
 }
 
-static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,
-                               const string & source_text, string & rerror)
+bool OModulePath::NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,
+                                     const string & source_text, string & rerror)
 {
   for (const string & item : suffix)
   {
@@ -160,170 +173,176 @@ static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & su
   return true;
 }
 
-bool DqComputeCurrentModulePath(const filesystem::path & source_path, SCurrentModulePath & rcur,
-                                string & rerror)
+bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & rerror)
 {
+  Clear();
   rerror.clear();
-  filesystem::path abs_source = AbsNorm(source_path);
+  source_path = AbsNorm(asource_path);
 
   if (!g_opt.module_root_dir.empty() && !g_opt.module_name.empty())
   {
-    rcur.root_dir = AbsNorm(g_opt.module_root_dir);
-    rcur.module_id = g_opt.module_name;
-    vector<string> idparts = SplitModulePath(rcur.module_id);
+    root_dir = AbsNorm(g_opt.module_root_dir);
+    module_id = g_opt.module_name;
+    vector<string> idparts = Split(module_id);
     if (idparts.empty())
     {
       rerror = "empty module name";
       return false;
     }
-    rcur.package_name = idparts[0];
-    rcur.local_path = (idparts.size() == 1 ? rcur.package_name : JoinModulePath(idparts, 1));
+    package_name = idparts[0];
+    local_path = (idparts.size() == 1 ? package_name : Join(idparts, 1));
+    artifact_path = BuildArtifactPath(source_path);
+    namespace_name = Split(local_path).back();
     return true;
   }
 
-  filesystem::path root_dir = abs_source.parent_path();
+  root_dir = source_path.parent_path();
   for (int i = 0; i < g_opt.module_root_depth; ++i)
   {
     root_dir = root_dir.parent_path();
   }
   root_dir = root_dir.lexically_normal();
 
-  string package_name = root_dir.filename().string();
+  package_name = root_dir.filename().string();
   if (package_name.empty())
   {
     rerror = format("can not determine package name from module root \"{}\"", root_dir.string());
     return false;
   }
 
-  filesystem::path source_no_ext = abs_source;
+  filesystem::path source_no_ext = source_path;
   source_no_ext.replace_extension();
   filesystem::path rel = source_no_ext.lexically_relative(root_dir);
-  string local_path = rel.generic_string();
+  local_path = rel.generic_string();
   if (local_path.empty() || local_path.starts_with(".."))
   {
-    rerror = format("source file \"{}\" is outside module root \"{}\"", abs_source.string(), root_dir.string());
+    rerror = format("source file \"{}\" is outside module root \"{}\"", source_path.string(), root_dir.string());
     return false;
   }
 
-  rcur.root_dir = root_dir;
-  rcur.package_name = package_name;
-  rcur.local_path = local_path;
-  rcur.module_id = ModuleIdFromPackageLocal(package_name, local_path);
+  module_id = ModuleIdFromPackageLocal(package_name, local_path);
+  artifact_path = BuildArtifactPath(source_path);
+  namespace_name = Split(local_path).back();
   return true;
 }
 
-bool DqParseModuleUsePath(const string & first_id, SModuleUsePath & rpath, string & rerror)
+bool OModulePath::ParseUsePath(const string & apath_text, string & rerror)
 {
+  Clear();
   rerror.clear();
-  rpath.source_text = first_id;
-  rpath.namespace_name = first_id;
-  rpath.kind = EModulePathKind::PACKAGE;
+  source_text = apath_text;
+  namespace_name = apath_text;
+  kind = EKind::PACKAGE;
 
-  if (first_id.starts_with("./") || first_id.starts_with("../"))
+  if (apath_text.starts_with("./") || apath_text.starts_with("../"))
   {
-    rpath.kind = EModulePathKind::LOCAL_RELATIVE;
+    kind = EKind::LOCAL_RELATIVE;
   }
-  else if (first_id.starts_with("^/"))
+  else if (apath_text.starts_with("^/"))
   {
-    rpath.kind = EModulePathKind::ROOT_RELATIVE;
+    kind = EKind::ROOT_RELATIVE;
   }
 
-  vector<string> parts = SplitModulePath(first_id);
+  vector<string> parts = Split(apath_text);
   if (parts.empty())
   {
-    rerror = first_id;
+    rerror = apath_text;
     return false;
   }
-  rpath.namespace_name = parts.back();
+  namespace_name = parts.back();
   return true;
 }
 
-bool DqResolveModuleUsePath(const SCurrentModulePath & current, const SModuleUsePath & use_path,
-                            SResolvedModulePath & rresolved, string & rerror)
+bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
 {
   rerror.clear();
 
-  string package_name;
-  string local_path;
-  filesystem::path root_dir;
+  string resolved_package_name;
+  string resolved_local_path;
+  filesystem::path resolved_root_dir;
 
-  if (EModulePathKind::PACKAGE == use_path.kind)
+  if (EKind::PACKAGE == kind)
   {
-    vector<string> parts = SplitModulePath(use_path.source_text);
+    vector<string> parts = Split(source_text);
     if (parts.empty())
     {
-      rerror = use_path.source_text;
+      rerror = source_text;
       return false;
     }
 
-    package_name = parts[0];
-    local_path = (parts.size() == 1 ? package_name : JoinModulePath(parts, 1));
+    resolved_package_name = parts[0];
+    resolved_local_path = (parts.size() == 1 ? resolved_package_name : Join(parts, 1));
 
-    filesystem::path package_dir;
     bool found_package = false;
     for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
     {
-      filesystem::path candidate = AbsNorm(filesystem::path(*it) / package_name);
+      filesystem::path candidate = AbsNorm(filesystem::path(*it) / resolved_package_name);
       error_code ec;
       if (filesystem::is_directory(candidate, ec) && !ec)
       {
-        package_dir = candidate;
+        resolved_root_dir = candidate;
         found_package = true;
         break;
       }
     }
     if (!found_package)
     {
-      rerror = package_name;
+      rerror = resolved_package_name;
       return false;
     }
-    root_dir = package_dir;
   }
   else
   {
-    package_name = current.package_name;
-    root_dir = current.root_dir;
+    resolved_package_name = current.package_name;
+    resolved_root_dir = current.root_dir;
 
     vector<string> stack;
-    if (EModulePathKind::LOCAL_RELATIVE == use_path.kind)
+    if (EKind::LOCAL_RELATIVE == kind)
     {
-      stack = SplitModulePath(current.local_path);
+      stack = Split(current.local_path);
       if (!stack.empty())
       {
         stack.pop_back();
       }
     }
 
-    vector<string> suffix = SplitModulePath(use_path.source_text);
-    if ((EModulePathKind::ROOT_RELATIVE == use_path.kind) && !suffix.empty() && ("^" == suffix[0]))
+    vector<string> suffix = Split(source_text);
+    if ((EKind::ROOT_RELATIVE == kind) && !suffix.empty() && ("^" == suffix[0]))
     {
       suffix.erase(suffix.begin());
     }
-    if (!NormalizeLocalPath(stack, suffix, use_path.source_text, rerror))
+    if (!NormalizeLocalPath(stack, suffix, source_text, rerror))
     {
       return false;
     }
-    local_path = JoinModulePath(stack);
+    resolved_local_path = Join(stack);
   }
 
-  rresolved.module_id = ModuleIdFromPackageLocal(package_name, local_path);
-  rresolved.module_root_dir = root_dir;
-  rresolved.source_path = SourcePathForLocal(root_dir, local_path);
-  rresolved.artifact_path = DqBuildArtifactPath(rresolved.source_path);
+  package_name = resolved_package_name;
+  local_path = resolved_local_path;
+  root_dir = resolved_root_dir;
+  module_id = ModuleIdFromPackageLocal(package_name, local_path);
+  source_path = SourcePathForLocal(root_dir, local_path);
+  artifact_path = BuildArtifactPath(source_path);
   return true;
 }
 
-bool DqResolveCanonicalModuleArtifact(const string & module_id, const string & context_module_id,
-                                      const filesystem::path & context_artifact,
-                                      filesystem::path & rartifact_path)
+bool OModulePath::IsLocalReference() const
 {
-  vector<string> target_parts = SplitModulePath(module_id);
+  return (EKind::LOCAL_RELATIVE == kind) || (EKind::ROOT_RELATIVE == kind);
+}
+
+bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
+                                           const filesystem::path & context_artifact,
+                                           filesystem::path & rartifact_path)
+{
+  vector<string> target_parts = Split(module_id);
   if (target_parts.empty())
   {
     return false;
   }
 
-  vector<string> context_parts = SplitModulePath(context_module_id);
+  vector<string> context_parts = Split(context_module_id);
   if (!context_parts.empty() && target_parts[0] == context_parts[0] && !context_artifact.empty())
   {
     filesystem::path root_dir = context_artifact.parent_path();
@@ -333,20 +352,20 @@ bool DqResolveCanonicalModuleArtifact(const string & module_id, const string & c
       root_dir = root_dir.parent_path();
     }
 
-    string local_path = (target_parts.size() == 1 ? target_parts[0] : JoinModulePath(target_parts, 1));
-    rartifact_path = DqBuildArtifactPath(SourcePathForLocal(root_dir, local_path));
+    string local_path = (target_parts.size() == 1 ? target_parts[0] : Join(target_parts, 1));
+    rartifact_path = BuildArtifactPath(SourcePathForLocal(root_dir, local_path));
     return true;
   }
 
   string package_name = target_parts[0];
-  string local_path = (target_parts.size() == 1 ? package_name : JoinModulePath(target_parts, 1));
+  string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
   for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
   {
     filesystem::path package_dir = AbsNorm(filesystem::path(*it) / package_name);
     error_code ec;
     if (filesystem::is_directory(package_dir, ec) && !ec)
     {
-      rartifact_path = DqBuildArtifactPath(SourcePathForLocal(package_dir, local_path));
+      rartifact_path = BuildArtifactPath(SourcePathForLocal(package_dir, local_path));
       return true;
     }
   }

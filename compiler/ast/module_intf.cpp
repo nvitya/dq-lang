@@ -1687,7 +1687,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
 
   filesystem::path artifact_path;
-  if (!DqResolveCanonicalModuleArtifact(module_path, name, interface_filename, artifact_path))
+  if (!OModulePath::ResolveCanonicalArtifact(module_path, name, interface_filename, artifact_path))
   {
     return reader.Fail(format("Can not resolve reexported module artifact: {}", module_path));
   }

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.21"
+#define DQ_COMPILER_VERSION  "0.10.22"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.10.22:
+  - Small code refactor using OModulePath for module path handling
 v0.10.21:
   - use extensions: ^/pkg/mod, and ./mod_local
   - package search paths

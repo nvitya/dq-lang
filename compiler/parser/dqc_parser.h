@@ -39,7 +39,7 @@ public:
   void ParseModule();
 
 public: // root level items
-  bool ParseUseModulePath(SModuleUsePath & rpath);
+  bool ParseUseModulePath(OModulePath & rpath);
   void ParseUseStatement();
   bool ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names);
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too

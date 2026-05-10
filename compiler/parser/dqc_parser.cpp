@@ -527,229 +527,249 @@ bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
 
 void ODqCompParser::ParseUseStatement()
 {
-  OModulePath use_path;
-  string namespace_name;
-  string sid;
-  EModuleUseMergeMode merge_mode = MUM_ALL;
-  vector<string> symbol_names;
-  bool reexport = false;
-
-  if (!ParseUseModulePath(use_path))
+  while (true)  // for multiple use_blocks
   {
-    return;
-  }
-  namespace_name = use_path.namespace_name;
-
-  while (true)
-  {
-    scf->SkipWhite();
-    if (scf->CheckSymbol(";", false))
+    OModulePath use_path;
+    if (!ParseUseModulePath(use_path))
     {
-      break;
-    }
-
-    if (!scf->ReadIdentifier(sid))
-    {
-      if (!CheckStatementClose())
-      {
-        return;
-      }
-      break;
-    }
-
-    if ("as" == sid)
-    {
-      scf->SkipWhite();
-      if (!scf->ReadIdentifier(namespace_name))
-      {
-        RootStatementError(DQERR_ID_EXP_AFTER, "as");
-        return;
-      }
-    }
-    else if ("nomerge" == sid)
-    {
-      if ((MUM_ALL != merge_mode) || reexport)
-      {
-        OScPosition errpos;
-        errpos.Assign(scpos_statement_start);
-        CheckStatementClose();
-        errpos.RecalcLineCol();
-        Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude/reexport", &errpos);
-        return;
-      }
-      merge_mode = MUM_NONE;
-    }
-    else if ("only" == sid)
-    {
-      if (MUM_ALL != merge_mode)
-      {
-        vector<string> dummy_names;
-        ParseUseSymbolList("only", dummy_names);
-        CheckStatementClose();
-        Error(DQERR_USE_MODIFIER_CONFLICT, "only with nomerge/exclude", &scpos_statement_start);
-        return;
-      }
-      merge_mode = MUM_ONLY;
-      if (!ParseUseSymbolList("only", symbol_names))
-      {
-        return;
-      }
-    }
-    else if ("exclude" == sid)
-    {
-      if (MUM_ALL != merge_mode)
-      {
-        vector<string> dummy_names;
-        ParseUseSymbolList("exclude", dummy_names);
-        CheckStatementClose();
-        Error(DQERR_USE_MODIFIER_CONFLICT, "exclude with nomerge/only", &scpos_statement_start);
-        return;
-      }
-      merge_mode = MUM_EXCLUDE;
-      if (!ParseUseSymbolList("exclude", symbol_names))
-      {
-        return;
-      }
-    }
-    else if ("reexport" == sid)
-    {
-      if (!section_public)
-      {
-        OScPosition errpos;
-        errpos.Assign(scpos_statement_start);
-        CheckStatementClose();
-        errpos.RecalcLineCol();
-        Error(DQERR_USE_MODIFIER_CONFLICT, "reexport in implementation section", &errpos);
-        return;
-      }
-      if (MUM_NONE == merge_mode)
-      {
-        OScPosition errpos;
-        errpos.Assign(scpos_statement_start);
-        CheckStatementClose();
-        errpos.RecalcLineCol();
-        Error(DQERR_USE_MODIFIER_CONFLICT, "reexport with nomerge", &errpos);
-        return;
-      }
-      reexport = true;
-    }
-    else
-    {
-      StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "previous statement");
       return;
     }
-  }
 
-  if (!CheckStatementClose())
-  {
-    return;
-  }
+    string namespace_name;
+    string sid;
+    EModuleUseMergeMode merge_mode = MUM_ALL;
+    vector<string> symbol_names;
+    bool reexport = false;
+    namespace_name = use_path.namespace_name;
 
-  if (g_namespaces.end() != g_namespaces.find(namespace_name))
-  {
-    Error(DQERR_USE_NAMESPACE_CONFLICT, namespace_name, &scpos_statement_start);
-    return;
-  }
-
-  OModulePath current_module;
-  string path_error;
-  if (!current_module.InitCurrent(CurrentSourcePath(scf), path_error))
-  {
-    OScPosition errpos;
-    errpos.Assign(scpos_statement_start);
-    errpos.RecalcLineCol();
-    Error(DQERR_MODULE_ROOT_INVALID, path_error, &errpos);
-    return;
-  }
-
-  if (!use_path.ResolveFrom(current_module, path_error))
-  {
-    OScPosition errpos;
-    errpos.Assign(scpos_statement_start);
-    errpos.RecalcLineCol();
-    if (use_path.IsLocalReference())
+    while (true) // cycle to get multiple use modifiers
     {
-      Error(DQERR_MODULE_PATH_ABOVE_ROOT, use_path.source_text, current_module.root_dir.string(), &errpos);
+      scf->SkipWhite();
+      if (scf->CheckSymbol(";", false) or scf->CheckSymbol(",", false))  // detect the end of the use block
+      {
+        break;
+      }
+
+      if (!scf->ReadIdentifier(sid))
+      {
+        if (!CheckStatementClose())
+        {
+          return;
+        }
+        break;
+      }
+
+      if ("as" == sid)
+      {
+        scf->SkipWhite();
+        if (!scf->ReadIdentifier(namespace_name))
+        {
+          RootStatementError(DQERR_ID_EXP_AFTER, "as");
+          return;
+        }
+      }
+      else if ("nomerge" == sid)
+      {
+        if ((MUM_ALL != merge_mode) || reexport)
+        {
+          OScPosition errpos;
+          errpos.Assign(scpos_statement_start);
+          CheckStatementClose();
+          errpos.RecalcLineCol();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude/reexport", &errpos);
+          return;
+        }
+        merge_mode = MUM_NONE;
+      }
+      else if ("only" == sid)
+      {
+        if (MUM_ALL != merge_mode)
+        {
+          vector<string> dummy_names;
+          ParseUseSymbolList("only", dummy_names);
+          CheckStatementClose();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "only with nomerge/exclude", &scpos_statement_start);
+          return;
+        }
+        merge_mode = MUM_ONLY;
+        if (!ParseUseSymbolList("only", symbol_names))
+        {
+          return;
+        }
+      }
+      else if ("exclude" == sid)
+      {
+        if (MUM_ALL != merge_mode)
+        {
+          vector<string> dummy_names;
+          ParseUseSymbolList("exclude", dummy_names);
+          CheckStatementClose();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "exclude with nomerge/only", &scpos_statement_start);
+          return;
+        }
+        merge_mode = MUM_EXCLUDE;
+        if (!ParseUseSymbolList("exclude", symbol_names))
+        {
+          return;
+        }
+      }
+      else if ("reexport" == sid)
+      {
+        if (!section_public)
+        {
+          OScPosition errpos;
+          errpos.Assign(scpos_statement_start);
+          CheckStatementClose();
+          errpos.RecalcLineCol();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "reexport in implementation section", &errpos);
+          return;
+        }
+        if (MUM_NONE == merge_mode)
+        {
+          OScPosition errpos;
+          errpos.Assign(scpos_statement_start);
+          CheckStatementClose();
+          errpos.RecalcLineCol();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "reexport with nomerge", &errpos);
+          return;
+        }
+        reexport = true;
+      }
+      else
+      {
+        StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "previous statement");
+        return;
+      }
     }
-    else
+
+    bool more_use_blocks = false;
+    if (scf->CheckSymbol(",", true))
     {
-      Error(DQERR_PACKAGE_NOT_FOUND, path_error, &errpos);
+      more_use_blocks = true;
     }
-    return;
-  }
+    else if (!CheckStatementClose())
+    {
+      return;
+    }
 
-  const string module_path = use_path.module_id;
-  filesystem::path source_path = use_path.source_path;
-  filesystem::path artifact_path = use_path.artifact_path;
+    if (g_namespaces.end() != g_namespaces.find(namespace_name))
+    {
+      Error(DQERR_USE_NAMESPACE_CONFLICT, namespace_name, &scpos_statement_start);
+      return;
+    }
 
-  OModuleIntf artifact_intf(g_builtins, module_path);
-  string stale_reason;
-  if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
-  {
-    error_code ec;
-    if (!filesystem::exists(source_path, ec) || ec)
+    OModulePath current_module;
+    string path_error;
+    if (!current_module.InitCurrent(CurrentSourcePath(scf), path_error))
     {
       OScPosition errpos;
       errpos.Assign(scpos_statement_start);
       errpos.RecalcLineCol();
-      Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
+      Error(DQERR_MODULE_ROOT_INVALID, path_error, &errpos);
       return;
     }
 
-    if (artifact_intf.IsInModuleUseStack(module_path))
+    if (!use_path.ResolveFrom(current_module, path_error))
     {
-      Error(DQERR_USE_CYCLE, artifact_intf.FormatModuleCycle(module_path), &scpos_statement_start);
+      OScPosition errpos;
+      errpos.Assign(scpos_statement_start);
+      errpos.RecalcLineCol();
+      if (use_path.IsLocalReference())
+      {
+        Error(DQERR_MODULE_PATH_ABOVE_ROOT, use_path.source_text, current_module.root_dir.string(), &errpos);
+      }
+      else
+      {
+        Error(DQERR_PACKAGE_NOT_FOUND, path_error, &errpos);
+      }
       return;
     }
 
-    OProcessRunner procrunner;
-    procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
-                                                     use_path.root_dir);
-    bool exec_ok = procrunner.Run();
-    if (!exec_ok || (0 != procrunner.exit_code))
-    {
-      if (!procrunner.stdout_text.empty())
-      {
-        print("{}", procrunner.stdout_text);
-      }
-      if (!procrunner.stderr_text.empty())
-      {
-        print("{}", procrunner.stderr_text);
-      }
+    // process the use block
 
-      string reason = format("subprocess exited with code {}", procrunner.exit_code);
-      if (!stale_reason.empty())
-      {
-        reason += format(" after stale artifact ({})", stale_reason);
-      }
-      Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), reason, &scpos_statement_start);
-      return;
-    }
+    const string module_path = use_path.module_id;
+    filesystem::path source_path = use_path.source_path;
+    filesystem::path artifact_path = use_path.artifact_path;
 
+    OModuleIntf artifact_intf(g_builtins, module_path);
+    string stale_reason;
     if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
     {
-      Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
+      error_code ec;
+      if (!filesystem::exists(source_path, ec) || ec)
+      {
+        OScPosition errpos;
+        errpos.Assign(scpos_statement_start);
+        errpos.RecalcLineCol();
+        Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
+        return;
+      }
+
+      if (artifact_intf.IsInModuleUseStack(module_path))
+      {
+        Error(DQERR_USE_CYCLE, artifact_intf.FormatModuleCycle(module_path), &scpos_statement_start);
+        return;
+      }
+
+      OProcessRunner procrunner;
+      procrunner.args = artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
+                                                      use_path.root_dir);
+      bool exec_ok = procrunner.Run();
+      if (!exec_ok || (0 != procrunner.exit_code))
+      {
+        if (!procrunner.stdout_text.empty())
+        {
+          print("{}", procrunner.stdout_text);
+        }
+        if (!procrunner.stderr_text.empty())
+        {
+          print("{}", procrunner.stderr_text);
+        }
+
+        string reason = format("subprocess exited with code {}", procrunner.exit_code);
+        if (!stale_reason.empty())
+        {
+          reason += format(" after stale artifact ({})", stale_reason);
+        }
+        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), reason, &scpos_statement_start);
+        return;
+      }
+
+      if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
+      {
+        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
+        return;
+      }
+    }
+
+    error_code ec;
+    if (!filesystem::exists(artifact_path, ec) || ec)
+    {
+      Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
       return;
     }
-  }
 
-  error_code ec;
-  if (!filesystem::exists(artifact_path, ec) || ec)
-  {
-    Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
-    return;
-  }
-
-  int prev_errorcnt = errorcnt;
-  if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), cur_mod_scope,
-                                   !section_public, merge_mode, symbol_names, reexport))
-  {
-    if (prev_errorcnt == errorcnt)
+    int prev_errorcnt = errorcnt;
+    if (!g_module->UseCompiledModule(module_path, namespace_name, artifact_path.string(), cur_mod_scope,
+                                    !section_public, merge_mode, symbol_names, reexport))
     {
-      Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+      if (prev_errorcnt == errorcnt)
+      {
+        Error(DQERR_USE_INTERFACE_LOAD, artifact_path.string(), &scpos_statement_start);
+      }
+      return;
     }
-    return;
-  }
+
+    // handling multiple use blocks:
+
+    if (more_use_blocks)
+    {
+      continue;
+    }
+
+    break;
+  }  // while repeated use blocks
+
 }
 
 bool ODqCompParser::ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names)

@@ -1,0 +1,13 @@
+
+//use ./mod_circ_a;
+//use ./mod_circ_b;
+use ./mod_circ_a, ./mod_circ_b;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function main() -> int [[cexport]]:
+  printf('DQ Circular module reference test\n');  //?check('DQ Circular module reference test')
+  printf('func_a() = %d\n', func_a());  //?check('func_a()', 1)
+  printf('func_b() = %d\n', func_b());  //?check('func_b()', 2)
+  return 0;
+endfunc

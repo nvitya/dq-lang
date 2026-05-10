@@ -1,0 +1,7 @@
+//?notest
+
+const RESULT_A : int = 1;
+
+function func_a() -> int:
+  result = RESULT_A;
+endfunc

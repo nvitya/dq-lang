@@ -2040,16 +2040,78 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
 {
   // Parses type specification after ":"
-  // Handles: ^type (pointer), type[N] (fixed array), type[] (slice)
+  // Handles prefix type constructors: ^type, [N]type, []type
 
-  int pointer_level = 0;
   scf->SkipWhite();
-  while (scf->CheckSymbol("^"))
+
+  if (scf->CheckSymbol("^"))
   {
-    ++pointer_level;
-    scf->SkipWhite();
+    OType * basetype = ParseTypeSpec(aemit_errors);
+    if (!basetype)
+    {
+      return nullptr;
+    }
+    return basetype->GetPointerType();
   }
-  bool is_pointer = (pointer_level > 0);
+
+  if (scf->CheckSymbol("["))
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]"))
+    {
+      OType * elemtype = ParseTypeSpec(aemit_errors);
+      if (!elemtype)
+      {
+        return nullptr;
+      }
+      return elemtype->GetSliceType();
+    }
+
+    if (scf->CheckSymbol("..."))
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_NOT_IMPLEMENTED_YET, "Dynamic array ([...]int)");
+      }
+      scf->ReadTo("]");
+      scf->CheckSymbol("]");
+      return nullptr;
+    }
+
+    int64_t arrlen;
+    if (not scf->ReadInt64Value(arrlen))
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_ARRAY_SIZESPEC);
+      }
+      return nullptr;
+    }
+    if (arrlen <= 0)
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_SIZE_SPEC, "Array");
+      }
+      return nullptr;
+    }
+    scf->SkipWhite();
+    if (not scf->CheckSymbol("]"))
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "array size");
+      }
+      return nullptr;
+    }
+
+    OType * elemtype = ParseTypeSpec(aemit_errors);
+    if (!elemtype)
+    {
+      return nullptr;
+    }
+    return elemtype->GetArrayType(uint32_t(arrlen));
+  }
 
   scf->SkipWhite();
   OType * ptype = nullptr;
@@ -2109,14 +2171,8 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
     ptype = ptype->ResolveAlias();
   }
 
-  while (pointer_level > 0)
-  {
-    ptype = ptype->GetPointerType();
-    --pointer_level;
-  }
-
   // cstring[N] handling: [N] means sized cstring, not array
-  if (TK_STRING == ptype->kind and not is_pointer)
+  if (TK_STRING == ptype->kind)
   {
     scf->SkipWhite();
     if (scf->CheckSymbol("[[", false))
@@ -2156,70 +2212,20 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
     return ptype;  // unsized cstring (for parameters)
   }
 
-  // Check for array suffix: [N] or []
+  // Array suffixes are no longer part of the type grammar. Keep [[...]]
+  // available for attributes after the type specifier.
   scf->SkipWhite();
   if (scf->CheckSymbol("[[", false))
   {
     return ptype;
   }
-  if (scf->CheckSymbol("["))
+  if (scf->CheckSymbol("[", false))
   {
-    if (is_pointer)
+    if (aemit_errors)
     {
-      if (aemit_errors)
-      {
-        Error(DQERR_NOT_SUPPORTED, "Pointer-to-array");
-      }
-      return nullptr;
+      Error(DQERR_NOT_SUPPORTED, "Postfix array type syntax; use [N]T or []T");
     }
-
-    scf->SkipWhite();
-    if (scf->CheckSymbol("]"))
-    {
-      // Empty brackets: type[] — array slice
-      ptype = ptype->GetSliceType();
-    }
-    else if (scf->CheckSymbol("..."))
-    {
-      if (aemit_errors)
-      {
-        Error(DQERR_NOT_IMPLEMENTED_YET, "Dynamic array (int[...])");
-      }
-      scf->ReadTo("]");
-      scf->CheckSymbol("]");
-      return nullptr;
-    }
-    else
-    {
-      // Read array size: type[N]
-      int64_t arrlen;
-      if (not scf->ReadInt64Value(arrlen))
-      {
-        if (aemit_errors)
-        {
-          Error(DQERR_ARRAY_SIZESPEC);
-        }
-        return nullptr;
-      }
-      if (arrlen <= 0)
-      {
-        if (aemit_errors)
-        {
-          Error(DQERR_SIZE_SPEC, "Array");
-        }
-        return nullptr;
-      }
-      scf->SkipWhite();
-      if (not scf->CheckSymbol("]"))
-      {
-        if (aemit_errors)
-        {
-          Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "array size");
-        }
-        return nullptr;
-      }
-      ptype = ptype->GetArrayType(uint32_t(arrlen));
-    }
+    return nullptr;
   }
 
   return ptype;
@@ -3206,6 +3212,7 @@ OExpr * ODqCompParser::ParseExprPrimary()
   scf->SkipWhite();
 
   if (*scf->curp == '^'
+      || *scf->curp == '['
       || ((*scf->curp >= 'A' && *scf->curp <= 'Z')
           || (*scf->curp >= 'a' && *scf->curp <= 'z')
           || (*scf->curp == '_')))
@@ -4154,7 +4161,7 @@ OExpr * ODqCompParser::ParseBuiltinSizeof()
   OScPosition argpos;
   scf->SaveCurPos(argpos);
 
-  if (scf->CheckSymbol("^", false))
+  if (scf->CheckSymbol("^", false) || scf->CheckSymbol("[", false))
   {
     sizetype = ParseTypeSpec();
   }

@@ -1,6 +1,6 @@
 // callback default argument type checking test (ERROR test)
 
-const rootarr : int[2] = [1, 2];
+const rootarr : [2]int = [1, 2];
 
 function add(a : int, b : int) -> int:
   result = a + b;
@@ -13,7 +13,7 @@ endfunc
 var bad_order : function(a : int = 1, b : int) -> int;  //?error(FuncParDefaultOrder)
 var bad_ref : function(ref a : int = 1) -> int;  //?error(FuncParDefaultRef)
 var bad_nonconst : function(a : int = need_two(1, 2)) -> int;  //?error(IntConstExpr)
-var bad_slice : function(arr : int[] = rootarr) -> int;  //?error(FuncParDefaultType)
+var bad_slice : function(arr : []int = rootarr) -> int;  //?error(FuncParDefaultType)
 
 type CBGood = function(a : int, b : int = 1) -> int;
 type CBBadSig = function(a : int, b : int, c : int = 1) -> int;

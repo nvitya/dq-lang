@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.10.26"
+#define DQ_COMPILER_VERSION  "0.11.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.0:
+  - Array type definition changed to prefix form: "var ia3 : [3]int;"
 v0.10.26:
   - Locking changed not generating .lock files anymore
 v0.10.25:

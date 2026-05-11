@@ -27,7 +27,7 @@ function dq_ref_local_member() -> int:
 endfunc
 
 function dq_ref_local_array() -> int:
-  var arr : int[3] = [1, 2, 3];
+  var arr : [3]int = [1, 2, 3];
   ref rv = arr[1];
   rv = 9;
   result = arr[1];

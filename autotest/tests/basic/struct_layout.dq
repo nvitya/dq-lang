@@ -76,7 +76,7 @@ function off_nested_b() -> int:
 endfunc
 
 function packed_array_stride() -> int:
-  var a : SLayoutPacked[2];
+  var a : [2]SLayoutPacked;
   a[0].a = 0;
   a[1].a = 0;
   result = int(uint(&a[1]) - uint(&a[0]));

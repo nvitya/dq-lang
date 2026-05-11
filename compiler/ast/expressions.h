@@ -273,7 +273,7 @@ public:
   void       DeleteChildTree() override;
 };
 
-// Implicit conversion from fixed array to slice when passing to int[] parameter
+// Implicit conversion from fixed array to slice when passing to []int parameter
 class OArrayToSliceExpr : public OExpr
 {
 public:

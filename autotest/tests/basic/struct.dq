@@ -4,13 +4,13 @@ struct SElem
   id        : int;
   weight    : float;
   membercnt : byte;
-  member    : byte[8];
+  member    : [8]byte;
 endstruct
 
 struct SMain
   id       : int;
   elemcnt  : int;
-  elem     : SElem[8];
+  elem     : [8]SElem;
 endstruct
 
 function dq_struct_test(sm : ^SMain):

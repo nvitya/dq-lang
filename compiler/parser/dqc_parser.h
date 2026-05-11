@@ -63,7 +63,7 @@ public: // statement blocks
   EBinOp ParseAssignOp();
 
 public: // type parsing
-  OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^, [N], []
+  OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^T, [N]T, []T
   OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "function");
 
 public: // utility

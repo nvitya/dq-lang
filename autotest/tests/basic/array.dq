@@ -1,6 +1,6 @@
 // array tests
 
-function dq_arr_fixed_arg(arr : int[3]) -> int:
+function dq_arr_fixed_arg(arr : [3]int) -> int:
   result = arr[0] + arr[1] + arr[2];
 endfunc
 
@@ -10,13 +10,21 @@ endfunc
 
 #ifdef ERRORTEST
 
+var bad_old_fixed : int[3];  //?error(NotSupported)
+var bad_old_slice : int[];   //?error(NotSupported)
+
+function dq_arr_prefix_cast_parse_error() -> int:
+  var castarr : [3]int = [3]int([1,2,3]);  //?error(CastInvalid)
+  result = 0;
+endfunc
+
 function dq_arr_fixed_test_error() -> int:
   result = dq_arr_fixed_arg([1,2,3,4]);   //?error(ArrSize)
 endfunc                                   //?error(FuncResultNotSet)
 
 #else  // run tests
 
-const const_arr : int[4] = [1, 2, 3, 4];
+const const_arr : [4]int = [1, 2, 3, 4];
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
@@ -25,7 +33,7 @@ function dq_arr_const_index(i : int) -> int:
 endfunc
 
 function dq_arr_basic() -> int:
-  var a : int[3];
+  var a : [3]int;
   a[0] = 10;
   a[1] = 20;
   a[2] = 30;
@@ -33,7 +41,7 @@ function dq_arr_basic() -> int:
 endfunc
 
 function dq_arr_index(i : int) -> int:
-  var a : int[4];
+  var a : [4]int;
   a[0] = 100;
   a[1] = 200;
   a[2] = 300;
@@ -41,7 +49,7 @@ function dq_arr_index(i : int) -> int:
   result = a[i];
 endfunc
 
-function dq_arr_sum(arr : int[]) -> int:
+function dq_arr_sum(arr : []int) -> int:
   var i : int = 0;
   var s : int = 0;
   while i < len(arr):
@@ -52,7 +60,7 @@ function dq_arr_sum(arr : int[]) -> int:
 endfunc
 
 function dq_arr_slice_test() -> int:
-  var a : int[3];
+  var a : [3]int;
   a[0] = 1;
   a[1] = 2;
   a[2] = 3;
@@ -60,14 +68,32 @@ function dq_arr_slice_test() -> int:
 endfunc
 
 function dq_arr_len() -> int:
-  var a : int[5];
+  var a : [5]int;
   a[0] = 0;
   result = len(a);
 endfunc
 
-function dq_arr_modify(arr : int[]) -> int:
+function dq_arr_modify(arr : []int) -> int:
   arr[0] = 999;
   result = arr[0];
+endfunc
+
+function dq_arr_prefix_combos() -> int:
+  var a : [3]int = [10, 20, 30];
+  var pa : ^[3]int = &a;
+
+  var x : int = 1;
+  var y : int = 2;
+  var z : int = 3;
+  var ap : [3]^int;
+  ap[0] = &x;
+  ap[1] = &y;
+  ap[2] = &z;
+
+  var matrix : [2][3]int;
+  matrix[1][2] = 7;
+
+  result = pa^[1] + ap[2]^ + matrix[1][2];
 endfunc
 
 
@@ -95,7 +121,10 @@ function main() -> int:
   r = dq_arr_len();
   printf("dq_arr_len() = %li\n", r);  //?check('dq_arr_len()', 5)
 
-  var a : int[2] = [1, 2];
+  r = dq_arr_prefix_combos();
+  printf("dq_arr_prefix_combos() = %li\n", r);  //?check('dq_arr_prefix_combos()', 30)
+
+  var a : [2]int = [1, 2];
   r = dq_arr_modify(a);
   printf("dq_arr_modify() = %li\n", r);  //?check('dq_arr_modify()', 999)
   printf("dq_arr_modify source = %li\n", a[0]);  //?check('dq_arr_modify source', 999)

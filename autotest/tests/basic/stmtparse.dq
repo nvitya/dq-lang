@@ -12,7 +12,7 @@ endfunc
 function dq_stmt_targets():
   var x : int;
   var y : int = 3;
-  var arr : int[2];
+  var arr : [2]int;
   var s : SItem = {};
 
   x = 1;

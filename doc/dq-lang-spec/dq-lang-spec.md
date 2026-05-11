@@ -298,18 +298,18 @@ var s : str = name;            // converts to dynamic string
 
 DQ provides three distinct array types, each serving a specific purpose: fixed-size arrays for stack-based value semantics, open arrays (slices) for flexible views into data, and dynamic arrays for heap-based mutable containers.
 
-#### Fixed-Size Array (`T[N]`)
+#### Fixed-Size Array (`[N]T`)
 - **Storage**: Inline (typically on the stack). The size `N` must be a compile-time constant.
 - **Semantics**: Value type. When passed as a value parameter, the entire array is copied.
 - **Use Case**: Small, fixed-size data structures where performance and stack allocation are critical.
 
 ```dq
-var arr : int32[4];          // 4 integers allocated on the stack
+var arr : [4]int32;          // 4 integers allocated on the stack
 arr[0] = 10;
 var len : int = arr.length;
 ```
 
-#### Open Array / Slice (`T[]`)
+#### Open Array / Slice (`[]T`)
 - **Storage**: A view or "slice" into a contiguous block of memory. It does not own the data itself. Internally, it is a fat pointer: a struct containing `{ data: ^T, length: int }`.
 - **Semantics**: Universal, non-owning view.
   - Can bind to **Fixed-Size Arrays**, **Dynamic Arrays**, and **Array Literals**.
@@ -319,7 +319,7 @@ var len : int = arr.length;
 
 ```dq
 // A function accepting any kind of integer array
-function sum(values: int[]) -> int:
+function sum(values: []int) -> int:
     result = 0;
     for v in values:
         result += v;
@@ -327,15 +327,15 @@ function sum(values: int[]) -> int:
 endfunc
 
 // It can be called with different array types:
-var fixed_arr : int[3] = [1, 2, 3];
-var dyn_arr : int[...] = [4, 5, 6];
+var fixed_arr : [3]int = [1, 2, 3];
+var dyn_arr : [...]int = [4, 5, 6];
 
 var s1 : int = sum(fixed_arr);      // slice points to fixed array
 var s2 : int = sum(dyn_arr);        // slice points to dynamic array data
 var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
 ```
 
-#### Dynamic Array (`T[...]`)
+#### Dynamic Array (`[...]T`)
 - **Storage**: Heap-allocated, resizable container. The variable holds a handle (pointer/reference) to the heap object.
 - **Semantics**: Reference-like container type.
   - Can be resized with methods like `append`, `clear`, etc.
@@ -344,7 +344,7 @@ var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the l
 - **Use Case**: General-purpose mutable collections of elements, where the size is not known at compile-time.
 
 ```dq
-var arr : int[...];            // Handle is null initially
+var arr : [...]int;            // Handle is null initially
 arr = [10, 20];                // Assign a new dynamic array from a literal
 arr.append(30);
 var len : int = arr.length;    // runtime value
@@ -354,9 +354,9 @@ var len : int = arr.length;    // runtime value
 Multi-dimensional arrays are combinations of the above types.
 
 ```dq
-var matrix : int[3][4];      // fixed 3x4 matrix
-var grid : int[...][...];    // fully dynamic 2D array (array of dynamic arrays)
-var rows : int[][4];         // array of slices, with each slice pointing to 4 columns
+var matrix : [3][4]int;      // fixed 3x4 matrix
+var grid : [...][...]int;    // fully dynamic 2D array (array of dynamic arrays)
+var rows : [4][]int;         // fixed array of four row slices
 ```
 
 ### 4.4 Pointer Types
@@ -929,7 +929,7 @@ endfor
 
 **Example**:
 ```dq
-var arr : int[...] = [1, 2, 3, 4, 5];
+var arr : [...]int = [1, 2, 3, 4, 5];
 
 // Iterate through array indices
 for i = 0 to arr.length - 1:
@@ -975,7 +975,7 @@ endfor
 
 **Example**:
 ```dq
-var arr : int[...] = [1, 2, 3, 4, 5];
+var arr : [...]int = [1, 2, 3, 4, 5];
 
 // Iterate exactly arr.length times
 for i = 0 count arr.length:
@@ -1176,10 +1176,10 @@ The combination of parameter modes with different array types (Open vs. Dynamic)
 
 | Syntax | Type Name | Input Compatibility | Can Resize? | Semantics |
 | --- | --- | --- | --- | --- |
-| `a : T[]` | **Open Array** | Fixed, Dynamic, Literal | **NO** | Universal view. Read/Write access to elements. |
-| `in a : T[]` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
-| `a : T[...]` | **Dynamic Array** | Dynamic Array Only | **NO*** | Passes the container handle by value. The function can modify elements but cannot resize the original array in a way that is visible to the caller. |
-| `ref a : T[...]` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
+| `a : []T` | **Open Array** | Fixed, Dynamic, Literal | **NO** | Universal view. Read/Write access to elements. |
+| `in a : []T` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
+| `a : [...]T` | **Dynamic Array** | Dynamic Array Only | **NO*** | Passes the container handle by value. The function can modify elements but cannot resize the original array in a way that is visible to the caller. |
+| `ref a : [...]T` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
 
 _*Note: Without `ref`, changing the length of a dynamic array inside a function (e.g., `a.append(...)`) modifies the local handle's copy of the array, a change that will not be reflected for the caller._
 
@@ -1258,15 +1258,15 @@ DQ does not have special syntactic sugar for variadic arguments (like C's `...`)
 
 This pattern relies on two helper types that would be defined in the Standard Library prelude:
 - `type vararg = struct ... endstruct`: A variant struct capable of holding different types of data, typically including a type identifier and a data payload.
-- `type varargs = vararg[]`: A type alias for an open array of these variant structs.
+- `type varargs = []vararg`: A type alias for an open array of these variant structs.
 
 #### Usage Pattern
 
-A function that accepts a variable number of arguments is declared with a parameter of type `vararg[]` (or the `varargs` alias).
+A function that accepts a variable number of arguments is declared with a parameter of type `[]vararg` (or the `varargs` alias).
 
 ```dq
 // A variadic print function (simplified)
-function print(fmt: str, args: vararg[]):
+function print(fmt: str, args: []vararg):
     // Implementation would iterate through the `args` slice
     // and format them according to the `fmt` string.
 endfunc
@@ -1282,7 +1282,7 @@ print("Values: %d, %s", [10, "text", true]);
 **Mechanism**:
 1. The compiler encounters the array literal `[10, "text", true]`.
 2. It creates a temporary fixed-size array on the stack, with each element being a `vararg` struct initialized from the literal values.
-3. It then passes a slice (`vararg[]`) of this temporary array to the `print` function's `args` parameter.
+3. It then passes a slice (`[]vararg`) of this temporary array to the `print` function's `args` parameter.
 
 This approach ensures that variadic arguments are handled with the same type-safe, efficient, and explicit mechanisms used throughout the rest of the language.
 
@@ -1798,7 +1798,7 @@ use io;
 
 object OWorkHelper:
 public
-    var worklog : int[...];
+    var worklog : [...]int;
 
     function help(anum : int):
         worklog.append(anum);

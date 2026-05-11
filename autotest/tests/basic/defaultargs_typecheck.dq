@@ -1,6 +1,6 @@
 // default argument type checking test (ERROR test)
 
-const rootarr : int[2] = [1, 2];
+const rootarr : [2]int = [1, 2];
 
 function need_two(a : int, b : int) -> int:
   result = a + b;
@@ -18,7 +18,7 @@ function bad_type(a : int = "x") -> int:  //?error(TypeMismatchAssign)
   result = a;
 endfunc
 
-function bad_slice(arr : int[] = rootarr) -> int:  //?error(FuncParDefaultType)
+function bad_slice(arr : []int = rootarr) -> int:  //?error(FuncParDefaultType)
   result = len(arr);
 endfunc
 

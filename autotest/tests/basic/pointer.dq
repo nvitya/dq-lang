@@ -49,7 +49,7 @@ function dq_ptr_notnull(a : int) -> int:
 endfunc
 
 function dq_ptr_and_arr() -> int:
-  var arr : int[3] = [3,4,5];
+  var arr : [3]int = [3,4,5];
   var p : ^int = &arr[1];
   result = p^;
   p += 1;
@@ -57,14 +57,14 @@ function dq_ptr_and_arr() -> int:
 endfunc
 
 function dq_ptr_and_arr2() -> int:
-  var arr : int[3] = [3,4,5];
+  var arr : [3]int = [3,4,5];
   var p : ^int = &arr[0];
   result = (p + 1)^;
   result += p[2]^;  // sane as (p + 2)^, but this syntax is more readable. [] at pointer do not do dereferencing as in C !
 endfunc
 
 function dq_ptr_addr_chain() -> int:
-  var items : SPtrItem[2];
+  var items : [2]SPtrItem;
   items[0].value = 0;
   items[1].value = 0;
   var p     : ^SPtrItem = &items[0];

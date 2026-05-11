@@ -31,7 +31,7 @@ public:
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
-// Fixed-size array type, e.g. int[3]
+// Fixed-size array type, e.g. [3]int
 // LLVM representation: [N x T], e.g. [3 x i32]
 
 class OTypeArray : public OType
@@ -45,7 +45,7 @@ public:
 
   OTypeArray(OType * aelemtype, uint32_t alength)
   :
-    super(aelemtype->name + "[" + to_string(alength) + "]", TK_ARRAY),
+    super("[" + to_string(alength) + "]" + aelemtype->name, TK_ARRAY),
     elemtype(aelemtype),
     arraylength(alength)
   {
@@ -64,7 +64,7 @@ public:
   LlDiType * CreateDiType() override;
 };
 
-// Array slice / descriptor type, e.g. int[]
+// Array slice / descriptor type, e.g. []int
 // LLVM representation: {ptr, i64}
 // Used for function parameters that accept arrays of any size
 
@@ -78,7 +78,7 @@ public:
 
   OTypeArraySlice(OType * aelemtype)
   :
-    super(aelemtype->name + "[]", TK_ARRAY_SLICE),
+    super("[]" + aelemtype->name, TK_ARRAY_SLICE),
     elemtype(aelemtype)
   {
     bytesize = TARGET_PTRSIZE * 2;  // pointer + length

@@ -1221,7 +1221,7 @@ OIndirectCallExpr::~OIndirectCallExpr()
 
   if (elements.empty())
   {
-    // Default to int[0] or handle error? For now assuming int.
+    // Default to [0]int or handle error? For now assuming int.
     ptype = g_builtins->type_int->GetArrayType(0);
   }
   else

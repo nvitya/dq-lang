@@ -12,7 +12,7 @@ function main() -> int:
   var p : pointer = ^byte(raw);
   result = p^;  //?error(PointerOpaque)
 
-  var arr : int[2] = [1, 2];
+  var arr : [2]int = [1, 2];
   var parr : ^int = ^int(arr);  //?error(CastInvalid)
 
   return 0;

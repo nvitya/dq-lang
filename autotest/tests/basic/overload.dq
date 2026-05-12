@@ -28,19 +28,19 @@ function oltest_int(b : int) -> int [[overload]]:  //?error(OverloadDupSignature
   return 0;
 endfunc
 
-function oltest_int(ref b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+function oltest_int(b : ref int) -> int [[overload]]:  //?error(OverloadDupSignature)
   return 0;
 endfunc
 
-function oltest_int(refin b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+function oltest_int(b : refin int) -> int [[overload]]:  //?error(OverloadDupSignature)
   return 0;
 endfunc
 
-function oltest_int(refout b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+function oltest_int(b : refout int) -> int [[overload]]:  //?error(OverloadDupSignature)
   return 0;
 endfunc
 
-function oltest_int(refnull b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
+function oltest_int(b : refnull int) -> int [[overload]]:  //?error(OverloadDupSignature)
   return 0;
 endfunc
 
@@ -82,7 +82,7 @@ function orescue(a : float) -> int [[overload]]:
   return 0;
 endfunc
 
-function orescue(refout a : int, b : int = 0) -> int [[overload]]:
+function orescue(a : refout int, b : int = 0) -> int [[overload]]:
   return 0;
 endfunc
 

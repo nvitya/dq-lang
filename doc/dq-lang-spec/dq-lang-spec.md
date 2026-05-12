@@ -1142,16 +1142,16 @@ DQ supports several parameter passing modes to control how arguments are passed 
 | Mode | Syntax | Description |
 |------|--------|-------------|
 | Value | `param : T` | A copy of the value is passed. This is the default for primitive types and small structs. |
-| In | `in param : T` | A read-only reference to the argument is passed. This is the default for large types (like objects and arrays) to avoid expensive copies. The parameter cannot be modified within the function. |
-| Ref | `ref param : T` | A mutable reference is passed, allowing the function to modify the original caller's variable. |
-| Out | `out param : T` | The function is expected to assign a value to the parameter before it returns. The initial value of the argument is not passed to the function. |
+| In | `param : in T` | A read-only reference to the argument is passed. This is the default for large types (like objects and arrays) to avoid expensive copies. The parameter cannot be modified within the function. |
+| Ref | `param : ref T` | A mutable reference is passed, allowing the function to modify the original caller's variable. |
+| Out | `param : out T` | The function is expected to assign a value to the parameter before it returns. The initial value of the argument is not passed to the function. |
 
 ```dq
-function Inc(ref x : int, amount : int):
+function Inc(x : ref int, amount : int):
     x += amount;
 endfunc
 
-function ParseInt(in s : str, out value : int) -> bool:
+function ParseInt(s : in str, value : out int) -> bool:
     // ... function body that parses s and assigns to value ...
 endfunc
 ```
@@ -1177,9 +1177,9 @@ The combination of parameter modes with different array types (Open vs. Dynamic)
 | Syntax | Type Name | Input Compatibility | Can Resize? | Semantics |
 | --- | --- | --- | --- | --- |
 | `a : []T` | **Open Array** | Fixed, Dynamic, Literal | **NO** | Universal view. Read/Write access to elements. |
-| `in a : []T` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
+| `a : in []T` | **Open Array (Read-Only)** | Fixed, Dynamic, Literal | **NO** | Universal view. Read-only access to elements. |
 | `a : [...]T` | **Dynamic Array** | Dynamic Array Only | **NO*** | Passes the container handle by value. The function can modify elements but cannot resize the original array in a way that is visible to the caller. |
-| `ref a : [...]T` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
+| `a : ref [...]T` | **Mutable Container** | Dynamic Array Only | **YES** | Full "ownership" reference. The function can append, clear, reallocate, or resize the array, and these changes will affect the caller's variable. |
 
 _*Note: Without `ref`, changing the length of a dynamic array inside a function (e.g., `a.append(...)`) modifies the local handle's copy of the array, a change that will not be reflected for the caller._
 
@@ -1477,7 +1477,7 @@ module Net.Socket
 type Socket = int32;
 
 function open(host : str, port : uint16) -> Socket;
-function close(ref s : Socket);
+function close(s : ref Socket);
 
 implementation
 
@@ -1487,7 +1487,7 @@ function open(host : str, port : uint16) -> Socket:
     // ...
 endfunc
 
-function close(ref s : Socket):
+function close(s : ref Socket):
     // ...
 endfunc
 

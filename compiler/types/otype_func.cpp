@@ -835,13 +835,12 @@ string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
         result += ", ";
       }
 
+      result += param->name;
+      result += " : ";
       if (FPM_REF == param->mode)       result += "ref ";
       else if (FPM_REFIN == param->mode)  result += "refin ";
       else if (FPM_REFOUT == param->mode) result += "refout ";
       else if (FPM_REFNULL == param->mode) result += "refnull ";
-
-      result += param->name;
-      result += " : ";
       result += (param->ptype ? param->ptype->name : "?");
       first = false;
     }

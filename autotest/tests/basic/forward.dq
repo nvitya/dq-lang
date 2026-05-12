@@ -18,14 +18,14 @@ function duplicate_body(a : int) -> int:  //?error(VsAlreadyDecl)
   return a;
 endfunc
 
-function ov_mismatch(ref a : int) -> int [[overload]];
+function ov_mismatch(a : ref int) -> int [[overload]];
 
-function ov_mismatch(refout a : int) -> int [[overload]]:  //?error(FuncSigType)
+function ov_mismatch(a : refout int) -> int [[overload]]:  //?error(FuncSigType)
   a = 1;
   return a;
 endfunc
 
-function ov_mismatch(ref a : int) -> int [[overload]]:
+function ov_mismatch(a : ref int) -> int [[overload]]:
   return a;
 endfunc
 

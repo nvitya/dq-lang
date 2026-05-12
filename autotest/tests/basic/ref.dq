@@ -33,19 +33,19 @@ function dq_ref_local_array() -> int:
   result = arr[1];
 endfunc
 
-function dq_set_ref(ref a : int):
+function dq_set_ref(a : ref int):
   a = 5;
 endfunc
 
-function dq_sum_refin(refin a : int) -> int:
+function dq_sum_refin(a : refin int) -> int:
   result = a + 1;
 endfunc
 
-function dq_make_refout(refout a : int):
+function dq_make_refout(a : refout int):
   a = 33;
 endfunc
 
-function dq_refnull_state(refnull a : int) -> int:
+function dq_refnull_state(a : refnull int) -> int:
   if &a == null:
     result = 1;
   else:
@@ -53,7 +53,7 @@ function dq_refnull_state(refnull a : int) -> int:
   endif
 endfunc
 
-function dq_set_refnull(refnull a : int):
+function dq_set_refnull(a : refnull int):
   if &a == null:
     return;
   endif

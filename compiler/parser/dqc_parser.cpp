@@ -2267,7 +2267,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
   }
   else
   {
-    string spname;
     bool default_seen = false;
 
     while (not scf->Eof())
@@ -2313,9 +2312,8 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
         break;
       }
 
-      EParamMode pmode = FPM_VALUE;
-      string pname_or_mode;
-      if (!scf->ReadIdentifier(pname_or_mode))
+      string spname;
+      if (!scf->ReadIdentifier(spname))
       {
         if (aemit_errors)
         {
@@ -2326,24 +2324,6 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           break;
         }
         continue;
-      }
-
-      spname = pname_or_mode;
-      if (ParseParamModeKeyword(pname_or_mode, pmode))
-      {
-        scf->SkipWhite();
-        if (!scf->ReadIdentifier(spname))
-        {
-          if (aemit_errors)
-          {
-            Error(DQERR_FUNCPAR_NAME_EXP, &scf->prevpos);
-          }
-          if (!fail_or_recover())
-          {
-            break;
-          }
-          continue;
-        }
       }
 
       if (!tfunc->ParNameValid(spname))
@@ -2371,6 +2351,14 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
           break;
         }
         continue;
+      }
+
+      EParamMode pmode = FPM_VALUE;
+      scf->SkipWhite();
+      string mode_keyword;
+      if (scf->ReadIdentifier(mode_keyword, false) && ParseParamModeKeyword(mode_keyword, pmode))
+      {
+        scf->ReadIdentifier(mode_keyword);
       }
 
       OType * ptype = ParseTypeSpec(aemit_errors);

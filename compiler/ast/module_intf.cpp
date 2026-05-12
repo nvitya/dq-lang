@@ -185,9 +185,9 @@ static string FunctionSignature(OValSymFunc * afunc)
         result += ", ";
       }
 
-      result += ParamModeText(param->mode);
       result += param->name;
       result += " : ";
+      result += ParamModeText(param->mode);
       result += TypeName(param->ptype);
       first = false;
     }

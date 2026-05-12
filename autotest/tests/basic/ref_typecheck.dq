@@ -1,26 +1,29 @@
 // reference type checking test (ERROR test)
 
-function bad_default(ref a : int = 1):  //?error(FuncParDefaultRef)
+function bad_default(a : ref int = 1):  //?error(FuncParDefaultRef)
 endfunc
 
-function takes_ref(ref a : int):
+function old_param_mode_syntax(ref a : int):  //?error(FuncParNameInvalid)
 endfunc
 
-function takes_refout(refout a : int):
+function takes_ref(a : ref int):
+endfunc
+
+function takes_refout(a : refout int):
   a = 1;
 endfunc
 
-function takes_refnull(refnull a : int):
+function takes_refnull(a : refnull int):
   if &a == null:
     return;
   endif
 endfunc
 
-function bad_refin(refin a : int):
+function bad_refin(a : refin int):
   a = 1;  //?error(RefReadonly)
 endfunc
 
-function bad_refout_read(refout a : int) -> int:
+function bad_refout_read(a : refout int) -> int:
   result = a;  //?error(RefOutRead)
 endfunc
 

@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.0"
+#define DQ_COMPILER_VERSION  "0.11.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.1:
+  - Funcition argument mode syntax changed:
+     from function myfunc(ref x : int)
+     to   function myfunc(x : ref int)
 v0.11.0:
   - Array type definition changed to prefix form: "var ia3 : [3]int;"
 v0.10.26:

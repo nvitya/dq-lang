@@ -11,7 +11,7 @@ function need_two(a : int, b : int) -> int:
 endfunc
 
 var bad_order : function(a : int = 1, b : int) -> int;  //?error(FuncParDefaultOrder)
-var bad_ref : function(ref a : int = 1) -> int;  //?error(FuncParDefaultRef)
+var bad_ref : function(a : ref int = 1) -> int;  //?error(FuncParDefaultRef)
 var bad_nonconst : function(a : int = need_two(1, 2)) -> int;  //?error(IntConstExpr)
 var bad_slice : function(arr : []int = rootarr) -> int;  //?error(FuncParDefaultType)
 

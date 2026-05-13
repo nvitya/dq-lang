@@ -43,7 +43,7 @@ Examples:
 ```dq
 use dqgui/widgets/button;
 use dqstd/io;
-use sqlite/core nomerge;
+use sqlite/core --;
 ```
 
 The first components are package names:
@@ -249,7 +249,7 @@ function HandleEvent(ev : TEvent);
 
 implementation
 
-use ../platform nomerge;
+use ../platform --;
 
 function HandleEvent(ev : TEvent)
   ...
@@ -269,7 +269,7 @@ Examples:
 ```dq
 use dqgui/widgets;
 use ./button reexport;
-use ^/system/utils nomerge;
+use ^/system/utils --;
 usepath dqgui/widgets as w;
 x = y + 1;
 return x;
@@ -425,14 +425,14 @@ b1 = @dqbutton.TButton();
 b2 = @mybutton.TButton();
 ```
 
-The uniqueness rule also applies to `nomerge` imports:
+The uniqueness rule also applies to `--` imports:
 
 ```dq
-use dqgui/widgets/button nomerge;
-use mygui/widgets/button nomerge;  // error: namespace `button` already exists
+use dqgui/widgets/button --;
+use mygui/widgets/button --;  // error: namespace `button` already exists
 ```
 
-`nomerge` disables symbol merging, not namespace creation.
+`--` disables symbol merging, not namespace creation.
 
 ---
 
@@ -505,7 +505,7 @@ Each item creates its own namespace, using the same rules as a separate `use` de
 Each item may also have its own alias and modifiers:
 
 ```dq
-use dqgui/widgets/button as btn, dqgui/widgets/list only(TList), dqgui/widgets/edit nomerge;
+use dqgui/widgets/button as btn, dqgui/widgets/list only(TList), dqgui/widgets/edit --;
 ```
 
 This is exactly equivalent to:
@@ -513,7 +513,7 @@ This is exactly equivalent to:
 ```dq
 use dqgui/widgets/button as btn;
 use dqgui/widgets/list only(TList);
-use dqgui/widgets/edit nomerge;
+use dqgui/widgets/edit --;
 ```
 
 ---
@@ -565,12 +565,12 @@ Use `usepath` for path shortcuts.
 
 ---
 
-## 12. `nomerge`
+## 12. `--`
 
-The `nomerge` modifier imports only the module namespace and does not merge public symbols into the current namespace.
+The `--` modifier imports only the module namespace and does not merge public symbols into the current namespace.
 
 ```dq
-use dqgui/widgets nomerge;
+use dqgui/widgets --;
 ```
 
 Effects:
@@ -584,7 +584,7 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets nomerge;
+use dqgui/widgets --;
 
 btn = @widgets.TButton("OK");  // OK
 btn = TButton("OK");           // error
@@ -593,7 +593,7 @@ btn = TButton("OK");           // error
 With alias:
 
 ```dq
-use dqgui/widgets as w nomerge;
+use dqgui/widgets as w --;
 
 btn = @w.TButton("OK");        // OK
 btn = TButton("OK");           // error
@@ -754,10 +754,10 @@ Effects:
 Invalid combination:
 
 ```dq
-use ./button nomerge reexport;
+use ./button -- reexport;
 ```
 
-Reason: `nomerge` says symbols are not inserted into the current namespace, while `reexport` says imported symbols become part of the current module's public namespace.
+Reason: `--` says symbols are not inserted into the current namespace, while `reexport` says imported symbols become part of the current module's public namespace.
 
 A modifier belongs only to the module-use item immediately before it.
 
@@ -860,7 +860,7 @@ Example:
 usepath dqgui/widgets as w;
 usepath w/internal as wi;
 
-use wi/platformbutton nomerge;
+use wi/platformbutton --;
 ```
 
 `usepath` aliases are local to the current source file.
@@ -990,7 +990,7 @@ btn2 = @button.TButton("Cancel");
 With alias:
 
 ```dq
-use ./button as btnmod nomerge;
+use ./button as btnmod --;
 
 btn = @btnmod.TButton("OK");
 ```
@@ -999,7 +999,7 @@ btn = @btnmod.TButton("OK");
 
 ```dq
 usepath ./internal as i;
-use i/platformbutton nomerge;
+use i/platformbutton --;
 
 usepath ^/widgets as w;
 use w/button;
@@ -1239,7 +1239,7 @@ Example diagnostic:
 WARN(UseNameConflict): symbol 'TButton' imported from both @gw1 and @gw2
 ```
 
-The user should resolve ambiguity with aliases, `only(...)`, `exclude(...)`, or `nomerge`:
+The user should resolve ambiguity with aliases, `only(...)`, `exclude(...)`, or `--`:
 
 ```dq
 use gui1/widgets as gw1 only(TWindow, TLabel);
@@ -1256,7 +1256,7 @@ use gui2/widgets as gw2;
 or:
 
 ```dq
-use gui1/widgets as gw1 nomerge;
+use gui1/widgets as gw1 --;
 use gui2/widgets as gw2;
 
 btn = TButton("OK");
@@ -1381,7 +1381,7 @@ usepath-declaration:
     "usepath" module-path "as" identifier ";"
 
 use-modifier:
-    "nomerge"
+    "--"
   | "only" "(" symbol-list ")"
   | "exclude" "(" symbol-list ")"
   | "reexport"
@@ -1424,8 +1424,8 @@ Semantic restrictions:
 - `./path` and `../path` resolve relative to the current module directory.
 - Relative paths and package-root-relative paths must not escape above the module root directory.
 - The compiler canonicalizes all module paths before semantic analysis.
-- `nomerge`, `only(...)`, and `exclude(...)` are mutually exclusive.
-- `nomerge` and `reexport` are mutually exclusive.
+- `--`, `only(...)`, and `exclude(...)` are mutually exclusive.
+- `--` and `reexport` are mutually exclusive.
 - `only(...) reexport` is valid.
 - `exclude(...) reexport` is valid.
 - In a comma-separated `use` declaration, each `module-use-item` is equivalent to a separate `use` declaration.
@@ -1448,8 +1448,8 @@ Semantic restrictions:
 use xpackage/xmodule;
 use xpackage/xmodule as xm;
 
-use xpackage/xmodule nomerge;
-use xpackage/xmodule as xm nomerge;
+use xpackage/xmodule --;
+use xpackage/xmodule as xm --;
 
 use xpackage/xmodule only(Symbol1, Symbol2);
 use xpackage/xmodule as xm only(Symbol1, Symbol2);
@@ -1461,12 +1461,12 @@ use xpackage/xmodule only(Symbol1, Symbol2) reexport;
 use xpackage/xmodule exclude(Symbol1, Symbol2) reexport;
 
 use xpackage/a, xpackage/b, xpackage/c;
-use xpackage/a as a, xpackage/b only(SymbolB), xpackage/c nomerge;
+use xpackage/a as a, xpackage/b only(SymbolB), xpackage/c --;
 use ./button reexport, ./list reexport, ./edit reexport;
 
 use ^/root_child;
 use ^/system/utils;
-use ^/system/utils as utils nomerge;
+use ^/system/utils as utils --;
 
 use ./child;
 use ../sibling;
@@ -1487,19 +1487,19 @@ Examples:
 
 use dqgui/widgets;
 use dqgui/widgets as w;
-use dqgui/widgets nomerge;
+use dqgui/widgets --;
 use dqgui/widgets only(TButton, TLabel);
 use dqgui/widgets exclude(TList);
 use dqgui/widgets only(TButton, TLabel) reexport;
 use dqgui/widgets exclude(TList) reexport;
 
-use ^/system/utils nomerge;
+use ^/system/utils --;
 use ^/widgets/button reexport;
 
 use ./button reexport;
 use ./button reexport, ./list reexport, ./edit reexport;
 use ../core only(TEvent);
-use ../../paint/image as img nomerge;
+use ../../paint/image as img --;
 
 usepath dqgui/widgets as widgets_path;
 use widgets_path/button, widgets_path/list, widgets_path/textinput as ti;
@@ -1513,8 +1513,8 @@ Qualified access examples:
 ```dq
 use dqgui/widgets;
 use dqgui/widgets/button as btnmod;
-use ^/system/utils nomerge;
-use ../../paint/image as img nomerge;
+use ^/system/utils --;
+use ../../paint/image as img --;
 
 w = @widgets.TWindow();
 b = @btnmod.TButton("OK");

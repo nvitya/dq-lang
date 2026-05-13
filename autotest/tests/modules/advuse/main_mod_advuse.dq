@@ -1,5 +1,5 @@
 
-use ./mod_advuse as advm nomerge;
+use ./mod_advuse as advm --;
 use ./mod_advuse2 as adv2;
 
 #ifdef ERRORTEST

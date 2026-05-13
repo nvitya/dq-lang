@@ -492,7 +492,7 @@ The interface scanner should:
 
 ```text
 parse declarations needed for the public interface
-handle use/usepath/reexport/only/nomerge semantics
+handle use/usepath/reexport/only/-- semantics
 resolve imported interfaces on demand
 skip normal function bodies
 stop or skip after implementation depending on mode
@@ -552,7 +552,7 @@ ParseUse()
   ensure the imported module interface exists
   load its .dqm_if
   create local namespace
-  merge public symbols unless nomerge
+  merge public symbols unless `--` is present
   continue scanning
 ```
 

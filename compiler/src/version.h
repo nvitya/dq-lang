@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.1"
+#define DQ_COMPILER_VERSION  "0.11.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.2:
+  - 'use' 'nomerge' changed to '--', 'nomerge' is not accepted
 v0.11.1:
   - Funcition argument mode syntax changed:
      from function myfunc(ref x : int)

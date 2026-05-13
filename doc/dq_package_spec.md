@@ -84,7 +84,7 @@ use serial/port;       // @port
 use sqlite/connection; // @connection
 ```
 
-Aliases, `only`, `nomerge`, re-exporting, and namespace conflicts follow the module specification.
+Aliases, `only`, `--`, re-exporting, and namespace conflicts follow the module specification.
 
 ---
 

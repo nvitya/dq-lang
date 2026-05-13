@@ -550,6 +550,21 @@ void ODqCompParser::ParseUseStatement()
         break;
       }
 
+      if (scf->CheckSymbol("--"))
+      {
+        if ((MUM_ALL != merge_mode) || reexport)
+        {
+          OScPosition errpos;
+          errpos.Assign(scpos_statement_start);
+          CheckStatementClose();
+          errpos.RecalcLineCol();
+          Error(DQERR_USE_MODIFIER_CONFLICT, "-- with only/exclude/reexport", &errpos);
+          return;
+        }
+        merge_mode = MUM_NONE;
+        continue;
+      }
+
       if (!scf->ReadIdentifier(sid))
       {
         if (!CheckStatementClose())
@@ -568,19 +583,6 @@ void ODqCompParser::ParseUseStatement()
           return;
         }
       }
-      else if ("nomerge" == sid)
-      {
-        if ((MUM_ALL != merge_mode) || reexport)
-        {
-          OScPosition errpos;
-          errpos.Assign(scpos_statement_start);
-          CheckStatementClose();
-          errpos.RecalcLineCol();
-          Error(DQERR_USE_MODIFIER_CONFLICT, "nomerge with only/exclude/reexport", &errpos);
-          return;
-        }
-        merge_mode = MUM_NONE;
-      }
       else if ("only" == sid)
       {
         if (MUM_ALL != merge_mode)
@@ -588,7 +590,7 @@ void ODqCompParser::ParseUseStatement()
           vector<string> dummy_names;
           ParseUseSymbolList("only", dummy_names);
           CheckStatementClose();
-          Error(DQERR_USE_MODIFIER_CONFLICT, "only with nomerge/exclude", &scpos_statement_start);
+          Error(DQERR_USE_MODIFIER_CONFLICT, "only with --/exclude", &scpos_statement_start);
           return;
         }
         merge_mode = MUM_ONLY;
@@ -604,7 +606,7 @@ void ODqCompParser::ParseUseStatement()
           vector<string> dummy_names;
           ParseUseSymbolList("exclude", dummy_names);
           CheckStatementClose();
-          Error(DQERR_USE_MODIFIER_CONFLICT, "exclude with nomerge/only", &scpos_statement_start);
+          Error(DQERR_USE_MODIFIER_CONFLICT, "exclude with --/only", &scpos_statement_start);
           return;
         }
         merge_mode = MUM_EXCLUDE;
@@ -630,7 +632,7 @@ void ODqCompParser::ParseUseStatement()
           errpos.Assign(scpos_statement_start);
           CheckStatementClose();
           errpos.RecalcLineCol();
-          Error(DQERR_USE_MODIFIER_CONFLICT, "reexport with nomerge", &errpos);
+          Error(DQERR_USE_MODIFIER_CONFLICT, "reexport with --", &errpos);
           return;
         }
         reexport = true;

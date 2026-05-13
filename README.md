@@ -16,7 +16,7 @@ Configure the project from the repository root:
 
 ```sh
 cmake .
-make -j
+make -j"$(nproc)"
 ```
 
 Run the compiler autotests:

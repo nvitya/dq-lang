@@ -11,7 +11,7 @@ In general try to find the most elegant solution (least code), which is not alwa
 
 ## Build Defaults
 
-- Use `cmake --build . -j` for normal builds unless there is a specific reason to limit parallelism.
+- Use `make -j"$(nproc)"` for build the compiler
 
 ## DQ Compiler Testing
 

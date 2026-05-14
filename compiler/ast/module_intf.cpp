@@ -777,6 +777,16 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("-o");
   args.push_back(artifact_path.string());
   args.push_back("--regen-if-stale");
+  if (!g_opt.build_root_dir.empty())
+  {
+    args.push_back("--build-root");
+    args.push_back(g_opt.build_root_dir);
+  }
+  if (!g_opt.build_tag.empty())
+  {
+    args.push_back("--build");
+    args.push_back(g_opt.build_tag);
+  }
   args.push_back("--mod-root");
   args.push_back(module_root_dir.string());
   args.push_back("--mod-name");

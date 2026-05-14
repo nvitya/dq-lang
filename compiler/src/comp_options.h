@@ -52,6 +52,9 @@ public:
   int      module_root_depth = 0;
 
   string   compiler_executable;
+  string   compiler_executable_dir;
+  string   build_root_dir;
+  string   build_tag;
   vector<string>  module_use_stack;
   vector<string>  package_paths;
   string          module_root_dir;

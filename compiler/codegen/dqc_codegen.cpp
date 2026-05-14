@@ -245,6 +245,12 @@ void ODqCompCodegen::EmitObject(const string afilename)
     print("Writing object file \"{}\"...\n", afilename);
   }
 
+  string dir_error;
+  if (!ArtifactEnsureParentDir(afilename, dir_error))
+  {
+    throw runtime_error(dir_error);
+  }
+
   filesystem::path tmp_path = ArtifactTempPathFor(afilename);
   error_code ec;
   llvm::raw_fd_ostream out(tmp_path.string(), ec, llvm::sys::fs::OF_None);

@@ -88,6 +88,60 @@ filesystem::path OModulePath::SourcePathForLocal(const filesystem::path & root_d
   return result.lexically_normal();
 }
 
+filesystem::path OModulePath::BuildRootDir()
+{
+  if (!g_opt.build_root_dir.empty())
+  {
+    return AbsNorm(g_opt.build_root_dir);
+  }
+  return AbsNorm(filesystem::current_path());
+}
+
+filesystem::path OModulePath::BuildTagDir()
+{
+  filesystem::path result = BuildRootDir() / ".dqbuild";
+  result /= (g_opt.build_tag.empty() ? "default" : g_opt.build_tag);
+  return result.lexically_normal();
+}
+
+bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::path & root_dir)
+{
+  filesystem::path normalized_root = AbsNorm(root_dir);
+  for (const string & package_path : g_opt.package_paths)
+  {
+    filesystem::path candidate = AbsNorm(filesystem::path(package_path) / package_name);
+    if (candidate == normalized_root)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_name, const string & local_path,
+                                                         const filesystem::path & root_dir, bool interface_only)
+{
+  filesystem::path result = BuildTagDir();
+  if (IsPackageRoot(package_name, root_dir))
+  {
+    result /= "pkg";
+    result /= package_name;
+  }
+  else
+  {
+    result /= "local";
+  }
+
+  for (const string & item : Split(local_path))
+  {
+    result /= item;
+  }
+
+  string suffix = BuildArtifactSuffix();
+  result += suffix + (interface_only ? ".dqm_if" : ".dqm");
+  return result.lexically_normal();
+}
+
 string OModulePath::BuildArtifactSuffix()
 {
   string suffix;
@@ -127,18 +181,25 @@ string OModulePath::BuildArtifactSuffix()
 
 filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path result = source_path;
-  string suffix = BuildArtifactSuffix();
-  result.replace_extension(suffix + ".dqm");
-  return result;
+  filesystem::path src = AbsNorm(source_path);
+  filesystem::path source_no_ext = src;
+  source_no_ext.replace_extension();
+
+  filesystem::path rel = source_no_ext.lexically_relative(BuildRootDir());
+  string local_path = rel.generic_string();
+  if (local_path.empty() || local_path.starts_with(".."))
+  {
+    local_path = source_no_ext.filename().generic_string();
+  }
+
+  return BuildArtifactPathForModule("", local_path, BuildRootDir(), false);
 }
 
 filesystem::path OModulePath::BuildInterfaceArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path result = source_path;
-  string suffix = BuildArtifactSuffix();
-  result.replace_extension(suffix + ".dqm_if");
-  return result;
+  filesystem::path artifact_path = BuildArtifactPath(source_path);
+  artifact_path.replace_extension(".dqm_if");
+  return artifact_path;
 }
 
 string OModulePath::ModuleIdFromPackageLocal(const string & package_name, const string & local_path)
@@ -200,8 +261,8 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
     }
     package_name = idparts[0];
     local_path = (idparts.size() == 1 ? package_name : Join(idparts, 1));
-    artifact_path = BuildArtifactPath(source_path);
-    interface_artifact_path = BuildInterfaceArtifactPath(source_path);
+    artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, false);
+    interface_artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, true);
     namespace_name = Split(local_path).back();
     return true;
   }
@@ -231,8 +292,8 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
   }
 
   module_id = ModuleIdFromPackageLocal(package_name, local_path);
-  artifact_path = BuildArtifactPath(source_path);
-  interface_artifact_path = BuildInterfaceArtifactPath(source_path);
+  artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, false);
+  interface_artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, true);
   namespace_name = Split(local_path).back();
   return true;
 }
@@ -334,8 +395,8 @@ bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
   root_dir = resolved_root_dir;
   module_id = ModuleIdFromPackageLocal(package_name, local_path);
   source_path = SourcePathForLocal(root_dir, local_path);
-  artifact_path = BuildArtifactPath(source_path);
-  interface_artifact_path = BuildInterfaceArtifactPath(source_path);
+  artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, false);
+  interface_artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, true);
   return true;
 }
 
@@ -354,30 +415,45 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
     return false;
   }
 
+  string package_name = target_parts[0];
+  string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
+
+  filesystem::path build_tag_dir = BuildTagDir();
+  filesystem::path local_dir = build_tag_dir / "local";
+  filesystem::path pkg_dir = build_tag_dir / "pkg";
+
   vector<string> context_parts = Split(context_module_id);
   if (!context_parts.empty() && target_parts[0] == context_parts[0] && !context_artifact.empty())
   {
-    filesystem::path root_dir = context_artifact.parent_path();
-    size_t context_local_depth = (context_parts.size() == 1 ? 1 : context_parts.size() - 1);
-    for (size_t i = 1; i < context_local_depth; ++i)
+    filesystem::path context_path = AbsNorm(context_artifact);
+    filesystem::path local_rel = context_path.lexically_relative(local_dir);
+    if (!local_rel.empty() && !local_rel.generic_string().starts_with(".."))
     {
-      root_dir = root_dir.parent_path();
+      rartifact_path = BuildArtifactPathForModule(package_name, local_path, BuildRootDir(), false);
+      return true;
     }
 
-    string local_path = (target_parts.size() == 1 ? target_parts[0] : Join(target_parts, 1));
-    rartifact_path = BuildArtifactPath(SourcePathForLocal(root_dir, local_path));
-    return true;
+    filesystem::path pkg_rel = context_path.lexically_relative(pkg_dir);
+    if (!pkg_rel.empty() && !pkg_rel.generic_string().starts_with(".."))
+    {
+      rartifact_path = BuildTagDir() / "pkg" / package_name;
+      for (const string & item : Split(local_path))
+      {
+        rartifact_path /= item;
+      }
+      rartifact_path += BuildArtifactSuffix() + ".dqm";
+      rartifact_path = rartifact_path.lexically_normal();
+      return true;
+    }
   }
 
-  string package_name = target_parts[0];
-  string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
   for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
   {
     filesystem::path package_dir = AbsNorm(filesystem::path(*it) / package_name);
     error_code ec;
     if (filesystem::is_directory(package_dir, ec) && !ec)
     {
-      rartifact_path = BuildArtifactPath(SourcePathForLocal(package_dir, local_path));
+      rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
       return true;
     }
   }

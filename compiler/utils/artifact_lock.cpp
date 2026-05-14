@@ -42,6 +42,14 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
   Unlock();
   error.clear();
 
+  if (EArtifactLockMode::EXCLUSIVE == mode)
+  {
+    if (!ArtifactEnsureParentDir(artifact_path, error))
+    {
+      return false;
+    }
+  }
+
   int open_flags = (EArtifactLockMode::SHARED == mode ? O_RDONLY : (O_CREAT | O_RDWR));
 
   while (true)
@@ -101,9 +109,34 @@ filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path)
   return result;
 }
 
+bool ArtifactEnsureParentDir(const filesystem::path & artifact_path, string & rerror)
+{
+  filesystem::path parent_path = artifact_path.parent_path();
+  if (parent_path.empty())
+  {
+    return true;
+  }
+
+  error_code ec;
+  filesystem::create_directories(parent_path, ec);
+  if (ec)
+  {
+    rerror = format("Can not create artifact directory {}: {}", parent_path.string(), ec.message());
+    return false;
+  }
+
+  return true;
+}
+
 bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::path & artifact_path,
                            string & rerror)
 {
+  if (!ArtifactEnsureParentDir(artifact_path, rerror))
+  {
+    ArtifactRemoveNoError(tmp_path);
+    return false;
+  }
+
   error_code ec;
   filesystem::rename(tmp_path, artifact_path, ec);
   if (ec)
@@ -117,6 +150,11 @@ bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::
 
 bool ArtifactAtomicWrite(const filesystem::path & artifact_path, const vector<uint8_t> & data, string & rerror)
 {
+  if (!ArtifactEnsureParentDir(artifact_path, rerror))
+  {
+    return false;
+  }
+
   filesystem::path tmp_path = ArtifactTempPathFor(artifact_path);
   ofstream outf(tmp_path, ios::binary);
   if (!outf)

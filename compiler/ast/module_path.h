@@ -54,6 +54,8 @@ public:
   static bool ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
                                        const filesystem::path & context_artifact,
                                        filesystem::path & rartifact_path);
+  static filesystem::path BuildRootDir();
+  static filesystem::path BuildTagDir();
   static filesystem::path BuildArtifactPath(const filesystem::path & source_path);
   static filesystem::path BuildInterfaceArtifactPath(const filesystem::path & source_path);
 
@@ -62,6 +64,9 @@ private:
   static vector<string> Split(const string & path);
   static string Join(const vector<string> & items, size_t start = 0);
   static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, const string & local_path);
+  static filesystem::path BuildArtifactPathForModule(const string & package_name, const string & local_path,
+                                                     const filesystem::path & root_dir, bool interface_only);
+  static bool IsPackageRoot(const string & package_name, const filesystem::path & root_dir);
   static string BuildArtifactSuffix();
   static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path);
   static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,

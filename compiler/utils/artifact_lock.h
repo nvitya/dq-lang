@@ -51,6 +51,7 @@ filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path);
 bool ArtifactAtomicWrite(const filesystem::path & artifact_path, const vector<uint8_t> & data, string & rerror);
 bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::path & artifact_path,
                            string & rerror);
+bool ArtifactEnsureParentDir(const filesystem::path & artifact_path, string & rerror);
 void ArtifactRemoveNoError(const filesystem::path & path);
 filesystem::path ArtifactInterfaceSidecarPathForObject(const filesystem::path & object_path);
 void ArtifactCleanupInterfaceSidecarForObject(const filesystem::path & object_path);

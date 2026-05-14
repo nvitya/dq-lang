@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.2"
+#define DQ_COMPILER_VERSION  "0.11.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.3:
+  - dq-comp standard package search paths
+  - using .dqbuild for build temporary files
 v0.11.2:
   - 'use' 'nomerge' changed to '--', 'nomerge' is not accepted
 v0.11.1:

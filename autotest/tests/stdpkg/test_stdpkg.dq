@@ -1,5 +1,6 @@
 use libc/stdio;
 
+[[cexport]]
 function main() -> int:
   printf("DQ Std Package test\n"); //?check('DQ Std Package test')
   return 0;

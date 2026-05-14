@@ -15,8 +15,12 @@
 #include <string>
 #include <limits>
 #include <filesystem>
+#include <cstdlib>
+#include <unistd.h>
 #include "dqc_clargs.h"
 #include "comp_options.h"
+#include "comp_config.h"
+#include "module_path.h"
 
 using namespace std;
 
@@ -46,8 +50,16 @@ static bool IsValidDefineName(const string & name)
   return true;
 }
 
-static string NormalizeCompilerExecutable(const string & argv0)
+static string ResolveCompilerExecutable(const string & argv0)
 {
+  vector<char> buf(4096);
+  ssize_t len = readlink("/proc/self/exe", buf.data(), buf.size() - 1);
+  if (len > 0)
+  {
+    buf[len] = 0;
+    return filesystem::path(buf.data()).lexically_normal().string();
+  }
+
   if (argv0.empty())
   {
     return "dq-comp";
@@ -60,7 +72,85 @@ static string NormalizeCompilerExecutable(const string & argv0)
 
   error_code ec;
   filesystem::path p = filesystem::absolute(argv0, ec);
-  return (ec ? argv0 : p.string());
+  return (ec ? argv0 : p.lexically_normal().string());
+}
+
+static string CompilerExecutableDir(const string & compiler_executable)
+{
+  filesystem::path p(compiler_executable);
+  if (!p.has_parent_path())
+  {
+    return "";
+  }
+  return p.parent_path().lexically_normal().string();
+}
+
+static string DefaultTargetArch()
+{
+#if defined(HOST_X86)
+  #if defined(TARGET_64BIT)
+    return "x86_64";
+  #else
+    return "x86";
+  #endif
+#elif defined(HOST_ARM)
+  #if defined(TARGET_64BIT)
+    return "aarch64";
+  #else
+    return "arm";
+  #endif
+#elif defined(HOST_RISCV)
+  #if defined(TARGET_64BIT)
+    return "riscv64";
+  #else
+    return "riscv32";
+  #endif
+#else
+  return "unknown";
+#endif
+}
+
+static string DefaultTargetRtl()
+{
+#if defined(TARGET_WIN)
+  return "win";
+#elif defined(TARGET_LINUX)
+  return "linux";
+#else
+  return "unknown";
+#endif
+}
+
+static string DefaultBuildTag()
+{
+  return DefaultTargetArch() + "-" + DefaultTargetRtl();
+}
+
+static void AddDefaultPackagePaths()
+{
+  g_opt.package_paths.clear();
+
+  g_opt.package_paths.push_back("/usr/lib/dq/stdpkg");
+
+  if (!g_opt.compiler_executable_dir.empty())
+  {
+    filesystem::path stdpkg_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "stdpkg";
+    g_opt.package_paths.push_back(stdpkg_path.lexically_normal().string());
+  }
+
+  g_opt.package_paths.push_back("/usr/lib/dq/packages");
+
+  const char * home = getenv("HOME");
+  if (home && home[0])
+  {
+    filesystem::path user_packages = filesystem::path(home) / ".dq" / "packages";
+    g_opt.package_paths.push_back(user_packages.lexically_normal().string());
+  }
+}
+
+static string NormalizeCompilerExecutable(const string & argv0)
+{
+  return ResolveCompilerExecutable(argv0);
 }
 
 static void ParseModuleUseStack(const string & text, vector<string> & rstack)
@@ -209,6 +299,9 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 {
   string explicit_output;
   g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
+  g_opt.compiler_executable_dir = CompilerExecutableDir(g_opt.compiler_executable);
+  g_opt.build_tag = DefaultBuildTag();
+  AddDefaultPackagePaths();
 
   for (int i = 1; i < argc; i++)
   {
@@ -246,6 +339,43 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
         {
           ++errorcnt;
           print("Missing path after --pkg-path\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--build" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          g_opt.build_tag = argv[i];
+          if (g_opt.build_tag.empty())
+          {
+            ++errorcnt;
+            print("Empty build tag after --build\n");
+            PrintUsage();
+            return;
+          }
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing build tag after --build\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--build-root" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          g_opt.build_root_dir = argv[i];
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing path after --build-root\n");
           PrintUsage();
           return;
         }
@@ -407,6 +537,23 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     return;
   }
 
+  if (g_opt.build_root_dir.empty())
+  {
+    error_code ec;
+    filesystem::path input_path = filesystem::absolute(in_filename, ec);
+    if (ec)
+    {
+      input_path = in_filename;
+    }
+    g_opt.build_root_dir = input_path.parent_path().lexically_normal().string();
+  }
+  else
+  {
+    error_code ec;
+    filesystem::path build_root = filesystem::absolute(g_opt.build_root_dir, ec);
+    g_opt.build_root_dir = (ec ? filesystem::path(g_opt.build_root_dir) : build_root).lexically_normal().string();
+  }
+
   // derive base_name by stripping .dq extension
   if (in_filename.size() > 3 && in_filename.substr(in_filename.size() - 3) == ".dq")
   {
@@ -417,19 +564,34 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     base_name = in_filename;
   }
 
+  OModulePath current_module;
+  string module_error;
+  filesystem::path default_artifact_path;
+  filesystem::path default_interface_path;
+  if (current_module.InitCurrent(in_filename, module_error))
+  {
+    default_artifact_path = current_module.artifact_path;
+    default_interface_path = current_module.interface_artifact_path;
+  }
+  else
+  {
+    default_artifact_path = OModulePath::BuildArtifactPath(in_filename);
+    default_interface_path = OModulePath::BuildInterfaceArtifactPath(in_filename);
+  }
+
   if (g_opt.ifgen)
   {
-    out_filename = has_dash_o ? explicit_output : base_name + ".dqm_if";
+    out_filename = has_dash_o ? explicit_output : default_interface_path.string();
   }
   else if (g_opt.compile_only)
   {
     // -c: compile only, no linking
-    out_filename = has_dash_o ? explicit_output : base_name + ".dqm";
+    out_filename = has_dash_o ? explicit_output : default_artifact_path.string();
   }
   else
   {
     // full compilation produces a compiled DQ module object
-    out_filename = base_name + ".dqm";
+    out_filename = default_artifact_path.string();
     // link_output is where the final result should go
     link_output = has_dash_o ? explicit_output : base_name;
   }
@@ -448,6 +610,7 @@ void ODqCompClargs::PrintUsage()
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if or .dqm)\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
+  print("  --build <tag> : select .dqbuild build tag\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

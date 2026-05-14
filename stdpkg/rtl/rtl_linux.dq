@@ -3,13 +3,14 @@
 use sys --;
 
 function dq_main() -> int [[external('dq_main')]];
+function dq_module_init() [[external('dq_module_init')]];
 
 // libc entry point 'main()'
 [[cexport]]
 function main(argc : int, argv : ^^cchar) -> int:
   @sys.__sys_init_params(argc, argv);
 
-  //TODO: call module initializations
+  dq_module_init();
 
   result = dq_main();
   //dq_runtime_finalize_modules();

@@ -22,6 +22,8 @@
 
 using namespace std;
 
+class OStmtBlock;
+
 enum EDeclKind
 {
   DK_TYPE,
@@ -77,6 +79,9 @@ public:
   OScope *         scope_priv;
 
   LlDiScope *      di_scope = nullptr;
+  OValSym *        module_init_guard = nullptr;
+  OValSymFunc *    app_init_func = nullptr;
+  bool             module_init_prefix_added = false;
 
   OModule()
   :
@@ -97,6 +102,10 @@ public:
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
+  OValSymFunc * EnsureModuleInitFunc(OScPosition & scpos);
+  OValSymFunc * EnsureAppInitFunc(OScPosition & scpos);
+  void FinalizeModuleInitFunc();
+  vector<OValSymFunc *> ModuleInitCallList(bool include_self) const;
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
                          const string & interface_artifact_path, const string & link_artifact_path,
                          OScope * amerge_scope, bool ais_private,

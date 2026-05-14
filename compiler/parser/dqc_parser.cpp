@@ -441,6 +441,12 @@ void ODqCompParser::ParseModule()
       curscope = cur_mod_scope;
       curblock = nullptr;
     }
+    else if ("initialization" == sid)
+    {
+      ParseInitializationBlock();
+      curscope = cur_mod_scope;
+      curblock = nullptr;
+    }
     else if ("struct" == sid)
     {
       ParseStructDecl();
@@ -457,6 +463,7 @@ void ODqCompParser::ParseModule()
 
   if (!g_opt.ifgen)
   {
+    g_module->FinalizeModuleInitFunc();
     ValidateModuleForwardFuncDecls(g_module);
   }
 
@@ -1733,6 +1740,31 @@ void ODqCompParser::ParseFunction()
 
   ParseFunctionSignature(tfunc, false, sid, true);
   FinishFunctionDecl(vsfunc, cur_mod_scope, cur_mod_scope, false, true, "function declaration");
+}
+
+void ODqCompParser::ParseInitializationBlock()
+{
+  // note: "initialization" is already consumed
+  if (section_public)
+  {
+    ErrorTxt(DQERR_NOT_SUPPORTED, "initialization before implementation");
+    scf->SearchPattern("endinitialization", true);
+    return;
+  }
+
+  if (g_module->module_init_func)
+  {
+    ErrorTxt(DQERR_NOT_SUPPORTED, "multiple initialization blocks");
+    scf->SearchPattern("endinitialization", true);
+    return;
+  }
+
+  OValSymFunc * init_func = g_module->EnsureModuleInitFunc(scpos_statement_start);
+  curvsfunc = init_func;
+  ReadStatementBlock(init_func->body, "endinitialization");
+  init_func->scpos_endfunc = scf->prevpos;
+  init_func->has_body = true;
+  curvsfunc = nullptr;
 }
 
 void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)

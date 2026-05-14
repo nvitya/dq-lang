@@ -117,6 +117,7 @@ OModuleIntf::~OModuleIntf()
   {
     delete intf;
   }
+  delete module_init_func;
 }
 
 static string ConstValueText(OValue * avalue)
@@ -1037,6 +1038,15 @@ bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
   return writer.AddRecEmpty(DQMIF_USE_END);
 }
 
+bool OModuleIntf::WriteDqmIfModuleInit(ODqmIfWriter & writer)
+{
+  if (module_init_linkage_name.empty())
+  {
+    return true;
+  }
+  return writer.AddRecStr(DQMIF_MODULE_INIT, module_init_linkage_name);
+}
+
 bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename)
 {
   if (!WriteDqmIfSourceMetadata(writer, source_filename))
@@ -1087,6 +1097,11 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
         }
       }
     }
+  }
+
+  if (!WriteDqmIfModuleInit(writer))
+  {
+    return false;
   }
 
   for (OModuleUse * use : used_modules)
@@ -2010,6 +2025,22 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   return true;
 }
 
+bool OModuleIntf::ReadModuleInitDecl(ODqmIfReader & reader)
+{
+  if (!reader.ReadString(module_init_linkage_name))
+  {
+    return false;
+  }
+
+  OScPosition scpos;
+  OTypeFunc * sigtype = new OTypeFunc("__dq_module_init");
+  module_init_func = new OValSymFunc(scpos, "__dq_module_init", sigtype, scope_pub->parent_scope);
+  module_init_func->attr_has_linkage_name = true;
+  module_init_func->attr_linkage_name = module_init_linkage_name;
+  module_init_func->owner_module_name = name;
+  return true;
+}
+
 bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 {
   while (!reader.Eof())
@@ -2036,6 +2067,10 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
       {
         link_dependencies.push_back(dep_name);
       }
+    }
+    else if (DQMIF_MODULE_INIT == reader.recid)
+    {
+      if (!ReadModuleInitDecl(reader)) return false;
     }
     else if (DQMIF_USE_BEGIN == reader.recid)
     {

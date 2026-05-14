@@ -16,6 +16,7 @@
 #include "statements.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "otype_func.h"
 #include "comp_options.h"
 
 using namespace std;
@@ -335,6 +336,34 @@ void OStmtModifyAssign::Generate(OScope * scope)
 void OStmtVoidCall::Generate(OScope * scope)
 {
   LlValue * ll_value = callexpr->Generate(scope);
+}
+
+void OStmtModuleInitCalls::Generate(OScope * scope)
+{
+  if (guard)
+  {
+    LlType * bool_type = g_builtins->type_bool->GetLlType();
+    LlValue * initialized = ll_builder.CreateLoad(bool_type, guard->ll_value, guard->name);
+    LlFunction * ll_curfunc = ll_builder.GetInsertBlock()->getParent();
+    LlBasicBlock * bb_run = LlBasicBlock::Create(ll_ctx, "module_init.run", ll_curfunc);
+    LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "module_init.done", ll_curfunc);
+
+    ll_builder.CreateCondBr(initialized, bb_done, bb_run);
+    ll_builder.SetInsertPoint(bb_done);
+    ll_builder.CreateRetVoid();
+
+    ll_builder.SetInsertPoint(bb_run);
+    ll_builder.CreateStore(llvm::ConstantInt::get(static_cast<llvm::IntegerType *>(bool_type), 1), guard->ll_value);
+  }
+
+  for (OValSymFunc * init_func : init_funcs)
+  {
+    if (!init_func || !init_func->ll_func)
+    {
+      throw runtime_error("OStmtModuleInitCalls::Generate(): missing module init function");
+    }
+    ll_builder.CreateCall(init_func->ll_func, {});
+  }
 }
 
 void OStmtWhile::Generate(OScope * scope)

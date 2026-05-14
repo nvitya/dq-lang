@@ -1,0 +1,11 @@
+//?notest
+
+const CONST_MOD_B : int = 1;
+
+implementation
+
+use libc/stdio;
+
+initialization:
+  printf("Module init B\n");
+endinitialization

@@ -253,6 +253,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     main_func->attr_has_linkage_name = true;
     main_func->attr_linkage_name = "dq_main";
+    g_module->EnsureAppInitFunc(main_func->scpos);
   }
 
   GenerateIr();

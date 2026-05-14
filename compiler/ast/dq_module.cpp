@@ -18,6 +18,13 @@
 #include "dqc.h"
 #include "errorcodes.h"
 #include "module_path.h"
+#include "otype_func.h"
+#include "statements.h"
+
+static constexpr const char * DQ_MODULE_INIT_FUNC_NAME = "__dq_module_init";
+static constexpr const char * DQ_MODULE_INIT_GUARD_NAME = "__dq_module_init_done";
+static constexpr const char * DQ_APP_INIT_FUNC_NAME = "__dq_app_module_init";
+static constexpr const char * DQ_APP_INIT_LINKAGE_NAME = "dq_module_init";
 
 OModule *  g_module = nullptr;
 
@@ -71,6 +78,97 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   ODecl * result = new ODecl(apublic, avalsym);
   declarations.push_back(result);
   return result;
+}
+
+OValSymFunc * OModule::EnsureModuleInitFunc(OScPosition & scpos)
+{
+  if (module_init_func)
+  {
+    return module_init_func;
+  }
+
+  OTypeFunc * sigtype = new OTypeFunc(DQ_MODULE_INIT_FUNC_NAME);
+  module_init_func = new OValSymFunc(scpos, DQ_MODULE_INIT_FUNC_NAME, sigtype, scope_priv);
+  module_init_func->scpos.Assign(scpos);
+  module_init_func->scpos_endfunc.Assign(scpos);
+  module_init_func->has_body = true;
+  module_init_linkage_name = LinkerSymbolName('F', DQ_MODULE_INIT_FUNC_NAME);
+  DeclareHiddenValSym(true, module_init_func);
+
+  module_init_guard = new OValSym(scpos, DQ_MODULE_INIT_GUARD_NAME, g_builtins->type_bool, VSK_VARIABLE);
+  module_init_guard->scpos.Assign(scpos);
+  DeclareHiddenValSym(false, module_init_guard);
+
+  return module_init_func;
+}
+
+vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self) const
+{
+  vector<OValSymFunc *> result;
+  vector<string> seen_linkage_names;
+
+  auto add_func = [&](OValSymFunc * fn)
+  {
+    if (!fn)
+    {
+      return;
+    }
+    string linkage_name = fn->attr_has_linkage_name ? fn->attr_linkage_name : fn->GetLinkageName(true, 'F');
+    if (seen_linkage_names.end() != find(seen_linkage_names.begin(), seen_linkage_names.end(), linkage_name))
+    {
+      return;
+    }
+    seen_linkage_names.push_back(linkage_name);
+    result.push_back(fn);
+  };
+
+  for (OModuleUse * use : used_modules)
+  {
+    OModuleIntf * intf = dynamic_cast<OModuleIntf *>(use ? use->module : nullptr);
+    if (intf)
+    {
+      add_func(intf->module_init_func);
+    }
+  }
+
+  if (include_self)
+  {
+    add_func(module_init_func);
+  }
+
+  return result;
+}
+
+void OModule::FinalizeModuleInitFunc()
+{
+  if (!module_init_func || module_init_prefix_added)
+  {
+    return;
+  }
+
+  vector<OValSymFunc *> init_calls = ModuleInitCallList(false);
+  module_init_func->body->stlist.insert(module_init_func->body->stlist.begin(),
+      new OStmtModuleInitCalls(module_init_func->scpos, module_init_guard, init_calls));
+  module_init_prefix_added = true;
+}
+
+OValSymFunc * OModule::EnsureAppInitFunc(OScPosition & scpos)
+{
+  if (app_init_func)
+  {
+    return app_init_func;
+  }
+
+  OTypeFunc * sigtype = new OTypeFunc(DQ_APP_INIT_FUNC_NAME);
+  app_init_func = new OValSymFunc(scpos, DQ_APP_INIT_FUNC_NAME, sigtype, scope_priv);
+  app_init_func->scpos.Assign(scpos);
+  app_init_func->scpos_endfunc.Assign(scpos);
+  app_init_func->has_body = true;
+  app_init_func->attr_has_linkage_name = true;
+  app_init_func->attr_linkage_name = DQ_APP_INIT_LINKAGE_NAME;
+  app_init_func->body->AddStatement(new OStmtModuleInitCalls(scpos, nullptr, ModuleInitCallList(true)));
+  DeclareHiddenValSym(true, app_init_func);
+  return app_init_func;
 }
 
 static void FillUseScope(OModuleUse * ause)

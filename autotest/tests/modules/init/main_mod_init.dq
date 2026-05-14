@@ -1,0 +1,14 @@
+use libc/stdio;
+
+use ./mod_init_a;
+use ./mod_init_b;
+
+function main() -> int:
+
+  //?check("Module init A")
+  //?check("Module init B")
+
+  printf("DQ module init main\n"); //?check("DQ module init main")
+
+  return 0;
+endfunc

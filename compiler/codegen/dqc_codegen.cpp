@@ -49,6 +49,11 @@ void ODqCompCodegen::GenerateIr()
   // predeclare functions first so later global initializers can reference them
   for (OModuleIntf * intf : g_module->loaded_modules)
   {
+    if (intf && intf->module_init_func)
+    {
+      intf->module_init_func->GenGlobalDecl(true, nullptr);
+    }
+
     for (OIntfDecl * decl : intf->declarations)
     {
       if (!decl || (IDK_VALSYM != decl->kind))

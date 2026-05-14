@@ -169,6 +169,24 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtModuleInitCalls : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *              guard;
+  vector<OValSymFunc *>  init_funcs;
+
+  OStmtModuleInitCalls(OScPosition & ascpos, OValSym * aguard, const vector<OValSymFunc *> & ainit_funcs)
+  :
+    super(ascpos),
+    guard(aguard),
+    init_funcs(ainit_funcs)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OStmtWhile : public OStmt
 {
 private:
@@ -254,4 +272,3 @@ class OContinueStmt : public OStmt
 public:
   void Generate(OScope * scope) override;
 };
-

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.6"
+#define DQ_COMPILER_VERSION  "0.11.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.7:
+  - Module initializations with 'initialization:' ... 'endinitialization'
 v0.11.6:
   - Refactored .dqm regeneration
 v0.11.5:

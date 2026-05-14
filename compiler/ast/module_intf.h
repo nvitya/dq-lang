@@ -82,7 +82,9 @@ private:
   string DqmIfBuildOptions() const;
   bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename);
   bool WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause);
+  bool WriteDqmIfModuleInit(ODqmIfWriter & writer);
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename);
+  bool ReadModuleInitDecl(ODqmIfReader & reader);
   vector<OModuleIntf *> reexport_modules;
 
   void WriteTypeDump(ostream & out, OType * atype, const string & indent);
@@ -101,6 +103,8 @@ public:
   string   interface_filename;
   vector<string> reexport_artifacts;
   vector<string> link_dependencies;
+  string module_init_linkage_name;
+  OValSymFunc * module_init_func = nullptr;
 
   bool     has_source_filename = false;
   bool     has_source_filesize = false;

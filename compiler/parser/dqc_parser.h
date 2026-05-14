@@ -45,6 +45,7 @@ public: // root level items
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
   void ParseRootTypeDecl();
   void ParseFunction();
+  void ParseInitializationBlock();
   void ParseStructDecl();
   void ParseObjectDecl();
 

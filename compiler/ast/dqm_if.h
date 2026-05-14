@@ -21,7 +21,7 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     3 );  // generated version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     4 );  // generated version
 const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     0 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
@@ -214,4 +214,5 @@ TDqmIfRecId  DQMIF_USE_ONLY               = 0x0902;  // str
 TDqmIfRecId  DQMIF_USE_REEXPORT           = 0x09E0;  // 0
 TDqmIfRecId  DQMIF_USE_END                = 0x09FF;  // 0
 
-// 0A00: ?
+// 0A00: Module lifecycle
+TDqmIfRecId  DQMIF_MODULE_INIT            = 0x0A00;  // str, public linker symbol for module initialization

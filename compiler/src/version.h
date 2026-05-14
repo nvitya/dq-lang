@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.3"
+#define DQ_COMPILER_VERSION  "0.11.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.4:
+  - installed compiler package search path fix
 v0.11.3:
   - dq-comp standard package search paths
   - using .dqbuild for build temporary files

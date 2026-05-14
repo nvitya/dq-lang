@@ -134,11 +134,20 @@ static void AddDefaultPackagePaths()
 
   if (!g_opt.compiler_executable_dir.empty())
   {
+    filesystem::path prefix_stdpkg_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "lib" / "dq" / "stdpkg";
+    g_opt.package_paths.push_back(prefix_stdpkg_path.lexically_normal().string());
+
     filesystem::path stdpkg_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "stdpkg";
     g_opt.package_paths.push_back(stdpkg_path.lexically_normal().string());
   }
 
   g_opt.package_paths.push_back("/usr/lib/dq/packages");
+
+  if (!g_opt.compiler_executable_dir.empty())
+  {
+    filesystem::path prefix_packages_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "lib" / "dq" / "packages";
+    g_opt.package_paths.push_back(prefix_packages_path.lexically_normal().string());
+  }
 
   const char * home = getenv("HOME");
   if (home && home[0])

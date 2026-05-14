@@ -46,11 +46,12 @@ Recommended search priority:
 ```text
 1. explicit package mappings: --pkg name=path
 2. command-line roots: --pkg-path path
-3. environment roots: DQ_PACKAGE_PATH
-4. user package roots: ~/.dq/packages
+3. user package roots: ~/.dq/packages
+4. install-prefix package roots: <compiler-exe-dir>/../lib/dq/packages
 5. system package roots: /usr/lib/dq/packages
-6. compiler-shipped standard roots: <compiler-exe-dir>/../stdpkg
-7. system standard roots: /usr/lib/dq/stdpkg
+6. archive-layout standard roots: <compiler-exe-dir>/../stdpkg
+7. install-prefix standard roots: <compiler-exe-dir>/../lib/dq/stdpkg
+8. system standard roots: /usr/lib/dq/stdpkg
 ```
 
 Search order must be deterministic. If the same package is found more than once, the first match wins unless strict duplicate checking is enabled.
@@ -233,13 +234,8 @@ Recommended first implementation options:
 --rt-path PATH        override compiler runtime package root
 ```
 
-Environment variable:
-
-```sh
-DQ_PACKAGE_PATH=/path/one:/path/two
-```
-
-The path separator follows the host platform convention.
+The first implementation intentionally does not read package paths from an
+environment variable.
 
 ---
 
@@ -279,8 +275,10 @@ Recommended Unix-like roots:
 
 ```text
 user packages:              ~/.dq/packages
+install-prefix packages:    <compiler-exe-dir>/../lib/dq/packages
 system packages:            /usr/lib/dq/packages
-relocatable standard root:  <compiler-exe-dir>/../stdpkg
+archive-layout stdpkg:      <compiler-exe-dir>/../stdpkg
+install-prefix stdpkg:      <compiler-exe-dir>/../lib/dq/stdpkg
 system standard root:       /usr/lib/dq/stdpkg
 user cache:                 ~/.dq/cache
 compiler cache:             /usr/lib/dq/cache

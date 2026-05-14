@@ -1,0 +1,3 @@
+// STDIO interface
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;

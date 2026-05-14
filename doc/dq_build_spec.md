@@ -48,7 +48,9 @@ The same rule applies to the DQ RTL: the installed RTL is source-only.
 
 ## 3. Build Directory
 
-All generated build artifacts are placed below a `.dqbuild` directory.
+All compiler-generated build state is placed below a `.dqbuild` directory.
+This includes compiled modules, temporary files, interface sidecars, linker
+response files, lock files, and other metadata needed during the build.
 
 The default build root is the directory containing the main `.dq` file passed to the compiler.
 
@@ -64,7 +66,13 @@ creates build artifacts under:
 /home/user/tools/.dqbuild/
 ```
 
-The compiler must not write generated `.dqm` files into system package directories, user package directories, or RTL source directories.
+The compiler must not write generated build files into system package
+directories, user package directories, compiler-shipped package directories, or
+RTL source directories.
+
+The final executable or target image is a user-visible output, not package build
+state. By default it is written next to the main source file. A compiler option
+may request placing the final artifact under `.dqbuild/<build-tag>/` instead.
 
 ## 4. Build Tag
 
@@ -142,31 +150,30 @@ A typical build directory has this structure:
   local/
     <local-module-path>.dqm
 
-  rtl/
-    <rtl-module-path>.dqm
-
-  packages/
+  pkg/
     <package-name>/
       <package-module-path>.dqm
 
-  out/
-    <executable-name>
-
-  link/
-    <executable-name>.rsp
+  <temporary-and-metadata-files>
 ```
 
 Directory meaning:
 
 ```text
-local/     modules from the current application/project source tree
-rtl/       compiled DQ RTL modules
-packages/  compiled imported package modules
-out/       final linked executables or target images
-link/      linker response files or linker metadata
+local/  compiled modules from the current application/project source tree
+pkg/    compiled modules resolved through package search paths
 ```
 
-The exact internal layout may mirror source module paths where needed to avoid name collisions.
+The `pkg/` directory also contains compiler-shipped standard packages and RTL
+packages. There is no separate `rtl/` artifact directory; RTL modules are package
+modules for build layout purposes.
+
+Temporary files and metadata may be placed directly below `.dqbuild/<build-tag>/`
+or in implementation-selected subdirectories. They must not be created beside
+source package files.
+
+The exact internal layout may mirror source module paths where needed to avoid
+name collisions.
 
 ## 7. Main Module Handling
 
@@ -182,9 +189,17 @@ produces:
 
 ```text
 .dqbuild/<build-tag>/local/flash.dqm
+flash
 ```
 
-The special role of the main module appears only during the final linking step, where it is used as the entry application module.
+The `.dqm` is the compiled main module. The `flash` executable is the default
+final artifact and is written next to `flash.dq`.
+
+The special role of the main module appears only during the final linking step,
+where it is used as the entry application module.
+
+If the user selects build-directory output for the final artifact, the executable
+is written below `.dqbuild/<build-tag>/` instead of beside the main source file.
 
 ## 8. Multiple Applications in One Directory
 
@@ -210,21 +225,23 @@ tools/
         monitor.dqm
         packimage.dqm
 
-      rtl/
-        system.dqm
-        strings.dqm
-
-      packages/
+      pkg/
+        rtl/
+          rtl_linux.dqm
         dqserial/
           dqserial.dqm
-
-      out/
-        flash
-        monitor
-        packimage
 ```
 
 This allows compiled RTL and package modules to be reused by several utilities in the same directory and build tag.
+
+By default, the final executables are written next to their main source files:
+
+```text
+tools/
+  flash
+  monitor
+  packimage
+```
 
 ## 9. Cleaning Rule
 
@@ -246,29 +263,7 @@ rm -rf .dqbuild
 
 The compiler may create a `build.json` file to record the build context and emit diagnostics if the current invocation obviously conflicts with the existing build directory.
 
-## 10. Manifest
-
-The compiler should create a small manifest file:
-
-```text
-.dqbuild/<build-tag>/build.json
-```
-
-It may contain information such as:
-
-```json
-{
-  "build_tag": "arm64_release",
-  "target_arch": "aarch64",
-  "target_os": "linux",
-  "compiler": "dq-comp",
-  "compiler_version": "0.1"
-}
-```
-
-The manifest is for diagnostics and build transparency. It is not a substitute for the user-selected build tag and does not make the build directory a fully managed package cache.
-
-## 11. Summary
+## 10. Summary
 
 The intended DQ build model is:
 
@@ -276,7 +271,8 @@ The intended DQ build model is:
 .dq source files are distributed.
 .dqm files are generated locally.
 RTL and packages are source-only.
-The compiler writes generated files only under .dqbuild/<build-tag>/.
+The compiler writes generated build state only under .dqbuild/<build-tag>/.
+The final executable is written next to the main source file by default.
 The build tag is user-selected and opaque.
 Multiple applications in one directory may share the same build tag.
 Cleaning the build directory is the user's responsibility when the build context changes.

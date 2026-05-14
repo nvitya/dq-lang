@@ -34,6 +34,7 @@
 #include "otype_cstring.h"
 #include "scope_builtins.h"
 #include "artifact_lock.h"
+#include "processrunner.h"
 
 static string TypeName(OType * atype)
 {
@@ -763,6 +764,144 @@ string OModuleIntf::FormatModuleCycle(const string & module_path) const
 
   if (!result.empty()) result += " -> ";
   result += module_path;
+  return result;
+}
+
+static SModuleArtifactEnsureResult ModuleArtifactEnsureError(EModuleArtifactEnsureError error,
+                                                             const string & reason = "")
+{
+  SModuleArtifactEnsureResult result;
+  result.error = error;
+  result.reason = reason;
+  return result;
+}
+
+static bool ModuleSourceExists(const filesystem::path & source_path)
+{
+  error_code ec;
+  return filesystem::exists(source_path, ec) && !ec;
+}
+
+static bool RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason)
+{
+  OProcessRunner procrunner;
+  procrunner.args = args;
+  bool exec_ok = procrunner.Run();
+  if (exec_ok && (0 == procrunner.exit_code))
+  {
+    return true;
+  }
+
+  if (!procrunner.stdout_text.empty())
+  {
+    print("{}", procrunner.stdout_text);
+  }
+  if (!procrunner.stderr_text.empty())
+  {
+    print("{}", procrunner.stderr_text);
+  }
+
+  rreason = format("subprocess exited with code {}", procrunner.exit_code);
+  if (!stale_reason.empty())
+  {
+    rreason += format(" after stale artifact ({})", stale_reason);
+  }
+  return false;
+}
+
+SModuleArtifactEnsureResult OModuleIntf::EnsureFreshInterfaceArtifact(const OModulePath & module_path,
+                                                                      bool in_module_stack)
+{
+  SModuleArtifactEnsureResult result;
+  string stale_reason;
+
+  auto interface_is_fresh = [&]() -> bool
+  {
+    if (in_module_stack)
+    {
+      if (CompiledArtifactIsFresh(module_path.interface_artifact_path, module_path.source_path, stale_reason))
+      {
+        result.interface_load_path = module_path.interface_artifact_path;
+        return true;
+      }
+      return false;
+    }
+
+    return FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
+                                      module_path.source_path, result.interface_load_path, stale_reason);
+  };
+
+  if (interface_is_fresh())
+  {
+    return result;
+  }
+
+  if (!ModuleSourceExists(module_path.source_path))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::SOURCE_MISSING);
+  }
+
+  string regen_reason;
+  if (!RunModuleChildCompile(ChildInterfaceArgs(module_path.source_path, module_path.interface_artifact_path,
+                                                module_path.module_id, module_path.root_dir),
+                             stale_reason, regen_reason))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, regen_reason);
+  }
+
+  if (!interface_is_fresh())
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
+  }
+
+  return result;
+}
+
+SModuleArtifactEnsureResult OModuleIntf::EnsureFreshCompiledArtifact(const OModulePath & module_path)
+{
+  SModuleArtifactEnsureResult result;
+  string stale_reason;
+
+  if (CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  {
+    if (!FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
+                                    module_path.source_path, result.interface_load_path, stale_reason))
+    {
+      return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
+    }
+    return result;
+  }
+
+  if (!ModuleSourceExists(module_path.source_path))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::SOURCE_MISSING);
+  }
+
+  string regen_reason;
+  if (!RunModuleChildCompile(ChildCompileArgs(module_path.source_path, module_path.artifact_path,
+                                             module_path.module_id, module_path.root_dir),
+                             stale_reason, regen_reason))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, regen_reason);
+  }
+
+  if (!CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
+  }
+
+  if (!FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
+                                  module_path.source_path, result.interface_load_path, stale_reason))
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
+  }
+
+  error_code ec;
+  if (!filesystem::exists(module_path.artifact_path, ec) || ec)
+  {
+    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::ARTIFACT_MISSING);
+  }
+
   return result;
 }
 

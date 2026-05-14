@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.5"
+#define DQ_COMPILER_VERSION  "0.11.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.6:
+  - Refactored .dqm regeneration
 v0.11.5:
   - Implicit entry point main -> "dq_main"
   - Implicit use of module rtl_linux

@@ -30,7 +30,6 @@
 #include "artifact_lock.h"
 #include "module_path.h"
 #include "otype_func.h"
-#include "processrunner.h"
 
 ODqCompiler *  g_compiler = nullptr;
 
@@ -65,64 +64,34 @@ static bool ResolveModuleForMainSource(const string & module_name, const string 
   return rpath.ResolveFrom(current_module, rerror);
 }
 
-static bool RunModuleChildCompile(const vector<string> & args, const string & module_path,
-                                  const filesystem::path & source_path, const string & stale_reason)
+static void PrintModuleArtifactError(const OModulePath & module_path,
+                                     const SModuleArtifactEnsureResult & result)
 {
-  OProcessRunner procrunner;
-  procrunner.args = args;
-  bool exec_ok = procrunner.Run();
-  if (!exec_ok || (0 != procrunner.exit_code))
+  if (EModuleArtifactEnsureError::SOURCE_MISSING == result.error)
   {
-    if (!procrunner.stdout_text.empty())
-    {
-      print("{}", procrunner.stdout_text);
-    }
-    if (!procrunner.stderr_text.empty())
-    {
-      print("{}", procrunner.stderr_text);
-    }
-
-    print("Can not regenerate module \"{}\" from \"{}\": subprocess exited with code {}",
-          module_path, source_path.string(), procrunner.exit_code);
-    if (!stale_reason.empty())
-    {
-      print(" after stale artifact ({})", stale_reason);
-    }
-    print("\n");
-    return false;
+    print("Module \"{}\" source file \"{}\" was not found\n",
+          module_path.module_id, module_path.source_path.string());
+    return;
   }
 
-  return true;
+  if (EModuleArtifactEnsureError::ARTIFACT_MISSING == result.error)
+  {
+    print("Module \"{}\" requires missing compiled artifact \"{}\"\n",
+          module_path.module_id, module_path.artifact_path.string());
+    return;
+  }
+
+  print("Can not regenerate module \"{}\" from \"{}\": {}\n",
+        module_path.module_id, module_path.source_path.string(), result.reason);
 }
 
 static bool EnsureCompiledModuleArtifact(const OModulePath & module_path)
 {
   OModuleIntf artifact_intf(g_builtins, module_path.module_id);
-  string stale_reason;
-  if (artifact_intf.CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshCompiledArtifact(module_path);
+  if (!result.Ok())
   {
-    return true;
-  }
-
-  error_code ec;
-  if (!filesystem::exists(module_path.source_path, ec) || ec)
-  {
-    print("Module \"{}\" source file \"{}\" was not found\n",
-          module_path.module_id, module_path.source_path.string());
-    return false;
-  }
-
-  if (!RunModuleChildCompile(artifact_intf.ChildCompileArgs(module_path.source_path, module_path.artifact_path,
-                                                            module_path.module_id, module_path.root_dir),
-                             module_path.module_id, module_path.source_path, stale_reason))
-  {
-    return false;
-  }
-
-  if (!artifact_intf.CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
-  {
-    print("Can not regenerate module \"{}\" from \"{}\": {}\n",
-          module_path.module_id, module_path.source_path.string(), stale_reason);
+    PrintModuleArtifactError(module_path, result);
     return false;
   }
 

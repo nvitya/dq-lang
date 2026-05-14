@@ -25,7 +25,6 @@
 #include "scope_defines.h"
 #include "expressions.h"
 #include "statements.h"
-#include "processrunner.h"
 #include "module_path.h"
 
 using namespace std;
@@ -692,7 +691,6 @@ void ODqCompParser::ParseUseStatement()
     const string module_path = use_path.module_id;
     filesystem::path source_path = use_path.source_path;
     filesystem::path artifact_path = use_path.artifact_path;
-    filesystem::path interface_artifact_path = use_path.interface_artifact_path;
 
     OModuleIntf artifact_intf(g_builtins, module_path);
     bool in_module_stack = artifact_intf.IsInModuleUseStack(module_path);
@@ -702,126 +700,44 @@ void ODqCompParser::ParseUseStatement()
       return;
     }
 
-    auto source_exists = [&]() -> bool
+    auto report_artifact_error = [&](const SModuleArtifactEnsureResult & result) -> void
     {
-      error_code ec;
-      if (filesystem::exists(source_path, ec) && !ec)
+      if (EModuleArtifactEnsureError::SOURCE_MISSING == result.error)
       {
-        return true;
+        OScPosition errpos;
+        errpos.Assign(scpos_statement_start);
+        errpos.RecalcLineCol();
+        Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
       }
-
-      OScPosition errpos;
-      errpos.Assign(scpos_statement_start);
-      errpos.RecalcLineCol();
-      Error(DQERR_MODULE_NOT_FOUND, module_path, source_path.string(), &errpos);
-      return false;
+      else if (EModuleArtifactEnsureError::ARTIFACT_MISSING == result.error)
+      {
+        Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
+      }
+      else
+      {
+        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), result.reason, &scpos_statement_start);
+      }
     };
 
-    auto run_child_compile = [&](const vector<string> & args, const string & stale_reason) -> bool
+    SModuleArtifactEnsureResult artifact_result =
+      artifact_intf.EnsureFreshInterfaceArtifact(use_path, in_module_stack);
+    if (!artifact_result.Ok())
     {
-      OProcessRunner procrunner;
-      procrunner.args = args;
-      bool exec_ok = procrunner.Run();
-      if (!exec_ok || (0 != procrunner.exit_code))
-      {
-        if (!procrunner.stdout_text.empty())
-        {
-          print("{}", procrunner.stdout_text);
-        }
-        if (!procrunner.stderr_text.empty())
-        {
-          print("{}", procrunner.stderr_text);
-        }
-
-        string reason = format("subprocess exited with code {}", procrunner.exit_code);
-        if (!stale_reason.empty())
-        {
-          reason += format(" after stale artifact ({})", stale_reason);
-        }
-        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), reason, &scpos_statement_start);
-        return false;
-      }
-
-      return true;
-    };
-
-    filesystem::path interface_load_path;
-    string stale_reason;
-
-    auto interface_is_fresh = [&]() -> bool
-    {
-      if (in_module_stack)
-      {
-        if (artifact_intf.CompiledArtifactIsFresh(interface_artifact_path, source_path, stale_reason))
-        {
-          interface_load_path = interface_artifact_path;
-          return true;
-        }
-        return false;
-      }
-
-      return artifact_intf.FindFreshInterfaceArtifact(interface_artifact_path, artifact_path, source_path,
-                                                     interface_load_path, stale_reason);
-    };
-
-    if (!interface_is_fresh())
-    {
-      if (!source_exists())
-      {
-        return;
-      }
-
-      if (!run_child_compile(artifact_intf.ChildInterfaceArgs(source_path, interface_artifact_path,
-                                                              module_path, use_path.root_dir),
-                             stale_reason))
-      {
-        return;
-      }
-
-      if (!interface_is_fresh())
-      {
-        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
-        return;
-      }
+      report_artifact_error(artifact_result);
+      return;
     }
 
-    if (!g_opt.ifgen && !in_module_stack
-        && !artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
-    {
-      if (!source_exists())
-      {
-        return;
-      }
-
-      if (!run_child_compile(artifact_intf.ChildCompileArgs(source_path, artifact_path, module_path,
-                                                            use_path.root_dir),
-                             stale_reason))
-      {
-        return;
-      }
-
-      if (!artifact_intf.CompiledArtifactIsFresh(artifact_path, source_path, stale_reason))
-      {
-        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
-        return;
-      }
-
-      if (!artifact_intf.FindFreshInterfaceArtifact(interface_artifact_path, artifact_path, source_path,
-                                                   interface_load_path, stale_reason))
-      {
-        Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), stale_reason, &scpos_statement_start);
-        return;
-      }
-    }
+    filesystem::path interface_load_path = artifact_result.interface_load_path;
 
     if (!g_opt.ifgen && !in_module_stack)
     {
-      error_code ec;
-      if (!filesystem::exists(artifact_path, ec) || ec)
+      artifact_result = artifact_intf.EnsureFreshCompiledArtifact(use_path);
+      if (!artifact_result.Ok())
       {
-        Error(DQERR_USE_ARTIFACT_MISSING, module_path, artifact_path.string(), &scpos_statement_start);
+        report_artifact_error(artifact_result);
         return;
       }
+      interface_load_path = artifact_result.interface_load_path;
     }
 
     int prev_errorcnt = errorcnt;

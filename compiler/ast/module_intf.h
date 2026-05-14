@@ -26,6 +26,24 @@ using namespace std;
 class OValSymFunc;
 class OValSymOverloadSet;
 class OTypeFunc;
+class OModulePath;
+
+enum class EModuleArtifactEnsureError
+{
+  NONE,
+  SOURCE_MISSING,
+  REGEN_FAILED,
+  ARTIFACT_MISSING
+};
+
+struct SModuleArtifactEnsureResult
+{
+  EModuleArtifactEnsureError  error = EModuleArtifactEnsureError::NONE;
+  string                      reason;
+  filesystem::path            interface_load_path;
+
+  bool Ok() const { return EModuleArtifactEnsureError::NONE == error; }
+};
 
 class OModuleIntf : public OModuleBase
 {
@@ -121,6 +139,9 @@ public:
                                   string & rreason);
   bool IsInModuleUseStack(const string & module_path) const;
   string FormatModuleCycle(const string & module_path) const;
+  SModuleArtifactEnsureResult EnsureFreshInterfaceArtifact(const OModulePath & module_path,
+                                                           bool in_module_stack);
+  SModuleArtifactEnsureResult EnsureFreshCompiledArtifact(const OModulePath & module_path);
   vector<string> ChildCompileArgs(const filesystem::path & source_path, const filesystem::path & artifact_path,
                                   const string & module_path, const filesystem::path & module_root_dir) const;
   vector<string> ChildInterfaceArgs(const filesystem::path & source_path,

@@ -12,11 +12,11 @@ This document extends `dq_module_spec.md`. That spec owns canonical module ids, 
 A DQ package is a named module tree stored in one package directory.
 
 ```text
-package search root:   /usr/local/share/dq-packages
-package directory:     /usr/local/share/dq-packages/json
+package search root:   /usr/lib/dq/packages
+package directory:     /usr/lib/dq/packages/json
 package name:          json
-module root directory: /usr/local/share/dq-packages/json
-root module:           /usr/local/share/dq-packages/json/json.dq
+module root directory: /usr/lib/dq/packages/json
+root module:           /usr/lib/dq/packages/json/json.dq
 canonical module id:   json
 ```
 
@@ -29,7 +29,7 @@ The package name is normally the final directory name of the package directory. 
 A package search root contains package directories only:
 
 ```text
-/usr/local/share/dq-packages/
+/usr/lib/dq/packages/
   json/
     json.dq
   os/
@@ -39,22 +39,25 @@ A package search root contains package directories only:
     connection.dq
 ```
 
-Files such as `/usr/local/share/dq-packages/json.dq` are not import targets. A compiler may ignore them and warn in diagnostic or verbose mode.
+Files such as `/usr/lib/dq/packages/json.dq` are not import targets. A compiler may ignore them and warn in diagnostic or verbose mode.
 
 Recommended search priority:
 
 ```text
 1. explicit package mappings: --pkg name=path
-2. current application package
-3. project-local roots: ./dq-packages or ./.dq/packages
-4. command-line roots: --pkg-path path
-5. environment roots: DQ_PACKAGE_PATH
-6. user package roots
-7. system package roots
-8. compiler-shipped standard roots
+2. command-line roots: --pkg-path path
+3. environment roots: DQ_PACKAGE_PATH
+4. user package roots: ~/.dq/packages
+5. system package roots: /usr/lib/dq/packages
+6. compiler-shipped standard roots: <compiler-exe-dir>/../stdpkg
+7. system standard roots: /usr/lib/dq/stdpkg
 ```
 
 Search order must be deterministic. If the same package is found more than once, the first match wins unless strict duplicate checking is enabled.
+
+The `<compiler-exe-dir>` path is the directory containing the resolved
+`dq-comp` executable. It should be based on the real executable location, not
+only on the current working directory or the spelling of `argv[0]`.
 
 ---
 
@@ -242,7 +245,8 @@ The path separator follows the host platform convention.
 
 ## 8. Standard and Runtime Packages
 
-The compiler distribution may provide public standard packages in a compiler-shipped package root:
+The compiler distribution may provide public standard packages in a
+compiler-shipped `stdpkg` root:
 
 ```text
 os/os.dq
@@ -274,12 +278,12 @@ User code should normally not import `dqrt` directly. The compiler may import or
 Recommended Unix-like roots:
 
 ```text
-project-local packages: ./dq-packages, ./.dq/packages
-user packages:          ~/.local/share/dq/packages
-system packages:        /usr/local/share/dq-packages, /usr/share/dq-packages
-compiler packages:      <compiler-prefix>/share/dq/packages
-user cache:             ~/.cache/dq
-compiler cache:         <compiler-prefix>/lib/dq/cache
+user packages:              ~/.dq/packages
+system packages:            /usr/lib/dq/packages
+relocatable standard root:  <compiler-exe-dir>/../stdpkg
+system standard root:       /usr/lib/dq/stdpkg
+user cache:                 ~/.dq/cache
+compiler cache:             /usr/lib/dq/cache
 ```
 
 Package roots contain source package directories. Cache roots contain compiler-generated artifacts and are not source package roots.

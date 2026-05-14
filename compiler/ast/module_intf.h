@@ -82,6 +82,7 @@ public:
   string   build_options;
   string   interface_filename;
   vector<string> reexport_artifacts;
+  vector<string> link_dependencies;
 
   bool     has_source_filename = false;
   bool     has_source_filesize = false;

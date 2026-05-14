@@ -514,6 +514,8 @@ void OModuleIntf::ClearDqmIfMetadata()
   target_arch.clear();
   target_rtl.clear();
   build_options.clear();
+  reexport_artifacts.clear();
+  link_dependencies.clear();
 
   has_source_filename = false;
   has_source_filesize = false;
@@ -908,6 +910,43 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
     if (!writer.AddRecStr(DQMIF_LINKLIB, libname))
     {
       return false;
+    }
+  }
+
+  vector<string> link_deps;
+  auto add_link_dep = [&](const string & module_name) -> bool
+  {
+    if (module_name.empty() || (module_name == name))
+    {
+      return true;
+    }
+    if (link_deps.end() != find(link_deps.begin(), link_deps.end(), module_name))
+    {
+      return true;
+    }
+    link_deps.push_back(module_name);
+    return writer.AddRecStr(DQMIF_LINKDEP, module_name);
+  };
+
+  for (OModuleUse * use : used_modules)
+  {
+    if (!use || !use->module)
+    {
+      continue;
+    }
+    if (!add_link_dep(use->module->name))
+    {
+      return false;
+    }
+    if (OModuleIntf * intf = dynamic_cast<OModuleIntf *>(use->module))
+    {
+      for (const string & dep_name : intf->link_dependencies)
+      {
+        if (!add_link_dep(dep_name))
+        {
+          return false;
+        }
+      }
     }
   }
 
@@ -1850,6 +1889,15 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
       string ignored;
       if (!reader.ReadString(ignored)) return false;
     }
+    else if (DQMIF_LINKDEP == reader.recid)
+    {
+      string dep_name;
+      if (!reader.ReadString(dep_name)) return false;
+      if (link_dependencies.end() == find(link_dependencies.begin(), link_dependencies.end(), dep_name))
+      {
+        link_dependencies.push_back(dep_name);
+      }
+    }
     else if (DQMIF_USE_BEGIN == reader.recid)
     {
       if (!ReadUseDecl(reader)) return false;
@@ -1894,6 +1942,7 @@ bool OModuleIntf::ReadInterface(const string & filename)
 
 bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet)
 {
+  ClearDqmIfMetadata();
   interface_filename = filename;
   OArtifactLock lock;
   if (alock && !lock.Lock(filename, EArtifactLockMode::SHARED))

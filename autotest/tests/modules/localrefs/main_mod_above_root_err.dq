@@ -1,6 +1,4 @@
 use ../missing;  //?error(ModulePathAboveRoot)
-
-[[cexport]]
 function main() -> int:
   return 0;
 endfunc

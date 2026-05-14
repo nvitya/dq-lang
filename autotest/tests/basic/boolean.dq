@@ -20,8 +20,6 @@ function printbool(astr : ^cchar, abool : bool):
   endif
   printf("\n");
 endfunc
-
-[[cexport]]
 function main() -> int:
   printf("DQ bool test\n");  //?check('DQ bool test')
 

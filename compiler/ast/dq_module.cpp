@@ -17,6 +17,7 @@
 #include "named_scopes.h"
 #include "dqc.h"
 #include "errorcodes.h"
+#include "module_path.h"
 
 OModule *  g_module = nullptr;
 
@@ -135,6 +136,18 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), reexport_artifact))
     {
       link_module_artifacts.push_back(reexport_artifact);
+    }
+  }
+  for (const string & link_dep : intf->link_dependencies)
+  {
+    filesystem::path dep_artifact;
+    if (OModulePath::ResolveCanonicalArtifact(link_dep, module_path, link_artifact_path, dep_artifact))
+    {
+      string dep_artifact_name = dep_artifact.string();
+      if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), dep_artifact_name))
+      {
+        link_module_artifacts.push_back(dep_artifact_name);
+      }
     }
   }
 

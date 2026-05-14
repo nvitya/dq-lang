@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.4"
+#define DQ_COMPILER_VERSION  "0.11.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.5:
+  - Implicit entry point main -> "dq_main"
+  - Implicit use of module rtl_linux
 v0.11.4:
   - installed compiler package search path fix
 v0.11.3:

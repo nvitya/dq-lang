@@ -34,8 +34,6 @@ function dq_cast_address_constant() -> uint:
   var p : ^byte = ^byte(0x7F001000);
   result = uint(p);
 endfunc
-
-[[cexport]]
 function main() -> int:
   printf("Testing DQ explicit casts:\n");  //?check('Testing DQ explicit casts:')
 

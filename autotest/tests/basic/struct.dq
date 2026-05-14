@@ -71,8 +71,6 @@ endfunc
 
 // FIX THIS !
 // var sm : SMain;
-
-[[cexport]]
 function main() -> int:
 
   printf("DQ Struct test\n");  //?check('DQ Struct test')

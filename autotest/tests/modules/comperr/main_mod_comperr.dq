@@ -2,8 +2,6 @@
 //?notest
 
 use ./mod_comperr;  //?error(UseRegenFailed)
-
-[[cexport]]
 function main() -> int:
   return 0;
 endfunc

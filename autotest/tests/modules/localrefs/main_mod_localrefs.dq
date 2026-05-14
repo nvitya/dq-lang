@@ -1,7 +1,5 @@
 use ./child;
 use ./nested/deep;
-
-[[cexport]]
 function main() -> int:
   printf("local refs = %d\n", CHILD_VAL + deep_value());  //?check('local refs', 145)
   return 0;

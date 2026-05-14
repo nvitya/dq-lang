@@ -1,1 +1,16 @@
 // DQ Runtime Library for Linux
+
+use sys --;
+
+function dq_main() -> int [[external('dq_main')]];
+
+// libc entry point 'main()'
+[[cexport]]
+function main(argc : int, argv : ^^cchar) -> int:
+  @sys.__sys_init_params(argc, argv);
+
+  //TODO: call module initializations
+
+  result = dq_main();
+  //dq_runtime_finalize_modules();
+endfunc

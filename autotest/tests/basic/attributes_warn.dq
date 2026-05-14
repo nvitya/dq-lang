@@ -9,8 +9,6 @@ function puts(s : ^cchar) -> int [[external]];
 var gv : int [[virtual]];                    //?warning(AttrIgnored)
 const gc : int = 123 [[volatile]];          //?warning(AttrIgnored)
 [[volatile]] function onlyext() -> int [[external]];  //?warning(AttrIgnored)
-
-[[cexport]]
 function main():
   printf("attr test %d\n", gc);
   puts("done");

@@ -15,6 +15,7 @@
 #include <format>
 #include <cstdlib>
 #include <cstdio>
+#include <algorithm>
 #include <vector>
 #include <filesystem>
 
@@ -27,6 +28,9 @@
 #include "dq_module.h"
 #include "version.h"
 #include "artifact_lock.h"
+#include "module_path.h"
+#include "otype_func.h"
+#include "processrunner.h"
 
 ODqCompiler *  g_compiler = nullptr;
 
@@ -42,6 +46,113 @@ static string ModuleStackNameFromInput(const string & base_name)
 {
   filesystem::path p(base_name);
   return p.filename().string();
+}
+
+static bool ResolveModuleForMainSource(const string & module_name, const string & main_source_filename,
+                                       OModulePath & rpath, string & rerror)
+{
+  OModulePath current_module;
+  if (!current_module.InitCurrent(main_source_filename, rerror))
+  {
+    return false;
+  }
+
+  if (!rpath.ParseUsePath(module_name, rerror))
+  {
+    return false;
+  }
+
+  return rpath.ResolveFrom(current_module, rerror);
+}
+
+static bool RunModuleChildCompile(const vector<string> & args, const string & module_path,
+                                  const filesystem::path & source_path, const string & stale_reason)
+{
+  OProcessRunner procrunner;
+  procrunner.args = args;
+  bool exec_ok = procrunner.Run();
+  if (!exec_ok || (0 != procrunner.exit_code))
+  {
+    if (!procrunner.stdout_text.empty())
+    {
+      print("{}", procrunner.stdout_text);
+    }
+    if (!procrunner.stderr_text.empty())
+    {
+      print("{}", procrunner.stderr_text);
+    }
+
+    print("Can not regenerate module \"{}\" from \"{}\": subprocess exited with code {}",
+          module_path, source_path.string(), procrunner.exit_code);
+    if (!stale_reason.empty())
+    {
+      print(" after stale artifact ({})", stale_reason);
+    }
+    print("\n");
+    return false;
+  }
+
+  return true;
+}
+
+static bool EnsureCompiledModuleArtifact(const OModulePath & module_path)
+{
+  OModuleIntf artifact_intf(g_builtins, module_path.module_id);
+  string stale_reason;
+  if (artifact_intf.CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  {
+    return true;
+  }
+
+  error_code ec;
+  if (!filesystem::exists(module_path.source_path, ec) || ec)
+  {
+    print("Module \"{}\" source file \"{}\" was not found\n",
+          module_path.module_id, module_path.source_path.string());
+    return false;
+  }
+
+  if (!RunModuleChildCompile(artifact_intf.ChildCompileArgs(module_path.source_path, module_path.artifact_path,
+                                                            module_path.module_id, module_path.root_dir),
+                             module_path.module_id, module_path.source_path, stale_reason))
+  {
+    return false;
+  }
+
+  if (!artifact_intf.CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  {
+    print("Can not regenerate module \"{}\" from \"{}\": {}\n",
+          module_path.module_id, module_path.source_path.string(), stale_reason);
+    return false;
+  }
+
+  return true;
+}
+
+static bool AddImplicitRtlLinux(const string & main_source_filename)
+{
+  OModulePath rtl_path;
+  string path_error;
+  if (!ResolveModuleForMainSource("rtl/rtl_linux", main_source_filename, rtl_path, path_error))
+  {
+    print("Can not resolve implicit RTL module rtl/rtl_linux: {}\n", path_error);
+    return false;
+  }
+
+  if (!EnsureCompiledModuleArtifact(rtl_path))
+  {
+    return false;
+  }
+
+  if (!g_module->UseCompiledModule(rtl_path.module_id, "__dq_rtl", rtl_path.artifact_path.string(),
+                                   rtl_path.artifact_path.string(), nullptr, true, MUM_NONE,
+                                   vector<string>(), false))
+  {
+    print("Can not load implicit RTL module interface from \"{}\"\n", rtl_path.artifact_path.string());
+    return false;
+  }
+
+  return true;
 }
 
 void ODqCompiler::Run(int argc, char ** argv)
@@ -151,6 +262,15 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
+  OValSym * main_sym = nullptr;
+  OValSymFunc * main_func = nullptr;
+  bool has_app_main = g_module->ValSymDeclared("main", &main_sym);
+  if (has_app_main)
+  {
+    main_func = dynamic_cast<OValSymFunc *>(main_sym);
+    has_app_main = (nullptr != main_func);
+  }
+
   if (g_opt.ifgen)
   {
     if (!g_module->WriteInterface(out_filename, in_filename))
@@ -158,6 +278,12 @@ void ODqCompiler::Run(int argc, char ** argv)
       ++errorcnt;
     }
     return;
+  }
+
+  if (!g_opt.compile_only && has_app_main)
+  {
+    main_func->attr_has_linkage_name = true;
+    main_func->attr_linkage_name = "dq_main";
   }
 
   GenerateIr();
@@ -190,11 +316,14 @@ void ODqCompiler::Run(int argc, char ** argv)
   // linking decision
   if (!g_opt.compile_only)
   {
-    OValSym * main_sym = nullptr;
-    bool has_main = g_module->ValSymDeclared("main", &main_sym);
-
-    if (has_main)
+    if (has_app_main)
     {
+      if (!AddImplicitRtlLinux(in_filename))
+      {
+        ++errorcnt;
+        return;
+      }
+
       string link_cmd = format("gcc {}", out_filename);
       for (const string & artifact_path : g_module->link_module_artifacts)
       {

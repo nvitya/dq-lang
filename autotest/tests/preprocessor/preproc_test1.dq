@@ -70,8 +70,6 @@ var globvar6 : int = 66;
 // showing the rsults
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-
-[[cexport]]
 function main() -> int:
   printf("DQ Pre-Processor (source code feeder) test:\n\n");     //?ignore('DQ Pre-Processor (source code feeder) test:')
 

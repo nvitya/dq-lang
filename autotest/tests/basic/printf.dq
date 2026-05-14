@@ -3,8 +3,6 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 var g_str : cstring[64] = "asdf";
-
-[[cexport]]
 function main() -> int:
   printf("Hello %s!\n", "World");  //?check('Hello World!')
   printf("Integer = %ld\n", 42);    //?check('Integer', 42)

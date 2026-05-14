@@ -1,7 +1,17 @@
 use libc/stdio;
+use sys;
 
-[[cexport]]
-function main() -> int:
+function main() -> int:  // should be exported as "dq_main"
   printf("DQ Std Package test\n"); //?check('DQ Std Package test')
+
+  printf("ParamCount() = %d\n", ParamCount()); //?check('ParamCount()', 1)
+
+  // ignore param(0)
+  //?check('Param(0)')
+  var i : int = 0;
+  while i < ParamCount():
+    printf(' Param(%d) = "%s"\n', i, ParamStr(i));
+    i += 1;
+  endwhile
   return 0;
 endfunc

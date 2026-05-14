@@ -42,8 +42,6 @@ function pick(a : int) -> int [[overload]];
 function pick(a : float) -> int [[overload]];
 
 var g_cb : CBOne = later_cb;
-
-[[cexport]]
 function main() -> int:
   printf("Forward declaration test\n");  //?check('Forward declaration test')
 

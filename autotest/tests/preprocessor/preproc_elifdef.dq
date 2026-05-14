@@ -36,8 +36,6 @@
 #endif
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-
-[[cexport]]
 function main() -> int:
   printf("Preprocessor elifdef test:\n");  //?check("Preprocessor elifdef test:")
   printf("branch1 = %i\n", branch1);       //?check(branch1, 2)

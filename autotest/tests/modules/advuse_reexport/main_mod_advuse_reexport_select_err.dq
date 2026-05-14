@@ -1,6 +1,4 @@
 use ./mod_advuse_reexport_facade_only_err as onlyf;
-
-[[cexport]]
 function main() -> int:
   var i : int;
   i = HIDDEN_VAL;  //?error(VsUnknown)

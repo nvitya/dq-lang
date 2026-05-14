@@ -65,9 +65,6 @@ function sum_ints2(a : int, b : int) -> int
 function mask_bit(a : int, bitnum : int) -> int:
   result = a AND 1 << bitnum;
 endfunc
-
-
-[[cexport]]
 function main() -> int:
   var i : int;
 

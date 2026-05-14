@@ -31,8 +31,6 @@ function choose_cb(flag : bool) -> CBUnary:
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-
-[[cexport]]
 function main() -> int:
   printf("Testing DQ callbacks:\n\n");  //?check('Testing DQ callbacks:')
 

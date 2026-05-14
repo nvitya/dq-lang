@@ -1,0 +1,28 @@
+// DQ standard module 'sys'
+
+function ParamCount() -> int;
+function ParamStr(i : int) -> ^cchar;   // 0 = program args
+
+function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc entry point main() (in rtl_linux)
+
+implementation
+
+var sys_argc : int      = -1;
+var sys_argv : ^^cchar  = null;
+
+function __sys_init_params(argc : int, argv : ^^cchar):
+  sys_argc = argc;
+  sys_argv = argv;
+endfunc
+
+function ParamCount() -> int:
+  result = sys_argc;
+endfunc
+
+function ParamStr(i : int) -> ^cchar:
+  if i >= sys_argc  or  i < 0:
+    return null;
+  else:
+    return sys_argv[i]^;
+  endif;
+endfunc

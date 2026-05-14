@@ -139,8 +139,6 @@ endfunc
 
 var good_cb : CB1 = oltest_int;
 var bad_cb : CBBad = oltest_int;  //?error(OverloadNoMatch)
-
-[[cexport]]
 function main() -> int:
   oltest_int(2);
   oldefault(2);
@@ -201,8 +199,6 @@ endfunc
 function use_cb(cb : CB1, v : int) -> int:
   return cb(v);
 endfunc
-
-[[cexport]]
 function main() -> int:
   printf("Overload collection test\n");  //?check('Overload collection test')
 

@@ -1,34 +1,34 @@
 // struct/object layout, alignment, and packing
 
-struct SLayoutNormal
+struct SLayoutNormal:
   a : byte;
   b : uint32;
   c : uint16;
 endstruct
 
-struct SLayoutFieldAlign
+struct SLayoutFieldAlign:
   a : byte;
   b : uint16 [[align(8)]];
 endstruct
 
-[[packed]] struct SLayoutPacked
+[[packed]] struct SLayoutPacked:
   a : byte;
   b : uint32;
   c : uint16;
 endstruct
 
-[[packed]] struct SLayoutPackedAlignIgnored
+[[packed]] struct SLayoutPackedAlignIgnored:
   a : byte;
   b : uint16 [[align(8)]];
 endstruct
 
-struct SLayoutNested
+struct SLayoutNested:
   a : byte;
   p : SLayoutPacked;
   b : uint32;
 endstruct
 
-[[packed]] object OLayoutPackedObj
+[[packed]] object OLayoutPackedObj:
   a : byte;
   b : uint32;
 endobj

@@ -1,0 +1,35 @@
+// object constructor tests
+
+use libc/stdio;
+
+struct SDynData:
+  intvalue : int;
+  name : cstring[64];
+endstruct
+
+object OTest:
+  ddata : SDynData;
+
+  function Create(a : int):
+    //ddata = new SDynData;
+    ddata.intvalue = a;
+    ddata.name = "OTestName";
+  endfunc
+
+  function Destroy():
+    //free ddata;
+    //ddata = null;
+  endfunc
+
+  function Print():
+    @.printf("%s(%d)\n", &ddata.name, ddata.intvalue);
+  endfunc
+endobj
+
+function main() -> int:
+  var obj : OTest = {};
+  obj.Create(1);
+  obj.Print();    //?check('OTestName(1)')
+  obj.Destroy();
+  return 0;
+endfunc

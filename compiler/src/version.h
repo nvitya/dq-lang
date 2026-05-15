@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.7"
+#define DQ_COMPILER_VERSION  "0.11.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.8:
+  - Missing colon fix after object and struct definitions
 v0.11.7:
   - Module initializations with 'initialization:' ... 'endinitialization'
 v0.11.6:

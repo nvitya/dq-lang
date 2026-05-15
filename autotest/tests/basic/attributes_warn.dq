@@ -1,4 +1,4 @@
-struct SAttr
+struct SAttr:
   [[volatile]] a : int;
   b : int [[volatile]];
 endstruct

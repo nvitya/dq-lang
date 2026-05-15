@@ -2,7 +2,7 @@
 
 var g_value : int;
 
-struct SItem
+struct SItem:
   value : int;
 endstruct
 

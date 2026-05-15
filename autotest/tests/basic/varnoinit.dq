@@ -1,6 +1,6 @@
 // test for not initialized variables
 
-struct SVarInit
+struct SVarInit:
   value : int;
 endstruct
 

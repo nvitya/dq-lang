@@ -1,0 +1,34 @@
+//?notest
+
+function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library function
+  var ps     : ^cchar = &src[0];
+  var psend  : ^cchar = ps + sizeof(src);
+  var pd     : ^cchar = &dst[0];
+  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
+  var pdstart : ^cchar = pd;
+
+  while pd < pdend  and ps < psend  and ps^ <> 0:
+    pd^ = ps^;
+    pd += 1;
+    ps += 1;
+  endwhile
+
+  pd^ = 0; // terminate
+endfunc
+
+function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
+  var ps     : ^cchar = &src[0];
+  var psend  : ^cchar = ps + sizeof(src);
+  var pd     : ^cchar = &dst[0];
+  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
+  pd += len(dst);
+  var pdstart : ^cchar = pd;
+
+  while pd < pdend  and ps < psend  and ps^ <> 0:
+    pd^ = ps^;
+    pd += 1;
+    ps += 1;
+  endwhile
+
+  pd^ = 0; // terminate
+endfunc

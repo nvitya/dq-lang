@@ -12,7 +12,7 @@ var g_var1 : int = 3;
 var g_ptr : ^int;
 var g_pptr : ^^int;
 
-struct SIfgenPair
+struct SIfgenPair:
   tag    : byte;
   left   : int;
   right  : int;
@@ -23,7 +23,7 @@ endstruct
 
 var g_struct : SIfgenPair;
 
-object OIfgenBox
+object OIfgenBox:
   tag   : byte;
   value : TIfgenValue;
 

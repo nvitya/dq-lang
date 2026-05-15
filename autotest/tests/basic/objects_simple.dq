@@ -6,7 +6,7 @@ var id  : int = 9;
 var id2 : int = 8;
 var g_factor : float = 1;
 
-object OElem
+object OElem:
   id        : int;
   weight    : float;
 

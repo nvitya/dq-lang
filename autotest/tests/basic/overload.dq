@@ -86,7 +86,7 @@ function orescue(a : refout int, b : int = 0) -> int [[overload]]:
   return 0;
 endfunc
 
-object OOverloadErr
+object OOverloadErr:
   id : int;
   function fwd(a : int) -> int;
 endobj

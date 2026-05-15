@@ -3,11 +3,11 @@
 var i : int = 3 / 2; //?error(TypeMismatchAssign)
 var object_scope_global : int = 1;
 
-struct TOffsetCheck
+struct TOffsetCheck:
   field : int;
 endstruct
 
-object TObjectScopeCheck
+object TObjectScopeCheck:
   id : int;
 
   function BadScope():

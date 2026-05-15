@@ -1180,7 +1180,7 @@ void ODqCompParser::ParseRootTypeDecl()
 void ODqCompParser::ParseStructDecl()
 {
   // note: "struct" is already consumed
-  // syntax form: "struct Name\n  field : type;\n  ...\nendstruct"
+  // syntax form: "struct Name:\n  field : type;\n  ...\nendstruct"
 
   string sname;
   scf->SkipWhite();
@@ -1195,6 +1195,12 @@ void ODqCompParser::ParseStructDecl()
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(":"))
+  {
+    Error(DQERR_STMTBLK_START_MISSING);
   }
 
   OScPosition mempos;
@@ -1579,7 +1585,7 @@ bool ODqCompParser::ReadObjectMethod(OCompoundType * ctype)
 void ODqCompParser::ParseObjectDecl()
 {
   // note: "object" is already consumed
-  // syntax form: "object Name\n  field : type;  function Method(...): ... endfunc\nendobj"
+  // syntax form: "object Name:\n  field : type;  function Method(...): ... endfunc\nendobj"
 
   string sname;
   scf->SkipWhite();
@@ -1594,6 +1600,12 @@ void ODqCompParser::ParseObjectDecl()
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(":"))
+  {
+    Error(DQERR_STMTBLK_START_MISSING);
   }
 
   OScPosition mempos;

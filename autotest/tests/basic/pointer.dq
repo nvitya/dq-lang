@@ -1,6 +1,6 @@
 // pointer tests
 
-struct SPtrItem
+struct SPtrItem:
   value : int;
 endstruct
 

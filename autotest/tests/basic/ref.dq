@@ -1,6 +1,6 @@
 // reference tests
 
-struct SRefItem
+struct SRefItem:
   value : int;
 endstruct
 

@@ -163,7 +163,8 @@ void ODqCompCodegen::PrepareTarget()
 
   auto triple = llvm::sys::getDefaultTargetTriple();
 #if LLVM_VERSION_MAJOR >= 21
-  ll_module->setTargetTriple(llvm::Triple(triple));
+  llvm::Triple ll_triple(triple);
+  ll_module->setTargetTriple(ll_triple);
 #else
   ll_module->setTargetTriple(triple);
 #endif
@@ -172,7 +173,11 @@ void ODqCompCodegen::PrepareTarget()
   auto * target = llvm::TargetRegistry::lookupTarget(triple, err);
   if (!target) throw runtime_error(err);
 
+#if LLVM_VERSION_MAJOR >= 21
+  ll_machine = target->createTargetMachine(ll_triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+#else
   ll_machine = target->createTargetMachine(triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+#endif
 
   ll_module->setDataLayout(ll_machine->createDataLayout());
 

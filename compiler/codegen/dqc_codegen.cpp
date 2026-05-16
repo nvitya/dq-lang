@@ -17,8 +17,10 @@
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Config/llvm-config.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/TargetParser/Host.h>
+#include <llvm/TargetParser/Triple.h>
 
 #include <llvm/Analysis/TargetLibraryInfo.h>
 
@@ -160,13 +162,22 @@ void ODqCompCodegen::PrepareTarget()
   llvm::InitializeNativeTargetAsmPrinter();
 
   auto triple = llvm::sys::getDefaultTargetTriple();
+#if LLVM_VERSION_MAJOR >= 21
+  llvm::Triple ll_triple(triple);
+  ll_module->setTargetTriple(ll_triple);
+#else
   ll_module->setTargetTriple(triple);
+#endif
 
   string err;
   auto * target = llvm::TargetRegistry::lookupTarget(triple, err);
   if (!target) throw runtime_error(err);
 
+#if LLVM_VERSION_MAJOR >= 21
+  ll_machine = target->createTargetMachine(ll_triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+#else
   ll_machine = target->createTargetMachine(triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+#endif
 
   ll_module->setDataLayout(ll_machine->createDataLayout());
 

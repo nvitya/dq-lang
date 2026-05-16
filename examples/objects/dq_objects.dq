@@ -1,0 +1,74 @@
+// DQ object allocations
+
+use libc/stdio;
+
+object ODynData:
+  intvalue : int;
+  name     : cstring[64];
+
+  function Create(a : int, aname : cstring):
+    intvalue = a;
+    name = aname;
+  endfunc
+endobj
+
+object OCoords:
+  coords : [2]float;
+
+  function Create(x : int, y : int):
+    coords[0] = x;
+    coords[1] = y;
+  endfunc
+endobj
+
+object OTest:
+private
+  // heap allocated
+  ddata  : ODynData = null;
+
+  // in-place allocated object:
+  coords = OCoords(0, 0);
+
+public
+  function Create(a : int, aname : cstring):  // reserved function name for constructor
+    ddata = new ODynData(a, aname);
+  endfunc
+
+  function Destroy():  // reserved function name for destructor
+    delete ddata;  // also sets the ddata variable to null
+  endfunc
+
+  function Print():
+    @.printf("%s(%d)\n", &ddata.name, ddata.intvalue);
+  endfunc
+endobj
+
+// .bss allocated object
+
+var bssobj = OTest(5, 'bss');
+
+// heap objects
+
+var heapobj : OTest = null;    // global heap object, explicitly initialized with null
+
+function main() -> int:
+  // bss object
+  bssobj.Print();
+
+  // stack local allocated object
+  var lobj = OTest(2, 'stack');
+  lobj.Print();
+
+  // local, heap-allocated object
+  var lheapobj : OTest = new OTest(3, 'lheap');
+  // or:  var lheapobj : OTest = new Otest(3, 'lheap');
+  lheapobj.Print();
+  delete lheapobj;
+
+  // global, heap allocated object
+  heapobj = new OTest(9, 'heap');
+  heapobj.Print();
+  delete heapobj;
+
+  return 0;
+endfunc

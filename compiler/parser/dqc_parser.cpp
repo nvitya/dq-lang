@@ -29,7 +29,7 @@
 
 using namespace std;
 
-static bool SupportsFuncParamDefaultType(OType * ptype)
+bool ODqCompParser::SupportsFuncParamDefaultType(OType * ptype)
 {
   OType * resolved = (ptype ? ptype->ResolveAlias() : nullptr);
   if (!resolved)
@@ -53,7 +53,7 @@ static bool SupportsFuncParamDefaultType(OType * ptype)
   return false;
 }
 
-static bool ParseParamModeKeyword(const string & sid, EParamMode & rmode)
+bool ODqCompParser::ParseParamModeKeyword(const string & sid, EParamMode & rmode)
 {
   if ("ref" == sid)
   {
@@ -82,7 +82,7 @@ static bool ParseParamModeKeyword(const string & sid, EParamMode & rmode)
   return false;
 }
 
-static filesystem::path CurrentSourcePath(OScFeederDq * scf)
+filesystem::path ODqCompParser::CurrentSourcePath() const
 {
   if (scf && scf->curfile && !scf->curfile->fullpath.empty())
   {
@@ -381,7 +381,7 @@ void ODqCompParser::ParseModule()
 
     OModulePath current_module;
     string module_error;
-    if (current_module.InitCurrent(CurrentSourcePath(scf), module_error))
+    if (current_module.InitCurrent(CurrentSourcePath(), module_error))
     {
       g_module->name = current_module.module_id;
       if (!g_opt.module_use_stack.empty())
@@ -668,7 +668,7 @@ void ODqCompParser::ParseUseStatement()
 
     OModulePath current_module;
     string path_error;
-    if (!current_module.InitCurrent(CurrentSourcePath(scf), path_error))
+    if (!current_module.InitCurrent(CurrentSourcePath(), path_error))
     {
       OScPosition errpos;
       errpos.Assign(scpos_statement_start);

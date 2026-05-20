@@ -59,6 +59,9 @@ public:
     return new OValueInt(this, 0);
   }
 
+  int64_t NormalizeConstant(uint64_t rawbits) const;
+  int64_t ConvertConstant(int64_t value) const;
+
   LlType * CreateLlType() override
   {
     return LlType::getIntNTy(ll_ctx, bitlength);  // no signed/unsigned difference here

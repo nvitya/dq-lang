@@ -26,6 +26,8 @@
 using namespace std;
 
 class OValSymOverloadSet;
+class OTypeInt;
+class OTypePointer;
 
 enum EExprConvFlags
 {
@@ -60,6 +62,11 @@ public:
   int     GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags = 0);
   bool    ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype);
   bool    CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt);
+  bool    IsPointerWidthIntegerType(OType * type);
+  bool    TryCalculateIntConstant(OExpr * expr, int64_t & rvalue);
+  bool    FitsPointerWidthConstant(OTypeInt * srctype, int64_t value);
+  bool    CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src);
+  void    FoldExprTreeAfterTypeRewrite(OExpr ** rexpr);
 
 protected:
   void    PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc);

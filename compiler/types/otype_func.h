@@ -247,6 +247,7 @@ public:
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
+  OExpr *    UnwrapConstExpr(OExpr * expr) const;
 };
 
 class OTypeFuncRef : public OType

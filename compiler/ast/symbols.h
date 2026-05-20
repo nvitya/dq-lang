@@ -164,6 +164,7 @@ public:
   bool SymbolSelected(const string & aname) const;
   bool ValidateSymbolNames() const;
   void CopySelectedSymbolsTo(OScope * adst) const;
+  void FillScope() const;
   vector<string> EffectiveSymbolNames() const;
 };
 
@@ -539,6 +540,8 @@ public:
 
   static void DeleteTree(OExpr * expr);
   static void FoldTree(OExpr ** rexpr);
+  static OExpr * FoldScalarExpr(OExpr * expr);
+  static bool TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement);
 
   virtual LlValue * Generate(OScope * scope)
   {

@@ -171,15 +171,6 @@ OValSymFunc * OModule::EnsureAppInitFunc(OScPosition & scpos)
   return app_init_func;
 }
 
-static void FillUseScope(OModuleUse * ause)
-{
-  if (!ause || !ause->module || !ause->scope_use)
-  {
-    return;
-  }
-  ause->CopySelectedSymbolsTo(ause->scope_use);
-}
-
 bool OModule::UseCompiledModule(const string & module_path, const string & namespace_name,
                                 const string & interface_artifact_path, const string & link_artifact_path,
                                 OScope * amerge_scope, bool ais_private,
@@ -220,7 +211,7 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   if ((MUM_ALL == amerge_mode || MUM_ONLY == amerge_mode || MUM_EXCLUDE == amerge_mode) && amerge_scope)
   {
     use->scope_use = new OScope(amerge_scope->parent_scope, module_path + ".use");
-    FillUseScope(use);
+    use->FillScope();
     amerge_scope->parent_scope = use->scope_use;
   }
   g_namespaces[namespace_name] = intf->scope_pub;

@@ -30,6 +30,7 @@ class ODqCompiler : public ODqCompClargs
 private:
   using            super = ODqCompClargs;
 
+public:
   string ModuleStackNameFromInput() const;
   bool ResolveModuleForMainSource(const string & module_name,
                                   OModulePath & rpath, string & rerror) const;
@@ -40,7 +41,6 @@ private:
                       OScope * merge_scope, bool is_private,
                       EModuleUseMergeMode merge_mode);
 
-public:
   ODqCompiler();
   virtual ~ODqCompiler();
 

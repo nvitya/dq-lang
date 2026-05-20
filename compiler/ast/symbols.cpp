@@ -191,6 +191,15 @@ void OModuleUse::CopySelectedSymbolsTo(OScope * adst) const
   }
 }
 
+void OModuleUse::FillScope() const
+{
+  if (!module || !scope_use)
+  {
+    return;
+  }
+  CopySelectedSymbolsTo(scope_use);
+}
+
 vector<string> OModuleUse::EffectiveSymbolNames() const
 {
   vector<string> result;

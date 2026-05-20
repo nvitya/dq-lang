@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.9"
+#define DQ_COMPILER_VERSION  "0.11.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.10:
+  - Code refactorings preferring object member functions instead of standalone static helper functions
 v0.11.9:
   - Using sys module implicitly (--no-use-sys turns this behaviour off)
 v0.11.8:

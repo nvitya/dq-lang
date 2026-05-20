@@ -866,7 +866,7 @@ string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
   return result;
 }
 
-static OExpr * UnwrapFuncRefConstExpr(OExpr * expr)
+OExpr * OValueFuncRef::UnwrapConstExpr(OExpr * expr) const
 {
   OExpr * current = expr;
   while (auto * conv = dynamic_cast<OExprTypeConv *>(current))
@@ -1010,7 +1010,7 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
   is_null = true;
   target_func = nullptr;
 
-  OExpr * plain = UnwrapFuncRefConstExpr(expr);
+  OExpr * plain = UnwrapConstExpr(expr);
   if (!plain)
   {
     if (emit_errors)

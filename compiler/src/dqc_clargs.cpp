@@ -24,7 +24,7 @@
 
 using namespace std;
 
-static bool IsValidDefineName(const string & name)
+bool ODqCompClargs::IsValidDefineName(const string & name)
 {
   if (name.empty())
   {
@@ -50,7 +50,7 @@ static bool IsValidDefineName(const string & name)
   return true;
 }
 
-static string ResolveCompilerExecutable(const string & argv0)
+string ODqCompClargs::ResolveCompilerExecutable(const string & argv0)
 {
   vector<char> buf(4096);
   ssize_t len = readlink("/proc/self/exe", buf.data(), buf.size() - 1);
@@ -75,7 +75,7 @@ static string ResolveCompilerExecutable(const string & argv0)
   return (ec ? argv0 : p.lexically_normal().string());
 }
 
-static string CompilerExecutableDir(const string & compiler_executable)
+string ODqCompClargs::CompilerExecutableDir(const string & compiler_executable)
 {
   filesystem::path p(compiler_executable);
   if (!p.has_parent_path())
@@ -85,7 +85,7 @@ static string CompilerExecutableDir(const string & compiler_executable)
   return p.parent_path().lexically_normal().string();
 }
 
-static string DefaultTargetArch()
+string ODqCompClargs::DefaultTargetArch()
 {
 #if defined(HOST_X86)
   #if defined(TARGET_64BIT)
@@ -110,7 +110,7 @@ static string DefaultTargetArch()
 #endif
 }
 
-static string DefaultTargetRtl()
+string ODqCompClargs::DefaultTargetRtl()
 {
 #if defined(TARGET_WIN)
   return "win";
@@ -121,12 +121,12 @@ static string DefaultTargetRtl()
 #endif
 }
 
-static string DefaultBuildTag()
+string ODqCompClargs::DefaultBuildTag()
 {
   return DefaultTargetArch() + "-" + DefaultTargetRtl();
 }
 
-static void AddDefaultPackagePaths()
+void ODqCompClargs::AddDefaultPackagePaths()
 {
   g_opt.package_paths.clear();
 
@@ -157,12 +157,12 @@ static void AddDefaultPackagePaths()
   }
 }
 
-static string NormalizeCompilerExecutable(const string & argv0)
+string ODqCompClargs::NormalizeCompilerExecutable(const string & argv0)
 {
   return ResolveCompilerExecutable(argv0);
 }
 
-static void ParseModuleUseStack(const string & text, vector<string> & rstack)
+void ODqCompClargs::ParseModuleUseStack(const string & text, vector<string> & rstack)
 {
   rstack.clear();
 
@@ -183,7 +183,7 @@ static void ParseModuleUseStack(const string & text, vector<string> & rstack)
   }
 }
 
-static bool ParseDefineIntValue(const string & text, int64_t & rvalue)
+bool ODqCompClargs::ParseDefineIntValue(const string & text, int64_t & rvalue)
 {
   if (text.empty())
   {
@@ -249,7 +249,7 @@ static bool ParseDefineIntValue(const string & text, int64_t & rvalue)
   return true;
 }
 
-static bool ParseDefineBoolValue(const string & text, bool & rvalue)
+bool ODqCompClargs::ParseDefineBoolValue(const string & text, bool & rvalue)
 {
   if ("true" == text)
   {

@@ -14,6 +14,7 @@
 #pragma once
 
 #include "stdint.h"
+#include <filesystem>
 #include <string>
 #include "comp_options.h"
 #include "statements.h"
@@ -68,6 +69,9 @@ public: // type parsing
   OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "function");
 
 public: // utility
+  bool SupportsFuncParamDefaultType(OType * ptype);
+  bool ParseParamModeKeyword(const string & sid, EParamMode & rmode);
+  filesystem::path CurrentSourcePath() const;
   bool ParseAttributes(bool areset);
   bool CheckStatementClose();
   OValSymConst * ParseDefineConst(const OScPosition & scpos, const string & sid);

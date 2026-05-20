@@ -15,6 +15,7 @@
 
 #include "stdint.h"
 #include <string>
+#include <vector>
 #include "comp_options.h"
 
 #include "dqc_codegen.h"
@@ -37,12 +38,22 @@ public:
   ODqCompClargs();
   virtual ~ODqCompClargs();
 
+  bool IsValidDefineName(const string & name);
+  string ResolveCompilerExecutable(const string & argv0);
+  string CompilerExecutableDir(const string & compiler_executable);
+  string DefaultTargetArch();
+  string DefaultTargetRtl();
+  string DefaultBuildTag();
+  void AddDefaultPackagePaths();
+  string NormalizeCompilerExecutable(const string & argv0);
+  void ParseModuleUseStack(const string & text, vector<string> & rstack);
+  bool ParseDefineIntValue(const string & text, int64_t & rvalue);
+  bool ParseDefineBoolValue(const string & text, bool & rvalue);
+  bool VerblevelSwitch(const string & aswitch);
+
   void ParseCmdLineArgs(int argc, char ** argv);
   void ParseCmdLineArgsVerblevel(int argc, char ** argv);
 
   void PrintUsage();
-
-protected:
-  bool VerblevelSwitch(const string & aswitch);
 
 };

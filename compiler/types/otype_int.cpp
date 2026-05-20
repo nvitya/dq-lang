@@ -19,17 +19,17 @@
 #include "dqc.h"
 #include <cmath>
 
-static int64_t NormalizeIntConstant(OTypeInt * dsttype, uint64_t rawbits)
+int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
 {
-  if (dsttype->bitlength >= 64)
+  if (bitlength >= 64)
   {
     return int64_t(rawbits);
   }
 
-  uint64_t mask = ((uint64_t(1) << dsttype->bitlength) - 1);
+  uint64_t mask = ((uint64_t(1) << bitlength) - 1);
   rawbits &= mask;
 
-  if (dsttype->issigned && (rawbits & (uint64_t(1) << (dsttype->bitlength - 1))))
+  if (issigned && (rawbits & (uint64_t(1) << (bitlength - 1))))
   {
     rawbits |= ~mask;
   }
@@ -37,9 +37,9 @@ static int64_t NormalizeIntConstant(OTypeInt * dsttype, uint64_t rawbits)
   return int64_t(rawbits);
 }
 
-static int64_t ConvertIntConstant(OTypeInt * dsttype, int64_t value)
+int64_t OTypeInt::ConvertConstant(int64_t value) const
 {
-  return NormalizeIntConstant(dsttype, uint64_t(value));
+  return NormalizeConstant(uint64_t(value));
 }
 
 LlConst * OValueInt::CreateLlConst()
@@ -60,7 +60,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<OIntLit *>(expr);
     if (ex)
     {
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), ex->value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(ex->value);
       return true;
     }
   }
@@ -74,7 +74,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       {
         return false;
       }
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), -v.value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(-v.value);
       return true;
     }
   }
@@ -88,7 +88,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       {
         return false;
       }
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), ~v.value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(~v.value);
       return true;
     }
   }
@@ -111,7 +111,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
           return false;
         }
 
-        value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), srcvalue.value);
+        value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(srcvalue.value);
         return true;
       }
 
@@ -125,11 +125,11 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
 
         if (static_cast<OTypeInt *>(ResolvedType())->issigned)
         {
-          value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), int64_t(srcvalue.value));
+          value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(int64_t(srcvalue.value));
         }
         else
         {
-          value = NormalizeIntConstant(static_cast<OTypeInt *>(ResolvedType()), uint64_t(srcvalue.value));
+          value = static_cast<OTypeInt *>(ResolvedType())->NormalizeConstant(uint64_t(srcvalue.value));
         }
         return true;
       }
@@ -142,7 +142,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
           return false;
         }
 
-        value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), srcvalue.value ? 1 : 0);
+        value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(srcvalue.value ? 1 : 0);
         return true;
       }
     }
@@ -172,7 +172,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), vint->value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(vint->value);
       return true;
     }
   }
@@ -213,7 +213,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(value);
       return true;
     }
   }
@@ -230,7 +230,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       if      (RNDMODE_ROUND == ex->mode)  value = (int64_t)std::round(vf.value);
       else if (RNDMODE_CEIL  == ex->mode)  value = (int64_t)std::ceil(vf.value);
       else                                 value = (int64_t)std::floor(vf.value);
-      value = ConvertIntConstant(static_cast<OTypeInt *>(ResolvedType()), value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(value);
       return true;
     }
   }

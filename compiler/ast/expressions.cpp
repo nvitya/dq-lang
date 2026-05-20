@@ -69,9 +69,7 @@ string GetRoundModeName(ERoundMode mode)
   return format("int({})", int(mode));
 }
 
-static OExpr * FoldScalarExpr(OExpr * expr);
-
-static bool TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement)
+bool OExpr::TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement)
 {
   OExpr * replacement = FoldScalarExpr(expr);
   if (replacement == expr)
@@ -130,7 +128,7 @@ void OExprTypeConv::FoldChildren()
 
 bool OExprTypeConv::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
+  if (!OExpr::TryFoldScalarReplacement(this, rreplacement))
   {
     return false;
   }
@@ -1439,7 +1437,7 @@ void OCStringLitToDescExpr::DeleteChildTree()
   litexpr = nullptr;
 }
 
-static OExpr * FoldScalarExpr(OExpr * expr)
+OExpr * OExpr::FoldScalarExpr(OExpr * expr)
 {
   if (!expr)
   {

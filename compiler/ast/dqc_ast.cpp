@@ -21,13 +21,13 @@
 #include "otype_func.h"
 #include "otype_int.h"
 
-static bool IsPointerWidthIntegerType(OType * type)
+bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
   OTypeInt * inttype = dynamic_cast<OTypeInt *>(type ? type->ResolveAlias() : nullptr);
   return inttype && (inttype->bitlength == TARGET_PTRSIZE * 8);
 }
 
-static bool TryCalculateIntConstant(OExpr * expr, int64_t & rvalue)
+bool ODqCompAst::TryCalculateIntConstant(OExpr * expr, int64_t & rvalue)
 {
   OTypeInt * exprtype = dynamic_cast<OTypeInt *>(expr ? expr->ResolvedType() : nullptr);
   if (!exprtype)
@@ -45,7 +45,7 @@ static bool TryCalculateIntConstant(OExpr * expr, int64_t & rvalue)
   return true;
 }
 
-static bool FitsPointerWidthConstant(OTypeInt * srctype, int64_t value)
+bool ODqCompAst::FitsPointerWidthConstant(OTypeInt * srctype, int64_t value)
 {
   uint32_t ptrbits = TARGET_PTRSIZE * 8;
   if (!srctype)
@@ -69,7 +69,7 @@ static bool FitsPointerWidthConstant(OTypeInt * srctype, int64_t value)
   return uint64_t(value) <= maxval;
 }
 
-static bool CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src)
+bool ODqCompAst::CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src)
 {
   if (!dst || !src)
   {
@@ -99,7 +99,7 @@ static bool CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src)
   return dst->basetype->ResolveAlias() == src->basetype->ResolveAlias();
 }
 
-static void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
+void ODqCompAst::FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
 {
   // ParseExpression() already folds the original parse tree. Re-fold only after type
   // resolution injects conversion nodes so constant casts collapse immediately.

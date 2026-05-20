@@ -41,17 +41,17 @@ ODqCompiler::~ODqCompiler()
 {
 }
 
-static string ModuleStackNameFromInput(const string & base_name)
+string ODqCompiler::ModuleStackNameFromInput() const
 {
   filesystem::path p(base_name);
   return p.filename().string();
 }
 
-static bool ResolveModuleForMainSource(const string & module_name, const string & main_source_filename,
-                                       OModulePath & rpath, string & rerror)
+bool ODqCompiler::ResolveModuleForMainSource(const string & module_name,
+                                             OModulePath & rpath, string & rerror) const
 {
   OModulePath current_module;
-  if (!current_module.InitCurrent(main_source_filename, rerror))
+  if (!current_module.InitCurrent(in_filename, rerror))
   {
     return false;
   }
@@ -64,8 +64,8 @@ static bool ResolveModuleForMainSource(const string & module_name, const string 
   return rpath.ResolveFrom(current_module, rerror);
 }
 
-static void PrintModuleArtifactError(const OModulePath & module_path,
-                                     const SModuleArtifactEnsureResult & result)
+void ODqCompiler::PrintModuleArtifactError(const OModulePath & module_path,
+                                           const SModuleArtifactEnsureResult & result) const
 {
   if (EModuleArtifactEnsureError::SOURCE_MISSING == result.error)
   {
@@ -85,7 +85,7 @@ static void PrintModuleArtifactError(const OModulePath & module_path,
         module_path.module_id, module_path.source_path.string(), result.reason);
 }
 
-static bool EnsureCompiledModuleArtifact(const OModulePath & module_path)
+bool ODqCompiler::EnsureCompiledModuleArtifact(const OModulePath & module_path) const
 {
   OModuleIntf artifact_intf(g_builtins, module_path.module_id);
   SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshCompiledArtifact(module_path);
@@ -104,7 +104,7 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
 {
   OModulePath module_path;
   string path_error;
-  if (!ResolveModuleForMainSource(module_name, in_filename, module_path, path_error))
+  if (!ResolveModuleForMainSource(module_name, module_path, path_error))
   {
     print("Can not resolve implicit module {}: {}\n", module_name, path_error);
     return false;
@@ -186,7 +186,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (g_opt.module_use_stack.empty())
   {
-    g_opt.module_use_stack.push_back(ModuleStackNameFromInput(base_name));
+    g_opt.module_use_stack.push_back(ModuleStackNameFromInput());
   }
   g_module->name = g_opt.module_use_stack.back();
 

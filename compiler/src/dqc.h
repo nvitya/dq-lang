@@ -22,11 +22,20 @@
 
 using namespace std;
 
+class OModulePath;
+struct SModuleArtifactEnsureResult;
+
 class ODqCompiler : public ODqCompClargs
 {
 private:
   using            super = ODqCompClargs;
 
+  string ModuleStackNameFromInput() const;
+  bool ResolveModuleForMainSource(const string & module_name,
+                                  OModulePath & rpath, string & rerror) const;
+  void PrintModuleArtifactError(const OModulePath & module_path,
+                                const SModuleArtifactEnsureResult & result) const;
+  bool EnsureCompiledModuleArtifact(const OModulePath & module_path) const;
   bool AddImplicitUse(const string & module_name, const string & namespace_name,
                       OScope * merge_scope, bool is_private,
                       EModuleUseMergeMode merge_mode);

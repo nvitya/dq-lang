@@ -98,52 +98,29 @@ static bool EnsureCompiledModuleArtifact(const OModulePath & module_path)
   return true;
 }
 
-static bool AddImplicitRtlLinux(const string & main_source_filename)
+bool ODqCompiler::AddImplicitUse(const string & module_name, const string & namespace_name,
+                                 OScope * merge_scope, bool is_private,
+                                 EModuleUseMergeMode merge_mode)
 {
-  OModulePath rtl_path;
+  OModulePath module_path;
   string path_error;
-  if (!ResolveModuleForMainSource("rtl/rtl_linux", main_source_filename, rtl_path, path_error))
+  if (!ResolveModuleForMainSource(module_name, in_filename, module_path, path_error))
   {
-    print("Can not resolve implicit RTL module rtl/rtl_linux: {}\n", path_error);
+    print("Can not resolve implicit module {}: {}\n", module_name, path_error);
     return false;
   }
 
-  if (!EnsureCompiledModuleArtifact(rtl_path))
-  {
-    return false;
-  }
-
-  if (!g_module->UseCompiledModule(rtl_path.module_id, "__dq_rtl", rtl_path.artifact_path.string(),
-                                   rtl_path.artifact_path.string(), nullptr, true, MUM_NONE,
-                                   vector<string>(), false))
-  {
-    print("Can not load implicit RTL module interface from \"{}\"\n", rtl_path.artifact_path.string());
-    return false;
-  }
-
-  return true;
-}
-
-static bool AddImplicitSys(const string & main_source_filename)
-{
-  OModulePath sys_path;
-  string path_error;
-  if (!ResolveModuleForMainSource("sys", main_source_filename, sys_path, path_error))
-  {
-    print("Can not resolve implicit module sys: {}\n", path_error);
-    return false;
-  }
-
-  if (!EnsureCompiledModuleArtifact(sys_path))
+  if (!EnsureCompiledModuleArtifact(module_path))
   {
     return false;
   }
 
-  if (!g_module->UseCompiledModule(sys_path.module_id, "sys", sys_path.artifact_path.string(),
-                                   sys_path.artifact_path.string(), g_module->scope_pub, false,
-                                   MUM_ALL, vector<string>(), false))
+  if (!g_module->UseCompiledModule(module_path.module_id, namespace_name,
+                                   module_path.artifact_path.string(),
+                                   module_path.artifact_path.string(), merge_scope,
+                                   is_private, merge_mode, vector<string>(), false))
   {
-    print("Can not load implicit sys module interface from \"{}\"\n", sys_path.artifact_path.string());
+    print("Can not load implicit module interface from \"{}\"\n", module_path.artifact_path.string());
     return false;
   }
 
@@ -249,7 +226,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (!g_opt.no_use_sys)
   {
-    if (!AddImplicitSys(in_filename))
+    if (!AddImplicitUse("sys", "sys", g_module->scope_pub, false, MUM_ALL))
     {
       ++errorcnt;
       return;
@@ -323,7 +300,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     if (has_app_main)
     {
-      if (!AddImplicitRtlLinux(in_filename))
+      if (!AddImplicitUse("rtl/rtl_linux", "__dq_rtl", nullptr, true, MUM_NONE))
       {
         ++errorcnt;
         return;

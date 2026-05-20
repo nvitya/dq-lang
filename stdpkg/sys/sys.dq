@@ -1,11 +1,40 @@
 // DQ standard module 'sys'
 
+function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer;
+function MemFree(memptr : pointer);
+function MemFreeRef(memptrvar : ref pointer);
+
 function ParamCount() -> int;
 function ParamStr(i : int) -> ^cchar;   // 0 = program args
 
 function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc entry point main() (in rtl_linux)
 
 implementation
+
+// Memory Allocation
+
+function libc_malloc(size : uint) -> pointer [[external('malloc')]];
+function libc_calloc(count : uint, size : uint) -> pointer [[external('calloc')]];
+function libc_free(ptr : pointer) [[external('free')]];
+
+function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
+  if zeromem:
+    result = libc_calloc(1, allocbytes);
+  else:
+    result = libc_malloc(allocbytes);
+  endif
+endfunc
+
+function MemFree(memptr : pointer):
+  libc_free(memptr);
+endfunc
+
+function MemFreeRef(memptrvar : ref pointer):
+  libc_free(memptrvar);
+  memptrvar = null;
+endfunc
+
+// Program Argument Handling
 
 var sys_argc : int      = -1;
 var sys_argv : ^^cchar  = null;
@@ -24,5 +53,5 @@ function ParamStr(i : int) -> ^cchar:
     return null;
   else:
     return sys_argv[i]^;
-  endif;
+  endif
 endfunc

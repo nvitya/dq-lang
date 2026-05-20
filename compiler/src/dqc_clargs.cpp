@@ -321,6 +321,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       if      ("--version" == v)  g_opt.print_version = true;
       else if ("--ifgen"   == v)  g_opt.ifgen = true;
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
+      else if ("--no-use-sys" == v)  g_opt.no_use_sys = true;
       else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
       else if ("--ifstack" == v)
       {
@@ -618,6 +619,7 @@ void ODqCompClargs::PrintUsage()
   print("  -c        : compile only (do not link)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if or .dqm)\n");
+  print("  --no-use-sys : do not add the implicit merged sys module\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --version : print compiler version\n");

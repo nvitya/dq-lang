@@ -124,6 +124,32 @@ static bool AddImplicitRtlLinux(const string & main_source_filename)
   return true;
 }
 
+static bool AddImplicitSys(const string & main_source_filename)
+{
+  OModulePath sys_path;
+  string path_error;
+  if (!ResolveModuleForMainSource("sys", main_source_filename, sys_path, path_error))
+  {
+    print("Can not resolve implicit module sys: {}\n", path_error);
+    return false;
+  }
+
+  if (!EnsureCompiledModuleArtifact(sys_path))
+  {
+    return false;
+  }
+
+  if (!g_module->UseCompiledModule(sys_path.module_id, "sys", sys_path.artifact_path.string(),
+                                   sys_path.artifact_path.string(), g_module->scope_pub, false,
+                                   MUM_ALL, vector<string>(), false))
+  {
+    print("Can not load implicit sys module interface from \"{}\"\n", sys_path.artifact_path.string());
+    return false;
+  }
+
+  return true;
+}
+
 void ODqCompiler::Run(int argc, char ** argv)
 {
   errorcnt = 0;
@@ -220,6 +246,15 @@ void ODqCompiler::Run(int argc, char ** argv)
   }
 
   ll_init_debug_info();
+
+  if (!g_opt.no_use_sys)
+  {
+    if (!AddImplicitSys(in_filename))
+    {
+      ++errorcnt;
+      return;
+    }
+  }
 
   ParseModule();
   if (errorcnt)

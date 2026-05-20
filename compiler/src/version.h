@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.8"
+#define DQ_COMPILER_VERSION  "0.11.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.9:
+  - Using sys module implicitly (--no-use-sys turns this behaviour off)
 v0.11.8:
   - Missing colon fix after object and struct definitions
 v0.11.7:

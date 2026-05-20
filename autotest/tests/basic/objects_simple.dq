@@ -39,6 +39,7 @@ endfunc
 function OElem.Pick(v : float) -> int [[overload]]:
   result = round(v) + 10;
 endfunc
+
 function main() -> int:
   printf('DQ Object test\n');  //?check('DQ Object test')
 

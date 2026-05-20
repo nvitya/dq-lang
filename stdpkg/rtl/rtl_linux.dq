@@ -1,7 +1,5 @@
 // DQ Runtime Library for Linux
 
-use sys --;
-
 function dq_main() -> int [[external('dq_main')]];
 function dq_module_init() [[external('dq_module_init')]];
 

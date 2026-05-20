@@ -1,5 +1,4 @@
 use libc/stdio;
-use sys;
 
 function main() -> int:  // should be exported as "dq_main"
   printf("DQ Std Package test\n"); //?check('DQ Std Package test')

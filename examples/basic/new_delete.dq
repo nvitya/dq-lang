@@ -1,0 +1,30 @@
+// DQ new, delete demo
+
+use libc/stdio;
+
+function main() -> int:
+  printf("DQ new, delete test\n");
+
+  var pint : ^int;
+
+#if false
+  pint = new int;
+  pint^ = 5;
+  printf("pint = %d\n", pint^);
+  delete pint = null;  // frees the memory at pint and sets to null
+  delete pint; // nop if pint was null
+#endif
+
+  // alternative
+  pint = ^int(MemAlloc(sizeof(int), true));
+
+  pint^ = 5;
+  printf("pint = %d\n", pint^);
+
+
+  MemFree(pint);
+  //MemFreeRef(pint);
+
+
+  return 0;
+endfunc

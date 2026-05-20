@@ -5,26 +5,35 @@ use libc/stdio;
 function main() -> int:
   printf("DQ new, delete test\n");
 
+  // using functions
+
   var pint : ^int;
 
-#if false
-  pint = new int;
-  pint^ = 5;
-  printf("pint = %d\n", pint^);
-  delete pint = null;  // frees the memory at pint and sets to null
-  delete pint; // nop if pint was null
-#endif
-
-  // alternative
   pint = ^int(MemAlloc(sizeof(int), true));
-
   pint^ = 5;
   printf("pint = %d\n", pint^);
-
-
   MemFree(pint);
-  //MemFreeRef(pint);
+  pint = null;
 
+  // Using MemFreeRef
+  pint = ^int(MemAlloc(sizeof(int), true));
+  pint^ = 6;
+  printf("pint_freeref = %d\n", pint^);
+  MemFreeRef(pint);
+
+  // using new, delete
+
+  var pint2 : ^int = new int(2);
+
+  printf("pint2 = %d\n", pint2^);
+
+  delete pint2 = null;  // frees the memory at pint and sets to null
+  delete pint2; // nop if pint was null
+
+  // without type specification:
+  var pint3 = new int(3);
+  printf("pint3 = %d\n", pint3^);
+  delete pint3; // deletes the pint3
 
   return 0;
 endfunc

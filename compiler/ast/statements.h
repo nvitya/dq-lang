@@ -169,6 +169,26 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtDelete : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OExpr *        ptrexpr;
+  bool           clear_after_free;
+  OValSymFunc *  memfree_func;
+
+  OStmtDelete(OScPosition & ascpos, OExpr * aptrexpr, bool aclear_after_free, OValSymFunc * amemfree_func)
+  :
+    super(ascpos),
+    ptrexpr(aptrexpr),
+    clear_after_free(aclear_after_free),
+    memfree_func(amemfree_func)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OStmtModuleInitCalls : public OStmt
 {
 private:

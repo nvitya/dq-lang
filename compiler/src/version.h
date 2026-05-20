@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.10"
+#define DQ_COMPILER_VERSION  "0.11.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.11:
+  - Added new, delete
 v0.11.10:
   - Code refactorings preferring object member functions instead of standalone static helper functions
 v0.11.9:

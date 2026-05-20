@@ -281,6 +281,11 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
 {
   OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
   OType * resolved_src = (srctype ? srctype->ResolveAlias() : nullptr);
+  auto * ptrdst = dynamic_cast<OTypePointer *>(resolved_dst);
+  if (ptrdst && ptrdst->IsOpaquePointer())
+  {
+    return resolved_src && (TK_POINTER == resolved_src->kind);
+  }
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }
 

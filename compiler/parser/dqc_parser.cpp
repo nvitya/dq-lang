@@ -821,7 +821,7 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
   string     sid;
   string     stype;
   OValSym *  pvalsym;
-  OType *    ptype;
+  OType *    ptype = nullptr;
 
   scf->SkipWhite();
   if (not scf->ReadIdentifier(sid))
@@ -837,22 +837,42 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     return;
   }
 
+  OExpr * initexpr = nullptr;
+  bool zero_init = false;
   scf->SkipWhite();
-  if (not scf->CheckSymbol(":"))
+  if (scf->CheckSymbol(":"))
+  {
+    ptype = ParseTypeSpec();
+    if (not ptype)
+    {
+      SkipToModuleStatementStart();
+      return;
+    }
+  }
+  else if (!arootstmt && scf->CheckSymbol("="))
+  {
+    scf->SkipWhite();
+    initexpr = ParseExpression();
+    if (!initexpr)
+    {
+      return;
+    }
+
+    auto * newexpr = dynamic_cast<ONewExpr *>(initexpr);
+    if (!newexpr)
+    {
+      delete initexpr;
+      StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
+      return;
+    }
+    ptype = newexpr->ptype;
+  }
+  else
   {
     StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
     return;
   }
 
-  ptype = ParseTypeSpec();
-  if (not ptype)
-  {
-    SkipToModuleStatementStart();
-    return;
-  }
-
-  OExpr * initexpr = nullptr;
-  bool zero_init = false;
   scf->SkipWhite();
   if (scf->CheckSymbol("="))  // variable initializer specified
   {
@@ -1883,6 +1903,11 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
         ParseStmtIf();
         continue;
       }
+      else if ("delete" == sid)
+      {
+        ParseStmtDelete();
+        continue;
+      }
       else if (ReservedWord(sid))
       {
         StatementError(DQERR_STMT_INVALID, sid);
@@ -2530,6 +2555,81 @@ void ODqCompParser::ParseStmtReturn()
     curblock->scope->SetVarInitialized(curvsfunc->vsresult);
     curblock->AddStatement(new OStmtReturn(scpos_statement_start, expr, curvsfunc));
   }
+}
+
+void ODqCompParser::ParseStmtDelete()
+{
+  OValSymFunc * memfree_func = dynamic_cast<OValSymFunc *>(curscope->FindValSym("MemFree"));
+  if (!memfree_func)
+  {
+    Error(DQERR_VS_UNKNOWN, "MemFree");
+    SkipToStatementEnd();
+    return;
+  }
+
+  scf->SkipWhite();
+  OExpr * ptrexpr = ParseExpression();
+  if (!ptrexpr)
+  {
+    return;
+  }
+
+  OType * ptrtype = ptrexpr->ResolvedType();
+  if (!ptrtype || (TK_POINTER != ptrtype->kind))
+  {
+    string got = (ptrtype ? ptrtype->name : "?");
+    delete ptrexpr;
+    Error(DQERR_TYPE_EXPECTED, "pointer", got);
+    SkipToStatementEnd();
+    return;
+  }
+
+  bool clear_after_free = false;
+  scf->SkipWhite();
+  if (scf->CheckSymbol("="))
+  {
+    clear_after_free = true;
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("null"))
+    {
+      delete ptrexpr;
+      Error(DQERR_EXPR_WRONG_VALUE_FOR, "delete");
+      SkipToStatementEnd();
+      return;
+    }
+
+    OLValueExpr * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
+    OValSym * rootvalsym = (lval ? GetAssignRootValSym(lval) : nullptr);
+    if (!lval)
+    {
+      delete ptrexpr;
+      Error(DQERR_LVALUE_NOT_WRITEABLE);
+      SkipToStatementEnd();
+      return;
+    }
+    if (rootvalsym && VSK_CONST == rootvalsym->kind)
+    {
+      delete ptrexpr;
+      Error(DQERR_TYPE_ASSIGN_TO_CONST, rootvalsym->name);
+      SkipToStatementEnd();
+      return;
+    }
+    if (rootvalsym && !rootvalsym->IsRefWriteable())
+    {
+      delete ptrexpr;
+      Error(DQERR_REF_ASSIGN_READONLY, rootvalsym->name);
+      SkipToStatementEnd();
+      return;
+    }
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "delete statement");
+  }
+
+  curblock->AddStatement(new OStmtDelete(scpos_statement_start, ptrexpr, clear_after_free, memfree_func));
 }
 
 void ODqCompParser::ParseStmtWhile()
@@ -3346,6 +3446,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
   if ("ceil"  == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
+  if ("new" == sid)
+  {
+    return ParseNewExpr();
+  }
+
   OScope * found_scope = nullptr;
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
@@ -3920,6 +4025,83 @@ OExpr * ODqCompParser::ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * call
   }
 
   return result;
+}
+
+OExpr * ODqCompParser::ParseNewExpr()
+{
+  OValSymFunc * memalloc_func = dynamic_cast<OValSymFunc *>(curscope->FindValSym("MemAlloc"));
+  if (!memalloc_func)
+  {
+    Error(DQERR_VS_UNKNOWN, "MemAlloc");
+    return nullptr;
+  }
+
+  OType * alloc_type = ParseTypeSpec();
+  if (!alloc_type)
+  {
+    return nullptr;
+  }
+  alloc_type = alloc_type->ResolveAlias();
+  alloc_type->EnsureLayout();
+
+  if (TK_VOID == alloc_type->kind)
+  {
+    Error(DQERR_TYPE_EXPECTED, "non-void", alloc_type->name);
+    return nullptr;
+  }
+  if (auto * compound = dynamic_cast<OCompoundType *>(alloc_type))
+  {
+    if (compound->is_object)
+    {
+      Error(DQERR_NOT_IMPLEMENTED_YET, "new object");
+      return nullptr;
+    }
+  }
+  if (0 == alloc_type->bytesize)
+  {
+    Error(DQERR_NOT_SUPPORTED, "new for dynamically sized type");
+    return nullptr;
+  }
+
+  OExpr * initexpr = nullptr;
+  scf->SkipWhite();
+  if (scf->CheckSymbol("("))
+  {
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(")"))
+    {
+      initexpr = ParseExpression();
+      if (!initexpr)
+      {
+        return nullptr;
+      }
+
+      scf->SkipWhite();
+      if (scf->CheckSymbol(","))
+      {
+        delete initexpr;
+        Error(DQERR_FUNC_ARGS_TOO_MANY, "new", "1");
+        scf->ReadTo(")");
+        scf->CheckSymbol(")");
+        return nullptr;
+      }
+
+      if (!scf->CheckSymbol(")"))
+      {
+        delete initexpr;
+        Error(DQERR_MISSING_CLOSE_PAREN_FOR, "new");
+        return nullptr;
+      }
+
+      if (!CheckAssignType(alloc_type, &initexpr, "new initializer"))
+      {
+        delete initexpr;
+        return nullptr;
+      }
+    }
+  }
+
+  return new ONewExpr(alloc_type, initexpr, memalloc_func);
 }
 
 OExpr * ODqCompParser::ParseBuiltinIif()

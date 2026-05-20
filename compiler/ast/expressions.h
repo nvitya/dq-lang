@@ -273,6 +273,21 @@ public:
   void       DeleteChildTree() override;
 };
 
+class OValSymFunc;
+
+class ONewExpr : public OExpr
+{
+public:
+  OType *        alloc_type;
+  OExpr *        initexpr;
+  OValSymFunc *  memalloc_func;
+
+  /* ctor */ ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 // Implicit conversion from fixed array to slice when passing to []int parameter
 class OArrayToSliceExpr : public OExpr
 {
@@ -313,7 +328,6 @@ public:
   void        DeleteChildTree() override;
 };
 
-class OValSymFunc;  // forward declaration for otype_func.h
 class OTypeFuncRef;
 class OTypeFunc;
 

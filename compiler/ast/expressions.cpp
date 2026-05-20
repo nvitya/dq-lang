@@ -932,6 +932,52 @@ void OPointerIndexExpr::DeleteChildTree()
   indexexpr = nullptr;
 }
 
+/* ctor */ ONewExpr::ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func)
+{
+  alloc_type = aalloc_type;
+  initexpr = ainitexpr;
+  memalloc_func = amemalloc_func;
+  ptype = alloc_type->GetPointerType();
+}
+
+LlValue * ONewExpr::Generate(OScope * scope)
+{
+  if (!memalloc_func || !memalloc_func->ll_func)
+  {
+    throw runtime_error("ONewExpr::Generate(): missing MemAlloc function");
+  }
+
+  alloc_type->EnsureLayout();
+
+  LlValue * ll_size = llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), alloc_type->bytesize);
+  LlValue * ll_zero_mem = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), 1);
+  LlValue * ll_ptr = ll_builder.CreateCall(memalloc_func->ll_func, {ll_size, ll_zero_mem}, "new.alloc");
+
+  if (ll_ptr->getType() != ptype->GetLlType())
+  {
+    ll_ptr = ll_builder.CreateBitCast(ll_ptr, ptype->GetLlType(), "new.ptr");
+  }
+
+  if (initexpr)
+  {
+    LlValue * ll_initval = initexpr->Generate(scope);
+    ll_builder.CreateStore(ll_initval, ll_ptr);
+  }
+
+  return ll_ptr;
+}
+
+void ONewExpr::FoldChildren()
+{
+  OExpr::FoldTree(&initexpr);
+}
+
+void ONewExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(initexpr);
+  initexpr = nullptr;
+}
+
 /* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OValSym * aarray, OType * slicetype)
 {
   arrayvalsym = aarray;

@@ -60,6 +60,7 @@ public: // statement blocks
   void ParseStmtReturn();
   void ParseStmtWhile();
   void ParseStmtIf();
+  void ParseStmtDelete();
   void FinalizeStmtVoidCall(OExpr * callexpr);
 
   EBinOp ParseAssignOp();
@@ -130,6 +131,7 @@ public: // expressions
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
   OExpr * ParseExprMethodOverloadCall(OValSymOverloadSet * ovset, OLValueExpr * receiver);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);
+  OExpr * ParseNewExpr();
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();

@@ -338,6 +338,30 @@ void OStmtVoidCall::Generate(OScope * scope)
   LlValue * ll_value = callexpr->Generate(scope);
 }
 
+void OStmtDelete::Generate(OScope * scope)
+{
+  if (!memfree_func || !memfree_func->ll_func)
+  {
+    throw runtime_error("OStmtDelete::Generate(): missing MemFree function");
+  }
+
+  LlValue * ll_ptr = ptrexpr->Generate(scope);
+  ll_builder.CreateCall(memfree_func->ll_func, {ll_ptr});
+
+  if (clear_after_free)
+  {
+    auto * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
+    if (!lval)
+    {
+      throw logic_error("OStmtDelete::Generate(): clear target is not an lvalue");
+    }
+
+    LlValue * ll_addr = lval->GenerateAddress(scope);
+    LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+    ll_builder.CreateStore(ll_null, ll_addr);
+  }
+}
+
 void OStmtModuleInitCalls::Generate(OScope * scope)
 {
   if (guard)

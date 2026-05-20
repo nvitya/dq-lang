@@ -230,6 +230,36 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtFor : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OExpr *       condition = nullptr;
+  OStmtBlock *  init;
+  OStmtBlock *  body;
+  OStmtBlock *  step;
+
+  OStmtFor(OScPosition & ascpos, OScope * ascope)
+  :
+    super(ascpos)
+  {
+    init = new OStmtBlock(ascope, "for");
+    body = new OStmtBlock(init->scope, "forbody");
+    step = new OStmtBlock(init->scope, "forstep");
+  }
+
+  ~OStmtFor()
+  {
+    OExpr::DeleteTree(condition);
+    delete init;
+    delete body;
+    delete step;
+  }
+
+  void Generate(OScope * scope) override;
+};
+
 class OIfBranch
 {
 public:
@@ -283,12 +313,26 @@ public:
 
 class OBreakStmt : public OStmt
 {
+private:
+  using        super = OStmt;
 public:
+  OBreakStmt(OScPosition & ascpos)
+  :
+    super(ascpos)
+  {}
+
   void Generate(OScope * scope) override;
 };
 
 class OContinueStmt : public OStmt
 {
+private:
+  using        super = OStmt;
 public:
+  OContinueStmt(OScPosition & ascpos)
+  :
+    super(ascpos)
+  {}
+
   void Generate(OScope * scope) override;
 };

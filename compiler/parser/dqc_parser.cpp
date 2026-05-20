@@ -21,6 +21,7 @@
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "otype_int.h"
 #include "named_scopes.h"
 #include "scope_defines.h"
 #include "expressions.h"
@@ -1893,9 +1894,42 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
         ParseStmtReturn();
         continue;
       }
+      else if ("break" == sid)
+      {
+        if (loop_depth < 1)
+        {
+          StatementError(DQERR_STMT_INVALID, sid);
+          continue;
+        }
+        if (!CheckStatementClose())
+        {
+          continue;
+        }
+        curblock->AddStatement(new OBreakStmt(scpos_statement_start));
+        continue;
+      }
+      else if ("continue" == sid)
+      {
+        if (loop_depth < 1)
+        {
+          StatementError(DQERR_STMT_INVALID, sid);
+          continue;
+        }
+        if (!CheckStatementClose())
+        {
+          continue;
+        }
+        curblock->AddStatement(new OContinueStmt(scpos_statement_start));
+        continue;
+      }
       else if ("while" == sid)
       {
         ParseStmtWhile();
+        continue;
+      }
+      else if ("for" == sid)
+      {
+        ParseStmtFor();
         continue;
       }
       else if ("if" == sid)
@@ -2649,9 +2683,324 @@ void ODqCompParser::ParseStmtWhile()
   OStmtWhile * st = new OStmtWhile(scpos_statement_start, cond, curscope);
   curblock->AddStatement(st);
 
+  ++loop_depth;
   ReadStatementBlock(st->body, "endwhile");
+  --loop_depth;
 
   st->body->scope->RevertFirstAssignments();
+}
+
+void ODqCompParser::ParseStmtFor()
+{
+  // note: "for" is already consumed
+  // syntax forms:
+  //   for i = start to|downto end [step step_expr]: ... endfor
+  //   for i = start count|downcount count_expr [step step_expr]: ... endfor
+  //   for i = start while condition [step step_expr]: ... endfor
+  //   for i : T = start ...
+
+  enum class EForKind
+  {
+    TO,
+    DOWNTO,
+    COUNT,
+    DOWNCOUNT,
+    WHILE
+  };
+
+  OScope * saved_scope = curscope;
+
+  auto restore_scope = [&]()
+  {
+    curscope = saved_scope;
+  };
+
+  auto is_integer_type = [](OType * ptype)
+  {
+    OType * resolved = (ptype ? ptype->ResolveAlias() : nullptr);
+    return resolved && (TK_INT == resolved->kind);
+  };
+
+  auto is_positive_const_step = [&](OExpr * expr, const string & form)
+  {
+    OType * exprtype = (expr ? expr->ResolvedType() : nullptr);
+    if (!exprtype || (TK_INT != exprtype->kind))
+    {
+      return true;
+    }
+
+    OValueInt value(exprtype, 0);
+    if (value.CalculateConstant(expr, false) && (value.value <= 0))
+    {
+      Error(DQERR_FOR_STEP_POSITIVE, form);
+      return false;
+    }
+
+    return true;
+  };
+
+  auto parse_optional_step = [&]() -> OExpr *
+  {
+    string sid;
+    scf->SkipWhite();
+    if (scf->ReadIdentifier(sid, false) && ("step" == sid))
+    {
+      scf->ReadIdentifier(sid);
+      scf->SkipWhite();
+      OExpr * stepexpr = ParseExpression();
+      if (!stepexpr)
+      {
+        Error(DQERR_EXPR_EXPECTED);
+      }
+      return stepexpr;
+    }
+
+    return new OIntLit(1);
+  };
+
+  auto make_compare = [](OValSym * var, ECompareOp op, OExpr * right) -> OExpr *
+  {
+    return new OCompareExpr(op, new OLValueVar(var), right);
+  };
+
+  string loopvar_name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(loopvar_name))
+  {
+    StatementError(DQERR_ID_EXP_AFTER, "for");
+    return;
+  }
+
+  OStmtFor * st = new OStmtFor(scpos_statement_start, saved_scope);
+  curblock->AddStatement(st);
+
+  auto abort_for = [&]()
+  {
+    restore_scope();
+    SkipToSymbol("endfor");
+  };
+
+  OType * specified_type = nullptr;
+  scf->SkipWhite();
+  if (scf->CheckSymbol(":"))
+  {
+    specified_type = ParseTypeSpec();
+    if (!specified_type)
+    {
+      abort_for();
+      return;
+    }
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("="))
+  {
+    StatementError(DQERR_MISSING_ASSIGN_FOR, loopvar_name);
+    abort_for();
+    return;
+  }
+
+  scf->SkipWhite();
+  OExpr * start_expr = ParseExpression();
+  if (!start_expr)
+  {
+    abort_for();
+    return;
+  }
+
+  OValSym * loopvar = saved_scope->FindValSym(loopvar_name);
+  bool declare_loopvar = false;
+
+  if (specified_type)
+  {
+    if (loopvar)
+    {
+      if (loopvar->ptype != specified_type)
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "for loop variable", specified_type->name, loopvar->ptype->name);
+        OExpr::DeleteTree(start_expr);
+        abort_for();
+        return;
+      }
+    }
+    else
+    {
+      loopvar = specified_type->CreateValSym(scpos_statement_start, loopvar_name);
+      declare_loopvar = true;
+    }
+  }
+  else if (!loopvar)
+  {
+    Error(DQERR_VAR_UNKNOWN, loopvar_name);
+    OExpr::DeleteTree(start_expr);
+    abort_for();
+    return;
+  }
+
+  if (!is_integer_type(loopvar->ptype))
+  {
+    Error(DQERR_TYPE_EXPECTED, "integer", loopvar->ptype->name);
+    OExpr::DeleteTree(start_expr);
+    abort_for();
+    return;
+  }
+
+  if (loopvar && (VSK_CONST == loopvar->kind))
+  {
+    Error(DQERR_TYPE_ASSIGN_TO_CONST, loopvar->name);
+    OExpr::DeleteTree(start_expr);
+    abort_for();
+    return;
+  }
+
+  if (loopvar && !loopvar->IsRefWriteable())
+  {
+    Error(DQERR_REF_ASSIGN_READONLY, loopvar->name);
+    OExpr::DeleteTree(start_expr);
+    abort_for();
+    return;
+  }
+
+  if (!CheckAssignType(loopvar->ptype, &start_expr, "for initializer"))
+  {
+    OExpr::DeleteTree(start_expr);
+    abort_for();
+    return;
+  }
+
+  if (declare_loopvar)
+  {
+    st->init->scope->DefineValSym(loopvar);
+    st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, start_expr));
+  }
+  else
+  {
+    st->init->AddStatement(new OStmtAssign(scpos_statement_start, new OLValueVar(loopvar), start_expr));
+    st->init->scope->SetVarInitialized(loopvar);
+  }
+
+  curscope = st->init->scope;
+
+  string kindstr;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(kindstr))
+  {
+    Error(DQERR_KW_OR_ID_MISSING);
+    abort_for();
+    return;
+  }
+
+  EForKind kind;
+  if      ("to"        == kindstr)  kind = EForKind::TO;
+  else if ("downto"    == kindstr)  kind = EForKind::DOWNTO;
+  else if ("count"     == kindstr)  kind = EForKind::COUNT;
+  else if ("downcount" == kindstr)  kind = EForKind::DOWNCOUNT;
+  else if ("while"     == kindstr)  kind = EForKind::WHILE;
+  else if ("in"        == kindstr)
+  {
+    Error(DQERR_NOT_SUPPORTED, "for ... in");
+    abort_for();
+    return;
+  }
+  else
+  {
+    Error(DQERR_KW_OR_ID_MISSING);
+    abort_for();
+    return;
+  }
+
+  OExpr * limit_expr = nullptr;
+  OExpr * step_expr = nullptr;
+
+  if (EForKind::WHILE == kind)
+  {
+    limit_expr = ParseExpression();
+    if (!limit_expr)
+    {
+      StatementError(DQERR_CONDEXPR_MISSING_FOR, "for");
+      abort_for();
+      return;
+    }
+
+    if (TK_BOOL != limit_expr->ResolvedType()->kind)
+    {
+      Error(DQERR_BOOL_EXPR_EXPECTED, limit_expr->ResolvedType()->name);
+    }
+
+    st->condition = limit_expr;
+    step_expr = parse_optional_step();
+    if (!step_expr)
+    {
+      abort_for();
+      return;
+    }
+  }
+  else
+  {
+    limit_expr = ParseExpression();
+    if (!limit_expr)
+    {
+      Error(DQERR_EXPR_EXPECTED);
+      abort_for();
+      return;
+    }
+
+    if (!CheckAssignType(loopvar->ptype, &limit_expr, "for limit"))
+    {
+      OExpr::DeleteTree(limit_expr);
+      abort_for();
+      return;
+    }
+
+    step_expr = parse_optional_step();
+    if (!step_expr)
+    {
+      abort_for();
+      return;
+    }
+    if (!is_positive_const_step(step_expr, kindstr))
+    {
+      OExpr::DeleteTree(step_expr);
+      abort_for();
+      return;
+    }
+
+    if (EForKind::TO == kind)
+    {
+      st->condition = make_compare(loopvar, COMPOP_LE, limit_expr);
+    }
+    else if (EForKind::DOWNTO == kind)
+    {
+      st->condition = make_compare(loopvar, COMPOP_GE, limit_expr);
+    }
+    else
+    {
+      OValSym * countvar = loopvar->ptype->CreateValSym(scpos_statement_start,
+          format("__for_count_{}_{}", scpos_statement_start.line, scpos_statement_start.col));
+      st->init->scope->DefineValSym(countvar);
+      st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, countvar, limit_expr));
+      st->condition = make_compare(countvar, COMPOP_GT, new OIntLit(0, loopvar->ptype));
+      st->step->AddStatement(new OStmtModifyAssign(scpos_statement_start, new OLValueVar(countvar),
+          BINOP_SUB, new OIntLit(1, loopvar->ptype)));
+    }
+  }
+
+  if (!CheckAssignType(loopvar->ptype, &step_expr, "for step"))
+  {
+    OExpr::DeleteTree(step_expr);
+    abort_for();
+    return;
+  }
+
+  EBinOp step_op = (EForKind::DOWNTO == kind || EForKind::DOWNCOUNT == kind) ? BINOP_SUB : BINOP_ADD;
+  st->step->AddStatement(new OStmtModifyAssign(scpos_statement_start, new OLValueVar(loopvar), step_op, step_expr));
+
+  ++loop_depth;
+  ReadStatementBlock(st->body, "endfor");
+  --loop_depth;
+  st->body->scope->RevertFirstAssignments();
+
+  restore_scope();
 }
 
 void ODqCompParser::ParseStmtIf()

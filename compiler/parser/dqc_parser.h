@@ -59,6 +59,7 @@ public: // statement blocks
   bool FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr);
   void ParseStmtReturn();
   void ParseStmtWhile();
+  void ParseStmtFor();
   void ParseStmtIf();
   void ParseStmtDelete();
   void FinalizeStmtVoidCall(OExpr * callexpr);
@@ -82,6 +83,7 @@ public: // utility
 public: // expressions
   OStmtBlock *  curblock = nullptr;
   OScope *      curscope = nullptr;
+  int           loop_depth = 0;
 
   bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
 

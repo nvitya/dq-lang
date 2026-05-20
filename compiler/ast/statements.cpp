@@ -430,6 +430,53 @@ void OStmtWhile::Generate(OScope * scope)
   ll_builder.SetInsertPoint(ll_end_bb);
 }
 
+void OStmtFor::Generate(OScope * scope)
+{
+  init->Generate();
+  if (ll_builder.GetInsertBlock()->getTerminator())
+  {
+    return;
+  }
+
+  LlFunction *    ll_func    = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock *  ll_cond_bb = LlBasicBlock::Create(ll_ctx, "for.cond", ll_func);
+  LlBasicBlock *  ll_body_bb = LlBasicBlock::Create(ll_ctx, "for.body", ll_func);
+  LlBasicBlock *  ll_step_bb = LlBasicBlock::Create(ll_ctx, "for.step", ll_func);
+  LlBasicBlock *  ll_end_bb  = LlBasicBlock::Create(ll_ctx, "for.end", ll_func);
+
+  ll_loop_stack.push_back({ll_step_bb, ll_end_bb});
+
+  ll_builder.CreateBr(ll_cond_bb);
+
+  ll_builder.SetInsertPoint(ll_cond_bb);
+  EmitDebugLocation(init->scope);
+  LlValue * ll_cond = condition->Generate(init->scope);
+  if (ll_cond->getType() != g_builtins->type_bool->GetLlType())
+  {
+    throw logic_error("Type mismatch: for condition must be bool");
+  }
+
+  ll_builder.CreateCondBr(ll_cond, ll_body_bb, ll_end_bb);
+
+  ll_builder.SetInsertPoint(ll_body_bb);
+  body->Generate();
+  if (!ll_builder.GetInsertBlock()->getTerminator())
+  {
+    ll_builder.CreateBr(ll_step_bb);
+  }
+
+  ll_builder.SetInsertPoint(ll_step_bb);
+  step->Generate();
+  if (!ll_builder.GetInsertBlock()->getTerminator())
+  {
+    ll_builder.CreateBr(ll_cond_bb);
+  }
+
+  ll_loop_stack.pop_back();
+
+  ll_builder.SetInsertPoint(ll_end_bb);
+}
+
 void OBreakStmt::Generate(OScope * scope)
 {
   if (ll_loop_stack.size() < 1)

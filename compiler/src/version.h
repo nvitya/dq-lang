@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.11"
+#define DQ_COMPILER_VERSION  "0.11.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.12:
+  - Numeric for loop support, with all the variants (to, downto, count, downcount and while)
 v0.11.11:
   - Added new, delete
 v0.11.10:

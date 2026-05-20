@@ -215,6 +215,7 @@ DEF_DQ_ERR(DQERR_EXPR_NOT_CALLABLE,                "ExprNotCallable",        "Ex
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "CondExprMissing",        "Condition expression is mission for \"$1\"");
 DEF_DQ_ERR(DQERR_BOOL_EXPR_EXPECTED,               "BoolExprExpected",       "bool expression expected, got \"$1\"");
+DEF_DQ_ERR(DQERR_FOR_STEP_POSITIVE,                "ForStepPositive",        "for loop step must be a positive integer for \"$1\"");
 DEF_DQ_ERR(DQERR_MULTIPLE_ELSE,                    "MultipleElse",           "Multiple else branches detected");
 
 DEF_DQ_ERR(DQERR_EXPR_INVALID_ADDROF,              "ExprAddrofInvalid",      "Invalid expression for the address of \"&\" operator");

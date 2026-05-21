@@ -148,6 +148,14 @@ function dq_for_typed_reuse() -> int:
   result = i;
 endfunc
 
+function dq_for_local_keywords_as_identifiers(to : int, downto : int, count : int, downcount : int, step : int) -> int:
+  var i : int = 0;
+  for i = 0 count 2:
+    to += step;
+  endfor
+  result = to + downto + count + downcount + step;
+endfunc
+
 function dq_for_braces() -> int
 {
   result = 0;
@@ -175,6 +183,7 @@ function *Main() -> int:
   printf("dq_for_break() = %li\n", dq_for_break());  //?check('dq_for_break()', 3)
   printf("dq_for_local_decl() = %li\n", dq_for_local_decl());  //?check('dq_for_local_decl()', 6)
   printf("dq_for_typed_reuse() = %li\n", dq_for_typed_reuse());  //?check('dq_for_typed_reuse()', 3)
+  printf("dq_for_local_keywords_as_identifiers() = %li\n", dq_for_local_keywords_as_identifiers(1, 2, 3, 4, 5));  //?check('dq_for_local_keywords_as_identifiers()', 25)
   printf("dq_for_braces() = %li\n", dq_for_braces());  //?check('dq_for_braces()', 3)
 endfunc
 

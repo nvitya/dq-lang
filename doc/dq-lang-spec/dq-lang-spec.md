@@ -97,9 +97,11 @@ finalization            for         function    if          implementation
 in          initialization          interface   module      new
 not         null        object      or          out         packed
 private     property    public      raise       ref         return
-specialize  struct      to          true        try         type
+specialize  struct      true        try         type
 use         var         virtual     while
 ```
+
+`to`, `downto`, `count`, `downcount`, and `step` are contextual words inside `for` loop syntax, not globally reserved keywords.
 
 #### Operator Keywords (Case-Sensitive)
 - **Uppercase (integer/bitwise)**: `AND`, `OR`, `XOR`, `NOT`, `SHL`, `SHR`, `IDIV`, `IMOD`

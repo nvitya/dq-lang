@@ -14,7 +14,7 @@ implementation
 // Memory Allocation
 
 function libc_malloc(size : uint) -> pointer [[external('malloc')]];
-function libc_calloc(elemcount : uint, size : uint) -> pointer [[external('calloc')]];
+function libc_calloc(count : uint, size : uint) -> pointer [[external('calloc')]];
 function libc_free(ptr : pointer) [[external('free')]];
 
 function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:

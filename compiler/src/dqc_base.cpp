@@ -29,7 +29,7 @@ ODqCompBase::~ODqCompBase()
 
 const string dq_reserved_words =
    "|var|ref|refin|refout|refnull|for|while|if|else|return|break|continue"
-   "|endfor|to|downto|count|downcount|step"
+   "|endfor"
    "|new|delete"
    "|and|not|or"
    "|NOT|AND|OR|XOR|IDIV|IMOD"

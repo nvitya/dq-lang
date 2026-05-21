@@ -18,7 +18,7 @@ endobj
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 blabla  //?error(ModStatementUnknown)
-function main() -> int:
+function *Main() -> int:
   var i : int = 0;
   var f : float = 0;
   i = 3 / 2;       //?error(TypeMismatchAssign)

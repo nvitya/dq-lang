@@ -3,7 +3,7 @@
 function missing_forward(a : int) -> int;  //?error(FuncForwardNotDefined)
 
 #else
-function main() -> int:
+function *Main() -> int:
   return 0;
 endfunc
 

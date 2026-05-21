@@ -42,7 +42,7 @@ function pick(a : int) -> int [[overload]];
 function pick(a : float) -> int [[overload]];
 
 var g_cb : CBOne = later_cb;
-function main() -> int:
+function *Main() -> int:
   printf("Forward declaration test\n");  //?check('Forward declaration test')
 
   printf("later_add(2, 3) = %li\n", later_add(2, 3));  //?check('later_add(2, 3)', 15)

@@ -46,7 +46,6 @@ public: // root level items
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
   void ParseRootTypeDecl();
   void ParseFunction();
-  void ParseInitializationBlock();
   void ParseStructDecl();
   void ParseObjectDecl();
 
@@ -154,6 +153,8 @@ protected:
   void    RecoverFailedFunctionDecl();
   bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
+  bool    SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc);
+  bool    CheckSpecialReservedRootName(const string & aname);
   void    InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype);
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);

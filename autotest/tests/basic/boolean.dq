@@ -20,7 +20,7 @@ function printbool(astr : ^cchar, abool : bool):
   endif
   printf("\n");
 endfunc
-function main() -> int:
+function *Main() -> int:
   printf("DQ bool test\n");  //?check('DQ bool test')
 
   printbool("GVBOOL0", GVBOOL0);  //?check(GVBOOL0, false)

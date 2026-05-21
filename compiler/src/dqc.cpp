@@ -243,14 +243,8 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
-  OValSym * main_sym = nullptr;
-  OValSymFunc * main_func = nullptr;
-  bool has_app_main = g_module->ValSymDeclared("main", &main_sym);
-  if (has_app_main)
-  {
-    main_func = dynamic_cast<OValSymFunc *>(main_sym);
-    has_app_main = (nullptr != main_func);
-  }
+  OValSymFunc * main_func = g_module->app_main_func;
+  bool has_app_main = (nullptr != main_func);
 
   if (g_opt.ifgen)
   {
@@ -263,8 +257,6 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (!g_opt.compile_only && has_app_main)
   {
-    main_func->attr_has_linkage_name = true;
-    main_func->attr_linkage_name = "dq_main";
     g_module->EnsureAppInitFunc(main_func->scpos);
   }
 

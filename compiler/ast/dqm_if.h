@@ -21,7 +21,7 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     4 );  // generated version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     5 );  // generated version
 const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     0 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
@@ -173,6 +173,7 @@ TDqmIfRecId  DQMIF_FUNC_BEGIN             = 0x0500;  // str: function name
 TDqmIfRecId  DQMIF_FUNC_END               = 0x05FF;  // 0
 // opt.:     attributes (at the front only)
 TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // 0, followed by type spec
+TDqmIfRecId  DQMIF_FUNC_SPECIAL_KIND      = 0x0502;  // uint8: ESpecialFuncKind
 
 // 0600: function Parameters
 
@@ -214,5 +215,5 @@ TDqmIfRecId  DQMIF_USE_ONLY               = 0x0902;  // str
 TDqmIfRecId  DQMIF_USE_REEXPORT           = 0x09E0;  // 0
 TDqmIfRecId  DQMIF_USE_END                = 0x09FF;  // 0
 
-// 0A00: Module lifecycle
-TDqmIfRecId  DQMIF_MODULE_INIT            = 0x0A00;  // str, public linker symbol for module initialization
+// 0A00: legacy module lifecycle
+TDqmIfRecId  DQMIF_MODULE_INIT            = 0x0A00;  // str, old public linker symbol for module initialization

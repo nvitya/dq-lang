@@ -2,6 +2,6 @@
 //?notest
 
 use ./mod_comperr;  //?error(UseRegenFailed)
-function main() -> int:
+function *Main() -> int:
   return 0;
 endfunc

@@ -62,7 +62,7 @@ function dq_set_refnull(a : refnull int):
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-function main() -> int:
+function *Main() -> int:
   printf("Testing DQ refs:\n\n");  //?check('Testing DQ refs:')
 
   var r : int;

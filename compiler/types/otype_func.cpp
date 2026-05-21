@@ -18,6 +18,30 @@
 #include "errorcodes.h"
 #include "ll_defs.h"
 
+ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
+{
+  if ("Main" == aname)
+  {
+    return SFK_MAIN;
+  }
+  if ("ModuleInit" == aname)
+  {
+    return SFK_MODULE_INIT;
+  }
+  return SFK_NONE;
+}
+
+const char * SpecialFuncKindName(ESpecialFuncKind akind)
+{
+  switch (akind)
+  {
+    case SFK_MAIN:         return "Main";
+    case SFK_MODULE_INIT:  return "ModuleInit";
+    case SFK_NONE:         break;
+  }
+  return "None";
+}
+
 void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 {
   super::ApplyAttributes(attr, atarget);
@@ -49,6 +73,7 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
   if (!WriteDqmIfAttributes(writer, flags)) return false;
   if (!external_linkage_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;
+  if (IsSpecial() && !writer.AddRecU8(DQMIF_FUNC_SPECIAL_KIND, uint8_t(special_kind))) return false;
 
   if (sigtype->rettype && TK_VOID != sigtype->rettype->kind)
   {
@@ -680,6 +705,7 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   }
   attr_is_override = other->attr_is_override;
   attr_is_virtual  = other->attr_is_virtual;
+  special_kind = other->special_kind;
 }
 
 void OValSymFunc::ValidateForwardDecl() const

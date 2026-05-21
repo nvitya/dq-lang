@@ -3,7 +3,7 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 var g_str : cstring[64] = "asdf";
-function main() -> int:
+function *Main() -> int:
   printf("Hello %s!\n", "World");  //?check('Hello World!')
   printf("Integer = %ld\n", 42);    //?check('Integer', 42)
   printf("Float = %f\n", 3.14159);  //?check('Float', 3.141590)

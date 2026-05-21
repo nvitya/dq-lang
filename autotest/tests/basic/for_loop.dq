@@ -158,7 +158,7 @@ function dq_for_braces() -> int
   }
 }
 
-function main() -> int:
+function *Main() -> int:
   result = 0;
   printf("DQ for loop test\n");  //?ignore('DQ for loop test')
 

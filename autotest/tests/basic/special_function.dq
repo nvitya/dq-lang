@@ -1,0 +1,10 @@
+use libc/stdio;
+
+function *ModuleInit():
+  printf("special module init\n"); //?check("special module init")
+endfunc
+
+function *Main() -> int:
+  printf("special main\n"); //?check("special main")
+  return 0;
+endfunc

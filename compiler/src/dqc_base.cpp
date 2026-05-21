@@ -34,7 +34,7 @@ const string dq_reserved_words =
    "|and|not|or"
    "|NOT|AND|OR|XOR|IDIV|IMOD"
    "|null"
-   "|function|use|implementation|initialization|finalization"
+   "|function|use|implementation"
    "|struct|endstruct|object|endobj"
    "|"
 ;
@@ -54,7 +54,7 @@ bool ODqCompBase::ReservedWord(const string aname)
 
 const string dq_root_statement_words =
    "|var|const|type"
-   "|function|use|implementation|initialization|finalization"
+   "|function|use|implementation"
    "|struct|object"
    "|"
 ;

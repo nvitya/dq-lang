@@ -10,7 +10,7 @@ function print_ptr_state(label : cstring, p : ^int):
   endif
 endfunc
 
-function main() -> int:
+function *Main() -> int:
   var p1 : ^int = new int;
   printf("new int = %d\n", p1^);  //?check('new int', 0)
   delete p1 = null;

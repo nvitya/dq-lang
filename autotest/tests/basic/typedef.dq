@@ -7,7 +7,7 @@ var f2 : TFloat = 2;
 var f64 : float = 5.5;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-function main() -> int:
+function *Main() -> int:
   printf('DQ Typedef test\n');    //?check('DQ Typedef test')
   var f : TFloat = f1;
   printf('float = %.3f\n', 0.1);  //?check(float, 0.100)

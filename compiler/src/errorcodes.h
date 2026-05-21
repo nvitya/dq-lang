@@ -211,6 +211,11 @@ DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NULL,                "FuncArgRefNull",         "Ar
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_TYPE,                "FuncArgRefType",         "Reference argument $1 type mismatch for function \"$2\": expected \"$3\"");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_UNINIT,              "FuncArgRefInit",         "Reference argument \"$1\" is not initialized");
 DEF_DQ_ERR(DQERR_FUNCSIG_TYPEMISM,                 "FuncSigType",            "Function signature mismatch: \"$1\" = \"$2\"");
+DEF_DQ_ERR(DQERR_SPECIAL_FUNC_UNKNOWN,             "SpecialFuncUnknown",     "Unknown special function \"$1\"");
+DEF_DQ_ERR(DQERR_SPECIAL_FUNC_RESERVED,            "SpecialFuncReserved",    "Name \"$1\" is reserved for special function declarations");
+DEF_DQ_ERR(DQERR_SPECIAL_FUNC_DUPLICATE,           "SpecialFuncDuplicate",   "Special function \"$1\" is already declared");
+DEF_DQ_ERR(DQERR_SPECIAL_FUNC_INVALID,             "SpecialFuncInvalid",     "Invalid special function declaration: $1");
+DEF_DQ_ERR(DQERR_SPECIAL_FUNC_SIGNATURE,           "SpecialFuncSignature",   "Invalid signature for special function \"$1\"");
 DEF_DQ_ERR(DQERR_EXPR_NOT_CALLABLE,                "ExprNotCallable",        "Expression of type \"$1\" is not callable");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "CondExprMissing",        "Condition expression is mission for \"$1\"");

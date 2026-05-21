@@ -16,7 +16,7 @@ function use(cb : CB1) -> int:
 endfunc
 
 var bad_global : CB1 = add;  //?error(FuncSigType)
-function main() -> int:
+function *Main() -> int:
   var cb1 : CB1;
   var cb2 : CB2 = add;
   var iv : int = 1;

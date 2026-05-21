@@ -21,7 +21,6 @@
 #include "otype_func.h"
 #include "statements.h"
 
-static constexpr const char * DQ_MODULE_INIT_FUNC_NAME = "__dq_module_init";
 static constexpr const char * DQ_MODULE_INIT_GUARD_NAME = "__dq_module_init_done";
 static constexpr const char * DQ_APP_INIT_FUNC_NAME = "__dq_app_module_init";
 static constexpr const char * DQ_APP_INIT_LINKAGE_NAME = "dq_module_init";
@@ -55,10 +54,16 @@ ODecl * OModule::DeclareType(bool apublic, OType * atype)
 
 ODecl * OModule::DeclareValSym(bool apublic, OValSym * avalsym)
 {
-  ODecl * result = new ODecl(apublic, avalsym);
+  bool effective_public = apublic;
+  if (auto * fn = dynamic_cast<OValSymFunc *>(avalsym))
+  {
+    effective_public = effective_public || fn->IsSpecial();
+  }
+
+  ODecl * result = new ODecl(effective_public, avalsym);
   declarations.push_back(result);
 
-  if (apublic)
+  if (effective_public)
   {
     AddPublicValSym(avalsym);
   }
@@ -80,26 +85,46 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   return result;
 }
 
-OValSymFunc * OModule::EnsureModuleInitFunc(OScPosition & scpos)
+void OModule::RegisterSpecialFunction(OValSymFunc * afunc)
 {
-  if (module_init_func)
+  if (!afunc)
+  {
+    return;
+  }
+
+  if (SFK_MAIN == afunc->special_kind)
+  {
+    app_main_func = afunc;
+    return;
+  }
+
+  if (SFK_MODULE_INIT != afunc->special_kind)
+  {
+    return;
+  }
+
+  module_init_func = afunc;
+  module_init_linkage_name = afunc->GetLinkageName(true, 'F');
+
+  if (!module_init_guard)
+  {
+    module_init_guard = new OValSym(afunc->scpos, DQ_MODULE_INIT_GUARD_NAME, g_builtins->type_bool, VSK_VARIABLE);
+    module_init_guard->scpos.Assign(afunc->scpos);
+    DeclareHiddenValSym(false, module_init_guard);
+  }
+}
+
+OValSymFunc * OModule::FindSpecialFunction(ESpecialFuncKind akind) const
+{
+  if (SFK_MAIN == akind)
+  {
+    return app_main_func;
+  }
+  if (SFK_MODULE_INIT == akind)
   {
     return module_init_func;
   }
-
-  OTypeFunc * sigtype = new OTypeFunc(DQ_MODULE_INIT_FUNC_NAME);
-  module_init_func = new OValSymFunc(scpos, DQ_MODULE_INIT_FUNC_NAME, sigtype, scope_priv);
-  module_init_func->scpos.Assign(scpos);
-  module_init_func->scpos_endfunc.Assign(scpos);
-  module_init_func->has_body = true;
-  module_init_linkage_name = LinkerSymbolName('F', DQ_MODULE_INIT_FUNC_NAME);
-  DeclareHiddenValSym(true, module_init_func);
-
-  module_init_guard = new OValSym(scpos, DQ_MODULE_INIT_GUARD_NAME, g_builtins->type_bool, VSK_VARIABLE);
-  module_init_guard->scpos.Assign(scpos);
-  DeclareHiddenValSym(false, module_init_guard);
-
-  return module_init_func;
+  return nullptr;
 }
 
 vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self) const

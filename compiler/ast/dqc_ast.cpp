@@ -212,6 +212,7 @@ ODecl * ODqCompAst::AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc)
   }
 
   PrepareFuncDecl(scpos, avsfunc);
+  g_module->RegisterSpecialFunction(avsfunc);
 
   if (g_opt.verblevel >= VERBLEVEL_DEBUG)
   {

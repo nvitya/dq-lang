@@ -169,6 +169,10 @@ static string FunctionSignature(OValSymFunc * afunc)
 {
   OTypeFunc * sigtype = FuncTypeOf(afunc);
   string result = "function ";
+  if (afunc && afunc->IsSpecial())
+  {
+    result += "*";
+  }
   result += (afunc ? afunc->name : "?");
   result += "(";
 
@@ -1042,15 +1046,6 @@ bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
   return writer.AddRecEmpty(DQMIF_USE_END);
 }
 
-bool OModuleIntf::WriteDqmIfModuleInit(ODqmIfWriter & writer)
-{
-  if (module_init_linkage_name.empty())
-  {
-    return true;
-  }
-  return writer.AddRecStr(DQMIF_MODULE_INIT, module_init_linkage_name);
-}
-
 bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename)
 {
   if (!WriteDqmIfSourceMetadata(writer, source_filename))
@@ -1101,11 +1096,6 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
         }
       }
     }
-  }
-
-  if (!WriteDqmIfModuleInit(writer))
-  {
-    return false;
   }
 
   for (OModuleUse * use : used_modules)
@@ -1712,6 +1702,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   }
 
   OTypeFunc * sigtype = new OTypeFunc("function_" + declname);
+  ESpecialFuncKind special_kind = SFK_NONE;
   while (true)
   {
     if ((amethod && (DQMIF_METHOD_END == reader.recid))
@@ -1750,6 +1741,21 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
       }
       sigtype->has_varargs = true;
     }
+    else if (DQMIF_FUNC_SPECIAL_KIND == reader.recid)
+    {
+      uint8_t kind = 0;
+      if (!reader.ReadU8(kind) || !reader.NextRec())
+      {
+        delete sigtype;
+        return false;
+      }
+      special_kind = ESpecialFuncKind(kind);
+      if ((special_kind < SFK_NONE) || (special_kind > SFK_MODULE_INIT))
+      {
+        delete sigtype;
+        return reader.Fail(format("Invalid special function kind {}", kind));
+      }
+    }
     else
     {
       delete sigtype;
@@ -1760,6 +1766,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   OScPosition scpos;
   OValSymFunc * fn = new OValSymFunc(scpos, declname, sigtype, nullptr);
   fn->owner_module_name = name;
+  fn->special_kind = special_kind;
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & (1u << 6));
   fn->external_linkage_name = attrs.external_linkage_name;
@@ -1768,7 +1775,13 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     fn->has_body = false;
   }
 
-  return AddLoadedFunction(fn, fn->attr_is_overload, aowner_type);
+  bool added = AddLoadedFunction(fn, fn->attr_is_overload, aowner_type);
+  if (added && (SFK_MODULE_INIT == fn->special_kind))
+  {
+    module_init_func = fn;
+    module_init_linkage_name = fn->GetLinkageName(true, 'F');
+  }
+  return added;
 }
 
 bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_type)

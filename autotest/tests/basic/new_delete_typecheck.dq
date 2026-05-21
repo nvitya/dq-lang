@@ -1,6 +1,6 @@
 // new/delete type checking tests (ERROR test)
 
-function main():
+function *Main() -> int:
   var bad_infer = 123;  //?error(TypeSpecExpected)
 
   var x : int = 1;
@@ -10,4 +10,5 @@ function main():
 
   var bad_void : ^void = new void;  //?error(TypeUnknown)
   var bad_init : ^int = new int("x");  //?error(TypeMismatchAssign)
+  return 0;
 endfunc

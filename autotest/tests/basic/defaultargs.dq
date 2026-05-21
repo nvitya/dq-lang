@@ -23,7 +23,7 @@ function dq_ptr_default(p : ^int = null) -> int:
 endfunc
 
 [[external]] function printf(fmt : ^cchar, value : int = 77, ...) -> int;
-function main() -> int:
+function *Main() -> int:
   var x : int = 12;
 
   printf("dq_sum(3) = %li\n", dq_sum(3));  //?check('dq_sum(3)', 2)

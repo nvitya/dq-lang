@@ -1,6 +1,6 @@
 
 use ./mod_simple;
-function main() -> int:
+function *Main() -> int:
   printf("DQ simple module test\n");  //?check('DQ simple module test')
 
   printf("mod_func_test(2) = %d\n", mod_func_test(2));  //?check('mod_func_test(2)', 4)

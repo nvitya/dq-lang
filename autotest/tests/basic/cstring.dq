@@ -47,7 +47,7 @@ function dq_str_append(a : cstring, b : cstring):
   endif
   cstr_add(a, b);
 endfunc
-function main() -> int:
+function *Main() -> int:
   dq_writestr(dq_cstr);  //?check('DQ String Test')
 
   var s : cstring[128] = "";

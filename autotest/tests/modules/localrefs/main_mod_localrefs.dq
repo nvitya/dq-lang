@@ -1,6 +1,6 @@
 use ./child;
 use ./nested/deep;
-function main() -> int:
+function *Main() -> int:
   printf("local refs = %d\n", CHILD_VAL + deep_value());  //?check('local refs', 145)
   return 0;
 endfunc

@@ -442,12 +442,6 @@ void ODqCompParser::ParseModule()
       curscope = cur_mod_scope;
       curblock = nullptr;
     }
-    else if ("initialization" == sid)
-    {
-      ParseInitializationBlock();
-      curscope = cur_mod_scope;
-      curblock = nullptr;
-    }
     else if ("struct" == sid)
     {
       ParseStructDecl();
@@ -472,6 +466,18 @@ void ODqCompParser::ParseModule()
   {
     printf("ParseModule finished.");
   }
+}
+
+bool ODqCompParser::CheckSpecialReservedRootName(const string & aname)
+{
+  if (SFK_NONE == SpecialFuncKindFromName(aname))
+  {
+    return true;
+  }
+
+  OScPosition namepos(scf->curfile, scf->prevp);
+  RootStatementError(DQERR_SPECIAL_FUNC_RESERVED, aname, &namepos);
+  return false;
 }
 
 bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
@@ -830,6 +836,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     StatementError(DQERR_ID_EXP_AFTER, "var");
     return;
   }
+  if (arootstmt && !CheckSpecialReservedRootName(sid))
+  {
+    return;
+  }
 
   pvalsym = curscope->FindValSym(sid, nullptr, false);  // do not search in the parent scopes this time !
   if (pvalsym)
@@ -1058,6 +1068,10 @@ void ODqCompParser::ParseStmtConst(bool arootstmt)
     emit_error(DQERR_ID_EXP_AFTER, "const");
     return;
   }
+  if (arootstmt && !CheckSpecialReservedRootName(sid))
+  {
+    return;
+  }
 
   pvalsym = nullptr;
   if (arootstmt)
@@ -1158,6 +1172,10 @@ void ODqCompParser::ParseRootTypeDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "type");
     return;
   }
+  if (!CheckSpecialReservedRootName(sid))
+  {
+    return;
+  }
 
   if (g_module->TypeDeclared(sid, &foundtype))
   {
@@ -1208,6 +1226,10 @@ void ODqCompParser::ParseStructDecl()
   if (not scf->ReadIdentifier(sname))
   {
     RootStatementError(DQERR_ID_EXP_AFTER, "struct");
+    return;
+  }
+  if (!CheckSpecialReservedRootName(sname))
+  {
     return;
   }
 
@@ -1348,6 +1370,48 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     delete vsfunc;
     vsfunc = nullptr;
   };
+
+  if (vsfunc->IsSpecial())
+  {
+    if (vsfunc->owner_compound_type)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions must be module-level declarations");
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+
+    if (vsfunc->attr_is_overload || vsfunc->is_external)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions cannot be overloaded or external");
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+
+    OValSymFunc * existing_special = g_module->FindSpecialFunction(vsfunc->special_kind);
+    if (existing_special && !existing_special->IsForwardDecl())
+    {
+      Error(DQERR_SPECIAL_FUNC_DUPLICATE, SpecialFuncKindName(vsfunc->special_kind));
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+
+    if (!SpecialFunctionSignatureIsValid(vsfunc))
+    {
+      Error(DQERR_SPECIAL_FUNC_SIGNATURE, SpecialFuncKindName(vsfunc->special_kind));
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+
+    if (SFK_MAIN == vsfunc->special_kind)
+    {
+      vsfunc->attr_has_linkage_name = true;
+      vsfunc->attr_linkage_name = "dq_main";
+    }
+  }
 
   if (vsfunc->is_external && !aallow_external)
   {
@@ -1578,11 +1642,40 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   return true;
 }
 
+bool ODqCompParser::SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc)
+{
+  OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(vsfunc ? vsfunc->ptype : nullptr);
+  if (!vsfunc || !tfunc || !tfunc->params.empty() || tfunc->has_varargs)
+  {
+    return false;
+  }
+
+  if (SFK_MAIN == vsfunc->special_kind)
+  {
+    return tfunc->rettype && (tfunc->rettype->ResolveAlias() == g_builtins->native_int);
+  }
+
+  if (SFK_MODULE_INIT == vsfunc->special_kind)
+  {
+    OType * rettype = tfunc->rettype ? tfunc->rettype->ResolveAlias() : nullptr;
+    return !rettype || (TK_VOID == rettype->kind);
+  }
+
+  return false;
+}
+
 bool ODqCompParser::ReadObjectMethod(OCompoundType * ctype)
 {
   string sid;
 
   scf->SkipWhite();
+  if (scf->CheckSymbol("*"))
+  {
+    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions are not valid as object methods");
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+
   if (not scf->ReadIdentifier(sid))
   {
     Error(DQERR_ID_EXP_AFTER, "function");
@@ -1613,6 +1706,10 @@ void ODqCompParser::ParseObjectDecl()
   if (not scf->ReadIdentifier(sname))
   {
     RootStatementError(DQERR_ID_EXP_AFTER, "object");
+    return;
+  }
+  if (!CheckSpecialReservedRootName(sname))
+  {
     return;
   }
 
@@ -1754,50 +1851,51 @@ void ODqCompParser::ParseFunction()
   string   sid;
 
   scf->SkipWhite();
+  bool special_decl = scf->CheckSymbol("*");
   if (not scf->ReadIdentifier(sid))
   {
     Error(DQERR_ID_EXP_AFTER, "function");
     return;
   }
 
+  ESpecialFuncKind special_kind = SFK_NONE;
+  if (special_decl)
+  {
+    special_kind = SpecialFuncKindFromName(sid);
+    if (SFK_NONE == special_kind)
+    {
+      Error(DQERR_SPECIAL_FUNC_UNKNOWN, sid);
+      RecoverFailedFunctionDecl();
+      return;
+    }
+  }
+  else if (SFK_NONE != SpecialFuncKindFromName(sid))
+  {
+    Error(DQERR_SPECIAL_FUNC_RESERVED, sid);
+    RecoverFailedFunctionDecl();
+    return;
+  }
+
   scf->SkipWhite();
   if (scf->CheckSymbol("."))
   {
+    if (special_decl)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions are not valid as object methods");
+      RecoverFailedFunctionDecl();
+      return;
+    }
     ParseQualifiedObjectFunction(sid);
     return;
   }
 
   OTypeFunc    * tfunc  = new OTypeFunc(sid);
   OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, sid, tfunc, cur_mod_scope);
+  vsfunc->special_kind = special_kind;
   curvsfunc = vsfunc;
 
   ParseFunctionSignature(tfunc, false, sid, true);
   FinishFunctionDecl(vsfunc, cur_mod_scope, cur_mod_scope, false, true, "function declaration");
-}
-
-void ODqCompParser::ParseInitializationBlock()
-{
-  // note: "initialization" is already consumed
-  if (section_public)
-  {
-    ErrorTxt(DQERR_NOT_SUPPORTED, "initialization before implementation");
-    scf->SearchPattern("endinitialization", true);
-    return;
-  }
-
-  if (g_module->module_init_func)
-  {
-    ErrorTxt(DQERR_NOT_SUPPORTED, "multiple initialization blocks");
-    scf->SearchPattern("endinitialization", true);
-    return;
-  }
-
-  OValSymFunc * init_func = g_module->EnsureModuleInitFunc(scpos_statement_start);
-  curvsfunc = init_func;
-  ReadStatementBlock(init_func->body, "endinitialization");
-  init_func->scpos_endfunc = scf->prevpos;
-  init_func->has_body = true;
-  curvsfunc = nullptr;
 }
 
 void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)
@@ -2270,6 +2368,7 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
       return false;
     }
 
+    scf->CheckSymbol(",");
     return true;
   };
 

@@ -31,6 +31,16 @@ enum EOverloadFuncRefMatch
   OFRM_AMBIGUOUS
 };
 
+enum ESpecialFuncKind
+{
+  SFK_NONE = 0,
+  SFK_MAIN,
+  SFK_MODULE_INIT
+};
+
+ESpecialFuncKind SpecialFuncKindFromName(const string & aname);
+const char * SpecialFuncKindName(ESpecialFuncKind akind);
+
 struct TFuncCallArgMatch
 {
   OExpr *  expr = nullptr;
@@ -147,6 +157,7 @@ public:
 
   bool               has_body = false;
   bool               is_external = false;
+  ESpecialFuncKind   special_kind = SFK_NONE;
   string             external_linkage_name = "";
   string             generated_linkage_name = "";
 
@@ -174,6 +185,11 @@ public:
   inline bool IsForwardDecl() const
   {
     return (!is_external && !has_body);
+  }
+
+  inline bool IsSpecial() const
+  {
+    return (SFK_NONE != special_kind);
   }
 
   void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;

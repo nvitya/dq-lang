@@ -26,7 +26,7 @@ endfunc
 function bad_refout_read(a : refout int) -> int:
   result = a;  //?error(RefOutRead)
 endfunc
-function main():
+function *Main() -> int:
   var x : int = 1;
   var y : int;
 
@@ -40,4 +40,5 @@ function main():
   ref infer = 1;  //?error(RefLocalBind)
   ref mismatch : bool = x;  //?error(RefLocalType)
   refnull badnull : int;  //?error(RefLocalMode)
+  return 0;
 endfunc

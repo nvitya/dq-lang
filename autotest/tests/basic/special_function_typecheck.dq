@@ -1,0 +1,29 @@
+var Main : int;  //?error(SpecialFuncReserved)
+const ModuleInit : int = 1;  //?error(SpecialFuncReserved)
+type Main = int;  //?error(SpecialFuncReserved)
+
+object ModuleInit:  //?error(SpecialFuncReserved)
+endobj
+
+function Main:  //?error(SpecialFuncReserved)
+  return 0;
+endfunc
+
+function *Other():  //?error(SpecialFuncUnknown)
+endfunc
+
+function *Main(value : int) -> int:  //?error(SpecialFuncSignature)
+  return value;
+endfunc
+
+function *ModuleInit() -> int:  //?error(SpecialFuncSignature)
+  return 0;
+endfunc
+
+[[external]] function *ModuleInit();  //?error(SpecialFuncInvalid)
+
+function *ModuleInit():
+endfunc
+
+function *ModuleInit():  //?error(SpecialFuncDuplicate)
+endfunc

@@ -1,5 +1,5 @@
 use ./mod_advuse_reexport_facade_only_err as onlyf;
-function main() -> int:
+function *Main() -> int:
   var i : int;
   i = HIDDEN_VAL;  //?error(VsUnknown)
   i = ONLY_VAL;    //?error(VsUnknown)

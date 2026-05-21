@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.12"
+#define DQ_COMPILER_VERSION  "0.11.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.13:
+  - Special function declarations: function *Main and function *ModuleInit
 v0.11.12:
   - Numeric for loop support, with all the variants (to, downto, count, downcount and while)
 v0.11.11:

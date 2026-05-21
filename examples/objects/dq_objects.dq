@@ -65,7 +65,7 @@ var bssobj <- OTest(5, 'bss');
 
 var heapobj : OTest = null;    // global heap object, explicitly initialized with null
 
-function main() -> int:
+function *Main() -> int:
   // bss object
   bssobj.Print();
 

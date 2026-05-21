@@ -86,7 +86,7 @@ function off_packed_obj_b() -> int:
   var o : OLayoutPackedObj = {};
   result = int(uint(&o.b) - uint(&o.a));
 endfunc
-function main() -> int:
+function *Main() -> int:
   printf("Testing struct layout:\n");  //?check('Testing struct layout:')
 
   printf("sizeof(SLayoutNormal) = %li\n", sizeof(SLayoutNormal));  //?check('sizeof(SLayoutNormal)', 12)

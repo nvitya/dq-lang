@@ -2,7 +2,7 @@
 
 use libc/stdio;
 
-function main() -> int:
+function *Main() -> int:
   printf("DQ new, delete test\n");
 
   // using functions

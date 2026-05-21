@@ -62,7 +62,7 @@ function dq_iif_side(flag : bool) -> int:
   result += 100 * g_true_hits;
   result += 1000 * g_false_hits;
 endfunc
-function main() -> int:
+function *Main() -> int:
   printf("DQ iif test\n");  //?check('DQ iif test')
 
   var x : int = 77;

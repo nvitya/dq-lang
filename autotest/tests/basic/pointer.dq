@@ -74,7 +74,7 @@ function dq_ptr_addr_chain() -> int:
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
-function main() -> int:
+function *Main() -> int:
   printf("Testing DQ pointer operations:\n\n");  //?check('Testing DQ pointer operations:')
 
   var r : int;

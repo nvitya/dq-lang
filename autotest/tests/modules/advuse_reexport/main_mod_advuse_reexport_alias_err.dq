@@ -1,5 +1,5 @@
 use ./mod_advuse_reexport_facade_alias;
-function main() -> int:
+function *Main() -> int:
   var i : int;
   i = @leaf_alias.re_func(RE_VAL);  //?error(NsUnknown)
   return 0;

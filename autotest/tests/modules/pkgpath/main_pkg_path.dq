@@ -2,7 +2,7 @@
 
 use pkgdemo;
 use pkgdemo/submod as sub;
-function main() -> int:
+function *Main() -> int:
   printf("pkg path = %d\n", PKG_VAL + @sub.sub_value());
   return 0;
 endfunc

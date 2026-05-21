@@ -11,7 +11,7 @@ endfunc
 #linklib('z')
 
 [[external]] function zlibVersion() -> ^cchar;
-function main() -> int:
+function *Main() -> int:
   printf('Linked library test\n'); //?check('Linked library test')
 
   printf('fake_zLibVersion = %s\n', zlibVersion_fake()); //?check('fake_zLibVersion', 'v0.0.1-fake')

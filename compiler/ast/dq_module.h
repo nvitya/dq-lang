@@ -80,6 +80,7 @@ public:
 
   LlDiScope *      di_scope = nullptr;
   OValSym *        module_init_guard = nullptr;
+  OValSymFunc *    app_main_func = nullptr;
   OValSymFunc *    app_init_func = nullptr;
   bool             module_init_prefix_added = false;
 
@@ -102,7 +103,8 @@ public:
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
-  OValSymFunc * EnsureModuleInitFunc(OScPosition & scpos);
+  void RegisterSpecialFunction(OValSymFunc * afunc);
+  OValSymFunc * FindSpecialFunction(ESpecialFuncKind akind) const;
   OValSymFunc * EnsureAppInitFunc(OScPosition & scpos);
   void FinalizeModuleInitFunc();
   vector<OValSymFunc *> ModuleInitCallList(bool include_self) const;

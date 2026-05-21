@@ -3,7 +3,7 @@ use libc/stdio;
 use ./mod_init_a;
 use ./mod_init_b;
 
-function main() -> int:
+function *Main() -> int:
 
   //?check("Module init A")
   //?check("Module init B")

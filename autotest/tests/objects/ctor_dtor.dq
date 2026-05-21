@@ -26,7 +26,7 @@ object OTest:
   endfunc
 endobj
 
-function main() -> int:
+function *Main() -> int:
   var obj : OTest = {};
   obj.Create(1);
   obj.Print();    //?check('OTestName(1)')

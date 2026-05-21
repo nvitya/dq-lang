@@ -29,6 +29,7 @@ A normal object declaration creates a rebindable reference variable:
 ```dq
 var obj : OTest = null;
 var obj : OTest = new OTest(1, "name");
+var obj = new OTest(1, "name");  // (type is taken after the new)
 ```
 
 The variable stores a reference and may be assigned another object reference later:
@@ -73,11 +74,11 @@ The compiler may lower fixed storage references without storing a separate refer
 
 ## 4. Constructors
 
-`Create` is the reserved constructor name for objects.
+`*Create` is the reserved special function name for the object constructors.
 
 ```dq
 object OTest:
-  function Create(a : int):
+  function *Create(a : int):
   endfunc
 endobj
 ```
@@ -105,7 +106,7 @@ child3 <- OChild;
 In that case, the containing object's constructor must construct it exactly once before returning:
 
 ```dq
-function Create():
+function *Create():
   child3.Create();
 endfunc
 ```
@@ -116,11 +117,11 @@ Each embedded object must be constructed exactly once. Double construction and m
 
 ## 5. Destructors
 
-`Destroy` is the reserved destructor name for objects.
+`*Destroy` is the reserved special function name for the object destructors.
 
 ```dq
 object OTest:
-  function Destroy():
+  function *Destroy():
   endfunc
 endobj
 ```
@@ -162,11 +163,16 @@ Assigning a reference to stack or embedded storage into a longer-lived variable 
 ## 7. Example
 
 ```dq
+
+object OData:
+  data : [3]int;
+endobj
+
 object OCoords:
-  function Create(x : int, y : int) [[overload]]:
+  function *Create(x : int, y : int) [[overload]]:
   endfunc
 
-  function Create() [[overload]]:
+  function *Create() [[overload]]:
     Create(0, 0);
   endfunc
 endobj
@@ -179,12 +185,12 @@ private
   coords3 <- OCoords();      // embedded storage, default constructed here
 
 public
-  function Create():
+  function *Create():
     data = new OData();
     coords2.Create();
   endfunc
 
-  function Destroy():
+  function *Destroy():
     delete data;
   endfunc
 endobj

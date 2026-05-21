@@ -6,7 +6,7 @@ object ODynData:
   intvalue : int;
   name     : cstring[64];
 
-  function Create(a : int, aname : cstring):
+  function *Create(a : int, aname : cstring):  // constructor
     intvalue = a;
     name = aname;
   endfunc
@@ -15,12 +15,12 @@ endobj
 object OCoords:
   coords : [2]float;
 
-  function Create(x : int, y : int) [[overload]]:
+  function *Create(x : int, y : int) [[overload]]:
     coords[0] = x;
     coords[1] = y;
   endfunc
 
-  function Create() [[overload]]:
+  function *Create() [[overload]]:
     Create(0, 0);
   endfunc
 endobj
@@ -38,7 +38,7 @@ private
   coords4 <- OCoords();       // alternative constructor
 
 public
-  function Create(a : int, aname : cstring):  // reserved function name for constructor
+  function *Create(a : int, aname : cstring):  // reserved function name for constructor
     ddata = new ODynData(a, aname);
 
     coords1.Create(4, 5);  // ERROR: double constructor call !
@@ -49,7 +49,7 @@ public
     // ERROR: coords3 constructor call is missing
   endfunc
 
-  function Destroy():  // reserved function name for destructor
+  function *Destroy():  // reserved function name for destructor
     delete ddata;  // also sets the ddata variable to null
   endfunc
 
@@ -74,7 +74,7 @@ function *Main() -> int:
   lobj.Print();
 
   // local, heap-allocated object
-  var lheapobj : OTest = new OTest(3, 'lheap');
+  var lheapobj = new OTest(3, 'lheap');
   // or:  var lheapobj : OTest = new Otest(3, 'lheap');
   lheapobj.Print();
   delete lheapobj;  // also sets the lheapobj to null

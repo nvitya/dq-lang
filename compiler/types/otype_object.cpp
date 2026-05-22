@@ -37,9 +37,9 @@ OValSym * OTypeAlias::CreateValSym(OScPosition & apos, const string aname)
   return OType::CreateValSym(apos, aname);
 }
 
-OValSymFunc * OCompoundType::FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count) const
+OValSymFunc * OCompoundType::FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count) const
 {
-  if (OLK_CREATE == akind)
+  if (OSF_CREATE == akind)
   {
     for (OValSymFunc * ctor : constructors)
     {
@@ -57,7 +57,7 @@ OValSymFunc * OCompoundType::FindLifecycleMethod(EObjectLifecycleKind akind, siz
     return nullptr;
   }
 
-  if (OLK_DESTROY == akind)
+  if (OSF_DESTROY == akind)
   {
     return destructor;
   }
@@ -98,13 +98,13 @@ OCompoundType * OVsObject::ObjectType() const
 OValSymFunc * OVsObject::FindConstructor() const
 {
   OCompoundType * ctype = ObjectType();
-  return (ctype ? ctype->FindLifecycleMethod(OLK_CREATE, object_ctor_args.size()) : nullptr);
+  return (ctype ? ctype->FindSpecialMethod(OSF_CREATE, object_ctor_args.size()) : nullptr);
 }
 
 OValSymFunc * OVsObject::FindDestructor() const
 {
   OCompoundType * ctype = ObjectType();
-  return (ctype ? ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
+  return (ctype ? ctype->FindSpecialMethod(OSF_DESTROY) : nullptr);
 }
 
 void OVsObject::GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr) const

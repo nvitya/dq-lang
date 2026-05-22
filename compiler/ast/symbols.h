@@ -229,11 +229,11 @@ enum EObjectStorageKind
   OSK_OBJECT_FIXED
 };
 
-enum EObjectLifecycleKind
+enum EObjectSpecFuncKind
 {
-  OLK_NONE = 0,
-  OLK_CREATE,
-  OLK_DESTROY
+  OSF_NONE = 0,
+  OSF_CREATE,
+  OSF_DESTROY
 };
 
 enum EMemberVisibility
@@ -439,7 +439,7 @@ public:
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
-  OValSymFunc * FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count = size_t(-1)) const;
+  OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
   bool IsSameOrDerivedFrom(OCompoundType * abase) const;
   OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;

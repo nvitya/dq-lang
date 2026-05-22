@@ -1816,12 +1816,12 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   {
     if ("Create" == fn->name)
     {
-      fn->lifecycle_kind = OLK_CREATE;
+      fn->object_specfunc_kind = OSF_CREATE;
       aowner_type->constructors.push_back(fn);
     }
     else if ("Destroy" == fn->name)
     {
-      fn->lifecycle_kind = OLK_DESTROY;
+      fn->object_specfunc_kind = OSF_DESTROY;
       aowner_type->destructor = fn;
     }
   }

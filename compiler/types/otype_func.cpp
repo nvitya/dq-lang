@@ -827,7 +827,7 @@ void OValSymFunc::GenerateFuncBody()
 
   auto emit_object_fields_init = [&]()
   {
-    if (OLK_CREATE != lifecycle_kind || !owner_compound_type || !receiver_arg)
+    if (OSF_CREATE != object_specfunc_kind || !owner_compound_type || !receiver_arg)
     {
       return;
     }
@@ -859,7 +859,7 @@ void OValSymFunc::GenerateFuncBody()
 
   auto emit_embedded_object_destroy = [&]()
   {
-    if (OLK_DESTROY != lifecycle_kind || !owner_compound_type || !receiver_arg)
+    if (OSF_DESTROY != object_specfunc_kind || !owner_compound_type || !receiver_arg)
     {
       return;
     }
@@ -881,7 +881,7 @@ void OValSymFunc::GenerateFuncBody()
     }
   };
 
-  if (OLK_CREATE == lifecycle_kind && owner_compound_type && receiver_arg)
+  if (OSF_CREATE == object_specfunc_kind && owner_compound_type && receiver_arg)
   {
     OLValueVar this_expr(receiver_arg);
     owner_compound_type->GenerateVTableStore(this_expr.GenerateAddress(body->scope));

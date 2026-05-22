@@ -17,6 +17,7 @@
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_func.h"
+#include "otype_object.h"
 #include "comp_options.h"
 
 using namespace std;
@@ -177,16 +178,12 @@ void OStmtBlock::Generate()
     for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
     {
       OValSym * vs = *it;
-      if (!vs || !vs->IsFixedObjectStorage())
+      auto * objvar = dynamic_cast<OVsObject *>(vs);
+      if (!objvar || !objvar->IsFixedObjectStorage())
       {
         continue;
       }
-      OCompoundType * ctype = dynamic_cast<OCompoundType *>(vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
-      OValSymFunc * dtor = (ctype ? ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
-      if (dtor && dtor->ll_func)
-      {
-        ll_builder.CreateCall(dtor->ll_func, {vs->ll_value});
-      }
+      objvar->GenerateDestructorCall(vs->ll_value);
     }
   }
 }
@@ -207,16 +204,12 @@ void OStmtReturn::Generate(OScope * scope)
   for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
   {
     OValSym * vs = *it;
-    if (!vs || !vs->IsFixedObjectStorage())
+    auto * objvar = dynamic_cast<OVsObject *>(vs);
+    if (!objvar || !objvar->IsFixedObjectStorage())
     {
       continue;
     }
-    OCompoundType * ctype = dynamic_cast<OCompoundType *>(vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
-    OValSymFunc * dtor = (ctype ? ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
-    if (dtor && dtor->ll_func)
-    {
-      ll_builder.CreateCall(dtor->ll_func, {vs->ll_value});
-    }
+    objvar->GenerateDestructorCall(vs->ll_value);
   }
 
   vsfunc->GenerateFuncRet();
@@ -250,7 +243,8 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (variable->IsObjectReference())
+  auto * objvar = dynamic_cast<OVsObject *>(variable);
+  if (objvar && objvar->IsObjectReference())
   {
     LlValue * ll_init = nullptr;
     if (initvalue)
@@ -265,26 +259,11 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (variable->IsFixedObjectStorage())
+  if (objvar && objvar->IsFixedObjectStorage())
   {
     LlConst * ll_zero = llvm::ConstantAggregateZero::get(variable->ptype->GetLlType());
     ll_builder.CreateStore(ll_zero, variable->ll_value);
-    if (!variable->object_ctor_call_at_decl)
-    {
-      return;
-    }
-    OCompoundType * ctype = dynamic_cast<OCompoundType *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr);
-    OValSymFunc * ctor = (ctype ? ctype->FindLifecycleMethod(OLK_CREATE, variable->object_ctor_args.size()) : nullptr);
-    if (ctor && ctor->ll_func)
-    {
-      vector<LlValue *> ll_args;
-      ll_args.push_back(variable->ll_value);
-      for (OExpr * arg : variable->object_ctor_args)
-      {
-        ll_args.push_back(arg->Generate(scope));
-      }
-      ll_builder.CreateCall(ctor->ll_func, ll_args);
-    }
+    objvar->GenerateConstructorCall(scope, variable->ll_value);
     return;
   }
 
@@ -347,27 +326,12 @@ void OStmtObjectCall::Generate(OScope * scope)
 void OStmtConstructFixedObject::Generate(OScope * scope)
 {
   (void)scope;
-  if (!variable || !variable->IsFixedObjectStorage())
+  auto * objvar = dynamic_cast<OVsObject *>(variable);
+  if (!objvar || !objvar->IsFixedObjectStorage())
   {
     return;
   }
-  if (!variable->object_ctor_call_at_decl)
-  {
-    return;
-  }
-  OCompoundType * ctype = dynamic_cast<OCompoundType *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr);
-  OValSymFunc * ctor = (ctype ? ctype->FindLifecycleMethod(OLK_CREATE, variable->object_ctor_args.size()) : nullptr);
-  if (!ctor || !ctor->ll_func)
-  {
-    return;
-  }
-  vector<LlValue *> ll_args;
-  ll_args.push_back(variable->ll_value);
-  for (OExpr * arg : variable->object_ctor_args)
-  {
-    ll_args.push_back(arg->Generate(scope));
-  }
-  ll_builder.CreateCall(ctor->ll_func, ll_args);
+  objvar->GenerateConstructorCall(scope, variable->ll_value);
 }
 
 void OStmtAssign::Generate(OScope * scope)

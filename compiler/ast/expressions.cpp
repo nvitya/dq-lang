@@ -19,6 +19,7 @@
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_func.h"
+#include "otype_object.h"
 #include <llvm/IR/Intrinsics.h>
 
 string GetBinopSymbol(EBinOp op)
@@ -259,13 +260,14 @@ LlValue * OLValueVar::Generate(OScope * scope)
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
   }
 
-  if (pvalsym->IsObjectReference())
+  auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
+  if (objsym && objsym->IsObjectReference())
   {
     LlValue * ll_slot = GenerateAddress(scope);
     return ll_builder.CreateLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
   }
 
-  if (pvalsym->IsFixedObjectStorage())
+  if (objsym && objsym->IsFixedObjectStorage())
   {
     return GenerateObjectAddress(scope);
   }
@@ -298,17 +300,20 @@ LlValue * OLValueVar::Generate(OScope * scope)
 
 bool OLValueVar::IsObjectReferenceExpr() const
 {
-  return pvalsym && pvalsym->IsObjectReference();
+  auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
+  return objsym && objsym->IsObjectReference();
 }
 
 bool OLValueVar::IsFixedObjectStorageExpr() const
 {
-  return pvalsym && pvalsym->IsFixedObjectStorage();
+  auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
+  return objsym && objsym->IsFixedObjectStorage();
 }
 
 LlValue * OLValueVar::GenerateObjectAddress(OScope * scope)
 {
-  if (pvalsym && pvalsym->IsObjectReference())
+  auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
+  if (objsym && objsym->IsObjectReference())
   {
     return Generate(scope);
   }
@@ -370,13 +375,17 @@ LlValue * OLValueMember::Generate(OScope * scope)
 bool OLValueMember::IsObjectReferenceExpr() const
 {
   auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  return ctype && (memberindex < ctype->member_order.size()) && ctype->member_order[memberindex]->IsObjectReference();
+  OValSym * member = (ctype && (memberindex < ctype->member_order.size()) ? ctype->member_order[memberindex] : nullptr);
+  auto * objmember = dynamic_cast<OVsObject *>(member);
+  return objmember && objmember->IsObjectReference();
 }
 
 bool OLValueMember::IsFixedObjectStorageExpr() const
 {
   auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  return ctype && (memberindex < ctype->member_order.size()) && ctype->member_order[memberindex]->IsFixedObjectStorage();
+  OValSym * member = (ctype && (memberindex < ctype->member_order.size()) ? ctype->member_order[memberindex] : nullptr);
+  auto * objmember = dynamic_cast<OVsObject *>(member);
+  return objmember && objmember->IsFixedObjectStorage();
 }
 
 LlValue * OLValueMember::GenerateObjectAddress(OScope * scope)

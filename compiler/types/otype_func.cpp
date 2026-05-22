@@ -17,6 +17,7 @@
 #include "dq_module.h"
 #include "errorcodes.h"
 #include "ll_defs.h"
+#include "otype_object.h"
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -836,24 +837,9 @@ void OValSymFunc::GenerateFuncBody()
       LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
 
-      if (member->IsFixedObjectStorage())
+      if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
       {
-        if (!member->object_ctor_call_at_decl)
-        {
-          continue;
-        }
-        OCompoundType * field_ctype = dynamic_cast<OCompoundType *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-        OValSymFunc * ctor = (field_ctype ? field_ctype->FindLifecycleMethod(OLK_CREATE, member->object_ctor_args.size()) : nullptr);
-        if (ctor && ctor->ll_func)
-        {
-          vector<LlValue *> ll_args;
-          ll_args.push_back(ll_field_addr);
-          for (OExpr * argexpr : member->object_ctor_args)
-          {
-            ll_args.push_back(argexpr->Generate(body->scope));
-          }
-          ll_builder.CreateCall(ctor->ll_func, ll_args);
-        }
+        objmember->GenerateConstructorCall(body->scope, ll_field_addr);
       }
       else if (member->field_init_expr)
       {
@@ -876,19 +862,14 @@ void OValSymFunc::GenerateFuncBody()
     for (auto it = owner_compound_type->member_order.rbegin(); it != owner_compound_type->member_order.rend(); ++it)
     {
       OValSym * member = *it;
-      if (!member || !member->IsFixedObjectStorage())
-      {
-        continue;
-      }
-      OCompoundType * field_ctype = dynamic_cast<OCompoundType *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      OValSymFunc * dtor = (field_ctype ? field_ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
-      if (!dtor || !dtor->ll_func)
+      auto * objmember = dynamic_cast<OVsObject *>(member);
+      if (!objmember || !objmember->IsFixedObjectStorage())
       {
         continue;
       }
       LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
-      ll_builder.CreateCall(dtor->ll_func, {ll_field_addr});
+      objmember->GenerateDestructorCall(ll_field_addr);
     }
   };
 

@@ -25,6 +25,7 @@
 #include "otype_array.h"
 #include "otype_func.h"
 #include "otype_int.h"
+#include "otype_object.h"
 #include "dqc.h"
 #include "errorcodes.h"
 
@@ -53,7 +54,8 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   }
 
   valsyms[avalsym->name] = avalsym;
-  if (avalsym->IsFixedObjectStorage())
+  auto * objsym = dynamic_cast<OVsObject *>(avalsym);
+  if (objsym && objsym->IsFixedObjectStorage())
   {
     fixed_object_vars.push_back(avalsym);
   }
@@ -491,34 +493,6 @@ int OCompoundType::FindMemberIndex(const string & aname)
   return -1;
 }
 
-OValSymFunc * OCompoundType::FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count) const
-{
-  if (OLK_CREATE == akind)
-  {
-    for (OValSymFunc * ctor : constructors)
-    {
-      OTypeFunc * sig = dynamic_cast<OTypeFunc *>(ctor ? ctor->ptype : nullptr);
-      if (!sig || sig->params.empty())
-      {
-        continue;
-      }
-      size_t user_params = sig->params.size() - 1; // hidden __this
-      if ((size_t(-1) == auser_arg_count) || (user_params == auser_arg_count))
-      {
-        return ctor;
-      }
-    }
-    return nullptr;
-  }
-
-  if (OLK_DESTROY == akind)
-  {
-    return destructor;
-  }
-
-  return nullptr;
-}
-
 static uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
 {
   if (aalign <= 1)
@@ -667,8 +641,9 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (is_ref_alias)     flags |= 1u << 4;
   if (ref_nullable)     flags |= 1u << 5;
   if (attr_has_linkage_name) flags |= 1u << 7;
-  if (IsObjectReference())   flags |= 1u << 8;
-  if (IsFixedObjectStorage()) flags |= 1u << 9;
+  auto * objsym = dynamic_cast<OVsObject *>(this);
+  if (objsym && objsym->IsObjectReference())   flags |= 1u << 8;
+  if (objsym && objsym->IsFixedObjectStorage()) flags |= 1u << 9;
   if (MV_PRIVATE == member_visibility)   flags |= 1u << 10;
   if (MV_PROTECTED == member_visibility) flags |= 1u << 11;
 
@@ -880,18 +855,17 @@ OValSym::~OValSym()
 {
   OExpr::DeleteTree(field_init_expr);
   field_init_expr = nullptr;
-  for (OExpr *& arg : object_ctor_args)
-  {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
-  }
-  object_ctor_args.clear();
 }
 
 bool OValSym::IsObjectType() const
 {
   OCompoundType * ctype = dynamic_cast<OCompoundType *>(ptype ? ptype->ResolveAlias() : nullptr);
   return ctype && ctype->is_object;
+}
+
+OType * OValSym::GetStorageType() const
+{
+  return (IsRefLike() ? ptype->GetPointerType() : ptype);
 }
 
 bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)

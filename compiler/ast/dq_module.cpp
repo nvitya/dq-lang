@@ -19,6 +19,7 @@
 #include "errorcodes.h"
 #include "module_path.h"
 #include "otype_func.h"
+#include "otype_object.h"
 #include "statements.h"
 
 static constexpr const char * DQ_MODULE_INIT_GUARD_NAME = "__dq_module_init_done";
@@ -183,7 +184,8 @@ void OModule::FinalizeModuleInitFunc()
       continue;
     }
     OValSym * vs = decl->pvalsym;
-    if (vs && vs->IsFixedObjectStorage())
+    auto * objsym = dynamic_cast<OVsObject *>(vs);
+    if (objsym && objsym->IsFixedObjectStorage())
     {
       global_object_init_stmts.push_back(new OStmtConstructFixedObject(vs->scpos, vs));
     }

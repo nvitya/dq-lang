@@ -32,6 +32,7 @@
 #include "otype_float.h"
 #include "otype_bool.h"
 #include "otype_cstring.h"
+#include "otype_object.h"
 #include "scope_builtins.h"
 #include "artifact_lock.h"
 #include "processrunner.h"
@@ -1361,11 +1362,17 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   avalsym->attr_has_linkage_name = (attrs.flags & (1u << 7));
   if (attrs.flags & (1u << 8))
   {
-    avalsym->object_storage = OSK_OBJECT_REF;
+    if (auto * objsym = dynamic_cast<OVsObject *>(avalsym))
+    {
+      objsym->SetObjectStorage(OSK_OBJECT_REF);
+    }
   }
   else if (attrs.flags & (1u << 9))
   {
-    avalsym->object_storage = OSK_OBJECT_FIXED;
+    if (auto * objsym = dynamic_cast<OVsObject *>(avalsym))
+    {
+      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
+    }
   }
   if (attrs.flags & (1u << 10))
   {
@@ -1557,7 +1564,7 @@ bool OModuleIntf::ReadVarDecl(ODqmIfReader & reader)
   }
 
   OScPosition scpos;
-  OValSym * vsym = new OValSym(scpos, declname, ptype);
+  OValSym * vsym = ptype->CreateValSym(scpos, declname);
   vsym->initialized = true;
   vsym->owner_module_name = name;
   ApplyDqmIfAttributes(vsym, attrs);
@@ -1877,7 +1884,7 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
   }
 
   OScPosition scpos;
-  OValSym * field = new OValSym(scpos, fieldname, ptype);
+  OValSym * field = ptype->CreateValSym(scpos, fieldname);
   field->initialized = true;
   field->field_offset = offset;
   ApplyDqmIfAttributes(field, attrs);

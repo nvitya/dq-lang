@@ -15,6 +15,7 @@
 #include <format>
 #include <filesystem>
 #include <ranges>
+#include <utility>
 
 #include "dq_module.h"
 #include "dqc_parser.h"
@@ -22,6 +23,7 @@
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_int.h"
+#include "otype_object.h"
 #include "named_scopes.h"
 #include "scope_defines.h"
 #include "expressions.h"
@@ -986,14 +988,19 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     ODecl * vdecl = AddDeclVar(scpos_statement_start, sid, ptype);
     if (fixed_object)
     {
-      vdecl->pvalsym->object_storage = OSK_OBJECT_FIXED;
-      vdecl->pvalsym->object_ctor_args = fixed_ctor_args;
-      vdecl->pvalsym->object_ctor_call_at_decl = fixed_ctor_call_at_decl;
+      auto * objsym = dynamic_cast<OVsObject *>(vdecl->pvalsym);
+      if (!objsym)
+      {
+        throw logic_error(format("Fixed object variable \"{}\" was not created as OVsObject", sid));
+      }
+      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
+      objsym->SetObjectCtorArgs(std::move(fixed_ctor_args));
+      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
       g_module->EnsureModuleInitFunc(scpos_statement_start);
     }
-    else if (vdecl->pvalsym->IsObjectType())
+    else if (auto * objsym = dynamic_cast<OVsObject *>(vdecl->pvalsym))
     {
-      vdecl->pvalsym->object_storage = OSK_OBJECT_REF;
+      objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
     vdecl->pvalsym->ApplyAttributes(attr, ATGT_GLOBAL_VAR);
     if (initexpr)
@@ -1013,14 +1020,19 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
     if (fixed_object)
     {
-      pvalsym->object_storage = OSK_OBJECT_FIXED;
-      pvalsym->object_ctor_args = fixed_ctor_args;
-      pvalsym->object_ctor_call_at_decl = fixed_ctor_call_at_decl;
+      auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
+      if (!objsym)
+      {
+        throw logic_error(format("Fixed object variable \"{}\" was not created as OVsObject", sid));
+      }
+      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
+      objsym->SetObjectCtorArgs(std::move(fixed_ctor_args));
+      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
       pvalsym->initialized = true;
     }
-    else if (pvalsym->IsObjectType())
+    else if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
     {
-      pvalsym->object_storage = OSK_OBJECT_REF;
+      objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
     if (zero_init)  pvalsym->initialized = true;
     curscope->DefineValSym(pvalsym);
@@ -1109,6 +1121,10 @@ void ODqCompParser::ParseStmtRef()
   pvalsym->param_mode = FPM_REF;
   pvalsym->is_ref_alias = true;
   pvalsym->initialized = true;
+  if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
+  {
+    objsym->SetObjectStorage(OSK_PLAIN);
+  }
   curscope->DefineValSym(pvalsym);
   curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, new OAddrOfExpr(bindlval)));
 }
@@ -1380,7 +1396,7 @@ void ODqCompParser::ParseStructDecl()
       break;
     }
 
-    OValSym * mvsym = new OValSym(mempos, membername, mtype);
+    OValSym * mvsym = mtype->CreateValSym(mempos, membername);
     mvsym->initialized = true;  // struct members are always accessible
     mvsym->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
     ctype->AddMember(mvsym);
@@ -1826,7 +1842,8 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
   for (size_t i = 0; i < ctype->member_order.size(); ++i)
   {
     OValSym * member = ctype->member_order[i];
-    if (member && member->IsFixedObjectStorage() && member->object_ctor_call_at_decl)
+    auto * objmember = dynamic_cast<OVsObject *>(member);
+    if (objmember && objmember->IsFixedObjectStorage() && objmember->ObjectCtorCallAtDecl())
     {
       constructed[i] = true;
     }
@@ -1849,7 +1866,8 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     }
 
     OValSym * member = ctype->member_order[memberref->memberindex];
-    if (!member || !member->IsFixedObjectStorage())
+    auto * objmember = dynamic_cast<OVsObject *>(member);
+    if (!objmember || !objmember->IsFixedObjectStorage())
     {
       continue;
     }
@@ -1864,7 +1882,8 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
   for (size_t i = 0; i < ctype->member_order.size(); ++i)
   {
     OValSym * member = ctype->member_order[i];
-    if (member && member->IsFixedObjectStorage() && !constructed[i])
+    auto * objmember = dynamic_cast<OVsObject *>(member);
+    if (objmember && objmember->IsFixedObjectStorage() && !constructed[i])
     {
       ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("embedded object \"{}\" is not constructed", member->name), &vsfunc->scpos_endfunc);
     }
@@ -2051,11 +2070,16 @@ void ODqCompParser::ParseObjectDecl()
         break;
       }
 
-      OValSym * mvsym = new OValSym(mempos, membername, named_type);
+      OValSym * mvsym = named_type->CreateValSym(mempos, membername);
       mvsym->initialized = true;
-      mvsym->object_storage = OSK_OBJECT_FIXED;
-      mvsym->object_ctor_args = ctor_args;
-      mvsym->object_ctor_call_at_decl = fixed_ctor_call_at_decl;
+      auto * objsym = dynamic_cast<OVsObject *>(mvsym);
+      if (!objsym)
+      {
+        throw logic_error(format("Embedded object member \"{}\" was not created as OVsObject", membername));
+      }
+      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
+      objsym->SetObjectCtorArgs(std::move(ctor_args));
+      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
       mvsym->member_visibility = current_visibility;
       mvsym->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
       ctype->AddMember(mvsym);
@@ -2102,11 +2126,16 @@ void ODqCompParser::ParseObjectDecl()
       break;
     }
 
-    OValSym * mvsym = new OValSym(mempos, membername, mtype);
+    OValSym * mvsym = mtype->CreateValSym(mempos, membername);
     mvsym->initialized = true;
     if (object_ref_member)
     {
-      mvsym->object_storage = OSK_OBJECT_REF;
+      auto * objsym = dynamic_cast<OVsObject *>(mvsym);
+      if (!objsym)
+      {
+        throw logic_error(format("Object reference member \"{}\" was not created as OVsObject", membername));
+      }
+      objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
     mvsym->field_init_expr = field_init_expr;
     mvsym->member_visibility = current_visibility;
@@ -2120,7 +2149,8 @@ void ODqCompParser::ParseObjectDecl()
     needs_implicit_ctor = false;
     for (OValSym * member : ctype->member_order)
     {
-      if (member && (member->field_init_expr || member->object_ctor_call_at_decl))
+      auto * objmember = dynamic_cast<OVsObject *>(member);
+      if (member && (member->field_init_expr || (objmember && objmember->ObjectCtorCallAtDecl())))
       {
         needs_implicit_ctor = true;
         break;

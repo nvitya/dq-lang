@@ -20,6 +20,7 @@
 #include "otype_float.h"
 #include "otype_func.h"
 #include "otype_int.h"
+#include "otype_object.h"
 
 bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
@@ -139,7 +140,7 @@ bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, 
 
 ODecl * ODqCompAst::AddDeclVar(OScPosition & scpos, string aid, OType * atype)
 {
-  OValSym * pvalsym = new OValSym(scpos, aid, atype, VSK_VARIABLE);
+  OValSym * pvalsym = atype->CreateValSym(scpos, aid);
   pvalsym->scpos.Assign(scpos);
 
   ODecl * result = g_module->DeclareValSym(section_public, pvalsym);
@@ -180,11 +181,16 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
   // push the parameters into the scope
   for (OFuncParam * fp : tfunc->params)
   {
-    OValSym * vsarg = new OValSym(scpos, fp->name, fp->ptype, VSK_PARAMETER);
+    OValSym * vsarg = fp->ptype->CreateValSym(scpos, fp->name);
+    vsarg->kind = VSK_PARAMETER;
     vsarg->param_mode = fp->mode;
     vsarg->is_ref_alias = fp->IsRefLike();
     vsarg->ref_nullable = (FPM_REFNULL == fp->mode);
     vsarg->initialized = (FPM_REFOUT != fp->mode);
+    if (auto * objarg = dynamic_cast<OVsObject *>(vsarg); objarg && objarg->IsRefLike())
+    {
+      objarg->SetObjectStorage(OSK_PLAIN);
+    }
     avsfunc->args.push_back(vsarg);
     avsfunc->body->scope->DefineValSym(vsarg);
     if (avsfunc->owner_compound_type && ("__this" == fp->name))
@@ -196,7 +202,7 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
   // add the implicit result variable
   if (tfunc->rettype)
   {
-    avsfunc->vsresult = new OValSym(scpos, "result", tfunc->rettype, VSK_VARIABLE);
+    avsfunc->vsresult = tfunc->rettype->CreateValSym(scpos, "result");
     avsfunc->body->scope->DefineValSym(avsfunc->vsresult);
   }
 }

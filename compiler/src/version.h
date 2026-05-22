@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.15"
+#define DQ_COMPILER_VERSION  "0.11.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.16:
+  - Code refactor: some of the object handling moved to otype_object.cpp/h
 v0.11.15:
   - Bugfix of using objects from modules
 v0.11.14:

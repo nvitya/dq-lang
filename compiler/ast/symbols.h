@@ -373,6 +373,8 @@ public:
     return (ptype ? ptype->ResolveAlias() : this);
   }
 
+  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
+
   OValue * CreateValue() override
   {
     return (ptype ? ptype->CreateValue() : nullptr);
@@ -427,6 +429,7 @@ public:
 
   inline OScope * Members() { return &member_scope; }
 
+  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
   OValSymFunc * FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count = size_t(-1)) const;
@@ -642,10 +645,7 @@ public:
   bool         attr_is_override = false;
   bool         attr_is_virtual = false;
   bool         attr_is_volatile = false;
-  EObjectStorageKind object_storage = OSK_PLAIN;
   OExpr *      field_init_expr = nullptr;
-  vector<OExpr *> object_ctor_args;
-  bool         object_ctor_call_at_decl = false;
   EMemberVisibility member_visibility = MV_PUBLIC;
 
   OValSym(OScPosition & apos, const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
@@ -671,16 +671,6 @@ public:
 
   bool IsObjectType() const;
 
-  inline bool IsObjectReference() const
-  {
-    return (OSK_OBJECT_REF == object_storage);
-  }
-
-  inline bool IsFixedObjectStorage() const
-  {
-    return (OSK_OBJECT_FIXED == object_storage);
-  }
-
   inline bool IsRefNullable() const
   {
     return (IsRefLike() && (ref_nullable || (FPM_REFNULL == param_mode)));
@@ -691,10 +681,7 @@ public:
     return (!IsRefLike() || (FPM_REFIN != param_mode));
   }
 
-  inline OType * GetStorageType() const
-  {
-    return ((IsRefLike() || IsObjectReference()) ? ptype->GetPointerType() : ptype);
-  }
+  virtual OType * GetStorageType() const;
 };
 
 class OValSymConst : public OValSym

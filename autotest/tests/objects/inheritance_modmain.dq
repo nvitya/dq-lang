@@ -3,7 +3,7 @@
 use libc/stdio;
 use ./inherit_mod;
 
-function PrintImported(b : ref OModBase):
+function PrintImported(b : OModBase):
   @.printf("imported %d\n", b.Get());
 endfunc
 

@@ -216,6 +216,10 @@ DEF_DQ_ERR(DQERR_SPECIAL_FUNC_RESERVED,            "SpecialFuncReserved",    "Na
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_DUPLICATE,           "SpecialFuncDuplicate",   "Special function \"$1\" is already declared");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_INVALID,             "SpecialFuncInvalid",     "Invalid special function declaration: $1");
 DEF_DQ_ERR(DQERR_OBJ_SPEC_FUNC_INVALID,            "ObjSpecFuncInvalid",     "Invalid object special function declaration: $1");
+DEF_DQ_ERR(DQERR_OBJ_FUNC_OVERRIDE,                "ObjFuncOverride",        "Invalid object function override error");
+DEF_DQ_ERR(DQERR_OBJ_FUNC_ABSTRACT,                "ObjFuncAbstract",        "Invalid abstract object function usage");
+DEF_DQ_ERR(DQERR_VIRT_FUNC_CALL_INVALID,           "VirtFuncCallInvalid",    "Virtual function \"$1\" call is not allowed in $2");
+DEF_DQ_ERR(DQERR_INHERITED_CALL_INVALID,           "InheritedCallInvalid",   "Invalid inherited call");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_SIGNATURE,           "SpecialFuncSignature",   "Invalid signature for special function \"$1\"");
 DEF_DQ_ERR(DQERR_EXPR_NOT_CALLABLE,                "ExprNotCallable",        "Expression of type \"$1\" is not callable");
 

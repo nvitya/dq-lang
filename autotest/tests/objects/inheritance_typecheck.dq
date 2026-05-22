@@ -21,16 +21,16 @@ object OChild(OBase):
 public
   function *Create():
     hidden = 1;
-  endfunc //?error(SpecialFuncInvalid)
+  endfunc //?error(ObjSpecFuncInvalid)
 
-  function Value() -> int: //?error(SpecialFuncInvalid)
+  function Value() -> int: //?error(ObjFuncOverride)
     return hidden;
   endfunc
 
-  function Missing() [[override]]: //?error(SpecialFuncInvalid)
+  function Missing() [[override]]: //?error(ObjFuncOverride)
   endfunc
 
-  function Done() [[override]]: //?error(SpecialFuncInvalid)
+  function Done() [[override]]: //?error(ObjFuncOverride)
   endfunc
 endobj
 

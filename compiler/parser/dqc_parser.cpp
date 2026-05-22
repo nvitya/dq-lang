@@ -1496,7 +1496,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     {
       if (!base_virtual)
       {
-        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" is marked override but no inherited virtual method matches", vsfunc->name));
+        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" is marked override but no inherited virtual method matches", vsfunc->name));
         RecoverFailedFunctionDecl();
         curvsfunc = nullptr;
         delete vsfunc;
@@ -1504,7 +1504,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       }
       if (base_virtual->attr_is_final)
       {
-        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" overrides final inherited method", vsfunc->name));
+        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides final inherited method", vsfunc->name));
         RecoverFailedFunctionDecl();
         curvsfunc = nullptr;
         delete vsfunc;
@@ -1514,7 +1514,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     }
     else if (base_virtual)
     {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" overrides an inherited virtual method but is missing [[override]]", vsfunc->name));
+      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides an inherited virtual method but is missing [[override]]", vsfunc->name));
       RecoverFailedFunctionDecl();
       curvsfunc = nullptr;
       delete vsfunc;
@@ -1522,7 +1522,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     }
     if (vsfunc->attr_is_abstract && !vsfunc->attr_is_virtual)
     {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("abstract method \"{}\" must also be virtual", vsfunc->name));
+      ErrorTxt(DQERR_OBJ_FUNC_ABSTRACT, format("abstract method \"{}\" must also be virtual", vsfunc->name));
       RecoverFailedFunctionDecl();
       curvsfunc = nullptr;
       delete vsfunc;
@@ -1934,7 +1934,7 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     {
       if (inherited_lifecycle_count != 1 || inherited_lifecycle_index != 0)
       {
-        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID,
+        ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID,
                  "derived constructors must call inherited Create exactly once as the first statement",
                  &vsfunc->scpos_endfunc);
       }
@@ -1943,7 +1943,7 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     {
       if (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size())
       {
-        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID,
+        ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID,
                  "derived destructors must call inherited Destroy exactly once as the last statement",
                  &vsfunc->scpos_endfunc);
       }
@@ -3380,7 +3380,7 @@ void ODqCompParser::ParseStmtInherited()
 {
   if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
   {
-    StatementError(DQERR_SPECIAL_FUNC_INVALID, "inherited is only valid inside a derived object method");
+    StatementError(DQERR_INHERITED_CALL_INVALID, "inherited is only valid inside a derived object method");
     SkipToStatementEnd();
     return;
   }
@@ -3392,7 +3392,7 @@ void ODqCompParser::ParseStmtInherited()
   {
     if ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind))
     {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "shorthand inherited is not valid in lifecycle methods");
+      ErrorTxt(DQERR_INHERITED_CALL_INVALID, "short form of inherited is not valid in lifecycle methods");
       return;
     }
     method_name = curvsfunc->name;
@@ -5071,9 +5071,10 @@ OExpr * ODqCompParser::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * r
     OExpr::DeleteTree(receiver);
     return nullptr;
   }
-  if (vsfunc->attr_is_virtual && curvsfunc && (OSF_NONE != curvsfunc->object_specfunc_kind))
+  if ( vsfunc->attr_is_virtual && curvsfunc &&
+       ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind)) )
   {
-    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "virtual calls are not valid inside constructors or destructors");
+    ErrorTxt(DQERR_VIRT_FUNC_CALL_INVALID, vsfunc->name, "constructors or destructors");
     OExpr::DeleteTree(receiver);
     return nullptr;
   }
@@ -5225,11 +5226,12 @@ OExpr * ODqCompParser::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovs
   }
 
   OCallExpr * result = new OCallExpr(best_func);
-  if (best_func->attr_is_virtual && curvsfunc && (OSF_NONE != curvsfunc->object_specfunc_kind))
+  if (best_func->attr_is_virtual && curvsfunc &&
+      ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_CREATE == curvsfunc->object_specfunc_kind)) )
   {
     delete result;
     FreeRawCallArguments(rawargs);
-    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "virtual calls are not valid inside constructors or destructors");
+    ErrorTxt(DQERR_VIRT_FUNC_CALL_INVALID, best_func->name, "constructors or destructors");
     return nullptr;
   }
   if (!BindCallArguments(ovset->name, static_cast<OTypeFunc *>(best_func->ptype), rawargs, result->args))
@@ -5369,12 +5371,12 @@ OExpr * ODqCompParser::ParseInheritedExpr()
 {
   if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
   {
-    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "inherited is only valid inside a derived object method");
+    ErrorTxt(DQERR_INHERITED_CALL_INVALID, "inherited is only valid inside a derived object method");
     return nullptr;
   }
   if ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind))
   {
-    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "inherited expressions are not valid in lifecycle methods");
+    ErrorTxt(DQERR_INHERITED_CALL_INVALID, "inherited expressions are not valid in lifecycle methods");
     return nullptr;
   }
 

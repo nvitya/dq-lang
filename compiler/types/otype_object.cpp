@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "dqm_if.h"
+#include "dqc.h"
 #include "expressions.h"
 #include "otype_func.h"
 #include <llvm/IR/GlobalVariable.h>
@@ -78,6 +79,151 @@ OValSymFunc * OTypeObject::FindSpecialMethod(EObjectSpecFuncKind akind, size_t a
   }
 
   return nullptr;
+}
+
+OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous) const
+{
+  if (rambiguous)
+  {
+    *rambiguous = false;
+  }
+
+  OValSymFunc * best_func = nullptr;
+  TFuncCallMatchScore best_score;
+  bool ambiguous = false;
+
+  for (OValSymFunc * ctor : constructors)
+  {
+    OTypeFunc * sig = dynamic_cast<OTypeFunc *>(ctor ? ctor->ptype : nullptr);
+    if (!sig || sig->params.empty())
+    {
+      continue;
+    }
+
+    size_t hidden_this_count = 1;
+    size_t required_user_count = sig->RequiredParamCount();
+    if (required_user_count > 0)
+    {
+      required_user_count -= hidden_this_count;
+    }
+
+    if (aargs.size() < required_user_count)
+    {
+      continue;
+    }
+    if (!sig->has_varargs && (aargs.size() + hidden_this_count > sig->params.size()))
+    {
+      continue;
+    }
+
+    TFuncCallMatchScore score;
+    bool match = true;
+    for (size_t i = 0; i < aargs.size(); ++i)
+    {
+      OExpr * arg = aargs[i];
+      if (!arg)
+      {
+        match = false;
+        break;
+      }
+
+      size_t param_index = i + hidden_this_count;
+      if (param_index >= sig->params.size())
+      {
+        score.uses_varargs = true;
+        continue;
+      }
+
+      OFuncParam * fparam = sig->params[param_index];
+      if (!fparam)
+      {
+        match = false;
+        break;
+      }
+
+      if (!fparam->IsRefLike())
+      {
+        int conv_cost = g_compiler->GetAssignTypeConversionCost(
+            fparam->ptype, arg, EXPCF_ALLOW_LAZY_CSTRING);
+        if (conv_cost < 0)
+        {
+          match = false;
+          break;
+        }
+        score.conversions += conv_cost;
+        continue;
+      }
+
+      if (dynamic_cast<ONullLit *>(arg))
+      {
+        if (FPM_REFNULL != fparam->mode)
+        {
+          match = false;
+          break;
+        }
+        continue;
+      }
+
+      OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(arg);
+      OValSym * rootvalsym = (arglval ? g_compiler->GetAssignRootValSym(arglval) : nullptr);
+      bool bind_ok = (arglval != nullptr);
+      if (bind_ok && rootvalsym)
+      {
+        bind_ok = ((VSK_CONST != rootvalsym->kind) && rootvalsym->IsRefWriteable());
+      }
+      if (!bind_ok || !OTypeFunc::SameRefBindingType(fparam->ptype, arg->ptype))
+      {
+        match = false;
+        break;
+      }
+    }
+
+    if (!match)
+    {
+      continue;
+    }
+
+    for (size_t i = aargs.size() + hidden_this_count; i < sig->params.size(); ++i)
+    {
+      if (!sig->params[i]->defvalue)
+      {
+        match = false;
+        break;
+      }
+      ++score.defaults;
+    }
+
+    if (!match)
+    {
+      continue;
+    }
+
+    if (!best_func)
+    {
+      best_func = ctor;
+      best_score = score;
+      ambiguous = false;
+      continue;
+    }
+
+    int cmp = OTypeFunc::CompareCallCandidateScore(score, best_score);
+    if (cmp < 0)
+    {
+      best_func = ctor;
+      best_score = score;
+      ambiguous = false;
+    }
+    else if (0 == cmp)
+    {
+      ambiguous = true;
+    }
+  }
+
+  if (rambiguous)
+  {
+    *rambiguous = ambiguous;
+  }
+  return (ambiguous ? nullptr : best_func);
 }
 
 OValSym * OTypeObject::FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
@@ -612,7 +758,7 @@ OTypeObject * OVsObject::ObjectType() const
 OValSymFunc * OVsObject::FindConstructor() const
 {
   OTypeObject * object_type = ObjectType();
-  return (object_type ? object_type->FindSpecialMethod(OSF_CREATE, object_ctor_args.size()) : nullptr);
+  return (object_type ? object_type->FindConstructorForArgs(object_ctor_args) : nullptr);
 }
 
 OValSymFunc * OVsObject::FindDestructor() const

@@ -22,6 +22,38 @@
 
 using namespace std;
 
+static void EmitFixedObjectDestructors(OScope * scope)
+{
+  if (!scope)
+  {
+    return;
+  }
+
+  for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
+  {
+    OValSym * vs = *it;
+    auto * objvar = dynamic_cast<OVsObject *>(vs);
+    if (!objvar || !objvar->IsFixedObjectStorage())
+    {
+      continue;
+    }
+    objvar->GenerateDestructorCall(vs->ll_value);
+  }
+}
+
+static void EmitFixedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
+{
+  OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
+  for (OScope * cur = scope; cur; cur = cur->parent_scope)
+  {
+    EmitFixedObjectDestructors(cur);
+    if (cur == stop_scope)
+    {
+      break;
+    }
+  }
+}
+
 static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
 {
   OTypeCString * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
@@ -175,16 +207,7 @@ void OStmtBlock::Generate()
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
-    {
-      OValSym * vs = *it;
-      auto * objvar = dynamic_cast<OVsObject *>(vs);
-      if (!objvar || !objvar->IsFixedObjectStorage())
-      {
-        continue;
-      }
-      objvar->GenerateDestructorCall(vs->ll_value);
-    }
+    EmitFixedObjectDestructors(scope);
   }
 }
 
@@ -201,16 +224,7 @@ void OStmtReturn::Generate(OScope * scope)
     ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
   }
 
-  for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
-  {
-    OValSym * vs = *it;
-    auto * objvar = dynamic_cast<OVsObject *>(vs);
-    if (!objvar || !objvar->IsFixedObjectStorage())
-    {
-      continue;
-    }
-    objvar->GenerateDestructorCall(vs->ll_value);
-  }
+  EmitFixedObjectDestructorsForReturn(scope, vsfunc);
 
   vsfunc->GenerateFuncRet();
 }

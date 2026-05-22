@@ -1551,9 +1551,9 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       return false;
     }
 
-    if (vsfunc->attr_is_overload || vsfunc->is_external)
+    if (((OSF_CREATE != vsfunc->object_specfunc_kind) && vsfunc->attr_is_overload) || vsfunc->is_external)
     {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions cannot be overloaded or external");
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "only Create special functions can be overloaded; special functions cannot be external");
       RecoverFailedFunctionDecl();
       cleanup_new_func();
       return false;
@@ -2021,10 +2021,11 @@ bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr 
     return false;
   }
 
-  rctor = object_type->FindSpecialMethod(OSF_CREATE, rargs.size());
+  bool ambiguous = false;
+  rctor = object_type->FindConstructorForArgs(rargs, &ambiguous);
   if (!rctor)
   {
-    Error(DQERR_OVERLOAD_NO_MATCH, "Create");
+    Error(ambiguous ? DQERR_OVERLOAD_AMBIGUOUS : DQERR_OVERLOAD_NO_MATCH, "Create");
     return false;
   }
 
@@ -2319,6 +2320,18 @@ void ODqCompParser::ParseObjectDecl()
 
   if (needs_implicit_ctor)
   {
+    if (object_type->base_type)
+    {
+      if (!object_type->base_type->FindSpecialMethod(OSF_CREATE, 0))
+      {
+        Error(DQERR_OVERLOAD_NO_MATCH, "Create");
+        needs_implicit_ctor = false;
+      }
+    }
+  }
+
+  if (needs_implicit_ctor)
+  {
     OTypeFunc * tfunc = new OTypeFunc("Create");
     OValSymFunc * ctor = new OValSymFunc(scpos_statement_start, "Create", tfunc, object_type->Members());
     ctor->owner_compound_type = object_type;
@@ -2331,6 +2344,13 @@ void ODqCompParser::ParseObjectDecl()
     g_module->DeclareHiddenValSym(true, ctor);
     PrepareFuncDecl(scpos_statement_start, ctor);
     object_type->constructors.push_back(ctor);
+    if (object_type->base_type)
+    {
+      OValSymFunc * inherited_ctor = object_type->base_type->FindSpecialMethod(OSF_CREATE, 0);
+      auto * stmt = new OStmtInheritedCall(scpos_statement_start, ctor, inherited_ctor);
+      stmt->emit_derived_field_init = true;
+      ctor->body->stlist.push_back(stmt);
+    }
   }
 
   object_type->UpdateObjectInheritanceFlags();
@@ -3351,16 +3371,22 @@ OValSymFunc * ODqCompParser::FindInheritedMethod(const string & method_name, con
   {
     if ("Create" == method_name)
     {
-      return cur->FindSpecialMethod(OSF_CREATE, args.size());
+      OValSymFunc * fn = cur->FindSpecialMethod(OSF_CREATE, args.size());
+      return (ObjectMemberAccessAllowed(cur, fn) ? fn : nullptr);
     }
     if ("Destroy" == method_name)
     {
-      return (args.empty() ? cur->FindSpecialMethod(OSF_DESTROY) : nullptr);
+      OValSymFunc * fn = (args.empty() ? cur->FindSpecialMethod(OSF_DESTROY) : nullptr);
+      return (ObjectMemberAccessAllowed(cur, fn) ? fn : nullptr);
     }
 
     OValSym * vs = cur->Members()->FindValSym(method_name, nullptr, false);
     if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
     {
+      if (!ObjectMemberAccessAllowed(cur, fn))
+      {
+        return nullptr;
+      }
       OTypeFunc * sig = dynamic_cast<OTypeFunc *>(fn->ptype);
       if (sig && sig->params.size() == args.size() + 1)
       {
@@ -3369,6 +3395,10 @@ OValSymFunc * ODqCompParser::FindInheritedMethod(const string & method_name, con
     }
     if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
     {
+      if (!ObjectMemberAccessAllowed(cur, ovset))
+      {
+        return nullptr;
+      }
       for (OValSymFunc * fn : ovset->funcs)
       {
         OTypeFunc * sig = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
@@ -4266,31 +4296,13 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
 
-        auto member_access_allowed = [this](OCompoundType * decl_type, OValSym * member) -> bool
-        {
-          if (!member || MV_PUBLIC == member->member_visibility)
-          {
-            return true;
-          }
-          OCompoundType * curtype = (curvsfunc ? curvsfunc->owner_compound_type : nullptr);
-          if (!curtype || !decl_type)
-          {
-            return false;
-          }
-          if (MV_PRIVATE == member->member_visibility)
-          {
-            return curtype == decl_type;
-          }
-          return curtype->IsSameOrDerivedFrom(decl_type);
-        };
-
         auto * object_type = dynamic_cast<OTypeObject *>(ctype);
         OCompoundType * decl_type = ctype;
         OValSym * objsym = (object_type ? object_type->FindObjectMemberSymbol(membername, &decl_type)
                                         : ctype->Members()->FindValSym(membername, nullptr, false));
         if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
         {
-          if (!member_access_allowed(decl_type, method))
+          if (!ObjectMemberAccessAllowed(decl_type, method))
           {
             Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
             delete result;
@@ -4309,7 +4321,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         }
         if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(objsym))
         {
-          if (!member_access_allowed(decl_type, ovset))
+          if (!ObjectMemberAccessAllowed(decl_type, ovset))
           {
             Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
             delete result;
@@ -4336,7 +4348,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
         OType * mtype = decl_type->member_order[midx]->ptype;
-        if (!member_access_allowed(decl_type, decl_type->member_order[midx]))
+        if (!ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
         {
           Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
           delete result;
@@ -4656,6 +4668,11 @@ OExpr * ODqCompParser::ParseExprPrimary()
       OValSym * member = (owner_object ? owner_object->FindObjectMemberSymbol(sid, &decl_type) : nullptr);
       if (member && (VSK_FUNCTION != member->kind))
       {
+        if (!ObjectMemberAccessAllowed(decl_type, member))
+        {
+          Error(DQERR_MEMBER_UNKNOWN, sid, owner_object->name);
+          return result;
+        }
         int midx = decl_type->FindMemberIndex(sid);
         if (midx >= 0)
         {
@@ -4891,8 +4908,34 @@ OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSy
   {
     return nullptr;
   }
+  if (!ObjectMemberAccessAllowed(decl_type, vs))
+  {
+    Error(DQERR_MEMBER_UNKNOWN, sid, object_type->name);
+    return nullptr;
+  }
 
   return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, vs->ptype);
+}
+
+bool ODqCompParser::ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const
+{
+  if (!member || MV_PUBLIC == member->member_visibility)
+  {
+    return true;
+  }
+
+  OCompoundType * curtype = (curvsfunc ? curvsfunc->owner_compound_type : nullptr);
+  if (!curtype || !decl_type)
+  {
+    return false;
+  }
+
+  if (MV_PRIVATE == member->member_visibility)
+  {
+    return curtype == decl_type;
+  }
+
+  return curtype->IsSameOrDerivedFrom(decl_type);
 }
 
 bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs)
@@ -5240,7 +5283,7 @@ OExpr * ODqCompParser::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovs
 
   OCallExpr * result = new OCallExpr(best_func);
   if (best_func->attr_is_virtual && curvsfunc &&
-      ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_CREATE == curvsfunc->object_specfunc_kind)) )
+      ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind)) )
   {
     delete result;
     FreeRawCallArguments(rawargs);

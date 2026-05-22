@@ -3,6 +3,8 @@
 object OBase:
 private
   secret : int;
+  function SecretFunc():
+  endfunc
 protected
   hidden : int;
 public
@@ -34,9 +36,38 @@ public
   endfunc
 endobj
 
+object OAccessChild(OBase):
+public
+  function *Create():
+    inherited Create();
+  endfunc
+
+  function ReadSecret() -> int:
+    result = 0;
+    result = secret; //?error(MemberUnknown)
+  endfunc
+
+  function CallSecret():
+    inherited SecretFunc(); //?error(OverloadNoMatch)
+  endfunc
+endobj
+
 object OAbstract:
 public
   function Read() -> int [[virtual, abstract]];
+endobj
+
+object OVirtualDtorCall:
+public
+  function Ping(a : int) [[virtual, overload]]:
+  endfunc
+
+  function Ping(a : float) [[virtual, overload]]:
+  endfunc
+
+  function *Destroy():
+    Ping(1); //?error(VirtFuncCallInvalid)
+  endfunc
 endobj
 
 function *Main() -> int:

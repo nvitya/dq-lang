@@ -43,6 +43,7 @@ public:
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   bool IsSameOrDerivedFrom(OCompoundType * abase) const override;
   OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
+  OValSymFunc * FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous = nullptr) const;
   OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;

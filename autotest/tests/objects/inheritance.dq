@@ -49,6 +49,38 @@ public
   endfunc
 endobj
 
+object OImplicitBase:
+protected
+  base_value : int = 0;
+public
+  function *Create():
+    base_value = 31;
+    @.printf("implicit base create %d\n", base_value);
+  endfunc
+endobj
+
+object OImplicitChild(OImplicitBase):
+public
+  extra_value : int = 4;
+
+  function Sum() -> int:
+    return base_value + extra_value;
+  endfunc
+endobj
+
+object OOverCtor:
+public
+  tag : int = 0;
+
+  function *Create(a : int) [[overload]]:
+    tag = a + 10;
+  endfunc
+
+  function *Create(a : float) [[overload]]:
+    tag = round(a) + 100;
+  endfunc
+endobj
+
 function PrintBase(b : ref OBase, label : ^cchar):
   @.printf("%s %d\n", label, b.Get());
 endfunc
@@ -67,6 +99,14 @@ function *Main() -> int:
                               //?check("heap 17")
   delete b;                    //?check("child destroy 8 9")
                               //?check("base destroy 8")
+
+  var ic <- OImplicitChild();  //?check("implicit base create 31")
+  @.printf("implicit sum %d\n", ic.Sum()); //?check("implicit sum 35")
+
+  var oi <- OOverCtor(5);
+  var of <- OOverCtor(2.4);
+  @.printf("over ctor %d %d\n", oi.tag, of.tag); //?check("over ctor 15 102")
+
   return 0;                    //?check("child destroy 10 20")
                               //?check("base destroy 10")
 endfunc

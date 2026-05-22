@@ -161,6 +161,7 @@ protected:
   void    InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype);
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
+  bool    ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const;
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
   bool    ReadObjectMethod(OTypeObject * object_type, EMemberVisibility avisibility);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);

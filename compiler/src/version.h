@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.18"
+#define DQ_COMPILER_VERSION  "0.11.19"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.19:
+  - Extended object checks
 v0.11.18:
   - Code refactorings, object specfic type handling moved to OTypeObject
 v0.11.17:

@@ -215,6 +215,7 @@ DEF_DQ_ERR(DQERR_SPECIAL_FUNC_UNKNOWN,             "SpecialFuncUnknown",     "Un
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_RESERVED,            "SpecialFuncReserved",    "Name \"$1\" is reserved for special function declarations");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_DUPLICATE,           "SpecialFuncDuplicate",   "Special function \"$1\" is already declared");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_INVALID,             "SpecialFuncInvalid",     "Invalid special function declaration: $1");
+DEF_DQ_ERR(DQERR_OBJ_SPEC_FUNC_INVALID,            "ObjSpecFuncInvalid",     "Invalid object special function declaration: $1");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_SIGNATURE,           "SpecialFuncSignature",   "Invalid signature for special function \"$1\"");
 DEF_DQ_ERR(DQERR_EXPR_NOT_CALLABLE,                "ExprNotCallable",        "Expression of type \"$1\" is not callable");
 

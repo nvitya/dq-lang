@@ -157,6 +157,7 @@ public:
 
   bool               has_body = false;
   bool               is_external = false;
+  EObjectLifecycleKind lifecycle_kind = OLK_NONE;
   ESpecialFuncKind   special_kind = SFK_NONE;
   string             external_linkage_name = "";
   string             generated_linkage_name = "";

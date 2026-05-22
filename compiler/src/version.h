@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.13"
+#define DQ_COMPILER_VERSION  "0.11.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.14:
+  - Object storage and lifetime first pass: object references, fixed storage, object constructors/destructors
 v0.11.13:
   - Special function declarations: function *Main and function *ModuleInit
 v0.11.12:

@@ -215,13 +215,15 @@ object OTest:
 endobj
 ```
 
-For fixed storage objects, destruction is automatic:
+For fixed storage objects, destruction is automatic except for module-level storage:
 
 ```text
 stack storage    destroyed at scope exit
-bss storage      destroyed during program shutdown
+bss storage      constructed during module initialization, not automatically destroyed
 embedded storage destroyed with the containing object
 ```
+
+Module-level fixed-storage objects may acquire resources during construction. They are intentionally not destroyed by the runtime automatically; code that needs shutdown behavior must expose and call explicit cleanup routines.
 
 For heap storage, destruction happens through `delete`:
 

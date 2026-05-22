@@ -1359,6 +1359,26 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   avalsym->is_ref_alias     = (attrs.flags & (1u << 4));
   avalsym->ref_nullable     = (attrs.flags & (1u << 5));
   avalsym->attr_has_linkage_name = (attrs.flags & (1u << 7));
+  if (attrs.flags & (1u << 8))
+  {
+    avalsym->object_storage = OSK_OBJECT_REF;
+  }
+  else if (attrs.flags & (1u << 9))
+  {
+    avalsym->object_storage = OSK_OBJECT_FIXED;
+  }
+  if (attrs.flags & (1u << 10))
+  {
+    avalsym->member_visibility = MV_PRIVATE;
+  }
+  else if (attrs.flags & (1u << 11))
+  {
+    avalsym->member_visibility = MV_PROTECTED;
+  }
+  else
+  {
+    avalsym->member_visibility = MV_PUBLIC;
+  }
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;
   avalsym->attr_section_name = attrs.section_name;
@@ -1661,6 +1681,7 @@ bool OModuleIntf::AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompou
       OScPosition scpos;
       ovset = new OValSymOverloadSet(scpos, afunc->name, g_builtins->type_func);
       ovset->owner_compound_type = aowner_type;
+      ovset->member_visibility = afunc->member_visibility;
       aowner_type->Members()->DefineValSym(ovset);
     }
     ovset->AddFunc(afunc);
@@ -1776,6 +1797,19 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   }
 
   bool added = AddLoadedFunction(fn, fn->attr_is_overload, aowner_type);
+  if (added && aowner_type)
+  {
+    if ("Create" == fn->name)
+    {
+      fn->lifecycle_kind = OLK_CREATE;
+      aowner_type->constructors.push_back(fn);
+    }
+    else if ("Destroy" == fn->name)
+    {
+      fn->lifecycle_kind = OLK_DESTROY;
+      aowner_type->destructor = fn;
+    }
+  }
   if (added && (SFK_MODULE_INIT == fn->special_kind))
   {
     module_init_func = fn;

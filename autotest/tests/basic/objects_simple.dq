@@ -43,7 +43,7 @@ endfunc
 function *Main() -> int:
   printf('DQ Object test\n');  //?check('DQ Object test')
 
-  var elem : OElem = {};
+  var elem <- OElem;
 
   elem.id = 2;
   elem.weight = 3.14;

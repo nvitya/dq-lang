@@ -105,6 +105,7 @@ public:
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
   void RegisterSpecialFunction(OValSymFunc * afunc);
   OValSymFunc * FindSpecialFunction(ESpecialFuncKind akind) const;
+  OValSymFunc * EnsureModuleInitFunc(OScPosition & scpos);
   OValSymFunc * EnsureAppInitFunc(OScPosition & scpos);
   void FinalizeModuleInitFunc();
   vector<OValSymFunc *> ModuleInitCallList(bool include_self) const;

@@ -53,6 +53,10 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   }
 
   valsyms[avalsym->name] = avalsym;
+  if (avalsym->IsFixedObjectStorage())
+  {
+    fixed_object_vars.push_back(avalsym);
+  }
   return avalsym;
 }
 
@@ -487,6 +491,34 @@ int OCompoundType::FindMemberIndex(const string & aname)
   return -1;
 }
 
+OValSymFunc * OCompoundType::FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count) const
+{
+  if (OLK_CREATE == akind)
+  {
+    for (OValSymFunc * ctor : constructors)
+    {
+      OTypeFunc * sig = dynamic_cast<OTypeFunc *>(ctor ? ctor->ptype : nullptr);
+      if (!sig || sig->params.empty())
+      {
+        continue;
+      }
+      size_t user_params = sig->params.size() - 1; // hidden __this
+      if ((size_t(-1) == auser_arg_count) || (user_params == auser_arg_count))
+      {
+        return ctor;
+      }
+    }
+    return nullptr;
+  }
+
+  if (OLK_DESTROY == akind)
+  {
+    return destructor;
+  }
+
+  return nullptr;
+}
+
 static uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
 {
   if (aalign <= 1)
@@ -532,15 +564,16 @@ void OCompoundType::EnsureLayout()
       continue;
     }
 
-    m->ptype->EnsureLayout();
+    OType * storage_type = m->GetStorageType();
+    storage_type->EnsureLayout();
 
     uint32_t field_align = 1;
     if (!is_packed)
     {
-      field_align = max<uint32_t>(m->ptype->alignsize, 1);
+      field_align = max<uint32_t>(storage_type->alignsize, 1);
       if (m->attr_align)
       {
-        if (m->attr_align > m->ptype->alignsize)
+        if (m->attr_align > storage_type->alignsize)
         {
           manual_ll_layout = true;
         }
@@ -551,7 +584,7 @@ void OCompoundType::EnsureLayout()
     }
 
     m->field_offset = offset;
-    offset += m->ptype->bytesize;
+    offset += storage_type->bytesize;
   }
 
   alignsize = (is_packed ? 1 : max_align);
@@ -572,7 +605,7 @@ LlType * OCompoundType::CreateLlType()
     {
       OValSym * m = member_order[i];
       m->ll_field_index = uint32_t(i);
-      member_types.push_back(m->ptype->GetLlType());
+      member_types.push_back(m->GetStorageType()->GetLlType());
     }
     return llvm::StructType::create(ll_ctx, member_types, name);
   }
@@ -587,8 +620,8 @@ LlType * OCompoundType::CreateLlType()
     }
 
     m->ll_field_index = uint32_t(member_types.size());
-    member_types.push_back(m->ptype->GetLlType());
-    offset += m->ptype->bytesize;
+    member_types.push_back(m->GetStorageType()->GetLlType());
+    offset += m->GetStorageType()->bytesize;
   }
 
   if (bytesize > offset)
@@ -608,10 +641,11 @@ LlDiType * OCompoundType::CreateDiType()
   {
     OValSym * m = member_order[i];
     uint64_t offset_bits = uint64_t(m->field_offset) * 8;
-    uint64_t size_bits = uint64_t(m->ptype->bytesize) * 8;
+    OType * storage_type = m->GetStorageType();
+    uint64_t size_bits = uint64_t(storage_type->bytesize) * 8;
     elements.push_back(di_builder->createMemberType(
         nullptr, m->name, nullptr, 0, size_bits, 0,
-        offset_bits, llvm::DINode::FlagZero, m->ptype->GetDiType()));
+        offset_bits, llvm::DINode::FlagZero, storage_type->GetDiType()));
   }
 
   uint64_t total_bits = uint64_t(bytesize) * 8;
@@ -633,6 +667,10 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (is_ref_alias)     flags |= 1u << 4;
   if (ref_nullable)     flags |= 1u << 5;
   if (attr_has_linkage_name) flags |= 1u << 7;
+  if (IsObjectReference())   flags |= 1u << 8;
+  if (IsFixedObjectStorage()) flags |= 1u << 9;
+  if (MV_PRIVATE == member_visibility)   flags |= 1u << 10;
+  if (MV_PROTECTED == member_visibility) flags |= 1u << 11;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
@@ -836,6 +874,24 @@ string OValSym::GetLinkageName(bool apublic, char atype_prefix, const string & a
 
   string module_name = owner_module_name.empty() ? (module ? module->name : (g_module ? g_module->name : "")) : owner_module_name;
   return OModuleIntf::LinkerSymbolNameForModule(atype_prefix, module_name, symbol_name);
+}
+
+OValSym::~OValSym()
+{
+  OExpr::DeleteTree(field_init_expr);
+  field_init_expr = nullptr;
+  for (OExpr *& arg : object_ctor_args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  object_ctor_args.clear();
+}
+
+bool OValSym::IsObjectType() const
+{
+  OCompoundType * ctype = dynamic_cast<OCompoundType *>(ptype ? ptype->ResolveAlias() : nullptr);
+  return ctype && ctype->is_object;
 }
 
 bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)

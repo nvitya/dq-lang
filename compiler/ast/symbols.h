@@ -71,6 +71,7 @@ public:
   map<string, OValSym *>  valsyms;
 
   vector<OValSym *>       firstassign; // list of the variables assigned here first
+  vector<OValSym *>       fixed_object_vars;
 
   LlDiScope * di_scope = nullptr;
 
@@ -219,6 +220,28 @@ enum ETypeKind
 };
 
 class OExpr;
+class OValSymFunc;
+
+enum EObjectStorageKind
+{
+  OSK_PLAIN = 0,
+  OSK_OBJECT_REF,
+  OSK_OBJECT_FIXED
+};
+
+enum EObjectLifecycleKind
+{
+  OLK_NONE = 0,
+  OLK_CREATE,
+  OLK_DESTROY
+};
+
+enum EMemberVisibility
+{
+  MV_PRIVATE = 0,
+  MV_PROTECTED,
+  MV_PUBLIC
+};
 
 class OTypePointer;      // forward declaration
 class OTypeFuncRef;     // forward declaration
@@ -387,6 +410,8 @@ public:
   bool         layout_ready = false;
   bool         layout_busy = false;
   bool         manual_ll_layout = false;
+  vector<OValSymFunc *> constructors;
+  OValSymFunc * destructor = nullptr;
 
   OCompoundType(const string name, OScope * aparent_scope, bool ais_object = false)
   :
@@ -404,6 +429,7 @@ public:
 
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
+  OValSymFunc * FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count = size_t(-1)) const;
 
   void        EnsureLayout() override;
   LlType *    CreateLlType() override;
@@ -616,6 +642,11 @@ public:
   bool         attr_is_override = false;
   bool         attr_is_virtual = false;
   bool         attr_is_volatile = false;
+  EObjectStorageKind object_storage = OSK_PLAIN;
+  OExpr *      field_init_expr = nullptr;
+  vector<OExpr *> object_ctor_args;
+  bool         object_ctor_call_at_decl = false;
+  EMemberVisibility member_visibility = MV_PUBLIC;
 
   OValSym(OScPosition & apos, const string aname, OType * atype, EValSymKind akind = VSK_VARIABLE)
   :
@@ -625,6 +656,7 @@ public:
     scpos = apos;
   }
 
+  virtual ~OValSym();
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
   void GenGlobalImportDecl();
@@ -635,6 +667,18 @@ public:
   inline bool IsRefLike() const
   {
     return (is_ref_alias || ParamModeIsRefLike(param_mode));
+  }
+
+  bool IsObjectType() const;
+
+  inline bool IsObjectReference() const
+  {
+    return (OSK_OBJECT_REF == object_storage);
+  }
+
+  inline bool IsFixedObjectStorage() const
+  {
+    return (OSK_OBJECT_FIXED == object_storage);
   }
 
   inline bool IsRefNullable() const
@@ -649,7 +693,7 @@ public:
 
   inline OType * GetStorageType() const
   {
-    return (IsRefLike() ? ptype->GetPointerType() : ptype);
+    return ((IsRefLike() || IsObjectReference()) ? ptype->GetPointerType() : ptype);
   }
 };
 

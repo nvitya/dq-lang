@@ -10,13 +10,13 @@ endstruct
 object OTest:
   ddata : SDynData;
 
-  function Create(a : int):
+  function *Create(a : int):
     //ddata = new SDynData;
     ddata.intvalue = a;
     ddata.name = "OTestName";
   endfunc
 
-  function Destroy():
+  function *Destroy():
     //free ddata;
     //ddata = null;
   endfunc
@@ -27,9 +27,7 @@ object OTest:
 endobj
 
 function *Main() -> int:
-  var obj : OTest = {};
-  obj.Create(1);
+  var obj <- OTest(1);
   obj.Print();    //?check('OTestName(1)')
-  obj.Destroy();
   return 0;
 endfunc

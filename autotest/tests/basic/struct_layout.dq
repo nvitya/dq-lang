@@ -83,7 +83,7 @@ function packed_array_stride() -> int:
 endfunc
 
 function off_packed_obj_b() -> int:
-  var o : OLayoutPackedObj = {};
+  var o <- OLayoutPackedObj;
   result = int(uint(&o.b) - uint(&o.a));
 endfunc
 function *Main() -> int:

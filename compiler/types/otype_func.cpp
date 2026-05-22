@@ -816,12 +816,91 @@ void OValSymFunc::GenerateFuncBody()
     ++i;
   }
 
+  auto emit_object_fields_init = [&]()
+  {
+    if (OLK_CREATE != lifecycle_kind || !owner_compound_type || !receiver_arg)
+    {
+      return;
+    }
+
+    OLValueVar this_expr(receiver_arg);
+    LlValue * ll_this = this_expr.GenerateAddress(body->scope);
+    owner_compound_type->GetLlType();
+    for (OValSym * member : owner_compound_type->member_order)
+    {
+      if (!member)
+      {
+        continue;
+      }
+
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
+          member->ll_field_index, member->name + ".addr");
+
+      if (member->IsFixedObjectStorage())
+      {
+        if (!member->object_ctor_call_at_decl)
+        {
+          continue;
+        }
+        OCompoundType * field_ctype = dynamic_cast<OCompoundType *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+        OValSymFunc * ctor = (field_ctype ? field_ctype->FindLifecycleMethod(OLK_CREATE, member->object_ctor_args.size()) : nullptr);
+        if (ctor && ctor->ll_func)
+        {
+          vector<LlValue *> ll_args;
+          ll_args.push_back(ll_field_addr);
+          for (OExpr * argexpr : member->object_ctor_args)
+          {
+            ll_args.push_back(argexpr->Generate(body->scope));
+          }
+          ll_builder.CreateCall(ctor->ll_func, ll_args);
+        }
+      }
+      else if (member->field_init_expr)
+      {
+        LlValue * ll_value = member->field_init_expr->Generate(body->scope);
+        ll_builder.CreateStore(ll_value, ll_field_addr);
+      }
+    }
+  };
+
+  auto emit_embedded_object_destroy = [&]()
+  {
+    if (OLK_DESTROY != lifecycle_kind || !owner_compound_type || !receiver_arg)
+    {
+      return;
+    }
+
+    OLValueVar this_expr(receiver_arg);
+    LlValue * ll_this = this_expr.GenerateAddress(body->scope);
+    owner_compound_type->GetLlType();
+    for (auto it = owner_compound_type->member_order.rbegin(); it != owner_compound_type->member_order.rend(); ++it)
+    {
+      OValSym * member = *it;
+      if (!member || !member->IsFixedObjectStorage())
+      {
+        continue;
+      }
+      OCompoundType * field_ctype = dynamic_cast<OCompoundType *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      OValSymFunc * dtor = (field_ctype ? field_ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
+      if (!dtor || !dtor->ll_func)
+      {
+        continue;
+      }
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
+          member->ll_field_index, member->name + ".addr");
+      ll_builder.CreateCall(dtor->ll_func, {ll_field_addr});
+    }
+  };
+
+  emit_object_fields_init();
+
   // STATEMENTS
   body->Generate();
 
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
+    emit_embedded_object_destroy();
     GenerateFuncRet();
   }
 

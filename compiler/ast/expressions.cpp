@@ -185,6 +185,11 @@ LlValue * OLValueExpr::Generate(OScope * scope)
   return ll_builder.CreateLoad(ptype->GetLlType(), addr, "lval.load");
 }
 
+LlValue * OLValueExpr::GenerateObjectAddress(OScope * scope)
+{
+  return GenerateAddress(scope);
+}
+
 /* ctor */ OLValueVar::OLValueVar(OValSym * avalsym)
 {
   ptype = avalsym->ptype;
@@ -254,6 +259,17 @@ LlValue * OLValueVar::Generate(OScope * scope)
     throw logic_error(std::format("Variable \"{}\" was not prepared in the LLVM", pvalsym->name));
   }
 
+  if (pvalsym->IsObjectReference())
+  {
+    LlValue * ll_slot = GenerateAddress(scope);
+    return ll_builder.CreateLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
+  }
+
+  if (pvalsym->IsFixedObjectStorage())
+  {
+    return GenerateObjectAddress(scope);
+  }
+
   if (pvalsym->IsRefLike())
   {
     LlValue * addr = GenerateAddress(scope);
@@ -278,6 +294,25 @@ LlValue * OLValueVar::Generate(OScope * scope)
   }
 
   throw logic_error(std::format("Unhandled variable storage for \"{}\"", pvalsym->name));
+}
+
+bool OLValueVar::IsObjectReferenceExpr() const
+{
+  return pvalsym && pvalsym->IsObjectReference();
+}
+
+bool OLValueVar::IsFixedObjectStorageExpr() const
+{
+  return pvalsym && pvalsym->IsFixedObjectStorage();
+}
+
+LlValue * OLValueVar::GenerateObjectAddress(OScope * scope)
+{
+  if (pvalsym && pvalsym->IsObjectReference())
+  {
+    return Generate(scope);
+  }
+  return GenerateAddress(scope);
 }
 
 /* ctor */ OLValueDeref::OLValueDeref(OExpr * aptr)
@@ -313,7 +348,7 @@ void OLValueDeref::DeleteChildTree()
 
 LlValue * OLValueMember::GenerateAddress(OScope * scope)
 {
-  LlValue * baseaddr = base->GenerateAddress(scope);
+  LlValue * baseaddr = base->GenerateObjectAddress(scope);
   uint32_t ll_index = memberindex;
   if (auto * ctype = dynamic_cast<OCompoundType *>(structtype->ResolveAlias()))
   {
@@ -321,6 +356,37 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
     ll_index = ctype->member_order[memberindex]->ll_field_index;
   }
   return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, ll_index, "member.addr");
+}
+
+LlValue * OLValueMember::Generate(OScope * scope)
+{
+  if (IsObjectReferenceExpr() || IsFixedObjectStorageExpr())
+  {
+    return GenerateObjectAddress(scope);
+  }
+  return OLValueExpr::Generate(scope);
+}
+
+bool OLValueMember::IsObjectReferenceExpr() const
+{
+  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
+  return ctype && (memberindex < ctype->member_order.size()) && ctype->member_order[memberindex]->IsObjectReference();
+}
+
+bool OLValueMember::IsFixedObjectStorageExpr() const
+{
+  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
+  return ctype && (memberindex < ctype->member_order.size()) && ctype->member_order[memberindex]->IsFixedObjectStorage();
+}
+
+LlValue * OLValueMember::GenerateObjectAddress(OScope * scope)
+{
+  if (IsObjectReferenceExpr())
+  {
+    LlValue * ll_slot = GenerateAddress(scope);
+    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "member.objref");
+  }
+  return GenerateAddress(scope);
 }
 
 void OLValueMember::FoldChildren()
@@ -892,6 +958,30 @@ void OAddrOfExpr::DeleteChildTree()
   target = nullptr;
 }
 
+/* ctor */ OObjectAddrExpr::OObjectAddrExpr(OLValueExpr * atarget)
+{
+  target = atarget;
+  ptype = atarget->ptype->GetPointerType();
+}
+
+LlValue * OObjectAddrExpr::Generate(OScope * scope)
+{
+  return target->GenerateObjectAddress(scope);
+}
+
+void OObjectAddrExpr::FoldChildren()
+{
+  OExpr * tmp = target;
+  OExpr::FoldTree(&tmp);
+  target = static_cast<OLValueExpr *>(tmp);
+}
+
+void OObjectAddrExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(target);
+  target = nullptr;
+}
+
 /* ctor */ ONullLit::ONullLit()
 {
   ptype = OTypePointer::GetNullPtrType();
@@ -964,18 +1054,39 @@ LlValue * ONewExpr::Generate(OScope * scope)
     ll_builder.CreateStore(ll_initval, ll_ptr);
   }
 
+  if (ctor_func)
+  {
+    vector<LlValue *> ll_args;
+    ll_args.push_back(ll_ptr);
+    for (OExpr * arg : ctor_args)
+    {
+      ll_args.push_back(arg->Generate(scope));
+    }
+    ll_builder.CreateCall(ctor_func->ll_func, ll_args);
+  }
+
   return ll_ptr;
 }
 
 void ONewExpr::FoldChildren()
 {
   OExpr::FoldTree(&initexpr);
+  for (OExpr *& arg : ctor_args)
+  {
+    OExpr::FoldTree(&arg);
+  }
 }
 
 void ONewExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(initexpr);
   initexpr = nullptr;
+  for (OExpr *& arg : ctor_args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  ctor_args.clear();
 }
 
 /* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OValSym * aarray, OType * slicetype)

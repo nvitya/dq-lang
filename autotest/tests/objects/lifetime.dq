@@ -1,0 +1,54 @@
+// object storage and lifetime tests
+
+use libc/stdio;
+
+object OChild:
+  id : int;
+
+  function *Create(a : int):
+    id = a;
+    @.printf("child create %d\n", id);
+  endfunc
+
+  function *Destroy():
+    @.printf("child destroy %d\n", id);
+  endfunc
+endobj
+
+object OBox:
+  child <- OChild(7);
+  value : int = 3;
+  ref   : OChild = null;
+
+  function *Create(a : int):
+    value += a;
+  endfunc
+
+  function *Destroy():
+    @.printf("box destroy %d %d\n", value, child.id);
+  endfunc
+
+  function Print():
+    @.printf("box print %d %d\n", value, child.id);
+  endfunc
+endobj
+
+var global_child <- OChild(9);
+
+function *Main() -> int:
+  printf("main start\n"); //?check("child create 9")
+                        //?check("main start")
+
+  var heap_box : OBox = new OBox(4);
+  heap_box.Print();    //?check("child create 7")
+                       //?check("box print 7 7")
+  delete heap_box;     //?check("box destroy 7 7")
+                       //?check("child destroy 7")
+
+  var local_box <- OBox(2);
+  local_box.Print();   //?check("child create 7")
+                       //?check("box print 5 7")
+
+  return 0;            //?check("box destroy 5 7")
+                       //?check("child destroy 7")
+endfunc

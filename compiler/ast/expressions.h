@@ -67,6 +67,9 @@ class OLValueExpr : public OExpr
 public:
   virtual LlValue * GenerateAddress(OScope * scope) = 0;
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
+  virtual bool IsObjectReferenceExpr() const { return false; }
+  virtual bool IsFixedObjectStorageExpr() const { return false; }
+  virtual LlValue * GenerateObjectAddress(OScope * scope);
 };
 
 class OLValueVar : public OLValueExpr
@@ -76,6 +79,9 @@ public:
   /* ctor */ OLValueVar(OValSym * avalsym);
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
+  bool       IsObjectReferenceExpr() const override;
+  bool       IsFixedObjectStorageExpr() const override;
+  LlValue *  GenerateObjectAddress(OScope * scope) override;
 };
 
 class OLValueDeref : public OLValueExpr
@@ -96,6 +102,10 @@ public:
   uint32_t       memberindex;
   /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
   LlValue *  GenerateAddress(OScope * scope) override;
+  LlValue *  Generate(OScope * scope) override;
+  bool       IsObjectReferenceExpr() const override;
+  bool       IsFixedObjectStorageExpr() const override;
+  LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };
@@ -253,6 +263,16 @@ public:
   void       DeleteChildTree() override;
 };
 
+class OObjectAddrExpr : public OExpr
+{
+public:
+  OLValueExpr * target;
+  /* ctor */ OObjectAddrExpr(OLValueExpr * atarget);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 class ONullLit : public OExpr
 {
 public:
@@ -280,6 +300,8 @@ class ONewExpr : public OExpr
 public:
   OType *        alloc_type;
   OExpr *        initexpr;
+  OValSymFunc *  ctor_func = nullptr;
+  vector<OExpr *> ctor_args;
   OValSymFunc *  memalloc_func;
 
   /* ctor */ ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func);

@@ -159,7 +159,9 @@ protected:
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
-  bool    ReadObjectMethod(OCompoundType * ctype);
+  bool    ReadObjectMethod(OCompoundType * ctype, EMemberVisibility avisibility);
+  void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
+  bool    CheckObjectCtorArgs(OCompoundType * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor);
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

@@ -543,6 +543,22 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
   if (tkd != tks)
   {
+    if (TK_COMPOUND == tkd && TK_POINTER == tks)
+    {
+      OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
+      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      if (objdst && objdst->is_object
+          && (ptrsrc->IsNullPointer() || (ptrsrc->basetype && ptrsrc->basetype->ResolveAlias() == resolved_dst)))
+      {
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+      }
+      return false;
+    }
+
     if (TK_FUNCREF == tkd)
     {
       OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
@@ -954,6 +970,14 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
   if (tkd != tks)
   {
+    if (TK_COMPOUND == tkd && TK_POINTER == tks)
+    {
+      OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
+      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      return (objdst && objdst->is_object
+              && (ptrsrc->IsNullPointer() || (ptrsrc->basetype && ptrsrc->basetype->ResolveAlias() == resolved_dst))) ? 0 : -1;
+    }
+
     if (TK_FUNCREF == tkd)
     {
       OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);

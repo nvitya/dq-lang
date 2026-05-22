@@ -174,7 +174,50 @@ void OModule::FinalizeModuleInitFunc()
   vector<OValSymFunc *> init_calls = ModuleInitCallList(false);
   module_init_func->body->stlist.insert(module_init_func->body->stlist.begin(),
       new OStmtModuleInitCalls(module_init_func->scpos, module_init_guard, init_calls));
+
+  vector<OStmt *> global_object_init_stmts;
+  for (ODecl * decl : declarations)
+  {
+    if (!decl || (DK_VALSYM != decl->kind))
+    {
+      continue;
+    }
+    OValSym * vs = decl->pvalsym;
+    if (vs && vs->IsFixedObjectStorage())
+    {
+      global_object_init_stmts.push_back(new OStmtConstructFixedObject(vs->scpos, vs));
+    }
+  }
+  module_init_func->body->stlist.insert(module_init_func->body->stlist.begin() + 1,
+      global_object_init_stmts.begin(), global_object_init_stmts.end());
+
   module_init_prefix_added = true;
+}
+
+OValSymFunc * OModule::EnsureModuleInitFunc(OScPosition & scpos)
+{
+  if (module_init_func)
+  {
+    return module_init_func;
+  }
+
+  OTypeFunc * sigtype = new OTypeFunc("ModuleInit");
+  module_init_func = new OValSymFunc(scpos, "ModuleInit", sigtype, scope_priv);
+  module_init_func->scpos.Assign(scpos);
+  module_init_func->scpos_endfunc.Assign(scpos);
+  module_init_func->has_body = true;
+  module_init_func->special_kind = SFK_MODULE_INIT;
+  module_init_linkage_name = module_init_func->GetLinkageName(true, 'F');
+  DeclareHiddenValSym(true, module_init_func);
+
+  if (!module_init_guard)
+  {
+    module_init_guard = new OValSym(scpos, DQ_MODULE_INIT_GUARD_NAME, g_builtins->type_bool, VSK_VARIABLE);
+    module_init_guard->scpos.Assign(scpos);
+    DeclareHiddenValSym(false, module_init_guard);
+  }
+
+  return module_init_func;
 }
 
 OValSymFunc * OModule::EnsureAppInitFunc(OScPosition & scpos)

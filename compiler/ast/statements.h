@@ -118,6 +118,44 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtObjectCall : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OLValueExpr *  target;
+  OValSymFunc *  method;
+  vector<OExpr *> args;
+
+  OStmtObjectCall(OScPosition & ascpos, OLValueExpr * atarget, OValSymFunc * amethod,
+                  const vector<OExpr *> & aargs = {})
+  :
+    super(ascpos),
+    target(atarget),
+    method(amethod),
+    args(aargs)
+  {}
+
+  ~OStmtObjectCall();
+  void Generate(OScope * scope) override;
+};
+
+class OStmtConstructFixedObject : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym * variable;
+
+  OStmtConstructFixedObject(OScPosition & ascpos, OValSym * avariable)
+  :
+    super(ascpos),
+    variable(avariable)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OStmtAssign : public OStmt
 {
 private:
@@ -177,6 +215,7 @@ public:
   OExpr *        ptrexpr;
   bool           clear_after_free;
   OValSymFunc *  memfree_func;
+  OValSymFunc *  object_dtor_func = nullptr;
 
   OStmtDelete(OScPosition & ascpos, OExpr * aptrexpr, bool aclear_after_free, OValSymFunc * amemfree_func)
   :

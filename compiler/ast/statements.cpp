@@ -171,6 +171,24 @@ void OStmtBlock::Generate()
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
   }
+
+  if (!ll_builder.GetInsertBlock()->getTerminator())
+  {
+    for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
+    {
+      OValSym * vs = *it;
+      if (!vs || !vs->IsFixedObjectStorage())
+      {
+        continue;
+      }
+      OCompoundType * ctype = dynamic_cast<OCompoundType *>(vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
+      OValSymFunc * dtor = (ctype ? ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
+      if (dtor && dtor->ll_func)
+      {
+        ll_builder.CreateCall(dtor->ll_func, {vs->ll_value});
+      }
+    }
+  }
 }
 
 void OStmtReturn::Generate(OScope * scope)
@@ -184,6 +202,21 @@ void OStmtReturn::Generate(OScope * scope)
     }
     ll_value = value->Generate(scope);
     ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
+  }
+
+  for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
+  {
+    OValSym * vs = *it;
+    if (!vs || !vs->IsFixedObjectStorage())
+    {
+      continue;
+    }
+    OCompoundType * ctype = dynamic_cast<OCompoundType *>(vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
+    OValSymFunc * dtor = (ctype ? ctype->FindLifecycleMethod(OLK_DESTROY) : nullptr);
+    if (dtor && dtor->ll_func)
+    {
+      ll_builder.CreateCall(dtor->ll_func, {vs->ll_value});
+    }
   }
 
   vsfunc->GenerateFuncRet();
@@ -217,6 +250,44 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
+  if (variable->IsObjectReference())
+  {
+    LlValue * ll_init = nullptr;
+    if (initvalue)
+    {
+      ll_init = initvalue->Generate(scope);
+    }
+    else
+    {
+      ll_init = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+    }
+    ll_builder.CreateStore(ll_init, variable->ll_value);
+    return;
+  }
+
+  if (variable->IsFixedObjectStorage())
+  {
+    LlConst * ll_zero = llvm::ConstantAggregateZero::get(variable->ptype->GetLlType());
+    ll_builder.CreateStore(ll_zero, variable->ll_value);
+    if (!variable->object_ctor_call_at_decl)
+    {
+      return;
+    }
+    OCompoundType * ctype = dynamic_cast<OCompoundType *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr);
+    OValSymFunc * ctor = (ctype ? ctype->FindLifecycleMethod(OLK_CREATE, variable->object_ctor_args.size()) : nullptr);
+    if (ctor && ctor->ll_func)
+    {
+      vector<LlValue *> ll_args;
+      ll_args.push_back(variable->ll_value);
+      for (OExpr * arg : variable->object_ctor_args)
+      {
+        ll_args.push_back(arg->Generate(scope));
+      }
+      ll_builder.CreateCall(ctor->ll_func, ll_args);
+    }
+    return;
+  }
+
   if (TK_STRING == variable->ptype->kind)
   {
     OTypeCString * cstrtype = static_cast<OTypeCString *>(variable->ptype);
@@ -243,6 +314,60 @@ void OStmtVarDecl::Generate(OScope * scope)
     LlValue * ll_initval = initvalue->Generate(scope);
     ll_builder.CreateStore(ll_initval, variable->ll_value);
   }
+}
+
+OStmtObjectCall::~OStmtObjectCall()
+{
+  OExpr::DeleteTree(target);
+  target = nullptr;
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
+}
+
+void OStmtObjectCall::Generate(OScope * scope)
+{
+  if (!method || !method->ll_func || !target)
+  {
+    return;
+  }
+
+  vector<LlValue *> ll_args;
+  ll_args.push_back(target->GenerateObjectAddress(scope));
+  for (OExpr * arg : args)
+  {
+    ll_args.push_back(arg->Generate(scope));
+  }
+  ll_builder.CreateCall(method->ll_func, ll_args);
+}
+
+void OStmtConstructFixedObject::Generate(OScope * scope)
+{
+  (void)scope;
+  if (!variable || !variable->IsFixedObjectStorage())
+  {
+    return;
+  }
+  if (!variable->object_ctor_call_at_decl)
+  {
+    return;
+  }
+  OCompoundType * ctype = dynamic_cast<OCompoundType *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr);
+  OValSymFunc * ctor = (ctype ? ctype->FindLifecycleMethod(OLK_CREATE, variable->object_ctor_args.size()) : nullptr);
+  if (!ctor || !ctor->ll_func)
+  {
+    return;
+  }
+  vector<LlValue *> ll_args;
+  ll_args.push_back(variable->ll_value);
+  for (OExpr * arg : variable->object_ctor_args)
+  {
+    ll_args.push_back(arg->Generate(scope));
+  }
+  ll_builder.CreateCall(ctor->ll_func, ll_args);
 }
 
 void OStmtAssign::Generate(OScope * scope)
@@ -346,6 +471,18 @@ void OStmtDelete::Generate(OScope * scope)
   }
 
   LlValue * ll_ptr = ptrexpr->Generate(scope);
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_delete = LlBasicBlock::Create(ll_ctx, "delete.run", ll_func);
+  LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "delete.done", ll_func);
+  LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_ptr, ll_null, "delete.is_null");
+  ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
+
+  ll_builder.SetInsertPoint(bb_delete);
+  if (object_dtor_func && object_dtor_func->ll_func)
+  {
+    ll_builder.CreateCall(object_dtor_func->ll_func, {ll_ptr});
+  }
   ll_builder.CreateCall(memfree_func->ll_func, {ll_ptr});
 
   if (clear_after_free)
@@ -357,9 +494,11 @@ void OStmtDelete::Generate(OScope * scope)
     }
 
     LlValue * ll_addr = lval->GenerateAddress(scope);
-    LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
     ll_builder.CreateStore(ll_null, ll_addr);
   }
+
+  ll_builder.CreateBr(bb_done);
+  ll_builder.SetInsertPoint(bb_done);
 }
 
 void OStmtModuleInitCalls::Generate(OScope * scope)

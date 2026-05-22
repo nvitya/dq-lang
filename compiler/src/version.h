@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.19"
+#define DQ_COMPILER_VERSION  "0.11.20"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.20:
+  - User friendly error message forgetting "@." from object scope
 v0.11.19:
   - Extended object checks
 v0.11.18:

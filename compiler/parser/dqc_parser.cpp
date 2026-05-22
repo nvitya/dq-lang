@@ -4661,7 +4661,8 @@ OExpr * ODqCompParser::ParseExprPrimary()
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
-    if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
+    bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
+    if (object_method_scope)
     {
       OCompoundType * decl_type = nullptr;
       auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type);
@@ -4678,6 +4679,18 @@ OExpr * ODqCompParser::ParseExprPrimary()
         {
           return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
         }
+      }
+
+      auto nsit = g_namespaces.find(".");
+      OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
+      if (root_scope && root_scope->FindValSym(sid, nullptr, true))
+      {
+        Error(DQERR_OBJ_VS_IN_MODULE_NS, sid);
+
+        //ErrorTxt(DQERR_VS_UNKNOWN,
+        //         format("Unknown symbol \"{}\" in object method scope; module-root symbol exists, use \"@.{}\" to access it",
+        //                sid, sid));
+        return result;
       }
     }
     Error(DQERR_VS_UNKNOWN, sid);

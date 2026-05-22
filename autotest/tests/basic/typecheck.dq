@@ -11,11 +11,17 @@ object TObjectScopeCheck:
   id : int;
 
   function BadScope():
-    object_scope_global;  //?error(VsUnknown)
+    object_scope_global;  //?error(ObjVsInModuleNs)
   endfunc
 endobj
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
+
+object TObjectRootScopeFuncCheck:
+  function BadPrintf():
+    printf('bad');  //?error(ObjVsInModuleNs)
+  endfunc
+endobj
 
 blabla  //?error(ModStatementUnknown)
 function *Main() -> int:

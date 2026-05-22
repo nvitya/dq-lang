@@ -28,6 +28,10 @@ public
   function *Destroy():
     @sys.MemFree(dataptr);
   endfunc
+
+  function Print():
+    printf("qqcs\n");
+  endfunc
 endobj
 
 implementation
@@ -44,6 +48,8 @@ function *Main() -> int:
 
   printf('Arr(-1) = %p\n', arr.GetElemPtr(-1));
   printf('Arr(999) = %p\n', arr.GetElemPtr(999));
+
+  arr.Print();
 
   return 0;
 endfunc

@@ -1,6 +1,7 @@
 // object storage and lifetime tests
 
 use libc/stdio;
+use ./lifetime_mod;
 
 object OChild:
   id : int;
@@ -48,6 +49,9 @@ function *Main() -> int:
   var local_box <- OBox(2);
   local_box.Print();   //?check("child create 7")
                        //?check("box print 5 7")
+
+  var mchild = new OModChild(9);
+  delete mchild = null;
 
   return 0;            //?check("box destroy 5 7")
                        //?check("child destroy 7")

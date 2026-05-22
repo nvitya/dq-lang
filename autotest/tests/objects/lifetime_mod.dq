@@ -1,0 +1,16 @@
+//?notest
+
+use libc/stdio;
+
+object OModChild:
+  id : int;
+
+  function *Create(a : int):
+    id = a;
+    @.printf("modchild-%d create\n", id);
+  endfunc
+
+  function *Destroy():
+    @.printf("modchild-%d destroy\n", id);
+  endfunc
+endobj

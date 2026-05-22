@@ -4,6 +4,9 @@ function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer;
 function MemFree(memptr : pointer);
 function MemFreeRef(memptrvar : ref pointer);
 
+function MemRealloc(memptr : pointer, newsize : uint) -> pointer;
+function MemReallocRef(memptr : ref pointer, newsize : uint);
+
 function ParamCount() -> int;
 function ParamStr(i : int) -> ^cchar;   // 0 = program args
 
@@ -13,9 +16,10 @@ implementation
 
 // Memory Allocation
 
-function libc_malloc(size : uint) -> pointer [[external('malloc')]];
-function libc_calloc(count : uint, size : uint) -> pointer [[external('calloc')]];
-function libc_free(ptr : pointer) [[external('free')]];
+function libc_malloc(size : uint) -> pointer                  [[external('malloc')]];
+function libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]];
+function libc_free(ptr : pointer)                             [[external('free')]];
+function libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]];
 
 function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
   if zeromem:
@@ -32,6 +36,14 @@ endfunc
 function MemFreeRef(memptrvar : ref pointer):
   libc_free(memptrvar);
   memptrvar = null;
+endfunc
+
+function MemRealloc(memptr : pointer, newsize : uint) -> pointer:
+  result = libc_realloc(memptr, newsize);
+endfunc
+
+function MemReallocRef(memptr : ref pointer, newsize : uint):
+  memptr = libc_realloc(memptr, newsize);
 endfunc
 
 // Program Argument Handling

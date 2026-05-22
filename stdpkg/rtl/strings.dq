@@ -1,0 +1,12 @@
+// DQ String Object
+
+// Immutable, reference counted string object
+
+object ODqString:
+public
+  function *Create():
+  endfunc
+
+  function *Destroy():
+  endfunc
+endobj

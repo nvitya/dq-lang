@@ -1,0 +1,22 @@
+// DQ dynamic arrays
+
+// mutable!
+
+object ODqDynArray:
+public
+  elemsize : uint;
+  size     : uint;
+
+  dataptr  : pointer;
+
+  function *Create(aelemsize : uint, asize : int):
+    elemsize = aelemsize;
+    size     = asize;
+
+    dataptr = @sys.MemAlloc(size * elemsize);
+  endfunc
+
+  function *Destroy():
+    @sys.MemFree(dataptr);
+  endfunc
+endobj

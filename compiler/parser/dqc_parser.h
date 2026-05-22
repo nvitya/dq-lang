@@ -162,9 +162,9 @@ protected:
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
-  bool    ReadObjectMethod(OTypeObject * ctype, EMemberVisibility avisibility);
+  bool    ReadObjectMethod(OTypeObject * object_type, EMemberVisibility avisibility);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
-  bool    CheckObjectCtorArgs(OTypeObject * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor);
+  bool    CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor);
   OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

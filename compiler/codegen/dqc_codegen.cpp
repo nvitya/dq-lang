@@ -88,9 +88,9 @@ void ODqCompCodegen::GenerateIr()
           vs->GenGlobalImportDecl();
         }
       }
-      else if (auto * ctype = dynamic_cast<OTypeObject *>(decl->ptype))
+      else if (auto * object_type = dynamic_cast<OTypeObject *>(decl->ptype))
       {
-        for (auto & [name, vs] : ctype->Members()->valsyms)
+        for (auto & [name, vs] : object_type->Members()->valsyms)
         {
           (void)name;
           gen_imported_function(vs);
@@ -122,9 +122,9 @@ void ODqCompCodegen::GenerateIr()
   {
     if (DK_TYPE == decl->kind)
     {
-      if (auto * ctype = dynamic_cast<OTypeObject *>(decl->ptype))
+      if (auto * object_type = dynamic_cast<OTypeObject *>(decl->ptype))
       {
-        ctype->GenVTableGlobal(decl->ispublic);
+        object_type->GenVTableGlobal(decl->ispublic);
       }
     }
   }

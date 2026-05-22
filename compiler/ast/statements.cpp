@@ -345,15 +345,19 @@ void OStmtInheritedCall::Generate(OScope * scope)
 
   auto emit_field_init = [&]()
   {
-    OCompoundType * ctype = caller->owner_compound_type;
-    ctype->GetLlType();
-    for (OValSym * member : ctype->member_order)
+    auto * object_type = dynamic_cast<OTypeObject *>(caller->owner_compound_type);
+    if (!object_type)
+    {
+      return;
+    }
+    object_type->GetLlType();
+    for (OValSym * member : object_type->member_order)
     {
       if (!member)
       {
         continue;
       }
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(ctype->GetLlType(), ll_this,
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(object_type->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
       if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
       {
@@ -369,9 +373,13 @@ void OStmtInheritedCall::Generate(OScope * scope)
 
   auto emit_field_destroy = [&]()
   {
-    OCompoundType * ctype = caller->owner_compound_type;
-    ctype->GetLlType();
-    for (auto it = ctype->member_order.rbegin(); it != ctype->member_order.rend(); ++it)
+    auto * object_type = dynamic_cast<OTypeObject *>(caller->owner_compound_type);
+    if (!object_type)
+    {
+      return;
+    }
+    object_type->GetLlType();
+    for (auto it = object_type->member_order.rbegin(); it != object_type->member_order.rend(); ++it)
     {
       OValSym * member = *it;
       auto * objmember = dynamic_cast<OVsObject *>(member);
@@ -379,7 +387,7 @@ void OStmtInheritedCall::Generate(OScope * scope)
       {
         continue;
       }
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(ctype->GetLlType(), ll_this,
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(object_type->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
       objmember->GenerateDestructorCall(ll_field_addr);
     }
@@ -529,10 +537,10 @@ void OStmtDelete::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
 
   ll_builder.SetInsertPoint(bb_delete);
-  OTypeObject * objtype = dynamic_cast<OTypeObject *>(ptrexpr->ResolvedType());
-  if (objtype && objtype->is_polymorphic)
+  OTypeObject * object_type = dynamic_cast<OTypeObject *>(ptrexpr->ResolvedType());
+  if (object_type && object_type->is_polymorphic)
   {
-    OTypeObject * root = objtype;
+    OTypeObject * root = object_type;
     while (root->base_type)
     {
       root = root->base_type;

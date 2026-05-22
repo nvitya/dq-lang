@@ -1950,14 +1950,14 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
         return false;
       }
       OType * basetype = scope_pub->FindType(basename);
-      OTypeObject * ctypeobj = dynamic_cast<OTypeObject *>(ctype);
-      OTypeObject * baseobj = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
-      if (!ctypeobj || !baseobj)
+      OTypeObject * object_type = dynamic_cast<OTypeObject *>(ctype);
+      OTypeObject * base_object = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
+      if (!object_type || !base_object)
       {
         delete ctype;
         return reader.Fail(format("Invalid DQM interface base object {} for {}", basename, declname));
       }
-      ctypeobj->base_type = baseobj;
+      object_type->base_type = base_object;
     }
     else if (DQMIF_FIELD_BEGIN == reader.recid)
     {
@@ -1982,9 +1982,9 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     }
   }
 
-  if (auto * ctypeobj = dynamic_cast<OTypeObject *>(ctype))
+  if (auto * object_type = dynamic_cast<OTypeObject *>(ctype))
   {
-    ctypeobj->UpdateObjectInheritanceFlags();
+    object_type->UpdateObjectInheritanceFlags();
   }
   ctype->layout_ready = true;
   ctype->manual_ll_layout = true;

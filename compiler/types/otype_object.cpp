@@ -611,14 +611,14 @@ OTypeObject * OVsObject::ObjectType() const
 
 OValSymFunc * OVsObject::FindConstructor() const
 {
-  OTypeObject * ctype = ObjectType();
-  return (ctype ? ctype->FindSpecialMethod(OSF_CREATE, object_ctor_args.size()) : nullptr);
+  OTypeObject * object_type = ObjectType();
+  return (object_type ? object_type->FindSpecialMethod(OSF_CREATE, object_ctor_args.size()) : nullptr);
 }
 
 OValSymFunc * OVsObject::FindDestructor() const
 {
-  OTypeObject * ctype = ObjectType();
-  return (ctype ? ctype->FindSpecialMethod(OSF_DESTROY) : nullptr);
+  OTypeObject * object_type = ObjectType();
+  return (object_type ? object_type->FindSpecialMethod(OSF_DESTROY) : nullptr);
 }
 
 void OVsObject::GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr) const

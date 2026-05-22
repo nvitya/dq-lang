@@ -312,11 +312,11 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
   {
     return resolved_src && (TK_POINTER == resolved_src->kind);
   }
-  auto * dstobj = dynamic_cast<OTypeObject *>(resolved_dst);
-  auto * srcobj = dynamic_cast<OTypeObject *>(resolved_src);
-  if (dstobj && srcobj)
+  auto * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
+  auto * src_object = dynamic_cast<OTypeObject *>(resolved_src);
+  if (dst_object && src_object)
   {
-    return srcobj->IsSameOrDerivedFrom(dstobj);
+    return src_object->IsSameOrDerivedFrom(dst_object);
   }
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }
@@ -825,24 +825,26 @@ void OValSymFunc::GenerateFuncBody()
     ++i;
   }
 
+  auto * owner_object = dynamic_cast<OTypeObject *>(owner_compound_type);
+
   auto emit_object_fields_init = [&]()
   {
-    if (OSF_CREATE != object_specfunc_kind || !owner_compound_type || !receiver_arg)
+    if (OSF_CREATE != object_specfunc_kind || !owner_object || !receiver_arg)
     {
       return;
     }
 
     OLValueVar this_expr(receiver_arg);
     LlValue * ll_this = this_expr.GenerateAddress(body->scope);
-    owner_compound_type->GetLlType();
-    for (OValSym * member : owner_compound_type->member_order)
+    owner_object->GetLlType();
+    for (OValSym * member : owner_object->member_order)
     {
       if (!member)
       {
         continue;
       }
 
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_object->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
 
       if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
@@ -859,15 +861,15 @@ void OValSymFunc::GenerateFuncBody()
 
   auto emit_embedded_object_destroy = [&]()
   {
-    if (OSF_DESTROY != object_specfunc_kind || !owner_compound_type || !receiver_arg)
+    if (OSF_DESTROY != object_specfunc_kind || !owner_object || !receiver_arg)
     {
       return;
     }
 
     OLValueVar this_expr(receiver_arg);
     LlValue * ll_this = this_expr.GenerateAddress(body->scope);
-    owner_compound_type->GetLlType();
-    for (auto it = owner_compound_type->member_order.rbegin(); it != owner_compound_type->member_order.rend(); ++it)
+    owner_object->GetLlType();
+    for (auto it = owner_object->member_order.rbegin(); it != owner_object->member_order.rend(); ++it)
     {
       OValSym * member = *it;
       auto * objmember = dynamic_cast<OVsObject *>(member);
@@ -875,13 +877,11 @@ void OValSymFunc::GenerateFuncBody()
       {
         continue;
       }
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_compound_type->GetLlType(), ll_this,
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_object->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
       objmember->GenerateDestructorCall(ll_field_addr);
     }
   };
-
-  auto * owner_object = dynamic_cast<OTypeObject *>(owner_compound_type);
 
   if (OSF_CREATE == object_specfunc_kind && owner_object && receiver_arg)
   {

@@ -31,6 +31,10 @@ public
     return inherited Get() + extra;
   endfunc
 
+  function PrintProt():
+    @.printf("Protected_value = %d\n", value);
+  endfunc
+
   function *Destroy():
     inherited Destroy();
   endfunc

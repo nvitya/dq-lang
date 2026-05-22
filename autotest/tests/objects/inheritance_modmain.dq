@@ -10,5 +10,6 @@ endfunc
 function *Main() -> int:
   var c <- OModChild(11);
   PrintImported(c); //?check("imported 23")
+  c.PrintProt();    //?check('Protected_value', 11)
   return 0;
 endfunc

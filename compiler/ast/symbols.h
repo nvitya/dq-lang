@@ -412,6 +412,13 @@ public:
   bool         layout_ready = false;
   bool         layout_busy = false;
   bool         manual_ll_layout = false;
+  OCompoundType * base_type = nullptr;
+  bool         has_own_vtable = false;
+  bool         is_polymorphic = false;
+  bool         is_abstract = false;
+  uint32_t     vtable_field_index = 0;
+  LlValue *    ll_vtable = nullptr;
+  vector<OValSymFunc *> virtual_methods;
   vector<OValSymFunc *> constructors;
   OValSymFunc * destructor = nullptr;
 
@@ -433,6 +440,14 @@ public:
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
   OValSymFunc * FindLifecycleMethod(EObjectLifecycleKind akind, size_t auser_arg_count = size_t(-1)) const;
+  bool IsSameOrDerivedFrom(OCompoundType * abase) const;
+  OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;
+  int FindVirtualSlot(OValSymFunc * afunc) const;
+  void UpdateObjectInheritanceFlags();
+  void GenVTableGlobal(bool apublic);
+  void GenerateVTableStore(LlValue * ll_object_addr);
 
   void        EnsureLayout() override;
   LlType *    CreateLlType() override;
@@ -644,6 +659,8 @@ public:
   bool         attr_is_overload = false;
   bool         attr_is_override = false;
   bool         attr_is_virtual = false;
+  bool         attr_is_abstract = false;
+  bool         attr_is_final = false;
   bool         attr_is_volatile = false;
   OExpr *      field_init_expr = nullptr;
   EMemberVisibility member_visibility = MV_PUBLIC;

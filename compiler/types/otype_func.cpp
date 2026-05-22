@@ -312,6 +312,12 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
   {
     return resolved_src && (TK_POINTER == resolved_src->kind);
   }
+  auto * dstobj = dynamic_cast<OCompoundType *>(resolved_dst);
+  auto * srcobj = dynamic_cast<OCompoundType *>(resolved_src);
+  if (dstobj && srcobj && dstobj->is_object && srcobj->is_object)
+  {
+    return srcobj->IsSameOrDerivedFrom(dstobj);
+  }
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }
 
@@ -706,12 +712,14 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   }
   attr_is_override = other->attr_is_override;
   attr_is_virtual  = other->attr_is_virtual;
+  attr_is_abstract = other->attr_is_abstract;
+  attr_is_final    = other->attr_is_final;
   special_kind = other->special_kind;
 }
 
 void OValSymFunc::ValidateForwardDecl() const
 {
-  if (IsForwardDecl())
+  if (IsForwardDecl() && !attr_is_abstract)
   {
     g_compiler->Error(DQERR_FUNC_FORWARD_NOT_DEFINED, name, const_cast<OScPosition *>(&scpos));
   }
@@ -873,7 +881,16 @@ void OValSymFunc::GenerateFuncBody()
     }
   };
 
-  emit_object_fields_init();
+  if (OLK_CREATE == lifecycle_kind && owner_compound_type && receiver_arg)
+  {
+    OLValueVar this_expr(receiver_arg);
+    owner_compound_type->GenerateVTableStore(this_expr.GenerateAddress(body->scope));
+  }
+
+  if (!owner_compound_type || !owner_compound_type->base_type)
+  {
+    emit_object_fields_init();
+  }
 
   // STATEMENTS
   body->Generate();
@@ -881,7 +898,10 @@ void OValSymFunc::GenerateFuncBody()
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    emit_embedded_object_destroy();
+    if (!owner_compound_type || !owner_compound_type->base_type)
+    {
+      emit_embedded_object_destroy();
+    }
     GenerateFuncRet();
   }
 

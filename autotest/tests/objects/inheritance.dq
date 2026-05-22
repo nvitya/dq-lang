@@ -1,0 +1,72 @@
+// object inheritance and virtual dispatch tests
+
+use libc/stdio;
+
+object OBase:
+protected
+  value : int = 1;
+public
+  function *Create(a : int):
+    value = a;
+    @.printf("base create %d\n", value);
+  endfunc
+
+  function Get() -> int [[virtual]]:
+    return value;
+  endfunc
+
+  function Reset():
+    value = 10;
+  endfunc
+
+  function *Destroy():
+    @.printf("base destroy %d\n", value);
+  endfunc
+endobj
+
+object OChild(OBase):
+private
+  extra : int = 2;
+public
+  function *Create(a : int):
+    inherited Create(a + 1);
+    extra = a + 2;
+    @.printf("child create %d %d\n", value, extra);
+  endfunc
+
+  function Get() -> int [[override]]:
+    return inherited Get() + extra;
+  endfunc
+
+  function Reset():
+    inherited Reset();
+    extra = 20;
+  endfunc
+
+  function *Destroy():
+    @.printf("child destroy %d %d\n", value, extra);
+    inherited Destroy();
+  endfunc
+endobj
+
+function PrintBase(b : ref OBase, label : ^cchar):
+  @.printf("%s %d\n", label, b.Get());
+endfunc
+
+function *Main() -> int:
+  var c <- OChild(3);           //?check("base create 4")
+                              //?check("child create 4 5")
+  PrintBase(c, "fixed");       //?check("fixed 9")
+  c.Reset();
+  PrintBase(c, "reset");       //?check("reset 30")
+
+  var h : OChild = new OChild(7);
+  var b : OBase = h;
+  PrintBase(b, "heap");        //?check("base create 8")
+                              //?check("child create 8 9")
+                              //?check("heap 17")
+  delete b;                    //?check("child destroy 8 9")
+                              //?check("base destroy 8")
+  return 0;                    //?check("child destroy 10 20")
+                              //?check("base destroy 10")
+endfunc

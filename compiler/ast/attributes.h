@@ -31,6 +31,8 @@ enum EAttrFlag
 
   ATTF_VIRTUAL        = 0x00010000,
   ATTF_OVERRIDE       = 0x00020000,
+  ATTF_ABSTRACT       = 0x00040000,
+  ATTF_FINAL          = 0x00080000,
 };
 
 enum EAttrTarget

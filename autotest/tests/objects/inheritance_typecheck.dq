@@ -1,0 +1,48 @@
+// object inheritance type checking tests (ERROR test)
+
+object OBase:
+private
+  secret : int;
+protected
+  hidden : int;
+public
+  function *Create():
+  endfunc
+
+  function Value() -> int [[virtual]]:
+    return hidden;
+  endfunc
+
+  function Done() [[virtual, final]]:
+  endfunc
+endobj
+
+object OChild(OBase):
+public
+  function *Create():
+    hidden = 1;
+  endfunc //?error(SpecialFuncInvalid)
+
+  function Value() -> int: //?error(SpecialFuncInvalid)
+    return hidden;
+  endfunc
+
+  function Missing() [[override]]: //?error(SpecialFuncInvalid)
+  endfunc
+
+  function Done() [[override]]: //?error(SpecialFuncInvalid)
+  endfunc
+endobj
+
+object OAbstract:
+public
+  function Read() -> int [[virtual, abstract]];
+endobj
+
+function *Main() -> int:
+  result = 0;
+  var b <- OBase();
+  var c <- OChild();
+  result = b.hidden;  //?error(MemberUnknown)
+  var a <- OAbstract; //?error(NotSupported)
+endfunc

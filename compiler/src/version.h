@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.16"
+#define DQ_COMPILER_VERSION  "0.11.17"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.17:
+  - Object inheritance, inherited calls, virtual/override/final/abstract methods, polymorphic delete
+  - DQM interface persistence for object base types and virtual method attributes
 v0.11.16:
   - Code refactor: some of the object handling moved to otype_object.cpp/h
 v0.11.15:

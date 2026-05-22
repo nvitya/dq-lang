@@ -323,6 +323,88 @@ void OStmtObjectCall::Generate(OScope * scope)
   ll_builder.CreateCall(method->ll_func, ll_args);
 }
 
+OStmtInheritedCall::~OStmtInheritedCall()
+{
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
+}
+
+void OStmtInheritedCall::Generate(OScope * scope)
+{
+  if (!caller || !method || !method->ll_func || !caller->receiver_arg)
+  {
+    return;
+  }
+
+  OLValueVar this_expr(caller->receiver_arg);
+  LlValue * ll_this = this_expr.GenerateAddress(scope);
+
+  auto emit_field_init = [&]()
+  {
+    OCompoundType * ctype = caller->owner_compound_type;
+    ctype->GetLlType();
+    for (OValSym * member : ctype->member_order)
+    {
+      if (!member)
+      {
+        continue;
+      }
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(ctype->GetLlType(), ll_this,
+          member->ll_field_index, member->name + ".addr");
+      if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
+      {
+        objmember->GenerateConstructorCall(scope, ll_field_addr);
+      }
+      else if (member->field_init_expr)
+      {
+        LlValue * ll_value = member->field_init_expr->Generate(scope);
+        ll_builder.CreateStore(ll_value, ll_field_addr);
+      }
+    }
+  };
+
+  auto emit_field_destroy = [&]()
+  {
+    OCompoundType * ctype = caller->owner_compound_type;
+    ctype->GetLlType();
+    for (auto it = ctype->member_order.rbegin(); it != ctype->member_order.rend(); ++it)
+    {
+      OValSym * member = *it;
+      auto * objmember = dynamic_cast<OVsObject *>(member);
+      if (!objmember || !objmember->IsFixedObjectStorage())
+      {
+        continue;
+      }
+      LlValue * ll_field_addr = ll_builder.CreateStructGEP(ctype->GetLlType(), ll_this,
+          member->ll_field_index, member->name + ".addr");
+      objmember->GenerateDestructorCall(ll_field_addr);
+    }
+  };
+
+  if (emit_derived_field_destroy && caller->owner_compound_type)
+  {
+    emit_field_destroy();
+  }
+
+  vector<LlValue *> ll_args;
+  ll_args.push_back(ll_this);
+  for (OExpr * arg : args)
+  {
+    ll_args.push_back(arg->Generate(scope));
+  }
+  ll_builder.CreateCall(method->ll_func, ll_args);
+
+  if (emit_derived_field_init && caller->owner_compound_type)
+  {
+    caller->owner_compound_type->GenerateVTableStore(ll_this);
+    emit_field_init();
+  }
+}
+
 void OStmtConstructFixedObject::Generate(OScope * scope)
 {
   (void)scope;
@@ -443,7 +525,27 @@ void OStmtDelete::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
 
   ll_builder.SetInsertPoint(bb_delete);
-  if (object_dtor_func && object_dtor_func->ll_func)
+  OCompoundType * objtype = dynamic_cast<OCompoundType *>(ptrexpr->ResolvedType());
+  if (objtype && objtype->is_polymorphic)
+  {
+    OCompoundType * root = objtype;
+    while (root->base_type)
+    {
+      root = root->base_type;
+    }
+    root->GetLlType();
+    LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_ptr,
+        root->vtable_field_index, "delete.vtable.addr");
+    LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "delete.vtable");
+    LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0)}, "delete.dtor.slot");
+    LlValue * ll_dtor = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "delete.dtor");
+    if (object_dtor_func)
+    {
+      ll_builder.CreateCall(static_cast<LlFuncType *>(object_dtor_func->ptype->GetLlType()), ll_dtor, {ll_ptr});
+    }
+  }
+  else if (object_dtor_func && object_dtor_func->ll_func)
   {
     ll_builder.CreateCall(object_dtor_func->ll_func, {ll_ptr});
   }

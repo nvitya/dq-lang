@@ -273,6 +273,17 @@ public:
   void       DeleteChildTree() override;
 };
 
+class OObjectUpcastExpr : public OExpr
+{
+public:
+  OExpr * src;
+  OType * dst_object_type;
+  /* ctor */ OObjectUpcastExpr(OType * adsttype, OExpr * asrc);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 class ONullLit : public OExpr
 {
 public:
@@ -358,6 +369,7 @@ class OCallExpr : public OExpr
 public:
   OValSymFunc *     vsfunc;
   vector<OExpr *>   args;
+  bool              force_direct = false;
   /* ctor */        OCallExpr(OValSymFunc * avsfunc);
                    ~OCallExpr();
   LlValue *         Generate(OScope * scope) override;

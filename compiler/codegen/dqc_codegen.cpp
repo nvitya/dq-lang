@@ -120,6 +120,17 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
+  for (ODecl * decl : g_module->declarations)
+  {
+    if (DK_TYPE == decl->kind)
+    {
+      if (auto * ctype = dynamic_cast<OCompoundType *>(decl->ptype))
+      {
+        ctype->GenVTableGlobal(decl->ispublic);
+      }
+    }
+  }
+
   // generate other global declarations
 
   for (ODecl * decl : g_module->declarations)

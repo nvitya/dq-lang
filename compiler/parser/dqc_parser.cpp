@@ -279,6 +279,28 @@ bool ODqCompParser::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
+  if ("abstract" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_ABSTRACT);
+    return true;
+  }
+
+  if ("final" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_FINAL);
+    return true;
+  }
+
   if ("volatile" == attrname)
   {
     if (scf->CheckSymbol("(", false))
@@ -962,6 +984,11 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
   }
 
   OCompoundType * decl_objtype = dynamic_cast<OCompoundType *>(ptype ? ptype->ResolveAlias() : nullptr);
+  if (fixed_object && decl_objtype && decl_objtype->is_abstract)
+  {
+    StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", decl_objtype->name));
+    return;
+  }
   if (zero_init && decl_objtype && decl_objtype->is_object && !fixed_object)
   {
     StatementError(DQERR_NOT_SUPPORTED, "value-style object zero-initialization");
@@ -1452,6 +1479,57 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
 
   vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
 
+  if (vsfunc->owner_compound_type)
+  {
+    if ((OLK_NONE != vsfunc->lifecycle_kind)
+        && (vsfunc->attr_is_virtual || vsfunc->attr_is_override || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "object lifecycle functions cannot be virtual, override, abstract, or final");
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
+
+    OValSymFunc * base_virtual = vsfunc->owner_compound_type->FindVirtualBaseMethod(vsfunc);
+    if (vsfunc->attr_is_override)
+    {
+      if (!base_virtual)
+      {
+        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" is marked override but no inherited virtual method matches", vsfunc->name));
+        RecoverFailedFunctionDecl();
+        curvsfunc = nullptr;
+        delete vsfunc;
+        return false;
+      }
+      if (base_virtual->attr_is_final)
+      {
+        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" overrides final inherited method", vsfunc->name));
+        RecoverFailedFunctionDecl();
+        curvsfunc = nullptr;
+        delete vsfunc;
+        return false;
+      }
+      vsfunc->attr_is_virtual = true;
+    }
+    else if (base_virtual)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("method \"{}\" overrides an inherited virtual method but is missing [[override]]", vsfunc->name));
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
+    if (vsfunc->attr_is_abstract && !vsfunc->attr_is_virtual)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("abstract method \"{}\" must also be virtual", vsfunc->name));
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
+  }
+
   auto cleanup_new_func = [&]()
   {
     if (curvsfunc == vsfunc)
@@ -1831,12 +1909,52 @@ bool ODqCompParser::ReadObjectMethod(OCompoundType * ctype, EMemberVisibility av
 
 void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
 {
-  if (!vsfunc || (OLK_CREATE != vsfunc->lifecycle_kind) || !vsfunc->owner_compound_type || !vsfunc->body)
+  if (!vsfunc || !vsfunc->owner_compound_type || !vsfunc->body)
   {
     return;
   }
 
   OCompoundType * ctype = vsfunc->owner_compound_type;
+  if (ctype->base_type)
+  {
+    int inherited_lifecycle_count = 0;
+    size_t inherited_lifecycle_index = size_t(-1);
+    for (size_t i = 0; i < vsfunc->body->stlist.size(); ++i)
+    {
+      auto * inherited = dynamic_cast<OStmtInheritedCall *>(vsfunc->body->stlist[i]);
+      if (inherited && inherited->method
+          && inherited->method->lifecycle_kind == vsfunc->lifecycle_kind)
+      {
+        ++inherited_lifecycle_count;
+        inherited_lifecycle_index = i;
+      }
+    }
+
+    if (OLK_CREATE == vsfunc->lifecycle_kind)
+    {
+      if (inherited_lifecycle_count != 1 || inherited_lifecycle_index != 0)
+      {
+        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID,
+                 "derived constructors must call inherited Create exactly once as the first statement",
+                 &vsfunc->scpos_endfunc);
+      }
+    }
+    else if (OLK_DESTROY == vsfunc->lifecycle_kind)
+    {
+      if (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size())
+      {
+        ErrorTxt(DQERR_SPECIAL_FUNC_INVALID,
+                 "derived destructors must call inherited Destroy exactly once as the last statement",
+                 &vsfunc->scpos_endfunc);
+      }
+    }
+  }
+
+  if (OLK_CREATE != vsfunc->lifecycle_kind)
+  {
+    return;
+  }
+
   vector<bool> constructed(ctype->member_order.size(), false);
 
   for (size_t i = 0; i < ctype->member_order.size(); ++i)
@@ -1948,6 +2066,37 @@ void ODqCompParser::ParseObjectDecl()
   }
 
   scf->SkipWhite();
+  if (scf->CheckSymbol("("))
+  {
+    OType * basetype = ParseTypeSpec();
+    OCompoundType * baseobj = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
+    if (!baseobj || !baseobj->is_object)
+    {
+      Error(DQERR_TYPE_EXPECTED, "object", basetype ? basetype->name : "?");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+    ctype->base_type = baseobj;
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol(","))
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, "multiple object inheritance");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+    if (!scf->CheckSymbol(")"))
+    {
+      Error(DQERR_MISSING_CLOSE_PAREN_FOR, "object base");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+  }
+
+  scf->SkipWhite();
   if (not scf->CheckSymbol(":"))
   {
     Error(DQERR_STMTBLK_START_MISSING);
@@ -2028,6 +2177,11 @@ void ODqCompParser::ParseObjectDecl()
       if (!named_compound || !named_compound->is_object)
       {
         Error(DQERR_TYPE_EXPECTED, "object", named_type->name);
+        break;
+      }
+      if (named_compound->is_abstract)
+      {
+        ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", named_compound->name));
         break;
       }
 
@@ -2174,6 +2328,7 @@ void ODqCompParser::ParseObjectDecl()
     ctype->constructors.push_back(ctor);
   }
 
+  ctype->UpdateObjectInheritanceFlags();
   ctype->EnsureLayout();
   g_module->DeclareType(section_public, ctype);
 }
@@ -2414,6 +2569,11 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
       else if ("delete" == sid)
       {
         ParseStmtDelete();
+        continue;
+      }
+      else if ("inherited" == sid)
+      {
+        ParseStmtInherited();
         continue;
       }
       else if (ReservedWord(sid))
@@ -3172,6 +3332,130 @@ void ODqCompParser::ParseStmtDelete()
     delstmt->object_dtor_func = delete_objtype->FindLifecycleMethod(OLK_DESTROY);
   }
   curblock->AddStatement(delstmt);
+}
+
+OValSymFunc * ODqCompParser::FindInheritedMethod(const string & method_name, const vector<OExpr *> & args)
+{
+  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  {
+    return nullptr;
+  }
+
+  for (OCompoundType * cur = curvsfunc->owner_compound_type->base_type; cur; cur = cur->base_type)
+  {
+    if ("Create" == method_name)
+    {
+      return cur->FindLifecycleMethod(OLK_CREATE, args.size());
+    }
+    if ("Destroy" == method_name)
+    {
+      return (args.empty() ? cur->FindLifecycleMethod(OLK_DESTROY) : nullptr);
+    }
+
+    OValSym * vs = cur->Members()->FindValSym(method_name, nullptr, false);
+    if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
+    {
+      OTypeFunc * sig = dynamic_cast<OTypeFunc *>(fn->ptype);
+      if (sig && sig->params.size() == args.size() + 1)
+      {
+        return fn;
+      }
+    }
+    if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      for (OValSymFunc * fn : ovset->funcs)
+      {
+        OTypeFunc * sig = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
+        if (sig && sig->params.size() == args.size() + 1)
+        {
+          return fn;
+        }
+      }
+    }
+  }
+  return nullptr;
+}
+
+void ODqCompParser::ParseStmtInherited()
+{
+  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  {
+    StatementError(DQERR_SPECIAL_FUNC_INVALID, "inherited is only valid inside a derived object method");
+    SkipToStatementEnd();
+    return;
+  }
+
+  string method_name;
+  vector<OExpr *> args;
+  scf->SkipWhite();
+  if (scf->CheckSymbol(";"))
+  {
+    if (OLK_NONE != curvsfunc->lifecycle_kind)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "shorthand inherited is not valid in lifecycle methods");
+      return;
+    }
+    method_name = curvsfunc->name;
+    for (size_t i = 1; i < curvsfunc->args.size(); ++i)
+    {
+      args.push_back(new OLValueVar(curvsfunc->args[i]));
+    }
+  }
+  else
+  {
+    if (!scf->ReadIdentifier(method_name))
+    {
+      StatementError(DQERR_ID_EXP_AFTER, "inherited");
+      SkipToStatementEnd();
+      return;
+    }
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("("))
+    {
+      Error(DQERR_FUNC_CALL_PARENTH, method_name);
+      SkipToStatementEnd();
+      return;
+    }
+    vector<TRawCallArg> rawargs;
+    if (!ParseRawCallArguments(method_name, rawargs))
+    {
+      return;
+    }
+    for (TRawCallArg & rawarg : rawargs)
+    {
+      args.push_back(rawarg.expr);
+      rawarg.expr = nullptr;
+    }
+    FreeRawCallArguments(rawargs);
+
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(";"))
+    {
+      StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "inherited statement");
+    }
+  }
+
+  OValSymFunc * method = FindInheritedMethod(method_name, args);
+  OTypeFunc * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
+  if (!method || !sig || sig->params.size() != args.size() + 1)
+  {
+    for (OExpr * arg : args) OExpr::DeleteTree(arg);
+    Error(DQERR_OVERLOAD_NO_MATCH, method_name);
+    return;
+  }
+  for (size_t i = 0; i < args.size(); ++i)
+  {
+    if (!CheckAssignType(sig->params[i + 1]->ptype, &args[i], "inherited argument"))
+    {
+      for (OExpr * arg : args) OExpr::DeleteTree(arg);
+      return;
+    }
+  }
+
+  auto * stmt = new OStmtInheritedCall(scpos_statement_start, curvsfunc, method, args);
+  stmt->emit_derived_field_init = (OLK_CREATE == curvsfunc->lifecycle_kind && "Create" == method_name);
+  stmt->emit_derived_field_destroy = (OLK_DESTROY == curvsfunc->lifecycle_kind && "Destroy" == method_name);
+  curblock->AddStatement(stmt);
 }
 
 void ODqCompParser::ParseStmtWhile()
@@ -3975,17 +4259,30 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
 
-        auto member_access_allowed = [this, ctype](OValSym * member) -> bool
+        auto member_access_allowed = [this](OCompoundType * decl_type, OValSym * member) -> bool
         {
-          return !member
-              || (MV_PUBLIC == member->member_visibility)
-              || (curvsfunc && curvsfunc->owner_compound_type == ctype);
+          if (!member || MV_PUBLIC == member->member_visibility)
+          {
+            return true;
+          }
+          OCompoundType * curtype = (curvsfunc ? curvsfunc->owner_compound_type : nullptr);
+          if (!curtype || !decl_type)
+          {
+            return false;
+          }
+          if (MV_PRIVATE == member->member_visibility)
+          {
+            return curtype == decl_type;
+          }
+          return curtype->IsSameOrDerivedFrom(decl_type);
         };
 
-        OValSym * objsym = (ctype->is_object ? ctype->Members()->FindValSym(membername, nullptr, false) : nullptr);
+        OCompoundType * decl_type = ctype;
+        OValSym * objsym = (ctype->is_object ? ctype->FindObjectMemberSymbol(membername, &decl_type)
+                                             : ctype->Members()->FindValSym(membername, nullptr, false));
         if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
         {
-          if (!member_access_allowed(method))
+          if (!member_access_allowed(decl_type, method))
           {
             Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
             delete result;
@@ -4004,7 +4301,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         }
         if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(objsym))
         {
-          if (!member_access_allowed(ovset))
+          if (!member_access_allowed(decl_type, ovset))
           {
             Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
             delete result;
@@ -4022,20 +4319,22 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           continue;
         }
 
-        int midx = ctype->FindMemberIndex(membername);
+        decl_type = ctype;
+        int midx = (ctype->is_object ? ctype->FindObjectFieldIndex(membername, &decl_type)
+                                     : ctype->FindMemberIndex(membername));
         if (midx < 0)
         {
           Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
           return result;
         }
-        OType * mtype = ctype->member_order[midx]->ptype;
-        if (!member_access_allowed(ctype->member_order[midx]))
+        OType * mtype = decl_type->member_order[midx]->ptype;
+        if (!member_access_allowed(decl_type, decl_type->member_order[midx]))
         {
           Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
           delete result;
           return nullptr;
         }
-        result = new OLValueMember(memberbase, ctype, midx, mtype);
+        result = new OLValueMember(memberbase, decl_type, midx, mtype);
         continue;
       }
 
@@ -4333,10 +4632,28 @@ OExpr * ODqCompParser::ParseExprPrimary()
     return ParseNewExpr();
   }
 
+  if ("inherited" == sid)
+  {
+    return ParseInheritedExpr();
+  }
+
   OScope * found_scope = nullptr;
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
+    if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
+    {
+      OCompoundType * decl_type = nullptr;
+      OValSym * member = curvsfunc->owner_compound_type->FindObjectMemberSymbol(sid, &decl_type);
+      if (member && (VSK_FUNCTION != member->kind))
+      {
+        int midx = decl_type->FindMemberIndex(sid);
+        if (midx >= 0)
+        {
+          return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
+        }
+      }
+    }
     Error(DQERR_VS_UNKNOWN, sid);
     return result;
   }
@@ -4537,23 +4854,32 @@ OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSy
   }
 
   OCompoundType * ctype = curvsfunc->owner_compound_type;
-  if (found_scope != ctype->Members())
-  {
-    return nullptr;
-  }
-
   if (VSK_FUNCTION == vs->kind)
   {
     return nullptr;
   }
 
-  int midx = ctype->FindMemberIndex(sid);
+  OCompoundType * decl_type = nullptr;
+  for (OCompoundType * cur = ctype; cur; cur = cur->base_type)
+  {
+    if (found_scope == cur->Members())
+    {
+      decl_type = cur;
+      break;
+    }
+  }
+  if (!decl_type)
+  {
+    return nullptr;
+  }
+
+  int midx = decl_type->FindMemberIndex(sid);
   if (midx < 0)
   {
     return nullptr;
   }
 
-  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), ctype, midx, vs->ptype);
+  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, vs->ptype);
 }
 
 bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs)
@@ -4745,6 +5071,12 @@ OExpr * ODqCompParser::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * r
     OExpr::DeleteTree(receiver);
     return nullptr;
   }
+  if (vsfunc->attr_is_virtual && curvsfunc && (OLK_NONE != curvsfunc->lifecycle_kind))
+  {
+    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "virtual calls are not valid inside constructors or destructors");
+    OExpr::DeleteTree(receiver);
+    return nullptr;
+  }
 
   vector<TRawCallArg> rawargs;
 
@@ -4893,6 +5225,13 @@ OExpr * ODqCompParser::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovs
   }
 
   OCallExpr * result = new OCallExpr(best_func);
+  if (best_func->attr_is_virtual && curvsfunc && (OLK_NONE != curvsfunc->lifecycle_kind))
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "virtual calls are not valid inside constructors or destructors");
+    return nullptr;
+  }
   if (!BindCallArguments(ovset->name, static_cast<OTypeFunc *>(best_func->ptype), rawargs, result->args))
   {
     delete result;
@@ -4943,6 +5282,11 @@ OExpr * ODqCompParser::ParseNewExpr()
   {
     if (compound->is_object)
     {
+      if (compound->is_abstract)
+      {
+        ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", compound->name));
+        return nullptr;
+      }
       vector<OExpr *> ctor_args;
       scf->SkipWhite();
       bool has_parens = scf->CheckSymbol("(");
@@ -5019,6 +5363,70 @@ OExpr * ODqCompParser::ParseNewExpr()
   }
 
   return new ONewExpr(alloc_type, initexpr, memalloc_func);
+}
+
+OExpr * ODqCompParser::ParseInheritedExpr()
+{
+  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  {
+    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "inherited is only valid inside a derived object method");
+    return nullptr;
+  }
+  if (OLK_NONE != curvsfunc->lifecycle_kind)
+  {
+    ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "inherited expressions are not valid in lifecycle methods");
+    return nullptr;
+  }
+
+  string method_name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(method_name))
+  {
+    method_name = curvsfunc->name;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_FUNC_CALL_PARENTH, method_name);
+    return nullptr;
+  }
+
+  vector<TRawCallArg> rawargs;
+  TRawCallArg thisarg;
+  scf->SaveCurPos(thisarg.scpos_start);
+  thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
+  rawargs.push_back(thisarg);
+  if (!ParseRawCallArguments(method_name, rawargs))
+  {
+    return nullptr;
+  }
+
+  vector<OExpr *> user_args;
+  for (size_t i = 1; i < rawargs.size(); ++i)
+  {
+    user_args.push_back(rawargs[i].expr);
+  }
+  OValSymFunc * method = FindInheritedMethod(method_name, user_args);
+  user_args.clear();
+  if (!method)
+  {
+    FreeRawCallArguments(rawargs);
+    Error(DQERR_OVERLOAD_NO_MATCH, method_name);
+    return nullptr;
+  }
+
+  OCallExpr * result = new OCallExpr(method);
+  result->force_direct = true;
+  if (!BindCallArguments(method_name, static_cast<OTypeFunc *>(method->ptype), rawargs, result->args))
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  FreeRawCallArguments(rawargs);
+  return result;
 }
 
 OExpr * ODqCompParser::ParseBuiltinIif()

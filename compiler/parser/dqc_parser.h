@@ -61,6 +61,7 @@ public: // statement blocks
   void ParseStmtFor();
   void ParseStmtIf();
   void ParseStmtDelete();
+  void ParseStmtInherited();
   void FinalizeStmtVoidCall(OExpr * callexpr);
 
   EBinOp ParseAssignOp();
@@ -133,6 +134,7 @@ public: // expressions
   OExpr * ParseExprMethodOverloadCall(OValSymOverloadSet * ovset, OLValueExpr * receiver);
   OExpr * ParseExprIndirectCall(OExpr * callee, OTypeFuncRef * calltype);
   OExpr * ParseNewExpr();
+  OExpr * ParseInheritedExpr();
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();
@@ -162,6 +164,7 @@ protected:
   bool    ReadObjectMethod(OCompoundType * ctype, EMemberVisibility avisibility);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
   bool    CheckObjectCtorArgs(OCompoundType * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor);
+  OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

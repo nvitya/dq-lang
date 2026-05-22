@@ -1,0 +1,14 @@
+// imported object inheritance test
+
+use libc/stdio;
+use ./inherit_mod;
+
+function PrintImported(b : ref OModBase):
+  @.printf("imported %d\n", b.Get());
+endfunc
+
+function *Main() -> int:
+  var c <- OModChild(11);
+  PrintImported(c); //?check("imported 23")
+  return 0;
+endfunc

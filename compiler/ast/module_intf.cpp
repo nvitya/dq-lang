@@ -1386,6 +1386,8 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   {
     avalsym->member_visibility = MV_PUBLIC;
   }
+  avalsym->attr_is_abstract = (attrs.flags & (1u << 12));
+  avalsym->attr_is_final    = (attrs.flags & (1u << 13));
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;
   avalsym->attr_section_name = attrs.section_name;
@@ -1929,6 +1931,23 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       }
       ctype->bytesize = uint32_t(bytesize);
     }
+    else if (ais_object && (DQMIF_OBJ_BASE == reader.recid))
+    {
+      string basename;
+      if (!reader.ReadString(basename) || !reader.NextRec())
+      {
+        delete ctype;
+        return false;
+      }
+      OType * basetype = scope_pub->FindType(basename);
+      OCompoundType * baseobj = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
+      if (!baseobj || !baseobj->is_object)
+      {
+        delete ctype;
+        return reader.Fail(format("Invalid DQM interface base object {} for {}", basename, declname));
+      }
+      ctype->base_type = baseobj;
+    }
     else if (DQMIF_FIELD_BEGIN == reader.recid)
     {
       if (!ReadFieldDecl(reader, ctype) || !reader.NextRec())
@@ -1952,6 +1971,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     }
   }
 
+  ctype->UpdateObjectInheritanceFlags();
   ctype->layout_ready = true;
   ctype->manual_ll_layout = true;
   return AddPublicType(ctype) != nullptr;

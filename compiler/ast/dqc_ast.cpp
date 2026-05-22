@@ -97,6 +97,13 @@ bool ODqCompAst::CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * s
     return false;
   }
 
+  auto * dstobj = dynamic_cast<OCompoundType *>(dst->basetype ? dst->basetype->ResolveAlias() : nullptr);
+  auto * srcobj = dynamic_cast<OCompoundType *>(src->basetype ? src->basetype->ResolveAlias() : nullptr);
+  if (dstobj && srcobj && dstobj->is_object && srcobj->is_object)
+  {
+    return srcobj->IsSameOrDerivedFrom(dstobj);
+  }
+
   return dst->basetype->ResolveAlias() == src->basetype->ResolveAlias();
 }
 
@@ -553,9 +560,14 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     {
       OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      OCompoundType * objsrc = dynamic_cast<OCompoundType *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
       if (objdst && objdst->is_object
-          && (ptrsrc->IsNullPointer() || (ptrsrc->basetype && ptrsrc->basetype->ResolveAlias() == resolved_dst)))
+          && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst))))
       {
+        if (objsrc && objsrc != objdst)
+        {
+          *rexpr = new OObjectUpcastExpr(dsttype, src);
+        }
         return true;
       }
       if (aflags & EXPCF_GENERATE_ERRORS)
@@ -980,8 +992,9 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     {
       OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      OCompoundType * objsrc = dynamic_cast<OCompoundType *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
       return (objdst && objdst->is_object
-              && (ptrsrc->IsNullPointer() || (ptrsrc->basetype && ptrsrc->basetype->ResolveAlias() == resolved_dst))) ? 0 : -1;
+              && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst)))) ? 0 : -1;
     }
 
     if (TK_FUNCREF == tkd)

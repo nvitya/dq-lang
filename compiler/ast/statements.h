@@ -140,6 +140,30 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtInheritedCall : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSymFunc * caller;
+  OValSymFunc * method;
+  vector<OExpr *> args;
+  bool emit_derived_field_init = false;
+  bool emit_derived_field_destroy = false;
+
+  OStmtInheritedCall(OScPosition & ascpos, OValSymFunc * acaller, OValSymFunc * amethod,
+                     const vector<OExpr *> & aargs = {})
+  :
+    super(ascpos),
+    caller(acaller),
+    method(amethod),
+    args(aargs)
+  {}
+
+  ~OStmtInheritedCall();
+  void Generate(OScope * scope) override;
+};
+
 class OStmtConstructFixedObject : public OStmt
 {
 private:

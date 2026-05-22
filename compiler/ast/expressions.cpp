@@ -991,6 +991,29 @@ void OObjectAddrExpr::DeleteChildTree()
   target = nullptr;
 }
 
+/* ctor */ OObjectUpcastExpr::OObjectUpcastExpr(OType * adsttype, OExpr * asrc)
+{
+  dst_object_type = adsttype;
+  src = asrc;
+  ptype = adsttype;
+}
+
+LlValue * OObjectUpcastExpr::Generate(OScope * scope)
+{
+  return src->Generate(scope);
+}
+
+void OObjectUpcastExpr::FoldChildren()
+{
+  OExpr::FoldTree(&src);
+}
+
+void OObjectUpcastExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(src);
+  src = nullptr;
+}
+
 /* ctor */ ONullLit::ONullLit()
 {
   ptype = OTypePointer::GetNullPtrType();
@@ -1190,12 +1213,6 @@ void OFloatRoundExpr::DeleteChildTree()
 
 LlValue * OCallExpr::Generate(OScope * scope)
 {
-  LlFunction * ll_func = vsfunc->ll_func;
-  if (!ll_func)
-  {
-    throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
-  }
-
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   vector<LlValue *>   ll_args;
   for (size_t i = 0; i < args.size(); ++i)
@@ -1228,6 +1245,36 @@ LlValue * OCallExpr::Generate(OScope * scope)
 
     ll_args.push_back(val);
   }
+
+  if (!force_direct && vsfunc->attr_is_virtual && vsfunc->owner_compound_type && !ll_args.empty())
+  {
+    OCompoundType * root = vsfunc->owner_compound_type;
+    while (root->base_type)
+    {
+      root = root->base_type;
+    }
+    int slot = vsfunc->owner_compound_type->FindVirtualSlot(vsfunc);
+    if (slot < 0)
+    {
+      throw runtime_error("OCallExpr::Generate(): virtual slot not found: " + vsfunc->name);
+    }
+    root->GetLlType();
+    LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_args[0],
+        root->vtable_field_index, "vtable.addr");
+    LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
+    LlValue * ll_slot_index = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), size_t(slot) + 1);
+    LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+        {ll_slot_index}, "vslot.addr");
+    LlValue * ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
+    return ll_builder.CreateCall(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
+  }
+
+  LlFunction * ll_func = vsfunc->ll_func;
+  if (!ll_func)
+  {
+    throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
+  }
+
   return ll_builder.CreateCall(ll_func, ll_args);
 }
 

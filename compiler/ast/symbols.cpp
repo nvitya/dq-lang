@@ -28,6 +28,7 @@
 #include "otype_object.h"
 #include "dqc.h"
 #include "errorcodes.h"
+#include <llvm/IR/GlobalVariable.h>
 
 using namespace std;
 
@@ -493,6 +494,301 @@ int OCompoundType::FindMemberIndex(const string & aname)
   return -1;
 }
 
+bool OCompoundType::IsSameOrDerivedFrom(OCompoundType * abase) const
+{
+  if (!abase)
+  {
+    return false;
+  }
+
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    if (cur == abase)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+OValSym * OCompoundType::FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
+{
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    OValSym * vs = const_cast<OCompoundType *>(cur)->member_scope.FindValSym(aname, nullptr, false);
+    if (vs)
+    {
+      if (rdecl_type)
+      {
+        *rdecl_type = const_cast<OCompoundType *>(cur);
+      }
+      return vs;
+    }
+  }
+  return nullptr;
+}
+
+int OCompoundType::FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
+{
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    int idx = const_cast<OCompoundType *>(cur)->FindMemberIndex(aname);
+    if (idx >= 0)
+    {
+      if (rdecl_type)
+      {
+        *rdecl_type = const_cast<OCompoundType *>(cur);
+      }
+      return idx;
+    }
+  }
+  return -1;
+}
+
+OValSymFunc * OCompoundType::FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type) const
+{
+  OTypeFunc * fsig = dynamic_cast<OTypeFunc *>(afunc ? afunc->ptype : nullptr);
+  if (!fsig)
+  {
+    return nullptr;
+  }
+
+  auto matches_method_signature = [fsig](OValSymFunc * method) -> bool
+  {
+    OTypeFunc * msig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
+    if (!msig || !method->attr_is_virtual)
+    {
+      return false;
+    }
+    if (fsig->has_varargs != msig->has_varargs
+        || fsig->ResolvedRetType() != msig->ResolvedRetType()
+        || fsig->params.size() != msig->params.size())
+    {
+      return false;
+    }
+    for (size_t i = 1; i < fsig->params.size(); ++i)
+    {
+      OFuncParam * left = fsig->params[i];
+      OFuncParam * right = msig->params[i];
+      if (!left || !right || left->mode != right->mode || !left->ptype || !right->ptype
+          || left->ptype->ResolveAlias() != right->ptype->ResolveAlias())
+      {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  for (OCompoundType * cur = base_type; cur; cur = cur->base_type)
+  {
+    OValSym * vs = cur->member_scope.FindValSym(afunc->name, nullptr, false);
+    if (auto * method = dynamic_cast<OValSymFunc *>(vs))
+    {
+      if (matches_method_signature(method))
+      {
+        if (rdecl_type)
+        {
+          *rdecl_type = cur;
+        }
+        return method;
+      }
+    }
+    else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      for (OValSymFunc * method : ovset->funcs)
+      {
+        if (matches_method_signature(method))
+        {
+          if (rdecl_type)
+          {
+            *rdecl_type = cur;
+          }
+          return method;
+        }
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+int OCompoundType::FindVirtualSlot(OValSymFunc * afunc) const
+{
+  if (!afunc)
+  {
+    return -1;
+  }
+  OValSymFunc * base_virtual = afunc;
+  if (afunc->owner_compound_type == this && afunc->attr_is_override)
+  {
+    base_virtual = FindVirtualBaseMethod(afunc);
+  }
+
+  for (size_t i = 0; i < virtual_methods.size(); ++i)
+  {
+    OValSymFunc * slot_func = virtual_methods[i];
+    if (slot_func == afunc || slot_func == base_virtual)
+    {
+      return int(i);
+    }
+    if (slot_func && base_virtual && slot_func->owner_compound_type
+        && slot_func->owner_compound_type->FindVirtualBaseMethod(slot_func) == base_virtual)
+    {
+      return int(i);
+    }
+  }
+  return -1;
+}
+
+void OCompoundType::UpdateObjectInheritanceFlags()
+{
+  if (!is_object)
+  {
+    return;
+  }
+
+  virtual_methods.clear();
+  if (base_type)
+  {
+    virtual_methods = base_type->virtual_methods;
+  }
+
+  is_polymorphic = (base_type && base_type->is_polymorphic);
+  is_abstract = false;
+
+  for (auto & [name, vs] : member_scope.valsyms)
+  {
+    (void)name;
+    if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
+    {
+      if (fn->attr_is_virtual || fn->attr_is_override)
+      {
+        is_polymorphic = true;
+        if (fn->attr_is_override)
+        {
+          OValSymFunc * base_virtual = FindVirtualBaseMethod(fn);
+          int slot = FindVirtualSlot(base_virtual);
+          if (slot >= 0)
+          {
+            virtual_methods[size_t(slot)] = fn;
+          }
+        }
+        else
+        {
+          virtual_methods.push_back(fn);
+        }
+      }
+      if (fn->attr_is_abstract)
+      {
+        is_abstract = true;
+      }
+    }
+    else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      for (OValSymFunc * fn : ovset->funcs)
+      {
+        if (!fn)
+        {
+          continue;
+        }
+        if (fn->attr_is_virtual || fn->attr_is_override)
+        {
+          is_polymorphic = true;
+          if (fn->attr_is_override)
+          {
+            OValSymFunc * base_virtual = FindVirtualBaseMethod(fn);
+            int slot = FindVirtualSlot(base_virtual);
+            if (slot >= 0)
+            {
+              virtual_methods[size_t(slot)] = fn;
+            }
+          }
+          else
+          {
+            virtual_methods.push_back(fn);
+          }
+        }
+        if (fn->attr_is_abstract)
+        {
+          is_abstract = true;
+        }
+      }
+    }
+  }
+
+  for (OValSymFunc * fn : virtual_methods)
+  {
+    if (fn && fn->attr_is_abstract)
+    {
+      is_abstract = true;
+      break;
+    }
+  }
+}
+
+void OCompoundType::GenVTableGlobal(bool apublic)
+{
+  if (!is_polymorphic || ll_vtable)
+  {
+    return;
+  }
+
+  vector<llvm::Constant *> entries;
+  LlType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+  if (destructor && destructor->ll_func)
+  {
+    entries.push_back(destructor->ll_func);
+  }
+  else
+  {
+    entries.push_back(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+  }
+  for (OValSymFunc * method : virtual_methods)
+  {
+    if (method && method->ll_func)
+    {
+      entries.push_back(method->ll_func);
+    }
+    else
+    {
+      entries.push_back(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+    }
+  }
+
+  auto * arrtype = llvm::ArrayType::get(ptr_type, entries.size());
+  auto * init = llvm::ConstantArray::get(arrtype, entries);
+  LlLinkType linktype = (apublic ? llvm::GlobalValue::ExternalLinkage
+                                 : llvm::GlobalValue::InternalLinkage);
+  string ll_name = "_DQVT_" + name;
+  ll_vtable = new llvm::GlobalVariable(*ll_module, arrtype, true, linktype, init, ll_name);
+}
+
+void OCompoundType::GenerateVTableStore(LlValue * ll_object_addr)
+{
+  if (!is_polymorphic || !ll_object_addr)
+  {
+    return;
+  }
+  if (!ll_vtable)
+  {
+    GenVTableGlobal(false);
+  }
+
+  OCompoundType * root = this;
+  while (root->base_type)
+  {
+    root = root->base_type;
+  }
+  root->GetLlType();
+  LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_object_addr,
+      root->vtable_field_index, "vtable.addr");
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_vtable_ptr = ll_builder.CreateGEP(
+      static_cast<llvm::GlobalVariable *>(ll_vtable)->getValueType(),
+      ll_vtable, {ll_zero, ll_zero}, "vtable.ptr");
+  ll_builder.CreateStore(ll_vtable_ptr, ll_vptr_addr);
+}
+
 static uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
 {
   if (aalign <= 1)
@@ -530,6 +826,18 @@ void OCompoundType::EnsureLayout()
   uint32_t offset = 0;
   uint32_t max_align = 1;
   manual_ll_layout = is_packed;
+
+  if (base_type)
+  {
+    base_type->EnsureLayout();
+    offset = base_type->bytesize;
+    max_align = max<uint32_t>(max_align, base_type->alignsize);
+  }
+  else if (is_polymorphic)
+  {
+    offset = TARGET_PTRSIZE;
+    max_align = max<uint32_t>(max_align, TARGET_PTRSIZE);
+  }
 
   for (OValSym * m : member_order)
   {
@@ -575,16 +883,39 @@ LlType * OCompoundType::CreateLlType()
   vector<LlType *> member_types;
   if (!manual_ll_layout)
   {
+    uint32_t ll_index_base = 0;
+    if (base_type)
+    {
+      member_types.push_back(base_type->GetLlType());
+      ll_index_base = 1;
+    }
+    else if (is_polymorphic)
+    {
+      vtable_field_index = 0;
+      member_types.push_back(llvm::PointerType::get(ll_ctx, 0));
+      ll_index_base = 1;
+    }
     for (int i = 0; i < (int)member_order.size(); ++i)
     {
       OValSym * m = member_order[i];
-      m->ll_field_index = uint32_t(i);
+      m->ll_field_index = ll_index_base + uint32_t(i);
       member_types.push_back(m->GetStorageType()->GetLlType());
     }
     return llvm::StructType::create(ll_ctx, member_types, name);
   }
 
   uint32_t offset = 0;
+  if (base_type)
+  {
+    member_types.push_back(base_type->GetLlType());
+    offset = base_type->bytesize;
+  }
+  else if (is_polymorphic)
+  {
+    vtable_field_index = uint32_t(member_types.size());
+    member_types.push_back(llvm::PointerType::get(ll_ctx, 0));
+    offset = TARGET_PTRSIZE;
+  }
   for (OValSym * m : member_order)
   {
     if (m->field_offset > offset)
@@ -611,6 +942,19 @@ LlDiType * OCompoundType::CreateDiType()
   EnsureLayout();
 
   vector<llvm::Metadata *> elements;
+  if (base_type)
+  {
+    uint64_t size_bits = uint64_t(base_type->bytesize) * 8;
+    elements.push_back(di_builder->createMemberType(
+        nullptr, "__base", nullptr, 0, size_bits, 0,
+        0, llvm::DINode::FlagZero, base_type->GetDiType()));
+  }
+  else if (is_polymorphic)
+  {
+    elements.push_back(di_builder->createMemberType(
+        nullptr, "__vtable", nullptr, 0, TARGET_PTRSIZE * 8, 0,
+        0, llvm::DINode::FlagZero, nullptr));
+  }
   for (int i = 0; i < (int)member_order.size(); ++i)
   {
     OValSym * m = member_order[i];
@@ -646,6 +990,8 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (objsym && objsym->IsFixedObjectStorage()) flags |= 1u << 9;
   if (MV_PRIVATE == member_visibility)   flags |= 1u << 10;
   if (MV_PROTECTED == member_visibility) flags |= 1u << 11;
+  if (attr_is_abstract) flags |= 1u << 12;
+  if (attr_is_final)    flags |= 1u << 13;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
@@ -670,6 +1016,10 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     return writer.Fail(format("Compound type {} is too large for DQM interface: {}", name, bytesize));
   }
   if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
+  if (is_object && base_type)
+  {
+    if (!writer.AddRecStr(DQMIF_OBJ_BASE, base_type->name)) return false;
+  }
 
   for (OValSym * member : member_order)
   {
@@ -944,6 +1294,8 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
     attr_is_overload = attr->IsSet(ATTF_OVERLOAD);
     attr_is_override = attr->IsSet(ATTF_OVERRIDE);
     attr_is_virtual  = attr->IsSet(ATTF_VIRTUAL);
+    attr_is_abstract = attr->IsSet(ATTF_ABSTRACT);
+    attr_is_final    = attr->IsSet(ATTF_FINAL);
   }
 
   if ((ATGT_GLOBAL_VAR == atarget) || (ATGT_STRUCT_MEMBER == atarget))

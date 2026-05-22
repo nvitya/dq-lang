@@ -1,0 +1,37 @@
+//?notest
+
+use libc/stdio;
+
+object OModBase:
+protected
+  value : int = 0;
+public
+  function *Create(a : int):
+    value = a;
+  endfunc
+
+  function Get() -> int [[virtual]]:
+    return value;
+  endfunc
+
+  function *Destroy():
+  endfunc
+endobj
+
+object OModChild(OModBase):
+private
+  extra : int = 0;
+public
+  function *Create(a : int):
+    inherited Create(a);
+    extra = a + 1;
+  endfunc
+
+  function Get() -> int [[override]]:
+    return inherited Get() + extra;
+  endfunc
+
+  function *Destroy():
+    inherited Destroy();
+  endfunc
+endobj

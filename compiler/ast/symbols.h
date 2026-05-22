@@ -247,6 +247,7 @@ class OTypePointer;      // forward declaration
 class OTypeFuncRef;     // forward declaration
 class OTypeArray;        // forward declaration
 class OTypeArraySlice;   // forward declaration
+class OTypeObject;       // forward declaration
 
 class OType : public OSymbol
 {
@@ -309,6 +310,7 @@ public:
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
 };
 
+uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign);
 uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align = 0);
 
 inline OType * OSymbol::ResolvedType() const
@@ -407,31 +409,16 @@ private:
 public:
   OScope       member_scope;
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
-  bool         is_object = false;
   bool         is_packed = false;
   bool         layout_ready = false;
   bool         layout_busy = false;
   bool         manual_ll_layout = false;
-  OCompoundType * base_type = nullptr;
-  bool         has_own_vtable = false;
-  bool         is_polymorphic = false;
-  bool         is_abstract = false;
-  uint32_t     vtable_field_index = 0;
-  LlValue *    ll_vtable = nullptr;
-  vector<OValSymFunc *> virtual_methods;
-  vector<OValSymFunc *> constructors;
-  OValSymFunc * destructor = nullptr;
 
-  OCompoundType(const string name, OScope * aparent_scope, bool ais_object = false)
+  OCompoundType(const string name, OScope * aparent_scope)
   :
     super(name, TK_COMPOUND),
-    member_scope(aparent_scope, name),
-    is_object(ais_object)
+    member_scope(aparent_scope, name)
   {
-    if (is_object)
-    {
-      member_scope.vs_lookup_parent = false;
-    }
   }
 
   inline OScope * Members() { return &member_scope; }
@@ -439,15 +426,8 @@ public:
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
-  OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
-  bool IsSameOrDerivedFrom(OCompoundType * abase) const;
-  OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;
-  int FindVirtualSlot(OValSymFunc * afunc) const;
-  void UpdateObjectInheritanceFlags();
-  void GenVTableGlobal(bool apublic);
-  void GenerateVTableStore(LlValue * ll_object_addr);
+  virtual bool IsObject() const { return false; }
+  virtual bool IsSameOrDerivedFrom(OCompoundType * abase) const;
 
   void        EnsureLayout() override;
   LlType *    CreateLlType() override;

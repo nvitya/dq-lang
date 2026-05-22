@@ -312,9 +312,9 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
   {
     return resolved_src && (TK_POINTER == resolved_src->kind);
   }
-  auto * dstobj = dynamic_cast<OCompoundType *>(resolved_dst);
-  auto * srcobj = dynamic_cast<OCompoundType *>(resolved_src);
-  if (dstobj && srcobj && dstobj->is_object && srcobj->is_object)
+  auto * dstobj = dynamic_cast<OTypeObject *>(resolved_dst);
+  auto * srcobj = dynamic_cast<OTypeObject *>(resolved_src);
+  if (dstobj && srcobj)
   {
     return srcobj->IsSameOrDerivedFrom(dstobj);
   }
@@ -881,13 +881,15 @@ void OValSymFunc::GenerateFuncBody()
     }
   };
 
-  if (OSF_CREATE == object_specfunc_kind && owner_compound_type && receiver_arg)
+  auto * owner_object = dynamic_cast<OTypeObject *>(owner_compound_type);
+
+  if (OSF_CREATE == object_specfunc_kind && owner_object && receiver_arg)
   {
     OLValueVar this_expr(receiver_arg);
-    owner_compound_type->GenerateVTableStore(this_expr.GenerateAddress(body->scope));
+    owner_object->GenerateVTableStore(this_expr.GenerateAddress(body->scope));
   }
 
-  if (!owner_compound_type || !owner_compound_type->base_type)
+  if (!owner_object || !owner_object->base_type)
   {
     emit_object_fields_init();
   }
@@ -898,7 +900,7 @@ void OValSymFunc::GenerateFuncBody()
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    if (!owner_compound_type || !owner_compound_type->base_type)
+    if (!owner_object || !owner_object->base_type)
     {
       emit_embedded_object_destroy();
     }

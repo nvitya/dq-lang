@@ -888,8 +888,8 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
       return;
     }
 
-    OCompoundType * objtype = dynamic_cast<OCompoundType *>(ptype->ResolveAlias());
-    if (!objtype || !objtype->is_object)
+    OTypeObject * objtype = dynamic_cast<OTypeObject *>(ptype->ResolveAlias());
+    if (!objtype)
     {
       StatementError(DQERR_TYPE_EXPECTED, "object", ptype->name);
       return;
@@ -937,8 +937,8 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
       StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
       return;
     }
-    OCompoundType * new_objtype = dynamic_cast<OCompoundType *>(newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr);
-    ptype = (new_objtype && new_objtype->is_object ? newexpr->alloc_type : newexpr->ptype);
+    OTypeObject * new_objtype = dynamic_cast<OTypeObject *>(newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr);
+    ptype = (new_objtype ? newexpr->alloc_type : newexpr->ptype);
   }
   else
   {
@@ -983,13 +983,13 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "variable declaration");
   }
 
-  OCompoundType * decl_objtype = dynamic_cast<OCompoundType *>(ptype ? ptype->ResolveAlias() : nullptr);
+  OTypeObject * decl_objtype = dynamic_cast<OTypeObject *>(ptype ? ptype->ResolveAlias() : nullptr);
   if (fixed_object && decl_objtype && decl_objtype->is_abstract)
   {
     StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", decl_objtype->name));
     return;
   }
-  if (zero_init && decl_objtype && decl_objtype->is_object && !fixed_object)
+  if (zero_init && decl_objtype && !fixed_object)
   {
     StatementError(DQERR_NOT_SUPPORTED, "value-style object zero-initialization");
     return;
@@ -1481,6 +1481,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
 
   if (vsfunc->owner_compound_type)
   {
+    auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
     if (    ((OSF_CREATE == vsfunc->object_specfunc_kind) or (OSF_DESTROY == vsfunc->object_specfunc_kind))
         and (vsfunc->attr_is_virtual || vsfunc->attr_is_override || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
     {
@@ -1491,7 +1492,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       return false;
     }
 
-    OValSymFunc * base_virtual = vsfunc->owner_compound_type->FindVirtualBaseMethod(vsfunc);
+    OValSymFunc * base_virtual = (owner_object ? owner_object->FindVirtualBaseMethod(vsfunc) : nullptr);
     if (vsfunc->attr_is_override)
     {
       if (!base_virtual)
@@ -1836,7 +1837,7 @@ bool ODqCompParser::SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc)
   return false;
 }
 
-bool ODqCompParser::ReadObjectMethod(OCompoundType * ctype, EMemberVisibility avisibility)
+bool ODqCompParser::ReadObjectMethod(OTypeObject * ctype, EMemberVisibility avisibility)
 {
   string sid;
 
@@ -1914,7 +1915,11 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     return;
   }
 
-  OCompoundType * ctype = vsfunc->owner_compound_type;
+  OTypeObject * ctype = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
+  if (!ctype)
+  {
+    return;
+  }
   if (ctype->base_type)
   {
     int inherited_lifecycle_count = 0;
@@ -2008,7 +2013,7 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
   }
 }
 
-bool ODqCompParser::CheckObjectCtorArgs(OCompoundType * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor)
+bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor)
 {
   rctor = nullptr;
   if (!ctype)
@@ -2058,7 +2063,7 @@ void ODqCompParser::ParseObjectDecl()
     return;
   }
 
-  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope, true);
+  OTypeObject * ctype = new OTypeObject(sname, cur_mod_scope);
   if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
@@ -2069,8 +2074,8 @@ void ODqCompParser::ParseObjectDecl()
   if (scf->CheckSymbol("("))
   {
     OType * basetype = ParseTypeSpec();
-    OCompoundType * baseobj = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
-    if (!baseobj || !baseobj->is_object)
+    OTypeObject * baseobj = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
+    if (!baseobj)
     {
       Error(DQERR_TYPE_EXPECTED, "object", basetype ? basetype->name : "?");
       SkipToModuleStatementStart();
@@ -2173,8 +2178,8 @@ void ODqCompParser::ParseObjectDecl()
       OType * named_type = ParseTypeSpec();
       if (!named_type) break;
 
-      OCompoundType * named_compound = dynamic_cast<OCompoundType *>(named_type->ResolveAlias());
-      if (!named_compound || !named_compound->is_object)
+      OTypeObject * named_compound = dynamic_cast<OTypeObject *>(named_type->ResolveAlias());
+      if (!named_compound)
       {
         Error(DQERR_TYPE_EXPECTED, "object", named_type->name);
         break;
@@ -2249,8 +2254,8 @@ void ODqCompParser::ParseObjectDecl()
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
 
-    OCompoundType * member_compound = dynamic_cast<OCompoundType *>(mtype->ResolveAlias());
-    bool object_ref_member = member_compound && member_compound->is_object;
+    OTypeObject * member_compound = dynamic_cast<OTypeObject *>(mtype->ResolveAlias());
+    bool object_ref_member = member_compound;
 
     scf->SkipWhite();
     if (scf->CheckSymbol("="))
@@ -2355,8 +2360,8 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
     return;
   }
 
-  OCompoundType * ctype = dynamic_cast<OCompoundType *>(foundtype->ResolveAlias());
-  if (!ctype || !ctype->is_object)
+  OTypeObject * ctype = dynamic_cast<OTypeObject *>(foundtype->ResolveAlias());
+  if (!ctype)
   {
     Error(DQERR_TYPE_EXPECTED, "object", foundtype->name);
     delete tfunc;
@@ -3244,8 +3249,8 @@ void ODqCompParser::ParseStmtDelete()
   }
 
   OType * ptrtype = ptrexpr->ResolvedType();
-  OCompoundType * delete_objtype = dynamic_cast<OCompoundType *>(ptrtype);
-  bool deleting_object = delete_objtype && delete_objtype->is_object;
+  OTypeObject * delete_objtype = dynamic_cast<OTypeObject *>(ptrtype);
+  bool deleting_object = delete_objtype;
   bool clear_after_free = deleting_object;
   if (!ptrtype || ((TK_POINTER != ptrtype->kind) && !deleting_object))
   {
@@ -3336,12 +3341,13 @@ void ODqCompParser::ParseStmtDelete()
 
 OValSymFunc * ODqCompParser::FindInheritedMethod(const string & method_name, const vector<OExpr *> & args)
 {
-  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc ? curvsfunc->owner_compound_type : nullptr);
+  if (!owner_object || !owner_object->base_type)
   {
     return nullptr;
   }
 
-  for (OCompoundType * cur = curvsfunc->owner_compound_type->base_type; cur; cur = cur->base_type)
+  for (OTypeObject * cur = owner_object->base_type; cur; cur = cur->base_type)
   {
     if ("Create" == method_name)
     {
@@ -3378,7 +3384,8 @@ OValSymFunc * ODqCompParser::FindInheritedMethod(const string & method_name, con
 
 void ODqCompParser::ParseStmtInherited()
 {
-  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc ? curvsfunc->owner_compound_type : nullptr);
+  if (!owner_object || !owner_object->base_type)
   {
     StatementError(DQERR_INHERITED_CALL_INVALID, "inherited is only valid inside a derived object method");
     SkipToStatementEnd();
@@ -4277,9 +4284,10 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return curtype->IsSameOrDerivedFrom(decl_type);
         };
 
+        auto * object_type = dynamic_cast<OTypeObject *>(ctype);
         OCompoundType * decl_type = ctype;
-        OValSym * objsym = (ctype->is_object ? ctype->FindObjectMemberSymbol(membername, &decl_type)
-                                             : ctype->Members()->FindValSym(membername, nullptr, false));
+        OValSym * objsym = (object_type ? object_type->FindObjectMemberSymbol(membername, &decl_type)
+                                        : ctype->Members()->FindValSym(membername, nullptr, false));
         if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
         {
           if (!member_access_allowed(decl_type, method))
@@ -4320,8 +4328,8 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         }
 
         decl_type = ctype;
-        int midx = (ctype->is_object ? ctype->FindObjectFieldIndex(membername, &decl_type)
-                                     : ctype->FindMemberIndex(membername));
+        int midx = (object_type ? object_type->FindObjectFieldIndex(membername, &decl_type)
+                                : ctype->FindMemberIndex(membername));
         if (midx < 0)
         {
           Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
@@ -4644,7 +4652,8 @@ OExpr * ODqCompParser::ParseExprPrimary()
     if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
     {
       OCompoundType * decl_type = nullptr;
-      OValSym * member = curvsfunc->owner_compound_type->FindObjectMemberSymbol(sid, &decl_type);
+      auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type);
+      OValSym * member = (owner_object ? owner_object->FindObjectMemberSymbol(sid, &decl_type) : nullptr);
       if (member && (VSK_FUNCTION != member->kind))
       {
         int midx = decl_type->FindMemberIndex(sid);
@@ -4853,14 +4862,18 @@ OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSy
     return nullptr;
   }
 
-  OCompoundType * ctype = curvsfunc->owner_compound_type;
+  auto * ctype = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type);
+  if (!ctype)
+  {
+    return nullptr;
+  }
   if (VSK_FUNCTION == vs->kind)
   {
     return nullptr;
   }
 
   OCompoundType * decl_type = nullptr;
-  for (OCompoundType * cur = ctype; cur; cur = cur->base_type)
+  for (OTypeObject * cur = ctype; cur; cur = cur->base_type)
   {
     if (found_scope == cur->Members())
     {
@@ -4994,8 +5007,8 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
           break;
         }
 
-        OCompoundType * ref_object_type = dynamic_cast<OCompoundType *>(fparam->ptype ? fparam->ptype->ResolveAlias() : nullptr);
-        if (ref_object_type && ref_object_type->is_object)
+        OTypeObject * ref_object_type = dynamic_cast<OTypeObject *>(fparam->ptype ? fparam->ptype->ResolveAlias() : nullptr);
+        if (ref_object_type)
         {
           rargs.push_back(new OObjectAddrExpr(arglval));
         }
@@ -5280,45 +5293,42 @@ OExpr * ODqCompParser::ParseNewExpr()
     Error(DQERR_TYPE_EXPECTED, "non-void", alloc_type->name);
     return nullptr;
   }
-  if (auto * compound = dynamic_cast<OCompoundType *>(alloc_type))
+  if (auto * compound = dynamic_cast<OTypeObject *>(alloc_type))
   {
-    if (compound->is_object)
+    if (compound->is_abstract)
     {
-      if (compound->is_abstract)
-      {
-        ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", compound->name));
-        return nullptr;
-      }
-      vector<OExpr *> ctor_args;
-      scf->SkipWhite();
-      bool has_parens = scf->CheckSymbol("(");
-      if (has_parens)
-      {
-        vector<TRawCallArg> rawargs;
-        if (!ParseRawCallArguments(alloc_type->name, rawargs))
-        {
-          return nullptr;
-        }
-        for (TRawCallArg & rawarg : rawargs)
-        {
-          ctor_args.push_back(rawarg.expr);
-          rawarg.expr = nullptr;
-        }
-        FreeRawCallArguments(rawargs);
-      }
-
-      OValSymFunc * ctor = nullptr;
-      if (has_parens && !CheckObjectCtorArgs(compound, ctor_args, ctor))
-      {
-        for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
-        return nullptr;
-      }
-
-      ONewExpr * result = new ONewExpr(alloc_type, nullptr, memalloc_func);
-      result->ctor_func = ctor;
-      result->ctor_args = ctor_args;
-      return result;
+      ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", compound->name));
+      return nullptr;
     }
+    vector<OExpr *> ctor_args;
+    scf->SkipWhite();
+    bool has_parens = scf->CheckSymbol("(");
+    if (has_parens)
+    {
+      vector<TRawCallArg> rawargs;
+      if (!ParseRawCallArguments(alloc_type->name, rawargs))
+      {
+        return nullptr;
+      }
+      for (TRawCallArg & rawarg : rawargs)
+      {
+        ctor_args.push_back(rawarg.expr);
+        rawarg.expr = nullptr;
+      }
+      FreeRawCallArguments(rawargs);
+    }
+
+    OValSymFunc * ctor = nullptr;
+    if (has_parens && !CheckObjectCtorArgs(compound, ctor_args, ctor))
+    {
+      for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
+      return nullptr;
+    }
+
+    ONewExpr * result = new ONewExpr(alloc_type, nullptr, memalloc_func);
+    result->ctor_func = ctor;
+    result->ctor_args = ctor_args;
+    return result;
   }
   if (0 == alloc_type->bytesize)
   {
@@ -5369,7 +5379,8 @@ OExpr * ODqCompParser::ParseNewExpr()
 
 OExpr * ODqCompParser::ParseInheritedExpr()
 {
-  if (!curvsfunc || !curvsfunc->owner_compound_type || !curvsfunc->owner_compound_type->base_type)
+  auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc ? curvsfunc->owner_compound_type : nullptr);
+  if (!owner_object || !owner_object->base_type)
   {
     ErrorTxt(DQERR_INHERITED_CALL_INVALID, "inherited is only valid inside a derived object method");
     return nullptr;

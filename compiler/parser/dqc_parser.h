@@ -26,6 +26,7 @@ using namespace std;
 
 class OTypeFunc;
 class OTypeFuncRef;
+class OTypeObject;
 
 class ODqCompParser : public ODqCompAst
 {
@@ -161,9 +162,9 @@ protected:
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
-  bool    ReadObjectMethod(OCompoundType * ctype, EMemberVisibility avisibility);
+  bool    ReadObjectMethod(OTypeObject * ctype, EMemberVisibility avisibility);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
-  bool    CheckObjectCtorArgs(OCompoundType * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor);
+  bool    CheckObjectCtorArgs(OTypeObject * ctype, vector<OExpr *> & rargs, OValSymFunc *& rctor);
   OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);
 
   void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);

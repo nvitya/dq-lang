@@ -97,9 +97,9 @@ bool ODqCompAst::CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * s
     return false;
   }
 
-  auto * dstobj = dynamic_cast<OCompoundType *>(dst->basetype ? dst->basetype->ResolveAlias() : nullptr);
-  auto * srcobj = dynamic_cast<OCompoundType *>(src->basetype ? src->basetype->ResolveAlias() : nullptr);
-  if (dstobj && srcobj && dstobj->is_object && srcobj->is_object)
+  auto * dstobj = dynamic_cast<OTypeObject *>(dst->basetype ? dst->basetype->ResolveAlias() : nullptr);
+  auto * srcobj = dynamic_cast<OTypeObject *>(src->basetype ? src->basetype->ResolveAlias() : nullptr);
+  if (dstobj && srcobj)
   {
     return srcobj->IsSameOrDerivedFrom(dstobj);
   }
@@ -558,11 +558,10 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   {
     if (TK_COMPOUND == tkd && TK_POINTER == tks)
     {
-      OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
+      OTypeObject * objdst = dynamic_cast<OTypeObject *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
-      OCompoundType * objsrc = dynamic_cast<OCompoundType *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      if (objdst && objdst->is_object
-          && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst))))
+      OTypeObject * objsrc = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+      if (objdst && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst))))
       {
         if (objsrc && objsrc != objdst)
         {
@@ -990,11 +989,10 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
   {
     if (TK_COMPOUND == tkd && TK_POINTER == tks)
     {
-      OCompoundType * objdst = dynamic_cast<OCompoundType *>(resolved_dst);
+      OTypeObject * objdst = dynamic_cast<OTypeObject *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
-      OCompoundType * objsrc = dynamic_cast<OCompoundType *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      return (objdst && objdst->is_object
-              && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst)))) ? 0 : -1;
+      OTypeObject * objsrc = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+      return (objdst && (ptrsrc->IsNullPointer() || (objsrc && objsrc->IsSameOrDerivedFrom(objdst)))) ? 0 : -1;
     }
 
     if (TK_FUNCREF == tkd)

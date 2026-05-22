@@ -270,7 +270,9 @@ void OModuleIntf::WriteOverloadSetDump(ostream & out, OValSymOverloadSet * aovse
 
 void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const string & indent)
 {
-  out << indent << (atype->is_object ? "object " : "struct ")
+  auto * object_type = dynamic_cast<OTypeObject *>(atype);
+
+  out << indent << (object_type ? "object " : "struct ")
       << atype->name << "(" << atype->bytesize << ")\n";
 
   for (OValSym * member : atype->member_order)
@@ -279,7 +281,7 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
         << member->name << " : " << TypeName(member->ptype) << "\n";
   }
 
-  if (atype->is_object)
+  if (object_type)
   {
     for (auto & [name, vs] : atype->Members()->valsyms)
     {
@@ -291,7 +293,7 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
     }
   }
 
-  out << indent << (atype->is_object ? "endobj" : "endstruct") << "\n";
+  out << indent << (object_type ? "endobj" : "endstruct") << "\n";
 }
 
 void OModuleIntf::WriteTypeDump(ostream & out, OType * atype, const string & indent)
@@ -1814,15 +1816,22 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   bool added = AddLoadedFunction(fn, fn->attr_is_overload, aowner_type);
   if (added && aowner_type)
   {
+    auto * owner_object = dynamic_cast<OTypeObject *>(aowner_type);
     if ("Create" == fn->name)
     {
       fn->object_specfunc_kind = OSF_CREATE;
-      aowner_type->constructors.push_back(fn);
+      if (owner_object)
+      {
+        owner_object->constructors.push_back(fn);
+      }
     }
     else if ("Destroy" == fn->name)
     {
       fn->object_specfunc_kind = OSF_DESTROY;
-      aowner_type->destructor = fn;
+      if (owner_object)
+      {
+        owner_object->destructor = fn;
+      }
     }
   }
   if (added && (SFK_MODULE_INIT == fn->special_kind))
@@ -1902,7 +1911,8 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     return false;
   }
 
-  OCompoundType * ctype = new OCompoundType(declname, scope_pub, ais_object);
+  OCompoundType * ctype = (ais_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
+                                      : new OCompoundType(declname, scope_pub));
   if (!reader.NextRec())
   {
     delete ctype;
@@ -1940,13 +1950,14 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
         return false;
       }
       OType * basetype = scope_pub->FindType(basename);
-      OCompoundType * baseobj = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
-      if (!baseobj || !baseobj->is_object)
+      OTypeObject * ctypeobj = dynamic_cast<OTypeObject *>(ctype);
+      OTypeObject * baseobj = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
+      if (!ctypeobj || !baseobj)
       {
         delete ctype;
         return reader.Fail(format("Invalid DQM interface base object {} for {}", basename, declname));
       }
-      ctype->base_type = baseobj;
+      ctypeobj->base_type = baseobj;
     }
     else if (DQMIF_FIELD_BEGIN == reader.recid)
     {
@@ -1971,7 +1982,10 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     }
   }
 
-  ctype->UpdateObjectInheritanceFlags();
+  if (auto * ctypeobj = dynamic_cast<OTypeObject *>(ctype))
+  {
+    ctypeobj->UpdateObjectInheritanceFlags();
+  }
   ctype->layout_ready = true;
   ctype->manual_ll_layout = true;
   return AddPublicType(ctype) != nullptr;

@@ -400,7 +400,11 @@ void OStmtInheritedCall::Generate(OScope * scope)
 
   if (emit_derived_field_init && caller->owner_compound_type)
   {
-    caller->owner_compound_type->GenerateVTableStore(ll_this);
+    auto * owner_object = dynamic_cast<OTypeObject *>(caller->owner_compound_type);
+    if (owner_object)
+    {
+      owner_object->GenerateVTableStore(ll_this);
+    }
     emit_field_init();
   }
 }
@@ -525,10 +529,10 @@ void OStmtDelete::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
 
   ll_builder.SetInsertPoint(bb_delete);
-  OCompoundType * objtype = dynamic_cast<OCompoundType *>(ptrexpr->ResolvedType());
+  OTypeObject * objtype = dynamic_cast<OTypeObject *>(ptrexpr->ResolvedType());
   if (objtype && objtype->is_polymorphic)
   {
-    OCompoundType * root = objtype;
+    OTypeObject * root = objtype;
     while (root->base_type)
     {
       root = root->base_type;

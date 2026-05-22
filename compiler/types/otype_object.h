@@ -8,7 +8,7 @@
  * file:    otype_object.h
  * authors: nvitya
  * created: 2026-05-22
- * brief:   object value symbol helpers
+ * brief:   object type and value symbol helpers
  */
 
 #pragma once
@@ -16,6 +16,46 @@
 #include "symbols.h"
 
 class OValSymFunc;
+
+class OTypeObject : public OCompoundType
+{
+private:
+  using  super = OCompoundType;
+
+public:
+  OTypeObject * base_type = nullptr;
+  bool          is_polymorphic = false;
+  bool          is_abstract = false;
+  uint32_t      vtable_field_index = 0;
+  LlValue *     ll_vtable = nullptr;
+  vector<OValSymFunc *> virtual_methods;
+  vector<OValSymFunc *> constructors;
+  OValSymFunc * destructor = nullptr;
+
+  OTypeObject(const string name, OScope * aparent_scope)
+  :
+    super(name, aparent_scope)
+  {
+    member_scope.vs_lookup_parent = false;
+  }
+
+  bool IsObject() const override { return true; }
+  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
+  bool IsSameOrDerivedFrom(OCompoundType * abase) const override;
+  OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
+  OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;
+  int FindVirtualSlot(OValSymFunc * afunc) const;
+  void UpdateObjectInheritanceFlags();
+  void GenVTableGlobal(bool apublic);
+  void GenerateVTableStore(LlValue * ll_object_addr);
+
+  void        EnsureLayout() override;
+  LlType *    CreateLlType() override;
+  LlDiType *  CreateDiType() override;
+  bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
+};
 
 class OVsObject : public OValSym
 {
@@ -48,7 +88,7 @@ public:
   void SetObjectCtorArgs(vector<OExpr *> aargs);
   OType * GetStorageType() const override;
 
-  OCompoundType * ObjectType() const;
+  OTypeObject * ObjectType() const;
   OValSymFunc * FindConstructor() const;
   OValSymFunc * FindDestructor() const;
   void GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr) const;

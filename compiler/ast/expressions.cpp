@@ -1246,14 +1246,15 @@ LlValue * OCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
-  if (!force_direct && vsfunc->attr_is_virtual && vsfunc->owner_compound_type && !ll_args.empty())
+  auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
+  if (!force_direct && vsfunc->attr_is_virtual && owner_object && !ll_args.empty())
   {
-    OCompoundType * root = vsfunc->owner_compound_type;
+    OTypeObject * root = owner_object;
     while (root->base_type)
     {
       root = root->base_type;
     }
-    int slot = vsfunc->owner_compound_type->FindVirtualSlot(vsfunc);
+    int slot = owner_object->FindVirtualSlot(vsfunc);
     if (slot < 0)
     {
       throw runtime_error("OCallExpr::Generate(): virtual slot not found: " + vsfunc->name);

@@ -36,6 +36,7 @@
 
 #include "dqc_codegen.h"
 #include "artifact_lock.h"
+#include "otype_object.h"
 
 using namespace std;
 
@@ -87,15 +88,12 @@ void ODqCompCodegen::GenerateIr()
           vs->GenGlobalImportDecl();
         }
       }
-      else if (auto * ctype = dynamic_cast<OCompoundType *>(decl->ptype))
+      else if (auto * ctype = dynamic_cast<OTypeObject *>(decl->ptype))
       {
-        if (ctype->is_object)
+        for (auto & [name, vs] : ctype->Members()->valsyms)
         {
-          for (auto & [name, vs] : ctype->Members()->valsyms)
-          {
-            (void)name;
-            gen_imported_function(vs);
-          }
+          (void)name;
+          gen_imported_function(vs);
         }
       }
     }
@@ -124,7 +122,7 @@ void ODqCompCodegen::GenerateIr()
   {
     if (DK_TYPE == decl->kind)
     {
-      if (auto * ctype = dynamic_cast<OCompoundType *>(decl->ptype))
+      if (auto * ctype = dynamic_cast<OTypeObject *>(decl->ptype))
       {
         ctype->GenVTableGlobal(decl->ispublic);
       }

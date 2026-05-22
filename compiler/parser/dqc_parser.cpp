@@ -1536,7 +1536,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     if (ahidden_decl)
     {
       decl_scope->DefineValSym(fn);
-      g_module->DeclareHiddenValSym(false, fn);
+      g_module->DeclareHiddenValSym(fn->owner_compound_type != nullptr, fn);
       PrepareFuncDecl(scpos_statement_start, fn);
     }
     else
@@ -1550,7 +1550,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     if (ahidden_decl)
     {
       decl_scope->DefineValSym(ovset);
-      g_module->DeclareHiddenValSym(false, ovset);
+      g_module->DeclareHiddenValSym(ovset->owner_compound_type != nullptr, ovset);
     }
     else
     {
@@ -2139,7 +2139,7 @@ void ODqCompParser::ParseObjectDecl()
     ctor->scpos_endfunc.Assign(scpos_statement_start);
     InjectObjectReceiver(ctor, ctype);
     ctype->Members()->DefineValSym(ctor);
-    g_module->DeclareHiddenValSym(false, ctor);
+    g_module->DeclareHiddenValSym(true, ctor);
     PrepareFuncDecl(scpos_statement_start, ctor);
     ctype->constructors.push_back(ctor);
   }

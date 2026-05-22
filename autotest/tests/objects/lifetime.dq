@@ -51,7 +51,8 @@ function *Main() -> int:
                        //?check("box print 5 7")
 
   var mchild = new OModChild(9);
-  delete mchild = null;
+  delete mchild = null; //?check("modchild-9 create")
+                        //?check("modchild-9 destroy")
 
   return 0;            //?check("box destroy 5 7")
                        //?check("child destroy 7")

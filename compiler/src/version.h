@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.14"
+#define DQ_COMPILER_VERSION  "0.11.15"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.15:
+  - Bugfix of using objects from modules
 v0.11.14:
   - Object storage and lifetime first pass: object references, fixed storage, object constructors/destructors
 v0.11.13:

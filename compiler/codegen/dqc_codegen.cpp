@@ -58,26 +58,45 @@ void ODqCompCodegen::GenerateIr()
 
     for (OIntfDecl * decl : intf->declarations)
     {
-      if (!decl || (IDK_VALSYM != decl->kind))
+      if (!decl)
       {
         continue;
       }
 
-      OValSym * vs = decl->pvalsym;
-      if (auto * vsfunc = dynamic_cast<OValSymFunc *>(vs))
+      auto gen_imported_function = [](OValSym * vs)
       {
-        vsfunc->GenGlobalDecl(true, nullptr);
-      }
-      else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
-      {
-        for (OValSymFunc * fn : ovset->funcs)
+        if (auto * vsfunc = dynamic_cast<OValSymFunc *>(vs))
         {
-          fn->GenGlobalDecl(true, nullptr);
+          vsfunc->GenGlobalDecl(true, nullptr);
+        }
+        else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+        {
+          for (OValSymFunc * fn : ovset->funcs)
+          {
+            fn->GenGlobalDecl(true, nullptr);
+          }
+        }
+      };
+
+      if (IDK_VALSYM == decl->kind)
+      {
+        OValSym * vs = decl->pvalsym;
+        gen_imported_function(vs);
+        if (vs && (VSK_FUNCTION != vs->kind))
+        {
+          vs->GenGlobalImportDecl();
         }
       }
-      else
+      else if (auto * ctype = dynamic_cast<OCompoundType *>(decl->ptype))
       {
-        vs->GenGlobalImportDecl();
+        if (ctype->is_object)
+        {
+          for (auto & [name, vs] : ctype->Members()->valsyms)
+          {
+            (void)name;
+            gen_imported_function(vs);
+          }
+        }
       }
     }
   }

@@ -1668,6 +1668,7 @@ bool OModuleIntf::AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompou
   if (aowner_type)
   {
     afunc->owner_compound_type = aowner_type;
+    afunc->generated_linkage_name = aowner_type->name + "." + afunc->name;
     if (!aoverload)
     {
       aowner_type->Members()->DefineValSym(afunc);
@@ -1681,6 +1682,7 @@ bool OModuleIntf::AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompou
       OScPosition scpos;
       ovset = new OValSymOverloadSet(scpos, afunc->name, g_builtins->type_func);
       ovset->owner_compound_type = aowner_type;
+      ovset->generated_linkage_prefix = afunc->generated_linkage_name;
       ovset->member_visibility = afunc->member_visibility;
       aowner_type->Members()->DefineValSym(ovset);
     }
@@ -1785,6 +1787,10 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   }
 
   OScPosition scpos;
+  if (aowner_type)
+  {
+    sigtype->params.insert(sigtype->params.begin(), new OFuncParam("__this", aowner_type, FPM_REF));
+  }
   OValSymFunc * fn = new OValSymFunc(scpos, declname, sigtype, nullptr);
   fn->owner_module_name = name;
   fn->special_kind = special_kind;

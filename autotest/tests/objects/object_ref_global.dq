@@ -1,0 +1,21 @@
+// global object reference initialization
+
+use libc/stdio;
+
+object OTest:
+  value : int;
+
+  function *Create(avalue : int):
+    value = avalue;
+  endfunc
+endobj
+
+var global_ref : OTest = null;
+
+function *Main() -> int:
+  global_ref = new OTest(42);
+  printf("global_ref value %d\n", global_ref.value); //?check("global_ref value 42")
+  delete global_ref = null;
+
+  return 0;
+endfunc

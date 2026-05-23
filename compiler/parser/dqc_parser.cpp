@@ -1032,6 +1032,19 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     vdecl->pvalsym->ApplyAttributes(attr, ATGT_GLOBAL_VAR);
     if (initexpr)
     {
+      if (!vdecl->initvalue)
+      {
+        if (auto * objsym = dynamic_cast<OVsObject *>(vdecl->pvalsym); objsym && objsym->IsObjectReference())
+        {
+          vdecl->initvalue = objsym->GetStorageType()->CreateValue();
+        }
+      }
+      if (!vdecl->initvalue)
+      {
+        StatementError(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+        delete initexpr;
+        return;
+      }
       if (not vdecl->initvalue->CalculateConstant(initexpr))
       {
         // the error message is already generated

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.21"
+#define DQ_COMPILER_VERSION  "0.11.22"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.22:
+  - Compiler fix for global ojbect initializations with 'null'
 v0.11.21:
   - Implicit constructor created for the child objects without explicit constructor
 v0.11.20:

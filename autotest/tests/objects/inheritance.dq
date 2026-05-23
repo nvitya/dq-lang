@@ -68,6 +68,27 @@ public
   endfunc
 endobj
 
+object OForwardBase:
+protected
+  value : int = 0;
+public
+  function *Create(a : int):
+    value = a;
+    @.printf("forward base create %d\n", value);
+  endfunc
+
+  function Get() -> int [[virtual]]:
+    return value;
+  endfunc
+endobj
+
+object OForwardChild(OForwardBase):
+public
+  function Get() -> int [[override]]:
+    return inherited Get() + 100;
+  endfunc
+endobj
+
 object OOverCtor:
 public
   tag : int = 0;
@@ -102,6 +123,9 @@ function *Main() -> int:
 
   var ic <- OImplicitChild();  //?check("implicit base create 31")
   @.printf("implicit sum %d\n", ic.Sum()); //?check("implicit sum 35")
+
+  var fc <- OForwardChild(12); //?check("forward base create 12")
+  @.printf("forward child %d\n", fc.Get()); //?check("forward child 112")
 
   var oi <- OOverCtor(5);
   var of <- OOverCtor(2.4);

@@ -164,6 +164,8 @@ protected:
   bool    ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const;
   OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
   bool    ReadObjectMethod(OTypeObject * object_type, EMemberVisibility avisibility);
+  OValSymFunc * AddGeneratedObjectConstructor(OTypeObject * object_type, OValSymFunc * inherited_ctor,
+                                              OScPosition & scpos, size_t overload_count);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
   bool    CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor);
   OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.20"
+#define DQ_COMPILER_VERSION  "0.11.21"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.21:
+  - Implicit constructor created for the child objects without explicit constructor
 v0.11.20:
   - User friendly error message forgetting "@." from object scope
 v0.11.19:

@@ -200,7 +200,7 @@ endfunc
 
 Each embedded object must be constructed exactly once. Double construction and missing construction are compile-time errors when detectable.
 
-Constructors are not virtual and are not inherited as callable overloads of the derived object.
+Constructors are not virtual. If a derived object declares no constructors, the compiler generates forwarding constructors for the inherited base constructors.
 
 ---
 
@@ -443,7 +443,7 @@ function *Create(aname : string):
 endfunc
 ```
 
-If the compiler generates an implicit constructor for a derived object because of inline field initializers, it also generates the required `inherited Create()` call. This is valid only when the base object has a matching parameterless constructor.
+If a derived object declares no constructors, the compiler generates constructors that forward to the inherited base constructors and then run the derived field initialization phase. With no base constructors, inline field initializers still cause a parameterless implicit constructor to be generated.
 
 If an object inherits from a base object, every derived destructor must explicitly call the inherited base destructor:
 

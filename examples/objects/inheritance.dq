@@ -1,0 +1,43 @@
+use libc/stdio;
+
+object OBase:
+  cnt1 : int = 0;
+  cnt2 : int = 0;
+  name : cstring[32];
+
+  function *Create(aname : cstring):
+    name = aname;
+  endfunc
+
+  function Count() [[virtual]]:
+    cnt1 += 1;
+  endfunc
+
+  function Print():
+    @.printf('%s: cnt1=%d, cnt2=%d\n', &name, cnt1, cnt2);
+  endfunc
+endobj
+
+object OChild(OBase):
+  function Count() [[override]]:
+    inherited;
+    cnt2 += 1;
+  endfunc
+endobj
+
+var obase   <- OBase('OBase');     // '<-' = embedded allocation
+var ochild  <- OChild('OChild');
+
+function *Main() -> int:
+  printf('Object Inheritance Test\n');
+
+  printf('sizeof(OBase) = %d\n', sizeof(OBase));
+
+  obase.Count();
+  ochild.Count();
+
+  obase.Print();
+  ochild.Print();
+
+  return 0;
+endfunc

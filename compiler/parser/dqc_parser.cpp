@@ -2013,6 +2013,97 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
   }
 }
 
+OValSymFunc * ODqCompParser::AddGeneratedObjectConstructor(OTypeObject * object_type, OValSymFunc * inherited_ctor,
+                                                           OScPosition & scpos, size_t overload_count)
+{
+  if (!object_type)
+  {
+    return nullptr;
+  }
+
+  OTypeFunc * inherited_sig = dynamic_cast<OTypeFunc *>(inherited_ctor ? inherited_ctor->ptype : nullptr);
+  if (inherited_ctor && !inherited_sig)
+  {
+    return nullptr;
+  }
+
+  OTypeFunc * tfunc = new OTypeFunc("Create");
+  if (inherited_sig)
+  {
+    tfunc->has_varargs = inherited_sig->has_varargs;
+    for (size_t i = 1; i < inherited_sig->params.size(); ++i)
+    {
+      OFuncParam * src = inherited_sig->params[i];
+      if (!src)
+      {
+        continue;
+      }
+      tfunc->AddParam(src->name, src->ptype, src->mode);
+    }
+  }
+
+  OValSymFunc * ctor = new OValSymFunc(scpos, "Create", tfunc, object_type->Members());
+  ctor->owner_compound_type = object_type;
+  ctor->generated_linkage_name = object_type->name + ".Create";
+  ctor->object_specfunc_kind = OSF_CREATE;
+  ctor->member_visibility = inherited_ctor ? inherited_ctor->member_visibility : MV_PUBLIC;
+  ctor->has_body = true;
+  ctor->scpos_endfunc.Assign(scpos);
+  ctor->attr_is_overload = (overload_count > 1);
+
+  InjectObjectReceiver(ctor, object_type);
+  PrepareFuncDecl(scpos, ctor);
+
+  if (inherited_ctor)
+  {
+    vector<OExpr *> inherited_args;
+    for (size_t i = 1; i < ctor->args.size(); ++i)
+    {
+      inherited_args.push_back(new OLValueVar(ctor->args[i]));
+    }
+    auto * stmt = new OStmtInheritedCall(scpos, ctor, inherited_ctor, inherited_args);
+    stmt->emit_derived_field_init = true;
+    ctor->body->stlist.push_back(stmt);
+  }
+
+  object_type->constructors.push_back(ctor);
+
+  if (overload_count > 1)
+  {
+    OValSymOverloadSet * ovset = nullptr;
+    OValSym * existing = object_type->Members()->FindValSym("Create", nullptr, false);
+    if (!existing)
+    {
+      ovset = new OValSymOverloadSet(scpos, "Create", g_builtins->type_func);
+      ovset->owner_compound_type = object_type;
+      ovset->generated_linkage_prefix = object_type->name + ".Create";
+      ovset->member_visibility = ctor->member_visibility;
+      object_type->Members()->DefineValSym(ovset);
+      g_module->DeclareHiddenValSym(true, ovset);
+    }
+    else
+    {
+      ovset = dynamic_cast<OValSymOverloadSet *>(existing);
+    }
+
+    if (ovset)
+    {
+      ovset->AddFunc(ctor);
+    }
+    else
+    {
+      Error(DQERR_OVERLOAD_MIXED_DECL, "Create");
+    }
+  }
+  else
+  {
+    object_type->Members()->DefineValSym(ctor);
+    g_module->DeclareHiddenValSym(true, ctor);
+  }
+
+  return ctor;
+}
+
 bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor)
 {
   rctor = nullptr;
@@ -2303,7 +2394,19 @@ void ODqCompParser::ParseObjectDecl()
     object_type->AddMember(mvsym);
   }
 
-  bool needs_implicit_ctor = object_type->constructors.empty();
+  bool need_generated_ctors = object_type->constructors.empty();
+  if (need_generated_ctors && object_type->base_type && !object_type->base_type->constructors.empty())
+  {
+    size_t ctor_count = object_type->base_type->constructors.size();
+    for (size_t i = 0; i < ctor_count; ++i)
+    {
+      AddGeneratedObjectConstructor(object_type, object_type->base_type->constructors[i],
+                                    scpos_statement_start, ctor_count);
+    }
+    need_generated_ctors = false;
+  }
+
+  bool needs_implicit_ctor = need_generated_ctors;
   if (needs_implicit_ctor)
   {
     needs_implicit_ctor = false;
@@ -2332,18 +2435,7 @@ void ODqCompParser::ParseObjectDecl()
 
   if (needs_implicit_ctor)
   {
-    OTypeFunc * tfunc = new OTypeFunc("Create");
-    OValSymFunc * ctor = new OValSymFunc(scpos_statement_start, "Create", tfunc, object_type->Members());
-    ctor->owner_compound_type = object_type;
-    ctor->generated_linkage_name = object_type->name + ".Create";
-    ctor->object_specfunc_kind = OSF_CREATE;
-    ctor->has_body = true;
-    ctor->scpos_endfunc.Assign(scpos_statement_start);
-    InjectObjectReceiver(ctor, object_type);
-    object_type->Members()->DefineValSym(ctor);
-    g_module->DeclareHiddenValSym(true, ctor);
-    PrepareFuncDecl(scpos_statement_start, ctor);
-    object_type->constructors.push_back(ctor);
+    OValSymFunc * ctor = AddGeneratedObjectConstructor(object_type, nullptr, scpos_statement_start, 1);
     if (object_type->base_type)
     {
       OValSymFunc * inherited_ctor = object_type->base_type->FindSpecialMethod(OSF_CREATE, 0);

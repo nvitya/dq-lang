@@ -2023,6 +2023,11 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     auto * objmember = dynamic_cast<OVsObject *>(member);
     if (objmember && objmember->IsFixedObjectStorage() && !constructed[i])
     {
+      OTypeObject * member_object = objmember->ObjectType();
+      if (member_object && member_object->HasTrivialDefaultConstructor())
+      {
+        continue;
+      }
       ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, format("embedded object \"{}\" is not constructed", member->name), &vsfunc->scpos_endfunc);
     }
   }
@@ -2159,6 +2164,11 @@ bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr 
   if (!object_type)
   {
     return false;
+  }
+
+  if (object_type->HasTrivialDefaultConstructor() && rargs.empty())
+  {
+    return true;
   }
 
   bool ambiguous = false;

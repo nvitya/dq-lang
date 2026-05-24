@@ -42,6 +42,7 @@ public:
   bool IsObject() const override { return true; }
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   bool IsSameOrDerivedFrom(OCompoundType * abase) const override;
+  bool HasTrivialDefaultConstructor() const;
   OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
   OValSymFunc * FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous = nullptr) const;
   OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;

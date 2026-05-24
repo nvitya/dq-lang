@@ -40,8 +40,16 @@ function OElem.Pick(v : float) -> int [[overload]]:
   result = round(v) + 10;
 endfunc
 
+var g_elem : OElem = null;
+
 function *Main() -> int:
   printf('DQ Object test\n');  //?check('DQ Object test')
+
+  if g_elem == null:
+    printf("g_elem is null.\n");  //?check('g_elem is null.')
+  endif
+
+  g_elem = new OElem();
 
   var elem <- OElem;
 

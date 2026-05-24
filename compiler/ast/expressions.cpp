@@ -640,6 +640,45 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
 
+  auto object_type = [](OExpr * expr) -> OTypeObject *
+  {
+    return dynamic_cast<OTypeObject *>(expr ? expr->ResolvedType() : nullptr);
+  };
+
+  auto null_pointer_type = [](OExpr * expr) -> OTypePointer *
+  {
+    auto * ptr = dynamic_cast<OTypePointer *>(expr ? expr->ResolvedType() : nullptr);
+    return (ptr && ptr->IsNullPointer() ? ptr : nullptr);
+  };
+
+  auto * left_object = object_type(left);
+  auto * right_object = object_type(right);
+  if (left_object || right_object)
+  {
+    if ((COMPOP_EQ != op) && (COMPOP_NE != op))
+    {
+      throw logic_error("Object references only support equality comparison");
+    }
+
+    bool compatible = false;
+    if (left_object && right_object)
+    {
+      compatible = left_object->IsSameOrDerivedFrom(right_object) || right_object->IsSameOrDerivedFrom(left_object);
+    }
+    else
+    {
+      compatible = (left_object && null_pointer_type(right)) || (right_object && null_pointer_type(left));
+    }
+
+    if (!compatible)
+    {
+      throw logic_error("Object reference comparison uses incompatible types");
+    }
+
+    LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_left, ll_right);
+    return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
+  }
+
   OType * optype = left->ptype;
 
   if (TK_FLOAT == optype->kind)

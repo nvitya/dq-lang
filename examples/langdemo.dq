@@ -52,12 +52,14 @@ function ObjTest():
   obase.Print();
   ochild.Print();
 
+  //printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &(obase.name[0])));
+
   delete ochild;
 endfunc
 
 function cstr_add(dst : cstring, src : cstring):
   var ps     : ^cchar = &src[0];
-  var psend  : ^cchar = ps + sizeof(src);
+  var psend  : ^cchar = ps[sizeof(src)];  // [] does not dereference
   var pd     : ^cchar = &dst[0];
   var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
   pd += len(dst);
@@ -99,6 +101,10 @@ function *Main() -> int:
 
   printf("@langdemo_mod.CONST1 = %d\n", CONST1);
   printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2);
+
+  var pc : ^cchar = iif(false, "OChild is null!", "ochild is not null");
+  //var pc : ^cchar = "hali";
+  printf("ochild.name: %s \n", pc);
 
   ObjTest();
 

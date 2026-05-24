@@ -53,6 +53,11 @@ bool OTypeObject::IsSameOrDerivedFrom(OCompoundType * abase) const
   return false;
 }
 
+bool OTypeObject::HasTrivialDefaultConstructor() const
+{
+  return constructors.empty();
+}
+
 OValSymFunc * OTypeObject::FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count) const
 {
   if (OSF_CREATE == akind)

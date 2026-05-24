@@ -1,0 +1,121 @@
+use libc/stdio;
+use ./langdemo_mod as ldm  only(CONST1);  // only(), exclude() and "--" control global scope merging
+
+#if false
+
+//Contents of the "langdemo_mod.?"
+
+const CONST1 : int = 42;
+const CONST2 : float = 3.14;
+
+#endif
+
+object OBase:
+  cnt1 : int = 0;
+  cnt2 : int = 10;
+  name : cstring[32];
+
+  function *Create(aname : cstring):  // constructor
+    name = aname;
+  endfunc
+
+  function *Destroy():
+    @.printf("%s destroy\n", &name[0]);
+  endfunc
+
+  function Count() [[virtual]]:
+    cnt1 += 1;
+  endfunc
+
+  function Print():
+    @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2);
+  endfunc
+endobj
+
+object OChild(OBase):
+  function Count() [[override]]:
+    inherited;
+    cnt2 += 1;
+  endfunc
+endobj
+
+var obase   <- OBase('OBase');     // '<-' = embedded allocation (global data segment here)
+                                   // no automatic destructor call for global embedded objects
+var ochild  : OChild = null;
+
+function ObjTest():
+  printf('Object Inheritance Test\n');
+
+  ochild = new OChild('OChild');
+
+  printf('sizeof(OBase) = %d\n', sizeof(OBase));
+
+  obase.Count();
+  ochild.Count();
+
+  obase.Print();
+  ochild.Print();
+
+  delete ochild;
+endfunc
+
+function cstr_add(dst : cstring, src : cstring):
+  var ps     : ^cchar = &src[0];
+  var psend  : ^cchar = ps + sizeof(src);
+  var pd     : ^cchar = &dst[0];
+  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
+  pd += len(dst);
+  var pdstart : ^cchar = pd;
+
+  while pd < pdend  and ps < psend  and ps^ <> 0:
+    pd^ = ps^;
+    pd += 1;
+    ps += 1;
+  endwhile
+
+  if pd <> pdstart:
+    pd^ = 0; // terminate
+  endif
+endfunc
+
+[[external]] function putchar(c : cchar) -> int;
+
+function WriteStr(s : cstring):
+  var pc : ^cchar = &s[0];
+  while pc^ <> 0:
+    putchar(pc^);
+    pc += 1;
+  endwhile
+endfunc
+
+function *Main() -> int:
+
+  var s : cstring[128] = "";
+  cstr_add(s, "Hello");
+  cstr_add(s, " World!\n");
+  WriteStr(s);
+
+  if 3 / 2 * 10 == 15:
+    printf('The language is friendly.\n');
+  else:
+    printf('The language is evil.\n');
+  endif
+
+  printf("@langdemo_mod.CONST1 = %d\n", CONST1);
+  printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2);
+
+  ObjTest();
+
+
+  for i : int = 0 to 5:
+    printf(' %d:', i);
+    for j : int = 0  count i  step 2:   printf(' %d', j);  endfor
+    printf('\n');
+  endfor
+
+  printf('for-while: ');
+  for i : int = 0  while i < 3  { printf(' %d', i); }
+  printf('\n');
+
+  return 0;
+endfunc

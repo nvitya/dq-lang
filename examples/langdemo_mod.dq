@@ -1,0 +1,4 @@
+
+const CONST1 : int = 42;
+const CONST2 : float = 3.14;
+

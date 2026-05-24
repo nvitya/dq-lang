@@ -74,7 +74,7 @@ function cstr_add(dst : cstring, src : cstring):
   endif
 endfunc
 
-[[external]] function putchar(c : cchar) -> int;
+[[external]] function putchar(c : cchar) -> int;  // from libc
 
 function WriteStr(s : cstring):
   var pc : ^cchar = &s[0];
@@ -102,7 +102,6 @@ function *Main() -> int:
 
   ObjTest();
 
-
   for i : int = 0 to 5:
     printf(' %d:', i);
     for j : int = 0  count i  step 2:   printf(' %d', j);  endfor
@@ -115,3 +114,22 @@ function *Main() -> int:
 
   return 0;
 endfunc
+
+/* OUTPUT:
+
+Hello World!
+The language is friendly.
+@langdemo_mod.CONST1 = 42
+@langdemo_mod.CONST2 = 3.140
+OBase: cnt1=1, cnt2=10
+OChild: cnt1=1, cnt2=11
+OChild destroy
+ 0:
+ 1: 0
+ 2: 0 2
+ 3: 0 2 4
+ 4: 0 2 4 6
+ 5: 0 2 4 6 8
+for-while:  0 1 2
+
+*/

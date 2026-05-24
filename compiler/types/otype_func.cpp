@@ -900,7 +900,10 @@ void OValSymFunc::GenerateFuncBody()
   // Add implicit return
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    if (!owner_object || !owner_object->base_type)
+    bool has_inherited_destroy = owner_object && owner_object->base_type
+        && owner_object->base_type->FindSpecialMethod(OSF_DESTROY);
+    if (!owner_object || !owner_object->base_type
+        || (OSF_DESTROY == object_specfunc_kind && !has_inherited_destroy))
     {
       emit_embedded_object_destroy();
     }

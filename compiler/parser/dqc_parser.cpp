@@ -1959,7 +1959,9 @@ void ODqCompParser::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     }
     else if (OSF_DESTROY == vsfunc->object_specfunc_kind)
     {
-      if (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size())
+      bool requires_inherited_destroy = object_type->base_type->FindSpecialMethod(OSF_DESTROY) != nullptr;
+      if (requires_inherited_destroy
+          && (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size()))
       {
         ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID,
                  "derived destructors must call inherited Destroy exactly once as the last statement",
@@ -2115,6 +2117,40 @@ OValSymFunc * ODqCompParser::AddGeneratedObjectConstructor(OTypeObject * object_
   }
 
   return ctor;
+}
+
+OValSymFunc * ODqCompParser::AddGeneratedObjectDestructor(OTypeObject * object_type, OValSymFunc * inherited_dtor,
+                                                          OScPosition & scpos)
+{
+  if (!object_type)
+  {
+    return nullptr;
+  }
+
+  OTypeFunc * tfunc = new OTypeFunc("Destroy");
+  OValSymFunc * dtor = new OValSymFunc(scpos, "Destroy", tfunc, object_type->Members());
+  dtor->owner_compound_type = object_type;
+  dtor->generated_linkage_name = object_type->name + ".Destroy";
+  dtor->object_specfunc_kind = OSF_DESTROY;
+  dtor->member_visibility = inherited_dtor ? inherited_dtor->member_visibility : MV_PUBLIC;
+  dtor->has_body = true;
+  dtor->scpos_endfunc.Assign(scpos);
+
+  InjectObjectReceiver(dtor, object_type);
+  PrepareFuncDecl(scpos, dtor);
+
+  if (inherited_dtor)
+  {
+    auto * stmt = new OStmtInheritedCall(scpos, dtor, inherited_dtor);
+    stmt->emit_derived_field_destroy = true;
+    dtor->body->stlist.push_back(stmt);
+  }
+
+  object_type->destructor = dtor;
+  object_type->Members()->DefineValSym(dtor);
+  g_module->DeclareHiddenValSym(true, dtor);
+
+  return dtor;
 }
 
 bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor)
@@ -2455,6 +2491,31 @@ void ODqCompParser::ParseObjectDecl()
       auto * stmt = new OStmtInheritedCall(scpos_statement_start, ctor, inherited_ctor);
       stmt->emit_derived_field_init = true;
       ctor->body->stlist.push_back(stmt);
+    }
+  }
+
+  if (!object_type->destructor)
+  {
+    OValSymFunc * inherited_dtor = (object_type->base_type
+        ? object_type->base_type->FindSpecialMethod(OSF_DESTROY)
+        : nullptr);
+    bool needs_implicit_dtor = (inherited_dtor != nullptr);
+    if (!needs_implicit_dtor)
+    {
+      for (OValSym * member : object_type->member_order)
+      {
+        auto * objmember = dynamic_cast<OVsObject *>(member);
+        if (objmember && objmember->IsFixedObjectStorage() && objmember->FindDestructor())
+        {
+          needs_implicit_dtor = true;
+          break;
+        }
+      }
+    }
+
+    if (needs_implicit_dtor)
+    {
+      AddGeneratedObjectDestructor(object_type, inherited_dtor, scpos_statement_start);
     }
   }
 

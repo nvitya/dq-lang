@@ -166,6 +166,8 @@ protected:
   bool    ReadObjectMethod(OTypeObject * object_type, EMemberVisibility avisibility);
   OValSymFunc * AddGeneratedObjectConstructor(OTypeObject * object_type, OValSymFunc * inherited_ctor,
                                               OScPosition & scpos, size_t overload_count);
+  OValSymFunc * AddGeneratedObjectDestructor(OTypeObject * object_type, OValSymFunc * inherited_dtor,
+                                             OScPosition & scpos);
   void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
   bool    CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor);
   OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);

@@ -49,6 +49,9 @@ public
   endfunc
 endobj
 
+object OChildNoDtor(OBase):
+endobj
+
 object OImplicitBase:
 protected
   base_value : int = 0;
@@ -120,6 +123,14 @@ function *Main() -> int:
                               //?check("heap 17")
   delete b;                    //?check("child destroy 8 9")
                               //?check("base destroy 8")
+
+  var nd : OChildNoDtor = new OChildNoDtor(21);
+  delete nd;                   //?check("base create 21")
+                              //?check("base destroy 21")
+
+  var ndb : OBase = new OChildNoDtor(22);
+  delete ndb;                  //?check("base create 22")
+                              //?check("base destroy 22")
 
   var ic <- OImplicitChild();  //?check("implicit base create 31")
   @.printf("implicit sum %d\n", ic.Sum()); //?check("implicit sum 35")

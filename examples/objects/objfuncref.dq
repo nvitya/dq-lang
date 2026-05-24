@@ -31,14 +31,8 @@ endobj
 var obj1 <- OBase('bss_obj');
 var obj2 : OBase = null;
 
-#define TEST_OBJCB = true
-
-#if TEST_OBJCB
-
-  type FObjCallback = function(astr : cstring) of object;
-  var ofunc : FObjCallback = null;
-
-#endif
+type FObjCallback = function(astr : cstring) of object;
+var ofunc : FObjCallback = null;
 
 function *Main() -> int:
   printf('Object Function Ptr Test\n');
@@ -55,12 +49,16 @@ function *Main() -> int:
   obj1.CallBack1('x');
   obj2.CallBack2('y');
 
-#if TEST_OBJCB
   ofunc = obj1.CallBack1;
   ofunc('obj1.cb1');
   ofunc = obj2.CallBack2;
   ofunc('obj2.cb2');
-#endif
+
+  if 3 / 2 * 10 == 15:
+    printf('The language is good.\n');
+  else:
+    printf('The language is evil.\n');
+  endif
 
   return 0;
 endfunc

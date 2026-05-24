@@ -34,6 +34,15 @@ object OBox:
   endfunc
 endobj
 
+object ONoDtorBase:
+  function *Create():
+  endfunc
+endobj
+
+object OMemberNoBaseDtor(ONoDtorBase):
+  child <- OChild(33);
+endobj
+
 var global_child <- OChild(9);
 
 function ReturnWithLocalObjects() -> int:
@@ -54,6 +63,10 @@ function *Main() -> int:
                        //?check("box print 7 7")
   delete heap_box;     //?check("box destroy 7 7")
                        //?check("child destroy 7")
+
+  var heap_member_no_base_dtor : OMemberNoBaseDtor = new OMemberNoBaseDtor();
+  delete heap_member_no_base_dtor; //?check("child create 33")
+                                   //?check("child destroy 33")
 
   var local_box <- OBox(2);
   local_box.Print();   //?check("child create 7")

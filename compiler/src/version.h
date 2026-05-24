@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.23"
+#define DQ_COMPILER_VERSION  "0.11.24"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.24:
+  - Fixed calling destructors of parent object when the inherited does not have destructor code
 v0.11.23:
   - Object method pointers (Function references with 'of object')
 v0.11.22:

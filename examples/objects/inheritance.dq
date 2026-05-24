@@ -2,11 +2,15 @@ use libc/stdio;
 
 object OBase:
   cnt1 : int = 0;
-  cnt2 : int = 0;
+  cnt2 : int = 10;
   name : cstring[32];
 
-  function *Create(aname : cstring):
+  function *Create(aname : cstring):  // constructor
     name = aname;
+  endfunc
+
+  function *Destroy():
+    @.printf("%s destroy\n", &name[0]);
   endfunc
 
   function Count() [[virtual]]:
@@ -14,7 +18,7 @@ object OBase:
   endfunc
 
   function Print():
-    @.printf('%s: cnt1=%d, cnt2=%d\n', &name, cnt1, cnt2);
+    @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2);
   endfunc
 endobj
 
@@ -26,10 +30,12 @@ object OChild(OBase):
 endobj
 
 var obase   <- OBase('OBase');     // '<-' = embedded allocation
-var ochild  <- OChild('OChild');
+var ochild  : OChild = null;
 
 function *Main() -> int:
   printf('Object Inheritance Test\n');
+
+  ochild = new OChild('OChild');
 
   printf('sizeof(OBase) = %d\n', sizeof(OBase));
 
@@ -38,6 +44,8 @@ function *Main() -> int:
 
   obase.Print();
   ochild.Print();
+
+  delete ochild;
 
   return 0;
 endfunc

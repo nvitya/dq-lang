@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.22"
+#define DQ_COMPILER_VERSION  "0.11.23"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.23:
+  - Object method pointers (Function references with 'of object')
 v0.11.22:
   - Compiler fix for global ojbect initializations with 'null'
 v0.11.21:

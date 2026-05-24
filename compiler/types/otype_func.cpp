@@ -979,6 +979,16 @@ string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
   return result;
 }
 
+string FuncRefTypeName(OTypeFunc * sigtype, bool object_ref)
+{
+  string result = FuncTypeName(sigtype);
+  if (object_ref)
+  {
+    result += " of object";
+  }
+  return result;
+}
+
 OExpr * OValueFuncRef::UnwrapConstExpr(OExpr * expr) const
 {
   OExpr * current = expr;
@@ -989,12 +999,13 @@ OExpr * OValueFuncRef::UnwrapConstExpr(OExpr * expr) const
   return current;
 }
 
-OTypeFuncRef::OTypeFuncRef(OTypeFunc * afunctype, const string & aname)
+OTypeFuncRef::OTypeFuncRef(OTypeFunc * afunctype, const string & aname, bool aobject_ref)
 :
-  super((aname.empty() ? FuncTypeName(afunctype) : aname), TK_FUNCREF),
-  functype(afunctype)
+  super((aname.empty() ? FuncRefTypeName(afunctype, aobject_ref) : aname), TK_FUNCREF),
+  functype(afunctype),
+  object_ref(aobject_ref)
 {
-  bytesize = TARGET_PTRSIZE;
+  bytesize = (object_ref ? 2 * TARGET_PTRSIZE : TARGET_PTRSIZE);
   alignsize = TARGET_PTRSIZE;
 }
 
@@ -1011,11 +1022,31 @@ bool OTypeFuncRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 
 LlType * OTypeFuncRef::CreateLlType()
 {
+  if (object_ref)
+  {
+    LlType * ll_ptr = llvm::PointerType::get(ll_ctx, 0);
+    return llvm::StructType::get(ll_ctx, {ll_ptr, ll_ptr});
+  }
   return llvm::PointerType::get(ll_ctx, 0);
 }
 
 LlDiType * OTypeFuncRef::CreateDiType()
 {
+  if (object_ref)
+  {
+    return di_builder->createStructType(
+        nullptr,
+        name,
+        nullptr,
+        0,
+        bytesize * 8,
+        alignsize * 8,
+        llvm::DINode::FlagZero,
+        nullptr,
+        di_builder->getOrCreateArray({})
+    );
+  }
+
   return di_builder->createPointerType(
       functype ? functype->GetDiType() : nullptr,
       bytesize * 8
@@ -1042,7 +1073,8 @@ bool OTypeFuncRef::CanAccept(OType * srctype) const
 
   if (auto * src_cb = dynamic_cast<OTypeFuncRef *>(resolved_src))
   {
-    return functype && src_cb->functype && functype->MatchesSignature(src_cb->functype);
+    return object_ref == src_cb->object_ref
+        && functype && src_cb->functype && functype->MatchesSignature(src_cb->functype);
   }
 
   if (auto * src_ptr = dynamic_cast<OTypePointer *>(resolved_src))
@@ -1052,15 +1084,91 @@ bool OTypeFuncRef::CanAccept(OType * srctype) const
 
   if (auto * src_func = dynamic_cast<OTypeFunc *>(resolved_src))
   {
-    return functype && functype->MatchesSignature(src_func);
+    return !object_ref && functype && functype->MatchesSignature(src_func);
   }
 
   return false;
 }
 
+bool OTypeFuncRef::CanAcceptMethod(OValSymFunc * srcfunc) const
+{
+  if (!object_ref || !functype || !srcfunc || !srcfunc->owner_compound_type)
+  {
+    return false;
+  }
+
+  OTypeFunc * srcsig = dynamic_cast<OTypeFunc *>(srcfunc->ptype);
+  if (!srcsig || srcsig->params.empty())
+  {
+    return false;
+  }
+
+  if (functype->has_varargs != srcsig->has_varargs)
+  {
+    return false;
+  }
+
+  if (functype->ResolvedRetType() != srcsig->ResolvedRetType())
+  {
+    return false;
+  }
+
+  if (functype->params.size() + 1 != srcsig->params.size())
+  {
+    return false;
+  }
+
+  for (size_t i = 0; i < functype->params.size(); ++i)
+  {
+    OFuncParam * dst = functype->params[i];
+    OFuncParam * src = srcsig->params[i + 1];
+    if (!dst || !src || !dst->ptype || !src->ptype)
+    {
+      return false;
+    }
+    if (dst->mode != src->mode)
+    {
+      return false;
+    }
+    if (dst->ptype->ResolveAlias() != src->ptype->ResolveAlias())
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 EOverloadFuncRefMatch OTypeFuncRef::FindAcceptingOverload(OExpr * src, OValSymFunc *& rfunc) const
 {
   rfunc = nullptr;
+
+  if (object_ref)
+  {
+    auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src);
+    OValSymOverloadSet * ovset = (bound_ov ? bound_ov->ovset : nullptr);
+    if (!ovset || !functype)
+    {
+      return OFRM_NOT_OVERLOAD;
+    }
+
+    bool found = false;
+    for (OValSymFunc * fn : ovset->funcs)
+    {
+      if (!CanAcceptMethod(fn))
+      {
+        continue;
+      }
+      if (found)
+      {
+        rfunc = nullptr;
+        return OFRM_AMBIGUOUS;
+      }
+      rfunc = fn;
+      found = true;
+    }
+    return (found ? OFRM_UNIQUE_MATCH : OFRM_NO_MATCH);
+  }
 
   auto * varref = dynamic_cast<OLValueVar *>(src);
   auto * ovset = dynamic_cast<OValSymOverloadSet *>(varref ? varref->pvalsym : nullptr);
@@ -1077,6 +1185,21 @@ LlValue * OTypeFuncRef::GenerateConversion(OScope * scope, OExpr * src)
   if (!src)
   {
     return nullptr;
+  }
+
+  if (object_ref)
+  {
+    auto * src_ptr = dynamic_cast<OTypePointer *>(src->ResolvedType());
+    if (src_ptr && src_ptr->IsNullPointer())
+    {
+      return llvm::ConstantAggregateZero::get(GetLlType());
+    }
+    if (dynamic_cast<OBoundMethodExpr *>(src) || dynamic_cast<OBoundMethodOverloadExpr *>(src))
+    {
+      src->ptype = this;
+      return src->Generate(scope);
+    }
+    return src->Generate(scope);
   }
 
   if (auto * varref = dynamic_cast<OLValueVar *>(src))
@@ -1096,6 +1219,16 @@ LlValue * OTypeFuncRef::GenerateConversion(OScope * scope, OExpr * src)
 
 LlConst * OValueFuncRef::CreateLlConst()
 {
+  auto * fref_type = dynamic_cast<OTypeFuncRef *>(ptype ? ptype->ResolveAlias() : nullptr);
+  if (fref_type && fref_type->object_ref)
+  {
+    if (!is_null)
+    {
+      throw logic_error("Object FuncRef constants only support null values");
+    }
+    return llvm::ConstantAggregateZero::get(fref_type->GetLlType());
+  }
+
   if (is_null)
   {
     return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));

@@ -352,7 +352,38 @@ Virtual calls inside constructors and destructors should be rejected, or at mini
 
 ---
 
-## 11. `inherited` Calls
+## 11. Object Function References
+
+Object methods may be captured as bound function references:
+
+```dq
+type Callback = function(msg : cstring) of object;
+
+var obj <- OPrinter("log");
+var cb : Callback = obj.Print;
+cb("ready");
+```
+
+The `of object` form stores both the method function and the object receiver. The function type lists only the explicit method parameters; the hidden object receiver is not part of the source-level signature.
+
+An object function reference may be assigned `null` and may be compared with `null`:
+
+```dq
+var cb : Callback = null;
+if cb != null:
+  cb("ready");
+endif
+```
+
+Plain function references and object function references are distinct types. A module function cannot be assigned to `function(...) of object`, and a bound object method cannot be assigned to a plain `function(...)` reference.
+
+Binding `obj.Method` captures the resolved method implementation and the receiver address at assignment time. Calling the reference invokes that captured method directly with the captured receiver; it does not perform virtual dispatch at call time.
+
+Object function references do not own the receiver and do not extend its lifetime. Code must not call a bound method reference after the referenced object storage has been destroyed or gone out of scope.
+
+---
+
+## 12. `inherited` Calls
 
 The `inherited` keyword calls the nearest base implementation directly. It is a static base call, not a virtual dispatch.
 
@@ -395,7 +426,7 @@ The shorthand `inherited;` is not allowed for constructors or destructors. Lifec
 
 ---
 
-## 12. Inherited Constructor and Destructor Calls
+## 13. Inherited Constructor and Destructor Calls
 
 If an object inherits from a base object, every derived constructor must explicitly call one inherited base constructor:
 
@@ -515,7 +546,7 @@ Base destruction then follows the same rule recursively.
 
 ---
 
-## 13. Construction and Destruction Order
+## 14. Construction and Destruction Order
 
 Construction of a derived object follows this logical order:
 
@@ -542,7 +573,7 @@ For heap storage, memory is released only after the complete destructor chain ha
 
 ---
 
-## 14. Object Layout
+## 15. Object Layout
 
 A derived object uses base-prefix layout:
 
@@ -560,7 +591,7 @@ The storage location does not affect layout. Heap, stack, bss, and embedded obje
 
 ---
 
-## 15. Example
+## 16. Example
 
 ```dq
 object OData:

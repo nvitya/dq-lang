@@ -31,7 +31,7 @@ endobj
 var obj1 <- OBase('bss_obj');
 var obj2 : OBase = null;
 
-#define TEST_OBJCB = false
+#define TEST_OBJCB = true
 
 #if TEST_OBJCB
 

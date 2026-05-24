@@ -2916,12 +2916,8 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
       scf->SkipWhite();
       if (scf->CheckSymbol("object"))
       {
-        if (aemit_errors)
-        {
-          Error(DQERR_NOT_IMPLEMENTED_YET, "\"function(...) of object\"");
-        }
-        delete sigtype;
-        return nullptr;
+        ptype = new OTypeFuncRef(sigtype, "", true);
+        return ptype;
       }
 
       if (aemit_errors)
@@ -4415,8 +4411,8 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           }
           if (!scf->CheckSymbol("("))
           {
-            Error(DQERR_FUNC_CALL_PARENTH, membername);
-            return result;
+            result = new OBoundMethodExpr(method, memberbase);
+            continue;
           }
 
           OExpr * callexpr = ParseExprMethodCall(method, memberbase);
@@ -4434,8 +4430,8 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           }
           if (!scf->CheckSymbol("("))
           {
-            Error(DQERR_FUNC_CALL_PARENTH, membername);
-            return result;
+            result = new OBoundMethodOverloadExpr(ovset, memberbase);
+            continue;
           }
 
           OExpr * callexpr = ParseExprMethodOverloadCall(ovset, memberbase);

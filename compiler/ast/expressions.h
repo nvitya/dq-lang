@@ -305,6 +305,7 @@ public:
 };
 
 class OValSymFunc;
+class OValSymOverloadSet;
 
 class ONewExpr : public OExpr
 {
@@ -391,11 +392,39 @@ public:
   LlValue *       Generate(OScope * scope) override;
 };
 
+class OBoundMethodExpr : public OExpr
+{
+public:
+  OValSymFunc *   vsfunc;
+  OLValueExpr *   receiver;
+
+  /* ctor */      OBoundMethodExpr(OValSymFunc * avsfunc, OLValueExpr * areceiver);
+                 ~OBoundMethodExpr() override = default;
+  LlValue *       Generate(OScope * scope) override;
+  void            FoldChildren() override;
+  void            DeleteChildTree() override;
+};
+
+class OBoundMethodOverloadExpr : public OExpr
+{
+public:
+  OValSymOverloadSet * ovset;
+  OValSymFunc *        matched_func = nullptr;
+  OLValueExpr *        receiver;
+
+  /* ctor */      OBoundMethodOverloadExpr(OValSymOverloadSet * aovset, OLValueExpr * areceiver);
+                 ~OBoundMethodOverloadExpr() override = default;
+  LlValue *       Generate(OScope * scope) override;
+  void            FoldChildren() override;
+  void            DeleteChildTree() override;
+};
+
 class OIndirectCallExpr : public OExpr
 {
 public:
   OExpr *         callee;
   OTypeFunc *     sigtype;
+  bool            object_ref = false;
   vector<OExpr *> args;
 
   /* ctor */      OIndirectCallExpr(OExpr * acallee, OTypeFuncRef * acalltype);

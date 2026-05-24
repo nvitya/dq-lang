@@ -274,8 +274,9 @@ private:
 
 public:
   OTypeFunc *  functype = nullptr;
+  bool         object_ref = false;
 
-  OTypeFuncRef(OTypeFunc * afunctype, const string & aname = "");
+  OTypeFuncRef(OTypeFunc * afunctype, const string & aname = "", bool aobject_ref = false);
   ~OTypeFuncRef() override;
 
   LlType *   CreateLlType() override;
@@ -283,9 +284,11 @@ public:
   OValue *   CreateValue() override;
   LlValue *  GenerateConversion(OScope * scope, OExpr * src) override;
   bool       CanAccept(OType * srctype) const;
+  bool       CanAcceptMethod(OValSymFunc * srcfunc) const;
   EOverloadFuncRefMatch FindAcceptingOverload(OExpr * src, OValSymFunc *& rfunc) const;
   bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer) override;
 };
 
 extern string FuncTypeName(OTypeFunc * sigtype);
+extern string FuncRefTypeName(OTypeFunc * sigtype, bool object_ref);
 void ValidateModuleForwardFuncDecls(OModule * module);

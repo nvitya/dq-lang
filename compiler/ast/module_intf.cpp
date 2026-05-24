@@ -314,7 +314,7 @@ void OModuleIntf::WriteTypeDump(ostream & out, OType * atype, const string & ind
   }
   else if (auto * fref = dynamic_cast<OTypeFuncRef *>(atype))
   {
-    out << indent << "type " << fref->name << " = " << FuncTypeName(fref->functype) << "\n";
+    out << indent << "type " << fref->name << " = " << FuncRefTypeName(fref->functype, fref->object_ref) << "\n";
   }
   else if (auto * ftype = dynamic_cast<OTypeFunc *>(atype))
   {
@@ -1198,7 +1198,8 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
 
   if (atype_name.starts_with("function("))
   {
-    return new OTypeFuncRef(nullptr, atype_name);
+    bool object_ref = atype_name.ends_with(" of object");
+    return new OTypeFuncRef(nullptr, atype_name, object_ref);
   }
 
   return nullptr;

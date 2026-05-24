@@ -440,7 +440,8 @@ bool ODqCompAst::ResolveCommonFuncRefType(OExpr * leftexpr, OExpr * rightexpr, O
   OTypePointer * leftptr = dynamic_cast<OTypePointer *>(leftexpr->ResolvedType());
   OTypePointer * rightptr = dynamic_cast<OTypePointer *>(rightexpr->ResolvedType());
 
-  if (leftcb && rightcb && leftcb->functype && rightcb->functype
+  if (leftcb && rightcb && leftcb->object_ref == rightcb->object_ref
+      && leftcb->functype && rightcb->functype
       && leftcb->functype->MatchesSignature(rightcb->functype))
   {
     *rresulttype = leftexpr->ptype;
@@ -583,8 +584,16 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       EOverloadFuncRefMatch ovmatch = (cbdst ? cbdst->FindAcceptingOverload(src, matched_func) : OFRM_NOT_OVERLOAD);
       if (OFRM_UNIQUE_MATCH == ovmatch)
       {
-        delete src;
-        *rexpr = new OExprTypeConv(dsttype, new OLValueVar(matched_func));
+        if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
+        {
+          bound_ov->matched_func = matched_func;
+          *rexpr = new OExprTypeConv(dsttype, src);
+        }
+        else
+        {
+          delete src;
+          *rexpr = new OExprTypeConv(dsttype, new OLValueVar(matched_func));
+        }
         FoldExprTreeAfterTypeRewrite(rexpr);
         return true;
       }

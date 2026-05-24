@@ -613,6 +613,33 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
 
+  auto object_funcref_type = [](OExpr * expr) -> OTypeFuncRef *
+  {
+    auto * fref = dynamic_cast<OTypeFuncRef *>(expr ? expr->ResolvedType() : nullptr);
+    return (fref && fref->object_ref ? fref : nullptr);
+  };
+
+  auto * left_obj_fref = object_funcref_type(left);
+  auto * right_obj_fref = object_funcref_type(right);
+  if (left_obj_fref || right_obj_fref)
+  {
+    if ((COMPOP_EQ != op) && (COMPOP_NE != op))
+    {
+      throw logic_error("Object function references only support equality comparison");
+    }
+
+    LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+    LlValue * ll_left_func = (left_obj_fref ? ll_builder.CreateExtractValue(ll_left, {0}, "mcmp.lfn") : ll_null);
+    LlValue * ll_left_recv = (left_obj_fref ? ll_builder.CreateExtractValue(ll_left, {1}, "mcmp.lrecv") : ll_null);
+    LlValue * ll_right_func = (right_obj_fref ? ll_builder.CreateExtractValue(ll_right, {0}, "mcmp.rfn") : ll_null);
+    LlValue * ll_right_recv = (right_obj_fref ? ll_builder.CreateExtractValue(ll_right, {1}, "mcmp.rrecv") : ll_null);
+
+    LlValue * ll_func_eq = ll_builder.CreateICmpEQ(ll_left_func, ll_right_func);
+    LlValue * ll_recv_eq = ll_builder.CreateICmpEQ(ll_left_recv, ll_right_recv);
+    LlValue * ll_eq = ll_builder.CreateAnd(ll_func_eq, ll_recv_eq);
+    return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
+  }
+
   OType * optype = left->ptype;
 
   if (TK_FLOAT == optype->kind)
@@ -1306,6 +1333,65 @@ OCallExpr::~OCallExpr()
   args.clear();
 }
 
+static OTypeFunc * CloneMethodVisibleSignature(OValSymFunc * vsfunc)
+{
+  OTypeFunc * srcsig = dynamic_cast<OTypeFunc *>(vsfunc ? vsfunc->ptype : nullptr);
+  OTypeFunc * result = new OTypeFunc(vsfunc ? vsfunc->name : "method");
+  if (!srcsig)
+  {
+    return result;
+  }
+
+  result->rettype = srcsig->rettype;
+  result->has_varargs = srcsig->has_varargs;
+  for (size_t i = 1; i < srcsig->params.size(); ++i)
+  {
+    OFuncParam * srcpar = srcsig->params[i];
+    result->AddParam(srcpar->name, srcpar->ptype, srcpar->mode);
+  }
+  return result;
+}
+
+static LlFuncType * CreateObjectFuncRefLlCallType(OTypeFunc * sigtype)
+{
+  vector<LlType *> ll_partypes;
+  ll_partypes.push_back(llvm::PointerType::get(ll_ctx, 0));
+  if (sigtype)
+  {
+    for (OFuncParam * fpar : sigtype->params)
+    {
+      ll_partypes.push_back(fpar->GetLlArgType()->GetLlType());
+    }
+  }
+
+  LlType * ll_rettype = llvm::Type::getVoidTy(ll_ctx);
+  if (sigtype && sigtype->rettype)
+  {
+    ll_rettype = sigtype->ResolvedRetType()->GetLlType();
+  }
+
+  return LlFuncType::get(ll_rettype, ll_partypes, sigtype && sigtype->has_varargs);
+}
+
+static LlValue * BuildObjectFuncRefValue(OTypeFuncRef * fref_type, OValSymFunc * vsfunc,
+                                         OLValueExpr * receiver, OScope * scope)
+{
+  if (!fref_type || !fref_type->object_ref || !vsfunc || !receiver)
+  {
+    throw runtime_error("BuildObjectFuncRefValue(): invalid bound method reference");
+  }
+  if (!vsfunc->ll_func)
+  {
+    throw runtime_error("BuildObjectFuncRefValue(): Unknown method: " + vsfunc->name);
+  }
+
+  LlValue * ll_receiver = receiver->GenerateObjectAddress(scope);
+  LlValue * ll_value = llvm::UndefValue::get(fref_type->GetLlType());
+  ll_value = ll_builder.CreateInsertValue(ll_value, vsfunc->ll_func, {0}, "mref.fn");
+  ll_value = ll_builder.CreateInsertValue(ll_value, ll_receiver, {1}, "mref");
+  return ll_value;
+}
+
 /* ctor */ OFuncRefExpr::OFuncRefExpr(OValSymFunc * avsfunc, OType * atype)
 {
   vsfunc = avsfunc;
@@ -1324,10 +1410,63 @@ LlValue * OFuncRefExpr::Generate(OScope * scope)
   return vsfunc->ll_func;
 }
 
+/* ctor */ OBoundMethodExpr::OBoundMethodExpr(OValSymFunc * avsfunc, OLValueExpr * areceiver)
+{
+  vsfunc = avsfunc;
+  receiver = areceiver;
+  ptype = new OTypeFuncRef(CloneMethodVisibleSignature(vsfunc), "", true);
+}
+
+LlValue * OBoundMethodExpr::Generate(OScope * scope)
+{
+  OTypeFuncRef * fref_type = dynamic_cast<OTypeFuncRef *>(ptype ? ptype->ResolveAlias() : nullptr);
+  return BuildObjectFuncRefValue(fref_type, vsfunc, receiver, scope);
+}
+
+void OBoundMethodExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+}
+
+void OBoundMethodExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+}
+
+/* ctor */ OBoundMethodOverloadExpr::OBoundMethodOverloadExpr(OValSymOverloadSet * aovset, OLValueExpr * areceiver)
+{
+  ovset = aovset;
+  receiver = areceiver;
+  ptype = g_builtins->type_func;
+}
+
+LlValue * OBoundMethodOverloadExpr::Generate(OScope * scope)
+{
+  OTypeFuncRef * fref_type = dynamic_cast<OTypeFuncRef *>(ptype ? ptype->ResolveAlias() : nullptr);
+  return BuildObjectFuncRefValue(fref_type, matched_func, receiver, scope);
+}
+
+void OBoundMethodOverloadExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+}
+
+void OBoundMethodOverloadExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+}
+
 /* ctor */ OIndirectCallExpr::OIndirectCallExpr(OExpr * acallee, OTypeFuncRef * acalltype)
 {
   callee = acallee;
   sigtype = (acalltype ? acalltype->functype : nullptr);
+  object_ref = acalltype && acalltype->object_ref;
   ptype = (sigtype ? sigtype->rettype : nullptr);
 }
 
@@ -1338,10 +1477,18 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
     throw runtime_error("OIndirectCallExpr::Generate(): Missing callee or signature");
   }
 
-  LlValue * ll_callee = callee->Generate(scope);
-  if (!ll_callee)
+  LlValue * ll_callee_value = callee->Generate(scope);
+  if (!ll_callee_value)
   {
     throw runtime_error("OIndirectCallExpr::Generate(): Failed to generate callee");
+  }
+
+  LlValue * ll_callee = ll_callee_value;
+  LlValue * ll_receiver = nullptr;
+  if (object_ref)
+  {
+    ll_callee = ll_builder.CreateExtractValue(ll_callee_value, {0}, "mcb.fn");
+    ll_receiver = ll_builder.CreateExtractValue(ll_callee_value, {1}, "mcb.receiver");
   }
 
   LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
@@ -1362,6 +1509,10 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   ll_builder.SetInsertPoint(ok_bb);
 
   vector<LlValue *> ll_args;
+  if (object_ref)
+  {
+    ll_args.push_back(ll_receiver);
+  }
   for (size_t i = 0; i < args.size(); ++i)
   {
     LlValue * val = args[i]->Generate(scope);
@@ -1390,7 +1541,9 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
-  return ll_builder.CreateCall(static_cast<LlFuncType *>(sigtype->GetLlType()), ll_callee, ll_args);
+  LlFuncType * ll_calltype = (object_ref ? CreateObjectFuncRefLlCallType(sigtype)
+                                         : static_cast<LlFuncType *>(sigtype->GetLlType()));
+  return ll_builder.CreateCall(ll_calltype, ll_callee, ll_args);
 }
 
 void OIndirectCallExpr::FoldChildren()

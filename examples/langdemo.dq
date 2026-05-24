@@ -52,7 +52,7 @@ function ObjTest():
   obase.Print();
   ochild.Print();
 
-  //printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &(obase.name[0])));
+  printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]));
 
   delete ochild;
 endfunc
@@ -102,9 +102,7 @@ function *Main() -> int:
   printf("@langdemo_mod.CONST1 = %d\n", CONST1);
   printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2);
 
-  var pc : ^cchar = iif(false, "OChild is null!", "ochild is not null");
-  //var pc : ^cchar = "hali";
-  printf("ochild.name: %s \n", pc);
+  printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]));
 
   ObjTest();
 
@@ -128,8 +126,10 @@ Hello World!
 The language is friendly.
 @langdemo_mod.CONST1 = 42
 @langdemo_mod.CONST2 = 3.140
+ochild.name: OChild is null!
 OBase: cnt1=1, cnt2=10
 OChild: cnt1=1, cnt2=11
+ochild.name: OChild
 OChild destroy
  0:
  1: 0

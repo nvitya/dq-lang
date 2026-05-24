@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.25"
+#define DQ_COMPILER_VERSION  "0.11.26"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.26:
+  - cstring initialization fix
 v0.11.25:
   - Object comparison fix, constructorless object handling fix
 v0.11.24:

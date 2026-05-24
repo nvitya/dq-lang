@@ -78,6 +78,130 @@ LlDiType * OTypeCString::CreateDiType()
   }
 }
 
+static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
+{
+  OTypeCString * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
+  if (!srctype)
+  {
+    throw logic_error("CString copy source must have cstring type");
+  }
+
+  if (srctype->maxlen > 0)
+  {
+    LlValue * srcaddr = nullptr;
+    if (auto * srclval = dynamic_cast<OLValueExpr *>(srcexpr))
+    {
+      srcaddr = srclval->GenerateAddress(scope);
+    }
+    else
+    {
+      auto * src_alloca = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+      src_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(srctype)));
+      srcaddr = src_alloca;
+      ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);
+    }
+
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "cstr.src.ptr");
+    rsrclimit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), srctype->maxlen);
+    return;
+  }
+
+  LlValue * ll_desc = srcexpr->Generate(scope);
+  rsrcptr = ll_builder.CreateExtractValue(ll_desc, {0}, "cstr.src.ptr");
+  rsrclimit = ll_builder.CreateExtractValue(ll_desc, {1}, "cstr.src.size");
+}
+
+static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCString * dsttype, OExpr * srcexpr)
+{
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_one = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1);
+  LlValue * ll_i8_zero = llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 0);
+  LlValue * ll_dstptr = ll_builder.CreateGEP(dsttype->GetLlType(), dstdaddr, {ll_zero, ll_zero}, "cstr.dst.ptr");
+
+  if (dsttype->maxlen <= 1)
+  {
+    LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_zero}, "cstr.dst.null");
+    ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
+    return;
+  }
+
+  LlValue * ll_srcptr = nullptr;
+  LlValue * ll_srclimit = nullptr;
+  GetCStringCopySource(scope, srcexpr, ll_srcptr, ll_srclimit);
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * entry_bb = ll_builder.GetInsertBlock();
+  LlBasicBlock * cond_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.cond", ll_func);
+  LlBasicBlock * load_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.load", ll_func);
+  LlBasicBlock * store_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.store", ll_func);
+  LlBasicBlock * end_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.end", ll_func);
+
+  LlValue * ll_copy_limit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), dsttype->maxlen - 1);
+
+  ll_builder.CreateBr(cond_bb);
+
+  ll_builder.SetInsertPoint(cond_bb);
+  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlType::getInt64Ty(ll_ctx), 2, "cstr.copy.i");
+  ll_i->addIncoming(ll_zero, entry_bb);
+  LlValue * ll_dst_room = ll_builder.CreateICmpULT(ll_i, ll_copy_limit, "cstr.copy.dst_room");
+  LlValue * ll_src_room = ll_builder.CreateICmpULT(ll_i, ll_srclimit, "cstr.copy.src_room");
+  LlValue * ll_can_copy = ll_builder.CreateAnd(ll_dst_room, ll_src_room, "cstr.copy.can_copy");
+  ll_builder.CreateCondBr(ll_can_copy, load_bb, end_bb);
+
+  ll_builder.SetInsertPoint(load_bb);
+  LlValue * ll_srcchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_srcptr, {ll_i}, "cstr.src.ch.ptr");
+  LlValue * ll_srcch = ll_builder.CreateLoad(LlType::getInt8Ty(ll_ctx), ll_srcchptr, "cstr.src.ch");
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_srcch, ll_i8_zero, "cstr.src.is_null");
+  ll_builder.CreateCondBr(ll_is_null, end_bb, store_bb);
+
+  ll_builder.SetInsertPoint(store_bb);
+  LlValue * ll_dstchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_i}, "cstr.dst.ch.ptr");
+  ll_builder.CreateStore(ll_srcch, ll_dstchptr);
+  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, ll_one, "cstr.copy.i.next");
+  ll_i->addIncoming(ll_i_next, store_bb);
+  ll_builder.CreateBr(cond_bb);
+
+  ll_builder.SetInsertPoint(end_bb);
+  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlType::getInt64Ty(ll_ctx), 2, "cstr.term.i");
+  ll_term_index->addIncoming(ll_i, cond_bb);
+  ll_term_index->addIncoming(ll_i, load_bb);
+  LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_term_index}, "cstr.dst.null");
+  ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
+}
+
+bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr)
+{
+  if (maxlen <= 0)
+  {
+    return false;
+  }
+
+  if (!srcexpr)
+  {
+    LlConst * ll_zero = llvm::ConstantAggregateZero::get(GetLlType());
+    ll_builder.CreateStore(ll_zero, dstdaddr);
+    return true;
+  }
+
+  if (auto * strlit = dynamic_cast<OCStringLit *>(srcexpr))
+  {
+    OValueCString val(this, maxlen);
+    val.value = strlit->value;
+    LlConst * ll_const = val.CreateLlConst();
+    ll_builder.CreateStore(ll_const, dstdaddr);
+    return true;
+  }
+
+  if (dynamic_cast<OTypeCString *>(srcexpr->ResolvedType()))
+  {
+    EmitSizedCStringCopy(scope, dstdaddr, this, srcexpr);
+    return true;
+  }
+
+  return false;
+}
+
 // OValueCString
 
 LlConst * OValueCString::CreateLlConst()

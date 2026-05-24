@@ -96,6 +96,7 @@ public:
     return new OValueCString(this, maxlen);
   }
 
+  bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
 };

@@ -23,6 +23,7 @@
 #include "dqm_if.h"
 #include "expressions.h"
 #include "otype_array.h"
+#include "otype_cstring.h"
 #include "otype_func.h"
 #include "otype_int.h"
 #include "otype_object.h"
@@ -847,6 +848,24 @@ OValSym::~OValSym()
 bool OValSym::IsObjectType() const
 {
   return dynamic_cast<OTypeObject *>(ptype ? ptype->ResolveAlias() : nullptr);
+}
+
+bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
+{
+  if (!field_init_expr)
+  {
+    return false;
+  }
+
+  OType * storage_type = GetStorageType()->ResolveAlias();
+  if (auto * cstrtype = dynamic_cast<OTypeCString *>(storage_type))
+  {
+    return cstrtype->GenerateStore(scope, ll_field_addr, field_init_expr);
+  }
+
+  LlValue * ll_value = field_init_expr->Generate(scope);
+  ll_builder.CreateStore(ll_value, ll_field_addr);
+  return true;
 }
 
 OType * OValSym::GetStorageType() const

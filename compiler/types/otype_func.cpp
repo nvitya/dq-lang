@@ -853,8 +853,7 @@ void OValSymFunc::GenerateFuncBody()
       }
       else if (member->field_init_expr)
       {
-        LlValue * ll_value = member->field_init_expr->Generate(body->scope);
-        ll_builder.CreateStore(ll_value, ll_field_addr);
+        member->GenerateFieldInitStore(body->scope, ll_field_addr);
       }
     }
   };

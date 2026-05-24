@@ -57,10 +57,6 @@ endfunc
 
 object OTest:
   name : cstring[32] = "OTest-Name-inline";
-
-  function *Create():
-    //name = "OTest-name-constr";
-  endfunc
 endobj
 
 var g_obj : OTest = null;
@@ -123,7 +119,7 @@ function *Main() -> int:
 
   printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0])); //?check('g_obj.name', 'obj is null!')
   g_obj = new OTest();
-  //printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0]));  //x?check('g_obj.name/2', 'OTest-Name-inline')
+  printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0]));  //?check('g_obj.name/2', 'OTest-Name-inline')
 
   return 0;
 endfunc

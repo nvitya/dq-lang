@@ -44,11 +44,7 @@ var obase   <- OBase('OBase');     // '<-' = embedded allocation (global data se
 var ochild  : OChild = null;
 
 function ObjTest():
-  printf('Object Inheritance Test\n');
-
   ochild = new OChild('OChild');
-
-  printf('sizeof(OBase) = %d\n', sizeof(OBase));
 
   obase.Count();
   ochild.Count();

@@ -108,8 +108,9 @@ function *Main() -> int:
     printf('\n');
   endfor
 
-  printf('for-while: ');
-  for i : int = 0  while i < 3  { printf(' %d', i); }
+  var arr : [5]int = [2, 3, 5, 7, 11];
+  printf('primes:');
+  for i : int = 0  while i < len(arr)  { printf(' %d', arr[i]); }
   printf('\n');
 
   return 0;
@@ -130,6 +131,6 @@ OChild destroy
  3: 0 2 4
  4: 0 2 4 6
  5: 0 2 4 6 8
-for-while:  0 1 2
+primes: 2 3 5 7 11
 
 */

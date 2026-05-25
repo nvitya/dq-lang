@@ -1347,10 +1347,34 @@ void ODqCompParser::ParseRootTypeDecl()
   }
 }
 
+void ODqCompParser::ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer)
+{
+  scf->SkipWhite();
+  if (scf->CheckSymbol("{"))
+  {
+    rblock_closer = "}";
+    return;
+  }
+
+  if (scf->CheckSymbol(":"))
+  {
+    rblock_closer = end_keyword;
+    return;
+  }
+
+  Error(DQERR_STMTBLK_START_MISSING);
+  rblock_closer = end_keyword;
+}
+
+bool ODqCompParser::CheckCompoundBlockEnd(const string & block_closer)
+{
+  return !block_closer.empty() && scf->CheckSymbol(block_closer.c_str());
+}
+
 void ODqCompParser::ParseStructDecl()
 {
   // note: "struct" is already consumed
-  // syntax form: "struct Name:\n  field : type;\n  ...\nendstruct"
+  // syntax form: "struct Name:\n  field : type;\n  ...\nendstruct" or "struct Name { ... }"
 
   string sname;
   scf->SkipWhite();
@@ -1371,11 +1395,8 @@ void ODqCompParser::ParseStructDecl()
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
   }
 
-  scf->SkipWhite();
-  if (not scf->CheckSymbol(":"))
-  {
-    Error(DQERR_STMTBLK_START_MISSING);
-  }
+  string block_closer;
+  ParseCompoundBlockStart("endstruct", block_closer);
 
   OScPosition mempos;
   string membername;
@@ -1384,7 +1405,7 @@ void ODqCompParser::ParseStructDecl()
   {
     scf->SkipWhite();
 
-    if (scf->CheckSymbol("endstruct"))
+    if (CheckCompoundBlockEnd(block_closer))
     {
       break;
     }
@@ -1396,7 +1417,7 @@ void ODqCompParser::ParseStructDecl()
     }
 
     scf->SkipWhite();
-    if (scf->CheckSymbol("endstruct"))
+    if (CheckCompoundBlockEnd(block_closer))
     {
       if (attr->flags)
       {
@@ -2200,7 +2221,7 @@ bool ODqCompParser::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr 
 void ODqCompParser::ParseObjectDecl()
 {
   // note: "object" is already consumed
-  // syntax form: "object Name:\n  field : type;  function Method(...): ... endfunc\nendobj"
+  // syntax form: "object Name:\n  field : type;  function Method(...): ... endfunc\nendobj" or "object Name { ... }"
 
   string sname;
   scf->SkipWhite();
@@ -2252,11 +2273,8 @@ void ODqCompParser::ParseObjectDecl()
     }
   }
 
-  scf->SkipWhite();
-  if (not scf->CheckSymbol(":"))
-  {
-    Error(DQERR_STMTBLK_START_MISSING);
-  }
+  string block_closer;
+  ParseCompoundBlockStart("endobj", block_closer);
 
   OScPosition mempos;
   string membername;
@@ -2266,7 +2284,7 @@ void ODqCompParser::ParseObjectDecl()
   {
     scf->SkipWhite();
 
-    if (scf->CheckSymbol("endobj"))
+    if (CheckCompoundBlockEnd(block_closer))
     {
       break;
     }
@@ -2278,7 +2296,7 @@ void ODqCompParser::ParseObjectDecl()
     }
 
     scf->SkipWhite();
-    if (scf->CheckSymbol("endobj"))
+    if (CheckCompoundBlockEnd(block_closer))
     {
       if (attr->flags)
       {

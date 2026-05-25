@@ -153,6 +153,8 @@ protected:
   bool    ParseSingleAttribute(const string & attrname);
   bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
   bool    ParseAttrStringArg(const string & attrname, string & rvalue);
+  void    ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer);
+  bool    CheckCompoundBlockEnd(const string & block_closer);
   void    RecoverFailedFunctionDecl();
   bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);

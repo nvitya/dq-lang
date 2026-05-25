@@ -15,6 +15,8 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.11.27:
+  - Allow braces block mode for object and struct
 v0.11.26:
   - cstring initialization fix
 v0.11.25:

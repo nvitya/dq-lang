@@ -1,0 +1,142 @@
+use libc/stdio;
+use ./langdemo_mod as ldm  only(CONST1);  // only(), exclude() and "--" control global scope merging
+
+#if false
+
+//Contents of the "langdemo_mod.?"
+
+const CONST1 : int = 42;
+const CONST2 : float = 3.14;
+
+#endif
+
+object OBase {
+  cnt1 : int = 0;
+  cnt2 : int = 10;
+  name : cstring[32];
+
+  function *Create(aname : cstring) {  // constructor
+    name = aname;
+  }
+
+  function *Destroy() {
+    @.printf("%s destroy\n", &name[0]);
+  }
+
+  function Count() [[virtual]] {
+    cnt1 += 1;
+  }
+
+  function Print() {
+    @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2);
+  }
+}
+
+object OChild(OBase) {
+  function Count() [[override]] {
+    inherited;
+    cnt2 += 1;
+  }
+}
+
+var obase   <- OBase('OBase');     // '<-' = embedded allocation (global data segment here)
+                                   // no automatic destructor call for global embedded objects
+var ochild  : OChild = null;
+
+function ObjTest() {
+  ochild = new OChild('OChild');
+
+  obase.Count();
+  ochild.Count();
+
+  obase.Print();
+  ochild.Print();
+
+  printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]));
+
+  delete ochild;
+}
+
+function cstr_add(dst : cstring, src : cstring) {
+  var ps     : ^cchar = &src[0];
+  var psend  : ^cchar = ps[sizeof(src)];  // [] does not dereference
+  var pd     : ^cchar = &dst[0];
+  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
+  pd += len(dst);
+  var pdstart : ^cchar = pd;
+
+  while pd < pdend  and ps < psend  and ps^ <> 0 {
+    pd^ = ps^;
+    pd += 1;
+    ps += 1;
+  }
+
+  if pd <> pdstart {
+    pd^ = 0; // terminate
+  }
+}
+
+[[external]] function putchar(c : cchar) -> int;  // from libc
+
+function WriteStr(s : cstring) {
+  var pc : ^cchar = &s[0];
+  while pc^ <> 0 {
+    putchar(pc^);
+    pc += 1;
+  }
+}
+
+function *Main() -> int {
+
+  var s : cstring[128] = "";
+  cstr_add(s, "Hello");
+  cstr_add(s, " World!\n");
+  WriteStr(s);
+
+  if 3 / 2 * 10 == 15 {
+    printf('The language is friendly.\n');
+  } else {
+    printf('The language is evil.\n');
+  }
+
+  printf("@langdemo_mod.CONST1 = %d\n", CONST1);
+  printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2);
+
+  printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]));
+
+  ObjTest();
+
+  for i : int = 0 to 5 {
+    printf(' %d:', i);
+    for j : int = 0  count i  step 2 { printf(' %d', j); }
+    printf('\n');
+  }
+
+  var arr : [5]int = [2, 3, 5, 7, 11];
+  printf('primes:');
+  for i : int = 0  while i < len(arr)  { printf(' %d', arr[i]); }
+  printf('\n');
+
+  return 0;
+}
+
+/* OUTPUT:
+
+Hello World!
+The language is friendly.
+@langdemo_mod.CONST1 = 42
+@langdemo_mod.CONST2 = 3.140
+ochild.name: OChild is null!
+OBase: cnt1=1, cnt2=10
+OChild: cnt1=1, cnt2=11
+ochild.name: OChild
+OChild destroy
+ 0:
+ 1: 0
+ 2: 0 2
+ 3: 0 2 4
+ 4: 0 2 4 6
+ 5: 0 2 4 6 8
+primes: 2 3 5 7 11
+
+*/

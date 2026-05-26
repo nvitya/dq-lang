@@ -18,6 +18,9 @@
       "include": "#numbers"
     },
     {
+      "include": "#compound-declaration"
+    },
+    {
       "include": "#function-declaration"
     },
     {
@@ -222,7 +225,7 @@
       "patterns": [
         {
           "name": "meta.function.dq",
-          "begin": "\\b(function)\\s+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)([A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+          "begin": "\\b(function)\\s+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)(\\*?[A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
           "beginCaptures": {
             "1": {
               "name": "keyword.control.dq"
@@ -237,8 +240,11 @@
               "name": "punctuation.section.parameters.begin.dq"
             }
           },
-          "end": "(?=[:;])",
+          "end": "(?=[:;{])",
           "patterns": [
+            {
+              "include": "#attributes"
+            },
             {
               "name": "punctuation.section.parameters.end.dq",
               "match": "\\)"
@@ -260,6 +266,32 @@
               "match": "->|\\^|:"
             }
           ]
+        }
+      ]
+    },
+    "compound-declaration": {
+      "patterns": [
+        {
+          "name": "meta.compound.dq",
+          "begin": "\\b(struct|object)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(\\()\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(\\)))?",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.dq"
+            },
+            "2": {
+              "name": "entity.name.type.dq"
+            },
+            "3": {
+              "name": "punctuation.section.inheritance.begin.dq"
+            },
+            "4": {
+              "name": "entity.other.inherited-class.dq"
+            },
+            "5": {
+              "name": "punctuation.section.inheritance.end.dq"
+            }
+          },
+          "end": "(?=[:{])"
         }
       ]
     },
@@ -329,6 +361,10 @@
     },
     "operators": {
       "patterns": [
+        {
+          "name": "punctuation.section.block.dq",
+          "match": "[{}]"
+        },
         {
           "name": "keyword.operator.dq",
           "match": "\\[\\[|\\]\\]|->|<>|<=|>=|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&<>@.:]"

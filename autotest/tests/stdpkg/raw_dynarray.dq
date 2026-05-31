@@ -1,0 +1,132 @@
+// ORawDynArray regression tests
+
+use libc/stdio;
+use rtl/dynarray;
+
+var global_arr <- ORawDynArray(sizeof(int), 1);
+
+function PrintRaw(label : ^cchar, arr : ORawDynArray):
+  printf("%s length %li capacity %li data", label, arr.length, arr.capacity);
+
+  var i : uint = 0;
+  while i < arr.length:
+    printf(" %li", ^int(arr.GetElemPtr(i))^);
+    i += 1;
+  endwhile
+
+  printf("\n");
+endfunc
+
+function PrintPtrState(label : ^cchar, ptr : pointer):
+  if ptr == null:
+    printf("%s null\n", label);
+  else:
+    printf("%s set\n", label);
+  endif
+endfunc
+
+function FillUnsetTail(arr : ORawDynArray):
+  ^int(arr.GetElemPtr(6))^ = 600;
+  ^int(arr.GetElemPtr(7))^ = 700;
+  ^int(arr.GetElemPtr(8))^ = 800;
+endfunc
+
+function RunCoreOps(label : ^cchar, arr : ORawDynArray):
+  printf("%s start\n", label);
+  PrintRaw("initial", arr);
+
+  var first : [5]int = [10, 20, 30, 40, 50];
+  arr.Append(&first[0], 5);
+  PrintRaw("append5", arr);
+
+  var next : [2]int = [60, 70];
+  arr.Append(&next[0], 2);
+  PrintRaw("append2", arr);
+
+  arr.Delete(2, 2);
+  PrintRaw("delete-mid", arr);
+
+  var ins : [2]int = [111, 222];
+  arr.Insert(1, &ins[0], 2);
+  PrintRaw("insert-mid", arr);
+
+  var tail : int = 333;
+  arr.Insert(100, &tail, 1);
+  PrintRaw("insert-tail", arr);
+
+  var growins : [2]int = [444, 555];
+  arr.Insert(3, &growins[0], 2);
+  PrintRaw("insert-grow", arr);
+
+  arr.SetCapacity(6);
+  PrintRaw("setcap6", arr);
+
+  arr.SetLength(9);
+  FillUnsetTail(arr);
+  PrintRaw("setlen9", arr);
+
+  arr.Clear();
+  PrintRaw("clear", arr);
+
+  var compact_src : [3]int = [1000, 2000, 3000];
+  arr.Append(&compact_src[0], 3);
+  arr.Reserve(20);
+  PrintRaw("reserve20", arr);
+
+  arr.Compact();
+  PrintRaw("compact", arr);
+
+  arr.Append(&tail, 0);
+  arr.Insert(1, &tail, 0);
+  arr.Delete(99, 1);
+  arr.Delete(1, 0);
+  PrintRaw("noops", arr);
+
+  PrintPtrState("elem-in", arr.GetElemPtr(2));
+  PrintPtrState("elem-out", arr.GetElemPtr(3));
+endfunc
+
+function *Main() -> int:
+  printf("DQ ORawDynArray test\n"); //?check("DQ ORawDynArray test")
+
+  RunCoreOps("global embedded", global_arr); //?check("global embedded start")
+                                             //?check("initial length 0 capacity 1 data")
+                                             //?check("append5 length 5 capacity 8 data 10 20 30 40 50")
+                                             //?check("append2 length 7 capacity 8 data 10 20 30 40 50 60 70")
+                                             //?check("delete-mid length 5 capacity 8 data 10 20 50 60 70")
+                                             //?check("insert-mid length 7 capacity 8 data 10 111 222 20 50 60 70")
+                                             //?check("insert-tail length 8 capacity 8 data 10 111 222 20 50 60 70 333")
+                                             //?check("insert-grow length 10 capacity 16 data 10 111 222 444 555 20 50 60 70 333")
+                                             //?check("setcap6 length 6 capacity 6 data 10 111 222 444 555 20")
+                                             //?check("setlen9 length 9 capacity 9 data 10 111 222 444 555 20 600 700 800")
+                                             //?check("clear length 0 capacity 9 data")
+                                             //?check("reserve20 length 3 capacity 20 data 1000 2000 3000")
+                                             //?check("compact length 3 capacity 3 data 1000 2000 3000")
+                                             //?check("noops length 3 capacity 3 data 1000 2000 3000")
+                                             //?check("elem-in set")
+                                             //?check("elem-out null")
+
+  var local_arr <- ORawDynArray(sizeof(int), 1);
+  RunCoreOps("local embedded", local_arr); //?check("local embedded start")
+                                           //?check("compact length 3 capacity 3 data 1000 2000 3000")
+                                           //?check("elem-out null")
+
+  var heap_arr : ORawDynArray = new ORawDynArray(sizeof(int), 2);
+  var heap_src : [4]int = [7, 8, 9, 10];
+  heap_arr.Append(&heap_src[0], 4);
+  printf("heap length %li capacity %li data", heap_arr.length, heap_arr.capacity);
+  var hi : uint = 0;
+  while hi < heap_arr.length:
+    printf(" %li", ^int(heap_arr.GetElemPtr(hi))^);
+    hi += 1;
+  endwhile
+  printf("\n"); //?check("heap length 4 capacity 4 data 7 8 9 10")
+  delete heap_arr = null;
+  if heap_arr == null:
+    printf("heap delete null\n"); //?check("heap delete null")
+  else:
+    printf("heap delete set\n");
+  endif
+
+  return 0;
+endfunc

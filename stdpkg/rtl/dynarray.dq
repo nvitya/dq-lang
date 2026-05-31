@@ -1,22 +1,143 @@
 // DQ dynamic arrays
 
-// mutable!
-
-object ODqDynArray:
+object ORawDynArray:
 public
-  elemsize : uint;
-  size     : uint;
+  dataptr   : pointer;
+  length    : uint;
+  capacity  : uint;
+  elemsize  : uint;
 
-  dataptr  : pointer;
+  function *Create(aelemsize : uint, acapacity : uint = 1);
+  function *Destroy();
 
-  function *Create(aelemsize : uint, asize : int):
-    elemsize = aelemsize;
-    size     = asize;
+  function GetElemPtr(index : uint) -> pointer;
 
-    dataptr = @sys.MemAlloc(size * elemsize);
-  endfunc
+  function Clear();    // does not change the capacity
+  function SetLength(new_length : uint);
+  function SetCapacity(new_capacity : uint);  // truncates the length if necessary
+  function Reserve(min_capacity : uint);
+  function Compact();  // sets the capacity to the actual length
 
-  function *Destroy():
-    @sys.MemFree(dataptr);
-  endfunc
+  function Append(asrc : pointer, acount : uint = 1);
+  function Insert(index : uint, src : pointer, acount : uint = 1);
+  function Delete(index : uint, acount : int = 1);
 endobj
+
+implementation
+
+
+function ORawDynArray.Create(aelemsize : uint, acapacity : uint = 1):
+  elemsize = aelemsize;
+  length    = 0;
+  capacity  = acapacity;
+  dataptr = @sys.MemAlloc(capacity * elemsize);
+endfunc
+
+function ORawDynArray.Destroy():
+  if dataptr <> null:
+    @sys.MemFree(dataptr);
+  endif
+endfunc
+
+function ORawDynArray.GetElemPtr(index : uint) -> pointer:
+  if index < length:
+    return ^byte(dataptr)[index * elemsize];
+  else:
+    return null;
+  endif
+endfunc
+
+function ORawDynArray.Clear():
+  length = 0;
+endfunc
+
+function ORawDynArray.SetLength(new_length : uint):
+  if new_length > capacity:
+    Reserve(new_length);  // reallocate
+  endif
+  length = new_length;
+endfunc
+
+function ORawDynArray.SetCapacity(new_capacity : uint):
+  if new_capacity <> capacity:
+    @sys.MemReallocRef(dataptr, new_capacity * elemsize);
+    capacity = new_capacity;
+    if length > new_capacity:
+      length = new_capacity;
+    endif
+  endif
+endfunc
+
+function ORawDynArray.Reserve(min_capacity : uint):
+  if min_capacity > capacity: // reallocate required ?
+    @sys.MemReallocRef(dataptr, min_capacity * elemsize);
+    capacity = min_capacity;
+  endif
+endfunc
+
+function ORawDynArray.Compact():
+  if capacity > length:
+    @sys.MemReallocRef(dataptr, length * elemsize);
+    capacity = length;
+  endif
+endfunc
+
+function ORawDynArray.Append(asrc : pointer, acount : uint = 1):
+  if acount < 1:
+    return;
+  endif
+
+  var new_len : uint = length + acount;
+  if new_len > capacity:
+    var new_cap : uint = capacity * 2;
+    while new_cap < new_len:
+      new_cap *= 2;
+    endwhile
+    Reserve(new_cap);
+  endif
+
+  // append the new elements to the end
+  @sys.MemCopy(^byte(dataptr)[length * elemsize], asrc, elemsize * acount);
+  length += acount;
+endfunc
+
+function ORawDynArray.Insert(index : uint, src : pointer, acount : uint = 1):
+  if acount < 1:
+    return;
+  endif
+
+  // re-allocate the memory when necessary
+  var new_len : uint = length + acount;
+  if new_len > capacity:
+    var new_cap : uint = capacity * 2;
+    while new_cap < new_len:
+      new_cap *= 2;
+    endwhile
+    Reserve(new_cap);
+  endif
+
+  // insert the elements from the src
+  var insertpos : uint = iif(index > length, length, index);
+  var insmovecnt : int = length - insertpos;
+  if insmovecnt > 0:
+    // make place for the new elements
+    @sys.MemCopy(^byte(dataptr)[(insertpos + acount) * elemsize], ^byte(dataptr)[insertpos * elemsize], insmovecnt * elemsize);
+  endif
+
+  @sys.MemCopy(^byte(dataptr)[insertpos * elemsize], src, elemsize * acount);
+  length += acount;
+endfunc
+
+function ORawDynArray.Delete(index : uint, acount : int = 1):
+  if acount < 1  or  index >= length:
+    return;
+  endif
+
+  var delcount : uint = iif(index + acount > length, length - index, acount);
+  var delmovecnt : int = length - index - delcount;
+  if delmovecnt > 0:
+    @sys.MemCopy(^byte(dataptr)[index * elemsize], ^byte(dataptr)[(index + delcount) * elemsize], delmovecnt * elemsize);
+  endif
+
+  length -= delcount;
+endfunc

@@ -99,6 +99,13 @@ function *Main() -> int:
     printf('The language is evil.\n');
   endif
 
+  if 3 IDIV 2 * 10 == 10 * 3 IDIV 2:
+    printf('The language is very friendly.\n');
+  else:
+    printf('The language is not very friendly.\n');
+  endif
+
+
   printf("@langdemo_mod.CONST1 = %d\n", CONST1);
   printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2);
 

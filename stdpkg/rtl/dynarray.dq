@@ -11,6 +11,7 @@ public
   function *Destroy();
 
   function GetElemPtr(index : uint) -> pointer;
+  function GetElemPtrSigned(index : int) -> pointer;
 
   function Clear();    // does not change the capacity
   function SetLength(new_length : uint);
@@ -20,7 +21,9 @@ public
 
   function Append(asrc : pointer, acount : uint = 1);
   function Insert(index : uint, src : pointer, acount : uint = 1);
+  function InsertAt(index : int, src : pointer, acount : uint = 1);
   function Delete(index : uint, acount : int = 1);
+  function DeleteAt(index : int, acount : int = 1);
 
   function GetFullSliceDesc(desc : refout SArraySliceDesc);
   function GetSliceDesc(desc : refout SArraySliceDesc, startpos : int, endpos: int);
@@ -49,6 +52,17 @@ function ORawDynArray.GetElemPtr(index : uint) -> pointer:
   else:
     return null;
   endif
+endfunc
+
+function ORawDynArray.GetElemPtrSigned(index : int) -> pointer:
+  var i : int = index;
+  if i < 0:
+    i += length;
+  endif
+  if i < 0  or  i >= length:
+    return null;
+  endif
+  return ^byte(dataptr)[i * elemsize];
 endfunc
 
 function ORawDynArray.Clear():
@@ -132,6 +146,20 @@ function ORawDynArray.Insert(index : uint, src : pointer, acount : uint = 1):
   length += acount;
 endfunc
 
+function ORawDynArray.InsertAt(index : int, src : pointer, acount : uint = 1):
+  var i : int = index;
+  if i < 0:
+    i += length;
+  endif
+  if i < 0:
+    i = 0;
+  endif
+  if i > length:
+    i = length;
+  endif
+  Insert(i, src, acount);
+endfunc
+
 function ORawDynArray.Delete(index : uint, acount : int = 1):
   if acount < 1  or  index >= length:
     return;
@@ -144,6 +172,17 @@ function ORawDynArray.Delete(index : uint, acount : int = 1):
   endif
 
   length -= delcount;
+endfunc
+
+function ORawDynArray.DeleteAt(index : int, acount : int = 1):
+  var i : int = index;
+  if i < 0:
+    i += length;
+  endif
+  if i < 0:
+    return;
+  endif
+  Delete(i, acount);
 endfunc
 
 function ORawDynArray.GetFullSliceDesc(desc : refout SArraySliceDesc):

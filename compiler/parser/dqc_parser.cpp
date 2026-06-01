@@ -19,6 +19,7 @@
 
 #include "dq_module.h"
 #include "dqc_parser.h"
+#include "dqc.h"
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
@@ -31,6 +32,15 @@
 #include "module_path.h"
 
 using namespace std;
+
+static bool EnsureDynArrayRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_dynarray"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/dynarray", "__dq_dynarray", nullptr, true, MUM_NONE);
+}
 
 bool ODqCompParser::SupportsFuncParamDefaultType(OType * ptype)
 {
@@ -3000,6 +3010,10 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
         {
           Error(DQERR_NOT_SUPPORTED, "dynamic array with unsized element type");
         }
+        return nullptr;
+      }
+      if (!EnsureDynArrayRtlUse())
+      {
         return nullptr;
       }
       return elemtype->GetDynArrayType();

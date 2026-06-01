@@ -22,50 +22,37 @@
 
 using namespace std;
 
-static void EmitFixedObjectDestructors(OScope * scope)
+static void EmitOwnedObjectDestructors(OScope * scope)
 {
   if (!scope)
   {
     return;
   }
 
-  for (auto it = scope->fixed_object_vars.rbegin(); it != scope->fixed_object_vars.rend(); ++it)
+  for (auto it = scope->owned_objects.rbegin(); it != scope->owned_objects.rend(); ++it)
   {
     OValSym * vs = *it;
     auto * objvar = dynamic_cast<OVsObject *>(vs);
-    if (!objvar || !objvar->IsFixedObjectStorage())
+    if (objvar && objvar->IsFixedObjectStorage())
     {
+      objvar->GenerateDestructorCall(vs->ll_value);
       continue;
     }
-    objvar->GenerateDestructorCall(vs->ll_value);
+
+    auto * dyntype = dynamic_cast<OTypeDynArray *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
+    if (dyntype && vs->ll_value)
+    {
+      GenerateDynArrayDestroy(scope, dyntype, vs->ll_value);
+    }
   }
 }
 
-static void EmitDynArrayDestructors(OScope * scope)
-{
-  if (!scope)
-  {
-    return;
-  }
-
-  for (auto it = scope->dyn_array_vars.rbegin(); it != scope->dyn_array_vars.rend(); ++it)
-  {
-    OValSym * var = *it;
-    auto * dyntype = dynamic_cast<OTypeDynArray *>(var && var->ptype ? var->ptype->ResolveAlias() : nullptr);
-    if (!dyntype || !var->ll_value)
-    {
-      continue;
-    }
-    GenerateDynArrayDestroy(scope, dyntype, var->ll_value);
-  }
-}
-
-static void EmitFixedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
+static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
 {
   OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
   for (OScope * cur = scope; cur; cur = cur->parent_scope)
   {
-    EmitFixedObjectDestructors(cur);
+    EmitOwnedObjectDestructors(cur);
     if (cur == stop_scope)
     {
       break;
@@ -102,8 +89,7 @@ void OStmtBlock::Generate()
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    EmitDynArrayDestructors(scope);
-    EmitFixedObjectDestructors(scope);
+    EmitOwnedObjectDestructors(scope);
   }
 }
 
@@ -120,17 +106,7 @@ void OStmtReturn::Generate(OScope * scope)
     ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
   }
 
-  OScope * cur = scope;
-  while (cur)
-  {
-    EmitDynArrayDestructors(cur);
-    if (cur == vsfunc->body->scope)
-    {
-      break;
-    }
-    cur = cur->parent_scope;
-  }
-  EmitFixedObjectDestructorsForReturn(scope, vsfunc);
+  EmitOwnedObjectDestructorsForReturn(scope, vsfunc);
 
   vsfunc->GenerateFuncRet();
 }

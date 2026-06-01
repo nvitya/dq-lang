@@ -71,8 +71,7 @@ public:
   map<string, OValSym *>  valsyms;
 
   vector<OValSym *>       firstassign; // list of the variables assigned here first
-  vector<OValSym *>       fixed_object_vars;
-  vector<OValSym *>       dyn_array_vars;
+  vector<OValSym *>       owned_objects;
 
   LlDiScope * di_scope = nullptr;
 

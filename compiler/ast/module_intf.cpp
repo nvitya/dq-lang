@@ -53,6 +53,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_POINTER:      return "pointer";
     case TK_ARRAY:        return "array";
     case TK_ARRAY_SLICE:  return "array_slice";
+    case TK_DYN_ARRAY:    return "dynamic_array";
     case TK_STRING:       return "string";
     case TK_ALIAS:        return "alias";
     case TK_ENUM:         return "enum";
@@ -1301,6 +1302,25 @@ bool OModuleIntf::ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmI
       return false;
     }
     rtype = elemtype->GetSliceType();
+    return true;
+  }
+
+  if (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid)
+  {
+    if (!reader.ExpectEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN))
+    {
+      return false;
+    }
+    OType * elemtype = nullptr;
+    if (!reader.NextRec() || !ReadTypeSpec(reader, elemtype))
+    {
+      return false;
+    }
+    if (!reader.NextRec() || !reader.ExpectEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_END))
+    {
+      return false;
+    }
+    rtype = elemtype->GetDynArrayType();
     return true;
   }
 

@@ -61,6 +61,10 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   {
     fixed_object_vars.push_back(avalsym);
   }
+  else if ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype && (TK_DYN_ARRAY == avalsym->ptype->kind))
+  {
+    dyn_array_vars.push_back(avalsym);
+  }
   return avalsym;
 }
 
@@ -260,6 +264,7 @@ OType::~OType()
 {
   delete ptr_type;
   delete slice_type;
+  delete dyn_array_type;
   for (auto & [len, arrtype] : array_types)
   {
     delete arrtype;
@@ -294,6 +299,15 @@ OTypeArraySlice * OType::GetSliceType()
     slice_type = new OTypeArraySlice(this);
   }
   return slice_type;
+}
+
+OTypeDynArray * OType::GetDynArrayType()
+{
+  if (!dyn_array_type)
+  {
+    dyn_array_type = new OTypeDynArray(this);
+  }
+  return dyn_array_type;
 }
 
 OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
@@ -340,6 +354,13 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_BEGIN)) return false;
     if (!WriteDqmIfTypeSpecInner(writer, slicetype->elemtype)) return false;
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_END);
+  }
+
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(atype))
+  {
+    if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN)) return false;
+    if (!WriteDqmIfTypeSpecInner(writer, dyntype->elemtype)) return false;
+    return writer.AddRecEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_END);
   }
 
   if ((TK_FUNCTION == atype->kind) || (TK_FUNCREF == atype->kind))

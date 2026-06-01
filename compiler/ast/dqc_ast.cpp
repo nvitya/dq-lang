@@ -1246,6 +1246,13 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
 
 bool ODqCompAst::CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt)
 {
+  OType * resolved_dst = dsttype ? dsttype->ResolveAlias() : nullptr;
+  OType * resolved_src = (rexpr && *rexpr && (*rexpr)->ptype ? (*rexpr)->ptype->ResolveAlias() : nullptr);
+  if ((resolved_dst && TK_DYN_ARRAY == resolved_dst->kind) || (resolved_src && TK_DYN_ARRAY == resolved_src->kind))
+  {
+    Error(DQERR_NOT_SUPPORTED, "dynamic array value assignment");
+    return false;
+  }
   (void)astmt;
   return ConvertExprToType(dsttype, rexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING);
 }

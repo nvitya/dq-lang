@@ -21,6 +21,10 @@ public
   function Append(asrc : pointer, acount : uint = 1);
   function Insert(index : uint, src : pointer, acount : uint = 1);
   function Delete(index : uint, acount : int = 1);
+
+  function GetFullSliceDesc(desc : refout SArraySliceDesc);
+  function GetSliceDesc(desc : refout SArraySliceDesc, startpos : int, endpos: int);
+
 endobj
 
 implementation
@@ -140,4 +144,36 @@ function ORawDynArray.Delete(index : uint, acount : int = 1):
   endif
 
   length -= delcount;
+endfunc
+
+function ORawDynArray.GetFullSliceDesc(desc : refout SArraySliceDesc):
+  desc.dataptr = dataptr;
+  desc.length = length;
+endfunc
+
+function ORawDynArray.GetSliceDesc(desc : refout SArraySliceDesc, startpos : int, endpos : int):
+  var b : int = startpos;
+  var e : int = endpos;
+
+  if b < 0:
+    b += length;
+  endif
+  if e < 0:
+    e += length;
+  endif
+  if b < 0:
+    b = 0;
+  endif
+  if b > length:
+    b = length;
+  endif
+  if e < b:
+    e = b;
+  endif
+  if e > length:
+    e = length;
+  endif
+
+  desc.dataptr = ^byte(dataptr)[b * elemsize];
+  desc.length = e - b;
 endfunc

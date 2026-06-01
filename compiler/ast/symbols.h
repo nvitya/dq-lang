@@ -72,6 +72,7 @@ public:
 
   vector<OValSym *>       firstassign; // list of the variables assigned here first
   vector<OValSym *>       fixed_object_vars;
+  vector<OValSym *>       dyn_array_vars;
 
   LlDiScope * di_scope = nullptr;
 
@@ -210,6 +211,7 @@ enum ETypeKind
   TK_POINTER,
   TK_ARRAY,
   TK_ARRAY_SLICE,  // array descriptor {ptr, length} for function parameters
+  TK_DYN_ARRAY,    // owning dynamic array [*]T: ORawDynArray-compatible layout
   TK_STRING,    // ODynString, OCString
 
   TK_ALIAS,
@@ -247,6 +249,7 @@ class OTypePointer;      // forward declaration
 class OTypeFuncRef;     // forward declaration
 class OTypeArray;        // forward declaration
 class OTypeArraySlice;   // forward declaration
+class OTypeDynArray;     // forward declaration
 class OTypeObject;       // forward declaration
 
 class OType : public OSymbol
@@ -256,6 +259,7 @@ private:
 
   OTypePointer *     ptr_type = nullptr;    // cached pointer-to-this type
   OTypeArraySlice *  slice_type = nullptr;  // cached slice type
+  OTypeDynArray *    dyn_array_type = nullptr; // cached dynamic array type
   map<uint32_t, OTypeArray *>  array_types; // cached fixed-size array types
 
 public:
@@ -303,6 +307,7 @@ public:
   OTypePointer *     GetPointerType();
   OTypeArray *       GetArrayType(uint32_t alength);
   OTypeArraySlice *  GetSliceType();
+  OTypeDynArray *    GetDynArrayType();
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }

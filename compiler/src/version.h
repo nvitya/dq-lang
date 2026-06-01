@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.11.26"
+#define DQ_COMPILER_VERSION  "0.12.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.12.0:
+  - First implementation of the dynamic arrays
 v0.11.27:
   - Allow braces block mode for object and struct
 v0.11.26:

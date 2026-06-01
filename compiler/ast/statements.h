@@ -180,6 +180,22 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OStmtConstructDynArray : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OValSym *  variable;
+
+  OStmtConstructDynArray(OScPosition & ascpos, OValSym * avariable)
+  :
+    super(ascpos),
+    variable(avariable)
+  {}
+
+  void Generate(OScope * scope) override;
+};
+
 class OStmtAssign : public OStmt
 {
 private:

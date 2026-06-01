@@ -1,0 +1,22 @@
+// dynamic array type checking
+
+var bad_old_dyn : [...]int;  //?error(ArraySizeSpec)
+const bad_const : [*]int = 0;  //?error(NotSupported)
+
+function bad_value_param(arr : [*]int):  //?error(NotSupported)
+endfunc
+
+function bad_return() -> [*]int:  //?error(NotSupported)
+endfunc  //?error(FuncResultNotSet)
+
+struct SBadDynMember:
+  arr : [*]int;  //?error(NotSupported)
+endstruct  //?error(ModStatementUnknown)
+
+function *Main() -> int:
+  var a : [*]int;
+  var b : [*]int;
+  a = b;  //?error(NotSupported)
+
+  return 0;
+endfunc

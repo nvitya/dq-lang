@@ -1003,6 +1003,13 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     }
   }
 
+  if (ptype && (TK_DYN_ARRAY == ptype->ResolveAlias()->kind) && (initexpr || zero_init))
+  {
+    StatementError(DQERR_NOT_SUPPORTED, "dynamic array initializer");
+    delete initexpr;
+    return;
+  }
+
   if (initexpr and (not CheckAssignType(ptype, &initexpr, "Assignment")))  // might add implicit conversion
   {
     // error message is already provided.
@@ -1023,6 +1030,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
       objsym->SetObjectStorage(OSK_OBJECT_FIXED);
       objsym->SetObjectCtorArgs(std::move(fixed_ctor_args));
       objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
+      g_module->EnsureModuleInitFunc(scpos_statement_start);
+    }
+    else if (vdecl->pvalsym->ptype && (TK_DYN_ARRAY == vdecl->pvalsym->ptype->ResolveAlias()->kind))
+    {
       g_module->EnsureModuleInitFunc(scpos_statement_start);
     }
     else if (auto * objsym = dynamic_cast<OVsObject *>(vdecl->pvalsym))
@@ -1073,6 +1084,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     else if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
     {
       objsym->SetObjectStorage(OSK_OBJECT_REF);
+    }
+    if (pvalsym->ptype && (TK_DYN_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
+    {
+      pvalsym->initialized = true;
     }
     if (zero_init)  pvalsym->initialized = true;
     curscope->DefineValSym(pvalsym);
@@ -1231,6 +1246,11 @@ void ODqCompParser::ParseStmtConst(bool arootstmt)
   {
     return;
   }
+  if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
+  {
+    emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
+    return;
+  }
 
   scf->SkipWhite();
   if (not scf->CheckSymbol("="))  // variable initializer specified
@@ -1250,6 +1270,12 @@ void ODqCompParser::ParseStmtConst(bool arootstmt)
   }
 
   OValue * pvalue = ptype->CreateValue();
+  if (!pvalue)
+  {
+    emit_error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
+    delete valueexpr;
+    return;
+  }
   if (not pvalue->CalculateConstant(valueexpr))
   {
     emit_error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
@@ -1443,6 +1469,11 @@ void ODqCompParser::ParseStructDecl()
 
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
+    if (TK_DYN_ARRAY == mtype->ResolveAlias()->kind)
+    {
+      StatementError(DQERR_NOT_SUPPORTED, "dynamic array struct member");
+      break;
+    }
 
     if (!ParseAttributes(false))
     {
@@ -2422,6 +2453,11 @@ void ODqCompParser::ParseObjectDecl()
 
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
+    if (TK_DYN_ARRAY == mtype->ResolveAlias()->kind)
+    {
+      StatementError(DQERR_NOT_SUPPORTED, "dynamic array object member");
+      break;
+    }
 
     OTypeObject * member_object = dynamic_cast<OTypeObject *>(mtype->ResolveAlias());
     bool object_ref_member = member_object;
@@ -2880,7 +2916,8 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
 
     // the leftexpr should be a callable expression
     bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr);
+                     || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
+                     || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
       EmitSuppressedVarInitDiags();
@@ -2941,15 +2978,31 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
       return elemtype->GetSliceType();
     }
 
-    if (scf->CheckSymbol("..."))
+    if (scf->CheckSymbol("*"))
     {
-      if (aemit_errors)
+      if (!scf->CheckSymbol("]"))
       {
-        Error(DQERR_NOT_IMPLEMENTED_YET, "Dynamic array ([...]int)");
+        if (aemit_errors)
+        {
+          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "dynamic array type");
+        }
+        return nullptr;
       }
-      scf->ReadTo("]");
-      scf->CheckSymbol("]");
-      return nullptr;
+      OType * elemtype = ParseTypeSpec(aemit_errors);
+      if (!elemtype)
+      {
+        return nullptr;
+      }
+      elemtype->EnsureLayout();
+      if (0 == elemtype->bytesize)
+      {
+        if (aemit_errors)
+        {
+          Error(DQERR_NOT_SUPPORTED, "dynamic array with unsized element type");
+        }
+        return nullptr;
+      }
+      return elemtype->GetDynArrayType();
     }
 
     int64_t arrlen;
@@ -3247,6 +3300,23 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
         continue;
       }
 
+      if ((TK_DYN_ARRAY == ptype->ResolveAlias()->kind) && !ParamModeIsRefLike(pmode))
+      {
+        if (aemit_errors)
+        {
+          Error(DQERR_NOT_SUPPORTED, "dynamic array value parameter");
+        }
+        if (atypespec)
+        {
+          return false;
+        }
+        if (!fail_or_recover())
+        {
+          break;
+        }
+        continue;
+      }
+
       OFuncParam * fparam = tfunc->AddParam(spname, ptype, pmode);
 
       scf->SkipWhite();
@@ -3392,6 +3462,14 @@ bool ODqCompParser::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, co
     tfunc->rettype = ParseTypeSpec(aemit_errors);
     if (!tfunc->rettype)
     {
+      return false;
+    }
+    if (TK_DYN_ARRAY == tfunc->rettype->ResolveAlias()->kind)
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_NOT_SUPPORTED, "dynamic array return value");
+      }
       return false;
     }
   }
@@ -4460,6 +4538,132 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
       // Struct member access on a compound lvalue or a ^compound pointer: x.field / p.field
       if (scf->CheckSymbol("."))
       {
+        if (TK_DYN_ARRAY == tk)
+        {
+          string membername;
+          scf->SkipWhite();
+          if (not scf->ReadIdentifier(membername))
+          {
+            Error(DQERR_MEMBER_NAME_EXPECTED);
+            return result;
+          }
+          if (!scf->CheckSymbol("("))
+          {
+            Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+            return result;
+          }
+
+          vector<TRawCallArg> rawargs;
+          if (!ParseRawCallArguments(membername, rawargs))
+          {
+            return nullptr;
+          }
+
+          auto free_and_fail = [&]() -> OExpr *
+          {
+            FreeRawCallArguments(rawargs);
+            delete result;
+            return nullptr;
+          };
+
+          auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
+          {
+            if (rawargs.size() < mincnt)
+            {
+              Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
+              return false;
+            }
+            if (rawargs.size() > maxcnt)
+            {
+              Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
+              return false;
+            }
+            return true;
+          };
+
+          OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(lval->ptype->ResolveAlias());
+          EDynArrayMethod dynmethod = DYNM_CLEAR;
+          vector<OType *> argtypes;
+          if ("Clear" == membername)
+          {
+            if (!check_count(0, 0)) return free_and_fail();
+            dynmethod = DYNM_CLEAR;
+          }
+          else if ("Reserve" == membername)
+          {
+            if (!check_count(1, 1)) return free_and_fail();
+            dynmethod = DYNM_RESERVE;
+            argtypes = {g_builtins->type_uint};
+          }
+          else if ("Compact" == membername)
+          {
+            if (!check_count(0, 0)) return free_and_fail();
+            dynmethod = DYNM_COMPACT;
+          }
+          else if ("SetLength" == membername)
+          {
+            if (!check_count(1, 1)) return free_and_fail();
+            dynmethod = DYNM_SET_LENGTH;
+            argtypes = {g_builtins->type_uint};
+          }
+          else if ("Append" == membername)
+          {
+            if (!check_count(1, 1)) return free_and_fail();
+            dynmethod = DYNM_APPEND;
+            argtypes = {dyntype->elemtype};
+          }
+          else if ("AppendSlice" == membername)
+          {
+            if (!check_count(1, 1)) return free_and_fail();
+            dynmethod = DYNM_APPEND_SLICE;
+            argtypes = {dyntype->elemtype->GetSliceType()};
+          }
+          else if ("Insert" == membername)
+          {
+            if (!check_count(2, 2)) return free_and_fail();
+            dynmethod = DYNM_INSERT;
+            argtypes = {g_builtins->type_int, dyntype->elemtype};
+          }
+          else if ("InsertSlice" == membername)
+          {
+            if (!check_count(2, 2)) return free_and_fail();
+            dynmethod = DYNM_INSERT_SLICE;
+            argtypes = {g_builtins->type_int, dyntype->elemtype->GetSliceType()};
+          }
+          else if ("Delete" == membername)
+          {
+            if (!check_count(1, 2)) return free_and_fail();
+            dynmethod = DYNM_DELETE;
+            argtypes = {g_builtins->type_int};
+            if (rawargs.size() > 1)
+            {
+              argtypes.push_back(g_builtins->type_int);
+            }
+          }
+          else
+          {
+            Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+            return free_and_fail();
+          }
+
+          auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, lval, nullptr);
+          for (size_t i = 0; i < rawargs.size(); ++i)
+          {
+            OExpr * argexpr = rawargs[i].expr;
+            rawargs[i].expr = nullptr;
+            if (!CheckAssignType(argtypes[i], &argexpr, "Argument"))
+            {
+              OExpr::DeleteTree(argexpr);
+              delete callexpr;
+              return free_and_fail();
+            }
+            callexpr->args.push_back(argexpr);
+          }
+          FreeRawCallArguments(rawargs);
+          result = callexpr;
+          continue;
+        }
+
         OLValueExpr * memberbase = nullptr;
         OCompoundType * ctype = nullptr;
         if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
@@ -4548,12 +4752,46 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         continue;
       }
 
-      // Array/slice/cstring index on any lvalue: x[i]
-      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_STRING == tk)
+      // Array/slice/dynamic-array/cstring index on any lvalue: x[i], or slice x[a:b]
+      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_STRING == tk)
           and scf->CheckSymbol("["))
       {
-        OExpr * indexexpr = ParseExpression();
+        OExpr * indexexpr = nullptr;
+        bool has_first_expr = false;
         scf->SkipWhite();
+        if (!scf->CheckSymbol(":", false))
+        {
+          indexexpr = ParseExpression();
+          has_first_expr = true;
+        }
+        scf->SkipWhite();
+        if (scf->CheckSymbol(":"))
+        {
+          if (TK_STRING == tk)
+          {
+            Error(DQERR_NOT_SUPPORTED, "cstring slicing");
+            OExpr::DeleteTree(indexexpr);
+            return result;
+          }
+          OExpr * endexpr = nullptr;
+          scf->SkipWhite();
+          if (!scf->CheckSymbol("]", false))
+          {
+            endexpr = ParseExpression();
+          }
+          scf->SkipWhite();
+          if (not scf->CheckSymbol("]"))
+          {
+            Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "slice");
+          }
+          result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr);
+          continue;
+        }
+        if (!has_first_expr)
+        {
+          Error(DQERR_EXPR_EXPECTED);
+          return result;
+        }
         if (not scf->CheckSymbol("]"))
         {
           Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
@@ -5851,6 +6089,10 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   else if (TK_ARRAY_SLICE == lenvs->ptype->kind)
   {
     return new OSliceLengthExpr(lenvs);
+  }
+  else if (TK_DYN_ARRAY == lenvs->ptype->kind)
+  {
+    return new ODynArrayLengthExpr(lenvs);
   }
   else if (TK_STRING == lenvs->ptype->kind)
   {

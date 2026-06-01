@@ -189,6 +189,10 @@ void OModule::FinalizeModuleInitFunc()
     {
       global_object_init_stmts.push_back(new OStmtConstructFixedObject(vs->scpos, vs));
     }
+    else if (vs && vs->ptype && (TK_DYN_ARRAY == vs->ptype->ResolveAlias()->kind))
+    {
+      global_object_init_stmts.push_back(new OStmtConstructDynArray(vs->scpos, vs));
+    }
   }
   module_init_func->body->stlist.insert(module_init_func->body->stlist.begin() + 1,
       global_object_init_stmts.begin(), global_object_init_stmts.end());

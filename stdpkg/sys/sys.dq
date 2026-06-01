@@ -14,6 +14,11 @@ function ParamStr(i : int) -> ^cchar;   // 0 = program args
 
 function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc entry point main() (in rtl_linux)
 
+struct SArraySliceDesc:
+  dataptr : pointer;
+  length  : uint;
+endstruct
+
 implementation
 
 // Memory Allocation

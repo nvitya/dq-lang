@@ -425,10 +425,34 @@ void OLValueMember::DeleteChildTree()
   {
     ptype = static_cast<OTypeArraySlice *>(acontainertype)->elemtype;
   }
+  else if (TK_DYN_ARRAY == acontainertype->kind)
+  {
+    ptype = static_cast<OTypeDynArray *>(acontainertype)->elemtype;
+  }
   else if (TK_STRING == acontainertype->kind)
   {
     ptype = g_builtins->type_cchar;
   }
+}
+
+static LlValue * NormalizeIndexValue(LlValue * index, LlValue * len)
+{
+  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
+  if (index->getType()->isIntegerTy() && index->getType() != ll_i64)
+  {
+    unsigned srcbits = index->getType()->getIntegerBitWidth();
+    if (srcbits < 64)
+    {
+      index = ll_builder.CreateSExt(index, ll_i64);
+    }
+    else if (srcbits > 64)
+    {
+      index = ll_builder.CreateTrunc(index, ll_i64);
+    }
+  }
+  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "idx.neg");
+  return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "idx.from_end"), index, "idx.norm");
 }
 
 LlValue * OLValueIndex::GenerateAddress(OScope * scope)
@@ -438,6 +462,8 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   if (TK_ARRAY == containertype->kind)
   {
     // Fixed array: GEP with {0, index} into [N x T]
+    OTypeArray * arrtype = static_cast<OTypeArray *>(containertype);
+    ll_index = NormalizeIndexValue(ll_index, llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength));
     LlValue * baseaddr = base->GenerateAddress(scope);
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
     return ll_builder.CreateGEP(
@@ -449,9 +475,16 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     // Slice: extract pointer from descriptor, then GEP into the data
     LlValue * baseaddr = base->GenerateAddress(scope);
     LlType * ll_slicetype = containertype->GetLlType();
+    LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
+    LlValue * ll_len = ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+    ll_index = NormalizeIndexValue(ll_index, ll_len);
     LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 0, "slice.ptr.addr");
     LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "slice.ptr");
     return ll_builder.CreateGEP(ptype->GetLlType(), ll_ptr, {ll_index}, "slice.elem");
+  }
+  else if (TK_DYN_ARRAY == containertype->kind)
+  {
+    return GenerateDynArrayElementAddress(scope, static_cast<OTypeDynArray *>(containertype), base->GenerateAddress(scope), ll_index);
   }
   else if (TK_STRING == containertype->kind)
   {
@@ -478,6 +511,102 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
+}
+
+/* ctor */ OArraySliceExpr::OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend)
+{
+  base = abase;
+  containertype = acontainertype;
+  startexpr = astart;
+  endexpr = aend;
+
+  if (TK_ARRAY == containertype->kind)
+  {
+    ptype = static_cast<OTypeArray *>(containertype)->elemtype->GetSliceType();
+  }
+  else if (TK_ARRAY_SLICE == containertype->kind)
+  {
+    ptype = containertype;
+  }
+  else if (TK_DYN_ARRAY == containertype->kind)
+  {
+    ptype = static_cast<OTypeDynArray *>(containertype)->elemtype->GetSliceType();
+  }
+}
+
+static LlValue * SliceBoundValue(OScope * scope, OExpr * expr, LlValue * defval, LlValue * len)
+{
+  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
+  LlValue * val = expr ? expr->Generate(scope) : defval;
+  val = NormalizeIndexValue(val, len);
+  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  LlValue * lt_zero = ll_builder.CreateICmpSLT(val, zero);
+  val = ll_builder.CreateSelect(lt_zero, zero, val);
+  LlValue * gt_len = ll_builder.CreateICmpSGT(val, len);
+  return ll_builder.CreateSelect(gt_len, len, val);
+}
+
+LlValue * OArraySliceExpr::Generate(OScope * scope)
+{
+  if (TK_DYN_ARRAY == containertype->kind)
+  {
+    return GenerateDynArraySlice(scope, static_cast<OTypeDynArray *>(containertype), base->GenerateAddress(scope),
+        startexpr, endexpr, ptype);
+  }
+
+  LlValue * baseaddr = base->GenerateAddress(scope);
+  LlValue * len = nullptr;
+  LlValue * data_ptr = nullptr;
+  OType * elemtype = nullptr;
+  if (TK_ARRAY == containertype->kind)
+  {
+    auto * arrtype = static_cast<OTypeArray *>(containertype);
+    elemtype = arrtype->elemtype;
+    len = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+    LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    data_ptr = ll_builder.CreateGEP(containertype->GetLlType(), baseaddr, {zero, zero}, "arr.slice.ptr");
+  }
+  else if (TK_ARRAY_SLICE == containertype->kind)
+  {
+    elemtype = static_cast<OTypeArraySlice *>(containertype)->elemtype;
+    LlType * ll_slicetype = containertype->GetLlType();
+    LlValue * ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 0, "slice.ptr.addr");
+    data_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptr_addr, "slice.ptr");
+    LlValue * len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
+    len = ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), len_addr, "slice.len");
+  }
+
+  LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * start = SliceBoundValue(scope, startexpr, zero, len);
+  LlValue * end = SliceBoundValue(scope, endexpr, len, len);
+  LlValue * end_lt_start = ll_builder.CreateICmpSLT(end, start);
+  end = ll_builder.CreateSelect(end_lt_start, start, end);
+  LlValue * slice_ptr = ll_builder.CreateGEP(elemtype->GetLlType(), data_ptr, {start}, "slice.sub.ptr");
+  LlValue * slice_len = ll_builder.CreateSub(end, start, "slice.sub.len");
+
+  LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
+  ll_slice = ll_builder.CreateInsertValue(ll_slice, slice_ptr, 0, "slice.ptr");
+  ll_slice = ll_builder.CreateInsertValue(ll_slice, slice_len, 1, "slice.len");
+  return ll_slice;
+}
+
+void OArraySliceExpr::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&startexpr);
+  OExpr::FoldTree(&endexpr);
+}
+
+void OArraySliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  OExpr::DeleteTree(startexpr);
+  OExpr::DeleteTree(endexpr);
+  base = nullptr;
+  startexpr = nullptr;
+  endexpr = nullptr;
 }
 
 void OLValueIndex::FoldChildren()
@@ -1225,6 +1354,19 @@ LlValue * OSliceLengthExpr::Generate(OScope * scope)
   return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
 }
 
+/* ctor */ ODynArrayLengthExpr::ODynArrayLengthExpr(OValSym * adyn)
+{
+  dynvalsym = adyn;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * ODynArrayLengthExpr::Generate(OScope * scope)
+{
+  (void)scope;
+  auto * dyntype = static_cast<OTypeDynArray *>(dynvalsym->ptype->ResolveAlias());
+  return GenerateDynArrayLength(scope, dyntype, dynvalsym->ll_value);
+}
+
 /* ctor */ OFloatRoundExpr::OFloatRoundExpr(ERoundMode amode, OExpr * asrc)
 {
   mode  = amode;
@@ -1368,6 +1510,57 @@ OCallExpr::~OCallExpr()
   for (OExpr * arg : args)
   {
     delete arg;
+  }
+  args.clear();
+}
+
+/* ctor */ ODynArrayMethodCallExpr::ODynArrayMethodCallExpr(EDynArrayMethod amethod, OLValueExpr * areceiver, OType * arettype)
+{
+  method = amethod;
+  receiver = areceiver;
+  ptype = arettype;
+}
+
+LlValue * ODynArrayMethodCallExpr::Generate(OScope * scope)
+{
+  auto * dyntype = static_cast<OTypeDynArray *>(receiver->ptype->ResolveAlias());
+  LlValue * dynaddr = receiver->GenerateAddress(scope);
+  switch (method)
+  {
+    case DYNM_CLEAR:        GenerateDynArrayClear(scope, dyntype, dynaddr); break;
+    case DYNM_RESERVE:      GenerateDynArrayReserve(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_COMPACT:      GenerateDynArrayCompact(scope, dyntype, dynaddr); break;
+    case DYNM_SET_LENGTH:   GenerateDynArraySetLength(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_APPEND:       GenerateDynArrayAppend(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_APPEND_SLICE: GenerateDynArrayAppendSlice(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_INSERT:       GenerateDynArrayInsert(scope, dyntype, dynaddr, args[0], args[1]); break;
+    case DYNM_INSERT_SLICE: GenerateDynArrayInsertSlice(scope, dyntype, dynaddr, args[0], args[1]); break;
+    case DYNM_DELETE:
+      GenerateDynArrayDelete(scope, dyntype, dynaddr, args[0], args.size() > 1 ? args[1] : nullptr);
+      break;
+  }
+  return nullptr;
+}
+
+void ODynArrayMethodCallExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+  for (OExpr *& arg : args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void ODynArrayMethodCallExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
   }
   args.clear();
 }

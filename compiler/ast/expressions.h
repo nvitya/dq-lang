@@ -114,10 +114,24 @@ class OLValueIndex : public OLValueExpr
 {
 public:
   OLValueExpr *  base;
-  OType *        containertype;  // array, slice, or cstring type
+  OType *        containertype;  // array, slice, dynamic array, or cstring type
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
   LlValue *  GenerateAddress(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+class OArraySliceExpr : public OExpr
+{
+public:
+  OLValueExpr *  base;
+  OType *        containertype;
+  OExpr *        startexpr = nullptr;
+  OExpr *        endexpr = nullptr;
+
+  /* ctor */ OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend);
+  LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };
@@ -340,6 +354,14 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+class ODynArrayLengthExpr : public OExpr
+{
+public:
+  OValSym *  dynvalsym;
+  /* ctor */ ODynArrayLengthExpr(OValSym * adyn);
+  LlValue *  Generate(OScope * scope) override;
+};
+
 enum ERoundMode
 {
   RNDMODE_ROUND,
@@ -382,6 +404,33 @@ public:
   {
     args.push_back(aarg);
   }
+};
+
+enum EDynArrayMethod
+{
+  DYNM_CLEAR,
+  DYNM_RESERVE,
+  DYNM_COMPACT,
+  DYNM_SET_LENGTH,
+  DYNM_APPEND,
+  DYNM_APPEND_SLICE,
+  DYNM_INSERT,
+  DYNM_INSERT_SLICE,
+  DYNM_DELETE
+};
+
+class ODynArrayMethodCallExpr : public OExpr
+{
+public:
+  EDynArrayMethod   method;
+  OLValueExpr *     receiver;
+  vector<OExpr *>   args;
+
+  /* ctor */ ODynArrayMethodCallExpr(EDynArrayMethod amethod, OLValueExpr * areceiver, OType * arettype);
+  ~ODynArrayMethodCallExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
 };
 
 class OFuncRefExpr : public OExpr

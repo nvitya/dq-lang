@@ -41,6 +41,25 @@ static void EmitFixedObjectDestructors(OScope * scope)
   }
 }
 
+static void EmitDynArrayDestructors(OScope * scope)
+{
+  if (!scope)
+  {
+    return;
+  }
+
+  for (auto it = scope->dyn_array_vars.rbegin(); it != scope->dyn_array_vars.rend(); ++it)
+  {
+    OValSym * var = *it;
+    auto * dyntype = dynamic_cast<OTypeDynArray *>(var && var->ptype ? var->ptype->ResolveAlias() : nullptr);
+    if (!dyntype || !var->ll_value)
+    {
+      continue;
+    }
+    GenerateDynArrayDestroy(scope, dyntype, var->ll_value);
+  }
+}
+
 static void EmitFixedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
 {
   OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
@@ -83,6 +102,7 @@ void OStmtBlock::Generate()
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
+    EmitDynArrayDestructors(scope);
     EmitFixedObjectDestructors(scope);
   }
 }
@@ -100,6 +120,16 @@ void OStmtReturn::Generate(OScope * scope)
     ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
   }
 
+  OScope * cur = scope;
+  while (cur)
+  {
+    EmitDynArrayDestructors(cur);
+    if (cur == vsfunc->body->scope)
+    {
+      break;
+    }
+    cur = cur->parent_scope;
+  }
   EmitFixedObjectDestructorsForReturn(scope, vsfunc);
 
   vsfunc->GenerateFuncRet();
@@ -130,6 +160,17 @@ void OStmtVarDecl::Generate(OScope * scope)
 
     LlValue * ll_initaddr = initvalue->Generate(scope);
     ll_builder.CreateStore(ll_initaddr, variable->ll_value);
+    return;
+  }
+
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
+  {
+    if (initvalue)
+    {
+      throw logic_error(std::format("Dynamic array \"{}\" does not support initializer assignment", variable->name));
+    }
+    GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
+    variable->initialized = true;
     return;
   }
 
@@ -315,6 +356,16 @@ void OStmtConstructFixedObject::Generate(OScope * scope)
     return;
   }
   objvar->GenerateConstructorCall(scope, variable->ll_value);
+}
+
+void OStmtConstructDynArray::Generate(OScope * scope)
+{
+  auto * dyntype = dynamic_cast<OTypeDynArray *>(variable && variable->ptype ? variable->ptype->ResolveAlias() : nullptr);
+  if (!dyntype || !variable->ll_value)
+  {
+    return;
+  }
+  GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
 }
 
 void OStmtAssign::Generate(OScope * scope)

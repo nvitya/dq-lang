@@ -4530,6 +4530,131 @@ OExpr * ODqCompParser::ParseExplicitCastExpr(bool * rattempted)
   return srcexpr;
 }
 
+OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver)
+{
+  string membername;
+  scf->SkipWhite();
+  if (not scf->ReadIdentifier(membername))
+  {
+    Error(DQERR_MEMBER_NAME_EXPECTED);
+    return receiver_expr;
+  }
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    return receiver_expr;
+  }
+
+  vector<TRawCallArg> rawargs;
+  if (!ParseRawCallArguments(membername, rawargs))
+  {
+    return nullptr;
+  }
+
+  auto free_and_fail = [&]() -> OExpr *
+  {
+    FreeRawCallArguments(rawargs);
+    delete receiver_expr;
+    return nullptr;
+  };
+
+  auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
+  {
+    if (rawargs.size() < mincnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
+      return false;
+    }
+    if (rawargs.size() > maxcnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
+      return false;
+    }
+    return true;
+  };
+
+  OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(receiver->ptype->ResolveAlias());
+  EDynArrayMethod dynmethod = DYNM_CLEAR;
+  vector<OType *> argtypes;
+  if ("Clear" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    dynmethod = DYNM_CLEAR;
+  }
+  else if ("Reserve" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    dynmethod = DYNM_RESERVE;
+    argtypes = {g_builtins->type_uint};
+  }
+  else if ("Compact" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    dynmethod = DYNM_COMPACT;
+  }
+  else if ("SetLength" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    dynmethod = DYNM_SET_LENGTH;
+    argtypes = {g_builtins->type_uint};
+  }
+  else if ("Append" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    dynmethod = DYNM_APPEND;
+    argtypes = {dyntype->elemtype};
+  }
+  else if ("AppendSlice" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    dynmethod = DYNM_APPEND_SLICE;
+    argtypes = {dyntype->elemtype->GetSliceType()};
+  }
+  else if ("Insert" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    dynmethod = DYNM_INSERT;
+    argtypes = {g_builtins->type_int, dyntype->elemtype};
+  }
+  else if ("InsertSlice" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    dynmethod = DYNM_INSERT_SLICE;
+    argtypes = {g_builtins->type_int, dyntype->elemtype->GetSliceType()};
+  }
+  else if ("Delete" == membername)
+  {
+    if (!check_count(1, 2)) return free_and_fail();
+    dynmethod = DYNM_DELETE;
+    argtypes = {g_builtins->type_int};
+    if (rawargs.size() > 1)
+    {
+      argtypes.push_back(g_builtins->type_int);
+    }
+  }
+  else
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    return free_and_fail();
+  }
+
+  auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, receiver, nullptr);
+  for (size_t i = 0; i < rawargs.size(); ++i)
+  {
+    OExpr * argexpr = rawargs[i].expr;
+    rawargs[i].expr = nullptr;
+    if (!CheckAssignType(argtypes[i], &argexpr, "Argument"))
+    {
+      OExpr::DeleteTree(argexpr);
+      delete callexpr;
+      return free_and_fail();
+    }
+    callexpr->args.push_back(argexpr);
+  }
+  FreeRawCallArguments(rawargs);
+  return callexpr;
+}
+
 OExpr * ODqCompParser::ParsePostfix(OExpr * base)
 {
   OExpr * result = base;
@@ -4554,127 +4679,8 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
       {
         if (TK_DYN_ARRAY == tk)
         {
-          string membername;
-          scf->SkipWhite();
-          if (not scf->ReadIdentifier(membername))
-          {
-            Error(DQERR_MEMBER_NAME_EXPECTED);
-            return result;
-          }
-          if (!scf->CheckSymbol("("))
-          {
-            Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
-            return result;
-          }
-
-          vector<TRawCallArg> rawargs;
-          if (!ParseRawCallArguments(membername, rawargs))
-          {
-            return nullptr;
-          }
-
-          auto free_and_fail = [&]() -> OExpr *
-          {
-            FreeRawCallArguments(rawargs);
-            delete result;
-            return nullptr;
-          };
-
-          auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
-          {
-            if (rawargs.size() < mincnt)
-            {
-              Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
-              return false;
-            }
-            if (rawargs.size() > maxcnt)
-            {
-              Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
-              return false;
-            }
-            return true;
-          };
-
-          OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(lval->ptype->ResolveAlias());
-          EDynArrayMethod dynmethod = DYNM_CLEAR;
-          vector<OType *> argtypes;
-          if ("Clear" == membername)
-          {
-            if (!check_count(0, 0)) return free_and_fail();
-            dynmethod = DYNM_CLEAR;
-          }
-          else if ("Reserve" == membername)
-          {
-            if (!check_count(1, 1)) return free_and_fail();
-            dynmethod = DYNM_RESERVE;
-            argtypes = {g_builtins->type_uint};
-          }
-          else if ("Compact" == membername)
-          {
-            if (!check_count(0, 0)) return free_and_fail();
-            dynmethod = DYNM_COMPACT;
-          }
-          else if ("SetLength" == membername)
-          {
-            if (!check_count(1, 1)) return free_and_fail();
-            dynmethod = DYNM_SET_LENGTH;
-            argtypes = {g_builtins->type_uint};
-          }
-          else if ("Append" == membername)
-          {
-            if (!check_count(1, 1)) return free_and_fail();
-            dynmethod = DYNM_APPEND;
-            argtypes = {dyntype->elemtype};
-          }
-          else if ("AppendSlice" == membername)
-          {
-            if (!check_count(1, 1)) return free_and_fail();
-            dynmethod = DYNM_APPEND_SLICE;
-            argtypes = {dyntype->elemtype->GetSliceType()};
-          }
-          else if ("Insert" == membername)
-          {
-            if (!check_count(2, 2)) return free_and_fail();
-            dynmethod = DYNM_INSERT;
-            argtypes = {g_builtins->type_int, dyntype->elemtype};
-          }
-          else if ("InsertSlice" == membername)
-          {
-            if (!check_count(2, 2)) return free_and_fail();
-            dynmethod = DYNM_INSERT_SLICE;
-            argtypes = {g_builtins->type_int, dyntype->elemtype->GetSliceType()};
-          }
-          else if ("Delete" == membername)
-          {
-            if (!check_count(1, 2)) return free_and_fail();
-            dynmethod = DYNM_DELETE;
-            argtypes = {g_builtins->type_int};
-            if (rawargs.size() > 1)
-            {
-              argtypes.push_back(g_builtins->type_int);
-            }
-          }
-          else
-          {
-            Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
-            return free_and_fail();
-          }
-
-          auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, lval, nullptr);
-          for (size_t i = 0; i < rawargs.size(); ++i)
-          {
-            OExpr * argexpr = rawargs[i].expr;
-            rawargs[i].expr = nullptr;
-            if (!CheckAssignType(argtypes[i], &argexpr, "Argument"))
-            {
-              OExpr::DeleteTree(argexpr);
-              delete callexpr;
-              return free_and_fail();
-            }
-            callexpr->args.push_back(argexpr);
-          }
-          FreeRawCallArguments(rawargs);
-          result = callexpr;
+          result = ParseDynArrayMethod(result, lval);
+          if (!result) return nullptr;
           continue;
         }
 

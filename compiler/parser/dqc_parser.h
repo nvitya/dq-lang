@@ -120,6 +120,7 @@ public: // expressions
   OExpr * ParseExprUnary();
   OLValueExpr * ParseAddressableExpr();
   OExpr * ParsePostfix(OExpr * base);
+  OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver);
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);

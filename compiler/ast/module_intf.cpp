@@ -1210,8 +1210,7 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
 {
   rtype = nullptr;
 
-  if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_NAME == reader.recid)
-      || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid))
+  if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_NAME == reader.recid))
   {
     string typename_str;
     if (!reader.ReadString(typename_str))
@@ -1224,6 +1223,25 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
       return reader.Fail(format("Unknown DQM interface type: {}", typename_str));
     }
     return true;
+  }
+
+  if ((DQMIF_TYPE_SPEC_FUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid))
+  {
+    if (reader.reclen != 0)
+    {
+      string typename_str;
+      if (!reader.ReadString(typename_str))
+      {
+        return false;
+      }
+      rtype = ResolveDqmIfTypeName(typename_str);
+      if (!rtype)
+      {
+        return reader.Fail(format("Unknown DQM interface type: {}", typename_str));
+      }
+      return true;
+    }
+    return ReadFunctionRefTypeSpec(reader, DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid, rtype);
   }
 
   if (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
@@ -1330,6 +1348,69 @@ bool OModuleIntf::ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmI
   }
 
   return reader.Fail(format("Unexpected DQM interface type spec record 0x{:04X}", reader.recid));
+}
+
+bool OModuleIntf::ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_ref, OType *& rtype)
+{
+  rtype = nullptr;
+  if (!reader.ExpectEmpty(aobject_ref ? DQMIF_TYPE_SPEC_OBJFUNCREF : DQMIF_TYPE_SPEC_FUNCREF))
+  {
+    return false;
+  }
+
+  OTypeFunc * sigtype = new OTypeFunc("function");
+  while (true)
+  {
+    if (!reader.NextRec())
+    {
+      delete sigtype;
+      return false;
+    }
+
+    if (DQMIF_TYPE_SPEC_END == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_TYPE_SPEC_END))
+      {
+        delete sigtype;
+        return false;
+      }
+      break;
+    }
+    else if (DQMIF_FUNC_RETVAL == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_FUNC_RETVAL) || !reader.NextRec()
+          || !ReadTypeSpec(reader, sigtype->rettype))
+      {
+        delete sigtype;
+        return false;
+      }
+    }
+    else if (DQMIF_FUNC_PARAM_BEGIN == reader.recid)
+    {
+      if (!ReadFunctionParam(reader, sigtype))
+      {
+        delete sigtype;
+        return false;
+      }
+    }
+    else if (DQMIF_FUNC_PARAM_VARARGS == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_VARARGS))
+      {
+        delete sigtype;
+        return false;
+      }
+      sigtype->has_varargs = true;
+    }
+    else
+    {
+      delete sigtype;
+      return reader.Fail(format("Unexpected DQM interface function reference type record 0x{:04X}", reader.recid));
+    }
+  }
+
+  rtype = new OTypeFuncRef(sigtype, "", aobject_ref);
+  return true;
 }
 
 bool OModuleIntf::ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattrs)
@@ -1647,7 +1728,8 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
     else if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid)
              || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_PTR == reader.recid)
-             || (DQMIF_TYPE_SPEC_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_SLICE_BEGIN == reader.recid))
+             || (DQMIF_TYPE_SPEC_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_SLICE_BEGIN == reader.recid)
+             || (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid))
     {
       if (!ReadTypeSpec(reader, ptype))
       {

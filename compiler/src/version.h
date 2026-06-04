@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.12.0"
+#define DQ_COMPILER_VERSION  "0.12.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.12.1:
+  - .dqm_if function reference writing fix
 v0.12.0:
   - First implementation of the dynamic arrays
 v0.11.27:

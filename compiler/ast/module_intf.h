@@ -63,6 +63,7 @@ private:
   bool ReadUseDecl(ODqmIfReader & reader);
   bool ReadTypeSpec(ODqmIfReader & reader, OType *& rtype);
   bool ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmIfRecId aend_recid);
+  bool ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_ref, OType *& rtype);
   bool ReadTypeDecl(ODqmIfReader & reader);
   bool ReadConstDecl(ODqmIfReader & reader);
   bool ReadVarDecl(ODqmIfReader & reader);

@@ -122,6 +122,7 @@ public:
   bool          ParNameValid(const string aname);
   size_t        RequiredParamCount() const;
   OType *       ResolvedRetType() const;
+  bool          WriteDqmIfSignatureRecords(ODqmIfWriter & writer, bool askip_first_param = false) const;
   bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const;
   bool          MatchesSignature(const OTypeFunc * other) const;
   void          MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names);

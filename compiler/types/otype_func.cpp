@@ -76,27 +76,9 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
       && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;
   if (IsSpecial() && !writer.AddRecU8(DQMIF_FUNC_SPECIAL_KIND, uint8_t(special_kind))) return false;
 
-  if (sigtype->rettype && TK_VOID != sigtype->rettype->kind)
-  {
-    if (!writer.AddRecEmpty(DQMIF_FUNC_RETVAL)) return false;
-    if (!sigtype->rettype->WriteDqmIfTypeSpec(writer)) return false;
-  }
-
-  for (size_t i = 0; i < sigtype->params.size(); ++i)
-  {
-    OFuncParam * param = sigtype->params[i];
-    if (!param)
-    {
-      return writer.Fail(format("Function {} has a null parameter", name));
-    }
-    if (amethod && (0 == i) && owner_compound_type && ("__this" == param->name))
-    {
-      continue;
-    }
-    if (!param->WriteDqmIf(writer)) return false;
-  }
-
-  if (sigtype->has_varargs && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_VARARGS)) return false;
+  bool skip_receiver = amethod && owner_compound_type && !sigtype->params.empty()
+      && ("__this" == sigtype->params[0]->name);
+  if (!sigtype->WriteDqmIfSignatureRecords(writer, skip_receiver)) return false;
 
   return writer.AddRecEmpty(amethod ? DQMIF_METHOD_END : DQMIF_FUNC_END);
 }
@@ -134,6 +116,32 @@ bool OFuncParam::WriteDqmIf(ODqmIfWriter & writer) const
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
   if (defvalue && defvalue->pvalue && !defvalue->pvalue->WriteDqmIfValue(writer)) return false;
   return writer.AddRecEmpty(DQMIF_FUNC_PARAM_END);
+}
+
+bool OTypeFunc::WriteDqmIfSignatureRecords(ODqmIfWriter & writer, bool askip_first_param) const
+{
+  if (rettype && TK_VOID != rettype->kind)
+  {
+    if (!writer.AddRecEmpty(DQMIF_FUNC_RETVAL)) return false;
+    if (!rettype->WriteDqmIfTypeSpec(writer)) return false;
+  }
+
+  for (size_t i = 0; i < params.size(); ++i)
+  {
+    OFuncParam * param = params[i];
+    if (!param)
+    {
+      return writer.Fail(format("Function type {} has a null parameter", name));
+    }
+    if (askip_first_param && (0 == i))
+    {
+      continue;
+    }
+    if (!param->WriteDqmIf(writer)) return false;
+  }
+
+  if (has_varargs && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_VARARGS)) return false;
+  return true;
 }
 
 bool OTypeFunc::ParNameValid(const string aname)
@@ -175,7 +183,9 @@ OType * OTypeFunc::ResolvedRetType() const
 
 bool OTypeFunc::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 {
-  return writer.AddRecStr(DQMIF_TYPE_SPEC_FUNCREF, FuncTypeName(this));
+  if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_FUNCREF)) return false;
+  if (!WriteDqmIfSignatureRecords(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
 }
 
 bool OTypeFunc::MatchesOverloadDeclIdentity(const OTypeFunc * other) const
@@ -1019,7 +1029,13 @@ OTypeFuncRef::~OTypeFuncRef()
 
 bool OTypeFuncRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 {
-  return writer.AddRecStr(DQMIF_TYPE_SPEC_FUNCREF, name);
+  if (!functype)
+  {
+    return writer.Fail(format("Function reference type {} has no signature", name));
+  }
+  if (!writer.AddRecEmpty(object_ref ? DQMIF_TYPE_SPEC_OBJFUNCREF : DQMIF_TYPE_SPEC_FUNCREF)) return false;
+  if (!functype->WriteDqmIfSignatureRecords(writer)) return false;
+  return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
 }
 
 LlType * OTypeFuncRef::CreateLlType()

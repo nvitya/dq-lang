@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     6 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     0 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     7 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     7 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -120,8 +120,8 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_SLICE_BEGIN  = 0x8020;  // 0: array slice wrapper b
 TDqmIfRecId  DQMIF_TYPE_SPEC_SLICE_END    = 0x802F;  // 0
 TDqmIfRecId  DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN = 0x8030;  // 0: dynamic array wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_DYN_ARRAY_END   = 0x803F;  // 0
-TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // str
-TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // str
+TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // 0: function reference wrapper begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // 0: object function reference wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length

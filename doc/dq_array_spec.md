@@ -15,7 +15,7 @@ The length and the storage of the static array is fixed.
 
 ## Dynamic arrays
 
-The length and the storage of the static array is variable.
+The length and the storage of the static array is variable. The dynamic arrays are objects where the object itself and the elements storage space also allocated on the heap.
 
 ## Core Syntax
 
@@ -42,8 +42,6 @@ DQ supports two slice interval forms:
 * The exclusive `:` form is useful for lengths, offsets, splitting, and algorithms.
 
 * Empty slice compiler warning might be generated on [x:x] expressions
-
-Negative start or end references to the array length: -1 = length - 1
 
 #### Context-Specific Values
 
@@ -113,10 +111,11 @@ var s3 : []int = arr[$end:]; // start position clamped to length -> empty slice 
 
 ```dq
 
+var i : int;
 var arr1 : [3]int = [1, 2, 3];
 
+i = arr1[1];
 arr1[0] = 4;
-var i : int;
 i = Len(arr1);
 i = arr1.length;
 
@@ -127,16 +126,48 @@ var slice4 : []int = arr1[1:6];            //= [ arr1[1], arr1[2] ] (overindexin
 
 i = slice2.length; // = 1
 
-var slice5 : []int = arr1[-1:];   // last element
-var slice5 : []int = arr1[-1::];  // last element
-var slice5 : []int = arr1[-2:];   // last two elements
-var slice5 : []int = arr1[-2::];  // last two elements
+if slice1 <> []:  // equivalent to slice1.length <> 0
+  printf('slice1 is empty!');
+endif
 
-var slice5 : []int = arr1[:-1];   // all except the last element
-var slice5 : []int = arr1[::-1];  // all except the last element
-var slice5 : []int = arr1[:-2];   // all except the last two elements
-var slice5 : []int = arr1[::-2];  // all except the last two elements
+var slice5 : []int = arr1[$last:];   // last element
+var slice6 : []int = arr1[$last-2:];   // last two elements
+var slice7 : []int = arr1[$last-2::];  // last two elements
 
+var slice8  : []int = arr1[:$end-1];   // all except the last element
+var slice9  : []int = arr1[::$last-1];  // all except the last element
+var slice10 : []int = arr1[:$end-2];   // all except the last two elements
+var slice11 : []int = arr1[::$last-2];  // all except the last two elements
+
+
+```
+
+## Dynamic Arrays
+
+Dynamic arrays are like DQ objects. The user visible variable is a pointer (reference) to the (refcounted) array handler object. This object manages the element storage, which is dynamically allocated on the heap.
+
+The dynamic array manager objects are always allocated on the heap, as they can receive multiple references.
+
+The variables to empty arrays are null pointers. But `dynarr <> null` is invalid. `dynarr.length > 0` or `dynarr <> []` is valid.
+
+
+```dq
+
+var darr1 : [*]int = [10, 20, 30, 40, 50];
+var darr2 : [*]int = [2, 3, 5, 7, 11, 13];
+
+function *Main() -> int:
+  var arr : [*]int;
+
+  SelectArray(0, arr);  // arr points to darr2, the dynamic array handler object of the original arr is deleted,
+                        // because of the reference count reached 0 for that
+
+  arr[0] = 99;          // --> arr[0] == 99  and  darr2[0] == 99
+
+  arr = [1, 2, 3];      // re-assignment, arr detaches from darr2, creates a new dynamic array handler object
+
+  return 0;
+endfunc
 
 ```
 
@@ -150,7 +181,7 @@ var darr4 : [*]int = [7, 11];     // capacity = 2
 darr4 = darr3;                    // darr4 and darr3 now point to the same array
                                   // the original darr4 storage is released
 
-darr3 = [];                       // makes the array empty, reserved storage might be kept
+darr3 = [];                       // old contentst are released, empty storage
 
 ```
 
@@ -182,33 +213,8 @@ i = darr.length;   // actual length of the array, works for static arrays too
 
 ```
 
-Calling .Append(), .Delete() on a static array is a compiler error.
+Calling .Append(), .Delete() on a static array (or on an array slice) is a compiler error.
 
-## Dynamic Arrays
-
-Dynamic arrays are like DQ objects. The user visible variable is a pointer (reference) to the (refcounted) array handler object. This object manages the element storage, which is dynamically allocated on the heap.
-
-The dynamic array manager objects are always allocated on the heap, as they can receive multiple references.
-
-```dq
-
-var darr1 : [*]int = [10, 20, 30, 40, 50];
-var darr2 : [*]int = [2, 3, 5, 7, 11, 13];
-
-function *Main() -> int:
-  var arr : [*]int;
-
-  SelectArray(0, arr);  // arr points to darr2, the dynamic array handler object of the original arr is deleted,
-                        // because of the reference count reached 0 for that
-
-  arr[0] = 99;          // --> arr[0] == 99  and  darr2[0] == 99
-
-  arr = [1, 2, 3];      // re-assignment, arr detaches from darr2, creates a new dynamic array handler object
-
-  return 0;
-endfunc
-
-```
 
 
 ## Array as function arguments
@@ -323,17 +329,14 @@ The element type is described by a static SDqTypeInfo structure, emitted into re
 
 ```
 struct SDqTypeInfo:
-  kind         : uint;
-  size         : uint;
-  align        : uint;
-  flags        : uint;
-
-  init_func    : pointer;
-  copy_func    : pointer;
-  move_func    : pointer;
-  destroy_func : pointer;
-endobj
+  storagesize  : uint;     // array stride, including padding
+  flags        : uint;     // copy/destroy/init/move properties
+  destroy_func : pointer;  // null = no destruction needed
+  copy_func    : pointer;  // null = memcpy copy is enough
+endstruct
 ```
+
+The DQ compiler inserts the required SDqTypeInfo block for every used dynamic array into the .rodata segment of the DQ module, with the unique mangled name, so multiple modules can have the same types too. Later this can be changed to using COMDAT/linkonce_odr linkage, so the final executable will contain the typeinfo for the same type once.
 
 Runtime helper functions receive both the dynamic array manager and the element type info:
 

@@ -14,12 +14,39 @@ function ParamStr(i : int) -> ^cchar;   // 0 = program args
 
 function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc entry point main() (in rtl_linux)
 
+// Types used internally by other RTL modules
+
+struct SDqTypeInfo:
+  storagesize  : uint;     // array stride, including padding
+  flags        : uint;     // copy/destroy/init/move properties
+  destroy_func : pointer;  // null = no destruction needed
+  copy_func    : pointer;  // null = memcpy copy is enough
+endstruct
+
 struct SArraySliceDesc:
   dataptr : pointer;
   length  : uint;
 endstruct
 
+type FRunTimeErrorHandler = function(emsg : ^cchar);
+
+var rterror_handler : FRunTimeErrorHandler = null;
+
+function RuntimeError(emsg : ^cchar):
+  if rterror_handler <> null:
+    rterror_handler(emsg);
+  endif
+endfunc
+
+function Exit(status : int);
+
 implementation
+
+function libc_exit(status : int) [[external('exit')]];
+
+function Exit(status : int):
+  libc_exit(status);
+endfunc
 
 // Memory Allocation
 

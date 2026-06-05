@@ -1,0 +1,62 @@
+use libc/stdio;
+
+var prcnt : int = 1;
+var prarr : [*]int;
+
+function IsPrime(num : int) -> bool:
+  var i : int = 2;
+  while i * i <= num:
+    if num IMOD i == 0:
+      return false;
+    endif
+    i += 1;
+  endwhile
+  return true;
+endfunc
+
+function IsPrimeArr(num : int) -> bool:
+  var idx : int = 0;
+  var i : int;
+  while idx < len(prarr):
+    i = prarr[idx];
+    if num IMOD prarr[idx] == 0:
+      return false;
+    endif
+
+    if i * i > num:
+      return true;
+    endif
+    idx += 1;
+  endwhile
+  return true;
+endfunc
+
+
+function *Main() -> int:
+  printf('DQ Prime Search\n');
+
+  var limit : int = 100;
+
+  printf('Counting primes to %d...\n', limit);
+
+  var num   : int = 3;
+
+  prarr.Clear();
+  prarr.Append(2);
+
+  while num < limit:
+    if IsPrime(num):
+      prarr.Append(num);
+    endif
+    //if num
+    num += 2;
+  endwhile
+
+  printf('Primes:\n');
+  for i : int = 0 count len(prarr):
+    printf(' %d', prarr[i]);
+  endfor
+  printf('\n');
+
+  return 0;
+endfunc

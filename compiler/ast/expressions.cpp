@@ -264,7 +264,7 @@ LlValue * OLValueVar::Generate(OScope * scope)
   if (objsym && objsym->IsObjectReference())
   {
     LlValue * ll_slot = GenerateAddress(scope);
-    return ll_builder.CreateLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
+    return ll_builder.CreateLoad(objsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
   }
 
   if (objsym && objsym->IsFixedObjectStorage())
@@ -739,8 +739,8 @@ void OBinExpr::DeleteChildTree()
 
 LlValue * OCompareExpr::Generate(OScope * scope)
 {
-  LlValue * ll_left  = left->Generate(scope);
-  LlValue * ll_right = right->Generate(scope);
+  LlValue * ll_left = nullptr;
+  LlValue * ll_right = nullptr;
 
   auto object_funcref_type = [](OExpr * expr) -> OTypeFuncRef *
   {
@@ -752,6 +752,9 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   auto * right_obj_fref = object_funcref_type(right);
   if (left_obj_fref || right_obj_fref)
   {
+    ll_left  = left->Generate(scope);
+    ll_right = right->Generate(scope);
+
     if ((COMPOP_EQ != op) && (COMPOP_NE != op))
     {
       throw logic_error("Object function references only support equality comparison");
@@ -784,6 +787,18 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   auto * right_object = object_type(right);
   if (left_object || right_object)
   {
+    auto object_compare_value = [](OExpr * expr, OScope * scope) -> LlValue *
+    {
+      if (auto * lval = dynamic_cast<OLValueExpr *>(expr))
+      {
+        return lval->GenerateObjectAddress(scope);
+      }
+      return expr->Generate(scope);
+    };
+
+    ll_left  = object_compare_value(left, scope);
+    ll_right = object_compare_value(right, scope);
+
     if ((COMPOP_EQ != op) && (COMPOP_NE != op))
     {
       throw logic_error("Object references only support equality comparison");
@@ -807,6 +822,9 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_left, ll_right);
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
+
+  ll_left  = left->Generate(scope);
+  ll_right = right->Generate(scope);
 
   OType * optype = left->ptype;
 

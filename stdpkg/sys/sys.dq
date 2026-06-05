@@ -19,8 +19,10 @@ function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc
 struct SDqTypeInfo:
   storagesize  : uint;     // array stride, including padding
   flags        : uint;     // copy/destroy/init/move properties
-  destroy_func : pointer;  // null = no destruction needed
-  copy_func    : pointer;  // null = memcpy copy is enough
+  init_func    : pointer;  // reserved for the future managed object handling
+  destroy_func : pointer;  // reserved for the future managed object handling
+  copy_func    : pointer;  // reserved for the future managed object handling
+  move_func    : pointer;  // reserved for the future managed object handling
 endstruct
 
 struct SArraySliceDesc:

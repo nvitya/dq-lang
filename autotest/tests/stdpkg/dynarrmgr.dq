@@ -1,0 +1,170 @@
+// ODynArrMgr regression tests
+
+use libc/stdio;
+use rtl/dynarrmgr;
+
+function PrintMgr(label : ^cchar, arr : ref ODynArrMgr):
+  var arrlen : uint = DynArrGetLength(arr);
+  printf("%s length %li capacity %li data", label, arrlen, DynArrGetCapacity(arr));
+
+  var i : int = 0;
+  while i < arrlen:
+    printf(" %li", ^int(DynArrGetElemPtr(arr, i))^);
+    i += 1;
+  endwhile
+
+  printf("\n");
+endfunc
+
+function PrintRefState(label : ^cchar, arr : ODynArrMgr):
+  if arr == null:
+    printf("%s null\n", label);
+  else:
+    printf("%s refcount %li length %li capacity %li\n", label, arr.refcount, arr.length, arr.capacity);
+  endif
+endfunc
+
+function PrintSlice(label : ^cchar, desc : SArraySliceDesc):
+  printf("%s length %li data", label, desc.length);
+  var i : int = 0;
+  while i < desc.length:
+    printf(" %li", ^int(^byte(desc.dataptr)[i * sizeof(int)])^);
+    i += 1;
+  endwhile
+  printf("\n");
+endfunc
+
+function MakeIntTypeInfo(ti : refout SDqTypeInfo):
+  ti.storagesize = sizeof(int);
+  ti.flags = 0;
+  ti.init_func = null;
+  ti.destroy_func = null;
+  ti.copy_func = null;
+  ti.move_func = null;
+endfunc
+
+function RunCoreOps(ti : ^SDqTypeInfo):
+  var arr : ODynArrMgr = null;
+  PrintMgr("initial", arr);
+
+  var first : [5]int = [10, 20, 30, 40, 50];
+  DynArrAppend(arr, ti, &first[0], 5);
+  PrintMgr("append5", arr);
+
+  var ins : [2]int = [111, 222];
+  DynArrInsert(arr, ti, 1, &ins[0], 2);
+  PrintMgr("insert-mid", arr);
+
+  DynArrDelete(arr, -5, 1);
+  PrintMgr("delete-clamped", arr);
+
+  DynArrSetCapacity(arr, ti, 4);
+  PrintMgr("setcap4", arr);
+
+  DynArrSetLength(arr, ti, 6);
+  PrintMgr("setlen6", arr);
+
+  DynArrReserve(arr, ti, 20);
+  PrintMgr("reserve20", arr);
+
+  DynArrCompact(arr);
+  PrintMgr("compact", arr);
+
+  DynArrClear(arr);
+  PrintMgr("clear-keep", arr);
+
+  DynArrClear(arr, true);
+  PrintRefState("clear-free", arr);
+endfunc
+
+function RunAssignClonePop(ti : ^SDqTypeInfo):
+  var a : ODynArrMgr = null;
+  var b : ODynArrMgr = null;
+  var c : ODynArrMgr = null;
+  var src : [3]int = [1, 2, 3];
+
+  DynArrAssignData(a, ti, &src[0], 3);
+  DynArrAssignOther(b, a);
+  PrintRefState("assigned-a", a);
+  PrintRefState("assigned-b", b);
+
+  var tail : int = 4;
+  DynArrAppend(b, ti, &tail, 1);
+  PrintMgr("shared-a", a);
+
+  DynArrClone(c, ti, a);
+  ^int(DynArrGetElemPtr(c, 0))^ = 99;
+  PrintMgr("clone-src", a);
+  PrintMgr("clone-copy", c);
+
+  var popped : int = 0;
+  DynArrPop(c, &popped);
+  printf("pop-last %li\n", popped);
+  DynArrPopFirst(c, &popped);
+  printf("pop-first %li\n", popped);
+  PrintMgr("after-pop", c);
+
+  DynArrAssignData(a, ti, null, 0);
+  PrintRefState("assign-empty-a", a);
+  PrintRefState("assign-empty-b", b);
+
+  DynArrDecRef(b);
+  DynArrDecRef(c);
+endfunc
+
+function RunSlicesOverlap(ti : ^SDqTypeInfo):
+  var arr : ODynArrMgr = null;
+  var src : [4]int = [1, 2, 3, 4];
+  var desc : SArraySliceDesc = {};
+
+  DynArrAssignData(arr, ti, &src[0], 4);
+  DynArrGetSlice(arr, desc, -2, 3);
+  PrintSlice("slice-clamped", desc);
+  DynArrGetSlice(arr, desc, 3, 1);
+  PrintSlice("slice-empty", desc);
+
+  DynArrAppend(arr, ti, arr.dataptr, arr.length);
+  PrintMgr("overlap-append", arr);
+
+  DynArrAssignData(arr, ti, &src[0], 4);
+  DynArrInsert(arr, ti, 2, ^byte(arr.dataptr)[1 * arr.elemsize], 2);
+  PrintMgr("overlap-insert-cross", arr);
+
+  DynArrDecRef(arr);
+endfunc
+
+function *Main() -> int:
+  printf("DQ ODynArrMgr test\n"); //?check("DQ ODynArrMgr test")
+
+  var ti : SDqTypeInfo = {};
+  MakeIntTypeInfo(ti);
+
+  RunCoreOps(&ti); //?check("initial length 0 capacity 0 data")
+                  //?check("append5 length 5 capacity 8 data 10 20 30 40 50")
+                  //?check("insert-mid length 7 capacity 8 data 10 111 222 20 30 40 50")
+                  //?check("delete-clamped length 6 capacity 8 data 111 222 20 30 40 50")
+                  //?check("setcap4 length 4 capacity 4 data 111 222 20 30")
+                  //?check("setlen6 length 6 capacity 8 data 111 222 20 30 0 0")
+                  //?check("reserve20 length 6 capacity 32 data 111 222 20 30 0 0")
+                  //?check("compact length 6 capacity 6 data 111 222 20 30 0 0")
+                  //?check("clear-keep length 0 capacity 6 data")
+                  //?check("clear-free null")
+
+  RunAssignClonePop(&ti); //?check("assigned-a refcount 2 length 3 capacity 3")
+                          //?check("assigned-b refcount 2 length 3 capacity 3")
+                          //?check("shared-a length 4 capacity 6 data 1 2 3 4")
+                          //?check("clone-src length 4 capacity 6 data 1 2 3 4")
+                          //?check("clone-copy length 4 capacity 4 data 99 2 3 4")
+                          //?check("pop-last 4")
+                          //?check("pop-first 99")
+                          //?check("after-pop length 2 capacity 4 data 2 3")
+                          //?check("assign-empty-a null")
+                          //?check("assign-empty-b refcount 1 length 4 capacity 6")
+
+  RunSlicesOverlap(&ti); //?check("slice-clamped length 3 data 1 2 3")
+                         //?check("slice-empty length 0 data")
+                         //?check("overlap-append length 8 capacity 8 data 1 2 3 4 1 2 3 4")
+                         //?check("overlap-insert-cross length 6 capacity 8 data 1 2 2 3 3 4")
+
+  return 0;
+endfunc

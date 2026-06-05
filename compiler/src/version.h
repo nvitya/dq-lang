@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.12.1"
+#define DQ_COMPILER_VERSION  "0.12.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.12.2:
+  - Object Reference handling fixes
+  - Array slice calculation uses an RTL function now
 v0.12.1:
   - .dqm_if function reference writing fix
 v0.12.0:

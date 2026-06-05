@@ -593,8 +593,20 @@ function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, sta
     return;
   endif
 
-  var b : uint = DynArrClampIndex(startpos, arr.length);
-  var e : uint = DynArrClampIndex(endposex, arr.length);
+  var arrlen : uint = arr.length;
+
+  var b : int = startpos;
+  if b < 0:
+    b = 0;
+  elif b >= arrlen:
+    b = arrlen;
+  endif
+  var e : int = endposex;
+  if e < 0:
+    e = 0;
+  elif e >= arrlen:
+    e = arrlen;
+  endif
   if e < b:
     e = b;
   endif

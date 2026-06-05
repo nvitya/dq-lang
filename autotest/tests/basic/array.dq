@@ -67,6 +67,11 @@ function dq_arr_slice_test() -> int:
   result = dq_arr_sum(a);
 endfunc
 
+function dq_arr_static_slice_bounds() -> int:
+  var a : [5]int = [1, 2, 3, 4, 5];
+  result = dq_arr_sum(a[1:4]) + dq_arr_sum(a[2:4]) + dq_arr_sum(a[4:2]);
+endfunc
+
 function dq_arr_len() -> int:
   var a : [5]int;
   a[0] = 0;
@@ -114,6 +119,9 @@ function *Main() -> int:
 
   r = dq_arr_slice_test();
   printf("dq_arr_slice_test() = %li\n", r);  //?check('dq_arr_slice_test()', 6)
+
+  r = dq_arr_static_slice_bounds();
+  printf("dq_arr_static_slice_bounds() = %li\n", r);  //?check('dq_arr_static_slice_bounds()', 16)
 
   r = dq_arr_len();
   printf("dq_arr_len() = %li\n", r);  //?check('dq_arr_len()', 5)

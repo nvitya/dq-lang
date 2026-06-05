@@ -43,6 +43,8 @@ endfunc
 
 function Exit(status : int);
 
+function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc);
+
 implementation
 
 function libc_exit(status : int) [[external('exit')]];
@@ -117,5 +119,37 @@ function ParamStr(i : int) -> ^cchar:
     return null;
   else:
     return sys_argv[i]^;
+  endif
+endfunc
+
+
+function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
+  if length == 0  or  dataptr == null:
+    desc.dataptr = null;
+    desc.length = 0;
+    return;
+  endif
+
+  var b : int = startpos;
+  if b < 0:
+    b = 0;
+  elif b >= length:
+    b = length;
+  endif
+  var e : int = endposex;
+  if e < 0:
+    e = 0;
+  elif e >= length:
+    e = length;
+  endif
+  if e < b:
+    e = b;
+  endif
+
+  desc.length = e - b;
+  if desc.length == 0:
+    desc.dataptr = null;
+  else:
+    desc.dataptr = ^byte(dataptr)[b * elemsize];
   endif
 endfunc

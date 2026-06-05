@@ -20,6 +20,7 @@
 #include "otype_cstring.h"
 #include "otype_func.h"
 #include "otype_object.h"
+#include "named_scopes.h"
 #include <llvm/IR/Intrinsics.h>
 
 string GetBinopSymbol(EBinOp op)
@@ -443,6 +444,7 @@ void OLValueMember::DeleteChildTree()
   }
 }
 
+
 static LlValue * NormalizeIndexValue(LlValue * index, LlValue * len)
 {
   LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
@@ -459,6 +461,7 @@ static LlValue * NormalizeIndexValue(LlValue * index, LlValue * len)
     }
   }
   LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  //TODO: change behaviour: negative index is invalid (runtime error)
   LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "idx.neg");
   return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "idx.from_end"), index, "idx.norm");
 }
@@ -542,16 +545,45 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
 }
 
-static LlValue * SliceBoundValue(OScope * scope, OExpr * expr, LlValue * defval, LlValue * len)
+static LlValue * ToNativeInt(LlValue * value)
 {
-  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
-  LlValue * val = expr ? expr->Generate(scope) : defval;
-  val = NormalizeIndexValue(val, len);
-  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
-  LlValue * lt_zero = ll_builder.CreateICmpSLT(val, zero);
-  val = ll_builder.CreateSelect(lt_zero, zero, val);
-  LlValue * gt_len = ll_builder.CreateICmpSGT(val, len);
-  return ll_builder.CreateSelect(gt_len, len, val);
+  LlType * dst = g_builtins->native_int->GetLlType();
+  if (value->getType() == dst)
+  {
+    return value;
+  }
+  if (!value->getType()->isIntegerTy())
+  {
+    return value;
+  }
+  unsigned srcbits = value->getType()->getIntegerBitWidth();
+  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
+  if (srcbits < dstbits)
+  {
+    return ll_builder.CreateSExt(value, dst, "i.ext");
+  }
+  if (srcbits > dstbits)
+  {
+    return ll_builder.CreateTrunc(value, dst, "i.trunc");
+  }
+  return value;
+}
+
+static OValSymFunc * SysRawArrayGetSliceFunc()
+{
+  auto nsit = g_namespaces.find("sys");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("sys module is not loaded");
+  }
+
+  OValSym * vs = nsit->second->FindValSym("RawArrayGetSlice", nullptr, false);
+  auto * fn = dynamic_cast<OValSymFunc *>(vs);
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("sys.RawArrayGetSlice function is not available");
+  }
+  return fn;
 }
 
 LlValue * OArraySliceExpr::Generate(OScope * scope)
@@ -585,17 +617,20 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
   }
 
   LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-  LlValue * start = SliceBoundValue(scope, startexpr, zero, len);
-  LlValue * end = SliceBoundValue(scope, endexpr, len, len);
-  LlValue * end_lt_start = ll_builder.CreateICmpSLT(end, start);
-  end = ll_builder.CreateSelect(end_lt_start, start, end);
-  LlValue * slice_ptr = ll_builder.CreateGEP(elemtype->GetLlType(), data_ptr, {start}, "slice.sub.ptr");
-  LlValue * slice_len = ll_builder.CreateSub(end, start, "slice.sub.len");
 
-  LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
-  ll_slice = ll_builder.CreateInsertValue(ll_slice, slice_ptr, 0, "slice.ptr");
-  ll_slice = ll_builder.CreateInsertValue(ll_slice, slice_len, 1, "slice.len");
-  return ll_slice;
+  LlValue * start = (startexpr ? startexpr->Generate(scope) : zero);
+  LlValue * end   = (endexpr   ? endexpr->Generate(scope) : zero);
+
+  LlValue * descaddr = ll_builder.CreateAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
+  ll_builder.CreateCall(SysRawArrayGetSliceFunc()->ll_func, {
+      data_ptr,
+      ToNativeInt(len),
+      llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),
+      ToNativeInt(start),
+      ToNativeInt(end),
+      descaddr
+  });
+  return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "arr.slice");
 }
 
 void OArraySliceExpr::FoldChildren()

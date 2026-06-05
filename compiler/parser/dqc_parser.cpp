@@ -5514,7 +5514,19 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
         OTypeObject * ref_object_type = dynamic_cast<OTypeObject *>(fparam->ptype ? fparam->ptype->ResolveAlias() : nullptr);
         if (ref_object_type)
         {
-          rargs.push_back(new OObjectAddrExpr(arglval));
+          bool hidden_receiver_arg = (0 == pcnt) && ("__this" == fparam->name);
+          if (hidden_receiver_arg)
+          {
+            rargs.push_back(new OObjectAddrExpr(arglval));
+          }
+          else if (arglval->IsObjectReferenceExpr())
+          {
+            rargs.push_back(new OAddrOfExpr(arglval));
+          }
+          else
+          {
+            rargs.push_back(new OObjectAddrExpr(arglval));
+          }
         }
         else
         {

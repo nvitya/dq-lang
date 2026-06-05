@@ -444,7 +444,18 @@ void OStmtDelete::Generate(OScope * scope)
     throw runtime_error("OStmtDelete::Generate(): missing MemFree function");
   }
 
-  LlValue * ll_ptr = ptrexpr->Generate(scope);
+  OTypeObject * object_type = dynamic_cast<OTypeObject *>(ptrexpr->ResolvedType());
+  LlValue * ll_ptr = nullptr;
+  if (object_type)
+  {
+    auto * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
+    ll_ptr = (lval ? lval->GenerateObjectAddress(scope) : ptrexpr->Generate(scope));
+  }
+  else
+  {
+    ll_ptr = ptrexpr->Generate(scope);
+  }
+
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_delete = LlBasicBlock::Create(ll_ctx, "delete.run", ll_func);
   LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "delete.done", ll_func);
@@ -453,7 +464,6 @@ void OStmtDelete::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
 
   ll_builder.SetInsertPoint(bb_delete);
-  OTypeObject * object_type = dynamic_cast<OTypeObject *>(ptrexpr->ResolvedType());
   if (object_type && object_type->is_polymorphic)
   {
     OTypeObject * root = object_type;

@@ -384,26 +384,23 @@ function DynArrCreate(arr : ref ODynArrMgr, ati : ^SDqTypeInfo):
 endfunc
 
 function DynArrIncRef(arr : ref ODynArrMgr):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return;
   endif
 
   // TODO: add thread safety
-  mgr.refcount += 1;
+  arr.refcount += 1;
 endfunc
 
 function DynArrDecRef(arr : ref ODynArrMgr):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return;
   endif
 
   // TODO: add thread safety
-  mgr.refcount -= 1;
-  if mgr.refcount <= 0:
-    delete mgr = null;
-    arr = null;
+  arr.refcount -= 1;
+  if arr.refcount <= 0:
+    delete arr = null;
   endif
 endfunc
 
@@ -436,91 +433,78 @@ function DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : point
 endfunc
 
 function DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer:
-  var mgr : ODynArrMgr = arr;
-  if mgr == null  or  index < 0  or  index >= mgr.length:
+  if arr == null  or  index < 0  or  index >= arr.length:
     DynArrRuntimeError('DynArray access out of bounds');
     return null;
   endif
-  return ^byte(mgr.dataptr)[uint(index) * mgr.elemsize];
+  return ^byte(arr.dataptr)[uint(index) * arr.elemsize];
 endfunc
 
 function DynArrGetLength(arr : ref ODynArrMgr) -> uint:
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return 0;
   endif
-  return mgr.length;
+  return arr.length;
 endfunc
 
 function DynArrGetCapacity(arr : ref ODynArrMgr) -> uint:
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return 0;
   endif
-  return mgr.capacity;
+  return arr.capacity;
 endfunc
 
 function DynArrReserve(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, min_capacity : uint):
   if min_capacity == 0:
     return;
   endif
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     DynArrCreate(arr, ati);
-    mgr = arr;
   endif
-  mgr.Reserve(min_capacity);
+  arr.Reserve(min_capacity);
 endfunc
 
 function DynArrSetLength(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_length : uint):
-  var mgr : ODynArrMgr = arr;
   if new_length == 0:
-    if mgr <> null:
-      mgr.length = 0;
+    if arr <> null:
+      arr.length = 0;
     endif
     return;
   endif
-  if mgr == null:
+  if arr == null:
     DynArrCreate(arr, ati);
-    mgr = arr;
   endif
-  mgr.SetLength(new_length);
+  arr.SetLength(new_length);
 endfunc
 
 function DynArrSetCapacity(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_capacity : uint):
-  var mgr : ODynArrMgr = arr;
   if new_capacity == 0:
-    if mgr <> null:
-      mgr.SetCapacity(0);
-      delete mgr = null;
-      arr = null;
+    if arr <> null:
+      arr.SetCapacity(0);
+      delete arr = null;
     endif
     return;
   endif
-  if mgr == null:
+  if arr == null:
     DynArrCreate(arr, ati);
-    mgr = arr;
   endif
-  mgr.SetCapacity(new_capacity);
+  arr.SetCapacity(new_capacity);
 endfunc
 
 function DynArrCompact(arr : ref ODynArrMgr):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return;
   endif
-  mgr.Compact();
+  arr.Compact();
 endfunc
 
 function DynArrClear(arr : ref ODynArrMgr, free_storage : bool = false):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return;
   endif
-  mgr.Clear(free_storage);
+  arr.Clear(free_storage);
   if free_storage:
-    delete mgr = null;
-    arr = null;
+    delete arr = null;
   endif
 endfunc
 
@@ -529,13 +513,11 @@ function DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, 
     return;
   endif
 
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     DynArrCreate(arr, ati);
-    mgr = arr;
   endif
 
-  mgr.Append(asrc, acount);
+  arr.Append(asrc, acount);
 endfunc
 
 function DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : pointer, acount : int):
@@ -543,21 +525,18 @@ function DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asr
     return;
   endif
 
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     DynArrCreate(arr, ati);
-    mgr = arr;
   endif
 
-  mgr.Insert(index, asrc, acount);
+  arr.Insert(index, asrc, acount);
 endfunc
 
 function DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     return;
   endif
-  mgr.Delete(index, acount);
+  arr.Delete(index, acount);
 endfunc
 
 function DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr):
@@ -587,44 +566,40 @@ function DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynA
 endfunc
 
 function DynArrPop(arr : ref ODynArrMgr, outptr : pointer):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     DynArrRuntimeError('DynArray pop from empty array');
     return;
   endif
-  mgr.Pop(outptr);
+  arr.Pop(outptr);
 endfunc
 
 function DynArrPopFirst(arr : ref ODynArrMgr, outptr : pointer):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     DynArrRuntimeError('DynArray pop from empty array');
     return;
   endif
-  mgr.PopFirst(outptr);
+  arr.PopFirst(outptr);
 endfunc
 
 function DynArrGetFullSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     desc.dataptr = null;
     desc.length = 0;
   else:
-    desc.dataptr = mgr.dataptr;
-    desc.length = mgr.length;
+    desc.dataptr = arr.dataptr;
+    desc.length = arr.length;
   endif
 endfunc
 
 function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, startpos : int, endposex : int):
-  var mgr : ODynArrMgr = arr;
-  if mgr == null:
+  if arr == null:
     desc.dataptr = null;
     desc.length = 0;
     return;
   endif
 
-  var b : uint = DynArrClampIndex(startpos, mgr.length);
-  var e : uint = DynArrClampIndex(endposex, mgr.length);
+  var b : uint = DynArrClampIndex(startpos, arr.length);
+  var e : uint = DynArrClampIndex(endposex, arr.length);
   if e < b:
     e = b;
   endif
@@ -633,6 +608,6 @@ function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, sta
   if desc.length == 0:
     desc.dataptr = null;
   else:
-    desc.dataptr = ^byte(mgr.dataptr)[b * mgr.elemsize];
+    desc.dataptr = ^byte(arr.dataptr)[b * arr.elemsize];
   endif
 endfunc

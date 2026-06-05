@@ -5,33 +5,35 @@ use rtl/dynarrmgr;
 
 function PrintMgr(label : ^cchar, arr : ref ODynArrMgr):
   var arrlen : uint = DynArrGetLength(arr);
-  printf("%s length %li capacity %li data", label, arrlen, DynArrGetCapacity(arr));
+  printf("%s = len:%li, cap:%li, data: [", label, arrlen, DynArrGetCapacity(arr));
 
   var i : int = 0;
   while i < arrlen:
-    printf(" %li", ^int(DynArrGetElemPtr(arr, i))^);
+    if i > 0:  printf(",");  endif
+    printf("%li", ^int(DynArrGetElemPtr(arr, i))^);
     i += 1;
   endwhile
 
-  printf("\n");
+  printf("]\n");
 endfunc
 
 function PrintRefState(label : ^cchar, arr : ODynArrMgr):
   if arr == null:
-    printf("%s null\n", label);
+    printf("%s = null\n", label);
   else:
-    printf("%s refcount %li length %li capacity %li\n", label, arr.refcount, arr.length, arr.capacity);
+    printf("%s = refcount:%li, len:%li, cap:%li\n", label, arr.refcount, arr.length, arr.capacity);
   endif
 endfunc
 
 function PrintSlice(label : ^cchar, desc : SArraySliceDesc):
-  printf("%s length %li data", label, desc.length);
+  printf("%s = len:%li, data: [", label, desc.length);
   var i : int = 0;
   while i < desc.length:
+    if i > 0:  printf(",");  endif
     printf(" %li", ^int(^byte(desc.dataptr)[i * sizeof(int)])^);
     i += 1;
   endwhile
-  printf("\n");
+  printf("]\n");
 endfunc
 
 function MakeIntTypeInfo(ti : refout SDqTypeInfo):
@@ -139,32 +141,32 @@ function *Main() -> int:
   var ti : SDqTypeInfo = {};
   MakeIntTypeInfo(ti);
 
-  RunCoreOps(&ti); //?check("initial length 0 capacity 0 data")
-                  //?check("append5 length 5 capacity 8 data 10 20 30 40 50")
-                  //?check("insert-mid length 7 capacity 8 data 10 111 222 20 30 40 50")
-                  //?check("delete-clamped length 6 capacity 8 data 111 222 20 30 40 50")
-                  //?check("setcap4 length 4 capacity 4 data 111 222 20 30")
-                  //?check("setlen6 length 6 capacity 8 data 111 222 20 30 0 0")
-                  //?check("reserve20 length 6 capacity 32 data 111 222 20 30 0 0")
-                  //?check("compact length 6 capacity 6 data 111 222 20 30 0 0")
-                  //?check("clear-keep length 0 capacity 6 data")
-                  //?check("clear-free null")
+  RunCoreOps(&ti); //?check("initial", "len:0, cap:0, data: []")
+                  //?check("append5", "len:5, cap:8, data: [10,20,30,40,50]")
+                  //?check("insert-mid", "len:7, cap:8, data: [10,111,222,20,30,40,50]")
+                  //?check("delete-clamped", "len:6, cap:8, data: [111,222,20,30,40,50]")
+                  //?check("setcap4", "len:4, cap:4, data: [111,222,20,30]")
+                  //?check("setlen6", "len:6, cap:8, data: [111,222,20,30,0,0]")
+                  //?check("reserve20", "len:6, cap:32, data: [111,222,20,30,0,0]")
+                  //?check("compact", "len:6, cap:6, data: [111,222,20,30,0,0]")
+                  //?check("clear-keep", "len:0, cap:6, data: []")
+                  //?check("clear-free", "null")
 
-  RunAssignClonePop(&ti); //?check("assigned-a refcount 2 length 3 capacity 3")
-                          //?check("assigned-b refcount 2 length 3 capacity 3")
-                          //?check("shared-a length 4 capacity 6 data 1 2 3 4")
-                          //?check("clone-src length 4 capacity 6 data 1 2 3 4")
-                          //?check("clone-copy length 4 capacity 4 data 99 2 3 4")
+  RunAssignClonePop(&ti); //?check("assigned-a", "refcount:2, len:3, cap:3")
+                          //?check("assigned-b", "refcount:2, len:3, cap:3")
+                          //?check("shared-a", "len:4, cap:6, data: [1,2,3,4]")
+                          //?check("clone-src", "len:4, cap:6, data: [1,2,3,4]")
+                          //?check("clone-copy", "len:4, cap:4, data: [99,2,3,4]")
                           //?check("pop-last 4")
                           //?check("pop-first 99")
-                          //?check("after-pop length 2 capacity 4 data 2 3")
-                          //?check("assign-empty-a null")
-                          //?check("assign-empty-b refcount 1 length 4 capacity 6")
+                          //?check("after-pop", "len:2, cap:4, data: [2,3]")
+                          //?check("assign-empty-a", "null")
+                          //?check("assign-empty-b", "refcount:1, len:4, cap:6")
 
-  RunSlicesOverlap(&ti); //?check("slice-clamped length 3 data 1 2 3")
-                         //?check("slice-empty length 0 data")
-                         //?check("overlap-append length 8 capacity 8 data 1 2 3 4 1 2 3 4")
-                         //?check("overlap-insert-cross length 6 capacity 8 data 1 2 2 3 3 4")
+  RunSlicesOverlap(&ti); //?check("slice-clamped", "len:3, data: [ 1, 2, 3]")
+                         //?check("slice-empty", "len:0, data: []")
+                         //?check("overlap-append", "len:8, cap:8, data: [1,2,3,4,1,2,3,4]")
+                         //?check("overlap-insert-cross", "len:6, cap:8, data: [1,2,2,3,3,4]")
 
   return 0;
 endfunc

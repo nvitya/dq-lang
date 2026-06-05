@@ -261,15 +261,22 @@ LlValue * OLValueVar::Generate(OScope * scope)
   }
 
   auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
-  if (objsym && objsym->IsObjectReference())
+  auto * objtype = dynamic_cast<OTypeObject *>(pvalsym->ptype ? pvalsym->ptype->ResolveAlias() : nullptr);
+  bool is_object_receiver = objtype && (VSK_PARAMETER == pvalsym->kind) && ("__this" == pvalsym->name);
+  if (is_object_receiver)
   {
-    LlValue * ll_slot = GenerateAddress(scope);
-    return ll_builder.CreateLoad(objsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
+    return GenerateAddress(scope);
   }
 
-  if (objsym && objsym->IsFixedObjectStorage())
+  if (objtype && objsym && objsym->IsFixedObjectStorage())
   {
     return GenerateObjectAddress(scope);
+  }
+
+  if (objtype && (pvalsym->IsRefLike() || (objsym && objsym->IsObjectReference())))
+  {
+    LlValue * ll_slot = GenerateAddress(scope);
+    return ll_builder.CreateLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
   }
 
   if (pvalsym->IsRefLike())
@@ -301,7 +308,9 @@ LlValue * OLValueVar::Generate(OScope * scope)
 bool OLValueVar::IsObjectReferenceExpr() const
 {
   auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
-  return objsym && objsym->IsObjectReference();
+  auto * objtype = dynamic_cast<OTypeObject *>(pvalsym->ptype ? pvalsym->ptype->ResolveAlias() : nullptr);
+  bool is_object_receiver = objtype && (VSK_PARAMETER == pvalsym->kind) && ("__this" == pvalsym->name);
+  return objtype && !is_object_receiver && (pvalsym->IsRefLike() || (objsym && objsym->IsObjectReference()));
 }
 
 bool OLValueVar::IsFixedObjectStorageExpr() const
@@ -312,8 +321,7 @@ bool OLValueVar::IsFixedObjectStorageExpr() const
 
 LlValue * OLValueVar::GenerateObjectAddress(OScope * scope)
 {
-  auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
-  if (objsym && objsym->IsObjectReference())
+  if (IsObjectReferenceExpr())
   {
     return Generate(scope);
   }

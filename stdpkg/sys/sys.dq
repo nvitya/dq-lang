@@ -8,6 +8,7 @@ function MemRealloc(memptr : pointer, newsize : uint) -> pointer;
 function MemReallocRef(memptr : ref pointer, newsize : uint);
 
 function MemCopy(dest : pointer, src : pointer, size : uint);
+function MemSet(dest : pointer, value : int, size : uint);
 
 function ParamCount() -> int;
 function ParamStr(i : int) -> ^cchar;   // 0 = program args
@@ -58,6 +59,7 @@ function libc_free(ptr : pointer)                             [[external('free')
 function libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]];
 function libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer [[external('memcpy')]];
 function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer [[external('memmove')]];
+function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]];
 
 function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
   if zeromem:
@@ -90,6 +92,10 @@ function MemCopy(dest : pointer, src : pointer, size : uint):
   else:  // src and dest overlap, use memmove
     libc_memmove(dest, src, size);
   endif
+endfunc
+
+function MemSet(dest : pointer, value : int, size : uint):
+  libc_memset(dest, value, size);
 endfunc
 
 // Program Argument Handling

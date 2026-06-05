@@ -117,7 +117,7 @@ function DynArrClampIndex(index : int, length : uint) -> uint:
   endif
 endfunc
 
-function DynArrPtrOffset(dataptr : pointer, src : pointer, length : uint, elemsize : uint) -> int:
+function DynArrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint, elemsize : uint) -> int:
   if dataptr == null  or  src == null  or  length == 0:
     return -1;
   endif
@@ -252,7 +252,7 @@ function ODynArrMgr.Append(asrc : pointer, acount : int):
     return;
   endif
 
-  var src_index : int = @.DynArrPtrOffset(dataptr, asrc, old_length, elemsize);
+  var owndata_src_index : int = @.DynArrOwnDataPtrOffset(dataptr, asrc, old_length, elemsize);
   if new_length > capacity:
     Reserve(new_length);
     if capacity < new_length:
@@ -261,8 +261,8 @@ function ODynArrMgr.Append(asrc : pointer, acount : int):
   endif
 
   var srcptr : pointer = asrc;
-  if src_index >= 0:
-    srcptr = ^byte(dataptr)[uint(src_index) * elemsize];
+  if owndata_src_index >= 0:
+    srcptr = ^byte(dataptr)[uint(owndata_src_index) * elemsize];
   endif
 
   @sys.MemCopy(^byte(dataptr)[old_length * elemsize], srcptr, @.DynArrCalcByteSize(uint(acount), elemsize));
@@ -282,7 +282,7 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
   endif
 
   var add_count : uint = acount;
-  var src_index : int = @.DynArrPtrOffset(dataptr, src, old_length, elemsize);
+  var owndata_src_index : int = @.DynArrOwnDataPtrOffset(dataptr, src, old_length, elemsize);
 
   if new_length > capacity:
     Reserve(new_length);
@@ -301,15 +301,21 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
   var dstptr : pointer = ^byte(dataptr)[insertpos * elemsize];
   var copy_bytes : uint = @.DynArrCalcByteSize(add_count, elemsize);
 
-  if src_index < 0:
+  if owndata_src_index < 0:
     @sys.MemCopy(dstptr, src, copy_bytes);
   else:
-    var sidx : uint = src_index;
+    // the src data is from this array !
+    var sidx : uint = owndata_src_index;
     if sidx + add_count <= insertpos:
       @sys.MemCopy(dstptr, ^byte(dataptr)[sidx * elemsize], copy_bytes);
     elif sidx >= insertpos:
       @sys.MemCopy(dstptr, ^byte(dataptr)[(sidx + add_count) * elemsize], copy_bytes);
     else:
+      // split copy required for the case similar to this:
+      //   var a : [*]int = [1, 2, 3, 4];
+      //   a.Insert(2, a[1:3]);  // expected: [1, 2, 2, 3, 3, 4]
+      //                                             ^  ^
+
       var left_count : uint = insertpos - sidx;
       var right_count : uint = add_count - left_count;
       @sys.MemCopy(dstptr,
@@ -360,6 +366,7 @@ function ODynArrMgr.Pop(outptr : pointer):
   endif
 
   var lastidx : uint = length - 1;
+  // copy the element data to the outptr
   @sys.MemCopy(outptr, ^byte(dataptr)[lastidx * elemsize], elemsize);
   length = lastidx;
 endfunc
@@ -370,6 +377,7 @@ function ODynArrMgr.PopFirst(outptr : pointer):
     return;
   endif
 
+  // copy the element data to the outptr
   @sys.MemCopy(outptr, dataptr, elemsize);
   Delete(0, 1);
 endfunc
@@ -422,7 +430,7 @@ function DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : point
   var newarr : ODynArrMgr = null;
   DynArrCreate(newarr, ati);
   newarr.SetCapacity(acount);
-  if newarr.capacity < acount:
+  if newarr.capacity < acount:  // on storage allocation error
     delete newarr = null;
     return;
   endif
@@ -469,12 +477,12 @@ function DynArrSetLength(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_length : 
     if arr <> null:
       arr.length = 0;
     endif
-    return;
+  else:
+    if arr == null:
+      DynArrCreate(arr, ati);
+    endif
+    arr.SetLength(new_length);
   endif
-  if arr == null:
-    DynArrCreate(arr, ati);
-  endif
-  arr.SetLength(new_length);
 endfunc
 
 function DynArrSetCapacity(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_capacity : uint):
@@ -483,28 +491,26 @@ function DynArrSetCapacity(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_capacit
       arr.SetCapacity(0);
       delete arr = null;
     endif
-    return;
+  else:
+    if arr == null:
+      DynArrCreate(arr, ati);
+    endif
+    arr.SetCapacity(new_capacity);
   endif
-  if arr == null:
-    DynArrCreate(arr, ati);
-  endif
-  arr.SetCapacity(new_capacity);
 endfunc
 
 function DynArrCompact(arr : ref ODynArrMgr):
-  if arr == null:
-    return;
+  if arr <> null:
+    arr.Compact();
   endif
-  arr.Compact();
 endfunc
 
 function DynArrClear(arr : ref ODynArrMgr, free_storage : bool = false):
-  if arr == null:
-    return;
-  endif
-  arr.Clear(free_storage);
-  if free_storage:
-    delete arr = null;
+  if arr <> null:
+    arr.Clear(free_storage);
+    if free_storage:
+      delete arr = null;
+    endif
   endif
 endfunc
 
@@ -512,11 +518,9 @@ function DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, 
   if acount < 1:
     return;
   endif
-
   if arr == null:
     DynArrCreate(arr, ati);
   endif
-
   arr.Append(asrc, acount);
 endfunc
 
@@ -524,29 +528,20 @@ function DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asr
   if acount < 1:
     return;
   endif
-
   if arr == null:
     DynArrCreate(arr, ati);
   endif
-
   arr.Insert(index, asrc, acount);
 endfunc
 
 function DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1):
-  if arr == null:
-    return;
+  if arr <> null:
+    arr.Delete(index, acount);
   endif
-  arr.Delete(index, acount);
 endfunc
 
 function DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr):
-  if srcarr == null:
-    DynArrDecRef(dstarr);
-    dstarr = null;
-    return;
-  endif
-
-  if srcarr.length == 0:
+  if srcarr == null  or srcarr.length == 0:
     DynArrDecRef(dstarr);
     dstarr = null;
     return;

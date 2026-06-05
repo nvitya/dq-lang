@@ -57,7 +57,7 @@ The array length is part of the type:
 [3]int  // different type than [4]int
 ```
 
-A static array cannot be structurally resized. Calling dynamic-array methods such as `.Append()`, `.Insert()`, `.Delete()`, `.Reserve()`, `.Compact()`, or `.Clear()` on a static array is a compile-time error.
+A static array cannot be structurally resized. Calling dynamic-array methods such as `.Append()`, `.Prepend()`, `.Insert()`, `.Delete()`, `.SetLength()`, `.SetCapacity()`, `.Reserve()`, `.Compact()`, `.Clear()`, `.Clone()`, `.Pop()`, or `.PopFirst()` on a static array is a compile-time error.
 
 ---
 
@@ -208,12 +208,18 @@ s2[0] = 77;               // modifies arr[1]
 A slice has no capacity and cannot structurally modify the referenced storage:
 
 ```dq
-s.Append(1);     // compile error
-s.Insert(0, 1);  // compile error
-s.Delete(0, 1);  // compile error
-s.Clear();       // compile error
-s.Reserve(100);  // compile error
-s.Compact();     // compile error
+s.Append(1);       // compile error
+s.Prepend(1);      // compile error
+s.Insert(0, 1);    // compile error
+s.Delete(0, 1);    // compile error
+s.SetLength(10);   // compile error
+s.SetCapacity(10); // compile error
+s.Clear();         // compile error
+s.Reserve(100);    // compile error
+s.Compact();       // compile error
+s.Clone();         // compile error
+s.Pop();           // compile error
+s.PopFirst();      // compile error
 ```
 
 ### Slice Lifetime and Invalidation
@@ -226,7 +232,7 @@ A slice becomes invalid if the referenced storage becomes invalid or moves. This
 - the source object containing the static array is destroyed,
 - the source dynamic array releases its last owning manager reference,
 - the source dynamic array reallocates its element storage,
-- the source dynamic array is structurally modified by `.Append()`, `.Insert()`, `.Delete()`, `.Clear()`, `.Compact()`, `.Reserve()`, `.SetCapacity()`, or whole-array assignment,
+- the source dynamic array is structurally modified by `.Append()`, `.Prepend()`, `.Insert()`, `.Delete()`, `.SetLength()`, `.SetCapacity()`, `.Clear()`, `.Compact()`, `.Reserve()`, `.Pop()`, `.PopFirst()`, or whole-array assignment,
 - the underlying memory is otherwise freed or moved.
 
 Using an invalid slice has undefined behavior in unchecked builds. Checked/debug builds may detect some invalid uses and report a runtime error, but the language does not guarantee lifetime safety for slices.
@@ -462,6 +468,19 @@ b[0] = 99;    // a[0] is also 99
 b.Append(4);  // a also sees the appended value
 ```
 
+Dynamic arrays are reference-counted for lifetime management only. They are not copy-on-write. If two dynamic array variables reference the same manager, element writes and structural modifications are visible through both variables.
+
+Use `.Clone()` to create independent dynamic storage:
+
+```dq
+var a : [*]int = [1, 2, 3];
+var b : [*]int = a.Clone();
+
+b[0] = 99;  // a is unchanged
+```
+
+`Clone()` copies only the actual elements. The cloned array has `capacity == length`. Cloning an empty dynamic array returns the canonical empty/null-manager dynamic array.
+
 Whole-array assignment from an array literal creates a new manager and rebinds the variable:
 
 ```dq
@@ -509,27 +528,110 @@ var darr : [*]int = [10, 20, 30];
 var arr2 : [?]int = [40, 50, 60];
 var darr3 : [*]int = [70, 80];
 
-darr.Append(1);          // append single element
+// add elements
+darr.Append(1);          // append single element at the end
 darr.Append([4, 5]);     // append array literal elements
 darr.Append(arr2[1:]);   // append slice elements
 darr.Append(darr3);      // append all elements of another dynamic array
 
+darr.Prepend(1);         // insert single element at the beginning
+darr.Prepend([-1, 0]);   // insert array literal elements at the beginning
+
+darr.Insert(0, 1);       // insert one element before normalized index 0
+darr.Insert(0, [-1, 0]); // insert two elements before normalized index 0
+
+// remove elements
 darr.Delete(0, 1);       // delete the first element
 darr.Delete(1, 2);       // delete two elements: index 1 and index 2
 
-darr.Insert(0, 1);       // insert one element at the front
-darr.Insert(0, [-1, 0]); // insert two elements at the front
+var last  : int = darr.Pop();      // remove and return the last element
+var first : int = darr.PopFirst(); // remove and return the first element
 
+// size and storage management
+darr.SetLength(10);      // resize length, zero-initialize new unmanaged elements
 darr.Reserve(1000);      // ensure capacity >= 1000, length unchanged
+darr.SetCapacity(20);    // set capacity exactly, truncating length if needed
 darr.Compact();          // reduce capacity to length
 darr.Clear();            // set length to 0, keep allocated capacity
 darr.Clear(true);        // set length to 0 and set capacity to 0
+
+// explicit deep copy
+var copy : [*]int = darr.Clone();
 
 var i : int = darr.length;
 var c : int = darr.capacity;
 ```
 
-Calling `.Append()`, `.Insert()`, `.Delete()`, `.Reserve()`, `.Compact()`, or `.Clear()` on a static array or slice is a compile-time error.
+Calling `.Append()`, `.Prepend()`, `.Insert()`, `.Delete()`, `.SetLength()`, `.SetCapacity()`, `.Reserve()`, `.Compact()`, `.Clear()`, `.Clone()`, `.Pop()`, or `.PopFirst()` on a static array or slice is a compile-time error.
+
+### Delete and Insert Index Normalization
+
+`Delete()` and `Insert()` do not produce index-bounds runtime errors. Their index argument is normalized by clamping it to the valid insertion/deletion position range:
+
+```text
+index = clamp(index, 0, length)
+```
+
+`Delete(index, count = 1)` removes elements from the normalized index. If `count <= 0`, the operation does nothing. If the requested range extends past the end of the array, only the existing tail elements are deleted.
+
+```text
+index        = clamp(index, 0, length)
+count        = max(count, 0)
+actual_count = min(count, length - index)
+```
+
+Examples:
+
+```dq
+var a : [*]int = [10, 20, 30];
+
+a.Delete(1);       // [10, 30]
+a.Delete(100);     // unchanged
+a.Delete(1, 100);  // [10]
+a.Delete(-5, 1);   // [20, 30]
+a.Delete(2, 0);    // unchanged
+```
+
+`Insert(index, source)` inserts before the normalized index. Inserting before index `0` prepends. Inserting before index `length` appends.
+
+```dq
+var a : [*]int = [10, 20, 30];
+
+a.Insert(0, 5);       // [5, 10, 20, 30]
+a.Insert(100, 40);    // [10, 20, 30, 40]
+a.Insert(-5, 1);      // [1, 10, 20, 30]
+a.Insert($end, 40);   // [10, 20, 30, 40]
+```
+
+`Prepend(source)` is equivalent to `Insert(0, source)`.
+
+### SetLength Rules
+
+`SetLength(new_length)` changes the logical length of the dynamic array.
+
+In the initial unmanaged-element implementation:
+
+```text
+if new_length < length:
+  length = new_length
+
+if new_length > length:
+  Reserve(new_length)
+  zero-initialize the new elements
+  length = new_length
+```
+
+Examples:
+
+```dq
+var a : [*]int = [1, 2, 3];
+
+a.SetLength(5);  // [1, 2, 3, 0, 0]
+a.SetLength(2);  // [1, 2]
+a.SetLength(0);  // empty, capacity kept
+```
+
+For unmanaged element types, shrinking the length does not require element destruction. Managed element types and their handler functions are a future extension.
 
 ### Capacity Rules
 
@@ -539,7 +641,7 @@ Calling `.Append()`, `.Insert()`, `.Delete()`, `.Reserve()`, `.Compact()`, or `.
 darr.Reserve(1000);  // capacity >= 1000
 ```
 
-`SetCapacity(n)` sets the capacity exactly. If `n < length`, the array is truncated and the removed elements are destroyed.
+`SetCapacity(n)` sets the capacity exactly. If `n < length`, the array length is truncated to `n`.
 
 ```dq
 darr.SetCapacity(10);  // exact capacity = 10
@@ -551,6 +653,50 @@ darr.SetCapacity(10);  // exact capacity = 10
 darr.Compact();        // capacity = length
 ```
 
+`Clear()` sets the length to zero and keeps the current capacity. `Clear(true)` sets the length to zero and releases the element storage, returning the array to capacity zero.
+
+### Clone
+
+`Clone()` returns an independent dynamic array with copied elements.
+
+```dq
+var a : [*]int = [1, 2, 3];
+var b : [*]int = a.Clone();
+
+b[0] = 99;
+
+// a is [1, 2, 3]
+// b is [99, 2, 3]
+```
+
+Rules:
+
+- `Clone()` copies `length` elements.
+- The result has `capacity == length`.
+- `Clone()` of an empty dynamic array returns the canonical empty/null-manager dynamic array.
+- For unmanaged element types, cloning uses raw memory copy.
+- `Clone()` does not recursively clone objects referenced by pointer or reference elements.
+
+### Pop and PopFirst
+
+`Pop()` removes and returns the last element.
+
+```dq
+var a : [*]int = [10, 20, 30];
+var x : int = a.Pop();  // x = 30, a = [10, 20]
+```
+
+`PopFirst()` removes and returns the first element.
+
+```dq
+var a : [*]int = [10, 20, 30];
+var x : int = a.PopFirst();  // x = 10, a = [20, 30]
+```
+
+Calling `Pop()` or `PopFirst()` on an empty dynamic array is a runtime error, because there is no element to return.
+
+`PopFirst()` is an O(n) operation because the remaining elements are moved one position toward the beginning of the array.
+
 ### Overlapping Source Rules
 
 Dynamic array operations must correctly handle overlapping source and destination ranges.
@@ -560,10 +706,51 @@ var a : [*]int = [1, 2, 3];
 
 a.Append(a);       // [1, 2, 3, 1, 2, 3]
 a.Append(a[1:]);   // valid
-a.Insert(1, a);   // valid
+a.Prepend(a);      // [1, 2, 3, 1, 2, 3]
+a.Insert(1, a);    // valid
 ```
 
-Runtime helpers must detect overlap when needed and use a temporary copy or move-safe algorithm. This is especially important when an operation may reallocate the destination storage.
+If `Append()` receives a source range that belongs to the destination dynamic array storage, the runtime converts the source pointer to a source element index before any possible reallocation. After reallocation, the source pointer is reconstructed from the new data pointer and the saved source index.
+
+For `Insert()` and `Prepend()`, the runtime also converts an overlapping source pointer to an element index before any possible reallocation. After the insertion gap is opened, the source pointer is adjusted according to the source range position relative to the insertion point.
+
+If the source range crosses the insertion point, the runtime uses a split-copy algorithm instead of allocating a temporary buffer.
+
+Example:
+
+```dq
+var a : [*]int = [1, 2, 3, 4];
+
+a.Insert(2, a[1:3]);  // [1, 2, 2, 3, 3, 4]
+```
+
+Implementation model for overlapping `Insert()`:
+
+```text
+old_length   = length
+insert_index = clamp(index, 0, old_length)
+src_index    = source index inside old storage
+src_count    = source element count
+
+Reserve(old_length + src_count)
+
+move tail right:
+  elements [insert_index : old_length]
+  ->       [insert_index + src_count : old_length + src_count]
+
+if src_index + src_count <= insert_index:
+  copy source from src_index
+else if src_index >= insert_index:
+  copy source from src_index + src_count
+else:
+  left_count  = insert_index - src_index
+  right_count = src_count - left_count
+
+  copy left part  from src_index
+  copy right part from insert_index + src_count
+```
+
+For unmanaged element types, tail movement is implemented with `memmove`, and source insertion is implemented with raw memory copy/move as needed.
 
 ---
 
@@ -716,18 +903,22 @@ arr.capacity == 0
 
 Operations that need storage allocate a manager automatically using compiler-provided type information.
 
-The element type is described by a static `SDqTypeInfo` structure emitted into read-only/static data by the compiler:
+For the initial unmanaged-element implementation, the element type is described by a static `SDqTypeInfo` structure emitted into read-only/static data by the compiler:
 
 ```dq
 struct SDqTypeInfo:
-  storagesize  : uint;     // array stride, including padding
-  flags        : uint;     // copy/destroy/init/move properties
-  destroy_func : pointer;  // null = no destruction needed
-  copy_func    : pointer;  // null = memcpy copy is enough
+  storagesize : uint;  // array stride, including padding
+  flags       : uint;  // unmanaged/plain element flags and future extensions
+  init_func    : pointer;  // reserved for the future managed object handling
+  destroy_func : pointer;  // reserved for the future managed object handling
+  copy_func    : pointer;  // reserved for the future managed object handling
+  move_func    : pointer;  // reserved for the future managed object handling
 endstruct
 ```
 
 The DQ compiler emits the required `SDqTypeInfo` block for every used dynamic array element type into the `.rodata` segment of the DQ module, with a unique mangled name. Multiple modules may emit equivalent type-info records. Later this can be optimized with COMDAT/linkonce_odr linkage, so the final executable can contain one canonical type-info object for each type.
+
+Managed element types are a future extension. If they are added, `SDqTypeInfo` can be extended with handler functions such as default-initialize, destroy, copy, and move handlers without changing the public dynamic-array API.
 
 Runtime helper functions receive both the dynamic array manager reference and the element type info:
 
@@ -740,7 +931,25 @@ function DqDynArrayAppend(
 );
 ```
 
-If `amgr == null`, the helper allocates a new `ODynArrMgr` and initializes it from `atype`.
+Helpers that return an element value, such as `Pop()` and `PopFirst()`, should use compiler-provided return storage instead of returning a pointer into array storage:
+
+```dq
+function DqDynArrayPop(
+  amgr   : ref ODynArrMgr,
+  atype  : ^SDqTypeInfo,
+  outptr : pointer
+);
+
+function DqDynArrayPopFirst(
+  amgr   : ref ODynArrMgr,
+  atype  : ^SDqTypeInfo,
+  outptr : pointer
+);
+```
+
+The compiler supplies `outptr` as the destination for the function result. The helper copies the removed element into `outptr` and then updates the array length. No temporary heap allocation and no hidden temporary slot inside the array storage are required for unmanaged element types.
+
+If `amgr == null`, helpers that add storage allocate a new `ODynArrMgr` and initialize it from `atype`.
 
 The manager caches frequently used type information:
 
@@ -756,22 +965,24 @@ This avoids repeated type-info dereferencing during normal array operations.
 
 ## Element Lifetime Rules
 
-Dynamic array operations must respect element copy and destruction semantics.
+The initial dynamic-array implementation supports unmanaged element types.
 
-If `destroy_func == null`, elements do not require destruction.
-
-If `copy_func == null`, raw memory copy is sufficient.
-
-The runtime must call element handlers as follows:
+For unmanaged element types:
 
 | Operation | Required element handling |
 |---|---|
-| append/insert from source | copy new elements with `copy_func` or raw copy |
-| delete/truncate | destroy removed elements |
-| clear | destroy all current elements, length becomes 0 |
-| manager destruction | destroy all current elements and free element storage |
-| assignment to `[]` | release manager reference; if refcount reaches 0, destroy manager contents |
-| reallocation | move/copy existing elements safely according to type flags |
+| append/insert/prepend from source | raw memory copy from source elements |
+| delete/truncate/shrink | adjust length and move remaining elements when needed |
+| grow by `SetLength()` | zero-initialize new elements |
+| clear | set length to 0 |
+| manager destruction | free element storage and manager storage |
+| assignment to `[]` | release manager reference; if refcount reaches 0, free manager contents |
+| reallocation | move/copy existing elements with raw memory operations |
+| clone | allocate capacity equal to length and raw-copy elements |
+
+`Pop()` and `PopFirst()` copy the returned element into compiler-provided return storage before removing it from the logical array.
+
+Managed element types are intentionally deferred. When managed element types are introduced, the runtime must extend these rules with default-initialization, copy, move, and destruction handlers. The public dynamic-array API should remain unchanged.
 
 Allocation failure or capacity overflow must not silently corrupt the array. The operation must raise a runtime error or exception. The original array should remain unchanged whenever practical.
 
@@ -791,6 +1002,11 @@ All calculations of `capacity * storagesize` must be checked for integer overflo
 8. Assigning a slice to another slice copies only the view.
 9. Assigning a slice/static array/literal to a dynamic array copies the elements into dynamic-array-owned storage.
 10. Assigning one dynamic array to another shares the manager object.
-11. Whole-array assignment rebinds dynamic array variables.
-12. Element writes and dynamic-array mutating methods modify the referenced manager object.
-13. Slices have pointer-like lifetime dangers and may become invalid when the source storage dies or moves.
+11. Dynamic arrays are reference-counted but not copy-on-write.
+12. `Clone()` creates an independent dynamic array with `capacity == length`.
+13. Whole-array assignment rebinds dynamic array variables.
+14. Element writes and dynamic-array mutating methods modify the referenced manager object.
+15. `Delete()` and `Insert()` clamp their index arguments and do not produce index-bounds runtime errors.
+16. `SetLength()` changes the logical length; growing zero-initializes new unmanaged elements.
+17. `Pop()` and `PopFirst()` return removed elements and are runtime errors on empty arrays.
+18. Slices have pointer-like lifetime dangers and may become invalid when the source storage dies or moves.

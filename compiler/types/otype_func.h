@@ -82,7 +82,8 @@ public:
 
   inline OType * GetLlArgType() const
   {
-    return (IsRefLike() ? ptype->GetPointerType() : ptype);
+    auto * compound = dynamic_cast<OCompoundType *>(ptype ? ptype->ResolveAlias() : nullptr);
+    return ((IsRefLike() || (compound && compound->IsObject())) ? ptype->GetPointerType() : ptype);
   }
 
   bool WriteDqmIf(ODqmIfWriter & writer) const;

@@ -70,10 +70,14 @@ public
   endfunc
 endobj
 
+function MutObjectRef(o : ref OBase):
+endfunc
+
 function *Main() -> int:
   result = 0;
   var b <- OBase();
   var c <- OChild();
   result = b.hidden;  //?error(MemberUnknown)
+  MutObjectRef(b); //?error(FuncArgRefBind)
   var a <- OAbstract; //?error(NotSupported)
 endfunc

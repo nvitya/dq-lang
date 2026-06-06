@@ -5515,6 +5515,15 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
         if (ref_object_type)
         {
           bool hidden_receiver_arg = (0 == pcnt) && ("__this" == fparam->name);
+          auto * root_obj = dynamic_cast<OVsObject *>(rootvalsym);
+          if (!hidden_receiver_arg && root_obj && root_obj->IsFixedObjectStorage()
+              && (FPM_REFIN != fparam->mode))
+          {
+            Error(DQERR_FUNC_ARG_REF_BIND, to_string(pcnt + 1), callname);
+            OExpr::DeleteTree(argexpr);
+            bok = false;
+            break;
+          }
           if (hidden_receiver_arg)
           {
             rargs.push_back(new OObjectAddrExpr(arglval));

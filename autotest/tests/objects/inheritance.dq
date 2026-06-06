@@ -1,5 +1,3 @@
-//?notest
-
 // object inheritance and virtual dispatch tests
 
 use libc/stdio;
@@ -109,7 +107,7 @@ public
   endfunc
 endobj
 
-function PrintBase(b : ref OBase, label : ^cchar):
+function PrintBase(b : OBase, label : ^cchar):
   @.printf("%s = %d\n", label, b.Get());
 endfunc
 

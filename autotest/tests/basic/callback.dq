@@ -32,7 +32,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Testing DQ callbacks:\n\n");  //?check('Testing DQ callbacks:')
+  printf("Testing DQ callbacks:\n\n");  //?ignore('Testing DQ callbacks:')
 
   var r : int = 0;
   var cb : CBUnary = null;

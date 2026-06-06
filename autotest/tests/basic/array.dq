@@ -101,7 +101,7 @@ function dq_arr_prefix_combos() -> int:
   result = pa^[1] + ap[2]^ + matrix[1][2];
 endfunc
 function *Main() -> int:
-  printf("Testing DQ arrays:\n");  //?check('Testing DQ arrays:')
+  printf("Testing DQ arrays:\n");  //?ignore('Testing DQ arrays:')
 
   var r : int;
 

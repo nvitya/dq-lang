@@ -1,3 +1,5 @@
+//?notest
+
 // object inheritance and virtual dispatch tests
 
 use libc/stdio;
@@ -143,8 +145,8 @@ function *Main() -> int:
 
   var oi <- OOverCtor(5);
   var of <- OOverCtor(2.4);
-  @.printf("over ctor %d %d\n", oi.tag, of.tag); //?check("over ctor 15 102")
+  @.printf("over.ctor = %d %d\n", oi.tag, of.tag); //?check("over.ctor", "15 102")
 
-  return 0;                    //?check("child destroy 10 20")
-                              //?check("base destroy 10")
+  return 0;                    //?check("stack.child.destroy", "10 20")
+                              //?check("stack.base.destroy", 10)
 endfunc

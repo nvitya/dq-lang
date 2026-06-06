@@ -73,7 +73,7 @@ endfunc
 // var sm : SMain;
 function *Main() -> int:
 
-  printf("DQ Struct test\n");  //?check('DQ Struct test')
+  printf("DQ Struct test\n");  //?ignore('DQ Struct test')
 
   var sm : SMain = {};
 

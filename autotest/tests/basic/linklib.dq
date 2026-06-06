@@ -12,9 +12,9 @@ endfunc
 
 [[external]] function zlibVersion() -> ^cchar;
 function *Main() -> int:
-  printf('Linked library test\n'); //?check('Linked library test')
+  printf('Linked library test\n'); //?ignore('Linked library test')
 
   printf('fake_zLibVersion = %s\n', zlibVersion_fake()); //?check('fake_zLibVersion', 'v0.0.1-fake')
-  printf('zLibVersion = %s\n', zlibVersion()); //?check('zLibVersion')
+  printf('zLibVersion = %s\n', zlibVersion()); //?ignore('zLibVersion')
   return 0;
 endfunc

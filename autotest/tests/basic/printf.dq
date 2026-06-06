@@ -4,7 +4,7 @@
 
 var g_str : cstring[64] = "asdf";
 function *Main() -> int:
-  printf("Hello %s!\n", "World");  //?check('Hello World!')
+  printf("Hello = %s!\n", "World");  //?check('Hello', 'World!')
   printf("Integer = %ld\n", 42);    //?check('Integer', 42)
   printf("Float = %f\n", 3.14159);  //?check('Float', 3.141590)
   printf("Multiple = %s is %ld years old\n", "Alice", 30);  //?check('Multiple', 'Alice is 30 years old')

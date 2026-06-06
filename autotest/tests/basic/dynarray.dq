@@ -56,7 +56,7 @@ function dyn_global() -> int:
 endfunc
 
 function *Main() -> int:
-  printf("Testing DQ dynamic arrays:\n");  //?check('Testing DQ dynamic arrays:')
+  printf("Testing DQ dynamic arrays:\n");  //?ignore('Testing DQ dynamic arrays:')
 
   var r : int;
   r = dyn_basic();

@@ -37,7 +37,7 @@
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Preprocessor elifdef test:\n");  //?check("Preprocessor elifdef test:")
+  printf("Preprocessor elifdef test:\n");  //?ignore("Preprocessor elifdef test:")
   printf("branch1 = %i\n", branch1);       //?check(branch1, 2)
   printf("branch2 = %i\n", branch2);       //?check(branch2, 20)
   printf("branch3 = %i\n", branch3);       //?check(branch3, 100)

@@ -5,10 +5,10 @@ use ./mod_init_b;
 
 function *Main() -> int:
 
-  //?check("Module init A")
-  //?check("Module init B")
+  //?check("Module.init.A", "done")
+  //?check("Module.init.B", "done")
 
-  printf("DQ module init main\n"); //?check("DQ module init main")
+  printf("Module.init.main = done\n"); //?check("Module.init.main", "done")
 
   return 0;
 endfunc

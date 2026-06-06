@@ -14,7 +14,7 @@ endfunc
 
 #else
 function *Main() -> int:
-  @advm.printf("DQ advanced use test\n");  //?check('DQ advanced use test')
+  @advm.printf("DQ advanced use test\n");  //?ignore('DQ advanced use test')
 
   @advm.printf("g_mod_var = %d\n", @advm.g_mod_var);  //?check('g_mod_var', 5)
   @advm.printf("g_mod_var2 = %d\n", @advm.g_mod_var2);  //?check('g_mod_var2', 25)

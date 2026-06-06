@@ -15,7 +15,7 @@ object OElem:
   endfunc
 
   function printf():
-    @.printf("OElem(%d, %.2f)\n", id, weight);  // call the module-root printf()
+    @.printf("elem = OElem(%d, %.2f)\n", id, weight);  // call the module-root printf()
   endfunc
 
   function MethodFwd() -> int;
@@ -43,10 +43,10 @@ endfunc
 var g_elem : OElem = null;
 
 function *Main() -> int:
-  printf('DQ Object test\n');  //?check('DQ Object test')
+  printf('DQ Object test\n');  //?ignore('DQ Object test')
 
   if g_elem == null:
-    printf("g_elem is null.\n");  //?check('g_elem is null.')
+    printf("g_elem = null\n");  //?check('g_elem', 'null')
   endif
 
   g_elem = new OElem();
@@ -58,7 +58,7 @@ function *Main() -> int:
 
   printf('elem.Factor(2) = %.2f\n', elem.Factor(2)); //?check('elem.Factor(2)', 6.28)
 
-  elem.printf();  //?check('OElem(2, 3.14)')
+  elem.printf();  //?check('elem', 'OElem(2, 3.14)')
 
   printf('elem.MethodFwd() = %d\n', elem.MethodFwd()); //?check('elem.MethodFwd()', 5)
   printf('elem.NewMethod() = %d\n', elem.NewMethod()); //?check('elem.NewMethod()', 6)

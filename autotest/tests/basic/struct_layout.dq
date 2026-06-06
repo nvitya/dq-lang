@@ -87,7 +87,7 @@ function off_packed_obj_b() -> int:
   result = int(uint(&o.b) - uint(&o.a));
 endfunc
 function *Main() -> int:
-  printf("Testing struct layout:\n");  //?check('Testing struct layout:')
+  printf("Testing struct layout:\n");  //?ignore('Testing struct layout:')
 
   printf("sizeof(SLayoutNormal) = %li\n", sizeof(SLayoutNormal));  //?check('sizeof(SLayoutNormal)', 12)
   printf("offsetof(SLayoutNormal, a) = %li\n", offsetof(SLayoutNormal, a));  //?check('offsetof(SLayoutNormal, a)', 0)

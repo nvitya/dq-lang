@@ -63,7 +63,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Testing DQ refs:\n\n");  //?check('Testing DQ refs:')
+  printf("Testing DQ refs:\n\n");  //?ignore('Testing DQ refs:')
 
   var r : int;
   var x : int = 10;
@@ -100,7 +100,7 @@ function *Main() -> int:
   printf("dq_set_refnull(x) = %li\n", x);  //?check('dq_set_refnull(x)', 44)
 
   dq_set_refnull(null);
-  printf("dq_set_refnull(null) ok\n");  //?check('dq_set_refnull(null) ok')
+  printf("dq_set_refnull(null) = ok\n");  //?check('dq_set_refnull(null)', 'ok')
 
   return 0;
 endfunc

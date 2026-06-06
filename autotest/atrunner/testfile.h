@@ -42,12 +42,14 @@ class ORunCapture
 public:
   string            strid;
   string            checkvalue;
+  bool              ignore = false;
   bool              captured = false;
 
-  ORunCapture(const string astrid, const string acheckvalue)
+  ORunCapture(const string astrid, const string acheckvalue, bool aignore)
   :
     strid(astrid),
-    checkvalue(acheckvalue)
+    checkvalue(acheckvalue),
+    ignore(aignore)
   {}
 };
 

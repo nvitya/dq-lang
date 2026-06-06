@@ -275,7 +275,19 @@ void OTestFile::AnalyzeRunOutput()
         {
           if (cap->strid == sid)
           {
-            if (cap->captured)
+            char * valueptr = spl.readptr;
+
+            if (cap->ignore)
+            {
+              if (cap->checkvalue.empty() or spl.CheckSymbol(cap->checkvalue.c_str()))
+              {
+                cap->captured = true;
+                errstr = "";
+                waschecked = true;
+                break;
+              }
+            }
+            else if (cap->captured)
             {
               errstr = "already captured";
             }
@@ -283,14 +295,20 @@ void OTestFile::AnalyzeRunOutput()
             {
               errstr = format("!= {}", cap->checkvalue);
             }
+            else
+            {
+              cap->captured = true;
+              errstr = "";
+              waschecked = true;
+              break;
+            }
 
-            cap->captured = true;
-            waschecked = true;
-            break;
+            spl.readptr = valueptr;
           }
         }
-        else if (cap->checkvalue.empty() and spl.CheckSymbol(cap->strid.c_str()))
+        else if (cap->ignore and cap->checkvalue.empty() and spl.CheckSymbol(cap->strid.c_str()))
         {
+          cap->captured = true;
           waschecked = true;
           break;
         }
@@ -317,7 +335,7 @@ void OTestFile::AnalyzeRunOutput()
   // write missing captures
   for (ORunCapture * cap : run_captures)
   {
-    if (not cap->captured and not cap->checkvalue.empty())
+    if (not cap->ignore and not cap->captured)
     {
       outline = format("{:<40} ` missing: {} = {}", "", cap->strid, cap->checkvalue);
       if (!g_atropt->batchmode)
@@ -750,9 +768,22 @@ void OTestFile::ParseMarkerCheck(bool aignore)
       auto pos = sv.find_last_not_of(" \t\n\r\f\v");
       sv.erase(pos == std::string::npos ? 0 : pos + 1);
     }
+
+    sp.SkipSpaces(false);
+    if (not sp.CheckSymbol(")"))
+    {
+      AddTfError(format("\")\" is missing after \"//?{}\"", cmd));
+      return;
+    }
   }
   else
   {
+    if (not aignore)
+    {
+      AddTfError(format("\",\" is missing after \"//?check\""));
+      return;
+    }
+
     if (not sp.CheckSymbol(")"))
     {
       AddTfError(format("\")\" is missing after \"//?{}\"", cmd));
@@ -760,7 +791,7 @@ void OTestFile::ParseMarkerCheck(bool aignore)
     }
   }
 
-  run_captures.push_back(new ORunCapture(strid, sv));
+  run_captures.push_back(new ORunCapture(strid, sv, aignore));
 }
 
 void OTestFile::AddTfError(const string astr)

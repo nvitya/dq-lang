@@ -27,11 +27,11 @@ function RefIsNotNull(obj : ref OTest) -> int:
 endfunc
 
 function *Main() -> int:
-  printf("global_ref null %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)); //?check("global_ref null 1 0")
+  printf("global_ref.null = %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)); //?check("global_ref.null", "1 0")
 
   global_ref = new OTest(42);
-  printf("global_ref set %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)); //?check("global_ref set 0 1")
-  printf("global_ref value %d\n", global_ref.value); //?check("global_ref value 42")
+  printf("global_ref.set = %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)); //?check("global_ref.set", "0 1")
+  printf("global_ref.value = %d\n", global_ref.value); //?check("global_ref.value", 42)
   delete global_ref = null;
 
   return 0;

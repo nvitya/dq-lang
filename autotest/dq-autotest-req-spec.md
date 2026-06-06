@@ -212,28 +212,31 @@ The initial runtime output syntax shall use a simple custom parser rather than r
 Examples:
 
 ```dq
-//?check(Hello)
 //?check(Test1Result, 1.234)
 //?check(strtest1, "abcd")
 //?ignore(Debug line)
 ```
 
-The framework shall support two forms:
+The framework shall support one `check(...)` form and one or two
+`ignore(...)` forms:
 
 ```text
-//?check(Text)
 //?check(Key, Value)
 //?ignore(Text)
 //?ignore(Key, Value)
 ```
 
-In the one-argument form, the argument is matched as literal output text for the full runtime line.
+The `check(...)` directive shall always use two arguments. The first argument
+is the expected output key and the second argument is the expected value.
+Runtime lines checked with `check(...)` shall be written as `Key = Value`.
 
-In the two-argument form, the first argument is the expected output key and the second argument is the expected value.
+The one-argument `ignore(...)` form is used for runtime lines without an `=`.
+It may also consume a key/value line by key when the value is intentionally not
+checked.
 
 The expected text or value shall be matched against the runtime output as literal text.
 
-`ignore(...)` and `ignoreerr(...)` shall use the same one-argument and two-argument forms and matching rules as `check(...)` and `checkerr(...)`, but matched lines shall be consumed without creating a required expectation.
+`ignore(...)` and `ignoreerr(...)` shall consume matched lines without creating a required expectation.
 
 If text is written in quotes in the directive, the quotes are part of the expected output text and must also appear in the runtime output.
 
@@ -270,24 +273,6 @@ Each `ignoreerr(...)` directive shall consume at most one line from the program 
 For a directive of the form:
 
 ```text
-//?check(Text)
-```
-
-the matched runtime line shall exactly equal `Text`.
-
-Example of accepted match for:
-
-```dq
-//?check(Hello)
-```
-
-```text
-Hello
-```
-
-For a directive of the form:
-
-```text
 //?check(Key, Value)
 ```
 
@@ -295,8 +280,8 @@ the matched runtime line shall satisfy all of the following:
 
 1. the line shall begin with `Key`
 2. zero or more spaces may follow the key
-3. an `=` character may optionally appear
-4. zero or more spaces may follow the optional `=`
+3. an `=` character shall appear
+4. zero or more spaces may follow the `=`
 5. the remainder of the line shall exactly equal `Value`
 
 Examples of accepted matches for:
@@ -308,7 +293,6 @@ Examples of accepted matches for:
 ```text
 Test1Result=1.234
 Test1Result = 1.234
-Test1Result    1.234
 ```
 
 Example of accepted match for:

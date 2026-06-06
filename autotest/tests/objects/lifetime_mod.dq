@@ -7,10 +7,10 @@ object OModChild:
 
   function *Create(a : int):
     id = a;
-    @.printf("modchild-%d create\n", id);
+    @.printf("modchild.create = %d\n", id);
   endfunc
 
   function *Destroy():
-    @.printf("modchild-%d destroy\n", id);
+    @.printf("modchild.destroy = %d\n", id);
   endfunc
 endobj

@@ -22,12 +22,12 @@ object OTest:
   endfunc
 
   function Print():
-    @.printf("%s(%d)\n", &ddata.name, ddata.intvalue);
+    @.printf("obj = %s(%d)\n", &ddata.name, ddata.intvalue);
   endfunc
 endobj
 
 function *Main() -> int:
   var obj <- OTest(1);
-  obj.Print();    //?check('OTestName(1)')
+  obj.Print();    //?check('obj', 'OTestName(1)')
   return 0;
 endfunc

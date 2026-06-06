@@ -21,7 +21,7 @@ object OBrace {
 }
 
 function *Main() -> int {
-  printf("compound braces\n");  //?check('compound braces')
+  printf("compound braces\n");  //?ignore('compound braces')
 
   var s : SBrace = {};
   s.id = 7;

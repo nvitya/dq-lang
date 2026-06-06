@@ -21,7 +21,7 @@ function printbool(astr : ^cchar, abool : bool):
   printf("\n");
 endfunc
 function *Main() -> int:
-  printf("DQ bool test\n");  //?check('DQ bool test')
+  printf("DQ bool test\n");  //?ignore('DQ bool test')
 
   printbool("GVBOOL0", GVBOOL0);  //?check(GVBOOL0, false)
   printbool("GVBOOL1", GVBOOL1);  //?check(GVBOOL1, true)

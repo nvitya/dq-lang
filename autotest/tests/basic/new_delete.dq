@@ -4,9 +4,9 @@ use libc/stdio;
 
 function print_ptr_state(label : cstring, p : ^int):
   if p == null:
-    printf("%s: null\n", label);
+    printf("%s = null\n", label);
   else:
-    printf("%s: set\n", label);
+    printf("%s = set\n", label);
   endif
 endfunc
 
@@ -14,7 +14,7 @@ function *Main() -> int:
   var p1 : ^int = new int;
   printf("new int = %d\n", p1^);  //?check('new int', 0)
   delete p1 = null;
-  print_ptr_state("delete clear", p1);  //?check('delete clear: null')
+  print_ptr_state("delete clear", p1);  //?check('delete clear', 'null')
 
   var p2 : ^int = new int();
   printf("new int() = %d\n", p2^);  //?check('new int()', 0)
@@ -27,11 +27,11 @@ function *Main() -> int:
   var p4 = new int(3);
   printf("var new int = %d\n", p4^);  //?check('var new int', 3)
   delete p4;
-  print_ptr_state("plain delete", p4);  //?check('plain delete: set')
+  print_ptr_state("plain delete", p4);  //?check('plain delete', 'set')
 
   var p5 : ^int = new int(5);
   MemFreeRef(p5);
-  print_ptr_state("MemFreeRef typed", p5);  //?check('MemFreeRef typed: null')
+  print_ptr_state("MemFreeRef typed", p5);  //?check('MemFreeRef typed', 'null')
 
   return 0;
 endfunc

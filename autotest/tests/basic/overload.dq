@@ -200,7 +200,7 @@ function use_cb(cb : CB1, v : int) -> int:
   return cb(v);
 endfunc
 function *Main() -> int:
-  printf("Overload collection test\n");  //?check('Overload collection test')
+  printf("Overload collection test\n");  //?ignore('Overload collection test')
 
   var cb : CB1 = oltest_int;
 
@@ -214,7 +214,7 @@ function *Main() -> int:
   printf("oconv(2) = %d\n", oconv(2));  //?check('oconv(2)', 102)
   printf("oconv(2.5) = %d\n", oconv(2.5));  //?check('oconv(2.5)', 203)
 
-  extpick("extpick fixed %d");  //?check('extpick fixed %d')
+  extpick("extpick = fixed %d");  //?check('extpick', 'fixed %d')
 
   return 0;
 endfunc

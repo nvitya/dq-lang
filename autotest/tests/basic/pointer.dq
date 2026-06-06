@@ -75,7 +75,7 @@ endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Testing DQ pointer operations:\n\n");  //?check('Testing DQ pointer operations:')
+  printf("Testing DQ pointer operations:\n\n");  //?ignore('Testing DQ pointer operations:')
 
   var r : int;
 

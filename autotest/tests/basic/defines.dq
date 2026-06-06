@@ -13,10 +13,10 @@ var g_var : int = 555;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf('Testing defines...\n');  //?check('Testing defines...')
+  printf('Testing defines...\n');  //?ignore('Testing defines...')
 
   #ifdef BOOLVAL
-    printf('BOOLVAL is defined.\n');  //?check('BOOLVAL is defined.')
+    printf('BOOLVAL_defined = true\n');  //?check('BOOLVAL_defined', 'true')
     #if BOOLVAL
       printf('  BOOLVAL = true\n');
     #else
@@ -49,7 +49,7 @@ function *Main() -> int:
   #elif MAXVAL >= 1000
     printf('MAXVAL >= 1000\n');
   #else
-    printf('MAXVAL < 1000\n');            //?check('MAXVAL < 1000')
+    printf('MAXVAL_branch = less_than_1000\n'); //?check('MAXVAL_branch', 'less_than_1000')
   #endif
 
   printf('MAXVAL = %ld\n', @def.MAXVAL);  // @ is used for namespace (scope) access.

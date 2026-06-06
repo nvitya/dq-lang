@@ -48,14 +48,17 @@ function dq_str_append(a : cstring, b : cstring):
   cstr_add(a, b);
 endfunc
 function *Main() -> int:
-  dq_writestr(dq_cstr);  //?check('DQ String Test')
+  dq_writestr('dq_cstr = ');
+  dq_writestr(dq_cstr);  //?check('dq_cstr', 'DQ String Test')
 
   var s : cstring[128] = "";
 
   cstr_add(s, "Hello");
-  cstr_add(s, " World!\n");  //?check('Hello World!')
+  cstr_add(s, " World!\n");
 
+  dq_writestr('s = ');
   dq_writestr(s);
+                           //?check('s', 'Hello World!')
 
   // string length checking test
   var s2 : cstring[8];

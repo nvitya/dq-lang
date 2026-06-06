@@ -129,8 +129,10 @@ public:
   OType *        containertype;
   OExpr *        startexpr = nullptr;
   OExpr *        endexpr = nullptr;
+  bool           end_inclusive = false;
 
-  /* ctor */ OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend);
+  /* ctor */ OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,
+                             bool aend_inclusive = false);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
@@ -320,6 +322,7 @@ public:
 
 class OValSymFunc;
 class OValSymOverloadSet;
+class OArrayLit;
 
 class ONewExpr : public OExpr
 {
@@ -336,13 +339,45 @@ public:
   void       DeleteChildTree() override;
 };
 
-// Implicit conversion from fixed array to slice when passing to []int parameter
+// Implicit conversion from fixed array lvalue to slice when passing/storing []int.
 class OArrayToSliceExpr : public OExpr
 {
 public:
-  OValSym *  arrayvalsym;  // source fixed-size array variable
-  /* ctor */ OArrayToSliceExpr(OValSym * aarray, OType * slicetype);
+  OLValueExpr *  arrayexpr;  // source fixed-size array lvalue
+  /* ctor */ OArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype);
   LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+// Convert an array literal to a call-lifetime slice temporary.
+class OArrayLitToSliceExpr : public OExpr
+{
+public:
+  OArrayLit *  arraylit;
+  /* ctor */ OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+enum EArrayMetaField
+{
+  AMF_LENGTH,
+  AMF_CAPACITY
+};
+
+// Extract .length / .capacity from array-like lvalues.
+class OArrayMetaFieldExpr : public OExpr
+{
+public:
+  OLValueExpr *    target;
+  OType *          containertype;
+  EArrayMetaField  field;
+  /* ctor */ OArrayMetaFieldExpr(OLValueExpr * atarget, OType * acontainertype, EArrayMetaField afield);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
 };
 
 // Extract length from an array slice: len(slice_var)
@@ -498,6 +533,14 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
+};
+
+// Parser recovery placeholder for erroneous call-like member expressions.
+class OInvalidCallExpr : public OExpr
+{
+public:
+  /* ctor */ OInvalidCallExpr();
+  LlValue *  Generate(OScope * scope) override;
 };
 
 // --- cstring expressions ---

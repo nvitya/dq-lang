@@ -724,8 +724,22 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
-      OLValueVar * varref = dynamic_cast<OLValueVar *>(src);
-      if (!varref)
+      if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
+      {
+        if (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
+        {
+          *rexpr = new OArrayLitToSliceExpr(arrlit, dsttype);
+          return true;
+        }
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+        }
+        return false;
+      }
+
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
       {
         if (aflags & EXPCF_GENERATE_ERRORS)
         {
@@ -734,9 +748,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
-      OExpr * result = new OArrayToSliceExpr(varref->pvalsym, dsttype);
-      delete src;
-      *rexpr = result;
+      *rexpr = new OArrayToSliceExpr(lval, dsttype);
       return true;
     }
 
@@ -1062,14 +1074,20 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     {
       OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      if (is_explicit_cast
-          || (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
-          || !dynamic_cast<OLValueVar *>(expr))
+      if (is_explicit_cast || (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()))
       {
         return -1;
       }
 
-      return 1;
+      if (dynamic_cast<OLValueExpr *>(expr))
+      {
+        return 1;
+      }
+      if ((aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr))
+      {
+        return 1;
+      }
+      return -1;
     }
 
     if ((TK_STRING == tkd) && (TK_POINTER == tks))

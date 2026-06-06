@@ -987,6 +987,19 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     }
   }
 
+  if (auto * inferred_arr = dynamic_cast<OTypeArray *>(ptype ? ptype->ResolveAlias() : nullptr);
+      inferred_arr && inferred_arr->arraylength == 0)
+  {
+    auto * arrlit = dynamic_cast<OArrayLit *>(initexpr);
+    if (!arrlit || arrlit->elements.empty())
+    {
+      StatementError(DQERR_ARRAY_SIZESPEC);
+      delete initexpr;
+      return;
+    }
+    ptype = inferred_arr->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+  }
+
   scf->SkipWhite();
   if (!scf->CheckSymbol(";"))
   {
@@ -1100,6 +1113,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
       pvalsym->initialized = true;
     }
     if (zero_init)  pvalsym->initialized = true;
+    if (pvalsym->ptype && (TK_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
+    {
+      pvalsym->initialized = true;
+    }
     curscope->DefineValSym(pvalsym);
     curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, initexpr));
   }
@@ -2927,7 +2944,8 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
     // the leftexpr should be a callable expression
     bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr);
+                     || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
+                     || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
       EmitSuppressedVarInitDiags();
@@ -3017,6 +3035,24 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
         return nullptr;
       }
       return elemtype->GetDynArrayType();
+    }
+
+    if (scf->CheckSymbol("?"))
+    {
+      if (!scf->CheckSymbol("]"))
+      {
+        if (aemit_errors)
+        {
+          Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "inferred array size");
+        }
+        return nullptr;
+      }
+      OType * elemtype = ParseTypeSpec(aemit_errors);
+      if (!elemtype)
+      {
+        return nullptr;
+      }
+      return elemtype->GetArrayType(0);
     }
 
     int64_t arrlen;
@@ -4530,15 +4566,8 @@ OExpr * ODqCompParser::ParseExplicitCastExpr(bool * rattempted)
   return srcexpr;
 }
 
-OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver)
+OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
 {
-  string membername;
-  scf->SkipWhite();
-  if (not scf->ReadIdentifier(membername))
-  {
-    Error(DQERR_MEMBER_NAME_EXPECTED);
-    return receiver_expr;
-  }
   if (!scf->CheckSymbol("("))
   {
     Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
@@ -4677,11 +4706,43 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
       // Struct member access on a compound lvalue or a ^compound pointer: x.field / p.field
       if (scf->CheckSymbol("."))
       {
-        if (TK_DYN_ARRAY == tk)
+        string membername;
+        scf->SkipWhite();
+        if (not scf->ReadIdentifier(membername))
         {
-          result = ParseDynArrayMethod(result, lval);
-          if (!result) return nullptr;
-          continue;
+          Error(DQERR_MEMBER_NAME_EXPECTED);
+          return result;
+        }
+
+        if (TK_ARRAY == tk || TK_ARRAY_SLICE == tk || TK_DYN_ARRAY == tk)
+        {
+          if ("length" == membername)
+          {
+            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_LENGTH);
+            continue;
+          }
+          if ((TK_DYN_ARRAY == tk) && ("capacity" == membername))
+          {
+            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_CAPACITY);
+            continue;
+          }
+          if (TK_DYN_ARRAY == tk)
+          {
+            result = ParseDynArrayMethod(result, lval, membername);
+            if (!result) return nullptr;
+            continue;
+          }
+
+          Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+          if (scf->CheckSymbol("("))
+          {
+            vector<TRawCallArg> rawargs;
+            ParseRawCallArguments(membername, rawargs);
+            FreeRawCallArguments(rawargs);
+            delete result;
+            result = new OInvalidCallExpr();
+          }
+          return result;
         }
 
         OLValueExpr * memberbase = nullptr;
@@ -4699,14 +4760,6 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           {
             Error(DQERR_TYPE_NO_MEMBERS);
           }
-          return result;
-        }
-
-        string membername;
-        scf->SkipWhite();
-        if (not scf->ReadIdentifier(membername))
-        {
-          Error(DQERR_MEMBER_NAME_EXPECTED);
           return result;
         }
 
@@ -4777,7 +4830,18 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           and scf->CheckSymbol("["))
       {
         OExpr * indexexpr = nullptr;
+        OExpr * endexpr = nullptr;
         bool has_first_expr = false;
+        bool inclusive_slice = false;
+        int64_t prev_context_len = array_index_context_len;
+        if (TK_ARRAY == tk)
+        {
+          array_index_context_len = static_cast<OTypeArray *>(lval->ptype->ResolveAlias())->arraylength;
+        }
+        else
+        {
+          array_index_context_len = -1;
+        }
         scf->SkipWhite();
         if (!scf->CheckSymbol(":", false))
         {
@@ -4787,13 +4851,14 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         scf->SkipWhite();
         if (scf->CheckSymbol(":"))
         {
+          inclusive_slice = scf->CheckSymbol(":");
           if (TK_STRING == tk)
           {
             Error(DQERR_NOT_SUPPORTED, "cstring slicing");
             OExpr::DeleteTree(indexexpr);
+            array_index_context_len = prev_context_len;
             return result;
           }
-          OExpr * endexpr = nullptr;
           scf->SkipWhite();
           if (!scf->CheckSymbol("]", false))
           {
@@ -4804,18 +4869,21 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           {
             Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "slice");
           }
-          result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr);
+          array_index_context_len = prev_context_len;
+          result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
           continue;
         }
         if (!has_first_expr)
         {
           Error(DQERR_EXPR_EXPECTED);
+          array_index_context_len = prev_context_len;
           return result;
         }
         if (not scf->CheckSymbol("]"))
         {
           Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
         }
+        array_index_context_len = prev_context_len;
         result = new OLValueIndex(lval, lval->ptype, indexexpr);
         continue;
       }
@@ -4942,6 +5010,31 @@ OExpr * ODqCompParser::ParseExprPrimary()
   if (scf->CheckSymbol("["))
   {
     return ParseArrayLit();
+  }
+
+  if (scf->CheckSymbol("$"))
+  {
+    string ctxname;
+    if (!scf->ReadIdentifier(ctxname))
+    {
+      Error(DQERR_ID_EXP_AFTER, "$");
+      return nullptr;
+    }
+    if (array_index_context_len < 0)
+    {
+      Error(DQERR_VS_UNKNOWN, "$" + ctxname);
+      return nullptr;
+    }
+    if ("end" == ctxname)
+    {
+      return new OIntLit(array_index_context_len);
+    }
+    if ("last" == ctxname)
+    {
+      return new OIntLit(array_index_context_len - 1);
+    }
+    Error(DQERR_VS_UNKNOWN, "$" + ctxname);
+    return nullptr;
   }
 
   if (scf->CheckSymbol("0x"))  // hex number ?
@@ -5071,29 +5164,29 @@ OExpr * ODqCompParser::ParseExprPrimary()
 
   // builtin specials
 
-  if ("len" == sid)
+  if ("len" == sid || "Len" == sid)
   {
     return ParseBuiltinLen();
   }
 
-  if ("iif" == sid)
+  if ("iif" == sid || "Iif" == sid)
   {
     return ParseBuiltinIif();
   }
 
-  if ("sizeof" == sid)
+  if ("sizeof" == sid || "SizeOf" == sid)
   {
     return ParseBuiltinSizeof();
   }
 
-  if ("offsetof" == sid)
+  if ("offsetof" == sid || "OffsetOf" == sid)
   {
     return ParseBuiltinOffsetof();
   }
 
-  if ("round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
-  if ("ceil"  == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
-  if ("floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
+  if ("round" == sid || "Round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
+  if ("ceil"  == sid || "Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
+  if ("floor" == sid || "Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
   if ("new" == sid)
   {
@@ -5447,7 +5540,8 @@ bool ODqCompParser::BindCallArguments(const string & callname, OTypeFunc * tfunc
       if (pcnt < tfunc->params.size())
       {
         OType * argtype = tfunc->params[pcnt]->ptype;
-        if (not CheckAssignType(argtype, &argexpr, "Argument"))
+        if (!ConvertExprToType(argtype, &argexpr,
+                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING | EXPCF_ALLOW_ARRAY_LITERAL_SLICE))
         {
           bok = false;
           break;

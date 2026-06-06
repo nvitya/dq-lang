@@ -1,5 +1,3 @@
-//?notest
-
 // Slice compile-time rejection cases from the array specification.
 
 function SliceStructuralMethodsAreInvalid():

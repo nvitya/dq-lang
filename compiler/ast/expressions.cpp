@@ -524,12 +524,14 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
 }
 
-/* ctor */ OArraySliceExpr::OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend)
+/* ctor */ OArraySliceExpr::OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,
+                                            bool aend_inclusive)
 {
   base = abase;
   containertype = acontainertype;
   startexpr = astart;
   endexpr = aend;
+  end_inclusive = aend_inclusive;
 
   if (TK_ARRAY == containertype->kind)
   {
@@ -619,7 +621,12 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
   LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
 
   LlValue * start = (startexpr ? startexpr->Generate(scope) : zero);
-  LlValue * end   = (endexpr   ? endexpr->Generate(scope) : zero);
+  LlValue * end   = (endexpr   ? endexpr->Generate(scope) : len);
+  if (end_inclusive && endexpr)
+  {
+    end = ll_builder.CreateAdd(ToNativeInt(end),
+        llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), 1), "slice.end.inclusive");
+  }
 
   LlValue * descaddr = ll_builder.CreateAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
   ll_builder.CreateCall(SysRawArrayGetSliceFunc()->ll_func, {
@@ -784,6 +791,45 @@ LlValue * OCompareExpr::Generate(OScope * scope)
 {
   LlValue * ll_left = nullptr;
   LlValue * ll_right = nullptr;
+
+  auto empty_array_literal = [](OExpr * expr) -> bool
+  {
+    auto * arrlit = dynamic_cast<OArrayLit *>(expr);
+    return arrlit && arrlit->elements.empty();
+  };
+
+  auto slice_len_value = [](OExpr * expr, OScope * scope) -> LlValue *
+  {
+    auto * lval = dynamic_cast<OLValueExpr *>(expr);
+    if (!lval)
+    {
+      return nullptr;
+    }
+    OType * rtype = lval->ptype ? lval->ptype->ResolveAlias() : nullptr;
+    if (!rtype || TK_ARRAY_SLICE != rtype->kind)
+    {
+      return nullptr;
+    }
+    LlValue * baseaddr = lval->GenerateAddress(scope);
+    LlType * ll_slicetype = rtype->GetLlType();
+    LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
+    return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+  };
+
+  if ((COMPOP_EQ == op || COMPOP_NE == op)
+      && ((left->ResolvedType() && TK_ARRAY_SLICE == left->ResolvedType()->kind && empty_array_literal(right))
+          || (right->ResolvedType() && TK_ARRAY_SLICE == right->ResolvedType()->kind && empty_array_literal(left))))
+  {
+    OExpr * slice_expr = empty_array_literal(left) ? right : left;
+    LlValue * ll_len = slice_len_value(slice_expr, scope);
+    if (!ll_len)
+    {
+      throw logic_error("slice empty comparison requires a slice lvalue");
+    }
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_len, ll_zero);
+    return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
+  }
 
   auto object_funcref_type = [](OExpr * expr) -> OTypeFuncRef *
   {
@@ -1377,20 +1423,21 @@ void ONewExpr::DeleteChildTree()
   ctor_args.clear();
 }
 
-/* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OValSym * aarray, OType * slicetype)
+/* ctor */ OArrayToSliceExpr::OArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype)
 {
-  arrayvalsym = aarray;
+  arrayexpr = aarray;
   ptype = slicetype;
 }
 
 LlValue * OArrayToSliceExpr::Generate(OScope * scope)
 {
-  OTypeArray * arrtype = static_cast<OTypeArray *>(arrayvalsym->ptype);
+  OTypeArray * arrtype = static_cast<OTypeArray *>(arrayexpr->ptype->ResolveAlias());
 
   // Get pointer to first element of the fixed array
   LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * arrayaddr = arrayexpr->GenerateAddress(scope);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
-      arrtype->GetLlType(), arrayvalsym->ll_value, {ll_zero, ll_zero}, "arr.data");
+      arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
 
   // Build the slice struct {ptr, i64}
   LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
@@ -1399,6 +1446,117 @@ LlValue * OArrayToSliceExpr::Generate(OScope * scope)
       llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength),
       1, "slice.len");
   return ll_slice;
+}
+
+void OArrayToSliceExpr::FoldChildren()
+{
+  OExpr * tmp = arrayexpr;
+  OExpr::FoldTree(&tmp);
+  arrayexpr = static_cast<OLValueExpr *>(tmp);
+}
+
+void OArrayToSliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(arrayexpr);
+  arrayexpr = nullptr;
+}
+
+/* ctor */ OArrayLitToSliceExpr::OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype)
+{
+  arraylit = alit;
+  ptype = slicetype;
+}
+
+LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
+{
+  LlValue * ll_arr = arraylit->Generate(scope);
+  OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
+  LlValue * arraddr = ll_builder.CreateAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
+  ll_builder.CreateStore(ll_arr, arraddr);
+
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elemptr = ll_builder.CreateGEP(
+      arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
+
+  LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
+  ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
+  ll_slice = ll_builder.CreateInsertValue(ll_slice,
+      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength),
+      1, "slice.len");
+  return ll_slice;
+}
+
+void OArrayLitToSliceExpr::FoldChildren()
+{
+  OExpr * tmp = arraylit;
+  OExpr::FoldTree(&tmp);
+  arraylit = static_cast<OArrayLit *>(tmp);
+}
+
+void OArrayLitToSliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(arraylit);
+  arraylit = nullptr;
+}
+
+/* ctor */ OArrayMetaFieldExpr::OArrayMetaFieldExpr(OLValueExpr * atarget, OType * acontainertype, EArrayMetaField afield)
+{
+  target = atarget;
+  containertype = acontainertype;
+  field = afield;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OArrayMetaFieldExpr::Generate(OScope * scope)
+{
+  OType * resolved = containertype->ResolveAlias();
+  if (TK_ARRAY == resolved->kind)
+  {
+    if (AMF_LENGTH == field)
+    {
+      return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(),
+          static_cast<OTypeArray *>(resolved)->arraylength);
+    }
+  }
+  else if (TK_ARRAY_SLICE == resolved->kind)
+  {
+    if (AMF_LENGTH == field)
+    {
+      LlValue * baseaddr = target->GenerateAddress(scope);
+      LlType * ll_slicetype = resolved->GetLlType();
+      LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
+      return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+    }
+  }
+  else if (TK_DYN_ARRAY == resolved->kind)
+  {
+    auto * dyntype = static_cast<OTypeDynArray *>(resolved);
+    LlValue * dynaddr = target->GenerateAddress(scope);
+    if (AMF_LENGTH == field)
+    {
+      return GenerateDynArrayLength(scope, dyntype, dynaddr);
+    }
+    if (AMF_CAPACITY == field)
+    {
+      LlValue * cap_addr = ll_builder.CreateStructGEP(dyntype->GetLlType(), dynaddr, 2, "dyn.cap.addr");
+      return ll_builder.CreateLoad(g_builtins->native_uint->GetLlType(), cap_addr, "dyn.cap");
+    }
+  }
+
+  throw logic_error("OArrayMetaFieldExpr::Generate: unsupported array metadata field");
+}
+
+void OArrayMetaFieldExpr::FoldChildren()
+{
+  OExpr * tmp = target;
+  OExpr::FoldTree(&tmp);
+  target = static_cast<OLValueExpr *>(tmp);
+}
+
+void OArrayMetaFieldExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(target);
+  target = nullptr;
 }
 
 /* ctor */ OSliceLengthExpr::OSliceLengthExpr(OValSym * aslice)
@@ -1921,6 +2079,17 @@ void OArrayLit::DeleteChildTree()
     elem = nullptr;
   }
   elements.clear();
+}
+
+/* ctor */ OInvalidCallExpr::OInvalidCallExpr()
+{
+  ptype = nullptr;
+}
+
+LlValue * OInvalidCallExpr::Generate(OScope * scope)
+{
+  (void)scope;
+  return nullptr;
 }
 
 // --- cstring expressions ---

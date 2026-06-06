@@ -1,5 +1,3 @@
-//?notest
-
 // Static-array compile-time rejection cases from the array specification.
 
 var bad_inferred_no_initializer : [?]int; //?error(ArraySizeSpec)
@@ -7,7 +5,7 @@ var bad_inferred_empty_initializer : [?]int = []; //?error(ArraySizeSpec)
 var bad_slice_literal_storage : []int = [1, 2, 3]; //?error(TypeMismatchAssign)
 var bad_static_literal_size : [3]int = [1, 2, 3, 4]; //?error(ArrSize)
 var len4 : [4]int = [1, 2, 3, 4];
-var bad_static_length_type : [3]int = len4; //?error(TypeMismatchAssign)
+var bad_static_length_type : [3]int = len4; //?error(ArrSize)
 
 function StaticStructuralMethodsAreInvalid():
   var arr : [3]int = [1, 2, 3];

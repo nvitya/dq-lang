@@ -187,8 +187,8 @@ void OStmtVarDecl::Generate(OScope * scope)
     }
   }
 
-  // Compound type zero-initialization: var sm : SMain = {};
-  if (TK_COMPOUND == variable->ptype->kind and not initvalue and variable->initialized)
+  // Compound/static-array zero-initialization.
+  if ((TK_COMPOUND == variable->ptype->kind || TK_ARRAY == variable->ptype->kind) and not initvalue and variable->initialized)
   {
     LlConst * ll_zero = llvm::ConstantAggregateZero::get(ll_type);
     ll_builder.CreateStore(ll_zero, variable->ll_value);

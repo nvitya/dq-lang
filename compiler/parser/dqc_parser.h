@@ -85,6 +85,7 @@ public: // expressions
   OStmtBlock *  curblock = nullptr;
   OScope *      curscope = nullptr;
   int           loop_depth = 0;
+  int64_t       array_index_context_len = -1;
 
   bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
 
@@ -120,7 +121,7 @@ public: // expressions
   OExpr * ParseExprUnary();
   OLValueExpr * ParseAddressableExpr();
   OExpr * ParsePostfix(OExpr * base);
-  OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver);
+  OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);

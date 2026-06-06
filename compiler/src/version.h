@@ -11,10 +11,16 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.12.4"
+#define DQ_COMPILER_VERSION  "0.13.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.13.0:
+  - Static arrays of the new array specification implemented:
+    - Slice types
+    - .length property
+    - $end, $last local symbols
+    - [?] for inferred length
 v0.12.4:
   - ^cchar is now assignable to cstring[n]
 v0.12.3:

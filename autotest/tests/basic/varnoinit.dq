@@ -75,7 +75,7 @@ endfunc
 
 function dq_array_elem_modassign_noinit() -> int:
   var a : [2]int;
-  a[0] += 1;  //?error(VarNotInit)
+  a[0] += 1;
   result = 0;
 endfunc
 

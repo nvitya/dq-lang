@@ -33,7 +33,8 @@ enum EExprConvFlags
 {
   EXPCF_GENERATE_ERRORS    = 1,
   EXPCF_ALLOW_LAZY_CSTRING = 2,
-  EXPCF_EXPLICIT_CAST      = 4
+  EXPCF_EXPLICIT_CAST      = 4,
+  EXPCF_ALLOW_ARRAY_LITERAL_SLICE = 8
 };
 
 class ODqCompAst : public ODqCompBase

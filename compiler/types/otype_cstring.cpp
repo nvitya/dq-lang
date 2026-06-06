@@ -12,7 +12,9 @@
  */
 
 #include <vector>
+#include <limits>
 #include "otype_cstring.h"
+#include "scope_builtins.h"
 #include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
@@ -78,12 +80,44 @@ LlDiType * OTypeCString::CreateDiType()
   }
 }
 
+bool OTypeCString::IsCCharPointerType(OType * type) const
+{
+  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
+  return ptrtype
+      && ptrtype->IsTypedPointer()
+      && ptrtype->basetype
+      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+}
+
+bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
+{
+  if (maxlen <= 0)
+  {
+    return false;
+  }
+
+  if (!srcexpr)
+  {
+    return true;
+  }
+
+  if (dynamic_cast<OCStringLit *>(srcexpr))
+  {
+    return true;
+  }
+
+  OType * srctype = srcexpr->ResolvedType();
+  return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype);
+}
+
 static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
 {
   OTypeCString * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
   if (!srctype)
   {
-    throw logic_error("CString copy source must have cstring type");
+    rsrcptr = srcexpr->Generate(scope);
+    rsrclimit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), numeric_limits<uint64_t>::max());
+    return;
   }
 
   if (srctype->maxlen > 0)
@@ -193,7 +227,7 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
     return true;
   }
 
-  if (dynamic_cast<OTypeCString *>(srcexpr->ResolvedType()))
+  if (CanStoreFrom(srcexpr))
   {
     EmitSizedCStringCopy(scope, dstdaddr, this, srcexpr);
     return true;

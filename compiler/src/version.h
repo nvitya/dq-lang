@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.12.3"
+#define DQ_COMPILER_VERSION  "0.12.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.12.4:
+  - ^cchar is now assignable to cstring[n]
 v0.12.3:
   - Another object reference handling fix
 v0.12.2:

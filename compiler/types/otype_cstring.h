@@ -51,6 +51,8 @@ private:
 
   map<uint32_t, OTypeCString *>  sized_types;  // cached sized variants
 
+  bool IsCCharPointerType(OType * type) const;
+
 public:
   uint32_t     maxlen;
 
@@ -96,6 +98,7 @@ public:
     return new OValueCString(this, maxlen);
   }
 
+  bool CanStoreFrom(OExpr * srcexpr) const;
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;

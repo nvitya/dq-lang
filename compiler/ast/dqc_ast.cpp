@@ -752,10 +752,9 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       }
 
       OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-      OCStringLit * strlit = dynamic_cast<OCStringLit *>(src);
       if (cstrdst->maxlen != 0)
       {
-        if (strlit && (aflags & EXPCF_ALLOW_LAZY_CSTRING))
+        if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(src))
         {
           return true;
         }
@@ -767,6 +766,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
+      OCStringLit * strlit = dynamic_cast<OCStringLit *>(src);
       if (!strlit)
       {
         if (aflags & EXPCF_GENERATE_ERRORS)
@@ -956,7 +956,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       return true;
     }
 
-    if ((cstrdst->maxlen > 0) && (aflags & EXPCF_ALLOW_LAZY_CSTRING))
+    if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(src))
     {
       return true;
     }
@@ -1080,12 +1080,12 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       }
 
       OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-      OCStringLit * strlit = dynamic_cast<OCStringLit *>(expr);
       if (cstrdst->maxlen != 0)
       {
-        return ((strlit && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) ? 0 : -1);
+        return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr)) ? 0 : -1);
       }
 
+      OCStringLit * strlit = dynamic_cast<OCStringLit *>(expr);
       return (strlit ? 1 : -1);
     }
 
@@ -1173,7 +1173,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       return (dynamic_cast<OLValueVar *>(expr) ? 1 : -1);
     }
 
-    if ((cstrdst->maxlen > 0) && (aflags & EXPCF_ALLOW_LAZY_CSTRING))
+    if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr))
     {
       return 0;
     }

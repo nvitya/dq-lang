@@ -7,7 +7,7 @@ protected
   value : int = 1;
   name  : cstring[32];
 public
-  function *Create(aname : cstring, a : int):
+  function *Create(aname : ^cchar, a : int):
     value = a;
     name = aname;
     @.printf("%s.base.create = %d\n", &name[0], value);
@@ -30,7 +30,7 @@ object OChild(OBase):
 private
   extra : int = 2;
 public
-  function *Create(aname : cstring, a : int):
+  function *Create(aname : ^cchar, a : int):
     inherited Create(aname, a + 1);
     extra = a + 2;
     @.printf("%s.child.create = %d %d\n", &name[0], value, extra);

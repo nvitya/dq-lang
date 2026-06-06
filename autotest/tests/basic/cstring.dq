@@ -83,5 +83,12 @@ function *Main() -> int:
   dq_writestr(s5);
   dq_writestr('"\n');     //?check(s5, '"abc"')
 
+  var pc : ^cchar = "asdf";
+  var cs : cstring[32];
+  cs = pc;
+  dq_writestr('cs = "');
+  dq_writestr(cs);
+  dq_writestr('"\n');     //?check(cs, '"asdf"')
+
   return 0;
 endfunc

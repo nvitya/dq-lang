@@ -1,0 +1,14 @@
+//?notest
+
+// Dynamic-array compile-time rejection cases from the array specification.
+
+function DynamicNullComparisonIsInvalid() -> int:
+  var arr : [*]int;
+  if arr == null: //?error(TypeMismatchOp)
+    result = 1;
+  endif
+  if arr <> null: //?error(TypeMismatchOp)
+    result = 2;
+  endif
+  result = 0;
+endfunc

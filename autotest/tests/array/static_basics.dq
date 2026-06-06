@@ -1,0 +1,62 @@
+//?notest
+
+// Spec-level static and inferred-length array behavior.
+
+use libc/stdio;
+
+function Sum(arr : []int) -> int:
+  result = 0;
+  var i : int = 0;
+  while i < arr.length:
+    result += arr[i];
+    i += 1;
+  endwhile
+endfunc
+
+function PrintArray(label : ^cchar, arr : []int):
+  printf("%s = len:%li data:", label, arr.length);
+  var i : int = 0;
+  while i < arr.length:
+    printf(" %li", arr[i]);
+    i += 1;
+  endwhile
+  printf("\n");
+endfunc
+
+function TakesStatic(arr : [3]int) -> int:
+  result = arr[0] + arr[1] + arr[2];
+endfunc
+
+function TakesSlice(arr : []int) -> int:
+  result = Sum(arr);
+endfunc
+
+function *Main() -> int:
+  printf("array_static_basics = start\n"); //?check("array_static_basics", "start")
+
+  var zero : [3]int;
+  PrintArray("static_zero", zero); //?check("static_zero", "len:3 data: 0 0 0")
+
+  var fixed : [3]int = [1, 2, 3];
+  var inferred : [?]int = [10, 20, 30, 40];
+  PrintArray("static_fixed_literal", fixed); //?check("static_fixed_literal", "len:3 data: 1 2 3")
+  PrintArray("static_inferred_literal", inferred); //?check("static_inferred_literal", "len:4 data: 10 20 30 40")
+
+  printf("static_lengths = fixed:%li inferred:%li len:%li Len:%li\n", fixed.length, inferred.length, len(fixed), Len(fixed)); //?check("static_lengths", "fixed:3 inferred:4 len:3 Len:3")
+
+  printf("static_literal_arg = %li\n", TakesStatic([7, 8, 9])); //?check("static_literal_arg", 24)
+  printf("static_literal_slice_arg = %li\n", TakesSlice([11, 12, 13])); //?check("static_literal_slice_arg", 36)
+
+  var source : [5]int = [10, 20, 30, 40, 50];
+  var mid : []int = source[1:4];
+  mid[0] = 99;
+
+  var same_view : []int = mid;
+  same_view[1] = 77;
+
+  PrintArray("static_slice_source_after_write", source); //?check("static_slice_source_after_write", "len:5 data: 10 99 77 40 50")
+  PrintArray("static_slice_view_after_assign", mid); //?check("static_slice_view_after_assign", "len:3 data: 99 77 40")
+  printf("static_slice_sum = %li\n", Sum(mid)); //?check("static_slice_sum", 216)
+
+  return 0;
+endfunc

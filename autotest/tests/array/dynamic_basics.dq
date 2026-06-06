@@ -1,0 +1,87 @@
+//?notest
+
+// Spec-level dynamic array initialization, aliasing, cloning, and assignment.
+
+use libc/stdio;
+
+function PrintArray(label : ^cchar, arr : []int):
+  printf("%s = len:%li data:", label, arr.length);
+  var i : int = 0;
+  while i < arr.length:
+    printf(" %li", arr[i]);
+    i += 1;
+  endwhile
+  printf("\n");
+endfunc
+
+function *Main() -> int:
+  printf("array_dynamic_basics = start\n"); //?check("array_dynamic_basics", "start")
+
+  var empty : [*]int;
+  var empty_literal : [*]int = [];
+  var empty_eq : int = 0;
+  var empty_ne : int = 0;
+  if empty == []:  empty_eq = 1;  endif
+  if empty <> []:  empty_ne = 1;  endif
+  printf("dynamic_empty_uninit = len:%li cap:%li eq:%li ne:%li\n", empty.length, empty.capacity, empty_eq, empty_ne); //?check("dynamic_empty_uninit", "len:0 cap:0 eq:1 ne:0")
+
+  empty_eq = 0;
+  empty_ne = 0;
+  if empty_literal == []:  empty_eq = 1;  endif
+  if empty_literal <> []:  empty_ne = 1;  endif
+  printf("dynamic_empty_literal = len:%li cap:%li eq:%li ne:%li\n", empty_literal.length, empty_literal.capacity, empty_eq, empty_ne); //?check("dynamic_empty_literal", "len:0 cap:0 eq:1 ne:0")
+
+  var empty_clone : [*]int = empty.Clone();
+  empty_eq = 0;
+  if empty_clone == []:  empty_eq = 1;  endif
+  printf("dynamic_empty_clone = len:%li cap:%li eq:%li\n", empty_clone.length, empty_clone.capacity, empty_eq); //?check("dynamic_empty_clone", "len:0 cap:0 eq:1")
+
+  var literal : [*]int = [1, 2, 3];
+  PrintArray("dynamic_literal", literal[:]); //?check("dynamic_literal", "len:3 data: 1 2 3")
+  printf("dynamic_literal_capacity = %li\n", literal.capacity); //?check("dynamic_literal_capacity", 3)
+
+  var a : [*]int = [1, 2, 3];
+  var b : [*]int = a;
+  b[0] = 99;
+  b.Append(4);
+  PrintArray("dynamic_alias_a_after_b_mutates", a[:]); //?check("dynamic_alias_a_after_b_mutates", "len:4 data: 99 2 3 4")
+  PrintArray("dynamic_alias_b_after_b_mutates", b[:]); //?check("dynamic_alias_b_after_b_mutates", "len:4 data: 99 2 3 4")
+
+  var clone : [*]int = b.Clone();
+  printf("dynamic_clone_initial_capacity = len:%li cap:%li\n", clone.length, clone.capacity); //?check("dynamic_clone_initial_capacity", "len:4 cap:4")
+  clone[0] = 7;
+  clone.Append(8);
+  PrintArray("dynamic_clone_source", b[:]); //?check("dynamic_clone_source", "len:4 data: 99 2 3 4")
+  PrintArray("dynamic_clone_copy", clone[:]); //?check("dynamic_clone_copy", "len:5 data: 7 2 3 4 8")
+
+  var dyn_source : [*]int = [10, 20, 30, 40, 50];
+  var dyn_view : []int = dyn_source[1:4];
+  dyn_view[0] = 88;
+  PrintArray("dynamic_slice_source_after_write", dyn_source[:]); //?check("dynamic_slice_source_after_write", "len:5 data: 10 88 30 40 50")
+  PrintArray("dynamic_slice_view_after_write", dyn_view); //?check("dynamic_slice_view_after_write", "len:3 data: 88 30 40")
+
+  b = [7, 8, 9];
+  PrintArray("dynamic_rebind_old_alias", a[:]); //?check("dynamic_rebind_old_alias", "len:4 data: 99 2 3 4")
+  PrintArray("dynamic_rebind_new_value", b[:]); //?check("dynamic_rebind_new_value", "len:3 data: 7 8 9")
+
+  var sarr : [?]int = [10, 20, 30, 40, 50];
+  var view : []int = sarr[1:4];
+  var copy_static : [*]int = sarr;
+  var copy_view : [*]int = view;
+  var copy_slice_expr : [*]int = sarr[1:4];
+
+  view[0] = 99;
+  copy_view[0] = 77;
+
+  PrintArray("dynamic_copy_static_source_after_view_write", sarr); //?check("dynamic_copy_static_source_after_view_write", "len:5 data: 10 99 30 40 50")
+  PrintArray("dynamic_copy_from_static", copy_static[:]); //?check("dynamic_copy_from_static", "len:5 data: 10 20 30 40 50")
+  PrintArray("dynamic_copy_from_view", copy_view[:]); //?check("dynamic_copy_from_view", "len:3 data: 77 30 40")
+  PrintArray("dynamic_copy_from_slice_expr", copy_slice_expr[:]); //?check("dynamic_copy_from_slice_expr", "len:3 data: 20 30 40")
+
+  b = [];
+  empty_eq = 0;
+  if b == []:  empty_eq = 1;  endif
+  printf("dynamic_assign_empty = len:%li cap:%li eq:%li\n", b.length, b.capacity, empty_eq); //?check("dynamic_assign_empty", "len:0 cap:0 eq:1")
+
+  return 0;
+endfunc

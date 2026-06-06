@@ -1,0 +1,106 @@
+//?notest
+
+// Spec-level dynamic array structural operations.
+
+use libc/stdio;
+
+function PrintArray(label : ^cchar, arr : []int):
+  printf("%s = len:%li data:", label, arr.length);
+  var i : int = 0;
+  while i < arr.length:
+    printf(" %li", arr[i]);
+    i += 1;
+  endwhile
+  printf("\n");
+endfunc
+
+function GeAsInt(a : int, b : int) -> int:
+  if a >= b:
+    result = 1;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function EqAsInt(a : int, b : int) -> int:
+  if a == b:
+    result = 1;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function *Main() -> int:
+  printf("array_dynamic_operations = start\n"); //?check("array_dynamic_operations", "start")
+
+  var add : [*]int = [10, 20, 30];
+  var more_static : [?]int = [40, 50, 60];
+  var more_dynamic : [*]int = [70, 80];
+  add.Append(1);
+  add.Append([4, 5]);
+  add.Append(more_static[1:]);
+  add.Append(more_dynamic);
+  PrintArray("dynamic_append_sources", add[:]); //?check("dynamic_append_sources", "len:10 data: 10 20 30 1 4 5 50 60 70 80")
+
+  add.Prepend(1);
+  add.Prepend([-1, 0]);
+  PrintArray("dynamic_prepend_sources", add[:]); //?check("dynamic_prepend_sources", "len:13 data: -1 0 1 10 20 30 1 4 5 50 60 70 80")
+
+  var ins : [*]int = [10, 20, 30];
+  ins.Insert(0, 5);
+  ins.Insert(100, 40);
+  ins.Insert(-5, 1);
+  ins.Insert($end, [50, 60]);
+  PrintArray("dynamic_insert_normalized", ins[:]); //?check("dynamic_insert_normalized", "len:8 data: 1 5 10 20 30 40 50 60")
+
+  var del : [*]int = [10, 20, 30];
+  del.Delete(1);
+  PrintArray("dynamic_delete_one", del[:]); //?check("dynamic_delete_one", "len:2 data: 10 30")
+
+  del = [10, 20, 30];
+  del.Delete(100);
+  PrintArray("dynamic_delete_large_index", del[:]); //?check("dynamic_delete_large_index", "len:3 data: 10 20 30")
+
+  del.Delete(1, 100);
+  PrintArray("dynamic_delete_tail_clamped", del[:]); //?check("dynamic_delete_tail_clamped", "len:1 data: 10")
+
+  del = [10, 20, 30];
+  del.Delete(-5, 1);
+  PrintArray("dynamic_delete_negative_index", del[:]); //?check("dynamic_delete_negative_index", "len:2 data: 20 30")
+
+  del.Delete(2, 0);
+  PrintArray("dynamic_delete_zero_count", del[:]); //?check("dynamic_delete_zero_count", "len:2 data: 20 30")
+
+  var poparr : [*]int = [1, 2, 3, 4];
+  var last : int = poparr.Pop();
+  var first : int = poparr.PopFirst();
+  printf("dynamic_pop_values = first:%li last:%li\n", first, last); //?check("dynamic_pop_values", "first:1 last:4")
+  PrintArray("dynamic_pop_remaining", poparr[:]); //?check("dynamic_pop_remaining", "len:2 data: 2 3")
+
+  var sized : [*]int = [1, 2];
+  sized.SetLength(5);
+  PrintArray("dynamic_setlength_grow_zero", sized[:]); //?check("dynamic_setlength_grow_zero", "len:5 data: 1 2 0 0 0")
+  sized.SetLength(1);
+  PrintArray("dynamic_setlength_shrink", sized[:]); //?check("dynamic_setlength_shrink", "len:1 data: 1")
+
+  sized = [1, 2, 3, 4, 5];
+  sized.SetCapacity(3);
+  printf("dynamic_setcapacity_truncate = len:%li cap:%li\n", sized.length, sized.capacity); //?check("dynamic_setcapacity_truncate", "len:3 cap:3")
+  PrintArray("dynamic_setcapacity_data", sized[:]); //?check("dynamic_setcapacity_data", "len:3 data: 1 2 3")
+
+  sized.Reserve(1000);
+  printf("dynamic_reserve_capacity = ge1000:%li len:%li\n", GeAsInt(sized.capacity, 1000), sized.length); //?check("dynamic_reserve_capacity", "ge1000:1 len:3")
+
+  sized.Compact();
+  printf("dynamic_compact = len:%li cap:%li\n", sized.length, sized.capacity); //?check("dynamic_compact", "len:3 cap:3")
+
+  sized.Reserve(10);
+  var kept_capacity : int = sized.capacity;
+  sized.Clear();
+  printf("dynamic_clear_keep = len:%li retained:%li\n", sized.length, EqAsInt(sized.capacity, kept_capacity)); //?check("dynamic_clear_keep", "len:0 retained:1")
+
+  sized.Clear(true);
+  printf("dynamic_clear_free = len:%li cap:%li\n", sized.length, sized.capacity); //?check("dynamic_clear_free", "len:0 cap:0")
+
+  return 0;
+endfunc

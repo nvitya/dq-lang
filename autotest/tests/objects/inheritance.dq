@@ -5,10 +5,12 @@ use libc/stdio;
 object OBase:
 protected
   value : int = 1;
+  name  : cstring[32];
 public
-  function *Create(a : int):
+  function *Create(aname : cstring, a : int):
     value = a;
-    @.printf("base create %d\n", value);
+    name = aname;
+    @.printf("%s.base.create = %d\n", &name[0], value);
   endfunc
 
   function Get() -> int [[virtual]]:
@@ -20,7 +22,7 @@ public
   endfunc
 
   function *Destroy():
-    @.printf("base destroy %d\n", value);
+    @.printf("%s.base.destroy = %d\n", &name[0], value);
   endfunc
 endobj
 
@@ -28,10 +30,10 @@ object OChild(OBase):
 private
   extra : int = 2;
 public
-  function *Create(a : int):
-    inherited Create(a + 1);
+  function *Create(aname : cstring, a : int):
+    inherited Create(aname, a + 1);
     extra = a + 2;
-    @.printf("child create %d %d\n", value, extra);
+    @.printf("%s.child.create = %d %d\n", &name[0], value, extra);
   endfunc
 
   function Get() -> int [[override]]:
@@ -44,7 +46,7 @@ public
   endfunc
 
   function *Destroy():
-    @.printf("child destroy %d %d\n", value, extra);
+    @.printf("%s.child.destroy = %d %d\n", &name[0], value, extra);
     inherited Destroy();
   endfunc
 endobj
@@ -58,7 +60,7 @@ protected
 public
   function *Create():
     base_value = 31;
-    @.printf("implicit base create %d\n", base_value);
+    @.printf("implicit-base.create = %d\n", base_value);
   endfunc
 endobj
 
@@ -77,7 +79,7 @@ protected
 public
   function *Create(a : int):
     value = a;
-    @.printf("forward base create %d\n", value);
+    @.printf("forward-base.create = %d\n", value);
   endfunc
 
   function Get() -> int [[virtual]]:
@@ -106,37 +108,38 @@ public
 endobj
 
 function PrintBase(b : ref OBase, label : ^cchar):
-  @.printf("%s %d\n", label, b.Get());
+  @.printf("%s = %d\n", label, b.Get());
 endfunc
 
 function *Main() -> int:
-  var c <- OChild(3);           //?check("base create 4")
-                              //?check("child create 4 5")
-  PrintBase(c, "fixed");       //?check("fixed 9")
+  var c <- OChild('stack', 3);   //?check('stack.base.create', 4)
+                                 //?check('stack.child.create', '4 5')
+
+  PrintBase(c, "fixed");         //?check('fixed', 9)
   c.Reset();
-  PrintBase(c, "reset");       //?check("reset 30")
+  PrintBase(c, "reset");         //?check('reset', 30)
 
-  var h : OChild = new OChild(7);
+  var h : OChild = new OChild('heap', 7);
   var b : OBase = h;
-  PrintBase(b, "heap");        //?check("base create 8")
-                              //?check("child create 8 9")
-                              //?check("heap 17")
-  delete b;                    //?check("child destroy 8 9")
-                              //?check("base destroy 8")
+  PrintBase(b, "heap");        //?check("heap.base.create", 8)
+                               //?check("heap.child.create", 8 9)
+                               //?check("heap", 17)
+  delete b;                    //?check("heap.child.destroy", "8 9")
+                               //?check("heap.base.destroy", 8)
 
-  var nd : OChildNoDtor = new OChildNoDtor(21);
-  delete nd;                   //?check("base create 21")
-                              //?check("base destroy 21")
+  var nd : OChildNoDtor = new OChildNoDtor("stacknodtor", 21);
+  delete nd;                   //?check("stacknodtor.base.create", "21")
+                               //?check("stacknodtor.base.destroy", "21")
 
-  var ndb : OBase = new OChildNoDtor(22);
-  delete ndb;                  //?check("base create 22")
-                              //?check("base destroy 22")
+  var ndb : OBase = new OChildNoDtor("childnodtor", 22);
+  delete ndb;                  //?check("childnodtor.base.create", "22")
+                               //?check("childnodtor.base.destroy", "22")
 
-  var ic <- OImplicitChild();  //?check("implicit base create 31")
-  @.printf("implicit sum %d\n", ic.Sum()); //?check("implicit sum 35")
+  var ic <- OImplicitChild();                 //?check("implicit-base.create", "31")
+  @.printf("implicit-sum = %d\n", ic.Sum());  //?check("implicit-sum", "35")
 
-  var fc <- OForwardChild(12); //?check("forward base create 12")
-  @.printf("forward child %d\n", fc.Get()); //?check("forward child 112")
+  var fc <- OForwardChild(12);                  //?check("forward-base.create", "12")
+  @.printf("forward-child = %d\n", fc.Get());   //?check("forward-child", "112")
 
   var oi <- OOverCtor(5);
   var of <- OOverCtor(2.4);

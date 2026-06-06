@@ -1,0 +1,26 @@
+//?notest
+
+// Static-array compile-time rejection cases from the array specification.
+
+var bad_inferred_no_initializer : [?]int; //?error(ArraySizeSpec)
+var bad_inferred_empty_initializer : [?]int = []; //?error(ArraySizeSpec)
+var bad_slice_literal_storage : []int = [1, 2, 3]; //?error(TypeMismatchAssign)
+var bad_static_literal_size : [3]int = [1, 2, 3, 4]; //?error(ArrSize)
+var len4 : [4]int = [1, 2, 3, 4];
+var bad_static_length_type : [3]int = len4; //?error(TypeMismatchAssign)
+
+function StaticStructuralMethodsAreInvalid():
+  var arr : [3]int = [1, 2, 3];
+  arr.Append(4); //?error(MemberUnknown)
+  arr.Prepend(0); //?error(MemberUnknown)
+  arr.Insert(1, 9); //?error(MemberUnknown)
+  arr.Delete(1); //?error(MemberUnknown)
+  arr.SetLength(4); //?error(MemberUnknown)
+  arr.SetCapacity(4); //?error(MemberUnknown)
+  arr.Reserve(10); //?error(MemberUnknown)
+  arr.Compact(); //?error(MemberUnknown)
+  arr.Clear(); //?error(MemberUnknown)
+  arr.Clone(); //?error(MemberUnknown)
+  arr.Pop(); //?error(MemberUnknown)
+  arr.PopFirst(); //?error(MemberUnknown)
+endfunc

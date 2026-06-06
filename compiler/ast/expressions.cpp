@@ -798,7 +798,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     return arrlit && arrlit->elements.empty();
   };
 
-  auto slice_len_value = [](OExpr * expr, OScope * scope) -> LlValue *
+  auto array_len_value = [](OExpr * expr, OScope * scope) -> LlValue *
   {
     auto * lval = dynamic_cast<OLValueExpr *>(expr);
     if (!lval)
@@ -806,7 +806,15 @@ LlValue * OCompareExpr::Generate(OScope * scope)
       return nullptr;
     }
     OType * rtype = lval->ptype ? lval->ptype->ResolveAlias() : nullptr;
-    if (!rtype || TK_ARRAY_SLICE != rtype->kind)
+    if (!rtype)
+    {
+      return nullptr;
+    }
+    if (TK_DYN_ARRAY == rtype->kind)
+    {
+      return GenerateDynArrayLength(scope, static_cast<OTypeDynArray *>(rtype), lval->GenerateAddress(scope));
+    }
+    if (TK_ARRAY_SLICE != rtype->kind)
     {
       return nullptr;
     }
@@ -817,14 +825,18 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   };
 
   if ((COMPOP_EQ == op || COMPOP_NE == op)
-      && ((left->ResolvedType() && TK_ARRAY_SLICE == left->ResolvedType()->kind && empty_array_literal(right))
-          || (right->ResolvedType() && TK_ARRAY_SLICE == right->ResolvedType()->kind && empty_array_literal(left))))
+      && ((left->ResolvedType()
+           && (TK_ARRAY_SLICE == left->ResolvedType()->kind || TK_DYN_ARRAY == left->ResolvedType()->kind)
+           && empty_array_literal(right))
+          || (right->ResolvedType()
+              && (TK_ARRAY_SLICE == right->ResolvedType()->kind || TK_DYN_ARRAY == right->ResolvedType()->kind)
+              && empty_array_literal(left))))
   {
     OExpr * slice_expr = empty_array_literal(left) ? right : left;
-    LlValue * ll_len = slice_len_value(slice_expr, scope);
+    LlValue * ll_len = array_len_value(slice_expr, scope);
     if (!ll_len)
     {
-      throw logic_error("slice empty comparison requires a slice lvalue");
+      throw logic_error("array empty comparison requires an array-like lvalue");
     }
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
     LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_len, ll_zero);
@@ -1499,6 +1511,31 @@ void OArrayLitToSliceExpr::DeleteChildTree()
   arraylit = nullptr;
 }
 
+/* ctor */ ODynArrayToSliceExpr::ODynArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype)
+{
+  arrayexpr = aarray;
+  ptype = slicetype;
+}
+
+LlValue * ODynArrayToSliceExpr::Generate(OScope * scope)
+{
+  auto * dyntype = static_cast<OTypeDynArray *>(arrayexpr->ptype->ResolveAlias());
+  return GenerateDynArraySlice(scope, dyntype, arrayexpr->GenerateAddress(scope), nullptr, nullptr, ptype);
+}
+
+void ODynArrayToSliceExpr::FoldChildren()
+{
+  OExpr * tmp = arrayexpr;
+  OExpr::FoldTree(&tmp);
+  arrayexpr = static_cast<OLValueExpr *>(tmp);
+}
+
+void ODynArrayToSliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(arrayexpr);
+  arrayexpr = nullptr;
+}
+
 /* ctor */ OArrayMetaFieldExpr::OArrayMetaFieldExpr(OLValueExpr * atarget, OType * acontainertype, EArrayMetaField afield)
 {
   target = atarget;
@@ -1538,8 +1575,7 @@ LlValue * OArrayMetaFieldExpr::Generate(OScope * scope)
     }
     if (AMF_CAPACITY == field)
     {
-      LlValue * cap_addr = ll_builder.CreateStructGEP(dyntype->GetLlType(), dynaddr, 2, "dyn.cap.addr");
-      return ll_builder.CreateLoad(g_builtins->native_uint->GetLlType(), cap_addr, "dyn.cap");
+      return GenerateDynArrayCapacity(scope, dyntype, dynaddr);
     }
   }
 
@@ -1746,17 +1782,23 @@ LlValue * ODynArrayMethodCallExpr::Generate(OScope * scope)
   LlValue * dynaddr = receiver->GenerateAddress(scope);
   switch (method)
   {
-    case DYNM_CLEAR:        GenerateDynArrayClear(scope, dyntype, dynaddr); break;
+    case DYNM_CLEAR:        GenerateDynArrayClear(scope, dyntype, dynaddr, args.empty() ? nullptr : args[0]); break;
     case DYNM_RESERVE:      GenerateDynArrayReserve(scope, dyntype, dynaddr, args[0]); break;
     case DYNM_COMPACT:      GenerateDynArrayCompact(scope, dyntype, dynaddr); break;
     case DYNM_SET_LENGTH:   GenerateDynArraySetLength(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_SET_CAPACITY: GenerateDynArraySetCapacity(scope, dyntype, dynaddr, args[0]); break;
     case DYNM_APPEND:       GenerateDynArrayAppend(scope, dyntype, dynaddr, args[0]); break;
     case DYNM_APPEND_SLICE: GenerateDynArrayAppendSlice(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_PREPEND:       GenerateDynArrayPrepend(scope, dyntype, dynaddr, args[0]); break;
+    case DYNM_PREPEND_SLICE: GenerateDynArrayPrependSlice(scope, dyntype, dynaddr, args[0]); break;
     case DYNM_INSERT:       GenerateDynArrayInsert(scope, dyntype, dynaddr, args[0], args[1]); break;
     case DYNM_INSERT_SLICE: GenerateDynArrayInsertSlice(scope, dyntype, dynaddr, args[0], args[1]); break;
     case DYNM_DELETE:
       GenerateDynArrayDelete(scope, dyntype, dynaddr, args[0], args.size() > 1 ? args[1] : nullptr);
       break;
+    case DYNM_CLONE:     return GenerateDynArrayClone(scope, dyntype, dynaddr);
+    case DYNM_POP:       return GenerateDynArrayPop(scope, dyntype, dynaddr, false);
+    case DYNM_POP_FIRST: return GenerateDynArrayPop(scope, dyntype, dynaddr, true);
   }
   return nullptr;
 }

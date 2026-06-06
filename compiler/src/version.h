@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.13.0"
+#define DQ_COMPILER_VERSION  "0.13.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.13.1:
+  - Dynamic arrays implemented according the new specification
 v0.13.0:
   - Static arrays of the new array specification implemented:
     - Slice types

@@ -1,5 +1,3 @@
-//?notest
-
 // Spec-level dynamic array structural operations.
 
 use libc/stdio;

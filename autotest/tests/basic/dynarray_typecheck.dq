@@ -16,7 +16,7 @@ endstruct  //?error(ModStatementUnknown)
 function *Main() -> int:
   var a : [*]int;
   var b : [*]int;
-  a = b;  //?error(NotSupported)
+  a = b;
 
   return 0;
 endfunc

@@ -39,7 +39,25 @@ static bool EnsureDynArrayRtlUse()
   {
     return true;
   }
-  return g_compiler->AddImplicitUse("rtl/dynarray", "__dq_dynarray", nullptr, true, MUM_NONE);
+  return g_compiler->AddImplicitUse("rtl/dynarrmgr", "__dq_dynarray", nullptr, true, MUM_NONE);
+}
+
+static OLValueExpr * CloneContextLValue(OLValueExpr * src)
+{
+  if (auto * var = dynamic_cast<OLValueVar *>(src))
+  {
+    return new OLValueVar(var->pvalsym);
+  }
+  if (auto * member = dynamic_cast<OLValueMember *>(src))
+  {
+    OLValueExpr * base = CloneContextLValue(member->base);
+    if (!base)
+    {
+      return nullptr;
+    }
+    return new OLValueMember(base, member->structtype, member->memberindex, member->ptype);
+  }
+  return nullptr;
 }
 
 bool ODqCompParser::SupportsFuncParamDefaultType(OType * ptype)
@@ -1024,13 +1042,6 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     {
       return;
     }
-  }
-
-  if (ptype && (TK_DYN_ARRAY == ptype->ResolveAlias()->kind) && (initexpr || zero_init))
-  {
-    StatementError(DQERR_NOT_SUPPORTED, "dynamic array initializer");
-    delete initexpr;
-    return;
   }
 
   if (initexpr and (not CheckAssignType(ptype, &initexpr, "Assignment")))  // might add implicit conversion
@@ -4371,6 +4382,46 @@ OExpr * ODqCompParser::ParseComparison()
     return FreeLeftRight(left, nullptr);
   }
 
+  auto empty_array_literal = [](OExpr * expr) -> bool
+  {
+    auto * arrlit = dynamic_cast<OArrayLit *>(expr);
+    return arrlit && arrlit->elements.empty();
+  };
+  auto array_empty_compare = [&](OExpr * a, OExpr * b) -> bool
+  {
+    OType * atype = a && a->ptype ? a->ptype->ResolveAlias() : nullptr;
+    return (COMPOP_EQ == op || COMPOP_NE == op)
+           && atype
+           && (TK_ARRAY_SLICE == atype->kind || TK_DYN_ARRAY == atype->kind)
+           && empty_array_literal(b);
+  };
+  auto compare_symbol = [](ECompareOp cmp) -> string
+  {
+    switch (cmp)
+    {
+      case COMPOP_EQ: return "==";
+      case COMPOP_NE: return "<>";
+      case COMPOP_LT: return "<";
+      case COMPOP_GT: return ">";
+      case COMPOP_LE: return "<=";
+      case COMPOP_GE: return ">=";
+      default:        return "?";
+    }
+  };
+  OType * ltype = left && left->ptype ? left->ptype->ResolveAlias() : nullptr;
+  OType * rtype = right && right->ptype ? right->ptype->ResolveAlias() : nullptr;
+  if ((ltype && (TK_DYN_ARRAY == ltype->kind || TK_ARRAY_SLICE == ltype->kind))
+      || (rtype && (TK_DYN_ARRAY == rtype->kind || TK_ARRAY_SLICE == rtype->kind)))
+  {
+    if (!array_empty_compare(left, right) && !array_empty_compare(right, left))
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, compare_symbol(op), right->ptype->name);
+      OExpr::DeleteTree(left);
+      OExpr::DeleteTree(right);
+      return new OBoolLit(false);
+    }
+  }
+
   HarmonizeNumericOperands(&left, &right);
 
   return new OCompareExpr(op, left, right);
@@ -4575,10 +4626,18 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
   }
 
   vector<TRawCallArg> rawargs;
+  int64_t prev_context_len = array_index_context_len;
+  OLValueExpr * prev_context_lval = array_index_context_lval;
+  array_index_context_len = -1;
+  array_index_context_lval = receiver;
   if (!ParseRawCallArguments(membername, rawargs))
   {
+    array_index_context_len = prev_context_len;
+    array_index_context_lval = prev_context_lval;
     return nullptr;
   }
+  array_index_context_len = prev_context_len;
+  array_index_context_lval = prev_context_lval;
 
   auto free_and_fail = [&]() -> OExpr *
   {
@@ -4605,10 +4664,20 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
   OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(receiver->ptype->ResolveAlias());
   EDynArrayMethod dynmethod = DYNM_CLEAR;
   vector<OType *> argtypes;
+  auto is_range_arg = [](OExpr * expr) -> bool
+  {
+    OType * rtype = expr && expr->ptype ? expr->ptype->ResolveAlias() : nullptr;
+    return rtype && (TK_ARRAY == rtype->kind || TK_ARRAY_SLICE == rtype->kind || TK_DYN_ARRAY == rtype->kind);
+  };
+
   if ("Clear" == membername)
   {
-    if (!check_count(0, 0)) return free_and_fail();
+    if (!check_count(0, 1)) return free_and_fail();
     dynmethod = DYNM_CLEAR;
+    if (!rawargs.empty())
+    {
+      argtypes = {g_builtins->type_bool};
+    }
   }
   else if ("Reserve" == membername)
   {
@@ -4627,11 +4696,25 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
     dynmethod = DYNM_SET_LENGTH;
     argtypes = {g_builtins->type_uint};
   }
+  else if ("SetCapacity" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    dynmethod = DYNM_SET_CAPACITY;
+    argtypes = {g_builtins->type_uint};
+  }
   else if ("Append" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    dynmethod = DYNM_APPEND;
-    argtypes = {dyntype->elemtype};
+    if (is_range_arg(rawargs[0].expr))
+    {
+      dynmethod = DYNM_APPEND_SLICE;
+      argtypes = {dyntype->elemtype->GetSliceType()};
+    }
+    else
+    {
+      dynmethod = DYNM_APPEND;
+      argtypes = {dyntype->elemtype};
+    }
   }
   else if ("AppendSlice" == membername)
   {
@@ -4639,11 +4722,33 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
     dynmethod = DYNM_APPEND_SLICE;
     argtypes = {dyntype->elemtype->GetSliceType()};
   }
+  else if ("Prepend" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    if (is_range_arg(rawargs[0].expr))
+    {
+      dynmethod = DYNM_PREPEND_SLICE;
+      argtypes = {dyntype->elemtype->GetSliceType()};
+    }
+    else
+    {
+      dynmethod = DYNM_PREPEND;
+      argtypes = {dyntype->elemtype};
+    }
+  }
   else if ("Insert" == membername)
   {
     if (!check_count(2, 2)) return free_and_fail();
-    dynmethod = DYNM_INSERT;
-    argtypes = {g_builtins->type_int, dyntype->elemtype};
+    if (is_range_arg(rawargs[1].expr))
+    {
+      dynmethod = DYNM_INSERT_SLICE;
+      argtypes = {g_builtins->type_int, dyntype->elemtype->GetSliceType()};
+    }
+    else
+    {
+      dynmethod = DYNM_INSERT;
+      argtypes = {g_builtins->type_int, dyntype->elemtype};
+    }
   }
   else if ("InsertSlice" == membername)
   {
@@ -4661,18 +4766,47 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
       argtypes.push_back(g_builtins->type_int);
     }
   }
+  else if ("Clone" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    dynmethod = DYNM_CLONE;
+  }
+  else if ("Pop" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    dynmethod = DYNM_POP;
+  }
+  else if ("PopFirst" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    dynmethod = DYNM_POP_FIRST;
+  }
   else
   {
     Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
     return free_and_fail();
   }
 
-  auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, receiver, nullptr);
+  OType * rettype = nullptr;
+  if (DYNM_CLONE == dynmethod)
+  {
+    rettype = dyntype;
+  }
+  else if (DYNM_POP == dynmethod || DYNM_POP_FIRST == dynmethod)
+  {
+    rettype = dyntype->elemtype;
+  }
+  auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, receiver, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
     OExpr * argexpr = rawargs[i].expr;
     rawargs[i].expr = nullptr;
-    if (!CheckAssignType(argtypes[i], &argexpr, "Argument"))
+    uint32_t conv_flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING;
+    if (argtypes[i]->ResolveAlias()->kind == TK_ARRAY_SLICE)
+    {
+      conv_flags |= EXPCF_ALLOW_ARRAY_LITERAL_SLICE;
+    }
+    if (!ConvertExprToType(argtypes[i], &argexpr, conv_flags))
     {
       OExpr::DeleteTree(argexpr);
       delete callexpr;
@@ -4834,13 +4968,16 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         bool has_first_expr = false;
         bool inclusive_slice = false;
         int64_t prev_context_len = array_index_context_len;
+        OLValueExpr * prev_context_lval = array_index_context_lval;
         if (TK_ARRAY == tk)
         {
           array_index_context_len = static_cast<OTypeArray *>(lval->ptype->ResolveAlias())->arraylength;
+          array_index_context_lval = nullptr;
         }
         else
         {
           array_index_context_len = -1;
+          array_index_context_lval = lval;
         }
         scf->SkipWhite();
         if (!scf->CheckSymbol(":", false))
@@ -4857,6 +4994,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
             Error(DQERR_NOT_SUPPORTED, "cstring slicing");
             OExpr::DeleteTree(indexexpr);
             array_index_context_len = prev_context_len;
+            array_index_context_lval = prev_context_lval;
             return result;
           }
           scf->SkipWhite();
@@ -4870,6 +5008,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
             Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "slice");
           }
           array_index_context_len = prev_context_len;
+          array_index_context_lval = prev_context_lval;
           result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
           continue;
         }
@@ -4877,6 +5016,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         {
           Error(DQERR_EXPR_EXPECTED);
           array_index_context_len = prev_context_len;
+          array_index_context_lval = prev_context_lval;
           return result;
         }
         if (not scf->CheckSymbol("]"))
@@ -4884,6 +5024,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
         }
         array_index_context_len = prev_context_len;
+        array_index_context_lval = prev_context_lval;
         result = new OLValueIndex(lval, lval->ptype, indexexpr);
         continue;
       }
@@ -5020,8 +5161,29 @@ OExpr * ODqCompParser::ParseExprPrimary()
       Error(DQERR_ID_EXP_AFTER, "$");
       return nullptr;
     }
-    if (array_index_context_len < 0)
+    if (array_index_context_len < 0 && !array_index_context_lval)
     {
+      Error(DQERR_VS_UNKNOWN, "$" + ctxname);
+      return nullptr;
+    }
+    if (array_index_context_lval)
+    {
+      OLValueExpr * ctx_lval = CloneContextLValue(array_index_context_lval);
+      if (!ctx_lval)
+      {
+        Error(DQERR_NOT_SUPPORTED, "$" + ctxname + " for this array expression");
+        return nullptr;
+      }
+      OExpr * lenexpr = new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH);
+      if ("end" == ctxname)
+      {
+        return lenexpr;
+      }
+      if ("last" == ctxname)
+      {
+        return CreateBinExpr(BINOP_SUB, lenexpr, new OIntLit(1));
+      }
+      delete lenexpr;
       Error(DQERR_VS_UNKNOWN, "$" + ctxname);
       return nullptr;
     }

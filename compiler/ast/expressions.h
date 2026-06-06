@@ -361,6 +361,17 @@ public:
   void       DeleteChildTree() override;
 };
 
+// Implicit conversion from dynamic array manager reference to a full slice.
+class ODynArrayToSliceExpr : public OExpr
+{
+public:
+  OLValueExpr *  arrayexpr;
+  /* ctor */ ODynArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 enum EArrayMetaField
 {
   AMF_LENGTH,
@@ -447,11 +458,17 @@ enum EDynArrayMethod
   DYNM_RESERVE,
   DYNM_COMPACT,
   DYNM_SET_LENGTH,
+  DYNM_SET_CAPACITY,
   DYNM_APPEND,
   DYNM_APPEND_SLICE,
+  DYNM_PREPEND,
+  DYNM_PREPEND_SLICE,
   DYNM_INSERT,
   DYNM_INSERT_SLICE,
-  DYNM_DELETE
+  DYNM_DELETE,
+  DYNM_CLONE,
+  DYNM_POP,
+  DYNM_POP_FIRST
 };
 
 class ODynArrayMethodCallExpr : public OExpr

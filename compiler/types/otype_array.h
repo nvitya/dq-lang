@@ -90,7 +90,7 @@ public:
 };
 
 // Owning dynamic array type, e.g. [*]int
-// LLVM representation intentionally matches ORawDynArray: {ptr, uint, uint, uint}
+// LLVM representation: nullable ODynArrMgr reference
 
 class OTypeDynArray : public OType
 {
@@ -105,14 +105,14 @@ public:
     super("[*]" + aelemtype->name, TK_DYN_ARRAY),
     elemtype(aelemtype)
   {
-    bytesize = TARGET_PTRSIZE * 4;
+    bytesize = TARGET_PTRSIZE;
     alignsize = TARGET_PTRSIZE;
   }
 
   void EnsureLayout() override
   {
     elemtype->EnsureLayout();
-    bytesize = TARGET_PTRSIZE * 4;
+    bytesize = TARGET_PTRSIZE;
     alignsize = TARGET_PTRSIZE;
   }
   LlType * CreateLlType() override;
@@ -121,17 +121,27 @@ public:
 
 LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 LlValue * GenerateDynArrayLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+LlValue * GenerateDynArrayCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index);
 LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr,
                                 OExpr * start_expr, OExpr * end_expr, OType * slicetype);
 void GenerateDynArrayCreate(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 void GenerateDynArrayDestroy(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+LlValue * GenerateDynArrayManagerValue(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+void GenerateDynArrayAssignOther(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * srcmgr);
+void GenerateDynArrayAssignData(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * srcptr, LlValue * count);
 void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * free_storage);
 void GenerateDynArrayReserve(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * min_capacity);
 void GenerateDynArrayCompact(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 void GenerateDynArraySetLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_length);
+void GenerateDynArraySetCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_capacity);
 void GenerateDynArrayAppend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value);
 void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values);
+void GenerateDynArrayPrepend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value);
+void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values);
 void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * value);
 void GenerateDynArrayInsertSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * values);
 void GenerateDynArrayDelete(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * count);
+LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, bool first);

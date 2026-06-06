@@ -60,6 +60,74 @@ static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vs
   }
 }
 
+static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, LlValue * targetaddr, OExpr * value)
+{
+  if (!value || !value->ptype)
+  {
+    return false;
+  }
+
+  OType * srctype = value->ResolvedType();
+  if (!srctype)
+  {
+    return false;
+  }
+
+  if (TK_DYN_ARRAY == srctype->kind)
+  {
+    LlValue * srcmgr = value->Generate(scope);
+    if (dynamic_cast<OLValueExpr *>(value))
+    {
+      GenerateDynArrayAssignOther(scope, dyntype, targetaddr, srcmgr);
+    }
+    else
+    {
+      GenerateDynArrayDestroy(scope, dyntype, targetaddr);
+      ll_builder.CreateStore(srcmgr, targetaddr);
+    }
+    return true;
+  }
+
+  if (TK_ARRAY == srctype->kind)
+  {
+    auto * arrtype = static_cast<OTypeArray *>(srctype);
+    LlValue * srcptr = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+    LlValue * count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+    if (arrtype->arraylength > 0)
+    {
+      LlValue * arrayaddr = nullptr;
+      if (auto * arrlit = dynamic_cast<OArrayLit *>(value))
+      {
+        arrayaddr = ll_builder.CreateAlloca(arrtype->GetLlType(), nullptr, "dyn.assign.literal");
+        ll_builder.CreateStore(arrlit->Generate(scope), arrayaddr);
+      }
+      else if (auto * lval = dynamic_cast<OLValueExpr *>(value))
+      {
+        arrayaddr = lval->GenerateAddress(scope);
+      }
+      if (!arrayaddr)
+      {
+        return false;
+      }
+      LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+      srcptr = ll_builder.CreateGEP(arrtype->GetLlType(), arrayaddr, {zero, zero}, "dyn.assign.arr.ptr");
+    }
+    GenerateDynArrayAssignData(scope, dyntype, targetaddr, srcptr, count);
+    return true;
+  }
+
+  if (TK_ARRAY_SLICE == srctype->kind)
+  {
+    LlValue * slice = value->Generate(scope);
+    LlValue * srcptr = ll_builder.CreateExtractValue(slice, {0}, "dyn.assign.slice.ptr");
+    LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "dyn.assign.slice.len");
+    GenerateDynArrayAssignData(scope, dyntype, targetaddr, srcptr, count);
+    return true;
+  }
+
+  return false;
+}
+
 void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 {
   if (not g_opt.dbg_info)
@@ -141,11 +209,14 @@ void OStmtVarDecl::Generate(OScope * scope)
 
   if (auto * dyntype = dynamic_cast<OTypeDynArray *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
   {
+    GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
     if (initvalue)
     {
-      throw logic_error(std::format("Dynamic array \"{}\" does not support initializer assignment", variable->name));
+      if (!GenerateDynArrayAssignExpr(scope, dyntype, variable->ll_value, initvalue))
+      {
+        throw logic_error(std::format("Unsupported dynamic array initializer for \"{}\"", variable->name));
+      }
     }
-    GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
     variable->initialized = true;
     return;
   }
@@ -346,6 +417,16 @@ void OStmtConstructDynArray::Generate(OScope * scope)
 
 void OStmtAssign::Generate(OScope * scope)
 {
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(target->ResolvedType()))
+  {
+    LlValue * ll_addr = target->GenerateAddress(scope);
+    if (!GenerateDynArrayAssignExpr(scope, dyntype, ll_addr, value))
+    {
+      throw logic_error("Unsupported dynamic array assignment");
+    }
+    return;
+  }
+
   if (TK_STRING == target->ResolvedType()->kind)
   {
     OTypeCString * cstrtype = static_cast<OTypeCString *>(target->ResolvedType());

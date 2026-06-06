@@ -1,5 +1,3 @@
-//?notest
-
 // These expressions are specified as runtime bounds errors when executed.
 // The test keeps them uncalled so the compiler must accept them as runtime checks.
 

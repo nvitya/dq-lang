@@ -752,6 +752,73 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       return true;
     }
 
+    if ((TK_ARRAY_SLICE == tkd) and (TK_DYN_ARRAY == tks))
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
+        }
+        return false;
+      }
+
+      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (slicedst->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_ARR_ELEM_TYPE_MISM, slicedst->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
+        }
+        return false;
+      }
+
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_ARR_SLICE_CONVERSION);
+        }
+        return false;
+      }
+
+      *rexpr = new ODynArrayToSliceExpr(lval, dsttype);
+      return true;
+    }
+
+    if (TK_DYN_ARRAY == tkd)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
+        }
+        return false;
+      }
+
+      auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
+      bool ok = false;
+      if (TK_ARRAY == tks)
+      {
+        auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
+        ok = (arrsrc->arraylength == 0)
+             || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
+      }
+      else if (TK_ARRAY_SLICE == tks)
+      {
+        ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
+      }
+
+      if (!ok && (aflags & EXPCF_GENERATE_ERRORS))
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+      }
+      return ok;
+    }
+
     if ((TK_STRING == tkd) and (TK_POINTER == tks))
     {
       if (is_explicit_cast)
@@ -902,6 +969,41 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     }
 
     return true;
+  }
+
+  if (TK_DYN_ARRAY == tkd)
+  {
+    if (is_explicit_cast)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
+      }
+      return false;
+    }
+
+    auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
+    bool ok = false;
+    if (TK_DYN_ARRAY == tks)
+    {
+      ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeDynArray *>(resolved_src)->elemtype->ResolveAlias());
+    }
+    else if (TK_ARRAY == tks)
+    {
+      auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      ok = (arrsrc->arraylength == 0)
+           || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
+    }
+    else if (TK_ARRAY_SLICE == tks)
+    {
+      ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
+    }
+
+    if (!ok && (aflags & EXPCF_GENERATE_ERRORS))
+    {
+      Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+    }
+    return ok;
   }
 
   if (TK_ARRAY == tkd)
@@ -1090,6 +1192,37 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       return -1;
     }
 
+    if ((TK_ARRAY_SLICE == tkd) && (TK_DYN_ARRAY == tks))
+    {
+      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (is_explicit_cast || (slicedst->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias()))
+      {
+        return -1;
+      }
+      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+    }
+
+    if (TK_DYN_ARRAY == tkd)
+    {
+      if (is_explicit_cast)
+      {
+        return -1;
+      }
+      auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
+      if (TK_ARRAY == tks)
+      {
+        auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
+        return ((arrsrc->arraylength == 0)
+                || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias())) ? 1 : -1;
+      }
+      if (TK_ARRAY_SLICE == tks)
+      {
+        return (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias()) ? 1 : -1;
+      }
+      return -1;
+    }
+
     if ((TK_STRING == tkd) && (TK_POINTER == tks))
     {
       if (is_explicit_cast)
@@ -1175,6 +1308,18 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     }
 
     return 0;
+  }
+
+  if (TK_DYN_ARRAY == tkd)
+  {
+    if (is_explicit_cast)
+    {
+      return -1;
+    }
+
+    OTypeDynArray * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
+    OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+    return ((dyndst->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
   }
 
   if (TK_STRING == tkd)
@@ -1264,13 +1409,6 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
 
 bool ODqCompAst::CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt)
 {
-  OType * resolved_dst = dsttype ? dsttype->ResolveAlias() : nullptr;
-  OType * resolved_src = (rexpr && *rexpr && (*rexpr)->ptype ? (*rexpr)->ptype->ResolveAlias() : nullptr);
-  if ((resolved_dst && TK_DYN_ARRAY == resolved_dst->kind) || (resolved_src && TK_DYN_ARRAY == resolved_src->kind))
-  {
-    Error(DQERR_NOT_SUPPORTED, "dynamic array value assignment");
-    return false;
-  }
   (void)astmt;
   return ConvertExprToType(dsttype, rexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING);
 }

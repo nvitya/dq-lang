@@ -15,6 +15,7 @@ cchar         // uint8 C-compatible character value
 str           // dynamic refcounted copy-on-write character string
 strview       // read-only non-owning view of character data
 cstring(N)   // fixed-size C-compatible zero-terminated cchar storage
+cstring      // non-owning mutable bounded C-string alias / fat pointer
 ^cchar        // pointer to zero-terminated C-compatible cchar storage
 ```
 
@@ -42,11 +43,19 @@ For a C-style buffer with raw storage size `maxlen`, the corresponding DQ type i
 var cs : cstring(31);  // 31 usable cchars, 32 bytes of storage
 ```
 
+Unsized `cstring` is not a storage type. It is a non-owning mutable bounded C-string alias represented as a fat pointer / descriptor. It carries at least a data pointer, a maximum logical length, character width/encoding information, flags, and possibly a valid current length.
+
+```dq
+function Process(cs : cstring):  // receives a bounded mutable C-string alias
+  cs.Append("x")
+endfunc
+```
+
 `str` is the normal owning DQ text type.
 
 `strview` is the normal non-owning read-only string source type for high-performance APIs.
 
-`cstring(N)` and `^cchar` exist mainly for C interoperability.
+`cstring(N)`, unsized `cstring`, and `^cchar` exist mainly for C interoperability.
 
 ## Type Overview
 
@@ -55,6 +64,7 @@ var cs : cstring(31);  // 31 usable cchars, 32 bytes of storage
 | `str` | yes | runtime | heap manager, null for empty | 1, 2, or 4 bytes per character | yes | mutable with copy-on-write |
 | `strview` | no | runtime | borrowed/external/static | 1, 2, or 4 bytes per character | no | read-only |
 | `cstring(N)` | yes | runtime, max `N` | inline/static/local/object storage | 1 byte | up to max length | mutable |
+| `cstring` | no | known or lazily scanned, max carried | borrowed bounded C-string storage | 1 byte in this draft | no | mutable alias when writable |
 | `^cchar` | no | zero-terminated | external/static/C-owned storage | 1 byte | no | pointer may target mutable or read-only storage |
 
 A `str` is internally a nullable reference to a dynamic string manager object.
@@ -229,7 +239,7 @@ String literals are compile-time string source values.
 
 A non-empty string literal is emitted as static read-only character data in `.rodata`. The character data always contains a trailing zero character after the logical characters. The trailing zero is not included in the literal character length.
 
-The compiler also emits a valid static read-only `SDqStrView` descriptor for a literal when the literal is used as a `str`, `strview`, `cstring(N)`, or string-helper source.
+The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strview`, `cstring(N)`, or string-helper source.
 
 ```dq
 var s  : str      = "asdf";
@@ -245,9 +255,9 @@ dq_lit_asdf_data:
 
 align pointer
 dq_lit_asdf_view:
-  dataptr   = &dq_lit_asdf_data
-  charlen   = 4
-  charwidth = 1
+  dataptr = &dq_lit_asdf_data
+  charlen = 4
+  info    = maxlen(4) | WIDTH1 | READONLY | ZEROTERM | LENGTH_VALID
 ```
 
 The view descriptor may be placed separately from the character data so that it can be pointer-aligned. The data object and view object may both be pooled and deduplicated by the compiler/linker.
@@ -318,7 +328,7 @@ s.Append('b');
 s.Insert(1, 'x');
 ```
 
-A one-character `char` source may be passed internally as a temporary `strview`/`SDqStrView` whose lifetime is limited to the generated helper call.
+A one-character `char` source may be passed internally as a temporary `strview`/`SDqTextInfo` whose lifetime is limited to the generated helper call.
 
 ## String Indexing
 
@@ -935,7 +945,7 @@ s.Insert(2, s[1:3]);  // "abbccd"
 
 ---
 
-## `cstring(N)`
+## `cstring(N)` and Unsized `cstring`
 
 `cstring(N)` is fixed-size inline C-compatible zero-terminated storage.
 
@@ -975,6 +985,82 @@ Possible storage:
 
 The bytes after the first terminator are not part of the logical string. The implementation may zero them or leave them unspecified.
 
+Unsized `cstring` is different from `cstring(N)`:
+
+```text
+cstring(N) = fixed inline storage, N usable cchars, N + 1 bytes total
+cstring    = non-owning mutable bounded C-string alias / fat pointer
+```
+
+Unsized `cstring` may be used as a function parameter and may also be used as a local alias initialized from an existing `cstring(N)` or another unsized `cstring` value.
+
+```dq
+function Process(cs : cstring):
+  cs.Append("x");
+endfunc
+
+function Example():
+  var storage : cstring(31);
+  var alias   : cstring = storage;  // alias/fat pointer, no new storage
+
+  alias.Append("abc");             // modifies storage
+endfunc
+```
+
+A standalone unsized `cstring` declaration has no storage and is invalid:
+
+```dq
+var a : cstring(31);     // OK: creates storage
+var b : cstring = a;     // OK: alias to existing storage
+var c : cstring;         // compile error: no target storage
+var d : cstring = "abc"; // compile error: no writable target storage
+```
+
+Assignment between unsized `cstring` values creates another alias to the same descriptor/buffer. It does not copy text and does not create an independent fixed buffer.
+
+### cstring ABI Descriptor
+
+The ABI descriptor for unsized `cstring` and for internal string-source views is `SDqTextInfo`:
+
+```dq
+struct SDqTextInfo:
+  dataptr : pointer;
+  charlen : uint32;
+  info    : uint32;  // maxlen + width/encoding + flags
+endstruct
+```
+
+Recommended `info` layout:
+
+```text
+bits  0..23  maxlen       // maximum logical writable length, max 16_777_215
+bits 24..25  width        // 0 = width1, 1 = width2, 2 = width4, 3 = reserved/utf8
+bits 26..31  flags
+```
+
+Recommended flags:
+
+```text
+LENGTH_VALID  // charlen may be trusted
+READONLY      // storage must not be modified
+WRITABLE      // storage may be modified
+ZEROTERM      // a zero terminator is required/maintained
+STATIC        // points to static program storage
+TEMPORARY     // valid only for the current helper call
+```
+
+For a `cstring` descriptor, `dataptr`, `maxlen`, width, and zero-termination contract must be valid. `charlen` may be trusted only when `LENGTH_VALID` is set.
+
+If `LENGTH_VALID` is not set, helpers that need the current length must scan from `dataptr` until the first zero terminator or until `maxlen` is reached. After scanning, they update `charlen` and set `LENGTH_VALID`.
+
+```text
+if not flags has LENGTH_VALID:
+  charlen = bounded_zero_scan(dataptr, maxlen)
+  flags += LENGTH_VALID
+```
+
+Mutating helpers that change the logical length update `charlen`, preserve zero termination, and keep `LENGTH_VALID` set.
+
 ### cstring Properties
 
 ```dq
@@ -987,9 +1073,77 @@ cs.storage_size // 32
 
 `length` is the number of cchars before the first zero terminator, limited to `maxlength`.
 
-`maxlength` is the declared maximum logical length `N`.
+If the implementation has a valid descriptor with `LENGTH_VALID`, `length` is O(1). Otherwise it is computed by bounded scanning.
 
-`storage_size` is `N + 1`.
+`maxlength` is the declared maximum logical length `N` for `cstring(N)` or the carried maximum length for unsized `cstring`.
+
+`storage_size` is `N + 1` for `cstring(N)`.
+
+### Hidden cstring Descriptor Optimization
+
+A `cstring(N)` value is still only fixed inline storage in the visible data layout. The compiler may maintain a hidden unsized `cstring` / `SDqTextInfo` descriptor for standalone local `cstring(N)` variables when useful.
+
+```dq
+function Example():
+  var cs : cstring(31);  // initialized to empty string
+
+  cs.Append("one");
+  cs.Append(" two");
+  cs.Append(" three");
+endfunc
+```
+
+This may lower to:
+
+```text
+cs_storage[0] = 0
+
+cs_info.dataptr = &cs_storage[0]
+cs_info.charlen = 0
+cs_info.maxlen  = 31
+cs_info.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
+
+CStrAppend(ref cs_info, "one")
+CStrAppend(ref cs_info, " two")
+CStrAppend(ref cs_info, " three")
+```
+
+The repeated append operations do not need to rescan the buffer because the descriptor length is known and kept valid.
+
+This hidden descriptor is not part of the public layout of `cstring(N)`. It should not be added permanently to struct fields, object fields, array elements, or externally visible storage, because that would enlarge records and make raw copying incorrect.
+
+For `cstring(N)` fields and array elements, the compiler normally creates a temporary descriptor at the use site:
+
+```dq
+struct STestRec:
+  id   : int32;
+  name : cstring(31);
+endstruct
+
+function ProcessName(ref tr : STestRec):
+  tr.name.Append(" two");
+endfunc
+```
+
+The call inside `ProcessName()` may lower to:
+
+```text
+tmp.dataptr = &tr.name[0]
+tmp.charlen = bounded_zero_scan(tmp.dataptr, 31)
+tmp.maxlen  = 31
+tmp.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
+
+CStrAppend(ref tmp, " two")
+```
+
+If a standalone local `cstring(N)` buffer is passed to unknown external C code through a raw `^cchar` pointer, the compiler must assume that the external code may modify the contents and therefore clear `LENGTH_VALID` in the hidden descriptor.
+
+```dq
+SomeCFunction(&cs[0]);  // may modify the bytes
+cs.Append("x");        // refresh length first if LENGTH_VALID was cleared
+```
+
+External functions may later be annotated as read-only or length-preserving to avoid invalidation.
 
 ### cstring Assignment
 
@@ -1027,7 +1181,7 @@ A future library may provide explicit lossy conversion helpers if desired.
 
 ### cstring Indexing
 
-`cstring(N)` indexing uses the same logical indexing rules as normal strings.
+`cstring(N)` and unsized `cstring` indexing use the same logical indexing rules as normal strings.
 
 The hidden zero terminator is not part of the logical string and is not reachable through normal indexing.
 
@@ -1051,9 +1205,11 @@ var cs : cstring(31) = "abc";
 cs[31];  // runtime bounds error
 ```
 
+When indexing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
+
 ### cstring Character Assignment
 
-A `cstring(N)` character is assignable inside the current logical length.
+A `cstring(N)` or unsized `cstring` character is assignable inside the current logical length.
 
 ```dq
 var cs : cstring(31) = "abc";
@@ -1080,20 +1236,20 @@ cs[3] = cchar(0);
 // length == 3
 ```
 
-A character assigned to `cstring(N)` must fit into `cchar`. Otherwise it is a runtime conversion error.
+A character assigned to `cstring(N)` or unsized `cstring` must fit into `cchar`. Otherwise it is a runtime conversion error.
 
 ### cstring Slicing
 
-`cstring(N)` slicing uses the same slicing rules as normal strings.
+`cstring(N)` and unsized `cstring` slicing use the same slicing rules as normal strings.
 
 A `cstring(N)` slice expression returns a new `str` by default. In an explicit `strview` context it may return a read-only non-owning view into the fixed cstring storage.
 
 ```dq
 var cs : cstring(31) = "abcdef";
 
-var s1 : str  = cs[1:4];    // copies "bcd"
-var s2 : str  = cs[:];      // copies "abcdef"
-var s3 : str  = cs[4:100];  // copies "ef"
+var s1 : str  = cs[1:4];       // copies "bcd"
+var s2 : str  = cs[:];         // copies "abcdef"
+var s3 : str  = cs[4:100];     // copies "ef"
 var v1 : strview = cs[1:4];    // view of "bcd"
 ```
 
@@ -1106,9 +1262,11 @@ cs[100:]     // ""
 cs[$last:]   // last logical cchar as str/view, depending on context
 ```
 
+When slicing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
+
 ### cstring Mutating Methods
 
-`cstring(N)` may support a restricted `str`-like API.
+`cstring(N)` and unsized `cstring` may support a restricted `str`-like API.
 
 Growth operations silently truncate to `maxlength` and always maintain zero termination.
 
@@ -1123,7 +1281,7 @@ cs.Delete(1, 2);     // delete two logical characters
 cs.Clear();          // empty cstring, storage[0] = 0
 ```
 
-Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` through `strview` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
+Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` and unsized `cstring` through `strview` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
 
 ```dq
 var cs : cstring(8) = "  abc";
@@ -1132,7 +1290,7 @@ cs.Trim();        // returns string "abc"
 cs.IndexOf('b');  // returns 3
 ```
 
-`Reserve()`, `Compact()`, and dynamic capacity operations are not valid on `cstring(N)`, because its storage size is fixed.
+`Reserve()`, `Compact()`, and dynamic capacity operations are not valid on `cstring(N)` or unsized `cstring`, because their storage size is fixed by the target buffer.
 
 ```dq
 cs.Reserve(100);  // compile error
@@ -1280,44 +1438,74 @@ ParseName(pc);       // scans zero-terminated cchar storage to form a view
 
 A `strview` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
 
-A function should use `cstring(N)`, `^cchar`, or explicit conversion helpers for C interop.
+A function should use `strview` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^cchar` for raw C APIs that only accept a zero-terminated pointer.
 
 ```dq
+function ReadText(s : strview):
+  ...
+endfunc
+
+function EditCBuffer(cs : cstring):
+  cs.Append("x");
+endfunc
+
 function CallC(cs : ^cchar):
   SomeCFunction(cs);
 endfunc
 ```
 
-## Public `strview` and ABI `SDqStrView`
+A `cstring` parameter receives a non-owning descriptor. The caller must provide valid storage and a valid maximum length. The current length is trusted only when the descriptor has `LENGTH_VALID`; otherwise helpers scan lazily up to the maximum length.
+
+```dq
+function CsProcess(acs : cstring):
+  var cs : cstring = acs;  // alias to the same descriptor/buffer
+  cs.Append(" four");
+endfunc
+
+function Test():
+  var cs1 : cstring(31) = "one";
+  CsProcess(cs1);          // cs1 becomes "one four"
+endfunc
+```
+
+A local unsized `cstring` variable is an alias to an existing descriptor/buffer, not a fixed buffer and not a value copy. It must be initialized from an existing `cstring(N)` or unsized `cstring`.
+
+## Public `strview`, Unsized `cstring`, and ABI `SDqTextInfo`
 
 `strview` is a public DQ type for a read-only, non-owning view of character data.
 
-It is intended for high-performance parsing, searching, formatting, logging, compiler internals, and runtime helper calls where copying a substring into a new dynamic `str` would be wasteful.
+Unsized `cstring` is a public DQ type for a non-owning mutable bounded C-compatible string buffer alias.
 
-The ABI representation of `strview` is `SDqStrView`:
+Both concepts use the same compact ABI descriptor shape, `SDqTextInfo`, but they have different language-level permissions.
 
 ```dq
-struct SDqStrView:
-  dataptr   : pointer;
-  charlen   : uint32;
-  charwidth : uint8;
+struct SDqTextInfo:
+  dataptr : pointer;
+  charlen : uint32;
+  info    : uint32;  // maxlen + width/encoding + flags
 endstruct
 ```
 
-The exact padding and alignment are target ABI details. Static `SDqStrView` objects in `.rodata` should be pointer-aligned.
+The exact padding and alignment are target ABI details. Static `SDqTextInfo` objects in `.rodata` should be pointer-aligned.
 
 ```text
-dataptr   = pointer to the first stored character
-charlen   = number of characters
-charwidth = bytes per character: 1, 2, or 4
+dataptr = pointer to the first stored character
+charlen = number of logical characters when LENGTH_VALID is set
+maxlen  = maximum logical length encoded in info
+width   = character storage width encoded in info
+flags   = descriptor flags encoded in info
 ```
+
+For read-only `strview` descriptors, `LENGTH_VALID` is normally set and `maxlen == charlen`. For writable unsized `cstring` descriptors, `maxlen` is the writable maximum logical length of the target C buffer and `charlen` may be valid or unknown depending on `LENGTH_VALID`.
 
 For empty views:
 
 ```text
-dataptr   = null or static empty storage
-charlen   = 0
-charwidth = 1
+dataptr = null or static empty storage
+charlen = 0
+maxlen  = 0
+width   = 1
+flags   = READONLY | LENGTH_VALID
 ```
 
 A `strview` can represent source data from:
@@ -1325,7 +1513,7 @@ A `strview` can represent source data from:
 ```dq
 "abc"       // string literal, view points into .rodata
 s           // dynamic string
-cs          // cstring(N)
+cs          // cstring(N), as read-only view
 pc          // ^cchar, after scanning length
 s[1:4]      // string slice expression in strview context
 v[1:4]      // strview slice expression
@@ -1343,7 +1531,22 @@ v.Append("x");         // compile error
 v.Delete(0);           // compile error
 ```
 
-`strview` indexing is strict, like `str` indexing:
+An unsized `cstring` is a mutable alias to an existing bounded C-compatible buffer.
+
+```dq
+function Process(cs : cstring):
+  cs.Append("x");       // OK, modifies the target buffer
+endfunc
+
+function Example():
+  var storage : cstring(31) = "abc";
+  var alias   : cstring = storage;
+
+  alias[0] = 'X';        // storage == "Xbc"
+endfunc
+```
+
+`strview` and unsized `cstring` indexing is strict, like `str` indexing:
 
 ```dq
 var v : strview = "abc";
@@ -1391,7 +1594,7 @@ s.Append("...");  // may detach/reallocate/move s storage
 // v may now be invalid
 ```
 
-Rules:
+Rules for `strview`:
 
 - `strview` does not own the referenced character storage.
 - `strview` does not increment `str` refcounts by itself.
@@ -1400,16 +1603,31 @@ Rules:
 - `strview` may be stored or returned only with the same care as pointers or array slices.
 - Assigning `strview` to `str` copies the characters and produces safe owning storage.
 
+Rules for unsized `cstring`:
+
+- `cstring` does not own the referenced character storage.
+- `cstring` carries or can recover the current logical length.
+- `cstring` carries the maximum logical writable length.
+- `cstring` operations must preserve zero termination.
+- `cstring` assignment aliases the same descriptor/buffer; it does not copy text.
+- `cstring` may become invalid when the target storage goes out of scope, is moved, or is otherwise invalidated.
+- A default local `var cs : cstring;` is invalid because there is no target storage.
+
 Recommended compiler diagnostics:
 
 ```dq
-function Bad() -> strview:
+function BadView() -> strview:
   var cs : cstring(31) = "abc";
   return cs[:];  // should be compile error or warning: returns view into local storage
 endfunc
+
+function BadCStr() -> cstring:
+  var cs : cstring(31) = "abc";
+  return cs;  // should be compile error or warning: returns cstring alias to local storage
+endfunc
 ```
 
-The compiler does not need to prove all `strview` lifetimes safe. `strview` is an explicit advanced type.
+The compiler does not need to prove all `strview` or unsized `cstring` lifetimes safe. Both are explicit advanced borrowed types.
 
 ## Dynamic String Runtime Handling
 
@@ -1442,7 +1660,7 @@ s == ""
 
 Operations that need storage allocate a manager automatically.
 
-Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strview` values. At ABI level this is the `SDqStrView` structure.
+Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strview` values. At ABI level, read-only string sources and mutable bounded `cstring` aliases use the `SDqTextInfo` descriptor shape.
 
 ```dq
 function DqStrSetChar(
@@ -1531,6 +1749,77 @@ All calculations of `capacity * charwidth` must be checked for integer overflow.
 
 ---
 
+## C String Runtime Handling
+
+C-string helper functions operate on an unsized `cstring` descriptor. At ABI level this is `SDqTextInfo` with writable, zero-terminated, width-1 storage in this draft.
+
+```dq
+function DqCStrRefreshLength(
+  cs : ref cstring
+);
+
+function DqCStrAssign(
+  cs  : ref cstring,
+  src : refin strview
+);
+
+function DqCStrAppend(
+  cs  : ref cstring,
+  src : refin strview
+);
+
+function DqCStrPrepend(
+  cs  : ref cstring,
+  src : refin strview
+);
+
+function DqCStrInsert(
+  cs    : ref cstring,
+  index : int,
+  src   : refin strview
+);
+
+function DqCStrDelete(
+  cs    : ref cstring,
+  index : int,
+  count : int = 1
+);
+
+function DqCStrClear(
+  cs : ref cstring
+);
+```
+
+Helpers that need the current logical length first ensure a valid length:
+
+```text
+function EnsureCStrLength(cs):
+  if cs.flags has LENGTH_VALID:
+    return
+
+  cs.charlen = bounded_zero_scan(cs.dataptr, cs.maxlen)
+  cs.flags += LENGTH_VALID
+```
+
+Mutating helpers follow these rules:
+
+```text
+1. EnsureCStrLength(cs) when the operation needs the current length.
+2. Clamp insertion/deletion indexes like dynamic string Insert/Delete.
+3. Copy only as many cchars as fit into cs.maxlen.
+4. Always write a zero terminator at cs.dataptr[cs.charlen].
+5. Update cs.charlen.
+6. Keep LENGTH_VALID set.
+```
+
+Source arguments are normally passed as `strview`. If the source is a `cstring` whose `LENGTH_VALID` flag is not set, the source descriptor is refreshed before copying or searching.
+
+Overlapping source and destination ranges must be handled correctly. If a `cstring` source aliases the destination buffer, the helper must preserve enough source range information before moving bytes or truncating the destination.
+
+A raw `^cchar` does not carry `maxlen`, so it is not a valid mutable `cstring` argument by itself. To create an unsized `cstring` alias from a raw buffer, the programmer or caller must provide the maximum logical length explicitly through a library helper or another typed wrapper.
+
+---
+
 ## Character Lifetime and Initialization Rules
 
 String characters are unmanaged scalar values.
@@ -1558,36 +1847,45 @@ No type-info handler functions are needed for characters.
 2. `cchar` is `uint8`.
 3. `str` is a refcounted, copy-on-write dynamic character string.
 4. `strview` is a public read-only non-owning view of character data.
-5. `strview` has the ABI representation `SDqStrView` with `dataptr`, `charlen`, and `charwidth`.
-6. Empty dynamic strings use a null manager and allocate no storage.
-7. `str.length`, `str.capacity`, and `strview.length` are measured in characters.
-8. Dynamic string storage uses one fixed width per manager: 1, 2, or 4 bytes per character.
-9. String assignment shares the manager.
-10. Any string modification first ensures unique writable storage.
-11. Modifying one string variable never modifies another string variable assigned from it.
-12. `str` and `strview` indexing are strict and invalid indexes cause runtime bounds errors.
-13. `s[i] = ch` is valid for `str` and may detach, widen, or reallocate the manager.
-14. `v[i] = ch` is invalid for `strview` because views are read-only.
-15. Normal `str` slicing returns a new `str`, not a view.
-16. A string slice expression may produce a `strview` only when the target/context explicitly requires `strview`.
-17. `strview` slicing returns another `strview`.
-18. `str` and `strview` slice bounds are clamped like array slice bounds.
-19. String literals emit zero-terminated read-only character data in `.rodata`.
-20. String literals used as `str` sources also emit static read-only `SDqStrView` descriptors in `.rodata`.
-21. A string literal can be used directly as `^cchar` only when its `charwidth` is 1.
-22. Source arguments to string helpers are normally passed as `strview` / `SDqStrView`.
-23. `Append()`, `Prepend()`, `Insert()`, `Delete()`, `SetLength()`, `Truncate()`, `Reserve()`, `Compact()`, `Clear()`, `Clone()`, `Pop(count)`, and `PopFirst(count)` are valid on dynamic strings.
-24. `Insert()` and `Delete()` clamp their index arguments and do not produce index-bounds runtime errors.
-25. `Pop(count)` and `PopFirst(count)` clamp their count argument and return a `str`.
-26. No-argument `Pop()` and `PopFirst()` may be supported as single-character shorthands and are runtime errors on empty strings.
-27. `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `LastIndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` are recommended common string helpers.
-28. Read-only string helpers should accept `strview` sources where practical.
-29. `cstring(N)` stores at most `N` logical `cchar` characters and uses `N + 1` bytes of storage.
-30. `cstring(N)` always maintains a hidden zero terminator.
-31. Assignment to `cstring(N)` silently truncates by length and always zero-terminates.
-32. `cstring(N)` indexing uses logical string rules; the hidden terminator is not indexable.
-33. `cstring(N)` slicing returns a new `str` by default and may produce `strview` in explicit `strview` context.
-34. `^cchar` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
-35. Converting `^cchar` to `strview` requires scanning until the first zero terminator.
-36. `strview` has the same lifetime and invalidation dangers as array slices or raw pointers.
-
+5. Unsized `cstring` is a public non-owning mutable bounded C-string alias / fat pointer.
+6. `strview` and unsized `cstring` use the ABI descriptor shape `SDqTextInfo` with `dataptr`, `charlen`, and packed `info`.
+7. `SDqTextInfo.info` carries maximum length, character width/encoding, and flags.
+8. `LENGTH_VALID` means `charlen` may be trusted. If it is not set, helpers must scan lazily when they need the current length.
+9. Empty dynamic strings use a null manager and allocate no storage.
+10. `str.length`, `str.capacity`, and `strview.length` are measured in characters.
+11. Dynamic string storage uses one fixed width per manager: 1, 2, or 4 bytes per character.
+12. String assignment shares the manager.
+13. Any string modification first ensures unique writable storage.
+14. Modifying one string variable never modifies another string variable assigned from it.
+15. `str` and `strview` indexing are strict and invalid indexes cause runtime bounds errors.
+16. `s[i] = ch` is valid for `str` and may detach, widen, or reallocate the manager.
+17. `v[i] = ch` is invalid for `strview` because views are read-only.
+18. Normal `str` slicing returns a new `str`, not a view.
+19. A string slice expression may produce a `strview` only when the target/context explicitly requires `strview`.
+20. `strview` slicing returns another `strview`.
+21. `str` and `strview` slice bounds are clamped like array slice bounds.
+22. String literals emit zero-terminated read-only character data in `.rodata`.
+23. String literals used as `str` sources also emit static read-only `SDqTextInfo` descriptors in `.rodata`.
+24. A string literal can be used directly as `^cchar` only when its `charwidth` is 1.
+25. Source arguments to string helpers are normally passed as `strview` / `SDqTextInfo`.
+26. `Append()`, `Prepend()`, `Insert()`, `Delete()`, `SetLength()`, `Truncate()`, `Reserve()`, `Compact()`, `Clear()`, `Clone()`, `Pop(count)`, and `PopFirst(count)` are valid on dynamic strings.
+27. `Insert()` and `Delete()` clamp their index arguments and do not produce index-bounds runtime errors.
+28. `Pop(count)` and `PopFirst(count)` clamp their count argument and return a `str`.
+29. No-argument `Pop()` and `PopFirst()` may be supported as single-character shorthands and are runtime errors on empty strings.
+30. `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `LastIndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` are recommended common string helpers.
+31. Read-only string helpers should accept `strview` sources where practical.
+32. `cstring(N)` stores at most `N` logical `cchar` characters and uses `N + 1` bytes of storage.
+33. `cstring(N)` always maintains a hidden zero terminator.
+34. `cstring(N)` is the only form that creates fixed inline C-string storage.
+35. Plain `var cs : cstring;` is invalid because unsized `cstring` has no storage.
+36. A local `var cs : cstring = existing;` is an alias to an existing `cstring(N)` or unsized `cstring` descriptor/buffer.
+37. A function parameter `cs : cstring` receives a bounded mutable descriptor; `maxlen` must be valid and `charlen` is valid only with `LENGTH_VALID`.
+38. Assignment to `cstring(N)` silently truncates by length and always zero-terminates.
+39. `cstring(N)` and unsized `cstring` indexing use logical string rules; the hidden terminator is not indexable.
+40. `cstring(N)` slicing returns a new `str` by default and may produce `strview` in explicit `strview` context.
+41. `cstring(N)` mutating methods may use a hidden compiler-maintained descriptor for standalone local variables.
+42. Hidden cstring descriptors are not part of public storage layout and should not be permanently inserted into struct fields, object fields, array elements, or externally visible records.
+43. Passing a `cstring(N)` buffer to unknown external C code through `^cchar` invalidates known length information unless the call is annotated as read-only or length-preserving.
+44. `^cchar` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
+45. Converting `^cchar` to `strview` requires scanning until the first zero terminator.
+46. `strview` and unsized `cstring` have the same lifetime and invalidation dangers as array slices or raw pointers.

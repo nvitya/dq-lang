@@ -56,7 +56,7 @@ function dq_iif_guarded(aptrint : ^int) -> int:
 endfunc
 
 object OTest:
-  name : cstring[32] = "OTest-Name-inline";
+  name : cstring(32) = "OTest-Name-inline";
 endobj
 
 var g_obj : OTest = null;

@@ -11,7 +11,7 @@ function plain(msg : cstring):
 endfunc
 
 object OCallback:
-  name : cstring[32];
+  name : cstring(32);
 
   function *Create(aname : cstring):
     name = aname;
@@ -31,11 +31,17 @@ object OCallback:
 endobj
 
 function *Main() -> int:
-  var first <- OCallback("first");
-  var second <- OCallback("second");
+  var first_name : cstring(5) = "first";
+  var second_name : cstring(6) = "second";
+  var first <- OCallback(first_name);
+  var second <- OCallback(second_name);
   var cb : FObjText = null;
   var icb : FObjInt = null;
   var plaincb : FPlainText = plain;
+  var msg_a : cstring(1) = "a";
+  var msg_b : cstring(1) = "b";
+  var msg_c : cstring(1) = "c";
+  var msg_ok : cstring(2) = "ok";
 
   if cb == null:
     printf("cb = null\n");  //?check('cb', 'null')
@@ -43,18 +49,18 @@ function *Main() -> int:
 
   cb = first.Print;
   if cb != null:
-    cb("a");  //?check('first', 'a')
+    cb(msg_a);  //?check('first', 'a')
   endif
 
   cb = second.Print;
-  cb("b");  //?check('second', 'b')
+  cb(msg_b);  //?check('second', 'b')
 
   cb = first.Pick;
-  cb("c");  //?check('first.picked', 'c')
+  cb(msg_c);  //?check('first.picked', 'c')
 
   icb = second.Pick;
   icb(5);  //?check('second.picked', 5)
 
-  plaincb("ok");  //?check('plain', 'ok')
+  plaincb(msg_ok);  //?check('plain', 'ok')
   return 0;
 endfunc

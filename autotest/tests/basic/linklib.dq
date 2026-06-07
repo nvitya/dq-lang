@@ -2,7 +2,7 @@
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
-var fake_zlib_ver : cstring[20] = "v0.0.1-fake";
+var fake_zlib_ver : cstring(20) = "v0.0.1-fake";
 
 function zlibVersion_fake() -> ^cchar:
   result = &fake_zlib_ver[0];

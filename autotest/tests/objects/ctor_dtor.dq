@@ -4,7 +4,7 @@ use libc/stdio;
 
 struct SDynData:
   intvalue : int;
-  name : cstring[64];
+  name : cstring(64);
 endstruct
 
 object OTest:

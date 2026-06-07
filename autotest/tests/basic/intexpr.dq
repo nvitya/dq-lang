@@ -158,7 +158,7 @@ function *Main() -> int:
   printf("sizeof(arr3) = %d\n", sizeof(arr3));                //?check('sizeof(arr3)', 6)
   printf("sizeof([3]int16) = %d\n", sizeof([3]int16));        //?check('sizeof([3]int16)', 6)
   printf("sizeof(int32) = %d\n", sizeof(int32));              //?check('sizeof(int32)', 4)
-  printf("sizeof(cstring[12]) = %d\n", sizeof(cstring[12]));  //?check('sizeof(cstring[12])', 12)
+  printf("sizeof(cstring(12)) = %d\n", sizeof(cstring(12)));  //?check('sizeof(cstring(12))', 13)
 
   return 0;
 endfunc

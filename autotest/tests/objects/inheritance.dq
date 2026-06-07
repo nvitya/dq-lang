@@ -5,7 +5,7 @@ use libc/stdio;
 object OBase:
 protected
   value : int = 1;
-  name  : cstring[32];
+  name  : cstring(32);
 public
   function *Create(aname : ^cchar, a : int):
     value = a;

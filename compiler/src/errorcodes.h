@@ -183,7 +183,7 @@ DEF_DQ_ERR(DQERR_ARR_ELEMCOUNT_MISM,               "ArrElemCount",           "Ar
 DEF_DQ_ERR(DQERR_ARR_ELEM_TYPE_MISM,               "ArrElemType",            "Array element type mismatch: expected \"$1\", got \"$2\"");
 DEF_DQ_ERR(DQERR_ARR_SIZE_MISM,                    "ArrSize",                "Array size mismatch: expected $1, got $2");
 DEF_DQ_ERR(DQERR_ARR_SLICE_CONVERSION,             "ArrSlice",               "Cannot convert non-variable array to slice");
-DEF_DQ_ERR(DQERR_CSTR_SIZE_EXPECTED,               "CStrSizeExpected",       "cstring size expected, example: cstring[n]");
+DEF_DQ_ERR(DQERR_CSTR_SIZE_EXPECTED,               "CStrSizeExpected",       "cstring size expected, example: cstring(n)");
 DEF_DQ_ERR(DQERR_CSTR_SIZE_INVALID,                "CStrSizeInvalid",        "Invalid cstring size, it must be a positive integer");
 DEF_DQ_ERR(DQERR_CSTR_CONSTEXPR,                   "CStrConstExpr",          "CString constant expression error: string literal expected");
 DEF_DQ_ERR(DQERR_CSTR_CONVERSION,                  "CStrConversion",         "Invalid CString conversion");  // used with custom text

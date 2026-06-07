@@ -1177,8 +1177,8 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
     return result;
   }
 
-  const string cstring_prefix = "cstring[";
-  if (atype_name.starts_with(cstring_prefix) && atype_name.ends_with("]"))
+  const string cstring_prefix = "cstring(";
+  if (atype_name.starts_with(cstring_prefix) && atype_name.ends_with(")"))
   {
     string lenstr = atype_name.substr(cstring_prefix.size(),
         atype_name.size() - cstring_prefix.size() - 1);

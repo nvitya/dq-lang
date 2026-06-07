@@ -1,4 +1,4 @@
-# DQ Strs
+# DQ Strings
 
 Status: draft
 Scope: dynamic strings, string views, fixed-size C-style texts, character types, literals, indexing, slicing, mutation, copy-on-write handling, common string helpers, runtime representation

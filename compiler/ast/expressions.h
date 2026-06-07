@@ -17,6 +17,7 @@
 #include <vector>
 #include "symbols.h"
 #include "ll_defs.h"
+#include "otype_cstring.h"
 
 using namespace std;
 
@@ -572,7 +573,7 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// sizeof() for unsized cstring parameter: extracts size from {ptr, i64} descriptor
+// sizeof() for unsized cstring parameter: reads SDqTextInfo-compatible descriptor metadata
 class OCStringSizeExpr : public OExpr
 {
 public:
@@ -590,7 +591,34 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// Convert cstring[N] variable to cstring descriptor {ptr, i64}
+class OCStringMetaFieldExpr : public OExpr
+{
+public:
+  OLValueExpr *     receiver;
+  ECStringMetaField field;
+
+  /* ctor */ OCStringMetaFieldExpr(OLValueExpr * areceiver, ECStringMetaField afield);
+  ~OCStringMetaFieldExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OCStringMethodCallExpr : public OExpr
+{
+public:
+  OLValueExpr *    receiver;
+  ECStringMethod   method;
+  vector<OExpr *>  args;
+
+  /* ctor */ OCStringMethodCallExpr(OLValueExpr * areceiver, ECStringMethod amethod);
+  ~OCStringMethodCallExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+// Convert cstring(N) variable to SDqTextInfo-compatible cstring descriptor.
 class OCStringToDescExpr : public OExpr
 {
 public:
@@ -599,7 +627,19 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// Convert string literal (^cchar) to cstring descriptor {ptr, i64}
+class OCStringLValueToDescExpr : public OExpr
+{
+public:
+  OLValueExpr * cstrlval;
+
+  /* ctor */ OCStringLValueToDescExpr(OLValueExpr * alval, OType * desctype);
+  ~OCStringLValueToDescExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+// Convert string literal (^cchar) to SDqTextInfo-compatible cstring descriptor.
 class OCStringLitToDescExpr : public OExpr
 {
 public:

@@ -63,8 +63,10 @@ void OScopeBuiltins::Init()
   type_pointer = new OTypePointer(nullptr, "pointer", true, false);
   DefineType(type_pointer);
 
+  type_char    = new OTypeChar();
   type_cchar   = new OTypeInt("cchar", 8, true);
   type_cstring = new OTypeCString(0);  // base unsized type
+  DefineType(type_char);
   DefineType(type_cchar);
   DefineType(type_cstring);
 

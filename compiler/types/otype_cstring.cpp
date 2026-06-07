@@ -18,8 +18,114 @@
 #include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
+#include "named_scopes.h"
+#include "otype_func.h"
 
 using namespace std;
+
+static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
+static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
+
+static LlType * LlPtrType()
+{
+  return llvm::PointerType::get(ll_ctx, 0);
+}
+
+static LlType * LlCStringLenType()
+{
+  return LlType::getInt32Ty(ll_ctx);
+}
+
+static LlValue * LlU32(uint32_t value)
+{
+  return llvm::ConstantInt::get(LlCStringLenType(), value);
+}
+
+static LlValue * LlNativeInt(uint64_t value)
+{
+  return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
+}
+
+static LlValue * ToNativeInt(LlValue * value)
+{
+  LlType * dst = g_builtins->type_int->GetLlType();
+  if (value->getType() == dst)
+  {
+    return value;
+  }
+  if (!value->getType()->isIntegerTy())
+  {
+    return value;
+  }
+  unsigned srcbits = value->getType()->getIntegerBitWidth();
+  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
+  if (srcbits < dstbits)
+  {
+    return ll_builder.CreateZExt(value, dst, "cstr.int.ext");
+  }
+  if (srcbits > dstbits)
+  {
+    return ll_builder.CreateTrunc(value, dst, "cstr.int.trunc");
+  }
+  return value;
+}
+
+static LlValue * ToCharValue(LlValue * value)
+{
+  LlType * dst = g_builtins->type_char->GetLlType();
+  if (value->getType() == dst)
+  {
+    return value;
+  }
+  if (!value->getType()->isIntegerTy())
+  {
+    return value;
+  }
+  unsigned srcbits = value->getType()->getIntegerBitWidth();
+  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
+  if (srcbits < dstbits)
+  {
+    return ll_builder.CreateZExt(value, dst, "cstr.ch.ext");
+  }
+  if (srcbits > dstbits)
+  {
+    return ll_builder.CreateTrunc(value, dst, "cstr.ch.trunc");
+  }
+  return value;
+}
+
+static OValSymFunc * CStringFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_cstring");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("CString RTL module is not loaded");
+  }
+
+  OValSym * vs = nsit->second->FindValSym(name, nullptr, false);
+  auto * fn = dynamic_cast<OValSymFunc *>(vs);
+  if (!fn)
+  {
+    if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      if (!ovset->funcs.empty())
+      {
+        fn = ovset->funcs[0];
+      }
+    }
+  }
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("CString RTL function is not available: " + name);
+  }
+  return fn;
+}
+
+static LlValue * CallCStringFunc(const string & name, vector<LlValue *> args = {})
+{
+  OValSymFunc * fn = CStringFunc(name);
+  return ll_builder.CreateCall(fn->ll_func, args);
+}
 
 // OTypeCString
 
@@ -27,15 +133,16 @@ LlType * OTypeCString::CreateLlType()
 {
   if (maxlen > 0)
   {
-    // Fixed-size: [N x i8]
-    return llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), maxlen);
+    // Fixed-size storage: N usable bytes plus the hidden terminator slot.
+    return llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), uint64_t(maxlen) + 1);
   }
   else
   {
-    // Unsized descriptor: {ptr, i64} (same layout as array slice)
+    // Unsized descriptor: SDqTextInfo {ptr, u32 charlen, u32 info}
     vector<LlType *> fields = {
-      llvm::PointerType::get(ll_ctx, 0),
-      LlType::getInt64Ty(ll_ctx)
+      LlPtrType(),
+      LlCStringLenType(),
+      LlCStringLenType()
     };
     return llvm::StructType::get(ll_ctx, fields);
   }
@@ -48,28 +155,31 @@ LlDiType * OTypeCString::CreateDiType()
     // Debug info as array of i8
     LlDiType * elem_di = di_builder->createBasicType("cchar", 8, llvm::dwarf::DW_ATE_signed_char);
     llvm::Metadata * subscripts[] = {
-      di_builder->getOrCreateSubrange(0, maxlen)
+      di_builder->getOrCreateSubrange(0, uint64_t(maxlen) + 1)
     };
     return di_builder->createArrayType(
-        maxlen * 8, 0, elem_di,
+        (uint64_t(maxlen) + 1) * 8, 0, elem_di,
         di_builder->getOrCreateArray(subscripts)
     );
   }
   else
   {
-    // Unsized descriptor: struct {ptr, i64}
+    // Unsized descriptor: struct {ptr, u32, u32}
     LlDiType * ptr_di = di_builder->createPointerType(
         di_builder->createBasicType("cchar", 8, llvm::dwarf::DW_ATE_signed_char),
         TARGET_PTRSIZE * 8);
-    LlDiType * len_di = di_builder->createBasicType("uint64", 64, llvm::dwarf::DW_ATE_unsigned);
+    LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
 
     llvm::Metadata * elements[] = {
       di_builder->createMemberType(
-          nullptr, "ptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
+          nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
           0, llvm::DINode::FlagZero, ptr_di),
       di_builder->createMemberType(
-          nullptr, "size", nullptr, 0, 64, 0,
-          TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, len_di)
+          nullptr, "charlen", nullptr, 0, 32, 0,
+          TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, u32_di),
+      di_builder->createMemberType(
+          nullptr, "info", nullptr, 0, 32, 0,
+          TARGET_PTRSIZE * 8 + 32, llvm::DINode::FlagZero, u32_di)
     };
 
     return di_builder->createStructType(
@@ -108,6 +218,95 @@ bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
 
   OType * srctype = srcexpr->ResolvedType();
   return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype);
+}
+
+LlValue * GenerateCStringDataPtr(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr)
+{
+  (void)scope;
+  if (cstrtype->maxlen > 0)
+  {
+    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    return ll_builder.CreateGEP(cstrtype->GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
+  }
+
+  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(cstrtype->GetLlType(), cstraddr, 0, "cstr.ptr.addr");
+  return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "cstr.ptr");
+}
+
+LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
+{
+  if (maxlen == 0)
+  {
+    return cstraddr;
+  }
+
+  LlValue * descaddr = ll_builder.CreateAlloca(g_builtins->type_cstring->GetLlType(), nullptr, "cstr.desc.tmp");
+  LlValue * dataptr = GenerateCStringDataPtr(scope, this, cstraddr);
+  LlType * desctype = g_builtins->type_cstring->GetLlType();
+  LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "cstr.desc.ptr.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "cstr.desc.len.addr");
+  LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "cstr.desc.info.addr");
+  ll_builder.CreateStore(dataptr, ptraddr);
+  ll_builder.CreateStore(LlU32(0), lenaddr);
+  ll_builder.CreateStore(LlU32(maxlen & DQTI_MAXCHLEN_MASK), infoaddr);
+  return descaddr;
+}
+
+static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
+{
+  auto * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
+  if (!srctype)
+  {
+    return nullptr;
+  }
+
+  if (auto * srclval = dynamic_cast<OLValueExpr *>(srcexpr))
+  {
+    return srctype->GenerateDescriptor(scope, srclval->GenerateAddress(scope));
+  }
+
+  LlValue * tmp = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+  ll_builder.CreateStore(srcexpr->Generate(scope), tmp);
+  return srctype->GenerateDescriptor(scope, tmp);
+}
+
+LlValue * GenerateCStringMetaField(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr, ECStringMetaField field)
+{
+  if (cstrtype->maxlen > 0)
+  {
+    if (CSMF_MAXLENGTH == field)
+    {
+      return LlNativeInt(cstrtype->maxlen);
+    }
+    if (CSMF_STORAGE_SIZE == field)
+    {
+      return LlNativeInt(uint64_t(cstrtype->maxlen) + 1);
+    }
+  }
+
+  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstraddr);
+  switch (field)
+  {
+    case CSMF_LENGTH:
+      return ToNativeInt(CallCStringFunc("CStrLen", {descaddr}));
+    case CSMF_MAXLENGTH:
+      return ToNativeInt(CallCStringFunc("CStrMaxLen", {descaddr}));
+    case CSMF_STORAGE_SIZE:
+      return ToNativeInt(CallCStringFunc("CStrStorageSize", {descaddr}));
+  }
+  return LlNativeInt(0);
+}
+
+static void CallCStringStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
+{
+  if (auto * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType()))
+  {
+    (void)srctype;
+    CallCStringFunc("CStrAssignDesc", {dstdesc, CStringSourceDescriptor(scope, srcexpr)});
+    return;
+  }
+
+  CallCStringFunc("CStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
 }
 
 static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
@@ -229,11 +428,87 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
 
   if (CanStoreFrom(srcexpr))
   {
-    EmitSizedCStringCopy(scope, dstdaddr, this, srcexpr);
+    LlValue * dstdesc = GenerateDescriptor(scope, dstdaddr);
+    CallCStringStore(scope, dstdesc, srcexpr);
     return true;
   }
 
   return false;
+}
+
+static bool IsCStringCharSource(OExpr * expr)
+{
+  OType * type = expr ? expr->ResolvedType() : nullptr;
+  return type && (type == g_builtins->type_char || type == g_builtins->type_cchar);
+}
+
+static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const string & ptr_func,
+                                             const string & desc_func, const string & char_func,
+                                             LlValue * dstdesc, LlValue * index = nullptr)
+{
+  if (IsCStringCharSource(expr))
+  {
+    vector<LlValue *> args = {dstdesc};
+    if (index)
+    {
+      args.push_back(index);
+    }
+    args.push_back(ToCharValue(expr->Generate(scope)));
+    return CallCStringFunc(char_func, args);
+  }
+
+  if (dynamic_cast<OTypeCString *>(expr->ResolvedType()))
+  {
+    vector<LlValue *> args = {dstdesc};
+    if (index)
+    {
+      args.push_back(index);
+    }
+    args.push_back(CStringSourceDescriptor(scope, expr));
+    return CallCStringFunc(desc_func, args);
+  }
+
+  vector<LlValue *> args = {dstdesc};
+  if (index)
+  {
+    args.push_back(index);
+  }
+  args.push_back(expr->Generate(scope));
+  return CallCStringFunc(ptr_func, args);
+}
+
+LlValue * GenerateCStringMethodCall(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr,
+                                    ECStringMethod method, const vector<OExpr *> & args)
+{
+  LlValue * dstdesc = cstrtype->GenerateDescriptor(scope, cstraddr);
+  switch (method)
+  {
+    case CSM_CLEAR:
+      return CallCStringFunc("CStrClear", {dstdesc});
+
+    case CSM_APPEND:
+      return GenerateCStringMethodSource(scope, args[0], "CStrAppendPtr", "CStrAppendDesc",
+                                         "CStrAppendChar", dstdesc);
+
+    case CSM_PREPEND:
+      return GenerateCStringMethodSource(scope, args[0], "CStrPrependPtr", "CStrPrependDesc",
+                                         "CStrPrependChar", dstdesc);
+
+    case CSM_INSERT:
+    {
+      LlValue * index = ToNativeInt(args[0]->Generate(scope));
+      return GenerateCStringMethodSource(scope, args[1], "CStrInsertPtr", "CStrInsertDesc",
+                                         "CStrInsertChar", dstdesc, index);
+    }
+
+    case CSM_DELETE:
+    {
+      LlValue * index = ToNativeInt(args[0]->Generate(scope));
+      LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1));
+      return CallCStringFunc("CStrDelete", {dstdesc, index, count});
+    }
+  }
+  return nullptr;
 }
 
 // OValueCString
@@ -245,15 +520,15 @@ LlConst * OValueCString::CreateLlConst()
     return nullptr;  // unsized type has no constant representation
   }
 
-  // Create [maxlen x i8] constant, padded with zeros
+  // Create [maxlen + 1 x i8] constant, padded with zeros.
   vector<llvm::Constant *> chars;
-  chars.reserve(maxlen);
+  chars.reserve(uint64_t(maxlen) + 1);
 
   LlType * i8type = LlType::getInt8Ty(ll_ctx);
 
-  for (uint32_t i = 0; i < maxlen; ++i)
+  for (uint32_t i = 0; i <= maxlen; ++i)
   {
-    if (i < value.size())
+    if ((i < maxlen) && (i < value.size()))
     {
       chars.push_back(llvm::ConstantInt::get(i8type, (uint8_t)value[i]));
     }
@@ -263,13 +538,7 @@ LlConst * OValueCString::CreateLlConst()
     }
   }
 
-  // Ensure null terminator after string content
-  if (value.size() < maxlen)
-  {
-    // Already covered: chars[value.size()] is 0
-  }
-
-  llvm::ArrayType * arrtype = llvm::ArrayType::get(i8type, maxlen);
+  llvm::ArrayType * arrtype = llvm::ArrayType::get(i8type, uint64_t(maxlen) + 1);
   return llvm::ConstantArray::get(arrtype, chars);
 }
 

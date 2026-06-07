@@ -42,6 +42,34 @@ static bool EnsureDynArrayRtlUse()
   return g_compiler->AddImplicitUse("rtl/dynarrmgr", "__dq_dynarray", nullptr, true, MUM_NONE);
 }
 
+static bool EnsureCStringRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_cstring"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/cstrings", "__dq_cstring", nullptr, true, MUM_NONE);
+}
+
+static bool IsCStringMethodSourceType(OType * type)
+{
+  OType * resolved = type ? type->ResolveAlias() : nullptr;
+  if (!resolved)
+  {
+    return false;
+  }
+  if ((resolved == g_builtins->type_char)
+      || (resolved == g_builtins->type_cchar)
+      || (nullptr != dynamic_cast<OTypeCString *>(resolved)))
+  {
+    return true;
+  }
+
+  auto * ptrtype = dynamic_cast<OTypePointer *>(resolved);
+  return ptrtype && ptrtype->basetype
+      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+}
+
 static OLValueExpr * CloneContextLValue(OLValueExpr * src)
 {
   if (auto * var = dynamic_cast<OLValueVar *>(src))
@@ -1048,6 +1076,13 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
   {
     // error message is already provided.
     delete initexpr;
+    return;
+  }
+
+  if (auto * cstrtype = dynamic_cast<OTypeCString *>(ptype ? ptype->ResolveAlias() : nullptr);
+      cstrtype && (0 == cstrtype->maxlen) && !initexpr)
+  {
+    StatementError(DQERR_NOT_SUPPORTED, "standalone unsized cstring declaration without target storage");
     return;
   }
 
@@ -2956,6 +2991,7 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
     bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
+                     || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
@@ -3155,15 +3191,27 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
     ptype = ptype->ResolveAlias();
   }
 
-  // cstring[N] handling: [N] means sized cstring, not array
+  // cstring(N) handling: N is the usable logical length; storage has N + 1 bytes.
   if (TK_STRING == ptype->kind)
   {
+    if (!EnsureCStringRtlUse())
+    {
+      return nullptr;
+    }
     scf->SkipWhite();
     if (scf->CheckSymbol("[[", false))
     {
       return ptype;
     }
     if (scf->CheckSymbol("["))
+    {
+      if (aemit_errors)
+      {
+        ErrorTxt(DQERR_CSTR_SIZE_EXPECTED, "cstring size expected; use cstring(n), not cstring[n]");
+      }
+      return nullptr;
+    }
+    if (scf->CheckSymbol("("))
     {
       int64_t maxlen;
       if (not scf->ReadInt64Value(maxlen))
@@ -3183,11 +3231,11 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
         return nullptr;
       }
       scf->SkipWhite();
-      if (not scf->CheckSymbol("]"))
+      if (not scf->CheckSymbol(")"))
       {
         if (aemit_errors)
         {
-          Error(DQERR_MISSING_CLOSE_BRACKET_FOR, "cstring size");
+          Error(DQERR_MISSING_CLOSE_PAREN_FOR, "cstring size");
         }
         return nullptr;
       }
@@ -4818,6 +4866,116 @@ OExpr * ODqCompParser::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * 
   return callexpr;
 }
 
+OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
+{
+  vector<TRawCallArg> rawargs;
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_FUNC_CALL_PARENTH, membername);
+    return receiver_expr;
+  }
+  if (!ParseRawCallArguments(membername, rawargs))
+  {
+    return nullptr;
+  }
+
+  auto free_and_fail = [&]() -> OExpr *
+  {
+    FreeRawCallArguments(rawargs);
+    delete receiver_expr;
+    return nullptr;
+  };
+
+  auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
+  {
+    if (rawargs.size() < mincnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
+      return false;
+    }
+    if (rawargs.size() > maxcnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
+      return false;
+    }
+    return true;
+  };
+
+  ECStringMethod method = CSM_CLEAR;
+  vector<OType *> argtypes;
+  size_t source_arg_index = rawargs.size();
+  if ("Clear" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    method = CSM_CLEAR;
+  }
+  else if ("Append" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = CSM_APPEND;
+    source_arg_index = 0;
+  }
+  else if ("Prepend" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = CSM_PREPEND;
+    source_arg_index = 0;
+  }
+  else if ("Insert" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = CSM_INSERT;
+    argtypes.push_back(g_builtins->type_int);
+    source_arg_index = 1;
+  }
+  else if ("Delete" == membername)
+  {
+    if (!check_count(1, 2)) return free_and_fail();
+    method = CSM_DELETE;
+    argtypes.push_back(g_builtins->type_int);
+    if (rawargs.size() > 1)
+    {
+      argtypes.push_back(g_builtins->type_int);
+    }
+  }
+  else
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    return free_and_fail();
+  }
+
+  if (!EnsureCStringRtlUse())
+  {
+    return free_and_fail();
+  }
+
+  auto * callexpr = new OCStringMethodCallExpr(receiver, method);
+  for (size_t i = 0; i < rawargs.size(); ++i)
+  {
+    OExpr * argexpr = rawargs[i].expr;
+    rawargs[i].expr = nullptr;
+    if (i < argtypes.size())
+    {
+      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS))
+      {
+        OExpr::DeleteTree(argexpr);
+        delete callexpr;
+        return free_and_fail();
+      }
+    }
+    if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType()))
+    {
+      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, cchar, cstring, or ^cchar");
+      OExpr::DeleteTree(argexpr);
+      delete callexpr;
+      return free_and_fail();
+    }
+    callexpr->args.push_back(argexpr);
+  }
+  FreeRawCallArguments(rawargs);
+  return callexpr;
+}
+
 OExpr * ODqCompParser::ParsePostfix(OExpr * base)
 {
   OExpr * result = base;
@@ -4877,6 +5035,28 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
             result = new OInvalidCallExpr();
           }
           return result;
+        }
+
+        if (TK_STRING == tk)
+        {
+          if ("length" == membername)
+          {
+            result = new OCStringMetaFieldExpr(lval, CSMF_LENGTH);
+            continue;
+          }
+          if ("maxlength" == membername)
+          {
+            result = new OCStringMetaFieldExpr(lval, CSMF_MAXLENGTH);
+            continue;
+          }
+          if ("storage_size" == membername)
+          {
+            result = new OCStringMetaFieldExpr(lval, CSMF_STORAGE_SIZE);
+            continue;
+          }
+          result = ParseCStringMethod(result, lval, membername);
+          if (!result) return nullptr;
+          continue;
         }
 
         OLValueExpr * memberbase = nullptr;
@@ -5244,9 +5424,14 @@ OExpr * ODqCompParser::ParseExprPrimary()
   // String literal: "..." or '...'
   if (*scf->curp == '"' or *scf->curp == '\'')
   {
+    char quotech = *scf->curp;
     string strval;
     if (scf->ReadQuotedString(strval))
     {
+      if (('\'' == quotech) && (strval.size() == 1))
+      {
+        return new OIntLit(uint8_t(strval[0]), g_builtins->type_char);
+      }
       return new OCStringLit(strval);
     }
     else

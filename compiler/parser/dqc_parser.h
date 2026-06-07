@@ -123,6 +123,7 @@ public: // expressions
   OLValueExpr * ParseAddressableExpr();
   OExpr * ParsePostfix(OExpr * base);
   OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
+  OExpr * ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);

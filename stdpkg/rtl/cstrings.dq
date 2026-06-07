@@ -1,0 +1,287 @@
+// RTL Helpers for the DQ cstring handling
+
+function CStrLen(desc : ref SDqTextInfo) -> uint;
+function CStrMaxLen(desc : ref SDqTextInfo) -> uint;
+function CStrStorageSize(desc : ref SDqTextInfo) -> uint;
+
+function CStrClear(desc : ref SDqTextInfo);
+function CStrAssignPtr(desc : ref SDqTextInfo, src : ^cchar);
+function CStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo);
+function CStrAppendPtr(desc : ref SDqTextInfo, src : ^cchar);
+function CStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo);
+function CStrAppendChar(desc : ref SDqTextInfo, ch : char);
+function CStrPrependPtr(desc : ref SDqTextInfo, src : ^cchar);
+function CStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo);
+function CStrPrependChar(desc : ref SDqTextInfo, ch : char);
+function CStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^cchar);
+function CStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo);
+function CStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char);
+function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1);
+
+implementation
+
+function CStrRuntimeError(emsg : ^cchar):
+  RuntimeError(emsg);
+endfunc
+
+function CStrMaxLen(desc : ref SDqTextInfo) -> uint:
+  result = uint(desc.info AND DQTI_MAXCHLEN_MASK);
+endfunc
+
+function CStrStorageSize(desc : ref SDqTextInfo) -> uint:
+  return CStrMaxLen(desc) + 1;
+endfunc
+
+function CStrScanLen(desc : ref SDqTextInfo) -> uint:
+  var maxlen : uint = CStrMaxLen(desc);
+  if desc.dataptr == null:
+    return 0;
+  endif
+
+  var p : ^cchar = ^cchar(desc.dataptr);
+  var i : uint = 0;
+  while i < maxlen:
+    var cp : ^cchar = p + i;
+    if cp^ == cchar(0):
+      return i;
+    endif
+    i += 1;
+  endwhile
+  return maxlen;
+endfunc
+
+function CStrSetLen(desc : ref SDqTextInfo, newlen : uint):
+  desc.charlen = newlen;
+  desc.info = desc.info AND NOT DQTIF_CHARLEN_VALID;
+endfunc
+
+function CStrLen(desc : ref SDqTextInfo) -> uint:
+  if (desc.info AND DQTIF_CHARLEN_VALID) <> uint32(0):
+    return uint(desc.charlen);
+  endif
+
+  result = CStrScanLen(desc);
+  CStrSetLen(desc, result);
+endfunc
+
+function CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
+  if desc.dataptr == null:
+    return;
+  endif
+  var p : ^cchar = ^cchar(desc.dataptr);
+  p += clen;
+  p^ = cchar(0);
+endfunc
+
+function CStrBoundedPtrLen(src : ^cchar, maxcopy : uint) -> uint:
+  if src == null:
+    return 0;
+  endif
+
+  var i : uint = 0;
+  while i < maxcopy:
+    var cp : ^cchar = src + i;
+    if cp^ == cchar(0):
+      return i;
+    endif
+    i += 1;
+  endwhile
+  return maxcopy;
+endfunc
+
+function CStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^cchar, maxcopy : uint) -> uint:
+  if desc.dataptr == null or src == null or maxcopy == uint(0):
+    return 0;
+  endif
+
+  var count : uint = CStrBoundedPtrLen(src, maxcopy);
+  if count > uint(0):
+    @sys.MemCopy(^cchar(desc.dataptr)[dstpos], src, count);
+  endif
+  return count;
+endfunc
+
+function CStrClear(desc : ref SDqTextInfo):
+  CStrSetLen(desc, 0);
+  CStrWriteTerm(desc, 0);
+endfunc
+
+function CStrAssignPtr(desc : ref SDqTextInfo, src : ^cchar):
+  var maxlen : uint = CStrMaxLen(desc);
+  var copied : uint = CStrCopyFromPtr(desc, 0, src, maxlen);
+  CStrSetLen(desc, copied);
+  CStrWriteTerm(desc, copied);
+endfunc
+
+function CStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+  var srclen : uint = CStrLen(src);
+  var maxlen : uint = CStrMaxLen(desc);
+  if srclen > maxlen:
+    srclen = maxlen;
+  endif
+  if srclen > uint(0):
+    @sys.MemCopy(desc.dataptr, src.dataptr, srclen);
+  endif
+  CStrSetLen(desc, srclen);
+  CStrWriteTerm(desc, srclen);
+endfunc
+
+function CStrAppendPtr(desc : ref SDqTextInfo, src : ^cchar):
+  var clen : uint = CStrLen(desc);
+  var maxlen : uint = CStrMaxLen(desc);
+  if clen >= maxlen:
+    CStrWriteTerm(desc, maxlen);
+    return;
+  endif
+
+  var copied : uint = CStrCopyFromPtr(desc, clen, src, maxlen - clen);
+  clen += copied;
+  CStrSetLen(desc, clen);
+  CStrWriteTerm(desc, clen);
+endfunc
+
+function CStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+  CStrInsertDesc(desc, CStrLen(desc), src);
+endfunc
+
+function CStrAppendChar(desc : ref SDqTextInfo, ch : char):
+  var clen : uint = CStrLen(desc);
+  var maxlen : uint = CStrMaxLen(desc);
+  if clen >= maxlen:
+    CStrWriteTerm(desc, maxlen);
+    return;
+  endif
+
+  var p : ^cchar = ^cchar(desc.dataptr);
+  p += clen;
+  p^ = cchar(ch);
+  clen += 1;
+  CStrSetLen(desc, clen);
+  CStrWriteTerm(desc, clen);
+endfunc
+
+function CStrPrependPtr(desc : ref SDqTextInfo, src : ^cchar):
+  CStrInsertPtr(desc, 0, src);
+endfunc
+
+function CStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+  CStrInsertDesc(desc, 0, src);
+endfunc
+
+function CStrPrependChar(desc : ref SDqTextInfo, ch : char):
+  CStrInsertChar(desc, 0, ch);
+endfunc
+
+function CStrClampIndex(index : int, clen : uint) -> uint:
+  if index <= 0:
+    return 0;
+  elif uint(index) >= clen:
+    return clen;
+  else:
+    result = index;
+  endif
+endfunc
+
+function CStrOpenGap(desc : ref SDqTextInfo, index : uint, addlen : uint, oldlen : uint) -> uint:
+  var maxlen : uint = CStrMaxLen(desc);
+  if addlen == uint(0) or index >= maxlen:
+    return 0;
+  endif
+  if addlen > maxlen - index:
+    addlen = maxlen - index;
+  endif
+
+  if index < oldlen and index + addlen < maxlen:
+    var movecount : uint = oldlen - index;
+    if movecount > maxlen - index - addlen:
+      movecount = maxlen - index - addlen;
+    endif
+    @sys.MemCopy(^cchar(desc.dataptr)[index + addlen],
+                 ^cchar(desc.dataptr)[index],
+                 movecount);
+  endif
+  return addlen;
+endfunc
+
+function CStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^cchar):
+  var oldlen : uint = CStrLen(desc);
+  var pos : uint = CStrClampIndex(index, oldlen);
+  var maxlen : uint = CStrMaxLen(desc);
+  var addlen : uint = CStrBoundedPtrLen(src, maxlen - pos);
+  addlen = CStrOpenGap(desc, pos, addlen, oldlen);
+  if addlen > uint(0):
+    @sys.MemCopy(^cchar(desc.dataptr)[pos], src, addlen);
+  endif
+  var newlen : uint = oldlen + addlen;
+  if newlen > maxlen:
+    newlen = maxlen;
+  endif
+  CStrSetLen(desc, newlen);
+  CStrWriteTerm(desc, newlen);
+endfunc
+
+function CStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo):
+  var oldlen : uint = CStrLen(desc);
+  var pos : uint = CStrClampIndex(index, oldlen);
+  var maxlen : uint = CStrMaxLen(desc);
+  var addlen : uint = CStrLen(src);
+  if addlen > maxlen - pos:
+    addlen = maxlen - pos;
+  endif
+  addlen = CStrOpenGap(desc, pos, addlen, oldlen);
+  if addlen > uint(0):
+    @sys.MemCopy(^cchar(desc.dataptr)[pos], src.dataptr, addlen);
+  endif
+  var newlen : uint = oldlen + addlen;
+  if newlen > maxlen:
+    newlen = maxlen;
+  endif
+  CStrSetLen(desc, newlen);
+  CStrWriteTerm(desc, newlen);
+endfunc
+
+function CStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char):
+  var oldlen : uint = CStrLen(desc);
+  var pos : uint = CStrClampIndex(index, oldlen);
+  var addlen : uint = CStrOpenGap(desc, pos, 1, oldlen);
+  if addlen > uint(0):
+    var p : ^cchar = ^cchar(desc.dataptr);
+    p += pos;
+    p^ = cchar(ch);
+  endif
+  var newlen : uint = oldlen + addlen;
+  var maxlen : uint = CStrMaxLen(desc);
+  if newlen > maxlen:
+    newlen = maxlen;
+  endif
+  CStrSetLen(desc, newlen);
+  CStrWriteTerm(desc, newlen);
+endfunc
+
+function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1):
+  if count <= 0:
+    return;
+  endif
+
+  var clen : uint = CStrLen(desc);
+  var pos : uint = CStrClampIndex(index, clen);
+  if pos >= clen:
+    return;
+  endif
+
+  var delcount : uint = count;
+  if delcount > clen - pos:
+    delcount = clen - pos;
+  endif
+
+  var tail : uint = clen - pos - delcount;
+  if tail > uint(0):
+    @sys.MemCopy(^cchar(desc.dataptr)[pos],
+                 ^cchar(desc.dataptr)[pos + delcount],
+                 tail);
+  endif
+
+  clen -= delcount;
+  CStrSetLen(desc, clen);
+  CStrWriteTerm(desc, clen);
+endfunc

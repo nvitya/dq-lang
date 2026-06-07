@@ -845,18 +845,11 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
-      OCStringLit * strlit = dynamic_cast<OCStringLit *>(src);
-      if (!strlit)
+      if (aflags & EXPCF_GENERATE_ERRORS)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert pointer to cstring descriptor");
-        }
-        return false;
+        ErrorTxt(DQERR_CSTR_CONVERSION, "cannot initialize writable cstring alias from pointer or literal");
       }
-
-      *rexpr = new OCStringLitToDescExpr(src, strlit->value.size() + 1, dsttype);
-      return true;
+      return false;
     }
 
     if (aflags & EXPCF_GENERATE_ERRORS)
@@ -877,6 +870,14 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   {
     OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
     OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+    if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (resolved_dst == g_builtins->type_cchar))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+      }
+      return false;
+    }
     if ((intdst->bitlength != intsrc->bitlength) or (intdst->issigned != intsrc->issigned))
     {
       *rexpr = new OExprTypeConv(dsttype, src);
@@ -1054,19 +1055,17 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
     if ((cstrdst->maxlen == 0) and (cstrsrc->maxlen > 0))
     {
-      OLValueVar * varref = dynamic_cast<OLValueVar *>(src);
-      if (!varref)
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
       {
         if (aflags & EXPCF_GENERATE_ERRORS)
         {
-          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-variable cstring to descriptor");
+          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
         }
         return false;
       }
 
-      OExpr * result = new OCStringToDescExpr(varref->pvalsym, dsttype);
-      delete src;
-      *rexpr = result;
+      *rexpr = new OCStringLValueToDescExpr(lval, dsttype);
       return true;
     }
 
@@ -1236,8 +1235,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
         return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr)) ? 0 : -1);
       }
 
-      OCStringLit * strlit = dynamic_cast<OCStringLit *>(expr);
-      return (strlit ? 1 : -1);
+      return -1;
     }
 
     return -1;
@@ -1247,6 +1245,10 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
   {
     OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
     OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+    if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (resolved_dst == g_builtins->type_cchar))
+    {
+      return -1;
+    }
     return (((intdst->bitlength == intsrc->bitlength) && (intdst->issigned == intsrc->issigned)) ? 0 : 1);
   }
 
@@ -1333,7 +1335,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
     if ((cstrdst->maxlen == 0) && (cstrsrc->maxlen > 0))
     {
-      return (dynamic_cast<OLValueVar *>(expr) ? 1 : -1);
+      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
     }
 
     if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr))

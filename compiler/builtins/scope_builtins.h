@@ -18,6 +18,7 @@
 
 #include "otype_int.h"
 #include "otype_bool.h"
+#include "otype_char.h"
 #include "otype_float.h"
 #include "otype_func.h"
 #include "otype_cstring.h"
@@ -51,6 +52,7 @@ public:
   OTypeFloat *  type_float64;
 
   OTypePointer *  type_pointer;
+  OTypeChar *     type_char;
   OTypeInt *      type_cchar;
   OTypeCString *  type_cstring;
 

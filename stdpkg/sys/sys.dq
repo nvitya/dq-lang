@@ -31,6 +31,19 @@ struct SArraySliceDesc:
   length  : uint;
 endstruct
 
+const DQTI_MAXCHLEN_MASK   : uint32 = 0x00FFFFFF;
+const DQTIF_CHARWIDTH_4    : uint32 = 0x80000000;
+const DQTIF_CHARWIDTH_2    : uint32 = 0x40000000;
+const DQTIF_WIDECHAR_MASK  : uint32 = 0xC0000000;
+const DQTIF_CHARLEN_VALID  : uint32 = 0x01000000;
+const DQTIF_READONLY       : uint32 = 0x02000000;
+
+struct SDqTextInfo:
+  dataptr : pointer;  // points to the first character
+  charlen : uint32;   // number of characters
+  info    : uint32;   // maxlen + charwidth + flags
+endstruct
+
 type FRunTimeErrorHandler = function(emsg : ^cchar);
 
 var rterror_handler : FRunTimeErrorHandler = null;

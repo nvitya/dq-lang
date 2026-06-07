@@ -503,7 +503,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
     if (cstrtype->maxlen > 0)
     {
-      // Sized cstring[N]: GEP into [N x i8] with {0, index}
+      // Sized cstring(N): GEP into [N + 1 x i8] with {0, index}
       LlValue * baseaddr = base->GenerateAddress(scope);
       LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
       return ll_builder.CreateGEP(
@@ -2155,10 +2155,8 @@ LlValue * OCStringLit::Generate(OScope * scope)
 
 LlValue * OCStringSizeExpr::Generate(OScope * scope)
 {
-  // Extract size field (index 1) from the cstring descriptor {ptr, i64}
-  LlType * ll_desctype = cstrvalsym->ptype->GetLlType();
-  LlValue * ll_size_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 1, "cstr.size.addr");
-  return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_size_addr, "cstr.size");
+  auto * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+  return GenerateCStringMetaField(scope, cstrtype, cstrvalsym->ll_value, CSMF_STORAGE_SIZE);
 }
 
 /* ctor */ OCStringLenExpr::OCStringLenExpr(OValSym * avs)
@@ -2178,7 +2176,7 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 
   if (cstrtype->maxlen > 0)
   {
-    // Fixed cstring[N]: GEP to element 0
+    // Fixed cstring(N): GEP to element 0
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
     ll_charptr = ll_builder.CreateGEP(cstrtype->GetLlType(), cstrvalsym->ll_value,
         {ll_zero, ll_zero}, "cstr.ptr");
@@ -2222,37 +2220,73 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 
 LlValue * OCStringLenExpr::Generate(OScope * scope)
 {
-  LlValue * ll_charptr;
-  LlValue * ll_maxlen;
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-
-  if (cstrtype->maxlen > 0)
-  {
-    // Fixed cstring[N]: GEP to element 0
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-    ll_charptr = ll_builder.CreateGEP(cstrtype->GetLlType(), cstrvalsym->ll_value,
-        {ll_zero, ll_zero}, "cstr.ptr");
-    ll_maxlen = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), cstrtype->maxlen);
-  }
-  else
-  {
-    // Unsized cstring param: extract pointer from descriptor
-    LlType * ll_desctype = cstrtype->GetLlType();
-    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 0, "cstr.ptr.addr");
-    ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
-
-    // Extract maxlen from descriptor
-    LlValue * ll_maxlen_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 1, "cstr.maxlen.addr");
-    ll_maxlen = ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_maxlen_addr, "cstr.maxlen");
-  }
-
-  // Call strnlen from libc
-  llvm::FunctionType * ft = llvm::FunctionType::get(LlType::getInt64Ty(ll_ctx), {llvm::PointerType::get(ll_ctx, 0), LlType::getInt64Ty(ll_ctx)}, false);
-  llvm::FunctionCallee callee = ll_module->getOrInsertFunction("strnlen", ft);
-  return ll_builder.CreateCall(callee, {ll_charptr, ll_maxlen}, "len");
+  return GenerateCStringMetaField(scope, cstrtype, cstrvalsym->ll_value, CSMF_LENGTH);
 }
 
 #endif
+
+/* ctor */ OCStringMetaFieldExpr::OCStringMetaFieldExpr(OLValueExpr * areceiver, ECStringMetaField afield)
+{
+  receiver = areceiver;
+  field = afield;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OCStringMetaFieldExpr::Generate(OScope * scope)
+{
+  auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
+  return GenerateCStringMetaField(scope, cstrtype, receiver->GenerateAddress(scope), field);
+}
+
+void OCStringMetaFieldExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+}
+
+void OCStringMetaFieldExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+}
+
+/* ctor */ OCStringMethodCallExpr::OCStringMethodCallExpr(OLValueExpr * areceiver, ECStringMethod amethod)
+{
+  receiver = areceiver;
+  method = amethod;
+  ptype = nullptr;
+}
+
+LlValue * OCStringMethodCallExpr::Generate(OScope * scope)
+{
+  auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
+  return GenerateCStringMethodCall(scope, cstrtype, receiver->GenerateAddress(scope), method, args);
+}
+
+void OCStringMethodCallExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+  for (OExpr *& arg : args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void OCStringMethodCallExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
+}
 
 /* ctor */ OCStringToDescExpr::OCStringToDescExpr(OValSym * avs, OType * desctype)
 {
@@ -2264,18 +2298,34 @@ LlValue * OCStringToDescExpr::Generate(OScope * scope)
 {
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
 
-  // Get pointer to first element
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-  LlValue * ll_elemptr = ll_builder.CreateGEP(
-      cstrtype->GetLlType(), cstrvalsym->ll_value, {ll_zero, ll_zero}, "cstr.data");
+  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrvalsym->ll_value);
+  return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "cstr.desc");
+}
 
-  // Build descriptor {ptr, i64}
-  LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
-  ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_elemptr, 0, "cstr.desc.ptr");
-  ll_desc = ll_builder.CreateInsertValue(ll_desc,
-      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), cstrtype->maxlen),
-      1, "cstr.desc.size");
-  return ll_desc;
+/* ctor */ OCStringLValueToDescExpr::OCStringLValueToDescExpr(OLValueExpr * alval, OType * desctype)
+{
+  cstrlval = alval;
+  ptype = desctype;
+}
+
+LlValue * OCStringLValueToDescExpr::Generate(OScope * scope)
+{
+  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrlval->ptype->ResolveAlias());
+  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval->GenerateAddress(scope));
+  return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "cstr.desc");
+}
+
+void OCStringLValueToDescExpr::FoldChildren()
+{
+  OExpr * tmp = cstrlval;
+  OExpr::FoldTree(&tmp);
+  cstrlval = static_cast<OLValueExpr *>(tmp);
+}
+
+void OCStringLValueToDescExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(cstrlval);
+  cstrlval = nullptr;
 }
 
 /* ctor */ OCStringLitToDescExpr::OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype)
@@ -2292,8 +2342,11 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
   LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
   ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");
   ll_desc = ll_builder.CreateInsertValue(ll_desc,
-      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), litlen),
-      1, "strlit.desc.size");
+      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), litlen ? litlen - 1 : 0),
+      1, "strlit.desc.len");
+  ll_desc = ll_builder.CreateInsertValue(ll_desc,
+      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), (litlen ? litlen - 1 : 0) | 0x01000000),
+      2, "strlit.desc.info");
   return ll_desc;
 }
 

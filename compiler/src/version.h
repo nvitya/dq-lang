@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.13.1"
+#define DQ_COMPILER_VERSION  "0.14.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.14.0:
+  - New cstring implementation
 v0.13.1:
   - Dynamic arrays implemented according the new specification
 v0.13.0:
@@ -24,7 +26,7 @@ v0.13.0:
     - $end, $last local symbols
     - [?] for inferred length
 v0.12.4:
-  - ^cchar is now assignable to cstring[n]
+  - ^cchar is now assignable to cstring(n)
 v0.12.3:
   - Another object reference handling fix
 v0.12.2:

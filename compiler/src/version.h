@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.14.1"
+#define DQ_COMPILER_VERSION  "0.14.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.14.2:
+  - allow string literal to cstring conversion
 v0.14.1:
   - Slightly optimized cstring handling RTL
 v0.14.0:

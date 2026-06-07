@@ -114,6 +114,15 @@ void ODqCompAst::FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
   OExpr::FoldTree(rexpr);
 }
 
+static bool IsCCharPointerType(OType * type)
+{
+  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
+  return ptrtype
+      && ptrtype->IsTypedPointer()
+      && ptrtype->basetype
+      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+}
+
 ODqCompAst::ODqCompAst()
 {
 }
@@ -845,6 +854,14 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
+      if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
+      {
+        auto * strlit = dynamic_cast<OCStringLit *>(src);
+        uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
+        *rexpr = new OCStringLitToDescExpr(src, known_len, dsttype);
+        return true;
+      }
+
       if (aflags & EXPCF_GENERATE_ERRORS)
       {
         ErrorTxt(DQERR_CSTR_CONVERSION, "cannot initialize writable cstring alias from pointer or literal");
@@ -1235,7 +1252,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
         return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr)) ? 0 : -1);
       }
 
-      return -1;
+      return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1);
     }
 
     return -1;

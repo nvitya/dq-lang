@@ -2136,6 +2136,9 @@ LlValue * OInvalidCallExpr::Generate(OScope * scope)
 
 // --- cstring expressions ---
 
+static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
+static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
+
 /* ctor */ OCStringLit::OCStringLit(const string & avalue)
 {
   value = avalue;
@@ -2338,14 +2341,16 @@ void OCStringLValueToDescExpr::DeleteChildTree()
 LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
 {
   LlValue * ll_ptr = litexpr->Generate(scope);
+  uint32_t charlen = (litlen ? litlen - 1 : 0);
+  uint32_t info = (litlen ? charlen | DQTIF_CHARLEN_VALID : DQTI_MAXCHLEN_MASK);
 
   LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
   ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");
   ll_desc = ll_builder.CreateInsertValue(ll_desc,
-      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), litlen ? litlen - 1 : 0),
+      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), charlen),
       1, "strlit.desc.len");
   ll_desc = ll_builder.CreateInsertValue(ll_desc,
-      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), (litlen ? litlen - 1 : 0) | 0x01000000),
+      llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), info),
       2, "strlit.desc.info");
   return ll_desc;
 }

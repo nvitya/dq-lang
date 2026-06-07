@@ -31,17 +31,11 @@ object OCallback:
 endobj
 
 function *Main() -> int:
-  var first_name : cstring(5) = "first";
-  var second_name : cstring(6) = "second";
-  var first <- OCallback(first_name);
-  var second <- OCallback(second_name);
+  var first <- OCallback("first");
+  var second <- OCallback("second");
   var cb : FObjText = null;
   var icb : FObjInt = null;
   var plaincb : FPlainText = plain;
-  var msg_a : cstring(1) = "a";
-  var msg_b : cstring(1) = "b";
-  var msg_c : cstring(1) = "c";
-  var msg_ok : cstring(2) = "ok";
 
   if cb == null:
     printf("cb = null\n");  //?check('cb', 'null')
@@ -49,18 +43,18 @@ function *Main() -> int:
 
   cb = first.Print;
   if cb != null:
-    cb(msg_a);  //?check('first', 'a')
+    cb("a");  //?check('first', 'a')
   endif
 
   cb = second.Print;
-  cb(msg_b);  //?check('second', 'b')
+  cb("b");  //?check('second', 'b')
 
   cb = first.Pick;
-  cb(msg_c);  //?check('first.picked', 'c')
+  cb("c");  //?check('first.picked', 'c')
 
   icb = second.Pick;
   icb(5);  //?check('second.picked', 5)
 
-  plaincb(msg_ok);  //?check('plain', 'ok')
+  plaincb("ok");  //?check('plain', 'ok')
   return 0;
 endfunc

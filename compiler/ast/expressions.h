@@ -639,12 +639,13 @@ public:
   void      DeleteChildTree() override;
 };
 
-// Convert string literal (^cchar) to SDqTextInfo-compatible cstring descriptor.
+// Convert a ^cchar expression to an SDqTextInfo-compatible cstring descriptor.
+// String literals carry a known length; other pointers scan lazily at runtime.
 class OCStringLitToDescExpr : public OExpr
 {
 public:
   OExpr *    litexpr;
-  uint32_t   litlen;  // buffer size: strlen + 1 (includes null terminator)
+  uint32_t   litlen;  // known buffer size: strlen + 1, or zero for unknown ^cchar
   /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;

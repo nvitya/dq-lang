@@ -76,6 +76,7 @@ function *Main() -> int:
   var cs_pc : cstring(3);
   cs_pc = pc;
   PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
+  PrintText("cstring_param_pc", pc); //?check("cstring_param_pc", '[4] "asdf"')
 
   var source : cstring(6) = "abcdef";
   var cs_str : cstring(3);

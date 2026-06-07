@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.14.0"
+#define DQ_COMPILER_VERSION  "0.14.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.14.1:
+  - Slightly optimized cstring handling RTL
 v0.14.0:
   - New cstring implementation
 v0.13.1:

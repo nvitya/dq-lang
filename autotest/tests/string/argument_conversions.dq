@@ -1,0 +1,92 @@
+//?notest
+// Spec-level str, strview, cstring, and ^cchar function argument behavior.
+
+use libc/stdio;
+
+[[external]] function putchar(c : cchar) -> int;
+
+function PrintEscapedChar(ch : char):
+  if ch == char(9):
+    printf("\\t");
+    return;
+  endif
+  if ch == char(10):
+    printf("\\n");
+    return;
+  endif
+  if ch == char(13):
+    printf("\\r");
+    return;
+  endif
+  if ch == char(34):
+    putchar(cchar(92));
+    putchar(cchar(34));
+    return;
+  endif
+  if ch == char(92):
+    putchar(cchar(92));
+    putchar(cchar(92));
+    return;
+  endif
+  putchar(cchar(ch));
+endfunc
+
+function PrintText(label : ^cchar, text : strview):
+  printf("%s = [%li] \"", label, text.length);
+  var i : int = 0;
+  while i < text.length:
+    PrintEscapedChar(text[i]);
+    i += 1;
+  endwhile
+  printf("\"\n");
+endfunc
+
+function PrintReadonly(label : ^cchar, text : strview):
+  PrintText(label, text);
+endfunc
+
+function OwnAndMutate(s : str):
+  s.Append("_local");
+  PrintText("owning_param_inside", s); //?check("owning_param_inside", '[11] "abc_local"')
+endfunc
+
+function MutateCaller(s : ref str):
+  s.Append("_ref");
+endfunc
+
+function EditCBuffer(cs : cstring):
+  cs.Append("_edit");
+endfunc
+
+function *Main() -> int:
+  printf("string_argument_conversions = start\n"); //?check("string_argument_conversions", "start")
+
+  var s : str = "abc";
+  var cs : cstring(15) = "cbuf";
+  var pc : ^cchar = "pcstr";
+
+  PrintReadonly("arg_literal", "literal"); //?check("arg_literal", '[7] "literal"')
+  PrintReadonly("arg_str", s); //?check("arg_str", '[3] "abc"')
+  PrintReadonly("arg_str_slice", s[1:]); //?check("arg_str_slice", '[2] "bc"')
+  PrintReadonly("arg_cstring", cs); //?check("arg_cstring", '[4] "cbuf"')
+  PrintReadonly("arg_pc", pc); //?check("arg_pc", '[5] "pcstr"')
+
+  OwnAndMutate(s);
+  PrintText("owning_param_caller", s); //?check("owning_param_caller", '[3] "abc"')
+  MutateCaller(s);
+  PrintText("ref_param_caller", s); //?check("ref_param_caller", '[7] "abc_ref"')
+
+  EditCBuffer(cs);
+  PrintText("cstring_param_alias", cs); //?check("cstring_param_alias", '[9] "cbuf_edit"')
+
+  var alias : cstring = cs;
+  EditCBuffer(alias);
+  PrintText("cstring_local_alias", cs); //?check("cstring_local_alias", '[14] "cbuf_edit_edit"')
+
+  var assigned_from_pc : str = pc;
+  PrintText("assign_pc_to_str", assigned_from_pc); //?check("assign_pc_to_str", '[5] "pcstr"')
+  var view_from_pc : strview = pc;
+  PrintText("assign_pc_to_view", view_from_pc); //?check("assign_pc_to_view", '[5] "pcstr"')
+
+  return 0;
+endfunc

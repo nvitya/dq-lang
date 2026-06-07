@@ -1,0 +1,136 @@
+//?notest
+// Spec-level fixed cstring(N), unsized cstring alias, truncation, and mutation behavior.
+
+use libc/stdio;
+
+[[external]] function putchar(c : cchar) -> int;
+
+function PrintEscapedChar(ch : char):
+  if ch == char(9):
+    printf("\\t");
+    return;
+  endif
+  if ch == char(10):
+    printf("\\n");
+    return;
+  endif
+  if ch == char(13):
+    printf("\\r");
+    return;
+  endif
+  if ch == char(34):
+    putchar(cchar(92));
+    putchar(cchar(34));
+    return;
+  endif
+  if ch == char(92):
+    putchar(cchar(92));
+    putchar(cchar(92));
+    return;
+  endif
+  putchar(cchar(ch));
+endfunc
+
+function PrintText(label : ^cchar, text : strview):
+  printf("%s = [%li] \"", label, text.length);
+  var i : int = 0;
+  while i < text.length:
+    PrintEscapedChar(text[i]);
+    i += 1;
+  endwhile
+  printf("\"\n");
+endfunc
+
+function EditAlias(cs : cstring):
+  cs.Append(" four");
+endfunc
+
+struct SName:
+  id : int32;
+  name : cstring(15);
+endstruct
+
+function AppendName(ref item : SName):
+  item.name.Append(" two");
+endfunc
+
+function MutateThroughPointer(apc : ^cchar):
+  var pc : ^cchar = apc;
+  pc^ = 'Z';
+  pc += 1;
+  pc^ = 'Z';
+  pc += 1;
+  pc^ = 0;
+endfunc
+
+function *Main() -> int:
+  printf("string_cstring_semantics = start\n"); //?check("string_cstring_semantics", "start")
+
+  var cs : cstring(5) = "abc";
+  printf("cstring_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size); //?check("cstring_props", "len:3 max:5 storage:6")
+  PrintText("cstring_initial", cs); //?check("cstring_initial", '[3] "abc"')
+
+  cs = "abcdefghi";
+  PrintText("cstring_assign_trunc", cs); //?check("cstring_assign_trunc", '[5] "abcde"')
+
+  var pc : ^cchar = "asdf";
+  var cs_pc : cstring(3);
+  cs_pc = pc;
+  PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
+
+  var source : str = "abcdef";
+  var cs_str : cstring(3);
+  cs_str = source;
+  PrintText("cstring_assign_str_trunc", cs_str); //?check("cstring_assign_str_trunc", '[3] "abc"')
+
+  cs = "abc";
+  cs[0] = 'X';
+  cs[2] = 'Y';
+  PrintText("cstring_index_assign", cs); //?check("cstring_index_assign", '[3] "XbY"')
+  cs = "abcdef";
+  cs[3] = cchar(0);
+  PrintText("cstring_zero_assign", cs); //?check("cstring_zero_assign", '[3] "abc"')
+
+  cs = "abc";
+  cs.Append('d');
+  cs.Append("efghi");
+  PrintText("cstring_append_trunc", cs); //?check("cstring_append_trunc", '[5] "abcde"')
+  cs.Prepend('X');
+  PrintText("cstring_prepend_trunc", cs); //?check("cstring_prepend_trunc", '[5] "Xabcd"')
+  cs.Insert(1, 'Y');
+  PrintText("cstring_insert_trunc", cs); //?check("cstring_insert_trunc", '[5] "XYabc"')
+  cs.Delete(1, 2);
+  PrintText("cstring_delete", cs); //?check("cstring_delete", '[3] "Xbc"')
+  cs.Clear();
+  PrintText("cstring_clear", cs); //?check("cstring_clear", '[0] ""')
+
+  var storage : cstring(31) = "one";
+  var alias : cstring = storage;
+  alias.Append(" two");
+  EditAlias(alias);
+  PrintText("cstring_alias_storage", storage); //?check("cstring_alias_storage", '[12] "one two four"')
+
+  var alias2 : cstring = alias;
+  alias2.Append(" five");
+  PrintText("cstring_alias_chain", storage); //?check("cstring_alias_chain", '[17] "one two four five"')
+
+  var item : SName;
+  item.name = "one";
+  AppendName(item);
+  PrintText("cstring_struct_field", item.name); //?check("cstring_struct_field", '[7] "one two"')
+
+  var slice_source : cstring(15) = "abcdef";
+  var slice_copy : str = slice_source[1:4];
+  var slice_view : strview = slice_source[1:4];
+  PrintText("cstring_slice_copy", slice_copy); //?check("cstring_slice_copy", '[3] "bcd"')
+  PrintText("cstring_slice_view", slice_view); //?check("cstring_slice_view", '[3] "bcd"')
+  PrintText("cstring_slice_clamp", slice_source[-5:100]); //?check("cstring_slice_clamp", '[6] "abcdef"')
+  PrintText("cstring_slice_last", slice_source[$last:]); //?check("cstring_slice_last", '[1] "f"')
+
+  var external_mut : cstring(8) = "abcdef";
+  MutateThroughPointer(&external_mut[0]);
+  external_mut.Append("!");
+  PrintText("cstring_external_rescan", external_mut); //?check("cstring_external_rescan", '[3] "ZZ!"')
+
+  return 0;
+endfunc

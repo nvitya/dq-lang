@@ -1,0 +1,89 @@
+//?notest
+// Spec-level string utility methods.
+
+use libc/stdio;
+
+[[external]] function putchar(c : cchar) -> int;
+
+function PrintEscapedChar(ch : char):
+  if ch == char(9):
+    printf("\\t");
+    return;
+  endif
+  if ch == char(10):
+    printf("\\n");
+    return;
+  endif
+  if ch == char(13):
+    printf("\\r");
+    return;
+  endif
+  if ch == char(34):
+    putchar(cchar(92));
+    putchar(cchar(34));
+    return;
+  endif
+  if ch == char(92):
+    putchar(cchar(92));
+    putchar(cchar(92));
+    return;
+  endif
+  putchar(cchar(ch));
+endfunc
+
+function PrintText(label : ^cchar, text : strview):
+  printf("%s = [%li] \"", label, text.length);
+  var i : int = 0;
+  while i < text.length:
+    PrintEscapedChar(text[i]);
+    i += 1;
+  endwhile
+  printf("\"\n");
+endfunc
+
+function Flag(v : bool) -> int:
+  if v:
+    result = 1;
+  else:
+    result = 0;
+  endif
+endfunc
+
+function *Main() -> int:
+  printf("string_utility_methods = start\n"); //?check("string_utility_methods", "start")
+
+  var spaced : str = " \t\nabc\r\n ";
+  PrintText("trim_default", spaced.Trim()); //?check("trim_default", '[3] "abc"')
+  PrintText("ltrim_default", spaced.LTrim()); //?check("ltrim_default", '[6] "abc\r\n "')
+  PrintText("rtrim_default", spaced.RTrim()); //?check("rtrim_default", '[6] " \t\nabc"')
+
+  var dashed : str = "---abc---";
+  PrintText("trim_set", dashed.Trim("-")); //?check("trim_set", '[3] "abc"')
+  PrintText("ltrim_set", dashed.LTrim("-")); //?check("ltrim_set", '[6] "abc---"')
+  PrintText("rtrim_set", dashed.RTrim("-")); //?check("rtrim_set", '[6] "---abc"')
+
+  var pad : str = "abc";
+  PrintText("lpad_char", pad.LPad(5, ' ')); //?check("lpad_char", '[5] "  abc"')
+  PrintText("rpad_char", pad.RPad(5, '.')); //?check("rpad_char", '[5] "abc.."')
+  PrintText("lpad_short_noop", pad.LPad(2, ' ')); //?check("lpad_short_noop", '[3] "abc"')
+  PrintText("lpad_string", pad.LPad(8, "01")); //?check("lpad_string", '[8] "01010abc"')
+  PrintText("rpad_string", pad.RPad(8, "01")); //?check("rpad_string", '[8] "abc01010"')
+
+  var search : str = "abcdefabc";
+  printf("indexof = c:%li abc:%li abc_from1:%li xyz:%li\n",
+         search.IndexOf('c'), search.IndexOf("abc"), search.IndexOf("abc", 1), search.IndexOf("xyz")); //?check("indexof", "c:2 abc:0 abc_from1:6 xyz:-1")
+  printf("indexof_empty = at0:%li at2:%li at100:%li neg:%li\n",
+         search.IndexOf("", 0), search.IndexOf("", 2), search.IndexOf("", 100), search.IndexOf("", -5)); //?check("indexof_empty", "at0:0 at2:2 at100:9 neg:0")
+  printf("search_helpers = last:%li contains:%li starts:%li ends:%li misses:%li\n",
+         search.LastIndexOf("abc"), Flag(search.Contains("def")), Flag(search.StartsWith("abc")), Flag(search.EndsWith("abc")), Flag(search.Contains("zzz"))); //?check("search_helpers", "last:6 contains:1 starts:1 ends:1 misses:0")
+
+  var view : strview = "  view  ";
+  PrintText("strview_trim", view.Trim()); //?check("strview_trim", '[4] "view"')
+  printf("strview_indexof = %li\n", view.IndexOf("ie")); //?check("strview_indexof", 3)
+
+  var cs : cstring(8) = "  abc";
+  PrintText("cstring_trim", cs.Trim()); //?check("cstring_trim", '[3] "abc"')
+  printf("cstring_indexof = %li\n", cs.IndexOf('b')); //?check("cstring_indexof", 3)
+
+  return 0;
+endfunc

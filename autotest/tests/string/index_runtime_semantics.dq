@@ -1,0 +1,55 @@
+//?notest
+// These expressions are specified as runtime bounds errors when executed.
+// The test keeps them uncalled so the compiler must accept them as runtime checks.
+
+use libc/stdio;
+
+function ReadBeforeStart() -> char:
+  var s : str = "abc";
+  result = s[-1];
+endfunc
+
+function ReadAtEnd() -> char:
+  var s : str = "abc";
+  result = s[3];
+endfunc
+
+function ReadAtEndContext() -> char:
+  var s : str = "abc";
+  result = s[$end];
+endfunc
+
+function ReadEmptyLast() -> char:
+  var s : str = "";
+  result = s[$last];
+endfunc
+
+function WriteBeforeStart():
+  var s : str = "abc";
+  s[-1] = 'X';
+endfunc
+
+function WriteAtEnd():
+  var s : str = "abc";
+  s[s.length] = 'X';
+endfunc
+
+function EmptyPop() -> char:
+  var s : str = "";
+  result = s.Pop();
+endfunc
+
+function EmptyPopFirst() -> char:
+  var s : str = "";
+  result = s.PopFirst();
+endfunc
+
+function EmptyPadFill() -> str:
+  var s : str = "abc";
+  result = s.LPad(5, "");
+endfunc
+
+function *Main() -> int:
+  printf("string_index_runtime_semantics = compiled\n"); //?check("string_index_runtime_semantics", "compiled")
+  return 0;
+endfunc

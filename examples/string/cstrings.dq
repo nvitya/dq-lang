@@ -1,0 +1,40 @@
+
+use libc/stdio;
+
+// Test1
+
+function CsProcess(cs : cstring):
+  cs.Append(' five');
+endfunc
+
+function Test1():
+  var cs1 : cstring(31) = 'One two three';  // 32 byte storage
+
+  cs1.Append(' four');
+  CsProcess(cs1);
+endfunc
+
+// Test2
+
+struct STestRec:
+  id   : int32;
+  name : cstring[31];
+endstruct
+
+function ProcessName(ref tr : STestRec):
+  tr.name.Append(" two");
+endfunc
+
+function Test2():
+  var tr : STestRec;
+  tr.name = "one";
+endfunc
+
+function *Main() -> int:
+  printf('DQ cstring test\n');
+
+  Test1();
+  Test2();
+
+  return 0;
+endfunc

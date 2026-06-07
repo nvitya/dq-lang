@@ -1,0 +1,53 @@
+//?notest
+// String compile-time rejection cases from the string specification.
+
+function DynamicStrNullComparisonIsInvalid() -> int:
+  var s : str;
+  if s == null: //?error(TypeMismatchOp)
+    result = 1;
+  endif
+  if s <> null: //?error(TypeMismatchOp)
+    result = 2;
+  endif
+  result = 0;
+endfunc
+
+function StrViewIsReadonly():
+  var v : strview = "abc";
+  v[0] = 'X'; //?error(NotWriteable)
+  v.Append("x"); //?error(MemberUnknown)
+  v.Prepend("x"); //?error(MemberUnknown)
+  v.Insert(1, "x"); //?error(MemberUnknown)
+  v.Delete(1); //?error(MemberUnknown)
+  v.SetLength(4, ' '); //?error(MemberUnknown)
+  v.Reserve(10); //?error(MemberUnknown)
+  v.Compact(); //?error(MemberUnknown)
+  v.Clear(); //?error(MemberUnknown)
+  v.Pop(); //?error(MemberUnknown)
+  v.PopFirst(); //?error(MemberUnknown)
+endfunc
+
+function CStringDynamicStorageMethodsAreInvalid():
+  var cs : cstring(8) = "abc";
+  cs.Reserve(100); //?error(MemberUnknown)
+  cs.Compact(); //?error(MemberUnknown)
+endfunc
+
+function UnsizedCStringMustAliasStorage():
+  var no_storage : cstring; //?error(NotSupported)
+  var literal_alias : cstring = "abc"; //?error(TypeMismatchAssign)
+endfunc
+
+function WideLiteralCannotBecomeRawCCharPointer():
+  var bad_pc : ^cchar = "€"; //?error(TypeMismatchAssign)
+endfunc
+
+function StringNeedsExplicitSetLengthFill():
+  var s : str = "abc";
+  s.SetLength(5); //?error(FuncArgsTooFew)
+endfunc
+
+function CstringCannotStoreWideCharacterWithoutConversion():
+  var cs : cstring(8) = "abc";
+  cs[1] = char(0x1F600); //?error(TypeMismatchAssign)
+endfunc

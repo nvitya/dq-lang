@@ -59,7 +59,7 @@ public:
 
   OTypeCString(uint32_t amaxlen)
   :
-    super(amaxlen > 0 ? "cstring(" + to_string(amaxlen) + ")" : "cstring", TK_STRING),
+    super(amaxlen > 0 ? "cstring(" + to_string(amaxlen) + ")" : "cstring", TK_CSTRING),
     maxlen(amaxlen)
   {
     if (amaxlen > 0)

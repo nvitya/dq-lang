@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.14.2"
+#define DQ_COMPILER_VERSION  "0.14.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.14.3:
+  - ETypeKind split to future expansions
 v0.14.2:
   - allow string literal to cstring conversion
 v0.14.1:

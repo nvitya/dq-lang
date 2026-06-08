@@ -438,7 +438,7 @@ void OLValueMember::DeleteChildTree()
   {
     ptype = static_cast<OTypeDynArray *>(acontainertype)->elemtype;
   }
-  else if (TK_STRING == acontainertype->kind)
+  else if (TK_CSTRING == acontainertype->kind)
   {
     ptype = g_builtins->type_cchar;
   }
@@ -497,7 +497,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   {
     return GenerateDynArrayElementAddress(scope, static_cast<OTypeDynArray *>(containertype), base->GenerateAddress(scope), ll_index);
   }
-  else if (TK_STRING == containertype->kind)
+  else if (TK_CSTRING == containertype->kind)
   {
     // CString indexing
     OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);

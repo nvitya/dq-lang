@@ -103,7 +103,7 @@ bool ODqCompParser::SupportsFuncParamDefaultType(OType * ptype)
     return true;
   }
 
-  if (TK_STRING == resolved->kind)
+  if (TK_CSTRING == resolved->kind)
   {
     OTypeCString * cstrtype = dynamic_cast<OTypeCString *>(resolved);
     return cstrtype && (cstrtype->maxlen > 0);
@@ -3192,7 +3192,7 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
   }
 
   // cstring(N) handling: N is the usable logical length; storage has N + 1 bytes.
-  if (TK_STRING == ptype->kind)
+  if (TK_CSTRING == ptype->kind)
   {
     if (!EnsureCStringRtlUse())
     {
@@ -5037,7 +5037,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
 
-        if (TK_STRING == tk)
+        if (TK_CSTRING == tk)
         {
           if ("length" == membername)
           {
@@ -5140,7 +5140,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
       }
 
       // Array/slice/dynamic-array/cstring index on any lvalue: x[i], or slice x[a:b]
-      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_STRING == tk)
+      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk)
           and scf->CheckSymbol("["))
       {
         OExpr * indexexpr = nullptr;
@@ -5169,7 +5169,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         if (scf->CheckSymbol(":"))
         {
           inclusive_slice = scf->CheckSymbol(":");
-          if (TK_STRING == tk)
+          if (TK_CSTRING == tk)
           {
             Error(DQERR_NOT_SUPPORTED, "cstring slicing");
             OExpr::DeleteTree(indexexpr);
@@ -6576,7 +6576,7 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   {
     return new ODynArrayLengthExpr(lenvs);
   }
-  else if (TK_STRING == lenvs->ptype->kind)
+  else if (TK_CSTRING == lenvs->ptype->kind)
   {
     return new OCStringLenExpr(lenvs);
   }

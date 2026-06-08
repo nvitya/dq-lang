@@ -133,7 +133,7 @@ ODqCompAst::~ODqCompAst()
 
 bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype)
 {
-  if (TK_COMPOUND == srctype->kind)
+  if (srctype->IsCompound())
   {
     memberbase = lval;
     ctype = static_cast<OCompoundType *>(srctype);
@@ -143,10 +143,11 @@ bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, 
   if (TK_POINTER == srctype->kind)
   {
     OTypePointer * ptype = static_cast<OTypePointer *>(srctype);
-    if (ptype->basetype && TK_COMPOUND == ptype->basetype->kind)
+    OType * basetype = (ptype->basetype ? ptype->basetype->ResolveAlias() : nullptr);
+    if (basetype && basetype->IsCompound())
     {
       memberbase = new OLValueDeref(lval);
-      ctype = static_cast<OCompoundType *>(ptype->basetype);
+      ctype = static_cast<OCompoundType *>(basetype);
       return true;
     }
   }
@@ -292,7 +293,7 @@ void ODqCompAst::CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OL
       return;
     }
 
-    if (TK_STRING == containertype->kind)
+    if (TK_CSTRING == containertype->kind)
     {
       OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
       if (cstrtype->maxlen > 0)
@@ -566,7 +567,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
   if (tkd != tks)
   {
-    if (TK_COMPOUND == tkd && TK_POINTER == tks)
+    if (TK_OBJECT == tkd && TK_POINTER == tks)
     {
       OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
@@ -828,7 +829,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       return ok;
     }
 
-    if ((TK_STRING == tkd) and (TK_POINTER == tks))
+    if ((TK_CSTRING == tkd) and (TK_POINTER == tks))
     {
       if (is_explicit_cast)
       {
@@ -1057,7 +1058,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     return true;
   }
 
-  if (TK_STRING == tkd)
+  if (TK_CSTRING == tkd)
   {
     if (is_explicit_cast)
     {
@@ -1126,7 +1127,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
   if (tkd != tks)
   {
-    if (TK_COMPOUND == tkd && TK_POINTER == tks)
+    if (TK_OBJECT == tkd && TK_POINTER == tks)
     {
       OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
@@ -1239,7 +1240,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       return -1;
     }
 
-    if ((TK_STRING == tkd) && (TK_POINTER == tks))
+    if ((TK_CSTRING == tkd) && (TK_POINTER == tks))
     {
       if (is_explicit_cast)
       {
@@ -1341,7 +1342,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     return ((dyndst->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
   }
 
-  if (TK_STRING == tkd)
+  if (TK_CSTRING == tkd)
   {
     if (is_explicit_cast)
     {

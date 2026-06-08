@@ -39,6 +39,8 @@ endfunc
 function MakeIntTypeInfo(ti : refout SDqTypeInfo):
   ti.storagesize = sizeof(int);
   ti.flags = 0;
+  ti.kind = DQTK_INT;
+  ti.subtype = 0;
   ti.init_func = null;
   ti.destroy_func = null;
   ti.copy_func = null;

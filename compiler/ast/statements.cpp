@@ -245,7 +245,7 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (TK_STRING == variable->ptype->kind)
+  if (TK_CSTRING == variable->ptype->kind)
   {
     OTypeCString * cstrtype = static_cast<OTypeCString *>(variable->ptype);
     if (cstrtype->GenerateStore(scope, variable->ll_value, initvalue))
@@ -259,7 +259,7 @@ void OStmtVarDecl::Generate(OScope * scope)
   }
 
   // Compound/static-array zero-initialization.
-  if ((TK_COMPOUND == variable->ptype->kind || TK_ARRAY == variable->ptype->kind) and not initvalue and variable->initialized)
+  if ((variable->ptype->IsCompound() || TK_ARRAY == variable->ptype->kind) and not initvalue and variable->initialized)
   {
     LlConst * ll_zero = llvm::ConstantAggregateZero::get(ll_type);
     ll_builder.CreateStore(ll_zero, variable->ll_value);
@@ -427,7 +427,7 @@ void OStmtAssign::Generate(OScope * scope)
     return;
   }
 
-  if (TK_STRING == target->ResolvedType()->kind)
+  if (TK_CSTRING == target->ResolvedType()->kind)
   {
     OTypeCString * cstrtype = static_cast<OTypeCString *>(target->ResolvedType());
     if (cstrtype->maxlen > 0)

@@ -203,21 +203,30 @@ public:
 
 enum ETypeKind
 {
-  TK_VOID = 0,
-  TK_INT,
-  TK_FLOAT,
-  TK_BOOL,
-  TK_POINTER,
-  TK_ARRAY,
-  TK_ARRAY_SLICE,  // array descriptor {ptr, length} for function parameters
-  TK_DYN_ARRAY,    // owning dynamic array [*]T: ORawDynArray-compatible layout
-  TK_STRING,    // ODynString, OCString
+  TK_VOID         =  0,
+  TK_INT          =  1,
+  TK_FLOAT        =  2,
+  TK_BOOL         =  3,
+  TK_POINTER      =  4,
+  TK_ENUM         =  5,
 
-  TK_ALIAS,
-  TK_ENUM,
-  TK_COMPOUND,  // object, struct
-  TK_FUNCTION,
-  TK_FUNCREF,   // function variable (function pointer)
+  TK_CSTRING      =  8,
+  TK_STRVIEW      =  9,
+  TK_DYNSTR       = 10,
+
+  TK_ANYVAL       = 15,
+
+  TK_STRUCT       = 16,
+  TK_OBJECT       = 17,
+
+  TK_ARRAY        = 20,
+  TK_ARRAY_SLICE  = 21,   // array descriptor {ptr, length} for function parameters
+  TK_DYN_ARRAY    = 22,   // owning dynamic array [*]T: ORawDynArray-compatible layout
+
+  TK_FUNCTION     = 28,
+  TK_FUNCREF      = 29,   // function variable (function pointer)
+
+  TK_ALIAS        = 31,
 };
 
 class OExpr;
@@ -301,7 +310,8 @@ public:
     return di_type;
   }
 
-  inline bool        IsCompound()   { return (kind == TK_COMPOUND);  }
+  inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_DYNSTR == kind); }
+  inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind); }
   virtual OType *    ResolveAlias() { return this; }
   OTypePointer *     GetPointerType();
   OTypeArray *       GetArrayType(uint32_t alength);
@@ -418,9 +428,9 @@ public:
   bool         layout_busy = false;
   bool         manual_ll_layout = false;
 
-  OCompoundType(const string name, OScope * aparent_scope)
+  OCompoundType(const string name, OScope * aparent_scope, ETypeKind akind = TK_STRUCT)
   :
-    super(name, TK_COMPOUND),
+    super(name, akind),
     member_scope(aparent_scope, name)
   {
   }

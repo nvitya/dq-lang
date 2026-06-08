@@ -17,9 +17,30 @@ function __sys_init_params(argc : int, argv : ^^cchar);  // called from the libc
 
 // Types used internally by other RTL modules
 
+const DQTK_VOID         : uint8 =  0;
+const DQTK_INT          : uint8 =  1;
+const DQTK_FLOAT        : uint8 =  2;
+const DQTK_BOOL         : uint8 =  3;
+const DQTK_POINTER      : uint8 =  4;
+const DQTK_ENUM         : uint8 =  5;
+const DQTK_CSTRING      : uint8 =  8;
+const DQTK_STRVIEW      : uint8 =  9;
+const DQTK_DYNSTR       : uint8 = 10;
+const DQTK_ANYVAL       : uint8 = 15;
+const DQTK_STRUCT       : uint8 = 16;
+const DQTK_OBJECT       : uint8 = 17;
+const DQTK_ARRAY        : uint8 = 20;
+const DQTK_ARRAY_SLICE  : uint8 = 21;   // array descriptor {ptr, length} for function parameters
+const DQTK_DYN_ARRAY    : uint8 = 22;   // owning dynamic array [*]T: ORawDynArray-compatible layout
+const DQTK_FUNCTION     : uint8 = 28;
+const DQTK_FUNCREF      : uint8 = 29;   // function variable (function pointer)
+const DQTK_ALIAS        : uint8 = 31;
+
 struct SDqTypeInfo:
-  storagesize  : uint;     // array stride, including padding
-  flags        : uint;     // copy/destroy/init/move properties
+  storagesize  : uint32;   // array stride, including padding
+  flags        : uint16;   // copy/destroy/init/move properties
+  kind         : uint8;    // one of the DQTK_xxx
+  subtype      : uint8;    // type addition
   init_func    : pointer;  // reserved for the future managed object handling
   destroy_func : pointer;  // reserved for the future managed object handling
   copy_func    : pointer;  // reserved for the future managed object handling
@@ -31,6 +52,11 @@ struct SArraySliceDesc:
   length  : uint;
 endstruct
 
+struct SDqAnyVal:
+  typeinfo : ^SDqTypeInfo;
+  data     : [2]uint64;  // fits the SDqTextInfo
+endstruct
+
 const DQTI_MAXCHLEN_MASK   : uint32 = 0x00FFFFFF;
 const DQTIF_CHARWIDTH_4    : uint32 = 0x80000000;
 const DQTIF_CHARWIDTH_2    : uint32 = 0x40000000;
@@ -38,7 +64,7 @@ const DQTIF_WIDECHAR_MASK  : uint32 = 0xC0000000;
 const DQTIF_CHARLEN_VALID  : uint32 = 0x01000000;
 const DQTIF_READONLY       : uint32 = 0x02000000;
 
-struct SDqTextInfo:
+struct SDqTextInfo:   // 12 or 16 Bytes
   dataptr : pointer;  // points to the first character
   charlen : uint32;   // number of characters
   info    : uint32;   // maxlen + charwidth + flags

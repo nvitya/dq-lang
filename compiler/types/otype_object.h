@@ -34,7 +34,7 @@ public:
 
   OTypeObject(const string name, OScope * aparent_scope)
   :
-    super(name, aparent_scope)
+    super(name, aparent_scope, TK_OBJECT)
   {
     member_scope.vs_lookup_parent = false;
   }

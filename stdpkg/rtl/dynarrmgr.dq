@@ -9,6 +9,8 @@ public
 
   elemsize : uint;        // cached from type info
   flags    : uint;        // cached element handling flags
+  typekind : uint8;
+  subtype  : uint8;
   typeinfo : ^SDqTypeInfo;
 
   function *Create(atypeinfo : ^SDqTypeInfo);
@@ -145,6 +147,8 @@ function ODynArrMgr.Create(atypeinfo : ^SDqTypeInfo):
   typeinfo = atypeinfo;
   elemsize = typeinfo^.storagesize;
   flags    = typeinfo^.flags;
+  typekind = typeinfo^.kind;
+  subtype  = typeinfo^.subtype;
 endfunc
 
 function ODynArrMgr.Destroy():

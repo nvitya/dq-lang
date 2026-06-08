@@ -54,10 +54,13 @@ static string TypeKindName(ETypeKind akind)
     case TK_ARRAY:        return "array";
     case TK_ARRAY_SLICE:  return "array_slice";
     case TK_DYN_ARRAY:    return "dynamic_array";
-    case TK_STRING:       return "string";
+    case TK_CSTRING:      return "cstring";
+    case TK_STRVIEW:      return "strview";
+    case TK_DYNSTR:       return "dynstr";
     case TK_ALIAS:        return "alias";
     case TK_ENUM:         return "enum";
-    case TK_COMPOUND:     return "compound";
+    case TK_STRUCT:       return "struct";
+    case TK_OBJECT:       return "object";
     case TK_FUNCTION:     return "function";
     case TK_FUNCREF:      return "funcref";
   }
@@ -1548,7 +1551,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     memcpy(&value, &bits, sizeof(value));
     rvalue = new OValueFloat(atype, value);
   }
-  else if (TK_STRING == rtype->kind)
+  else if (TK_CSTRING == rtype->kind)
   {
     string value;
     if (!reader.ReadString(value)) return false;

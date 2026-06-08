@@ -74,11 +74,6 @@ static LlValue * ToNativeUInt(LlValue * value)
   return value;
 }
 
-static LlConst * LlConstUIntConst(uint64_t value)
-{
-  return llvm::ConstantInt::get(LlNativeUIntType(), value);
-}
-
 static LlValue * LlBool(bool value)
 {
   return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), value);
@@ -142,14 +137,20 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
   }
 
   LlType * ptrtype = LlPtrType();
+  LlType * i32type = LlType::getInt32Ty(ll_ctx);
+  LlType * i16type = LlType::getInt16Ty(ll_ctx);
+  LlType * i8type = LlType::getInt8Ty(ll_ctx);
   vector<LlType *> fields = {
-    LlNativeUIntType(), LlNativeUIntType(),
+    i32type, i16type, i8type, i8type,
     ptrtype, ptrtype, ptrtype, ptrtype
   };
   auto * ti_type = llvm::StructType::get(ll_ctx, fields);
+  OType * elemtype = dyntype->elemtype->ResolveAlias();
   vector<LlConst *> values = {
-    LlConstUIntConst(dyntype->elemtype->bytesize),
-    LlConstUIntConst(0),
+    llvm::ConstantInt::get(i32type, elemtype->bytesize),
+    llvm::ConstantInt::get(i16type, 0),
+    llvm::ConstantInt::get(i8type, uint8_t(elemtype->kind)),
+    llvm::ConstantInt::get(i8type, 0),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),

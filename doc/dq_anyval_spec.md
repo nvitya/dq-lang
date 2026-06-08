@@ -123,7 +123,9 @@ unsigned integer types   -> anyval
 char                     -> anyval
 floating-point types     -> anyval
 str                      -> anyval
-string literal           -> anyval as str
+cstring                  -> anyval
+strview                  -> anyval
+string literal           -> anyval as cstring
 ```
 
 Recommended `typeinfo.kind` mappings:
@@ -134,12 +136,14 @@ bool               DQTK_BOOL
 int/uint/char      DQTK_INT
 float32/float64    DQTK_FLOAT
 str                DQTK_DYNSTR
+cstring            DQTK_CSTRING
+strview            DQTK_STRVIEW
 anyval             DQTK_ANYVAL
 ```
 
 `char` is represented as an integer-like scalar. The exact distinction between signed integer, unsigned integer, and character is stored in `subtype` or in the exact `SDqTypeInfo` pointer.
 
-String literals used in an `anyval` context are boxed as `str` values, not as raw `cstring` or `strview` values.
+String literals used in an `anyval` context are boxed as `cstring` values. They reference static read-only storage and therefore satisfy the borrowed lifetime rules for `cstring`.
 
 ---
 
@@ -150,8 +154,6 @@ The following values are not accepted as `anyval` sources in the first version:
 ```text
 pointer / ^T
 ref T / refnull T
-cstring
-strview
 arrays / [N]T
 array slices / []T
 dynamic arrays / [*]T
@@ -179,6 +181,8 @@ DQTK_VOID       data[0] = 0, data[1] = 0
 DQTK_BOOL       data[0] = 0 or 1
 DQTK_INT        data[0] = integer bits, sign/width from subtype/typeinfo
 DQTK_FLOAT      data[0] = IEEE bits, width from subtype/typeinfo
+DQTK_CSTRING    data[0..1] = borrowed cstring descriptor compatible with SDqTextInfo
+DQTK_STRVIEW    data[0..1] = borrowed strview descriptor compatible with SDqTextInfo
 DQTK_DYNSTR     data[0..1] = dynamic string/text descriptor compatible with SDqTextInfo
 ```
 
@@ -191,6 +195,10 @@ If the final dynamic string descriptor does not fit into `[2]uint64`, then `data
 `anyval` is a value type.
 
 For scalar values, copying and destruction are trivial.
+
+For `cstring` and `strview` values, `anyval` stores a borrowed text descriptor. Copying the `anyval` copies only the descriptor. Destroying the `anyval` does not destroy the referenced text storage.
+
+Implicit boxing of `cstring` and `strview` is only allowed when the source text storage is guaranteed to remain valid for the lifetime of the resulting `anyval`. Direct `[]anyval` call arguments satisfy this rule for ordinary expression sources because the temporary array is only valid for the duration of the call. Persistent `anyval` storage may require an explicit conversion to owned `str`.
 
 For `str` values, `anyval` must obey the normal `str` copy/destroy semantics. Therefore `anyval` itself is a managed type if it can contain `str`.
 
@@ -304,7 +312,7 @@ DbExec(
 );
 ```
 
-`null`, integer, floating, boolean, and `str` values map naturally to common database field values.
+`null`, integer, floating, boolean, and text values map naturally to common database field values.
 
 Pointers, arrays, structs, and objects must be converted explicitly before binding.
 
@@ -316,7 +324,6 @@ Possible future extensions:
 
 ```text
 - explicit enum boxing
-- cstring/strview boxing with strict lifetime rules
 - typed pointer boxing with chained typeinfo
 - array/slice boxing with chained element typeinfo
 - object/interface boxing

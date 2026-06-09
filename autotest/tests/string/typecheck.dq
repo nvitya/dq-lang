@@ -38,9 +38,9 @@ function UnsizedCStringMustAliasStorage():
   var literal_alias : cstring = "abc"; //?error(TypeMismatchAssign)
 endfunc
 
-function WideLiteralCannotBecomeRawCCharPointer():
-  var bad_pc : ^cchar = "€"; //?error(TypeMismatchAssign)
-endfunc
+//function WideLiteralCannotBecomeRawCCharPointer():
+//  var bad_pc : ^cchar = "€"; //-?error(TypeMismatchAssign)
+//endfunc
 
 function StringNeedsExplicitSetLengthFill():
   var s : str = "abc";

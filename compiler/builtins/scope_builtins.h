@@ -22,6 +22,7 @@
 #include "otype_float.h"
 #include "otype_func.h"
 #include "otype_cstring.h"
+#include "otype_string.h"
 
 class OScopeBuiltins : public OScope
 {
@@ -55,6 +56,8 @@ public:
   OTypeChar *     type_char;
   OTypeInt *      type_cchar;
   OTypeCString *  type_cstring;
+  OTypeDynString * type_str;
+  OTypeStrView *   type_strview;
 
   OScopeBuiltins()
   :

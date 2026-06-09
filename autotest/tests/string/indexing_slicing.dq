@@ -1,4 +1,3 @@
-//?notest
 // Spec-level string indexing, context values, and clamped slicing behavior.
 
 use libc/stdio;

@@ -66,9 +66,13 @@ void OScopeBuiltins::Init()
   type_char    = new OTypeChar();
   type_cchar   = new OTypeInt("cchar", 8, true);
   type_cstring = new OTypeCString(0);  // base unsized type
+  type_str     = new OTypeDynString();
+  type_strview = new OTypeStrView();
   DefineType(type_char);
   DefineType(type_cchar);
   DefineType(type_cstring);
+  DefineType(type_str);
+  DefineType(type_strview);
 
   DefineType(new OTypeAlias("byte", type_uint8));
 }

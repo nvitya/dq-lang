@@ -1,4 +1,3 @@
-//?notest
 // Spec-level str, strview, cstring, and ^cchar function argument behavior.
 
 use libc/stdio;
@@ -47,7 +46,7 @@ endfunc
 
 function OwnAndMutate(s : str):
   s.Append("_local");
-  PrintText("owning_param_inside", s); //?check("owning_param_inside", '[11] "abc_local"')
+  PrintText("owning_param_inside", s); //?check("owning_param_inside", '[9] "abc_local"')
 endfunc
 
 function MutateCaller(s : ref str):

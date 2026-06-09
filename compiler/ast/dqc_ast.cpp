@@ -21,6 +21,7 @@
 #include "otype_func.h"
 #include "otype_int.h"
 #include "otype_object.h"
+#include "otype_string.h"
 
 bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
@@ -829,6 +830,37 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       return ok;
     }
 
+    if (TK_STRVIEW == tkd)
+    {
+      if (IsTextSourceType(resolved_src))
+      {
+        *rexpr = new OTextSourceToViewExpr(src, dsttype);
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+      }
+      return false;
+    }
+
+    if (TK_DYNSTR == tkd)
+    {
+      if (IsTextSourceType(resolved_src))
+      {
+        if (TK_DYNSTR != tks)
+        {
+          *rexpr = new OTextSourceToStringExpr(src, dsttype);
+        }
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+      }
+      return false;
+    }
+
     if ((TK_CSTRING == tkd) and (TK_POINTER == tks))
     {
       if (is_explicit_cast)
@@ -1240,6 +1272,16 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       return -1;
     }
 
+    if (TK_STRVIEW == tkd)
+    {
+      return IsTextSourceType(resolved_src) ? 1 : -1;
+    }
+
+    if (TK_DYNSTR == tkd)
+    {
+      return IsTextSourceType(resolved_src) ? 1 : -1;
+    }
+
     if ((TK_CSTRING == tkd) && (TK_POINTER == tks))
     {
       if (is_explicit_cast)
@@ -1340,6 +1382,11 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     OTypeDynArray * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
     OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
     return ((dyndst->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
+  }
+
+  if (TK_DYNSTR == tkd || TK_STRVIEW == tkd)
+  {
+    return 0;
   }
 
   if (TK_CSTRING == tkd)

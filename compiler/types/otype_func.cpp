@@ -18,6 +18,7 @@
 #include "errorcodes.h"
 #include "ll_defs.h"
 #include "otype_object.h"
+#include "otype_string.h"
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -820,6 +821,10 @@ void OValSymFunc::GenerateFuncBody()
     arg_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(ll_arg_type)));
     vsarg->ll_value = arg_alloca;
     ll_builder.CreateStore(&arg, vsarg->ll_value);
+    if (!fpar->IsRefLike() && fpar->ptype && TK_DYNSTR == fpar->ptype->ResolveAlias()->kind)
+    {
+      GenerateStringIncRef(body->scope, vsarg->ll_value);
+    }
     if (g_opt.dbg_info)
     {
       llvm::DILocalVariable * di_var = di_builder->createParameterVariable(

@@ -18,6 +18,7 @@
 #include "symbols.h"
 #include "ll_defs.h"
 #include "otype_cstring.h"
+#include "otype_string.h"
 
 using namespace std;
 
@@ -119,6 +120,7 @@ public:
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
   LlValue *  GenerateAddress(OScope * scope) override;
+  LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };
@@ -134,6 +136,21 @@ public:
 
   /* ctor */ OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,
                              bool aend_inclusive = false);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+class OStringSliceExpr : public OExpr
+{
+public:
+  OLValueExpr *  base;
+  OExpr *        startexpr = nullptr;
+  OExpr *        endexpr = nullptr;
+  bool           end_inclusive = false;
+
+  /* ctor */ OStringSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
+                              bool aend_inclusive = false);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
@@ -650,4 +667,57 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
+};
+
+// --- str / strview expressions ---
+
+class OTextSourceToViewExpr : public OExpr
+{
+public:
+  OExpr * source;
+
+  /* ctor */ OTextSourceToViewExpr(OExpr * asource, OType * atype);
+  ~OTextSourceToViewExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OTextSourceToStringExpr : public OExpr
+{
+public:
+  OExpr * source;
+
+  /* ctor */ OTextSourceToStringExpr(OExpr * asource, OType * atype);
+  ~OTextSourceToStringExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OStringMetaFieldExpr : public OExpr
+{
+public:
+  OLValueExpr *     receiver;
+  EStringMetaField  field;
+
+  /* ctor */ OStringMetaFieldExpr(OLValueExpr * areceiver, EStringMetaField afield);
+  ~OStringMetaFieldExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OStringMethodCallExpr : public OExpr
+{
+public:
+  OLValueExpr *    receiver;
+  EStringMethod    method;
+  vector<OExpr *>  args;
+
+  /* ctor */ OStringMethodCallExpr(OLValueExpr * areceiver, EStringMethod amethod, OType * arettype = nullptr);
+  ~OStringMethodCallExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
 };

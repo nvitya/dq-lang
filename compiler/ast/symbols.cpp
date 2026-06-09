@@ -62,6 +62,13 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   {
     owned_objects.push_back(avalsym);
   }
+  else if (avalsym->ptype
+           && (TK_DYNSTR == avalsym->ptype->ResolveAlias()->kind)
+           && !avalsym->IsRefLike()
+           && ("result" != avalsym->name))
+  {
+    owned_objects.push_back(avalsym);
+  }
   return avalsym;
 }
 

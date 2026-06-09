@@ -18,6 +18,7 @@
 #include "otype_int.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "otype_string.h"
 #include "otype_func.h"
 #include "otype_object.h"
 #include "named_scopes.h"
@@ -442,6 +443,10 @@ void OLValueMember::DeleteChildTree()
   {
     ptype = g_builtins->type_cchar;
   }
+  else if (TK_DYNSTR == acontainertype->kind || TK_STRVIEW == acontainertype->kind)
+  {
+    ptype = g_builtins->type_char;
+  }
 }
 
 
@@ -520,8 +525,21 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
       return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem");
     }
   }
+  else if (TK_DYNSTR == containertype->kind || TK_STRVIEW == containertype->kind)
+  {
+    throw logic_error("string character address is not available");
+  }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
+}
+
+LlValue * OLValueIndex::Generate(OScope * scope)
+{
+  if (TK_DYNSTR == containertype->kind || TK_STRVIEW == containertype->kind)
+  {
+    return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
+  }
+  return OLValueExpr::Generate(scope);
 }
 
 /* ctor */ OArraySliceExpr::OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,
@@ -650,6 +668,40 @@ void OArraySliceExpr::FoldChildren()
 }
 
 void OArraySliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  OExpr::DeleteTree(startexpr);
+  OExpr::DeleteTree(endexpr);
+  base = nullptr;
+  startexpr = nullptr;
+  endexpr = nullptr;
+}
+
+/* ctor */ OStringSliceExpr::OStringSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
+                                              bool aend_inclusive)
+{
+  base = abase;
+  startexpr = astart;
+  endexpr = aend;
+  end_inclusive = aend_inclusive;
+  ptype = g_builtins->type_strview;
+}
+
+LlValue * OStringSliceExpr::Generate(OScope * scope)
+{
+  return GenerateStringSlice(scope, base, startexpr, endexpr, end_inclusive);
+}
+
+void OStringSliceExpr::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&startexpr);
+  OExpr::FoldTree(&endexpr);
+}
+
+void OStringSliceExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(base);
   OExpr::DeleteTree(startexpr);
@@ -840,6 +892,15 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     }
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
     LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_len, ll_zero);
+    return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
+  }
+
+  if ((COMPOP_EQ == op || COMPOP_NE == op)
+      && IsStringComparableTextType(left->ResolvedType())
+      && IsStringComparableTextType(right->ResolvedType())
+      && (IsStringFamilyTextType(left->ResolvedType()) || IsStringFamilyTextType(right->ResolvedType())))
+  {
+    LlValue * ll_eq = GenerateStringEqual(scope, left, right);
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
 
@@ -2364,6 +2425,122 @@ void OCStringLitToDescExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(litexpr);
   litexpr = nullptr;
+}
+
+// --- str / strview expressions ---
+
+/* ctor */ OTextSourceToViewExpr::OTextSourceToViewExpr(OExpr * asource, OType * atype)
+{
+  source = asource;
+  ptype = atype;
+}
+
+LlValue * OTextSourceToViewExpr::Generate(OScope * scope)
+{
+  return GenerateTextInfoValue(scope, source);
+}
+
+void OTextSourceToViewExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source);
+}
+
+void OTextSourceToViewExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source);
+  source = nullptr;
+}
+
+/* ctor */ OTextSourceToStringExpr::OTextSourceToStringExpr(OExpr * asource, OType * atype)
+{
+  source = asource;
+  ptype = atype;
+}
+
+LlValue * OTextSourceToStringExpr::Generate(OScope * scope)
+{
+  LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.cast.tmp");
+  GenerateStringCreate(scope, tmp);
+  if (!GenerateStringAssignExpr(scope, tmp, source))
+  {
+    throw logic_error("Unsupported text source to str conversion");
+  }
+  return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.cast");
+}
+
+void OTextSourceToStringExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source);
+}
+
+void OTextSourceToStringExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source);
+  source = nullptr;
+}
+
+/* ctor */ OStringMetaFieldExpr::OStringMetaFieldExpr(OLValueExpr * areceiver, EStringMetaField afield)
+{
+  receiver = areceiver;
+  field = afield;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
+{
+  if (SMF_LENGTH == field)
+  {
+    return GenerateStringLength(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  }
+  return GenerateStringCapacity(scope, receiver->ptype, receiver->GenerateAddress(scope));
+}
+
+void OStringMetaFieldExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+}
+
+void OStringMetaFieldExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+}
+
+/* ctor */ OStringMethodCallExpr::OStringMethodCallExpr(OLValueExpr * areceiver, EStringMethod amethod, OType * arettype)
+{
+  receiver = areceiver;
+  method = amethod;
+  ptype = arettype;
+}
+
+LlValue * OStringMethodCallExpr::Generate(OScope * scope)
+{
+  return GenerateStringMethodCall(scope, receiver, method, args);
+}
+
+void OStringMethodCallExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+  for (OExpr *& arg : args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void OStringMethodCallExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
 }
 
 OExpr * OExpr::FoldScalarExpr(OExpr * expr)

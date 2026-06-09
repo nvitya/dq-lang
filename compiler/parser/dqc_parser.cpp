@@ -23,6 +23,7 @@
 #include "otype_func.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "otype_string.h"
 #include "otype_int.h"
 #include "otype_object.h"
 #include "named_scopes.h"
@@ -51,6 +52,15 @@ static bool EnsureCStringRtlUse()
   return g_compiler->AddImplicitUse("rtl/cstrings", "__dq_cstring", nullptr, true, MUM_NONE);
 }
 
+static bool EnsureDynStringRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
+}
+
 static bool IsCStringMethodSourceType(OType * type)
 {
   OType * resolved = type ? type->ResolveAlias() : nullptr;
@@ -68,6 +78,11 @@ static bool IsCStringMethodSourceType(OType * type)
   auto * ptrtype = dynamic_cast<OTypePointer *>(resolved);
   return ptrtype && ptrtype->basetype
       && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+}
+
+static bool IsStringMethodSourceType(OType * type)
+{
+  return IsTextSourceType(type);
 }
 
 static OLValueExpr * CloneContextLValue(OLValueExpr * src)
@@ -1155,6 +1170,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
       objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
     if (pvalsym->ptype && (TK_DYN_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
+    {
+      pvalsym->initialized = true;
+    }
+    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRVIEW == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }
@@ -2992,6 +3011,7 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
                      || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
+                     || (dynamic_cast<OStringMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
@@ -3242,6 +3262,14 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
       return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
     }
     return ptype;  // unsized cstring (for parameters)
+  }
+
+  if (TK_DYNSTR == ptype->kind || TK_STRVIEW == ptype->kind)
+  {
+    if (!EnsureDynStringRtlUse())
+    {
+      return nullptr;
+    }
   }
 
   // Array suffixes are no longer part of the type grammar. Keep [[...]]
@@ -4463,6 +4491,20 @@ OExpr * ODqCompParser::ParseComparison()
   };
   OType * ltype = left && left->ptype ? left->ptype->ResolveAlias() : nullptr;
   OType * rtype = right && right->ptype ? right->ptype->ResolveAlias() : nullptr;
+  bool ltext = IsStringComparableTextType(ltype);
+  bool rtext = IsStringComparableTextType(rtype);
+  bool has_string_family = IsStringFamilyTextType(ltype) || IsStringFamilyTextType(rtype);
+  if ((ltext || rtext) && has_string_family)
+  {
+    if ((COMPOP_EQ != op && COMPOP_NE != op) || !ltext || !rtext)
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, compare_symbol(op), right->ptype->name);
+      OExpr::DeleteTree(left);
+      OExpr::DeleteTree(right);
+      return new OBoolLit(false);
+    }
+    return new OCompareExpr(op, left, right);
+  }
   if ((ltype && (TK_DYN_ARRAY == ltype->kind || TK_ARRAY_SLICE == ltype->kind))
       || (rtype && (TK_DYN_ARRAY == rtype->kind || TK_ARRAY_SLICE == rtype->kind)))
   {
@@ -4879,10 +4921,18 @@ OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * r
     Error(DQERR_FUNC_CALL_PARENTH, membername);
     return receiver_expr;
   }
+  int64_t prev_context_len = array_index_context_len;
+  OLValueExpr * prev_context_lval = array_index_context_lval;
+  array_index_context_len = -1;
+  array_index_context_lval = receiver;
   if (!ParseRawCallArguments(membername, rawargs))
   {
+    array_index_context_len = prev_context_len;
+    array_index_context_lval = prev_context_lval;
     return nullptr;
   }
+  array_index_context_len = prev_context_len;
+  array_index_context_lval = prev_context_lval;
 
   auto free_and_fail = [&]() -> OExpr *
   {
@@ -4981,6 +5031,190 @@ OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * r
   return callexpr;
 }
 
+OExpr * ODqCompParser::ParseStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
+{
+  vector<TRawCallArg> rawargs;
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_FUNC_CALL_PARENTH, membername);
+    return receiver_expr;
+  }
+  int64_t prev_context_len = array_index_context_len;
+  OLValueExpr * prev_context_lval = array_index_context_lval;
+  array_index_context_len = -1;
+  array_index_context_lval = receiver;
+  if (!ParseRawCallArguments(membername, rawargs))
+  {
+    array_index_context_len = prev_context_len;
+    array_index_context_lval = prev_context_lval;
+    return nullptr;
+  }
+  array_index_context_len = prev_context_len;
+  array_index_context_lval = prev_context_lval;
+
+  auto free_and_fail = [&]() -> OExpr *
+  {
+    FreeRawCallArguments(rawargs);
+    delete receiver_expr;
+    return nullptr;
+  };
+
+  auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
+  {
+    if (rawargs.size() < mincnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
+      return false;
+    }
+    if (rawargs.size() > maxcnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
+      return false;
+    }
+    return true;
+  };
+
+  EStringMethod method = STRM_CLEAR;
+  vector<OType *> argtypes;
+  size_t source_arg_index = rawargs.size();
+  OType * rettype = nullptr;
+
+  if ("Clear" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    method = STRM_CLEAR;
+    if (!rawargs.empty()) argtypes.push_back(g_builtins->type_bool);
+  }
+  else if ("Reserve" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_RESERVE;
+    argtypes.push_back(g_builtins->type_uint);
+  }
+  else if ("Compact" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    method = STRM_COMPACT;
+  }
+  else if ("SetLength" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = STRM_SET_LENGTH;
+    argtypes.push_back(g_builtins->type_uint);
+    argtypes.push_back(g_builtins->type_char);
+  }
+  else if ("SetCapacity" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_SET_CAPACITY;
+    argtypes.push_back(g_builtins->type_uint);
+  }
+  else if ("Truncate" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_TRUNCATE;
+    argtypes.push_back(g_builtins->type_uint);
+  }
+  else if ("Append" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_APPEND;
+    source_arg_index = 0;
+  }
+  else if ("Prepend" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_PREPEND;
+    source_arg_index = 0;
+  }
+  else if ("Insert" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = STRM_INSERT;
+    argtypes.push_back(g_builtins->type_int);
+    source_arg_index = 1;
+  }
+  else if ("Delete" == membername)
+  {
+    if (!check_count(1, 2)) return free_and_fail();
+    method = STRM_DELETE;
+    argtypes.push_back(g_builtins->type_int);
+    if (rawargs.size() > 1) argtypes.push_back(g_builtins->type_int);
+  }
+  else if ("Clone" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    method = STRM_CLONE;
+    rettype = g_builtins->type_str;
+  }
+  else if ("Pop" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    if (rawargs.empty())
+    {
+      method = STRM_POP_CHAR;
+      rettype = g_builtins->type_char;
+    }
+    else
+    {
+      method = STRM_POP;
+      argtypes.push_back(g_builtins->type_int);
+      rettype = g_builtins->type_str;
+    }
+  }
+  else if ("PopFirst" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    if (rawargs.empty())
+    {
+      method = STRM_POP_FIRST_CHAR;
+      rettype = g_builtins->type_char;
+    }
+    else
+    {
+      method = STRM_POP_FIRST;
+      argtypes.push_back(g_builtins->type_int);
+      rettype = g_builtins->type_str;
+    }
+  }
+  else
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    return free_and_fail();
+  }
+
+  if (!EnsureDynStringRtlUse())
+  {
+    return free_and_fail();
+  }
+
+  auto * callexpr = new OStringMethodCallExpr(receiver, method, rettype);
+  for (size_t i = 0; i < rawargs.size(); ++i)
+  {
+    OExpr * argexpr = rawargs[i].expr;
+    rawargs[i].expr = nullptr;
+    if (i < argtypes.size())
+    {
+      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+      {
+        OExpr::DeleteTree(argexpr);
+        delete callexpr;
+        return free_and_fail();
+      }
+    }
+    if ((i == source_arg_index) && !IsStringMethodSourceType(argexpr->ResolvedType()))
+    {
+      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, cchar, str, strview, cstring, or ^cchar");
+      OExpr::DeleteTree(argexpr);
+      delete callexpr;
+      return free_and_fail();
+    }
+    callexpr->args.push_back(argexpr);
+  }
+  FreeRawCallArguments(rawargs);
+  return callexpr;
+}
+
 OExpr * ODqCompParser::ParsePostfix(OExpr * base)
 {
   OExpr * result = base;
@@ -5064,6 +5298,37 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           continue;
         }
 
+        if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+        {
+          if ("length" == membername)
+          {
+            result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
+            continue;
+          }
+          if (TK_DYNSTR == tk && "capacity" == membername)
+          {
+            result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);
+            continue;
+          }
+          if (TK_DYNSTR == tk)
+          {
+            result = ParseStringMethod(result, lval, membername);
+            if (!result) return nullptr;
+            continue;
+          }
+
+          Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+          if (scf->CheckSymbol("("))
+          {
+            vector<TRawCallArg> rawargs;
+            ParseRawCallArguments(membername, rawargs);
+            FreeRawCallArguments(rawargs);
+            delete result;
+            result = new OInvalidCallExpr();
+          }
+          return result;
+        }
+
         OLValueExpr * memberbase = nullptr;
         OCompoundType * ctype = nullptr;
         if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
@@ -5144,8 +5409,9 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         continue;
       }
 
-      // Array/slice/dynamic-array/cstring index on any lvalue: x[i], or slice x[a:b]
-      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk)
+      // Array/slice/dynamic-array/cstring/string index on any lvalue: x[i], or slice x[a:b]
+      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
+           or TK_DYNSTR == tk or TK_STRVIEW == tk)
           and scf->CheckSymbol("["))
       {
         OExpr * indexexpr = nullptr;
@@ -5194,7 +5460,14 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           }
           array_index_context_len = prev_context_len;
           array_index_context_lval = prev_context_lval;
-          result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
+          if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+          {
+            result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
+          }
+          else
+          {
+            result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
+          }
           continue;
         }
         if (!has_first_expr)
@@ -5359,7 +5632,10 @@ OExpr * ODqCompParser::ParseExprPrimary()
         Error(DQERR_NOT_SUPPORTED, "$" + ctxname + " for this array expression");
         return nullptr;
       }
-      OExpr * lenexpr = new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH);
+      OType * ctx_type = ctx_lval->ptype ? ctx_lval->ptype->ResolveAlias() : nullptr;
+      OExpr * lenexpr = (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRVIEW == ctx_type->kind))
+          ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, SMF_LENGTH))
+          : static_cast<OExpr *>(new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH));
       if ("end" == ctxname)
       {
         return lenexpr;
@@ -6585,6 +6861,10 @@ OExpr * ODqCompParser::ParseBuiltinLen()
   {
     return new OCStringLenExpr(lenvs);
   }
+  else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRVIEW == lenvs->ptype->ResolveAlias()->kind)
+  {
+    return new OStringMetaFieldExpr(new OLValueVar(lenvs), SMF_LENGTH);
+  }
   else
   {
     Error(DQERR_LEN_INVALID_TYPE, lenvs->ptype->name);
@@ -6858,6 +7138,17 @@ bool ODqCompParser::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr 
   }
 
   OType * targettype = leftexpr->ptype;
+  if (auto * idx = dynamic_cast<OLValueIndex *>(leftexpr))
+  {
+    OType * ctype = idx->containertype ? idx->containertype->ResolveAlias() : nullptr;
+    if (ctype && TK_STRVIEW == ctype->kind)
+    {
+      Error(DQERR_LVALUE_NOT_WRITEABLE);
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
+  }
 
   // Pointer arithmetic: p += int  or  p -= int
   if (TK_POINTER == targettype->kind and (BINOP_ADD == op or BINOP_SUB == op))

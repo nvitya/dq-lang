@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.14.4"
+#define DQ_COMPILER_VERSION  "0.15.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.15.0:
+  - Dynamic strings (str) and strview implementation phase 1
 v0.14.4:
   - Compiler fix for returning small integers
 v0.14.3:

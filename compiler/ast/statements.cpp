@@ -16,6 +16,7 @@
 #include "statements.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
+#include "otype_string.h"
 #include "otype_func.h"
 #include "otype_object.h"
 #include "comp_options.h"
@@ -43,6 +44,11 @@ static void EmitOwnedObjectDestructors(OScope * scope)
     if (dyntype && vs->ll_value)
     {
       GenerateDynArrayDestroy(scope, dyntype, vs->ll_value);
+    }
+    auto * strtype = dynamic_cast<OTypeDynString *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
+    if (strtype && vs->ll_value)
+    {
+      GenerateStringDestroy(scope, vs->ll_value);
     }
   }
 }
@@ -170,8 +176,18 @@ void OStmtReturn::Generate(OScope * scope)
     {
       throw logic_error("OStmtReturn::Generate(): return value provided for void function");
     }
-    ll_value = value->Generate(scope);
-    ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
+    if (TK_DYNSTR == vsfunc->vsresult->ptype->ResolveAlias()->kind)
+    {
+      if (!GenerateStringAssignExpr(scope, vsfunc->vsresult->ll_value, value))
+      {
+        throw logic_error("Unsupported string return value");
+      }
+    }
+    else
+    {
+      ll_value = value->Generate(scope);
+      ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
+    }
   }
 
   EmitOwnedObjectDestructorsForReturn(scope, vsfunc);
@@ -219,6 +235,32 @@ void OStmtVarDecl::Generate(OScope * scope)
     }
     variable->initialized = true;
     return;
+  }
+
+  if (auto * strtype = dynamic_cast<OTypeDynString *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
+  {
+    (void)strtype;
+    GenerateStringCreate(scope, variable->ll_value);
+    if (initvalue)
+    {
+      if (!GenerateStringAssignExpr(scope, variable->ll_value, initvalue))
+      {
+        throw logic_error(std::format("Unsupported string initializer for \"{}\"", variable->name));
+      }
+    }
+    variable->initialized = true;
+    return;
+  }
+
+  if (TK_STRVIEW == variable->ptype->ResolveAlias()->kind)
+  {
+    if (!initvalue)
+    {
+      LlConst * ll_zero = llvm::ConstantAggregateZero::get(variable->ptype->GetLlType());
+      ll_builder.CreateStore(ll_zero, variable->ll_value);
+      variable->initialized = true;
+      return;
+    }
   }
 
   auto * objvar = dynamic_cast<OVsObject *>(variable);
@@ -417,6 +459,26 @@ void OStmtConstructDynArray::Generate(OScope * scope)
 
 void OStmtAssign::Generate(OScope * scope)
 {
+  if (auto * idx = dynamic_cast<OLValueIndex *>(target))
+  {
+    OType * ctype = idx->containertype ? idx->containertype->ResolveAlias() : nullptr;
+    if (ctype && TK_DYNSTR == ctype->kind)
+    {
+      GenerateStringSetChar(scope, idx->base, idx->indexexpr, value);
+      return;
+    }
+  }
+
+  if (TK_DYNSTR == target->ResolvedType()->kind)
+  {
+    LlValue * ll_addr = target->GenerateAddress(scope);
+    if (!GenerateStringAssignExpr(scope, ll_addr, value))
+    {
+      throw logic_error("Unsupported string assignment");
+    }
+    return;
+  }
+
   if (auto * dyntype = dynamic_cast<OTypeDynArray *>(target->ResolvedType()))
   {
     LlValue * ll_addr = target->GenerateAddress(scope);

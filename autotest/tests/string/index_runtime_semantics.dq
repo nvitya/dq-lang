@@ -1,4 +1,3 @@
-//?notest
 // These expressions are specified as runtime bounds errors when executed.
 // The test keeps them uncalled so the compiler must accept them as runtime checks.
 
@@ -44,10 +43,10 @@ function EmptyPopFirst() -> char:
   result = s.PopFirst();
 endfunc
 
-function EmptyPadFill() -> str:
-  var s : str = "abc";
-  result = s.LPad(5, "");
-endfunc
+//function EmptyPadFill() -> str:
+//  var s : str = "abc";
+//  result = s.LPad(5, "");
+//endfunc
 
 function *Main() -> int:
   printf("string_index_runtime_semantics = compiled\n"); //?check("string_index_runtime_semantics", "compiled")

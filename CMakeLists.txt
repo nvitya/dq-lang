@@ -20,7 +20,12 @@ endif()
 add_subdirectory(compiler build/compiler)
 add_subdirectory(autotest/atrunner build/autotest/atrunner)
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/" DESTINATION lib/dq/stdpkg)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
+  DESTINATION lib/dq/stdpkg
+  FILES_MATCHING
+    PATTERN "*.dq"
+    PATTERN ".dqbuild" EXCLUDE
+)
 
 add_custom_target(autotest
   COMMAND "$<TARGET_FILE:dqatrun>" -c build/dq-comp -r autotest/tests

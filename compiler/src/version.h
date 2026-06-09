@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.14.3"
+#define DQ_COMPILER_VERSION  "0.14.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.14.4:
+  - Compiler fix for returning small integers
 v0.14.3:
   - ETypeKind split to future expansions
 v0.14.2:

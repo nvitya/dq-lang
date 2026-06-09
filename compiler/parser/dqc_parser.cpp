@@ -3623,6 +3623,11 @@ void ODqCompParser::ParseStmtReturn()
   }
   if (expr)
   {
+    if (!CheckAssignType(curvsfunc->vsresult->ptype, &expr, "Return"))
+    {
+      OExpr::DeleteTree(expr);
+      return;
+    }
     curblock->scope->SetVarInitialized(curvsfunc->vsresult);
     curblock->AddStatement(new OStmtReturn(scpos_statement_start, expr, curvsfunc));
   }

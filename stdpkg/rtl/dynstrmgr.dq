@@ -69,7 +69,7 @@ function DynStrRuntimeError(emsg : ^cchar):
   RuntimeError(emsg);
 endfunc
 
-function TextInfoChWidth(ati : refin SDqTextInfo) -> uint:
+function TextInfoChWidth(ati : refin SDqTextInfo) -> uint8:
   if ati.info AND DQTIF_CHARWIDTH_4 <> 0:
     return 4;
   elif ati.info AND DQTIF_CHARWIDTH_2 <> 0:
@@ -90,7 +90,7 @@ function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
   ati.info = ati.info OR DQTIF_CHARLEN_VALID;
 endfunc
 
-function DynStrNormalizeChWidth(achwidth : uint8) -> uint:
+function DynStrNormalizeChWidth(achwidth : uint8) -> uint8:
   if achwidth == 2 or achwidth == 4:
     return achwidth;
   endif
@@ -368,8 +368,8 @@ function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
     return;
   endif
 
-  var src_chwidth : uint = @.TextInfoChWidth(asrc);
-  if src_chwidth <> uint(chwidth):
+  var src_chwidth : uint8 = @.TextInfoChWidth(asrc);
+  if src_chwidth <> chwidth:
     // TODO: convert between 1/2/4-byte string storage widths.
     @.DynStrRuntimeError('DynStr character width conversion is not implemented');
     return;
@@ -406,8 +406,8 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
     return;
   endif
 
-  var src_chwidth : uint = @.TextInfoChWidth(asrc);
-  if src_chwidth <> uint(chwidth):
+  var src_chwidth : uint8 = @.TextInfoChWidth(asrc);
+  if src_chwidth <> chwidth:
     // TODO: convert between 1/2/4-byte string storage widths.
     @.DynStrRuntimeError('DynStr character width conversion is not implemented');
     return;
@@ -569,7 +569,7 @@ function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo):
   endif
 
   var newstr : ODynStrMgr = null;
-  DynStrCreate(newstr, uint8(TextInfoChWidth(ati)));
+  DynStrCreate(newstr, TextInfoChWidth(ati));
   newstr.SetCapacity(srclen);
   if newstr.capacity < srclen:  // on storage allocation error
     delete newstr = null;
@@ -603,7 +603,7 @@ function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : u
   if astr == null:
     DynStrCreate(astr, achwidth);
   endif
-  if @.DynStrNormalizeChWidth(achwidth) <> uint(astr.chwidth):
+  if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
     // TODO: widen or narrow existing storage when multi-width storage is implemented.
     DynStrRuntimeError('DynStr character width conversion is not implemented');
     return;
@@ -622,7 +622,7 @@ function DynStrSetCapacity(astr : ref ODynStrMgr, achwidth : uint8, new_capacity
     if astr == null:
       DynStrCreate(astr, achwidth);
     endif
-    if @.DynStrNormalizeChWidth(achwidth) <> uint(astr.chwidth):
+    if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
       // TODO: widen or narrow existing storage when multi-width storage is implemented.
       DynStrRuntimeError('DynStr character width conversion is not implemented');
       return;
@@ -646,7 +646,7 @@ function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : u
     if astr == null:
       DynStrCreate(astr, achwidth);
     endif
-    if @.DynStrNormalizeChWidth(achwidth) <> uint(astr.chwidth):
+    if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
       // TODO: widen existing storage and fill new characters at that width.
       DynStrRuntimeError('DynStr character width conversion is not implemented');
       return;
@@ -684,7 +684,7 @@ function DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : in
     return;
   endif
   if astr == null:
-    DynStrCreate(astr, uint8(TextInfoChWidth(asrc)));
+    DynStrCreate(astr, TextInfoChWidth(asrc));
   endif
   if not @.DynStrEnsureUnique(astr):
     return;
@@ -698,7 +698,7 @@ function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo
     return;
   endif
   if astr == null:
-    DynStrCreate(astr, uint8(TextInfoChWidth(asrc)));
+    DynStrCreate(astr, TextInfoChWidth(asrc));
   endif
   if not @.DynStrEnsureUnique(astr):
     return;

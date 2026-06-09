@@ -1,0 +1,184 @@
+// RTL Helpers for the DQ dynamic string handling
+
+object ODynStrMgr:
+public
+  refcount : int;
+  dataptr  : pointer;
+  length   : uint32;        // length in characters
+  capacity : uint32;
+
+  chwidth  : uint8;
+
+  function *Create(achwidth : uint8);
+  function *Destroy();
+
+  function Reserve(min_capacity : uint32);
+  function SetCapacity(new_capacity : uint32);  // truncates the length if necessary
+  function SetLength(new_length : uint32);
+  function Compact();  // sets the capacity to the actual length
+  function Clear(free_storage : bool = false);
+
+  function Append(asrc : ref SDqTextInfo, acount : int32);
+  function Insert(index : int, asrc : ref SDqTextInfo, acount : int32);
+  function Prepend(asrc : ref SDqTextInfo, acount : int32);
+  function Delete(index : int, acount : int32 = 1);
+  function Pop(acount : int32, adst : ref SDqTextInfo);
+  function PopFirst(acount : int32, adst : ref SDqTextInfo);
+
+  // later
+  // function IndexOf(asrc : refin SDqTextInfo) -> int;
+endobj
+
+function DynStrCreate(astr : ref ODynStrMgr);
+function DynStrIncRef(astr : ref ODynStrMgr);
+function DynStrDecRef(astr : ref ODynStrMgr);
+function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr);
+function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo);
+
+//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> pointer;
+function DynStrGetLength(astr : ref ODynStrMgr) -> uint32;
+function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32;
+
+function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : uint32);
+function DynStrSetCapacity(astr : ref ODynStrMgr, achwidth : uint8, new_capacity : uint32);
+function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : uint32);
+function DynStrCompact(astr : ref ODynStrMgr);
+function DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false);
+
+function DynStrAppend(astr : ref ODynStrMgr, ati : ref SDqTextInfo, asrc : pointer, acount : int32);
+function DynStrInsert(astr : ref ODynStrMgr, ati : ref SDqTextInfo, index : int, asrc : pointer, acount : int32);
+function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1);
+
+function DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo);
+function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int);
+
+// clone, create new str
+
+function DynStrClone(astr : ref ODynStrMgr, adst : refout ODynStrMgr);
+function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo);
+function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : refout ODynStrMgr);
+function DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo);
+function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : refout ODynStrMgr);
+function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo);
+
+implementation
+
+use cstrings;
+
+function DynStrRuntimeError(emsg : ^cchar):
+  RuntimeError(emsg);
+endfunc
+
+function TextInfoChWidth(ati : refin SDqTextInfo) -> uint8:
+  if ati.info AND DQTIF_CHARWIDTH_4 <> 0:
+    return 4;
+  elif ati.info AND DQTIF_CHARWIDTH_2 <> 0:
+    return 2;
+  else:
+    return 1;
+  endif
+endfunc
+
+function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
+  if ati.info AND DQTIF_CHARLEN_VALID <> uint32(0):
+    return ati.charlen;
+  endif
+
+  // only possible for CStrings
+  result = CStrScanLen(ati);
+  ati.charlen = result;
+  ati.info =AND= NOT DQTIF_CHARLEN_VALID;
+endfunc
+
+
+//----------------------------------------------------------------------------------------------
+
+function ODynStrMgr.Create(achwidth : uint8):
+  refcount = 0;
+  length = 0;
+  capacity = 0;
+  dataptr = null;
+  chwidth = achwidth;
+endfunc
+
+function ODynStrMgr.Destroy():
+  if dataptr <> null:
+    @sys.MemFree(dataptr);
+    dataptr = null;
+  endif
+  length = 0;
+  capacity = 0;
+endfunc
+
+//----------------------------------------------------------------------------------------------
+
+// DQ RTL DynStr Handler Functions
+
+function DynStrCreate(astr : ref ODynStrMgr, achwidth : uint8):
+  astr = new ODynStrMgr(achwidth);
+  astr.refcount = 1;
+endfunc
+
+function DynStrIncRef(astr : ref ODynStrMgr):
+  if astr == null:
+    return;
+  endif
+
+  // TODO: add thread safety
+  astr.refcount += 1;
+endfunc
+
+function DynStrDecRef(astr : ref ODynStrMgr):
+  if astr == null:
+    return;
+  endif
+
+  // TODO: add thread safety
+  astr.refcount -= 1;
+  if astr.refcount <= 0:
+    delete astr = null;
+  endif
+endfunc
+
+function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr):
+  if asrc <> null:
+    DynArrIncRef(asrc);
+  endif
+  DynArrDecRef(astr);
+  astr = asrc;
+endfunc
+
+function DynStrAssignData(astr : ref ODynStrMgr, ati : refin SDqTextInfo):
+  if ati.charlen < 1:
+    DynStrDecRef(astr);
+    astr = null;
+    return;
+  endif
+
+  var newstr : ODynStrMgr = null;
+  DynStrCreate(newstr, TextInfoChWidth(ati));
+  newstr.SetCapacity(ati.charlen);
+  if newstr.capacity < ati.charlen:  // on storage allocation error
+    delete newstr = null;
+    return;
+  endif
+  newstr.Append(ati, ati.charlen);
+
+  DynStrDecRef(astr);
+  astr = newstr;
+endfunc
+
+//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> pointer;
+function DynStrGetLength(astr : ref ODynStrMgr) -> uint32:
+  if astr == null:
+    return 0;
+  endif
+  return astr.length;
+endfunc
+
+function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32:
+  if astr == null:
+    return 0;
+  endif
+  return astr.capacity;
+endfunc

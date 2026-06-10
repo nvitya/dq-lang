@@ -52,11 +52,6 @@ struct SArraySliceDesc:
   length  : uint;
 endstruct
 
-struct SDqAnyVal:
-  typeinfo : ^SDqTypeInfo;
-  data     : [2]uint64;  // fits the SDqTextInfo
-endstruct
-
 const DQTI_MAXCHLEN_MASK   : uint32 = 0x00FFFFFF;
 const DQTIF_CHARWIDTH_4    : uint32 = 0x80000000;
 const DQTIF_CHARWIDTH_2    : uint32 = 0x40000000;
@@ -86,7 +81,7 @@ function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, start
 
 implementation
 
-function libc_exit(status : int) [[external('exit')]];
+function libc_exit(status : int)  [[external('exit')]];
 
 function Exit(status : int):
   libc_exit(status);
@@ -98,9 +93,10 @@ function libc_malloc(size : uint) -> pointer                  [[external('malloc
 function libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]];
 function libc_free(ptr : pointer)                             [[external('free')]];
 function libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]];
-function libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer [[external('memcpy')]];
-function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer [[external('memmove')]];
-function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]];
+
+function libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]];
+function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]];
+function libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]];
 
 function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
   if zeromem:

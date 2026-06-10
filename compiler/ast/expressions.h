@@ -19,6 +19,7 @@
 #include "ll_defs.h"
 #include "otype_cstring.h"
 #include "otype_string.h"
+#include "otype_anyvalue.h"
 
 using namespace std;
 
@@ -568,6 +569,34 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
+};
+
+// --- anyvalue expressions ---
+
+class OAnyValueBoxExpr : public OExpr
+{
+public:
+  OExpr * source;
+
+  /* ctor */ OAnyValueBoxExpr(OExpr * asource, OType * atype);
+  ~OAnyValueBoxExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OAnyValueMethodCallExpr : public OExpr
+{
+public:
+  OLValueExpr *      receiver;
+  EAnyValueMethod    method;
+  vector<OExpr *>    args;
+
+  /* ctor */ OAnyValueMethodCallExpr(OLValueExpr * areceiver, EAnyValueMethod amethod, OType * arettype = nullptr);
+  ~OAnyValueMethodCallExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
 };
 
 // Parser recovery placeholder for erroneous call-like member expressions.

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.15.2"
+#define DQ_COMPILER_VERSION  "0.16.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.0:
+  - Implemented compiler anyvalue handling
 v0.15.2:
   - Proper expression support at array size declarations (like _pad : [@def.PTRSIZE - 1]byte;)
   - Pointer difference calculation fixes

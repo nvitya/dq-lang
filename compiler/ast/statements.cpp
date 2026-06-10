@@ -17,6 +17,7 @@
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_string.h"
+#include "otype_anyvalue.h"
 #include "otype_func.h"
 #include "otype_object.h"
 #include "comp_options.h"
@@ -49,6 +50,11 @@ static void EmitOwnedObjectDestructors(OScope * scope)
     if (strtype && vs->ll_value)
     {
       GenerateStringDestroy(scope, vs->ll_value);
+    }
+    auto * anytype = dynamic_cast<OTypeAnyValue *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
+    if (anytype && vs->ll_value)
+    {
+      GenerateAnyValueDestroy(scope, vs->ll_value);
     }
   }
 }
@@ -183,6 +189,13 @@ void OStmtReturn::Generate(OScope * scope)
         throw logic_error("Unsupported string return value");
       }
     }
+    else if (TK_ANYVAL == vsfunc->vsresult->ptype->ResolveAlias()->kind)
+    {
+      if (!GenerateAnyValueAssignExpr(scope, vsfunc->vsresult->ll_value, value))
+      {
+        throw logic_error("Unsupported anyvalue return value");
+      }
+    }
     else
     {
       ll_value = value->Generate(scope);
@@ -246,6 +259,21 @@ void OStmtVarDecl::Generate(OScope * scope)
       if (!GenerateStringAssignExpr(scope, variable->ll_value, initvalue))
       {
         throw logic_error(std::format("Unsupported string initializer for \"{}\"", variable->name));
+      }
+    }
+    variable->initialized = true;
+    return;
+  }
+
+  if (auto * anytype = dynamic_cast<OTypeAnyValue *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
+  {
+    (void)anytype;
+    GenerateAnyValueCreate(scope, variable->ll_value);
+    if (initvalue)
+    {
+      if (!GenerateAnyValueAssignExpr(scope, variable->ll_value, initvalue))
+      {
+        throw logic_error(std::format("Unsupported anyvalue initializer for \"{}\"", variable->name));
       }
     }
     variable->initialized = true;
@@ -485,6 +513,16 @@ void OStmtAssign::Generate(OScope * scope)
     if (!GenerateDynArrayAssignExpr(scope, dyntype, ll_addr, value))
     {
       throw logic_error("Unsupported dynamic array assignment");
+    }
+    return;
+  }
+
+  if (TK_ANYVAL == target->ResolvedType()->kind)
+  {
+    LlValue * ll_addr = target->GenerateAddress(scope);
+    if (!GenerateAnyValueAssignExpr(scope, ll_addr, value))
+    {
+      throw logic_error("Unsupported anyvalue assignment");
     }
     return;
   }

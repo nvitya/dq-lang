@@ -1,0 +1,92 @@
+// Builtin anyvalue compiler lowering tests
+
+use libc/stdio;
+
+[[external]] function putchar(c : cchar) -> int;
+
+function PrintText(label : ^cchar, text : strview):
+  printf("%s = [%li] \"", label, text.length);
+  var i : int = 0;
+  while i < text.length:
+    putchar(cchar(text[i]));
+    i += 1;
+  endwhile
+  printf("\"\n");
+endfunc
+
+function BoolInt(v : bool) -> int:
+  return iif(v, 1, 0);
+endfunc
+
+function PassInt(v : anyvalue) -> int:
+  return v.AsInt(-1);
+endfunc
+
+function PassText(v : anyvalue) -> str:
+  return v.AsStr("");
+endfunc
+
+function MakeTextValue(s : str) -> anyvalue:
+  result = s;
+endfunc
+
+function PrintArgs(label : ^cchar, args : []anyvalue):
+  printf("%s = len:%li a0:%li a1:%li a2:%li\n",
+         label,
+         args.length,
+         args[0].AsInt(-1),
+         BoolInt(args[1].AsBool(false)),
+         args[2].AsInt(-1));
+  PrintText("slice-text", args[3].AsStr("")); //?check("slice-text", '[5] "hello"')
+endfunc
+
+function *Main() -> int:
+  printf("anyvalue_builtin = start\n"); //?check("anyvalue_builtin", "start")
+
+  var av : anyvalue;
+  printf("default-null = %li\n", BoolInt(av.IsNull())); //?check("default-null", 1)
+
+  av = 123;
+  printf("assign-int = isint:%li val:%li\n", BoolInt(av.IsInt()), av.AsInt(-1)); //?check("assign-int", "isint:1 val:123")
+
+  av.SetUInt(77);
+  printf("method-uint = isuint:%li val:%li\n", BoolInt(av.IsUint()), av.AsUint(0)); //?check("method-uint", "isuint:1 val:77")
+
+  av = true;
+  printf("assign-bool = isbool:%li val:%li\n", BoolInt(av.IsBool()), BoolInt(av.AsBool(false))); //?check("assign-bool", "isbool:1 val:1")
+
+  av = 2.5;
+  printf("assign-float = isfloat:%li val:%li\n", BoolInt(av.IsFloat()), Round(av.AsFloat(0.0) * 10.0)); //?check("assign-float", "isfloat:1 val:25")
+
+  av = "literal";
+  printf("assign-literal = istext:%li isstr:%li\n", BoolInt(av.IsText()), BoolInt(av.IsStr())); //?check("assign-literal", "istext:1 isstr:0")
+  PrintText("literal-asstr", av.AsStr("")); //?check("literal-asstr", '[7] "literal"')
+
+  var s : str = "abc";
+  av = s;
+  s.Append("x");
+  PrintText("owned-before-source-mutate", av.AsStr("")); //?check("owned-before-source-mutate", '[3] "abc"')
+  PrintText("source-after-mutate", s); //?check("source-after-mutate", '[4] "abcx"')
+
+  var copy : anyvalue = av;
+  copy.SetStr("copy");
+  printf("copy-mutated-kind = isstr:%li\n", BoolInt(copy.IsStr())); //?check("copy-mutated-kind", "isstr:1")
+  PrintText("copy-mutated", copy.AsStr("")); //?check("copy-mutated", '[4] "copy"')
+  PrintText("source-after-copy-mutated", av.AsStr("")); //?check("source-after-copy-mutated", '[3] "abc"')
+
+  printf("pass-int = %li\n", PassInt(456)); //?check("pass-int", 456)
+  PrintText("pass-text", PassText("call")); //?check("pass-text", '[4] "call"')
+  var returned : anyvalue = MakeTextValue("ret");
+  PrintText("return-anyvalue", returned.AsStr("")); //?check("return-anyvalue", '[3] "ret"')
+
+  PrintArgs("slice-anyvalues", [10, true, 30, "hello"]); //?check("slice-anyvalues", "len:4 a0:10 a1:1 a2:30")
+
+  var arr : [2]anyvalue = [1, "two"];
+  var arrtext : str = arr[1].AsStr("");
+  printf("fixed-array = a0:%li text:%li\n", arr[0].AsInt(-1), arrtext.length); //?check("fixed-array", "a0:1 text:3")
+
+  av.SetNull();
+  printf("method-null = %li\n", BoolInt(av.IsNull())); //?check("method-null", 1)
+
+  return 0;
+endfunc

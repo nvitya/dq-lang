@@ -2219,6 +2219,65 @@ void OArrayLit::DeleteChildTree()
   elements.clear();
 }
 
+// --- anyvalue expressions ---
+
+/* ctor */ OAnyValueBoxExpr::OAnyValueBoxExpr(OExpr * asource, OType * atype)
+{
+  source = asource;
+  ptype = atype;
+}
+
+LlValue * OAnyValueBoxExpr::Generate(OScope * scope)
+{
+  return GenerateAnyValueBoxExpr(scope, ptype, source);
+}
+
+void OAnyValueBoxExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source);
+}
+
+void OAnyValueBoxExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source);
+  source = nullptr;
+}
+
+/* ctor */ OAnyValueMethodCallExpr::OAnyValueMethodCallExpr(OLValueExpr * areceiver, EAnyValueMethod amethod, OType * arettype)
+{
+  receiver = areceiver;
+  method = amethod;
+  ptype = arettype;
+}
+
+LlValue * OAnyValueMethodCallExpr::Generate(OScope * scope)
+{
+  return GenerateAnyValueMethodCall(scope, receiver, method, args);
+}
+
+void OAnyValueMethodCallExpr::FoldChildren()
+{
+  OExpr * tmp = receiver;
+  OExpr::FoldTree(&tmp);
+  receiver = static_cast<OLValueExpr *>(tmp);
+  for (OExpr *& arg : args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void OAnyValueMethodCallExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  for (OExpr *& arg : args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  args.clear();
+}
+
 /* ctor */ OInvalidCallExpr::OInvalidCallExpr()
 {
   ptype = nullptr;

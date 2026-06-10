@@ -1177,6 +1177,10 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
+    if (pvalsym->ptype && (TK_ANYVAL == pvalsym->ptype->ResolveAlias()->kind))
+    {
+      pvalsym->initialized = true;
+    }
     if (zero_init)  pvalsym->initialized = true;
     if (pvalsym->ptype && (TK_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
     {
@@ -3012,6 +3016,7 @@ void ODqCompParser::ReadStatementBlock(OStmtBlock * stblock, const string blocke
                      || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OStringMethodCallExpr *>(leftexpr) != nullptr)
+                     || (dynamic_cast<OAnyValueMethodCallExpr *>(leftexpr) != nullptr)
                      || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
@@ -3278,6 +3283,14 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
   if (TK_DYNSTR == ptype->kind || TK_STRVIEW == ptype->kind)
   {
     if (!EnsureDynStringRtlUse())
+    {
+      return nullptr;
+    }
+  }
+
+  if (TK_ANYVAL == ptype->kind)
+  {
+    if (!EnsureAnyValueRtlUse())
     {
       return nullptr;
     }
@@ -5226,6 +5239,115 @@ OExpr * ODqCompParser::ParseStringMethod(OExpr * receiver_expr, OLValueExpr * re
   return callexpr;
 }
 
+OExpr * ODqCompParser::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
+{
+  vector<TRawCallArg> rawargs;
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_FUNC_CALL_PARENTH, membername);
+    return receiver_expr;
+  }
+  if (!ParseRawCallArguments(membername, rawargs))
+  {
+    return nullptr;
+  }
+
+  auto free_and_fail = [&]() -> OExpr *
+  {
+    FreeRawCallArguments(rawargs);
+    delete receiver_expr;
+    return nullptr;
+  };
+
+  auto check_count = [&](size_t mincnt, size_t maxcnt) -> bool
+  {
+    if (rawargs.size() < mincnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), membername, to_string(mincnt));
+      return false;
+    }
+    if (rawargs.size() > maxcnt)
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, membername, to_string(maxcnt));
+      return false;
+    }
+    return true;
+  };
+
+  EAnyValueMethod method = AVM_IS_NULL;
+  vector<OType *> argtypes;
+  size_t text_arg_index = rawargs.size();
+  OType * rettype = nullptr;
+
+  if ("IsNull" == membername)          { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_NULL; rettype = g_builtins->type_bool; }
+  else if ("SetNull" == membername)    { if (!check_count(0, 0)) return free_and_fail(); method = AVM_SET_NULL; }
+  else if ("IsNumber" == membername)   { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_NUMBER; rettype = g_builtins->type_bool; }
+  else if ("IsInt" == membername)      { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_INT; rettype = g_builtins->type_bool; }
+  else if ("IsSInt" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_SINT; rettype = g_builtins->type_bool; }
+  else if ("IsUint" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_UINT; rettype = g_builtins->type_bool; }
+  else if ("AsInt" == membername)      { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_INT; argtypes = {g_builtins->type_int}; rettype = g_builtins->type_int; }
+  else if ("AsUint" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_UINT; argtypes = {g_builtins->type_uint}; rettype = g_builtins->type_uint; }
+  else if ("SetInt" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_INT; argtypes = {g_builtins->type_int}; }
+  else if ("SetUInt" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_UINT; argtypes = {g_builtins->type_uint}; }
+  else if ("IsBool" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_BOOL; rettype = g_builtins->type_bool; }
+  else if ("AsBool" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_BOOL; argtypes = {g_builtins->type_bool}; rettype = g_builtins->type_bool; }
+  else if ("SetBool" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_BOOL; argtypes = {g_builtins->type_bool}; }
+  else if ("IsPointer" == membername)  { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_POINTER; rettype = g_builtins->type_bool; }
+  else if ("AsPointer" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_POINTER; argtypes = {g_builtins->type_pointer}; rettype = g_builtins->type_pointer; }
+  else if ("SetPointer" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_POINTER; argtypes = {g_builtins->type_pointer}; }
+  else if ("IsFloat" == membername)    { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_FLOAT; rettype = g_builtins->type_bool; }
+  else if ("IsFloat32" == membername)  { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_FLOAT32; rettype = g_builtins->type_bool; }
+  else if ("IsFloat64" == membername)  { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_FLOAT64; rettype = g_builtins->type_bool; }
+  else if ("AsFloat" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_FLOAT; argtypes = {g_builtins->type_float}; rettype = g_builtins->type_float; }
+  else if ("AsFloat32" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_FLOAT32; argtypes = {g_builtins->type_float32}; rettype = g_builtins->type_float32; }
+  else if ("AsFloat64" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_FLOAT64; argtypes = {g_builtins->type_float64}; rettype = g_builtins->type_float64; }
+  else if ("SetFloat" == membername)   { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_FLOAT; argtypes = {g_builtins->type_float}; }
+  else if ("SetFloat32" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_FLOAT32; argtypes = {g_builtins->type_float32}; }
+  else if ("SetFloat64" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_FLOAT64; argtypes = {g_builtins->type_float64}; }
+  else if ("IsText" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_TEXT; rettype = g_builtins->type_bool; }
+  else if ("SetText" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_TEXT; text_arg_index = 0; }
+  else if ("SetCString" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_CSTRING; text_arg_index = 0; }
+  else if ("IsStr" == membername)      { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_STR; rettype = g_builtins->type_bool; }
+  else if ("AsStr" == membername)      { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_STR; text_arg_index = 0; rettype = g_builtins->type_str; }
+  else if ("SetStr" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_STR; text_arg_index = 0; }
+  else
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    return free_and_fail();
+  }
+
+  if (!EnsureAnyValueRtlUse())
+  {
+    return free_and_fail();
+  }
+
+  auto * callexpr = new OAnyValueMethodCallExpr(receiver, method, rettype);
+  for (size_t i = 0; i < rawargs.size(); ++i)
+  {
+    OExpr * argexpr = rawargs[i].expr;
+    rawargs[i].expr = nullptr;
+    if (i < argtypes.size())
+    {
+      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+      {
+        OExpr::DeleteTree(argexpr);
+        delete callexpr;
+        return free_and_fail();
+      }
+    }
+    if ((i == text_arg_index) && !IsTextSourceType(argexpr->ResolvedType()))
+    {
+      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, cchar, str, strview, cstring, or ^cchar");
+      OExpr::DeleteTree(argexpr);
+      delete callexpr;
+      return free_and_fail();
+    }
+    callexpr->args.push_back(argexpr);
+  }
+  FreeRawCallArguments(rawargs);
+  return callexpr;
+}
+
 OExpr * ODqCompParser::ParsePostfix(OExpr * base)
 {
   OExpr * result = base;
@@ -5338,6 +5460,13 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
             result = new OInvalidCallExpr();
           }
           return result;
+        }
+
+        if (TK_ANYVAL == tk)
+        {
+          result = ParseAnyValueMethod(result, lval, membername);
+          if (!result) return nullptr;
+          continue;
         }
 
         OLValueExpr * memberbase = nullptr;

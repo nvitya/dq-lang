@@ -23,6 +23,7 @@
 #include "otype_func.h"
 #include "otype_cstring.h"
 #include "otype_string.h"
+#include "otype_anyvalue.h"
 
 class OScopeBuiltins : public OScope
 {
@@ -58,6 +59,7 @@ public:
   OTypeCString *  type_cstring;
   OTypeDynString * type_str;
   OTypeStrView *   type_strview;
+  OTypeAnyValue *  type_anyvalue;
 
   OScopeBuiltins()
   :

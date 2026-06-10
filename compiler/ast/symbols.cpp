@@ -23,6 +23,7 @@
 #include "dqm_if.h"
 #include "expressions.h"
 #include "otype_array.h"
+#include "otype_anyvalue.h"
 #include "otype_cstring.h"
 #include "otype_func.h"
 #include "otype_int.h"
@@ -64,6 +65,13 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   }
   else if (avalsym->ptype
            && (TK_DYNSTR == avalsym->ptype->ResolveAlias()->kind)
+           && !avalsym->IsRefLike()
+           && ("result" != avalsym->name))
+  {
+    owned_objects.push_back(avalsym);
+  }
+  else if (avalsym->ptype
+           && (TK_ANYVAL == avalsym->ptype->ResolveAlias()->kind)
            && !avalsym->IsRefLike()
            && ("result" != avalsym->name))
   {
@@ -893,6 +901,11 @@ bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
   }
 
   OType * storage_type = GetStorageType()->ResolveAlias();
+  if (TK_ANYVAL == storage_type->kind)
+  {
+    return GenerateAnyValueAssignExpr(scope, ll_field_addr, field_init_expr);
+  }
+
   if (auto * cstrtype = dynamic_cast<OTypeCString *>(storage_type))
   {
     return cstrtype->GenerateStore(scope, ll_field_addr, field_init_expr);

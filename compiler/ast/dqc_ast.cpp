@@ -22,6 +22,7 @@
 #include "otype_int.h"
 #include "otype_object.h"
 #include "otype_string.h"
+#include "otype_anyvalue.h"
 
 bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
@@ -579,6 +580,24 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
   if (tkd != tks)
   {
+    if (TK_ANYVAL == tkd)
+    {
+      if (!IsAnyValueSourceType(resolved_src))
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
+        }
+        return false;
+      }
+      if (!EnsureAnyValueRtlUse())
+      {
+        return false;
+      }
+      *rexpr = new OAnyValueBoxExpr(src, dsttype);
+      return true;
+    }
+
     if (TK_OBJECT == tkd && TK_POINTER == tks)
     {
       OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
@@ -755,6 +774,24 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
       OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVAL == slicedst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      {
+        auto * arrlit = static_cast<OArrayLit *>(src);
+        if (!EnsureAnyValueRtlUse())
+        {
+          return false;
+        }
+        for (OExpr *& elem : arrlit->elements)
+        {
+          if (!ConvertExprToType(slicedst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+          {
+            return false;
+          }
+        }
+        arrlit->ptype = slicedst->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        *rexpr = new OArrayLitToSliceExpr(arrlit, dsttype);
+        return true;
+      }
       if (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
       {
         if (aflags & EXPCF_GENERATE_ERRORS)
@@ -844,6 +881,23 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       if (TK_ARRAY == tks)
       {
         auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
+        if ((TK_ANYVAL == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+        {
+          auto * arrlit = static_cast<OArrayLit *>(src);
+          if (!EnsureAnyValueRtlUse())
+          {
+            return false;
+          }
+          for (OExpr *& elem : arrlit->elements)
+          {
+            if (!ConvertExprToType(dyndst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+            {
+              return false;
+            }
+          }
+          arrlit->ptype = dyndst->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+          return true;
+        }
         ok = (arrsrc->arraylength == 0)
              || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
       }
@@ -1099,6 +1153,31 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
     OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
     OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+    if ((TK_ANYVAL == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+    {
+      auto * arrlit = static_cast<OArrayLit *>(src);
+      if (arrdst->arraylength != arrlit->elements.size())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS)
+        {
+          Error(DQERR_ARR_SIZE_MISM, to_string(arrdst->arraylength), to_string(arrlit->elements.size()));
+        }
+        return false;
+      }
+      if (!EnsureAnyValueRtlUse())
+      {
+        return false;
+      }
+      for (OExpr *& elem : arrlit->elements)
+      {
+        if (!ConvertExprToType(arrdst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+        {
+          return false;
+        }
+      }
+      arrlit->ptype = dsttype;
+      return true;
+    }
     if (arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
     {
       if (aflags & EXPCF_GENERATE_ERRORS)
@@ -1188,6 +1267,11 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
   if (tkd != tks)
   {
+    if (TK_ANYVAL == tkd)
+    {
+      return IsAnyValueSourceType(resolved_src) ? 1 : -1;
+    }
+
     if (TK_OBJECT == tkd && TK_POINTER == tks)
     {
       OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
@@ -1263,6 +1347,12 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     {
       OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVAL == slicedst->elemtype->ResolveAlias()->kind)
+          && (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
+          && dynamic_cast<OArrayLit *>(expr))
+      {
+        return 1;
+      }
       if (is_explicit_cast || (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()))
       {
         return -1;
@@ -1300,6 +1390,10 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       if (TK_ARRAY == tks)
       {
         auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
+        if ((TK_ANYVAL == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+        {
+          return 1;
+        }
         return ((arrsrc->arraylength == 0)
                 || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias())) ? 1 : -1;
       }
@@ -1401,6 +1495,10 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
     OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
     OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+    if ((TK_ANYVAL == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+    {
+      return (arrdst->arraylength == arrsrc->arraylength) ? 1 : -1;
+    }
     if ((arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
         || (arrdst->arraylength != arrsrc->arraylength))
     {

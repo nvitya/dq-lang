@@ -19,6 +19,7 @@
 #include "ll_defs.h"
 #include "otype_object.h"
 #include "otype_string.h"
+#include "otype_anyvalue.h"
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -799,6 +800,10 @@ void OValSymFunc::GenerateFuncBody()
     result_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(vsresult->ptype)));
     vsresult->ll_value = result_alloca;
     ll_builder.CreateStore(llvm::Constant::getNullValue(ll_rettype), vsresult->ll_value);
+    if (vsresult->ptype && TK_ANYVAL == vsresult->ptype->ResolveAlias()->kind)
+    {
+      GenerateAnyValueCreate(body->scope, vsresult->ll_value);
+    }
     if (g_opt.dbg_info)
     {
       llvm::DILocalVariable * di_var = di_builder->createAutoVariable(
@@ -820,7 +825,17 @@ void OValSymFunc::GenerateFuncBody()
     auto * arg_alloca = ll_builder.CreateAlloca(ll_arg_type->GetLlType(), nullptr, fpar->name);
     arg_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(ll_arg_type)));
     vsarg->ll_value = arg_alloca;
-    ll_builder.CreateStore(&arg, vsarg->ll_value);
+    if (!fpar->IsRefLike() && fpar->ptype && TK_ANYVAL == fpar->ptype->ResolveAlias()->kind)
+    {
+      LlValue * raw_arg_alloca = ll_builder.CreateAlloca(ll_arg_type->GetLlType(), nullptr, fpar->name + ".raw");
+      ll_builder.CreateStore(&arg, raw_arg_alloca);
+      GenerateAnyValueCreate(body->scope, vsarg->ll_value);
+      GenerateAnyValueCopy(body->scope, vsarg->ll_value, raw_arg_alloca);
+    }
+    else
+    {
+      ll_builder.CreateStore(&arg, vsarg->ll_value);
+    }
     if (!fpar->IsRefLike() && fpar->ptype && TK_DYNSTR == fpar->ptype->ResolveAlias()->kind)
     {
       GenerateStringIncRef(body->scope, vsarg->ll_value);

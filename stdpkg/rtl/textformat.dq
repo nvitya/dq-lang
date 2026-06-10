@@ -127,6 +127,7 @@ use libc/stdio;
 var libc_stdout : pointer [[external('stdout')]];
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]];
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]];
+function libc_snprintf(dst : ^cchar, size : uint, fmt : ^cchar, ...) -> int [[external("snprintf")]];
 
 // -----------------------------------------------------------------------------
 // Low-level conversion hooks
@@ -142,36 +143,6 @@ endfunc
 function DqTextFmtDigitValue(ch : char) -> int:
   return int(ch) - int('0');
 endfunc
-
-// Convert a signed integer into adst. adst is cleared by the helper.
-// TODO: connect this to the final integer-to-cstring RTL helper.
-function DqTextFmtIntToCString(adst : ref cstring, avalue : int, abase : uint, awidth : int, afill : char, aupper : bool):
-  adst.Clear();
-
-  // Placeholder call name. Replace with the final RTL helper, for example:
-  //   adst.AppendInt(avalue, abase, awidth, afill, aupper);
-  //adst.AppendInt(avalue, abase, awidth, afill, aupper);
-endfunc
-
-// Convert an unsigned integer into adst. adst is cleared by the helper.
-// TODO: connect this to the final integer-to-cstring RTL helper.
-function DqTextFmtUIntToCString(adst : ref cstring, avalue : uint, abase : uint, awidth : int, afill : char, aupper : bool):
-  adst.Clear();
-
-  // Placeholder call name. Replace with the final RTL helper.
-  //adst.AppendUInt(avalue, abase, awidth, afill, aupper);
-endfunc
-
-// Convert a float into adst. adst is cleared by the helper.
-// Float formatting can be optional in small embedded builds.
-// TODO: connect this to the final float-to-cstring RTL helper or libc snprintf.
-function DqTextFmtFloatToCString(adst : ref cstring, avalue : float, aprecision : int):
-  adst.Clear();
-
-  // Placeholder call name. Replace with the final RTL helper.
-  //adst.AppendFloat(avalue, aprecision);
-endfunc
-
 
 //-------------------------------------------------------------------------------------------------
 
@@ -436,22 +407,57 @@ function OTextFormatter.FormatAny(av : anyvalue):
 endfunc
 
 function OTextFormatter.FormatSInt(v : int):
-  sink.Write('<int>');
+  lcsbuf.Clear();
+  if (fmtspec.width > 0) and (fmtspec.fill == '0'):
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*li", fmtspec.width, v);
+  elif fmtspec.width > 0:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*li", fmtspec.width, v);
+  else:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%li", v);
+  endif
+  sink.Write(lcsbuf);
 endfunc
 
 function OTextFormatter.FormatUInt(v : uint):
-  sink.Write('<uint>');
+  lcsbuf.Clear();
+  if (fmtspec.width > 0) and (fmtspec.fill == '0'):
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lu", fmtspec.width, v);
+  elif fmtspec.width > 0:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lu", fmtspec.width, v);
+  else:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lu", v);
+  endif
+  sink.Write(lcsbuf);
 endfunc
 
 function OTextFormatter.FormatHex(v : uint, aupper : bool):
+  lcsbuf.Clear();
   if aupper:
-    sink.Write('<hexu>');
+    if (fmtspec.width > 0) and (fmtspec.fill == '0'):
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lX", fmtspec.width, v);
+    elif fmtspec.width > 0:
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lX", fmtspec.width, v);
+    else:
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lX", v);
+    endif
   else:
-    sink.Write('<hexl>');
+    if (fmtspec.width > 0) and (fmtspec.fill == '0'):
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lx", fmtspec.width, v);
+    elif fmtspec.width > 0:
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lx", fmtspec.width, v);
+    else:
+      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lx", v);
+    endif
   endif
+  sink.Write(lcsbuf);
 endfunc
 
 function OTextFormatter.FormatFloat(v : float):
-  sink.Write('<float>');
+  lcsbuf.Clear();
+  if fmtspec.precision >= 0:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%.*f", fmtspec.precision, v);
+  else:
+    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%f", v);
+  endif
+  sink.Write(lcsbuf);
 endfunc
-

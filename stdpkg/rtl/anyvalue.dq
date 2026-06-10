@@ -25,7 +25,7 @@ endstruct
 
 // Special "null" value for database handling, not same as "null" pointer !
 function AnyValIsNull(v : ref SDqAnyValue) -> bool;
-function AnyValSetNull(v : ref SDqAnyValue, value : bool);
+function AnyValSetNull(v : ref SDqAnyValue);
 
 function AnyValIsNumber(v : ref SDqAnyValue) -> bool;
 
@@ -55,8 +55,10 @@ function AnyValSetFloat(v : ref SDqAnyValue, value : float);
 function AnyValSetFloat32(v : ref SDqAnyValue, value : float32);
 function AnyValSetFloat64(v : ref SDqAnyValue, value : float64);
 
-function AnyValIsStr(v : ref SDqAnyValue) -> bool;
-//function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
+function AnyValIsText(v : ref SDqAnyValue) -> bool;
+function AnyValIsStr(v : ref SDqAnyValue) -> bool;   // true only when it is a dynamic string
+function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str;
+function AnyValSetStr(v : ref SDqAnyValue, sv : strview);
 
 //function AnyValTryAsInt(v : ref SDqAnyValue, rv : refout int) -> bool;
 //function AnyValTryAsUint(v : ref SDqAnyValue, rv : refout uint) -> bool;
@@ -66,19 +68,29 @@ function AnyValIsStr(v : ref SDqAnyValue) -> bool;
 
 implementation
 
+use rtl/dynstrmgr;
+
+function AnyValSetKind(v : ref SDqAnyValue, akind : byte):
+  if v.kind == DQTK_DYNSTR:
+    //TODO: release dynamic string handler
+    var dsmgr : ODynStrMgr = ODynStrMgr(&v.data[0]);
+  endif
+  v.kind = akind;
+endfunc
+
 // DB Null Handling
 
 function AnyValIsNull(v : ref SDqAnyValue) -> bool:
-  if v.kind == DQTK_VOID  and  v.data[0] == 1:
+  if v.kind == DQTK_VOID:
     return true;
   else:
     return false;
   endif
 endfunc
 
-function AnyValSetNull(v : ref SDqAnyValue, value : bool):
-  v.kind    = DQTK_VOID;
-  v.data[0] = iif(value, 1, 0);
+function AnyValSetNull(v : ref SDqAnyValue):
+  AnyValSetKind(v, DQTK_VOID);
+  v.data[0] = 0; // not really necessary
 endfunc
 
 // Multiple
@@ -131,13 +143,13 @@ function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint:
 endfunc
 
 function AnyValSetInt(v : ref SDqAnyValue, value : int):
-  v.kind = DQTK_INT;
+  AnyValSetKind(v, DQTK_INT);
   v.subtype = DQSUBT_INT_SIGNED;
   ^int(&v.data[0])^ = value;
 endfunc
 
 function AnyValSetUInt(v : ref SDqAnyValue, value : uint):
-  v.kind = DQTK_INT;
+  AnyValSetKind(v, DQTK_INT);
   v.subtype = 0;
   ^uint(&v.data[0])^ = value;
 endfunc
@@ -157,7 +169,7 @@ function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool:
 endfunc
 
 function AnyValSetBool(v : ref SDqAnyValue, value : bool):
-  v.kind = DQTK_BOOL;
+  AnyValSetKind(v, DQTK_BOOL);
   v.data[0] = iif(value, 1, 0);
 endfunc
 
@@ -176,7 +188,7 @@ function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer:
 endfunc
 
 function AnyValSetPointer(v : ref SDqAnyValue, value : pointer):
-  v.kind = DQTK_POINTER;
+  AnyValSetKind(v, DQTK_POINTER);
   ^pointer(&v.data[0])^ = value;
 endfunc
 
@@ -237,36 +249,46 @@ function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64:
 endfunc
 
 function AnyValSetFloat(v : ref SDqAnyValue, value : float):
-  v.kind = DQTK_FLOAT;
+  AnyValSetKind(v, DQTK_FLOAT);
   v.datasize = SizeOf(float);
   ^float(&v.data[0])^ = value;
 endfunc
 
 function AnyValSetFloat32(v : ref SDqAnyValue, value : float32):
-  v.kind = DQTK_FLOAT;
+  AnyValSetKind(v, DQTK_FLOAT);
   v.datasize = SizeOf(float32);
   ^float32(&v.data[0])^ = value;
 endfunc
 
 function AnyValSetFloat64(v : ref SDqAnyValue, value : float64):
-  v.kind = DQTK_FLOAT;
+  AnyValSetKind(v, DQTK_FLOAT);
   v.datasize = SizeOf(float64);
   ^float64(&v.data[0])^ = value;
 endfunc
 
 
-// String
+// Text / String
 
-function AnyValIsStr(v : ref SDqAnyValue) -> bool:
+function AnyValIsText(v : ref SDqAnyValue) -> bool:
   return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING;
 endfunc
 
-/*
-function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
+function AnyValIsStr(v : ref SDqAnyValue) -> bool:
+  return v.kind == DQTK_DYNSTR;
+endfunc
+
+function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str:
+  result = '';
+endfunc
+
+function AnyValSetStr(v : ref SDqAnyValue, sv : strview):
+
+endfunc
+
+function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
   if v.kind == DQTK_STRVIEW:
-    rv = ^SDqTextInfo(&data[0])^;
+    rv = ^SDqTextInfo(&v.data[0])^;
   else:
-    return defval;
+    rv = defval;
   endif
 endfunc
-*/

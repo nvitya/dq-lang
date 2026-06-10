@@ -2305,6 +2305,20 @@ LlValue * OCStringLit::Generate(OScope * scope)
   return ll_builder.CreateGlobalString(value, ".str");
 }
 
+/* ctor */ OCharLitToCStringPtrExpr::OCharLitToCStringPtrExpr(uint8_t avalue)
+{
+  value = avalue;
+  ptype = g_builtins->type_cchar->GetPointerType();  // ^cchar
+}
+
+LlValue * OCharLitToCStringPtrExpr::Generate(OScope * scope)
+{
+  (void)scope;
+  string s;
+  s.push_back(char(value));
+  return ll_builder.CreateGlobalString(s, ".cstr.ch");
+}
+
 /* ctor */ OCStringSizeExpr::OCStringSizeExpr(OValSym * avs)
 {
   cstrvalsym = avs;

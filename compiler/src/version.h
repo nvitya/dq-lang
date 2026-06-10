@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.3"
+#define DQ_COMPILER_VERSION  "0.16.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.4:
+  - Single-char ^cchar conversion for printf('\n')
 v0.16.3:
   - Getting address for strview characters
 v0.16.2:

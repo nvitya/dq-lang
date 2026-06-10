@@ -125,6 +125,18 @@ static bool IsCCharPointerType(OType * type)
       && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
 }
 
+static bool IsCharLiteralExpr(OExpr * expr, uint8_t & rvalue)
+{
+  auto * lit = dynamic_cast<OIntLit *>(expr);
+  OType * lit_type = lit ? lit->ResolvedType() : nullptr;
+  if (!lit || !lit_type || (lit_type != g_builtins->type_char && lit_type != g_builtins->type_cchar))
+  {
+    return false;
+  }
+  rvalue = uint8_t(lit->value);
+  return true;
+}
+
 ODqCompAst::ODqCompAst()
 {
 }
@@ -738,6 +750,16 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       return true;
     }
 
+    if ((TK_POINTER == tkd) && (TK_INT == tks))
+    {
+      uint8_t charlit = 0;
+      if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(src, charlit))
+      {
+        *rexpr = new OCharLitToCStringPtrExpr(charlit);
+        return true;
+      }
+    }
+
     if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
     {
       if (!IsPointerWidthIntegerType(resolved_dst))
@@ -1038,13 +1060,29 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   if (TK_POINTER == tkd)
   {
     OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
-    OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+    OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
 
     if (is_explicit_cast)
     {
       *rexpr = new OExprTypeConv(dsttype, src);
       FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
+    }
+
+    uint8_t charlit = 0;
+    if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(src, charlit))
+    {
+      *rexpr = new OCharLitToCStringPtrExpr(charlit);
+      return true;
+    }
+
+    if (!ptrsrc)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        Error(DQERR_PTR_TYPEMISM, ptrdst->name, resolved_src->name);
+      }
+      return false;
     }
 
     if (!CanAssignPointerImplicitly(ptrdst, ptrsrc))
@@ -1333,6 +1371,12 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       return 1;
     }
 
+    if ((TK_POINTER == tkd) && (TK_INT == tks))
+    {
+      uint8_t charlit = 0;
+      return (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
+    }
+
     if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
     {
       return (IsPointerWidthIntegerType(resolved_dst) ? 1 : -1);
@@ -1454,10 +1498,21 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
   if (TK_POINTER == tkd)
   {
     OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
-    OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+    OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
     if (is_explicit_cast)
     {
       return 1;
+    }
+
+    uint8_t charlit = 0;
+    if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(expr, charlit))
+    {
+      return 1;
+    }
+
+    if (!ptrsrc)
+    {
+      return -1;
     }
 
     return (CanAssignPointerImplicitly(ptrdst, ptrsrc) ? 0 : -1);

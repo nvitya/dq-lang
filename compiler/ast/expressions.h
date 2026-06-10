@@ -619,6 +619,16 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+// Convert a char/cchar literal to a temporary zero-terminated C string pointer.
+class OCharLitToCStringPtrExpr : public OExpr
+{
+public:
+  uint8_t value;
+
+  /* ctor */ OCharLitToCStringPtrExpr(uint8_t avalue);
+  LlValue * Generate(OScope * scope) override;
+};
+
 // sizeof() for unsized cstring parameter: reads SDqTextInfo-compatible descriptor metadata
 class OCStringSizeExpr : public OExpr
 {

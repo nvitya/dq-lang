@@ -88,6 +88,7 @@ function *Main() -> int:
 
   var outs <- OTextSinkStdOut();
   outs.Write('hello word!\n');
+  outs.Write('\n');
   outs.WriteChar(0x55);
   outs.WriteChar(0x0A);
 
@@ -101,6 +102,8 @@ function *Main() -> int:
   sout.Write('+sout_append');
 
   Print('s:'); PrintLn(s);
+
+  printf('\n');
 
   printf('Test finished.\n');
   return 0;

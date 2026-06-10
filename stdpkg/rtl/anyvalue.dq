@@ -27,6 +27,8 @@ endstruct
 function AnyValIsNull(v : ref SDqAnyValue) -> bool;
 function AnyValSetNull(v : ref SDqAnyValue, value : bool);
 
+function AnyValIsNumber(v : ref SDqAnyValue) -> bool;
+
 function AnyValIsInt(v : ref SDqAnyValue) -> bool;
 function AnyValIsSInt(v : ref SDqAnyValue) -> bool;
 function AnyValIsUint(v : ref SDqAnyValue) -> bool;
@@ -79,6 +81,13 @@ function AnyValSetNull(v : ref SDqAnyValue, value : bool):
   v.data[0] = iif(value, 1, 0);
 endfunc
 
+// Multiple
+
+function AnyValIsNumber(v : ref SDqAnyValue) -> bool:
+  return v.kind == DQTK_INT  or  v.kind == DQTK_FLOAT;
+endfunc
+
+
 // Integer
 
 function AnyValIsInt(v : ref SDqAnyValue) -> bool:
@@ -96,6 +105,12 @@ endfunc
 function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int:
   if v.kind == DQTK_INT:
     return ^int(&v.data[0])^;
+  elif v.kind == DQTK_FLOAT:
+    if v.datasize == 8:
+      return Round(^float64(&v.data[0])^);
+    else:
+      return Round(^float32(&v.data[0])^);
+    endif
   else:
     return defval;
   endif
@@ -104,6 +119,12 @@ endfunc
 function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint:
   if v.kind == DQTK_INT:
     return ^uint(&v.data[0])^;
+  elif v.kind == DQTK_FLOAT:
+    if v.datasize == 8:
+      return Round(^float64(&v.data[0])^);
+    else:
+      return Round(^float32(&v.data[0])^);
+    endif
   else:
     return defval;
   endif
@@ -180,6 +201,8 @@ function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float:
     else:
       return ^float32(&v.data[0])^;
     endif
+  elif v.kind == DQTK_INT:
+    return ^int(&v.data[0])^;
   else:
     return defval;
   endif
@@ -192,6 +215,8 @@ function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32:
     else:
       return ^float32(&v.data[0])^;
     endif
+  elif v.kind == DQTK_INT:
+    return ^int(&v.data[0])^;
   else:
     return defval;
   endif
@@ -204,6 +229,8 @@ function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64:
     else:
       return ^float32(&v.data[0])^; // converts to float64
     endif
+  elif v.kind == DQTK_INT:
+    return ^int(&v.data[0])^;
   else:
     return defval;
   endif

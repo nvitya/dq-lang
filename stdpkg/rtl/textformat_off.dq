@@ -1,0 +1,650 @@
+// dqtextfmt.dq
+//
+// DQ RTL text formatting framework.
+//
+// Design goals:
+//   * one heap-free formatter core
+//   * stack-allocated formatter object
+//   * lightweight polymorphic text sinks
+//   * cstring sink: bounded, no heap usage
+//   * str sink: dynamic, heap/realloc allowed by the sink only
+//   * file/stdout sink: direct streaming, no intermediate string
+//
+// This file intentionally keeps the format language small at first:
+//   {}       next argument, default formatting
+//   {{       literal '{'
+//   }}       literal '}'
+//   {:d}     signed decimal integer
+//   {:u}     unsigned decimal integer
+//   {:x}     lowercase hexadecimal integer/pointer
+//   {:X}     uppercase hexadecimal integer/pointer
+//   {:p}     pointer style hexadecimal
+//   {:s}     string-like value
+//   {:?}     debug/default value
+//
+// Width / precision parsing is represented by STextFmtSpec, but the first
+// implementation may ignore unsupported fields until the low-level numeric
+// conversion helpers are finalized.
+
+// use rtl.sys.sys;       // adjust to the final RTL path
+// use rtl.sys.anyvalue;  // adjust to the final RTL path
+// use rtl.sys.strings;   // adjust to the final RTL path
+// use rtl.sys.files;     // adjust to the final RTL path
+
+// -----------------------------------------------------------------------------
+// Result and flags
+// -----------------------------------------------------------------------------
+
+const DQFMT_OK          : uint = 0x00000000;
+const DQFMT_TRUNCATED   : uint = 0x00000001;
+const DQFMT_FMT_ERROR   : uint = 0x00000002;
+const DQFMT_ARG_ERROR   : uint = 0x00000004;
+const DQFMT_SINK_ERROR  : uint = 0x00000008;
+
+const DQFMT_KIND_DEFAULT : char = '?';
+const DQFMT_KIND_SIGNED  : char = 'd';
+const DQFMT_KIND_UNSIGNED: char = 'u';
+const DQFMT_KIND_HEXLOW  : char = 'x';
+const DQFMT_KIND_HEXUP   : char = 'X';
+const DQFMT_KIND_STRING  : char = 's';
+const DQFMT_KIND_POINTER : char = 'p';
+const DQFMT_KIND_BOOL    : char = 'b';
+const DQFMT_KIND_FLOAT   : char = 'f';
+
+struct STextFmtResult:
+  written   : uint;  // characters accepted by the sink
+  required  : uint;  // characters that would have been written without bounds
+  flags     : uint;
+endstruct
+
+struct STextFmtSpec:
+  kind       : char;  // d/u/x/X/s/p/f/?
+  width      : int;   // -1 means unspecified
+  precision  : int;   // -1 means unspecified
+  fill       : char;  // normally ' ' or '0'
+  left       : bool;
+  sign_plus  : bool;
+  upper      : bool;
+endstruct
+
+// -----------------------------------------------------------------------------
+// Low-level conversion hooks
+// -----------------------------------------------------------------------------
+// These helpers are deliberately separated from the formatter object so the
+// integer/float conversion code can later live in a small, reusable RTL module.
+// The formatter itself must not allocate heap memory.
+
+function DqTextFmtInitSpec() -> STextFmtSpec:
+  var sp : STextFmtSpec;
+  sp.kind      = DQFMT_KIND_DEFAULT;
+  sp.width     = -1;
+  sp.precision = -1;
+  sp.fill      = ' ';
+  sp.left      = false;
+  sp.sign_plus = false;
+  sp.upper     = false;
+  return sp;
+endfunc
+
+function DqTextFmtResultOk() -> STextFmtResult:
+  var r : STextFmtResult;
+  r.written  = 0;
+  r.required = 0;
+  r.flags    = DQFMT_OK;
+  return r;
+endfunc
+
+function DqTextFmtIsDigit(ch : char) -> bool:
+  return (ch >= '0') and (ch <= '9');
+endfunc
+
+function DqTextFmtDigitValue(ch : char) -> int:
+  return int(ch) - int('0');
+endfunc
+
+// Convert a signed integer into adst. adst is cleared by the helper.
+// TODO: connect this to the final integer-to-cstring RTL helper.
+function DqTextFmtIntToCString(adst : ref cstring, avalue : int, abase : uint, awidth : int, afill : char, aupper : bool):
+  adst.Clear();
+
+  // Placeholder call name. Replace with the final RTL helper, for example:
+  //   adst.AppendInt(avalue, abase, awidth, afill, aupper);
+  adst.AppendInt(avalue, abase, awidth, afill, aupper);
+endfunc
+
+// Convert an unsigned integer into adst. adst is cleared by the helper.
+// TODO: connect this to the final integer-to-cstring RTL helper.
+function DqTextFmtUIntToCString(adst : ref cstring, avalue : uint, abase : uint, awidth : int, afill : char, aupper : bool):
+  adst.Clear();
+
+  // Placeholder call name. Replace with the final RTL helper.
+  adst.AppendUInt(avalue, abase, awidth, afill, aupper);
+endfunc
+
+// Convert a float into adst. adst is cleared by the helper.
+// Float formatting can be optional in small embedded builds.
+// TODO: connect this to the final float-to-cstring RTL helper or libc snprintf.
+function DqTextFmtFloatToCString(adst : ref cstring, avalue : float, aprecision : int):
+  adst.Clear();
+
+  // Placeholder call name. Replace with the final RTL helper.
+  adst.AppendFloat(avalue, aprecision);
+endfunc
+
+// Hosted file output hooks. OTextSinkFile uses these. Embedded builds may map
+// them to UART/debug output or omit OTextSinkFile entirely.
+function DqTextFileWrite(ahandle : pointer, atext : strview) -> bool; [[external("dq_text_file_write")]];
+function DqTextStdOutHandle() -> pointer; [[external("dq_text_stdout_handle")]];
+function DqTextStdErrHandle() -> pointer; [[external("dq_text_stderr_handle")]];
+
+// -----------------------------------------------------------------------------
+// Text sink hierarchy
+// -----------------------------------------------------------------------------
+
+object OTextSink:
+  function Write(atext : strview) [[virtual]]:
+  endfunc
+
+  function WriteChar(ch : char) [[virtual]]:
+  endfunc
+endobj
+
+object OTextSinkCString(OTextSink):
+  dest : cstring;
+
+  function *Create(adest : cstring):
+    dest = adest;
+  endfunc
+
+  function Write(atext : strview) -> bool [[override]]:
+    return dest.Append(atext);
+  endfunc
+
+  function WriteChar(ch : char) -> bool [[override]]:
+    return dest.AppendChar(ch);
+  endfunc
+endobj
+
+object OTextSinkStr(OTextSink):
+  dest : ref str;
+
+  function *Create(adest : ref str):
+    dest = adest;
+  endfunc
+
+  function Write(atext : strview) [[override]]:
+    dest.Append(atext);
+  endfunc
+
+  function WriteChar(ch : char) [[override]]:
+    dest.AppendChar(ch);
+  endfunc
+endobj
+
+// -----------------------------------------------------------------------------
+// Formatter
+// -----------------------------------------------------------------------------
+
+object OTextFormatter:
+public
+  sink      : OTextSink;
+  arg_index : uint;
+
+  function *Create(asink : OTextSink):
+    sink = asink;
+  endfunc
+
+  function Reset():
+    result = DqTextFmtResultOk();
+    arg_index = 0;
+  endfunc
+
+  function GetResult() -> STextFmtResult:
+    return result;
+  endfunc
+
+  function SetFlag(aflag : uint):
+    result.flags = result.flags or aflag;
+  endfunc
+
+  function Write(atext : strview) -> bool:
+    result.required = result.required + atext.Length();
+
+    if sink.Write(atext):
+      result.written = result.written + atext.Length();
+      return true;
+    endif
+
+    // A sink returning false can mean either truncation or a hard write error.
+    // For cstring this is normally truncation. For file sinks it can be I/O error.
+    SetFlag(DQFMT_TRUNCATED);
+    return false;
+  endfunc
+
+  function WriteChar(ch : char) -> bool:
+    result.required = result.required + 1;
+
+    if sink.WriteChar(ch):
+      result.written = result.written + 1;
+      return true;
+    endif
+
+    SetFlag(DQFMT_TRUNCATED);
+    return false;
+  endfunc
+
+  function Format(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+    Reset();
+
+    var p         : uint = 0;
+    var lit_start : uint = 0;
+    var flen      : uint = afmt.Length();
+
+    while p < flen:
+      var ch : char = afmt[p];
+
+      if ch == '{':
+        if p > lit_start:
+          Write(afmt[lit_start:p]);
+        endif
+
+        if (p + 1 < flen) and (afmt[p + 1] == '{'):
+          WriteChar('{');
+          p = p + 2;
+          lit_start = p;
+        else:
+          p = FormatField(afmt, p, aargs);
+          lit_start = p;
+        endif
+
+      elif ch == '}':
+        if p > lit_start:
+          Write(afmt[lit_start:p]);
+        endif
+
+        if (p + 1 < flen) and (afmt[p + 1] == '}'):
+          WriteChar('}');
+          p = p + 2;
+          lit_start = p;
+        else:
+          // Unescaped closing brace.
+          SetFlag(DQFMT_FMT_ERROR);
+          Write("<fmt-error>");
+          p = p + 1;
+          lit_start = p;
+        endif
+
+      else:
+        p = p + 1;
+      endif
+    endwhile
+
+    if lit_start < flen:
+      Write(afmt[lit_start:flen]);
+    endif
+
+    return result;
+  endfunc
+
+protected
+  function FormatField(afmt : strview, aopenpos : uint, aargs : []anyvalue) -> uint:
+    // aopenpos points to '{'. Returns the first position after the field.
+    var flen : uint = afmt.Length();
+    var p    : uint = aopenpos + 1;
+    var sp   : STextFmtSpec = DqTextFmtInitSpec();
+
+    if p >= flen:
+      SetFlag(DQFMT_FMT_ERROR);
+      Write("<fmt-error>");
+      return flen;
+    endif
+
+    if afmt[p] == '}':
+      p = p + 1;
+      FormatNextArg(sp, aargs);
+      return p;
+    endif
+
+    if afmt[p] != ':':
+      SetFlag(DQFMT_FMT_ERROR);
+      Write("<fmt-error>");
+
+      while (p < flen) and (afmt[p] != '}'):
+        p = p + 1;
+      endwhile
+
+      if p < flen:
+        p = p + 1;
+      endif
+
+      return p;
+    endif
+
+    p = p + 1;
+    p = ParseSpec(afmt, p, sp);
+
+    if (p < flen) and (afmt[p] == '}'):
+      p = p + 1;
+      FormatNextArg(sp, aargs);
+      return p;
+    endif
+
+    SetFlag(DQFMT_FMT_ERROR);
+    Write("<fmt-error>");
+    return p;
+  endfunc
+
+  function ParseSpec(afmt : strview, apos : uint, asp : ref STextFmtSpec) -> uint:
+    var p    : uint = apos;
+    var flen : uint = afmt.Length();
+
+    // Fill/alignment subset. Examples planned for later: {:08x}, {:>8}, {:<8}
+    if (p < flen) and (afmt[p] == '0'):
+      asp.fill = '0';
+      p = p + 1;
+    endif
+
+    if (p < flen) and (afmt[p] == '+'):
+      asp.sign_plus = true;
+      p = p + 1;
+    endif
+
+    if (p < flen) and (afmt[p] == '-'):
+      asp.left = true;
+      p = p + 1;
+    endif
+
+    if (p < flen) and DqTextFmtIsDigit(afmt[p]):
+      asp.width = 0;
+      while (p < flen) and DqTextFmtIsDigit(afmt[p]):
+        asp.width = asp.width * 10 + DqTextFmtDigitValue(afmt[p]);
+        p = p + 1;
+      endwhile
+    endif
+
+    if (p < flen) and (afmt[p] == '.'):
+      p = p + 1;
+      asp.precision = 0;
+      while (p < flen) and DqTextFmtIsDigit(afmt[p]):
+        asp.precision = asp.precision * 10 + DqTextFmtDigitValue(afmt[p]);
+        p = p + 1;
+      endwhile
+    endif
+
+    if p < flen:
+      var k : char = afmt[p];
+      if (k == 'd') or (k == 'u') or (k == 'x') or (k == 'X') or (k == 's') or (k == 'p') or (k == 'f') or (k == '?'):
+        asp.kind = k;
+        asp.upper = (k == 'X');
+        p = p + 1;
+      endif
+    endif
+
+    return p;
+  endfunc
+
+  function FormatNextArg(asp : refin STextFmtSpec, aargs : []anyvalue):
+    if arg_index >= aargs.Length():
+      SetFlag(DQFMT_ARG_ERROR);
+      Write("<missing-arg>");
+      return;
+    endif
+
+    FormatAny(aargs[arg_index], asp);
+    arg_index = arg_index + 1;
+  endfunc
+
+  function FormatAny(av : refin anyvalue, asp : refin STextFmtSpec):
+    if av.IsNull():
+      Write("null");
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_STRING:
+      FormatAsString(av);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_SIGNED:
+      FormatAsSigned(av, asp);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_UNSIGNED:
+      FormatAsUnsigned(av, asp, 10, false);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_HEXLOW:
+      FormatAsUnsigned(av, asp, 16, false);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_HEXUP:
+      FormatAsUnsigned(av, asp, 16, true);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_POINTER:
+      FormatAsPointer(av, asp);
+      return;
+    endif
+
+    if asp.kind == DQFMT_KIND_FLOAT:
+      FormatAsFloat(av, asp);
+      return;
+    endif
+
+    // Default formatting.
+    if av.IsBool():
+      if av.AsBool(false):
+        Write("true");
+      else:
+        Write("false");
+      endif
+      return;
+    endif
+
+    if av.IsInt():
+      FormatAsSigned(av, asp);
+      return;
+    endif
+
+    if av.IsFloat():
+      FormatAsFloat(av, asp);
+      return;
+    endif
+
+    if av.IsPointer():
+      FormatAsPointer(av, asp);
+      return;
+    endif
+
+    if av.IsStringLike():
+      FormatAsString(av);
+      return;
+    endif
+
+    SetFlag(DQFMT_ARG_ERROR);
+    Write("<arg-error>");
+  endfunc
+
+  function FormatAsSigned(av : refin anyvalue, asp : refin STextFmtSpec):
+    if not av.IsInt():
+      SetFlag(DQFMT_ARG_ERROR);
+      Write("<arg-error>");
+      return;
+    endif
+
+    var tmp : cstring(63);
+    DqTextFmtIntToCString(tmp, av.AsInt(0), 10, asp.width, asp.fill, false);
+    Write(tmp);
+  endfunc
+
+  function FormatAsUnsigned(av : refin anyvalue, asp : refin STextFmtSpec, abase : uint, aupper : bool):
+    if av.IsInt():
+      var tmpi : cstring(63);
+      DqTextFmtUIntToCString(tmpi, uint(av.AsInt(0)), abase, asp.width, asp.fill, aupper);
+      Write(tmpi);
+      return;
+    endif
+
+    if av.IsPointer():
+      var tmpp : cstring(31);
+      DqTextFmtUIntToCString(tmpp, uint(av.AsPointer(null)), abase, asp.width, asp.fill, aupper);
+      Write(tmpp);
+      return;
+    endif
+
+    SetFlag(DQFMT_ARG_ERROR);
+    Write("<arg-error>");
+  endfunc
+
+  function FormatAsPointer(av : refin anyvalue, asp : refin STextFmtSpec):
+    if not av.IsPointer():
+      SetFlag(DQFMT_ARG_ERROR);
+      Write("<arg-error>");
+      return;
+    endif
+
+    Write("0x");
+
+    var tmp : cstring(31);
+    DqTextFmtUIntToCString(tmp, uint(av.AsPointer(null)), 16, asp.width, '0', true);
+    Write(tmp);
+  endfunc
+
+  function FormatAsFloat(av : refin anyvalue, asp : refin STextFmtSpec):
+    if not av.IsFloat():
+      SetFlag(DQFMT_ARG_ERROR);
+      Write("<arg-error>");
+      return;
+    endif
+
+    var tmp : cstring(63);
+    DqTextFmtFloatToCString(tmp, av.AsFloat(0.0), asp.precision);
+    Write(tmp);
+  endfunc
+
+  function FormatAsString(av : refin anyvalue):
+    if av.IsStringLike():
+      Write(av.AsStrView(""));
+      return;
+    endif
+
+    if av.IsBool():
+      if av.AsBool(false):
+        Write("true");
+      else:
+        Write("false");
+      endif
+      return;
+    endif
+
+    SetFlag(DQFMT_ARG_ERROR);
+    Write("<arg-error>");
+  endfunc
+endobj
+
+// -----------------------------------------------------------------------------
+// Public convenience functions
+// -----------------------------------------------------------------------------
+
+function DqTextFormat(asink : ref OTextSink, afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var fmt <- OTextFormatter(asink);
+  return fmt.Format(afmt, aargs);
+endfunc
+
+function cstring.AddFmt(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkCString(this);
+  var fmt  <- OTextFormatter(sink);
+  return fmt.Format(afmt, aargs);
+endfunc
+
+function cstring.SetFmt(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  this.Clear();
+  return this.AddFmt(afmt, aargs);
+endfunc
+
+function str.AddFmt(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkStr(this);
+  var fmt  <- OTextFormatter(sink);
+  return fmt.Format(afmt, aargs);
+endfunc
+
+function str.SetFmt(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  this.Clear();
+  return this.AddFmt(afmt, aargs);
+endfunc
+
+function Print(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdOutHandle());
+  var fmt  <- OTextFormatter(sink);
+  return fmt.Format(afmt, aargs);
+endfunc
+
+function PrintLn(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdOutHandle());
+  var fmt  <- OTextFormatter(sink);
+  var r    : STextFmtResult;
+
+  r = fmt.Format(afmt, aargs);
+  fmt.WriteChar('\n');
+  return fmt.GetResult();
+endfunc
+
+function ErrPrint(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdErrHandle());
+  var fmt  <- OTextFormatter(sink);
+  return fmt.Format(afmt, aargs);
+endfunc
+
+function ErrPrintLn(afmt : strview, aargs : []anyvalue) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdErrHandle());
+  var fmt  <- OTextFormatter(sink);
+  var r    : STextFmtResult;
+
+  r = fmt.Format(afmt, aargs);
+  fmt.WriteChar('\n');
+  return fmt.GetResult();
+endfunc
+
+// -----------------------------------------------------------------------------
+// Optional zero-argument convenience overloads
+// -----------------------------------------------------------------------------
+// These avoid forcing an empty []anyvalue temporary for the common case.
+
+function PrintText(atext : strview) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdOutHandle());
+  var r    : STextFmtResult = DqTextFmtResultOk();
+
+  r.required = atext.Length();
+  if sink.Write(atext):
+    r.written = atext.Length();
+  else:
+    r.flags = DQFMT_SINK_ERROR;
+  endif
+
+  return r;
+endfunc
+
+function PrintTextLn(atext : strview) -> STextFmtResult:
+  var sink <- OTextSinkFile(DqTextStdOutHandle());
+  var r    : STextFmtResult = DqTextFmtResultOk();
+
+  r.required = atext.Length() + 1;
+  if sink.Write(atext):
+    r.written = atext.Length();
+  else:
+    r.flags = r.flags or DQFMT_SINK_ERROR;
+  endif
+
+  if sink.WriteChar('\n'):
+    r.written = r.written + 1;
+  else:
+    r.flags = r.flags or DQFMT_SINK_ERROR;
+  endif
+
+  return r;
+endfunc
+

@@ -26,6 +26,10 @@ function PassText(v : anyvalue) -> str:
   return v.AsStr("");
 endfunc
 
+function PassTextView(v : anyvalue) -> strview:
+  return v.AsText("");
+endfunc
+
 function MakeTextValue(s : str) -> anyvalue:
   result = s;
 endfunc
@@ -61,11 +65,14 @@ function *Main() -> int:
   av = "literal";
   printf("assign-literal = istext:%li isstr:%li\n", BoolInt(av.IsText()), BoolInt(av.IsStr())); //?check("assign-literal", "istext:1 isstr:0")
   PrintText("literal-asstr", av.AsStr("")); //?check("literal-asstr", '[7] "literal"')
+  PrintText("literal-astext", av.AsText("")); //?check("literal-astext", '[7] "literal"')
+  PrintText("literal-asstrview", av.AsStrView("")); //?check("literal-asstrview", '[7] "literal"')
 
   var s : str = "abc";
   av = s;
   s.Append("x");
   PrintText("owned-before-source-mutate", av.AsStr("")); //?check("owned-before-source-mutate", '[3] "abc"')
+  PrintText("owned-astext", av.AsText("")); //?check("owned-astext", '[3] "abc"')
   PrintText("source-after-mutate", s); //?check("source-after-mutate", '[4] "abcx"')
 
   var copy : anyvalue = av;
@@ -76,6 +83,7 @@ function *Main() -> int:
 
   printf("pass-int = %li\n", PassInt(456)); //?check("pass-int", 456)
   PrintText("pass-text", PassText("call")); //?check("pass-text", '[4] "call"')
+  PrintText("pass-textview", PassTextView("view")); //?check("pass-textview", '[4] "view"')
   var returned : anyvalue = MakeTextValue("ret");
   PrintText("return-anyvalue", returned.AsStr("")); //?check("return-anyvalue", '[3] "ret"')
 

@@ -5315,6 +5315,8 @@ OExpr * ODqCompParser::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExpr * 
   else if ("SetFloat32" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_FLOAT32; argtypes = {g_builtins->type_float32}; }
   else if ("SetFloat64" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_FLOAT64; argtypes = {g_builtins->type_float64}; }
   else if ("IsText" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_TEXT; rettype = g_builtins->type_bool; }
+  else if ("AsText" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_TEXT; text_arg_index = 0; rettype = g_builtins->type_strview; }
+  else if ("AsStrView" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_TEXT; text_arg_index = 0; rettype = g_builtins->type_strview; }
   else if ("SetText" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_TEXT; text_arg_index = 0; }
   else if ("SetCString" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_CSTRING; text_arg_index = 0; }
   else if ("IsStr" == membername)      { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_STR; rettype = g_builtins->type_bool; }

@@ -367,6 +367,13 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_SET_FLOAT32: CallAnyValueFunc("AnyValSetFloat32", {addr, ToFloat32(args[0]->Generate(scope))}); return nullptr;
     case AVM_SET_FLOAT64: CallAnyValueFunc("AnyValSetFloat64", {addr, ToFloat64(args[0]->Generate(scope))}); return nullptr;
     case AVM_IS_TEXT:    return CallAnyValueFunc("AnyValIsText", {addr});
+    case AVM_AS_TEXT:
+    {
+      LlValue * defaddr = GenerateTextInfoAddress(scope, args[0]);
+      LlValue * viewaddr = ll_builder.CreateAlloca(g_builtins->type_strview->GetLlType(), nullptr, "any.text.view");
+      CallAnyValueFunc("AnyValAsText", {addr, defaddr, viewaddr});
+      return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), viewaddr, "any.text");
+    }
     case AVM_SET_TEXT:   CallAnyValueFunc("AnyValSetText", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
     case AVM_SET_CSTRING: CallAnyValueFunc("AnyValSetCString", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
     case AVM_IS_STR:     return CallAnyValueFunc("AnyValIsStr", {addr});

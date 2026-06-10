@@ -361,14 +361,12 @@ function OTextFormatter.FormatAny(av : anyvalue):
     return;
   endif
 
-  sink.Write('<tbi>');
-
-/*
-  if asp.kind == DQFMT_KIND_STRING:
-    FormatAsString(av);
+  if av.IsText():
+    sink.Write(av.AsText(''));
     return;
   endif
 
+/*
   if asp.kind == DQFMT_KIND_SIGNED:
     FormatAsSigned(av, asp);
     return;
@@ -431,7 +429,11 @@ function OTextFormatter.FormatAny(av : anyvalue):
 
   SetFlag(DQFMT_ARG_ERROR);
   Write("<arg-error>");
+
 */
+
+  sink.Write('<tbi>');
+
 endfunc
 
 /*

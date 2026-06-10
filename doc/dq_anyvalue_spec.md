@@ -1,6 +1,6 @@
 # DQ `anyvalue` and Runtime Type Information Specification
 
-Status: draft 0.2
+Status: draft 0.3
 
 This document specifies the compact runtime type information records used by DQ RTL code and the first version of the `anyvalue` boxed value type.
 
@@ -232,10 +232,12 @@ DQTK_FLOAT      data[0..datasize-1] = IEEE bits, width from datasize
 DQTK_POINTER    data[0..@def.PTRSIZE-1]
 DQTK_CSTRING    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
 DQTK_STRVIEW    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
-DQTK_DYNSTR     data[0..15] = dynamic string/text descriptor compatible with SDqTextInfo, if it fits
+DQTK_DYNSTR     data[0..@def.PTRSIZE-1] = owned ODynStrMgr pointer
 ```
 
-If the final dynamic string descriptor does not fit into `[16]byte`, then `data` shall contain a pointer to owned managed string storage and the ownership rules must be reflected by the `anyvalue` copy/destroy helpers.
+`DQTK_DYNSTR` uses the same `ODynStrMgr` manager object as the normal DQ `str` type. The `data` field stores only the manager pointer. A null manager pointer represents the empty string, matching normal `str` behavior.
+
+`DQTK_CSTRING` and `DQTK_STRVIEW` are borrowed descriptor values. `DQTK_DYNSTR` is owned/refcounted managed storage.
 
 ---
 
@@ -290,6 +292,20 @@ The `SDqTypeInfo` record for `anyvalue` must use the proper flags and helper fun
 Copying an `anyvalue` copies the contained value according to its contained `kind` and ownership mode.
 
 Destroying an `anyvalue` destroys the contained value according to its contained `kind` and ownership mode.
+
+The RTL lifetime helper ABI is:
+
+```dq
+function AnyValDestroy(v : ref SDqAnyValue);
+function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue);
+function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue);
+```
+
+`AnyValDestroy()` releases the contained dynamic string when `kind == DQTK_DYNSTR` and leaves the value as `DQTK_VOID`.
+
+`AnyValCopy()` releases the previous destination value, copies the source record, and increments the dynamic string refcount when the copied value is `DQTK_DYNSTR`.
+
+`AnyValMove()` releases the previous destination value, transfers the source record without incrementing the dynamic string refcount, and leaves the source as `DQTK_VOID`.
 
 ---
 
@@ -511,7 +527,24 @@ If `v` does not contain text, `rv` receives `defval`.
 
 This function must not allocate. It returns or copies only a descriptor. The descriptor may refer to borrowed storage, so the caller must respect the source lifetime.
 
-### 13.3 Heapless copy into fixed `cstring`
+### 13.3 Text setter functions
+
+```dq
+function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo);
+function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo);
+function AnyValSetStr(v : ref SDqAnyValue, value : str);
+function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo);
+```
+
+`AnyValSetText()` stores a borrowed `DQTK_STRVIEW` descriptor.
+
+`AnyValSetCString()` stores a borrowed `DQTK_CSTRING` descriptor.
+
+`AnyValSetStr()` stores an owned/refcounted dynamic string reference. It increments the source manager refcount through normal dynamic string assignment rules.
+
+`AnyValSetStrText()` copies text described by `SDqTextInfo` into owned dynamic string storage and stores it as `DQTK_DYNSTR`.
+
+### 13.4 Heapless copy into fixed `cstring`
 
 ```dq
 function AnyValToCString(
@@ -538,16 +571,16 @@ If `v` cannot be converted to text, `defval` is copied.
 
 This function must not allocate. Truncation and bounds behavior follow the normal `cstring` assignment/copy rules.
 
-### 13.4 Owned dynamic string extraction
+### 13.5 Owned dynamic string extraction
 
 ```dq
-function AnyValAsStr(v : ref SDqAnyValue, defval : str) -> str;
+function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str;
 ```
 
 Method form:
 
 ```dq
-var s : str = av.AsStr("");
+var s : str = av.AsStr(DefaultTextInfo(""));
 ```
 
 `AnyValAsStr()` returns an owned dynamic `str` value and may allocate.
@@ -556,7 +589,7 @@ If `v` contains text, the result is a dynamic string copy of that text.
 
 If `v` contains a numeric or boolean value, the implementation may format it using the default DQ text formatting rules.
 
-If `v` cannot be converted to text, `defval` is returned/copied according to normal `str` rules.
+If `v` cannot be converted to text, `defval` is copied into the returned dynamic string according to normal `str` rules.
 
 ---
 
@@ -614,7 +647,7 @@ av.AsText(DefaultTextInfo(""), ti);     // heapless descriptor result
 var cs : cstring(63);
 av.ToCString(DefaultTextInfo(""), cs);  // heapless copy into fixed buffer
 
-var s : str = av.AsStr("");            // owned dynamic string, may allocate
+var s : str = av.AsStr(DefaultTextInfo(""));  // owned dynamic string, may allocate
 ```
 
 `cstring` and `strview` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.

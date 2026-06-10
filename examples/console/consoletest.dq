@@ -1,0 +1,110 @@
+
+use libc/stdio;
+
+var libc_stdout : pointer [[external('stdout')]];
+
+function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]];
+function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]];
+
+object OTextSink:
+  function *Create():
+  endfunc
+
+  function Write(atext : strview) [[virtual]]:
+  endfunc
+
+  function WriteChar(ch : char) [[virtual]]:
+  endfunc
+endobj
+
+object OTextSinkStdOut(OTextSink):
+  pstdout : pointer;
+
+  function *Create():
+    inherited Create();
+    pstdout = @.libc_stdout;
+  endfunc
+
+  function Write(atext : strview) [[override]]:
+    //TODO: fix this !
+    //@.libc_fwrite(&atext[0], 1, atext.length, pstdout);
+    // fallback: char by char
+    for i : int = 0 count atext.length:
+      @.libc_fputc(atext[i], pstdout);
+    endfor
+  endfunc
+
+  function WriteChar(ch : char) [[override]]:
+    @.libc_fputc(ch, pstdout);
+  endfunc
+endobj
+
+object OTextSinkCString(OTextSink):
+  dest : cstring;
+
+  function *Create(adest : cstring):
+    inherited Create();
+    dest = adest;
+  endfunc
+
+  function Write(atext : strview) [[override]]:
+    dest.Append(atext);
+  endfunc
+
+  function WriteChar(ch : char) [[override]]:
+    //dest.AppendChar(ch);
+  endfunc
+endobj
+
+object OTextSinkStr(OTextSink):
+  dest : ^str;
+
+  function *Create(adest : ref str):
+    inherited Create();
+    dest = &adest;
+  endfunc
+
+  function Write(atext : strview) [[override]]:
+    dest^.Append(atext);
+  endfunc
+
+  function WriteChar(ch : char) [[override]]:
+    //dest.AppendChar(ch);
+  endfunc
+endobj
+
+function Print(atext : strview):
+  for i : int = 0 count atext.length:
+    @.libc_fputc(atext[i], libc_stdout);
+  endfor
+endfunc
+
+function PrintLn(atext : strview):
+  for i : int = 0 count atext.length:
+    @.libc_fputc(atext[i], libc_stdout);
+  endfor
+  @.libc_fputc(0x0A, libc_stdout);
+endfunc
+
+function *Main() -> int:
+  printf('Console test.\n');
+
+  var cs : cstring(127) = '';
+
+  var outs <- OTextSinkStdOut();
+  outs.Write('hello word!\n');
+  outs.WriteChar(0x55);
+  outs.WriteChar(0x0A);
+
+  cs.Append('qqcs');
+  var csout <- OTextSinkCString(cs);
+  csout.Write('+streaming baby!');
+  Print('cs:'); PrintLn(cs);
+
+  var s : str = 'asdf';
+
+  Print('s:'); PrintLn(s);
+
+  printf('Test finished.\n');
+  return 0;
+endfunc

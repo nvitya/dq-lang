@@ -696,6 +696,7 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (attr_is_volatile) flags |= 1u << 3;
   if (is_ref_alias)     flags |= 1u << 4;
   if (ref_nullable)     flags |= 1u << 5;
+  if (attr_is_external) flags |= 1u << 6;
   if (attr_has_linkage_name) flags |= 1u << 7;
   auto * objsym = dynamic_cast<OVsObject *>(this);
   if (objsym && objsym->IsObjectReference())   flags |= 1u << 8;
@@ -707,6 +708,8 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
+  if (!attr_external_linkage_name.empty()
+      && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, attr_external_linkage_name)) return false;
   if (!attr_section_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_SECTION_NAME, attr_section_name)) return false;
   if (attr_has_linkage_name
@@ -753,6 +756,12 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
 
 void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
+  if (attr_is_external)
+  {
+    GenGlobalImportDecl();
+    return;
+  }
+
   if (VSK_VARIABLE == kind)
   {
     LlLinkType  linktype =
@@ -828,7 +837,7 @@ void OValSym::GenGlobalImportDecl()
   {
     OType *  storage_type = GetStorageType();
     LlType * ll_type = storage_type->GetLlType();
-    string   ll_name = GetLinkageName(true, 'V');
+    string   ll_name = (attr_external_linkage_name.empty() ? GetLinkageName(true, 'V') : attr_external_linkage_name);
     if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
     {
       ll_value = existing;
@@ -971,6 +980,15 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
     if (attr->IsSet(ATTF_ALIGN))
     {
       attr_align = attr->align_value;
+    }
+  }
+
+  if (ATGT_GLOBAL_VAR == atarget)
+  {
+    if (attr->IsSet(ATTF_EXTERNAL))
+    {
+      attr_is_external = true;
+      attr_external_linkage_name = attr->external_linkage_name;
     }
   }
 

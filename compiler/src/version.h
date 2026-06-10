@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.0"
+#define DQ_COMPILER_VERSION  "0.16.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.1:
+  - String handling fixes
+  - Allow global external variable binding (like 'stdout')
 v0.16.0:
   - Implemented compiler anyvalue handling
 v0.15.2:

@@ -5,6 +5,7 @@ function CStrMaxLen(desc : ref SDqTextInfo) -> uint;
 function CStrStorageSize(desc : ref SDqTextInfo) -> uint;
 
 function CStrClear(desc : ref SDqTextInfo);
+function CStrAssignChar(desc : ref SDqTextInfo, ch : char);
 function CStrAssignPtr(desc : ref SDqTextInfo, src : ^cchar);
 function CStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo);
 function CStrAppendPtr(desc : ref SDqTextInfo, src : ^cchar);
@@ -109,6 +110,17 @@ endfunc
 
 function CStrClear(desc : ref SDqTextInfo):
   CStrSetLenAndTerm(desc, 0);
+endfunc
+
+function CStrAssignChar(desc : ref SDqTextInfo, ch : char):
+  var maxlen : uint = CStrMaxLen(desc);
+  if maxlen <= uint(0):
+    CStrSetLenAndTerm(desc, 0);
+    return;
+  endif
+
+  ^cchar(desc.dataptr)[0]^ = cchar(ch);
+  CStrSetLenAndTerm(desc, 1);
 endfunc
 
 function CStrAssignPtr(desc : ref SDqTextInfo, src : ^cchar):

@@ -36,6 +36,15 @@ static LlType * LlCStringLenType()
   return LlType::getInt32Ty(ll_ctx);
 }
 
+static bool IsCCharPointerType(OType * type)
+{
+  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
+  return ptrtype
+      && ptrtype->IsTypedPointer()
+      && ptrtype->basetype
+      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+}
+
 static LlValue * LlU32(uint32_t value)
 {
   return llvm::ConstantInt::get(LlCStringLenType(), value);
@@ -192,11 +201,7 @@ LlDiType * OTypeCString::CreateDiType()
 
 bool OTypeCString::IsCCharPointerType(OType * type) const
 {
-  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
-  return ptrtype
-      && ptrtype->IsTypedPointer()
-      && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+  return ::IsCCharPointerType(type);
 }
 
 bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
@@ -485,6 +490,10 @@ LlValue * GenerateCStringMethodCall(OScope * scope, OTypeCString * cstrtype, LlV
   {
     case CSM_CLEAR:
       return CallCStringFunc("CStrClear", {dstdesc});
+
+    case CSM_SET:
+      return GenerateCStringMethodSource(scope, args[0], "CStrAssignPtr", "CStrAssignDesc",
+                                         "CStrAssignChar", dstdesc);
 
     case CSM_APPEND:
       return GenerateCStringMethodSource(scope, args[0], "CStrAppendPtr", "CStrAppendDesc",

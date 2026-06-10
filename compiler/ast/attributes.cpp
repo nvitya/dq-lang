@@ -26,7 +26,7 @@ void OAttr::Reset()
 
 void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
 {
-  CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION);
+  CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR);
   CheckAttrAllowed(ATTF_EXPORT,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_CEXPORT,  atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_ALIGN,    atarget, ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER);

@@ -1466,6 +1466,7 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   avalsym->attr_is_volatile = (attrs.flags & (1u << 3));
   avalsym->is_ref_alias     = (attrs.flags & (1u << 4));
   avalsym->ref_nullable     = (attrs.flags & (1u << 5));
+  avalsym->attr_is_external = (!dynamic_cast<OValSymFunc *>(avalsym) && (attrs.flags & (1u << 6)));
   avalsym->attr_has_linkage_name = (attrs.flags & (1u << 7));
   if (attrs.flags & (1u << 8))
   {
@@ -1495,6 +1496,7 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   }
   avalsym->attr_is_abstract = (attrs.flags & (1u << 12));
   avalsym->attr_is_final    = (attrs.flags & (1u << 13));
+  avalsym->attr_external_linkage_name = (dynamic_cast<OValSymFunc *>(avalsym) ? "" : attrs.external_linkage_name);
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;
   avalsym->attr_section_name = attrs.section_name;

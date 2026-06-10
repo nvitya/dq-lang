@@ -254,7 +254,7 @@ enum EMemberVisibility
 };
 
 class OTypePointer;      // forward declaration
-class OTypeFuncRef;     // forward declaration
+class OTypeFuncRef;      // forward declaration
 class OTypeArray;        // forward declaration
 class OTypeArraySlice;   // forward declaration
 class OTypeDynArray;     // forward declaration
@@ -647,6 +647,8 @@ public:
 
   uint32_t     attr_align = 0;
   string       attr_section_name = "";
+  bool         attr_is_external = false;
+  string       attr_external_linkage_name = "";
   bool         attr_has_linkage_name = false;
   string       attr_linkage_name = "";
   string       owner_module_name = "";

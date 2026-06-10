@@ -4988,6 +4988,12 @@ OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * r
     if (!check_count(0, 0)) return free_and_fail();
     method = CSM_CLEAR;
   }
+  else if ("Set" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = CSM_SET;
+    source_arg_index = 0;
+  }
   else if ("Append" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();

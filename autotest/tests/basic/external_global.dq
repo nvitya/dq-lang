@@ -1,0 +1,10 @@
+// external global variable import support
+
+[[external("fprintf")]] function fprintf(stream : pointer, fmt : ^cchar, ...) -> int;
+
+var libc_stdout : pointer [[external("stdout")]];
+
+function *Main() -> int:
+  fprintf(libc_stdout, "external global = %d\n", 42);  //?check("external global", 42)
+  return 0;
+endfunc

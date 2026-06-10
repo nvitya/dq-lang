@@ -116,6 +116,7 @@ enum ECStringMetaField
 enum ECStringMethod
 {
   CSM_CLEAR,
+  CSM_SET,
   CSM_APPEND,
   CSM_PREPEND,
   CSM_INSERT,

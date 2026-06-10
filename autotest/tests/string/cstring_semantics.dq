@@ -119,13 +119,21 @@ function *Main() -> int:
   AppendName(item);
   PrintText("cstring_struct_field", item.name); //?check("cstring_struct_field", '[7] "one two"')
 
-//  var slice_source : cstring(15) = "abcdef";
-//  var slice_copy : str = slice_source[1:4];
-//  var slice_view : strview = slice_source[1:4];
+  //var slice_source : cstring(15) = "abcdef";
+  //var slice_copy : str = slice_source[1:4];
+  //var slice_view : strview = slice_source[1:4];
 //  PrintText("cstring_slice_copy", slice_copy); //-?check("cstring_slice_copy", '[3] "bcd"')
 //  PrintText("cstring_slice_view", slice_view); //-?check("cstring_slice_view", '[3] "bcd"')
 //  PrintText("cstring_slice_clamp", slice_source[-5:100]); //-?check("cstring_slice_clamp", '[6] "abcdef"')
 //  PrintText("cstring_slice_last", slice_source[$last:]); //-?check("cstring_slice_last", '[1] "f"')
+
+  //var csdest : cstring(31) = "storage: ";
+  var csdest : cstring = storage;
+  csdest.Set("csdest:");
+  var appendum : cstring(15) = "appendum";
+  //var csv : strview = appendum;
+  csdest.Append(appendum);
+  PrintText('cstring_strview_append', csdest); //?check('cstring_strview_append', '[15] "csdest:appendum"')
 
 //  var external_mut : cstring(8) = "abcdef";
 //  MutateThroughPointer(&external_mut[0]);

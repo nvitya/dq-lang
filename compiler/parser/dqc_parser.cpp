@@ -63,21 +63,7 @@ static bool EnsureDynStringRtlUse()
 
 static bool IsCStringMethodSourceType(OType * type)
 {
-  OType * resolved = type ? type->ResolveAlias() : nullptr;
-  if (!resolved)
-  {
-    return false;
-  }
-  if ((resolved == g_builtins->type_char)
-      || (resolved == g_builtins->type_cchar)
-      || (nullptr != dynamic_cast<OTypeCString *>(resolved)))
-  {
-    return true;
-  }
-
-  auto * ptrtype = dynamic_cast<OTypePointer *>(resolved);
-  return ptrtype && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+  return IsTextSourceType(type);
 }
 
 static bool IsStringMethodSourceType(OType * type)
@@ -4988,6 +4974,12 @@ OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * r
     if (!check_count(0, 0)) return free_and_fail();
     method = CSM_CLEAR;
   }
+  else if ("AppendChar" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = CSM_APPEND;
+    argtypes.push_back(g_builtins->type_char);
+  }
   else if ("Set" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
@@ -5050,7 +5042,7 @@ OExpr * ODqCompParser::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * r
     }
     if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType()))
     {
-      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, cchar, cstring, or ^cchar");
+      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, cchar, str, strview, cstring, or ^cchar");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -5114,6 +5106,18 @@ OExpr * ODqCompParser::ParseStringMethod(OExpr * receiver_expr, OLValueExpr * re
     if (!check_count(0, 1)) return free_and_fail();
     method = STRM_CLEAR;
     if (!rawargs.empty()) argtypes.push_back(g_builtins->type_bool);
+  }
+  else if ("Set" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_SET;
+    source_arg_index = 0;
+  }
+  else if ("AppendChar" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_APPEND;
+    argtypes.push_back(g_builtins->type_char);
   }
   else if ("Reserve" == membername)
   {

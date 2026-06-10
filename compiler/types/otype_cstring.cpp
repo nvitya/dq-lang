@@ -14,6 +14,7 @@
 #include <vector>
 #include <limits>
 #include "otype_cstring.h"
+#include "otype_string.h"
 #include "scope_builtins.h"
 #include "dqm_if.h"
 #include "expressions.h"
@@ -304,10 +305,10 @@ LlValue * GenerateCStringMetaField(OScope * scope, OTypeCString * cstrtype, LlVa
 
 static void CallCStringStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
 {
-  if (auto * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType()))
+  OType * srctype = srcexpr->ResolvedType();
+  if (srctype && !IsCCharPointerType(srctype) && IsTextSourceType(srctype))
   {
-    (void)srctype;
-    CallCStringFunc("CStrAssignDesc", {dstdesc, CStringSourceDescriptor(scope, srcexpr)});
+    CallCStringFunc("CStrAssignDesc", {dstdesc, GenerateTextInfoAddress(scope, srcexpr)});
     return;
   }
 
@@ -462,14 +463,15 @@ static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const
     return CallCStringFunc(char_func, args);
   }
 
-  if (dynamic_cast<OTypeCString *>(expr->ResolvedType()))
+  OType * srctype = expr->ResolvedType();
+  if (srctype && !IsCCharPointerType(srctype) && IsTextSourceType(srctype))
   {
     vector<LlValue *> args = {dstdesc};
     if (index)
     {
       args.push_back(index);
     }
-    args.push_back(CStringSourceDescriptor(scope, expr));
+    args.push_back(GenerateTextInfoAddress(scope, expr));
     return CallCStringFunc(desc_func, args);
   }
 

@@ -93,6 +93,7 @@ function *Main() -> int:
 
   cs = "abc";
   cs.Append('d');
+  cs.AppendChar('e');
   cs.Append("efghi");
   PrintText("cstring_append_trunc", cs); //?check("cstring_append_trunc", '[5] "abcde"')
   cs.Prepend('X');

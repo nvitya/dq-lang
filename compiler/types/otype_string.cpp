@@ -516,6 +516,12 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
     case STRM_CLEAR:
       CallDynStrFunc("DynStrClear", {straddr, args.empty() ? LlBool(false) : args[0]->Generate(scope)});
       return nullptr;
+    case STRM_SET:
+      if (!GenerateStringAssignExpr(scope, straddr, args[0]))
+      {
+        throw logic_error("Unsupported string Set() source");
+      }
+      return nullptr;
     case STRM_RESERVE:
       CallDynStrFunc("DynStrReserve", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
       return nullptr;

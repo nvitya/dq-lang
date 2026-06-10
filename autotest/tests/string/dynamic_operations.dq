@@ -91,6 +91,11 @@ function *Main() -> int:
   add.Prepend("--");
   PrintText("append_prepend_sources", add); //?check("append_prepend_sources", '[9] "--0abcdef"')
 
+  var setops : str = "old";
+  setops.Set("new");
+  setops.AppendChar('!');
+  PrintText("set_appendchar", setops); //?check("set_appendchar", '[4] "new!"')
+
   var ins : str = "abc";
   ins.Insert(0, 'X');
   ins.Insert(100, 'Y');

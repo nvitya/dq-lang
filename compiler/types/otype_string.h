@@ -63,6 +63,7 @@ enum EStringMetaField
 enum EStringMethod
 {
   STRM_CLEAR,
+  STRM_SET,
   STRM_RESERVE,
   STRM_COMPACT,
   STRM_SET_LENGTH,

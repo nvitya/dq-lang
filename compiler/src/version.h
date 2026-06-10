@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.1"
+#define DQ_COMPILER_VERSION  "0.16.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.2:
+  - Set() and AppendChar() methods to the strings
 v0.16.1:
   - String handling fixes
   - Allow global external variable binding (like 'stdout')

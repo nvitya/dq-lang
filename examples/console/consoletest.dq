@@ -49,7 +49,7 @@ function FormatterTest():
   var outs <- OTextSinkStdOut();
   var ofmt <- OTextFormatter(outs);
 
-  ofmt.Format('hello leo: {}, {}, {}, {}, {:X}\n', [42, 'abc', 3.14, false, 0xC0DE]);
+  ofmt.Format('hello leo: {}, {}, {}, {}, {:X}, {}\n', [42, 'abc', 3.14, true, 0xC0DE, &outs]);
 
 endfunc
 

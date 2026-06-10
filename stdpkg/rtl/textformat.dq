@@ -94,8 +94,8 @@ endstruct
 object OTextFormatter:
 public
   sink      : OTextSink;
-  flags     : uint = 0;
-  arg_index : uint = 0;
+  flags     : uint32 = 0;
+  arg_index : uint32 = 0;
 
   fmtspec   : STextFmtSpec;
 
@@ -104,17 +104,20 @@ public
   function Format(afmt : strview, aargs : []anyvalue);
 
 protected
-  curpos : int = 0;
-  endpos : int = 0;
+  curpos : int32 = 0;
+  endpos : int32 = 0;
+
+  lcsbuf : cstring(47);
 
   function ParseSpec(afmt : strview);
   function FormatAny(av : anyvalue);
 
-  //function FormatAsSigned(av : anyvalue);
-  //function FormatAsUnsigned(av : anyvalue);
-  //function FormatAsPointer(av : anyvalue);
-  //function FormatAsFloat(av : anyvalue);
-  //function FormatAsString(av : anyvalue);
+  function FormatSInt(v : int);
+  function FormatUInt(v : uint);
+  function FormatHex(v : uint, aupper : bool);
+
+  function FormatFloat(v : float);
+
 endobj
 
 implementation
@@ -305,6 +308,10 @@ function OTextFormatter.ParseSpec(afmt : strview):
   fmtspec.sign_plus = false;
   fmtspec.upper     = false;
 
+  if p < flen  and  afmt[p] == ':':
+    p += 1;
+  endif
+
   // Fill/alignment subset. Examples planned for later: {:08x}, {:>8}, {:<8}
   if p < flen  and  afmt[p] == '0':
     fmtspec.fill = '0';
@@ -362,155 +369,89 @@ function OTextFormatter.FormatAny(av : anyvalue):
   endif
 
   if av.IsText():
-    sink.Write(av.AsText(''));
-    return;
-  endif
-
-/*
-  if asp.kind == DQFMT_KIND_SIGNED:
-    FormatAsSigned(av, asp);
-    return;
-  endif
-
-  if asp.kind == DQFMT_KIND_UNSIGNED:
-    FormatAsUnsigned(av, asp, 10, false);
-    return;
-  endif
-
-  if asp.kind == DQFMT_KIND_HEXLOW:
-    FormatAsUnsigned(av, asp, 16, false);
-    return;
-  endif
-
-  if asp.kind == DQFMT_KIND_HEXUP:
-    FormatAsUnsigned(av, asp, 16, true);
-    return;
-  endif
-
-  if asp.kind == DQFMT_KIND_POINTER:
-    FormatAsPointer(av, asp);
-    return;
-  endif
-
-  if asp.kind == DQFMT_KIND_FLOAT:
-    FormatAsFloat(av, asp);
-    return;
-  endif
-
-  // Default formatting.
-  if av.IsBool():
-    if av.AsBool(false):
-      Write("true");
+    if fmtspec.kind == @.DQFMT_KIND_DEFAULT  or  fmtspec.kind == @.DQFMT_KIND_STRING:
+      sink.Write(av.AsText(''));
     else:
-      Write("false");
+      flags =OR= @.DQFMT_ARG_ERROR;
+      sink.Write("<s-f!>");
     endif
     return;
   endif
 
   if av.IsInt():
-    FormatAsSigned(av, asp);
+    if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_SIGNED == fmtspec.kind:
+      FormatSInt(av.AsInt(0));
+    elif @.DQFMT_KIND_UNSIGNED == fmtspec.kind:
+      FormatUInt(av.AsUint(0));
+    elif @.DQFMT_KIND_HEXUP  == fmtspec.kind:
+      FormatHex(av.AsUint(0), true);
+    elif @.DQFMT_KIND_HEXLOW == fmtspec.kind:
+      FormatHex(av.AsUint(0), false);
+    else:
+      flags =OR= @.DQFMT_ARG_ERROR;
+      sink.Write("<i-f!>");
+    endif
     return;
   endif
 
   if av.IsFloat():
-    FormatAsFloat(av, asp);
-    return;
-  endif
-
-  if av.IsPointer():
-    FormatAsPointer(av, asp);
-    return;
-  endif
-
-  if av.IsStringLike():
-    FormatAsString(av);
-    return;
-  endif
-
-  SetFlag(DQFMT_ARG_ERROR);
-  Write("<arg-error>");
-
-*/
-
-  sink.Write('<tbi>');
-
-endfunc
-
-/*
-function OTextFormatter.FormatAsSigned(av : anyvalue):
-  if not av.IsInt():
-    SetFlag(DQFMT_ARG_ERROR);
-    Write("<arg-error>");
-    return;
-  endif
-
-  var tmp : cstring(63);
-  DqTextFmtIntToCString(tmp, av.AsInt(0), 10, asp.width, asp.fill, false);
-  Write(tmp);
-endfunc
-
-function OTextFormatter.FormatAsUnsigned(av : anyvalue, asp : refin STextFmtSpec, abase : uint, aupper : bool):
-  if av.IsInt():
-    var tmpi : cstring(63);
-    DqTextFmtUIntToCString(tmpi, uint(av.AsInt(0)), abase, asp.width, asp.fill, aupper);
-    Write(tmpi);
-    return;
-  endif
-
-  if av.IsPointer():
-    var tmpp : cstring(31);
-    DqTextFmtUIntToCString(tmpp, uint(av.AsPointer(null)), abase, asp.width, asp.fill, aupper);
-    Write(tmpp);
-    return;
-  endif
-
-  SetFlag(DQFMT_ARG_ERROR);
-  Write("<arg-error>");
-endfunc
-
-function OTextFormatter.FormatAsPointer(av : anyvalue, asp : refin STextFmtSpec):
-  if not av.IsPointer():
-    SetFlag(DQFMT_ARG_ERROR);
-    Write("<arg-error>");
-    return;
-  endif
-
-  Write("0x");
-
-  var tmp : cstring(31);
-  DqTextFmtUIntToCString(tmp, uint(av.AsPointer(null)), 16, asp.width, '0', true);
-  Write(tmp);
-endfunc
-
-function OTextFormatter.FormatAsFloat(av : anyvalue, asp : refin STextFmtSpec):
-  if not av.IsFloat():
-    SetFlag(DQFMT_ARG_ERROR);
-    Write("<arg-error>");
-    return;
-  endif
-
-  var tmp : cstring(63);
-  DqTextFmtFloatToCString(tmp, av.AsFloat(0.0), asp.precision);
-  Write(tmp);
-endfunc
-
-function OTextFormatter.FormatAsString(av : anyvalue):
-  if av.IsStringLike():
-    Write(av.AsStrView(""));
-    return;
-  endif
-
-  if av.IsBool():
-    if av.AsBool(false):
-      Write("true");
+    if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_FLOAT == fmtspec.kind:
+      FormatFloat(av.AsFloat(0));
     else:
-      Write("false");
+      flags =OR= @.DQFMT_ARG_ERROR;
+      sink.Write("<f-f!>");
     endif
     return;
   endif
 
-  SetFlag(DQFMT_ARG_ERROR);
-  Write("<arg-error>");
+  if av.IsBool():
+    if   @.DQFMT_KIND_DEFAULT == fmtspec.kind:
+      if av.AsBool(false):
+        sink.Write('true');
+      else:
+        sink.Write('false');
+      endif
+    else:
+      flags =OR= @.DQFMT_ARG_ERROR;
+      sink.Write("<b-f!>");
+    endif
+    return;
+  endif
+
+  if av.IsPointer():
+    if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_POINTER == fmtspec.kind:
+      sink.Write('^');
+      FormatHex(uint(av.AsPointer(null)), true);
+    else:
+      flags =OR= @.DQFMT_ARG_ERROR;
+      sink.Write("<p-f!>");
+    endif
+    return;
+  endif
+
+
+  flags =OR= @.DQFMT_ARG_ERROR;
+  sink.Write("<arg-error>");
+
 endfunc
 
-*/
+function OTextFormatter.FormatSInt(v : int):
+  sink.Write('<int>');
+endfunc
+
+function OTextFormatter.FormatUInt(v : uint):
+  sink.Write('<uint>');
+endfunc
+
+function OTextFormatter.FormatHex(v : uint, aupper : bool):
+  if aupper:
+    sink.Write('<hexu>');
+  else:
+    sink.Write('<hexl>');
+  endif
+endfunc
+
+function OTextFormatter.FormatFloat(v : float):
+  sink.Write('<float>');
+endfunc
+

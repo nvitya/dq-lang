@@ -537,7 +537,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
   else if (TK_DYNSTR == containertype->kind || TK_STRVIEW == containertype->kind)
   {
-    throw logic_error("string character address is not available");
+    return GenerateStringCharAddress(scope, base, ll_index);
   }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.2"
+#define DQ_COMPILER_VERSION  "0.16.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.3:
+  - Getting address for strview characters
 v0.16.2:
   - Set() and AppendChar() methods to the strings
 v0.16.1:

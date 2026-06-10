@@ -88,6 +88,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr);
 LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index);
+LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
 void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value);
 LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                               OExpr * end_expr, bool end_inclusive);

@@ -127,6 +127,30 @@ static LlValue * ToCharValue(LlValue * value)
   return value;
 }
 
+static LlValue * NormalizeTextIndexValue(LlValue * index, LlValue * len)
+{
+  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
+  if (index->getType() != ll_i64)
+  {
+    if (!index->getType()->isIntegerTy())
+    {
+      throw logic_error("Text index must be an integer value");
+    }
+    unsigned srcbits = index->getType()->getIntegerBitWidth();
+    if (srcbits < 64)
+    {
+      index = ll_builder.CreateSExt(index, ll_i64);
+    }
+    else if (srcbits > 64)
+    {
+      index = ll_builder.CreateTrunc(index, ll_i64);
+    }
+  }
+  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "str.idx.neg");
+  return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "str.idx.from_end"), index, "str.idx.norm");
+}
+
 static OValSymFunc * DynStrFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_dynstr");
@@ -399,6 +423,24 @@ LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue 
     return CallDynStrFunc("TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
   }
   throw logic_error("GenerateStringGetChar requires str or strview");
+}
+
+LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index)
+{
+  OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;
+  if (!rtype || (TK_DYNSTR != rtype->kind && TK_STRVIEW != rtype->kind))
+  {
+    throw logic_error("GenerateStringCharAddress requires str or strview");
+  }
+
+  LlValue * descaddr = GenerateTextInfoAddress(scope, receiver);
+  LlValue * len = ToNativeInt(CallDynStrFunc("TextInfoGetLength", {descaddr}));
+  LlValue * norm_index = NormalizeTextIndexValue(index, len);
+
+  LlType * desctype = g_builtins->type_strview->GetLlType();
+  LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "str.ptr.addr");
+  LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "str.ptr");
+  return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), dataptr, {norm_index}, "str.elem");
 }
 
 void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value)

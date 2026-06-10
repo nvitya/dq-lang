@@ -26,12 +26,7 @@ object OTextSinkStdOut(OTextSink):
   endfunc
 
   function Write(atext : strview) [[override]]:
-    //TODO: fix this !
-    //@.libc_fwrite(&atext[0], 1, atext.length, pstdout);
-    // fallback: char by char
-    for i : int = 0 count atext.length:
-      @.libc_fputc(atext[i], pstdout);
-    endfor
+    @.libc_fwrite(&atext[0], 1, atext.length, pstdout);
   endfunc
 
   function WriteChar(ch : char) [[override]]:
@@ -52,16 +47,16 @@ object OTextSinkCString(OTextSink):
   endfunc
 
   function WriteChar(ch : char) [[override]]:
-    //dest.AppendChar(ch);
+    dest.AppendChar(ch);
   endfunc
 endobj
 
 object OTextSinkStr(OTextSink):
   dest : ^str;
 
-  function *Create(adest : ref str):
+  function *Create(adest : ^str):
     inherited Create();
-    dest = &adest;
+    dest = adest;
   endfunc
 
   function Write(atext : strview) [[override]]:
@@ -69,7 +64,7 @@ object OTextSinkStr(OTextSink):
   endfunc
 
   function WriteChar(ch : char) [[override]]:
-    //dest.AppendChar(ch);
+    dest^.AppendChar(ch);
   endfunc
 endobj
 
@@ -102,6 +97,8 @@ function *Main() -> int:
   Print('cs:'); PrintLn(cs);
 
   var s : str = 'asdf';
+  var sout <- OTextSinkStr(&s);
+  sout.Write('+sout_append');
 
   Print('s:'); PrintLn(s);
 

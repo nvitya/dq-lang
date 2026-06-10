@@ -214,7 +214,7 @@ enum ETypeKind
   TK_STRVIEW      =  9,
   TK_DYNSTR       = 10,
 
-  TK_ANYVAL       = 15,
+  TK_ANYVALUE     = 15,
 
   TK_STRUCT       = 16,
   TK_OBJECT       = 17,

@@ -580,7 +580,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
   if (tkd != tks)
   {
-    if (TK_ANYVAL == tkd)
+    if (TK_ANYVALUE == tkd)
     {
       if (!IsAnyValueSourceType(resolved_src))
       {
@@ -774,7 +774,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
       OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      if ((TK_ANYVAL == slicedst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      if ((TK_ANYVALUE == slicedst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
       {
         auto * arrlit = static_cast<OArrayLit *>(src);
         if (!EnsureAnyValueRtlUse())
@@ -881,7 +881,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
       if (TK_ARRAY == tks)
       {
         auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
-        if ((TK_ANYVAL == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+        if ((TK_ANYVALUE == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
         {
           auto * arrlit = static_cast<OArrayLit *>(src);
           if (!EnsureAnyValueRtlUse())
@@ -1153,7 +1153,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
     OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
     OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-    if ((TK_ANYVAL == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+    if ((TK_ANYVALUE == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
     {
       auto * arrlit = static_cast<OArrayLit *>(src);
       if (arrdst->arraylength != arrlit->elements.size())
@@ -1267,7 +1267,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
   if (tkd != tks)
   {
-    if (TK_ANYVAL == tkd)
+    if (TK_ANYVALUE == tkd)
     {
       return IsAnyValueSourceType(resolved_src) ? 1 : -1;
     }
@@ -1347,7 +1347,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     {
       OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      if ((TK_ANYVAL == slicedst->elemtype->ResolveAlias()->kind)
+      if ((TK_ANYVALUE == slicedst->elemtype->ResolveAlias()->kind)
           && (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
           && dynamic_cast<OArrayLit *>(expr))
       {
@@ -1390,7 +1390,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       if (TK_ARRAY == tks)
       {
         auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
-        if ((TK_ANYVAL == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+        if ((TK_ANYVALUE == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
         {
           return 1;
         }
@@ -1495,7 +1495,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
     OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
     OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-    if ((TK_ANYVAL == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+    if ((TK_ANYVALUE == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
     {
       return (arrdst->arraylength == arrsrc->arraylength) ? 1 : -1;
     }

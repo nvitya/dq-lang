@@ -183,7 +183,7 @@ bool IsAnyValueSourceType(OType * type)
   }
   switch (resolved->kind)
   {
-    case TK_ANYVAL:
+    case TK_ANYVALUE:
     case TK_BOOL:
     case TK_INT:
     case TK_FLOAT:
@@ -261,7 +261,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return false;
   }
 
-  if (TK_ANYVAL == srctype->kind)
+  if (TK_ANYVALUE == srctype->kind)
   {
     if (auto * lval = dynamic_cast<OLValueExpr *>(value))
     {

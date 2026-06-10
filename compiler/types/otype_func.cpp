@@ -800,7 +800,7 @@ void OValSymFunc::GenerateFuncBody()
     result_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(vsresult->ptype)));
     vsresult->ll_value = result_alloca;
     ll_builder.CreateStore(llvm::Constant::getNullValue(ll_rettype), vsresult->ll_value);
-    if (vsresult->ptype && TK_ANYVAL == vsresult->ptype->ResolveAlias()->kind)
+    if (vsresult->ptype && TK_ANYVALUE == vsresult->ptype->ResolveAlias()->kind)
     {
       GenerateAnyValueCreate(body->scope, vsresult->ll_value);
     }
@@ -825,7 +825,7 @@ void OValSymFunc::GenerateFuncBody()
     auto * arg_alloca = ll_builder.CreateAlloca(ll_arg_type->GetLlType(), nullptr, fpar->name);
     arg_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(ll_arg_type)));
     vsarg->ll_value = arg_alloca;
-    if (!fpar->IsRefLike() && fpar->ptype && TK_ANYVAL == fpar->ptype->ResolveAlias()->kind)
+    if (!fpar->IsRefLike() && fpar->ptype && TK_ANYVALUE == fpar->ptype->ResolveAlias()->kind)
     {
       LlValue * raw_arg_alloca = ll_builder.CreateAlloca(ll_arg_type->GetLlType(), nullptr, fpar->name + ".raw");
       ll_builder.CreateStore(&arg, raw_arg_alloca);

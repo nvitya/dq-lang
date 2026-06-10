@@ -1177,7 +1177,7 @@ void ODqCompParser::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
-    if (pvalsym->ptype && (TK_ANYVAL == pvalsym->ptype->ResolveAlias()->kind))
+    if (pvalsym->ptype && (TK_ANYVALUE == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }
@@ -3288,7 +3288,7 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
     }
   }
 
-  if (TK_ANYVAL == ptype->kind)
+  if (TK_ANYVALUE == ptype->kind)
   {
     if (!EnsureAnyValueRtlUse())
     {
@@ -5462,7 +5462,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
 
-        if (TK_ANYVAL == tk)
+        if (TK_ANYVALUE == tk)
         {
           result = ParseAnyValueMethod(result, lval, membername);
           if (!result) return nullptr;

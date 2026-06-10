@@ -71,7 +71,7 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
     owned_objects.push_back(avalsym);
   }
   else if (avalsym->ptype
-           && (TK_ANYVAL == avalsym->ptype->ResolveAlias()->kind)
+           && (TK_ANYVALUE == avalsym->ptype->ResolveAlias()->kind)
            && !avalsym->IsRefLike()
            && ("result" != avalsym->name))
   {
@@ -901,7 +901,7 @@ bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
   }
 
   OType * storage_type = GetStorageType()->ResolveAlias();
-  if (TK_ANYVAL == storage_type->kind)
+  if (TK_ANYVALUE == storage_type->kind)
   {
     return GenerateAnyValueAssignExpr(scope, ll_field_addr, field_init_expr);
   }

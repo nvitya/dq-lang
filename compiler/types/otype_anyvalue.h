@@ -60,7 +60,7 @@ private:
 public:
   OTypeAnyValue()
   :
-    super("anyvalue", TK_ANYVAL)
+    super("anyvalue", TK_ANYVALUE)
   {
     bytesize = 16 + 3 + TARGET_PTRSIZE - 1;
     alignsize = 1;

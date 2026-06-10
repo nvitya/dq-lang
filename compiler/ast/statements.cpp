@@ -189,7 +189,7 @@ void OStmtReturn::Generate(OScope * scope)
         throw logic_error("Unsupported string return value");
       }
     }
-    else if (TK_ANYVAL == vsfunc->vsresult->ptype->ResolveAlias()->kind)
+    else if (TK_ANYVALUE == vsfunc->vsresult->ptype->ResolveAlias()->kind)
     {
       if (!GenerateAnyValueAssignExpr(scope, vsfunc->vsresult->ll_value, value))
       {
@@ -517,7 +517,7 @@ void OStmtAssign::Generate(OScope * scope)
     return;
   }
 
-  if (TK_ANYVAL == target->ResolvedType()->kind)
+  if (TK_ANYVALUE == target->ResolvedType()->kind)
   {
     LlValue * ll_addr = target->GenerateAddress(scope);
     if (!GenerateAnyValueAssignExpr(scope, ll_addr, value))

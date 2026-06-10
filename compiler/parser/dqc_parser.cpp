@@ -3122,8 +3122,9 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
       return elemtype->GetArrayType(0);
     }
 
-    int64_t arrlen;
-    if (not scf->ReadInt64Value(arrlen))
+    OExpr * arrlen_expr = ParseExpression();
+    int64_t arrlen = 0;
+    if (!arrlen_expr)
     {
       if (aemit_errors)
       {
@@ -3131,6 +3132,16 @@ OType * ODqCompParser::ParseTypeSpec(bool aemit_errors)
       }
       return nullptr;
     }
+    if (!TryCalculateIntConstant(arrlen_expr, arrlen))
+    {
+      OExpr::DeleteTree(arrlen_expr);
+      if (aemit_errors)
+      {
+        Error(DQERR_ARRAY_SIZESPEC);
+      }
+      return nullptr;
+    }
+    OExpr::DeleteTree(arrlen_expr);
     if (arrlen <= 0)
     {
       if (aemit_errors)

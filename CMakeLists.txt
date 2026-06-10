@@ -27,15 +27,27 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
     PATTERN ".dqbuild" EXCLUDE
 )
 
+set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c build/dq-comp -r autotest/tests)
+
+add_custom_target(cleantest
+  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+)
+
 add_custom_target(autotest
-  COMMAND "$<TARGET_FILE:dqatrun>" -c build/dq-comp -r autotest/tests
+  COMMAND ${DQ_AUTOTEST_COMMAND}
   DEPENDS dq-comp dqatrun
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
 
 add_custom_target(test
-  DEPENDS autotest
+  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
+  COMMAND ${DQ_AUTOTEST_COMMAND}
+  DEPENDS dq-comp dqatrun
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
 )
 
 add_custom_target(check

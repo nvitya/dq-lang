@@ -6,6 +6,9 @@ var bad_slice_literal_storage : []int = [1, 2, 3]; //?error(TypeMismatchAssign)
 var bad_static_literal_size : [3]int = [1, 2, 3, 4]; //?error(ArrSize)
 var len4 : [4]int = [1, 2, 3, 4];
 var bad_static_length_type : [3]int = len4; //?error(ArrSize)
+var nonconst_array_len : int = 3;
+var bad_static_expr_nonconst : [nonconst_array_len]int; //?error(ArraySizeSpec)
+var bad_static_expr_zero : [1 - 1]int; //?error(SizeSpec)
 
 function StaticStructuralMethodsAreInvalid():
   var arr : [3]int = [1, 2, 3];

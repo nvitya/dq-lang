@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.15.1"
+#define DQ_COMPILER_VERSION  "0.15.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.15.2:
+  - Proper expression support at array size declarations (like _pad : [@def.PTRSIZE - 1]byte;)
+  - Pointer difference calculation fixes
+  - "make test" makes full cleanup first
 v0.15.1:
   - Pointer to object casting
 v0.15.0:

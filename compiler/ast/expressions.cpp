@@ -24,6 +24,16 @@
 #include "named_scopes.h"
 #include <llvm/IR/Intrinsics.h>
 
+static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
+{
+  OType * ltype = left ? left->ResolvedType() : nullptr;
+  OType * rtype = right ? right->ResolvedType() : nullptr;
+  return (BINOP_SUB == op)
+      && ltype && rtype
+      && (TK_POINTER == ltype->kind)
+      && (TK_POINTER == rtype->kind);
+}
+
 string GetBinopSymbol(EBinOp op)
 {
   if (BINOP_ADD   == op)  return "+";
@@ -733,6 +743,12 @@ void OLValueIndex::DeleteChildTree()
   left  = aleft;
   right = aright;
 
+  if (IsPointerDifferenceExpr(op, left, right))
+  {
+    ptype = g_builtins->native_uint;
+    return;
+  }
+
   ptype = aleft->ptype;  // the right shuld be the same or compatible
   if (TK_INT == ptype->kind)
   {
@@ -753,6 +769,25 @@ LlValue * OBinExpr::Generate(OScope * scope)
 {
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
+
+  if (IsPointerDifferenceExpr(op, left, right))
+  {
+    OTypePointer * ptrtype = static_cast<OTypePointer *>(left->ResolvedType());
+    LlType * ll_uinttype = g_builtins->native_uint->GetLlType();
+    LlValue * ll_diff = ll_builder.CreateSub(
+        ll_builder.CreatePtrToInt(ll_left, ll_uinttype),
+        ll_builder.CreatePtrToInt(ll_right, ll_uinttype),
+        "ptr.diff.bytes");
+
+    uint32_t elem_size = ptrtype->basetype->bytesize;
+    if (elem_size > 1)
+    {
+      LlValue * ll_elem_size = llvm::ConstantInt::get(ll_uinttype, elem_size);
+      ll_diff = ll_builder.CreateUDiv(ll_diff, ll_elem_size, "ptr.diff");
+    }
+
+    return ll_diff;
+  }
 
   if (TK_POINTER == ptype->kind)
   {

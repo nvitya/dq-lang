@@ -1,6 +1,6 @@
 // dynamic array type checking
 
-var bad_old_dyn : [...]int;  //?error(ArraySizeSpec)
+var bad_old_dyn : [...]int;  //?error(ArraySizeSpec), error(ExprUnexpectedChar)
 const bad_const : [*]int = 0;  //?error(NotSupported)
 
 function bad_value_param(arr : [*]int):  //?error(NotSupported)

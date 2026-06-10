@@ -16,11 +16,7 @@ struct SDqAnyValue:
   kind     : byte;      // one of the DQTK_xxx values
   subtype  : byte;
   datasize : byte;
-  #if 4 == @def.PTRSIZE
-    _pad     : [1]byte;
-  #else
-    _pad     : [5]byte;
-  #endif
+  _pad     : [@def.PTRSIZE - 1]byte;
 endstruct
 
 // Special "null" value for database handling, not same as "null" pointer !
@@ -72,10 +68,17 @@ use rtl/dynstrmgr;
 
 function AnyValSetKind(v : ref SDqAnyValue, akind : byte):
   if v.kind == DQTK_DYNSTR:
-    //TODO: release dynamic string handler
+    if akind == DQTK_DYNSTR:
+      return;
+    endif
     var dsmgr : ODynStrMgr = ODynStrMgr(&v.data[0]);
+    DynStrDecRef(dsmgr);
+    dsmgr = null;
   endif
   v.kind = akind;
+  if akind == DQTK_DYNSTR:
+    ^pointer(&v.data[0])^ = null;  // null manager object = empty string
+  endif
 endfunc
 
 // DB Null Handling
@@ -282,7 +285,10 @@ function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str:
 endfunc
 
 function AnyValSetStr(v : ref SDqAnyValue, sv : strview):
-
+  AnyValSetKind(v, DQTK_DYNSTR);
+  //TODO: implement
+  //var mgr : ODynStrMgr = ODynStrMgr(&v.data[0]);
+  //DynStrAssignData(mgr, sv);
 endfunc
 
 function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):

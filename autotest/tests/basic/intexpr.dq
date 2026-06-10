@@ -155,8 +155,16 @@ function *Main() -> int:
   printf("folded int8 = %d\n", folded_si8);  //?check('folded int8', -128)
 
   var arr3 : [3]int16;
+  var ptr_pad : [@def.PTRSIZE - 1]byte;
   printf("sizeof(arr3) = %d\n", sizeof(arr3));                //?check('sizeof(arr3)', 6)
   printf("sizeof([3]int16) = %d\n", sizeof([3]int16));        //?check('sizeof([3]int16)', 6)
+  #if @def.PTRSIZE == 8
+    printf("[64]sizeof(ptr_pad) = %d\n", sizeof(ptr_pad));          //?check('[64]sizeof(ptr_pad)', 7)
+    printf("[32]sizeof(ptr_pad) = 3\n");
+  #else
+    printf("[64]sizeof(ptr_pad) = 7\n");
+    printf("[32]sizeof(ptr_pad) = %d\n", sizeof(ptr_pad));          //?check('[32]sizeof(ptr_pad)', 3)
+  #endif
   printf("sizeof(int32) = %d\n", sizeof(int32));              //?check('sizeof(int32)', 4)
   printf("sizeof(cstring(12)) = %d\n", sizeof(cstring(12)));  //?check('sizeof(cstring(12))', 13)
 

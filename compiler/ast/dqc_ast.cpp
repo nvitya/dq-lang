@@ -502,6 +502,17 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
       return nullptr;
     }
   }
+  else if ((TK_POINTER == tkl) and (TK_POINTER == tkr))
+  {
+    OTypePointer * lptr = static_cast<OTypePointer *>(left->ResolvedType());
+    OTypePointer * rptr = static_cast<OTypePointer *>(right->ResolvedType());
+    if ((BINOP_SUB != op) or !lptr->IsTypedPointer() or !rptr->IsTypedPointer()
+        or (lptr->basetype->ResolveAlias() != rptr->basetype->ResolveAlias()))
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
+      return nullptr;
+    }
+  }
   else if (tkl != tkr)
   {
     if ((TK_POINTER == tkl) and (TK_INT == tkr)

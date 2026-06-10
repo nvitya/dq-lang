@@ -54,6 +54,7 @@ public:
   void GenerateVTableStore(LlValue * ll_object_addr);
 
   void        EnsureLayout() override;
+  LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
   LlType *    CreateLlType() override;
   LlDiType *  CreateDiType() override;
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;

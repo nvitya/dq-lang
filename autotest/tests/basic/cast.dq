@@ -2,6 +2,14 @@
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
+object OCastBox:
+  value : int;
+
+  function *Create(a : int):
+    value = a;
+  endfunc
+endobj
+
 function dq_cast_bool_to_int() -> int:
   var btrue : bool = true;
   var bfalse : bool = false;
@@ -34,6 +42,15 @@ function dq_cast_address_constant() -> uint:
   var p : ^byte = ^byte(0x7F001000);
   result = uint(p);
 endfunc
+
+function dq_cast_object_pointer_roundtrip() -> int:
+  var box : OCastBox = new OCastBox(77);
+  var raw : pointer = pointer(box);
+  var restored : OCastBox = OCastBox(raw);
+  result = restored.value;
+  delete box;
+endfunc
+
 function *Main() -> int:
   printf("Testing DQ explicit casts:\n");  //?ignore('Testing DQ explicit casts:')
 
@@ -42,5 +59,6 @@ function *Main() -> int:
   printf("dq_cast_opaque_pointer() = %li\n", dq_cast_opaque_pointer());  //?check('dq_cast_opaque_pointer()', 55)
   printf("dq_cast_multi_source_pointer() = %li\n", dq_cast_multi_source_pointer());  //?check('dq_cast_multi_source_pointer()', 1)
   printf("dq_cast_address_constant() = 0x%lX\n", dq_cast_address_constant());  //?check('dq_cast_address_constant()', 0x7F001000)
+  printf("dq_cast_object_pointer_roundtrip() = %li\n", dq_cast_object_pointer_roundtrip());  //?check('dq_cast_object_pointer_roundtrip()', 77)
   return 0;
 endfunc

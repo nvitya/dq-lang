@@ -481,6 +481,16 @@ LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)
     return ll_builder.CreateBitCast(ll_value, GetLlType());
   }
 
+  if (TK_OBJECT == srctype->kind)
+  {
+    LlValue * ll_value = src->Generate(scope);
+    if (ll_value->getType() == GetLlType())
+    {
+      return ll_value;
+    }
+    return ll_builder.CreateBitCast(ll_value, GetLlType());
+  }
+
   OTypeInt * srcint = dynamic_cast<OTypeInt *>(srctype);
   if (srcint)
   {

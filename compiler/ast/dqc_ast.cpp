@@ -579,6 +579,17 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         {
           *rexpr = new OObjectUpcastExpr(dsttype, src);
         }
+        else if (is_explicit_cast)
+        {
+          *rexpr = new OExprTypeConv(dsttype, src);
+          FoldExprTreeAfterTypeRewrite(rexpr);
+        }
+        return true;
+      }
+      if (is_explicit_cast && dst_object)
+      {
+        *rexpr = new OExprTypeConv(dsttype, src);
+        FoldExprTreeAfterTypeRewrite(rexpr);
         return true;
       }
       if (aflags & EXPCF_GENERATE_ERRORS)
@@ -708,6 +719,13 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
         return false;
       }
 
+      *rexpr = new OExprTypeConv(dsttype, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_OBJECT == tks))
+    {
       *rexpr = new OExprTypeConv(dsttype, src);
       FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
@@ -1164,7 +1182,11 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
       OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
       OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      return (dst_object && (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(dst_object)))) ? 0 : -1;
+      if (dst_object && (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(dst_object))))
+      {
+        return 0;
+      }
+      return (is_explicit_cast && dst_object) ? 1 : -1;
     }
 
     if (TK_FUNCREF == tkd)
@@ -1219,6 +1241,11 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
     {
       return (IsPointerWidthIntegerType(resolved_dst) ? 1 : -1);
+    }
+
+    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_OBJECT == tks))
+    {
+      return 1;
     }
 
     if ((TK_ARRAY_SLICE == tkd) && (TK_ARRAY == tks))

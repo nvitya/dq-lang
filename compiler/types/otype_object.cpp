@@ -504,6 +504,28 @@ void OTypeObject::GenerateVTableStore(LlValue * ll_object_addr)
   ll_builder.CreateStore(ll_vtable_ptr, ll_vptr_addr);
 }
 
+LlValue * OTypeObject::GenerateConversion(OScope * scope, OExpr * src)
+{
+  OType * srctype = src ? src->ResolvedType() : nullptr;
+  if (!srctype)
+  {
+    throw logic_error("Object conversion requires a source type");
+  }
+
+  if (TK_POINTER == srctype->kind)
+  {
+    LlValue * ll_value = src->Generate(scope);
+    LlType * ll_objptr = GetPointerType()->GetLlType();
+    if (ll_value->getType() == ll_objptr)
+    {
+      return ll_value;
+    }
+    return ll_builder.CreateBitCast(ll_value, ll_objptr);
+  }
+
+  throw logic_error(format("Unsupported object conversion from \"{}\"", src->ptype->name));
+}
+
 void OTypeObject::EnsureLayout()
 {
   if (layout_ready)

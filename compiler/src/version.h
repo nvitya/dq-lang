@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.15.0"
+#define DQ_COMPILER_VERSION  "0.15.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.15.1:
+  - Pointer to object casting
 v0.15.0:
   - Dynamic strings (str) and strview implementation phase 1
 v0.14.4:

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.8"
+#define DQ_COMPILER_VERSION  "0.16.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.1:
+  - Default optimization level changed to 1!
+  - Function exports fixed for -O1
 v0.16.8:
   - "print" module added with Print(), PrintLn()
 v0.16.7:

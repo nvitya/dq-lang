@@ -218,7 +218,7 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
     return;
   }
 
-  llvm::PassBuilder PB;
+  llvm::PassBuilder PB(ll_machine);
 
   llvm::LoopAnalysisManager     LAM;
   llvm::FunctionAnalysisManager FAM;

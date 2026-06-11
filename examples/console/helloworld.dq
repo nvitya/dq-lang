@@ -1,0 +1,6 @@
+use print;
+
+function *Main() -> int:
+  PrintLn('Hello World!');
+  return 0;
+endfunc

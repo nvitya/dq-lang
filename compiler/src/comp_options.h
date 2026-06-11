@@ -41,10 +41,10 @@ class OCompOptions
 public:
   bool     print_version = false;  // --version
   int      verblevel = VERBLEVEL_NONE;
-  bool     dbg_info = false;  // -g
-  bool     ir_print = false;  // -ir
+  bool     dbg_info = false;      // -g
+  bool     ir_print = false;      // -ir
   bool     compile_only = false;  // -c
-  int      optlevel = 0;
+  int      optlevel = 1;          // -On
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump

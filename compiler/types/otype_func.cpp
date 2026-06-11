@@ -648,9 +648,13 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   //print("Found function declaration \"{}\"\n", ptfunc->name);
 
-  llvm::GlobalValue::LinkageTypes  linktype =
-    (apublic ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
-              : llvm::GlobalValue::LinkageTypes::InternalLinkage);
+  llvm::GlobalValue::LinkageTypes  linktype;
+  if (is_external) {
+    linktype = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+  } else {
+    linktype = (apublic ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
+                        : llvm::GlobalValue::LinkageTypes::InternalLinkage);
+  }
 
   LlFuncType *  ll_functype = (LlFuncType *)(ptype->GetLlType());  // calls CreateLlType()
 

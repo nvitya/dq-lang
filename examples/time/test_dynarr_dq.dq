@@ -21,20 +21,38 @@ endfunc
 
 const default_maxval : int = 1000000;
 
-var darr : [*]int;
+var darr : [*]int32;
 
-function FillArray(maxval : int):
+function FillArray(maxval : int32):
   darr.Clear();
-  for i : int = 0 count maxval:
+  for i : int32 = 0 count maxval:
     darr.Append(i);
   endfor
 endfunc
 
+function FillArrayPtr(maxval : int32):
+  darr.SetLength(maxval);
+  var pi32 : ^int32 = &darr[0];
+  for i : int32 = 0 count maxval:
+    pi32[i]^ = i;
+  endfor
+endfunc
+
+
 function CalcSum() -> int64:
   result = 0;
-  var arrlen : int = darr.length;
+  var arrlen : int32 = darr.length;
   for i : int = 0 count arrlen:
-    result += darr[i];
+    result += darr[i];  // range checked
+  endfor
+endfunc
+
+function CalcSumPtr() -> int64:
+  result = 0;
+  var arrlen : int32 = darr.length;
+  var pi32 : ^int32 = &darr[0];
+  for i : int = 0 count arrlen:
+    result += pi32[i]^;
   endfor
 endfunc
 
@@ -52,19 +70,35 @@ function *Main() -> int:
 
   var t1 : int64;
   var t2 : int64;
+  var sum : int64 = 0;
 
   PrintLn('Filling the dynamic array...');
   t1 = NanoTime();
   FillArray(maxval);
   t2 = NanoTime();
-  PrintLn('Total fill time: {} ns', [t2 - t1]);
+  PrintLn('Total fill time: {} us', [(t2 - t1) IDIV 1000]);
 
   PrintLn('Summing the dynamic array...');
-  var sum : int64 = 0;
   t1 = NanoTime();
   sum = CalcSum();
   t2 = NanoTime();
-  PrintLn('Total sum time: {} ns', [t2 - t1]);
+  PrintLn('sum = {}', [sum]);
+  PrintLn('Total sum time: {} us', [(t2 - t1) IDIV 1000]);
+
+  PrintLn('\nUsing pointer operations\n');
+
+  PrintLn('Filling the dynamic array (ptr)...');
+  t1 = NanoTime();
+  FillArrayPtr(maxval);
+  t2 = NanoTime();
+  PrintLn('Total fill time: {} us', [(t2 - t1) IDIV 1000]);
+
+  PrintLn('Summing the dynamic array (ptr)...');
+  t1 = NanoTime();
+  sum = CalcSumPtr();
+  t2 = NanoTime();
+  PrintLn('sum = {}', [sum]);
+  PrintLn('Total sum time: {} us', [(t2 - t1) IDIV 1000]);
 
   return 0;
 endfunc

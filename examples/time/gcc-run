@@ -1,0 +1,49 @@
+#!/bin/bash
+
+src_file=""
+compilation_args=()
+execution_args=()
+found_src=false
+
+# 1. Separate compilation arguments from execution arguments
+for arg in "$@"; do
+    if [ "$found_src" = true ]; then
+        # If we already found the source file, remaining args are for execution
+        execution_args+=("$arg")
+    else
+        # Otherwise, they belong to the compiler
+        compilation_args+=("$arg")
+        
+        # Check if the current argument is our source file
+        if [[ "$arg" == *.c ]] || [[ "$arg" == *.cpp ]]; then
+            src_file="$arg"
+            found_src=true
+        fi
+    fi
+done
+
+# 2. Exit if no source file was found
+if [ -z "$src_file" ]; then
+    echo "Error: No .c or .cpp file specified."
+    exit 1
+fi
+
+# 3. Get the base filename without the extension
+out_file="${src_file%.*}"
+
+# 4. Choose the correct compiler
+compiler="gcc"
+if [[ "$src_file" == *.cpp ]]; then
+    compiler="g++"
+fi
+
+# 5. Compile the program using ONLY the compilation arguments
+$compiler "${compilation_args[@]}" -o "$out_file"
+
+# 6. If compilation succeeds, execute the binary with the execution arguments
+if [ $? -eq 0 ]; then
+    "./$out_file" "${execution_args[@]}"
+else
+    echo "Compilation failed."
+    exit 1
+fi

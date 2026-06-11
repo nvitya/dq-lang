@@ -124,7 +124,7 @@ function DynArrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint,
     return -1;
   endif
 
-  var used_bytes : uint = DynArrCalcByteSize(length, elemsize);
+  var used_bytes : uint = @.DynArrCalcByteSize(length, elemsize);
   if used_bytes == 0:
     return -1;
   endif

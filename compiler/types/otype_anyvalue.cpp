@@ -229,7 +229,7 @@ static bool GenerateAnyValueTextAssign(OScope * scope, LlValue * targetaddr, OEx
     CallAnyValueFunc("AnyValSetStr", {targetaddr, srcstr});
     if (!dynamic_cast<OLValueExpr *>(value))
     {
-      LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.str.tmp");
+      LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.str.tmp");
       ll_builder.CreateStore(srcstr, tmp);
       GenerateStringDestroy(scope, tmp);
     }
@@ -269,7 +269,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     }
     else
     {
-      LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_anyvalue->GetLlType(), nullptr, "any.move.tmp");
+      LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_anyvalue->GetLlType(), nullptr, "any.move.tmp");
       ll_builder.CreateStore(value->Generate(scope), tmp);
       GenerateAnyValueMove(scope, targetaddr, tmp);
     }
@@ -326,7 +326,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
 
 LlValue * GenerateAnyValueBoxExpr(OScope * scope, OType * anytype, OExpr * source)
 {
-  LlValue * tmp = ll_builder.CreateAlloca(anytype->GetLlType(), nullptr, "any.box.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(anytype->GetLlType(), nullptr, "any.box.tmp");
   GenerateAnyValueCreate(scope, tmp);
   if (!GenerateAnyValueAssignExpr(scope, tmp, source))
   {
@@ -370,7 +370,7 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_AS_TEXT:
     {
       LlValue * defaddr = GenerateTextInfoAddress(scope, args[0]);
-      LlValue * viewaddr = ll_builder.CreateAlloca(g_builtins->type_strview->GetLlType(), nullptr, "any.text.view");
+      LlValue * viewaddr = CreateEntryBlockAlloca(g_builtins->type_strview->GetLlType(), nullptr, "any.text.view");
       CallAnyValueFunc("AnyValAsText", {addr, defaddr, viewaddr});
       return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), viewaddr, "any.text");
     }
@@ -387,7 +387,7 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
         CallAnyValueFunc("AnyValSetStr", {addr, srcstr});
         if (!dynamic_cast<OLValueExpr *>(args[0]))
         {
-          LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.setstr.tmp");
+          LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.setstr.tmp");
           ll_builder.CreateStore(srcstr, tmp);
           GenerateStringDestroy(scope, tmp);
         }

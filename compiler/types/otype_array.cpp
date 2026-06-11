@@ -307,7 +307,7 @@ LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlVal
 {
   (void)scope;
   (void)dyntype;
-  LlValue * descaddr = ll_builder.CreateAlloca(dyntype->elemtype->GetSliceType()->GetLlType(), nullptr, "dyn.data.desc");
+  LlValue * descaddr = CreateEntryBlockAlloca(dyntype->elemtype->GetSliceType()->GetLlType(), nullptr, "dyn.data.desc");
   CallDynArrayFunc("DynArrGetFullSlice", {dynaddr, descaddr});
   LlValue * desc = ll_builder.CreateLoad(dyntype->elemtype->GetSliceType()->GetLlType(), descaddr, "dyn.data.slice");
   return ll_builder.CreateExtractValue(desc, {0}, "dyn.ptr");
@@ -338,7 +338,7 @@ LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue
                                 OExpr * start_expr, OExpr * end_expr, OType * slicetype)
 {
   (void)dyntype;
-  LlValue * descaddr = ll_builder.CreateAlloca(slicetype->GetLlType(), nullptr, "dyn.slice.desc");
+  LlValue * descaddr = CreateEntryBlockAlloca(slicetype->GetLlType(), nullptr, "dyn.slice.desc");
   if (!start_expr && !end_expr)
   {
     CallDynArrayFunc("DynArrGetFullSlice", {dynaddr, descaddr});
@@ -421,7 +421,7 @@ void GenerateDynArraySetCapacity(OScope * scope, OTypeDynArray * dyntype, LlValu
 
 void GenerateDynArrayAppend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = ll_builder.CreateAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.append.value");
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.append.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), tmp, LlOne()});
 }
@@ -436,7 +436,7 @@ void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValu
 
 void GenerateDynArrayPrepend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = ll_builder.CreateAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.prepend.value");
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.prepend.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), tmp, LlOne()});
 }
@@ -452,7 +452,7 @@ void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlVal
 void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * value)
 {
   LlValue * idx = IntExprValue(scope, index);
-  LlValue * tmp = ll_builder.CreateAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.insert.value");
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.insert.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, tmp, LlOne()});
 }
@@ -477,7 +477,7 @@ void GenerateDynArrayDelete(OScope * scope, OTypeDynArray * dyntype, LlValue * d
 LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
 {
   (void)scope;
-  LlValue * tmp = ll_builder.CreateAlloca(dyntype->GetLlType(), nullptr, "dyn.clone.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.clone.tmp");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), tmp);
   LlValue * srcmgr = GenerateDynArrayManagerValue(scope, dyntype, dynaddr);
   CallDynArrayFunc("DynArrClone", {tmp, DynArrayTypeInfo(dyntype), srcmgr});
@@ -487,7 +487,7 @@ LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue
 LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, bool first)
 {
   (void)scope;
-  LlValue * tmp = ll_builder.CreateAlloca(dyntype->elemtype->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
   CallDynArrayFunc(first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
   return ll_builder.CreateLoad(dyntype->elemtype->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
 }

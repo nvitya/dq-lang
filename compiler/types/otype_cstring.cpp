@@ -246,7 +246,7 @@ LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
     return cstraddr;
   }
 
-  LlValue * descaddr = ll_builder.CreateAlloca(g_builtins->type_cstring->GetLlType(), nullptr, "cstr.desc.tmp");
+  LlValue * descaddr = CreateEntryBlockAlloca(g_builtins->type_cstring->GetLlType(), nullptr, "cstr.desc.tmp");
   LlValue * dataptr = GenerateCStringDataPtr(scope, this, cstraddr);
   LlType * desctype = g_builtins->type_cstring->GetLlType();
   LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "cstr.desc.ptr.addr");
@@ -271,7 +271,7 @@ static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
     return srctype->GenerateDescriptor(scope, srclval->GenerateAddress(scope));
   }
 
-  LlValue * tmp = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
   ll_builder.CreateStore(srcexpr->Generate(scope), tmp);
   return srctype->GenerateDescriptor(scope, tmp);
 }
@@ -334,7 +334,7 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
     }
     else
     {
-      auto * src_alloca = ll_builder.CreateAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+      auto * src_alloca = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
       src_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(srctype)));
       srcaddr = src_alloca;
       ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);

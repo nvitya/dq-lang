@@ -110,7 +110,7 @@ static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, 
       LlValue * arrayaddr = nullptr;
       if (auto * arrlit = dynamic_cast<OArrayLit *>(value))
       {
-        arrayaddr = ll_builder.CreateAlloca(arrtype->GetLlType(), nullptr, "dyn.assign.literal");
+        arrayaddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "dyn.assign.literal");
         ll_builder.CreateStore(arrlit->Generate(scope), arrayaddr);
       }
       else if (auto * lval = dynamic_cast<OLValueExpr *>(value))
@@ -213,7 +213,7 @@ void OStmtVarDecl::Generate(OScope * scope)
   // Local variable declaration
   OType * storage_type = variable->GetStorageType();
   LlType * ll_type = storage_type->GetLlType();
-  auto * alloca = ll_builder.CreateAlloca(ll_type, nullptr, variable->name);
+  auto * alloca = CreateEntryBlockAlloca(ll_type, nullptr, variable->name);
   alloca->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, variable->attr_align)));
   variable->ll_value = alloca;
   if (g_opt.dbg_info)

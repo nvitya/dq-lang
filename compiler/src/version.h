@@ -11,11 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.9"
+#define DQ_COMPILER_VERSION  "0.16.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
-v0.16.1:
+v0.16.10:
+  - Local for variable allocation fix
+v0.16.9:
   - Default optimization level changed to 1!
   - Function exports fixed for -O1
 v0.16.8:

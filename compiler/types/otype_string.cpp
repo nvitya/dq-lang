@@ -195,7 +195,7 @@ static bool IsCCharPointerType(OType * type)
 
 static LlValue * TextInfoAlloca()
 {
-  return ll_builder.CreateAlloca(g_builtins->type_strview->GetLlType(), nullptr, "text.desc");
+  return CreateEntryBlockAlloca(g_builtins->type_strview->GetLlType(), nullptr, "text.desc");
 }
 
 static LlValue * TextInfoValue(LlValue * ptr, uint32_t charlen, uint32_t info)
@@ -230,7 +230,7 @@ static LlValue * GeneratePointerTextInfo(OScope * scope, OExpr * expr)
 
 static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
 {
-  LlValue * tmp = ll_builder.CreateAlloca(LlType::getInt8Ty(ll_ctx), nullptr, "str.char.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(LlType::getInt8Ty(ll_ctx), nullptr, "str.char.tmp");
   LlValue * ch = ToCharValue(expr->Generate(scope));
   LlValue * bch = CallDynStrFunc("DynStrCharToByte", {ch});
   ll_builder.CreateStore(bch, tmp);
@@ -246,7 +246,7 @@ static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
   }
   else
   {
-    straddr = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.tmp.slot");
+    straddr = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.tmp.slot");
     ll_builder.CreateStore(expr->Generate(scope), straddr);
   }
   LlValue * descaddr = TextInfoAlloca();
@@ -594,7 +594,7 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       return nullptr;
     case STRM_CLONE:
     {
-      LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.clone.tmp");
+      LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.clone.tmp");
       GenerateStringCreate(scope, tmp);
       CallDynStrFunc("DynStrClone", {straddr, tmp});
       return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.clone");
@@ -602,7 +602,7 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
     case STRM_POP:
     case STRM_POP_FIRST:
     {
-      LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.pop.tmp");
+      LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.pop.tmp");
       GenerateStringCreate(scope, tmp);
       CallDynStrFunc(STRM_POP == method ? "DynStrPop" : "DynStrPopFirst",
           {straddr, ToNativeInt(args[0]->Generate(scope)), tmp});

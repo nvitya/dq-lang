@@ -656,7 +656,7 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
         llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), 1), "slice.end.inclusive");
   }
 
-  LlValue * descaddr = ll_builder.CreateAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
+  LlValue * descaddr = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
   ll_builder.CreateCall(SysRawArrayGetSliceFunc()->ll_func, {
       data_ptr,
       ToNativeInt(len),
@@ -1579,7 +1579,7 @@ LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
 {
   LlValue * ll_arr = arraylit->Generate(scope);
   OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
-  LlValue * arraddr = ll_builder.CreateAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
+  LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
   ll_builder.CreateStore(ll_arr, arraddr);
 
   LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
@@ -2567,7 +2567,7 @@ void OTextSourceToViewExpr::DeleteChildTree()
 
 LlValue * OTextSourceToStringExpr::Generate(OScope * scope)
 {
-  LlValue * tmp = ll_builder.CreateAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.cast.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.cast.tmp");
   GenerateStringCreate(scope, tmp);
   if (!GenerateStringAssignExpr(scope, tmp, source))
   {

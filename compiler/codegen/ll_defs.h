@@ -69,3 +69,10 @@ extern vector<LlDiScope *>   di_scope_stack;
 
 void ll_defs_init();
 void ll_init_debug_info();
+
+inline llvm::AllocaInst * CreateEntryBlockAlloca(llvm::Type * type, llvm::Value * ArraySize = nullptr, const llvm::Twine & VarName = "")
+{
+  llvm::Function * func = ll_builder.GetInsertBlock()->getParent();
+  llvm::IRBuilder<> TmpB(&func->getEntryBlock(), func->getEntryBlock().begin());
+  return TmpB.CreateAlloca(type, ArraySize, VarName);
+}

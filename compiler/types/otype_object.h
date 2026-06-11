@@ -47,6 +47,8 @@ public:
   OValSymFunc * FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous = nullptr) const;
   OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const override;
+  int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const override;
   OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;
   int FindVirtualSlot(OValSymFunc * afunc) const;
   void UpdateObjectInheritanceFlags();

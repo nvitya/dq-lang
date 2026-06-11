@@ -1925,21 +1925,15 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   if (added && aowner_type)
   {
     auto * owner_object = dynamic_cast<OTypeObject *>(aowner_type);
-    if ("Create" == fn->name)
+    if (owner_object && ("Create" == fn->name))
     {
       fn->object_specfunc_kind = OSF_CREATE;
-      if (owner_object)
-      {
-        owner_object->constructors.push_back(fn);
-      }
+      owner_object->constructors.push_back(fn);
     }
-    else if ("Destroy" == fn->name)
+    else if (owner_object && ("Destroy" == fn->name))
     {
       fn->object_specfunc_kind = OSF_DESTROY;
-      if (owner_object)
-      {
-        owner_object->destructor = fn;
-      }
+      owner_object->destructor = fn;
     }
   }
   if (added && (SFK_MODULE_INIT == fn->special_kind))
@@ -2049,7 +2043,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       }
       ctype->bytesize = uint32_t(bytesize);
     }
-    else if (ais_object && (DQMIF_OBJ_BASE == reader.recid))
+    else if (DQMIF_OBJ_BASE == reader.recid)
     {
       string basename;
       if (!reader.ReadString(basename) || !reader.NextRec())
@@ -2058,14 +2052,20 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
         return false;
       }
       OType * basetype = scope_pub->FindType(basename);
-      OTypeObject * object_type = dynamic_cast<OTypeObject *>(ctype);
-      OTypeObject * base_object = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
-      if (!object_type || !base_object)
+      OCompoundType * base_compound = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
+      if (!base_compound || (base_compound->kind != ctype->kind))
       {
         delete ctype;
-        return reader.Fail(format("Invalid DQM interface base object {} for {}", basename, declname));
+        return reader.Fail(format("Invalid DQM interface base compound {} for {}", basename, declname));
       }
-      object_type->base_type = base_object;
+      if (auto * object_type = dynamic_cast<OTypeObject *>(ctype))
+      {
+        object_type->base_type = static_cast<OTypeObject *>(base_compound);
+      }
+      else
+      {
+        ctype->base_type = base_compound;
+      }
     }
     else if (DQMIF_FIELD_BEGIN == reader.recid)
     {
@@ -2075,7 +2075,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
         return false;
       }
     }
-    else if (ais_object && (DQMIF_METHOD_BEGIN == reader.recid))
+    else if (DQMIF_METHOD_BEGIN == reader.recid)
     {
       if (!ReadFunctionDecl(reader, ctype, true) || !reader.NextRec())
       {

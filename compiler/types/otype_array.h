@@ -60,6 +60,10 @@ public:
     bytesize = elemtype->bytesize * arraylength;
     alignsize = elemtype->alignsize;
   }
+  bool ContainsManagedStorage() const override
+  {
+    return elemtype && elemtype->ContainsManagedStorage();
+  }
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
 };

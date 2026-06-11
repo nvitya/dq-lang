@@ -248,6 +248,11 @@ OValSym * OTypeObject::FindObjectMemberSymbol(const string & aname, OCompoundTyp
   return nullptr;
 }
 
+OValSym * OTypeObject::FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
+{
+  return FindObjectMemberSymbol(aname, rdecl_type);
+}
+
 int OTypeObject::FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
 {
   for (const OTypeObject * cur = this; cur; cur = cur->base_type)
@@ -263,6 +268,11 @@ int OTypeObject::FindObjectFieldIndex(const string & aname, OCompoundType ** rde
     }
   }
   return -1;
+}
+
+int OTypeObject::FindFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
+{
+  return FindObjectFieldIndex(aname, rdecl_type);
 }
 
 OValSymFunc * OTypeObject::FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type) const

@@ -88,9 +88,9 @@ void ODqCompCodegen::GenerateIr()
           vs->GenGlobalImportDecl();
         }
       }
-      else if (auto * object_type = dynamic_cast<OTypeObject *>(decl->ptype))
+      else if (auto * compound_type = dynamic_cast<OCompoundType *>(decl->ptype))
       {
-        for (auto & [name, vs] : object_type->Members()->valsyms)
+        for (auto & [name, vs] : compound_type->Members()->valsyms)
         {
           (void)name;
           gen_imported_function(vs);

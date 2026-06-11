@@ -1503,6 +1503,44 @@ void ODqCompParser::ParseStructDecl()
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
   }
 
+  scf->SkipWhite();
+  if (scf->CheckSymbol("("))
+  {
+    OType * basetype = ParseTypeSpec();
+    OCompoundType * base_struct = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
+    if (!base_struct || (TK_STRUCT != base_struct->kind))
+    {
+      Error(DQERR_TYPE_EXPECTED, "struct", basetype ? basetype->name : "?");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+    if (base_struct->ContainsManagedStorage())
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, "managed struct base");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+    ctype->base_type = base_struct;
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol(","))
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, "multiple struct inheritance");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+    if (!scf->CheckSymbol(")"))
+    {
+      Error(DQERR_MISSING_CLOSE_PAREN_FOR, "struct base");
+      SkipToModuleStatementStart();
+      delete ctype;
+      return;
+    }
+  }
+
   string block_closer;
   ParseCompoundBlockStart("endstruct", block_closer);
 
@@ -1535,6 +1573,13 @@ void ODqCompParser::ParseStructDecl()
     }
 
     scf->SaveCurPos(mempos);
+    scpos_statement_start = mempos;
+
+    if (scf->CheckSymbol("function"))
+    {
+      ReadCompoundMethod(ctype, MV_PUBLIC);
+      continue;
+    }
 
     if (not scf->ReadIdentifier(membername))
     {
@@ -1551,9 +1596,9 @@ void ODqCompParser::ParseStructDecl()
 
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
-    if (TK_DYN_ARRAY == mtype->ResolveAlias()->kind)
+    if (mtype->ContainsManagedStorage())
     {
-      StatementError(DQERR_NOT_SUPPORTED, "dynamic array struct member");
+      StatementError(DQERR_NOT_SUPPORTED, "managed struct member");
       break;
     }
 
@@ -1629,6 +1674,18 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   if (vsfunc->owner_compound_type)
   {
     auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
+    if (!owner_object
+        && (vsfunc->attr_is_virtual || vsfunc->attr_is_override
+            || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
+    {
+      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE,
+               "struct methods cannot be virtual, override, abstract, or final");
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
+
     if (    ((OSF_CREATE == vsfunc->object_specfunc_kind) or (OSF_DESTROY == vsfunc->object_specfunc_kind))
         and (vsfunc->attr_is_virtual || vsfunc->attr_is_override || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
     {
@@ -1984,7 +2041,7 @@ bool ODqCompParser::SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc)
   return false;
 }
 
-bool ODqCompParser::ReadObjectMethod(OTypeObject * object_type, EMemberVisibility avisibility)
+bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility)
 {
   string sid;
 
@@ -2021,9 +2078,9 @@ bool ODqCompParser::ReadObjectMethod(OTypeObject * object_type, EMemberVisibilit
 
   OTypeFunc    * tfunc  = new OTypeFunc(method_name);
 
-  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, object_type->Members());
-  vsfunc->owner_compound_type = object_type;
-  vsfunc->generated_linkage_name = object_type->name + "." + method_name;
+  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
+  vsfunc->owner_compound_type = compound_type;
+  vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
   vsfunc->object_specfunc_kind = objspecfunc_kind;
   vsfunc->member_visibility = avisibility;
   curvsfunc = vsfunc;
@@ -2037,11 +2094,21 @@ bool ODqCompParser::ReadObjectMethod(OTypeObject * object_type, EMemberVisibilit
   {
     ErrorTxt(DQERR_SPECIAL_FUNC_SIGNATURE, "Create must not have a return value");
   }
+  OTypeObject * object_type = dynamic_cast<OTypeObject *>(compound_type);
+  if (!object_type && (OSF_NONE != objspecfunc_kind))
+  {
+    ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, "struct methods cannot be constructors or destructors");
+    RecoverFailedFunctionDecl();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
 
-  InjectObjectReceiver(vsfunc, object_type);
+  InjectObjectReceiver(vsfunc, compound_type);
 
-  bool ok = FinishFunctionDecl(vsfunc, object_type->Members(), object_type->Members(), true, false, "object method declaration");
-  if (ok && (OSF_NONE != objspecfunc_kind))
+  string owner_desc = object_type ? "object method declaration" : "struct method declaration";
+  bool ok = FinishFunctionDecl(vsfunc, compound_type->Members(), compound_type->Members(), true, false, owner_desc);
+  if (ok && object_type && (OSF_NONE != objspecfunc_kind))
   {
     if (OSF_CREATE == objspecfunc_kind)
     {
@@ -2423,7 +2490,7 @@ void ODqCompParser::ParseObjectDecl()
 
     if (scf->CheckSymbol("function"))
     {
-      ReadObjectMethod(object_type, current_visibility);
+      ReadCompoundMethod(object_type, current_visibility);
       continue;
     }
 
@@ -2692,22 +2759,23 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
     return;
   }
 
-  OTypeObject * object_type = dynamic_cast<OTypeObject *>(foundtype->ResolveAlias());
-  if (!object_type)
+  OCompoundType * compound_type = dynamic_cast<OCompoundType *>(foundtype->ResolveAlias());
+  if (!compound_type)
   {
-    Error(DQERR_TYPE_EXPECTED, "object", foundtype->name);
+    Error(DQERR_TYPE_EXPECTED, "compound", foundtype->name);
     delete tfunc;
     RecoverFailedFunctionDecl();
     return;
   }
 
-  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, object_type->Members());
-  vsfunc->owner_compound_type = object_type;
-  vsfunc->generated_linkage_name = object_type->name + "." + method_name;
+  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
+  vsfunc->owner_compound_type = compound_type;
+  vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
   curvsfunc = vsfunc;
 
-  InjectObjectReceiver(vsfunc, object_type);
-  FinishFunctionDecl(vsfunc, object_type->Members(), object_type->Members(), true, false, "object method declaration");
+  InjectObjectReceiver(vsfunc, compound_type);
+  string owner_desc = compound_type->IsObject() ? "object method declaration" : "struct method declaration";
+  FinishFunctionDecl(vsfunc, compound_type->Members(), compound_type->Members(), true, false, owner_desc);
 }
 
 void ODqCompParser::ParseFunction()
@@ -5499,10 +5567,8 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
           return result;
         }
 
-        auto * object_type = dynamic_cast<OTypeObject *>(ctype);
         OCompoundType * decl_type = ctype;
-        OValSym * objsym = (object_type ? object_type->FindObjectMemberSymbol(membername, &decl_type)
-                                        : ctype->Members()->FindValSym(membername, nullptr, false));
+        OValSym * objsym = ctype->FindMemberSymbol(membername, &decl_type);
         if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
         {
           if (!ObjectMemberAccessAllowed(decl_type, method))
@@ -5543,8 +5609,7 @@ OExpr * ODqCompParser::ParsePostfix(OExpr * base)
         }
 
         decl_type = ctype;
-        int midx = (object_type ? object_type->FindObjectFieldIndex(membername, &decl_type)
-                                : ctype->FindMemberIndex(membername));
+        int midx = ctype->FindFieldIndex(membername, &decl_type);
         if (midx < 0)
         {
           Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
@@ -5986,13 +6051,13 @@ OExpr * ODqCompParser::ParseExprPrimary()
     if (object_method_scope)
     {
       OCompoundType * decl_type = nullptr;
-      auto * owner_object = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type);
-      OValSym * member = (owner_object ? owner_object->FindObjectMemberSymbol(sid, &decl_type) : nullptr);
+      OCompoundType * owner_type = curvsfunc->owner_compound_type;
+      OValSym * member = owner_type->FindMemberSymbol(sid, &decl_type);
       if (member && (VSK_FUNCTION != member->kind))
       {
         if (!ObjectMemberAccessAllowed(decl_type, member))
         {
-          Error(DQERR_MEMBER_UNKNOWN, sid, owner_object->name);
+          Error(DQERR_MEMBER_UNKNOWN, sid, owner_type->name);
           return result;
         }
         int midx = decl_type->FindMemberIndex(sid);
@@ -6213,23 +6278,32 @@ OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSy
     return nullptr;
   }
 
-  auto * object_type = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type);
-  if (!object_type)
-  {
-    return nullptr;
-  }
   if (VSK_FUNCTION == vs->kind)
   {
     return nullptr;
   }
 
   OCompoundType * decl_type = nullptr;
-  for (OTypeObject * cur = object_type; cur; cur = cur->base_type)
+  if (auto * object_type = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type))
   {
-    if (found_scope == cur->Members())
+    for (OTypeObject * cur = object_type; cur; cur = cur->base_type)
     {
-      decl_type = cur;
-      break;
+      if (found_scope == cur->Members())
+      {
+        decl_type = cur;
+        break;
+      }
+    }
+  }
+  else
+  {
+    for (OCompoundType * cur = curvsfunc->owner_compound_type; cur; cur = cur->base_type)
+    {
+      if (found_scope == cur->Members())
+      {
+        decl_type = cur;
+        break;
+      }
     }
   }
   if (!decl_type)
@@ -6244,7 +6318,7 @@ OExpr * ODqCompParser::CreateImplicitObjectMemberExpr(const string & sid, OValSy
   }
   if (!ObjectMemberAccessAllowed(decl_type, vs))
   {
-    Error(DQERR_MEMBER_UNKNOWN, sid, object_type->name);
+    Error(DQERR_MEMBER_UNKNOWN, sid, curvsfunc->owner_compound_type->name);
     return nullptr;
   }
 

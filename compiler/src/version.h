@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.5"
+#define DQ_COMPILER_VERSION  "0.16.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.6:
+  - Struct methods, struct inheritance, implicit self, and managed member restrictions
 v0.16.5:
   - RTL: textformat changed using DQ code only
 v0.16.4:

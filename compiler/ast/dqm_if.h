@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     7 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     7 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     8 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     8 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -194,7 +194,7 @@ TDqmIfRecId  DQMIF_FUNC_PARAM_VARARGS     = 0x06A0;  // 0
 TDqmIfRecId  DQMIF_STRUCT_BEGIN           = 0x0700;  // str: name
 TDqmIfRecId  DQMIF_STRUCT_END             = 0x07FF;  // 0
 TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
-TDqmIfRecId  DQMIF_OBJ_BASE               = 0x0702;  // str: base object type name
+TDqmIfRecId  DQMIF_OBJ_BASE               = 0x0702;  // str: base compound type name
 TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
 // exp.:     DQMIF_SIZE_SPEC
 TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str

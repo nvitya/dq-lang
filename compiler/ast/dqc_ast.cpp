@@ -227,6 +227,10 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
     if (avsfunc->owner_compound_type && ("__this" == fp->name))
     {
       avsfunc->receiver_arg = vsarg;
+      if (!avsfunc->body->scope->FindValSym("self", nullptr, false))
+      {
+        avsfunc->body->scope->valsyms["self"] = vsarg;
+      }
     }
   }
 

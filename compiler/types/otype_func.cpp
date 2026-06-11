@@ -324,11 +324,11 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
   {
     return resolved_src && (TK_POINTER == resolved_src->kind);
   }
-  auto * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
-  auto * src_object = dynamic_cast<OTypeObject *>(resolved_src);
-  if (dst_object && src_object)
+  auto * dst_compound = dynamic_cast<OCompoundType *>(resolved_dst);
+  auto * src_compound = dynamic_cast<OCompoundType *>(resolved_src);
+  if (dst_compound && src_compound)
   {
-    return src_object->IsSameOrDerivedFrom(dst_object);
+    return src_compound->IsSameOrDerivedFrom(dst_compound);
   }
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }

@@ -313,6 +313,7 @@ public:
   inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_DYNSTR == kind); }
   inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind); }
   virtual OType *    ResolveAlias() { return this; }
+  virtual bool       ContainsManagedStorage() const;
   OTypePointer *     GetPointerType();
   OTypeArray *       GetArrayType(uint32_t alength);
   OTypeArraySlice *  GetSliceType();
@@ -389,6 +390,11 @@ public:
     return (ptype ? ptype->ResolveAlias() : this);
   }
 
+  bool ContainsManagedStorage() const override
+  {
+    return ptype && ptype->ContainsManagedStorage();
+  }
+
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
 
   OValue * CreateValue() override
@@ -423,6 +429,7 @@ private:
 public:
   OScope       member_scope;
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
+  OCompoundType * base_type = nullptr;
   bool         is_packed = false;
   bool         layout_ready = false;
   bool         layout_busy = false;
@@ -440,8 +447,11 @@ public:
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
   int  FindMemberIndex(const string & aname);
+  virtual OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  virtual int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   virtual bool IsObject() const { return false; }
   virtual bool IsSameOrDerivedFrom(OCompoundType * abase) const;
+  bool ContainsManagedStorage() const override;
 
   void        EnsureLayout() override;
   LlType *    CreateLlType() override;

@@ -414,6 +414,11 @@ bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)
   return writer.AddRecEmpty(DQMIF_TYPE_END);
 }
 
+bool OType::ContainsManagedStorage() const
+{
+  return (TK_OBJECT == kind) || (TK_DYNSTR == kind) || (TK_DYN_ARRAY == kind);
+}
+
 bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
   if (!ptype)
@@ -543,9 +548,76 @@ int OCompoundType::FindMemberIndex(const string & aname)
   return -1;
 }
 
+OValSym * OCompoundType::FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
+{
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    OValSym * vs = const_cast<OCompoundType *>(cur)->member_scope.FindValSym(aname, nullptr, false);
+    if (vs)
+    {
+      if (rdecl_type)
+      {
+        *rdecl_type = const_cast<OCompoundType *>(cur);
+      }
+      return vs;
+    }
+  }
+  return nullptr;
+}
+
+int OCompoundType::FindFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
+{
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    int idx = const_cast<OCompoundType *>(cur)->FindMemberIndex(aname);
+    if (idx >= 0)
+    {
+      if (rdecl_type)
+      {
+        *rdecl_type = const_cast<OCompoundType *>(cur);
+      }
+      return idx;
+    }
+  }
+  return -1;
+}
+
 bool OCompoundType::IsSameOrDerivedFrom(OCompoundType * abase) const
 {
-  return this == abase;
+  if (!abase)
+  {
+    return false;
+  }
+
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    if (cur == abase)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool OCompoundType::ContainsManagedStorage() const
+{
+  if (OType::ContainsManagedStorage())
+  {
+    return true;
+  }
+  if (base_type && base_type->ContainsManagedStorage())
+  {
+    return true;
+  }
+  for (OValSym * member : member_order)
+  {
+    OType * storage_type = (member ? member->GetStorageType() : nullptr);
+    if (storage_type && storage_type->ContainsManagedStorage())
+    {
+      return true;
+    }
+  }
+  return false;
 }
 
 uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
@@ -585,6 +657,13 @@ void OCompoundType::EnsureLayout()
   uint32_t offset = 0;
   uint32_t max_align = 1;
   manual_ll_layout = is_packed;
+
+  if (base_type)
+  {
+    base_type->EnsureLayout();
+    offset = base_type->bytesize;
+    max_align = max<uint32_t>(max_align, base_type->alignsize);
+  }
 
   for (OValSym * m : member_order)
   {
@@ -631,6 +710,11 @@ LlType * OCompoundType::CreateLlType()
   if (!manual_ll_layout)
   {
     uint32_t ll_index_base = 0;
+    if (base_type)
+    {
+      member_types.push_back(base_type->GetLlType());
+      ll_index_base = 1;
+    }
     for (int i = 0; i < (int)member_order.size(); ++i)
     {
       OValSym * m = member_order[i];
@@ -641,6 +725,11 @@ LlType * OCompoundType::CreateLlType()
   }
 
   uint32_t offset = 0;
+  if (base_type)
+  {
+    member_types.push_back(base_type->GetLlType());
+    offset = base_type->bytesize;
+  }
   for (OValSym * m : member_order)
   {
     if (m->field_offset > offset)
@@ -667,6 +756,13 @@ LlDiType * OCompoundType::CreateDiType()
   EnsureLayout();
 
   vector<llvm::Metadata *> elements;
+  if (base_type)
+  {
+    uint64_t size_bits = uint64_t(base_type->bytesize) * 8;
+    elements.push_back(di_builder->createMemberType(
+        nullptr, "__base", nullptr, 0, size_bits, 0,
+        0, llvm::DINode::FlagZero, base_type->GetDiType()));
+  }
   for (int i = 0; i < (int)member_order.size(); ++i)
   {
     OValSym * m = member_order[i];
@@ -728,6 +824,10 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     return writer.Fail(format("Compound type {} is too large for DQM interface: {}", name, bytesize));
   }
   if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
+  if (base_type)
+  {
+    if (!writer.AddRecStr(DQMIF_OBJ_BASE, base_type->name)) return false;
+  }
 
   for (OValSym * member : member_order)
   {
@@ -749,6 +849,27 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     if (!writer.AddRecI32(DQMIF_FIELD_OFFSET, int32_t(member->field_offset))) return false;
     if (!member->ptype->WriteDqmIfTypeSpec(writer)) return false;
     if (!writer.AddRecEmpty(DQMIF_FIELD_END)) return false;
+  }
+
+  for (auto & [mname, vs] : Members()->valsyms)
+  {
+    (void)mname;
+    if (!vs || VSK_FUNCTION != vs->kind)
+    {
+      continue;
+    }
+    if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
+    {
+      if (!fn->WriteDqmIfFunction(writer, true)) return false;
+    }
+    else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      if (!ovset->WriteDqmIfMethods(writer)) return false;
+    }
+    else
+    {
+      return writer.Fail(format("Unsupported struct method symbol: {}", vs->name));
+    }
   }
 
   return writer.AddRecEmpty(DQMIF_STRUCT_END);

@@ -1,0 +1,24 @@
+
+use print;
+use ./nanotime;
+
+function *Main() -> int:
+  PrintLn('Time measurement test');
+
+  var iarr : [8]int64;
+
+  iarr[0] = NanoTime();
+  iarr[1] = NanoTime();
+  iarr[2] = NanoTime();
+  iarr[3] = NanoTime();
+
+  for i : int = 0 to 3:
+    PrintLn('i[{}]={}', [i, iarr[i]]);
+  endfor
+
+  PrintLn('td1={}', [iarr[1] - iarr[0]]);
+  PrintLn('td2={}', [iarr[2] - iarr[1]]);
+  PrintLn('td3={}', [iarr[3] - iarr[2]]);
+
+  return 0;
+endfunc

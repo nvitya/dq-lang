@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.6"
+#define DQ_COMPILER_VERSION  "0.16.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.7:
+  - Array literal overload matching fix
 v0.16.6:
   - Struct methods, struct inheritance, implicit self, and managed member restrictions
 v0.16.5:

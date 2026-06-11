@@ -106,9 +106,9 @@ endfunc
 
 function XPrintTest():
   XPrintLn('Testing Print()');
-  AXPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
+  //AXPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
   //TODO: fix the overload searching for this:
-  //XPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
+  XPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
 endfunc
 
 function *Main() -> int:

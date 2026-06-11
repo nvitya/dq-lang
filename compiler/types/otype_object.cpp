@@ -149,7 +149,7 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
       if (!fparam->IsRefLike())
       {
         int conv_cost = g_compiler->GetAssignTypeConversionCost(
-            fparam->ptype, arg, EXPCF_ALLOW_LAZY_CSTRING);
+            fparam->ptype, arg, EXPCF_ALLOW_LAZY_CSTRING | EXPCF_ALLOW_ARRAY_LITERAL_SLICE);
         if (conv_cost < 0)
         {
           match = false;

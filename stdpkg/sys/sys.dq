@@ -188,3 +188,4 @@ function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, start
     desc.dataptr = ^byte(dataptr)[b * elemsize];
   endif
 endfunc
+

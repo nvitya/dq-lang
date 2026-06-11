@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.7"
+#define DQ_COMPILER_VERSION  "0.16.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.8:
+  - "print" module added with Print(), PrintLn()
 v0.16.7:
   - Array literal overload matching fix
 v0.16.6:

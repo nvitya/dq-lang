@@ -1,0 +1,37 @@
+use print;
+
+struct timespec:
+  tv_sec  : int64;
+  tv_nsec : int64;
+endstruct
+
+
+function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]];
+
+function nanotime() -> int64:
+  var tv : timespec;
+  tv.tv_sec = 0;
+  clock_gettime(1, &tv);
+  result = tv.tv_nsec + tv.tv_sec * 1000000000;
+endfunc
+
+function *Main() -> int:
+  PrintLn('Time measurement test');
+
+  var iarr : [8]int64;
+
+  iarr[0] = nanotime();
+  iarr[1] = nanotime();
+  iarr[2] = nanotime();
+  iarr[3] = nanotime();
+
+  for i : int = 0 to 3:
+    PrintLn('i[{}]={}', [i, iarr[i]]);
+  endfor
+
+  PrintLn('td1={}', [iarr[1] - iarr[0]]);
+  PrintLn('td2={}', [iarr[2] - iarr[1]]);
+  PrintLn('td3={}', [iarr[3] - iarr[2]]);
+
+  return 0;
+endfunc

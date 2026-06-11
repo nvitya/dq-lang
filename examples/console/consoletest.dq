@@ -20,6 +20,57 @@ function PrintLn(atext : strview):
   @.libc_fputc(0x0A, libc_stdout);
 endfunc
 
+var std_out_sink      : OTextSinkStdOut = null;
+var std_out_formatter : OTextFormatter = null;
+
+function XStdOutFmtSetup():
+  if std_out_sink == null:
+    std_out_sink = new OTextSinkStdOut();
+  endif
+  if std_out_formatter == null:
+    std_out_formatter = new OTextFormatter(std_out_sink);
+  endif
+endfunc
+
+function XPrint(fmt : strview) [[overload]]:
+  if std_out_sink == null:
+    XStdOutFmtSetup();
+  endif
+  std_out_sink.Write(fmt);
+endfunc
+
+function XPrint(fmt : strview, args : []anyvalue) [[overload]]:
+  if std_out_formatter == null:
+    XStdOutFmtSetup();
+  endif
+  std_out_formatter.Format(fmt, args);
+endfunc
+
+function XPrintLn(fmt : strview) [[overload]]:
+  if std_out_sink == null:
+    XStdOutFmtSetup();
+  endif
+  std_out_sink.Write(fmt);
+  std_out_sink.WriteChar('\n');
+endfunc
+
+function XPrintLn(fmt : strview, args : []anyvalue) [[overload]]:
+  if std_out_formatter == null:
+    XStdOutFmtSetup();
+  endif
+  std_out_formatter.Format(fmt, args);
+  std_out_sink.WriteChar('\n');
+endfunc
+
+function AXPrintLn(fmt : strview, args : []anyvalue):
+  if std_out_formatter == null:
+    XStdOutFmtSetup();
+  endif
+  std_out_formatter.Format(fmt, args);
+  std_out_sink.WriteChar('\n');
+endfunc
+
+
 function Test1():
   printf('Console test.\n');
 
@@ -53,8 +104,16 @@ function FormatterTest():
 
 endfunc
 
+function XPrintTest():
+  XPrintLn('Testing Print()');
+  AXPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
+  //TODO: fix the overload searching for this:
+  //XPrintLn('formatted out: {}, {}', ['abcd', 3.14]);
+endfunc
+
 function *Main() -> int:
-  FormatterTest();
+  //FormatterTest();
+  XPrintTest();
   printf('finished.\n');
   return 0;
 endfunc

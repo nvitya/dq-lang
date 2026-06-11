@@ -112,6 +112,13 @@ protected
   function ParseSpec(afmt : strview);
   function FormatAny(av : anyvalue);
 
+  function WritePad(acount : int, ch : char);
+  function UIntDigitChar(adigit : uint, aupper : bool) -> char;
+  function BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int;
+  function WriteReversedDigits(acount : int);
+  function WriteFormattedDigits(asign : char, adigit_count : int);
+  function WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint);
+
   function FormatSInt(v : int);
   function FormatUInt(v : uint);
   function FormatHex(v : uint, aupper : bool);
@@ -127,7 +134,6 @@ use libc/stdio;
 var libc_stdout : pointer [[external('stdout')]];
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]];
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]];
-function libc_snprintf(dst : ^cchar, size : uint, fmt : ^cchar, ...) -> int [[external("snprintf")]];
 
 // -----------------------------------------------------------------------------
 // Low-level conversion hooks
@@ -406,58 +412,169 @@ function OTextFormatter.FormatAny(av : anyvalue):
 
 endfunc
 
-function OTextFormatter.FormatSInt(v : int):
-  lcsbuf.Clear();
-  if (fmtspec.width > 0) and (fmtspec.fill == '0'):
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*li", fmtspec.width, v);
-  elif fmtspec.width > 0:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*li", fmtspec.width, v);
+function OTextFormatter.WritePad(acount : int, ch : char):
+  while acount > 0:
+    sink.WriteChar(ch);
+    acount -= 1;
+  endwhile
+endfunc
+
+function OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
+  if adigit < 10:
+    return char(int('0') + int(adigit));
+  elif aupper:
+    return char(int('A') + int(adigit - 10));
   else:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%li", v);
+    return char(int('a') + int(adigit - 10));
   endif
-  sink.Write(lcsbuf);
+endfunc
+
+function OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
+  lcsbuf.Clear();
+
+  if v == uint(0):
+    lcsbuf.AppendChar('0');
+    return 1;
+  endif
+
+  while v > uint(0):
+    lcsbuf.AppendChar(UIntDigitChar(v IMOD abase, aupper));
+    v = v IDIV abase;
+  endwhile
+
+  return int(lcsbuf.length);
+endfunc
+
+function OTextFormatter.WriteReversedDigits(acount : int):
+  var i : int = acount - 1;
+  while i >= 0:
+    sink.WriteChar(lcsbuf[i]);
+    i -= 1;
+  endwhile
+endfunc
+
+function OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
+  var total_len : int = adigit_count;
+  if asign <> char(0):
+    total_len += 1;
+  endif
+
+  var pad : int = fmtspec.width - total_len;
+  if pad < 0:
+    pad = 0;
+  endif
+
+  if not fmtspec.left and fmtspec.fill <> '0':
+    WritePad(pad, ' ');
+  endif
+
+  if asign <> char(0):
+    sink.WriteChar(asign);
+  endif
+
+  if not fmtspec.left and fmtspec.fill == '0':
+    WritePad(pad, '0');
+  endif
+
+  WriteReversedDigits(adigit_count);
+
+  if fmtspec.left:
+    WritePad(pad, ' ');
+  endif
+endfunc
+
+function OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
+  var total_len : int = aint_digit_count;
+  if asign <> char(0):
+    total_len += 1;
+  endif
+  if aprecision > 0:
+    total_len += aprecision + 1;
+  endif
+
+  var pad : int = fmtspec.width - total_len;
+  if pad < 0:
+    pad = 0;
+  endif
+
+  if not fmtspec.left and fmtspec.fill <> '0':
+    WritePad(pad, ' ');
+  endif
+
+  if asign <> char(0):
+    sink.WriteChar(asign);
+  endif
+
+  if not fmtspec.left and fmtspec.fill == '0':
+    WritePad(pad, '0');
+  endif
+
+  WriteReversedDigits(aint_digit_count);
+
+  if aprecision > 0:
+    sink.WriteChar('.');
+    var place : uint = ascale IDIV 10;
+    while place > uint(0):
+      var digit : uint = afrac IDIV place;
+      sink.WriteChar(UIntDigitChar(digit, false));
+      afrac = afrac IMOD place;
+      place = place IDIV 10;
+    endwhile
+  endif
+
+  if fmtspec.left:
+    WritePad(pad, ' ');
+  endif
+endfunc
+
+function OTextFormatter.FormatSInt(v : int):
+  var signch : char = char(0);
+  var mag    : uint = uint(v);
+
+  if v < 0:
+    signch = '-';
+    mag = uint(-(v + 1)) + 1;
+  elif fmtspec.sign_plus:
+    signch = '+';
+  endif
+
+  WriteFormattedDigits(signch, BuildUIntDigits(mag, 10, false));
 endfunc
 
 function OTextFormatter.FormatUInt(v : uint):
-  lcsbuf.Clear();
-  if (fmtspec.width > 0) and (fmtspec.fill == '0'):
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lu", fmtspec.width, v);
-  elif fmtspec.width > 0:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lu", fmtspec.width, v);
-  else:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lu", v);
-  endif
-  sink.Write(lcsbuf);
+  WriteFormattedDigits(char(0), BuildUIntDigits(v, 10, false));
 endfunc
 
 function OTextFormatter.FormatHex(v : uint, aupper : bool):
-  lcsbuf.Clear();
-  if aupper:
-    if (fmtspec.width > 0) and (fmtspec.fill == '0'):
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lX", fmtspec.width, v);
-    elif fmtspec.width > 0:
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lX", fmtspec.width, v);
-    else:
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lX", v);
-    endif
-  else:
-    if (fmtspec.width > 0) and (fmtspec.fill == '0'):
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%0*lx", fmtspec.width, v);
-    elif fmtspec.width > 0:
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%*lx", fmtspec.width, v);
-    else:
-      @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%lx", v);
-    endif
-  endif
-  sink.Write(lcsbuf);
+  WriteFormattedDigits(char(0), BuildUIntDigits(v, 16, aupper));
 endfunc
 
 function OTextFormatter.FormatFloat(v : float):
-  lcsbuf.Clear();
-  if fmtspec.precision >= 0:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%.*f", fmtspec.precision, v);
-  else:
-    @.libc_snprintf(&lcsbuf[0], lcsbuf.storage_size, "%f", v);
+  var signch : char = char(0);
+  var work : float = v;
+
+  if work < 0.0:
+    signch = '-';
+    work = -work;
+  elif fmtspec.sign_plus:
+    signch = '+';
   endif
-  sink.Write(lcsbuf);
+
+  var precision : int = fmtspec.precision;
+  if precision < 0:
+    precision = 6;
+  elif precision > 18:
+    precision = 18;
+  endif
+
+  var scale : uint = 1;
+  for i : int = 0 count precision:
+    scale *= 10;
+  endfor
+
+  var scaled  : uint = uint(floor(work * scale + 0.5));
+  var intpart : uint = scaled IDIV scale;
+  var frac    : uint = scaled IMOD scale;
+
+  WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale);
 endfunc

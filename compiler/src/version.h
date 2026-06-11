@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.4"
+#define DQ_COMPILER_VERSION  "0.16.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.16.5:
+  - RTL: textformat changed using DQ code only
 v0.16.4:
   - Single-char ^cchar conversion for printf('\n')
 v0.16.3:

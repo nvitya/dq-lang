@@ -4,39 +4,18 @@ program test_dynarr_pas;
 {$pointermath on}
 
 uses
-  SysUtils;
+  SysUtils, nanotime_pas;
 
 const
-  CLOCK_MONOTONIC = 1;
-
-type
-  timespec = record
-    tv_sec: NativeInt;
-    tv_nsec: NativeInt;
-  end;
-
-function clock_gettime(clk_id: Integer; var tp: timespec): Integer; cdecl; external 'c' name 'clock_gettime';
-
-function NanoTime: UInt64;
-var
-  ts: timespec;
-begin
-  clock_gettime(CLOCK_MONOTONIC, ts);
-  Result := UInt64(ts.tv_sec) * 1000000000 + UInt64(ts.tv_nsec);
-end;
-
-//-----------------------------------------------------------------------------------
-
-const
-  default_maxval: Int64 = 1000000;
+  default_maxval: int64 = 1000000;
 
 var
-  darr: array of Int32;
+  darr: array of int32;
 
-procedure FillArray(maxval: Int32);
+procedure FillArray(maxval: int32);
 var
-  i: Int32;
-  len, cap: Int32;
+  i : int32;
+  len, cap : int32;
 begin
   SetLength(darr, 0);
   len := 0;
@@ -54,66 +33,56 @@ begin
   SetLength(darr, len);
 end;
 
-procedure FillArrayPtr(maxval: Int32);
+procedure FillArrayPtr(maxval: int32);
 var
-  i: Int32;
-  pi32: PInt32;
+  i    : int32;
+  pi32 : ^int32;
 begin
   SetLength(darr, maxval);
-  if maxval > 0 then
+  pi32 := @darr[0];
+  for i := 0 to maxval - 1 do
   begin
-    pi32 := @darr[0];
-    for i := 0 to maxval - 1 do
-    begin
-      pi32[i] := i;
-    end;
+    pi32[i] := i;
   end;
 end;
 
-function CalcSum: Int64;
+function CalcSum : int64;
 var
-  i, arrlen: Int32;
-  res: Int64;
+  i, arrlen : int32;
 begin
-  res := 0;
+  result := 0;
   arrlen := Length(darr);
   for i := 0 to arrlen - 1 do
   begin
-    res := res + darr[i];
+    result += darr[i];
   end;
-  Result := res;
 end;
 
-function CalcSumPtr: Int64;
+function CalcSumPtr : int64;
 var
-  i, arrlen: Int32;
-  res: Int64;
-  pi32: PInt32;
+  i, arrlen : int32;
+  pi32      : ^int32;
 begin
-  res := 0;
+  result := 0;
   arrlen := Length(darr);
-  if arrlen > 0 then
+  pi32   := @darr[0];
+  for i := 0 to arrlen - 1 do
   begin
-    pi32 := @darr[0];
-    for i := 0 to arrlen - 1 do
-    begin
-      res := res + pi32[i];
-    end;
+    result += pi32[i];
   end;
-  Result := res;
 end;
 
 var
-  maxval: Int64;
-  t1, t2: UInt64;
-  sum: Int64;
+  maxval : int64;
+  t1, t2 : uint64;
+  sum    : int64;
 begin
   WriteLn('DynArray Test [FPC]');
 
   maxval := default_maxval;
   if ParamCount > 0 then
   begin
-    maxval := StrToInt64Def(ParamStr(1), default_maxval);
+    maxval := StrToint64Def(ParamStr(1), default_maxval);
   end;
 
   WriteLn('maxval = ', maxval);

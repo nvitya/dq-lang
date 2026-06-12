@@ -3,32 +3,14 @@ program test_sum_pas;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils;
+  SysUtils, nanotime_pas;
 
-const
-  CLOCK_MONOTONIC = 1;
-
-type
-  timespec = record
-    tv_sec: NativeInt;
-    tv_nsec: NativeInt;
-  end;
-
-function clock_gettime(clk_id: Integer; var tp: timespec): Integer; cdecl; external 'c' name 'clock_gettime';
-
-function NanoTime: UInt64;
-var
-  ts: timespec;
-begin
-  clock_gettime(CLOCK_MONOTONIC, ts);
-  Result := UInt64(ts.tv_sec) * 1000000000 + UInt64(ts.tv_nsec);
-end;
 
 //-----------------------------------------------------------------------
 
-function CalcSum(amax : Int64) : Int64;
+function CalcSum(amax : int64) : int64;
 var
-  i: Int64;
+  i: int64;
 begin
   result := 0;
   for i := 1 to amax do
@@ -38,15 +20,15 @@ begin
 end;
 
 var
-  maxval : Int64 = 100000000;
-  t1, t2 : UInt64;
-  sum    : Int64;
+  maxval : int64 = 100000000;
+  t1, t2 : uint64;
+  sum    : int64;
 begin
   WriteLn('Sum time test [FPC]');
 
   if ParamCount > 0 then
   begin
-    maxval := StrToInt64Def(ParamStr(1), 100000000);
+    maxval := StrToint64Def(ParamStr(1), 100000000);
   end;
 
   WriteLn('Calculating sum 1..', maxval, ' ...');

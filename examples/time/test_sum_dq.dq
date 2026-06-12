@@ -17,6 +17,8 @@ function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
   endfor
 endfunc
 
+//-----------------------------------------------------------------------------
+
 function CalcSum(amax : int64) -> int64:
   result = 0;
   for i : int = 1 to amax:
@@ -35,16 +37,14 @@ function *Main() -> int:
 
   PrintLn('Calculating sum 1..{} ...', [maxval]);
 
-  var t1 : int64;
-  var t2 : int64;
-
-  var sum : int64 = 0;
+  var t1  : int64;
+  var t2  : int64;
+  var sum : int64;
 
   t1 = NanoTime();
-
   sum = CalcSum(maxval);
-
   t2 = NanoTime();
+
   PrintLn('sum = {}', [sum]);
   PrintLn('Total exec time: {} ns', [t2 - t1]);
 

@@ -49,8 +49,8 @@ endfunc
 
 function CalcSumPtr() -> int64:
   result = 0;
-  var arrlen : int32 = darr.length;
-  var pi32 : ^int32 = &darr[0];
+  var arrlen : int32  = darr.length;
+  var pi32   : ^int32 = &darr[0];
   for i : int = 0 count arrlen:
     result += pi32[i]^;
   endfor

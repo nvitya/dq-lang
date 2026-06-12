@@ -3,50 +3,50 @@ use print;
 use ./nanotime;
 
 function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
-  result = 0;
-  var sign : int = 1;
-  for i : int = 0 count sv.length:
-    var c : char = sv[i];
-    if c == '-':
-      sign = -1;
-    elif c >= '0'  and  c <= '9':
-      result = result * 10 + int64(c - '0');
-    else:
-      return defvalue;
-    endif
-  endfor
+    result = 0;
+    var sign : int = 1;
+    for i : int = 0 count sv.length:
+        var c : char = sv[i];
+        if c == '-':
+            sign = -1;
+        elif c >= '0'  and  c <= '9':
+            result = result * 10 + int64(c - '0');
+        else:
+            return defvalue;
+        endif
+    endfor
 endfunc
 
 //-----------------------------------------------------------------------------
 
 function CalcSum(amax : int64) -> int64:
-  result = 0;
-  for i : int = 1 to amax:
-    result += i;
-  endfor
+    result = 0;
+    for i : int = 1 to amax:
+        result += i;
+    endfor
 endfunc
 
 function *Main() -> int:
-  PrintLn('Sum time test [DQ]');
+    PrintLn('Sum time test [DQ]');
 
-  var maxval : int64 = 100000000;
+    var maxval : int64 = 100000000;
 
-  if ParamCount() > 1:
-    maxval = StrToInt(ParamStr(1), maxval);
-  endif
+    if ParamCount() > 1:
+        maxval = StrToInt(ParamStr(1), maxval);
+    endif
 
-  PrintLn('Calculating sum 1..{} ...', [maxval]);
+    PrintLn('Calculating sum 1..{} ...', [maxval]);
 
-  var t1  : int64;
-  var t2  : int64;
-  var sum : int64;
+    var t1  : int64;
+    var t2  : int64;
+    var sum : int64;
 
-  t1 = NanoTime();
-  sum = CalcSum(maxval);
-  t2 = NanoTime();
+    t1 = NanoTime();
+    sum = CalcSum(maxval);
+    t2 = NanoTime();
 
-  PrintLn('sum = {}', [sum]);
-  PrintLn('Total exec time: {} ns', [t2 - t1]);
+    PrintLn('sum = {}', [sum]);
+    PrintLn('Total exec time: {} ns', [t2 - t1]);
 
-  return 0;
+    return 0;
 endfunc

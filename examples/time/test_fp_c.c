@@ -2,7 +2,7 @@
 
 The benchmark code is very simple, it is taken from this project
 
-  https://github.com/jzawodn/arm-neon-vfp-test
+    https://github.com/jzawodn/arm-neon-vfp-test
 
 
 */
@@ -18,8 +18,8 @@ const int     default_million_iter  = 5;
 
 double MilliTime(void)
 {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
 	return (double)ts.tv_sec * (double)1000 + ts.tv_nsec / (double)1000000;
 }
 
@@ -49,7 +49,7 @@ double FpBench_f64(double f1, double f2, int iterations)
 
 int main(int argc, char * argv[])
 {
-  printf("Floating Point Benchmark [C]\n");
+    printf("Floating Point Benchmark [C]\n");
 
 	double  f1 = default_f1;
 	double  f2 = default_f2;

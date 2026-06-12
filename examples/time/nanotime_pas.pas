@@ -5,13 +5,13 @@ unit nanotime_pas;
 interface
 
 const
-  CLOCK_MONOTONIC = 1;
+    CLOCK_MONOTONIC = 1;
 
 type
-  timespec = record
-    tv_sec: NativeInt;
-    tv_nsec: NativeInt;
-  end;
+    timespec = record
+        tv_sec: NativeInt;
+        tv_nsec: NativeInt;
+    end;
 
 function NanoTime: uint64;
 
@@ -20,16 +20,16 @@ function clock_gettime(clk_id: Integer; var tp: timespec): Integer; cdecl; exter
 implementation
 
 uses
-  SysUtils;
+    SysUtils;
 
 //function clock_gettime(clk_id: Integer; var tp: timespec): Integer; cdecl; external 'c' name 'clock_gettime';
 
 function NanoTime: uint64;
 var
-  ts: timespec;
+    ts: timespec;
 begin
-  clock_gettime(CLOCK_MONOTONIC, ts);
-  Result := uint64(ts.tv_sec) * 1000000000 + uint64(ts.tv_nsec);
+    clock_gettime(CLOCK_MONOTONIC, ts);
+    Result := uint64(ts.tv_sec) * 1000000000 + uint64(ts.tv_nsec);
 end;
 
 end.

@@ -34,6 +34,10 @@ out_file="${src_file%.*}"
 # 4. Choose the correct compiler
 compiler="fpc"
 
+if [ "$(uname -m)" = "aarch64" ]; then
+    compilation_args+=("-k--defsym=__libc_csu_init=0" "-k--defsym=__libc_csu_fini=0")
+fi
+
 # 5. Compile the program using ONLY the compilation arguments
 $compiler -v0 -l- "${compilation_args[@]}"
 

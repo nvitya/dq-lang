@@ -3,18 +3,7 @@ program test_fp_pas;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils;
-
-const
-  CLOCK_MONOTONIC = 1;
-
-type
-  timespec = record
-    tv_sec: NativeInt;
-    tv_nsec: NativeInt;
-  end;
-
-function clock_gettime(clk_id: Integer; var tp: timespec): Integer; cdecl; external 'c' name 'clock_gettime';
+  SysUtils, nanotime_pas;
 
 const
   default_f1: Double = 2.200002;

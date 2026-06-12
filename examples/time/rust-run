@@ -15,7 +15,7 @@ for arg in "$@"; do
         compilation_args+=("$arg")
         
         # Check if the current argument is our source file
-        if [[ "$arg" == *.c ]] || [[ "$arg" == *.cpp ]]; then
+        if [[ "$arg" == *.rs ]]; then
             src_file="$arg"
             found_src=true
         fi
@@ -24,7 +24,7 @@ done
 
 # 2. Exit if no source file was found
 if [ -z "$src_file" ]; then
-    echo "Error: No .c or .cpp file specified."
+    echo "Error: No .rs file specified."
     exit 1
 fi
 
@@ -32,11 +32,8 @@ fi
 out_file="${src_file%.*}"
 
 # 4. Choose the correct compiler
-compiler="gcc"
-if [[ "$src_file" == *.cpp ]]; then
-    compiler="g++"
-    compilation_args=("-std=c++23" "${compilation_args[@]}")
-fi
+compiler="rustc"
+compilation_args=("-C" "strip=symbols" "${compilation_args[@]}")
 
 # 5. Compile the program using ONLY the compilation arguments
 $compiler "${compilation_args[@]}" -o "$out_file"

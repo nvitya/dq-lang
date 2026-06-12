@@ -1,8 +1,8 @@
-#include <print>
 #include <vector>
 #include <cstdlib>
 #include <cstdint>
 #include <time.h>
+#include <print>
 
 using namespace std;
 

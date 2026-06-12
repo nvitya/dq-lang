@@ -27,16 +27,7 @@ def main():
 
     iterations = million_iter * 1000000
 
-    print(f"FP32 benchmark with F1={f1:f}, F2={f2:f}, million_iterations={million_iter}:")
-    tstart = MilliTime()
-    ans = FpBench(f1, f2, iterations)
-    tend = MilliTime()
-    elapsed = tend - tstart
-    print(f"  ans = {ans:f}, time = {elapsed:.3f} ms")
-    if elapsed > 0:
-        print(f"  {int(iterations / elapsed)} loop/msec")
-
-    print(f"FP64 benchmark with F1={f1:f}, F2={f2:f}, million_iterations={million_iter}:")
+    print(f"FP benchmark with F1={f1:f}, F2={f2:f}, million_iterations={million_iter}:")
     tstart = MilliTime()
     ans = FpBench(f1, f2, iterations)
     tend = MilliTime()

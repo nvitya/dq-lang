@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.16.10"
+#define DQ_COMPILER_VERSION  "0.17.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.0:
+  - Compiler cross-compilation
 v0.16.10:
   - Local for variable allocation fix
 v0.16.9:

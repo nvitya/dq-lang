@@ -16,10 +16,14 @@
 
 #include <csignal>
 #include <cstdlib>
+#include <exception>
 #include <execinfo.h>
 #include <unistd.h>
 
+#if __has_include(<stacktrace>)
 #include <stacktrace>
+#define HAS_STACKTRACE 1
+#endif
 
 #include <iostream>
 #include <string>
@@ -61,6 +65,7 @@ void my_crash_handler()
   }
 
   // 2. Filter the backtrace
+#if HAS_STACKTRACE
   auto trace = stacktrace::current();
   bool user_code_reached = false;
 
@@ -90,6 +95,9 @@ void my_crash_handler()
   {
       cerr << "  (Full Raw Trace)\n" << trace << "\n";
   }
+#else
+  cerr << "Backtrace: <not available>\n";
+#endif
 
   // 3. Must abort manually (standard requirement)
   abort();
@@ -99,10 +107,12 @@ void signal_handler(int signal)
 {
   cout << "Cought Signal SIGSEGV" << endl;
 
+#if HAS_STACKTRACE
   // Capture the current stacktrace
   auto trace = stacktrace::current();
   // Print it (default formatting includes line numbers if -g is used)
   cout << trace << endl;
+#endif
 
   exit(signal);
 }

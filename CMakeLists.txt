@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
 project(DqComp VERSION 0.1 LANGUAGES CXX)
 
-set(DQ_BUILD_DIR "${CMAKE_SOURCE_DIR}/build")
+if(CMAKE_CROSSCOMPILING)
+  # For cross-builds, place binaries in a bin/ folder within the cross build directory
+  set(DQ_BUILD_DIR "${CMAKE_BINARY_DIR}/bin")
+else()
+  # Keep the user-visible binaries in ./build even for in-source builds.
+  set(DQ_BUILD_DIR "${CMAKE_SOURCE_DIR}/build")
+endif()
 
-# Keep the user-visible binaries in ./build even for in-source builds.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${DQ_BUILD_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${DQ_BUILD_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${DQ_BUILD_DIR}")
@@ -27,7 +32,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
     PATTERN ".dqbuild" EXCLUDE
 )
 
-set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c build/dq-comp -r autotest/tests)
+set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
 
 add_custom_target(cleantest
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"

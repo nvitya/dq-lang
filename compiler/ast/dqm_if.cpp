@@ -259,16 +259,7 @@ static uint64_t DqmIfReadU64At(const vector<uint8_t> & data, size_t pos)
 
 static string DqmIfLlvmErrorToString(llvm::Error aerr)
 {
-  string result;
-  llvm::handleAllErrors(std::move(aerr), [&](const llvm::ErrorInfoBase & info)
-  {
-    if (!result.empty())
-    {
-      result += "; ";
-    }
-    result += info.message();
-  });
-  return result;
+  return llvm::toString(std::move(aerr));
 }
 
 bool ODqmIfReader::ReadFromFile(const string & filename)

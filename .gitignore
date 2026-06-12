@@ -1,4 +1,6 @@
 build
+build-cross
+sysroots
 tools/vscode-dq/node_modules/
 /CMakeCache.txt
 /CMakeFiles/

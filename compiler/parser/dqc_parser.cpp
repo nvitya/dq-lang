@@ -314,8 +314,13 @@ void ODqCompParser::ParseUseStatement()
 
     while (true) // cycle to get multiple use modifiers
     {
+      int line_before = scf->last_token_end_line;
       scf->SkipWhite();
       if (scf->CheckSymbol(";", false) or scf->CheckSymbol(",", false))  // detect the end of the use block
+      {
+        break;
+      }
+      if (scf->curline > line_before)  // line break also ends the use block
       {
         break;
       }

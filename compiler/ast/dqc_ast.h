@@ -26,6 +26,10 @@
 
 using namespace std;
 
+void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr);
+bool IsCCharPointerType(OType * type);
+bool IsCharLiteralExpr(OExpr * expr, uint8_t & rvalue);
+
 class OValSymOverloadSet;
 class OTypeInt;
 class OTypePointer;

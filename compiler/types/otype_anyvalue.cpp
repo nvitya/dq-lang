@@ -12,6 +12,7 @@
  */
 
 #include <vector>
+#include "dqc_ast.h"
 #include "otype_anyvalue.h"
 #include "otype_bool.h"
 #include "otype_cstring.h"
@@ -80,14 +81,7 @@ static LlValue * ToFloat64(LlValue * value)
   return ll_builder.CreateFPExt(value, dst, "any.f64");
 }
 
-static bool IsCCharPointerType(OType * type)
-{
-  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
-  return ptrtype
-      && ptrtype->IsTypedPointer()
-      && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
-}
+
 
 bool EnsureAnyValueRtlUse()
 {
@@ -378,4 +372,36 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     }
   }
   throw logic_error("Unhandled anyvalue method");
+}
+
+
+bool OTypeAnyValue::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_ANYVALUE != tks)
+  {
+    if (!IsAnyValueSourceType(resolved_src))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
+    }
+    if (!EnsureAnyValueRtlUse()) return false;
+    *rexpr = new OAnyValueBoxExpr(src, this);
+    return true;
+  }
+  return true;
+}
+
+int OTypeAnyValue::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  if (TK_ANYVALUE != tks)
+  {
+    return IsAnyValueSourceType(resolved_src) ? 1 : -1;
+  }
+  return 0;
 }

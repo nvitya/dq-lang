@@ -12,6 +12,7 @@
  */
 
 #include "otype_int.h"
+#include "dqc_ast.h"
 #include "otype_bool.h"
 #include "otype_float.h"
 #include "dqm_if.h"
@@ -289,4 +290,73 @@ LlValue * OTypeInt::GenerateConversion(OScope * scope, OExpr * src)
   }
 
   throw logic_error(format("Unsupported int conversion from \"{}\"", src->ptype->name));
+}
+
+
+bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_INT != tks)
+  {
+    if (is_explicit_cast && (TK_BOOL == tks))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+    if (is_explicit_cast && (TK_FLOAT == tks))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, this->name);
+      return false;
+    }
+    if (is_explicit_cast && (TK_POINTER == tks))
+    {
+      if (!g_compiler->IsPointerWidthIntegerType(this))
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, this->name);
+        return false;
+      }
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    return false;
+  }
+  if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+  return true;
+}
+
+int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_INT != tks)
+  {
+    if (is_explicit_cast && (TK_BOOL == tks)) return 1;
+    if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
+    if (is_explicit_cast && (TK_POINTER == tks)) return (g_compiler->IsPointerWidthIntegerType(this) ? 1 : -1);
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar)) return -1;
+  return (((this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned)) ? 0 : 1);
 }

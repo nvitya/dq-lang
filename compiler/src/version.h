@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.6"
+#define DQ_COMPILER_VERSION  "0.17.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.7:
+  - Compiler code refactoring / 7: moved type conversion functions into otype_xxx
 v0.17.6:
   - Compiler code refactoring / 6: Object + Struct handling merged into otype_compound module
 v0.17.5:

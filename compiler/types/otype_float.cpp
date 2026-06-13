@@ -12,6 +12,7 @@
  */
 
 #include "otype_float.h"
+#include "dqc_ast.h"
 #include <cstring>
 
 #include "dqm_if.h"
@@ -192,4 +193,47 @@ LlValue * OTypeFloat::GenerateConversion(OScope * scope, OExpr * src)
   }
 
   throw logic_error(format("Unsupported float conversion from \"{}\"", src->ptype->name));
+}
+
+
+bool OTypeFloat::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FLOAT != tks)
+  {
+    if (TK_INT == tks)
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+  if (this->bitlength != floatsrc->bitlength)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+  return true;
+}
+
+int OTypeFloat::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FLOAT != tks)
+  {
+    if (TK_INT == tks) return 1;
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+  return ((this->bitlength == floatsrc->bitlength) ? 0 : 1);
 }

@@ -12,6 +12,7 @@
  */
 
 #include "otype_compound.h"
+#include "dqc_ast.h"
 
 #include <limits>
 #include <utility>
@@ -944,4 +945,67 @@ bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   return OType::GetConversionCostFromExpr(expr, aflags);
+}
+
+
+bool OTypeObject::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_OBJECT != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this)))
+      {
+        if (src_object && src_object != this)
+        {
+          *rexpr = new OObjectUpcastExpr(this, src);
+        }
+        else if (is_explicit_cast)
+        {
+          *rexpr = new OExprTypeConv(this, src);
+          FoldExprTreeAfterTypeRewrite(rexpr);
+        }
+        return true;
+      }
+      if (is_explicit_cast)
+      {
+        *rexpr = new OExprTypeConv(this, src);
+        FoldExprTreeAfterTypeRewrite(rexpr);
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  return true;
+}
+
+int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_OBJECT != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this))) return 0;
+      return is_explicit_cast ? 1 : -1;
+    }
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  return 0;
 }

@@ -12,6 +12,7 @@
  */
 
 #include <algorithm>
+#include "dqc_ast.h"
 #include <limits>
 #include <stdexcept>
 #include "string.h"
@@ -875,4 +876,169 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 OExpr::OExpr()
 {
   ptype = g_builtins->type_int;
+}
+
+
+bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_POINTER != tks)
+  {
+    if (is_explicit_cast && (TK_INT == tks))
+    {
+      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+      int64_t const_value = 0;
+      bool is_const = g_compiler->TryCalculateIntConstant(src, const_value);
+      if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
+      {
+        if (!is_const)
+        {
+          if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
+          return false;
+        }
+
+        if (!g_compiler->FitsPointerWidthConstant(intsrc, const_value))
+        {
+          if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
+          return false;
+        }
+      }
+
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if (TK_INT == tks)
+    {
+      uint8_t charlit = 0;
+      if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
+      {
+        *rexpr = new OCharLitToCStringPtrExpr(charlit);
+        return true;
+      }
+    }
+
+    if (is_explicit_cast && (TK_OBJECT == tks))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
+
+  if (is_explicit_cast)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+
+  uint8_t charlit = 0;
+  if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
+  {
+    *rexpr = new OCharLitToCStringPtrExpr(charlit);
+    return true;
+  }
+
+  if (!ptrsrc)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (!g_compiler->CanAssignPointerImplicitly(this, ptrsrc))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, ptrsrc->name);
+    return false;
+  }
+
+  return true;
+}
+
+int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_POINTER != tks)
+  {
+    if (is_explicit_cast && (TK_INT == tks))
+    {
+      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+      int64_t const_value = 0;
+      bool is_const = g_compiler->TryCalculateIntConstant(expr, const_value);
+      if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
+      {
+        if (!is_const || !g_compiler->FitsPointerWidthConstant(intsrc, const_value)) return -1;
+      }
+      return 1;
+    }
+    if (TK_INT == tks)
+    {
+      uint8_t charlit = 0;
+      return (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
+    }
+    if (is_explicit_cast && (TK_OBJECT == tks)) return 1;
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
+  if (is_explicit_cast) return 1;
+
+  uint8_t charlit = 0;
+  if (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) return 1;
+  if (!ptrsrc) return -1;
+  return (g_compiler->CanAssignPointerImplicitly(this, ptrsrc) ? 0 : -1);
+}
+
+bool OType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+  
+  if (this->kind == resolved_src->kind) return true;
+  
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    }
+  }
+  else
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    }
+  }
+  return false;
+}
+
+int OType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  if (this->kind == resolved_src->kind) return 0;
+  return -1;
+}
+
+bool OTypeAlias::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  return (ptype ? ptype->ConvertFromExpr(rexpr, aflags) : false);
+}
+
+int OTypeAlias::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  return (ptype ? ptype->GetConversionCostFromExpr(expr, aflags) : -1);
 }

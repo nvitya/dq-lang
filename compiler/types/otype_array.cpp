@@ -12,6 +12,7 @@
  */
 
 #include <vector>
+#include "dqc_ast.h"
 #include "otype_array.h"
 #include "dqm_if.h"
 #include "expressions.h"
@@ -490,4 +491,280 @@ LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue *
   LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
   CallDynArrayFunc(first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
   return ll_builder.CreateLoad(dyntype->elemtype->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
+}
+
+
+bool OTypeArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY != tks)
+  {
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+
+  OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+  if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+  {
+    auto * arrlit = static_cast<OArrayLit *>(src);
+    if (this->arraylength != arrlit->elements.size())
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrlit->elements.size()));
+      return false;
+    }
+    if (!EnsureAnyValueRtlUse()) return false;
+    for (OExpr *& elem : arrlit->elements)
+    {
+      if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+    }
+    arrlit->ptype = this;
+    return true;
+  }
+  if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+    return false;
+  }
+  if (this->arraylength != arrsrc->arraylength)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrsrc->arraylength));
+    return false;
+  }
+
+  return true;
+}
+
+int OTypeArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY != tks)
+  {
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+
+  OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+  if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+  {
+    return (this->arraylength == arrsrc->arraylength) ? 1 : -1;
+  }
+  if ((this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()) || (this->arraylength != arrsrc->arraylength))
+  {
+    return -1;
+  }
+
+  return 0;
+}
+
+bool OTypeArraySlice::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY_SLICE != tks)
+  {
+    if (TK_ARRAY == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      {
+        auto * arrlit = static_cast<OArrayLit *>(src);
+        if (!EnsureAnyValueRtlUse()) return false;
+        for (OExpr *& elem : arrlit->elements)
+        {
+          if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+        }
+        arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        *rexpr = new OArrayLitToSliceExpr(arrlit, this);
+        return true;
+      }
+      if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+        return false;
+      }
+      if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
+      {
+        if (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
+        {
+          *rexpr = new OArrayLitToSliceExpr(arrlit, this);
+          return true;
+        }
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        return false;
+      }
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
+        return false;
+      }
+      *rexpr = new OArrayToSliceExpr(lval, this);
+      return true;
+    }
+    if (TK_DYN_ARRAY == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
+        return false;
+      }
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
+        return false;
+      }
+      *rexpr = new ODynArrayToSliceExpr(lval, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+  if (this->elemtype->ResolveAlias() != slicesrc->elemtype->ResolveAlias())
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, slicesrc->elemtype->ResolveAlias()->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeArraySlice::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY_SLICE != tks)
+  {
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      if (is_explicit_cast || (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())) return -1;
+      if (dynamic_cast<OLValueExpr *>(expr)) return 1;
+      if ((aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      return -1;
+    }
+    if (TK_DYN_ARRAY == tks)
+    {
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (is_explicit_cast || (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())) return -1;
+      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+    }
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+  OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+  return ((this->elemtype->ResolveAlias() == slicesrc->elemtype->ResolveAlias()) ? 0 : -1);
+}
+
+bool OTypeDynArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYN_ARRAY != tks)
+  {
+    if (is_explicit_cast)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+      return false;
+    }
+    bool ok = false;
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      {
+        auto * arrlit = static_cast<OArrayLit *>(src);
+        if (!EnsureAnyValueRtlUse()) return false;
+        for (OExpr *& elem : arrlit->elements)
+        {
+          if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+        }
+        arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        return true;
+      }
+      ok = (arrsrc->arraylength == 0) || (this->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
+    }
+    else if (TK_ARRAY_SLICE == tks)
+    {
+      ok = (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
+    }
+    if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    return ok;
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+  bool ok = (this->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias());
+  if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+  return ok;
+}
+
+int OTypeDynArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYN_ARRAY != tks)
+  {
+    if (is_explicit_cast) return -1;
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      return ((arrsrc->arraylength == 0) || (this->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias())) ? 1 : -1;
+    }
+    if (TK_ARRAY_SLICE == tks)
+    {
+      return (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias()) ? 1 : -1;
+    }
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+  OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+  return ((this->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
 }

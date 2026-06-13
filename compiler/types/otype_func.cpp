@@ -12,6 +12,7 @@
  */
 
 #include "otype_func.h"
+#include "dqc_ast.h"
 #include "dqm_if.h"
 #include "dqc.h"
 #include "dq_module.h"
@@ -1328,4 +1329,93 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
     g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
   }
   return false;
+}
+
+
+bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FUNCREF != tks)
+  {
+    OValSymFunc * matched_func = nullptr;
+    EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(src, matched_func);
+    if (OFRM_UNIQUE_MATCH == ovmatch)
+    {
+      if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
+      {
+        bound_ov->matched_func = matched_func;
+        *rexpr = new OExprTypeConv(this, src);
+      }
+      else
+      {
+        delete src;
+        *rexpr = new OExprTypeConv(this, new OLValueVar(matched_func));
+      }
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        auto * srcvar = dynamic_cast<OLValueVar *>(src);
+        string srcname = (srcvar && srcvar->pvalsym ? srcvar->pvalsym->name : string("?"));
+        if (OFRM_AMBIGUOUS == ovmatch)
+        {
+          g_compiler->ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS, format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, this->name));
+        }
+        else
+        {
+          g_compiler->ErrorTxt(DQERR_OVERLOAD_NO_MATCH, format("No overload of function \"{}\" matches callback type \"{}\"", srcname, this->name));
+        }
+      }
+      return false;
+    }
+
+    if (CanAccept(resolved_src))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (!CanAccept(resolved_src))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (this != resolved_src)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+  }
+
+  return true;
+}
+
+int OTypeFuncRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FUNCREF != tks)
+  {
+    OValSymFunc * matched_func = nullptr;
+    EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(expr, matched_func);
+    if (OFRM_UNIQUE_MATCH == ovmatch) return 1;
+    if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch)) return -1;
+    return (CanAccept(resolved_src) ? 1 : -1);
+  }
+
+  if (!CanAccept(resolved_src)) return -1;
+  return ((this == resolved_src) ? 0 : 1);
 }

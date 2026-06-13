@@ -12,6 +12,7 @@
  */
 
 #include <vector>
+#include "dqc_ast.h"
 #include "otype_string.h"
 #include "otype_cstring.h"
 #include "scope_builtins.h"
@@ -140,14 +141,7 @@ static LlValue * CallDynStrFunc(const string & name, vector<LlValue *> args = {}
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
-static bool IsCCharPointerType(OType * type)
-{
-  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
-  return ptrtype
-      && ptrtype->IsTypedPointer()
-      && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
-}
+
 
 static LlValue * TextInfoAlloca()
 {
@@ -570,4 +564,95 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       return CallDynStrFunc("DynStrPopFirstChar", {straddr});
   }
   throw logic_error("Unhandled string method");
+}
+
+
+bool OTypeStrView::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_STRVIEW != tks)
+  {
+    if (IsTextSourceType(resolved_src))
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      *rexpr = new OTextSourceToViewExpr(src, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeStrView::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_STRVIEW != tks)
+  {
+    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  return is_explicit_cast ? -1 : 0;
+}
+
+bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYNSTR != tks)
+  {
+    if (IsTextSourceType(resolved_src))
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      *rexpr = new OTextSourceToStringExpr(src, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeDynString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYNSTR != tks)
+  {
+    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  return is_explicit_cast ? -1 : 0;
 }

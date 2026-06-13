@@ -12,6 +12,7 @@
  */
 
 #include <vector>
+#include "dqc_ast.h"
 #include <limits>
 #include "otype_cstring.h"
 #include "otype_string.h"
@@ -37,14 +38,7 @@ static LlType * LlCStringLenType()
   return LlType::getInt32Ty(ll_ctx);
 }
 
-static bool IsCCharPointerType(OType * type)
-{
-  auto * ptrtype = dynamic_cast<OTypePointer *>(type ? type->ResolveAlias() : nullptr);
-  return ptrtype
-      && ptrtype->IsTypedPointer()
-      && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
-}
+
 
 static LlValue * LlU32(uint32_t value)
 {
@@ -526,4 +520,95 @@ bool OValueCString::CalculateConstant(OExpr * expr, bool emit_errors)
     g_compiler->Error(DQERR_CSTR_CONSTEXPR);
   }
   return false;
+}
+
+
+bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_CSTRING != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      if (this->maxlen != 0)
+      {
+        if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        return false;
+      }
+      if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
+      {
+        auto * strlit = dynamic_cast<OCStringLit *>(src);
+        uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
+        *rexpr = new OCStringLitToDescExpr(src, known_len, this);
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
+    }
+    return OType::ConvertFromExpr(rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+
+  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
+  if ((this->maxlen == 0) and (cstrsrc->maxlen > 0))
+  {
+    OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+    if (!lval)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
+      return false;
+    }
+    *rexpr = new OCStringLValueToDescExpr(lval, this);
+    return true;
+  }
+
+  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+
+  if (this->maxlen != cstrsrc->maxlen)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
+    return false;
+  }
+
+  return true;
+}
+
+int OTypeCString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_CSTRING != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      if (is_explicit_cast) return -1;
+      if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) ? 0 : -1;
+      return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1;
+    }
+    return OType::GetConversionCostFromExpr(expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+
+  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
+  if ((this->maxlen == 0) && (cstrsrc->maxlen > 0)) return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) return 0;
+  return (this->maxlen == cstrsrc->maxlen) ? 0 : -1;
 }

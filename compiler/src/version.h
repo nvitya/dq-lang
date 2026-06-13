@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.1"
+#define DQ_COMPILER_VERSION  "0.17.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.2:
+  - Compiler code refactoring: dqc_parser splitted into dqc_parser, dqc_parser_stmt, dqc_parser_expr
 v0.17.1:
   - Compiler code refactoring: moving functions from parser to AST
 v0.17.0:

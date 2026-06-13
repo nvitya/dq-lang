@@ -3434,15 +3434,31 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
   return new OIntLit(ctype->member_order[midx]->field_offset);
 }
 
-bool ODqCompParserExpr::CheckStatementClose()
+bool ODqCompParserExpr::CheckStatementClose(bool emit_error)
 {
+  int line_before = scf->last_token_end_line;
   scf->SkipWhite();
-  if (not scf->CheckSymbol(";"))
+
+  if (scf->CheckSymbol(";"))
+  {
+    return true;
+  }
+
+  if (scf->curline > line_before)
+  {
+    return true;
+  }
+
+  if (scf->Eof() || scf->CheckSymbol("}", false))
+  {
+    return true;
+  }
+
+  if (emit_error)
   {
     StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "previous statement");
-    return false;
   }
-  return true;
+  return false;
 }
 
 OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_next)(), const BinOpEntry ops[], int nops)

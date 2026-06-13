@@ -96,6 +96,7 @@ public:
   char                 line_end_char = '\n';  // this handles only DOS and UNIX, but not MAC
 
   OScPosition          prevpos;
+  int                  last_token_end_line = 1;
 
   OScFeederBase();
   virtual ~OScFeederBase();

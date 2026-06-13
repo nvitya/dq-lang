@@ -789,12 +789,7 @@ void ODqCompParser::ParseStructDecl()
       continue;
     }
 
-    scf->SkipWhite();
-    if (not scf->CheckSymbol(";"))
-    {
-      StatementError(DQERR_MISSING_SEMICOLON_AFTER, "member definition");
-      break;
-    }
+    CheckStatementClose();
 
     OValSym * mvsym = mtype->CreateValSym(mempos, membername);
     mvsym->initialized = true;  // struct members are always accessible
@@ -961,7 +956,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   }
 
   scf->SkipWhite();
-  bool is_declaration_only = scf->CheckSymbol(";", false);
+  bool is_declaration_only = scf->CheckSymbol(";", false); // only an explicit ';' marks declaration-only
 
   auto consume_declaration_semicolon = [&](const string & what)
   {
@@ -1433,12 +1428,7 @@ void ODqCompParser::ParseObjectDecl()
         }
       }
 
-      scf->SkipWhite();
-      if (not scf->CheckSymbol(";"))
-      {
-        StatementError(DQERR_MISSING_SEMICOLON_AFTER, "member definition");
-        break;
-      }
+      CheckStatementClose();
 
       OValSym * mvsym = named_type->CreateValSym(mempos, membername);
       mvsym->initialized = true;
@@ -1494,12 +1484,7 @@ void ODqCompParser::ParseObjectDecl()
       continue;
     }
 
-    scf->SkipWhite();
-    if (not scf->CheckSymbol(";"))
-    {
-      StatementError(DQERR_MISSING_SEMICOLON_AFTER, "member definition");
-      break;
-    }
+    CheckStatementClose();
 
     OValSym * mvsym = mtype->CreateValSym(mempos, membername);
     mvsym->initialized = true;

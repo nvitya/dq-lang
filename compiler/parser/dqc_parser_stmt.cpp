@@ -162,11 +162,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     ptype = inferred_arr->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
   }
 
-  scf->SkipWhite();
-  if (!scf->CheckSymbol(";"))
-  {
-    StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "variable declaration");
-  }
+  CheckStatementClose();
 
   OTypeObject * decl_object_type = dynamic_cast<OTypeObject *>(ptype ? ptype->ResolveAlias() : nullptr);
   if (fixed_object && decl_object_type && decl_object_type->is_abstract)
@@ -363,11 +359,7 @@ void ODqCompParserStmt::ParseStmtRef()
     return;
   }
 
-  scf->SkipWhite();
-  if (!scf->CheckSymbol(";"))
-  {
-    StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "ref declaration");
-  }
+  CheckStatementClose();
 
   pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
   pvalsym->param_mode = FPM_REF;
@@ -717,12 +709,10 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
         continue;
       }
 
-      scf->SkipWhite();
-      if (!scf->CheckSymbol(";"))
+      if (!CheckStatementClose())
       {
         OScPosition scpos;
         scf->SaveCurPos(scpos);
-        StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "assignment statement", &scpos);
       }
 
       OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
@@ -762,12 +752,10 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     }
 
     EmitSuppressedVarInitDiags();
-    scf->SkipWhite();
-    if (!scf->CheckSymbol(";"))
+    if (!CheckStatementClose())
     {
       OScPosition scpos;
       scf->SaveCurPos(scpos);
-      StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "function call statement", &scpos);
     }
 
     FinalizeStmtVoidCall(leftexpr);
@@ -781,8 +769,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
 void ODqCompParserStmt::ParseStmtReturn()
 {
   // "return" is already consumed.
-  scf->SkipWhite();
-  if (scf->CheckSymbol(";"))  // return without value, use the result variable to return
+  if (CheckStatementClose(false)) // return without value
   {
     curblock->AddStatement(new OStmtReturn(scpos_statement_start, nullptr, curvsfunc));
     return;
@@ -795,11 +782,11 @@ void ODqCompParserStmt::ParseStmtReturn()
   }
 
   OExpr * expr = ParseExpression();
-  scf->SkipWhite();
-  if (!scf->CheckSymbol(";"))
+  if (!CheckStatementClose())
   {
-    Error(DQERR_MISSING_SEMICOLON_AFTER, "the return expression");
+    // error is emitted by CheckStatementClose
   }
+  
   if (expr)
   {
     if (!CheckAssignType(curvsfunc->vsresult->ptype, &expr, "Return"))
@@ -906,11 +893,7 @@ void ODqCompParserStmt::ParseStmtDelete()
     }
   }
 
-  scf->SkipWhite();
-  if (!scf->CheckSymbol(";"))
-  {
-    StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "delete statement");
-  }
+  CheckStatementClose();
 
   auto * delstmt = new OStmtDelete(scpos_statement_start, ptrexpr, clear_after_free, memfree_func);
   if (deleting_object)
@@ -932,8 +915,7 @@ void ODqCompParserStmt::ParseStmtInherited()
 
   string method_name;
   vector<OExpr *> args;
-  scf->SkipWhite();
-  if (scf->CheckSymbol(";"))
+  if (CheckStatementClose(false))
   {
     if ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind))
     {
@@ -973,11 +955,7 @@ void ODqCompParserStmt::ParseStmtInherited()
     }
     FreeRawCallArguments(rawargs);
 
-    scf->SkipWhite();
-    if (!scf->CheckSymbol(";"))
-    {
-      StatementError(DQERR_MISSING_SEMICOLON_TO_CLOSE, "inherited statement");
-    }
+    CheckStatementClose();
   }
 
   OValSymFunc * method = FindInheritedMethod(method_name, args);

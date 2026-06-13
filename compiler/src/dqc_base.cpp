@@ -175,18 +175,69 @@ void ODqCompBase::Error(const TDiagDefErr & adiag, OScPosition * ascpos)
 
 void ODqCompBase::SkipToStatementEnd()
 {
-  if (!scf->SearchPattern(";", true))  // TODO: improve to handle #{} and strings
-  {
-  }
+  SkipCurStatement();
 }
 
 void ODqCompBase::SkipCurStatement()
 {
-  // usually called for error recovery, to find the next statement
-  if (scf->ReadTo("#;"))  // TODO: improve to handle #{} and strings
+  while (not scf->Eof())
   {
-    scf->CheckSymbol(";"); // consume the ";"
-    return;
+    scf->SkipSpaces(false); // skip spaces, but not line feeds
+    if (scf->Eof()) return;
+
+    char c = *scf->curp;
+    if (c == '\r' || c == '\n')
+    {
+      scf->SkipWhite(); // consume the line break and any following whitespace
+      return;
+    }
+
+    if (scf->CheckSymbol(";"))
+    {
+      return; // consumed ';'
+    }
+
+    if (scf->CheckSymbol("}", false))
+    {
+      return; // block close reached, don't consume it
+    }
+
+    string sid;
+    if (scf->ReadIdentifier(sid, false)) // just peek the identifier
+    {
+      if (sid.starts_with("end") || sid == "else" || sid == "elif")
+      {
+        return; // don't consume, it's the start of the next structural block
+      }
+      scf->ReadIdentifier(sid, true); // consume it
+      continue;
+    }
+
+    if (scf->ReadQuotedString(sid))
+    {
+      continue;
+    }
+
+    if (scf->CheckSymbol("//"))
+    {
+      scf->ReadTo("\r\n");
+      continue;
+    }
+
+    if (scf->CheckSymbol("/*"))
+    {
+      scf->SearchPattern("*/", true);
+      continue;
+    }
+
+    if (scf->CheckSymbol("#", false)) // preprocessor
+    {
+      return; // let SkipWhite handle it in the next statement
+    }
+
+    // consume one char
+    ++scf->curp;
+    scf->RecalcCurCol();
   }
 }
 

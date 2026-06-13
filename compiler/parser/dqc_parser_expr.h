@@ -80,7 +80,7 @@ protected:
   OValSym * ResolveNamespaceValSym();
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   bool      CheckSpecialReservedRootName(const string & aname);
-  bool      CheckStatementClose();
+  bool      CheckStatementClose(bool emit_error = true);
 
 public:
   OAttr * attr = nullptr;

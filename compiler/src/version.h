@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.7"
+#define DQ_COMPILER_VERSION  "0.18.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.18.0:
+  - Semicolons are optional, required only for separating multiple statements in a single line
 v0.17.7:
   - Compiler code refactoring / 7: moved type conversion functions into otype_xxx
 v0.17.6:

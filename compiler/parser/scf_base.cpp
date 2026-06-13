@@ -297,6 +297,7 @@ void OScFeederBase::Reset()
   clstart = nullptr;
   curline = 1;
   curcol  = 1;
+  last_token_end_line = 1;
 }
 
 string OScFeederBase::PrevStr()
@@ -319,6 +320,7 @@ void OScFeederBase::SetCurPos(OScPosition & rpos)
   curp    = rpos.pos;
   curline = rpos.line;
   curcol  = rpos.col;
+  last_token_end_line = curline;
 
   bufend  = curfile->pend;
   prevp   = curp;
@@ -347,6 +349,7 @@ void OScFeederBase::SetCurPos(OScFile * afile, char * apos)
     prevlen = 0;
     curline = 0;
     curcol  = 0;
+    last_token_end_line = 0;
   }
 }
 
@@ -442,6 +445,7 @@ bool OScFeederBase::ReadLine()
 
   curp = p;
   curcol = (curp - clstart) + 1;
+  last_token_end_line = curline;
   return (prevp < bufend);
 }
 
@@ -463,6 +467,7 @@ bool OScFeederBase::ReadTo(const char * checkchars)
         prevlen = p - curp;
         curp = p;
         curcol = (curp - clstart) + 1;
+        last_token_end_line = curline;
         return true;
       }
       ++ccptr;
@@ -496,6 +501,7 @@ bool OScFeederBase::ReadToChar(char achar)
     if (*p == achar)
     {
       curcol = (curp - clstart) + 1;
+      last_token_end_line = curline;
       result = true;
       break;
     }
@@ -559,6 +565,7 @@ bool OScFeederBase::SearchPattern(const char * checkstr, bool aconsume)  // read
       curline = newcurline;
       clstart = newclstart;
       curcol = (curp - clstart) + 1;
+      if (aconsume) last_token_end_line = curline;
       return true;
     }
 
@@ -601,6 +608,7 @@ bool OScFeederBase::CheckSymbol(const char * checkstring, bool aconsume)
   {
     curp = p;
     curcol = (curp - clstart) + 1;
+    last_token_end_line = curline;
   }
 
   return true;
@@ -638,6 +646,7 @@ bool OScFeederBase::ReadIdentifier(string & rvalue, bool aconsume)
     {
       curp = p;
       curcol = (curp - clstart) + 1;
+      last_token_end_line = curline;
     }
     rvalue.assign(prevp, prevlen);
     return true;
@@ -704,6 +713,7 @@ bool OScFeederBase::ReadInt64Value(int64_t & rvalue)
     prevlen = p - curp;
     curp = p; // consume
     curcol = (curp - clstart) + 1;
+    last_token_end_line = curline;
     rvalue = result;
   }
 
@@ -745,6 +755,7 @@ bool OScFeederBase::ReadHex64Value(uint64_t & rvalue)
   {
     curp = p; // consume
     curcol = (curp - clstart) + 1;
+    last_token_end_line = curline;
     rvalue = result;
     return true;
   }
@@ -787,6 +798,7 @@ bool OScFeederBase::ReadQuotedString(string & rvalue)
     if (startquote == *curp)  // end found !
     {
       ++curp; // skip the closing
+      last_token_end_line = curline;
       break;
     }
     else if ('\\' == *curp) // escape char
@@ -861,6 +873,7 @@ bool OScFeederBase::ReadDecimalNumbers()
   prevlen = cp - curp;
   curp = cp;
   curcol = (curp - clstart) + 1;
+  if (result) last_token_end_line = curline;
 
   return result;
 }
@@ -892,6 +905,7 @@ bool OScFeederBase::ReadHexNumbers()
   prevlen = cp - curp;
   curp = cp;
   curcol = (curp - clstart) + 1;
+  if (result) last_token_end_line = curline;
 
   return result;
 }
@@ -924,6 +938,7 @@ bool OScFeederBase::ReadFloatNum()
   prevlen = cp - curp;
   curp = cp;
   curcol = (curp - clstart) + 1;
+  if (result) last_token_end_line = curline;
 
   return result;
 }
@@ -991,5 +1006,6 @@ bool OScFeederBase::ReadFloatFracExp(double & rvalue)
 
   rvalue = fpval;
   curcol = (curp - clstart) + 1;
+  last_token_end_line = curline;
   return true;
 }

@@ -55,8 +55,6 @@ public: // root level items
 
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);
-
-  bool FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr);
   void ParseStmtReturn();
   void ParseStmtWhile();
   void ParseStmtFor();
@@ -72,7 +70,6 @@ public: // type parsing
   OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "function");
 
 public: // utility
-  bool SupportsFuncParamDefaultType(OType * ptype);
   bool ParseParamModeKeyword(const string & sid, EParamMode & rmode);
   filesystem::path CurrentSourcePath() const;
   bool ParseAttributes(bool areset);
@@ -82,29 +79,6 @@ public: // utility
   OValSym * ResolveNamespaceValSym();
 
 public: // expressions
-  OStmtBlock *  curblock = nullptr;
-  OScope *      curscope = nullptr;
-  int           loop_depth = 0;
-  int64_t       array_index_context_len = -1;
-  OLValueExpr * array_index_context_lval = nullptr;
-
-  bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
-
-  struct TSuppressedVarInitDiag
-  {
-    OLValueVar *  varexpr = nullptr;
-    OValSym *     valsym = nullptr;
-    OScPosition   scpos;
-  };
-
-  struct TRawCallArg
-  {
-    OExpr *                        expr = nullptr;
-    OScPosition                    scpos_start;
-    vector<TSuppressedVarInitDiag> init_diags;
-  };
-
-  vector<TSuppressedVarInitDiag>  suppressed_varinit_diags;
 
   OExpr * ParseExpression(); // calls ParseExprOr()
 
@@ -132,9 +106,6 @@ public: // expressions
 
   bool ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs);
   bool ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs);
-  void FreeRawCallArguments(vector<TRawCallArg> & rawargs);
-  void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
-  bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
@@ -164,26 +135,10 @@ protected:
   void    RecoverFailedFunctionDecl();
   bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
-  bool    SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc);
   bool    CheckSpecialReservedRootName(const string & aname);
-  void    InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype);
   void    ParseQualifiedObjectFunction(const string & object_name);
   OExpr * ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
-  bool    ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const;
-  OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
   bool    ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility);
-  OValSymFunc * AddGeneratedObjectConstructor(OTypeObject * object_type, OValSymFunc * inherited_ctor,
-                                              OScPosition & scpos, size_t overload_count);
-  OValSymFunc * AddGeneratedObjectDestructor(OTypeObject * object_type, OValSymFunc * inherited_dtor,
-                                             OScPosition & scpos);
-  void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
-  bool    CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor);
-  OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);
-
-  void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
-  void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
-  void    EmitSuppressedVarInitDiags();
-  void    EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op);
 
 public:
   OAttr * attr = nullptr;

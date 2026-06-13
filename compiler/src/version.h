@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.0"
+#define DQ_COMPILER_VERSION  "0.17.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.1:
+  - Compiler code refactoring: moving functions from parser to AST
 v0.17.0:
   - Compiler cross-compilation
 v0.16.10:

@@ -69,6 +69,48 @@ public:
   bool    CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src);
   void    FoldExprTreeAfterTypeRewrite(OExpr ** rexpr);
 
+
+public: // Moved from ODqCompParser
+  OStmtBlock *  curblock = nullptr;
+  OScope *      curscope = nullptr;
+  int           loop_depth = 0;
+  int64_t       array_index_context_len = -1;
+  OLValueExpr * array_index_context_lval = nullptr;
+  bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
+  struct TSuppressedVarInitDiag
+  {
+    OLValueVar *  varexpr = nullptr;
+    OValSym *     valsym = nullptr;
+    OScPosition   scpos;
+  };
+  struct TRawCallArg
+  {
+    OExpr *                        expr = nullptr;
+    OScPosition                    scpos_start;
+    vector<TSuppressedVarInitDiag> init_diags;
+  };
+  vector<TSuppressedVarInitDiag>  suppressed_varinit_diags;
+  bool FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr);
+  bool SupportsFuncParamDefaultType(OType * ptype);
+  bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
+  bool    SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc);
+  void    InjectObjectReceiver(OValSymFunc * vsfunc, OCompoundType * ctype);
+  bool    ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const;
+  OExpr * CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope);
+  OValSymFunc * AddGeneratedObjectConstructor(OTypeObject * object_type, OValSymFunc * inherited_ctor,
+                                              OScPosition & scpos, size_t overload_count);
+  OValSymFunc * AddGeneratedObjectDestructor(OTypeObject * object_type, OValSymFunc * inherited_dtor,
+                                             OScPosition & scpos);
+  void    ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc);
+  bool    CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> & rargs, OValSymFunc *& rctor);
+  OValSymFunc * FindInheritedMethod(const string & method_name, const vector<OExpr *> & args);
+  void    VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
+  void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
+  void    EmitSuppressedVarInitDiags();
+  void    EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op);
+  void FreeRawCallArguments(vector<TRawCallArg> & rawargs);
+  void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
+
 protected:
   void    PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc);
   bool    HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright);

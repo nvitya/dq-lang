@@ -35,6 +35,8 @@ class OScope;
 class ODqmIfWriter;
 class OModuleBase;
 class OModuleUse;
+class ODqCompAst;
+class OExpr;
 
 // Symbol and Scope
 
@@ -321,6 +323,8 @@ public:
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
+  virtual bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags);
+  virtual int GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags);
   virtual bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer);
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
 };
@@ -406,6 +410,8 @@ public:
   {
     return (ptype ? ptype->GenerateConversion(scope, src) : nullptr);
   }
+  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
 
   LlType * GetLlType() override
   {
@@ -459,6 +465,8 @@ public:
   LlType *    CreateLlType() override;
   LlDiType *  CreateDiType() override;
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
+  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
 };
 
 class OTypePointer : public OType
@@ -512,6 +520,8 @@ public:
 
   OValue * CreateValue() override;
   LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
+  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
 
   static OTypePointer * GetNullPtrType()
   {

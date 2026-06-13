@@ -567,15 +567,17 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   return new OBinExpr(op, newleft, newright);
 }
 
+
+#include "otype_anyvalue.h"
+
+
+#include "../types/otype_anyvalue.h"
+
 bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t aflags)
 {
-  OExpr * src = (rexpr ? *rexpr : nullptr);
+  OExpr * src = *rexpr;
   if (!dsttype || !src || !src->ptype)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      Error(DQERR_TYPEMISM, (!dsttype ? "?" : dsttype->name), (!src || !src->ptype ? "?" : src->ptype->name));
-    }
     return false;
   }
 
@@ -583,710 +585,15 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
   OType * resolved_src = src->ResolvedType();
   if (!resolved_dst || !resolved_src)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      Error(DQERR_TYPEMISM, (!resolved_dst ? "?" : resolved_dst->name), (!resolved_src ? "?" : resolved_src->name));
-    }
     return false;
   }
 
-  ETypeKind tkd = resolved_dst->kind;
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (tkd != tks)
+  if (resolved_dst == resolved_src)
   {
-    if (TK_ANYVALUE == tkd)
-    {
-      if (!IsAnyValueSourceType(resolved_src))
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-        }
-        return false;
-      }
-      if (!EnsureAnyValueRtlUse())
-      {
-        return false;
-      }
-      *rexpr = new OAnyValueBoxExpr(src, dsttype);
-      return true;
-    }
-
-    if (TK_OBJECT == tkd && TK_POINTER == tks)
-    {
-      OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
-      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
-      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      if (dst_object && (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(dst_object))))
-      {
-        if (src_object && src_object != dst_object)
-        {
-          *rexpr = new OObjectUpcastExpr(dsttype, src);
-        }
-        else if (is_explicit_cast)
-        {
-          *rexpr = new OExprTypeConv(dsttype, src);
-          FoldExprTreeAfterTypeRewrite(rexpr);
-        }
-        return true;
-      }
-      if (is_explicit_cast && dst_object)
-      {
-        *rexpr = new OExprTypeConv(dsttype, src);
-        FoldExprTreeAfterTypeRewrite(rexpr);
-        return true;
-      }
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if (TK_FUNCREF == tkd)
-    {
-      OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-      OValSymFunc * matched_func = nullptr;
-      EOverloadFuncRefMatch ovmatch = (cbdst ? cbdst->FindAcceptingOverload(src, matched_func) : OFRM_NOT_OVERLOAD);
-      if (OFRM_UNIQUE_MATCH == ovmatch)
-      {
-        if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
-        {
-          bound_ov->matched_func = matched_func;
-          *rexpr = new OExprTypeConv(dsttype, src);
-        }
-        else
-        {
-          delete src;
-          *rexpr = new OExprTypeConv(dsttype, new OLValueVar(matched_func));
-        }
-        FoldExprTreeAfterTypeRewrite(rexpr);
-        return true;
-      }
-
-      if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          auto * srcvar = dynamic_cast<OLValueVar *>(src);
-          string srcname = (srcvar && srcvar->pvalsym ? srcvar->pvalsym->name : string("?"));
-          if (OFRM_AMBIGUOUS == ovmatch)
-          {
-            ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS,
-                     format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, resolved_dst->name));
-          }
-          else
-          {
-            ErrorTxt(DQERR_OVERLOAD_NO_MATCH,
-                     format("No overload of function \"{}\" matches callback type \"{}\"", srcname, resolved_dst->name));
-          }
-        }
-        return false;
-      }
-
-      if (cbdst->CanAccept(resolved_src))
-      {
-        *rexpr = new OExprTypeConv(dsttype, src);
-        FoldExprTreeAfterTypeRewrite(rexpr);
-        return true;
-      }
-
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_FUNCSIG_TYPEMISM, resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if ((TK_FLOAT == tkd) and (TK_INT == tks))
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_BOOL == tks))
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_FLOAT == tks))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, resolved_dst->name);
-      }
-      return false;
-    }
-
-    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_INT == tks))
-    {
-      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-      int64_t const_value = 0;
-      bool is_const = TryCalculateIntConstant(src, const_value);
-      if (!IsPointerWidthIntegerType(resolved_src))
-      {
-        if (!is_const)
-        {
-          if (aflags & EXPCF_GENERATE_ERRORS)
-          {
-            Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
-          }
-          return false;
-        }
-
-        if (!FitsPointerWidthConstant(intsrc, const_value))
-        {
-          if (aflags & EXPCF_GENERATE_ERRORS)
-          {
-            ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
-          }
-          return false;
-        }
-      }
-
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    if ((TK_POINTER == tkd) && (TK_INT == tks))
-    {
-      uint8_t charlit = 0;
-      if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(src, charlit))
-      {
-        *rexpr = new OCharLitToCStringPtrExpr(charlit);
-        return true;
-      }
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
-    {
-      if (!IsPointerWidthIntegerType(resolved_dst))
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_dst->name);
-        }
-        return false;
-      }
-
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_OBJECT == tks))
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    if ((TK_ARRAY_SLICE == tkd) and (TK_ARRAY == tks))
-    {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-        }
-        return false;
-      }
-
-      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      if ((TK_ANYVALUE == slicedst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
-      {
-        auto * arrlit = static_cast<OArrayLit *>(src);
-        if (!EnsureAnyValueRtlUse())
-        {
-          return false;
-        }
-        for (OExpr *& elem : arrlit->elements)
-        {
-          if (!ConvertExprToType(slicedst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
-          {
-            return false;
-          }
-        }
-        arrlit->ptype = slicedst->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
-        *rexpr = new OArrayLitToSliceExpr(arrlit, dsttype);
-        return true;
-      }
-      if (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_ARR_ELEM_TYPE_MISM, slicedst->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
-        }
-        return false;
-      }
-
-      if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
-      {
-        if (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
-        {
-          *rexpr = new OArrayLitToSliceExpr(arrlit, dsttype);
-          return true;
-        }
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-        }
-        return false;
-      }
-
-      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
-      if (!lval)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_ARR_SLICE_CONVERSION);
-        }
-        return false;
-      }
-
-      *rexpr = new OArrayToSliceExpr(lval, dsttype);
-      return true;
-    }
-
-    if ((TK_ARRAY_SLICE == tkd) and (TK_DYN_ARRAY == tks))
-    {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-        }
-        return false;
-      }
-
-      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
-      if (slicedst->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_ARR_ELEM_TYPE_MISM, slicedst->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
-        }
-        return false;
-      }
-
-      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
-      if (!lval)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_ARR_SLICE_CONVERSION);
-        }
-        return false;
-      }
-
-      *rexpr = new ODynArrayToSliceExpr(lval, dsttype);
-      return true;
-    }
-
-    if (TK_DYN_ARRAY == tkd)
-    {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-        }
-        return false;
-      }
-
-      auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
-      bool ok = false;
-      if (TK_ARRAY == tks)
-      {
-        auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
-        if ((TK_ANYVALUE == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
-        {
-          auto * arrlit = static_cast<OArrayLit *>(src);
-          if (!EnsureAnyValueRtlUse())
-          {
-            return false;
-          }
-          for (OExpr *& elem : arrlit->elements)
-          {
-            if (!ConvertExprToType(dyndst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
-            {
-              return false;
-            }
-          }
-          arrlit->ptype = dyndst->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
-          return true;
-        }
-        ok = (arrsrc->arraylength == 0)
-             || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
-      }
-      else if (TK_ARRAY_SLICE == tks)
-      {
-        ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
-      }
-
-      if (!ok && (aflags & EXPCF_GENERATE_ERRORS))
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-      return ok;
-    }
-
-    if (TK_STRVIEW == tkd)
-    {
-      if (IsTextSourceType(resolved_src))
-      {
-        *rexpr = new OTextSourceToViewExpr(src, dsttype);
-        return true;
-      }
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if (TK_DYNSTR == tkd)
-    {
-      if (IsTextSourceType(resolved_src))
-      {
-        if (TK_DYNSTR != tks)
-        {
-          *rexpr = new OTextSourceToStringExpr(src, dsttype);
-        }
-        return true;
-      }
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if ((TK_CSTRING == tkd) and (TK_POINTER == tks))
-    {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-        }
-        return false;
-      }
-
-      OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-      if (cstrdst->maxlen != 0)
-      {
-        if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(src))
-        {
-          return true;
-        }
-
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert pointer to cstring descriptor");
-        }
-        return false;
-      }
-
-      if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
-      {
-        auto * strlit = dynamic_cast<OCStringLit *>(src);
-        uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
-        *rexpr = new OCStringLitToDescExpr(src, known_len, dsttype);
-        return true;
-      }
-
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        ErrorTxt(DQERR_CSTR_CONVERSION, "cannot initialize writable cstring alias from pointer or literal");
-      }
-      return false;
-    }
-
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      if (is_explicit_cast)
-      {
-        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-      }
-      else
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-    }
-    return false;
-  }
-
-  if (TK_INT == tkd)
-  {
-    OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
-    OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-    if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (resolved_dst == g_builtins->type_cchar))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-    if ((intdst->bitlength != intsrc->bitlength) or (intdst->issigned != intsrc->issigned))
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
     return true;
   }
 
-  if (TK_FLOAT == tkd)
-  {
-    OTypeFloat * floatdst = static_cast<OTypeFloat *>(resolved_dst);
-    OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
-    if (floatdst->bitlength != floatsrc->bitlength)
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    return true;
-  }
-
-  if (TK_POINTER == tkd)
-  {
-    OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
-    OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
-
-    if (is_explicit_cast)
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-
-    uint8_t charlit = 0;
-    if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(src, charlit))
-    {
-      *rexpr = new OCharLitToCStringPtrExpr(charlit);
-      return true;
-    }
-
-    if (!ptrsrc)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_PTR_TYPEMISM, ptrdst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if (!CanAssignPointerImplicitly(ptrdst, ptrsrc))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_PTR_TYPEMISM, ptrdst->name, ptrsrc->name);
-      }
-      return false;
-    }
-
-    return true;
-  }
-
-  if (TK_FUNCREF == tkd)
-  {
-    OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-    if (!cbdst->CanAccept(resolved_src))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_FUNCSIG_TYPEMISM, resolved_dst->name, resolved_src->name);
-      }
-      return false;
-    }
-
-    if (resolved_dst != resolved_src)
-    {
-      *rexpr = new OExprTypeConv(dsttype, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-    }
-
-    return true;
-  }
-
-  if (TK_ARRAY_SLICE == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-      }
-      return false;
-    }
-
-    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-    OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
-    if (slicedst->elemtype->ResolveAlias() != slicesrc->elemtype->ResolveAlias())
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_ARR_ELEM_TYPE_MISM, slicedst->elemtype->ResolveAlias()->name, slicesrc->elemtype->ResolveAlias()->name);
-      }
-      return false;
-    }
-
-    return true;
-  }
-
-  if (TK_DYN_ARRAY == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-      }
-      return false;
-    }
-
-    auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
-    bool ok = false;
-    if (TK_DYN_ARRAY == tks)
-    {
-      ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeDynArray *>(resolved_src)->elemtype->ResolveAlias());
-    }
-    else if (TK_ARRAY == tks)
-    {
-      auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      ok = (arrsrc->arraylength == 0)
-           || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
-    }
-    else if (TK_ARRAY_SLICE == tks)
-    {
-      ok = (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
-    }
-
-    if (!ok && (aflags & EXPCF_GENERATE_ERRORS))
-    {
-      Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", resolved_dst->name, resolved_src->name);
-    }
-    return ok;
-  }
-
-  if (TK_ARRAY == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-      }
-      return false;
-    }
-
-    OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
-    OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-    if ((TK_ANYVALUE == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
-    {
-      auto * arrlit = static_cast<OArrayLit *>(src);
-      if (arrdst->arraylength != arrlit->elements.size())
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          Error(DQERR_ARR_SIZE_MISM, to_string(arrdst->arraylength), to_string(arrlit->elements.size()));
-        }
-        return false;
-      }
-      if (!EnsureAnyValueRtlUse())
-      {
-        return false;
-      }
-      for (OExpr *& elem : arrlit->elements)
-      {
-        if (!ConvertExprToType(arrdst->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
-        {
-          return false;
-        }
-      }
-      arrlit->ptype = dsttype;
-      return true;
-    }
-    if (arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_ARR_ELEM_TYPE_MISM, arrdst->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
-      }
-      return false;
-    }
-    if (arrdst->arraylength != arrsrc->arraylength)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_ARR_SIZE_MISM, to_string(arrdst->arraylength), to_string(arrsrc->arraylength));
-      }
-      return false;
-    }
-
-    return true;
-  }
-
-  if (TK_CSTRING == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        Error(DQERR_CAST_INVALID, resolved_src->name, resolved_dst->name);
-      }
-      return false;
-    }
-
-    OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-    OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
-    if ((cstrdst->maxlen == 0) and (cstrsrc->maxlen > 0))
-    {
-      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
-      if (!lval)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS)
-        {
-          ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
-        }
-        return false;
-      }
-
-      *rexpr = new OCStringLValueToDescExpr(lval, dsttype);
-      return true;
-    }
-
-    if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(src))
-    {
-      return true;
-    }
-
-    if (cstrdst->maxlen != cstrsrc->maxlen)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-      {
-        ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
-      }
-      return false;
-    }
-
-    return true;
-  }
-
-  return true;
+  return resolved_dst->ConvertFromExpr(this, rexpr, aflags);
 }
 
 int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags)
@@ -1303,311 +610,962 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     return -1;
   }
 
-  ETypeKind tkd = resolved_dst->kind;
+  if (resolved_dst == resolved_src)
+  {
+    return 0;
+  }
+
+  return resolved_dst->GetConversionCostFromExpr(this, expr, aflags);
+}
+
+// ---- Virtual Implementations of ConvertFromExpr ----
+
+
+
+
+bool OTypeInt::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (tkd != tks)
+  if (TK_INT != tks)
   {
-    if (TK_ANYVALUE == tkd)
+    if (is_explicit_cast && (TK_BOOL == tks))
     {
-      return IsAnyValueSourceType(resolved_src) ? 1 : -1;
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
     }
-
-    if (TK_OBJECT == tkd && TK_POINTER == tks)
+    if (is_explicit_cast && (TK_FLOAT == tks))
     {
-      OTypeObject * dst_object = dynamic_cast<OTypeObject *>(resolved_dst);
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, this->name);
+      return false;
+    }
+    if (is_explicit_cast && (TK_POINTER == tks))
+    {
+      if (!ast->IsPointerWidthIntegerType(this))
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_PTR_WIDTH_MISM, this->name);
+        return false;
+      }
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    return false;
+  }
+  if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+  return true;
+}
+
+int OTypeInt::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_INT != tks)
+  {
+    if (is_explicit_cast && (TK_BOOL == tks)) return 1;
+    if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
+    if (is_explicit_cast && (TK_POINTER == tks)) return (ast->IsPointerWidthIntegerType(this) ? 1 : -1);
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar)) return -1;
+  return (((this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned)) ? 0 : 1);
+}
+
+
+
+bool OTypeFloat::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FLOAT != tks)
+  {
+    if (TK_INT == tks)
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+  if (this->bitlength != floatsrc->bitlength)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+  return true;
+}
+
+int OTypeFloat::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FLOAT != tks)
+  {
+    if (TK_INT == tks) return 1;
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
+  return ((this->bitlength == floatsrc->bitlength) ? 0 : 1);
+}
+
+
+
+bool OTypeObject::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_OBJECT != tks)
+  {
+    if (TK_POINTER == tks)
+    {
       OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
       OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      if (dst_object && (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(dst_object))))
+      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this)))
       {
-        return 0;
-      }
-      return (is_explicit_cast && dst_object) ? 1 : -1;
-    }
-
-    if (TK_FUNCREF == tkd)
-    {
-      OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-      OValSymFunc * matched_func = nullptr;
-      EOverloadFuncRefMatch ovmatch = (cbdst ? cbdst->FindAcceptingOverload(expr, matched_func) : OFRM_NOT_OVERLOAD);
-      if (OFRM_UNIQUE_MATCH == ovmatch)
-      {
-        return 1;
-      }
-
-      if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
-      {
-        return -1;
-      }
-
-      return (cbdst->CanAccept(resolved_src) ? 1 : -1);
-    }
-
-    if ((TK_FLOAT == tkd) && (TK_INT == tks))
-    {
-      return 1;
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_BOOL == tks))
-    {
-      return 1;
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_FLOAT == tks))
-    {
-      return -1;
-    }
-
-    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_INT == tks))
-    {
-      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-      int64_t const_value = 0;
-      bool is_const = TryCalculateIntConstant(expr, const_value);
-      if (!IsPointerWidthIntegerType(resolved_src))
-      {
-        if (!is_const || !FitsPointerWidthConstant(intsrc, const_value))
+        if (src_object && src_object != this)
         {
-          return -1;
+          *rexpr = new OObjectUpcastExpr(this, src);
         }
+        else if (is_explicit_cast)
+        {
+          *rexpr = new OExprTypeConv(this, src);
+          ast->FoldExprTreeAfterTypeRewrite(rexpr);
+        }
+        return true;
       }
-
-      return 1;
-    }
-
-    if ((TK_POINTER == tkd) && (TK_INT == tks))
-    {
-      uint8_t charlit = 0;
-      return (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
-    }
-
-    if (is_explicit_cast && (TK_INT == tkd) && (TK_POINTER == tks))
-    {
-      return (IsPointerWidthIntegerType(resolved_dst) ? 1 : -1);
-    }
-
-    if (is_explicit_cast && (TK_POINTER == tkd) && (TK_OBJECT == tks))
-    {
-      return 1;
-    }
-
-    if ((TK_ARRAY_SLICE == tkd) && (TK_ARRAY == tks))
-    {
-      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-      if ((TK_ANYVALUE == slicedst->elemtype->ResolveAlias()->kind)
-          && (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
-          && dynamic_cast<OArrayLit *>(expr))
-      {
-        return 1;
-      }
-      if (is_explicit_cast || (slicedst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()))
-      {
-        return -1;
-      }
-
-      if (dynamic_cast<OLValueExpr *>(expr))
-      {
-        return 1;
-      }
-      if ((aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr))
-      {
-        return 1;
-      }
-      return -1;
-    }
-
-    if ((TK_ARRAY_SLICE == tkd) && (TK_DYN_ARRAY == tks))
-    {
-      OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
-      if (is_explicit_cast || (slicedst->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias()))
-      {
-        return -1;
-      }
-      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
-    }
-
-    if (TK_DYN_ARRAY == tkd)
-    {
       if (is_explicit_cast)
       {
-        return -1;
+        *rexpr = new OExprTypeConv(this, src);
+        ast->FoldExprTreeAfterTypeRewrite(rexpr);
+        return true;
       }
-      auto * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
-      if (TK_ARRAY == tks)
-      {
-        auto * arrsrc = static_cast<OTypeArray *>(resolved_src);
-        if ((TK_ANYVALUE == dyndst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
-        {
-          return 1;
-        }
-        return ((arrsrc->arraylength == 0)
-                || (dyndst->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias())) ? 1 : -1;
-      }
-      if (TK_ARRAY_SLICE == tks)
-      {
-        return (dyndst->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias()) ? 1 : -1;
-      }
-      return -1;
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
     }
-
-    if (TK_STRVIEW == tkd)
-    {
-      return IsTextSourceType(resolved_src) ? 1 : -1;
-    }
-
-    if (TK_DYNSTR == tkd)
-    {
-      return IsTextSourceType(resolved_src) ? 1 : -1;
-    }
-
-    if ((TK_CSTRING == tkd) && (TK_POINTER == tks))
-    {
-      if (is_explicit_cast)
-      {
-        return -1;
-      }
-
-      OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-      if (cstrdst->maxlen != 0)
-      {
-        return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr)) ? 0 : -1);
-      }
-
-      return (((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1);
-    }
-
-    return -1;
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
   }
 
-  if (TK_INT == tkd)
+  return true;
+}
+
+int OTypeObject::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_OBJECT != tks)
   {
-    OTypeInt * intdst = static_cast<OTypeInt *>(resolved_dst);
-    OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-    if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (resolved_dst == g_builtins->type_cchar))
+    if (TK_POINTER == tks)
     {
-      return -1;
+      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
+      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this))) return 0;
+      return is_explicit_cast ? 1 : -1;
     }
-    return (((intdst->bitlength == intsrc->bitlength) && (intdst->issigned == intsrc->issigned)) ? 0 : 1);
-  }
-
-  if (TK_FLOAT == tkd)
-  {
-    OTypeFloat * floatdst = static_cast<OTypeFloat *>(resolved_dst);
-    OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
-    return ((floatdst->bitlength == floatsrc->bitlength) ? 0 : 1);
-  }
-
-  if (TK_POINTER == tkd)
-  {
-    OTypePointer * ptrdst = static_cast<OTypePointer *>(resolved_dst);
-    OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
-    if (is_explicit_cast)
-    {
-      return 1;
-    }
-
-    uint8_t charlit = 0;
-    if (IsCCharPointerType(resolved_dst) && IsCharLiteralExpr(expr, charlit))
-    {
-      return 1;
-    }
-
-    if (!ptrsrc)
-    {
-      return -1;
-    }
-
-    return (CanAssignPointerImplicitly(ptrdst, ptrsrc) ? 0 : -1);
-  }
-
-  if (TK_FUNCREF == tkd)
-  {
-    OTypeFuncRef * cbdst = static_cast<OTypeFuncRef *>(resolved_dst);
-    if (!cbdst->CanAccept(resolved_src))
-    {
-      return -1;
-    }
-
-    return ((resolved_dst == resolved_src) ? 0 : 1);
-  }
-
-  if (TK_ARRAY_SLICE == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      return -1;
-    }
-
-    OTypeArraySlice * slicedst = static_cast<OTypeArraySlice *>(resolved_dst);
-    OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
-    return ((slicedst->elemtype->ResolveAlias() == slicesrc->elemtype->ResolveAlias()) ? 0 : -1);
-  }
-
-  if (TK_ARRAY == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      return -1;
-    }
-
-    OTypeArray * arrdst = static_cast<OTypeArray *>(resolved_dst);
-    OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-    if ((TK_ANYVALUE == arrdst->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
-    {
-      return (arrdst->arraylength == arrsrc->arraylength) ? 1 : -1;
-    }
-    if ((arrdst->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
-        || (arrdst->arraylength != arrsrc->arraylength))
-    {
-      return -1;
-    }
-
-    return 0;
-  }
-
-  if (TK_DYN_ARRAY == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      return -1;
-    }
-
-    OTypeDynArray * dyndst = static_cast<OTypeDynArray *>(resolved_dst);
-    OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
-    return ((dyndst->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
-  }
-
-  if (TK_DYNSTR == tkd || TK_STRVIEW == tkd)
-  {
-    return 0;
-  }
-
-  if (TK_CSTRING == tkd)
-  {
-    if (is_explicit_cast)
-    {
-      return -1;
-    }
-
-    OTypeCString * cstrdst = static_cast<OTypeCString *>(resolved_dst);
-    OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
-    if ((cstrdst->maxlen == 0) && (cstrsrc->maxlen > 0))
-    {
-      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
-    }
-
-    if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && cstrdst->CanStoreFrom(expr))
-    {
-      return 0;
-    }
-
-    return ((cstrdst->maxlen == cstrsrc->maxlen) ? 0 : -1);
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
   }
 
   return 0;
 }
+
+
+
+bool OTypeFuncRef::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FUNCREF != tks)
+  {
+    OValSymFunc * matched_func = nullptr;
+    EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(src, matched_func);
+    if (OFRM_UNIQUE_MATCH == ovmatch)
+    {
+      if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
+      {
+        bound_ov->matched_func = matched_func;
+        *rexpr = new OExprTypeConv(this, src);
+      }
+      else
+      {
+        delete src;
+        *rexpr = new OExprTypeConv(this, new OLValueVar(matched_func));
+      }
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS)
+      {
+        auto * srcvar = dynamic_cast<OLValueVar *>(src);
+        string srcname = (srcvar && srcvar->pvalsym ? srcvar->pvalsym->name : string("?"));
+        if (OFRM_AMBIGUOUS == ovmatch)
+        {
+          ast->ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS, format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, this->name));
+        }
+        else
+        {
+          ast->ErrorTxt(DQERR_OVERLOAD_NO_MATCH, format("No overload of function \"{}\" matches callback type \"{}\"", srcname, this->name));
+        }
+      }
+      return false;
+    }
+
+    if (CanAccept(resolved_src))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (!CanAccept(resolved_src))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (this != resolved_src)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+  }
+
+  return true;
+}
+
+int OTypeFuncRef::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_FUNCREF != tks)
+  {
+    OValSymFunc * matched_func = nullptr;
+    EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(expr, matched_func);
+    if (OFRM_UNIQUE_MATCH == ovmatch) return 1;
+    if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch)) return -1;
+    return (CanAccept(resolved_src) ? 1 : -1);
+  }
+
+  if (!CanAccept(resolved_src)) return -1;
+  return ((this == resolved_src) ? 0 : 1);
+}
+
+
+
+bool OTypeAnyValue::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+
+  if (TK_ANYVALUE != tks)
+  {
+    if (!IsAnyValueSourceType(resolved_src))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
+    }
+    if (!EnsureAnyValueRtlUse()) return false;
+    *rexpr = new OAnyValueBoxExpr(src, this);
+    return true;
+  }
+  return true;
+}
+
+int OTypeAnyValue::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  if (TK_ANYVALUE != tks)
+  {
+    return IsAnyValueSourceType(resolved_src) ? 1 : -1;
+  }
+  return 0;
+}
+
+
+
+bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_POINTER != tks)
+  {
+    if (is_explicit_cast && (TK_INT == tks))
+    {
+      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+      int64_t const_value = 0;
+      bool is_const = ast->TryCalculateIntConstant(src, const_value);
+      if (!ast->IsPointerWidthIntegerType(resolved_src))
+      {
+        if (!is_const)
+        {
+          if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
+          return false;
+        }
+
+        if (!ast->FitsPointerWidthConstant(intsrc, const_value))
+        {
+          if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
+          return false;
+        }
+      }
+
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    if (TK_INT == tks)
+    {
+      uint8_t charlit = 0;
+      if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
+      {
+        *rexpr = new OCharLitToCStringPtrExpr(charlit);
+        return true;
+      }
+    }
+
+    if (is_explicit_cast && (TK_OBJECT == tks))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
+
+  if (is_explicit_cast)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+
+  uint8_t charlit = 0;
+  if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
+  {
+    *rexpr = new OCharLitToCStringPtrExpr(charlit);
+    return true;
+  }
+
+  if (!ptrsrc)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_PTR_TYPEMISM, this->name, resolved_src->name);
+    return false;
+  }
+
+  if (!ast->CanAssignPointerImplicitly(this, ptrsrc))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_PTR_TYPEMISM, this->name, ptrsrc->name);
+    return false;
+  }
+
+  return true;
+}
+
+int OTypePointer::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_POINTER != tks)
+  {
+    if (is_explicit_cast && (TK_INT == tks))
+    {
+      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+      int64_t const_value = 0;
+      bool is_const = ast->TryCalculateIntConstant(expr, const_value);
+      if (!ast->IsPointerWidthIntegerType(resolved_src))
+      {
+        if (!is_const || !ast->FitsPointerWidthConstant(intsrc, const_value)) return -1;
+      }
+      return 1;
+    }
+    if (TK_INT == tks)
+    {
+      uint8_t charlit = 0;
+      return (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
+    }
+    if (is_explicit_cast && (TK_OBJECT == tks)) return 1;
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
+  if (is_explicit_cast) return 1;
+
+  uint8_t charlit = 0;
+  if (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) return 1;
+  if (!ptrsrc) return -1;
+  return (ast->CanAssignPointerImplicitly(this, ptrsrc) ? 0 : -1);
+}
+
+
+
+bool OTypeArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY != tks)
+  {
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+
+  OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+  if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+  {
+    auto * arrlit = static_cast<OArrayLit *>(src);
+    if (this->arraylength != arrlit->elements.size())
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrlit->elements.size()));
+      return false;
+    }
+    if (!EnsureAnyValueRtlUse()) return false;
+    for (OExpr *& elem : arrlit->elements)
+    {
+      if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+    }
+    arrlit->ptype = this;
+    return true;
+  }
+  if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+    return false;
+  }
+  if (this->arraylength != arrsrc->arraylength)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrsrc->arraylength));
+    return false;
+  }
+
+  return true;
+}
+
+int OTypeArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY != tks)
+  {
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+
+  OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+  if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr))
+  {
+    return (this->arraylength == arrsrc->arraylength) ? 1 : -1;
+  }
+  if ((this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()) || (this->arraylength != arrsrc->arraylength))
+  {
+    return -1;
+  }
+
+  return 0;
+}
+
+bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY_SLICE != tks)
+  {
+    if (TK_ARRAY == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      {
+        auto * arrlit = static_cast<OArrayLit *>(src);
+        if (!EnsureAnyValueRtlUse()) return false;
+        for (OExpr *& elem : arrlit->elements)
+        {
+          if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+        }
+        arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        *rexpr = new OArrayLitToSliceExpr(arrlit, this);
+        return true;
+      }
+      if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+        return false;
+      }
+      if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
+      {
+        if (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
+        {
+          *rexpr = new OArrayLitToSliceExpr(arrlit, this);
+          return true;
+        }
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        return false;
+      }
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SLICE_CONVERSION);
+        return false;
+      }
+      *rexpr = new OArrayToSliceExpr(lval, this);
+      return true;
+    }
+    if (TK_DYN_ARRAY == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
+        return false;
+      }
+      OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+      if (!lval)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SLICE_CONVERSION);
+        return false;
+      }
+      *rexpr = new ODynArrayToSliceExpr(lval, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+  if (this->elemtype->ResolveAlias() != slicesrc->elemtype->ResolveAlias())
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, slicesrc->elemtype->ResolveAlias()->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeArraySlice::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ARRAY_SLICE != tks)
+  {
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      if (is_explicit_cast || (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())) return -1;
+      if (dynamic_cast<OLValueExpr *>(expr)) return 1;
+      if ((aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      return -1;
+    }
+    if (TK_DYN_ARRAY == tks)
+    {
+      OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+      if (is_explicit_cast || (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())) return -1;
+      return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+    }
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+  OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
+  return ((this->elemtype->ResolveAlias() == slicesrc->elemtype->ResolveAlias()) ? 0 : -1);
+}
+
+bool OTypeDynArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYN_ARRAY != tks)
+  {
+    if (is_explicit_cast)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+      return false;
+    }
+    bool ok = false;
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(src))
+      {
+        auto * arrlit = static_cast<OArrayLit *>(src);
+        if (!EnsureAnyValueRtlUse()) return false;
+        for (OExpr *& elem : arrlit->elements)
+        {
+          if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+        }
+        arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        return true;
+      }
+      ok = (arrsrc->arraylength == 0) || (this->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
+    }
+    else if (TK_ARRAY_SLICE == tks)
+    {
+      ok = (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
+    }
+    if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    return ok;
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+  bool ok = (this->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias());
+  if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+  return ok;
+}
+
+int OTypeDynArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYN_ARRAY != tks)
+  {
+    if (is_explicit_cast) return -1;
+    if (TK_ARRAY == tks)
+    {
+      OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
+      if ((TK_ANYVALUE == this->elemtype->ResolveAlias()->kind) && dynamic_cast<OArrayLit *>(expr)) return 1;
+      return ((arrsrc->arraylength == 0) || (this->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias())) ? 1 : -1;
+    }
+    if (TK_ARRAY_SLICE == tks)
+    {
+      return (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias()) ? 1 : -1;
+    }
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+  OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
+  return ((this->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias()) ? 0 : -1);
+}
+
+
+
+bool OTypeStrView::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_STRVIEW != tks)
+  {
+    if (IsTextSourceType(resolved_src))
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      *rexpr = new OTextSourceToViewExpr(src, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeStrView::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_STRVIEW != tks)
+  {
+    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  return is_explicit_cast ? -1 : 0;
+}
+
+bool OTypeDynString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYNSTR != tks)
+  {
+    if (IsTextSourceType(resolved_src))
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      *rexpr = new OTextSourceToStringExpr(src, this);
+      return true;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+  return true;
+}
+
+int OTypeDynString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_DYNSTR != tks)
+  {
+    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  return is_explicit_cast ? -1 : 0;
+}
+
+
+
+bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_CSTRING != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      if (is_explicit_cast)
+      {
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      if (this->maxlen != 0)
+      {
+        if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        return false;
+      }
+      if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
+      {
+        auto * strlit = dynamic_cast<OCStringLit *>(src);
+        uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
+        *rexpr = new OCStringLitToDescExpr(src, known_len, this);
+        return true;
+      }
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      return false;
+    }
+    return OType::ConvertFromExpr(ast, rexpr, aflags);
+  }
+
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    return false;
+  }
+
+  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
+  if ((this->maxlen == 0) and (cstrsrc->maxlen > 0))
+  {
+    OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
+    if (!lval)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
+      return false;
+    }
+    *rexpr = new OCStringLValueToDescExpr(lval, this);
+    return true;
+  }
+
+  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+
+  if (this->maxlen != cstrsrc->maxlen)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
+    return false;
+  }
+
+  return true;
+}
+
+int OTypeCString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_CSTRING != tks)
+  {
+    if (TK_POINTER == tks)
+    {
+      if (is_explicit_cast) return -1;
+      if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) ? 0 : -1;
+      return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1;
+    }
+    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  }
+
+  if (is_explicit_cast) return -1;
+
+  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
+  if ((this->maxlen == 0) && (cstrsrc->maxlen > 0)) return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) return 0;
+  return (this->maxlen == cstrsrc->maxlen) ? 0 : -1;
+}
+
+
+
+
+
+bool OType::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = *rexpr;
+  OType * resolved_src = src->ResolvedType();
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+  
+  if (this->kind == resolved_src->kind) return true;
+  
+  if (is_explicit_cast)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    }
+  }
+  else
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    }
+  }
+  return false;
+}
+
+int OType::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  OType * resolved_src = expr->ResolvedType();
+  if (this->kind == resolved_src->kind) return 0;
+  return -1;
+}
+
+bool OCompoundType::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  return OType::ConvertFromExpr(ast, rexpr, aflags);
+}
+
+int OCompoundType::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  return OType::GetConversionCostFromExpr(ast, expr, aflags);
+}
+
+
+
+bool OTypeAlias::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+{
+  return (ptype ? ptype->ConvertFromExpr(ast, rexpr, aflags) : false);
+}
+
+int OTypeAlias::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+{
+  return (ptype ? ptype->GetConversionCostFromExpr(ast, expr, aflags) : -1);
+}
+
+// --------------------------------------------------
 
 bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype)
 {

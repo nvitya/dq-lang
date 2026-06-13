@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.2"
+#define DQ_COMPILER_VERSION  "0.17.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.4:
+  - Splitting ConvertExprToType and GetAssignTypeConversionCost using type virtual functions
 v0.17.3:
   - Compiler code refactoring / 3: duplicated helper functions joined around otype_xxx modules
 v0.17.2:

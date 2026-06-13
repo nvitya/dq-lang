@@ -69,6 +69,8 @@ public:
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
+  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
 };
 
 bool EnsureAnyValueRtlUse();

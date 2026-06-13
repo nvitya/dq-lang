@@ -575,29 +575,7 @@ LlValue * OLValueIndex::Generate(OScope * scope)
   }
 }
 
-static LlValue * ToNativeInt(LlValue * value)
-{
-  LlType * dst = g_builtins->native_int->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateSExt(value, dst, "i.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "i.trunc");
-  }
-  return value;
-}
+
 
 static OValSymFunc * SysRawArrayGetSliceFunc()
 {
@@ -1811,7 +1789,7 @@ LlValue * OCallExpr::Generate(OScope * scope)
     OTypeObject * root = owner_object;
     while (root->base_type)
     {
-      root = root->base_type;
+      root = root->GetBaseObject();
     }
     int slot = owner_object->FindVirtualSlot(vsfunc);
     if (slot < 0)

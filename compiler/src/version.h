@@ -15,10 +15,12 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.3:
+  - Compiler code refactoring / 3: duplicated helper functions joined around otype_xxx modules
 v0.17.2:
-  - Compiler code refactoring: dqc_parser splitted into dqc_parser, dqc_parser_stmt, dqc_parser_expr
+  - Compiler code refactoring / 2: dqc_parser splitted into dqc_parser, dqc_parser_stmt, dqc_parser_expr
 v0.17.1:
-  - Compiler code refactoring: moving functions from parser to AST
+  - Compiler code refactoring / 1: moving functions from parser to AST
 v0.17.0:
   - Compiler cross-compilation
 v0.16.10:

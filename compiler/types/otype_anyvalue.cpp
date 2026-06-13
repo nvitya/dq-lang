@@ -34,29 +34,7 @@ static LlType * LlI8Type()
   return LlType::getInt8Ty(ll_ctx);
 }
 
-static LlValue * ToNativeInt(LlValue * value)
-{
-  LlType * dst = g_builtins->type_int->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateSExt(value, dst, "any.i.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "any.i.trunc");
-  }
-  return value;
-}
+
 
 static LlValue * ToNativeUInt(LlValue * value)
 {

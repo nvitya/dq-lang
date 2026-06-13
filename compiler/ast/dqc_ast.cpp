@@ -1783,7 +1783,7 @@ void ODqCompAst::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
     }
     else if (OSF_DESTROY == vsfunc->object_specfunc_kind)
     {
-      bool requires_inherited_destroy = object_type->base_type->FindSpecialMethod(OSF_DESTROY) != nullptr;
+      bool requires_inherited_destroy = object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY) != nullptr;
       if (requires_inherited_destroy
           && (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size()))
       {
@@ -2029,7 +2029,7 @@ OValSymFunc * ODqCompAst::FindInheritedMethod(const string & method_name, const 
     return nullptr;
   }
 
-  for (OTypeObject * cur = owner_object->base_type; cur; cur = cur->base_type)
+  for (OTypeObject * cur = owner_object->GetBaseObject(); cur; cur = cur->GetBaseObject())
   {
     if ("Create" == method_name)
     {
@@ -2117,7 +2117,7 @@ OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym *
   OCompoundType * decl_type = nullptr;
   if (auto * object_type = dynamic_cast<OTypeObject *>(curvsfunc->owner_compound_type))
   {
-    for (OTypeObject * cur = object_type; cur; cur = cur->base_type)
+    for (OTypeObject * cur = object_type; cur; cur = cur->GetBaseObject())
     {
       if (found_scope == cur->Members())
       {

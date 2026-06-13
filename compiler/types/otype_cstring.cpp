@@ -56,53 +56,7 @@ static LlValue * LlNativeInt(uint64_t value)
   return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
 }
 
-static LlValue * ToNativeInt(LlValue * value)
-{
-  LlType * dst = g_builtins->type_int->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "cstr.int.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "cstr.int.trunc");
-  }
-  return value;
-}
 
-static LlValue * ToCharValue(LlValue * value)
-{
-  LlType * dst = g_builtins->type_char->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "cstr.ch.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "cstr.ch.trunc");
-  }
-  return value;
-}
 
 static OValSymFunc * CStringFunc(const string & name)
 {

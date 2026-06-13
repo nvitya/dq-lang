@@ -664,6 +664,11 @@ void OCompoundType::EnsureLayout()
     offset = base_type->bytesize;
     max_align = max<uint32_t>(max_align, base_type->alignsize);
   }
+  else if (is_polymorphic)
+  {
+    offset = TARGET_PTRSIZE;
+    max_align = max<uint32_t>(max_align, TARGET_PTRSIZE);
+  }
 
   for (OValSym * m : member_order)
   {
@@ -715,6 +720,12 @@ LlType * OCompoundType::CreateLlType()
       member_types.push_back(base_type->GetLlType());
       ll_index_base = 1;
     }
+    else if (is_polymorphic)
+    {
+      vtable_field_index = 0;
+      member_types.push_back(llvm::PointerType::get(ll_ctx, 0));
+      ll_index_base = 1;
+    }
     for (int i = 0; i < (int)member_order.size(); ++i)
     {
       OValSym * m = member_order[i];
@@ -729,6 +740,12 @@ LlType * OCompoundType::CreateLlType()
   {
     member_types.push_back(base_type->GetLlType());
     offset = base_type->bytesize;
+  }
+  else if (is_polymorphic)
+  {
+    vtable_field_index = uint32_t(member_types.size());
+    member_types.push_back(llvm::PointerType::get(ll_ctx, 0));
+    offset = TARGET_PTRSIZE;
   }
   for (OValSym * m : member_order)
   {
@@ -762,6 +779,12 @@ LlDiType * OCompoundType::CreateDiType()
     elements.push_back(di_builder->createMemberType(
         nullptr, "__base", nullptr, 0, size_bits, 0,
         0, llvm::DINode::FlagZero, base_type->GetDiType()));
+  }
+  else if (is_polymorphic)
+  {
+    elements.push_back(di_builder->createMemberType(
+        nullptr, "__vtable", nullptr, 0, TARGET_PTRSIZE * 8, 0,
+        0, llvm::DINode::FlagZero, nullptr));
   }
   for (int i = 0; i < (int)member_order.size(); ++i)
   {
@@ -818,7 +841,11 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
   EnsureLayout();
 
-  if (!writer.AddRecStr(DQMIF_STRUCT_BEGIN, name)) return false;
+  int begin_tag = IsObject() ? DQMIF_OBJ_BEGIN : DQMIF_STRUCT_BEGIN;
+  int end_tag = IsObject() ? DQMIF_OBJ_END : DQMIF_STRUCT_END;
+  const char * kind_name = IsObject() ? "object" : "struct";
+
+  if (!writer.AddRecStr(begin_tag, name)) return false;
   if (bytesize > uint32_t(numeric_limits<int32_t>::max()))
   {
     return writer.Fail(format("Compound type {} is too large for DQM interface: {}", name, bytesize));
@@ -826,7 +853,8 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
   if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
   if (base_type)
   {
-    if (!writer.AddRecStr(DQMIF_OBJ_BASE, base_type->name)) return false;
+    int base_tag = IsObject() ? DQMIF_OBJ_BASE : DQMIF_OBJ_BASE; // Structs use DQMIF_OBJ_BASE too in original code
+    if (!writer.AddRecStr(base_tag, base_type->name)) return false;
   }
 
   for (OValSym * member : member_order)
@@ -868,11 +896,11 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     }
     else
     {
-      return writer.Fail(format("Unsupported struct method symbol: {}", vs->name));
+      return writer.Fail(format("Unsupported {} method symbol: {}", kind_name, vs->name));
     }
   }
 
-  return writer.AddRecEmpty(DQMIF_STRUCT_END);
+  return writer.AddRecEmpty(end_tag);
 }
 
 void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)

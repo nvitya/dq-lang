@@ -934,7 +934,7 @@ void OValSymFunc::GenerateFuncBody()
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
     bool has_inherited_destroy = owner_object && owner_object->base_type
-        && owner_object->base_type->FindSpecialMethod(OSF_DESTROY);
+        && owner_object->GetBaseObject()->FindSpecialMethod(OSF_DESTROY);
     if (!owner_object || !owner_object->base_type
         || (OSF_DESTROY == object_specfunc_kind && !has_inherited_destroy))
     {

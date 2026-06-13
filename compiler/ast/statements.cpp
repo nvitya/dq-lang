@@ -650,7 +650,7 @@ void OStmtDelete::Generate(OScope * scope)
     OTypeObject * root = object_type;
     while (root->base_type)
     {
-      root = root->base_type;
+      root = root->GetBaseObject();
     }
     root->GetLlType();
     LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_ptr,

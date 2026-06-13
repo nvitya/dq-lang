@@ -48,3 +48,51 @@ void ll_init_debug_info()
   pfile->di_file = di_main_file;
   di_unit = di_builder->createCompileUnit(llvm::dwarf::DW_LANG_C, di_main_file, "dqc", false, "", 0);
 }
+
+LlValue * ToNativeInt(LlValue * value)
+{
+  LlType * dst = g_builtins->type_int->GetLlType();
+  if (value->getType() == dst)
+  {
+    return value;
+  }
+  if (!value->getType()->isIntegerTy())
+  {
+    return value;
+  }
+  unsigned srcbits = value->getType()->getIntegerBitWidth();
+  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
+  if (srcbits < dstbits)
+  {
+    return ll_builder.CreateZExt(value, dst, "cstr.int.ext");
+  }
+  if (srcbits > dstbits)
+  {
+    return ll_builder.CreateTrunc(value, dst, "cstr.int.trunc");
+  }
+  return value;
+}
+
+LlValue * ToCharValue(LlValue * value)
+{
+  LlType * dst = g_builtins->type_char->GetLlType();
+  if (value->getType() == dst)
+  {
+    return value;
+  }
+  if (!value->getType()->isIntegerTy())
+  {
+    return value;
+  }
+  unsigned srcbits = value->getType()->getIntegerBitWidth();
+  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
+  if (srcbits < dstbits)
+  {
+    return ll_builder.CreateZExt(value, dst, "cstr.ch.ext");
+  }
+  if (srcbits > dstbits)
+  {
+    return ll_builder.CreateTrunc(value, dst, "cstr.ch.trunc");
+  }
+  return value;
+}

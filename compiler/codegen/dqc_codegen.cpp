@@ -38,6 +38,9 @@
 #include "artifact_lock.h"
 #include "otype_object.h"
 
+#include "dqc.h"
+#include "scope_builtins.h"
+
 using namespace std;
 
 void ODqCompCodegen::GenerateIr()

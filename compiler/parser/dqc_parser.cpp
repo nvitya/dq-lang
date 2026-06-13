@@ -1519,12 +1519,12 @@ void ODqCompParser::ParseObjectDecl()
   }
 
   bool need_generated_ctors = object_type->constructors.empty();
-  if (need_generated_ctors && object_type->base_type && !object_type->base_type->constructors.empty())
+  if (need_generated_ctors && object_type->GetBaseObject() && !object_type->GetBaseObject()->constructors.empty())
   {
-    size_t ctor_count = object_type->base_type->constructors.size();
+    size_t ctor_count = object_type->GetBaseObject()->constructors.size();
     for (size_t i = 0; i < ctor_count; ++i)
     {
-      AddGeneratedObjectConstructor(object_type, object_type->base_type->constructors[i],
+      AddGeneratedObjectConstructor(object_type, object_type->GetBaseObject()->constructors[i],
                                     scpos_statement_start, ctor_count);
     }
     need_generated_ctors = false;
@@ -1549,7 +1549,7 @@ void ODqCompParser::ParseObjectDecl()
   {
     if (object_type->base_type)
     {
-      if (!object_type->base_type->FindSpecialMethod(OSF_CREATE, 0))
+      if (!object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0))
       {
         Error(DQERR_OVERLOAD_NO_MATCH, "Create");
         needs_implicit_ctor = false;
@@ -1562,7 +1562,7 @@ void ODqCompParser::ParseObjectDecl()
     OValSymFunc * ctor = AddGeneratedObjectConstructor(object_type, nullptr, scpos_statement_start, 1);
     if (object_type->base_type)
     {
-      OValSymFunc * inherited_ctor = object_type->base_type->FindSpecialMethod(OSF_CREATE, 0);
+      OValSymFunc * inherited_ctor = object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0);
       auto * stmt = new OStmtInheritedCall(scpos_statement_start, ctor, inherited_ctor);
       stmt->emit_derived_field_init = true;
       ctor->body->stlist.push_back(stmt);
@@ -1572,7 +1572,7 @@ void ODqCompParser::ParseObjectDecl()
   if (!object_type->destructor)
   {
     OValSymFunc * inherited_dtor = (object_type->base_type
-        ? object_type->base_type->FindSpecialMethod(OSF_DESTROY)
+        ? object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY)
         : nullptr);
     bool needs_implicit_dtor = (inherited_dtor != nullptr);
     if (!needs_implicit_dtor)

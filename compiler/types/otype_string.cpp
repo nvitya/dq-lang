@@ -56,29 +56,7 @@ static LlValue * LlBool(bool value)
   return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), value);
 }
 
-static LlValue * ToNativeInt(LlValue * value)
-{
-  LlType * dst = g_builtins->type_int->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateSExt(value, dst, "str.i.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "str.i.trunc");
-  }
-  return value;
-}
+
 
 static LlValue * ToU32(LlValue * value)
 {
@@ -103,29 +81,7 @@ static LlValue * ToU32(LlValue * value)
   return value;
 }
 
-static LlValue * ToCharValue(LlValue * value)
-{
-  LlType * dst = g_builtins->type_char->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "str.ch.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "str.ch.trunc");
-  }
-  return value;
-}
+
 
 static LlValue * NormalizeTextIndexValue(LlValue * index, LlValue * len)
 {

@@ -431,6 +431,8 @@ public:
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
   OCompoundType * base_type = nullptr;
   bool         is_packed = false;
+  bool         is_polymorphic = false;
+  uint32_t     vtable_field_index = 0;
   bool         layout_ready = false;
   bool         layout_busy = false;
   bool         manual_ll_layout = false;

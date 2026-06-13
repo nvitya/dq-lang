@@ -23,10 +23,9 @@ private:
   using  super = OCompoundType;
 
 public:
-  OTypeObject * base_type = nullptr;
-  bool          is_polymorphic = false;
+  OTypeObject * GetBaseObject() const { return static_cast<OTypeObject *>(base_type); }
+
   bool          is_abstract = false;
-  uint32_t      vtable_field_index = 0;
   LlValue *     ll_vtable = nullptr;
   vector<OValSymFunc *> virtual_methods;
   vector<OValSymFunc *> constructors;
@@ -55,11 +54,7 @@ public:
   void GenVTableGlobal(bool apublic);
   void GenerateVTableStore(LlValue * ll_object_addr);
 
-  void        EnsureLayout() override;
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
-  LlType *    CreateLlType() override;
-  LlDiType *  CreateDiType() override;
-  bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
 };
 
 class OVsObject : public OValSym

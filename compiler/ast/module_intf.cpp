@@ -32,7 +32,7 @@
 #include "otype_float.h"
 #include "otype_bool.h"
 #include "otype_cstring.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "scope_builtins.h"
 #include "artifact_lock.h"
 #include "processrunner.h"

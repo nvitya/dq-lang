@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.17.5"
+#define DQ_COMPILER_VERSION  "0.17.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.17.6:
+  - Compiler code refactoring / 6: Object + Struct handling merged into otype_compound module
 v0.17.5:
   - Compiler code refactoring / 5: Splitting ConvertExprToType and GetAssignTypeConversionCost
 v0.17.4:
@@ -112,7 +114,7 @@ v0.11.17:
   - Object inheritance, inherited calls, virtual/override/final/abstract methods, polymorphic delete
   - DQM interface persistence for object base types and virtual method attributes
 v0.11.16:
-  - Code refactor: some of the object handling moved to otype_object.cpp/h
+  - Code refactor: some of the object handling moved to otype_compound.cpp/h
 v0.11.15:
   - Bugfix of using objects from modules
 v0.11.14:

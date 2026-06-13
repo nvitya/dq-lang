@@ -14,6 +14,7 @@
 #pragma once
 
 #include "stdint.h"
+#include "otype_compound.h"
 #include <filesystem>
 #include <string>
 #include "comp_options.h"

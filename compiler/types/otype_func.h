@@ -14,6 +14,7 @@
 #pragma once
 
 #include <vector>
+#include "otype_compound.h"
 #include "symbols.h"
 #include "expressions.h"
 #include "statements.h"

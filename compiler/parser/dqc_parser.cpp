@@ -25,7 +25,7 @@
 #include "otype_cstring.h"
 #include "otype_string.h"
 #include "otype_int.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "named_scopes.h"
 #include "scope_defines.h"
 #include "expressions.h"

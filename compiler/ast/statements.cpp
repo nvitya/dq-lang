@@ -19,7 +19,7 @@
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "otype_func.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "comp_options.h"
 
 using namespace std;

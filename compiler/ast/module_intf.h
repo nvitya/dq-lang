@@ -14,6 +14,7 @@
 #pragma once
 
 #include <string>
+#include "otype_compound.h"
 #include <format>
 #include <vector>
 #include <ostream>

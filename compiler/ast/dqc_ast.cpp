@@ -21,7 +21,7 @@
 #include "otype_float.h"
 #include "otype_func.h"
 #include "otype_int.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 
@@ -1544,15 +1544,9 @@ int OType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   return -1;
 }
 
-bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  return OType::ConvertFromExpr(rexpr, aflags);
-}
 
-int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return OType::GetConversionCostFromExpr(expr, aflags);
-}
+
+
 
 
 

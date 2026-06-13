@@ -260,6 +260,7 @@ class OTypeFuncRef;      // forward declaration
 class OTypeArray;        // forward declaration
 class OTypeArraySlice;   // forward declaration
 class OTypeDynArray;     // forward declaration
+class OCompoundType;     // forward declaration
 class OTypeObject;       // forward declaration
 
 class OType : public OSymbol
@@ -427,47 +428,6 @@ public:
 };
 
 
-class OCompoundType : public OType
-{
-private:
-  using        super = OType;
-
-public:
-  OScope       member_scope;
-  vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
-  OCompoundType * base_type = nullptr;
-  bool         is_packed = false;
-  bool         is_polymorphic = false;
-  uint32_t     vtable_field_index = 0;
-  bool         layout_ready = false;
-  bool         layout_busy = false;
-  bool         manual_ll_layout = false;
-
-  OCompoundType(const string name, OScope * aparent_scope, ETypeKind akind = TK_STRUCT)
-  :
-    super(name, akind),
-    member_scope(aparent_scope, name)
-  {
-  }
-
-  inline OScope * Members() { return &member_scope; }
-
-  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
-  void AddMember(OValSym * amember);
-  int  FindMemberIndex(const string & aname);
-  virtual OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  virtual int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  virtual bool IsObject() const { return false; }
-  virtual bool IsSameOrDerivedFrom(OCompoundType * abase) const;
-  bool ContainsManagedStorage() const override;
-
-  void        EnsureLayout() override;
-  LlType *    CreateLlType() override;
-  LlDiType *  CreateDiType() override;
-  bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
-};
 
 class OTypePointer : public OType
 {

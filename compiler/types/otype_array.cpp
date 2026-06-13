@@ -18,7 +18,7 @@
 #include "dqc.h"
 #include "named_scopes.h"
 #include "otype_func.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "scope_builtins.h"
 #include <cctype>
 #include <llvm/IR/GlobalVariable.h>

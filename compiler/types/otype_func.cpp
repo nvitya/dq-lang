@@ -17,7 +17,7 @@
 #include "dq_module.h"
 #include "errorcodes.h"
 #include "ll_defs.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 

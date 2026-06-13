@@ -20,7 +20,7 @@
 #include "otype_cstring.h"
 #include "otype_string.h"
 #include "otype_func.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "named_scopes.h"
 #include <llvm/IR/Intrinsics.h>
 

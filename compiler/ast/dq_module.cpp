@@ -19,7 +19,7 @@
 #include "errorcodes.h"
 #include "module_path.h"
 #include "otype_func.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "statements.h"
 
 static constexpr const char * DQ_MODULE_INIT_GUARD_NAME = "__dq_module_init_done";

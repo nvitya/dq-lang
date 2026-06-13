@@ -12,6 +12,7 @@
  */
 
 #include <cstdlib>
+#include "otype_compound.h"
 #include <unistd.h>
 
 #include <vector>

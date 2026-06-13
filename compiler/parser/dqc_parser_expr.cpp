@@ -14,7 +14,7 @@
 #include "dq_module.h"
 #include "dqc.h"
 #include "otype_array.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "named_scopes.h"
 
 static bool EnsureDynArrayRtlUse()

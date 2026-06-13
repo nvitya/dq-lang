@@ -12,7 +12,7 @@
 #include "scf_dq.h"
 #include "symbols.h"
 #include "dq_module.h"
-#include "otype_object.h"
+#include "otype_compound.h"
 #include "otype_array.h"
 #include <ranges>
 

@@ -15,6 +15,7 @@
 #include <format>
 
 #include "dqc_ast.h"
+#include "../src/dqc.h"
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_float.h"
@@ -109,7 +110,7 @@ bool ODqCompAst::CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * s
   return dst->basetype->ResolveAlias() == src->basetype->ResolveAlias();
 }
 
-void ODqCompAst::FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
+static void FoldExprTreeAfterTypeRewrite(OExpr ** rexpr)
 {
   // ParseExpression() already folds the original parse tree. Re-fold only after type
   // resolution injects conversion nodes so constant casts collapse immediately.
@@ -593,7 +594,7 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     return true;
   }
 
-  return resolved_dst->ConvertFromExpr(this, rexpr, aflags);
+  return resolved_dst->ConvertFromExpr(rexpr, aflags);
 }
 
 int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags)
@@ -615,7 +616,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
     return 0;
   }
 
-  return resolved_dst->GetConversionCostFromExpr(this, expr, aflags);
+  return resolved_dst->GetConversionCostFromExpr(expr, aflags);
 }
 
 // ---- Virtual Implementations of ConvertFromExpr ----
@@ -623,7 +624,7 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 
 
 
-bool OTypeInt::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -635,44 +636,44 @@ bool OTypeInt::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags
     if (is_explicit_cast && (TK_BOOL == tks))
     {
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
     if (is_explicit_cast && (TK_FLOAT == tks))
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, this->name);
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, this->name);
       return false;
     }
     if (is_explicit_cast && (TK_POINTER == tks))
     {
-      if (!ast->IsPointerWidthIntegerType(this))
+      if (!g_compiler->IsPointerWidthIntegerType(this))
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_PTR_WIDTH_MISM, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, this->name);
         return false;
       }
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
   if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar))
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
     return false;
   }
   if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
   {
     *rexpr = new OExprTypeConv(this, src);
-    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    FoldExprTreeAfterTypeRewrite(rexpr);
     return true;
   }
   return true;
 }
 
-int OTypeInt::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -682,8 +683,8 @@ int OTypeInt::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t
   {
     if (is_explicit_cast && (TK_BOOL == tks)) return 1;
     if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
-    if (is_explicit_cast && (TK_POINTER == tks)) return (ast->IsPointerWidthIntegerType(this) ? 1 : -1);
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    if (is_explicit_cast && (TK_POINTER == tks)) return (g_compiler->IsPointerWidthIntegerType(this) ? 1 : -1);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
@@ -693,7 +694,7 @@ int OTypeInt::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t
 
 
 
-bool OTypeFloat::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeFloat::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -704,23 +705,23 @@ bool OTypeFloat::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t afla
     if (TK_INT == tks)
     {
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
   if (this->bitlength != floatsrc->bitlength)
   {
     *rexpr = new OExprTypeConv(this, src);
-    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    FoldExprTreeAfterTypeRewrite(rexpr);
     return true;
   }
   return true;
 }
 
-int OTypeFloat::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeFloat::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -728,7 +729,7 @@ int OTypeFloat::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32
   if (TK_FLOAT != tks)
   {
     if (TK_INT == tks) return 1;
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
@@ -737,7 +738,7 @@ int OTypeFloat::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32
 
 
 
-bool OTypeObject::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeObject::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -759,26 +760,26 @@ bool OTypeObject::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t afl
         else if (is_explicit_cast)
         {
           *rexpr = new OExprTypeConv(this, src);
-          ast->FoldExprTreeAfterTypeRewrite(rexpr);
+          FoldExprTreeAfterTypeRewrite(rexpr);
         }
         return true;
       }
       if (is_explicit_cast)
       {
         *rexpr = new OExprTypeConv(this, src);
-        ast->FoldExprTreeAfterTypeRewrite(rexpr);
+        FoldExprTreeAfterTypeRewrite(rexpr);
         return true;
       }
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
       return false;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   return true;
 }
 
-int OTypeObject::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -793,7 +794,7 @@ int OTypeObject::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint3
       if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this))) return 0;
       return is_explicit_cast ? 1 : -1;
     }
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   return 0;
@@ -801,7 +802,7 @@ int OTypeObject::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint3
 
 
 
-bool OTypeFuncRef::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -823,7 +824,7 @@ bool OTypeFuncRef::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
         delete src;
         *rexpr = new OExprTypeConv(this, new OLValueVar(matched_func));
       }
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
 
@@ -835,11 +836,11 @@ bool OTypeFuncRef::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
         string srcname = (srcvar && srcvar->pvalsym ? srcvar->pvalsym->name : string("?"));
         if (OFRM_AMBIGUOUS == ovmatch)
         {
-          ast->ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS, format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, this->name));
+          g_compiler->ErrorTxt(DQERR_OVERLOAD_AMBIGUOUS, format("Overloaded function \"{}\" is ambiguous for callback type \"{}\"", srcname, this->name));
         }
         else
         {
-          ast->ErrorTxt(DQERR_OVERLOAD_NO_MATCH, format("No overload of function \"{}\" matches callback type \"{}\"", srcname, this->name));
+          g_compiler->ErrorTxt(DQERR_OVERLOAD_NO_MATCH, format("No overload of function \"{}\" matches callback type \"{}\"", srcname, this->name));
         }
       }
       return false;
@@ -848,30 +849,30 @@ bool OTypeFuncRef::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     if (CanAccept(resolved_src))
     {
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
 
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
     return false;
   }
 
   if (!CanAccept(resolved_src))
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
     return false;
   }
 
   if (this != resolved_src)
   {
     *rexpr = new OExprTypeConv(this, src);
-    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    FoldExprTreeAfterTypeRewrite(rexpr);
   }
 
   return true;
 }
 
-int OTypeFuncRef::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeFuncRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -891,7 +892,7 @@ int OTypeFuncRef::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
 
 
 
-bool OTypeAnyValue::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeAnyValue::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -901,7 +902,7 @@ bool OTypeAnyValue::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t a
   {
     if (!IsAnyValueSourceType(resolved_src))
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
       return false;
     }
     if (!EnsureAnyValueRtlUse()) return false;
@@ -911,7 +912,7 @@ bool OTypeAnyValue::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t a
   return true;
 }
 
-int OTypeAnyValue::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeAnyValue::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -924,7 +925,7 @@ int OTypeAnyValue::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uin
 
 
 
-bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -937,24 +938,24 @@ bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     {
       OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
       int64_t const_value = 0;
-      bool is_const = ast->TryCalculateIntConstant(src, const_value);
-      if (!ast->IsPointerWidthIntegerType(resolved_src))
+      bool is_const = g_compiler->TryCalculateIntConstant(src, const_value);
+      if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
       {
         if (!is_const)
         {
-          if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
+          if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
           return false;
         }
 
-        if (!ast->FitsPointerWidthConstant(intsrc, const_value))
+        if (!g_compiler->FitsPointerWidthConstant(intsrc, const_value))
         {
-          if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
+          if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
           return false;
         }
       }
 
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
 
@@ -971,11 +972,11 @@ bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     if (is_explicit_cast && (TK_OBJECT == tks))
     {
       *rexpr = new OExprTypeConv(this, src);
-      ast->FoldExprTreeAfterTypeRewrite(rexpr);
+      FoldExprTreeAfterTypeRewrite(rexpr);
       return true;
     }
 
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
@@ -983,7 +984,7 @@ bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
   if (is_explicit_cast)
   {
     *rexpr = new OExprTypeConv(this, src);
-    ast->FoldExprTreeAfterTypeRewrite(rexpr);
+    FoldExprTreeAfterTypeRewrite(rexpr);
     return true;
   }
 
@@ -996,20 +997,20 @@ bool OTypePointer::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
 
   if (!ptrsrc)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_PTR_TYPEMISM, this->name, resolved_src->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, resolved_src->name);
     return false;
   }
 
-  if (!ast->CanAssignPointerImplicitly(this, ptrsrc))
+  if (!g_compiler->CanAssignPointerImplicitly(this, ptrsrc))
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_PTR_TYPEMISM, this->name, ptrsrc->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, ptrsrc->name);
     return false;
   }
 
   return true;
 }
 
-int OTypePointer::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1021,10 +1022,10 @@ int OTypePointer::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
     {
       OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
       int64_t const_value = 0;
-      bool is_const = ast->TryCalculateIntConstant(expr, const_value);
-      if (!ast->IsPointerWidthIntegerType(resolved_src))
+      bool is_const = g_compiler->TryCalculateIntConstant(expr, const_value);
+      if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
       {
-        if (!is_const || !ast->FitsPointerWidthConstant(intsrc, const_value)) return -1;
+        if (!is_const || !g_compiler->FitsPointerWidthConstant(intsrc, const_value)) return -1;
       }
       return 1;
     }
@@ -1034,7 +1035,7 @@ int OTypePointer::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
       return (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
     }
     if (is_explicit_cast && (TK_OBJECT == tks)) return 1;
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
@@ -1043,12 +1044,12 @@ int OTypePointer::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
   uint8_t charlit = 0;
   if (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) return 1;
   if (!ptrsrc) return -1;
-  return (ast->CanAssignPointerImplicitly(this, ptrsrc) ? 0 : -1);
+  return (g_compiler->CanAssignPointerImplicitly(this, ptrsrc) ? 0 : -1);
 }
 
 
 
-bool OTypeArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1057,12 +1058,12 @@ bool OTypeArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t afla
 
   if (TK_ARRAY != tks)
   {
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
 
@@ -1072,32 +1073,32 @@ bool OTypeArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t afla
     auto * arrlit = static_cast<OArrayLit *>(src);
     if (this->arraylength != arrlit->elements.size())
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrlit->elements.size()));
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrlit->elements.size()));
       return false;
     }
     if (!EnsureAnyValueRtlUse()) return false;
     for (OExpr *& elem : arrlit->elements)
     {
-      if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+      if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
     }
     arrlit->ptype = this;
     return true;
   }
   if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
     return false;
   }
   if (this->arraylength != arrsrc->arraylength)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrsrc->arraylength));
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SIZE_MISM, to_string(this->arraylength), to_string(arrsrc->arraylength));
     return false;
   }
 
   return true;
 }
 
-int OTypeArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1105,7 +1106,7 @@ int OTypeArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32
 
   if (TK_ARRAY != tks)
   {
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   if (is_explicit_cast) return -1;
@@ -1123,7 +1124,7 @@ int OTypeArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32
   return 0;
 }
 
-bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeArraySlice::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1136,7 +1137,7 @@ bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t
     {
       if (is_explicit_cast)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
       OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
@@ -1146,7 +1147,7 @@ bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t
         if (!EnsureAnyValueRtlUse()) return false;
         for (OExpr *& elem : arrlit->elements)
         {
-          if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+          if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
         }
         arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
         *rexpr = new OArrayLitToSliceExpr(arrlit, this);
@@ -1154,7 +1155,7 @@ bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t
       }
       if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
         return false;
       }
       if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
@@ -1164,13 +1165,13 @@ bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t
           *rexpr = new OArrayLitToSliceExpr(arrlit, this);
           return true;
         }
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
         return false;
       }
       OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
       if (!lval)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SLICE_CONVERSION);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
         return false;
       }
       *rexpr = new OArrayToSliceExpr(lval, this);
@@ -1180,42 +1181,42 @@ bool OTypeArraySlice::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t
     {
       if (is_explicit_cast)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
       OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
       if (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, dynsrc->elemtype->ResolveAlias()->name);
         return false;
       }
       OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
       if (!lval)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_SLICE_CONVERSION);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
         return false;
       }
       *rexpr = new ODynArrayToSliceExpr(lval, this);
       return true;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
   OTypeArraySlice * slicesrc = static_cast<OTypeArraySlice *>(resolved_src);
   if (this->elemtype->ResolveAlias() != slicesrc->elemtype->ResolveAlias())
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, slicesrc->elemtype->ResolveAlias()->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, slicesrc->elemtype->ResolveAlias()->name);
     return false;
   }
   return true;
 }
 
-int OTypeArraySlice::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeArraySlice::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1238,7 +1239,7 @@ int OTypeArraySlice::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, u
       if (is_explicit_cast || (this->elemtype->ResolveAlias() != dynsrc->elemtype->ResolveAlias())) return -1;
       return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
     }
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   if (is_explicit_cast) return -1;
@@ -1246,7 +1247,7 @@ int OTypeArraySlice::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, u
   return ((this->elemtype->ResolveAlias() == slicesrc->elemtype->ResolveAlias()) ? 0 : -1);
 }
 
-bool OTypeDynArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeDynArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1257,7 +1258,7 @@ bool OTypeDynArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t a
   {
     if (is_explicit_cast)
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
       return false;
     }
     bool ok = false;
@@ -1270,7 +1271,7 @@ bool OTypeDynArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t a
         if (!EnsureAnyValueRtlUse()) return false;
         for (OExpr *& elem : arrlit->elements)
         {
-          if (!ast->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
+          if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
         }
         arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
         return true;
@@ -1281,22 +1282,22 @@ bool OTypeDynArray::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t a
     {
       ok = (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
     }
-    if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
     return ok;
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
   OTypeDynArray * dynsrc = static_cast<OTypeDynArray *>(resolved_src);
   bool ok = (this->elemtype->ResolveAlias() == dynsrc->elemtype->ResolveAlias());
-  if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+  if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
   return ok;
 }
 
-int OTypeDynArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeDynArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1315,7 +1316,7 @@ int OTypeDynArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uin
     {
       return (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias()) ? 1 : -1;
     }
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   if (is_explicit_cast) return -1;
@@ -1325,7 +1326,7 @@ int OTypeDynArray::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uin
 
 
 
-bool OTypeStrView::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeStrView::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1338,24 +1339,24 @@ bool OTypeStrView::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     {
       if (is_explicit_cast)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
       *rexpr = new OTextSourceToViewExpr(src, this);
       return true;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
   return true;
 }
 
-int OTypeStrView::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeStrView::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1364,13 +1365,13 @@ int OTypeStrView::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
   if (TK_STRVIEW != tks)
   {
     if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   return is_explicit_cast ? -1 : 0;
 }
 
-bool OTypeDynString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1383,24 +1384,24 @@ bool OTypeDynString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t 
     {
       if (is_explicit_cast)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
       *rexpr = new OTextSourceToStringExpr(src, this);
       return true;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
   return true;
 }
 
-int OTypeDynString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeDynString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1409,7 +1410,7 @@ int OTypeDynString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, ui
   if (TK_DYNSTR != tks)
   {
     if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   return is_explicit_cast ? -1 : 0;
@@ -1417,7 +1418,7 @@ int OTypeDynString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, ui
 
 
 
-bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1430,13 +1431,13 @@ bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     {
       if (is_explicit_cast)
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
       if (this->maxlen != 0)
       {
         if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
-        if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
         return false;
       }
       if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
@@ -1446,15 +1447,15 @@ bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
         *rexpr = new OCStringLitToDescExpr(src, known_len, this);
         return true;
       }
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
       return false;
     }
-    return OType::ConvertFromExpr(ast, rexpr, aflags);
+    return OType::ConvertFromExpr(rexpr, aflags);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     return false;
   }
 
@@ -1464,7 +1465,7 @@ bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
     if (!lval)
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
       return false;
     }
     *rexpr = new OCStringLValueToDescExpr(lval, this);
@@ -1475,14 +1476,14 @@ bool OTypeCString::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t af
 
   if (this->maxlen != cstrsrc->maxlen)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) ast->ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
     return false;
   }
 
   return true;
 }
 
-int OTypeCString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeCString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
@@ -1496,7 +1497,7 @@ int OTypeCString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
       if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) ? 0 : -1;
       return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1;
     }
-    return OType::GetConversionCostFromExpr(ast, expr, aflags);
+    return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   if (is_explicit_cast) return -1;
@@ -1511,7 +1512,7 @@ int OTypeCString::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint
 
 
 
-bool OType::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -1523,46 +1524,46 @@ bool OType::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
   {
     if (aflags & EXPCF_GENERATE_ERRORS)
     {
-      ast->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+      g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
     }
   }
   else
   {
     if (aflags & EXPCF_GENERATE_ERRORS)
     {
-      ast->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
     }
   }
   return false;
 }
 
-int OType::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   if (this->kind == resolved_src->kind) return 0;
   return -1;
 }
 
-bool OCompoundType::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
-  return OType::ConvertFromExpr(ast, rexpr, aflags);
+  return OType::ConvertFromExpr(rexpr, aflags);
 }
 
-int OCompoundType::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
-  return OType::GetConversionCostFromExpr(ast, expr, aflags);
+  return OType::GetConversionCostFromExpr(expr, aflags);
 }
 
 
 
-bool OTypeAlias::ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags)
+bool OTypeAlias::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
-  return (ptype ? ptype->ConvertFromExpr(ast, rexpr, aflags) : false);
+  return (ptype ? ptype->ConvertFromExpr(rexpr, aflags) : false);
 }
 
-int OTypeAlias::GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags)
+int OTypeAlias::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
-  return (ptype ? ptype->GetConversionCostFromExpr(ast, expr, aflags) : -1);
+  return (ptype ? ptype->GetConversionCostFromExpr(expr, aflags) : -1);
 }
 
 // --------------------------------------------------

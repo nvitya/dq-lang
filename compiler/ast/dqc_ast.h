@@ -67,7 +67,6 @@ public:
   bool    TryCalculateIntConstant(OExpr * expr, int64_t & rvalue);
   bool    FitsPointerWidthConstant(OTypeInt * srctype, int64_t value);
   bool    CanAssignPointerImplicitly(OTypePointer * dst, OTypePointer * src);
-  void    FoldExprTreeAfterTypeRewrite(OExpr ** rexpr);
 
 
 public: // Moved from ODqCompParser

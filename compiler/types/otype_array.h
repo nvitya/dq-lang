@@ -66,8 +66,8 @@ public:
   }
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 // Array slice / descriptor type, e.g. []int
@@ -93,8 +93,8 @@ public:
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 // Owning dynamic array type, e.g. [*]int
@@ -125,8 +125,8 @@ public:
   }
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);

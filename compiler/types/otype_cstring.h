@@ -104,8 +104,8 @@ public:
   LlValue * GenerateDescriptor(OScope * scope, LlValue * cstraddr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 enum ECStringMetaField

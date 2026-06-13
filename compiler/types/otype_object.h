@@ -55,8 +55,8 @@ public:
   void GenerateVTableStore(LlValue * ll_object_addr);
 
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
-  bool ConvertFromExpr(ODqCompAst * ast, OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(ODqCompAst * ast, OExpr * expr, uint32_t aflags) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 class OVsObject : public OValSym

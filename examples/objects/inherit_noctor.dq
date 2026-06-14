@@ -20,7 +20,7 @@ var libc_stdout : pointer [[external('stdout')]]
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
 
-function OTextSinkStdOut.Create():
+function OTextSinkStdOut.*Create():
   pstdout = @.libc_stdout
 endfunc
 

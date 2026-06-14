@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.18.2"
+#define DQ_COMPILER_VERSION  "0.18.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.18.3:
+  - Forcing using '*' for special object functions everywhere
 v0.18.2:
   - Handling missing / empty constuctors/destructors
 v0.18.1:

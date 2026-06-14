@@ -697,6 +697,32 @@ bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
     return false;
   }
 
+  if (object_specfunc_kind != other->object_specfunc_kind)
+  {
+    if (OSF_NONE != object_specfunc_kind)
+    {
+      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Missing '*' for special object function implementation");
+    }
+    else
+    {
+      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Unexpected '*' for regular object function implementation");
+    }
+    return false;
+  }
+
+  if (special_kind != other->special_kind)
+  {
+    if (SFK_NONE != special_kind)
+    {
+      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Missing '*' for special function implementation");
+    }
+    else
+    {
+      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Unexpected '*' for regular function implementation");
+    }
+    return false;
+  }
+
   if (this_type->MatchesSignature(other_type))
   {
     return true;

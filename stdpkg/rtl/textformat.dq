@@ -152,7 +152,7 @@ endfunc
 
 //-------------------------------------------------------------------------------------------------
 
-function OTextSinkStdOut.Create():
+function OTextSinkStdOut.*Create():
   inherited Create();
   pstdout = @.libc_stdout;
 endfunc
@@ -165,7 +165,7 @@ function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
   @.libc_fputc(ch, pstdout);
 endfunc
 
-function OTextSinkCString.Create(adest : cstring):
+function OTextSinkCString.*Create(adest : cstring):
   inherited Create();
   dest = adest;
 endfunc
@@ -178,7 +178,7 @@ function OTextSinkCString.WriteChar(ch : char) [[override]]:
   dest.AppendChar(ch);
 endfunc
 
-function OTextSinkStr.Create(adest : ^str):
+function OTextSinkStr.*Create(adest : ^str):
   inherited Create();
   dest = adest;
 endfunc
@@ -193,7 +193,7 @@ endfunc
 
 //-------------------------------------------------------------------------------------------------
 
-function OTextFormatter.Create(asink : OTextSink):
+function OTextFormatter.*Create(asink : OTextSink):
   sink = asink;
 endfunc
 

@@ -355,7 +355,7 @@ endfunc
 
 //----------------------------------------------------------------------------------------------
 
-function ODynStrMgr.Create(achwidth : uint8):
+function ODynStrMgr.*Create(achwidth : uint8):
   refcount = 0;
   length = 0;
   capacity = 0;
@@ -367,7 +367,7 @@ function ODynStrMgr.Create(achwidth : uint8):
   endif
 endfunc
 
-function ODynStrMgr.Destroy():
+function ODynStrMgr.*Destroy():
   if dataptr <> null:
     @sys.MemFree(dataptr);
     dataptr = null;

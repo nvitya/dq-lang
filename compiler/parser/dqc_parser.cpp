@@ -1572,10 +1572,31 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
 {
   string method_name;
   scf->SkipWhite();
+  bool specfunc_decl = scf->CheckSymbol("*");
+
   if (not scf->ReadIdentifier(method_name))
   {
     Error(DQERR_ID_EXP_AFTER, object_name + ".");
     return;
+  }
+
+  EObjectSpecFuncKind objspecfunc_kind = OSF_NONE;
+  if (specfunc_decl)
+  {
+    if ("Create" == method_name)
+    {
+      objspecfunc_kind = OSF_CREATE;
+    }
+    else if ("Destroy" == method_name)
+    {
+      objspecfunc_kind = OSF_DESTROY;
+    }
+    else
+    {
+      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, method_name);
+      RecoverFailedFunctionDecl();
+      return;
+    }
   }
 
   OTypeFunc * tfunc = new OTypeFunc(method_name);
@@ -1602,6 +1623,7 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
   OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
   vsfunc->owner_compound_type = compound_type;
   vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
+  vsfunc->object_specfunc_kind = objspecfunc_kind;
   curvsfunc = vsfunc;
 
   InjectObjectReceiver(vsfunc, compound_type);

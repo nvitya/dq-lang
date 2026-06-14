@@ -138,7 +138,7 @@ function DynArrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint,
   result = (srcaddr - baseaddr) IDIV elemsize;
 endfunc
 
-function ODynArrMgr.Create(atypeinfo : ^SDqTypeInfo):
+function ODynArrMgr.*Create(atypeinfo : ^SDqTypeInfo):
   refcount = 0;
   length = 0;
   capacity = 0;
@@ -151,7 +151,7 @@ function ODynArrMgr.Create(atypeinfo : ^SDqTypeInfo):
   subtype  = typeinfo^.subtype;
 endfunc
 
-function ODynArrMgr.Destroy():
+function ODynArrMgr.*Destroy():
   if dataptr <> null:
     @sys.MemFree(dataptr);
     dataptr = null;

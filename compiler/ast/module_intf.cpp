@@ -1925,15 +1925,19 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   if (added && aowner_type)
   {
     auto * owner_object = dynamic_cast<OTypeObject *>(aowner_type);
-    if (owner_object && ("Create" == fn->name))
+    if (owner_object)
     {
-      fn->object_specfunc_kind = OSF_CREATE;
-      owner_object->constructors.push_back(fn);
-    }
-    else if (owner_object && ("Destroy" == fn->name))
-    {
-      fn->object_specfunc_kind = OSF_DESTROY;
-      owner_object->destructor = fn;
+      EObjectSpecFuncKind osf = ObjectSpecFuncKindFromName(fn->name);
+      if (OSF_CREATE == osf)
+      {
+        fn->object_specfunc_kind = OSF_CREATE;
+        owner_object->constructors.push_back(fn);
+      }
+      else if (OSF_DESTROY == osf)
+      {
+        fn->object_specfunc_kind = OSF_DESTROY;
+        owner_object->destructor = fn;
+      }
     }
   }
   if (added && (SFK_MODULE_INIT == fn->special_kind))

@@ -41,6 +41,7 @@ enum ESpecialFuncKind
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname);
 const char * SpecialFuncKindName(ESpecialFuncKind akind);
+EObjectSpecFuncKind ObjectSpecFuncKindFromName(const string & aname);
 
 struct TFuncCallArgMatch
 {

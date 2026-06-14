@@ -976,8 +976,9 @@ void ODqCompParserStmt::ParseStmtInherited()
   }
 
   auto * stmt = new OStmtInheritedCall(scpos_statement_start, curvsfunc, method, args);
-  stmt->emit_derived_field_init = (OSF_CREATE == curvsfunc->object_specfunc_kind && "Create" == method_name);
-  stmt->emit_derived_field_destroy = (OSF_DESTROY == curvsfunc->object_specfunc_kind && "Destroy" == method_name);
+  EObjectSpecFuncKind osf = ObjectSpecFuncKindFromName(method_name);
+  stmt->emit_derived_field_init = (OSF_CREATE == curvsfunc->object_specfunc_kind && OSF_CREATE == osf);
+  stmt->emit_derived_field_destroy = (OSF_DESTROY == curvsfunc->object_specfunc_kind && OSF_DESTROY == osf);
   curblock->AddStatement(stmt);
 }
 

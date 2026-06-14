@@ -1200,17 +1200,8 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
   string method_name = sid;
   if (specfunc_decl)
   {
-    if ("Create" == sid)
-    {
-      objspecfunc_kind = OSF_CREATE;
-      method_name = "Create";
-    }
-    else if ("Destroy" == sid)
-    {
-      objspecfunc_kind = OSF_DESTROY;
-      method_name = "Destroy";
-    }
-    else
+    objspecfunc_kind = ObjectSpecFuncKindFromName(sid);
+    if (OSF_NONE == objspecfunc_kind)
     {
       ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, sid);
       RecoverFailedFunctionDecl();
@@ -1583,15 +1574,8 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
   EObjectSpecFuncKind objspecfunc_kind = OSF_NONE;
   if (specfunc_decl)
   {
-    if ("Create" == method_name)
-    {
-      objspecfunc_kind = OSF_CREATE;
-    }
-    else if ("Destroy" == method_name)
-    {
-      objspecfunc_kind = OSF_DESTROY;
-    }
-    else
+    objspecfunc_kind = ObjectSpecFuncKindFromName(method_name);
+    if (OSF_NONE == objspecfunc_kind)
     {
       ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, method_name);
       RecoverFailedFunctionDecl();

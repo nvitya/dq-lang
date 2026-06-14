@@ -35,6 +35,19 @@ ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
   return SFK_NONE;
 }
 
+EObjectSpecFuncKind ObjectSpecFuncKindFromName(const string & aname)
+{
+  if ("Create" == aname)
+  {
+    return OSF_CREATE;
+  }
+  if ("Destroy" == aname)
+  {
+    return OSF_DESTROY;
+  }
+  return OSF_NONE;
+}
+
 const char * SpecialFuncKindName(ESpecialFuncKind akind)
 {
   switch (akind)
@@ -697,22 +710,12 @@ bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
     return false;
   }
 
-  if (object_specfunc_kind != other->object_specfunc_kind)
-  {
-    if (OSF_NONE != object_specfunc_kind)
-    {
-      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Missing '*' for special object function implementation");
-    }
-    else
-    {
-      g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Unexpected '*' for regular object function implementation");
-    }
-    return false;
-  }
+  bool this_special = (object_specfunc_kind != OSF_NONE) || (special_kind != SFK_NONE);
+  bool other_special = (other->object_specfunc_kind != OSF_NONE) || (other->special_kind != SFK_NONE);
 
-  if (special_kind != other->special_kind)
+  if (this_special != other_special)
   {
-    if (SFK_NONE != special_kind)
+    if (this_special)
     {
       g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Missing '*' for special function implementation");
     }
@@ -720,6 +723,12 @@ bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
     {
       g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Unexpected '*' for regular function implementation");
     }
+    return false;
+  }
+
+  if (object_specfunc_kind != other->object_specfunc_kind || special_kind != other->special_kind)
+  {
+    g_compiler->ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "Special function kind mismatch");
     return false;
   }
 

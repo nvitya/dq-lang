@@ -1154,12 +1154,13 @@ OValSymFunc * ODqCompAst::FindInheritedMethod(const string & method_name, const 
 
   for (OTypeObject * cur = owner_object->GetBaseObject(); cur; cur = cur->GetBaseObject())
   {
-    if ("Create" == method_name)
+    EObjectSpecFuncKind osf = ObjectSpecFuncKindFromName(method_name);
+    if (OSF_CREATE == osf)
     {
       OValSymFunc * fn = cur->FindSpecialMethod(OSF_CREATE, args.size());
       return (ObjectMemberAccessAllowed(cur, fn) ? fn : nullptr);
     }
-    if ("Destroy" == method_name)
+    if (OSF_DESTROY == osf)
     {
       OValSymFunc * fn = (args.empty() ? cur->FindSpecialMethod(OSF_DESTROY) : nullptr);
       return (ObjectMemberAccessAllowed(cur, fn) ? fn : nullptr);

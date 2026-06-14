@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.18.0"
+#define DQ_COMPILER_VERSION  "0.18.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.18.1:
+  - No semicolon handling fix for forward declarations
 v0.18.0:
   - Semicolons are optional, required only for separating multiple statements in a single line
 v0.17.7:

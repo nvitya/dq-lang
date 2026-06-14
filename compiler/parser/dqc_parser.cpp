@@ -961,14 +961,18 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   }
 
   scf->SkipWhite();
-  bool is_declaration_only = scf->CheckSymbol(";", false); // only an explicit ';' marks declaration-only
+  bool has_body = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
+  bool is_declaration_only = !has_body;
 
   auto consume_declaration_semicolon = [&](const string & what)
   {
-    scf->SkipWhite();
-    if (not scf->CheckSymbol(";"))
+    if (has_body)
     {
       Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, what);
+    }
+    else if (not CheckStatementClose())
+    {
+      // CheckStatementClose generates error if missing
     }
   };
 

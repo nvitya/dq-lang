@@ -471,7 +471,11 @@ void OTypeObject::GenVTableGlobal(bool apublic)
   }
   for (OValSymFunc * method : virtual_methods)
   {
-    if (method && method->ll_func)
+    if (method && method->attr_is_abstract)
+    {
+      entries.push_back(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+    }
+    else if (method && method->ll_func)
     {
       entries.push_back(method->ll_func);
     }

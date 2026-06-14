@@ -1,0 +1,49 @@
+use libc/stdio
+
+object OTextSink:
+
+  function *Create():
+  endfunc
+
+  function Write(atext : strview) [[virtual, abstract]]
+  function WriteChar(ch : char)   [[virtual, abstract]]
+endobj
+
+object OTextSinkStdOut(OTextSink):
+  pstdout : pointer
+
+  function *Create()
+  function Write(atext : strview) [[override]]
+  function WriteChar(ch : char)   [[override]]
+endobj
+
+implementation
+
+var libc_stdout : pointer [[external('stdout')]]
+
+function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+
+function OTextSinkStdOut.Create():
+  inherited Create();
+  pstdout = @.libc_stdout
+endfunc
+
+function OTextSinkStdOut.Write(atext : strview) [[override]]:
+  @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
+endfunc
+
+function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
+  @.libc_fputc(ch, pstdout)
+endfunc
+
+
+function *Main() -> int:
+  printf('DQ no constructor test\n')
+
+  var cout <- OTextSinkStdOut()
+
+  cout.Write('OTextSinkStdOut.Write()\n')
+
+  return 0
+endfunc

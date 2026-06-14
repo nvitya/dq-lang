@@ -1525,19 +1525,6 @@ void ODqCompParser::ParseObjectDecl()
   }
 
   bool needs_implicit_ctor = need_generated_ctors;
-  if (needs_implicit_ctor)
-  {
-    needs_implicit_ctor = false;
-    for (OValSym * member : object_type->member_order)
-    {
-      auto * objmember = dynamic_cast<OVsObject *>(member);
-      if (member && (member->field_init_expr || (objmember && objmember->ObjectCtorCallAtDecl())))
-      {
-        needs_implicit_ctor = true;
-        break;
-      }
-    }
-  }
 
   if (needs_implicit_ctor)
   {
@@ -1568,19 +1555,7 @@ void ODqCompParser::ParseObjectDecl()
     OValSymFunc * inherited_dtor = (object_type->base_type
         ? object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY)
         : nullptr);
-    bool needs_implicit_dtor = (inherited_dtor != nullptr);
-    if (!needs_implicit_dtor)
-    {
-      for (OValSym * member : object_type->member_order)
-      {
-        auto * objmember = dynamic_cast<OVsObject *>(member);
-        if (objmember && objmember->IsFixedObjectStorage() && objmember->FindDestructor())
-        {
-          needs_implicit_dtor = true;
-          break;
-        }
-      }
-    }
+    bool needs_implicit_dtor = true;
 
     if (needs_implicit_dtor)
     {

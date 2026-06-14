@@ -23,7 +23,7 @@ object OChild(OBase):
 public
   function *Create():
     hidden = 1;
-  endfunc //?error(ObjSpecFuncInvalid)
+  endfunc
 
   function Value() -> int: //?error(ObjFuncOverride)
     return hidden;
@@ -34,6 +34,18 @@ public
 
   function Done() [[override]]: //?error(ObjFuncOverride)
   endfunc
+endobj
+
+object OArgBase:
+public
+  function *Create(v : int):
+  endfunc
+endobj
+
+object OArgChild(OArgBase):
+public
+  function *Create():
+  endfunc //?error(ObjSpecFuncInvalid)
 endobj
 
 object OAccessChild(OBase):

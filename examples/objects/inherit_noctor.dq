@@ -1,10 +1,6 @@
 use libc/stdio
 
 object OTextSink:
-
-  function *Create():
-  endfunc
-
   function Write(atext : strview) [[virtual, abstract]]
   function WriteChar(ch : char)   [[virtual, abstract]]
 endobj
@@ -25,7 +21,6 @@ function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer)
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
 
 function OTextSinkStdOut.Create():
-  inherited Create();
   pstdout = @.libc_stdout
 endfunc
 

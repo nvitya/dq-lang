@@ -873,16 +873,40 @@ void ODqCompAst::ValidateConstructorEmbeddedObjects(OValSymFunc * vsfunc)
 
     if (OSF_CREATE == vsfunc->object_specfunc_kind)
     {
+      if (inherited_lifecycle_count == 0)
+      {
+        OValSymFunc * inherited_ctor = object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0);
+        if (inherited_ctor)
+        {
+          auto * stmt = new OStmtInheritedCall(vsfunc->scpos, vsfunc, inherited_ctor);
+          stmt->emit_derived_field_init = true;
+          vsfunc->body->stlist.insert(vsfunc->body->stlist.begin(), stmt);
+          inherited_lifecycle_count = 1;
+          inherited_lifecycle_index = 0;
+        }
+      }
+
       if (inherited_lifecycle_count != 1 || inherited_lifecycle_index != 0)
       {
         ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID,
-                 "derived constructors must call inherited Create exactly once as the first statement",
+                 "derived constructors must explicitly call inherited Create with required arguments exactly once as the first statement",
                  &vsfunc->scpos_endfunc);
       }
     }
     else if (OSF_DESTROY == vsfunc->object_specfunc_kind)
     {
       bool requires_inherited_destroy = object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY) != nullptr;
+
+      if (requires_inherited_destroy && inherited_lifecycle_count == 0)
+      {
+        OValSymFunc * inherited_dtor = object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY);
+        auto * stmt = new OStmtInheritedCall(vsfunc->scpos_endfunc, vsfunc, inherited_dtor);
+        stmt->emit_derived_field_destroy = true;
+        vsfunc->body->stlist.push_back(stmt);
+        inherited_lifecycle_count = 1;
+        inherited_lifecycle_index = vsfunc->body->stlist.size() - 1;
+      }
+
       if (requires_inherited_destroy
           && (inherited_lifecycle_count != 1 || inherited_lifecycle_index + 1 != vsfunc->body->stlist.size()))
       {

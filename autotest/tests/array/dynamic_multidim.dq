@@ -20,13 +20,17 @@ function PrintArr2(astr : strview):
 endfunc
 
 function *Main() -> int:
-  PrintLn('DQ Multi-dimensional array test')
+  PrintLn('DQ Multi-dimensional array test')  //?ignore('DQ Multi-dimensional array test')
 
   mdda.Append([1,2,3])
-  mdda.Append([11, 22, 33])
-  mdda.Append([0xA1, 0xA2, 0xA3])
+  mdda.Append([11, 22, 33, 44])
+  mdda.Append([0xA1, 0xA2])
 
   PrintArr2('mdda')
+
+  //?check('mdda.row[0]', '[1, 2, 3]')
+  //?check('mdda.row[1]', '[11, 22, 33, 44]')
+  //?check('mdda.row[2]', '[161, 162]')
 
   return 0
 endfunc

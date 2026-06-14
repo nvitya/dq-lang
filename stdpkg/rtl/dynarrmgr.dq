@@ -163,7 +163,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
     var i : uint = 0
     while i < length:
       var mgrptr : pointer = ^byte(dataptr)[i * elemsize]
-      var mgr : ODynArrMgr = ^ODynArrMgr(mgrptr)^
+      var mgr : ODynArrMgr = ODynArrMgr( ^pointer(mgrptr)^ )
       if mgr <> null:
         @.DynArrIncRef(mgr)
       endif
@@ -175,7 +175,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
     var i : uint = 0
     while i < length:
       var mgrptr : pointer = ^byte(dataptr)[i * elemsize]
-      var mgr : ODynStrMgr = ^ODynStrMgr(mgrptr)^
+      var mgr : ODynStrMgr = ODynStrMgr( ^pointer(mgrptr)^ )
       if mgr <> null:
         @.DynStrIncRef(mgr)
       endif
@@ -202,7 +202,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
     var i : uint = 0
     while i < length:
       var mgrptr : pointer = ^byte(dataptr)[i * elemsize]
-      var mgr : ODynArrMgr = ^ODynArrMgr(mgrptr)^
+      var mgr : ODynArrMgr = ODynArrMgr( ^pointer(mgrptr)^ )
       if mgr <> null:
         @.DynArrDecRef(mgr)
       endif
@@ -214,7 +214,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
     var i : uint = 0
     while i < length:
       var mgrptr : pointer = ^byte(dataptr)[i * elemsize]
-      var mgr : ODynStrMgr = ^ODynStrMgr(mgrptr)^
+      var mgr : ODynStrMgr = ODynStrMgr( ^pointer(mgrptr)^ )
       if mgr <> null:
         @.DynStrDecRef(mgr)
       endif

@@ -1,0 +1,27 @@
+implementation
+
+use print
+
+var sa : [*]str
+
+function PrintSArr(astr : strview):
+  for row : int = 0 count sa.length:
+    PrintLn('{}[{}] = "{}"', [astr, row, sa[row]])
+  endfor
+endfunc
+
+function *Main() -> int:
+  PrintLn('DQ test for dynamic array of dynamic strings')  //?ignore('DQ test for dynamic array of dynamic strings')
+
+  sa.Append('Hello!')
+  sa.Append('qqcs')
+  sa.Append('abc')
+
+  PrintSArr('sa')
+
+  //?check('sa[0]', '"Hello!"')
+  //?check('sa[1]', '"qqcs"')
+  //?check('sa[2]', '"abc"')
+
+  return 0
+endfunc

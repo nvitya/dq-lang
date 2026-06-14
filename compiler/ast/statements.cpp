@@ -100,43 +100,6 @@ static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, 
     return true;
   }
 
-  if (TK_ARRAY == srctype->kind)
-  {
-    auto * arrtype = static_cast<OTypeArray *>(srctype);
-    LlValue * srcptr = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
-    LlValue * count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
-    if (arrtype->arraylength > 0)
-    {
-      LlValue * arrayaddr = nullptr;
-      if (auto * arrlit = dynamic_cast<OArrayLit *>(value))
-      {
-        arrayaddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "dyn.assign.literal");
-        ll_builder.CreateStore(arrlit->Generate(scope), arrayaddr);
-      }
-      else if (auto * lval = dynamic_cast<OLValueExpr *>(value))
-      {
-        arrayaddr = lval->GenerateAddress(scope);
-      }
-      if (!arrayaddr)
-      {
-        return false;
-      }
-      LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-      srcptr = ll_builder.CreateGEP(arrtype->GetLlType(), arrayaddr, {zero, zero}, "dyn.assign.arr.ptr");
-    }
-    GenerateDynArrayAssignData(scope, dyntype, targetaddr, srcptr, count);
-    return true;
-  }
-
-  if (TK_ARRAY_SLICE == srctype->kind)
-  {
-    LlValue * slice = value->Generate(scope);
-    LlValue * srcptr = ll_builder.CreateExtractValue(slice, {0}, "dyn.assign.slice.ptr");
-    LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "dyn.assign.slice.len");
-    GenerateDynArrayAssignData(scope, dyntype, targetaddr, srcptr, count);
-    return true;
-  }
-
   return false;
 }
 

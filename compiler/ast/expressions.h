@@ -380,6 +380,39 @@ public:
   void       DeleteChildTree() override;
 };
 
+// Convert an array literal to a dynamic array temporary.
+class OArrayLitToDynArrayExpr : public OExpr
+{
+public:
+  OArrayLit *  arraylit;
+  /* ctor */ OArrayLitToDynArrayExpr(OArrayLit * alit, OType * dyntype);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+// Convert a fixed array lvalue to a dynamic array temporary.
+class OArrayToDynArrayExpr : public OExpr
+{
+public:
+  OLValueExpr *  arrayexpr;
+  /* ctor */ OArrayToDynArrayExpr(OLValueExpr * aarray, OType * dyntype);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+// Convert an array slice to a dynamic array temporary.
+class OSliceToDynArrayExpr : public OExpr
+{
+public:
+  OExpr *  sliceexpr;
+  /* ctor */ OSliceToDynArrayExpr(OExpr * aslice, OType * dyntype);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 // Implicit conversion from dynamic array manager reference to a full slice.
 class ODynArrayToSliceExpr : public OExpr
 {

@@ -23,6 +23,8 @@
 #include "scope_builtins.h"
 #include <cctype>
 #include <llvm/IR/GlobalVariable.h>
+#include "otype_string.h"
+#include "otype_anyvalue.h"
 
 using namespace std;
 
@@ -129,6 +131,130 @@ static string SanitizeLlName(const string & src)
   return result;
 }
 
+static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
+{
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(elemtype))
+  {
+    LlValue * ll_mgr = ll_builder.CreateLoad(dyntype->GetLlType(), elem_addr, "dynarr.mgr");
+    GenerateDynArrayDestroy(nullptr, dyntype, ll_mgr);
+  }
+  else if (auto * strtype = dynamic_cast<OTypeDynString *>(elemtype))
+  {
+    LlValue * ll_str = ll_builder.CreateLoad(strtype->GetLlType(), elem_addr, "dynstr");
+    GenerateStringDestroy(nullptr, ll_str);
+  }
+  else if (auto * anytype = dynamic_cast<OTypeAnyValue *>(elemtype))
+  {
+    LlValue * ll_any = ll_builder.CreateLoad(anytype->GetLlType(), elem_addr, "anyval");
+    GenerateAnyValueDestroy(nullptr, ll_any);
+  }
+  else if (TK_OBJECT == elemtype->kind)
+  {
+    OTypeObject * objtype = static_cast<OTypeObject *>(elemtype);
+    OValSymFunc * dtor = objtype->FindSpecialMethod(OSF_DESTROY);
+    if (dtor && dtor->ll_func)
+    {
+      ll_builder.CreateCall(dtor->ll_func, {elem_addr});
+    }
+  }
+  else if (TK_ARRAY == elemtype->kind)
+  {
+    OTypeArray * arrtype = static_cast<OTypeArray *>(elemtype);
+    if (arrtype->elemtype->ContainsManagedStorage())
+    {
+      for (uint32_t i = 0; i < arrtype->arraylength; ++i)
+      {
+        LlValue * idx = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), i);
+        LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+        LlValue * ll_field_addr = ll_builder.CreateGEP(arrtype->GetLlType(), elem_addr, {ll_zero, idx}, "arr.elem.addr");
+        GenerateElementDestructor(arrtype->elemtype, ll_field_addr);
+      }
+    }
+  }
+  else if (elemtype->IsCompound())
+  {
+    OCompoundType * comptype = static_cast<OCompoundType *>(elemtype);
+    comptype->GetLlType();
+    for (OValSym * member : comptype->member_order)
+    {
+      if (member && member->ptype && member->ptype->ContainsManagedStorage())
+      {
+        LlValue * ll_field_addr = ll_builder.CreateStructGEP(comptype->GetLlType(), elem_addr,
+            member->ll_field_index, member->name + ".addr");
+        GenerateElementDestructor(member->GetStorageType(), ll_field_addr);
+      }
+    }
+  }
+}
+
+static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
+{
+  if (!elemtype->ContainsManagedStorage()) return nullptr;
+  if (elemtype->kind == TK_DYN_ARRAY || elemtype->kind == TK_DYNSTR)
+  {
+    return nullptr; // Handled natively by RTL without code bloat
+  }
+
+  string func_name = "__dq_destroy_" + SanitizeLlName(elemtype->name);
+  if (auto * existing = ll_module->getFunction(func_name))
+  {
+    return existing;
+  }
+
+  LlType * ptr_type = LlPtrType();
+  LlType * uint_type = LlNativeUIntType();
+  llvm::FunctionType * func_type = llvm::FunctionType::get(LlType::getVoidTy(ll_ctx), {ptr_type, uint_type}, false);
+  llvm::Function * func = llvm::Function::Create(func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
+
+  auto arg_it = func->arg_begin();
+  llvm::Argument * arg_ptr = &*arg_it++;
+  arg_ptr->setName("dataptr");
+  llvm::Argument * arg_count = &*arg_it++;
+  arg_count->setName("count");
+
+  LlBasicBlock * old_bb = ll_builder.GetInsertBlock();
+
+  LlBasicBlock * bb_entry = LlBasicBlock::Create(ll_ctx, "entry", func);
+  LlBasicBlock * bb_cond = LlBasicBlock::Create(ll_ctx, "loop.cond", func);
+  LlBasicBlock * bb_body = LlBasicBlock::Create(ll_ctx, "loop.body", func);
+  LlBasicBlock * bb_inc = LlBasicBlock::Create(ll_ctx, "loop.inc", func);
+  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "loop.end", func);
+
+  ll_builder.SetInsertPoint(bb_entry);
+  LlValue * ll_idx_ptr = CreateEntryBlockAlloca(uint_type, nullptr, "idx");
+  ll_builder.CreateStore(llvm::ConstantInt::get(uint_type, 0), ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_cond);
+  LlValue * ll_idx = ll_builder.CreateLoad(uint_type, ll_idx_ptr, "idx.val");
+  LlValue * ll_cmp = ll_builder.CreateICmpULT(ll_idx, arg_count, "cmp");
+  ll_builder.CreateCondBr(ll_cmp, bb_body, bb_end);
+
+  ll_builder.SetInsertPoint(bb_body);
+  LlValue * ll_bytesize = llvm::ConstantInt::get(uint_type, elemtype->bytesize);
+  LlValue * ll_offset = ll_builder.CreateMul(ll_idx, ll_bytesize, "offset");
+  LlValue * ll_elem_addr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), arg_ptr, ll_offset, "elem.addr");
+  
+  GenerateElementDestructor(elemtype, ll_elem_addr);
+
+  ll_builder.CreateBr(bb_inc);
+
+  ll_builder.SetInsertPoint(bb_inc);
+  LlValue * ll_next_idx = ll_builder.CreateAdd(ll_idx, llvm::ConstantInt::get(uint_type, 1), "idx.next");
+  ll_builder.CreateStore(ll_next_idx, ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_end);
+  ll_builder.CreateRetVoid();
+
+  if (old_bb)
+  {
+    ll_builder.SetInsertPoint(old_bb);
+  }
+
+  return func;
+}
+
 static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
 {
   string gvname = "__dq_dynarr_typeinfo_" + SanitizeLlName(dyntype->elemtype->name);
@@ -147,13 +273,15 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
   };
   auto * ti_type = llvm::StructType::get(ll_ctx, fields);
   OType * elemtype = dyntype->elemtype->ResolveAlias();
+  llvm::Function * ll_destroy_func = GetTypeDestroyFunc(elemtype);
+
   vector<LlConst *> values = {
     llvm::ConstantInt::get(i32type, elemtype->bytesize),
     llvm::ConstantInt::get(i16type, 0),
     llvm::ConstantInt::get(i8type, uint8_t(elemtype->kind)),
     llvm::ConstantInt::get(i8type, 0),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
-    llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
+    (ll_destroy_func ? static_cast<llvm::Constant *>(ll_destroy_func) : static_cast<llvm::Constant *>(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)))),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0))
   };
@@ -719,13 +847,29 @@ bool OTypeDynArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
           if (!g_compiler->ConvertExprToType(this->elemtype, &elem, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING)) return false;
         }
         arrlit->ptype = this->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+        *rexpr = new OArrayLitToDynArrayExpr(arrlit, this);
         return true;
       }
       ok = (arrsrc->arraylength == 0) || (this->elemtype->ResolveAlias() == arrsrc->elemtype->ResolveAlias());
+      if (ok)
+      {
+        if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
+        {
+          *rexpr = new OArrayLitToDynArrayExpr(arrlit, this);
+        }
+        else if (auto * lval = dynamic_cast<OLValueExpr *>(src))
+        {
+          *rexpr = new OArrayToDynArrayExpr(lval, this);
+        }
+      }
     }
     else if (TK_ARRAY_SLICE == tks)
     {
       ok = (this->elemtype->ResolveAlias() == static_cast<OTypeArraySlice *>(resolved_src)->elemtype->ResolveAlias());
+      if (ok)
+      {
+        *rexpr = new OSliceToDynArrayExpr(src, this);
+      }
     }
     if (!ok && (aflags & EXPCF_GENERATE_ERRORS)) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
     return ok;

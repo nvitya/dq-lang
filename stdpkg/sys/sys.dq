@@ -36,15 +36,20 @@ const DQTK_FUNCTION     : uint8 = 28;
 const DQTK_FUNCREF      : uint8 = 29;   // function variable (function pointer)
 const DQTK_ALIAS        : uint8 = 31;
 
+type FMgrInitFunc = function(dataptr : pointer, count : uint);
+type FMgrDestroyFunc = function(dataptr : pointer, count : uint);
+type FMgrCopyFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
+type FMgrMoveFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
+
 struct SDqTypeInfo:
   storagesize  : uint32;   // array stride, including padding
   flags        : uint16;   // copy/destroy/init/move properties
   kind         : uint8;    // one of the DQTK_xxx
   subtype      : uint8;    // type addition
-  init_func    : pointer;  // reserved for the future managed object handling
-  destroy_func : pointer;  // reserved for the future managed object handling
-  copy_func    : pointer;  // reserved for the future managed object handling
-  move_func    : pointer;  // reserved for the future managed object handling
+  init_func    : FMgrInitFunc;     // used for managed object array initialization
+  destroy_func : FMgrDestroyFunc;  // used for managed object array destruction
+  copy_func    : FMgrCopyFunc;     // used for managed object array copying
+  move_func    : FMgrMoveFunc;     // used for managed object array moving
 endstruct
 
 struct SArraySliceDesc:

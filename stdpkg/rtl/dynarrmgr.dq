@@ -151,7 +151,70 @@ function ODynArrMgr.*Create(atypeinfo : ^SDqTypeInfo):
   subtype  = typeinfo^.subtype;
 endfunc
 
+use rtl/dynstrmgr;
+
+function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeInfo):
+  if typeinfo == null  or  length == 0: return; endif
+  if typeinfo^.kind == @sys.DQTK_DYN_ARRAY:
+    var elemsize : uint = typeinfo^.storagesize;
+    var i : uint = 0;
+    while i < length:
+      var mgrptr : pointer = ^byte(dataptr)[i * elemsize];
+      var mgr : ODynArrMgr = ^ODynArrMgr(mgrptr)^;
+      if mgr <> null:
+        @.DynArrIncRef(mgr);
+      endif
+      i += 1;
+    endwhile
+  elif typeinfo^.kind == @sys.DQTK_DYNSTR:
+    var elemsize : uint = typeinfo^.storagesize;
+    var i : uint = 0;
+    while i < length:
+      var mgrptr : pointer = ^byte(dataptr)[i * elemsize];
+      var mgr : ODynStrMgr = ^ODynStrMgr(mgrptr)^;
+      if mgr <> null:
+        @.DynStrIncRef(mgr);
+      endif
+      i += 1;
+    endwhile
+  elif typeinfo^.copy_func <> null:
+    // custom copy_func handles refcounting or deep copying
+    // However, since we just MemCopied, this is mostly for deep copying if it existed,
+    // but in DQ bitwise moves are safe, so we don't have a copy_func standard yet.
+  endif
+endfunc
+
+function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeInfo):
+  if typeinfo == null  or  length == 0: return; endif
+  if typeinfo^.destroy_func <> null:
+    typeinfo^.destroy_func(dataptr, length);
+  elif typeinfo^.kind == @sys.DQTK_DYN_ARRAY:
+    var elemsize : uint = typeinfo^.storagesize;
+    var i : uint = 0;
+    while i < length:
+      var mgrptr : pointer = ^byte(dataptr)[i * elemsize];
+      var mgr : ODynArrMgr = ^ODynArrMgr(mgrptr)^;
+      if mgr <> null:
+        @.DynArrDecRef(mgr);
+      endif
+      i += 1;
+    endwhile
+  elif typeinfo^.kind == @sys.DQTK_DYNSTR:
+    var elemsize : uint = typeinfo^.storagesize;
+    var i : uint = 0;
+    while i < length:
+      var mgrptr : pointer = ^byte(dataptr)[i * elemsize];
+      var mgr : ODynStrMgr = ^ODynStrMgr(mgrptr)^;
+      if mgr <> null:
+        @.DynStrDecRef(mgr);
+      endif
+      i += 1;
+    endwhile
+  endif
+endfunc
+
 function ODynArrMgr.*Destroy():
+  @.DynArrDecRefElements(dataptr, length, typeinfo);
   if dataptr <> null:
     @sys.MemFree(dataptr);
     dataptr = null;
@@ -208,6 +271,7 @@ endfunc
 
 function ODynArrMgr.SetLength(new_length : uint):
   if new_length < length:
+    @.DynArrDecRefElements(^byte(dataptr)[new_length * elemsize], length - new_length, typeinfo);
     length = new_length;
     return;
   endif
@@ -239,6 +303,7 @@ function ODynArrMgr.Compact():
 endfunc
 
 function ODynArrMgr.Clear(free_storage : bool = false):
+  @.DynArrDecRefElements(dataptr, length, typeinfo);
   length = 0;
   if free_storage:
     SetCapacity(0);
@@ -270,6 +335,8 @@ function ODynArrMgr.Append(asrc : pointer, acount : int):
   endif
 
   @sys.MemCopy(^byte(dataptr)[old_length * elemsize], srcptr, @.DynArrCalcByteSize(uint(acount), elemsize));
+  @.DynArrIncRefElements(^byte(dataptr)[old_length * elemsize], uint(acount), typeinfo);
+
   length = new_length;
 endfunc
 
@@ -331,6 +398,8 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
     endif
   endif
 
+  @.DynArrIncRefElements(dstptr, add_count, typeinfo);
+
   length = new_length;
 endfunc
 
@@ -354,6 +423,7 @@ function ODynArrMgr.Delete(index : int, acount : int):
   endif
 
   var movecount : uint = length - deletepos - delcount;
+  @.DynArrDecRefElements(^byte(dataptr)[deletepos * elemsize], delcount, typeinfo);
   if movecount > 0:
     @sys.MemCopy(^byte(dataptr)[deletepos * elemsize],
                  ^byte(dataptr)[(deletepos + delcount) * elemsize],
@@ -383,7 +453,11 @@ function ODynArrMgr.PopFirst(outptr : pointer):
 
   // copy the element data to the outptr
   @sys.MemCopy(outptr, dataptr, elemsize);
-  Delete(0, 1);
+  var movecount : uint = length - 1;
+  if movecount > 0:
+    @sys.MemCopy(dataptr, ^byte(dataptr)[elemsize], @.DynArrCalcByteSize(movecount, elemsize));
+  endif
+  length -= 1;
 endfunc
 
 //----------------------------------------------------------------------------------------------

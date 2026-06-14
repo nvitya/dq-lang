@@ -1344,6 +1344,18 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     return rtype && (TK_ARRAY == rtype->kind || TK_ARRAY_SLICE == rtype->kind || TK_DYN_ARRAY == rtype->kind);
   };
 
+  auto prefer_slice_append = [&](OExpr * expr) -> bool
+  {
+    if (!is_range_arg(expr)) return false;
+    int cost_elem = dyntype->elemtype->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_CSTRING);
+    if (cost_elem >= 0)
+    {
+      int cost_slice = dyntype->elemtype->GetSliceType()->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_CSTRING);
+      if (cost_slice < 0 || cost_elem >= cost_slice) return false;
+    }
+    return true;
+  };
+
   if ("Clear" == membername)
   {
     if (!check_count(0, 1)) return free_and_fail();
@@ -1379,7 +1391,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   else if ("Append" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    if (is_range_arg(rawargs[0].expr))
+    if (prefer_slice_append(rawargs[0].expr))
     {
       dynmethod = DYNM_APPEND_SLICE;
       argtypes = {dyntype->elemtype->GetSliceType()};
@@ -1399,7 +1411,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   else if ("Prepend" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    if (is_range_arg(rawargs[0].expr))
+    if (prefer_slice_append(rawargs[0].expr))
     {
       dynmethod = DYNM_PREPEND_SLICE;
       argtypes = {dyntype->elemtype->GetSliceType()};
@@ -1413,7 +1425,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   else if ("Insert" == membername)
   {
     if (!check_count(2, 2)) return free_and_fail();
-    if (is_range_arg(rawargs[1].expr))
+    if (prefer_slice_append(rawargs[1].expr))
     {
       dynmethod = DYNM_INSERT_SLICE;
       argtypes = {g_builtins->type_int, dyntype->elemtype->GetSliceType()};

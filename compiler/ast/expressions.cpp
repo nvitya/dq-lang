@@ -1585,6 +1585,119 @@ void OArrayLitToSliceExpr::DeleteChildTree()
   arraylit = nullptr;
 }
 
+/* ctor */ OArrayLitToDynArrayExpr::OArrayLitToDynArrayExpr(OArrayLit * alit, OType * adyntype)
+{
+  arraylit = alit;
+  ptype = adyntype;
+}
+
+LlValue * OArrayLitToDynArrayExpr::Generate(OScope * scope)
+{
+  OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
+  OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
+  
+  LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.literal");
+  ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
+  
+  LlValue * ll_arr = arraylit->Generate(scope);
+  LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
+  ll_builder.CreateStore(ll_arr, arraddr);
+
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elemptr = ll_builder.CreateGEP(
+      arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
+      
+  LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+  GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
+
+  return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
+}
+
+void OArrayLitToDynArrayExpr::FoldChildren()
+{
+  OExpr * tmp = arraylit;
+  OExpr::FoldTree(&tmp);
+  arraylit = static_cast<OArrayLit *>(tmp);
+}
+
+void OArrayLitToDynArrayExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(arraylit);
+  arraylit = nullptr;
+}
+
+/* ctor */ OArrayToDynArrayExpr::OArrayToDynArrayExpr(OLValueExpr * aarray, OType * adyntype)
+{
+  arrayexpr = aarray;
+  ptype = adyntype;
+}
+
+LlValue * OArrayToDynArrayExpr::Generate(OScope * scope)
+{
+  OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
+  OTypeArray * arrtype = static_cast<OTypeArray *>(arrayexpr->ptype->ResolveAlias());
+  
+  LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.array");
+  ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
+  
+  LlValue * arrayaddr = arrayexpr->GenerateAddress(scope);
+
+  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_elemptr = ll_builder.CreateGEP(
+      arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
+      
+  LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+  GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
+
+  return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
+}
+
+void OArrayToDynArrayExpr::FoldChildren()
+{
+  OExpr * tmp = arrayexpr;
+  OExpr::FoldTree(&tmp);
+  arrayexpr = static_cast<OLValueExpr *>(tmp);
+}
+
+void OArrayToDynArrayExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(arrayexpr);
+  arrayexpr = nullptr;
+}
+
+/* ctor */ OSliceToDynArrayExpr::OSliceToDynArrayExpr(OExpr * aslice, OType * adyntype)
+{
+  sliceexpr = aslice;
+  ptype = adyntype;
+}
+
+LlValue * OSliceToDynArrayExpr::Generate(OScope * scope)
+{
+  OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
+  
+  LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.slice");
+  ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
+  
+  LlValue * slice = sliceexpr->Generate(scope);
+  LlValue * srcptr = ll_builder.CreateExtractValue(slice, {0}, "dyn.slice.ptr");
+  LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "dyn.slice.len");
+      
+  GenerateDynArrayAssignData(scope, dyntype, dynaddr, srcptr, count);
+
+  return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
+}
+
+void OSliceToDynArrayExpr::FoldChildren()
+{
+  OExpr::FoldTree(&sliceexpr);
+}
+
+void OSliceToDynArrayExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(sliceexpr);
+  sliceexpr = nullptr;
+}
+
 /* ctor */ ODynArrayToSliceExpr::ODynArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype)
 {
   arrayexpr = aarray;

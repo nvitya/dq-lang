@@ -1,0 +1,13 @@
+use libc/stdio
+
+// multi-dimensional dynamic array:
+
+var mdda : [*][*]int
+
+function *Main() -> int:
+  printf('Multi-dimensional array test\n')
+  mdda.Append([1,2,3])
+  mdda.Append([11, 22, 33])
+  mdda.Append([0xA1, 0xA2, 0xA3])
+  return 0
+endfunc

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.0"
+#define DQ_COMPILER_VERSION  "0.19.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.1:
+  - Removed all ';' semicolons from the DQ RTL
 v0.19.0:
   - Supporting multi-dimensional dynamic arrays: [*][*]T, Dynamic Arrays with managed members.
 v0.18.3:

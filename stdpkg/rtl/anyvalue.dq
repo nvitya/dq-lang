@@ -2,368 +2,368 @@
 
 /*
 
-var av : anyvalue;
+var av : anyvalue
 
 av.SetNull(true)
 av.IsNull()
 
 */
 
-const DQSUBT_INT_SIGNED : byte = 1;
+const DQSUBT_INT_SIGNED : byte = 1
 
 struct SDqAnyValue:
-  data     : [16]byte;  // The SDqTextInfo must fit into this, must be padded with zeroes
-  kind     : byte;      // one of the DQTK_xxx values
-  subtype  : byte;
-  datasize : byte;
-  _pad     : [@def.PTRSIZE - 1]byte;
+  data     : [16]byte  // The SDqTextInfo must fit into this, must be padded with zeroes
+  kind     : byte      // one of the DQTK_xxx values
+  subtype  : byte
+  datasize : byte
+  _pad     : [@def.PTRSIZE - 1]byte
 endstruct
 
 // Special "null" value for database handling, not same as "null" pointer !
-function AnyValIsNull(v : ref SDqAnyValue) -> bool;
-function AnyValSetNull(v : ref SDqAnyValue);
+function AnyValIsNull(v : ref SDqAnyValue) -> bool
+function AnyValSetNull(v : ref SDqAnyValue)
 
-function AnyValIsNumber(v : ref SDqAnyValue) -> bool;
+function AnyValIsNumber(v : ref SDqAnyValue) -> bool
 
-function AnyValIsInt(v : ref SDqAnyValue) -> bool;
-function AnyValIsSInt(v : ref SDqAnyValue) -> bool;
-function AnyValIsUint(v : ref SDqAnyValue) -> bool;
-function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int;
-function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint;
-function AnyValSetInt(v : ref SDqAnyValue, value : int);
-function AnyValSetUInt(v : ref SDqAnyValue, value : uint);
+function AnyValIsInt(v : ref SDqAnyValue) -> bool
+function AnyValIsSInt(v : ref SDqAnyValue) -> bool
+function AnyValIsUint(v : ref SDqAnyValue) -> bool
+function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int
+function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint
+function AnyValSetInt(v : ref SDqAnyValue, value : int)
+function AnyValSetUInt(v : ref SDqAnyValue, value : uint)
 
-function AnyValIsBool(v : ref SDqAnyValue) -> bool;
-function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool;
-function AnyValSetBool(v : ref SDqAnyValue, value : bool);
+function AnyValIsBool(v : ref SDqAnyValue) -> bool
+function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool
+function AnyValSetBool(v : ref SDqAnyValue, value : bool)
 
-function AnyValIsPointer(v : ref SDqAnyValue) -> bool;
-function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer;
-function AnyValSetPointer(v : ref SDqAnyValue, defval : pointer);
+function AnyValIsPointer(v : ref SDqAnyValue) -> bool
+function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer
+function AnyValSetPointer(v : ref SDqAnyValue, defval : pointer)
 
-function AnyValIsFloat(v : ref SDqAnyValue) -> bool;
-function AnyValIsFloat32(v : ref SDqAnyValue) -> bool;
-function AnyValIsFloat64(v : ref SDqAnyValue) -> bool;
-function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float;
-function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32;
-function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64;
-function AnyValSetFloat(v : ref SDqAnyValue, value : float);
-function AnyValSetFloat32(v : ref SDqAnyValue, value : float32);
-function AnyValSetFloat64(v : ref SDqAnyValue, value : float64);
+function AnyValIsFloat(v : ref SDqAnyValue) -> bool
+function AnyValIsFloat32(v : ref SDqAnyValue) -> bool
+function AnyValIsFloat64(v : ref SDqAnyValue) -> bool
+function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float
+function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32
+function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64
+function AnyValSetFloat(v : ref SDqAnyValue, value : float)
+function AnyValSetFloat32(v : ref SDqAnyValue, value : float32)
+function AnyValSetFloat64(v : ref SDqAnyValue, value : float64)
 
-function AnyValIsText(v : ref SDqAnyValue) -> bool;
-function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo);
-function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo);
-function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo);
+function AnyValIsText(v : ref SDqAnyValue) -> bool
+function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo)
+function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 
-function AnyValIsStr(v : ref SDqAnyValue) -> bool;   // true only when it is a dynamic string
-function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str;
-function AnyValSetStr(v : ref SDqAnyValue, value : str);
-function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo);
+function AnyValIsStr(v : ref SDqAnyValue) -> bool   // true only when it is a dynamic string
+function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str
+function AnyValSetStr(v : ref SDqAnyValue, value : str)
+function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 
-function AnyValDestroy(v : ref SDqAnyValue);
-function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue);
-function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue);
+function AnyValDestroy(v : ref SDqAnyValue)
+function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue)
+function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue)
 
 
-//function AnyValTryAsInt(v : ref SDqAnyValue, rv : refout int) -> bool;
-//function AnyValTryAsUint(v : ref SDqAnyValue, rv : refout uint) -> bool;
-//function AnyValTryAsBool(v : ref SDqAnyValue, rv : refout bool) -> bool;
-//function AnyValTryAsFloat(v : ref SDqAnyValue, rv : refout float64) -> bool;
-//function AnyValTryAsStr(v : ref SDqAnyValue, rv : refout str) -> bool;
+//function AnyValTryAsInt(v : ref SDqAnyValue, rv : refout int) -> bool
+//function AnyValTryAsUint(v : ref SDqAnyValue, rv : refout uint) -> bool
+//function AnyValTryAsBool(v : ref SDqAnyValue, rv : refout bool) -> bool
+//function AnyValTryAsFloat(v : ref SDqAnyValue, rv : refout float64) -> bool
+//function AnyValTryAsStr(v : ref SDqAnyValue, rv : refout str) -> bool
 
 implementation
 
-use rtl/dynstrmgr;
+use rtl/dynstrmgr
 
 function AnyValDynStrRef(v : ref SDqAnyValue) -> ^ODynStrMgr:
-  return ^ODynStrMgr(&v.data[0]);
+  return ^ODynStrMgr(&v.data[0])
 endfunc
 
 function AnyValSetKind(v : ref SDqAnyValue, akind : byte):
   if v.kind == DQTK_DYNSTR:
     if akind == DQTK_DYNSTR:
-      return;
+      return
     endif
-    DynStrDecRef(AnyValDynStrRef(v)^);
+    DynStrDecRef(AnyValDynStrRef(v)^)
   endif
-  v.kind = akind;
-  v.subtype = 0;
-  v.datasize = 0;
+  v.kind = akind
+  v.subtype = 0
+  v.datasize = 0
   if akind == DQTK_DYNSTR:
-    ^pointer(&v.data[0])^ = null;  // null manager object = empty string
+    ^pointer(&v.data[0])^ = null  // null manager object = empty string
   endif
 endfunc
 
 function AnyValDestroy(v : ref SDqAnyValue):
-  AnyValSetKind(v, DQTK_VOID);
-  v.data[0] = 0;
+  AnyValSetKind(v, DQTK_VOID)
+  v.data[0] = 0
 endfunc
 
 function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue):
   if &dst == &src:
-    return;
+    return
   endif
-  AnyValDestroy(dst);
-  dst = src;
+  AnyValDestroy(dst)
+  dst = src
   if dst.kind == DQTK_DYNSTR:
-    DynStrIncRef(AnyValDynStrRef(dst)^);
+    DynStrIncRef(AnyValDynStrRef(dst)^)
   endif
 endfunc
 
 function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue):
   if &dst == &src:
-    return;
+    return
   endif
-  AnyValDestroy(dst);
-  dst = src;
-  src.kind = DQTK_VOID;
-  src.subtype = 0;
-  src.datasize = 0;
-  ^pointer(&src.data[0])^ = null;
+  AnyValDestroy(dst)
+  dst = src
+  src.kind = DQTK_VOID
+  src.subtype = 0
+  src.datasize = 0
+  ^pointer(&src.data[0])^ = null
 endfunc
 
 // DB Null Handling
 
 function AnyValIsNull(v : ref SDqAnyValue) -> bool:
   if v.kind == DQTK_VOID:
-    return true;
+    return true
   else:
-    return false;
+    return false
   endif
 endfunc
 
 function AnyValSetNull(v : ref SDqAnyValue):
-  AnyValSetKind(v, DQTK_VOID);
-  v.data[0] = 1;
+  AnyValSetKind(v, DQTK_VOID)
+  v.data[0] = 1
 endfunc
 
 // Multiple
 
 function AnyValIsNumber(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_INT  or  v.kind == DQTK_FLOAT;
+  return v.kind == DQTK_INT  or  v.kind == DQTK_FLOAT
 endfunc
 
 
 // Integer
 
 function AnyValIsInt(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_INT;
+  return v.kind == DQTK_INT
 endfunc
 
 function AnyValIsSInt(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_INT and v.subtype == DQSUBT_INT_SIGNED;
+  return v.kind == DQTK_INT and v.subtype == DQSUBT_INT_SIGNED
 endfunc
 
 function AnyValIsUint(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_INT and v.subtype <> DQSUBT_INT_SIGNED;
+  return v.kind == DQTK_INT and v.subtype <> DQSUBT_INT_SIGNED
 endfunc
 
 function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int:
   if v.kind == DQTK_INT:
-    return ^int(&v.data[0])^;
+    return ^int(&v.data[0])^
   elif v.kind == DQTK_FLOAT:
     if v.datasize == 8:
-      return Round(^float64(&v.data[0])^);
+      return Round(^float64(&v.data[0])^)
     else:
-      return Round(^float32(&v.data[0])^);
+      return Round(^float32(&v.data[0])^)
     endif
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint:
   if v.kind == DQTK_INT:
-    return ^uint(&v.data[0])^;
+    return ^uint(&v.data[0])^
   elif v.kind == DQTK_FLOAT:
     if v.datasize == 8:
-      return Round(^float64(&v.data[0])^);
+      return Round(^float64(&v.data[0])^)
     else:
-      return Round(^float32(&v.data[0])^);
+      return Round(^float32(&v.data[0])^)
     endif
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValSetInt(v : ref SDqAnyValue, value : int):
-  AnyValSetKind(v, DQTK_INT);
-  v.subtype = DQSUBT_INT_SIGNED;
-  ^int(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_INT)
+  v.subtype = DQSUBT_INT_SIGNED
+  ^int(&v.data[0])^ = value
 endfunc
 
 function AnyValSetUInt(v : ref SDqAnyValue, value : uint):
-  AnyValSetKind(v, DQTK_INT);
-  v.subtype = 0;
-  ^uint(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_INT)
+  v.subtype = 0
+  ^uint(&v.data[0])^ = value
 endfunc
 
 // Boolean
 
 function AnyValIsBool(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_BOOL;
+  return v.kind == DQTK_BOOL
 endfunc
 
 function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool:
   if v.kind == DQTK_BOOL:
-    return iif(v.data[0] <> 0, true, false);
+    return iif(v.data[0] <> 0, true, false)
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValSetBool(v : ref SDqAnyValue, value : bool):
-  AnyValSetKind(v, DQTK_BOOL);
-  v.data[0] = iif(value, 1, 0);
+  AnyValSetKind(v, DQTK_BOOL)
+  v.data[0] = iif(value, 1, 0)
 endfunc
 
 // Pointer
 
 function AnyValIsPointer(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_POINTER;
+  return v.kind == DQTK_POINTER
 endfunc
 
 function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer:
   if v.kind == DQTK_POINTER:
-    return ^pointer(&v.data[0])^;
+    return ^pointer(&v.data[0])^
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValSetPointer(v : ref SDqAnyValue, value : pointer):
-  AnyValSetKind(v, DQTK_POINTER);
-  ^pointer(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_POINTER)
+  ^pointer(&v.data[0])^ = value
 endfunc
 
 // Floating Point
 
 function AnyValIsFloat(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_FLOAT;
+  return v.kind == DQTK_FLOAT
 endfunc
 
 function AnyValIsFloat32(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_FLOAT  and  v.datasize == 4;
+  return v.kind == DQTK_FLOAT  and  v.datasize == 4
 endfunc
 
 function AnyValIsFloat64(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_FLOAT  and  v.datasize == 8;
+  return v.kind == DQTK_FLOAT  and  v.datasize == 8
 endfunc
 
 function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float:
   if v.kind == DQTK_FLOAT:
     if v.datasize == 8:
-      return ^float64(&v.data[0])^;
+      return ^float64(&v.data[0])^
     else:
-      return ^float32(&v.data[0])^;
+      return ^float32(&v.data[0])^
     endif
   elif v.kind == DQTK_INT:
-    return ^int(&v.data[0])^;
+    return ^int(&v.data[0])^
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32:
   if v.kind == DQTK_FLOAT:
     if v.datasize == 8:
-      return ^float64(&v.data[0])^;  // converts to float32
+      return ^float64(&v.data[0])^  // converts to float32
     else:
-      return ^float32(&v.data[0])^;
+      return ^float32(&v.data[0])^
     endif
   elif v.kind == DQTK_INT:
-    return ^int(&v.data[0])^;
+    return ^int(&v.data[0])^
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64:
   if v.kind == DQTK_FLOAT:
     if v.datasize == 8:
-      return ^float64(&v.data[0])^;
+      return ^float64(&v.data[0])^
     else:
-      return ^float32(&v.data[0])^; // converts to float64
+      return ^float32(&v.data[0])^ // converts to float64
     endif
   elif v.kind == DQTK_INT:
-    return ^int(&v.data[0])^;
+    return ^int(&v.data[0])^
   else:
-    return defval;
+    return defval
   endif
 endfunc
 
 function AnyValSetFloat(v : ref SDqAnyValue, value : float):
-  AnyValSetKind(v, DQTK_FLOAT);
-  v.datasize = SizeOf(float);
-  ^float(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_FLOAT)
+  v.datasize = SizeOf(float)
+  ^float(&v.data[0])^ = value
 endfunc
 
 function AnyValSetFloat32(v : ref SDqAnyValue, value : float32):
-  AnyValSetKind(v, DQTK_FLOAT);
-  v.datasize = SizeOf(float32);
-  ^float32(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_FLOAT)
+  v.datasize = SizeOf(float32)
+  ^float32(&v.data[0])^ = value
 endfunc
 
 function AnyValSetFloat64(v : ref SDqAnyValue, value : float64):
-  AnyValSetKind(v, DQTK_FLOAT);
-  v.datasize = SizeOf(float64);
-  ^float64(&v.data[0])^ = value;
+  AnyValSetKind(v, DQTK_FLOAT)
+  v.datasize = SizeOf(float64)
+  ^float64(&v.data[0])^ = value
 endfunc
 
 
 // Text / String
 
 function AnyValIsText(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING;
+  return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING
 endfunc
 
 function AnyValIsStr(v : ref SDqAnyValue) -> bool:
-  return v.kind == DQTK_DYNSTR;
+  return v.kind == DQTK_DYNSTR
 endfunc
 
 function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str:
-  result = '';
+  result = ''
   if v.kind == DQTK_DYNSTR:
-    DynStrAssignOther(^ODynStrMgr(&result)^, AnyValDynStrRef(v)^);
+    DynStrAssignOther(^ODynStrMgr(&result)^, AnyValDynStrRef(v)^)
   else:
-    var dti : SDqTextInfo = defval;
-    var ti : SDqTextInfo = {};
-    AnyValAsText(v, dti, ti);
-    DynStrAssignData(^ODynStrMgr(&result)^, ti);
+    var dti : SDqTextInfo = defval
+    var ti : SDqTextInfo = {}
+    AnyValAsText(v, dti, ti)
+    DynStrAssignData(^ODynStrMgr(&result)^, ti)
   endif
 endfunc
 
 function AnyValSetStr(v : ref SDqAnyValue, value : str):
-  AnyValSetKind(v, DQTK_DYNSTR);
-  DynStrAssignOther(AnyValDynStrRef(v)^, ^ODynStrMgr(&value)^);
-  v.datasize = @def.PTRSIZE;
+  AnyValSetKind(v, DQTK_DYNSTR)
+  DynStrAssignOther(AnyValDynStrRef(v)^, ^ODynStrMgr(&value)^)
+  v.datasize = @def.PTRSIZE
 endfunc
 
 function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo):
-  AnyValSetKind(v, DQTK_DYNSTR);
-  DynStrAssignData(AnyValDynStrRef(v)^, ati);
-  v.datasize = @def.PTRSIZE;
+  AnyValSetKind(v, DQTK_DYNSTR)
+  DynStrAssignData(AnyValDynStrRef(v)^, ati)
+  v.datasize = @def.PTRSIZE
 endfunc
 
 function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo):
-  AnyValSetKind(v, DQTK_STRVIEW);
-  ^SDqTextInfo(&v.data[0])^ = ati;
-  v.datasize = sizeof(SDqTextInfo);
+  AnyValSetKind(v, DQTK_STRVIEW)
+  ^SDqTextInfo(&v.data[0])^ = ati
+  v.datasize = sizeof(SDqTextInfo)
 endfunc
 
 function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo):
-  AnyValSetKind(v, DQTK_CSTRING);
-  ^SDqTextInfo(&v.data[0])^ = ati;
-  v.datasize = sizeof(SDqTextInfo);
+  AnyValSetKind(v, DQTK_CSTRING)
+  ^SDqTextInfo(&v.data[0])^ = ati
+  v.datasize = sizeof(SDqTextInfo)
 endfunc
 
 function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
   if v.kind == DQTK_STRVIEW  or  v.kind == DQTK_CSTRING:
-    rv = ^SDqTextInfo(&v.data[0])^;
+    rv = ^SDqTextInfo(&v.data[0])^
   elif v.kind == DQTK_DYNSTR:
-    DynStrGetFullView(AnyValDynStrRef(v)^, rv);
+    DynStrGetFullView(AnyValDynStrRef(v)^, rv)
   else:
-    rv = defval;
+    rv = defval
   endif
 endfunc

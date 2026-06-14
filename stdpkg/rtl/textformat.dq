@@ -30,21 +30,21 @@
 // Result flags
 // -----------------------------------------------------------------------------
 
-const DQFMT_OK          : uint = 0x00000000;
-const DQFMT_TRUNCATED   : uint = 0x00000001;
-const DQFMT_FMT_ERROR   : uint = 0x00000002;
-const DQFMT_ARG_ERROR   : uint = 0x00000004;
-const DQFMT_SINK_ERROR  : uint = 0x00000008;
+const DQFMT_OK          : uint = 0x00000000
+const DQFMT_TRUNCATED   : uint = 0x00000001
+const DQFMT_FMT_ERROR   : uint = 0x00000002
+const DQFMT_ARG_ERROR   : uint = 0x00000004
+const DQFMT_SINK_ERROR  : uint = 0x00000008
 
-const DQFMT_KIND_DEFAULT : char = '?';
-const DQFMT_KIND_SIGNED  : char = 'd';
-const DQFMT_KIND_UNSIGNED: char = 'u';
-const DQFMT_KIND_HEXLOW  : char = 'x';
-const DQFMT_KIND_HEXUP   : char = 'X';
-const DQFMT_KIND_STRING  : char = 's';
-const DQFMT_KIND_POINTER : char = 'p';
-const DQFMT_KIND_BOOL    : char = 'b';
-const DQFMT_KIND_FLOAT   : char = 'f';
+const DQFMT_KIND_DEFAULT : char = '?'
+const DQFMT_KIND_SIGNED  : char = 'd'
+const DQFMT_KIND_UNSIGNED: char = 'u'
+const DQFMT_KIND_HEXLOW  : char = 'x'
+const DQFMT_KIND_HEXUP   : char = 'X'
+const DQFMT_KIND_STRING  : char = 's'
+const DQFMT_KIND_POINTER : char = 'p'
+const DQFMT_KIND_BOOL    : char = 'b'
+const DQFMT_KIND_FLOAT   : char = 'f'
 
 object OTextSink:
   function *Create():
@@ -58,82 +58,82 @@ object OTextSink:
 endobj
 
 object OTextSinkStdOut(OTextSink):
-  pstdout : pointer;
+  pstdout : pointer
 
-  function *Create();
-  function Write(atext : strview) [[override]];
-  function WriteChar(ch : char)   [[override]];
+  function *Create()
+  function Write(atext : strview) [[override]]
+  function WriteChar(ch : char)   [[override]]
 endobj
 
 object OTextSinkCString(OTextSink):
-  dest : cstring;
+  dest : cstring
 
-  function *Create(adest : cstring);
-  function Write(atext : strview) [[override]];
-  function WriteChar(ch : char)   [[override]];
+  function *Create(adest : cstring)
+  function Write(atext : strview) [[override]]
+  function WriteChar(ch : char)   [[override]]
 endobj
 
 object OTextSinkStr(OTextSink):
-  dest : ^str;
+  dest : ^str
 
-  function *Create(adest : ^str);
-  function Write(atext : strview) [[override]];
-  function WriteChar(ch : char)   [[override]];
+  function *Create(adest : ^str)
+  function Write(atext : strview) [[override]]
+  function WriteChar(ch : char)   [[override]]
 endobj
 
 struct STextFmtSpec:
-  kind       : char;  // d/u/x/X/s/p/f/?
-  width      : int;   // -1 means unspecified
-  precision  : int;   // -1 means unspecified
-  fill       : char;  // normally ' ' or '0'
-  left       : bool;
-  sign_plus  : bool;
-  upper      : bool;
+  kind       : char  // d/u/x/X/s/p/f/?
+  width      : int   // -1 means unspecified
+  precision  : int   // -1 means unspecified
+  fill       : char  // normally ' ' or '0'
+  left       : bool
+  sign_plus  : bool
+  upper      : bool
 endstruct
 
 object OTextFormatter:
 public
-  sink      : OTextSink;
-  flags     : uint32 = 0;
-  arg_index : uint32 = 0;
+  sink      : OTextSink
+  flags     : uint32 = 0
+  arg_index : uint32 = 0
 
-  fmtspec   : STextFmtSpec;
+  fmtspec   : STextFmtSpec
 
-  function *Create(asink : OTextSink);
-  function Reset();
-  function Format(afmt : strview, aargs : []anyvalue);
+  function *Create(asink : OTextSink)
+  function Reset()
+  function Format(afmt : strview, aargs : []anyvalue)
 
 protected
-  curpos : int32 = 0;
-  endpos : int32 = 0;
+  curpos : int32 = 0
+  endpos : int32 = 0
 
-  lcsbuf : cstring(47);
+  lcsbuf : cstring(47)
 
-  function ParseSpec(afmt : strview);
-  function FormatAny(av : anyvalue);
+  function ParseSpec(afmt : strview)
+  function FormatAny(av : anyvalue)
 
-  function WritePad(acount : int, ch : char);
-  function UIntDigitChar(adigit : uint, aupper : bool) -> char;
-  function BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int;
-  function WriteReversedDigits(acount : int);
-  function WriteFormattedDigits(asign : char, adigit_count : int);
-  function WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint);
+  function WritePad(acount : int, ch : char)
+  function UIntDigitChar(adigit : uint, aupper : bool) -> char
+  function BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int
+  function WriteReversedDigits(acount : int)
+  function WriteFormattedDigits(asign : char, adigit_count : int)
+  function WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint)
 
-  function FormatSInt(v : int);
-  function FormatUInt(v : uint);
-  function FormatHex(v : uint, aupper : bool);
+  function FormatSInt(v : int)
+  function FormatUInt(v : uint)
+  function FormatHex(v : uint, aupper : bool)
 
-  function FormatFloat(v : float);
+  function FormatFloat(v : float)
 
 endobj
 
 implementation
 
-use libc/stdio;
+use libc/stdio
 
-var libc_stdout : pointer [[external('stdout')]];
-function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]];
-function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]];
+var libc_stdout : pointer [[external('stdout')]]
+function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
 
 // -----------------------------------------------------------------------------
 // Low-level conversion hooks
@@ -143,438 +143,438 @@ function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]];
 // The formatter itself must not allocate heap memory.
 
 function DqTextFmtIsDigit(ch : char) -> bool:
-  return (ch >= '0') and (ch <= '9');
+  return (ch >= '0') and (ch <= '9')
 endfunc
 
 function DqTextFmtDigitValue(ch : char) -> int:
-  return int(ch) - int('0');
+  return int(ch) - int('0')
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
 function OTextSinkStdOut.*Create():
-  inherited Create();
-  pstdout = @.libc_stdout;
+  inherited Create()
+  pstdout = @.libc_stdout
 endfunc
 
 function OTextSinkStdOut.Write(atext : strview) [[override]]:
-  @.libc_fwrite(&atext[0], 1, atext.length, pstdout);
+  @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
 endfunc
 
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
-  @.libc_fputc(ch, pstdout);
+  @.libc_fputc(ch, pstdout)
 endfunc
 
 function OTextSinkCString.*Create(adest : cstring):
-  inherited Create();
-  dest = adest;
+  inherited Create()
+  dest = adest
 endfunc
 
 function OTextSinkCString.Write(atext : strview) [[override]]:
-  dest.Append(atext);
+  dest.Append(atext)
 endfunc
 
 function OTextSinkCString.WriteChar(ch : char) [[override]]:
-  dest.AppendChar(ch);
+  dest.AppendChar(ch)
 endfunc
 
 function OTextSinkStr.*Create(adest : ^str):
-  inherited Create();
-  dest = adest;
+  inherited Create()
+  dest = adest
 endfunc
 
 function OTextSinkStr.Write(atext : strview) [[override]]:
-  dest^.Append(atext);
+  dest^.Append(atext)
 endfunc
 
 function OTextSinkStr.WriteChar(ch : char) [[override]]:
-  dest^.AppendChar(ch);
+  dest^.AppendChar(ch)
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
 function OTextFormatter.*Create(asink : OTextSink):
-  sink = asink;
+  sink = asink
 endfunc
 
 function OTextFormatter.Reset():
-  arg_index = 0;
-  flags = 0;
-  curpos = 0;
+  arg_index = 0
+  flags = 0
+  curpos = 0
 endfunc
 
 function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
-  Reset();
+  Reset()
 
-  curpos = 0;
-  endpos = afmt.length;
+  curpos = 0
+  endpos = afmt.length
 
-  var lit_start : uint = 0;
+  var lit_start : uint = 0
 
   while curpos < endpos:
-    var ch : char = afmt[curpos];
+    var ch : char = afmt[curpos]
 
     if ch == '{':
       if curpos > lit_start:
-        sink.Write(afmt[lit_start:curpos]);
+        sink.Write(afmt[lit_start:curpos])
       endif
-      curpos += 1;
+      curpos += 1
       if curpos < endpos and afmt[curpos] == '{':
-        sink.WriteChar('{');
-        curpos += 1;
-        lit_start = curpos;
-        continue;
+        sink.WriteChar('{')
+        curpos += 1
+        lit_start = curpos
+        continue
       else:
-        ParseSpec(afmt); // updates the curpos
+        ParseSpec(afmt) // updates the curpos
 
         if arg_index < aargs.length:
-          FormatAny(aargs[arg_index]);
+          FormatAny(aargs[arg_index])
         else:
-          var nv : anyvalue;
-          nv.SetNull();
-          FormatAny(nv);
+          var nv : anyvalue
+          nv.SetNull()
+          FormatAny(nv)
         endif
-        arg_index += 1;
+        arg_index += 1
 
         if curpos < endpos  and  afmt[curpos] == '}':
-          curpos += 1;
+          curpos += 1
         else:
-          flags =OR= @.DQFMT_FMT_ERROR;
-          sink.Write("<}?>");
-          break;
+          flags =OR= @.DQFMT_FMT_ERROR
+          sink.Write("<}?>")
+          break
         endif
-        lit_start = curpos;
+        lit_start = curpos
       endif
 
     elif ch == '}':
       if curpos > lit_start:
-        sink.Write(afmt[lit_start:curpos]);
+        sink.Write(afmt[lit_start:curpos])
       endif
-      curpos += 1;
+      curpos += 1
       if curpos < endpos  and  afmt[curpos] == '}':
-        sink.WriteChar('}');
-        curpos += 1;
-        lit_start = curpos;
+        sink.WriteChar('}')
+        curpos += 1
+        lit_start = curpos
       else:
         // Unescaped closing brace.
-        flags =OR= @.DQFMT_FMT_ERROR;
-        sink.Write("<!}>");
-        curpos += 1;
-        lit_start = curpos;
+        flags =OR= @.DQFMT_FMT_ERROR
+        sink.Write("<!}>")
+        curpos += 1
+        lit_start = curpos
       endif
 
     else:
-      curpos += 1;
+      curpos += 1
     endif
   endwhile
 
   if lit_start < endpos:
-    sink.Write(afmt[lit_start:endpos]);
+    sink.Write(afmt[lit_start:endpos])
   endif
 endfunc
 
 function OTextFormatter.ParseSpec(afmt : strview):
-  var p    : uint = curpos;
-  var flen : uint = afmt.length;
+  var p    : uint = curpos
+  var flen : uint = afmt.length
 
-  fmtspec.kind      = @.DQFMT_KIND_DEFAULT;
-  fmtspec.width     = -1;
-  fmtspec.precision = -1;
-  fmtspec.fill      = ' ';
-  fmtspec.left      = false;
-  fmtspec.sign_plus = false;
-  fmtspec.upper     = false;
+  fmtspec.kind      = @.DQFMT_KIND_DEFAULT
+  fmtspec.width     = -1
+  fmtspec.precision = -1
+  fmtspec.fill      = ' '
+  fmtspec.left      = false
+  fmtspec.sign_plus = false
+  fmtspec.upper     = false
 
   if p < flen  and  afmt[p] == ':':
-    p += 1;
+    p += 1
   endif
 
   // Fill/alignment subset. Examples planned for later: {:08x}, {:>8}, {:<8}
   if p < flen  and  afmt[p] == '0':
-    fmtspec.fill = '0';
-    p += 1;
+    fmtspec.fill = '0'
+    p += 1
   endif
 
   if p < flen  and  afmt[p] == '+':
-    fmtspec.sign_plus = true;
-    p += 1;
+    fmtspec.sign_plus = true
+    p += 1
   endif
 
   if p < flen  and  afmt[p] == '-':
-    fmtspec.left = true;
-    p += 1;
+    fmtspec.left = true
+    p += 1
   endif
 
   if p < flen and @.DqTextFmtIsDigit(afmt[p]):
-    fmtspec.width = 0;
+    fmtspec.width = 0
     while (p < flen) and @.DqTextFmtIsDigit(afmt[p]):
-      fmtspec.width = fmtspec.width * 10 + @.DqTextFmtDigitValue(afmt[p]);
-      p += 1;
+      fmtspec.width = fmtspec.width * 10 + @.DqTextFmtDigitValue(afmt[p])
+      p += 1
     endwhile
   endif
 
   if p < flen  and  afmt[p] == '.':
-    p += 1;
-    fmtspec.precision = 0;
+    p += 1
+    fmtspec.precision = 0
     while (p < flen) and @.DqTextFmtIsDigit(afmt[p]):
-      fmtspec.precision = fmtspec.precision * 10 + @.DqTextFmtDigitValue(afmt[p]);
-      p = p + 1;
+      fmtspec.precision = fmtspec.precision * 10 + @.DqTextFmtDigitValue(afmt[p])
+      p = p + 1
     endwhile
   endif
 
   if p < flen:
-    var k : char = afmt[p];
+    var k : char = afmt[p]
     if (k == 'd') or (k == 'u') or (k == 'x') or (k == 'X') or (k == 's') or (k == 'p') or (k == 'f') or (k == '?'):
-      fmtspec.kind = k;
-      fmtspec.upper = (k == 'X');
-      p += 1;
+      fmtspec.kind = k
+      fmtspec.upper = (k == 'X')
+      p += 1
     endif
   endif
 
   // add some error recovery:
   while p < flen  and  afmt[p] != '}':
-    p += 1;
+    p += 1
   endwhile
 
-  curpos = p;
+  curpos = p
 endfunc
 
 function OTextFormatter.FormatAny(av : anyvalue):
   if av.IsNull():
-    sink.Write("null");
-    return;
+    sink.Write("null")
+    return
   endif
 
   if av.IsText():
     if fmtspec.kind == @.DQFMT_KIND_DEFAULT  or  fmtspec.kind == @.DQFMT_KIND_STRING:
-      sink.Write(av.AsText(''));
+      sink.Write(av.AsText(''))
     else:
-      flags =OR= @.DQFMT_ARG_ERROR;
-      sink.Write("<s-f!>");
+      flags =OR= @.DQFMT_ARG_ERROR
+      sink.Write("<s-f!>")
     endif
-    return;
+    return
   endif
 
   if av.IsInt():
     if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_SIGNED == fmtspec.kind:
-      FormatSInt(av.AsInt(0));
+      FormatSInt(av.AsInt(0))
     elif @.DQFMT_KIND_UNSIGNED == fmtspec.kind:
-      FormatUInt(av.AsUint(0));
+      FormatUInt(av.AsUint(0))
     elif @.DQFMT_KIND_HEXUP  == fmtspec.kind:
-      FormatHex(av.AsUint(0), true);
+      FormatHex(av.AsUint(0), true)
     elif @.DQFMT_KIND_HEXLOW == fmtspec.kind:
-      FormatHex(av.AsUint(0), false);
+      FormatHex(av.AsUint(0), false)
     else:
-      flags =OR= @.DQFMT_ARG_ERROR;
-      sink.Write("<i-f!>");
+      flags =OR= @.DQFMT_ARG_ERROR
+      sink.Write("<i-f!>")
     endif
-    return;
+    return
   endif
 
   if av.IsFloat():
     if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_FLOAT == fmtspec.kind:
-      FormatFloat(av.AsFloat(0));
+      FormatFloat(av.AsFloat(0))
     else:
-      flags =OR= @.DQFMT_ARG_ERROR;
-      sink.Write("<f-f!>");
+      flags =OR= @.DQFMT_ARG_ERROR
+      sink.Write("<f-f!>")
     endif
-    return;
+    return
   endif
 
   if av.IsBool():
     if   @.DQFMT_KIND_DEFAULT == fmtspec.kind:
       if av.AsBool(false):
-        sink.Write('true');
+        sink.Write('true')
       else:
-        sink.Write('false');
+        sink.Write('false')
       endif
     else:
-      flags =OR= @.DQFMT_ARG_ERROR;
-      sink.Write("<b-f!>");
+      flags =OR= @.DQFMT_ARG_ERROR
+      sink.Write("<b-f!>")
     endif
-    return;
+    return
   endif
 
   if av.IsPointer():
     if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_POINTER == fmtspec.kind:
-      sink.Write('^');
-      FormatHex(uint(av.AsPointer(null)), true);
+      sink.Write('^')
+      FormatHex(uint(av.AsPointer(null)), true)
     else:
-      flags =OR= @.DQFMT_ARG_ERROR;
-      sink.Write("<p-f!>");
+      flags =OR= @.DQFMT_ARG_ERROR
+      sink.Write("<p-f!>")
     endif
-    return;
+    return
   endif
 
 
-  flags =OR= @.DQFMT_ARG_ERROR;
-  sink.Write("<arg-error>");
+  flags =OR= @.DQFMT_ARG_ERROR
+  sink.Write("<arg-error>")
 
 endfunc
 
 function OTextFormatter.WritePad(acount : int, ch : char):
   while acount > 0:
-    sink.WriteChar(ch);
-    acount -= 1;
+    sink.WriteChar(ch)
+    acount -= 1
   endwhile
 endfunc
 
 function OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
   if adigit < 10:
-    return char(int('0') + int(adigit));
+    return char(int('0') + int(adigit))
   elif aupper:
-    return char(int('A') + int(adigit - 10));
+    return char(int('A') + int(adigit - 10))
   else:
-    return char(int('a') + int(adigit - 10));
+    return char(int('a') + int(adigit - 10))
   endif
 endfunc
 
 function OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
-  lcsbuf.Clear();
+  lcsbuf.Clear()
 
   if v == uint(0):
-    lcsbuf.AppendChar('0');
-    return 1;
+    lcsbuf.AppendChar('0')
+    return 1
   endif
 
   while v > uint(0):
-    lcsbuf.AppendChar(UIntDigitChar(v IMOD abase, aupper));
-    v = v IDIV abase;
+    lcsbuf.AppendChar(UIntDigitChar(v IMOD abase, aupper))
+    v = v IDIV abase
   endwhile
 
-  return int(lcsbuf.length);
+  return int(lcsbuf.length)
 endfunc
 
 function OTextFormatter.WriteReversedDigits(acount : int):
-  var i : int = acount - 1;
+  var i : int = acount - 1
   while i >= 0:
-    sink.WriteChar(lcsbuf[i]);
-    i -= 1;
+    sink.WriteChar(lcsbuf[i])
+    i -= 1
   endwhile
 endfunc
 
 function OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
-  var total_len : int = adigit_count;
+  var total_len : int = adigit_count
   if asign <> char(0):
-    total_len += 1;
+    total_len += 1
   endif
 
-  var pad : int = fmtspec.width - total_len;
+  var pad : int = fmtspec.width - total_len
   if pad < 0:
-    pad = 0;
+    pad = 0
   endif
 
   if not fmtspec.left and fmtspec.fill <> '0':
-    WritePad(pad, ' ');
+    WritePad(pad, ' ')
   endif
 
   if asign <> char(0):
-    sink.WriteChar(asign);
+    sink.WriteChar(asign)
   endif
 
   if not fmtspec.left and fmtspec.fill == '0':
-    WritePad(pad, '0');
+    WritePad(pad, '0')
   endif
 
-  WriteReversedDigits(adigit_count);
+  WriteReversedDigits(adigit_count)
 
   if fmtspec.left:
-    WritePad(pad, ' ');
+    WritePad(pad, ' ')
   endif
 endfunc
 
 function OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
-  var total_len : int = aint_digit_count;
+  var total_len : int = aint_digit_count
   if asign <> char(0):
-    total_len += 1;
+    total_len += 1
   endif
   if aprecision > 0:
-    total_len += aprecision + 1;
+    total_len += aprecision + 1
   endif
 
-  var pad : int = fmtspec.width - total_len;
+  var pad : int = fmtspec.width - total_len
   if pad < 0:
-    pad = 0;
+    pad = 0
   endif
 
   if not fmtspec.left and fmtspec.fill <> '0':
-    WritePad(pad, ' ');
+    WritePad(pad, ' ')
   endif
 
   if asign <> char(0):
-    sink.WriteChar(asign);
+    sink.WriteChar(asign)
   endif
 
   if not fmtspec.left and fmtspec.fill == '0':
-    WritePad(pad, '0');
+    WritePad(pad, '0')
   endif
 
-  WriteReversedDigits(aint_digit_count);
+  WriteReversedDigits(aint_digit_count)
 
   if aprecision > 0:
-    sink.WriteChar('.');
-    var place : uint = ascale IDIV 10;
+    sink.WriteChar('.')
+    var place : uint = ascale IDIV 10
     while place > uint(0):
-      var digit : uint = afrac IDIV place;
-      sink.WriteChar(UIntDigitChar(digit, false));
-      afrac = afrac IMOD place;
-      place = place IDIV 10;
+      var digit : uint = afrac IDIV place
+      sink.WriteChar(UIntDigitChar(digit, false))
+      afrac = afrac IMOD place
+      place = place IDIV 10
     endwhile
   endif
 
   if fmtspec.left:
-    WritePad(pad, ' ');
+    WritePad(pad, ' ')
   endif
 endfunc
 
 function OTextFormatter.FormatSInt(v : int):
-  var signch : char = char(0);
-  var mag    : uint = uint(v);
+  var signch : char = char(0)
+  var mag    : uint = uint(v)
 
   if v < 0:
-    signch = '-';
-    mag = uint(-(v + 1)) + 1;
+    signch = '-'
+    mag = uint(-(v + 1)) + 1
   elif fmtspec.sign_plus:
-    signch = '+';
+    signch = '+'
   endif
 
-  WriteFormattedDigits(signch, BuildUIntDigits(mag, 10, false));
+  WriteFormattedDigits(signch, BuildUIntDigits(mag, 10, false))
 endfunc
 
 function OTextFormatter.FormatUInt(v : uint):
-  WriteFormattedDigits(char(0), BuildUIntDigits(v, 10, false));
+  WriteFormattedDigits(char(0), BuildUIntDigits(v, 10, false))
 endfunc
 
 function OTextFormatter.FormatHex(v : uint, aupper : bool):
-  WriteFormattedDigits(char(0), BuildUIntDigits(v, 16, aupper));
+  WriteFormattedDigits(char(0), BuildUIntDigits(v, 16, aupper))
 endfunc
 
 function OTextFormatter.FormatFloat(v : float):
-  var signch : char = char(0);
-  var work : float = v;
+  var signch : char = char(0)
+  var work : float = v
 
   if work < 0.0:
-    signch = '-';
-    work = -work;
+    signch = '-'
+    work = -work
   elif fmtspec.sign_plus:
-    signch = '+';
+    signch = '+'
   endif
 
-  var precision : int = fmtspec.precision;
+  var precision : int = fmtspec.precision
   if precision < 0:
-    precision = 6;
+    precision = 6
   elif precision > 18:
-    precision = 18;
+    precision = 18
   endif
 
-  var scale : uint = 1;
+  var scale : uint = 1
   for i : int = 0 count precision:
-    scale *= 10;
+    scale *= 10
   endfor
 
-  var scaled  : uint = uint(floor(work * scale + 0.5));
-  var intpart : uint = scaled IDIV scale;
-  var frac    : uint = scaled IMOD scale;
+  var scaled  : uint = uint(floor(work * scale + 0.5))
+  var intpart : uint = scaled IDIV scale
+  var frac    : uint = scaled IMOD scale
 
-  WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale);
+  WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale)
 endfunc

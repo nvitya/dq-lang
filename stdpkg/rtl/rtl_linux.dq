@@ -1,25 +1,24 @@
 // DQ Runtime Library for Linux
 
-use libc/stdio;
+use libc/stdio
 
 function os_rterror_handler(emsg : ^cchar):
-  printf('\nRUNTIME-ERROR: %s\n', emsg);
-  Exit(-1);
+  printf('\nRUNTIME-ERROR: %s\n', emsg)
+  Exit(-1)
 endfunc
 
-function dq_main() -> int [[external('dq_main')]];
-function dq_module_init() [[external('dq_module_init')]];
+function dq_main() -> int [[external('dq_main')]]
+function dq_module_init() [[external('dq_module_init')]]
 
 // libc entry point 'main()'
-[[cexport]]
-function main(argc : int, argv : ^^cchar) -> int:
-  rterror_handler = os_rterror_handler;
+function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
+  rterror_handler = os_rterror_handler
 
-  @sys.__sys_init_params(argc, argv);
+  @sys.__sys_init_params(argc, argv)
 
-  dq_module_init();
+  dq_module_init()
 
-  result = dq_main();
-  //dq_runtime_finalize_modules();
+  result = dq_main()
+  //dq_runtime_finalize_modules()
 endfunc
 

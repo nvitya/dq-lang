@@ -1,77 +1,75 @@
-implementation
-
 use print, strutils
 
 object ONode:
-  left  : ONode
-  right : ONode
+    left  : ONode
+    right : ONode
 
-  function *Create(aleft : ONode, aright : ONode)
-  function *Destroy()
-  function NodeCount() -> int
+    function *Create(aleft : ONode, aright : ONode)
+    function *Destroy()
+    function NodeCount() -> int
 endobj
 
 function ONode.*Create(aleft : ONode, aright : ONode):
-  left  = aleft
-  right = aright
+    left  = aleft
+    right = aright
 endfunc
 
 function ONode.*Destroy():
-  if left <> null:
-    delete left
-  endif
-  if right <> null:
-    delete right
-  endif
+    if left <> null:
+        delete left
+    endif
+    if right <> null:
+        delete right
+    endif
 endfunc
 
 function ONode.NodeCount() -> int:
-  result = 1
-  if left <> null:
-    result += left.NodeCount()
-  endif
-  if right <> null:
-    result += right.NodeCount()
-  endif
+    result = 1
+    if left <> null:
+        result += left.NodeCount()
+    endif
+    if right <> null:
+        result += right.NodeCount()
+    endif
 endfunc
 
 function BuildTree(depth : int) -> ONode:
-  if depth == 0:
-    return new ONode(null, null)
-  endif
-  return new ONode( BuildTree(depth - 1), BuildTree(depth - 1) )
+    if depth == 0:
+        return new ONode(null, null)
+    endif
+    return new ONode( BuildTree(depth - 1), BuildTree(depth - 1) )
 endfunc
 
 function CountDepth(depth : int) -> int:
-  var lnode : ONode = BuildTree(depth)
-  result = lnode.NodeCount()
-  delete lnode  
+    var lnode : ONode = BuildTree(depth)
+    result = lnode.NodeCount()
+    delete lnode  
 endfunc
 
 function StrechToDepth(depth : int):
-  PrintLn('stretch tree of depth {}\t check: {}', [depth, CountDepth(depth)])
+    PrintLn('stretch tree of depth {}\t check: {}', [depth, CountDepth(depth)])
 endfunc
 
 function *Main() -> int:
-  PrintLn("DQ")
-  var n : int = 10
-  if ParamCount() > 1:
-    n = StrToInt(ParamStr(1), n)
-  endif
-  var min_depth : int = 4
-  var max_depth : int = iif(min_depth + 2 > n, min_depth + 2, n)
-  var stretch_depth : int = max_depth + 1
-  StrechToDepth(stretch_depth)
-  var long_lived : ONode = BuildTree(max_depth)
-  for depth : int = min_depth  while depth <= max_depth  step 2:
-    var iterations : int = 1 << (max_depth - depth + min_depth)
-    var sum : int = 0;
-    for i : int = 0 count iterations:
-      sum += CountDepth(depth)
+    PrintLn("DQ")
+    var n : int = 10
+    if ParamCount() > 1:
+        n = StrToInt(ParamStr(1), n)
+    endif
+    var min_depth : int = 4
+    var max_depth : int = iif(min_depth + 2 > n, min_depth + 2, n)
+    var stretch_depth : int = max_depth + 1
+    StrechToDepth(stretch_depth)
+    var long_lived : ONode = BuildTree(max_depth)
+    for depth : int = min_depth  while depth <= max_depth  step 2:
+        var iterations : int = 1 << (max_depth - depth + min_depth)
+        var sum : int = 0;
+        for i : int = 0 count iterations:
+            sum += CountDepth(depth)
+        endfor
+        PrintLn("{}\t trees of depth {}\t check: {}", [iterations, depth, sum]);
     endfor
-    PrintLn("{}\t trees of depth {}\t check: {}", [iterations, depth, sum]);
-  endfor
-  PrintLn('long lived tree of depth {}\t check: {}', [max_depth, long_lived.NodeCount()])
-  delete long_lived
-  return 0
+    PrintLn('long lived tree of depth {}\t check: {}', [max_depth, long_lived.NodeCount()])
+    delete long_lived
+    return 0
 endfunc

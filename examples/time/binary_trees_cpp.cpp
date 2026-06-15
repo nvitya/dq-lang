@@ -34,29 +34,25 @@ public:
     }
 };
 
-TreeNode * buildTree(int depth) 
-{
+TreeNode * buildTree(int depth) {
     if (depth == 0) {
         return new TreeNode();
     }
     return new TreeNode(buildTree(depth - 1), buildTree(depth - 1));
 }
 
-int countNodes(int depth) 
-{
+int countNodes(int depth) {
     TreeNode * t = buildTree(depth);
     int c = t->nodeCount();
     delete t;
     return c;
 }
 
-void stretch(int depth) 
-{
+void stretch(int depth) {
     std::cout << "stretch tree of depth " << depth << "\t check: " << countNodes(depth) << "\n";
 }
 
-int main(int argc, char* argv[]) 
-{
+int main(int argc, char* argv[]) {
     std::cout << "C++\n";
     int n = 10;
     if (argc > 1) {
@@ -65,10 +61,8 @@ int main(int argc, char* argv[])
     int minDepth = 4;
     int maxDepth = (minDepth + 2 > n) ? minDepth + 2 : n;
     int stretchDepth = maxDepth + 1;
-    stretch(stretchDepth);
-    
+    stretch(stretchDepth);   
     TreeNode * longLived = buildTree(maxDepth);
-    
     for (int depth = minDepth; depth <= maxDepth; depth += 2) {
         int iterations = 1 << (maxDepth - depth + minDepth);
         int sum = 0;
@@ -77,9 +71,7 @@ int main(int argc, char* argv[])
         }
         std::cout << iterations << "\t trees of depth " << depth << "\t check: " << sum << "\n";
     }
-    
     std::cout << "long lived tree of depth " << maxDepth << "\t check: " << longLived->nodeCount() << "\n";
-    delete longLived;
-    
+    delete longLived;    
     return 0;
 }

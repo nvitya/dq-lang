@@ -26,7 +26,12 @@ function *Main() -> int:
   mdda.Append([11, 22, 33])
   mdda.Append([0xA1, 0xA2, 0xA3])
 
+  mdda[1].Append(99);
+  mdda[2].Append([5, 6, 7]);
+
   PrintArr2('mdda')
+
+  PrintLn()
 
   return 0
 endfunc

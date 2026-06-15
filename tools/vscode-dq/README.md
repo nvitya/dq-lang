@@ -12,9 +12,26 @@ This folder contains a minimal VSCode extension for `.dq` files. It is intention
 - Strings, numbers, operators, pointers like `^int` and `p^`, namespace access like `@def.MAXVAL`
 - Test directives such as `//?check(...)` and `//?error(...)`
 - Snippets for common DQ constructs
+- A `DQ: Run Current File` command and editor play button powered by `dq-run`
 - A `$dq` problem matcher for compiler output like `file.dq(3,11) ERROR(TypeSpecExpected): expected type specifier`
 
 Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match and autoclose, but they do not affect rainbow nesting.
+
+## Running the current file
+
+With a DQ file open, click the play button in the editor title or run `DQ: Run Current File` from the Command Palette. The extension saves the file and runs:
+
+```bash
+dq-run /absolute/path/to/current-file.dq
+```
+
+The process runs with the file's directory as its working directory. `dq-run` must be available on `PATH`, or set `dq.runPath` to its executable path in VSCode settings, for example:
+
+```json
+{
+  "dq.runPath": "/path/to/dq-lang/build/dq-run"
+}
+```
 
 ## Build task
 
@@ -76,7 +93,7 @@ This opens a new Extension Development Host window where `.dq` files should use 
 
 ```bash
 cd /lindata/workvc/dq-comp/tools/vscode-dq
-npx @vscode/vsce package
+npm run package
 ```
 
 ## Installing

@@ -6,16 +6,21 @@
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
-    "package": "vsce package"
+    "package": "vsce package --no-dependencies"
   },
   "repository": {
     "type": "git",
     "url": "git@github.com:nvitya/dq-comp.git"
   },
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:dq.runCurrentFile"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
   "files": [
+    "extension.js",
     "language-configuration.json",
     "package.json",
     "README.md",
@@ -33,6 +38,34 @@
     "highlighting"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "dq.runCurrentFile",
+        "title": "Run Current File",
+        "category": "DQ",
+        "enablement": "editorLangId == dq",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "dq.runCurrentFile",
+          "when": "editorLangId == dq",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DQ",
+      "properties": {
+        "dq.runPath": {
+          "type": "string",
+          "default": "dq-run",
+          "description": "Path to the dq-run executable used by DQ: Run Current File."
+        }
+      }
+    },
     "languages": [
       {
         "id": "dq",

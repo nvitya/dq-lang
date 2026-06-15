@@ -1,52 +1,60 @@
 // Print
 
-function Print(fmt : strview) [[overload]];
-function Print(fmt : strview, args : []anyvalue) [[overload]];
-function PrintLn(fmt : strview) [[overload]];
-function PrintLn(fmt : strview, args : []anyvalue) [[overload]];
+function Print(fmt : strview) [[overload]]
+function Print(fmt : strview, args : []anyvalue) [[overload]]
+function PrintLn() [[overload]]
+function PrintLn(fmt : strview) [[overload]]
+function PrintLn(fmt : strview, args : []anyvalue) [[overload]]
 
 implementation
 
-use rtl/textformat;
+use rtl/textformat
 
-var std_out_sink      : OTextSinkStdOut = null;
-var std_out_formatter : OTextFormatter = null;
+var std_out_sink      : OTextSinkStdOut = null
+var std_out_formatter : OTextFormatter = null
 
 function StdOutFmtSetup():
   if std_out_sink == null:
-    std_out_sink = new OTextSinkStdOut();
+    std_out_sink = new OTextSinkStdOut()
   endif
   if std_out_formatter == null:
-    std_out_formatter = new OTextFormatter(std_out_sink);
+    std_out_formatter = new OTextFormatter(std_out_sink)
   endif
 endfunc
 
 function Print(fmt : strview) [[overload]]:
   if std_out_sink == null:
-    StdOutFmtSetup();
+    StdOutFmtSetup()
   endif
-  std_out_sink.Write(fmt);
+  std_out_sink.Write(fmt)
 endfunc
 
 function Print(fmt : strview, args : []anyvalue) [[overload]]:
   if std_out_formatter == null:
-    StdOutFmtSetup();
+    StdOutFmtSetup()
   endif
-  std_out_formatter.Format(fmt, args);
+  std_out_formatter.Format(fmt, args)
+endfunc
+
+function PrintLn() [[overload]]:
+  if std_out_sink == null:
+    StdOutFmtSetup()
+  endif
+  std_out_sink.WriteChar('\n')
 endfunc
 
 function PrintLn(fmt : strview) [[overload]]:
   if std_out_sink == null:
-    StdOutFmtSetup();
+    StdOutFmtSetup()
   endif
-  std_out_sink.Write(fmt);
-  std_out_sink.WriteChar('\n');
+  std_out_sink.Write(fmt)
+  std_out_sink.WriteChar('\n')
 endfunc
 
 function PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
   if std_out_formatter == null:
-    StdOutFmtSetup();
+    StdOutFmtSetup()
   endif
-  std_out_formatter.Format(fmt, args);
-  std_out_sink.WriteChar('\n');
+  std_out_formatter.Format(fmt, args)
+  std_out_sink.WriteChar('\n')
 endfunc

@@ -112,7 +112,9 @@ string ODqCompBase::FormatDiagMsg(string_view atext, string_view par1, string_vi
 
 void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_view par1, string_view par2, string_view par3, OScPosition *ascpos)
 {
- OScPosition * epos = ascpos;
+  if (suppress_errors) return;
+
+  OScPosition * epos = ascpos;
   if (!epos) epos = errorpos;
   if (!epos) epos = &scpos_statement_start;
 
@@ -138,6 +140,8 @@ void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, OScPosi
 
 void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
 {
+  if (suppress_errors) return;
+
   OScPosition log_scpos;
 
   OScPosition * epos = ascpos;

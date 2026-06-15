@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.4"
+#define DQ_COMPILER_VERSION  "0.19.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.5:
+  - Parser error recovery fix for invalid variables in the array literals
 v0.19.4:
   - Fixing calling delete from object context
 v0.19.3:

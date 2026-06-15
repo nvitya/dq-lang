@@ -462,7 +462,10 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       return elemtype->GetArrayType(0);
     }
 
+    bool prev_suppress = suppress_errors;
+    if (!aemit_errors) suppress_errors = true;
     OExpr * arrlen_expr = ParseExpression();
+    suppress_errors = prev_suppress;
     int64_t arrlen = 0;
     if (!arrlen_expr)
     {
@@ -2523,6 +2526,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     if (!scf->Eof())
     {
       Error(DQERR_EXPR_UNEXPECTED_CHAR, string(1, *scf->curp));
+      ++scf->curp;
     }
     else
     {
@@ -2703,6 +2707,11 @@ OExpr * ODqCompParserExpr::ParseArrayLit()
     if (val)
     {
       elems.push_back(val);
+    }
+    else
+    {
+      for (OExpr * e : elems) delete e;
+      return nullptr;
     }
   }
 

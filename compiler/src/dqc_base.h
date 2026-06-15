@@ -37,6 +37,7 @@ public:
   int              errorcnt = 0;
   int              warncnt = 0;
   int              hintcnt = 0;
+  bool             suppress_errors = false;
 
 public:
   ODqCompBase();

@@ -63,7 +63,7 @@ function *Main() -> int:
   var stretch_depth : int = max_depth + 1
   StrechToDepth(stretch_depth)
   var long_lived : ONode = BuildTree(max_depth)
-  for depth : int = min_depth  while depth < max_depth  step 2:
+  for depth : int = min_depth  while depth <= max_depth  step 2:
     var iterations : int = 1 << (max_depth - depth + min_depth)
     var sum : int = 0;
     for i : int = 0 count iterations:

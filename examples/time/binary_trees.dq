@@ -8,22 +8,22 @@ object ONode:
   left  : ONode
   right : ONode
 
-  function *Create(aleft : ONode = null, aright : ONode = null)
+  function *Create(aleft : ONode, aright : ONode)
   function *Destroy()
   function NodeCount() -> int
 endobj
 
-function ONode.*Create(aleft : ONode = null, aright : ONode = null):
+function ONode.*Create(aleft : ONode, aright : ONode):
   left  = aleft
   right = aright
 endfunc
 
 function ONode.*Destroy():
   if left <> null:
-    delete left
+    //delete left
   endif
   if right <> null:
-    delete right
+    //delete right
   endif
 endfunc
 
@@ -37,32 +37,31 @@ function ONode.NodeCount() -> int:
   endif
 endfunc
 
-function BuildTree(depth : int) -> ONode
+function BuildTree(depth : int) -> ONode:
   if depth == 0:
-    return new ONode()
+    return new ONode(null, null)
   endif
   return new ONode( BuildTree(depth - 1), BuildTree(depth - 1) )
 endfunc
 
 function CountDepth(depth : int) -> int:
-  var lnode : ONode = build_tree(depth)
+  var lnode : ONode = BuildTree(depth)
   result = lnode.NodeCount()
   delete lnode  
 endfunc
 
 function StrechToDepth(depth : int):
-  PrintLn('stretch tree of depth {}\t check: {}', [depth, count(depth)])
+  PrintLn('stretch tree of depth {}\t check: {}', [depth, CountDepth(depth)])
 endfunc
 
 function *Main() -> int:
   PrintLn("DQ")
-/*  
   var n : int = 10
   if ParamCount() > 1:
     //n = int(sys.argv[1])
   endif
   var min_depth : int = 4
-  var max_depth : int = iif(minDepth + 2 > n, minDepth + 2, n)
+  var max_depth : int = iif(min_depth + 2 > n, min_depth + 2, n)
   var stretch_depth : int = max_depth + 1
   StrechToDepth(stretch_depth)
   var long_lived : ONode = BuildTree(max_depth)
@@ -74,8 +73,8 @@ function *Main() -> int:
     endfor
     PrintLn("{}\t trees of depth {}\t check: {}", [iterations, depth, sum]);
   endfor
-  PrintLn('long lived tree of depth {}\t check: {}', [maxDepth, long_lived.NodeCount()])
+  var nc : int = long_lived.NodeCount();
+  PrintLn('long lived tree of depth {}\t check: {}', [maxDepth, nc])
   delete long_lived
-*/  
   return 0
 endfunc

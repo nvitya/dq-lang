@@ -37,6 +37,7 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_VIRTUAL,  atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_ABSTRACT, atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_FINAL,    atarget, ATGT_FUNCTION);
+  CheckAttrAllowed(ATTF_FORWARD,  atarget, ATGT_COMPOUND_TYPE);
   CheckAttrAllowed(ATTF_VOLATILE, atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
 }
 
@@ -66,6 +67,7 @@ string AttrName(EAttrFlag aflag)
     case ATTF_OVERRIDE:      return "override";
     case ATTF_ABSTRACT:      return "abstract";
     case ATTF_FINAL:         return "final";
+    case ATTF_FORWARD:       return "forward";
 
     default:                 return "ATTR_"+to_string(aflag);
   }

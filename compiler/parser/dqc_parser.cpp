@@ -682,11 +682,57 @@ void ODqCompParser::ParseStructDecl()
     return;
   }
 
-  OCompoundType * ctype = new OCompoundType(sname, cur_mod_scope);
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    return;
+  }
+
+  OType * existing = cur_mod_scope->FindType(sname, nullptr, false);
+  if (!existing && !section_public)
+  {
+    existing = g_module->scope_pub->FindType(sname, nullptr, false);
+  }
+
+  OCompoundType * ctype = nullptr;
+  bool is_forward_def = false;
+
+  if (existing)
+  {
+    if (existing->incomplete && (TK_STRUCT == existing->kind))
+    {
+      ctype = static_cast<OCompoundType *>(existing);
+      is_forward_def = true;
+    }
+    else
+    {
+      RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, sname, existing->module ? existing->module->name : "");
+      return;
+    }
+  }
+  else
+  {
+    ctype = new OCompoundType(sname, cur_mod_scope);
+  }
+
   if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
+    if (attr->IsSet(ATTF_FORWARD))
+    {
+      ctype->incomplete = true;
+      if (!is_forward_def)
+      {
+        g_module->DeclareType(section_public, ctype);
+      }
+      return;
+    }
+  }
+
+  if (is_forward_def)
+  {
+    ctype->incomplete = false;
   }
 
   scf->SkipWhite();
@@ -804,7 +850,10 @@ void ODqCompParser::ParseStructDecl()
 
   ctype->EnsureLayout();
 
-  g_module->DeclareType(section_public, ctype);
+  if (!is_forward_def)
+  {
+    g_module->DeclareType(section_public, ctype);
+  }
 }
 
 bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
@@ -1272,11 +1321,57 @@ void ODqCompParser::ParseObjectDecl()
     return;
   }
 
-  OTypeObject * object_type = new OTypeObject(sname, cur_mod_scope);
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    return;
+  }
+
+  OType * existing = cur_mod_scope->FindType(sname, nullptr, false);
+  if (!existing && !section_public)
+  {
+    existing = g_module->scope_pub->FindType(sname, nullptr, false);
+  }
+
+  OTypeObject * object_type = nullptr;
+  bool is_forward_def = false;
+
+  if (existing)
+  {
+    if (existing->incomplete && (TK_OBJECT == existing->kind))
+    {
+      object_type = static_cast<OTypeObject *>(existing);
+      is_forward_def = true;
+    }
+    else
+    {
+      RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, sname, existing->module ? existing->module->name : "");
+      return;
+    }
+  }
+  else
+  {
+    object_type = new OTypeObject(sname, cur_mod_scope);
+  }
+
   if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     object_type->is_packed = attr->IsSet(ATTF_PACKED);
+    if (attr->IsSet(ATTF_FORWARD))
+    {
+      object_type->incomplete = true;
+      if (!is_forward_def)
+      {
+        g_module->DeclareType(section_public, object_type);
+      }
+      return;
+    }
+  }
+
+  if (is_forward_def)
+  {
+    object_type->incomplete = false;
   }
 
   scf->SkipWhite();
@@ -1556,7 +1651,10 @@ void ODqCompParser::ParseObjectDecl()
 
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
-  g_module->DeclareType(section_public, object_type);
+  if (!is_forward_def)
+  {
+    g_module->DeclareType(section_public, object_type);
+  }
 }
 
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)

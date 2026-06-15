@@ -12,6 +12,7 @@
 #include "scf_dq.h"
 #include "symbols.h"
 #include "dq_module.h"
+#include "named_scopes.h"
 #include "otype_compound.h"
 #include "otype_array.h"
 #include <ranges>
@@ -802,6 +803,14 @@ void ODqCompParserStmt::ParseStmtReturn()
 void ODqCompParserStmt::ParseStmtDelete()
 {
   OValSymFunc * memfree_func = dynamic_cast<OValSymFunc *>(curscope->FindValSym("MemFree"));
+  if (!memfree_func)
+  {
+    auto nsit = g_namespaces.find("sys");
+    if (nsit != g_namespaces.end() && nsit->second)
+    {
+      memfree_func = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym("MemFree", nullptr, false));
+    }
+  }
   if (!memfree_func)
   {
     Error(DQERR_VS_UNKNOWN, "MemFree");

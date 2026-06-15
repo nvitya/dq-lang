@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.3"
+#define DQ_COMPILER_VERSION  "0.19.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.4:
+  - Fixing calling delete from object context
 v0.19.3:
   - Allowing object forward declaration with [[forward]]
 v0.19.2:

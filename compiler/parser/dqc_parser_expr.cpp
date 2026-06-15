@@ -2984,6 +2984,14 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
   OValSymFunc * memalloc_func = dynamic_cast<OValSymFunc *>(curscope->FindValSym("MemAlloc"));
   if (!memalloc_func)
   {
+    auto nsit = g_namespaces.find("sys");
+    if (nsit != g_namespaces.end() && nsit->second)
+    {
+      memalloc_func = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym("MemAlloc", nullptr, false));
+    }
+  }
+  if (!memalloc_func)
+  {
     Error(DQERR_VS_UNKNOWN, "MemAlloc");
     return nullptr;
   }

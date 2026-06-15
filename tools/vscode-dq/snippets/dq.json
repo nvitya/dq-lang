@@ -47,14 +47,14 @@
   "External Function": {
     "prefix": "external",
     "body": [
-      "[[external]] function ${1:name}(${2:args}) -> ${3:int};"
+      "[[external]] function ${1:name}(${2:args}) -> ${3:int}"
     ],
     "description": "DQ external function declaration"
   },
   "External Function With Symbol": {
     "prefix": "externalname",
     "body": [
-      "[[external(\"${1:c_name}\")]] function ${2:name}(${3:args}) -> ${4:int};"
+      "[[external(\"${1:c_name}\")]] function ${2:name}(${3:args}) -> ${4:int}"
     ],
     "description": "DQ external function declaration with explicit C symbol"
   }

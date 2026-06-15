@@ -240,7 +240,7 @@
               "name": "punctuation.section.parameters.begin.dq"
             }
           },
-          "end": "(?=[:;{])",
+          "end": "(?=[:;{]|$)",
           "patterns": [
             {
               "include": "#attributes"

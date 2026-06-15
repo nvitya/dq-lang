@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.5"
+#define DQ_COMPILER_VERSION  "0.19.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.6:
+  - No object forward declaration is required for struct/object to linking to own
+  - Added strutils module with the StrToInt() function
 v0.19.5:
   - Parser error recovery fix for invalid variables in the array literals
 v0.19.4:

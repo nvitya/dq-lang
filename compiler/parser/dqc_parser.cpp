@@ -713,6 +713,8 @@ void ODqCompParser::ParseStructDecl()
   else
   {
     ctype = new OCompoundType(sname, cur_mod_scope);
+    ctype->incomplete = true;
+    g_module->DeclareType(section_public, ctype);
   }
 
   if (attr->flags)
@@ -721,19 +723,11 @@ void ODqCompParser::ParseStructDecl()
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
     if (attr->IsSet(ATTF_FORWARD))
     {
-      ctype->incomplete = true;
-      if (!is_forward_def)
-      {
-        g_module->DeclareType(section_public, ctype);
-      }
       return;
     }
   }
 
-  if (is_forward_def)
-  {
-    ctype->incomplete = false;
-  }
+
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))
@@ -849,11 +843,7 @@ void ODqCompParser::ParseStructDecl()
   }
 
   ctype->EnsureLayout();
-
-  if (!is_forward_def)
-  {
-    g_module->DeclareType(section_public, ctype);
-  }
+  ctype->incomplete = false;
 }
 
 bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
@@ -1352,6 +1342,8 @@ void ODqCompParser::ParseObjectDecl()
   else
   {
     object_type = new OTypeObject(sname, cur_mod_scope);
+    object_type->incomplete = true;
+    g_module->DeclareType(section_public, object_type);
   }
 
   if (attr->flags)
@@ -1360,19 +1352,11 @@ void ODqCompParser::ParseObjectDecl()
     object_type->is_packed = attr->IsSet(ATTF_PACKED);
     if (attr->IsSet(ATTF_FORWARD))
     {
-      object_type->incomplete = true;
-      if (!is_forward_def)
-      {
-        g_module->DeclareType(section_public, object_type);
-      }
       return;
     }
   }
 
-  if (is_forward_def)
-  {
-    object_type->incomplete = false;
-  }
+
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))
@@ -1651,10 +1635,7 @@ void ODqCompParser::ParseObjectDecl()
 
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
-  if (!is_forward_def)
-  {
-    g_module->DeclareType(section_public, object_type);
-  }
+  object_type->incomplete = false;
 }
 
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)

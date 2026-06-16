@@ -21,8 +21,69 @@
 #include "otype_func.h"
 #include "otype_compound.h"
 #include "comp_options.h"
+#include "named_scopes.h"
 
 using namespace std;
+
+static OValSymFunc * DqExceptionFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_exception");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    return nullptr;
+  }
+  return dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
+}
+
+static LlValue * DqExceptionActiveValue()
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_exception_active");
+  if (!fn || !fn->ll_func)
+  {
+    return nullptr;
+  }
+  return ll_builder.CreateCall(fn->ll_func, {}, "exc.active");
+}
+
+static LlValue * DqCurrentExceptionValue()
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_current_exception");
+  if (!fn || !fn->ll_func)
+  {
+    return nullptr;
+  }
+  return ll_builder.CreateCall(fn->ll_func, {}, "exc.current");
+}
+
+static LlValue * DqGlobalStringPtr(const string & text, const llvm::Twine & name)
+{
+  return ll_builder.CreateGlobalStringPtr(text, name);
+}
+
+static LlValue * LlBoolValue(bool value)
+{
+  return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), value ? 1 : 0);
+}
+
+static void DqClearException()
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_clear_exception");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+static void EmitExceptionEscapeCheck(LlBasicBlock * active_bb, LlBasicBlock * normal_bb)
+{
+  LlValue * active = DqExceptionActiveValue();
+  if (!active)
+  {
+    ll_builder.CreateBr(normal_bb);
+    return;
+  }
+  ll_builder.CreateCondBr(active, active_bb, normal_bb);
+}
 
 static void EmitOwnedObjectDestructors(OScope * scope)
 {
@@ -123,16 +184,50 @@ void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 
 void OStmtBlock::Generate()
 {
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_cleanup = nullptr;
+  LlBasicBlock * bb_done = nullptr;
+  bool exception_checks = (DqExceptionFunc("__dq_exception_active") != nullptr);
+  if (exception_checks)
+  {
+    bb_cleanup = LlBasicBlock::Create(ll_ctx, scope->debugname + ".cleanup", ll_func);
+    bb_done = LlBasicBlock::Create(ll_ctx, scope->debugname + ".done", ll_func);
+  }
+
   for (OStmt * bstmt : stlist)
   {
     bstmt->EmitDebugLocation(scope);
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
+    if (exception_checks)
+    {
+      LlBasicBlock * bb_next = LlBasicBlock::Create(ll_ctx, scope->debugname + ".next", ll_func);
+      EmitExceptionEscapeCheck(bb_cleanup, bb_next);
+      ll_builder.SetInsertPoint(bb_next);
+    }
   }
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
+    if (exception_checks)
+    {
+      ll_builder.CreateBr(bb_cleanup);
+    }
+    else
+    {
+      EmitOwnedObjectDestructors(scope);
+    }
+  }
+
+  if (exception_checks)
+  {
+    ll_builder.SetInsertPoint(bb_cleanup);
     EmitOwnedObjectDestructors(scope);
+    if (!ll_builder.GetInsertBlock()->getTerminator())
+    {
+      ll_builder.CreateBr(bb_done);
+    }
+    ll_builder.SetInsertPoint(bb_done);
   }
 }
 
@@ -663,7 +758,15 @@ void OStmtWhile::Generate(OScope * scope)
   // Jump back to condition
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    ll_builder.CreateBr(ll_cond_bb);
+    LlValue * active = DqExceptionActiveValue();
+    if (active)
+    {
+      ll_builder.CreateCondBr(active, ll_end_bb, ll_cond_bb);
+    }
+    else
+    {
+      ll_builder.CreateBr(ll_cond_bb);
+    }
   }
 
   ll_loop_stack.pop_back();
@@ -704,14 +807,30 @@ void OStmtFor::Generate(OScope * scope)
   body->Generate();
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    ll_builder.CreateBr(ll_step_bb);
+    LlValue * active = DqExceptionActiveValue();
+    if (active)
+    {
+      ll_builder.CreateCondBr(active, ll_end_bb, ll_step_bb);
+    }
+    else
+    {
+      ll_builder.CreateBr(ll_step_bb);
+    }
   }
 
   ll_builder.SetInsertPoint(ll_step_bb);
   step->Generate();
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    ll_builder.CreateBr(ll_cond_bb);
+    LlValue * active = DqExceptionActiveValue();
+    if (active)
+    {
+      ll_builder.CreateCondBr(active, ll_end_bb, ll_cond_bb);
+    }
+    else
+    {
+      ll_builder.CreateBr(ll_cond_bb);
+    }
   }
 
   ll_loop_stack.pop_back();
@@ -797,4 +916,140 @@ void OStmtIf::Generate(OScope * scope)
   }
 
   ll_builder.SetInsertPoint(bb_merge);
+}
+
+void OStmtRaise::Generate(OScope * scope)
+{
+  (void)scope;
+
+  if (!value)
+  {
+    OValSymFunc * fn = DqExceptionFunc("__dq_rethrow_exception");
+    if (!fn || !fn->ll_func)
+    {
+      throw runtime_error("OStmtRaise::Generate(): missing __dq_rethrow_exception");
+    }
+    ll_builder.CreateCall(fn->ll_func, {});
+    return;
+  }
+
+  OValSymFunc * fn = DqExceptionFunc("__dq_raise_exception");
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("OStmtRaise::Generate(): missing __dq_raise_exception");
+  }
+
+  LlValue * exc = value->Generate(scope);
+  LlValue * type_list = DqGlobalStringPtr(type_chain, "dq.exc.types");
+  LlValue * owns_initial_ref = LlBoolValue(dynamic_cast<ONewExpr *>(value) != nullptr);
+  ll_builder.CreateCall(fn->ll_func, {exc, type_list, owns_initial_ref});
+}
+
+static void GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBlock * bb_match, LlBasicBlock * bb_next)
+{
+  if (!branch->exception_type)
+  {
+    ll_builder.CreateBr(bb_match);
+    return;
+  }
+
+  OValSymFunc * fn = DqExceptionFunc("__dq_exception_type_is");
+  if (!fn || !fn->ll_func)
+  {
+    ll_builder.CreateBr(bb_next);
+    return;
+  }
+
+  LlValue * type_name = DqGlobalStringPtr(branch->exception_type->name, "dq.exc.catch");
+  LlValue * matches = ll_builder.CreateCall(fn->ll_func, {type_name}, "exc.match");
+  ll_builder.CreateCondBr(matches, bb_match, bb_next);
+}
+
+void OStmtTry::Generate(OScope * scope)
+{
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_dispatch = LlBasicBlock::Create(ll_ctx, "try.dispatch", ll_func);
+  LlBasicBlock * bb_after_handlers = LlBasicBlock::Create(ll_ctx, "try.after_handlers", ll_func);
+  LlBasicBlock * bb_finally = finally_body ? LlBasicBlock::Create(ll_ctx, "try.finally", ll_func) : nullptr;
+  LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "try.done", ll_func);
+
+  body->Generate();
+  if (!ll_builder.GetInsertBlock()->getTerminator())
+  {
+    LlValue * active = DqExceptionActiveValue();
+    if (active && !except_branches.empty())
+    {
+      ll_builder.CreateCondBr(active, bb_dispatch, bb_after_handlers);
+    }
+    else
+    {
+      ll_builder.CreateBr(bb_after_handlers);
+    }
+  }
+
+  ll_builder.SetInsertPoint(bb_dispatch);
+  if (except_branches.empty())
+  {
+    ll_builder.CreateBr(bb_after_handlers);
+  }
+  else
+  {
+    for (size_t i = 0; i < except_branches.size(); ++i)
+    {
+      OExceptBranch * branch = except_branches[i];
+      LlBasicBlock * bb_match = LlBasicBlock::Create(ll_ctx, "except.match", ll_func);
+      LlBasicBlock * bb_next = (i + 1 < except_branches.size())
+          ? LlBasicBlock::Create(ll_ctx, "except.next", ll_func)
+          : bb_after_handlers;
+
+      GenerateExceptBranchMatch(branch, bb_match, bb_next);
+
+      ll_builder.SetInsertPoint(bb_match);
+      if (branch->bound_variable)
+      {
+        OType * storage_type = branch->bound_variable->GetStorageType();
+        auto * alloca = CreateEntryBlockAlloca(storage_type->GetLlType(), nullptr, branch->bound_variable->name);
+        alloca->setAlignment(llvm::Align(EffectiveStorageAlign(storage_type, branch->bound_variable->attr_align)));
+        branch->bound_variable->ll_value = alloca;
+        LlValue * exc = DqCurrentExceptionValue();
+        if (exc && exc->getType() != storage_type->GetLlType())
+        {
+          exc = ll_builder.CreateBitCast(exc, storage_type->GetLlType(), "except.cast");
+        }
+        if (exc)
+        {
+          ll_builder.CreateStore(exc, branch->bound_variable->ll_value);
+        }
+      }
+      DqClearException();
+      branch->body->Generate();
+      if (!ll_builder.GetInsertBlock()->getTerminator())
+      {
+        ll_builder.CreateBr(bb_after_handlers);
+      }
+
+      if (bb_next != bb_after_handlers)
+      {
+        ll_builder.SetInsertPoint(bb_next);
+      }
+    }
+  }
+
+  ll_builder.SetInsertPoint(bb_after_handlers);
+  if (finally_body)
+  {
+    ll_builder.CreateBr(bb_finally);
+    ll_builder.SetInsertPoint(bb_finally);
+    finally_body->Generate();
+    if (!ll_builder.GetInsertBlock()->getTerminator())
+    {
+      ll_builder.CreateBr(bb_done);
+    }
+  }
+  else if (!ll_builder.GetInsertBlock()->getTerminator())
+  {
+    ll_builder.CreateBr(bb_done);
+  }
+
+  ll_builder.SetInsertPoint(bb_done);
 }

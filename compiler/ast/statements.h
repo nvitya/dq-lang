@@ -390,6 +390,100 @@ public:
   void Generate(OScope * scope) override;
 };
 
+class OExceptBranch
+{
+public:
+  OTypeObject *  exception_type = nullptr;  // nullptr means catch-all
+  OValSym *      bound_variable = nullptr;
+  OStmtBlock *   body = nullptr;
+
+  OExceptBranch(OTypeObject * atype, OValSym * avar, OScope * aparentscope)
+  :
+    exception_type(atype),
+    bound_variable(avar)
+  {
+    body = new OStmtBlock(aparentscope, "except");
+    if (bound_variable)
+    {
+      bound_variable->initialized = true;
+      body->scope->DefineValSym(bound_variable);
+    }
+  }
+
+  ~OExceptBranch()
+  {
+    delete body;
+  }
+};
+
+class OStmtTry : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OStmtBlock *             body;
+  vector<OExceptBranch *>  except_branches;
+  OStmtBlock *             finally_body = nullptr;
+
+  OStmtTry(OScPosition & ascpos, OScope * aparentscope)
+  :
+    super(ascpos)
+  {
+    body = new OStmtBlock(aparentscope, "try");
+  }
+
+  ~OStmtTry()
+  {
+    delete body;
+    for (OExceptBranch * branch : except_branches)
+    {
+      delete branch;
+    }
+    delete finally_body;
+  }
+
+  OExceptBranch * AddExceptBranch(OTypeObject * atype, OValSym * avar, OScope * aparentscope)
+  {
+    OExceptBranch * result = new OExceptBranch(atype, avar, aparentscope);
+    except_branches.push_back(result);
+    return result;
+  }
+
+  OStmtBlock * EnsureFinally(OScope * aparentscope)
+  {
+    if (!finally_body)
+    {
+      finally_body = new OStmtBlock(aparentscope, "finally");
+    }
+    return finally_body;
+  }
+
+  void Generate(OScope * scope) override;
+};
+
+class OStmtRaise : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OExpr *  value = nullptr;  // nullptr means re-raise
+  string   type_chain;
+
+  OStmtRaise(OScPosition & ascpos, OExpr * avalue, const string & atype_chain)
+  :
+    super(ascpos),
+    value(avalue),
+    type_chain(atype_chain)
+  {}
+
+  ~OStmtRaise()
+  {
+    OExpr::DeleteTree(value);
+  }
+
+  void Generate(OScope * scope) override;
+};
+
 class OBreakStmt : public OStmt
 {
 private:

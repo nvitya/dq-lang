@@ -23,6 +23,8 @@ public: // statement blocks
   void ParseStmtWhile();
   void ParseStmtFor();
   void ParseStmtIf();
+  void ParseStmtTry();
+  void ParseStmtRaise();
   void ParseStmtDelete();
   void ParseStmtInherited();
   void FinalizeStmtVoidCall(OExpr * callexpr);
@@ -32,4 +34,7 @@ public: // statement blocks
   void ParseStmtRef();
 
   EBinOp ParseAssignOp();
+
+protected:
+  int except_depth = 0;
 };

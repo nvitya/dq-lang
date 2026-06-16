@@ -1,6 +1,7 @@
 // DQ Runtime Library for Linux
 
 use libc/stdio
+use rtl/exception
 
 function os_rterror_handler(emsg : ^cchar):
   printf('\nRUNTIME-ERROR: %s\n', emsg)
@@ -19,6 +20,13 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
   dq_module_init()
 
   result = dq_main()
+  if __dq_exception_active():
+    var e : Exception = __dq_current_exception()
+    printf("\nUNCAUGHT EXCEPTION: ")
+    e.PrintMessage()
+    printf("\n")
+    e.PrintBacktrace()
+    result = -1
+  endif
   //dq_runtime_finalize_modules()
 endfunc
-

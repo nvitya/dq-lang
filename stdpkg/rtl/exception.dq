@@ -1,35 +1,144 @@
 // RTL Helpers for Exception Handling
 
+use libc/stdio
+
 object Exception:
 public
   refcount   : int
   message    : str
-  backtrace  : [*]pointer
 
+public
   function *Create(amsg : strview)
   function *Destroy()
 
   function GetMessage() -> str
+  function PrintMessage()
   function PrintBacktrace()
 endobj
+
+function __dq_exception_addref(e : Exception)
+function __dq_exception_release(e : Exception)
+function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool)
+function __dq_rethrow_exception()
+function __dq_exception_active() -> bool
+function __dq_current_exception() -> Exception
+function __dq_clear_exception()
+function __dq_exception_type_is(catchname : ^cchar) -> bool
 
 implementation
 
 function Exception.*Create(amsg : strview):  
   message.Set(amsg)
-  backtrace = []
   refcount = 1
 endfunc
 
 function Exception.*Destroy():
-  backtrace = []  // free the dynamic array
 endfunc
 
 function Exception.GetMessage() -> str:
   return message
 endfunc
 
+function Exception.PrintMessage():
+  var view : strview = message
+  var i : uint32 = 0
+  while i < uint32(view.length):
+    @.printf("%c", int(view[i]))
+    i += 1
+  endwhile
+endfunc
+
 function Exception.PrintBacktrace():
   // This will be implemented using libbacktrace
   // to symbolize backtrace_ptrs.
+  @.printf("Backtrace: <not captured>\n")
+endfunc
+
+var __dq_active_exception : Exception = null
+var __dq_active_exception_types : ^cchar = null
+
+function __dq_exception_addref(e : Exception):
+  if e <> null:
+    e.refcount += 1
+  endif
+endfunc
+
+function __dq_exception_release(e : Exception):
+  if e == null:
+    return
+  endif
+  e.refcount -= 1
+  if e.refcount <= 0:
+    delete e
+  endif
+endfunc
+
+function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool):
+  if e == null:
+    RuntimeError("raise null exception")
+    return
+  endif
+
+  if not owned_ref:
+    __dq_exception_addref(e)
+  endif
+
+  __dq_active_exception = e
+  __dq_active_exception_types = typelist
+endfunc
+
+function __dq_rethrow_exception():
+  if __dq_active_exception == null:
+    RuntimeError("re-raise without active exception")
+  endif
+endfunc
+
+function __dq_exception_active() -> bool:
+  return __dq_active_exception <> null
+endfunc
+
+function __dq_current_exception() -> Exception:
+  return __dq_active_exception
+endfunc
+
+function __dq_clear_exception():
+  // Keep the exception object alive for now. Handler binding and exact
+  // release timing will be tightened with the native unwinder implementation.
+  __dq_active_exception = null
+  __dq_active_exception_types = null
+endfunc
+
+function __dq_cstr_segment_eq(text : ^cchar, name : ^cchar) -> bool:
+  var t : ^cchar = text
+  var n : ^cchar = name
+  while n^ <> cchar(0):
+    if t^ <> n^:
+      return false
+    endif
+    t += 1
+    n += 1
+  endwhile
+  return t^ == cchar(0) or t^ == cchar(124)
+endfunc
+
+function __dq_exception_type_is(catchname : ^cchar) -> bool:
+  if __dq_active_exception_types == null or catchname == null:
+    return false
+  endif
+
+  var p : ^cchar = __dq_active_exception_types
+  while p^ <> cchar(0):
+    if __dq_cstr_segment_eq(p, catchname):
+      return true
+    endif
+
+    while p^ <> cchar(0) and p^ <> cchar(124):
+      p += 1
+    endwhile
+    if p^ == cchar(124):
+      p += 1
+    endif
+  endwhile
+
+  return false
 endfunc

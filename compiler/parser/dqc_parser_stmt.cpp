@@ -12,10 +12,61 @@
 #include "scf_dq.h"
 #include "symbols.h"
 #include "dq_module.h"
+#include "dqc.h"
 #include "named_scopes.h"
 #include "otype_compound.h"
 #include "otype_array.h"
 #include <ranges>
+
+static bool EnsureExceptionRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_exception"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/exception", "__dq_exception", g_module->scope_pub, false, MUM_ALL);
+}
+
+static OTypeObject * ExceptionBaseType(OScope * scope)
+{
+  OType * type = scope ? scope->FindType("Exception") : nullptr;
+  return dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
+}
+
+static bool IsExceptionType(OTypeObject * type, OScope * scope)
+{
+  OTypeObject * base = ExceptionBaseType(scope);
+  return type && base && type->IsSameOrDerivedFrom(base);
+}
+
+static OTypeObject * ExceptionObjectTypeFromExpr(OExpr * expr)
+{
+  OType * type = expr ? expr->ResolvedType() : nullptr;
+  type = type ? type->ResolveAlias() : nullptr;
+  if (auto * object_type = dynamic_cast<OTypeObject *>(type))
+  {
+    return object_type;
+  }
+  if (auto * ptrtype = dynamic_cast<OTypePointer *>(type))
+  {
+    return dynamic_cast<OTypeObject *>(ptrtype->basetype ? ptrtype->basetype->ResolveAlias() : nullptr);
+  }
+  return nullptr;
+}
+
+static string ExceptionTypeChain(OTypeObject * type)
+{
+  string result;
+  for (OTypeObject * cur = type; cur; cur = cur->GetBaseObject())
+  {
+    if (!result.empty())
+    {
+      result += "|";
+    }
+    result += cur->name;
+  }
+  return result;
+}
 
 void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 {
@@ -650,6 +701,16 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       else if ("if" == sid)
       {
         ParseStmtIf();
+        continue;
+      }
+      else if ("try" == sid)
+      {
+        ParseStmtTry();
+        continue;
+      }
+      else if ("raise" == sid)
+      {
+        ParseStmtRaise();
         continue;
       }
       else if ("delete" == sid)
@@ -1450,6 +1511,247 @@ void ODqCompParserStmt::ParseStmtIf()
       }
     }
   }
+}
+
+void ODqCompParserStmt::ParseStmtTry()
+{
+  if (!EnsureExceptionRtlUse())
+  {
+    ++errorcnt;
+    SkipToSymbol("endtry");
+    return;
+  }
+
+  OStmtTry * st = new OStmtTry(scpos_statement_start, curscope);
+  curblock->AddStatement(st);
+
+  string endstr;
+  ReadStatementBlock(st->body, "except|finally|endtry", &endstr);
+  st->body->scope->RevertFirstAssignments();
+
+  bool seen_catch_all = false;
+  bool seen_finally = false;
+
+  while (!scf->Eof())
+  {
+    if ("except" == endstr)
+    {
+      if (seen_finally)
+      {
+        StatementError(DQERR_STMT_INVALID, "except after finally");
+        SkipToSymbol("endtry");
+        return;
+      }
+      if (seen_catch_all)
+      {
+        StatementError(DQERR_STMT_INVALID, "except after catch-all");
+        SkipToSymbol("endtry");
+        return;
+      }
+
+      OTypeObject * exception_type = nullptr;
+      OValSym * bound_variable = nullptr;
+
+      scf->SkipWhite();
+      if (!scf->CheckSymbol(":", false) && !scf->CheckSymbol("{", false))
+      {
+        OType * type = ParseTypeSpec();
+        exception_type = dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
+        if (!IsExceptionType(exception_type, curscope))
+        {
+          Error(DQERR_TYPE_EXPECTED, "Exception", type ? type->name : string("?"));
+          SkipToSymbol("endtry");
+          return;
+        }
+
+        scf->SkipWhite();
+        string as_keyword;
+        if (scf->ReadIdentifier(as_keyword, false) && "as" == as_keyword)
+        {
+          scf->ReadIdentifier(as_keyword);
+          scf->SkipWhite();
+          string varname;
+          if (!scf->ReadIdentifier(varname))
+          {
+            StatementError(DQERR_ID_EXP_AFTER, "as");
+            SkipToSymbol("endtry");
+            return;
+          }
+          bound_variable = exception_type->CreateValSym(scpos_statement_start, varname);
+        }
+      }
+      else
+      {
+        seen_catch_all = true;
+      }
+
+      OExceptBranch * branch = st->AddExceptBranch(exception_type, bound_variable, curscope);
+      ++except_depth;
+      ReadStatementBlock(branch->body, "except|finally|endtry", &endstr);
+      --except_depth;
+      branch->body->scope->RevertFirstAssignments();
+      continue;
+    }
+
+    if ("finally" == endstr)
+    {
+      if (seen_finally)
+      {
+        StatementError(DQERR_STMT_INVALID, "multiple finally branches");
+        SkipToSymbol("endtry");
+        return;
+      }
+      seen_finally = true;
+      OStmtBlock * finally_body = st->EnsureFinally(curscope);
+      ReadStatementBlock(finally_body, "endtry", &endstr);
+      finally_body->scope->RevertFirstAssignments();
+      break;
+    }
+
+    break;
+  }
+
+  if (st->except_branches.empty() && !st->finally_body)
+  {
+    StatementError(DQERR_STMT_INVALID, "try without except or finally");
+  }
+}
+
+void ODqCompParserStmt::ParseStmtRaise()
+{
+  if (!EnsureExceptionRtlUse())
+  {
+    ++errorcnt;
+    SkipToStatementEnd();
+    return;
+  }
+
+  if (CheckStatementClose(false))
+  {
+    if (except_depth < 1)
+    {
+      StatementError(DQERR_STMT_INVALID, "standalone raise outside except");
+      return;
+    }
+    curblock->AddStatement(new OStmtRaise(scpos_statement_start, nullptr, ""));
+    return;
+  }
+
+  auto find_memalloc = [&]() -> OValSymFunc *
+  {
+    OValSymFunc * memalloc_func = dynamic_cast<OValSymFunc *>(curscope->FindValSym("MemAlloc"));
+    if (!memalloc_func)
+    {
+      auto nsit = g_namespaces.find("sys");
+      if (nsit != g_namespaces.end() && nsit->second)
+      {
+        memalloc_func = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym("MemAlloc", nullptr, false));
+      }
+    }
+    return memalloc_func;
+  };
+
+  auto parse_raise_shorthand = [&]() -> OExpr *
+  {
+    OScPosition saved;
+    scf->SaveCurPos(saved);
+
+    OType * type = ParseTypeSpec(false);
+    OTypeObject * object_type = dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
+    scf->SkipWhite();
+    if (!object_type || !scf->CheckSymbol("(", false))
+    {
+      scf->SetCurPos(saved);
+      return nullptr;
+    }
+    if (!IsExceptionType(object_type, curscope))
+    {
+      Error(DQERR_TYPE_EXPECTED, "Exception", object_type->name);
+      return nullptr;
+    }
+    if (object_type->is_abstract)
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", object_type->name));
+      return nullptr;
+    }
+
+    vector<TRawCallArg> rawargs;
+    scf->CheckSymbol("(");
+    if (!ParseRawCallArguments(object_type->name, rawargs))
+    {
+      return nullptr;
+    }
+
+    vector<OExpr *> ctor_args;
+    for (TRawCallArg & rawarg : rawargs)
+    {
+      ctor_args.push_back(rawarg.expr);
+      rawarg.expr = nullptr;
+    }
+    FreeRawCallArguments(rawargs);
+
+    OValSymFunc * ctor = nullptr;
+    if (!CheckObjectCtorArgs(object_type, ctor_args, ctor))
+    {
+      for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
+      return nullptr;
+    }
+
+    OValSymFunc * memalloc_func = find_memalloc();
+    if (!memalloc_func)
+    {
+      Error(DQERR_VS_UNKNOWN, "MemAlloc");
+      for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
+      return nullptr;
+    }
+
+    ONewExpr * result = new ONewExpr(object_type, nullptr, memalloc_func);
+    result->ctor_func = ctor;
+    result->ctor_args = ctor_args;
+    return result;
+  };
+
+  OExpr * expr = nullptr;
+  scf->SkipWhite();
+  OScPosition newpos;
+  scf->SaveCurPos(newpos);
+  string sid;
+  if (scf->ReadIdentifier(sid, false) && "new" == sid)
+  {
+    scf->ReadIdentifier(sid);
+    expr = ParseNewExpr();
+  }
+  else
+  {
+    expr = parse_raise_shorthand();
+    if (!expr)
+    {
+      expr = ParseExpression();
+    }
+  }
+
+  if (!expr)
+  {
+    SkipToStatementEnd();
+    return;
+  }
+
+  OTypeObject * expr_object_type = ExceptionObjectTypeFromExpr(expr);
+  if (!IsExceptionType(expr_object_type, curscope))
+  {
+    Error(DQERR_TYPE_EXPECTED, "Exception", expr->ResolvedType() ? expr->ResolvedType()->name : string("?"));
+    OExpr::DeleteTree(expr);
+    SkipToStatementEnd();
+    return;
+  }
+
+  if (!CheckStatementClose())
+  {
+    OExpr::DeleteTree(expr);
+    return;
+  }
+
+  curblock->AddStatement(new OStmtRaise(scpos_statement_start, expr, ExceptionTypeChain(expr_object_type)));
 }
 
 EBinOp ODqCompParserStmt::ParseAssignOp()

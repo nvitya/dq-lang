@@ -272,6 +272,29 @@ runtime error handler.
 
 ## 2. Implementation Plan
 
+### 2.0 Initial Implementation Status
+
+The current first implementation is a compiler/runtime stepping stone, not the
+final native unwinder backend.  It uses a runtime "active exception" state and
+compiler-generated checks after statements and calls to propagate exceptions
+through normal function returns.  This is sufficient for basic `raise`,
+`try/except`, `finally` on normal/exceptional fall-through, and propagation
+across DQ function calls.
+
+The final Itanium/LLVM unwinder implementation described below is still required
+for complete semantics, especially:
+
+- native stack unwinding through arbitrary calls
+- precise cleanup for every control-transfer edge
+- `finally` execution for `return`, `break`, and `continue`
+- exact exception object release timing
+- real backtrace capture and symbolization
+- interoperability with non-DQ frames
+
+The stepping-stone implementation should remain compatible with the language
+surface and tests, but it should be replaced by the native unwinder backend
+before the feature is considered complete.
+
 ### 2.1 Parser
 
 The compiler uses a single-pass forward parser without a separate tokenizer.

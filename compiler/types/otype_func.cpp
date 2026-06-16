@@ -898,83 +898,6 @@ void OValSymFunc::GenerateFuncBody()
 
   auto * owner_object = dynamic_cast<OTypeObject *>(owner_compound_type);
 
-  auto emit_object_fields_init = [&]()
-  {
-    if (OSF_CREATE != object_specfunc_kind || !owner_object || !receiver_arg)
-    {
-      return;
-    }
-
-    OLValueVar this_expr(receiver_arg);
-    LlValue * ll_this = this_expr.GenerateAddress(body->scope);
-    owner_object->GetLlType();
-    for (OValSym * member : owner_object->member_order)
-    {
-      if (!member)
-      {
-        continue;
-      }
-
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_object->GetLlType(), ll_this,
-          member->ll_field_index, member->name + ".addr");
-
-      if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
-      {
-        objmember->GenerateConstructorCall(body->scope, ll_field_addr);
-      }
-      else if (member->field_init_expr)
-      {
-        member->GenerateFieldInitStore(body->scope, ll_field_addr);
-      }
-    }
-  };
-
-  auto emit_embedded_object_destroy = [&]()
-  {
-    if (OSF_DESTROY != object_specfunc_kind || !owner_object || !receiver_arg)
-    {
-      return;
-    }
-
-    OLValueVar this_expr(receiver_arg);
-    LlValue * ll_this = this_expr.GenerateAddress(body->scope);
-    owner_object->GetLlType();
-    for (auto it = owner_object->member_order.rbegin(); it != owner_object->member_order.rend(); ++it)
-    {
-      OValSym * member = *it;
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_object->GetLlType(), ll_this,
-          member->ll_field_index, member->name + ".addr");
-
-      auto * objmember = dynamic_cast<OVsObject *>(member);
-      if (objmember && objmember->IsFixedObjectStorage())
-      {
-        objmember->GenerateDestructorCall(ll_field_addr);
-        continue;
-      }
-
-      auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (dyntype)
-      {
-        GenerateDynArrayDestroy(body->scope, dyntype, ll_field_addr);
-        continue;
-      }
-
-      auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (strtype)
-      {
-        GenerateStringDestroy(body->scope, ll_field_addr);
-        continue;
-      }
-
-      auto * anytype = dynamic_cast<OTypeAnyValue *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (anytype)
-      {
-        GenerateAnyValueDestroy(body->scope, ll_field_addr);
-        continue;
-      }
-    }
-  };
-
   if (OSF_CREATE == object_specfunc_kind && owner_object && receiver_arg)
   {
     OLValueVar this_expr(receiver_arg);
@@ -983,7 +906,11 @@ void OValSymFunc::GenerateFuncBody()
 
   if (!owner_object || !owner_object->base_type)
   {
-    emit_object_fields_init();
+    if (OSF_CREATE == object_specfunc_kind && owner_object && receiver_arg)
+    {
+      OLValueVar this_expr(receiver_arg);
+      owner_object->GenerateFieldInitializers(body->scope, this_expr.GenerateAddress(body->scope));
+    }
   }
 
   // STATEMENTS
@@ -997,7 +924,11 @@ void OValSymFunc::GenerateFuncBody()
     if (!owner_object || !owner_object->base_type
         || (OSF_DESTROY == object_specfunc_kind && !has_inherited_destroy))
     {
-      emit_embedded_object_destroy();
+      if (OSF_DESTROY == object_specfunc_kind && owner_object && receiver_arg)
+      {
+        OLValueVar this_expr(receiver_arg);
+        owner_object->GenerateFieldDestructors(body->scope, this_expr.GenerateAddress(body->scope));
+      }
     }
     GenerateFuncRet();
   }

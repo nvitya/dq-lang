@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.12"
+#define DQ_COMPILER_VERSION  "0.19.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.13:
+  - Duplicated object initialization and destruction code merged
 v0.19.12:
   - Managing dynamic strings and dynamic array object members
 v0.19.11:

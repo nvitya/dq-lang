@@ -354,80 +354,13 @@ void OStmtInheritedCall::Generate(OScope * scope)
   OLValueVar this_expr(caller->receiver_arg);
   LlValue * ll_this = this_expr.GenerateAddress(scope);
 
-  auto emit_field_init = [&]()
+  if (emit_derived_field_destroy)
   {
     auto * object_type = dynamic_cast<OTypeObject *>(caller->owner_compound_type);
-    if (!object_type)
+    if (object_type)
     {
-      return;
+      object_type->GenerateFieldDestructors(scope, ll_this);
     }
-    object_type->GetLlType();
-    for (OValSym * member : object_type->member_order)
-    {
-      if (!member)
-      {
-        continue;
-      }
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(object_type->GetLlType(), ll_this,
-          member->ll_field_index, member->name + ".addr");
-      if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
-      {
-        objmember->GenerateConstructorCall(scope, ll_field_addr);
-      }
-      else if (member->field_init_expr)
-      {
-        member->GenerateFieldInitStore(scope, ll_field_addr);
-      }
-    }
-  };
-
-  auto emit_field_destroy = [&]()
-  {
-    auto * object_type = dynamic_cast<OTypeObject *>(caller->owner_compound_type);
-    if (!object_type)
-    {
-      return;
-    }
-    object_type->GetLlType();
-    for (auto it = object_type->member_order.rbegin(); it != object_type->member_order.rend(); ++it)
-    {
-      OValSym * member = *it;
-      LlValue * ll_field_addr = ll_builder.CreateStructGEP(object_type->GetLlType(), ll_this,
-          member->ll_field_index, member->name + ".addr");
-
-      auto * objmember = dynamic_cast<OVsObject *>(member);
-      if (objmember && objmember->IsFixedObjectStorage())
-      {
-        objmember->GenerateDestructorCall(ll_field_addr);
-        continue;
-      }
-
-      auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (dyntype)
-      {
-        GenerateDynArrayDestroy(scope, dyntype, ll_field_addr);
-        continue;
-      }
-
-      auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (strtype)
-      {
-        GenerateStringDestroy(scope, ll_field_addr);
-        continue;
-      }
-
-      auto * anytype = dynamic_cast<OTypeAnyValue *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
-      if (anytype)
-      {
-        GenerateAnyValueDestroy(scope, ll_field_addr);
-        continue;
-      }
-    }
-  };
-
-  if (emit_derived_field_destroy && caller->owner_compound_type)
-  {
-    emit_field_destroy();
   }
 
   vector<LlValue *> ll_args;
@@ -444,8 +377,8 @@ void OStmtInheritedCall::Generate(OScope * scope)
     if (owner_object)
     {
       owner_object->GenerateVTableStore(ll_this);
+      owner_object->GenerateFieldInitializers(scope, ll_this);
     }
-    emit_field_init();
   }
 }
 

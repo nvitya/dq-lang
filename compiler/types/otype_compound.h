@@ -96,6 +96,8 @@ public:
   void UpdateObjectInheritanceFlags();
   void GenVTableGlobal(bool apublic);
   void GenerateVTableStore(LlValue * ll_object_addr);
+  void GenerateFieldInitializers(OScope * scope, LlValue * ll_object_addr);
+  void GenerateFieldDestructors(OScope * scope, LlValue * ll_object_addr);
 
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;

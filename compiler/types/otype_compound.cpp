@@ -21,6 +21,9 @@
 #include "dqc.h"
 #include "expressions.h"
 #include "otype_func.h"
+#include "otype_array.h"
+#include "otype_string.h"
+#include "otype_anyvalue.h"
 #include <llvm/IR/GlobalVariable.h>
 
 OValSym * OTypeObject::CreateValSym(OScPosition & apos, const string aname)
@@ -517,6 +520,62 @@ void OTypeObject::GenerateVTableStore(LlValue * ll_object_addr)
       static_cast<llvm::GlobalVariable *>(ll_vtable)->getValueType(),
       ll_vtable, {ll_zero, ll_zero}, "vtable.ptr");
   ll_builder.CreateStore(ll_vtable_ptr, ll_vptr_addr);
+}
+
+void OTypeObject::GenerateFieldInitializers(OScope * scope, LlValue * ll_object_addr)
+{
+  GetLlType();
+  for (OValSym * member : member_order)
+  {
+    if (!member) continue;
+
+    LlValue * ll_field_addr = ll_builder.CreateStructGEP(GetLlType(), ll_object_addr,
+        member->ll_field_index, member->name + ".addr");
+
+    if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
+    {
+      objmember->GenerateConstructorCall(scope, ll_field_addr);
+    }
+    else if (member->field_init_expr)
+    {
+      member->GenerateFieldInitStore(scope, ll_field_addr);
+    }
+  }
+}
+
+void OTypeObject::GenerateFieldDestructors(OScope * scope, LlValue * ll_object_addr)
+{
+  GetLlType();
+  for (auto it = member_order.rbegin(); it != member_order.rend(); ++it)
+  {
+    OValSym * member = *it;
+    LlValue * ll_field_addr = ll_builder.CreateStructGEP(GetLlType(), ll_object_addr,
+        member->ll_field_index, member->name + ".addr");
+
+    if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
+    {
+      objmember->GenerateDestructorCall(ll_field_addr);
+      continue;
+    }
+
+    if (auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr))
+    {
+      GenerateDynArrayDestroy(scope, dyntype, ll_field_addr);
+      continue;
+    }
+
+    if (auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr))
+    {
+      GenerateStringDestroy(scope, ll_field_addr);
+      continue;
+    }
+
+    if (auto * anytype = dynamic_cast<OTypeAnyValue *>(member->ptype ? member->ptype->ResolveAlias() : nullptr))
+    {
+      GenerateAnyValueDestroy(scope, ll_field_addr);
+      continue;
+    }
+  }
 }
 
 LlValue * OTypeObject::GenerateConversion(OScope * scope, OExpr * src)

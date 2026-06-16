@@ -141,6 +141,39 @@ static LlValue * CallDynStrFunc(const string & name, vector<LlValue *> args = {}
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
+static OValSymFunc * TextFormatFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_textformat");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("Textformat RTL module is not loaded");
+  }
+
+  OValSym * vs = nsit->second->FindValSym(name, nullptr, false);
+  auto * fn = dynamic_cast<OValSymFunc *>(vs);
+  if (!fn)
+  {
+    if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      if (!ovset->funcs.empty())
+      {
+        fn = ovset->funcs[0];
+      }
+    }
+  }
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("Textformat RTL function is not available: " + name);
+  }
+  return fn;
+}
+
+static LlValue * CallTextFormatFunc(const string & name, vector<LlValue *> args = {})
+{
+  OValSymFunc * fn = TextFormatFunc(name);
+  return ll_builder.CreateCall(fn->ll_func, args);
+}
+
 
 
 static LlValue * TextInfoAlloca()
@@ -562,6 +595,13 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       return CallDynStrFunc("DynStrPopChar", {straddr});
     case STRM_POP_FIRST_CHAR:
       return CallDynStrFunc("DynStrPopFirstChar", {straddr});
+    case STRM_ADDFMT:
+    {
+      LlValue * arg0_val = GenerateTextInfoValue(scope, args[0]);
+      LlValue * arg1_val = args[1]->Generate(scope);
+      CallTextFormatFunc("DynStrAddFmt", {straddr, arg0_val, arg1_val});
+      return nullptr;
+    }
   }
   throw logic_error("Unhandled string method");
 }

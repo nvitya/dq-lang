@@ -85,6 +85,39 @@ static LlValue * CallCStringFunc(const string & name, vector<LlValue *> args = {
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
+static OValSymFunc * TextFormatFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_textformat");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("Textformat RTL module is not loaded");
+  }
+
+  OValSym * vs = nsit->second->FindValSym(name, nullptr, false);
+  auto * fn = dynamic_cast<OValSymFunc *>(vs);
+  if (!fn)
+  {
+    if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
+    {
+      if (!ovset->funcs.empty())
+      {
+        fn = ovset->funcs[0];
+      }
+    }
+  }
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("Textformat RTL function is not available: " + name);
+  }
+  return fn;
+}
+
+static LlValue * CallTextFormatFunc(const string & name, vector<LlValue *> args = {})
+{
+  OValSymFunc * fn = TextFormatFunc(name);
+  return ll_builder.CreateCall(fn->ll_func, args);
+}
+
 // OTypeCString
 
 LlType * OTypeCString::CreateLlType()
@@ -465,6 +498,14 @@ LlValue * GenerateCStringMethodCall(OScope * scope, OTypeCString * cstrtype, LlV
       LlValue * index = ToNativeInt(args[0]->Generate(scope));
       LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1));
       return CallCStringFunc("CStrDelete", {dstdesc, index, count});
+    }
+
+    case CSM_ADDFMT:
+    {
+      LlValue * arg0_val = GenerateTextInfoValue(scope, args[0]);
+      LlValue * arg1_val = args[1]->Generate(scope);
+      LlValue * dstdesc_val = ll_builder.CreateLoad(g_builtins->type_cstring->GetLlType(), dstdesc, "cstr.desc.val");
+      return CallTextFormatFunc("CStrAddFmt", {dstdesc_val, arg0_val, arg1_val});
     }
   }
   return nullptr;

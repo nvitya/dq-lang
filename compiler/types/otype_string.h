@@ -81,7 +81,8 @@ enum EStringMethod
   STRM_POP,
   STRM_POP_FIRST,
   STRM_POP_CHAR,
-  STRM_POP_FIRST_CHAR
+  STRM_POP_FIRST_CHAR,
+  STRM_ADDFMT
 };
 
 bool IsTextSourceType(OType * type);

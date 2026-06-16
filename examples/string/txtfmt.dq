@@ -13,9 +13,9 @@ function TestCStr():
   CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
   PrintCs()
   cs.Clear()
-  cs.Append("method: ")
   //TODO: implement this
-  //cs.AddFmt(", {}, {}, {}", [1, 3.14, 'qqcs'])
+  cs.Add("method: ")  // Add() == Append()
+  cs.AddFmt(", {}, {}, {}", [1, 3.14, 'qqcs'])
   PrintCs()
 endfunc
 
@@ -31,9 +31,9 @@ function TestStr():
   PrintDs()
 
   ds.Clear()
-  ds.Append("method: ")
   //TODO: implement this
-  //ds.AddFmt(", {}, {}, {}", [5, 2.75, 'hi'])
+  ds.Add("method: ")  // Add() == Append()
+  ds.AddFmt(", {}, {}, {}", [5, 2.75, 'hi'])
   PrintDs()
 endfunc
 

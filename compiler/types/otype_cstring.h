@@ -122,7 +122,8 @@ enum ECStringMethod
   CSM_APPEND,
   CSM_PREPEND,
   CSM_INSERT,
-  CSM_DELETE
+  CSM_DELETE,
+  CSM_ADDFMT
 };
 
 LlValue * GenerateCStringDataPtr(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr);

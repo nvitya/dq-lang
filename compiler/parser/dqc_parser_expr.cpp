@@ -44,6 +44,15 @@ static bool EnsureDynStringRtlUse()
   return g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
 }
 
+static bool EnsureTextFormatRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_textformat"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/textformat", "__dq_textformat", nullptr, true, MUM_NONE);
+}
+
 static bool IsCStringMethodSourceType(OType * type)
 {
   return IsTextSourceType(type);
@@ -1581,11 +1590,19 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     method = CSM_SET;
     source_arg_index = 0;
   }
-  else if ("Append" == membername)
+  else if ("Append" == membername || "Add" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
     method = CSM_APPEND;
     source_arg_index = 0;
+  }
+  else if ("AddFmt" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = CSM_ADDFMT;
+    argtypes.push_back(g_builtins->type_strview);
+    argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
+    if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
   else if ("Prepend" == membername)
   {
@@ -1744,11 +1761,19 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     method = STRM_TRUNCATE;
     argtypes.push_back(g_builtins->type_uint);
   }
-  else if ("Append" == membername)
+  else if ("Append" == membername || "Add" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
     method = STRM_APPEND;
     source_arg_index = 0;
+  }
+  else if ("AddFmt" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = STRM_ADDFMT;
+    argtypes.push_back(g_builtins->type_strview);
+    argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
+    if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
   else if ("Prepend" == membername)
   {

@@ -96,6 +96,14 @@ function *Main() -> int:
   cs.AppendChar('e');
   cs.Append("efghi");
   PrintText("cstring_append_trunc", cs); //?check("cstring_append_trunc", '[5] "abcde"')
+  cs = "abc";
+  cs.Add('d');
+  cs.Add("efghi");
+  PrintText("cstring_add_trunc", cs); //?check("cstring_add_trunc", '[5] "abcde"')
+  cs.Clear();
+  cs.AddFmt("{}, {}", [1, 'hi']);
+  PrintText("cstring_addfmt", cs); //?check("cstring_addfmt", '[5] "1, hi"')
+  cs = "abcde";
   cs.Prepend('X');
   PrintText("cstring_prepend_trunc", cs); //?check("cstring_prepend_trunc", '[5] "Xabcd"')
   cs.Insert(1, 'Y');

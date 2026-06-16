@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.6"
+#define DQ_COMPILER_VERSION  "0.19.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.7:
+  - New methods added to cstring and str: .Add(), .AddFmt()
 v0.19.6:
   - No object forward declaration is required for struct/object to linking to own
   - Added strutils module with the StrToInt() function

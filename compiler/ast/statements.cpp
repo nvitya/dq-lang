@@ -25,6 +25,8 @@
 
 using namespace std;
 
+static vector<OStmtBlock *> ll_finally_stack;
+
 static OValSymFunc * DqExceptionFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_exception");
@@ -68,6 +70,24 @@ static LlValue * LlBoolValue(bool value)
 static void DqClearException()
 {
   OValSymFunc * fn = DqExceptionFunc("__dq_clear_exception");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+static void DqBeginCatch()
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_begin_catch");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+static void DqEndCatch()
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_end_catch");
   if (fn && fn->ll_func)
   {
     ll_builder.CreateCall(fn->ll_func, {});
@@ -131,6 +151,30 @@ static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vs
       break;
     }
   }
+}
+
+static void EmitActiveFinallyBlocks()
+{
+  if (ll_finally_stack.empty())
+  {
+    return;
+  }
+
+  vector<OStmtBlock *> saved_stack = ll_finally_stack;
+  while (!ll_finally_stack.empty())
+  {
+    OStmtBlock * finally_body = ll_finally_stack.back();
+    ll_finally_stack.pop_back();
+    if (finally_body)
+    {
+      finally_body->Generate();
+      if (ll_builder.GetInsertBlock()->getTerminator())
+      {
+        break;
+      }
+    }
+  }
+  ll_finally_stack = saved_stack;
 }
 
 static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, LlValue * targetaddr, OExpr * value)
@@ -261,8 +305,28 @@ void OStmtReturn::Generate(OScope * scope)
     }
   }
 
-  EmitOwnedObjectDestructorsForReturn(scope, vsfunc);
+  EmitActiveFinallyBlocks();
+  if (ll_builder.GetInsertBlock()->getTerminator())
+  {
+    return;
+  }
 
+  LlValue * active = DqExceptionActiveValue();
+  if (active)
+  {
+    LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+    LlBasicBlock * bb_exception = LlBasicBlock::Create(ll_ctx, "return.exception", ll_func);
+    LlBasicBlock * bb_return = LlBasicBlock::Create(ll_ctx, "return.normal", ll_func);
+    ll_builder.CreateCondBr(active, bb_exception, bb_return);
+
+    ll_builder.SetInsertPoint(bb_exception);
+    EmitOwnedObjectDestructorsForReturn(scope, vsfunc);
+    vsfunc->GenerateFuncRet();
+
+    ll_builder.SetInsertPoint(bb_return);
+  }
+
+  EmitOwnedObjectDestructorsForReturn(scope, vsfunc);
   vsfunc->GenerateFuncRet();
 }
 
@@ -845,7 +909,21 @@ void OBreakStmt::Generate(OScope * scope)
     throw logic_error("BreakStmt::Generate(): empty loop_stack!");
   }
 
-  ll_builder.CreateBr(ll_loop_stack.back().end_bb);
+  EmitActiveFinallyBlocks();
+  if (ll_builder.GetInsertBlock()->getTerminator())
+  {
+    return;
+  }
+
+  LlValue * active = DqExceptionActiveValue();
+  if (active)
+  {
+    ll_builder.CreateCondBr(active, ll_loop_stack.back().end_bb, ll_loop_stack.back().end_bb);
+  }
+  else
+  {
+    ll_builder.CreateBr(ll_loop_stack.back().end_bb);
+  }
 }
 
 void OContinueStmt::Generate(OScope * scope)
@@ -855,7 +933,21 @@ void OContinueStmt::Generate(OScope * scope)
     throw logic_error("BreakStmt::Generate(): empty loop_stack!");
   }
 
-  ll_builder.CreateBr(ll_loop_stack.back().cond_bb);
+  EmitActiveFinallyBlocks();
+  if (ll_builder.GetInsertBlock()->getTerminator())
+  {
+    return;
+  }
+
+  LlValue * active = DqExceptionActiveValue();
+  if (active)
+  {
+    ll_builder.CreateCondBr(active, ll_loop_stack.back().end_bb, ll_loop_stack.back().cond_bb);
+  }
+  else
+  {
+    ll_builder.CreateBr(ll_loop_stack.back().cond_bb);
+  }
 }
 
 void OStmtIf::Generate(OScope * scope)
@@ -973,7 +1065,15 @@ void OStmtTry::Generate(OScope * scope)
   LlBasicBlock * bb_finally = finally_body ? LlBasicBlock::Create(ll_ctx, "try.finally", ll_func) : nullptr;
   LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "try.done", ll_func);
 
+  if (finally_body)
+  {
+    ll_finally_stack.push_back(finally_body);
+  }
   body->Generate();
+  if (finally_body)
+  {
+    ll_finally_stack.pop_back();
+  }
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
     LlValue * active = DqExceptionActiveValue();
@@ -1021,10 +1121,19 @@ void OStmtTry::Generate(OScope * scope)
           ll_builder.CreateStore(exc, branch->bound_variable->ll_value);
         }
       }
-      DqClearException();
+      DqBeginCatch();
+      if (finally_body)
+      {
+        ll_finally_stack.push_back(finally_body);
+      }
       branch->body->Generate();
+      if (finally_body)
+      {
+        ll_finally_stack.pop_back();
+      }
       if (!ll_builder.GetInsertBlock()->getTerminator())
       {
+        DqEndCatch();
         ll_builder.CreateBr(bb_after_handlers);
       }
 

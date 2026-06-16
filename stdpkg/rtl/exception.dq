@@ -23,6 +23,8 @@ function __dq_rethrow_exception()
 function __dq_exception_active() -> bool
 function __dq_current_exception() -> Exception
 function __dq_clear_exception()
+function __dq_begin_catch()
+function __dq_end_catch()
 function __dq_exception_type_is(catchname : ^cchar) -> bool
 
 implementation
@@ -56,6 +58,8 @@ endfunc
 
 var __dq_active_exception : Exception = null
 var __dq_active_exception_types : ^cchar = null
+var __dq_handled_exception : Exception = null
+var __dq_handled_exception_types : ^cchar = null
 
 function __dq_exception_addref(e : Exception):
   if e <> null:
@@ -83,14 +87,22 @@ function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool
     __dq_exception_addref(e)
   endif
 
+  if __dq_active_exception <> null:
+    __dq_exception_release(__dq_active_exception)
+  endif
   __dq_active_exception = e
   __dq_active_exception_types = typelist
 endfunc
 
 function __dq_rethrow_exception():
-  if __dq_active_exception == null:
+  if __dq_handled_exception == null:
     RuntimeError("re-raise without active exception")
+    return
   endif
+  __dq_active_exception = __dq_handled_exception
+  __dq_active_exception_types = __dq_handled_exception_types
+  __dq_handled_exception = null
+  __dq_handled_exception_types = null
 endfunc
 
 function __dq_exception_active() -> bool:
@@ -102,10 +114,29 @@ function __dq_current_exception() -> Exception:
 endfunc
 
 function __dq_clear_exception():
-  // Keep the exception object alive for now. Handler binding and exact
-  // release timing will be tightened with the native unwinder implementation.
+  if __dq_active_exception <> null:
+    __dq_exception_release(__dq_active_exception)
+  endif
   __dq_active_exception = null
   __dq_active_exception_types = null
+endfunc
+
+function __dq_begin_catch():
+  if __dq_handled_exception <> null:
+    __dq_exception_release(__dq_handled_exception)
+  endif
+  __dq_handled_exception = __dq_active_exception
+  __dq_handled_exception_types = __dq_active_exception_types
+  __dq_active_exception = null
+  __dq_active_exception_types = null
+endfunc
+
+function __dq_end_catch():
+  if __dq_handled_exception <> null:
+    __dq_exception_release(__dq_handled_exception)
+  endif
+  __dq_handled_exception = null
+  __dq_handled_exception_types = null
 endfunc
 
 function __dq_cstr_segment_eq(text : ^cchar, name : ^cchar) -> bool:

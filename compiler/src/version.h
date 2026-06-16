@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.0"
+#define DQ_COMPILER_VERSION  "0.20.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.1:
+  - Exceptions / 2
 v0.20.0:
   - Exceptions / 1
 v0.19.13:

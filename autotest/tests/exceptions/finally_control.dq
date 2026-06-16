@@ -1,0 +1,60 @@
+// finally must run before return/break/continue control transfers.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function ReturnWithFinally() -> int:
+  try:
+    return 11
+  finally:
+    printf("finally.return = ran\n")  //?check("finally.return", "ran")
+  endtry
+
+  return 99
+endfunc
+
+function ReturnReplacedByRaise() -> int:
+  try:
+    return 7
+  finally:
+    raise Exception("finally boom")
+  endtry
+
+  return 0
+endfunc
+
+function *Main() -> int:
+  var r : int = ReturnWithFinally()
+  printf("finally.return.result = %d\n", r)  //?check("finally.return.result", 11)
+
+  for i : int = 0 count 3:
+    try:
+      break
+    finally:
+      printf("finally.break = ran\n")  //?check("finally.break", "ran")
+    endtry
+  endfor
+
+  var count : int = 0
+  for i : int = 0 count 2:
+    try:
+      count += 1
+      continue
+    finally:
+      printf("finally.continue = %d\n", count)  //?check("finally.continue", 1)
+                                                   //?check("finally.continue", 2)
+    endtry
+    count += 10
+  endfor
+  printf("finally.continue.result = %d\n", count)  //?check("finally.continue.result", 2)
+
+  try:
+    r = ReturnReplacedByRaise()
+    printf("finally.replace.result = %d\n", r)
+  except Exception as e:
+    printf("finally.replace = caught ")  //?check("finally.replace", "caught finally boom")
+    e.PrintMessage()
+    printf("\n")
+  endtry
+
+  return 0
+endfunc

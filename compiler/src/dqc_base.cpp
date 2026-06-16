@@ -349,6 +349,8 @@ void ODqCompBase::StatementError(const TDiagDefErr & adiag, OScPosition * scpos,
 
 void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
 {
+  if (suppress_warnings) return;
+
   OScPosition log_scpos;
 
   OScPosition * epos = ascpos;

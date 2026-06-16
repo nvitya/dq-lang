@@ -53,8 +53,8 @@ function *Main() -> int:
   f = i > 5; //?error(TypeMismatchAssign)
   i = round(f);
 
-  var s1 : cstring(4) = "";
-  var s2 : cstring(5) = "";
+  [[nowarn]] var s1 : cstring(4) = "";
+  [[nowarn]] var s2 : cstring(5) = "";
   s1 = s2;
 
   return 0;

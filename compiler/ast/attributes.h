@@ -34,6 +34,7 @@ enum EAttrFlag
   ATTF_ABSTRACT       = 0x00040000,
   ATTF_FINAL          = 0x00080000,
   ATTF_FORWARD        = 0x00100000,
+  ATTF_NOWARN         = 0x00200000,
 };
 
 enum EAttrTarget
@@ -44,7 +45,8 @@ enum EAttrTarget
   ATGT_GLOBAL_CONST   = 0x0004,
 
   ATGT_STRUCT_MEMBER  = 0x0008,  //TODO: member var, member func would be better
-  ATGT_COMPOUND_TYPE  = 0x0010
+  ATGT_COMPOUND_TYPE  = 0x0010,
+  ATGT_STATEMENT      = 0x0020
 };
 
 class OAttr

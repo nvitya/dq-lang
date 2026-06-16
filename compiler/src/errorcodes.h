@@ -258,6 +258,7 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 //-----------------------------------------------------------------------------
 
 DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
+DEF_DQ_WARN(DQWARN_CSTR_STORAGE_SIZE,              "CStrStorageSize",        "cstring($1) storage size ($2) is not divisible by 4");
 
 //-----------------------------------------------------------------------------
 // HINTS

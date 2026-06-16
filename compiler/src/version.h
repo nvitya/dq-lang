@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.7"
+#define DQ_COMPILER_VERSION  "0.19.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.8:
+  - Warning, when the cstring storage size is not divisible with 4
 v0.19.7:
   - New methods added to cstring and str: .Add(), .AddFmt()
 v0.19.6:

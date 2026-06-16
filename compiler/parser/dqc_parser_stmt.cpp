@@ -567,6 +567,18 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       continue;
     }
 
+    if (!ParseAttributes(true))
+    {
+      SkipCurStatement();
+      continue;
+    }
+
+    ODqCompBaseSuppressWarningsScope sws(this, attr->IsSet(ATTF_NOWARN));
+    if (attr->flags)
+    {
+      attr->CheckInvalidAttributes(ATGT_STATEMENT);
+    }
+
     // Try keywords first, use ReadIdentifier for whole word checking
 
     scf->SaveCurPos(scpos_statement_start);  // we jump back here if the identifier is unknown

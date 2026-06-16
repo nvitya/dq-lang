@@ -168,6 +168,8 @@ void ODqCompParser::ParseModule()
       continue;
     }
 
+    ODqCompBaseSuppressWarningsScope sws(this, attr->IsSet(ATTF_NOWARN));
+
     // module root starters
     if (not scf->ReadIdentifier(sid))
     {

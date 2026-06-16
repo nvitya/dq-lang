@@ -293,6 +293,17 @@ bool ODqCompParserExpr::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
+  if ("nowarn" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_NOWARN);
+    return true;
+  }
+
   if ("volatile" == attrname)
   {
     if (scf->CheckSymbol("(", false))
@@ -621,6 +632,10 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
           Error(DQERR_MISSING_CLOSE_PAREN_FOR, "cstring size");
         }
         return nullptr;
+      }
+      if (aemit_errors && (((maxlen + 1) % 4) != 0))
+      {
+        Warning(DQWARN_CSTR_STORAGE_SIZE, to_string(maxlen), to_string(maxlen + 1), &scf->prevpos);
       }
       return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
     }

@@ -39,6 +39,7 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_FINAL,    atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_FORWARD,  atarget, ATGT_COMPOUND_TYPE);
   CheckAttrAllowed(ATTF_VOLATILE, atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
+  CheckAttrAllowed(ATTF_NOWARN,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER | ATGT_COMPOUND_TYPE | ATGT_STATEMENT);
 }
 
 void OAttr::CheckAttrAllowed(EAttrFlag aflag, EAttrTarget atarget, uint32_t allowed_target_mask)
@@ -68,6 +69,7 @@ string AttrName(EAttrFlag aflag)
     case ATTF_ABSTRACT:      return "abstract";
     case ATTF_FINAL:         return "final";
     case ATTF_FORWARD:       return "forward";
+    case ATTF_NOWARN:        return "nowarn";
 
     default:                 return "ATTR_"+to_string(aflag);
   }
@@ -82,6 +84,7 @@ string AttrTargetName(EAttrTarget atarget)
     case ATGT_GLOBAL_CONST:  return "global constant";
     case ATGT_STRUCT_MEMBER: return "struct member";
     case ATGT_COMPOUND_TYPE: return "struct/object";
+    case ATGT_STATEMENT:     return "statement";
 
     default:                 return "ATGT_"+to_string(atarget);
   }

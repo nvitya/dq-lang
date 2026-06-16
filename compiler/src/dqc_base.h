@@ -38,6 +38,7 @@ public:
   int              warncnt = 0;
   int              hintcnt = 0;
   bool             suppress_errors = false;
+  bool             suppress_warnings = false;
 
 public:
   ODqCompBase();
@@ -96,4 +97,18 @@ public:
   void Hint(const TDiagDefHint & adiag, string_view par1, OScPosition * ascpos = nullptr);
   void Hint(const TDiagDefHint & adiag, OScPosition * ascpos = nullptr);
 
+};
+
+struct ODqCompBaseSuppressWarningsScope
+{
+  ODqCompBase * comp;
+  bool saved;
+  ODqCompBaseSuppressWarningsScope(ODqCompBase * acomp, bool aactive) : comp(acomp), saved(acomp->suppress_warnings)
+  {
+    if (aactive) comp->suppress_warnings = true;
+  }
+  ~ODqCompBaseSuppressWarningsScope()
+  {
+    comp->suppress_warnings = saved;
+  }
 };

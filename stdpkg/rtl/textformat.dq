@@ -26,6 +26,8 @@
 // implementation may ignore unsupported fields until the low-level numeric
 // conversion helpers are finalized.
 
+use rtl/cstrings, rtl/dynstrmgr
+
 // -----------------------------------------------------------------------------
 // Result flags
 // -----------------------------------------------------------------------------
@@ -126,6 +128,9 @@ protected
   function FormatFloat(v : float)
 
 endobj
+
+function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue)
+function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue)
 
 implementation
 
@@ -578,3 +583,18 @@ function OTextFormatter.FormatFloat(v : float):
 
   WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale)
 endfunc
+
+//----------------------------------------------------------------------------------------
+
+function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue):
+  var osink <- OTextSinkCString(adest)
+  var ofmt  <- OTextFormatter(osink)
+  ofmt.Format(afmt, aargs)
+endfunc
+
+function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue):
+  var osink <- OTextSinkStr(astr)
+  var ofmt  <- OTextFormatter(osink)
+  ofmt.Format(afmt, aargs)
+endfunc
+

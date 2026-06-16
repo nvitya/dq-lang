@@ -1,0 +1,45 @@
+use print, rtl/textformat
+
+var cs : cstring(255)
+var ds : str
+
+function PrintCs():
+  PrintLn('cs="{}"', [cs])
+endfunc
+
+function TestCStr():
+  PrintLn('Testing cstring.AddFmt()')
+  cs.Append("functest: ")
+  CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
+  PrintCs()
+  cs.Clear()
+  cs.Append("method: ")
+  //TODO: implement this
+  //cs.AddFmt(", {}, {}, {}", [1, 3.14, 'qqcs'])
+  PrintCs()
+endfunc
+
+function PrintDs():
+  PrintLn('ds="{}"', [ds])
+endfunc
+
+function TestStr():
+  PrintLn('Testing str.AddFmt()')
+
+  ds.Append("functest: ")
+  DynStrAddFmt(&ds, ", {}, {}, {}", [5, 2.75, 'hi'])
+  PrintDs()
+
+  ds.Clear()
+  ds.Append("method: ")
+  //TODO: implement this
+  //ds.AddFmt(", {}, {}, {}", [5, 2.75, 'hi'])
+  PrintDs()
+endfunc
+
+function *Main() -> int:
+  TestCStr()
+  TestStr()
+  PrintLn()
+  return 0
+endfunc

@@ -456,6 +456,13 @@ LlValue * GenerateDynArrayCapacity(OScope * scope, OTypeDynArray * dyntype, LlVa
   return CallDynArrayFunc("DynArrGetCapacity", {dynaddr});
 }
 
+LlValue * GenerateDynArrayRefCount(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+{
+  (void)scope;
+  (void)dyntype;
+  return CallDynArrayFunc("DynArrGetRefCount", {dynaddr});
+}
+
 LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index)
 {
   (void)scope;

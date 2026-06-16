@@ -132,6 +132,7 @@ public:
 LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 LlValue * GenerateDynArrayLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 LlValue * GenerateDynArrayCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
+LlValue * GenerateDynArrayRefCount(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr);
 LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index);
 LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr,
                                 OExpr * start_expr, OExpr * end_expr, OType * slicetype);

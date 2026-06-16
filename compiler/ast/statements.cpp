@@ -392,14 +392,36 @@ void OStmtInheritedCall::Generate(OScope * scope)
     for (auto it = object_type->member_order.rbegin(); it != object_type->member_order.rend(); ++it)
     {
       OValSym * member = *it;
-      auto * objmember = dynamic_cast<OVsObject *>(member);
-      if (!objmember || !objmember->IsFixedObjectStorage())
-      {
-        continue;
-      }
       LlValue * ll_field_addr = ll_builder.CreateStructGEP(object_type->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
-      objmember->GenerateDestructorCall(ll_field_addr);
+
+      auto * objmember = dynamic_cast<OVsObject *>(member);
+      if (objmember && objmember->IsFixedObjectStorage())
+      {
+        objmember->GenerateDestructorCall(ll_field_addr);
+        continue;
+      }
+
+      auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (dyntype)
+      {
+        GenerateDynArrayDestroy(scope, dyntype, ll_field_addr);
+        continue;
+      }
+
+      auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (strtype)
+      {
+        GenerateStringDestroy(scope, ll_field_addr);
+        continue;
+      }
+
+      auto * anytype = dynamic_cast<OTypeAnyValue *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (anytype)
+      {
+        GenerateAnyValueDestroy(scope, ll_field_addr);
+        continue;
+      }
     }
   };
 

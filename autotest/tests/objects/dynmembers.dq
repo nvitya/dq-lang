@@ -1,0 +1,41 @@
+// testing dynamic string and array object members
+
+implementation
+
+use libc/stdio, print
+
+var g_str : str
+var g_arr : [*]int
+
+object ODynMembers:
+  s : str;
+  a : [*]int;
+
+  function *Create():
+    s = @.g_str;
+    a = @.g_arr;
+  endfunc
+
+  function *Destroy():
+    @.printf("dynmembers_destroy = ODynMembers.Destroy\n");
+  endfunc
+endobj
+
+function CheckRefCounts(astr : strview):
+  PrintLn('{}.refcounts = g_str:{}, g_arr:{}', [astr, g_str.refcount, g_arr.refcount])
+endfunc
+
+function TestCode():
+  var o <- ODynMembers();   
+                              
+  CheckRefCounts('liveobject');
+endfunc
+
+function *Main() -> int:
+  g_str = "hello";
+  g_arr = [1, 2, 3];
+  CheckRefCounts('initial');
+  TestCode()
+  CheckRefCounts('final');
+  return 0;
+endfunc

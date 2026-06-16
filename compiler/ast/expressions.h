@@ -427,7 +427,8 @@ public:
 enum EArrayMetaField
 {
   AMF_LENGTH,
-  AMF_CAPACITY
+  AMF_CAPACITY,
+  AMF_REFCOUNT
 };
 
 // Extract .length / .capacity from array-like lvalues.

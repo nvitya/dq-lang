@@ -1535,11 +1535,6 @@ void ODqCompParser::ParseObjectDecl()
 
     OType * mtype = ParseTypeSpec();
     if (not mtype)  break;
-    if (TK_DYN_ARRAY == mtype->ResolveAlias()->kind)
-    {
-      StatementError(DQERR_NOT_SUPPORTED, "dynamic array object member");
-      break;
-    }
 
     OTypeObject * member_object = dynamic_cast<OTypeObject *>(mtype->ResolveAlias());
     bool object_ref_member = member_object;

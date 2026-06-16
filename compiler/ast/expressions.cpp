@@ -1764,6 +1764,10 @@ LlValue * OArrayMetaFieldExpr::Generate(OScope * scope)
     {
       return GenerateDynArrayCapacity(scope, dyntype, dynaddr);
     }
+    if (AMF_REFCOUNT == field)
+    {
+      return GenerateDynArrayRefCount(scope, dyntype, dynaddr);
+    }
   }
 
   throw logic_error("OArrayMetaFieldExpr::Generate: unsupported array metadata field");
@@ -2691,7 +2695,15 @@ LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
   {
     return GenerateStringLength(scope, receiver->ptype, receiver->GenerateAddress(scope));
   }
-  return GenerateStringCapacity(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  if (SMF_CAPACITY == field)
+  {
+    return GenerateStringCapacity(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  }
+  if (SMF_REFCOUNT == field)
+  {
+    return GenerateStringRefCount(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  }
+  throw logic_error("OStringMetaFieldExpr::Generate: unsupported string metadata field");
 }
 
 void OStringMetaFieldExpr::FoldChildren()

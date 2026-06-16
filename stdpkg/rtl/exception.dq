@@ -2,30 +2,30 @@
 
 object Exception:
 public
-  refcount        : int
-  message         : str
-  backtrace_ptrs  : [*]pointer
+  refcount   : int
+  message    : str
+  backtrace  : [*]pointer
 
-  function *Create(amsg : string)
+  function *Create(amsg : strview)
   function *Destroy()
 
-  function GetMessage() -> string
+  function GetMessage() -> str
   function PrintBacktrace()
 endobj
 
 implementation
 
-function Exception.*Create(amsg : string):
-  message = amsg
-  backtrace_ptrs = []
+function Exception.*Create(amsg : strview):  
+  message.Set(amsg)
+  backtrace = []
   refcount = 1
 endfunc
 
 function Exception.*Destroy():
-  backtrace_ptrs = []  // free the dynamic array
+  backtrace = []  // free the dynamic array
 endfunc
 
-function Exception.GetMessage() -> string:
+function Exception.GetMessage() -> str:
   return message
 endfunc
 

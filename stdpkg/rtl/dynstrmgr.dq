@@ -43,6 +43,7 @@ function DynStrByteOffset(index : uint32, achwidth : uint8) -> uint
 //function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> pointer
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32
 function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
+function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
 function DynStrCharToByte(ch : char) -> cchar
@@ -694,6 +695,13 @@ function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32:
     return 0
   endif
   return astr.capacity
+endfunc
+
+function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
+  if astr == null:
+    return 0
+  endif
+  return astr.refcount
 endfunc
 
 function DynStrCharToByte(ch : char) -> cchar:

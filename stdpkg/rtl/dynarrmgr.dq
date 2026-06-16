@@ -39,6 +39,7 @@ function DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : point
 function DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer
 function DynArrGetLength(arr : ref ODynArrMgr) -> uint
 function DynArrGetCapacity(arr : ref ODynArrMgr) -> uint
+function DynArrGetRefCount(arr : ref ODynArrMgr) -> int
 
 function DynArrReserve(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, min_capacity : uint)
 function DynArrSetLength(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_length : uint)
@@ -549,6 +550,13 @@ function DynArrGetCapacity(arr : ref ODynArrMgr) -> uint:
     return 0
   endif
   return arr.capacity
+endfunc
+
+function DynArrGetRefCount(arr : ref ODynArrMgr) -> int:
+  if arr == null:
+    return 0
+  endif
+  return arr.refcount
 endfunc
 
 function DynArrReserve(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, min_capacity : uint):

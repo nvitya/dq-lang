@@ -394,6 +394,16 @@ LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * stra
   throw logic_error("GenerateStringCapacity requires str");
 }
 
+LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * straddr)
+{
+  (void)scope;
+  if (TK_DYNSTR == strtype->kind)
+  {
+    return CallDynStrFunc("DynStrGetRefCount", {straddr});
+  }
+  throw logic_error("GenerateStringRefCount requires str");
+}
+
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;

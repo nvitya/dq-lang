@@ -2049,6 +2049,11 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
             result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_CAPACITY);
             continue;
           }
+          if ((TK_DYN_ARRAY == tk) && ("refcount" == membername))
+          {
+            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_REFCOUNT);
+            continue;
+          }
           if (TK_DYN_ARRAY == tk)
           {
             result = ParseDynArrayMethod(result, lval, membername);
@@ -2100,6 +2105,11 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           if (TK_DYNSTR == tk && "capacity" == membername)
           {
             result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);
+            continue;
+          }
+          if (TK_DYNSTR == tk && "refcount" == membername)
+          {
+            result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
             continue;
           }
           if (TK_DYNSTR == tk)

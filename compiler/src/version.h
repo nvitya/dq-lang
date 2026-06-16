@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.2"
+#define DQ_COMPILER_VERSION  "0.20.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.3:
+  - Exceptions / 4: locals cleanup, dynamic manager fixes
 v0.20.2:
   - Exceptions / 3: backtrace capturing
 v0.20.1:

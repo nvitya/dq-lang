@@ -264,11 +264,14 @@ implemented.
 
 ### 1.10 RuntimeError Migration
 
-The current `RuntimeError(emsg)` handler mechanism remains temporarily.  It will
-later be replaced or routed through the exception system.  At that point runtime
-checks such as bounds errors, allocation failures, and invalid operations should
-raise standard `Exception` subclasses instead of using the old callback-style
-runtime error handler.
+The current `RuntimeError(emsg)` handler mechanism remains temporarily as the
+low-level RTL error entry point.  Hosted targets should route it through the
+exception system by raising `Exception(emsg)`, so existing runtime checks can be
+caught by normal `try`/`except` code.
+
+Later, runtime checks such as bounds errors, allocation failures, and invalid
+operations should raise standard `Exception` subclasses directly instead of
+using the old callback-style runtime error handler.
 
 ## 2. Implementation Plan
 
@@ -282,6 +285,11 @@ through normal function returns.  This is sufficient for basic `raise`,
 `return`/`break`/`continue` through `finally`, re-raise, and propagation across
 DQ function calls.  Hosted Linux builds also capture a fixed-size raw backtrace
 with glibc `backtrace()` and print it with `backtrace_symbols_fd()`.
+`rtl_linux.dq` installs the hosted top-level catcher, prints uncaught exception
+messages and backtraces, and routes `RuntimeError()` through a base
+`Exception`.
+Compiler-generated block exits run owned-local cleanup for active-exception
+propagation, `return`, `break`, and `continue`.
 
 The final Itanium/LLVM unwinder implementation described below is still required
 for complete semantics, especially:

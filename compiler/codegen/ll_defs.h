@@ -57,10 +57,13 @@ extern LlDiUnit *    di_unit;
 extern LlDiFile *    di_main_file;
 
 // Loop context for break/continue
+class OScope;
+
 struct SLoopContext
 {
   LlBasicBlock *  cond_bb;  // continue target
   LlBasicBlock *  end_bb;   // break target
+  OScope *        cleanup_scope;
 };
 
 extern vector<SLoopContext>  ll_loop_stack;

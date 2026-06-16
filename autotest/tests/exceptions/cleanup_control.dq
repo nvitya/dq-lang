@@ -1,0 +1,70 @@
+// Owned locals are cleaned up when control leaves a block by exception,
+// break, or continue.
+
+use libc/stdio
+
+object OMarker:
+  id : int
+
+  function *Create(aid : int):
+    id = aid
+    @.printf("cleanup.create = %d\n", id)
+  endfunc
+
+  function *Destroy():
+    @.printf("cleanup.destroy = %d\n", id)
+  endfunc
+endobj
+
+function ThrowWithLocals():
+  var outer <- OMarker(1)
+  if 1 == 1:
+    var inner <- OMarker(2)
+    raise Exception("cleanup")
+  endif
+endfunc
+
+function BreakWithLocals():
+  while 1 == 1:
+    if 1 == 1:
+      var marker <- OMarker(3)
+      break
+    endif
+  endwhile
+  printf("cleanup.break.done = 1\n")
+endfunc
+
+function ContinueWithLocals():
+  var count : int = 0
+  while count < 1:
+    count += 1
+    if 1 == 1:
+      var marker <- OMarker(4)
+      continue
+    endif
+  endwhile
+  printf("cleanup.continue.done = %d\n", count)
+endfunc
+
+function *Main() -> int:
+  try:
+    ThrowWithLocals()       //?check("cleanup.create", 1)
+                            //?check("cleanup.create", 2)
+                            //?check("cleanup.destroy", 2)
+                            //?check("cleanup.destroy", 1)
+  except Exception as e:
+    printf("cleanup.exception = ")
+    e.PrintMessage()
+    printf("\n")            //?check("cleanup.exception", "cleanup")
+  endtry
+
+  BreakWithLocals()         //?check("cleanup.create", 3)
+                            //?check("cleanup.destroy", 3)
+                            //?check("cleanup.break.done", 1)
+
+  ContinueWithLocals()      //?check("cleanup.create", 4)
+                            //?check("cleanup.destroy", 4)
+                            //?check("cleanup.continue.done", 1)
+
+  return 0
+endfunc

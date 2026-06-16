@@ -140,9 +140,8 @@ static void EmitOwnedObjectDestructors(OScope * scope)
   }
 }
 
-static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
+static void EmitOwnedObjectDestructorsUntil(OScope * scope, OScope * stop_scope)
 {
-  OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
   for (OScope * cur = scope; cur; cur = cur->parent_scope)
   {
     EmitOwnedObjectDestructors(cur);
@@ -151,6 +150,12 @@ static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vs
       break;
     }
   }
+}
+
+static void EmitOwnedObjectDestructorsForReturn(OScope * scope, OValSymFunc * vsfunc)
+{
+  OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
+  EmitOwnedObjectDestructorsUntil(scope, stop_scope);
 }
 
 static void EmitActiveFinallyBlocks()
@@ -799,7 +804,7 @@ void OStmtWhile::Generate(OScope * scope)
   LlBasicBlock *  ll_end_bb  = LlBasicBlock::Create(ll_ctx, "while.end", ll_func);
 
   // Push loop context for break/continue
-  ll_loop_stack.push_back({ll_cond_bb, ll_end_bb});
+  ll_loop_stack.push_back({ll_cond_bb, ll_end_bb, body->scope});
 
   // Jump to condition check
   ll_builder.CreateBr(ll_cond_bb);
@@ -853,7 +858,7 @@ void OStmtFor::Generate(OScope * scope)
   LlBasicBlock *  ll_step_bb = LlBasicBlock::Create(ll_ctx, "for.step", ll_func);
   LlBasicBlock *  ll_end_bb  = LlBasicBlock::Create(ll_ctx, "for.end", ll_func);
 
-  ll_loop_stack.push_back({ll_step_bb, ll_end_bb});
+  ll_loop_stack.push_back({ll_step_bb, ll_end_bb, body->scope});
 
   ll_builder.CreateBr(ll_cond_bb);
 
@@ -915,6 +920,8 @@ void OBreakStmt::Generate(OScope * scope)
     return;
   }
 
+  EmitOwnedObjectDestructorsUntil(scope, ll_loop_stack.back().cleanup_scope);
+
   LlValue * active = DqExceptionActiveValue();
   if (active)
   {
@@ -938,6 +945,8 @@ void OContinueStmt::Generate(OScope * scope)
   {
     return;
   }
+
+  EmitOwnedObjectDestructorsUntil(scope, ll_loop_stack.back().cleanup_scope);
 
   LlValue * active = DqExceptionActiveValue();
   if (active)

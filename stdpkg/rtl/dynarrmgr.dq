@@ -531,7 +531,15 @@ function DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : point
 endfunc
 
 function DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer:
-  if arr == null  or  index < 0  or  index >= arr.length:
+  if arr == null:
+    DynArrRuntimeError('DynArray access out of bounds')
+    return null
+  endif
+  if index < 0:
+    DynArrRuntimeError('DynArray access out of bounds')
+    return null
+  endif
+  if index >= arr.length:
     DynArrRuntimeError('DynArray access out of bounds')
     return null
   endif
@@ -638,7 +646,12 @@ function DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1):
 endfunc
 
 function DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr):
-  if srcarr == null  or srcarr.length == 0:
+  if srcarr == null:
+    DynArrDecRef(dstarr)
+    dstarr = null
+    return
+  endif
+  if srcarr.length == 0:
     DynArrDecRef(dstarr)
     dstarr = null
     return

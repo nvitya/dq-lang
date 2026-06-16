@@ -4,12 +4,21 @@ use libc/stdio
 use rtl/exception
 
 function os_rterror_handler(emsg : ^cchar):
-  printf('\nRUNTIME-ERROR: %s\n', emsg)
-  Exit(-1)
+  __dq_raise_exception(new Exception(emsg), "Exception", true)
 endfunc
 
 function dq_main() -> int [[external('dq_main')]]
 function dq_module_init() [[external('dq_module_init')]]
+
+function print_uncaught_exception() -> int:
+  var e : Exception = __dq_current_exception()
+  printf("\nUNCAUGHT EXCEPTION: ")
+  e.PrintMessage()
+  printf("\n")
+  e.PrintBacktrace()
+  __dq_clear_exception()
+  return -1
+endfunc
 
 // libc entry point 'main()'
 function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
@@ -18,15 +27,13 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
   @sys.__sys_init_params(argc, argv)
 
   dq_module_init()
+  if __dq_exception_active():
+    return print_uncaught_exception()
+  endif
 
   result = dq_main()
   if __dq_exception_active():
-    var e : Exception = __dq_current_exception()
-    printf("\nUNCAUGHT EXCEPTION: ")
-    e.PrintMessage()
-    printf("\n")
-    e.PrintBacktrace()
-    result = -1
+    result = print_uncaught_exception()
   endif
   //dq_runtime_finalize_modules()
 endfunc

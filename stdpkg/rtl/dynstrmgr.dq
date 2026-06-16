@@ -330,7 +330,10 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uin
 endfunc
 
 function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
-  if astr == null  or  astr.refcount <= 1:
+  if astr == null:
+    return true
+  endif
+  if astr.refcount <= 1:
     return true
   endif
 
@@ -821,7 +824,10 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
 endfunc
 
 function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32):
-  if astr == null  or  new_length >= astr.length:
+  if astr == null:
+    return
+  endif
+  if new_length >= astr.length:
     return
   endif
   if not @.DynStrEnsureUnique(astr):
@@ -932,7 +938,10 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
   DynStrDecRef(adst)
   adst = null
 
-  if astr == null  or  astr.length == 0:
+  if astr == null:
+    return
+  endif
+  if astr.length == 0:
     return
   endif
 
@@ -958,7 +967,13 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
   DynStrDecRef(adst)
   adst = null
 
-  if astr == null  or  acount < 1  or  astr.length == 0:
+  if astr == null:
+    return
+  endif
+  if acount < 1:
+    return
+  endif
+  if astr.length == 0:
     return
   endif
   if not @.DynStrEnsureUnique(astr):
@@ -997,7 +1012,13 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
   DynStrDecRef(adst)
   adst = null
 
-  if astr == null  or  acount < 1  or  astr.length == 0:
+  if astr == null:
+    return
+  endif
+  if acount < 1:
+    return
+  endif
+  if astr.length == 0:
     return
   endif
   if not @.DynStrEnsureUnique(astr):
@@ -1030,7 +1051,11 @@ function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref 
 endfunc
 
 function DynStrPopChar(astr : ref ODynStrMgr) -> char:
-  if astr == null  or  astr.length == 0:
+  if astr == null:
+    DynStrRuntimeError('DynStr pop from empty string')
+    return 0
+  endif
+  if astr.length == 0:
     DynStrRuntimeError('DynStr pop from empty string')
     return 0
   endif
@@ -1039,7 +1064,11 @@ function DynStrPopChar(astr : ref ODynStrMgr) -> char:
 endfunc
 
 function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char:
-  if astr == null  or  astr.length == 0:
+  if astr == null:
+    DynStrRuntimeError('DynStr pop from empty string')
+    return 0
+  endif
+  if astr.length == 0:
     DynStrRuntimeError('DynStr pop from empty string')
     return 0
   endif

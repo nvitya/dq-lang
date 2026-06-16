@@ -1,4 +1,4 @@
-use print, rtl/textformat
+use print, rtl/textformat, strutils
 
 var cs : cstring(255)
 var ds : str
@@ -40,6 +40,9 @@ endfunc
 function *Main() -> int:
   TestCStr()
   TestStr()
+ 
+  PrintLn(Format('Format: {}, {}, {}', [42, 'hello', 1.8]))
+
   PrintLn()
   return 0
 endfunc

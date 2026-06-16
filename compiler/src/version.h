@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.9"
+#define DQ_COMPILER_VERSION  "0.19.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.10:
+  - Format() function added to the strutils module
 v0.19.9:
   - Allow the [[nowarn]] attribute after the type specifier:  var cs : [[nowarn]] cstring(4)
 v0.19.8:

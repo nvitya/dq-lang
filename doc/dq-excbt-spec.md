@@ -27,7 +27,7 @@ object Exception:
 public
   refcount   : int
   message    : str
-  backtrace  : [*]pointer
+  backtrace  : [*]pointer  // storage shape may be implementation-specific
 
   function *Create(amsg : strview)
   function *Destroy()
@@ -280,7 +280,8 @@ compiler-generated checks after statements and calls to propagate exceptions
 through normal function returns.  This is sufficient for basic `raise`,
 `try/except`, `finally` on normal/exceptional fall-through, direct DQ
 `return`/`break`/`continue` through `finally`, re-raise, and propagation across
-DQ function calls.
+DQ function calls.  Hosted Linux builds also capture a fixed-size raw backtrace
+with glibc `backtrace()` and print it with `backtrace_symbols_fd()`.
 
 The final Itanium/LLVM unwinder implementation described below is still required
 for complete semantics, especially:
@@ -288,7 +289,7 @@ for complete semantics, especially:
 - native stack unwinding through arbitrary calls
 - precise cleanup for every control-transfer edge
 - exact exception object release timing
-- real backtrace capture and symbolization
+- DWARF/source-line symbolization through `libbacktrace` or equivalent
 - interoperability with non-DQ frames
 
 The stepping-stone implementation should remain compatible with the language

@@ -2,16 +2,24 @@
 
 use libc/stdio
 
+function libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
+function libc_backtrace_symbols_fd(buffer : pointer, size : int, fd : int) [[external('backtrace_symbols_fd')]]
+
+const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
+
 object Exception:
 public
   refcount   : int
   message    : str
+  backtrace_count : int
+  backtrace       : [32]pointer
 
 public
   function *Create(amsg : strview)
   function *Destroy()
 
   function GetMessage() -> str
+  function CaptureBacktrace()
   function PrintMessage()
   function PrintBacktrace()
 endobj
@@ -31,6 +39,7 @@ implementation
 
 function Exception.*Create(amsg : strview):  
   message.Set(amsg)
+  backtrace_count = 0
   refcount = 1
 endfunc
 
@@ -39,6 +48,10 @@ endfunc
 
 function Exception.GetMessage() -> str:
   return message
+endfunc
+
+function Exception.CaptureBacktrace():
+  backtrace_count = @.libc_backtrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
 endfunc
 
 function Exception.PrintMessage():
@@ -51,9 +64,13 @@ function Exception.PrintMessage():
 endfunc
 
 function Exception.PrintBacktrace():
-  // This will be implemented using libbacktrace
-  // to symbolize backtrace_ptrs.
-  @.printf("Backtrace: <not captured>\n")
+  if backtrace_count <= 0:
+    @.printf("Backtrace: <not captured>\n")
+    return
+  endif
+
+  @.printf("Backtrace =\n")
+  @.libc_backtrace_symbols_fd(&backtrace[0], backtrace_count, 2)
 endfunc
 
 var __dq_active_exception : Exception = null
@@ -86,6 +103,8 @@ function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool
   if not owned_ref:
     __dq_exception_addref(e)
   endif
+
+  e.CaptureBacktrace()
 
   if __dq_active_exception <> null:
     __dq_exception_release(__dq_active_exception)

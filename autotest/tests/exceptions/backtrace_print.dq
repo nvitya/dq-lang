@@ -1,0 +1,24 @@
+// Backtrace capture/printing smoke test.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function BacktraceLeaf():
+  raise Exception("trace")
+endfunc
+
+function BacktraceMiddle():
+  BacktraceLeaf()
+endfunc
+
+function *Main() -> int:
+  try:
+    BacktraceMiddle()
+  except Exception as e:
+    printf("exception.backtrace.message = ")  //?check("exception.backtrace.message", "trace")
+    e.PrintMessage()
+    printf("\n")
+    e.PrintBacktrace()  //?check("Backtrace", "")
+  endtry
+
+  return 0
+endfunc

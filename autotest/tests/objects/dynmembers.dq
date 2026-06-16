@@ -15,10 +15,6 @@ object ODynMembers:
     s = @.g_str;
     a = @.g_arr;
   endfunc
-
-  function *Destroy():
-    @.printf("dynmembers_destroy = ODynMembers.Destroy\n");
-  endfunc
 endobj
 
 function CheckRefCounts(astr : strview):
@@ -26,16 +22,24 @@ function CheckRefCounts(astr : strview):
 endfunc
 
 function TestCode():
-  var o <- ODynMembers();   
-                              
-  CheckRefCounts('liveobject');
+  var o <- ODynMembers()    // check for automatic destructor call
+  CheckRefCounts('liveobject')
 endfunc
 
 function *Main() -> int:
   g_str = "hello";
   g_arr = [1, 2, 3];
-  CheckRefCounts('initial');
-  TestCode()
-  CheckRefCounts('final');
+  CheckRefCounts('initial'); //?check('initial.refcounts', 'g_str:1, g_arr:1')
+  TestCode()                 //?check('liveobject.refcounts', 'g_str:2, g_arr:2')
+
+  CheckRefCounts('final');   //?check('final.refcounts', 'g_str:1, g_arr:1')
+
+  var dobj = new ODynMembers()
+
+  CheckRefCounts('dynobj_live');   //?check('dynobj_live.refcounts', 'g_str:2, g_arr:2')
+  delete dobj
+
+  CheckRefCounts('dynobj_final');   //?check('dynobj_final.refcounts', 'g_str:1, g_arr:1')
+
   return 0;
 endfunc

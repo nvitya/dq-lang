@@ -814,6 +814,10 @@ bool OTestFile::ExecCompiler(bool errmode)
   string exename = fs::path(filename).replace_extension("exe").generic_string();
 
   procrunner.args = { g_atropt->compiler_filename, filename, "-o", exename };
+  if (g_atropt->optlevel >= 0)
+  {
+    procrunner.args.push_back(format("-O{}", g_atropt->optlevel));
+  }
   if (errmode)
   {
     procrunner.args.push_back("-DERRORTEST");

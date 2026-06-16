@@ -67,6 +67,10 @@ static void PrintBatchHeader()
   print("DQ Autotest v{}\n", ATR_VERSION);
   print("Compiler:  {}\n", g_atropt->compiler_filename);
   print("C. ver.:   v{}\n", QueryCompilerVersion());
+  if (g_atropt->optlevel >= 0)
+  {
+    print("C. opt.:   -O{}\n", g_atropt->optlevel);
+  }
   print("Test root: {}\n", g_atropt->test_root);
   print("\n");
 }

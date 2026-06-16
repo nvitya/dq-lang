@@ -68,6 +68,11 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
       else if ("-v2" == v)   verblevel = VERBLEVEL_INFO;
       else if ("-v3" == v)   verblevel = VERBLEVEL_DEBUG;
 
+      else if ("-O0" == v)   optlevel = 0;
+      else if ("-O1" == v)   optlevel = 1;
+      else if ("-O2" == v)   optlevel = 2;
+      else if ("-O3" == v)   optlevel = 3;
+
       else if ("-c" == v)
       {
         if (i + 1 < argc)
@@ -175,6 +180,7 @@ void OAtrOptions::PrintUsage()
   print("  -vv,-v2   : info output\n");
   print("  -vvv,-v3  : debug output\n");
   print("  -v0       : no extra output (default)\n");
+  print("  -On       : compiler optimization level, n=0-3\n");
 }
 
 void init_atr_options(int argc, char ** argv)

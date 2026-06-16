@@ -37,6 +37,7 @@ public:
   int               worker_count = 0;  // 0 = auto detect thread count
   bool              print_version = false;  // --version
   int               verblevel = VERBLEVEL_NONE;
+  int               optlevel = -1;  // -1 = use compiler default
 
   int               arg_error_count = 0;
 

@@ -1,0 +1,17 @@
+// Basic exception handling smoke test.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function *Main() -> int:
+  try:
+    raise Exception("hello")
+  except Exception as e:
+    printf("exception.simple = caught ")  //?check("exception.simple", "caught hello")
+    e.PrintMessage()
+    printf("\n")
+  finally:
+    printf("exception.finally = ran\n")  //?check("exception.finally", "ran")
+  endtry
+
+  return 0
+endfunc

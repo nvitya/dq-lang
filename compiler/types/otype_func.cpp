@@ -21,6 +21,7 @@
 #include "otype_compound.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
+#include "otype_array.h"
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -941,14 +942,36 @@ void OValSymFunc::GenerateFuncBody()
     for (auto it = owner_object->member_order.rbegin(); it != owner_object->member_order.rend(); ++it)
     {
       OValSym * member = *it;
-      auto * objmember = dynamic_cast<OVsObject *>(member);
-      if (!objmember || !objmember->IsFixedObjectStorage())
-      {
-        continue;
-      }
       LlValue * ll_field_addr = ll_builder.CreateStructGEP(owner_object->GetLlType(), ll_this,
           member->ll_field_index, member->name + ".addr");
-      objmember->GenerateDestructorCall(ll_field_addr);
+
+      auto * objmember = dynamic_cast<OVsObject *>(member);
+      if (objmember && objmember->IsFixedObjectStorage())
+      {
+        objmember->GenerateDestructorCall(ll_field_addr);
+        continue;
+      }
+
+      auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (dyntype)
+      {
+        GenerateDynArrayDestroy(body->scope, dyntype, ll_field_addr);
+        continue;
+      }
+
+      auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (strtype)
+      {
+        GenerateStringDestroy(body->scope, ll_field_addr);
+        continue;
+      }
+
+      auto * anytype = dynamic_cast<OTypeAnyValue *>(member->ptype ? member->ptype->ResolveAlias() : nullptr);
+      if (anytype)
+      {
+        GenerateAnyValueDestroy(body->scope, ll_field_addr);
+        continue;
+      }
     }
   };
 

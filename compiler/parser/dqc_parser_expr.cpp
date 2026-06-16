@@ -2589,7 +2589,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
 
   // builtin specials
 
-  if ("len" == sid || "Len" == sid)
+  if ("Len" == sid)
   {
     return ParseBuiltinLen();
   }
@@ -2599,19 +2599,19 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return ParseBuiltinIif();
   }
 
-  if ("sizeof" == sid || "SizeOf" == sid)
+  if ("SizeOf" == sid)
   {
     return ParseBuiltinSizeof();
   }
 
-  if ("offsetof" == sid || "OffsetOf" == sid)
+  if ("OffsetOf" == sid)
   {
     return ParseBuiltinOffsetof();
   }
 
-  if ("round" == sid || "Round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
-  if ("ceil"  == sid || "Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
-  if ("floor" == sid || "Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
+  if ("Round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
+  if ("Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
+  if ("Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
   if ("new" == sid)
   {

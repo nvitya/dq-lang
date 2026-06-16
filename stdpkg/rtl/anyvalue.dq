@@ -349,13 +349,13 @@ endfunc
 function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo):
   AnyValSetKind(v, DQTK_STRVIEW)
   ^SDqTextInfo(&v.data[0])^ = ati
-  v.datasize = sizeof(SDqTextInfo)
+  v.datasize = SizeOf(SDqTextInfo)
 endfunc
 
 function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo):
   AnyValSetKind(v, DQTK_CSTRING)
   ^SDqTextInfo(&v.data[0])^ = ati
-  v.datasize = sizeof(SDqTextInfo)
+  v.datasize = SizeOf(SDqTextInfo)
 endfunc
 
 function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):

@@ -89,36 +89,36 @@ endfunc
 function *Main() -> int:
   printf("Testing struct layout:\n");  //?ignore('Testing struct layout:')
 
-  printf("sizeof(SLayoutNormal) = %li\n", sizeof(SLayoutNormal));  //?check('sizeof(SLayoutNormal)', 12)
-  printf("offsetof(SLayoutNormal, a) = %li\n", offsetof(SLayoutNormal, a));  //?check('offsetof(SLayoutNormal, a)', 0)
-  printf("offsetof(SLayoutNormal, b) = %li\n", offsetof(SLayoutNormal, b));  //?check('offsetof(SLayoutNormal, b)', 4)
-  printf("offsetof(SLayoutNormal, c) = %li\n", offsetof(SLayoutNormal, c));  //?check('offsetof(SLayoutNormal, c)', 8)
+  printf("SizeOf(SLayoutNormal) = %li\n", SizeOf(SLayoutNormal));  //?check('SizeOf(SLayoutNormal)', 12)
+  printf("OffsetOf(SLayoutNormal, a) = %li\n", OffsetOf(SLayoutNormal, a));  //?check('OffsetOf(SLayoutNormal, a)', 0)
+  printf("OffsetOf(SLayoutNormal, b) = %li\n", OffsetOf(SLayoutNormal, b));  //?check('OffsetOf(SLayoutNormal, b)', 4)
+  printf("OffsetOf(SLayoutNormal, c) = %li\n", OffsetOf(SLayoutNormal, c));  //?check('OffsetOf(SLayoutNormal, c)', 8)
   printf("off_normal_b() = %li\n", off_normal_b());                //?check('off_normal_b()', 4)
   printf("off_normal_c() = %li\n", off_normal_c());                //?check('off_normal_c()', 8)
 
-  printf("sizeof(SLayoutFieldAlign) = %li\n", sizeof(SLayoutFieldAlign));  //?check('sizeof(SLayoutFieldAlign)', 16)
-  printf("offsetof(SLayoutFieldAlign, b) = %li\n", offsetof(SLayoutFieldAlign, b));  //?check('offsetof(SLayoutFieldAlign, b)', 8)
+  printf("SizeOf(SLayoutFieldAlign) = %li\n", SizeOf(SLayoutFieldAlign));  //?check('SizeOf(SLayoutFieldAlign)', 16)
+  printf("OffsetOf(SLayoutFieldAlign, b) = %li\n", OffsetOf(SLayoutFieldAlign, b));  //?check('OffsetOf(SLayoutFieldAlign, b)', 8)
   printf("off_field_align_b() = %li\n", off_field_align_b());              //?check('off_field_align_b()', 8)
 
-  printf("sizeof(SLayoutPacked) = %li\n", sizeof(SLayoutPacked));  //?check('sizeof(SLayoutPacked)', 7)
-  printf("offsetof(SLayoutPacked, b) = %li\n", offsetof(SLayoutPacked, b));  //?check('offsetof(SLayoutPacked, b)', 1)
-  printf("offsetof(SLayoutPacked, c) = %li\n", offsetof(SLayoutPacked, c));  //?check('offsetof(SLayoutPacked, c)', 5)
+  printf("SizeOf(SLayoutPacked) = %li\n", SizeOf(SLayoutPacked));  //?check('SizeOf(SLayoutPacked)', 7)
+  printf("OffsetOf(SLayoutPacked, b) = %li\n", OffsetOf(SLayoutPacked, b));  //?check('OffsetOf(SLayoutPacked, b)', 1)
+  printf("OffsetOf(SLayoutPacked, c) = %li\n", OffsetOf(SLayoutPacked, c));  //?check('OffsetOf(SLayoutPacked, c)', 5)
   printf("off_packed_b() = %li\n", off_packed_b());                //?check('off_packed_b()', 1)
   printf("off_packed_c() = %li\n", off_packed_c());                //?check('off_packed_c()', 5)
 
-  printf("sizeof(SLayoutPackedAlignIgnored) = %li\n", sizeof(SLayoutPackedAlignIgnored));  //?check('sizeof(SLayoutPackedAlignIgnored)', 3)
-  printf("offsetof(SLayoutPackedAlignIgnored, b) = %li\n", offsetof(SLayoutPackedAlignIgnored, b));  //?check('offsetof(SLayoutPackedAlignIgnored, b)', 1)
+  printf("SizeOf(SLayoutPackedAlignIgnored) = %li\n", SizeOf(SLayoutPackedAlignIgnored));  //?check('SizeOf(SLayoutPackedAlignIgnored)', 3)
+  printf("OffsetOf(SLayoutPackedAlignIgnored, b) = %li\n", OffsetOf(SLayoutPackedAlignIgnored, b));  //?check('OffsetOf(SLayoutPackedAlignIgnored, b)', 1)
   printf("off_packed_align_ignored_b() = %li\n", off_packed_align_ignored_b());            //?check('off_packed_align_ignored_b()', 1)
 
-  printf("sizeof(SLayoutNested) = %li\n", sizeof(SLayoutNested));  //?check('sizeof(SLayoutNested)', 12)
-  printf("offsetof(SLayoutNested, p) = %li\n", offsetof(SLayoutNested, p));  //?check('offsetof(SLayoutNested, p)', 1)
-  printf("offsetof(SLayoutNested, b) = %li\n", offsetof(SLayoutNested, b));  //?check('offsetof(SLayoutNested, b)', 8)
+  printf("SizeOf(SLayoutNested) = %li\n", SizeOf(SLayoutNested));  //?check('SizeOf(SLayoutNested)', 12)
+  printf("OffsetOf(SLayoutNested, p) = %li\n", OffsetOf(SLayoutNested, p));  //?check('OffsetOf(SLayoutNested, p)', 1)
+  printf("OffsetOf(SLayoutNested, b) = %li\n", OffsetOf(SLayoutNested, b));  //?check('OffsetOf(SLayoutNested, b)', 8)
   printf("off_nested_p() = %li\n", off_nested_p());                //?check('off_nested_p()', 1)
   printf("off_nested_b() = %li\n", off_nested_b());                //?check('off_nested_b()', 8)
   printf("packed_array_stride() = %li\n", packed_array_stride());  //?check('packed_array_stride()', 7)
 
-  printf("sizeof(OLayoutPackedObj) = %li\n", sizeof(OLayoutPackedObj));  //?check('sizeof(OLayoutPackedObj)', 5)
-  printf("offsetof(OLayoutPackedObj, b) = %li\n", offsetof(OLayoutPackedObj, b));  //?check('offsetof(OLayoutPackedObj, b)', 1)
+  printf("SizeOf(OLayoutPackedObj) = %li\n", SizeOf(OLayoutPackedObj));  //?check('SizeOf(OLayoutPackedObj)', 5)
+  printf("OffsetOf(OLayoutPackedObj, b) = %li\n", OffsetOf(OLayoutPackedObj, b));  //?check('OffsetOf(OLayoutPackedObj, b)', 1)
   printf("off_packed_obj_b() = %li\n", off_packed_obj_b());              //?check('off_packed_obj_b()', 1)
 
   return 0;

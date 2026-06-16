@@ -103,7 +103,7 @@ public
   endfunc
 
   function *Create(a : float) [[overload]]:
-    tag = round(a) + 100;
+    tag = Round(a) + 100;
   endfunc
 endobj
 

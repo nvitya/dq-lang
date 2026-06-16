@@ -28,10 +28,10 @@ endfunc
 
 function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
   var ps     : ^cchar = &src[0];
-  var psend  : ^cchar = ps + sizeof(src);
+  var psend  : ^cchar = ps + SizeOf(src);
   var pd     : ^cchar = &dst[0];
-  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
-  pd += len(dst);
+  var pdend  : ^cchar = pd + SizeOf(dst) - 1; // leave one char for the terminating
+  pd += Len(dst);
   var pdstart : ^cchar = pd;
 
   while pd < pdend  and ps < psend  and ps^ <> 0:
@@ -47,10 +47,10 @@ endfunc
 
 function dq_str_append(a : cstring, b : cstring):
 
-  // len(cstring): length of the actual contents
-  // sizeof(cstring): storage size of the argument variable
+  // Len(cstring): length of the actual contents
+  // SizeOf(cstring): storage size of the argument variable
 
-  if len(a) + len(b) > sizeof(a) - 1:  // append to the a only when the whole will fit.
+  if Len(a) + Len(b) > SizeOf(a) - 1:  // append to the a only when the whole will fit.
     return;
   endif
   cstr_add(a, b);

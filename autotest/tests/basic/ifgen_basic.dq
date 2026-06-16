@@ -39,7 +39,7 @@ function IfgenAdd(a : int, b : int) -> int:
 endfunc
 
 function IfgenSliceLen(values : []int) -> int:
-  result = len(values);
+  result = Len(values);
 endfunc
 
 function testfunc() -> int:

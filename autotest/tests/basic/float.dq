@@ -2,9 +2,9 @@
 
 // --- constant expressions ---
 
-const CONST_ROUND : int = round(3.1 / 1.13);   // round(2.7433...) = 3
-const CONST_CEIL  : int = ceil(2.1 * 3.0);     // ceil(6.3) = 7
-const CONST_FLOOR : int = floor(10.0 / 3.0);   // floor(3.333...) = 3
+const CONST_ROUND : int = Round(3.1 / 1.13);   // Round(2.7433...) = 3
+const CONST_CEIL  : int = Ceil(2.1 * 3.0);     // Ceil(6.3) = 7
+const CONST_FLOOR : int = Floor(10.0 / 3.0);   // Floor(3.333...) = 3
 
 // --- float64 arithmetic ---
 
@@ -37,29 +37,29 @@ endfunc
 // --- round/ceil/floor on float64 ---
 
 function dq_fl_round(v : float64) -> int:
-  result = round(v);
+  result = Round(v);
 endfunc
 
 function dq_fl_ceil(v : float64) -> int:
-  result = ceil(v);
+  result = Ceil(v);
 endfunc
 
 function dq_fl_floor(v : float64) -> int:
-  result = floor(v);
+  result = Floor(v);
 endfunc
 
 // --- round/ceil/floor on float32 ---
 
 function dq_fl32_round(v : float32) -> int:
-  result = round(v);
+  result = Round(v);
 endfunc
 
 function dq_fl32_ceil(v : float32) -> int:
-  result = ceil(v);
+  result = Ceil(v);
 endfunc
 
 function dq_fl32_floor(v : float32) -> int:
-  result = floor(v);
+  result = Floor(v);
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
@@ -82,36 +82,36 @@ function *Main() -> int:
   printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) );  //?check('dq_fl32_add(1.5, 2.5)', 4.000)
   printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) );  //?check('dq_fl32_mul(2.5, 4.0)', 10.000)
 
-  printf("\n--- round(float64) -> int ---\n"); //?ignore('--- round(float64) -> int ---')
+  printf("\n--- Round(float64) -> int ---\n"); //?ignore('--- Round(float64) -> int ---')
 
-  printf("round(1.4) = %i\n",    dq_fl_round(1.4)   );   //?check('round(1.4)', 1)
-  printf("round(1.5) = %i\n",    dq_fl_round(1.5)   );   //?check('round(1.5)', 2)
-  printf("round(1.6) = %i\n",    dq_fl_round(1.6)   );   //?check('round(1.6)', 2)
-  printf("round(2.5) = %i\n",    dq_fl_round(2.5)   );   //?check('round(2.5)', 3)
-  printf("round(-1.4) = %i\n",   dq_fl_round(-1.4)  );   //?check('round(-1.4)', -1)
-  printf("round(-1.5) = %i\n",   dq_fl_round(-1.5)  );   //?check('round(-1.5)', -2)
-  printf("round(-1.6) = %i\n",   dq_fl_round(-1.6)  );   //?check('round(-1.6)', -2)
-  printf("round(0.0) = %i\n",    dq_fl_round(0.0)   );   //?check('round(0.0)', 0)
+  printf("Round(1.4) = %i\n",    dq_fl_round(1.4)   );   //?check('Round(1.4)', 1)
+  printf("Round(1.5) = %i\n",    dq_fl_round(1.5)   );   //?check('Round(1.5)', 2)
+  printf("Round(1.6) = %i\n",    dq_fl_round(1.6)   );   //?check('Round(1.6)', 2)
+  printf("Round(2.5) = %i\n",    dq_fl_round(2.5)   );   //?check('Round(2.5)', 3)
+  printf("Round(-1.4) = %i\n",   dq_fl_round(-1.4)  );   //?check('Round(-1.4)', -1)
+  printf("Round(-1.5) = %i\n",   dq_fl_round(-1.5)  );   //?check('Round(-1.5)', -2)
+  printf("Round(-1.6) = %i\n",   dq_fl_round(-1.6)  );   //?check('Round(-1.6)', -2)
+  printf("Round(0.0) = %i\n",    dq_fl_round(0.0)   );   //?check('Round(0.0)', 0)
 
-  printf("\n--- ceil(float64) -> int ---\n"); //?ignore('--- ceil(float64) -> int ---')
+  printf("\n--- Ceil(float64) -> int ---\n"); //?ignore('--- Ceil(float64) -> int ---')
 
-  printf("ceil(1.0) = %i\n",     dq_fl_ceil(1.0)    );   //?check('ceil(1.0)', 1)
-  printf("ceil(1.1) = %i\n",     dq_fl_ceil(1.1)    );   //?check('ceil(1.1)', 2)
-  printf("ceil(1.9) = %i\n",     dq_fl_ceil(1.9)    );   //?check('ceil(1.9)', 2)
-  printf("ceil(-1.1) = %i\n",    dq_fl_ceil(-1.1)   );   //?check('ceil(-1.1)', -1)
-  printf("ceil(-1.9) = %i\n",    dq_fl_ceil(-1.9)   );   //?check('ceil(-1.9)', -1)
-  printf("ceil(0.0) = %i\n",     dq_fl_ceil(0.0)    );   //?check('ceil(0.0)', 0)
+  printf("Ceil(1.0) = %i\n",     dq_fl_ceil(1.0)    );   //?check('Ceil(1.0)', 1)
+  printf("Ceil(1.1) = %i\n",     dq_fl_ceil(1.1)    );   //?check('Ceil(1.1)', 2)
+  printf("Ceil(1.9) = %i\n",     dq_fl_ceil(1.9)    );   //?check('Ceil(1.9)', 2)
+  printf("Ceil(-1.1) = %i\n",    dq_fl_ceil(-1.1)   );   //?check('Ceil(-1.1)', -1)
+  printf("Ceil(-1.9) = %i\n",    dq_fl_ceil(-1.9)   );   //?check('Ceil(-1.9)', -1)
+  printf("Ceil(0.0) = %i\n",     dq_fl_ceil(0.0)    );   //?check('Ceil(0.0)', 0)
 
-  printf("\n--- floor(float64) -> int ---\n");  //?ignore('--- floor(float64) -> int ---')
+  printf("\n--- Floor(float64) -> int ---\n");  //?ignore('--- Floor(float64) -> int ---')
 
-  printf("floor(1.0) = %i\n",    dq_fl_floor(1.0)   );   //?check('floor(1.0)', 1)
-  printf("floor(1.1) = %i\n",    dq_fl_floor(1.1)   );   //?check('floor(1.1)', 1)
-  printf("floor(1.9) = %i\n",    dq_fl_floor(1.9)   );   //?check('floor(1.9)', 1)
-  printf("floor(-1.1) = %i\n",   dq_fl_floor(-1.1)  );   //?check('floor(-1.1)', -2)
-  printf("floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  );   //?check('floor(-1.9)', -2)
-  printf("floor(0.0) = %i\n",    dq_fl_floor(0.0)   );   //?check('floor(0.0)', 0)
+  printf("Floor(1.0) = %i\n",    dq_fl_floor(1.0)   );   //?check('Floor(1.0)', 1)
+  printf("Floor(1.1) = %i\n",    dq_fl_floor(1.1)   );   //?check('Floor(1.1)', 1)
+  printf("Floor(1.9) = %i\n",    dq_fl_floor(1.9)   );   //?check('Floor(1.9)', 1)
+  printf("Floor(-1.1) = %i\n",   dq_fl_floor(-1.1)  );   //?check('Floor(-1.1)', -2)
+  printf("Floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  );   //?check('Floor(-1.9)', -2)
+  printf("Floor(0.0) = %i\n",    dq_fl_floor(0.0)   );   //?check('Floor(0.0)', 0)
 
-  printf("\n--- round/ceil/floor(float32) -> int ---\n");  //?ignore('--- round/ceil/floor(float32) -> int ---')
+  printf("\n--- round/ceil/Floor(float32) -> int ---\n");  //?ignore('--- round/ceil/Floor(float32) -> int ---')
 
   printf("round32(1.5) = %i\n",   dq_fl32_round(1.5)  );  //?check('round32(1.5)', 2)
   printf("round32(-1.5) = %i\n",  dq_fl32_round(-1.5) );  //?check('round32(-1.5)', -2)
@@ -120,8 +120,8 @@ function *Main() -> int:
   printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //?check('floor32(1.9)', 1)
   printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //?check('floor32(-1.1)', -2)
 
-  printf("round(1.25 + 1.25) = %i\n", round(1.25 + 1.25));  //?check('round(1.25 + 1.25)', 3)
-  printf("ceil(2.0 + 0.1) = %i\n", ceil(2.0 + 0.1));        //?check('ceil(2.0 + 0.1)', 3)
+  printf("Round(1.25 + 1.25) = %i\n", Round(1.25 + 1.25));  //?check('Round(1.25 + 1.25)', 3)
+  printf("Ceil(2.0 + 0.1) = %i\n", Ceil(2.0 + 0.1));        //?check('Ceil(2.0 + 0.1)', 3)
   printf("3 / 2 = %.3f\n", 3 / 2);                          //?check('3 / 2', 1.500)
 
   // ---- constant expressions ----

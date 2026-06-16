@@ -11,7 +11,7 @@ function dq_mix(a : int, b : int = default_bonus, c : int = 3) -> int:
 endfunc
 
 function dq_round_default(v : float = 2) -> int:
-  result = round(v);
+  result = Round(v);
 endfunc
 
 function dq_ptr_default(p : ^int = null) -> int:

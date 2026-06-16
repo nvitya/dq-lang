@@ -59,10 +59,10 @@ function ObjTest() {
 
 function cstr_add(dst : cstring, src : cstring) {
   var ps     : ^cchar = &src[0];
-  var psend  : ^cchar = ps[sizeof(src)];  // [] does not dereference
+  var psend  : ^cchar = ps[SizeOf(src)];  // [] does not dereference
   var pd     : ^cchar = &dst[0];
-  var pdend  : ^cchar = pd + sizeof(dst) - 1; // leave one char for the terminating
-  pd += len(dst);
+  var pdend  : ^cchar = pd + SizeOf(dst) - 1; // leave one char for the terminating
+  pd += Len(dst);
   var pdstart : ^cchar = pd;
 
   while pd < pdend  and ps < psend  and ps^ <> 0 {
@@ -114,7 +114,7 @@ function *Main() -> int {
 
   var arr : [5]int = [2, 3, 5, 7, 11];
   printf('primes:');
-  for i : int = 0  while i < len(arr)  { printf(' %d', arr[i]); }
+  for i : int = 0  while i < Len(arr)  { printf(' %d', arr[i]); }
   printf('\n');
 
   return 0;

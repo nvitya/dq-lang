@@ -40,7 +40,7 @@ function *Main() -> int:
   PrintArray("static_fixed_literal", fixed); //?check("static_fixed_literal", "len:3 data: 1 2 3")
   PrintArray("static_inferred_literal", inferred); //?check("static_inferred_literal", "len:4 data: 10 20 30 40")
 
-  printf("static_lengths = fixed:%li inferred:%li len:%li Len:%li\n", fixed.length, inferred.length, len(fixed), Len(fixed)); //?check("static_lengths", "fixed:3 inferred:4 len:3 Len:3")
+  printf("static_lengths = fixed:%li inferred:%li len:%li Len:%li\n", fixed.length, inferred.length, Len(fixed), Len(fixed)); //?check("static_lengths", "fixed:3 inferred:4 len:3 Len:3")
 
   printf("static_literal_arg = %li\n", TakesStatic([7, 8, 9])); //?check("static_literal_arg", 24)
   printf("static_literal_slice_arg = %li\n", TakesSlice([11, 12, 13])); //?check("static_literal_slice_arg", 36)

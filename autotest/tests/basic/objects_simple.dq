@@ -37,7 +37,7 @@ function OElem.Pick(v : int) -> int [[overload]]:
 endfunc
 
 function OElem.Pick(v : float) -> int [[overload]]:
-  result = round(v) + 10;
+  result = Round(v) + 10;
 endfunc
 
 var g_elem : OElem = null;

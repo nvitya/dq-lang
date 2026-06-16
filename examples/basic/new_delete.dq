@@ -9,14 +9,14 @@ function *Main() -> int:
 
   var pint : ^int;
 
-  pint = ^int(MemAlloc(sizeof(int), true));
+  pint = ^int(MemAlloc(SizeOf(int), true));
   pint^ = 5;
   printf("pint = %d\n", pint^);
   MemFree(pint);
   pint = null;
 
   // Using MemFreeRef
-  pint = ^int(MemAlloc(sizeof(int), true));
+  pint = ^int(MemAlloc(SizeOf(int), true));
   pint^ = 6;
   printf("pint_freeref = %d\n", pint^);
   MemFreeRef(pint);

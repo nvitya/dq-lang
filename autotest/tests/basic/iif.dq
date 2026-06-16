@@ -25,7 +25,7 @@ endfunc
 
 function dq_iif_float(flag : bool) -> int:
   var f : float = iif(flag, 1, 2.5);
-  result = round(f);
+  result = Round(f);
 endfunc
 
 function dq_iif_int_width(flag : bool) -> int32:
@@ -38,7 +38,7 @@ function dq_iif_float_width(flag : bool) -> int:
   var a : float32 = 1.25;
   var b : float64 = 2.75;
   var f : float64 = iif(flag, a, b);
-  result = round(f * 10.0);
+  result = Round(f * 10.0);
 endfunc
 
 function dq_iif_ptr(flag : bool) -> int:

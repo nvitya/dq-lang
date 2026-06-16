@@ -156,17 +156,17 @@ function *Main() -> int:
 
   var arr3 : [3]int16;
   var ptr_pad : [@def.PTRSIZE - 1]byte;
-  printf("sizeof(arr3) = %d\n", sizeof(arr3));                //?check('sizeof(arr3)', 6)
-  printf("sizeof([3]int16) = %d\n", sizeof([3]int16));        //?check('sizeof([3]int16)', 6)
+  printf("SizeOf(arr3) = %d\n", SizeOf(arr3));                //?check('SizeOf(arr3)', 6)
+  printf("SizeOf([3]int16) = %d\n", SizeOf([3]int16));        //?check('SizeOf([3]int16)', 6)
   #if @def.PTRSIZE == 8
-    printf("[64]sizeof(ptr_pad) = %d\n", sizeof(ptr_pad));          //?check('[64]sizeof(ptr_pad)', 7)
-    printf("[32]sizeof(ptr_pad) = 3\n");
+    printf("[64]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[64]SizeOf(ptr_pad)', 7)
+    printf("[32]SizeOf(ptr_pad) = 3\n");
   #else
-    printf("[64]sizeof(ptr_pad) = 7\n");
-    printf("[32]sizeof(ptr_pad) = %d\n", sizeof(ptr_pad));          //?check('[32]sizeof(ptr_pad)', 3)
+    printf("[64]SizeOf(ptr_pad) = 7\n");
+    printf("[32]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[32]SizeOf(ptr_pad)', 3)
   #endif
-  printf("sizeof(int32) = %d\n", sizeof(int32));              //?check('sizeof(int32)', 4)
-  printf("sizeof(cstring(12)) = %d\n", sizeof(cstring(12)));  //?check('sizeof(cstring(12))', 13)
+  printf("SizeOf(int32) = %d\n", SizeOf(int32));              //?check('SizeOf(int32)', 4)
+  printf("SizeOf(cstring(12)) = %d\n", SizeOf(cstring(12)));  //?check('SizeOf(cstring(12))', 13)
 
   return 0;
 endfunc

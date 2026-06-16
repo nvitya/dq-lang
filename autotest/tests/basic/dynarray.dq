@@ -7,7 +7,7 @@ var garr : [*]int;
 function sum_slice(arr : []int) -> int:
   result = 0;
   var i : int = 0;
-  while i < len(arr):
+  while i < Len(arr):
     result += arr[i];
     i += 1;
   endwhile
@@ -23,7 +23,7 @@ function dyn_basic() -> int:
   arr.Append(20);
   arr.Append(30);
   arr[2] = 40;
-  result = len(arr) + arr[0] + arr[1] + arr[2];
+  result = Len(arr) + arr[0] + arr[1] + arr[2];
 endfunc
 
 function dyn_slices() -> int:

@@ -3,7 +3,7 @@
 use libc/stdio;
 use rtl/dynarray;
 
-var darr <- ORawDynArray(sizeof(int), 1);
+var darr <- ORawDynArray(SizeOf(int), 1);
 
 //var iarr : [*]int = [];
 
@@ -20,7 +20,7 @@ function *Main() -> int:
   printf('DQ Raw Dynamic Array test\n');
 
   #if not EMBED
-    darr = new ORawDynArray(sizeof(int), 1);
+    darr = new ORawDynArray(SizeOf(int), 1);
   #endif
 
   printf('darr.length = %d\n', darr.length);

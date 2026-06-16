@@ -19,11 +19,11 @@ function bad_type(a : int = "x") -> int:  //?error(TypeMismatchAssign)
 endfunc
 
 function bad_slice(arr : []int = rootarr) -> int:  //?error(FuncParDefaultType)
-  result = len(arr);
+  result = Len(arr);
 endfunc
 
 function bad_cstring(s : cstring = "x") -> int:  //?error(FuncParDefaultType)
-  result = len(s);
+  result = Len(s);
 endfunc
 function *Main() -> int:
   need_two(1);  //?error(FuncArgsTooFew)

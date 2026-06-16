@@ -17,7 +17,7 @@ endfunc
 function IsPrimeArr(num : int) -> bool:
   var idx : int = 0;
   var i : int;
-  while idx < len(prarr):
+  while idx < Len(prarr):
     i = prarr[idx];
     if num IMOD prarr[idx] == 0:
       return false;
@@ -53,7 +53,7 @@ function *Main() -> int:
   endwhile
 
   printf('Primes:\n');
-  for i : int = 0 count len(prarr):
+  for i : int = 0 count Len(prarr):
     printf(' %d', prarr[i]);
   endfor
   printf('\n');

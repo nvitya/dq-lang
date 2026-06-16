@@ -30,14 +30,14 @@ function PrintSlice(label : ^cchar, desc : SArraySliceDesc):
   var i : int = 0;
   while i < desc.length:
     if i > 0:  printf(",");  endif
-    printf(" %li", ^int(^byte(desc.dataptr)[i * sizeof(int)])^);
+    printf(" %li", ^int(^byte(desc.dataptr)[i * SizeOf(int)])^);
     i += 1;
   endwhile
   printf("]\n");
 endfunc
 
 function MakeIntTypeInfo(ti : refout SDqTypeInfo):
-  ti.storagesize = sizeof(int);
+  ti.storagesize = SizeOf(int);
   ti.flags = 0;
   ti.kind = DQTK_INT;
   ti.subtype = 0;

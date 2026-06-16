@@ -193,7 +193,7 @@ function oconv(a : int) -> int [[overload]]:
 endfunc
 
 function oconv(a : float) -> int [[overload]]:
-  return 200 + round(a);
+  return 200 + Round(a);
 endfunc
 
 function use_cb(cb : CB1, v : int) -> int:

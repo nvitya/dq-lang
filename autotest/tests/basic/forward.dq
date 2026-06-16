@@ -71,7 +71,7 @@ function pick(x : int) -> int [[overload]]:
 endfunc
 
 function pick(x : float) -> int [[overload]]:
-  return round(x) + 200;
+  return Round(x) + 200;
 endfunc
 
 #endif

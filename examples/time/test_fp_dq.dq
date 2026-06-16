@@ -76,14 +76,14 @@ function *Main() -> int:
 		ans = FpBench_f32(f1, f2, iterations)
 		tend = MilliTime()
 		PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
-		PrintLn("  {} loop/msec", [floor(iterations/(tend - tstart))])
+		PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
 
 		PrintLn("FP64 benchmark with F1={}, F2={}, million_iterations={}:", [f1, f2, million_iter])
 		tstart = MilliTime()
 		ans = FpBench_f64(f1, f2, iterations)
 		tend = MilliTime()
 		PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
-		PrintLn("  {} loop/msec", [floor(iterations/(tend - tstart))])
+		PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
 
     return 0
 endfunc

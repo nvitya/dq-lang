@@ -37,7 +37,7 @@ function *Main() -> int:
 
   ochild = new OChild('OChild');
 
-  printf('sizeof(OBase) = %d\n', sizeof(OBase));
+  printf('SizeOf(OBase) = %d\n', SizeOf(OBase));
 
   obase.Count();
   ochild.Count();

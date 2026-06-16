@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.10"
+#define DQ_COMPILER_VERSION  "0.19.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.11:
+  - All internal functions are converted to PascalCase (Uppercase first letter), 
+    the only exception is `iif` where both `Iif` and `iif` is accepted
 v0.19.10:
   - Format() function added to the strutils module
 v0.19.9:

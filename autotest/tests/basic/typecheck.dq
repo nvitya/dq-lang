@@ -35,8 +35,8 @@ function *Main() -> int:
   endif
 
   i = f;  //?error(TypeMismatchAssign)
-  i = offsetof(int, field);            //?error(TypeExpected)
-  i = offsetof(TOffsetCheck, missing); //?error(MemberUnknown)
+  i = OffsetOf(int, field);            //?error(TypeExpected)
+  i = OffsetOf(TOffsetCheck, missing); //?error(MemberUnknown)
 
   if i:   //?error(BoolExprExpected)
     printf("?");
@@ -47,11 +47,11 @@ function *Main() -> int:
   endif
 
   f = f AND NOT 1; //?error(TypeMismatchOp)
-  f = round(f) AND NOT 1;
+  f = Round(f) AND NOT 1;
 
   f = i;
   f = i > 5; //?error(TypeMismatchAssign)
-  i = round(f);
+  i = Round(f);
 
   var s1 : cstring(7) = "";
   var s2 : cstring(11) = "";

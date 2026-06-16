@@ -52,7 +52,7 @@ endfunc
 function dq_arr_sum(arr : []int) -> int:
   var i : int = 0;
   var s : int = 0;
-  while i < len(arr):
+  while i < Len(arr):
     s = s + arr[i];
     i = i + 1;
   endwhile
@@ -75,7 +75,7 @@ endfunc
 function dq_arr_len() -> int:
   var a : [5]int;
   a[0] = 0;
-  result = len(a);
+  result = Len(a);
 endfunc
 
 function dq_arr_modify(arr : []int) -> int:

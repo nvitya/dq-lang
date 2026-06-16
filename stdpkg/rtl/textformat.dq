@@ -577,7 +577,7 @@ function OTextFormatter.FormatFloat(v : float):
     scale *= 10
   endfor
 
-  var scaled  : uint = uint(floor(work * scale + 0.5))
+  var scaled  : uint = uint(Floor(work * scale + 0.5))
   var intpart : uint = scaled IDIV scale
   var frac    : uint = scaled IMOD scale
 

@@ -933,6 +933,8 @@ void OValSymFunc::GenerateFuncBody()
     GenerateFuncRet();
   }
 
+  GeneratePendingLandingPads(ll_func);
+
   verifyFunction(*ll_func);
 }
 

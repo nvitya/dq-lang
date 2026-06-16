@@ -298,7 +298,7 @@ void ODqCompiler::Run(int argc, char ** argv)
         return;
       }
 
-      string link_cmd = format("gcc {}", out_filename);
+      string link_cmd = format("gcc {} -lstdc++ -lunwind", out_filename);
       for (const string & artifact_path : g_module->link_module_artifacts)
       {
         link_cmd += format(" {}", artifact_path);

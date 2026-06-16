@@ -398,7 +398,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     }
   }
 
-  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind))
+  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind) || (TK_DYN_ARRAY == kind))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_BEGIN)) return false;
     if (!WriteDqmIfTypeSpecInner(writer, this)) return false;

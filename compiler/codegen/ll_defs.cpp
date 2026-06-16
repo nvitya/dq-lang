@@ -96,3 +96,33 @@ LlValue * ToCharValue(LlValue * value)
   }
   return value;
 }
+
+OScope * ll_cg_scope = nullptr;
+OStmtTry * ll_cg_try = nullptr;
+
+vector<SPendingLandingPad> ll_pending_lpads;
+
+llvm::CallBase * DqLlBuilder::CreateCall(llvm::FunctionType * callee_type, llvm::Value * callee, llvm::ArrayRef<llvm::Value*> args, const llvm::Twine & name, llvm::MDNode *FPMathTag)
+{
+  llvm::Function * static_func = llvm::dyn_cast<llvm::Function>(callee);
+  bool is_intrinsic = static_func && static_func->getName().starts_with("llvm.");
+  
+  if (!is_intrinsic && (ll_cg_scope || ll_cg_try))
+  {
+    llvm::Function * ll_func = this->GetInsertBlock()->getParent();
+    llvm::BasicBlock * lpad_bb = llvm::BasicBlock::Create(ll_ctx, "lpad", ll_func);
+    llvm::BasicBlock * normal_bb = llvm::BasicBlock::Create(ll_ctx, "invoke.cont", ll_func);
+    
+    llvm::InvokeInst * result = this->CreateInvoke(callee_type, callee, normal_bb, lpad_bb, args, name);
+    this->SetInsertPoint(normal_bb);
+    
+    ll_pending_lpads.push_back({lpad_bb, ll_cg_scope, ll_cg_try});
+    return result;
+  }
+  return llvm::IRBuilder<>::CreateCall(callee_type, callee, args, name, FPMathTag);
+}
+
+llvm::CallBase * DqLlBuilder::CreateCall(llvm::Function * callee, llvm::ArrayRef<llvm::Value*> args, const llvm::Twine & name, llvm::MDNode *FPMathTag)
+{
+  return DqLlBuilder::CreateCall(callee->getFunctionType(), callee, args, name, FPMathTag);
+}

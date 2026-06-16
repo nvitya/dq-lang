@@ -415,3 +415,94 @@ public:
 
   void Generate(OScope * scope) override;
 };
+
+class OExceptBranch
+{
+public:
+  OTypeObject * exception_type = nullptr;
+  OValSym *     bound_variable = nullptr;
+  OStmtBlock *  body;
+  llvm::BasicBlock * ll_bb_catch = nullptr;
+
+  OExceptBranch(OScope * aparentscope)
+  {
+    body = new OStmtBlock(aparentscope, "except");
+  }
+
+  ~OExceptBranch()
+  {
+    delete body;
+  }
+};
+
+class OStmtTry : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OScope *               parentscope;
+  OStmtBlock *           body;
+  vector<OExceptBranch *> except_branches;
+  OStmtBlock *           finally_body = nullptr;
+
+  llvm::BasicBlock * ll_bb_dispatch = nullptr;
+  llvm::BasicBlock * ll_bb_finally = nullptr;
+  llvm::BasicBlock * ll_bb_endtry = nullptr;
+  llvm::Value *      ll_lpad_val_alloca = nullptr;
+  OScope *           try_scope = nullptr;
+
+  OStmtTry(OScPosition & ascpos, OScope * aparentscope)
+  :
+    super(ascpos),
+    parentscope(aparentscope)
+  {
+    body = new OStmtBlock(aparentscope, "try");
+  }
+
+  ~OStmtTry()
+  {
+    delete body;
+    for (OExceptBranch * b : except_branches)
+    {
+      delete b;
+    }
+    if (finally_body)
+    {
+      delete finally_body;
+    }
+  }
+
+  OExceptBranch * AddExceptBranch()
+  {
+    OExceptBranch * result = new OExceptBranch(parentscope);
+    except_branches.push_back(result);
+    return result;
+  }
+
+  void Generate(OScope * scope) override;
+};
+
+class OStmtRaise : public OStmt
+{
+private:
+  using        super = OStmt;
+public:
+  OExpr *  expr;
+
+  OStmtRaise(OScPosition & ascpos, OExpr * aexpr)
+  :
+    super(ascpos),
+    expr(aexpr)
+  {
+  }
+
+  ~OStmtRaise()
+  {
+    if (expr)
+    {
+      delete expr;
+    }
+  }
+
+  void Generate(OScope * scope) override;
+};

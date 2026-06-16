@@ -253,6 +253,11 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR,                        "CDirExpr",               "Co
 DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Compiler directive expression type error");
 
 
+DEF_DQ_ERR(DQERR_CATCH_ALL_ALREADY_PRESENT,          "CatchAllDuplicate",      "Catch-all \"except:\" is already present in this try block");
+DEF_DQ_ERR(DQERR_CATCH_ALL_MUST_BE_LAST,             "CatchAllNotLast",        "Catch-all \"except:\" must be the last exception handler");
+DEF_DQ_ERR(DQERR_TRY_WITHOUT_EXCEPT_FINALLY,         "TryNoHandler",           "try statement without except or finally block");
+DEF_DQ_ERR(DQERR_MULTIPLE_FINALLY,                   "MultipleFinally",        "Multiple finally branches detected");
+
 //-----------------------------------------------------------------------------
 // WARNINGS
 //-----------------------------------------------------------------------------

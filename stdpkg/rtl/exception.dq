@@ -1,7 +1,13 @@
 // RTL Helpers for Exception Handling
+use libc/stdio;
 
 object Exception:
 public
+  unwind_exception_class : uint64
+  unwind_exception_cleanup : pointer
+  unwind_private_1 : uint64
+  unwind_private_2 : uint64
+
   refcount   : int
   message    : str
   backtrace  : [*]pointer
@@ -9,7 +15,7 @@ public
   function *Create(amsg : strview)
   function *Destroy()
 
-  function GetMessage() -> str
+  function GetMessage() -> str [[virtual]]
   function PrintBacktrace()
 endobj
 
@@ -30,6 +36,9 @@ function Exception.GetMessage() -> str:
 endfunc
 
 function Exception.PrintBacktrace():
-  // This will be implemented using libbacktrace
-  // to symbolize backtrace_ptrs.
+  var i : int = 0;
+  while i < backtrace.length:
+    @.printf("  %p\n", backtrace[i])
+    i += 1;
+  endwhile
 endfunc

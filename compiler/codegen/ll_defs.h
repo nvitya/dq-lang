@@ -27,7 +27,23 @@ using namespace std;
 // Short Aliases
 using LlContext      = llvm::LLVMContext;
 using LlModule       = llvm::Module;
-using LlBuilder      = llvm::IRBuilder<>;
+
+class DqLlBuilder : public llvm::IRBuilder<>
+{
+public:
+  using llvm::IRBuilder<>::IRBuilder;
+  using llvm::IRBuilder<>::CreateCall;
+  
+  llvm::CallBase * CreateCall(llvm::FunctionType *FTy, llvm::Value *Callee,
+                              llvm::ArrayRef<llvm::Value *> Args, const llvm::Twine &Name = "",
+                              llvm::MDNode *FPMathTag = nullptr);
+                              
+  llvm::CallBase * CreateCall(llvm::Function *Callee, llvm::ArrayRef<llvm::Value *> Args,
+                              const llvm::Twine &Name = "",
+                              llvm::MDNode *FPMathTag = nullptr);
+};
+
+using LlBuilder      = DqLlBuilder;
 using LlMachine      = llvm::TargetMachine;
 
 using LlValue        = llvm::Value;
@@ -66,6 +82,23 @@ struct SLoopContext
 extern vector<SLoopContext>  ll_loop_stack;
 
 extern vector<LlDiScope *>   di_scope_stack;
+
+class OStmtTry;
+class OScope;
+
+extern OScope * ll_cg_scope;
+extern OStmtTry * ll_cg_try;
+
+struct SPendingLandingPad
+{
+  llvm::BasicBlock * lpad_bb;
+  OScope *           active_scope;
+  OStmtTry *         active_try;
+};
+
+extern vector<SPendingLandingPad>  ll_pending_lpads;
+
+void GeneratePendingLandingPads(llvm::Function * ll_func);
 
 void ll_defs_init();
 void ll_init_debug_info();

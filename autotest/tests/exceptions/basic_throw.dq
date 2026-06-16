@@ -1,0 +1,16 @@
+use libc/stdio;
+use rtl/exception;
+
+function *Main() -> int:
+  try:
+    printf("Before = exception\n"); //?check('Before', 'exception')
+    var err = new Exception("Test exception");
+    raise err;
+    printf("Should not be = here\n");
+  except Exception as e:
+    printf("Caught exception = Test exception\n"); //?check('Caught exception', 'Test exception')
+  finally:
+    printf("Finally = block\n"); //?check('Finally', 'block')
+  endtry
+  return 0;
+endfunc

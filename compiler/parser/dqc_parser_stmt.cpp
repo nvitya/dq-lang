@@ -662,6 +662,16 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
         ParseStmtInherited();
         continue;
       }
+      else if ("try" == sid)
+      {
+        ParseStmtTry();
+        continue;
+      }
+      else if ("raise" == sid)
+      {
+        ParseStmtRaise();
+        continue;
+      }
       else if (ReservedWord(sid))
       {
         StatementError(DQERR_STMT_INVALID, sid);
@@ -1474,4 +1484,104 @@ EBinOp ODqCompParserStmt::ParseAssignOp()
 void ODqCompParserStmt::FinalizeStmtVoidCall(OExpr * callexpr)
 {
   curblock->AddStatement(new OStmtVoidCall(scpos_statement_start, callexpr));
+}
+
+void ODqCompParserStmt::ParseStmtTry()
+{
+  OStmtTry * stmt_try = new OStmtTry(scpos_statement_start, curscope);
+  
+  string endstr;
+  ReadStatementBlock(stmt_try->body, "except|finally|endtry", &endstr);
+  
+  bool has_catch_all = false;
+
+  while (endstr == "except")
+  {
+    OExceptBranch * branch = stmt_try->AddExceptBranch();
+    scf->SkipWhite();
+    
+    // look ahead for ':' to detect catch-all
+    if (':' == *scf->curp || '{' == *scf->curp)
+    {
+      if (has_catch_all)
+      {
+         StatementError(DQERR_CATCH_ALL_ALREADY_PRESENT);
+      }
+      has_catch_all = true;
+    }
+    else
+    {
+      if (has_catch_all)
+      {
+         StatementError(DQERR_CATCH_ALL_MUST_BE_LAST);
+      }
+      
+      OType * exctype = ParseTypeSpec();
+      if (exctype)
+      {
+         branch->exception_type = dynamic_cast<OTypeObject*>(exctype->ResolveAlias());
+         if (!branch->exception_type)
+         {
+            StatementError(DQERR_TYPE_EXPECTED, "object", exctype->name);
+         }
+      }
+      
+      scf->SkipWhite();
+      if (scf->CheckSymbol("as"))
+      {
+        scf->SkipWhite();
+        string varname;
+        if (scf->ReadIdentifier(varname))
+        {
+           branch->bound_variable = exctype ? exctype->CreateValSym(scpos_statement_start, varname) : nullptr;
+        }
+        else
+        {
+           StatementError(DQERR_ID_EXP_AFTER, "as");
+        }
+      }
+    }
+    
+    if (branch->bound_variable)
+    {
+       branch->bound_variable->initialized = true;
+       branch->body->scope->DefineValSym(branch->bound_variable);
+    }
+    ReadStatementBlock(branch->body, "except|finally|endtry", &endstr);
+  }
+  
+  if (endstr == "finally")
+  {
+    stmt_try->finally_body = new OStmtBlock(curscope, "finally");
+    ReadStatementBlock(stmt_try->finally_body, "endtry", &endstr);
+  }
+  
+  if (stmt_try->except_branches.empty() && !stmt_try->finally_body)
+  {
+     StatementError(DQERR_TRY_WITHOUT_EXCEPT_FINALLY);
+  }
+  
+  curblock->AddStatement(stmt_try);
+}
+
+void ODqCompParserStmt::ParseStmtRaise()
+{
+  // "raise" is already consumed
+  OExpr * expr = nullptr;
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(";"))
+  {
+    expr = ParseExpression();
+    if (!expr)
+    {
+      return;
+    }
+    if (!CheckStatementClose())
+    {
+      delete expr;
+      return;
+    }
+  }
+  
+  curblock->AddStatement(new OStmtRaise(scpos_statement_start, expr));
 }

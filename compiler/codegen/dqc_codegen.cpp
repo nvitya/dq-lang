@@ -249,6 +249,14 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
     ll_optlevel = llvm::OptimizationLevel::O1;
   }
 
+  // Verify IR before optimization to help diagnose problems
+  string verify_error;
+  llvm::raw_string_ostream verify_os(verify_error);
+  if (llvm::verifyModule(*ll_module, &verify_os))
+  {
+    llvm::errs() << "IR verification failed:\n" << verify_error << "\n";
+  }
+
   llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(ll_optlevel);
   MPM.run(*ll_module, MAM);
 }

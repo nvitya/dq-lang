@@ -290,6 +290,13 @@ messages and backtraces, and routes `RuntimeError()` through a base
 `Exception`.
 Compiler-generated block exits run owned-local cleanup for active-exception
 propagation, `return`, `break`, and `continue`.
+Hosted Linux also installs a SIGSEGV recovery bridge in `rtl_linux.dq` using
+libc signal and jump-buffer declarations.  A segmentation fault inside module
+initialization or `dq_main()` is converted to an uncaught base `Exception` at
+the top-level runtime boundary and printed with the signal backtrace.  This is
+not yet catchable by inner `try`/`except` blocks because the current backend
+still uses top-level `sigsetjmp` recovery rather than native per-frame
+unwinding.
 
 The final Itanium/LLVM unwinder implementation described below is still required
 for complete semantics, especially:

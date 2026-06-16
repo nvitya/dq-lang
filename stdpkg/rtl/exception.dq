@@ -27,6 +27,7 @@ endobj
 function __dq_exception_addref(e : Exception)
 function __dq_exception_release(e : Exception)
 function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool)
+function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
 function __dq_rethrow_exception()
 function __dq_exception_active() -> bool
 function __dq_current_exception() -> Exception
@@ -94,23 +95,55 @@ function __dq_exception_release(e : Exception):
   endif
 endfunc
 
-function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool):
+function __dq_prepare_exception_ref(e : Exception, owned_ref : bool) -> bool:
   if e == null:
     RuntimeError("raise null exception")
-    return
+    return false
   endif
 
   if not owned_ref:
     __dq_exception_addref(e)
   endif
 
-  e.CaptureBacktrace()
+  return true
+endfunc
 
+function __dq_set_active_exception(e : Exception, typelist : ^cchar):
   if __dq_active_exception <> null:
     __dq_exception_release(__dq_active_exception)
   endif
   __dq_active_exception = e
   __dq_active_exception_types = typelist
+endfunc
+
+function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool):
+  if not __dq_prepare_exception_ref(e, owned_ref):
+    return
+  endif
+
+  e.CaptureBacktrace()
+  __dq_set_active_exception(e, typelist)
+endfunc
+
+function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int):
+  if not __dq_prepare_exception_ref(e, owned_ref):
+    return
+  endif
+
+  e.backtrace_count = bt_count
+  if e.backtrace_count < 0:
+    e.backtrace_count = 0
+  elif e.backtrace_count > DQ_EXCEPTION_BACKTRACE_MAX:
+    e.backtrace_count = DQ_EXCEPTION_BACKTRACE_MAX
+  endif
+
+  var i : int = 0
+  while i < e.backtrace_count:
+    e.backtrace[i] = ^pointer(bt)[i]^
+    i += 1
+  endwhile
+
+  __dq_set_active_exception(e, typelist)
 endfunc
 
 function __dq_rethrow_exception():

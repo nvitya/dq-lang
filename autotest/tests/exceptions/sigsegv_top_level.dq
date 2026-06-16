@@ -1,0 +1,18 @@
+// Hosted Linux catches SIGSEGV at the top level and reports it as Exception.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function CauseSegv():
+  var p : ^int = null
+  p^ = 1
+endfunc
+
+function *Main() -> int:
+  printf("sigsegv.before = 1\n")  //?check("sigsegv.before", 1)
+  CauseSegv()
+  printf("sigsegv.after = 1\n")
+  return 0
+endfunc
+
+//?ignore("UNCAUGHT EXCEPTION: SIGSEGV")
+//?ignore("Backtrace")

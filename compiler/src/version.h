@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.3"
+#define DQ_COMPILER_VERSION  "0.20.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.4:
+  - Exceptions / 5: SIGSEGV catching
 v0.20.3:
   - Exceptions / 4: locals cleanup, dynamic manager fixes
 v0.20.2:

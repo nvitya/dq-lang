@@ -1,0 +1,35 @@
+// RTL Helpers for Exception Handling
+
+object Exception:
+public
+  refcount        : int
+  message         : str
+  backtrace_ptrs  : [*]pointer
+
+  function *Create(amsg : string)
+  function *Destroy()
+
+  function GetMessage() -> string
+  function PrintBacktrace()
+endobj
+
+implementation
+
+function Exception.*Create(amsg : string):
+  message = amsg
+  backtrace_ptrs = []
+  refcount = 1
+endfunc
+
+function Exception.*Destroy():
+  backtrace_ptrs = []  // free the dynamic array
+endfunc
+
+function Exception.GetMessage() -> string:
+  return message
+endfunc
+
+function Exception.PrintBacktrace():
+  // This will be implemented using libbacktrace
+  // to symbolize backtrace_ptrs.
+endfunc

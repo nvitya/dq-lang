@@ -3,8 +3,8 @@
 // new type: "cchar": 8-bit char, same as "char" in C
 // fixed cstring(N): N usable cchars plus one hidden terminating zero byte
 
-[[nowarn]] var dq_cstr  : cstring(256) = "DQ String Test\n";
-[[nowarn]] var dq_cstr2 : cstring(40)  = 'Using signle quotes\n';
+var dq_cstr  : cstring(255) = "DQ String Test\n";
+var dq_cstr2 : cstring(39)  = 'Using signle quotes\n';
 
 // These functions come from LIBC, so the program must be linked with the libc.
 [[external]] function putchar(c : cchar) -> int;
@@ -59,13 +59,13 @@ function *Main() -> int:
   dq_writepc('dq_cstr = ');
   dq_writestr(dq_cstr);  //?check('dq_cstr', 'DQ String Test')
 
-  [[nowarn]] var s : cstring(128) = "";
+  var s : cstring(127) = "";
 
   var warn_s1 : cstring(4); //?warning(CStrStorageSize)
-  [[nowarn]] var warn_s2 : cstring(4);
+  var warn_s2 : [[nowarn]] cstring(4);
 
-  [[nowarn]] var hello : cstring(5) = "Hello";
-  [[nowarn]] var world : cstring(8) = " World!\n";
+  var hello : cstring(15) = "Hello";
+  var world : cstring(15) = " World!\n";
   cstr_add(s, hello);
   cstr_add(s, world);
 
@@ -74,10 +74,10 @@ function *Main() -> int:
                            //?check('s', 'Hello World!')
 
   // string length checking test
-  [[nowarn]] var s2 : cstring(8);
+  var s2 : [[nowarn]] cstring(8);
   s2 = "abc";
   var def : cstring(3) = "def";
-  [[nowarn]] var too_long : cstring(12) = "ghijklmnopqr";
+  var too_long : cstring(15) = "ghijklmnopqr";
   dq_str_append(s2, def);
   dq_str_append(s2, too_long);
 
@@ -85,21 +85,21 @@ function *Main() -> int:
   dq_writestr(s2);
   dq_writepc('"\n');     //?check(s2, '"abcdef"')
 
-  [[nowarn]] var s3 : cstring(4) = "";
-  [[nowarn]] var s4 : cstring(8) = "abcdef";
+  var s3 : cstring(3) = "";
+  var s4 : cstring(7) = "abcdef";
   s3 = s4;
   dq_writepc('s3 = "');
   dq_writestr(s3);
-  dq_writepc('"\n');     //?check(s3, '"abcd"')
+  dq_writepc('"\n');     //?check(s3, '"abc"')
 
-  [[nowarn]] var s5 : cstring(8) = "";
+  var s5 : cstring(7) = "";
   s5 = s3;
   dq_writepc('s5 = "');
   dq_writestr(s5);
-  dq_writepc('"\n');     //?check(s5, '"abcd"')
+  dq_writepc('"\n');     //?check(s5, '"abc"')
 
   var pc : ^cchar = "asdf";
-  [[nowarn]] var cs : cstring(32);
+  var cs : cstring(31);
   cs = pc;
   dq_writepc('cs = "');
   dq_writestr(cs);

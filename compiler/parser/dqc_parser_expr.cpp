@@ -410,6 +410,18 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
 
   scf->SkipWhite();
 
+  if (scf->CheckSymbol("[[", false))
+  {
+    if (!ParseAttributes(false))
+    {
+      return nullptr;
+    }
+    if (attr && attr->IsSet(ATTF_NOWARN))
+    {
+      suppress_warnings = true;
+    }
+  }
+
   if (scf->CheckSymbol("^"))
   {
     OType * basetype = ParseTypeSpec(aemit_errors);

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.19.8"
+#define DQ_COMPILER_VERSION  "0.19.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.19.9:
+  - Allow the [[nowarn]] attribute after the type specifier:  var cs : [[nowarn]] cstring(4)
 v0.19.8:
   - Warning, when the cstring storage size is not divisible with 4
 v0.19.7:

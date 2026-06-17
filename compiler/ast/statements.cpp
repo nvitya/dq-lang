@@ -242,6 +242,8 @@ void OStmtBlock::Generate()
     bb_cleanup = LlBasicBlock::Create(ll_ctx, scope->debugname + ".cleanup", ll_func);
     bb_done = LlBasicBlock::Create(ll_ctx, scope->debugname + ".done", ll_func);
   }
+  LlBasicBlock * saved_exception_cleanup_bb = scope->exception_cleanup_bb;
+  scope->exception_cleanup_bb = bb_cleanup;
 
   for (OStmt * bstmt : stlist)
   {
@@ -278,6 +280,7 @@ void OStmtBlock::Generate()
     }
     ll_builder.SetInsertPoint(bb_done);
   }
+  scope->exception_cleanup_bb = saved_exception_cleanup_bb;
 }
 
 void OStmtReturn::Generate(OScope * scope)

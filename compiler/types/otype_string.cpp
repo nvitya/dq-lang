@@ -409,11 +409,15 @@ LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue 
   OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;
   if (rtype && TK_DYNSTR == rtype->kind)
   {
-    return CallDynStrFunc("DynStrGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    LlValue * result = CallDynStrFunc("DynStrGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    EmitExpressionExceptionCheck(scope);
+    return result;
   }
   if (rtype && TK_STRVIEW == rtype->kind)
   {
-    return CallDynStrFunc("TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    LlValue * result = CallDynStrFunc("TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    EmitExpressionExceptionCheck(scope);
+    return result;
   }
   throw logic_error("GenerateStringGetChar requires str or strview");
 }

@@ -23,6 +23,8 @@
 
 using namespace std;
 
+void EmitExpressionExceptionCheck(OScope * scope);
+
 class OExprTypeConv : public OExpr
 {
 public:

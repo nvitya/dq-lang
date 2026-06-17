@@ -465,9 +465,10 @@ LlValue * GenerateDynArrayRefCount(OScope * scope, OTypeDynArray * dyntype, LlVa
 
 LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index)
 {
-  (void)scope;
   (void)dyntype;
-  return CallDynArrayFunc("DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
+  LlValue * result = CallDynArrayFunc("DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
+  EmitExpressionExceptionCheck(scope);
+  return result;
 }
 
 LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr,
@@ -478,12 +479,14 @@ LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue
   if (!start_expr && !end_expr)
   {
     CallDynArrayFunc("DynArrGetFullSlice", {dynaddr, descaddr});
+    EmitExpressionExceptionCheck(scope);
   }
   else
   {
     LlValue * start = start_expr ? IntExprValue(scope, start_expr) : LlZero();
     LlValue * end = end_expr ? IntExprValue(scope, end_expr) : GenerateDynArrayLength(scope, dyntype, dynaddr);
     CallDynArrayFunc("DynArrGetSlice", {dynaddr, descaddr, start, end});
+    EmitExpressionExceptionCheck(scope);
   }
   return ll_builder.CreateLoad(slicetype->GetLlType(), descaddr, "dyn.slice");
 }

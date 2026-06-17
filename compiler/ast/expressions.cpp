@@ -34,6 +34,41 @@ static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
       && (TK_POINTER == rtype->kind);
 }
 
+static OValSymFunc * DqExceptionFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_exception");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    return nullptr;
+  }
+  return dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
+}
+
+void EmitExpressionExceptionCheck(OScope * scope)
+{
+  OValSymFunc * fn = DqExceptionFunc("__dq_exception_active");
+  if (!fn || !fn->ll_func || !scope)
+  {
+    return;
+  }
+
+  LlBasicBlock * bb_cleanup = nullptr;
+  for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
+  {
+    bb_cleanup = cur->exception_cleanup_bb;
+  }
+  if (!bb_cleanup || ll_builder.GetInsertBlock()->getTerminator())
+  {
+    return;
+  }
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_continue = LlBasicBlock::Create(ll_ctx, "expr.no_exception", ll_func);
+  LlValue * active = ll_builder.CreateCall(fn->ll_func, {}, "exc.active");
+  ll_builder.CreateCondBr(active, bb_cleanup, bb_continue);
+  ll_builder.SetInsertPoint(bb_continue);
+}
+
 string GetBinopSymbol(EBinOp op)
 {
   if (BINOP_ADD   == op)  return "+";
@@ -573,30 +608,6 @@ LlValue * OLValueIndex::Generate(OScope * scope)
   {
     return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
   }
-
-/*
-  if (TK_DYN_ARRAY == resolved_container->kind)
-  {
-    LlValue * elem_addr = GenerateAddress(scope);
-    LlType * ll_type = ptype->GetLlType();
-    LlBasicBlock * bb_cur = ll_builder.GetInsertBlock();
-    LlFunction * ll_func = bb_cur->getParent();
-    LlBasicBlock * bb_load = LlBasicBlock::Create(ll_ctx, "dyn.index.load", ll_func);
-    LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "dyn.index.done", ll_func);
-    LlValue * is_null = ll_builder.CreateICmpEQ(elem_addr, llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
-    ll_builder.CreateCondBr(is_null, bb_done, bb_load);
-
-    ll_builder.SetInsertPoint(bb_load);
-    LlValue * loaded = ll_builder.CreateLoad(ll_type, elem_addr, "dyn.index.value");
-    ll_builder.CreateBr(bb_done);
-
-    ll_builder.SetInsertPoint(bb_done);
-    auto * result = ll_builder.CreatePHI(ll_type, 2, "dyn.index.result");
-    result->addIncoming(llvm::Constant::getNullValue(ll_type), bb_cur);
-    result->addIncoming(loaded, bb_load);
-    return result;
-  }
-*/
 
   return OLValueExpr::Generate(scope);
 }
@@ -1970,7 +1981,9 @@ LlValue * OCallExpr::Generate(OScope * scope)
     LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
         {ll_slot_index}, "vslot.addr");
     LlValue * ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
-    return ll_builder.CreateCall(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
+    LlValue * result = ll_builder.CreateCall(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
+    EmitExpressionExceptionCheck(scope);
+    return result;
   }
 
   LlFunction * ll_func = vsfunc->ll_func;
@@ -1979,7 +1992,9 @@ LlValue * OCallExpr::Generate(OScope * scope)
     throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
   }
 
-  return ll_builder.CreateCall(ll_func, ll_args);
+  LlValue * result = ll_builder.CreateCall(ll_func, ll_args);
+  EmitExpressionExceptionCheck(scope);
+  return result;
 }
 
 void OCallExpr::FoldChildren()

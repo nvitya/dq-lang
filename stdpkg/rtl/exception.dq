@@ -2,34 +2,16 @@
 
 use libc/stdio
 
-struct SDqDlInfo:
-  dli_fname : ^cchar
-  dli_fbase : pointer
-  dli_sname : ^cchar
-  dli_saddr : pointer
-endstruct
-
-function libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
-function libc_backtrace_symbols_fd(buffer : pointer, size : int, fd : int) [[external('backtrace_symbols_fd')]]
-function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int [[external('dladdr')]]
-function libc_snprintf(str : ^cchar, size : uint, fmt : ^cchar, ...) -> int [[external('snprintf')]]
-function libc_popen(command : ^cchar, mode : ^cchar) -> pointer [[external('popen')]]
-function libc_pclose(stream : pointer) -> int [[external('pclose')]]
-function libc_fgets(s : ^cchar, size : int, stream : pointer) -> ^cchar [[external('fgets')]]
-function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int [[external('fprintf')]]
-function libc_fflush(stream : pointer) -> int [[external('fflush')]]
-var libc_stderr : pointer [[external("stderr")]]
-
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
-const DQ_BACKTRACE_CMD_MAX : int = 1024
-const DQ_BACKTRACE_LINE_MAX : int = 1024
+const DQ_BACKTRACE_CMD_MAX       : int = 1024
+const DQ_BACKTRACE_LINE_MAX      : int = 1024
 
 object Exception:
 public
-  refcount   : int
-  message    : str
+  refcount        : int
+  message         : str // dynamic string
   backtrace_count : int
-  backtrace       : [32]pointer
+  backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
 public
   function *Create(amsg : strview)
@@ -41,10 +23,7 @@ public
   function PrintBacktrace()
 endobj
 
-function __dq_exception_addref(e : Exception)
-function __dq_exception_release(e : Exception)
 function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool)
-function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
 function __dq_rethrow_exception()
 function __dq_exception_active() -> bool
 function __dq_current_exception() -> Exception
@@ -52,15 +31,42 @@ function __dq_clear_exception()
 function __dq_begin_catch()
 function __dq_end_catch()
 function __dq_exception_type_is(catchname : ^cchar) -> bool
-function __dq_cstr_len(s : ^cchar) -> uint
-function __dq_trim_trailing_newline(s : ^cchar)
-function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint
-function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo)
-function __dq_print_backtrace_frame(index : int, pc : pointer)
+
+function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
 
 implementation
 
-function Exception.*Create(amsg : strview):  
+struct SDqDlInfo:
+  dli_fname : ^cchar
+  dli_fbase : pointer
+  dli_sname : ^cchar
+  dli_saddr : pointer
+endstruct
+
+var libc_stderr : pointer  [[external("stderr")]]
+
+function libc_backtrace(buffer : pointer, size : int) -> int  [[external('backtrace')]]
+function libc_backtrace_symbols_fd(buffer : pointer, size : int, fd : int)  [[external('backtrace_symbols_fd')]]
+function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int  [[external('dladdr')]]
+function libc_snprintf(str : ^cchar, size : uint, fmt : ^cchar, ...) -> int  [[external('snprintf')]]
+function libc_popen(command : ^cchar, mode : ^cchar) -> pointer  [[external('popen')]]
+function libc_pclose(stream : pointer) -> int  [[external('pclose')]]
+function libc_fgets(s : ^cchar, size : int, stream : pointer) -> ^cchar  [[external('fgets')]]
+function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
+function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+
+function __dq_cstr_len(s : ^cchar) -> uint
+function __dq_trim_trailing_newline(s : ^cchar)
+
+function __dq_exception_addref(e : Exception)
+function __dq_exception_release(e : Exception)
+function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo)
+function __dq_print_backtrace_frame(index : int, pc : pointer)
+function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint
+
+//-------------------------------------------------------------------------------------------------
+
+function Exception.*Create(amsg : strview):
   message.Set(amsg)
   backtrace_count = 0
   refcount = 1

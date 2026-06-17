@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.4"
+#define DQ_COMPILER_VERSION  "0.20.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.5:
+  - Code generation fix for returning objects
+  - Exception handling fixes
 v0.20.4:
   - Exceptions / 5: SIGSEGV catching
 v0.20.3:

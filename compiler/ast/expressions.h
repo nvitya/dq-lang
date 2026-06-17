@@ -93,6 +93,9 @@ public:
   OExpr *  ptrexpr;
   /* ctor */ OLValueDeref(OExpr * aptr);
   LlValue *  GenerateAddress(OScope * scope) override;
+  LlValue *  Generate(OScope * scope) override;
+  bool       IsObjectReferenceExpr() const override;
+  LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };

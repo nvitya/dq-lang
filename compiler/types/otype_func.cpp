@@ -198,6 +198,12 @@ OType * OTypeFunc::ResolvedRetType() const
   return (rettype ? rettype->ResolveAlias() : nullptr);
 }
 
+OType * OTypeFunc::GetLlRetType() const
+{
+  auto * compound = dynamic_cast<OCompoundType *>(ResolvedRetType());
+  return ((compound && compound->IsObject()) ? rettype->GetPointerType() : rettype);
+}
+
 bool OTypeFunc::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 {
   if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_FUNCREF)) return false;
@@ -622,7 +628,7 @@ LlType * OTypeFunc::CreateLlType()  // do not call GetLlType() until the functio
   LlType *  ll_rettype;
   if (rettype)
   {
-    ll_rettype = ResolvedRetType()->GetLlType();
+    ll_rettype = GetLlRetType()->GetLlType();
   }
   else
   {
@@ -836,9 +842,9 @@ void OValSymFunc::GenerateFuncBody()
   LlType * ll_rettype = nullptr;
   if (vsresult)
   {
-    ll_rettype = vsresult->ptype->GetLlType();
+    ll_rettype = tfunc->GetLlRetType()->GetLlType();
     auto * result_alloca = CreateEntryBlockAlloca(ll_rettype, nullptr, "result");
-    result_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(vsresult->ptype)));
+    result_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(tfunc->GetLlRetType())));
     vsresult->ll_value = result_alloca;
     ll_builder.CreateStore(llvm::Constant::getNullValue(ll_rettype), vsresult->ll_value);
     if (vsresult->ptype && TK_ANYVALUE == vsresult->ptype->ResolveAlias()->kind)
@@ -941,7 +947,8 @@ void OValSymFunc::GenerateFuncRet()
   LlType * ll_rettype = nullptr;
   if (vsresult)
   {
-    ll_rettype = vsresult->ptype->GetLlType();
+    auto * tfunc = static_cast<OTypeFunc *>(ptype);
+    ll_rettype = tfunc->GetLlRetType()->GetLlType();
   }
 
   if (g_opt.dbg_info)  // this jumps to the "endfunc"

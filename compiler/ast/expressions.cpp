@@ -352,6 +352,29 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
   return ptrexpr->Generate(scope);  // the pointer value IS the address
 }
 
+LlValue * OLValueDeref::Generate(OScope * scope)
+{
+  if (TK_OBJECT == ptype->ResolveAlias()->kind)
+  {
+    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), GenerateAddress(scope), "obj.deref");
+  }
+  return OLValueExpr::Generate(scope);
+}
+
+LlValue * OLValueDeref::GenerateObjectAddress(OScope * scope)
+{
+  if (TK_OBJECT == ptype->ResolveAlias()->kind)
+  {
+    return Generate(scope);
+  }
+  return GenerateAddress(scope);
+}
+
+bool OLValueDeref::IsObjectReferenceExpr() const
+{
+  return TK_OBJECT == ptype->ResolveAlias()->kind;
+}
+
 void OLValueDeref::FoldChildren()
 {
   OExpr::FoldTree(&ptrexpr);
@@ -549,6 +572,29 @@ LlValue * OLValueIndex::Generate(OScope * scope)
   {
     return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
   }
+/*
+  if (TK_DYN_ARRAY == containertype->kind)
+  {
+    LlValue * elem_addr = GenerateAddress(scope);
+    LlType * ll_type = ptype->GetLlType();
+    LlBasicBlock * bb_cur = ll_builder.GetInsertBlock();
+    LlFunction * ll_func = bb_cur->getParent();
+    LlBasicBlock * bb_load = LlBasicBlock::Create(ll_ctx, "dyn.index.load", ll_func);
+    LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "dyn.index.done", ll_func);
+    LlValue * is_null = ll_builder.CreateICmpEQ(elem_addr, llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+    ll_builder.CreateCondBr(is_null, bb_done, bb_load);
+
+    ll_builder.SetInsertPoint(bb_load);
+    LlValue * loaded = ll_builder.CreateLoad(ll_type, elem_addr, "dyn.index.value");
+    ll_builder.CreateBr(bb_done);
+
+    ll_builder.SetInsertPoint(bb_done);
+    auto * result = ll_builder.CreatePHI(ll_type, 2, "dyn.index.result");
+    result->addIncoming(llvm::Constant::getNullValue(ll_type), bb_cur);
+    result->addIncoming(loaded, bb_load);
+    return result;
+  }
+*/
   return OLValueExpr::Generate(scope);
 }
 
@@ -1595,10 +1641,10 @@ LlValue * OArrayLitToDynArrayExpr::Generate(OScope * scope)
 {
   OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
   OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
-  
+
   LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.literal");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
-  
+
   LlValue * ll_arr = arraylit->Generate(scope);
   LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
   ll_builder.CreateStore(ll_arr, arraddr);
@@ -1606,7 +1652,7 @@ LlValue * OArrayLitToDynArrayExpr::Generate(OScope * scope)
   LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
-      
+
   LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
   GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
 
@@ -1636,16 +1682,16 @@ LlValue * OArrayToDynArrayExpr::Generate(OScope * scope)
 {
   OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
   OTypeArray * arrtype = static_cast<OTypeArray *>(arrayexpr->ptype->ResolveAlias());
-  
+
   LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.array");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
-  
+
   LlValue * arrayaddr = arrayexpr->GenerateAddress(scope);
 
   LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
-      
+
   LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
   GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
 
@@ -1674,14 +1720,14 @@ void OArrayToDynArrayExpr::DeleteChildTree()
 LlValue * OSliceToDynArrayExpr::Generate(OScope * scope)
 {
   OTypeDynArray * dyntype = static_cast<OTypeDynArray *>(ptype);
-  
+
   LlValue * dynaddr = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.assign.slice");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
-  
+
   LlValue * slice = sliceexpr->Generate(scope);
   LlValue * srcptr = ll_builder.CreateExtractValue(slice, {0}, "dyn.slice.ptr");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "dyn.slice.len");
-      
+
   GenerateDynArrayAssignData(scope, dyntype, dynaddr, srcptr, count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
@@ -2051,7 +2097,7 @@ static LlFuncType * CreateObjectFuncRefLlCallType(OTypeFunc * sigtype)
   LlType * ll_rettype = llvm::Type::getVoidTy(ll_ctx);
   if (sigtype && sigtype->rettype)
   {
-    ll_rettype = sigtype->ResolvedRetType()->GetLlType();
+    ll_rettype = sigtype->GetLlRetType()->GetLlType();
   }
 
   return LlFuncType::get(ll_rettype, ll_partypes, sigtype && sigtype->has_varargs);

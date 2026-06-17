@@ -305,7 +305,20 @@ void OStmtReturn::Generate(OScope * scope)
     }
     else
     {
-      ll_value = value->Generate(scope);
+      auto * result_object_type = dynamic_cast<OTypeObject *>(vsfunc->vsresult->ptype ? vsfunc->vsresult->ptype->ResolveAlias() : nullptr);
+      if (result_object_type)
+      {
+        ll_value = value->Generate(scope);
+        OType * storage_type = vsfunc->vsresult->GetStorageType();
+        if (ll_value->getType() != storage_type->GetLlType())
+        {
+          ll_value = ll_builder.CreateBitCast(ll_value, storage_type->GetLlType());
+        }
+      }
+      else
+      {
+        ll_value = value->Generate(scope);
+      }
       ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
     }
   }

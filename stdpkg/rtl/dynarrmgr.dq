@@ -531,15 +531,7 @@ function DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : point
 endfunc
 
 function DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer:
-  if arr == null:
-    DynArrRuntimeError('DynArray access out of bounds')
-    return null
-  endif
-  if index < 0:
-    DynArrRuntimeError('DynArray access out of bounds')
-    return null
-  endif
-  if index >= arr.length:
+  if arr == null  or  index < 0  or  index >= arr.length:
     DynArrRuntimeError('DynArray access out of bounds')
     return null
   endif

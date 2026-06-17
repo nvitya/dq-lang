@@ -22,7 +22,7 @@ Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match 
 With a DQ file open, click the play button in the editor title or run `DQ: Run Current File` from the Command Palette. The extension saves the file and runs:
 
 ```bash
-dq-run /absolute/path/to/current-file.dq
+dq-run -g -O0 /absolute/path/to/current-file.dq
 ```
 
 The process runs with the file's directory as its working directory. `dq-run` must be available on `PATH`, or set `dq.runPath` to its executable path in VSCode settings, for example:

@@ -31,7 +31,7 @@ function activate(context) {
         scope,
         `Run ${path.basename(document.fileName)}`,
         "DQ",
-        new vscode.ProcessExecution(runPath, [document.fileName], {
+        new vscode.ProcessExecution(runPath, ["-g", "-O0", document.fileName], {
           cwd: path.dirname(document.fileName)
         }),
         ["$dq"]

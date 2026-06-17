@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.9"
+#define DQ_COMPILER_VERSION  "0.20.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.10:
+  - Debug info generation fix for compound types
 v0.20.9:
   - Backtrace printing fix: skipping the first two internal positions
 v0.20.8:

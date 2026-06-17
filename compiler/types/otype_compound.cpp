@@ -899,6 +899,12 @@ LlType * OCompoundType::CreateLlType()
 LlDiType * OCompoundType::CreateDiType()
 {
   EnsureLayout();
+  uint64_t total_bits = uint64_t(bytesize) * 8;
+
+  llvm::DICompositeType * di_compound_type = di_builder->createReplaceableCompositeType(
+      llvm::dwarf::DW_TAG_structure_type, name, nullptr, nullptr, 0,
+      0, total_bits, alignsize * 8, llvm::DINode::FlagZero);
+  di_type = di_compound_type;
 
   vector<llvm::Metadata *> elements;
   if (base_type)
@@ -925,13 +931,8 @@ LlDiType * OCompoundType::CreateDiType()
         offset_bits, llvm::DINode::FlagZero, storage_type->GetDiType()));
   }
 
-  uint64_t total_bits = uint64_t(bytesize) * 8;
-
-  return di_builder->createStructType(
-      nullptr, name, nullptr, 0, total_bits, 0,
-      llvm::DINode::FlagZero, nullptr,
-      di_builder->getOrCreateArray(elements)
-  );
+  di_builder->replaceArrays(di_compound_type, di_builder->getOrCreateArray(elements));
+  return di_compound_type;
 }
 
 bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)

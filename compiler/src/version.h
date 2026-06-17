@@ -11,12 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.7"
+#define DQ_COMPILER_VERSION  "0.20.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.8:
+  - Exceptions use embedded cstring(127) instead str (dynamic string) for message
 v0.20.7:
-  - Expression handling fix for not using invalid return values
+  - Exception handling fix for not using invalid return values
 v0.20.6:
   - Print backtrace with function names and source code lineinfo
 v0.20.5:

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.8"
+#define DQ_COMPILER_VERSION  "0.20.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.9:
+  - Backtrace printing fix: skipping the first two internal positions
 v0.20.8:
   - Exceptions use embedded cstring(127) instead str (dynamic string) for message
 v0.20.7:

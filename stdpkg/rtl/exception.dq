@@ -4,6 +4,7 @@ const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
 const DQ_EXCEPTION_MSG_MAX       : int = 255
 const DQ_BACKTRACE_CMD_MAX       : int = 1024
 const DQ_BACKTRACE_LINE_MAX      : int = 1024
+const DQ_BACKTRACE_INTERNAL_SKIP : int = 2
 
 object Exception:
 public
@@ -58,11 +59,13 @@ function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
 function __dq_cstr_len(s : ^cchar) -> uint
 function __dq_trim_trailing_newline(s : ^cchar)
+function __dq_cstr_contains(text : ^cchar, needle : ^cchar) -> bool
+function __dq_backtrace_name_is_internal(name : ^cchar) -> bool
 
 function __dq_exception_addref(e : Exception)
 function __dq_exception_release(e : Exception)
-function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo)
-function __dq_print_backtrace_frame(index : int, pc : pointer)
+function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo) -> bool
+function __dq_print_backtrace_frame(index : int, pc : pointer, hide_internal : bool) -> bool
 function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint
 
 //-------------------------------------------------------------------------------------------------
@@ -102,8 +105,11 @@ function Exception.PrintBacktrace():
   @.printf("Backtrace =\n")
   @.libc_fflush(null)
   var i : int = 0
+  var printed : int = 0
   while i < backtrace_count:
-    @.__dq_print_backtrace_frame(i, backtrace[i])
+    if @.__dq_print_backtrace_frame(printed, backtrace[i], printed < @.DQ_BACKTRACE_INTERNAL_SKIP):
+      printed += 1
+    endif
     i += 1
   endwhile
 endfunc
@@ -128,6 +134,32 @@ function __dq_trim_trailing_newline(s : ^cchar):
   endwhile
 endfunc
 
+function __dq_cstr_contains(text : ^cchar, needle : ^cchar) -> bool:
+  if text == null or needle == null:
+    return false
+  endif
+
+  var p : ^cchar = text
+  while p^ <> cchar(0):
+    var t : ^cchar = p
+    var n : ^cchar = needle
+    while n^ <> cchar(0) and t^ == n^:
+      t += 1
+      n += 1
+    endwhile
+    if n^ == cchar(0):
+      return true
+    endif
+    p += 1
+  endwhile
+
+  return false
+endfunc
+
+function __dq_backtrace_name_is_internal(name : ^cchar) -> bool:
+  return __dq_cstr_contains(name, "CaptureBacktrace") or __dq_cstr_contains(name, "__dq_raise_exception")
+endfunc
+
 function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint:
   if pc == null:
     return 0
@@ -139,7 +171,7 @@ function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint:
   endif
 endfunc
 
-function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo):
+function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo) -> bool:
   if info.dli_sname <> null:
     @.libc_fprintf(@.libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
   elif info.dli_fname <> null:
@@ -147,13 +179,18 @@ function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDq
   else:
     @.libc_fprintf(@.libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
   endif
+  return true
 endfunc
 
-function __dq_print_backtrace_frame(index : int, pc : pointer):
+function __dq_print_backtrace_frame(index : int, pc : pointer, hide_internal : bool) -> bool:
   var info : SDqDlInfo = {}
   if @.libc_dladdr(pc, info) == 0 or info.dli_fname == null:
     @.libc_fprintf(@.libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
-    return
+    return true
+  endif
+
+  if hide_internal and __dq_backtrace_name_is_internal(info.dli_sname):
+    return false
   endif
 
   var cmd  : [DQ_BACKTRACE_CMD_MAX]cchar = {}
@@ -164,24 +201,26 @@ function __dq_print_backtrace_frame(index : int, pc : pointer):
                   "addr2line -f -p -e '%s' 0x%lx 2>/dev/null", info.dli_fname, offs)
   var pipe : pointer = @.libc_popen(&cmd[0], "r")
   if pipe == null:
-    __dq_print_backtrace_fallback(index, pc, info)
-    return
+    return __dq_print_backtrace_fallback(index, pc, info)
   endif
 
   var text : ^cchar = @.libc_fgets(&line[0], DQ_BACKTRACE_LINE_MAX, pipe)
   @.libc_pclose(pipe)
   if text == null or line[0] == cchar(0):
-    __dq_print_backtrace_fallback(index, pc, info)
-    return
+    return __dq_print_backtrace_fallback(index, pc, info)
   endif
 
   __dq_trim_trailing_newline(&line[0])
+  if hide_internal and __dq_backtrace_name_is_internal(&line[0]):
+    return false
+  endif
+
   if line[0] == cchar(63) and line[1] == cchar(63):
-    __dq_print_backtrace_fallback(index, pc, info)
-    return
+    return __dq_print_backtrace_fallback(index, pc, info)
   endif
 
   @.libc_fprintf(@.libc_stderr, "  #%d %s\n", index, &line[0])
+  return true
 endfunc
 
 var __dq_active_exception : Exception = null
@@ -240,7 +279,7 @@ function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, o
     return
   endif
 
-  e.backtrace_count = bt_count
+  e.backtrace_count = bt_count - DQ_BACKTRACE_INTERNAL_SKIP
   if e.backtrace_count < 0:
     e.backtrace_count = 0
   elif e.backtrace_count > DQ_EXCEPTION_BACKTRACE_MAX:
@@ -249,7 +288,7 @@ function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, o
 
   var i : int = 0
   while i < e.backtrace_count:
-    e.backtrace[i] = ^pointer(bt)[i]^
+    e.backtrace[i] = ^pointer(bt)[i + DQ_BACKTRACE_INTERNAL_SKIP]^
     i += 1
   endwhile
 

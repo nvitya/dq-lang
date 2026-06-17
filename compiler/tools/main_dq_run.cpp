@@ -28,6 +28,7 @@ struct SDqRunOptions
   vector<string>  run_args;
   string          input_filename;
   string          output_filename;
+  bool            has_compiler_options = false;
   bool            has_dash_o = false;
 };
 
@@ -77,6 +78,7 @@ static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
           return false;
         }
 
+        opt.has_compiler_options = true;
         opt.compiler_args.push_back(arg);
 
         if (NeedsCompilerValue(arg))
@@ -180,8 +182,13 @@ int main(int argc, char ** argv)
   }
 
   OProcessRunner compiler_runner;
-  compiler_runner.args.reserve(opt.compiler_args.size() + 1);
+  compiler_runner.args.reserve(opt.compiler_args.size() + (opt.has_compiler_options ? 1 : 3));
   compiler_runner.args.push_back(ResolveCompilerExecutable());
+  if (!opt.has_compiler_options)
+  {
+    compiler_runner.args.push_back("-g");
+    compiler_runner.args.push_back("-O0");
+  }
   for (const string & arg : opt.compiler_args)
   {
     compiler_runner.args.push_back(arg);

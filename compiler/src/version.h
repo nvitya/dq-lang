@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.10"
+#define DQ_COMPILER_VERSION  "0.20.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.11:
+  - dq-run uses "-g -O0" compiler mode by default
 v0.20.10:
   - Debug info generation fix for compound types
 v0.20.9:

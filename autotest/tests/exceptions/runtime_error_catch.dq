@@ -9,9 +9,10 @@ function *Main() -> int:
     RuntimeError("runtime boom")
     reached = 1
   except Exception as e:
-    printf("exception.runtime = ")  //?check("exception.runtime", "runtime boom reached=0")
+    printf("exception.runtime = ")
     e.PrintMessage()
     printf(" reached=%d\n", reached)
+    //?check("exception.runtime", "runtime boom reached=0")
   endtry
 
   reached = 0
@@ -20,9 +21,10 @@ function *Main() -> int:
     var ch : char = s.Pop()
     reached = 2
   except Exception as e:
-    printf("exception.rtl = ")  //?check("exception.rtl", "DynStr pop from empty string reached=0")
+    printf("exception.rtl = ")
     e.PrintMessage()
     printf(" reached=%d\n", reached)
+    //?check("exception.rtl", "DynStr pop from empty string reached=0")
   endtry
 
   reached = 0
@@ -31,9 +33,10 @@ function *Main() -> int:
     var item : int = a[2]
     reached = 3
   except Exception as e:
-    printf("exception.array = ")  //?check("exception.array", "DynArray access out of bounds reached=0")
+    printf("exception.array = ")
     e.PrintMessage()
     printf(" reached=%d\n", reached)
+    //?check("exception.array", "DynArray access out of bounds reached=0")
   endtry
 
   return 0

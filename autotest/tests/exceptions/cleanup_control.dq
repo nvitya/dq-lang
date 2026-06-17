@@ -3,16 +3,18 @@
 
 use libc/stdio
 
+
+
 object OMarker:
   id : int
 
   function *Create(aid : int):
     id = aid
-    @.printf("cleanup.create = %d\n", id)
+    @.printf("cleanup.create.%d = 1\n", id)
   endfunc
 
   function *Destroy():
-    @.printf("cleanup.destroy = %d\n", id)
+    @.printf("cleanup.destroy.%d = 1\n", id)
   endfunc
 endobj
 
@@ -48,22 +50,22 @@ endfunc
 
 function *Main() -> int:
   try:
-    ThrowWithLocals()       //?check("cleanup.create", 1)
-                            //?check("cleanup.create", 2)
-                            //?check("cleanup.destroy", 2)
-                            //?check("cleanup.destroy", 1)
+    ThrowWithLocals()       //?check("cleanup.create.1", 1)
+                            //?check("cleanup.create.2", 1)
+                            //?check("cleanup.destroy.2", 1)
+                            //?check("cleanup.destroy.1", 1)
   except Exception as e:
     printf("cleanup.exception = ")
     e.PrintMessage()
     printf("\n")            //?check("cleanup.exception", "cleanup")
   endtry
 
-  BreakWithLocals()         //?check("cleanup.create", 3)
-                            //?check("cleanup.destroy", 3)
+  BreakWithLocals()         //?check("cleanup.create.3", 1)
+                            //?check("cleanup.destroy.3", 1)
                             //?check("cleanup.break.done", 1)
 
-  ContinueWithLocals()      //?check("cleanup.create", 4)
-                            //?check("cleanup.destroy", 4)
+  ContinueWithLocals()      //?check("cleanup.create.4", 1)
+                            //?check("cleanup.destroy.4", 1)
                             //?check("cleanup.continue.done", 1)
 
   return 0

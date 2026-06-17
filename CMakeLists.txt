@@ -47,9 +47,24 @@ add_custom_target(autotest
   USES_TERMINAL
 )
 
+add_custom_target(autotest_O0
+  COMMAND ${DQ_AUTOTEST_COMMAND} -O0
+  DEPENDS dq-comp dqatrun
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+)
+
 add_custom_target(test
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   COMMAND ${DQ_AUTOTEST_COMMAND}
+  DEPENDS dq-comp dqatrun
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+)
+
+add_custom_target(test_O0
+  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
+  COMMAND ${DQ_AUTOTEST_COMMAND} -O0
   DEPENDS dq-comp dqatrun
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL

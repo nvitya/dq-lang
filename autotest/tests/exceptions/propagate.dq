@@ -14,9 +14,10 @@ function *Main() -> int:
     Thrower()
     reached = 2
   except Exception as e:
-    printf("exception.propagate = caught ")  //?check("exception.propagate", "caught from thrower reached=0")
+    printf("exception.propagate = caught ")
     e.PrintMessage()
     printf(" reached=%d\n", reached)
+    //?check("exception.propagate", "caught from thrower reached=0")
   endtry
 
   return 0

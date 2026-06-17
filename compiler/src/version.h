@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.5"
+#define DQ_COMPILER_VERSION  "0.20.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.6:
+  - Print backtrace with function names and source code lineinfo
 v0.20.5:
   - Code generation fix for returning objects
   - Exception handling fixes

@@ -568,12 +568,14 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
 
 LlValue * OLValueIndex::Generate(OScope * scope)
 {
-  if (TK_DYNSTR == containertype->kind || TK_STRVIEW == containertype->kind)
+  OType * resolved_container = containertype->ResolveAlias();
+  if (TK_DYNSTR == resolved_container->kind || TK_STRVIEW == resolved_container->kind)
   {
     return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
   }
+
 /*
-  if (TK_DYN_ARRAY == containertype->kind)
+  if (TK_DYN_ARRAY == resolved_container->kind)
   {
     LlValue * elem_addr = GenerateAddress(scope);
     LlType * ll_type = ptype->GetLlType();
@@ -595,6 +597,7 @@ LlValue * OLValueIndex::Generate(OScope * scope)
     return result;
   }
 */
+
   return OLValueExpr::Generate(scope);
 }
 

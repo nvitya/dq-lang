@@ -307,6 +307,7 @@ void ODqCompClargs::ParseCmdLineArgsVerblevel(int argc, char ** argv)
 void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 {
   string explicit_output;
+  string build_tag_suffix;
   g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.compiler_executable_dir = CompilerExecutableDir(g_opt.compiler_executable);
   g_opt.build_tag = DefaultBuildTag();
@@ -371,6 +372,28 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
         {
           ++errorcnt;
           print("Missing build tag after --build\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--build-suffix" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i;
+          build_tag_suffix = argv[i];
+          if (build_tag_suffix.empty())
+          {
+            ++errorcnt;
+            print("Empty build tag suffix after --build-suffix\n");
+            PrintUsage();
+            return;
+          }
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing build tag suffix after --build-suffix\n");
           PrintUsage();
           return;
         }
@@ -515,6 +538,11 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     }
   }
 
+  if (!build_tag_suffix.empty())
+  {
+    g_opt.build_tag += "-" + build_tag_suffix;
+  }
+
   if (g_opt.print_version)
   {
     return;
@@ -622,6 +650,7 @@ void ODqCompClargs::PrintUsage()
   print("  --no-use-sys : do not add the implicit merged sys module\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
+  print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

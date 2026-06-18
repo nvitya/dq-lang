@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.11"
+#define DQ_COMPILER_VERSION  "0.20.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.12:
+  - new compiler switch: --build-suffix to append a suffix to the default build-tags in the .dqbuild subdir
+  - the .dqm artifact file names do not contain compiler switches or defines
 v0.20.11:
   - dq-run uses "-g -O0" compiler mode by default
 v0.20.10:

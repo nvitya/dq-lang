@@ -67,7 +67,6 @@ private:
   static filesystem::path BuildArtifactPathForModule(const string & package_name, const string & local_path,
                                                      const filesystem::path & root_dir, bool interface_only);
   static bool IsPackageRoot(const string & package_name, const filesystem::path & root_dir);
-  static string BuildArtifactSuffix();
   static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path);
   static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,
                                  const string & source_text, string & rerror);

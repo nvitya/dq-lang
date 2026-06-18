@@ -821,6 +821,8 @@ bool OTestFile::ExecCompiler(bool errmode)
   if (errmode)
   {
     procrunner.args.push_back("-DERRORTEST");
+    procrunner.args.push_back("--build-suffix");
+    procrunner.args.push_back("errtest");
   }
   if (!procrunner.Run())
   {

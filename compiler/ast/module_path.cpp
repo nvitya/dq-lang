@@ -137,46 +137,8 @@ filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_
     result /= item;
   }
 
-  string suffix = BuildArtifactSuffix();
-  result += suffix + (interface_only ? ".dqm_if" : ".dqm");
+  result += (interface_only ? ".dqm_if" : ".dqm");
   return result.lexically_normal();
-}
-
-string OModulePath::BuildArtifactSuffix()
-{
-  string suffix;
-  if (g_opt.optlevel != 0)
-  {
-    suffix += ".O" + to_string(g_opt.optlevel);
-  }
-  if (g_opt.dbg_info)
-  {
-    suffix += ".g";
-  }
-  for (const OCmdLineDefine & def : g_opt.cmdline_defines)
-  {
-    suffix += ".D";
-    suffix += def.name;
-    if (def.has_bool_value)
-    {
-      suffix += def.bool_value ? "_true" : "_false";
-    }
-    else if (def.has_int_value)
-    {
-      suffix += "_" + to_string(def.int_value);
-    }
-  }
-
-  for (char & c : suffix)
-  {
-    bool ok = ((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z'))
-              || ((c >= '0') && (c <= '9')) || ('.' == c) || ('_' == c) || ('-' == c);
-    if (!ok)
-    {
-      c = '_';
-    }
-  }
-  return suffix;
 }
 
 filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_path)
@@ -441,7 +403,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
       {
         rartifact_path /= item;
       }
-      rartifact_path += BuildArtifactSuffix() + ".dqm";
+      rartifact_path += ".dqm";
       rartifact_path = rartifact_path.lexically_normal();
       return true;
     }

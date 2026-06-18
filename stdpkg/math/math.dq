@@ -3,45 +3,32 @@
 // The un-suffixed C functions use float64, matching C double.
 // The 32-suffixed DQ functions use float32 and link to the C "...f" symbols.
 
-// trigonometric functions
-function Acos(x : float64) -> float64 [[external('acos')]];
-function Asin(x : float64) -> float64 [[external('asin')]];
-function Atan(x : float64) -> float64 [[external('atan')]];
+// float64 variants
+
+// trigonometric functions - float64
+function ACos(x : float64) -> float64 [[external('acos')]];
+function ASin(x : float64) -> float64 [[external('asin')]];
+function ATan(x : float64) -> float64 [[external('atan')]];
 function Atan2(y : float64, x : float64) -> float64 [[external('atan2')]];
 function Cos(x : float64) -> float64 [[external('cos')]];
 function Sin(x : float64) -> float64 [[external('sin')]];
 function Tan(x : float64) -> float64 [[external('tan')]];
 
-function Acos32(x : float32) -> float32 [[external('acosf')]];
-function Asin32(x : float32) -> float32 [[external('asinf')]];
-function Atan32(x : float32) -> float32 [[external('atanf')]];
-function Atan232(y : float32, x : float32) -> float32 [[external('atan2f')]];
-function Cos32(x : float32) -> float32 [[external('cosf')]];
-function Sin32(x : float32) -> float32 [[external('sinf')]];
-function Tan32(x : float32) -> float32 [[external('tanf')]];
+// hyperbolic functions - float64
+function ACosH(x : float64) -> float64 [[external('acosh')]];
+function ASinH(x : float64) -> float64 [[external('asinh')]];
+function ATanH(x : float64) -> float64 [[external('atanh')]];
+function CosH(x : float64) -> float64 [[external('cosh')]];
+function SinH(x : float64) -> float64 [[external('sinh')]];
+function TanH(x : float64) -> float64 [[external('tanh')]];
 
-// hyperbolic functions
-function Acosh(x : float64) -> float64 [[external('acosh')]];
-function Asinh(x : float64) -> float64 [[external('asinh')]];
-function Atanh(x : float64) -> float64 [[external('atanh')]];
-function Cosh(x : float64) -> float64 [[external('cosh')]];
-function Sinh(x : float64) -> float64 [[external('sinh')]];
-function Tanh(x : float64) -> float64 [[external('tanh')]];
-
-function Acosh32(x : float32) -> float32 [[external('acoshf')]];
-function Asinh32(x : float32) -> float32 [[external('asinhf')]];
-function Atanh32(x : float32) -> float32 [[external('atanhf')]];
-function Cosh32(x : float32) -> float32 [[external('coshf')]];
-function Sinh32(x : float32) -> float32 [[external('sinhf')]];
-function Tanh32(x : float32) -> float32 [[external('tanhf')]];
-
-// exponential and logarithmic functions
+// exponential and logarithmic functions - float64
 function Exp(x : float64) -> float64 [[external('exp')]];
 function Exp2(x : float64) -> float64 [[external('exp2')]];
 function Expm1(x : float64) -> float64 [[external('expm1')]];
 function Frexp(x : float64, exp : ^int32) -> float64 [[external('frexp')]];
-function Ilogb(x : float64) -> int32 [[external('ilogb')]];
-function Ldexp(x : float64, exp : int32) -> float64 [[external('ldexp')]];
+function ILogB(x : float64) -> int32 [[external('ilogb')]];
+function LdExp(x : float64, exp : int32) -> float64 [[external('ldexp')]];
 function Log(x : float64) -> float64 [[external('log')]];
 function Log10(x : float64) -> float64 [[external('log10')]];
 function Log1p(x : float64) -> float64 [[external('log1p')]];
@@ -51,12 +38,66 @@ function Modf(x : float64, intpart : ^float64) -> float64 [[external('modf')]];
 function Scalbn(x : float64, n : int32) -> float64 [[external('scalbn')]];
 function Scalbln(x : float64, n : int) -> float64 [[external('scalbln')]];
 
+// power and absolute-value functions - float64
+function Cbrt(x : float64) -> float64 [[external('cbrt')]];
+function FAbs(x : float64) -> float64 [[external('fabs')]];
+function Hypot(x : float64, y : float64) -> float64 [[external('hypot')]];
+function Pow(x : float64, y : float64) -> float64 [[external('pow')]];
+function Sqrt(x : float64) -> float64 [[external('sqrt')]];
+
+// nearest integer, remainder, and manipulation functions - float64
+function Ceil(x : float64) -> float64 [[external('ceil')]];
+function Floor(x : float64) -> float64 [[external('floor')]];
+function NearbyInt(x : float64) -> float64 [[external('nearbyint')]];
+function RInt(x : float64) -> float64 [[external('rint')]];
+function LrInt(x : float64) -> int [[external('lrint')]];
+function LlrInt(x : float64) -> int64 [[external('llrint')]];
+function Round(x : float64) -> float64 [[external('round')]];
+function LRound(x : float64) -> int [[external('lround')]];
+function LlRound(x : float64) -> int64 [[external('llround')]];
+function Trunc(x : float64) -> float64 [[external('trunc')]];
+function FMod(x : float64, y : float64) -> float64 [[external('fmod')]];
+function Remainder(x : float64, y : float64) -> float64 [[external('remainder')]];
+function Remquo(x : float64, y : float64, quo : ^int32) -> float64 [[external('remquo')]];
+
+// floating-point manipulation and comparison helpers - float64
+function Copysign(x : float64, y : float64) -> float64 [[external('copysign')]];
+function Nan(tagp : ^cchar) -> float64 [[external('nan')]];
+function NextAfter(x : float64, y : float64) -> float64 [[external('nextafter')]];
+function FDim(x : float64, y : float64) -> float64 [[external('fdim')]];
+function FMax(x : float64, y : float64) -> float64 [[external('fmax')]];
+function FMin(x : float64, y : float64) -> float64 [[external('fmin')]];
+function FMa(x : float64, y : float64, z : float64) -> float64 [[external('fma')]];
+
+//-------------------------------------------------------------------------------------------------
+// float32 variants
+//-------------------------------------------------------------------------------------------------
+
+// trigonometric functions - float32
+function ACos32(x : float32) -> float32 [[external('acosf')]];
+function ASin32(x : float32) -> float32 [[external('asinf')]];
+function ATan32(x : float32) -> float32 [[external('atanf')]];
+function ATan232(y : float32, x : float32) -> float32 [[external('atan2f')]];
+function Cos32(x : float32) -> float32 [[external('cosf')]];
+function Sin32(x : float32) -> float32 [[external('sinf')]];
+function Tan32(x : float32) -> float32 [[external('tanf')]];
+
+
+// hyperbolic functions - float32
+function ACosH32(x : float32) -> float32 [[external('acoshf')]];
+function ASinH32(x : float32) -> float32 [[external('asinhf')]];
+function ATanH32(x : float32) -> float32 [[external('atanhf')]];
+function CosH32(x : float32) -> float32 [[external('coshf')]];
+function SinH32(x : float32) -> float32 [[external('sinhf')]];
+function TanH32(x : float32) -> float32 [[external('tanhf')]];
+
+// exponential and logarithmic functions - float32
 function Exp32(x : float32) -> float32 [[external('expf')]];
 function Exp232(x : float32) -> float32 [[external('exp2f')]];
 function Expm132(x : float32) -> float32 [[external('expm1f')]];
 function Frexp32(x : float32, exp : ^int32) -> float32 [[external('frexpf')]];
 function Ilogb32(x : float32) -> int32 [[external('ilogbf')]];
-function Ldexp32(x : float32, exp : int32) -> float32 [[external('ldexpf')]];
+function LdExp32(x : float32, exp : int32) -> float32 [[external('ldexpf')]];
 function Log32(x : float32) -> float32 [[external('logf')]];
 function Log1032(x : float32) -> float32 [[external('log10f')]];
 function Log1p32(x : float32) -> float32 [[external('log1pf')]];
@@ -66,72 +107,45 @@ function Modf32(x : float32, intpart : ^float32) -> float32 [[external('modff')]
 function Scalbn32(x : float32, n : int32) -> float32 [[external('scalbnf')]];
 function Scalbln32(x : float32, n : int) -> float32 [[external('scalblnf')]];
 
-// power and absolute-value functions
-function Cbrt(x : float64) -> float64 [[external('cbrt')]];
-function Fabs(x : float64) -> float64 [[external('fabs')]];
-function Hypot(x : float64, y : float64) -> float64 [[external('hypot')]];
-function Pow(x : float64, y : float64) -> float64 [[external('pow')]];
-function Sqrt(x : float64) -> float64 [[external('sqrt')]];
-
+// power and absolute-value functions - float32
 function Cbrt32(x : float32) -> float32 [[external('cbrtf')]];
-function Fabs32(x : float32) -> float32 [[external('fabsf')]];
+function FAbs32(x : float32) -> float32 [[external('fabsf')]];
 function Hypot32(x : float32, y : float32) -> float32 [[external('hypotf')]];
 function Pow32(x : float32, y : float32) -> float32 [[external('powf')]];
 function Sqrt32(x : float32) -> float32 [[external('sqrtf')]];
 
-// error and gamma functions
+// error and gamma functions - float32
 function Erf(x : float64) -> float64 [[external('erf')]];
 function Erfc(x : float64) -> float64 [[external('erfc')]];
-function Lgamma(x : float64) -> float64 [[external('lgamma')]];
-function Tgamma(x : float64) -> float64 [[external('tgamma')]];
+function LGamma(x : float64) -> float64 [[external('lgamma')]];
+function TGamma(x : float64) -> float64 [[external('tgamma')]];
 
+// error and gamma functions - float32
 function Erf32(x : float32) -> float32 [[external('erff')]];
 function Erfc32(x : float32) -> float32 [[external('erfcf')]];
-function Lgamma32(x : float32) -> float32 [[external('lgammaf')]];
-function Tgamma32(x : float32) -> float32 [[external('tgammaf')]];
+function LGamma32(x : float32) -> float32 [[external('lgammaf')]];
+function TGamma32(x : float32) -> float32 [[external('tgammaf')]];
 
-// nearest integer, remainder, and manipulation functions
-function Ceil(x : float64) -> float64 [[external('ceil')]];
-function Floor(x : float64) -> float64 [[external('floor')]];
-function Nearbyint(x : float64) -> float64 [[external('nearbyint')]];
-function Rint(x : float64) -> float64 [[external('rint')]];
-function Lrint(x : float64) -> int [[external('lrint')]];
-function Llrint(x : float64) -> int64 [[external('llrint')]];
-function Round(x : float64) -> float64 [[external('round')]];
-function Lround(x : float64) -> int [[external('lround')]];
-function Llround(x : float64) -> int64 [[external('llround')]];
-function Trunc(x : float64) -> float64 [[external('trunc')]];
-function Fmod(x : float64, y : float64) -> float64 [[external('fmod')]];
-function Remainder(x : float64, y : float64) -> float64 [[external('remainder')]];
-function Remquo(x : float64, y : float64, quo : ^int32) -> float64 [[external('remquo')]];
-
+// nearest integer, remainder, and manipulation functions - float32
 function Ceil32(x : float32) -> float32 [[external('ceilf')]];
 function Floor32(x : float32) -> float32 [[external('floorf')]];
-function Nearbyint32(x : float32) -> float32 [[external('nearbyintf')]];
+function NearbyInt32(x : float32) -> float32 [[external('nearbyintf')]];
 function Rint32(x : float32) -> float32 [[external('rintf')]];
-function Lrint32(x : float32) -> int [[external('lrintf')]];
-function Llrint32(x : float32) -> int64 [[external('llrintf')]];
+function LrInt32(x : float32) -> int [[external('lrintf')]];
+function LlrInt32(x : float32) -> int64 [[external('llrintf')]];
 function Round32(x : float32) -> float32 [[external('roundf')]];
-function Lround32(x : float32) -> int [[external('lroundf')]];
-function Llround32(x : float32) -> int64 [[external('llroundf')]];
+function LRound32(x : float32) -> int [[external('lroundf')]];
+function LlRound32(x : float32) -> int64 [[external('llroundf')]];
 function Trunc32(x : float32) -> float32 [[external('truncf')]];
 function Fmod32(x : float32, y : float32) -> float32 [[external('fmodf')]];
 function Remainder32(x : float32, y : float32) -> float32 [[external('remainderf')]];
 function Remquo32(x : float32, y : float32, quo : ^int32) -> float32 [[external('remquof')]];
 
-// floating-point manipulation and comparison helpers
-function Copysign(x : float64, y : float64) -> float64 [[external('copysign')]];
-function Nan(tagp : ^cchar) -> float64 [[external('nan')]];
-function Nextafter(x : float64, y : float64) -> float64 [[external('nextafter')]];
-function Fdim(x : float64, y : float64) -> float64 [[external('fdim')]];
-function Fmax(x : float64, y : float64) -> float64 [[external('fmax')]];
-function Fmin(x : float64, y : float64) -> float64 [[external('fmin')]];
-function Fma(x : float64, y : float64, z : float64) -> float64 [[external('fma')]];
-
-function Copysign32(x : float32, y : float32) -> float32 [[external('copysignf')]];
+// floating-point manipulation and comparison helpers - float32
+function CopySign32(x : float32, y : float32) -> float32 [[external('copysignf')]];
 function Nan32(tagp : ^cchar) -> float32 [[external('nanf')]];
-function Nextafter32(x : float32, y : float32) -> float32 [[external('nextafterf')]];
-function Fdim32(x : float32, y : float32) -> float32 [[external('fdimf')]];
-function Fmax32(x : float32, y : float32) -> float32 [[external('fmaxf')]];
-function Fmin32(x : float32, y : float32) -> float32 [[external('fminf')]];
-function Fma32(x : float32, y : float32, z : float32) -> float32 [[external('fmaf')]];
+function NextAfter32(x : float32, y : float32) -> float32 [[external('nextafterf')]];
+function FDim32(x : float32, y : float32) -> float32 [[external('fdimf')]];
+function FMax32(x : float32, y : float32) -> float32 [[external('fmaxf')]];
+function FMin32(x : float32, y : float32) -> float32 [[external('fminf')]];
+function FMa32(x : float32, y : float32, z : float32) -> float32 [[external('fmaf')]];

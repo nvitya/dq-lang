@@ -1,0 +1,38 @@
+use print
+use math
+
+const LIMIT : int = 440000000
+
+var cache : [10]int32
+
+function SetCache():
+    cache[0] = 0;
+    for i : int = 1 to 9:
+        cache[i] = Round(Pow(i, i));
+    endfor
+endfunc
+
+function IsMunchausen(number : int32) -> bool:
+    var n     : int32 = number
+    var total : int32 = 0
+    while n > 0:
+        var digit : int = n IMOD 10;
+        total += cache[digit]
+        if total > number:
+            return false
+        endif
+        n =IDIV= 10
+    endwhile
+    return total == number
+endfunc
+
+function *Main() -> int:
+    PrintLn('DQ')
+    SetCache()
+    for i : int = 0  while i < LIMIT:
+        if IsMunchausen(i):
+            PrintLn('{}', [i]);
+        endif
+    endfor
+    return 0
+endfunc

@@ -22,4 +22,6 @@ In general try to find the most elegant solution (least code), which is not alwa
 ## DQ Single File Run and Debugging
 
 - You can compile and run single files with `build/dq-run file.dq`. This way no autotest markers are required in the file.
+- `build/dq-run file.dq` compiles with `-g O0` so if the compiled executable crashes you should get a stack backtrace
 - You can compile single file with debugging info using `build/dq-comp -g -O0 file.dq`. And then you can try debugging with `gdb`.
+

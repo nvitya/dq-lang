@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
+// Must be linked with math lib. To compile use the following command line:
+//   gcc -O3 munchausen_c.c -lm -o munchausen_c
+
 #define LIMIT 440000000
 
 int cache[10];

@@ -3,7 +3,7 @@ use math
 
 const LIMIT : int = 440000000
 
-var cache : [10]int32
+var cache : [10] int32
 
 function SetCache():
     cache[0] = 0;

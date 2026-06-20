@@ -17,6 +17,8 @@
 ------------------------------------------------------------------------------------
 v0.20.16:
   - Round(), Floor(), Ceil() implemented in-line, they do not use libm calls anymore
+  - removed implicit libm dependency
+  - linklib generation fixed for .dqm_if
 v0.20.15:
   - Pointers are initialized to null by default
   - Top-level signal handler refactoring

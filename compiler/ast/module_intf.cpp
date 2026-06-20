@@ -2266,8 +2266,12 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     }
     else if (DQMIF_LINKLIB == reader.recid)
     {
-      string ignored;
-      if (!reader.ReadString(ignored)) return false;
+      string libname;
+      if (!reader.ReadString(libname)) return false;
+      if (g_opt.link_libraries.end() == find(g_opt.link_libraries.begin(), g_opt.link_libraries.end(), libname))
+      {
+        g_opt.link_libraries.push_back(libname);
+      }
     }
     else if (DQMIF_LINKDEP == reader.recid)
     {

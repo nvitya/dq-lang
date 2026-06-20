@@ -303,7 +303,7 @@ void ODqCompiler::Run(int argc, char ** argv)
       {
         link_cmd += format(" {}", artifact_path);
       }
-      link_cmd += format(" -o {} -lm", link_output);
+      link_cmd += format(" -o {}", link_output);
       for (const string & libname : g_opt.link_libraries)
       {
         link_cmd += format(" -l{}", libname);

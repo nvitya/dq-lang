@@ -3,6 +3,8 @@
 // The un-suffixed C functions use float64, matching C double.
 // The 32-suffixed DQ functions use float32 and link to the C "...f" symbols.
 
+#linklib('m')
+
 // float64 variants
 
 // trigonometric functions - float64

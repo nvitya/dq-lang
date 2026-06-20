@@ -462,6 +462,21 @@ void OTypeObject::GenVTableGlobal(bool apublic)
     return;
   }
 
+  if (manual_ll_layout)
+  {
+    // Imported type: do not emit local definitions, just use external references
+    auto * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+    auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 2);
+    string ti_ll_name = "_DQTI_" + name;
+    ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ti_ll_name);
+
+    auto * vt_arrtype = llvm::ArrayType::get(ptr_type, virtual_methods.size() + 2);
+    string ll_name = "_DQVT_" + name;
+    ll_vtable = new llvm::GlobalVariable(*ll_module, vt_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ll_name);
+    return;
+  }
+
+
   LlLinkType linktype = (apublic ? llvm::GlobalValue::ExternalLinkage
                                  : llvm::GlobalValue::InternalLinkage);
   llvm::PointerType * ptr_type = llvm::PointerType::get(ll_ctx, 0);

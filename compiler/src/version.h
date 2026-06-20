@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.22.0"
+#define DQ_COMPILER_VERSION  "0.22.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.22.1:
+  - TypeInfo shared between the modules
 v0.22.0:
   - Object TypeInfo added
   - Type Testing with `instance is OType`

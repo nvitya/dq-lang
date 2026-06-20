@@ -2,7 +2,9 @@
 
 use libc/stdio;
 
-[[external]] function putchar(c : cchar) -> int;
+const TEST_CS_LEN : int = 31;
+
+[[external]] function putchar(c : cchar) -> int
 
 function PrintEscapedChar(ch : char):
   if ch == char(9):
@@ -65,7 +67,7 @@ endfunc
 function *Main() -> int:
   printf("string_cstring_semantics = start\n"); //?check("string_cstring_semantics", "start")
 
-  var cs : cstring(5) = "abc";
+  var cs : [[nowarn]] cstring(5) = "abc" ;
   printf("cstring_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size); //?check("cstring_props", "len:3 max:5 storage:6")
   PrintText("cstring_initial", cs); //?check("cstring_initial", '[3] "abc"')
 
@@ -78,7 +80,7 @@ function *Main() -> int:
   PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
   PrintText("cstring_param_pc", pc); //?check("cstring_param_pc", '[4] "asdf"')
 
-  var source : cstring(6) = "abcdef";
+  var source : [[nowarn]] cstring(6) = "abcdef";
   var cs_str : cstring(3);
   cs_str = source;
   PrintText("cstring_assign_cstr_trunc", cs_str); //?check("cstring_assign_cstr_trunc", '[3] "abc"')
@@ -113,7 +115,7 @@ function *Main() -> int:
   cs.Clear();
   PrintText("cstring_clear", cs); //?check("cstring_clear", '[0] ""')
 
-  var storage : cstring(31) = "one";
+  var storage : cstring(TEST_CS_LEN) = "one";
   var alias : cstring = storage;
   alias.Append(" two");
   EditAlias(alias);

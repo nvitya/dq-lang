@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.13"
+#define DQ_COMPILER_VERSION  "0.20.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.14:
+  - cstring size parsing fix
 v0.20.13:
   - Exception refactorings
 v0.20.12:

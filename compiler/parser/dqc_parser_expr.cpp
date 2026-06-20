@@ -619,8 +619,12 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     }
     if (scf->CheckSymbol("("))
     {
-      int64_t maxlen;
-      if (not scf->ReadInt64Value(maxlen))
+      bool prev_suppress = suppress_errors;
+      if (!aemit_errors) suppress_errors = true;
+      OExpr * maxlen_expr = ParseExpression();
+      suppress_errors = prev_suppress;
+      int64_t maxlen = 0;
+      if (!maxlen_expr)
       {
         if (aemit_errors)
         {
@@ -628,6 +632,16 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
         }
         return nullptr;
       }
+      if (!TryCalculateIntConstant(maxlen_expr, maxlen))
+      {
+        OExpr::DeleteTree(maxlen_expr);
+        if (aemit_errors)
+        {
+          Error(DQERR_CSTR_SIZE_EXPECTED);
+        }
+        return nullptr;
+      }
+      OExpr::DeleteTree(maxlen_expr);
       if (maxlen <= 0)
       {
         if (aemit_errors)

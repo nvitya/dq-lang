@@ -144,16 +144,70 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
     return;
   }
 
-  OValSymFunc * fn = DqExceptionFunc("DqExcTypeIs");
-  if (!fn || !fn->ll_func)
+  OValSymFunc * fn_current = DqExceptionFunc("DqExcCurrent");
+  if (!fn_current || !fn_current->ll_func)
   {
     ll_builder.CreateBr(bb_next);
     return;
   }
 
-  LlValue * type_name = ll_builder.CreateGlobalStringPtr(branch->exception_type->name, "dq.exc.catch");
-  LlValue * matches = ll_builder.CreateCall(fn->ll_func, {type_name}, "exc.match");
-  ll_builder.CreateCondBr(matches, bb_match, bb_next);
+  LlValue * ll_exc = ll_builder.CreateCall(fn_current->ll_func, {}, "exc.current");
+  LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * is_null = ll_builder.CreateICmpEQ(ll_exc, ll_null, "exc.isnull");
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_check = LlBasicBlock::Create(ll_ctx, "exc.check", ll_func);
+  
+  LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
+  ll_builder.CreateCondBr(is_null, bb_next, bb_check);
+
+  ll_builder.SetInsertPoint(bb_check);
+  
+  OTypeFunc * fn_type = dynamic_cast<OTypeFunc *>(fn_current->ptype);
+  OTypeObject * exc_type = dynamic_cast<OTypeObject *>(fn_type->rettype->ResolveAlias());
+  
+  // Exception is polymorphic, so we can access its TypeInfo at vtable[0]
+  // The first field of the Exception object is its vtable pointer
+  LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(exc_type->GetLlType(), ll_exc,
+      exc_type->vtable_field_index, "exc.vtable.addr");
+  LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "exc.vtable");
+
+  // TypeInfo is slot 0
+  LlValue * ll_ti_slot = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0)}, "exc.ti.slot.addr");
+  LlValue * ll_obj_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ti_slot, "exc.ti");
+
+  branch->exception_type->GenVTableGlobal(false);
+  LlValue * target_ti = branch->exception_type->ll_typeinfo;
+  
+  if (!branch->exception_type->is_polymorphic) {
+    g_compiler->ErrorTxt(DQERR_NOT_SUPPORTED, format("catching non-polymorphic object {}", branch->exception_type->name));
+  }
+
+  LlBasicBlock * bb_loop = LlBasicBlock::Create(ll_ctx, "exc.ti.loop", ll_func);
+  LlBasicBlock * bb_next_ti = LlBasicBlock::Create(ll_ctx, "exc.ti.next", ll_func);
+
+  ll_builder.CreateBr(bb_loop);
+  ll_builder.SetInsertPoint(bb_loop);
+
+  llvm::PHINode * phi_ti = ll_builder.CreatePHI(llvm::PointerType::get(ll_ctx, 0), 2, "exc.cur.ti");
+  phi_ti->addIncoming(ll_obj_ti, bb_check);
+
+  LlValue * is_match = ll_builder.CreateICmpEQ(phi_ti, target_ti, "exc.ti.match");
+  ll_builder.CreateCondBr(is_match, bb_match, bb_next_ti);
+
+  ll_builder.SetInsertPoint(bb_next_ti);
+  LlValue * is_ti_null = ll_builder.CreateICmpEQ(phi_ti, ll_null, "exc.ti.isnull");
+  
+  LlBasicBlock * bb_adv = LlBasicBlock::Create(ll_ctx, "exc.ti.adv", ll_func);
+  ll_builder.CreateCondBr(is_ti_null, bb_next, bb_adv);
+
+  ll_builder.SetInsertPoint(bb_adv);
+  LlValue * base_ti_ptr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), phi_ti,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "exc.base.ti.ptr");
+  LlValue * next_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), base_ti_ptr, "exc.next.ti");
+  phi_ti->addIncoming(next_ti, bb_adv);
+  ll_builder.CreateBr(bb_loop);
 }
 
 void ODqCompCodegen::GenerateIr()

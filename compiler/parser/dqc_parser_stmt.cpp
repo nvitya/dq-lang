@@ -54,19 +54,6 @@ static OTypeObject * ExceptionObjectTypeFromExpr(OExpr * expr)
   return nullptr;
 }
 
-static string ExceptionTypeChain(OTypeObject * type)
-{
-  string result;
-  for (OTypeObject * cur = type; cur; cur = cur->GetBaseObject())
-  {
-    if (!result.empty())
-    {
-      result += "|";
-    }
-    result += cur->name;
-  }
-  return result;
-}
 
 void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 {
@@ -1642,7 +1629,7 @@ void ODqCompParserStmt::ParseStmtRaise()
       StatementError(DQERR_STMT_INVALID, "standalone raise outside except");
       return;
     }
-    curblock->AddStatement(new OStmtRaise(scpos_statement_start, nullptr, ""));
+    curblock->AddStatement(new OStmtRaise(scpos_statement_start, nullptr));
     return;
   }
 
@@ -1760,7 +1747,7 @@ void ODqCompParserStmt::ParseStmtRaise()
     return;
   }
 
-  curblock->AddStatement(new OStmtRaise(scpos_statement_start, expr, ExceptionTypeChain(expr_object_type)));
+  curblock->AddStatement(new OStmtRaise(scpos_statement_start, expr));
 }
 
 EBinOp ODqCompParserStmt::ParseAssignOp()

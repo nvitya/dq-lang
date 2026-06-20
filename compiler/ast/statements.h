@@ -467,13 +467,11 @@ private:
   using        super = OStmt;
 public:
   OExpr *  value = nullptr;  // nullptr means re-raise
-  string   type_chain;
 
-  OStmtRaise(OScPosition & ascpos, OExpr * avalue, const string & atype_chain)
+  OStmtRaise(OScPosition & ascpos, OExpr * avalue)
   :
     super(ascpos),
-    value(avalue),
-    type_chain(atype_chain)
+    value(avalue)
   {}
 
   ~OStmtRaise()

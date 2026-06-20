@@ -18,24 +18,23 @@ object Exception:
   function *Create(amsg : strview)
   function *Destroy()
 
-  function GetMessage() -> cstring
+  function GetMessage() -> cstring [[virtual]]
   function GetTypeName() -> cstring
   function CaptureBacktrace()
   function PrintMessage()
   function PrintBacktrace()
 endobj
 
-function DqExcRaise(e : Exception, typelist : ^cchar, owned_ref : bool)
+function DqExcRaise(e : Exception, owned_ref : bool)
 function DqExcRethrow()
 function DqExcActive() -> bool
 function DqExcCurrent() -> Exception
 function DqExcClear()
 function DqExcBeginCatch()
 function DqExcEndCatch()
-function DqExcTypeIs(catchname : ^cchar) -> bool
 function DqExcPrintTypeName()
 
-function DqExcRaiseWithBacktrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
+function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int)
 
 implementation
 
@@ -347,28 +346,25 @@ function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
 endfunc
 
 var active_exception        : Exception = null
-var active_exception_types  : ^cchar = null
 var handled_exception       : Exception = null
-var handled_exception_types : ^cchar = null
 
-function DqSetActiveException(e : Exception, typelist : ^cchar):
+function DqSetActiveException(e : Exception):
   if active_exception <> null:
     DqExcRelease(active_exception)
   endif
   active_exception = e
-  active_exception_types = typelist
 endfunc
 
-function DqExcRaise(e : Exception, typelist : ^cchar, owned_ref : bool):
+function DqExcRaise(e : Exception, owned_ref : bool):
   if not DqPrepareExceptionRef(e, owned_ref):
     return
   endif
 
   e.CaptureBacktrace()
-  DqSetActiveException(e, typelist)
+  DqSetActiveException(e)
 endfunc
 
-function DqExcRaiseWithBacktrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int):
+function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int):
   if not DqPrepareExceptionRef(e, owned_ref):
     return
   endif
@@ -386,7 +382,7 @@ function DqExcRaiseWithBacktrace(e : Exception, typelist : ^cchar, owned_ref : b
     i += 1
   endwhile
 
-  DqSetActiveException(e, typelist)
+  DqSetActiveException(e)
 endfunc
 
 function DqExcRethrow():
@@ -395,9 +391,7 @@ function DqExcRethrow():
     return
   endif
   active_exception = handled_exception
-  active_exception_types = handled_exception_types
   handled_exception = null
-  handled_exception_types = null
 endfunc
 
 function DqExcActive() -> bool:
@@ -413,7 +407,6 @@ function DqExcClear():
     DqExcRelease(active_exception)
   endif
   active_exception = null
-  active_exception_types = null
 endfunc
 
 function DqExcBeginCatch():
@@ -421,9 +414,7 @@ function DqExcBeginCatch():
     DqExcRelease(handled_exception)
   endif
   handled_exception = active_exception
-  handled_exception_types = active_exception_types
   active_exception = null
-  active_exception_types = null
 endfunc
 
 function DqExcEndCatch():
@@ -431,16 +422,11 @@ function DqExcEndCatch():
     DqExcRelease(handled_exception)
   endif
   handled_exception = null
-  handled_exception_types = null
 endfunc
 
 function DqExcPrintTypeName():
-  if active_exception_types <> null:
-    var p : ^cchar = active_exception_types
-    while p^ <> cchar(0) and p^ <> cchar(124):
-      @.printf("%c", int(p^))
-      p += 1
-    endwhile
+  if active_exception <> null:
+    @.printf("%s", TypeName(active_exception))
   else:
     @.printf("Exception")
   endif
@@ -459,24 +445,3 @@ function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
   return t^ == cchar(0)  or  t^ == cchar(124)
 endfunc
 
-function DqExcTypeIs(catchname : ^cchar) -> bool:
-  if active_exception_types == null or catchname == null:
-    return false
-  endif
-
-  var p : ^cchar = active_exception_types
-  while p^ <> cchar(0):
-    if DqCstrSegmentEq(p, catchname):
-      return true
-    endif
-
-    while p^ <> cchar(0)  and  p^ <> cchar(124):
-      p += 1
-    endwhile
-    if p^ == cchar(124):
-      p += 1
-    endif
-  endwhile
-
-  return false
-endfunc

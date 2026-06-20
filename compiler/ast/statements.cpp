@@ -903,9 +903,8 @@ void OStmtRaise::Generate(OScope * scope)
   }
 
   LlValue * exc = value->Generate(scope);
-  LlValue * type_list = ll_builder.CreateGlobalStringPtr(type_chain, "dq.exc.types");
   LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), (dynamic_cast<ONewExpr *>(value) != nullptr) ? 1 : 0);
-  ll_builder.CreateCall(fn->ll_func, {exc, type_list, owns_initial_ref});
+  ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
 }
 
 

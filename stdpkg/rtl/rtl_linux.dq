@@ -38,7 +38,7 @@ var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
 
 function OsRtErrorHandler(emsg : ^cchar):
-  DqExcRaise(new Exception(emsg), "Exception", true)
+  DqExcRaise(new Exception(emsg), true)
 endfunc
 
 function DqSigSegvHandler(signum : int):
@@ -65,7 +65,7 @@ function SigSegvMessage() -> ^cchar:
 endfunc
 
 function RaiseSignalException():
-  DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), "ESegFault", true,
+  DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
                                       &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 

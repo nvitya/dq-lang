@@ -769,10 +769,10 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   {
     attr_section_name = other->attr_section_name;
   }
-  attr_is_override = other->attr_is_override;
-  attr_is_virtual  = other->attr_is_virtual;
-  attr_is_abstract = other->attr_is_abstract;
-  attr_is_final    = other->attr_is_final;
+  attr_is_override = attr_is_override || other->attr_is_override;
+  attr_is_virtual  = attr_is_virtual || other->attr_is_virtual;
+  attr_is_abstract = attr_is_abstract || other->attr_is_abstract;
+  attr_is_final    = attr_is_final || other->attr_is_final;
   special_kind = other->special_kind;
 }
 

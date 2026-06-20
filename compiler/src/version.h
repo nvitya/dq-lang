@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.17"
+#define DQ_COMPILER_VERSION  "0.20.18"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.18:
+  - Backtrace formatting changes
 v0.20.17:
   - Using libbacktrace instead of addr2line
 v0.20.16:

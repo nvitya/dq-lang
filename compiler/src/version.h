@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.14"
+#define DQ_COMPILER_VERSION  "0.20.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.16:
+  - Round(), Floor(), Ceil() implemented in-line, they do not use libm calls anymore
 v0.20.15:
   - Pointers are initialized to null by default
   - Top-level signal handler refactoring

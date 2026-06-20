@@ -1888,12 +1888,34 @@ OFloatRoundExpr::~OFloatRoundExpr()
 LlValue * OFloatRoundExpr::Generate(OScope * scope)
 {
   LlValue * ll_src = src->Generate(scope);
-  llvm::Intrinsic::ID iid;
-  if      (RNDMODE_ROUND == mode)  iid = llvm::Intrinsic::round;
-  else if (RNDMODE_CEIL  == mode)  iid = llvm::Intrinsic::ceil;
-  else                             iid = llvm::Intrinsic::floor;
-  LlValue * ll_rounded = ll_builder.CreateUnaryIntrinsic(iid, ll_src);
-  return ll_builder.CreateFPToSI(ll_rounded, g_builtins->type_int->GetLlType());
+  LlType * int_type = g_builtins->type_int->GetLlType();
+
+  if (RNDMODE_ROUND == mode)
+  {
+    LlValue * ll_zero = llvm::ConstantFP::get(ll_src->getType(), 0.0);
+    LlValue * ll_half = llvm::ConstantFP::get(ll_src->getType(), 0.5);
+    LlValue * ll_mhalf = llvm::ConstantFP::get(ll_src->getType(), -0.5);
+    LlValue * cmp = ll_builder.CreateFCmpOGE(ll_src, ll_zero, "rnd.cmp");
+    LlValue * adjust = ll_builder.CreateSelect(cmp, ll_half, ll_mhalf, "rnd.adj");
+    LlValue * added = ll_builder.CreateFAdd(ll_src, adjust, "rnd.add");
+    return ll_builder.CreateFPToSI(added, int_type, "rnd.int");
+  }
+  else if (RNDMODE_FLOOR == mode)
+  {
+    LlValue * ll_int = ll_builder.CreateFPToSI(ll_src, int_type, "flr.i");
+    LlValue * ll_flt = ll_builder.CreateSIToFP(ll_int, ll_src->getType(), "flr.f");
+    LlValue * cmp = ll_builder.CreateFCmpOLT(ll_src, ll_flt, "flr.cmp");
+    LlValue * ll_sub = ll_builder.CreateZExt(cmp, int_type, "flr.sub");
+    return ll_builder.CreateSub(ll_int, ll_sub, "flr.res");
+  }
+  else // RNDMODE_CEIL
+  {
+    LlValue * ll_int = ll_builder.CreateFPToSI(ll_src, int_type, "cil.i");
+    LlValue * ll_flt = ll_builder.CreateSIToFP(ll_int, ll_src->getType(), "cil.f");
+    LlValue * cmp = ll_builder.CreateFCmpOGT(ll_src, ll_flt, "cil.cmp");
+    LlValue * ll_add = ll_builder.CreateZExt(cmp, int_type, "cil.add");
+    return ll_builder.CreateAdd(ll_int, ll_add, "cil.res");
+  }
 }
 
 void OFloatRoundExpr::FoldChildren()

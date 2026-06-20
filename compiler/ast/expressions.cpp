@@ -22,6 +22,7 @@
 #include "otype_func.h"
 #include "otype_compound.h"
 #include "named_scopes.h"
+#include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
 
 static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
@@ -34,20 +35,14 @@ static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
       && (TK_POINTER == rtype->kind);
 }
 
-static OValSymFunc * DqExceptionFunc(const string & name)
-{
-  auto nsit = g_namespaces.find("__dq_exception");
-  if (nsit == g_namespaces.end() || !nsit->second)
-  {
-    return nullptr;
-  }
-  return dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
-}
-
 void EmitExpressionExceptionCheck(OScope * scope)
 {
-  OValSymFunc * fn = DqExceptionFunc("DqExcActive");
-  if (!fn || !fn->ll_func || !scope)
+  if (!scope)
+  {
+    return;
+  }
+  LlValue * active = g_compiler->DqExceptionActiveValue();
+  if (!active)
   {
     return;
   }
@@ -64,7 +59,6 @@ void EmitExpressionExceptionCheck(OScope * scope)
 
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_continue = LlBasicBlock::Create(ll_ctx, "expr.no_exception", ll_func);
-  LlValue * active = ll_builder.CreateCall(fn->ll_func, {}, "exc.active");
   ll_builder.CreateCondBr(active, bb_cleanup, bb_continue);
   ll_builder.SetInsertPoint(bb_continue);
 }

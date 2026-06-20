@@ -97,6 +97,10 @@ public:
   void        SetVarInitialized(OValSym * vs);
   void        RevertFirstAssignments();
   bool        FirstAssigned(OValSym * avs);
+
+  void        EmitOwnedObjectDestructors();
+  void        EmitOwnedObjectDestructorsUntil(OScope * stop_scope);
+  void        EmitOwnedObjectDestructorsForReturn(class OValSymFunc * vsfunc);
 };
 
 enum EIntfDeclKind

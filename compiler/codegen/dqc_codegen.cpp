@@ -40,8 +40,121 @@
 
 #include "dqc.h"
 #include "scope_builtins.h"
+#include "named_scopes.h"
 
 using namespace std;
+
+OValSymFunc * ODqCompCodegen::DqExceptionFunc(const string & name)
+{
+  auto nsit = g_namespaces.find("__dq_exception");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    return nullptr;
+  }
+  return dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
+}
+
+LlValue * ODqCompCodegen::DqExceptionActiveValue()
+{
+  OValSymFunc * fn = DqExceptionFunc("DqExcActive");
+  if (!fn || !fn->ll_func)
+  {
+    return nullptr;
+  }
+  return ll_builder.CreateCall(fn->ll_func, {}, "exc.active");
+}
+
+LlValue * ODqCompCodegen::DqCurrentExceptionValue()
+{
+  OValSymFunc * fn = DqExceptionFunc("DqExcCurrent");
+  if (!fn || !fn->ll_func)
+  {
+    return nullptr;
+  }
+  return ll_builder.CreateCall(fn->ll_func, {}, "exc.current");
+}
+
+void ODqCompCodegen::DqClearException()
+{
+  OValSymFunc * fn = DqExceptionFunc("DqExcClear");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+void ODqCompCodegen::DqBeginCatch()
+{
+  OValSymFunc * fn = DqExceptionFunc("DqExcBeginCatch");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+void ODqCompCodegen::DqEndCatch()
+{
+  OValSymFunc * fn = DqExceptionFunc("DqExcEndCatch");
+  if (fn && fn->ll_func)
+  {
+    ll_builder.CreateCall(fn->ll_func, {});
+  }
+}
+
+void ODqCompCodegen::EmitExceptionEscapeCheck(LlBasicBlock * active_bb, LlBasicBlock * normal_bb)
+{
+  LlValue * active = DqExceptionActiveValue();
+  if (!active)
+  {
+    ll_builder.CreateBr(normal_bb);
+    return;
+  }
+  ll_builder.CreateCondBr(active, active_bb, normal_bb);
+}
+
+void ODqCompCodegen::EmitActiveFinallyBlocks()
+{
+  if (ll_finally_stack.empty())
+  {
+    return;
+  }
+
+  vector<OStmtBlock *> saved_stack = ll_finally_stack;
+  while (!ll_finally_stack.empty())
+  {
+    OStmtBlock * finally_body = ll_finally_stack.back();
+    ll_finally_stack.pop_back();
+    if (finally_body)
+    {
+      finally_body->Generate();
+      if (ll_builder.GetInsertBlock()->getTerminator())
+      {
+        break;
+      }
+    }
+  }
+  ll_finally_stack = saved_stack;
+}
+
+void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBlock * bb_match, LlBasicBlock * bb_next)
+{
+  if (!branch->exception_type)
+  {
+    ll_builder.CreateBr(bb_match);
+    return;
+  }
+
+  OValSymFunc * fn = DqExceptionFunc("DqExcTypeIs");
+  if (!fn || !fn->ll_func)
+  {
+    ll_builder.CreateBr(bb_next);
+    return;
+  }
+
+  LlValue * type_name = ll_builder.CreateGlobalStringPtr(branch->exception_type->name, "dq.exc.catch");
+  LlValue * matches = ll_builder.CreateCall(fn->ll_func, {type_name}, "exc.match");
+  ll_builder.CreateCondBr(matches, bb_match, bb_next);
+}
 
 void ODqCompCodegen::GenerateIr()
 {

@@ -10,7 +10,6 @@ const DQ_BACKTRACE_INTERNAL_SKIP : int = 2
 
 object Exception:
   refcount        : int
-  typename        : cstring(DQ_EXCEPTION_TYPENAME_MAX)
   message         : cstring(DQ_EXCEPTION_MSG_MAX)
   backtrace_count : int
   backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
@@ -19,7 +18,6 @@ object Exception:
   function *Destroy()
 
   function GetMessage() -> cstring [[virtual]]
-  function GetTypeName() -> cstring
   function CaptureBacktrace()
   function PrintMessage()
   function PrintBacktrace()
@@ -98,9 +96,6 @@ function Exception.GetMessage() -> cstring:
   return message
 endfunc
 
-function Exception.GetTypeName() -> cstring:
-  return typename
-endfunc
 
 function Exception.CaptureBacktrace():
   backtrace_count = @.libc_backtrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.21.1"
+#define DQ_COMPILER_VERSION  "0.21.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.21.2:
+  - Exception formatting changes
 v0.21.1:
   - OScope refactoring
 v0.20.18:

@@ -13,6 +13,9 @@ function dq_module_init()  [[external('dq_module_init')]]
 
 // SIGSEGV Signal handling, converting SIGSEGV to Exception
 
+object ESegFault(Exception):
+endobj
+
 const DQ_SIGSEGV_JMP_SIZE     : int = 32
 const DQ_SIGNAL_BACKTRACE_MAX : int = 32
 
@@ -56,19 +59,21 @@ endfunc
 
 function SigSegvMessage() -> ^cchar:
   if dq_sigsegv_signal == SIGSEGV:
-    return "SIGSEGV: segmentation fault"
+    return "Segmentation fault"
   endif
   return "fatal signal"
 endfunc
 
 function RaiseSignalException():
-  DqExcRaiseWithBacktrace(new Exception(SigSegvMessage()), "Exception", true,
+  DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), "ESegFault", true,
                                       &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
 function PrintUncaughtException() -> int:
   var e : Exception = DqExcCurrent()
   printf("\nUNCAUGHT EXCEPTION: ")
+  DqExcPrintTypeName()
+  printf(": ")
   e.PrintMessage()
   printf("\n")
   e.PrintBacktrace()

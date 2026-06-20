@@ -14,5 +14,5 @@ function *Main() -> int:
   return 0
 endfunc
 
-//?ignore("UNCAUGHT EXCEPTION: SIGSEGV")
+//?ignore("UNCAUGHT EXCEPTION: ESegFault: Segmentation fault")
 //?ignore("Backtrace")

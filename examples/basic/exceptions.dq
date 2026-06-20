@@ -1,0 +1,24 @@
+// DQ Custom Exception Example
+
+implementation
+
+use print
+use rtl/exception
+
+object ECustError(Exception):
+endobj
+
+function FailFunc():
+  raise ECustError('something went wrong.')
+endfunc
+
+function TestFunc():
+  FailFunc()
+endfunc
+
+function *Main() -> int:
+  PrintLn('DQ Custom Exception Test')
+  TestFunc()
+  return 0
+endfunc
+

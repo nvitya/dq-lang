@@ -11,10 +11,15 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.21.2"
+#define DQ_COMPILER_VERSION  "0.22.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.22.0:
+  - Object TypeInfo added
+  - Type Testing with `instance is OType`
+  - dynamic_cast equivalent: `var o2 : OSecond tryfrom o;
+  - TryCast(T, variable)
 v0.21.2:
   - Exception formatting changes
 v0.21.1:

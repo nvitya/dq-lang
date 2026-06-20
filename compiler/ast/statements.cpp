@@ -601,7 +601,7 @@ void OStmtDelete::Generate(OScope * scope)
         root->vtable_field_index, "delete.vtable.addr");
     LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "delete.vtable");
     LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
-        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0)}, "delete.dtor.slot");
+        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "delete.dtor.slot");
     LlValue * ll_dtor = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "delete.dtor");
     if (object_dtor_func)
     {

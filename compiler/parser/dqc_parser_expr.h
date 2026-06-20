@@ -56,6 +56,7 @@ public: // expressions
   OExpr * ParseBuiltinSizeof();
   OExpr * ParseBuiltinOffsetof();
   OExpr * ParseBuiltinFloatRound(ERoundMode amode);
+  OExpr * ParseBuiltinTryCast();
   OExpr * ParseArrayLit();
 
 public: // type parsing

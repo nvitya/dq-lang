@@ -70,6 +70,7 @@ public:
 
   bool          is_abstract = false;
   LlValue *     ll_vtable = nullptr;
+  llvm::GlobalVariable * ll_typeinfo = nullptr;
   vector<OValSymFunc *> virtual_methods;
   vector<OValSymFunc *> constructors;
   OValSymFunc * destructor = nullptr;

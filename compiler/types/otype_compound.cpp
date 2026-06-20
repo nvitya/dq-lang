@@ -462,15 +462,45 @@ void OTypeObject::GenVTableGlobal(bool apublic)
     return;
   }
 
+  LlLinkType linktype = (apublic ? llvm::GlobalValue::ExternalLinkage
+                                 : llvm::GlobalValue::InternalLinkage);
+  llvm::PointerType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+
+  // Generate TypeInfo
+  vector<llvm::Constant *> typeinfo_entries;
+  auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, name);
+  auto * str_gv = new llvm::GlobalVariable(*ll_module, str_init->getType(), true, llvm::GlobalValue::PrivateLinkage, str_init, ".str.ti." + name);
+  typeinfo_entries.push_back(str_gv);
+
+  if (base_type)
+  {
+    OTypeObject * base_obj = static_cast<OTypeObject *>(base_type);
+    if (!base_obj->ll_typeinfo)
+    {
+      base_obj->GenVTableGlobal(false);
+    }
+    typeinfo_entries.push_back(base_obj->ll_typeinfo);
+  }
+  else
+  {
+    typeinfo_entries.push_back(llvm::ConstantPointerNull::get(ptr_type));
+  }
+
+  auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 2);
+  auto * ti_init = llvm::ConstantArray::get(ti_arrtype, typeinfo_entries);
+  string ti_ll_name = "_DQTI_" + name;
+  ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, true, linktype, ti_init, ti_ll_name);
+
   vector<llvm::Constant *> entries;
-  LlType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+  entries.push_back(ll_typeinfo);
+
   if (destructor && destructor->ll_func)
   {
     entries.push_back(destructor->ll_func);
   }
   else
   {
-    entries.push_back(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+    entries.push_back(llvm::ConstantPointerNull::get(ptr_type));
   }
   for (OValSymFunc * method : virtual_methods)
   {
@@ -490,8 +520,6 @@ void OTypeObject::GenVTableGlobal(bool apublic)
 
   auto * arrtype = llvm::ArrayType::get(ptr_type, entries.size());
   auto * init = llvm::ConstantArray::get(arrtype, entries);
-  LlLinkType linktype = (apublic ? llvm::GlobalValue::ExternalLinkage
-                                 : llvm::GlobalValue::InternalLinkage);
   string ll_name = "_DQVT_" + name;
   ll_vtable = new llvm::GlobalVariable(*ll_module, arrtype, true, linktype, init, ll_name);
 }

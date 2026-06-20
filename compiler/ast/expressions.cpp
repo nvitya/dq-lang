@@ -1993,7 +1993,7 @@ LlValue * OCallExpr::Generate(OScope * scope)
     LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_args[0],
         root->vtable_field_index, "vtable.addr");
     LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
-    LlValue * ll_slot_index = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), size_t(slot) + 1);
+    LlValue * ll_slot_index = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), size_t(slot) + 2);
     LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
         {ll_slot_index}, "vslot.addr");
     LlValue * ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
@@ -2884,4 +2884,196 @@ OExpr * OExpr::FoldScalarExpr(OExpr * expr)
 
   delete folded_value;
   return result;
+}
+
+// --- type casting expressions ---
+
+/* ctor */ OTryCastExpr::OTryCastExpr(OType * atarget_type, OExpr * asource_expr)
+{
+  target_type = atarget_type;
+  source_expr = asource_expr;
+  ptype = target_type;
+}
+
+LlValue * OTryCastExpr::Generate(OScope * scope)
+{
+  LlValue * ll_src = source_expr->Generate(scope);
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_check = LlBasicBlock::Create(ll_ctx, "cast.check", ll_func);
+  LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "cast.done", ll_func);
+  
+  LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_src, ll_null, "cast.isnull");
+  
+  // We'll use a phi node in bb_done to return either null or the casted value
+  LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
+  ll_builder.CreateCondBr(ll_is_null, bb_done, bb_check);
+
+  ll_builder.SetInsertPoint(bb_check);
+
+  OTypeObject * src_obj = static_cast<OTypeObject *>(source_expr->ptype->ResolveAlias());
+  OTypeObject * dst_obj = static_cast<OTypeObject *>(target_type->ResolveAlias());
+
+  if (!dst_obj->is_polymorphic || !src_obj->is_polymorphic)
+  {
+    throw runtime_error("TryCast / tryfrom requires polymorphic objects.");
+  }
+
+  // Ensure typeinfo exists
+  if (!dst_obj->ll_typeinfo)
+  {
+    dst_obj->GenVTableGlobal(false);
+  }
+  LlValue * target_ti = dst_obj->ll_typeinfo;
+
+  src_obj->GetLlType();
+  LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(src_obj->GetLlType(), ll_src,
+      src_obj->vtable_field_index, "vtable.addr");
+  LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
+
+  // slot 0 is typeinfo
+  LlValue * ll_ti_slot = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0)}, "ti.slot.addr");
+  LlValue * ll_obj_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ti_slot, "obj.ti");
+
+  LlBasicBlock * bb_loop = LlBasicBlock::Create(ll_ctx, "cast.loop", ll_func);
+  LlBasicBlock * bb_match = LlBasicBlock::Create(ll_ctx, "cast.match", ll_func);
+  LlBasicBlock * bb_fail = LlBasicBlock::Create(ll_ctx, "cast.fail", ll_func);
+
+  ll_builder.CreateBr(bb_loop);
+  ll_builder.SetInsertPoint(bb_loop);
+
+  llvm::PHINode * phi_ti = ll_builder.CreatePHI(llvm::PointerType::get(ll_ctx, 0), 2, "cur.ti");
+  phi_ti->addIncoming(ll_obj_ti, bb_check);
+
+  LlValue * is_match = ll_builder.CreateICmpEQ(phi_ti, target_ti, "ti.match");
+  ll_builder.CreateCondBr(is_match, bb_match, bb_fail);
+
+  ll_builder.SetInsertPoint(bb_fail);
+  LlValue * is_ti_null = ll_builder.CreateICmpEQ(phi_ti, ll_null, "ti.isnull");
+  
+  LlBasicBlock * bb_next_ti = LlBasicBlock::Create(ll_ctx, "cast.next_ti", ll_func);
+  ll_builder.CreateCondBr(is_ti_null, bb_done, bb_next_ti);
+
+  ll_builder.SetInsertPoint(bb_next_ti);
+  LlValue * base_ti_ptr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), phi_ti,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "base.ti.ptr");
+  LlValue * next_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), base_ti_ptr, "next.ti");
+  phi_ti->addIncoming(next_ti, bb_next_ti);
+  ll_builder.CreateBr(bb_loop);
+
+  ll_builder.SetInsertPoint(bb_match);
+  LlValue * casted_val = ll_builder.CreateBitCast(ll_src, llvm::PointerType::get(ll_ctx, 0), "casted");
+  ll_builder.CreateBr(bb_done);
+
+  ll_builder.SetInsertPoint(bb_done);
+  llvm::PHINode * phi_res = ll_builder.CreatePHI(llvm::PointerType::get(ll_ctx, 0), 3, "cast.res");
+  phi_res->addIncoming(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), bb_start);
+  phi_res->addIncoming(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), bb_fail);
+  phi_res->addIncoming(casted_val, bb_match);
+
+  return phi_res;
+}
+
+void OTryCastExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source_expr);
+}
+
+void OTryCastExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source_expr);
+  source_expr = nullptr;
+}
+
+/* ctor */ OIsExpr::OIsExpr(OExpr * asource_expr, OType * atarget_type)
+{
+  source_expr = asource_expr;
+  target_type = atarget_type;
+  ptype = g_builtins->type_bool;
+}
+
+LlValue * OIsExpr::Generate(OScope * scope)
+{
+  LlValue * ll_src = source_expr->Generate(scope);
+
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_check = LlBasicBlock::Create(ll_ctx, "is.check", ll_func);
+  LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "is.done", ll_func);
+  
+  LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_src, ll_null, "is.isnull");
+  
+  LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
+  ll_builder.CreateCondBr(ll_is_null, bb_done, bb_check);
+
+  ll_builder.SetInsertPoint(bb_check);
+
+  OTypeObject * src_obj = static_cast<OTypeObject *>(source_expr->ptype->ResolveAlias());
+  OTypeObject * dst_obj = static_cast<OTypeObject *>(target_type->ResolveAlias());
+
+  if (!dst_obj || !src_obj || !dst_obj->is_polymorphic || !src_obj->is_polymorphic)
+  {
+    throw runtime_error("'is' requires polymorphic objects.");
+  }
+
+  if (!dst_obj->ll_typeinfo)
+  {
+    dst_obj->GenVTableGlobal(false);
+  }
+  LlValue * target_ti = dst_obj->ll_typeinfo;
+
+  src_obj->GetLlType();
+  LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(src_obj->GetLlType(), ll_src,
+      src_obj->vtable_field_index, "vtable.addr");
+  LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
+
+  LlValue * ll_ti_slot = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0)}, "ti.slot.addr");
+  LlValue * ll_obj_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ti_slot, "obj.ti");
+
+  LlBasicBlock * bb_loop = LlBasicBlock::Create(ll_ctx, "is.loop", ll_func);
+  LlBasicBlock * bb_fail = LlBasicBlock::Create(ll_ctx, "is.fail", ll_func);
+
+  ll_builder.CreateBr(bb_loop);
+  ll_builder.SetInsertPoint(bb_loop);
+
+  llvm::PHINode * phi_ti = ll_builder.CreatePHI(llvm::PointerType::get(ll_ctx, 0), 2, "cur.ti");
+  phi_ti->addIncoming(ll_obj_ti, bb_check);
+
+  LlValue * is_match = ll_builder.CreateICmpEQ(phi_ti, target_ti, "ti.match");
+  ll_builder.CreateCondBr(is_match, bb_done, bb_fail);
+
+  ll_builder.SetInsertPoint(bb_fail);
+  LlValue * is_ti_null = ll_builder.CreateICmpEQ(phi_ti, ll_null, "ti.isnull");
+  
+  LlBasicBlock * bb_next_ti = LlBasicBlock::Create(ll_ctx, "is.next_ti", ll_func);
+  ll_builder.CreateCondBr(is_ti_null, bb_done, bb_next_ti);
+
+  ll_builder.SetInsertPoint(bb_next_ti);
+  LlValue * base_ti_ptr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), phi_ti,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "base.ti.ptr");
+  LlValue * next_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), base_ti_ptr, "next.ti");
+  phi_ti->addIncoming(next_ti, bb_next_ti);
+  ll_builder.CreateBr(bb_loop);
+
+  ll_builder.SetInsertPoint(bb_done);
+  llvm::PHINode * phi_res = ll_builder.CreatePHI(LlType::getInt1Ty(ll_ctx), 3, "is.res");
+  phi_res->addIncoming(llvm::ConstantInt::getFalse(ll_ctx), bb_start);
+  phi_res->addIncoming(llvm::ConstantInt::getFalse(ll_ctx), bb_fail);
+  phi_res->addIncoming(llvm::ConstantInt::getTrue(ll_ctx), bb_loop);
+
+  return ll_builder.CreateZExt(phi_res, ptype->GetLlType(), "is.res.ext");
+}
+
+void OIsExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source_expr);
+}
+
+void OIsExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source_expr);
+  source_expr = nullptr;
 }

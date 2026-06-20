@@ -1137,6 +1137,16 @@ OExpr * ODqCompParserExpr::ParseComparison()
   else if (scf->CheckSymbol("<"))     op = COMPOP_LT;
   else if (scf->CheckSymbol(">="))    op = COMPOP_GE;  // >= before >
   else if (scf->CheckSymbol(">"))     op = COMPOP_GT;
+  else if (scf->CheckSymbol("is"))
+  {
+    scf->SkipWhite();
+    OType * target_type = ParseTypeSpec();
+    if (!target_type)
+    {
+      return FreeLeftRight(left, nullptr);
+    }
+    return new OIsExpr(left, target_type);
+  }
   else
   {
     return left;
@@ -2637,6 +2647,11 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   if ("Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
+  if ("TryCast" == sid)
+  {
+    return ParseBuiltinTryCast();
+  }
+
   if ("new" == sid)
   {
     return ParseNewExpr();
@@ -3424,6 +3439,46 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
     Error(DQERR_LEN_INVALID_TYPE, lenvs->ptype->name);
     return nullptr;
   }
+}
+
+OExpr * ODqCompParserExpr::ParseBuiltinTryCast()
+{
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "TryCast");
+    return nullptr;
+  }
+  scf->SkipWhite();
+
+  OType * casttype = ParseTypeSpec();
+  if (!casttype)
+  {
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(","))
+  {
+    Error(DQERR_MISSING_COMMA, &scf->prevpos);
+    return nullptr;
+  }
+
+  OExpr * source_expr = ParseExpression();
+  if (!source_expr)
+  {
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "TryCast");
+    OExpr::DeleteTree(source_expr);
+    return nullptr;
+  }
+
+  return new OTryCastExpr(casttype, source_expr);
 }
 
 OExpr * ODqCompParserExpr::ParseBuiltinSizeof()

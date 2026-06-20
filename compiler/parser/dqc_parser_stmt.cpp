@@ -171,7 +171,16 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
 
   scf->SkipWhite();
-  if (scf->CheckSymbol("="))  // variable initializer specified
+  if (scf->CheckSymbol("tryfrom"))
+  {
+    scf->SkipWhite();
+    OExpr * src_expr = ParseExpression();
+    if (src_expr)
+    {
+      initexpr = new OTryCastExpr(ptype, src_expr);
+    }
+  }
+  else if (scf->CheckSymbol("="))  // variable initializer specified
   {
     scf->SkipWhite();
     // Check for {} zero-initializer (for compound types)

@@ -799,3 +799,31 @@ public:
   void      FoldChildren() override;
   void      DeleteChildTree() override;
 };
+
+// --- type casting expressions ---
+
+class OTryCastExpr : public OExpr
+{
+public:
+  OType *   target_type;
+  OExpr *   source_expr;
+
+  /* ctor */ OTryCastExpr(OType * atarget_type, OExpr * asource_expr);
+  ~OTryCastExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};
+
+class OIsExpr : public OExpr
+{
+public:
+  OExpr *   source_expr;
+  OType *   target_type;
+
+  /* ctor */ OIsExpr(OExpr * asource_expr, OType * atarget_type);
+  ~OIsExpr() override = default;
+  LlValue * Generate(OScope * scope) override;
+  void      FoldChildren() override;
+  void      DeleteChildTree() override;
+};

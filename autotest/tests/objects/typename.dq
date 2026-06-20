@@ -1,0 +1,47 @@
+use libc/stdio;
+
+object OBase:
+public
+  v : int = 0;
+  function *Create(av : int):
+    v = av;
+  endfunc
+  function id() -> int [[virtual]]:
+    return 1;
+  endfunc
+endobj
+
+object OFirst(OBase):
+public
+  function *Create(av : int):
+    inherited Create(av);
+  endfunc
+  function id() -> int [[override]]:
+    return 2;
+  endfunc
+endobj
+
+function *Main() -> int:
+  var i : int = 5;
+  var b : bool = true;
+  var f : float = 3.14;
+
+  @.printf("TypeName(i) = %s\n", TypeName(i));     //?check("TypeName(i)", "int64")
+  @.printf("TypeName(int) = %s\n", TypeName(int)); //?check("TypeName(int)", "int64")
+  @.printf("TypeName(b) = %s\n", TypeName(b));     //?check("TypeName(b)", "bool")
+  @.printf("TypeName(f) = %s\n", TypeName(f));     //?check("TypeName(f)", "float")
+
+  var ob : OBase = new OBase(1);
+  var o1 : OBase = new OFirst(2);
+  
+  @.printf("TypeName(ob) = %s\n", TypeName(ob));   //?check("TypeName(ob)", "OBase")
+  @.printf("TypeName(o1) = %s\n", TypeName(o1));   //?check("TypeName(o1)", "OFirst")
+  @.printf("TypeName(OFirst) = %s\n", TypeName(OFirst)); //?check("TypeName(OFirst)", "OFirst")
+
+  var onull : OBase = null;
+  @.printf("TypeName(onull) = %s\n", TypeName(onull)); //?check("TypeName(onull)", "OBase")
+
+  delete ob;
+  delete o1;
+  return 0;
+endfunc

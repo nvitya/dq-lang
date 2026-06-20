@@ -2647,10 +2647,8 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   if ("Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
 
-  if ("TryCast" == sid)
-  {
-    return ParseBuiltinTryCast();
-  }
+  if ("TryCast" == sid)  return ParseBuiltinTryCast();
+  if ("TypeName" == sid)  return ParseBuiltinTypeName();
 
   if ("new" == sid)
   {
@@ -3480,6 +3478,77 @@ OExpr * ODqCompParserExpr::ParseBuiltinTryCast()
 
   return new OTryCastExpr(casttype, source_expr);
 }
+
+OExpr * ODqCompParserExpr::ParseBuiltinTypeName()
+{
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "TypeName");
+    return nullptr;
+  }
+  scf->SkipWhite();
+
+  OType * argtype = nullptr;
+  OScPosition argpos;
+  scf->SaveCurPos(argpos);
+
+  if (scf->CheckSymbol("^", false) || scf->CheckSymbol("[", false))
+  {
+    argtype = ParseTypeSpec();
+  }
+  else
+  {
+    string sarg;
+    if (scf->ReadIdentifier(sarg))
+    {
+      OValSym * vs = curscope->FindValSym(sarg);
+      if (vs)
+      {
+        scf->SetCurPos(argpos); // Variable found, parse as expression
+      }
+      else
+      {
+        OType * foundtype = cur_mod_scope->FindType(sarg);
+        if (foundtype)
+        {
+          scf->SetCurPos(argpos);
+          argtype = ParseTypeSpec(); // It's a type name, parse it!
+        }
+        else
+        {
+          scf->SetCurPos(argpos); // Rewind and parse as expression
+        }
+      }
+    }
+    else
+    {
+      scf->SetCurPos(argpos); // Rewind and parse as expression
+    }
+  }
+
+  OExpr * result_expr = nullptr;
+  if (argtype)
+  {
+    result_expr = new OCStringLit(argtype->name);
+  }
+  else
+  {
+    OExpr * argexpr = ParseExpression();
+    if (!argexpr) return nullptr;
+    result_expr = new OTypeNameExpr(argexpr);
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "TypeName");
+    OExpr::DeleteTree(result_expr);
+    return nullptr;
+  }
+  return result_expr;
+}
+
 
 OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
 {

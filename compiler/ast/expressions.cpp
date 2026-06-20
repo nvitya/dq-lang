@@ -3077,3 +3077,76 @@ void OIsExpr::DeleteChildTree()
   OExpr::DeleteTree(source_expr);
   source_expr = nullptr;
 }
+
+OTypeNameExpr::OTypeNameExpr(OExpr * aexpr)
+: expr(aexpr)
+{
+  ptype = g_builtins->type_cchar->GetPointerType();
+}
+
+LlValue * OTypeNameExpr::Generate(OScope * scope)
+{
+  if (!expr) return nullptr;
+  LlValue * ll_src = expr->Generate(scope);
+  if (!ll_src) return nullptr;
+
+  OTypeObject * src_obj = dynamic_cast<OTypeObject *>(expr->ptype->ResolveAlias());
+  if (src_obj && src_obj->is_polymorphic)
+  {
+    LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+    LlBasicBlock * bb_valid = LlBasicBlock::Create(ll_ctx, "typename.valid", ll_func);
+    LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "typename.done", ll_func);
+    
+    LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+    LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_src, ll_null, "typename.isnull");
+    
+    LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
+    ll_builder.CreateCondBr(ll_is_null, bb_done, bb_valid);
+    
+    ll_builder.SetInsertPoint(bb_valid);
+    src_obj->GetLlType();
+    LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(src_obj->GetLlType(), ll_src,
+        src_obj->vtable_field_index, "vtable.addr");
+    LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
+    
+    // TypeInfo is at index 0 of the vtable
+    LlValue * ll_ti_ptr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+        { llvm::ConstantInt::get(ll_ctx, llvm::APInt(32, 0)) }, "ti.ptr");
+    LlValue * ll_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ti_ptr, "ti");
+    
+    // The type name is at index 0 of the TypeInfo struct
+    LlValue * ll_name_ptr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_ti,
+        { llvm::ConstantInt::get(ll_ctx, llvm::APInt(32, 0)) }, "name.ptr");
+    LlValue * ll_runtime_name = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_name_ptr, "runtime.name");
+    
+    ll_builder.CreateBr(bb_done);
+    LlBasicBlock * bb_valid_end = ll_builder.GetInsertBlock();
+    
+    ll_builder.SetInsertPoint(bb_done);
+    
+    auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, src_obj->name);
+    llvm::GlobalVariable * str_gv = new llvm::GlobalVariable(*ll_module, str_init->getType(), true, llvm::GlobalValue::PrivateLinkage, str_init, ".str.typename." + src_obj->name);
+    LlValue * ll_static_name_ptr = llvm::ConstantExpr::getBitCast(str_gv, llvm::PointerType::get(ll_ctx, 0));
+    
+    llvm::PHINode * phi_name = ll_builder.CreatePHI(llvm::PointerType::get(ll_ctx, 0), 2, "typename.res");
+    phi_name->addIncoming(ll_static_name_ptr, bb_start);
+    phi_name->addIncoming(ll_runtime_name, bb_valid_end);
+    return phi_name;
+  }
+  
+  // Non-polymorphic types: just use compile-time name
+  auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, expr->ptype->name);
+  llvm::GlobalVariable * str_gv = new llvm::GlobalVariable(*ll_module, str_init->getType(), true, llvm::GlobalValue::PrivateLinkage, str_init, ".str.typename." + expr->ptype->name);
+  return llvm::ConstantExpr::getBitCast(str_gv, llvm::PointerType::get(ll_ctx, 0));
+}
+
+void OTypeNameExpr::FoldChildren()
+{
+  if (expr) { OExpr::FoldTree(&expr); }
+}
+
+void OTypeNameExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(expr);
+  expr = nullptr;
+}

@@ -599,6 +599,18 @@ public:
   }
 };
 
+class OTypeNameExpr : public OExpr
+{
+public:
+  OExpr *         expr;
+
+  /* ctor */      OTypeNameExpr(OExpr * aexpr);
+                  ~OTypeNameExpr() override = default;
+  LlValue *       Generate(OScope * scope) override;
+  void            FoldChildren() override;
+  void            DeleteChildTree() override;
+};
+
 class OArrayLit : public OExpr
 {
 public:

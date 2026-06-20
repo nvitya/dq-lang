@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.16"
+#define DQ_COMPILER_VERSION  "0.20.17"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.17:
+  - Using libbacktrace instead of addr2line
 v0.20.16:
   - Round(), Floor(), Ceil() implemented in-line, they do not use libm calls anymore
   - removed implicit libm dependency

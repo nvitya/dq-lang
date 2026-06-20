@@ -1,5 +1,8 @@
 // RTL Helpers for Exception Handling
 
+// libbacktrace library is required for lineinfo capturing
+#linklib('backtrace')
+
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
 const DQ_EXCEPTION_MSG_MAX       : int = 127
 const DQ_BACKTRACE_CMD_MAX       : int = 1024
@@ -48,14 +51,23 @@ endstruct
 var libc_stderr : pointer  [[external("stderr")]]
 
 function libc_backtrace(buffer : pointer, size : int) -> int  [[external('backtrace')]]
-function libc_backtrace_symbols_fd(buffer : pointer, size : int, fd : int)  [[external('backtrace_symbols_fd')]]
 function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int  [[external('dladdr')]]
-function libc_snprintf(str : ^cchar, size : uint, fmt : ^cchar, ...) -> int  [[external('snprintf')]]
-function libc_popen(command : ^cchar, mode : ^cchar) -> pointer  [[external('popen')]]
-function libc_pclose(stream : pointer) -> int  [[external('pclose')]]
-function libc_fgets(s : ^cchar, size : int, stream : pointer) -> ^cchar  [[external('fgets')]]
 function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
 function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+
+struct SDqBtData:
+  index : int
+  hide_internal : bool
+  printed : bool
+endstruct
+
+type FBacktraceError   = function(data : pointer, msg : ^cchar, errnum : int)
+type FBacktraceFull    = function(data : ^SDqBtData, pc : uint, filename : ^cchar, lineno : int, function_name : ^cchar) -> int
+type FBacktraceSyminfo = function(data : ^SDqBtData, pc : uint, symname : ^cchar, symval : uint, symsize : uint)
+
+function libc_backtrace_create_state(filename : ^cchar, threaded : int, err_cb : FBacktraceError, data : pointer) -> pointer  [[external('backtrace_create_state')]]
+function libc_backtrace_pcinfo(state : pointer, pc : uint, cb : FBacktraceFull, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_pcinfo')]]
+function libc_backtrace_syminfo(state : pointer, addr : uint, cb : FBacktraceSyminfo, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_syminfo')]]
 
 function DqExcAddRef(e : Exception)
 function DqExcRelease(e : Exception)
@@ -114,6 +126,8 @@ function Exception.PrintBacktrace():
     i += 1
   endwhile
 endfunc
+
+//-------------------------------------------------------------------------------------------------
 
 function DqCstrLen(s : ^cchar) -> uint:
   if s == null:
@@ -174,19 +188,80 @@ endfunc
 
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo) -> bool:
   if info.dli_sname <> null:
-    @.libc_fprintf(@.libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
+    libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
   elif info.dli_fname <> null:
-    @.libc_fprintf(@.libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_fname, DqAddr2lineOffset(pc, info.dli_fbase))
+    libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_fname, DqAddr2lineOffset(pc, info.dli_fbase))
   else:
-    @.libc_fprintf(@.libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
+    libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
   endif
   return true
 endfunc
 
+function DqBtErrorCallback(data : pointer, msg : ^cchar, errnum : int):
+endfunc
+
+function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^cchar, lineno : int, function_name : ^cchar) -> int:
+  if data^.hide_internal and DqBacktraceNameIsInternal(function_name):
+    return 0
+  endif
+
+  if filename <> null:
+    if function_name <> null:
+      libc_fprintf(libc_stderr, "  #%d %s:%d %s\n", data^.index, filename, lineno, function_name)
+    else:
+      libc_fprintf(libc_stderr, "  #%d %s:%d\n", data^.index, filename, lineno)
+    endif
+  else:
+    if function_name <> null:
+      libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, function_name, pc)
+    else:
+      libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
+    endif
+  endif
+  data^.printed = true
+  return 0
+endfunc
+
+function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^cchar, symval : uint, symsize : uint):
+  if data^.hide_internal and DqBacktraceNameIsInternal(symname):
+    return
+  endif
+
+  if symname <> null:
+    libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, symname, pc - symval)
+  else:
+    libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
+  endif
+  data^.printed = true
+endfunc
+
+var backtrace_state : pointer = null
+
 function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool) -> bool:
+  if backtrace_state == null:
+    backtrace_state = libc_backtrace_create_state(null, 0, DqBtErrorCallback, null)
+  endif
+
+  var bdata : SDqBtData = {}
+  bdata.index = index
+  bdata.hide_internal = hide_internal
+  bdata.printed = false
+
+  if backtrace_state <> null:
+    libc_backtrace_pcinfo(backtrace_state, uint(pc), DqBtFullCallback, DqBtErrorCallback, &bdata)
+    if bdata.printed:
+      return true
+    endif
+
+    libc_backtrace_syminfo(backtrace_state, uint(pc), DqBtSyminfoCallback, DqBtErrorCallback, &bdata)
+    if bdata.printed:
+      return true
+    endif
+  endif
+
   var info : SDqDlInfo = {}
-  if @.libc_dladdr(pc, info) == 0 or info.dli_fname == null:
-    @.libc_fprintf(@.libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
+  if libc_dladdr(pc, info) == 0 or info.dli_fname == null:
+    libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
     return true
   endif
 
@@ -194,34 +269,7 @@ function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool) 
     return false
   endif
 
-  var cmd  : [DQ_BACKTRACE_CMD_MAX]cchar = {}
-  var line : [DQ_BACKTRACE_LINE_MAX]cchar = {}
-  var offs : uint = DqAddr2lineOffset(pc, info.dli_fbase)
-
-  @.libc_snprintf(&cmd[0], DQ_BACKTRACE_CMD_MAX,
-                  "addr2line -f -p -e '%s' 0x%lx 2>/dev/null", info.dli_fname, offs)
-  var pipe : pointer = @.libc_popen(&cmd[0], "r")
-  if pipe == null:
-    return DqPrintBacktraceFallback(index, pc, info)
-  endif
-
-  var text : ^cchar = @.libc_fgets(&line[0], DQ_BACKTRACE_LINE_MAX, pipe)
-  @.libc_pclose(pipe)
-  if text == null or line[0] == cchar(0):
-    return DqPrintBacktraceFallback(index, pc, info)
-  endif
-
-  DqTrimTrailingNewline(&line[0])
-  if hide_internal and DqBacktraceNameIsInternal(&line[0]):
-    return false
-  endif
-
-  if line[0] == cchar(63) and line[1] == cchar(63):
-    return DqPrintBacktraceFallback(index, pc, info)
-  endif
-
-  @.libc_fprintf(@.libc_stderr, "  #%d %s\n", index, &line[0])
-  return true
+  return DqPrintBacktraceFallback(index, pc, info)
 endfunc
 
 

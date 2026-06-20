@@ -367,11 +367,11 @@ Exception objects are heap allocated and managed by reference counting.
 
 The exact helper API should live with the exception runtime, for example:
 
-- `__dq_exception_addref`
-- `__dq_exception_release`
-- `__dq_raise_exception`
-- `__dq_rethrow_exception`
-- `__dq_current_exception`
+- `DqExcAddRef`
+- `DqExcRelease`
+- `DqExcRaise`
+- `DqExcRethrow`
+- `DqExcCurrent`
 
 ### 2.4 LLVM Code Generation
 

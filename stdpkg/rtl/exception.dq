@@ -1,7 +1,7 @@
 // RTL Helpers for Exception Handling
 
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
-const DQ_EXCEPTION_MSG_MAX       : int = 255
+const DQ_EXCEPTION_MSG_MAX       : int = 127
 const DQ_BACKTRACE_CMD_MAX       : int = 1024
 const DQ_BACKTRACE_LINE_MAX      : int = 1024
 const DQ_BACKTRACE_INTERNAL_SKIP : int = 2
@@ -23,16 +23,16 @@ public
   function PrintBacktrace()
 endobj
 
-function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool)
-function __dq_rethrow_exception()
-function __dq_exception_active() -> bool
-function __dq_current_exception() -> Exception
-function __dq_clear_exception()
-function __dq_begin_catch()
-function __dq_end_catch()
-function __dq_exception_type_is(catchname : ^cchar) -> bool
+function DqExcRaise(e : Exception, typelist : ^cchar, owned_ref : bool)
+function DqExcRethrow()
+function DqExcActive() -> bool
+function DqExcCurrent() -> Exception
+function DqExcClear()
+function DqExcBeginCatch()
+function DqExcEndCatch()
+function DqExcTypeIs(catchname : ^cchar) -> bool
 
-function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
+function DqExcRaiseWithBacktrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int)
 
 implementation
 
@@ -62,8 +62,8 @@ function __dq_trim_trailing_newline(s : ^cchar)
 function __dq_cstr_contains(text : ^cchar, needle : ^cchar) -> bool
 function __dq_backtrace_name_is_internal(name : ^cchar) -> bool
 
-function __dq_exception_addref(e : Exception)
-function __dq_exception_release(e : Exception)
+function DqExcAddRef(e : Exception)
+function DqExcRelease(e : Exception)
 function __dq_print_backtrace_fallback(index : int, pc : pointer, info : ref SDqDlInfo) -> bool
 function __dq_print_backtrace_frame(index : int, pc : pointer, hide_internal : bool) -> bool
 function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint
@@ -157,7 +157,7 @@ function __dq_cstr_contains(text : ^cchar, needle : ^cchar) -> bool:
 endfunc
 
 function __dq_backtrace_name_is_internal(name : ^cchar) -> bool:
-  return __dq_cstr_contains(name, "CaptureBacktrace") or __dq_cstr_contains(name, "__dq_raise_exception")
+  return __dq_cstr_contains(name, "CaptureBacktrace") or __dq_cstr_contains(name, "DqExcRaise")
 endfunc
 
 function __dq_addr2line_offset(pc : pointer, base : pointer) -> uint:
@@ -228,13 +228,13 @@ var __dq_active_exception_types : ^cchar = null
 var __dq_handled_exception : Exception = null
 var __dq_handled_exception_types : ^cchar = null
 
-function __dq_exception_addref(e : Exception):
+function DqExcAddRef(e : Exception):
   if e <> null:
     e.refcount += 1
   endif
 endfunc
 
-function __dq_exception_release(e : Exception):
+function DqExcRelease(e : Exception):
   if e == null:
     return
   endif
@@ -251,7 +251,7 @@ function __dq_prepare_exception_ref(e : Exception, owned_ref : bool) -> bool:
   endif
 
   if not owned_ref:
-    __dq_exception_addref(e)
+    DqExcAddRef(e)
   endif
 
   return true
@@ -259,13 +259,13 @@ endfunc
 
 function __dq_set_active_exception(e : Exception, typelist : ^cchar):
   if __dq_active_exception <> null:
-    __dq_exception_release(__dq_active_exception)
+    DqExcRelease(__dq_active_exception)
   endif
   __dq_active_exception = e
   __dq_active_exception_types = typelist
 endfunc
 
-function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool):
+function DqExcRaise(e : Exception, typelist : ^cchar, owned_ref : bool):
   if not __dq_prepare_exception_ref(e, owned_ref):
     return
   endif
@@ -274,7 +274,7 @@ function __dq_raise_exception(e : Exception, typelist : ^cchar, owned_ref : bool
   __dq_set_active_exception(e, typelist)
 endfunc
 
-function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int):
+function DqExcRaiseWithBacktrace(e : Exception, typelist : ^cchar, owned_ref : bool, bt : pointer, bt_count : int):
   if not __dq_prepare_exception_ref(e, owned_ref):
     return
   endif
@@ -295,7 +295,7 @@ function __dq_raise_exception_with_backtrace(e : Exception, typelist : ^cchar, o
   __dq_set_active_exception(e, typelist)
 endfunc
 
-function __dq_rethrow_exception():
+function DqExcRethrow():
   if __dq_handled_exception == null:
     RuntimeError("re-raise without active exception")
     return
@@ -306,25 +306,25 @@ function __dq_rethrow_exception():
   __dq_handled_exception_types = null
 endfunc
 
-function __dq_exception_active() -> bool:
+function DqExcActive() -> bool:
   return __dq_active_exception <> null
 endfunc
 
-function __dq_current_exception() -> Exception:
+function DqExcCurrent() -> Exception:
   return __dq_active_exception
 endfunc
 
-function __dq_clear_exception():
+function DqExcClear():
   if __dq_active_exception <> null:
-    __dq_exception_release(__dq_active_exception)
+    DqExcRelease(__dq_active_exception)
   endif
   __dq_active_exception = null
   __dq_active_exception_types = null
 endfunc
 
-function __dq_begin_catch():
+function DqExcBeginCatch():
   if __dq_handled_exception <> null:
-    __dq_exception_release(__dq_handled_exception)
+    DqExcRelease(__dq_handled_exception)
   endif
   __dq_handled_exception = __dq_active_exception
   __dq_handled_exception_types = __dq_active_exception_types
@@ -332,9 +332,9 @@ function __dq_begin_catch():
   __dq_active_exception_types = null
 endfunc
 
-function __dq_end_catch():
+function DqExcEndCatch():
   if __dq_handled_exception <> null:
-    __dq_exception_release(__dq_handled_exception)
+    DqExcRelease(__dq_handled_exception)
   endif
   __dq_handled_exception = null
   __dq_handled_exception_types = null
@@ -353,7 +353,7 @@ function __dq_cstr_segment_eq(text : ^cchar, name : ^cchar) -> bool:
   return t^ == cchar(0) or t^ == cchar(124)
 endfunc
 
-function __dq_exception_type_is(catchname : ^cchar) -> bool:
+function DqExcTypeIs(catchname : ^cchar) -> bool:
   if __dq_active_exception_types == null or catchname == null:
     return false
   endif

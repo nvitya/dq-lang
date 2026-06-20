@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.20.12"
+#define DQ_COMPILER_VERSION  "0.20.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.13:
+  - Exception refactorings
 v0.20.12:
   - new compiler switch: --build-suffix to append a suffix to the default build-tags in the .dqbuild subdir
   - the .dqm artifact file names do not contain compiler switches or defines

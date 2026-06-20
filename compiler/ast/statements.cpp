@@ -39,7 +39,7 @@ static OValSymFunc * DqExceptionFunc(const string & name)
 
 static LlValue * DqExceptionActiveValue()
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_exception_active");
+  OValSymFunc * fn = DqExceptionFunc("DqExcActive");
   if (!fn || !fn->ll_func)
   {
     return nullptr;
@@ -49,7 +49,7 @@ static LlValue * DqExceptionActiveValue()
 
 static LlValue * DqCurrentExceptionValue()
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_current_exception");
+  OValSymFunc * fn = DqExceptionFunc("DqExcCurrent");
   if (!fn || !fn->ll_func)
   {
     return nullptr;
@@ -69,7 +69,7 @@ static LlValue * LlBoolValue(bool value)
 
 static void DqClearException()
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_clear_exception");
+  OValSymFunc * fn = DqExceptionFunc("DqExcClear");
   if (fn && fn->ll_func)
   {
     ll_builder.CreateCall(fn->ll_func, {});
@@ -78,7 +78,7 @@ static void DqClearException()
 
 static void DqBeginCatch()
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_begin_catch");
+  OValSymFunc * fn = DqExceptionFunc("DqExcBeginCatch");
   if (fn && fn->ll_func)
   {
     ll_builder.CreateCall(fn->ll_func, {});
@@ -87,7 +87,7 @@ static void DqBeginCatch()
 
 static void DqEndCatch()
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_end_catch");
+  OValSymFunc * fn = DqExceptionFunc("DqExcEndCatch");
   if (fn && fn->ll_func)
   {
     ll_builder.CreateCall(fn->ll_func, {});
@@ -236,7 +236,7 @@ void OStmtBlock::Generate()
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_cleanup = nullptr;
   LlBasicBlock * bb_done = nullptr;
-  bool exception_checks = (DqExceptionFunc("__dq_exception_active") != nullptr);
+  bool exception_checks = (DqExceptionFunc("DqExcActive") != nullptr);
   if (exception_checks)
   {
     bb_cleanup = LlBasicBlock::Create(ll_ctx, scope->debugname + ".cleanup", ll_func);
@@ -1041,19 +1041,19 @@ void OStmtRaise::Generate(OScope * scope)
 
   if (!value)
   {
-    OValSymFunc * fn = DqExceptionFunc("__dq_rethrow_exception");
+    OValSymFunc * fn = DqExceptionFunc("DqExcRethrow");
     if (!fn || !fn->ll_func)
     {
-      throw runtime_error("OStmtRaise::Generate(): missing __dq_rethrow_exception");
+      throw runtime_error("OStmtRaise::Generate(): missing DqExcRethrow");
     }
     ll_builder.CreateCall(fn->ll_func, {});
     return;
   }
 
-  OValSymFunc * fn = DqExceptionFunc("__dq_raise_exception");
+  OValSymFunc * fn = DqExceptionFunc("DqExcRaise");
   if (!fn || !fn->ll_func)
   {
-    throw runtime_error("OStmtRaise::Generate(): missing __dq_raise_exception");
+    throw runtime_error("OStmtRaise::Generate(): missing DqExcRaise");
   }
 
   LlValue * exc = value->Generate(scope);
@@ -1070,7 +1070,7 @@ static void GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBlock * bb_
     return;
   }
 
-  OValSymFunc * fn = DqExceptionFunc("__dq_exception_type_is");
+  OValSymFunc * fn = DqExceptionFunc("DqExcTypeIs");
   if (!fn || !fn->ll_func)
   {
     ll_builder.CreateBr(bb_next);

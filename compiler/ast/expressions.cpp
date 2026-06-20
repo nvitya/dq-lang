@@ -46,7 +46,7 @@ static OValSymFunc * DqExceptionFunc(const string & name)
 
 void EmitExpressionExceptionCheck(OScope * scope)
 {
-  OValSymFunc * fn = DqExceptionFunc("__dq_exception_active");
+  OValSymFunc * fn = DqExceptionFunc("DqExcActive");
   if (!fn || !fn->ll_func || !scope)
   {
     return;

@@ -1,5 +1,9 @@
 // DQ Runtime Library for Linux
 
+function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
+
+implementation
+
 use libc/stdio
 use rtl/exception
 
@@ -22,7 +26,7 @@ var dq_sigsegv_backtrace_count : int = 0
 var dq_sigsegv_backtrace : pointer = null
 
 function os_rterror_handler(emsg : ^cchar):
-  __dq_raise_exception(new Exception(emsg), "Exception", true)
+  DqExcRaise(new Exception(emsg), "Exception", true)
 endfunc
 
 function dq_main() -> int [[external('dq_main')]]
@@ -49,17 +53,17 @@ function sigsegv_message() -> ^cchar:
 endfunc
 
 function raise_signal_exception():
-  __dq_raise_exception_with_backtrace(new Exception(sigsegv_message()), "Exception", true,
+  DqExcRaiseWithBacktrace(new Exception(sigsegv_message()), "Exception", true,
                                       dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
 function print_uncaught_exception() -> int:
-  var e : Exception = __dq_current_exception()
+  var e : Exception = DqExcCurrent()
   printf("\nUNCAUGHT EXCEPTION: ")
   e.PrintMessage()
   printf("\n")
   e.PrintBacktrace()
-  __dq_clear_exception()
+  DqExcClear()
   return -1
 endfunc
 
@@ -68,14 +72,14 @@ function run_hosted_main() -> int:
 
   if libc___sigsetjmp(dq_sigsegv_jmp, 1) == 0:
     dq_module_init()
-    if __dq_exception_active():
+    if DqExcActive():
       dq_sigsegv_guard_active = 0
       return print_uncaught_exception()
     endif
 
     result = dq_main()
     dq_sigsegv_guard_active = 0
-    if __dq_exception_active():
+    if DqExcActive():
       result = print_uncaught_exception()
     endif
   else:

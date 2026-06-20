@@ -433,7 +433,7 @@ bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
 
 OValue * OTypePointer::CreateValue()
 {
-  return new OValuePointer(this, false);
+  return new OValuePointer(this, true);
 }
 
 LlConst * OValuePointer::CreateLlConst()

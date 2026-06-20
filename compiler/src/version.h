@@ -15,6 +15,9 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.20.15:
+  - Pointers are initialized to null by default
+  - Top-level signal handler refactoring
 v0.20.14:
   - cstring size parsing fix
 v0.20.13:

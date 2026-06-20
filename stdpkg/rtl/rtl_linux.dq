@@ -7,6 +7,12 @@ implementation
 use libc/stdio
 use rtl/exception
 
+// These functions created by the DQ compiler:
+function dq_main() -> int  [[external('dq_main')]]
+function dq_module_init()  [[external('dq_module_init')]]
+
+const DQ_SIGNAL_BACKTRACE_MAX : int = 32
+
 type FSignalHandler = function(signum : int)
 
 function libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]]
@@ -17,47 +23,44 @@ function libc_backtrace(buffer : pointer, size : int) -> int [[external('backtra
 
 const SIG_DFL  : FSignalHandler = null
 const SIGSEGV  : int = 11
-const DQ_SIGNAL_BACKTRACE_MAX : int = 32
 
-var dq_sigsegv_jmp : pointer = null
+var dq_sigsegv_jmp       : [32] pointer
+var dq_sigsegv_backtrace : [DQ_SIGNAL_BACKTRACE_MAX] pointer
+
 var dq_sigsegv_guard_active : int = 0
 var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
-var dq_sigsegv_backtrace : pointer = null
 
-function os_rterror_handler(emsg : ^cchar):
+function OsRtErrorHandler(emsg : ^cchar):
   DqExcRaise(new Exception(emsg), "Exception", true)
 endfunc
 
-function dq_main() -> int [[external('dq_main')]]
-function dq_module_init() [[external('dq_module_init')]]
-
-function dq_sigsegv_handler(signum : int):
+function DqSigSegvHandler(signum : int):
   dq_sigsegv_signal = signum
-  dq_sigsegv_backtrace_count = libc_backtrace(dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
+  dq_sigsegv_backtrace_count = libc_backtrace(&dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
   if dq_sigsegv_guard_active <> 0:
     dq_sigsegv_guard_active = 0
-    libc_siglongjmp(dq_sigsegv_jmp, 1)
+    libc_siglongjmp(&dq_sigsegv_jmp[0], 1)
   endif
 
   libc_signal(signum, SIG_DFL)
   libc_raise(signum)
 endfunc
 
-function sigsegv_message() -> ^cchar:
+function SigSegvMessage() -> ^cchar:
   if dq_sigsegv_signal == SIGSEGV:
     return "SIGSEGV: segmentation fault"
   endif
   return "fatal signal"
 endfunc
 
-function raise_signal_exception():
-  DqExcRaiseWithBacktrace(new Exception(sigsegv_message()), "Exception", true,
-                                      dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
+function RaiseSignalException():
+  DqExcRaiseWithBacktrace(new Exception(SigSegvMessage()), "Exception", true,
+                                      &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
-function print_uncaught_exception() -> int:
+function PrintUncaughtException() -> int:
   var e : Exception = DqExcCurrent()
   printf("\nUNCAUGHT EXCEPTION: ")
   e.PrintMessage()
@@ -67,36 +70,40 @@ function print_uncaught_exception() -> int:
   return -1
 endfunc
 
-function run_hosted_main() -> int:
+function RunHostedMain() -> int:
   dq_sigsegv_guard_active = 1
 
-  if libc___sigsetjmp(dq_sigsegv_jmp, 1) == 0:
+  if libc___sigsetjmp(&dq_sigsegv_jmp, 1) == 0:
     dq_module_init()
     if DqExcActive():
       dq_sigsegv_guard_active = 0
-      return print_uncaught_exception()
+      return PrintUncaughtException()
     endif
 
     result = dq_main()
+
     dq_sigsegv_guard_active = 0
     if DqExcActive():
-      result = print_uncaught_exception()
+      result = PrintUncaughtException()
     endif
   else:
+    // The Execution was returning from a signal handler
     dq_sigsegv_guard_active = 0
-    raise_signal_exception()
-    result = print_uncaught_exception()
+    RaiseSignalException()
+    result = PrintUncaughtException()
   endif
 endfunc
 
 // libc entry point 'main()'
 function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
-  rterror_handler = os_rterror_handler
-  dq_sigsegv_jmp = @sys.MemAlloc(256, true)
-  dq_sigsegv_backtrace = @sys.MemAlloc(DQ_SIGNAL_BACKTRACE_MAX * SizeOf(pointer), true)
-  libc_signal(SIGSEGV, dq_sigsegv_handler)
+
+  rterror_handler = OsRtErrorHandler
+
+  libc_signal(SIGSEGV, DqSigSegvHandler)
 
   @sys.__sys_init_params(argc, argv)
-  result = run_hosted_main()
+
+  result = RunHostedMain()
+
   //dq_runtime_finalize_modules()
 endfunc

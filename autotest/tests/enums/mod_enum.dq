@@ -1,0 +1,12 @@
+//?notest
+
+enum NModuleState : uint16 = (idle = 1, running = 10)
+
+function ModuleState() -> NModuleState
+
+implementation
+
+function ModuleState() -> NModuleState:
+  result = running
+endfunc
+

@@ -1,4 +1,3 @@
-//?notest
 // Basic enum declarations, access, comparison, and ordinal conversion.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

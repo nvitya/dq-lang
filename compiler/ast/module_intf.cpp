@@ -31,6 +31,7 @@
 #include "otype_int.h"
 #include "otype_float.h"
 #include "otype_bool.h"
+#include "otype_enum.h"
 #include "otype_cstring.h"
 #include "otype_compound.h"
 #include "scope_builtins.h"
@@ -315,6 +316,15 @@ void OModuleIntf::WriteTypeDump(ostream & out, OType * atype, const string & ind
   else if (auto * ctype = dynamic_cast<OCompoundType *>(atype))
   {
     WriteCompoundDump(out, ctype, indent);
+  }
+  else if (auto * enum_type = dynamic_cast<OTypeEnum *>(atype))
+  {
+    out << indent << "enum " << enum_type->name << " : " << enum_type->storage_type->name << "\n";
+    for (const SEnumItem & item : enum_type->items)
+    {
+      out << indent << "  " << item.name << " = " << item.value << "\n";
+    }
+    out << indent << "endenum\n";
   }
   else if (auto * fref = dynamic_cast<OTypeFuncRef *>(atype))
   {
@@ -1538,6 +1548,12 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     if (!reader.ReadI64(value)) return false;
     rvalue = new OValueInt(atype, value);
   }
+  else if (TK_ENUM == rtype->kind)
+  {
+    uint64_t value = 0;
+    if (!reader.ReadU64(value)) return false;
+    rvalue = new OValueEnum(atype, value);
+  }
   else if (TK_BOOL == rtype->kind)
   {
     uint8_t value = 0;
@@ -1610,6 +1626,56 @@ bool OModuleIntf::ReadTypeDecl(ODqmIfReader & reader)
   }
 
   return AddPublicType(new OTypeAlias(declname, ptype)) != nullptr;
+}
+
+bool OModuleIntf::ReadEnumDecl(ODqmIfReader & reader)
+{
+  string declname;
+  if (!reader.ReadString(declname) || !reader.NextRec())
+  {
+    return false;
+  }
+
+  OType * storage = nullptr;
+  if (!ReadTypeSpec(reader, storage))
+  {
+    return false;
+  }
+  auto * storage_type = dynamic_cast<OTypeInt *>(storage ? storage->ResolveAlias() : nullptr);
+  if (!storage_type)
+  {
+    return reader.Fail(format("Enum {} has invalid storage type", declname));
+  }
+
+  auto * enum_type = new OTypeEnum(declname, storage_type);
+  if (!reader.NextRec())
+  {
+    delete enum_type;
+    return false;
+  }
+  while (DQMIF_ENUM_ITEM_NAME == reader.recid)
+  {
+    string item_name;
+    uint64_t item_value = 0;
+    if (!reader.ReadString(item_name) || !reader.NextRec()
+        || (DQMIF_ENUM_ITEM_VALUE != reader.recid) || !reader.ReadU64(item_value))
+    {
+      delete enum_type;
+      return false;
+    }
+    enum_type->items.push_back({item_name, item_value});
+    if (!reader.NextRec())
+    {
+      delete enum_type;
+      return false;
+    }
+  }
+  if (!reader.ExpectEmpty(DQMIF_ENUM_END))
+  {
+    delete enum_type;
+    return false;
+  }
+  return AddPublicType(enum_type) != nullptr;
 }
 
 bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
@@ -2293,6 +2359,10 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     else if (DQMIF_TYPE_BEGIN == reader.recid)
     {
       if (!ReadTypeDecl(reader)) return false;
+    }
+    else if (DQMIF_ENUM_BEGIN == reader.recid)
+    {
+      if (!ReadEnumDecl(reader)) return false;
     }
     else if (DQMIF_CONST_BEGIN == reader.recid)
     {

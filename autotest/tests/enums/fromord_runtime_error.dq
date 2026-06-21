@@ -1,4 +1,3 @@
-//?notest
 // FromOrd(value) rejects values not explicitly declared by the enum.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

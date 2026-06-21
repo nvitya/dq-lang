@@ -1,4 +1,3 @@
-//?notest
 // Identically named enumerators remain scoped and resolve from enum context.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

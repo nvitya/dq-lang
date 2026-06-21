@@ -1,4 +1,3 @@
-//?notest
 // Checked integer-to-enum conversion helpers.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

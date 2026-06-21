@@ -153,6 +153,11 @@ TDqmIfRecId  DQMIF_TYPE_BEGIN             = 0x0200;  // str: type alias name
 // exp.:     type spec
 TDqmIfRecId  DQMIF_TYPE_END               = 0x02FF;  // 0
 
+TDqmIfRecId  DQMIF_ENUM_BEGIN             = 0x0240;  // str: enum name
+TDqmIfRecId  DQMIF_ENUM_ITEM_NAME         = 0x0241;  // str
+TDqmIfRecId  DQMIF_ENUM_ITEM_VALUE        = 0x0242;  // uint64
+TDqmIfRecId  DQMIF_ENUM_END               = 0x024F;  // 0
+
 
 // 0300: Constants
 

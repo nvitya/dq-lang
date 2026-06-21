@@ -1,4 +1,3 @@
-//?notest
 // Invalid enum declarations and storage-range checks.
 
 var runtime_value : int = 3;

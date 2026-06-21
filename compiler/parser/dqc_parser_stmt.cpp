@@ -789,7 +789,14 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       if (!lval)
       {
         EmitSuppressedVarInitDiags();
-        Error(DQERR_LVALUE_NOT_WRITEABLE);
+        if (dynamic_cast<OEnumOrdExpr *>(leftexpr))
+        {
+          Error(DQERR_TYPE_ASSIGN_TO_CONST, "ord");
+        }
+        else
+        {
+          Error(DQERR_LVALUE_NOT_WRITEABLE);
+        }
         delete leftexpr;
         delete rightexpr;
         continue;

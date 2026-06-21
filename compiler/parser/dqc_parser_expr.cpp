@@ -15,6 +15,7 @@
 #include "dqc.h"
 #include "otype_array.h"
 #include "otype_compound.h"
+#include "otype_enum.h"
 #include "named_scopes.h"
 
 static bool EnsureDynArrayRtlUse()
@@ -1158,6 +1159,36 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return FreeLeftRight(left, nullptr);
   }
 
+  auto * unresolved_left = dynamic_cast<OUnresolvedEnumItemExpr *>(left);
+  auto * unresolved_right = dynamic_cast<OUnresolvedEnumItemExpr *>(right);
+  auto * left_enum = dynamic_cast<OTypeEnum *>(left->ResolvedType());
+  auto * right_enum = dynamic_cast<OTypeEnum *>(right->ResolvedType());
+  if (unresolved_left && right_enum)
+  {
+    ConvertExprToType(right_enum, &left, EXPCF_GENERATE_ERRORS);
+    left_enum = right_enum;
+  }
+  else if (unresolved_right && left_enum)
+  {
+    ConvertExprToType(left_enum, &right, EXPCF_GENERATE_ERRORS);
+    right_enum = left_enum;
+  }
+  else if (unresolved_left || unresolved_right)
+  {
+    string item_name = unresolved_left ? unresolved_left->item_name : unresolved_right->item_name;
+    Error(DQERR_ENUM_TYPE_INFER, item_name);
+    OExpr::DeleteTree(left);
+    OExpr::DeleteTree(right);
+    return new OBoolLit(false);
+  }
+  if ((left_enum || right_enum) && left_enum != right_enum)
+  {
+    Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetCompareSymbol(op), right->ptype->name);
+    OExpr::DeleteTree(left);
+    OExpr::DeleteTree(right);
+    return new OBoolLit(false);
+  }
+
   auto empty_array_literal = [](OExpr * expr) -> bool
   {
     auto * arrlit = dynamic_cast<OArrayLit *>(expr);
@@ -2048,6 +2079,24 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
     ETypeKind      tk   = result->ptype->kind;
     OLValueExpr *  lval = dynamic_cast<OLValueExpr *>(result);
 
+    if (TK_ENUM == tk && scf->CheckSymbol("."))
+    {
+      string membername;
+      scf->SkipWhite();
+      if (!scf->ReadIdentifier(membername))
+      {
+        Error(DQERR_MEMBER_NAME_EXPECTED);
+        return result;
+      }
+      if ("ord" == membername)
+      {
+        result = new OEnumOrdExpr(result);
+        continue;
+      }
+      Error(DQERR_MEMBER_UNKNOWN, membername, result->ptype->name);
+      return result;
+    }
+
     if (lval)
     {
       // Struct member access on a compound lvalue or a ^compound pointer: x.field / p.field
@@ -2649,6 +2698,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
 
   if ("TryCast" == sid)  return ParseBuiltinTryCast();
   if ("TypeName" == sid)  return ParseBuiltinTypeName();
+  if ("Ord" == sid)  return ParseBuiltinOrd();
 
   if ("new" == sid)
   {
@@ -2664,6 +2714,17 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
+    OType * named_type = cur_mod_scope->FindType(sid);
+    auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
+    scf->SkipWhite();
+    if (enum_type && scf->CheckSymbol(".", false))
+    {
+      return ParseEnumTypeExpr(enum_type);
+    }
+    if (IsKnownEnumItem(sid))
+    {
+      return new OUnresolvedEnumItemExpr(sid);
+    }
     bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
     if (object_method_scope)
     {
@@ -2724,6 +2785,135 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
   }
 
+  return result;
+}
+
+bool ODqCompParserExpr::IsKnownEnumItem(const string & item_name)
+{
+  for (OScope * scope = curscope; scope; scope = scope->parent_scope)
+  {
+    for (const auto & [name, type] : scope->typesyms)
+    {
+      (void)name;
+      auto * enum_type = dynamic_cast<OTypeEnum *>(type ? type->ResolveAlias() : nullptr);
+      if (enum_type && enum_type->FindItem(item_name))
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
+{
+  scf->CheckSymbol(".");
+  string member_name;
+  if (!scf->ReadIdentifier(member_name))
+  {
+    Error(DQERR_MEMBER_NAME_EXPECTED);
+    return nullptr;
+  }
+  if (const SEnumItem * item = enum_type->FindItem(member_name))
+  {
+    return new OEnumValueExpr(enum_type, item->value);
+  }
+
+  EEnumFromOrdKind kind;
+  if ("FromOrd" == member_name) kind = EFOK_THROW;
+  else if ("TryFromOrd" == member_name) kind = EFOK_TRY;
+  else
+  {
+    Error(DQERR_MEMBER_UNKNOWN, member_name, enum_type->name);
+    return nullptr;
+  }
+
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_FUNC_CALL_PARENTH, member_name);
+    return nullptr;
+  }
+  vector<TRawCallArg> rawargs;
+  if (!ParseRawCallArguments(member_name, rawargs))
+  {
+    return nullptr;
+  }
+
+  size_t expected_min = (EFOK_TRY == kind ? 2 : 1);
+  size_t expected_max = (EFOK_TRY == kind ? 2 : 2);
+  if (rawargs.size() < expected_min)
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), member_name, to_string(expected_min));
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+  if (rawargs.size() > expected_max)
+  {
+    Error(DQERR_FUNC_ARGS_TOO_MANY, member_name, to_string(expected_max));
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  OExpr * value_expr = rawargs[0].expr;
+  rawargs[0].expr = nullptr;
+  if (!value_expr->ResolvedType() || TK_INT != value_expr->ResolvedType()->kind)
+  {
+    Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", "int", value_expr->ptype ? value_expr->ptype->name : "?");
+    OExpr::DeleteTree(value_expr);
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  if (EFOK_THROW == kind && rawargs.size() == 2)
+  {
+    kind = EFOK_DEFAULT;
+  }
+  auto * result = new OEnumFromOrdExpr(kind, enum_type, value_expr);
+
+  if (EFOK_DEFAULT == kind)
+  {
+    OExpr * default_expr = rawargs[1].expr;
+    rawargs[1].expr = nullptr;
+    if (!ConvertExprToType(enum_type, &default_expr, EXPCF_GENERATE_ERRORS))
+    {
+      OExpr::DeleteTree(default_expr);
+      delete result;
+      FreeRawCallArguments(rawargs);
+      return nullptr;
+    }
+    result->default_expr = default_expr;
+  }
+  else if (EFOK_TRY == kind)
+  {
+    if (!rawargs[1].init_diags.empty())
+    {
+      EmitStoredVarInitDiags(rawargs[1].init_diags);
+      delete result;
+      FreeRawCallArguments(rawargs);
+      return nullptr;
+    }
+    OExpr * output = rawargs[1].expr;
+    rawargs[1].expr = nullptr;
+    auto * output_lval = dynamic_cast<OLValueExpr *>(output);
+    if (!output_lval || output->ResolvedType() != enum_type)
+    {
+      ErrorTxt(DQERR_FUNC_ARG_REF_TYPE,
+          format("Reference argument 2 type mismatch for function \"TryFromOrd\": expected \"{}\"", enum_type->name));
+      OExpr::DeleteTree(output);
+      delete result;
+      FreeRawCallArguments(rawargs);
+      return nullptr;
+    }
+    result->output_expr = output_lval;
+  }
+  else if (!EnsureEnumRtlUse())
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+
+  FreeRawCallArguments(rawargs);
   return result;
 }
 
@@ -3547,6 +3737,35 @@ OExpr * ODqCompParserExpr::ParseBuiltinTypeName()
     return nullptr;
   }
   return result_expr;
+}
+
+OExpr * ODqCompParserExpr::ParseBuiltinOrd()
+{
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "Ord");
+    return nullptr;
+  }
+  OExpr * arg = ParseExpression();
+  if (!arg)
+  {
+    return nullptr;
+  }
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "Ord");
+    OExpr::DeleteTree(arg);
+    return nullptr;
+  }
+  if (!arg->ResolvedType() || TK_ENUM != arg->ResolvedType()->kind)
+  {
+    Error(DQERR_TYPE_EXPECTED, "enum", arg->ptype ? arg->ptype->name : "?");
+    OExpr::DeleteTree(arg);
+    return nullptr;
+  }
+  return new OEnumOrdExpr(arg);
 }
 
 

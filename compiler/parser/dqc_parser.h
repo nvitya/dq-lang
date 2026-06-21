@@ -45,6 +45,7 @@ public: // root level items
   void ParseUseStatement();
   bool ParseUseSymbolList(const string & amodifier, vector<string> & rsymbol_names);
   void ParseRootTypeDecl();
+  void ParseEnumDecl();
   void ParseFunction();
   void ParseStructDecl();
   void ParseObjectDecl();

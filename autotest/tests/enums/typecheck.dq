@@ -1,4 +1,3 @@
-//?notest
 // Enum strong typing and invalid conversion cases.
 
 enum NColor = (red, green, blue)

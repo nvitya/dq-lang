@@ -25,6 +25,7 @@
 #include "otype_cstring.h"
 #include "otype_string.h"
 #include "otype_int.h"
+#include "otype_enum.h"
 #include "otype_compound.h"
 #include "named_scopes.h"
 #include "scope_defines.h"
@@ -206,6 +207,10 @@ void ODqCompParser::ParseModule()
     else if ("type" == sid)
     {
       ParseRootTypeDecl();
+    }
+    else if ("enum" == sid)
+    {
+      ParseEnumDecl();
     }
     else if ("function" == sid)
     {
@@ -641,6 +646,182 @@ void ODqCompParser::ParseRootTypeDecl()
   {
     return;
   }
+}
+
+void ODqCompParser::ParseEnumDecl()
+{
+  string enum_name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(enum_name))
+  {
+    RootStatementError(DQERR_ID_EXP_AFTER, "enum");
+    return;
+  }
+  if (!CheckSpecialReservedRootName(enum_name))
+  {
+    return;
+  }
+  if (g_module->TypeDeclared(enum_name))
+  {
+    RootStatementError(DQERR_TYPE_ALREADY_DEFINED, enum_name, &scf->prevpos);
+    return;
+  }
+
+  OTypeInt * storage_type = g_builtins->type_uint8;
+  scf->SkipWhite();
+  if (scf->CheckSymbol(":"))
+  {
+    OType * parsed_storage = ParseTypeSpec();
+    storage_type = dynamic_cast<OTypeInt *>(parsed_storage ? parsed_storage->ResolveAlias() : nullptr);
+    if (!storage_type
+        || (storage_type != g_builtins->type_int8 && storage_type != g_builtins->type_uint8
+            && storage_type != g_builtins->type_int16 && storage_type != g_builtins->type_uint16
+            && storage_type != g_builtins->type_int32 && storage_type != g_builtins->type_uint32
+            && storage_type != g_builtins->type_int64 && storage_type != g_builtins->type_uint64))
+    {
+      Error(DQERR_ENUM_STORAGE_TYPE);
+      storage_type = g_builtins->type_uint8;
+    }
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("="))
+  {
+    RootStatementError(DQERR_MISSING_ASSIGN_FOR, enum_name);
+    return;
+  }
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    RootStatementError(DQERR_MISSING_OPEN_PAREN_FOR, "enum");
+    return;
+  }
+
+  auto * enum_type = new OTypeEnum(enum_name, storage_type);
+  g_module->DeclareType(section_public, enum_type);
+
+  uint64_t next_value = 0;
+  bool previous_was_max = false;
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol(")"))
+    {
+      break;
+    }
+    if (!enum_type->items.empty() && !scf->CheckSymbol(","))
+    {
+      Error(DQERR_MISSING_COMMA_IN, "enum");
+      break;
+    }
+    scf->SkipWhite();
+    if (scf->CheckSymbol(")"))
+    {
+      break;
+    }
+
+    string item_name;
+    if (!scf->ReadIdentifier(item_name))
+    {
+      Error(DQERR_ID_EXP_AFTER, "enum item");
+      break;
+    }
+    if (enum_type->FindItem(item_name))
+    {
+      Error(DQERR_ENUM_ITEM_DUPLICATE, item_name);
+    }
+
+    uint64_t item_value = next_value;
+    bool source_negative = false;
+    bool explicit_value = false;
+    bool value_valid = true;
+    bool const_expr_error = false;
+    scf->SkipWhite();
+    if (scf->CheckSymbol("="))
+    {
+      explicit_value = true;
+      scf->SkipWhite();
+      source_negative = (*scf->curp == '-');
+      OExpr * value_expr = ParseExpression();
+      int64_t signed_value = 0;
+      if (!value_expr || !TryCalculateIntConstant(value_expr, signed_value))
+      {
+        Error(DQERR_ENUM_VALUE_CONST_EXPR, item_name);
+        value_valid = false;
+        const_expr_error = true;
+      }
+      else
+      {
+        item_value = uint64_t(signed_value);
+      }
+      OExpr::DeleteTree(value_expr);
+    }
+    else if (previous_was_max)
+    {
+      value_valid = false;
+    }
+
+    if (value_valid && explicit_value && !enum_type->items.empty())
+    {
+      uint64_t previous_value = enum_type->items.back().value;
+      bool smaller = storage_type->issigned
+          ? (int64_t(item_value) < int64_t(previous_value))
+          : (item_value < previous_value);
+      if (smaller)
+      {
+        Error(DQERR_ENUM_VALUE_ORDER, item_name);
+      }
+    }
+
+    bool in_range = value_valid;
+    if (in_range && storage_type->issigned)
+    {
+      int64_t signed_value = int64_t(item_value);
+      if (storage_type->bitlength < 64)
+      {
+        int64_t min_value = -(int64_t(1) << (storage_type->bitlength - 1));
+        int64_t max_value =  (int64_t(1) << (storage_type->bitlength - 1)) - 1;
+        in_range = (signed_value >= min_value && signed_value <= max_value);
+      }
+      else if (!source_negative && explicit_value && signed_value < 0)
+      {
+        in_range = false;
+      }
+    }
+    else if (in_range)
+    {
+      if (source_negative)
+      {
+        in_range = false;
+      }
+      else if (storage_type->bitlength < 64)
+      {
+        uint64_t max_value = (uint64_t(1) << storage_type->bitlength) - 1;
+        in_range = item_value <= max_value;
+      }
+    }
+    if (!in_range && !const_expr_error)
+    {
+      Error(DQERR_ENUM_VALUE_RANGE, item_name, storage_type->name);
+    }
+    if (in_range && enum_type->HasValue(item_value))
+    {
+      Error(DQERR_ENUM_VALUE_DUPLICATE, item_name);
+    }
+    enum_type->items.push_back({item_name, item_value});
+    previous_was_max = (item_value == (storage_type->issigned
+        ? (storage_type->bitlength == 64 ? uint64_t(INT64_MAX)
+                                         : uint64_t((int64_t(1) << (storage_type->bitlength - 1)) - 1))
+        : (storage_type->bitlength == 64 ? UINT64_MAX
+                                         : ((uint64_t(1) << storage_type->bitlength) - 1))));
+    next_value = item_value + 1;
+  }
+
+  if (enum_type->items.empty())
+  {
+    Error(DQERR_ENUM_EMPTY, enum_name);
+  }
+  CheckStatementClose();
 }
 
 void ODqCompParser::ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer)

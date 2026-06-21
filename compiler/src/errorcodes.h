@@ -133,6 +133,14 @@ DEF_DQ_ERR(DQERR_TYPE_ID_EXP,                      "TypeIdExpected",         "Ty
 DEF_DQ_ERR(DQERR_TYPE_ALREADY_DEFINED,             "TypeAlreadyDef",         "Type \"$1\" is already defined");
 DEF_DQ_ERR(DQERR_TYPE_ALREADY_DEFINED_IN,          "TypeAlreadyDef",         "Type \"$1\" is already defined in scope \"$2\"");
 DEF_DQ_ERR(DQERR_TYPE_ASSIGN_TO_CONST,             "TypeAssignToConst",      "Assignment target \"$1\" is constant");
+DEF_DQ_ERR(DQERR_ENUM_EMPTY,                       "EnumEmpty",              "Enum \"$1\" must declare at least one item");
+DEF_DQ_ERR(DQERR_ENUM_STORAGE_TYPE,                "EnumStorageType",        "Invalid enum storage type");
+DEF_DQ_ERR(DQERR_ENUM_ITEM_DUPLICATE,              "EnumItemDuplicate",      "Duplicate enum item \"$1\"");
+DEF_DQ_ERR(DQERR_ENUM_VALUE_DUPLICATE,             "EnumValueDuplicate",     "Duplicate enum value for \"$1\"");
+DEF_DQ_ERR(DQERR_ENUM_VALUE_CONST_EXPR,            "EnumValueConstExpr",     "Enum value for \"$1\" must be a compile-time integer constant");
+DEF_DQ_ERR(DQERR_ENUM_VALUE_RANGE,                 "EnumValueRange",         "Enum value for \"$1\" does not fit storage type \"$2\"");
+DEF_DQ_ERR(DQERR_ENUM_VALUE_ORDER,                 "EnumValueOrder",         "Enum value for \"$1\" is smaller than the previous value");
+DEF_DQ_ERR(DQERR_ENUM_TYPE_INFER,                  "EnumTypeInfer",          "Enum type cannot be inferred for \"$1\"");
 
 DEF_DQ_ERR(DQERR_TYPEMISM,                         "TypeMismatch",           "Type mismatch: \"$1\" = \"$2\"");
 DEF_DQ_ERR(DQERR_TYPEMISM_FOR_OP,                  "TypeMismatchOp",         "Type mismatch for operation: \"$1\" $2 \"$3\"");

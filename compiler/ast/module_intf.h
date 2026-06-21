@@ -27,6 +27,7 @@ using namespace std;
 class OValSymFunc;
 class OValSymOverloadSet;
 class OTypeFunc;
+class OTypeEnum;
 class OModulePath;
 
 enum class EModuleArtifactEnsureError
@@ -66,6 +67,7 @@ private:
   bool ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmIfRecId aend_recid);
   bool ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_ref, OType *& rtype);
   bool ReadTypeDecl(ODqmIfReader & reader);
+  bool ReadEnumDecl(ODqmIfReader & reader);
   bool ReadConstDecl(ODqmIfReader & reader);
   bool ReadVarDecl(ODqmIfReader & reader);
   bool ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner_type, bool amethod);

@@ -18,6 +18,7 @@
 #include "dqm_if.h"
 #include "expressions.h"
 #include "dqc.h"
+#include "otype_enum.h"
 #include <cmath>
 
 int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
@@ -302,6 +303,11 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (TK_INT != tks)
   {
+    if (is_explicit_cast && (TK_ENUM == tks))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM, this->name, resolved_src->name);
+      return false;
+    }
     if (is_explicit_cast && (TK_BOOL == tks))
     {
       *rexpr = new OExprTypeConv(this, src);

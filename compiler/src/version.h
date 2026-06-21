@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.22.4"
+#define DQ_COMPILER_VERSION  "0.23.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.23.0:
+  - enums implemented
 v0.22.4:
   - sys module moved to rtl/sys
 v0.22.3:

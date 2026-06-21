@@ -24,6 +24,7 @@
 #include "otype_compound.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
+#include "otype_enum.h"
 
 bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
@@ -512,6 +513,11 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   ETypeKind tkl = left->ptype->kind;
   ETypeKind tkr = right->ptype->kind;
 
+  if ((TK_ENUM == tkl) || (TK_ENUM == tkr))
+  {
+    Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
+    return nullptr;
+  }
   if ((op >= BINOP_IAND) and (op <= BINOP_ISHR))
   {
     if ((tkl != TK_INT) or (tkr != TK_INT))
@@ -577,12 +583,30 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
 bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
-  if (!dsttype || !src || !src->ptype)
+  if (!dsttype || !src)
   {
     return false;
   }
 
   OType * resolved_dst = dsttype->ResolveAlias();
+  if (dynamic_cast<OUnresolvedEnumItemExpr *>(src))
+  {
+    auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst);
+    if (enum_dst)
+    {
+      return enum_dst->ConvertFromExpr(rexpr, aflags);
+    }
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_ENUM_TYPE_INFER,
+          static_cast<OUnresolvedEnumItemExpr *>(src)->item_name);
+    }
+    return false;
+  }
+  if (!src->ptype)
+  {
+    return false;
+  }
   OType * resolved_src = src->ResolvedType();
   if (!resolved_dst || !resolved_src)
   {
@@ -599,12 +623,21 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
 int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags)
 {
-  if (!dsttype || !expr || !expr->ptype)
+  if (!dsttype || !expr)
   {
     return -1;
   }
 
   OType * resolved_dst = dsttype->ResolveAlias();
+  if (dynamic_cast<OUnresolvedEnumItemExpr *>(expr))
+  {
+    auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst);
+    return enum_dst ? enum_dst->GetConversionCostFromExpr(expr, aflags) : -1;
+  }
+  if (!expr->ptype)
+  {
+    return -1;
+  }
   OType * resolved_src = expr->ResolvedType();
   if (!resolved_dst || !resolved_src)
   {
@@ -787,7 +820,7 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
 
   if ((TK_INT == resolved->kind) || (TK_FLOAT == resolved->kind)
       || (TK_BOOL == resolved->kind) || (TK_ARRAY == resolved->kind)
-      || (TK_POINTER == resolved->kind))
+      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind))
   {
     return true;
   }

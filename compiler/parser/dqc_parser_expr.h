@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dqc_ast.h"
+#include "otype_enum.h"
 
 class ODqCompParserExpr : public ODqCompAst
 {
@@ -58,6 +59,7 @@ public: // expressions
   OExpr * ParseBuiltinFloatRound(ERoundMode amode);
   OExpr * ParseBuiltinTryCast();
   OExpr * ParseBuiltinTypeName();
+  OExpr * ParseBuiltinOrd();
   OExpr * ParseArrayLit();
 
 public: // type parsing
@@ -80,6 +82,8 @@ protected:
   bool    ParseAttrStringArg(const string & attrname, string & rvalue);
 
   OValSym * ResolveNamespaceValSym();
+  OExpr *   ParseEnumTypeExpr(OTypeEnum * enum_type);
+  bool      IsKnownEnumItem(const string & item_name);
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   bool      CheckSpecialReservedRootName(const string & aname);
   bool      CheckStatementClose(bool emit_error = true);

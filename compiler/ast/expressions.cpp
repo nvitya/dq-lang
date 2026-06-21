@@ -21,6 +21,7 @@
 #include "otype_string.h"
 #include "otype_func.h"
 #include "otype_compound.h"
+#include "otype_enum.h"
 #include "named_scopes.h"
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
@@ -1066,9 +1067,12 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     else if (COMPOP_LE == op)   return ll_builder.CreateFCmpOLE(ll_left, ll_right);
     else if (COMPOP_GE == op)   return ll_builder.CreateFCmpOGE(ll_left, ll_right);
   }
-  else if (TK_INT == optype->kind)
+  else if (TK_INT == optype->kind || TK_ENUM == optype->kind)
   {
-    bool issigned = static_cast<OTypeInt *>(left->ResolvedType())->issigned;
+    OType * resolved = left->ResolvedType();
+    bool issigned = (TK_ENUM == resolved->kind
+        ? static_cast<OTypeEnum *>(resolved)->storage_type->issigned
+        : static_cast<OTypeInt *>(resolved)->issigned);
 
     if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
     else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);

@@ -1,0 +1,14 @@
+// Enum metadata survives module interface generation and loading.
+
+use ./mod_enum
+
+[[external]] function printf(fmt : ^cchar, ...) -> int
+
+function *Main() -> int:
+  var state : NModuleState = NModuleState.idle
+  state = ModuleState()
+  printf("enum.module = %li %li\n", int(state.ord), SizeOf(NModuleState))
+  //?check("enum.module", "10 2")
+  return 0
+endfunc
+

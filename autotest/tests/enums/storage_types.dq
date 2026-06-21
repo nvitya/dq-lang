@@ -1,4 +1,3 @@
-//?notest
 // All supported enum storage types and their boundary values.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

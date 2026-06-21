@@ -359,8 +359,10 @@ reference or pointer. The returned object or pointed-to value has its normal
 addressability and lifetime semantics; this does not make the property itself
 addressable.
 
-Direct assignment to a writable property is the only property operation that
-uses it as an assignment target.
+Direct assignment may use any writable property as an assignment target.
+Modify-assignment requires both accessors: it reads the property, applies the
+operation, then writes the result. The receiver and any indices are evaluated
+once and reused for both accessor calls.
 
 ---
 

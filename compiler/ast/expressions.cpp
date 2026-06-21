@@ -827,7 +827,8 @@ static vector<LlValue *> GeneratePropertyCallArgs(OScope * scope, OPropertyExpr 
 }
 
 static LlValue * GeneratePropertyFieldAddress(OScope * scope, OPropertyExpr * expr,
-                                               OValSym * accessor, OCompoundType * decl_type)
+                                               OValSym * accessor, OCompoundType * decl_type,
+                                               LlValue * ll_receiver = nullptr)
 {
   int field_index = (decl_type ? decl_type->FindMemberIndex(accessor->name) : -1);
   if (field_index < 0)
@@ -835,7 +836,10 @@ static LlValue * GeneratePropertyFieldAddress(OScope * scope, OPropertyExpr * ex
     throw logic_error("Property field accessor is not in its declaring type");
   }
   decl_type->GetLlType();
-  LlValue * ll_receiver = GeneratePropertyReceiver(scope, expr->receiver);
+  if (!ll_receiver)
+  {
+    ll_receiver = GeneratePropertyReceiver(scope, expr->receiver);
+  }
   uint32_t ll_index = decl_type->member_order[size_t(field_index)]->ll_field_index;
   return ll_builder.CreateStructGEP(decl_type->GetLlType(), ll_receiver, ll_index,
                                     accessor->name + ".property.addr");
@@ -896,6 +900,68 @@ void OPropertyExpr::GenerateWrite(OScope * scope, OExpr * value)
   if (!GenerateAssignmentToAddress(scope, property->ptype, ll_addr, value))
   {
     throw logic_error("Unsupported field-backed property assignment");
+  }
+}
+
+void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value)
+{
+  if (!property || !property->read_accessor || !property->write_accessor)
+  {
+    throw logic_error("Modify-assigning a property without read and write accessors");
+  }
+
+  LlValue * ll_receiver = GeneratePropertyReceiver(scope, receiver);
+  vector<LlValue *> ll_indices;
+  if (auto * getter = dynamic_cast<OValSymFunc *>(property->read_accessor))
+  {
+    auto * sig = static_cast<OTypeFunc *>(getter->ptype);
+    for (size_t i = 0; i < indices.size(); ++i)
+    {
+      ll_indices.push_back(
+          GeneratePropertyExplicitArgument(scope, indices[i], sig->params[i + 1]));
+    }
+  }
+
+  LlValue * ll_curval = nullptr;
+  if (auto * getter = dynamic_cast<OValSymFunc *>(property->read_accessor))
+  {
+    vector<LlValue *> ll_args = {ll_receiver};
+    ll_args.insert(ll_args.end(), ll_indices.begin(), ll_indices.end());
+    ll_curval = GenerateFunctionCall(scope, getter, ll_args);
+  }
+  else
+  {
+    LlValue * ll_addr = GeneratePropertyFieldAddress(
+        scope, this, property->read_accessor, property->read_decl_type, ll_receiver);
+    ll_curval = ll_builder.CreateLoad(ptype->GetLlType(), ll_addr, "property");
+  }
+
+  LlValue * ll_mod_value = value->Generate(scope);
+  LlValue * ll_newval = GenerateModifyAssignValue(ptype, op, ll_curval, ll_mod_value);
+
+  if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
+  {
+    vector<LlValue *> ll_args = {ll_receiver};
+    ll_args.insert(ll_args.end(), ll_indices.begin(), ll_indices.end());
+    auto * value_param = static_cast<OTypeFunc *>(setter->ptype)->params.back();
+    if (FPM_VALUE == value_param->mode)
+    {
+      ll_args.push_back(ll_newval);
+    }
+    else
+    {
+      LlValue * ll_temp = CreateEntryBlockAlloca(
+          value_param->ptype->GetLlType(), nullptr, "property.refin");
+      ll_builder.CreateStore(ll_newval, ll_temp);
+      ll_args.push_back(ll_temp);
+    }
+    GenerateFunctionCall(scope, setter, ll_args);
+  }
+  else
+  {
+    LlValue * ll_addr = GeneratePropertyFieldAddress(
+        scope, this, property->write_accessor, property->write_decl_type, ll_receiver);
+    ll_builder.CreateStore(ll_newval, ll_addr);
   }
 }
 

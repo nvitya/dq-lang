@@ -486,7 +486,13 @@ void OStmtModifyAssign::Generate(OScope * scope)
   // Load current value
   LlValue * ll_curval = ll_builder.CreateLoad(valtype->GetLlType(), ll_addr, "cur");
   LlValue * ll_mod_value = value->Generate(scope);
+  LlValue * ll_newval = GenerateModifyAssignValue(valtype, op, ll_curval, ll_mod_value);
+  ll_builder.CreateStore(ll_newval, ll_addr);
+}
 
+LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
+                                    LlValue * ll_curval, LlValue * ll_mod_value)
+{
   LlValue * ll_newval = nullptr;
   if (TK_POINTER == valtype->kind)
   {
@@ -529,12 +535,9 @@ void OStmtModifyAssign::Generate(OScope * scope)
 
   if (ll_newval)
   {
-    ll_builder.CreateStore(ll_newval, ll_addr);
+    return ll_newval;
   }
-  else
-  {
-    throw logic_error(std::format("Unsupported modify-assign operation: {}", int(op)));
-  }
+  throw logic_error(std::format("Unsupported modify-assign operation: {}", int(op)));
 }
 
 OStmtPropertyAssign::~OStmtPropertyAssign()
@@ -547,7 +550,14 @@ OStmtPropertyAssign::~OStmtPropertyAssign()
 
 void OStmtPropertyAssign::Generate(OScope * scope)
 {
-  target->GenerateWrite(scope, value);
+  if (BINOP_NONE == op)
+  {
+    target->GenerateWrite(scope, value);
+  }
+  else
+  {
+    target->GenerateModifyWrite(scope, op, value);
+  }
 }
 
 void OStmtVoidCall::Generate(OScope * scope)

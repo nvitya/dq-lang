@@ -63,5 +63,13 @@ function *Main() -> int:
   printf("property.eval.result = %d %d\n", box.items[1], box.gets);
   //?check("property.eval.result", "99 1")
 
+  GetBox().items[NextIndex()] += NextValue();
+  printf("property.eval.modify = %d %d %d %d %d\n",
+         receiver_calls, index_calls, value_calls, box.gets, box.sets);
+  //?check("property.eval.modify", "2 2 2 2 2")
+
+  printf("property.eval.modified-result = %d %d\n", box.items[1], box.gets);
+  //?check("property.eval.modified-result", "198 3")
+
   return 0;
 endfunc

@@ -25,6 +25,8 @@ using namespace std;
 
 void EmitExpressionExceptionCheck(OScope * scope);
 
+enum EBinOp : int;
+
 class OExprTypeConv : public OExpr
 {
 public:
@@ -145,6 +147,7 @@ public:
   bool IsObjectReferenceExpr() const override;
   LlValue * GenerateObjectAddress(OScope * scope) override;
   void GenerateWrite(OScope * scope, OExpr * value);
+  void GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value);
   void FoldChildren() override;
   void DeleteChildTree() override;
 };
@@ -180,7 +183,7 @@ public:
   void       DeleteChildTree() override;
 };
 
-enum EBinOp
+enum EBinOp : int
 {
   BINOP_NONE = 0,
   BINOP_ADD = 1,

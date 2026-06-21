@@ -81,6 +81,8 @@ function *Main() -> int:
 
   var read_writeonly : int = obj.writeonly; //?error(PropertyWriteOnly)
   obj.readonly = 1; //?error(PropertyReadOnly)
+  obj.readonly += 1; //?error(PropertyReadOnly)
+  obj.writeonly += 1; //?error(PropertyWriteOnly)
   obj.good = 1.5; //?error(TypeMismatchAssign)
   obj.good_indexed[1] = 1.5; //?error(TypeMismatchAssign)
 

@@ -1644,20 +1644,40 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
       delete rightexpr;
       return false;
     }
-    if (BINOP_NONE != op)
+    if (BINOP_NONE != op && !property->read_accessor)
     {
-      Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->name);
+      Error(DQERR_PROPERTY_WRITE_ONLY, property->name);
       delete leftexpr;
       delete rightexpr;
       return false;
     }
-    if (!CheckAssignType(property->ptype, &rightexpr, "Assignment"))
+
+    if (TK_POINTER == property->ptype->kind && (BINOP_ADD == op || BINOP_SUB == op))
+    {
+      OTypePointer * ptrtype = static_cast<OTypePointer *>(property->ptype->ResolveAlias());
+      if (!ptrtype->IsTypedPointer())
+      {
+        Error(DQERR_PTR_OPAQUE_USAGE, "pointer arithmetic");
+        delete leftexpr;
+        delete rightexpr;
+        return false;
+      }
+      if (TK_INT != rightexpr->ptype->kind)
+      {
+        Error(DQERR_PTRARITH_TYPE, rightexpr->ptype->name);
+        delete leftexpr;
+        delete rightexpr;
+        return false;
+      }
+    }
+    else if (!CheckAssignType(property->ptype, &rightexpr, "Assignment"))
     {
       delete leftexpr;
       delete rightexpr;
       return false;
     }
-    curblock->AddStatement(new OStmtPropertyAssign(scpos_statement_start, property_expr, rightexpr));
+    curblock->AddStatement(new OStmtPropertyAssign(
+        scpos_statement_start, property_expr, op, rightexpr));
     return true;
   }
 

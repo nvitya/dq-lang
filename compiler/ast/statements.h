@@ -23,6 +23,8 @@ using namespace std;
 
 bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
                                  LlValue * targetaddr, OExpr * value);
+LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
+                                    LlValue * ll_curval, LlValue * ll_mod_value);
 
 class OStmt
 {
@@ -239,12 +241,14 @@ class OStmtPropertyAssign : public OStmt
 {
 public:
   OPropertyExpr * target;
+  EBinOp          op;
   OExpr *         value;
 
-  OStmtPropertyAssign(OScPosition & ascpos, OPropertyExpr * atarget, OExpr * avalue)
+  OStmtPropertyAssign(OScPosition & ascpos, OPropertyExpr * atarget, EBinOp aop, OExpr * avalue)
   :
     OStmt(ascpos),
     target(atarget),
+    op(aop),
     value(avalue)
   {}
 

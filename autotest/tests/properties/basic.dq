@@ -62,9 +62,9 @@ function *Main() -> int:
          box.direct, box.calculated, box.readonly);
   //?check("property.basic.write", "11 24 1")
 
-  //box.direct += 1;
-  //printf("property.basic.inc = %d\n", box.direct);
-  //-?check("property.basic.inc", "11")
+  box.direct += 1;
+  printf("property.basic.inc = %d\n", box.direct);
+  //?check("property.basic.inc", "12")
 
   box.writeonly = 41;
   printf("property.basic.writeonly = %d %d\n",

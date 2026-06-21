@@ -1,0 +1,12 @@
+// Runtime support for checked enum conversion.
+
+use rtl/exception
+
+function DqEnumInvalidOrd()
+
+implementation
+
+function DqEnumInvalidOrd():
+  raise new Exception("Invalid enum ordinal")
+endfunc
+

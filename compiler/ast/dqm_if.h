@@ -21,7 +21,7 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     8 );  // generated version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |     9 );  // generated version
 const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     8 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
@@ -208,6 +208,15 @@ TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0711;  // int32
 // exp.:     type spec
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 // opt.:     attributes (at the front only)
+
+TDqmIfRecId  DQMIF_PROPERTY_BEGIN         = 0x0720;  // str
+TDqmIfRecId  DQMIF_PROPERTY_DEFAULT       = 0x0721;  // 0
+TDqmIfRecId  DQMIF_PROPERTY_INDEX_BEGIN   = 0x0722;  // str: optional index name
+TDqmIfRecId  DQMIF_PROPERTY_INDEX_END     = 0x0723;  // 0
+TDqmIfRecId  DQMIF_PROPERTY_VALUE_TYPE    = 0x0724;  // 0, followed by type spec
+TDqmIfRecId  DQMIF_PROPERTY_READ          = 0x0725;  // str: accessor name
+TDqmIfRecId  DQMIF_PROPERTY_WRITE         = 0x0726;  // str: accessor name
+TDqmIfRecId  DQMIF_PROPERTY_END           = 0x072F;  // 0
 
 TDqmIfRecId  DQMIF_METHOD_BEGIN           = 0x0780;  // str
 TDqmIfRecId  DQMIF_METHOD_END             = 0x078F;  // 0

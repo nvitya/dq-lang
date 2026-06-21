@@ -1,4 +1,3 @@
-//?notest
 // Indexed properties with unnamed, named, and multiple indices.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

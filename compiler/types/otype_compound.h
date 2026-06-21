@@ -25,6 +25,7 @@ private:
 public:
   OScope       member_scope;
   vector<OValSym *>  member_order;  // declaration order for LLVM struct layout
+  vector<OValSymProperty *> properties;
   OCompoundType * base_type = nullptr;
   bool         is_packed = false;
   bool         is_polymorphic = false;
@@ -44,6 +45,8 @@ public:
 
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
+  void AddProperty(OValSymProperty * aproperty);
+  OValSymProperty * FindDefaultProperty(OCompoundType ** rdecl_type = nullptr) const;
   int  FindMemberIndex(const string & aname);
   virtual OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   virtual int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;

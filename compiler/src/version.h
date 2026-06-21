@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.23.0"
+#define DQ_COMPILER_VERSION  "0.24.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.24.0:
+  - properties implemented
 v0.23.0:
   - enums implemented
 v0.22.4:

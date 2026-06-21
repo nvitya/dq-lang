@@ -1,4 +1,3 @@
-//?notest
 // Property accessor signature and use-site type checking.
 
 object OPropertyTypecheck:

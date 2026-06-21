@@ -131,6 +131,24 @@ public:
   void       DeleteChildTree() override;
 };
 
+// A property can be an assignment target, but it is never addressable storage.
+class OPropertyExpr : public OLValueExpr
+{
+public:
+  OExpr *            receiver;
+  OValSymProperty *  property;
+  vector<OExpr *>    indices;
+
+  /* ctor */ OPropertyExpr(OExpr * areceiver, OValSymProperty * aproperty);
+  LlValue * GenerateAddress(OScope * scope) override;
+  LlValue * Generate(OScope * scope) override;
+  bool IsObjectReferenceExpr() const override;
+  LlValue * GenerateObjectAddress(OScope * scope) override;
+  void GenerateWrite(OScope * scope, OExpr * value);
+  void FoldChildren() override;
+  void DeleteChildTree() override;
+};
+
 class OArraySliceExpr : public OExpr
 {
 public:

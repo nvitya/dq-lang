@@ -1325,6 +1325,12 @@ OLValueExpr * ODqCompParserExpr::ParseAddressableExpr()
     delete expr;
     return nullptr;
   }
+  if (auto * property = dynamic_cast<OPropertyExpr *>(lval))
+  {
+    Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);
+    delete expr;
+    return nullptr;
+  }
 
   OValSym * varref = dynamic_cast<OLValueVar *>(lval) ? static_cast<OLValueVar *>(lval)->pvalsym : nullptr;
   if (varref and VSK_VARIABLE != varref->kind and VSK_PARAMETER != varref->kind)
@@ -2079,6 +2085,65 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
     ETypeKind      tk   = result->ptype->kind;
     OLValueExpr *  lval = dynamic_cast<OLValueExpr *>(result);
 
+    if (auto * property_expr = dynamic_cast<OPropertyExpr *>(result);
+        property_expr && property_expr->property->IsIndexed() && property_expr->indices.empty()
+        && scf->CheckSymbol("["))
+    {
+      if (!ParsePropertyIndices(property_expr))
+      {
+        return result;
+      }
+      CheckPropertyReadable(property_expr);
+      continue;
+    }
+
+    OType * resolved_result_type = result->ResolvedType();
+    auto * result_object_type = dynamic_cast<OTypeObject *>(resolved_result_type);
+    if (result_object_type && scf->CheckSymbol("["))
+    {
+      OCompoundType * decl_type = nullptr;
+      OValSymProperty * default_property = result_object_type->FindDefaultProperty(&decl_type);
+      if (!default_property || !ObjectMemberAccessAllowed(decl_type, default_property))
+      {
+        Error(DQERR_MEMBER_UNKNOWN, "default property", result_object_type->name);
+        return result;
+      }
+      auto * property_expr = new OPropertyExpr(result, default_property);
+      result = property_expr;
+      if (!ParsePropertyIndices(property_expr))
+      {
+        return result;
+      }
+      CheckPropertyReadable(property_expr);
+      continue;
+    }
+
+    if (!lval && result_object_type && scf->CheckSymbol("."))
+    {
+      string membername;
+      scf->SkipWhite();
+      if (!scf->ReadIdentifier(membername))
+      {
+        Error(DQERR_MEMBER_NAME_EXPECTED);
+        return result;
+      }
+      OCompoundType * decl_type = result_object_type;
+      OValSym * member = result_object_type->FindMemberSymbol(membername, &decl_type);
+      auto * property = dynamic_cast<OValSymProperty *>(member);
+      if (!property || !ObjectMemberAccessAllowed(decl_type, property))
+      {
+        Error(DQERR_MEMBER_UNKNOWN, membername, result_object_type->name);
+        return result;
+      }
+      auto * property_expr = new OPropertyExpr(result, property);
+      result = property_expr;
+      if (!property->IsIndexed())
+      {
+        CheckPropertyReadable(property_expr);
+      }
+      continue;
+    }
+
     if (TK_ENUM == tk && scf->CheckSymbol("."))
     {
       string membername;
@@ -2231,6 +2296,22 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
 
         OCompoundType * decl_type = ctype;
         OValSym * objsym = ctype->FindMemberSymbol(membername, &decl_type);
+        if (auto * property = dynamic_cast<OValSymProperty *>(objsym))
+        {
+          if (!ObjectMemberAccessAllowed(decl_type, property))
+          {
+            Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+            delete result;
+            return nullptr;
+          }
+          auto * property_expr = new OPropertyExpr(memberbase, property);
+          result = property_expr;
+          if (!property->IsIndexed())
+          {
+            CheckPropertyReadable(property_expr);
+          }
+          continue;
+        }
         if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
         {
           if (!ObjectMemberAccessAllowed(decl_type, method))
@@ -2293,6 +2374,11 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
            or TK_DYNSTR == tk or TK_STRVIEW == tk)
           and scf->CheckSymbol("["))
       {
+        if (auto * property = dynamic_cast<OPropertyExpr *>(lval))
+        {
+          Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);
+          return result;
+        }
         OExpr * indexexpr = nullptr;
         OExpr * endexpr = nullptr;
         bool has_first_expr = false;
@@ -2448,6 +2534,66 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
   }
 
   return result;
+}
+
+bool ODqCompParserExpr::ParsePropertyIndices(OPropertyExpr * property_expr)
+{
+  OValSymProperty * property = property_expr ? property_expr->property : nullptr;
+  if (!property)
+  {
+    return false;
+  }
+
+  size_t index_no = 0;
+  while (!scf->Eof())
+  {
+    OExpr * index_expr = ParseExpression();
+    if (!index_expr)
+    {
+      return false;
+    }
+    if (index_no >= property->indices.size())
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, property->name, to_string(property->indices.size()));
+      OExpr::DeleteTree(index_expr);
+      return false;
+    }
+    if (!CheckAssignType(property->indices[index_no].ptype, &index_expr, "Property index"))
+    {
+      OExpr::DeleteTree(index_expr);
+      return false;
+    }
+    property_expr->indices.push_back(index_expr);
+    ++index_no;
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]"))
+    {
+      break;
+    }
+    if (!scf->CheckSymbol(","))
+    {
+      Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "property index");
+      return false;
+    }
+  }
+
+  if (index_no < property->indices.size())
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(index_no), property->name,
+          to_string(property->indices.size()));
+    return false;
+  }
+  return true;
+}
+
+void ODqCompParserExpr::CheckPropertyReadable(OPropertyExpr * property_expr)
+{
+  if (property_expr && property_expr->property && !property_expr->property->read_accessor
+      && !supress_varinit_check)
+  {
+    Error(DQERR_PROPERTY_WRITE_ONLY, property_expr->property->name);
+  }
 }
 
 OExpr * ODqCompParserExpr::ParseExprPrimary()
@@ -2765,6 +2911,11 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   if (!result)
   {
     result = new OLValueVar(vs);
+  }
+  if (auto * property_expr = dynamic_cast<OPropertyExpr *>(result);
+      property_expr && !property_expr->property->IsIndexed())
+  {
+    CheckPropertyReadable(property_expr);
   }
   if (vs->kind != VSK_FUNCTION and not vs->initialized)
   {

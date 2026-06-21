@@ -600,7 +600,8 @@ enum EValSymKind
   VSK_CONST = 0,
   VSK_VARIABLE,
   VSK_PARAMETER,
-  VSK_FUNCTION
+  VSK_FUNCTION,
+  VSK_PROPERTY
 };
 
 enum EParamMode
@@ -683,6 +684,36 @@ public:
   }
 
   virtual OType * GetStorageType() const;
+};
+
+struct OPropertyIndex
+{
+  string      name;
+  OType *     ptype = nullptr;
+  EParamMode  mode = FPM_VALUE;
+};
+
+class OValSymProperty : public OValSym
+{
+private:
+  using super = OValSym;
+
+public:
+  vector<OPropertyIndex> indices;
+  OValSym *              read_accessor = nullptr;
+  OValSym *              write_accessor = nullptr;
+  OCompoundType *        read_decl_type = nullptr;
+  OCompoundType *        write_decl_type = nullptr;
+  bool                   is_default = false;
+
+  OValSymProperty(OScPosition & apos, const string & aname, OType * atype)
+  :
+    super(apos, aname, atype, VSK_PROPERTY)
+  {
+    initialized = true;
+  }
+
+  bool IsIndexed() const { return !indices.empty(); }
 };
 
 class OValSymConst : public OValSym

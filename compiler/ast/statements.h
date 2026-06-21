@@ -21,6 +21,9 @@
 
 using namespace std;
 
+bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
+                                 LlValue * targetaddr, OExpr * value);
+
 class OStmt
 {
 public:
@@ -229,6 +232,23 @@ public:
     value(avalue)
   {}
 
+  void Generate(OScope * scope) override;
+};
+
+class OStmtPropertyAssign : public OStmt
+{
+public:
+  OPropertyExpr * target;
+  OExpr *         value;
+
+  OStmtPropertyAssign(OScPosition & ascpos, OPropertyExpr * atarget, OExpr * avalue)
+  :
+    OStmt(ascpos),
+    target(atarget),
+    value(avalue)
+  {}
+
+  ~OStmtPropertyAssign() override;
   void Generate(OScope * scope) override;
 };
 

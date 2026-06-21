@@ -83,6 +83,8 @@ protected:
 
   OValSym * ResolveNamespaceValSym();
   OExpr *   ParseEnumTypeExpr(OTypeEnum * enum_type);
+  bool      ParsePropertyIndices(OPropertyExpr * property_expr);
+  void      CheckPropertyReadable(OPropertyExpr * property_expr);
   bool      IsKnownEnumItem(const string & item_name);
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   bool      CheckSpecialReservedRootName(const string & aname);

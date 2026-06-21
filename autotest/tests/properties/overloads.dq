@@ -1,4 +1,3 @@
-//?notest
 // Property accessors are selected from overload sets by exact signature.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

@@ -1,4 +1,3 @@
-//?notest
 // Properties are assignment targets but are never addressable lvalues.
 
 object OPropertyAddressability:

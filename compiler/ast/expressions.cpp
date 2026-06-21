@@ -12,6 +12,7 @@
  */
 
 #include "expressions.h"
+#include "statements.h"
 #include "scope_builtins.h"
 #include "otype_bool.h"
 #include "otype_float.h"
@@ -25,6 +26,9 @@
 #include "named_scopes.h"
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
+
+static LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
+                                      const vector<LlValue *> & ll_args, bool force_direct = false);
 
 static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
 {
@@ -768,6 +772,152 @@ void OLValueIndex::DeleteChildTree()
   OExpr::DeleteTree(indexexpr);
   base = nullptr;
   indexexpr = nullptr;
+}
+
+/* ctor */ OPropertyExpr::OPropertyExpr(OExpr * areceiver, OValSymProperty * aproperty)
+{
+  receiver = areceiver;
+  property = aproperty;
+  ptype = (property ? property->ptype : nullptr);
+}
+
+static LlValue * GeneratePropertyReceiver(OScope * scope, OExpr * receiver)
+{
+  if (auto * lval = dynamic_cast<OLValueExpr *>(receiver))
+  {
+    return lval->GenerateObjectAddress(scope);
+  }
+  return receiver->Generate(scope);
+}
+
+static LlValue * GeneratePropertyExplicitArgument(OScope * scope, OExpr * expr, OFuncParam * param)
+{
+  if (!param || FPM_VALUE == param->mode)
+  {
+    return expr->Generate(scope);
+  }
+
+  if (auto * lval = dynamic_cast<OLValueExpr *>(expr);
+      lval && !dynamic_cast<OPropertyExpr *>(lval))
+  {
+    return lval->GenerateAddress(scope);
+  }
+
+  LlValue * ll_value = expr->Generate(scope);
+  LlValue * ll_temp = CreateEntryBlockAlloca(param->ptype->GetLlType(), nullptr, "property.refin");
+  ll_builder.CreateStore(ll_value, ll_temp);
+  return ll_temp;
+}
+
+static vector<LlValue *> GeneratePropertyCallArgs(OScope * scope, OPropertyExpr * expr,
+                                                   OValSymFunc * accessor, OExpr * value = nullptr)
+{
+  vector<LlValue *> result;
+  result.push_back(GeneratePropertyReceiver(scope, expr->receiver));
+  auto * sig = static_cast<OTypeFunc *>(accessor->ptype);
+  for (size_t i = 0; i < expr->indices.size(); ++i)
+  {
+    result.push_back(GeneratePropertyExplicitArgument(scope, expr->indices[i], sig->params[i + 1]));
+  }
+  if (value)
+  {
+    result.push_back(GeneratePropertyExplicitArgument(scope, value, sig->params.back()));
+  }
+  return result;
+}
+
+static LlValue * GeneratePropertyFieldAddress(OScope * scope, OPropertyExpr * expr,
+                                               OValSym * accessor, OCompoundType * decl_type)
+{
+  int field_index = (decl_type ? decl_type->FindMemberIndex(accessor->name) : -1);
+  if (field_index < 0)
+  {
+    throw logic_error("Property field accessor is not in its declaring type");
+  }
+  decl_type->GetLlType();
+  LlValue * ll_receiver = GeneratePropertyReceiver(scope, expr->receiver);
+  uint32_t ll_index = decl_type->member_order[size_t(field_index)]->ll_field_index;
+  return ll_builder.CreateStructGEP(decl_type->GetLlType(), ll_receiver, ll_index,
+                                    accessor->name + ".property.addr");
+}
+
+LlValue * OPropertyExpr::GenerateAddress(OScope * scope)
+{
+  (void)scope;
+  throw logic_error("A property does not have an address");
+}
+
+LlValue * OPropertyExpr::Generate(OScope * scope)
+{
+  if (!property || !property->read_accessor)
+  {
+    throw logic_error("Reading a property without an accessor");
+  }
+
+  if (auto * getter = dynamic_cast<OValSymFunc *>(property->read_accessor))
+  {
+    return GenerateFunctionCall(scope, getter, GeneratePropertyCallArgs(scope, this, getter));
+  }
+
+  LlValue * ll_addr = GeneratePropertyFieldAddress(
+      scope, this, property->read_accessor, property->read_decl_type);
+  if (TK_OBJECT == ptype->ResolveAlias()->kind)
+  {
+    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), ll_addr, "property.objref");
+  }
+  return ll_builder.CreateLoad(ptype->GetLlType(), ll_addr, "property");
+}
+
+bool OPropertyExpr::IsObjectReferenceExpr() const
+{
+  return ptype && (TK_OBJECT == ptype->ResolveAlias()->kind);
+}
+
+LlValue * OPropertyExpr::GenerateObjectAddress(OScope * scope)
+{
+  return IsObjectReferenceExpr() ? Generate(scope) : OLValueExpr::GenerateObjectAddress(scope);
+}
+
+void OPropertyExpr::GenerateWrite(OScope * scope, OExpr * value)
+{
+  if (!property || !property->write_accessor)
+  {
+    throw logic_error("Writing a property without an accessor");
+  }
+
+  if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
+  {
+    GenerateFunctionCall(scope, setter, GeneratePropertyCallArgs(scope, this, setter, value));
+    return;
+  }
+
+  LlValue * ll_addr = GeneratePropertyFieldAddress(
+      scope, this, property->write_accessor, property->write_decl_type);
+  if (!GenerateAssignmentToAddress(scope, property->ptype, ll_addr, value))
+  {
+    throw logic_error("Unsupported field-backed property assignment");
+  }
+}
+
+void OPropertyExpr::FoldChildren()
+{
+  OExpr::FoldTree(&receiver);
+  for (OExpr *& index : indices)
+  {
+    OExpr::FoldTree(&index);
+  }
+}
+
+void OPropertyExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  for (OExpr *& index : indices)
+  {
+    OExpr::DeleteTree(index);
+    index = nullptr;
+  }
+  indices.clear();
 }
 
 /* ctor */ OBinExpr::OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright)
@@ -1980,6 +2130,13 @@ LlValue * OCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
+  return GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
+}
+
+static LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
+                                      const vector<LlValue *> & ll_args, bool force_direct)
+{
+  OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
   if (!force_direct && vsfunc->attr_is_virtual && owner_object && !ll_args.empty())
   {

@@ -286,6 +286,26 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
         << member->name << " : " << TypeName(member->ptype) << "\n";
   }
 
+  for (OValSymProperty * property : atype->properties)
+  {
+    out << indent << "  property " << property->name << " : ";
+    if (property->IsIndexed())
+    {
+      out << "[";
+      for (size_t i = 0; i < property->indices.size(); ++i)
+      {
+        if (i) out << ", ";
+        out << TypeName(property->indices[i].ptype);
+      }
+      out << "]";
+    }
+    out << TypeName(property->ptype);
+    if (property->is_default) out << " default";
+    if (property->read_accessor) out << " read " << property->read_accessor->name;
+    if (property->write_accessor) out << " write " << property->write_accessor->name;
+    out << "\n";
+  }
+
   if (object_type)
   {
     for (auto & [name, vs] : atype->Members()->valsyms)
@@ -2075,6 +2095,211 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
   return true;
 }
 
+static bool ImportedPropertyMethodMatches(OValSymFunc * method, OValSymProperty * property, bool write)
+{
+  auto * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
+  size_t explicit_count = property->indices.size() + (write ? 1 : 0);
+  if (!sig || sig->params.size() != explicit_count + 1)
+  {
+    return false;
+  }
+  if (write ? (sig->rettype != nullptr)
+            : (!sig->rettype || sig->rettype->ResolveAlias() != property->ptype->ResolveAlias()))
+  {
+    return false;
+  }
+  for (size_t i = 0; i < property->indices.size(); ++i)
+  {
+    OFuncParam * param = sig->params[i + 1];
+    const OPropertyIndex & index = property->indices[i];
+    if (param->mode != index.mode || param->ptype->ResolveAlias() != index.ptype->ResolveAlias())
+    {
+      return false;
+    }
+  }
+  if (write)
+  {
+    OFuncParam * value = sig->params.back();
+    if ((FPM_VALUE != value->mode && FPM_REFIN != value->mode)
+        || value->ptype->ResolveAlias() != property->ptype->ResolveAlias())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_type)
+{
+  if (!aowner_type)
+  {
+    return reader.Fail("A DQM interface property requires an object owner");
+  }
+
+  string property_name;
+  if (!reader.ReadString(property_name) || !reader.NextRec())
+  {
+    return false;
+  }
+
+  SDqmIfAttributes attrs;
+  if (!ReadAttributes(reader, attrs))
+  {
+    return false;
+  }
+
+  OScPosition scpos;
+  auto * property = new OValSymProperty(scpos, property_name, nullptr);
+  string read_name;
+  string write_name;
+
+  while (true)
+  {
+    if (DQMIF_PROPERTY_END == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_PROPERTY_END))
+      {
+        delete property;
+        return false;
+      }
+      break;
+    }
+    if (DQMIF_PROPERTY_DEFAULT == reader.recid)
+    {
+      property->is_default = true;
+      if (!reader.ExpectEmpty(DQMIF_PROPERTY_DEFAULT) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      continue;
+    }
+    if (DQMIF_PROPERTY_INDEX_BEGIN == reader.recid)
+    {
+      OPropertyIndex index;
+      if (!reader.ReadString(index.name) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      if (DQMIF_FUNC_PARAM_MODE_REF == reader.recid) index.mode = FPM_REF;
+      else if (DQMIF_FUNC_PARAM_MODE_REFIN == reader.recid) index.mode = FPM_REFIN;
+      else if (DQMIF_FUNC_PARAM_MODE_REFOUT == reader.recid) index.mode = FPM_REFOUT;
+      else if (DQMIF_FUNC_PARAM_MODE_REFNULL == reader.recid) index.mode = FPM_REFNULL;
+      if (FPM_VALUE != index.mode && !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      if (!ReadTypeSpec(reader, index.ptype) || !reader.NextRec()
+          || !reader.ExpectEmpty(DQMIF_PROPERTY_INDEX_END) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      property->indices.push_back(index);
+      continue;
+    }
+    if (DQMIF_PROPERTY_VALUE_TYPE == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_PROPERTY_VALUE_TYPE) || !reader.NextRec()
+          || !ReadTypeSpec(reader, property->ptype) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      continue;
+    }
+    if (DQMIF_PROPERTY_READ == reader.recid)
+    {
+      if (!reader.ReadString(read_name) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      continue;
+    }
+    if (DQMIF_PROPERTY_WRITE == reader.recid)
+    {
+      if (!reader.ReadString(write_name) || !reader.NextRec())
+      {
+        delete property;
+        return false;
+      }
+      continue;
+    }
+
+    delete property;
+    return reader.Fail(format("Unexpected DQM interface property record 0x{:04X}", reader.recid));
+  }
+
+  if (!property->ptype || (read_name.empty() && write_name.empty()))
+  {
+    delete property;
+    return reader.Fail(format("Incomplete DQM interface property {}.{}", aowner_type->name, property_name));
+  }
+  ApplyDqmIfAttributes(property, attrs);
+
+  auto resolve_accessor = [&](const string & name, bool write,
+                              OValSym *& raccessor, OCompoundType *& rdecl_type) -> bool
+  {
+    if (name.empty())
+    {
+      return true;
+    }
+    OValSym * symbol = aowner_type->FindMemberSymbol(name, &rdecl_type);
+    if (!symbol)
+    {
+      return false;
+    }
+    if (VSK_FUNCTION != symbol->kind)
+    {
+      if (property->IsIndexed() || symbol->ptype->ResolveAlias() != property->ptype->ResolveAlias())
+      {
+        return false;
+      }
+      raccessor = symbol;
+      return true;
+    }
+
+    OValSymFunc * match = nullptr;
+    bool ambiguous = false;
+    auto consider = [&](OValSymFunc * candidate)
+    {
+      if (ImportedPropertyMethodMatches(candidate, property, write))
+      {
+        ambiguous = (match != nullptr);
+        match = candidate;
+      }
+    };
+    if (auto * method = dynamic_cast<OValSymFunc *>(symbol))
+    {
+      consider(method);
+    }
+    else if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
+    {
+      for (OValSymFunc * method : overloads->funcs) consider(method);
+    }
+    if (!match || ambiguous)
+    {
+      return false;
+    }
+    raccessor = match;
+    return true;
+  };
+
+  if (!resolve_accessor(read_name, false, property->read_accessor, property->read_decl_type)
+      || !resolve_accessor(write_name, true, property->write_accessor, property->write_decl_type))
+  {
+    delete property;
+    return reader.Fail(format("Invalid DQM interface property accessor for {}.{}",
+                              aowner_type->name, property_name));
+  }
+
+  aowner_type->AddProperty(property);
+  return true;
+}
+
 bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
 {
   string declname;
@@ -2148,6 +2373,15 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     else if (DQMIF_METHOD_BEGIN == reader.recid)
     {
       if (!ReadFunctionDecl(reader, ctype, true) || !reader.NextRec())
+      {
+        delete ctype;
+        return false;
+      }
+    }
+    else if (DQMIF_PROPERTY_BEGIN == reader.recid)
+    {
+      auto * object_type = dynamic_cast<OTypeObject *>(ctype);
+      if (!ReadPropertyDecl(reader, object_type) || !reader.NextRec())
       {
         delete ctype;
         return false;

@@ -162,6 +162,19 @@ DEF_DQ_ERR(DQERR_MEMBER_NAME_EXPECTED,             "MemberNameExpected",     "Me
 DEF_DQ_ERR(DQERR_MEMBER_UNKNOWN,                   "MemberUnknown",          "Unknown member \"$1\" in type \"$1\"");
 DEF_DQ_ERR(DQERR_STRUCT_MBID_EXPECTED,             "StructMemberId",         "Member id or \"enstruct\" expected");
 
+DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_REQUIRED,       "PropertyAccessorRequired", "A property requires a read or write accessor");
+DEF_DQ_ERR(DQERR_PROPERTY_SPECIFIER_DUPLICATE,     "PropertySpecifierDuplicate", "Duplicate property specifier \"$1\"");
+DEF_DQ_ERR(DQERR_PROPERTY_SPECIFIER_ORDER,         "PropertySpecifierOrder", "Property specifier \"$1\" is out of order");
+DEF_DQ_ERR(DQERR_PROPERTY_DEFAULT_INDEXED,         "PropertyDefaultIndexed", "Only indexed properties may be default");
+DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_UNKNOWN,        "PropertyAccessorUnknown", "Unknown property accessor \"$1\"");
+DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_TYPE,           "PropertyAccessorType",   "Property accessor \"$1\" has an incompatible type");
+DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_SIGNATURE,      "PropertyAccessorSignature", "Property accessor \"$1\" has an incompatible signature");
+DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_MODE,           "PropertyAccessorMode",   "Property accessor \"$1\" has an incompatible parameter mode");
+DEF_DQ_ERR(DQERR_PROPERTY_INDEXED_ACCESSOR_METHOD, "PropertyIndexedAccessorMethod", "Indexed property accessor \"$1\" must be a method");
+DEF_DQ_ERR(DQERR_PROPERTY_WRITE_ONLY,              "PropertyWriteOnly",      "Property \"$1\" is write-only");
+DEF_DQ_ERR(DQERR_PROPERTY_READ_ONLY,               "PropertyReadOnly",       "Property \"$1\" is read-only");
+DEF_DQ_ERR(DQERR_PROPERTY_NOT_ADDRESSABLE,         "PropertyNotAddressable", "Property \"$1\" is not addressable");
+
 DEF_DQ_ERR(DQERR_NS_NAME_EXPECTED,                 "NsName",                 "Namespace name expected after \"@\"");
 DEF_DQ_ERR(DQERR_NS_UNKNOWN,                       "NsUnknown",              "Unknown namespace \"$1\"");
 DEF_DQ_ERR(DQERR_DOT_MISSING_AFTER_NS_NAME,        "NsDot",                  "Dot \".\" is missing after the namespace name");

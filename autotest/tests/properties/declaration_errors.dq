@@ -1,4 +1,3 @@
-//?notest
 // Invalid property declarations and declaration-order checks.
 
 object OPropertyDeclarationErrors:

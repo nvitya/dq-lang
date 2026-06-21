@@ -726,6 +726,37 @@ void OCompoundType::AddMember(OValSym * amember)
   layout_ready = false;
 }
 
+void OCompoundType::AddProperty(OValSymProperty * aproperty)
+{
+  if (member_scope.DefineValSym(aproperty) == aproperty)
+  {
+    properties.push_back(aproperty);
+  }
+  else
+  {
+    delete aproperty;
+  }
+}
+
+OValSymProperty * OCompoundType::FindDefaultProperty(OCompoundType ** rdecl_type) const
+{
+  for (const OCompoundType * cur = this; cur; cur = cur->base_type)
+  {
+    for (auto it = cur->properties.rbegin(); it != cur->properties.rend(); ++it)
+    {
+      if ((*it)->is_default)
+      {
+        if (rdecl_type)
+        {
+          *rdecl_type = const_cast<OCompoundType *>(cur);
+        }
+        return *it;
+      }
+    }
+  }
+  return nullptr;
+}
+
 OValSym * OCompoundType::CreateValSym(OScPosition & apos, const string aname)
 {
   return OType::CreateValSym(apos, aname);
@@ -1039,6 +1070,30 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     {
       return writer.Fail(format("Unsupported {} method symbol: {}", kind_name, vs->name));
     }
+  }
+
+  for (OValSymProperty * property : properties)
+  {
+    if (!writer.AddRecStr(DQMIF_PROPERTY_BEGIN, property->name)) return false;
+    if (!property->WriteDqmIfAttributes(writer)) return false;
+    if (property->is_default && !writer.AddRecEmpty(DQMIF_PROPERTY_DEFAULT)) return false;
+    for (const OPropertyIndex & index : property->indices)
+    {
+      if (!writer.AddRecStr(DQMIF_PROPERTY_INDEX_BEGIN, index.name)) return false;
+      if (FPM_REF == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REF)) return false;
+      if (FPM_REFIN == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFIN)) return false;
+      if (FPM_REFOUT == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) return false;
+      if (FPM_REFNULL == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) return false;
+      if (!index.ptype->WriteDqmIfTypeSpec(writer)) return false;
+      if (!writer.AddRecEmpty(DQMIF_PROPERTY_INDEX_END)) return false;
+    }
+    if (!writer.AddRecEmpty(DQMIF_PROPERTY_VALUE_TYPE)) return false;
+    if (!property->ptype->WriteDqmIfTypeSpec(writer)) return false;
+    if (property->read_accessor
+        && !writer.AddRecStr(DQMIF_PROPERTY_READ, property->read_accessor->name)) return false;
+    if (property->write_accessor
+        && !writer.AddRecStr(DQMIF_PROPERTY_WRITE, property->write_accessor->name)) return false;
+    if (!writer.AddRecEmpty(DQMIF_PROPERTY_END)) return false;
   }
 
   return writer.AddRecEmpty(end_tag);

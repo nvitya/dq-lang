@@ -1477,6 +1477,354 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
   return ok;
 }
 
+static bool SamePropertyType(OType * left, OType * right)
+{
+  return left && right && (left->ResolveAlias() == right->ResolveAlias());
+}
+
+static bool PropertyAccessorVisibleFrom(OTypeObject * owner, OCompoundType * decl_type, OValSym * accessor)
+{
+  if (!owner || !decl_type || !accessor)
+  {
+    return false;
+  }
+  if (owner == decl_type || MV_PUBLIC == accessor->member_visibility)
+  {
+    return true;
+  }
+  return MV_PROTECTED == accessor->member_visibility && owner->IsSameOrDerivedFrom(decl_type);
+}
+
+enum EPropertyAccessorMismatch
+{
+  PAM_NONE,
+  PAM_TYPE,
+  PAM_SIGNATURE,
+  PAM_MODE
+};
+
+static EPropertyAccessorMismatch MatchPropertyMethod(OValSymFunc * method, OValSymProperty * property,
+                                                      bool write)
+{
+  auto * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
+  if (!sig || sig->params.empty())
+  {
+    return PAM_SIGNATURE;
+  }
+
+  size_t expected_explicit = property->indices.size() + (write ? 1 : 0);
+  if (sig->params.size() != expected_explicit + 1)
+  {
+    return PAM_SIGNATURE;
+  }
+  if (write ? (sig->rettype != nullptr) : !SamePropertyType(sig->rettype, property->ptype))
+  {
+    return write ? PAM_SIGNATURE : PAM_TYPE;
+  }
+
+  for (size_t i = 0; i < property->indices.size(); ++i)
+  {
+    OFuncParam * param = sig->params[i + 1];
+    const OPropertyIndex & index = property->indices[i];
+    if (param->mode != index.mode)
+    {
+      return PAM_MODE;
+    }
+    if (!SamePropertyType(param->ptype, index.ptype))
+    {
+      return write ? PAM_SIGNATURE : PAM_TYPE;
+    }
+  }
+
+  if (write)
+  {
+    OFuncParam * value_param = sig->params.back();
+    if (FPM_REF == value_param->mode || FPM_REFOUT == value_param->mode || FPM_REFNULL == value_param->mode)
+    {
+      return PAM_MODE;
+    }
+    if (!SamePropertyType(value_param->ptype, property->ptype))
+    {
+      return property->IsIndexed() ? PAM_SIGNATURE : PAM_TYPE;
+    }
+  }
+  return PAM_NONE;
+}
+
+bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibility avisibility)
+{
+  string property_name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(property_name))
+  {
+    Error(DQERR_ID_EXP_AFTER, "property");
+    return false;
+  }
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(":"))
+  {
+    Error(DQERR_TYPE_SPECIFIER_EXP_AFTER, property_name);
+    return false;
+  }
+
+  auto * property = new OValSymProperty(scpos_statement_start, property_name, nullptr);
+  property->member_visibility = avisibility;
+
+  scf->SkipWhite();
+  OScPosition type_start;
+  scf->SaveCurPos(type_start);
+  bool indexed = false;
+  if (scf->CheckSymbol("["))
+  {
+    scf->SkipWhite();
+    indexed = !scf->IsIntLiteral();
+  }
+  scf->SetCurPos(type_start);
+
+  if (indexed)
+  {
+    scf->CheckSymbol("[");
+    while (!scf->Eof())
+    {
+      OPropertyIndex index;
+      scf->SkipWhite();
+
+      OScPosition index_start;
+      scf->SaveCurPos(index_start);
+      string first_id;
+      if (scf->ReadIdentifier(first_id))
+      {
+        scf->SkipWhite();
+        if (scf->CheckSymbol(":"))
+        {
+          index.name = first_id;
+        }
+        else
+        {
+          scf->SetCurPos(index_start);
+        }
+      }
+
+      scf->SkipWhite();
+      OScPosition mode_start;
+      scf->SaveCurPos(mode_start);
+      string mode_name;
+      EParamMode mode = FPM_VALUE;
+      if (scf->ReadIdentifier(mode_name) && ParseParamModeKeyword(mode_name, mode))
+      {
+        index.mode = mode;
+        if (FPM_VALUE != mode && FPM_REFIN != mode)
+        {
+          Error(DQERR_PROPERTY_ACCESSOR_MODE, property_name, &property->scpos);
+        }
+      }
+      else
+      {
+        scf->SetCurPos(mode_start);
+      }
+
+      index.ptype = ParseTypeSpec();
+      if (!index.ptype)
+      {
+        delete property;
+        return false;
+      }
+      property->indices.push_back(index);
+
+      scf->SkipWhite();
+      if (scf->CheckSymbol("]"))
+      {
+        break;
+      }
+      if (!scf->CheckSymbol(","))
+      {
+        Error(DQERR_MISSING_COMMA_IN, "property index list");
+        delete property;
+        return false;
+      }
+    }
+    property->ptype = ParseTypeSpec();
+  }
+  else
+  {
+    property->ptype = ParseTypeSpec();
+  }
+
+  if (!property->ptype)
+  {
+    delete property;
+    return false;
+  }
+
+  bool seen_default = false;
+  bool seen_read = false;
+  bool seen_write = false;
+  string read_name;
+  string write_name;
+  int last_stage = -1;
+
+  while (!scf->Eof())
+  {
+    int previous_line = scf->last_token_end_line;
+    scf->SkipWhite();
+    if (scf->curline > previous_line)
+    {
+      break;
+    }
+
+    string specifier;
+    if (!scf->ReadIdentifier(specifier))
+    {
+      break;
+    }
+
+    int stage = ("default" == specifier ? 0 : ("read" == specifier ? 1 : ("write" == specifier ? 2 : -1)));
+    if (stage < 0)
+    {
+      break;
+    }
+    bool duplicate = (0 == stage && seen_default) || (1 == stage && seen_read) || (2 == stage && seen_write);
+    if (duplicate)
+    {
+      Error(DQERR_PROPERTY_SPECIFIER_DUPLICATE, specifier);
+    }
+    else if (stage < last_stage)
+    {
+      Error(DQERR_PROPERTY_SPECIFIER_ORDER, specifier);
+    }
+    last_stage = max(last_stage, stage);
+
+    if (0 == stage)
+    {
+      seen_default = true;
+      property->is_default = true;
+      continue;
+    }
+
+    string accessor_name;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(accessor_name))
+    {
+      Error(DQERR_ID_EXP_AFTER, specifier);
+      continue;
+    }
+    if (1 == stage)
+    {
+      seen_read = true;
+      if (read_name.empty()) read_name = accessor_name;
+    }
+    else
+    {
+      seen_write = true;
+      if (write_name.empty()) write_name = accessor_name;
+    }
+  }
+
+  if (!seen_read && !seen_write)
+  {
+    Error(DQERR_PROPERTY_ACCESSOR_REQUIRED, &property->scpos);
+  }
+  if (property->is_default && !property->IsIndexed())
+  {
+    Error(DQERR_PROPERTY_DEFAULT_INDEXED, &property->scpos);
+  }
+
+  auto resolve_accessor = [&](const string & accessor_name, bool write,
+                              OValSym *& raccessor, OCompoundType *& rdecl_type)
+  {
+    if (accessor_name.empty())
+    {
+      return;
+    }
+    OCompoundType * decl_type = nullptr;
+    OValSym * symbol = object_type->FindMemberSymbol(accessor_name, &decl_type);
+    if (!symbol || !PropertyAccessorVisibleFrom(object_type, decl_type, symbol))
+    {
+      Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
+      return;
+    }
+
+    if (auto * field = dynamic_cast<OValSymProperty *>(symbol))
+    {
+      (void)field;
+      Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
+      return;
+    }
+
+    if (VSK_FUNCTION != symbol->kind)
+    {
+      if (property->IsIndexed())
+      {
+        Error(DQERR_PROPERTY_INDEXED_ACCESSOR_METHOD, accessor_name, &property->scpos);
+      }
+      else if (!SamePropertyType(symbol->ptype, property->ptype))
+      {
+        Error(DQERR_PROPERTY_ACCESSOR_TYPE, accessor_name, &property->scpos);
+      }
+      else
+      {
+        raccessor = symbol;
+        rdecl_type = decl_type;
+      }
+      return;
+    }
+
+    vector<OValSymFunc *> candidates;
+    if (auto * method = dynamic_cast<OValSymFunc *>(symbol))
+    {
+      candidates.push_back(method);
+    }
+    else if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
+    {
+      candidates = overloads->funcs;
+    }
+
+    OValSymFunc * match = nullptr;
+    EPropertyAccessorMismatch best_mismatch = PAM_SIGNATURE;
+    for (OValSymFunc * candidate : candidates)
+    {
+      EPropertyAccessorMismatch mismatch = MatchPropertyMethod(candidate, property, write);
+      if (PAM_NONE == mismatch)
+      {
+        if (match)
+        {
+          Error(DQERR_PROPERTY_ACCESSOR_SIGNATURE, accessor_name, &property->scpos);
+          return;
+        }
+        match = candidate;
+      }
+      else if (PAM_MODE == mismatch || (PAM_TYPE == mismatch && PAM_MODE != best_mismatch))
+      {
+        best_mismatch = mismatch;
+      }
+    }
+    if (!match)
+    {
+      if (PAM_MODE == best_mismatch)
+      {
+        Error(DQERR_PROPERTY_ACCESSOR_MODE, accessor_name, &property->scpos);
+      }
+      else if (PAM_TYPE == best_mismatch)
+      {
+        Error(DQERR_PROPERTY_ACCESSOR_TYPE, accessor_name, &property->scpos);
+      }
+      else
+      {
+        Error(DQERR_PROPERTY_ACCESSOR_SIGNATURE, accessor_name, &property->scpos);
+      }
+      return;
+    }
+    raccessor = match;
+    rdecl_type = decl_type;
+  };
+
+  resolve_accessor(read_name, false, property->read_accessor, property->read_decl_type);
+  resolve_accessor(write_name, true, property->write_accessor, property->write_decl_type);
+
+  object_type->AddProperty(property);
+  return true;
+}
+
 void ODqCompParser::ParseObjectDecl()
 {
   // note: "object" is already consumed
@@ -1632,6 +1980,11 @@ void ODqCompParser::ParseObjectDecl()
     if ("public" == membername)
     {
       current_visibility = MV_PUBLIC;
+      continue;
+    }
+    if ("property" == membername)
+    {
+      ReadObjectProperty(object_type, current_visibility);
       continue;
     }
 

@@ -1,4 +1,3 @@
-//?notest
 // Static property lookup, hiding, inherited accessors, and virtual dispatch.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

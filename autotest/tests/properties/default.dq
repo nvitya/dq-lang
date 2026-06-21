@@ -1,4 +1,3 @@
-//?notest
 // Default-property lookup and last-declaration-wins behavior.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

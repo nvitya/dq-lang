@@ -381,6 +381,13 @@ void ODqCompParserStmt::ParseStmtRef()
   }
 
   OLValueExpr * bindlval = dynamic_cast<OLValueExpr *>(bindexpr);
+  if (auto * property = dynamic_cast<OPropertyExpr *>(bindlval))
+  {
+    string property_name = property->property->name;
+    delete bindexpr;
+    StatementError(DQERR_PROPERTY_NOT_ADDRESSABLE, property_name);
+    return;
+  }
   OValSym * rootvalsym = (bindlval ? GetAssignRootValSym(bindlval) : nullptr);
   if (!bindlval || (rootvalsym && (VSK_CONST == rootvalsym->kind || !rootvalsym->IsRefWriteable())))
   {

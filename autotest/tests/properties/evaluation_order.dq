@@ -1,4 +1,3 @@
-//?notest
 // Indexed assignment evaluates receiver, indices, and value exactly once.
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;

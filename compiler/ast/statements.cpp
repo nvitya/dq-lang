@@ -59,6 +59,36 @@ static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, 
   return false;
 }
 
+bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
+                                 LlValue * targetaddr, OExpr * value)
+{
+  OType * resolved_type = targettype ? targettype->ResolveAlias() : nullptr;
+  if (!resolved_type || !targetaddr || !value)
+  {
+    return false;
+  }
+  if (TK_DYNSTR == resolved_type->kind)
+  {
+    return GenerateStringAssignExpr(scope, targetaddr, value);
+  }
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(resolved_type))
+  {
+    return GenerateDynArrayAssignExpr(scope, dyntype, targetaddr, value);
+  }
+  if (TK_ANYVALUE == resolved_type->kind)
+  {
+    return GenerateAnyValueAssignExpr(scope, targetaddr, value);
+  }
+  if (auto * cstrtype = dynamic_cast<OTypeCString *>(resolved_type);
+      cstrtype && cstrtype->maxlen > 0)
+  {
+    return cstrtype->GenerateStore(scope, targetaddr, value);
+  }
+
+  ll_builder.CreateStore(value->Generate(scope), targetaddr);
+  return true;
+}
+
 void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 {
   if (not g_opt.dbg_info)
@@ -441,61 +471,11 @@ void OStmtAssign::Generate(OScope * scope)
     }
   }
 
-  if (TK_DYNSTR == target->ResolvedType()->kind)
-  {
-    LlValue * ll_addr = target->GenerateAddress(scope);
-    if (!GenerateStringAssignExpr(scope, ll_addr, value))
-    {
-      throw logic_error("Unsupported string assignment");
-    }
-    return;
-  }
-
-  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(target->ResolvedType()))
-  {
-    LlValue * ll_addr = target->GenerateAddress(scope);
-    if (!GenerateDynArrayAssignExpr(scope, dyntype, ll_addr, value))
-    {
-      throw logic_error("Unsupported dynamic array assignment");
-    }
-    return;
-  }
-
-  if (TK_ANYVALUE == target->ResolvedType()->kind)
-  {
-    LlValue * ll_addr = target->GenerateAddress(scope);
-    if (!GenerateAnyValueAssignExpr(scope, ll_addr, value))
-    {
-      throw logic_error("Unsupported anyvalue assignment");
-    }
-    return;
-  }
-
-  if (TK_CSTRING == target->ResolvedType()->kind)
-  {
-    OTypeCString * cstrtype = static_cast<OTypeCString *>(target->ResolvedType());
-    if (cstrtype->maxlen > 0)
-    {
-      LlValue * ll_addr = nullptr;
-      if (auto * varref = dynamic_cast<OLValueVar *>(target))
-      {
-        ll_addr = varref->pvalsym->ll_value;
-      }
-      else
-      {
-        ll_addr = target->GenerateAddress(scope);
-      }
-
-      if (cstrtype->GenerateStore(scope, ll_addr, value))
-      {
-        return;
-      }
-    }
-  }
-
   LlValue * ll_addr = target->GenerateAddress(scope);
-  LlValue * ll_set_value = value->Generate(scope);
-  ll_builder.CreateStore(ll_set_value, ll_addr);
+  if (!GenerateAssignmentToAddress(scope, target->ptype, ll_addr, value))
+  {
+    throw logic_error("Unsupported assignment");
+  }
 }
 
 void OStmtModifyAssign::Generate(OScope * scope)
@@ -555,6 +535,19 @@ void OStmtModifyAssign::Generate(OScope * scope)
   {
     throw logic_error(std::format("Unsupported modify-assign operation: {}", int(op)));
   }
+}
+
+OStmtPropertyAssign::~OStmtPropertyAssign()
+{
+  OExpr::DeleteTree(target);
+  target = nullptr;
+  OExpr::DeleteTree(value);
+  value = nullptr;
+}
+
+void OStmtPropertyAssign::Generate(OScope * scope)
+{
+  target->GenerateWrite(scope, value);
 }
 
 void OStmtVoidCall::Generate(OScope * scope)

@@ -1299,6 +1299,16 @@ OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym *
     return nullptr;
   }
 
+  if (auto * property = dynamic_cast<OValSymProperty *>(vs))
+  {
+    if (!ObjectMemberAccessAllowed(decl_type, property))
+    {
+      Error(DQERR_MEMBER_UNKNOWN, sid, curvsfunc->owner_compound_type->name);
+      return nullptr;
+    }
+    return new OPropertyExpr(new OLValueVar(curvsfunc->receiver_arg), property);
+  }
+
   int midx = decl_type->FindMemberIndex(sid);
   if (midx < 0)
   {
@@ -1410,6 +1420,13 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
       else
       {
         OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(argexpr);
+        if (auto * property = dynamic_cast<OPropertyExpr *>(arglval))
+        {
+          Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);
+          OExpr::DeleteTree(argexpr);
+          bok = false;
+          break;
+        }
         OValSym * rootvalsym = (arglval ? GetAssignRootValSym(arglval) : nullptr);
         bool bind_ok = (arglval != nullptr);
         if (bind_ok && rootvalsym)
@@ -1615,6 +1632,33 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
     delete leftexpr;
     delete rightexpr;
     return false;
+  }
+
+  if (auto * property_expr = dynamic_cast<OPropertyExpr *>(leftexpr))
+  {
+    OValSymProperty * property = property_expr->property;
+    if (!property || !property->write_accessor)
+    {
+      Error(DQERR_PROPERTY_READ_ONLY, property ? property->name : "?");
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
+    if (BINOP_NONE != op)
+    {
+      Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->name);
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
+    if (!CheckAssignType(property->ptype, &rightexpr, "Assignment"))
+    {
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
+    curblock->AddStatement(new OStmtPropertyAssign(scpos_statement_start, property_expr, rightexpr));
+    return true;
   }
 
   OValSym * rootvalsym = GetAssignRootValSym(leftexpr);

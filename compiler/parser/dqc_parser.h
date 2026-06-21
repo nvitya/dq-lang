@@ -63,4 +63,5 @@ protected:
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
   void    ParseQualifiedObjectFunction(const string & object_name);
   bool    ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility);
+  bool    ReadObjectProperty(OTypeObject * object_type, EMemberVisibility avisibility);
 };

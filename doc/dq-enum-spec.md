@@ -9,22 +9,18 @@ The design is inspired by Delphi/FreePascal enums, but DQ allows explicit intege
 Enum type names conventionally use the `N` prefix.
 
 ```dq
-enum NColor:
-  red
-  green
-  blue
-endenum
+enum NColor = (red, green, blue)
 ```
 
 The `E` prefix is reserved for exception types.
 
 ```dq
 // Preferred naming convention
-enum NTokenKind:
-  identifier
-  number
-  string_literal
-endenum
+enum NTokenKind = (
+  identifier,
+  number,
+  string_literal,
+)
 
 object EParseError:
 endobj
@@ -33,23 +29,27 @@ endobj
 ## 2. Basic Syntax
 
 ```dq
-enum NEnumName:
-  item1
-  item2
-  item3
-endenum
+enum NEnumName = (item1, item2, item3)
+
+enum NMultiline = (
+  item1,
+  item2,
+  item3,
+)
 ```
+
+Enum items are enclosed in parentheses and separated by commas. Newlines are insignificant inside the parentheses. A trailing comma is allowed, but an empty enum is not.
 
 Each enum item receives an integer ordinal value.
 
 By default, the first item has value `0`, and following items auto-increment by `1`.
 
 ```dq
-enum NColor:
-  red    // 0
-  green  // 1
-  blue   // 2
-endenum
+enum NColor = (
+  red,    // 0
+  green,  // 1
+  blue,   // 2
+)
 ```
 
 ## 3. Explicit Integer Values
@@ -57,42 +57,40 @@ endenum
 Enum items may have explicit integer values.
 
 ```dq
-enum NColor:
-  red = 1
-  green = 5
-  blue = 9
-endenum
+enum NColor = (red = 1, green = 5, blue = 9)
 ```
 
 After an explicit value, following unassigned items continue from that value plus one.
 
 ```dq
-enum NColor:
-  red          // 0
-  green = 5    // 5
-  blue         // 6
-  yellow = 10  // 10
-  black        // 11
-endenum
+enum NColor = (
+  red,          // 0
+  green = 5,    // 5
+  blue,         // 6
+  yellow = 10,  // 10
+  black,        // 11
+)
 ```
 
-Explicit values must be compile-time integer constants representable by the enum storage type.
+Explicit values must be compile-time integer constants. Every explicit or automatically assigned value must be representable by the enum storage type.
+
+The explicit values cannot be smaller than the previous implicit or excplicit value. (No such check for the first line.)
 
 ## 4. Enum Storage Type
 
 An enum may specify an explicit integer storage type.
 
 ```dq
-enum NHttpStatus : uint16:
-  ok = 200
-  not_found = 404
-  server_error = 500
-endenum
+enum NHttpStatus : uint16 = (
+  ok = 200,
+  not_found = 404,
+  server_error = 500,
+)
 ```
 
-If no storage type is specified, the default storage type is `int32`.
+If no storage type is specified, the storage type is `uint8`.
 
-Recommended allowed storage types:
+Allowed storage types:
 
 ```dq
 int8
@@ -108,11 +106,16 @@ uint64
 Embedded code should use explicit storage types when binary layout matters.
 
 ```dq
-enum NUartMode : uint8:
-  normal = 0
-  rs485 = 1
-  irda = 2
-endenum
+enum NUartMode : uint8 = (normal = 0, rs485 = 1, irda = 2)
+```
+
+The compiler diagnoses any value that does not fit the selected storage type. Values are checked mathematically before conversion; they are never wrapped or truncated.
+
+```dq
+enum NTooLarge = (first = 255, second) // error: second would be 256
+enum NNegative = (negative = -1)       // error: -1 does not fit uint8
+
+enum NSigned : int8 = (negative = -1, zero, positive) // ok
 ```
 
 ## 5. Qualified Enumerator Access
@@ -190,22 +193,27 @@ const CMD_WRITE : uint8 = 0x02;
 
 ## 8. Ordinal Conversion
 
-Enum-to-integer conversion is performed with the built-in `Ord()` function.
+Enum-to-integer conversion is available through the read-only virtual member `ord` and the equivalent built-in `Ord()` function.
 
 ```dq
 var c : NColor = green;
-var i : int = Ord(c);       // returns the integer value of green
+var i : int = c.ord;        // returns the integer value of green
+var j : int = Ord(c);       // equivalent to c.ord
 ```
 
-`Ord()` is the only normal enum-to-integer conversion.
+The virtual member may be used on any enum expression, not only variables.
+
+```dq
+var i : int = GetColor().ord;
+```
 
 Direct casts from enum to integer are not allowed.
 
 ```dq
-var i : int = int(c);       // error
+var i : int = int(c);       // error: use c.ord or Ord(c)
 ```
 
-The result type of `Ord()` is an integer type large enough to represent the enum storage type. Assignment to a narrower integer type follows normal DQ integer conversion rules.
+The result type of `ord` and `Ord()` is the enum storage type. Assignment or conversion to another integer type follows normal DQ integer conversion rules.
 
 ## 9. Checked Integer-to-Enum Conversion
 
@@ -222,11 +230,7 @@ EnumType.TryFromOrd(value : int, rval : ref EnumType) -> bool
 Example:
 
 ```dq
-enum NState:
-  idle = 0
-  run = 10
-  stop = 20
-endenum
+enum NState = (idle = 0, run = 10, stop = 20)
 
 var s : NState;
 
@@ -276,7 +280,7 @@ endif
 Explicit ordinal conversion may be used when numeric comparison is really intended.
 
 ```dq
-if Ord(c) == Ord(s):
+if c.ord == s.ord:
 endif
 ```
 
@@ -285,10 +289,10 @@ endif
 Duplicate enum values are always a compile-time error.
 
 ```dq
-enum NResult:
-  ok = 0
-  success = 0              // error: duplicate enum value
-endenum
+enum NResult = (
+  ok = 0,
+  success = 0,             // error: duplicate enum value
+)
 ```
 
 Every enumerator in an enum must have a unique integer value.
@@ -300,11 +304,7 @@ No aliasing attribute is supported for normal enums.
 Enums may contain holes.
 
 ```dq
-enum NState : uint8:
-  idle = 0
-  run = 10
-  stop = 20
-endenum
+enum NState : uint8 = (idle = 0, run = 10, stop = 20)
 ```
 
 Only the declared values are valid enum values.

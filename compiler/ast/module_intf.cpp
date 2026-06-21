@@ -930,7 +930,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("-o");
   args.push_back(artifact_path.string());
   args.push_back("--regen-if-stale");
-  if (g_opt.no_use_sys || ("sys" == module_path))
+  if (g_opt.no_use_sys || ("rtl/sys" == module_path))
   {
     args.push_back("--no-use-sys");
   }

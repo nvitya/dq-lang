@@ -340,8 +340,8 @@ function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
   return true
 endfunc
 
-var active_exception        : Exception = null
-var handled_exception       : Exception = null
+var active_exception  : Exception = null
+var handled_exception : Exception = null
 
 function DqSetActiveException(e : Exception):
   if active_exception <> null:

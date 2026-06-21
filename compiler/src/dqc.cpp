@@ -226,7 +226,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (!g_opt.no_use_sys)
   {
-    if (!AddImplicitUse("sys", "sys", g_module->scope_pub, false, MUM_ALL))
+    if (!AddImplicitUse("rtl/sys", "sys", g_module->scope_pub, false, MUM_ALL))
     {
       ++errorcnt;
       return;

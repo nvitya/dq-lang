@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.22.3"
+#define DQ_COMPILER_VERSION  "0.22.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.22.4:
+  - sys module moved to rtl/sys
 v0.22.3:
   - Exception handling changed using the new TypeInfo
 v0.22.2:

@@ -1,0 +1,37 @@
+//?notest
+// Identically named enumerators remain scoped and resolve from enum context.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+enum NConnection = (unknown, connected, disconnected)
+enum NResult = (unknown, success, failure)
+
+function IsConnected(value : NConnection) -> bool:
+  result = value == connected;
+endfunc
+
+function IsSuccess(value : NResult) -> bool:
+  result = value == success;
+endfunc
+
+function *Main() -> int:
+  var connection : NConnection = unknown;
+  var result_value : NResult = unknown;
+
+  connection = connected;
+  result_value = success;
+
+  printf("enum.contextual.values = %li %li\n",
+         int(connection.ord), int(result_value.ord));
+  //?check("enum.contextual.values", "1 1")
+
+  printf("enum.contextual.calls = %li %li\n",
+         int(IsConnected(connected)), int(IsSuccess(success)));
+  //?check("enum.contextual.calls", "1 1")
+
+  printf("enum.contextual.qualified = %li %li\n",
+         int(NConnection.unknown.ord), int(NResult.unknown.ord));
+  //?check("enum.contextual.qualified", "0 0")
+
+  return 0;
+endfunc

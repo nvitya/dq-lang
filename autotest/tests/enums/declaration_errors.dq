@@ -1,0 +1,23 @@
+//?notest
+// Invalid enum declarations and storage-range checks.
+
+var runtime_value : int = 3;
+
+enum NEmpty = () //?error(EnumEmpty)
+enum NInvalidStorage : float32 = (value) //?error(EnumStorageType)
+enum NDuplicate = (first = 1, second = 1) //?error(EnumValueDuplicate)
+enum NNonConstant = (value = runtime_value) //?error(EnumValueConstExpr)
+
+enum NDefaultTooLarge = (first = 255, second) //?error(EnumValueRange)
+enum NDefaultNegative = (negative = -1) //?error(EnumValueRange)
+enum NUint8TooLarge : uint8 = (value = 256) //?error(EnumValueRange)
+enum NUint8Negative : uint8 = (value = -1) //?error(EnumValueRange)
+enum NInt8TooLarge : int8 = (value = 128) //?error(EnumValueRange)
+enum NInt8TooSmall : int8 = (value = -129) //?error(EnumValueRange)
+
+// Auto-increment is checked before conversion and must not wrap.
+enum NUint16Overflow : uint16 = (last = 65535, overflow) //?error(EnumValueRange)
+
+function *Main() -> int:
+  return 0;
+endfunc

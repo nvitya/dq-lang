@@ -1,0 +1,32 @@
+//?notest
+// All supported enum storage types and their boundary values.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+enum NInt8 : int8 = (minimum = -128, maximum = 127)
+enum NUint8 : uint8 = (minimum = 0, maximum = 255)
+enum NInt16 : int16 = (minimum = -32768, maximum = 32767)
+enum NUint16 : uint16 = (minimum = 0, maximum = 65535)
+enum NInt32 : int32 = (minimum = -2147483648, maximum = 2147483647)
+enum NUint32 : uint32 = (minimum = 0, maximum = 4294967295)
+enum NInt64 : int64 = (minimum = -9223372036854775808, maximum = 9223372036854775807)
+enum NUint64 : uint64 = (minimum = 0, maximum = 18446744073709551615)
+
+function *Main() -> int:
+  printf("enum.storage.sizes = %li %li %li %li %li %li %li %li\n",
+         SizeOf(NInt8), SizeOf(NUint8), SizeOf(NInt16), SizeOf(NUint16),
+         SizeOf(NInt32), SizeOf(NUint32), SizeOf(NInt64), SizeOf(NUint64));
+  //?check("enum.storage.sizes", "1 1 2 2 4 4 8 8")
+
+  var signed_min : NInt64 = minimum;
+  var signed_max : NInt64 = maximum;
+  var unsigned_max : NUint64 = maximum;
+
+  printf("enum.storage.int64 = %li %li\n", signed_min.ord, signed_max.ord);
+  //?check("enum.storage.int64", "-9223372036854775808 9223372036854775807")
+
+  printf("enum.storage.uint64 = %lu\n", unsigned_max.ord);
+  //?check("enum.storage.uint64", "18446744073709551615")
+
+  return 0;
+endfunc

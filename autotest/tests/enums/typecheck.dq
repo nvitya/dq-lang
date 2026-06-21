@@ -1,0 +1,33 @@
+//?notest
+// Enum strong typing and invalid conversion cases.
+
+enum NColor = (red, green, blue)
+enum NState = (idle, running, stopped)
+
+function SetColor(color : NColor):
+endfunc
+
+function *Main() -> int:
+  var color : NColor = red;
+  var state : NState = idle;
+
+  var integer_from_enum : int = color; //?error(TypeMismatchAssign)
+  var enum_from_integer : NColor = 1; //?error(TypeMismatchAssign)
+  var cast_to_integer : int = int(color); //?error(TypeMismatch)
+  var cast_to_enum : NColor = NColor(1); //?error(TypeMismatch)
+
+  var other_enum : NColor = state; //?error(TypeMismatchAssign)
+  if color == state: //?error(TypeMismatchOp)
+  endif
+
+  SetColor(state); //?error(TypeMismatchAssign)
+  color.ord = 1; //?error(TypeAssignToConst)
+
+  var no_enum_context : int = red; //?error(EnumTypeInfer)
+
+  var bad_default : NColor = NColor.FromOrd(1, state); //?error(TypeMismatchAssign)
+  var bad_output : NState = idle;
+  NColor.TryFromOrd(1, bad_output); //?error(FuncArgRefType)
+
+  return 0;
+endfunc

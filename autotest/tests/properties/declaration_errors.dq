@@ -1,0 +1,42 @@
+//?notest
+// Invalid property declarations and declaration-order checks.
+
+object OPropertyDeclarationErrors:
+private
+  value : int = 0;
+
+  function GetValue() -> int:
+    return value;
+  endfunc
+
+  function SetValue(new_value : int):
+    value = new_value;
+  endfunc
+
+  function GetIndexed(index : int) -> int:
+    return index;
+  endfunc
+
+public
+  property no_accessors : int //?error(PropertyAccessorRequired)
+  property repeated_read : int read GetValue read GetValue //?error(PropertySpecifierDuplicate)
+  property repeated_write : int write SetValue write SetValue //?error(PropertySpecifierDuplicate)
+  property wrong_order : int write SetValue read GetValue //?error(PropertySpecifierOrder)
+  property default_after_read : [int]int read GetIndexed default //?error(PropertySpecifierOrder)
+  property nonindexed_default : int default read GetValue //?error(PropertyDefaultIndexed)
+
+  // Accessors must have been declared before the property.
+  property forward_field : int read later_field //?error(PropertyAccessorUnknown)
+  property forward_method : int read GetLater //?error(PropertyAccessorUnknown)
+
+private
+  later_field : int = 1;
+
+  function GetLater() -> int:
+    return later_field;
+  endfunc
+endobj
+
+function *Main() -> int:
+  return 0;
+endfunc

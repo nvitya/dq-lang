@@ -131,7 +131,7 @@ For a non-indexed property, a setter method must:
 
 - Take exactly one explicit parameter
 - Take the assigned value as its last parameter
-- Declare that parameter by value or `in`, not `ref` or `out`
+- Declare that parameter by value or `refin`, not `ref` or `refout`
 - Use exactly the property type for that parameter
 - Return `void`
 
@@ -194,7 +194,8 @@ Indexed properties must use methods as their accessors. A field cannot be used
 as the `read` or `write` accessor of an indexed property.
 
 Index types may be any valid parameter type supported by an ordinary function.
-Index parameters may be passed by value or `in`, but not by `ref` or `out`.
+Index parameters may be passed by value or `refin`, but not by `ref` or
+`refout`.
 
 ---
 
@@ -349,7 +350,7 @@ A property is not a storage location, even when it is backed directly by a
 field. Therefore a property itself:
 
 - Has no address
-- Cannot be passed as a `ref` or `out` argument
+- Cannot be passed as a `ref` or `refout` argument
 - Cannot be bound to a reference
 - Cannot be used where an addressable lvalue is required
 

@@ -1,0 +1,89 @@
+//?notest
+// Property accessor signature and use-site type checking.
+
+object OPropertyTypecheck:
+private
+  int_value : int = 0;
+  float_value : float = 0;
+
+  function GetInt() -> int:
+    return int_value;
+  endfunc
+
+  function GetFloat() -> float:
+    return float_value;
+  endfunc
+
+  function GetVoid():
+  endfunc
+
+  function GetWithParameter(index : int) -> int:
+    return index;
+  endfunc
+
+  function SetInt(value : int):
+    int_value = value;
+  endfunc
+
+  function SetFloat(value : float):
+    float_value = value;
+  endfunc
+
+  function SetReturnsValue(value : int) -> int:
+    return value;
+  endfunc
+
+  function SetRef(value : ref int):
+    value = 1;
+  endfunc
+
+  function SetRefOut(value : refout int):
+    value = 1;
+  endfunc
+
+  function GetIndexed(index : int) -> int:
+    return index;
+  endfunc
+
+  function GetIndexedWrongType(index : float) -> int:
+    return Round(index);
+  endfunc
+
+  function SetIndexed(index : int, value : int):
+    int_value = index + value;
+  endfunc
+
+  function SetIndexedWrongOrder(value : int, index : float):
+    int_value = value + Round(index);
+  endfunc
+
+public
+  property good : int read GetInt write SetInt
+  property readonly : int read GetInt
+  property writeonly : int write SetInt
+  property good_indexed : [index : int]int read GetIndexed write SetIndexed
+
+  property bad_read_field : int read float_value //?error(PropertyAccessorType)
+  property bad_write_field : int write float_value //?error(PropertyAccessorType)
+  property bad_getter_result : int read GetFloat //?error(PropertyAccessorType)
+  property bad_getter_void : int read GetVoid //?error(PropertyAccessorType)
+  property bad_getter_parameters : int read GetWithParameter //?error(PropertyAccessorSignature)
+  property bad_setter_type : int write SetFloat //?error(PropertyAccessorType)
+  property bad_setter_result : int write SetReturnsValue //?error(PropertyAccessorSignature)
+  property bad_setter_ref : int write SetRef //?error(PropertyAccessorMode)
+  property bad_setter_refout : int write SetRefOut //?error(PropertyAccessorMode)
+  property bad_index_field : [int]int read int_value //?error(PropertyIndexedAccessorMethod)
+  property bad_index_type : [int]int read GetIndexedWrongType //?error(PropertyAccessorType)
+  property bad_index_setter : [int]int write SetIndexedWrongOrder //?error(PropertyAccessorSignature)
+endobj
+
+function *Main() -> int:
+  var obj <- OPropertyTypecheck();
+
+  var read_writeonly : int = obj.writeonly; //?error(PropertyWriteOnly)
+  obj.readonly = 1; //?error(PropertyReadOnly)
+  obj.good = 1.5; //?error(TypeMismatchAssign)
+  obj.good_indexed[1] = 1.5; //?error(TypeMismatchAssign)
+
+  return 0;
+endfunc

@@ -1,0 +1,47 @@
+//?notest
+// Property accessors are selected from overload sets by exact signature.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+object OPropertyOverloads:
+private
+  int_value : int = 10;
+  float_value : float = 1.5;
+
+  function GetValue() -> int [[overload]]:
+    return int_value;
+  endfunc
+
+  function GetValue(index : int) -> int [[overload]]:
+    return int_value + index;
+  endfunc
+
+  function SetValue(value : int) [[overload]]:
+    int_value = value;
+  endfunc
+
+  function SetValue(value : float) [[overload]]:
+    float_value = value;
+  endfunc
+
+  function GetFloat() -> float:
+    return float_value;
+  endfunc
+
+public
+  property scalar : int read GetValue write SetValue
+  property indexed : [index : int]int read GetValue
+  property float_value_prop : float read GetFloat write SetValue
+endobj
+
+function *Main() -> int:
+  var obj <- OPropertyOverloads();
+
+  obj.scalar = 20;
+  obj.float_value_prop = 2.5;
+  printf("property.overloads = %d %d %.1f\n",
+         obj.scalar, obj.indexed[3], obj.float_value_prop);
+  //?check("property.overloads", "20 23 2.5")
+
+  return 0;
+endfunc

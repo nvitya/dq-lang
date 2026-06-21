@@ -1,0 +1,80 @@
+//?notest
+// Basic field-backed and method-backed property behavior.
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+object OPropertyChild:
+public
+  value : int = 7;
+endobj
+
+object OPropertyBox:
+private
+  field_value : int = 10;
+  method_value : int = 20;
+  write_count : int = 0;
+  child_value <- OPropertyChild();
+  pointer_value : int = 30;
+
+  function GetMethodValue() -> int:
+    return method_value;
+  endfunc
+
+  function SetMethodValue(value : int):
+    method_value = value * 2;
+    write_count += 1;
+  endfunc
+
+  function GetWriteCount() -> int:
+    return write_count;
+  endfunc
+
+  function SetWriteOnly(value : int):
+    method_value = value;
+    write_count += 1;
+  endfunc
+
+  function GetChild() -> OPropertyChild:
+    return child_value;
+  endfunc
+
+  function GetPointer() -> ^int:
+    return &pointer_value;
+  endfunc
+
+public
+  property direct : int read field_value write field_value
+  property calculated : int read GetMethodValue write SetMethodValue
+  property readonly : int read GetWriteCount
+  property writeonly : int write SetWriteOnly
+  property child : OPropertyChild read GetChild
+  property targetptr : ^int read GetPointer
+endobj
+
+function *Main() -> int:
+  var box <- OPropertyBox();
+
+  printf("property.basic.initial = %d %d\n", box.direct, box.calculated);
+  //?check("property.basic.initial", "10 20")
+
+  box.direct = 11;
+  box.calculated = 12;
+  printf("property.basic.write = %d %d %d\n",
+         box.direct, box.calculated, box.readonly);
+  //?check("property.basic.write", "11 24 1")
+
+  box.writeonly = 41;
+  printf("property.basic.writeonly = %d %d\n",
+         box.calculated, box.readonly);
+  //?check("property.basic.writeonly", "41 2")
+
+  // The returned object and pointer retain their normal semantics even though
+  // the properties themselves are not addressable.
+  box.child.value = 17;
+  box.targetptr^ = 55;
+  printf("property.basic.returned = %d %d\n",
+         box.child.value, box.targetptr^);
+  //?check("property.basic.returned", "17 55")
+
+  return 0;
+endfunc

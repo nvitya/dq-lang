@@ -1,0 +1,30 @@
+site_name: DQ Programming Language
+site_description: Documentation for the DQ programming language
+repo_url: https://github.com/nvitya/dq-lang
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Language:
+      - Overview: language/overview.md
+      - Modules: language/modules.md
+      - Objects: language/objects.md
+      - Arrays: language/arrays.md
+      - Strings: language/strings.md
+      - Enums: language/enums.md
+      - Properties: language/properties.md
+  - RTL:
+      - Overview: rtl/overview.md
+      - anyvalue: rtl/anyvalue.md
+      - Text Formatting: rtl/textfmt.md
+  - Compiler:
+      - Build System: compiler/build.md
+      - DQM Format: compiler/dqm-format.md

@@ -485,8 +485,8 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
   if (VSK_VARIABLE == kind)
   {
     LlLinkType  linktype =
-      (apublic ? LlLinkType::ExternalLinkage
-               : LlLinkType::InternalLinkage);
+      ((apublic || attr_has_linkage_name) ? LlLinkType::ExternalLinkage
+                                          : LlLinkType::InternalLinkage);
 
     OType *           storage_type = GetStorageType();
     LlType *          ll_type  = storage_type->GetLlType();
@@ -523,8 +523,8 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
     if (TK_ARRAY == ptype->kind)
     {
       LlLinkType  linktype =
-        (apublic ? LlLinkType::ExternalLinkage
-                 : LlLinkType::InternalLinkage);
+        ((apublic || attr_has_linkage_name) ? LlLinkType::ExternalLinkage
+                                            : LlLinkType::InternalLinkage);
 
       LlType * ll_type = ptype->GetLlType();
       LlConst * ll_init_val = vsconst->pvalue->GetLlConst();

@@ -85,7 +85,8 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
 #if defined(_WIN32)
   DWORD access = (EArtifactLockMode::SHARED == mode ? GENERIC_READ : (GENERIC_READ | GENERIC_WRITE));
   DWORD disposition = (EArtifactLockMode::SHARED == mode ? OPEN_EXISTING : OPEN_ALWAYS);
-  HANDLE new_handle = CreateFileW(artifact_path.wstring().c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE,
+  HANDLE new_handle = CreateFileW(artifact_path.wstring().c_str(), access,
+                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                                   nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (INVALID_HANDLE_VALUE == new_handle)
   {

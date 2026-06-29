@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.25.1"
+#define DQ_COMPILER_VERSION  "0.25.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.25.2:
+  - Windows compilation fixes / 2
 v0.25.1:
   - Windows compilation fixes
 v0.25.0:

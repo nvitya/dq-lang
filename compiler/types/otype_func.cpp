@@ -672,6 +672,8 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   llvm::GlobalValue::LinkageTypes  linktype;
   if (is_external) {
     linktype = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
+  } else if (attr_has_linkage_name) {
+    linktype = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
   } else {
     linktype = (apublic ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
                         : llvm::GlobalValue::LinkageTypes::InternalLinkage);

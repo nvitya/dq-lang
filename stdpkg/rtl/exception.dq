@@ -1,7 +1,9 @@
 // RTL Helpers for Exception Handling
 
 // libbacktrace library is required for lineinfo capturing
+#ifndef WINDOWS
 #linklib('backtrace')
+#endif
 
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
 const DQ_EXCEPTION_TYPENAME_MAX  : int = 63
@@ -38,6 +40,7 @@ implementation
 
 use libc/stdio
 
+#ifndef WINDOWS
 struct SDqDlInfo:
   dli_fname : ^cchar
   dli_fbase : pointer
@@ -80,6 +83,7 @@ function DqIsMainFunction(name : ^cchar) -> bool
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo, stop_printing : ^bool) -> bool
 function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint
+#endif
 
 //-------------------------------------------------------------------------------------------------
 
@@ -98,7 +102,11 @@ endfunc
 
 
 function Exception.CaptureBacktrace():
+#ifdef WINDOWS
+  backtrace_count = 0
+#else
   backtrace_count = @.libc_backtrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
+#endif
 endfunc
 
 function Exception.PrintMessage():
@@ -116,6 +124,9 @@ function Exception.PrintBacktrace():
     return
   endif
 
+#ifdef WINDOWS
+  @.printf("Backtrace: <not captured>\n")
+#else
   @.printf("Backtrace =\n")
   @.libc_fflush(null)
   var i : int = 0
@@ -130,10 +141,12 @@ function Exception.PrintBacktrace():
     endif
     i += 1
   endwhile
+#endif
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
+#ifndef WINDOWS
 function DqCstrLen(s : ^cchar) -> uint:
   if s == null:
     return 0
@@ -310,6 +323,7 @@ function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool, 
   return DqPrintBacktraceFallback(index, pc, info, stop_printing)
 endfunc
 
+#endif
 
 function DqExcAddRef(e : Exception):
   if e <> null:
@@ -427,6 +441,7 @@ function DqExcPrintTypeName():
   endif
 endfunc
 
+#ifndef WINDOWS
 function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
   var t : ^cchar = text
   var n : ^cchar = name
@@ -439,4 +454,4 @@ function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
   endwhile
   return t^ == cchar(0)  or  t^ == cchar(124)
 endfunc
-
+#endif

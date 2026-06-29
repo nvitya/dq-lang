@@ -1,6 +1,8 @@
 build
 build-cross
 sysroots
+toolchains/*.tar.xz
+toolchains/*.zip
 tools/vscode-dq/node_modules/
 /CMakeCache.txt
 /CMakeFiles/

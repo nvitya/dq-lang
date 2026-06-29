@@ -54,6 +54,139 @@ We have added specific Make targets that simplify the CMake configuration for cr
 - `make cross-rv64g-linux`
 - `make cross-x86_64-win`
 
+## Windows x86_64
+
+The Windows cross-build is different from the Linux cross-builds in two ways:
+
+1. You need a Windows cross C/C++ toolchain that runs on the Linux host.
+2. `dq-comp` itself links against LLVM C++ libraries, so the build still needs
+   Windows-target LLVM development libraries visible through `LLVM_DIR`.
+
+The `llvm-mingw` project is a good source for the first part. For an x86_64
+Linux host building x86_64 Windows binaries, use the Ubuntu x86_64 tarball:
+
+```text
+llvm-mingw-20251216-ucrt-ubuntu-22.04-x86_64.tar.xz
+```
+
+For a future self-contained Windows DQ package, the matching Windows-hosted
+toolchain archive is useful too:
+
+```text
+llvm-mingw-20251216-ucrt-x86_64.zip
+```
+
+The `.tar.xz` archive is used on the Linux build machine. The `.zip` archive is
+for the final Windows package, where it can provide `clang.exe`, `lld`, startup
+objects, CRT libraries, and Windows import libraries for DQ users.
+
+### Recommended Local Layout
+
+Keep checked-in CMake toolchain files in `toolchains/`. Put downloaded and
+extracted binary toolchains under `sysroots/`, which is ignored by git:
+
+```bash
+mkdir -p sysroots/llvm-mingw-x86_64
+tar -xf toolchains/llvm-mingw-20251216-ucrt-ubuntu-22.04-x86_64.tar.xz \
+  -C sysroots/llvm-mingw-x86_64 --strip-components=1
+```
+
+If the archive was downloaded somewhere else, use that path instead of the
+`toolchains/...tar.xz` path above. The important result is:
+
+```text
+sysroots/llvm-mingw-x86_64/bin/x86_64-w64-mingw32-clang++
+sysroots/llvm-mingw-x86_64/x86_64-w64-mingw32/
+```
+
+### Configure With llvm-mingw
+
+The Windows toolchain file accepts `DQ_MINGW_ROOT`:
+
+```bash
+make cross-x86_64-win CMAKE_EXTRA_ARGS="\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=/path/to/windows-target-llvm/lib/cmake/llvm"
+```
+
+`DQ_MINGW_ROOT` points CMake at the llvm-mingw cross compiler and target
+headers/libraries. `LLVM_DIR` must point at the LLVM CMake package for LLVM
+libraries that are linkable into the Windows `dq-comp.exe`.
+
+### Important Limitation
+
+The llvm-mingw release archive provides the compiler, linker, CRT/startup
+objects, and Windows import libraries. It does not provide the LLVM development
+CMake package used by this project:
+
+```text
+lib/cmake/llvm/LLVMConfig.cmake
+```
+
+Therefore llvm-mingw alone is probably not sufficient to build `dq-comp.exe`.
+You still need a compatible Windows-target LLVM development build. The most
+reliable approach is to build LLVM for the same MinGW/UCRT ABI using the
+llvm-mingw toolchain, then pass that build's `lib/cmake/llvm` directory as
+`LLVM_DIR`.
+
+### Building the Windows LLVM Development Package
+
+Use the helper script after extracting the llvm-mingw Linux-hosted toolchain:
+
+```bash
+tools/build-llvm-mingw-ucrt.sh
+```
+
+The script builds and installs a minimal LLVM development package here:
+
+```text
+sysroots/llvm-x86_64-win-ucrt
+```
+
+It downloads the matching LLVM source archive if needed, configures LLVM for
+`x86_64-w64-windows-gnu`, builds only the X86 target backend, disables optional
+compression/XML/terminal dependencies, and installs the CMake package needed by
+`dq-comp`:
+
+```text
+sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm/LLVMConfig.cmake
+```
+
+After that, configure the DQ compiler cross-build with:
+
+```bash
+make cross-x86_64-win CMAKE_EXTRA_ARGS="\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=$(pwd)/sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm"
+```
+
+If the helper needs a different native `llvm-tblgen`, set it explicitly:
+
+```bash
+LLVM_TBLGEN=/path/to/llvm-tblgen tools/build-llvm-mingw-ucrt.sh
+```
+
+Prebuilt package managers such as MSYS2 may also provide `LLVMConfig.cmake`, but
+mixing their LLVM libraries with the llvm-mingw toolchain can create C++ ABI and
+runtime mismatches. For the first Windows DQ package, prefer building LLVM with
+the same llvm-mingw toolchain used to build `dq-comp.exe`.
+
+### Current Portability Work Still Required
+
+The repository has a Windows cross-build target, but the compiler sources and
+runtime are not fully Windows-hosted yet. Known follow-up work includes:
+
+- guard or replace Linux-only includes such as `<execinfo.h>`
+- replace `/proc/self/exe` executable discovery on Windows
+- provide a Windows implementation of the process runner instead of the current
+  POSIX `fork`/`exec`/`poll` implementation
+- add a hosted Windows runtime module, for example `rtl/rtl_win.dq`
+- replace the hardcoded `gcc` link command with a configurable linker driver,
+  such as bundled `clang --target=x86_64-w64-windows-gnu -fuse-ld=lld`
+
+Until those are done, the Windows cross-build instructions describe the toolchain
+setup, but the build may fail in source portability or final linking.
+
 ### Example: Building for aarch64
 
 From the root of the `dq-lang` project, run:

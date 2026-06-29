@@ -359,7 +359,19 @@ void ODqCompCodegen::PrepareTarget()
   llvm::InitializeNativeTargetAsmParser();
   llvm::InitializeNativeTargetAsmPrinter();
 
-  auto triple = llvm::sys::getDefaultTargetTriple();
+  string triple = llvm::sys::getDefaultTargetTriple();
+  if (!g_opt.build_tag.empty())
+  {
+    if (g_opt.build_tag.find("-linux") != string::npos)
+    {
+      triple = "x86_64-unknown-linux-gnu";
+    }
+    else if (g_opt.build_tag.find("-win") != string::npos)
+    {
+      triple = "x86_64-w64-windows-gnu";
+    }
+  }
+
 #if LLVM_VERSION_MAJOR >= 21
   llvm::Triple ll_triple(triple);
   ll_module->setTargetTriple(ll_triple);

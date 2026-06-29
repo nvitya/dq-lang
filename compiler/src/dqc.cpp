@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <vector>
 #include <filesystem>
+#include <system_error>
 
 #include "ll_defs.h"
 #include "named_scopes.h"
@@ -25,11 +26,13 @@
 #include "scope_defines.h"
 
 #include "dqc.h"
+#include "comp_config.h"
 #include "dq_module.h"
 #include "version.h"
 #include "artifact_lock.h"
 #include "module_path.h"
 #include "otype_func.h"
+#include "processrunner.h"
 
 ODqCompiler *  g_compiler = nullptr;
 
@@ -121,6 +124,170 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
                                    is_private, merge_mode, vector<string>(), false))
   {
     print("Can not load implicit module interface from \"{}\"\n", module_path.artifact_path.string());
+    return false;
+  }
+
+  return true;
+}
+
+string ODqCompiler::HostedRtlModuleName() const
+{
+#if defined(TARGET_WIN)
+  return "rtl/rtl_windows";
+#else
+  return "rtl/rtl_linux";
+#endif
+}
+
+string ODqCompiler::DefaultLinkDriver() const
+{
+  const char * env_driver = getenv("DQ_LINKER_DRIVER");
+  if (env_driver && env_driver[0])
+  {
+    return env_driver;
+  }
+
+#if defined(TARGET_WIN)
+  if (!g_opt.compiler_executable_dir.empty())
+  {
+    filesystem::path bin_dir = g_opt.compiler_executable_dir;
+    filesystem::path root_dir = (bin_dir / "..").lexically_normal();
+
+    vector<filesystem::path> candidates = {
+      root_dir / "toolchain" / "llvm-mingw" / "bin" / "clang.exe",
+      root_dir / "toolchain" / "bin" / "clang.exe",
+      root_dir / "llvm-mingw" / "bin" / "clang.exe",
+      bin_dir / "clang.exe"
+    };
+
+    error_code ec;
+    auto add_toolchain_dir_candidates = [&](const filesystem::path & parent_dir)
+    {
+      ec.clear();
+      if (!filesystem::is_directory(parent_dir, ec) || ec)
+      {
+        return;
+      }
+
+      ec.clear();
+      for (const filesystem::directory_entry & entry : filesystem::directory_iterator(parent_dir, ec))
+      {
+        if (ec)
+        {
+          break;
+        }
+        ec.clear();
+        if (entry.is_directory(ec) && !ec)
+        {
+          candidates.push_back(entry.path() / "bin" / "clang.exe");
+        }
+      }
+    };
+    add_toolchain_dir_candidates(root_dir);
+    add_toolchain_dir_candidates(root_dir / "toolchain");
+
+    for (const filesystem::path & path : candidates)
+    {
+      ec.clear();
+      if (filesystem::is_regular_file(path, ec) && !ec)
+      {
+        return path.lexically_normal().string();
+      }
+    }
+  }
+
+  return "clang.exe";
+#else
+  return "clang";
+#endif
+}
+
+vector<string> ODqCompiler::BuildLinkArgs(const string & object_filename, const string & executable_filename) const
+{
+  vector<string> args;
+  args.push_back(DefaultLinkDriver());
+
+#if defined(TARGET_WIN)
+  #if defined(TARGET_64BIT)
+    args.push_back("--target=x86_64-w64-windows-gnu");
+  #else
+    args.push_back("--target=i686-w64-windows-gnu");
+  #endif
+#endif
+
+  args.push_back("-fuse-ld=lld");
+  args.push_back(object_filename);
+  for (const string & artifact_path : g_module->link_module_artifacts)
+  {
+    args.push_back(artifact_path);
+  }
+  args.push_back("-o");
+  args.push_back(executable_filename);
+  for (const string & libname : g_opt.link_libraries)
+  {
+    args.push_back("-l" + libname);
+  }
+
+  return args;
+}
+
+string ODqCompiler::FormatLinkCommandForLog(const vector<string> & args) const
+{
+  string result;
+  for (const string & arg : args)
+  {
+    if (!result.empty())
+    {
+      result += " ";
+    }
+
+    if (arg.empty() || (arg.find_first_of(" \t\n\"") != string::npos))
+    {
+      result += "\"";
+      for (char c : arg)
+      {
+        if ('"' == c)
+        {
+          result += "\\\"";
+        }
+        else
+        {
+          result.push_back(c);
+        }
+      }
+      result += "\"";
+    }
+    else
+    {
+      result += arg;
+    }
+  }
+  return result;
+}
+
+bool ODqCompiler::LinkExecutable(const string & object_filename, const string & executable_filename) const
+{
+  vector<string> args = BuildLinkArgs(object_filename, executable_filename);
+
+  if (g_opt.verblevel >= VERBLEVEL_STATUS)
+  {
+    print("Linking: \"{}\"...\n", executable_filename);
+  }
+  if (g_opt.verblevel >= VERBLEVEL_INFO)
+  {
+    print("Link cmd: {}\n", FormatLinkCommandForLog(args));
+  }
+
+  int rc = -1;
+  string errtxt;
+  bool exec_ok = RunInteractiveProcess(args, rc, &errtxt);
+  if (!exec_ok && !errtxt.empty())
+  {
+    print("{}\n", errtxt);
+  }
+  if (!exec_ok || (0 != rc))
+  {
+    print("Link error.\n");
     return false;
   }
 
@@ -292,37 +459,15 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     if (has_app_main)
     {
-      if (!AddImplicitUse("rtl/rtl_linux", "__dq_rtl", nullptr, true, MUM_NONE))
+      if (!AddImplicitUse(HostedRtlModuleName(), "__dq_rtl", nullptr, true, MUM_NONE))
       {
         ++errorcnt;
         return;
       }
 
-      string link_cmd = format("gcc {}", out_filename);
-      for (const string & artifact_path : g_module->link_module_artifacts)
-      {
-        link_cmd += format(" {}", artifact_path);
-      }
-      link_cmd += format(" -o {}", link_output);
-      for (const string & libname : g_opt.link_libraries)
-      {
-        link_cmd += format(" -l{}", libname);
-      }
-      if (g_opt.verblevel >= VERBLEVEL_STATUS)
-      {
-        print("Linking: \"{}\"...\n", link_output);
-      }
-      if (g_opt.verblevel >= VERBLEVEL_INFO)
-      {
-        print("Link cmd: {}\n", link_cmd);
-      }
-
-
-      int rc = system(link_cmd.c_str());
-      if (rc != 0)
+      if (!LinkExecutable(out_filename, link_output))
       {
         ++errorcnt;
-        print("Link error.\n");
       }
     }
     else if (has_dash_o)

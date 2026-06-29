@@ -160,6 +160,56 @@ make cross-x86_64-win CMAKE_EXTRA_ARGS="\
   -DLLVM_DIR=$(pwd)/sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm"
 ```
 
+### Building a Windows Release Package
+
+After the cross-build succeeds, create a distributable zip with:
+
+```bash
+make package-x86_64-win CMAKE_EXTRA_ARGS="\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=$(pwd)/sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm"
+```
+
+The package is written to:
+
+```text
+dist/dq-<version>-x86_64-windows-ucrt.zip
+```
+
+It contains:
+
+- `bin/dq-comp.exe`
+- `bin/dq-run.exe`
+- `bin/dqatrun.exe`
+- the required llvm-mingw runtime DLLs
+- the Windows-hosted llvm-mingw linker SDK under `toolchain/llvm-mingw/`
+- `stdpkg/`
+- project license and Windows quick-start notes
+
+The package script expects the Windows-hosted llvm-mingw archive here by
+default:
+
+```text
+sysroots/llvm-mingw-20251216-ucrt-x86_64.zip
+```
+
+Override it with `DQ_WINDOWS_TOOLCHAIN_ZIP=/path/to/llvm-mingw-ucrt-x86_64.zip`,
+or use an already extracted Windows-hosted toolchain with:
+
+```bash
+DQ_WINDOWS_TOOLCHAIN_ROOT=/path/to/llvm-mingw-20251216-ucrt-x86_64 \
+  tools/package-windows-release.sh
+```
+
+At runtime, `dq-comp.exe` links application executables with the packaged
+toolchain:
+
+```text
+toolchain\llvm-mingw\bin\clang.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
+```
+
+Set `DQ_LINKER_DRIVER` to override that driver path.
+
 If the helper needs a different native `llvm-tblgen`, set it explicitly:
 
 ```bash
@@ -182,17 +232,9 @@ now build as Windows executables with the llvm-mingw toolchain:
 
 The compiler sources now guard Linux-only backtrace support, use portable
 executable discovery, and provide a Windows implementation of the process
-runner and artifact locking.
-
-Known follow-up work for producing and running Windows DQ programs includes:
-
-- add a hosted Windows runtime module, for example `rtl/rtl_win.dq`
-- replace the hardcoded `gcc` link command with a configurable linker driver,
-  such as bundled `clang --target=x86_64-w64-windows-gnu -fuse-ld=lld`
-
-Until those are done, `dq-comp.exe` can be built for Windows, but compiling a DQ
-program with an application entry point may still fail at runtime module
-selection or final linking.
+runner and artifact locking. Application linking uses the bundled llvm-mingw
+toolchain, and hosted Windows programs use a minimal `rtl/rtl_windows.dq`
+runtime entry point. That runtime currently omits Linux-only SIGSEGV recovery.
 
 ### Example: Building for aarch64
 

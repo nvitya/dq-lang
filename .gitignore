@@ -1,5 +1,6 @@
 build
 build-cross
+dist
 sysroots
 toolchains/*.tar.xz
 toolchains/*.zip

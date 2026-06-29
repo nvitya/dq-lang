@@ -15,6 +15,7 @@
 
 #include "stdint.h"
 #include <string>
+#include <vector>
 #include "comp_options.h"
 
 #include "dqc_clargs.h"
@@ -40,6 +41,11 @@ public:
   bool AddImplicitUse(const string & module_name, const string & namespace_name,
                       OScope * merge_scope, bool is_private,
                       EModuleUseMergeMode merge_mode);
+  string HostedRtlModuleName() const;
+  string DefaultLinkDriver() const;
+  vector<string> BuildLinkArgs(const string & object_filename, const string & executable_filename) const;
+  string FormatLinkCommandForLog(const vector<string> & args) const;
+  bool LinkExecutable(const string & object_filename, const string & executable_filename) const;
 
   ODqCompiler();
   virtual ~ODqCompiler();

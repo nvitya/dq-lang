@@ -1,0 +1,57 @@
+// DQ Runtime Library for Windows
+
+function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
+
+implementation
+
+use libc/stdio
+use rtl/exception
+
+// These functions are created by the DQ compiler:
+function dq_main() -> int  [[external('dq_main')]]
+function dq_module_init()  [[external('dq_module_init')]]
+
+function OsRtErrorHandler(emsg : ^cchar):
+  DqExcRaise(new Exception(emsg), true)
+endfunc
+
+function PrintUncaughtException() -> int:
+  var e : Exception = DqExcCurrent()
+  printf("\nUNCAUGHT EXCEPTION: ")
+  DqExcPrintTypeName()
+  printf(": ")
+  e.PrintMessage()
+  printf("\n")
+  e.PrintBacktrace()
+  DqExcClear()
+  return -1
+endfunc
+
+//-----------------------------------------------------------------------------
+
+function RunHostedMain() -> int:
+  dq_module_init()
+  if DqExcActive():
+    return PrintUncaughtException()
+  endif
+
+  result = dq_main()
+
+  if DqExcActive():
+    result = PrintUncaughtException()
+  endif
+endfunc
+
+// libc entry point 'main()'
+
+function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
+
+  rterror_handler = OsRtErrorHandler
+
+  @sys.__sys_init_params(argc, argv)
+
+  result = RunHostedMain()
+
+  // no finalize for modules
+
+endfunc

@@ -13,7 +13,7 @@ const CONST2 : float = 3.14;
 object OBase:
   cnt1 : int = 0;
   cnt2 : int = 10;
-  name : cstring[32];
+  name : cstring(31);
 
   function *Create(aname : cstring):  // constructor
     name = aname;
@@ -88,7 +88,7 @@ endfunc
 
 function *Main() -> int:
 
-  var s : cstring[128] = "";
+  var s : cstring(127) = "";
   cstr_add(s, "Hello");
   cstr_add(s, " World!\n");
   WriteStr(s);

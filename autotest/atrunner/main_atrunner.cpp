@@ -17,8 +17,12 @@
 #include <csignal>
 #include <cstdlib>
 #include <exception>
-#include <execinfo.h>
-#include <unistd.h>
+
+#if !defined(_WIN32) && __has_include(<execinfo.h>)
+  #include <execinfo.h>
+  #include <unistd.h>
+  #define HAS_EXECINFO 1
+#endif
 
 #if __has_include(<stacktrace>)
 #include <stacktrace>
@@ -37,6 +41,7 @@ using namespace std;
 
 void print_backtrace()
 {
+#if HAS_EXECINFO
   const int max_frames = 50;
   void * array[max_frames];
 
@@ -45,6 +50,7 @@ void print_backtrace()
 
   // print out all the frames to stderr
   backtrace_symbols_fd(array, size, STDERR_FILENO);
+#endif
 }
 
 // This function will run when ANY exception goes uncaught

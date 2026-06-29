@@ -15,8 +15,8 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#include <unistd.h>
 
+#include "executable_path.h"
 #include "processrunner.h"
 
 using namespace std;
@@ -130,15 +130,7 @@ static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
 
 static string GetExecutableDir()
 {
-  vector<char> buf(4096);
-  ssize_t len = readlink("/proc/self/exe", buf.data(), buf.size() - 1);
-  if (len <= 0)
-  {
-    return "";
-  }
-
-  buf[len] = 0;
-  return fs::path(buf.data()).parent_path().string();
+  return CurrentExecutableDir();
 }
 
 static string ResolveCompilerExecutable()
@@ -151,6 +143,14 @@ static string ResolveCompilerExecutable()
     {
       return compiler_path.string();
     }
+
+#if defined(_WIN32)
+    compiler_path.replace_extension(".exe");
+    if (fs::exists(compiler_path))
+    {
+      return compiler_path.string();
+    }
+#endif
   }
 
   return "dq-comp";

@@ -51,9 +51,16 @@ llvm_map_components_to_libnames(llvm_libs
     passes
 )
 
-#target_link_libraries(dqc ${llvm_libs})
+find_library(DQ_STDCXXEXP_LIBRARY stdc++exp)
 
-target_link_libraries(dq-comp PRIVATE stdc++exp ${llvm_libs})
-target_link_libraries(dq-run PRIVATE stdc++exp)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(dq-comp PRIVATE stdc++exp)
+  target_link_libraries(dq-run PRIVATE stdc++exp)
+elseif(DQ_STDCXXEXP_LIBRARY)
+  target_link_libraries(dq-comp PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+  target_link_libraries(dq-run PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+endif()
+
+target_link_libraries(dq-comp PRIVATE ${llvm_libs})
 
 install(TARGETS dq-comp dq-run DESTINATION bin)

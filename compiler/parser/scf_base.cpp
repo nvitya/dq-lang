@@ -15,7 +15,7 @@
 // principles and some algorithms taken from strparseobj: github....
 
 #include "string.h"
-#include "math.h"
+#include <cmath>
 
 #include <fstream>
 #include <print>
@@ -1001,7 +1001,7 @@ bool OScFeederBase::ReadFloatFracExp(double & rvalue)
       return false;
     }
 
-    fpval = fpval * exp10(fpexp);
+    fpval = fpval * std::pow(10.0, fpexpsign * fpexp);
   }
 
   rvalue = fpval;

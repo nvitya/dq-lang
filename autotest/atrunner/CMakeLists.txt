@@ -17,6 +17,11 @@ add_executable(dqatrun ${SRC_ATRUNNER} ../../compiler/utils/processrunner.cpp)
 # on exception I want to have a nice backtrace
 set_target_properties(dqatrun PROPERTIES ENABLE_EXPORTS ON)
 
-target_link_libraries(dqatrun PRIVATE stdc++exp)
+find_library(DQ_STDCXXEXP_LIBRARY stdc++exp)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(dqatrun PRIVATE stdc++exp)
+elseif(DQ_STDCXXEXP_LIBRARY)
+  target_link_libraries(dqatrun PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+endif()
 
 install(TARGETS dqatrun DESTINATION bin)

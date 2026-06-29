@@ -16,10 +16,10 @@
 #include <limits>
 #include <filesystem>
 #include <cstdlib>
-#include <unistd.h>
 #include "dqc_clargs.h"
 #include "comp_options.h"
 #include "comp_config.h"
+#include "executable_path.h"
 #include "module_path.h"
 
 using namespace std;
@@ -52,27 +52,7 @@ bool ODqCompClargs::IsValidDefineName(const string & name)
 
 string ODqCompClargs::ResolveCompilerExecutable(const string & argv0)
 {
-  vector<char> buf(4096);
-  ssize_t len = readlink("/proc/self/exe", buf.data(), buf.size() - 1);
-  if (len > 0)
-  {
-    buf[len] = 0;
-    return filesystem::path(buf.data()).lexically_normal().string();
-  }
-
-  if (argv0.empty())
-  {
-    return "dq-comp";
-  }
-
-  if (argv0.find('/') == string::npos)
-  {
-    return argv0;
-  }
-
-  error_code ec;
-  filesystem::path p = filesystem::absolute(argv0, ec);
-  return (ec ? argv0 : p.lexically_normal().string());
+  return CurrentExecutablePath(argv0, "dq-comp");
 }
 
 string ODqCompClargs::CompilerExecutableDir(const string & compiler_executable)

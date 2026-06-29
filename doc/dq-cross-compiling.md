@@ -171,21 +171,28 @@ mixing their LLVM libraries with the llvm-mingw toolchain can create C++ ABI and
 runtime mismatches. For the first Windows DQ package, prefer building LLVM with
 the same llvm-mingw toolchain used to build `dq-comp.exe`.
 
-### Current Portability Work Still Required
+### Current Portability Status
 
-The repository has a Windows cross-build target, but the compiler sources and
-runtime are not fully Windows-hosted yet. Known follow-up work includes:
+The repository has a Windows cross-build target and the hosted compiler tools
+now build as Windows executables with the llvm-mingw toolchain:
 
-- guard or replace Linux-only includes such as `<execinfo.h>`
-- replace `/proc/self/exe` executable discovery on Windows
-- provide a Windows implementation of the process runner instead of the current
-  POSIX `fork`/`exec`/`poll` implementation
+- `dq-comp.exe`
+- `dq-run.exe`
+- `dqatrun.exe`
+
+The compiler sources now guard Linux-only backtrace support, use portable
+executable discovery, and provide a Windows implementation of the process
+runner and artifact locking.
+
+Known follow-up work for producing and running Windows DQ programs includes:
+
 - add a hosted Windows runtime module, for example `rtl/rtl_win.dq`
 - replace the hardcoded `gcc` link command with a configurable linker driver,
   such as bundled `clang --target=x86_64-w64-windows-gnu -fuse-ld=lld`
 
-Until those are done, the Windows cross-build instructions describe the toolchain
-setup, but the build may fail in source portability or final linking.
+Until those are done, `dq-comp.exe` can be built for Windows, but compiling a DQ
+program with an application entry point may still fail at runtime module
+selection or final linking.
 
 ### Example: Building for aarch64
 

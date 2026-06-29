@@ -516,7 +516,7 @@ void OScFeederDq::ParseDirectiveInclude()
   {
     // try with the current path
     filesystem::path  fpath(curfile->name);
-    string parentpath = fpath.parent_path(); //.string();
+    string parentpath = fpath.parent_path().string();
     if (!parentpath.empty())
     {
       parentpath += filesystem::path::preferred_separator;

@@ -11,21 +11,53 @@
  * brief:   Compiler artifact locking and atomic publishing helpers
  */
 
+#if defined(_WIN32)
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  #include <process.h>
+  #include <windows.h>
+#endif
+
 #include "artifact_lock.h"
 
 #include <atomic>
 #include <cerrno>
 #include <cstring>
-#include <fcntl.h>
 #include <fstream>
 #include <format>
-#include <sys/file.h>
-#include <sys/stat.h>
-#include <unistd.h>
+
+#if !defined(_WIN32)
+  #include <fcntl.h>
+  #include <sys/file.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
+#endif
 
 using namespace std;
 
 static atomic<uint64_t> g_artifact_tmp_counter = 0;
+
+#if defined(_WIN32)
+static string WindowsErrorMessage(DWORD err)
+{
+  LPSTR msg = nullptr;
+  DWORD len = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                             | FORMAT_MESSAGE_IGNORE_INSERTS,
+                             nullptr, err, 0, reinterpret_cast<LPSTR>(&msg), 0, nullptr);
+
+  string result = (len && msg ? string(msg, len) : format("Windows error {}", err));
+  if (msg)
+  {
+    LocalFree(msg);
+  }
+  while (!result.empty() && ((result.back() == '\n') || (result.back() == '\r')))
+  {
+    result.pop_back();
+  }
+  return result;
+}
+#endif
 
 OArtifactLock::OArtifactLock(const filesystem::path & artifact_path, EArtifactLockMode mode)
 {
@@ -50,6 +82,29 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
     }
   }
 
+#if defined(_WIN32)
+  DWORD access = (EArtifactLockMode::SHARED == mode ? GENERIC_READ : (GENERIC_READ | GENERIC_WRITE));
+  DWORD disposition = (EArtifactLockMode::SHARED == mode ? OPEN_EXISTING : OPEN_ALWAYS);
+  HANDLE new_handle = CreateFileW(artifact_path.wstring().c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                  nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (INVALID_HANDLE_VALUE == new_handle)
+  {
+    error = format("Can not open artifact for locking {}: {}", artifact_path.string(), WindowsErrorMessage(GetLastError()));
+    return false;
+  }
+
+  OVERLAPPED ov = {};
+  DWORD flags = (EArtifactLockMode::EXCLUSIVE == mode ? LOCKFILE_EXCLUSIVE_LOCK : 0);
+  if (!LockFileEx(new_handle, flags, 0, MAXDWORD, MAXDWORD, &ov))
+  {
+    error = format("Can not lock artifact {}: {}", artifact_path.string(), WindowsErrorMessage(GetLastError()));
+    CloseHandle(new_handle);
+    return false;
+  }
+
+  fd = new_handle;
+  return true;
+#else
   int open_flags = (EArtifactLockMode::SHARED == mode ? O_RDONLY : (O_CREAT | O_RDWR));
 
   while (true)
@@ -90,22 +145,38 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
     flock(new_fd, LOCK_UN);
     close(new_fd);
   }
+#endif
 }
 
 void OArtifactLock::Unlock()
 {
+#if defined(_WIN32)
+  if (fd)
+  {
+    OVERLAPPED ov = {};
+    HANDLE handle = static_cast<HANDLE>(fd);
+    UnlockFileEx(handle, 0, MAXDWORD, MAXDWORD, &ov);
+    CloseHandle(handle);
+    fd = nullptr;
+  }
+#else
   if (fd >= 0)
   {
     flock(fd, LOCK_UN);
     close(fd);
     fd = -1;
   }
+#endif
 }
 
 filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path)
 {
   filesystem::path result = artifact_path;
+#if defined(_WIN32)
+  result += format(".tmp.{}.{}", _getpid(), ++g_artifact_tmp_counter);
+#else
   result += format(".tmp.{}.{}", getpid(), ++g_artifact_tmp_counter);
+#endif
   return result;
 }
 
@@ -137,6 +208,16 @@ bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::
     return false;
   }
 
+#if defined(_WIN32)
+  if (!MoveFileExW(tmp_path.wstring().c_str(), artifact_path.wstring().c_str(),
+                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+  {
+    rerror = format("Can not publish artifact {}: {}", artifact_path.string(), WindowsErrorMessage(GetLastError()));
+    ArtifactRemoveNoError(tmp_path);
+    return false;
+  }
+  return true;
+#else
   error_code ec;
   filesystem::rename(tmp_path, artifact_path, ec);
   if (ec)
@@ -146,6 +227,7 @@ bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::
     return false;
   }
   return true;
+#endif
 }
 
 bool ArtifactAtomicWrite(const filesystem::path & artifact_path, const vector<uint8_t> & data, string & rerror)

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.24.2"
+#define DQ_COMPILER_VERSION  "0.25.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.25.0:
+  - Cross-compilation to Windows
 v0.24.2:
   - DQ RTL cleanup: removed unnecessary `@.` prefixes
 v0.24.1:

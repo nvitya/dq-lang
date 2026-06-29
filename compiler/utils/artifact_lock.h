@@ -32,7 +32,11 @@ public:
   string error;
 
 private:
+#if defined(_WIN32)
+  void * fd = nullptr;
+#else
   int fd = -1;
+#endif
 
 public:
   OArtifactLock() = default;
@@ -44,7 +48,14 @@ public:
 
   bool Lock(const filesystem::path & artifact_path, EArtifactLockMode mode);
   void Unlock();
-  bool Locked() const { return fd >= 0; }
+  bool Locked() const
+  {
+#if defined(_WIN32)
+    return (fd != nullptr);
+#else
+    return fd >= 0;
+#endif
+  }
 };
 
 filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path);

@@ -210,13 +210,33 @@ bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::
   }
 
 #if defined(_WIN32)
-  if (!MoveFileExW(tmp_path.wstring().c_str(), artifact_path.wstring().c_str(),
-                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+  //TODO: is this retry really necessary ?
+  int retries = 0;
+  while (!MoveFileExW(tmp_path.wstring().c_str(), artifact_path.wstring().c_str(),
+                   MOVEFILE_REPLACE_EXISTING))
   {
+    if (GetLastError() == ERROR_ACCESS_DENIED && retries < 200)
+    {
+      Sleep(10);
+      retries++;
+      continue;
+    }
     rerror = format("Can not publish artifact {}: {}", artifact_path.string(), WindowsErrorMessage(GetLastError()));
     ArtifactRemoveNoError(tmp_path);
     return false;
   }
+  
+  // Force NTFS to synchronously update the directory entry file size cache
+  // so that immediate subsequent tools (like LLD) don't see a stale 0-byte size.
+  HANDLE h = CreateFileW(artifact_path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                         nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (h != INVALID_HANDLE_VALUE)
+  {
+    BY_HANDLE_FILE_INFORMATION info;
+    GetFileInformationByHandle(h, &info);
+    CloseHandle(h);
+  }
+
   return true;
 #else
   error_code ec;

@@ -415,6 +415,9 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (g_opt.ifgen)
   {
+    // Release the exclusive file lock on the output artifact before replacing it.
+    output_artifact_lock.Unlock();
+
     if (!g_module->WriteInterface(out_filename, in_filename))
     {
       ++errorcnt;
@@ -446,6 +449,10 @@ void ODqCompiler::Run(int argc, char ** argv)
   {
     PrintIr();
   }
+
+  // Release the exclusive file lock on the output artifact before replacing it.
+  // MoveFileExW can fail with ERROR_ACCESS_DENIED if the destination file is still open by this process.
+  output_artifact_lock.Unlock();
 
   EmitObject(out_filename);
   if (errorcnt)

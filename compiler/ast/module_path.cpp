@@ -159,9 +159,18 @@ filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_
 
 filesystem::path OModulePath::BuildInterfaceArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path artifact_path = BuildArtifactPath(source_path);
-  artifact_path.replace_extension(".dqm_if");
-  return artifact_path;
+  filesystem::path src = AbsNorm(source_path);
+  filesystem::path source_no_ext = src;
+  source_no_ext.replace_extension();
+
+  filesystem::path rel = source_no_ext.lexically_relative(BuildRootDir());
+  string local_path = rel.generic_string();
+  if (local_path.empty() || local_path.starts_with(".."))
+  {
+    local_path = source_no_ext.filename().generic_string();
+  }
+
+  return BuildArtifactPathForModule("", local_path, BuildRootDir(), true);
 }
 
 string OModulePath::ModuleIdFromPackageLocal(const string & package_name, const string & local_path)

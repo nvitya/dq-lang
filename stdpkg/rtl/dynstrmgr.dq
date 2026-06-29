@@ -109,24 +109,24 @@ function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
 endfunc
 
 function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
-  result = @.TextInfoCharLen(ati)
+  result = TextInfoCharLen(ati)
 endfunc
 
 function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
-  var alen : uint32 = @.TextInfoCharLen(ati)
-  @.DynStrCheckIndex(index, alen)
-  if not @.DynStrCheckByteWidth(@.TextInfoChWidth(ati)):
+  var alen : uint32 = TextInfoCharLen(ati)
+  DynStrCheckIndex(index, alen)
+  if not DynStrCheckByteWidth(TextInfoChWidth(ati)):
     return 0
   endif
   if ati.dataptr == null:
-    @.DynStrRuntimeError('DynStr null text data')
+    DynStrRuntimeError('DynStr null text data')
     return 0
   endif
   result = char(^cchar(ati.dataptr)[index]^)
 endfunc
 
 function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
-  var alen : uint32 = @.TextInfoCharLen(ati)
+  var alen : uint32 = TextInfoCharLen(ati)
   var b : int = startpos
   if b < 0:
     b = 0
@@ -146,22 +146,22 @@ function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startp
 
   var viewlen : uint32 = e - b
   if viewlen == 0  or  ati.dataptr == null:
-    @.DynStrSetTextInfo(rti, null, 0, @.TextInfoChWidth(ati))
+    DynStrSetTextInfo(rti, null, 0, TextInfoChWidth(ati))
   else:
-    @.DynStrSetTextInfo(rti, ^byte(ati.dataptr)[@.DynStrByteOffset(b, @.TextInfoChWidth(ati))], viewlen, @.TextInfoChWidth(ati))
+    DynStrSetTextInfo(rti, ^byte(ati.dataptr)[DynStrByteOffset(b, TextInfoChWidth(ati))], viewlen, TextInfoChWidth(ati))
   endif
 endfunc
 
 function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
-  var alen : uint32 = @.TextInfoCharLen(a)
-  var blen : uint32 = @.TextInfoCharLen(b)
+  var alen : uint32 = TextInfoCharLen(a)
+  var blen : uint32 = TextInfoCharLen(b)
   if alen <> blen:
     return false
   endif
   if alen == 0:
     return true
   endif
-  if not @.DynStrCheckByteWidth(@.TextInfoChWidth(a))  or  not @.DynStrCheckByteWidth(@.TextInfoChWidth(b)):
+  if not DynStrCheckByteWidth(TextInfoChWidth(a))  or  not DynStrCheckByteWidth(TextInfoChWidth(b)):
     return false
   endif
   if a.dataptr == null  or  b.dataptr == null:
@@ -199,16 +199,16 @@ function DynStrCalcByteSize(charcount : uint32, achwidth : uint8) -> uint:
     return 0
   endif
 
-  var w : uint = @.DynStrNormalizeChWidth(achwidth)
+  var w : uint = DynStrNormalizeChWidth(achwidth)
   result = uint(charcount) * w
   if result IDIV uint(charcount) <> w:
-    @.DynStrRuntimeError('DynStr capacity overflow')
+    DynStrRuntimeError('DynStr capacity overflow')
     return 0
   endif
 endfunc
 
 function DynStrByteOffset(index : uint32, achwidth : uint8) -> uint:
-  return @.DynStrCalcByteSize(index, achwidth)
+  return DynStrCalcByteSize(index, achwidth)
 endfunc
 
 function DynStrAddLength(length : uint32, acount : int32) -> uint32:
@@ -219,7 +219,7 @@ function DynStrAddLength(length : uint32, acount : int32) -> uint32:
   var add_count : uint32 = acount
   result = length + add_count
   if result < length:
-    @.DynStrRuntimeError('DynStr length overflow')
+    DynStrRuntimeError('DynStr length overflow')
     return length
   endif
 endfunc
@@ -255,12 +255,12 @@ function DynStrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint3
     return -1
   endif
 
-  var used_bytes : uint = @.DynStrCalcByteSize(length, achwidth)
+  var used_bytes : uint = DynStrCalcByteSize(length, achwidth)
   if used_bytes == 0:
     return -1
   endif
 
-  var w : uint = @.DynStrNormalizeChWidth(achwidth)
+  var w : uint = DynStrNormalizeChWidth(achwidth)
   var baseaddr : uint = uint(dataptr)
   var srcaddr  : uint = uint(src)
   if srcaddr < baseaddr  or  srcaddr >= baseaddr + used_bytes:
@@ -285,20 +285,20 @@ endfunc
 function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : pointer, charlen : uint32, achwidth : uint8):
   rti.dataptr = dataptr
   rti.charlen = charlen
-  rti.info = (charlen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID OR DQTIF_READONLY OR @.DynStrChWidthInfo(achwidth)
+  rti.info = (charlen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID OR DQTIF_READONLY OR DynStrChWidthInfo(achwidth)
 endfunc
 
 function DynStrCheckByteWidth(achwidth : uint8) -> bool:
-  if @.DynStrNormalizeChWidth(achwidth) == 1:
+  if DynStrNormalizeChWidth(achwidth) == 1:
     return true
   endif
-  @.DynStrRuntimeError('DynStr byte-only string support rejects wide text')
+  DynStrRuntimeError('DynStr byte-only string support rejects wide text')
   return false
 endfunc
 
 function DynStrCheckIndex(index : int, length : uint32):
   if index < 0  or  index >= length:
-    @.DynStrRuntimeError('DynStr index out of bounds')
+    DynStrRuntimeError('DynStr index out of bounds')
   endif
 endfunc
 
@@ -308,9 +308,9 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uin
     return 0
   endif
 
-  if @.DynStrNormalizeChWidth(achwidth) <> 1:
+  if DynStrNormalizeChWidth(achwidth) <> 1:
     // TODO: convert 2-byte and 4-byte dynamic string storage to cchar.
-    @.DynStrRuntimeError('DynStr wide-to-cstring conversion is not implemented')
+    DynStrRuntimeError('DynStr wide-to-cstring conversion is not implemented')
     return 0
   endif
 
@@ -347,7 +347,7 @@ function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
   endif
 
   if oldstr.length > 0:
-    @sys.MemCopy(newstr.dataptr, oldstr.dataptr, @.DynStrCalcByteSize(oldstr.length, oldstr.chwidth))
+    @sys.MemCopy(newstr.dataptr, oldstr.dataptr, DynStrCalcByteSize(oldstr.length, oldstr.chwidth))
   endif
   newstr.length = oldstr.length
 
@@ -721,8 +721,8 @@ function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
     DynStrRuntimeError('DynStr index out of bounds')
     return 0
   endif
-  @.DynStrCheckIndex(index, astr.length)
-  if not @.DynStrCheckByteWidth(astr.chwidth):
+  DynStrCheckIndex(index, astr.length)
+  if not DynStrCheckByteWidth(astr.chwidth):
     return 0
   endif
   result = char(^cchar(astr.dataptr)[index]^)
@@ -733,12 +733,12 @@ function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
     DynStrRuntimeError('DynStr index out of bounds')
     return
   endif
-  @.DynStrCheckIndex(index, astr.length)
-  if not @.DynStrCheckByteWidth(astr.chwidth):
+  DynStrCheckIndex(index, astr.length)
+  if not DynStrCheckByteWidth(astr.chwidth):
     return
   endif
   var bch : cchar = DynStrCharToByte(ch)
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
   ^cchar(astr.dataptr)[index]^ = bch
@@ -751,12 +751,12 @@ function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : u
   if astr == null:
     DynStrCreate(astr, achwidth)
   endif
-  if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
+  if DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
     // TODO: widen or narrow existing storage when multi-width storage is implemented.
     DynStrRuntimeError('DynStr character width conversion is not implemented')
     return
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
   astr.Reserve(min_capacity)
@@ -770,12 +770,12 @@ function DynStrSetCapacity(astr : ref ODynStrMgr, achwidth : uint8, new_capacity
     if astr == null:
       DynStrCreate(astr, achwidth)
     endif
-    if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
+    if DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
       // TODO: widen or narrow existing storage when multi-width storage is implemented.
       DynStrRuntimeError('DynStr character width conversion is not implemented')
       return
     endif
-    if not @.DynStrEnsureUnique(astr):
+    if not DynStrEnsureUnique(astr):
       return
     endif
     astr.SetCapacity(new_capacity)
@@ -785,7 +785,7 @@ endfunc
 function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : uint32):
   if new_length == 0:
     if astr <> null:
-      if not @.DynStrEnsureUnique(astr):
+      if not DynStrEnsureUnique(astr):
         return
       endif
       astr.length = 0
@@ -794,12 +794,12 @@ function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : u
     if astr == null:
       DynStrCreate(astr, achwidth)
     endif
-    if @.DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
+    if DynStrNormalizeChWidth(achwidth) <> astr.chwidth:
       // TODO: widen existing storage and fill new characters at that width.
       DynStrRuntimeError('DynStr character width conversion is not implemented')
       return
     endif
-    if not @.DynStrEnsureUnique(astr):
+    if not DynStrEnsureUnique(astr):
       return
     endif
     astr.SetLength(new_length)
@@ -813,7 +813,7 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
   if astr == null  or  new_length <= old_length:
     return
   endif
-  if not @.DynStrCheckByteWidth(astr.chwidth):
+  if not DynStrCheckByteWidth(astr.chwidth):
     return
   endif
   var i : uint32 = old_length
@@ -830,7 +830,7 @@ function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32):
   if new_length >= astr.length:
     return
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
   astr.length = new_length
@@ -849,7 +849,7 @@ function DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false):
       astr = null
       return
     endif
-    if not @.DynStrEnsureUnique(astr):
+    if not DynStrEnsureUnique(astr):
       return
     endif
     astr.Clear(free_storage)
@@ -857,28 +857,28 @@ function DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false):
 endfunc
 
 function DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32):
-  var add_count : uint32 = @.DynStrSourceCount(asrc, acount)
+  var add_count : uint32 = DynStrSourceCount(asrc, acount)
   if add_count < 1:
     return
   endif
   if astr == null:
     DynStrCreate(astr, TextInfoChWidth(asrc))
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
   astr.Append(asrc, int32(add_count))
 endfunc
 
 function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32):
-  var add_count : uint32 = @.DynStrSourceCount(asrc, acount)
+  var add_count : uint32 = DynStrSourceCount(asrc, acount)
   if add_count < 1:
     return
   endif
   if astr == null:
     DynStrCreate(astr, TextInfoChWidth(asrc))
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
   astr.Insert(index, asrc, int32(add_count))
@@ -886,7 +886,7 @@ endfunc
 
 function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1):
   if astr <> null:
-    if not @.DynStrEnsureUnique(astr):
+    if not DynStrEnsureUnique(astr):
       return
     endif
     astr.Delete(index, acount)
@@ -895,15 +895,15 @@ endfunc
 
 function DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo):
   if astr == null:
-    @.DynStrSetTextInfo(rti, null, 0, 1)
+    DynStrSetTextInfo(rti, null, 0, 1)
   else:
-    @.DynStrSetTextInfo(rti, astr.dataptr, astr.length, astr.chwidth)
+    DynStrSetTextInfo(rti, astr.dataptr, astr.length, astr.chwidth)
   endif
 endfunc
 
 function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int):
   if astr == null:
-    @.DynStrSetTextInfo(rti, null, 0, 1)
+    DynStrSetTextInfo(rti, null, 0, 1)
     return
   endif
 
@@ -928,9 +928,9 @@ function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos
 
   var viewlen : uint32 = e - b
   if viewlen == 0:
-    @.DynStrSetTextInfo(rti, null, 0, astr.chwidth)
+    DynStrSetTextInfo(rti, null, 0, astr.chwidth)
   else:
-    @.DynStrSetTextInfo(rti, ^byte(astr.dataptr)[@.DynStrByteOffset(b, astr.chwidth)], viewlen, astr.chwidth)
+    DynStrSetTextInfo(rti, ^byte(astr.dataptr)[DynStrByteOffset(b, astr.chwidth)], viewlen, astr.chwidth)
   endif
 endfunc
 
@@ -951,7 +951,7 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     delete adst = null
     return
   endif
-  @sys.MemCopy(adst.dataptr, astr.dataptr, @.DynStrCalcByteSize(astr.length, astr.chwidth))
+  @sys.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
   adst.length = astr.length
 endfunc
 
@@ -960,7 +960,7 @@ function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
     CStrClear(adst)
     return
   endif
-  @.DynStrCopyToCStr(adst, astr.dataptr, astr.length, astr.chwidth)
+  DynStrCopyToCStr(adst, astr.dataptr, astr.length, astr.chwidth)
 endfunc
 
 function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr):
@@ -976,7 +976,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
   if astr.length == 0:
     return
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
 
@@ -994,8 +994,8 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
 
   var startpos : uint32 = astr.length - popcount
   @sys.MemCopy(adst.dataptr,
-               ^byte(astr.dataptr)[@.DynStrByteOffset(startpos, astr.chwidth)],
-               @.DynStrCalcByteSize(popcount, astr.chwidth))
+               ^byte(astr.dataptr)[DynStrByteOffset(startpos, astr.chwidth)],
+               DynStrCalcByteSize(popcount, astr.chwidth))
   adst.length = popcount
   astr.Delete(int(startpos), int32(popcount))
 endfunc
@@ -1021,7 +1021,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
   if astr.length == 0:
     return
   endif
-  if not @.DynStrEnsureUnique(astr):
+  if not DynStrEnsureUnique(astr):
     return
   endif
 
@@ -1037,7 +1037,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
     return
   endif
 
-  @sys.MemCopy(adst.dataptr, astr.dataptr, @.DynStrCalcByteSize(popcount, astr.chwidth))
+  @sys.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
   adst.length = popcount
   astr.Delete(0, int32(popcount))
 endfunc

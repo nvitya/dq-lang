@@ -421,9 +421,9 @@ endfunc
 
 function DqExcPrintTypeName():
   if active_exception <> null:
-    @.printf("%s", TypeName(active_exception))
+    printf("%s", TypeName(active_exception))
   else:
-    @.printf("Exception")
+    printf("Exception")
   endif
 endfunc
 

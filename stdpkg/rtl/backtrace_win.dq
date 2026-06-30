@@ -210,28 +210,6 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
   endwhile
 endfunc
 
-function DqByteDiv(value : uint8, divisor : uint8) -> uint64:
-  result = uint64(0)
-  if divisor == uint8(0):
-    return
-  endif
-  var v : uint8 = value
-  while v >= divisor:
-    v -= divisor
-    result += uint64(1)
-  endwhile
-endfunc
-
-function DqByteRem(value : uint8, divisor : uint8) -> uint8:
-  result = value
-  if divisor == uint8(0):
-    return
-  endif
-  while result >= divisor:
-    result -= divisor
-  endwhile
-endfunc
-
 function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
   while p < pend and p^ <> 0:
     p += 1
@@ -323,6 +301,10 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
                                 std_lengths : ^byte, target : uint64,
                                 out_file : refout ^cchar, out_line : refout uint32) -> bool:
 
+  if line_range == 0:
+    return false
+  endif
+
   var p         : ^byte = program
   var address   : uint64 = 0
   var file      : uint64 = 1
@@ -376,7 +358,7 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
         // state flags not needed for address-to-line lookup
       elif op == DW_LNS_CONST_ADD_PC:
         var adjusted : uint8 = uint8(255) - opcode_base
-        address += DqByteDiv(adjusted, line_range) * uint64(min_inst_len)
+        address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
       elif op == DW_LNS_FIXED_ADVANCE_PC:
         if p + 2 <= unit_end:
           address += uint64(DqReadU16(p))
@@ -393,8 +375,8 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
       endif
     else:
       var adjusted : uint8 = op - opcode_base
-      address += DqByteDiv(adjusted, line_range) * uint64(min_inst_len)
-      line += line_base + int(DqByteRem(adjusted, line_range))
+      address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
+      line += line_base + int(adjusted IMOD line_range)
       if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
                         matched, last_file, last_line, out_file, out_line):
         return true

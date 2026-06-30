@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.25.4"
+#define DQ_COMPILER_VERSION  "0.25.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.25.5:
+  - Windows and linux backtrace handling refactored using separate rtl/backtrace_lin and rtl/backtrace_win modules
 v0.25.4:
   - Windows backtrace printing / 1
 v0.25.3:

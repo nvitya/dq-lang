@@ -211,7 +211,7 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
 endfunc
 
 function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
-  while p < pend and p^ <> 0:
+  while p < pend  and  p^ <> 0:
     p += 1
   endwhile
   if p < pend:
@@ -223,7 +223,7 @@ endfunc
 function DqCstrEq(text : ^cchar, name : ^cchar) -> bool:
   var p : ^cchar = text
   var n : ^cchar = name
-  while p^ <> cchar(0) or n^ <> cchar(0):
+  while p^ <> cchar(0)  or  n^ <> cchar(0):
     if p^ <> n^:
       return false
     endif

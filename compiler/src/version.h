@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.25.3"
+#define DQ_COMPILER_VERSION  "0.25.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.25.4:
+  - Windows backtrace printing / 1
 v0.25.3:
   - Build finally working on windows
 v0.25.2:

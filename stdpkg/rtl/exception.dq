@@ -1,8 +1,10 @@
 // RTL Helpers for Exception Handling
 
-// libbacktrace library is required for lineinfo capturing
-#ifndef WINDOWS
-#linklib('backtrace')
+// libbacktrace/dbghelp libraries are required for lineinfo capturing
+#ifdef WINDOWS
+  #linklib('dbghelp')
+#else
+  #linklib('backtrace')
 #endif
 
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
@@ -40,7 +42,58 @@ implementation
 
 use libc/stdio
 
-#ifndef WINDOWS
+function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+
+function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool
+function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool
+function DqBacktraceNameIsInternal(name : ^cchar) -> bool
+function DqIsMainFunction(name : ^cchar) -> bool
+
+#ifdef WINDOWS
+const DQ_BT_SYMBOL_INFO_SIZE : uint32 = 88
+const DQ_BT_LINE_INFO_SIZE   : uint32 = 40
+const DQ_BT_SYMBOL_NAME_MAX  : uint32 = 256
+const SYMOPT_UNDNAME         : uint32 = 0x00000002
+const SYMOPT_DEFERRED_LOADS  : uint32 = 0x00000004
+const SYMOPT_LOAD_LINES      : uint32 = 0x00000010
+
+struct SDqWinSymbolInfo:
+  SizeOfStruct : uint32
+  TypeIndex    : uint32
+  Reserved     : [2]uint64
+  Index        : uint32
+  Size         : uint32
+  ModBase      : uint64
+  Flags        : uint32
+  Value        : uint64
+  Address      : uint64
+  Register     : uint32
+  Scope        : uint32
+  Tag          : uint32
+  NameLen      : uint32
+  MaxNameLen   : uint32
+  Name         : [DQ_BT_SYMBOL_NAME_MAX]cchar
+endstruct
+
+struct SDqWinLineInfo:
+  SizeOfStruct : uint32
+  Key          : pointer
+  LineNumber   : uint32
+  FileName     : ^cchar
+  Address      : uint64
+endstruct
+
+function win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
+                                      backtrace : pointer, backtrace_hash : ^uint32) -> uint16 [[external('RtlCaptureStackBackTrace')]]
+function win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]]
+function win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]]
+function win_SymInitialize(process : pointer, search_path : ^cchar, invade_process : int32) -> int32 [[external('SymInitialize')]]
+function win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]]
+function win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]]
+
+function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
+function DqWinBacktraceProcess() -> pointer
+#else
 struct SDqDlInfo:
   dli_fname : ^cchar
   dli_fbase : pointer
@@ -49,11 +102,9 @@ struct SDqDlInfo:
 endstruct
 
 var libc_stderr : pointer  [[external("stderr")]]
-
+function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
 function libc_backtrace(buffer : pointer, size : int) -> int  [[external('backtrace')]]
 function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int  [[external('dladdr')]]
-function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
-function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
 struct SDqBtData:
   index : int
@@ -70,20 +121,16 @@ function libc_backtrace_create_state(filename : ^cchar, threaded : int, err_cb :
 function libc_backtrace_pcinfo(state : pointer, pc : uint, cb : FBacktraceFull, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_pcinfo')]]
 function libc_backtrace_syminfo(state : pointer, addr : uint, cb : FBacktraceSyminfo, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_syminfo')]]
 
-function DqExcAddRef(e : Exception)
-function DqExcRelease(e : Exception)
-
 function DqCstrLen(s : ^cchar) -> uint
 function DqTrimTrailingNewline(s : ^cchar)
-function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool
-function DqBacktraceNameIsInternal(name : ^cchar) -> bool
-function DqIsMainFunction(name : ^cchar) -> bool
 
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo, stop_printing : ^bool) -> bool
 function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint
 #endif
+
+function DqExcAddRef(e : Exception)
+function DqExcRelease(e : Exception)
 
 //-------------------------------------------------------------------------------------------------
 
@@ -103,7 +150,7 @@ endfunc
 
 function Exception.CaptureBacktrace():
 #ifdef WINDOWS
-  backtrace_count = 0
+  backtrace_count = int(@.win_RtlCaptureStackBackTrace(0, uint32(@.DQ_EXCEPTION_BACKTRACE_MAX), &backtrace[0], null))
 #else
   backtrace_count = @.libc_backtrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
 #endif
@@ -124,9 +171,6 @@ function Exception.PrintBacktrace():
     return
   endif
 
-#ifdef WINDOWS
-  @.printf("Backtrace: <not captured>\n")
-#else
   @.printf("Backtrace =\n")
   @.libc_fflush(null)
   var i : int = 0
@@ -141,31 +185,9 @@ function Exception.PrintBacktrace():
     endif
     i += 1
   endwhile
-#endif
 endfunc
 
 //-------------------------------------------------------------------------------------------------
-
-#ifndef WINDOWS
-function DqCstrLen(s : ^cchar) -> uint:
-  if s == null:
-    return 0
-  endif
-
-  var p : ^cchar = s
-  while p^ <> cchar(0):
-    p += 1
-  endwhile
-  return uint(p - s)
-endfunc
-
-function DqTrimTrailingNewline(s : ^cchar):
-  var len : uint = DqCstrLen(s)
-  while len > 0 and (^cchar(s)[len - 1]^ == cchar(10) or ^cchar(s)[len - 1]^ == cchar(13)):
-    ^cchar(s)[len - 1]^ = cchar(0)
-    len -= 1
-  endwhile
-endfunc
 
 function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
   if text == null or needle == null:
@@ -190,7 +212,7 @@ function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
 endfunc
 
 function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
-  return DqCstrContains(name, "CaptureBacktrace") or DqCstrContains(name, "DqExcRaise") or DqCstrContains(name, "libc_backtrace")
+  return DqCstrContains(name, "CaptureBacktrace") or DqCstrContains(name, "DqExcRaise") or DqCstrContains(name, "libc_backtrace") or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
 function DqIsMainFunction(name : ^cchar) -> bool:
@@ -198,6 +220,88 @@ function DqIsMainFunction(name : ^cchar) -> bool:
     return false
   endif
   return DqCstrSegmentEq(name, "Main") or DqCstrSegmentEq(name, "main") or DqCstrSegmentEq(name, "RunHostedMain")
+endfunc
+
+function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
+  var t : ^cchar = text
+  var n : ^cchar = name
+  while n^ <> cchar(0):
+    if t^ <> n^:
+      return false
+    endif
+    t += 1
+    n += 1
+  endwhile
+  return t^ == cchar(0)  or  t^ == cchar(124)
+endfunc
+
+#ifdef WINDOWS
+var win_backtrace_process : pointer = null
+var win_backtrace_ready : bool = false
+
+function DqWinBacktraceProcess() -> pointer:
+  if win_backtrace_process == null:
+    win_backtrace_process = win_GetCurrentProcess()
+    win_SymSetOptions(SYMOPT_UNDNAME OR SYMOPT_DEFERRED_LOADS OR SYMOPT_LOAD_LINES)
+    win_backtrace_ready = (win_SymInitialize(win_backtrace_process, null, 1) <> 0)
+  endif
+  return win_backtrace_process
+endfunc
+
+function DqPrintBacktraceFrame(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
+  var process : pointer = DqWinBacktraceProcess()
+  var symbol : SDqWinSymbolInfo = {}
+  var displacement64 : uint64 = 0
+
+  symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
+  symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
+
+  if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), &displacement64, &symbol) <> 0:
+    if hide_internal and DqBacktraceNameIsInternal(&symbol.Name[0]):
+      return false
+    endif
+
+    if stop_printing <> null and DqIsMainFunction(&symbol.Name[0]):
+      stop_printing^ = true
+    endif
+
+    var line : SDqWinLineInfo = {}
+    var line_displacement : uint32 = 0
+    line.SizeOfStruct = DQ_BT_LINE_INFO_SIZE
+    if win_SymGetLineFromAddr64(process, uint64(pc), &line_displacement, &line) <> 0 and line.FileName <> null:
+      printf("  #%d %s @ %s:%lu\n", index, &symbol.Name[0], line.FileName, uint(line.LineNumber))
+    else:
+      printf("  #%d %s + 0x%llx\n", index, &symbol.Name[0], displacement64)
+    endif
+    return true
+  endif
+
+  if not hide_internal:
+    printf("  #%d 0x%llx\n", index, uint64(pc))
+    return true
+  endif
+  return false
+endfunc
+
+#else
+function DqCstrLen(s : ^cchar) -> uint:
+  if s == null:
+    return 0
+  endif
+
+  var p : ^cchar = s
+  while p^ <> cchar(0):
+    p += 1
+  endwhile
+  return uint(p - s)
+endfunc
+
+function DqTrimTrailingNewline(s : ^cchar):
+  var len : uint = DqCstrLen(s)
+  while len > 0 and (^cchar(s)[len - 1]^ == cchar(10) or ^cchar(s)[len - 1]^ == cchar(13)):
+    ^cchar(s)[len - 1]^ = cchar(0)
+    len -= 1
+  endwhile
 endfunc
 
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint:
@@ -440,18 +544,3 @@ function DqExcPrintTypeName():
     printf("Exception")
   endif
 endfunc
-
-#ifndef WINDOWS
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
-  var t : ^cchar = text
-  var n : ^cchar = name
-  while n^ <> cchar(0):
-    if t^ <> n^:
-      return false
-    endif
-    t += 1
-    n += 1
-  endwhile
-  return t^ == cchar(0)  or  t^ == cchar(124)
-endfunc
-#endif

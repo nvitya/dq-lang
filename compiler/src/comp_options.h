@@ -26,6 +26,12 @@ enum EVerboseLevel
   VERBLEVEL_DEBUG  = 3,   // -vvv or -v3
 };
 
+enum class ELtoMode
+{
+  OFF,
+  FULL
+};
+
 class OCmdLineDefine
 {
 public:
@@ -45,6 +51,7 @@ public:
   bool     ir_print = false;      // -ir
   bool     compile_only = false;  // -c
   int      optlevel = 1;          // -On
+  ELtoMode lto_mode = ELtoMode::OFF;
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump

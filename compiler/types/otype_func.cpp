@@ -706,6 +706,18 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   {
     ll_func->setSection(attr_section_name);
   }
+  if (attr_is_always_inline)
+  {
+    ll_func->addFnAttr(llvm::Attribute::AlwaysInline);
+  }
+  else if (attr_is_inline)
+  {
+    ll_func->addFnAttr(llvm::Attribute::InlineHint);
+  }
+  if (attr_is_noinline)
+  {
+    ll_func->addFnAttr(llvm::Attribute::NoInline);
+  }
 
   //ll_functions[ptfunc->name] = ll_func;
 }
@@ -775,6 +787,9 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   attr_is_virtual  = attr_is_virtual || other->attr_is_virtual;
   attr_is_abstract = attr_is_abstract || other->attr_is_abstract;
   attr_is_final    = attr_is_final || other->attr_is_final;
+  attr_is_inline   = attr_is_inline || other->attr_is_inline;
+  attr_is_always_inline = attr_is_always_inline || other->attr_is_always_inline;
+  attr_is_noinline = attr_is_noinline || other->attr_is_noinline;
   special_kind = other->special_kind;
 }
 

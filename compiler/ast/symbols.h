@@ -646,6 +646,9 @@ public:
   bool         attr_is_abstract = false;
   bool         attr_is_final = false;
   bool         attr_is_volatile = false;
+  bool         attr_is_inline = false;
+  bool         attr_is_always_inline = false;
+  bool         attr_is_noinline = false;
   OExpr *      field_init_expr = nullptr;
   EMemberVisibility member_visibility = MV_PUBLIC;
 

@@ -294,6 +294,13 @@ filesystem::path ArtifactInterfaceSidecarPathForObject(const filesystem::path & 
   return result;
 }
 
+filesystem::path ArtifactBitcodeSidecarPathForObject(const filesystem::path & object_path)
+{
+  filesystem::path result = object_path;
+  result += ".bc";
+  return result;
+}
+
 void ArtifactCleanupInterfaceSidecarForObject(const filesystem::path & object_path)
 {
   filesystem::path sidecar_path = ArtifactInterfaceSidecarPathForObject(object_path);

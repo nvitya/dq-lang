@@ -246,6 +246,33 @@ bool ODqCompClargs::ParseDefineBoolValue(const string & text, bool & rvalue)
   return false;
 }
 
+bool ODqCompClargs::ParseLtoMode(const string & text)
+{
+  if (text.empty() || ("full" == text))
+  {
+    g_opt.lto_mode = ELtoMode::FULL;
+    return true;
+  }
+
+  if ("off" == text)
+  {
+    g_opt.lto_mode = ELtoMode::OFF;
+    return true;
+  }
+
+  ++errorcnt;
+  if ("thin" == text)
+  {
+    print("ThinLTO is not supported yet; use --lto=full or --lto=off\n");
+  }
+  else
+  {
+    print("Unknown LTO mode \"{}\"; use --lto=full or --lto=off\n", text);
+  }
+  PrintUsage();
+  return false;
+}
+
 ODqCompClargs::ODqCompClargs()
 {
 }
@@ -304,6 +331,20 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
       else if ("--no-use-sys" == v)  g_opt.no_use_sys = true;
       else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
+      else if ("--lto" == v)
+      {
+        if (!ParseLtoMode(""))
+        {
+          return;
+        }
+      }
+      else if (v.starts_with("--lto="))
+      {
+        if (!ParseLtoMode(v.substr(6)))
+        {
+          return;
+        }
+      }
       else if ("--ifstack" == v)
       {
         if (i + 1 < argc)
@@ -631,6 +672,7 @@ void ODqCompClargs::PrintUsage()
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
+  print("  --lto[=full|off] : emit and link LLVM bitcode sidecars for full LTO\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");

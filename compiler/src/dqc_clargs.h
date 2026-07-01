@@ -49,6 +49,7 @@ public:
   void ParseModuleUseStack(const string & text, vector<string> & rstack);
   bool ParseDefineIntValue(const string & text, int64_t & rvalue);
   bool ParseDefineBoolValue(const string & text, bool & rvalue);
+  bool ParseLtoMode(const string & text);
   bool VerblevelSwitch(const string & aswitch);
 
   void ParseCmdLineArgs(int argc, char ** argv);

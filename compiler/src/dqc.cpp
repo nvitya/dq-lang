@@ -202,33 +202,91 @@ string ODqCompiler::DefaultLinkDriver() const
 #endif
 }
 
-vector<string> ODqCompiler::BuildLinkArgs(const string & object_filename, const string & executable_filename) const
+bool ODqCompiler::LinkInputForArtifact(const string & artifact_filename, string & rinput_filename,
+                                       string & rerror) const
 {
-  vector<string> args;
-  args.push_back(DefaultLinkDriver());
+  if (ELtoMode::FULL != g_opt.lto_mode)
+  {
+    rinput_filename = artifact_filename;
+    return true;
+  }
+
+  filesystem::path bitcode_path = ArtifactBitcodeSidecarPathForObject(artifact_filename);
+  error_code ec;
+  if (!filesystem::exists(bitcode_path, ec) || ec)
+  {
+    rerror = format("LTO bitcode sidecar is missing for \"{}\": \"{}\"",
+                    artifact_filename, bitcode_path.string());
+    return false;
+  }
+
+  rinput_filename = bitcode_path.string();
+  return true;
+}
+
+bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & executable_filename,
+                                vector<string> & rargs, string & rerror) const
+{
+  rargs.clear();
+  rargs.push_back(DefaultLinkDriver());
 
 #if defined(TARGET_WIN)
   #if defined(TARGET_64BIT)
-    args.push_back("--target=x86_64-w64-windows-gnu");
+    rargs.push_back("--target=x86_64-w64-windows-gnu");
   #else
-    args.push_back("--target=i686-w64-windows-gnu");
+    rargs.push_back("--target=i686-w64-windows-gnu");
+  #endif
+#elif defined(TARGET_LINUX)
+  #if defined(HOST_X86)
+    #if defined(TARGET_64BIT)
+      rargs.push_back("--target=x86_64-unknown-linux-gnu");
+    #else
+      rargs.push_back("--target=i386-unknown-linux-gnu");
+    #endif
+  #elif defined(HOST_ARM)
+    #if defined(TARGET_64BIT)
+      rargs.push_back("--target=aarch64-unknown-linux-gnu");
+    #else
+      rargs.push_back("--target=arm-unknown-linux-gnueabihf");
+    #endif
+  #elif defined(HOST_RISCV)
+    #if defined(TARGET_64BIT)
+      rargs.push_back("--target=riscv64-unknown-linux-gnu");
+    #else
+      rargs.push_back("--target=riscv32-unknown-linux-gnu");
+    #endif
   #endif
 #endif
 
-  args.push_back("-fuse-ld=lld");
-  args.push_back(object_filename);
-  for (const string & artifact_path : g_module->link_module_artifacts)
+  rargs.push_back("-fuse-ld=lld");
+  if (ELtoMode::FULL == g_opt.lto_mode)
   {
-    args.push_back(artifact_path);
-  }
-  args.push_back("-o");
-  args.push_back(executable_filename);
-  for (const string & libname : g_opt.link_libraries)
-  {
-    args.push_back("-l" + libname);
+    rargs.push_back("-flto=full");
+    rargs.push_back(format("-O{}", g_opt.optlevel));
   }
 
-  return args;
+  string link_input;
+  if (!LinkInputForArtifact(object_filename, link_input, rerror))
+  {
+    return false;
+  }
+  rargs.push_back(link_input);
+  for (const string & artifact_path : g_module->link_module_artifacts)
+  {
+    if (!LinkInputForArtifact(artifact_path, link_input, rerror))
+    {
+      return false;
+    }
+    rargs.push_back(link_input);
+  }
+  rargs.push_back("-o");
+  rargs.push_back(executable_filename);
+  for (const string & libname : g_opt.link_libraries)
+  {
+    rargs.push_back("-l" + libname);
+  }
+
+  return true;
 }
 
 string ODqCompiler::FormatLinkCommandForLog(const vector<string> & args) const
@@ -267,7 +325,13 @@ string ODqCompiler::FormatLinkCommandForLog(const vector<string> & args) const
 
 bool ODqCompiler::LinkExecutable(const string & object_filename, const string & executable_filename) const
 {
-  vector<string> args = BuildLinkArgs(object_filename, executable_filename);
+  vector<string> args;
+  string args_error;
+  if (!BuildLinkArgs(object_filename, executable_filename, args, args_error))
+  {
+    print("{}\n", args_error);
+    return false;
+  }
 
   if (g_opt.verblevel >= VERBLEVEL_STATUS)
   {
@@ -444,6 +508,11 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
   EmbedDqmIfSection(dqm_if_data);
+
+  if (ELtoMode::FULL == g_opt.lto_mode)
+  {
+    EmitBitcode(ArtifactBitcodeSidecarPathForObject(out_filename).string());
+  }
 
   if (g_opt.ir_print)
   {

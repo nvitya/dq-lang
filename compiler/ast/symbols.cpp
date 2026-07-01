@@ -459,6 +459,9 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (MV_PROTECTED == member_visibility) flags |= 1u << 11;
   if (attr_is_abstract) flags |= 1u << 12;
   if (attr_is_final)    flags |= 1u << 13;
+  if (attr_is_inline)        flags |= 1ull << 14;
+  if (attr_is_always_inline) flags |= 1ull << 15;
+  if (attr_is_noinline)      flags |= 1ull << 16;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
@@ -737,6 +740,9 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
     attr_is_virtual  = attr->IsSet(ATTF_VIRTUAL);
     attr_is_abstract = attr->IsSet(ATTF_ABSTRACT);
     attr_is_final    = attr->IsSet(ATTF_FINAL);
+    attr_is_inline   = attr->IsSet(ATTF_INLINE);
+    attr_is_always_inline = attr->IsSet(ATTF_ALWAYS_INLINE);
+    attr_is_noinline = attr->IsSet(ATTF_NOINLINE);
   }
 
   if ((ATGT_GLOBAL_VAR == atarget) || (ATGT_STRUCT_MEMBER == atarget))

@@ -1052,6 +1052,15 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   }
 
   vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
+  if (vsfunc->attr_is_always_inline && vsfunc->attr_is_noinline)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
+    RecoverFailedFunctionDecl();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
 
   if (vsfunc->owner_compound_type)
   {
@@ -1252,6 +1261,16 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
 
     if (!fwdfunc->CheckForwardDeclMatch(vsfunc))
     {
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return true;
+    }
+
+    if ((fwdfunc->attr_is_always_inline || vsfunc->attr_is_always_inline)
+        && (fwdfunc->attr_is_noinline || vsfunc->attr_is_noinline))
+    {
+      OScPosition errpos(scf->curfile, scf->curp);
+      Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
       RecoverFailedFunctionDecl();
       cleanup_new_func();
       return true;

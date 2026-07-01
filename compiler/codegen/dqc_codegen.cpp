@@ -19,6 +19,7 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Config/llvm-config.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
 
@@ -428,7 +429,9 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
     ll_optlevel = llvm::OptimizationLevel::O1;
   }
 
-  llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(ll_optlevel);
+  llvm::ModulePassManager MPM = (ELtoMode::FULL == g_opt.lto_mode)
+      ? PB.buildLTOPreLinkDefaultPipeline(ll_optlevel)
+      : PB.buildPerModuleDefaultPipeline(ll_optlevel);
   MPM.run(*ll_module, MAM);
 }
 
@@ -489,6 +492,39 @@ void ODqCompCodegen::EmitObject(const string afilename)
   llvm::legacy::PassManager pm;
   ll_machine->addPassesToEmitFile(pm, out, nullptr, llvm::CodeGenFileType::ObjectFile);
   pm.run(*ll_module);
+  out.flush();
+  out.close();
+
+  string publish_error;
+  if (!ArtifactAtomicReplace(tmp_path, afilename, publish_error))
+  {
+    throw runtime_error(publish_error);
+  }
+}
+
+void ODqCompCodegen::EmitBitcode(const string afilename)
+{
+  if (g_opt.verblevel >= VERBLEVEL_STATUS)
+  {
+    print("Writing LLVM bitcode file \"{}\"...\n", afilename);
+  }
+
+  string dir_error;
+  if (!ArtifactEnsureParentDir(afilename, dir_error))
+  {
+    throw runtime_error(dir_error);
+  }
+
+  filesystem::path tmp_path = ArtifactTempPathFor(afilename);
+  error_code ec;
+  llvm::raw_fd_ostream out(tmp_path.string(), ec, llvm::sys::fs::OF_None);
+  if (ec)
+  {
+    ArtifactRemoveNoError(tmp_path);
+    throw runtime_error(ec.message());
+  }
+
+  llvm::WriteBitcodeToFile(*ll_module, out);
   out.flush();
   out.close();
 

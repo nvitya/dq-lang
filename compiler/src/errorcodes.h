@@ -125,6 +125,7 @@ DEF_DQ_ERR(DQERR_ATTR_PAREN_NOT_ALLOWED,           "AttrNoArgs",             "At
 DEF_DQ_ERR(DQERR_ATTR_ARG_INT,                     "AttrArgInt",             "Attribute \"$1\" expects an integer literal argument");
 DEF_DQ_ERR(DQERR_ATTR_ARG_POSITIVE_INT,            "AttrArgPosInt",          "Attribute \"$1\" expects a positive integer argument");
 DEF_DQ_ERR(DQERR_ATTR_ARG_STRING,                  "AttrArgString",          "Attribute \"$1\" expects a string literal argument");
+DEF_DQ_ERR(DQERR_ATTR_CONFLICT,                    "AttrConflict",           "Conflicting attributes: $1");
 
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXPECTED,          "TypeSpecExpected",       "Type specifier \":\" is expected");
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER,         "TypeSpecExpected",       "Type specifier \":\" is expected after \"$1\"");

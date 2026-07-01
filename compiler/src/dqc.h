@@ -43,7 +43,9 @@ public:
                       EModuleUseMergeMode merge_mode);
   string HostedRtlModuleName() const;
   string DefaultLinkDriver() const;
-  vector<string> BuildLinkArgs(const string & object_filename, const string & executable_filename) const;
+  bool LinkInputForArtifact(const string & artifact_filename, string & rinput_filename, string & rerror) const;
+  bool BuildLinkArgs(const string & object_filename, const string & executable_filename,
+                     vector<string> & rargs, string & rerror) const;
   string FormatLinkCommandForLog(const vector<string> & args) const;
   bool LinkExecutable(const string & object_filename, const string & executable_filename) const;
 

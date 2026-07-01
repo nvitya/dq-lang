@@ -316,6 +316,39 @@ bool ODqCompParserExpr::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
+  if ("inline" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_INLINE);
+    return true;
+  }
+
+  if ("always_inline" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_ALWAYS_INLINE);
+    return true;
+  }
+
+  if ("noinline" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_NOINLINE);
+    return true;
+  }
+
   Error(DQERR_ATTR_UNKNOWN, attrname);
   return false;
 }

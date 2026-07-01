@@ -40,6 +40,9 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_FORWARD,  atarget, ATGT_COMPOUND_TYPE);
   CheckAttrAllowed(ATTF_VOLATILE, atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
   CheckAttrAllowed(ATTF_NOWARN,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER | ATGT_COMPOUND_TYPE | ATGT_STATEMENT);
+  CheckAttrAllowed(ATTF_INLINE,   atarget, ATGT_FUNCTION);
+  CheckAttrAllowed(ATTF_ALWAYS_INLINE, atarget, ATGT_FUNCTION);
+  CheckAttrAllowed(ATTF_NOINLINE, atarget, ATGT_FUNCTION);
 }
 
 void OAttr::CheckAttrAllowed(EAttrFlag aflag, EAttrTarget atarget, uint32_t allowed_target_mask)
@@ -70,6 +73,9 @@ string AttrName(EAttrFlag aflag)
     case ATTF_FINAL:         return "final";
     case ATTF_FORWARD:       return "forward";
     case ATTF_NOWARN:        return "nowarn";
+    case ATTF_INLINE:        return "inline";
+    case ATTF_ALWAYS_INLINE: return "always_inline";
+    case ATTF_NOINLINE:      return "noinline";
 
     default:                 return "ATTR_"+to_string(aflag);
   }

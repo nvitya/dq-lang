@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.25.6"
+#define DQ_COMPILER_VERSION  "0.26.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.26.0:
+  - Support for [[inline]] attributes and --lto optimization
 v0.25.6:
   - Segfault handling on windows
 v0.25.5:

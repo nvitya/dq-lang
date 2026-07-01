@@ -529,6 +529,7 @@ string OModuleIntf::DqmIfBuildOptions() const
 {
   string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1;module=" + name;
   if (g_opt.dbg_info)      result += ";g";
+  result += (ELtoMode::FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -745,7 +746,22 @@ bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path
     return false;
   }
 
-  return MetadataMatchesSource(source_path, rreason) && MetadataMatchesCurrentBuild(rreason);
+  if (!MetadataMatchesSource(source_path, rreason) || !MetadataMatchesCurrentBuild(rreason))
+  {
+    return false;
+  }
+
+  if ((ELtoMode::FULL == g_opt.lto_mode) && (artifact_path.extension() != ".dqm_if"))
+  {
+    filesystem::path bitcode_path = ArtifactBitcodeSidecarPathForObject(artifact_path);
+    if (!filesystem::exists(bitcode_path, ec) || ec)
+    {
+      rreason = format("LTO bitcode sidecar is missing: {}", bitcode_path.string());
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool OModuleIntf::FindFreshInterfaceArtifact(const filesystem::path & interface_artifact_path,
@@ -979,6 +995,10 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("--mod-name");
   args.push_back(module_path);
   args.push_back(format("-O{}", g_opt.optlevel));
+  if (ELtoMode::FULL == g_opt.lto_mode)
+  {
+    args.push_back("--lto=full");
+  }
 
   if (g_opt.dbg_info)
   {
@@ -1526,6 +1546,9 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   }
   avalsym->attr_is_abstract = (attrs.flags & (1u << 12));
   avalsym->attr_is_final    = (attrs.flags & (1u << 13));
+  avalsym->attr_is_inline        = (attrs.flags & (1ull << 14));
+  avalsym->attr_is_always_inline = (attrs.flags & (1ull << 15));
+  avalsym->attr_is_noinline      = (attrs.flags & (1ull << 16));
   avalsym->attr_external_linkage_name = (dynamic_cast<OValSymFunc *>(avalsym) ? "" : attrs.external_linkage_name);
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;

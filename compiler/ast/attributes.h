@@ -35,6 +35,9 @@ enum EAttrFlag
   ATTF_FINAL          = 0x00080000,
   ATTF_FORWARD        = 0x00100000,
   ATTF_NOWARN         = 0x00200000,
+  ATTF_INLINE         = 0x00400000,
+  ATTF_ALWAYS_INLINE  = 0x00800000,
+  ATTF_NOINLINE       = 0x01000000,
 };
 
 enum EAttrTarget

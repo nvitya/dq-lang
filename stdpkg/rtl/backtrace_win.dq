@@ -127,6 +127,7 @@ endfunc
 function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
   return    DqCstrContains(name, "CaptureBacktrace")
          or DqCstrContains(name, "DqExcRaise")
+         or DqCstrContains(name, "DqWinFaultHandler")
          or DqCstrContains(name, "libc_backtrace")
          or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc

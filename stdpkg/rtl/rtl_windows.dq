@@ -6,13 +6,56 @@ implementation
 
 use libc/stdio
 use rtl/exception
+use rtl/backtrace
 
 // These functions are created by the DQ compiler:
 function dq_main() -> int  [[external('dq_main')]]
 function dq_module_init()  [[external('dq_module_init')]]
 
+// Windows structured exception handling, converting page faults to Exception
+
+object ESegFault(Exception):
+endobj
+
+const DQ_WIN_FAULT_BACKTRACE_MAX : int = 32
+
+struct SDqWinExceptionRecord:
+  ExceptionCode : uint32
+endstruct
+
+struct SDqWinExceptionPointers:
+  ExceptionRecord : ^SDqWinExceptionRecord
+  ContextRecord   : pointer
+endstruct
+
+type FWinExceptionFilter = function(exception_info : pointer) -> int32
+
+function win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]]
+function win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+
+const EXCEPTION_ACCESS_VIOLATION : uint32 = 0xC0000005
+const EXCEPTION_CONTINUE_SEARCH  : int32 = 0
+
+var dq_win_fault_backtrace : [DQ_WIN_FAULT_BACKTRACE_MAX] pointer
+
+var dq_win_fault_handling : int = 0
+var dq_win_fault_backtrace_count : int = 0
+
 function OsRtErrorHandler(emsg : ^cchar):
   DqExcRaise(new Exception(emsg), true)
+endfunc
+
+function DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
+  if exception_info == null:
+    return false
+  endif
+
+  var info : ^SDqWinExceptionPointers = ^SDqWinExceptionPointers(exception_info)
+  if info.ExceptionRecord == null:
+    return false
+  endif
+
+  return info.ExceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION
 endfunc
 
 function PrintUncaughtException() -> int:
@@ -25,6 +68,21 @@ function PrintUncaughtException() -> int:
   e.PrintBacktrace()
   DqExcClear()
   return -1
+endfunc
+
+function DqWinFaultHandler(exception_info : pointer) -> int32:
+  if dq_win_fault_handling <> 0  or  not DqWinFaultIsAccessViolation(exception_info):
+    return EXCEPTION_CONTINUE_SEARCH
+  endif
+
+  dq_win_fault_handling = 1
+  dq_win_fault_backtrace_count = DqCaptureBacktrace(&dq_win_fault_backtrace, DQ_WIN_FAULT_BACKTRACE_MAX)
+  DqExcRaiseWithBacktrace(new ESegFault("Segmentation fault"), true,
+                                      &dq_win_fault_backtrace, dq_win_fault_backtrace_count)
+  PrintUncaughtException()
+  win_ExitProcess(uint32(255))
+
+  return EXCEPTION_CONTINUE_SEARCH
 endfunc
 
 //-----------------------------------------------------------------------------
@@ -47,6 +105,7 @@ endfunc
 function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
 
   rterror_handler = OsRtErrorHandler
+  win_AddVectoredExceptionHandler(1, DqWinFaultHandler)
 
   @sys.__sys_init_params(argc, argv)
 

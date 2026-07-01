@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.25.5"
+#define DQ_COMPILER_VERSION  "0.25.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.25.6:
+  - Segfault handling on windows
 v0.25.5:
   - Windows and linux backtrace handling refactored using separate rtl/backtrace_lin and rtl/backtrace_win modules
 v0.25.4:

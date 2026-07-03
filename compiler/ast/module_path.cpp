@@ -214,6 +214,11 @@ bool OModulePath::NormalizeLocalPath(vector<string> & stack, const vector<string
   return true;
 }
 
+bool OModulePath::IsRtlPackageSubmodule(const string & module_id)
+{
+  return module_id.starts_with("rtl/");
+}
+
 bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & rerror)
 {
   Clear();

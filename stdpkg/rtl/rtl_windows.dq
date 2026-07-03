@@ -4,9 +4,10 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
 
 implementation
 
-use libc/stdio
+use rtl/rtlint
 use rtl/exception
 use rtl/backtrace
+use libc/stdio
 
 // These functions are created by the DQ compiler:
 function dq_main() -> int  [[external('dq_main')]]
@@ -107,7 +108,7 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
   rterror_handler = OsRtErrorHandler
   win_AddVectoredExceptionHandler(1, DqWinFaultHandler)
 
-  @sys.__sys_init_params(argc, argv)
+  @rtlint.__sys_init_params(argc, argv)
 
   result = RunHostedMain()
 

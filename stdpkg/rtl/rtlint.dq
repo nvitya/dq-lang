@@ -1,0 +1,195 @@
+// DQ standard module 'rtlint'
+
+function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer;
+function MemFree(memptr : pointer);
+function MemFreeRef(memptrvar : ref pointer);
+
+function MemRealloc(memptr : pointer, newsize : uint) -> pointer;
+function MemReallocRef(memptr : ref pointer, newsize : uint);
+
+function MemCopy(dest : pointer, src : pointer, size : uint);
+function MemSet(dest : pointer, value : int, size : uint);
+
+function ParamCount() -> int;
+function ParamStr(i : int) -> ^cchar;   // 0 = program args
+
+function __sys_init_params(argc : int, argv : ^^cchar);  // called from the hosted RTL entry point main()
+
+// Types used internally by other RTL modules
+
+const DQTK_VOID         : uint8 =  0;
+const DQTK_INT          : uint8 =  1;
+const DQTK_FLOAT        : uint8 =  2;
+const DQTK_BOOL         : uint8 =  3;
+const DQTK_POINTER      : uint8 =  4;
+const DQTK_ENUM         : uint8 =  5;
+const DQTK_CSTRING      : uint8 =  8;
+const DQTK_STRVIEW      : uint8 =  9;
+const DQTK_DYNSTR       : uint8 = 10;
+const DQTK_ANYVALUE     : uint8 = 15;
+const DQTK_STRUCT       : uint8 = 16;
+const DQTK_OBJECT       : uint8 = 17;
+const DQTK_ARRAY        : uint8 = 20;
+const DQTK_ARRAY_SLICE  : uint8 = 21;   // array descriptor {ptr, length} for function parameters
+const DQTK_DYN_ARRAY    : uint8 = 22;   // owning dynamic array [*]T: ORawDynArray-compatible layout
+const DQTK_FUNCTION     : uint8 = 28;
+const DQTK_FUNCREF      : uint8 = 29;   // function variable (function pointer)
+const DQTK_ALIAS        : uint8 = 31;
+
+type FMgrInitFunc = function(dataptr : pointer, count : uint);
+type FMgrDestroyFunc = function(dataptr : pointer, count : uint);
+type FMgrCopyFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
+type FMgrMoveFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
+
+struct SDqTypeInfo:
+  storagesize  : uint32;   // array stride, including padding
+  flags        : uint16;   // copy/destroy/init/move properties
+  kind         : uint8;    // one of the DQTK_xxx
+  subtype      : uint8;    // type addition
+  init_func    : FMgrInitFunc;     // used for managed object array initialization
+  destroy_func : FMgrDestroyFunc;  // used for managed object array destruction
+  copy_func    : FMgrCopyFunc;     // used for managed object array copying
+  move_func    : FMgrMoveFunc;     // used for managed object array moving
+endstruct
+
+struct SArraySliceDesc:
+  dataptr : pointer;
+  length  : uint;
+endstruct
+
+const DQTI_MAXCHLEN_MASK   : uint32 = 0x00FFFFFF;
+const DQTIF_CHARWIDTH_4    : uint32 = 0x80000000;
+const DQTIF_CHARWIDTH_2    : uint32 = 0x40000000;
+const DQTIF_WIDECHAR_MASK  : uint32 = 0xC0000000;
+const DQTIF_CHARLEN_VALID  : uint32 = 0x01000000;
+const DQTIF_READONLY       : uint32 = 0x02000000;
+
+struct SDqTextInfo:   // 12 or 16 Bytes
+  dataptr : pointer;  // points to the first character
+  charlen : uint32;   // number of characters
+  info    : uint32;   // maxlen + charwidth + flags
+endstruct
+
+type FRunTimeErrorHandler = function(emsg : ^cchar);
+
+var rterror_handler : FRunTimeErrorHandler = null;
+
+function RuntimeError(emsg : ^cchar):
+  if rterror_handler <> null:
+    rterror_handler(emsg);
+  endif
+endfunc
+
+function Exit(status : int);
+
+function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc);
+
+implementation
+
+function libc_exit(status : int)  [[external('exit')]];
+
+function Exit(status : int):
+  libc_exit(status);
+endfunc
+
+// Memory Allocation
+
+function libc_malloc(size : uint) -> pointer                  [[external('malloc')]];
+function libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]];
+function libc_free(ptr : pointer)                             [[external('free')]];
+function libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]];
+
+function libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]];
+function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]];
+function libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]];
+
+function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
+  if zeromem:
+    result = libc_calloc(1, allocbytes);
+  else:
+    result = libc_malloc(allocbytes);
+  endif
+endfunc
+
+function MemFree(memptr : pointer):
+  libc_free(memptr);
+endfunc
+
+function MemFreeRef(memptrvar : ref pointer):
+  libc_free(memptrvar);
+  memptrvar = null;
+endfunc
+
+function MemRealloc(memptr : pointer, newsize : uint) -> pointer:
+  result = libc_realloc(memptr, newsize);
+endfunc
+
+function MemReallocRef(memptr : ref pointer, newsize : uint):
+  memptr = libc_realloc(memptr, newsize);
+endfunc
+
+function MemCopy(dest : pointer, src : pointer, size : uint):
+  if src >= ^byte(dest) + size  or  ^byte(src) + size < dest:
+    libc_memcpy(dest, src, size);
+  else:  // src and dest overlap, use memmove
+    libc_memmove(dest, src, size);
+  endif
+endfunc
+
+function MemSet(dest : pointer, value : int, size : uint):
+  libc_memset(dest, value, size);
+endfunc
+
+// Program Argument Handling
+
+var sys_argc : int      = -1;
+var sys_argv : ^^cchar  = null;
+
+function __sys_init_params(argc : int, argv : ^^cchar):
+  sys_argc = argc;
+  sys_argv = argv;
+endfunc
+
+function ParamCount() -> int:
+  result = sys_argc;
+endfunc
+
+function ParamStr(i : int) -> ^cchar:
+  if i >= sys_argc  or  i < 0:
+    return null;
+  else:
+    return sys_argv[i]^;
+  endif
+endfunc
+
+
+function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
+  if length == 0  or  dataptr == null:
+    desc.dataptr = null;
+    desc.length = 0;
+    return;
+  endif
+
+  var b : int = startpos;
+  if b < 0:
+    b = 0;
+  elif b >= length:
+    b = length;
+  endif
+  var e : int = endposex;
+  if e < 0:
+    e = 0;
+  elif e >= length:
+    e = length;
+  endif
+  if e < b:
+    e = b;
+  endif
+
+  desc.length = e - b;
+  if desc.length == 0:
+    desc.dataptr = null;
+  else:
+    desc.dataptr = ^byte(dataptr)[b * elemsize];
+  endif
+endfunc

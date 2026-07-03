@@ -5,6 +5,7 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
 
 implementation
 
+use rtl/rtlint
 use libc/stdio
 
 function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool

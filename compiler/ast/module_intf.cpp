@@ -24,6 +24,7 @@
 #include <typeinfo>
 
 #include "comp_options.h"
+#include "dq_module.h"
 #include "dqm_if.h"
 #include "module_path.h"
 #include "otype_func.h"
@@ -115,6 +116,23 @@ static string EscapeStringLiteral(const string & avalue)
   }
   result += "\"";
   return result;
+}
+
+static OModuleIntf * FindLoadedModuleIntf(const string & module_path)
+{
+  if (!g_module)
+  {
+    return nullptr;
+  }
+
+  for (OModuleIntf * intf : g_module->loaded_modules)
+  {
+    if (intf && (intf->name == module_path))
+    {
+      return intf;
+    }
+  }
+  return nullptr;
 }
 
 OModuleIntf::~OModuleIntf()
@@ -976,7 +994,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("-o");
   args.push_back(artifact_path.string());
   args.push_back("--regen-if-stale");
-  if (g_opt.no_use_sys || ("rtl/sys" == module_path))
+  if (g_opt.no_use_sys || OModulePath::IsRtlPackageSubmodule(module_path))
   {
     args.push_back("--no-use-sys");
   }
@@ -2482,11 +2500,22 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     return reader.Fail(format("Can not resolve reexported module artifact: {}", module_path));
   }
 
-  OModuleIntf * intf = new OModuleIntf(scope_pub->parent_scope, module_path);
-  if (!intf->ReadInterface(artifact_path.string()))
+  bool owned_intf = false;
+  OModuleIntf * intf = FindLoadedModuleIntf(module_path);
+  if (!intf)
+  {
+    intf = new OModuleIntf(scope_pub->parent_scope, module_path);
+    owned_intf = true;
+  }
+  if (owned_intf && !intf->ReadInterface(artifact_path.string()))
   {
     delete intf;
     return reader.Fail(format("Can not load reexported module interface: {}", artifact_path.string()));
+  }
+  if (owned_intf && g_module)
+  {
+    g_module->loaded_modules.push_back(intf);
+    owned_intf = false;
   }
 
   EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
@@ -2499,7 +2528,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
           && !intf->scope_pub->FindValSym(name, nullptr, false))
       {
         delete use;
-        delete intf;
+        if (owned_intf) delete intf;
         return reader.Fail(format("Reexported module \"{}\" has no public symbol \"{}\"", module_path, name));
       }
     }
@@ -2513,7 +2542,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
       if (found != scope_pub->typesyms.end() && found->second != type)
       {
         delete use;
-        delete intf;
+        if (owned_intf) delete intf;
         return reader.Fail(format("Reexported type \"{}\" conflicts in module \"{}\"", type->name, this->name));
       }
       if (found == scope_pub->typesyms.end())
@@ -2529,7 +2558,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
       if (found != scope_pub->valsyms.end() && found->second != vs)
       {
         delete use;
-        delete intf;
+        if (owned_intf) delete intf;
         return reader.Fail(format("Reexported symbol \"{}\" conflicts in module \"{}\"", vs->name, this->name));
       }
       if (found == scope_pub->valsyms.end())
@@ -2553,7 +2582,10 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     }
   }
 
-  reexport_modules.push_back(intf);
+  if (owned_intf)
+  {
+    reexport_modules.push_back(intf);
+  }
   used_modules.push_back(use);
   return true;
 }

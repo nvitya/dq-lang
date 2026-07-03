@@ -1,10 +1,11 @@
 // Runtime support for checked enum conversion.
 
-use rtl/exception
-
 function DqEnumInvalidOrd()
 
 implementation
+
+use rtl/rtlint
+use rtl/exception
 
 function DqEnumInvalidOrd():
   raise new Exception("Invalid enum ordinal")

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.26.0"
+#define DQ_COMPILER_VERSION  "0.27.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.0:
+  - DQ RTL reorganization
+  - Repeated reexports re-use existing modules
 v0.26.0:
   - Support for [[inline]] attributes and --lto optimization
 v0.25.6:

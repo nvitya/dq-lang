@@ -1,5 +1,7 @@
 // RTL Helpers for the DQ dynamic string handling
 
+use rtl/rtlint reexport
+
 object ODynStrMgr:
 public
   refcount : int
@@ -81,7 +83,7 @@ function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char
 
 implementation
 
-use rtl/cstrings
+use rtl/cstrings --
 
 function DynStrRuntimeError(emsg : ^cchar):
   RuntimeError(emsg)
@@ -103,7 +105,7 @@ function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
   endif
 
   // only possible for CStrings
-  result = CStrLen(ati)
+  result = @cstrings.CStrLen(ati)
   ati.charlen = result
   ati.info = ati.info OR DQTIF_CHARLEN_VALID
 endfunc
@@ -303,7 +305,7 @@ function DynStrCheckIndex(index : int, length : uint32):
 endfunc
 
 function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uint32, achwidth : uint8) -> uint32:
-  CStrClear(adst)
+  @cstrings.CStrClear(adst)
   if srcptr == null  or  srclen == 0:
     return 0
   endif
@@ -315,12 +317,12 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uin
   endif
 
   result = srclen
-  var maxlen : uint32 = CStrMaxLen(adst)
+  var maxlen : uint32 = @cstrings.CStrMaxLen(adst)
   if result > maxlen:
     result = maxlen
   endif
   if result > 0:
-    @sys.MemCopy(adst.dataptr, srcptr, uint(result))
+    @rtlint.MemCopy(adst.dataptr, srcptr, uint(result))
   endif
   adst.charlen = result
   adst.info = adst.info OR DQTIF_CHARLEN_VALID
@@ -347,7 +349,7 @@ function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
   endif
 
   if oldstr.length > 0:
-    @sys.MemCopy(newstr.dataptr, oldstr.dataptr, DynStrCalcByteSize(oldstr.length, oldstr.chwidth))
+    @rtlint.MemCopy(newstr.dataptr, oldstr.dataptr, DynStrCalcByteSize(oldstr.length, oldstr.chwidth))
   endif
   newstr.length = oldstr.length
 
@@ -373,7 +375,7 @@ endfunc
 
 function ODynStrMgr.*Destroy():
   if dataptr <> null:
-    @sys.MemFree(dataptr)
+    @rtlint.MemFree(dataptr)
     dataptr = null
   endif
   length = 0
@@ -387,7 +389,7 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
 
   if new_capacity == 0:
     if dataptr <> null:
-      @sys.MemFree(dataptr)
+      @rtlint.MemFree(dataptr)
       dataptr = null
     endif
     capacity = 0
@@ -402,9 +404,9 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
 
   var new_dataptr : pointer = null
   if dataptr == null:
-    new_dataptr = @sys.MemAlloc(new_bytes)
+    new_dataptr = @rtlint.MemAlloc(new_bytes)
   else:
-    new_dataptr = @sys.MemRealloc(dataptr, new_bytes)
+    new_dataptr = @rtlint.MemRealloc(dataptr, new_bytes)
   endif
 
   if new_dataptr == null:
@@ -448,7 +450,7 @@ function ODynStrMgr.SetLength(new_length : uint32):
     return
   endif
 
-  @sys.MemSet(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
+  @rtlint.MemSet(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
   length = new_length
 endfunc
 
@@ -498,7 +500,7 @@ function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
     srcptr = ^byte(dataptr)[@.DynStrByteOffset(uint32(owndata_src_index), chwidth)]
   endif
 
-  @sys.MemCopy(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)],
+  @rtlint.MemCopy(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)],
                srcptr,
                @.DynStrCalcByteSize(add_count, chwidth))
   length = new_length
@@ -535,7 +537,7 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
 
   var tail_count : uint32 = old_length - insertpos
   if tail_count > 0:
-    @sys.MemCopy(^byte(dataptr)[@.DynStrByteOffset(insertpos + add_count, chwidth)],
+    @rtlint.MemCopy(^byte(dataptr)[@.DynStrByteOffset(insertpos + add_count, chwidth)],
                  ^byte(dataptr)[@.DynStrByteOffset(insertpos, chwidth)],
                  @.DynStrCalcByteSize(tail_count, chwidth))
   endif
@@ -544,20 +546,20 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
   var copy_bytes : uint = @.DynStrCalcByteSize(add_count, chwidth)
 
   if owndata_src_index < 0:
-    @sys.MemCopy(dstptr, asrc.dataptr, copy_bytes)
+    @rtlint.MemCopy(dstptr, asrc.dataptr, copy_bytes)
   else:
     var sidx : uint32 = uint32(owndata_src_index)
     if sidx + add_count <= insertpos:
-      @sys.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx, chwidth)], copy_bytes)
+      @rtlint.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx, chwidth)], copy_bytes)
     elif sidx >= insertpos:
-      @sys.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
+      @rtlint.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
     else:
       var left_count : uint32 = insertpos - sidx
       var right_count : uint32 = add_count - left_count
-      @sys.MemCopy(dstptr,
+      @rtlint.MemCopy(dstptr,
                    ^byte(dataptr)[@.DynStrByteOffset(sidx, chwidth)],
                    @.DynStrCalcByteSize(left_count, chwidth))
-      @sys.MemCopy(^byte(dstptr)[@.DynStrByteOffset(left_count, chwidth)],
+      @rtlint.MemCopy(^byte(dstptr)[@.DynStrByteOffset(left_count, chwidth)],
                    ^byte(dataptr)[@.DynStrByteOffset(insertpos + add_count, chwidth)],
                    @.DynStrCalcByteSize(right_count, chwidth))
     endif
@@ -587,7 +589,7 @@ function ODynStrMgr.Delete(index : int, acount : int32):
 
   var movecount : uint32 = length - deletepos - delcount
   if movecount > 0:
-    @sys.MemCopy(^byte(dataptr)[@.DynStrByteOffset(deletepos, chwidth)],
+    @rtlint.MemCopy(^byte(dataptr)[@.DynStrByteOffset(deletepos, chwidth)],
                  ^byte(dataptr)[@.DynStrByteOffset(deletepos + delcount, chwidth)],
                  @.DynStrCalcByteSize(movecount, chwidth))
   endif
@@ -597,7 +599,7 @@ endfunc
 
 function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
   if acount < 1  or  length == 0:
-    @.CStrClear(adst)
+    @cstrings.CStrClear(adst)
     return
   endif
 
@@ -613,7 +615,7 @@ endfunc
 
 function ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
   if acount < 1  or  length == 0:
-    @.CStrClear(adst)
+    @cstrings.CStrClear(adst)
     return
   endif
 
@@ -951,13 +953,13 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     delete adst = null
     return
   endif
-  @sys.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
+  @rtlint.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
   adst.length = astr.length
 endfunc
 
 function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
   if astr == null:
-    CStrClear(adst)
+    @cstrings.CStrClear(adst)
     return
   endif
   DynStrCopyToCStr(adst, astr.dataptr, astr.length, astr.chwidth)
@@ -993,7 +995,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
   endif
 
   var startpos : uint32 = astr.length - popcount
-  @sys.MemCopy(adst.dataptr,
+  @rtlint.MemCopy(adst.dataptr,
                ^byte(astr.dataptr)[DynStrByteOffset(startpos, astr.chwidth)],
                DynStrCalcByteSize(popcount, astr.chwidth))
   adst.length = popcount
@@ -1002,7 +1004,7 @@ endfunc
 
 function DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
   if astr == null:
-    CStrClear(adst)
+    @cstrings.CStrClear(adst)
     return
   endif
   astr.Pop(acount, adst)
@@ -1037,14 +1039,14 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
     return
   endif
 
-  @sys.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
+  @rtlint.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
   adst.length = popcount
   astr.Delete(0, int32(popcount))
 endfunc
 
 function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
   if astr == null:
-    CStrClear(adst)
+    @cstrings.CStrClear(adst)
     return
   endif
   astr.PopFirst(acount, adst)

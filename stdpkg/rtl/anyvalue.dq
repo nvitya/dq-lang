@@ -1,5 +1,7 @@
 // DQ "anyvalue" handling
 
+use rtl/rtlint reexport
+
 /*
 
 var av : anyvalue

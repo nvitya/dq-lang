@@ -4,8 +4,9 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
 
 implementation
 
-use libc/stdio
+use rtl/rtlint
 use rtl/exception
+use libc/stdio
 
 // These functions created by the DQ compiler:
 function dq_main() -> int  [[external('dq_main')]]
@@ -120,7 +121,7 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
 
   libc_signal(SIGSEGV, DqSigSegvHandler)
 
-  @sys.__sys_init_params(argc, argv)
+  @rtlint.__sys_init_params(argc, argv)
 
   result = RunHostedMain()
 

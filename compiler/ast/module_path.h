@@ -51,6 +51,7 @@ public:
 
   bool IsLocalReference() const;
 
+  static bool IsRtlPackageSubmodule(const string & module_id);
   static bool ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
                                        const filesystem::path & context_artifact,
                                        filesystem::path & rartifact_path);

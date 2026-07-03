@@ -455,7 +455,15 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   ll_init_debug_info();
 
-  if (!g_opt.no_use_sys)
+  bool use_sys = !g_opt.no_use_sys;
+  OModulePath current_module;
+  string module_error;
+  if (use_sys && current_module.InitCurrent(in_filename, module_error))
+  {
+    use_sys = !OModulePath::IsRtlPackageSubmodule(current_module.module_id);
+  }
+
+  if (use_sys)
   {
     if (!AddImplicitUse("rtl/sys", "sys", g_module->scope_pub, false, MUM_ALL))
     {

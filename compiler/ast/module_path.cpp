@@ -219,6 +219,11 @@ bool OModulePath::IsRtlPackageSubmodule(const string & module_id)
   return module_id.starts_with("rtl/");
 }
 
+bool OModulePath::SuppressesImplicitSys(const string & module_id)
+{
+  return IsRtlPackageSubmodule(module_id) || module_id.starts_with("libc/");
+}
+
 bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & rerror)
 {
   Clear();

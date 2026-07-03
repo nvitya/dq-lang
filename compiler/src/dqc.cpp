@@ -460,7 +460,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   string module_error;
   if (use_sys && current_module.InitCurrent(in_filename, module_error))
   {
-    use_sys = !OModulePath::IsRtlPackageSubmodule(current_module.module_id);
+    use_sys = !OModulePath::SuppressesImplicitSys(current_module.module_id);
   }
 
   if (use_sys)

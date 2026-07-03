@@ -27,6 +27,15 @@ static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
 static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
 static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
+static bool EnsureDynStringRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
+  {
+    return true;
+  }
+  return g_compiler && g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
+}
+
 static LlType * LlPtrType()
 {
   return llvm::PointerType::get(ll_ctx, 0);
@@ -680,6 +689,10 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
       if (is_explicit_cast)
       {
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+        return false;
+      }
+      if (!EnsureDynStringRtlUse())
+      {
         return false;
       }
       *rexpr = new OTextSourceToStringExpr(src, this);

@@ -1,0 +1,41 @@
+// DQ object contructor overloading
+
+use print
+
+#define USE_MOD = true
+
+#if USE_MOD
+  use ./ctor_overload_mod
+#else
+
+object OTest:
+  name  : str
+  m_str : str
+
+  function *Create(aname : str, astr : str) [[overload]]:
+    name  = aname
+    m_str = astr
+  endfunc
+
+  function *Create(aname : str, afmt : str, avalues : []anyvalue) [[overload]]:
+    name  = aname
+    m_str.AddFmt(afmt, avalues)
+  endfunc
+
+  function Print():
+    @.PrintLn('{}: {}', [name, m_str])
+  endfunc
+endobj
+
+#endif
+
+function *Main() -> int:
+  PrintLn('DQ object constructor overload test')
+  var o <- OTest('test1', 'Message1')
+  o.Print()
+
+  var o2 <- OTest('test2', 'Message2 = {}, {}, {}', [1, 'abc', 3.14])
+  o2.Print()
+
+  return 0
+endfunc

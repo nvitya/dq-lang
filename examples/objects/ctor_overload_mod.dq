@@ -1,0 +1,20 @@
+use print
+
+object OTest:
+  name  : str
+  m_str : str
+
+  function *Create(aname : str, astr : str) [[overload]]:
+    name  = aname
+    m_str = astr
+  endfunc
+
+  function *Create(aname : str, afmt : str, avalues : []anyvalue) [[overload]]:
+    name  = aname
+    m_str.AddFmt(afmt, avalues)
+  endfunc
+
+  function Print():
+    @.PrintLn('{}: {}', [name, m_str])
+  endfunc
+endobj

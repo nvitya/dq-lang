@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.27.2"
+#define DQ_COMPILER_VERSION  "0.27.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.3:
+  - Implicit RTL using fixes
 v0.27.2:
   - RTL reorganization
 v0.27.1:

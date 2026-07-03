@@ -1,0 +1,50 @@
+use print
+use file
+
+struct STest:
+  marker : uint32
+  name   : cstring(15)
+  ival   : int32
+  fval   : float32
+endstruct
+
+function *Main() -> int:
+  PrintLn('DQ File IO Test')
+
+  var fw <- OFile()
+  fw.Open('testfile.bin', 'w')
+  fw.WriteBytes([1, 2, 3, 4, 5, 0xff])
+  fw.Close()
+
+  fw.Open('outfile.txt', 'w')
+  fw.WriteText('hello world.')
+  fw.Close()
+
+  var s : str
+  var f <- OFile()
+  f.Open('fileiotest.dq','r')
+
+  PrintLn('File open ok. name = "{}"', [f.name])
+
+  s = f.ReadText()
+  PrintLn('file first 200 chars:')
+  PrintLn('-----------------------------------')
+  PrintLn(s[:200])
+  PrintLn('-----------------------------------')
+
+  PrintLn('curpos: {}', [f.position])
+
+  f.position = 0
+  var barr : [*]byte = f.ReadBytes()
+  PrintLn('barr.length = {}', [barr.length])
+
+  var st : STest
+  st.marker = 0x55AA33CC
+  st.name = 'TestStruct'
+  st.ival = 10000
+  st.fval = 3.14
+
+  FileWrite('structfile.bin', &st, SizeOf(st))
+
+  return 0
+endfunc

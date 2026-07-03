@@ -126,12 +126,6 @@ void OStmtBlock::Generate()
     bstmt->EmitDebugLocation(scope);
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
-    if (exception_checks)
-    {
-      LlBasicBlock * bb_next = LlBasicBlock::Create(ll_ctx, scope->debugname + ".next", ll_func);
-      g_compiler->EmitExceptionEscapeCheck(bb_cleanup, bb_next);
-      ll_builder.SetInsertPoint(bb_next);
-    }
   }
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
@@ -394,7 +388,7 @@ void OStmtObjectCall::Generate(OScope * scope)
   {
     ll_args.push_back(arg->Generate(scope));
   }
-  ll_builder.CreateCall(method->ll_func, ll_args);
+  GenerateFunctionCall(scope, method, ll_args);
 }
 
 OStmtInheritedCall::~OStmtInheritedCall()
@@ -432,7 +426,7 @@ void OStmtInheritedCall::Generate(OScope * scope)
   {
     ll_args.push_back(arg->Generate(scope));
   }
-  ll_builder.CreateCall(method->ll_func, ll_args);
+  GenerateFunctionCall(scope, method, ll_args, true);
 
   if (emit_derived_field_init && caller->owner_compound_type)
   {
@@ -664,7 +658,7 @@ void OStmtModuleInitCalls::Generate(OScope * scope)
     {
       throw runtime_error("OStmtModuleInitCalls::Generate(): missing module init function");
     }
-    ll_builder.CreateCall(init_func->ll_func, {});
+    GenerateFunctionCall(scope, init_func, {});
   }
 }
 
@@ -903,6 +897,7 @@ void OStmtRaise::Generate(OScope * scope)
       throw runtime_error("OStmtRaise::Generate(): missing DqExcRethrow");
     }
     ll_builder.CreateCall(fn->ll_func, {});
+    EmitExpressionExceptionCheck(scope);
     return;
   }
 
@@ -915,6 +910,7 @@ void OStmtRaise::Generate(OScope * scope)
   LlValue * exc = value->Generate(scope);
   LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), (dynamic_cast<ONewExpr *>(value) != nullptr) ? 1 : 0);
   ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
+  EmitExpressionExceptionCheck(scope);
 }
 
 

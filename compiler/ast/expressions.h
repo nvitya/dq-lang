@@ -24,6 +24,8 @@
 using namespace std;
 
 void EmitExpressionExceptionCheck(OScope * scope);
+LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
+                               const vector<LlValue *> & ll_args, bool force_direct = false);
 
 enum EBinOp : int;
 

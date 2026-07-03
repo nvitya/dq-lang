@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.27.5"
+#define DQ_COMPILER_VERSION  "0.27.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.6:
+  - Exception handling fix for object methods
+  - file module
 v0.27.5:
   - Array literals support []byte and other smaller types too
 v0.27.4:

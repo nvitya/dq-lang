@@ -72,21 +72,25 @@ function RaiseSignalException():
                                       &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
-function PrintUncaughtException() -> int:
-  var e : Exception = DqExcCurrent()
+function PrintException(e : Exception) -> int:
   printf("\nUNCAUGHT EXCEPTION: ")
-  DqExcPrintTypeName()
+  printf("%s", TypeName(e))
   printf(": ")
   e.PrintMessage()
   printf("\n")
   e.PrintBacktrace()
-  DqExcClear()
   return -1
+endfunc
+
+function PrintUncaughtException() -> int:
+  result = PrintException(DqExcCurrent())
+  DqExcClear()
 endfunc
 
 //-----------------------------------------------------------------------------
 
 function RunHostedMain() -> int:
+  result = 0
   dq_sigsegv_guard_active = 1
 
   // the libc___sigsetjmp function takes a "snapshot" of the current CPU state
@@ -95,13 +99,24 @@ function RunHostedMain() -> int:
   // On the first pass it returns 0
 
   if libc___sigsetjmp(&dq_sigsegv_jmp, 1) == 0:
-    dq_module_init()
+    try:
+      dq_module_init()
+    except Exception as e:
+      dq_sigsegv_guard_active = 0
+      return PrintException(e)
+    endtry
+
     if DqExcActive():
       dq_sigsegv_guard_active = 0
       return PrintUncaughtException()
     endif
 
-    result = dq_main()
+    try:
+      result = dq_main()
+    except Exception as e:
+      dq_sigsegv_guard_active = 0
+      result = PrintException(e)
+    endtry
 
     dq_sigsegv_guard_active = 0
     if DqExcActive():
@@ -110,8 +125,14 @@ function RunHostedMain() -> int:
   else:
     // Jumped here from the signal handler
     dq_sigsegv_guard_active = 0
-    RaiseSignalException()
-    result = PrintUncaughtException()
+    try:
+      RaiseSignalException()
+    except Exception as e:
+      result = PrintException(e)
+    endtry
+    if DqExcActive():
+      result = PrintUncaughtException()
+    endif
   endif
 endfunc
 

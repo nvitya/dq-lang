@@ -27,9 +27,6 @@
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
 
-static LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
-                                      const vector<LlValue *> & ll_args, bool force_direct = false);
-
 static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
 {
   OType * ltype = left ? left->ResolvedType() : nullptr;
@@ -2199,8 +2196,8 @@ LlValue * OCallExpr::Generate(OScope * scope)
   return GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
 }
 
-static LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
-                                      const vector<LlValue *> & ll_args, bool force_direct)
+LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
+                               const vector<LlValue *> & ll_args, bool force_direct)
 {
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);

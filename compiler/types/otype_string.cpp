@@ -559,10 +559,22 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
                                    const vector<OExpr *> & args)
 {
   LlValue * straddr = receiver->GenerateAddress(scope);
+  auto checked_dynstr_call = [scope](const string & name, vector<LlValue *> args) -> LlValue *
+  {
+    LlValue * result = CallDynStrFunc(name, args);
+    EmitExpressionExceptionCheck(scope);
+    return result;
+  };
+  auto checked_textformat_call = [scope](const string & name, vector<LlValue *> args) -> LlValue *
+  {
+    LlValue * result = CallTextFormatFunc(name, args);
+    EmitExpressionExceptionCheck(scope);
+    return result;
+  };
   switch (method)
   {
     case STRM_CLEAR:
-      CallDynStrFunc("DynStrClear", {straddr, args.empty() ? LlBool(false) : args[0]->Generate(scope)});
+      checked_dynstr_call("DynStrClear", {straddr, args.empty() ? LlBool(false) : args[0]->Generate(scope)});
       return nullptr;
     case STRM_SET:
       if (!GenerateStringAssignExpr(scope, straddr, args[0]))
@@ -571,38 +583,38 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       }
       return nullptr;
     case STRM_RESERVE:
-      CallDynStrFunc("DynStrReserve", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
+      checked_dynstr_call("DynStrReserve", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
       return nullptr;
     case STRM_COMPACT:
-      CallDynStrFunc("DynStrCompact", {straddr});
+      checked_dynstr_call("DynStrCompact", {straddr});
       return nullptr;
     case STRM_SET_LENGTH:
-      CallDynStrFunc("DynStrSetLengthFill", {straddr, ToU32(args[0]->Generate(scope)), args[1]->Generate(scope)});
+      checked_dynstr_call("DynStrSetLengthFill", {straddr, ToU32(args[0]->Generate(scope)), args[1]->Generate(scope)});
       return nullptr;
     case STRM_SET_CAPACITY:
-      CallDynStrFunc("DynStrSetCapacity", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
+      checked_dynstr_call("DynStrSetCapacity", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
       return nullptr;
     case STRM_TRUNCATE:
-      CallDynStrFunc("DynStrTruncate", {straddr, ToU32(args[0]->Generate(scope))});
+      checked_dynstr_call("DynStrTruncate", {straddr, ToU32(args[0]->Generate(scope))});
       return nullptr;
     case STRM_APPEND:
-      CallDynStrFunc("DynStrAppend", {straddr, GenerateTextInfoAddress(scope, args[0]), LlI32(-1)});
+      checked_dynstr_call("DynStrAppend", {straddr, GenerateTextInfoAddress(scope, args[0]), LlI32(-1)});
       return nullptr;
     case STRM_PREPEND:
-      CallDynStrFunc("DynStrInsert", {straddr, LlNativeInt(0), GenerateTextInfoAddress(scope, args[0]), LlI32(-1)});
+      checked_dynstr_call("DynStrInsert", {straddr, LlNativeInt(0), GenerateTextInfoAddress(scope, args[0]), LlI32(-1)});
       return nullptr;
     case STRM_INSERT:
-      CallDynStrFunc("DynStrInsert", {straddr, ToNativeInt(args[0]->Generate(scope)), GenerateTextInfoAddress(scope, args[1]), LlI32(-1)});
+      checked_dynstr_call("DynStrInsert", {straddr, ToNativeInt(args[0]->Generate(scope)), GenerateTextInfoAddress(scope, args[1]), LlI32(-1)});
       return nullptr;
     case STRM_DELETE:
-      CallDynStrFunc("DynStrDelete", {straddr, ToNativeInt(args[0]->Generate(scope)),
+      checked_dynstr_call("DynStrDelete", {straddr, ToNativeInt(args[0]->Generate(scope)),
           args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1)});
       return nullptr;
     case STRM_CLONE:
     {
       LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.clone.tmp");
       GenerateStringCreate(scope, tmp);
-      CallDynStrFunc("DynStrClone", {straddr, tmp});
+      checked_dynstr_call("DynStrClone", {straddr, tmp});
       return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.clone");
     }
     case STRM_POP:
@@ -610,19 +622,19 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
     {
       LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.pop.tmp");
       GenerateStringCreate(scope, tmp);
-      CallDynStrFunc(STRM_POP == method ? "DynStrPop" : "DynStrPopFirst",
+      checked_dynstr_call(STRM_POP == method ? "DynStrPop" : "DynStrPopFirst",
           {straddr, ToNativeInt(args[0]->Generate(scope)), tmp});
       return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.pop");
     }
     case STRM_POP_CHAR:
-      return CallDynStrFunc("DynStrPopChar", {straddr});
+      return checked_dynstr_call("DynStrPopChar", {straddr});
     case STRM_POP_FIRST_CHAR:
-      return CallDynStrFunc("DynStrPopFirstChar", {straddr});
+      return checked_dynstr_call("DynStrPopFirstChar", {straddr});
     case STRM_ADDFMT:
     {
       LlValue * arg0_val = GenerateTextInfoValue(scope, args[0]);
       LlValue * arg1_val = args[1]->Generate(scope);
-      CallTextFormatFunc("DynStrAddFmt", {straddr, arg0_val, arg1_val});
+      checked_textformat_call("DynStrAddFmt", {straddr, arg0_val, arg1_val});
       return nullptr;
     }
   }

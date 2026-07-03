@@ -48,11 +48,23 @@ using namespace std;
 OValSymFunc * ODqCompCodegen::DqExceptionFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_exception");
-  if (nsit == g_namespaces.end() || !nsit->second)
+  if (nsit != g_namespaces.end() && nsit->second)
   {
-    return nullptr;
+    if (auto * fn = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false)))
+    {
+      return fn;
+    }
   }
-  return dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
+
+  for (OModuleIntf * intf : g_module->loaded_modules)
+  {
+    if (intf && intf->name == "rtl/exception" && intf->scope_pub)
+    {
+      return dynamic_cast<OValSymFunc *>(intf->scope_pub->FindValSym(name, nullptr, false));
+    }
+  }
+
+  return nullptr;
 }
 
 LlValue * ODqCompCodegen::DqExceptionActiveValue()

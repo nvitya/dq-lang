@@ -60,16 +60,19 @@ function DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
   return info.ExceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION
 endfunc
 
-function PrintUncaughtException() -> int:
-  var e : Exception = DqExcCurrent()
+function PrintException(e : Exception) -> int:
   printf("\nUNCAUGHT EXCEPTION: ")
-  DqExcPrintTypeName()
+  printf("%s", TypeName(e))
   printf(": ")
   e.PrintMessage()
   printf("\n")
   e.PrintBacktrace()
-  DqExcClear()
   return -1
+endfunc
+
+function PrintUncaughtException() -> int:
+  result = PrintException(DqExcCurrent())
+  DqExcClear()
 endfunc
 
 function DqWinFaultHandler(exception_info : pointer) -> int32:
@@ -79,9 +82,15 @@ function DqWinFaultHandler(exception_info : pointer) -> int32:
 
   dq_win_fault_handling = 1
   dq_win_fault_backtrace_count = DqCaptureBacktrace(&dq_win_fault_backtrace, DQ_WIN_FAULT_BACKTRACE_MAX)
-  DqExcRaiseWithBacktrace(new ESegFault("Segmentation fault"), true,
-                                      &dq_win_fault_backtrace, dq_win_fault_backtrace_count)
-  PrintUncaughtException()
+  try:
+    DqExcRaiseWithBacktrace(new ESegFault("Segmentation fault"), true,
+                                        &dq_win_fault_backtrace, dq_win_fault_backtrace_count)
+  except Exception as e:
+    PrintException(e)
+  endtry
+  if DqExcActive():
+    PrintUncaughtException()
+  endif
   win_ExitProcess(uint32(255))
 
   return EXCEPTION_CONTINUE_SEARCH
@@ -90,12 +99,22 @@ endfunc
 //-----------------------------------------------------------------------------
 
 function RunHostedMain() -> int:
-  dq_module_init()
+  result = 0
+  try:
+    dq_module_init()
+  except Exception as e:
+    return PrintException(e)
+  endtry
+
   if DqExcActive():
     return PrintUncaughtException()
   endif
 
-  result = dq_main()
+  try:
+    result = dq_main()
+  except Exception as e:
+    result = PrintException(e)
+  endtry
 
   if DqExcActive():
     result = PrintUncaughtException()

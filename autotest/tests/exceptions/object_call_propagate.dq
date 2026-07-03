@@ -1,0 +1,28 @@
+// Object method statements must stop executing after they raise.
+
+use libc/stdio
+
+var reached : int = 0
+
+object OThrower:
+  function Throw():
+    raise Exception("object throw")
+    @.reached = 1
+  endfunc
+endobj
+
+function *Main() -> int:
+  var t <- OThrower()
+
+  try:
+    t.Throw()
+    reached = 2
+  except Exception as e:
+    printf("exception.object_call = ")
+    e.PrintMessage()
+    printf(" reached=%d\n", reached)
+    //?check("exception.object_call", "object throw reached=0")
+  endtry
+
+  return 0
+endfunc

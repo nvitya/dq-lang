@@ -21,6 +21,14 @@ function PrintArray(label : ^cchar, arr : []int):
   printf("\n");
 endfunc
 
+function PrintByteArray(label : ^cchar, arr : []byte):
+  printf("%s = len:%li data:", label, arr.length);
+  for i : int = 0 count arr.length:
+    printf(" %d", arr[i]);
+  endfor
+  printf("\n");
+endfunc
+
 function TakesStatic(arr : [3]int) -> int:
   result = arr[0] + arr[1] + arr[2];
 endfunc
@@ -55,6 +63,12 @@ function *Main() -> int:
   PrintArray("static_slice_source_after_write", source); //?check("static_slice_source_after_write", "len:5 data: 10 99 77 40 50")
   PrintArray("static_slice_view_after_assign", mid); //?check("static_slice_view_after_assign", "len:3 data: 99 77 40")
   printf("static_slice_sum = %li\n", Sum(mid)); //?check("static_slice_sum", 216)
+
+  var barr : [?]byte = [1, 2, 3]
+  PrintByteArray('bytearray', barr)  //?check('bytearray', 'len:3 data: 1 2 3')
+
+  var i16arr : [?]int16 = [30000, -1234, 42]
+  printf("int16array = len:%li data: %d %d %d\n", i16arr.length, int(i16arr[0]), int(i16arr[1]), int(i16arr[2])); //?check('int16array', 'len:3 data: 30000 -1234 42')
 
   return 0;
 endfunc

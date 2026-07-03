@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.27.4"
+#define DQ_COMPILER_VERSION  "0.27.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.5:
+  - Array literals support []byte and other smaller types too
 v0.27.4:
   - Allowing returning dynamic arrays
 v0.27.3:

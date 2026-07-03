@@ -37,5 +37,7 @@ function *Main() -> int:
   var o2 <- OTest('test2', 'Message2 = {}, {}, {}', [1, 'abc', 3.14])
   o2.Print()
 
+  raise Exception('Formatted exception msg = {}, {}', [1, 3.14])
+
   return 0
 endfunc

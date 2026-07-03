@@ -1,19 +1,21 @@
 // RTL Helpers for Exception Handling
 
-use rtl/rtlint  reexport
-use rtl/mem     reexport
+use rtl/rtlint    reexport
+use rtl/mem       reexport
+use rtl/anyvalue  reexport
 
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
 const DQ_EXCEPTION_TYPENAME_MAX  : int = 63
 const DQ_EXCEPTION_MSG_MAX       : int = 127
 
 object Exception:
-  refcount        : int
+  refcount        : int = 1
   message         : cstring(DQ_EXCEPTION_MSG_MAX)
-  backtrace_count : int
+  backtrace_count : int = 0
   backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
-  function *Create(amsg : strview)
+  function *Create(amsg : strview) [[overload]]
+  function *Create(afmt : strview, avalues : []anyvalue) [[overload]]
   function *Destroy()
 
   function GetMessage() -> cstring [[virtual]]
@@ -43,10 +45,12 @@ function DqExcRelease(e : Exception)
 
 //-------------------------------------------------------------------------------------------------
 
-function Exception.*Create(amsg : strview):
+function Exception.*Create(amsg : strview) [[overload]]:
   message.Set(amsg)
-  backtrace_count = 0
-  refcount = 1
+endfunc
+
+function Exception.*Create(afmt : strview, avalues : []anyvalue) [[overload]]:
+  message.AddFmt(afmt, avalues)
 endfunc
 
 function Exception.*Destroy():

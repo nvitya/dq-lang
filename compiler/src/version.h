@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.27.1"
+#define DQ_COMPILER_VERSION  "0.27.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.2:
+  - RTL reorganization
 v0.27.1:
   - User friendly error message for missing reexport at the module interfaces
 v0.27.0:

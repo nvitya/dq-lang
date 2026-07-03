@@ -1,5 +1,7 @@
 // SDqAnyValue dynamic string handling regression tests
 
+implementation
+
 use libc/stdio;
 use rtl/anyvalue;
 use rtl/dynstrmgr;

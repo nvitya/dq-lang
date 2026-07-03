@@ -6,6 +6,7 @@ implementation
 
 use rtl/rtlint
 use rtl/exception
+use rtl/prgargs
 use rtl/backtrace
 use libc/stdio
 
@@ -108,7 +109,7 @@ function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
   rterror_handler = OsRtErrorHandler
   win_AddVectoredExceptionHandler(1, DqWinFaultHandler)
 
-  @rtlint.__sys_init_params(argc, argv)
+  @prgargs.__sys_init_params(argc, argv)
 
   result = RunHostedMain()
 

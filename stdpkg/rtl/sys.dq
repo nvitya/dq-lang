@@ -1,3 +1,16 @@
 // this module is implicitly used in all non dq rtl modules
 
-use rtl/rtlint reexport
+use rtl/rtlint     reexport
+use rtl/exception  reexport
+use rtl/mem        reexport
+use rtl/prgargs    reexport
+
+function Exit(status : int)
+
+implementation
+
+function libc_exit(status : int)  [[external('exit')]];
+
+function Exit(status : int):
+  libc_exit(status);
+endfunc

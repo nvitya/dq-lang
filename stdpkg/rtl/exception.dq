@@ -1,6 +1,7 @@
 // RTL Helpers for Exception Handling
 
-use rtl/rtlint reexport
+use rtl/rtlint  reexport
+use rtl/mem     reexport
 
 const DQ_EXCEPTION_BACKTRACE_MAX : int = 32
 const DQ_EXCEPTION_TYPENAME_MAX  : int = 63

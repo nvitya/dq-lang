@@ -23,6 +23,8 @@ function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1)
 
 implementation
 
+use rtl/mem
+
 function CStrRuntimeError(emsg : ^cchar):
   RuntimeError(emsg)
 endfunc
@@ -105,7 +107,7 @@ function CStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^cchar, ma
 
   var count : uint = CStrBoundedPtrLen(src, maxcopy)
   if count > uint(0):
-    @rtlint.MemCopy(^cchar(desc.dataptr)[dstpos], src, count)
+    MemCopy(^cchar(desc.dataptr)[dstpos], src, count)
   endif
   return count
 endfunc
@@ -138,7 +140,7 @@ function CStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
     srclen = maxlen
   endif
   if srclen > uint(0):
-    @rtlint.MemCopy(desc.dataptr, src.dataptr, srclen)
+    MemCopy(desc.dataptr, src.dataptr, srclen)
   endif
   CStrSetLenAndTerm(desc, srclen)
 endfunc
@@ -209,9 +211,7 @@ function CStrOpenGap(desc : ref SDqTextInfo, index : uint, addlen : uint, oldlen
     if movecount > maxlen - index - addlen:
       movecount = maxlen - index - addlen
     endif
-    @rtlint.MemCopy(^cchar(desc.dataptr)[index + addlen],
-                 ^cchar(desc.dataptr)[index],
-                 movecount)
+    MemCopy(^cchar(desc.dataptr)[index + addlen], ^cchar(desc.dataptr)[index], movecount)
   endif
   return addlen
 endfunc
@@ -223,7 +223,7 @@ function CStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^cchar):
   var addlen : uint = CStrBoundedPtrLen(src, maxlen - pos)
   addlen = CStrOpenGap(desc, pos, addlen, oldlen)
   if addlen > uint(0):
-    @rtlint.MemCopy(^cchar(desc.dataptr)[pos], src, addlen)
+    MemCopy(^cchar(desc.dataptr)[pos], src, addlen)
   endif
   var newlen : uint = oldlen + addlen
   if newlen > maxlen:
@@ -242,7 +242,7 @@ function CStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextIn
   endif
   addlen = CStrOpenGap(desc, pos, addlen, oldlen)
   if addlen > uint(0):
-    @rtlint.MemCopy(^cchar(desc.dataptr)[pos], src.dataptr, addlen)
+    MemCopy(^cchar(desc.dataptr)[pos], src.dataptr, addlen)
   endif
   var newlen : uint = oldlen + addlen
   if newlen > maxlen:
@@ -286,9 +286,7 @@ function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1):
 
   var tail : uint = clen - pos - delcount
   if tail > uint(0):
-    @rtlint.MemCopy(^cchar(desc.dataptr)[pos],
-                 ^cchar(desc.dataptr)[pos + delcount],
-                 tail)
+    MemCopy(^cchar(desc.dataptr)[pos], ^cchar(desc.dataptr)[pos + delcount], tail)
   endif
 
   clen -= delcount

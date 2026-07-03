@@ -61,6 +61,8 @@ function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, sta
 
 implementation
 
+use rtl/mem
+
 function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]]
 
 function DynArrRuntimeError(emsg : ^cchar):
@@ -161,7 +163,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
     return
   endif
 
-  if typeinfo.kind == @rtlint.DQTK_DYN_ARRAY:
+  if typeinfo.kind == DQTK_DYN_ARRAY:
     var elemsize : uint = typeinfo.storagesize
     var i : uint = 0
     while i < length:
@@ -173,7 +175,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
       i += 1
     endwhile
 
-  elif typeinfo.kind == @rtlint.DQTK_DYNSTR:
+  elif typeinfo.kind == DQTK_DYNSTR:
     var elemsize : uint = typeinfo.storagesize
     var i : uint = 0
     while i < length:
@@ -200,7 +202,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
   if typeinfo.destroy_func <> null:
     typeinfo.destroy_func(dataptr, length)
 
-  elif typeinfo.kind == @rtlint.DQTK_DYN_ARRAY:
+  elif typeinfo.kind == DQTK_DYN_ARRAY:
     var elemsize : uint = typeinfo.storagesize
     var i : uint = 0
     while i < length:
@@ -212,7 +214,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
       i += 1
     endwhile
 
-  elif typeinfo.kind == @rtlint.DQTK_DYNSTR:
+  elif typeinfo.kind == DQTK_DYNSTR:
     var elemsize : uint = typeinfo.storagesize
     var i : uint = 0
     while i < length:
@@ -230,7 +232,7 @@ endfunc
 function ODynArrMgr.*Destroy():
   @.DynArrDecRefElements(dataptr, length, typeinfo)
   if dataptr <> null:
-    @rtlint.MemFree(dataptr)
+    @.MemFree(dataptr)
     dataptr = null
   endif
   length = 0
@@ -244,7 +246,7 @@ function ODynArrMgr.SetCapacity(new_capacity : uint):
 
   if new_capacity == 0:
     if dataptr <> null:
-      @rtlint.MemFree(dataptr)
+      @.MemFree(dataptr)
       dataptr = null
     endif
     capacity = 0
@@ -259,9 +261,9 @@ function ODynArrMgr.SetCapacity(new_capacity : uint):
 
   var new_dataptr : pointer = null
   if dataptr == null:
-    new_dataptr = @rtlint.MemAlloc(new_bytes)
+    new_dataptr = @.MemAlloc(new_bytes)
   else:
-    new_dataptr = @rtlint.MemRealloc(dataptr, new_bytes)
+    new_dataptr = @.MemRealloc(dataptr, new_bytes)
   endif
 
   if new_dataptr == null:
@@ -348,7 +350,7 @@ function ODynArrMgr.Append(asrc : pointer, acount : int):
     srcptr = ^byte(dataptr)[uint(owndata_src_index) * elemsize]
   endif
 
-  @rtlint.MemCopy(^byte(dataptr)[old_length * elemsize], srcptr, @.DynArrCalcByteSize(uint(acount), elemsize))
+  @.MemCopy(^byte(dataptr)[old_length * elemsize], srcptr, @.DynArrCalcByteSize(uint(acount), elemsize))
   @.DynArrIncRefElements(^byte(dataptr)[old_length * elemsize], uint(acount), typeinfo)
 
   length = new_length
@@ -378,7 +380,7 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
 
   var tail_count : uint = old_length - insertpos
   if tail_count > 0:
-    @rtlint.MemCopy(^byte(dataptr)[(insertpos + add_count) * elemsize],
+    @.MemCopy(^byte(dataptr)[(insertpos + add_count) * elemsize],
                  ^byte(dataptr)[insertpos * elemsize],
                  @.DynArrCalcByteSize(tail_count, elemsize))
   endif
@@ -387,14 +389,14 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
   var copy_bytes : uint = @.DynArrCalcByteSize(add_count, elemsize)
 
   if owndata_src_index < 0:
-    @rtlint.MemCopy(dstptr, src, copy_bytes)
+    @.MemCopy(dstptr, src, copy_bytes)
   else:
     // the src data is from this array !
     var sidx : uint = owndata_src_index
     if sidx + add_count <= insertpos:
-      @rtlint.MemCopy(dstptr, ^byte(dataptr)[sidx * elemsize], copy_bytes)
+      @.MemCopy(dstptr, ^byte(dataptr)[sidx * elemsize], copy_bytes)
     elif sidx >= insertpos:
-      @rtlint.MemCopy(dstptr, ^byte(dataptr)[(sidx + add_count) * elemsize], copy_bytes)
+      @.MemCopy(dstptr, ^byte(dataptr)[(sidx + add_count) * elemsize], copy_bytes)
     else:
       // split copy required for the case similar to this:
       //   var a : [*]int = [1, 2, 3, 4]
@@ -403,10 +405,10 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
 
       var left_count : uint = insertpos - sidx
       var right_count : uint = add_count - left_count
-      @rtlint.MemCopy(dstptr,
+      @.MemCopy(dstptr,
                    ^byte(dataptr)[sidx * elemsize],
                    @.DynArrCalcByteSize(left_count, elemsize))
-      @rtlint.MemCopy(^byte(dstptr)[left_count * elemsize],
+      @.MemCopy(^byte(dstptr)[left_count * elemsize],
                    ^byte(dataptr)[(insertpos + add_count) * elemsize],
                    @.DynArrCalcByteSize(right_count, elemsize))
     endif
@@ -439,7 +441,7 @@ function ODynArrMgr.Delete(index : int, acount : int):
   var movecount : uint = length - deletepos - delcount
   @.DynArrDecRefElements(^byte(dataptr)[deletepos * elemsize], delcount, typeinfo)
   if movecount > 0:
-    @rtlint.MemCopy(^byte(dataptr)[deletepos * elemsize],
+    @.MemCopy(^byte(dataptr)[deletepos * elemsize],
                  ^byte(dataptr)[(deletepos + delcount) * elemsize],
                  @.DynArrCalcByteSize(movecount, elemsize))
   endif
@@ -455,7 +457,7 @@ function ODynArrMgr.Pop(outptr : pointer):
 
   var lastidx : uint = length - 1
   // copy the element data to the outptr
-  @rtlint.MemCopy(outptr, ^byte(dataptr)[lastidx * elemsize], elemsize)
+  @.MemCopy(outptr, ^byte(dataptr)[lastidx * elemsize], elemsize)
   length = lastidx
 endfunc
 
@@ -466,10 +468,10 @@ function ODynArrMgr.PopFirst(outptr : pointer):
   endif
 
   // copy the element data to the outptr
-  @rtlint.MemCopy(outptr, dataptr, elemsize)
+  @.MemCopy(outptr, dataptr, elemsize)
   var movecount : uint = length - 1
   if movecount > 0:
-    @rtlint.MemCopy(dataptr, ^byte(dataptr)[elemsize], @.DynArrCalcByteSize(movecount, elemsize))
+    @.MemCopy(dataptr, ^byte(dataptr)[elemsize], @.DynArrCalcByteSize(movecount, elemsize))
   endif
   length -= 1
 endfunc

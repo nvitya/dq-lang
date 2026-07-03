@@ -1047,14 +1047,6 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
     {
       return false;
     }
-    if (TK_DYN_ARRAY == tfunc->rettype->ResolveAlias()->kind)
-    {
-      if (aemit_errors)
-      {
-        Error(DQERR_NOT_SUPPORTED, "dynamic array return value");
-      }
-      return false;
-    }
   }
 
   return true;

@@ -12,6 +12,13 @@ function PrintArray(label : ^cchar, arr : []int):
   printf("\n");
 endfunc
 
+function DynArrayCreate(acnt : int) -> [*]int:
+  result = []
+  while result.length < acnt:
+    result.Append(result.length + 1)
+  endwhile
+endfunc
+
 function *Main() -> int:
   printf("array_dynamic_basics = start\n"); //?check("array_dynamic_basics", "start")
 
@@ -80,6 +87,9 @@ function *Main() -> int:
   empty_eq = 0;
   if b == []:  empty_eq = 1;  endif
   printf("dynamic_assign_empty = len:%li cap:%li eq:%li\n", b.length, b.capacity, empty_eq); //?check("dynamic_assign_empty", "len:0 cap:0 eq:1")
+
+  var darr_ret : [*]int = DynArrayCreate(5);
+  PrintArray('dynarray_ret', darr_ret);  //?check('dynarray_ret', 'len:5 data: 1 2 3 4 5')
 
   return 0;
 endfunc

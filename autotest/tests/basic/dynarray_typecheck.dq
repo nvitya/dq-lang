@@ -6,7 +6,7 @@ const bad_const : [*]int = 0;  //?error(NotSupported)
 function bad_value_param(arr : [*]int):  //?error(NotSupported)
 endfunc
 
-function bad_return() -> [*]int:  //?error(NotSupported)
+function bad_return() -> [*]int:
 endfunc  //?error(FuncResultNotSet)
 
 struct SBadDynMember:

@@ -175,6 +175,13 @@ void OStmtReturn::Generate(OScope * scope)
         throw logic_error("Unsupported string return value");
       }
     }
+    else if (auto * dyntype = dynamic_cast<OTypeDynArray *>(vsfunc->vsresult->ptype->ResolveAlias()))
+    {
+      if (!GenerateDynArrayAssignExpr(scope, dyntype, vsfunc->vsresult->ll_value, value))
+      {
+        throw logic_error("Unsupported dynamic array return value");
+      }
+    }
     else if (TK_ANYVALUE == vsfunc->vsresult->ptype->ResolveAlias()->kind)
     {
       if (!GenerateAnyValueAssignExpr(scope, vsfunc->vsresult->ll_value, value))

@@ -47,7 +47,10 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
   valsyms[avalsym->name] = avalsym;
   auto * objsym = dynamic_cast<OVsObject *>(avalsym);
   if ((objsym && objsym->IsFixedObjectStorage())
-      || ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype && (TK_DYN_ARRAY == avalsym->ptype->kind)))
+      || ((VSK_VARIABLE == avalsym->kind)
+          && avalsym->ptype
+          && (TK_DYN_ARRAY == avalsym->ptype->ResolveAlias()->kind)
+          && ("result" != avalsym->name)))
   {
     owned_objects.push_back(avalsym);
   }

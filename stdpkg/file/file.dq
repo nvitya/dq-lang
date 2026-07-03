@@ -1,15 +1,15 @@
 // DQ File handling
 
-use rtl/exception reexport  // required for callers that do not use exception syntax directly
-
 object EFileError(Exception):
 endobj
 
 object OFile:
+private
   m_filename : str
   m_fmode    : cstring(7)
   m_fhandle  : pointer  // internal libc type
 
+public
   function *Create()
   function *Destroy()
   function Open(afname : strview, afmode : strview)

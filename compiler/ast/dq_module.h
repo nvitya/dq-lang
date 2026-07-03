@@ -75,6 +75,7 @@ public:
   vector<ODecl *>  declarations;
   vector<OModuleIntf *>  loaded_modules;
   vector<string>   link_module_artifacts;
+  string           last_interface_load_error;
 
   OScope *         scope_priv;
 

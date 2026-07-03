@@ -518,6 +518,14 @@ void OTestFile::AnalyzeErrOutput()
         {
           cap->captured = true;
           waschecked = true;
+          if (not cap->msg_contains.empty() and (curline.find(cap->msg_contains) == string::npos))
+          {
+            AddEtError(format("MESSAGE_MISMATCH: {} does not contain \"{}\"", curline, cap->msg_contains));
+            if (!g_atropt->batchmode)
+            {
+              print("{}\n", msg_err.back());
+            }
+          }
           break;
         }
       }
@@ -691,6 +699,7 @@ bool OTestFile::ParseText()
 void OTestFile::ParseMarkerError(const string amsgid)
 {
   // sample: //?error(TypeSpecExpected)
+  // sample: //?error(TypeSpecExpected, 'message fragment')
   // note the "//?error" is already consumed
 
   int errline = sp.GetLineNum();
@@ -710,13 +719,26 @@ void OTestFile::ParseMarkerError(const string amsgid)
   }
 
   sp.SkipSpaces(false);
+  string msg_contains;
+  if (sp.CheckSymbol(","))
+  {
+    sp.SkipSpaces(false);
+    if (!sp.ReadQuotedString())
+    {
+      AddTfError(format("Message fragment string is missing after \"//?error({}\"", errid));
+      return;
+    }
+    msg_contains = sp.PrevStr();
+    sp.SkipSpaces(false);
+  }
+
   if (not sp.CheckSymbol(")"))
   {
     AddTfError(format("\")\" is missing after \"//?error\""));
     return;
   }
 
-  err_captures.push_back(new OErrCapture(errline, amsgid, errid));
+  err_captures.push_back(new OErrCapture(errline, amsgid, errid, msg_contains));
 
 }
 

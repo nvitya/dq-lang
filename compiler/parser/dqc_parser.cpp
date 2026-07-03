@@ -530,7 +530,9 @@ void ODqCompParser::ParseUseStatement()
     {
       if (prev_errorcnt == errorcnt)
       {
-        Error(DQERR_USE_INTERFACE_LOAD, interface_load_path.string(), &scpos_statement_start);
+        Error(DQERR_USE_INTERFACE_LOAD, interface_load_path.string(),
+              g_module->last_interface_load_error.empty() ? "unknown error" : g_module->last_interface_load_error,
+              &scpos_statement_start);
       }
       return;
     }

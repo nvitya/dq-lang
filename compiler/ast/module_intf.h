@@ -80,6 +80,7 @@ private:
   bool ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes & attrs);
   bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
   OType * ResolveDqmIfTypeName(const string & atype_name);
+  string FormatUnresolvedDqmIfTypeError(const string & atype_name) const;
   void ClearDqmIfMetadata();
   bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader);
   string DqmIfTargetArch() const;
@@ -108,6 +109,7 @@ public:
   vector<string> reexport_artifacts;
   vector<string> link_dependencies;
   string module_init_linkage_name;
+  string last_interface_error;
   OValSymFunc * module_init_func = nullptr;
 
   bool     has_source_filename = false;

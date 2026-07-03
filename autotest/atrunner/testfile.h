@@ -26,14 +26,16 @@ public:
   int               line;
   string            msgtype;  // ERROR/WARNING/HINT
   string            errid;
+  string            msg_contains;
   bool              captured = false;
   bool              missing_printed = false;
 
-  OErrCapture(int aline, const string amsgtype, const string aerrid)
+  OErrCapture(int aline, const string amsgtype, const string aerrid, const string amsg_contains)
   :
     line(aline),
     msgtype(amsgtype),
-    errid(aerrid)
+    errid(aerrid),
+    msg_contains(amsg_contains)
   {}
 };
 

@@ -1,0 +1,11 @@
+//?skip_test
+
+use ./dep
+
+function TakesDep(value : SDep) -> int
+
+implementation
+
+function TakesDep(value : SDep) -> int:
+  return value.value
+endfunc

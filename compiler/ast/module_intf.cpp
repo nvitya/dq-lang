@@ -1277,6 +1277,13 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
   return nullptr;
 }
 
+string OModuleIntf::FormatUnresolvedDqmIfTypeError(const string & atype_name) const
+{
+  return format("Unknown DQM interface type \"{}\" while loading module \"{}\"; "
+                "the module interface references this type, but neither the module nor its reexported uses provide it",
+                atype_name, name);
+}
+
 bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
 {
   rtype = nullptr;
@@ -1291,7 +1298,7 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
     rtype = ResolveDqmIfTypeName(typename_str);
     if (!rtype)
     {
-      return reader.Fail(format("Unknown DQM interface type: {}", typename_str));
+      return reader.Fail(FormatUnresolvedDqmIfTypeError(typename_str));
     }
     return true;
   }
@@ -1308,7 +1315,7 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
       rtype = ResolveDqmIfTypeName(typename_str);
       if (!rtype)
       {
-        return reader.Fail(format("Unknown DQM interface type: {}", typename_str));
+        return reader.Fail(FormatUnresolvedDqmIfTypeError(typename_str));
       }
       return true;
     }
@@ -2692,8 +2699,10 @@ bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet
   ClearDqmIfMetadata();
   interface_filename = filename;
   OArtifactLock lock;
+  last_interface_error.clear();
   if (alock && !lock.Lock(filename, EArtifactLockMode::SHARED))
   {
+    last_interface_error = lock.error;
     if (!aquiet)
     {
       print("Can not read module interface artifact: {}\n{}\n", filename, lock.error);
@@ -2704,6 +2713,7 @@ bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet
   ODqmIfReader reader;
   if (!reader.ReadFromArtifact(filename) || !ReadDqmIfRecords(reader))
   {
+    last_interface_error = reader.error;
     if (!aquiet)
     {
       print("Can not read module interface artifact: {}\n{}\n", filename, reader.error);

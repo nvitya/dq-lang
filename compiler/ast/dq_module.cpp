@@ -251,6 +251,7 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
                                 EModuleUseMergeMode amerge_mode, const vector<string> & asymbol_names,
                                 bool areexport)
 {
+  last_interface_load_error.clear();
   OModuleIntf * intf = nullptr;
   for (OModuleIntf * loaded_intf : loaded_modules)
   {
@@ -267,6 +268,7 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     if (!intf->ReadInterface(interface_artifact_path, true, true)
         && ((interface_artifact_path == link_artifact_path) || !intf->ReadInterface(link_artifact_path)))
     {
+      last_interface_load_error = intf->last_interface_error;
       delete intf;
       return false;
     }

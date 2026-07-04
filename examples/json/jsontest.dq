@@ -14,18 +14,25 @@ function *Main() -> int:
   var jn : OJson
 
   jns = jroot.AddStr('strnode', 'hello')
-  jns.as_str = jns.as_str + '?'  // <-- allocate a new (dynamic) str and append
-  jns.as_str += '!'
+
+  PrintLn('as json:')
+  PrintLn(jroot.GetAsJson())
+
 
   jnn = jroot.AddNum('numnode', 3.14)
   jno = jroot.AddObj('objnode')
   jn = jno.AddStr('substr', 'abc')
   jn = jno.AddNum('subnum', 42)
 
+  jn.as_num = 46
+
   PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
   PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
 
   PrintLn('"{}" = "{}"', [jn.name, jn.as_num])
+
+  //PrintLn('as json:')
+  //PrintLn(jroot.GetAsJson())
 
   return 0
 endfunc

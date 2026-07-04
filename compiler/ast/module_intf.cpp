@@ -546,7 +546,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 string OModuleIntf::DqmIfBuildOptions() const
 {
   string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1;module=" + name;
-  if (g_opt.dbg_info)      result += ";g";
+  if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (ELtoMode::FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)

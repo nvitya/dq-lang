@@ -44,8 +44,11 @@ void ll_init_debug_info()
   di_builder = new LlDiBuilder(*ll_module);
 
   OScFile * pfile = g_compiler->scf->curfile;
-  di_main_file = di_builder->createFile(pfile->name, ".");
-  pfile->di_file = di_main_file;
+  if (!pfile->di_file)
+  {
+    pfile->di_file = di_builder->createFile(pfile->name, ExtractFilePath(pfile->fullpath));
+  }
+  di_main_file = pfile->di_file;
   di_unit = di_builder->createCompileUnit(llvm::dwarf::DW_LANG_C, di_main_file, "dqc", false, "", 0);
 }
 

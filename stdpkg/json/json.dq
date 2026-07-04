@@ -33,12 +33,17 @@ public
   function AddStr(aname : str, avalue : str) -> OJson
   function AddNum(aname : str, avalue : float) -> OJson
   function AddObj(aname : str) -> OJson
+  function AddArr(aname : str) -> OJson
 
   function GetAsStr() -> str
   function SetAsStr(avalue : str)
 
   function GetAsNum() -> float
   function SetAsNum(avalue : float)
+
+  function AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
+
+  function GetAsJson(compact : bool = false) -> str
 
 public
   property name      : str    read GetName
@@ -107,6 +112,12 @@ function OJson.AddObj(aname : str) -> OJson:
   m_children.Append(result)
 endfunc
 
+function OJson.AddArr(aname : str) -> OJson:
+  result = new OJson(self, nkArray)
+  result.m_name = aname
+  m_children.Append(result)
+endfunc
+
 function OJson.GetAsStr() -> str:
   if m_kind == nkString:
     return m_value.AsStr('')
@@ -119,7 +130,7 @@ function OJson.GetAsStr() -> str:
   endif
 
   // TODO: return compact JSON for arrays and objects
-  return '<json>'
+  return '{}'
 endfunc
 
 function OJson.SetAsStr(avalue : str):
@@ -141,4 +152,38 @@ function OJson.SetAsNum(avalue : float):
   endif
   m_kind  = nkNumber
   m_value = avalue
+endfunc
+
+function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding string reallocations
+  if m_kind == nkNull:
+    rstr.Add('null')
+  elif m_kind == nkString:
+    rstr.AddFmt('"{}"', [m_value])
+  elif m_kind == nkNumber  or m_kind == nkBool:
+    rstr.AddFmt('{}', [m_value])
+  elif m_kind == nkArray:
+    rstr.Add('[')
+    for i : int = 0  count m_children.length:
+      if i <> 0:
+        rstr.Add(',')
+      endif
+      m_children[i].AppendToJsonStr(rstr)
+    endfor
+    rstr.Add(']')
+  elif m_kind == nkObject:
+    rstr.Add('{')
+    for i : int = 0  count m_children.length:
+      if i <> 0:
+        rstr.Add(',')
+      endif
+      rstr.AddFmt('"{}":', [m_children[i].m_name])
+      m_children[i].AppendToJsonStr(rstr)
+    endfor
+    rstr.Add('}')
+  endif
+endfunc
+
+function OJson.GetAsJson(compact : bool = false) -> str:
+  result = ''
+  AppendToJsonStr(result)
 endfunc

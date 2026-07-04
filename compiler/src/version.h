@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.0"
+#define DQ_COMPILER_VERSION  "0.28.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.1:
+  - Debug info gen fixes
 v0.28.0:
   - Dynamic string (str) concatenation with the '+' operator
 v0.27.7:

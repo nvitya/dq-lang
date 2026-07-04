@@ -47,6 +47,7 @@ public
 
 public
   property name      : str    read GetName
+  property parent    : OJson  read m_parent
   property as_str    : str    read GetAsStr  write SetAsStr
   property as_num    : float  read GetAsNum  write SetAsNum
 

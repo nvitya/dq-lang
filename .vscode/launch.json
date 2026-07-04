@@ -2,6 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "DQ: Debug configured target",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${config:dq.debugTarget}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/${config:dq.debugCwd}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${workspaceFolder}/.vscode/gdb_wrapper.sh",
+            "preLaunchTask": "dq: build configured target"
+        },
+        {
             "name": "DQ: Debug active file",
             "type": "cppdbg",
             "request": "launch",

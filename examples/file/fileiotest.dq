@@ -11,14 +11,30 @@ endstruct
 function *Main() -> int:
   PrintLn('DQ File IO Test')
 
+  DirCreate('.tmp', true)
+
   var fw <- OFile()
-  fw.Open('testfile.bin', 'w')
+  fw.Open('.tmp/testfile.bin', 'w')
   fw.WriteBytes([1, 2, 3, 4, 5, 0xff])
   fw.Close()
 
-  fw.Open('outfile.txt', 'w')
+  fw.Open('.tmp/outfile.txt', 'w')
   fw.WriteText('hello world.')
   fw.Close()
+
+  DirCreate('.tmp/nested/io', true)
+  FileWriteText('.tmp/nested/io/outfile.txt', 'nested hello.')
+  PrintLn('nested file exists: {}', [FileExists('.tmp/nested/io/outfile.txt')])
+
+  DirCreate('.tmp/remove-me')
+  DirRemove('.tmp/remove-me')
+  PrintLn('removed dir exists: {}', [DirExists('.tmp/remove-me')])
+
+  PrintLn('path translated: {}', [PathTranslateSeparators('c:\\temp\\file.txt')])
+  PrintLn('path dirname: {}', [PathDirName('dir/sub/file.txt')])
+  PrintLn('path filename: {}', [PathFileName('dir/sub/file.txt')])
+  PrintLn('path fileext: {}', [PathFileExt('dir/sub/file.txt')])
+  PrintLn('path dotfile ext: "{}"', [PathFileExt('.profile')])
 
   var s : str
   var f <- OFile()
@@ -35,6 +51,7 @@ function *Main() -> int:
   PrintLn('curpos: {}', [f.position])
 
   f.position = 0
+
   var barr : [*]byte = f.ReadBytes()
   PrintLn('barr.length = {}', [barr.length])
 
@@ -44,7 +61,7 @@ function *Main() -> int:
   st.ival = 10000
   st.fval = 3.14
 
-  FileWrite('structfile.bin', &st, SizeOf(st))
+  FileWrite('.tmp/structfile.bin', &st, SizeOf(st))
 
   return 0
 endfunc

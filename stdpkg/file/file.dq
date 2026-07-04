@@ -4,12 +4,10 @@ object EFileError(Exception):
 endobj
 
 object OFile:
-private
   m_filename : str
   m_fmode    : cstring(7)
   m_fhandle  : pointer  // internal libc type
 
-public
   function *Create()
   function *Destroy()
   function Open(afname : strview, afmode : strview)
@@ -43,6 +41,16 @@ function FileWrite(afname : strview, dataptr : pointer, datalen : int64)
 function FileWriteText(afname : strview, adata : strview)
 function FileWriteBytes(afname : strview, adata : []byte)
 
+function FileExists(afname : strview) -> bool
+
+function DirExists(adir : strview) -> bool
+function DirCreate(adir : strview, aforce : bool = false)
+function DirRemove(adir : strview)
+
+function PathTranslateSeparators(apath : str) -> str
+function PathDirName(apath : str) -> str
+function PathFileName(apath : str) -> str
+function PathFileExt(apath : str) -> str
 
 implementation
 
@@ -53,6 +61,170 @@ function libc_fseek(stream : pointer, offset : int, origin : int) -> int  [[exte
 function libc_ftell(stream : pointer) -> int                              [[external('ftell')]]
 function libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint   [[external('fread')]]
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+function libc_access(pathname : ^cchar, mode : int) -> int                [[external('access')]]
+function libc_mkdir(pathname : ^cchar, mode : uint) -> int                [[external('mkdir')]]
+function libc_rmdir(pathname : ^cchar) -> int                             [[external('rmdir')]]
+function libc_opendir(name : ^cchar) -> pointer                           [[external('opendir')]]
+function libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
+
+//--------------------------------------------------------------------------
+
+const DIR_MODE : uint = 511
+const ACCESS_EXISTS : int = 0
+
+function FileExists(afname : strview) -> bool:
+  if afname == '':
+    return false
+  endif
+
+  if DirExists(afname):
+    return false
+  endif
+
+  var path : str = afname
+  return libc_access(^cchar(&path[0]), ACCESS_EXISTS) == 0
+endfunc
+
+function DirExists(adir : strview) -> bool:
+  if adir == '':
+    return false
+  endif
+
+  var path : str = adir
+  var dir : pointer = libc_opendir(^cchar(&path[0]))
+  if dir == null:
+    return false
+  endif
+
+  libc_closedir(dir)
+  return true
+endfunc
+
+function CreateOneDir(adir : strview):
+  if adir == '':
+    return
+  endif
+
+  var path : str = adir
+
+  if DirExists(path):
+    return
+  endif
+
+  if libc_mkdir(^cchar(&path[0]), DIR_MODE) <> 0:
+    if not DirExists(path):
+      raise EFileError('Directory create error: {}', [path])
+    endif
+  endif
+endfunc
+
+function DirCreate(adir : strview, aforce : bool = false):
+  if adir == '':
+    raise EFileError('DirCreate: empty directory name')
+  endif
+
+  var path : str = adir
+
+  if not aforce:
+    if DirExists(path):
+      raise EFileError('DirCreate: directory already exists: {}', [path])
+    endif
+
+    if libc_mkdir(^cchar(&path[0]), DIR_MODE) <> 0:
+      if not DirExists(path):
+        raise EFileError('Directory create error: {}', [path])
+      endif
+    endif
+    return
+  endif
+
+  for i : int = 0 count path.length:
+    if path[i] == '/':
+      if i > 0:
+        CreateOneDir(path[:i])
+      endif
+    endif
+  endfor
+
+  CreateOneDir(path)
+endfunc
+
+function DirRemove(adir : strview):
+  if adir == '':
+    raise EFileError('DirRemove: empty directory name')
+  endif
+
+  var path : str = adir
+  if not DirExists(path):
+    raise EFileError('DirRemove: directory does not exist: {}', [path])
+  endif
+
+  if libc_rmdir(^cchar(&path[0])) <> 0:
+    if DirExists(path):
+      raise EFileError('Directory remove error: {}', [path])
+    endif
+  endif
+endfunc
+
+//--------------------------------------------------------------------------
+
+function PathTranslateSeparators(apath : str) -> str:
+  result = apath
+
+  for i : int = 0 count result.length:
+    if result[i] == char(92):
+      result[i] = '/'
+    endif
+  endfor
+endfunc
+
+function PathLastSeparator(apath : str) -> int:
+  for i : int = int(apath.length) - 1 downto 0:
+    if apath[i] == '/':
+      return i
+    endif
+  endfor
+
+  return -1
+endfunc
+
+function PathDirName(apath : str) -> str:
+  var path : str = PathTranslateSeparators(apath)
+  var sep : int = PathLastSeparator(path)
+
+  if sep < 0:
+    return ''
+  endif
+
+  if sep == 0:
+    return '/'
+  endif
+
+  return path[:sep]
+endfunc
+
+function PathFileName(apath : str) -> str:
+  var path : str = PathTranslateSeparators(apath)
+  var sep : int = PathLastSeparator(path)
+
+  if sep < 0:
+    return path
+  endif
+
+  return path[sep + 1:]
+endfunc
+
+function PathFileExt(apath : str) -> str:
+  var fname : str = PathFileName(apath)
+
+  for i : int = int(fname.length) - 1 downto 1:
+    if fname[i] == '.':
+      return fname[i:]
+    endif
+  endfor
+
+  return ''
+endfunc
 
 //--------------------------------------------------------------------------
 

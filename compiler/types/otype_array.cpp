@@ -120,6 +120,16 @@ static LlValue * IntExprValue(OScope * scope, OExpr * expr)
   return ToNativeUInt(expr->Generate(scope));
 }
 
+static OType * DynArrayElementStorageType(OTypeDynArray * dyntype)
+{
+  OType * elemtype = dyntype->elemtype->ResolveAlias();
+  if (TK_OBJECT == elemtype->kind)
+  {
+    return elemtype->GetPointerType();
+  }
+  return elemtype;
+}
+
 static string SanitizeLlName(const string & src)
 {
   string result;
@@ -272,13 +282,13 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
     ptrtype, ptrtype, ptrtype, ptrtype
   };
   auto * ti_type = llvm::StructType::get(ll_ctx, fields);
-  OType * elemtype = dyntype->elemtype->ResolveAlias();
-  llvm::Function * ll_destroy_func = GetTypeDestroyFunc(elemtype);
+  OType * storage_type = DynArrayElementStorageType(dyntype);
+  llvm::Function * ll_destroy_func = GetTypeDestroyFunc(storage_type);
 
   vector<LlConst *> values = {
-    llvm::ConstantInt::get(i32type, elemtype->bytesize),
+    llvm::ConstantInt::get(i32type, storage_type->bytesize),
     llvm::ConstantInt::get(i16type, 0),
-    llvm::ConstantInt::get(i8type, uint8_t(elemtype->kind)),
+    llvm::ConstantInt::get(i8type, uint8_t(storage_type->kind)),
     llvm::ConstantInt::get(i8type, 0),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
     (ll_destroy_func ? static_cast<llvm::Constant *>(ll_destroy_func) : static_cast<llvm::Constant *>(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)))),
@@ -560,7 +570,7 @@ void GenerateDynArraySetCapacity(OScope * scope, OTypeDynArray * dyntype, LlValu
 
 void GenerateDynArrayAppend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.append.value");
+  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.append.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), tmp, LlOne()});
 }
@@ -575,7 +585,7 @@ void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValu
 
 void GenerateDynArrayPrepend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.prepend.value");
+  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.prepend.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), tmp, LlOne()});
 }
@@ -591,7 +601,7 @@ void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlVal
 void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * value)
 {
   LlValue * idx = IntExprValue(scope, index);
-  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, "dyn.insert.value");
+  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.insert.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, tmp, LlOne()});
 }
@@ -626,9 +636,9 @@ LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue
 LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, bool first)
 {
   (void)scope;
-  LlValue * tmp = CreateEntryBlockAlloca(dyntype->elemtype->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
   CallDynArrayFunc(first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
-  return ll_builder.CreateLoad(dyntype->elemtype->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
+  return ll_builder.CreateLoad(DynArrayElementStorageType(dyntype)->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
 }
 
 static bool ConvertArrayLiteralElements(OArrayLit * arrlit, OType * elemtype, uint32_t arraylength, uint32_t aflags)

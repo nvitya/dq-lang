@@ -604,8 +604,31 @@ LlValue * OLValueIndex::Generate(OScope * scope)
   {
     return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
   }
+  if (IsObjectReferenceExpr())
+  {
+    return GenerateObjectAddress(scope);
+  }
 
   return OLValueExpr::Generate(scope);
+}
+
+bool OLValueIndex::IsObjectReferenceExpr() const
+{
+  OType * resolved_container = containertype ? containertype->ResolveAlias() : nullptr;
+  OType * resolved_type = ptype ? ptype->ResolveAlias() : nullptr;
+  return resolved_container && resolved_type
+      && (TK_DYN_ARRAY == resolved_container->kind)
+      && (TK_OBJECT == resolved_type->kind);
+}
+
+LlValue * OLValueIndex::GenerateObjectAddress(OScope * scope)
+{
+  if (IsObjectReferenceExpr())
+  {
+    LlValue * ll_slot = GenerateAddress(scope);
+    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "index.objref");
+  }
+  return OLValueExpr::GenerateObjectAddress(scope);
 }
 
 /* ctor */ OArraySliceExpr::OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,

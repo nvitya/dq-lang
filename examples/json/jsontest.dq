@@ -14,13 +14,9 @@ function *Main() -> int:
   var jn : OJson
 
   jns = jroot.AddStr('strnode', 'hello')
-
-  PrintLn('as json:')
-  PrintLn(jroot.GetAsJson())
-
-
   jnn = jroot.AddNum('numnode', 3.14)
   jno = jroot.AddObj('objnode')
+
   jn = jno.AddStr('substr', 'abc')
   jn = jno.AddNum('subnum', 42)
 
@@ -31,8 +27,8 @@ function *Main() -> int:
 
   PrintLn('"{}" = "{}"', [jn.name, jn.as_num])
 
-  //PrintLn('as json:')
-  //PrintLn(jroot.GetAsJson())
+  PrintLn('as json:')
+  PrintLn(jroot.GetAsJson())
 
   return 0
 endfunc

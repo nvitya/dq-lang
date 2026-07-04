@@ -239,4 +239,3 @@ def register_dq_printers(objfile=None):
 
 
 register_dq_printers()
-print("DQ GDB pretty-printers loaded")

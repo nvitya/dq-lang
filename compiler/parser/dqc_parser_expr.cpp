@@ -1609,6 +1609,11 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     return free_and_fail();
   }
 
+  if (!EnsureDynArrayRtlUse())
+  {
+    return free_and_fail();
+  }
+
   OType * rettype = nullptr;
   if (DYNM_CLONE == dynmethod)
   {
@@ -2204,16 +2209,28 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
         {
           if ("length" == membername)
           {
+            if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
+            {
+              return nullptr;
+            }
             result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_LENGTH);
             continue;
           }
           if ((TK_DYN_ARRAY == tk) && ("capacity" == membername))
           {
+            if (!EnsureDynArrayRtlUse())
+            {
+              return nullptr;
+            }
             result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_CAPACITY);
             continue;
           }
           if ((TK_DYN_ARRAY == tk) && ("refcount" == membername))
           {
+            if (!EnsureDynArrayRtlUse())
+            {
+              return nullptr;
+            }
             result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_REFCOUNT);
             continue;
           }
@@ -2399,6 +2416,10 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
            or TK_DYNSTR == tk or TK_STRVIEW == tk)
           and scf->CheckSymbol("["))
       {
+        if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
+        {
+          return nullptr;
+        }
         if (auto * property = dynamic_cast<OPropertyExpr *>(lval))
         {
           Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);

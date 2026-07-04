@@ -10,54 +10,10 @@
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "sourceFileMap": {
-                "/lindata/workvc": "/workvc"
-            },
-            "externalConsole": true,
-            "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "preLaunchTask": "dq: build active file",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Load DQ pretty-printers",
-                    "text": "source ${workspaceFolder}/.gdb/dq_printers.py",
-                    "ignoreFailures": false
-                }
-            ]
-        },
-        {
-            "name": "DQ: Debug active file (internal console)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${fileDirname}",
-            "environment": [],
-            "sourceFileMap": {
-                "/lindata/workvc": "/workvc"
-            },
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "preLaunchTask": "dq: build active file",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Load DQ pretty-printers",
-                    "text": "source ${workspaceFolder}/.gdb/dq_printers.py",
-                    "ignoreFailures": false
-                }
-            ]
+            "miDebuggerPath": "${workspaceFolder}/.vscode/gdb_wrapper.sh",
+            "preLaunchTask": "dq: build active file"
         },
         {
             "name": "CMake Debug",
@@ -70,10 +26,6 @@
 
             "stopAtEntry": false,
 
-            "sourceFileMap": {
-                "/lindata/workvc": "/workvc"
-            },
-
             "cwd": "${workspaceFolder}",
             "environment": [
                 {
@@ -84,6 +36,11 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
+                {
+                    "description": "Disable debuginfod",
+                    "text": "set debuginfod enabled off",
+                    "ignoreFailures": true
+                },
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",

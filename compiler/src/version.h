@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.1"
+#define DQ_COMPILER_VERSION  "0.28.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.2:
+  - Dynamic array of objects handling fixes
 v0.28.1:
   - Debug info gen fixes
 v0.28.0:

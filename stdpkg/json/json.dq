@@ -58,12 +58,14 @@ use strutils
 
 function OJson.*Create()  [[overload]]:
   m_name = ''
+  m_children = []
   m_parent = null
   m_kind = nkObject
 endfunc
 
 function OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
   m_name = ''
+  m_children = []
   m_parent = aparent;
   m_kind = akind
 endfunc

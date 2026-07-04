@@ -131,6 +131,8 @@ public:
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
+  bool       IsObjectReferenceExpr() const override;
+  LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };

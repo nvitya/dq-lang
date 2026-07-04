@@ -102,6 +102,7 @@ LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * st
                               OExpr * end_expr, bool end_inclusive);
 LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right);
 LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right);
+LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalue, OExpr * right);
 void GenerateStringCreate(OScope * scope, LlValue * straddr);
 void GenerateStringIncRef(OScope * scope, LlValue * straddr);
 void GenerateStringDestroy(OScope * scope, LlValue * straddr);

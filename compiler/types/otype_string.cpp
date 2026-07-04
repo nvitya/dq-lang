@@ -510,6 +510,23 @@ LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right)
   return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
 }
 
+LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalue, OExpr * right)
+{
+  LlValue * lefttmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.left");
+  ll_builder.CreateStore(leftvalue, lefttmp);
+  LlValue * ldesc = TextInfoAlloca();
+  CallDynStrFunc("DynStrGetFullView", {lefttmp, ldesc});
+
+  LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
+  GenerateStringCreate(scope, tmp);
+  CallDynStrFunc("DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc("DynStrAppend", {tmp, ldesc, LlI32(-1)});
+  EmitExpressionExceptionCheck(scope);
+  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  EmitExpressionExceptionCheck(scope);
+  return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
+}
+
 void GenerateStringCreate(OScope * scope, LlValue * straddr)
 {
   (void)scope;

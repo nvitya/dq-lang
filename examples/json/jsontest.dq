@@ -14,7 +14,8 @@ function *Main() -> int:
   var jn : OJson
 
   jns = jroot.AddStr('strnode', 'hello')
-  jns.as_str = jns.as_str + '?x'  // <-- allocate a new (dynamic) str and append
+  jns.as_str = jns.as_str + '?'  // <-- allocate a new (dynamic) str and append
+  jns.as_str += '!'
 
   jnn = jroot.AddNum('numnode', 3.14)
   jno = jroot.AddObj('objnode')

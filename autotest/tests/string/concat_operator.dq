@@ -45,6 +45,11 @@ function *Main() -> int:
   PrintText("str_cchar", s + cc); //?check("str_cchar", '[3] "ab!"')
   PrintText("literal_literal", "ij" + "kl"); //?check("literal_literal", '[4] "ijkl"')
 
+  var mod : str = "mn";
+  mod += '?';
+  mod += "op";
+  PrintText("modify_assign", mod); //?check("modify_assign", '[5] "mn?op"')
+
   var copy : str = s + "";
   copy[0] = 'X';
   PrintText("concat_copy_source", s); //?check("concat_copy_source", '[2] "ab"')

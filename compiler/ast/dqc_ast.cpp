@@ -1685,6 +1685,22 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
         return false;
       }
     }
+    else if (BINOP_NONE != op && TK_DYNSTR == property->ptype->ResolveAlias()->kind)
+    {
+      if (BINOP_ADD != op || !IsTextSourceType(rightexpr->ResolvedType()))
+      {
+        Error(DQERR_TYPEMISM_FOR_OP, property->ptype->name, GetBinopSymbol(op), rightexpr->ptype->name);
+        delete leftexpr;
+        delete rightexpr;
+        return false;
+      }
+      if (!EnsureDynStringRtlUseForStringTypes())
+      {
+        delete leftexpr;
+        delete rightexpr;
+        return false;
+      }
+    }
     else if (!CheckAssignType(property->ptype, &rightexpr, "Assignment"))
     {
       delete leftexpr;
@@ -1754,6 +1770,25 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
       return false;
     }
 
+    curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, leftexpr, op, rightexpr));
+    return true;
+  }
+
+  if (BINOP_NONE != op && TK_DYNSTR == targettype->ResolveAlias()->kind)
+  {
+    if (BINOP_ADD != op || !IsTextSourceType(rightexpr->ResolvedType()))
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, targettype->name, GetBinopSymbol(op), rightexpr->ptype->name);
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
+    if (!EnsureDynStringRtlUseForStringTypes())
+    {
+      delete leftexpr;
+      delete rightexpr;
+      return false;
+    }
     curblock->AddStatement(new OStmtModifyAssign(scpos_statement_start, leftexpr, op, rightexpr));
     return true;
   }

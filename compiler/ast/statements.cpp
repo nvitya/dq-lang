@@ -484,6 +484,14 @@ void OStmtModifyAssign::Generate(OScope * scope)
   LlValue * ll_addr = target->GenerateAddress(scope);
   OType * valtype = target->ptype;
 
+  if (TK_DYNSTR == valtype->ResolveAlias()->kind && BINOP_ADD == op)
+  {
+    LlValue * ll_newval = GenerateStringConcat(scope, target, value);
+    GenerateStringDestroy(scope, ll_addr);
+    ll_builder.CreateStore(ll_newval, ll_addr);
+    return;
+  }
+
   // Load current value
   LlValue * ll_curval = ll_builder.CreateLoad(valtype->GetLlType(), ll_addr, "cur");
   LlValue * ll_mod_value = value->Generate(scope);

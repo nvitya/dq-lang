@@ -933,8 +933,16 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
     ll_curval = ll_builder.CreateLoad(ptype->GetLlType(), ll_addr, "property");
   }
 
-  LlValue * ll_mod_value = value->Generate(scope);
-  LlValue * ll_newval = GenerateModifyAssignValue(ptype, op, ll_curval, ll_mod_value);
+  LlValue * ll_newval = nullptr;
+  if (TK_DYNSTR == ptype->ResolveAlias()->kind && BINOP_ADD == op)
+  {
+    ll_newval = GenerateStringConcatFromStringValue(scope, ll_curval, value);
+  }
+  else
+  {
+    LlValue * ll_mod_value = value->Generate(scope);
+    ll_newval = GenerateModifyAssignValue(ptype, op, ll_curval, ll_mod_value);
+  }
 
   if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
   {
@@ -958,6 +966,10 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
   {
     LlValue * ll_addr = GeneratePropertyFieldAddress(
         scope, this, property->write_accessor, property->write_decl_type, ll_receiver);
+    if (TK_DYNSTR == ptype->ResolveAlias()->kind && BINOP_ADD == op)
+    {
+      GenerateStringDestroy(scope, ll_addr);
+    }
     ll_builder.CreateStore(ll_newval, ll_addr);
   }
 }

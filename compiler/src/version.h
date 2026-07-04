@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.27.6"
+#define DQ_COMPILER_VERSION  "0.27.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.27.7:
+  - Compiler fixes for object and dynamic array self-referencing
 v0.27.6:
   - Exception handling fix for object methods
   - file module

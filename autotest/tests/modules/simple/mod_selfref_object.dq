@@ -1,0 +1,9 @@
+//?notest
+
+object OSelfRefObject:
+  parent   : OSelfRefObject
+  children : [*]OSelfRefObject
+  value    : int
+endobj
+
+implementation

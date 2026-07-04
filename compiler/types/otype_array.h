@@ -119,7 +119,9 @@ public:
 
   void EnsureLayout() override
   {
-    elemtype->EnsureLayout();
+    // The dynamic-array value is only a manager pointer. Element layout is
+    // needed later by operations that allocate/copy elements, not by the
+    // descriptor itself; forcing it here rejects recursive owner types.
     bytesize = TARGET_PTRSIZE;
     alignsize = TARGET_PTRSIZE;
   }

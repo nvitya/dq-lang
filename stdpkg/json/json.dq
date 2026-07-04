@@ -1,0 +1,29 @@
+// DQ JSON Interface
+
+object EJson(Exception):
+endobj
+
+enum NJsonNodeKind =
+(
+  nkNull,    // The literal value null
+  nkBool,    // The literal values true or false
+  nkNumber,  // A number value such as 123, 1.23e2, or -1.5
+  nkString,  // A string such as "hello\nworld!"
+  nkObject,  // Object such as { }
+  nkArray    // Array such as [ ]
+)
+
+object OJson:
+private
+  m_parent   : OJson
+  m_children : [*]OJson  // <-- this line causes compile error
+
+  m_name  : str
+  m_kind  : NJsonNodeKind = nkNull
+  m_value : str
+
+public
+
+endobj
+
+implementation

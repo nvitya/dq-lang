@@ -2358,9 +2358,15 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
 
   OCompoundType * ctype = (ais_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
                                       : new OCompoundType(declname, scope_pub));
-  if (!reader.NextRec())
+  ctype->incomplete = true;
+  if (!AddPublicType(ctype))
   {
     delete ctype;
+    return false;
+  }
+
+  if (!reader.NextRec())
+  {
     return false;
   }
 
@@ -2371,7 +2377,6 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     {
       if (!reader.ExpectEmpty(ais_object ? DQMIF_OBJ_END : DQMIF_STRUCT_END))
       {
-        delete ctype;
         return false;
       }
       break;
@@ -2381,7 +2386,6 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       int32_t bytesize = 0;
       if (!reader.ReadI32(bytesize) || (bytesize < 0) || !reader.NextRec())
       {
-        delete ctype;
         return reader.Fail(format("Invalid DQM interface size for {}", declname));
       }
       ctype->bytesize = uint32_t(bytesize);
@@ -2391,14 +2395,12 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       string basename;
       if (!reader.ReadString(basename) || !reader.NextRec())
       {
-        delete ctype;
         return false;
       }
       OType * basetype = scope_pub->FindType(basename);
       OCompoundType * base_compound = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
       if (!base_compound || (base_compound->kind != ctype->kind))
       {
-        delete ctype;
         return reader.Fail(format("Invalid DQM interface base compound {} for {}", basename, declname));
       }
       if (auto * object_type = dynamic_cast<OTypeObject *>(ctype))
@@ -2414,7 +2416,6 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     {
       if (!ReadFieldDecl(reader, ctype) || !reader.NextRec())
       {
-        delete ctype;
         return false;
       }
     }
@@ -2422,7 +2423,6 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     {
       if (!ReadFunctionDecl(reader, ctype, true) || !reader.NextRec())
       {
-        delete ctype;
         return false;
       }
     }
@@ -2431,13 +2431,11 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       auto * object_type = dynamic_cast<OTypeObject *>(ctype);
       if (!ReadPropertyDecl(reader, object_type) || !reader.NextRec())
       {
-        delete ctype;
         return false;
       }
     }
     else
     {
-      delete ctype;
       return reader.Fail(format("Unexpected DQM interface compound record 0x{:04X}", reader.recid));
     }
   }
@@ -2446,9 +2444,10 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   {
     object_type->UpdateObjectInheritanceFlags();
   }
+  ctype->incomplete = false;
   ctype->layout_ready = true;
   ctype->manual_ll_layout = true;
-  return AddPublicType(ctype) != nullptr;
+  return true;
 }
 
 bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)

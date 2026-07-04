@@ -1,0 +1,20 @@
+// testing the DQ JSON library
+
+use print
+use json
+
+object OJsonX:
+private
+  m_parent   : OJsonX  // <-- this works locally
+  //m_children : [*]OJson
+  m_name  : str
+  m_kind  : NJsonNodeKind = nkNull
+  m_value : str
+
+endobj
+
+
+function *Main() -> int:
+  PrintLn('DQ JSON test')
+  return 0
+endfunc

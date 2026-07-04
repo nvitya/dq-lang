@@ -996,6 +996,19 @@ void OPropertyExpr::DeleteChildTree()
   }
 
   ptype = aleft->ptype;  // the right shuld be the same or compatible
+  auto is_concat_disambiguator = [](OType * type) -> bool
+  {
+    return IsStringFamilyTextType(type) || IsCCharPointerType(type);
+  };
+  if (BINOP_ADD == op
+      && IsTextSourceType(left->ResolvedType())
+      && IsTextSourceType(right->ResolvedType())
+      && (is_concat_disambiguator(left->ResolvedType()) || is_concat_disambiguator(right->ResolvedType())))
+  {
+    ptype = g_builtins->type_str;
+    return;
+  }
+
   if (TK_INT == ptype->kind)
   {
     if (TK_FLOAT == right->ptype->kind)
@@ -1013,6 +1026,11 @@ void OPropertyExpr::DeleteChildTree()
 
 LlValue * OBinExpr::Generate(OScope * scope)
 {
+  if (BINOP_ADD == op && TK_DYNSTR == ptype->kind)
+  {
+    return GenerateStringConcat(scope, left, right);
+  }
+
   LlValue * ll_left  = left->Generate(scope);
   LlValue * ll_right = right->Generate(scope);
 

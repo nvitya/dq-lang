@@ -16,14 +16,129 @@ enum NJsonNodeKind =
 object OJson:
 private
   m_parent   : OJson
-  m_children : [*]OJson  // <-- this line causes compile error
+  m_children : [*]OJson
 
   m_name  : str
-  m_kind  : NJsonNodeKind = nkNull
-  m_value : str
+  m_kind  : NJsonNodeKind = nkObject
+  m_value : anyvalue
 
 public
+  function *Create()  [[overload]]
+  function *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
+  function *Destroy()
+
+  function Clear()
+  function GetName() -> str
+
+  function AddStr(aname : str, avalue : str) -> OJson
+  function AddNum(aname : str, avalue : float) -> OJson
+  function AddObj(aname : str) -> OJson
+
+  function GetAsStr() -> str
+  function SetAsStr(avalue : str)
+
+  function GetAsNum() -> float
+  function SetAsNum(avalue : float)
+
+public
+  property name      : str    read GetName
+  property as_str    : str    read GetAsStr  write SetAsStr
+  property as_num    : float  read GetAsNum  write SetAsNum
 
 endobj
 
 implementation
+
+use strutils
+
+function OJson.*Create()  [[overload]]:
+  m_name = ''
+  m_parent = null
+  m_kind = nkObject
+endfunc
+
+function OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
+  m_name = ''
+  m_parent = aparent;
+  m_kind = akind
+endfunc
+
+function OJson.*Destroy():
+  Clear()
+endfunc
+
+function OJson.Clear():
+  for i : int = 0 count m_children.length:
+    delete m_children[i] = null
+  endfor
+  m_children = []
+endfunc
+
+function OJson.GetName() -> str:
+  if m_parent == null:
+    return '0'
+  endif
+
+  if m_parent.m_kind == nkArray:
+    return '?'
+  endif
+
+  return m_name
+endfunc
+
+
+function OJson.AddStr(aname : str, avalue : str) -> OJson:
+  result = new OJson(self, nkString)
+  result.m_name = aname
+  result.m_value = avalue
+  m_children.Append(result)
+endfunc
+
+function OJson.AddNum(aname : str, avalue : float) -> OJson:
+  result = new OJson(self, nkNumber)
+  result.m_name = aname
+  result.m_value = avalue
+  m_children.Append(result)
+endfunc
+
+function OJson.AddObj(aname : str) -> OJson:
+  result = new OJson(self, nkObject)
+  result.m_name = aname
+  m_children.Append(result)
+endfunc
+
+function OJson.GetAsStr() -> str:
+  if m_kind == nkString:
+    return m_value.AsStr('')
+  elif m_kind == nkNull:
+    return 'null'
+  elif m_kind == nkBool:
+    return iif(m_value.AsBool(false), 'true', 'false')
+  elif m_kind == nkNumber:
+    return @.Format('{}', [m_value.AsFloat(0)])
+  endif
+
+  // TODO: return compact JSON for arrays and objects
+  return '<json>'
+endfunc
+
+function OJson.SetAsStr(avalue : str):
+  if m_children <> []:
+    Clear()
+  endif
+  m_kind  = nkString
+  m_value = avalue
+endfunc
+
+
+function OJson.GetAsNum() -> float:
+  return m_value.AsFloat(0)
+endfunc
+
+function OJson.SetAsNum(avalue : float):
+  if m_children <> []:
+    Clear()
+  endif
+  m_kind  = nkNumber
+  m_value = avalue
+endfunc

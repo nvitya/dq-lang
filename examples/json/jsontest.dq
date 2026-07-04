@@ -2,19 +2,29 @@
 
 use print
 use json
-
-object OJsonX:
-private
-  m_parent   : OJsonX  // <-- this works locally
-  //m_children : [*]OJson
-  m_name  : str
-  m_kind  : NJsonNodeKind = nkNull
-  m_value : str
-
-endobj
-
+use strutils
 
 function *Main() -> int:
   PrintLn('DQ JSON test')
+
+  var jroot = new OJson()
+  var jns : OJson
+  var jnn : OJson
+  var jno : OJson
+  var jn : OJson
+
+  jns = jroot.AddStr('strnode', 'hello')
+  jns.as_str = jns.as_str + '?x'  // <-- allocate a new (dynamic) str and append
+
+  jnn = jroot.AddNum('numnode', 3.14)
+  jno = jroot.AddObj('objnode')
+  jn = jno.AddStr('substr', 'abc')
+  jn = jno.AddNum('subnum', 42)
+
+  PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
+  PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
+
+  PrintLn('"{}" = "{}"', [jn.name, jn.as_num])
+
   return 0
 endfunc

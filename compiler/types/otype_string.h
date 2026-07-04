@@ -89,6 +89,7 @@ enum EStringMethod
 bool IsTextSourceType(OType * type);
 bool IsStringComparableTextType(OType * type);
 bool IsStringFamilyTextType(OType * type);
+bool EnsureDynStringRtlUseForStringTypes();
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr);
 LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr);
 LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr);
@@ -100,6 +101,7 @@ void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index
 LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                               OExpr * end_expr, bool end_inclusive);
 LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right);
+LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right);
 void GenerateStringCreate(OScope * scope, LlValue * straddr);
 void GenerateStringIncRef(OScope * scope, LlValue * straddr);
 void GenerateStringDestroy(OScope * scope, LlValue * straddr);

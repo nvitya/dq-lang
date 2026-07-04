@@ -518,6 +518,21 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
     return nullptr;
   }
+  auto is_concat_disambiguator = [](OType * type) -> bool
+  {
+    return IsStringFamilyTextType(type) || IsCCharPointerType(type);
+  };
+  if (BINOP_ADD == op
+      && IsTextSourceType(left->ResolvedType())
+      && IsTextSourceType(right->ResolvedType())
+      && (is_concat_disambiguator(left->ResolvedType()) || is_concat_disambiguator(right->ResolvedType())))
+  {
+    if (!EnsureDynStringRtlUseForStringTypes())
+    {
+      return nullptr;
+    }
+    return new OBinExpr(op, newleft, newright);
+  }
   if ((op >= BINOP_IAND) and (op <= BINOP_ISHR))
   {
     if ((tkl != TK_INT) or (tkr != TK_INT))

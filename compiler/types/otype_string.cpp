@@ -27,7 +27,7 @@ static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
 static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
 static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
-static bool EnsureDynStringRtlUse()
+bool EnsureDynStringRtlUseForStringTypes()
 {
   if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
   {
@@ -232,7 +232,7 @@ static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
 static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
 {
   LlValue * straddr = nullptr;
-  if (auto * lval = dynamic_cast<OLValueExpr *>(expr))
+  if (auto * lval = dynamic_cast<OLValueExpr *>(expr); lval && !dynamic_cast<OPropertyExpr *>(expr))
   {
     straddr = lval->GenerateAddress(scope);
   }
@@ -498,6 +498,18 @@ LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right)
   return CallDynStrFunc("TextInfoEqual", {ldesc, rdesc});
 }
 
+LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right)
+{
+  LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
+  GenerateStringCreate(scope, tmp);
+  CallDynStrFunc("DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, left), LlI32(-1)});
+  EmitExpressionExceptionCheck(scope);
+  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  EmitExpressionExceptionCheck(scope);
+  return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
+}
+
 void GenerateStringCreate(OScope * scope, LlValue * straddr)
 {
   (void)scope;
@@ -703,7 +715,7 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
-      if (!EnsureDynStringRtlUse())
+      if (!EnsureDynStringRtlUseForStringTypes())
       {
         return false;
       }

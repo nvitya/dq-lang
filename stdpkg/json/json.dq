@@ -50,6 +50,8 @@ public
   function SaveToFile(afname : strview, apretty : bool = false)
   function LoadFromFile(afname : strview)
 
+  function Parse(astr : strview)
+
 public
   property name      : str    read GetName
   property parent    : OJson  read m_parent
@@ -265,4 +267,12 @@ endfunc
 
 function OJson.LoadFromFile(afname : strview):
   var jdata : str = @.FileReadText(afname)
+  Parse(jdata)
+endfunc
+
+function OJson.Parse(astr : strview):
+  Clear()
+  if m_parent <> null:
+
+  endif
 endfunc

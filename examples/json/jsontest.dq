@@ -37,7 +37,7 @@ function WriteTest():
   PrintLn('as json pretty:')
   PrintLn(jroot.pretty_json)
 
-  jroot.SaveToFile('test.json', true)
+  jroot.SaveToFile(TEST_FILE_NAME, true)
   PrintLn()
 endfunc
 
@@ -48,7 +48,9 @@ function ReadTest():
   var jn : OJson
   var jv : OJson
 
-  jroot.LoadFromFile('test.json')
+  jroot.LoadFromFile(TEST_FILE_NAME)
+
+  PrintLn()
 endfunc
 
 function *Main() -> int:

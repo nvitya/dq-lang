@@ -1,0 +1,23 @@
+use print
+use strparse
+use file
+
+function ParseText(atxt : strview):
+  PrintLn('--------------------------------')
+  var sp <- OStrParse(atxt)
+  sp.SkipSpaces()
+  if sp.CheckSymbol('{'):
+    PrintLn('expected object start found.')
+  endif
+endfunc
+
+function *Main() -> int:
+  PrintLn('Testing OStrParse')
+
+  var fdata : str = FileReadText('test.json')
+
+  PrintLn('Test file data:\n{}', [fdata])
+  ParseText(fdata)
+
+  return 0
+endfunc

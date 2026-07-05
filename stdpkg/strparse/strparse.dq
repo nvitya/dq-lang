@@ -1,0 +1,132 @@
+// only for 8-bit strings so far !
+
+object OStrParse:
+  bufstart : ^cchar
+  bufend   : ^cchar
+  readp    : ^cchar
+  prevp    : ^cchar
+  prevlen  : int
+
+  commentmarker       : char = '#'
+  float_decimal_point : char = '.'
+
+  function *Create()  [[overload]]
+  function *Create(astr : ^cchar, alen : int)  [[overload]]
+  function *Create(astr : strview)  [[overload]]
+
+  function Init(astr : ^cchar, alen : int)
+
+  function SkipSpaces(skiplineend : bool = true)
+  function SkipWhite()
+
+  function ReadTo(checkchars : strview) -> bool
+  function ReadToChar(achar : char) -> bool
+
+  function CheckSymbol(checkstring : strview) -> bool
+
+endobj
+
+implementation
+
+function OStrParse.*Create()  [[overload]]:
+  // no special init required
+endfunc
+
+function OStrParse.*Create(astr : strview)  [[overload]]:
+  Init(^cchar(&astr[0]), astr.length)
+endfunc
+
+function OStrParse.*Create(astr : ^cchar, alen : int)  [[overload]]:
+  Init(astr, alen)
+endfunc
+
+function OStrParse.Init(astr : ^cchar, alen : int):
+  bufstart = astr
+  bufend   = bufstart + alen
+
+  readp = bufstart
+  prevp = bufstart
+  prevlen = 0
+endfunc
+
+function OStrParse.SkipSpaces(skiplineend : bool = true):
+  var cp : ^cchar = readp
+  while cp < bufend  and ( cp^ == 32  or cp^ == 9  or (skiplineend and (cp^ == 13  or cp^ == 10)) ):
+    cp += 1
+  endwhile
+  readp = cp
+endfunc
+
+function OStrParse.SkipWhite():
+  while true:
+    SkipSpaces()
+    if readp < bufend  and readp^ == commentmarker:
+      ReadTo('\n\r')
+    else:
+      return
+    endif
+  endwhile
+endfunc
+
+function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
+  var cp      : ^cchar = readp
+  var ccstart : ^cchar = ^cchar(&checkchars[0])
+  var ccend   : ^cchar = ccstart + checkchars.length
+  var ccptr   : ^cchar
+
+  prevp = readp
+
+  while cp < bufend:
+    // check chars
+    ccptr = ccstart
+    while ccptr < ccend:
+      if ccptr^ == cp^:
+        prevlen = cp - readp
+        readp = cp
+        return true
+      endif
+      ccptr += 1
+    endwhile
+
+    cp += 1
+  endwhile
+
+  // end of buffer, store the remaining length:
+  prevlen = cp - readp
+  readp   = cp
+  return false
+endfunc
+
+function OStrParse.ReadToChar(achar : char) -> bool:
+  result = false
+  var cp : ^cchar = readp
+  prevp = readp
+  while cp < bufend:
+    if cp^ == achar:
+      result = true
+      break
+    endif
+    cp += 1
+  endwhile
+
+  prevlen = cp - readp
+  readp = cp
+endfunc
+
+function OStrParse.CheckSymbol(checkstring : strview) -> bool:
+  var cp    : ^cchar = readp
+  var csptr : ^cchar = ^cchar(&checkstring[0])
+  var csend : ^cchar = csptr + checkstring.length
+
+  while csptr < csend  and cp < bufend  and csptr^ == cp^:
+    csptr += 1
+    cp += 1
+  endwhile
+
+  if csptr != csend:
+    return false
+  endif
+
+  readp = cp
+  return true
+endfunc

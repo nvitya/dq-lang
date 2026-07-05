@@ -126,6 +126,10 @@ void OStmtBlock::Generate()
     bstmt->EmitDebugLocation(scope);
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
+    if (exception_checks)
+    {
+      EmitExpressionExceptionCheck(scope);
+    }
   }
 
   if (!ll_builder.GetInsertBlock()->getTerminator())

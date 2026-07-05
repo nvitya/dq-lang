@@ -6,9 +6,19 @@ function ParseText(atxt : strview):
   PrintLn('--------------------------------')
   var sp <- OStrParse(atxt)
   sp.SkipSpaces()
-  if sp.CheckSymbol('{'):
-    PrintLn('expected object start found.')
+  if not sp.CheckSymbol('{'):
+    raise Exception('object start not found.')
   endif
+  sp.SkipSpaces()
+  if not sp.CheckSymbol('"strnode"'):
+    raise Exception('strnode not found.')
+  endif
+  sp.SkipSpaces()
+  if not sp.CheckSymbol(';'):
+    raise Exception('":" expected')
+  endif
+
+  PrintLn('parsing finished.')
 endfunc
 
 function *Main() -> int:

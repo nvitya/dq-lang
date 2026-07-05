@@ -1,0 +1,27 @@
+// A raise inside an if body must stop the enclosing block before the next statement.
+
+use libc/stdio
+
+var reached : int = 0
+
+function ThrowFromIf():
+  if 1 == 1:
+    raise Exception("if throw")
+  endif
+  reached = 1
+  printf("exception.if_raise.after = reached\n")  //?ignore("exception.if_raise.after")
+endfunc
+
+function *Main() -> int:
+  try:
+    ThrowFromIf()
+    reached = 2
+  except Exception as e:
+    printf("exception.if_raise = ")
+    e.PrintMessage()
+    printf(" reached=%d\n", reached)
+    //?check("exception.if_raise", "if throw reached=0")
+  endtry
+
+  return 0
+endfunc

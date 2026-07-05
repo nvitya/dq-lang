@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.4"
+#define DQ_COMPILER_VERSION  "0.28.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.5:
+  - Exception propagation fix
 v0.28.4:
   - Working `const STR_CONST : cstring = 'constant'`
 v0.28.3:

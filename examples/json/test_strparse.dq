@@ -14,9 +14,21 @@ function ParseText(atxt : strview):
     raise Exception('strnode not found.')
   endif
   sp.SkipSpaces()
-  if not sp.CheckSymbol(';'):
+  if not sp.CheckSymbol(':'):
     raise Exception('":" expected')
   endif
+
+  if not sp.CheckSymbol('"'):
+    raise Exception('" expected')
+  endif
+
+  if not sp.ReadTo('"\n\r'):
+    raise Exception(' string end not found')
+  endif
+
+  var sv : str = sp.PrevStr()
+
+  PrintLn('String value = "{}"', [sv])
 
   PrintLn('parsing finished.')
 endfunc

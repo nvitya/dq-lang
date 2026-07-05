@@ -78,6 +78,7 @@ public:
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
   virtual bool IsObjectReferenceExpr() const { return false; }
   virtual bool IsFixedObjectStorageExpr() const { return false; }
+  virtual bool RequiresVolatileMemoryAccess() const { return false; }
   virtual LlValue * GenerateObjectAddress(OScope * scope);
 };
 
@@ -101,6 +102,7 @@ public:
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
+  bool       RequiresVolatileMemoryAccess() const override { return true; }
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;

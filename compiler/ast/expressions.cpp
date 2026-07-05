@@ -385,11 +385,17 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
 
 LlValue * OLValueDeref::Generate(OScope * scope)
 {
+  llvm::LoadInst * load = nullptr;
   if (TK_OBJECT == ptype->ResolveAlias()->kind)
   {
-    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), GenerateAddress(scope), "obj.deref");
+    load = ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), GenerateAddress(scope), "obj.deref");
   }
-  return OLValueExpr::Generate(scope);
+  else
+  {
+    load = ll_builder.CreateLoad(ptype->GetLlType(), GenerateAddress(scope), "ptr.deref");
+  }
+  load->setVolatile(true);
+  return load;
 }
 
 LlValue * OLValueDeref::GenerateObjectAddress(OScope * scope)

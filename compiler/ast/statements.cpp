@@ -60,7 +60,8 @@ static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, 
 }
 
 bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
-                                 LlValue * targetaddr, OExpr * value)
+                                 LlValue * targetaddr, OExpr * value,
+                                 bool volatile_store)
 {
   OType * resolved_type = targettype ? targettype->ResolveAlias() : nullptr;
   if (!resolved_type || !targetaddr || !value)
@@ -85,7 +86,8 @@ bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
     return cstrtype->GenerateStore(scope, targetaddr, value);
   }
 
-  ll_builder.CreateStore(value->Generate(scope), targetaddr);
+  llvm::StoreInst * store = ll_builder.CreateStore(value->Generate(scope), targetaddr);
+  store->setVolatile(volatile_store);
   return true;
 }
 
@@ -477,7 +479,7 @@ void OStmtAssign::Generate(OScope * scope)
   }
 
   LlValue * ll_addr = target->GenerateAddress(scope);
-  if (!GenerateAssignmentToAddress(scope, target->ptype, ll_addr, value))
+  if (!GenerateAssignmentToAddress(scope, target->ptype, ll_addr, value, target->RequiresVolatileMemoryAccess()))
   {
     throw logic_error("Unsupported assignment");
   }
@@ -497,10 +499,12 @@ void OStmtModifyAssign::Generate(OScope * scope)
   }
 
   // Load current value
-  LlValue * ll_curval = ll_builder.CreateLoad(valtype->GetLlType(), ll_addr, "cur");
+  llvm::LoadInst * ll_curval = ll_builder.CreateLoad(valtype->GetLlType(), ll_addr, "cur");
+  ll_curval->setVolatile(target->RequiresVolatileMemoryAccess());
   LlValue * ll_mod_value = value->Generate(scope);
   LlValue * ll_newval = GenerateModifyAssignValue(valtype, op, ll_curval, ll_mod_value);
-  ll_builder.CreateStore(ll_newval, ll_addr);
+  llvm::StoreInst * store = ll_builder.CreateStore(ll_newval, ll_addr);
+  store->setVolatile(target->RequiresVolatileMemoryAccess());
 }
 
 LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,

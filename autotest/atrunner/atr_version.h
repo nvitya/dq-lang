@@ -11,10 +11,11 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "0.0.13"
+#define ATR_VERSION  "0.0.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.0.14: //?check requires unique id always, one id cannot appear twice
 v0.0.13: //?check now requires two arguments, //?ignore must be used for patterns without "="
 v0.0.12: added //?notest or //?skip_test markers
 v0.0.11: parallel run termination fix

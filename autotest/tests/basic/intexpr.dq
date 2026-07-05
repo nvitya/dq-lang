@@ -168,5 +168,28 @@ function *Main() -> int:
   printf("SizeOf(int32) = %d\n", SizeOf(int32));              //?check('SizeOf(int32)', 4)
   printf("SizeOf(cstring(12)) = %d\n", SizeOf(cstring(12)));  //?check('SizeOf(cstring(12))', 13)
 
+  // implicit uint -> int conversions at substractions
+
+  // uint - uint      -> unsigned result
+  // uint - int       -> signed result
+  // uint - literal   -> signed result when the literal is not explicitly unsigned
+
+  var scuint  : uint = 3
+  var scminus : int = 5
+
+  if scuint - 5 > 0:
+    printf("scuint-5 = positive\n")
+  else:
+    printf("scuint-5 = negative\n")
+  endif
+  //?check('scuint-5', 'negative')
+
+  if scuint - scminus > 0:
+    printf("scuint-scminus = positive\n")
+  else:
+    printf("scuint-scminus = negative\n")
+  endif
+  //?check('scuint-scminus', 'negative')
+
   return 0;
 endfunc

@@ -269,52 +269,67 @@ void OTestFile::AnalyzeRunOutput()
       }
 
       // run checks
-      for (ORunCapture * cap : run_captures)
+      ORunCapture * idcap = nullptr;
+      if (id_and_value)
       {
-        if (id_and_value)
+        for (ORunCapture * cap : run_captures)
         {
           if (cap->strid == sid)
           {
-            char * valueptr = spl.readptr;
+            idcap = cap;
+            break;
+          }
+        }
 
-            if (cap->ignore)
+        if (idcap)
+        {
+          char * valueptr = spl.readptr;
+          bool value_matches = idcap->checkvalue.empty() or spl.CheckSymbol(idcap->checkvalue.c_str());
+
+          if (idcap->ignore)
+          {
+            if (value_matches)
             {
-              if (cap->checkvalue.empty() or spl.CheckSymbol(cap->checkvalue.c_str()))
-              {
-                cap->captured = true;
-                errstr = "";
-                waschecked = true;
-                break;
-              }
+              idcap->captured = true;
+              errstr = "";
+              waschecked = true;
             }
-            else if (cap->captured)
+          }
+          else if (idcap->captured)
+          {
+            errstr = "already captured";
+          }
+          else
+          {
+            idcap->captured = true;
+            if (value_matches)
             {
-              errstr = "already captured";
-            }
-            else if (not spl.CheckSymbol(cap->checkvalue.c_str()))
-            {
-              errstr = format("!= {}", cap->checkvalue);
+              errstr = "";
+              waschecked = true;
             }
             else
             {
-              cap->captured = true;
-              errstr = "";
-              waschecked = true;
-              break;
+              errstr = format("!= {}", idcap->checkvalue);
             }
-
-            spl.readptr = valueptr;
           }
+
+          spl.readptr = valueptr;
         }
-        else if (cap->ignore and cap->checkvalue.empty() and spl.CheckSymbol(cap->strid.c_str()))
+      }
+      else
+      {
+        for (ORunCapture * cap : run_captures)
         {
-          cap->captured = true;
-          waschecked = true;
-          break;
+          if (cap->ignore and cap->checkvalue.empty() and spl.CheckSymbol(cap->strid.c_str()))
+          {
+            cap->captured = true;
+            waschecked = true;
+            break;
+          }
         }
       }
 
-      if (not waschecked)
+      if (not waschecked and errstr.empty())
       {
         errstr = "unchecked";
       }

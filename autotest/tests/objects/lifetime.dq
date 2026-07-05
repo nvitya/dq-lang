@@ -3,16 +3,23 @@
 use libc/stdio;
 use ./lifetime_mod;
 
+var lifecycle_event : int = 0;
+
+function NextLifecycleEvent() -> int:
+  lifecycle_event += 1;
+  result = lifecycle_event;
+endfunc
+
 object OChild:
   id : int;
 
   function *Create(a : int):
     id = a;
-    @.printf("child.create = %d\n", id);
+    @.printf("child.create.%d = %d\n", @.NextLifecycleEvent(), id);
   endfunc
 
   function *Destroy():
-    @.printf("child.destroy = %d\n", id);
+    @.printf("child.destroy.%d = %d\n", @.NextLifecycleEvent(), id);
   endfunc
 endobj
 
@@ -26,11 +33,11 @@ object OBox:
   endfunc
 
   function *Destroy():
-    @.printf("box.destroy = %d %d\n", value, child.id);
+    @.printf("box.destroy.%d = %d %d\n", @.NextLifecycleEvent(), value, child.id);
   endfunc
 
   function Print():
-    @.printf("box.print = %d %d\n", value, child.id);
+    @.printf("box.print.%d = %d %d\n", @.NextLifecycleEvent(), value, child.id);
   endfunc
 endobj
 
@@ -55,33 +62,33 @@ function ReturnWithLocalObjects() -> int:
 endfunc
 
 function *Main() -> int:
-  printf("main = start\n"); //?check("child.create", 9)
+  printf("main = start\n"); //?check("child.create.1", 9)
                         //?check("main", "start")
 
   var heap_box : OBox = new OBox(4);
-  heap_box.Print();    //?check("child.create", 7)
-                       //?check("box.print", "7 7")
-  delete heap_box;     //?check("box.destroy", "7 7")
-                       //?check("child.destroy", 7)
+  heap_box.Print();    //?check("child.create.2", 7)
+                       //?check("box.print.3", "7 7")
+  delete heap_box;     //?check("box.destroy.4", "7 7")
+                       //?check("child.destroy.5", 7)
 
   var heap_member_no_base_dtor : OMemberNoBaseDtor = new OMemberNoBaseDtor();
-  delete heap_member_no_base_dtor; //?check("child.create", 33)
-                                   //?check("child.destroy", 33)
+  delete heap_member_no_base_dtor; //?check("child.create.6", 33)
+                                   //?check("child.destroy.7", 33)
 
   var local_box <- OBox(2);
-  local_box.Print();   //?check("child.create", 7)
-                       //?check("box.print", "5 7")
+  local_box.Print();   //?check("child.create.8", 7)
+                       //?check("box.print.9", "5 7")
 
   var mchild = new OModChild(9);
   delete mchild = null; //?check("modchild.create", 9)
                         //?check("modchild.destroy", 9)
 
-  var rr : int = ReturnWithLocalObjects(); //?check("child.create", 21)
-                                           //?check("child.create", 22)
-                                           //?check("child.destroy", 22)
-                                           //?check("child.destroy", 21)
+  var rr : int = ReturnWithLocalObjects(); //?check("child.create.10", 21)
+                                           //?check("child.create.11", 22)
+                                           //?check("child.destroy.12", 22)
+                                           //?check("child.destroy.13", 21)
   printf("return.cleanup = %d\n", rr); //?check("return.cleanup", 5)
 
-  return 0;            //?check("box.destroy", "5 7")
-                       //?check("child.destroy", 7)
+  return 0;            //?check("box.destroy.14", "5 7")
+                       //?check("child.destroy.15", 7)
 endfunc

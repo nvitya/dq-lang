@@ -40,8 +40,8 @@ function *Main() -> int:
       count += 1
       continue
     finally:
-      printf("finally.continue = %d\n", count)  //?check("finally.continue", 1)
-                                                   //?check("finally.continue", 2)
+      printf("finally.continue.%d = %d\n", count, count)  //?check("finally.continue.1", 1)
+                                                          //?check("finally.continue.2", 2)
     endtry
     count += 10
   endfor

@@ -47,6 +47,8 @@ public
   function GetAsJson() -> str
   function GetAsPrettyJson() -> str
 
+  function SaveToFile(afname : strview, apretty : bool = false)
+
 public
   property name      : str    read GetName
   property parent    : OJson  read m_parent
@@ -60,7 +62,7 @@ endobj
 
 implementation
 
-use strutils
+use strutils, file
 
 function OJson.*Create()  [[overload]]:
   m_name = ''
@@ -248,4 +250,14 @@ endfunc
 function OJson.GetAsPrettyJson() -> str:
   result = ''
   AppendToPrettyJsonStr(result, '')
+endfunc
+
+function OJson.SaveToFile(afname : strview, apretty : bool = false):
+  var s : str;
+  if apretty:
+    AppendToPrettyJsonStr(s, '')
+  else:
+    AppendToJsonStr(s)
+  endif
+  @.FileWriteText(afname, s)
 endfunc

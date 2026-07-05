@@ -37,5 +37,7 @@ function *Main() -> int:
   PrintLn('as json pretty:')
   PrintLn(jroot.pretty_json)
 
+  jroot.SaveToFile('test.json', true)
+
   return 0
 endfunc

@@ -16,9 +16,9 @@ function *Main() -> int:
   fmt.Format('tf-float = {}|{:.2f}|{:0+8.2f}|[{:-8.0f}]\n',
              [3.14, 1.995, 3.5, 3.5]); //?check('tf-float', '3.14|2.00|+0003.50|[4       ]')
 
-  var fa : [3]float = [1, 2, 3]
-  fmt.Format('tf-float-default = |{}|{}|{}|\n',
-             [fa[0], fa[1], fa[2]]); //?check('tf-float-default', '|1|2|3|')
+  var fa : [4]float = [1, 2, 3, 42]
+  fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',
+             [fa[0], fa[1], fa[2], fa[3]]); //?check('tf-float-default', '|1|2|3|42|')
 
   return 0;
 endfunc

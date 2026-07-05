@@ -118,6 +118,7 @@ public: // Moved from ODqCompParser
 protected:
   void    PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc);
   bool    HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright);
+  bool    HarmonizeIntegerSubtractionOperands(OExpr ** rleft, OExpr ** rright);
   bool    ResolveCommonPointerType(OExpr * leftexpr, OExpr * rightexpr, OType ** rresulttype);
   bool    ResolveCommonFuncRefType(OExpr * leftexpr, OExpr * rightexpr, OType ** rresulttype);
 

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.5"
+#define DQ_COMPILER_VERSION  "0.28.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.6:
+  - Integer conversion logic: uint - int -> int, int - uint -> int
 v0.28.5:
   - Exception propagation fix
 v0.28.4:

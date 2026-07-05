@@ -171,11 +171,20 @@ function *Main() -> int:
   // implicit uint -> int conversions at substractions
 
   // uint - uint      -> unsigned result
-  // uint - int       -> signed result
-  // uint - literal   -> signed result when the literal is not explicitly unsigned
+  // uint - int, int - uint       -> signed result
+  // uint - literal, literal - uint  -> signed result when the literal is not explicitly unsigned
 
   var scuint  : uint = 3
+  var scuint5 : uint = 5
+  var scsmall : int = 3
   var scminus : int = 5
+
+  if scuint - scuint5 > 0:
+    printf("scuint-scuint5 = positive\n")
+  else:
+    printf("scuint-scuint5 = negative\n")
+  endif
+  //?check('scuint-scuint5', 'positive')
 
   if scuint - 5 > 0:
     printf("scuint-5 = positive\n")
@@ -190,6 +199,27 @@ function *Main() -> int:
     printf("scuint-scminus = negative\n")
   endif
   //?check('scuint-scminus', 'negative')
+
+  if scuint - uint(5) > 0:
+    printf("scuint-uint(5) = positive\n")
+  else:
+    printf("scuint-uint(5) = negative\n")
+  endif
+  //?check('scuint-uint(5)', 'positive')
+
+  if 3 - scuint5 > 0:
+    printf("3-scuint5 = positive\n")
+  else:
+    printf("3-scuint5 = negative\n")
+  endif
+  //?check('3-scuint5', 'negative')
+
+  if scsmall - scuint5 > 0:
+    printf("scsmall-scuint5 = positive\n")
+  else:
+    printf("scsmall-scuint5 = negative\n")
+  endif
+  //?check('scsmall-scuint5', 'negative')
 
   return 0;
 endfunc

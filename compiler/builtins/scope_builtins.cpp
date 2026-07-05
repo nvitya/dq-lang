@@ -79,6 +79,26 @@ void OScopeBuiltins::Init()
   DefineType(new OTypeAlias("byte", type_uint8));
 }
 
+OTypeInt * OScopeBuiltins::FindIntType(uint8_t abitlength, bool asigned)
+{
+  if (asigned)
+  {
+    if (8  == abitlength) return type_int8;
+    if (16 == abitlength) return type_int16;
+    if (32 == abitlength) return type_int32;
+    if (64 == abitlength) return type_int64;
+  }
+  else
+  {
+    if (8  == abitlength) return type_uint8;
+    if (16 == abitlength) return type_uint16;
+    if (32 == abitlength) return type_uint32;
+    if (64 == abitlength) return type_uint64;
+  }
+
+  return nullptr;
+}
+
 void init_scope_builtins()
 {
   g_builtins = new OScopeBuiltins();

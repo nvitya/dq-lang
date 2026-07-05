@@ -420,6 +420,39 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright)
   return false;
 }
 
+bool ODqCompAst::HarmonizeIntegerSubtractionOperands(OExpr ** rleft, OExpr ** rright)
+{
+  if (!rleft || !rright || !*rleft || !*rright)
+  {
+    return false;
+  }
+
+  OTypeInt * intl = dynamic_cast<OTypeInt *>((*rleft)->ResolvedType());
+  OTypeInt * intr = dynamic_cast<OTypeInt *>((*rright)->ResolvedType());
+  if (!intl || !intr)
+  {
+    return false;
+  }
+
+  uint8_t bitlength = max(intl->bitlength, intr->bitlength);
+  bool result_signed = intl->issigned || intr->issigned;
+  OTypeInt * result_type = g_builtins->FindIntType(bitlength, result_signed);
+  if (!result_type)
+  {
+    return false;
+  }
+
+  if ((*rleft)->ResolvedType() != result_type)
+  {
+    *rleft = new OExprTypeConv(result_type, *rleft);
+  }
+  if ((*rright)->ResolvedType() != result_type)
+  {
+    *rright = new OExprTypeConv(result_type, *rright);
+  }
+  return true;
+}
+
 bool ODqCompAst::ResolveCommonPointerType(OExpr * leftexpr, OExpr * rightexpr, OType ** rresulttype)
 {
   if (!leftexpr || !rightexpr || !rresulttype)
@@ -572,17 +605,28 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   }
   else
   {
-    HarmonizeNumericOperands(&newleft, &newright);
-
     if ((TK_INT == tkl) and (TK_INT == tkr))
     {
-      OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
-      OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
-      if ((intl->bitlength == intr->bitlength) and (BINOP_DIV == op))
+      if (BINOP_SUB == op)
       {
-        newleft  = new OExprTypeConv(g_builtins->type_float, newleft);
-        newright = new OExprTypeConv(g_builtins->type_float, newright);
+        HarmonizeIntegerSubtractionOperands(&newleft, &newright);
       }
+      else
+      {
+        HarmonizeNumericOperands(&newleft, &newright);
+
+        OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
+        OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
+        if ((intl->bitlength == intr->bitlength) and (BINOP_DIV == op))
+        {
+          newleft  = new OExprTypeConv(g_builtins->type_float, newleft);
+          newright = new OExprTypeConv(g_builtins->type_float, newright);
+        }
+      }
+    }
+    else
+    {
+      HarmonizeNumericOperands(&newleft, &newright);
     }
   }
 

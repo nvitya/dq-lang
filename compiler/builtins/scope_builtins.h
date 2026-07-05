@@ -68,6 +68,7 @@ public:
   }
 
   void Init();
+  OTypeInt * FindIntType(uint8_t abitlength, bool asigned);
 };
 
 extern OScopeBuiltins *  g_builtins;

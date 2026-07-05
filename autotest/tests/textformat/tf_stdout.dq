@@ -14,7 +14,11 @@ function *Main() -> int:
              [0xC0DE, 0xC0DE, 0x2A, 0x2A]); //?check('tf-hex', 'c0de|C0DE|0000002A|[2a    ]')
 
   fmt.Format('tf-float = {}|{:.2f}|{:0+8.2f}|[{:-8.0f}]\n',
-             [3.14, 1.995, 3.5, 3.5]); //?check('tf-float', '3.140000|2.00|+0003.50|[4       ]')
+             [3.14, 1.995, 3.5, 3.5]); //?check('tf-float', '3.14|2.00|+0003.50|[4       ]')
+
+  var fa : [3]float = [1, 2, 3]
+  fmt.Format('tf-float-default = |{}|{}|{}|\n',
+             [fa[0], fa[1], fa[2]]); //?check('tf-float-default', '|1|2|3|')
 
   return 0;
 endfunc

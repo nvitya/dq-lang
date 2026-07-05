@@ -22,6 +22,11 @@ function *Main() -> int:
 
   jn.as_num = 46
 
+  jn = jroot.AddArr('arrnode')
+  jn.AddNum('', 1)
+  jn.AddNum('', 2)
+  jn.AddNum('', 3)
+
   PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
   PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
 

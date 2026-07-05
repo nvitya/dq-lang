@@ -567,7 +567,7 @@ function OTextFormatter.FormatFloat(v : float):
 
   var precision : int = fmtspec.precision
   if precision < 0:
-    precision = 6
+    precision = 18
   elif precision > 18:
     precision = 18
   endif
@@ -580,6 +580,14 @@ function OTextFormatter.FormatFloat(v : float):
   var scaled  : uint = uint(Floor(work * scale + 0.5))
   var intpart : uint = scaled IDIV scale
   var frac    : uint = scaled IMOD scale
+
+  if fmtspec.precision < 0:
+    while precision > 0 and (frac IMOD uint(10)) == uint(0):
+      frac = frac IDIV uint(10)
+      scale = scale IDIV uint(10)
+      precision -= 1
+    endwhile
+  endif
 
   WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale)
 endfunc
@@ -597,4 +605,3 @@ function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue):
   var ofmt  <- OTextFormatter(osink)
   ofmt.Format(afmt, aargs)
 endfunc
-

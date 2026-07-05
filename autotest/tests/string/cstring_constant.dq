@@ -1,0 +1,9 @@
+use print
+
+const CSTR_CONST : cstring = 'constant cstring'
+
+function *Main() -> int:
+  PrintLn('inline_const = "{}"', ['abc'])     //?check('inline_const', '"abc"')
+  PrintLn('CSTR_CONST = "{}"', [CSTR_CONST])  //?check('CSTR_CONST', '"constant cstring"')
+  return 0
+endfunc

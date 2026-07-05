@@ -48,6 +48,7 @@ public
   function GetAsPrettyJson() -> str
 
   function SaveToFile(afname : strview, apretty : bool = false)
+  function LoadFromFile(afname : strview)
 
 public
   property name      : str    read GetName
@@ -260,4 +261,8 @@ function OJson.SaveToFile(afname : strview, apretty : bool = false):
     AppendToJsonStr(s)
   endif
   @.FileWriteText(afname, s)
+endfunc
+
+function OJson.LoadFromFile(afname : strview):
+  var jdata : str = @.FileReadText(afname)
 endfunc

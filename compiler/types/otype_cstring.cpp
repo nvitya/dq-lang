@@ -27,6 +27,7 @@ using namespace std;
 
 static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
 static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
+static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
 static LlType * LlPtrType()
 {
@@ -517,7 +518,26 @@ LlConst * OValueCString::CreateLlConst()
 {
   if (maxlen == 0)
   {
-    return nullptr;  // unsized type has no constant representation
+    auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, value);
+    auto * str_gv = new llvm::GlobalVariable(
+        *ll_module,
+        str_init->getType(),
+        true,
+        llvm::GlobalValue::PrivateLinkage,
+        str_init,
+        ".cstr.const");
+    str_gv->setAlignment(llvm::Align(1));
+
+    uint32_t charlen = uint32_t(value.size());
+    uint32_t info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY;
+    vector<llvm::Constant *> fields = {
+      llvm::ConstantExpr::getBitCast(str_gv, LlPtrType()),
+      llvm::ConstantInt::get(LlCStringLenType(), charlen),
+      llvm::ConstantInt::get(LlCStringLenType(), info)
+    };
+    return llvm::ConstantStruct::get(
+        static_cast<llvm::StructType *>(ptype->GetLlType()),
+        fields);
   }
 
   // Create [maxlen + 1 x i8] constant, padded with zeros.

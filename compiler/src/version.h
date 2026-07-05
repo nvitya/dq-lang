@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.3"
+#define DQ_COMPILER_VERSION  "0.28.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.4:
+  - Working `const STR_CONST : cstring = 'constant'`
 v0.28.3:
   - Human-friendly default floating point formatting, not displaying trailing zeroes
 v0.28.2:

@@ -341,6 +341,11 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
   if (TK_CSTRING == srctype->kind)
   {
     OTypeCString * cstrtype = static_cast<OTypeCString *>(srctype);
+    if (cstrtype->maxlen == 0)
+    {
+      return expr->Generate(scope);
+    }
+
     LlValue * cstraddr = nullptr;
     if (auto * lval = dynamic_cast<OLValueExpr *>(expr))
     {

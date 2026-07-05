@@ -4,10 +4,12 @@ use print
 use json
 use strutils
 
-function *Main() -> int:
-  PrintLn('DQ JSON test')
+const TEST_FILE_NAME : cstring = 'test.json'
 
-  var jroot = new OJson()
+function WriteTest():
+  PrintLn('JSON Writing Test')
+
+  var jroot <- OJson()
   var jns : OJson
   var jnn : OJson
   var jno : OJson
@@ -30,14 +32,33 @@ function *Main() -> int:
   PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
   PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
 
-  PrintLn('"{}" = "{}"', [jn.name, jn.as_num])
-
   PrintLn('as json compact:')
   PrintLn(jroot.json)
   PrintLn('as json pretty:')
   PrintLn(jroot.pretty_json)
 
   jroot.SaveToFile('test.json', true)
+  PrintLn()
+endfunc
+
+function ReadTest():
+  PrintLn('JSON Read Test')
+
+  var jroot <- OJson()
+  var jn : OJson
+  var jv : OJson
+
+  jroot.LoadFromFile('test.json')
+endfunc
+
+function *Main() -> int:
+  PrintLn('DQ JSON test')
+
+  PrintLn('Test file name: "{}"', [TEST_FILE_NAME])
+
+  WriteTest()
+
+  ReadTest()
 
   return 0
 endfunc

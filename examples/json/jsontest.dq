@@ -32,8 +32,10 @@ function *Main() -> int:
 
   PrintLn('"{}" = "{}"', [jn.name, jn.as_num])
 
-  PrintLn('as json:')
-  PrintLn(jroot.GetAsJson())
+  PrintLn('as json compact:')
+  PrintLn(jroot.json)
+  PrintLn('as json pretty:')
+  PrintLn(jroot.pretty_json)
 
   return 0
 endfunc

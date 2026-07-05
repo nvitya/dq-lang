@@ -42,14 +42,19 @@ public
   function SetAsNum(avalue : float)
 
   function AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
+  function AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
 
-  function GetAsJson(compact : bool = false) -> str
+  function GetAsJson() -> str
+  function GetAsPrettyJson() -> str
 
 public
   property name      : str    read GetName
   property parent    : OJson  read m_parent
   property as_str    : str    read GetAsStr  write SetAsStr
   property as_num    : float  read GetAsNum  write SetAsNum
+
+  property json        : str    read GetAsJson
+  property pretty_json : str    read GetAsPrettyJson
 
 endobj
 
@@ -167,26 +172,80 @@ function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding stri
   elif m_kind == nkArray:
     rstr.Add('[')
     for i : int = 0  count m_children.length:
-      if i <> 0:
+      m_children[i].AppendToJsonStr(rstr)
+      if i + 1 < m_children.length:
         rstr.Add(',')
       endif
-      m_children[i].AppendToJsonStr(rstr)
     endfor
     rstr.Add(']')
   elif m_kind == nkObject:
     rstr.Add('{')
     for i : int = 0  count m_children.length:
-      if i <> 0:
-        rstr.Add(',')
-      endif
       rstr.AddFmt('"{}":', [m_children[i].m_name])
       m_children[i].AppendToJsonStr(rstr)
+      if i + 1 < m_children.length:
+        rstr.Add(',')
+      endif
     endfor
     rstr.Add('}')
   endif
 endfunc
 
-function OJson.GetAsJson(compact : bool = false) -> str:
+function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster version avoiding string reallocations
+  var newpad : str = ''
+  if m_kind == nkNull:
+    rstr.Add('null')
+  elif m_kind == nkString:
+    rstr.AddFmt('"{}"', [m_value])
+  elif m_kind == nkNumber  or m_kind == nkBool:
+    rstr.AddFmt('{}', [m_value])
+  elif m_kind == nkArray:
+    if m_children == []:
+      rstr.Add('[]')
+      return
+    endif
+    rstr.Add('[\n')
+    newpad.Add(indent)
+    newpad.Add('  ')
+    for i : int = 0  count m_children.length:
+      rstr.Add(newpad)
+      m_children[i].AppendToPrettyJsonStr(rstr, newpad)
+      if i + 1 < m_children.length:
+        rstr.Add(',')
+      endif
+      rstr.Add('\n')
+    endfor
+    rstr.Add(indent)
+    rstr.Add(']')
+  elif m_kind == nkObject:
+    if m_children == []:
+      rstr.Add('{}')
+      return
+    endif
+    rstr.Add('{')
+    rstr.Add('\n')
+    newpad.Add(indent)
+    newpad.Add('  ')
+    for i : int = 0  count m_children.length:
+      rstr.Add(newpad)
+      rstr.AddFmt('"{}":', [m_children[i].m_name])
+      m_children[i].AppendToPrettyJsonStr(rstr, newpad)
+      if i + 1 < m_children.length:
+        rstr.Add(',')
+      endif
+      rstr.Add('\n')
+    endfor
+    rstr.Add(indent)
+    rstr.Add('}')
+  endif
+endfunc
+
+function OJson.GetAsJson() -> str:
   result = ''
   AppendToJsonStr(result)
+endfunc
+
+function OJson.GetAsPrettyJson() -> str:
+  result = ''
+  AppendToPrettyJsonStr(result, '')
 endfunc

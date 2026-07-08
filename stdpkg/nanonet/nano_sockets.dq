@@ -72,11 +72,11 @@ public
 endobj
 
 object OSocketWatcher:
-#ifdef WINDOWS
-#else
-  fd_epoll : int
-  revents  : [*]SEpollEvent
-#endif
+  #ifdef WINDOWS
+  #else
+    fd_epoll : int
+    revents  : [*]SEpollEvent
+  #endif
 
   maxfds    : int
   maxevents : int = 32
@@ -446,14 +446,12 @@ endfunc
 
 function ONanoServer.*Destroy():
   while connections.length > 0:
-    var conn : OSConnection = connections[0]
-    connections.Delete(0)
+    var conn : OSConnection = connections.Pop()
     delete conn
   endwhile
 
   while closed_conns.length > 0:
-    var conn : OSConnection = closed_conns[0]
-    closed_conns.Delete(0)
+    var conn : OSConnection = closed_conns.Pop()
     delete conn
   endwhile
 
@@ -506,12 +504,10 @@ function ONanoServer.CloseConnection(aconn : OSConnection):
 endfunc
 
 function ONanoServer.ConnectionIndex(aconn : OSConnection) -> int:
-  result = -1
-  var i : int = 0
-  while i < connections.length:
+  for i : int = 0  count connections.length:
     if connections[i] == aconn:
       return i
     endif
-    i += 1
-  endwhile
+  endfor
+  return -1
 endfunc

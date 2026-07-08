@@ -311,7 +311,7 @@
         },
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:use|implementation|initialization|finalization|var|const|type|struct|endstruct|object|endobj|endobject|ref|refin|refout|refnull)\\b"
+          "match": "\\b(?:use|implementation|initialization|finalization|var|const|type|struct|endstruct|object|endobj|endobject|private|public|protected|ref|refin|refout|refnull)\\b"
         },
         {
           "name": "keyword.operator.word.dq",
@@ -335,7 +335,7 @@
       "patterns": [
         {
           "name": "storage.type.dq",
-          "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|cstring|float|float32|float64)\\b"
+          "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|cstring|float|float32|float64|pointer|Object)\\b"
         }
       ]
     },
@@ -343,7 +343,7 @@
       "patterns": [
         {
           "name": "variable.language.namespace.dq",
-          "match": "@(?:\\.?[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*|\\.)?"
+          "match": "@(?:\\.|sys\\.)"
         },
         {
           "name": "entity.name.function.global.dq",

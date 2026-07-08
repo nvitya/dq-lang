@@ -23,6 +23,7 @@ function OSConnectionSimple.*Create(aserver : ONanoServer):
 endfunc
 
 function OSConnectionSimple.*Destroy():
+  @.PrintLn('Connection destroy.')
   indata = '';
   inbuf = '';
   inherited Destroy()
@@ -35,7 +36,6 @@ function OSConnectionSimple.HandleInput(aobj : Object)  [[override]]:
     ProcessInData()
   elif r == 0:
     // the socket is closed !
-    @.PrintLn('Connection closed.')
     server.CloseConnection(self)  // this connection is scheduled for removal, safe freeing in other context
   else:
     // ignore errors

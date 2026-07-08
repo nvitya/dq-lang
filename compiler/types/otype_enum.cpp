@@ -2,7 +2,8 @@
  * Copyright (c) 2026 Viktor Nagy
  * This file is part of the DQ-Compiler project at https://github.com/nvitya/dq-comp
  *
- * This source code is licensed under the MIT License.
+ * SPDX-License-Identifier: MIT
+ * See LICENSES/MIT.txt for the full license text.
  */
 
 #include "otype_enum.h"

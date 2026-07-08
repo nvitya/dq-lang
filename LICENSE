@@ -1,21 +1,39 @@
-MIT License
+DQ Compiler Licensing
+=====================
 
-Copyright (c) 2026 Viktor Nagy
+This repository contains components under different open-source licenses.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Compiler implementation
+-----------------------
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The DQ compiler implementation, including the C++ source code, is licensed
+under the MIT License.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+SPDX-License-Identifier: MIT
+
+See:
+
+    LICENSES/MIT.txt
+
+Runtime library and standard packages
+-------------------------------------
+
+The DQ runtime library and DQ standard packages are licensed under the
+Apache License 2.0 with LLVM Exception.
+
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+See:
+
+    LICENSES/Apache-2.0.txt
+    LICENSES/LLVM-exception.txt
+
+Generated programs
+------------------
+
+Programs compiled with DQ may be distributed under terms chosen by the
+program author. The DQ project does not impose a license on user programs
+merely because they were compiled with DQ.
+
+Individual source files declare their applicable license using SPDX license
+identifiers in the file header.

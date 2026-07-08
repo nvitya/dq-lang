@@ -595,16 +595,16 @@ function OTextFormatter.FormatFloat(v : float):
         intpart = uint(intpart_int)
         frac = uint(Floor((work - intpart_int) * scale + 0.5))
 
-    if frac >= scale:
-        intpart += 1
-        frac -= scale
-    endif
+        if frac >= scale:
+            intpart += 1
+            frac -= scale
+        endif
 
-    while precision > 0 and (frac IMOD uint(10)) == uint(0):
-        frac = frac IDIV uint(10)
-        scale = scale IDIV uint(10)
-        precision -= 1
-    endwhile
+        while precision > 0 and (frac IMOD uint(10)) == uint(0):
+            frac = frac IDIV uint(10)
+            scale = scale IDIV uint(10)
+            precision -= 1
+        endwhile
     else:
         var scaled : uint = uint(Floor(work * scale + 0.5))
         intpart = scaled IDIV scale

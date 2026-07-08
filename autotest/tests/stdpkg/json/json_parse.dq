@@ -1,0 +1,114 @@
+// JSON package parsing regression tests.
+
+use print
+use json
+
+function PrintJson(label : strview, source : strview):
+  var j <- OJson()
+  j.Parse(source)
+  PrintLn('{} = {}', [label, j.json])
+endfunc
+
+function PrintParseError(label : strview, source : strview):
+  try:
+    var j <- OJson()
+    j.Parse(source)
+    PrintLn('{} = no error', [label])
+  except EJson as e:
+    Print('{} = ', [label])
+    e.PrintMessage()
+    PrintLn('')
+  endtry
+endfunc
+
+function BoolInt(value : bool) -> int:
+  return iif(value, 1, 0)
+endfunc
+
+function PrintValueApi():
+  var j <- OJson()
+  var jb : OJson = j.AddBool('flag', true)
+  var jn : OJson = j.AddNull('empty')
+
+  PrintLn('json.api.add = {}', [j.json])
+  PrintLn('json.api.bool-get = {}', [BoolInt(jb.as_bool)])
+  PrintLn('json.api.null-get = {} {}', [BoolInt(jn.IsNull()), BoolInt(jn.is_null)])
+
+  jb.as_bool = false
+  jn.SetAsBool(true)
+  PrintLn('json.api.bool-set = {}', [j.json])
+
+  jb.SetNull()
+  jn.SetNull()
+  PrintLn('json.api.null-set = {}', [j.json])
+endfunc
+
+function PrintFindApi():
+  var j <- OJson()
+  var cfg : OJson = j.AddObj('cfg')
+  var db : OJson = cfg.AddObj('db')
+  db.AddStr('host', 'localhost')
+  db.AddBool('enabled', true)
+  j.AddStr('first', 'zero')
+
+  var n : OJson
+  n = j.FindNode('cfg.db.host')
+  PrintLn('json.find.dot = {}', [n.as_str])
+
+  n = j.FindNode('cfg/db/enabled')
+  PrintLn('json.find.slash = {}', [BoolInt(n.as_bool)])
+
+  n = j.FindNode('/cfg//db/')
+  PrintLn('json.find.delims = {}', [n.length])
+
+  var ok : bool = j.Find('cfg/db/host', n)
+  PrintLn('json.find.out = {} {}', [BoolInt(ok), n.as_str])
+
+  ok = j.Find('cfg/missing/host', n)
+  PrintLn('json.find.missing = {}', [BoolInt(ok)])
+
+  n = j.FindNode('')
+  PrintLn('json.find.empty = {}', [n.length])
+
+  PrintLn('json.child.index0 = {}', [j.Child(0).name])
+  PrintLn('json.find.name = {}', [j.FindNode('first').as_str])
+endfunc
+
+function *Main() -> int:
+  PrintJson("json.parse.nested", '{"s":"a\\"b\\\\c\\/d","b":true,"f":false,"n":null,"x":-12.5e+2,"a":[1,{"y":"z"}]}')
+  //?check("json.parse.nested", '{"s":"a\"b\\c/d","b":true,"f":false,"n":null,"x":-1250,"a":[1,{"y":"z"}]}')
+
+  PrintJson("json.parse.unicode", '{"u":"\\u0041","pair":"\\uD834\\uDD1E","ctrl":"\\u0001"}')
+  //?check("json.parse.unicode", '{"u":"A","pair":"𝄞","ctrl":"\u0001"}')
+
+  PrintJson("json.parse.empty-array", '[]')
+  //?check("json.parse.empty-array", "[]")
+
+  PrintValueApi()
+  //?check("json.api.add", '{"flag":true,"empty":null}')
+  //?check("json.api.bool-get", 1)
+  //?check("json.api.null-get", "1 1")
+  //?check("json.api.bool-set", '{"flag":false,"empty":true}')
+  //?check("json.api.null-set", '{"flag":null,"empty":null}')
+
+  PrintFindApi()
+  //?check("json.find.dot", "localhost")
+  //?check("json.find.slash", 1)
+  //?check("json.find.delims", 2)
+  //?check("json.find.out", "1 localhost")
+  //?check("json.find.missing", 0)
+  //?check("json.find.empty", 2)
+  //?check("json.child.index0", "cfg")
+  //?check("json.find.name", "zero")
+
+  PrintParseError("json.error.compact-column", '{"a":1,"b":}')
+  //?check("json.error.compact-column", "JSON parse error at line 1, column 12: Unexpected character")
+
+  PrintParseError("json.error.bad-number", '{"a":01}')
+  //?check("json.error.bad-number", 'JSON parse error at line 1, column 7: Expected "," or "}" in object')
+
+  PrintParseError("json.error.root-kind", '"root string"')
+  //?check("json.error.root-kind", "JSON parse error at line 1, column 1: Root JSON node must be an object or array")
+
+  return 0
+endfunc

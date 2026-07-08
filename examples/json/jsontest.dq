@@ -17,10 +17,13 @@ function WriteTest():
 
   jns = jroot.AddStr('strnode', 'hello')
   jnn = jroot.AddNum('numnode', 3.14)
+  jn  = jroot.AddBool('boolnode', true)
   jno = jroot.AddObj('objnode')
 
   jn = jno.AddStr('substr', 'abc')
   jn = jno.AddNum('subnum', 42)
+  jno.AddBool('subbool', false)
+  jno.AddNull('subnull')
 
   jn.as_num = 46
 
@@ -51,6 +54,35 @@ function ReadTest():
   jroot.LoadFromFile(TEST_FILE_NAME)
   PrintLn('as json pretty:')
   PrintLn(jroot.pretty_json)
+
+  PrintLn('arrnode:')
+  if jroot.Find('arrnode', jn):
+    PrintLn('  arrnode.as_str: {}', [jn.as_str])
+    PrintLn('iterating array node:')
+    for i : int = 0  count jn.length:
+      jv = jn[i]
+      PrintLn('  {}. = {}', [i, jv.as_num])
+    endfor
+  else:
+    PrintLn('"arrnode" was not found !')
+  endif
+
+  PrintLn('objnode.subnum:')
+  if jroot.Find('objnode.subnum', jv):
+    PrintLn('  = {}', [jv.as_num])
+  else:
+    PrintLn('"objnode.subnum" was not found !')
+  endif
+
+  if jroot.Find('objnode', jn):
+    PrintLn('Iterating objnode:')
+    for i : int = 0  count jn.length:
+      jv = jn[i]
+      PrintLn('  {}.: "{}" = {}', [i, jv.name, jv.json])
+    endfor
+  else:
+    PrintLn('"objnode" was not found !')
+  endif
 
   PrintLn()
 endfunc

@@ -39,6 +39,8 @@ object OStrParse:
 
   function GetLineNum(pos : ^cchar) -> int  [[overload]]
   function GetLineNum() -> int              [[overload]]
+  function GetColNum(pos : ^cchar) -> int   [[overload]]
+  function GetColNum() -> int               [[overload]]
 
 endobj
 
@@ -359,6 +361,26 @@ endfunc
 
 function OStrParse.GetLineNum() -> int  [[overload]]:
   return GetLineNum(prevp)
+endfunc
+
+function OStrParse.GetColNum(pos : ^cchar) -> int  [[overload]]:
+  if pos > bufend:
+    pos = bufend
+  endif
+
+  var cp : ^cchar = pos
+  while cp > bufstart:
+    cp -= 1
+    if cp^ == 13  or cp^ == 10:
+      return pos - cp
+    endif
+  endwhile
+
+  return pos - bufstart + 1
+endfunc
+
+function OStrParse.GetColNum() -> int  [[overload]]:
+  return GetColNum(prevp)
 endfunc
 
 function PCharUCCompare(readp : ref ^cchar, len : int, checkstring : strview) -> bool:

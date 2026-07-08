@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.6"
+#define DQ_COMPILER_VERSION  "0.28.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.7:
+  - json module implementation completed
 v0.28.6:
   - Integer conversion logic: uint - int -> int, int - uint -> int
 v0.28.5:

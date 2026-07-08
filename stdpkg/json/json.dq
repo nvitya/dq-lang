@@ -42,10 +42,18 @@ public
   function GetName() -> str
 
   function AddNode(aname : str, akind : NJsonNodeKind) -> OJson
+  function AddNull(aname : str) -> OJson
+  function AddBool(aname : str, avalue : bool) -> OJson
   function AddStr(aname : str, avalue : str) -> OJson
   function AddNum(aname : str, avalue : float) -> OJson
   function AddObj(aname : str) -> OJson
   function AddArr(aname : str) -> OJson
+
+  function IsNull() -> bool
+  function SetNull()
+
+  function GetAsBool() -> bool
+  function SetAsBool(avalue : bool)
 
   function GetAsStr() -> str
   function SetAsStr(avalue : str)
@@ -58,6 +66,13 @@ public
 
   function GetAsJson() -> str
   function GetAsPrettyJson() -> str
+
+  function ChildCount() -> int
+  function Child(aindex : int) -> OJson
+  function ChildByName(aname : strview) -> OJson
+
+  function FindNode(apath : strview) -> OJson
+  function Find(apath : strview, rnode : refout OJson) -> bool
 
   function SaveToFile(afname : strview, apretty : bool = false)
 
@@ -72,9 +87,14 @@ public
   property parent    : OJson  read m_parent
   property as_str    : str    read GetAsStr  write SetAsStr
   property as_num    : float  read GetAsNum  write SetAsNum
+  property as_bool   : bool   read GetAsBool write SetAsBool
+  property is_null   : bool   read IsNull
 
   property json        : str    read GetAsJson
   property pretty_json : str    read GetAsPrettyJson
+
+  property length : int        read ChildCount
+  property child  : [int]OJson  default  read Child
 
 endobj
 
@@ -120,6 +140,16 @@ function OJson.GetName() -> str:
 endfunc
 
 
+function OJson.AddNull(aname : str) -> OJson:
+  result = AddNode(aname, nkNull)
+  result.m_value.SetNull()
+endfunc
+
+function OJson.AddBool(aname : str, avalue : bool) -> OJson:
+  result = AddNode(aname, nkBool)
+  result.m_value = avalue
+endfunc
+
 function OJson.AddStr(aname : str, avalue : str) -> OJson:
   result = AddNode(aname, nkString)
   result.m_value = avalue
@@ -138,6 +168,30 @@ function OJson.AddArr(aname : str) -> OJson:
   result = AddNode(aname, nkArray)
 endfunc
 
+function OJson.IsNull() -> bool:
+  return m_kind == nkNull
+endfunc
+
+function OJson.SetNull():
+  if m_children <> []:
+    Clear()
+  endif
+  m_kind = nkNull
+  m_value.SetNull()
+endfunc
+
+function OJson.GetAsBool() -> bool:
+  return m_value.AsBool(false)
+endfunc
+
+function OJson.SetAsBool(avalue : bool):
+  if m_children <> []:
+    Clear()
+  endif
+  m_kind  = nkBool
+  m_value = avalue
+endfunc
+
 function OJson.GetAsStr() -> str:
   if m_kind == nkString:
     return m_value.AsStr('')
@@ -149,8 +203,9 @@ function OJson.GetAsStr() -> str:
     return @.Format('{}', [m_value.AsFloat(0)])
   endif
 
-  // TODO: return compact JSON for arrays and objects
-  return '{}'
+  //return compact JSON for arrays and objects
+  result = ''
+  AppendToJsonStr(result)
 endfunc
 
 function OJson.SetAsStr(avalue : str):
@@ -300,7 +355,7 @@ function OJson.Parse(sp : OStrParse)  [[overload]]:
 endfunc
 
 function OJson.Error(sp : OStrParse, amsg : strview):
-  raise EJson('JSON parse error at line {}: {}', [sp.GetLineNum(sp.readp), amsg])
+  raise EJson('JSON parse error at line {}, column {}: {}', [sp.GetLineNum(sp.readp), sp.GetColNum(sp.readp), amsg])
 endfunc
 
 function OJson.AddNode(aname : str, akind : NJsonNodeKind) -> OJson:
@@ -613,4 +668,75 @@ function OJson.AppendJsonString(rstr : ref str, avalue : strview):
     endif
   endfor
   rstr.Append('"')
+endfunc
+
+
+function OJson.ChildCount() -> int:
+  return m_children.length
+endfunc
+
+function OJson.Child(aindex : int) -> OJson:
+  if aindex >= 0  and aindex < m_children.length:
+    return m_children[aindex]
+  else:
+    return null
+  endif
+endfunc
+
+function OJson.ChildByName(aname : strview) -> OJson:
+  if m_kind <> nkObject:
+    return null
+  endif
+
+  for i : int = 0 count m_children.length:
+    if m_children[i].m_name == aname:
+      return m_children[i]
+    endif
+  endfor
+
+  return null
+endfunc
+
+function OJson.FindNode(apath : strview) -> OJson:
+  // Supports: a.b.c, a/b/c
+  if apath.length == 0:
+    return self
+  endif
+
+  var cur : OJson = self
+  var name : str = ''
+
+  for i : int = 0 count apath.length:
+    var c : char = apath[i]
+    if c == '.'  or c == '/':
+      if name <> '':
+        cur = cur.ChildByName(name)
+        if cur == null:
+          return null
+        endif
+        name = ''
+      endif
+    else:
+      name.Append(cchar(c))
+    endif
+  endfor
+
+  if name <> '':
+    cur = cur.ChildByName(name)
+    if cur == null:
+      return null
+    endif
+  endif
+
+  return cur
+
+endfunc
+
+function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
+  var jn : OJson = FindNode(apath)
+  if jn == null:
+    return false
+  endif
+  rnode = jn
+  return true
 endfunc

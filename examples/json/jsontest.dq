@@ -32,6 +32,8 @@ function WriteTest():
   jn.AddNum('', 2)
   jn.AddNum('', 3)
 
+  jroot.ForcePath('first.second.third').as_str = 'deepvalue'
+
   PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
   PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
 

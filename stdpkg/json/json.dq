@@ -73,6 +73,7 @@ public
 
   function FindNode(apath : strview) -> OJson
   function Find(apath : strview, rnode : refout OJson) -> bool
+  function ForcePath(apath : strview) -> OJson
 
   function SaveToFile(afname : strview, apretty : bool = false)
 
@@ -739,4 +740,50 @@ function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
   endif
   rnode = jn
   return true
+endfunc
+
+function OJson.ForcePath(apath : strview) -> OJson:
+  // Supports: a.b.c, a/b/c
+  if apath.length == 0:
+    return self
+  endif
+
+  var cur : OJson = self
+  var name : str = ''
+
+  for i : int = 0 count apath.length:
+    var c : char = apath[i]
+    if c == '.'  or c == '/':
+      if name <> '':
+        if cur.m_kind <> nkObject:
+          cur.Clear()
+          cur.m_kind = nkObject
+        endif
+
+        var next : OJson = cur.ChildByName(name)
+        if next == null:
+          next = cur.AddObj(name)
+        endif
+        cur = next
+        name = ''
+      endif
+    else:
+      name.Append(cchar(c))
+    endif
+  endfor
+
+  if name <> '':
+    if cur.m_kind <> nkObject:
+      cur.Clear()
+      cur.m_kind = nkObject
+    endif
+
+    var next : OJson = cur.ChildByName(name)
+    if next == null:
+      next = cur.AddObj(name)
+    endif
+    cur = next
+  endif
+
+  return cur
 endfunc

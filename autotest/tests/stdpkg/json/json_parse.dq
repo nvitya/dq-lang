@@ -74,6 +74,20 @@ function PrintFindApi():
   PrintLn('json.find.name = {}', [j.FindNode('first').as_str])
 endfunc
 
+function PrintForcePathApi():
+  var j <- OJson()
+
+  var n : OJson = j.ForcePath('first.second.third')
+  n.as_str = 'deepvalue'
+
+  n = j.ForcePath('/first/second/fourth')
+  n.as_bool = true
+
+  n = j.ForcePath('first.second')
+  PrintLn('json.force.existing = {}', [n.length])
+  PrintLn('json.force.result = {}', [j.json])
+endfunc
+
 function *Main() -> int:
   PrintJson("json.parse.nested", '{"s":"a\\"b\\\\c\\/d","b":true,"f":false,"n":null,"x":-12.5e+2,"a":[1,{"y":"z"}]}')
   //?check("json.parse.nested", '{"s":"a\"b\\c/d","b":true,"f":false,"n":null,"x":-1250,"a":[1,{"y":"z"}]}')
@@ -100,6 +114,10 @@ function *Main() -> int:
   //?check("json.find.empty", 2)
   //?check("json.child.index0", "cfg")
   //?check("json.find.name", "zero")
+
+  PrintForcePathApi()
+  //?check("json.force.existing", 2)
+  //?check("json.force.result", '{"first":{"second":{"third":"deepvalue","fourth":true}}}')
 
   PrintParseError("json.error.compact-column", '{"a":1,"b":}')
   //?check("json.error.compact-column", "JSON parse error at line 1, column 12: Unexpected character")

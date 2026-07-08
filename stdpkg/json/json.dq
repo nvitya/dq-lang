@@ -4,19 +4,14 @@
  * at https://github.com/nvitya/dq-comp/stdpkg
  *
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    json.dq
+ * file:    json/json.dq
  * authors: nvitya
  * created: 2026-07-06
  * brief:   JSON Handling
  */
-
-
-// Copyright (c) 2026 Viktor Nagy and DQ contributors
-//
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-
-// DQ JSON Interface
 
 use strparse reexport
 
@@ -762,9 +757,6 @@ endfunc
 
 function OJson.ForcePath(apath : strview) -> OJson:
   // Supports: a.b.c, a/b/c
-  if apath.length == 0:
-    return self
-  endif
 
   var cur : OJson = self
   var name : str = ''

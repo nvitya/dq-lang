@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/backtrace_linux.dq
+ * authors: nvitya
+ * created: 2026-07-06
+ * brief:   Backtrace capturing helpers for Linux
+ */
+
 #linklib('backtrace')
 
 function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int

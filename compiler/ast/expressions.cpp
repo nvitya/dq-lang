@@ -43,34 +43,6 @@ void EmitExpressionExceptionCheck(OScope * scope)
   (void)scope;
 }
 
-LlValue * GenerateCallOrInvoke(OScope * scope, llvm::FunctionType * func_type, LlValue * callee, const vector<LlValue*> & args)
-{
-  LlBasicBlock * bb_cleanup = nullptr;
-  if (scope)
-  {
-    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-    {
-      bb_cleanup = cur->exception_cleanup_bb;
-    }
-  }
-
-  if (bb_cleanup)
-  {
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    LlValue * result = ll_builder.CreateInvoke(func_type, callee, bb_normal, bb_cleanup, args);
-    ll_builder.SetInsertPoint(bb_normal);
-    return result;
-  }
-
-  return ll_builder.CreateCall(func_type, callee, args);
-}
 
 string GetBinopSymbol(EBinOp op)
 {
@@ -1839,7 +1811,7 @@ LlValue * ONewExpr::Generate(OScope * scope)
     {
       ll_args.push_back(arg->Generate(scope));
     }
-    GenerateCallOrInvoke(scope, static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()), ctor_func->ll_func, ll_args);
+    scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()), ctor_func->ll_func, ll_args);
     EmitExpressionExceptionCheck(scope);
   }
 
@@ -1940,7 +1912,7 @@ LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
     {
       ll_calltype = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
     }
-    GenerateCallOrInvoke(scope, ll_calltype, ll_ctor, ll_args);
+    scope->GenerateCallOrInvoke(ll_calltype, ll_ctor, ll_args);
     EmitExpressionExceptionCheck(scope);
     ll_builder.CreateBr(bb_done);
 
@@ -2390,12 +2362,6 @@ LlValue * OCallExpr::Generate(OScope * scope)
 LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
                                const vector<LlValue *> & ll_args, bool force_direct)
 {
-  LlBasicBlock * bb_cleanup = nullptr;
-  for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-  {
-    bb_cleanup = cur->exception_cleanup_bb;
-  }
-
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
   if (!force_direct && vsfunc->attr_is_virtual && owner_object && !ll_args.empty())
@@ -2419,24 +2385,7 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
         {ll_slot_index}, "vslot.addr");
     LlValue * ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
     
-    LlValue * result = nullptr;
-    if (bb_cleanup)
-    {
-      LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-      if (!cur_func->hasPersonalityFn())
-      {
-        llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-            LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-        cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-      }
-      LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-      result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, bb_normal, bb_cleanup, ll_args);
-      ll_builder.SetInsertPoint(bb_normal);
-    }
-    else
-    {
-      result = ll_builder.CreateCall(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
-    }
+    LlValue * result = scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
     
     EmitExpressionExceptionCheck(scope);
     return result;
@@ -2448,24 +2397,7 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
     throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
   }
 
-  LlValue * result = nullptr;
-  if (bb_cleanup)
-  {
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_func, bb_normal, bb_cleanup, ll_args);
-    ll_builder.SetInsertPoint(bb_normal);
-  }
-  else
-  {
-    result = ll_builder.CreateCall(ll_func, ll_args);
-  }
+  LlValue * result = scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_func, ll_args);
 
   EmitExpressionExceptionCheck(scope);
   return result;
@@ -2791,7 +2723,7 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
 
   LlFuncType * ll_calltype = (object_ref ? CreateObjectFuncRefLlCallType(sigtype)
                                          : static_cast<LlFuncType *>(sigtype->GetLlType()));
-  LlValue * result = GenerateCallOrInvoke(scope, ll_calltype, ll_callee, ll_args);
+  LlValue * result = scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
   EmitExpressionExceptionCheck(scope);
   return result;
 }

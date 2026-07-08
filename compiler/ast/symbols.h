@@ -102,6 +102,9 @@ public:
   void        EmitOwnedObjectDestructors();
   void        EmitOwnedObjectDestructorsUntil(OScope * stop_scope);
   void        EmitOwnedObjectDestructorsForReturn(class OValSymFunc * vsfunc);
+
+  LlBasicBlock * GetExceptionCleanupBB();
+  LlValue *      GenerateCallOrInvoke(LlFuncType * func_type, LlValue * callee, const std::vector<LlValue*> & args, const std::string & invoke_cont_name = "invoke.cont", LlBasicBlock * override_cleanup_bb = nullptr);
 };
 
 enum EIntfDeclKind

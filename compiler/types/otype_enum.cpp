@@ -279,27 +279,9 @@ LlValue * OEnumFromOrdExpr::Generate(OScope * scope)
   ll_builder.CreateCondBr(valid, done_bb, invalid_bb);
   ll_builder.SetInsertPoint(invalid_bb);
   OValSymFunc * fn = EnumRtlFunc("DqEnumInvalidOrd");
-  LlBasicBlock * bb_cleanup = nullptr;
   if (scope)
   {
-    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-    {
-      bb_cleanup = cur->exception_cleanup_bb;
-    }
-  }
-
-  if (bb_cleanup)
-  {
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, {});
-    ll_builder.SetInsertPoint(bb_normal);
+    scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, {});
   }
   else
   {

@@ -85,3 +85,37 @@ void OScope::EmitOwnedObjectDestructorsForReturn(OValSymFunc * vsfunc)
   OScope * stop_scope = (vsfunc && vsfunc->body ? vsfunc->body->scope : nullptr);
   EmitOwnedObjectDestructorsUntil(stop_scope);
 }
+
+LlBasicBlock * OScope::GetExceptionCleanupBB()
+{
+  for (OScope * cur = this; cur; cur = cur->parent_scope)
+  {
+    if (cur->exception_cleanup_bb)
+    {
+      return cur->exception_cleanup_bb;
+    }
+  }
+  return nullptr;
+}
+
+LlValue * OScope::GenerateCallOrInvoke(LlFuncType * func_type, LlValue * callee, const std::vector<LlValue*> & args, const std::string & invoke_cont_name, LlBasicBlock * override_cleanup_bb)
+{
+  LlBasicBlock * bb_cleanup = override_cleanup_bb ? override_cleanup_bb : GetExceptionCleanupBB();
+
+  if (bb_cleanup)
+  {
+    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+    if (!cur_func->hasPersonalityFn())
+    {
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+    }
+    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, invoke_cont_name, cur_func);
+    LlValue * result = ll_builder.CreateInvoke(func_type, callee, bb_normal, bb_cleanup, args);
+    ll_builder.SetInsertPoint(bb_normal);
+    return result;
+  }
+
+  return ll_builder.CreateCall(func_type, callee, args);
+}

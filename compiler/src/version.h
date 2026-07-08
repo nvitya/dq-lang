@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.30.0"
+#define DQ_COMPILER_VERSION  "0.30.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.30.1:
+  - Refactoring: call handling moved to OScope
 v0.30.0:
   - Exception refactoring to zero-cost implemenation
 v0.29.1:

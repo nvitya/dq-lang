@@ -147,30 +147,10 @@ static OValSymFunc * DynStrFunc(const string & name)
 static LlValue * CallDynStrFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = DynStrFunc(name);
-  LlBasicBlock * bb_cleanup = nullptr;
   if (scope)
   {
-    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-    {
-      bb_cleanup = cur->exception_cleanup_bb;
-    }
+    return scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
   }
-
-  if (bb_cleanup)
-  {
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    LlValue * result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, args);
-    ll_builder.SetInsertPoint(bb_normal);
-    return result;
-  }
-
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
@@ -204,30 +184,10 @@ static OValSymFunc * TextFormatFunc(const string & name)
 static LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = TextFormatFunc(name);
-  LlBasicBlock * bb_cleanup = nullptr;
   if (scope)
   {
-    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-    {
-      bb_cleanup = cur->exception_cleanup_bb;
-    }
+    return scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
   }
-
-  if (bb_cleanup)
-  {
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    LlValue * result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, args);
-    ll_builder.SetInsertPoint(bb_normal);
-    return result;
-  }
-
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 

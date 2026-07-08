@@ -948,34 +948,11 @@ void OStmtRaise::Generate(OScope * scope)
 {
   (void)scope;
 
-  LlBasicBlock * bb_cleanup = nullptr;
-  for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
-  {
-    bb_cleanup = cur->exception_cleanup_bb;
-  }
-
   if (!value)
   {
     llvm::FunctionCallee fn_rethrow = ll_module->getOrInsertFunction("__cxa_rethrow", LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {}, false));
-    if (bb_cleanup)
-    {
-      LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-      if (!cur_func->hasPersonalityFn())
-      {
-        llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-            LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-        cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-      }
-      LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-      ll_builder.CreateInvoke(fn_rethrow, bb_normal, bb_cleanup, {});
-      ll_builder.SetInsertPoint(bb_normal);
-      ll_builder.CreateUnreachable();
-    }
-    else
-    {
-      ll_builder.CreateCall(fn_rethrow, {});
-      ll_builder.CreateUnreachable();
-    }
+    scope->GenerateCallOrInvoke(fn_rethrow.getFunctionType(), fn_rethrow.getCallee(), {});
+    ll_builder.CreateUnreachable();
     return;
   }
 
@@ -990,25 +967,7 @@ void OStmtRaise::Generate(OScope * scope)
       || (dynamic_cast<ODynamicNewObjectExpr *>(value) != nullptr);
   LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), owns_ref ? 1 : 0);
   
-  if (bb_cleanup)
-  {
-    printf("DEBUG: OStmtRaise using invoke! bb_cleanup=%p\n", bb_cleanup);
-    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
-    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
-    ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, {exc, owns_initial_ref});
-    ll_builder.SetInsertPoint(bb_normal);
-  }
-  else
-  {
-    printf("DEBUG: OStmtRaise using call!\n");
-    ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
-  }
+  scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, {exc, owns_initial_ref});
 }
 
 
@@ -1170,18 +1129,8 @@ void OStmtTry::Generate(OScope * scope)
       finally_body->Generate();
     }
     llvm::FunctionCallee fn_rethrow = ll_module->getOrInsertFunction("__cxa_rethrow", LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {}, false));
-    if (saved_unwind_lpad_bb)
-    {
-      LlBasicBlock * bb_invoke_cont = LlBasicBlock::Create(ll_ctx, "rethrow.cont", ll_func);
-      ll_builder.CreateInvoke(fn_rethrow, bb_invoke_cont, saved_unwind_lpad_bb, {});
-      ll_builder.SetInsertPoint(bb_invoke_cont);
-      ll_builder.CreateUnreachable();
-    }
-    else
-    {
-      ll_builder.CreateCall(fn_rethrow, {});
-      ll_builder.CreateUnreachable();
-    }
+    scope->GenerateCallOrInvoke(fn_rethrow.getFunctionType(), fn_rethrow.getCallee(), {}, "rethrow.cont", saved_unwind_lpad_bb);
+    ll_builder.CreateUnreachable();
   }
 
   ll_builder.SetInsertPoint(bb_after_handlers);

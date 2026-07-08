@@ -65,6 +65,8 @@ function *Main() -> int:
     svr.WaitForEvents(1000)
 
     // you can do something else here
+    Print('.'); PrintFlush();
+
   endwhile
 
   return 0

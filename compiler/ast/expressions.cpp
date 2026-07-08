@@ -2556,8 +2556,33 @@ static LlValue * BuildObjectFuncRefValue(OTypeFuncRef * fref_type, OValSymFunc *
   }
 
   LlValue * ll_receiver = receiver->GenerateObjectAddress(scope);
+  LlValue * ll_callee = vsfunc->ll_func;
+
+  auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
+  if (vsfunc->attr_is_virtual && owner_object)
+  {
+    OTypeObject * root = owner_object;
+    while (root->base_type)
+    {
+      root = root->GetBaseObject();
+    }
+    int slot = owner_object->FindVirtualSlot(vsfunc);
+    if (slot < 0)
+    {
+      throw runtime_error("BuildObjectFuncRefValue(): virtual slot not found: " + vsfunc->name);
+    }
+    root->GetLlType();
+    LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_receiver,
+        root->vtable_field_index, "vtable.addr");
+    LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "vtable");
+    LlValue * ll_slot_index = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), size_t(slot) + 2);
+    LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
+        {ll_slot_index}, "vslot.addr");
+    ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
+  }
+
   LlValue * ll_value = llvm::UndefValue::get(fref_type->GetLlType());
-  ll_value = ll_builder.CreateInsertValue(ll_value, vsfunc->ll_func, {0}, "mref.fn");
+  ll_value = ll_builder.CreateInsertValue(ll_value, ll_callee, {0}, "mref.fn");
   ll_value = ll_builder.CreateInsertValue(ll_value, ll_receiver, {1}, "mref");
   return ll_value;
 }

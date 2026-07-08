@@ -18,10 +18,17 @@ function Print(fmt : strview, args : []anyvalue) [[overload]]
 function PrintLn() [[overload]]
 function PrintLn(fmt : strview) [[overload]]
 function PrintLn(fmt : strview, args : []anyvalue) [[overload]]
+function PrintFlush()
 
 implementation
 
 use rtl/textformat
+
+function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+
+var libc_stdout : pointer [[external('stdout')]]
 
 var std_out_sink      : OTextSinkStdOut = null
 var std_out_formatter : OTextFormatter = null
@@ -70,4 +77,8 @@ function PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
   endif
   std_out_formatter.Format(fmt, args)
   std_out_sink.WriteChar('\n')
+endfunc
+
+function PrintFlush():
+  libc_fflush(libc_stdout)
 endfunc

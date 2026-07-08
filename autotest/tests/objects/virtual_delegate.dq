@@ -1,0 +1,26 @@
+use libc/stdio;
+
+type FObjAction = function() of object;
+
+object CBase:
+  function HandleInput() [[virtual]]:
+    @.printf("CBase.HandleInput = ok\n");
+  endfunc
+endobj
+
+object CDeriv(CBase):
+  function HandleInput() [[override]]:
+    @.printf("CDeriv.HandleInput = ok\n");
+  endfunc
+endobj
+
+function Invoke(cb : FObjAction):
+  cb();
+endfunc
+
+function *Main() -> int:
+  var obj : CBase = new CDeriv();
+  var cb : FObjAction = obj.HandleInput;
+  Invoke(cb);  //?check('CDeriv.HandleInput', 'ok')
+  return 0;
+endfunc

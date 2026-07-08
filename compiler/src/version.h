@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.29.0"
+#define DQ_COMPILER_VERSION  "0.29.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.29.1:
+  - Fixed virtual function delegation into function reference variables
+  - Added nanonet package, so far it is working only on Linux
 v0.29.0:
   - Support variables carrying the type of an object (required for object factories)
 v0.28.9:

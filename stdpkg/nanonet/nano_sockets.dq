@@ -342,10 +342,10 @@ function OSocketWatcher.ModifySocket(asock : ONanoSocket):
   var ev : SEpollEvent
   ev.events = 0
   if asock.in_event_handler != null:
-    ev.events = ev.events OR @.EPOLLIN
+    ev.events =OR= @.EPOLLIN
   endif
   if asock.out_event_handler != null:
-    ev.events = ev.events OR @.EPOLLOUT
+    ev.events =OR= @.EPOLLOUT
   endif
   ev.data = pointer(asock)
 
@@ -380,8 +380,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
     return false
   endif
 
-  var i : int = 0
-  while i < evcnt:
+  for i : int = 0  count evcnt:
     var pev : ^SEpollEvent = &revents[i]
     var sock : ONanoSocket = ONanoSocket(pev^.data)
 
@@ -400,9 +399,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
       sock.in_event_handler(sock.obj_link)
       result = true
     endif
-
-    i += 1
-  endwhile
+  endfor
 endfunc
 
 //-----------------------------------------------------------------------------
@@ -473,8 +470,7 @@ function ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
   result = swatcher.WaitForEvents(timeout_ms)
 
   while closed_conns.length > 0:
-    var conn : OSConnection = closed_conns[0]
-    closed_conns.Delete(0)
+    var conn : OSConnection = closed_conns.Pop()
     delete conn
   endwhile
 endfunc

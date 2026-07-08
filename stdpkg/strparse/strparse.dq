@@ -148,8 +148,7 @@ function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of 
             endif
             ccptr += 1
         endwhile
-
-    cp += 1
+        cp += 1
     endwhile
 
     // end of buffer, store the remaining length:
@@ -312,22 +311,22 @@ function OStrParse.SearchPattern(checkstring : strview) -> bool:
         var ccptr : ^cchar = ccstart
         var match : bool = true
 
-    while ccptr < ccend:
-        if cp^ != ccptr^:
-            match = false
-            break
+        while ccptr < ccend:
+            if cp^ != ccptr^:
+                match = false
+                break
+            endif
+            cp += 1
+            ccptr += 1
+        endwhile
+
+        if match:
+            prevlen = cps - readp
+            readp = cps
+            return true
         endif
-        cp += 1
-        ccptr += 1
-    endwhile
 
-    if match:
-        prevlen = cps - readp
-        readp = cps
-        return true
-    endif
-
-    cps += 1
+        cps += 1
     endwhile
 
     return false
@@ -409,12 +408,12 @@ function PCharUCCompare(readp : ref ^cchar, len : int, checkstring : strview) ->
             c = char(c - 'a' + 'A')
         endif
 
-    if c != csptr^:
-        break
-    endif
+        if c != csptr^:
+            break
+        endif
 
-    csptr += 1
-    cp += 1
+        csptr += 1
+        cp += 1
     endwhile
 
     if csptr != csend:

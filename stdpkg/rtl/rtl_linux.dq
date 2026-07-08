@@ -64,9 +64,9 @@ function DqSigSegvHandler(signum : int):
     if dq_sigsegv_guard_active <> 0:
         dq_sigsegv_guard_active = 0
 
-    // jump back where the libc___sigsetjmp(&dq_sigsegv_jmp, 1) was called
-    // but return with 1 (non-zero) !
-    libc_siglongjmp(&dq_sigsegv_jmp[0], 1)
+        // jump back where the libc___sigsetjmp(&dq_sigsegv_jmp, 1) was called
+        // but return with 1 (non-zero) !
+        libc_siglongjmp(&dq_sigsegv_jmp[0], 1)
     endif
 
     libc_signal(signum, SIG_DFL)  // set back the default signal handler
@@ -119,22 +119,22 @@ function RunHostedMain() -> int:
             return PrintException(e)
         endtry
 
-    if DqExcActive():
-        dq_sigsegv_guard_active = 0
-        return PrintUncaughtException()
-    endif
+        if DqExcActive():
+            dq_sigsegv_guard_active = 0
+            return PrintUncaughtException()
+        endif
 
-    try:
-        result = dq_main()
-    except Exception as e:
-        dq_sigsegv_guard_active = 0
-        result = PrintException(e)
-    endtry
+        try:
+            result = dq_main()
+        except Exception as e:
+            dq_sigsegv_guard_active = 0
+            result = PrintException(e)
+        endtry
 
-    dq_sigsegv_guard_active = 0
-    if DqExcActive():
-        result = PrintUncaughtException()
-    endif
+        dq_sigsegv_guard_active = 0
+        if DqExcActive():
+            result = PrintUncaughtException()
+        endif
     else:
         // Jumped here from the signal handler
         dq_sigsegv_guard_active = 0

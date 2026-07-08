@@ -230,13 +230,13 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
             return true
         endif
 
-    libc_backtrace_syminfo(backtrace_state, uint(pc), DqBtSyminfoCallback, DqBtErrorCallback, &bdata)
-    if bdata.printed:
-        if stop_printing <> null:
-            stop_printing^ = bdata.stop_printing
+        libc_backtrace_syminfo(backtrace_state, uint(pc), DqBtSyminfoCallback, DqBtErrorCallback, &bdata)
+        if bdata.printed:
+            if stop_printing <> null:
+                stop_printing^ = bdata.stop_printing
+            endif
+            return true
         endif
-        return true
-    endif
     endif
 
     var info : SDqDlInfo = {}

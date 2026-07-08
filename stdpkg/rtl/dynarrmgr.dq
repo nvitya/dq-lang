@@ -415,16 +415,15 @@ function ODynArrMgr.Insert(index : int, src : pointer, acount : int):
             //   var a : [*]int = [1, 2, 3, 4]
             //   a.Insert(2, a[1:3])  // expected: [1, 2, 2, 3, 3, 4]
             //                                             ^  ^
-
-      var left_count : uint = insertpos - sidx
-      var right_count : uint = add_count - left_count
-      @.MemCopy(dstptr,
-                   ^byte(dataptr)[sidx * elemsize],
-                   @.DynArrCalcByteSize(left_count, elemsize))
-      @.MemCopy(^byte(dstptr)[left_count * elemsize],
-                   ^byte(dataptr)[(insertpos + add_count) * elemsize],
-                   @.DynArrCalcByteSize(right_count, elemsize))
-    endif
+            var left_count : uint = insertpos - sidx
+            var right_count : uint = add_count - left_count
+            @.MemCopy(dstptr,
+                        ^byte(dataptr)[sidx * elemsize],
+                        @.DynArrCalcByteSize(left_count, elemsize))
+            @.MemCopy(^byte(dstptr)[left_count * elemsize],
+                        ^byte(dataptr)[(insertpos + add_count) * elemsize],
+                        @.DynArrCalcByteSize(right_count, elemsize))
+        endif
     endif
 
     @.DynArrIncRefElements(dstptr, add_count, typeinfo)

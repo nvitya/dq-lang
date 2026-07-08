@@ -231,58 +231,57 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
     while curpos < endpos:
         var ch : char = afmt[curpos]
 
-    if ch == '{':
-        if curpos > lit_start:
-            sink.Write(afmt[lit_start:curpos])
-        endif
-        curpos += 1
-        if curpos < endpos and afmt[curpos] == '{':
-            sink.WriteChar('{')
+        if ch == '{':
+            if curpos > lit_start:
+                sink.Write(afmt[lit_start:curpos])
+            endif
             curpos += 1
-            lit_start = curpos
-            continue
-        else:
-            ParseSpec(afmt) // updates the curpos
+            if curpos < endpos and afmt[curpos] == '{':
+                sink.WriteChar('{')
+                curpos += 1
+                lit_start = curpos
+                continue
+            else:
+                ParseSpec(afmt) // updates the curpos
 
-        if arg_index < aargs.length:
-            FormatAny(aargs[arg_index])
-        else:
-            var nv : anyvalue
-            nv.SetNull()
-            FormatAny(nv)
-        endif
-        arg_index += 1
+                if arg_index < aargs.length:
+                    FormatAny(aargs[arg_index])
+                else:
+                    var nv : anyvalue
+                    nv.SetNull()
+                    FormatAny(nv)
+                endif
+                arg_index += 1
 
-        if curpos < endpos  and  afmt[curpos] == '}':
+                if curpos < endpos  and  afmt[curpos] == '}':
+                    curpos += 1
+                else:
+                    flags =OR= @.DQFMT_FMT_ERROR
+                    sink.Write("<}?>")
+                    break
+                endif
+                lit_start = curpos
+            endif
+
+        elif ch == '}':
+            if curpos > lit_start:
+                sink.Write(afmt[lit_start:curpos])
+            endif
             curpos += 1
+            if curpos < endpos  and  afmt[curpos] == '}':
+                sink.WriteChar('}')
+                curpos += 1
+                lit_start = curpos
+            else:
+                // Unescaped closing brace.
+                flags =OR= @.DQFMT_FMT_ERROR
+                sink.Write("<!}>")
+                curpos += 1
+                lit_start = curpos
+            endif
         else:
-            flags =OR= @.DQFMT_FMT_ERROR
-            sink.Write("<}?>")
-            break
-        endif
-        lit_start = curpos
-      endif
-
-    elif ch == '}':
-        if curpos > lit_start:
-            sink.Write(afmt[lit_start:curpos])
-        endif
-        curpos += 1
-        if curpos < endpos  and  afmt[curpos] == '}':
-            sink.WriteChar('}')
             curpos += 1
-            lit_start = curpos
-        else:
-            // Unescaped closing brace.
-            flags =OR= @.DQFMT_FMT_ERROR
-            sink.Write("<!}>")
-            curpos += 1
-            lit_start = curpos
         endif
-
-    else:
-        curpos += 1
-    endif
     endwhile
 
     if lit_start < endpos:
@@ -426,7 +425,6 @@ function OTextFormatter.FormatAny(av : anyvalue):
 
     flags =OR= @.DQFMT_ARG_ERROR
     sink.Write("<arg-error>")
-
 endfunc
 
 function OTextFormatter.WritePad(acount : int, ch : char):

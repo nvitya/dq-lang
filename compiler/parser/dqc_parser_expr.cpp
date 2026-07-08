@@ -581,6 +581,33 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
   OType * ptype = nullptr;
   string stype;
 
+  OScPosition type_kw_pos;
+  scf->SaveCurPos(type_kw_pos);
+  if (scf->ReadIdentifier(stype) && ("type" == stype))
+  {
+    scf->SkipWhite();
+    string of_kw;
+    if (scf->ReadIdentifier(of_kw) && ("of" == of_kw))
+    {
+      OType * base_type = ParseTypeSpec(aemit_errors);
+      auto * object_type = dynamic_cast<OTypeObject *>(base_type ? base_type->ResolveAlias() : nullptr);
+      if (!object_type)
+      {
+        if (aemit_errors)
+        {
+          Error(DQERR_TYPE_EXPECTED, "object", base_type ? base_type->name : "?");
+        }
+        return nullptr;
+      }
+      return new OTypeObjectTypeRef(object_type);
+    }
+    scf->SetCurPos(type_kw_pos);
+  }
+  else
+  {
+    scf->SetCurPos(type_kw_pos);
+  }
+
   if (scf->CheckSymbol("function"))
   {
     OTypeFunc * sigtype = ParseFunctionType(aemit_errors, "function");
@@ -2913,6 +2940,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     {
       return ParseEnumTypeExpr(enum_type);
     }
+    if (auto * object_type = dynamic_cast<OTypeObject *>(named_type ? named_type->ResolveAlias() : nullptr))
+    {
+      return new OObjectTypeLiteralExpr(object_type);
+    }
     if (IsKnownEnumItem(sid))
     {
       return new OUnresolvedEnumItemExpr(sid);
@@ -3481,10 +3512,89 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
     return nullptr;
   }
 
-  OType * alloc_type = ParseTypeSpec();
+  OScPosition new_arg_pos;
+  scf->SaveCurPos(new_arg_pos);
+  OType * alloc_type = ParseTypeSpec(false);
   if (!alloc_type)
   {
-    return nullptr;
+    scf->SetCurPos(new_arg_pos);
+
+    string typevar_name;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(typevar_name))
+    {
+      Error(DQERR_TYPE_ID_EXP);
+      return nullptr;
+    }
+
+    OScope * found_scope = nullptr;
+    OValSym * vs = curscope->FindValSym(typevar_name, &found_scope);
+    if (!vs)
+    {
+      Error(DQERR_VS_UNKNOWN, typevar_name);
+      return nullptr;
+    }
+
+    OExpr * type_expr = CreateImplicitObjectMemberExpr(typevar_name, vs, found_scope);
+    if (!type_expr)
+    {
+      type_expr = new OLValueVar(vs);
+    }
+
+    auto * typeref = dynamic_cast<OTypeObjectTypeRef *>(type_expr->ResolvedType());
+    if (!typeref || !typeref->object_type)
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("("))
+      {
+        scf->ReadTo(")");
+        scf->CheckSymbol(")");
+      }
+      OExpr::DeleteTree(type_expr);
+      Error(DQERR_TYPE_EXPECTED, "object type variable", vs->ptype ? vs->ptype->name : "?");
+      return nullptr;
+    }
+
+    vector<OExpr *> ctor_args;
+    scf->SkipWhite();
+    if (scf->CheckSymbol("("))
+    {
+      vector<TRawCallArg> rawargs;
+      if (!ParseRawCallArguments(typevar_name, rawargs))
+      {
+        OExpr::DeleteTree(type_expr);
+        return nullptr;
+      }
+      for (TRawCallArg & rawarg : rawargs)
+      {
+        ctor_args.push_back(rawarg.expr);
+        rawarg.expr = nullptr;
+      }
+      FreeRawCallArguments(rawargs);
+    }
+
+    OValSymFunc * ctor = nullptr;
+    if (!CheckObjectCtorArgs(typeref->object_type, ctor_args, ctor))
+    {
+      OExpr::DeleteTree(type_expr);
+      for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
+      return nullptr;
+    }
+
+    int ctor_slot = typeref->object_type->FindConstructorContractSlot(ctor);
+    if (ctor_slot < 0)
+    {
+      OExpr::DeleteTree(type_expr);
+      for (OExpr * arg : ctor_args) OExpr::DeleteTree(arg);
+      Error(DQERR_OVERLOAD_NO_MATCH, "Create");
+      return nullptr;
+    }
+
+    auto * result = new ODynamicNewObjectExpr(type_expr, typeref->object_type, memalloc_func);
+    result->ctor_func = ctor;
+    result->ctor_slot = ctor_slot;
+    result->ctor_args = ctor_args;
+    return result;
   }
   alloc_type = alloc_type->ResolveAlias();
   alloc_type->EnsureLayout();

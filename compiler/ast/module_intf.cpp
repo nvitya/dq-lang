@@ -65,6 +65,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_OBJECT:       return "object";
     case TK_FUNCTION:     return "function";
     case TK_FUNCREF:      return "funcref";
+    case TK_OBJECT_TYPE:  return "object_type";
   }
 
   return "unknown";
@@ -1338,6 +1339,23 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
     return ReadFunctionRefTypeSpec(reader, DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid, rtype);
   }
 
+  if (DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+  {
+    string object_type_name;
+    if (!reader.ReadString(object_type_name))
+    {
+      return false;
+    }
+    OType * base_type = ResolveDqmIfTypeName(object_type_name);
+    auto * object_type = dynamic_cast<OTypeObject *>(base_type ? base_type->ResolveAlias() : nullptr);
+    if (!object_type)
+    {
+      return reader.Fail(FormatUnresolvedDqmIfTypeError(object_type_name));
+    }
+    rtype = new OTypeObjectTypeRef(object_type);
+    return true;
+  }
+
   if (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
   {
     if (!reader.NextRec())
@@ -1882,7 +1900,8 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
     }
     else if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid)
-             || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_PTR == reader.recid)
+             || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+             || (DQMIF_TYPE_SPEC_PTR == reader.recid)
              || (DQMIF_TYPE_SPEC_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_SLICE_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid))
     {

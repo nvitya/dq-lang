@@ -235,6 +235,7 @@ enum ETypeKind
 
   TK_FUNCTION     = 28,
   TK_FUNCREF      = 29,   // function variable (function pointer)
+  TK_OBJECT_TYPE  = 30,   // object type reference: type of TObject
 
   TK_ALIAS        = 31,
 };
@@ -270,6 +271,7 @@ class OTypeArraySlice;   // forward declaration
 class OTypeDynArray;     // forward declaration
 class OCompoundType;     // forward declaration
 class OTypeObject;       // forward declaration
+class OTypeObjectTypeRef;// forward declaration
 
 class OType : public OSymbol
 {

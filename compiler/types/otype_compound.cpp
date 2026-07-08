@@ -241,6 +241,150 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
   return (ambiguous ? nullptr : best_func);
 }
 
+static bool ConstructorUserSignaturesMatch(OValSymFunc * left, OValSymFunc * right)
+{
+  auto * lsig = dynamic_cast<OTypeFunc *>(left ? left->ptype : nullptr);
+  auto * rsig = dynamic_cast<OTypeFunc *>(right ? right->ptype : nullptr);
+  if (!lsig || !rsig || lsig->params.empty() || rsig->params.empty())
+  {
+    return false;
+  }
+
+  if (lsig->has_varargs || rsig->has_varargs || lsig->params.size() != rsig->params.size())
+  {
+    return false;
+  }
+
+  for (size_t i = 1; i < lsig->params.size(); ++i)
+  {
+    OFuncParam * lp = lsig->params[i];
+    OFuncParam * rp = rsig->params[i];
+    if (!lp || !rp || lp->mode != rp->mode)
+    {
+      return false;
+    }
+    if ((lp->ptype ? lp->ptype->ResolveAlias() : nullptr) != (rp->ptype ? rp->ptype->ResolveAlias() : nullptr))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+OValSymFunc * OTypeObject::FindConstructorMatchingSignature(OValSymFunc * acontract_ctor) const
+{
+  if (!acontract_ctor)
+  {
+    return FindSpecialMethod(OSF_CREATE, 0);
+  }
+
+  for (OValSymFunc * ctor : constructors)
+  {
+    if (ConstructorUserSignaturesMatch(acontract_ctor, ctor))
+    {
+      return ctor;
+    }
+  }
+  return nullptr;
+}
+
+bool OTypeObject::SupportsConstructorContractFrom(OTypeObject * abase) const
+{
+  if (!abase || !IsSameOrDerivedFrom(abase))
+  {
+    return false;
+  }
+
+  for (OValSymFunc * contract_ctor : abase->ConstructorContractSlots())
+  {
+    if (!contract_ctor)
+    {
+      if (!HasTrivialDefaultConstructor() && !FindConstructorMatchingSignature(nullptr))
+      {
+        return false;
+      }
+      continue;
+    }
+    if (!FindConstructorMatchingSignature(contract_ctor))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+vector<OValSymFunc *> OTypeObject::ConstructorContractSlots() const
+{
+  vector<OValSymFunc *> result;
+  if (auto * base_obj = GetBaseObject())
+  {
+    for (OValSymFunc * base_contract : base_obj->ConstructorContractSlots())
+    {
+      result.push_back(FindConstructorMatchingSignature(base_contract));
+    }
+  }
+
+  bool has_default_contract = false;
+  for (OValSymFunc * ctor : constructors)
+  {
+    OTypeFunc * sig = dynamic_cast<OTypeFunc *>(ctor ? ctor->ptype : nullptr);
+    if (sig && sig->params.size() == 1)
+    {
+      has_default_contract = true;
+      break;
+    }
+  }
+  if (HasTrivialDefaultConstructor() && !has_default_contract)
+  {
+    result.push_back(nullptr);
+  }
+
+  for (OValSymFunc * ctor : constructors)
+  {
+    bool inherited_slot = false;
+    for (OValSymFunc * existing : result)
+    {
+      if ((existing == ctor) || (existing && ConstructorUserSignaturesMatch(existing, ctor)))
+      {
+        inherited_slot = true;
+        break;
+      }
+    }
+    if (!inherited_slot)
+    {
+      result.push_back(ctor);
+    }
+  }
+  return result;
+}
+
+int OTypeObject::FindConstructorContractSlot(OValSymFunc * acontract_ctor) const
+{
+  vector<OValSymFunc *> slots = ConstructorContractSlots();
+  for (size_t i = 0; i < slots.size(); ++i)
+  {
+    OValSymFunc * slot_ctor = slots[i];
+    if (!acontract_ctor)
+    {
+      if (!slot_ctor)
+      {
+        return int(i);
+      }
+      OTypeFunc * sig = dynamic_cast<OTypeFunc *>(slot_ctor->ptype);
+      if (sig && sig->params.size() == 1)
+      {
+        return int(i);
+      }
+      continue;
+    }
+    if (slot_ctor && ConstructorUserSignaturesMatch(acontract_ctor, slot_ctor))
+    {
+      return int(i);
+    }
+  }
+  return -1;
+}
+
 OValSym * OTypeObject::FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
 {
   for (const OTypeObject * cur = this; cur; cur = cur->GetBaseObject())
@@ -463,54 +607,80 @@ void OTypeObject::UpdateObjectInheritanceFlags()
 
 void OTypeObject::GenVTableGlobal(bool apublic)
 {
-  if (!is_polymorphic || ll_vtable)
+  EnsureLayout();
+
+  if (ll_typeinfo && (!is_polymorphic || ll_vtable))
   {
     return;
   }
 
+  llvm::PointerType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+
   if (manual_ll_layout)
   {
     // Imported type: do not emit local definitions, just use external references
-    auto * ptr_type = llvm::PointerType::get(ll_ctx, 0);
-    auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 2);
-    string ti_ll_name = "_DQTI_" + name;
-    ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ti_ll_name);
+    if (!ll_typeinfo)
+    {
+      auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 3 + ConstructorContractSlots().size());
+      string ti_ll_name = "_DQTI_" + name;
+      ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ti_ll_name);
+    }
 
-    auto * vt_arrtype = llvm::ArrayType::get(ptr_type, virtual_methods.size() + 2);
-    string ll_name = "_DQVT_" + name;
-    ll_vtable = new llvm::GlobalVariable(*ll_module, vt_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ll_name);
+    if (is_polymorphic && !ll_vtable)
+    {
+      auto * vt_arrtype = llvm::ArrayType::get(ptr_type, virtual_methods.size() + 2);
+      string ll_name = "_DQVT_" + name;
+      ll_vtable = new llvm::GlobalVariable(*ll_module, vt_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ll_name);
+    }
     return;
   }
 
 
   LlLinkType linktype = (apublic ? llvm::GlobalValue::ExternalLinkage
                                  : llvm::GlobalValue::InternalLinkage);
-  llvm::PointerType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
 
   // Generate TypeInfo
-  vector<llvm::Constant *> typeinfo_entries;
-  auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, name);
-  auto * str_gv = new llvm::GlobalVariable(*ll_module, str_init->getType(), true, llvm::GlobalValue::PrivateLinkage, str_init, ".str.ti." + name);
-  typeinfo_entries.push_back(str_gv);
-
-  if (base_type)
+  if (!ll_typeinfo)
   {
-    OTypeObject * base_obj = static_cast<OTypeObject *>(base_type);
-    if (!base_obj->ll_typeinfo)
+    vector<llvm::Constant *> typeinfo_entries;
+    auto * str_init = llvm::ConstantDataArray::getString(ll_ctx, name);
+    auto * str_gv = new llvm::GlobalVariable(*ll_module, str_init->getType(), true, llvm::GlobalValue::PrivateLinkage, str_init, ".str.ti." + name);
+    typeinfo_entries.push_back(str_gv);
+
+    if (base_type)
     {
-      base_obj->GenVTableGlobal(false);
+      OTypeObject * base_obj = static_cast<OTypeObject *>(base_type);
+      if (!base_obj->ll_typeinfo)
+      {
+        base_obj->GenVTableGlobal(false);
+      }
+      typeinfo_entries.push_back(base_obj->ll_typeinfo);
     }
-    typeinfo_entries.push_back(base_obj->ll_typeinfo);
-  }
-  else
-  {
-    typeinfo_entries.push_back(llvm::ConstantPointerNull::get(ptr_type));
+    else
+    {
+      typeinfo_entries.push_back(llvm::ConstantPointerNull::get(ptr_type));
+    }
+
+    typeinfo_entries.push_back(llvm::ConstantExpr::getIntToPtr(
+        llvm::ConstantInt::get(g_builtins->native_uint->GetLlType(), bytesize), ptr_type));
+
+    for (OValSymFunc * ctor : ConstructorContractSlots())
+    {
+      typeinfo_entries.push_back((ctor && ctor->ll_func)
+          ? static_cast<llvm::Constant *>(ctor->ll_func)
+          : static_cast<llvm::Constant *>(llvm::ConstantPointerNull::get(ptr_type)));
+    }
+
+    auto * ti_arrtype = llvm::ArrayType::get(ptr_type, typeinfo_entries.size());
+    auto * ti_init = llvm::ConstantArray::get(ti_arrtype, typeinfo_entries);
+    string ti_ll_name = "_DQTI_" + name;
+    ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, true, linktype, ti_init, ti_ll_name);
   }
 
-  auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 2);
-  auto * ti_init = llvm::ConstantArray::get(ti_arrtype, typeinfo_entries);
-  string ti_ll_name = "_DQTI_" + name;
-  ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, true, linktype, ti_init, ti_ll_name);
+  if (!is_polymorphic || ll_vtable)
+  {
+    return;
+  }
 
   vector<llvm::Constant *> entries;
   entries.push_back(ll_typeinfo);
@@ -1196,4 +1366,106 @@ int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   OTypeObject * src_object = dynamic_cast<OTypeObject *>(resolved_src);
   if (src_object && src_object->IsSameOrDerivedFrom(this)) return 0;
   return is_explicit_cast ? 1 : -1;
+}
+
+class OValueObjectTypeRef : public OValue
+{
+public:
+  OValueObjectTypeRef(OType * atype)
+  :
+    OValue(atype)
+  {
+  }
+
+  LlConst * CreateLlConst() override
+  {
+    return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  }
+};
+
+LlType * OTypeObjectTypeRef::CreateLlType()
+{
+  return llvm::PointerType::get(ll_ctx, 0);
+}
+
+LlDiType * OTypeObjectTypeRef::CreateDiType()
+{
+  return di_builder->createPointerType(nullptr, bytesize * 8);
+}
+
+OValue * OTypeObjectTypeRef::CreateValue()
+{
+  return new OValueObjectTypeRef(this);
+}
+
+LlValue * OTypeObjectTypeRef::GenerateConversion(OScope * scope, OExpr * src)
+{
+  return src->Generate(scope);
+}
+
+bool OTypeObjectTypeRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  OExpr * src = (rexpr ? *rexpr : nullptr);
+  OType * resolved_src = src ? src->ResolvedType() : nullptr;
+  auto * srctype = dynamic_cast<OTypeObjectTypeRef *>(resolved_src);
+  auto * srcptr = dynamic_cast<OTypePointer *>(resolved_src);
+  bool is_null = srcptr && srcptr->IsNullPointer();
+
+  if (is_null)
+  {
+    return true;
+  }
+
+  if (!srctype || !srctype->object_type || !object_type)
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, resolved_src ? resolved_src->name : "?");
+    }
+    return false;
+  }
+
+  OTypeObject * src_obj = srctype->object_type;
+  if (src_obj->is_abstract || !src_obj->IsSameOrDerivedFrom(object_type)
+      || !src_obj->SupportsConstructorContractFrom(object_type))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, srctype->name);
+    }
+    return false;
+  }
+
+  if (src->ptype != this)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+  }
+  return true;
+}
+
+int OTypeObjectTypeRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  (void)aflags;
+  OType * resolved_src = expr ? expr->ResolvedType() : nullptr;
+  auto * srcptr = dynamic_cast<OTypePointer *>(resolved_src);
+  if (srcptr && srcptr->IsNullPointer())
+  {
+    return 0;
+  }
+
+  auto * srctype = dynamic_cast<OTypeObjectTypeRef *>(resolved_src);
+  if (!srctype || !srctype->object_type || !object_type)
+  {
+    return -1;
+  }
+
+  OTypeObject * src_obj = srctype->object_type;
+  return (!src_obj->is_abstract && src_obj->IsSameOrDerivedFrom(object_type)
+          && src_obj->SupportsConstructorContractFrom(object_type)) ? 0 : -1;
+}
+
+bool OTypeObjectTypeRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
+{
+  return writer.AddRecStr(DQMIF_TYPE_SPEC_OBJECT_TYPE, object_type ? object_type->name : "?");
 }

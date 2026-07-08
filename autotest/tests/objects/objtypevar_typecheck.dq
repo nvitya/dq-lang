@@ -1,0 +1,61 @@
+// object type variable type checking tests (ERROR test)
+
+object OFactoryBase:
+public
+  v : int
+
+  function *Create(av : int) [[overload]]:
+    v = av
+  endfunc
+
+  function *Create(aname : cstring) [[overload]]:
+    v = 1
+  endfunc
+endobj
+
+object OPartialFactory(OFactoryBase):
+public
+  function *Create(av : int):
+    inherited Create(av)
+  endfunc
+endobj
+
+object OUnrelated:
+public
+  function *Create(av : int):
+  endfunc
+endobj
+
+object OAbstract:
+public
+  function Read() -> int [[virtual, abstract]];
+endobj
+
+object OTrivialBase:
+public
+  value : int
+endobj
+
+object ONoDefault(OTrivialBase):
+public
+  function *Create(avalue : int):
+    value = avalue
+  endfunc
+endobj
+
+function *Main() -> int:
+  var ft : type of OFactoryBase;
+  ft = OPartialFactory; //?error(TypeMismatchAssign)
+  ft = OUnrelated;      //?error(TypeMismatchAssign)
+
+  var at : type of OAbstract;
+  at = OAbstract;       //?error(TypeMismatchAssign)
+
+  var tt : type of OTrivialBase;
+  tt = ONoDefault;      //?error(TypeMismatchAssign)
+
+  var x : int = 0;
+  var ob : OFactoryBase = new x(1); //?error(TypeExpected)
+
+  return 0;
+endfunc

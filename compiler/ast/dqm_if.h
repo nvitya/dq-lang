@@ -122,6 +122,7 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN = 0x8030;  // 0: dynamic array wrap
 TDqmIfRecId  DQMIF_TYPE_SPEC_DYN_ARRAY_END   = 0x803F;  // 0
 TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // 0: function reference wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // 0: object function reference wrapper begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_OBJECT_TYPE  = 0x80FC;  // 0: object type reference wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length

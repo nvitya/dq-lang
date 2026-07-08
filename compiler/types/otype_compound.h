@@ -91,6 +91,10 @@ public:
   bool HasTrivialDefaultConstructor() const;
   OValSymFunc * FindSpecialMethod(EObjectSpecFuncKind akind, size_t auser_arg_count = size_t(-1)) const;
   OValSymFunc * FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous = nullptr) const;
+  OValSymFunc * FindConstructorMatchingSignature(OValSymFunc * acontract_ctor) const;
+  bool SupportsConstructorContractFrom(OTypeObject * abase) const;
+  vector<OValSymFunc *> ConstructorContractSlots() const;
+  int FindConstructorContractSlot(OValSymFunc * acontract_ctor) const;
   OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const override;
@@ -106,6 +110,32 @@ public:
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+};
+
+class OTypeObjectTypeRef : public OType
+{
+private:
+  using super = OType;
+
+public:
+  OTypeObject * object_type = nullptr;
+
+  OTypeObjectTypeRef(OTypeObject * aobject_type)
+  :
+    super("type of " + (aobject_type ? aobject_type->name : string("?")), TK_OBJECT_TYPE),
+    object_type(aobject_type)
+  {
+    bytesize = TARGET_PTRSIZE;
+    alignsize = TARGET_PTRSIZE;
+  }
+
+  LlType * CreateLlType() override;
+  LlDiType * CreateDiType() override;
+  OValue * CreateValue() override;
+  LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  bool WriteDqmIfTypeSpec(ODqmIfWriter & writer) override;
 };
 
 class OVsObject : public OValSym

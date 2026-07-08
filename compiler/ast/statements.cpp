@@ -924,7 +924,9 @@ void OStmtRaise::Generate(OScope * scope)
   }
 
   LlValue * exc = value->Generate(scope);
-  LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), (dynamic_cast<ONewExpr *>(value) != nullptr) ? 1 : 0);
+  bool owns_ref = (dynamic_cast<ONewExpr *>(value) != nullptr)
+      || (dynamic_cast<ODynamicNewObjectExpr *>(value) != nullptr);
+  LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), owns_ref ? 1 : 0);
   ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
   EmitExpressionExceptionCheck(scope);
 }

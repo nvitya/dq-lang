@@ -358,6 +358,15 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
+class OObjectTypeLiteralExpr : public OExpr
+{
+public:
+  OTypeObject * object_type = nullptr;
+
+  /* ctor */ OObjectTypeLiteralExpr(OTypeObject * aobject_type);
+  LlValue *  Generate(OScope * scope) override;
+};
+
 // Pointer subscript: p[i] computes address of element i (no dereference). Use p[i]^ to read.
 // Member access is the only implicit dereference: p.field is allowed for ^compound.
 class OPointerIndexExpr : public OExpr
@@ -385,6 +394,23 @@ public:
   OValSymFunc *  memalloc_func;
 
   /* ctor */ ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+class ODynamicNewObjectExpr : public OExpr
+{
+public:
+  OExpr *        type_expr = nullptr;
+  OTypeObject *  base_object_type = nullptr;
+  OValSymFunc *  ctor_func = nullptr;
+  int            ctor_slot = -1;
+  vector<OExpr *> ctor_args;
+  OValSymFunc *  memalloc_func = nullptr;
+
+  /* ctor */ ODynamicNewObjectExpr(OExpr * atype_expr, OTypeObject * abase_object_type,
+                                   OValSymFunc * amemalloc_func);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;

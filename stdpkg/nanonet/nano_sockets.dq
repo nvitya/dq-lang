@@ -36,19 +36,18 @@ object OSConnection:  // Servers connection to client
   a : int
 endobj
 
-//type TSConnectionClass = class of OSConnection
-//type TSConnectionClass = OSConnection
+type TSConnectionType = type of OSConnection
 
 object ONanoServer:
-  listen_port : uint16
-  sock_listen : ONanoSocket
+  listen_port  : uint16
+  sock_listen  : ONanoSocket
 
   connections  : [*]OSConnection
   closed_conns : [*]OSConnection
 
   swatcher     : OSocketWatcher
 
-  //sconn_class  : TSConnectionClass
+  sconn_type   : TSConnectionType
 endobj
 
 implementation

@@ -1742,6 +1742,26 @@ LlValue * ONullLit::Generate(OScope * scope)
   return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
 }
 
+/* ctor */ OObjectTypeLiteralExpr::OObjectTypeLiteralExpr(OTypeObject * aobject_type)
+{
+  object_type = aobject_type;
+  ptype = new OTypeObjectTypeRef(object_type);
+}
+
+LlValue * OObjectTypeLiteralExpr::Generate(OScope * scope)
+{
+  (void)scope;
+  if (!object_type)
+  {
+    return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  }
+  if (!object_type->ll_typeinfo)
+  {
+    object_type->GenVTableGlobal(false);
+  }
+  return object_type->ll_typeinfo;
+}
+
 /* ctor */ OPointerIndexExpr::OPointerIndexExpr(OExpr * aptr, OExpr * aindex)
 {
   ptrexpr   = aptr;
@@ -1831,6 +1851,109 @@ void ONewExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(initexpr);
   initexpr = nullptr;
+  for (OExpr *& arg : ctor_args)
+  {
+    OExpr::DeleteTree(arg);
+    arg = nullptr;
+  }
+  ctor_args.clear();
+}
+
+/* ctor */ ODynamicNewObjectExpr::ODynamicNewObjectExpr(OExpr * atype_expr, OTypeObject * abase_object_type,
+                                                        OValSymFunc * amemalloc_func)
+{
+  type_expr = atype_expr;
+  base_object_type = abase_object_type;
+  memalloc_func = amemalloc_func;
+  ptype = (base_object_type ? base_object_type->GetPointerType() : OTypePointer::GetNullPtrType());
+}
+
+LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
+{
+  if (!type_expr || !base_object_type || !memalloc_func || !memalloc_func->ll_func)
+  {
+    throw runtime_error("ODynamicNewObjectExpr::Generate(): invalid dynamic object construction");
+  }
+
+  LlValue * ll_typeinfo = type_expr->Generate(scope);
+  auto * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+  LlValue * ll_null = llvm::ConstantPointerNull::get(ptr_type);
+
+  LlFunction * ll_parent = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_ok = LlBasicBlock::Create(ll_ctx, "new.type.ok", ll_parent);
+  LlBasicBlock * bb_trap = LlBasicBlock::Create(ll_ctx, "new.type.trap", ll_parent);
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_typeinfo, ll_null, "new.type.is_null");
+  ll_builder.CreateCondBr(ll_is_null, bb_trap, bb_ok);
+
+  ll_builder.SetInsertPoint(bb_trap);
+  auto trap_fn = llvm::Intrinsic::getOrInsertDeclaration(ll_module, llvm::Intrinsic::trap);
+  ll_builder.CreateCall(trap_fn, {});
+  ll_builder.CreateUnreachable();
+
+  ll_builder.SetInsertPoint(bb_ok);
+
+  LlValue * ll_size_slot = ll_builder.CreateGEP(ptr_type, ll_typeinfo,
+      {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 2)}, "new.size.slot");
+  LlValue * ll_size_ptr = ll_builder.CreateLoad(ptr_type, ll_size_slot, "new.size.ptr");
+  LlValue * ll_size = ll_builder.CreatePtrToInt(ll_size_ptr, g_builtins->type_int->GetLlType(), "new.size");
+  LlValue * ll_zero_mem = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), 1);
+  LlValue * ll_ptr = ll_builder.CreateCall(memalloc_func->ll_func, {ll_size, ll_zero_mem}, "new.alloc");
+
+  if (ll_ptr->getType() != ptype->GetLlType())
+  {
+    ll_ptr = ll_builder.CreateBitCast(ll_ptr, ptype->GetLlType(), "new.ptr");
+  }
+
+  if (ctor_slot >= 0)
+  {
+    LlValue * ll_ctor_slot = ll_builder.CreateGEP(ptr_type, ll_typeinfo,
+        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 3 + ctor_slot)}, "new.ctor.slot");
+    LlValue * ll_ctor = ll_builder.CreateLoad(ptr_type, ll_ctor_slot, "new.ctor");
+    LlValue * ll_ctor_is_null = ll_builder.CreateICmpEQ(ll_ctor, ll_null, "new.ctor.is_null");
+
+    LlBasicBlock * bb_ctor_call = LlBasicBlock::Create(ll_ctx, "new.ctor.call", ll_parent);
+    LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "new.ctor.done", ll_parent);
+    ll_builder.CreateCondBr(ll_ctor_is_null, bb_done, bb_ctor_call);
+
+    ll_builder.SetInsertPoint(bb_ctor_call);
+    vector<LlValue *> ll_args;
+    ll_args.push_back(ll_ptr);
+    for (OExpr * arg : ctor_args)
+    {
+      ll_args.push_back(arg->Generate(scope));
+    }
+
+    LlFuncType * ll_calltype = nullptr;
+    if (ctor_func)
+    {
+      ll_calltype = static_cast<LlFuncType *>(static_cast<OTypeFunc *>(ctor_func->ptype)->GetLlType());
+    }
+    else
+    {
+      ll_calltype = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
+    }
+    ll_builder.CreateCall(ll_calltype, ll_ctor, ll_args);
+    ll_builder.CreateBr(bb_done);
+
+    ll_builder.SetInsertPoint(bb_done);
+  }
+
+  return ll_ptr;
+}
+
+void ODynamicNewObjectExpr::FoldChildren()
+{
+  OExpr::FoldTree(&type_expr);
+  for (OExpr *& arg : ctor_args)
+  {
+    OExpr::FoldTree(&arg);
+  }
+}
+
+void ODynamicNewObjectExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(type_expr);
+  type_expr = nullptr;
   for (OExpr *& arg : ctor_args)
   {
     OExpr::DeleteTree(arg);

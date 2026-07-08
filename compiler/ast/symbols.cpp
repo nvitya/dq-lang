@@ -253,6 +253,11 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
     return atype->WriteDqmIfTypeSpec(writer);
   }
 
+  if (TK_OBJECT_TYPE == atype->kind)
+  {
+    return atype->WriteDqmIfTypeSpec(writer);
+  }
+
   return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_NAME, atype->name);
 }
 
@@ -270,7 +275,8 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     }
   }
 
-  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind) || (TK_DYN_ARRAY == kind))
+  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind) || (TK_DYN_ARRAY == kind)
+      || (TK_OBJECT_TYPE == kind))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_BEGIN)) return false;
     if (!WriteDqmIfTypeSpecInner(writer, this)) return false;

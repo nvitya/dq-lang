@@ -49,6 +49,8 @@ function ReadTest():
   var jv : OJson
 
   jroot.LoadFromFile(TEST_FILE_NAME)
+  PrintLn('as json pretty:')
+  PrintLn(jroot.pretty_json)
 
   PrintLn()
 endfunc

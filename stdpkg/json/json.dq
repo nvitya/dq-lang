@@ -1,5 +1,7 @@
 // DQ JSON Interface
 
+use strparse reexport
+
 object EJson(Exception):
 endobj
 
@@ -22,6 +24,15 @@ private
   m_kind  : NJsonNodeKind = nkObject
   m_value : anyvalue
 
+  function Error(sp : OStrParse, amsg : strview)
+  function ParseValue(sp : OStrParse)
+  function ParseObject(sp : OStrParse)
+  function ParseArray(sp : OStrParse)
+  function ParseString(sp : OStrParse) -> str
+  function ParseNumber(sp : OStrParse) -> float
+  function AppendUtf8(rstr : ref str, codepoint : uint32)
+  function AppendJsonString(rstr : ref str, avalue : strview)
+
 public
   function *Create()  [[overload]]
   function *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
@@ -30,6 +41,7 @@ public
   function Clear()
   function GetName() -> str
 
+  function AddNode(aname : str, akind : NJsonNodeKind) -> OJson
   function AddStr(aname : str, avalue : str) -> OJson
   function AddNum(aname : str, avalue : float) -> OJson
   function AddObj(aname : str) -> OJson
@@ -48,9 +60,12 @@ public
   function GetAsPrettyJson() -> str
 
   function SaveToFile(afname : strview, apretty : bool = false)
+
+public // Loading / Parsing
   function LoadFromFile(afname : strview)
 
-  function Parse(astr : strview)
+  function Parse(astr : strview)  [[overload]]
+  function Parse(sp : OStrParse)  [[overload]]
 
 public
   property name      : str    read GetName
@@ -86,10 +101,10 @@ function OJson.*Destroy():
 endfunc
 
 function OJson.Clear():
-  for i : int = 0 count m_children.length:
-    delete m_children[i] = null
-  endfor
-  m_children = []
+  while m_children.length > 0:
+    var child : OJson = m_children.Pop()
+    delete child
+  endwhile
 endfunc
 
 function OJson.GetName() -> str:
@@ -106,29 +121,21 @@ endfunc
 
 
 function OJson.AddStr(aname : str, avalue : str) -> OJson:
-  result = new OJson(self, nkString)
-  result.m_name = aname
+  result = AddNode(aname, nkString)
   result.m_value = avalue
-  m_children.Append(result)
 endfunc
 
 function OJson.AddNum(aname : str, avalue : float) -> OJson:
-  result = new OJson(self, nkNumber)
-  result.m_name = aname
+  result = AddNode(aname, nkNumber)
   result.m_value = avalue
-  m_children.Append(result)
 endfunc
 
 function OJson.AddObj(aname : str) -> OJson:
-  result = new OJson(self, nkObject)
-  result.m_name = aname
-  m_children.Append(result)
+  result = AddNode(aname, nkObject)
 endfunc
 
 function OJson.AddArr(aname : str) -> OJson:
-  result = new OJson(self, nkArray)
-  result.m_name = aname
-  m_children.Append(result)
+  result = AddNode(aname, nkArray)
 endfunc
 
 function OJson.GetAsStr() -> str:
@@ -171,7 +178,7 @@ function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding stri
   if m_kind == nkNull:
     rstr.Add('null')
   elif m_kind == nkString:
-    rstr.AddFmt('"{}"', [m_value])
+    AppendJsonString(rstr, m_value.AsStr(''))
   elif m_kind == nkNumber  or m_kind == nkBool:
     rstr.AddFmt('{}', [m_value])
   elif m_kind == nkArray:
@@ -186,7 +193,8 @@ function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding stri
   elif m_kind == nkObject:
     rstr.Add('{')
     for i : int = 0  count m_children.length:
-      rstr.AddFmt('"{}":', [m_children[i].m_name])
+      AppendJsonString(rstr, m_children[i].m_name)
+      rstr.Add(':')
       m_children[i].AppendToJsonStr(rstr)
       if i + 1 < m_children.length:
         rstr.Add(',')
@@ -201,7 +209,7 @@ function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster v
   if m_kind == nkNull:
     rstr.Add('null')
   elif m_kind == nkString:
-    rstr.AddFmt('"{}"', [m_value])
+    AppendJsonString(rstr, m_value.AsStr(''))
   elif m_kind == nkNumber  or m_kind == nkBool:
     rstr.AddFmt('{}', [m_value])
   elif m_kind == nkArray:
@@ -233,7 +241,8 @@ function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster v
     newpad.Add('  ')
     for i : int = 0  count m_children.length:
       rstr.Add(newpad)
-      rstr.AddFmt('"{}":', [m_children[i].m_name])
+      AppendJsonString(rstr, m_children[i].m_name)
+      rstr.Add(':')
       m_children[i].AppendToPrettyJsonStr(rstr, newpad)
       if i + 1 < m_children.length:
         rstr.Add(',')
@@ -270,9 +279,338 @@ function OJson.LoadFromFile(afname : strview):
   Parse(jdata)
 endfunc
 
-function OJson.Parse(astr : strview):
-  Clear()
-  if m_parent <> null:
+function OJson.Parse(astr : strview)  [[overload]]:
+  var sp <- OStrParse(astr)
+  Parse(sp)
+endfunc
 
+function OJson.Parse(sp : OStrParse)  [[overload]]:
+  Clear()
+  sp.SkipSpaces()
+  if m_parent == null:
+    if sp.readp >= sp.bufend  or (sp.readp^ <> '{'  and sp.readp^ <> '['):
+      Error(sp, 'Root JSON node must be an object or array')
+    endif
   endif
+  ParseValue(sp)
+  sp.SkipSpaces()
+  if sp.readp < sp.bufend:
+    Error(sp, 'Unexpected trailing text')
+  endif
+endfunc
+
+function OJson.Error(sp : OStrParse, amsg : strview):
+  raise EJson('JSON parse error at line {}: {}', [sp.GetLineNum(sp.readp), amsg])
+endfunc
+
+function OJson.AddNode(aname : str, akind : NJsonNodeKind) -> OJson:
+  result = new OJson(self, akind)
+  result.m_name = aname
+  m_children.Append(result)
+endfunc
+
+function OJson.ParseValue(sp : OStrParse):
+  Clear()
+  sp.SkipSpaces()
+
+  if sp.readp >= sp.bufend:
+    Error(sp, 'Unexpected end of text')
+  endif
+
+  var c : char = sp.readp^
+
+  if c == '{':
+    m_kind = nkObject
+    ParseObject(sp)
+  elif c == '[':
+    m_kind = nkArray
+    ParseArray(sp)
+  elif c == '"':
+    m_kind = nkString
+    m_value = ParseString(sp)
+  elif c == 't':
+    if not sp.CheckSymbol('true'):
+      Error(sp, 'Invalid token')
+    endif
+    m_kind = nkBool
+    m_value = true
+  elif c == 'f':
+    if not sp.CheckSymbol('false'):
+      Error(sp, 'Invalid token')
+    endif
+    m_kind = nkBool
+    m_value = false
+  elif c == 'n':
+    if not sp.CheckSymbol('null'):
+      Error(sp, 'Invalid token')
+    endif
+    m_kind = nkNull
+    m_value.SetNull()
+  elif c == '-'  or (c >= '0'  and c <= '9'):
+    m_kind = nkNumber
+    m_value = ParseNumber(sp)
+  else:
+    Error(sp, 'Unexpected character')
+  endif
+endfunc
+
+function OJson.ParseObject(sp : OStrParse):
+  if sp.readp >= sp.bufend  or sp.readp^ <> '{':
+    Error(sp, 'Expected object')
+  endif
+  sp.readp += 1
+  sp.SkipSpaces()
+
+  if sp.readp < sp.bufend  and sp.readp^ == '}':
+    sp.readp += 1
+    return
+  endif
+
+  while true:
+    sp.SkipSpaces()
+    if sp.readp >= sp.bufend  or sp.readp^ <> '"':
+      Error(sp, 'Expected object name')
+    endif
+    var n : str = ParseString(sp)
+
+    sp.SkipSpaces()
+    if sp.readp >= sp.bufend  or sp.readp^ <> ':':
+      Error(sp, 'Expected ":" after object name')
+    endif
+    sp.readp += 1
+
+    var child : OJson = AddNode(n, nkNull)
+    child.ParseValue(sp)
+
+    sp.SkipSpaces()
+    if sp.readp >= sp.bufend:
+      Error(sp, 'Unterminated object')
+    endif
+
+    if sp.readp^ == ',':
+      sp.readp += 1
+    elif sp.readp^ == '}':
+      sp.readp += 1
+      return
+    else:
+      Error(sp, 'Expected "," or "}" in object')
+    endif
+  endwhile
+endfunc
+
+function OJson.ParseArray(sp : OStrParse):
+  if sp.readp >= sp.bufend  or sp.readp^ <> '[':
+    Error(sp, 'Expected array')
+  endif
+  sp.readp += 1
+  sp.SkipSpaces()
+
+  if sp.readp < sp.bufend  and sp.readp^ == ']':
+    sp.readp += 1
+    return
+  endif
+
+  while true:
+    var child : OJson = AddNode('', nkNull)
+    child.ParseValue(sp)
+
+    sp.SkipSpaces()
+    if sp.readp >= sp.bufend:
+      Error(sp, 'Unterminated array')
+    endif
+
+    if sp.readp^ == ',':
+      sp.readp += 1
+    elif sp.readp^ == ']':
+      sp.readp += 1
+      return
+    else:
+      Error(sp, 'Expected "," or "]" in array')
+    endif
+  endwhile
+endfunc
+
+function OJson.ParseString(sp : OStrParse) -> str:
+  result = ''
+
+  if sp.readp >= sp.bufend  or sp.readp^ <> '"':
+    Error(sp, 'Expected string')
+  endif
+  sp.readp += 1
+
+  while sp.readp < sp.bufend:
+    var c : char = sp.readp^
+    sp.readp += 1
+
+    if c == '"':
+      return
+    endif
+
+    if c < char(32):
+      Error(sp, 'Invalid control character in string')
+    endif
+
+    if c <> char(92):
+      result.Append(cchar(c))
+      continue
+    endif
+
+    if sp.readp >= sp.bufend:
+      Error(sp, 'Unterminated escape sequence')
+    endif
+
+    var e : char = sp.readp^
+    sp.readp += 1
+
+    if e == '"':
+      result.Append('"')
+    elif e == char(92):
+      result.Append(char(92))
+    elif e == '/':
+      result.Append('/')
+    elif e == 'b':
+      result.Append(char(8))
+    elif e == 'f':
+      result.Append(char(12))
+    elif e == 'n':
+      result.Append(char(10))
+    elif e == 'r':
+      result.Append(char(13))
+    elif e == 't':
+      result.Append(char(9))
+    elif e == 'u':
+      var startp : ^cchar = sp.readp
+      sp.ReadHexNumbers()
+      if sp.prevlen <> 4:
+        Error(sp, 'Invalid unicode escape')
+      endif
+      var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
+
+      if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
+        if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
+          Error(sp, 'Invalid unicode surrogate pair')
+        endif
+        sp.readp += 2
+        startp = sp.readp
+        sp.ReadHexNumbers()
+        if sp.prevlen <> 4:
+          Error(sp, 'Invalid unicode escape')
+        endif
+        var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
+        if low < uint32(0xDC00)  or low > uint32(0xDFFF):
+          Error(sp, 'Invalid low unicode surrogate')
+        endif
+        cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
+      elif cp >= uint32(0xDC00)  and cp <= uint32(0xDFFF):
+        Error(sp, 'Unexpected low unicode surrogate')
+      endif
+
+      AppendUtf8(result, cp)
+    else:
+      Error(sp, 'Invalid escape sequence')
+    endif
+  endwhile
+
+  Error(sp, 'Unterminated string')
+endfunc
+
+function OJson.ParseNumber(sp : OStrParse) -> float:
+  var startp : ^cchar = sp.readp
+  var cp     : ^cchar = sp.readp
+
+  if cp < sp.bufend  and cp^ == '-':
+    cp += 1
+  endif
+
+  if cp >= sp.bufend:
+    Error(sp, 'Invalid number')
+  endif
+
+  if cp^ == '0':
+    cp += 1
+  elif cp^ >= '1'  and cp^ <= '9':
+    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+      cp += 1
+    endwhile
+  else:
+    Error(sp, 'Invalid number')
+  endif
+
+  if cp < sp.bufend  and cp^ == '.':
+    cp += 1
+    if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+      Error(sp, 'Invalid number fractional part')
+    endif
+    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+      cp += 1
+    endwhile
+  endif
+
+  if cp < sp.bufend  and (cp^ == 'e'  or cp^ == 'E'):
+    cp += 1
+    if cp < sp.bufend  and (cp^ == '+'  or cp^ == '-'):
+      cp += 1
+    endif
+    if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+      Error(sp, 'Invalid number exponent')
+    endif
+    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+      cp += 1
+    endwhile
+  endif
+
+  sp.readp = cp
+  return @.PCharToFloat(startp, cp - startp)
+endfunc
+
+function OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
+  if codepoint <= uint32(0x7F):
+    rstr.Append(char(int(codepoint)))
+  elif codepoint <= uint32(0x7FF):
+    rstr.Append(char(int(uint32(0xC0) OR (codepoint >> 6))))
+    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+  elif codepoint <= uint32(0xFFFF):
+    rstr.Append(char(int(uint32(0xE0) OR (codepoint >> 12))))
+    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
+    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+  else:
+    rstr.Append(char(int(uint32(0xF0) OR (codepoint >> 18))))
+    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 12) AND uint32(0x3F)))))
+    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
+    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+  endif
+endfunc
+
+function OJson.AppendJsonString(rstr : ref str, avalue : strview):
+  rstr.Append('"')
+  for i : int = 0 count avalue.length:
+    var c : char = avalue[i]
+    if c == '"':
+      rstr.Append(char(92))
+      rstr.Append('"')
+    elif c == char(92):
+      rstr.Append(char(92))
+      rstr.Append(char(92))
+    elif c == char(8):
+      rstr.Append(char(92))
+      rstr.Append('b')
+    elif c == char(12):
+      rstr.Append(char(92))
+      rstr.Append('f')
+    elif c == char(10):
+      rstr.Append(char(92))
+      rstr.Append('n')
+    elif c == char(13):
+      rstr.Append(char(92))
+      rstr.Append('r')
+    elif c == char(9):
+      rstr.Append(char(92))
+      rstr.Append('t')
+    elif c < char(32):
+      rstr.AddFmt('\\u{:04X}', [int(c)])
+    else:
+      rstr.Append(cchar(c))
+    endif
+  endfor
+  rstr.Append('"')
 endfunc

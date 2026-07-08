@@ -1,0 +1,205 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    socket/socket.dq
+ * authors: nvitya
+ * created: 2026-07-08
+ * brief:   Low-level socket handling routines
+ */
+
+type TSocket  = int
+type TSockLen = uint32
+
+const INVALID_SOCKET : TSocket = -1
+
+const AF_UNSPEC : int = 0
+const AF_UNIX   : int = 1
+const AF_INET   : int = 2
+const AF_INET6  : int = 10
+
+const SOCK_STREAM    : int = 1
+const SOCK_DGRAM     : int = 2
+const SOCK_RAW       : int = 3
+const SOCK_NONBLOCK  : int = 0x00000800
+const SOCK_CLOEXEC   : int = 0x00080000
+
+const IPPROTO_IP  : int = 0
+const IPPROTO_TCP : int = 6
+const IPPROTO_UDP : int = 17
+
+const SOL_SOCKET   : int = 1
+const SO_REUSEADDR : int = 2
+const SO_SNDBUF    : int = 7
+const SO_RCVBUF    : int = 8
+const SO_KEEPALIVE : int = 9
+const SO_REUSEPORT : int = 15
+const SO_ERROR     : int = 4
+
+const TCP_NODELAY : int = 1
+
+const MSG_DONTWAIT : int = 0x00000040
+const MSG_NOSIGNAL : int = 0x00004000
+
+const SHUT_RD   : int = 0
+const SHUT_WR   : int = 1
+const SHUT_RDWR : int = 2
+
+const F_GETFL : int = 3
+const F_SETFL : int = 4
+const F_GETFD : int = 1
+const F_SETFD : int = 2
+
+const FD_CLOEXEC : int = 1
+const O_NONBLOCK : int = 0x00000800
+const O_CLOEXEC  : int = 0x00080000
+
+const EAGAIN      : int = 11
+const EWOULDBLOCK : int = 11
+const EINTR       : int = 4
+const EINPROGRESS : int = 115
+const EEXIST      : int = 17
+const ECONNRESET  : int = 104
+const EPIPE       : int = 32
+
+const INADDR_ANY       : uint32 = 0x00000000
+const INADDR_NONE      : uint32 = 0xFFFFFFFF
+const INET_ADDRSTRLEN  : int = 16
+const INET6_ADDRSTRLEN : int = 46
+
+const EPOLL_MAX_EVENTS : int = 32
+
+const EPOLL_CTL_ADD : int = 1
+const EPOLL_CTL_DEL : int = 2
+const EPOLL_CTL_MOD : int = 3
+
+const EPOLLIN        : uint32 = 0x00000001
+const EPOLLPRI       : uint32 = 0x00000002
+const EPOLLOUT       : uint32 = 0x00000004
+const EPOLLERR       : uint32 = 0x00000008
+const EPOLLHUP       : uint32 = 0x00000010
+const EPOLLRDNORM    : uint32 = 0x00000040
+const EPOLLRDBAND    : uint32 = 0x00000080
+const EPOLLWRNORM    : uint32 = 0x00000100
+const EPOLLWRBAND    : uint32 = 0x00000200
+const EPOLLMSG       : uint32 = 0x00000400
+const EPOLLRDHUP     : uint32 = 0x00002000
+const EPOLLEXCLUSIVE : uint32 = 0x10000000
+const EPOLLWAKEUP    : uint32 = 0x20000000
+const EPOLLONESHOT   : uint32 = 0x40000000
+const EPOLLET        : uint32 = 0x80000000
+
+const EPOLL_CLOEXEC : int = O_CLOEXEC
+
+struct SInAddr:
+  s_addr : uint32
+endstruct
+
+struct SSockAddr:
+  sa_family : uint16
+  sa_data   : [14]byte
+endstruct
+
+struct SSockAddrIn:
+  sin_family : uint16
+  sin_port   : uint16
+  sin_addr   : SInAddr
+  sin_zero   : [8]byte
+endstruct
+
+struct SSockAddrIn6:
+  sin6_family   : uint16
+  sin6_port     : uint16
+  sin6_flowinfo : uint32
+  sin6_addr     : [16]byte
+  sin6_scope_id : uint32
+endstruct
+
+struct SSockAddrStorage:
+  ss_family : uint16
+  __data    : [118]byte
+  __align   : uint
+endstruct
+
+// glibc packs epoll_event to { uint32 events; epoll_data_t data; }.
+// Represent the union payload by its pointer-sized member, which also covers fd/u32/u64 storage.
+[[packed]] struct SEpollEvent:
+  events : uint32
+  data   : pointer
+endstruct
+
+type TSockAddr       = SSockAddrIn
+type TEpollEvent     = SEpollEvent
+type TEpollData      = pointer
+type PEpollEvent     = ^SEpollEvent
+type PSockAddr       = ^SSockAddr
+type PSockAddrIn     = ^SSockAddrIn
+type PSockAddrStorage = ^SSockAddrStorage
+
+function libc_socket(domain : int, sock_type : int, protocol : int) -> TSocket [[external('socket')]]
+function libc_bind(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int [[external('bind')]]
+function libc_listen(sockfd : TSocket, backlog : int) -> int [[external('listen')]]
+function libc_accept(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> TSocket [[external('accept')]]
+function libc_connect(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int [[external('connect')]]
+function libc_shutdown(sockfd : TSocket, how : int) -> int [[external('shutdown')]]
+function libc_close(fd : int) -> int [[external('close')]]
+
+function libc_recv(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int [[external('recv')]]
+function libc_send(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int [[external('send')]]
+function libc_recvfrom(sockfd : TSocket, buf : pointer, len : uint, flags : int, src_addr : pointer, addrlen : ^TSockLen) -> int [[external('recvfrom')]]
+function libc_sendto(sockfd : TSocket, buf : pointer, len : uint, flags : int, dest_addr : pointer, addrlen : TSockLen) -> int [[external('sendto')]]
+
+function libc_setsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : TSockLen) -> int [[external('setsockopt')]]
+function libc_getsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : ^TSockLen) -> int [[external('getsockopt')]]
+function libc_getsockname(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int [[external('getsockname')]]
+function libc_getpeername(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int [[external('getpeername')]]
+
+function libc_fcntl(fd : int, cmd : int, ...) -> int [[external('fcntl')]]
+
+function libc_htons(hostshort : uint16) -> uint16 [[external('htons')]]
+function libc_htonl(hostlong : uint32) -> uint32 [[external('htonl')]]
+function libc_ntohs(netshort : uint16) -> uint16 [[external('ntohs')]]
+function libc_ntohl(netlong : uint32) -> uint32 [[external('ntohl')]]
+function libc_inet_addr(cp : ^cchar) -> uint32 [[external('inet_addr')]]
+function libc_inet_pton(af : int, src : ^cchar, dst : pointer) -> int [[external('inet_pton')]]
+function libc_inet_ntop(af : int, src : pointer, dst : ^cchar, size : TSockLen) -> ^cchar [[external('inet_ntop')]]
+
+function libc_epoll_create(size : int) -> int [[external('epoll_create')]]
+function libc_epoll_create1(flags : int) -> int [[external('epoll_create1')]]
+function libc_epoll_ctl(epfd : int, op : int, fd : int, event : ^SEpollEvent) -> int [[external('epoll_ctl')]]
+function libc_epoll_wait(epfd : int, events : ^SEpollEvent, maxevents : int, timeout : int) -> int [[external('epoll_wait')]]
+
+function libc___errno_location() -> ^int [[external('__errno_location')]]
+
+function SocketError() -> int
+function SocketErrno() -> int
+function CloseSocket(sockfd : TSocket) -> int
+function SetSocketNonBlocking(sockfd : TSocket) -> int
+
+implementation
+
+function SocketError() -> int:
+  return libc___errno_location()^
+endfunc
+
+function SocketErrno() -> int:
+  return libc___errno_location()^
+endfunc
+
+function CloseSocket(sockfd : TSocket) -> int:
+  return libc_close(sockfd)
+endfunc
+
+function SetSocketNonBlocking(sockfd : TSocket) -> int:
+  var flags : int = libc_fcntl(sockfd, F_GETFL)
+  if flags < 0:
+    return flags
+  endif
+
+  return libc_fcntl(sockfd, F_SETFL, flags OR O_NONBLOCK)
+endfunc

@@ -37,39 +37,39 @@ function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[
 function libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]];
 
 function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
-  if zeromem:
-    result = libc_calloc(1, allocbytes);
-  else:
-    result = libc_malloc(allocbytes);
-  endif
+    if zeromem:
+        result = libc_calloc(1, allocbytes);
+    else:
+        result = libc_malloc(allocbytes);
+    endif
 endfunc
 
 function MemFree(memptr : pointer):
-  libc_free(memptr);
+    libc_free(memptr);
 endfunc
 
 function MemFreeRef(memptrvar : ref pointer):
-  libc_free(memptrvar);
-  memptrvar = null;
+    libc_free(memptrvar);
+    memptrvar = null;
 endfunc
 
 function MemRealloc(memptr : pointer, newsize : uint) -> pointer:
-  result = libc_realloc(memptr, newsize);
+    result = libc_realloc(memptr, newsize);
 endfunc
 
 function MemReallocRef(memptr : ref pointer, newsize : uint):
-  memptr = libc_realloc(memptr, newsize);
+    memptr = libc_realloc(memptr, newsize);
 endfunc
 
 function MemCopy(dest : pointer, src : pointer, size : uint):
-  if src >= ^byte(dest) + size  or  ^byte(src) + size < dest:
-    libc_memcpy(dest, src, size);
-  else:  // src and dest overlap, use memmove
-    libc_memmove(dest, src, size);
-  endif
+    if src >= ^byte(dest) + size  or  ^byte(src) + size < dest:
+        libc_memcpy(dest, src, size);
+    else:  // src and dest overlap, use memmove
+        libc_memmove(dest, src, size);
+    endif
 endfunc
 
 function MemSet(dest : pointer, value : int, size : uint):
-  libc_memset(dest, value, size);
+    libc_memset(dest, value, size);
 endfunc
 

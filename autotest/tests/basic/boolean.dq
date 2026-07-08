@@ -12,38 +12,38 @@ var g_bool : bool = GVBOOL1 or GVBOOL0;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function printbool(astr : ^cchar, abool : bool):
-  printf("%s = ", astr);
-  if abool:
-    printf("true");
-  else:
-    printf("false");
-  endif
-  printf("\n");
+    printf("%s = ", astr);
+    if abool:
+        printf("true");
+    else:
+        printf("false");
+    endif
+    printf("\n");
 endfunc
 function *Main() -> int:
-  printf("DQ bool test\n");  //?ignore('DQ bool test')
+    printf("DQ bool test\n");  //?ignore('DQ bool test')
 
-  printbool("GVBOOL0", GVBOOL0);  //?check(GVBOOL0, false)
-  printbool("GVBOOL1", GVBOOL1);  //?check(GVBOOL1, true)
-  printbool("g_bool", g_bool);    //?check(g_bool, true)
+    printbool("GVBOOL0", GVBOOL0);  //?check(GVBOOL0, false)
+    printbool("GVBOOL1", GVBOOL1);  //?check(GVBOOL1, true)
+    printbool("g_bool", g_bool);    //?check(g_bool, true)
 
-  var b0 : bool = false;
-  var b1 : bool = true;
-  var bexpr : bool;
+    var b0 : bool = false;
+    var b1 : bool = true;
+    var bexpr : bool;
 
-  printbool("not false", not b0);    //?check('not false', true)
+    printbool("not false", not b0);    //?check('not false', true)
 
-  printbool("false or false", b0 or b0);  //?check('false or false', false)
-  printbool("true or true", b1 or b1);    //?check('true or true', true)
-  printbool("true or false", b1 or b0);   //?check('true or false', true)
+    printbool("false or false", b0 or b0);  //?check('false or false', false)
+    printbool("true or true", b1 or b1);    //?check('true or true', true)
+    printbool("true or false", b1 or b0);   //?check('true or false', true)
 
-  printbool("false or not false", b0 or not b0);  //?check('false or not false', true)
-  printbool("false and not false", b0 and not b0);  //?check('false and not false', false)
+    printbool("false or not false", b0 or not b0);  //?check('false or not false', true)
+    printbool("false and not false", b0 and not b0);  //?check('false and not false', false)
 
-  bexpr = b0  or b1 and not b1;
-  printbool("bexpr1", bexpr);  //?check('bexpr1', false)
+    bexpr = b0  or b1 and not b1;
+    printbool("bexpr1", bexpr);  //?check('bexpr1', false)
 
-  return 0;
+    return 0;
 endfunc
 
 #endif

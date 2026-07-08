@@ -1,5 +1,5 @@
 //?notest
 
 function sub_value() -> int:
-  result = 100;
+    result = 100;
 endfunc

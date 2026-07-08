@@ -4,54 +4,54 @@
 
 object OIndexedProperties:
 private
-  values : [4]int = [10, 20, 30, 40];
-  cells : [6]int = [0, 1, 2, 10, 11, 12];
-  set_count : int = 0;
+    values : [4]int = [10, 20, 30, 40];
+    cells : [6]int = [0, 1, 2, 10, 11, 12];
+    set_count : int = 0;
 
-  function GetItem(index : int) -> int:
-    return values[index];
-  endfunc
+    function GetItem(index : int) -> int:
+        return values[index];
+    endfunc
 
-  function SetItem(index : int, value : int):
-    values[index] = value;
-    set_count += 1;
-  endfunc
+    function SetItem(index : int, value : int):
+        values[index] = value;
+        set_count += 1;
+    endfunc
 
-  function GetCell(row : int, col : int) -> int:
-    return cells[row * 3 + col];
-  endfunc
+    function GetCell(row : int, col : int) -> int:
+        return cells[row * 3 + col];
+    endfunc
 
-  function SetCell(row : int, col : int, value : int):
-    cells[row * 3 + col] = value;
-    set_count += 1;
-  endfunc
+    function SetCell(row : int, col : int, value : int):
+        cells[row * 3 + col] = value;
+        set_count += 1;
+    endfunc
 
-  function GetSetCount() -> int:
-    return set_count;
-  endfunc
+    function GetSetCount() -> int:
+        return set_count;
+    endfunc
 
 public
-  property unnamed : [int]int read GetItem write SetItem
-  property named : [index : int]int read GetItem write SetItem
-  property matrix : [row : int, col : int]int read GetCell write SetCell
-  property writes : int read GetSetCount
+    property unnamed : [int]int read GetItem write SetItem
+    property named : [index : int]int read GetItem write SetItem
+    property matrix : [row : int, col : int]int read GetCell write SetCell
+    property writes : int read GetSetCount
 endobj
 
 function *Main() -> int:
-  var values <- OIndexedProperties();
+    var values <- OIndexedProperties();
 
-  printf("property.indexed.read = %d %d %d\n",
-         values.unnamed[1], values.named[2], values.matrix[1, 2]);
-  //?check("property.indexed.read", "20 30 12")
+    printf("property.indexed.read = %d %d %d\n",
+           values.unnamed[1], values.named[2], values.matrix[1, 2]);
+    //?check("property.indexed.read", "20 30 12")
 
-  values.unnamed[0] = 101;
-  values.named[3] = 404;
-  values.matrix[1, 1] = 111;
+    values.unnamed[0] = 101;
+    values.named[3] = 404;
+    values.matrix[1, 1] = 111;
 
-  printf("property.indexed.write = %d %d %d %d\n",
-         values.unnamed[0], values.named[3], values.matrix[1, 1],
-         values.writes);
-  //?check("property.indexed.write", "101 404 111 3")
+    printf("property.indexed.write = %d %d %d %d\n",
+           values.unnamed[0], values.named[3], values.matrix[1, 1],
+           values.writes);
+    //?check("property.indexed.write", "101 404 111 3")
 
-  return 0;
+    return 0;
 endfunc

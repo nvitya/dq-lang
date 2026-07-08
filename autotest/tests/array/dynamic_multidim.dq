@@ -7,30 +7,30 @@ use print
 var mdda : [*][*]int
 
 function PrintArr2(astr : strview):
-  for row : int = 0 count mdda.length:
-    Print("{}.row[{}] = [", [astr, row])
-    for col : int = 0 count mdda[row].length:
-      if col > 0:
-        Print(", ")
-      endif
-      Print('{}', [ mdda[row][col] ])
+    for row : int = 0 count mdda.length:
+        Print("{}.row[{}] = [", [astr, row])
+        for col : int = 0 count mdda[row].length:
+            if col > 0:
+                Print(", ")
+            endif
+            Print('{}', [ mdda[row][col] ])
+        endfor
+        PrintLn(']')
     endfor
-    PrintLn(']')
-  endfor
 endfunc
 
 function *Main() -> int:
-  PrintLn('DQ Multi-dimensional array test')  //?ignore('DQ Multi-dimensional array test')
+    PrintLn('DQ Multi-dimensional array test')  //?ignore('DQ Multi-dimensional array test')
 
-  mdda.Append([1,2,3])
-  mdda.Append([11, 22, 33, 44])
-  mdda.Append([0xA1, 0xA2])
+    mdda.Append([1,2,3])
+    mdda.Append([11, 22, 33, 44])
+    mdda.Append([0xA1, 0xA2])
 
-  PrintArr2('mdda')
+    PrintArr2('mdda')
 
-  //?check('mdda.row[0]', '[1, 2, 3]')
-  //?check('mdda.row[1]', '[11, 22, 33, 44]')
-  //?check('mdda.row[2]', '[161, 162]')
+    //?check('mdda.row[0]', '[1, 2, 3]')
+    //?check('mdda.row[1]', '[11, 22, 33, 44]')
+    //?check('mdda.row[2]', '[161, 162]')
 
-  return 0
+    return 0
 endfunc

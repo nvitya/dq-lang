@@ -6,8 +6,8 @@ use ./mod_circ_a, ./mod_circ_b;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function *Main() -> int:
-  printf('DQ Circular module reference test\n');  //?ignore('DQ Circular module reference test')
-  printf('func_a() = %d\n', func_a());  //?check('func_a()', 21)
-  printf('func_b() = %d\n', func_b());  //?check('func_b()', 12)
-  return 0;
+    printf('DQ Circular module reference test\n');  //?ignore('DQ Circular module reference test')
+    printf('func_a() = %d\n', func_a());  //?check('func_a()', 21)
+    printf('func_b() = %d\n', func_b());  //?check('func_b()', 12)
+    return 0;
 endfunc

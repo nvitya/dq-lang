@@ -5,90 +5,90 @@ use libc/stdio;
 [[external]] function putchar(c : cchar) -> int;
 
 function PrintEscapedChar(ch : char):
-  if ch == char(9):
-    printf("\\t");
-    return;
-  endif
-  if ch == char(10):
-    printf("\\n");
-    return;
-  endif
-  if ch == char(13):
-    printf("\\r");
-    return;
-  endif
-  if ch == char(34):
-    putchar(cchar(92));
-    putchar(cchar(34));
-    return;
-  endif
-  if ch == char(92):
-    putchar(cchar(92));
-    putchar(cchar(92));
-    return;
-  endif
-  putchar(cchar(ch));
+    if ch == char(9):
+        printf("\\t");
+        return;
+    endif
+    if ch == char(10):
+        printf("\\n");
+        return;
+    endif
+    if ch == char(13):
+        printf("\\r");
+        return;
+    endif
+    if ch == char(34):
+        putchar(cchar(92));
+        putchar(cchar(34));
+        return;
+    endif
+    if ch == char(92):
+        putchar(cchar(92));
+        putchar(cchar(92));
+        return;
+    endif
+    putchar(cchar(ch));
 endfunc
 
 function PrintText(label : ^cchar, text : strview):
-  printf("%s = [%li] \"", label, text.length);
-  var i : int = 0;
-  while i < text.length:
-    PrintEscapedChar(text[i]);
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = [%li] \"", label, text.length);
+    var i : int = 0;
+    while i < text.length:
+        PrintEscapedChar(text[i]);
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function Flag(v : bool) -> int:
-  if v:
-    result = 1;
-  else:
-    result = 0;
-  endif
+    if v:
+        result = 1;
+    else:
+        result = 0;
+    endif
 endfunc
 
 function *Main() -> int:
-  printf("string_literals_basic = start\n"); //?check("string_literals_basic", "start")
+    printf("string_literals_basic = start\n"); //?check("string_literals_basic", "start")
 
-  var s_default : str;
-  var s_double  : str = "";
-  var s_single  : str = '';
-  var v_empty   : strview = "";
+    var s_default : str;
+    var s_double  : str = "";
+    var s_single  : str = '';
+    var v_empty   : strview = "";
 
-  printf("empty_lengths = default:%li double:%li single:%li view:%li\n",
-         s_default.length, s_double.length, s_single.length, v_empty.length); //?check("empty_lengths", "default:0 double:0 single:0 view:0")
-  printf("empty_capacity = default:%li double:%li single:%li\n",
-         s_default.capacity, s_double.capacity, s_single.capacity); //?check("empty_capacity", "default:0 double:0 single:0")
-  printf("empty_equality = default:%li double:%li single:%li view:%li\n",
-         Flag(s_default == ""), Flag(s_double == ""), Flag(s_single == ""), Flag(v_empty == "")); //?check("empty_equality", "default:1 double:1 single:1 view:1")
+    printf("empty_lengths = default:%li double:%li single:%li view:%li\n",
+           s_default.length, s_double.length, s_single.length, v_empty.length); //?check("empty_lengths", "default:0 double:0 single:0 view:0")
+    printf("empty_capacity = default:%li double:%li single:%li\n",
+           s_default.capacity, s_double.capacity, s_single.capacity); //?check("empty_capacity", "default:0 double:0 single:0")
+    printf("empty_equality = default:%li double:%li single:%li view:%li\n",
+           Flag(s_default == ""), Flag(s_double == ""), Flag(s_single == ""), Flag(v_empty == "")); //?check("empty_equality", "default:1 double:1 single:1 view:1")
 
-  var s_lit : str = "asdf";
-  var v_lit : strview = "asdf";
-  var cs_lit : cstring(31) = "asdf";
-  var pc_lit : ^cchar = "asdf";
-  PrintText("literal_str", s_lit); //?check("literal_str", '[4] "asdf"')
-  PrintText("literal_view", v_lit); //?check("literal_view", '[4] "asdf"')
-  PrintText("literal_cstring", cs_lit); //?check("literal_cstring", '[4] "asdf"')
-  PrintText("literal_pc", pc_lit); //?check("literal_pc", '[4] "asdf"')
+    var s_lit : str = "asdf";
+    var v_lit : strview = "asdf";
+    var cs_lit : cstring(31) = "asdf";
+    var pc_lit : ^cchar = "asdf";
+    PrintText("literal_str", s_lit); //?check("literal_str", '[4] "asdf"')
+    PrintText("literal_view", v_lit); //?check("literal_view", '[4] "asdf"')
+    PrintText("literal_cstring", cs_lit); //?check("literal_cstring", '[4] "asdf"')
+    PrintText("literal_pc", pc_lit); //?check("literal_pc", '[4] "asdf"')
 
-  var one : str = 'a';
-  one.Append('b');
-  one.Append(char(99));
-  PrintText("char_sources", one); //?check("char_sources", '[3] "abc"')
+    var one : str = 'a';
+    one.Append('b');
+    one.Append(char(99));
+    PrintText("char_sources", one); //?check("char_sources", '[3] "abc"')
 
-  //var wide16 : str = "€";
-  //var wide32 : str = "😀";
-  //printf("wide_literal_codes = u16:%li u32:%li\n", wide16[0], wide32[0]); //-?check("wide_literal_codes", "u16:8364 u32:128512")
+    //var wide16 : str = "€";
+    //var wide32 : str = "😀";
+    //printf("wide_literal_codes = u16:%li u32:%li\n", wide16[0], wide32[0]); //-?check("wide_literal_codes", "u16:8364 u32:128512")
 
-  printf("type_sizes = char:%li cchar:%li\n", SizeOf(char), SizeOf(cchar)); //?check("type_sizes", "char:4 cchar:1")
+    printf("type_sizes = char:%li cchar:%li\n", SizeOf(char), SizeOf(cchar)); //?check("type_sizes", "char:4 cchar:1")
 
-  var eq_str : str = "abc";
-  var eq_view : strview = "abc";
-  var eq_cs : cstring(8) = "abc";
-  var eq_pc : ^cchar = "abc";
-  printf("string_equality = str:%li view:%li cstring:%li pc:%li ne:%li\n",
-         Flag(eq_str == "abc"), Flag(eq_str == eq_view), Flag(eq_cs == eq_str), Flag(eq_str == eq_pc), Flag(eq_str <> "abd")); //?check("string_equality", "str:1 view:1 cstring:1 pc:1 ne:1")
+    var eq_str : str = "abc";
+    var eq_view : strview = "abc";
+    var eq_cs : cstring(8) = "abc";
+    var eq_pc : ^cchar = "abc";
+    printf("string_equality = str:%li view:%li cstring:%li pc:%li ne:%li\n",
+           Flag(eq_str == "abc"), Flag(eq_str == eq_view), Flag(eq_cs == eq_str), Flag(eq_str == eq_pc), Flag(eq_str <> "abd")); //?check("string_equality", "str:1 view:1 cstring:1 pc:1 ne:1")
 
-  return 0;
+    return 0;
 endfunc

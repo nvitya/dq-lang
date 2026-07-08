@@ -4,125 +4,125 @@ use libc/stdio;
 use rtl/dynstrmgr;
 
 function MakeText(desc : refout SDqTextInfo, data : pointer, alen : uint32):
-  desc.dataptr = data;
-  desc.charlen = alen;
-  desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
+    desc.dataptr = data;
+    desc.charlen = alen;
+    desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
 endfunc
 
 function PrintText(label : ^cchar, s : ref ODynStrMgr):
-  var view : SDqTextInfo = {};
-  DynStrGetFullView(s, view);
+    var view : SDqTextInfo = {};
+    DynStrGetFullView(s, view);
 
-  printf("%s = len:%li cap:%li text: \"", label, int(DynStrGetLength(s)), int(DynStrGetCapacity(s)));
-  var i : int = 0;
-  while i < view.charlen:
-    printf("%c", int(^cchar(view.dataptr)[i]^));
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = len:%li cap:%li text: \"", label, int(DynStrGetLength(s)), int(DynStrGetCapacity(s)));
+    var i : int = 0;
+    while i < view.charlen:
+        printf("%c", int(^cchar(view.dataptr)[i]^));
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function RunCoreOps():
-  var s : ODynStrMgr = null;
-  var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
-  var desc : SDqTextInfo = {};
-  MakeText(desc, &src[0], 3);
-  DynStrAssignData(s, desc);
-  PrintText("assign", s);
+    var s : ODynStrMgr = null;
+    var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
+    var desc : SDqTextInfo = {};
+    MakeText(desc, &src[0], 3);
+    DynStrAssignData(s, desc);
+    PrintText("assign", s);
 
-  var more : [2]cchar = [cchar(100), cchar(101)];
-  MakeText(desc, &more[0], 2);
-  DynStrAppend(s, desc, 2);
-  PrintText("append", s);
+    var more : [2]cchar = [cchar(100), cchar(101)];
+    MakeText(desc, &more[0], 2);
+    DynStrAppend(s, desc, 2);
+    PrintText("append", s);
 
-  var ins : [2]cchar = [cchar(88), cchar(89)];
-  MakeText(desc, &ins[0], 2);
-  DynStrInsert(s, 2, desc, 2);
-  PrintText("insert", s);
+    var ins : [2]cchar = [cchar(88), cchar(89)];
+    MakeText(desc, &ins[0], 2);
+    DynStrInsert(s, 2, desc, 2);
+    PrintText("insert", s);
 
-  DynStrDelete(s, -5, 1);
-  PrintText("delete-clamped", s);
+    DynStrDelete(s, -5, 1);
+    PrintText("delete-clamped", s);
 
-  DynStrSetLength(s, 1, 4);
-  PrintText("setlen4", s);
+    DynStrSetLength(s, 1, 4);
+    PrintText("setlen4", s);
 
-  DynStrCompact(s);
-  PrintText("compact", s);
+    DynStrCompact(s);
+    PrintText("compact", s);
 
-  DynStrClear(s, true);
-  PrintText("clear-free", s);
+    DynStrClear(s, true);
+    PrintText("clear-free", s);
 endfunc
 
 function RunOverlapClonePop():
-  var s : ODynStrMgr = null;
-  var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
-  var desc : SDqTextInfo = {};
-  MakeText(desc, &src[0], 3);
-  DynStrAssignData(s, desc);
+    var s : ODynStrMgr = null;
+    var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
+    var desc : SDqTextInfo = {};
+    MakeText(desc, &src[0], 3);
+    DynStrAssignData(s, desc);
 
-  DynStrGetView(s, desc, 1, 3);
-  DynStrInsert(s, 2, desc, 2);
-  PrintText("overlap-insert", s);
+    DynStrGetView(s, desc, 1, 3);
+    DynStrInsert(s, 2, desc, 2);
+    PrintText("overlap-insert", s);
 
-  var copy : ODynStrMgr = null;
-  DynStrClone(s, copy);
-  PrintText("clone", copy);
+    var copy : ODynStrMgr = null;
+    DynStrClone(s, copy);
+    PrintText("clone", copy);
 
-  var tail : ODynStrMgr = null;
-  DynStrPop(s, 2, tail);
-  PrintText("pop-tail", tail);
-  PrintText("after-pop-tail", s);
+    var tail : ODynStrMgr = null;
+    DynStrPop(s, 2, tail);
+    PrintText("pop-tail", tail);
+    PrintText("after-pop-tail", s);
 
-  var head : ODynStrMgr = null;
-  DynStrPopFirst(s, 1, head);
-  PrintText("pop-head", head);
-  PrintText("after-pop-head", s);
+    var head : ODynStrMgr = null;
+    DynStrPopFirst(s, 1, head);
+    PrintText("pop-head", head);
+    PrintText("after-pop-head", s);
 
-  DynStrDecRef(s);
-  DynStrDecRef(copy);
-  DynStrDecRef(tail);
-  DynStrDecRef(head);
+    DynStrDecRef(s);
+    DynStrDecRef(copy);
+    DynStrDecRef(tail);
+    DynStrDecRef(head);
 endfunc
 
 function RunCopyOnWrite():
-  var a : ODynStrMgr = null;
-  var b : ODynStrMgr = null;
-  var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
-  var desc : SDqTextInfo = {};
-  MakeText(desc, &src[0], 3);
-  DynStrAssignData(a, desc);
-  DynStrAssignOther(b, a);
+    var a : ODynStrMgr = null;
+    var b : ODynStrMgr = null;
+    var src : [3]cchar = [cchar(97), cchar(98), cchar(99)];
+    var desc : SDqTextInfo = {};
+    MakeText(desc, &src[0], 3);
+    DynStrAssignData(a, desc);
+    DynStrAssignOther(b, a);
 
-  var suffix : [1]cchar = [cchar(120)];
-  MakeText(desc, &suffix[0], 1);
-  DynStrAppend(b, desc, 1);
-  PrintText("cow-src", a);
-  PrintText("cow-mutated", b);
+    var suffix : [1]cchar = [cchar(120)];
+    MakeText(desc, &suffix[0], 1);
+    DynStrAppend(b, desc, 1);
+    PrintText("cow-src", a);
+    PrintText("cow-mutated", b);
 
-  DynStrDecRef(a);
-  DynStrDecRef(b);
+    DynStrDecRef(a);
+    DynStrDecRef(b);
 endfunc
 
 function *Main() -> int:
-  printf("DQ ODynStrMgr test\n"); //?ignore("DQ ODynStrMgr test")
+    printf("DQ ODynStrMgr test\n"); //?ignore("DQ ODynStrMgr test")
 
-  RunCoreOps(); //?check("assign", 'len:3 cap:3 text: "abc"')
-                //?check("append", 'len:5 cap:6 text: "abcde"')
-                //?check("insert", 'len:7 cap:12 text: "abXYcde"')
-                //?check("delete-clamped", 'len:6 cap:12 text: "bXYcde"')
-                //?check("setlen4", 'len:4 cap:12 text: "bXYc"')
-                //?check("compact", 'len:4 cap:4 text: "bXYc"')
-                //?check("clear-free", 'len:0 cap:0 text: ""')
+    RunCoreOps(); //?check("assign", 'len:3 cap:3 text: "abc"')
+                  //?check("append", 'len:5 cap:6 text: "abcde"')
+                  //?check("insert", 'len:7 cap:12 text: "abXYcde"')
+                  //?check("delete-clamped", 'len:6 cap:12 text: "bXYcde"')
+                  //?check("setlen4", 'len:4 cap:12 text: "bXYc"')
+                  //?check("compact", 'len:4 cap:4 text: "bXYc"')
+                  //?check("clear-free", 'len:0 cap:0 text: ""')
 
-  RunOverlapClonePop(); //?check("overlap-insert", 'len:5 cap:6 text: "abbcc"')
-                        //?check("clone", 'len:5 cap:5 text: "abbcc"')
-                        //?check("pop-tail", 'len:2 cap:2 text: "cc"')
-                        //?check("after-pop-tail", 'len:3 cap:6 text: "abb"')
-                        //?check("pop-head", 'len:1 cap:1 text: "a"')
-                        //?check("after-pop-head", 'len:2 cap:6 text: "bb"')
+    RunOverlapClonePop(); //?check("overlap-insert", 'len:5 cap:6 text: "abbcc"')
+                          //?check("clone", 'len:5 cap:5 text: "abbcc"')
+                          //?check("pop-tail", 'len:2 cap:2 text: "cc"')
+                          //?check("after-pop-tail", 'len:3 cap:6 text: "abb"')
+                          //?check("pop-head", 'len:1 cap:1 text: "a"')
+                          //?check("after-pop-head", 'len:2 cap:6 text: "bb"')
 
-  RunCopyOnWrite(); //?check("cow-src", 'len:3 cap:3 text: "abc"')
-                    //?check("cow-mutated", 'len:4 cap:6 text: "abcx"')
+    RunCopyOnWrite(); //?check("cow-src", 'len:3 cap:3 text: "abc"')
+                      //?check("cow-mutated", 'len:4 cap:6 text: "abcx"')
 
-  return 0;
+    return 0;
 endfunc

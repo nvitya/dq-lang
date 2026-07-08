@@ -5,56 +5,56 @@
 var reached : int = 0
 
 function WrongPointer() -> ^int:
-  raise Exception('wrongpointer')
-  return null
+    raise Exception('wrongpointer')
+    return null
 endfunc
 
 function *Main() -> int:
-  try:
-    RuntimeError("runtime boom")
-    reached = 1
-  except Exception as e:
-    printf("exception.runtime = ")
-    e.PrintMessage()
-    printf(" reached=%d\n", reached)
-    //?check("exception.runtime", "runtime boom reached=0")
-  endtry
+    try:
+        RuntimeError("runtime boom")
+        reached = 1
+    except Exception as e:
+        printf("exception.runtime = ")
+        e.PrintMessage()
+        printf(" reached=%d\n", reached)
+        //?check("exception.runtime", "runtime boom reached=0")
+    endtry
 
-  reached = 0
-  try:
-    var s : str = ""
-    var ch : char = s.Pop()
-    reached = 2
-  except Exception as e:
-    printf("exception.rtl = ")
-    e.PrintMessage()
-    printf(" reached=%d\n", reached)
-    //?check("exception.rtl", "DynStr pop from empty string reached=0")
-  endtry
+    reached = 0
+    try:
+        var s : str = ""
+        var ch : char = s.Pop()
+        reached = 2
+    except Exception as e:
+        printf("exception.rtl = ")
+        e.PrintMessage()
+        printf(" reached=%d\n", reached)
+        //?check("exception.rtl", "DynStr pop from empty string reached=0")
+    endtry
 
-  reached = 0
-  try:
-    var i : int = WrongPointer()^
-    reached = 3
-  except Exception as e:
-    printf("exception.wrongpointer = ")
-    e.PrintMessage()
-    printf(" reached=%d\n", reached)
-    //?check("exception.wrongpointer", "wrongpointer reached=0")
-  endtry
+    reached = 0
+    try:
+        var i : int = WrongPointer()^
+        reached = 3
+    except Exception as e:
+        printf("exception.wrongpointer = ")
+        e.PrintMessage()
+        printf(" reached=%d\n", reached)
+        //?check("exception.wrongpointer", "wrongpointer reached=0")
+    endtry
 
-  reached = 0
-  try:
-    var a : [*]int = [10, 20]
-    var item : int = a[2]
-    reached = 3
-  except Exception as e:
-    printf("exception.array = ")
-    e.PrintMessage()
-    printf(" reached=%d\n", reached)
-    //?check("exception.array", "DynArray access out of bounds reached=0")
-  endtry
+    reached = 0
+    try:
+        var a : [*]int = [10, 20]
+        var item : int = a[2]
+        reached = 3
+    except Exception as e:
+        printf("exception.array = ")
+        e.PrintMessage()
+        printf(" reached=%d\n", reached)
+        //?check("exception.array", "DynArray access out of bounds reached=0")
+    endtry
 
 
-  return 0
+    return 0
 endfunc

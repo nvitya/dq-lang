@@ -18,5 +18,5 @@ enum NInt8TooSmall : int8 = (value = -129) //?error(EnumValueRange)
 enum NUint16Overflow : uint16 = (last = 65535, overflow) //?error(EnumValueRange)
 
 function *Main() -> int:
-  return 0;
+    return 0;
 endfunc

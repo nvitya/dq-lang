@@ -1,10 +1,10 @@
 // single line comment: this is a dq test program
 
 /*
-  multi
-  line
-  comment
-  #define NOT_DEFINED
+    multi
+    line
+    comment
+    #define NOT_DEFINED
 */
 
 // #{invalid directive}  // directive in comment
@@ -16,30 +16,30 @@
 
 #ifdef DEFINED1
 
-  var globvar1 : int = #{ifdef DEFINED2} 11 #{else} 22 #{endif};
+    var globvar1 : int = #{ifdef DEFINED2} 11 #{else} 22 #{endif};
 
-  #define DEFVAR = 5
+    #define DEFVAR = 5
 
 #{elifdef NOT_DEFINED}
 
-  var globvar1 : int = 2;
+    var globvar1 : int = 2;
 
-  #ifdef DEFINED2
-  #else
-  #endif
+    #ifdef DEFINED2
+    #else
+    #endif
 
 #{else}
 
-  // inactive code test
-  /*
-    multi-line comment
-  */
+    // inactive code test
+    /*
+        multi-line comment
+    */
 
-  var s : stringa = " #{endif} ";  // #{endif} in string and comment
+    var s : stringa = " #{endif} ";  // #{endif} in string and comment
 
-  varxxx blabla;  // this is an invalid statement
+    varxxx blabla;  // this is an invalid statement
 
-  var platformvar : int = 3;
+    var platformvar : int = 3;
 
 #{endif}
 
@@ -57,7 +57,7 @@ var globvar3 : int = @def.GLOBVAR3_VALUE;
 
 /* some more comment
 
-  */  var globvar4 : int = 44;
+    */  var globvar4 : int = 44;
 
 #{include "preproc_inc1.dqi"}
 
@@ -71,17 +71,17 @@ var globvar6 : int = 66;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("DQ Pre-Processor (source code feeder) test:\n\n");     //?ignore('DQ Pre-Processor (source code feeder) test:')
+    printf("DQ Pre-Processor (source code feeder) test:\n\n");     //?ignore('DQ Pre-Processor (source code feeder) test:')
 
-  printf("globvar1 = %i\n", globvar1);           //?check(globvar1, 22)
-  printf("globvar2 = %i\n", globvar2);           //?check(globvar2, 5)
-  printf("globvar3 = %i\n", globvar3);           //?check(globvar3, 55)
-  printf("globvar4 = %i\n", globvar4);           //?check(globvar4, 44)
-  printf("globvar6 = %i\n", globvar6);           //?check(globvar6, 66)
+    printf("globvar1 = %i\n", globvar1);           //?check(globvar1, 22)
+    printf("globvar2 = %i\n", globvar2);           //?check(globvar2, 5)
+    printf("globvar3 = %i\n", globvar3);           //?check(globvar3, 55)
+    printf("globvar4 = %i\n", globvar4);           //?check(globvar4, 44)
+    printf("globvar6 = %i\n", globvar6);           //?check(globvar6, 66)
 
-  printf("includevar1 = %i\n", includevar1);     //?check(includevar1, 101)
-  printf("includevar2 = %i\n", includevar2);     //?check(includevar2, 2033)
-  printf("includevar21 = %i\n", includevar21);   //?check(includevar21, 2101)
+    printf("includevar1 = %i\n", includevar1);     //?check(includevar1, 101)
+    printf("includevar2 = %i\n", includevar2);     //?check(includevar2, 2033)
+    printf("includevar21 = %i\n", includevar21);   //?check(includevar21, 2101)
 
-  return 0;
+    return 0;
 endfunc

@@ -3,52 +3,52 @@
 var g_value : int;
 
 struct SItem:
-  value : int;
+    value : int;
 endstruct
 
 function dq_void_call():
 endfunc
 
 function dq_stmt_targets():
-  var x : int;
-  var y : int = 3;
-  var arr : [2]int;
-  var s : SItem = {};
+    var x : int;
+    var y : int = 3;
+    var arr : [2]int;
+    var s : SItem = {};
 
-  x = 1;
-  x += 2;
-  x <<= 1;
-  x >>= 1;
-  x =AND= 7;
+    x = 1;
+    x += 2;
+    x <<= 1;
+    x >>= 1;
+    x =AND= 7;
 
-  @.g_value = x;
+    @.g_value = x;
 
-  arr[0] = x;
-  s.value = arr[0];
+    arr[0] = x;
+    s.value = arr[0];
 
-  var p : ^int = &arr[0];
-  p^ = s.value;
+    var p : ^int = &arr[0];
+    p^ = s.value;
 
-  if x < y:
-    x = y;
-  endif
+    if x < y:
+        x = y;
+    endif
 
-  if x <= y:
-    x = y;
-  endif
+    if x <= y:
+        x = y;
+    endif
 
-  if x > y:
-    x = y;
-  endif
+    if x > y:
+        x = y;
+    endif
 
-  if x >= y:
-    x = y;
-  endif
+    if x >= y:
+        x = y;
+    endif
 
-  dq_void_call();
+    dq_void_call();
 endfunc
 
 function dq_invalid_expr():
-  var x : int = 1;
-  x + 1;  //?error(StmtAssignOrFCallExp)
+    var x : int = 1;
+    x + 1;  //?error(StmtAssignOrFCallExp)
 endfunc

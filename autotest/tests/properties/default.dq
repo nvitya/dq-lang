@@ -4,61 +4,61 @@
 
 object ODefaultBase:
 protected
-  base_values : [3]int = [10, 20, 30];
+    base_values : [3]int = [10, 20, 30];
 
-  function GetBase(index : int) -> int:
-    return base_values[index];
-  endfunc
+    function GetBase(index : int) -> int:
+        return base_values[index];
+    endfunc
 
-  function SetBase(index : int, value : int):
-    base_values[index] = value;
-  endfunc
+    function SetBase(index : int, value : int):
+        base_values[index] = value;
+    endfunc
 
 public
-  property base_item : [index : int]int default read GetBase write SetBase
+    property base_item : [index : int]int default read GetBase write SetBase
 endobj
 
 object ODefaultChild(ODefaultBase):
 private
-  first_values : [3]int = [100, 200, 300];
-  last_values : [3]int = [1000, 2000, 3000];
+    first_values : [3]int = [100, 200, 300];
+    last_values : [3]int = [1000, 2000, 3000];
 
-  function GetFirst(index : int) -> int:
-    return first_values[index];
-  endfunc
+    function GetFirst(index : int) -> int:
+        return first_values[index];
+    endfunc
 
-  function SetFirst(index : int, value : int):
-    first_values[index] = value;
-  endfunc
+    function SetFirst(index : int, value : int):
+        first_values[index] = value;
+    endfunc
 
-  function GetLast(index : int) -> int:
-    return last_values[index];
-  endfunc
+    function GetLast(index : int) -> int:
+        return last_values[index];
+    endfunc
 
-  function SetLast(index : int, value : int):
-    last_values[index] = value;
-  endfunc
+    function SetLast(index : int, value : int):
+        last_values[index] = value;
+    endfunc
 
 public
-  property first_item : [index : int]int default read GetFirst write SetFirst
-  property last_item : [index : int]int default read GetLast write SetLast
+    property first_item : [index : int]int default read GetFirst write SetFirst
+    property last_item : [index : int]int default read GetLast write SetLast
 endobj
 
 function *Main() -> int:
-  var child <- ODefaultChild();
-  var base : ODefaultBase = child;
+    var child <- ODefaultChild();
+    var base : ODefaultBase = child;
 
-  // Lookup uses the receiver's declared type. The child's last default
-  // declaration wins, while an upcast receiver uses the base default.
-  printf("property.default.read = %d %d %d\n",
-         child[1], child.first_item[1], base[1]);
-  //?check("property.default.read", "2000 200 20")
+    // Lookup uses the receiver's declared type. The child's last default
+    // declaration wins, while an upcast receiver uses the base default.
+    printf("property.default.read = %d %d %d\n",
+           child[1], child.first_item[1], base[1]);
+    //?check("property.default.read", "2000 200 20")
 
-  child[1] = 2222;
-  base[1] = 22;
-  printf("property.default.write = %d %d %d\n",
-         child.last_item[1], child.first_item[1], base.base_item[1]);
-  //?check("property.default.write", "2222 200 22")
+    child[1] = 2222;
+    base[1] = 22;
+    printf("property.default.write = %d %d %d\n",
+           child.last_item[1], child.first_item[1], base.base_item[1]);
+    //?check("property.default.write", "2222 200 22")
 
-  return 0;
+    return 0;
 endfunc

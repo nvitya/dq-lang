@@ -1,24 +1,24 @@
 use rtl/textformat;
 
 function *Main() -> int:
-  var outs <- OTextSinkStdOut();
-  var fmt  <- OTextFormatter(outs);
+    var outs <- OTextSinkStdOut();
+    var fmt  <- OTextFormatter(outs);
 
-  fmt.Format('tf-int = {}|{:d}|{:+d}|{:05d}|[{:5d}]|[{:-5d}]\n',
-             [42, -17, 17, -17, 17, 17]); //?check('tf-int', '42|-17|+17|-0017|[   17]|[17   ]')
+    fmt.Format('tf-int = {}|{:d}|{:+d}|{:05d}|[{:5d}]|[{:-5d}]\n',
+               [42, -17, 17, -17, 17, 17]); //?check('tf-int', '42|-17|+17|-0017|[   17]|[17   ]')
 
-  fmt.Format('tf-uint = {:u}|{:04u}|[{:-4u}]\n',
-             [uint(123), uint(7), uint(7)]); //?check('tf-uint', '123|0007|[7   ]')
+    fmt.Format('tf-uint = {:u}|{:04u}|[{:-4u}]\n',
+               [uint(123), uint(7), uint(7)]); //?check('tf-uint', '123|0007|[7   ]')
 
-  fmt.Format('tf-hex = {:x}|{:X}|{:08X}|[{:-6x}]\n',
-             [0xC0DE, 0xC0DE, 0x2A, 0x2A]); //?check('tf-hex', 'c0de|C0DE|0000002A|[2a    ]')
+    fmt.Format('tf-hex = {:x}|{:X}|{:08X}|[{:-6x}]\n',
+               [0xC0DE, 0xC0DE, 0x2A, 0x2A]); //?check('tf-hex', 'c0de|C0DE|0000002A|[2a    ]')
 
-  fmt.Format('tf-float = {}|{:.2f}|{:0+8.2f}|[{:-8.0f}]\n',
-             [3.14, 1.995, 3.5, 3.5]); //?check('tf-float', '3.14|2.00|+0003.50|[4       ]')
+    fmt.Format('tf-float = {}|{:.2f}|{:0+8.2f}|[{:-8.0f}]\n',
+               [3.14, 1.995, 3.5, 3.5]); //?check('tf-float', '3.14|2.00|+0003.50|[4       ]')
 
-  var fa : [4]float = [1, 2, 3, 42]
-  fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',
-             [fa[0], fa[1], fa[2], fa[3]]); //?check('tf-float-default', '|1|2|3|42|')
+    var fa : [4]float = [1, 2, 3, 42]
+    fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',
+               [fa[0], fa[1], fa[2], fa[3]]); //?check('tf-float-default', '|1|2|3|42|')
 
-  return 0;
+    return 0;
 endfunc

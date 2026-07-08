@@ -3,15 +3,15 @@
 var bad_float_to_int : int = int(3.14);  //?error(CastFloatToInt)
 var bad_int_to_bool : bool = bool(1);  //?error(CastInvalid)
 function *Main() -> int:
-  var addr16 : uint16 = 0x1234;
-  var bad_ptr : ^byte = ^byte(addr16);  //?error(CastPtrWidth)
+    var addr16 : uint16 = 0x1234;
+    var bad_ptr : ^byte = ^byte(addr16);  //?error(CastPtrWidth)
 
-  var raw : uint = 0;
-  var p : pointer = ^byte(raw);
-  result = p^;  //?error(PointerOpaque)
+    var raw : uint = 0;
+    var p : pointer = ^byte(raw);
+    result = p^;  //?error(PointerOpaque)
 
-  var arr : [2]int = [1, 2];
-  var parr : ^int = ^int(arr);  //?error(CastInvalid)
+    var arr : [2]int = [1, 2];
+    var parr : ^int = ^int(arr);  //?error(CastInvalid)
 
-  return 0;
+    return 0;
 endfunc

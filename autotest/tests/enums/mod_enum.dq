@@ -7,6 +7,6 @@ function ModuleState() -> NModuleState
 implementation
 
 function ModuleState() -> NModuleState:
-  result = running
+    result = running
 endfunc
 

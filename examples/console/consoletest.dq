@@ -4,8 +4,8 @@ use print;
 var g_intvar : int = 5;
 
 function *Main() -> int:
-  PrintLn('Console test');
-  PrintLn('hello leo: {}, {}, {}, {}, {:X}, {}', [42, 'abc', 3.14, true, 0xC0DE, &g_intvar]);
-  PrintLn('');
-  return 0;
+    PrintLn('Console test');
+    PrintLn('hello leo: {}, {}, {}, {}, {:X}, {}', [42, 'abc', 3.14, true, 0xC0DE, &g_intvar]);
+    PrintLn('');
+    return 0;
 endfunc

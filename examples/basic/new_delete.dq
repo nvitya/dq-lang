@@ -3,37 +3,37 @@
 use libc/stdio;
 
 function *Main() -> int:
-  printf("DQ new, delete test\n");
+    printf("DQ new, delete test\n");
 
-  // using functions
+    // using functions
 
-  var pint : ^int;
+    var pint : ^int;
 
-  pint = ^int(MemAlloc(SizeOf(int), true));
-  pint^ = 5;
-  printf("pint = %d\n", pint^);
-  MemFree(pint);
-  pint = null;
+    pint = ^int(MemAlloc(SizeOf(int), true));
+    pint^ = 5;
+    printf("pint = %d\n", pint^);
+    MemFree(pint);
+    pint = null;
 
-  // Using MemFreeRef
-  pint = ^int(MemAlloc(SizeOf(int), true));
-  pint^ = 6;
-  printf("pint_freeref = %d\n", pint^);
-  MemFreeRef(pint);
+    // Using MemFreeRef
+    pint = ^int(MemAlloc(SizeOf(int), true));
+    pint^ = 6;
+    printf("pint_freeref = %d\n", pint^);
+    MemFreeRef(pint);
 
-  // using new, delete
+    // using new, delete
 
-  var pint2 : ^int = new int(2);
+    var pint2 : ^int = new int(2);
 
-  printf("pint2 = %d\n", pint2^);
+    printf("pint2 = %d\n", pint2^);
 
-  delete pint2 = null;  // frees the memory at pint and sets to null
-  delete pint2; // nop if pint was null
+    delete pint2 = null;  // frees the memory at pint and sets to null
+    delete pint2; // nop if pint was null
 
-  // without type specification:
-  var pint3 = new int(3);
-  printf("pint3 = %d\n", pint3^);
-  delete pint3; // deletes the pint3
+    // without type specification:
+    var pint3 = new int(3);
+    printf("pint3 = %d\n", pint3^);
+    delete pint3; // deletes the pint3
 
-  return 0;
+    return 0;
 endfunc

@@ -3,56 +3,56 @@
 use libc/stdio;
 
 function PrintArray(label : ^cchar, arr : []int):
-  printf("%s = len:%li data:", label, arr.length);
-  var i : int = 0;
-  while i < arr.length:
-    printf(" %li", arr[i]);
-    i += 1;
-  endwhile
-  printf("\n");
+    printf("%s = len:%li data:", label, arr.length);
+    var i : int = 0;
+    while i < arr.length:
+        printf(" %li", arr[i]);
+        i += 1;
+    endwhile
+    printf("\n");
 endfunc
 
 function *Main() -> int:
-  printf("array_static_slicing = start\n"); //?check("array_static_slicing", "start")
+    printf("array_static_slicing = start\n"); //?check("array_static_slicing", "start")
 
-  var arr : [?]int = [10, 20, 30, 40, 50];
+    var arr : [?]int = [10, 20, 30, 40, 50];
 
-  PrintArray("slice_half_open_one", arr[0:1]); //?check("slice_half_open_one", "len:1 data: 10")
-  PrintArray("slice_inclusive_one", arr[0::0]); //?check("slice_inclusive_one", "len:1 data: 10")
-  PrintArray("slice_half_open_mid", arr[1:3]); //?check("slice_half_open_mid", "len:2 data: 20 30")
-  PrintArray("slice_inclusive_mid", arr[1::3]); //?check("slice_inclusive_mid", "len:3 data: 20 30 40")
+    PrintArray("slice_half_open_one", arr[0:1]); //?check("slice_half_open_one", "len:1 data: 10")
+    PrintArray("slice_inclusive_one", arr[0::0]); //?check("slice_inclusive_one", "len:1 data: 10")
+    PrintArray("slice_half_open_mid", arr[1:3]); //?check("slice_half_open_mid", "len:2 data: 20 30")
+    PrintArray("slice_inclusive_mid", arr[1::3]); //?check("slice_inclusive_mid", "len:3 data: 20 30 40")
 
-  PrintArray("slice_whole", arr[:]); //?check("slice_whole", "len:5 data: 10 20 30 40 50")
-  PrintArray("slice_from_two", arr[2:]); //?check("slice_from_two", "len:3 data: 30 40 50")
-  PrintArray("slice_to_three", arr[:3]); //?check("slice_to_three", "len:3 data: 10 20 30")
-  PrintArray("slice_from_two_inclusive_open", arr[2::]); //?check("slice_from_two_inclusive_open", "len:3 data: 30 40 50")
+    PrintArray("slice_whole", arr[:]); //?check("slice_whole", "len:5 data: 10 20 30 40 50")
+    PrintArray("slice_from_two", arr[2:]); //?check("slice_from_two", "len:3 data: 30 40 50")
+    PrintArray("slice_to_three", arr[:3]); //?check("slice_to_three", "len:3 data: 10 20 30")
+    PrintArray("slice_from_two_inclusive_open", arr[2::]); //?check("slice_from_two_inclusive_open", "len:3 data: 30 40 50")
 
-  PrintArray("slice_empty_equal_bounds", arr[3:3]); //?check("slice_empty_equal_bounds", "len:0 data:")
-  PrintArray("slice_empty_reversed", arr[4:2]); //?check("slice_empty_reversed", "len:0 data:")
+    PrintArray("slice_empty_equal_bounds", arr[3:3]); //?check("slice_empty_equal_bounds", "len:0 data:")
+    PrintArray("slice_empty_reversed", arr[4:2]); //?check("slice_empty_reversed", "len:0 data:")
 
-  var empty_slice : []int = arr[3:3];
-  var nonempty_slice : []int = arr[0:1];
-  var empty_eq : int = 0;
-  var nonempty_ne : int = 0;
-  if empty_slice == []:  empty_eq = 1;  endif
-  if nonempty_slice <> []:  nonempty_ne = 1;  endif
-  printf("slice_empty_comparison = empty_eq:%li nonempty_ne:%li\n", empty_eq, nonempty_ne); //?check("slice_empty_comparison", "empty_eq:1 nonempty_ne:1")
+    var empty_slice : []int = arr[3:3];
+    var nonempty_slice : []int = arr[0:1];
+    var empty_eq : int = 0;
+    var nonempty_ne : int = 0;
+    if empty_slice == []:  empty_eq = 1;  endif
+    if nonempty_slice <> []:  nonempty_ne = 1;  endif
+    printf("slice_empty_comparison = empty_eq:%li nonempty_ne:%li\n", empty_eq, nonempty_ne); //?check("slice_empty_comparison", "empty_eq:1 nonempty_ne:1")
 
-  printf("index_context_values = last:%li before_last:%li end_minus_one:%li\n", arr[$last], arr[$last - 1], arr[$end - 1]); //?check("index_context_values", "last:50 before_last:40 end_minus_one:50")
+    printf("index_context_values = last:%li before_last:%li end_minus_one:%li\n", arr[$last], arr[$last - 1], arr[$end - 1]); //?check("index_context_values", "last:50 before_last:40 end_minus_one:50")
 
-  PrintArray("slice_last_only", arr[$last:]); //?check("slice_last_only", "len:1 data: 50")
-  PrintArray("slice_all_by_end", arr[:$end]); //?check("slice_all_by_end", "len:5 data: 10 20 30 40 50")
-  PrintArray("slice_except_last_half_open", arr[:$end - 1]); //?check("slice_except_last_half_open", "len:4 data: 10 20 30 40")
-  PrintArray("slice_except_last_inclusive", arr[::$last - 1]); //?check("slice_except_last_inclusive", "len:4 data: 10 20 30 40")
-  PrintArray("slice_last_two", arr[$end - 2:]); //?check("slice_last_two", "len:2 data: 40 50")
-  PrintArray("slice_last_two_inclusive", arr[$end - 2::$end - 1]); //?check("slice_last_two_inclusive", "len:2 data: 40 50")
-  PrintArray("slice_second_to_last_only", arr[$end - 2:$end - 1]); //?check("slice_second_to_last_only", "len:1 data: 40")
+    PrintArray("slice_last_only", arr[$last:]); //?check("slice_last_only", "len:1 data: 50")
+    PrintArray("slice_all_by_end", arr[:$end]); //?check("slice_all_by_end", "len:5 data: 10 20 30 40 50")
+    PrintArray("slice_except_last_half_open", arr[:$end - 1]); //?check("slice_except_last_half_open", "len:4 data: 10 20 30 40")
+    PrintArray("slice_except_last_inclusive", arr[::$last - 1]); //?check("slice_except_last_inclusive", "len:4 data: 10 20 30 40")
+    PrintArray("slice_last_two", arr[$end - 2:]); //?check("slice_last_two", "len:2 data: 40 50")
+    PrintArray("slice_last_two_inclusive", arr[$end - 2::$end - 1]); //?check("slice_last_two_inclusive", "len:2 data: 40 50")
+    PrintArray("slice_second_to_last_only", arr[$end - 2:$end - 1]); //?check("slice_second_to_last_only", "len:1 data: 40")
 
-  PrintArray("slice_clamp_negative_start", arr[-1:]); //?check("slice_clamp_negative_start", "len:5 data: 10 20 30 40 50")
-  PrintArray("slice_clamp_large_end", arr[:8]); //?check("slice_clamp_large_end", "len:5 data: 10 20 30 40 50")
-  PrintArray("slice_clamp_large_start", arr[8:]); //?check("slice_clamp_large_start", "len:0 data:")
-  PrintArray("slice_clamp_end_context", arr[$end:]); //?check("slice_clamp_end_context", "len:0 data:")
-  PrintArray("slice_clamp_then_empty", arr[3:-2]); //?check("slice_clamp_then_empty", "len:0 data:")
+    PrintArray("slice_clamp_negative_start", arr[-1:]); //?check("slice_clamp_negative_start", "len:5 data: 10 20 30 40 50")
+    PrintArray("slice_clamp_large_end", arr[:8]); //?check("slice_clamp_large_end", "len:5 data: 10 20 30 40 50")
+    PrintArray("slice_clamp_large_start", arr[8:]); //?check("slice_clamp_large_start", "len:0 data:")
+    PrintArray("slice_clamp_end_context", arr[$end:]); //?check("slice_clamp_end_context", "len:0 data:")
+    PrintArray("slice_clamp_then_empty", arr[3:-2]); //?check("slice_clamp_then_empty", "len:0 data:")
 
-  return 0;
+    return 0;
 endfunc

@@ -2,121 +2,121 @@ use libc/stdio;
 
 object OBase:
 public
-  v : int = 0;
-  function *Create(av : int):
-    v = av;
-  endfunc
-  function id() -> int [[virtual]]:
-    return 1;
-  endfunc
+    v : int = 0;
+    function *Create(av : int):
+        v = av;
+    endfunc
+    function id() -> int [[virtual]]:
+        return 1;
+    endfunc
 endobj
 
 object OFirst(OBase):
 public
-  f : int = 0;
-  function *Create(av : int):
-    inherited Create(av);
-  endfunc
-  function id() -> int [[override]]:
-    return 2;
-  endfunc
+    f : int = 0;
+    function *Create(av : int):
+        inherited Create(av);
+    endfunc
+    function id() -> int [[override]]:
+        return 2;
+    endfunc
 endobj
 
 object OSecond(OBase):
 public
-  s : int = 0;
-  function *Create(av : int):
-    inherited Create(av);
-  endfunc
-  function id() -> int [[override]]:
-    return 3;
-  endfunc
+    s : int = 0;
+    function *Create(av : int):
+        inherited Create(av);
+    endfunc
+    function id() -> int [[override]]:
+        return 3;
+    endfunc
 endobj
 
 object OThird(OSecond):
 public
-  t : int = 0;
-  function *Create(av : int):
-    inherited Create(av);
-  endfunc
-  function id() -> int [[override]]:
-    return 4;
-  endfunc
+    t : int = 0;
+    function *Create(av : int):
+        inherited Create(av);
+    endfunc
+    function id() -> int [[override]]:
+        return 4;
+    endfunc
 endobj
 
 function test_is():
-  var ob : OBase = new OBase(1);
-  var o1 : OBase = new OFirst(2);
-  var o2 : OBase = new OSecond(3);
-  var o3 : OBase = new OThird(4);
+    var ob : OBase = new OBase(1);
+    var o1 : OBase = new OFirst(2);
+    var o2 : OBase = new OSecond(3);
+    var o3 : OBase = new OThird(4);
 
-  if ob is OBase:
-    @.printf("ob.is.OBase = 1\n"); //?check("ob.is.OBase", 1)
-  endif
-  if o1 is OBase:
-    @.printf("o1.is.OBase = 1\n"); //?check("o1.is.OBase", 1)
-  endif
-  if o1 is OFirst:
-    @.printf("o1.is.OFirst = 1\n"); //?check("o1.is.OFirst", 1)
-  endif
-  if o2 is OSecond:
-    @.printf("o2.is.OSecond = 1\n"); //?check("o2.is.OSecond", 1)
-  endif
-  if o3 is OSecond:
-    @.printf("o3.is.OSecond = 1\n"); //?check("o3.is.OSecond", 1)
-  endif
-  if o3 is OThird:
-    @.printf("o3.is.OThird = 1\n"); //?check("o3.is.OThird", 1)
-  endif
+    if ob is OBase:
+        @.printf("ob.is.OBase = 1\n"); //?check("ob.is.OBase", 1)
+    endif
+    if o1 is OBase:
+        @.printf("o1.is.OBase = 1\n"); //?check("o1.is.OBase", 1)
+    endif
+    if o1 is OFirst:
+        @.printf("o1.is.OFirst = 1\n"); //?check("o1.is.OFirst", 1)
+    endif
+    if o2 is OSecond:
+        @.printf("o2.is.OSecond = 1\n"); //?check("o2.is.OSecond", 1)
+    endif
+    if o3 is OSecond:
+        @.printf("o3.is.OSecond = 1\n"); //?check("o3.is.OSecond", 1)
+    endif
+    if o3 is OThird:
+        @.printf("o3.is.OThird = 1\n"); //?check("o3.is.OThird", 1)
+    endif
 
-  if not (o1 is OSecond):
-    @.printf("o1.not_is.OSecond = 1\n"); //?check("o1.not_is.OSecond", 1)
-  endif
-  if not (ob is OFirst):
-    @.printf("ob.not_is.OFirst = 1\n"); //?check("ob.not_is.OFirst", 1)
-  endif
+    if not (o1 is OSecond):
+        @.printf("o1.not_is.OSecond = 1\n"); //?check("o1.not_is.OSecond", 1)
+    endif
+    if not (ob is OFirst):
+        @.printf("ob.not_is.OFirst = 1\n"); //?check("ob.not_is.OFirst", 1)
+    endif
 
-  delete ob;
-  delete o1;
-  delete o2;
-  delete o3;
+    delete ob;
+    delete o1;
+    delete o2;
+    delete o3;
 endfunc
 
 function test_tryfrom():
-  var o1 : OBase = new OFirst(2);
-  var o3 : OBase = new OThird(4);
+    var o1 : OBase = new OFirst(2);
+    var o3 : OBase = new OThird(4);
 
-  var t1 : OFirst tryfrom o1;
-  if t1 <> null:
-    @.printf("t1.id = %d\n", t1.id()); //?check("t1.id", 2)
-  endif
+    var t1 : OFirst tryfrom o1;
+    if t1 <> null:
+        @.printf("t1.id = %d\n", t1.id()); //?check("t1.id", 2)
+    endif
 
-  var t2 : OSecond tryfrom o1;
-  if t2 == null:
-    @.printf("t2.isnull = 1\n"); //?check("t2.isnull", 1)
-  endif
+    var t2 : OSecond tryfrom o1;
+    if t2 == null:
+        @.printf("t2.isnull = 1\n"); //?check("t2.isnull", 1)
+    endif
 
-  var t3 : OSecond tryfrom o3;
-  if t3 <> null:
-    @.printf("t3.id = %d\n", t3.id()); //?check("t3.id", 4)
-  endif
+    var t3 : OSecond tryfrom o3;
+    if t3 <> null:
+        @.printf("t3.id = %d\n", t3.id()); //?check("t3.id", 4)
+    endif
 
-  var t4 : OFirst = TryCast(OFirst, o1);
-  if t4 <> null:
-    @.printf("t4.notnull = 1\n"); //?check("t4.notnull", 1)
-  endif
+    var t4 : OFirst = TryCast(OFirst, o1);
+    if t4 <> null:
+        @.printf("t4.notnull = 1\n"); //?check("t4.notnull", 1)
+    endif
 
-  var t5 : OSecond = TryCast(OSecond, o1);
-  if t5 == null:
-    @.printf("t5.isnull = 1\n"); //?check("t5.isnull", 1)
-  endif
+    var t5 : OSecond = TryCast(OSecond, o1);
+    if t5 == null:
+        @.printf("t5.isnull = 1\n"); //?check("t5.isnull", 1)
+    endif
 
-  delete o1;
-  delete o3;
+    delete o1;
+    delete o3;
 endfunc
 
 function *Main() -> int:
-  test_is();
-  test_tryfrom();
-  return 0;
+    test_is();
+    test_tryfrom();
+    return 0;
 endfunc

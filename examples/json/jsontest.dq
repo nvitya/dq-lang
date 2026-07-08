@@ -7,96 +7,96 @@ use strutils
 const TEST_FILE_NAME : cstring = 'test.json'
 
 function WriteTest():
-  PrintLn('JSON Writing Test')
+    PrintLn('JSON Writing Test')
 
-  var jroot <- OJson()
-  var jns : OJson
-  var jnn : OJson
-  var jno : OJson
-  var jn : OJson
+    var jroot <- OJson()
+    var jns : OJson
+    var jnn : OJson
+    var jno : OJson
+    var jn : OJson
 
-  jns = jroot.AddStr('strnode', 'hello')
-  jnn = jroot.AddNum('numnode', 3.14)
-  jn  = jroot.AddBool('boolnode', true)
-  jno = jroot.AddObj('objnode')
+    jns = jroot.AddStr('strnode', 'hello')
+    jnn = jroot.AddNum('numnode', 3.14)
+    jn  = jroot.AddBool('boolnode', true)
+    jno = jroot.AddObj('objnode')
 
-  jn = jno.AddStr('substr', 'abc')
-  jn = jno.AddNum('subnum', 42)
-  jno.AddBool('subbool', false)
-  jno.AddNull('subnull')
+    jn = jno.AddStr('substr', 'abc')
+    jn = jno.AddNum('subnum', 42)
+    jno.AddBool('subbool', false)
+    jno.AddNull('subnull')
 
-  jn.as_num = 46
+    jn.as_num = 46
 
-  jn = jroot.AddArr('arrnode')
-  jn.AddNum('', 1)
-  jn.AddNum('', 2)
-  jn.AddNum('', 3)
+    jn = jroot.AddArr('arrnode')
+    jn.AddNum('', 1)
+    jn.AddNum('', 2)
+    jn.AddNum('', 3)
 
-  jroot.ForcePath('first.second.third').as_str = 'deepvalue'
+    jroot.ForcePath('first.second.third').as_str = 'deepvalue'
 
-  PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
-  PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
+    PrintLn('"{}" = "{}"', [jns.name, jns.as_str])
+    PrintLn('"{}" = "{}"', [jnn.name, jnn.as_num])
 
-  PrintLn('as json compact:')
-  PrintLn(jroot.json)
-  PrintLn('as json pretty:')
-  PrintLn(jroot.pretty_json)
+    PrintLn('as json compact:')
+    PrintLn(jroot.json)
+    PrintLn('as json pretty:')
+    PrintLn(jroot.pretty_json)
 
-  jroot.SaveToFile(TEST_FILE_NAME, true)
-  PrintLn()
+    jroot.SaveToFile(TEST_FILE_NAME, true)
+    PrintLn()
 endfunc
 
 function ReadTest():
-  PrintLn('JSON Read Test')
+    PrintLn('JSON Read Test')
 
-  var jroot <- OJson()
-  var jn : OJson
-  var jv : OJson
+    var jroot <- OJson()
+    var jn : OJson
+    var jv : OJson
 
-  jroot.LoadFromFile(TEST_FILE_NAME)
-  PrintLn('as json pretty:')
-  PrintLn(jroot.pretty_json)
+    jroot.LoadFromFile(TEST_FILE_NAME)
+    PrintLn('as json pretty:')
+    PrintLn(jroot.pretty_json)
 
-  PrintLn('arrnode:')
-  if jroot.Find('arrnode', jn):
-    PrintLn('  arrnode.as_str: {}', [jn.as_str])
-    PrintLn('iterating array node:')
-    for i : int = 0  count jn.length:
-      jv = jn[i]
-      PrintLn('  {}. = {}', [i, jv.as_num])
-    endfor
-  else:
-    PrintLn('"arrnode" was not found !')
-  endif
+    PrintLn('arrnode:')
+    if jroot.Find('arrnode', jn):
+        PrintLn('  arrnode.as_str: {}', [jn.as_str])
+        PrintLn('iterating array node:')
+        for i : int = 0  count jn.length:
+            jv = jn[i]
+            PrintLn('  {}. = {}', [i, jv.as_num])
+        endfor
+    else:
+        PrintLn('"arrnode" was not found !')
+    endif
 
-  PrintLn('objnode.subnum:')
-  if jroot.Find('objnode.subnum', jv):
-    PrintLn('  = {}', [jv.as_num])
-  else:
-    PrintLn('"objnode.subnum" was not found !')
-  endif
+    PrintLn('objnode.subnum:')
+    if jroot.Find('objnode.subnum', jv):
+        PrintLn('  = {}', [jv.as_num])
+    else:
+        PrintLn('"objnode.subnum" was not found !')
+    endif
 
-  if jroot.Find('objnode', jn):
-    PrintLn('Iterating objnode:')
-    for i : int = 0  count jn.length:
-      jv = jn[i]
-      PrintLn('  {}.: "{}" = {}', [i, jv.name, jv.json])
-    endfor
-  else:
-    PrintLn('"objnode" was not found !')
-  endif
+    if jroot.Find('objnode', jn):
+        PrintLn('Iterating objnode:')
+        for i : int = 0  count jn.length:
+            jv = jn[i]
+            PrintLn('  {}.: "{}" = {}', [i, jv.name, jv.json])
+        endfor
+    else:
+        PrintLn('"objnode" was not found !')
+    endif
 
-  PrintLn()
+    PrintLn()
 endfunc
 
 function *Main() -> int:
-  PrintLn('DQ JSON test')
+    PrintLn('DQ JSON test')
 
-  PrintLn('Test file name: "{}"', [TEST_FILE_NAME])
+    PrintLn('Test file name: "{}"', [TEST_FILE_NAME])
 
-  WriteTest()
+    WriteTest()
 
-  ReadTest()
+    ReadTest()
 
-  return 0
+    return 0
 endfunc

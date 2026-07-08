@@ -7,112 +7,112 @@ use rtl/anyvalue;
 use rtl/dynstrmgr;
 
 function MakeText(desc : refout SDqTextInfo, data : pointer, alen : uint32):
-  desc.dataptr = data;
-  desc.charlen = alen;
-  desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
+    desc.dataptr = data;
+    desc.charlen = alen;
+    desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
 endfunc
 
 function AnyMgr(v : ref SDqAnyValue) -> ODynStrMgr:
-  return ^ODynStrMgr(&v.data[0])^;
+    return ^ODynStrMgr(&v.data[0])^;
 endfunc
 
 function PrintText(label : ^cchar, ti : ref SDqTextInfo):
-  printf("%s = len:%li text: \"", label, int(TextInfoGetLength(ti)));
-  var i : int = 0;
-  while i < ti.charlen:
-    printf("%c", int(^cchar(ti.dataptr)[i]^));
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = len:%li text: \"", label, int(TextInfoGetLength(ti)));
+    var i : int = 0;
+    while i < ti.charlen:
+        printf("%c", int(^cchar(ti.dataptr)[i]^));
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function PrintString(label : ^cchar, text : strview):
-  printf("%s = len:%li text: \"", label, text.length);
-  var i : int = 0;
-  while i < text.length:
-    printf("%c", int(text[i]));
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = len:%li text: \"", label, text.length);
+    var i : int = 0;
+    while i < text.length:
+        printf("%c", int(text[i]));
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function PrintAnyText(label : ^cchar, av : ref SDqAnyValue):
-  var empty : SDqTextInfo = {};
-  var view : SDqTextInfo = {};
-  AnyValAsText(av, empty, view);
-  PrintText(label, view);
+    var empty : SDqTextInfo = {};
+    var view : SDqTextInfo = {};
+    AnyValAsText(av, empty, view);
+    PrintText(label, view);
 endfunc
 
 function PrintAnyState(label : ^cchar, av : ref SDqAnyValue):
-  var empty : SDqTextInfo = {};
-  var view : SDqTextInfo = {};
-  AnyValAsText(av, empty, view);
-  printf("%s = kind:%li istext:%li isstr:%li len:%li",
-         label, int(av.kind), int(AnyValIsText(av)), int(AnyValIsStr(av)), int(view.charlen));
-  if av.kind == DQTK_DYNSTR:
-    var mgr : ODynStrMgr = AnyMgr(av);
-    if mgr == null:
-      printf(" ref:0");
-    else:
-      printf(" ref:%li", mgr.refcount);
+    var empty : SDqTextInfo = {};
+    var view : SDqTextInfo = {};
+    AnyValAsText(av, empty, view);
+    printf("%s = kind:%li istext:%li isstr:%li len:%li",
+           label, int(av.kind), int(AnyValIsText(av)), int(AnyValIsStr(av)), int(view.charlen));
+    if av.kind == DQTK_DYNSTR:
+        var mgr : ODynStrMgr = AnyMgr(av);
+        if mgr == null:
+            printf(" ref:0");
+        else:
+            printf(" ref:%li", mgr.refcount);
+        endif
     endif
-  endif
-  printf("\n");
+    printf("\n");
 endfunc
 
 function *Main() -> int:
-  printf("DQ AnyValue RTL test\n"); //?ignore("DQ AnyValue RTL test")
+    printf("DQ AnyValue RTL test\n"); //?ignore("DQ AnyValue RTL test")
 
-  var srcbuf : [5]cchar = [cchar(97), cchar(98), cchar(99), cchar(100), cchar(101)];
-  var desc : SDqTextInfo = {};
-  MakeText(desc, &srcbuf[0], 5);
+    var srcbuf : [5]cchar = [cchar(97), cchar(98), cchar(99), cchar(100), cchar(101)];
+    var desc : SDqTextInfo = {};
+    MakeText(desc, &srcbuf[0], 5);
 
-  var av : SDqAnyValue = {};
-  AnyValSetText(av, desc);
-  PrintAnyState("borrowed-view", av); //?check("borrowed-view", "kind:9 istext:1 isstr:0 len:5")
-  PrintAnyText("borrowed-view-text", av); //?check("borrowed-view-text", 'len:5 text: "abcde"')
+    var av : SDqAnyValue = {};
+    AnyValSetText(av, desc);
+    PrintAnyState("borrowed-view", av); //?check("borrowed-view", "kind:9 istext:1 isstr:0 len:5")
+    PrintAnyText("borrowed-view-text", av); //?check("borrowed-view-text", 'len:5 text: "abcde"')
 
-  AnyValSetCString(av, desc);
-  PrintAnyState("borrowed-cstring", av); //?check("borrowed-cstring", "kind:8 istext:1 isstr:0 len:5")
-  PrintAnyText("borrowed-cstring-text", av); //?check("borrowed-cstring-text", 'len:5 text: "abcde"')
+    AnyValSetCString(av, desc);
+    PrintAnyState("borrowed-cstring", av); //?check("borrowed-cstring", "kind:8 istext:1 isstr:0 len:5")
+    PrintAnyText("borrowed-cstring-text", av); //?check("borrowed-cstring-text", 'len:5 text: "abcde"')
 
-  AnyValSetStrText(av, desc);
-  PrintAnyState("owned-str", av); //?check("owned-str", "kind:10 istext:1 isstr:1 len:5 ref:1")
-  PrintAnyText("owned-str-text", av); //?check("owned-str-text", 'len:5 text: "abcde"')
+    AnyValSetStrText(av, desc);
+    PrintAnyState("owned-str", av); //?check("owned-str", "kind:10 istext:1 isstr:1 len:5 ref:1")
+    PrintAnyText("owned-str-text", av); //?check("owned-str-text", 'len:5 text: "abcde"')
 
-  var copy : SDqAnyValue = {};
-  AnyValCopy(copy, av);
-  PrintAnyState("copy-after-copy", copy); //?check("copy-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
-  PrintAnyState("source-after-copy", av); //?check("source-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
+    var copy : SDqAnyValue = {};
+    AnyValCopy(copy, av);
+    PrintAnyState("copy-after-copy", copy); //?check("copy-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
+    PrintAnyState("source-after-copy", av); //?check("source-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
 
-  var suffixbuf : [1]cchar = [cchar(120)];
-  MakeText(desc, &suffixbuf[0], 1);
-  DynStrAppend(^ODynStrMgr(&copy.data[0])^, desc, -1);
-  PrintAnyText("source-after-cow", av); //?check("source-after-cow", 'len:5 text: "abcde"')
-  PrintAnyText("copy-after-cow", copy); //?check("copy-after-cow", 'len:6 text: "abcdex"')
-  PrintAnyState("source-ref-after-cow", av); //?check("source-ref-after-cow", "kind:10 istext:1 isstr:1 len:5 ref:1")
-  PrintAnyState("copy-ref-after-cow", copy); //?check("copy-ref-after-cow", "kind:10 istext:1 isstr:1 len:6 ref:1")
+    var suffixbuf : [1]cchar = [cchar(120)];
+    MakeText(desc, &suffixbuf[0], 1);
+    DynStrAppend(^ODynStrMgr(&copy.data[0])^, desc, -1);
+    PrintAnyText("source-after-cow", av); //?check("source-after-cow", 'len:5 text: "abcde"')
+    PrintAnyText("copy-after-cow", copy); //?check("copy-after-cow", 'len:6 text: "abcdex"')
+    PrintAnyState("source-ref-after-cow", av); //?check("source-ref-after-cow", "kind:10 istext:1 isstr:1 len:5 ref:1")
+    PrintAnyState("copy-ref-after-cow", copy); //?check("copy-ref-after-cow", "kind:10 istext:1 isstr:1 len:6 ref:1")
 
-  var empty : SDqTextInfo = {};
-  var owned : str = AnyValAsStr(copy, empty);
-  owned.Append("!");
-  PrintString("asstr-owned", owned); //?check("asstr-owned", 'len:7 text: "abcdex!"')
-  PrintAnyText("copy-after-asstr-cow", copy); //?check("copy-after-asstr-cow", 'len:6 text: "abcdex"')
+    var empty : SDqTextInfo = {};
+    var owned : str = AnyValAsStr(copy, empty);
+    owned.Append("!");
+    PrintString("asstr-owned", owned); //?check("asstr-owned", 'len:7 text: "abcdex!"')
+    PrintAnyText("copy-after-asstr-cow", copy); //?check("copy-after-asstr-cow", 'len:6 text: "abcdex"')
 
-  var moved : SDqAnyValue = {};
-  AnyValMove(moved, copy);
-  PrintAnyState("moved-dst", moved); //?check("moved-dst", "kind:10 istext:1 isstr:1 len:6 ref:1")
-  printf("moved-src-null = %li\n", int(AnyValIsNull(copy))); //?check("moved-src-null", 1)
+    var moved : SDqAnyValue = {};
+    AnyValMove(moved, copy);
+    PrintAnyState("moved-dst", moved); //?check("moved-dst", "kind:10 istext:1 isstr:1 len:6 ref:1")
+    printf("moved-src-null = %li\n", int(AnyValIsNull(copy))); //?check("moved-src-null", 1)
 
-  AnyValDestroy(moved);
-  printf("destroyed-moved = kind:%li istext:%li\n", int(moved.kind), int(AnyValIsText(moved))); //?check("destroyed-moved", "kind:0 istext:0")
+    AnyValDestroy(moved);
+    printf("destroyed-moved = kind:%li istext:%li\n", int(moved.kind), int(AnyValIsText(moved))); //?check("destroyed-moved", "kind:0 istext:0")
 
-  AnyValCopy(copy, av);
-  AnyValSetInt(av, 123);
-  PrintAnyState("copy-after-source-overwrite", copy); //?check("copy-after-source-overwrite", "kind:10 istext:1 isstr:1 len:5 ref:1")
-  printf("source-overwrite-int = kind:%li val:%li\n", int(av.kind), AnyValAsInt(av, -1)); //?check("source-overwrite-int", "kind:1 val:123")
+    AnyValCopy(copy, av);
+    AnyValSetInt(av, 123);
+    PrintAnyState("copy-after-source-overwrite", copy); //?check("copy-after-source-overwrite", "kind:10 istext:1 isstr:1 len:5 ref:1")
+    printf("source-overwrite-int = kind:%li val:%li\n", int(av.kind), AnyValAsInt(av, -1)); //?check("source-overwrite-int", "kind:1 val:123")
 
-  AnyValDestroy(copy);
-  AnyValDestroy(av);
-  return 0;
+    AnyValDestroy(copy);
+    AnyValDestroy(av);
+    return 0;
 endfunc

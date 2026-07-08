@@ -5,9 +5,9 @@ use ./mod_advuse_private_impl;
 use ./mod_advuse_select as badonly only(missing_name);  //?error(UseSymbolUnknown)
 use ./mod_advuse_select as badexclude exclude(missing_name);  //?error(UseSymbolUnknown)
 function *Main() -> int:
-  var i : int;
-  i = hidden_func(1);  //?error(VsUnknown)
-  return 0;
+    var i : int;
+    i = hidden_func(1);  //?error(VsUnknown)
+    return 0;
 endfunc
 
 #endif

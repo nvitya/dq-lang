@@ -1,24 +1,24 @@
 //?notest
 
 object OImportedStrCtor:
-  text : str
-  tag  : int
+    text : str
+    tag  : int
 
-  function *Create(atext : str) [[overload]]:
-    text = atext
-    tag = 1
-  endfunc
+    function *Create(atext : str) [[overload]]:
+        text = atext
+        tag = 1
+    endfunc
 
-  function *Create(atext : str, atag : int) [[overload]]:
-    text = atext
-    tag = atag
-  endfunc
+    function *Create(atext : str, atag : int) [[overload]]:
+        text = atext
+        tag = atag
+    endfunc
 
-  function Len() -> int:
-    return text.length
-  endfunc
+    function Len() -> int:
+        return text.length
+    endfunc
 
-  function Tag() -> int:
-    return tag
-  endfunc
+    function Tag() -> int:
+        return tag
+    endfunc
 endobj

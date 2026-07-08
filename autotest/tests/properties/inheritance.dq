@@ -4,62 +4,62 @@
 
 object OPropertyBase:
 protected
-  stored : int = 10;
+    stored : int = 10;
 
-  function GetVirtual() -> int [[virtual]]:
-    return stored;
-  endfunc
+    function GetVirtual() -> int [[virtual]]:
+        return stored;
+    endfunc
 
-  function SetVirtual(value : int) [[virtual]]:
-    stored = value;
-  endfunc
+    function SetVirtual(value : int) [[virtual]]:
+        stored = value;
+    endfunc
 
 public
-  property value : int read GetVirtual write SetVirtual
+    property value : int read GetVirtual write SetVirtual
 endobj
 
 object OPropertyChild(OPropertyBase):
 private
-  hidden_value : int = 100;
+    hidden_value : int = 100;
 
-  function GetVirtual() -> int [[override]]:
-    return stored + 1000;
-  endfunc
+    function GetVirtual() -> int [[override]]:
+        return stored + 1000;
+    endfunc
 
-  function SetVirtual(value : int) [[override]]:
-    stored = value + 100;
-  endfunc
+    function SetVirtual(value : int) [[override]]:
+        stored = value + 100;
+    endfunc
 
-  function GetHidden() -> int:
-    return hidden_value;
-  endfunc
+    function GetHidden() -> int:
+        return hidden_value;
+    endfunc
 
-  function SetHidden(value : int):
-    hidden_value = value;
-  endfunc
+    function SetHidden(value : int):
+        hidden_value = value;
+    endfunc
 
 public
-  // This declaration hides the inherited property of the same name.
-  property value : int read GetHidden write SetHidden
+    // This declaration hides the inherited property of the same name.
+    property value : int read GetHidden write SetHidden
 
-  // These inherited accessor names are resolved at this declaration, and their
-  // calls retain normal virtual dispatch.
-  property virtual_value : int read GetVirtual write SetVirtual
+    // These inherited accessor names are resolved at this declaration, and their
+    // calls retain normal virtual dispatch.
+    property virtual_value : int read GetVirtual write SetVirtual
 endobj
 
 function *Main() -> int:
-  var child <- OPropertyChild();
-  var base : OPropertyBase = child;
+    var child <- OPropertyChild();
+    var base : OPropertyBase = child;
 
-  printf("property.inheritance.lookup = %d %d %d\n",
-         child.value, child.virtual_value, base.value);
-  //?check("property.inheritance.lookup", "100 1010 1010")
+    printf("property.inheritance.lookup = %d %d %d\n",
+           child.value, child.virtual_value, base.value);
+    //?check("property.inheritance.lookup", "100 1010 1010")
 
-  child.value = 7;
-  base.value = 20;
-  printf("property.inheritance.dispatch = %d %d %d\n",
-         child.value, child.virtual_value, base.value);
-  //?check("property.inheritance.dispatch", "7 1120 1120")
+    child.value = 7;
+    base.value = 20;
+    printf("property.inheritance.dispatch = %d %d %d\n",
+           child.value, child.virtual_value, base.value);
+    //?check("property.inheritance.dispatch", "7 1120 1120")
 
-  return 0;
+    return 0;
 endfunc

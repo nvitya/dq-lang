@@ -28,10 +28,10 @@ function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool
 function DqBacktraceNameIsInternal(name : ^cchar) -> bool
 function DqIsMainFunction(name : ^cchar) -> bool
 struct SDqDlInfo:
-  dli_fname : ^cchar
-  dli_fbase : pointer
-  dli_sname : ^cchar
-  dli_saddr : pointer
+    dli_fname : ^cchar
+    dli_fbase : pointer
+    dli_sname : ^cchar
+    dli_saddr : pointer
 endstruct
 
 var libc_stderr : pointer  [[external("stderr")]]
@@ -40,10 +40,10 @@ function libc_backtrace(buffer : pointer, size : int) -> int  [[external('backtr
 function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int  [[external('dladdr')]]
 
 struct SDqBtData:
-  index : int
-  hide_internal : bool
-  printed : bool
-  stop_printing : bool
+    index : int
+    hide_internal : bool
+    printed : bool
+    stop_printing : bool
 endstruct
 
 type FBacktraceError   = function(data : pointer, msg : ^cchar, errnum : int)
@@ -63,194 +63,194 @@ function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint
 //-------------------------------------------------------------------------------------------------
 
 function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
-  result = libc_backtrace(backtrace, max_frames)
+    result = libc_backtrace(backtrace, max_frames)
 endfunc
 
 function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
-  if text == null or needle == null:
-    return false
-  endif
-
-  var p : ^cchar = text
-  while p^ <> cchar(0):
-    var t : ^cchar = p
-    var n : ^cchar = needle
-    while n^ <> cchar(0) and t^ == n^:
-      t += 1
-      n += 1
-    endwhile
-    if n^ == cchar(0):
-      return true
+    if text == null or needle == null:
+        return false
     endif
-    p += 1
-  endwhile
 
-  return false
+    var p : ^cchar = text
+    while p^ <> cchar(0):
+        var t : ^cchar = p
+        var n : ^cchar = needle
+        while n^ <> cchar(0) and t^ == n^:
+            t += 1
+            n += 1
+        endwhile
+        if n^ == cchar(0):
+            return true
+        endif
+        p += 1
+    endwhile
+
+    return false
 endfunc
 
 function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
-  return DqCstrContains(name, "CaptureBacktrace") or DqCstrContains(name, "DqExcRaise") or DqCstrContains(name, "libc_backtrace") or DqCstrContains(name, "RtlCaptureStackBackTrace")
+    return DqCstrContains(name, "CaptureBacktrace") or DqCstrContains(name, "DqExcRaise") or DqCstrContains(name, "libc_backtrace") or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
 function DqIsMainFunction(name : ^cchar) -> bool:
-  if name == null:
-    return false
-  endif
-  return DqCstrSegmentEq(name, "Main") or DqCstrSegmentEq(name, "main") or DqCstrSegmentEq(name, "RunHostedMain")
+    if name == null:
+        return false
+    endif
+    return DqCstrSegmentEq(name, "Main") or DqCstrSegmentEq(name, "main") or DqCstrSegmentEq(name, "RunHostedMain")
 endfunc
 
 function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
-  var t : ^cchar = text
-  var n : ^cchar = name
-  while n^ <> cchar(0):
-    if t^ <> n^:
-      return false
-    endif
-    t += 1
-    n += 1
-  endwhile
-  return t^ == cchar(0)  or  t^ == cchar(124)
+    var t : ^cchar = text
+    var n : ^cchar = name
+    while n^ <> cchar(0):
+        if t^ <> n^:
+            return false
+        endif
+        t += 1
+        n += 1
+    endwhile
+    return t^ == cchar(0)  or  t^ == cchar(124)
 endfunc
 
 function DqCstrLen(s : ^cchar) -> uint:
-  if s == null:
-    return 0
-  endif
+    if s == null:
+        return 0
+    endif
 
-  var p : ^cchar = s
-  while p^ <> cchar(0):
-    p += 1
-  endwhile
-  return uint(p - s)
+    var p : ^cchar = s
+    while p^ <> cchar(0):
+        p += 1
+    endwhile
+    return uint(p - s)
 endfunc
 
 function DqTrimTrailingNewline(s : ^cchar):
-  var len : uint = DqCstrLen(s)
-  while len > 0 and (^cchar(s)[len - 1]^ == cchar(10) or ^cchar(s)[len - 1]^ == cchar(13)):
-    ^cchar(s)[len - 1]^ = cchar(0)
-    len -= 1
-  endwhile
+    var len : uint = DqCstrLen(s)
+    while len > 0 and (^cchar(s)[len - 1]^ == cchar(10) or ^cchar(s)[len - 1]^ == cchar(13)):
+        ^cchar(s)[len - 1]^ = cchar(0)
+        len -= 1
+    endwhile
 endfunc
 
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint:
-  if pc == null:
-    return 0
-  endif
+    if pc == null:
+        return 0
+    endif
 
-  result = uint(pc)
-  if base <> null and uint(base) <= result:
-    result -= uint(base)
-  endif
+    result = uint(pc)
+    if base <> null and uint(base) <= result:
+        result -= uint(base)
+    endif
 endfunc
 
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo, stop_printing : ^bool) -> bool:
-  if stop_printing <> null and DqIsMainFunction(info.dli_sname):
-    stop_printing^ = true
-  endif
+    if stop_printing <> null and DqIsMainFunction(info.dli_sname):
+        stop_printing^ = true
+    endif
 
-  if info.dli_sname <> null:
-    libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
-  elif info.dli_fname <> null:
-    libc_fprintf(libc_stderr, "  #%d <unknown> @ %s + 0x%lx\n", index, info.dli_fname, DqAddr2lineOffset(pc, info.dli_fbase))
-  else:
-    libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
-  endif
-  return true
+    if info.dli_sname <> null:
+        libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
+    elif info.dli_fname <> null:
+        libc_fprintf(libc_stderr, "  #%d <unknown> @ %s + 0x%lx\n", index, info.dli_fname, DqAddr2lineOffset(pc, info.dli_fbase))
+    else:
+        libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
+    endif
+    return true
 endfunc
 
 function DqBtErrorCallback(data : pointer, msg : ^cchar, errnum : int):
 endfunc
 
 function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^cchar, lineno : int, function_name : ^cchar) -> int:
-  if data^.hide_internal:
-    if function_name == null or DqBacktraceNameIsInternal(function_name):
-      return 0
+    if data^.hide_internal:
+        if function_name == null or DqBacktraceNameIsInternal(function_name):
+            return 0
+        endif
     endif
-  endif
 
-  if DqIsMainFunction(function_name):
-    data^.stop_printing = true
-  endif
+    if DqIsMainFunction(function_name):
+        data^.stop_printing = true
+    endif
 
-  if filename <> null:
-    if function_name <> null:
-      libc_fprintf(libc_stderr, "  #%d %s @ %s:%d\n", data^.index, function_name, filename, lineno)
+    if filename <> null:
+        if function_name <> null:
+            libc_fprintf(libc_stderr, "  #%d %s @ %s:%d\n", data^.index, function_name, filename, lineno)
+        else:
+            libc_fprintf(libc_stderr, "  #%d <unknown> @ %s:%d\n", data^.index, filename, lineno)
+        endif
     else:
-      libc_fprintf(libc_stderr, "  #%d <unknown> @ %s:%d\n", data^.index, filename, lineno)
+        if function_name <> null:
+            libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, function_name, pc)
+        else:
+            libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
+        endif
     endif
-  else:
-    if function_name <> null:
-      libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, function_name, pc)
-    else:
-      libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
-    endif
-  endif
-  data^.printed = true
-  return 0
+    data^.printed = true
+    return 0
 endfunc
 
 function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^cchar, symval : uint, symsize : uint):
-  if data^.hide_internal:
-    if symname == null or DqBacktraceNameIsInternal(symname):
-      return
+    if data^.hide_internal:
+        if symname == null or DqBacktraceNameIsInternal(symname):
+            return
+        endif
     endif
-  endif
 
-  if DqIsMainFunction(symname):
-    data^.stop_printing = true
-  endif
+    if DqIsMainFunction(symname):
+        data^.stop_printing = true
+    endif
 
-  if symname <> null:
-    libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, symname, pc - symval)
-  else:
-    libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
-  endif
-  data^.printed = true
+    if symname <> null:
+        libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, symname, pc - symval)
+    else:
+        libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
+    endif
+    data^.printed = true
 endfunc
 
 var backtrace_state : pointer = null
 
 function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
-  if backtrace_state == null:
-    backtrace_state = libc_backtrace_create_state(null, 0, DqBtErrorCallback, null)
-  endif
-
-  var bdata : SDqBtData = {}
-  bdata.index = index
-  bdata.hide_internal = hide_internal
-  bdata.printed = false
-  bdata.stop_printing = false
-
-  if backtrace_state <> null:
-    libc_backtrace_pcinfo(backtrace_state, uint(pc), DqBtFullCallback, DqBtErrorCallback, &bdata)
-    if bdata.printed:
-      if stop_printing <> null:
-        stop_printing^ = bdata.stop_printing
-      endif
-      return true
+    if backtrace_state == null:
+        backtrace_state = libc_backtrace_create_state(null, 0, DqBtErrorCallback, null)
     endif
+
+    var bdata : SDqBtData = {}
+    bdata.index = index
+    bdata.hide_internal = hide_internal
+    bdata.printed = false
+    bdata.stop_printing = false
+
+    if backtrace_state <> null:
+        libc_backtrace_pcinfo(backtrace_state, uint(pc), DqBtFullCallback, DqBtErrorCallback, &bdata)
+        if bdata.printed:
+            if stop_printing <> null:
+                stop_printing^ = bdata.stop_printing
+            endif
+            return true
+        endif
 
     libc_backtrace_syminfo(backtrace_state, uint(pc), DqBtSyminfoCallback, DqBtErrorCallback, &bdata)
     if bdata.printed:
-      if stop_printing <> null:
-        stop_printing^ = bdata.stop_printing
-      endif
-      return true
+        if stop_printing <> null:
+            stop_printing^ = bdata.stop_printing
+        endif
+        return true
     endif
-  endif
-
-  var info : SDqDlInfo = {}
-  if libc_dladdr(pc, info) == 0 or info.dli_fname == null:
-    if not hide_internal:
-      libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
-      return true
     endif
-    return false
-  endif
 
-  if hide_internal and (info.dli_sname == null or DqBacktraceNameIsInternal(info.dli_sname)):
-    return false
-  endif
+    var info : SDqDlInfo = {}
+    if libc_dladdr(pc, info) == 0 or info.dli_fname == null:
+        if not hide_internal:
+            libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
+            return true
+        endif
+        return false
+    endif
 
-  return DqPrintBacktraceFallback(index, pc, info, stop_printing)
+    if hide_internal and (info.dli_sname == null or DqBacktraceNameIsInternal(info.dli_sname)):
+        return false
+    endif
+
+    return DqPrintBacktraceFallback(index, pc, info, stop_printing)
 endfunc

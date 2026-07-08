@@ -3,14 +3,14 @@
 use libc/stdio;
 
 object OModChild:
-  id : int;
+    id : int;
 
-  function *Create(a : int):
-    id = a;
-    @.printf("modchild.create = %d\n", id);
-  endfunc
+    function *Create(a : int):
+        id = a;
+        @.printf("modchild.create = %d\n", id);
+    endfunc
 
-  function *Destroy():
-    @.printf("modchild.destroy = %d\n", id);
-  endfunc
+    function *Destroy():
+        @.printf("modchild.destroy = %d\n", id);
+    endfunc
 endobj

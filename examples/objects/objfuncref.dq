@@ -3,29 +3,29 @@ use libc/stdio;
 type FCallback = function(astr : cstring);
 
 function callback1(astr : cstring):
-  printf('Callback-1(%s)\n', &astr[0]);
+    printf('Callback-1(%s)\n', &astr[0]);
 endfunc
 
 function callback2(astr : cstring):
-  printf('Callback-2(%s)\n', &astr[0]);
+    printf('Callback-2(%s)\n', &astr[0]);
 endfunc
 
 var func : FCallback = null;
 
 object OBase:
-  name : cstring[32];
+    name : cstring[32];
 
-  function *Create(aname : cstring):
-    name = aname;
-  endfunc
+    function *Create(aname : cstring):
+        name = aname;
+    endfunc
 
-  function CallBack1(astr : cstring):
-    @.printf('%s: Callback1(%s)\n', &name, &astr[0]);
-  endfunc
+    function CallBack1(astr : cstring):
+        @.printf('%s: Callback1(%s)\n', &name, &astr[0]);
+    endfunc
 
-  function CallBack2(astr : cstring):
-    @.printf('%s: Callback2(%s)\n', &name, &astr[0]);
-  endfunc
+    function CallBack2(astr : cstring):
+        @.printf('%s: Callback2(%s)\n', &name, &astr[0]);
+    endfunc
 endobj
 
 var obj1 <- OBase('bss_obj');
@@ -35,30 +35,30 @@ type FObjCallback = function(astr : cstring) of object;
 var ofunc : FObjCallback = null;
 
 function *Main() -> int:
-  printf('Object Function Ptr Test\n');
+    printf('Object Function Ptr Test\n');
 
-  obj2 = new OBase('heap_obj');
+    obj2 = new OBase('heap_obj');
 
-  callback1('a');
+    callback1('a');
 
-  func = callback1;
-  func('b');
-  func = callback2;
-  func('c');
+    func = callback1;
+    func('b');
+    func = callback2;
+    func('c');
 
-  obj1.CallBack1('x');
-  obj2.CallBack2('y');
+    obj1.CallBack1('x');
+    obj2.CallBack2('y');
 
-  ofunc = obj1.CallBack1;
-  ofunc('obj1.cb1');
-  ofunc = obj2.CallBack2;
-  ofunc('obj2.cb2');
+    ofunc = obj1.CallBack1;
+    ofunc('obj1.cb1');
+    ofunc = obj2.CallBack2;
+    ofunc('obj2.cb2');
 
-  if 3 / 2 * 10 == 15:
-    printf('The language is good.\n');
-  else:
-    printf('The language is evil.\n');
-  endif
+    if 3 / 2 * 10 == 15:
+        printf('The language is good.\n');
+    else:
+        printf('The language is evil.\n');
+    endif
 
-  return 0;
+    return 0;
 endfunc

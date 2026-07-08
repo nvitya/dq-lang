@@ -3,43 +3,43 @@ use strparse
 use file
 
 function ParseText(atxt : strview):
-  PrintLn('--------------------------------')
-  var sp <- OStrParse(atxt)
-  sp.SkipSpaces()
-  if not sp.CheckSymbol('{'):
-    raise Exception('object start not found.')
-  endif
-  sp.SkipSpaces()
-  if not sp.CheckSymbol('"strnode"'):
-    raise Exception('strnode not found.')
-  endif
-  sp.SkipSpaces()
-  if not sp.CheckSymbol(':'):
-    raise Exception('":" expected')
-  endif
+    PrintLn('--------------------------------')
+    var sp <- OStrParse(atxt)
+    sp.SkipSpaces()
+    if not sp.CheckSymbol('{'):
+        raise Exception('object start not found.')
+    endif
+    sp.SkipSpaces()
+    if not sp.CheckSymbol('"strnode"'):
+        raise Exception('strnode not found.')
+    endif
+    sp.SkipSpaces()
+    if not sp.CheckSymbol(':'):
+        raise Exception('":" expected')
+    endif
 
-  if not sp.CheckSymbol('"'):
-    raise Exception('" expected')
-  endif
+    if not sp.CheckSymbol('"'):
+        raise Exception('" expected')
+    endif
 
-  if not sp.ReadTo('"\n\r'):
-    raise Exception(' string end not found')
-  endif
+    if not sp.ReadTo('"\n\r'):
+        raise Exception(' string end not found')
+    endif
 
-  var sv : str = sp.PrevStr()
+    var sv : str = sp.PrevStr()
 
-  PrintLn('String value = "{}"', [sv])
+    PrintLn('String value = "{}"', [sv])
 
-  PrintLn('parsing finished.')
+    PrintLn('parsing finished.')
 endfunc
 
 function *Main() -> int:
-  PrintLn('Testing OStrParse')
+    PrintLn('Testing OStrParse')
 
-  var fdata : str = FileReadText('test.json')
+    var fdata : str = FileReadText('test.json')
 
-  PrintLn('Test file data:\n{}', [fdata])
-  ParseText(fdata)
+    PrintLn('Test file data:\n{}', [fdata])
+    ParseText(fdata)
 
-  return 0
+    return 0
 endfunc

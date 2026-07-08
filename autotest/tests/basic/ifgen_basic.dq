@@ -13,50 +13,50 @@ var g_ptr : ^int;
 var g_pptr : ^^int;
 
 struct SIfgenPair:
-  tag    : byte;
-  left   : int;
-  right  : int;
-  small  : uint16;
-  values : [3]int;
-  ptr    : ^int;
+    tag    : byte;
+    left   : int;
+    right  : int;
+    small  : uint16;
+    values : [3]int;
+    ptr    : ^int;
 endstruct
 
 var g_struct : SIfgenPair;
 
 object OIfgenBox:
-  tag   : byte;
-  value : TIfgenValue;
+    tag   : byte;
+    value : TIfgenValue;
 
-  function Get() -> int:
-    result = value;
-  endfunc
+    function Get() -> int:
+        result = value;
+    endfunc
 endobj
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function IfgenAdd(a : int, b : int) -> int:
-  result = a + b + IFGEN_BASE;
+    result = a + b + IFGEN_BASE;
 endfunc
 
 function IfgenSliceLen(values : []int) -> int:
-  result = Len(values);
+    result = Len(values);
 endfunc
 
 function testfunc() -> int:
-  var pair : SIfgenPair = {};
-  pair.left = 2;
-  pair.right = 3;
+    var pair : SIfgenPair = {};
+    pair.left = 2;
+    pair.right = 3;
 
-  var box : OIfgenBox = {};
-  box.value = IfgenAdd(pair.left, pair.right);
+    var box : OIfgenBox = {};
+    box.value = IfgenAdd(pair.left, pair.right);
 
-  printf("ifgen value = %d\n", box.Get());
+    printf("ifgen value = %d\n", box.Get());
 
-  return 0;
+    return 0;
 endfunc
 
 implementation
 
 function IfgenPrivateHelper(v : int) -> int:
-  result = v + 1;
+    result = v + 1;
 endfunc

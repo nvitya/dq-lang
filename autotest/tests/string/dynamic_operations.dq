@@ -5,194 +5,194 @@ use libc/stdio;
 [[external]] function putchar(c : cchar) -> int;
 
 function PrintEscapedChar(ch : char):
-  if ch == char(9):
-    printf("\\t");
-    return;
-  endif
-  if ch == char(10):
-    printf("\\n");
-    return;
-  endif
-  if ch == char(13):
-    printf("\\r");
-    return;
-  endif
-  if ch == char(34):
-    putchar(cchar(92));
-    putchar(cchar(34));
-    return;
-  endif
-  if ch == char(92):
-    putchar(cchar(92));
-    putchar(cchar(92));
-    return;
-  endif
-  putchar(cchar(ch));
+    if ch == char(9):
+        printf("\\t");
+        return;
+    endif
+    if ch == char(10):
+        printf("\\n");
+        return;
+    endif
+    if ch == char(13):
+        printf("\\r");
+        return;
+    endif
+    if ch == char(34):
+        putchar(cchar(92));
+        putchar(cchar(34));
+        return;
+    endif
+    if ch == char(92):
+        putchar(cchar(92));
+        putchar(cchar(92));
+        return;
+    endif
+    putchar(cchar(ch));
 endfunc
 
 function PrintText(label : ^cchar, text : strview):
-  printf("%s = [%li] \"", label, text.length);
-  var i : int = 0;
-  while i < text.length:
-    PrintEscapedChar(text[i]);
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = [%li] \"", label, text.length);
+    var i : int = 0;
+    while i < text.length:
+        PrintEscapedChar(text[i]);
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function GeAsInt(a : int, b : int) -> int:
-  if a >= b:
-    result = 1;
-  else:
-    result = 0;
-  endif
+    if a >= b:
+        result = 1;
+    else:
+        result = 0;
+    endif
 endfunc
 
 function EqAsInt(a : int, b : int) -> int:
-  if a == b:
-    result = 1;
-  else:
-    result = 0;
-  endif
+    if a == b:
+        result = 1;
+    else:
+        result = 0;
+    endif
 endfunc
 
 function AppendByValue(s : str):
-  s.Append("x");
+    s.Append("x");
 endfunc
 
 function AppendByRef(s : ref str):
-  s.Append("x");
+    s.Append("x");
 endfunc
 
 function *Main() -> int:
-  printf("string_dynamic_operations = start\n"); //?check("string_dynamic_operations", "start")
+    printf("string_dynamic_operations = start\n"); //?check("string_dynamic_operations", "start")
 
-  var cow_a : str = "abc";
-  var cow_b : str = cow_a;
-  cow_b[0] = 'X';
-  PrintText("cow_after_assign_a", cow_a); //?check("cow_after_assign_a", '[3] "abc"')
-  PrintText("cow_after_assign_b", cow_b); //?check("cow_after_assign_b", '[3] "Xbc"')
+    var cow_a : str = "abc";
+    var cow_b : str = cow_a;
+    cow_b[0] = 'X';
+    PrintText("cow_after_assign_a", cow_a); //?check("cow_after_assign_a", '[3] "abc"')
+    PrintText("cow_after_assign_b", cow_b); //?check("cow_after_assign_b", '[3] "Xbc"')
 
-  cow_b = cow_a;
-  cow_b.Append("def");
-  PrintText("cow_after_append_a", cow_a); //?check("cow_after_append_a", '[3] "abc"')
-  PrintText("cow_after_append_b", cow_b); //?check("cow_after_append_b", '[6] "abcdef"')
+    cow_b = cow_a;
+    cow_b.Append("def");
+    PrintText("cow_after_append_a", cow_a); //?check("cow_after_append_a", '[3] "abc"')
+    PrintText("cow_after_append_b", cow_b); //?check("cow_after_append_b", '[6] "abcdef"')
 
-  var arg : str = "abc";
-  AppendByValue(arg);
-  PrintText("arg_after_value", arg); //?check("arg_after_value", '[3] "abc"')
-  AppendByRef(arg);
-  PrintText("arg_after_ref", arg); //?check("arg_after_ref", '[4] "abcx"')
+    var arg : str = "abc";
+    AppendByValue(arg);
+    PrintText("arg_after_value", arg); //?check("arg_after_value", '[3] "abc"')
+    AppendByRef(arg);
+    PrintText("arg_after_ref", arg); //?check("arg_after_ref", '[4] "abcx"')
 
-  var add : str = "ab";
-  add.Append('c');
-  add.Append("def");
-  add.Prepend('0');
-  add.Prepend("--");
-  PrintText("append_prepend_sources", add); //?check("append_prepend_sources", '[9] "--0abcdef"')
+    var add : str = "ab";
+    add.Append('c');
+    add.Append("def");
+    add.Prepend('0');
+    add.Prepend("--");
+    PrintText("append_prepend_sources", add); //?check("append_prepend_sources", '[9] "--0abcdef"')
 
-  var fmtadd : str = "ab";
-  fmtadd.Add('c');
-  fmtadd.AddFmt("{}, {}", [1, 'hi']);
-  PrintText("addfmt_sources", fmtadd); //?check("addfmt_sources", '[8] "abc1, hi"')
+    var fmtadd : str = "ab";
+    fmtadd.Add('c');
+    fmtadd.AddFmt("{}, {}", [1, 'hi']);
+    PrintText("addfmt_sources", fmtadd); //?check("addfmt_sources", '[8] "abc1, hi"')
 
-  var setops : str = "old";
-  setops.Set("new");
-  setops.AppendChar('!');
-  PrintText("set_appendchar", setops); //?check("set_appendchar", '[4] "new!"')
+    var setops : str = "old";
+    setops.Set("new");
+    setops.AppendChar('!');
+    PrintText("set_appendchar", setops); //?check("set_appendchar", '[4] "new!"')
 
-  var ins : str = "abc";
-  ins.Insert(0, 'X');
-  ins.Insert(100, 'Y');
-  ins.Insert(-5, 'Z');
-  ins.Insert($end, "!");
-  PrintText("insert_normalized", ins); //?check("insert_normalized", '[7] "ZXabcY!"')
+    var ins : str = "abc";
+    ins.Insert(0, 'X');
+    ins.Insert(100, 'Y');
+    ins.Insert(-5, 'Z');
+    ins.Insert($end, "!");
+    PrintText("insert_normalized", ins); //?check("insert_normalized", '[7] "ZXabcY!"')
 
-  var del : str = "abcde";
-  del.Delete(1);
-  PrintText("delete_one", del); //?check("delete_one", '[4] "acde"')
-  del = "abcde";
-  del.Delete(100);
-  PrintText("delete_large_index", del); //?check("delete_large_index", '[5] "abcde"')
-  del.Delete(1, 100);
-  PrintText("delete_tail_clamped", del); //?check("delete_tail_clamped", '[1] "a"')
-  del = "abcde";
-  del.Delete(-5, 1);
-  PrintText("delete_negative_index", del); //?check("delete_negative_index", '[4] "bcde"')
-  del.Delete(2, 0);
-  PrintText("delete_zero_count", del); //?check("delete_zero_count", '[4] "bcde"')
+    var del : str = "abcde";
+    del.Delete(1);
+    PrintText("delete_one", del); //?check("delete_one", '[4] "acde"')
+    del = "abcde";
+    del.Delete(100);
+    PrintText("delete_large_index", del); //?check("delete_large_index", '[5] "abcde"')
+    del.Delete(1, 100);
+    PrintText("delete_tail_clamped", del); //?check("delete_tail_clamped", '[1] "a"')
+    del = "abcde";
+    del.Delete(-5, 1);
+    PrintText("delete_negative_index", del); //?check("delete_negative_index", '[4] "bcde"')
+    del.Delete(2, 0);
+    PrintText("delete_zero_count", del); //?check("delete_zero_count", '[4] "bcde"')
 
-  var sized : str = "abc";
-  sized.SetLength(5, ' ');
-  PrintText("setlength_grow", sized); //?check("setlength_grow", '[5] "abc  "')
-  sized.SetLength(2, ' ');
-  PrintText("setlength_shrink", sized); //?check("setlength_shrink", '[2] "ab"')
-  sized.SetLength(0, ' ');
-  PrintText("setlength_zero", sized); //?check("setlength_zero", '[0] ""')
+    var sized : str = "abc";
+    sized.SetLength(5, ' ');
+    PrintText("setlength_grow", sized); //?check("setlength_grow", '[5] "abc  "')
+    sized.SetLength(2, ' ');
+    PrintText("setlength_shrink", sized); //?check("setlength_shrink", '[2] "ab"')
+    sized.SetLength(0, ' ');
+    PrintText("setlength_zero", sized); //?check("setlength_zero", '[0] ""')
 
-  sized = "abcdef";
-  sized.Truncate(3);
-  PrintText("truncate_shrink", sized); //?check("truncate_shrink", '[3] "abc"')
-  sized.Truncate(100);
-  PrintText("truncate_noop", sized); //?check("truncate_noop", '[3] "abc"')
+    sized = "abcdef";
+    sized.Truncate(3);
+    PrintText("truncate_shrink", sized); //?check("truncate_shrink", '[3] "abc"')
+    sized.Truncate(100);
+    PrintText("truncate_noop", sized); //?check("truncate_noop", '[3] "abc"')
 
-  var pop : str = "abcdef";
-  var tail : str = pop.Pop(2);
-  var head : str = pop.PopFirst(3);
-  PrintText("pop_tail", tail); //?check("pop_tail", '[2] "ef"')
-  PrintText("pop_head", head); //?check("pop_head", '[3] "abc"')
-  PrintText("pop_remaining", pop); //?check("pop_remaining", '[1] "d"')
-  var zero_pop : str = pop.Pop(0);
-  var neg_pop : str = pop.Pop(-5);
-  printf("pop_zero_negative = zero:%li neg:%li len:%li\n", zero_pop.length, neg_pop.length, pop.length); //?check("pop_zero_negative", "zero:0 neg:0 len:1")
-  PrintText("pop_large", pop.Pop(100)); //?check("pop_large", '[1] "d"')
-  PrintText("pop_large_remaining", pop); //?check("pop_large_remaining", '[0] ""')
+    var pop : str = "abcdef";
+    var tail : str = pop.Pop(2);
+    var head : str = pop.PopFirst(3);
+    PrintText("pop_tail", tail); //?check("pop_tail", '[2] "ef"')
+    PrintText("pop_head", head); //?check("pop_head", '[3] "abc"')
+    PrintText("pop_remaining", pop); //?check("pop_remaining", '[1] "d"')
+    var zero_pop : str = pop.Pop(0);
+    var neg_pop : str = pop.Pop(-5);
+    printf("pop_zero_negative = zero:%li neg:%li len:%li\n", zero_pop.length, neg_pop.length, pop.length); //?check("pop_zero_negative", "zero:0 neg:0 len:1")
+    PrintText("pop_large", pop.Pop(100)); //?check("pop_large", '[1] "d"')
+    PrintText("pop_large_remaining", pop); //?check("pop_large_remaining", '[0] ""')
 
-  pop = "abc";
-  var last : char = pop.Pop();
-  var first : char = pop.PopFirst();
-  printf("pop_chars = first:%li last:%li\n", first, last); //?check("pop_chars", "first:97 last:99")
-  PrintText("pop_chars_remaining", pop); //?check("pop_chars_remaining", '[1] "b"')
+    pop = "abc";
+    var last : char = pop.Pop();
+    var first : char = pop.PopFirst();
+    printf("pop_chars = first:%li last:%li\n", first, last); //?check("pop_chars", "first:97 last:99")
+    PrintText("pop_chars_remaining", pop); //?check("pop_chars_remaining", '[1] "b"')
 
-  var managed : str;
-  managed.Reserve(1000);
-  printf("reserve_empty = ge1000:%li len:%li\n", GeAsInt(managed.capacity, 1000), managed.length); //?check("reserve_empty", "ge1000:1 len:0")
-  managed.Append("abc");
-  managed.Compact();
-  printf("compact = len:%li cap:%li\n", managed.length, managed.capacity); //?check("compact", "len:3 cap:3")
-  managed.Reserve(10);
-  var kept_capacity : int = managed.capacity;
-  managed.Clear();
-  printf("clear_keep = len:%li retained:%li\n", managed.length, EqAsInt(managed.capacity, kept_capacity)); //?check("clear_keep", "len:0 retained:1")
-  managed.Clear(true);
-  printf("clear_free = len:%li cap:%li\n", managed.length, managed.capacity); //?check("clear_free", "len:0 cap:0")
-  managed = "abc";
-  managed = "";
-  printf("assign_empty = len:%li cap:%li\n", managed.length, managed.capacity); //?check("assign_empty", "len:0 cap:0")
+    var managed : str;
+    managed.Reserve(1000);
+    printf("reserve_empty = ge1000:%li len:%li\n", GeAsInt(managed.capacity, 1000), managed.length); //?check("reserve_empty", "ge1000:1 len:0")
+    managed.Append("abc");
+    managed.Compact();
+    printf("compact = len:%li cap:%li\n", managed.length, managed.capacity); //?check("compact", "len:3 cap:3")
+    managed.Reserve(10);
+    var kept_capacity : int = managed.capacity;
+    managed.Clear();
+    printf("clear_keep = len:%li retained:%li\n", managed.length, EqAsInt(managed.capacity, kept_capacity)); //?check("clear_keep", "len:0 retained:1")
+    managed.Clear(true);
+    printf("clear_free = len:%li cap:%li\n", managed.length, managed.capacity); //?check("clear_free", "len:0 cap:0")
+    managed = "abc";
+    managed = "";
+    printf("assign_empty = len:%li cap:%li\n", managed.length, managed.capacity); //?check("assign_empty", "len:0 cap:0")
 
-  var clone_src : str = "abc";
-  var clone_copy : str = clone_src.Clone();
-  clone_copy[0] = 'X';
-  PrintText("clone_source", clone_src); //?check("clone_source", '[3] "abc"')
-  PrintText("clone_copy", clone_copy); //?check("clone_copy", '[3] "Xbc"')
-  var empty_clone : str = "";
-  empty_clone = empty_clone.Clone();
-  printf("clone_capacity = len:%li cap:%li empty_len:%li empty_cap:%li\n",
-         clone_copy.length, clone_copy.capacity, empty_clone.length, empty_clone.capacity); //?check("clone_capacity", "len:3 cap:3 empty_len:0 empty_cap:0")
+    var clone_src : str = "abc";
+    var clone_copy : str = clone_src.Clone();
+    clone_copy[0] = 'X';
+    PrintText("clone_source", clone_src); //?check("clone_source", '[3] "abc"')
+    PrintText("clone_copy", clone_copy); //?check("clone_copy", '[3] "Xbc"')
+    var empty_clone : str = "";
+    empty_clone = empty_clone.Clone();
+    printf("clone_capacity = len:%li cap:%li empty_len:%li empty_cap:%li\n",
+           clone_copy.length, clone_copy.capacity, empty_clone.length, empty_clone.capacity); //?check("clone_capacity", "len:3 cap:3 empty_len:0 empty_cap:0")
 
-  var overlap : str = "abc";
-  overlap.Append(overlap);
-  PrintText("overlap_append_self", overlap); //?check("overlap_append_self", '[6] "abcabc"')
-  overlap = "abc";
-  overlap.Prepend(overlap);
-  PrintText("overlap_prepend_self", overlap); //?check("overlap_prepend_self", '[6] "abcabc"')
-  overlap = "abcd";
-  overlap.Insert(2, overlap[1:3]);
-  PrintText("overlap_insert_cross", overlap); //?check("overlap_insert_cross", '[6] "abbccd"')
+    var overlap : str = "abc";
+    overlap.Append(overlap);
+    PrintText("overlap_append_self", overlap); //?check("overlap_append_self", '[6] "abcabc"')
+    overlap = "abc";
+    overlap.Prepend(overlap);
+    PrintText("overlap_prepend_self", overlap); //?check("overlap_prepend_self", '[6] "abcabc"')
+    overlap = "abcd";
+    overlap.Insert(2, overlap[1:3]);
+    PrintText("overlap_insert_cross", overlap); //?check("overlap_insert_cross", '[6] "abbccd"')
 
-  //var wide : str = "abc";
-  //wide[1] = char(0x1F600);
-  //printf("wide_assign = len:%li mid:%li\n", wide.length, wide[1]); //-?check("wide_assign", "len:3 mid:128512")
+    //var wide : str = "abc";
+    //wide[1] = char(0x1F600);
+    //printf("wide_assign = len:%li mid:%li\n", wide.length, wide[1]); //-?check("wide_assign", "len:3 mid:128512")
 
-  return 0;
+    return 0;
 endfunc

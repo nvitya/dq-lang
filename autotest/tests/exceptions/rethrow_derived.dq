@@ -6,39 +6,39 @@ use rtl/exception;
 
 object EDerived(Exception):
 public
-  function *Create(amsg : strview):
-    inherited Create(amsg)
-  endfunc
+    function *Create(amsg : strview):
+        inherited Create(amsg)
+    endfunc
 endobj
 
 function ThrowDerived():
-  raise EDerived("derived")
+    raise EDerived("derived")
 endfunc
 
 function Rethrower():
-  try:
-    raise Exception("again")
-  except Exception:
-    raise
-  endtry
+    try:
+        raise Exception("again")
+    except Exception:
+        raise
+    endtry
 endfunc
 
 function *Main() -> int:
-  try:
-    ThrowDerived()
-  except Exception as e:
-    printf("exception.derived = ")  //?check("exception.derived", "derived")
-    e.PrintMessage()
-    printf("\n")
-  endtry
+    try:
+        ThrowDerived()
+    except Exception as e:
+        printf("exception.derived = ")  //?check("exception.derived", "derived")
+        e.PrintMessage()
+        printf("\n")
+    endtry
 
-  try:
-    Rethrower()
-  except Exception as e:
-    printf("exception.rethrow = ")  //?check("exception.rethrow", "again")
-    e.PrintMessage()
-    printf("\n")
-  endtry
+    try:
+        Rethrower()
+    except Exception as e:
+        printf("exception.rethrow = ")  //?check("exception.rethrow", "again")
+        e.PrintMessage()
+        printf("\n")
+    endtry
 
-  return 0
+    return 0
 endfunc

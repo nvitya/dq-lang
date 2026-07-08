@@ -6,18 +6,18 @@ object ModuleInit:  //?error(SpecialFuncReserved)
 endobj
 
 function Main:  //?error(SpecialFuncReserved)
-  return 0;
+    return 0;
 endfunc
 
 function *Other():  //?error(SpecialFuncUnknown)
 endfunc
 
 function *Main(value : int) -> int:  //?error(SpecialFuncSignature)
-  return value;
+    return value;
 endfunc
 
 function *ModuleInit() -> int:  //?error(SpecialFuncSignature)
-  return 0;
+    return 0;
 endfunc
 
 [[external]] function *ModuleInit();  //?error(SpecialFuncInvalid)

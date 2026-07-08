@@ -3,30 +3,30 @@
 const rootarr : [2]int = [1, 2];
 
 function need_two(a : int, b : int) -> int:
-  result = a + b;
+    result = a + b;
 endfunc
 
 function bad_order(a : int = 1, b : int) -> int:  //?error(FuncParDefaultOrder)
-  result = a + b;
+    result = a + b;
 endfunc
 
 function bad_nonconst(a : int = bad_order(1, 2)) -> int:  //?error(IntConstExpr)
-  result = a;
+    result = a;
 endfunc
 
 function bad_type(a : int = "x") -> int:  //?error(TypeMismatchAssign)
-  result = a;
+    result = a;
 endfunc
 
 function bad_slice(arr : []int = rootarr) -> int:  //?error(FuncParDefaultType)
-  result = Len(arr);
+    result = Len(arr);
 endfunc
 
 function bad_cstring(s : cstring = "x") -> int:  //?error(FuncParDefaultType)
-  result = Len(s);
+    result = Len(s);
 endfunc
 function *Main() -> int:
-  need_two(1);  //?error(FuncArgsTooFew)
-  need_two(1, 2, 3);  //?error(FuncArgsTooMany)
-  return 0;
+    need_two(1);  //?error(FuncArgsTooFew)
+    need_two(1, 2, 3);  //?error(FuncArgsTooMany)
+    return 0;
 endfunc

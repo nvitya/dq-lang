@@ -3,33 +3,33 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 struct SBrace {
-  id    : int;
-  extra : int;
+    id    : int;
+    extra : int;
 }
 
 object OBrace {
-  data : SBrace;
+    data : SBrace;
 
-  function *Create(id : int) {
-    data.id = id;
-    data.extra = 2;
-  }
+    function *Create(id : int) {
+        data.id = id;
+        data.extra = 2;
+    }
 
-  function Sum() -> int {
-    return data.id + data.extra;
-  }
+    function Sum() -> int {
+        return data.id + data.extra;
+    }
 }
 
 function *Main() -> int {
-  printf("compound braces\n");  //?ignore('compound braces')
+    printf("compound braces\n");  //?ignore('compound braces')
 
-  var s : SBrace = {};
-  s.id = 7;
-  s.extra = 8;
-  printf("struct sum=%d\n", s.id + s.extra);  //?check('struct sum', 15)
+    var s : SBrace = {};
+    s.id = 7;
+    s.extra = 8;
+    printf("struct sum=%d\n", s.id + s.extra);  //?check('struct sum', 15)
 
-  var obj <- OBrace(40);
-  printf("object sum=%d\n", obj.Sum());  //?check('object sum', 42)
+    var obj <- OBrace(40);
+    printf("object sum=%d\n", obj.Sum());  //?check('object sum', 42)
 
-  return 0;
+    return 0;
 }

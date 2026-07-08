@@ -5,71 +5,71 @@
 var garr : [*]int;
 
 function sum_slice(arr : []int) -> int:
-  result = 0;
-  var i : int = 0;
-  while i < Len(arr):
-    result += arr[i];
-    i += 1;
-  endwhile
+    result = 0;
+    var i : int = 0;
+    while i < Len(arr):
+        result += arr[i];
+        i += 1;
+    endwhile
 endfunc
 
 function append_ref(arr : ref [*]int, value : int):
-  arr.Append(value);
+    arr.Append(value);
 endfunc
 
 function dyn_basic() -> int:
-  var arr : [*]int;
-  arr.Append(10);
-  arr.Append(20);
-  arr.Append(30);
-  arr[2] = 40;
-  result = Len(arr) + arr[0] + arr[1] + arr[2];
+    var arr : [*]int;
+    arr.Append(10);
+    arr.Append(20);
+    arr.Append(30);
+    arr[2] = 40;
+    result = Len(arr) + arr[0] + arr[1] + arr[2];
 endfunc
 
 function dyn_slices() -> int:
-  var arr : [*]int;
-  arr.Append(1);
-  arr.Append(2);
-  arr.Append(3);
-  arr.Append(4);
-  arr.Append(5);
-  result = sum_slice(arr[:]) + sum_slice(arr[:3]) + sum_slice(arr[2:]) + sum_slice(arr[2:4]);
+    var arr : [*]int;
+    arr.Append(1);
+    arr.Append(2);
+    arr.Append(3);
+    arr.Append(4);
+    arr.Append(5);
+    result = sum_slice(arr[:]) + sum_slice(arr[:3]) + sum_slice(arr[2:]) + sum_slice(arr[2:4]);
 endfunc
 
 function dyn_mutation() -> int:
-  var arr : [*]int;
-  arr.Append(1);
-  arr.Append(4);
-  arr.Insert(1, 2);
-  var more : [2]int = [3, 5];
-  arr.InsertSlice(2, more);
-  arr.Delete($last);
-  append_ref(arr, 6);
-  result = sum_slice(arr[:]);
+    var arr : [*]int;
+    arr.Append(1);
+    arr.Append(4);
+    arr.Insert(1, 2);
+    var more : [2]int = [3, 5];
+    arr.InsertSlice(2, more);
+    arr.Delete($last);
+    append_ref(arr, 6);
+    result = sum_slice(arr[:]);
 endfunc
 
 function dyn_global() -> int:
-  garr.Clear();
-  garr.Append(7);
-  garr.Append(8);
-  result = sum_slice(garr[:]);
+    garr.Clear();
+    garr.Append(7);
+    garr.Append(8);
+    result = sum_slice(garr[:]);
 endfunc
 
 function *Main() -> int:
-  printf("Testing DQ dynamic arrays:\n");  //?ignore('Testing DQ dynamic arrays:')
+    printf("Testing DQ dynamic arrays:\n");  //?ignore('Testing DQ dynamic arrays:')
 
-  var r : int;
-  r = dyn_basic();
-  printf("dyn_basic() = %li\n", r);  //?check('dyn_basic()', 73)
+    var r : int;
+    r = dyn_basic();
+    printf("dyn_basic() = %li\n", r);  //?check('dyn_basic()', 73)
 
-  r = dyn_slices();
-  printf("dyn_slices() = %li\n", r);  //?check('dyn_slices()', 40)
+    r = dyn_slices();
+    printf("dyn_slices() = %li\n", r);  //?check('dyn_slices()', 40)
 
-  r = dyn_mutation();
-  printf("dyn_mutation() = %li\n", r);  //?check('dyn_mutation()', 17)
+    r = dyn_mutation();
+    printf("dyn_mutation() = %li\n", r);  //?check('dyn_mutation()', 17)
 
-  r = dyn_global();
-  printf("dyn_global() = %li\n", r);  //?check('dyn_global()', 15)
+    r = dyn_global();
+    printf("dyn_global() = %li\n", r);  //?check('dyn_global()', 15)
 
-  return 0;
+    return 0;
 endfunc

@@ -5,48 +5,48 @@
 enum NColor = (red, green, blue)
 
 enum NState : uint16 = (
-  idle = 0,
-  running = 10,
-  stopped = 20,
+    idle = 0,
+    running = 10,
+    stopped = 20,
 )
 
 enum NSigned : int8 = (negative = -1, zero, positive)
 
 function GetColor() -> NColor:
-  result = blue;
+    result = blue;
 endfunc
 
 function IsGreen(color : NColor) -> bool:
-  result = color == green;
+    result = color == green;
 endfunc
 
 function *Main() -> int:
-  var c : NColor = red;
-  var qualified : NColor = NColor.green;
-  var from_call : NColor = GetColor();
+    var c : NColor = red;
+    var qualified : NColor = NColor.green;
+    var from_call : NColor = GetColor();
 
-  printf("enum.basic.ord = %li %li %li\n",
-         int(c.ord), int(qualified.ord), int(from_call.ord));
-  //?check("enum.basic.ord", "0 1 2")
+    printf("enum.basic.ord = %li %li %li\n",
+           int(c.ord), int(qualified.ord), int(from_call.ord));
+    //?check("enum.basic.ord", "0 1 2")
 
-  printf("enum.basic.Ord = %li %li\n", int(Ord(qualified)), int(Ord(GetColor())));
-  //?check("enum.basic.Ord", "1 2")
+    printf("enum.basic.Ord = %li %li\n", int(Ord(qualified)), int(Ord(GetColor())));
+    //?check("enum.basic.Ord", "1 2")
 
-  printf("enum.basic.context = %li %li\n", int(IsGreen(green)), int(IsGreen(red)));
-  //?check("enum.basic.context", "1 0")
+    printf("enum.basic.context = %li %li\n", int(IsGreen(green)), int(IsGreen(red)));
+    //?check("enum.basic.context", "1 0")
 
-  printf("enum.basic.compare = %li %li %li\n",
-         int(c == red), int(c != blue), int(qualified == NColor.green));
-  //?check("enum.basic.compare", "1 1 1")
+    printf("enum.basic.compare = %li %li %li\n",
+           int(c == red), int(c != blue), int(qualified == NColor.green));
+    //?check("enum.basic.compare", "1 1 1")
 
-  var state : NState = running;
-  var signed_value : NSigned = negative;
-  printf("enum.basic.explicit = %li %li\n", int(state.ord), int(signed_value.ord));
-  //?check("enum.basic.explicit", "10 -1")
+    var state : NState = running;
+    var signed_value : NSigned = negative;
+    printf("enum.basic.explicit = %li %li\n", int(state.ord), int(signed_value.ord));
+    //?check("enum.basic.explicit", "10 -1")
 
-  printf("enum.basic.sizes = %li %li %li\n",
-         SizeOf(NColor), SizeOf(NState), SizeOf(NSigned));
-  //?check("enum.basic.sizes", "1 2 1")
+    printf("enum.basic.sizes = %li %li %li\n",
+           SizeOf(NColor), SizeOf(NState), SizeOf(NSigned));
+    //?check("enum.basic.sizes", "1 2 1")
 
-  return 0;
+    return 0;
 endfunc

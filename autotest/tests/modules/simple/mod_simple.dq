@@ -11,5 +11,5 @@ function mod_func_test(a : int) -> int;
 implementation
 
 function mod_func_test(a : int) -> int:
-  result = a * 2;
+    result = a * 2;
 endfunc

@@ -1,6 +1,6 @@
 use libc/stdio;
 
 function *Main() -> int:
-  printf('Hello World! [libc]\n');
-  return 0;
+    printf('Hello World! [libc]\n');
+    return 0;
 endfunc

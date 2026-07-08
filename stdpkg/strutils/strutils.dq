@@ -34,7 +34,7 @@ function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
 endfunc
 
 function Format(afmt : strview, aargs : []anyvalue) -> str:
-  var s : str
-  s.AddFmt(afmt, aargs)
-  return s
+    var s : str
+    s.AddFmt(afmt, aargs)
+    return s
 endfunc

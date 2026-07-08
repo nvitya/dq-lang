@@ -1,16 +1,16 @@
 use libc/stdio;
 
 function *Main() -> int:  // should be exported as "dq_main"
-  printf("DQ Std Package test\n"); //?ignore('DQ Std Package test')
+    printf("DQ Std Package test\n"); //?ignore('DQ Std Package test')
 
-  printf("ParamCount() = %d\n", ParamCount()); //?check('ParamCount()', 1)
+    printf("ParamCount() = %d\n", ParamCount()); //?check('ParamCount()', 1)
 
-  // ignore param(0)
-  //?ignore('Param(0)')
-  var i : int = 0;
-  while i < ParamCount():
-    printf(' Param(%d) = "%s"\n', i, ParamStr(i));
-    i += 1;
-  endwhile
-  return 0;
+    // ignore param(0)
+    //?ignore('Param(0)')
+    var i : int = 0;
+    while i < ParamCount():
+        printf(' Param(%d) = "%s"\n', i, ParamStr(i));
+        i += 1;
+    endwhile
+    return 0;
 endfunc

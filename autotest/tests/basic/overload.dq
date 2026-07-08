@@ -7,124 +7,124 @@ function test_int(a : int, b : int):  //?error(VsAlreadyDecl)
 endfunc
 
 function mix_plain(a : int) -> int:
-  return a;
+    return a;
 endfunc
 
 function mix_plain(a : int, b : int) -> int [[overload]];  //?error(OverloadMixedDecl)
 
 function oltest_int(a : int) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(a : int, b : int) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(a : float) -> float [[overload]]:  //?error(OverloadReturnType)
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(b : int) -> int [[overload]]:  //?error(OverloadDupSignature)
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(b : ref int) -> int [[overload]]:  //?error(OverloadDupSignature)
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(b : refin int) -> int [[overload]]:  //?error(OverloadDupSignature)
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(b : refout int) -> int [[overload]]:  //?error(OverloadDupSignature)
-  return 0;
+    return 0;
 endfunc
 
 function oltest_int(b : refnull int) -> int [[overload]]:  //?error(OverloadDupSignature)
-  return 0;
+    return 0;
 endfunc
 
 type TIntAlias = int;
 
 function olalias(a : int) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function olalias(a : float) -> TIntAlias [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oldefault(a : int) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oldefault(a : int, b : int = 1) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oconv(a : int) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oconv(a : float) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oambig(a : int8) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function oambig(a : uint8) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function orescue(a : float) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 function orescue(a : refout int, b : int = 0) -> int [[overload]]:
-  return 0;
+    return 0;
 endfunc
 
 object OOverloadErr:
-  id : int;
-  function fwd(a : int) -> int;
+    id : int;
+    function fwd(a : int) -> int;
 endobj
 
 function OOverloadErr.fwd(a : float) -> int:  //?error(FuncSigType)
-  return 0;
+    return 0;
 endfunc
 
 function OOverloadErr.fwd(a : int) -> int:
-  return a;
+    return a;
 endfunc
 
 function OOverloadErr.dupe() -> int:
-  return 1;
+    return 1;
 endfunc
 
 function OOverloadErr.dupe() -> int:  //?error(VsAlreadyDecl)
-  return 2;
+    return 2;
 endfunc
 
 function OOverloadErr.id() -> int:  //?error(VsAlreadyDecl)
-  return 0;
+    return 0;
 endfunc
 
 function OOverloadErr.mix(a : int) -> int:
-  return a;
+    return a;
 endfunc
 
 function OOverloadErr.mix(a : float) -> int [[overload]];  //?error(OverloadMixedDecl)
 
 function OMissingObject.method() -> int:  //?error(TypeUnknown)
-  return 0;
+    return 0;
 endfunc
 
 type ONotObject = int;
 
 function ONotObject.method() -> int:  //?error(TypeExpected)
-  return 0;
+    return 0;
 endfunc
 
 [[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
@@ -134,25 +134,25 @@ type CB1 = function(a : int) -> int;
 type CBBad = function(a : float) -> int;
 
 function use_cb(cb : CB1) -> int:
-  return cb(1);
+    return cb(1);
 endfunc
 
 var good_cb : CB1 = oltest_int;
 var bad_cb : CBBad = oltest_int;  //?error(OverloadNoMatch)
 function *Main() -> int:
-  oltest_int(2);
-  oldefault(2);
-  oconv(2);
-  use_cb(oltest_int);
-  extpick("extpick %d");
+    oltest_int(2);
+    oldefault(2);
+    oconv(2);
+    use_cb(oltest_int);
+    extpick("extpick %d");
 
-  oltest_int(true);  //?error(OverloadNoMatch)
-  oambig(1);  //?error(OverloadAmbiguous)
+    oltest_int(true);  //?error(OverloadNoMatch)
+    oambig(1);  //?error(OverloadAmbiguous)
 
-  var x : int;
-  orescue(x);  //?error(OverloadNoMatch)
+    var x : int;
+    orescue(x);  //?error(OverloadNoMatch)
 
-  return 0;
+    return 0;
 endfunc
 
 #else
@@ -165,58 +165,58 @@ type TIntAlias = int;
 type CB1 = function(a : int) -> int;
 
 function oltest_int(a : int) -> int [[overload]]:
-  return a;
+    return a;
 endfunc
 
 function oltest_int(a : int, b : int) -> int [[overload]]:
-  return a * b;
+    return a * b;
 endfunc
 
 function olalias(a : int) -> int [[overload]]:
-  return a;
+    return a;
 endfunc
 
 function olalias(a : float) -> TIntAlias [[overload]]:
-  return 1;
+    return 1;
 endfunc
 
 function oldefault(a : int) -> int [[overload]]:
-  return a;
+    return a;
 endfunc
 
 function oldefault(a : int, b : int = 1) -> int [[overload]]:
-  return a + b + 100;
+    return a + b + 100;
 endfunc
 
 function oconv(a : int) -> int [[overload]]:
-  return a + 100;
+    return a + 100;
 endfunc
 
 function oconv(a : float) -> int [[overload]]:
-  return 200 + Round(a);
+    return 200 + Round(a);
 endfunc
 
 function use_cb(cb : CB1, v : int) -> int:
-  return cb(v);
+    return cb(v);
 endfunc
 function *Main() -> int:
-  printf("Overload collection test\n");  //?ignore('Overload collection test')
+    printf("Overload collection test\n");  //?ignore('Overload collection test')
 
-  var cb : CB1 = oltest_int;
+    var cb : CB1 = oltest_int;
 
-  printf("oltest_int(2) = %d\n", oltest_int(2));  //?check('oltest_int(2)', 2)
-  printf("oltest_int(2, 3) = %d\n", oltest_int(2, 3));  //?check('oltest_int(2, 3)', 6)
-  printf("cb(4) = %d\n", cb(4));  //?check('cb(4)', 4)
-  printf("use_cb(oltest_int, 5) = %d\n", use_cb(oltest_int, 5));  //?check('use_cb(oltest_int, 5)', 5)
-  printf("olalias(2.5) = %d\n", olalias(2.5));  //?check('olalias(2.5)', 1)
-  printf("oldefault(7) = %d\n", oldefault(7));  //?check('oldefault(7)', 7)
-  printf("oldefault(7, 2) = %d\n", oldefault(7, 2));  //?check('oldefault(7, 2)', 109)
-  printf("oconv(2) = %d\n", oconv(2));  //?check('oconv(2)', 102)
-  printf("oconv(2.5) = %d\n", oconv(2.5));  //?check('oconv(2.5)', 203)
+    printf("oltest_int(2) = %d\n", oltest_int(2));  //?check('oltest_int(2)', 2)
+    printf("oltest_int(2, 3) = %d\n", oltest_int(2, 3));  //?check('oltest_int(2, 3)', 6)
+    printf("cb(4) = %d\n", cb(4));  //?check('cb(4)', 4)
+    printf("use_cb(oltest_int, 5) = %d\n", use_cb(oltest_int, 5));  //?check('use_cb(oltest_int, 5)', 5)
+    printf("olalias(2.5) = %d\n", olalias(2.5));  //?check('olalias(2.5)', 1)
+    printf("oldefault(7) = %d\n", oldefault(7));  //?check('oldefault(7)', 7)
+    printf("oldefault(7, 2) = %d\n", oldefault(7, 2));  //?check('oldefault(7, 2)', 109)
+    printf("oconv(2) = %d\n", oconv(2));  //?check('oconv(2)', 102)
+    printf("oconv(2.5) = %d\n", oconv(2.5));  //?check('oconv(2.5)', 203)
 
-  extpick("extpick = fixed %d");  //?check('extpick', 'fixed %d')
+    extpick("extpick = fixed %d");  //?check('extpick', 'fixed %d')
 
-  return 0;
+    return 0;
 endfunc
 
 #endif

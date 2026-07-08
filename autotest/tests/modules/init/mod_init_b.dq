@@ -7,5 +7,5 @@ implementation
 use libc/stdio;
 
 function *ModuleInit():
-  printf("Module.init.B = done\n");
+    printf("Module.init.B = done\n");
 endfunc

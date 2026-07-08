@@ -20,95 +20,95 @@ endobj
 
 enum NJsonNodeKind =
 (
-  nkNull,    // The literal value null
-  nkBool,    // The literal values true or false
-  nkNumber,  // A number value such as 123, 1.23e2, or -1.5
-  nkString,  // A string such as "hello\nworld!"
-  nkObject,  // Object such as { }
-  nkArray    // Array such as [ ]
+    nkNull,    // The literal value null
+    nkBool,    // The literal values true or false
+    nkNumber,  // A number value such as 123, 1.23e2, or -1.5
+    nkString,  // A string such as "hello\nworld!"
+    nkObject,  // Object such as { }
+    nkArray    // Array such as [ ]
 )
 
 object OJson:
 private
-  m_parent   : OJson
-  m_children : [*]OJson
+    m_parent   : OJson
+    m_children : [*]OJson
 
-  m_name  : str
-  m_kind  : NJsonNodeKind = nkObject
-  m_value : anyvalue
+    m_name  : str
+    m_kind  : NJsonNodeKind = nkObject
+    m_value : anyvalue
 
-  function Error(sp : OStrParse, amsg : strview)
-  function ParseValue(sp : OStrParse)
-  function ParseObject(sp : OStrParse)
-  function ParseArray(sp : OStrParse)
-  function ParseString(sp : OStrParse) -> str
-  function ParseNumber(sp : OStrParse) -> float
-  function AppendUtf8(rstr : ref str, codepoint : uint32)
-  function AppendJsonString(rstr : ref str, avalue : strview)
+    function Error(sp : OStrParse, amsg : strview)
+    function ParseValue(sp : OStrParse)
+    function ParseObject(sp : OStrParse)
+    function ParseArray(sp : OStrParse)
+    function ParseString(sp : OStrParse) -> str
+    function ParseNumber(sp : OStrParse) -> float
+    function AppendUtf8(rstr : ref str, codepoint : uint32)
+    function AppendJsonString(rstr : ref str, avalue : strview)
 
 public
-  function *Create()  [[overload]]
-  function *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
-  function *Destroy()
+    function *Create()  [[overload]]
+    function *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
+    function *Destroy()
 
-  function Clear()
-  function GetName() -> str
+    function Clear()
+    function GetName() -> str
 
-  function AddNode(aname : str, akind : NJsonNodeKind) -> OJson
-  function AddNull(aname : str) -> OJson
-  function AddBool(aname : str, avalue : bool) -> OJson
-  function AddStr(aname : str, avalue : str) -> OJson
-  function AddNum(aname : str, avalue : float) -> OJson
-  function AddObj(aname : str) -> OJson
-  function AddArr(aname : str) -> OJson
+    function AddNode(aname : str, akind : NJsonNodeKind) -> OJson
+    function AddNull(aname : str) -> OJson
+    function AddBool(aname : str, avalue : bool) -> OJson
+    function AddStr(aname : str, avalue : str) -> OJson
+    function AddNum(aname : str, avalue : float) -> OJson
+    function AddObj(aname : str) -> OJson
+    function AddArr(aname : str) -> OJson
 
-  function IsNull() -> bool
-  function SetNull()
+    function IsNull() -> bool
+    function SetNull()
 
-  function GetAsBool() -> bool
-  function SetAsBool(avalue : bool)
+    function GetAsBool() -> bool
+    function SetAsBool(avalue : bool)
 
-  function GetAsStr() -> str
-  function SetAsStr(avalue : str)
+    function GetAsStr() -> str
+    function SetAsStr(avalue : str)
 
-  function GetAsNum() -> float
-  function SetAsNum(avalue : float)
+    function GetAsNum() -> float
+    function SetAsNum(avalue : float)
 
-  function AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
-  function AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
+    function AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
+    function AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
 
-  function GetAsJson() -> str
-  function GetAsPrettyJson() -> str
+    function GetAsJson() -> str
+    function GetAsPrettyJson() -> str
 
-  function ChildCount() -> int
-  function Child(aindex : int) -> OJson
-  function ChildByName(aname : strview) -> OJson
+    function ChildCount() -> int
+    function Child(aindex : int) -> OJson
+    function ChildByName(aname : strview) -> OJson
 
-  function FindNode(apath : strview) -> OJson
-  function Find(apath : strview, rnode : refout OJson) -> bool
-  function ForcePath(apath : strview) -> OJson
+    function FindNode(apath : strview) -> OJson
+    function Find(apath : strview, rnode : refout OJson) -> bool
+    function ForcePath(apath : strview) -> OJson
 
-  function SaveToFile(afname : strview, apretty : bool = false)
+    function SaveToFile(afname : strview, apretty : bool = false)
 
 public // Loading / Parsing
-  function LoadFromFile(afname : strview)
+    function LoadFromFile(afname : strview)
 
-  function Parse(astr : strview)  [[overload]]
-  function Parse(sp : OStrParse)  [[overload]]
+    function Parse(astr : strview)  [[overload]]
+    function Parse(sp : OStrParse)  [[overload]]
 
 public
-  property name      : str    read GetName
-  property parent    : OJson  read m_parent
-  property as_str    : str    read GetAsStr  write SetAsStr
-  property as_num    : float  read GetAsNum  write SetAsNum
-  property as_bool   : bool   read GetAsBool write SetAsBool
-  property is_null   : bool   read IsNull
+    property name      : str    read GetName
+    property parent    : OJson  read m_parent
+    property as_str    : str    read GetAsStr  write SetAsStr
+    property as_num    : float  read GetAsNum  write SetAsNum
+    property as_bool   : bool   read GetAsBool write SetAsBool
+    property is_null   : bool   read IsNull
 
-  property json        : str    read GetAsJson
-  property pretty_json : str    read GetAsPrettyJson
+    property json        : str    read GetAsJson
+    property pretty_json : str    read GetAsPrettyJson
 
-  property length : int        read ChildCount
-  property child  : [int]OJson  default  read Child
+    property length : int        read ChildCount
+    property child  : [int]OJson  default  read Child
 
 endobj
 
@@ -117,334 +117,334 @@ implementation
 use strutils, file
 
 function OJson.*Create()  [[overload]]:
-  m_name = ''
-  m_children = []
-  m_parent = null
-  m_kind = nkObject
+    m_name = ''
+    m_children = []
+    m_parent = null
+    m_kind = nkObject
 endfunc
 
 function OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
-  m_name = ''
-  m_children = []
-  m_parent = aparent;
-  m_kind = akind
+    m_name = ''
+    m_children = []
+    m_parent = aparent;
+    m_kind = akind
 endfunc
 
 function OJson.*Destroy():
-  Clear()
+    Clear()
 endfunc
 
 function OJson.Clear():
-  while m_children.length > 0:
-    var child : OJson = m_children.Pop()
-    delete child
-  endwhile
+    while m_children.length > 0:
+        var child : OJson = m_children.Pop()
+        delete child
+    endwhile
 endfunc
 
 function OJson.GetName() -> str:
-  if m_parent == null:
-    return '0'
-  endif
+    if m_parent == null:
+        return '0'
+    endif
 
-  if m_parent.m_kind == nkArray:
-    return '?'
-  endif
+    if m_parent.m_kind == nkArray:
+        return '?'
+    endif
 
-  return m_name
+    return m_name
 endfunc
 
 
 function OJson.AddNull(aname : str) -> OJson:
-  result = AddNode(aname, nkNull)
-  result.m_value.SetNull()
+    result = AddNode(aname, nkNull)
+    result.m_value.SetNull()
 endfunc
 
 function OJson.AddBool(aname : str, avalue : bool) -> OJson:
-  result = AddNode(aname, nkBool)
-  result.m_value = avalue
+    result = AddNode(aname, nkBool)
+    result.m_value = avalue
 endfunc
 
 function OJson.AddStr(aname : str, avalue : str) -> OJson:
-  result = AddNode(aname, nkString)
-  result.m_value = avalue
+    result = AddNode(aname, nkString)
+    result.m_value = avalue
 endfunc
 
 function OJson.AddNum(aname : str, avalue : float) -> OJson:
-  result = AddNode(aname, nkNumber)
-  result.m_value = avalue
+    result = AddNode(aname, nkNumber)
+    result.m_value = avalue
 endfunc
 
 function OJson.AddObj(aname : str) -> OJson:
-  result = AddNode(aname, nkObject)
+    result = AddNode(aname, nkObject)
 endfunc
 
 function OJson.AddArr(aname : str) -> OJson:
-  result = AddNode(aname, nkArray)
+    result = AddNode(aname, nkArray)
 endfunc
 
 function OJson.IsNull() -> bool:
-  return m_kind == nkNull
+    return m_kind == nkNull
 endfunc
 
 function OJson.SetNull():
-  if m_children <> []:
-    Clear()
-  endif
-  m_kind = nkNull
-  m_value.SetNull()
+    if m_children <> []:
+        Clear()
+    endif
+    m_kind = nkNull
+    m_value.SetNull()
 endfunc
 
 function OJson.GetAsBool() -> bool:
-  return m_value.AsBool(false)
+    return m_value.AsBool(false)
 endfunc
 
 function OJson.SetAsBool(avalue : bool):
-  if m_children <> []:
-    Clear()
-  endif
-  m_kind  = nkBool
-  m_value = avalue
+    if m_children <> []:
+        Clear()
+    endif
+    m_kind  = nkBool
+    m_value = avalue
 endfunc
 
 function OJson.GetAsStr() -> str:
-  if m_kind == nkString:
-    return m_value.AsStr('')
-  elif m_kind == nkNull:
-    return 'null'
-  elif m_kind == nkBool:
-    return iif(m_value.AsBool(false), 'true', 'false')
-  elif m_kind == nkNumber:
-    return @.Format('{}', [m_value.AsFloat(0)])
-  endif
+    if m_kind == nkString:
+        return m_value.AsStr('')
+    elif m_kind == nkNull:
+        return 'null'
+    elif m_kind == nkBool:
+        return iif(m_value.AsBool(false), 'true', 'false')
+    elif m_kind == nkNumber:
+        return @.Format('{}', [m_value.AsFloat(0)])
+    endif
 
-  //return compact JSON for arrays and objects
-  result = ''
-  AppendToJsonStr(result)
+    //return compact JSON for arrays and objects
+    result = ''
+    AppendToJsonStr(result)
 endfunc
 
 function OJson.SetAsStr(avalue : str):
-  if m_children <> []:
-    Clear()
-  endif
-  m_kind  = nkString
-  m_value = avalue
+    if m_children <> []:
+        Clear()
+    endif
+    m_kind  = nkString
+    m_value = avalue
 endfunc
 
 
 function OJson.GetAsNum() -> float:
-  return m_value.AsFloat(0)
+    return m_value.AsFloat(0)
 endfunc
 
 function OJson.SetAsNum(avalue : float):
-  if m_children <> []:
-    Clear()
-  endif
-  m_kind  = nkNumber
-  m_value = avalue
+    if m_children <> []:
+        Clear()
+    endif
+    m_kind  = nkNumber
+    m_value = avalue
 endfunc
 
 function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding string reallocations
-  if m_kind == nkNull:
-    rstr.Add('null')
-  elif m_kind == nkString:
-    AppendJsonString(rstr, m_value.AsStr(''))
-  elif m_kind == nkNumber  or m_kind == nkBool:
-    rstr.AddFmt('{}', [m_value])
-  elif m_kind == nkArray:
-    rstr.Add('[')
-    for i : int = 0  count m_children.length:
-      m_children[i].AppendToJsonStr(rstr)
-      if i + 1 < m_children.length:
-        rstr.Add(',')
-      endif
-    endfor
-    rstr.Add(']')
-  elif m_kind == nkObject:
-    rstr.Add('{')
-    for i : int = 0  count m_children.length:
-      AppendJsonString(rstr, m_children[i].m_name)
-      rstr.Add(':')
-      m_children[i].AppendToJsonStr(rstr)
-      if i + 1 < m_children.length:
-        rstr.Add(',')
-      endif
-    endfor
-    rstr.Add('}')
-  endif
+    if m_kind == nkNull:
+        rstr.Add('null')
+    elif m_kind == nkString:
+        AppendJsonString(rstr, m_value.AsStr(''))
+    elif m_kind == nkNumber  or m_kind == nkBool:
+        rstr.AddFmt('{}', [m_value])
+    elif m_kind == nkArray:
+        rstr.Add('[')
+        for i : int = 0  count m_children.length:
+            m_children[i].AppendToJsonStr(rstr)
+            if i + 1 < m_children.length:
+                rstr.Add(',')
+            endif
+        endfor
+        rstr.Add(']')
+    elif m_kind == nkObject:
+        rstr.Add('{')
+        for i : int = 0  count m_children.length:
+            AppendJsonString(rstr, m_children[i].m_name)
+            rstr.Add(':')
+            m_children[i].AppendToJsonStr(rstr)
+            if i + 1 < m_children.length:
+                rstr.Add(',')
+            endif
+        endfor
+        rstr.Add('}')
+    endif
 endfunc
 
 function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster version avoiding string reallocations
-  var newpad : str = ''
-  if m_kind == nkNull:
-    rstr.Add('null')
-  elif m_kind == nkString:
-    AppendJsonString(rstr, m_value.AsStr(''))
-  elif m_kind == nkNumber  or m_kind == nkBool:
-    rstr.AddFmt('{}', [m_value])
-  elif m_kind == nkArray:
-    if m_children == []:
-      rstr.Add('[]')
-      return
+    var newpad : str = ''
+    if m_kind == nkNull:
+        rstr.Add('null')
+    elif m_kind == nkString:
+        AppendJsonString(rstr, m_value.AsStr(''))
+    elif m_kind == nkNumber  or m_kind == nkBool:
+        rstr.AddFmt('{}', [m_value])
+    elif m_kind == nkArray:
+        if m_children == []:
+            rstr.Add('[]')
+            return
+        endif
+        rstr.Add('[\n')
+        newpad.Add(indent)
+        newpad.Add('  ')
+        for i : int = 0  count m_children.length:
+            rstr.Add(newpad)
+            m_children[i].AppendToPrettyJsonStr(rstr, newpad)
+            if i + 1 < m_children.length:
+                rstr.Add(',')
+            endif
+            rstr.Add('\n')
+        endfor
+        rstr.Add(indent)
+        rstr.Add(']')
+    elif m_kind == nkObject:
+        if m_children == []:
+            rstr.Add('{}')
+            return
+        endif
+        rstr.Add('{')
+        rstr.Add('\n')
+        newpad.Add(indent)
+        newpad.Add('  ')
+        for i : int = 0  count m_children.length:
+            rstr.Add(newpad)
+            AppendJsonString(rstr, m_children[i].m_name)
+            rstr.Add(':')
+            m_children[i].AppendToPrettyJsonStr(rstr, newpad)
+            if i + 1 < m_children.length:
+                rstr.Add(',')
+            endif
+            rstr.Add('\n')
+        endfor
+        rstr.Add(indent)
+        rstr.Add('}')
     endif
-    rstr.Add('[\n')
-    newpad.Add(indent)
-    newpad.Add('  ')
-    for i : int = 0  count m_children.length:
-      rstr.Add(newpad)
-      m_children[i].AppendToPrettyJsonStr(rstr, newpad)
-      if i + 1 < m_children.length:
-        rstr.Add(',')
-      endif
-      rstr.Add('\n')
-    endfor
-    rstr.Add(indent)
-    rstr.Add(']')
-  elif m_kind == nkObject:
-    if m_children == []:
-      rstr.Add('{}')
-      return
-    endif
-    rstr.Add('{')
-    rstr.Add('\n')
-    newpad.Add(indent)
-    newpad.Add('  ')
-    for i : int = 0  count m_children.length:
-      rstr.Add(newpad)
-      AppendJsonString(rstr, m_children[i].m_name)
-      rstr.Add(':')
-      m_children[i].AppendToPrettyJsonStr(rstr, newpad)
-      if i + 1 < m_children.length:
-        rstr.Add(',')
-      endif
-      rstr.Add('\n')
-    endfor
-    rstr.Add(indent)
-    rstr.Add('}')
-  endif
 endfunc
 
 function OJson.GetAsJson() -> str:
-  result = ''
-  AppendToJsonStr(result)
+    result = ''
+    AppendToJsonStr(result)
 endfunc
 
 function OJson.GetAsPrettyJson() -> str:
-  result = ''
-  AppendToPrettyJsonStr(result, '')
+    result = ''
+    AppendToPrettyJsonStr(result, '')
 endfunc
 
 function OJson.SaveToFile(afname : strview, apretty : bool = false):
-  var s : str;
-  if apretty:
-    AppendToPrettyJsonStr(s, '')
-  else:
-    AppendToJsonStr(s)
-  endif
-  @.FileWriteText(afname, s)
+    var s : str;
+    if apretty:
+        AppendToPrettyJsonStr(s, '')
+    else:
+        AppendToJsonStr(s)
+    endif
+    @.FileWriteText(afname, s)
 endfunc
 
 function OJson.LoadFromFile(afname : strview):
-  var jdata : str = @.FileReadText(afname)
-  Parse(jdata)
+    var jdata : str = @.FileReadText(afname)
+    Parse(jdata)
 endfunc
 
 function OJson.Parse(astr : strview)  [[overload]]:
-  var sp <- OStrParse(astr)
-  Parse(sp)
+    var sp <- OStrParse(astr)
+    Parse(sp)
 endfunc
 
 function OJson.Parse(sp : OStrParse)  [[overload]]:
-  Clear()
-  sp.SkipSpaces()
-  if m_parent == null:
-    if sp.readp >= sp.bufend  or (sp.readp^ <> '{'  and sp.readp^ <> '['):
-      Error(sp, 'Root JSON node must be an object or array')
+    Clear()
+    sp.SkipSpaces()
+    if m_parent == null:
+        if sp.readp >= sp.bufend  or (sp.readp^ <> '{'  and sp.readp^ <> '['):
+            Error(sp, 'Root JSON node must be an object or array')
+        endif
     endif
-  endif
-  ParseValue(sp)
-  sp.SkipSpaces()
-  if sp.readp < sp.bufend:
-    Error(sp, 'Unexpected trailing text')
-  endif
+    ParseValue(sp)
+    sp.SkipSpaces()
+    if sp.readp < sp.bufend:
+        Error(sp, 'Unexpected trailing text')
+    endif
 endfunc
 
 function OJson.Error(sp : OStrParse, amsg : strview):
-  raise EJson('JSON parse error at line {}, column {}: {}', [sp.GetLineNum(sp.readp), sp.GetColNum(sp.readp), amsg])
+    raise EJson('JSON parse error at line {}, column {}: {}', [sp.GetLineNum(sp.readp), sp.GetColNum(sp.readp), amsg])
 endfunc
 
 function OJson.AddNode(aname : str, akind : NJsonNodeKind) -> OJson:
-  result = new OJson(self, akind)
-  result.m_name = aname
-  m_children.Append(result)
+    result = new OJson(self, akind)
+    result.m_name = aname
+    m_children.Append(result)
 endfunc
 
 function OJson.ParseValue(sp : OStrParse):
-  Clear()
-  sp.SkipSpaces()
+    Clear()
+    sp.SkipSpaces()
 
-  if sp.readp >= sp.bufend:
-    Error(sp, 'Unexpected end of text')
-  endif
+    if sp.readp >= sp.bufend:
+        Error(sp, 'Unexpected end of text')
+    endif
 
-  var c : char = sp.readp^
+    var c : char = sp.readp^
 
-  if c == '{':
-    m_kind = nkObject
-    ParseObject(sp)
-  elif c == '[':
-    m_kind = nkArray
-    ParseArray(sp)
-  elif c == '"':
-    m_kind = nkString
-    m_value = ParseString(sp)
-  elif c == 't':
-    if not sp.CheckSymbol('true'):
-      Error(sp, 'Invalid token')
+    if c == '{':
+        m_kind = nkObject
+        ParseObject(sp)
+    elif c == '[':
+        m_kind = nkArray
+        ParseArray(sp)
+    elif c == '"':
+        m_kind = nkString
+        m_value = ParseString(sp)
+    elif c == 't':
+        if not sp.CheckSymbol('true'):
+            Error(sp, 'Invalid token')
+        endif
+        m_kind = nkBool
+        m_value = true
+    elif c == 'f':
+        if not sp.CheckSymbol('false'):
+            Error(sp, 'Invalid token')
+        endif
+        m_kind = nkBool
+        m_value = false
+    elif c == 'n':
+        if not sp.CheckSymbol('null'):
+            Error(sp, 'Invalid token')
+        endif
+        m_kind = nkNull
+        m_value.SetNull()
+    elif c == '-'  or (c >= '0'  and c <= '9'):
+        m_kind = nkNumber
+        m_value = ParseNumber(sp)
+    else:
+        Error(sp, 'Unexpected character')
     endif
-    m_kind = nkBool
-    m_value = true
-  elif c == 'f':
-    if not sp.CheckSymbol('false'):
-      Error(sp, 'Invalid token')
-    endif
-    m_kind = nkBool
-    m_value = false
-  elif c == 'n':
-    if not sp.CheckSymbol('null'):
-      Error(sp, 'Invalid token')
-    endif
-    m_kind = nkNull
-    m_value.SetNull()
-  elif c == '-'  or (c >= '0'  and c <= '9'):
-    m_kind = nkNumber
-    m_value = ParseNumber(sp)
-  else:
-    Error(sp, 'Unexpected character')
-  endif
 endfunc
 
 function OJson.ParseObject(sp : OStrParse):
-  if sp.readp >= sp.bufend  or sp.readp^ <> '{':
-    Error(sp, 'Expected object')
-  endif
-  sp.readp += 1
-  sp.SkipSpaces()
-
-  if sp.readp < sp.bufend  and sp.readp^ == '}':
-    sp.readp += 1
-    return
-  endif
-
-  while true:
-    sp.SkipSpaces()
-    if sp.readp >= sp.bufend  or sp.readp^ <> '"':
-      Error(sp, 'Expected object name')
+    if sp.readp >= sp.bufend  or sp.readp^ <> '{':
+        Error(sp, 'Expected object')
     endif
-    var n : str = ParseString(sp)
+    sp.readp += 1
+    sp.SkipSpaces()
+
+    if sp.readp < sp.bufend  and sp.readp^ == '}':
+        sp.readp += 1
+        return
+    endif
+
+    while true:
+        sp.SkipSpaces()
+        if sp.readp >= sp.bufend  or sp.readp^ <> '"':
+            Error(sp, 'Expected object name')
+        endif
+        var n : str = ParseString(sp)
 
     sp.SkipSpaces()
     if sp.readp >= sp.bufend  or sp.readp^ <> ':':
-      Error(sp, 'Expected ":" after object name')
+        Error(sp, 'Expected ":" after object name')
     endif
     sp.readp += 1
 
@@ -453,347 +453,347 @@ function OJson.ParseObject(sp : OStrParse):
 
     sp.SkipSpaces()
     if sp.readp >= sp.bufend:
-      Error(sp, 'Unterminated object')
+        Error(sp, 'Unterminated object')
     endif
 
     if sp.readp^ == ',':
-      sp.readp += 1
+        sp.readp += 1
     elif sp.readp^ == '}':
-      sp.readp += 1
-      return
+        sp.readp += 1
+        return
     else:
-      Error(sp, 'Expected "," or "}" in object')
+        Error(sp, 'Expected "," or "}" in object')
     endif
-  endwhile
+    endwhile
 endfunc
 
 function OJson.ParseArray(sp : OStrParse):
-  if sp.readp >= sp.bufend  or sp.readp^ <> '[':
-    Error(sp, 'Expected array')
-  endif
-  sp.readp += 1
-  sp.SkipSpaces()
-
-  if sp.readp < sp.bufend  and sp.readp^ == ']':
+    if sp.readp >= sp.bufend  or sp.readp^ <> '[':
+        Error(sp, 'Expected array')
+    endif
     sp.readp += 1
-    return
-  endif
+    sp.SkipSpaces()
 
-  while true:
-    var child : OJson = AddNode('', nkNull)
-    child.ParseValue(sp)
+    if sp.readp < sp.bufend  and sp.readp^ == ']':
+        sp.readp += 1
+        return
+    endif
+
+    while true:
+        var child : OJson = AddNode('', nkNull)
+        child.ParseValue(sp)
 
     sp.SkipSpaces()
     if sp.readp >= sp.bufend:
-      Error(sp, 'Unterminated array')
+        Error(sp, 'Unterminated array')
     endif
 
     if sp.readp^ == ',':
-      sp.readp += 1
+        sp.readp += 1
     elif sp.readp^ == ']':
-      sp.readp += 1
-      return
+        sp.readp += 1
+        return
     else:
-      Error(sp, 'Expected "," or "]" in array')
+        Error(sp, 'Expected "," or "]" in array')
     endif
-  endwhile
+    endwhile
 endfunc
 
 function OJson.ParseString(sp : OStrParse) -> str:
-  result = ''
+    result = ''
 
-  if sp.readp >= sp.bufend  or sp.readp^ <> '"':
-    Error(sp, 'Expected string')
-  endif
-  sp.readp += 1
-
-  while sp.readp < sp.bufend:
-    var c : char = sp.readp^
+    if sp.readp >= sp.bufend  or sp.readp^ <> '"':
+        Error(sp, 'Expected string')
+    endif
     sp.readp += 1
 
+    while sp.readp < sp.bufend:
+        var c : char = sp.readp^
+        sp.readp += 1
+
     if c == '"':
-      return
+        return
     endif
 
     if c < char(32):
-      Error(sp, 'Invalid control character in string')
+        Error(sp, 'Invalid control character in string')
     endif
 
     if c <> char(92):
-      result.Append(cchar(c))
-      continue
+        result.Append(cchar(c))
+        continue
     endif
 
     if sp.readp >= sp.bufend:
-      Error(sp, 'Unterminated escape sequence')
+        Error(sp, 'Unterminated escape sequence')
     endif
 
     var e : char = sp.readp^
     sp.readp += 1
 
     if e == '"':
-      result.Append('"')
+        result.Append('"')
     elif e == char(92):
-      result.Append(char(92))
+        result.Append(char(92))
     elif e == '/':
-      result.Append('/')
+        result.Append('/')
     elif e == 'b':
-      result.Append(char(8))
+        result.Append(char(8))
     elif e == 'f':
-      result.Append(char(12))
+        result.Append(char(12))
     elif e == 'n':
-      result.Append(char(10))
+        result.Append(char(10))
     elif e == 'r':
-      result.Append(char(13))
+        result.Append(char(13))
     elif e == 't':
-      result.Append(char(9))
+        result.Append(char(9))
     elif e == 'u':
-      var startp : ^cchar = sp.readp
-      sp.ReadHexNumbers()
-      if sp.prevlen <> 4:
-        Error(sp, 'Invalid unicode escape')
-      endif
-      var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
-
-      if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
-        if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
-          Error(sp, 'Invalid unicode surrogate pair')
-        endif
-        sp.readp += 2
-        startp = sp.readp
+        var startp : ^cchar = sp.readp
         sp.ReadHexNumbers()
         if sp.prevlen <> 4:
-          Error(sp, 'Invalid unicode escape')
+            Error(sp, 'Invalid unicode escape')
         endif
-        var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
-        if low < uint32(0xDC00)  or low > uint32(0xDFFF):
-          Error(sp, 'Invalid low unicode surrogate')
-        endif
-        cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
+        var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
+
+      if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
+          if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
+              Error(sp, 'Invalid unicode surrogate pair')
+          endif
+          sp.readp += 2
+          startp = sp.readp
+          sp.ReadHexNumbers()
+          if sp.prevlen <> 4:
+              Error(sp, 'Invalid unicode escape')
+          endif
+          var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
+          if low < uint32(0xDC00)  or low > uint32(0xDFFF):
+              Error(sp, 'Invalid low unicode surrogate')
+          endif
+          cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
       elif cp >= uint32(0xDC00)  and cp <= uint32(0xDFFF):
-        Error(sp, 'Unexpected low unicode surrogate')
+          Error(sp, 'Unexpected low unicode surrogate')
       endif
 
       AppendUtf8(result, cp)
     else:
-      Error(sp, 'Invalid escape sequence')
+        Error(sp, 'Invalid escape sequence')
     endif
-  endwhile
+    endwhile
 
-  Error(sp, 'Unterminated string')
+    Error(sp, 'Unterminated string')
 endfunc
 
 function OJson.ParseNumber(sp : OStrParse) -> float:
-  var startp : ^cchar = sp.readp
-  var cp     : ^cchar = sp.readp
+    var startp : ^cchar = sp.readp
+    var cp     : ^cchar = sp.readp
 
-  if cp < sp.bufend  and cp^ == '-':
-    cp += 1
-  endif
-
-  if cp >= sp.bufend:
-    Error(sp, 'Invalid number')
-  endif
-
-  if cp^ == '0':
-    cp += 1
-  elif cp^ >= '1'  and cp^ <= '9':
-    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
-      cp += 1
-    endwhile
-  else:
-    Error(sp, 'Invalid number')
-  endif
-
-  if cp < sp.bufend  and cp^ == '.':
-    cp += 1
-    if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
-      Error(sp, 'Invalid number fractional part')
+    if cp < sp.bufend  and cp^ == '-':
+        cp += 1
     endif
-    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
-      cp += 1
-    endwhile
-  endif
 
-  if cp < sp.bufend  and (cp^ == 'e'  or cp^ == 'E'):
-    cp += 1
-    if cp < sp.bufend  and (cp^ == '+'  or cp^ == '-'):
-      cp += 1
+    if cp >= sp.bufend:
+        Error(sp, 'Invalid number')
     endif
-    if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
-      Error(sp, 'Invalid number exponent')
-    endif
-    while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
-      cp += 1
-    endwhile
-  endif
 
-  sp.readp = cp
-  return @.PCharToFloat(startp, cp - startp)
+    if cp^ == '0':
+        cp += 1
+    elif cp^ >= '1'  and cp^ <= '9':
+        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+            cp += 1
+        endwhile
+    else:
+        Error(sp, 'Invalid number')
+    endif
+
+    if cp < sp.bufend  and cp^ == '.':
+        cp += 1
+        if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+            Error(sp, 'Invalid number fractional part')
+        endif
+        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+            cp += 1
+        endwhile
+    endif
+
+    if cp < sp.bufend  and (cp^ == 'e'  or cp^ == 'E'):
+        cp += 1
+        if cp < sp.bufend  and (cp^ == '+'  or cp^ == '-'):
+            cp += 1
+        endif
+        if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+            Error(sp, 'Invalid number exponent')
+        endif
+        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+            cp += 1
+        endwhile
+    endif
+
+    sp.readp = cp
+    return @.PCharToFloat(startp, cp - startp)
 endfunc
 
 function OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
-  if codepoint <= uint32(0x7F):
-    rstr.Append(char(int(codepoint)))
-  elif codepoint <= uint32(0x7FF):
-    rstr.Append(char(int(uint32(0xC0) OR (codepoint >> 6))))
-    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
-  elif codepoint <= uint32(0xFFFF):
-    rstr.Append(char(int(uint32(0xE0) OR (codepoint >> 12))))
-    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
-    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
-  else:
-    rstr.Append(char(int(uint32(0xF0) OR (codepoint >> 18))))
-    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 12) AND uint32(0x3F)))))
-    rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
-    rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
-  endif
+    if codepoint <= uint32(0x7F):
+        rstr.Append(char(int(codepoint)))
+    elif codepoint <= uint32(0x7FF):
+        rstr.Append(char(int(uint32(0xC0) OR (codepoint >> 6))))
+        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+    elif codepoint <= uint32(0xFFFF):
+        rstr.Append(char(int(uint32(0xE0) OR (codepoint >> 12))))
+        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+    else:
+        rstr.Append(char(int(uint32(0xF0) OR (codepoint >> 18))))
+        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 12) AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+    endif
 endfunc
 
 function OJson.AppendJsonString(rstr : ref str, avalue : strview):
-  rstr.Append('"')
-  for i : int = 0 count avalue.length:
-    var c : char = avalue[i]
-    if c == '"':
-      rstr.Append(char(92))
-      rstr.Append('"')
-    elif c == char(92):
-      rstr.Append(char(92))
-      rstr.Append(char(92))
-    elif c == char(8):
-      rstr.Append(char(92))
-      rstr.Append('b')
-    elif c == char(12):
-      rstr.Append(char(92))
-      rstr.Append('f')
-    elif c == char(10):
-      rstr.Append(char(92))
-      rstr.Append('n')
-    elif c == char(13):
-      rstr.Append(char(92))
-      rstr.Append('r')
-    elif c == char(9):
-      rstr.Append(char(92))
-      rstr.Append('t')
-    elif c < char(32):
-      rstr.AddFmt('\\u{:04X}', [int(c)])
-    else:
-      rstr.Append(cchar(c))
-    endif
-  endfor
-  rstr.Append('"')
+    rstr.Append('"')
+    for i : int = 0 count avalue.length:
+        var c : char = avalue[i]
+        if c == '"':
+            rstr.Append(char(92))
+            rstr.Append('"')
+        elif c == char(92):
+            rstr.Append(char(92))
+            rstr.Append(char(92))
+        elif c == char(8):
+            rstr.Append(char(92))
+            rstr.Append('b')
+        elif c == char(12):
+            rstr.Append(char(92))
+            rstr.Append('f')
+        elif c == char(10):
+            rstr.Append(char(92))
+            rstr.Append('n')
+        elif c == char(13):
+            rstr.Append(char(92))
+            rstr.Append('r')
+        elif c == char(9):
+            rstr.Append(char(92))
+            rstr.Append('t')
+        elif c < char(32):
+            rstr.AddFmt('\\u{:04X}', [int(c)])
+        else:
+            rstr.Append(cchar(c))
+        endif
+    endfor
+    rstr.Append('"')
 endfunc
 
 
 function OJson.ChildCount() -> int:
-  return m_children.length
+    return m_children.length
 endfunc
 
 function OJson.Child(aindex : int) -> OJson:
-  if aindex >= 0  and aindex < m_children.length:
-    return m_children[aindex]
-  else:
-    return null
-  endif
+    if aindex >= 0  and aindex < m_children.length:
+        return m_children[aindex]
+    else:
+        return null
+    endif
 endfunc
 
 function OJson.ChildByName(aname : strview) -> OJson:
-  if m_kind <> nkObject:
-    return null
-  endif
-
-  for i : int = 0 count m_children.length:
-    if m_children[i].m_name == aname:
-      return m_children[i]
+    if m_kind <> nkObject:
+        return null
     endif
-  endfor
 
-  return null
+    for i : int = 0 count m_children.length:
+        if m_children[i].m_name == aname:
+            return m_children[i]
+        endif
+    endfor
+
+    return null
 endfunc
 
 function OJson.FindNode(apath : strview) -> OJson:
-  // Supports: a.b.c, a/b/c
-  if apath.length == 0:
-    return self
-  endif
+    // Supports: a.b.c, a/b/c
+    if apath.length == 0:
+        return self
+    endif
 
-  var cur : OJson = self
-  var name : str = ''
+    var cur : OJson = self
+    var name : str = ''
 
-  for i : int = 0 count apath.length:
-    var c : char = apath[i]
-    if c == '.'  or c == '/':
-      if name <> '':
+    for i : int = 0 count apath.length:
+        var c : char = apath[i]
+        if c == '.'  or c == '/':
+            if name <> '':
+                cur = cur.ChildByName(name)
+                if cur == null:
+                    return null
+                endif
+                name = ''
+            endif
+        else:
+            name.Append(cchar(c))
+        endif
+    endfor
+
+    if name <> '':
         cur = cur.ChildByName(name)
         if cur == null:
-          return null
+            return null
         endif
-        name = ''
-      endif
-    else:
-      name.Append(cchar(c))
     endif
-  endfor
 
-  if name <> '':
-    cur = cur.ChildByName(name)
-    if cur == null:
-      return null
-    endif
-  endif
-
-  return cur
+    return cur
 
 endfunc
 
 function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
-  var jn : OJson = FindNode(apath)
-  if jn == null:
-    return false
-  endif
-  rnode = jn
-  return true
+    var jn : OJson = FindNode(apath)
+    if jn == null:
+        return false
+    endif
+    rnode = jn
+    return true
 endfunc
 
 function OJson.ForcePath(apath : strview) -> OJson:
-  // Supports: a.b.c, a/b/c
+    // Supports: a.b.c, a/b/c
 
-  var cur : OJson = self
-  var name : str = ''
+    var cur : OJson = self
+    var name : str = ''
 
-  for i : int = 0 count apath.length:
-    var c : char = apath[i]
-    if c == '.'  or c == '/':
-      if name <> '':
-        if cur.m_kind <> nkObject:
-          cur.Clear()
-          cur.m_kind = nkObject
-        endif
+    for i : int = 0 count apath.length:
+        var c : char = apath[i]
+        if c == '.'  or c == '/':
+            if name <> '':
+                if cur.m_kind <> nkObject:
+                    cur.Clear()
+                    cur.m_kind = nkObject
+                endif
 
         var next : OJson = cur.ChildByName(name)
         if next == null:
-          next = cur.AddObj(name)
+            next = cur.AddObj(name)
         endif
         cur = next
         name = ''
       endif
     else:
-      name.Append(cchar(c))
+        name.Append(cchar(c))
     endif
-  endfor
+    endfor
 
-  if name <> '':
-    if cur.m_kind <> nkObject:
-      cur.Clear()
-      cur.m_kind = nkObject
-    endif
+    if name <> '':
+        if cur.m_kind <> nkObject:
+            cur.Clear()
+            cur.m_kind = nkObject
+        endif
 
     var next : OJson = cur.ChildByName(name)
     if next == null:
-      next = cur.AddObj(name)
+        next = cur.AddObj(name)
     endif
     cur = next
-  endif
+    endif
 
-  return cur
+    return cur
 endfunc

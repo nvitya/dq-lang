@@ -22,19 +22,19 @@ const DQ_EXCEPTION_TYPENAME_MAX  : int = 63
 const DQ_EXCEPTION_MSG_MAX       : int = 127
 
 object Exception:
-  refcount        : int = 1
-  message         : cstring(DQ_EXCEPTION_MSG_MAX)
-  backtrace_count : int = 0
-  backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
+    refcount        : int = 1
+    message         : cstring(DQ_EXCEPTION_MSG_MAX)
+    backtrace_count : int = 0
+    backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
-  function *Create(amsg : strview) [[overload]]
-  function *Create(afmt : strview, avalues : []anyvalue) [[overload]]
-  function *Destroy()
+    function *Create(amsg : strview) [[overload]]
+    function *Create(afmt : strview, avalues : []anyvalue) [[overload]]
+    function *Destroy()
 
-  function GetMessage() -> cstring [[virtual]]
-  function CaptureBacktrace()
-  function PrintMessage()
-  function PrintBacktrace()
+    function GetMessage() -> cstring [[virtual]]
+    function CaptureBacktrace()
+    function PrintMessage()
+    function PrintBacktrace()
 endobj
 
 function DqExcRaise(e : Exception, owned_ref : bool)
@@ -59,67 +59,67 @@ function DqExcRelease(e : Exception)
 //-------------------------------------------------------------------------------------------------
 
 function Exception.*Create(amsg : strview) [[overload]]:
-  message.Set(amsg)
+    message.Set(amsg)
 endfunc
 
 function Exception.*Create(afmt : strview, avalues : []anyvalue) [[overload]]:
-  message.AddFmt(afmt, avalues)
+    message.AddFmt(afmt, avalues)
 endfunc
 
 function Exception.*Destroy():
 endfunc
 
 function Exception.GetMessage() -> cstring:
-  return message
+    return message
 endfunc
 
 
 function Exception.CaptureBacktrace():
-  backtrace_count = @.DqCaptureBacktrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
+    backtrace_count = @.DqCaptureBacktrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
 endfunc
 
 function Exception.PrintMessage():
-  var view : strview = message
-  var i : uint32 = 0
-  while i < uint32(view.length):
-    @.printf("%c", int(view[i]))
-    i += 1
-  endwhile
+    var view : strview = message
+    var i : uint32 = 0
+    while i < uint32(view.length):
+        @.printf("%c", int(view[i]))
+        i += 1
+    endwhile
 endfunc
 
 function Exception.PrintBacktrace():
-  @.DqPrintBacktrace(&backtrace[0], backtrace_count)
+    @.DqPrintBacktrace(&backtrace[0], backtrace_count)
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
 function DqExcAddRef(e : Exception):
-  if e <> null:
-    e.refcount += 1
-  endif
+    if e <> null:
+        e.refcount += 1
+    endif
 endfunc
 
 function DqExcRelease(e : Exception):
-  if e == null:
-    return
-  endif
-  e.refcount -= 1
-  if e.refcount <= 0:
-    delete e
-  endif
+    if e == null:
+        return
+    endif
+    e.refcount -= 1
+    if e.refcount <= 0:
+        delete e
+    endif
 endfunc
 
 function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
-  if e == null:
-    RuntimeError("raise null exception")
-    return false
-  endif
+    if e == null:
+        RuntimeError("raise null exception")
+        return false
+    endif
 
-  if not owned_ref:
-    DqExcAddRef(e)
-  endif
+    if not owned_ref:
+        DqExcAddRef(e)
+    endif
 
-  return true
+    return true
 endfunc
 
 [[external]]
@@ -129,85 +129,85 @@ var active_exception  : Exception = null
 var handled_exception : Exception = null
 
 function DqSetActiveException(e : Exception):
-  if active_exception <> null:
-    DqExcRelease(active_exception)
-  endif
-  active_exception = e
+    if active_exception <> null:
+        DqExcRelease(active_exception)
+    endif
+    active_exception = e
 endfunc
 
 function DqExcRaise(e : Exception, owned_ref : bool):
-  if not DqPrepareExceptionRef(e, owned_ref):
-    return
-  endif
+    if not DqPrepareExceptionRef(e, owned_ref):
+        return
+    endif
 
-  e.CaptureBacktrace()
-  DqExcNativeThrow(e)
+    e.CaptureBacktrace()
+    DqExcNativeThrow(e)
 endfunc
 
 function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int):
-  if not DqPrepareExceptionRef(e, owned_ref):
-    return
-  endif
+    if not DqPrepareExceptionRef(e, owned_ref):
+        return
+    endif
 
-  e.backtrace_count = bt_count - DQ_BACKTRACE_INTERNAL_SKIP
-  if e.backtrace_count < 0:
-    e.backtrace_count = 0
-  elif e.backtrace_count > DQ_EXCEPTION_BACKTRACE_MAX:
-    e.backtrace_count = DQ_EXCEPTION_BACKTRACE_MAX
-  endif
+    e.backtrace_count = bt_count - DQ_BACKTRACE_INTERNAL_SKIP
+    if e.backtrace_count < 0:
+        e.backtrace_count = 0
+    elif e.backtrace_count > DQ_EXCEPTION_BACKTRACE_MAX:
+        e.backtrace_count = DQ_EXCEPTION_BACKTRACE_MAX
+    endif
 
-  var i : int = 0
-  while i < e.backtrace_count:
-    e.backtrace[i] = ^pointer(bt)[i + DQ_BACKTRACE_INTERNAL_SKIP]^
-    i += 1
-  endwhile
+    var i : int = 0
+    while i < e.backtrace_count:
+        e.backtrace[i] = ^pointer(bt)[i + DQ_BACKTRACE_INTERNAL_SKIP]^
+        i += 1
+    endwhile
 
-  DqExcNativeThrow(e)
+    DqExcNativeThrow(e)
 endfunc
 
 function DqExcRethrow():
-  if handled_exception == null:
-    RuntimeError("re-raise without active exception")
-    return
-  endif
-  DqExcNativeThrow(handled_exception)
+    if handled_exception == null:
+        RuntimeError("re-raise without active exception")
+        return
+    endif
+    DqExcNativeThrow(handled_exception)
 endfunc
 
 function DqExcActive() -> bool:
-  return active_exception <> null
+    return active_exception <> null
 endfunc
 
 function DqExcCurrent() -> Exception:
-  return active_exception
+    return active_exception
 endfunc
 
 function DqExcClear():
-  if active_exception <> null:
-    DqExcRelease(active_exception)
-  endif
-  active_exception = null
+    if active_exception <> null:
+        DqExcRelease(active_exception)
+    endif
+    active_exception = null
 endfunc
 
 function DqExcBeginCatch():
-  if handled_exception <> null:
-    DqExcRelease(handled_exception)
-  endif
-  handled_exception = active_exception
-  active_exception = null
+    if handled_exception <> null:
+        DqExcRelease(handled_exception)
+    endif
+    handled_exception = active_exception
+    active_exception = null
 endfunc
 
 function DqExcEndCatch():
-  if handled_exception <> null:
-    DqExcRelease(handled_exception)
-  endif
-  handled_exception = null
+    if handled_exception <> null:
+        DqExcRelease(handled_exception)
+    endif
+    handled_exception = null
 endfunc
 
 
 function DqExcPrintTypeName():
-  if active_exception <> null:
-    printf("%s", TypeName(active_exception))
-  else:
-    printf("Exception")
-  endif
+    if active_exception <> null:
+        printf("%s", TypeName(active_exception))
+    else:
+        printf("Exception")
+    endif
 endfunc

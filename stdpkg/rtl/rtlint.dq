@@ -40,19 +40,19 @@ type FMgrCopyFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
 type FMgrMoveFunc = function(dstptr : pointer, srcptr : pointer, count : uint);
 
 struct SDqTypeInfo:
-  storagesize  : uint32;   // array stride, including padding
-  flags        : uint16;   // copy/destroy/init/move properties
-  kind         : uint8;    // one of the DQTK_xxx
-  subtype      : uint8;    // type addition
-  init_func    : FMgrInitFunc;     // used for managed object array initialization
-  destroy_func : FMgrDestroyFunc;  // used for managed object array destruction
-  copy_func    : FMgrCopyFunc;     // used for managed object array copying
-  move_func    : FMgrMoveFunc;     // used for managed object array moving
+    storagesize  : uint32;   // array stride, including padding
+    flags        : uint16;   // copy/destroy/init/move properties
+    kind         : uint8;    // one of the DQTK_xxx
+    subtype      : uint8;    // type addition
+    init_func    : FMgrInitFunc;     // used for managed object array initialization
+    destroy_func : FMgrDestroyFunc;  // used for managed object array destruction
+    copy_func    : FMgrCopyFunc;     // used for managed object array copying
+    move_func    : FMgrMoveFunc;     // used for managed object array moving
 endstruct
 
 struct SArraySliceDesc:
-  dataptr : pointer;
-  length  : uint;
+    dataptr : pointer;
+    length  : uint;
 endstruct
 
 const DQTI_MAXCHLEN_MASK   : uint32 = 0x00FFFFFF;
@@ -63,9 +63,9 @@ const DQTIF_CHARLEN_VALID  : uint32 = 0x01000000;
 const DQTIF_READONLY       : uint32 = 0x02000000;
 
 struct SDqTextInfo:   // 12 or 16 Bytes
-  dataptr : pointer;  // points to the first character
-  charlen : uint32;   // number of characters
-  info    : uint32;   // maxlen + charwidth + flags
+    dataptr : pointer;  // points to the first character
+    charlen : uint32;   // number of characters
+    info    : uint32;   // maxlen + charwidth + flags
 endstruct
 
 type FRunTimeErrorHandler = function(emsg : ^cchar);
@@ -73,9 +73,9 @@ type FRunTimeErrorHandler = function(emsg : ^cchar);
 var rterror_handler : FRunTimeErrorHandler = null;
 
 function RuntimeError(emsg : ^cchar):
-  if rterror_handler <> null:
-    rterror_handler(emsg);
-  endif
+    if rterror_handler <> null:
+        rterror_handler(emsg);
+    endif
 endfunc
 
 
@@ -86,32 +86,32 @@ implementation
 use rtl/mem
 
 function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
-  if length == 0  or  dataptr == null:
-    desc.dataptr = null;
-    desc.length = 0;
-    return;
-  endif
+    if length == 0  or  dataptr == null:
+        desc.dataptr = null;
+        desc.length = 0;
+        return;
+    endif
 
-  var b : int = startpos;
-  if b < 0:
-    b = 0;
-  elif b >= length:
-    b = length;
-  endif
-  var e : int = endposex;
-  if e < 0:
-    e = 0;
-  elif e >= length:
-    e = length;
-  endif
-  if e < b:
-    e = b;
-  endif
+    var b : int = startpos;
+    if b < 0:
+        b = 0;
+    elif b >= length:
+        b = length;
+    endif
+    var e : int = endposex;
+    if e < 0:
+        e = 0;
+    elif e >= length:
+        e = length;
+    endif
+    if e < b:
+        e = b;
+    endif
 
-  desc.length = e - b;
-  if desc.length == 0:
-    desc.dataptr = null;
-  else:
-    desc.dataptr = ^byte(dataptr)[b * elemsize];
-  endif
+    desc.length = e - b;
+    if desc.length == 0:
+        desc.dataptr = null;
+    else:
+        desc.dataptr = ^byte(dataptr)[b * elemsize];
+    endif
 endfunc

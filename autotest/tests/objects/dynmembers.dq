@@ -8,38 +8,38 @@ var g_str : str
 var g_arr : [*]int
 
 object ODynMembers:
-  s : str;
-  a : [*]int;
+    s : str;
+    a : [*]int;
 
-  function *Create():
-    s = @.g_str;
-    a = @.g_arr;
-  endfunc
+    function *Create():
+        s = @.g_str;
+        a = @.g_arr;
+    endfunc
 endobj
 
 function CheckRefCounts(astr : strview):
-  PrintLn('{}.refcounts = g_str:{}, g_arr:{}', [astr, g_str.refcount, g_arr.refcount])
+    PrintLn('{}.refcounts = g_str:{}, g_arr:{}', [astr, g_str.refcount, g_arr.refcount])
 endfunc
 
 function TestCode():
-  var o <- ODynMembers()    // check for automatic destructor call
-  CheckRefCounts('liveobject')
+    var o <- ODynMembers()    // check for automatic destructor call
+    CheckRefCounts('liveobject')
 endfunc
 
 function *Main() -> int:
-  g_str = "hello";
-  g_arr = [1, 2, 3];
-  CheckRefCounts('initial'); //?check('initial.refcounts', 'g_str:1, g_arr:1')
-  TestCode()                 //?check('liveobject.refcounts', 'g_str:2, g_arr:2')
+    g_str = "hello";
+    g_arr = [1, 2, 3];
+    CheckRefCounts('initial'); //?check('initial.refcounts', 'g_str:1, g_arr:1')
+    TestCode()                 //?check('liveobject.refcounts', 'g_str:2, g_arr:2')
 
-  CheckRefCounts('final');   //?check('final.refcounts', 'g_str:1, g_arr:1')
+    CheckRefCounts('final');   //?check('final.refcounts', 'g_str:1, g_arr:1')
 
-  var dobj = new ODynMembers()
+    var dobj = new ODynMembers()
 
-  CheckRefCounts('dynobj_live');   //?check('dynobj_live.refcounts', 'g_str:2, g_arr:2')
-  delete dobj
+    CheckRefCounts('dynobj_live');   //?check('dynobj_live.refcounts', 'g_str:2, g_arr:2')
+    delete dobj
 
-  CheckRefCounts('dynobj_final');   //?check('dynobj_final.refcounts', 'g_str:1, g_arr:1')
+    CheckRefCounts('dynobj_final');   //?check('dynobj_final.refcounts', 'g_str:1, g_arr:1')
 
-  return 0;
+    return 0;
 endfunc

@@ -4,45 +4,45 @@ var cs : cstring(255)
 var ds : str
 
 function PrintCs():
-  PrintLn('cs="{}"', [cs])
+    PrintLn('cs="{}"', [cs])
 endfunc
 
 function TestCStr():
-  PrintLn('Testing cstring.AddFmt()')
-  cs.Append("functest: ")
-  CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
-  PrintCs()
-  cs.Clear()
-  //TODO: implement this
-  cs.Add("method: ")  // Add() == Append()
-  cs.AddFmt(", {}, {}, {}", [1, 3.14, 'qqcs'])
-  PrintCs()
+    PrintLn('Testing cstring.AddFmt()')
+    cs.Append("functest: ")
+    CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
+    PrintCs()
+    cs.Clear()
+    //TODO: implement this
+    cs.Add("method: ")  // Add() == Append()
+    cs.AddFmt(", {}, {}, {}", [1, 3.14, 'qqcs'])
+    PrintCs()
 endfunc
 
 function PrintDs():
-  PrintLn('ds="{}"', [ds])
+    PrintLn('ds="{}"', [ds])
 endfunc
 
 function TestStr():
-  PrintLn('Testing str.AddFmt()')
+    PrintLn('Testing str.AddFmt()')
 
-  ds.Append("functest: ")
-  DynStrAddFmt(&ds, ", {}, {}, {}", [5, 2.75, 'hi'])
-  PrintDs()
+    ds.Append("functest: ")
+    DynStrAddFmt(&ds, ", {}, {}, {}", [5, 2.75, 'hi'])
+    PrintDs()
 
-  ds.Clear()
-  //TODO: implement this
-  ds.Add("method: ")  // Add() == Append()
-  ds.AddFmt(", {}, {}, {}", [5, 2.75, 'hi'])
-  PrintDs()
+    ds.Clear()
+    //TODO: implement this
+    ds.Add("method: ")  // Add() == Append()
+    ds.AddFmt(", {}, {}, {}", [5, 2.75, 'hi'])
+    PrintDs()
 endfunc
 
 function *Main() -> int:
-  TestCStr()
-  TestStr()
+    TestCStr()
+    TestStr()
  
   PrintLn(Format('Format: {}, {}, {}', [42, 'hello', 1.8]))
 
-  PrintLn()
-  return 0
+    PrintLn()
+    return 0
 endfunc

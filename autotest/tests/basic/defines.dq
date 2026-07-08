@@ -13,54 +13,54 @@ var g_var : int = 555;
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf('Testing defines...\n');  //?ignore('Testing defines...')
+    printf('Testing defines...\n');  //?ignore('Testing defines...')
 
-  #ifdef BOOLVAL
-    printf('BOOLVAL_defined = true\n');  //?check('BOOLVAL_defined', 'true')
-    #if BOOLVAL
-      printf('  BOOLVAL = true\n');
+    #ifdef BOOLVAL
+        printf('BOOLVAL_defined = true\n');  //?check('BOOLVAL_defined', 'true')
+        #if BOOLVAL
+            printf('  BOOLVAL = true\n');
+        #else
+            printf('  BOOLVAL = false\n');  //?check('BOOLVAL', 'false')
+        #endif
     #else
-      printf('  BOOLVAL = false\n');  //?check('BOOLVAL', 'false')
+        printf('BOOLVAL is not defined.\n');
     #endif
-  #else
-    printf('BOOLVAL is not defined.\n');
-  #endif
 
-  #ifdef BOOLVAL
-    if @def.BOOLVAL:
-      printf('  BOOLVAL_src = true\n');
-    else:
-      printf('  BOOLVAL_src = false\n');  //?check('BOOLVAL_src', 'false')
-    endif
-  #endif
-
-  #ifdef ERRORTEST
-    #if NONEXISTING
-      // non-existing define
+    #ifdef BOOLVAL
+        if @def.BOOLVAL:
+            printf('  BOOLVAL_src = true\n');
+        else:
+            printf('  BOOLVAL_src = false\n');  //?check('BOOLVAL_src', 'false')
+        endif
     #endif
+
+    #ifdef ERRORTEST
+        #if NONEXISTING
+            // non-existing define
+        #endif
 
     #if MAXVAL
-      // maxval is not boolean, compare operator required
+        // maxval is not boolean, compare operator required
     #endif
-  #endif
+    #endif
 
-  #if MAXVAL > 2000
-    printf('MAXVAL > 2000\n');
-  #elif MAXVAL >= 1000
-    printf('MAXVAL >= 1000\n');
-  #else
-    printf('MAXVAL_branch = less_than_1000\n'); //?check('MAXVAL_branch', 'less_than_1000')
-  #endif
+    #if MAXVAL > 2000
+        printf('MAXVAL > 2000\n');
+    #elif MAXVAL >= 1000
+        printf('MAXVAL >= 1000\n');
+    #else
+        printf('MAXVAL_branch = less_than_1000\n'); //?check('MAXVAL_branch', 'less_than_1000')
+    #endif
 
-  printf('MAXVAL = %ld\n', @def.MAXVAL);  // @ is used for namespace (scope) access.
-                                          // The @def namespace points to the g_defines scope
+    printf('MAXVAL = %ld\n', @def.MAXVAL);  // @ is used for namespace (scope) access.
+                                            // The @def namespace points to the g_defines scope
 
                                           //?check('MAXVAL', 524)
-  g_var = 123;
-  @.g_var = 444;
-  printf('g_var = %ld\n', @.g_var);       //?check('g_var', 444)
+    g_var = 123;
+    @.g_var = 444;
+    printf('g_var = %ld\n', @.g_var);       //?check('g_var', 444)
 
-  // @def.MAXVAL = 123;   // this should fail
+    // @def.MAXVAL = 123;   // this should fail
 
-  return 0;
+    return 0;
 endfunc

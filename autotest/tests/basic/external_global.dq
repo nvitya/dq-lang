@@ -5,6 +5,6 @@
 var libc_stdout : pointer [[external("stdout")]];
 
 function *Main() -> int:
-  fprintf(libc_stdout, "external global = %d\n", 42);  //?check("external global", 42)
-  return 0;
+    fprintf(libc_stdout, "external global = %d\n", 42);  //?check("external global", 42)
+    return 0;
 endfunc

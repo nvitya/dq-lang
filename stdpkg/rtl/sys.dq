@@ -25,5 +25,5 @@ implementation
 function libc_exit(status : int)  [[external('exit')]];
 
 function Exit(status : int):
-  libc_exit(status);
+    libc_exit(status);
 endfunc

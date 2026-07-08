@@ -1,6 +1,6 @@
 struct SAttr:
-  [[volatile]] a : int;
-  b : int [[volatile]];
+    [[volatile]] a : int;
+    b : int [[volatile]];
 endstruct
 
 function printf(fmt : ^cchar, ...) -> int [[external('printf')]];
@@ -10,7 +10,7 @@ var gv : int [[virtual]];                    //?warning(AttrIgnored)
 const gc : int = 123 [[volatile]];          //?warning(AttrIgnored)
 [[volatile]] function onlyext() -> int [[external]];  //?warning(AttrIgnored)
 function *Main() -> int:
-  printf("attr test %d\n", gc);
-  puts("done");
-  return 0;
+    printf("attr test %d\n", gc);
+    puts("done");
+    return 0;
 endfunc

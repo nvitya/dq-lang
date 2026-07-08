@@ -4,20 +4,20 @@ use libc/stdio
 use strparse
 
 function *Main() -> int:
-  var text : str = 'abc\ndef\r\nxy'
-  var sp <- OStrParse(text)
+    var text : str = 'abc\ndef\r\nxy'
+    var sp <- OStrParse(text)
 
-  printf("strparse.col.start = %d\n", sp.GetColNum(sp.bufstart))
-  //?check("strparse.col.start", 1)
+    printf("strparse.col.start = %d\n", sp.GetColNum(sp.bufstart))
+    //?check("strparse.col.start", 1)
 
-  printf("strparse.col.mid = %d\n", sp.GetColNum(sp.bufstart + 2))
-  //?check("strparse.col.mid", 3)
+    printf("strparse.col.mid = %d\n", sp.GetColNum(sp.bufstart + 2))
+    //?check("strparse.col.mid", 3)
 
-  printf("strparse.col.after-lf = %d\n", sp.GetColNum(sp.bufstart + 4))
-  //?check("strparse.col.after-lf", 1)
+    printf("strparse.col.after-lf = %d\n", sp.GetColNum(sp.bufstart + 4))
+    //?check("strparse.col.after-lf", 1)
 
-  printf("strparse.col.eof = %d\n", sp.GetColNum(sp.bufend))
-  //?check("strparse.col.eof", 3)
+    printf("strparse.col.eof = %d\n", sp.GetColNum(sp.bufend))
+    //?check("strparse.col.eof", 3)
 
-  return 0
+    return 0
 endfunc

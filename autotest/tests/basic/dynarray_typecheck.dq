@@ -10,13 +10,13 @@ function bad_return() -> [*]int:
 endfunc  //?error(FuncResultNotSet)
 
 struct SBadDynMember:
-  arr : [*]int;  //?error(NotSupported)
+    arr : [*]int;  //?error(NotSupported)
 endstruct  //?error(ModStatementUnknown)
 
 function *Main() -> int:
-  var a : [*]int;
-  var b : [*]int;
-  a = b;
+    var a : [*]int;
+    var b : [*]int;
+    a = b;
 
-  return 0;
+    return 0;
 endfunc

@@ -2,11 +2,11 @@ use libc/stdio
 use ./ctor_overload_mod
 
 function *Main() -> int:
-  var o1 <- OImportedStrCtor('alpha')
-  var o2 <- OImportedStrCtor('bravo', 7)
+    var o1 <- OImportedStrCtor('alpha')
+    var o2 <- OImportedStrCtor('bravo', 7)
 
-  printf('imported.ctor.str = len:%li tag:%li\n', o1.Len(), o1.Tag())  //?check('imported.ctor.str', 'len:5 tag:1')
-  printf('imported.ctor.overload = len:%li tag:%li\n', o2.Len(), o2.Tag())  //?check('imported.ctor.overload', 'len:5 tag:7')
+    printf('imported.ctor.str = len:%li tag:%li\n', o1.Len(), o1.Tag())  //?check('imported.ctor.str', 'len:5 tag:1')
+    printf('imported.ctor.overload = len:%li tag:%li\n', o2.Len(), o2.Tag())  //?check('imported.ctor.overload', 'len:5 tag:7')
 
-  return 0
+    return 0
 endfunc

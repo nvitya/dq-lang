@@ -4,13 +4,13 @@ object OBase:
 endobj
 
 function *Main() -> int:
-  var any : Object = null;
-  var base : OBase = null;
+    var any : Object = null;
+    var base : OBase = null;
 
-  base = any; //?error(TypeMismatchAssign)
+    base = any; //?error(TypeMismatchAssign)
 
-  var fixed <- Object; //?error(NotSupported)
-  var heap : Object = new Object; //?error(NotSupported)
+    var fixed <- Object; //?error(NotSupported)
+    var heap : Object = new Object; //?error(NotSupported)
 
-  return 0;
+    return 0;
 endfunc

@@ -3,41 +3,41 @@
 const default_bonus : int = 9;
 
 function dq_sum(a : int, b : int = -1) -> int:
-  result = a + b;
+    result = a + b;
 endfunc
 
 function dq_mix(a : int, b : int = default_bonus, c : int = 3) -> int:
-  result = a + b + c;
+    result = a + b + c;
 endfunc
 
 function dq_round_default(v : float = 2) -> int:
-  result = Round(v);
+    result = Round(v);
 endfunc
 
 function dq_ptr_default(p : ^int = null) -> int:
-  if p == null:
-    result = -5;
-  else:
-    result = p^;
-  endif
+    if p == null:
+        result = -5;
+    else:
+        result = p^;
+    endif
 endfunc
 
 [[external]] function printf(fmt : ^cchar, value : int = 77, ...) -> int;
 function *Main() -> int:
-  var x : int = 12;
+    var x : int = 12;
 
-  printf("dq_sum(3) = %li\n", dq_sum(3));  //?check('dq_sum(3)', 2)
-  printf("dq_sum(3, 4) = %li\n", dq_sum(3, 4));  //?check('dq_sum(3, 4)', 7)
+    printf("dq_sum(3) = %li\n", dq_sum(3));  //?check('dq_sum(3)', 2)
+    printf("dq_sum(3, 4) = %li\n", dq_sum(3, 4));  //?check('dq_sum(3, 4)', 7)
 
-  printf("dq_mix(2) = %li\n", dq_mix(2));  //?check('dq_mix(2)', 14)
-  printf("dq_mix(2, 1) = %li\n", dq_mix(2, 1));  //?check('dq_mix(2, 1)', 6)
+    printf("dq_mix(2) = %li\n", dq_mix(2));  //?check('dq_mix(2)', 14)
+    printf("dq_mix(2, 1) = %li\n", dq_mix(2, 1));  //?check('dq_mix(2, 1)', 6)
 
-  printf("dq_round_default() = %li\n", dq_round_default());  //?check('dq_round_default()', 2)
+    printf("dq_round_default() = %li\n", dq_round_default());  //?check('dq_round_default()', 2)
 
-  printf("dq_ptr_default() = %li\n", dq_ptr_default());  //?check('dq_ptr_default()', -5)
-  printf("dq_ptr_default(&x) = %li\n", dq_ptr_default(&x));  //?check('dq_ptr_default(&x)', 12)
+    printf("dq_ptr_default() = %li\n", dq_ptr_default());  //?check('dq_ptr_default()', -5)
+    printf("dq_ptr_default(&x) = %li\n", dq_ptr_default(&x));  //?check('dq_ptr_default(&x)', 12)
 
-  printf("dq_printf_default() = %d\n");  //?check('dq_printf_default()', 77)
+    printf("dq_printf_default() = %d\n");  //?check('dq_printf_default()', 77)
 
-  return 0;
+    return 0;
 endfunc

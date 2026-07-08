@@ -5,23 +5,23 @@
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 
 function *Main() -> int:
-  var direct : NState = NState.FromOrd(10);
-  var fallback_valid : NState = NState.FromOrd(20, idle);
-  var fallback_invalid : NState = NState.FromOrd(11, idle);
+    var direct : NState = NState.FromOrd(10);
+    var fallback_valid : NState = NState.FromOrd(20, idle);
+    var fallback_invalid : NState = NState.FromOrd(11, idle);
 
-  printf("enum.fromord.values = %li %li %li\n",
-         int(direct.ord), int(fallback_valid.ord), int(fallback_invalid.ord));
-  //?check("enum.fromord.values", "10 20 0")
+    printf("enum.fromord.values = %li %li %li\n",
+           int(direct.ord), int(fallback_valid.ord), int(fallback_invalid.ord));
+    //?check("enum.fromord.values", "10 20 0")
 
-  var output : NState = running;
-  var valid : bool = NState.TryFromOrd(20, output);
-  printf("enum.fromord.try_valid = %li %li\n", int(valid), int(output.ord));
-  //?check("enum.fromord.try_valid", "1 20")
+    var output : NState = running;
+    var valid : bool = NState.TryFromOrd(20, output);
+    printf("enum.fromord.try_valid = %li %li\n", int(valid), int(output.ord));
+    //?check("enum.fromord.try_valid", "1 20")
 
-  output = running;
-  var invalid : bool = NState.TryFromOrd(11, output);
-  printf("enum.fromord.try_invalid = %li %li\n", int(invalid), int(output.ord));
-  //?check("enum.fromord.try_invalid", "0 10")
+    output = running;
+    var invalid : bool = NState.TryFromOrd(11, output);
+    printf("enum.fromord.try_invalid = %li %li\n", int(invalid), int(output.ord));
+    //?check("enum.fromord.try_invalid", "0 10")
 
-  return 0;
+    return 0;
 endfunc

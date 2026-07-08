@@ -2,10 +2,10 @@ use ./mod_advuse_select as onlym only(SEL_CONST, sel_var, sel_func);
 use ./mod_advuse_select as exclm exclude(hidden_var, hidden_func);
 use ./mod_advuse_private_impl;
 function *Main() -> int:
-  @onlym.printf("only result = %d\n", sel_func(SEL_CONST) + sel_var);  //?check('only result', 15)
-  @onlym.printf("only namespace hidden = %d\n", @onlym.hidden_func(@onlym.hidden_var));  //?check('only namespace hidden', 26)
-  @onlym.printf("exclude result = %d\n", sel_func(EXCL_CONST) + sel_var);  //?check('exclude result', 19)
-  @onlym.printf("exclude namespace hidden = %d\n", @exclm.hidden_func(@exclm.hidden_var));  //?check('exclude namespace hidden', 26)
-  @onlym.printf("private module mark = %d\n", PRIVATE_MARK);  //?check('private module mark', 21)
-  return 0;
+    @onlym.printf("only result = %d\n", sel_func(SEL_CONST) + sel_var);  //?check('only result', 15)
+    @onlym.printf("only namespace hidden = %d\n", @onlym.hidden_func(@onlym.hidden_var));  //?check('only namespace hidden', 26)
+    @onlym.printf("exclude result = %d\n", sel_func(EXCL_CONST) + sel_var);  //?check('exclude result', 19)
+    @onlym.printf("exclude namespace hidden = %d\n", @exclm.hidden_func(@exclm.hidden_var));  //?check('exclude namespace hidden', 26)
+    @onlym.printf("private module mark = %d\n", PRIVATE_MARK);  //?check('private module mark', 21)
+    return 0;
 endfunc

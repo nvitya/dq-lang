@@ -1,12 +1,12 @@
 
 use ./mod_simple;
 function *Main() -> int:
-  printf("DQ simple module test\n");  //?ignore('DQ simple module test')
+    printf("DQ simple module test\n");  //?ignore('DQ simple module test')
 
-  printf("mod_func_test(2) = %d\n", mod_func_test(2));  //?check('mod_func_test(2)', 4)
+    printf("mod_func_test(2) = %d\n", mod_func_test(2));  //?check('mod_func_test(2)', 4)
 
-  printf("MOD_CONST = %d\n", MOD_CONST);  //?check('MOD_CONST', 99)
-  printf("g_mod_var = %d\n", g_mod_var);  //?check('g_mod_var', 5)
+    printf("MOD_CONST = %d\n", MOD_CONST);  //?check('MOD_CONST', 99)
+    printf("g_mod_var = %d\n", g_mod_var);  //?check('g_mod_var', 5)
 
-  return 0;
+    return 0;
 endfunc

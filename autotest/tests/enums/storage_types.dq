@@ -12,20 +12,20 @@ enum NInt64 : int64 = (minimum = -9223372036854775808, maximum = 922337203685477
 enum NUint64 : uint64 = (minimum = 0, maximum = 18446744073709551615)
 
 function *Main() -> int:
-  printf("enum.storage.sizes = %li %li %li %li %li %li %li %li\n",
-         SizeOf(NInt8), SizeOf(NUint8), SizeOf(NInt16), SizeOf(NUint16),
-         SizeOf(NInt32), SizeOf(NUint32), SizeOf(NInt64), SizeOf(NUint64));
-  //?check("enum.storage.sizes", "1 1 2 2 4 4 8 8")
+    printf("enum.storage.sizes = %li %li %li %li %li %li %li %li\n",
+           SizeOf(NInt8), SizeOf(NUint8), SizeOf(NInt16), SizeOf(NUint16),
+           SizeOf(NInt32), SizeOf(NUint32), SizeOf(NInt64), SizeOf(NUint64));
+    //?check("enum.storage.sizes", "1 1 2 2 4 4 8 8")
 
-  var signed_min : NInt64 = minimum;
-  var signed_max : NInt64 = maximum;
-  var unsigned_max : NUint64 = maximum;
+    var signed_min : NInt64 = minimum;
+    var signed_max : NInt64 = maximum;
+    var unsigned_max : NUint64 = maximum;
 
-  printf("enum.storage.int64 = %li %li\n", signed_min.ord, signed_max.ord);
-  //?check("enum.storage.int64", "-9223372036854775808 9223372036854775807")
+    printf("enum.storage.int64 = %li %li\n", signed_min.ord, signed_max.ord);
+    //?check("enum.storage.int64", "-9223372036854775808 9223372036854775807")
 
-  printf("enum.storage.uint64 = %lu\n", unsigned_max.ord);
-  //?check("enum.storage.uint64", "18446744073709551615")
+    printf("enum.storage.uint64 = %lu\n", unsigned_max.ord);
+    //?check("enum.storage.uint64", "18446744073709551615")
 
-  return 0;
+    return 0;
 endfunc

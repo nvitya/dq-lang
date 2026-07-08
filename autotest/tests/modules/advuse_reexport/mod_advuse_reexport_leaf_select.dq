@@ -9,5 +9,5 @@ var re_var : int = 4;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function re_func(a : int) -> int:
-  result = a + re_var;
+    result = a + re_var;
 endfunc

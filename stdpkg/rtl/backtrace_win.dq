@@ -56,39 +56,39 @@ const DW_LNE_SET_ADDRESS  : uint8 = 2
 const DW_LNE_DEFINE_FILE  : uint8 = 3
 
 struct SDqWinSymbolInfo:
-  SizeOfStruct : uint32
-  TypeIndex    : uint32
-  Reserved     : [2]uint64
-  Index        : uint32
-  Size         : uint32
-  ModBase      : uint64
-  Flags        : uint32
-  Value        : uint64
-  Address      : uint64
-  Register     : uint32
-  Scope        : uint32
-  Tag          : uint32
-  NameLen      : uint32
-  MaxNameLen   : uint32
-  Name         : [DQ_BT_SYMBOL_NAME_MAX]cchar
+    SizeOfStruct : uint32
+    TypeIndex    : uint32
+    Reserved     : [2]uint64
+    Index        : uint32
+    Size         : uint32
+    ModBase      : uint64
+    Flags        : uint32
+    Value        : uint64
+    Address      : uint64
+    Register     : uint32
+    Scope        : uint32
+    Tag          : uint32
+    NameLen      : uint32
+    MaxNameLen   : uint32
+    Name         : [DQ_BT_SYMBOL_NAME_MAX]cchar
 endstruct
 
 struct SDqWinLineInfo:
-  SizeOfStruct : uint32
-  Key          : pointer
-  LineNumber   : uint32
-  FileName     : ^cchar
-  Address      : uint64
+    SizeOfStruct : uint32
+    Key          : pointer
+    LineNumber   : uint32
+    FileName     : ^cchar
+    Address      : uint64
 endstruct
 
 struct SDqWinDwarfInfo:
-  loaded       : bool
-  image_base   : uint64
-  runtime_base : uint64
-  data         : pointer
-  data_size    : uint
-  debug_line   : ^byte
-  debug_size   : uint
+    loaded       : bool
+    image_base   : uint64
+    runtime_base : uint64
+    data         : pointer
+    data_size    : uint
+    debug_line   : ^byte
+    debug_size   : uint
 endstruct
 
 function win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
@@ -115,59 +115,59 @@ function DqWinDwarfLoad() -> bool
 //-------------------------------------------------------------------------------------------------
 
 function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
-  result = int(win_RtlCaptureStackBackTrace(0, uint32(max_frames), backtrace, null))
+    result = int(win_RtlCaptureStackBackTrace(0, uint32(max_frames), backtrace, null))
 endfunc
 
 function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
-  if text == null or needle == null:
-    return false
-  endif
-
-  var p : ^cchar = text
-  while p^ <> cchar(0):
-    var t : ^cchar = p
-    var n : ^cchar = needle
-    while n^ <> cchar(0) and t^ == n^:
-      t += 1
-      n += 1
-    endwhile
-    if n^ == cchar(0):
-      return true
+    if text == null or needle == null:
+        return false
     endif
-    p += 1
-  endwhile
 
-  return false
+    var p : ^cchar = text
+    while p^ <> cchar(0):
+        var t : ^cchar = p
+        var n : ^cchar = needle
+        while n^ <> cchar(0) and t^ == n^:
+            t += 1
+            n += 1
+        endwhile
+        if n^ == cchar(0):
+            return true
+        endif
+        p += 1
+    endwhile
+
+    return false
 endfunc
 
 function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
-  return    DqCstrContains(name, "CaptureBacktrace")
-         or DqCstrContains(name, "DqExcRaise")
-         or DqCstrContains(name, "DqWinFaultHandler")
-         or DqCstrContains(name, "libc_backtrace")
-         or DqCstrContains(name, "RtlCaptureStackBackTrace")
+    return    DqCstrContains(name, "CaptureBacktrace")
+           or DqCstrContains(name, "DqExcRaise")
+           or DqCstrContains(name, "DqWinFaultHandler")
+           or DqCstrContains(name, "libc_backtrace")
+           or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
 function DqIsMainFunction(name : ^cchar) -> bool:
-  if name == null:
-    return false
-  endif
-  return    DqCstrSegmentEq(name, "Main")
-         or DqCstrSegmentEq(name, "main")
-         or DqCstrSegmentEq(name, "RunHostedMain")
+    if name == null:
+        return false
+    endif
+    return    DqCstrSegmentEq(name, "Main")
+           or DqCstrSegmentEq(name, "main")
+           or DqCstrSegmentEq(name, "RunHostedMain")
 endfunc
 
 function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
-  var t : ^cchar = text
-  var n : ^cchar = name
-  while n^ <> cchar(0):
-    if t^ <> n^:
-      return false
-    endif
-    t += 1
-    n += 1
-  endwhile
-  return t^ == cchar(0)  or  t^ == cchar(124)
+    var t : ^cchar = text
+    var n : ^cchar = name
+    while n^ <> cchar(0):
+        if t^ <> n^:
+            return false
+        endif
+        t += 1
+        n += 1
+    endwhile
+    return t^ == cchar(0)  or  t^ == cchar(124)
 endfunc
 
 var win_backtrace_process : pointer = null
@@ -175,141 +175,141 @@ var win_backtrace_ready : bool = false
 var win_dwarf : SDqWinDwarfInfo = {}
 
 function DqWinBacktraceProcess() -> pointer:
-  if win_backtrace_process == null:
-    win_backtrace_process = win_GetCurrentProcess()
-    win_SymSetOptions(SYMOPT_UNDNAME OR SYMOPT_DEFERRED_LOADS OR SYMOPT_LOAD_LINES)
-    win_backtrace_ready = (win_SymInitialize(win_backtrace_process, null, 1) <> 0)
-  endif
-  return win_backtrace_process
+    if win_backtrace_process == null:
+        win_backtrace_process = win_GetCurrentProcess()
+        win_SymSetOptions(SYMOPT_UNDNAME OR SYMOPT_DEFERRED_LOADS OR SYMOPT_LOAD_LINES)
+        win_backtrace_ready = (win_SymInitialize(win_backtrace_process, null, 1) <> 0)
+    endif
+    return win_backtrace_process
 endfunc
 
 function DqReadU16(p : ^byte) -> uint16:
-  return ^uint16(p)^
+    return ^uint16(p)^
 endfunc
 
 function DqReadU32(p : ^byte) -> uint32:
-  return ^uint32(p)^
+    return ^uint32(p)^
 endfunc
 
 function DqReadU64(p : ^byte) -> uint64:
-  return ^uint64(p)^
+    return ^uint64(p)^
 endfunc
 
 function DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
-  result = 0
-  var shift : uint = 0
-  while p < pend:
-    var b : uint8 = p^
-    p += 1
-    result =OR= (uint64(b AND 0x7F) << shift)
-    if b AND 0x80 == 0:
-      return
-    endif
-    shift += 7
-  endwhile
+    result = 0
+    var shift : uint = 0
+    while p < pend:
+        var b : uint8 = p^
+        p += 1
+        result =OR= (uint64(b AND 0x7F) << shift)
+        if b AND 0x80 == 0:
+            return
+        endif
+        shift += 7
+    endwhile
 endfunc
 
 function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
-  result = 0
-  var shift : uint = 0
-  var b     : uint8 = 0
-  while p < pend:
-    b = p^
-    p += 1
-    result =OR= (int(b AND 0x7F) << shift)
-    shift += 7
-    if b AND 0x80 == 0:
-      if shift < 64  and  b AND 0x40 <> 0:
-        result =OR= (-(int(1) << shift))
-      endif
-      return
-    endif
-  endwhile
+    result = 0
+    var shift : uint = 0
+    var b     : uint8 = 0
+    while p < pend:
+        b = p^
+        p += 1
+        result =OR= (int(b AND 0x7F) << shift)
+        shift += 7
+        if b AND 0x80 == 0:
+            if shift < 64  and  b AND 0x40 <> 0:
+                result =OR= (-(int(1) << shift))
+            endif
+            return
+        endif
+    endwhile
 endfunc
 
 function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
-  while p < pend  and  p^ <> 0:
-    p += 1
-  endwhile
-  if p < pend:
-    p += 1
-  endif
-  return p
+    while p < pend  and  p^ <> 0:
+        p += 1
+    endwhile
+    if p < pend:
+        p += 1
+    endif
+    return p
 endfunc
 
 function DqCstrEq(text : ^cchar, name : ^cchar) -> bool:
-  var p : ^cchar = text
-  var n : ^cchar = name
-  while p^ <> cchar(0)  or  n^ <> cchar(0):
-    if p^ <> n^:
-      return false
-    endif
-    p += 1
-    n += 1
-  endwhile
-  return true
+    var p : ^cchar = text
+    var n : ^cchar = name
+    while p^ <> cchar(0)  or  n^ <> cchar(0):
+        if p^ <> n^:
+            return false
+        endif
+        p += 1
+        n += 1
+    endwhile
+    return true
 endfunc
 
 function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^cchar) -> bool:
-  if name[0]^ == 47  and  string_table <> null:  // '/' + decimal string-table offset
-    var offset : uint = 0
-    var i : int = 1
-    while i < 8  and  name[i]^ >= 48  and  name[i]^ <= 57:
-      offset = offset * 10 + name[i]^ - 48
-      i += 1
-    endwhile
-    return DqCstrEq(^cchar(string_table + offset), text)
-  endif
+    if name[0]^ == 47  and  string_table <> null:  // '/' + decimal string-table offset
+        var offset : uint = 0
+        var i : int = 1
+        while i < 8  and  name[i]^ >= 48  and  name[i]^ <= 57:
+            offset = offset * 10 + name[i]^ - 48
+            i += 1
+        endwhile
+        return DqCstrEq(^cchar(string_table + offset), text)
+    endif
 
-  var i : int = 0
-  while i < 8:
-    if text[i]^ == cchar(0):
-      return name[i]^ == 0
-    endif
-    if name[i]^ <> byte(text[i]^):
-      return false
-    endif
-    i += 1
-  endwhile
-  return text[i]^ == cchar(0)
+    var i : int = 0
+    while i < 8:
+        if text[i]^ == cchar(0):
+            return name[i]^ == 0
+        endif
+        if name[i]^ <> byte(text[i]^):
+            return false
+        endif
+        i += 1
+    endwhile
+    return text[i]^ == cchar(0)
 endfunc
 
 function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^cchar:
-  var p     : ^byte = file_table
-  var index : uint64 = 1
-  while p < pend  and  p^ <> 0:
-    var name : ^cchar = ^cchar(p)
-    p = DqSkipCstr(p, pend)
-    DqReadUleb(p, pend)  // directory index
-    DqReadUleb(p, pend)  // modification time
-    DqReadUleb(p, pend)  // file length
-    if index == file_index:
-      return name
-    endif
-    index += 1
-  endwhile
-  return null
+    var p     : ^byte = file_table
+    var index : uint64 = 1
+    while p < pend  and  p^ <> 0:
+        var name : ^cchar = ^cchar(p)
+        p = DqSkipCstr(p, pend)
+        DqReadUleb(p, pend)  // directory index
+        DqReadUleb(p, pend)  // modification time
+        DqReadUleb(p, pend)  // file length
+        if index == file_index:
+            return name
+        endif
+        index += 1
+    endwhile
+    return null
 endfunc
 
 function DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line : int,
                         file_table : ^byte, pend : ^byte,
                         matched : ref bool, last_file : ref uint64, last_line : ref int,
                         out_file : refout ^cchar, out_line : refout uint32) -> bool:
-  if address > target:
-    if matched:
-      out_file = DqDwarfFileName(file_table, pend, last_file)
-      out_line = uint32(last_line)
-      return out_file <> null and out_line <> uint32(0)
+    if address > target:
+        if matched:
+            out_file = DqDwarfFileName(file_table, pend, last_file)
+            out_line = uint32(last_line)
+            return out_file <> null and out_line <> uint32(0)
+        endif
+        return false
+    endif
+
+    if line > 0:
+        matched = true
+        last_file = file
+        last_line = line
     endif
     return false
-  endif
-
-  if line > 0:
-    matched = true
-    last_file = file
-    last_line = line
-  endif
-  return false
 endfunc
 
 function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byte,
@@ -318,289 +318,289 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
                                 std_lengths : ^byte, target : uint64,
                                 out_file : refout ^cchar, out_line : refout uint32) -> bool:
 
-  if line_range == 0:
-    return false
-  endif
+    if line_range == 0:
+        return false
+    endif
 
-  var p         : ^byte = program
-  var address   : uint64 = 0
-  var file      : uint64 = 1
-  var line      : int = 1
-  var matched   : bool = false
-  var last_file : uint64 = 0
-  var last_line : int = 0
+    var p         : ^byte = program
+    var address   : uint64 = 0
+    var file      : uint64 = 1
+    var line      : int = 1
+    var matched   : bool = false
+    var last_file : uint64 = 0
+    var last_line : int = 0
 
-  while p < unit_end:
-    var op : uint8 = p^
-    p += 1
+    while p < unit_end:
+        var op : uint8 = p^
+        p += 1
 
     if op == 0:
-      var ext_len : uint64 = DqReadUleb(p, unit_end)
-      var ext_end : ^byte = p + uint(ext_len)
-      if ext_end > unit_end or p >= unit_end:
-        return false
-      endif
-      var subop : uint8 = p^
-      p += 1
-      if subop == DW_LNE_END_SEQUENCE:
-        if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
-                          matched, last_file, last_line, out_file, out_line):
-          return true
+        var ext_len : uint64 = DqReadUleb(p, unit_end)
+        var ext_end : ^byte = p + uint(ext_len)
+        if ext_end > unit_end or p >= unit_end:
+            return false
         endif
-        address = 0
-        file = 1
-        line = 1
-        matched = false
-      elif subop == DW_LNE_SET_ADDRESS:
-        if p + 8 <= ext_end:
-          address = DqReadU64(p)
+        var subop : uint8 = p^
+        p += 1
+        if subop == DW_LNE_END_SEQUENCE:
+            if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
+                              matched, last_file, last_line, out_file, out_line):
+                return true
+            endif
+            address = 0
+            file = 1
+            line = 1
+            matched = false
+        elif subop == DW_LNE_SET_ADDRESS:
+            if p + 8 <= ext_end:
+                address = DqReadU64(p)
+            endif
         endif
-      endif
-      p = ext_end
+        p = ext_end
     elif op < opcode_base:
-      if op == DW_LNS_COPY:
+        if op == DW_LNS_COPY:
+            if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
+                              matched, last_file, last_line, out_file, out_line):
+                return true
+            endif
+        elif op == DW_LNS_ADVANCE_PC:
+            address += DqReadUleb(p, unit_end) * uint64(min_inst_len)
+        elif op == DW_LNS_ADVANCE_LINE:
+            line += DqReadSleb(p, unit_end)
+        elif op == DW_LNS_SET_FILE:
+            file = DqReadUleb(p, unit_end)
+        elif op == DW_LNS_SET_COLUMN:
+            DqReadUleb(p, unit_end)
+        elif op == DW_LNS_NEGATE_STMT or op == DW_LNS_SET_BASIC_BLOCK or op == DW_LNS_SET_PROLOGUE_END or op == DW_LNS_SET_EPILOGUE_BEGIN:
+            // state flags not needed for address-to-line lookup
+        elif op == DW_LNS_CONST_ADD_PC:
+            var adjusted : uint8 = uint8(255) - opcode_base
+            address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
+        elif op == DW_LNS_FIXED_ADVANCE_PC:
+            if p + 2 <= unit_end:
+                address += uint64(DqReadU16(p))
+                p += 2
+            endif
+        elif op == DW_LNS_SET_ISA:
+            DqReadUleb(p, unit_end)
+        else:
+            var n : int = 0
+            while n < int(std_lengths[op - 1]^):
+                DqReadUleb(p, unit_end)
+                n += 1
+            endwhile
+        endif
+    else:
+        var adjusted : uint8 = op - opcode_base
+        address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
+        line += line_base + int(adjusted IMOD line_range)
         if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
                           matched, last_file, last_line, out_file, out_line):
-          return true
+            return true
         endif
-      elif op == DW_LNS_ADVANCE_PC:
-        address += DqReadUleb(p, unit_end) * uint64(min_inst_len)
-      elif op == DW_LNS_ADVANCE_LINE:
-        line += DqReadSleb(p, unit_end)
-      elif op == DW_LNS_SET_FILE:
-        file = DqReadUleb(p, unit_end)
-      elif op == DW_LNS_SET_COLUMN:
-        DqReadUleb(p, unit_end)
-      elif op == DW_LNS_NEGATE_STMT or op == DW_LNS_SET_BASIC_BLOCK or op == DW_LNS_SET_PROLOGUE_END or op == DW_LNS_SET_EPILOGUE_BEGIN:
-        // state flags not needed for address-to-line lookup
-      elif op == DW_LNS_CONST_ADD_PC:
-        var adjusted : uint8 = uint8(255) - opcode_base
-        address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
-      elif op == DW_LNS_FIXED_ADVANCE_PC:
-        if p + 2 <= unit_end:
-          address += uint64(DqReadU16(p))
-          p += 2
-        endif
-      elif op == DW_LNS_SET_ISA:
-        DqReadUleb(p, unit_end)
-      else:
-        var n : int = 0
-        while n < int(std_lengths[op - 1]^):
-          DqReadUleb(p, unit_end)
-          n += 1
-        endwhile
-      endif
-    else:
-      var adjusted : uint8 = op - opcode_base
-      address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
-      line += line_base + int(adjusted IMOD line_range)
-      if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
-                        matched, last_file, last_line, out_file, out_line):
-        return true
-      endif
     endif
-  endwhile
+    endwhile
 
-  return false
+    return false
 endfunc
 
 function DqWinDwarfLoad() -> bool:
-  if win_dwarf.loaded:
-    return win_dwarf.debug_line <> null
-  endif
-  win_dwarf.loaded = true
-
-  var path : [DQ_BT_EXE_PATH_MAX]cchar
-  if win_GetModuleFileName(null, &path[0], uint32(DQ_BT_EXE_PATH_MAX)) == 0:
-    return false
-  endif
-
-  var fp : pointer = libc_fopen(&path[0], "rb")
-  if fp == null:
-    return false
-  endif
-
-  if libc_fseek(fp, 0, SEEK_END) <> 0:
-    libc_fclose(fp)
-    return false
-  endif
-  var size : int = libc_ftell(fp)
-  if size <= 0:
-    libc_fclose(fp)
-    return false
-  endif
-  libc_fseek(fp, 0, SEEK_SET)
-
-  win_dwarf.data = libc_malloc(uint(size))
-  if win_dwarf.data == null:
-    libc_fclose(fp)
-    return false
-  endif
-  win_dwarf.data_size = uint(size)
-  if libc_fread(win_dwarf.data, 1, uint(size), fp) <> uint(size):
-    libc_fclose(fp)
-    return false
-  endif
-  libc_fclose(fp)
-
-  var data : ^byte = ^byte(win_dwarf.data)
-  var data_end : ^byte = data + win_dwarf.data_size
-  if data + 0x40 >= data_end  or  DqReadU16(data) <> 0x5A4D:
-    return false
-  endif
-  var peoff : uint = uint(DqReadU32(data + 0x3C))
-  if data + peoff + 0x18 >= data_end  or  DqReadU32(data + peoff) <> 0x00004550:
-    return false
-  endif
-
-  var coff          : ^byte = data[peoff + 4]
-  var section_count : int = DqReadU16(coff + 2)
-  var opt_size      : uint = DqReadU16(coff + 16)
-  var opt           : ^byte = coff[20]
-  var sections      : ^byte = opt[opt_size]
-
-  if sections[section_count * 40] > data_end:
-    return false
-  endif
-
-  var string_table : ^byte = null
-  var sym_ptr      : uint = DqReadU32(coff + 8)
-  var sym_count    : uint = DqReadU32(coff + 12)
-  var string_ptr   : uint = sym_ptr + sym_count * 18
-
-  if string_ptr + 4 <= win_dwarf.data_size:
-    string_table = data + string_ptr
-  endif
-
-  if DqReadU16(opt) == 0x20B:
-    win_dwarf.image_base = DqReadU64(opt + 24)
-  else:
-    win_dwarf.image_base = uint64(DqReadU32(opt[28]))
-  endif
-  win_dwarf.runtime_base = uint64(win_GetCurrentModule(null))
-
-  var i : int = 0
-  while i < section_count:
-    var sh : ^byte = sections[i * 40]
-    if DqSectionNameEq(sh, string_table, ".debug_line"):
-      var raw_size : uint = DqReadU32(sh + 16)
-      var raw_ptr  : uint = DqReadU32(sh + 20)
-      if raw_ptr + raw_size <= win_dwarf.data_size:
-        win_dwarf.debug_line = data + raw_ptr
-        win_dwarf.debug_size = raw_size
-        return true
-      endif
-      return false
+    if win_dwarf.loaded:
+        return win_dwarf.debug_line <> null
     endif
-    i += 1
-  endwhile
+    win_dwarf.loaded = true
 
-  return false
+    var path : [DQ_BT_EXE_PATH_MAX]cchar
+    if win_GetModuleFileName(null, &path[0], uint32(DQ_BT_EXE_PATH_MAX)) == 0:
+        return false
+    endif
+
+    var fp : pointer = libc_fopen(&path[0], "rb")
+    if fp == null:
+        return false
+    endif
+
+    if libc_fseek(fp, 0, SEEK_END) <> 0:
+        libc_fclose(fp)
+        return false
+    endif
+    var size : int = libc_ftell(fp)
+    if size <= 0:
+        libc_fclose(fp)
+        return false
+    endif
+    libc_fseek(fp, 0, SEEK_SET)
+
+    win_dwarf.data = libc_malloc(uint(size))
+    if win_dwarf.data == null:
+        libc_fclose(fp)
+        return false
+    endif
+    win_dwarf.data_size = uint(size)
+    if libc_fread(win_dwarf.data, 1, uint(size), fp) <> uint(size):
+        libc_fclose(fp)
+        return false
+    endif
+    libc_fclose(fp)
+
+    var data : ^byte = ^byte(win_dwarf.data)
+    var data_end : ^byte = data + win_dwarf.data_size
+    if data + 0x40 >= data_end  or  DqReadU16(data) <> 0x5A4D:
+        return false
+    endif
+    var peoff : uint = uint(DqReadU32(data + 0x3C))
+    if data + peoff + 0x18 >= data_end  or  DqReadU32(data + peoff) <> 0x00004550:
+        return false
+    endif
+
+    var coff          : ^byte = data[peoff + 4]
+    var section_count : int = DqReadU16(coff + 2)
+    var opt_size      : uint = DqReadU16(coff + 16)
+    var opt           : ^byte = coff[20]
+    var sections      : ^byte = opt[opt_size]
+
+    if sections[section_count * 40] > data_end:
+        return false
+    endif
+
+    var string_table : ^byte = null
+    var sym_ptr      : uint = DqReadU32(coff + 8)
+    var sym_count    : uint = DqReadU32(coff + 12)
+    var string_ptr   : uint = sym_ptr + sym_count * 18
+
+    if string_ptr + 4 <= win_dwarf.data_size:
+        string_table = data + string_ptr
+    endif
+
+    if DqReadU16(opt) == 0x20B:
+        win_dwarf.image_base = DqReadU64(opt + 24)
+    else:
+        win_dwarf.image_base = uint64(DqReadU32(opt[28]))
+    endif
+    win_dwarf.runtime_base = uint64(win_GetCurrentModule(null))
+
+    var i : int = 0
+    while i < section_count:
+        var sh : ^byte = sections[i * 40]
+        if DqSectionNameEq(sh, string_table, ".debug_line"):
+            var raw_size : uint = DqReadU32(sh + 16)
+            var raw_ptr  : uint = DqReadU32(sh + 20)
+            if raw_ptr + raw_size <= win_dwarf.data_size:
+                win_dwarf.debug_line = data + raw_ptr
+                win_dwarf.debug_size = raw_size
+                return true
+            endif
+            return false
+        endif
+        i += 1
+    endwhile
+
+    return false
 endfunc
 
 function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^cchar, line_no : refout uint32) -> bool:
-  file_name = null
-  line_no = 0
-  if not DqWinDwarfLoad():
-    return false
-  endif
-
-  var target : uint64 = uint64(pc)
-  if win_dwarf.runtime_base <> uint64(0)  and  win_dwarf.image_base <> uint64(0):
-    target = target - win_dwarf.runtime_base + win_dwarf.image_base
-  endif
-
-  var unit : ^byte = win_dwarf.debug_line
-  var debug_end : ^byte = win_dwarf.debug_line[win_dwarf.debug_size]
-  while unit[10] < debug_end:
-    var unit_len : uint32 = DqReadU32(unit)
-    if unit_len == 0  or  unit_len == 0xFFFFFFFF:
-      return false
+    file_name = null
+    line_no = 0
+    if not DqWinDwarfLoad():
+        return false
     endif
-    var unit_end : ^byte = unit[4 + unit_len]
-    if unit_end > debug_end:
-      return false
+
+    var target : uint64 = uint64(pc)
+    if win_dwarf.runtime_base <> uint64(0)  and  win_dwarf.image_base <> uint64(0):
+        target = target - win_dwarf.runtime_base + win_dwarf.image_base
     endif
+
+    var unit : ^byte = win_dwarf.debug_line
+    var debug_end : ^byte = win_dwarf.debug_line[win_dwarf.debug_size]
+    while unit[10] < debug_end:
+        var unit_len : uint32 = DqReadU32(unit)
+        if unit_len == 0  or  unit_len == 0xFFFFFFFF:
+            return false
+        endif
+        var unit_end : ^byte = unit[4 + unit_len]
+        if unit_end > debug_end:
+            return false
+        endif
 
     var p : ^byte = unit[4]
     var version : uint16 = DqReadU16(p)
     p += 2
     if version == 4:
-      var header_len : uint = DqReadU32(p)
-      p += 4
-      var header_end : ^byte = p[header_len]
-      if header_end <= unit_end:
-        var min_inst_len : uint8 = p^
-        p += 1
-        p += 1  // max_ops_per_inst
-        p += 1  // default_is_stmt
-        var line_base : int = ^int8(p)^
-        p += 1
-        var line_range : uint8 = p^
-        p += 1
-        var opcode_base : uint8 = p^
-        p += 1
-        var std_lengths : ^byte = p
-        p += uint(opcode_base - uint8(1))
+        var header_len : uint = DqReadU32(p)
+        p += 4
+        var header_end : ^byte = p[header_len]
+        if header_end <= unit_end:
+            var min_inst_len : uint8 = p^
+            p += 1
+            p += 1  // max_ops_per_inst
+            p += 1  // default_is_stmt
+            var line_base : int = ^int8(p)^
+            p += 1
+            var line_range : uint8 = p^
+            p += 1
+            var opcode_base : uint8 = p^
+            p += 1
+            var std_lengths : ^byte = p
+            p += uint(opcode_base - uint8(1))
 
         while p < header_end  and  p^ <> 0:
-          p = DqSkipCstr(p, header_end)
+            p = DqSkipCstr(p, header_end)
         endwhile
         if p < header_end:
-          p += 1
+            p += 1
         endif
         var file_table : ^byte = p
 
         if DqDwarfScanLineProgram(header_end, unit_end, file_table, min_inst_len, line_base,
                                   line_range, opcode_base, std_lengths, target, file_name, line_no):
-          return true
+            return true
         endif
       endif
     endif
 
     unit = unit_end
-  endwhile
+    endwhile
 
-  return false
+    return false
 endfunc
 
 function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
-  var process : pointer = DqWinBacktraceProcess()
-  var symbol : SDqWinSymbolInfo = {}
-  var displacement64 : uint64 = 0
+    var process : pointer = DqWinBacktraceProcess()
+    var symbol : SDqWinSymbolInfo = {}
+    var displacement64 : uint64 = 0
 
-  symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
-  symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
+    symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
+    symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
 
-  if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), &displacement64, &symbol) <> 0:
-    if hide_internal and DqBacktraceNameIsInternal(&symbol.Name[0]):
-      return false
-    endif
+    if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), &displacement64, &symbol) <> 0:
+        if hide_internal and DqBacktraceNameIsInternal(&symbol.Name[0]):
+            return false
+        endif
 
     if stop_printing <> null and DqIsMainFunction(&symbol.Name[0]):
-      stop_printing^ = true
+        stop_printing^ = true
     endif
 
     var line : SDqWinLineInfo = {}
     var line_displacement : uint32 = 0
     line.SizeOfStruct = DQ_BT_LINE_INFO_SIZE
     if win_SymGetLineFromAddr64(process, uint64(pc), &line_displacement, &line) <> 0 and line.FileName <> null:
-      printf("  #%d %s @ %s:%lu\n", index, &symbol.Name[0], line.FileName, uint(line.LineNumber))
+        printf("  #%d %s @ %s:%lu\n", index, &symbol.Name[0], line.FileName, uint(line.LineNumber))
     else:
-      var dwarf_file : ^cchar = null
-      var dwarf_line : uint32 = 0
-      if DqWinDwarfLineForPc(pc, dwarf_file, dwarf_line):
-        printf("  #%d %s @ ./%s:%lu\n", index, &symbol.Name[0], dwarf_file, uint(dwarf_line))
-      else:
-        printf("  #%d %s + 0x%llx\n", index, &symbol.Name[0], displacement64)
-      endif
+        var dwarf_file : ^cchar = null
+        var dwarf_line : uint32 = 0
+        if DqWinDwarfLineForPc(pc, dwarf_file, dwarf_line):
+            printf("  #%d %s @ ./%s:%lu\n", index, &symbol.Name[0], dwarf_file, uint(dwarf_line))
+        else:
+            printf("  #%d %s + 0x%llx\n", index, &symbol.Name[0], displacement64)
+        endif
     endif
     return true
-  endif
+    endif
 
-  if not hide_internal:
-    printf("  #%d 0x%llx\n", index, uint64(pc))
-    return true
-  endif
-  return false
+    if not hide_internal:
+        printf("  #%d 0x%llx\n", index, uint64(pc))
+        return true
+    endif
+    return false
 endfunc

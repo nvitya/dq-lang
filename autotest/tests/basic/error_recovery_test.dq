@@ -1,18 +1,18 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function test_error_recovery():
-  var a : int = 10
-  var b : int = 20
+    var a : int = 10
+    var b : int = 20
 
-  invalid_syntax_here ^^^ b  //?error(VsUnknown)
+    invalid_syntax_here ^^^ b  //?error(VsUnknown)
 
-  var c : int = a + b
-  if c == 30:
-    printf("Recovered and compiled the rest!\n")
-  endif
+    var c : int = a + b
+    if c == 30:
+        printf("Recovered and compiled the rest!\n")
+    endif
 endfunc
 
 function *Main() -> int:
-  test_error_recovery()
-  return 0
+    test_error_recovery()
+    return 0
 endfunc

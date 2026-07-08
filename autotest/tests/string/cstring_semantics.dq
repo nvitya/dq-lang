@@ -7,149 +7,149 @@ const TEST_CS_LEN : int = 31;
 [[external]] function putchar(c : cchar) -> int
 
 function PrintEscapedChar(ch : char):
-  if ch == char(9):
-    printf("\\t");
-    return;
-  endif
-  if ch == char(10):
-    printf("\\n");
-    return;
-  endif
-  if ch == char(13):
-    printf("\\r");
-    return;
-  endif
-  if ch == char(34):
-    putchar(cchar(92));
-    putchar(cchar(34));
-    return;
-  endif
-  if ch == char(92):
-    putchar(cchar(92));
-    putchar(cchar(92));
-    return;
-  endif
-  putchar(cchar(ch));
+    if ch == char(9):
+        printf("\\t");
+        return;
+    endif
+    if ch == char(10):
+        printf("\\n");
+        return;
+    endif
+    if ch == char(13):
+        printf("\\r");
+        return;
+    endif
+    if ch == char(34):
+        putchar(cchar(92));
+        putchar(cchar(34));
+        return;
+    endif
+    if ch == char(92):
+        putchar(cchar(92));
+        putchar(cchar(92));
+        return;
+    endif
+    putchar(cchar(ch));
 endfunc
 
 function PrintText(label : ^cchar, text : cstring):
-  printf("%s = [%li] \"", label, text.length);
-  var i : int = 0;
-  while i < text.length:
-    PrintEscapedChar(text[i]);
-    i += 1;
-  endwhile
-  printf("\"\n");
+    printf("%s = [%li] \"", label, text.length);
+    var i : int = 0;
+    while i < text.length:
+        PrintEscapedChar(text[i]);
+        i += 1;
+    endwhile
+    printf("\"\n");
 endfunc
 
 function EditAlias(cs : cstring):
-  cs.Append(" four");
+    cs.Append(" four");
 endfunc
 
 struct SName:
-  id : int32;
-  name : cstring(15);
+    id : int32;
+    name : cstring(15);
 endstruct
 
 function AppendName(item : ref SName):
-  item.name.Append(" two");
+    item.name.Append(" two");
 endfunc
 
 function MutateThroughPointer(apc : ^cchar):
-  var pc : ^cchar = apc;
-  pc^ = cchar('Z');
-  pc += 1;
-  pc^ = cchar('Z');
-  pc += 1;
-  pc^ = 0;
+    var pc : ^cchar = apc;
+    pc^ = cchar('Z');
+    pc += 1;
+    pc^ = cchar('Z');
+    pc += 1;
+    pc^ = 0;
 endfunc
 
 function *Main() -> int:
-  printf("string_cstring_semantics = start\n"); //?check("string_cstring_semantics", "start")
+    printf("string_cstring_semantics = start\n"); //?check("string_cstring_semantics", "start")
 
-  var cs : [[nowarn]] cstring(5) = "abc" ;
-  printf("cstring_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size); //?check("cstring_props", "len:3 max:5 storage:6")
-  PrintText("cstring_initial", cs); //?check("cstring_initial", '[3] "abc"')
+    var cs : [[nowarn]] cstring(5) = "abc" ;
+    printf("cstring_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size); //?check("cstring_props", "len:3 max:5 storage:6")
+    PrintText("cstring_initial", cs); //?check("cstring_initial", '[3] "abc"')
 
-  cs = "abcdefghi";
-  PrintText("cstring_assign_trunc", cs); //?check("cstring_assign_trunc", '[5] "abcde"')
+    cs = "abcdefghi";
+    PrintText("cstring_assign_trunc", cs); //?check("cstring_assign_trunc", '[5] "abcde"')
 
-  var pc : ^cchar = "asdf";
-  var cs_pc : cstring(3);
-  cs_pc = pc;
-  PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
-  PrintText("cstring_param_pc", pc); //?check("cstring_param_pc", '[4] "asdf"')
+    var pc : ^cchar = "asdf";
+    var cs_pc : cstring(3);
+    cs_pc = pc;
+    PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
+    PrintText("cstring_param_pc", pc); //?check("cstring_param_pc", '[4] "asdf"')
 
-  var source : [[nowarn]] cstring(6) = "abcdef";
-  var cs_str : cstring(3);
-  cs_str = source;
-  PrintText("cstring_assign_cstr_trunc", cs_str); //?check("cstring_assign_cstr_trunc", '[3] "abc"')
+    var source : [[nowarn]] cstring(6) = "abcdef";
+    var cs_str : cstring(3);
+    cs_str = source;
+    PrintText("cstring_assign_cstr_trunc", cs_str); //?check("cstring_assign_cstr_trunc", '[3] "abc"')
 
-  cs = "abc";
-  cs[0] = cchar('X');
-  cs[2] = cchar('Y');
-  PrintText("cstring_index_assign", cs); //?check("cstring_index_assign", '[3] "XbY"')
-  cs = "abcdef";
-  cs[3] = cchar(0);
-  PrintText("cstring_zero_assign", cs); //?check("cstring_zero_assign", '[3] "abc"')
+    cs = "abc";
+    cs[0] = cchar('X');
+    cs[2] = cchar('Y');
+    PrintText("cstring_index_assign", cs); //?check("cstring_index_assign", '[3] "XbY"')
+    cs = "abcdef";
+    cs[3] = cchar(0);
+    PrintText("cstring_zero_assign", cs); //?check("cstring_zero_assign", '[3] "abc"')
 
-  cs = "abc";
-  cs.Append('d');
-  cs.AppendChar('e');
-  cs.Append("efghi");
-  PrintText("cstring_append_trunc", cs); //?check("cstring_append_trunc", '[5] "abcde"')
-  cs = "abc";
-  cs.Add('d');
-  cs.Add("efghi");
-  PrintText("cstring_add_trunc", cs); //?check("cstring_add_trunc", '[5] "abcde"')
-  cs.Clear();
-  cs.AddFmt("{}, {}", [1, 'hi']);
-  PrintText("cstring_addfmt", cs); //?check("cstring_addfmt", '[5] "1, hi"')
-  cs = "abcde";
-  cs.Prepend('X');
-  PrintText("cstring_prepend_trunc", cs); //?check("cstring_prepend_trunc", '[5] "Xabcd"')
-  cs.Insert(1, 'Y');
-  PrintText("cstring_insert_trunc", cs); //?check("cstring_insert_trunc", '[5] "XYabc"')
-  cs.Delete(1, 2);
-  PrintText("cstring_delete", cs); //?check("cstring_delete", '[3] "Xbc"')
-  cs.Clear();
-  PrintText("cstring_clear", cs); //?check("cstring_clear", '[0] ""')
+    cs = "abc";
+    cs.Append('d');
+    cs.AppendChar('e');
+    cs.Append("efghi");
+    PrintText("cstring_append_trunc", cs); //?check("cstring_append_trunc", '[5] "abcde"')
+    cs = "abc";
+    cs.Add('d');
+    cs.Add("efghi");
+    PrintText("cstring_add_trunc", cs); //?check("cstring_add_trunc", '[5] "abcde"')
+    cs.Clear();
+    cs.AddFmt("{}, {}", [1, 'hi']);
+    PrintText("cstring_addfmt", cs); //?check("cstring_addfmt", '[5] "1, hi"')
+    cs = "abcde";
+    cs.Prepend('X');
+    PrintText("cstring_prepend_trunc", cs); //?check("cstring_prepend_trunc", '[5] "Xabcd"')
+    cs.Insert(1, 'Y');
+    PrintText("cstring_insert_trunc", cs); //?check("cstring_insert_trunc", '[5] "XYabc"')
+    cs.Delete(1, 2);
+    PrintText("cstring_delete", cs); //?check("cstring_delete", '[3] "Xbc"')
+    cs.Clear();
+    PrintText("cstring_clear", cs); //?check("cstring_clear", '[0] ""')
 
-  var storage : cstring(TEST_CS_LEN) = "one";
-  var alias : cstring = storage;
-  alias.Append(" two");
-  EditAlias(alias);
-  PrintText("cstring_alias_storage", storage); //?check("cstring_alias_storage", '[12] "one two four"')
+    var storage : cstring(TEST_CS_LEN) = "one";
+    var alias : cstring = storage;
+    alias.Append(" two");
+    EditAlias(alias);
+    PrintText("cstring_alias_storage", storage); //?check("cstring_alias_storage", '[12] "one two four"')
 
-  var alias2 : cstring = alias;
-  alias2.Append(" five");
-  PrintText("cstring_alias_chain", storage); //?check("cstring_alias_chain", '[17] "one two four five"')
+    var alias2 : cstring = alias;
+    alias2.Append(" five");
+    PrintText("cstring_alias_chain", storage); //?check("cstring_alias_chain", '[17] "one two four five"')
 
-  var item : SName;
-  item.name = "one";
-  AppendName(item);
-  PrintText("cstring_struct_field", item.name); //?check("cstring_struct_field", '[7] "one two"')
+    var item : SName;
+    item.name = "one";
+    AppendName(item);
+    PrintText("cstring_struct_field", item.name); //?check("cstring_struct_field", '[7] "one two"')
 
-  //var slice_source : cstring(15) = "abcdef";
-  //var slice_copy : str = slice_source[1:4];
-  //var slice_view : strview = slice_source[1:4];
+    //var slice_source : cstring(15) = "abcdef";
+    //var slice_copy : str = slice_source[1:4];
+    //var slice_view : strview = slice_source[1:4];
 //  PrintText("cstring_slice_copy", slice_copy); //-?check("cstring_slice_copy", '[3] "bcd"')
 //  PrintText("cstring_slice_view", slice_view); //-?check("cstring_slice_view", '[3] "bcd"')
 //  PrintText("cstring_slice_clamp", slice_source[-5:100]); //-?check("cstring_slice_clamp", '[6] "abcdef"')
 //  PrintText("cstring_slice_last", slice_source[$last:]); //-?check("cstring_slice_last", '[1] "f"')
 
-  //var csdest : cstring(31) = "storage: ";
-  var csdest : cstring = storage;
-  csdest.Set("csdest:");
-  var appendum : cstring(15) = "appendum";
-  //var csv : strview = appendum;
-  csdest.Append(appendum);
-  PrintText('cstring_strview_append', csdest); //?check('cstring_strview_append', '[15] "csdest:appendum"')
+    //var csdest : cstring(31) = "storage: ";
+    var csdest : cstring = storage;
+    csdest.Set("csdest:");
+    var appendum : cstring(15) = "appendum";
+    //var csv : strview = appendum;
+    csdest.Append(appendum);
+    PrintText('cstring_strview_append', csdest); //?check('cstring_strview_append', '[15] "csdest:appendum"')
 
 //  var external_mut : cstring(8) = "abcdef";
 //  MutateThroughPointer(&external_mut[0]);
 //  external_mut.Append("!");
 //  PrintText("cstring_external_rescan", external_mut); //-?check("cstring_external_rescan", '[3] "ZZ!"')
 
-  return 0;
+    return 0;
 endfunc

@@ -4,51 +4,51 @@ use libc/stdio;
 
 object OBase:
 public
-  value : int = 0;
+    value : int = 0;
 
-  function *Create(v : int):
-    value = v;
-  endfunc
+    function *Create(v : int):
+        value = v;
+    endfunc
 endobj
 
 object OChild(OBase):
 public
-  function *Create(v : int):
-    inherited Create(v + 10);
-  endfunc
+    function *Create(v : int):
+        inherited Create(v + 10);
+    endfunc
 endobj
 
 function IsObjectSet(o : Object) -> int:
-  if o == null:
-    return 0;
-  endif
-  return 1;
+    if o == null:
+        return 0;
+    endif
+    return 1;
 endfunc
 
 function ObjectFromBase(o : OBase) -> Object:
-  return o;
+    return o;
 endfunc
 
 function *Main() -> int:
-  var any : Object = null;
-  printf("object.null = %li\n", IsObjectSet(any)); //?check("object.null", 0)
+    var any : Object = null;
+    printf("object.null = %li\n", IsObjectSet(any)); //?check("object.null", 0)
 
-  var base : OBase = new OBase(1);
-  any = base;
-  printf("object.base = %li\n", IsObjectSet(any)); //?check("object.base", 1)
+    var base : OBase = new OBase(1);
+    any = base;
+    printf("object.base = %li\n", IsObjectSet(any)); //?check("object.base", 1)
 
-  var child : OChild = new OChild(2);
-  any = child;
-  printf("object.child = %li\n", IsObjectSet(any)); //?check("object.child", 1)
+    var child : OChild = new OChild(2);
+    any = child;
+    printf("object.child = %li\n", IsObjectSet(any)); //?check("object.child", 1)
 
-  var fixed <- OChild(3);
-  any = fixed;
-  printf("object.fixed = %li\n", IsObjectSet(any)); //?check("object.fixed", 1)
+    var fixed <- OChild(3);
+    any = fixed;
+    printf("object.fixed = %li\n", IsObjectSet(any)); //?check("object.fixed", 1)
 
-  any = ObjectFromBase(base);
-  printf("object.return = %li\n", IsObjectSet(any)); //?check("object.return", 1)
+    any = ObjectFromBase(base);
+    printf("object.return = %li\n", IsObjectSet(any)); //?check("object.return", 1)
 
-  delete base;
-  delete child;
-  return 0;
+    delete base;
+    delete child;
+    return 0;
 endfunc

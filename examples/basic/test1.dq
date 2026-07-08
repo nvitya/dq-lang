@@ -1,11 +1,11 @@
 use print
 
 function *Main() -> int:
-  PrintLn('DQ Test 1')
+    PrintLn('DQ Test 1')
 
-  for i : int = 1 to 10:
-    PrintLn('i = {}', [i])
-  endfor
+    for i : int = 1 to 10:
+        PrintLn('i = {}', [i])
+    endfor
 
-  return 0
+    return 0
 endfunc

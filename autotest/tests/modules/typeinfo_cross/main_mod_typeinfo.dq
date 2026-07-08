@@ -2,28 +2,28 @@ use ./mod_typeinfo;
 use libc/stdio;
 
 function *Main() -> int:
-  var o1 : OBase = CreateFirst();
-  var o2 : OBase = CreateSecond();
+    var o1 : OBase = CreateFirst();
+    var o2 : OBase = CreateSecond();
 
-  if o1 is OFirst:
-    @.printf("o1.is.OFirst = 1\n"); //?check("o1.is.OFirst", 1)
-  endif
+    if o1 is OFirst:
+        @.printf("o1.is.OFirst = 1\n"); //?check("o1.is.OFirst", 1)
+    endif
 
-  if o2 is OSecond:
-    @.printf("o2.is.OSecond = 1\n"); //?check("o2.is.OSecond", 1)
-  endif
+    if o2 is OSecond:
+        @.printf("o2.is.OSecond = 1\n"); //?check("o2.is.OSecond", 1)
+    endif
 
-  var t1 : OFirst tryfrom o1;
-  if t1 <> null:
-    @.printf("t1.notnull = 1\n"); //?check("t1.notnull", 1)
-  endif
+    var t1 : OFirst tryfrom o1;
+    if t1 <> null:
+        @.printf("t1.notnull = 1\n"); //?check("t1.notnull", 1)
+    endif
 
-  var t2 : OSecond tryfrom o1;
-  if t2 == null:
-    @.printf("t2.isnull = 1\n"); //?check("t2.isnull", 1)
-  endif
+    var t2 : OSecond tryfrom o1;
+    if t2 == null:
+        @.printf("t2.isnull = 1\n"); //?check("t2.isnull", 1)
+    endif
 
-  delete o1;
-  delete o2;
-  return 0;
+    delete o1;
+    delete o2;
+    return 0;
 endfunc

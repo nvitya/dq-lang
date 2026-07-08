@@ -1,16 +1,16 @@
 use libc/stdio
 
 object OTextSink:
-  function Write(atext : strview) [[virtual, abstract]]
-  function WriteChar(ch : char)   [[virtual, abstract]]
+    function Write(atext : strview) [[virtual, abstract]]
+    function WriteChar(ch : char)   [[virtual, abstract]]
 endobj
 
 object OTextSinkStdOut(OTextSink):
-  pstdout : pointer
+    pstdout : pointer
 
-  function *Create()
-  function Write(atext : strview) [[override]]
-  function WriteChar(ch : char)   [[override]]
+    function *Create()
+    function Write(atext : strview) [[override]]
+    function WriteChar(ch : char)   [[override]]
 endobj
 
 implementation
@@ -21,24 +21,24 @@ function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer)
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
 
 function OTextSinkStdOut.*Create():
-  pstdout = @.libc_stdout
+    pstdout = @.libc_stdout
 endfunc
 
 function OTextSinkStdOut.Write(atext : strview) [[override]]:
-  @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
+    @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
 endfunc
 
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
-  @.libc_fputc(ch, pstdout)
+    @.libc_fputc(ch, pstdout)
 endfunc
 
 
 function *Main() -> int:
-  printf('DQ no constructor test\n')
+    printf('DQ no constructor test\n')
 
-  var cout <- OTextSinkStdOut()
+    var cout <- OTextSinkStdOut()
 
-  cout.Write('OTextSinkStdOut.Write()\n')
+    cout.Write('OTextSinkStdOut.Write()\n')
 
-  return 0
+    return 0
 endfunc

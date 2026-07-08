@@ -4,51 +4,51 @@ use libc/stdio;
 
 object OBase:
 protected
-  value : int = 1;
-  name  : cstring(32);
+    value : int = 1;
+    name  : cstring(32);
 public
-  function *Create(aname : ^cchar, a : int):
-    value = a;
-    name = aname;
-    @.printf("%s.base.create = %d\n", &name[0], value);
-  endfunc
+    function *Create(aname : ^cchar, a : int):
+        value = a;
+        name = aname;
+        @.printf("%s.base.create = %d\n", &name[0], value);
+    endfunc
 
-  function Get() -> int [[virtual]]:
-    return value;
-  endfunc
+    function Get() -> int [[virtual]]:
+        return value;
+    endfunc
 
-  function Reset():
-    value = 10;
-  endfunc
+    function Reset():
+        value = 10;
+    endfunc
 
-  function *Destroy():
-    @.printf("%s.base.destroy = %d\n", &name[0], value);
-  endfunc
+    function *Destroy():
+        @.printf("%s.base.destroy = %d\n", &name[0], value);
+    endfunc
 endobj
 
 object OChild(OBase):
 private
-  extra : int = 2;
+    extra : int = 2;
 public
-  function *Create(aname : ^cchar, a : int):
-    inherited Create(aname, a + 1);
-    extra = a + 2;
-    @.printf("%s.child.create = %d %d\n", &name[0], value, extra);
-  endfunc
+    function *Create(aname : ^cchar, a : int):
+        inherited Create(aname, a + 1);
+        extra = a + 2;
+        @.printf("%s.child.create = %d %d\n", &name[0], value, extra);
+    endfunc
 
-  function Get() -> int [[override]]:
-    return inherited Get() + extra;
-  endfunc
+    function Get() -> int [[override]]:
+        return inherited Get() + extra;
+    endfunc
 
-  function Reset():
-    inherited Reset();
-    extra = 20;
-  endfunc
+    function Reset():
+        inherited Reset();
+        extra = 20;
+    endfunc
 
-  function *Destroy():
-    @.printf("%s.child.destroy = %d %d\n", &name[0], value, extra);
-    inherited Destroy();
-  endfunc
+    function *Destroy():
+        @.printf("%s.child.destroy = %d %d\n", &name[0], value, extra);
+        inherited Destroy();
+    endfunc
 endobj
 
 object OChildNoDtor(OBase):
@@ -56,95 +56,95 @@ endobj
 
 object OImplicitBase:
 protected
-  base_value : int = 0;
+    base_value : int = 0;
 public
-  function *Create():
-    base_value = 31;
-    @.printf("implicit-base.create = %d\n", base_value);
-  endfunc
+    function *Create():
+        base_value = 31;
+        @.printf("implicit-base.create = %d\n", base_value);
+    endfunc
 endobj
 
 object OImplicitChild(OImplicitBase):
 public
-  extra_value : int = 4;
+    extra_value : int = 4;
 
-  function Sum() -> int:
-    return base_value + extra_value;
-  endfunc
+    function Sum() -> int:
+        return base_value + extra_value;
+    endfunc
 endobj
 
 object OForwardBase:
 protected
-  value : int = 0;
+    value : int = 0;
 public
-  function *Create(a : int):
-    value = a;
-    @.printf("forward-base.create = %d\n", value);
-  endfunc
+    function *Create(a : int):
+        value = a;
+        @.printf("forward-base.create = %d\n", value);
+    endfunc
 
-  function Get() -> int [[virtual]]:
-    return value;
-  endfunc
+    function Get() -> int [[virtual]]:
+        return value;
+    endfunc
 endobj
 
 object OForwardChild(OForwardBase):
 public
-  function Get() -> int [[override]]:
-    return inherited Get() + 100;
-  endfunc
+    function Get() -> int [[override]]:
+        return inherited Get() + 100;
+    endfunc
 endobj
 
 object OOverCtor:
 public
-  tag : int = 0;
+    tag : int = 0;
 
-  function *Create(a : int) [[overload]]:
-    tag = a + 10;
-  endfunc
+    function *Create(a : int) [[overload]]:
+        tag = a + 10;
+    endfunc
 
-  function *Create(a : float) [[overload]]:
-    tag = Round(a) + 100;
-  endfunc
+    function *Create(a : float) [[overload]]:
+        tag = Round(a) + 100;
+    endfunc
 endobj
 
 function PrintBase(b : OBase, label : ^cchar):
-  @.printf("%s = %d\n", label, b.Get());
+    @.printf("%s = %d\n", label, b.Get());
 endfunc
 
 function *Main() -> int:
-  var c <- OChild('stack', 3);   //?check('stack.base.create', 4)
-                                 //?check('stack.child.create', '4 5')
+    var c <- OChild('stack', 3);   //?check('stack.base.create', 4)
+                                   //?check('stack.child.create', '4 5')
 
-  PrintBase(c, "fixed");         //?check('fixed', 9)
-  c.Reset();
-  PrintBase(c, "reset");         //?check('reset', 30)
+    PrintBase(c, "fixed");         //?check('fixed', 9)
+    c.Reset();
+    PrintBase(c, "reset");         //?check('reset', 30)
 
-  var h : OChild = new OChild('heap', 7);
-  var b : OBase = h;
-  PrintBase(b, "heap");        //?check("heap.base.create", 8)
-                               //?check("heap.child.create", 8 9)
-                               //?check("heap", 17)
-  delete b;                    //?check("heap.child.destroy", "8 9")
-                               //?check("heap.base.destroy", 8)
+    var h : OChild = new OChild('heap', 7);
+    var b : OBase = h;
+    PrintBase(b, "heap");        //?check("heap.base.create", 8)
+                                 //?check("heap.child.create", 8 9)
+                                 //?check("heap", 17)
+    delete b;                    //?check("heap.child.destroy", "8 9")
+                                 //?check("heap.base.destroy", 8)
 
-  var nd : OChildNoDtor = new OChildNoDtor("stacknodtor", 21);
-  delete nd;                   //?check("stacknodtor.base.create", "21")
-                               //?check("stacknodtor.base.destroy", "21")
+    var nd : OChildNoDtor = new OChildNoDtor("stacknodtor", 21);
+    delete nd;                   //?check("stacknodtor.base.create", "21")
+                                 //?check("stacknodtor.base.destroy", "21")
 
-  var ndb : OBase = new OChildNoDtor("childnodtor", 22);
-  delete ndb;                  //?check("childnodtor.base.create", "22")
-                               //?check("childnodtor.base.destroy", "22")
+    var ndb : OBase = new OChildNoDtor("childnodtor", 22);
+    delete ndb;                  //?check("childnodtor.base.create", "22")
+                                 //?check("childnodtor.base.destroy", "22")
 
-  var ic <- OImplicitChild();                 //?check("implicit-base.create", "31")
-  @.printf("implicit-sum = %d\n", ic.Sum());  //?check("implicit-sum", "35")
+    var ic <- OImplicitChild();                 //?check("implicit-base.create", "31")
+    @.printf("implicit-sum = %d\n", ic.Sum());  //?check("implicit-sum", "35")
 
-  var fc <- OForwardChild(12);                  //?check("forward-base.create", "12")
-  @.printf("forward-child = %d\n", fc.Get());   //?check("forward-child", "112")
+    var fc <- OForwardChild(12);                  //?check("forward-base.create", "12")
+    @.printf("forward-child = %d\n", fc.Get());   //?check("forward-child", "112")
 
-  var oi <- OOverCtor(5);
-  var of <- OOverCtor(2.4);
-  @.printf("over.ctor = %d %d\n", oi.tag, of.tag); //?check("over.ctor", "15 102")
+    var oi <- OOverCtor(5);
+    var of <- OOverCtor(2.4);
+    @.printf("over.ctor = %d %d\n", oi.tag, of.tag); //?check("over.ctor", "15 102")
 
-  return 0;                    //?check("stack.child.destroy", "10 20")
-                              //?check("stack.base.destroy", 10)
+    return 0;                    //?check("stack.child.destroy", "10 20")
+                                //?check("stack.base.destroy", 10)
 endfunc

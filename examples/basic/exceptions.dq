@@ -9,16 +9,16 @@ object ECustError(Exception):
 endobj
 
 function FailFunc():
-  raise ECustError('something went wrong.')
+    raise ECustError('something went wrong.')
 endfunc
 
 function TestFunc():
-  FailFunc()
+    FailFunc()
 endfunc
 
 function *Main() -> int:
-  PrintLn('DQ Custom Exception Test')
-  TestFunc()
-  return 0
+    PrintLn('DQ Custom Exception Test')
+    TestFunc()
+    return 0
 endfunc
 

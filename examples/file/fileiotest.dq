@@ -2,66 +2,66 @@ use print
 use file
 
 struct STest:
-  marker : uint32
-  name   : cstring(15)
-  ival   : int32
-  fval   : float32
+    marker : uint32
+    name   : cstring(15)
+    ival   : int32
+    fval   : float32
 endstruct
 
 function *Main() -> int:
-  PrintLn('DQ File IO Test')
+    PrintLn('DQ File IO Test')
 
-  DirCreate('.tmp', true)
+    DirCreate('.tmp', true)
 
-  var fw <- OFile()
-  fw.Open('.tmp/testfile.bin', 'w')
-  fw.WriteBytes([1, 2, 3, 4, 5, 0xff])
-  fw.Close()
+    var fw <- OFile()
+    fw.Open('.tmp/testfile.bin', 'w')
+    fw.WriteBytes([1, 2, 3, 4, 5, 0xff])
+    fw.Close()
 
-  fw.Open('.tmp/outfile.txt', 'w')
-  fw.WriteText('hello world.')
-  fw.Close()
+    fw.Open('.tmp/outfile.txt', 'w')
+    fw.WriteText('hello world.')
+    fw.Close()
 
-  DirCreate('.tmp/nested/io', true)
-  FileWriteText('.tmp/nested/io/outfile.txt', 'nested hello.')
-  PrintLn('nested file exists: {}', [FileExists('.tmp/nested/io/outfile.txt')])
+    DirCreate('.tmp/nested/io', true)
+    FileWriteText('.tmp/nested/io/outfile.txt', 'nested hello.')
+    PrintLn('nested file exists: {}', [FileExists('.tmp/nested/io/outfile.txt')])
 
-  DirCreate('.tmp/remove-me')
-  DirRemove('.tmp/remove-me')
-  PrintLn('removed dir exists: {}', [DirExists('.tmp/remove-me')])
+    DirCreate('.tmp/remove-me')
+    DirRemove('.tmp/remove-me')
+    PrintLn('removed dir exists: {}', [DirExists('.tmp/remove-me')])
 
-  PrintLn('path translated: {}', [PathTranslateSeparators('c:\\temp\\file.txt')])
-  PrintLn('path dirname: {}', [PathDirName('dir/sub/file.txt')])
-  PrintLn('path filename: {}', [PathFileName('dir/sub/file.txt')])
-  PrintLn('path fileext: {}', [PathFileExt('dir/sub/file.txt')])
-  PrintLn('path dotfile ext: "{}"', [PathFileExt('.profile')])
+    PrintLn('path translated: {}', [PathTranslateSeparators('c:\\temp\\file.txt')])
+    PrintLn('path dirname: {}', [PathDirName('dir/sub/file.txt')])
+    PrintLn('path filename: {}', [PathFileName('dir/sub/file.txt')])
+    PrintLn('path fileext: {}', [PathFileExt('dir/sub/file.txt')])
+    PrintLn('path dotfile ext: "{}"', [PathFileExt('.profile')])
 
-  var s : str
-  var f <- OFile()
-  f.Open('fileiotest.dq','r')
+    var s : str
+    var f <- OFile()
+    f.Open('fileiotest.dq','r')
 
-  PrintLn('File open ok. name = "{}"', [f.name])
+    PrintLn('File open ok. name = "{}"', [f.name])
 
-  s = f.ReadText()
-  PrintLn('file first 200 chars:')
-  PrintLn('-----------------------------------')
-  PrintLn(s[:200])
-  PrintLn('-----------------------------------')
+    s = f.ReadText()
+    PrintLn('file first 200 chars:')
+    PrintLn('-----------------------------------')
+    PrintLn(s[:200])
+    PrintLn('-----------------------------------')
 
-  PrintLn('curpos: {}', [f.position])
+    PrintLn('curpos: {}', [f.position])
 
-  f.position = 0
+    f.position = 0
 
-  var barr : [*]byte = f.ReadBytes()
-  PrintLn('barr.length = {}', [barr.length])
+    var barr : [*]byte = f.ReadBytes()
+    PrintLn('barr.length = {}', [barr.length])
 
-  var st : STest
-  st.marker = 0x55AA33CC
-  st.name = 'TestStruct'
-  st.ival = 10000
-  st.fval = 3.14
+    var st : STest
+    st.marker = 0x55AA33CC
+    st.name = 'TestStruct'
+    st.ival = 10000
+    st.fval = 3.14
 
-  FileWrite('.tmp/structfile.bin', &st, SizeOf(st))
+    FileWrite('.tmp/structfile.bin', &st, SizeOf(st))
 
-  return 0
+    return 0
 endfunc

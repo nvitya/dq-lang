@@ -6,120 +6,120 @@ var g_false_hits : int = 0;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function hit_true() -> int:
-  g_true_hits += 1;
-  result = 10;
+    g_true_hits += 1;
+    result = 10;
 endfunc
 
 function hit_false() -> int:
-  g_false_hits += 1;
-  result = 20;
+    g_false_hits += 1;
+    result = 20;
 endfunc
 
 function dq_iif_basic_true() -> int:
-  result = iif(true, 11, 22);
+    result = iif(true, 11, 22);
 endfunc
 
 function dq_iif_basic_false() -> int:
-  result = iif(false, 11, 22);
+    result = iif(false, 11, 22);
 endfunc
 
 function dq_iif_float(flag : bool) -> int:
-  var f : float = iif(flag, 1, 2.5);
-  result = Round(f);
+    var f : float = iif(flag, 1, 2.5);
+    result = Round(f);
 endfunc
 
 function dq_iif_int_width(flag : bool) -> int32:
-  var a : int16 = 1234;
-  var b : int32 = 567890;
-  result = iif(flag, a, b);
+    var a : int16 = 1234;
+    var b : int32 = 567890;
+    result = iif(flag, a, b);
 endfunc
 
 function dq_iif_float_width(flag : bool) -> int:
-  var a : float32 = 1.25;
-  var b : float64 = 2.75;
-  var f : float64 = iif(flag, a, b);
-  result = Round(f * 10.0);
+    var a : float32 = 1.25;
+    var b : float64 = 2.75;
+    var f : float64 = iif(flag, a, b);
+    result = Round(f * 10.0);
 endfunc
 
 function dq_iif_ptr(flag : bool) -> int:
-  var x : int = 33;
-  var p : ^int = iif(flag, &x, null);
-  if p != null:
-    result = p^;
-  else:
-    result = 0;
-  endif
+    var x : int = 33;
+    var p : ^int = iif(flag, &x, null);
+    if p != null:
+        result = p^;
+    else:
+        result = 0;
+    endif
 endfunc
 
 function dq_iif_guarded(aptrint : ^int) -> int:
-  result = iif(aptrint <> null, aptrint^, 0);
+    result = iif(aptrint <> null, aptrint^, 0);
 endfunc
 
 object OTest:
-  name : cstring(32) = "OTest-Name-inline";
+    name : cstring(32) = "OTest-Name-inline";
 endobj
 
 var g_obj : OTest = null;
 
 function dq_iif_side(flag : bool) -> int:
-  g_true_hits = 0;
-  g_false_hits = 0;
-  result = iif(flag, hit_true(), hit_false());
-  result += 100 * g_true_hits;
-  result += 1000 * g_false_hits;
+    g_true_hits = 0;
+    g_false_hits = 0;
+    result = iif(flag, hit_true(), hit_false());
+    result += 100 * g_true_hits;
+    result += 1000 * g_false_hits;
 endfunc
 function *Main() -> int:
-  printf("DQ iif test\n");  //?ignore('DQ iif test')
+    printf("DQ iif test\n");  //?ignore('DQ iif test')
 
-  var x : int = 77;
-  var r : int;
+    var x : int = 77;
+    var r : int;
 
-  r = dq_iif_basic_true();
-  printf("dq_iif_basic_true() = %li\n", r);  //?check('dq_iif_basic_true()', 11)
+    r = dq_iif_basic_true();
+    printf("dq_iif_basic_true() = %li\n", r);  //?check('dq_iif_basic_true()', 11)
 
-  r = dq_iif_basic_false();
-  printf("dq_iif_basic_false() = %li\n", r);  //?check('dq_iif_basic_false()', 22)
+    r = dq_iif_basic_false();
+    printf("dq_iif_basic_false() = %li\n", r);  //?check('dq_iif_basic_false()', 22)
 
-  r = dq_iif_float(true);
-  printf("dq_iif_float(true) = %li\n", r);  //?check('dq_iif_float(true)', 1)
+    r = dq_iif_float(true);
+    printf("dq_iif_float(true) = %li\n", r);  //?check('dq_iif_float(true)', 1)
 
-  r = dq_iif_float(false);
-  printf("dq_iif_float(false) = %li\n", r);  //?check('dq_iif_float(false)', 3)
+    r = dq_iif_float(false);
+    printf("dq_iif_float(false) = %li\n", r);  //?check('dq_iif_float(false)', 3)
 
-  printf("dq_iif_int_width(true) = %li\n", dq_iif_int_width(true));    //?check('dq_iif_int_width(true)', 1234)
-  printf("dq_iif_int_width(false) = %li\n", dq_iif_int_width(false));  //?check('dq_iif_int_width(false)', 567890)
+    printf("dq_iif_int_width(true) = %li\n", dq_iif_int_width(true));    //?check('dq_iif_int_width(true)', 1234)
+    printf("dq_iif_int_width(false) = %li\n", dq_iif_int_width(false));  //?check('dq_iif_int_width(false)', 567890)
 
-  r = dq_iif_float_width(true);
-  printf("dq_iif_float_width(true) = %li\n", r);   //?check('dq_iif_float_width(true)', 13)
+    r = dq_iif_float_width(true);
+    printf("dq_iif_float_width(true) = %li\n", r);   //?check('dq_iif_float_width(true)', 13)
 
-  r = dq_iif_float_width(false);
-  printf("dq_iif_float_width(false) = %li\n", r);  //?check('dq_iif_float_width(false)', 28)
+    r = dq_iif_float_width(false);
+    printf("dq_iif_float_width(false) = %li\n", r);  //?check('dq_iif_float_width(false)', 28)
 
-  r = dq_iif_ptr(true);
-  printf("dq_iif_ptr(true) = %li\n", r);  //?check('dq_iif_ptr(true)', 33)
+    r = dq_iif_ptr(true);
+    printf("dq_iif_ptr(true) = %li\n", r);  //?check('dq_iif_ptr(true)', 33)
 
-  r = dq_iif_ptr(false);
-  printf("dq_iif_ptr(false) = %li\n", r);  //?check('dq_iif_ptr(false)', 0)
+    r = dq_iif_ptr(false);
+    printf("dq_iif_ptr(false) = %li\n", r);  //?check('dq_iif_ptr(false)', 0)
 
-  r = dq_iif_guarded(&x);
-  printf("dq_iif_guarded(&x) = %li\n", r);  //?check('dq_iif_guarded(&x)', 77)
+    r = dq_iif_guarded(&x);
+    printf("dq_iif_guarded(&x) = %li\n", r);  //?check('dq_iif_guarded(&x)', 77)
 
-  r = dq_iif_guarded(null);
-  printf("dq_iif_guarded(null) = %li\n", r);  //?check('dq_iif_guarded(null)', 0)
+    r = dq_iif_guarded(null);
+    printf("dq_iif_guarded(null) = %li\n", r);  //?check('dq_iif_guarded(null)', 0)
 
-  r = dq_iif_side(true);
-  printf("dq_iif_side(true) = %li\n", r);  //?check('dq_iif_side(true)', 110)
+    r = dq_iif_side(true);
+    printf("dq_iif_side(true) = %li\n", r);  //?check('dq_iif_side(true)', 110)
 
-  r = dq_iif_side(false);
-  printf("dq_iif_side(false) = %li\n", r);  //?check('dq_iif_side(false)', 1020)
+    r = dq_iif_side(false);
+    printf("dq_iif_side(false) = %li\n", r);  //?check('dq_iif_side(false)', 1020)
 
-  if g_obj <> null:
-    printf("g_obj is null!\n");
-  endif
+    if g_obj <> null:
+        printf("g_obj is null!\n");
+    endif
 
-  printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0])); //?check('g_obj.name', 'obj is null!')
-  g_obj = new OTest();
-  printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0]));  //?check('g_obj.name/2', 'OTest-Name-inline')
+    printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0])); //?check('g_obj.name', 'obj is null!')
+    g_obj = new OTest();
+    printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0]));  //?check('g_obj.name/2', 'OTest-Name-inline')
 
-  return 0;
+    return 0;
 endfunc

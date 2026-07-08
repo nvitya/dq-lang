@@ -5,19 +5,19 @@ use print
 var sa : [*]str
 
 function PrintSArr(astr : strview):
-  for row : int = 0 count sa.length:
-    PrintLn('{}[{}] = "{}"', [astr, row, sa[row]])
-  endfor
+    for row : int = 0 count sa.length:
+        PrintLn('{}[{}] = "{}"', [astr, row, sa[row]])
+    endfor
 endfunc
 
 function *Main() -> int:
-  PrintLn('DQ test for dynamic array of dynamic strings')
+    PrintLn('DQ test for dynamic array of dynamic strings')
 
-  sa.Append('Hello!')
-  sa.Append('qqcs')
-  sa.Append('abc')
+    sa.Append('Hello!')
+    sa.Append('qqcs')
+    sa.Append('abc')
 
-  PrintSArr('sa')
+    PrintSArr('sa')
 
-  return 0
+    return 0
 endfunc

@@ -2,33 +2,33 @@
 
 object OBase:
 public
-  v : int = 0;
-  function *Create(av : int):
-    v = av;
-  endfunc
-  function id() -> int [[virtual]]:
-    return 1;
-  endfunc
+    v : int = 0;
+    function *Create(av : int):
+        v = av;
+    endfunc
+    function id() -> int [[virtual]]:
+        return 1;
+    endfunc
 endobj
 
 object OFirst(OBase):
 public
-  function *Create(av : int):
-    inherited Create(av);
-  endfunc
+    function *Create(av : int):
+        inherited Create(av);
+    endfunc
 endobj
 
 object OSecond(OBase):
 public
-  function *Create(av : int):
-    inherited Create(av);
-  endfunc
+    function *Create(av : int):
+        inherited Create(av);
+    endfunc
 endobj
 
 function CreateFirst() -> OBase:
-  return new OFirst(1);
+    return new OFirst(1);
 endfunc
 
 function CreateSecond() -> OBase:
-  return new OSecond(2);
+    return new OSecond(2);
 endfunc

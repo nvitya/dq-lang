@@ -4,37 +4,37 @@ type CB1 = function(a : int) -> int;
 type CB2 = function(a : int, b : int) -> int;
 
 function inc(a : int) -> int:
-  result = a + 1;
+    result = a + 1;
 endfunc
 
 function add(a : int, b : int) -> int:
-  result = a + b;
+    result = a + b;
 endfunc
 
 function use(cb : CB1) -> int:
-  result = cb(1);
+    result = cb(1);
 endfunc
 
 var bad_global : CB1 = add;  //?error(FuncSigType)
 function *Main() -> int:
-  var cb1 : CB1;
-  var cb2 : CB2 = add;
-  var iv : int = 1;
-  var r : int = 0;
+    var cb1 : CB1;
+    var cb2 : CB2 = add;
+    var iv : int = 1;
+    var r : int = 0;
 
-  cb1 = add;         //?error(FuncSigType)
-  cb1 = 5;           //?error(FuncSigType)
-  cb1 = &inc;        //?error(ExprVsNotAddressable)
-  r = use(add);      //?error(FuncSigType)
+    cb1 = add;         //?error(FuncSigType)
+    cb1 = 5;           //?error(FuncSigType)
+    cb1 = &inc;        //?error(ExprVsNotAddressable)
+    r = use(add);      //?error(FuncSigType)
 
-  cb2(1);            //?error(FuncArgsTooFew)
-  cb2(1, 2, 3);      //?error(FuncArgsTooMany)
-  cb2(1, "x");       //?error(TypeMismatchAssign)
+    cb2(1);            //?error(FuncArgsTooFew)
+    cb2(1, 2, 3);      //?error(FuncArgsTooMany)
+    cb2(1, "x");       //?error(TypeMismatchAssign)
 
-  iv(1);             //?error(ExprNotCallable)
+    iv(1);             //?error(ExprNotCallable)
 
-  if cb1 == null:    //?error(VarNotInit)
-  endif
+    if cb1 == null:    //?error(VarNotInit)
+    endif
 
-  return 0;
+    return 0;
 endfunc

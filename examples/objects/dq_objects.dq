@@ -3,43 +3,43 @@
 use libc/stdio;
 
 object ODynData:
-  intvalue : int;
-  name     : cstring[64];
+    intvalue : int;
+    name     : cstring[64];
 
-  function *Create(a : int, aname : cstring):  // constructor
-    intvalue = a;
-    name = aname;
-  endfunc
+    function *Create(a : int, aname : cstring):  // constructor
+        intvalue = a;
+        name = aname;
+    endfunc
 endobj
 
 object OCoords:
-  coords : [2]float;
+    coords : [2]float;
 
-  function *Create(x : int, y : int) [[overload]]:
-    coords[0] = x;
-    coords[1] = y;
-  endfunc
+    function *Create(x : int, y : int) [[overload]]:
+        coords[0] = x;
+        coords[1] = y;
+    endfunc
 
-  function *Create() [[overload]]:
-    Create(0, 0);
-  endfunc
+    function *Create() [[overload]]:
+        Create(0, 0);
+    endfunc
 endobj
 
 object OTest:
 private
-  // heap allocated object
-  ddata  : ODynData = null;
+    // heap allocated object
+    ddata  : ODynData = null;
 
-  // various object embedding cases
+    // various object embedding cases
 
-  coords1 <- OCoords(0, 0);   // with constructor call at declaration
-  coords2 <- OCoords;         // constructor call in parent constructor
-  coords3 <- OCoords;         // missing constructor call
-  coords4 <- OCoords();       // alternative constructor
+    coords1 <- OCoords(0, 0);   // with constructor call at declaration
+    coords2 <- OCoords;         // constructor call in parent constructor
+    coords3 <- OCoords;         // missing constructor call
+    coords4 <- OCoords();       // alternative constructor
 
 public
-  function *Create(a : int, aname : cstring):  // reserved function name for constructor
-    ddata = new ODynData(a, aname);
+    function *Create(a : int, aname : cstring):  // reserved function name for constructor
+        ddata = new ODynData(a, aname);
 
     coords1.Create(4, 5);  // ERROR: double constructor call !
 
@@ -47,15 +47,15 @@ public
     coords2.Create(a, 2); // ERROR: double constructor call
 
     // ERROR: coords3 constructor call is missing
-  endfunc
+    endfunc
 
-  function *Destroy():  // reserved function name for destructor
-    delete ddata;  // also sets the ddata variable to null
-  endfunc
+    function *Destroy():  // reserved function name for destructor
+        delete ddata;  // also sets the ddata variable to null
+    endfunc
 
-  function Print():
-    @.printf("%s(%d)\n", &ddata.name, ddata.intvalue);
-  endfunc
+    function Print():
+        @.printf("%s(%d)\n", &ddata.name, ddata.intvalue);
+    endfunc
 endobj
 
 // .bss allocated object
@@ -66,27 +66,27 @@ var bssobj <- OTest(5, 'bss');
 var heapobj : OTest = null;    // global heap object, explicitly initialized with null
 
 function *Main() -> int:
-  // bss object
-  bssobj.Print();
+    // bss object
+    bssobj.Print();
 
-  // stack local allocated object
-  var lobj <- OTest(2, 'stack');
-  lobj.Print();
+    // stack local allocated object
+    var lobj <- OTest(2, 'stack');
+    lobj.Print();
 
-  // local, heap-allocated object
-  var lheapobj = new OTest(3, 'lheap');
-  // or:  var lheapobj : OTest = new Otest(3, 'lheap');
-  lheapobj.Print();
-  delete lheapobj;  // also sets the lheapobj to null
+    // local, heap-allocated object
+    var lheapobj = new OTest(3, 'lheap');
+    // or:  var lheapobj : OTest = new Otest(3, 'lheap');
+    lheapobj.Print();
+    delete lheapobj;  // also sets the lheapobj to null
 
-  // global, heap allocated object
-  heapobj = new OTest(9, 'heap');
-  heapobj.Print();
-  delete heapobj;  // sets the heapobj to null
+    // global, heap allocated object
+    heapobj = new OTest(9, 'heap');
+    heapobj.Print();
+    delete heapobj;  // sets the heapobj to null
 
-  bssobj = lobj;   // ERROR: the in-place allocated object variables are read only !
+    bssobj = lobj;   // ERROR: the in-place allocated object variables are read only !
 
-  heapobj = lobj;  // allowed, but can be dangerous !
+    heapobj = lobj;  // allowed, but can be dangerous !
 
-  return 0;
+    return 0;
 endfunc

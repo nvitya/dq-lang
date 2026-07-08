@@ -4,38 +4,38 @@ use libc/stdio;
 
 object OModBase:
 protected
-  value : int = 0;
+    value : int = 0;
 public
-  function *Create(a : int):
-    value = a;
-  endfunc
+    function *Create(a : int):
+        value = a;
+    endfunc
 
-  function Get() -> int [[virtual]]:
-    return value;
-  endfunc
+    function Get() -> int [[virtual]]:
+        return value;
+    endfunc
 
-  function *Destroy():
-  endfunc
+    function *Destroy():
+    endfunc
 endobj
 
 object OModChild(OModBase):
 private
-  extra : int = 0;
+    extra : int = 0;
 public
-  function *Create(a : int):
-    inherited Create(a);
-    extra = a + 1;
-  endfunc
+    function *Create(a : int):
+        inherited Create(a);
+        extra = a + 1;
+    endfunc
 
-  function Get() -> int [[override]]:
-    return inherited Get() + extra;
-  endfunc
+    function Get() -> int [[override]]:
+        return inherited Get() + extra;
+    endfunc
 
-  function PrintProt():
-    @.printf("Protected_value = %d\n", value);
-  endfunc
+    function PrintProt():
+        @.printf("Protected_value = %d\n", value);
+    endfunc
 
-  function *Destroy():
-    inherited Destroy();
-  endfunc
+    function *Destroy():
+        inherited Destroy();
+    endfunc
 endobj

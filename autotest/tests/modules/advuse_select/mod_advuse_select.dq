@@ -9,10 +9,10 @@ var hidden_var : int = 13;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function sel_func(a : int) -> int:
-  result = a + 3;
+    result = a + 3;
 endfunc
 
 function hidden_func(a : int) -> int:
-  result = a * 2;
+    result = a * 2;
 endfunc
 

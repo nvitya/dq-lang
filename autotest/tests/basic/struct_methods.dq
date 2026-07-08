@@ -3,46 +3,46 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 struct SBase:
-  id : int;
-  tag : cstring(8);
+    id : int;
+    tag : cstring(8);
 
-  function SetId(v : int):
-    self.id = v;
-  endfunc
+    function SetId(v : int):
+        self.id = v;
+    endfunc
 
-  function BaseValue() -> int:
-    return id + 1;
-  endfunc
+    function BaseValue() -> int:
+        return id + 1;
+    endfunc
 endstruct
 
 struct SChild(SBase):
-  extra : int;
-  names : [2]cstring(8);
+    extra : int;
+    names : [2]cstring(8);
 
-  function SetAll(aid : int, aextra : int):
-    self.SetId(aid);
-    extra = aextra;
-  endfunc
+    function SetAll(aid : int, aextra : int):
+        self.SetId(aid);
+        extra = aextra;
+    endfunc
 
-  function Sum() -> int:
-    return self.BaseValue() + extra;
-  endfunc
+    function Sum() -> int:
+        return self.BaseValue() + extra;
+    endfunc
 endstruct
 
 function SChild.Mul(factor : int) -> int:
-  return self.Sum() * factor;
+    return self.Sum() * factor;
 endfunc
 
 function *Main() -> int:
-  var s : SChild = {};
-  s.SetAll(5, 7);
-  s.tag = "ok";
-  s.names[0] = "aa";
-  s.names[1] = "bb";
+    var s : SChild = {};
+    s.SetAll(5, 7);
+    s.tag = "ok";
+    s.names[0] = "aa";
+    s.names[1] = "bb";
 
-  printf("struct self sum=%d\n", s.Sum()); //?check("struct self sum", 13)
-  printf("struct qualified mul=%d\n", s.Mul(3)); //?check("struct qualified mul", 39)
-  printf("struct inherited field=%d\n", s.id); //?check("struct inherited field", 5)
+    printf("struct self sum=%d\n", s.Sum()); //?check("struct self sum", 13)
+    printf("struct qualified mul=%d\n", s.Mul(3)); //?check("struct qualified mul", 39)
+    printf("struct inherited field=%d\n", s.id); //?check("struct inherited field", 5)
 
-  return 0;
+    return 0;
 endfunc

@@ -1,85 +1,85 @@
 use print
 
 object OBase:
-  name : cstring(31);
-  function *Create():
-    name = 'OBase'
-  endfunc
+    name : cstring(31);
+    function *Create():
+        name = 'OBase'
+    endfunc
 
-  function ShowName(aprefix : strview):
-    @.PrintLn('{} = {}', [aprefix, name])
-  endfunc
+    function ShowName(aprefix : strview):
+        @.PrintLn('{} = {}', [aprefix, name])
+    endfunc
 endobj
 
 object OFirst(OBase):
-  function *Create():
-    inherited Create()
-    name.Add('.OFirst')
-  endfunc
+    function *Create():
+        inherited Create()
+        name.Add('.OFirst')
+    endfunc
 endobj
 
 object OSecond(OBase):
-  function *Create():
-    inherited Create()
-    name.Add('.OSecond')
-  endfunc
+    function *Create():
+        inherited Create()
+        name.Add('.OSecond')
+    endfunc
 endobj
 
 object OArgBase:
-  v : int
+    v : int
 
-  function *Create(av : int):
-    v = av
-  endfunc
+    function *Create(av : int):
+        v = av
+    endfunc
 endobj
 
 object OArgGenerated(OArgBase):
 endobj
 
 object OArgExplicit(OArgBase):
-  function *Create(av : int):
-    inherited Create(av + 10)
-  endfunc
+    function *Create(av : int):
+        inherited Create(av + 10)
+    endfunc
 endobj
 
 function ShowObjName(aprefix : strview, o : OBase):
-  PrintLn('{} = {}', [aprefix, o.name])
+    PrintLn('{} = {}', [aprefix, o.name])
 endfunc
 
 #define USE_TYPEVAR = true
 
 function *Main() -> int:
-  var o1 : OBase
-  var o2 : OBase
+    var o1 : OBase
+    var o2 : OBase
 
-  #if USE_TYPEVAR
-    var ot : type of OBase
+    #if USE_TYPEVAR
+        var ot : type of OBase
 
     ot = OFirst
     o1 = new ot()
     ot = OSecond
     o2 = new ot()
 
-  #else
-    o1 = new OFirst()
-    o2 = new OSecond()
-  #endif
+    #else
+        o1 = new OFirst()
+        o2 = new OSecond()
+    #endif
 
 
-  o1.ShowName('first')   //?check('first', 'OBase.OFirst')
-  o2.ShowName('second')  //?check('second', 'OBase.OSecond')
+    o1.ShowName('first')   //?check('first', 'OBase.OFirst')
+    o2.ShowName('second')  //?check('second', 'OBase.OSecond')
 
-  var at : type of OArgBase
-  var a1 : OArgBase
-  var a2 : OArgBase
+    var at : type of OArgBase
+    var a1 : OArgBase
+    var a2 : OArgBase
 
-  at = OArgGenerated
-  a1 = new at(17)
-  at = OArgExplicit
-  a2 = new at(20)
+    at = OArgGenerated
+    a1 = new at(17)
+    at = OArgExplicit
+    a2 = new at(20)
 
-  @.PrintLn('arg.generated = {}', [a1.v])  //?check('arg.generated', 17)
-  @.PrintLn('arg.explicit = {}', [a2.v])   //?check('arg.explicit', 30)
+    @.PrintLn('arg.generated = {}', [a1.v])  //?check('arg.generated', 17)
+    @.PrintLn('arg.explicit = {}', [a2.v])   //?check('arg.explicit', 30)
 
-  return 0;
+    return 0;
 endfunc

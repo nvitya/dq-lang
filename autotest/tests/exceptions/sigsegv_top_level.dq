@@ -3,15 +3,15 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function CauseSegv():
-  var p : ^int = null
-  p^ = 1
+    var p : ^int = null
+    p^ = 1
 endfunc
 
 function *Main() -> int:
-  printf("sigsegv.before = 1\n")  //?check("sigsegv.before", 1)
-  CauseSegv()
-  printf("sigsegv.after = 1\n")
-  return 0
+    printf("sigsegv.before = 1\n")  //?check("sigsegv.before", 1)
+    CauseSegv()
+    printf("sigsegv.after = 1\n")
+    return 0
 endfunc
 
 //?ignore("UNCAUGHT EXCEPTION: ESegFault: Segmentation fault")

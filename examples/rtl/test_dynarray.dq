@@ -8,51 +8,51 @@ var darr <- ORawDynArray(SizeOf(int), 1);
 //var iarr : [*]int = [];
 
 function PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
-  printf('%16s:', ainfo);
+    printf('%16s:', ainfo);
 
-  for i : int = 0 count aarr.length:
-     printf(' %d', ^int(aarr.GetElemPtr(i))^);
-  endfor
-  printf('\n');
+    for i : int = 0 count aarr.length:
+       printf(' %d', ^int(aarr.GetElemPtr(i))^);
+    endfor
+    printf('\n');
 endfunc
 
 function *Main() -> int:
-  printf('DQ Raw Dynamic Array test\n');
+    printf('DQ Raw Dynamic Array test\n');
 
-  #if not EMBED
-    darr = new ORawDynArray(SizeOf(int), 1);
-  #endif
+    #if not EMBED
+        darr = new ORawDynArray(SizeOf(int), 1);
+    #endif
 
-  printf('darr.length = %d\n', darr.length);
+    printf('darr.length = %d\n', darr.length);
 
-  var iarr : [5]int = [2,3,5,7,11];
+    var iarr : [5]int = [2,3,5,7,11];
 
-  darr.Clear();
-  darr.Append(&iarr[0], 5);
+    darr.Clear();
+    darr.Append(&iarr[0], 5);
 
-  PrintDynArr('primes', darr);
+    PrintDynArr('primes', darr);
 
-  var iarr2 : [2]int = [13, 17];
-  darr.Append(&iarr2[0], 2);
+    var iarr2 : [2]int = [13, 17];
+    darr.Append(&iarr2[0], 2);
 
-  PrintDynArr('primes2', darr);
+    PrintDynArr('primes2', darr);
 
-  darr.Delete(2);
+    darr.Delete(2);
 
-  PrintDynArr('primes-[2]', darr);
+    PrintDynArr('primes-[2]', darr);
 
-  var iarr_ins : [2]int = [66, 77];
-  darr.Insert(1, &iarr_ins[0], 2);
+    var iarr_ins : [2]int = [66, 77];
+    darr.Insert(1, &iarr_ins[0], 2);
 
-  PrintDynArr('inserted', darr);
+    PrintDynArr('inserted', darr);
 
-  printf('darr.capacity = %d\n', darr.capacity);
+    printf('darr.capacity = %d\n', darr.capacity);
 
-  darr.Insert(7, &iarr_ins[0], 1);
-  PrintDynArr('inserted', darr);
-  printf('darr.capacity = %d\n', darr.capacity);
+    darr.Insert(7, &iarr_ins[0], 1);
+    PrintDynArr('inserted', darr);
+    printf('darr.capacity = %d\n', darr.capacity);
 
-  printf("test finished.\n");
+    printf("test finished.\n");
 
-  return 0;
+    return 0;
 endfunc

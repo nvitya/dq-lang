@@ -1,24 +1,24 @@
 //?notest
 
 struct SModBase:
-  id : int;
+    id : int;
 
-  function SetId(v : int):
-    id = v;
-  endfunc
+    function SetId(v : int):
+        id = v;
+    endfunc
 endstruct
 
 struct SModChild(SModBase):
-  extra : int;
+    extra : int;
 
-  function SetAll(aid : int, aextra : int):
-    self.SetId(aid);
-    extra = aextra;
-  endfunc
+    function SetAll(aid : int, aextra : int):
+        self.SetId(aid);
+        extra = aextra;
+    endfunc
 
-  function Total() -> int:
-    return id + extra;
-  endfunc
+    function Total() -> int:
+        return id + extra;
+    endfunc
 endstruct
 
 implementation

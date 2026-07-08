@@ -26,18 +26,18 @@ var sys_argc : int      = -1;
 var sys_argv : ^^cchar  = null;
 
 function __sys_init_params(argc : int, argv : ^^cchar):
-  sys_argc = argc;
-  sys_argv = argv;
+    sys_argc = argc;
+    sys_argv = argv;
 endfunc
 
 function ParamCount() -> int:
-  result = sys_argc;
+    result = sys_argc;
 endfunc
 
 function ParamStr(i : int) -> ^cchar:
-  if i >= sys_argc  or  i < 0:
-    return null;
-  else:
-    return sys_argv[i]^;
-  endif
+    if i >= sys_argc  or  i < 0:
+        return null;
+    else:
+        return sys_argv[i]^;
+    endif
 endfunc

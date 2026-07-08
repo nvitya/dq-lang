@@ -1,17 +1,17 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function test_optional_semicolon():
-  var a : int = 10
-  var b : int = 20
-  var c : int = a + b
+    var a : int = 10
+    var b : int = 20
+    var c : int = a + b
 
-  if c == 30:
-    printf("Optional semicolon works!\n")  //?ignore('Optional semicolon works!')
-  endif
+    if c == 30:
+        printf("Optional semicolon works!\n")  //?ignore('Optional semicolon works!')
+    endif
 endfunc
 
 function *Main() -> int:
-  test_optional_semicolon()
-  return 0
+    test_optional_semicolon()
+    return 0
 endfunc
 

@@ -3,13 +3,13 @@ use ./mod_selfref_object;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function *Main() -> int:
-  printf("module selfref object import=%d\n", 1); //?check("module selfref object import", 1)
-  var root = new OSelfRefObject()
-  var child = new OSelfRefObject()
-  child.value = 42
-  root.children.Append(child)
-  printf("module selfref child=%d\n", root.children[0].value); //?check("module selfref child", 42)
-  delete child
-  delete root
-  return 0;
+    printf("module selfref object import=%d\n", 1); //?check("module selfref object import", 1)
+    var root = new OSelfRefObject()
+    var child = new OSelfRefObject()
+    child.value = 42
+    root.children.Append(child)
+    printf("module selfref child=%d\n", root.children[0].value); //?check("module selfref child", 42)
+    delete child
+    delete root
+    return 0;
 endfunc

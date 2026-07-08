@@ -3,223 +3,223 @@
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function compare_ints(a : int, b : int) -> int:
-  if a < b:
-    return -1;
-  elif a > b:
-    return 1;
-  else:
-    return 0;
-  endif
+    if a < b:
+        return -1;
+    elif a > b:
+        return 1;
+    else:
+        return 0;
+    endif
 endfunc
 
 function compare_uint16(a : uint16, b : uint16) -> int:
-  if a < b:
-    return -1;
-  elif a > b:
-    return 1;
-  else:
-    return 0;
-  endif
+    if a < b:
+        return -1;
+    elif a > b:
+        return 1;
+    else:
+        return 0;
+    endif
 endfunc
 
 function compare_int16(a : int16, b : int16) -> int:
-  if a < b:
-    return -1;
-  elif a > b:
-    return 1;
-  else:
-    return 0;
-  endif
+    if a < b:
+        return -1;
+    elif a > b:
+        return 1;
+    else:
+        return 0;
+    endif
 endfunc
 
 function compare_int16_int32(a : int16, b : int32) -> int:
-  if a < b:
-    return -1;
-  elif a > b:
-    return 1;
-  else:
-    return 0;
-  endif
+    if a < b:
+        return -1;
+    elif a > b:
+        return 1;
+    else:
+        return 0;
+    endif
 endfunc
 
 function sum_ints(a : int, b : int) -> int:
-  result = 0;
-  var i : int = a;
-  while i <= b:
-    result += i;
-    i += 1;
-  endwhile
+    result = 0;
+    var i : int = a;
+    while i <= b:
+        result += i;
+        i += 1;
+    endwhile
 endfunc
 
 function sum_ints2(a : int, b : int) -> int
 {
-  result = 0;
-  var i : int = a;
-  while i <= b
-  {
-    result += i;
-    i += 1;
-  }
+    result = 0;
+    var i : int = a;
+    while i <= b
+    {
+        result += i;
+        i += 1;
+    }
 }
 
 function mask_bit(a : int, bitnum : int) -> int:
-  result = a AND 1 << bitnum;
+    result = a AND 1 << bitnum;
 endfunc
 function *Main() -> int:
-  var i : int;
+    var i : int;
 
-  printf("DQ Integer expression test\n");  //?ignore('DQ Integer expression test')
+    printf("DQ Integer expression test\n");  //?ignore('DQ Integer expression test')
 
-  var i_initial : int = 2 + 3 + 4 - 1 - 2;    // constant evaluation
-  printf("i_initial = %d\n", i_initial);        //?check(i_initial, 6)
+    var i_initial : int = 2 + 3 + 4 - 1 - 2;    // constant evaluation
+    printf("i_initial = %d\n", i_initial);        //?check(i_initial, 6)
 
-  var iv1 : int = 1;
-  var iv2 : int = 2;
-  var iv3 : int = 3;
-  var iv4 : int = 4;
+    var iv1 : int = 1;
+    var iv2 : int = 2;
+    var iv3 : int = 3;
+    var iv4 : int = 4;
 
-  i = iv2 + iv3 + iv4 - iv1 - iv2;
-  printf("2 + 3 + 4 - 1 - 2 = %d\n", i);        //?check('2 + 3 + 4 - 1 - 2', 6)
+    i = iv2 + iv3 + iv4 - iv1 - iv2;
+    printf("2 + 3 + 4 - 1 - 2 = %d\n", i);        //?check('2 + 3 + 4 - 1 - 2', 6)
 
-  i = 4 + 2 * 4 IDIV 2 - 1;
-  printf("4 + 2 * 4 IDIV 2 - 1 = %d\n", i);        //?check('4 + 2 * 4 IDIV 2 - 1', 7)
+    i = 4 + 2 * 4 IDIV 2 - 1;
+    printf("4 + 2 * 4 IDIV 2 - 1 = %d\n", i);        //?check('4 + 2 * 4 IDIV 2 - 1', 7)
 
-  i = 1234 IMOD 10;
-  printf("1234 IMOD 10 = %d\n", i);        //?check('1234 IMOD 10', 4)
+    i = 1234 IMOD 10;
+    printf("1234 IMOD 10 = %d\n", i);        //?check('1234 IMOD 10', 4)
 
-  // famous example, in C: 10 * 3 / 2 != 3 / 2 * 10
-  printf("10 * 3 IDIV 2 = %d\n", 10 * 3 IDIV 2);  //?check('10 * 3 IDIV 2', 10)
-  printf("3 IDIV 2 * 10 = %d\n", 3 IDIV 2 * 10);  //?check('3 IDIV 2 * 10', 10)
+    // famous example, in C: 10 * 3 / 2 != 3 / 2 * 10
+    printf("10 * 3 IDIV 2 = %d\n", 10 * 3 IDIV 2);  //?check('10 * 3 IDIV 2', 10)
+    printf("3 IDIV 2 * 10 = %d\n", 3 IDIV 2 * 10);  //?check('3 IDIV 2 * 10', 10)
 
-  printf("compare_ints(1, 1)   = %d\n", compare_ints(1, 1)   ); //?check('compare_ints(1, 1)'  , 0)
-  printf("compare_ints(1, 0)   = %d\n", compare_ints(1, 0)   ); //?check('compare_ints(1, 0)'  , 1)
-  printf("compare_ints(2, 3)   = %d\n", compare_ints(2, 3)   ); //?check('compare_ints(2, 3)'  , -1)
-  printf("compare_ints(-1, -2) = %d\n", compare_ints(-1, -2) ); //?check('compare_ints(-1, -2)', 1)
+    printf("compare_ints(1, 1)   = %d\n", compare_ints(1, 1)   ); //?check('compare_ints(1, 1)'  , 0)
+    printf("compare_ints(1, 0)   = %d\n", compare_ints(1, 0)   ); //?check('compare_ints(1, 0)'  , 1)
+    printf("compare_ints(2, 3)   = %d\n", compare_ints(2, 3)   ); //?check('compare_ints(2, 3)'  , -1)
+    printf("compare_ints(-1, -2) = %d\n", compare_ints(-1, -2) ); //?check('compare_ints(-1, -2)', 1)
 
-  printf("compare_uint16(0xF000, 0x0F00) = %d\n",  compare_uint16(0xF000, 0x0F00)  ); //?check('compare_uint16(0xF000, 0x0F00)' , 1)
-  printf("compare_int16(0xF000, 0x0F00)  = %d\n",  compare_int16(0xF000, 0x0F00)  ); //?check('compare_int16(0xF000, 0x0F00)' , -1)
-  printf("compare_int16_int32(30000, 40000) = %d\n", compare_int16_int32(30000, 40000));  //?check('compare_int16_int32(30000, 40000)', -1)
-  printf("compare_int16_int32(30000, 20000) = %d\n", compare_int16_int32(30000, 20000));  //?check('compare_int16_int32(30000, 20000)', 1)
-  printf("compare_int16_int32(30000, 30000) = %d\n", compare_int16_int32(30000, 30000));  //?check('compare_int16_int32(30000, 30000)', 0)
+    printf("compare_uint16(0xF000, 0x0F00) = %d\n",  compare_uint16(0xF000, 0x0F00)  ); //?check('compare_uint16(0xF000, 0x0F00)' , 1)
+    printf("compare_int16(0xF000, 0x0F00)  = %d\n",  compare_int16(0xF000, 0x0F00)  ); //?check('compare_int16(0xF000, 0x0F00)' , -1)
+    printf("compare_int16_int32(30000, 40000) = %d\n", compare_int16_int32(30000, 40000));  //?check('compare_int16_int32(30000, 40000)', -1)
+    printf("compare_int16_int32(30000, 20000) = %d\n", compare_int16_int32(30000, 20000));  //?check('compare_int16_int32(30000, 20000)', 1)
+    printf("compare_int16_int32(30000, 30000) = %d\n", compare_int16_int32(30000, 30000));  //?check('compare_int16_int32(30000, 30000)', 0)
 
-  printf("sum_ints(1, 5)  = %d\n", sum_ints(1, 5)  );  //?check('sum_ints(1, 5)',  15)
-  printf("sum_ints(5, 1)  = %d\n", sum_ints(5, 1)  );  //?check('sum_ints(5, 1)',   0)
-  printf("sum_ints(-3, 5) = %d\n", sum_ints(-3, 5) );  //?check('sum_ints(-3, 5)',  9)
-  printf("sum_ints2(6, 8) = %d\n", sum_ints2(6, 8) );  //?check('sum_ints2(6, 8)', 21)
+    printf("sum_ints(1, 5)  = %d\n", sum_ints(1, 5)  );  //?check('sum_ints(1, 5)',  15)
+    printf("sum_ints(5, 1)  = %d\n", sum_ints(5, 1)  );  //?check('sum_ints(5, 1)',   0)
+    printf("sum_ints(-3, 5) = %d\n", sum_ints(-3, 5) );  //?check('sum_ints(-3, 5)',  9)
+    printf("sum_ints2(6, 8) = %d\n", sum_ints2(6, 8) );  //?check('sum_ints2(6, 8)', 21)
 
-  printf("mask_bit(0x1234, 1) = %d\n", mask_bit(0x1234, 1));  //?check('mask_bit(0x1234, 1)', 0)
-  printf("mask_bit(0x1234, 2) = %d\n", mask_bit(0x1234, 2));  //?check('mask_bit(0x1234, 2)', 4)
-  printf("mask_bit(0x1234, 9) = %d\n", mask_bit(0x1234, 9));  //?check('mask_bit(0x1234, 9)', 512)
+    printf("mask_bit(0x1234, 1) = %d\n", mask_bit(0x1234, 1));  //?check('mask_bit(0x1234, 1)', 0)
+    printf("mask_bit(0x1234, 2) = %d\n", mask_bit(0x1234, 2));  //?check('mask_bit(0x1234, 2)', 4)
+    printf("mask_bit(0x1234, 9) = %d\n", mask_bit(0x1234, 9));  //?check('mask_bit(0x1234, 9)', 512)
 
-  // bitwise operation
-  i = (1 << 1) OR (1 << 0) AND 0x0001;
-  printf("bitwise1 = %d\n", i);              //?check(bitwise1, 3)
-  i = ((1 << 1) OR (1 << 0)) AND 0x0001;
-  printf("bitwise2 = %d\n", i);              //?check(bitwise2, 1)
+    // bitwise operation
+    i = (1 << 1) OR (1 << 0) AND 0x0001;
+    printf("bitwise1 = %d\n", i);              //?check(bitwise1, 3)
+    i = ((1 << 1) OR (1 << 0)) AND 0x0001;
+    printf("bitwise2 = %d\n", i);              //?check(bitwise2, 1)
 
-  i = 0x3333 AND  NOT 0xF;
-  printf("0x3333 AND  NOT 0xF = 0x%04X\n", i);              //?check('0x3333 AND  NOT 0xF', 0x3330)
+    i = 0x3333 AND  NOT 0xF;
+    printf("0x3333 AND  NOT 0xF = 0x%04X\n", i);              //?check('0x3333 AND  NOT 0xF', 0x3330)
 
-  i = 0xFF00 XOR 0x0FF0;
-  printf("0xFF00 XOR 0x0FF00 = 0x%08X\n", i);  //?check('0xFF00 XOR 0x0FF00', 0x0000F0F0)
+    i = 0xFF00 XOR 0x0FF0;
+    printf("0xFF00 XOR 0x0FF00 = 0x%08X\n", i);  //?check('0xFF00 XOR 0x0FF00', 0x0000F0F0)
 
-  var ui8 : uint8;
-  var si8 : int8 = 127;
-  si8 += 1;
-  printf("int8 overflow = %d\n", si8);  //?check('int8 overflow', -128)
+    var ui8 : uint8;
+    var si8 : int8 = 127;
+    si8 += 1;
+    printf("int8 overflow = %d\n", si8);  //?check('int8 overflow', -128)
 
-  si8 = 0xF0;
-  printf("int8  <- 0xF0 = %d\n", si8);  //?check('int8  <- 0xF0', -16)
-  ui8 = si8;
-  printf("uint8 <- 0xF0 = %d\n", ui8);  //?check('uint8 <- 0xF0', 240)
+    si8 = 0xF0;
+    printf("int8  <- 0xF0 = %d\n", si8);  //?check('int8  <- 0xF0', -16)
+    ui8 = si8;
+    printf("uint8 <- 0xF0 = %d\n", ui8);  //?check('uint8 <- 0xF0', 240)
 
-  si8 = 0x70;
-  printf("int8  <- 0x70 = %d\n", si8);  //?check('int8  <- 0x70', 112)
+    si8 = 0x70;
+    printf("int8  <- 0x70 = %d\n", si8);  //?check('int8  <- 0x70', 112)
 
-  var si16 : int16 = 0xFF00;
-  printf("int16 <- 0xFF00 = %d\n", si16);  //?check('int16 <- 0xFF00', -256)
-  si16 = 0x7F00;
-  printf("int16 <- 0x7F00 = %d\n", si16);  //?check('int16 <- 0x7F00', 32512)
+    var si16 : int16 = 0xFF00;
+    printf("int16 <- 0xFF00 = %d\n", si16);  //?check('int16 <- 0xFF00', -256)
+    si16 = 0x7F00;
+    printf("int16 <- 0x7F00 = %d\n", si16);  //?check('int16 <- 0x7F00', 32512)
 
-  var si32 : int32 = 0xFFFFFF00;
-  printf("int32 <- 0xFFFFFF00 = %d\n", si32);  //?check('int32 <- 0xFFFFFF00', -256)
-  si32 = 0x7FFFFF00;
-  printf("int32 <- 0x7FFFFF00 = %d\n", si32);  //?check('int32 <- 0x7FFFFF00', 2147483392)
+    var si32 : int32 = 0xFFFFFF00;
+    printf("int32 <- 0xFFFFFF00 = %d\n", si32);  //?check('int32 <- 0xFFFFFF00', -256)
+    si32 = 0x7FFFFF00;
+    printf("int32 <- 0x7FFFFF00 = %d\n", si32);  //?check('int32 <- 0x7FFFFF00', 2147483392)
 
-  var si64 : int64 = 0xFFFFFFFFFFFFFF00;
-  printf("int64 <- 0xFFFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0xFFFFFFFFFFFFFF00', -256)
-  si64 = 0x7FFFFFFFFFFFFF00;
-  printf("int64 <- 0x7FFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0x7FFFFFFFFFFFFF00', 9223372036854775552)
+    var si64 : int64 = 0xFFFFFFFFFFFFFF00;
+    printf("int64 <- 0xFFFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0xFFFFFFFFFFFFFF00', -256)
+    si64 = 0x7FFFFFFFFFFFFF00;
+    printf("int64 <- 0x7FFFFFFFFFFFFF00 = %lld\n", si64);  //?check('int64 <- 0x7FFFFFFFFFFFFF00', 9223372036854775552)
 
-  var folded_si8 : int8 = 0x70 + 0x10;
-  printf("folded int8 = %d\n", folded_si8);  //?check('folded int8', -128)
+    var folded_si8 : int8 = 0x70 + 0x10;
+    printf("folded int8 = %d\n", folded_si8);  //?check('folded int8', -128)
 
-  var arr3 : [3]int16;
-  var ptr_pad : [@def.PTRSIZE - 1]byte;
-  printf("SizeOf(arr3) = %d\n", SizeOf(arr3));                //?check('SizeOf(arr3)', 6)
-  printf("SizeOf([3]int16) = %d\n", SizeOf([3]int16));        //?check('SizeOf([3]int16)', 6)
-  #if @def.PTRSIZE == 8
-    printf("[64]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[64]SizeOf(ptr_pad)', 7)
-    printf("[32]SizeOf(ptr_pad) = 3\n");
-  #else
-    printf("[64]SizeOf(ptr_pad) = 7\n");
-    printf("[32]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[32]SizeOf(ptr_pad)', 3)
-  #endif
-  printf("SizeOf(int32) = %d\n", SizeOf(int32));              //?check('SizeOf(int32)', 4)
-  printf("SizeOf(cstring(12)) = %d\n", SizeOf(cstring(12)));  //?check('SizeOf(cstring(12))', 13)
+    var arr3 : [3]int16;
+    var ptr_pad : [@def.PTRSIZE - 1]byte;
+    printf("SizeOf(arr3) = %d\n", SizeOf(arr3));                //?check('SizeOf(arr3)', 6)
+    printf("SizeOf([3]int16) = %d\n", SizeOf([3]int16));        //?check('SizeOf([3]int16)', 6)
+    #if @def.PTRSIZE == 8
+        printf("[64]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[64]SizeOf(ptr_pad)', 7)
+        printf("[32]SizeOf(ptr_pad) = 3\n");
+    #else
+        printf("[64]SizeOf(ptr_pad) = 7\n");
+        printf("[32]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad));          //?check('[32]SizeOf(ptr_pad)', 3)
+    #endif
+    printf("SizeOf(int32) = %d\n", SizeOf(int32));              //?check('SizeOf(int32)', 4)
+    printf("SizeOf(cstring(12)) = %d\n", SizeOf(cstring(12)));  //?check('SizeOf(cstring(12))', 13)
 
-  // implicit uint -> int conversions at substractions
+    // implicit uint -> int conversions at substractions
 
-  // uint - uint      -> unsigned result
-  // uint - int, int - uint       -> signed result
-  // uint - literal, literal - uint  -> signed result when the literal is not explicitly unsigned
+    // uint - uint      -> unsigned result
+    // uint - int, int - uint       -> signed result
+    // uint - literal, literal - uint  -> signed result when the literal is not explicitly unsigned
 
-  var scuint  : uint = 3
-  var scuint5 : uint = 5
-  var scsmall : int = 3
-  var scminus : int = 5
+    var scuint  : uint = 3
+    var scuint5 : uint = 5
+    var scsmall : int = 3
+    var scminus : int = 5
 
-  if scuint - scuint5 > 0:
-    printf("scuint-scuint5 = positive\n")
-  else:
-    printf("scuint-scuint5 = negative\n")
-  endif
-  //?check('scuint-scuint5', 'positive')
+    if scuint - scuint5 > 0:
+        printf("scuint-scuint5 = positive\n")
+    else:
+        printf("scuint-scuint5 = negative\n")
+    endif
+    //?check('scuint-scuint5', 'positive')
 
-  if scuint - 5 > 0:
-    printf("scuint-5 = positive\n")
-  else:
-    printf("scuint-5 = negative\n")
-  endif
-  //?check('scuint-5', 'negative')
+    if scuint - 5 > 0:
+        printf("scuint-5 = positive\n")
+    else:
+        printf("scuint-5 = negative\n")
+    endif
+    //?check('scuint-5', 'negative')
 
-  if scuint - scminus > 0:
-    printf("scuint-scminus = positive\n")
-  else:
-    printf("scuint-scminus = negative\n")
-  endif
-  //?check('scuint-scminus', 'negative')
+    if scuint - scminus > 0:
+        printf("scuint-scminus = positive\n")
+    else:
+        printf("scuint-scminus = negative\n")
+    endif
+    //?check('scuint-scminus', 'negative')
 
-  if scuint - uint(5) > 0:
-    printf("scuint-uint(5) = positive\n")
-  else:
-    printf("scuint-uint(5) = negative\n")
-  endif
-  //?check('scuint-uint(5)', 'positive')
+    if scuint - uint(5) > 0:
+        printf("scuint-uint(5) = positive\n")
+    else:
+        printf("scuint-uint(5) = negative\n")
+    endif
+    //?check('scuint-uint(5)', 'positive')
 
-  if 3 - scuint5 > 0:
-    printf("3-scuint5 = positive\n")
-  else:
-    printf("3-scuint5 = negative\n")
-  endif
-  //?check('3-scuint5', 'negative')
+    if 3 - scuint5 > 0:
+        printf("3-scuint5 = positive\n")
+    else:
+        printf("3-scuint5 = negative\n")
+    endif
+    //?check('3-scuint5', 'negative')
 
-  if scsmall - scuint5 > 0:
-    printf("scsmall-scuint5 = positive\n")
-  else:
-    printf("scsmall-scuint5 = negative\n")
-  endif
-  //?check('scsmall-scuint5', 'negative')
+    if scsmall - scuint5 > 0:
+        printf("scsmall-scuint5 = positive\n")
+    else:
+        printf("scsmall-scuint5 = negative\n")
+    endif
+    //?check('scsmall-scuint5', 'negative')
 
-  return 0;
+    return 0;
 endfunc

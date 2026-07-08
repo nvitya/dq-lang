@@ -10,35 +10,35 @@ function takes_ref(a : ref int):
 endfunc
 
 function takes_refout(a : refout int):
-  a = 1;
+    a = 1;
 endfunc
 
 function takes_refnull(a : refnull int):
-  if &a == null:
-    return;
-  endif
+    if &a == null:
+        return;
+    endif
 endfunc
 
 function bad_refin(a : refin int):
-  a = 1;  //?error(RefReadonly)
+    a = 1;  //?error(RefReadonly)
 endfunc
 
 function bad_refout_read(a : refout int) -> int:
-  result = a;  //?error(RefOutRead)
+    result = a;  //?error(RefOutRead)
 endfunc
 function *Main() -> int:
-  var x : int = 1;
-  var y : int;
+    var x : int = 1;
+    var y : int;
 
-  takes_ref(1);  //?error(FuncArgRefBind)
-  takes_ref(y);  //?error(FuncArgRefInit)
-  takes_ref(null);  //?error(FuncArgRefNull)
-  takes_refout(1);  //?error(FuncArgRefBind)
-  takes_refnull(null);
+    takes_ref(1);  //?error(FuncArgRefBind)
+    takes_ref(y);  //?error(FuncArgRefInit)
+    takes_ref(null);  //?error(FuncArgRefNull)
+    takes_refout(1);  //?error(FuncArgRefBind)
+    takes_refnull(null);
 
-  ref bad : int;  //?error(RefLocalInit)
-  ref infer = 1;  //?error(RefLocalBind)
-  ref mismatch : bool = x;  //?error(RefLocalType)
-  refnull badnull : int;  //?error(RefLocalMode)
-  return 0;
+    ref bad : int;  //?error(RefLocalInit)
+    ref infer = 1;  //?error(RefLocalBind)
+    ref mismatch : bool = x;  //?error(RefLocalType)
+    refnull badnull : int;  //?error(RefLocalMode)
+    return 0;
 endfunc

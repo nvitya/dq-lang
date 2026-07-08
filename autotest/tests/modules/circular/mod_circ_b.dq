@@ -10,5 +10,5 @@ implementation
 use ./mod_circ_a;
 
 function func_b() -> int:
-  result = RESULT_B + OFFSET_A;
+    result = RESULT_B + OFFSET_A;
 endfunc

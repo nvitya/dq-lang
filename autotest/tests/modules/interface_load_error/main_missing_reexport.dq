@@ -1,5 +1,5 @@
 use ./fac  //?error(UseInterfaceLoad, 'Unknown DQM interface type "SDep" while loading module "interface_load_error/fac"')
 
 function *Main() -> int:
-  return 0
+    return 0
 endfunc

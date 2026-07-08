@@ -1,51 +1,51 @@
 use libc/stdio;
 
 object OBase:
-  cnt1 : int = 0;
-  cnt2 : int = 10;
-  name : cstring[32];
+    cnt1 : int = 0;
+    cnt2 : int = 10;
+    name : cstring[32];
 
-  function *Create(aname : cstring):  // constructor
-    name = aname;
-  endfunc
+    function *Create(aname : cstring):  // constructor
+        name = aname;
+    endfunc
 
-  function *Destroy():
-    @.printf("%s destroy\n", &name[0]);
-  endfunc
+    function *Destroy():
+        @.printf("%s destroy\n", &name[0]);
+    endfunc
 
-  function Count() [[virtual]]:
-    cnt1 += 1;
-  endfunc
+    function Count() [[virtual]]:
+        cnt1 += 1;
+    endfunc
 
-  function Print():
-    @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2);
-  endfunc
+    function Print():
+        @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2);
+    endfunc
 endobj
 
 object OChild(OBase):
-  function Count() [[override]]:
-    inherited;
-    cnt2 += 1;
-  endfunc
+    function Count() [[override]]:
+        inherited;
+        cnt2 += 1;
+    endfunc
 endobj
 
 var obase   <- OBase('OBase');     // '<-' = embedded allocation
 var ochild  : OChild = null;
 
 function *Main() -> int:
-  printf('Object Inheritance Test\n');
+    printf('Object Inheritance Test\n');
 
-  ochild = new OChild('OChild');
+    ochild = new OChild('OChild');
 
-  printf('SizeOf(OBase) = %d\n', SizeOf(OBase));
+    printf('SizeOf(OBase) = %d\n', SizeOf(OBase));
 
-  obase.Count();
-  ochild.Count();
+    obase.Count();
+    ochild.Count();
 
-  obase.Print();
-  ochild.Print();
+    obase.Print();
+    ochild.Print();
 
-  delete ochild;
+    delete ochild;
 
-  return 0;
+    return 0;
 endfunc

@@ -3,5 +3,5 @@
 
 use ./mod_comperr;  //?error(UseRegenFailed)
 function *Main() -> int:
-  return 0;
+    return 0;
 endfunc

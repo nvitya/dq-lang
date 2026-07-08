@@ -8,68 +8,68 @@ var value_calls : int = 0;
 
 object OEvaluationBox:
 private
-  values : [3]int = [1, 2, 3];
-  getter_calls : int = 0;
-  setter_calls : int = 0;
+    values : [3]int = [1, 2, 3];
+    getter_calls : int = 0;
+    setter_calls : int = 0;
 
-  function GetItem(index : int) -> int:
-    getter_calls += 1;
-    return values[index];
-  endfunc
+    function GetItem(index : int) -> int:
+        getter_calls += 1;
+        return values[index];
+    endfunc
 
-  function SetItem(index : int, value : int):
-    setter_calls += 1;
-    values[index] = value;
-  endfunc
+    function SetItem(index : int, value : int):
+        setter_calls += 1;
+        values[index] = value;
+    endfunc
 
-  function GetGetterCalls() -> int:
-    return getter_calls;
-  endfunc
+    function GetGetterCalls() -> int:
+        return getter_calls;
+    endfunc
 
-  function GetSetterCalls() -> int:
-    return setter_calls;
-  endfunc
+    function GetSetterCalls() -> int:
+        return setter_calls;
+    endfunc
 
 public
-  property items : [index : int]int read GetItem write SetItem
-  property gets : int read GetGetterCalls
-  property sets : int read GetSetterCalls
+    property items : [index : int]int read GetItem write SetItem
+    property gets : int read GetGetterCalls
+    property sets : int read GetSetterCalls
 endobj
 
 var box <- OEvaluationBox();
 
 function GetBox() -> OEvaluationBox:
-  receiver_calls += 1;
-  return box;
+    receiver_calls += 1;
+    return box;
 endfunc
 
 function NextIndex() -> int:
-  index_calls += 1;
-  return 1;
+    index_calls += 1;
+    return 1;
 endfunc
 
 function NextValue() -> int:
-  value_calls += 1;
-  return 99;
+    value_calls += 1;
+    return 99;
 endfunc
 
 function *Main() -> int:
-  GetBox().items[NextIndex()] = NextValue();
+    GetBox().items[NextIndex()] = NextValue();
 
-  printf("property.eval.assignment = %d %d %d %d %d\n",
-         receiver_calls, index_calls, value_calls, box.gets, box.sets);
-  //?check("property.eval.assignment", "1 1 1 0 1")
+    printf("property.eval.assignment = %d %d %d %d %d\n",
+           receiver_calls, index_calls, value_calls, box.gets, box.sets);
+    //?check("property.eval.assignment", "1 1 1 0 1")
 
-  printf("property.eval.result = %d %d\n", box.items[1], box.gets);
-  //?check("property.eval.result", "99 1")
+    printf("property.eval.result = %d %d\n", box.items[1], box.gets);
+    //?check("property.eval.result", "99 1")
 
-  GetBox().items[NextIndex()] += NextValue();
-  printf("property.eval.modify = %d %d %d %d %d\n",
-         receiver_calls, index_calls, value_calls, box.gets, box.sets);
-  //?check("property.eval.modify", "2 2 2 2 2")
+    GetBox().items[NextIndex()] += NextValue();
+    printf("property.eval.modify = %d %d %d %d %d\n",
+           receiver_calls, index_calls, value_calls, box.gets, box.sets);
+    //?check("property.eval.modify", "2 2 2 2 2")
 
-  printf("property.eval.modified-result = %d %d\n", box.items[1], box.gets);
-  //?check("property.eval.modified-result", "198 3")
+    printf("property.eval.modified-result = %d %d\n", box.items[1], box.gets);
+    //?check("property.eval.modified-result", "198 3")
 
-  return 0;
+    return 0;
 endfunc

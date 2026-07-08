@@ -2,52 +2,52 @@
 
 object OPropertyAddressability:
 private
-  value : int = 1;
+    value : int = 1;
 
-  function GetValue() -> int:
-    return value;
-  endfunc
+    function GetValue() -> int:
+        return value;
+    endfunc
 
-  function SetValue(new_value : int):
-    value = new_value;
-  endfunc
+    function SetValue(new_value : int):
+        value = new_value;
+    endfunc
 
-  function GetItem(index : int) -> int:
-    return value + index;
-  endfunc
+    function GetItem(index : int) -> int:
+        return value + index;
+    endfunc
 
-  function SetItem(index : int, new_value : int):
-    value = new_value - index;
-  endfunc
+    function SetItem(index : int, new_value : int):
+        value = new_value - index;
+    endfunc
 
 public
-  property direct : int read value write value
-  property method_value : int read GetValue write SetValue
-  property item : [index : int]int read GetItem write SetItem
+    property direct : int read value write value
+    property method_value : int read GetValue write SetValue
+    property item : [index : int]int read GetItem write SetItem
 endobj
 
 function TakeRef(value : ref int):
 endfunc
 
 function TakeRefOut(value : refout int):
-  value = 0;
+    value = 0;
 endfunc
 
 function *Main() -> int:
-  var obj <- OPropertyAddressability();
+    var obj <- OPropertyAddressability();
 
-  var p1 : ^int = &obj.direct; //?error(PropertyNotAddressable)
-  var p2 : ^int = &obj.method_value; //?error(PropertyNotAddressable)
-  var p3 : ^int = &obj.item[0]; //?error(PropertyNotAddressable)
+    var p1 : ^int = &obj.direct; //?error(PropertyNotAddressable)
+    var p2 : ^int = &obj.method_value; //?error(PropertyNotAddressable)
+    var p3 : ^int = &obj.item[0]; //?error(PropertyNotAddressable)
 
-  TakeRef(obj.direct); //?error(PropertyNotAddressable)
-  TakeRef(obj.method_value); //?error(PropertyNotAddressable)
-  TakeRef(obj.item[0]); //?error(PropertyNotAddressable)
-  TakeRefOut(obj.direct); //?error(PropertyNotAddressable)
+    TakeRef(obj.direct); //?error(PropertyNotAddressable)
+    TakeRef(obj.method_value); //?error(PropertyNotAddressable)
+    TakeRef(obj.item[0]); //?error(PropertyNotAddressable)
+    TakeRefOut(obj.direct); //?error(PropertyNotAddressable)
 
-  ref direct_ref = obj.direct; //?error(PropertyNotAddressable)
-  ref method_ref = obj.method_value; //?error(PropertyNotAddressable)
-  ref item_ref = obj.item[0]; //?error(PropertyNotAddressable)
+    ref direct_ref = obj.direct; //?error(PropertyNotAddressable)
+    ref method_ref = obj.method_value; //?error(PropertyNotAddressable)
+    ref item_ref = obj.item[0]; //?error(PropertyNotAddressable)
 
-  return 0;
+    return 0;
 endfunc

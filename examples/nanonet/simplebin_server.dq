@@ -4,47 +4,47 @@ use print
 use nanonet/nano_sockets
 
 object OSConnectionSimple(OSConnection):
-  inbuf  : str
-  indata : str
+    inbuf  : str
+    indata : str
 
-  function *Create(aserver : ONanoServer)
-  function *Destroy()
+    function *Create(aserver : ONanoServer)
+    function *Destroy()
 
-  function HandleInput(aobj : Object)  [[override]]
-  function ProcessInData()
+    function HandleInput(aobj : Object)  [[override]]
+    function ProcessInData()
 endobj
 
 function OSConnectionSimple.*Create(aserver : ONanoServer):
-  inherited Create(aserver)
-  indata = ''
-  inbuf.SetLength(4096, 0)
+    inherited Create(aserver)
+    indata = ''
+    inbuf.SetLength(4096, 0)
 
-  @.PrintLn('OSConnectionSimple.Create')
+    @.PrintLn('OSConnectionSimple.Create')
 endfunc
 
 function OSConnectionSimple.*Destroy():
-  @.PrintLn('Connection destroy.')
-  indata = '';
-  inbuf = '';
-  inherited Destroy()
+    @.PrintLn('Connection destroy.')
+    indata = '';
+    inbuf = '';
+    inherited Destroy()
 endfunc
 
 function OSConnectionSimple.HandleInput(aobj : Object)  [[override]]:
-  var r : int = sock.Recv(&inbuf[0], inbuf.length)
-  if r > 0:
-    indata = inbuf[0:r]
-    ProcessInData()
-  elif r == 0:
-    // the socket is closed !
-    server.CloseConnection(self)  // this connection is scheduled for removal, safe freeing in other context
-  else:
-    // ignore errors
-  endif
+    var r : int = sock.Recv(&inbuf[0], inbuf.length)
+    if r > 0:
+        indata = inbuf[0:r]
+        ProcessInData()
+    elif r == 0:
+        // the socket is closed !
+        server.CloseConnection(self)  // this connection is scheduled for removal, safe freeing in other context
+    else:
+        // ignore errors
+    endif
 endfunc
 
 function OSConnectionSimple.ProcessInData():
-  // the overridden function should do something more useful with the indata...
-  @.PrintLn('<- "{}"', [indata])
+    // the overridden function should do something more useful with the indata...
+    @.PrintLn('<- "{}"', [indata])
 endfunc
 
 //--------------------------------------------------------------------------------------------------
@@ -52,22 +52,21 @@ endfunc
 var svr : ONanoServer
 
 function *Main() -> int:
-  PrintLn('DQ NanoNet - SimpleBin Server')
+    PrintLn('DQ NanoNet - SimpleBin Server')
 
-  svr = new ONanoServer(OSConnectionSimple, 4444)
-  svr.InitListener()
+    svr = new ONanoServer(OSConnectionSimple, 4444)
+    svr.InitListener()
 
-  PrintLn('Server listening at port {}', [svr.listen_port])
+    PrintLn('Server listening at port {}', [svr.listen_port])
 
-  PrintLn('Entering main loop...')
+    PrintLn('Entering main loop...')
 
-  while true:
-    svr.WaitForEvents(1000)
+    while true:
+        svr.WaitForEvents(1000)
 
-    // you can do something else here
-    Print('.'); PrintFlush();
+        // you can do something else here
+        Print('.'); PrintFlush();
+    endwhile
 
-  endwhile
-
-  return 0
+    return 0
 endfunc

@@ -4,12 +4,12 @@ use libc/stdio;
 use ./builtin_object_mod;
 
 function *Main() -> int:
-  var obj : OModObject = new OModObject(7);
-  var any : Object = ExportObject(obj);
+    var obj : OModObject = new OModObject(7);
+    var any : Object = ExportObject(obj);
 
-  printf("object.import.return = %li\n", ImportedObjectSet(any)); //?check("object.import.return", 1)
-  printf("object.import.arg = %li\n", ImportedObjectSet(obj)); //?check("object.import.arg", 1)
+    printf("object.import.return = %li\n", ImportedObjectSet(any)); //?check("object.import.return", 1)
+    printf("object.import.arg = %li\n", ImportedObjectSet(obj)); //?check("object.import.arg", 1)
 
-  delete obj;
-  return 0;
+    delete obj;
+    return 0;
 endfunc

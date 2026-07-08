@@ -3,31 +3,31 @@
 use libc/stdio;
 
 struct SDynData:
-  intvalue : int;
-  name : cstring(64);
+    intvalue : int;
+    name : cstring(64);
 endstruct
 
 object OTest:
-  ddata : SDynData;
+    ddata : SDynData;
 
-  function *Create(a : int):
-    //ddata = new SDynData;
-    ddata.intvalue = a;
-    ddata.name = "OTestName";
-  endfunc
+    function *Create(a : int):
+        //ddata = new SDynData;
+        ddata.intvalue = a;
+        ddata.name = "OTestName";
+    endfunc
 
-  function *Destroy():
-    //free ddata;
-    //ddata = null;
-  endfunc
+    function *Destroy():
+        //free ddata;
+        //ddata = null;
+    endfunc
 
-  function Print():
-    @.printf("obj = %s(%d)\n", &ddata.name, ddata.intvalue);
-  endfunc
+    function Print():
+        @.printf("obj = %s(%d)\n", &ddata.name, ddata.intvalue);
+    endfunc
 endobj
 
 function *Main() -> int:
-  var obj <- OTest(1);
-  obj.Print();    //?check('obj', 'OTestName(1)')
-  return 0;
+    var obj <- OTest(1);
+    obj.Print();    //?check('obj', 'OTestName(1)')
+    return 0;
 endfunc

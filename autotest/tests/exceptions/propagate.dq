@@ -5,20 +5,20 @@
 var reached : int = 0
 
 function Thrower():
-  raise Exception("from thrower")
-  reached = 1
+    raise Exception("from thrower")
+    reached = 1
 endfunc
 
 function *Main() -> int:
-  try:
-    Thrower()
-    reached = 2
-  except Exception as e:
-    printf("exception.propagate = caught ")
-    e.PrintMessage()
-    printf(" reached=%d\n", reached)
-    //?check("exception.propagate", "caught from thrower reached=0")
-  endtry
+    try:
+        Thrower()
+        reached = 2
+    except Exception as e:
+        printf("exception.propagate = caught ")
+        e.PrintMessage()
+        printf(" reached=%d\n", reached)
+        //?check("exception.propagate", "caught from thrower reached=0")
+    endtry
 
-  return 0
+    return 0
 endfunc

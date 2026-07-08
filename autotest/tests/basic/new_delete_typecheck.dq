@@ -1,14 +1,14 @@
 // new/delete type checking tests (ERROR test)
 
 function *Main() -> int:
-  var bad_infer = 123;  //?error(TypeSpecExpected)
+    var bad_infer = 123;  //?error(TypeSpecExpected)
 
-  var x : int = 1;
-  delete x;  //?error(TypeExpected)
+    var x : int = 1;
+    delete x;  //?error(TypeExpected)
 
-  delete new int(1) = null;  //?error(NotWriteable)
+    delete new int(1) = null;  //?error(NotWriteable)
 
-  var bad_void : ^void = new void;  //?error(TypeUnknown)
-  var bad_init : ^int = new int("x");  //?error(TypeMismatchAssign)
-  return 0;
+    var bad_void : ^void = new void;  //?error(TypeUnknown)
+    var bad_init : ^int = new int("x");  //?error(TypeMismatchAssign)
+    return 0;
 endfunc

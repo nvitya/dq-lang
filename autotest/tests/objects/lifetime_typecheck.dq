@@ -1,48 +1,48 @@
 // object storage and lifetime type checking tests (ERROR test)
 
 object OTest:
-  value : int;
+    value : int;
 
-  function *Create():
-  endfunc
+    function *Create():
+    endfunc
 
-  function *Destroy(a : int): //?error(SpecialFuncSignature)
-  endfunc
+    function *Destroy(a : int): //?error(SpecialFuncSignature)
+    endfunc
 endobj
 
 object OMissing:
-  child <- OTest;
+    child <- OTest;
 
-  function *Create():
-  endfunc //?error(SpecialFuncInvalid)
+    function *Create():
+    endfunc //?error(SpecialFuncInvalid)
 endobj
 
 object ODouble:
-  child <- OTest();
+    child <- OTest();
 
-  function *Create():
-    child.Create(); //?error(SpecialFuncInvalid)
-  endfunc
+    function *Create():
+        child.Create(); //?error(SpecialFuncInvalid)
+    endfunc
 endobj
 
 object OPrivate:
 private
-  secret : int;
+    secret : int;
 public
-  function Get() -> int:
-    result = secret;
-  endfunc
+    function Get() -> int:
+        result = secret;
+    endfunc
 endobj
 
 function *Main() -> int:
-  result = 0;
+    result = 0;
 
-  var fixed <- OTest();
-  var ref : OTest = null;
-  var priv <- OPrivate;
+    var fixed <- OTest();
+    var ref : OTest = null;
+    var priv <- OPrivate;
 
-  result = priv.secret; //?error(MemberUnknown)
-  fixed = ref;          //?error(RefReadonly)
-  var bad : OTest = {}; //?error(NotSupported)
+    result = priv.secret; //?error(MemberUnknown)
+    fixed = ref;          //?error(RefReadonly)
+    var bad : OTest = {}; //?error(NotSupported)
 
 endfunc

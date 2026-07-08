@@ -5,15 +5,15 @@
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 
 function *Main() -> int:
-  var reached : bool = false;
+    var reached : bool = false;
 
-  try:
-    var invalid : NState = NState.FromOrd(11);
-    reached = true;
-  except Exception:
-    printf("enum.fromord.runtime = caught reached=%li\n", int(reached));
-    //?check("enum.fromord.runtime", "caught reached=0")
-  endtry
+    try:
+        var invalid : NState = NState.FromOrd(11);
+        reached = true;
+    except Exception:
+        printf("enum.fromord.runtime = caught reached=%li\n", int(reached));
+        //?check("enum.fromord.runtime", "caught reached=0")
+    endtry
 
-  return 0;
+    return 0;
 endfunc

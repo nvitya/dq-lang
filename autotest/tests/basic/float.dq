@@ -9,126 +9,126 @@ const CONST_FLOOR : int = Floor(10.0 / 3.0);   // Floor(3.333...) = 3
 // --- float64 arithmetic ---
 
 function dq_fl_add(a : float64, b : float64) -> float64:
-  result = a + b;
+    result = a + b;
 endfunc
 
 function dq_fl_sub(a : float64, b : float64) -> float64:
-  result = a - b;
+    result = a - b;
 endfunc
 
 function dq_fl_mul(a : float64, b : float64) -> float64:
-  result = a * b;
+    result = a * b;
 endfunc
 
 function dq_fl_div(a : float64, b : float64) -> float64:
-  result = a / b;
+    result = a / b;
 endfunc
 
 // --- float32 arithmetic ---
 
 function dq_fl32_add(a : float32, b : float32) -> float32:
-  result = a + b;
+    result = a + b;
 endfunc
 
 function dq_fl32_mul(a : float32, b : float32) -> float32:
-  result = a * b;
+    result = a * b;
 endfunc
 
 // --- round/ceil/floor on float64 ---
 
 function dq_fl_round(v : float64) -> int:
-  result = Round(v);
+    result = Round(v);
 endfunc
 
 function dq_fl_ceil(v : float64) -> int:
-  result = Ceil(v);
+    result = Ceil(v);
 endfunc
 
 function dq_fl_floor(v : float64) -> int:
-  result = Floor(v);
+    result = Floor(v);
 endfunc
 
 // --- round/ceil/floor on float32 ---
 
 function dq_fl32_round(v : float32) -> int:
-  result = Round(v);
+    result = Round(v);
 endfunc
 
 function dq_fl32_ceil(v : float32) -> int:
-  result = Ceil(v);
+    result = Ceil(v);
 endfunc
 
 function dq_fl32_floor(v : float32) -> int:
-  result = Floor(v);
+    result = Floor(v);
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Testing DQ float operations:\n\n");     //?ignore('Testing DQ float operations:')
+    printf("Testing DQ float operations:\n\n");     //?ignore('Testing DQ float operations:')
 
-  printf("--- float64 arithmetic ---\n");         //?ignore('--- float64 arithmetic ---')
+    printf("--- float64 arithmetic ---\n");         //?ignore('--- float64 arithmetic ---')
 
-  printf('dq_fl_add(1.5, 2.5) = %.3f\n',     dq_fl_add(1.5, 2.5)  );  //?check('dq_fl_add(1.5, 2.5)', 4.000)
-  printf("dq_fl_add(-1.5, 2.5) = %.3f\n",    dq_fl_add(-1.5, 2.5) );  //?check('dq_fl_add(-1.5, 2.5)', 1.000)
-  printf("dq_fl_sub(5.5, 2.5) = %.3f\n",     dq_fl_sub(5.5, 2.5)  );  //?check('dq_fl_sub(5.5, 2.5)', 3.000)
-  printf("dq_fl_sub(1.0, 3.5) = %.3f\n",     dq_fl_sub(1.0, 3.5)  );  //?check('dq_fl_sub(1.0, 3.5)',   -2.500)
-  printf("dq_fl_mul(2.5, 4.0) = %.3f\n",     dq_fl_mul(2.5, 4.0)  );  //?check('dq_fl_mul(2.5, 4.0)',   10.000)
-  printf("dq_fl_mul(-3.0, 2.5) = %.3f\n",    dq_fl_mul(-3.0, 2.5) );  //?check('dq_fl_mul(-3.0, 2.5)',  -7.500)
-  printf("dq_fl_div(10.0, 4.0) = %.3f\n",    dq_fl_div(10.0, 4.0) );  //?check('dq_fl_div(10.0, 4.0)',   2.500)
-  printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) );  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
+    printf('dq_fl_add(1.5, 2.5) = %.3f\n',     dq_fl_add(1.5, 2.5)  );  //?check('dq_fl_add(1.5, 2.5)', 4.000)
+    printf("dq_fl_add(-1.5, 2.5) = %.3f\n",    dq_fl_add(-1.5, 2.5) );  //?check('dq_fl_add(-1.5, 2.5)', 1.000)
+    printf("dq_fl_sub(5.5, 2.5) = %.3f\n",     dq_fl_sub(5.5, 2.5)  );  //?check('dq_fl_sub(5.5, 2.5)', 3.000)
+    printf("dq_fl_sub(1.0, 3.5) = %.3f\n",     dq_fl_sub(1.0, 3.5)  );  //?check('dq_fl_sub(1.0, 3.5)',   -2.500)
+    printf("dq_fl_mul(2.5, 4.0) = %.3f\n",     dq_fl_mul(2.5, 4.0)  );  //?check('dq_fl_mul(2.5, 4.0)',   10.000)
+    printf("dq_fl_mul(-3.0, 2.5) = %.3f\n",    dq_fl_mul(-3.0, 2.5) );  //?check('dq_fl_mul(-3.0, 2.5)',  -7.500)
+    printf("dq_fl_div(10.0, 4.0) = %.3f\n",    dq_fl_div(10.0, 4.0) );  //?check('dq_fl_div(10.0, 4.0)',   2.500)
+    printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) );  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
 
-  printf("\n--- float32 arithmetic ---\n");  //?ignore('--- float32 arithmetic ---')
+    printf("\n--- float32 arithmetic ---\n");  //?ignore('--- float32 arithmetic ---')
 
-  printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) );  //?check('dq_fl32_add(1.5, 2.5)', 4.000)
-  printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) );  //?check('dq_fl32_mul(2.5, 4.0)', 10.000)
+    printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) );  //?check('dq_fl32_add(1.5, 2.5)', 4.000)
+    printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) );  //?check('dq_fl32_mul(2.5, 4.0)', 10.000)
 
-  printf("\n--- Round(float64) -> int ---\n"); //?ignore('--- Round(float64) -> int ---')
+    printf("\n--- Round(float64) -> int ---\n"); //?ignore('--- Round(float64) -> int ---')
 
-  printf("Round(1.4) = %i\n",    dq_fl_round(1.4)   );   //?check('Round(1.4)', 1)
-  printf("Round(1.5) = %i\n",    dq_fl_round(1.5)   );   //?check('Round(1.5)', 2)
-  printf("Round(1.6) = %i\n",    dq_fl_round(1.6)   );   //?check('Round(1.6)', 2)
-  printf("Round(2.5) = %i\n",    dq_fl_round(2.5)   );   //?check('Round(2.5)', 3)
-  printf("Round(-1.4) = %i\n",   dq_fl_round(-1.4)  );   //?check('Round(-1.4)', -1)
-  printf("Round(-1.5) = %i\n",   dq_fl_round(-1.5)  );   //?check('Round(-1.5)', -2)
-  printf("Round(-1.6) = %i\n",   dq_fl_round(-1.6)  );   //?check('Round(-1.6)', -2)
-  printf("Round(0.0) = %i\n",    dq_fl_round(0.0)   );   //?check('Round(0.0)', 0)
+    printf("Round(1.4) = %i\n",    dq_fl_round(1.4)   );   //?check('Round(1.4)', 1)
+    printf("Round(1.5) = %i\n",    dq_fl_round(1.5)   );   //?check('Round(1.5)', 2)
+    printf("Round(1.6) = %i\n",    dq_fl_round(1.6)   );   //?check('Round(1.6)', 2)
+    printf("Round(2.5) = %i\n",    dq_fl_round(2.5)   );   //?check('Round(2.5)', 3)
+    printf("Round(-1.4) = %i\n",   dq_fl_round(-1.4)  );   //?check('Round(-1.4)', -1)
+    printf("Round(-1.5) = %i\n",   dq_fl_round(-1.5)  );   //?check('Round(-1.5)', -2)
+    printf("Round(-1.6) = %i\n",   dq_fl_round(-1.6)  );   //?check('Round(-1.6)', -2)
+    printf("Round(0.0) = %i\n",    dq_fl_round(0.0)   );   //?check('Round(0.0)', 0)
 
-  printf("\n--- Ceil(float64) -> int ---\n"); //?ignore('--- Ceil(float64) -> int ---')
+    printf("\n--- Ceil(float64) -> int ---\n"); //?ignore('--- Ceil(float64) -> int ---')
 
-  printf("Ceil(1.0) = %i\n",     dq_fl_ceil(1.0)    );   //?check('Ceil(1.0)', 1)
-  printf("Ceil(1.1) = %i\n",     dq_fl_ceil(1.1)    );   //?check('Ceil(1.1)', 2)
-  printf("Ceil(1.9) = %i\n",     dq_fl_ceil(1.9)    );   //?check('Ceil(1.9)', 2)
-  printf("Ceil(-1.1) = %i\n",    dq_fl_ceil(-1.1)   );   //?check('Ceil(-1.1)', -1)
-  printf("Ceil(-1.9) = %i\n",    dq_fl_ceil(-1.9)   );   //?check('Ceil(-1.9)', -1)
-  printf("Ceil(0.0) = %i\n",     dq_fl_ceil(0.0)    );   //?check('Ceil(0.0)', 0)
+    printf("Ceil(1.0) = %i\n",     dq_fl_ceil(1.0)    );   //?check('Ceil(1.0)', 1)
+    printf("Ceil(1.1) = %i\n",     dq_fl_ceil(1.1)    );   //?check('Ceil(1.1)', 2)
+    printf("Ceil(1.9) = %i\n",     dq_fl_ceil(1.9)    );   //?check('Ceil(1.9)', 2)
+    printf("Ceil(-1.1) = %i\n",    dq_fl_ceil(-1.1)   );   //?check('Ceil(-1.1)', -1)
+    printf("Ceil(-1.9) = %i\n",    dq_fl_ceil(-1.9)   );   //?check('Ceil(-1.9)', -1)
+    printf("Ceil(0.0) = %i\n",     dq_fl_ceil(0.0)    );   //?check('Ceil(0.0)', 0)
 
-  printf("\n--- Floor(float64) -> int ---\n");  //?ignore('--- Floor(float64) -> int ---')
+    printf("\n--- Floor(float64) -> int ---\n");  //?ignore('--- Floor(float64) -> int ---')
 
-  printf("Floor(1.0) = %i\n",    dq_fl_floor(1.0)   );   //?check('Floor(1.0)', 1)
-  printf("Floor(1.1) = %i\n",    dq_fl_floor(1.1)   );   //?check('Floor(1.1)', 1)
-  printf("Floor(1.9) = %i\n",    dq_fl_floor(1.9)   );   //?check('Floor(1.9)', 1)
-  printf("Floor(-1.1) = %i\n",   dq_fl_floor(-1.1)  );   //?check('Floor(-1.1)', -2)
-  printf("Floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  );   //?check('Floor(-1.9)', -2)
-  printf("Floor(0.0) = %i\n",    dq_fl_floor(0.0)   );   //?check('Floor(0.0)', 0)
+    printf("Floor(1.0) = %i\n",    dq_fl_floor(1.0)   );   //?check('Floor(1.0)', 1)
+    printf("Floor(1.1) = %i\n",    dq_fl_floor(1.1)   );   //?check('Floor(1.1)', 1)
+    printf("Floor(1.9) = %i\n",    dq_fl_floor(1.9)   );   //?check('Floor(1.9)', 1)
+    printf("Floor(-1.1) = %i\n",   dq_fl_floor(-1.1)  );   //?check('Floor(-1.1)', -2)
+    printf("Floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  );   //?check('Floor(-1.9)', -2)
+    printf("Floor(0.0) = %i\n",    dq_fl_floor(0.0)   );   //?check('Floor(0.0)', 0)
 
-  printf("\n--- round/ceil/Floor(float32) -> int ---\n");  //?ignore('--- round/ceil/Floor(float32) -> int ---')
+    printf("\n--- round/ceil/Floor(float32) -> int ---\n");  //?ignore('--- round/ceil/Floor(float32) -> int ---')
 
-  printf("round32(1.5) = %i\n",   dq_fl32_round(1.5)  );  //?check('round32(1.5)', 2)
-  printf("round32(-1.5) = %i\n",  dq_fl32_round(-1.5) );  //?check('round32(-1.5)', -2)
-  printf("ceil32(1.1) = %i\n",    dq_fl32_ceil(1.1)   );  //?check('ceil32(1.1)', 2)
-  printf("ceil32(-1.9) = %i\n",   dq_fl32_ceil(-1.9)  );  //?check('ceil32(-1.9)', -1)
-  printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //?check('floor32(1.9)', 1)
-  printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //?check('floor32(-1.1)', -2)
+    printf("round32(1.5) = %i\n",   dq_fl32_round(1.5)  );  //?check('round32(1.5)', 2)
+    printf("round32(-1.5) = %i\n",  dq_fl32_round(-1.5) );  //?check('round32(-1.5)', -2)
+    printf("ceil32(1.1) = %i\n",    dq_fl32_ceil(1.1)   );  //?check('ceil32(1.1)', 2)
+    printf("ceil32(-1.9) = %i\n",   dq_fl32_ceil(-1.9)  );  //?check('ceil32(-1.9)', -1)
+    printf("floor32(1.9) = %i\n",   dq_fl32_floor(1.9)  );  //?check('floor32(1.9)', 1)
+    printf("floor32(-1.1) = %i\n",  dq_fl32_floor(-1.1) );  //?check('floor32(-1.1)', -2)
 
-  printf("Round(1.25 + 1.25) = %i\n", Round(1.25 + 1.25));  //?check('Round(1.25 + 1.25)', 3)
-  printf("Ceil(2.0 + 0.1) = %i\n", Ceil(2.0 + 0.1));        //?check('Ceil(2.0 + 0.1)', 3)
-  printf("3 / 2 = %.3f\n", 3 / 2);                          //?check('3 / 2', 1.500)
+    printf("Round(1.25 + 1.25) = %i\n", Round(1.25 + 1.25));  //?check('Round(1.25 + 1.25)', 3)
+    printf("Ceil(2.0 + 0.1) = %i\n", Ceil(2.0 + 0.1));        //?check('Ceil(2.0 + 0.1)', 3)
+    printf("3 / 2 = %.3f\n", 3 / 2);                          //?check('3 / 2', 1.500)
 
-  // ---- constant expressions ----
-  printf("\n--- constant expressions (compile-time evaluation) ---\n"); //?ignore('--- constant expressions (compile-time evaluation) ---')
-  printf("CONST_ROUND = %i\n", CONST_ROUND);  //?check(CONST_ROUND, 3)
-  printf("CONST_CEIL = %i\n",  CONST_CEIL);   //?check(CONST_CEIL, 7)
-  printf("CONST_FLOOR = %i\n", CONST_FLOOR);  //?check(CONST_FLOOR, 3)
+    // ---- constant expressions ----
+    printf("\n--- constant expressions (compile-time evaluation) ---\n"); //?ignore('--- constant expressions (compile-time evaluation) ---')
+    printf("CONST_ROUND = %i\n", CONST_ROUND);  //?check(CONST_ROUND, 3)
+    printf("CONST_CEIL = %i\n",  CONST_CEIL);   //?check(CONST_CEIL, 7)
+    printf("CONST_FLOOR = %i\n", CONST_FLOOR);  //?check(CONST_FLOOR, 3)
 
-  return 0;
+    return 0;
 endfunc

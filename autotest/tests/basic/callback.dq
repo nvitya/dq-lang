@@ -4,76 +4,76 @@ type CBUnary = function(a : int) -> int;
 type CBBinary = function(a : int, b : int) -> int;
 
 function later_inc(a : int) -> int:
-  result = a + 1;
+    result = a + 1;
 endfunc
 
 function add(a : int, b : int) -> int:
-  result = a + b;
+    result = a + b;
 endfunc
 
 var g_later : CBUnary = later_inc;
 var g_empty : CBUnary;
 
 function apply_unary(cb : CBUnary, a : int) -> int:
-  if cb == null:
-    result = -100;
-  else:
-    result = cb(a);
-  endif
+    if cb == null:
+        result = -100;
+    else:
+        result = cb(a);
+    endif
 endfunc
 
 function choose_cb(flag : bool) -> CBUnary:
-  if flag:
-    result = later_inc;
-  else:
-    result = null;
-  endif
+    if flag:
+        result = later_inc;
+    else:
+        result = null;
+    endif
 endfunc
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Testing DQ callbacks:\n\n");  //?ignore('Testing DQ callbacks:')
+    printf("Testing DQ callbacks:\n\n");  //?ignore('Testing DQ callbacks:')
 
-  var r : int = 0;
-  var cb : CBUnary = null;
-  var cb_add : CBBinary = add;
-  var chosen : CBUnary = choose_cb(true);
+    var r : int = 0;
+    var cb : CBUnary = null;
+    var cb_add : CBBinary = add;
+    var chosen : CBUnary = choose_cb(true);
 
-  if cb == null:
-    r = 1;
-  endif
-  printf("cb_null = %li\n", r);  //?check('cb_null', 1)
+    if cb == null:
+        r = 1;
+    endif
+    printf("cb_null = %li\n", r);  //?check('cb_null', 1)
 
-  cb = later_inc;
-  r = cb(5);
-  printf("cb(5) = %li\n", r);  //?check('cb(5)', 6)
+    cb = later_inc;
+    r = cb(5);
+    printf("cb(5) = %li\n", r);  //?check('cb(5)', 6)
 
-  r = apply_unary(later_inc, 7);
-  printf("apply_unary(later_inc, 7) = %li\n", r);  //?check('apply_unary(later_inc, 7)', 8)
+    r = apply_unary(later_inc, 7);
+    printf("apply_unary(later_inc, 7) = %li\n", r);  //?check('apply_unary(later_inc, 7)', 8)
 
-  r = chosen(9);
-  printf("choose_cb(true)(9) = %li\n", r);  //?check('choose_cb(true)(9)', 10)
+    r = chosen(9);
+    printf("choose_cb(true)(9) = %li\n", r);  //?check('choose_cb(true)(9)', 10)
 
-  chosen = choose_cb(false);
-  if chosen != null:
-    r = -1;
-  else:
-    r = 2;
-  endif
-  printf("choose_cb_false = %li\n", r);  //?check('choose_cb_false', 2)
+    chosen = choose_cb(false);
+    if chosen != null:
+        r = -1;
+    else:
+        r = 2;
+    endif
+    printf("choose_cb_false = %li\n", r);  //?check('choose_cb_false', 2)
 
-  if g_empty == null:
-    r = 3;
-  else:
-    r = -1;
-  endif
-  printf("g_empty_null = %li\n", r);  //?check('g_empty_null', 3)
+    if g_empty == null:
+        r = 3;
+    else:
+        r = -1;
+    endif
+    printf("g_empty_null = %li\n", r);  //?check('g_empty_null', 3)
 
-  r = g_later(10);
-  printf("g_later(10) = %li\n", r);  //?check('g_later(10)', 11)
+    r = g_later(10);
+    printf("g_later(10) = %li\n", r);  //?check('g_later(10)', 11)
 
-  r = cb_add(3, 4);
-  printf("cb_add(3, 4) = %li\n", r);  //?check('cb_add(3, 4)', 7)
+    r = cb_add(3, 4);
+    printf("cb_add(3, 4) = %li\n", r);  //?check('cb_add(3, 4)', 7)
 
-  return 0;
+    return 0;
 endfunc

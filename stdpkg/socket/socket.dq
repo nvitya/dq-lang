@@ -97,40 +97,40 @@ const EPOLLET        : uint32 = 0x80000000
 const EPOLL_CLOEXEC : int = O_CLOEXEC
 
 struct SInAddr:
-  s_addr : uint32
+    s_addr : uint32
 endstruct
 
 struct SSockAddr:
-  sa_family : uint16
-  sa_data   : [14]byte
+    sa_family : uint16
+    sa_data   : [14]byte
 endstruct
 
 struct SSockAddrIn:
-  sin_family : uint16
-  sin_port   : uint16
-  sin_addr   : SInAddr
-  sin_zero   : [8]byte
+    sin_family : uint16
+    sin_port   : uint16
+    sin_addr   : SInAddr
+    sin_zero   : [8]byte
 endstruct
 
 struct SSockAddrIn6:
-  sin6_family   : uint16
-  sin6_port     : uint16
-  sin6_flowinfo : uint32
-  sin6_addr     : [16]byte
-  sin6_scope_id : uint32
+    sin6_family   : uint16
+    sin6_port     : uint16
+    sin6_flowinfo : uint32
+    sin6_addr     : [16]byte
+    sin6_scope_id : uint32
 endstruct
 
 struct SSockAddrStorage:
-  ss_family : uint16
-  __data    : [118]byte
-  __align   : uint
+    ss_family : uint16
+    __data    : [118]byte
+    __align   : uint
 endstruct
 
 // glibc packs epoll_event to { uint32 events; epoll_data_t data; }.
 // Represent the union payload by its pointer-sized member, which also covers fd/u32/u64 storage.
 [[packed]] struct SEpollEvent:
-  events : uint32
-  data   : pointer
+    events : uint32
+    data   : pointer
 endstruct
 
 type TSockAddr       = SSockAddrIn
@@ -184,22 +184,22 @@ function SetSocketNonBlocking(sockfd : TSocket) -> int
 implementation
 
 function SocketError() -> int:
-  return libc___errno_location()^
+    return libc___errno_location()^
 endfunc
 
 function SocketErrno() -> int:
-  return libc___errno_location()^
+    return libc___errno_location()^
 endfunc
 
 function CloseSocket(sockfd : TSocket) -> int:
-  return libc_close(sockfd)
+    return libc_close(sockfd)
 endfunc
 
 function SetSocketNonBlocking(sockfd : TSocket) -> int:
-  var flags : int = libc_fcntl(sockfd, F_GETFL)
-  if flags < 0:
-    return flags
-  endif
+    var flags : int = libc_fcntl(sockfd, F_GETFL)
+    if flags < 0:
+        return flags
+    endif
 
-  return libc_fcntl(sockfd, F_SETFL, flags OR O_NONBLOCK)
+    return libc_fcntl(sockfd, F_SETFL, flags OR O_NONBLOCK)
 endfunc

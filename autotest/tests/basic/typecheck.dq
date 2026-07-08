@@ -4,58 +4,58 @@ var i : int = 3 / 2; //?error(TypeMismatchAssign)
 var object_scope_global : int = 1;
 
 struct TOffsetCheck:
-  field : int;
+    field : int;
 endstruct
 
 object TObjectScopeCheck:
-  id : int;
+    id : int;
 
-  function BadScope():
-    object_scope_global;  //?error(ObjVsInModuleNs)
-  endfunc
+    function BadScope():
+        object_scope_global;  //?error(ObjVsInModuleNs)
+    endfunc
 endobj
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 object TObjectRootScopeFuncCheck:
-  function BadPrintf():
-    printf('bad');  //?error(ObjVsInModuleNs)
-  endfunc
+    function BadPrintf():
+        printf('bad');  //?error(ObjVsInModuleNs)
+    endfunc
 endobj
 
 blabla  //?error(ModStatementUnknown)
 function *Main() -> int:
-  var i : int = 0;
-  var f : float = 0;
-  i = 3 / 2;       //?error(TypeMismatchAssign)
-  f = 10 * 3 / 2;
+    var i : int = 0;
+    var f : float = 0;
+    i = 3 / 2;       //?error(TypeMismatchAssign)
+    f = 10 * 3 / 2;
 
-  if i < f:  // int-float comparison ok
-    printf('OK');
-  endif
+    if i < f:  // int-float comparison ok
+        printf('OK');
+    endif
 
-  i = f;  //?error(TypeMismatchAssign)
-  i = OffsetOf(int, field);            //?error(TypeExpected)
-  i = OffsetOf(TOffsetCheck, missing); //?error(MemberUnknown)
+    i = f;  //?error(TypeMismatchAssign)
+    i = OffsetOf(int, field);            //?error(TypeExpected)
+    i = OffsetOf(TOffsetCheck, missing); //?error(MemberUnknown)
 
-  if i:   //?error(BoolExprExpected)
-    printf("?");
-  endif
+    if i:   //?error(BoolExprExpected)
+        printf("?");
+    endif
 
-  if f > 5 and f < 10 or i > f:  // no parentheses required
-    printf('ok');
-  endif
+    if f > 5 and f < 10 or i > f:  // no parentheses required
+        printf('ok');
+    endif
 
-  f = f AND NOT 1; //?error(TypeMismatchOp)
-  f = Round(f) AND NOT 1;
+    f = f AND NOT 1; //?error(TypeMismatchOp)
+    f = Round(f) AND NOT 1;
 
-  f = i;
-  f = i > 5; //?error(TypeMismatchAssign)
-  i = Round(f);
+    f = i;
+    f = i > 5; //?error(TypeMismatchAssign)
+    i = Round(f);
 
-  var s1 : cstring(7) = "";
-  var s2 : cstring(11) = "";
-  s1 = s2;
+    var s1 : cstring(7) = "";
+    var s2 : cstring(11) = "";
+    s1 = s2;
 
-  return 0;
+    return 0;
 endfunc

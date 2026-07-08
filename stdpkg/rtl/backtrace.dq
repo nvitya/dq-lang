@@ -21,9 +21,9 @@ function DqPrintBacktrace(backtrace : pointer, backtrace_count : int)
 implementation
 
 #ifdef WINDOWS
-  use rtl/backtrace_win
+    use rtl/backtrace_win
 #else
-  use rtl/backtrace_linux
+    use rtl/backtrace_linux
 #endif
 
 use libc/stdio
@@ -33,27 +33,27 @@ function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 //-------------------------------------------------------------------------------------------------
 
 function DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int:
-  result = DqCaptureBacktraceImpl(backtrace, max_frames)
+    result = DqCaptureBacktraceImpl(backtrace, max_frames)
 endfunc
 
 function DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
-  if backtrace_count <= 0:
-    printf("Backtrace: <not captured>\n")
-    return
-  endif
-
-  printf("Backtrace =\n")
-  libc_fflush(null)
-  var i : int = 0
-  var printed : int = 0
-  var stop_printing : bool = false
-  while i < backtrace_count:
-    if DqPrintBacktraceFrameImpl(printed, ^pointer(backtrace)[i]^, printed < DQ_BACKTRACE_INTERNAL_SKIP, &stop_printing):
-      printed += 1
-      if stop_printing:
+    if backtrace_count <= 0:
+        printf("Backtrace: <not captured>\n")
         return
-      endif
     endif
-    i += 1
-  endwhile
+
+    printf("Backtrace =\n")
+    libc_fflush(null)
+    var i : int = 0
+    var printed : int = 0
+    var stop_printing : bool = false
+    while i < backtrace_count:
+        if DqPrintBacktraceFrameImpl(printed, ^pointer(backtrace)[i]^, printed < DQ_BACKTRACE_INTERNAL_SKIP, &stop_printing):
+            printed += 1
+            if stop_printing:
+                return
+            endif
+        endif
+        i += 1
+    endwhile
 endfunc

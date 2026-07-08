@@ -21,6 +21,6 @@ use rtl/rtlint
 use rtl/exception
 
 function DqEnumInvalidOrd():
-  raise new Exception("Invalid enum ordinal")
+    raise new Exception("Invalid enum ordinal")
 endfunc
 

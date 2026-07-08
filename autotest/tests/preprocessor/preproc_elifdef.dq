@@ -4,43 +4,43 @@
 #define VALUE = 7
 
 #if VALUE < 0
-  var branch1 : int = 1;
+    var branch1 : int = 1;
 #elifdef DEFINED1
-  var branch1 : int = 2;
+    var branch1 : int = 2;
 #else
-  var branch1 : int = 3;
+    var branch1 : int = 3;
 #endif
 
 #ifdef NOT_DEFINED
-  var branch2 : int = 10;
+    var branch2 : int = 10;
 #elif VALUE == 7
-  var branch2 : int = 20;
+    var branch2 : int = 20;
 #else
-  var branch2 : int = 30;
+    var branch2 : int = 30;
 #endif
 
 #ifdef DEFINED1
-  var branch3 : int = 100;
+    var branch3 : int = 100;
 #elifndef NOT_DEFINED
-  var branch3 : int = 200;
+    var branch3 : int = 200;
 #else
-  var branch3 : int = 300;
+    var branch3 : int = 300;
 #endif
 
 #ifdef NOT_DEFINED
-  var branch4 : int = 1000;
+    var branch4 : int = 1000;
 #elifndef ALSO_NOT_DEFINED
-  var branch4 : int = 2000;
+    var branch4 : int = 2000;
 #else
-  var branch4 : int = 3000;
+    var branch4 : int = 3000;
 #endif
 
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 function *Main() -> int:
-  printf("Preprocessor elifdef test:\n");  //?ignore("Preprocessor elifdef test:")
-  printf("branch1 = %i\n", branch1);       //?check(branch1, 2)
-  printf("branch2 = %i\n", branch2);       //?check(branch2, 20)
-  printf("branch3 = %i\n", branch3);       //?check(branch3, 100)
-  printf("branch4 = %i\n", branch4);       //?check(branch4, 2000)
-  return 0;
+    printf("Preprocessor elifdef test:\n");  //?ignore("Preprocessor elifdef test:")
+    printf("branch1 = %i\n", branch1);       //?check(branch1, 2)
+    printf("branch2 = %i\n", branch2);       //?check(branch2, 20)
+    printf("branch3 = %i\n", branch3);       //?check(branch3, 100)
+    printf("branch4 = %i\n", branch4);       //?check(branch4, 2000)
+    return 0;
 endfunc

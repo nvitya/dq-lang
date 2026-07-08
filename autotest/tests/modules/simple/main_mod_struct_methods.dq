@@ -3,11 +3,11 @@ use ./mod_struct_methods;
 [[external]] function printf(fmt : ^cchar, ...) -> int;
 
 function *Main() -> int:
-  var s : SModChild = {};
-  s.SetAll(4, 9);
+    var s : SModChild = {};
+    s.SetAll(4, 9);
 
-  printf("module struct total=%d\n", s.Total()); //?check("module struct total", 13)
-  printf("module struct base field=%d\n", s.id); //?check("module struct base field", 4)
+    printf("module struct total=%d\n", s.Total()); //?check("module struct total", 13)
+    printf("module struct base field=%d\n", s.id); //?check("module struct base field", 4)
 
-  return 0;
+    return 0;
 endfunc

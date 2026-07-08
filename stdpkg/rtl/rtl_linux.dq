@@ -54,113 +54,113 @@ var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
 
 function OsRtErrorHandler(emsg : ^cchar):
-  DqExcRaise(new Exception(emsg), true)
+    DqExcRaise(new Exception(emsg), true)
 endfunc
 
 function DqSigSegvHandler(signum : int):
-  dq_sigsegv_signal = signum
-  dq_sigsegv_backtrace_count = libc_backtrace(&dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
+    dq_sigsegv_signal = signum
+    dq_sigsegv_backtrace_count = libc_backtrace(&dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
-  if dq_sigsegv_guard_active <> 0:
-    dq_sigsegv_guard_active = 0
+    if dq_sigsegv_guard_active <> 0:
+        dq_sigsegv_guard_active = 0
 
     // jump back where the libc___sigsetjmp(&dq_sigsegv_jmp, 1) was called
     // but return with 1 (non-zero) !
     libc_siglongjmp(&dq_sigsegv_jmp[0], 1)
-  endif
+    endif
 
-  libc_signal(signum, SIG_DFL)  // set back the default signal handler
-  libc_raise(signum)
+    libc_signal(signum, SIG_DFL)  // set back the default signal handler
+    libc_raise(signum)
 endfunc
 
 function SigSegvMessage() -> ^cchar:
-  if dq_sigsegv_signal == SIGSEGV:
-    return "Segmentation fault"
-  endif
-  return "fatal signal"
+    if dq_sigsegv_signal == SIGSEGV:
+        return "Segmentation fault"
+    endif
+    return "fatal signal"
 endfunc
 
 function RaiseSignalException():
-  DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
-                                      &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
+    DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
+                                        &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
 function PrintException(e : Exception) -> int:
-  printf("\nUNCAUGHT EXCEPTION: ")
-  printf("%s", TypeName(e))
-  printf(": ")
-  e.PrintMessage()
-  printf("\n")
-  e.PrintBacktrace()
-  return -1
+    printf("\nUNCAUGHT EXCEPTION: ")
+    printf("%s", TypeName(e))
+    printf(": ")
+    e.PrintMessage()
+    printf("\n")
+    e.PrintBacktrace()
+    return -1
 endfunc
 
 function PrintUncaughtException() -> int:
-  result = PrintException(DqExcCurrent())
-  DqExcClear()
+    result = PrintException(DqExcCurrent())
+    DqExcClear()
 endfunc
 
 //-----------------------------------------------------------------------------
 
 function RunHostedMain() -> int:
-  result = 0
-  dq_sigsegv_guard_active = 1
+    result = 0
+    dq_sigsegv_guard_active = 1
 
-  // the libc___sigsetjmp function takes a "snapshot" of the current CPU state
-  // (registers, stack pointer, instruction pointer, and the current signal mask)
-  // and stores it in the dq_sigsegv_jmp array.
-  // On the first pass it returns 0
+    // the libc___sigsetjmp function takes a "snapshot" of the current CPU state
+    // (registers, stack pointer, instruction pointer, and the current signal mask)
+    // and stores it in the dq_sigsegv_jmp array.
+    // On the first pass it returns 0
 
-  if libc___sigsetjmp(&dq_sigsegv_jmp, 1) == 0:
-    try:
-      dq_module_init()
-    except Exception as e:
-      dq_sigsegv_guard_active = 0
-      return PrintException(e)
-    endtry
+    if libc___sigsetjmp(&dq_sigsegv_jmp, 1) == 0:
+        try:
+            dq_module_init()
+        except Exception as e:
+            dq_sigsegv_guard_active = 0
+            return PrintException(e)
+        endtry
 
     if DqExcActive():
-      dq_sigsegv_guard_active = 0
-      return PrintUncaughtException()
+        dq_sigsegv_guard_active = 0
+        return PrintUncaughtException()
     endif
 
     try:
-      result = dq_main()
+        result = dq_main()
     except Exception as e:
-      dq_sigsegv_guard_active = 0
-      result = PrintException(e)
+        dq_sigsegv_guard_active = 0
+        result = PrintException(e)
     endtry
 
     dq_sigsegv_guard_active = 0
     if DqExcActive():
-      result = PrintUncaughtException()
+        result = PrintUncaughtException()
     endif
-  else:
-    // Jumped here from the signal handler
-    dq_sigsegv_guard_active = 0
-    try:
-      RaiseSignalException()
-    except Exception as e:
-      result = PrintException(e)
-    endtry
-    if DqExcActive():
-      result = PrintUncaughtException()
+    else:
+        // Jumped here from the signal handler
+        dq_sigsegv_guard_active = 0
+        try:
+            RaiseSignalException()
+        except Exception as e:
+            result = PrintException(e)
+        endtry
+        if DqExcActive():
+            result = PrintUncaughtException()
+        endif
     endif
-  endif
 endfunc
 
 // libc entry point 'main()'
 
 function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
 
-  rterror_handler = OsRtErrorHandler
+    rterror_handler = OsRtErrorHandler
 
-  libc_signal(SIGSEGV, DqSigSegvHandler)
+    libc_signal(SIGSEGV, DqSigSegvHandler)
 
-  @prgargs.__sys_init_params(argc, argv)
+    @prgargs.__sys_init_params(argc, argv)
 
-  result = RunHostedMain()
+    result = RunHostedMain()
 
-  // no finalize for modules
+    // no finalize for modules
 
 endfunc

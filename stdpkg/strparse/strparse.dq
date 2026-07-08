@@ -15,46 +15,46 @@
 */
 
 object OStrParse:
-  bufstart : ^cchar
-  bufend   : ^cchar
-  readp    : ^cchar
-  prevp    : ^cchar
-  prevlen  : int
+    bufstart : ^cchar
+    bufend   : ^cchar
+    readp    : ^cchar
+    prevp    : ^cchar
+    prevlen  : int
 
-  commentmarker       : char = '#'
-  float_decimal_point : char = '.'
+    commentmarker       : char = '#'
+    float_decimal_point : char = '.'
 
-  function *Create()                           [[overload]]
-  function *Create(astr : ^cchar, alen : int)  [[overload]]
-  function *Create(astr : strview)             [[overload]]
+    function *Create()                           [[overload]]
+    function *Create(astr : ^cchar, alen : int)  [[overload]]
+    function *Create(astr : strview)             [[overload]]
 
-  function Init(astr : ^cchar, alen : int)
+    function Init(astr : ^cchar, alen : int)
 
-  function SkipSpaces(skiplineend : bool = true)
-  function SkipWhite()
+    function SkipSpaces(skiplineend : bool = true)
+    function SkipWhite()
 
-  function ReadLine() -> bool
-  function ReadTo(checkchars : strview) -> bool
-  function ReadToChar(achar : char) -> bool
-  function ReadAlphaNum() -> bool
-  function ReadDecimalNumbers() -> bool
-  function ReadHexNumbers() -> bool
-  function ReadFloatNum() -> bool
-  function ReadQuotedString() -> bool
-  function SearchPattern(checkstring : strview) -> bool
+    function ReadLine() -> bool
+    function ReadTo(checkchars : strview) -> bool
+    function ReadToChar(achar : char) -> bool
+    function ReadAlphaNum() -> bool
+    function ReadDecimalNumbers() -> bool
+    function ReadHexNumbers() -> bool
+    function ReadFloatNum() -> bool
+    function ReadQuotedString() -> bool
+    function SearchPattern(checkstring : strview) -> bool
 
-  function CheckSymbol(checkstring : strview) -> bool
+    function CheckSymbol(checkstring : strview) -> bool
 
-  function PrevStr() -> str
-  function UCComparePrev(checkstring : strview) -> bool
-  function PrevToInt() -> int
-  function PrevHexToInt() -> uint
-  function PrevToFloat() -> float64
+    function PrevStr() -> str
+    function UCComparePrev(checkstring : strview) -> bool
+    function PrevToInt() -> int
+    function PrevHexToInt() -> uint
+    function PrevToFloat() -> float64
 
-  function GetLineNum(pos : ^cchar) -> int  [[overload]]
-  function GetLineNum() -> int              [[overload]]
-  function GetColNum(pos : ^cchar) -> int   [[overload]]
-  function GetColNum() -> int               [[overload]]
+    function GetLineNum(pos : ^cchar) -> int  [[overload]]
+    function GetLineNum() -> int              [[overload]]
+    function GetColNum(pos : ^cchar) -> int   [[overload]]
+    function GetColNum() -> int               [[overload]]
 
 endobj
 
@@ -68,444 +68,444 @@ implementation
 use math
 
 function OStrParse.*Create()  [[overload]]:
-  // no special init required
+    // no special init required
 endfunc
 
 function OStrParse.*Create(astr : strview)  [[overload]]:
-  Init(^cchar(&astr[0]), astr.length)
+    Init(^cchar(&astr[0]), astr.length)
 endfunc
 
 function OStrParse.*Create(astr : ^cchar, alen : int)  [[overload]]:
-  Init(astr, alen)
+    Init(astr, alen)
 endfunc
 
 function OStrParse.Init(astr : ^cchar, alen : int):
-  bufstart = astr
-  bufend   = bufstart + alen
+    bufstart = astr
+    bufend   = bufstart + alen
 
-  readp = bufstart
-  prevp = bufstart
-  prevlen = 0
+    readp = bufstart
+    prevp = bufstart
+    prevlen = 0
 endfunc
 
 function OStrParse.SkipSpaces(skiplineend : bool = true):
-  var cp : ^cchar = readp
-  while cp < bufend  and ( cp^ == 32  or cp^ == 9  or (skiplineend and (cp^ == 13  or cp^ == 10)) ):
-    cp += 1
-  endwhile
-  readp = cp
+    var cp : ^cchar = readp
+    while cp < bufend  and ( cp^ == 32  or cp^ == 9  or (skiplineend and (cp^ == 13  or cp^ == 10)) ):
+        cp += 1
+    endwhile
+    readp = cp
 endfunc
 
 function OStrParse.SkipWhite():
-  while true:
-    SkipSpaces()
-    if readp < bufend  and readp^ == commentmarker:
-      ReadTo('\n\r')
-    else:
-      return
-    endif
-  endwhile
+    while true:
+        SkipSpaces()
+        if readp < bufend  and readp^ == commentmarker:
+            ReadTo('\n\r')
+        else:
+            return
+        endif
+    endwhile
 endfunc
 
 function OStrParse.ReadLine() -> bool:
-  prevp = readp
-  var cp : ^cchar = readp
+    prevp = readp
+    var cp : ^cchar = readp
 
-  while cp < bufend  and cp^ != 13  and cp^ != 10:
-    cp += 1
-  endwhile
+    while cp < bufend  and cp^ != 13  and cp^ != 10:
+        cp += 1
+    endwhile
 
-  prevlen = cp - readp
+    prevlen = cp - readp
 
-  // skip the line end, but only one CR and one LF
-  if cp < bufend  and cp^ == 13:
-    cp += 1
-  endif
-  if cp < bufend  and cp^ == 10:
-    cp += 1
-  endif
+    // skip the line end, but only one CR and one LF
+    if cp < bufend  and cp^ == 13:
+        cp += 1
+    endif
+    if cp < bufend  and cp^ == 10:
+        cp += 1
+    endif
 
-  readp = cp
-  return prevp < bufend
+    readp = cp
+    return prevp < bufend
 endfunc
 
 function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
-  var cp      : ^cchar = readp
-  var ccstart : ^cchar = ^cchar(&checkchars[0])
-  var ccend   : ^cchar = ccstart + checkchars.length
-  var ccptr   : ^cchar
+    var cp      : ^cchar = readp
+    var ccstart : ^cchar = ^cchar(&checkchars[0])
+    var ccend   : ^cchar = ccstart + checkchars.length
+    var ccptr   : ^cchar
 
-  prevp = readp
+    prevp = readp
 
-  while cp < bufend:
-    // check chars
-    ccptr = ccstart
-    while ccptr < ccend:
-      if ccptr^ == cp^:
-        prevlen = cp - readp
-        readp = cp
-        return true
-      endif
-      ccptr += 1
-    endwhile
+    while cp < bufend:
+        // check chars
+        ccptr = ccstart
+        while ccptr < ccend:
+            if ccptr^ == cp^:
+                prevlen = cp - readp
+                readp = cp
+                return true
+            endif
+            ccptr += 1
+        endwhile
 
     cp += 1
-  endwhile
+    endwhile
 
-  // end of buffer, store the remaining length:
-  prevlen = cp - readp
-  readp   = cp
-  return false
+    // end of buffer, store the remaining length:
+    prevlen = cp - readp
+    readp   = cp
+    return false
 endfunc
 
 function OStrParse.ReadToChar(achar : char) -> bool:
-  result = false
-  var cp : ^cchar = readp
-  prevp = readp
-  while cp < bufend:
-    if cp^ == achar:
-      result = true
-      break
-    endif
-    cp += 1
-  endwhile
+    result = false
+    var cp : ^cchar = readp
+    prevp = readp
+    while cp < bufend:
+        if cp^ == achar:
+            result = true
+            break
+        endif
+        cp += 1
+    endwhile
 
-  prevlen = cp - readp
-  readp = cp
+    prevlen = cp - readp
+    readp = cp
 endfunc
 
 function OStrParse.CheckSymbol(checkstring : strview) -> bool:
-  var cp    : ^cchar = readp
-  var csptr : ^cchar = ^cchar(&checkstring[0])
-  var csend : ^cchar = csptr + checkstring.length
+    var cp    : ^cchar = readp
+    var csptr : ^cchar = ^cchar(&checkstring[0])
+    var csend : ^cchar = csptr + checkstring.length
 
-  while csptr < csend  and cp < bufend  and csptr^ == cp^:
-    csptr += 1
-    cp += 1
-  endwhile
+    while csptr < csend  and cp < bufend  and csptr^ == cp^:
+        csptr += 1
+        cp += 1
+    endwhile
 
-  if csptr != csend:
-    return false
-  endif
+    if csptr != csend:
+        return false
+    endif
 
-  readp = cp
-  return true
+    readp = cp
+    return true
 endfunc
 
 function OStrParse.ReadAlphaNum() -> bool:
-  result = false
-  var cp : ^cchar = readp
-  prevp = readp
+    result = false
+    var cp : ^cchar = readp
+    prevp = readp
 
-  while cp < bufend:
-    var c : char = cp^
-    if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'Z') or (c >= 'a'  and c <= 'z')
-        or c == '_' or (c == '-'  and cp == readp)):
-      result = true
-      cp += 1
-    else:
-      break
-    endif
-  endwhile
+    while cp < bufend:
+        var c : char = cp^
+        if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'Z') or (c >= 'a'  and c <= 'z')
+            or c == '_' or (c == '-'  and cp == readp)):
+            result = true
+            cp += 1
+        else:
+            break
+        endif
+    endwhile
 
-  prevlen = cp - readp
-  readp = cp
+    prevlen = cp - readp
+    readp = cp
 endfunc
 
 function OStrParse.ReadDecimalNumbers() -> bool:
-  result = false
-  var cp : ^cchar = readp
-  prevp = readp
+    result = false
+    var cp : ^cchar = readp
+    prevp = readp
 
-  while cp < bufend:
-    var c : char = cp^
-    if c >= '0'  and c <= '9':
-      result = true
-      cp += 1
-    else:
-      break
-    endif
-  endwhile
+    while cp < bufend:
+        var c : char = cp^
+        if c >= '0'  and c <= '9':
+            result = true
+            cp += 1
+        else:
+            break
+        endif
+    endwhile
 
-  prevlen = cp - readp
-  readp = cp
+    prevlen = cp - readp
+    readp = cp
 endfunc
 
 function OStrParse.ReadHexNumbers() -> bool:
-  result = false
-  var cp : ^cchar = readp
-  prevp = readp
+    result = false
+    var cp : ^cchar = readp
+    prevp = readp
 
-  while cp < bufend:
-    var c : char = cp^
-    if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'F') or (c >= 'a'  and c <= 'f')):
-      result = true
-      cp += 1
-    else:
-      break
-    endif
-  endwhile
+    while cp < bufend:
+        var c : char = cp^
+        if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'F') or (c >= 'a'  and c <= 'f')):
+            result = true
+            cp += 1
+        else:
+            break
+        endif
+    endwhile
 
-  prevlen = cp - readp
-  readp = cp
+    prevlen = cp - readp
+    readp = cp
 endfunc
 
 function OStrParse.ReadFloatNum() -> bool:
-  result = false
-  var cp : ^cchar = readp
-  prevp = readp
+    result = false
+    var cp : ^cchar = readp
+    prevp = readp
 
-  while cp < bufend:
-    var c : char = cp^
-    if ((c >= '0'  and c <= '9') or c == float_decimal_point
-        or c == '-' or c == '+' or c == 'e' or c == 'E'):
-      result = true
-      cp += 1
-    else:
-      break
-    endif
-  endwhile
+    while cp < bufend:
+        var c : char = cp^
+        if ((c >= '0'  and c <= '9') or c == float_decimal_point
+            or c == '-' or c == '+' or c == 'e' or c == 'E'):
+            result = true
+            cp += 1
+        else:
+            break
+        endif
+    endwhile
 
-  prevlen = cp - readp
-  readp = cp
+    prevlen = cp - readp
+    readp = cp
 endfunc
 
 function OStrParse.ReadQuotedString() -> bool:
-  if readp >= bufend:
-    return false
-  endif
+    if readp >= bufend:
+        return false
+    endif
 
-  if readp^ != '"':
-    return false
-  endif
+    if readp^ != '"':
+        return false
+    endif
 
-  readp += 1
-  ReadToChar('"')
-
-  if readp < bufend  and readp^ == '"':
     readp += 1
-  endif
+    ReadToChar('"')
 
-  return true
+    if readp < bufend  and readp^ == '"':
+        readp += 1
+    endif
+
+    return true
 endfunc
 
 function OStrParse.SearchPattern(checkstring : strview) -> bool:
-  prevp = readp
-  prevlen = 0
+    prevp = readp
+    prevlen = 0
 
-  var ccslen : int = checkstring.length
-  if ccslen == 0:
-    return true
-  endif
+    var ccslen : int = checkstring.length
+    if ccslen == 0:
+        return true
+    endif
 
-  if ccslen > bufend - readp:
-    return false
-  endif
+    if ccslen > bufend - readp:
+        return false
+    endif
 
-  var ccstart : ^cchar = ^cchar(&checkstring[0])
-  var ccend   : ^cchar = ccstart + ccslen
-  var cps     : ^cchar = readp
-  var lastpos : ^cchar = bufend - ccslen
+    var ccstart : ^cchar = ^cchar(&checkstring[0])
+    var ccend   : ^cchar = ccstart + ccslen
+    var cps     : ^cchar = readp
+    var lastpos : ^cchar = bufend - ccslen
 
-  while cps <= lastpos:
-    var cp    : ^cchar = cps
-    var ccptr : ^cchar = ccstart
-    var match : bool = true
+    while cps <= lastpos:
+        var cp    : ^cchar = cps
+        var ccptr : ^cchar = ccstart
+        var match : bool = true
 
     while ccptr < ccend:
-      if cp^ != ccptr^:
-        match = false
-        break
-      endif
-      cp += 1
-      ccptr += 1
+        if cp^ != ccptr^:
+            match = false
+            break
+        endif
+        cp += 1
+        ccptr += 1
     endwhile
 
     if match:
-      prevlen = cps - readp
-      readp = cps
-      return true
+        prevlen = cps - readp
+        readp = cps
+        return true
     endif
 
     cps += 1
-  endwhile
+    endwhile
 
-  return false
+    return false
 endfunc
 
 function OStrParse.PrevStr() -> str:
-  result = ''
-  var cp  : ^cchar = prevp
-  var endp : ^cchar = prevp + prevlen
+    result = ''
+    var cp  : ^cchar = prevp
+    var endp : ^cchar = prevp + prevlen
 
-  while cp < endp:
-    result.Append(char(cp^))
-    cp += 1
-  endwhile
+    while cp < endp:
+        result.Append(char(cp^))
+        cp += 1
+    endwhile
 endfunc
 
 function OStrParse.UCComparePrev(checkstring : strview) -> bool:
-  var cp : ^cchar = prevp
-  return @.PCharUCCompare(cp, prevlen, checkstring)
+    var cp : ^cchar = prevp
+    return @.PCharUCCompare(cp, prevlen, checkstring)
 endfunc
 
 function OStrParse.PrevToInt() -> int:
-  return @.PCharToInt(prevp, prevlen)
+    return @.PCharToInt(prevp, prevlen)
 endfunc
 
 function OStrParse.PrevHexToInt() -> uint:
-  return @.PCharHexToInt(prevp, prevlen)
+    return @.PCharHexToInt(prevp, prevlen)
 endfunc
 
 function OStrParse.PrevToFloat() -> float64:
-  return @.PCharToFloat(prevp, prevlen)
+    return @.PCharToFloat(prevp, prevlen)
 endfunc
 
 function OStrParse.GetLineNum(pos : ^cchar) -> int  [[overload]]:
-  result = 1
-  var cp : ^cchar = bufstart
+    result = 1
+    var cp : ^cchar = bufstart
 
-  while cp < pos  and cp < bufend:
-    if cp^ == 10:
-      result += 1
-    endif
-    cp += 1
-  endwhile
+    while cp < pos  and cp < bufend:
+        if cp^ == 10:
+            result += 1
+        endif
+        cp += 1
+    endwhile
 endfunc
 
 function OStrParse.GetLineNum() -> int  [[overload]]:
-  return GetLineNum(prevp)
+    return GetLineNum(prevp)
 endfunc
 
 function OStrParse.GetColNum(pos : ^cchar) -> int  [[overload]]:
-  if pos > bufend:
-    pos = bufend
-  endif
-
-  var cp : ^cchar = pos
-  while cp > bufstart:
-    cp -= 1
-    if cp^ == 13  or cp^ == 10:
-      return pos - cp
+    if pos > bufend:
+        pos = bufend
     endif
-  endwhile
 
-  return pos - bufstart + 1
+    var cp : ^cchar = pos
+    while cp > bufstart:
+        cp -= 1
+        if cp^ == 13  or cp^ == 10:
+            return pos - cp
+        endif
+    endwhile
+
+    return pos - bufstart + 1
 endfunc
 
 function OStrParse.GetColNum() -> int  [[overload]]:
-  return GetColNum(prevp)
+    return GetColNum(prevp)
 endfunc
 
 function PCharUCCompare(readp : ref ^cchar, len : int, checkstring : strview) -> bool:
-  var cp     : ^cchar = readp
-  var endp   : ^cchar = cp + len
-  var csptr  : ^cchar = ^cchar(&checkstring[0])
-  var csend  : ^cchar = csptr + checkstring.length
+    var cp     : ^cchar = readp
+    var endp   : ^cchar = cp + len
+    var csptr  : ^cchar = ^cchar(&checkstring[0])
+    var csend  : ^cchar = csptr + checkstring.length
 
-  while csptr < csend  and cp < endp:
-    var c : char = cp^
-    if c >= 'a'  and c <= 'z':
-      c = char(c - 'a' + 'A')
-    endif
+    while csptr < csend  and cp < endp:
+        var c : char = cp^
+        if c >= 'a'  and c <= 'z':
+            c = char(c - 'a' + 'A')
+        endif
 
     if c != csptr^:
-      break
+        break
     endif
 
     csptr += 1
     cp += 1
-  endwhile
+    endwhile
 
-  if csptr != csend:
-    return false
-  endif
+    if csptr != csend:
+        return false
+    endif
 
-  readp = cp
-  return true
+    readp = cp
+    return true
 endfunc
 
 function PCharToInt(readp : ^cchar, len : int) -> int:
-  result = 0
-  var cp   : ^cchar = readp
-  var endp : ^cchar = readp + len
+    result = 0
+    var cp   : ^cchar = readp
+    var endp : ^cchar = readp + len
 
-  while cp < endp:
-    result = result * 10 + int(cp^) - 48
-    cp += 1
-  endwhile
+    while cp < endp:
+        result = result * 10 + int(cp^) - 48
+        cp += 1
+    endwhile
 endfunc
 
 function PCharHexToInt(readp : ^cchar, len : int) -> uint:
-  result = 0
-  var cp   : ^cchar = readp
-  var endp : ^cchar = readp + len
+    result = 0
+    var cp   : ^cchar = readp
+    var endp : ^cchar = readp + len
 
-  while cp < endp:
-    var c : char = cp^
-    if c >= '0'  and c <= '9':
-      result = (result << 4) + uint(c - '0')
-    elif c >= 'A'  and c <= 'F':
-      result = (result << 4) + uint(c - 'A' + 10)
-    elif c >= 'a'  and c <= 'f':
-      result = (result << 4) + uint(c - 'a' + 10)
-    else:
-      break
-    endif
-    cp += 1
-  endwhile
+    while cp < endp:
+        var c : char = cp^
+        if c >= '0'  and c <= '9':
+            result = (result << 4) + uint(c - '0')
+        elif c >= 'A'  and c <= 'F':
+            result = (result << 4) + uint(c - 'A' + 10)
+        elif c >= 'a'  and c <= 'f':
+            result = (result << 4) + uint(c - 'a' + 10)
+        else:
+            break
+        endif
+        cp += 1
+    endwhile
 endfunc
 
 function PCharToFloat(readp : ^cchar, len : int) -> float64:
-  if len < 1:
-    return 0.0
-  endif
+    if len < 1:
+        return 0.0
+    endif
 
-  var pc   : ^cchar = readp
-  var pend : ^cchar = readp + len
+    var pc   : ^cchar = readp
+    var pend : ^cchar = readp + len
 
-  var nsign   : float64 = 1.0
-  var esign   : float64 = 1.0
-  var fracmul : float64 = 1.0
-  var nv      : float64 = 0.0
-  var ev      : float64 = 0.0
-  var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
+    var nsign   : float64 = 1.0
+    var esign   : float64 = 1.0
+    var fracmul : float64 = 1.0
+    var nv      : float64 = 0.0
+    var ev      : float64 = 0.0
+    var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
 
-  while pc < pend:
-    var c : char = pc^
+    while pc < pend:
+        var c : char = pc^
 
     if c == '+':
-      if mode == 2:
-        esign = 1.0
-      else:
-        nsign = 1.0
-      endif
+        if mode == 2:
+            esign = 1.0
+        else:
+            nsign = 1.0
+        endif
     elif c == '-':
-      if mode == 2:
-        esign = -1.0
-      else:
-        nsign = -1.0
-      endif
+        if mode == 2:
+            esign = -1.0
+        else:
+            nsign = -1.0
+        endif
     elif c >= '0'  and c <= '9':
-      var digit : float64 = float64(c - '0')
-      if mode == 1:
-        fracmul *= 0.1
-        nv += digit * fracmul
-      elif mode == 2:
-        ev = ev * 10.0 + digit
-      else:
-        nv = nv * 10.0 + digit
-      endif
+        var digit : float64 = float64(c - '0')
+        if mode == 1:
+            fracmul *= 0.1
+            nv += digit * fracmul
+        elif mode == 2:
+            ev = ev * 10.0 + digit
+        else:
+            nv = nv * 10.0 + digit
+        endif
     elif c == '.'  or c == ',':
-      mode = 1
+        mode = 1
     elif c == 'e'  or c == 'E':
-      mode = 2
+        mode = 2
     else:
-      break
+        break
     endif
 
     pc += 1
-  endwhile
+    endwhile
 
-  return nsign * nv * Pow(10.0, esign * ev)
+    return nsign * nv * Pow(10.0, esign * ev)
 endfunc

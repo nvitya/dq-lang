@@ -154,10 +154,10 @@ string ODqCompiler::DefaultLinkDriver() const
     filesystem::path root_dir = (bin_dir / "..").lexically_normal();
 
     vector<filesystem::path> candidates = {
-      root_dir / "toolchain" / "llvm-mingw" / "bin" / "clang.exe",
-      root_dir / "toolchain" / "bin" / "clang.exe",
-      root_dir / "llvm-mingw" / "bin" / "clang.exe",
-      bin_dir / "clang.exe"
+      root_dir / "toolchain" / "llvm-mingw" / "bin" / "clang++.exe",
+      root_dir / "toolchain" / "bin" / "clang++.exe",
+      root_dir / "llvm-mingw" / "bin" / "clang++.exe",
+      bin_dir / "clang++.exe"
     };
 
     error_code ec;
@@ -179,7 +179,7 @@ string ODqCompiler::DefaultLinkDriver() const
         ec.clear();
         if (entry.is_directory(ec) && !ec)
         {
-          candidates.push_back(entry.path() / "bin" / "clang.exe");
+          candidates.push_back(entry.path() / "bin" / "clang++.exe");
         }
       }
     };
@@ -196,9 +196,9 @@ string ODqCompiler::DefaultLinkDriver() const
     }
   }
 
-  return "clang.exe";
+  return "clang++.exe";
 #else
-  return "clang";
+  return "clang++";
 #endif
 }
 

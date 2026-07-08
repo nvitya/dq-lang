@@ -112,51 +112,94 @@ void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 void OStmtBlock::Generate()
 {
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
-  LlBasicBlock * bb_cleanup = nullptr;
-  LlBasicBlock * bb_done = nullptr;
-  bool exception_checks = (g_compiler->DqExceptionFunc("DqExcActive") != nullptr);
-  if (exception_checks)
+
+  LlBasicBlock * saved_unwind_lpad_bb = scope->exception_cleanup_bb; // We repurpose exception_cleanup_bb as unwind_lpad_bb
+  LlBasicBlock * saved_unwind_cleanup_bb = scope->unwind_cleanup_bb;
+
+  bool needs_unwind = !scope->owned_objects.empty();
+  
+  LlBasicBlock * my_lpad_bb = nullptr;
+  LlBasicBlock * my_cleanup_bb = nullptr;
+  LlBasicBlock * my_done_bb = nullptr;
+
+  if (needs_unwind)
   {
-    bb_cleanup = LlBasicBlock::Create(ll_ctx, scope->debugname + ".cleanup", ll_func);
-    bb_done = LlBasicBlock::Create(ll_ctx, scope->debugname + ".done", ll_func);
+    my_lpad_bb = LlBasicBlock::Create(ll_ctx, scope->debugname + ".lpad", ll_func);
+    my_cleanup_bb = LlBasicBlock::Create(ll_ctx, scope->debugname + ".cleanup", ll_func);
+    my_done_bb = LlBasicBlock::Create(ll_ctx, scope->debugname + ".done", ll_func);
+    
+    scope->exception_cleanup_bb = my_lpad_bb;
+    scope->unwind_cleanup_bb = my_cleanup_bb;
   }
-  LlBasicBlock * saved_exception_cleanup_bb = scope->exception_cleanup_bb;
-  scope->exception_cleanup_bb = bb_cleanup;
 
   for (OStmt * bstmt : stlist)
   {
     bstmt->EmitDebugLocation(scope);
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
-    if (exception_checks)
-    {
-      EmitExpressionExceptionCheck(scope);
-    }
   }
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    if (exception_checks)
+    scope->EmitOwnedObjectDestructors();
+    if (my_done_bb)
     {
-      ll_builder.CreateBr(bb_cleanup);
-    }
-    else
-    {
-      scope->EmitOwnedObjectDestructors();
+      ll_builder.CreateBr(my_done_bb);
     }
   }
 
-  if (exception_checks)
+  if (needs_unwind)
   {
-    ll_builder.SetInsertPoint(bb_cleanup);
-    scope->EmitOwnedObjectDestructors();
-    if (!ll_builder.GetInsertBlock()->getTerminator())
+    LlBasicBlock * resume_insert = ll_builder.GetInsertBlock();
+    
+    ll_builder.SetInsertPoint(my_lpad_bb);
+    if (!ll_func->hasPersonalityFn())
     {
-      ll_builder.CreateBr(bb_done);
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      ll_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
     }
-    ll_builder.SetInsertPoint(bb_done);
+    llvm::LandingPadInst * lpad = ll_builder.CreateLandingPad(
+        llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
+        1, "lpad");
+    lpad->setCleanup(true);
+    
+    // We need to save the lpad value. We can allocate a global storage per function, but it's easier to just pass it!
+    // Wait, since we are chaining blocks, we can just use a PHI node or alloca. Let's use g_compiler->ll_exn_storage.
+    if (!g_compiler->ll_exn_storage)
+    {
+      LlBasicBlock * entry = &ll_func->getEntryBlock();
+      llvm::IRBuilder<> tmp_b(entry, entry->begin());
+      g_compiler->ll_exn_storage = tmp_b.CreateAlloca(lpad->getType(), nullptr, "exn.storage");
+    }
+    ll_builder.CreateStore(lpad, g_compiler->ll_exn_storage);
+    ll_builder.CreateBr(my_cleanup_bb);
+
+    ll_builder.SetInsertPoint(my_cleanup_bb);
+    scope->EmitOwnedObjectDestructors();
+    
+    LlBasicBlock * target_cleanup_bb = nullptr;
+    for (OScope * cur = scope->parent_scope; cur && !target_cleanup_bb; cur = cur->parent_scope)
+    {
+      target_cleanup_bb = cur->unwind_cleanup_bb;
+    }
+    
+    if (target_cleanup_bb)
+    {
+      ll_builder.CreateBr(target_cleanup_bb);
+    }
+    else
+    {
+      // Final resume
+      LlValue * exn_val = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage, "exn.val");
+      ll_builder.CreateResume(exn_val);
+    }
+    
+    ll_builder.SetInsertPoint(my_done_bb);
   }
-  scope->exception_cleanup_bb = saved_exception_cleanup_bb;
+
+  scope->exception_cleanup_bb = saved_unwind_lpad_bb;
+  scope->unwind_cleanup_bb = saved_unwind_cleanup_bb;
 }
 
 void OStmtReturn::Generate(OScope * scope)
@@ -905,15 +948,34 @@ void OStmtRaise::Generate(OScope * scope)
 {
   (void)scope;
 
+  LlBasicBlock * bb_cleanup = nullptr;
+  for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
+  {
+    bb_cleanup = cur->exception_cleanup_bb;
+  }
+
   if (!value)
   {
-    OValSymFunc * fn = g_compiler->DqExceptionFunc("DqExcRethrow");
-    if (!fn || !fn->ll_func)
+    llvm::FunctionCallee fn_rethrow = ll_module->getOrInsertFunction("__cxa_rethrow", LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {}, false));
+    if (bb_cleanup)
     {
-      throw runtime_error("OStmtRaise::Generate(): missing DqExcRethrow");
+      LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+      if (!cur_func->hasPersonalityFn())
+      {
+        llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+            LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+        cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+      }
+      LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
+      ll_builder.CreateInvoke(fn_rethrow, bb_normal, bb_cleanup, {});
+      ll_builder.SetInsertPoint(bb_normal);
+      ll_builder.CreateUnreachable();
     }
-    ll_builder.CreateCall(fn->ll_func, {});
-    EmitExpressionExceptionCheck(scope);
+    else
+    {
+      ll_builder.CreateCall(fn_rethrow, {});
+      ll_builder.CreateUnreachable();
+    }
     return;
   }
 
@@ -927,8 +989,26 @@ void OStmtRaise::Generate(OScope * scope)
   bool owns_ref = (dynamic_cast<ONewExpr *>(value) != nullptr)
       || (dynamic_cast<ODynamicNewObjectExpr *>(value) != nullptr);
   LlValue * owns_initial_ref = llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), owns_ref ? 1 : 0);
-  ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
-  EmitExpressionExceptionCheck(scope);
+  
+  if (bb_cleanup)
+  {
+    printf("DEBUG: OStmtRaise using invoke! bb_cleanup=%p\n", bb_cleanup);
+    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+    if (!cur_func->hasPersonalityFn())
+    {
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+    }
+    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
+    ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, {exc, owns_initial_ref});
+    ll_builder.SetInsertPoint(bb_normal);
+  }
+  else
+  {
+    printf("DEBUG: OStmtRaise using call!\n");
+    ll_builder.CreateCall(fn->ll_func, {exc, owns_initial_ref});
+  }
 }
 
 
@@ -936,10 +1016,17 @@ void OStmtRaise::Generate(OScope * scope)
 void OStmtTry::Generate(OScope * scope)
 {
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_lpad = LlBasicBlock::Create(ll_ctx, "try.lpad", ll_func);
   LlBasicBlock * bb_dispatch = LlBasicBlock::Create(ll_ctx, "try.dispatch", ll_func);
   LlBasicBlock * bb_after_handlers = LlBasicBlock::Create(ll_ctx, "try.after_handlers", ll_func);
   LlBasicBlock * bb_finally = finally_body ? LlBasicBlock::Create(ll_ctx, "try.finally", ll_func) : nullptr;
   LlBasicBlock * bb_done = LlBasicBlock::Create(ll_ctx, "try.done", ll_func);
+
+  LlBasicBlock * saved_unwind_lpad_bb = scope->exception_cleanup_bb;
+  LlBasicBlock * saved_unwind_cleanup_bb = scope->unwind_cleanup_bb;
+
+  scope->exception_cleanup_bb = bb_lpad;
+  scope->unwind_cleanup_bb = bb_dispatch;
 
   if (finally_body)
   {
@@ -952,31 +1039,85 @@ void OStmtTry::Generate(OScope * scope)
   }
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    LlValue * active = g_compiler->DqExceptionActiveValue();
-    if (active && !except_branches.empty())
-    {
-      ll_builder.CreateCondBr(active, bb_dispatch, bb_after_handlers);
-    }
-    else
-    {
-      ll_builder.CreateBr(bb_after_handlers);
-    }
+    ll_builder.CreateBr(bb_after_handlers);
   }
 
+  // Restore the exception scopes here so that exceptions thrown in except or finally blocks propagate correctly
+  scope->exception_cleanup_bb = saved_unwind_lpad_bb;
+  scope->unwind_cleanup_bb = saved_unwind_cleanup_bb;
+
+  // LPAD BLOCK
+  ll_builder.SetInsertPoint(bb_lpad);
+  if (!ll_func->hasPersonalityFn())
+  {
+    llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+        LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+    ll_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+  }
+  llvm::LandingPadInst * lpad = ll_builder.CreateLandingPad(
+      llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
+      1, "lpad");
+  lpad->setCleanup(true);
+  if (!except_branches.empty())
+  {
+    lpad->addClause(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)));
+  }
+  if (!g_compiler->ll_exn_storage)
+  {
+    LlBasicBlock * entry = &ll_func->getEntryBlock();
+    llvm::IRBuilder<> tmp_b(entry, entry->begin());
+    g_compiler->ll_exn_storage = tmp_b.CreateAlloca(lpad->getType(), nullptr, "exn.storage");
+  }
+  ll_builder.CreateStore(lpad, g_compiler->ll_exn_storage);
+  ll_builder.CreateBr(bb_dispatch);
+
+  // DISPATCH BLOCK
   ll_builder.SetInsertPoint(bb_dispatch);
   if (except_branches.empty())
   {
-    ll_builder.CreateBr(bb_after_handlers);
+    if (finally_body)
+    {
+      finally_body->Generate();
+    }
+    if (!ll_builder.GetInsertBlock()->getTerminator())
+    {
+      if (saved_unwind_cleanup_bb)
+      {
+        ll_builder.CreateBr(saved_unwind_cleanup_bb);
+      }
+      else
+      {
+        LlValue * exn_val = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage, "exn.val");
+        ll_builder.CreateResume(exn_val);
+      }
+    }
   }
   else
   {
+    llvm::FunctionCallee fn_begin_catch = ll_module->getOrInsertFunction("__cxa_begin_catch", 
+        LlFuncType::get(llvm::PointerType::get(ll_ctx, 0), {llvm::PointerType::get(ll_ctx, 0)}, false));
+    LlValue * exn_val = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage);
+    LlValue * exn_ptr = ll_builder.CreateExtractValue(exn_val, {0});
+    LlValue * user_ptr = ll_builder.CreateCall(fn_begin_catch, {exn_ptr});
+    LlValue * dq_exc = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), user_ptr, "dq.exc");
+
+    if (!g_compiler->ll_current_exc_storage)
+    {
+      LlBasicBlock * entry = &ll_func->getEntryBlock();
+      llvm::IRBuilder<> tmp_b(entry, entry->begin());
+      g_compiler->ll_current_exc_storage = tmp_b.CreateAlloca(llvm::PointerType::get(ll_ctx, 0), nullptr, "cur_exc.storage");
+    }
+    ll_builder.CreateStore(dq_exc, g_compiler->ll_current_exc_storage);
+
+    LlBasicBlock * bb_rethrow = LlBasicBlock::Create(ll_ctx, "except.rethrow", ll_func);
+
     for (size_t i = 0; i < except_branches.size(); ++i)
     {
       OExceptBranch * branch = except_branches[i];
       LlBasicBlock * bb_match = LlBasicBlock::Create(ll_ctx, "except.match", ll_func);
       LlBasicBlock * bb_next = (i + 1 < except_branches.size())
           ? LlBasicBlock::Create(ll_ctx, "except.next", ll_func)
-          : bb_after_handlers;
+          : bb_rethrow;
 
       g_compiler->GenerateExceptBranchMatch(branch, bb_match, bb_next);
 
@@ -997,7 +1138,8 @@ void OStmtTry::Generate(OScope * scope)
           ll_builder.CreateStore(exc, branch->bound_variable->ll_value);
         }
       }
-      g_compiler->DqBeginCatch();
+      
+      // We don't need DqBeginCatch anymore, we already have the exception
       if (finally_body)
       {
         g_compiler->ll_finally_stack.push_back(finally_body);
@@ -1007,16 +1149,38 @@ void OStmtTry::Generate(OScope * scope)
       {
         g_compiler->ll_finally_stack.pop_back();
       }
+      
       if (!ll_builder.GetInsertBlock()->getTerminator())
       {
-        g_compiler->DqEndCatch();
+        llvm::FunctionCallee fn_end_catch = ll_module->getOrInsertFunction("__cxa_end_catch", LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {}, false));
+        ll_builder.CreateCall(fn_end_catch, {});
         ll_builder.CreateBr(bb_after_handlers);
       }
 
-      if (bb_next != bb_after_handlers)
+      if (bb_next != bb_after_handlers && bb_next != bb_rethrow)
       {
         ll_builder.SetInsertPoint(bb_next);
       }
+    }
+    
+    // RETHROW BLOCK
+    ll_builder.SetInsertPoint(bb_rethrow);
+    if (finally_body)
+    {
+      finally_body->Generate();
+    }
+    llvm::FunctionCallee fn_rethrow = ll_module->getOrInsertFunction("__cxa_rethrow", LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {}, false));
+    if (saved_unwind_lpad_bb)
+    {
+      LlBasicBlock * bb_invoke_cont = LlBasicBlock::Create(ll_ctx, "rethrow.cont", ll_func);
+      ll_builder.CreateInvoke(fn_rethrow, bb_invoke_cont, saved_unwind_lpad_bb, {});
+      ll_builder.SetInsertPoint(bb_invoke_cont);
+      ll_builder.CreateUnreachable();
+    }
+    else
+    {
+      ll_builder.CreateCall(fn_rethrow, {});
+      ll_builder.CreateUnreachable();
     }
   }
 

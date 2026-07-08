@@ -43,6 +43,8 @@ public:
 
   virtual ~ODqCompCodegen() {}
 
+  LlValue *     ll_exn_storage = nullptr;
+  LlValue *     ll_current_exc_storage = nullptr;
   vector<OStmtBlock *> ll_finally_stack;
 
   OValSymFunc * DqExceptionFunc(const string & name);
@@ -57,6 +59,7 @@ public:
 
   void PrepareTarget();
   void GenerateIr();
+  void GenerateDqExcNativeThrowBody();
   void OptimizeIr(int aoptlevel);
   void PrintIr();
 

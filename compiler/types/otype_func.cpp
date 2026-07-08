@@ -833,6 +833,9 @@ void OValSymFunc::GenerateFuncBody()
     throw logic_error("GenerateFuncBody: ll_func declaration is missing");
   }
 
+  g_compiler->ll_exn_storage = nullptr;
+  g_compiler->ll_current_exc_storage = nullptr;
+
   OTypeFunc * tfunc = (OTypeFunc *)ptype;
 
   if (g_opt.dbg_info)

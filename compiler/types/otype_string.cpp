@@ -144,9 +144,33 @@ static OValSymFunc * DynStrFunc(const string & name)
   return fn;
 }
 
-static LlValue * CallDynStrFunc(const string & name, vector<LlValue *> args = {})
+static LlValue * CallDynStrFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = DynStrFunc(name);
+  LlBasicBlock * bb_cleanup = nullptr;
+  if (scope)
+  {
+    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
+    {
+      bb_cleanup = cur->exception_cleanup_bb;
+    }
+  }
+
+  if (bb_cleanup)
+  {
+    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+    if (!cur_func->hasPersonalityFn())
+    {
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+    }
+    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
+    LlValue * result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, args);
+    ll_builder.SetInsertPoint(bb_normal);
+    return result;
+  }
+
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
@@ -177,9 +201,33 @@ static OValSymFunc * TextFormatFunc(const string & name)
   return fn;
 }
 
-static LlValue * CallTextFormatFunc(const string & name, vector<LlValue *> args = {})
+static LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = TextFormatFunc(name);
+  LlBasicBlock * bb_cleanup = nullptr;
+  if (scope)
+  {
+    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
+    {
+      bb_cleanup = cur->exception_cleanup_bb;
+    }
+  }
+
+  if (bb_cleanup)
+  {
+    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+    if (!cur_func->hasPersonalityFn())
+    {
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+    }
+    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
+    LlValue * result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, args);
+    ll_builder.SetInsertPoint(bb_normal);
+    return result;
+  }
+
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
@@ -224,7 +272,7 @@ static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
 {
   LlValue * tmp = CreateEntryBlockAlloca(LlType::getInt8Ty(ll_ctx), nullptr, "str.char.tmp");
   LlValue * ch = ToCharValue(expr->Generate(scope));
-  LlValue * bch = CallDynStrFunc("DynStrCharToByte", {ch});
+  LlValue * bch = CallDynStrFunc(scope, "DynStrCharToByte", {ch});
   ll_builder.CreateStore(bch, tmp);
   return TextInfoValue(tmp, 1, DQTIF_CHARLEN_VALID | DQTIF_READONLY | 1);
 }
@@ -242,7 +290,7 @@ static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
     ll_builder.CreateStore(expr->Generate(scope), straddr);
   }
   LlValue * descaddr = TextInfoAlloca();
-  CallDynStrFunc("DynStrGetFullView", {straddr, descaddr});
+  CallDynStrFunc(scope, "DynStrGetFullView", {straddr, descaddr});
   return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), descaddr, "str.full.view");
 }
 
@@ -388,11 +436,11 @@ LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * stradd
   OType * resolved = strtype ? strtype->ResolveAlias() : nullptr;
   if (resolved && TK_DYNSTR == resolved->kind)
   {
-    return ToNativeInt(CallDynStrFunc("DynStrGetLength", {straddr}));
+    return ToNativeInt(CallDynStrFunc(scope, "DynStrGetLength", {straddr}));
   }
   if (resolved && TK_STRVIEW == resolved->kind)
   {
-    return ToNativeInt(CallDynStrFunc("TextInfoGetLength", {straddr}));
+    return ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {straddr}));
   }
   throw logic_error("GenerateStringLength requires str or strview");
 }
@@ -403,7 +451,7 @@ LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * stra
   OType * resolved = strtype ? strtype->ResolveAlias() : nullptr;
   if (resolved && TK_DYNSTR == resolved->kind)
   {
-    return ToNativeInt(CallDynStrFunc("DynStrGetCapacity", {straddr}));
+    return ToNativeInt(CallDynStrFunc(scope, "DynStrGetCapacity", {straddr}));
   }
   throw logic_error("GenerateStringCapacity requires str");
 }
@@ -413,7 +461,7 @@ LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * stra
   (void)scope;
   if (TK_DYNSTR == strtype->kind)
   {
-    return CallDynStrFunc("DynStrGetRefCount", {straddr});
+    return CallDynStrFunc(scope, "DynStrGetRefCount", {straddr});
   }
   throw logic_error("GenerateStringRefCount requires str");
 }
@@ -423,13 +471,13 @@ LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue 
   OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;
   if (rtype && TK_DYNSTR == rtype->kind)
   {
-    LlValue * result = CallDynStrFunc("DynStrGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    LlValue * result = CallDynStrFunc(scope, "DynStrGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
     EmitExpressionExceptionCheck(scope);
     return result;
   }
   if (rtype && TK_STRVIEW == rtype->kind)
   {
-    LlValue * result = CallDynStrFunc("TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
+    LlValue * result = CallDynStrFunc(scope, "TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
     EmitExpressionExceptionCheck(scope);
     return result;
   }
@@ -445,7 +493,7 @@ LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlVa
   }
 
   LlValue * descaddr = GenerateTextInfoAddress(scope, receiver);
-  LlValue * len = ToNativeInt(CallDynStrFunc("TextInfoGetLength", {descaddr}));
+  LlValue * len = ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {descaddr}));
   LlValue * norm_index = NormalizeTextIndexValue(index, len);
 
   LlType * desctype = g_builtins->type_strview->GetLlType();
@@ -456,7 +504,7 @@ LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlVa
 
 void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value)
 {
-  CallDynStrFunc("DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope)), value->Generate(scope)});
+  CallDynStrFunc(scope, "DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope)), value->Generate(scope)});
 }
 
 LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
@@ -483,11 +531,11 @@ LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * st
 
   if (rtype && TK_DYNSTR == rtype->kind)
   {
-    CallDynStrFunc("DynStrGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
+    CallDynStrFunc(scope, "DynStrGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
   }
   else if (rtype && TK_STRVIEW == rtype->kind)
   {
-    CallDynStrFunc("TextInfoGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
+    CallDynStrFunc(scope, "TextInfoGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
   }
   else
   {
@@ -500,17 +548,17 @@ LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right)
 {
   LlValue * ldesc = GenerateTextInfoAddress(scope, left);
   LlValue * rdesc = GenerateTextInfoAddress(scope, right);
-  return CallDynStrFunc("TextInfoEqual", {ldesc, rdesc});
+  return CallDynStrFunc(scope, "TextInfoEqual", {ldesc, rdesc});
 }
 
 LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right)
 {
   LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
   GenerateStringCreate(scope, tmp);
-  CallDynStrFunc("DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
-  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, left), LlI32(-1)});
+  CallDynStrFunc(scope, "DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, left), LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
-  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
   return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
 }
@@ -520,14 +568,14 @@ LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalu
   LlValue * lefttmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.left");
   ll_builder.CreateStore(leftvalue, lefttmp);
   LlValue * ldesc = TextInfoAlloca();
-  CallDynStrFunc("DynStrGetFullView", {lefttmp, ldesc});
+  CallDynStrFunc(scope, "DynStrGetFullView", {lefttmp, ldesc});
 
   LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
   GenerateStringCreate(scope, tmp);
-  CallDynStrFunc("DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
-  CallDynStrFunc("DynStrAppend", {tmp, ldesc, LlI32(-1)});
+  CallDynStrFunc(scope, "DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, ldesc, LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
-  CallDynStrFunc("DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
   return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
 }
@@ -541,13 +589,13 @@ void GenerateStringCreate(OScope * scope, LlValue * straddr)
 void GenerateStringIncRef(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  CallDynStrFunc("DynStrIncRef", {straddr});
+  CallDynStrFunc(scope, "DynStrIncRef", {straddr});
 }
 
 void GenerateStringDestroy(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  CallDynStrFunc("DynStrDecRef", {straddr});
+  CallDynStrFunc(scope, "DynStrDecRef", {straddr});
 }
 
 bool GenerateStringAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * value)
@@ -570,7 +618,7 @@ bool GenerateStringAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * valu
     LlValue * srcmgr = value->Generate(scope);
     if (dynamic_cast<OLValueExpr *>(value))
     {
-      CallDynStrFunc("DynStrAssignOther", {targetaddr, srcmgr});
+      CallDynStrFunc(scope, "DynStrAssignOther", {targetaddr, srcmgr});
     }
     else
     {
@@ -582,7 +630,7 @@ bool GenerateStringAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * valu
 
   if (IsTextSourceType(srctype))
   {
-    CallDynStrFunc("DynStrAssignData", {targetaddr, GenerateTextInfoAddress(scope, value)});
+    CallDynStrFunc(scope, "DynStrAssignData", {targetaddr, GenerateTextInfoAddress(scope, value)});
     return true;
   }
 
@@ -595,13 +643,13 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
   LlValue * straddr = receiver->GenerateAddress(scope);
   auto checked_dynstr_call = [scope](const string & name, vector<LlValue *> args) -> LlValue *
   {
-    LlValue * result = CallDynStrFunc(name, args);
+    LlValue * result = CallDynStrFunc(scope, name, args);
     EmitExpressionExceptionCheck(scope);
     return result;
   };
   auto checked_textformat_call = [scope](const string & name, vector<LlValue *> args) -> LlValue *
   {
-    LlValue * result = CallTextFormatFunc(name, args);
+    LlValue * result = CallTextFormatFunc(scope, name, args);
     EmitExpressionExceptionCheck(scope);
     return result;
   };

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.29.1"
+#define DQ_COMPILER_VERSION  "0.30.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.30.0:
+  - Exception refactoring to zero-cost implemenation
 v0.29.1:
   - Fixed virtual function delegation into function reference variables
   - Added nanonet package, so far it is working only on Linux

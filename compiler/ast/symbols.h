@@ -77,6 +77,7 @@ public:
 
   LlDiScope * di_scope = nullptr;
   LlBasicBlock * exception_cleanup_bb = nullptr;
+  LlBasicBlock * unwind_cleanup_bb = nullptr;
 
 public:
   OScope(OScope * aparent, const string & adebugname)

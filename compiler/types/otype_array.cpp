@@ -109,9 +109,33 @@ static OValSymFunc * DynArrayFunc(const string & name)
   return fn;
 }
 
-static LlValue * CallDynArrayFunc(const string & name, vector<LlValue *> args = {})
+static LlValue * CallDynArrayFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = DynArrayFunc(name);
+  LlBasicBlock * bb_cleanup = nullptr;
+  if (scope)
+  {
+    for (OScope * cur = scope; cur && !bb_cleanup; cur = cur->parent_scope)
+    {
+      bb_cleanup = cur->exception_cleanup_bb;
+    }
+  }
+
+  if (bb_cleanup)
+  {
+    LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
+    if (!cur_func->hasPersonalityFn())
+    {
+      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
+          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+    }
+    LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, "invoke.cont", cur_func);
+    LlValue * result = ll_builder.CreateInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, bb_normal, bb_cleanup, args);
+    ll_builder.SetInsertPoint(bb_normal);
+    return result;
+  }
+
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
@@ -447,7 +471,7 @@ LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlVal
   (void)scope;
   (void)dyntype;
   LlValue * descaddr = CreateEntryBlockAlloca(dyntype->elemtype->GetSliceType()->GetLlType(), nullptr, "dyn.data.desc");
-  CallDynArrayFunc("DynArrGetFullSlice", {dynaddr, descaddr});
+  CallDynArrayFunc(scope, "DynArrGetFullSlice", {dynaddr, descaddr});
   LlValue * desc = ll_builder.CreateLoad(dyntype->elemtype->GetSliceType()->GetLlType(), descaddr, "dyn.data.slice");
   return ll_builder.CreateExtractValue(desc, {0}, "dyn.ptr");
 }
@@ -456,27 +480,27 @@ LlValue * GenerateDynArrayLength(OScope * scope, OTypeDynArray * dyntype, LlValu
 {
   (void)scope;
   (void)dyntype;
-  return CallDynArrayFunc("DynArrGetLength", {dynaddr});
+  return CallDynArrayFunc(scope, "DynArrGetLength", {dynaddr});
 }
 
 LlValue * GenerateDynArrayCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
 {
   (void)scope;
   (void)dyntype;
-  return CallDynArrayFunc("DynArrGetCapacity", {dynaddr});
+  return CallDynArrayFunc(scope, "DynArrGetCapacity", {dynaddr});
 }
 
 LlValue * GenerateDynArrayRefCount(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
 {
   (void)scope;
   (void)dyntype;
-  return CallDynArrayFunc("DynArrGetRefCount", {dynaddr});
+  return CallDynArrayFunc(scope, "DynArrGetRefCount", {dynaddr});
 }
 
 LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index)
 {
   (void)dyntype;
-  LlValue * result = CallDynArrayFunc("DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
+  LlValue * result = CallDynArrayFunc(scope, "DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
   EmitExpressionExceptionCheck(scope);
   return result;
 }
@@ -488,14 +512,14 @@ LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue
   LlValue * descaddr = CreateEntryBlockAlloca(slicetype->GetLlType(), nullptr, "dyn.slice.desc");
   if (!start_expr && !end_expr)
   {
-    CallDynArrayFunc("DynArrGetFullSlice", {dynaddr, descaddr});
+    CallDynArrayFunc(scope, "DynArrGetFullSlice", {dynaddr, descaddr});
     EmitExpressionExceptionCheck(scope);
   }
   else
   {
     LlValue * start = start_expr ? IntExprValue(scope, start_expr) : LlZero();
     LlValue * end = end_expr ? IntExprValue(scope, end_expr) : GenerateDynArrayLength(scope, dyntype, dynaddr);
-    CallDynArrayFunc("DynArrGetSlice", {dynaddr, descaddr, start, end});
+    CallDynArrayFunc(scope, "DynArrGetSlice", {dynaddr, descaddr, start, end});
     EmitExpressionExceptionCheck(scope);
   }
   return ll_builder.CreateLoad(slicetype->GetLlType(), descaddr, "dyn.slice");
@@ -511,7 +535,7 @@ void GenerateDynArrayDestroy(OScope * scope, OTypeDynArray * dyntype, LlValue * 
 {
   (void)scope;
   (void)dyntype;
-  CallDynArrayFunc("DynArrDecRef", {dynaddr});
+  CallDynArrayFunc(scope, "DynArrDecRef", {dynaddr});
 }
 
 LlValue * GenerateDynArrayManagerValue(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
@@ -524,55 +548,55 @@ void GenerateDynArrayAssignOther(OScope * scope, OTypeDynArray * dyntype, LlValu
 {
   (void)scope;
   (void)dyntype;
-  CallDynArrayFunc("DynArrAssignOther", {dynaddr, srcmgr});
+  CallDynArrayFunc(scope, "DynArrAssignOther", {dynaddr, srcmgr});
 }
 
 void GenerateDynArrayAssignData(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * srcptr, LlValue * count)
 {
   (void)scope;
-  CallDynArrayFunc("DynArrAssignData", {dynaddr, DynArrayTypeInfo(dyntype), srcptr, ToNativeUInt(count)});
+  CallDynArrayFunc(scope, "DynArrAssignData", {dynaddr, DynArrayTypeInfo(dyntype), srcptr, ToNativeUInt(count)});
 }
 
 void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
 {
   (void)scope;
   (void)dyntype;
-  CallDynArrayFunc("DynArrClear", {dynaddr, LlBool(false)});
+  CallDynArrayFunc(scope, "DynArrClear", {dynaddr, LlBool(false)});
 }
 
 void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * free_storage)
 {
   (void)dyntype;
-  CallDynArrayFunc("DynArrClear", {dynaddr, free_storage ? free_storage->Generate(scope) : LlBool(false)});
+  CallDynArrayFunc(scope, "DynArrClear", {dynaddr, free_storage ? free_storage->Generate(scope) : LlBool(false)});
 }
 
 void GenerateDynArrayReserve(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * min_capacity)
 {
-  CallDynArrayFunc("DynArrReserve", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, min_capacity)});
+  CallDynArrayFunc(scope, "DynArrReserve", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, min_capacity)});
 }
 
 void GenerateDynArrayCompact(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
 {
   (void)scope;
   (void)dyntype;
-  CallDynArrayFunc("DynArrCompact", {dynaddr});
+  CallDynArrayFunc(scope, "DynArrCompact", {dynaddr});
 }
 
 void GenerateDynArraySetLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_length)
 {
-  CallDynArrayFunc("DynArrSetLength", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_length)});
+  CallDynArrayFunc(scope, "DynArrSetLength", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_length)});
 }
 
 void GenerateDynArraySetCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_capacity)
 {
-  CallDynArrayFunc("DynArrSetCapacity", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_capacity)});
+  CallDynArrayFunc(scope, "DynArrSetCapacity", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_capacity)});
 }
 
 void GenerateDynArrayAppend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
   LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.append.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc("DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), tmp, LlOne()});
 }
 
 void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values)
@@ -580,14 +604,14 @@ void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValu
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "append.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "append.count");
-  CallDynArrayFunc("DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), src, count});
+  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), src, count});
 }
 
 void GenerateDynArrayPrepend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
 {
   LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.prepend.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), tmp, LlOne()});
 }
 
 void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values)
@@ -595,7 +619,7 @@ void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlVal
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "prepend.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "prepend.count");
-  CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), src, count});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), src, count});
 }
 
 void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * value)
@@ -603,7 +627,7 @@ void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * d
   LlValue * idx = IntExprValue(scope, index);
   LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.insert.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, tmp, LlOne()});
 }
 
 void GenerateDynArrayInsertSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * values)
@@ -612,7 +636,7 @@ void GenerateDynArrayInsertSlice(OScope * scope, OTypeDynArray * dyntype, LlValu
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "insert.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "insert.count");
-  CallDynArrayFunc("DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, src, count});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, src, count});
 }
 
 void GenerateDynArrayDelete(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * count)
@@ -620,7 +644,7 @@ void GenerateDynArrayDelete(OScope * scope, OTypeDynArray * dyntype, LlValue * d
   (void)dyntype;
   LlValue * idx = IntExprValue(scope, index);
   LlValue * cnt = count ? IntExprValue(scope, count) : LlOne();
-  CallDynArrayFunc("DynArrDelete", {dynaddr, idx, cnt});
+  CallDynArrayFunc(scope, "DynArrDelete", {dynaddr, idx, cnt});
 }
 
 LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
@@ -629,7 +653,7 @@ LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue
   LlValue * tmp = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.clone.tmp");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), tmp);
   LlValue * srcmgr = GenerateDynArrayManagerValue(scope, dyntype, dynaddr);
-  CallDynArrayFunc("DynArrClone", {tmp, DynArrayTypeInfo(dyntype), srcmgr});
+  CallDynArrayFunc(scope, "DynArrClone", {tmp, DynArrayTypeInfo(dyntype), srcmgr});
   return ll_builder.CreateLoad(dyntype->GetLlType(), tmp, "dyn.clone");
 }
 
@@ -637,7 +661,7 @@ LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue *
 {
   (void)scope;
   LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
-  CallDynArrayFunc(first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
+  CallDynArrayFunc(scope, first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
   return ll_builder.CreateLoad(DynArrayElementStorageType(dyntype)->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
 }
 

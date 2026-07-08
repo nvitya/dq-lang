@@ -122,6 +122,9 @@ function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
   return true
 endfunc
 
+[[external]]
+function DqExcNativeThrow(e : Exception)
+
 var active_exception  : Exception = null
 var handled_exception : Exception = null
 
@@ -138,7 +141,7 @@ function DqExcRaise(e : Exception, owned_ref : bool):
   endif
 
   e.CaptureBacktrace()
-  DqSetActiveException(e)
+  DqExcNativeThrow(e)
 endfunc
 
 function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int):
@@ -159,7 +162,7 @@ function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, 
     i += 1
   endwhile
 
-  DqSetActiveException(e)
+  DqExcNativeThrow(e)
 endfunc
 
 function DqExcRethrow():
@@ -167,8 +170,7 @@ function DqExcRethrow():
     RuntimeError("re-raise without active exception")
     return
   endif
-  active_exception = handled_exception
-  handled_exception = null
+  DqExcNativeThrow(handled_exception)
 endfunc
 
 function DqExcActive() -> bool:
@@ -200,6 +202,7 @@ function DqExcEndCatch():
   endif
   handled_exception = null
 endfunc
+
 
 function DqExcPrintTypeName():
   if active_exception <> null:

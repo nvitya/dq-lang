@@ -47,20 +47,29 @@ using namespace std;
 
 OValSymFunc * ODqCompCodegen::DqExceptionFunc(const string & name)
 {
-  auto nsit = g_namespaces.find("__dq_exception");
-  if (nsit != g_namespaces.end() && nsit->second)
-  {
-    if (auto * fn = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false)))
-    {
-      return fn;
+  auto CheckScope = [&](OScope * scope) -> OValSymFunc * {
+    if (scope) {
+      if (OValSym * vs = scope->FindValSym(name, nullptr, false)) {
+        return dynamic_cast<OValSymFunc *>(vs);
+      }
     }
+    return nullptr;
+  };
+
+  if (g_module)
+  {
+    if (OValSymFunc * fn = CheckScope(g_module->scope_pub)) return fn;
+    if (OValSymFunc * fn = CheckScope(g_module->scope_priv)) return fn;
   }
 
-  for (OModuleIntf * intf : g_module->loaded_modules)
+  if (g_module)
   {
-    if (intf && intf->name == "rtl/exception" && intf->scope_pub)
+    for (OModuleIntf * intf : g_module->loaded_modules)
     {
-      return dynamic_cast<OValSymFunc *>(intf->scope_pub->FindValSym(name, nullptr, false));
+      if (intf && intf->name == "rtl/exception")
+      {
+        if (OValSymFunc * fn = CheckScope(intf->scope_pub)) return fn;
+      }
     }
   }
 
@@ -69,22 +78,16 @@ OValSymFunc * ODqCompCodegen::DqExceptionFunc(const string & name)
 
 LlValue * ODqCompCodegen::DqExceptionActiveValue()
 {
-  OValSymFunc * fn = DqExceptionFunc("DqExcActive");
-  if (!fn || !fn->ll_func)
-  {
-    return nullptr;
-  }
-  return ll_builder.CreateCall(fn->ll_func, {}, "exc.active");
+  return nullptr;
 }
 
 LlValue * ODqCompCodegen::DqCurrentExceptionValue()
 {
-  OValSymFunc * fn = DqExceptionFunc("DqExcCurrent");
-  if (!fn || !fn->ll_func)
+  if (!ll_current_exc_storage)
   {
     return nullptr;
   }
-  return ll_builder.CreateCall(fn->ll_func, {}, "exc.current");
+  return ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_current_exc_storage, "exc.current");
 }
 
 void ODqCompCodegen::DqClearException()
@@ -157,14 +160,12 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
     return;
   }
 
-  OValSymFunc * fn_current = DqExceptionFunc("DqExcCurrent");
-  if (!fn_current || !fn_current->ll_func)
+  LlValue * ll_exc = DqCurrentExceptionValue();
+  if (!ll_exc)
   {
     ll_builder.CreateBr(bb_next);
     return;
   }
-
-  LlValue * ll_exc = ll_builder.CreateCall(fn_current->ll_func, {}, "exc.current");
   LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
   LlValue * is_null = ll_builder.CreateICmpEQ(ll_exc, ll_null, "exc.isnull");
 
@@ -176,8 +177,22 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
 
   ll_builder.SetInsertPoint(bb_check);
   
-  OTypeFunc * fn_type = dynamic_cast<OTypeFunc *>(fn_current->ptype);
-  OTypeObject * exc_type = dynamic_cast<OTypeObject *>(fn_type->rettype->ResolveAlias());
+  // We can get the Exception type from DqExcRaise's first parameter
+  OTypeObject * exc_type = nullptr;
+  OValSymFunc * fn_raise = DqExceptionFunc("DqExcRaise");
+  if (fn_raise && fn_raise->ptype)
+  {
+    OTypeFunc * fn_type = dynamic_cast<OTypeFunc *>(fn_raise->ptype);
+    if (fn_type && fn_type->params.size() > 0)
+    {
+      exc_type = dynamic_cast<OTypeObject *>(fn_type->params[0]->ptype->ResolveAlias());
+    }
+  }
+
+  if (!exc_type)
+  {
+    throw runtime_error("GenerateExceptBranchMatch: missing Exception type");
+  }
   
   // Exception is polymorphic, so we can access its TypeInfo at vtable[0]
   // The first field of the Exception object is its vtable pointer
@@ -221,6 +236,48 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
   LlValue * next_ti = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), base_ti_ptr, "exc.next.ti");
   phi_ti->addIncoming(next_ti, bb_adv);
   ll_builder.CreateBr(bb_loop);
+}
+
+void ODqCompCodegen::GenerateDqExcNativeThrowBody()
+{
+  OValSymFunc * vs_throw = DqExceptionFunc("DqExcNativeThrow");
+  if (g_module && g_module->name == "rtl/exception") {
+    printf("DEBUG: GenerateDqExcNativeThrowBody in rtl/exception. vs_throw=%p\n", vs_throw);
+    if (vs_throw) printf("DEBUG: ll_func=%p, empty=%d\n", vs_throw->ll_func, vs_throw->ll_func ? vs_throw->ll_func->empty() : 1);
+  }
+  if (!vs_throw || !vs_throw->ll_func)
+  {
+    return;
+  }
+
+  LlFunction * f = vs_throw->ll_func;
+  // If it already has a body, do not generate again
+  if (!f->empty())
+  {
+    return;
+  }
+
+  LlBasicBlock * bb = LlBasicBlock::Create(ll_ctx, "entry", f);
+  ll_builder.SetInsertPoint(bb);
+  
+  LlValue * exc_arg = f->getArg(0);
+
+  llvm::FunctionCallee fn_alloc = ll_module->getOrInsertFunction("__cxa_allocate_exception",
+      LlFuncType::get(llvm::PointerType::get(ll_ctx, 0), {LlType::getInt64Ty(ll_ctx)}, false));
+
+  LlValue * size_val = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 8);
+  LlValue * ptr = ll_builder.CreateCall(fn_alloc, {size_val}, "exc.alloc");
+
+  ll_builder.CreateStore(exc_arg, ptr);
+
+  llvm::FunctionCallee fn_throw = ll_module->getOrInsertFunction("__cxa_throw",
+      LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {llvm::PointerType::get(ll_ctx, 0), llvm::PointerType::get(ll_ctx, 0), llvm::PointerType::get(ll_ctx, 0)}, false));
+
+  LlValue * null_ptr = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * type_info = ll_module->getOrInsertGlobal("_ZTIPv", llvm::PointerType::get(ll_ctx, 0));
+
+  ll_builder.CreateCall(fn_throw, {ptr, type_info, null_ptr});
+  ll_builder.CreateUnreachable();
 }
 
 void ODqCompCodegen::GenerateIr()
@@ -336,6 +393,7 @@ void ODqCompCodegen::GenerateIr()
   }
 
   // generate function bodies
+  GenerateDqExcNativeThrowBody();
 
   for (ODecl * decl : g_module->declarations)
   {
@@ -362,7 +420,7 @@ void ODqCompCodegen::GenerateIr()
     di_builder->finalize();
   }
 
-  OptimizeIr(g_opt.optlevel);
+  // OptimizeIr(g_opt.optlevel);
 }
 
 void ODqCompCodegen::PrepareTarget()

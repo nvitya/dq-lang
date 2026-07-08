@@ -24,6 +24,7 @@
 #include "otype_array.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
+#include "scope_builtins.h"
 #include <llvm/IR/GlobalVariable.h>
 
 OValSym * OTypeObject::CreateValSym(OScPosition & apos, const string aname)
@@ -45,6 +46,11 @@ bool OTypeObject::IsSameOrDerivedFrom(OCompoundType * abase) const
   if (!abase)
   {
     return false;
+  }
+
+  if (g_builtins && abase == g_builtins->type_object)
+  {
+    return true;
   }
 
   for (const OTypeObject * cur = this; cur; cur = cur->GetBaseObject())
@@ -629,7 +635,7 @@ LlValue * OTypeObject::GenerateConversion(OScope * scope, OExpr * src)
     throw logic_error("Object conversion requires a source type");
   }
 
-  if (TK_POINTER == srctype->kind)
+  if (TK_POINTER == srctype->kind || TK_OBJECT == srctype->kind)
   {
     LlValue * ll_value = src->Generate(scope);
     LlType * ll_objptr = GetPointerType()->GetLlType();
@@ -1148,7 +1154,25 @@ bool OTypeObject::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     return OType::ConvertFromExpr(rexpr, aflags);
   }
 
-  return true;
+  OTypeObject * src_object = dynamic_cast<OTypeObject *>(resolved_src);
+  if (src_object && src_object->IsSameOrDerivedFrom(this))
+  {
+    if (src_object != this)
+    {
+      *rexpr = new OObjectUpcastExpr(this, src);
+    }
+    return true;
+  }
+
+  if (is_explicit_cast)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
+
+  if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+  return false;
 }
 
 int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
@@ -1169,5 +1193,7 @@ int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
     return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
-  return 0;
+  OTypeObject * src_object = dynamic_cast<OTypeObject *>(resolved_src);
+  if (src_object && src_object->IsSameOrDerivedFrom(this)) return 0;
+  return is_explicit_cast ? 1 : -1;
 }

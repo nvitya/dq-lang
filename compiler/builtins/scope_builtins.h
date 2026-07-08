@@ -25,6 +25,8 @@
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 
+class OTypeObject;
+
 class OScopeBuiltins : public OScope
 {
 private:
@@ -60,6 +62,7 @@ public:
   OTypeDynString * type_str;
   OTypeStrView *   type_strview;
   OTypeAnyValue *  type_anyvalue;
+  OTypeObject *    type_object;
 
   OScopeBuiltins()
   :

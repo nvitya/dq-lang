@@ -12,6 +12,7 @@
  */
 
 #include "scope_builtins.h"
+#include "otype_compound.h"
 
 OScopeBuiltins *  g_builtins;
 
@@ -69,12 +70,16 @@ void OScopeBuiltins::Init()
   type_str     = new OTypeDynString();
   type_strview = new OTypeStrView();
   type_anyvalue = new OTypeAnyValue();
+  type_object = new OTypeObject("Object", this);
+  type_object->is_abstract = true;
+  type_object->EnsureLayout();
   DefineType(type_char);
   DefineType(type_cchar);
   DefineType(type_cstring);
   DefineType(type_str);
   DefineType(type_strview);
   DefineType(type_anyvalue);
+  DefineType(type_object);
 
   DefineType(new OTypeAlias("byte", type_uint8));
 }

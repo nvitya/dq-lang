@@ -1,0 +1,16 @@
+// built-in Object type checking tests (ERROR test)
+
+object OBase:
+endobj
+
+function *Main() -> int:
+  var any : Object = null;
+  var base : OBase = null;
+
+  base = any; //?error(TypeMismatchAssign)
+
+  var fixed <- Object; //?error(NotSupported)
+  var heap : Object = new Object; //?error(NotSupported)
+
+  return 0;
+endfunc

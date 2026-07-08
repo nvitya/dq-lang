@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.8"
+#define DQ_COMPILER_VERSION  "0.28.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.9:
+  - "Object" type for accepting any object as argument or storage
 v0.28.8:
   - Handling forward declarations in the modules properly
 v0.28.7:

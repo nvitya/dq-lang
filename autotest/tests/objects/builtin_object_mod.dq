@@ -1,0 +1,21 @@
+//?notest
+
+object OModObject:
+public
+  value : int = 0;
+
+  function *Create(v : int):
+    value = v;
+  endfunc
+endobj
+
+function ExportObject(o : OModObject) -> Object:
+  return o;
+endfunc
+
+function ImportedObjectSet(o : Object) -> int:
+  if o == null:
+    return 0;
+  endif
+  return 1;
+endfunc

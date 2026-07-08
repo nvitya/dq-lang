@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    nanonet/nano_sockets.dq
+ * authors: nvitya
+ * created: 2026-07-08
+ * brief:   Simple TCP/IP socket handling, based on my Pascal version here:
+ *          https://github.com/nvitya/nanonet
+ */
+
+object ENanoNet(Exception):
+endobj
+
+object ONanoServer    [[forward]]  // <-- this causes interface loading error!
+object OSocketWatcher [[forward]]
+
+enum NSocketType = (stTcp4, stUdp4)
+
+object ONanoSocket:
+  m_socket : int
+endobj
+
+object OSocketWatcher:
+ a : int
+endobj
+
+object OSConnection:  // Servers connection to client
+  //sock   : ONanoSocket
+  //server : ONanoServer
+  a : int
+endobj
+
+//type TSConnectionClass = class of OSConnection
+//type TSConnectionClass = OSConnection
+
+object ONanoServer:
+  listen_port : uint16
+  sock_listen : ONanoSocket
+
+  connections  : [*]OSConnection
+  closed_conns : [*]OSConnection
+
+  swatcher     : OSocketWatcher
+
+  //sconn_class  : TSConnectionClass
+endobj
+
+implementation

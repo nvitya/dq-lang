@@ -911,6 +911,10 @@ void ODqCompParser::ParseStructDecl()
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
     if (attr->IsSet(ATTF_FORWARD))
     {
+      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
+      {
+        g_module->OModuleBase::declarations.back()->is_forward = true;
+      }
       return;
     }
   }
@@ -1032,6 +1036,12 @@ void ODqCompParser::ParseStructDecl()
 
   ctype->EnsureLayout();
   ctype->incomplete = false;
+  ctype->layout_ready = true;
+
+  if (is_forward_def)
+  {
+    g_module->OModuleBase::declarations.push_back(new OIntfDecl(ctype, false));
+  }
 }
 
 bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
@@ -1907,6 +1917,10 @@ void ODqCompParser::ParseObjectDecl()
     object_type->is_packed = attr->IsSet(ATTF_PACKED);
     if (attr->IsSet(ATTF_FORWARD))
     {
+      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
+      {
+        g_module->OModuleBase::declarations.back()->is_forward = true;
+      }
       return;
     }
   }
@@ -2191,6 +2205,11 @@ void ODqCompParser::ParseObjectDecl()
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
   object_type->incomplete = false;
+
+  if (is_forward_def)
+  {
+    g_module->OModuleBase::declarations.push_back(new OIntfDecl(object_type, false));
+  }
 }
 
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)

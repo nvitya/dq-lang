@@ -128,10 +128,13 @@ public:
     OValSym *    pvalsym;
   };
 
-  OIntfDecl(OType * atype)
+  bool           is_forward = false;
+
+  OIntfDecl(OType * atype, bool aforward = false)
   :
     kind(IDK_TYPE),
-    ptype(atype)
+    ptype(atype),
+    is_forward(aforward)
   {
   }
 

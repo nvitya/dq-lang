@@ -1,0 +1,84 @@
+implementation
+
+use print
+use nanonet/nano_sockets
+
+#if false
+
+object OSConnectionSimple(OSConnection):
+  inbuf  : str
+  indata : str
+
+  function *Create(aserver : ONanoServer)  [[override]]
+  function *Destroy()  [[override]]
+
+  function HandleInput(aobj : Object)  [[override]]
+  function ProcessInData()
+endobj
+
+constructor TSConnectionSimple.Create(aserver : TNanoServer);
+begin
+  inherited;
+  indata := '';
+  SetLength(inbuf, 4096);
+end;
+
+destructor TSConnectionSimple.Destroy;
+begin
+  indata := '';
+  SetLength(inbuf, 0);
+  inherited Destroy;
+end;
+
+procedure TSConnectionSimple.HandleInput(aobj : TObject);
+var
+  r : integer;
+begin
+  r := sock.Recv(inbuf[1], length(inbuf));
+  if r > 0 then
+  begin
+    indata := copy(inbuf, 1, r);
+    ProcessInData;
+  end
+  else if r = 0 then
+  begin
+    // the socket is closed !
+    server.CloseConnection(self);  // this connection is scheduled for removal, safe freeing in other context
+  end
+  else
+  begin
+    // ignore errors
+  end;
+end;
+
+procedure TSConnectionSimple.ProcessInData;
+begin
+  // the overridden function should do something more useful with the indata...
+  writeln('<- "',indata,'"');
+end;
+
+//--------------------------------------------------------------------------------------------------
+
+var svr : ONanoServer
+
+#endif
+
+function *Main() -> int:
+  PrintLn('DQ NanoNet - SimpleBin Server')
+
+  //svr = new ONanoServer.Create(OSConnectionSimple, 4444)
+  //svr.InitListener()
+  //PrintLn('Server listening at port {}', svr.listen_port)
+
+  PrintLn('Entering main loop...')
+
+  return 0
+
+  while true:
+    //svr.WaitForEvents(1000)
+
+    // you can do something else here
+  endwhile
+
+  return 0
+endfunc

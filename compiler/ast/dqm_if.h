@@ -198,6 +198,8 @@ TDqmIfRecId  DQMIF_FUNC_PARAM_VARARGS     = 0x06A0;  // 0
 
 TDqmIfRecId  DQMIF_STRUCT_BEGIN           = 0x0700;  // str: name
 TDqmIfRecId  DQMIF_STRUCT_END             = 0x07FF;  // 0
+TDqmIfRecId  DQMIF_STRUCT_FWD             = 0x070E;  // str: name
+TDqmIfRecId  DQMIF_OBJ_FWD                = 0x070F;  // str: name
 TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
 TDqmIfRecId  DQMIF_OBJ_BASE               = 0x0702;  // str: base compound type name
 TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0

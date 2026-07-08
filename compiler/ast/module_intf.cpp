@@ -1190,9 +1190,25 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
 
     if (IDK_TYPE == decl->kind)
     {
-      if (!decl->ptype || !decl->ptype->WriteDqmIfDecl(writer))
+      if (!decl->ptype) return false;
+      
+      if (decl->is_forward)
       {
-        return false;
+        int fwd_tag = 0;
+        if (decl->ptype->kind == TK_OBJECT) fwd_tag = DQMIF_OBJ_FWD;
+        else if (decl->ptype->kind == TK_STRUCT) fwd_tag = DQMIF_STRUCT_FWD;
+        
+        if (fwd_tag)
+        {
+          if (!writer.AddRecStr(fwd_tag, decl->ptype->name)) return false;
+        }
+      }
+      else
+      {
+        if (!decl->ptype->WriteDqmIfDecl(writer))
+        {
+          return false;
+        }
       }
     }
     else if (IDK_VALSYM == decl->kind)
@@ -2356,13 +2372,29 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     return false;
   }
 
-  OCompoundType * ctype = (ais_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
-                                      : new OCompoundType(declname, scope_pub));
-  ctype->incomplete = true;
-  if (!AddPublicType(ctype))
+  OType * existing = scope_pub->FindType(declname);
+  OCompoundType * ctype = nullptr;
+  if (existing)
   {
-    delete ctype;
-    return false;
+    if (existing->incomplete && existing->kind == (ais_object ? TK_OBJECT : TK_STRUCT))
+    {
+      ctype = static_cast<OCompoundType *>(existing);
+    }
+    else
+    {
+      return reader.Fail(format("Type {} already defined pos={}", declname, reader.pos));
+    }
+  }
+  else
+  {
+    ctype = (ais_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
+                                        : new OCompoundType(declname, scope_pub));
+    ctype->incomplete = true;
+    if (!AddPublicType(ctype))
+    {
+      delete ctype;
+      return false;
+    }
   }
 
   if (!reader.NextRec())
@@ -2679,9 +2711,23 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     {
       if (!ReadCompoundDecl(reader, true)) return false;
     }
+    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid)
+    {
+      bool is_obj = (DQMIF_OBJ_FWD == reader.recid);
+      string declname;
+      if (!reader.ReadString(declname)) return false;
+      OType * existing = scope_pub->FindType(declname);
+      if (!existing)
+      {
+         OCompoundType * ctype = (is_obj ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
+                                         : new OCompoundType(declname, scope_pub));
+         ctype->incomplete = true;
+         AddPublicType(ctype);
+      }
+    }
     else
     {
-      return reader.Fail(format("Unexpected top-level DQM interface record 0x{:04X}", reader.recid));
+      return reader.Fail(format("Unexpected top-level DQM interface record 0x{:04X} at pos {}", reader.recid, reader.pos));
     }
   }
 

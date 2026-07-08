@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.28.7"
+#define DQ_COMPILER_VERSION  "0.28.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.28.8:
+  - Handling forward declarations in the modules properly
 v0.28.7:
   - json module implementation completed
 v0.28.6:

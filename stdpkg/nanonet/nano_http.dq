@@ -1,0 +1,822 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    nanonet/nano_http.dq
+ * authors: nvitya
+ * created: 2026-07-09
+ * brief:   HTTP Protocol handling, based on the Pascal version from nanonet
+ */
+
+use nanonet/nano_sockets  reexport
+use strparse              reexport
+use file                  reexport
+
+object OStrMapItem:
+    key   : str
+    value : str
+
+    function *Create(akey : str, avalue : str)
+endobj
+
+object OStrMap:
+protected
+    m_items : [*]OStrMapItem
+
+    function FindKey(akey : str) -> int
+    function GetKey(aindex : int) -> str
+    function GetValue(aindex : int) -> str
+
+public
+    function *Destroy()
+
+    function Clear()
+    function Add(akey : str, avalue : str)
+    function SetItem(akey : str, avalue : str)
+    function GetItem(akey : str) -> str
+    function KeyDataDef(akey : str, adefvalue : str) -> str
+    function Delete(akey : str)
+    function IndexOf(akey : str) -> int
+
+    function GetLength() -> int:
+        return m_items.length
+    endfunc
+
+    property item   : [akey : str]str  default  read GetItem  write SetItem
+    property key    : [aindex : int]str             read GetKey
+    property value  : [aindex : int]str             read GetValue
+    property length : int  read GetLength
+endobj
+
+object OSConnectionHttp(OSConnection):
+protected
+    sp : OStrParse
+
+    inbuf  : [*]byte
+    infill : uint32
+
+    outbuf : str
+
+    file_obj : OFile
+
+    function ProcessInData()
+    function AddHttpOutput()
+    function ParseGetString()
+    function ParseRequestHeader() -> bool
+    function ParseCookies(astr : strview)
+
+public
+    header_length : int
+
+    method   : str
+    uri      : str
+    url      : str
+    http_ver : str
+    getstr   : str
+    keep_alive : bool
+
+    full_content_length : int64
+    file_remaining      : int64
+
+    function CloseFileFd()
+
+public
+    ucheaders : OStrMap
+    qsvars    : OStrMap
+    cookies   : OStrMap
+
+    response : str
+    response_code : int
+    response_headers : OStrMap
+
+    function *Create(aserver : ONanoServer)
+    function *Destroy()
+
+    function QsVarInt(aname : strview, adefvalue : int) -> int
+    function QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str
+
+    function HandleInput(aobj : Object) [[override]]
+    function HandleOutput(aobj : Object) [[override]]
+
+    function SendOutput()
+
+    function PrepareHeaders() [[virtual]]
+    function ProcessRequest() -> bool [[virtual]]
+
+    function HandleStaticFiles(arootdir : strview) -> bool
+
+    function LogError(astr : strview) [[virtual]]
+endobj
+
+type TSConnHttpClass = type of OSConnectionHttp
+
+object ONanoHttpServer(ONanoServer):
+public
+    server_id : str
+    ct_by_ext : OStrMap
+
+    function *Create(aclass : TSConnHttpClass, alisten_port : uint16)
+    function *Destroy()
+
+    function InitContentTypeMap()
+    function ContentTypeByExt(aext : strview) -> str
+endobj
+
+function ParseHttpDateRFC1123(adatestr : strview) -> int64
+
+implementation
+
+use strutils
+use print
+
+struct STimespec:
+    tv_sec  : int64
+    tv_nsec : int64
+endstruct
+
+struct SStat:
+    st_dev     : uint64
+    st_ino     : uint64
+    st_nlink   : uint64
+    st_mode    : uint32
+    st_uid     : uint32
+    st_gid     : uint32
+    __pad0     : int32
+    st_rdev    : uint64
+    st_size    : int64
+    st_blksize : int64
+    st_blocks  : int64
+    st_atim    : STimespec
+    st_mtim    : STimespec
+    st_ctim    : STimespec
+    __glibc_reserved : [3]int64
+endstruct
+
+struct STm:
+    tm_sec    : int32
+    tm_min    : int32
+    tm_hour   : int32
+    tm_mday   : int32
+    tm_mon    : int32
+    tm_year   : int32
+    tm_wday   : int32
+    tm_yday   : int32
+    tm_isdst  : int32
+    tm_gmtoff : int64
+    tm_zone   : pointer
+endstruct
+
+function libc_stat(pathname : ^cchar, statbuf : ^SStat) -> int [[external('stat')]]
+function libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
+function libc_strftime(s : ^cchar, max : uint, format : ^cchar, tm : ^STm) -> uint [[external('strftime')]]
+
+function StatFile(afname : strview, st : ref SStat) -> bool:
+    if afname == '':
+        return false
+    endif
+
+    var path : cstring(4095) = ''
+    path.Set(afname)
+    return libc_stat(&path[0], &st) == 0
+endfunc
+
+function HttpDateFromUnix(atime : int64) -> str:
+    var tm : STm = {}
+    var t : int64 = atime
+    if libc_gmtime_r(&t, &tm) == null:
+        return ''
+    endif
+
+    var fmt : cstring(31) = '%a, %d %b %Y %H:%M:%S GMT'
+    var buf : cstring(63) = ''
+    if libc_strftime(&buf[0], buf.storage_size, ^cchar(&fmt[0]), &tm) == 0:
+        return ''
+    endif
+
+    return buf
+endfunc
+
+function FileHttpDate(afname : strview) -> str:
+    var st : SStat = {}
+    if not StatFile(afname, st):
+        return ''
+    endif
+
+    return HttpDateFromUnix(st.st_mtim.tv_sec)
+endfunc
+
+function FileSizeByStat(afname : strview) -> int64:
+    var st : SStat = {}
+    if not StatFile(afname, st):
+        return -1
+    endif
+
+    return st.st_size
+endfunc
+
+function IsUrlPathSafe(auri : strview) -> bool:
+    if auri == '':
+        return false
+    endif
+
+    if auri[0] != '/':
+        return false
+    endif
+
+    if @.StrIndexOf(auri, '/../') >= 0 or @.StrIndexOf(auri, '/..') >= 0 or @.StrIndexOf(auri, '../') >= 0:
+        return false
+    endif
+
+    return true
+endfunc
+
+function TrimRoot(arootdir : strview) -> str:
+    result = @file.PathTranslateSeparators(arootdir)
+    while result.length > 1 and @.StrEndsWith(result, '/'):
+        result.Delete(result.length - 1)
+    endwhile
+endfunc
+
+function ParseHttpDateRFC1123(adatestr : strview) -> int64:
+    result = 0
+    var sp <- OStrParse(adatestr)
+    if adatestr == '':
+        return
+    endif
+
+    sp.ReadTo(', ')
+    sp.CheckSymbol(',')
+    sp.SkipSpaces(false)
+
+    if not sp.ReadTo(' '):
+        return
+    endif
+    var day : int = StrToInt(sp.PrevStr(), -1)
+    if day < 1 or day > 31:
+        return
+    endif
+    sp.CheckSymbol(' ')
+
+    if not sp.ReadTo(' '):
+        return
+    endif
+    var monthnames : cstring(63) = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,'
+    var monpos : int = StrIndexOf(monthnames, sp.PrevStr() + ',')
+    if monpos < 0:
+        return
+    endif
+    var mon : int = 1
+    while monpos >= 4:
+        mon += 1
+        monpos -= 4
+    endwhile
+    sp.CheckSymbol(' ')
+
+    if not sp.ReadTo(' '):
+        return
+    endif
+    var year : int = StrToInt(sp.PrevStr(), -1)
+    if year < 0:
+        return
+    endif
+
+    // This helper currently validates the RFC1123 shape and returns a non-zero
+    // packed date value. Static-file cache checks compare the exact header text.
+    return int64(year) * 10000 + int64(mon) * 100 + int64(day)
+endfunc
+
+function OStrMapItem.*Create(akey : str, avalue : str):
+    key = akey
+    value = avalue
+endfunc
+
+function OStrMap.*Destroy():
+    Clear()
+endfunc
+
+function OStrMap.Clear():
+    while m_items.length > 0:
+        var item : OStrMapItem = m_items.Pop()
+        delete item
+    endwhile
+endfunc
+
+function OStrMap.FindKey(akey : str) -> int:
+    for i : int = 0 count m_items.length:
+        if m_items[i].key == akey:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+function OStrMap.IndexOf(akey : str) -> int:
+    return FindKey(akey)
+endfunc
+
+function OStrMap.Add(akey : str, avalue : str):
+    SetItem(akey, avalue)
+endfunc
+
+function OStrMap.SetItem(akey : str, avalue : str):
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        m_items[idx].value = avalue
+    else:
+        m_items.Append(new OStrMapItem(akey, avalue))
+    endif
+endfunc
+
+function OStrMap.GetItem(akey : str) -> str:
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        return m_items[idx].value
+    endif
+    return ''
+endfunc
+
+function OStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        return m_items[idx].value
+    endif
+    return adefvalue
+endfunc
+
+function OStrMap.Delete(akey : str):
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        var item : OStrMapItem = m_items[idx]
+        m_items.Delete(idx)
+        delete item
+    endif
+endfunc
+
+function OStrMap.GetKey(aindex : int) -> str:
+    if aindex < 0 or aindex >= m_items.length:
+        return ''
+    endif
+    return m_items[aindex].key
+endfunc
+
+function OStrMap.GetValue(aindex : int) -> str:
+    if aindex < 0 or aindex >= m_items.length:
+        return ''
+    endif
+    return m_items[aindex].value
+endfunc
+
+//-------------------------------------------------------------------------------------------------
+
+function OSConnectionHttp.*Create(aserver : ONanoServer):
+    inherited Create(aserver)
+
+    sp = new OStrParse()
+
+    inbuf.SetLength(4096)
+    infill = 0
+    outbuf = ''
+    file_obj = null
+
+    ucheaders = new OStrMap()
+    response_headers = new OStrMap()
+    qsvars = new OStrMap()
+    cookies = new OStrMap()
+
+    header_length = 0
+    uri = ''
+    method = ''
+    response = ''
+    response_code = 200
+endfunc
+
+function OSConnectionHttp.*Destroy():
+    CloseFileFd()
+    delete sp
+    delete ucheaders
+    delete response_headers
+    delete qsvars
+    delete cookies
+    inherited Destroy()
+endfunc
+
+function OSConnectionHttp.QsVarInt(aname : strview, adefvalue : int) -> int:
+    return int(@strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue))
+endfunc
+
+function OSConnectionHttp.QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str:
+    result = qsvars.KeyDataDef(aname, adefvalue)
+    if amaxlen > 0 and result.length > amaxlen:
+        result = result[:amaxlen]
+    endif
+endfunc
+
+function OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
+    if inbuf.length - infill < 4096:
+        inbuf.SetLength(inbuf.length * 2)
+    endif
+
+    var r : int = sock.Recv(&inbuf[infill], inbuf.length - infill)
+    if r > 0:
+        infill += uint32(r)
+        ProcessInData()
+    elif r == 0:
+        server.CloseConnection(self)
+    else:
+        // ignore socket errors here
+    endif
+endfunc
+
+function OSConnectionHttp.HandleOutput(aobj : Object) [[override]]:
+    SendOutput()
+endfunc
+
+function OSConnectionHttp.ProcessInData():
+    while true:
+        sp.Init(^cchar(&inbuf[0]), infill)
+        if not sp.SearchPattern('\r\n\r\n'):
+            return
+        endif
+
+        header_length = sp.readp - sp.bufstart
+        var fullmsglen : uint32 = uint32(header_length + 4)
+
+        sp.Init(^cchar(&inbuf[0]), header_length)
+        if not ParseRequestHeader():
+            LogError('invalid request header detected. closing socket.')
+            self.Close()
+            return
+        endif
+
+        response = ''
+        full_content_length = -1
+        response_code = 200
+        response_headers.Clear()
+        PrepareHeaders()
+
+        if not ProcessRequest():
+            response_code = 404
+            response_headers['Content-Type'] = 'text/html'
+            response = '<h1>Not Found</h1>'
+        endif
+
+        AddHttpOutput()
+
+        if infill > fullmsglen:
+            @sys.MemCopy(&inbuf[0], &inbuf[fullmsglen], infill - fullmsglen)
+            infill -= fullmsglen
+        else:
+            infill = 0
+        endif
+
+        if infill <= 0:
+            break
+        endif
+    endwhile
+
+    SendOutput()
+endfunc
+
+function OSConnectionHttp.ParseRequestHeader() -> bool:
+    use strutils
+    result = false
+
+    url = ''
+    uri = ''
+    keep_alive = false
+    ucheaders.Clear()
+    qsvars.Clear()
+    cookies.Clear()
+
+    if sp.CheckSymbol('GET'):
+        method = 'GET'
+    elif sp.CheckSymbol('POST'):
+        method = 'POST'
+    else:
+        if not sp.ReadAlphaNum():
+            return false
+        endif
+        if sp.prevlen > 8:
+            return false
+        endif
+        method = StrUpper(sp.PrevStr())
+    endif
+
+    sp.SkipSpaces()
+    if not sp.ReadTo(' \r\n'):
+        return false
+    endif
+    url = sp.PrevStr()
+
+    var qpos : int = StrIndexOf(url, '?')
+    if qpos >= 0:
+        uri = url[:qpos]
+        getstr = url[qpos + 1:]
+        ParseGetString()
+    else:
+        uri = url
+        getstr = ''
+    endif
+
+    sp.SkipSpaces()
+    if not sp.CheckSymbol('HTTP/'):
+        return false
+    endif
+    if not sp.ReadTo(' \r\n'):
+        return false
+    endif
+    http_ver = sp.PrevStr()
+
+    sp.SkipSpaces(true)
+
+    while sp.readp < sp.bufend:
+        if not sp.ReadTo(':'):
+            break
+        endif
+        var skey : str = StrUpper(sp.PrevStr())
+        sp.CheckSymbol(':')
+        sp.SkipSpaces(false)
+        if not sp.ReadTo('\r\n'):
+            break
+        endif
+        var sval : str = sp.PrevStr()
+
+        ucheaders.Add(skey, sval)
+
+        if skey == 'CONNECTION' and StrUpper(sval) == 'KEEP-ALIVE':
+            keep_alive = true
+        endif
+        if skey == 'COOKIE':
+            ParseCookies(sval)
+        endif
+
+        sp.SkipSpaces(true)
+    endwhile
+
+    result = true
+endfunc
+
+function OSConnectionHttp.ParseCookies(astr : strview):
+    use strutils
+    var csp <- OStrParse(astr)
+    csp.SkipSpaces(false)
+    while csp.readp < csp.bufend:
+        if not csp.ReadTo('='):
+            break
+        endif
+
+        var skey : str = StrUpper(csp.PrevStr())
+        csp.CheckSymbol('=')
+        csp.SkipSpaces(false)
+        csp.ReadTo(';')
+        var sval : str = csp.PrevStr()
+        csp.CheckSymbol(';')
+
+        cookies.Add(skey, sval)
+
+        csp.SkipSpaces(true)
+    endwhile
+endfunc
+
+function OSConnectionHttp.AddHttpOutput():
+    use strutils
+    var s : str = 'HTTP/1.1 ' + Format('{}', [response_code]) + ' '
+    if response_code == 200:
+        s.Append('OK')
+    elif response_code == 304:
+        s.Append('NOT MODIFIED')
+    elif response_code == 404:
+        s.Append('NOT FOUND')
+    else:
+        s.Append('ERROR')
+    endif
+
+    s.Append('\r\n')
+
+    if full_content_length > 0:
+        response_headers['Content-Length'] = Format('{}', [full_content_length])
+    else:
+        response_headers['Content-Length'] = Format('{}', [response.length])
+    endif
+
+    for i : int = 0 count response_headers.length:
+        s.Append(response_headers.key[i])
+        s.Append(': ')
+        s.Append(response_headers.value[i])
+        s.Append('\r\n')
+    endfor
+
+    s.Append('\r\n')
+    s.Append(response)
+
+    outbuf.Append(s)
+endfunc
+
+function OSConnectionHttp.ParseGetString():
+    use strutils
+    var pos : int = 0
+    while pos <= getstr.length:
+        var next : int = StrIndexOf(getstr, '&', pos)
+        if next < 0:
+            next = getstr.length
+        endif
+
+        var s : str = getstr[pos:next]
+        var eqp : int = StrIndexOf(s, '=')
+        var k : str
+        var v : str
+        if eqp >= 0:
+            k = s[:eqp]
+            v = s[eqp + 1:]
+        else:
+            k = s
+            v = ''
+        endif
+
+        if k != '':
+            qsvars[k] = v
+        endif
+
+        if next >= getstr.length:
+            break
+        endif
+        pos = next + 1
+    endwhile
+endfunc
+
+function OSConnectionHttp.CloseFileFd():
+    if file_obj != null:
+        delete file_obj
+        file_obj = null
+    endif
+    file_remaining = 0
+endfunc
+
+function OSConnectionHttp.SendOutput():
+    while true:
+        if outbuf.length > 0:
+            var r : int = sock.Send(&outbuf[0], outbuf.length)
+            if r > 0:
+                if r < outbuf.length:
+                    outbuf.Delete(0, r)
+                else:
+                    outbuf = ''
+                endif
+            else:
+                self.SetOutHandler(null)
+                outbuf = ''
+                CloseFileFd()
+                self.Close()
+                return
+            endif
+
+            if outbuf.length > 0:
+                self.SetOutHandler(self.HandleOutput)
+                return
+            endif
+        endif
+
+        if file_obj != null and file_remaining > 0:
+            var rlen : int64 = file_remaining
+            if rlen > 65536:
+                rlen = 65536
+            endif
+
+            outbuf.SetLength(rlen, 0)
+            var r : int64 = file_obj.Read(&outbuf[0], rlen)
+            if r > 0:
+                file_remaining -= r
+                if r < outbuf.length:
+                    outbuf.SetLength(r, 0)
+                endif
+                continue
+            endif
+
+            outbuf = ''
+            self.SetOutHandler(null)
+            CloseFileFd()
+            self.Close()
+            return
+        endif
+
+        break
+    endwhile
+
+    self.SetOutHandler(null)
+    CloseFileFd()
+
+    if not keep_alive:
+        self.Close()
+    endif
+endfunc
+
+function OSConnectionHttp.PrepareHeaders() [[virtual]]:
+    var hsvr : ONanoHttpServer = ONanoHttpServer(server)
+    if hsvr.server_id != '':
+        response_headers['Server'] = hsvr.server_id
+    endif
+
+    response_headers['Content-Type'] = 'text/plain'
+endfunc
+
+function OSConnectionHttp.ProcessRequest() -> bool [[virtual]]:
+    return false
+endfunc
+
+function OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
+    use . , file
+    result = false
+
+    if not IsUrlPathSafe(uri):
+        LogError('malicious url detected: "' + uri + '"')
+        return
+    endif
+
+    var fpath : str = TrimRoot(arootdir) + uri
+    fpath = PathTranslateSeparators(fpath)
+
+    if not FileExists(fpath):
+        return false
+    endif
+
+    var flen : int64 = FileSizeByStat(fpath)
+    if flen < 0:
+        return false
+    endif
+
+    var file_rfcdate : str = FileHttpDate(fpath)
+    if file_rfcdate != '':
+        response_headers['Last-Modified'] = file_rfcdate
+    endif
+    var hsvr : ONanoHttpServer = ONanoHttpServer(server)
+    response_headers['Content-Type'] = hsvr.ContentTypeByExt(PathFileExt(uri))
+    full_content_length = flen
+
+    var modsince_rfcdate : str = ucheaders.KeyDataDef('IF-MODIFIED-SINCE', '')
+    if file_rfcdate != '' and modsince_rfcdate == file_rfcdate:
+        response_code = 304
+        return true
+    endif
+
+    file_obj = new OFile()
+    try:
+        file_obj.Open(fpath, 'rb')
+    except:
+        CloseFileFd()
+        return false
+    endtry
+
+    file_remaining = full_content_length
+    result = true
+endfunc
+
+function OSConnectionHttp.LogError(astr : strview) [[virtual]]:
+    @print.PrintLn('ERROR: {}', [astr])
+endfunc
+
+//-------------------------------------------------------------------------------------------------
+
+function ONanoHttpServer.*Create(aclass : TSConnHttpClass, alisten_port : uint16):
+    inherited Create(aclass, alisten_port)
+
+    server_id = 'NanoHttpServer'
+    ct_by_ext = new OStrMap()
+
+    InitContentTypeMap()
+endfunc
+
+function ONanoHttpServer.*Destroy():
+    delete ct_by_ext
+    inherited Destroy()
+endfunc
+
+function ONanoHttpServer.InitContentTypeMap():
+    ct_by_ext.Clear()
+
+    ct_by_ext.Add('html', 'text/html')
+    ct_by_ext.Add('htm',  'text/html')
+    ct_by_ext.Add('css',  'text/css')
+    ct_by_ext.Add('js',   'text/javascript')
+
+    ct_by_ext.Add('jpg',  'image/jpeg')
+    ct_by_ext.Add('jpeg', 'image/jpeg')
+    ct_by_ext.Add('png',  'image/png')
+    ct_by_ext.Add('gif',  'image/gif')
+    ct_by_ext.Add('svg',  'image/svg+xml')
+    ct_by_ext.Add('ico',  'image/vnd.microsoft.icon')
+endfunc
+
+function ONanoHttpServer.ContentTypeByExt(aext : strview) -> str:
+    use strutils
+    var fext : str = StrLower(aext)
+    if StrStartsWith(fext, '.'):
+        fext.Delete(0, 1)
+    endif
+
+    return ct_by_ext.KeyDataDef(fext, 'application/octet-stream')
+endfunc

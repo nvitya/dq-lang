@@ -13,10 +13,23 @@
  * brief:   Some simple string handling helpers
  */
 
-function StrToInt(sv : strview, defvalue : int64 = 0) -> int64;
-function Format(afmt : strview, aargs : []anyvalue) -> str;
+function Format(afmt : strview, aargs : []anyvalue) -> str
+
+function StrToInt(sv : strview, defvalue : int64 = 0) -> int64
+
+function StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int
+function StrStartsWith(astr : strview, aprefix : strview) -> bool
+function StrEndsWith(astr : strview, asuffix : strview) -> bool
+function StrUpper(astr : strview) -> str
+function StrLower(astr : strview) -> str
 
 implementation
+
+function Format(afmt : strview, aargs : []anyvalue) -> str:
+    var s : str
+    s.AddFmt(afmt, aargs)
+    return s
+endfunc
 
 function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
     result = 0
@@ -33,8 +46,71 @@ function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
     endfor
 endfunc
 
-function Format(afmt : strview, aargs : []anyvalue) -> str:
-    var s : str
-    s.AddFmt(afmt, aargs)
-    return s
+function StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int:
+    if astart < 0:
+        astart = 0
+    endif
+
+    if aneedle.length == 0:
+        if astart > astr.length:
+            return astr.length
+        endif
+        return astart
+    endif
+
+    if aneedle.length > astr.length:
+        return -1
+    endif
+
+    var lastpos : int = astr.length - aneedle.length
+    for pos : int = astart to lastpos:
+        var match : bool = true
+        for i : int = 0 count aneedle.length:
+            if astr[pos + i] != aneedle[i]:
+                match = false
+                break
+            endif
+        endfor
+        if match:
+            return pos
+        endif
+    endfor
+
+    return -1
+endfunc
+
+function StrStartsWith(astr : strview, aprefix : strview) -> bool:
+    return StrIndexOf(astr, aprefix) == 0
+endfunc
+
+function StrEndsWith(astr : strview, asuffix : strview) -> bool:
+    if asuffix.length > astr.length:
+        return false
+    endif
+
+    return StrIndexOf(astr, asuffix, astr.length - asuffix.length) >= 0
+endfunc
+
+function StrUpper(astr : strview) -> str:
+    result = ''
+    result.Reserve(astr.length)
+    for i : int = 0 count astr.length:
+        var ch : char = astr[i]
+        if ch >= 'a' and ch <= 'z':
+            ch = char(ch - 'a' + 'A')
+        endif
+        result.Append(ch)
+    endfor
+endfunc
+
+function StrLower(astr : strview) -> str:
+    result = ''
+    result.Reserve(astr.length)
+    for i : int = 0 count astr.length:
+        var ch : char = astr[i]
+        if ch >= 'A' and ch <= 'Z':
+            ch = char(ch - 'A' + 'a')
+        endif
+        result.Append(ch)
+    endfor
 endfunc

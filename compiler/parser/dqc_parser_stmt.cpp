@@ -70,54 +70,19 @@ static OModuleUse * FindModuleUseByNamespace(const string & namespace_name)
   return nullptr;
 }
 
-static void AddMethodUseValue(OScope * dst_scope, OScope * stop_scope, OValSym * vs)
-{
-  if (dst_scope && vs)
-  {
-    dst_scope->AddMethodUseValSym(vs, stop_scope);
-  }
-}
-
-static void AddMethodUseDirectValues(OScope * dst_scope, OScope * stop_scope, OScope * src_scope)
-{
-  if (!dst_scope || !src_scope)
-  {
-    return;
-  }
-  for (auto & it : src_scope->valsyms)
-  {
-    AddMethodUseValue(dst_scope, stop_scope, it.second);
-  }
-}
-
-static void AddMethodUseRootValues(OScope * dst_scope, OScope * stop_scope, OScope * root_scope)
+static void AddMethodUseRootScopes(OScope * dst_scope, OScope * root_scope)
 {
   for (OScope * scope = root_scope; scope; scope = scope->parent_scope)
   {
-    AddMethodUseDirectValues(dst_scope, stop_scope, scope);
+    if (dst_scope)
+    {
+      dst_scope->AddMethodUseScope(scope);
+    }
     if (!scope->vs_lookup_parent)
     {
       break;
     }
   }
-}
-
-static int AddMethodUseSelectedValues(OScope * dst_scope, OScope * stop_scope, OModuleUse * use)
-{
-  if (!dst_scope || !use || !use->module || !use->module->scope_pub)
-  {
-    return 0;
-  }
-
-  int added = 0;
-  for (auto & it : use->module->scope_pub->valsyms)
-  {
-    if (use->SymbolSelected(it.first) && dst_scope->AddMethodUseValSym(it.second, stop_scope))
-    {
-      ++added;
-    }
-  }
-  return added;
 }
 
 
@@ -656,8 +621,8 @@ void ODqCompParserStmt::ParseStmtMethodUse()
       return;
     }
     curscope->method_use_dot = true;
-    AddMethodUseDirectValues(curscope, stop_scope, g_module->scope_priv);
-    AddMethodUseDirectValues(curscope, stop_scope, g_module->scope_pub);
+    curscope->AddMethodUseScope(g_module->scope_priv);
+    curscope->AddMethodUseScope(g_module->scope_pub);
   };
 
   auto add_star = [&]()
@@ -669,7 +634,7 @@ void ODqCompParserStmt::ParseStmtMethodUse()
     curscope->method_use_star = true;
     auto nsit = g_namespaces.find(".");
     OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
-    AddMethodUseRootValues(curscope, stop_scope, root_scope);
+    AddMethodUseRootScopes(curscope, root_scope);
   };
 
   auto add_alias = [&](const string & alias)
@@ -697,7 +662,7 @@ void ODqCompParserStmt::ParseStmtMethodUse()
       Warning(DQWARN_METHOD_USE_NO_EFFECT, alias, &scpos_statement_start);
       return;
     }
-    AddMethodUseSelectedValues(curscope, stop_scope, use);
+    curscope->AddMethodUseScope(use->scope_use);
   };
 
   while (true)

@@ -71,7 +71,7 @@ public:
 
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;
-  map<string, OValSym *>  method_use_valsyms;
+  vector<OScope *>        method_use_scopes;
   vector<string>          method_use_aliases;
   bool                    method_use_dot = false;
   bool                    method_use_star = false;
@@ -100,7 +100,7 @@ public:
   bool        MethodUseAliasVisible(const string & name, OScope * astop_scope = nullptr);
   bool        MethodUseDotVisible(OScope * astop_scope = nullptr);
   bool        MethodUseStarVisible(OScope * astop_scope = nullptr);
-  bool        AddMethodUseValSym(OValSym * avalsym, OScope * astop_scope = nullptr);
+  void        AddMethodUseScope(OScope * ascope);
 
   LlDiScope *  GetDiScope();
 

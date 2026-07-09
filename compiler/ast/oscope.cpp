@@ -117,20 +117,34 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
 
 OValSym * OScope::FindMethodUseValSym(const string & name, OScope * astop_scope, OScope ** rscope)
 {
+  vector<OScope *> lookup_scopes;
   for (OScope * scope = this; scope; scope = scope->parent_scope)
   {
-    auto it = scope->method_use_valsyms.find(name);
-    if (it != scope->method_use_valsyms.end())
-    {
-      if (rscope)
-      {
-        *rscope = scope;
-      }
-      return it->second;
-    }
+    lookup_scopes.push_back(scope);
     if (scope == astop_scope)
     {
       break;
+    }
+  }
+
+  for (auto it_scope = lookup_scopes.rbegin(); it_scope != lookup_scopes.rend(); ++it_scope)
+  {
+    OScope * method_scope = *it_scope;
+    for (OScope * use_scope : method_scope->method_use_scopes)
+    {
+      if (!use_scope)
+      {
+        continue;
+      }
+      OValSym * vs = use_scope->FindValSym(name, nullptr, false);
+      if (vs)
+      {
+        if (rscope)
+        {
+          *rscope = use_scope;
+        }
+        return vs;
+      }
     }
   }
   return nullptr;
@@ -185,14 +199,13 @@ bool OScope::MethodUseStarVisible(OScope * astop_scope)
   return false;
 }
 
-bool OScope::AddMethodUseValSym(OValSym * avalsym, OScope * astop_scope)
+void OScope::AddMethodUseScope(OScope * ascope)
 {
-  if (!avalsym || FindMethodUseValSym(avalsym->name, astop_scope))
+  if (!ascope || method_use_scopes.end() != find(method_use_scopes.begin(), method_use_scopes.end(), ascope))
   {
-    return false;
+    return;
   }
-  method_use_valsyms[avalsym->name] = avalsym;
-  return true;
+  method_use_scopes.push_back(ascope);
 }
 
 void OScope::SetVarInitialized(OValSym * vs)

@@ -316,10 +316,10 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
     var ev : SEpollEvent
     ev.events = 0
     if asock.in_event_handler != null:
-        ev.events = ev.events OR @.EPOLLIN
+        ev.events =OR= @.EPOLLIN
     endif
     if asock.out_event_handler != null:
-        ev.events = ev.events OR @.EPOLLOUT
+        ev.events =OR= @.EPOLLOUT
     endif
     ev.data = pointer(asock)
 

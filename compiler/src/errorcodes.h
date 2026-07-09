@@ -109,6 +109,7 @@ DEF_DQ_ERR(DQERR_USE_INTERFACE_LOAD,               "UseInterfaceLoad",       "Ca
 DEF_DQ_ERR(DQERR_USE_NAMESPACE_CONFLICT,           "UseNamespaceConflict",   "Module namespace \"$1\" is already defined");
 DEF_DQ_ERR(DQERR_USE_MODIFIER_CONFLICT,           "UseModifierConflict",    "Conflicting modifiers in use statement: $1");
 DEF_DQ_ERR(DQERR_USE_SYMBOL_UNKNOWN,              "UseSymbolUnknown",       "Module \"$1\" has no public symbol \"$2\"");
+DEF_DQ_ERR(DQERR_METHOD_USE_INVALID,               "MethodUseInvalid",       "Invalid method-body use: $1");
 DEF_DQ_ERR(DQERR_USE_SOURCE_MISSING,               "UseSourceMissing",       "Module \"$1\" requires source file \"$2\" to regenerate \"$3\"");
 DEF_DQ_ERR(DQERR_USE_REGEN_FAILED,                 "UseRegenFailed",         "Can not regenerate module \"$1\" from \"$2\": $3");
 DEF_DQ_ERR(DQERR_USE_CYCLE,                        "UseCycle",               "Module use cycle: $1");
@@ -281,6 +282,7 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 
 DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
 DEF_DQ_WARN(DQWARN_CSTR_STORAGE_SIZE,              "CStrStorageSize",        "cstring($1) storage size ($2) is not divisible by 4");
+DEF_DQ_WARN(DQWARN_METHOD_USE_NO_EFFECT,           "MethodUseNoEffect",      "Method-body use \"$1\" has no effect");
 
 //-----------------------------------------------------------------------------
 // HINTS

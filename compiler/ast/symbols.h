@@ -71,6 +71,10 @@ public:
 
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;
+  map<string, OValSym *>  method_use_valsyms;
+  vector<string>          method_use_aliases;
+  bool                    method_use_dot = false;
+  bool                    method_use_star = false;
 
   vector<OValSym *>       firstassign; // list of the variables assigned here first
   vector<OValSym *>       owned_objects;
@@ -92,6 +96,11 @@ public:
 
   OType *     FindType(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
   OValSym *   FindValSym(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
+  OValSym *   FindMethodUseValSym(const string & name, OScope * astop_scope = nullptr, OScope ** rscope = nullptr);
+  bool        MethodUseAliasVisible(const string & name, OScope * astop_scope = nullptr);
+  bool        MethodUseDotVisible(OScope * astop_scope = nullptr);
+  bool        MethodUseStarVisible(OScope * astop_scope = nullptr);
+  bool        AddMethodUseValSym(OValSym * avalsym, OScope * astop_scope = nullptr);
 
   LlDiScope *  GetDiScope();
 
@@ -155,15 +164,18 @@ class OModuleUse
 public:
   OModuleBase *        module = nullptr;
   OScope *             scope_use = nullptr;
+  string               namespace_name;
   bool                 is_private = false;
   bool                 reexport = false;
   EModuleUseMergeMode  merge_mode = MUM_ALL;
   vector<string>       symbol_names;
 
-  OModuleUse(OModuleBase * amodule, bool ais_private, EModuleUseMergeMode amerge_mode,
+  OModuleUse(OModuleBase * amodule, const string & anamespace_name,
+             bool ais_private, EModuleUseMergeMode amerge_mode,
              const vector<string> & asymbol_names, bool areexport = false)
   :
     module(amodule),
+    namespace_name(anamespace_name),
     is_private(ais_private),
     reexport(areexport),
     merge_mode(amerge_mode),

@@ -2933,21 +2933,6 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
-    OType * named_type = cur_mod_scope->FindType(sid);
-    auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
-    scf->SkipWhite();
-    if (enum_type && scf->CheckSymbol(".", false))
-    {
-      return ParseEnumTypeExpr(enum_type);
-    }
-    if (auto * object_type = dynamic_cast<OTypeObject *>(named_type ? named_type->ResolveAlias() : nullptr))
-    {
-      return new OObjectTypeLiteralExpr(object_type);
-    }
-    if (IsKnownEnumItem(sid))
-    {
-      return new OUnresolvedEnumItemExpr(sid);
-    }
     bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
     if (object_method_scope)
     {
@@ -2968,6 +2953,30 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         }
       }
 
+      OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+      vs = curscope->FindMethodUseValSym(sid, stop_scope, &found_scope);
+    }
+  }
+  if (!vs)
+  {
+    OType * named_type = cur_mod_scope->FindType(sid);
+    auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
+    scf->SkipWhite();
+    if (enum_type && scf->CheckSymbol(".", false))
+    {
+      return ParseEnumTypeExpr(enum_type);
+    }
+    if (auto * object_type = dynamic_cast<OTypeObject *>(named_type ? named_type->ResolveAlias() : nullptr))
+    {
+      return new OObjectTypeLiteralExpr(object_type);
+    }
+    if (IsKnownEnumItem(sid))
+    {
+      return new OUnresolvedEnumItemExpr(sid);
+    }
+    bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
+    if (object_method_scope)
+    {
       auto nsit = g_namespaces.find(".");
       OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
       if (root_scope && root_scope->FindValSym(sid, nullptr, true))

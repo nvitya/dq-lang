@@ -275,7 +275,7 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     loaded_modules.push_back(intf);
   }
 
-  OModuleUse * use = new OModuleUse(intf, ais_private, amerge_mode, asymbol_names, areexport);
+  OModuleUse * use = new OModuleUse(intf, namespace_name, ais_private, amerge_mode, asymbol_names, areexport);
   if (!use->ValidateSymbolNames())
   {
     delete use;

@@ -1,0 +1,76 @@
+use libc/stdio only(printf)
+use ./mod_method_use as onlym only(ONLY_A, imp_func)
+use ./mod_method_use as exclm exclude(HIDDEN_A, hidden_func)
+use ./mod_method_use as nom --
+
+const LOCAL_A : int = 1000
+const OUTER_A : int = 5
+const FIELD_A : int = 100
+const PARAM_A : int = 10000
+
+object OMethodUse:
+public
+    FIELD_A : int
+
+    function Calc(PARAM_A : int) -> int:
+        use *
+        use *
+        use nom     //?warning(MethodUseNoEffect)
+        use onlym   //?warning(MethodUseNoEffect)
+        var LOCAL_A : int = 2
+        if true:
+            return LOCAL_A + FIELD_A + PARAM_A + OUTER_A + ONLY_A + imp_func(1)
+        endif
+        return 0
+    endfunc
+
+    function DotOnly() -> int:
+        use .
+        return OUTER_A
+    endfunc
+
+    function AliasOnly() -> int:
+        use onlym
+        use onlym
+        return ONLY_A + imp_func(2)
+    endfunc
+
+    function ExcludeAlias() -> int:
+        use exclm
+        return IMP_A + ONLY_A + imp_func(3)
+    endfunc
+
+    function BranchUse() -> int:
+        if true:
+            use .
+            return OUTER_A
+        endif
+        return 0
+    endfunc
+
+    function WarnAfterStarDot() -> int:
+        use *
+        use .       //?warning(MethodUseNoEffect)
+        return OUTER_A
+    endfunc
+
+    function WarnNoMerge() -> int:
+        use nom     //?warning(MethodUseNoEffect)
+        return @.OUTER_A
+    endfunc
+endobj
+
+function *Main() -> int:
+    var o <- OMethodUse()
+    o.FIELD_A = 20
+
+    printf("method_use.calc = %d\n", o.Calc(200))               //?check("method_use.calc", 246)
+    printf("method_use.dot = %d\n", o.DotOnly())                //?check("method_use.dot", 5)
+    printf("method_use.alias = %d\n", o.AliasOnly())            //?check("method_use.alias", 20)
+    printf("method_use.exclude = %d\n", o.ExcludeAlias())       //?check("method_use.exclude", 28)
+    printf("method_use.branch = %d\n", o.BranchUse())           //?check("method_use.branch", 5)
+    printf("method_use.star_dot = %d\n", o.WarnAfterStarDot())  //?check("method_use.star_dot", 5)
+    printf("method_use.nomerge = %d\n", o.WarnNoMerge())        //?check("method_use.nomerge", 5)
+
+    return 0
+endfunc

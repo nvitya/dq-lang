@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.30.2"
+#define DQ_COMPILER_VERSION  "0.31.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.0:
+  - Method body `use` statement for value symbol merging
 v0.30.2:
   - DQ code formatting changed using 4 spaces for indentation
 v0.30.1:

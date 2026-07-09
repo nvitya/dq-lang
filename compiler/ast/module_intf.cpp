@@ -2576,7 +2576,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
 
   EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
-  OModuleUse * use = new OModuleUse(intf, false, merge_mode, symbol_names, true);
+  OModuleUse * use = new OModuleUse(intf, "", false, merge_mode, symbol_names, true);
   if (has_selection)
   {
     for (const string & name : symbol_names)

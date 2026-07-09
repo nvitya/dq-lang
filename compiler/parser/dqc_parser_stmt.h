@@ -27,6 +27,7 @@ public: // statement blocks
   void ParseStmtRaise();
   void ParseStmtDelete();
   void ParseStmtInherited();
+  void ParseStmtMethodUse();
   void FinalizeStmtVoidCall(OExpr * callexpr);
 
   void ParseStmtVar(bool arootstmt);  // used for statement blocks too

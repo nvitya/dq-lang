@@ -20,6 +20,8 @@
 #include "dqc.h"
 #include "errorcodes.h"
 
+#include <algorithm>
+
 using namespace std;
 
 OType * OScope::DefineType(OType * atype)
@@ -111,6 +113,86 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
   }
 
   return nullptr;
+}
+
+OValSym * OScope::FindMethodUseValSym(const string & name, OScope * astop_scope, OScope ** rscope)
+{
+  for (OScope * scope = this; scope; scope = scope->parent_scope)
+  {
+    auto it = scope->method_use_valsyms.find(name);
+    if (it != scope->method_use_valsyms.end())
+    {
+      if (rscope)
+      {
+        *rscope = scope;
+      }
+      return it->second;
+    }
+    if (scope == astop_scope)
+    {
+      break;
+    }
+  }
+  return nullptr;
+}
+
+bool OScope::MethodUseAliasVisible(const string & name, OScope * astop_scope)
+{
+  for (OScope * scope = this; scope; scope = scope->parent_scope)
+  {
+    if (scope->method_use_aliases.end() != find(scope->method_use_aliases.begin(),
+                                                scope->method_use_aliases.end(), name))
+    {
+      return true;
+    }
+    if (scope == astop_scope)
+    {
+      break;
+    }
+  }
+  return false;
+}
+
+bool OScope::MethodUseDotVisible(OScope * astop_scope)
+{
+  for (OScope * scope = this; scope; scope = scope->parent_scope)
+  {
+    if (scope->method_use_dot)
+    {
+      return true;
+    }
+    if (scope == astop_scope)
+    {
+      break;
+    }
+  }
+  return false;
+}
+
+bool OScope::MethodUseStarVisible(OScope * astop_scope)
+{
+  for (OScope * scope = this; scope; scope = scope->parent_scope)
+  {
+    if (scope->method_use_star)
+    {
+      return true;
+    }
+    if (scope == astop_scope)
+    {
+      break;
+    }
+  }
+  return false;
+}
+
+bool OScope::AddMethodUseValSym(OValSym * avalsym, OScope * astop_scope)
+{
+  if (!avalsym || FindMethodUseValSym(avalsym->name, astop_scope))
+  {
+    return false;
+  }
+  method_use_valsyms[avalsym->name] = avalsym;
+  return true;
 }
 
 void OScope::SetVarInitialized(OValSym * vs)

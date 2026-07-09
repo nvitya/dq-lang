@@ -54,6 +54,72 @@ static OTypeObject * ExceptionObjectTypeFromExpr(OExpr * expr)
   return nullptr;
 }
 
+static OModuleUse * FindModuleUseByNamespace(const string & namespace_name)
+{
+  if (!g_module)
+  {
+    return nullptr;
+  }
+  for (OModuleUse * use : g_module->used_modules)
+  {
+    if (use && (use->namespace_name == namespace_name))
+    {
+      return use;
+    }
+  }
+  return nullptr;
+}
+
+static void AddMethodUseValue(OScope * dst_scope, OScope * stop_scope, OValSym * vs)
+{
+  if (dst_scope && vs)
+  {
+    dst_scope->AddMethodUseValSym(vs, stop_scope);
+  }
+}
+
+static void AddMethodUseDirectValues(OScope * dst_scope, OScope * stop_scope, OScope * src_scope)
+{
+  if (!dst_scope || !src_scope)
+  {
+    return;
+  }
+  for (auto & it : src_scope->valsyms)
+  {
+    AddMethodUseValue(dst_scope, stop_scope, it.second);
+  }
+}
+
+static void AddMethodUseRootValues(OScope * dst_scope, OScope * stop_scope, OScope * root_scope)
+{
+  for (OScope * scope = root_scope; scope; scope = scope->parent_scope)
+  {
+    AddMethodUseDirectValues(dst_scope, stop_scope, scope);
+    if (!scope->vs_lookup_parent)
+    {
+      break;
+    }
+  }
+}
+
+static int AddMethodUseSelectedValues(OScope * dst_scope, OScope * stop_scope, OModuleUse * use)
+{
+  if (!dst_scope || !use || !use->module || !use->module->scope_pub)
+  {
+    return 0;
+  }
+
+  int added = 0;
+  for (auto & it : use->module->scope_pub->valsyms)
+  {
+    if (use->SymbolSelected(it.first) && dst_scope->AddMethodUseValSym(it.second, stop_scope))
+    {
+      ++added;
+    }
+  }
+  return added;
+}
+
 
 void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 {
@@ -557,6 +623,157 @@ void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
   }
 }
 
+void ODqCompParserStmt::ParseStmtMethodUse()
+{
+  // "use" is already consumed.
+  bool method_scope = curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg;
+  if (!method_scope)
+  {
+    StatementError(DQERR_METHOD_USE_INVALID, "only compound method bodies may contain method-body use");
+    return;
+  }
+
+  OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+  bool seen_star = false;
+  bool seen_other = false;
+  bool injected_star = false;
+  int prev_errorcnt = errorcnt;
+
+  auto warn_after_star = [&](const string & item)
+  {
+    Warning(DQWARN_METHOD_USE_NO_EFFECT, item + " after use *", &scpos_statement_start);
+  };
+
+  auto add_dot = [&]()
+  {
+    if (curscope->MethodUseStarVisible(stop_scope))
+    {
+      warn_after_star(".");
+      return;
+    }
+    if (curscope->MethodUseDotVisible(stop_scope))
+    {
+      return;
+    }
+    curscope->method_use_dot = true;
+    AddMethodUseDirectValues(curscope, stop_scope, g_module->scope_priv);
+    AddMethodUseDirectValues(curscope, stop_scope, g_module->scope_pub);
+  };
+
+  auto add_star = [&]()
+  {
+    if (curscope->MethodUseStarVisible(stop_scope))
+    {
+      return;
+    }
+    curscope->method_use_star = true;
+    auto nsit = g_namespaces.find(".");
+    OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
+    AddMethodUseRootValues(curscope, stop_scope, root_scope);
+  };
+
+  auto add_alias = [&](const string & alias)
+  {
+    if (curscope->MethodUseStarVisible(stop_scope))
+    {
+      warn_after_star(alias);
+      return;
+    }
+    if (curscope->MethodUseAliasVisible(alias, stop_scope))
+    {
+      return;
+    }
+
+    OModuleUse * use = FindModuleUseByNamespace(alias);
+    if (!use)
+    {
+      StatementError(DQERR_METHOD_USE_INVALID, "unknown namespace alias \"" + alias + "\"");
+      return;
+    }
+
+    curscope->method_use_aliases.push_back(alias);
+    if (MUM_NONE == use->merge_mode)
+    {
+      Warning(DQWARN_METHOD_USE_NO_EFFECT, alias, &scpos_statement_start);
+      return;
+    }
+    AddMethodUseSelectedValues(curscope, stop_scope, use);
+  };
+
+  while (true)
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("*"))
+    {
+      seen_star = true;
+      if (seen_other)
+      {
+        StatementError(DQERR_METHOD_USE_INVALID, "use * cannot be combined with other method-use items");
+        return;
+      }
+      add_star();
+      injected_star = true;
+    }
+    else if (scf->CheckSymbol("."))
+    {
+      seen_other = true;
+      if (seen_star)
+      {
+        StatementError(DQERR_METHOD_USE_INVALID, "use * cannot be combined with other method-use items");
+        return;
+      }
+      add_dot();
+    }
+    else
+    {
+      string alias;
+      if (!scf->ReadIdentifier(alias))
+      {
+        StatementError(DQERR_ID_EXP_AFTER, "use");
+        return;
+      }
+
+      if ("as" == alias || "only" == alias || "exclude" == alias || "reexport" == alias)
+      {
+        StatementError(DQERR_METHOD_USE_INVALID, "root use modifiers are not valid in method bodies");
+        return;
+      }
+
+      seen_other = true;
+      if (seen_star)
+      {
+        StatementError(DQERR_METHOD_USE_INVALID, "use * cannot be combined with other method-use items");
+        return;
+      }
+      add_alias(alias);
+      if (prev_errorcnt != errorcnt)
+      {
+        return;
+      }
+    }
+
+    scf->SkipWhite();
+    string trailing_id;
+    if (scf->ReadIdentifier(trailing_id, false)
+        && ("as" == trailing_id || "only" == trailing_id || "exclude" == trailing_id || "reexport" == trailing_id))
+    {
+      StatementError(DQERR_METHOD_USE_INVALID, "root use modifiers are not valid in method bodies");
+      return;
+    }
+    if (!scf->CheckSymbol(","))
+    {
+      break;
+    }
+    if (injected_star)
+    {
+      StatementError(DQERR_METHOD_USE_INVALID, "use * cannot be combined with other method-use items");
+      return;
+    }
+  }
+
+  CheckStatementClose();
+}
+
 void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)
 {
 
@@ -724,6 +941,11 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       else if ("inherited" == sid)
       {
         ParseStmtInherited();
+        continue;
+      }
+      else if ("use" == sid)
+      {
+        ParseStmtMethodUse();
         continue;
       }
       else if (ReservedWord(sid))

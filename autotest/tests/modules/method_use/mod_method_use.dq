@@ -1,0 +1,13 @@
+//?notest
+
+const IMP_A : int = 7
+const ONLY_A : int = 11
+const HIDDEN_A : int = 13
+
+function imp_func(v : int) -> int:
+    return v + IMP_A
+endfunc
+
+function hidden_func() -> int:
+    return HIDDEN_A
+endfunc

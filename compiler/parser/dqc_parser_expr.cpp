@@ -2929,12 +2929,31 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return ParseInheritedExpr();
   }
 
-  OScope * found_scope = nullptr;
-  bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
-  OValSym * vs = curscope->FindValSym(sid, &found_scope);
+  // Value-Symbol lookup
+
+  OScope *             found_scope = nullptr;
+  SScopeLookupOptions  lookup_options;
+  bool                 object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
+
+  if (object_method_scope)
+  {
+    OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+    lookup_options.fallback_stop_scope = stop_scope;
+    lookup_options.use_method_fallback_scopes = true;
+  }
+
+  OValSym * vs = curscope->FindValSymEx(sid, &found_scope, true, lookup_options);
   if (!vs)
   {
-    if (object_method_scope)
+    OType * named_type = cur_mod_scope->FindType(sid);
+    auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
+    scf->SkipWhite();
+    if (enum_type && scf->CheckSymbol(".", false))
+    {
+      return ParseEnumTypeExpr(enum_type);
+    }
+
+    if (object_method_scope)  // searching for inherited members
     {
       OCompoundType * decl_type = nullptr;
       OCompoundType * owner_type = curvsfunc->owner_compound_type;
@@ -2952,33 +2971,20 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
           return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
         }
       }
-
-      OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
-      SScopeLookupOptions lookup_options;
-      lookup_options.fallback_stop_scope = stop_scope;
-      lookup_options.use_method_fallback_scopes = true;
-      vs = curscope->FindValSymEx(sid, &found_scope, true, lookup_options);
     }
-  }
 
-  if (!vs)
-  {
-    OType * named_type = cur_mod_scope->FindType(sid);
-    auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
-    scf->SkipWhite();
-    if (enum_type && scf->CheckSymbol(".", false))
-    {
-      return ParseEnumTypeExpr(enum_type);
-    }
+    // Handle object type names: "var ot : type of OSomeBase = OSomething", here the last OSomething lands here
     if (auto * object_type = dynamic_cast<OTypeObject *>(named_type ? named_type->ResolveAlias() : nullptr))
     {
       return new OObjectTypeLiteralExpr(object_type);
     }
+
     if (IsKnownEnumItem(sid))
     {
       return new OUnresolvedEnumItemExpr(sid);
     }
-    if (object_method_scope)
+
+    if (object_method_scope)  // generate a user-friendly error message when the symbol is present outside the object scope
     {
       auto nsit = g_namespaces.find(".");
       OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);

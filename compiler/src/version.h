@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.5"
+#define DQ_COMPILER_VERSION  "0.31.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.6:
+  - Working ODbRows object for database result presentation or in-memory db
 v0.31.5:
   - Compiler fix for inherited method search
   - nanonet/nano_http module added, simple http server is working

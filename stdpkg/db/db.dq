@@ -52,7 +52,7 @@ public
     function *Destroy()
 
     function Clear()      // delete all rows, all fields
-    function ClearRows()  //
+    function ClearRows()
 
     function RowCount() -> int
     function FieldCount() -> int
@@ -179,12 +179,14 @@ function ODbRows.Clear():
     ClearRows()
     m_fieldinfo.Clear(true)
     m_fieldcount = 0
+    m_onrow = false
 endfunc
 
 function ODbRows.ClearRows():
     m_data.Clear(true)
     m_rowcount = 0
     m_currow = -1
+    m_onrow = false
 endfunc
 
 function ODbRows.RowCount() -> int:

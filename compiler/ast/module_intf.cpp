@@ -1114,6 +1114,7 @@ bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
   }
 
   if (!writer.AddRecStr(DQMIF_USE_BEGIN, ause->module->name)) return false;
+  if (!ause->namespace_name.empty() && !writer.AddRecStr(DQMIF_USE_ALIAS, ause->namespace_name)) return false;
   if (!writer.AddRecEmpty(DQMIF_USE_REEXPORT)) return false;
   for (const string & name : ause->EffectiveSymbolNames())
   {
@@ -2510,6 +2511,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
 
   bool reexport = false;
+  string namespace_name;
   bool has_selection = false;
   vector<string> symbol_names;
 
@@ -2525,8 +2527,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     }
     if (DQMIF_USE_ALIAS == reader.recid)
     {
-      string ignored_alias;
-      if (!reader.ReadString(ignored_alias)) return false;
+      if (!reader.ReadString(namespace_name)) return false;
     }
     else if (DQMIF_USE_ONLY == reader.recid)
     {
@@ -2576,7 +2577,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
 
   EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
-  OModuleUse * use = new OModuleUse(intf, "", false, merge_mode, symbol_names, true);
+  OModuleUse * use = new OModuleUse(intf, namespace_name, false, merge_mode, symbol_names, true);
   if (has_selection)
   {
     for (const string & name : symbol_names)

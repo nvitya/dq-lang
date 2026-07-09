@@ -183,7 +183,7 @@ DEF_DQ_ERR(DQERR_DOT_MISSING_AFTER_NS_NAME,        "NsDot",                  "Do
 
 DEF_DQ_ERR(DQERR_VS_UNKNOWN,                       "VsUnknown",              "Unknown symbol \"$1\"");
 DEF_DQ_ERR(DQERR_VS_UNKNOWN_IN_NAMESPACE,          "NsVsUnknown",            "Unknown symbol \"$1\" in namespace \"$2\"");
-DEF_DQ_ERR(DQERR_OBJ_VS_IN_MODULE_NS,              "ObjVsInModuleNs",        "Symbol \"$1\" is not available in object method scope but available in module-root. Use \"@.$1\" to access it.");
+DEF_DQ_ERR(DQERR_OBJ_VS_IN_MODULE_NS,              "ObjVsInModuleNs",        "Symbol \"$1\" is not available in object method scope but available in module-root. Use \"$2\" to access it.");
 DEF_DQ_ERR(DQERR_VAR_UNKNOWN,                      "VarUnknown",             "Unknown variable \"$1\"");
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_SCOPE,            "VsAlreadyDecl",          "Symbol \"$1\" is already defined in scope \"$2\"");
 DEF_DQ_ERR(DQERR_VS_ALREADY_DECL_TYPE,             "VsAlreadyDecl",          "Symbol \"$1\" is already declared with type \"$2\"");

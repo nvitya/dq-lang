@@ -54,6 +54,21 @@ static bool EnsureTextFormatRtlUse()
   return g_compiler->AddImplicitUse("rtl/textformat", "__dq_textformat", nullptr, true, MUM_NONE);
 }
 
+static string FormatModuleRootValSymAccess(const string & name, OScope * found_scope)
+{
+  if (g_module)
+  {
+    for (OModuleUse * use : g_module->used_modules)
+    {
+      if (use && (use->scope_use == found_scope) && !use->namespace_name.empty())
+      {
+        return "@" + use->namespace_name + "." + name;
+      }
+    }
+  }
+  return "@." + name;
+}
+
 static bool IsCStringMethodSourceType(OType * type)
 {
   return IsTextSourceType(type);
@@ -2988,9 +3003,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     {
       auto nsit = g_namespaces.find(".");
       OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
-      if (root_scope && root_scope->FindValSym(sid, nullptr, true))
+      OScope * root_found_scope = nullptr;
+      if (root_scope && root_scope->FindValSym(sid, &root_found_scope, true))
       {
-        Error(DQERR_OBJ_VS_IN_MODULE_NS, sid);
+        Error(DQERR_OBJ_VS_IN_MODULE_NS, sid, FormatModuleRootValSymAccess(sid, root_found_scope));
 
         //ErrorTxt(DQERR_VS_UNKNOWN,
         //         format("Unknown symbol \"{}\" in object method scope; module-root symbol exists, use \"@.{}\" to access it",

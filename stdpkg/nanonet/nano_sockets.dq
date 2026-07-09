@@ -143,7 +143,7 @@ implementation
 
 function ONanoSocket.*Create(atype : NSocketType):
     stype    = atype
-    m_socket = @.INVALID_SOCKET
+    m_socket = @socket.INVALID_SOCKET
 endfunc
 
 function ONanoSocket.*Destroy():
@@ -152,13 +152,14 @@ endfunc
 
 function ONanoSocket.Disconnect():
     if Connected():
-        @.libc_close(m_socket)
-        m_socket = @.INVALID_SOCKET
+        use socket
+        libc_close(m_socket)
+        m_socket = INVALID_SOCKET
     endif
 endfunc
 
 function ONanoSocket.Connected() -> bool:
-    return m_socket <> @.INVALID_SOCKET
+    return m_socket <> @socket.INVALID_SOCKET
 endfunc
 
 function ONanoSocket.InitListener(aport : uint16):
@@ -215,21 +216,23 @@ function ONanoSocket.AcceptConnection(asvrsocket : TSocket) -> bool:
 endfunc
 
 function ONanoSocket.Send(pdata : pointer, srclen : uint) -> int:
-    result = @.libc_send(m_socket, pdata, srclen, #{ifndef WINDOWS} @.MSG_NOSIGNAL #{else} 0 #{endif})
+    use socket
+    result = libc_send(m_socket, pdata, srclen, #{ifndef WINDOWS} MSG_NOSIGNAL #{else} 0 #{endif})
     if result < 0:
-        result = -@.SocketError()
+        result = -SocketError()
     endif
 endfunc
 
 function ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
-    result = @.libc_recv(m_socket, pdata, maxlen, 0)
+    use socket
+    result = libc_recv(m_socket, pdata, maxlen, 0)
     if result < 0:
-        result = -@.SocketError()
+        result = -SocketError()
     endif
 endfunc
 
 function ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
-    use socket
+    use socket, sys
     Disconnect()
 
     var addrbuf : cstring(63) = ''
@@ -264,7 +267,7 @@ endfunc
 
 function ONanoSocket.SetNonBlocking():
     if Connected():
-        @.SetSocketNonBlocking(m_socket)
+        @socket.SetSocketNonBlocking(m_socket)
     endif
 endfunc
 
@@ -283,8 +286,9 @@ endfunc
 function ONanoSocket.SetSockBufSizes():
     // The Pascal version intentionally leaves these disabled: forcing them can
     // make large transfers slower on some systems.
-    // @.libc_setsockopt(m_socket, @.SOL_SOCKET, @.SO_SNDBUF, &sendbuf_size, SizeOf(sendbuf_size))
-    // @.libc_setsockopt(m_socket, @.SOL_SOCKET, @.SO_RCVBUF, &recvbuf_size, SizeOf(recvbuf_size))
+    // use socket
+    // libc_setsockopt(m_socket, SOL_SOCKET, SO_SNDBUF, &sendbuf_size, SizeOf(sendbuf_size))
+    // libc_setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, &recvbuf_size, SizeOf(recvbuf_size))
 endfunc
 
 function ONanoSocket.SetSockParams():
@@ -299,12 +303,12 @@ endfunc
 
 function OSocketWatcher.*Create(amaxfds : int):
     maxfds = amaxfds
-    fd_epoll = @.libc_epoll_create(amaxfds)
+    fd_epoll = @socket.libc_epoll_create(amaxfds)
     revents.SetLength(maxevents)
 endfunc
 
 function OSocketWatcher.*Destroy():
-    @.libc_close(fd_epoll)
+    @socket.libc_close(fd_epoll)
     revents = []
 endfunc
 
@@ -330,7 +334,7 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
 
     var r : int = libc_epoll_ctl(fd_epoll, EPOLL_CTL_ADD, asock.socket, &ev)
     if r < 0:
-        if SocketError() == @.EEXIST:
+        if SocketError() == EEXIST:
             r = libc_epoll_ctl(fd_epoll, EPOLL_CTL_MOD, asock.socket, &ev)
         endif
         if r < 0:

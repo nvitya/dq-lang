@@ -15,7 +15,7 @@ public
     function DotDoesNotImport():
         use .
         var v : int = ONLY_A
-    endfunc  //?error(ObjVsInModuleNs)
+    endfunc  //?error(ObjVsInModuleNs, 'Use "@exclm.ONLY_A"')
 
     function OnlyDoesNotIncludeHidden():
         use onlym

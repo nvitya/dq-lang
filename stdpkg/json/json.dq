@@ -340,11 +340,11 @@ function OJson.SaveToFile(afname : strview, apretty : bool = false):
     else:
         AppendToJsonStr(s)
     endif
-    @.FileWriteText(afname, s)
+    @file.FileWriteText(afname, s)
 endfunc
 
 function OJson.LoadFromFile(afname : strview):
-    var jdata : str = @.FileReadText(afname)
+    var jdata : str = @file.FileReadText(afname)
     Parse(jdata)
 endfunc
 

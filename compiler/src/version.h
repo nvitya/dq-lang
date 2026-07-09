@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.2"
+#define DQ_COMPILER_VERSION  "0.31.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.3:
+  - Method body symbol access errors to module root scope display the module alias
+    instead of just "@."
 v0.31.2:
   - Compiler crash fixed on using incomplete types
 v0.31.1:

@@ -18,15 +18,14 @@ endfunc
 function *Main() -> int:
     var rows <- ODbRows()
 
-    printf("db_rows.empty = rows:%li fields:%li bof:%li eof:%li\n",
-           rows.RowCount(), rows.FieldCount(), BoolInt(rows.Bof()), BoolInt(rows.Eof())) //?check("db_rows.empty", "rows:0 fields:0 bof:1 eof:1")
+    printf("db_rows.empty = rows:%li fields:%li onrow:%li\n",
+           rows.RowCount(), rows.FieldCount(), BoolInt(rows.OnRow())) //?check("db_rows.empty", "rows:0 fields:0 onrow:0")
 
-    printf("db_rows.fields = id:%li name:%li dup:%li has-name:%li missing:%li\n",
+    printf("db_rows.fields = id:%li name:%li has-name:%li missing:%li\n",
            rows.AddField("id", ftInt),
            rows.AddField("name", ftText),
-           rows.AddField("id", ftInt),
            BoolInt(rows.HasField("name")),
-           rows.FieldIndex("missing")) //?check("db_rows.fields", "id:0 name:1 dup:0 has-name:1 missing:-1")
+           rows.FieldIndex("missing")) //?check("db_rows.fields", "id:0 name:1 has-name:1 missing:-1")
 
     rows.AddRow()
     rows.SetInt("id", 10)
@@ -58,12 +57,10 @@ function *Main() -> int:
     var idval : anyvalue = rows.GetValue("id")
     printf("db_rows.value = %li\n", idval.AsInt(-1)) //?check("db_rows.value", "20")
 
-    rows.Next()
-    printf("db_rows.eof = idx:%li eof:%li bof:%li def:%li\n",
+    rows.Next()  // invalid row !
+    printf("db_rows.eof = idx:%li onrow:%li\n",
            rows.RowIndex(),
-           BoolInt(rows.Eof()),
-           BoolInt(rows.Bof()),
-           rows.GetInt("id", -7)) //?check("db_rows.eof", "idx:2 eof:1 bof:0 def:-7")
+           BoolInt(rows.OnRow())) //?check("db_rows.eof", "idx:2 onrow:0")
 
     rows.Prev()
     rows.SetNull("name")
@@ -82,8 +79,8 @@ function *Main() -> int:
            ^cchar(&defname[0])) //?check("db_rows.after-delete", "rows:1 idx:0 id:20 name:def")
 
     rows.ClearRows()
-    printf("db_rows.clear-rows = rows:%li fields:%li bof:%li eof:%li\n",
-           rows.RowCount(), rows.FieldCount(), BoolInt(rows.Bof()), BoolInt(rows.Eof())) //?check("db_rows.clear-rows", "rows:0 fields:3 bof:1 eof:1")
+    printf("db_rows.clear-rows = rows:%li fields:%li onrow:%li\n",
+           rows.RowCount(), rows.FieldCount(), BoolInt(rows.OnRow()) ) //?check("db_rows.clear-rows", "rows:0 fields:3 onrow:1")
 
     rows.Clear()
     printf("db_rows.clear = rows:%li fields:%li\n",

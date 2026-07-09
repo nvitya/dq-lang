@@ -1,37 +1,51 @@
 
-enum NSqlFieldType : byte = (
-  ftUnknown = 0,
-  ftInt,
-  ftFloat,
-  ftBool,
-  ftText,
-  ftBlob,
-  ftDateTime
+enum NDbFieldType : byte = (
+    ftUnknown = 0,
+    ftInt,
+    ftFloat,
+    ftBool,
+    ftText,
+    ftBlob,
+    ftDateTime
 )
 
 struct SFieldInfo:  // 72 bytes
-  name  : cstring(67)
-  index : byte
-  ftype : NSqlFieldType
-  _pad  : [2]byte
+    name  : cstring(67)
+    index : byte
+    ftype : NDbFieldType
+    _pad  : [2]byte
 endstruct
 
 object ODbConnection  [[forward]]
 object ODbDataSource  [[forward]]
 
+object EDbField(Exception):
+endobj
+
+object EDbRow(Exception):
+endobj
+
+object EDbFieldType(Exception):
+endobj
+
+object EDbFieldIndex(Exception):
+endobj
+
 object ODbRows:
 protected
-  m_fieldcount : int
-  m_rowcount   : int
-  m_fieldinfo  : [*]SFieldInfo
+    m_fieldcount : int
+    m_rowcount   : int
+    m_fieldinfo  : [*]SFieldInfo
 
-  m_data       : [*]anyvalue  // length = fieldcount * rowcount
+    m_data       : [*]anyvalue  // length = fieldcount * rowcount
 
-  m_currow     : int // can be out of the valid range
+    m_currow     : int   // can be out of the valid range
+    m_onrow      : bool  // is the current row valid ?
 
-  //m_datasource : ODbDataSource  // might be null for standalone / memory datasets
+    //m_datasource : ODbDataSource  // might be null for standalone / memory datasets
 
-    function CellIndex(arow : int, afield : int) -> int
+    function CellIndex(arow : int, afield : int) -> int  [[inline]]
+    function GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
 
 public
     function *Create()
@@ -43,10 +57,11 @@ public
     function RowCount() -> int
     function FieldCount() -> int
 
-    function AddField(aname : str, atype : NSqlFieldType) -> int
+    function AddField(aname : strview, atype : NDbFieldType) -> int
     function FieldName(aindex : int) -> str
-    function FieldIndex(aname : str) -> int
-    function HasField(aname : str) -> bool
+    function FieldType(aindex : int) -> NDbFieldType
+    function FieldIndex(aname : strview) -> int
+    function HasField(aname : strview) -> bool
 
     function AddRow() -> int
     function DeleteRow(arow : int)
@@ -58,28 +73,33 @@ public
     function Prev()
     function SelectRow(arow : int) -> bool
     function RowIndex() -> int
-    function Eof() -> bool
-    function Bof() -> bool
+
+    function OnRow() -> bool
 
     // current row access
-    function IsNull(aname : str) -> bool
-    function GetValue(aname : str) -> anyvalue
-    function SetValue(aname : str, avalue : anyvalue)
+    function IsNull(aname : strview) -> bool
+    function GetValue(aname : strview) -> anyvalue
+    function SetValue(aname : strview, avalue : anyvalue)
 
-    function GetInt(aname : str, defvalue : int) -> int
-    function GetFloat(aname : str, defvalue : float) -> float
-    function GetBool(aname : str, defvalue : bool) -> bool
-    function GetStr(aname : str, defvalue : str) -> str
+    function GetInt(aname : strview, defvalue : int) -> int
+    function GetFloat(aname : strview, defvalue : float) -> float
+    function GetBool(aname : strview, defvalue : bool) -> bool
+    function GetStr(aname : strview, defvalue : strview) -> str
 
-    function SetInt(aname : str, avalue : int)
-    function SetFloat(aname : str, avalue : float)
-    function SetBool(aname : str, avalue : bool)
-    function SetStr(aname : str, avalue : str)
-    function SetNull(aname : str)
+    function SetInt(aname : strview, avalue : int)
+    function SetFloat(aname : strview, avalue : float)
+    function SetBool(aname : strview, avalue : bool)
+    function SetStr(aname : strview, avalue : strview)
+    function SetNull(aname : strview)
 
     // direct row access, secondary API
-    //function GetValueRow(arow : int, aname : str) -> anyvalue
-    //function SetValueRow(arow : int, aname : str, avalue : anyvalue)
+    //function GetValueRow(arow : int, aname : strview) -> anyvalue
+    //function SetValueRow(arow : int, aname : strview, avalue : anyvalue)
+
+    property onrow : bool  read m_onrow
+
+    property byname : [strview]anyvalue  default  read GetValue  write SetValue
+
 endobj
 
 /*
@@ -124,17 +144,31 @@ endobj
 
 implementation
 
-function ODbRows.CellIndex(arow : int, afield : int) -> int:
+function FieldTypeName(ft : NDbFieldType) -> str:
+    if   ft == ftInt:       return 'int'
+    elif ft == ftFloat:     return 'float'
+    elif ft == ftBool:      return 'bool'
+    elif ft == ftText:      return 'text'
+    elif ft == ftBlob:      return 'blob'
+    elif ft == ftDateTime:  return 'datetime'
+    else:
+        return 'unknown'
+    endif
+endfunc
+
+function ODbRows.CellIndex(arow : int, afield : int) -> int  [[inline]]:
     if arow < 0  or  arow >= m_rowcount  or  afield < 0  or  afield >= m_fieldcount:
         return -1
+    else:
+        return arow * m_fieldcount + afield
     endif
-    return arow * m_fieldcount + afield
 endfunc
 
 function ODbRows.*Create():
     m_fieldcount = 0
     m_rowcount = 0
     m_currow = -1
+    m_onrow = false
 endfunc
 
 function ODbRows.*Destroy():
@@ -161,23 +195,31 @@ function ODbRows.FieldCount() -> int:
     return m_fieldcount
 endfunc
 
-function ODbRows.AddField(aname : str, atype : NSqlFieldType) -> int:
+function ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
     if aname == '':
-        return -1
+        raise EDbField('AddField empty name')
     endif
 
     result = FieldIndex(aname)
     if result >= 0:
-        return
+        raise EDbField('Field name "{}" already exists', [aname])
     endif
 
     if m_fieldcount >= 256:
-        return -1
+        raise EDbField('Maximal field count reached.')
     endif
 
     var old_fieldcount : int = m_fieldcount
     var new_fieldcount : int = old_fieldcount + 1
 
+    // Adding new fieldinfo
+    m_fieldinfo.SetLength(new_fieldcount)
+    var pfi : ^SFieldInfo = &m_fieldinfo[old_fieldcount]
+    pfi.name.Set(aname)
+    pfi.index = old_fieldcount
+    pfi.ftype = atype
+
+    // migrate the existing data
     if m_rowcount > 0:
         var newdata : [*]anyvalue = []
         newdata.SetLength(new_fieldcount * m_rowcount)
@@ -189,24 +231,25 @@ function ODbRows.AddField(aname : str, atype : NSqlFieldType) -> int:
         m_data = newdata
     endif
 
-    m_fieldinfo.SetLength(new_fieldcount)
-    m_fieldinfo[old_fieldcount].name.Set(aname)
-    m_fieldinfo[old_fieldcount].index = byte(old_fieldcount)
-    m_fieldinfo[old_fieldcount].ftype = atype
-    m_fieldinfo[old_fieldcount]._pad[0] = 0
-    m_fieldinfo[old_fieldcount]._pad[1] = 0
     m_fieldcount = new_fieldcount
     return old_fieldcount
 endfunc
 
 function ODbRows.FieldName(aindex : int) -> str:
     if aindex < 0  or  aindex >= m_fieldcount:
-        return ''
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
     endif
     return m_fieldinfo[aindex].name
 endfunc
 
-function ODbRows.FieldIndex(aname : str) -> int:
+function ODbRows.FieldType(aindex : int) -> NDbFieldType:
+    if aindex < 0  or  aindex >= m_fieldcount:
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
+    endif
+    return m_fieldinfo[aindex].ftype
+endfunc
+
+function ODbRows.FieldIndex(aname : strview) -> int:
     for i : int = 0 count m_fieldcount:
         if m_fieldinfo[i].name == aname:
             return i
@@ -215,7 +258,7 @@ function ODbRows.FieldIndex(aname : str) -> int:
     return -1
 endfunc
 
-function ODbRows.HasField(aname : str) -> bool:
+function ODbRows.HasField(aname : strview) -> bool:
     return FieldIndex(aname) >= 0
 endfunc
 
@@ -224,6 +267,7 @@ function ODbRows.AddRow() -> int:
     m_rowcount += 1
     m_data.SetLength(m_fieldcount * m_rowcount)
     m_currow = result
+    m_onrow = true
 endfunc
 
 function ODbRows.DeleteRow(arow : int):
@@ -243,6 +287,7 @@ function ODbRows.DeleteRow(arow : int):
     elif m_currow >= m_rowcount:
         m_currow = m_rowcount - 1
     endif
+    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
 function ODbRows.First():
@@ -251,6 +296,7 @@ function ODbRows.First():
     else:
         m_currow = -1
     endif
+    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
 function ODbRows.Last():
@@ -259,6 +305,7 @@ function ODbRows.Last():
     else:
         m_currow = -1
     endif
+    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
 function ODbRows.Next():
@@ -269,21 +316,26 @@ function ODbRows.Next():
     else:
         m_currow = m_rowcount
     endif
+    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
 function ODbRows.Prev():
     if m_rowcount <= 0:
         m_currow = -1
+        m_onrow = false
     elif m_currow >= m_rowcount:
         m_currow = m_rowcount - 1
+        m_onrow = true
     else:
         m_currow -= 1
+        m_onrow = true
     endif
 endfunc
 
 function ODbRows.SelectRow(arow : int) -> bool:
     if arow >= 0  and  arow < m_rowcount:
         m_currow = arow
+        m_onrow = true
         return true
     endif
     return false
@@ -293,90 +345,124 @@ function ODbRows.RowIndex() -> int:
     return m_currow
 endfunc
 
-function ODbRows.Eof() -> bool:
-    return m_rowcount <= 0  or  m_currow >= m_rowcount
+function ODbRows.OnRow() -> bool:
+    return m_onrow
 endfunc
 
-function ODbRows.Bof() -> bool:
-    return m_rowcount <= 0  or  m_currow < 0
-endfunc
-
-function ODbRows.IsNull(aname : str) -> bool:
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx < 0:
-        return true
+function ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int:
+    var fidx : int = FieldIndex(aname)
+    if fidx < 0:
+        raise EDbField('Field "{}" not found', [aname])
     endif
-    return m_data[idx].IsNull()
+    if not m_onrow:
+        raise EDbRow('Invalid row')
+    endif
+    rft = FieldType(fidx)
+    return m_currow * m_fieldcount + fidx
 endfunc
 
-function ODbRows.GetValue(aname : str) -> anyvalue:
-    var nv : anyvalue
-    nv.SetNull()
-    result = nv
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx >= 0:
-        result = m_data[idx]
+function ODbRows.IsNull(aname : strview) -> bool:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    return m_data[didx].IsNull()
+endfunc
+
+function ODbRows.GetValue(aname : strview) -> anyvalue:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    result = m_data[didx]
+endfunc
+
+function ODbRows.SetValue(aname : strview, avalue : anyvalue):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if    (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
+        or (ft == ftFloat    and avalue.IsFloat())
+        or (ft == ftBool     and avalue.IsBool())
+        or (ft == ftText     and avalue.IsText())
+        or (ft == ftBlob     and avalue.IsText())
+        or (ft == ftDateTime and avalue.IsText())
+    :
+        m_data[didx] = avalue
+    else:
+        raise EDbFieldType('Invalid value for field "{}" with type "{}"', [aname, @..FieldTypeName(ft)])
     endif
 endfunc
 
-function ODbRows.SetValue(aname : str, avalue : anyvalue):
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx >= 0:
-        m_data[idx] = avalue
+function ODbRows.GetInt(aname : strview, defvalue : int) -> int:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Int', [@..FieldTypeName(ft), aname])
     endif
+    return m_data[didx].AsInt(defvalue)
 endfunc
 
-function ODbRows.GetInt(aname : str, defvalue : int) -> int:
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx < 0:
-        return defvalue
+function ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftFloat  and ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Float', [@..FieldTypeName(ft), aname])
     endif
-    return m_data[idx].AsInt(defvalue)
+    return m_data[didx].AsFloat(defvalue)
 endfunc
 
-function ODbRows.GetFloat(aname : str, defvalue : float) -> float:
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx < 0:
-        return defvalue
+function ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBool:
+        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
     endif
-    return m_data[idx].AsFloat(defvalue)
+    return m_data[didx].AsBool(defvalue)
 endfunc
 
-function ODbRows.GetBool(aname : str, defvalue : bool) -> bool:
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx < 0:
-        return defvalue
+function ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
     endif
-    return m_data[idx].AsBool(defvalue)
+    return m_data[didx].AsStr(defvalue)
 endfunc
 
-function ODbRows.GetStr(aname : str, defvalue : str) -> str:
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx < 0:
-        return defvalue
+function ODbRows.SetInt(aname : strview, avalue : int):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Int', [@..FieldTypeName(ft), aname])
     endif
-    return m_data[idx].AsStr(defvalue)
+    m_data[didx].SetInt(avalue)
 endfunc
 
-function ODbRows.SetInt(aname : str, avalue : int):
-    SetValue(aname, avalue)
-endfunc
-
-function ODbRows.SetFloat(aname : str, avalue : float):
-    SetValue(aname, avalue)
-endfunc
-
-function ODbRows.SetBool(aname : str, avalue : bool):
-    SetValue(aname, avalue)
-endfunc
-
-function ODbRows.SetStr(aname : str, avalue : str):
-    SetValue(aname, avalue)
-endfunc
-
-function ODbRows.SetNull(aname : str):
-    var idx : int = CellIndex(m_currow, FieldIndex(aname))
-    if idx >= 0:
-        m_data[idx].SetNull()
+function ODbRows.SetFloat(aname : strview, avalue : float):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftFloat:
+        raise EDbFieldType('"{}" field "{}" is not available as Float', [@..FieldTypeName(ft), aname])
     endif
+    m_data[didx].SetFloat(avalue)
+endfunc
+
+function ODbRows.SetBool(aname : strview, avalue : bool):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBool:
+        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetBool(avalue)
+endfunc
+
+function ODbRows.SetStr(aname : strview, avalue : strview):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftText  and ft <> ftBlob  and ft <> ftDateTime:
+        raise EDbFieldType('"{}" field "{}" is not available as Str', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetStr(avalue)
+endfunc
+
+function ODbRows.SetNull(aname : strview):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    m_data[didx].SetNull()
 endfunc

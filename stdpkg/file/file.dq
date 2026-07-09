@@ -261,7 +261,7 @@ function OFile.Open(afname : strview, afmode : strview):
         raise EFileError('OFile.Open: empty file name')
     endif
 
-    m_fhandle = @.libc_fopen(^cchar(&m_filename[0]), ^cchar(&afmode[0]))
+    m_fhandle = @..libc_fopen(^cchar(&m_filename[0]), ^cchar(&afmode[0]))
     if m_fhandle == null:
         raise EFileError('File open error')  // todo: get the error code
     endif
@@ -269,7 +269,7 @@ endfunc
 
 function OFile.Close():
     if m_fhandle <> null:
-        @.libc_fclose(m_fhandle)
+        @..libc_fclose(m_fhandle)
         m_fhandle = null
     endif
 endfunc
@@ -287,7 +287,7 @@ function OFile.Seek(apos : int64):
         raise EFileError('OFile.Seek: file is not open')
     endif
 
-    if @.libc_fseek(m_fhandle, apos, @.SEEK_SET) <> 0:
+    if @..libc_fseek(m_fhandle, apos, @..SEEK_SET) <> 0:
         raise EFileError('OFile.Seek error')
     endif
 endfunc
@@ -297,7 +297,7 @@ function OFile.CurPos() -> int64:
         raise EFileError('OFile.CurPos: file is not open')
     endif
 
-    result = @.libc_ftell(m_fhandle)
+    result = @..libc_ftell(m_fhandle)
     if result < 0:
         raise EFileError('OFile.CurPos error')
     endif
@@ -308,21 +308,21 @@ function OFile.Size() -> int64:
         raise EFileError('OFile.Size: file is not open')
     endif
 
-    var oldpos : int64 = @.libc_ftell(m_fhandle)
+    var oldpos : int64 = @..libc_ftell(m_fhandle)
     if oldpos < 0:
         raise EFileError('OFile.Size: ftell failed')
     endif
 
-    if @.libc_fseek(m_fhandle, 0, @.SEEK_END) <> 0:
+    if @..libc_fseek(m_fhandle, 0, @..SEEK_END) <> 0:
         raise EFileError('OFile.Size: fseek end failed')
     endif
 
-    var endpos : int64 = @.libc_ftell(m_fhandle)
+    var endpos : int64 = @..libc_ftell(m_fhandle)
     if endpos < 0:
         raise EFileError('OFile.Size: ftell end failed')
     endif
 
-    if @.libc_fseek(m_fhandle, oldpos, @.SEEK_SET) <> 0:
+    if @..libc_fseek(m_fhandle, oldpos, @..SEEK_SET) <> 0:
         raise EFileError('OFile.Size: fseek restore failed')
     endif
 
@@ -337,7 +337,7 @@ function OFile.Read(adest : pointer, asize : int64) -> int64:
     if asize < 0:
         raise EFileError('Invalid read size: {}', [asize])
     endif
-    result = @.libc_fread(adest, 1, asize, m_fhandle)
+    result = @..libc_fread(adest, 1, asize, m_fhandle)
     if result < 0:
         raise EFileError('File read error')
     endif
@@ -387,7 +387,7 @@ function OFile.Write(asrc : pointer, asize : int64):
     if asize < 0:
         raise EFileError('Invalid write size: {}', [asize])
     endif
-    var r : int64 = @.libc_fwrite(asrc, 1, asize, m_fhandle)
+    var r : int64 = @..libc_fwrite(asrc, 1, asize, m_fhandle)
     if r <> asize:
         raise EFileError('File write error: {} <> {}', [r, asize])
     endif

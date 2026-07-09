@@ -221,6 +221,7 @@ function OTextFormatter.Reset():
 endfunc
 
 function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
+    use .
     Reset()
 
     curpos = 0
@@ -256,7 +257,7 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
                 if curpos < endpos  and  afmt[curpos] == '}':
                     curpos += 1
                 else:
-                    flags =OR= @.DQFMT_FMT_ERROR
+                    flags =OR= DQFMT_FMT_ERROR
                     sink.Write("<}?>")
                     break
                 endif
@@ -274,7 +275,7 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
                 lit_start = curpos
             else:
                 // Unescaped closing brace.
-                flags =OR= @.DQFMT_FMT_ERROR
+                flags =OR= DQFMT_FMT_ERROR
                 sink.Write("<!}>")
                 curpos += 1
                 lit_start = curpos

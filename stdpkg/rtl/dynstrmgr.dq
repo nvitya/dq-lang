@@ -389,7 +389,7 @@ endfunc
 
 function ODynStrMgr.*Destroy():
     if dataptr <> null:
-        @.MemFree(dataptr)
+        @mem.MemFree(dataptr)
         dataptr = null
     endif
     length = 0
@@ -397,13 +397,14 @@ function ODynStrMgr.*Destroy():
 endfunc
 
 function ODynStrMgr.SetCapacity(new_capacity : uint32):
+    use ., mem
     if new_capacity == capacity:
         return
     endif
 
     if new_capacity == 0:
         if dataptr <> null:
-            @.MemFree(dataptr)
+            MemFree(dataptr)
             dataptr = null
         endif
         capacity = 0
@@ -411,20 +412,20 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
         return
     endif
 
-    var new_bytes : uint = @.DynStrCalcByteSize(new_capacity, chwidth)
+    var new_bytes : uint = DynStrCalcByteSize(new_capacity, chwidth)
     if new_bytes == 0:
         return
     endif
 
     var new_dataptr : pointer = null
     if dataptr == null:
-        new_dataptr = @.MemAlloc(new_bytes)
+        new_dataptr = MemAlloc(new_bytes)
     else:
-        new_dataptr = @.MemRealloc(dataptr, new_bytes)
+        new_dataptr = MemRealloc(dataptr, new_bytes)
     endif
 
     if new_dataptr == null:
-        @.DynStrRuntimeError('DynStr allocation failed')
+        DynStrRuntimeError('DynStr allocation failed')
         return
     endif
 
@@ -439,10 +440,11 @@ function ODynStrMgr.Reserve(min_capacity : uint32):
     if min_capacity <= capacity:
         return
     endif
-    SetCapacity(@.DynStrGrowCapacity(capacity, min_capacity))
+    SetCapacity(@..DynStrGrowCapacity(capacity, min_capacity))
 endfunc
 
 function ODynStrMgr.SetLength(new_length : uint32):
+    use ., mem
     if new_length < length:
         length = new_length
         return
@@ -459,12 +461,12 @@ function ODynStrMgr.SetLength(new_length : uint32):
     endif
 
     var zero_count : uint32 = new_length - old_length
-    var zero_bytes : uint = @.DynStrCalcByteSize(zero_count, chwidth)
+    var zero_bytes : uint = DynStrCalcByteSize(zero_count, chwidth)
     if zero_bytes == 0:
         return
     endif
 
-    @.MemSet(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
+    MemSet(^byte(dataptr)[DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
     length = new_length
 endfunc
 
@@ -483,25 +485,26 @@ function ODynStrMgr.Clear(free_storage : bool = false):
 endfunc
 
 function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
-    var add_count : uint32 = @.DynStrSourceCount(asrc, acount)
+    use ., mem
+    var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
         return
     endif
 
-    var src_chwidth : uint8 = @.TextInfoChWidth(asrc)
+    var src_chwidth : uint8 = TextInfoChWidth(asrc)
     if src_chwidth <> chwidth:
         // TODO: convert between 1/2/4-byte string storage widths.
-        @.DynStrRuntimeError('DynStr character width conversion is not implemented')
+        DynStrRuntimeError('DynStr character width conversion is not implemented')
         return
     endif
 
     var old_length : uint32 = length
-    var new_length : uint32 = @.DynStrAddLength(length, add_count)
+    var new_length : uint32 = DynStrAddLength(length, add_count)
     if new_length <= length:
         return
     endif
 
-    var owndata_src_index : int = @.DynStrOwnDataPtrOffset(dataptr, asrc.dataptr, old_length, chwidth)
+    var owndata_src_index : int = DynStrOwnDataPtrOffset(dataptr, asrc.dataptr, old_length, chwidth)
     if new_length > capacity:
         Reserve(new_length)
         if capacity < new_length:
@@ -511,36 +514,37 @@ function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
 
     var srcptr : pointer = asrc.dataptr
     if owndata_src_index >= 0:
-        srcptr = ^byte(dataptr)[@.DynStrByteOffset(uint32(owndata_src_index), chwidth)]
+        srcptr = ^byte(dataptr)[DynStrByteOffset(uint32(owndata_src_index), chwidth)]
     endif
 
-    @.MemCopy(^byte(dataptr)[@.DynStrByteOffset(old_length, chwidth)],
-                 srcptr,
-                 @.DynStrCalcByteSize(add_count, chwidth))
+    MemCopy(^byte(dataptr)[DynStrByteOffset(old_length, chwidth)],
+            srcptr,
+            DynStrCalcByteSize(add_count, chwidth))
     length = new_length
 endfunc
 
 function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
-    var add_count : uint32 = @.DynStrSourceCount(asrc, acount)
+    use ., mem
+    var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
         return
     endif
 
-    var src_chwidth : uint8 = @.TextInfoChWidth(asrc)
+    var src_chwidth : uint8 = TextInfoChWidth(asrc)
     if src_chwidth <> chwidth:
         // TODO: convert between 1/2/4-byte string storage widths.
-        @.DynStrRuntimeError('DynStr character width conversion is not implemented')
+        DynStrRuntimeError('DynStr character width conversion is not implemented')
         return
     endif
 
     var old_length : uint32 = length
-    var insertpos : uint32 = @.DynStrClampIndex(index, old_length)
-    var new_length : uint32 = @.DynStrAddLength(old_length, add_count)
+    var insertpos : uint32 = DynStrClampIndex(index, old_length)
+    var new_length : uint32 = DynStrAddLength(old_length, add_count)
     if new_length <= old_length:
         return
     endif
 
-    var owndata_src_index : int = @.DynStrOwnDataPtrOffset(dataptr, asrc.dataptr, old_length, chwidth)
+    var owndata_src_index : int = DynStrOwnDataPtrOffset(dataptr, asrc.dataptr, old_length, chwidth)
 
     if new_length > capacity:
         Reserve(new_length)
@@ -551,31 +555,31 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
 
     var tail_count : uint32 = old_length - insertpos
     if tail_count > 0:
-        @.MemCopy(^byte(dataptr)[@.DynStrByteOffset(insertpos + add_count, chwidth)],
-                     ^byte(dataptr)[@.DynStrByteOffset(insertpos, chwidth)],
-                     @.DynStrCalcByteSize(tail_count, chwidth))
+        MemCopy(^byte(dataptr)[DynStrByteOffset(insertpos + add_count, chwidth)],
+                ^byte(dataptr)[DynStrByteOffset(insertpos, chwidth)],
+                DynStrCalcByteSize(tail_count, chwidth))
     endif
 
-    var dstptr : pointer = ^byte(dataptr)[@.DynStrByteOffset(insertpos, chwidth)]
-    var copy_bytes : uint = @.DynStrCalcByteSize(add_count, chwidth)
+    var dstptr : pointer = ^byte(dataptr)[DynStrByteOffset(insertpos, chwidth)]
+    var copy_bytes : uint = DynStrCalcByteSize(add_count, chwidth)
 
     if owndata_src_index < 0:
-        @.MemCopy(dstptr, asrc.dataptr, copy_bytes)
+        MemCopy(dstptr, asrc.dataptr, copy_bytes)
     else:
         var sidx : uint32 = uint32(owndata_src_index)
         if sidx + add_count <= insertpos:
-            @.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx, chwidth)], copy_bytes)
+            MemCopy(dstptr, ^byte(dataptr)[DynStrByteOffset(sidx, chwidth)], copy_bytes)
         elif sidx >= insertpos:
-            @.MemCopy(dstptr, ^byte(dataptr)[@.DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
+            MemCopy(dstptr, ^byte(dataptr)[DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
         else:
             var left_count : uint32 = insertpos - sidx
             var right_count : uint32 = add_count - left_count
-            @.MemCopy(dstptr,
-                         ^byte(dataptr)[@.DynStrByteOffset(sidx, chwidth)],
-                         @.DynStrCalcByteSize(left_count, chwidth))
-            @.MemCopy(^byte(dstptr)[@.DynStrByteOffset(left_count, chwidth)],
-                         ^byte(dataptr)[@.DynStrByteOffset(insertpos + add_count, chwidth)],
-                         @.DynStrCalcByteSize(right_count, chwidth))
+            MemCopy(dstptr,
+                         ^byte(dataptr)[DynStrByteOffset(sidx, chwidth)],
+                         DynStrCalcByteSize(left_count, chwidth))
+            MemCopy(^byte(dstptr)[DynStrByteOffset(left_count, chwidth)],
+                         ^byte(dataptr)[DynStrByteOffset(insertpos + add_count, chwidth)],
+                         DynStrCalcByteSize(right_count, chwidth))
         endif
     endif
 
@@ -587,11 +591,12 @@ function ODynStrMgr.Prepend(asrc : ref SDqTextInfo, acount : int32):
 endfunc
 
 function ODynStrMgr.Delete(index : int, acount : int32):
+    use ., mem
     if acount < 1  or  length == 0:
         return
     endif
 
-    var deletepos : uint32 = @.DynStrClampIndex(index, length)
+    var deletepos : uint32 = DynStrClampIndex(index, length)
     if deletepos >= length:
         return
     endif
@@ -603,15 +608,16 @@ function ODynStrMgr.Delete(index : int, acount : int32):
 
     var movecount : uint32 = length - deletepos - delcount
     if movecount > 0:
-        @.MemCopy(^byte(dataptr)[@.DynStrByteOffset(deletepos, chwidth)],
-                     ^byte(dataptr)[@.DynStrByteOffset(deletepos + delcount, chwidth)],
-                     @.DynStrCalcByteSize(movecount, chwidth))
+        MemCopy(^byte(dataptr)[DynStrByteOffset(deletepos, chwidth)],
+                ^byte(dataptr)[DynStrByteOffset(deletepos + delcount, chwidth)],
+                 DynStrCalcByteSize(movecount, chwidth))
     endif
 
     length -= delcount
 endfunc
 
 function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
+    use .
     if acount < 1  or  length == 0:
         @cstrings.CStrClear(adst)
         return
@@ -623,7 +629,7 @@ function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     endif
 
     var startpos : uint32 = length - popcount
-    popcount = @.DynStrCopyToCStr(adst, ^byte(dataptr)[@.DynStrByteOffset(startpos, chwidth)], popcount, chwidth)
+    popcount = DynStrCopyToCStr(adst, ^byte(dataptr)[DynStrByteOffset(startpos, chwidth)], popcount, chwidth)
     length -= popcount
 endfunc
 
@@ -638,7 +644,7 @@ function ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
         popcount = length
     endif
 
-    popcount = @.DynStrCopyToCStr(adst, dataptr, popcount, chwidth)
+    popcount = @..DynStrCopyToCStr(adst, dataptr, popcount, chwidth)
     Delete(0, int32(popcount))
 endfunc
 
@@ -967,7 +973,7 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
         delete adst = null
         return
     endif
-    @.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
+    @mem.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
     adst.length = astr.length
 endfunc
 
@@ -1009,7 +1015,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
     endif
 
     var startpos : uint32 = astr.length - popcount
-    @.MemCopy(adst.dataptr,
+    @mem.MemCopy(adst.dataptr,
                  ^byte(astr.dataptr)[DynStrByteOffset(startpos, astr.chwidth)],
                  DynStrCalcByteSize(popcount, astr.chwidth))
     adst.length = popcount
@@ -1053,7 +1059,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
         return
     endif
 
-    @.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
+    @mem.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
     adst.length = popcount
     astr.Delete(0, int32(popcount))
 endfunc

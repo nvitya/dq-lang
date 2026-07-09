@@ -171,12 +171,12 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
 
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_check = LlBasicBlock::Create(ll_ctx, "exc.check", ll_func);
-  
+
   LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
   ll_builder.CreateCondBr(is_null, bb_next, bb_check);
 
   ll_builder.SetInsertPoint(bb_check);
-  
+
   // We can get the Exception type from DqExcRaise's first parameter
   OTypeObject * exc_type = nullptr;
   OValSymFunc * fn_raise = DqExceptionFunc("DqExcRaise");
@@ -193,7 +193,7 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
   {
     throw runtime_error("GenerateExceptBranchMatch: missing Exception type");
   }
-  
+
   // Exception is polymorphic, so we can access its TypeInfo at vtable[0]
   // The first field of the Exception object is its vtable pointer
   LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(exc_type->GetLlType(), ll_exc,
@@ -207,7 +207,7 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
 
   branch->exception_type->GenVTableGlobal(false);
   LlValue * target_ti = branch->exception_type->ll_typeinfo;
-  
+
   if (!branch->exception_type->is_polymorphic) {
     g_compiler->ErrorTxt(DQERR_NOT_SUPPORTED, format("catching non-polymorphic object {}", branch->exception_type->name));
   }
@@ -226,7 +226,7 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
 
   ll_builder.SetInsertPoint(bb_next_ti);
   LlValue * is_ti_null = ll_builder.CreateICmpEQ(phi_ti, ll_null, "exc.ti.isnull");
-  
+
   LlBasicBlock * bb_adv = LlBasicBlock::Create(ll_ctx, "exc.ti.adv", ll_func);
   ll_builder.CreateCondBr(is_ti_null, bb_next, bb_adv);
 
@@ -241,10 +241,6 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
 void ODqCompCodegen::GenerateDqExcNativeThrowBody()
 {
   OValSymFunc * vs_throw = DqExceptionFunc("DqExcNativeThrow");
-  if (g_module && g_module->name == "rtl/exception") {
-    printf("DEBUG: GenerateDqExcNativeThrowBody in rtl/exception. vs_throw=%p\n", vs_throw);
-    if (vs_throw) printf("DEBUG: ll_func=%p, empty=%d\n", vs_throw->ll_func, vs_throw->ll_func ? vs_throw->ll_func->empty() : 1);
-  }
   if (!vs_throw || !vs_throw->ll_func)
   {
     return;
@@ -259,7 +255,7 @@ void ODqCompCodegen::GenerateDqExcNativeThrowBody()
 
   LlBasicBlock * bb = LlBasicBlock::Create(ll_ctx, "entry", f);
   ll_builder.SetInsertPoint(bb);
-  
+
   LlValue * exc_arg = f->getArg(0);
 
   llvm::FunctionCallee fn_alloc = ll_module->getOrInsertFunction("__cxa_allocate_exception",

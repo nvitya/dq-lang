@@ -40,13 +40,20 @@ ODecl * OModule::DeclareType(bool apublic, OType * atype)
 
   if (apublic)
   {
-    AddPublicType(atype);
+    if (AddPublicType(atype))
+    {
+      scope_local->typesyms[atype->name] = atype;
+    }
   }
   else
   {
-    if (scope_priv->DefineType(atype) == atype && !atype->module)
+    if (scope_priv->DefineType(atype) == atype)
     {
-      atype->module = this;
+      if (!atype->module)
+      {
+        atype->module = this;
+      }
+      scope_local->typesyms[atype->name] = atype;
     }
   }
 
@@ -66,13 +73,20 @@ ODecl * OModule::DeclareValSym(bool apublic, OValSym * avalsym)
 
   if (effective_public)
   {
-    AddPublicValSym(avalsym);
+    if (AddPublicValSym(avalsym))
+    {
+      scope_local->valsyms[avalsym->name] = avalsym;
+    }
   }
   else
   {
-    if (scope_priv->DefineValSym(avalsym) == avalsym && !avalsym->module)
+    if (scope_priv->DefineValSym(avalsym) == avalsym)
     {
-      avalsym->module = this;
+      if (!avalsym->module)
+      {
+        avalsym->module = this;
+      }
+      scope_local->valsyms[avalsym->name] = avalsym;
     }
   }
 
@@ -136,6 +150,7 @@ void OModule::DiscardTypeDeclaration(OType * atype)
 
   erase_from_scope(scope_priv);
   erase_from_scope(scope_pub);
+  erase_from_scope(scope_local);
   if (atype->module == this)
   {
     atype->module = nullptr;

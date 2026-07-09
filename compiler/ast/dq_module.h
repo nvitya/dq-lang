@@ -78,6 +78,7 @@ public:
   string           last_interface_load_error;
 
   OScope *         scope_priv;
+  OScope *         scope_local;
 
   LlDiScope *      di_scope = nullptr;
   OValSym *        module_init_guard = nullptr;
@@ -90,6 +91,8 @@ public:
     super(g_builtins, "module_pub")
   {
     scope_priv = new OScope(scope_pub,  "module_priv");
+    scope_local = new OScope(nullptr, "module_local");
+    scope_local->vs_lookup_parent = false;
   }
 
   virtual ~OModule()
@@ -99,6 +102,7 @@ public:
       delete intf;
     }
     delete scope_priv;
+    delete scope_local;
   }
 
   ODecl * DeclareType(bool apublic, OType * atype);

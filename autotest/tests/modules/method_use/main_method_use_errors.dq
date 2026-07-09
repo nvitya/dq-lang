@@ -22,6 +22,10 @@ public
         var v : int = HIDDEN_A
     endfunc  //?error(VsUnknown)
 
+    function LocalNamespaceDoesNotImport():
+        var v : int = @..ONLY_A  //?error(NsVsUnknown)
+    endfunc
+
     function UnknownAlias():
         use missing_alias  //?error(MethodUseInvalid)
     endfunc

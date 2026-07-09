@@ -3184,7 +3184,11 @@ OValSym * ODqCompParserExpr::ResolveNamespaceValSym()
   string nsname;
   string symname;
 
-  if (scf->CheckSymbol("."))
+  if (scf->CheckSymbol(".."))
+  {
+    nsname = "..";
+  }
+  else if (scf->CheckSymbol("."))
   {
     nsname = ".";
   }
@@ -3194,7 +3198,7 @@ OValSym * ODqCompParserExpr::ResolveNamespaceValSym()
     return nullptr;
   }
 
-  if ("." != nsname && !scf->CheckSymbol("."))
+  if (("." != nsname) && (".." != nsname) && !scf->CheckSymbol("."))
   {
     Error(DQERR_DOT_MISSING_AFTER_NS_NAME);
     return nullptr;

@@ -24,6 +24,7 @@ void init_named_scopes()
   g_namespaces.clear();
 
   g_namespaces["."] = g_module->scope_priv;
+  g_namespaces[".."] = g_module->scope_local;
   g_namespaces["def"] = g_defines;
   g_namespaces["dq"] = g_builtins;
 }

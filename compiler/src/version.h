@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.3"
+#define DQ_COMPILER_VERSION  "0.31.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.4:
+  - `@..` namespace qualifier for the module own declarations only
 v0.31.3:
   - Method body symbol access errors to module root scope display the module alias
     instead of just "@."

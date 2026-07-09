@@ -162,35 +162,36 @@ function ONanoSocket.Connected() -> bool:
 endfunc
 
 function ONanoSocket.InitListener(aport : uint16):
+    use socket, sys
     Disconnect()
 
     if stype == stUdp4:
-        m_socket = @.libc_socket(@.AF_INET, @.SOCK_DGRAM, @.IPPROTO_UDP)
+        m_socket = libc_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     else:
-        m_socket = @.libc_socket(@.AF_INET, @.SOCK_STREAM, 0)
+        m_socket = libc_socket(AF_INET, SOCK_STREAM, 0)
     endif
 
-    if m_socket == @.INVALID_SOCKET:
+    if m_socket == INVALID_SOCKET:
         raise ENanoNet('InitListener: Error creating the listener socket')
     endif
 
     SetSockParams()
 
     var arg : int = 1
-    @.libc_setsockopt(m_socket, @.SOL_SOCKET, @.SO_REUSEADDR, &arg, SizeOf(arg))
+    libc_setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &arg, SizeOf(arg))
 
-    @.MemSet(&local_addr, 0, SizeOf(local_addr))
-    local_addr.sin_family = @.AF_INET
-    local_addr.sin_addr.s_addr = @.INADDR_ANY
-    local_addr.sin_port = @.libc_htons(aport)
+    MemSet(&local_addr, 0, SizeOf(local_addr))
+    local_addr.sin_family = AF_INET
+    local_addr.sin_addr.s_addr = INADDR_ANY
+    local_addr.sin_port = libc_htons(aport)
 
-    if @.libc_bind(m_socket, &local_addr, SizeOf(local_addr)) <> 0:
+    if libc_bind(m_socket, &local_addr, SizeOf(local_addr)) <> 0:
         Disconnect()
         raise ENanoNet('InitListener: Error binding listener socket')
     endif
 
     if stype <> stUdp4:
-        if @.libc_listen(m_socket, 64) <> 0:
+        if libc_listen(m_socket, 64) <> 0:
             Disconnect()
             raise ENanoNet('InitListener: Listen error')
         endif
@@ -198,13 +199,14 @@ function ONanoSocket.InitListener(aport : uint16):
 endfunc
 
 function ONanoSocket.AcceptConnection(asvrsocket : TSocket) -> bool:
+    use socket, sys
     Disconnect()
 
-    @.MemSet(&remote_addr, 0, SizeOf(remote_addr))
+    MemSet(&remote_addr, 0, SizeOf(remote_addr))
     var sl : TSockLen = SizeOf(remote_addr)
-    m_socket = @.libc_accept(asvrsocket, &remote_addr, &sl)
+    m_socket = libc_accept(asvrsocket, &remote_addr, &sl)
 
-    if m_socket == @.INVALID_SOCKET:
+    if m_socket == INVALID_SOCKET:
         return false
     endif
 
@@ -227,30 +229,31 @@ function ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
 endfunc
 
 function ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
+    use socket
     Disconnect()
 
     var addrbuf : cstring(63) = ''
     addrbuf.Set(aaddr)
 
-    @.MemSet(&remote_addr, 0, SizeOf(remote_addr))
-    remote_addr.sin_family = @.AF_INET
-    remote_addr.sin_port = @.libc_htons(aport)
+    MemSet(&remote_addr, 0, SizeOf(remote_addr))
+    remote_addr.sin_family = AF_INET
+    remote_addr.sin_port = libc_htons(aport)
 
-    if @.libc_inet_pton(@.AF_INET, &addrbuf[0], &remote_addr.sin_addr) <> 1:
+    if libc_inet_pton(AF_INET, &addrbuf[0], &remote_addr.sin_addr) <> 1:
         raise ENanoNet('Invalid Host IP address: {}', [aaddr])
     endif
 
-    m_socket = @.libc_socket(@.AF_INET, @.SOCK_STREAM, 0)
-    if m_socket == @.INVALID_SOCKET:
+    m_socket = libc_socket(AF_INET, SOCK_STREAM, 0)
+    if m_socket == INVALID_SOCKET:
         return false
     endif
 
     SetSockParams()
 
-    var r : int = @.libc_connect(m_socket, &remote_addr, SizeOf(remote_addr))
+    var r : int = libc_connect(m_socket, &remote_addr, SizeOf(remote_addr))
     if r < 0:
-        var err : int = @.SocketError()
-        if err <> @.EWOULDBLOCK  and  err <> @.EINPROGRESS:
+        var err : int = SocketError()
+        if err <> EWOULDBLOCK  and  err <> EINPROGRESS:
             Disconnect()
             return false
         endif
@@ -273,7 +276,8 @@ function ONanoSocket.SetTcpNoDelay(anodelay : bool):
         i = 0
     endif
 
-    @.libc_setsockopt(m_socket, @.IPPROTO_TCP, @.TCP_NODELAY, &i, SizeOf(i))
+    use socket
+    libc_setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, &i, SizeOf(i))
 endfunc
 
 function ONanoSocket.SetSockBufSizes():
@@ -305,7 +309,8 @@ function OSocketWatcher.*Destroy():
 endfunc
 
 function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler):
-    if asock.socket == @.INVALID_SOCKET:
+    use socket
+    if asock.socket == INVALID_SOCKET:
         raise ENanoNet('SocketWatcher.AddSocket: invalid socket handle.')
     endif
 
@@ -316,17 +321,17 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
     var ev : SEpollEvent
     ev.events = 0
     if asock.in_event_handler != null:
-        ev.events =OR= @.EPOLLIN
+        ev.events =OR= EPOLLIN
     endif
     if asock.out_event_handler != null:
-        ev.events =OR= @.EPOLLOUT
+        ev.events =OR= EPOLLOUT
     endif
     ev.data = pointer(asock)
 
-    var r : int = @.libc_epoll_ctl(fd_epoll, @.EPOLL_CTL_ADD, asock.socket, &ev)
+    var r : int = libc_epoll_ctl(fd_epoll, EPOLL_CTL_ADD, asock.socket, &ev)
     if r < 0:
-        if @.SocketError() == @.EEXIST:
-            r = @.libc_epoll_ctl(fd_epoll, @.EPOLL_CTL_MOD, asock.socket, &ev)
+        if SocketError() == @.EEXIST:
+            r = libc_epoll_ctl(fd_epoll, EPOLL_CTL_MOD, asock.socket, &ev)
         endif
         if r < 0:
             raise ENanoNet('SocketWatcher.AddSocket: Error adding socket to epoll.')
@@ -335,31 +340,33 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
 endfunc
 
 function OSocketWatcher.ModifySocket(asock : ONanoSocket):
-    if asock.socket == @.INVALID_SOCKET:
+    use socket
+    if asock.socket == INVALID_SOCKET:
         raise ENanoNet('SocketWatcher.ModifySocket: invalid socket handle.')
     endif
 
     var ev : SEpollEvent
     ev.events = 0
     if asock.in_event_handler != null:
-        ev.events =OR= @.EPOLLIN
+        ev.events =OR= EPOLLIN
     endif
     if asock.out_event_handler != null:
-        ev.events =OR= @.EPOLLOUT
+        ev.events =OR= EPOLLOUT
     endif
     ev.data = pointer(asock)
 
-    if @.libc_epoll_ctl(fd_epoll, @.EPOLL_CTL_MOD, asock.socket, &ev) < 0:
+    if libc_epoll_ctl(fd_epoll, EPOLL_CTL_MOD, asock.socket, &ev) < 0:
         raise ENanoNet('SocketWatcher.ModifySocket: Error changing socket in epoll.')
     endif
 endfunc
 
 function OSocketWatcher.RemoveSocket(asock : ONanoSocket):
-    if asock.socket <> @.INVALID_SOCKET:
+    use socket
+    if asock.socket <> INVALID_SOCKET:
         var ev : SEpollEvent
         ev.events = 0
         ev.data = null
-        @.libc_epoll_ctl(fd_epoll, @.EPOLL_CTL_DEL, asock.socket, &ev)
+        libc_epoll_ctl(fd_epoll, EPOLL_CTL_DEL, asock.socket, &ev)
     endif
 endfunc
 
@@ -374,8 +381,9 @@ function OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandle
 endfunc
 
 function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
+    use socket
     result = false
-    var evcnt : int = @.libc_epoll_wait(fd_epoll, &revents[0], maxevents, atimeout_ms)
+    var evcnt : int = libc_epoll_wait(fd_epoll, &revents[0], maxevents, atimeout_ms)
     if evcnt <= 0:
         return false
     endif
@@ -384,7 +392,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         var pev : ^SEpollEvent = &revents[i]
         var sock : ONanoSocket = ONanoSocket(pev^.data)
 
-    if (pev^.events AND @.EPOLLOUT) <> 0:
+    if (pev^.events AND EPOLLOUT) <> 0:
         if sock.out_event_handler == null:
             raise ENanoNet('Socket has no output event handler!')
         endif
@@ -392,7 +400,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         result = true
     endif
 
-    if (pev^.events AND @.EPOLLIN) <> 0:
+    if (pev^.events AND EPOLLIN) <> 0:
         if sock.in_event_handler == null:
             raise ENanoNet('Socket has no input event handler!')
         endif

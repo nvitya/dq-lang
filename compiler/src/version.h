@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.1"
+#define DQ_COMPILER_VERSION  "0.31.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.2:
+  - Compiler crash fixed on using incomplete types
 v0.31.1:
   - Value symbol searching refactoring
 v0.31.0:

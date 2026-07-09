@@ -920,6 +920,14 @@ void ODqCompParser::ParseStructDecl()
   }
 
 
+  auto discard_failed_new_decl = [&]()
+  {
+    if (!is_forward_def)
+    {
+      g_module->DiscardTypeDeclaration(ctype);
+      delete ctype;
+    }
+  };
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))
@@ -930,14 +938,14 @@ void ODqCompParser::ParseStructDecl()
     {
       Error(DQERR_TYPE_EXPECTED, "struct", basetype ? basetype->name : "?");
       SkipToModuleStatementStart();
-      delete ctype;
+      discard_failed_new_decl();
       return;
     }
     if (base_struct->ContainsManagedStorage())
     {
       ErrorTxt(DQERR_NOT_SUPPORTED, "managed struct base");
       SkipToModuleStatementStart();
-      delete ctype;
+      discard_failed_new_decl();
       return;
     }
     ctype->base_type = base_struct;
@@ -947,14 +955,14 @@ void ODqCompParser::ParseStructDecl()
     {
       ErrorTxt(DQERR_NOT_SUPPORTED, "multiple struct inheritance");
       SkipToModuleStatementStart();
-      delete ctype;
+      discard_failed_new_decl();
       return;
     }
     if (!scf->CheckSymbol(")"))
     {
       Error(DQERR_MISSING_CLOSE_PAREN_FOR, "struct base");
       SkipToModuleStatementStart();
-      delete ctype;
+      discard_failed_new_decl();
       return;
     }
   }
@@ -1926,6 +1934,14 @@ void ODqCompParser::ParseObjectDecl()
   }
 
 
+  auto discard_failed_new_decl = [&]()
+  {
+    if (!is_forward_def)
+    {
+      g_module->DiscardTypeDeclaration(object_type);
+      delete object_type;
+    }
+  };
 
   scf->SkipWhite();
   if (scf->CheckSymbol("("))
@@ -1936,7 +1952,7 @@ void ODqCompParser::ParseObjectDecl()
     {
       Error(DQERR_TYPE_EXPECTED, "object", basetype ? basetype->name : "?");
       SkipToModuleStatementStart();
-      delete object_type;
+      discard_failed_new_decl();
       return;
     }
     object_type->base_type = base_object;
@@ -1946,14 +1962,14 @@ void ODqCompParser::ParseObjectDecl()
     {
       ErrorTxt(DQERR_NOT_SUPPORTED, "multiple object inheritance");
       SkipToModuleStatementStart();
-      delete object_type;
+      discard_failed_new_decl();
       return;
     }
     if (!scf->CheckSymbol(")"))
     {
       Error(DQERR_MISSING_CLOSE_PAREN_FOR, "object base");
       SkipToModuleStatementStart();
-      delete object_type;
+      discard_failed_new_decl();
       return;
     }
   }

@@ -86,6 +86,62 @@ ODecl * OModule::DeclareHiddenValSym(bool apublic, OValSym * avalsym)
   return result;
 }
 
+void OModule::DiscardTypeDeclaration(OType * atype)
+{
+  if (!atype)
+  {
+    return;
+  }
+
+  auto erase_from_scope = [atype](OScope * scope)
+  {
+    if (!scope)
+    {
+      return;
+    }
+    auto it = scope->typesyms.find(atype->name);
+    if (scope->typesyms.end() != it && it->second == atype)
+    {
+      scope->typesyms.erase(it);
+    }
+  };
+
+  for (auto it = declarations.begin(); declarations.end() != it; )
+  {
+    ODecl * decl = *it;
+    if (decl && DK_TYPE == decl->kind && decl->ptype == atype)
+    {
+      delete decl;
+      it = declarations.erase(it);
+    }
+    else
+    {
+      ++it;
+    }
+  }
+
+  for (auto it = OModuleBase::declarations.begin(); OModuleBase::declarations.end() != it; )
+  {
+    OIntfDecl * decl = *it;
+    if (decl && IDK_TYPE == decl->kind && decl->ptype == atype)
+    {
+      delete decl;
+      it = OModuleBase::declarations.erase(it);
+    }
+    else
+    {
+      ++it;
+    }
+  }
+
+  erase_from_scope(scope_priv);
+  erase_from_scope(scope_pub);
+  if (atype->module == this)
+  {
+    atype->module = nullptr;
+  }
+}
+
 void OModule::RegisterSpecialFunction(OValSymFunc * afunc)
 {
   if (!afunc)

@@ -104,6 +104,7 @@ public:
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
+  void DiscardTypeDeclaration(OType * atype);
   void RegisterSpecialFunction(OValSymFunc * afunc);
   OValSymFunc * FindSpecialFunction(ESpecialFuncKind akind) const;
   OValSymFunc * EnsureModuleInitFunc(OScPosition & scpos);

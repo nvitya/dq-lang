@@ -82,6 +82,12 @@ public
     endfunc
 endobj
 
+object OMissingBaseChild(OMissingBase): //?error(TypeUnknown), error(TypeExpected)
+endobj
+
+function OMissingBaseChild.AfterBadBase(): //?error(TypeUnknown)
+endfunc
+
 function MutObjectRef(o : ref OBase):
 endfunc
 

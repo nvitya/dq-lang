@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.4"
+#define DQ_COMPILER_VERSION  "0.31.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.31.5:
+  - Compiler fix for inherited method search
+  - nanonet/nano_http module added, simple http server is working
 v0.31.4:
   - `@..` namespace qualifier for the module own declarations only
 v0.31.3:

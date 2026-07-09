@@ -2973,13 +2973,18 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       OCompoundType * decl_type = nullptr;
       OCompoundType * owner_type = curvsfunc->owner_compound_type;
       OValSym * member = owner_type->FindMemberSymbol(sid, &decl_type);
-      if (member && (VSK_FUNCTION != member->kind))
+      if (member)
       {
         if (!ObjectMemberAccessAllowed(decl_type, member))
         {
           Error(DQERR_MEMBER_UNKNOWN, sid, owner_type->name);
           return result;
         }
+        if (VSK_FUNCTION == member->kind)
+        {
+          return new OLValueVar(member);
+        }
+
         int midx = decl_type->FindMemberIndex(sid);
         if (midx >= 0)
         {
@@ -3338,6 +3343,21 @@ OExpr * ODqCompParserExpr::ParseExprFuncCall(OValSymFunc * vsfunc)
   return result;
 }
 
+OLValueExpr * ODqCompParserExpr::CreateImplicitMethodReceiver(OCompoundType * method_owner_type)
+{
+  if (!curvsfunc || !curvsfunc->owner_compound_type || !method_owner_type || !curvsfunc->receiver_arg)
+  {
+    return nullptr;
+  }
+
+  if (!curvsfunc->owner_compound_type->IsSameOrDerivedFrom(method_owner_type))
+  {
+    return nullptr;
+  }
+
+  return new OLValueVar(curvsfunc->receiver_arg);
+}
+
 OExpr * ODqCompParserExpr::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver)
 {
   if (!vsfunc || !vsfunc->owner_compound_type)
@@ -3362,9 +3382,9 @@ OExpr * ODqCompParserExpr::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr
   {
     thisarg.expr = receiver;
   }
-  else if (curvsfunc && curvsfunc->owner_compound_type == vsfunc->owner_compound_type && curvsfunc->receiver_arg)
+  else if (auto * implicit_receiver = CreateImplicitMethodReceiver(vsfunc->owner_compound_type))
   {
-    thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
+    thisarg.expr = implicit_receiver;
   }
   else
   {
@@ -3418,9 +3438,9 @@ OExpr * ODqCompParserExpr::ParseExprMethodOverloadCall(OValSymOverloadSet * ovse
   {
     thisarg.expr = receiver;
   }
-  else if (curvsfunc && curvsfunc->owner_compound_type == ovset->owner_compound_type && curvsfunc->receiver_arg)
+  else if (auto * implicit_receiver = CreateImplicitMethodReceiver(ovset->owner_compound_type))
   {
-    thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
+    thisarg.expr = implicit_receiver;
   }
   else
   {

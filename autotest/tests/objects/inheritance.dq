@@ -21,6 +21,18 @@ public
         value = 10;
     endfunc
 
+    function BaseOnlyAdd(a : int) -> int:
+        return value + a;
+    endfunc
+
+    function BaseOnlyOver(a : int) -> int [[overload]]:
+        return value + a;
+    endfunc
+
+    function BaseOnlyOver(a : float) -> int [[overload]]:
+        return value + Round(a) + 100;
+    endfunc
+
     function *Destroy():
         @.printf("%s.base.destroy = %d\n", &name[0], value);
     endfunc
@@ -43,6 +55,14 @@ public
     function Reset():
         inherited Reset();
         extra = 20;
+    endfunc
+
+    function BareBaseCall() -> int:
+        return BaseOnlyAdd(extra);
+    endfunc
+
+    function BareBaseOverloadCall() -> int:
+        return BaseOnlyOver(extra) + BaseOnlyOver(2.4);
     endfunc
 
     function *Destroy():
@@ -116,6 +136,8 @@ function *Main() -> int:
                                    //?check('stack.child.create', '4 5')
 
     PrintBase(c, "fixed");         //?check('fixed', 9)
+    @.printf("bare-base-call = %d\n", c.BareBaseCall()); //?check("bare-base-call", 9)
+    @.printf("bare-base-overload-call = %d\n", c.BareBaseOverloadCall()); //?check("bare-base-overload-call", 115)
     c.Reset();
     PrintBase(c, "reset");         //?check('reset', 30)
 

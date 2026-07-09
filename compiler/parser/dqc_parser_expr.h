@@ -86,6 +86,7 @@ protected:
   bool      ParsePropertyIndices(OPropertyExpr * property_expr);
   void      CheckPropertyReadable(OPropertyExpr * property_expr);
   bool      IsKnownEnumItem(const string & item_name);
+  OLValueExpr * CreateImplicitMethodReceiver(OCompoundType * method_owner_type);
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   bool      CheckSpecialReservedRootName(const string & aname);
   bool      CheckStatementClose(bool emit_error = true);

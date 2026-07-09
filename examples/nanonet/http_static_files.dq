@@ -1,0 +1,93 @@
+implementation
+
+use print
+use nanonet/nano_http
+
+const HTTP_LISTEN_PORT : uint16 = 8080
+
+object OSConnHttpApp(OSConnectionHttp):
+  function ProcessRequest() -> bool  [[override]]
+endobj
+
+function GetTs() -> str:
+  result = '?' //FormatDateTime('yyyy-mm-dd hh:nn:ss', now);
+endfunc
+
+function OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
+    //use *
+    result = false
+
+    if uri == "/":
+        uri = '/index.html'
+    endif
+
+    try:
+        // handle internal pages
+        if uri == '/data':
+            response = 'This is my plain text http response.'
+            response.AddFmt('\r\nuri={}', [uri])
+            response.AddFmt('\r\ngetstr={}', [getstr])
+            response.Add('\r\n')
+
+            var k : str
+            var v : str
+
+            for i : int = 0 count qsvars.length:
+                k = qsvars.key[i]
+                v = qsvars.value[i]
+                response.AddFmt('QsVar: "{}"" = "{}"\r\n', [k, v])
+            endfor
+
+            v = qsvars.KeyDataDef('a', '')
+            if v <> '':
+                response.AddFmt('QS var "a" is set to "{}"\r\n', [v])
+            endif
+
+            v = qsvars.KeyDataDef('c', '')
+            if v <> '':
+                response.AddFmt('Get var "c" is set to "{}"\r\n', [v])
+            else:
+                response.Add('Get var "c" is not set.\r\n')
+            endif
+
+            result = true;
+        else:
+            result = HandleStaticFiles('./www')
+        endif
+
+    except Exception as e:
+        @.PrintLn()
+        @.PrintLn('{}: ERROR', [@.GetTs()])
+        e.PrintMessage()
+        @.PrintLn('Backtrace:')
+        e.PrintBacktrace()  // print stack trace with line infos
+    endtry
+endfunc
+
+function *Main() -> int:
+    PrintLn('NanoNet - Simple Http Server')
+
+    var svr <- ONanoHttpServer(OSConnHttpApp, HTTP_LISTEN_PORT)
+    svr.InitListener()  // may raise an exception when the listener port is not available
+
+    PrintLn('Server listening at port {}', [svr.listen_port])
+    PrintLn('Entering main loop...')
+
+    while true:
+        try:
+            svr.WaitForEvents(1000)
+
+            // you can do something else here
+
+        except Exception as e:
+            // catch all other exceptions here to allow the server running further
+            PrintLn()
+            PrintLn('{}: ERROR', [GetTs()])
+            e.PrintMessage()
+            PrintLn('Backtrace:')
+            e.PrintBacktrace()  // print stack trace with line infos
+        endtry
+    endwhile
+
+    return 0
+endfunc

@@ -98,8 +98,6 @@ public
 
     property onrow : bool  read m_onrow
 
-    property byname : [strview]anyvalue  default  read GetValue  write SetValue
-
 endobj
 
 /*

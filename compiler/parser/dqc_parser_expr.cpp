@@ -2930,10 +2930,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   }
 
   OScope * found_scope = nullptr;
+  bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
   OValSym * vs = curscope->FindValSym(sid, &found_scope);
   if (!vs)
   {
-    bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
     if (object_method_scope)
     {
       OCompoundType * decl_type = nullptr;
@@ -2954,9 +2954,13 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       }
 
       OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
-      vs = curscope->FindMethodUseValSym(sid, stop_scope, &found_scope);
+      SScopeLookupOptions lookup_options;
+      lookup_options.fallback_stop_scope = stop_scope;
+      lookup_options.use_method_fallback_scopes = true;
+      vs = curscope->FindValSymEx(sid, &found_scope, true, lookup_options);
     }
   }
+
   if (!vs)
   {
     OType * named_type = cur_mod_scope->FindType(sid);
@@ -2974,7 +2978,6 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     {
       return new OUnresolvedEnumItemExpr(sid);
     }
-    bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
     if (object_method_scope)
     {
       auto nsit = g_namespaces.find(".");

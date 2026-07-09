@@ -38,6 +38,12 @@ class OModuleUse;
 class ODqCompAst;
 class OExpr;
 
+struct SScopeLookupOptions
+{
+  OScope *  fallback_stop_scope = nullptr;
+  bool      use_method_fallback_scopes = false;
+};
+
 // Symbol and Scope
 
 class OSymbol
@@ -96,7 +102,8 @@ public:
 
   OType *     FindType(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
   OValSym *   FindValSym(const string & name, OScope ** rscope = nullptr, bool arecursive = true);
-  OValSym *   FindMethodUseValSym(const string & name, OScope * astop_scope = nullptr, OScope ** rscope = nullptr);
+  OValSym *   FindValSymEx(const string & name, OScope ** rscope, bool arecursive,
+                           const SScopeLookupOptions & options);
   bool        MethodUseAliasVisible(const string & name, OScope * astop_scope = nullptr);
   bool        MethodUseDotVisible(OScope * astop_scope = nullptr);
   bool        MethodUseStarVisible(OScope * astop_scope = nullptr);

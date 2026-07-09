@@ -96,6 +96,13 @@ OType * OScope::FindType(const string & name, OScope ** rscope, bool arecursive)
 
 OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecursive)
 {
+  SScopeLookupOptions options;
+  return FindValSymEx(name, rscope, arecursive, options);
+}
+
+OValSym * OScope::FindValSymEx(const string & name, OScope ** rscope, bool arecursive,
+                               const SScopeLookupOptions & options)
+{
   auto it = valsyms.find(name);
   if (it != valsyms.end())
   {
@@ -106,28 +113,39 @@ OValSym * OScope::FindValSym(const string & name, OScope ** rscope, bool arecurs
     return it->second;
   }
 
-  // If not found here, check the parent scope
-  if (arecursive and vs_lookup_parent and (parent_scope != nullptr))
-  {
-    return parent_scope->FindValSym(name, rscope);
-  }
-
-  return nullptr;
-}
-
-OValSym * OScope::FindMethodUseValSym(const string & name, OScope * astop_scope, OScope ** rscope)
-{
-  vector<OScope *> lookup_scopes;
+  vector<OScope *> fallback_owner_scopes;
+  bool collect_fallback = options.use_method_fallback_scopes;
   for (OScope * scope = this; scope; scope = scope->parent_scope)
   {
-    lookup_scopes.push_back(scope);
-    if (scope == astop_scope)
+    if (collect_fallback)
+    {
+      fallback_owner_scopes.push_back(scope);
+      if (scope == options.fallback_stop_scope)
+      {
+        collect_fallback = false;
+      }
+    }
+
+    if (scope != this)
+    {
+      auto scope_it = scope->valsyms.find(name);
+      if (scope_it != scope->valsyms.end())
+      {
+        if (rscope)
+        {
+          *rscope = scope;
+        }
+        return scope_it->second;
+      }
+    }
+
+    if (!arecursive || !scope->vs_lookup_parent)
     {
       break;
     }
   }
 
-  for (auto it_scope = lookup_scopes.rbegin(); it_scope != lookup_scopes.rend(); ++it_scope)
+  for (auto it_scope = fallback_owner_scopes.rbegin(); it_scope != fallback_owner_scopes.rend(); ++it_scope)
   {
     OScope * method_scope = *it_scope;
     for (OScope * use_scope : method_scope->method_use_scopes)

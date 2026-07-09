@@ -1,0 +1,93 @@
+use db
+use libc/stdio
+
+function BoolInt(v : bool) -> int:
+    return iif(v, 1, 0)
+endfunc
+
+function PrintRow(label : ^cchar, rows : ODbRows):
+    var name : str = rows.GetStr("name", "")
+    printf("%s = idx:%li id:%li name:%s active:%li\n",
+           label,
+           rows.RowIndex(),
+           rows.GetInt("id", -1),
+           ^cchar(&name[0]),
+           BoolInt(rows.GetBool("active", false)))
+endfunc
+
+function *Main() -> int:
+    var rows <- ODbRows()
+
+    printf("db_rows.empty = rows:%li fields:%li bof:%li eof:%li\n",
+           rows.RowCount(), rows.FieldCount(), BoolInt(rows.Bof()), BoolInt(rows.Eof())) //?check("db_rows.empty", "rows:0 fields:0 bof:1 eof:1")
+
+    printf("db_rows.fields = id:%li name:%li dup:%li has-name:%li missing:%li\n",
+           rows.AddField("id", ftInt),
+           rows.AddField("name", ftText),
+           rows.AddField("id", ftInt),
+           BoolInt(rows.HasField("name")),
+           rows.FieldIndex("missing")) //?check("db_rows.fields", "id:0 name:1 dup:0 has-name:1 missing:-1")
+
+    rows.AddRow()
+    rows.SetInt("id", 10)
+    rows.SetStr("name", "alpha")
+
+    rows.AddRow()
+    rows.SetValue("id", 20)
+    rows.SetValue("name", "beta")
+
+    var fname0 : str = rows.FieldName(0)
+    var fname1 : str = rows.FieldName(1)
+    printf("db_rows.counts = rows:%li fields:%li f0:%s f1:%s\n",
+           rows.RowCount(),
+           rows.FieldCount(),
+           ^cchar(&fname0[0]),
+           ^cchar(&fname1[0])) //?check("db_rows.counts", "rows:2 fields:2 f0:id f1:name")
+
+    rows.AddField("active", ftBool)
+    rows.First()
+    printf("db_rows.add-field-null = active-null:%li value:%li\n",
+           BoolInt(rows.IsNull("active")),
+           BoolInt(rows.GetBool("active", true))) //?check("db_rows.add-field-null", "active-null:1 value:1")
+
+    rows.SetBool("active", true)
+    PrintRow("db_rows.row0", rows) //?check("db_rows.row0", "idx:0 id:10 name:alpha active:1")
+
+    rows.Next()
+    PrintRow("db_rows.row1", rows) //?check("db_rows.row1", "idx:1 id:20 name:beta active:0")
+    var idval : anyvalue = rows.GetValue("id")
+    printf("db_rows.value = %li\n", idval.AsInt(-1)) //?check("db_rows.value", "20")
+
+    rows.Next()
+    printf("db_rows.eof = idx:%li eof:%li bof:%li def:%li\n",
+           rows.RowIndex(),
+           BoolInt(rows.Eof()),
+           BoolInt(rows.Bof()),
+           rows.GetInt("id", -7)) //?check("db_rows.eof", "idx:2 eof:1 bof:0 def:-7")
+
+    rows.Prev()
+    rows.SetNull("name")
+    var defname : str = rows.GetStr("name", "def")
+    printf("db_rows.null-name = isnull:%li def:%s\n",
+           BoolInt(rows.IsNull("name")),
+           ^cchar(&defname[0])) //?check("db_rows.null-name", "isnull:1 def:def")
+
+    rows.DeleteRow(0)
+    rows.First()
+    defname = rows.GetStr("name", "def")
+    printf("db_rows.after-delete = rows:%li idx:%li id:%li name:%s\n",
+           rows.RowCount(),
+           rows.RowIndex(),
+           rows.GetInt("id", -1),
+           ^cchar(&defname[0])) //?check("db_rows.after-delete", "rows:1 idx:0 id:20 name:def")
+
+    rows.ClearRows()
+    printf("db_rows.clear-rows = rows:%li fields:%li bof:%li eof:%li\n",
+           rows.RowCount(), rows.FieldCount(), BoolInt(rows.Bof()), BoolInt(rows.Eof())) //?check("db_rows.clear-rows", "rows:0 fields:3 bof:1 eof:1")
+
+    rows.Clear()
+    printf("db_rows.clear = rows:%li fields:%li\n",
+           rows.RowCount(), rows.FieldCount()) //?check("db_rows.clear", "rows:0 fields:0")
+
+    return 0
+endfunc

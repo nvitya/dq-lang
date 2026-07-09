@@ -1,0 +1,382 @@
+
+enum NSqlFieldType : byte = (
+  ftUnknown = 0,
+  ftInt,
+  ftFloat,
+  ftBool,
+  ftText,
+  ftBlob,
+  ftDateTime
+)
+
+struct SFieldInfo:  // 72 bytes
+  name  : cstring(67)
+  index : byte
+  ftype : NSqlFieldType
+  _pad  : [2]byte
+endstruct
+
+object ODbConnection  [[forward]]
+object ODbDataSource  [[forward]]
+
+object ODbRows:
+protected
+  m_fieldcount : int
+  m_rowcount   : int
+  m_fieldinfo  : [*]SFieldInfo
+
+  m_data       : [*]anyvalue  // length = fieldcount * rowcount
+
+  m_currow     : int // can be out of the valid range
+
+  //m_datasource : ODbDataSource  // might be null for standalone / memory datasets
+
+    function CellIndex(arow : int, afield : int) -> int
+
+public
+    function *Create()
+    function *Destroy()
+
+    function Clear()      // delete all rows, all fields
+    function ClearRows()  //
+
+    function RowCount() -> int
+    function FieldCount() -> int
+
+    function AddField(aname : str, atype : NSqlFieldType) -> int
+    function FieldName(aindex : int) -> str
+    function FieldIndex(aname : str) -> int
+    function HasField(aname : str) -> bool
+
+    function AddRow() -> int
+    function DeleteRow(arow : int)
+
+    // cursor navigation
+    function First()
+    function Last()
+    function Next()
+    function Prev()
+    function SelectRow(arow : int) -> bool
+    function RowIndex() -> int
+    function Eof() -> bool
+    function Bof() -> bool
+
+    // current row access
+    function IsNull(aname : str) -> bool
+    function GetValue(aname : str) -> anyvalue
+    function SetValue(aname : str, avalue : anyvalue)
+
+    function GetInt(aname : str, defvalue : int) -> int
+    function GetFloat(aname : str, defvalue : float) -> float
+    function GetBool(aname : str, defvalue : bool) -> bool
+    function GetStr(aname : str, defvalue : str) -> str
+
+    function SetInt(aname : str, avalue : int)
+    function SetFloat(aname : str, avalue : float)
+    function SetBool(aname : str, avalue : bool)
+    function SetStr(aname : str, avalue : str)
+    function SetNull(aname : str)
+
+    // direct row access, secondary API
+    //function GetValueRow(arow : int, aname : str) -> anyvalue
+    //function SetValueRow(arow : int, aname : str, avalue : anyvalue)
+endobj
+
+/*
+
+object ODbDataSource:
+protected
+    m_dbconn : ODbConnection
+public
+    function First(arows : ODbRows) -> bool virtual
+    function Next(arows : ODbRows) -> bool virtual
+    function Last(arows : ODbRows) -> bool virtual
+    function Prev(arows : ODbRows) -> bool virtual
+    function MoveTo(arows : ODbRows, arow : int) -> bool virtual
+endobj
+
+*/
+
+/*
+object ODbConnection:
+public
+  function Open(aconnstr : str) -> bool [[virtual]]
+  function Close()  [[virtual]]
+  function IsOpen() -> bool  [[virtual]]
+
+  function Exec(asql : str) -> int  [[virtual]]
+  function Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]]
+
+  function Query(asql : str) -> ODbRows  [[virtual]]
+  function Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]]
+
+  function BeginTrans() -> bool  [[virtual]]
+  function Commit() -> bool  [[virtual]]
+  function Rollback() -> bool  [[virtual]]
+
+  function LastInsertId() -> int64  [[virtual]]
+  function RowsAffected() -> int64  [[virtual]]
+
+  function LastError() -> str  [[virtual]]
+  function LastErrorCode() -> int  [[virtual]]
+endobj
+*/
+
+implementation
+
+function ODbRows.CellIndex(arow : int, afield : int) -> int:
+    if arow < 0  or  arow >= m_rowcount  or  afield < 0  or  afield >= m_fieldcount:
+        return -1
+    endif
+    return arow * m_fieldcount + afield
+endfunc
+
+function ODbRows.*Create():
+    m_fieldcount = 0
+    m_rowcount = 0
+    m_currow = -1
+endfunc
+
+function ODbRows.*Destroy():
+    Clear()
+endfunc
+
+function ODbRows.Clear():
+    ClearRows()
+    m_fieldinfo.Clear(true)
+    m_fieldcount = 0
+endfunc
+
+function ODbRows.ClearRows():
+    m_data.Clear(true)
+    m_rowcount = 0
+    m_currow = -1
+endfunc
+
+function ODbRows.RowCount() -> int:
+    return m_rowcount
+endfunc
+
+function ODbRows.FieldCount() -> int:
+    return m_fieldcount
+endfunc
+
+function ODbRows.AddField(aname : str, atype : NSqlFieldType) -> int:
+    if aname == '':
+        return -1
+    endif
+
+    result = FieldIndex(aname)
+    if result >= 0:
+        return
+    endif
+
+    if m_fieldcount >= 256:
+        return -1
+    endif
+
+    var old_fieldcount : int = m_fieldcount
+    var new_fieldcount : int = old_fieldcount + 1
+
+    if m_rowcount > 0:
+        var newdata : [*]anyvalue = []
+        newdata.SetLength(new_fieldcount * m_rowcount)
+        for row : int = 0 count m_rowcount:
+            for field : int = 0 count old_fieldcount:
+                newdata[row * new_fieldcount + field] = m_data[row * old_fieldcount + field]
+            endfor
+        endfor
+        m_data = newdata
+    endif
+
+    m_fieldinfo.SetLength(new_fieldcount)
+    m_fieldinfo[old_fieldcount].name.Set(aname)
+    m_fieldinfo[old_fieldcount].index = byte(old_fieldcount)
+    m_fieldinfo[old_fieldcount].ftype = atype
+    m_fieldinfo[old_fieldcount]._pad[0] = 0
+    m_fieldinfo[old_fieldcount]._pad[1] = 0
+    m_fieldcount = new_fieldcount
+    return old_fieldcount
+endfunc
+
+function ODbRows.FieldName(aindex : int) -> str:
+    if aindex < 0  or  aindex >= m_fieldcount:
+        return ''
+    endif
+    return m_fieldinfo[aindex].name
+endfunc
+
+function ODbRows.FieldIndex(aname : str) -> int:
+    for i : int = 0 count m_fieldcount:
+        if m_fieldinfo[i].name == aname:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+function ODbRows.HasField(aname : str) -> bool:
+    return FieldIndex(aname) >= 0
+endfunc
+
+function ODbRows.AddRow() -> int:
+    result = m_rowcount
+    m_rowcount += 1
+    m_data.SetLength(m_fieldcount * m_rowcount)
+    m_currow = result
+endfunc
+
+function ODbRows.DeleteRow(arow : int):
+    if arow < 0  or  arow >= m_rowcount:
+        return
+    endif
+
+    if m_fieldcount > 0:
+        m_data.Delete(arow * m_fieldcount, m_fieldcount)
+    endif
+    m_rowcount -= 1
+
+    if m_rowcount <= 0:
+        m_currow = -1
+    elif m_currow > arow:
+        m_currow -= 1
+    elif m_currow >= m_rowcount:
+        m_currow = m_rowcount - 1
+    endif
+endfunc
+
+function ODbRows.First():
+    if m_rowcount > 0:
+        m_currow = 0
+    else:
+        m_currow = -1
+    endif
+endfunc
+
+function ODbRows.Last():
+    if m_rowcount > 0:
+        m_currow = m_rowcount - 1
+    else:
+        m_currow = -1
+    endif
+endfunc
+
+function ODbRows.Next():
+    if m_rowcount <= 0:
+        m_currow = -1
+    elif m_currow < m_rowcount:
+        m_currow += 1
+    else:
+        m_currow = m_rowcount
+    endif
+endfunc
+
+function ODbRows.Prev():
+    if m_rowcount <= 0:
+        m_currow = -1
+    elif m_currow >= m_rowcount:
+        m_currow = m_rowcount - 1
+    else:
+        m_currow -= 1
+    endif
+endfunc
+
+function ODbRows.SelectRow(arow : int) -> bool:
+    if arow >= 0  and  arow < m_rowcount:
+        m_currow = arow
+        return true
+    endif
+    return false
+endfunc
+
+function ODbRows.RowIndex() -> int:
+    return m_currow
+endfunc
+
+function ODbRows.Eof() -> bool:
+    return m_rowcount <= 0  or  m_currow >= m_rowcount
+endfunc
+
+function ODbRows.Bof() -> bool:
+    return m_rowcount <= 0  or  m_currow < 0
+endfunc
+
+function ODbRows.IsNull(aname : str) -> bool:
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx < 0:
+        return true
+    endif
+    return m_data[idx].IsNull()
+endfunc
+
+function ODbRows.GetValue(aname : str) -> anyvalue:
+    var nv : anyvalue
+    nv.SetNull()
+    result = nv
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx >= 0:
+        result = m_data[idx]
+    endif
+endfunc
+
+function ODbRows.SetValue(aname : str, avalue : anyvalue):
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx >= 0:
+        m_data[idx] = avalue
+    endif
+endfunc
+
+function ODbRows.GetInt(aname : str, defvalue : int) -> int:
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx < 0:
+        return defvalue
+    endif
+    return m_data[idx].AsInt(defvalue)
+endfunc
+
+function ODbRows.GetFloat(aname : str, defvalue : float) -> float:
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx < 0:
+        return defvalue
+    endif
+    return m_data[idx].AsFloat(defvalue)
+endfunc
+
+function ODbRows.GetBool(aname : str, defvalue : bool) -> bool:
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx < 0:
+        return defvalue
+    endif
+    return m_data[idx].AsBool(defvalue)
+endfunc
+
+function ODbRows.GetStr(aname : str, defvalue : str) -> str:
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx < 0:
+        return defvalue
+    endif
+    return m_data[idx].AsStr(defvalue)
+endfunc
+
+function ODbRows.SetInt(aname : str, avalue : int):
+    SetValue(aname, avalue)
+endfunc
+
+function ODbRows.SetFloat(aname : str, avalue : float):
+    SetValue(aname, avalue)
+endfunc
+
+function ODbRows.SetBool(aname : str, avalue : bool):
+    SetValue(aname, avalue)
+endfunc
+
+function ODbRows.SetStr(aname : str, avalue : str):
+    SetValue(aname, avalue)
+endfunc
+
+function ODbRows.SetNull(aname : str):
+    var idx : int = CellIndex(m_currow, FieldIndex(aname))
+    if idx >= 0:
+        m_data[idx].SetNull()
+    endif
+endfunc

@@ -44,7 +44,6 @@ protected
 
     //m_datasource : ODbDataSource  // might be null for standalone / memory datasets
 
-    function CellIndex(arow : int, afield : int) -> int  [[inline]]
     function GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
 
 public
@@ -151,14 +150,6 @@ function FieldTypeName(ft : NDbFieldType) -> str:
     elif ft == ftDateTime:  return 'datetime'
     else:
         return 'unknown'
-    endif
-endfunc
-
-function ODbRows.CellIndex(arow : int, afield : int) -> int  [[inline]]:
-    if arow < 0  or  arow >= m_rowcount  or  afield < 0  or  afield >= m_fieldcount:
-        return -1
-    else:
-        return arow * m_fieldcount + afield
     endif
 endfunc
 

@@ -18,6 +18,24 @@ The compiler is case-sensitive. By convention, functions and methods start with
 an uppercase letter when they are part of the public API, while variables and
 parameters use lowercase names, often with underscores.
 
+## Type Annotations
+
+Type annotations are written after the declared name with `:`.
+
+```dq
+var count : int = 0
+const LIMIT : int = 100
+function Add(a : int, b : int) -> int
+```
+
+Function return types are written after the parameter list with `->`.
+
+```dq
+function IsReady() -> bool:
+    return true
+endfunc
+```
+
 ## Statements and Blocks
 
 Statements do not require semicolons. A semicolon may be used as an optional
@@ -91,7 +109,8 @@ Floating point literals use a decimal point.
 var f : float64 = 3.14
 ```
 
-String and character text may use either single or double quotes.
+String literals normally use double quotes. Single quotes can also delimit text,
+but a single-quoted literal containing exactly one character is a `char`.
 
 ```dq
 var a : str = "hello"
@@ -150,6 +169,32 @@ arr[i] = x
 
 The compiler also supports compound assignments such as `+=`, `-=`, `*=`, `/=`,
 and similar operators where the target type supports the operation.
+
+## Conditions Require Bool
+
+DQ does not convert numbers, pointers, or other values to `bool` implicitly.
+This is intentionally different from C.
+
+```c
+if (number) {
+    /* C accepts this */
+}
+```
+
+In DQ, conditions must have type `bool`. Write the comparison explicitly.
+
+```dq
+if number <> 0:
+    // ok
+endif
+
+if ptr != null:
+    // ok
+endif
+```
+
+The same rule applies to `while`, `for ... while`, logical operators, and
+inline `iif`.
 
 ## Built-In Result Variable
 

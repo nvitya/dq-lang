@@ -60,6 +60,22 @@ type TFloat = float64
 type FCallback = function(value : int) -> int
 ```
 
+## Type Inference
+
+General type inference for variables is not implemented. Write the declared type
+explicitly.
+
+```dq
+var value : int = 3
+```
+
+The special `?` marker is currently used for fixed array length inference from
+an array literal.
+
+```dq
+var values : [?]int = [1, 2, 3]
+```
+
 ## Structures
 
 `struct` defines a value type with fields.
@@ -159,6 +175,19 @@ var inferred : [?]int = [10, 20, 30]
 
 Fixed arrays expose a `.length` property and support indexing and slicing.
 
+## Array Literals
+
+Array literals are written with square brackets.
+
+```dq
+var static_values : [?]int = [1, 2, 3]
+var dynamic_values : [*]int = [1, 2, 3]
+```
+
+The expected type determines whether the literal initializes a fixed array,
+dynamic array, array slice-compatible value, or another supported array-like
+target.
+
 ## Dynamic Arrays
 
 Dynamic arrays are written as `[*]T`.
@@ -206,6 +235,41 @@ DQ has several text-related types:
 | `cstring(n)` | Fixed-size zero-terminated C-style string storage |
 | `cstring` | C-style string argument type |
 | `^cchar` | Pointer to C-compatible character data |
+
+## String and Character Literals
+
+Double-quoted literals are text. Single quotes can also delimit text, but a
+single-quoted literal containing exactly one character is a `char`.
+
+```dq
+var text1 : str = "hello"
+var text2 : str = 'hello'
+var slash_text : str = "/"
+var slash_char : char = '/'
+```
+
+This matters when comparing text. `"/"` is a string literal, but `'/'` is a
+character literal.
+
+```dq
+if url == "/":
+    // ok: compares text with text
+endif
+
+if url == '/':
+    // wrong: '/' is char, not str/strview/cstring text
+endif
+```
+
+Use double quotes for one-character strings when the value is text. Use single
+quotes for character values, such as string indexing results or APIs that take
+`char`.
+
+```dq
+if url[0] == '/':
+    // ok: compares char with char
+endif
+```
 
 `str` is copy-on-write. Assigning a string value shares storage until a value is
 mutated.

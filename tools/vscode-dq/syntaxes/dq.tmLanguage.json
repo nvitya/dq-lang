@@ -307,7 +307,7 @@
       "patterns": [
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:function|if|elif|else|endif|while|endwhile|for|endfor|return|break|continue|endfunc|result|new|delete)\\b"
+          "match": "\\b(?:function|if|elif|else|endif|while|endwhile|for|endfor|return|break|continue|endfunc|result|new|delete|raise)\\b"
         },
         {
           "name": "keyword.control.dq",

@@ -396,21 +396,21 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         var pev : ^SEpollEvent = &revents[i]
         var sock : ONanoSocket = ONanoSocket(pev^.data)
 
-    if (pev^.events AND EPOLLOUT) <> 0:
-        if sock.out_event_handler == null:
-            raise ENanoNet('Socket has no output event handler!')
+        if (pev^.events AND EPOLLOUT) <> 0:
+            if sock.out_event_handler == null:
+                raise ENanoNet('Socket has no output event handler!')
+            endif
+            sock.out_event_handler(sock.obj_link)
+            result = true
         endif
-        sock.out_event_handler(sock.obj_link)
-        result = true
-    endif
 
-    if (pev^.events AND EPOLLIN) <> 0:
-        if sock.in_event_handler == null:
-            raise ENanoNet('Socket has no input event handler!')
+        if (pev^.events AND EPOLLIN) <> 0:
+            if sock.in_event_handler == null:
+                raise ENanoNet('Socket has no input event handler!')
+            endif
+            sock.in_event_handler(sock.obj_link)
+            result = true
         endif
-        sock.in_event_handler(sock.obj_link)
-        result = true
-    endif
     endfor
 endfunc
 

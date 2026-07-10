@@ -3,7 +3,6 @@
 implementation
 
 use libc/stdio;
-use rtl/rtlint;
 use rtl/anyvalue;
 use rtl/dynstrmgr;
 

@@ -46,6 +46,7 @@ public:
 
   bool ReservedWord(const string aname);
   bool RootStatementWord(const string aname);
+  bool IsBlockCloserWord(const string aname);
 
   string FormatDiagMsg(string_view atext, string_view par1, string_view par2, string_view par3);
 

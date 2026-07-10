@@ -766,6 +766,12 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     block_closer = blockend;
   }
 
+  struct TCloserPusher {
+    vector<string>& stack;
+    TCloserPusher(vector<string>& s, const string& val) : stack(s) { stack.push_back(val); }
+    ~TCloserPusher() { stack.pop_back(); }
+  } closer_pusher(expected_block_closers, block_closer);
+
   bool endfound = false;
   while (not scf->Eof())
   {
@@ -912,6 +918,27 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       {
         ParseStmtMethodUse();
         continue;
+      }
+      else if (IsBlockCloserWord(sid))
+      {
+        bool expected_by_outer = false;
+        for (const auto& closers : expected_block_closers)
+        {
+          auto split_view = closers | views::split('|');
+          for (auto chunk : split_view)
+          {
+            if (sid == string_view(chunk)) { expected_by_outer = true; break; }
+          }
+          if (expected_by_outer) break;
+        }
+
+        scf->SetCurPos(scpos_statement_start);
+        StatementError(DQERR_STMTBLK_CLOSE_MISMATCH, block_closer, sid);
+        if (!expected_by_outer)
+        {
+          scf->ReadIdentifier(sid, true); // consume the unexpected keyword
+        }
+        break;
       }
       else if (ReservedWord(sid))
       {

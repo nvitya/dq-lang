@@ -72,6 +72,25 @@ bool ODqCompBase::RootStatementWord(const string aname)
   }
 }
 
+const string dq_block_closer_words =
+   "|endfor|endwhile|endif|endfunc|endtry|except|finally|else|elif"
+   "|endstruct|endobj|endenum|endunion|endclass"
+   "|"
+;
+
+bool ODqCompBase::IsBlockCloserWord(const string aname)
+{
+  string search_target = "|" + aname + "|";
+  if (dq_block_closer_words.find(search_target) != string::npos)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 string ODqCompBase::FormatDiagMsg(string_view atext, string_view par1, string_view par2, string_view par3)
 {
   string msg(atext);
@@ -209,7 +228,7 @@ void ODqCompBase::SkipCurStatement()
     string sid;
     if (scf->ReadIdentifier(sid, false)) // just peek the identifier
     {
-      if (sid.starts_with("end") || sid == "else" || sid == "elif")
+      if (IsBlockCloserWord(sid))
       {
         return; // don't consume, it's the start of the next structural block
       }

@@ -38,4 +38,5 @@ public: // statement blocks
 
 protected:
   int except_depth = 0;
+  vector<string> expected_block_closers;
 };

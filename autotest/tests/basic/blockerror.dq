@@ -1,0 +1,13 @@
+function Test():
+  var sum : int = 0
+  for i : int = 1 to 5:
+    sum += i
+  endwhile  //?error(StmtBlockCloseMismatch)
+endfunc
+
+function Test2():
+  var sum : int = 0
+  for i : int = 1 to 5:
+    sum += i
+  endfor
+endif  //?error(StmtBlockCloseMismatch)

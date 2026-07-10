@@ -307,7 +307,7 @@
       "patterns": [
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:function|if|elif|else|endif|while|endwhile|for|endfor|return|break|continue|endfunc|result)\\b"
+          "match": "\\b(?:function|if|elif|else|endif|while|endwhile|for|endfor|return|break|continue|endfunc|result|new|delete)\\b"
         },
         {
           "name": "keyword.control.dq",
@@ -327,7 +327,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.dq",
-          "match": "\\b(?:len|sizeof|round|ceil|floor)\\b(?=\\s*\\()"
+          "match": "\\b(?:Len|SizeOf|Round|Ceil|Floor)\\b(?=\\s*\\()"
         }
       ]
     },

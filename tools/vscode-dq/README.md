@@ -92,7 +92,7 @@ This opens a new Extension Development Host window where `.dq` files should use 
 ## Packaging
 
 ```bash
-cd /lindata/workvc/dq-comp/tools/vscode-dq
+cd tools/vscode-dq
 npm run package
 ```
 

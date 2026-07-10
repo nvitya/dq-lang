@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.0"
+#define DQ_COMPILER_VERSION  "0.32.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.1:
+  - implicit sys use supression fix
 v0.32.0:
   - No reexports requied anymore in module interfaces
 v0.31.6:

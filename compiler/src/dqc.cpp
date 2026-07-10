@@ -460,7 +460,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   string module_error;
   if (use_sys && current_module.InitCurrent(in_filename, module_error))
   {
-    use_sys = !OModulePath::SuppressesImplicitSys(current_module.module_id);
+    use_sys = !OModulePath::SuppressesImplicitSys(current_module.module_id, current_module.root_dir);
   }
 
   if (use_sys)

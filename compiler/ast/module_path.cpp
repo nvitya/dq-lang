@@ -214,18 +214,22 @@ bool OModulePath::NormalizeLocalPath(vector<string> & stack, const vector<string
   return true;
 }
 
-bool OModulePath::IsRtlPackageSubmodule(const string & module_id)
+bool OModulePath::IsRtlPackageSubmodule(const string & module_id, const filesystem::path & root_dir)
 {
-  if (module_id.find("/test_") != string::npos)
+  if (!module_id.starts_with("rtl/"))
   {
     return false;
   }
-  return module_id.starts_with("rtl/");
+  return IsPackageRoot("rtl", root_dir);
 }
 
-bool OModulePath::SuppressesImplicitSys(const string & module_id)
+bool OModulePath::SuppressesImplicitSys(const string & module_id, const filesystem::path & root_dir)
 {
-  return IsRtlPackageSubmodule(module_id) || module_id.starts_with("libc/");
+  if (module_id.starts_with("libc/"))
+  {
+    return IsPackageRoot("libc", root_dir);
+  }
+  return IsRtlPackageSubmodule(module_id, root_dir);
 }
 
 bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & rerror)

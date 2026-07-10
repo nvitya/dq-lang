@@ -14,13 +14,16 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Language:
-      - Overview: language/overview.md
-      - Modules: language/modules.md
+      - Basics: language/basics.md
+      - Types: language/types.md
+      - Expressions: language/expressions.md
+      - Statements: language/statements.md
+      - Functions: language/functions.md
       - Objects: language/objects.md
-      - Arrays: language/arrays.md
-      - Strings: language/strings.md
-      - Enums: language/enums.md
-      - Properties: language/properties.md
+      - Modules: language/modules.md
+      - Memory and Pointers: language/memory-and-pointers.md
+      - Attributes and Directives: language/attributes-and-directives.md
+      - Inter-Operation: language/interop.md
   - RTL:
       - Overview: rtl/overview.md
       - anyvalue: rtl/anyvalue.md

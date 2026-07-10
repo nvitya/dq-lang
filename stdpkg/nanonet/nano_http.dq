@@ -13,9 +13,9 @@
  * brief:   HTTP Protocol handling, based on the Pascal version from nanonet
  */
 
-use nanonet/nano_sockets  reexport
-use strparse              reexport
-use file                  reexport
+use nanonet/nano_sockets
+use strparse
+use file
 
 object OStrMapItem:
     key   : str

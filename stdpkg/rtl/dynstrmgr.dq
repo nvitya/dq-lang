@@ -13,7 +13,7 @@
  * brief:   RTL Helpers for the DQ dynamic string handling
  */
 
-use rtl/rtlint reexport
+use rtl/rtlint
 
 object ODynStrMgr:
 public

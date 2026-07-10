@@ -13,7 +13,7 @@
  * brief:   RTL Helpers for the DQ cstring handling
  */
 
-use rtl/rtlint reexport
+use rtl/rtlint
 
 function CStrLen(desc : ref SDqTextInfo) -> uint
 function CStrMaxLen(desc : ref SDqTextInfo) -> uint

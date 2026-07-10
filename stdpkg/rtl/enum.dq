@@ -19,6 +19,7 @@ implementation
 
 use rtl/rtlint
 use rtl/exception
+use rtl/mem
 
 function DqEnumInvalidOrd():
     raise new Exception("Invalid enum ordinal")

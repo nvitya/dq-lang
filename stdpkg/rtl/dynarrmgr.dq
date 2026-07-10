@@ -13,7 +13,7 @@
  * brief:   Dynamic array management
  */
 
-use rtl/rtlint reexport
+use rtl/rtlint
 
 object ODynArrMgr:
 public

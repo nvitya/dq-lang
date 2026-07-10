@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.3"
+#define DQ_COMPILER_VERSION  "0.32.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.4:
+  - ParamStr(), ParamCount() renamed to ArgStr(), ArgCount()
 v0.32.3:
   - `delete` accepts non-LValue argument when non-nulling
 v0.32.2:

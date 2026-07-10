@@ -62,8 +62,8 @@ function *Main() -> int:
 
     var maxval : int64 = default_maxval
 
-    if ParamCount() > 1:
-        maxval = StrToInt(ParamStr(1), maxval)
+    if ArgCount() > 1:
+        maxval = StrToInt(ArgStr(1), maxval)
     endif
 
     PrintLn('maxval = {}', [maxval])

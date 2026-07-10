@@ -1,6 +1,6 @@
 # Getting Started
 
-DQ programs are written in `.dq` files and compiled with `dq-comp`.
+DQ programs are written in `.dq` files and can be run with `dq-run`.
 
 ```dq
 use print
@@ -11,26 +11,29 @@ function *Main() -> int:
 endfunc
 ```
 
-Compile and run:
+Run with:
 
+```bash
+dq-run hello.dq
+```
+The `dq-run` first invokest the `dq-comp` which compiles first into `./hello` and then runs the created executable:
 ```bash
 dq-comp hello.dq
 ./hello
 ```
 
-For quick experiments use `dq-run`. It compiles the file and then runs the
-resulting executable.
-
-```bash
-dq-run hello.dq
-```
-
 When no compiler options are supplied, `dq-run` uses `-g -O0`, which is a good
 debugging default and enables useful source locations in runtime backtraces.
+The `dq-comp` by default compiles with `-O1` optimiziation without debug info.
+
+For fastest running code invoke the `dq-run` or `dq-comp` with `-O3 --lto`:
+```bash
+dq-run -O3 --lto examples/benchmarks/binary_trees_dq.dq 20
+```
 
 ## Program Entry
 
-A program entry point is a special object-style function named `*Main`.
+A program entry point is a special function named `*Main`.
 
 ```dq
 function *Main() -> int:

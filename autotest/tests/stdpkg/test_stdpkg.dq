@@ -3,13 +3,13 @@ use libc/stdio;
 function *Main() -> int:  // should be exported as "dq_main"
     printf("DQ Std Package test\n"); //?ignore('DQ Std Package test')
 
-    printf("ParamCount() = %d\n", ParamCount()); //?check('ParamCount()', 1)
+    printf("ArgCount() = %d\n", ArgCount()); //?check('ArgCount()', 1)
 
-    // ignore param(0)
-    //?ignore('Param(0)')
+    // ignore arg(0)
+    //?ignore('Arg(0)')
     var i : int = 0;
-    while i < ParamCount():
-        printf(' Param(%d) = "%s"\n', i, ParamStr(i));
+    while i < ArgCount():
+        printf(' Arg(%d) = "%s"\n', i, ArgStr(i));
         i += 1;
     endwhile
     return 0;

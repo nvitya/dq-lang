@@ -52,10 +52,10 @@ The process argument helpers are:
 
 ```dq
 function ArgCount() -> int
-function ArgStr(i : int) -> strview
+function ArgStr(i : int) -> ^cchar
 ```
 
-`ArgStr(i)` returns an empty string for an out-of-range index.
+`ArgStr(i)` returns `null` for an out-of-range index.
 
 ## Exceptions And Backtraces
 
@@ -77,4 +77,3 @@ dq-comp -g -O0 app.dq
 ```
 
 `dq-run app.dq` uses those flags by default when no compiler options are passed.
-

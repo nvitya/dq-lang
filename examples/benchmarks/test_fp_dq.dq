@@ -65,8 +65,8 @@ function *Main() -> int:
 		var tstart : float64
     var tend : float64
 
-		if ParamCount() > 1:
-			million_iter = StrToInt(ParamStr(1), million_iter)
+		if ArgCount() > 1:
+			million_iter = StrToInt(ArgStr(1), million_iter)
     endif
 
 		var iterations : int = million_iter * 1000000

@@ -53,8 +53,8 @@ endfunc
 function *Main() -> int:
     PrintLn("DQ")
     var n : int = 10
-    if ParamCount() > 1:
-        n = StrToInt(ParamStr(1), n)
+    if ArgCount() > 1:
+        n = StrToInt(ArgStr(1), n)
     endif
     var min_depth : int = 4
     var max_depth : int = iif(min_depth + 2 > n, min_depth + 2, n)

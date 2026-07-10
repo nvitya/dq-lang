@@ -475,11 +475,12 @@ function ONanoServer.InitListener():
 endfunc
 
 function ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
+    // Wait for socket events and call the event handlers when necessary:
     result = swatcher.WaitForEvents(timeout_ms)
 
+    // delete closed connections, here is safe to delete them
     while closed_conns.length > 0:
-        var conn : OSConnection = closed_conns.Pop()
-        delete conn
+        delete closed_conns.Pop()
     endwhile
 endfunc
 
@@ -508,6 +509,8 @@ function ONanoServer.CloseConnection(aconn : OSConnection):
 
     var idx : int = ConnectionIndex(aconn)
     if idx >= 0:
+        // schedule the socket object for later deletion,
+        // the current calling context might be sensible to instant-free (like self.Close())
         connections.Delete(idx)
         closed_conns.Append(aconn)
     endif

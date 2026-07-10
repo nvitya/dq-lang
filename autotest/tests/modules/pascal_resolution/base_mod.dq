@@ -1,0 +1,4 @@
+//?notest
+object TBaseClass:
+  base_val: int;
+endobj

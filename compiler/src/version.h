@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.31.6"
+#define DQ_COMPILER_VERSION  "0.32.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.0:
+  - No reexports requied anymore in module interfaces
 v0.31.6:
   - Working ODbRows object for database result presentation or in-memory db
 v0.31.5:

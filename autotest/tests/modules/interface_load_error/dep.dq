@@ -1,5 +1,0 @@
-//?skip_test
-
-struct SDep:
-    value : int
-endstruct

@@ -1108,18 +1108,23 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string &
 
 bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
 {
-  if (!ause || !ause->module || !ause->reexport || ause->is_private)
+  if (!ause || !ause->module || ause->is_private)
   {
     return true;
   }
 
   if (!writer.AddRecStr(DQMIF_USE_BEGIN, ause->module->name)) return false;
   if (!ause->namespace_name.empty() && !writer.AddRecStr(DQMIF_USE_ALIAS, ause->namespace_name)) return false;
-  if (!writer.AddRecEmpty(DQMIF_USE_REEXPORT)) return false;
-  for (const string & name : ause->EffectiveSymbolNames())
+  
+  if (ause->reexport)
   {
-    if (!writer.AddRecStr(DQMIF_USE_ONLY, name)) return false;
+    if (!writer.AddRecEmpty(DQMIF_USE_REEXPORT)) return false;
+    for (const string & name : ause->EffectiveSymbolNames())
+    {
+      if (!writer.AddRecStr(DQMIF_USE_ONLY, name)) return false;
+    }
   }
+  
   return writer.AddRecEmpty(DQMIF_USE_END);
 }
 
@@ -1264,6 +1269,21 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
   if (result)
   {
     return result;
+  }
+
+  for (OModuleUse * use : used_modules)
+  {
+    if (use && use->module)
+    {
+      if (OModuleIntf * intf = dynamic_cast<OModuleIntf *>(use->module))
+      {
+        result = intf->scope_pub->FindType(atype_name);
+        if (result)
+        {
+          return result;
+        }
+      }
+    }
   }
 
   const string cstring_prefix = "cstring(";
@@ -2449,7 +2469,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       {
         return false;
       }
-      OType * basetype = scope_pub->FindType(basename);
+      OType * basetype = ResolveDqmIfTypeName(basename);
       OCompoundType * base_compound = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
       if (!base_compound || (base_compound->kind != ctype->kind))
       {
@@ -2547,15 +2567,10 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     }
   }
 
-  if (!reexport)
-  {
-    return true;
-  }
-
   filesystem::path artifact_path;
   if (!OModulePath::ResolveCanonicalArtifact(module_path, name, interface_filename, artifact_path))
   {
-    return reader.Fail(format("Can not resolve reexported module artifact: {}", module_path));
+    return reader.Fail(format("Can not resolve module artifact: {}", module_path));
   }
 
   bool owned_intf = false;
@@ -2568,7 +2583,7 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   if (owned_intf && !intf->ReadInterface(artifact_path.string()))
   {
     delete intf;
-    return reader.Fail(format("Can not load reexported module interface: {}", artifact_path.string()));
+    return reader.Fail(format("Can not load module interface: {}", artifact_path.string()));
   }
   if (owned_intf && g_module)
   {
@@ -2577,66 +2592,70 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
 
   EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
-  OModuleUse * use = new OModuleUse(intf, namespace_name, false, merge_mode, symbol_names, true);
-  if (has_selection)
-  {
-    for (const string & name : symbol_names)
-    {
-      if (!intf->scope_pub->FindType(name, nullptr, false)
-          && !intf->scope_pub->FindValSym(name, nullptr, false))
-      {
-        delete use;
-        if (owned_intf) delete intf;
-        return reader.Fail(format("Reexported module \"{}\" has no public symbol \"{}\"", module_path, name));
-      }
-    }
-  }
+  OModuleUse * use = new OModuleUse(intf, namespace_name, false, merge_mode, symbol_names, reexport);
 
-  for (const string & name : use->EffectiveSymbolNames())
+  if (reexport)
   {
-    if (OType * type = intf->scope_pub->FindType(name, nullptr, false))
+    if (has_selection)
     {
-      auto found = scope_pub->typesyms.find(type->name);
-      if (found != scope_pub->typesyms.end() && found->second != type)
+      for (const string & name : symbol_names)
       {
-        delete use;
-        if (owned_intf) delete intf;
-        return reader.Fail(format("Reexported type \"{}\" conflicts in module \"{}\"", type->name, this->name));
-      }
-      if (found == scope_pub->typesyms.end())
-      {
-        scope_pub->typesyms[type->name] = type;
-        declarations.push_back(new OIntfDecl(type));
+        if (!intf->scope_pub->FindType(name, nullptr, false)
+            && !intf->scope_pub->FindValSym(name, nullptr, false))
+        {
+          delete use;
+          if (owned_intf) delete intf;
+          return reader.Fail(format("Reexported module \"{}\" has no public symbol \"{}\"", module_path, name));
+        }
       }
     }
 
-    if (OValSym * vs = intf->scope_pub->FindValSym(name, nullptr, false))
+    for (const string & name : use->EffectiveSymbolNames())
     {
-      auto found = scope_pub->valsyms.find(vs->name);
-      if (found != scope_pub->valsyms.end() && found->second != vs)
+      if (OType * type = intf->scope_pub->FindType(name, nullptr, false))
       {
-        delete use;
-        if (owned_intf) delete intf;
-        return reader.Fail(format("Reexported symbol \"{}\" conflicts in module \"{}\"", vs->name, this->name));
+        auto found = scope_pub->typesyms.find(type->name);
+        if (found != scope_pub->typesyms.end() && found->second != type)
+        {
+          delete use;
+          if (owned_intf) delete intf;
+          return reader.Fail(format("Reexported type \"{}\" conflicts in module \"{}\"", type->name, this->name));
+        }
+        if (found == scope_pub->typesyms.end())
+        {
+          scope_pub->typesyms[type->name] = type;
+          declarations.push_back(new OIntfDecl(type));
+        }
       }
-      if (found == scope_pub->valsyms.end())
+
+      if (OValSym * vs = intf->scope_pub->FindValSym(name, nullptr, false))
       {
-        scope_pub->valsyms[vs->name] = vs;
-        declarations.push_back(new OIntfDecl(vs));
+        auto found = scope_pub->valsyms.find(vs->name);
+        if (found != scope_pub->valsyms.end() && found->second != vs)
+        {
+          delete use;
+          if (owned_intf) delete intf;
+          return reader.Fail(format("Reexported symbol \"{}\" conflicts in module \"{}\"", vs->name, this->name));
+        }
+        if (found == scope_pub->valsyms.end())
+        {
+          scope_pub->valsyms[vs->name] = vs;
+          declarations.push_back(new OIntfDecl(vs));
+        }
       }
     }
-  }
 
-  string artifact_name = artifact_path.string();
-  if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), artifact_name))
-  {
-    reexport_artifacts.push_back(artifact_name);
-  }
-  for (const string & child_artifact : intf->reexport_artifacts)
-  {
-    if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), child_artifact))
+    string artifact_name = artifact_path.string();
+    if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), artifact_name))
     {
-      reexport_artifacts.push_back(child_artifact);
+      reexport_artifacts.push_back(artifact_name);
+    }
+    for (const string & child_artifact : intf->reexport_artifacts)
+    {
+      if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), child_artifact))
+      {
+        reexport_artifacts.push_back(child_artifact);
+      }
     }
   }
 

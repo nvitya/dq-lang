@@ -1,0 +1,13 @@
+use ./mid_mod;
+
+[[external]] function printf(fmt : ^cchar, ...) -> int;
+
+function *Main() -> int:
+  var mid <- TMidClass;
+  mid.mid_val = 10;
+  mid.base_val = 42;
+  
+  printf("mid_val = %d\n", mid.mid_val); //?check('mid_val', 10)
+  printf("base_val = %d\n", mid.base_val); //?check('base_val', 42)
+  return 0;
+endfunc

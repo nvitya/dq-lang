@@ -216,6 +216,10 @@ bool OModulePath::NormalizeLocalPath(vector<string> & stack, const vector<string
 
 bool OModulePath::IsRtlPackageSubmodule(const string & module_id)
 {
+  if (module_id.find("/test_") != string::npos)
+  {
+    return false;
+  }
   return module_id.starts_with("rtl/");
 }
 

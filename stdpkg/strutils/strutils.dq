@@ -44,6 +44,7 @@ function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
             return defvalue
         endif
     endfor
+    result = sign * result  // apply the sign
 endfunc
 
 function StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int:

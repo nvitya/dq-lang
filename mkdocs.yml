@@ -27,7 +27,15 @@ nav:
   - RTL:
       - Overview: rtl/overview.md
       - anyvalue: rtl/anyvalue.md
+      - String Methods: rtl/strings.md
       - Text Formatting: rtl/textfmt.md
+  - Standard Modules:
+      - file: stdmodules/file.md
+      - strutils: stdmodules/strutils.md
+      - json: stdmodules/json.md
+      - nanonet: stdmodules/nanonet.md
   - Compiler:
       - Build System: compiler/build.md
       - DQM Format: compiler/dqm-format.md
+      - Optimization and Debugging: compiler/optimization.md
+  - Examples: examples/index.md

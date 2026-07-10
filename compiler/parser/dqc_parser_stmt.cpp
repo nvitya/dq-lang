@@ -1138,26 +1138,26 @@ void ODqCompParserStmt::ParseStmtDelete()
   {
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
     OValSym * rootvalsym = (lval ? GetAssignRootValSym(lval) : nullptr);
-    if (!lval)
+    if (lval)
     {
-      delete ptrexpr;
-      Error(DQERR_LVALUE_NOT_WRITEABLE);
-      SkipToStatementEnd();
-      return;
+      if (lval->IsFixedObjectStorageExpr())
+      {
+        delete ptrexpr;
+        Error(DQERR_REF_ASSIGN_READONLY, "fixed object");
+        SkipToStatementEnd();
+        return;
+      }
+      if (rootvalsym && ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable()))
+      {
+        delete ptrexpr;
+        Error(DQERR_REF_ASSIGN_READONLY, rootvalsym->name);
+        SkipToStatementEnd();
+        return;
+      }
     }
-    if (lval->IsFixedObjectStorageExpr())
+    else
     {
-      delete ptrexpr;
-      Error(DQERR_REF_ASSIGN_READONLY, "fixed object");
-      SkipToStatementEnd();
-      return;
-    }
-    if (rootvalsym && ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable()))
-    {
-      delete ptrexpr;
-      Error(DQERR_REF_ASSIGN_READONLY, rootvalsym->name);
-      SkipToStatementEnd();
-      return;
+      clear_after_free = false;
     }
   }
 

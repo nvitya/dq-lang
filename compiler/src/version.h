@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.2"
+#define DQ_COMPILER_VERSION  "0.32.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.3:
+  - `delete` accepts non-LValue argument when non-nulling
 v0.32.2:
   - User-friendly wrong block closer error messages
 v0.32.1:

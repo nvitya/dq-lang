@@ -458,13 +458,11 @@ endfunc
 
 function ONanoServer.*Destroy():
     while connections.length > 0:
-        var conn : OSConnection = connections.Pop()
-        delete conn
+        delete connections.Pop()
     endwhile
 
     while closed_conns.length > 0:
-        var conn : OSConnection = closed_conns.Pop()
-        delete conn
+        delete closed_conns.Pop()
     endwhile
 
     delete swatcher

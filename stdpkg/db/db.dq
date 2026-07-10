@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    db/db.dq
+ * authors: nvitya
+ * created: 2026-07-10
+ * brief:   Database Handling base objects for DQ
+ */
 
 enum NDbFieldType : byte = (
     ftUnknown = 0,
@@ -51,7 +65,7 @@ public
     function *Destroy()
 
     function Clear()      // delete all rows, all fields
-    function ClearRows()
+    function ClearRows()  // delete all rows, keep the fields
 
     function RowCount() -> int
     function FieldCount() -> int
@@ -70,8 +84,9 @@ public
     function Last()
     function Next()
     function Prev()
-    function SelectRow(arow : int) -> bool
     function RowIndex() -> int
+    function SetRowIndex(arow : int)
+    function SelectRow(arow : int) -> bool
 
     function OnRow() -> bool
 
@@ -91,11 +106,11 @@ public
     function SetStr(aname : strview, avalue : strview)
     function SetNull(aname : strview)
 
-    // direct row access, secondary API
-    //function GetValueRow(arow : int, aname : strview) -> anyvalue
-    //function SetValueRow(arow : int, aname : strview, avalue : anyvalue)
+    //TODO: add blob handling with [*]byte
 
-    property onrow : bool  read m_onrow
+    property onrow    : bool  read m_onrow
+    property length   : int   read m_rowcount
+    property rowindex : int   read RowIndex    write SetRowIndex
 
 endobj
 
@@ -105,11 +120,11 @@ object ODbDataSource:
 protected
     m_dbconn : ODbConnection
 public
-    function First(arows : ODbRows) -> bool virtual
-    function Next(arows : ODbRows) -> bool virtual
-    function Last(arows : ODbRows) -> bool virtual
-    function Prev(arows : ODbRows) -> bool virtual
-    function MoveTo(arows : ODbRows, arow : int) -> bool virtual
+    function First(arows : ODbRows) -> bool [[virtual]]
+    function Next(arows : ODbRows) -> bool  [[virtual]]
+    function Last(arows : ODbRows) -> bool  [[virtual]]
+    function Prev(arows : ODbRows) -> bool  [[virtual]]
+    function MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]]
 endobj
 
 */
@@ -323,6 +338,10 @@ function ODbRows.Prev():
     endif
 endfunc
 
+function ODbRows.RowIndex() -> int:
+    return m_currow
+endfunc
+
 function ODbRows.SelectRow(arow : int) -> bool:
     if arow >= 0  and  arow < m_rowcount:
         m_currow = arow
@@ -332,8 +351,10 @@ function ODbRows.SelectRow(arow : int) -> bool:
     return false
 endfunc
 
-function ODbRows.RowIndex() -> int:
-    return m_currow
+function ODbRows.SetRowIndex(arow : int):
+    if not SelectRow(arow):
+        raise EDbRow('Invalid row selected: {}', [arow])
+    endif
 endfunc
 
 function ODbRows.OnRow() -> bool:
@@ -367,7 +388,7 @@ endfunc
 function ODbRows.SetValue(aname : strview, avalue : anyvalue):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
-    if    (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
+    if     (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
         or (ft == ftFloat    and avalue.IsFloat())
         or (ft == ftBool     and avalue.IsBool())
         or (ft == ftText     and avalue.IsText())

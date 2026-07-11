@@ -22,7 +22,7 @@ comptest:
 cleantest:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) cleantest/fast
 
-.PHONY: cross-aarch64-linux cross-armhf-linux cross-rv64g-linux cross-x86_64-win package-x86_64-linux package-x86_64-linux-full package-x86_64-linux-full-release package-linux-release package-linux-full-release package-x86_64-win
+.PHONY: cross-aarch64-linux cross-armhf-linux cross-rv64g-linux cross-x86_64-win package-x86_64-linux package-x86_64-linux-full package-x86_64-linux-full-release package-linux-release package-linux-full-release package-x86_64-win package-windows-release
 
 cross-aarch64-linux:
 	cmake -S . -B build-cross/aarch64-linux -DCMAKE_TOOLCHAIN_FILE=toolchains/aarch64-linux.cmake $(CMAKE_EXTRA_ARGS)
@@ -57,6 +57,9 @@ package-linux-full-release: package-x86_64-linux-full
 package-x86_64-win: cross-x86_64-win
 	tools/package-windows-release.sh
 
+package-windows-release: package-x86_64-win
+
+package-win-release: package-x86_64-win
 
 %:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) $@

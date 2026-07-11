@@ -22,17 +22,25 @@ DQ is a mix of Pascal, Python and C/C++. The name comes from here: the D is the 
 * Dynamic arrays and dynamic strings
 * Simple, fast compile + run
 
-# Quick Look
+## Quick Look
 
 For a quick look at DQ syntax and features, start with the
 [`nanonet/nano_sockets.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/nanonet/nano_sockets.dq)
 module. It shows real DQ code in a compact, practical module.
 
-# Motivation
+## Motivation
 
 What was my motivation to create the DQ language? See the [Motivation](motivation.md) page.
 
-# DQ Compiler and Libraries
+## Current Status, Roadmap
+
+__Warning: The compiler and the DQ language is under development, not recommended for production use yet__
+
+The DQ compiler and libraries are currently in __Pre-V1__ phase. The language and the compiler is complete enough to develop libraries. A basic set of libraries are required to be developed first for the V1 release, including database access or graphics.
+
+A bigger language and compiler extension is planned only for V2 like embedded target support and template classes.
+
+## DQ Compiler and Libraries
 
 I implemented a compiler for the DQ language in C++ using LLVM. As I am not an expert in compiler development,
 I used AI (GPT-5, Gemini pro, Opus) for the design and implementation, in a controlled way.
@@ -44,18 +52,18 @@ The compiled applications are linked against the libc to use the low-level syste
 The DQ specific runtime library is implemented in DQ (which can be found under the
 [stdpkg/rtl](https://github.com/nvitya/dq-lang/blob/main/stdpkg/rtl)).
 
-# Getting Started
+## Getting Started
 
 To get the DQ compiler and start experimenting with the language follow the instructions in the
 [Getting Started](getting-started.md) page.
 
-# Project Page
+## Project Page
 
 The DQ language specification and the DQ compiler are available on GitHub:
 
 [github.com/nvitya/dq-lang](https://github.com/nvitya/dq-lang)
 
-# Language Documentation
+## Language Documentation
 
 For more complete language documentation read the following pages:
 

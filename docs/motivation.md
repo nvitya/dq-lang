@@ -16,7 +16,7 @@ I tried to understand why Python became the most popular programming language, a
 
 That is how the idea was born: how would I imagine the ideal language? At first, I did not want to implement a compiler for it. I only wanted to create the language specification.
 
-# The First Steps
+## The First Steps
 
 I already had several years of experience creating text parsers, mainly for special configuration files. Some of them even had expression evaluators. I had also developed a lot in assembly language for different architectures, but I did not have experience translating expressions into machine code or doing register allocation. I did not know anything about LLVM.
 

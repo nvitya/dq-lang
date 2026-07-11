@@ -1,4 +1,4 @@
-# Compiler And Build Toolkit
+# Using the DQ Compiler
 
 The main tools are:
 
@@ -8,17 +8,8 @@ The main tools are:
 | `dq-run` | compile a single DQ file and run it |
 | `dqatrun` | run compiler autotests |
 
-Build the compiler from the repository root:
-
-```bash
-make -j"$(nproc)"
-```
-
-Run tests:
-
-```bash
-make test
-```
+For instructions on building these tools from source, see
+[Getting the DQ Compiler](getting-dq-comp.md).
 
 ## `dq-comp`
 
@@ -117,4 +108,3 @@ package sources, or important build defines change.
 ```bash
 rm -rf .dqbuild/x86_64-linux
 ```
-

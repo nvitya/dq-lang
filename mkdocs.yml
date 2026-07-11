@@ -35,7 +35,8 @@ nav:
       - json: stdmodules/json.md
       - nanonet: stdmodules/nanonet.md
   - Compiler:
-      - Build System: compiler/build.md
+      - Getting the DQ Compiler: compiler/getting-dq-comp.md
+      - Using the DQ Compiler: compiler/using-dq-comp.md
       - DQM Format: compiler/dqm-format.md
       - Optimization and Debugging: compiler/optimization.md
   - Examples: examples/index.md

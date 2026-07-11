@@ -21,6 +21,7 @@ use rtl/rtlint
 use rtl/exception
 use rtl/prgargs
 use rtl/backtrace
+use rtl/mem
 use libc/stdio
 
 // These functions are created by the DQ compiler:

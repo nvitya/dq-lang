@@ -23,12 +23,11 @@ function PrintFlush()
 implementation
 
 use rtl/textformat
+use libc/stdio
 
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
 function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
 function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
-
-var libc_stdout : pointer [[external('stdout')]]
 
 var std_out_sink      : OTextSinkStdOut = null
 var std_out_formatter : OTextFormatter = null
@@ -80,5 +79,5 @@ function PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
 endfunc
 
 function PrintFlush():
-    libc_fflush(libc_stdout)
+    libc_fflush(@stdio.DqLibcStdout())
 endfunc

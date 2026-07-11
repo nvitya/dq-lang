@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.6"
+#define DQ_COMPILER_VERSION  "0.32.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.7:
+  - Windows fixes
 v0.32.6:
   - Support full Linux bundle without any os dependencies
 v0.32.5:

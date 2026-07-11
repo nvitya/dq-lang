@@ -90,6 +90,24 @@ LlValue * ODqCompCodegen::DqCurrentExceptionValue()
   return ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_current_exc_storage, "exc.current");
 }
 
+void ODqCompCodegen::EnsurePersonalityFn(LlFunction * func)
+{
+  if (!func || func->hasPersonalityFn())
+  {
+    return;
+  }
+
+#if defined(TARGET_WIN)
+  constexpr const char * personality_name = "__gxx_personality_seh0";
+#else
+  constexpr const char * personality_name = "__gxx_personality_v0";
+#endif
+
+  llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction(personality_name,
+      LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
+  func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
+}
+
 void ODqCompCodegen::DqClearException()
 {
   OValSymFunc * fn = DqExceptionFunc("DqExcClear");

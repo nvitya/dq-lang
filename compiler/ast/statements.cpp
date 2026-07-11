@@ -153,12 +153,7 @@ void OStmtBlock::Generate()
     LlBasicBlock * resume_insert = ll_builder.GetInsertBlock();
     
     ll_builder.SetInsertPoint(my_lpad_bb);
-    if (!ll_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      ll_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
+    g_compiler->EnsurePersonalityFn(ll_func);
     llvm::LandingPadInst * lpad = ll_builder.CreateLandingPad(
         llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
         1, "lpad");
@@ -1007,12 +1002,7 @@ void OStmtTry::Generate(OScope * scope)
 
   // LPAD BLOCK
   ll_builder.SetInsertPoint(bb_lpad);
-  if (!ll_func->hasPersonalityFn())
-  {
-    llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-        LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-    ll_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-  }
+  g_compiler->EnsurePersonalityFn(ll_func);
   llvm::LandingPadInst * lpad = ll_builder.CreateLandingPad(
       llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
       1, "lpad");

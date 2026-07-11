@@ -20,6 +20,7 @@
 #include "otype_func.h"
 #include "otype_compound.h"
 #include "statements.h"
+#include "dqc.h"
 
 using namespace std;
 
@@ -105,12 +106,7 @@ LlValue * OScope::GenerateCallOrInvoke(LlFuncType * func_type, LlValue * callee,
   if (bb_cleanup)
   {
     LlFunction * cur_func = ll_builder.GetInsertBlock()->getParent();
-    if (!cur_func->hasPersonalityFn())
-    {
-      llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction("__gxx_personality_v0",
-          LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
-      cur_func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-    }
+    g_compiler->EnsurePersonalityFn(cur_func);
     LlBasicBlock * bb_normal = LlBasicBlock::Create(ll_ctx, invoke_cont_name, cur_func);
     LlValue * result = ll_builder.CreateInvoke(func_type, callee, bb_normal, bb_cleanup, args);
     ll_builder.SetInsertPoint(bb_normal);

@@ -56,6 +56,7 @@ public:
   void          EmitExceptionEscapeCheck(LlBasicBlock * active_bb, LlBasicBlock * normal_bb);
   void          EmitActiveFinallyBlocks();
   void          GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBlock * bb_match, LlBasicBlock * bb_next);
+  void          EnsurePersonalityFn(LlFunction * func);
 
   void PrepareTarget();
   void GenerateIr();

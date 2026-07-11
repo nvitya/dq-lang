@@ -14,3 +14,21 @@
  */
 
 [[external]] function printf(fmt : ^cchar, ...) -> int
+
+function DqLibcStdout() -> pointer
+
+implementation
+
+#ifdef WINDOWS
+    function libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]]
+
+    function DqLibcStdout() -> pointer:
+        return libc___acrt_iob_func(1)
+    endfunc
+#else
+    var libc_stdout : pointer [[external('stdout')]]
+
+    function DqLibcStdout() -> pointer:
+        return libc_stdout
+    endfunc
+#endif

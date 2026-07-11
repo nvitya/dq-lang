@@ -198,6 +198,29 @@ string ODqCompiler::DefaultLinkDriver() const
 
   return "clang++.exe";
 #else
+  if (!g_opt.compiler_executable_dir.empty())
+  {
+    filesystem::path bin_dir = g_opt.compiler_executable_dir;
+    filesystem::path root_dir = (bin_dir / "..").lexically_normal();
+
+    vector<filesystem::path> candidates = {
+      root_dir / "toolchain" / "bin" / "clang++",
+      root_dir / "toolchain" / "bin" / "clang++-21",
+      bin_dir / "clang++",
+      bin_dir / "clang++-21"
+    };
+
+    error_code ec;
+    for (const filesystem::path & path : candidates)
+    {
+      ec.clear();
+      if (filesystem::is_regular_file(path, ec) && !ec)
+      {
+        return path.lexically_normal().string();
+      }
+    }
+  }
+
   #ifdef DQ_DEFAULT_LINK_DRIVER
     error_code ec;
     filesystem::path default_driver(DQ_DEFAULT_LINK_DRIVER);

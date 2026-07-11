@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.5"
+#define DQ_COMPILER_VERSION  "0.32.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.6:
+  - Support full Linux bundle without any os dependencies
 v0.32.5:
   - use the linker driver that used for compilation
 v0.32.4:

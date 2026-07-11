@@ -13,6 +13,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Examples: examples/index.md
   - Language:
       - Basics: language/basics.md
       - Types: language/types.md
@@ -38,5 +39,3 @@ nav:
       - Getting the DQ Compiler: compiler/getting-dq-comp.md
       - Using the DQ Compiler: compiler/using-dq-comp.md
       - DQM Format: compiler/dqm-format.md
-      - Optimization and Debugging: compiler/optimization.md
-  - Examples: examples/index.md

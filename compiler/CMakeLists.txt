@@ -9,6 +9,16 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+find_program(DQ_DEFAULT_LINK_DRIVER
+  NAMES "clang++-${LLVM_VERSION_MAJOR}" clang++
+  HINTS "${LLVM_TOOLS_BINARY_DIR}"
+)
+if(DQ_DEFAULT_LINK_DRIVER)
+  message(STATUS "Using DQ default link driver: ${DQ_DEFAULT_LINK_DRIVER}")
+else()
+  message(WARNING "Could not find clang++; dq-comp will require DQ_LINKER_DRIVER at runtime")
+endif()
+
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
@@ -37,6 +47,10 @@ file(GLOB SRC_UTILS     CONFIGURE_DEPENDS "utils/*.cpp")
 
 add_executable(dq-comp ${SRC_SRC} ${SRC_AST} ${SRC_TYPES} ${SRC_PARSER} ${SRC_CODEGEN} ${SRC_BUILTINS} ${SRC_SRC_TEST} ${SRC_UTILS})
 add_executable(dq-run tools/main_dq_run.cpp ${SRC_UTILS})
+
+if(DQ_DEFAULT_LINK_DRIVER)
+  target_compile_definitions(dq-comp PRIVATE DQ_DEFAULT_LINK_DRIVER="${DQ_DEFAULT_LINK_DRIVER}")
+endif()
 
 # on exception I want to have a nice backtrace
 set_target_properties(dq-comp PROPERTIES ENABLE_EXPORTS ON)

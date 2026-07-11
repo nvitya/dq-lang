@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.4"
+#define DQ_COMPILER_VERSION  "0.32.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.5:
+  - use the linker driver that used for compilation
 v0.32.4:
   - ParamStr(), ParamCount() renamed to ArgStr(), ArgCount()
 v0.32.3:

@@ -31,8 +31,9 @@ You need:
 | --- | --- |
 | CMake 3.10 or newer | used to generate the native build files |
 | GNU Make | used by the repository build wrapper |
-| A C++23 compiler | GCC or Clang |
+| A C++23 compiler and standard library | GCC 14 or newer; GCC 13 does not provide `<print>` |
 | LLVM 21 development files | CMake must be able to find LLVM 21's `LLVMConfig.cmake` |
+| LLVM support library headers | zlib, zstd, libedit, curl, libxml2, and libffi development packages |
 
 The compiler is currently developed and tested with LLVM 21. Older LLVM
 versions, including LLVM 18 and below, are not expected to work.
@@ -54,7 +55,10 @@ sudo ./llvm.sh 21
 Install the packages needed to build DQ:
 
 ```bash
-sudo apt install build-essential cmake llvm-21-dev clang-21 lld-21
+sudo apt install \
+  build-essential cmake g++-14 llvm-21-dev clang-21 lld-21 \
+  zlib1g-dev libzstd-dev libedit-dev libcurl4-openssl-dev \
+  libxml2-dev libffi-dev
 ```
 
 Verify that LLVM 21 is available:
@@ -79,7 +83,7 @@ cd dq-lang
 From the repository root, generate the build files:
 
 ```bash
-cmake .
+CC=gcc-14 CXX=g++-14 cmake .
 ```
 
 This creates the root `Makefile` used by the repository's `GNUmakefile`.
@@ -91,11 +95,25 @@ CMake package directory explicitly:
 cmake . -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm
 ```
 
-To build with Clang 21 explicitly:
+If your system's default `c++` is already GCC 14 or newer, plain `cmake .` is
+also fine.
+
+To build with a different compiler, pass it through `CC` and `CXX` before the
+first configure command. For example:
 
 ```bash
-CC=clang-21 CXX=clang++-21 cmake .
+CC=gcc-15 CXX=g++-15 cmake .
 ```
+
+If configuration fails inside LLVM's CMake files with a missing imported target
+such as `ZLIB::ZLIB`, one of LLVM's support-library development packages is
+missing. Install the dependency packages listed above, then run `cmake .` again.
+
+If configuration or compilation fails with `fatal error: print: No such file or
+directory`, CMake is using a compiler or standard library without C++23
+`std::print` support. On Ubuntu 24.04 this usually means it found GCC 13. Install
+GCC 14 or newer, remove the old CMake cache if necessary, and configure again
+with `CC=gcc-14 CXX=g++-14 cmake .`.
 
 ### Build
 
@@ -155,6 +173,25 @@ make install
 ```
 
 Then make sure the selected `bin` directory is on your `PATH`.
+
+### Link Driver
+
+`dq-comp` uses Clang as the native linker driver when it turns generated object
+files into an executable. A compiler built from these instructions uses LLVM's
+own `clang++` from the configured LLVM installation by default.
+
+If you are using an older build, or if you want to select another linker driver,
+set `DQ_LINKER_DRIVER`:
+
+```bash
+DQ_LINKER_DRIVER=clang++-21 dq-run examples/basic/test1.dq
+```
+
+You can also export it for the current shell:
+
+```bash
+export DQ_LINKER_DRIVER=clang++-21
+```
 
 ### Try The Compiler
 

@@ -198,6 +198,14 @@ string ODqCompiler::DefaultLinkDriver() const
 
   return "clang++.exe";
 #else
+  #ifdef DQ_DEFAULT_LINK_DRIVER
+    error_code ec;
+    filesystem::path default_driver(DQ_DEFAULT_LINK_DRIVER);
+    if (filesystem::is_regular_file(default_driver, ec) && !ec)
+    {
+      return default_driver.string();
+    }
+  #endif
   return "clang++";
 #endif
 }

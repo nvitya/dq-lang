@@ -10,6 +10,7 @@ FULL_RELEASE="${DQ_LINUX_PACKAGE_FULL:-0}"
 TOOLCHAIN_ROOT="${DQ_LINUX_TOOLCHAIN_ROOT:-}"
 RUNTIME_LIB_ROOT="${DQ_LINUX_RUNTIME_LIB_ROOT:-}"
 SYSROOT_ROOT="${DQ_LINUX_SYSROOT_ROOT:-}"
+LINUX_BASE_IMAGE="${DQ_LINUX_BASE_IMAGE:-ubuntu:24.04}"
 
 if [[ -z "$VERSION" ]]; then
   echo "Can not read DQ compiler version from compiler/src/version.h" >&2
@@ -47,6 +48,68 @@ default_toolchain_root() {
 
   clang_bin="$(readlink -f "$clang_bin")"
   dirname "$(dirname "$clang_bin")"
+}
+
+prepare_default_linux_release_roots() {
+  local runtime_root="$ROOT_DIR/sysroots/ubuntu-24.04-runtime-root"
+  local sysroot="$ROOT_DIR/sysroots/ubuntu-24.04-sysroot"
+  local marker="$ROOT_DIR/sysroots/ubuntu-24.04-release-roots.ready"
+
+  if [[ -n "$RUNTIME_LIB_ROOT" || -n "$SYSROOT_ROOT" ]]; then
+    return
+  fi
+
+  if [[ -f "$marker" && -d "$runtime_root" && -d "$sysroot" ]]; then
+    RUNTIME_LIB_ROOT="$runtime_root"
+    SYSROOT_ROOT="$sysroot"
+    return
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is required to prepare the default Ubuntu 24.04 Linux full-release roots." >&2
+    echo "Alternatively set DQ_LINUX_RUNTIME_LIB_ROOT and DQ_LINUX_SYSROOT_ROOT explicitly." >&2
+    exit 1
+  fi
+
+  rm -rf "$runtime_root" "$sysroot" "$marker"
+  mkdir -p "$runtime_root" "$sysroot"
+
+  docker run --rm "$LINUX_BASE_IMAGE" bash -lc '
+    set -euo pipefail
+    apt-get update >&2
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      gcc-14 g++-14 libc6-dev libstdc++-14-dev libgcc-14-dev \
+      libedit2 libtinfo6 libxml2 libzstd1 libbsd0 libmd0 libffi8 zlib1g >&2
+
+    tar -C / -chf /tmp/runtime-root.tar \
+      usr/lib/x86_64-linux-gnu/libedit.so.2 \
+      usr/lib/x86_64-linux-gnu/libtinfo.so.6 \
+      usr/lib/x86_64-linux-gnu/libzstd.so.1 \
+      usr/lib/x86_64-linux-gnu/libbsd.so.0 \
+      usr/lib/x86_64-linux-gnu/libmd.so.0 \
+      usr/lib/x86_64-linux-gnu/libffi.so.8 \
+      usr/lib/x86_64-linux-gnu/libz.so.1 \
+      usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
+      usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+
+    cat /tmp/runtime-root.tar
+  ' > "$runtime_root.tar"
+
+  docker run --rm "$LINUX_BASE_IMAGE" bash -lc '
+    set -euo pipefail
+    apt-get update >&2
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      gcc-14 g++-14 libc6-dev libstdc++-14-dev libgcc-14-dev >&2
+    tar -C / -chf - usr/lib/gcc/x86_64-linux-gnu/14 usr/lib/x86_64-linux-gnu usr/lib64
+  ' > "$sysroot.tar"
+
+  tar -C "$runtime_root" -xf "$runtime_root.tar"
+  tar -C "$sysroot" -xf "$sysroot.tar"
+  rm -f "$runtime_root.tar" "$sysroot.tar"
+  touch "$marker"
+
+  RUNTIME_LIB_ROOT="$runtime_root"
+  SYSROOT_ROOT="$sysroot"
 }
 
 install_linux_toolchain() {
@@ -227,6 +290,7 @@ cp -p "$ROOT_DIR/README.md" "$STAGE/README.md"
 copy_tracked_paths stdpkg examples docs autotest/tests mkdocs.yml
 
 if [[ "$FULL_RELEASE" == "1" ]]; then
+  prepare_default_linux_release_roots
   install_linux_toolchain
 fi
 

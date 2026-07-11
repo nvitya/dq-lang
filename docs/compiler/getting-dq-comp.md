@@ -10,8 +10,64 @@ For normal use, prefer a release package from the DQ GitHub releases page:
 https://github.com/nvitya/dq-lang/releases
 ```
 
-After extracting or installing a release package, make sure the compiler tools
-are on your `PATH`:
+The release archive names include the DQ version. For version `0.32.6`, the
+main packages are:
+
+| Package | File name | Notes |
+| --- | --- | --- |
+| Linux full package | `dq-0.32.6-x86_64-linux-full.tar.gz` | Recommended Linux package. Includes DQ tools, `stdpkg`, examples, docs, autotests, bundled LLVM/Clang, runtime libraries, and a Linux link sysroot. |
+| Linux light package | `dq-0.32.6-x86_64-linux.tar.gz` | Smaller package for systems that already have the native compiler/linker dependencies installed. |
+| Windows UCRT package | `dq-0.32.6-x86_64-windows-ucrt.zip` | Windows package with the DQ tools and bundled Windows LLVM/MinGW runtime pieces. |
+| Windows UCRT SDK package | `dq-0.32.6-x86_64-windows-ucrt-sdk.zip` | Windows package with the full bundled LLVM/MinGW SDK. |
+
+### Linux Full Package
+
+For a normal Linux install, use the full package:
+
+```bash
+tar -xzf dq-0.32.6-x86_64-linux-full.tar.gz
+cd dq-0.32.6-x86_64-linux-full
+bin/dq-comp --version
+bin/dq-run examples/basic/test1.dq
+```
+
+The full package is intended to work without installing compiler packages from
+the operating system. It has been tested in clean Ubuntu 24.04, Ubuntu 26.04,
+and Debian 13 containers.
+
+You can also add the package tools to your shell environment:
+
+```bash
+. ./dq-env.sh
+dq-comp --version
+dq-run examples/basic/test1.dq
+```
+
+### Linux Light Package
+
+The light Linux package is useful when the host system already has the native
+toolchain dependencies. On a plain Ubuntu 24.04 system, install:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y clang lld g++ libc6-dev libstdc++-14-dev libgcc-14-dev
+```
+
+Then extract and run:
+
+```bash
+tar -xzf dq-0.32.6-x86_64-linux.tar.gz
+cd dq-0.32.6-x86_64-linux
+bin/dq-comp --version
+bin/dq-run examples/basic/test1.dq
+```
+
+The light package depends on the host system for `clang++`, `lld`, glibc
+startup files, the C/C++ linker libraries, GCC support libraries, and
+`libbacktrace`.
+
+After extracting a package or sourcing `dq-env.sh`, make sure the compiler
+tools are available:
 
 ```bash
 dq-comp --version

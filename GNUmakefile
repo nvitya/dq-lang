@@ -22,7 +22,7 @@ comptest:
 cleantest:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) cleantest/fast
 
-.PHONY: cross-aarch64-linux cross-armhf-linux cross-rv64g-linux cross-x86_64-win package-x86_64-linux package-x86_64-linux-full package-x86_64-linux-full-release package-linux-release package-linux-full-release package-x86_64-win package-x86_64-win-sdk
+.PHONY: cross-aarch64-linux cross-armhf-linux cross-rv64g-linux cross-x86_64-win package-x86_64-linux package-x86_64-linux-full package-x86_64-linux-full-release package-linux-release package-linux-full-release package-x86_64-win
 
 cross-aarch64-linux:
 	cmake -S . -B build-cross/aarch64-linux -DCMAKE_TOOLCHAIN_FILE=toolchains/aarch64-linux.cmake $(CMAKE_EXTRA_ARGS)
@@ -56,11 +56,6 @@ package-linux-full-release: package-x86_64-linux-full
 
 package-x86_64-win: cross-x86_64-win
 	tools/package-windows-release.sh
-
-package-x86_64-win-sdk: cross-x86_64-win
-	DQ_WINDOWS_TOOLCHAIN_ZIP="$$(pwd)/sysroots/llvm-mingw-20251216-ucrt-x86_64.zip" \
-	  PACKAGE_NAME="dq-$$(sed -n 's/^#define DQ_COMPILER_VERSION[[:space:]]*"\([^"]*\)".*/\1/p' compiler/src/version.h)-x86_64-windows-ucrt-sdk" \
-	  tools/package-windows-release.sh
 
 
 %:

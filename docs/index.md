@@ -1,32 +1,71 @@
-# Introduction
+# What is DQ?
 
-## What is the DQ?
+DQ is a **universal** and **human-friendly** programming language.
 
-DQ is an **universal** and **human-friendly** programming language.
+**Universal**, because it is intended to cover many use cases, including scripts and tools, server applications, embedded applications, GUI applications, and games.
 
-**Universal**, because it intended to cover many use cases including: Scripts / tools, Server applications, Embedded applications, GUI applications and Games
+**Human-friendly**, because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
 
-**Human friendly** because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
+DQ is a mix of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
 
-### Highlighted features
-* Compiled to machine code, that can run with the same speed as C/C++
+## Highlighted features
+* Compiled to machine code that can run at the same speed as C/C++
 * Statically, strictly typed
 * Mostly uses well-tested concepts from other popular languages
 * `3 / 2 * 10 == 10 * 3 / 2` is true
-* Strict `bool` type
+* No implicit conversions between numbers and booleans
 * Pointers and pointer arithmetic
 * Manual memory management (no garbage collector)
 * Objects with inheritance, virtual functions and properties
 * Object functions don't need to use `self.` for member accesses
 * Exceptions for runtime error management
 * Dynamic arrays and dynamic strings
-* Easy library development
 * Simple, fast compile + run
 
-## DQ Compiler
+# Quick Look
 
-The DQ compiler is implemented in C++ using LLVM.
+For a quick look at DQ syntax and features, start with the
+[`nanonet/nano_sockets.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/nanonet/nano_sockets.dq)
+module. It shows real DQ code in a compact, practical module.
 
-The DQ runtime library is implemented in DQ.
+# Motivation
 
-## Getting Started
+What was my motivation to create the DQ language? See the [Motivation](motivation.md) page.
+
+# DQ Compiler and Libraries
+
+I implemented a compiler for the DQ language in C++ using LLVM. As I am not an expert in compiler development,
+I used AI (GPT-5, Gemini pro, Opus) for the design and implementation, in a controlled way.
+
+The DQ compiler C++ code is restricted only to the source code parsing and machine code generation using the LLVM C++ interfaces.
+
+The compiled applications are linked against the libc to use the low-level system functions.
+
+The DQ specific runtime library is implemented in DQ (which can be found under the
+[stdpkg/rtl](https://github.com/nvitya/dq-lang/blob/main/stdpkg/rtl)).
+
+# Getting Started
+
+To get the DQ compiler and start experimenting with the language follow the instructions in the
+[Getting Started](getting-started.md) page.
+
+# Project Page
+
+The DQ language specification and the DQ compiler are available on GitHub:
+
+[github.com/nvitya/dq-lang](https://github.com/nvitya/dq-lang)
+
+# Language Documentation
+
+For more complete language documentation read the following pages:
+
+* [Basics](language/basics.md)
+* [Types](language/types.md)
+* [Expressions](language/expressions.md)
+* [Statements](language/statements.md)
+* [Functions](language/functions.md)
+* [Objects](language/objects.md)
+* [Modules](language/modules.md)
+* [Memory and Pointers](language/memory-and-pointers.md)
+* [Attributes and Directives](language/attributes-and-directives.md)
+* [Inter-Operation](language/interop.md)

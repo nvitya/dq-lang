@@ -10,8 +10,12 @@ theme:
     - content.code.copy
     - search.highlight
 
+extra_css:
+  - stylesheets/extra.css
+
 nav:
   - Home: index.md
+  - Motivation: motivation.md
   - Getting Started: getting-started.md
   - Examples: examples/index.md
   - Language:

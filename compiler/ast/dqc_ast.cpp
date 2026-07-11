@@ -573,6 +573,7 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
       Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
       return nullptr;
     }
+    HarmonizeNumericOperands(&newleft, &newright);
   }
   else if ((TK_POINTER == tkl) and (TK_POINTER == tkr))
   {

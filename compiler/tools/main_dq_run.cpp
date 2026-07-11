@@ -13,6 +13,7 @@
 
 #include <print>
 #include <filesystem>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -172,6 +173,26 @@ static string ResolveRunExecutable(const string & output_filename)
   return output_filename;
 }
 
+static void PrepareRunEnvironment()
+{
+#if defined(_WIN32)
+  string exedir = GetExecutableDir();
+  if (exedir.empty())
+  {
+    return;
+  }
+
+  const char * old_path = getenv("PATH");
+  string path = exedir;
+  if (old_path && old_path[0])
+  {
+    path += ";";
+    path += old_path;
+  }
+  _putenv_s("PATH", path.c_str());
+#endif
+}
+
 int main(int argc, char ** argv)
 {
   SDqRunOptions opt;
@@ -228,6 +249,8 @@ int main(int argc, char ** argv)
   {
     exec_args.push_back(arg);
   }
+
+  PrepareRunEnvironment();
 
   int run_exit_code = 0;
   string run_errtxt;

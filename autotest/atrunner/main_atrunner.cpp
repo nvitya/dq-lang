@@ -36,6 +36,7 @@
 #include "at_runner.h"
 #include "atr_options.h"
 #include "atr_version.h"
+#include "executable_path.h"
 
 using namespace std;
 
@@ -123,11 +124,33 @@ void signal_handler(int signal)
   exit(signal);
 }
 
+static void PrepareChildEnvironment()
+{
+#if defined(_WIN32)
+  string exedir = CurrentExecutableDir();
+  if (exedir.empty())
+  {
+    return;
+  }
+
+  const char * old_path = getenv("PATH");
+  string path = exedir;
+  if (old_path && old_path[0])
+  {
+    path += ";";
+    path += old_path;
+  }
+  _putenv_s("PATH", path.c_str());
+#endif
+}
+
 int main(int argc, char ** argv)
 {
   // Top level error handlers for stack tracing
   set_terminate(my_crash_handler);  // uncaught exception handler with stacktrace
   signal(SIGSEGV, signal_handler);  // separate method for segfaults for stacktrace
+
+  PrepareChildEnvironment();
 
   init_atr_options(argc, argv);
   if (!g_atropt)

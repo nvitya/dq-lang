@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.32.7"
+#define DQ_COMPILER_VERSION  "0.32.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.32.8:
+  - Mixed with code emission fix
+  - Dll search path fixed on Windows
 v0.32.7:
   - Windows fixes
 v0.32.6:

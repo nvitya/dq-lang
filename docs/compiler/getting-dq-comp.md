@@ -17,7 +17,7 @@ main packages are:
 | --- | --- | --- |
 | Linux full package | `dq-0.32.6-x86_64-linux-full.tar.gz` | Recommended Linux package. Includes DQ tools, `stdpkg`, examples, docs, autotests, bundled LLVM/Clang, runtime libraries, and a Linux link sysroot. |
 | Linux light package | `dq-0.32.6-x86_64-linux.tar.gz` | Smaller package for systems that already have the native compiler/linker dependencies installed. |
-| Windows UCRT package | `dq-0.32.6-x86_64-windows-ucrt.zip` | Windows package with the DQ tools and bundled Windows LLVM/MinGW runtime pieces. |
+| Windows UCRT package | `dq-0.32.6-x86_64-windows-ucrt.zip` | Windows package with DQ tools, `stdpkg`, examples, autotests, docs, and bundled Windows LLVM/MinGW runtime pieces. |
 
 ### Linux Full Package
 

@@ -12,7 +12,11 @@ include_directories(../../compiler/utils)
 
 file(GLOB SRC_ATRUNNER CONFIGURE_DEPENDS "*.cpp")
 
-add_executable(dqatrun ${SRC_ATRUNNER} ../../compiler/utils/processrunner.cpp)
+add_executable(dqatrun
+  ${SRC_ATRUNNER}
+  ../../compiler/utils/processrunner.cpp
+  ../../compiler/utils/executable_path.cpp
+)
 
 # on exception I want to have a nice backtrace
 set_target_properties(dqatrun PROPERTIES ENABLE_EXPORTS ON)

@@ -35,6 +35,15 @@ require_dir() {
   fi
 }
 
+copy_tracked_paths() {
+  local path
+  git -C "$ROOT_DIR" ls-files -z -- "$@" |
+    while IFS= read -r -d '' path; do
+      mkdir -p "$STAGE/$(dirname "$path")"
+      cp -p "$ROOT_DIR/$path" "$STAGE/$path"
+    done
+}
+
 install_windows_toolchain() {
   local dst="$STAGE/toolchain/llvm-mingw"
 
@@ -83,6 +92,8 @@ require_file "$BUILD_DIR/bin/dq-run.exe"
 require_file "$BUILD_DIR/bin/dqatrun.exe"
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
+require_dir "$ROOT_DIR/examples"
+require_dir "$ROOT_DIR/autotest/tests"
 
 if [[ -e "$STAGE_PARENT" ]]; then
   echo "Temporary staging path already exists: $STAGE_PARENT" >&2
@@ -107,7 +118,7 @@ if [[ -f "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll
   cp "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll" "$STAGE/bin/"
 fi
 
-cp -R "$ROOT_DIR/stdpkg" "$STAGE/stdpkg"
+copy_tracked_paths stdpkg examples autotest/tests
 cp "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp "$STAGE/toolchain/llvm-mingw/LICENSE.TXT" "$STAGE/doc/llvm-mingw-LICENSE.txt"
 cp "$ROOT_DIR/README.md" "$STAGE/doc/README-project.md"
@@ -141,6 +152,8 @@ Included:
   bin/libunwind.dll
   toolchain/llvm-mingw/
   stdpkg/
+  examples/
+  autotest/tests/
 
 Linking:
   dq-comp links application executables with:

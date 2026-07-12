@@ -1,8 +1,8 @@
 # What is DQ?
 
-DQ is a **universal** and **human-friendly** programming language.
+DQ is a **general-purpose** and **human-friendly** programming language.
 
-**Universal**, because it is intended to cover many use cases, including scripts and tools, server applications, embedded applications, GUI applications, and games.
+**General-purpose**, because it is intended to cover many use cases, including scripts and tools, server applications, embedded applications, GUI applications, and games.
 
 **Human-friendly**, because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
 

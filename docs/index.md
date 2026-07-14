@@ -63,6 +63,16 @@ The DQ language specification and the DQ compiler are available on GitHub:
 
 [github.com/nvitya/dq-lang](https://github.com/nvitya/dq-lang)
 
+## Discussions
+
+The DQ community subreddit is available at:
+
+[**https://www.reddit.com/r/dqlang/**](https://www.reddit.com/r/dqlang/)
+
+Use it for questions, feedback, language-design discussions, examples, and general conversation about the DQ programming language and compiler.
+
+For confirmed bugs and concrete feature requests, please use the [GitHub issue tracker](https://github.com/nvitya/dq-lang/issues)
+
 ## Language Documentation
 
 For more complete language documentation read the following pages:

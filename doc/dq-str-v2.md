@@ -165,17 +165,26 @@ The index is a Unicode scalar index, not a byte index.
 Unicode scalar slicing uses:
 
 ```dq
-var part : str = s.wchar[3:10]
+var part : [*]wchar = s.wchar[3:10]
 ```
 
-The result is a UTF-8 encoded `str` containing the selected Unicode scalar range.
+The result type of `s.wchar[a:b]` is always `[*]wchar`, not `str`. The slice contains decoded Unicode scalar values and does not include a zero terminator.
 
-The accessor decodes the byte contents of `str` as UTF-8.
+Unicode scalar count uses:
+
+```dq
+var count : int = s.wclen
+```
+
+This count is the number of decoded Unicode scalar values, not the number of bytes and not the number of user-perceived grapheme clusters.
+
+The name `wclen` is preferred over `charcount` or `charlen` because `char` already names an 8-bit byte-like type in DQ, while `wchar` names the decoded Unicode scalar type being counted.
 
 Approximate complexity:
 
 ```text
 s[n]             O(1)
+s.wclen          O(n)
 s.wchar[n]       O(n)
 s.wchar[a:b]     O(n) plus result allocation
 ```
@@ -191,13 +200,14 @@ The following operations must report a runtime encoding error when malformed UTF
 ```dq
 s.wchar[n]
 s.wchar[a:b]
+s.wclen
 s.ToWchars()
 s.ToUtf16()
 ```
 
 Malformed input must not be silently replaced or ignored by the default operations.
 
-An optional validation helpers may be provided:
+Optional validation helpers may be provided:
 
 ```dq
 s.IsUtf8() -> bool
@@ -442,6 +452,7 @@ var part = s[3:10]
 Sequential or occasional Unicode scalar processing:
 
 ```dq
+var count = s.wclen
 var wc = s.wchar[n]
 var part = s.wchar[3:10]
 ```
@@ -483,6 +494,7 @@ s[n]
 s[begin:end]
 
 // Unicode scalar access
+s.wclen
 s.wchar[n]
 s.wchar[begin:end]
 

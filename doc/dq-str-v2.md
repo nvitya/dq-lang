@@ -1,0 +1,502 @@
+# DQ String Handling v2
+
+## 1. Scope
+
+This specification defines the revised DQ character and string model.
+
+The design goals are:
+
+- simple and predictable byte-string handling;
+- zero-cost interoperability with C string input parameters;
+- explicit Unicode scalar processing;
+- practical UTF-16 conversion for Windows APIs;
+- no variable-width internal character storage inside `str`;
+- no dedicated `wstr` or UTF-16 string type.
+
+---
+
+## 2. Character Types
+
+```dq
+char    // 8-bit value
+char16  // 16-bit UTF-16 code unit
+wchar   // 32-bit Unicode scalar value
+```
+
+### 2.1 `char`
+
+`char` is an arbitrary unsigned 8-bit value.
+
+It can represent:
+
+- an ASCII character;
+- one UTF-8 code unit;
+- arbitrary binary data.
+
+A `char` does not necessarily represent a complete Unicode character.
+
+### 2.2 `char16`
+
+`char16` is an unsigned 16-bit value intended primarily as a UTF-16 code unit.
+
+A single Unicode scalar may require either one or two `char16` values.
+
+The type exists mainly for Windows API and other UTF-16 interoperability.
+
+### 2.3 `wchar`
+
+`wchar` is an unsigned 32-bit Unicode scalar value.
+
+Valid values are:
+
+```text
+U+0000 .. U+D7FF
+U+E000 .. U+10FFFF
+```
+
+Surrogate values and values above `U+10FFFF` are invalid.
+
+`wchar` is always 32-bit and is independent of the platform C/C++ `wchar_t` type.
+
+---
+
+## 3. String Types
+
+The ordinary DQ string type is:
+
+```dq
+str
+```
+
+There is no dedicated:
+
+```text
+wstr
+str16
+```
+
+UTF-32 and UTF-16 data are represented using dynamic arrays:
+
+```dq
+[*]wchar
+[*]char16
+```
+
+### 3.1 `str` representation
+
+`str` is an owned dynamic byte string, conceptually similar to:
+
+```dq
+[*]char
+```
+
+It has an additional enforced trailing-zero invariant:
+
+```dq
+s[s.length] == 0
+```
+
+The trailing zero is not included in `s.length`.
+
+A `str` may contain arbitrary bytes, including internal zero bytes.
+
+Therefore, `str` is not inherently guaranteed to contain valid UTF-8.
+
+Example:
+
+```dq
+var s : str = "abc"
+```
+
+Conceptual storage:
+
+```text
+'a' 'b' 'c' 0
+```
+
+Logical length:
+
+```text
+3
+```
+
+A string may also contain:
+
+```text
+'a' 0 'b' 0
+```
+
+with a logical length of `3`; the final zero is the enforced terminator.
+
+---
+
+## 4. Byte Access
+
+Normal indexing operates on bytes:
+
+```dq
+var b : char = s[n]
+```
+
+This is an O(1) operation.
+
+Normal slicing also uses byte indexes:
+
+```dq
+var part : str = s[3:10]
+```
+
+The result contains the selected bytes and receives its own enforced trailing zero.
+
+Byte indexing and slicing do not validate UTF-8.
+
+---
+
+## 5. Unicode Scalar Access
+
+Unicode scalar access uses the `wchar` accessor:
+
+```dq
+var wc : wchar = s.wchar[n]
+```
+
+The index is a Unicode scalar index, not a byte index.
+
+Unicode scalar slicing uses:
+
+```dq
+var part : str = s.wchar[3:10]
+```
+
+The result is a UTF-8 encoded `str` containing the selected Unicode scalar range.
+
+The accessor decodes the byte contents of `str` as UTF-8.
+
+Approximate complexity:
+
+```text
+s[n]             O(1)
+s.wchar[n]       O(n)
+s.wchar[a:b]     O(n) plus result allocation
+```
+
+For repeated indexed Unicode processing, conversion to `[*]wchar` is recommended.
+
+### 5.1 Invalid UTF-8
+
+Because `str` may contain arbitrary bytes, Unicode-oriented operations can encounter invalid UTF-8.
+
+The following operations must report a runtime encoding error when malformed UTF-8 is encountered:
+
+```dq
+s.wchar[n]
+s.wchar[a:b]
+s.ToWchars()
+s.ToUtf16()
+```
+
+Malformed input must not be silently replaced or ignored by the default operations.
+
+An optional validation helpers may be provided:
+
+```dq
+s.IsUtf8() -> bool
+s.EnsureUtf8(fallback_wchar)
+```
+
+---
+
+## 6. UTF-32 Conversion
+
+Conversion from `str` to UTF-32:
+
+```dq
+var wchars : [*]wchar = s.ToWchars()
+```
+
+Signature:
+
+```dq
+function str.ToWchars() -> [*]wchar
+```
+
+The result contains one `wchar` element for every decoded Unicode scalar.
+
+No zero terminator is added.
+
+Conversion from UTF-32 to `str` uses a global function:
+
+```dq
+var s : str = StrFromWchars(wchars)
+```
+
+Signature:
+
+```dq
+function StrFromWchars(chars : []wchar) -> str
+```
+
+The result is UTF-8 encoded and receives the normal `str` hidden trailing zero.
+
+Because DQ has no const input parameters, the input slice type is `[]wchar`.
+
+---
+
+## 7. UTF-16 Conversion
+
+UTF-16 support exists primarily for Windows API interoperability.
+
+Conversion from `str` to UTF-16:
+
+```dq
+var s16 : [*]char16 = s.ToUtf16()
+```
+
+Signature:
+
+```dq
+function str.ToUtf16() -> [*]char16
+```
+
+The returned array includes a final zero terminator as an ordinary array element.
+
+Therefore:
+
+```dq
+s16[s16.length - 1] == 0
+```
+
+The array length is one greater than the number of encoded UTF-16 code units.
+
+This permits direct pointer use with Windows APIs:
+
+```dq
+SomeWindowsApi(s16.Data())
+```
+
+When the terminator is not required, the user may remove it:
+
+```dq
+s16.Pop()
+```
+
+### 7.1 UTF-16 to `str`
+
+Two global overloads are supported.
+
+Owned dynamic-array form:
+
+```dq
+function StrFromUtf16(chars : [*]char16) -> str
+```
+
+Pointer-and-count form:
+
+```dq
+function StrFromUtf16(chars : ^char16, count : int) -> str
+```
+
+#### Dynamic-array form
+
+The `[*]char16` overload is intended to consume values returned by `ToUtf16()` and similar zero-terminated UTF-16 buffers.
+
+If the final array element is zero, exactly that final zero is treated as the terminator and is not converted into the resulting `str`.
+
+Internal zero values are preserved as Unicode U+0000 values.
+
+The function does not stop at the first internal zero.
+
+#### Pointer-and-count form
+
+The pointer-and-count overload decodes exactly `count` UTF-16 code units:
+
+```dq
+var s = StrFromUtf16(ptr, count)
+```
+
+It does not require a trailing zero and does not stop at an internal zero.
+
+This form is suitable for Windows APIs that return a pointer and an explicit UTF-16 code-unit count.
+
+### 7.2 Invalid UTF-16
+
+`StrFromUtf16()` must report a runtime encoding error for malformed UTF-16, including:
+
+- an isolated high surrogate;
+- an isolated low surrogate;
+- an invalid surrogate sequence.
+
+Malformed UTF-16 must not be silently replaced or ignored by the default conversion functions.
+
+`StrFromUtf16(fallback_wchar)` automatically replaces the malformed UTF-16 with the provided `fallback_wchar` argument. If the `fallback_wchar` is zero, then the invalid character will be removed.
+
+---
+
+## 8. C String Access
+
+Every `str` has an enforced trailing zero, so it can expose its storage without copying:
+
+```dq
+var p : ^char = s.cstr
+```
+
+`cstr` is a zero-cost borrowed pointer to the first byte of the string.
+
+Because DQ has no const input type, its result type is:
+
+```dq
+s.cstr -> ^char
+```
+
+The pointer is intended for input use by C-compatible functions.
+
+### 8.1 Internal zeroes
+
+A `str` may contain internal zero bytes.
+
+`cstr` does not detect or handle them.
+
+A C function using zero-terminated string semantics sees only the bytes preceding the first internal zero.
+
+Example:
+
+```text
+DQ logical string:  'a' 'b' 0 'c' 'd'
+C-visible string:   "ab"
+```
+
+### 8.2 Pointer lifetime and mutation
+
+The pointer returned by `cstr` is valid only while:
+
+- the source `str` remains alive;
+- the source `str` storage is not reallocated;
+- the source `str` is not modified in a way that changes its storage.
+
+Foreign code should treat the pointer as read-only, even though its DQ type is `^char`.
+
+Writable C buffers should use a dedicated mutable buffer such as:
+
+```dq
+cstring(n)
+[*]char
+```
+
+---
+
+## 9. `strview`
+
+`strview` is a borrowed byte-string view.
+
+Unlike `str`, a `strview` is not always zero-terminated at its logical end.
+
+The internal string-view flags should include a zero-termination flag:
+
+```text
+ZEROTERM
+```
+
+The flag means:
+
+```dq
+view.data[view.length] == 0
+```
+
+A view covering an entire `str` can normally retain this flag.
+
+A substring view generally cannot:
+
+```dq
+var whole : strview = s
+var part  : strview = s[3:10]
+```
+
+Typical state:
+
+```text
+whole: ZEROTERM set
+part:  ZEROTERM not set
+```
+
+Zero-cost C string access from a `strview` is valid only when its internal `ZEROTERM` flag is set.
+
+Otherwise, conversion to an owned `str` is required before obtaining a C string pointer.
+
+---
+
+## 10. Recommended Usage
+
+Ordinary text and byte data:
+
+```dq
+var s : str
+```
+
+Byte-level processing:
+
+```dq
+var b = s[n]
+var part = s[3:10]
+```
+
+Sequential or occasional Unicode scalar processing:
+
+```dq
+var wc = s.wchar[n]
+var part = s.wchar[3:10]
+```
+
+Repeated indexed Unicode processing:
+
+```dq
+var wchars = s.ToWchars()
+```
+
+Windows UTF-16 interoperability:
+
+```dq
+var utf16 = s.ToUtf16()
+SomeWindowsApi(utf16.Data())
+```
+
+C string input:
+
+```dq
+SomeCFunction(s.cstr)
+```
+
+---
+
+## 11. Final API Summary
+
+```dq
+// Character types
+char
+char16
+wchar
+
+// Main string type
+str
+
+// Byte access
+s[n]
+s[begin:end]
+
+// Unicode scalar access
+s.wchar[n]
+s.wchar[begin:end]
+
+// UTF-32 conversion
+function str.ToWchars() -> [*]wchar
+function StrFromWchars(chars : []wchar) -> str
+
+// UTF-16 conversion
+function str.ToUtf16() -> [*]char16
+function StrFromUtf16(chars : [*]char16) -> str
+function StrFromUtf16(chars : ^char16, count : int) -> str
+
+// C interoperability
+s.cstr -> ^char
+```
+
+No dedicated `wstr` or `str16` type is required.

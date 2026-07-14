@@ -1,0 +1,358 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/strfunc.dq
+ * authors: nvitya
+ * created: 2026-07-14
+ * brief:   RTL helpers for string conversion and slicing
+ */
+
+use rtl/rtlint
+
+function StrfIsValidWChar(wc : uint32) -> bool
+function StrfIsUtf8(text : strview) -> bool
+function StrfWcLen(text : strview) -> int
+function StrfWCharAt(text : strview, index : int) -> uint32
+function StrfToWchars(text : strview) -> [*]uint32
+function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]uint32
+function StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str
+function StrfFromWchars(chars : []uint32) -> str
+function StrfToUtf16(text : strview) -> [*]uint16
+function StrfFromUtf16(chars : []uint16) -> str
+function StrfFromUtf16Fallback(chars : []uint16, fallback_wchar : uint32) -> str
+function StrfFromUtf16Ptr(chars : ^uint16, count : int) -> str
+function StrfFromUtf16PtrFallback(chars : ^uint16, count : int, fallback_wchar : uint32) -> str
+
+implementation
+
+function StrfRuntimeError(emsg : ^cchar):
+    RuntimeError(emsg)
+endfunc
+
+function StrfIsHighSurrogate(wc : uint32) -> bool:
+    return wc >= uint32(0xD800) and wc <= uint32(0xDBFF)
+endfunc
+
+function StrfIsLowSurrogate(wc : uint32) -> bool:
+    return wc >= uint32(0xDC00) and wc <= uint32(0xDFFF)
+endfunc
+
+function StrfIsValidWChar(wc : uint32) -> bool:
+    return wc <= uint32(0x10FFFF) and not (wc >= uint32(0xD800) and wc <= uint32(0xDFFF))
+endfunc
+
+function StrfByte(text : strview, index : int) -> uint32:
+    return uint32(int(text[index])) AND uint32(0xFF)
+endfunc
+
+function StrfFailUtf8() -> bool:
+    StrfRuntimeError('Strf invalid UTF-8')
+    return false
+endfunc
+
+function StrfReadCont(text : strview, index : int, outb : refout uint32) -> bool:
+    if index >= text.length:
+        return StrfFailUtf8()
+    endif
+    outb = StrfByte(text, index)
+    if outb AND uint32(0xC0) <> uint32(0x80):
+        return StrfFailUtf8()
+    endif
+    outb = outb AND uint32(0x3F)
+    return true
+endfunc
+
+function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout uint32) -> bool:
+    if pos >= text.length:
+        return false
+    endif
+
+    var b0 : uint32 = StrfByte(text, pos)
+    if b0 <= uint32(0x7F):
+        wc = b0
+        pos += 1
+        return true
+    endif
+
+    var b1 : uint32 = 0
+    var b2 : uint32 = 0
+    var b3 : uint32 = 0
+    if b0 >= uint32(0xC2) and b0 <= uint32(0xDF):
+        if not StrfReadCont(text, pos + 1, b1):
+            return false
+        endif
+        wc = ((b0 AND uint32(0x1F)) << 6) OR b1
+        pos += 2
+        return true
+    elif b0 >= uint32(0xE0) and b0 <= uint32(0xEF):
+        if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2):
+            return false
+        endif
+        wc = ((b0 AND uint32(0x0F)) << 12) OR (b1 << 6) OR b2
+        if wc < uint32(0x800) or not StrfIsValidWChar(wc):
+            return StrfFailUtf8()
+        endif
+        pos += 3
+        return true
+    elif b0 >= uint32(0xF0) and b0 <= uint32(0xF4):
+        if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2) or not StrfReadCont(text, pos + 3, b3):
+            return false
+        endif
+        wc = ((b0 AND uint32(0x07)) << 18) OR (b1 << 12) OR (b2 << 6) OR b3
+        if wc < uint32(0x10000) or not StrfIsValidWChar(wc):
+            return StrfFailUtf8()
+        endif
+        pos += 4
+        return true
+    endif
+
+    return StrfFailUtf8()
+endfunc
+
+function StrfAppendUtf8(dst : ref str, wc : uint32):
+    if not StrfIsValidWChar(wc):
+        StrfRuntimeError('Strf invalid Unicode scalar')
+        return
+    endif
+
+    if wc <= uint32(0x7F):
+        dst.Append(char(int(wc)))
+    elif wc <= uint32(0x7FF):
+        dst.Append(char(int(uint32(0xC0) OR (wc >> 6))))
+        dst.Append(char(int(uint32(0x80) OR (wc AND uint32(0x3F)))))
+    elif wc <= uint32(0xFFFF):
+        dst.Append(char(int(uint32(0xE0) OR (wc >> 12))))
+        dst.Append(char(int(uint32(0x80) OR ((wc >> 6) AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) OR (wc AND uint32(0x3F)))))
+    else:
+        dst.Append(char(int(uint32(0xF0) OR (wc >> 18))))
+        dst.Append(char(int(uint32(0x80) OR ((wc >> 12) AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) OR ((wc >> 6) AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) OR (wc AND uint32(0x3F)))))
+    endif
+endfunc
+
+function StrfAppendUtf16(dst : ref [*]uint16, wc : uint32):
+    if not StrfIsValidWChar(wc):
+        StrfRuntimeError('Strf invalid Unicode scalar')
+        return
+    endif
+
+    if wc <= uint32(0xFFFF):
+        dst.Append(uint16(wc))
+    else:
+        wc -= uint32(0x10000)
+        dst.Append(uint16(uint32(0xD800) OR (wc >> 10)))
+        dst.Append(uint16(uint32(0xDC00) OR (wc AND uint32(0x3FF))))
+    endif
+endfunc
+
+function StrfIsUtf8(text : strview) -> bool:
+    result = false
+    var pos : int = 0
+    var wc : uint32 = 0
+    try:
+        while StrfDecodeUtf8(text, pos, wc):
+        endwhile
+        result = true
+    except Exception as e:
+        result = false
+    endtry
+endfunc
+
+function StrfWcLen(text : strview) -> int:
+    var pos : int = 0
+    var wc : uint32 = 0
+    result = 0
+    while StrfDecodeUtf8(text, pos, wc):
+        result += 1
+    endwhile
+endfunc
+
+function StrfWCharAt(text : strview, index : int) -> uint32:
+    if index < 0:
+        StrfRuntimeError('Strf wchar index out of bounds')
+        return 0
+    endif
+
+    var pos : int = 0
+    var wcidx : int = 0
+    var wc : uint32 = 0
+    while StrfDecodeUtf8(text, pos, wc):
+        if wcidx == index:
+            return wc
+        endif
+        wcidx += 1
+    endwhile
+
+    StrfRuntimeError('Strf wchar index out of bounds')
+    return 0
+endfunc
+
+function StrfClampIndex(index : int, length : int) -> int:
+    if index <= 0:
+        return 0
+    elif index >= length:
+        return length
+    else:
+        return index
+    endif
+endfunc
+
+function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]uint32:
+    result = []
+    var wclen : int = StrfWcLen(text)
+    var b : int = StrfClampIndex(startpos, wclen)
+    var e : int = StrfClampIndex(endposex, wclen)
+    if e < b:
+        e = b
+    endif
+
+    var pos : int = 0
+    var wcidx : int = 0
+    var wc : uint32 = 0
+    while StrfDecodeUtf8(text, pos, wc):
+        if wcidx >= b and wcidx < e:
+            result.Append(wc)
+        endif
+        wcidx += 1
+    endwhile
+endfunc
+
+function StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str:
+    var wchars : [*]uint32 = StrfWCharSlice(text, startpos, endposex)
+    return StrfFromWchars(wchars[:])
+endfunc
+
+function StrfToWchars(text : strview) -> [*]uint32:
+    result = []
+    var pos : int = 0
+    var wc : uint32 = 0
+    while StrfDecodeUtf8(text, pos, wc):
+        result.Append(wc)
+    endwhile
+endfunc
+
+function StrfFromWchars(chars : []uint32) -> str:
+    result = ''
+    var i : int = 0
+    while i < chars.length:
+        StrfAppendUtf8(result, chars[i])
+        i += 1
+    endwhile
+endfunc
+
+function StrfToUtf16(text : strview) -> [*]uint16:
+    result = []
+    var pos : int = 0
+    var wc : uint32 = 0
+    while StrfDecodeUtf8(text, pos, wc):
+        StrfAppendUtf16(result, wc)
+    endwhile
+    result.Append(uint16(0))
+endfunc
+
+function StrfDecodeUtf16At(chars : ^uint16, count : int, pos : ref int, wc : refout uint32, fallback_wchar : uint32, has_fallback : bool) -> bool:
+    if pos >= count:
+        return false
+    endif
+
+    var u0 : uint32 = uint32(chars[pos]^)
+    pos += 1
+    if StrfIsHighSurrogate(u0):
+        if pos >= count:
+            if has_fallback:
+                if fallback_wchar == uint32(0):
+                    wc = uint32(0xFFFFFFFF)
+                else:
+                    wc = fallback_wchar
+                endif
+                return true
+            endif
+            StrfRuntimeError('Strf invalid UTF-16')
+            return false
+        endif
+
+        var u1 : uint32 = uint32(chars[pos]^)
+        if not StrfIsLowSurrogate(u1):
+            if has_fallback:
+                if fallback_wchar == uint32(0):
+                    wc = uint32(0xFFFFFFFF)
+                else:
+                    wc = fallback_wchar
+                endif
+                return true
+            endif
+            StrfRuntimeError('Strf invalid UTF-16')
+            return false
+        endif
+
+        pos += 1
+        wc = uint32(0x10000) + ((u0 - uint32(0xD800)) << 10) + (u1 - uint32(0xDC00))
+        return true
+    elif StrfIsLowSurrogate(u0):
+        if has_fallback:
+            if fallback_wchar == uint32(0):
+                wc = uint32(0xFFFFFFFF)
+            else:
+                wc = fallback_wchar
+            endif
+            return true
+        endif
+        StrfRuntimeError('Strf invalid UTF-16')
+        return false
+    else:
+        wc = u0
+        return true
+    endif
+endfunc
+
+function StrfFromUtf16PtrImpl(chars : ^uint16, count : int, fallback_wchar : uint32, has_fallback : bool) -> str:
+    result = ''
+    if chars == null or count <= 0:
+        return ''
+    endif
+
+    var pos : int = 0
+    var wc : uint32 = 0
+    while StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback):
+        if wc <> uint32(0xFFFFFFFF):
+            StrfAppendUtf8(result, wc)
+        endif
+    endwhile
+endfunc
+
+function StrfUtf16SliceCount(chars : []uint16) -> int:
+    result = chars.length
+    if result > 0 and chars[result - 1] == uint16(0):
+        result -= 1
+    endif
+endfunc
+
+function StrfFromUtf16(chars : []uint16) -> str:
+    if chars.length == 0:
+        return ''
+    endif
+    return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), 0, false)
+endfunc
+
+function StrfFromUtf16Fallback(chars : []uint16, fallback_wchar : uint32) -> str:
+    if chars.length == 0:
+        return ''
+    endif
+    return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), fallback_wchar, true)
+endfunc
+
+function StrfFromUtf16Ptr(chars : ^uint16, count : int) -> str:
+    return StrfFromUtf16PtrImpl(chars, count, 0, false)
+endfunc
+
+function StrfFromUtf16PtrFallback(chars : ^uint16, count : int, fallback_wchar : uint32) -> str:
+    return StrfFromUtf16PtrImpl(chars, count, fallback_wchar, true)
+endfunc

@@ -1,0 +1,94 @@
+// RTL string conversion and scalar slicing helpers for dq-str-v2 preparation.
+
+use libc/stdio;
+use rtl/strfunc;
+
+function PrintBytes(label : ^cchar, text : strview):
+    printf("%s = len:%li bytes:", label, text.length);
+    var i : int = 0;
+    while i < text.length:
+        printf(" %li", int(uint32(int(text[i])) AND uint32(0xFF)));
+        i += 1;
+    endwhile
+    printf("\n");
+endfunc
+
+function PrintU32Array(label : ^cchar, arr : []uint32):
+    printf("%s = len:%li data:", label, arr.length);
+    var i : int = 0;
+    while i < arr.length:
+        printf(" %li", int(arr[i]));
+        i += 1;
+    endwhile
+    printf("\n");
+endfunc
+
+function PrintU16Array(label : ^cchar, arr : []uint16):
+    printf("%s = len:%li data:", label, arr.length);
+    var i : int = 0;
+    while i < arr.length:
+        printf(" %li", int(arr[i]));
+        i += 1;
+    endwhile
+    printf("\n");
+endfunc
+
+function Flag(v : bool) -> int:
+    if v:
+        result = 1;
+    else:
+        result = 0;
+    endif
+endfunc
+
+function SampleUtf8() -> str:
+    result = '';
+    result.Append('A');          // U+0041
+    result.Append(char(0xC3));   // U+00E9
+    result.Append(char(0xA9));
+    result.Append(char(0xE2));   // U+20AC
+    result.Append(char(0x82));
+    result.Append(char(0xAC));
+    result.Append(char(0xF0));   // U+1F600
+    result.Append(char(0x9F));
+    result.Append(char(0x98));
+    result.Append(char(0x80));
+endfunc
+
+function *Main() -> int:
+    printf("string_strfunc_helpers = start\n"); //?check("string_strfunc_helpers", "start")
+
+    var sample : str = SampleUtf8();
+    PrintBytes("strf_sample_bytes", sample); //?check("strf_sample_bytes", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
+    printf("strf_wclen = %li\n", StrfWcLen(sample)); //?check("strf_wclen", 4)
+    printf("strf_at = %li %li %li %li\n",
+           int(StrfWCharAt(sample, 0)), int(StrfWCharAt(sample, 1)), int(StrfWCharAt(sample, 2)), int(StrfWCharAt(sample, 3)));
+           //?check("strf_at", "65 233 8364 128512")
+
+    var decoded : [*]uint32 = StrfToWchars(sample);
+    PrintU32Array("strf_to_wchars", decoded[:]); //?check("strf_to_wchars", "len:4 data: 65 233 8364 128512")
+    var sliced : [*]uint32 = StrfWCharSlice(sample, 1, 3);
+    PrintU32Array("strf_wchar_slice", sliced[:]); //?check("strf_wchar_slice", "len:2 data: 233 8364")
+    PrintBytes("strf_wcstr_slice", StrfWcStrSlice(sample, 1, 3)); //?check("strf_wcstr_slice", "len:5 bytes: 195 169 226 130 172")
+
+    var wchars : [*]uint32 = [uint32(65), uint32(233), uint32(8364), uint32(128512)];
+    PrintBytes("strf_from_wchars", StrfFromWchars(wchars[:])); //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
+
+    var utf16 : [*]uint16 = StrfToUtf16(sample);
+    PrintU16Array("strf_to_utf16", utf16[:]); //?check("strf_to_utf16", "len:6 data: 65 233 8364 55357 56832 0")
+    PrintBytes("strf_from_utf16", StrfFromUtf16(utf16[:])); //?check("strf_from_utf16", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
+
+    var with_zero : [*]uint16 = [uint16(65), uint16(0), uint16(66), uint16(0)];
+    PrintBytes("strf_utf16_internal_zero", StrfFromUtf16(with_zero[:])); //?check("strf_utf16_internal_zero", "len:3 bytes: 65 0 66")
+    PrintBytes("strf_utf16_ptr_exact", StrfFromUtf16Ptr(&with_zero[0], 3)); //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
+
+    var invalid : str = '';
+    invalid.Append(char(0xC0));
+    invalid.Append(char(0x80));
+    printf("strf_is_utf8 = good:%li bad:%li\n", Flag(StrfIsUtf8(sample)), Flag(StrfIsUtf8(invalid))); //?check("strf_is_utf8", "good:1 bad:0")
+
+    var bad16 : [*]uint16 = [uint16(0xD800), uint16(65), uint16(0)];
+    PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], uint32(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
+
+    return 0;
+endfunc

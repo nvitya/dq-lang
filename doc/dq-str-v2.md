@@ -170,6 +170,16 @@ var part : [*]wchar = s.wchar[3:10]
 
 The result type of `s.wchar[a:b]` is always `[*]wchar`, not `str`. The slice contains decoded Unicode scalar values and does not include a zero terminator.
 
+When the selected Unicode scalar range should remain encoded as a `str`, use the `wcstr` accessor:
+
+```dq
+var part : str = s.wcstr[3:10]
+```
+
+The result is a UTF-8 encoded `str` containing the selected Unicode scalar range. It receives the normal `str` hidden trailing zero.
+
+The name `wcstr` indicates a `str` result selected by `wchar` indexes. It does not introduce a separate wide-string type.
+
 Unicode scalar count uses:
 
 ```dq
@@ -187,6 +197,7 @@ s[n]             O(1)
 s.wclen          O(n)
 s.wchar[n]       O(n)
 s.wchar[a:b]     O(n) plus result allocation
+s.wcstr[a:b]     O(n) plus result allocation
 ```
 
 For repeated indexed Unicode processing, conversion to `[*]wchar` is recommended.
@@ -200,6 +211,7 @@ The following operations must report a runtime encoding error when malformed UTF
 ```dq
 s.wchar[n]
 s.wchar[a:b]
+s.wcstr[a:b]
 s.wclen
 s.ToWchars()
 s.ToUtf16()
@@ -281,7 +293,7 @@ The array length is one greater than the number of encoded UTF-16 code units.
 This permits direct pointer use with Windows APIs:
 
 ```dq
-SomeWindowsApi(s16.Data())
+SomeWindowsApi(s16.pdata)
 ```
 
 When the terminator is not required, the user may remove it:
@@ -347,7 +359,7 @@ Malformed UTF-16 must not be silently replaced or ignored by the default convers
 Every `str` has an enforced trailing zero, so it can expose its storage without copying:
 
 ```dq
-var p : ^char = s.cstr
+var p : ^char = s.pchar
 ```
 
 `cstr` is a zero-cost borrowed pointer to the first byte of the string.
@@ -355,7 +367,7 @@ var p : ^char = s.cstr
 Because DQ has no const input type, its result type is:
 
 ```dq
-s.cstr -> ^char
+s.pchar -> ^char
 ```
 
 The pointer is intended for input use by C-compatible functions.
@@ -364,7 +376,7 @@ The pointer is intended for input use by C-compatible functions.
 
 A `str` may contain internal zero bytes.
 
-`cstr` does not detect or handle them.
+`s.pchar` does not detect or handle them.
 
 A C function using zero-terminated string semantics sees only the bytes preceding the first internal zero.
 
@@ -377,7 +389,7 @@ C-visible string:   "ab"
 
 ### 8.2 Pointer lifetime and mutation
 
-The pointer returned by `cstr` is valid only while:
+The pointer returned by `s.pchar` is valid only while:
 
 - the source `str` remains alive;
 - the source `str` storage is not reallocated;
@@ -445,35 +457,36 @@ var s : str
 Byte-level processing:
 
 ```dq
-var b = s[n]
-var part = s[3:10]
+var b : char = s[n]
+var part : str = s[3:10]
 ```
 
 Sequential or occasional Unicode scalar processing:
 
 ```dq
-var count = s.wclen
-var wc = s.wchar[n]
-var part = s.wchar[3:10]
+var count  : int      = s.wclen
+var wc     : wchar    = s.wchar[n]
+var wchars : [*]wchar = s.wchar[3:10]
+var part   : str      = s.wcstr[3:10]
 ```
 
 Repeated indexed Unicode processing:
 
 ```dq
-var wchars = s.ToWchars()
+var wchars : [*]wchar = s.ToWchars()
 ```
 
 Windows UTF-16 interoperability:
 
 ```dq
-var utf16 = s.ToUtf16()
-SomeWindowsApi(utf16.Data())
+var utf16 : [*]char16 = s.ToUtf16()
+SomeWindowsApi(utf16.pdata)
 ```
 
 C string input:
 
 ```dq
-SomeCFunction(s.cstr)
+SomeCFunction(s.pchar)
 ```
 
 ---
@@ -497,6 +510,7 @@ s[begin:end]
 s.wclen
 s.wchar[n]
 s.wchar[begin:end]
+s.wcstr[begin:end]
 
 // UTF-32 conversion
 function str.ToWchars() -> [*]wchar
@@ -508,7 +522,7 @@ function StrFromUtf16(chars : [*]char16) -> str
 function StrFromUtf16(chars : ^char16, count : int) -> str
 
 // C interoperability
-s.cstr -> ^char
+s.pchar -> ^char
 ```
 
 No dedicated `wstr` or `str16` type is required.

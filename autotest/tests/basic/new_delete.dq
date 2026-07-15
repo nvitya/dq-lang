@@ -2,7 +2,7 @@
 
 use libc/stdio;
 
-function print_ptr_state(label : ^cchar, p : ^int):
+function print_ptr_state(label : ^char, p : ^int):
     if p == null:
         printf("%s = null\n", label);
     else:

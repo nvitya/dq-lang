@@ -177,7 +177,7 @@ IntToChar(256)  // error
 Only the upper limit is checked. Negative values are accepted and use the normal integer-to-`char` narrowing semantics.
 
 ```dq
-IntToChar(-1)   // char(255), with normal low-8-bit narrowing
+IntToChar(-1)   // error
 ```
 
 ### 5.2 Default-Value Variant
@@ -283,8 +283,8 @@ wchar(x)                // explicit cast
                         // constant: compile-time Unicode scalar check
                         // runtime: unchecked
 
-IntToChar(x)            // runtime check for x > 255; raises on failure
-IntToChar(x, defvalue)  // runtime check for x > 255; fallback on failure
+IntToChar(x)            // runtime check for x < 0 or x > 255; raises on failure
+IntToChar(x, defvalue)  // runtime check for x < 0 or x > 255; fallback on failure
 
 IntToWchar(x)           // runtime Unicode scalar validation; raises on failure
 IntToWchar(x, defvalue) // runtime Unicode scalar validation; fallback on failure

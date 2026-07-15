@@ -32,7 +32,7 @@ object OIfgenBox:
     endfunc
 endobj
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function IfgenAdd(a : int, b : int) -> int:
     result = a + b + IFGEN_BASE;

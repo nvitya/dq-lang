@@ -2,13 +2,13 @@
 
 use libc/stdio;
 
-[[external]] function putchar(c : cchar) -> int;
+[[external]] function putchar(c : char) -> int;
 
-function PrintText(label : ^cchar, text : strview):
+function PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length);
     var i : int = 0;
     while i < text.length:
-        putchar(cchar(text[i]));
+        putchar(char(text[i]));
         i += 1;
     endwhile
     printf("\"\n");
@@ -34,7 +34,7 @@ function MakeTextValue(s : str) -> anyvalue:
     result = s;
 endfunc
 
-function PrintArgs(label : ^cchar, args : []anyvalue):
+function PrintArgs(label : ^char, args : []anyvalue):
     printf("%s = len:%li a0:%li a1:%li a2:%li\n",
            label,
            args.length,

@@ -33,7 +33,7 @@ endstruct
     b : uint32;
 endobj
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function off_normal_b() -> int:
     var s : SLayoutNormal = {};

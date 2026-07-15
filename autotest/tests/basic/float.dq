@@ -62,7 +62,7 @@ function dq_fl32_floor(v : float32) -> int:
     result = Floor(v);
 endfunc
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf("Testing DQ float operations:\n\n");     //?ignore('Testing DQ float operations:')
 

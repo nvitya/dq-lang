@@ -38,7 +38,7 @@ endfunc
 
 #else
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function dq_for_to_sum() -> int:
     result = 0;

@@ -490,7 +490,7 @@ void OLValueMember::DeleteChildTree()
   }
   else if (TK_CSTRING == acontainertype->kind)
   {
-    ptype = g_builtins->type_cchar;
+    ptype = g_builtins->type_char;
   }
   else if (TK_DYNSTR == acontainertype->kind || TK_STRVIEW == acontainertype->kind)
   {
@@ -2890,7 +2890,7 @@ static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
 /* ctor */ OCStringLit::OCStringLit(const string & avalue)
 {
   value = avalue;
-  ptype = g_builtins->type_cchar->GetPointerType();  // ^cchar
+  ptype = g_builtins->type_char->GetPointerType();  // ^char
 }
 
 LlValue * OCStringLit::Generate(OScope * scope)
@@ -2901,7 +2901,7 @@ LlValue * OCStringLit::Generate(OScope * scope)
 /* ctor */ OCharLitToCStringPtrExpr::OCharLitToCStringPtrExpr(uint8_t avalue)
 {
   value = avalue;
-  ptype = g_builtins->type_cchar->GetPointerType();  // ^cchar
+  ptype = g_builtins->type_char->GetPointerType();  // ^char
 }
 
 LlValue * OCharLitToCStringPtrExpr::Generate(OScope * scope)
@@ -3499,7 +3499,7 @@ void OIsExpr::DeleteChildTree()
 OTypeNameExpr::OTypeNameExpr(OExpr * aexpr)
 : expr(aexpr)
 {
-  ptype = g_builtins->type_cchar->GetPointerType();
+  ptype = g_builtins->type_char->GetPointerType();
 }
 
 LlValue * OTypeNameExpr::Generate(OScope * scope)

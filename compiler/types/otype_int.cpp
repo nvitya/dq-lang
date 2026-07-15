@@ -305,12 +305,6 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (TK_INT != tks)
   {
-    if ((TK_CHAR == tks) && (this == g_builtins->type_cchar))
-    {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
     if (is_explicit_cast && (TK_ENUM == tks))
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM, this->name, resolved_src->name);
@@ -375,7 +369,6 @@ int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_INT != tks)
   {
-    if ((TK_CHAR == tks) && (this == g_builtins->type_cchar)) return 1;
     if (is_explicit_cast && (TK_BOOL == tks)) return 1;
     if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
     if (is_explicit_cast && (TK_POINTER == tks)) return (g_compiler->IsPointerWidthIntegerType(this) ? 1 : -1);

@@ -3,7 +3,7 @@
 use libc/stdio;
 use rtl/strfunc;
 
-function PrintBytes(label : ^cchar, text : strview):
+function PrintBytes(label : ^char, text : strview):
     printf("%s = len:%li bytes:", label, text.length);
     var i : int = 0;
     while i < text.length:
@@ -13,7 +13,7 @@ function PrintBytes(label : ^cchar, text : strview):
     printf("\n");
 endfunc
 
-function PrintWCharArray(label : ^cchar, arr : []wchar):
+function PrintWCharArray(label : ^char, arr : []wchar):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:
@@ -23,7 +23,7 @@ function PrintWCharArray(label : ^cchar, arr : []wchar):
     printf("\n");
 endfunc
 
-function PrintChar16Array(label : ^cchar, arr : []char16):
+function PrintChar16Array(label : ^char, arr : []char16):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:
@@ -90,12 +90,12 @@ function *Main() -> int:
     var bad16 : [*]char16 = [char16(0xD800), char16(65), char16(0)];
     PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], wchar(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
 
-    printf("int_to_char = %li %li %li\n", Ord(IntToChar(65)), Ord(IntToChar(-1)), Ord(IntToChar(300, '?'))); //?check("int_to_char", "65 255 63")
+    printf("int_to_char = %li %li %li\n", Ord(IntToChar(65)), Ord(IntToChar(255)), Ord(IntToChar(-1, '?'))); //?check("int_to_char", "65 255 63")
     printf("int_to_wchar = %li %li\n", Ord(IntToWchar(0x41)), Ord(IntToWchar(0x110000, '?'))); //?check("int_to_wchar", "65 63")
 
     var caught_char : bool = false;
     try:
-        var bad_char : char = IntToChar(256);
+        var bad_char : char = IntToChar(-1);
     except Exception:
         caught_char = true;
     endtry

@@ -6,7 +6,7 @@ const EXCL_CONST : int = 11;
 var sel_var : int = 5;
 var hidden_var : int = 13;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function sel_func(a : int) -> int:
     result = a + 3;

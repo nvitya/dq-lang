@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Windows
  */
 
-function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
+function main(argc : int, argv : ^^char) -> int  [[cexport]]
 
 implementation
 
@@ -57,7 +57,7 @@ var dq_win_fault_backtrace : [DQ_WIN_FAULT_BACKTRACE_MAX] pointer
 var dq_win_fault_handling : int = 0
 var dq_win_fault_backtrace_count : int = 0
 
-function OsRtErrorHandler(emsg : ^cchar):
+function OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
@@ -137,7 +137,7 @@ endfunc
 
 // libc entry point 'main()'
 
-function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
+function main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
     win_AddVectoredExceptionHandler(1, DqWinFaultHandler)

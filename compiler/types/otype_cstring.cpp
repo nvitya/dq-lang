@@ -145,7 +145,7 @@ LlDiType * OTypeCString::CreateDiType()
   if (maxlen > 0)
   {
     // Debug info as array of i8
-    LlDiType * elem_di = di_builder->createBasicType("cchar", 8, llvm::dwarf::DW_ATE_signed_char);
+    LlDiType * elem_di = di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_signed_char);
     llvm::Metadata * subscripts[] = {
       di_builder->getOrCreateSubrange(0, uint64_t(maxlen) + 1)
     };
@@ -158,7 +158,7 @@ LlDiType * OTypeCString::CreateDiType()
   {
     // Unsized descriptor: struct {ptr, u32, u32}
     LlDiType * ptr_di = di_builder->createPointerType(
-        di_builder->createBasicType("cchar", 8, llvm::dwarf::DW_ATE_signed_char),
+        di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_signed_char),
         TARGET_PTRSIZE * 8);
     LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
 
@@ -427,7 +427,7 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
 static bool IsCStringCharSource(OExpr * expr)
 {
   OType * type = expr ? expr->ResolvedType() : nullptr;
-  return type && (type == g_builtins->type_char || type == g_builtins->type_cchar);
+  return type && type == g_builtins->type_char;
 }
 
 static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const string & ptr_func,

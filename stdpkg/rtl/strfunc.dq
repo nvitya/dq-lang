@@ -51,7 +51,7 @@ function StrfIsValidWChar(wc : wchar) -> bool:
 endfunc
 
 function IntToChar(value : int) -> char [[overload]]:
-    if value > 255:
+    if value < 0 or value > 255:
         raise EStrError('char value out of range: {}', [value])
         return char(0)
     endif
@@ -59,7 +59,7 @@ function IntToChar(value : int) -> char [[overload]]:
 endfunc
 
 function IntToChar(value : int, defvalue : char) -> char [[overload]]:
-    if value > 255:
+    if value < 0 or value > 255:
         return defvalue
     endif
     return char(value)

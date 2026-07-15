@@ -4,7 +4,7 @@ use libc/stdio;
 
 const TEST_CS_LEN : int = 31;
 
-[[external]] function putchar(c : cchar) -> int
+[[external]] function putchar(c : char) -> int
 
 function PrintEscapedChar(ch : char):
     if ch == char(9):
@@ -20,19 +20,19 @@ function PrintEscapedChar(ch : char):
         return;
     endif
     if ch == char(34):
-        putchar(cchar(92));
-        putchar(cchar(34));
+        putchar(char(92));
+        putchar(char(34));
         return;
     endif
     if ch == char(92):
-        putchar(cchar(92));
-        putchar(cchar(92));
+        putchar(char(92));
+        putchar(char(92));
         return;
     endif
-    putchar(cchar(ch));
+    putchar(char(ch));
 endfunc
 
-function PrintText(label : ^cchar, text : cstring):
+function PrintText(label : ^char, text : cstring):
     printf("%s = [%li] \"", label, text.length);
     var i : int = 0;
     while i < text.length:
@@ -55,13 +55,13 @@ function AppendName(item : ref SName):
     item.name.Append(" two");
 endfunc
 
-function MutateThroughPointer(apc : ^cchar):
-    var pc : ^cchar = apc;
-    pc^ = cchar('Z');
+function MutateThroughPointer(apc : ^char):
+    var pc : ^char = apc;
+    pc^ = char('Z');
     pc += 1;
-    pc^ = cchar('Z');
+    pc^ = char('Z');
     pc += 1;
-    pc^ = 0;
+    pc^ = char(0);
 endfunc
 
 function *Main() -> int:
@@ -74,7 +74,7 @@ function *Main() -> int:
     cs = "abcdefghi";
     PrintText("cstring_assign_trunc", cs); //?check("cstring_assign_trunc", '[5] "abcde"')
 
-    var pc : ^cchar = "asdf";
+    var pc : ^char = "asdf";
     var cs_pc : cstring(3);
     cs_pc = pc;
     PrintText("cstring_assign_pc_trunc", cs_pc); //?check("cstring_assign_pc_trunc", '[3] "asd"')
@@ -86,11 +86,11 @@ function *Main() -> int:
     PrintText("cstring_assign_cstr_trunc", cs_str); //?check("cstring_assign_cstr_trunc", '[3] "abc"')
 
     cs = "abc";
-    cs[0] = cchar('X');
-    cs[2] = cchar('Y');
+    cs[0] = char('X');
+    cs[2] = char('Y');
     PrintText("cstring_index_assign", cs); //?check("cstring_index_assign", '[3] "XbY"')
     cs = "abcdef";
-    cs[3] = cchar(0);
+    cs[3] = char(0);
     PrintText("cstring_zero_assign", cs); //?check("cstring_zero_assign", '[3] "abc"')
 
     cs = "abc";

@@ -442,28 +442,28 @@ function OJson.ParseObject(sp : OStrParse):
         endif
         var n : str = ParseString(sp)
 
-    sp.SkipSpaces()
-    if sp.readp >= sp.bufend  or sp.readp^ <> ':':
-        Error(sp, 'Expected ":" after object name')
-    endif
-    sp.readp += 1
-
-    var child : OJson = AddNode(n, nkNull)
-    child.ParseValue(sp)
-
-    sp.SkipSpaces()
-    if sp.readp >= sp.bufend:
-        Error(sp, 'Unterminated object')
-    endif
-
-    if sp.readp^ == ',':
+        sp.SkipSpaces()
+        if sp.readp >= sp.bufend  or sp.readp^ <> ':':
+            Error(sp, 'Expected ":" after object name')
+        endif
         sp.readp += 1
-    elif sp.readp^ == '}':
-        sp.readp += 1
-        return
-    else:
-        Error(sp, 'Expected "," or "}" in object')
-    endif
+
+        var child : OJson = AddNode(n, nkNull)
+        child.ParseValue(sp)
+
+        sp.SkipSpaces()
+        if sp.readp >= sp.bufend:
+            Error(sp, 'Unterminated object')
+        endif
+
+        if sp.readp^ == ',':
+            sp.readp += 1
+        elif sp.readp^ == '}':
+            sp.readp += 1
+            return
+        else:
+            Error(sp, 'Expected "," or "}" in object')
+        endif
     endwhile
 endfunc
 
@@ -483,19 +483,19 @@ function OJson.ParseArray(sp : OStrParse):
         var child : OJson = AddNode('', nkNull)
         child.ParseValue(sp)
 
-    sp.SkipSpaces()
-    if sp.readp >= sp.bufend:
-        Error(sp, 'Unterminated array')
-    endif
+        sp.SkipSpaces()
+        if sp.readp >= sp.bufend:
+            Error(sp, 'Unterminated array')
+        endif
 
-    if sp.readp^ == ',':
-        sp.readp += 1
-    elif sp.readp^ == ']':
-        sp.readp += 1
-        return
-    else:
-        Error(sp, 'Expected "," or "]" in array')
-    endif
+        if sp.readp^ == ',':
+            sp.readp += 1
+        elif sp.readp^ == ']':
+            sp.readp += 1
+            return
+        else:
+            Error(sp, 'Expected "," or "]" in array')
+        endif
     endwhile
 endfunc
 
@@ -511,81 +511,81 @@ function OJson.ParseString(sp : OStrParse) -> str:
         var c : char = sp.readp^
         sp.readp += 1
 
-    if c == '"':
-        return
-    endif
-
-    if c < char(32):
-        Error(sp, 'Invalid control character in string')
-    endif
-
-    if c <> char(92):
-        result.Append(cchar(c))
-        continue
-    endif
-
-    if sp.readp >= sp.bufend:
-        Error(sp, 'Unterminated escape sequence')
-    endif
-
-    var e : char = sp.readp^
-    sp.readp += 1
-
-    if e == '"':
-        result.Append('"')
-    elif e == char(92):
-        result.Append(char(92))
-    elif e == '/':
-        result.Append('/')
-    elif e == 'b':
-        result.Append(char(8))
-    elif e == 'f':
-        result.Append(char(12))
-    elif e == 'n':
-        result.Append(char(10))
-    elif e == 'r':
-        result.Append(char(13))
-    elif e == 't':
-        result.Append(char(9))
-    elif e == 'u':
-        var startp : ^cchar = sp.readp
-        sp.ReadHexNumbers()
-        if sp.prevlen <> 4:
-            Error(sp, 'Invalid unicode escape')
+        if c == '"':
+            return
         endif
-        var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
 
-      if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
-          if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
-              Error(sp, 'Invalid unicode surrogate pair')
-          endif
-          sp.readp += 2
-          startp = sp.readp
-          sp.ReadHexNumbers()
-          if sp.prevlen <> 4:
-              Error(sp, 'Invalid unicode escape')
-          endif
-          var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
-          if low < uint32(0xDC00)  or low > uint32(0xDFFF):
-              Error(sp, 'Invalid low unicode surrogate')
-          endif
-          cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
-      elif cp >= uint32(0xDC00)  and cp <= uint32(0xDFFF):
-          Error(sp, 'Unexpected low unicode surrogate')
-      endif
+        if c < char(32):
+            Error(sp, 'Invalid control character in string')
+        endif
 
-      AppendUtf8(result, cp)
-    else:
-        Error(sp, 'Invalid escape sequence')
-    endif
+        if c <> char(92):
+            result.Append(char(c))
+            continue
+        endif
+
+        if sp.readp >= sp.bufend:
+            Error(sp, 'Unterminated escape sequence')
+        endif
+
+        var e : char = sp.readp^
+        sp.readp += 1
+
+        if e == '"':
+            result.Append('"')
+        elif e == char(92):
+            result.Append(char(92))
+        elif e == '/':
+            result.Append('/')
+        elif e == 'b':
+            result.Append(char(8))
+        elif e == 'f':
+            result.Append(char(12))
+        elif e == 'n':
+            result.Append(char(10))
+        elif e == 'r':
+            result.Append(char(13))
+        elif e == 't':
+            result.Append(char(9))
+        elif e == 'u':
+            var startp : ^char = sp.readp
+            sp.ReadHexNumbers()
+            if sp.prevlen <> 4:
+                Error(sp, 'Invalid unicode escape')
+            endif
+            var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
+
+        if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
+            if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
+                Error(sp, 'Invalid unicode surrogate pair')
+            endif
+            sp.readp += 2
+            startp = sp.readp
+            sp.ReadHexNumbers()
+            if sp.prevlen <> 4:
+                Error(sp, 'Invalid unicode escape')
+            endif
+            var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
+            if low < uint32(0xDC00)  or low > uint32(0xDFFF):
+                Error(sp, 'Invalid low unicode surrogate')
+            endif
+            cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
+        elif cp >= uint32(0xDC00)  and cp <= uint32(0xDFFF):
+            Error(sp, 'Unexpected low unicode surrogate')
+        endif
+
+        AppendUtf8(result, cp)
+        else:
+            Error(sp, 'Invalid escape sequence')
+        endif
     endwhile
 
     Error(sp, 'Unterminated string')
 endfunc
 
 function OJson.ParseNumber(sp : OStrParse) -> float:
-    var startp : ^cchar = sp.readp
-    var cp     : ^cchar = sp.readp
+    var startp : ^char = sp.readp
+    var cp     : ^char = sp.readp
 
     if cp < sp.bufend  and cp^ == '-':
         cp += 1
@@ -678,7 +678,7 @@ function OJson.AppendJsonString(rstr : ref str, avalue : strview):
         elif c < char(32):
             rstr.AddFmt('\\u{:04X}', [Ord(c)])
         else:
-            rstr.Append(cchar(c))
+            rstr.Append(char(c))
         endif
     endfor
     rstr.Append('"')
@@ -731,7 +731,7 @@ function OJson.FindNode(apath : strview) -> OJson:
                 name = ''
             endif
         else:
-            name.Append(cchar(c))
+            name.Append(char(c))
         endif
     endfor
 
@@ -743,7 +743,6 @@ function OJson.FindNode(apath : strview) -> OJson:
     endif
 
     return cur
-
 endfunc
 
 function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
@@ -770,16 +769,16 @@ function OJson.ForcePath(apath : strview) -> OJson:
                     cur.m_kind = nkObject
                 endif
 
-        var next : OJson = cur.ChildByName(name)
-        if next == null:
-            next = cur.AddObj(name)
+                var next : OJson = cur.ChildByName(name)
+                if next == null:
+                    next = cur.AddObj(name)
+                endif
+                cur = next
+                name = ''
+            endif
+        else:
+            name.Append(char(c))
         endif
-        cur = next
-        name = ''
-      endif
-    else:
-        name.Append(cchar(c))
-    endif
     endfor
 
     if name <> '':
@@ -788,11 +787,11 @@ function OJson.ForcePath(apath : strview) -> OJson:
             cur.m_kind = nkObject
         endif
 
-    var next : OJson = cur.ChildByName(name)
-    if next == null:
-        next = cur.AddObj(name)
-    endif
-    cur = next
+        var next : OJson = cur.ChildByName(name)
+        if next == null:
+            next = cur.AddObj(name)
+        endif
+        cur = next
     endif
 
     return cur

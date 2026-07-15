@@ -1387,32 +1387,12 @@ OExpr * ODqCompParserExpr::ParseComparison()
   }
   if (IsCharacterType(ltype) || IsCharacterType(rtype))
   {
-    if (ltype == g_builtins->type_cchar && rtype == g_builtins->type_char)
-    {
-      ConvertExprToType(rtype, &left, EXPCF_GENERATE_ERRORS);
-      ltype = rtype;
-    }
-    else if (rtype == g_builtins->type_cchar && ltype == g_builtins->type_char)
-    {
-      ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
-      rtype = ltype;
-    }
     if (ltype != rtype)
     {
       int64_t left_literal_value = 0;
       int64_t right_literal_value = 0;
       bool left_is_wchar_literal = TryGetDirectWCharLiteralValue(left, left_literal_value);
       bool right_is_wchar_literal = TryGetDirectWCharLiteralValue(right, right_literal_value);
-      if (ltype == g_builtins->type_cchar && right_is_wchar_literal && right_literal_value <= 255)
-      {
-        ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
-        rtype = ltype;
-      }
-      if (rtype == g_builtins->type_cchar && left_is_wchar_literal && left_literal_value <= 255)
-      {
-        ConvertExprToType(rtype, &left, EXPCF_GENERATE_ERRORS);
-        ltype = rtype;
-      }
       if (ltype && IsCharacterType(ltype) && !left_is_wchar_literal && right_is_wchar_literal)
       {
         ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
@@ -1938,7 +1918,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, cchar, str, strview, cstring, or ^cchar");
+      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, str, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2143,7 +2123,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if ((i == source_arg_index) && !IsStringMethodSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, cchar, str, strview, cstring, or ^cchar");
+      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2254,7 +2234,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     }
     if ((i == text_arg_index) && !IsTextSourceType(argexpr->ResolvedType()))
     {
-      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, cchar, str, strview, cstring, or ^cchar");
+      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();

@@ -306,7 +306,6 @@ bool IsTextSourceType(OType * type)
           || TK_STRVIEW == resolved->kind
           || TK_CSTRING == resolved->kind
           || resolved == g_builtins->type_char
-          || resolved == g_builtins->type_cchar
       || IsCCharPointerType(resolved));
 }
 
@@ -379,7 +378,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
     return GeneratePointerTextInfo(scope, expr);
   }
 
-  if (srctype == g_builtins->type_char || srctype == g_builtins->type_cchar)
+  if (srctype == g_builtins->type_char)
   {
     return GenerateCharTextInfo(scope, expr);
   }

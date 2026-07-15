@@ -3,8 +3,8 @@ struct SAttr:
     b : int [[volatile]];
 endstruct
 
-function printf(fmt : ^cchar, ...) -> int [[external('printf')]];
-function puts(s : ^cchar) -> int [[external]];
+function printf(fmt : ^char, ...) -> int [[external('printf')]];
+function puts(s : ^char) -> int [[external]];
 
 var gv : int [[virtual]];                    //?warning(AttrIgnored)
 const gc : int = 123 [[volatile]];          //?warning(AttrIgnored)

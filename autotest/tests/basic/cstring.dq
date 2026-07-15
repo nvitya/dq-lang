@@ -1,47 +1,47 @@
 // C string test
 
-// new type: "cchar": 8-bit char, same as "char" in C
-// fixed cstring(N): N usable cchars plus one hidden terminating zero byte
+// new type: "char": 8-bit char, same as "char" in C
+// fixed cstring(N): N usable chars plus one hidden terminating zero byte
 
 var dq_cstr  : cstring(255) = "DQ String Test\n";
 var dq_cstr2 : cstring(39)  = 'Using signle quotes\n';
 
 // These functions come from LIBC, so the program must be linked with the libc.
-[[external]] function putchar(c : cchar) -> int;
-[[external]] function puts(c : ^cchar) -> int;
+[[external]] function putchar(c : char) -> int;
+[[external]] function puts(c : ^char) -> int;
 
-function dq_writepc(s : ^cchar):
-    var pc : ^cchar = s;
-    while pc^ <> 0:
+function dq_writepc(s : ^char):
+    var pc : ^char = s;
+    while pc^ <> char(0):
         putchar(pc^);
         pc += 1;
     endwhile
 endfunc
 
 function dq_writestr(s : cstring):
-    var pc : ^cchar = &s[0];
-    while pc^ <> 0:
+    var pc : ^char = &s[0];
+    while pc^ <> char(0):
         putchar(pc^);
         pc += 1;
     endwhile
 endfunc
 
 function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^cchar = &src[0];
-    var psend  : ^cchar = ps + SizeOf(src);
-    var pd     : ^cchar = &dst[0];
-    var pdend  : ^cchar = pd + SizeOf(dst) - 1; // leave one char for the terminating
+    var ps     : ^char = &src[0];
+    var psend  : ^char = ps + SizeOf(src);
+    var pd     : ^char = &dst[0];
+    var pdend  : ^char = pd + SizeOf(dst) - 1; // leave one char for the terminating
     pd += Len(dst);
-    var pdstart : ^cchar = pd;
+    var pdstart : ^char = pd;
 
-    while pd < pdend  and ps < psend  and ps^ <> 0:
+    while pd < pdend  and ps < psend  and ps^ <> char(0):
         pd^ = ps^;
         pd += 1;
         ps += 1;
     endwhile
 
     if pd <> pdstart:
-        pd^ = 0; // terminate
+        pd^ = char(0); // terminate
     endif
 endfunc
 
@@ -98,7 +98,7 @@ function *Main() -> int:
     dq_writestr(s5);
     dq_writepc('"\n');     //?check(s5, '"abc"')
 
-    var pc : ^cchar = "asdf";
+    var pc : ^char = "asdf";
     var cs : cstring(31);
     cs = pc;
     dq_writepc('cs = "');

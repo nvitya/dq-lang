@@ -30,7 +30,7 @@ function choose_cb(flag : bool) -> CBUnary:
     endif
 endfunc
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf("Testing DQ callbacks:\n\n");  //?ignore('Testing DQ callbacks:')
 

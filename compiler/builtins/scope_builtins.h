@@ -59,7 +59,6 @@ public:
   OTypeChar *     type_char;
   OTypeChar16 *   type_char16;
   OTypeWchar *    type_wchar;
-  OTypeInt *      type_cchar;
   OTypeCString *  type_cstring;
   OTypeDynString * type_str;
   OTypeStrView *   type_strview;

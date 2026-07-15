@@ -1,6 +1,6 @@
 // Hosted Linux catches SIGSEGV at the top level and reports it as Exception.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function CauseSegv():
     var p : ^int = null

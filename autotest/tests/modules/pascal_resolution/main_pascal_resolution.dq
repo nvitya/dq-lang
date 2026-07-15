@@ -1,6 +1,6 @@
 use ./mid_mod;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function *Main() -> int:
   var mid <- TMidClass;

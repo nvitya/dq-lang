@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Linux
  */
 
-function main(argc : int, argv : ^^cchar) -> int  [[cexport]]
+function main(argc : int, argv : ^^char) -> int  [[cexport]]
 
 implementation
 
@@ -53,7 +53,7 @@ var dq_sigsegv_guard_active : int = 0
 var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
 
-function OsRtErrorHandler(emsg : ^cchar):
+function OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
@@ -73,7 +73,7 @@ function DqSigSegvHandler(signum : int):
     libc_raise(signum)
 endfunc
 
-function SigSegvMessage() -> ^cchar:
+function SigSegvMessage() -> ^char:
     if dq_sigsegv_signal == SIGSEGV:
         return "Segmentation fault"
     endif
@@ -151,7 +151,7 @@ endfunc
 
 // libc entry point 'main()'
 
-function main(argc : int, argv : ^^cchar) -> int  [[cexport]]:
+function main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
 

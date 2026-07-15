@@ -2,7 +2,7 @@
 
 use libc/stdio;
 
-function PrintArray(label : ^cchar, arr : []int):
+function PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:

@@ -2,7 +2,7 @@
 
 use ./mod_enum
 
-[[external]] function printf(fmt : ^cchar, ...) -> int
+[[external]] function printf(fmt : ^char, ...) -> int
 
 function *Main() -> int:
     var state : NModuleState = NModuleState.idle

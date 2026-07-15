@@ -259,7 +259,7 @@ v0.16.6:
 v0.16.5:
   - RTL: textformat changed using DQ code only
 v0.16.4:
-  - Single-char ^cchar conversion for printf('\n')
+  - Single-char ^char conversion for printf('\n')
 v0.16.3:
   - Getting address for strview characters
 v0.16.2:
@@ -296,7 +296,7 @@ v0.13.0:
     - $end, $last local symbols
     - [?] for inferred length
 v0.12.4:
-  - ^cchar is now assignable to cstring(n)
+  - ^char is now assignable to cstring(n)
 v0.12.3:
   - Another object reference handling fix
 v0.12.2:

@@ -78,7 +78,7 @@ use rtl/mem
 
 function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]]
 
-function DynArrRuntimeError(emsg : ^cchar):
+function DynArrRuntimeError(emsg : ^char):
     RuntimeError(emsg)
 endfunc
 

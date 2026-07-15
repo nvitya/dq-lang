@@ -1,6 +1,6 @@
 use ./mod_struct_methods;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function *Main() -> int:
     var s : SModChild = {};

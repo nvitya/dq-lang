@@ -61,7 +61,7 @@ function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
 function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
-function DynStrCharToByte(ch : char) -> cchar
+function DynStrCharToByte(ch : char) -> char
 
 function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : uint32)
 function DynStrSetCapacity(astr : ref ODynStrMgr, achwidth : uint8, new_capacity : uint32)
@@ -99,7 +99,7 @@ implementation
 use rtl/cstrings --
 use rtl/mem
 
-function DynStrRuntimeError(emsg : ^cchar):
+function DynStrRuntimeError(emsg : ^char):
     RuntimeError(emsg)
 endfunc
 
@@ -138,7 +138,7 @@ function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
         DynStrRuntimeError('DynStr null text data')
         return char(0)
     endif
-    result = char(^cchar(ati.dataptr)[index]^)
+    result = ^char(ati.dataptr)[index]^
 endfunc
 
 function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
@@ -185,7 +185,7 @@ function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     endif
     var i : uint32 = 0
     while i < alen:
-        if ^cchar(a.dataptr)[i]^ <> ^cchar(b.dataptr)[i]^:
+        if ^char(a.dataptr)[i]^ <> ^char(b.dataptr)[i]^:
             return false
         endif
         i += 1
@@ -325,7 +325,7 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uin
     endif
 
     if DynStrNormalizeChWidth(achwidth) <> 1:
-        // TODO: convert 2-byte and 4-byte dynamic string storage to cchar.
+        // TODO: convert 2-byte and 4-byte dynamic string storage to char.
         DynStrRuntimeError('DynStr wide-to-cstring conversion is not implemented')
         return 0
     endif
@@ -341,7 +341,7 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uin
     adst.charlen = result
     adst.info = adst.info OR DQTIF_CHARLEN_VALID
     if adst.dataptr <> null:
-        ^cchar(adst.dataptr)[result]^ = cchar(0)
+        ^char(adst.dataptr)[result]^ = char(0)
     endif
 endfunc
 
@@ -729,13 +729,13 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
     return astr.refcount
 endfunc
 
-function DynStrCharToByte(ch : char) -> cchar:
+function DynStrCharToByte(ch : char) -> char:
     var chv : uint32 = uint32(Ord(ch))
     if chv > uint32(255):
         DynStrRuntimeError('DynStr byte-only string support rejects char > 255')
-        return 0
+        return char(0)
     endif
-    result = cchar(ch)
+    result = char(ch)
 endfunc
 
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
@@ -747,7 +747,7 @@ function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
     if not DynStrCheckByteWidth(astr.chwidth):
         return char(0)
     endif
-    result = char(^cchar(astr.dataptr)[index]^)
+    result = ^char(astr.dataptr)[index]^
 endfunc
 
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
@@ -759,11 +759,11 @@ function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
     if not DynStrCheckByteWidth(astr.chwidth):
         return
     endif
-    var bch : cchar = DynStrCharToByte(ch)
+    var bch : char = DynStrCharToByte(ch)
     if not DynStrEnsureUnique(astr):
         return
     endif
-    ^cchar(astr.dataptr)[index]^ = bch
+    ^char(astr.dataptr)[index]^ = bch
 endfunc
 
 function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : uint32):
@@ -829,7 +829,7 @@ function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : u
 endfunc
 
 function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillchar : char):
-    var bch : cchar = DynStrCharToByte(fillchar)
+    var bch : char = DynStrCharToByte(fillchar)
     var old_length : uint32 = DynStrGetLength(astr)
     DynStrSetLength(astr, 1, new_length)
     if astr == null  or  new_length <= old_length:
@@ -840,7 +840,7 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
     endif
     var i : uint32 = old_length
     while i < new_length:
-        ^cchar(astr.dataptr)[i]^ = bch
+        ^char(astr.dataptr)[i]^ = bch
         i += 1
     endwhile
 endfunc

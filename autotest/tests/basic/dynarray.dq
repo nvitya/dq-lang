@@ -1,6 +1,6 @@
 // dynamic array tests
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var garr : [*]int;
 

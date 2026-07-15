@@ -6,7 +6,7 @@ const HIDDEN_VAL : int = 21;
 
 var re_var : int = 4;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function re_func(a : int) -> int:
     result = a + re_var;

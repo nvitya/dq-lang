@@ -31,7 +31,7 @@ endfunc
 
 #else
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 type CBOne = function(a : int) -> int;
 

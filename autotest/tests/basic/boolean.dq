@@ -9,9 +9,9 @@ var g_bool : bool = GVBOOL1 or GVBOOL0;
 
 #else
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
-function printbool(astr : ^cchar, abool : bool):
+function printbool(astr : ^char, abool : bool):
     printf("%s = ", astr);
     if abool:
         printf("true");

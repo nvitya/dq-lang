@@ -4,4 +4,4 @@ use ./submod reexport;
 
 const PKG_VAL : int = 40;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;

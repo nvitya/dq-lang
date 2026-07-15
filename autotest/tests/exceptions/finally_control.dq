@@ -1,6 +1,6 @@
 // finally must run before return/break/continue control transfers.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function ReturnWithFinally() -> int:
     try:

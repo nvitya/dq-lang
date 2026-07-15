@@ -1,6 +1,6 @@
 // Exception propagation across a function call.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var reached : int = 0
 

@@ -39,7 +39,7 @@ function UnsizedCStringMustAliasStorage():
 endfunc
 
 //function WideLiteralCannotBecomeRawCCharPointer():
-//  var bad_pc : ^cchar = "€"; //-?error(TypeMismatchAssign)
+//  var bad_pc : ^char = "€"; //-?error(TypeMismatchAssign)
 //endfunc
 
 function StringNeedsExplicitSetLengthFill():

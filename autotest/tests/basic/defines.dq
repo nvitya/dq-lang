@@ -11,7 +11,7 @@ var g_var : int = 555;
 
 // #define STRVAL = "Defined String"  // string defines not supported yet
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf('Testing defines...\n');  //?ignore('Testing defines...')
 

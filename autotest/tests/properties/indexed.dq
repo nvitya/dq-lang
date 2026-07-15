@@ -1,6 +1,6 @@
 // Indexed properties with unnamed, named, and multiple indices.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object OIndexedProperties:
 private

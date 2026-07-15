@@ -1,6 +1,6 @@
 // DQ integer expression auto-test
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function compare_ints(a : int, b : int) -> int:
     if a < b:

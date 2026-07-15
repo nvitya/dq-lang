@@ -2,4 +2,4 @@
 
 const PKG_VAL : int = 1000;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;

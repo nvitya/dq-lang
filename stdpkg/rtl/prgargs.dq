@@ -14,18 +14,18 @@
  */
 
 function ArgCount() -> int;
-function ArgStr(i : int) -> ^cchar;   // 0 = program args
+function ArgStr(i : int) -> ^char;   // 0 = program args
 
-function __sys_init_params(argc : int, argv : ^^cchar);  // called from the hosted RTL entry point main()
+function __sys_init_params(argc : int, argv : ^^char);  // called from the hosted RTL entry point main()
 
 implementation
 
 // Program Argument Handling
 
 var sys_argc : int      = -1;
-var sys_argv : ^^cchar  = null;
+var sys_argv : ^^char  = null;
 
-function __sys_init_params(argc : int, argv : ^^cchar):
+function __sys_init_params(argc : int, argv : ^^char):
     sys_argc = argc;
     sys_argv = argv;
 endfunc
@@ -34,7 +34,7 @@ function ArgCount() -> int:
     result = sys_argc;
 endfunc
 
-function ArgStr(i : int) -> ^cchar:
+function ArgStr(i : int) -> ^char:
     if i >= sys_argc  or  i < 0:
         return null;
     else:

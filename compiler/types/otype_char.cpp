@@ -46,11 +46,11 @@ static bool CharConstantAccepted(OType * dsttype, int64_t value)
 {
   if (dsttype == g_builtins->type_char)
   {
-    return value <= 255;
+    return value >= 0 && value <= 255;
   }
   if (dsttype == g_builtins->type_char16)
   {
-    return value <= 0xFFFF;
+    return value >= 0 && value <= 0xFFFF;
   }
   if (dsttype == g_builtins->type_wchar)
   {
@@ -64,6 +64,14 @@ static bool CharConvertFromExpr(OType * dsttype, OExpr ** rexpr, uint32_t aflags
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  int64_t literal_value = 0;
+  if (TryGetDirectWCharLiteralValue(src, literal_value) && CharConstantAccepted(dsttype, literal_value))
+  {
+    *rexpr = new OExprTypeConv(dsttype, src);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+    return true;
+  }
 
   if (is_explicit_cast)
   {
@@ -85,21 +93,6 @@ static bool CharConvertFromExpr(OType * dsttype, OExpr ** rexpr, uint32_t aflags
     return true;
   }
 
-  if (dsttype == g_builtins->type_char && resolved_src == g_builtins->type_cchar)
-  {
-    *rexpr = new OExprTypeConv(dsttype, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-
-  int64_t literal_value = 0;
-  if (TryGetDirectWCharLiteralValue(src, literal_value) && CharConstantAccepted(dsttype, literal_value))
-  {
-    *rexpr = new OExprTypeConv(dsttype, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-
   if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", dsttype->name, resolved_src ? resolved_src->name : "?");
   return false;
 }
@@ -109,19 +102,18 @@ static int CharConversionCostFromExpr(OType * dsttype, OExpr * expr, uint32_t af
   OType * resolved_src = expr->ResolvedType();
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
+  int64_t const_value = 0;
+  if (TryGetDirectWCharLiteralValue(expr, const_value) && CharConstantAccepted(dsttype, const_value)) return 1;
+
   if (is_explicit_cast)
   {
     if (!resolved_src || resolved_src->kind != TK_INT) return -1;
 
-    int64_t const_value = 0;
     if (g_compiler->TryCalculateIntConstant(expr, const_value) && !CharConstantAccepted(dsttype, const_value)) return -1;
     return 1;
   }
 
-  if (dsttype == g_builtins->type_char && resolved_src == g_builtins->type_cchar) return 1;
-
-  int64_t literal_value = 0;
-  return (TryGetDirectWCharLiteralValue(expr, literal_value) && CharConstantAccepted(dsttype, literal_value)) ? 1 : -1;
+  return -1;
 }
 
 LlDiType * OTypeChar::CreateDiType()

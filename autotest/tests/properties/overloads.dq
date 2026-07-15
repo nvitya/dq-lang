@@ -1,6 +1,6 @@
 // Property accessors are selected from overload sets by exact signature.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object OPropertyOverloads:
 private

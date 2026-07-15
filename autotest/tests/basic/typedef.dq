@@ -6,7 +6,7 @@ var f1 : TFloat = 1;
 var f2 : TFloat = 2;
 var f64 : float = 5.5;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf('DQ Typedef test\n');    //?ignore('DQ Typedef test')
     var f : TFloat = f1;

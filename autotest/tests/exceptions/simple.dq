@@ -1,6 +1,6 @@
 // Basic exception handling smoke test.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function *Main() -> int:
     try:

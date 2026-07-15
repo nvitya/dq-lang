@@ -1,10 +1,12 @@
 // Character/integer conversion type checking (ERROR test).
 
 var bad_char_literal : char = '€'; //?error(TypeMismatchAssign)
+var bad_char_negative : char = char(-1); //?error(CastInvalid)
 var bad_char_const : char = char(256); //?error(CastInvalid)
 var bad_char_folded_const : char = char(200 + 56); //?error(CastInvalid)
 var bad_wchar_surrogate : wchar = wchar(0xD800); //?error(CastInvalid)
 var bad_wchar_large : wchar = wchar(0x110000); //?error(CastInvalid)
+var bad_char16_negative : char16 = char16(-1); //?error(CastInvalid)
 var bad_char16_const : char16 = char16(0x10000); //?error(CastInvalid)
 
 function *Main() -> int:

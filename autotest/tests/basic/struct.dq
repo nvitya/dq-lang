@@ -49,9 +49,9 @@ function dq_struct_test_noderef(sm : ^SMain):
     endwhile
 endfunc
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
-function show_struct(aprefix : ^cchar, sm : ^SMain):
+function show_struct(aprefix : ^char, sm : ^SMain):
     var ep : ^SElem;
     printf('%s sm.id = %d\n', aprefix, sm.id);
     var n : int = 0;

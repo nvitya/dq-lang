@@ -1,6 +1,6 @@
 // All supported enum storage types and their boundary values.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 enum NInt8 : int8 = (minimum = -128, maximum = 127)
 enum NUint8 : uint8 = (minimum = 0, maximum = 255)

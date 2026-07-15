@@ -27,7 +27,7 @@ private:
 
 public:
   string       value;     // the string content (without padding)
-  uint32_t     maxlen;    // maximum logical cchar count (from cstring(N))
+  uint32_t     maxlen;    // maximum logical char count (from cstring(N))
 
   OValueCString(OType * atype, uint32_t amaxlen)
   :

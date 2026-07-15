@@ -171,9 +171,9 @@ struct STm:
     tm_zone   : pointer
 endstruct
 
-function libc_stat(pathname : ^cchar, statbuf : ^SStat) -> int [[external('stat')]]
+function libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]]
 function libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
-function libc_strftime(s : ^cchar, max : uint, format : ^cchar, tm : ^STm) -> uint [[external('strftime')]]
+function libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]]
 
 function StatFile(afname : strview, st : ref SStat) -> bool:
     if afname == '':
@@ -194,7 +194,7 @@ function HttpDateFromUnix(atime : int64) -> str:
 
     var fmt : cstring(31) = '%a, %d %b %Y %H:%M:%S GMT'
     var buf : cstring(63) = ''
-    if libc_strftime(&buf[0], buf.storage_size, ^cchar(&fmt[0]), &tm) == 0:
+    if libc_strftime(&buf[0], buf.storage_size, ^char(&fmt[0]), &tm) == 0:
         return ''
     endif
 
@@ -438,7 +438,7 @@ endfunc
 
 function OSConnectionHttp.ProcessInData():
     while true:
-        sp.Init(^cchar(&inbuf[0]), infill)
+        sp.Init(^char(&inbuf[0]), infill)
         if not sp.SearchPattern('\r\n\r\n'):
             return
         endif
@@ -446,7 +446,7 @@ function OSConnectionHttp.ProcessInData():
         header_length = sp.readp - sp.bufstart
         var fullmsglen : uint32 = uint32(header_length + 4)
 
-        sp.Init(^cchar(&inbuf[0]), header_length)
+        sp.Init(^char(&inbuf[0]), header_length)
         if not ParseRequestHeader():
             LogError('invalid request header detected. closing socket.')
             self.Close()

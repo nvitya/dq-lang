@@ -23,10 +23,10 @@ implementation
 use rtl/rtlint
 use libc/stdio
 
-function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool
-function DqBacktraceNameIsInternal(name : ^cchar) -> bool
-function DqIsMainFunction(name : ^cchar) -> bool
+function DqCstrContains(text : ^char, needle : ^char) -> bool
+function DqCstrSegmentEq(text : ^char, name : ^char) -> bool
+function DqBacktraceNameIsInternal(name : ^char) -> bool
+function DqIsMainFunction(name : ^char) -> bool
 
 const DQ_BT_SYMBOL_INFO_SIZE : uint32 = 88
 const DQ_BT_LINE_INFO_SIZE   : uint32 = 40
@@ -70,14 +70,14 @@ struct SDqWinSymbolInfo:
     Tag          : uint32
     NameLen      : uint32
     MaxNameLen   : uint32
-    Name         : [DQ_BT_SYMBOL_NAME_MAX]cchar
+    Name         : [DQ_BT_SYMBOL_NAME_MAX]char
 endstruct
 
 struct SDqWinLineInfo:
     SizeOfStruct : uint32
     Key          : pointer
     LineNumber   : uint32
-    FileName     : ^cchar
+    FileName     : ^char
     Address      : uint64
 endstruct
 
@@ -94,14 +94,14 @@ endstruct
 function win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
                                       backtrace : pointer, backtrace_hash : ^uint32) -> uint16 [[external('RtlCaptureStackBackTrace')]]
 function win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]]
-function win_GetCurrentModule(module_name : ^cchar) -> pointer [[external('GetModuleHandleA')]]
-function win_GetModuleFileName(module : pointer, filename : ^cchar, size : uint32) -> uint32 [[external('GetModuleFileNameA')]]
+function win_GetCurrentModule(module_name : ^char) -> pointer [[external('GetModuleHandleA')]]
+function win_GetModuleFileName(module : pointer, filename : ^char, size : uint32) -> uint32 [[external('GetModuleFileNameA')]]
 function win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]]
-function win_SymInitialize(process : pointer, search_path : ^cchar, invade_process : int32) -> int32 [[external('SymInitialize')]]
+function win_SymInitialize(process : pointer, search_path : ^char, invade_process : int32) -> int32 [[external('SymInitialize')]]
 function win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]]
 function win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]]
 
-function libc_fopen(filename : ^cchar, mode : ^cchar) -> pointer [[external('fopen')]]
+function libc_fopen(filename : ^char, mode : ^char) -> pointer [[external('fopen')]]
 function libc_fclose(stream : pointer) -> int [[external('fclose')]]
 function libc_fseek(stream : pointer, offset : int, origin : int) -> int [[external('fseek')]]
 function libc_ftell(stream : pointer) -> int [[external('ftell')]]
@@ -109,7 +109,7 @@ function libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) 
 function libc_malloc(size : uint) -> pointer [[external('malloc')]]
 
 function DqWinBacktraceProcess() -> pointer
-function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^cchar, line_no : refout uint32) -> bool
+function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool
 function DqWinDwarfLoad() -> bool
 
 //-------------------------------------------------------------------------------------------------
@@ -118,20 +118,20 @@ function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
     result = int(win_RtlCaptureStackBackTrace(0, uint32(max_frames), backtrace, null))
 endfunc
 
-function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
+function DqCstrContains(text : ^char, needle : ^char) -> bool:
     if text == null or needle == null:
         return false
     endif
 
-    var p : ^cchar = text
-    while p^ <> cchar(0):
-        var t : ^cchar = p
-        var n : ^cchar = needle
-        while n^ <> cchar(0) and t^ == n^:
+    var p : ^char = text
+    while p^ <> char(0):
+        var t : ^char = p
+        var n : ^char = needle
+        while n^ <> char(0) and t^ == n^:
             t += 1
             n += 1
         endwhile
-        if n^ == cchar(0):
+        if n^ == char(0):
             return true
         endif
         p += 1
@@ -140,7 +140,7 @@ function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
     return false
 endfunc
 
-function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
+function DqBacktraceNameIsInternal(name : ^char) -> bool:
     return    DqCstrContains(name, "CaptureBacktrace")
            or DqCstrContains(name, "DqExcRaise")
            or DqCstrContains(name, "DqWinFaultHandler")
@@ -148,7 +148,7 @@ function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
            or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
-function DqIsMainFunction(name : ^cchar) -> bool:
+function DqIsMainFunction(name : ^char) -> bool:
     if name == null:
         return false
     endif
@@ -157,17 +157,17 @@ function DqIsMainFunction(name : ^cchar) -> bool:
            or DqCstrSegmentEq(name, "RunHostedMain")
 endfunc
 
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
-    var t : ^cchar = text
-    var n : ^cchar = name
-    while n^ <> cchar(0):
+function DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
+    var t : ^char = text
+    var n : ^char = name
+    while n^ <> char(0):
         if t^ <> n^:
             return false
         endif
         t += 1
         n += 1
     endwhile
-    return t^ == cchar(0)  or  t^ == cchar(124)
+    return t^ == char(0)  or  t^ == char(124)
 endfunc
 
 var win_backtrace_process : pointer = null
@@ -228,7 +228,7 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
 endfunc
 
 function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
-    while p < pend  and  p^ <> 0:
+    while p < pend  and  p^ <> char(0):
         p += 1
     endwhile
     if p < pend:
@@ -237,10 +237,10 @@ function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
     return p
 endfunc
 
-function DqCstrEq(text : ^cchar, name : ^cchar) -> bool:
-    var p : ^cchar = text
-    var n : ^cchar = name
-    while p^ <> cchar(0)  or  n^ <> cchar(0):
+function DqCstrEq(text : ^char, name : ^char) -> bool:
+    var p : ^char = text
+    var n : ^char = name
+    while p^ <> char(0)  or  n^ <> char(0):
         if p^ <> n^:
             return false
         endif
@@ -250,7 +250,7 @@ function DqCstrEq(text : ^cchar, name : ^cchar) -> bool:
     return true
 endfunc
 
-function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^cchar) -> bool:
+function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
     if name[0]^ == 47  and  string_table <> null:  // '/' + decimal string-table offset
         var offset : uint = 0
         var i : int = 1
@@ -258,12 +258,12 @@ function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^cchar) -> b
             offset = offset * 10 + name[i]^ - 48
             i += 1
         endwhile
-        return DqCstrEq(^cchar(string_table + offset), text)
+        return DqCstrEq(^char(string_table + offset), text)
     endif
 
     var i : int = 0
     while i < 8:
-        if text[i]^ == cchar(0):
+        if text[i]^ == char(0):
             return name[i]^ == 0
         endif
         if name[i]^ <> byte(text[i]^):
@@ -271,14 +271,14 @@ function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^cchar) -> b
         endif
         i += 1
     endwhile
-    return text[i]^ == cchar(0)
+    return text[i]^ == char(0)
 endfunc
 
-function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^cchar:
+function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^char:
     var p     : ^byte = file_table
     var index : uint64 = 1
-    while p < pend  and  p^ <> 0:
-        var name : ^cchar = ^cchar(p)
+    while p < pend  and  p^ <> char(0):
+        var name : ^char = ^char(p)
         p = DqSkipCstr(p, pend)
         DqReadUleb(p, pend)  // directory index
         DqReadUleb(p, pend)  // modification time
@@ -294,7 +294,7 @@ endfunc
 function DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line : int,
                         file_table : ^byte, pend : ^byte,
                         matched : ref bool, last_file : ref uint64, last_line : ref int,
-                        out_file : refout ^cchar, out_line : refout uint32) -> bool:
+                        out_file : refout ^char, out_line : refout uint32) -> bool:
     if address > target:
         if matched:
             out_file = DqDwarfFileName(file_table, pend, last_file)
@@ -316,7 +316,7 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
                                 min_inst_len : uint8, line_base : int,
                                 line_range : uint8, opcode_base : uint8,
                                 std_lengths : ^byte, target : uint64,
-                                out_file : refout ^cchar, out_line : refout uint32) -> bool:
+                                out_file : refout ^char, out_line : refout uint32) -> bool:
 
     if line_range == 0:
         return false
@@ -410,7 +410,7 @@ function DqWinDwarfLoad() -> bool:
     endif
     win_dwarf.loaded = true
 
-    var path : [DQ_BT_EXE_PATH_MAX]cchar
+    var path : [DQ_BT_EXE_PATH_MAX]char
     if win_GetModuleFileName(null, &path[0], uint32(DQ_BT_EXE_PATH_MAX)) == 0:
         return false
     endif
@@ -498,7 +498,7 @@ function DqWinDwarfLoad() -> bool:
     return false
 endfunc
 
-function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^cchar, line_no : refout uint32) -> bool:
+function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool:
     file_name = null
     line_no = 0
     if not DqWinDwarfLoad():
@@ -543,7 +543,7 @@ function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^cchar, line_no : 
                 var std_lengths : ^byte = p
                 p += uint(opcode_base - uint8(1))
 
-                while p < header_end  and  p^ <> 0:
+                while p < header_end  and  p^ <> char(0):
                     p = DqSkipCstr(p, header_end)
                 endwhile
                 if p < header_end:
@@ -587,7 +587,7 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
         if win_SymGetLineFromAddr64(process, uint64(pc), &line_displacement, &line) <> 0 and line.FileName <> null:
             printf("  #%d %s @ %s:%lu\n", index, &symbol.Name[0], line.FileName, uint(line.LineNumber))
         else:
-            var dwarf_file : ^cchar = null
+            var dwarf_file : ^char = null
             var dwarf_line : uint32 = 0
             if DqWinDwarfLineForPc(pc, dwarf_file, dwarf_line):
                 printf("  #%d %s @ ./%s:%lu\n", index, &symbol.Name[0], dwarf_file, uint(dwarf_line))

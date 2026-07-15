@@ -1,4 +1,4 @@
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function test_optional_semicolon():
     var a : int = 10

@@ -1,6 +1,6 @@
 // printf test - variadic external function support
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var g_str : cstring(64) = "asdf";
 function *Main() -> int:

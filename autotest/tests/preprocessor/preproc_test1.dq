@@ -69,7 +69,7 @@ var globvar6 : int = 66;
 
 // showing the rsults
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf("DQ Pre-Processor (source code feeder) test:\n\n");     //?ignore('DQ Pre-Processor (source code feeder) test:')
 

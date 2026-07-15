@@ -1,6 +1,6 @@
 // explicit cast tests
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object OCastBox:
     value : int;

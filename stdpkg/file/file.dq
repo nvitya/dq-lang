@@ -68,16 +68,16 @@ function PathFileExt(apath : str) -> str
 implementation
 
 
-function libc_fopen(filename : ^cchar, mode : ^cchar) -> pointer          [[external('fopen')]]
+function libc_fopen(filename : ^char, mode : ^char) -> pointer          [[external('fopen')]]
 function libc_fclose(stream : pointer) -> int                             [[external('fclose')]]
 function libc_fseek(stream : pointer, offset : int, origin : int) -> int  [[external('fseek')]]
 function libc_ftell(stream : pointer) -> int                              [[external('ftell')]]
 function libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint   [[external('fread')]]
 function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-function libc_access(pathname : ^cchar, mode : int) -> int                [[external('access')]]
-function libc_mkdir(pathname : ^cchar, mode : uint) -> int                [[external('mkdir')]]
-function libc_rmdir(pathname : ^cchar) -> int                             [[external('rmdir')]]
-function libc_opendir(name : ^cchar) -> pointer                           [[external('opendir')]]
+function libc_access(pathname : ^char, mode : int) -> int                [[external('access')]]
+function libc_mkdir(pathname : ^char, mode : uint) -> int                [[external('mkdir')]]
+function libc_rmdir(pathname : ^char) -> int                             [[external('rmdir')]]
+function libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
 function libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
 
 //--------------------------------------------------------------------------
@@ -95,7 +95,7 @@ function FileExists(afname : strview) -> bool:
     endif
 
     var path : str = afname
-    return libc_access(^cchar(&path[0]), ACCESS_EXISTS) == 0
+    return libc_access(^char(&path[0]), ACCESS_EXISTS) == 0
 endfunc
 
 function DirExists(adir : strview) -> bool:
@@ -104,7 +104,7 @@ function DirExists(adir : strview) -> bool:
     endif
 
     var path : str = adir
-    var dir : pointer = libc_opendir(^cchar(&path[0]))
+    var dir : pointer = libc_opendir(^char(&path[0]))
     if dir == null:
         return false
     endif
@@ -124,7 +124,7 @@ function CreateOneDir(adir : strview):
         return
     endif
 
-    if libc_mkdir(^cchar(&path[0]), DIR_MODE) <> 0:
+    if libc_mkdir(^char(&path[0]), DIR_MODE) <> 0:
         if not DirExists(path):
             raise EFileError('Directory create error: {}', [path])
         endif
@@ -143,7 +143,7 @@ function DirCreate(adir : strview, aforce : bool = false):
             raise EFileError('DirCreate: directory already exists: {}', [path])
         endif
 
-    if libc_mkdir(^cchar(&path[0]), DIR_MODE) <> 0:
+    if libc_mkdir(^char(&path[0]), DIR_MODE) <> 0:
         if not DirExists(path):
             raise EFileError('Directory create error: {}', [path])
         endif
@@ -172,7 +172,7 @@ function DirRemove(adir : strview):
         raise EFileError('DirRemove: directory does not exist: {}', [path])
     endif
 
-    if libc_rmdir(^cchar(&path[0])) <> 0:
+    if libc_rmdir(^char(&path[0])) <> 0:
         if DirExists(path):
             raise EFileError('Directory remove error: {}', [path])
         endif
@@ -261,7 +261,7 @@ function OFile.Open(afname : strview, afmode : strview):
         raise EFileError('OFile.Open: empty file name')
     endif
 
-    m_fhandle = @..libc_fopen(^cchar(&m_filename[0]), ^cchar(&afmode[0]))
+    m_fhandle = @..libc_fopen(^char(&m_filename[0]), ^char(&afmode[0]))
     if m_fhandle == null:
         raise EFileError('File open error')  // todo: get the error code
     endif

@@ -1,6 +1,6 @@
 use ./mod_selfref_object;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 function *Main() -> int:
     printf("module selfref object import=%d\n", 1); //?check("module selfref object import", 1)

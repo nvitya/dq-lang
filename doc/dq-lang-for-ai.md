@@ -105,8 +105,8 @@ endfunc
 External C functions:
 
 ```dq
-function printf(fmt : ^cchar, ...) -> int  [[external]]
-function libc_fopen(name : ^cchar, mode : ^cchar) -> pointer  [[external('fopen')]]
+function printf(fmt : ^char, ...) -> int  [[external]]
+function libc_fopen(name : ^char, mode : ^char) -> pointer  [[external('fopen')]]
 ```
 
 ## Types
@@ -118,7 +118,7 @@ bool
 byte, uint8, int8, uint16, int16, uint32, int32, uint64, int64
 uint, int
 float32, float64, float
-char, cchar
+char, char
 pointer
 ```
 

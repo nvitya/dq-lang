@@ -1,6 +1,6 @@
 // Default-property lookup and last-declaration-wins behavior.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object ODefaultBase:
 protected

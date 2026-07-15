@@ -291,7 +291,7 @@ var ch : char = s1[0];          // indexed access (Unicode-aware)
 - For protocols, ABI, packed structs
 
 ```dq
-var name : cstring(32);        // 32 usable cchars, 33-byte inline buffer
+var name : cstring(32);        // 32 usable chars, 33-byte inline buffer
 name = "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
 var s : str = name;            // converts to dynamic string
 ```

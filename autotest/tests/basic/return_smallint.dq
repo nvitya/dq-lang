@@ -8,12 +8,12 @@ function RetI8() -> int8:
     return -2;
 endfunc
 
-function RetCChar() -> cchar:
-    return 65;
+function RetChar() -> char:
+    return 'A';
 endfunc
 
 function *Main() -> int:
-    printf("return_smallint = u8:%li i8:%li cchar:%c\n",
-           int(RetU8()), int(RetI8()), int(RetCChar())); //?check("return_smallint", "u8:1 i8:-2 cchar:A")
+    printf("return_smallint = u8:%li i8:%li char:%c\n",
+           int(RetU8()), int(RetI8()), Ord(RetChar())); //?check("return_smallint", "u8:1 i8:-2 char:A")
     return 0;
 endfunc

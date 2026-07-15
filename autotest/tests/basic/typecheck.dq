@@ -15,7 +15,7 @@ object TObjectScopeCheck:
     endfunc
 endobj
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object TObjectRootScopeFuncCheck:
     function BadPrintf():

@@ -1,16 +1,16 @@
 // linked library test
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var fake_zlib_ver : cstring(20) = "v0.0.1-fake";
 
-function zlibVersion_fake() -> ^cchar:
+function zlibVersion_fake() -> ^char:
     result = &fake_zlib_ver[0];
 endfunc
 
 #linklib('z')
 
-[[external]] function zlibVersion() -> ^cchar;
+[[external]] function zlibVersion() -> ^char;
 function *Main() -> int:
     printf('Linked library test\n'); //?ignore('Linked library test')
 

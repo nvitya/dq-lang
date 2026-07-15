@@ -12,7 +12,7 @@ function sum3(a : int, b : int, c : int) -> int:
     result = a + b + c;
 endfunc
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     var cb : CBOne = add;
     var cb_src : CBSrc = add;

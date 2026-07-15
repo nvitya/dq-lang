@@ -17,7 +17,6 @@ endfunc
 function *Main() -> int:
     var c : char = 'A';
     var cmax : char = char(255);
-    var cneg : char = char(-1);
     var wc_ascii : wchar = 'A';
     var wc_euro : wchar = '€';
     var wc_smile : wchar = wchar(0x1F600);
@@ -27,20 +26,20 @@ function *Main() -> int:
     //?check("char_int.ord", "65 65 8364 55296")
 
     printf("char_int.casts = %li %li %li %li %li\n",
-           Ord(char(65)), Ord(cmax), Ord(cneg), Ord(wchar(0xFD00)), Ord(wc_smile));
-    //?check("char_int.casts", "65 255 255 64768 128512")
+           Ord(char(65)), Ord(cmax), Ord(char16(0xFFFF)), Ord(wchar(0xFD00)), Ord(wc_smile));
+    //?check("char_int.casts", "65 255 65535 64768 128512")
 
     var rv : int = GetValue(300);
     printf("char_int.runtime = %li %li %li\n", Ord(char(rv)), Ord(wchar(rv)), Ord(char16(rv)));
     //?check("char_int.runtime", "44 300 300")
 
     printf("char_int.checked = %li %li %li %li\n",
-           Ord(IntToChar(65)), Ord(IntToChar(-1)), Ord(IntToChar(300, '?')), Ord(IntToWchar(0x110000, '?')));
+           Ord(IntToChar(65)), Ord(IntToChar(255)), Ord(IntToChar(-1, '?')), Ord(IntToWchar(0x110000, '?')));
     //?check("char_int.checked", "65 255 63 63")
 
     var caught_char : bool = false;
     try:
-        var bad_char : char = IntToChar(256);
+        var bad_char : char = IntToChar(-1);
     except Exception:
         caught_char = true;
     endtry

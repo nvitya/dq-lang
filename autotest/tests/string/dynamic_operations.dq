@@ -2,7 +2,7 @@
 
 use libc/stdio;
 
-[[external]] function putchar(c : cchar) -> int;
+[[external]] function putchar(c : char) -> int;
 
 function PrintEscapedChar(ch : char):
     if ch == char(9):
@@ -18,19 +18,19 @@ function PrintEscapedChar(ch : char):
         return;
     endif
     if ch == char(34):
-        putchar(cchar(92));
-        putchar(cchar(34));
+        putchar(char(92));
+        putchar(char(34));
         return;
     endif
     if ch == char(92):
-        putchar(cchar(92));
-        putchar(cchar(92));
+        putchar(char(92));
+        putchar(char(92));
         return;
     endif
-    putchar(cchar(ch));
+    putchar(char(ch));
 endfunc
 
-function PrintText(label : ^cchar, text : strview):
+function PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length);
     var i : int = 0;
     while i < text.length:

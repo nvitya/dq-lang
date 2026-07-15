@@ -713,7 +713,7 @@ public:
 
 // --- cstring expressions ---
 
-// String literal: "hello" — type is ^cchar, creates global constant
+// String literal: "hello" — type is ^char, creates global constant
 class OCStringLit : public OExpr
 {
 public:
@@ -723,7 +723,7 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// Convert a char/cchar literal to a temporary zero-terminated C string pointer.
+// Convert a char/char literal to a temporary zero-terminated C string pointer.
 class OCharLitToCStringPtrExpr : public OExpr
 {
 public:
@@ -799,13 +799,13 @@ public:
   void      DeleteChildTree() override;
 };
 
-// Convert a ^cchar expression to an SDqTextInfo-compatible cstring descriptor.
+// Convert a ^char expression to an SDqTextInfo-compatible cstring descriptor.
 // String literals carry a known length; other pointers scan lazily at runtime.
 class OCStringLitToDescExpr : public OExpr
 {
 public:
   OExpr *    litexpr;
-  uint32_t   litlen;  // known buffer size: strlen + 1, or zero for unknown ^cchar
+  uint32_t   litlen;  // known buffer size: strlen + 1, or zero for unknown ^char
   /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;

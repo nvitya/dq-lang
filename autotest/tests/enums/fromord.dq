@@ -1,6 +1,6 @@
 // Checked integer-to-enum conversion helpers.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 

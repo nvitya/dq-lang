@@ -3,7 +3,7 @@
 use libc/stdio;
 use rtl/dynarrmgr;
 
-function PrintMgr(label : ^cchar, arr : ref ODynArrMgr):
+function PrintMgr(label : ^char, arr : ref ODynArrMgr):
     var arrlen : uint = DynArrGetLength(arr);
     printf("%s = len:%li, cap:%li, data: [", label, arrlen, DynArrGetCapacity(arr));
 
@@ -17,7 +17,7 @@ function PrintMgr(label : ^cchar, arr : ref ODynArrMgr):
     printf("]\n");
 endfunc
 
-function PrintRefState(label : ^cchar, arr : ODynArrMgr):
+function PrintRefState(label : ^char, arr : ODynArrMgr):
     if arr == null:
         printf("%s = null\n", label);
     else:
@@ -25,7 +25,7 @@ function PrintRefState(label : ^cchar, arr : ODynArrMgr):
     endif
 endfunc
 
-function PrintSlice(label : ^cchar, desc : SArraySliceDesc):
+function PrintSlice(label : ^char, desc : SArraySliceDesc):
     printf("%s = len:%li, data: [", label, desc.length);
     var i : int = 0;
     while i < desc.length:

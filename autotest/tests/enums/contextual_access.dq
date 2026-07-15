@@ -1,6 +1,6 @@
 // Identically named enumerators remain scoped and resolve from enum context.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 enum NConnection = (unknown, connected, disconnected)
 enum NResult = (unknown, success, failure)

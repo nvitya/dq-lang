@@ -22,7 +22,7 @@ function dq_ptr_default(p : ^int = null) -> int:
     endif
 endfunc
 
-[[external]] function printf(fmt : ^cchar, value : int = 77, ...) -> int;
+[[external]] function printf(fmt : ^char, value : int = 77, ...) -> int;
 function *Main() -> int:
     var x : int = 12;
 

@@ -1,8 +1,8 @@
-// Spec-level str, strview, cstring, and ^cchar function argument behavior.
+// Spec-level str, strview, cstring, and ^char function argument behavior.
 
 use libc/stdio;
 
-[[external]] function putchar(c : cchar) -> int;
+[[external]] function putchar(c : char) -> int;
 
 function PrintEscapedChar(ch : char):
     if ch == char(9):
@@ -18,19 +18,19 @@ function PrintEscapedChar(ch : char):
         return;
     endif
     if ch == char(34):
-        putchar(cchar(92));
-        putchar(cchar(34));
+        putchar(char(92));
+        putchar(char(34));
         return;
     endif
     if ch == char(92):
-        putchar(cchar(92));
-        putchar(cchar(92));
+        putchar(char(92));
+        putchar(char(92));
         return;
     endif
-    putchar(cchar(ch));
+    putchar(char(ch));
 endfunc
 
-function PrintText(label : ^cchar, text : strview):
+function PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length);
     var i : int = 0;
     while i < text.length:
@@ -40,7 +40,7 @@ function PrintText(label : ^cchar, text : strview):
     printf("\"\n");
 endfunc
 
-function PrintReadonly(label : ^cchar, text : strview):
+function PrintReadonly(label : ^char, text : strview):
     PrintText(label, text);
 endfunc
 
@@ -62,7 +62,7 @@ function *Main() -> int:
 
     var s : str = "abc";
     var cs : cstring(15) = "cbuf";
-    var pc : ^cchar = "pcstr";
+    var pc : ^char = "pcstr";
 
     PrintReadonly("arg_literal", "literal"); //?check("arg_literal", '[7] "literal"')
     PrintReadonly("arg_str", s); //?check("arg_str", '[3] "abc"')

@@ -69,11 +69,11 @@ struct SDqTextInfo:   // 12 or 16 Bytes
     info    : uint32;   // maxlen + charwidth + flags
 endstruct
 
-type FRunTimeErrorHandler = function(emsg : ^cchar);
+type FRunTimeErrorHandler = function(emsg : ^char);
 
 var rterror_handler : FRunTimeErrorHandler = null;
 
-function RuntimeError(emsg : ^cchar):
+function RuntimeError(emsg : ^char):
     if rterror_handler <> null:
         rterror_handler(emsg);
     endif

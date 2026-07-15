@@ -1,6 +1,6 @@
 // Indexed assignment evaluates receiver, indices, and value exactly once.
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var receiver_calls : int = 0;
 var index_calls : int = 0;

@@ -16,17 +16,17 @@ function AnyMgr(v : ref SDqAnyValue) -> ODynStrMgr:
     return ^ODynStrMgr(&v.data[0])^;
 endfunc
 
-function PrintText(label : ^cchar, ti : ref SDqTextInfo):
+function PrintText(label : ^char, ti : ref SDqTextInfo):
     printf("%s = len:%li text: \"", label, int(TextInfoGetLength(ti)));
     var i : int = 0;
     while i < ti.charlen:
-        printf("%c", int(^cchar(ti.dataptr)[i]^));
+        printf("%c", Ord(^char(ti.dataptr)[i]^));
         i += 1;
     endwhile
     printf("\"\n");
 endfunc
 
-function PrintString(label : ^cchar, text : strview):
+function PrintString(label : ^char, text : strview):
     printf("%s = len:%li text: \"", label, text.length);
     var i : int = 0;
     while i < text.length:
@@ -36,14 +36,14 @@ function PrintString(label : ^cchar, text : strview):
     printf("\"\n");
 endfunc
 
-function PrintAnyText(label : ^cchar, av : ref SDqAnyValue):
+function PrintAnyText(label : ^char, av : ref SDqAnyValue):
     var empty : SDqTextInfo = {};
     var view : SDqTextInfo = {};
     AnyValAsText(av, empty, view);
     PrintText(label, view);
 endfunc
 
-function PrintAnyState(label : ^cchar, av : ref SDqAnyValue):
+function PrintAnyState(label : ^char, av : ref SDqAnyValue):
     var empty : SDqTextInfo = {};
     var view : SDqTextInfo = {};
     AnyValAsText(av, empty, view);
@@ -63,7 +63,7 @@ endfunc
 function *Main() -> int:
     printf("DQ AnyValue RTL test\n"); //?ignore("DQ AnyValue RTL test")
 
-    var srcbuf : [5]cchar = [cchar(97), cchar(98), cchar(99), cchar(100), cchar(101)];
+    var srcbuf : [5]char = [char(97), char(98), char(99), char(100), char(101)];
     var desc : SDqTextInfo = {};
     MakeText(desc, &srcbuf[0], 5);
 
@@ -85,7 +85,7 @@ function *Main() -> int:
     PrintAnyState("copy-after-copy", copy); //?check("copy-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
     PrintAnyState("source-after-copy", av); //?check("source-after-copy", "kind:10 istext:1 isstr:1 len:5 ref:2")
 
-    var suffixbuf : [1]cchar = [cchar(120)];
+    var suffixbuf : [1]char = [char(120)];
     MakeText(desc, &suffixbuf[0], 1);
     DynStrAppend(^ODynStrMgr(&copy.data[0])^, desc, -1);
     PrintAnyText("source-after-cow", av); //?check("source-after-cow", 'len:5 text: "abcde"')

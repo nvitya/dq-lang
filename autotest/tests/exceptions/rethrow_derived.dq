@@ -2,7 +2,7 @@
 
 use rtl/exception;
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 object EDerived(Exception):
 public

@@ -1,8 +1,8 @@
-// Spec-level string literal, empty value, char/cchar, and equality behavior.
+// Spec-level string literal, empty value, char/char, and equality behavior.
 
 use libc/stdio;
 
-[[external]] function putchar(c : cchar) -> int;
+[[external]] function putchar(c : char) -> int;
 
 function PrintEscapedChar(ch : char):
     if ch == char(9):
@@ -18,19 +18,19 @@ function PrintEscapedChar(ch : char):
         return;
     endif
     if ch == char(34):
-        putchar(cchar(92));
-        putchar(cchar(34));
+        putchar(char(92));
+        putchar(char(34));
         return;
     endif
     if ch == char(92):
-        putchar(cchar(92));
-        putchar(cchar(92));
+        putchar(char(92));
+        putchar(char(92));
         return;
     endif
-    putchar(cchar(ch));
+    putchar(char(ch));
 endfunc
 
-function PrintText(label : ^cchar, text : strview):
+function PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length);
     var i : int = 0;
     while i < text.length:
@@ -66,7 +66,7 @@ function *Main() -> int:
     var s_lit : str = "asdf";
     var v_lit : strview = "asdf";
     var cs_lit : cstring(31) = "asdf";
-    var pc_lit : ^cchar = "asdf";
+    var pc_lit : ^char = "asdf";
     PrintText("literal_str", s_lit); //?check("literal_str", '[4] "asdf"')
     PrintText("literal_view", v_lit); //?check("literal_view", '[4] "asdf"')
     PrintText("literal_cstring", cs_lit); //?check("literal_cstring", '[4] "asdf"')
@@ -81,12 +81,12 @@ function *Main() -> int:
     //var wide32 : str = "😀";
     //printf("wide_literal_codes = u16:%li u32:%li\n", wide16[0], wide32[0]); //-?check("wide_literal_codes", "u16:8364 u32:128512")
 
-    printf("type_sizes = char:%li cchar:%li wchar:%li\n", SizeOf(char), SizeOf(cchar), SizeOf(wchar)); //?check("type_sizes", "char:1 cchar:1 wchar:4")
+    printf("type_sizes = char:%li wchar:%li\n", SizeOf(char), SizeOf(wchar)); //?check("type_sizes", "char:1 wchar:4")
 
     var eq_str : str = "abc";
     var eq_view : strview = "abc";
     var eq_cs : cstring(8) = "abc";
-    var eq_pc : ^cchar = "abc";
+    var eq_pc : ^char = "abc";
     printf("string_equality = str:%li view:%li cstring:%li pc:%li ne:%li\n",
            Flag(eq_str == "abc"), Flag(eq_str == eq_view), Flag(eq_cs == eq_str), Flag(eq_str == eq_pc), Flag(eq_str <> "abd")); //?check("string_equality", "str:1 view:1 cstring:1 pc:1 ne:1")
 

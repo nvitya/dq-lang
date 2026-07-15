@@ -127,8 +127,8 @@ function ONotObject.method() -> int:  //?error(TypeExpected)
     return 0;
 endfunc
 
-[[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
-[[external("printf")]] function extpick(fmt : ^cchar, value : int = 77, ...) -> int [[overload]];
+[[external("puts")]] function extpick(msg : ^char) -> int [[overload]];
+[[external("printf")]] function extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]];
 
 type CB1 = function(a : int) -> int;
 type CBBad = function(a : float) -> int;
@@ -157,9 +157,9 @@ endfunc
 
 #else
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
-[[external("puts")]] function extpick(msg : ^cchar) -> int [[overload]];
-[[external("printf")]] function extpick(fmt : ^cchar, value : int = 77, ...) -> int [[overload]];
+[[external]] function printf(fmt : ^char, ...) -> int;
+[[external("puts")]] function extpick(msg : ^char) -> int [[overload]];
+[[external("printf")]] function extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]];
 
 type TIntAlias = int;
 type CB1 = function(a : int) -> int;

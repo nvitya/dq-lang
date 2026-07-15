@@ -11,7 +11,7 @@ function Sum(arr : []int) -> int:
     endwhile
 endfunc
 
-function PrintArray(label : ^cchar, arr : []int):
+function PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:
@@ -21,7 +21,7 @@ function PrintArray(label : ^cchar, arr : []int):
     printf("\n");
 endfunc
 
-function PrintByteArray(label : ^cchar, arr : []byte):
+function PrintByteArray(label : ^char, arr : []byte):
     printf("%s = len:%li data:", label, arr.length);
     for i : int = 0 count arr.length:
         printf(" %d", arr[i]);

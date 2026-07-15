@@ -1,6 +1,6 @@
 // simple DQ objects
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 
 var id  : int = 9;
 var id2 : int = 8;

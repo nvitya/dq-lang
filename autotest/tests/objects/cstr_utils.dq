@@ -1,34 +1,34 @@
 //?notest
 
 function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^cchar = &src[0];
-    var psend  : ^cchar = ps + SizeOf(src);
-    var pd     : ^cchar = &dst[0];
-    var pdend  : ^cchar = pd + SizeOf(dst) - 1; // leave one char for the terminating
-    var pdstart : ^cchar = pd;
+    var ps     : ^char = &src[0];
+    var psend  : ^char = ps + SizeOf(src);
+    var pd     : ^char = &dst[0];
+    var pdend  : ^char = pd + SizeOf(dst) - 1; // leave one char for the terminating
+    var pdstart : ^char = pd;
 
-    while pd < pdend  and ps < psend  and ps^ <> 0:
+    while pd < pdend  and ps < psend  and ps^ <> char(0):
         pd^ = ps^;
         pd += 1;
         ps += 1;
     endwhile
 
-    pd^ = 0; // terminate
+    pd^ = char(0); // terminate
 endfunc
 
 function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^cchar = &src[0];
-    var psend  : ^cchar = ps + SizeOf(src);
-    var pd     : ^cchar = &dst[0];
-    var pdend  : ^cchar = pd + SizeOf(dst) - 1; // leave one char for the terminating
+    var ps     : ^char = &src[0];
+    var psend  : ^char = ps + SizeOf(src);
+    var pd     : ^char = &dst[0];
+    var pdend  : ^char = pd + SizeOf(dst) - 1; // leave one char for the terminating
     pd += Len(dst);
-    var pdstart : ^cchar = pd;
+    var pdstart : ^char = pd;
 
-    while pd < pdend  and ps < psend  and ps^ <> 0:
+    while pd < pdend  and ps < psend  and ps^ <> char(0):
         pd^ = ps^;
         pd += 1;
         ps += 1;
     endwhile
 
-    pd^ = 0; // terminate
+    pd^ = char(0); // terminate
 endfunc

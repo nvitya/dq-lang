@@ -23,19 +23,19 @@ implementation
 use rtl/rtlint
 use libc/stdio
 
-function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool
-function DqBacktraceNameIsInternal(name : ^cchar) -> bool
-function DqIsMainFunction(name : ^cchar) -> bool
+function DqCstrContains(text : ^char, needle : ^char) -> bool
+function DqCstrSegmentEq(text : ^char, name : ^char) -> bool
+function DqBacktraceNameIsInternal(name : ^char) -> bool
+function DqIsMainFunction(name : ^char) -> bool
 struct SDqDlInfo:
-    dli_fname : ^cchar
+    dli_fname : ^char
     dli_fbase : pointer
-    dli_sname : ^cchar
+    dli_sname : ^char
     dli_saddr : pointer
 endstruct
 
 var libc_stderr : pointer  [[external("stderr")]]
-function libc_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
+function libc_fprintf(stream : pointer, fmt : ^char, ...) -> int  [[external('fprintf')]]
 function libc_backtrace(buffer : pointer, size : int) -> int  [[external('backtrace')]]
 function libc_dladdr(addr : pointer, info : refout SDqDlInfo) -> int  [[external('dladdr')]]
 
@@ -46,16 +46,16 @@ struct SDqBtData:
     stop_printing : bool
 endstruct
 
-type FBacktraceError   = function(data : pointer, msg : ^cchar, errnum : int)
-type FBacktraceFull    = function(data : ^SDqBtData, pc : uint, filename : ^cchar, lineno : int, function_name : ^cchar) -> int
-type FBacktraceSyminfo = function(data : ^SDqBtData, pc : uint, symname : ^cchar, symval : uint, symsize : uint)
+type FBacktraceError   = function(data : pointer, msg : ^char, errnum : int)
+type FBacktraceFull    = function(data : ^SDqBtData, pc : uint, filename : ^char, lineno : int, function_name : ^char) -> int
+type FBacktraceSyminfo = function(data : ^SDqBtData, pc : uint, symname : ^char, symval : uint, symsize : uint)
 
-function libc_backtrace_create_state(filename : ^cchar, threaded : int, err_cb : FBacktraceError, data : pointer) -> pointer  [[external('backtrace_create_state')]]
+function libc_backtrace_create_state(filename : ^char, threaded : int, err_cb : FBacktraceError, data : pointer) -> pointer  [[external('backtrace_create_state')]]
 function libc_backtrace_pcinfo(state : pointer, pc : uint, cb : FBacktraceFull, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_pcinfo')]]
 function libc_backtrace_syminfo(state : pointer, addr : uint, cb : FBacktraceSyminfo, err_cb : FBacktraceError, data : ^SDqBtData) -> int  [[external('backtrace_syminfo')]]
 
-function DqCstrLen(s : ^cchar) -> uint
-function DqTrimTrailingNewline(s : ^cchar)
+function DqCstrLen(s : ^char) -> uint
+function DqTrimTrailingNewline(s : ^char)
 
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo, stop_printing : ^bool) -> bool
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint
@@ -66,20 +66,20 @@ function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
     result = libc_backtrace(backtrace, max_frames)
 endfunc
 
-function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
+function DqCstrContains(text : ^char, needle : ^char) -> bool:
     if text == null or needle == null:
         return false
     endif
 
-    var p : ^cchar = text
-    while p^ <> cchar(0):
-        var t : ^cchar = p
-        var n : ^cchar = needle
-        while n^ <> cchar(0) and t^ == n^:
+    var p : ^char = text
+    while p^ <> char(0):
+        var t : ^char = p
+        var n : ^char = needle
+        while n^ <> char(0) and t^ == n^:
             t += 1
             n += 1
         endwhile
-        if n^ == cchar(0):
+        if n^ == char(0):
             return true
         endif
         p += 1
@@ -88,46 +88,46 @@ function DqCstrContains(text : ^cchar, needle : ^cchar) -> bool:
     return false
 endfunc
 
-function DqBacktraceNameIsInternal(name : ^cchar) -> bool:
+function DqBacktraceNameIsInternal(name : ^char) -> bool:
     return DqCstrContains(name, "CaptureBacktrace") or DqCstrContains(name, "DqExcRaise") or DqCstrContains(name, "libc_backtrace") or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
-function DqIsMainFunction(name : ^cchar) -> bool:
+function DqIsMainFunction(name : ^char) -> bool:
     if name == null:
         return false
     endif
     return DqCstrSegmentEq(name, "Main") or DqCstrSegmentEq(name, "main") or DqCstrSegmentEq(name, "RunHostedMain")
 endfunc
 
-function DqCstrSegmentEq(text : ^cchar, name : ^cchar) -> bool:
-    var t : ^cchar = text
-    var n : ^cchar = name
-    while n^ <> cchar(0):
+function DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
+    var t : ^char = text
+    var n : ^char = name
+    while n^ <> char(0):
         if t^ <> n^:
             return false
         endif
         t += 1
         n += 1
     endwhile
-    return t^ == cchar(0)  or  t^ == cchar(124)
+    return t^ == char(0)  or  t^ == char(124)
 endfunc
 
-function DqCstrLen(s : ^cchar) -> uint:
+function DqCstrLen(s : ^char) -> uint:
     if s == null:
         return 0
     endif
 
-    var p : ^cchar = s
-    while p^ <> cchar(0):
+    var p : ^char = s
+    while p^ <> char(0):
         p += 1
     endwhile
     return uint(p - s)
 endfunc
 
-function DqTrimTrailingNewline(s : ^cchar):
+function DqTrimTrailingNewline(s : ^char):
     var len : uint = DqCstrLen(s)
-    while len > 0 and (^cchar(s)[len - 1]^ == cchar(10) or ^cchar(s)[len - 1]^ == cchar(13)):
-        ^cchar(s)[len - 1]^ = cchar(0)
+    while len > 0 and (^char(s)[len - 1]^ == char(10) or ^char(s)[len - 1]^ == char(13)):
+        ^char(s)[len - 1]^ = char(0)
         len -= 1
     endwhile
 endfunc
@@ -158,10 +158,10 @@ function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInf
     return true
 endfunc
 
-function DqBtErrorCallback(data : pointer, msg : ^cchar, errnum : int):
+function DqBtErrorCallback(data : pointer, msg : ^char, errnum : int):
 endfunc
 
-function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^cchar, lineno : int, function_name : ^cchar) -> int:
+function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^char, lineno : int, function_name : ^char) -> int:
     if data^.hide_internal:
         if function_name == null or DqBacktraceNameIsInternal(function_name):
             return 0
@@ -189,7 +189,7 @@ function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^cchar, linen
     return 0
 endfunc
 
-function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^cchar, symval : uint, symsize : uint):
+function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^char, symval : uint, symsize : uint):
     if data^.hide_internal:
         if symname == null or DqBacktraceNameIsInternal(symname):
             return

@@ -11,12 +11,12 @@ DQ has these string-related character/text forms in this draft:
 
 ```dq
 char          // uint32 character value
-cchar         // uint8 C-compatible character value
+char         // uint8 C-compatible character value
 str           // dynamic refcounted copy-on-write character string
 strview       // read-only non-owning view of character data
-cstring(N)   // fixed-size C-compatible zero-terminated cchar storage
+cstring(N)   // fixed-size C-compatible zero-terminated char storage
 cstring      // non-owning mutable bounded C-string alias / fat pointer
-^cchar        // pointer to zero-terminated C-compatible cchar storage
+^char        // pointer to zero-terminated C-compatible char storage
 ```
 
 `char` is the normal DQ character type.
@@ -25,22 +25,22 @@ cstring      // non-owning mutable bounded C-string alias / fat pointer
 char == uint32
 ```
 
-`cchar` is the C-compatible 8-bit character type.
+`char` is the C-compatible 8-bit character type.
 
 ```dq
-cchar == uint8
+char == uint8
 ```
 
 A `str` stores `char` values. Its public length is measured in characters, not bytes.
 
 A `strview` is a read-only, non-owning view of existing character data. Its public length is also measured in characters. A `strview` may refer to dynamic str storage, fixed `cstring(N)` storage, str literal storage, temporary compiler-generated source data, or external C-compatible zero-terminated storage after scanning.
 
-A `cstring(N)` stores at most `N` logical `cchar` characters and has one hidden zero terminator byte. Therefore its actual storage size is `N + 1` bytes.
+A `cstring(N)` stores at most `N` logical `char` characters and has one hidden zero terminator byte. Therefore its actual storage size is `N + 1` bytes.
 
 For a C-style buffer with raw storage size `maxlen`, the corresponding DQ type is `cstring(maxlen - 1)`, because one byte is reserved for the zero terminator.
 
 ```dq
-var cs : cstring(31);  // 31 usable cchars, 32 bytes of storage
+var cs : cstring(31);  // 31 usable chars, 32 bytes of storage
 ```
 
 Unsized `cstring` is not a storage type. It is a non-owning mutable bounded C-string alias represented as a fat pointer / descriptor. It carries at least a data pointer, a maximum logical length, character width/encoding information, flags, and possibly a valid current length.
@@ -55,7 +55,7 @@ endfunc
 
 `strview` is the normal non-owning read-only string source type for high-performance APIs.
 
-`cstring(N)`, unsized `cstring`, and `^cchar` exist mainly for C interoperability.
+`cstring(N)`, unsized `cstring`, and `^char` exist mainly for C interoperability.
 
 ## Type Overview
 
@@ -65,7 +65,7 @@ endfunc
 | `strview` | no | runtime | borrowed/external/static | 1, 2, or 4 bytes per character | no | read-only |
 | `cstring(N)` | yes | runtime, max `N` | inline/static/local/object storage | 1 byte | up to max length | mutable |
 | `cstring` | no | known or lazily scanned, max carried | borrowed bounded C-string storage | 1 byte in this draft | no | mutable alias when writable |
-| `^cchar` | no | zero-terminated | external/static/C-owned storage | 1 byte | no | pointer may target mutable or read-only storage |
+| `^char` | no | zero-terminated | external/static/C-owned storage | 1 byte | no | pointer may target mutable or read-only storage |
 
 A `str` is internally a nullable reference to a dynamic string manager object.
 
@@ -262,17 +262,17 @@ dq_lit_asdf_view:
 
 The view descriptor may be placed separately from the character data so that it can be pointer-aligned. The data object and view object may both be pooled and deduplicated by the compiler/linker.
 
-A string literal used as `^cchar` points directly to the zero-terminated character data:
+A string literal used as `^char` points directly to the zero-terminated character data:
 
 ```dq
-var pc : ^cchar = "asdf";  // points to read-only .rodata character data
+var pc : ^char = "asdf";  // points to read-only .rodata character data
 ```
 
-This is valid only when the literal can be represented with `charwidth == 1`. Wider literals require explicit conversion before they can be passed as `^cchar`.
+This is valid only when the literal can be represented with `charwidth == 1`. Wider literals require explicit conversion before they can be passed as `^char`.
 
 ```dq
-var pc1 : ^cchar = "abc";  // OK
-var pc2 : ^cchar = "€";    // compile error or explicit conversion required
+var pc1 : ^char = "abc";  // OK
+var pc2 : ^char = "€";    // compile error or explicit conversion required
 ```
 
 For wider literals, the compiler chooses the minimum required storage width:
@@ -300,10 +300,10 @@ Empty string literals used as `strview` values use a canonical empty view:
 var v : strview = "";
 ```
 
-As `^cchar` values, empty string literals point to a static zero byte in `.rodata`:
+As `^char` values, empty string literals point to a static zero byte in `.rodata`:
 
 ```dq
-var pc : ^cchar = "";  // points to read-only storage containing one zero byte
+var pc : ^char = "";  // points to read-only storage containing one zero byte
 ```
 
 A non-empty literal assigned to `str` may be copied into a normal dynamic string manager immediately, or the runtime may assign from the static literal view.
@@ -802,7 +802,7 @@ var s : str = "  abc  ";
 s = s.Trim();  // "abc"
 ```
 
-The methods are valid on `str` and `strview`. Read-only helper methods may also be valid on `cstring(N)` and `^cchar` sources where the receiver can be converted to a `strview`.
+The methods are valid on `str` and `strview`. Read-only helper methods may also be valid on `cstring(N)` and `^char` sources where the receiver can be converted to a `strview`.
 
 ### Trim, LTrim, and RTrim
 
@@ -960,15 +960,15 @@ var cs : cstring(31);
 This means:
 
 ```text
-maximum logical length = 31 cchars
+maximum logical length = 31 chars
 actual storage size    = 32 bytes
 storage[N]             = hidden zero terminator position when full
 ```
 
-A `cstring(N)` stores `cchar` values. `cchar` is `uint8`.
+A `cstring(N)` stores `char` values. `char` is `uint8`.
 
 ```dq
-cchar == uint8
+char == uint8
 ```
 
 A `cstring(N)` always maintains zero termination.
@@ -988,7 +988,7 @@ The bytes after the first terminator are not part of the logical string. The imp
 Unsized `cstring` is different from `cstring(N)`:
 
 ```text
-cstring(N) = fixed inline storage, N usable cchars, N + 1 bytes total
+cstring(N) = fixed inline storage, N usable chars, N + 1 bytes total
 cstring    = non-owning mutable bounded C-string alias / fat pointer
 ```
 
@@ -1071,7 +1071,7 @@ cs.maxlength    // 31
 cs.storage_size // 32
 ```
 
-`length` is the number of cchars before the first zero terminator, limited to `maxlength`.
+`length` is the number of chars before the first zero terminator, limited to `maxlength`.
 
 If the implementation has a valid descriptor with `LENGTH_VALID`, `length` is O(1). Otherwise it is computed by bounded scanning.
 
@@ -1136,7 +1136,7 @@ tmp.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
 CStrAppend(ref tmp, " two")
 ```
 
-If a standalone local `cstring(N)` buffer is passed to unknown external C code through a raw `^cchar` pointer, the compiler must assume that the external code may modify the contents and therefore clear `LENGTH_VALID` in the hidden descriptor.
+If a standalone local `cstring(N)` buffer is passed to unknown external C code through a raw `^char` pointer, the compiler must assume that the external code may modify the contents and therefore clear `LENGTH_VALID` in the hidden descriptor.
 
 ```dq
 SomeCFunction(&cs[0]);  // may modify the bytes
@@ -1158,17 +1158,17 @@ cs = "abcdefghi";
 // storage bytes:   'a' 'b' 'c' 'd' 'e' 0
 ```
 
-Assignment from `^cchar` copies until the source zero terminator or until `maxlength` characters have been copied.
+Assignment from `^char` copies until the source zero terminator or until `maxlength` characters have been copied.
 
 ```dq
-var pc : ^cchar;
+var pc : ^char;
 var cs : cstring(31);
 
 pc = "asdf";
-cs = pc;  // copies from zero-terminated cchar storage
+cs = pc;  // copies from zero-terminated char storage
 ```
 
-Assignment from `str` copies character values into `cchar` storage. Characters that do not fit into `cchar` are a runtime conversion error in this draft. Length overflow is silently truncated.
+Assignment from `str` copies character values into `char` storage. Characters that do not fit into `char` are a runtime conversion error in this draft. Length overflow is silently truncated.
 
 ```dq
 var s  : str = "abcdef";
@@ -1225,18 +1225,18 @@ cs[3] = 'Z';     // runtime bounds error
 cs[$end] = 'Z';  // runtime bounds error
 ```
 
-Assigning a zero cchar terminates the string at that position:
+Assigning a zero char terminates the string at that position:
 
 ```dq
 var cs : cstring(31) = "abcdef";
 
-cs[3] = cchar(0);
+cs[3] = char(0);
 
 // logical content: "abc"
 // length == 3
 ```
 
-A character assigned to `cstring(N)` or unsized `cstring` must fit into `cchar`. Otherwise it is a runtime conversion error.
+A character assigned to `cstring(N)` or unsized `cstring` must fit into `char`. Otherwise it is a runtime conversion error.
 
 ### cstring Slicing
 
@@ -1259,7 +1259,7 @@ Slice bounds are clamped exactly like string slice bounds:
 cs[-5:]      // whole logical cstring as str/view, depending on context
 cs[:100]     // whole logical cstring as str/view, depending on context
 cs[100:]     // ""
-cs[$last:]   // last logical cchar as str/view, depending on context
+cs[$last:]   // last logical char as str/view, depending on context
 ```
 
 When slicing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
@@ -1299,37 +1299,37 @@ cs.Compact();     // compile error
 
 ---
 
-## `^cchar` C String Pointers
+## `^char` C String Pointers
 
-`^cchar` is a pointer to zero-terminated 8-bit C-compatible character storage.
+`^char` is a pointer to zero-terminated 8-bit C-compatible character storage.
 
 ```dq
-var pc : ^cchar;
+var pc : ^char;
 pc = "asdf";
 ```
 
-Assigning a string literal to `^cchar` points to static read-only zero-terminated literal character data in `.rodata`. This is valid only for literals with `charwidth == 1`.
+Assigning a string literal to `^char` points to static read-only zero-terminated literal character data in `.rodata`. This is valid only for literals with `charwidth == 1`.
 
 ```dq
-var pc : ^cchar = "asdf";
+var pc : ^char = "asdf";
 ```
 
-Copying from `^cchar`, or converting `^cchar` to `strview`, scans until the first zero terminator.
+Copying from `^char`, or converting `^char` to `strview`, scans until the first zero terminator.
 
 ```dq
 var s  : str;
 var cs : cstring(31);
-var pc : ^cchar = "asdf";
+var pc : ^char = "asdf";
 
 s  = pc;  // scans and creates dynamic string "asdf"
 cs = pc;  // scans and copies into fixed cstring storage
 var v : strview = pc;  // scans once to create a view
 ```
 
-Passing a null `^cchar` where a valid C string is required is a runtime error in this draft.
+Passing a null `^char` where a valid C string is required is a runtime error in this draft.
 
 ```dq
-var pc : ^cchar = null;
+var pc : ^char = null;
 var s : str = pc;  // runtime error
 ```
 
@@ -1370,15 +1370,15 @@ s == v   // true
 v == s   // true
 ```
 
-Comparison with `^cchar` may be supported by scanning the zero-terminated C string:
+Comparison with `^char` may be supported by scanning the zero-terminated C string:
 
 ```dq
-var pc : ^cchar = "abc";
+var pc : ^char = "abc";
 
-s == pc  // true, if ^cchar comparison is enabled
+s == pc  // true, if ^char comparison is enabled
 ```
 
-If enabled, comparison with null `^cchar` is a runtime error.
+If enabled, comparison with null `^char` is a runtime error.
 
 ---
 
@@ -1427,18 +1427,18 @@ endfunc
 
 var s  : str = "Alice";
 var cs : cstring(31) = "Bob";
-var pc : ^cchar = "Carol";
+var pc : ^char = "Carol";
 
 ParseName("Alice");  // static literal view, no scan
 ParseName(s);        // view of dynamic string storage
 ParseName(s[1:4]);   // temporary slice view
 ParseName(cs);       // view of fixed cstring storage
-ParseName(pc);       // scans zero-terminated cchar storage to form a view
+ParseName(pc);       // scans zero-terminated char storage to form a view
 ```
 
 A `strview` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
 
-A function should use `strview` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^cchar` for raw C APIs that only accept a zero-terminated pointer.
+A function should use `strview` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^char` for raw C APIs that only accept a zero-terminated pointer.
 
 ```dq
 function ReadText(s : strview):
@@ -1449,7 +1449,7 @@ function EditCBuffer(cs : cstring):
   cs.Append("x");
 endfunc
 
-function CallC(cs : ^cchar):
+function CallC(cs : ^char):
   SomeCFunction(cs);
 endfunc
 ```
@@ -1514,7 +1514,7 @@ A `strview` can represent source data from:
 "abc"       // string literal, view points into .rodata
 s           // dynamic string
 cs          // cstring(N), as read-only view
-pc          // ^cchar, after scanning length
+pc          // ^char, after scanning length
 s[1:4]      // string slice expression in strview context
 v[1:4]      // strview slice expression
 'a'         // one-character temporary source
@@ -1806,7 +1806,7 @@ Mutating helpers follow these rules:
 ```text
 1. EnsureCStrLength(cs) when the operation needs the current length.
 2. Clamp insertion/deletion indexes like dynamic string Insert/Delete.
-3. Copy only as many cchars as fit into cs.maxlen.
+3. Copy only as many chars as fit into cs.maxlen.
 4. Always write a zero terminator at cs.dataptr[cs.charlen].
 5. Update cs.charlen.
 6. Keep LENGTH_VALID set.
@@ -1816,7 +1816,7 @@ Source arguments are normally passed as `strview`. If the source is a `cstring` 
 
 Overlapping source and destination ranges must be handled correctly. If a `cstring` source aliases the destination buffer, the helper must preserve enough source range information before moving bytes or truncating the destination.
 
-A raw `^cchar` does not carry `maxlen`, so it is not a valid mutable `cstring` argument by itself. To create an unsized `cstring` alias from a raw buffer, the programmer or caller must provide the maximum logical length explicitly through a library helper or another typed wrapper.
+A raw `^char` does not carry `maxlen`, so it is not a valid mutable `cstring` argument by itself. To create an unsized `cstring` alias from a raw buffer, the programmer or caller must provide the maximum logical length explicitly through a library helper or another typed wrapper.
 
 ---
 
@@ -1844,7 +1844,7 @@ No type-info handler functions are needed for characters.
 ## Recommended Core Rules
 
 1. `char` is `uint32`.
-2. `cchar` is `uint8`.
+2. `char` is `uint8`.
 3. `str` is a refcounted, copy-on-write dynamic character string.
 4. `strview` is a public read-only non-owning view of character data.
 5. Unsized `cstring` is a public non-owning mutable bounded C-string alias / fat pointer.
@@ -1866,7 +1866,7 @@ No type-info handler functions are needed for characters.
 21. `str` and `strview` slice bounds are clamped like array slice bounds.
 22. String literals emit zero-terminated read-only character data in `.rodata`.
 23. String literals used as `str` sources also emit static read-only `SDqTextInfo` descriptors in `.rodata`.
-24. A string literal can be used directly as `^cchar` only when its `charwidth` is 1.
+24. A string literal can be used directly as `^char` only when its `charwidth` is 1.
 25. Source arguments to string helpers are normally passed as `strview` / `SDqTextInfo`.
 26. `Append()`, `Prepend()`, `Insert()`, `Delete()`, `SetLength()`, `Truncate()`, `Reserve()`, `Compact()`, `Clear()`, `Clone()`, `Pop(count)`, and `PopFirst(count)` are valid on dynamic strings.
 27. `Insert()` and `Delete()` clamp their index arguments and do not produce index-bounds runtime errors.
@@ -1874,7 +1874,7 @@ No type-info handler functions are needed for characters.
 29. No-argument `Pop()` and `PopFirst()` may be supported as single-character shorthands and are runtime errors on empty strings.
 30. `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `LastIndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` are recommended common string helpers.
 31. Read-only string helpers should accept `strview` sources where practical.
-32. `cstring(N)` stores at most `N` logical `cchar` characters and uses `N + 1` bytes of storage.
+32. `cstring(N)` stores at most `N` logical `char` characters and uses `N + 1` bytes of storage.
 33. `cstring(N)` always maintains a hidden zero terminator.
 34. `cstring(N)` is the only form that creates fixed inline C-string storage.
 35. Plain `var cs : cstring;` is invalid because unsized `cstring` has no storage.
@@ -1885,7 +1885,7 @@ No type-info handler functions are needed for characters.
 40. `cstring(N)` slicing returns a new `str` by default and may produce `strview` in explicit `strview` context.
 41. `cstring(N)` mutating methods may use a hidden compiler-maintained descriptor for standalone local variables.
 42. Hidden cstring descriptors are not part of public storage layout and should not be permanently inserted into struct fields, object fields, array elements, or externally visible records.
-43. Passing a `cstring(N)` buffer to unknown external C code through `^cchar` invalidates known length information unless the call is annotated as read-only or length-preserving.
-44. `^cchar` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
-45. Converting `^cchar` to `strview` requires scanning until the first zero terminator.
+43. Passing a `cstring(N)` buffer to unknown external C code through `^char` invalidates known length information unless the call is annotated as read-only or length-preserving.
+44. `^char` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
+45. Converting `^char` to `strview` requires scanning until the first zero terminator.
 46. `strview` and unsized `cstring` have the same lifetime and invalidation dangers as array slices or raw pointers.

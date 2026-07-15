@@ -68,8 +68,6 @@ void OScopeBuiltins::Init()
   type_char16  = new OTypeChar16();
   type_wchar   = new OTypeWchar();
 
-  type_cchar   = new OTypeInt("cchar", 8, false); // will be removed !
-
   type_cstring = new OTypeCString(0);  // base unsized type
   type_str     = new OTypeDynString();
   type_strview = new OTypeStrView();
@@ -80,7 +78,6 @@ void OScopeBuiltins::Init()
   DefineType(type_char);
   DefineType(type_char16);
   DefineType(type_wchar);
-  DefineType(type_cchar);
   DefineType(type_cstring);
   DefineType(type_str);
   DefineType(type_strview);

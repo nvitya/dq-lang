@@ -1,6 +1,6 @@
 // external global variable import support
 
-[[external("fprintf")]] function fprintf(stream : pointer, fmt : ^cchar, ...) -> int;
+[[external("fprintf")]] function fprintf(stream : pointer, fmt : ^char, ...) -> int;
 
 var libc_stdout : pointer [[external("stdout")]];
 

@@ -658,7 +658,7 @@ FUNCTION_START
   NAME "printf"
   PARAM_START
     NAME "fmt"
-    TYPE "^cchar"
+    TYPE "^char"
   PARAM_END
   ATTR external_name "printf"
   ATTR varargs

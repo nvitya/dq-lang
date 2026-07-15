@@ -73,7 +73,7 @@ function dq_ptr_addr_chain() -> int:
     result = items[1].value;
 endfunc
 
-[[external]] function printf(fmt : ^cchar, ...) -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
 function *Main() -> int:
     printf("Testing DQ pointer operations:\n\n");  //?ignore('Testing DQ pointer operations:')
 

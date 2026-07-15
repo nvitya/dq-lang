@@ -125,7 +125,7 @@ bool IsCCharPointerType(OType * type)
   return ptrtype
       && ptrtype->IsTypedPointer()
       && ptrtype->basetype
-      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_cchar);
+      && (ptrtype->basetype->ResolveAlias() == g_builtins->type_char);
 }
 
 bool IsCharLiteralExpr(OExpr * expr, uint8_t & rvalue)
@@ -138,7 +138,7 @@ bool IsCharLiteralExpr(OExpr * expr, uint8_t & rvalue)
     rvalue = uint8_t(wchar_value);
     return true;
   }
-  if (!lit || !lit_type || (lit_type != g_builtins->type_char && lit_type != g_builtins->type_cchar))
+  if (!lit || !lit_type || lit_type != g_builtins->type_char)
   {
     return false;
   }

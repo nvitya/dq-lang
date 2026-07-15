@@ -57,6 +57,7 @@ public:
 
   OTypePointer *  type_pointer;
   OTypeChar *     type_char;
+  OTypeWchar *    type_wchar;
   OTypeInt *      type_cchar;
   OTypeCString *  type_cstring;
   OTypeDynString * type_str;

@@ -65,7 +65,8 @@ void OScopeBuiltins::Init()
   DefineType(type_pointer);
 
   type_char    = new OTypeChar();
-  type_cchar   = new OTypeInt("cchar", 8, true);
+  type_wchar   = new OTypeWchar();
+  type_cchar   = new OTypeInt("cchar", 8, false);
   type_cstring = new OTypeCString(0);  // base unsized type
   type_str     = new OTypeDynString();
   type_strview = new OTypeStrView();
@@ -74,6 +75,7 @@ void OScopeBuiltins::Init()
   type_object->is_abstract = true;
   type_object->EnsureLayout();
   DefineType(type_char);
+  DefineType(type_wchar);
   DefineType(type_cchar);
   DefineType(type_cstring);
   DefineType(type_str);

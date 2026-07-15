@@ -23,7 +23,22 @@ private:
 public:
   OTypeChar()
   :
-    super("char", 32, false)
+    super("char", 8, false)
+  {
+  }
+
+  LlDiType * CreateDiType() override;
+};
+
+class OTypeWchar : public OTypeInt
+{
+private:
+  using super = OTypeInt;
+
+public:
+  OTypeWchar()
+  :
+    super("wchar", 32, false)
   {
   }
 

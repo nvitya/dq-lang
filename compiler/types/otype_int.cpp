@@ -334,11 +334,6 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar))
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-    return false;
-  }
   if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
   {
     *rexpr = new OExprTypeConv(this, src);
@@ -363,6 +358,5 @@ int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-  if (!is_explicit_cast && (resolved_src == g_builtins->type_char) && (this == g_builtins->type_cchar)) return -1;
   return (((this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned)) ? 0 : 1);
 }

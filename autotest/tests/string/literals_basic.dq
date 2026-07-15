@@ -81,7 +81,7 @@ function *Main() -> int:
     //var wide32 : str = "😀";
     //printf("wide_literal_codes = u16:%li u32:%li\n", wide16[0], wide32[0]); //-?check("wide_literal_codes", "u16:8364 u32:128512")
 
-    printf("type_sizes = char:%li cchar:%li\n", SizeOf(char), SizeOf(cchar)); //?check("type_sizes", "char:4 cchar:1")
+    printf("type_sizes = char:%li cchar:%li wchar:%li\n", SizeOf(char), SizeOf(cchar), SizeOf(wchar)); //?check("type_sizes", "char:1 cchar:1 wchar:4")
 
     var eq_str : str = "abc";
     var eq_view : strview = "abc";

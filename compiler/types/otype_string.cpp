@@ -34,7 +34,7 @@ bool EnsureDynStringRtlUseForStringTypes()
   {
     return true;
   }
-  return g_compiler && g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
+  return g_compiler && g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
 }
 
 static LlType * LlPtrType()
@@ -446,6 +446,48 @@ LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr
   throw logic_error("GenerateStringPChar requires str or strview");
 }
 
+LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver)
+{
+  return CallDynStrFunc(scope, "StrfWcLen", {GenerateTextInfoValue(scope, receiver)});
+}
+
+LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index)
+{
+  LlValue * result = CallDynStrFunc(scope, "StrfWCharAt", {
+      GenerateTextInfoValue(scope, receiver),
+      ToNativeInt(index->Generate(scope))
+  });
+  EmitExpressionExceptionCheck(scope);
+  return result;
+}
+
+LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                                   OExpr * end_expr, bool end_inclusive)
+{
+  LlValue * zero = LlNativeInt(0);
+  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
+  LlValue * end = end_expr ? ToNativeInt(end_expr->Generate(scope)) : GenerateStringWcLen(scope, receiver);
+  if (end_inclusive)
+  {
+    end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.wchar.slice.end.incl");
+  }
+
+  LlValue * result = CallDynStrFunc(scope, "StrfWCharSlice", {
+      GenerateTextInfoValue(scope, receiver),
+      start,
+      end
+  });
+  EmitExpressionExceptionCheck(scope);
+  return result;
+}
+
+LlValue * GenerateStringToWchars(OScope * scope, OLValueExpr * receiver)
+{
+  LlValue * result = CallDynStrFunc(scope, "StrfToWchars", {GenerateTextInfoValue(scope, receiver)});
+  EmitExpressionExceptionCheck(scope);
+  return result;
+}
+
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;
@@ -699,6 +741,8 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       checked_textformat_call("DynStrAddFmt", {straddr, arg0_val, arg1_val});
       return nullptr;
     }
+    case STRM_TO_WCHARS:
+      return GenerateStringToWchars(scope, receiver);
   }
   throw logic_error("Unhandled string method");
 }

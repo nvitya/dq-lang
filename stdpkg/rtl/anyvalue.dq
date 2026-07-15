@@ -89,7 +89,7 @@ function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue)
 
 implementation
 
-use rtl/dynstrmgr
+use rtl/strfunc
 
 function AnyValDynStrRef(v : ref SDqAnyValue) -> ^ODynStrMgr:
     return ^ODynStrMgr(&v.data[0])

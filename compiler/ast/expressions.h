@@ -189,6 +189,33 @@ public:
   void       DeleteChildTree() override;
 };
 
+class OStringWCharIndexExpr : public OExpr
+{
+public:
+  OLValueExpr *  base;
+  OExpr *        indexexpr = nullptr;
+
+  /* ctor */ OStringWCharIndexExpr(OLValueExpr * abase, OExpr * aindex);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
+class OStringWCharSliceExpr : public OExpr
+{
+public:
+  OLValueExpr *  base;
+  OExpr *        startexpr = nullptr;
+  OExpr *        endexpr = nullptr;
+  bool           end_inclusive = false;
+
+  /* ctor */ OStringWCharSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
+                                   bool aend_inclusive = false);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 enum EBinOp : int
 {
   BINOP_NONE = 0,

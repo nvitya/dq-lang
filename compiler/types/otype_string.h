@@ -63,7 +63,8 @@ enum EStringMetaField
   SMF_LENGTH,
   SMF_CAPACITY,
   SMF_REFCOUNT,
-  SMF_PCHAR
+  SMF_PCHAR,
+  SMF_WCLEN
 };
 
 enum EStringMethod
@@ -84,7 +85,8 @@ enum EStringMethod
   STRM_POP_FIRST,
   STRM_POP_CHAR,
   STRM_POP_FIRST_CHAR,
-  STRM_ADDFMT
+  STRM_ADDFMT,
+  STRM_TO_WCHARS
 };
 
 bool IsTextSourceType(OType * type);
@@ -97,6 +99,11 @@ LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * stradd
 LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr);
+LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver);
+LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
+LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                                   OExpr * end_expr, bool end_inclusive);
+LlValue * GenerateStringToWchars(OScope * scope, OLValueExpr * receiver);
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index);
 LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
 void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value);

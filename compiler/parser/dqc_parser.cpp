@@ -59,7 +59,7 @@ static bool EnsureDynStringRtlUse()
   {
     return true;
   }
-  return g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
 }
 
 static bool IsCStringMethodSourceType(OType * type)

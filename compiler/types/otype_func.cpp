@@ -692,12 +692,16 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
     ll_name = GetLinkageName(apublic, 'F', symbol_name);
   }
 
-  if (apublic && (is_external || !has_body))
+  if (apublic)
   {
     if (LlFunction * existing = ll_module->getFunction(ll_name))
     {
-      ll_func = existing;
-      return;
+      if (is_external || !has_body || existing->isDeclaration())
+      {
+        ll_func = existing;
+        ll_func->setLinkage(linktype);
+        return;
+      }
     }
   }
 

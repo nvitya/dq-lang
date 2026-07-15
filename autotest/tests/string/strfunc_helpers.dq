@@ -71,6 +71,21 @@ function *Main() -> int:
     PrintWCharArray("strf_wchar_slice", sliced[:]); //?check("strf_wchar_slice", "len:2 data: 233 8364")
     PrintBytes("strf_wcstr_slice", StrfWcStrSlice(sample, 1, 3)); //?check("strf_wcstr_slice", "len:5 bytes: 195 169 226 130 172")
 
+    printf("str_syntax_wclen = %li\n", sample.wclen); //?check("str_syntax_wclen", 4)
+    printf("str_syntax_wchar_at = %li %li %li %li\n",
+           Ord(sample.wchar[0]), Ord(sample.wchar[1]), Ord(sample.wchar[2]), Ord(sample.wchar[$last]));
+           //?check("str_syntax_wchar_at", "65 233 8364 128512")
+    var syntax_slice : [*]wchar = sample.wchar[1:$end];
+    PrintWCharArray("str_syntax_wchar_slice", syntax_slice[:]); //?check("str_syntax_wchar_slice", "len:3 data: 233 8364 128512")
+    var syntax_to_wchars : [*]wchar = sample.ToWchars();
+    PrintWCharArray("str_syntax_to_wchars", syntax_to_wchars[:]); //?check("str_syntax_to_wchars", "len:4 data: 65 233 8364 128512")
+
+    var sample_view : strview = sample[:];
+    printf("strview_syntax_wclen = %li\n", sample_view.wclen); //?check("strview_syntax_wclen", 4)
+    printf("strview_syntax_wchar_at = %li\n", Ord(sample_view.wchar[2])); //?check("strview_syntax_wchar_at", 8364)
+    var view_slice : [*]wchar = sample_view.wchar[:2];
+    PrintWCharArray("strview_syntax_wchar_slice", view_slice[:]); //?check("strview_syntax_wchar_slice", "len:2 data: 65 233")
+
     var wchars : [*]wchar = [wchar(65), wchar(233), wchar(8364), wchar(128512)];
     PrintBytes("strf_from_wchars", StrfFromWchars(wchars[:])); //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 

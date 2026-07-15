@@ -113,6 +113,37 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
     return false;
   }
 
+  if (g_module && module_path.module_id == g_module->name)
+  {
+    g_namespaces[namespace_name] = g_module->scope_pub;
+    return true;
+  }
+
+  OModuleIntf artifact_intf(g_builtins, module_path.module_id);
+  bool in_module_stack = artifact_intf.IsInModuleUseStack(module_path.module_id);
+  if (g_opt.ifgen || in_module_stack)
+  {
+    SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshInterfaceArtifact(module_path, in_module_stack);
+    if (!result.Ok())
+    {
+      PrintModuleArtifactError(module_path, result);
+      return false;
+    }
+
+    string interface_load_path = result.interface_load_path.empty()
+        ? module_path.interface_artifact_path.string()
+        : result.interface_load_path.string();
+    if (!g_module->UseCompiledModule(module_path.module_id, namespace_name,
+                                     interface_load_path,
+                                     module_path.artifact_path.string(), merge_scope,
+                                     is_private, merge_mode, vector<string>(), false))
+    {
+      print("Can not load implicit module interface from \"{}\"\n", interface_load_path);
+      return false;
+    }
+    return true;
+  }
+
   if (!EnsureCompiledModuleArtifact(module_path))
   {
     return false;

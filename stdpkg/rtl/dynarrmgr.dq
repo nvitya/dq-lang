@@ -74,7 +74,7 @@ function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, sta
 
 implementation
 
-use rtl/mem
+use rtl/mem, rtl/strfunc
 
 function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]]
 
@@ -169,8 +169,6 @@ function ODynArrMgr.*Create(atypeinfo : ^SDqTypeInfo):
     subtype  = typeinfo.subtype
 endfunc
 
-use rtl/dynstrmgr
-
 function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeInfo):
     if typeinfo == null  or  length == 0:
         return
@@ -201,6 +199,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
         endwhile
 
     elif typeinfo.copy_func <> null:
+        typeinfo.copy_func(dataptr, dataptr, length)
         // custom copy_func handles refcounting or deep copying
         // However, since we just MemCopied, this is mostly for deep copying if it existed,
         // but in DQ bitwise moves are safe, so we don't have a copy_func standard yet.
@@ -212,10 +211,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
         return
     endif
 
-    if typeinfo.destroy_func <> null:
-        typeinfo.destroy_func(dataptr, length)
-
-    elif typeinfo.kind == DQTK_DYN_ARRAY:
+    if typeinfo.kind == DQTK_DYN_ARRAY:
         var elemsize : uint = typeinfo.storagesize
         var i : uint = 0
         while i < length:
@@ -238,6 +234,10 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
             endif
             i += 1
         endwhile
+
+    elif typeinfo.destroy_func <> null:
+        typeinfo.destroy_func(dataptr, length)
+
     endif
 
 endfunc

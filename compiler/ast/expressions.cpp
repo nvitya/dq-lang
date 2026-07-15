@@ -763,6 +763,68 @@ void OStringSliceExpr::DeleteChildTree()
   endexpr = nullptr;
 }
 
+/* ctor */ OStringWCharIndexExpr::OStringWCharIndexExpr(OLValueExpr * abase, OExpr * aindex)
+{
+  base = abase;
+  indexexpr = aindex;
+  ptype = g_builtins->type_wchar;
+}
+
+LlValue * OStringWCharIndexExpr::Generate(OScope * scope)
+{
+  return GenerateStringWCharAt(scope, base, indexexpr);
+}
+
+void OStringWCharIndexExpr::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&indexexpr);
+}
+
+void OStringWCharIndexExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  OExpr::DeleteTree(indexexpr);
+  base = nullptr;
+  indexexpr = nullptr;
+}
+
+/* ctor */ OStringWCharSliceExpr::OStringWCharSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
+                                                        bool aend_inclusive)
+{
+  base = abase;
+  startexpr = astart;
+  endexpr = aend;
+  end_inclusive = aend_inclusive;
+  ptype = g_builtins->type_wchar->GetDynArrayType();
+}
+
+LlValue * OStringWCharSliceExpr::Generate(OScope * scope)
+{
+  return GenerateStringWCharSlice(scope, base, startexpr, endexpr, end_inclusive);
+}
+
+void OStringWCharSliceExpr::FoldChildren()
+{
+  OExpr * tmp = base;
+  OExpr::FoldTree(&tmp);
+  base = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&startexpr);
+  OExpr::FoldTree(&endexpr);
+}
+
+void OStringWCharSliceExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(base);
+  OExpr::DeleteTree(startexpr);
+  OExpr::DeleteTree(endexpr);
+  base = nullptr;
+  startexpr = nullptr;
+  endexpr = nullptr;
+}
+
 void OLValueIndex::FoldChildren()
 {
   OExpr * tmp = base;
@@ -3218,6 +3280,10 @@ LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
   if (SMF_PCHAR == field)
   {
     return GenerateStringPChar(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  }
+  if (SMF_WCLEN == field)
+  {
+    return GenerateStringWcLen(scope, receiver);
   }
   throw logic_error("OStringMetaFieldExpr::Generate: unsupported string metadata field");
 }

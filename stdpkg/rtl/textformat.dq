@@ -37,7 +37,7 @@
 // implementation may ignore unsupported fields until the low-level numeric
 // conversion helpers are finalized.
 
-use rtl/rtlint, rtl/cstrings, rtl/dynstrmgr
+use rtl/rtlint, rtl/cstrings
 
 // -----------------------------------------------------------------------------
 // Result flags
@@ -144,6 +144,8 @@ function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue)
 function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue)
 
 implementation
+
+use rtl/strfunc
 
 use libc/stdio
 

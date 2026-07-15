@@ -4,7 +4,7 @@ implementation
 
 use libc/stdio;
 use rtl/anyvalue;
-use rtl/dynstrmgr;
+use rtl/strfunc;
 
 function MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data;

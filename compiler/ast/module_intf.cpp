@@ -955,6 +955,12 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshCompiledArtifact(const OModu
     return ModuleArtifactEnsureError(EModuleArtifactEnsureError::SOURCE_MISSING);
   }
 
+  SModuleArtifactEnsureResult interface_result = EnsureFreshInterfaceArtifact(module_path, false);
+  if (!interface_result.Ok())
+  {
+    return interface_result;
+  }
+
   string regen_reason;
   if (!RunModuleChildCompile(ChildCompileArgs(module_path.source_path, module_path.artifact_path,
                                              module_path.module_id, module_path.root_dir),
@@ -2573,6 +2579,14 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   {
     return reader.Fail(format("Can not resolve module artifact: {}", module_path));
   }
+  filesystem::path interface_artifact_path = artifact_path;
+  interface_artifact_path.replace_extension(".dqm_if");
+  filesystem::path load_path = artifact_path;
+  error_code ec;
+  if (filesystem::exists(interface_artifact_path, ec) && !ec)
+  {
+    load_path = interface_artifact_path;
+  }
 
   bool owned_intf = false;
   OModuleIntf * intf = FindLoadedModuleIntf(module_path);
@@ -2581,10 +2595,10 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     intf = new OModuleIntf(scope_pub->parent_scope, module_path);
     owned_intf = true;
   }
-  if (owned_intf && !intf->ReadInterface(artifact_path.string()))
+  if (owned_intf && !intf->ReadInterface(load_path.string()))
   {
     delete intf;
-    return reader.Fail(format("Can not load module interface: {}", artifact_path.string()));
+    return reader.Fail(format("Can not load module interface: {}", load_path.string()));
   }
   if (owned_intf && g_module)
   {

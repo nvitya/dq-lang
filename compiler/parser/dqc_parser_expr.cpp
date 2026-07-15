@@ -106,7 +106,7 @@ static bool EnsureDynStringRtlUse()
   {
     return true;
   }
-  return g_compiler->AddImplicitUse("rtl/dynstrmgr", "__dq_dynstr", nullptr, true, MUM_NONE);
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
 }
 
 static bool EnsureTextFormatRtlUse()
@@ -594,7 +594,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
         }
         return nullptr;
       }
-      if (!EnsureDynArrayRtlUse())
+      if (!g_opt.ifgen && !EnsureDynArrayRtlUse())
       {
         return nullptr;
       }
@@ -752,7 +752,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
   // cstring(N) handling: N is the usable logical length; storage has N + 1 bytes.
   if (TK_CSTRING == ptype->kind)
   {
-    if (!EnsureCStringRtlUse())
+    if (!g_opt.ifgen && !EnsureCStringRtlUse())
     {
       return nullptr;
     }
@@ -822,7 +822,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
 
   if (TK_DYNSTR == ptype->kind || TK_STRVIEW == ptype->kind)
   {
-    if (!EnsureDynStringRtlUse())
+    if (!g_opt.ifgen && !EnsureDynStringRtlUse())
     {
       return nullptr;
     }
@@ -830,7 +830,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
 
   if (TK_ANYVALUE == ptype->kind)
   {
-    if (!EnsureAnyValueRtlUse())
+    if (!g_opt.ifgen && !EnsureAnyValueRtlUse())
     {
       return nullptr;
     }
@@ -1583,16 +1583,20 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   vector<TRawCallArg> rawargs;
   int64_t prev_context_len = array_index_context_len;
   OLValueExpr * prev_context_lval = array_index_context_lval;
+  bool prev_context_wchar = array_index_context_wchar;
   array_index_context_len = -1;
   array_index_context_lval = receiver;
+  array_index_context_wchar = false;
   if (!ParseRawCallArguments(membername, rawargs))
   {
     array_index_context_len = prev_context_len;
     array_index_context_lval = prev_context_lval;
+    array_index_context_wchar = prev_context_wchar;
     return nullptr;
   }
   array_index_context_len = prev_context_len;
   array_index_context_lval = prev_context_lval;
+  array_index_context_wchar = prev_context_wchar;
 
   auto free_and_fail = [&]() -> OExpr *
   {
@@ -1800,16 +1804,20 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
   }
   int64_t prev_context_len = array_index_context_len;
   OLValueExpr * prev_context_lval = array_index_context_lval;
+  bool prev_context_wchar = array_index_context_wchar;
   array_index_context_len = -1;
   array_index_context_lval = receiver;
+  array_index_context_wchar = false;
   if (!ParseRawCallArguments(membername, rawargs))
   {
     array_index_context_len = prev_context_len;
     array_index_context_lval = prev_context_lval;
+    array_index_context_wchar = prev_context_wchar;
     return nullptr;
   }
   array_index_context_len = prev_context_len;
   array_index_context_lval = prev_context_lval;
+  array_index_context_wchar = prev_context_wchar;
 
   auto free_and_fail = [&]() -> OExpr *
   {
@@ -1939,16 +1947,20 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
   }
   int64_t prev_context_len = array_index_context_len;
   OLValueExpr * prev_context_lval = array_index_context_lval;
+  bool prev_context_wchar = array_index_context_wchar;
   array_index_context_len = -1;
   array_index_context_lval = receiver;
+  array_index_context_wchar = false;
   if (!ParseRawCallArguments(membername, rawargs))
   {
     array_index_context_len = prev_context_len;
     array_index_context_lval = prev_context_lval;
+    array_index_context_wchar = prev_context_wchar;
     return nullptr;
   }
   array_index_context_len = prev_context_len;
   array_index_context_lval = prev_context_lval;
+  array_index_context_wchar = prev_context_wchar;
 
   auto free_and_fail = [&]() -> OExpr *
   {
@@ -2094,6 +2106,12 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
       argtypes.push_back(g_builtins->type_int);
       rettype = g_builtins->type_str;
     }
+  }
+  else if ("ToWchars" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    method = STRM_TO_WCHARS;
+    rettype = g_builtins->type_wchar->GetDynArrayType();
   }
   else
   {
@@ -2443,6 +2461,83 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
             result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
             continue;
           }
+          if ("wclen" == membername)
+          {
+            if (!EnsureDynStringRtlUse())
+            {
+              return nullptr;
+            }
+            result = new OStringMetaFieldExpr(lval, SMF_WCLEN);
+            continue;
+          }
+          if ("wchar" == membername)
+          {
+            if (!EnsureDynStringRtlUse())
+            {
+              return nullptr;
+            }
+            scf->SkipWhite();
+            if (!scf->CheckSymbol("["))
+            {
+              Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+              return result;
+            }
+
+            OExpr * indexexpr = nullptr;
+            OExpr * endexpr = nullptr;
+            bool has_first_expr = false;
+            bool inclusive_slice = false;
+            int64_t prev_context_len = array_index_context_len;
+            OLValueExpr * prev_context_lval = array_index_context_lval;
+            bool prev_context_wchar = array_index_context_wchar;
+            array_index_context_len = -1;
+            array_index_context_lval = lval;
+            array_index_context_wchar = true;
+
+            scf->SkipWhite();
+            if (!scf->CheckSymbol(":", false))
+            {
+              indexexpr = ParseExpression();
+              has_first_expr = true;
+            }
+            scf->SkipWhite();
+            if (scf->CheckSymbol(":"))
+            {
+              inclusive_slice = scf->CheckSymbol(":");
+              scf->SkipWhite();
+              if (!scf->CheckSymbol("]", false))
+              {
+                endexpr = ParseExpression();
+              }
+              scf->SkipWhite();
+              if (not scf->CheckSymbol("]"))
+              {
+                Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar slice");
+              }
+              array_index_context_len = prev_context_len;
+              array_index_context_lval = prev_context_lval;
+              array_index_context_wchar = prev_context_wchar;
+              result = new OStringWCharSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
+              continue;
+            }
+            if (!has_first_expr)
+            {
+              Error(DQERR_EXPR_EXPECTED);
+              array_index_context_len = prev_context_len;
+              array_index_context_lval = prev_context_lval;
+              array_index_context_wchar = prev_context_wchar;
+              return result;
+            }
+            if (not scf->CheckSymbol("]"))
+            {
+              Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar index");
+            }
+            array_index_context_len = prev_context_len;
+            array_index_context_lval = prev_context_lval;
+            array_index_context_wchar = prev_context_wchar;
+            result = new OStringWCharIndexExpr(lval, indexexpr);
+            continue;
+          }
           if (TK_DYNSTR == tk && "capacity" == membername)
           {
             result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);
@@ -2592,6 +2687,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
         bool inclusive_slice = false;
         int64_t prev_context_len = array_index_context_len;
         OLValueExpr * prev_context_lval = array_index_context_lval;
+        bool prev_context_wchar = array_index_context_wchar;
         if (TK_ARRAY == tk)
         {
           array_index_context_len = static_cast<OTypeArray *>(lval->ptype->ResolveAlias())->arraylength;
@@ -2602,6 +2698,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           array_index_context_len = -1;
           array_index_context_lval = lval;
         }
+        array_index_context_wchar = false;
         scf->SkipWhite();
         if (!scf->CheckSymbol(":", false))
         {
@@ -2618,6 +2715,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
             OExpr::DeleteTree(indexexpr);
             array_index_context_len = prev_context_len;
             array_index_context_lval = prev_context_lval;
+            array_index_context_wchar = prev_context_wchar;
             return result;
           }
           scf->SkipWhite();
@@ -2632,6 +2730,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           }
           array_index_context_len = prev_context_len;
           array_index_context_lval = prev_context_lval;
+          array_index_context_wchar = prev_context_wchar;
           if (TK_DYNSTR == tk || TK_STRVIEW == tk)
           {
             result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
@@ -2647,6 +2746,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           Error(DQERR_EXPR_EXPECTED);
           array_index_context_len = prev_context_len;
           array_index_context_lval = prev_context_lval;
+          array_index_context_wchar = prev_context_wchar;
           return result;
         }
         if (not scf->CheckSymbol("]"))
@@ -2655,6 +2755,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
         }
         array_index_context_len = prev_context_len;
         array_index_context_lval = prev_context_lval;
+        array_index_context_wchar = prev_context_wchar;
         result = new OLValueIndex(lval, lval->ptype, indexexpr);
         continue;
       }
@@ -2866,7 +2967,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       }
       OType * ctx_type = ctx_lval->ptype ? ctx_lval->ptype->ResolveAlias() : nullptr;
       OExpr * lenexpr = (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRVIEW == ctx_type->kind))
-          ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, SMF_LENGTH))
+          ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, array_index_context_wchar ? SMF_WCLEN : SMF_LENGTH))
           : static_cast<OExpr *>(new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH));
       if ("end" == ctxname)
       {

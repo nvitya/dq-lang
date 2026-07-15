@@ -1,7 +1,7 @@
 // ODynStrMgr regression tests
 
 use libc/stdio;
-use rtl/dynstrmgr;
+use rtl/strfunc;
 
 function MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data;

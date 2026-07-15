@@ -201,10 +201,81 @@ static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
   }
 }
 
+static bool CanGenerateElementCopyRefs(OType * elemtype)
+{
+  if (TK_DYNSTR == elemtype->kind || TK_DYN_ARRAY == elemtype->kind)
+  {
+    return true;
+  }
+  if (TK_ANYVALUE == elemtype->kind)
+  {
+    return false;
+  }
+  if (TK_ARRAY == elemtype->kind)
+  {
+    OTypeArray * arrtype = static_cast<OTypeArray *>(elemtype);
+    return CanGenerateElementCopyRefs(arrtype->elemtype);
+  }
+  if (elemtype->IsCompound())
+  {
+    OCompoundType * comptype = static_cast<OCompoundType *>(elemtype);
+    for (OValSym * member : comptype->member_order)
+    {
+      if (member && member->ptype && CanGenerateElementCopyRefs(member->GetStorageType()))
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static void GenerateElementCopyRefs(OType * elemtype, LlValue * elem_addr)
+{
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(elemtype))
+  {
+    (void)dyntype;
+    CallDynArrayFunc(nullptr, "DynArrIncRef", {elem_addr});
+  }
+  else if (auto * strtype = dynamic_cast<OTypeDynString *>(elemtype))
+  {
+    (void)strtype;
+    GenerateStringIncRef(nullptr, elem_addr);
+  }
+  else if (TK_ARRAY == elemtype->kind)
+  {
+    OTypeArray * arrtype = static_cast<OTypeArray *>(elemtype);
+    if (CanGenerateElementCopyRefs(arrtype->elemtype))
+    {
+      for (uint32_t i = 0; i < arrtype->arraylength; ++i)
+      {
+        LlValue * idx = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), i);
+        LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+        LlValue * ll_field_addr = ll_builder.CreateGEP(arrtype->GetLlType(), elem_addr, {ll_zero, idx}, "arr.elem.copy.addr");
+        GenerateElementCopyRefs(arrtype->elemtype, ll_field_addr);
+      }
+    }
+  }
+  else if (elemtype->IsCompound())
+  {
+    OCompoundType * comptype = static_cast<OCompoundType *>(elemtype);
+    comptype->GetLlType();
+    for (OValSym * member : comptype->member_order)
+    {
+      if (member && member->ptype && CanGenerateElementCopyRefs(member->GetStorageType()))
+      {
+        LlValue * ll_field_addr = ll_builder.CreateStructGEP(comptype->GetLlType(), elem_addr,
+            member->ll_field_index, member->name + ".copy.addr");
+        GenerateElementCopyRefs(member->GetStorageType(), ll_field_addr);
+      }
+    }
+  }
+}
+
 static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
 {
   if (!elemtype->ContainsManagedStorage()) return nullptr;
-  if (elemtype->kind == TK_DYN_ARRAY || elemtype->kind == TK_DYNSTR)
+  if (elemtype->kind == TK_DYN_ARRAY)
   {
     return nullptr; // Handled natively by RTL without code bloat
   }
@@ -269,6 +340,71 @@ static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
   return func;
 }
 
+static llvm::Function * GetTypeCopyFunc(OType * elemtype)
+{
+  if (!CanGenerateElementCopyRefs(elemtype)) return nullptr;
+
+  string func_name = "__dq_copyrefs_" + SanitizeLlName(elemtype->name);
+  if (auto * existing = ll_module->getFunction(func_name))
+  {
+    return existing;
+  }
+
+  LlType * ptr_type = LlPtrType();
+  LlType * uint_type = LlNativeUIntType();
+  llvm::FunctionType * func_type = llvm::FunctionType::get(LlType::getVoidTy(ll_ctx), {ptr_type, ptr_type, uint_type}, false);
+  llvm::Function * func = llvm::Function::Create(func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
+
+  auto arg_it = func->arg_begin();
+  llvm::Argument * arg_dst = &*arg_it++;
+  arg_dst->setName("dstptr");
+  llvm::Argument * arg_src = &*arg_it++;
+  arg_src->setName("srcptr");
+  llvm::Argument * arg_count = &*arg_it++;
+  arg_count->setName("count");
+
+  LlBasicBlock * old_bb = ll_builder.GetInsertBlock();
+
+  LlBasicBlock * bb_entry = LlBasicBlock::Create(ll_ctx, "entry", func);
+  LlBasicBlock * bb_cond = LlBasicBlock::Create(ll_ctx, "loop.cond", func);
+  LlBasicBlock * bb_body = LlBasicBlock::Create(ll_ctx, "loop.body", func);
+  LlBasicBlock * bb_inc = LlBasicBlock::Create(ll_ctx, "loop.inc", func);
+  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "loop.end", func);
+
+  ll_builder.SetInsertPoint(bb_entry);
+  LlValue * ll_idx_ptr = CreateEntryBlockAlloca(uint_type, nullptr, "idx");
+  ll_builder.CreateStore(llvm::ConstantInt::get(uint_type, 0), ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_cond);
+  LlValue * ll_idx = ll_builder.CreateLoad(uint_type, ll_idx_ptr, "idx.val");
+  LlValue * ll_cmp = ll_builder.CreateICmpULT(ll_idx, arg_count, "cmp");
+  ll_builder.CreateCondBr(ll_cmp, bb_body, bb_end);
+
+  ll_builder.SetInsertPoint(bb_body);
+  (void)arg_src;
+  LlValue * ll_bytesize = llvm::ConstantInt::get(uint_type, elemtype->bytesize);
+  LlValue * ll_offset = ll_builder.CreateMul(ll_idx, ll_bytesize, "offset");
+  LlValue * ll_elem_addr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), arg_dst, ll_offset, "elem.addr");
+  GenerateElementCopyRefs(elemtype, ll_elem_addr);
+  ll_builder.CreateBr(bb_inc);
+
+  ll_builder.SetInsertPoint(bb_inc);
+  LlValue * ll_next_idx = ll_builder.CreateAdd(ll_idx, llvm::ConstantInt::get(uint_type, 1), "idx.next");
+  ll_builder.CreateStore(ll_next_idx, ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_end);
+  ll_builder.CreateRetVoid();
+
+  if (old_bb)
+  {
+    ll_builder.SetInsertPoint(old_bb);
+  }
+
+  return func;
+}
+
 static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
 {
   string gvname = "__dq_dynarr_typeinfo_" + SanitizeLlName(dyntype->elemtype->name);
@@ -288,6 +424,7 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
   auto * ti_type = llvm::StructType::get(ll_ctx, fields);
   OType * storage_type = DynArrayElementStorageType(dyntype);
   llvm::Function * ll_destroy_func = GetTypeDestroyFunc(storage_type);
+  llvm::Function * ll_copy_func = GetTypeCopyFunc(storage_type);
 
   vector<LlConst *> values = {
     llvm::ConstantInt::get(i32type, storage_type->bytesize),
@@ -296,7 +433,7 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
     llvm::ConstantInt::get(i8type, 0),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
     (ll_destroy_func ? static_cast<llvm::Constant *>(ll_destroy_func) : static_cast<llvm::Constant *>(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)))),
-    llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)),
+    (ll_copy_func ? static_cast<llvm::Constant *>(ll_copy_func) : static_cast<llvm::Constant *>(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)))),
     llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0))
   };
   auto * init = llvm::ConstantStruct::get(ti_type, values);

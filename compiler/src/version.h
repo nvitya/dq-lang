@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.34.3"
+#define DQ_COMPILER_VERSION  "0.35.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.35.0:
+  - Two phase compilation for internal modules too
+  - rtl/dynstrmgr.dq -> rtl/strfunc.dq
+  - wchar handling implememented
 v0.34.3:
   - replacing ^char(&x[0]) casts with x.pchar
 v0.34.2:

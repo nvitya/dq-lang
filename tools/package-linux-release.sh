@@ -262,11 +262,22 @@ copy_tracked_paths() {
     done
 }
 
+copy_vscode_extension() {
+  local path rel
+  git -C "$ROOT_DIR" ls-files -z -- tools/vscode-dq |
+    while IFS= read -r -d '' path; do
+      rel="${path#tools/vscode-dq/}"
+      mkdir -p "$STAGE/VSCode/$(dirname "$rel")"
+      cp -p "$ROOT_DIR/$path" "$STAGE/VSCode/$rel"
+    done
+}
+
 require_file "$BUILD_DIR/dq-comp"
 require_file "$BUILD_DIR/dq-run"
 require_file "$BUILD_DIR/dqatrun"
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
+require_file "$ROOT_DIR/tools/vscode-dq/dq-syntax-0.0.1.vsix"
 
 if [[ -e "$STAGE_PARENT" ]]; then
   echo "Temporary staging path already exists: $STAGE_PARENT" >&2
@@ -288,6 +299,7 @@ cp -p "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp -p "$ROOT_DIR/README.md" "$STAGE/README.md"
 
 copy_tracked_paths stdpkg examples docs autotest/tests mkdocs.yml
+copy_vscode_extension
 
 if [[ "$FULL_RELEASE" == "1" ]]; then
   prepare_default_linux_release_roots
@@ -334,6 +346,7 @@ $(if [[ "$FULL_RELEASE" == "1" ]]; then printf "  toolchain/\n  dq-env.sh\n"; fi
   stdpkg/
   examples/
   docs/
+  VSCode/
   autotest/tests/
 EOF
 

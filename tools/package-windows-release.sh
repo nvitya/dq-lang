@@ -44,6 +44,16 @@ copy_tracked_paths() {
     done
 }
 
+copy_vscode_extension() {
+  local path rel
+  git -C "$ROOT_DIR" ls-files -z -- tools/vscode-dq |
+    while IFS= read -r -d '' path; do
+      rel="${path#tools/vscode-dq/}"
+      mkdir -p "$STAGE/VSCode/$(dirname "$rel")"
+      cp -p "$ROOT_DIR/$path" "$STAGE/VSCode/$rel"
+    done
+}
+
 install_windows_toolchain() {
   local dst="$STAGE/toolchain/llvm-mingw"
 
@@ -92,6 +102,7 @@ require_file "$BUILD_DIR/bin/dq-run.exe"
 require_file "$BUILD_DIR/bin/dqatrun.exe"
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
+require_file "$ROOT_DIR/tools/vscode-dq/dq-syntax-0.0.1.vsix"
 require_dir "$ROOT_DIR/examples"
 require_dir "$ROOT_DIR/autotest/tests"
 
@@ -119,6 +130,7 @@ if [[ -f "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll
 fi
 
 copy_tracked_paths stdpkg examples autotest/tests
+copy_vscode_extension
 cp "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp "$STAGE/toolchain/llvm-mingw/LICENSE.TXT" "$STAGE/doc/llvm-mingw-LICENSE.txt"
 cp "$ROOT_DIR/README.md" "$STAGE/doc/README-project.md"
@@ -153,6 +165,7 @@ Included:
   toolchain/llvm-mingw/
   stdpkg/
   examples/
+  VSCode/
   autotest/tests/
 
 Linking:

@@ -90,5 +90,23 @@ function *Main() -> int:
     var bad16 : [*]char16 = [char16(0xD800), char16(65), char16(0)];
     PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], wchar(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
 
+    printf("int_to_char = %li %li %li\n", int(IntToChar(65)), int(IntToChar(-1)), int(IntToChar(300, '?'))); //?check("int_to_char", "65 255 63")
+    printf("int_to_wchar = %li %li\n", int(IntToWchar(0x41)), int(IntToWchar(0x110000, '?'))); //?check("int_to_wchar", "65 63")
+
+    var caught_char : bool = false;
+    try:
+        var bad_char : char = IntToChar(256);
+    except Exception:
+        caught_char = true;
+    endtry
+
+    var caught_wchar : bool = false;
+    try:
+        var bad_wchar : wchar = IntToWchar(0xD800);
+    except Exception:
+        caught_wchar = true;
+    endtry
+    printf("int_to_char_wchar_raise = %li %li\n", Flag(caught_char), Flag(caught_wchar)); //?check("int_to_char_wchar_raise", "1 1")
+
     return 0;
 endfunc

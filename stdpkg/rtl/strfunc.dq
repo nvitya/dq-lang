@@ -16,6 +16,10 @@
 use rtl/rtlint
 
 function StrfIsValidWChar(wc : wchar) -> bool
+function IntToChar(value : int) -> char [[overload]]
+function IntToChar(value : int, defvalue : char) -> char [[overload]]
+function IntToWchar(value : int) -> wchar [[overload]]
+function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]
 function StrfIsUtf8(text : strview) -> bool
 function StrfWcLen(text : strview) -> int
 function StrfWCharAt(text : strview, index : int) -> wchar
@@ -44,6 +48,36 @@ endfunc
 function StrfIsValidWChar(wc : wchar) -> bool:
     var code : uint32 = uint32(wc)
     return code <= uint32(0x10FFFF) and not (code >= uint32(0xD800) and code <= uint32(0xDFFF))
+endfunc
+
+function IntToChar(value : int) -> char [[overload]]:
+    if value > 255:
+        raise EStrError('char value out of range: {}', [value])
+        return char(0)
+    endif
+    return char(value)
+endfunc
+
+function IntToChar(value : int, defvalue : char) -> char [[overload]]:
+    if value > 255:
+        return defvalue
+    endif
+    return char(value)
+endfunc
+
+function IntToWchar(value : int) -> wchar [[overload]]:
+    result = wchar(value)
+    if not StrfIsValidWChar(result):
+        raise EStrError('wchar value out of range: {}', [value])
+        return wchar(0)
+    endif
+endfunc
+
+function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
+    result = wchar(value)
+    if not StrfIsValidWChar(result):
+        return defvalue
+    endif
 endfunc
 
 function StrfByte(text : strview, index : int) -> uint32:

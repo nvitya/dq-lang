@@ -482,6 +482,14 @@ cstring(n)
 [*]char
 ```
 
+`cstring` also exposes a `.pchar` property:
+
+```dq
+var p : ^char = cs.pchar
+```
+
+For `cstring(n)`, `.pchar` points to the first byte of its fixed zero-terminated storage. For an unsized `cstring` alias, `.pchar` points to the aliased storage.
+
 ---
 
 ## 10. `strview`
@@ -596,6 +604,12 @@ Borrowed C string input from a known zero-terminated view:
 SomeCFunction(view.pchar)
 ```
 
+Mutable C string storage:
+
+```dq
+SomeCFunction(cs.pchar)
+```
+
 ---
 
 ## 12. Final API Summary
@@ -637,6 +651,7 @@ function StrFromUtf16(chars : ^char16, count : int) -> str
 // C interoperability
 s.pchar -> ^char
 view.pchar -> ^char
+cs.pchar -> ^char
 ```
 
 No dedicated `wstr` or `str16` type is required.

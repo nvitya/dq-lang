@@ -126,8 +126,8 @@ endfunc
 
 function DqTrimTrailingNewline(s : ^char):
     var len : uint = DqCstrLen(s)
-    while len > 0 and (^char(s)[len - 1]^ == char(10) or ^char(s)[len - 1]^ == char(13)):
-        ^char(s)[len - 1]^ = char(0)
+    while len > 0 and (s[len - 1]^ == char(10) or s[len - 1]^ == char(13)):
+        s[len - 1]^ = char(0)
         len -= 1
     endwhile
 endfunc

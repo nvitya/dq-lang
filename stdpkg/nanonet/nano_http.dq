@@ -194,7 +194,7 @@ function HttpDateFromUnix(atime : int64) -> str:
 
     var fmt : cstring(31) = '%a, %d %b %Y %H:%M:%S GMT'
     var buf : cstring(63) = ''
-    if libc_strftime(&buf[0], buf.storage_size, ^char(&fmt[0]), &tm) == 0:
+    if libc_strftime(buf.pchar, buf.storage_size, fmt.pchar, &tm) == 0:
         return ''
     endif
 

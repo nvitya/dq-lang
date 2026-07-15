@@ -72,7 +72,7 @@ function OStrParse.*Create()  [[overload]]:
 endfunc
 
 function OStrParse.*Create(astr : strview)  [[overload]]:
-    Init(^char(&astr[0]), astr.length)
+    Init(astr.pchar, astr.length)
 endfunc
 
 function OStrParse.*Create(astr : ^char, alen : int)  [[overload]]:
@@ -131,7 +131,7 @@ endfunc
 
 function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
     var cp      : ^char = readp
-    var ccstart : ^char = ^char(&checkchars[0])
+    var ccstart : ^char = checkchars.pchar
     var ccend   : ^char = ccstart + checkchars.length
     var ccptr   : ^char
 
@@ -175,7 +175,7 @@ endfunc
 
 function OStrParse.CheckSymbol(checkstring : strview) -> bool:
     var cp    : ^char = readp
-    var csptr : ^char = ^char(&checkstring[0])
+    var csptr : ^char = checkstring.pchar
     var csend : ^char = csptr + checkstring.length
 
     while csptr < csend  and cp < bufend  and csptr^ == cp^:
@@ -301,7 +301,7 @@ function OStrParse.SearchPattern(checkstring : strview) -> bool:
         return false
     endif
 
-    var ccstart : ^char = ^char(&checkstring[0])
+    var ccstart : ^char = checkstring.pchar
     var ccend   : ^char = ccstart + ccslen
     var cps     : ^char = readp
     var lastpos : ^char = bufend - ccslen
@@ -399,7 +399,7 @@ endfunc
 function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool:
     var cp     : ^char = readp
     var endp   : ^char = cp + len
-    var csptr  : ^char = ^char(&checkstring[0])
+    var csptr  : ^char = checkstring.pchar
     var csend  : ^char = csptr + checkstring.length
 
     while csptr < csend  and cp < endp:

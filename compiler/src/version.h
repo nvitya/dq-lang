@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.34.1"
+#define DQ_COMPILER_VERSION  "0.34.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.34.3:
+  - replacing ^char(&x[0]) casts with x.pchar
 v0.34.2:
   - str.pchar, strview.pchar + str zero terminator guarantee
 v0.34.1:

@@ -2995,7 +2995,14 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 {
   receiver = areceiver;
   field = afield;
-  ptype = g_builtins->type_int;
+  if (CSMF_PCHAR == field)
+  {
+    ptype = g_builtins->type_char->GetPointerType();
+  }
+  else
+  {
+    ptype = g_builtins->type_int;
+  }
 }
 
 LlValue * OCStringMetaFieldExpr::Generate(OScope * scope)

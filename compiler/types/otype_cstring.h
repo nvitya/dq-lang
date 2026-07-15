@@ -112,7 +112,8 @@ enum ECStringMetaField
 {
   CSMF_LENGTH,
   CSMF_MAXLENGTH,
-  CSMF_STORAGE_SIZE
+  CSMF_STORAGE_SIZE,
+  CSMF_PCHAR
 };
 
 enum ECStringMethod

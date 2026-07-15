@@ -64,6 +64,10 @@ function MutateThroughPointer(apc : ^char):
     pc^ = char(0);
 endfunc
 
+function CStrTermAtLen(cs : cstring) -> int:
+    return Ord(cs.pchar[cs.length]^);
+endfunc
+
 function *Main() -> int:
     printf("string_cstring_semantics = start\n"); //?check("string_cstring_semantics", "start")
 
@@ -73,6 +77,7 @@ function *Main() -> int:
 
     cs = "abcdefghi";
     PrintText("cstring_assign_trunc", cs); //?check("cstring_assign_trunc", '[5] "abcde"')
+    printf("cstring_pchar = text:%s term:%li\n", cs.pchar, CStrTermAtLen(cs)); //?check("cstring_pchar", "text:abcde term:0")
 
     var pc : ^char = "asdf";
     var cs_pc : cstring(3);
@@ -120,6 +125,7 @@ function *Main() -> int:
     alias.Append(" two");
     EditAlias(alias);
     PrintText("cstring_alias_storage", storage); //?check("cstring_alias_storage", '[12] "one two four"')
+    printf("cstring_alias_pchar = text:%s term:%li\n", alias.pchar, CStrTermAtLen(alias)); //?check("cstring_alias_pchar", "text:one two four term:0")
 
     var alias2 : cstring = alias;
     alias2.Append(" five");

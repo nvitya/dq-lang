@@ -57,7 +57,7 @@ function CStrScanLen(desc : ref SDqTextInfo) -> uint:
     endif
 
     // register-optimised version
-    var pstart : ^char = ^char(desc.dataptr)
+    var pstart : ^char = desc.dataptr
     var p      : ^char = pstart
     var pend   : ^char = p[maxlen]
     while p < pend:
@@ -82,7 +82,7 @@ endfunc
 
 function CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
     if desc.dataptr <> null:
-        ^char(desc.dataptr)[clen]^ = char(0)
+        desc.dataptr[clen]^ = char(0)
     endif
 endfunc
 
@@ -90,7 +90,7 @@ function CStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
     desc.charlen = newlen
     desc.info =AND= NOT DQTIF_CHARLEN_VALID
     if desc.dataptr <> null:
-        ^char(desc.dataptr)[newlen]^ = char(0)
+        desc.dataptr[newlen]^ = char(0)
     endif
 endfunc
 
@@ -120,7 +120,7 @@ function CStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^char, max
 
     var count : uint = CStrBoundedPtrLen(src, maxcopy)
     if count > uint(0):
-        MemCopy(^char(desc.dataptr)[dstpos], src, count)
+        MemCopy(desc.dataptr[dstpos], src, count)
     endif
     return count
 endfunc
@@ -136,7 +136,7 @@ function CStrAssignChar(desc : ref SDqTextInfo, ch : char):
         return
     endif
 
-    ^char(desc.dataptr)[0]^ = char(ch)
+    desc.dataptr^ = char(ch)
     CStrSetLenAndTerm(desc, 1)
 endfunc
 
@@ -183,7 +183,7 @@ function CStrAppendChar(desc : ref SDqTextInfo, ch : char):
         return
     endif
 
-    ^char(desc.dataptr)[clen]^ = char(ch)
+    desc.dataptr[clen]^ = char(ch)
     clen += 1
     CStrSetLenAndTerm(desc, clen)
 endfunc
@@ -224,7 +224,7 @@ function CStrOpenGap(desc : ref SDqTextInfo, index : uint, addlen : uint, oldlen
         if movecount > maxlen - index - addlen:
             movecount = maxlen - index - addlen
         endif
-        MemCopy(^char(desc.dataptr)[index + addlen], ^char(desc.dataptr)[index], movecount)
+        MemCopy(desc.dataptr[index + addlen], desc.dataptr[index], movecount)
     endif
     return addlen
 endfunc
@@ -236,7 +236,7 @@ function CStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char):
     var addlen : uint = CStrBoundedPtrLen(src, maxlen - pos)
     addlen = CStrOpenGap(desc, pos, addlen, oldlen)
     if addlen > uint(0):
-        MemCopy(^char(desc.dataptr)[pos], src, addlen)
+        MemCopy(desc.dataptr[pos], src, addlen)
     endif
     var newlen : uint = oldlen + addlen
     if newlen > maxlen:
@@ -255,7 +255,7 @@ function CStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextIn
     endif
     addlen = CStrOpenGap(desc, pos, addlen, oldlen)
     if addlen > uint(0):
-        MemCopy(^char(desc.dataptr)[pos], src.dataptr, addlen)
+        MemCopy(desc.dataptr[pos], src.dataptr, addlen)
     endif
     var newlen : uint = oldlen + addlen
     if newlen > maxlen:
@@ -269,7 +269,7 @@ function CStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char):
     var pos : uint = CStrClampIndex(index, oldlen)
     var addlen : uint = CStrOpenGap(desc, pos, 1, oldlen)
     if addlen > uint(0):
-        var p : ^char = ^char(desc.dataptr)
+        var p : ^char = desc.dataptr
         p += pos
         p^ = char(ch)
     endif
@@ -299,7 +299,7 @@ function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1):
 
     var tail : uint = clen - pos - delcount
     if tail > uint(0):
-        MemCopy(^char(desc.dataptr)[pos], ^char(desc.dataptr)[pos + delcount], tail)
+        MemCopy(desc.dataptr[pos], desc.dataptr[pos + delcount], tail)
     endif
 
     clen -= delcount

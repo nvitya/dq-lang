@@ -128,7 +128,7 @@ function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
         DynStrRuntimeError('DynStr null text data')
         return char(0)
     endif
-    result = ^char(ati.dataptr)[index]^
+    result = ati.dataptr[index]^
 endfunc
 
 function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
@@ -172,7 +172,7 @@ function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     endif
     var i : uint32 = 0
     while i < alen:
-        if ^char(a.dataptr)[i]^ <> ^char(b.dataptr)[i]^:
+        if a.dataptr[i]^ <> b.dataptr[i]^:
             return false
         endif
         i += 1
@@ -274,7 +274,7 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint3
     adst.charlen = result
     adst.info = adst.info OR DQTIF_CHARLEN_VALID
     if adst.dataptr <> null:
-        ^char(adst.dataptr)[result]^ = char(0)
+        adst.dataptr[result]^ = char(0)
     endif
 endfunc
 

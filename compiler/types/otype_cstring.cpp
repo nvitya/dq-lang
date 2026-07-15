@@ -260,6 +260,11 @@ static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
 
 LlValue * GenerateCStringMetaField(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr, ECStringMetaField field)
 {
+  if (CSMF_PCHAR == field)
+  {
+    return GenerateCStringDataPtr(scope, cstrtype, cstraddr);
+  }
+
   if (cstrtype->maxlen > 0)
   {
     if (CSMF_MAXLENGTH == field)

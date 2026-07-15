@@ -2417,6 +2417,11 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
             result = new OCStringMetaFieldExpr(lval, CSMF_STORAGE_SIZE);
             continue;
           }
+          if ("pchar" == membername)
+          {
+            result = new OCStringMetaFieldExpr(lval, CSMF_PCHAR);
+            continue;
+          }
           result = ParseCStringMethod(result, lval, membername);
           if (!result) return nullptr;
           continue;

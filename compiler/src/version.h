@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.33.1"
+#define DQ_COMPILER_VERSION  "0.33.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.33.2:
+  - More strfunc preparation
 v0.33.1:
   - str-v2 migration / 2: new strfunc adjusted using wchar
 v0.33.0:

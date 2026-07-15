@@ -6,7 +6,7 @@ use libc/stdio;
 use rtl/anyvalue;
 use rtl/dynstrmgr;
 
-function MakeText(desc : refout SDqTextInfo, data : pointer, alen : uint32):
+function MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data;
     desc.charlen = alen;
     desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
@@ -20,7 +20,7 @@ function PrintText(label : ^char, ti : ref SDqTextInfo):
     printf("%s = len:%li text: \"", label, int(TextInfoGetLength(ti)));
     var i : int = 0;
     while i < ti.charlen:
-        printf("%c", Ord(^char(ti.dataptr)[i]^));
+        printf("%c", Ord(ti.dataptr[i]^));
         i += 1;
     endwhile
     printf("\"\n");

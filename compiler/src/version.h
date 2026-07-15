@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.34.0"
+#define DQ_COMPILER_VERSION  "0.34.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.34.1:
+  - Dropping multi-byte handling from str
 v0.34.0:
   - Strict char type, requiring conversion functions: Ord(c) or char(n), wchar(n)
 v0.33.2:

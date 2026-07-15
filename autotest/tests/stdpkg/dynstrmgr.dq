@@ -3,7 +3,7 @@
 use libc/stdio;
 use rtl/dynstrmgr;
 
-function MakeText(desc : refout SDqTextInfo, data : pointer, alen : uint32):
+function MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data;
     desc.charlen = alen;
     desc.info = (alen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID;
@@ -16,7 +16,7 @@ function PrintText(label : ^char, s : ref ODynStrMgr):
     printf("%s = len:%li cap:%li text: \"", label, int(DynStrGetLength(s)), int(DynStrGetCapacity(s)));
     var i : int = 0;
     while i < view.charlen:
-        printf("%c", Ord(^char(view.dataptr)[i]^));
+        printf("%c", Ord(view.dataptr[i]^));
         i += 1;
     endwhile
     printf("\"\n");

@@ -18,7 +18,7 @@ use rtl/rtlint
 object ODynStrMgr:
 public
     refcount : int
-    dataptr  : pointer
+    dataptr  : ^char
     length   : uint32        // length in characters
     capacity : uint32
 
@@ -50,12 +50,12 @@ function DynStrDecRef(astr : ref ODynStrMgr)
 function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr)
 function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo)
 
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : pointer, charlen : uint32, achwidth : uint8)
+function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32, achwidth : uint8)
 function DynStrCheckByteWidth(achwidth : uint8) -> bool
 function DynStrCheckIndex(index : int, length : uint32)
 function DynStrByteOffset(index : uint32, achwidth : uint8) -> uint
 
-//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> pointer
+//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32
 function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
 function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
@@ -103,14 +103,8 @@ function DynStrRuntimeError(emsg : ^char):
     RuntimeError(emsg)
 endfunc
 
-function TextInfoChWidth(ati : refin SDqTextInfo) -> uint8:
-    if ati.info AND DQTIF_CHARWIDTH_4 <> 0:
-        return 4
-    elif ati.info AND DQTIF_CHARWIDTH_2 <> 0:
-        return 2
-    else:
-        return 1
-    endif
+function TextInfoChWidth(ati : refin SDqTextInfo) -> uint8:  // TODO: remove
+    return 1
 endfunc
 
 function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
@@ -164,7 +158,7 @@ function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startp
     if viewlen == 0  or  ati.dataptr == null:
         DynStrSetTextInfo(rti, null, 0, TextInfoChWidth(ati))
     else:
-        DynStrSetTextInfo(rti, ^byte(ati.dataptr)[DynStrByteOffset(b, TextInfoChWidth(ati))], viewlen, TextInfoChWidth(ati))
+        DynStrSetTextInfo(rti, ati.dataptr[DynStrByteOffset(b, TextInfoChWidth(ati))], viewlen, TextInfoChWidth(ati))
     endif
 endfunc
 
@@ -198,16 +192,6 @@ function DynStrNormalizeChWidth(achwidth : uint8) -> uint8:
         return achwidth
     endif
     return 1
-endfunc
-
-function DynStrChWidthInfo(achwidth : uint) -> uint32:
-    if achwidth == 4:
-        return DQTIF_CHARWIDTH_4
-    elif achwidth == 2:
-        return DQTIF_CHARWIDTH_2
-    else:
-        return 0
-    endif
 endfunc
 
 function DynStrCalcByteSize(charcount : uint32, achwidth : uint8) -> uint:
@@ -266,7 +250,7 @@ function DynStrClampIndex(index : int, length : uint32) -> uint32:
     endif
 endfunc
 
-function DynStrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint32, achwidth : uint8) -> int:
+function DynStrOwnDataPtrOffset(dataptr : ^char, src : ^char, length : uint32, achwidth : uint8) -> int:
     if dataptr == null  or  src == null  or  length == 0:
         return -1
     endif
@@ -298,10 +282,10 @@ function DynStrSourceCount(asrc : ref SDqTextInfo, acount : int32) -> uint32:
     endif
 endfunc
 
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : pointer, charlen : uint32, achwidth : uint8):
+function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32, achwidth : uint8):
     rti.dataptr = dataptr
     rti.charlen = charlen
-    rti.info = (charlen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID OR DQTIF_READONLY OR DynStrChWidthInfo(achwidth)
+    rti.info = (charlen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID OR DQTIF_READONLY
 endfunc
 
 function DynStrCheckByteWidth(achwidth : uint8) -> bool:
@@ -318,7 +302,7 @@ function DynStrCheckIndex(index : int, length : uint32):
     endif
 endfunc
 
-function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : pointer, srclen : uint32, achwidth : uint8) -> uint32:
+function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32, achwidth : uint8) -> uint32:
     @cstrings.CStrClear(adst)
     if srcptr == null  or  srclen == 0:
         return 0
@@ -417,11 +401,11 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
         return
     endif
 
-    var new_dataptr : pointer = null
+    var new_dataptr : ^char = null
     if dataptr == null:
-        new_dataptr = MemAlloc(new_bytes)
+        new_dataptr = ^char(MemAlloc(new_bytes))
     else:
-        new_dataptr = MemRealloc(dataptr, new_bytes)
+        new_dataptr = ^char(MemRealloc(dataptr, new_bytes))
     endif
 
     if new_dataptr == null:
@@ -466,7 +450,7 @@ function ODynStrMgr.SetLength(new_length : uint32):
         return
     endif
 
-    MemSet(^byte(dataptr)[DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
+    MemSet(dataptr[DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
     length = new_length
 endfunc
 
@@ -512,12 +496,12 @@ function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
         endif
     endif
 
-    var srcptr : pointer = asrc.dataptr
+    var srcptr : ^char = asrc.dataptr
     if owndata_src_index >= 0:
-        srcptr = ^byte(dataptr)[DynStrByteOffset(uint32(owndata_src_index), chwidth)]
+        srcptr = dataptr[DynStrByteOffset(uint32(owndata_src_index), chwidth)]
     endif
 
-    MemCopy(^byte(dataptr)[DynStrByteOffset(old_length, chwidth)],
+    MemCopy(dataptr[DynStrByteOffset(old_length, chwidth)],
             srcptr,
             DynStrCalcByteSize(add_count, chwidth))
     length = new_length
@@ -555,12 +539,12 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
 
     var tail_count : uint32 = old_length - insertpos
     if tail_count > 0:
-        MemCopy(^byte(dataptr)[DynStrByteOffset(insertpos + add_count, chwidth)],
-                ^byte(dataptr)[DynStrByteOffset(insertpos, chwidth)],
+        MemCopy(dataptr[DynStrByteOffset(insertpos + add_count, chwidth)],
+                dataptr[DynStrByteOffset(insertpos, chwidth)],
                 DynStrCalcByteSize(tail_count, chwidth))
     endif
 
-    var dstptr : pointer = ^byte(dataptr)[DynStrByteOffset(insertpos, chwidth)]
+    var dstptr : ^char = dataptr[DynStrByteOffset(insertpos, chwidth)]
     var copy_bytes : uint = DynStrCalcByteSize(add_count, chwidth)
 
     if owndata_src_index < 0:
@@ -568,17 +552,17 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
     else:
         var sidx : uint32 = uint32(owndata_src_index)
         if sidx + add_count <= insertpos:
-            MemCopy(dstptr, ^byte(dataptr)[DynStrByteOffset(sidx, chwidth)], copy_bytes)
+            MemCopy(dstptr, dataptr[DynStrByteOffset(sidx, chwidth)], copy_bytes)
         elif sidx >= insertpos:
-            MemCopy(dstptr, ^byte(dataptr)[DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
+            MemCopy(dstptr, dataptr[DynStrByteOffset(sidx + add_count, chwidth)], copy_bytes)
         else:
             var left_count : uint32 = insertpos - sidx
             var right_count : uint32 = add_count - left_count
             MemCopy(dstptr,
-                         ^byte(dataptr)[DynStrByteOffset(sidx, chwidth)],
+                         dataptr[DynStrByteOffset(sidx, chwidth)],
                          DynStrCalcByteSize(left_count, chwidth))
-            MemCopy(^byte(dstptr)[DynStrByteOffset(left_count, chwidth)],
-                         ^byte(dataptr)[DynStrByteOffset(insertpos + add_count, chwidth)],
+            MemCopy(dstptr[DynStrByteOffset(left_count, chwidth)],
+                         dataptr[DynStrByteOffset(insertpos + add_count, chwidth)],
                          DynStrCalcByteSize(right_count, chwidth))
         endif
     endif
@@ -608,8 +592,8 @@ function ODynStrMgr.Delete(index : int, acount : int32):
 
     var movecount : uint32 = length - deletepos - delcount
     if movecount > 0:
-        MemCopy(^byte(dataptr)[DynStrByteOffset(deletepos, chwidth)],
-                ^byte(dataptr)[DynStrByteOffset(deletepos + delcount, chwidth)],
+        MemCopy(dataptr[DynStrByteOffset(deletepos, chwidth)],
+                dataptr[DynStrByteOffset(deletepos + delcount, chwidth)],
                  DynStrCalcByteSize(movecount, chwidth))
     endif
 
@@ -629,7 +613,7 @@ function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     endif
 
     var startpos : uint32 = length - popcount
-    popcount = DynStrCopyToCStr(adst, ^byte(dataptr)[DynStrByteOffset(startpos, chwidth)], popcount, chwidth)
+    popcount = DynStrCopyToCStr(adst, dataptr[DynStrByteOffset(startpos, chwidth)], popcount, chwidth)
     length -= popcount
 endfunc
 
@@ -707,7 +691,7 @@ function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo):
     astr = newstr
 endfunc
 
-//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> pointer
+//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32:
     if astr == null:
         return 0
@@ -730,8 +714,8 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
 endfunc
 
 function DynStrCharToByte(ch : char) -> char:
-    var chv : uint32 = uint32(Ord(ch))
-    if chv > uint32(255):
+    var chv : int = Ord(ch)
+    if chv > 255:
         DynStrRuntimeError('DynStr byte-only string support rejects char > 255')
         return char(0)
     endif
@@ -747,7 +731,7 @@ function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
     if not DynStrCheckByteWidth(astr.chwidth):
         return char(0)
     endif
-    result = ^char(astr.dataptr)[index]^
+    result = astr.dataptr[index]^
 endfunc
 
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
@@ -763,7 +747,7 @@ function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
     if not DynStrEnsureUnique(astr):
         return
     endif
-    ^char(astr.dataptr)[index]^ = bch
+    astr.dataptr[index]^ = bch
 endfunc
 
 function DynStrReserve(astr : ref ODynStrMgr, achwidth : uint8, min_capacity : uint32):
@@ -840,7 +824,7 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
     endif
     var i : uint32 = old_length
     while i < new_length:
-        ^char(astr.dataptr)[i]^ = bch
+        astr.dataptr[i]^ = bch
         i += 1
     endwhile
 endfunc
@@ -952,7 +936,7 @@ function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos
     if viewlen == 0:
         DynStrSetTextInfo(rti, null, 0, astr.chwidth)
     else:
-        DynStrSetTextInfo(rti, ^byte(astr.dataptr)[DynStrByteOffset(b, astr.chwidth)], viewlen, astr.chwidth)
+        DynStrSetTextInfo(rti, astr.dataptr[DynStrByteOffset(b, astr.chwidth)], viewlen, astr.chwidth)
     endif
 endfunc
 
@@ -1016,7 +1000,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
 
     var startpos : uint32 = astr.length - popcount
     @mem.MemCopy(adst.dataptr,
-                 ^byte(astr.dataptr)[DynStrByteOffset(startpos, astr.chwidth)],
+                 astr.dataptr[DynStrByteOffset(startpos, astr.chwidth)],
                  DynStrCalcByteSize(popcount, astr.chwidth))
     adst.length = popcount
     astr.Delete(int(startpos), int32(popcount))

@@ -18,6 +18,11 @@ LlDiType * OTypeChar::CreateDiType()
   return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
 }
 
+LlDiType * OTypeChar16::CreateDiType()
+{
+  return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
+}
+
 LlDiType * OTypeWchar::CreateDiType()
 {
   return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);

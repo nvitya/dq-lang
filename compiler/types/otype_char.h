@@ -30,6 +30,21 @@ public:
   LlDiType * CreateDiType() override;
 };
 
+class OTypeChar16 : public OTypeInt
+{
+private:
+  using super = OTypeInt;
+
+public:
+  OTypeChar16()
+  :
+    super("char16", 16, false)
+  {
+  }
+
+  LlDiType * CreateDiType() override;
+};
+
 class OTypeWchar : public OTypeInt
 {
 private:

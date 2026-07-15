@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.33.0"
+#define DQ_COMPILER_VERSION  "0.33.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.33.1:
+  - str-v2 migration / 2: new strfunc adjusted using wchar
 v0.33.0:
   - str-v2 migration / 1: char width changed 32-bit to 8-bit, 32-bit wchar introduced
 v0.32.8:

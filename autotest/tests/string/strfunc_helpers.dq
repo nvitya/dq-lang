@@ -13,7 +13,7 @@ function PrintBytes(label : ^cchar, text : strview):
     printf("\n");
 endfunc
 
-function PrintU32Array(label : ^cchar, arr : []uint32):
+function PrintWCharArray(label : ^cchar, arr : []wchar):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:
@@ -65,13 +65,13 @@ function *Main() -> int:
            int(StrfWCharAt(sample, 0)), int(StrfWCharAt(sample, 1)), int(StrfWCharAt(sample, 2)), int(StrfWCharAt(sample, 3)));
            //?check("strf_at", "65 233 8364 128512")
 
-    var decoded : [*]uint32 = StrfToWchars(sample);
-    PrintU32Array("strf_to_wchars", decoded[:]); //?check("strf_to_wchars", "len:4 data: 65 233 8364 128512")
-    var sliced : [*]uint32 = StrfWCharSlice(sample, 1, 3);
-    PrintU32Array("strf_wchar_slice", sliced[:]); //?check("strf_wchar_slice", "len:2 data: 233 8364")
+    var decoded : [*]wchar = StrfToWchars(sample);
+    PrintWCharArray("strf_to_wchars", decoded[:]); //?check("strf_to_wchars", "len:4 data: 65 233 8364 128512")
+    var sliced : [*]wchar = StrfWCharSlice(sample, 1, 3);
+    PrintWCharArray("strf_wchar_slice", sliced[:]); //?check("strf_wchar_slice", "len:2 data: 233 8364")
     PrintBytes("strf_wcstr_slice", StrfWcStrSlice(sample, 1, 3)); //?check("strf_wcstr_slice", "len:5 bytes: 195 169 226 130 172")
 
-    var wchars : [*]uint32 = [uint32(65), uint32(233), uint32(8364), uint32(128512)];
+    var wchars : [*]wchar = [wchar(65), wchar(233), wchar(8364), wchar(128512)];
     PrintBytes("strf_from_wchars", StrfFromWchars(wchars[:])); //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 
     var utf16 : [*]uint16 = StrfToUtf16(sample);
@@ -88,7 +88,7 @@ function *Main() -> int:
     printf("strf_is_utf8 = good:%li bad:%li\n", Flag(StrfIsUtf8(sample)), Flag(StrfIsUtf8(invalid))); //?check("strf_is_utf8", "good:1 bad:0")
 
     var bad16 : [*]uint16 = [uint16(0xD800), uint16(65), uint16(0)];
-    PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], uint32(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
+    PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], wchar(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
 
     return 0;
 endfunc

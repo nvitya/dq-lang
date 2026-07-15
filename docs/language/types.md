@@ -16,8 +16,9 @@ The common primitive types are:
 | `byte` | Alias for `uint8` |
 | `float32`, `float64` | Floating point types |
 | `float` | Platform-preferred floating point type |
-| `char` | DQ character value |
-| `cchar` | C-compatible character byte |
+| `char` | Unsigned 8-bit byte or UTF-8 code unit |
+| `char16` | Unsigned 16-bit UTF-16 code unit |
+| `wchar` | Unsigned 32-bit Unicode scalar value |
 | `pointer` | Untyped generic pointer |
 | `Object` | Untyped object, compatible with all objects |
 
@@ -234,21 +235,24 @@ DQ has several text-related types:
 | `strview` | Non-owning string view |
 | `cstring(n)` | Fixed-size zero-terminated C-style string storage |
 | `cstring` | C-style string argument type |
-| `^cchar` | Pointer to C-compatible character data |
+| `^char` | Pointer to byte-oriented C string data |
 
 ## String and Character Literals
 
-Double-quoted literals are text. Single quotes can also delimit text, but a
-single-quoted literal containing exactly one character is a `char`.
+Double-quoted literals are text. Single quotes can also delimit text. Character
+literals are Unicode scalar values with type `wchar`; assignment to `char` is
+accepted only when the literal value is less than 256.
 
 ```dq
 var text1 : str = "hello"
 var text2 : str = 'hello'
 var slash_text : str = "/"
-var slash_char : char = '/'
+var slash_wchar : wchar = '/'
+var slash_byte : char = '/'
+var euro : wchar = '€'
 ```
 
-This matters when comparing text. `"/"` is a string literal, but `'/'` is a
+This matters when comparing text. `"/"` is a string literal, while `'/'` is a
 character literal.
 
 ```dq
@@ -257,17 +261,17 @@ if url == "/":
 endif
 
 if url == '/':
-    // wrong: '/' is char, not str/strview/cstring text
+    // wrong: '/' is wchar, not str/strview/cstring text
 endif
 ```
 
 Use double quotes for one-character strings when the value is text. Use single
-quotes for character values, such as string indexing results or APIs that take
-`char`.
+quotes for character values. Use `char(...)` or `IntToChar(...)` when a byte
+value is required.
 
 ```dq
 if url[0] == '/':
-    // ok: compares char with char
+    // ok when '/' fits in char; string indexing returns char bytes
 endif
 ```
 
@@ -283,6 +287,28 @@ b[0] = 'X'      // a remains "abc"
 Dynamic strings expose `.length` and `.capacity` and provide mutation methods
 such as `Append`, `Prepend`, `Insert`, `Delete`, `SetLength`, `Truncate`, `Pop`,
 `PopFirst`, `Reserve`, `Compact`, `Clear`, and `Clone`.
+
+`str` is a byte string with a hidden trailing zero. `.length`, indexing, and
+slicing are byte-based:
+
+```dq
+var b : char = text[0]
+var bytes : str = text[1:4]
+```
+
+Unicode scalar processing is explicit and uses `wchar`:
+
+```dq
+var count : int = text.wclen
+var wc : wchar = text.wchar[0]
+var wchars : [*]wchar = text.ToWchars()
+var utf16 : [*]char16 = text.ToUtf16()
+```
+
+Use `Ord(ch)` to convert `char`, `char16`, or `wchar` values to integers.
+Integer-to-character casts use `char(value)`, `char16(value)`, or
+`wchar(value)`. The checked helpers `IntToChar(...)` and `IntToWchar(...)`
+validate runtime values before returning a character value.
 
 ## Anyvalue
 

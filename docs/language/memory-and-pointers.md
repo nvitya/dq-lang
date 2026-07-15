@@ -47,9 +47,9 @@ endif
 Typed pointers support pointer arithmetic.
 
 ```dq
-var p : ^cchar = &text[0]
+var p : ^char = text.pchar
 p += 1
-var next : ^cchar = p + 1
+var next : ^char = p + 1
 ```
 
 Pointer difference is also used by low-level code.
@@ -64,9 +64,9 @@ Typed pointer indexing returns a pointer value. It does not dereference the
 element like C.
 
 ```dq
-var p : ^cchar = &buf[0]
-var second_ptr : ^cchar = p[1]
-var second_char : cchar = p[1]^
+var p : ^char = buf.pchar
+var second_ptr : ^char = p[1]
+var second_char : char = p[1]^
 ```
 
 ## Struct Pointers
@@ -134,7 +134,7 @@ Embedded object references are valid while their containing storage is alive.
 
 ```dq
 var buf : cstring(64) = "hello"
-var p : ^cchar = &buf[0]
+var p : ^char = buf.pchar
 ```
 
 This type is intended for C interoperability and low-level text handling.

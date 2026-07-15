@@ -9,9 +9,9 @@ Attributes can appear before a declaration or after the declaration item,
 depending on the declaration kind.
 
 ```dq
-[[external]] function printf(fmt : ^cchar, ...) -> int
+[[external]] function printf(fmt : ^char, ...) -> int
 
-function printf(fmt : ^cchar, ...) -> int [[external('printf')]]
+function printf(fmt : ^char, ...) -> int [[external('printf')]]
 ```
 
 Multiple attributes can be written in one list.
@@ -45,13 +45,13 @@ Unsupported or inapplicable attributes may be ignored with a compiler warning.
 symbol name.
 
 ```dq
-[[external]] function puts(s : ^cchar) -> int
+[[external]] function puts(s : ^char) -> int
 ```
 
 Use an argument when the external symbol name differs.
 
 ```dq
-[[external('fprintf')]] function c_fprintf(stream : pointer, fmt : ^cchar, ...) -> int
+[[external('fprintf')]] function c_fprintf(stream : pointer, fmt : ^char, ...) -> int
 ```
 
 External global variables are supported.
@@ -127,7 +127,7 @@ DQ source.
 ```dq
 #linklib('z')
 
-function zlibVersion() -> ^cchar  [[external]]
+function zlibVersion() -> ^char  [[external]]
 ```
 
 The exact linker behavior depends on the target platform and compiler driver.

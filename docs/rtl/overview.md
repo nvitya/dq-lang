@@ -52,7 +52,7 @@ The process argument helpers are:
 
 ```dq
 function ArgCount() -> int
-function ArgStr(i : int) -> ^cchar
+function ArgStr(i : int) -> ^char
 ```
 
 `ArgStr(i)` returns `null` for an out-of-range index.

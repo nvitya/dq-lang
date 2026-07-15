@@ -687,12 +687,12 @@ function OSConnectionHttp.SendOutput():
                 rlen = 65536
             endif
 
-            outbuf.SetLength(rlen, 0)
+            outbuf.SetLength(rlen, char(0))
             var r : int64 = file_obj.Read(&outbuf[0], rlen)
             if r > 0:
                 file_remaining -= r
                 if r < outbuf.length:
-                    outbuf.SetLength(r, 0)
+                    outbuf.SetLength(r, char(0))
                 endif
                 continue
             endif

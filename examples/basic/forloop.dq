@@ -6,17 +6,17 @@ function *Main() -> int:
     for i : int = 0 to 5:
         printf(' %d', i);
     endfor
-    printf('\n');
+    printf("\n");
 
     for i : int = 0 count 5 step 2:
         printf(' %d', i);
     endfor
-    printf('\n');
+    printf("\n");
 
     for i : int = 0 while i < 3:
         printf(' %d', i);
     endfor
-    printf('\n');
+    printf("\n");
 
 
     return 0;

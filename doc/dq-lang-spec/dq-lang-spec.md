@@ -143,14 +143,14 @@ See section 8.5 for function-specific attributes.
 
 #### String and Character Literals
 
-Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably. The **type is determined by length**:
+Both single (`'...'`) and double (`"..."`) quotes can delimit text. A literal
+containing exactly one Unicode scalar is a `wchar` character literal. Longer or
+empty literals are `str`.
 
 ```dq
-// Character literals (exactly one character)
-'A'             // char
-"A"             // char
-'\n'            // char (escape sequence)
-"\t"            // char (escape sequence)
+// Character literals (exactly one Unicode scalar)
+'A'             // wchar
+"\t"            // wchar (escape sequence)
 
 // String literals (zero or multiple characters)
 "Hello, World!" // str
@@ -161,21 +161,22 @@ Both single (`'...'`) and double (`"..."`) quotes are supported interchangeably.
 ```
 
 **Rules**:
-- **Exactly one character** (including escape sequences) → `char`
+- **Exactly one Unicode scalar** (including escape sequences) → `wchar`
 - **Zero or multiple characters** → `str`
 - Both quote styles are equivalent — use whichever is convenient for the content
 
-**Concatenation**: When using `+`, `char` is implicitly promoted to `str`:
+Assignment of a character literal to `char` is accepted only when the literal
+value is less than 256.
+
 ```dq
-var s : str = 'Hell' + 'o' + " world";  // 'Hell' is str, 'o' is char, " world" is str
+var c1 : char  = 'A';   // OK
+var c2 : char  = '€';   // error: value does not fit in char
+var wc : wchar = '€';   // OK
 ```
 
-**Assignment Compatibility**: A `char` value (or literal) can be implicitly assigned to a `str` variable or parameter. The result is a string of length 1. This provides an explicit exception to the "no implicit conversions" rule for this common and intuitive case.
-```dq
-var c : char = 'A';
-var s : str = c;    // OK: implicit conversion from char to str
-var s2 : str = "B"; // OK: "B" is a char literal, implicitly converted
-```
+Character values are not implicitly compatible with integer types. Use
+`Ord(value)` for character-to-integer conversion and `char(value)`,
+`char16(value)`, or `wchar(value)` for explicit integer-to-character casts.
 
 #### Multi-line Strings
 
@@ -258,32 +259,54 @@ bool    // true or false, no implicit conversion to/from integers
 
 #### Character Types
 ```dq
-char    // 32-bit Unicode scalar value (0..0x10FFFF, excluding surrogates)
+char    // 8-bit byte or UTF-8 code unit
 char16  // 16-bit UTF-16 code unit
-char8   // 8-bit code unit / byte
+wchar   // 32-bit Unicode scalar value (0..0x10FFFF, excluding surrogates)
 ```
 
-**Character from Unicode code point**:
+`char` may hold an ASCII character, one UTF-8 code unit, or arbitrary binary
+data. `char16` exists mainly for UTF-16 interoperability. `wchar` is independent
+of the platform C/C++ `wchar_t` type.
+
+**Character from integer value**:
 ```dq
-var c : char = char(0x30);      // '0' (digit zero)
-var c : char = char(0x1F600);   // 😀 (emoji)
+var c  : char  = char(0x30);      // byte value for '0'
+var c2 : char  = char(255);       // maximum char value
+var wc : wchar = wchar(0x1F600);  // Unicode scalar value
 ```
+
+Constant casts are checked by the compiler. Runtime casts are explicit and
+unchecked; use `IntToChar(...)` and `IntToWchar(...)` when runtime validation is
+required.
 
 ### 4.2 String Types
 
-#### Dynamic String (`str` / `string`)
-- Python-like semantics
-- Unicode-aware
-- Heap-backed, variable length
-- `str` is the primary spelling; `string` is an alias
+#### Dynamic String (`str`)
+- owned, heap-backed byte string
+- copy-on-write
+- always has a hidden trailing zero byte
+- may contain arbitrary bytes, including internal zero bytes
 
 ```dq
 var s1 : str = "Hello";
 var s2 : str = s1 + " World";
-var len : int = length(s1);     // Pascal-style function
-var len : int = s1.length;      // also available as property
-var ch : char = s1[0];          // indexed access (Unicode-aware)
+var len : int = s1.length;      // byte count
+var ch : char = s1[0];          // byte access
+var part : str = s1[1:4];       // byte slice
 ```
+
+Unicode scalar access is explicit and decodes the bytes as UTF-8:
+
+```dq
+var count : int = s1.wclen;        // Unicode scalar count
+var wc : wchar = s1.wchar[0];      // scalar-indexed access
+var wchars : [*]wchar = s1.wchar[:];
+var utf8_part : str = s1.wcstr[1:$end];
+```
+
+Malformed UTF-8 causes a runtime encoding error in Unicode-oriented operations.
+For repeated indexed Unicode processing, convert once with `s1.ToWchars()`.
+UTF-16 interoperability uses `s1.ToUtf16()` and `StrFromUtf16(...)`.
 
 #### Fixed-Size String Buffer (`cstring(N)`)
 - N bytes inline (no heap)
@@ -291,8 +314,8 @@ var ch : char = s1[0];          // indexed access (Unicode-aware)
 - For protocols, ABI, packed structs
 
 ```dq
-var name : cstring(32);        // 32 usable chars, 33-byte inline buffer
-name = "Viktor";           // copies UTF-8, truncates to N-1, adds NUL
+var name : cstring(32);        // 32 usable bytes plus trailing zero storage
+name = "Viktor";               // copies bytes, truncates to fit, adds NUL
 var s : str = name;            // converts to dynamic string
 ```
 
@@ -1646,7 +1669,6 @@ endfunc
 ```dq
 print(...)          // output without newline
 println(...)        // output with newline
-length(x)           // length of array/string (Pascal-style)
 sizeof(T)           // size in bytes
 typeof(x)           // type information (TBD)
 ```
@@ -1654,9 +1676,12 @@ typeof(x)           // type information (TBD)
 ### 14.2 String Operations
 
 ```dq
-length(s)           // character count (Pascal-style function)
-s.length            // also available as property
-s[i]                // indexed access (char)
+s.length            // byte count
+s[i]                // byte access (char)
+s.wclen             // Unicode scalar count after UTF-8 decoding
+s.wchar[i]          // Unicode scalar access (wchar)
+s.wchar[begin:end]  // decoded scalar slice ([*]wchar)
+s.wcstr[begin:end]  // scalar-indexed slice encoded as str
 s.split(',')        // split into str[...]
 s1 + s2             // concatenation
 ```

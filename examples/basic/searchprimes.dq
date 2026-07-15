@@ -56,7 +56,7 @@ function *Main() -> int:
     for i : int = 0 count Len(prarr):
         printf(' %d', prarr[i]);
     endfor
-    printf('\n');
+    printf("\n");
 
     return 0;
 endfunc

@@ -17,7 +17,7 @@ endobj
 function OSConnectionSimple.*Create(aserver : ONanoServer):
     inherited Create(aserver)
     indata = ''
-    inbuf.SetLength(4096, 0)
+    inbuf.SetLength(4096, char(0))
 
     @.PrintLn('OSConnectionSimple.Create')
 endfunc

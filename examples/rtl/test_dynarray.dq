@@ -13,7 +13,7 @@ function PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
     for i : int = 0 count aarr.length:
        printf(' %d', ^int(aarr.GetElemPtr(i))^);
     endfor
-    printf('\n');
+    printf("\n");
 endfunc
 
 function *Main() -> int:

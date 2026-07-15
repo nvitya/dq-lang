@@ -109,12 +109,14 @@ Floating point literals use a decimal point.
 var f : float64 = 3.14
 ```
 
-String literals normally use double quotes. Single quotes can also delimit text,
-but a single-quoted literal containing exactly one character is a `char`.
+String literals normally use double quotes. Single quotes can also delimit text.
+A single-character literal is a `wchar` Unicode scalar value; it may be assigned
+to `char` only when the value fits in one byte.
 
 ```dq
 var a : str = "hello"
 var b : str = 'world'
+var wc : wchar = 'x'
 var ch : char = 'x'
 ```
 

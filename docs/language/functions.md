@@ -35,7 +35,7 @@ endfunc
 External functions are declarations connected to symbols outside DQ.
 
 ```dq
-function printf(fmt : ^cchar, ...) -> int  [[external]]
+function printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 ## Return Values
@@ -116,7 +116,7 @@ Default arguments are used when the caller omits the trailing argument.
 External functions can declare C-style variable arguments with `...`.
 
 ```dq
-function printf(fmt : ^cchar, ...) -> int  [[external]]
+function printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 DQ library functions commonly use `[]anyvalue` for type-checked variable value
@@ -206,4 +206,3 @@ object OThing:
     endfunc
 endobj
 ```
-

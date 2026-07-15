@@ -8,13 +8,13 @@ external declarations, C-compatible types, pointers, and `#linklib`.
 Declare C functions with `[[external]]`.
 
 ```dq
-function printf(fmt : ^cchar, ...) -> int  [[external]]
+function printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 When the DQ name should differ from the C symbol, pass the symbol name.
 
 ```dq
-function c_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fprintf')]]
+function c_fprintf(stream : pointer, fmt : ^char, ...) -> int  [[external('fprintf')]]
 ```
 
 ## Variable Arguments
@@ -22,7 +22,7 @@ function c_fprintf(stream : pointer, fmt : ^cchar, ...) -> int  [[external('fpri
 C-style variadic functions use `...`.
 
 ```dq
-[[external]] function printf(fmt : ^cchar, ...) -> int
+[[external]] function printf(fmt : ^char, ...) -> int
 
 printf("value = %d\n", 42)
 ```
@@ -39,11 +39,11 @@ var libc_stdout : pointer [[external('stdout')]]
 
 ## C Strings
 
-Use `^cchar`, `cstring`, and `cstring(n)` for C-style strings.
+Use `^char`, `str.pchar`, `cstring`, and `cstring(n)` for C-style strings.
 
 ```dq
 function WriteStr(s : cstring):
-    var p : ^cchar = &s[0]
+    var p : ^char = s.pchar
     while p^ <> 0:
         putchar(p^)
         p += 1
@@ -57,15 +57,16 @@ endfunc
 var buf : cstring(127) = "hello"
 ```
 
-String literals can be passed to C string parameters when the type is
-compatible.
+`str` has an enforced trailing zero and can be passed with `.pchar` without
+copying. Internal zero bytes are still possible; a C API using zero-terminated
+semantics sees only the prefix before the first zero byte.
 
 ## Generic Pointers
 
 Use `pointer` for opaque C pointers.
 
 ```dq
-[[external]] function fopen(path : ^cchar, mode : ^cchar) -> pointer
+[[external]] function fopen(path : ^char, mode : ^char) -> pointer
 [[external]] function fclose(file : pointer) -> int
 ```
 
@@ -91,7 +92,7 @@ Use `#linklib` to request an external library.
 
 ```dq
 #linklib('z')
-[[external]] function zlibVersion() -> ^cchar
+[[external]] function zlibVersion() -> ^char
 ```
 
 ## Standard Package Declarations

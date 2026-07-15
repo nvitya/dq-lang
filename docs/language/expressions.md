@@ -166,9 +166,9 @@ For typed pointers, `p[i]` performs pointer indexing and returns a pointer value
 It does not dereference like C's `p[i]`.
 
 ```dq
-var p : ^cchar = &text[0]
-var next : ^cchar = p[1]
-var ch : cchar = p[1]^
+var p : ^char = text.pchar
+var next : ^char = p[1]
+var ch : char = p[1]^
 ```
 
 ## Slicing

@@ -43,7 +43,7 @@ function RunCoreOps():
     DynStrDelete(s, -5, 1);
     PrintText("delete-clamped", s);
 
-    DynStrSetLength(s, 1, 4);
+    DynStrSetLength(s, 4);
     PrintText("setlen4", s);
 
     DynStrCompact(s);

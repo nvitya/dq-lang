@@ -535,7 +535,7 @@ LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right)
 {
   LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
   GenerateStringCreate(scope, tmp);
-  CallDynStrFunc(scope, "DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc(scope, "DynStrCreate", {tmp});
   CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, left), LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
   CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
@@ -552,7 +552,7 @@ LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalu
 
   LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
   GenerateStringCreate(scope, tmp);
-  CallDynStrFunc(scope, "DynStrCreate", {tmp, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1)});
+  CallDynStrFunc(scope, "DynStrCreate", {tmp});
   CallDynStrFunc(scope, "DynStrAppend", {tmp, ldesc, LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
   CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
@@ -645,7 +645,7 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       }
       return nullptr;
     case STRM_RESERVE:
-      checked_dynstr_call("DynStrReserve", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
+      checked_dynstr_call("DynStrReserve", {straddr, ToU32(args[0]->Generate(scope))});
       return nullptr;
     case STRM_COMPACT:
       checked_dynstr_call("DynStrCompact", {straddr});
@@ -654,7 +654,7 @@ LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStri
       checked_dynstr_call("DynStrSetLengthFill", {straddr, ToU32(args[0]->Generate(scope)), args[1]->Generate(scope)});
       return nullptr;
     case STRM_SET_CAPACITY:
-      checked_dynstr_call("DynStrSetCapacity", {straddr, llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 1), ToU32(args[0]->Generate(scope))});
+      checked_dynstr_call("DynStrSetCapacity", {straddr, ToU32(args[0]->Generate(scope))});
       return nullptr;
     case STRM_TRUNCATE:
       checked_dynstr_call("DynStrTruncate", {straddr, ToU32(args[0]->Generate(scope))});

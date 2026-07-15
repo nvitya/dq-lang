@@ -31,9 +31,7 @@ function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar :
 
 implementation
 
-function StrfRuntimeError(emsg : ^cchar):
-    RuntimeError(emsg)
-endfunc
+use rtl/exception, rtl/mem
 
 function StrfIsHighSurrogate(code : uint32) -> bool:
     return code >= uint32(0xD800) and code <= uint32(0xDBFF)
@@ -53,7 +51,7 @@ function StrfByte(text : strview, index : int) -> uint32:
 endfunc
 
 function StrfFailUtf8() -> bool:
-    StrfRuntimeError('Strf invalid UTF-8')
+    raise EStrError('Invalid UTF-8')
     return false
 endfunc
 
@@ -122,7 +120,7 @@ endfunc
 
 function StrfAppendUtf8(dst : ref str, wc : wchar):
     if not StrfIsValidWChar(wc):
-        StrfRuntimeError('Strf invalid Unicode scalar')
+        raise EStrError('Invalid Unicode scalar: {:x}', [wc])
         return
     endif
 
@@ -146,7 +144,7 @@ endfunc
 
 function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     if not StrfIsValidWChar(wc):
-        StrfRuntimeError('Strf invalid Unicode scalar')
+        raise EStrError('Invalid Unicode scalar: {:x}', [wc])
         return
     endif
 
@@ -182,9 +180,9 @@ function StrfWcLen(text : strview) -> int:
 endfunc
 
 function StrfWCharAt(text : strview, index : int) -> wchar:
+    result = wchar(0)
     if index < 0:
-        StrfRuntimeError('Strf wchar index out of bounds')
-        return wchar(0)
+        raise EStrError('wchar index out of bounds: {}', [index])
     endif
 
     var pos : int = 0
@@ -197,8 +195,7 @@ function StrfWCharAt(text : strview, index : int) -> wchar:
         wcidx += 1
     endwhile
 
-    StrfRuntimeError('Strf wchar index out of bounds')
-    return wchar(0)
+    raise EStrError('wchar index out of bounds: {}', [index])
 endfunc
 
 function StrfClampIndex(index : int, length : int) -> int:
@@ -282,7 +279,8 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
                 endif
                 return true
             endif
-            StrfRuntimeError('Strf invalid UTF-16')
+
+            raise EStrError('Invalid UTF-16')
             return false
         endif
 
@@ -296,7 +294,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
                 endif
                 return true
             endif
-            StrfRuntimeError('Strf invalid UTF-16')
+            raise EStrError('Invalid UTF-16')
             return false
         endif
 
@@ -312,7 +310,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
             endif
             return true
         endif
-        StrfRuntimeError('Strf invalid UTF-16')
+        raise EStrError('Invalid UTF-16')
         return false
     else:
         wc = wchar(u0)

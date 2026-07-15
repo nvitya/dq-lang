@@ -37,6 +37,11 @@ object Exception:
     function PrintBacktrace()
 endobj
 
+// DQ Internal exceptions
+
+object EStrError(Exception):
+endobj
+
 function DqExcRaise(e : Exception, owned_ref : bool)
 function DqExcRethrow()
 function DqExcActive() -> bool

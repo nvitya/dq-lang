@@ -162,6 +162,7 @@ bool IsAnyValueSourceType(OType * type)
     case TK_ANYVALUE:
     case TK_BOOL:
     case TK_INT:
+    case TK_CHAR:
     case TK_FLOAT:
     case TK_POINTER:
     case TK_CSTRING:
@@ -258,7 +259,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return true;
   }
 
-  if (TK_INT == srctype->kind)
+  if (TK_INT == srctype->kind || TK_CHAR == srctype->kind)
   {
     auto * inttype = static_cast<OTypeInt *>(srctype);
     if (inttype->issigned)

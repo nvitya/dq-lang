@@ -44,11 +44,11 @@ public:
   uint8_t      bitlength;
   bool         issigned;
 
-  OTypeInt(const string name, uint8_t abitlength, bool asigned)
+  OTypeInt(const string name, uint8_t abitlength, bool asigned, ETypeKind akind = TK_INT)
   :
     bitlength(abitlength),
     issigned(asigned),
-    super(name, TK_INT)
+    super(name, akind)
   {
     bytesize = ((abitlength + 7) >> 3);
     alignsize = bytesize;

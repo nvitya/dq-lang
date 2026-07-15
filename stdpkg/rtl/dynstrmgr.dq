@@ -132,11 +132,11 @@ function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
     var alen : uint32 = TextInfoCharLen(ati)
     DynStrCheckIndex(index, alen)
     if not DynStrCheckByteWidth(TextInfoChWidth(ati)):
-        return 0
+        return char(0)
     endif
     if ati.dataptr == null:
         DynStrRuntimeError('DynStr null text data')
-        return 0
+        return char(0)
     endif
     result = char(^cchar(ati.dataptr)[index]^)
 endfunc
@@ -730,7 +730,7 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
 endfunc
 
 function DynStrCharToByte(ch : char) -> cchar:
-    var chv : uint32 = ch
+    var chv : uint32 = uint32(Ord(ch))
     if chv > uint32(255):
         DynStrRuntimeError('DynStr byte-only string support rejects char > 255')
         return 0
@@ -741,11 +741,11 @@ endfunc
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
     if astr == null:
         DynStrRuntimeError('DynStr index out of bounds')
-        return 0
+        return char(0)
     endif
     DynStrCheckIndex(index, astr.length)
     if not DynStrCheckByteWidth(astr.chwidth):
-        return 0
+        return char(0)
     endif
     result = char(^cchar(astr.dataptr)[index]^)
 endfunc
@@ -1075,11 +1075,11 @@ endfunc
 function DynStrPopChar(astr : ref ODynStrMgr) -> char:
     if astr == null:
         DynStrRuntimeError('DynStr pop from empty string')
-        return 0
+        return char(0)
     endif
     if astr.length == 0:
         DynStrRuntimeError('DynStr pop from empty string')
-        return 0
+        return char(0)
     endif
     result = DynStrGetChar(astr, int(astr.length - 1))
     DynStrDelete(astr, int(astr.length - 1), 1)
@@ -1088,11 +1088,11 @@ endfunc
 function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char:
     if astr == null:
         DynStrRuntimeError('DynStr pop from empty string')
-        return 0
+        return char(0)
     endif
     if astr.length == 0:
         DynStrRuntimeError('DynStr pop from empty string')
-        return 0
+        return char(0)
     endif
     result = DynStrGetChar(astr, 0)
     DynStrDelete(astr, 0, 1)

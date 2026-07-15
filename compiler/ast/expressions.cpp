@@ -1318,7 +1318,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     else if (COMPOP_LE == op)   return ll_builder.CreateFCmpOLE(ll_left, ll_right);
     else if (COMPOP_GE == op)   return ll_builder.CreateFCmpOGE(ll_left, ll_right);
   }
-  else if (TK_INT == optype->kind || TK_ENUM == optype->kind)
+  else if (TK_INT == optype->kind || TK_CHAR == optype->kind || TK_ENUM == optype->kind)
   {
     OType * resolved = left->ResolvedType();
     bool issigned = (TK_ENUM == resolved->kind
@@ -3265,7 +3265,7 @@ OExpr * OExpr::FoldScalarExpr(OExpr * expr)
     return expr;
   }
 
-  if ((TK_INT != exprtype->kind) && (TK_FLOAT != exprtype->kind) && (TK_BOOL != exprtype->kind))
+  if ((TK_INT != exprtype->kind) && (TK_CHAR != exprtype->kind) && (TK_FLOAT != exprtype->kind) && (TK_BOOL != exprtype->kind))
   {
     return expr;
   }
@@ -3284,7 +3284,7 @@ OExpr * OExpr::FoldScalarExpr(OExpr * expr)
   }
 
   OExpr * result = expr;
-  if (TK_INT == exprtype->kind)
+  if (TK_INT == exprtype->kind || TK_CHAR == exprtype->kind)
   {
     auto * vint = static_cast<OValueInt *>(folded_value);
     result = new OIntLit(vint->value, exprtype);

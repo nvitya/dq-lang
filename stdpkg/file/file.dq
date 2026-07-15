@@ -354,10 +354,10 @@ function OFile.ReadText() -> str:
     endif
 
     result = ''  // to avoid uninitialized variable access
-    result.SetLength(flen, 0)
+    result.SetLength(flen, char(0))
     var r : int64 = Read(&result[0], flen)
     if r <> flen:
-        result.SetLength(r, 0)
+        result.SetLength(r, char(0))
     endif
 endfunc
 

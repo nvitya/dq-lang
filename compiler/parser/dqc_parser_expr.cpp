@@ -16,7 +16,71 @@
 #include "otype_array.h"
 #include "otype_compound.h"
 #include "otype_enum.h"
+#include "otype_char.h"
 #include "named_scopes.h"
+
+static bool DecodeSingleUtf8Scalar(const string & bytes, int64_t & rvalue)
+{
+  if (bytes.empty())
+  {
+    return false;
+  }
+
+  auto byte_at = [&bytes](size_t index) -> uint32_t
+  {
+    return uint32_t(uint8_t(bytes[index]));
+  };
+
+  uint32_t b0 = byte_at(0);
+  uint32_t code = 0;
+  size_t len = 0;
+  if (b0 <= 0x7F)
+  {
+    code = b0;
+    len = 1;
+  }
+  else if (b0 >= 0xC2 && b0 <= 0xDF)
+  {
+    if (bytes.size() < 2) return false;
+    uint32_t b1 = byte_at(1);
+    if ((b1 & 0xC0) != 0x80) return false;
+    code = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
+    len = 2;
+  }
+  else if (b0 >= 0xE0 && b0 <= 0xEF)
+  {
+    if (bytes.size() < 3) return false;
+    uint32_t b1 = byte_at(1);
+    uint32_t b2 = byte_at(2);
+    if ((b1 & 0xC0) != 0x80 || (b2 & 0xC0) != 0x80) return false;
+    code = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
+    if (code < 0x800) return false;
+    len = 3;
+  }
+  else if (b0 >= 0xF0 && b0 <= 0xF4)
+  {
+    if (bytes.size() < 4) return false;
+    uint32_t b1 = byte_at(1);
+    uint32_t b2 = byte_at(2);
+    uint32_t b3 = byte_at(3);
+    if ((b1 & 0xC0) != 0x80 || (b2 & 0xC0) != 0x80 || (b3 & 0xC0) != 0x80) return false;
+    code = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
+    if (code < 0x10000) return false;
+    len = 4;
+  }
+  else
+  {
+    return false;
+  }
+
+  if (len != bytes.size() || !IsValidWCharValue(code))
+  {
+    return false;
+  }
+
+  rvalue = int64_t(code);
+  return true;
+}
 
 static bool EnsureDynArrayRtlUse()
 {
@@ -77,6 +141,18 @@ static bool IsCStringMethodSourceType(OType * type)
 static bool IsStringMethodSourceType(OType * type)
 {
   return IsTextSourceType(type);
+}
+
+static bool ConvertByteWCharLiteralToChar(OExpr ** rexpr)
+{
+  int64_t value = 0;
+  if (!TryGetDirectWCharLiteralValue(*rexpr, value) || value > 255)
+  {
+    return false;
+  }
+  *rexpr = new OExprTypeConv(g_builtins->type_char, *rexpr);
+  FoldExprTreeAfterTypeRewrite(rexpr);
+  return true;
 }
 
 static OLValueExpr * CloneContextLValue(OLValueExpr * src)
@@ -1309,6 +1385,53 @@ OExpr * ODqCompParserExpr::ParseComparison()
       return new OBoolLit(false);
     }
   }
+  if (IsCharacterType(ltype) || IsCharacterType(rtype))
+  {
+    if (ltype == g_builtins->type_cchar && rtype == g_builtins->type_char)
+    {
+      ConvertExprToType(rtype, &left, EXPCF_GENERATE_ERRORS);
+      ltype = rtype;
+    }
+    else if (rtype == g_builtins->type_cchar && ltype == g_builtins->type_char)
+    {
+      ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
+      rtype = ltype;
+    }
+    if (ltype != rtype)
+    {
+      int64_t left_literal_value = 0;
+      int64_t right_literal_value = 0;
+      bool left_is_wchar_literal = TryGetDirectWCharLiteralValue(left, left_literal_value);
+      bool right_is_wchar_literal = TryGetDirectWCharLiteralValue(right, right_literal_value);
+      if (ltype == g_builtins->type_cchar && right_is_wchar_literal && right_literal_value <= 255)
+      {
+        ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
+        rtype = ltype;
+      }
+      if (rtype == g_builtins->type_cchar && left_is_wchar_literal && left_literal_value <= 255)
+      {
+        ConvertExprToType(rtype, &left, EXPCF_GENERATE_ERRORS);
+        ltype = rtype;
+      }
+      if (ltype && IsCharacterType(ltype) && !left_is_wchar_literal && right_is_wchar_literal)
+      {
+        ConvertExprToType(ltype, &right, EXPCF_GENERATE_ERRORS);
+        rtype = ltype;
+      }
+      if (rtype && IsCharacterType(rtype) && !right_is_wchar_literal && left_is_wchar_literal)
+      {
+        ConvertExprToType(rtype, &left, EXPCF_GENERATE_ERRORS);
+        ltype = rtype;
+      }
+      if (ltype != rtype)
+      {
+        Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, compare_symbol(op), right->ptype->name);
+        OExpr::DeleteTree(left);
+        OExpr::DeleteTree(right);
+        return new OBoolLit(false);
+      }
+    }
+  }
 
   HarmonizeNumericOperands(&left, &right);
 
@@ -1812,7 +1935,8 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
         return free_and_fail();
       }
     }
-    if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType()))
+    if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType())
+        && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, cchar, str, strview, cstring, or ^cchar");
       OExpr::DeleteTree(argexpr);
@@ -2016,7 +2140,8 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
         return free_and_fail();
       }
     }
-    if ((i == source_arg_index) && !IsStringMethodSourceType(argexpr->ResolvedType()))
+    if ((i == source_arg_index) && !IsStringMethodSourceType(argexpr->ResolvedType())
+        && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_TYPEMISM, "string method source must be char, cchar, str, strview, cstring, or ^cchar");
       OExpr::DeleteTree(argexpr);
@@ -2822,9 +2947,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     string strval;
     if (scf->ReadQuotedString(strval))
     {
-      if (('\'' == quotech) && (strval.size() == 1))
+      int64_t char_value = 0;
+      if (('\'' == quotech) && DecodeSingleUtf8Scalar(strval, char_value))
       {
-        return new OIntLit(uint8_t(strval[0]), g_builtins->type_char);
+        return new OIntLit(char_value, g_builtins->type_wchar);
       }
       return new OCStringLit(strval);
     }
@@ -4124,9 +4250,14 @@ OExpr * ODqCompParserExpr::ParseBuiltinOrd()
     OExpr::DeleteTree(arg);
     return nullptr;
   }
-  if (!arg->ResolvedType() || TK_ENUM != arg->ResolvedType()->kind)
+  OType * argtype = arg->ResolvedType();
+  if (argtype && TK_CHAR == argtype->kind)
   {
-    Error(DQERR_TYPE_EXPECTED, "enum", arg->ptype ? arg->ptype->name : "?");
+    return new OExprTypeConv(g_builtins->type_int, arg);
+  }
+  if (!argtype || TK_ENUM != argtype->kind)
+  {
+    Error(DQERR_TYPE_EXPECTED, "enum or character", arg->ptype ? arg->ptype->name : "?");
     OExpr::DeleteTree(arg);
     return nullptr;
   }

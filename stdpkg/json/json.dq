@@ -676,7 +676,7 @@ function OJson.AppendJsonString(rstr : ref str, avalue : strview):
             rstr.Append(char(92))
             rstr.Append('t')
         elif c < char(32):
-            rstr.AddFmt('\\u{:04X}', [int(c)])
+            rstr.AddFmt('\\u{:04X}', [Ord(c)])
         else:
             rstr.Append(cchar(c))
         endif

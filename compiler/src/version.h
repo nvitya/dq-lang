@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.33.2"
+#define DQ_COMPILER_VERSION  "0.34.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.34.0:
+  - Strict char type, requiring conversion functions: Ord(c) or char(n), wchar(n)
 v0.33.2:
   - More strfunc preparation
 v0.33.1:

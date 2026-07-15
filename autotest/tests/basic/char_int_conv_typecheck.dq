@@ -1,0 +1,33 @@
+// Character/integer conversion type checking (ERROR test).
+
+var bad_char_literal : char = '€'; //?error(TypeMismatchAssign)
+var bad_char_const : char = char(256); //?error(CastInvalid)
+var bad_char_folded_const : char = char(200 + 56); //?error(CastInvalid)
+var bad_wchar_surrogate : wchar = wchar(0xD800); //?error(CastInvalid)
+var bad_wchar_large : wchar = wchar(0x110000); //?error(CastInvalid)
+var bad_char16_const : char16 = char16(0x10000); //?error(CastInvalid)
+
+function *Main() -> int:
+    var c : char = 'A';
+    var wc : wchar = 'A';
+    var c16 : char16 = char16(65);
+    var x : int = 0;
+
+    c = x; //?error(TypeMismatchAssign)
+    wc = x; //?error(TypeMismatchAssign)
+    c16 = x; //?error(TypeMismatchAssign)
+    x = c; //?error(TypeMismatchAssign)
+    x = wc; //?error(TypeMismatchAssign)
+    x = c16; //?error(TypeMismatchAssign)
+
+    x = int(c); //?error(CastInvalid)
+    x = int(wc); //?error(CastInvalid)
+    x = int(c16); //?error(CastInvalid)
+
+    c = c + 1; //?error(TypeMismatchOp)
+    wc = wc + 1; //?error(TypeMismatchOp)
+    c16 = c16 + 1; //?error(TypeMismatchOp)
+    c = char(wc); //?error(CastInvalid)
+
+    return 0;
+endfunc

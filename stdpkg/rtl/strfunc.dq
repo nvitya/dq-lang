@@ -46,7 +46,7 @@ function StrfIsLowSurrogate(code : uint32) -> bool:
 endfunc
 
 function StrfIsValidWChar(wc : wchar) -> bool:
-    var code : uint32 = uint32(wc)
+    var code : uint32 = uint32(Ord(wc))
     return code <= uint32(0x10FFFF) and not (code >= uint32(0xD800) and code <= uint32(0xDFFF))
 endfunc
 
@@ -81,7 +81,7 @@ function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
 endfunc
 
 function StrfByte(text : strview, index : int) -> uint32:
-    return uint32(int(text[index])) AND uint32(0xFF)
+    return uint32(Ord(text[index])) AND uint32(0xFF)
 endfunc
 
 function StrfFailUtf8() -> bool:
@@ -158,7 +158,7 @@ function StrfAppendUtf8(dst : ref str, wc : wchar):
         return
     endif
 
-    var code : uint32 = uint32(wc)
+    var code : uint32 = uint32(Ord(wc))
     if code <= uint32(0x7F):
         dst.Append(char(int(code)))
     elif code <= uint32(0x7FF):
@@ -182,12 +182,13 @@ function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
         return
     endif
 
-    if wc <= 0xFFFF:
-        dst.Append(char16(wc))
+    var code : uint32 = uint32(Ord(wc))
+    if code <= uint32(0xFFFF):
+        dst.Append(char16(int(code)))
     else:
-        var code : wchar = wc - 0x10000
-        dst.Append(char16(uint32(0xD800) OR (code >> 10)))
-        dst.Append(char16(uint32(0xDC00) OR (code AND uint32(0x3FF))))
+        code -= uint32(0x10000)
+        dst.Append(char16(int(uint32(0xD800) OR (code >> 10))))
+        dst.Append(char16(int(uint32(0xDC00) OR (code AND uint32(0x3FF)))))
     endif
 endfunc
 
@@ -301,53 +302,50 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
         return false
     endif
 
-    var u0 : wchar = wchar(chars[pos]^)
+    var u0 : uint32 = uint32(Ord(chars[pos]^))
     pos += 1
     if StrfIsHighSurrogate(u0):
         if pos >= count:
             if has_fallback:
-                if fallback_wchar == wchar(0):
-                    wc = wchar(0xFFFFFFFF)
-                else:
+                if fallback_wchar <> wchar(0):
                     wc = fallback_wchar
+                    return true
                 endif
-                return true
+                return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
             endif
 
             raise EStrError('Invalid UTF-16')
             return false
         endif
 
-        var u1 : uint32 = uint32(chars[pos]^)
+        var u1 : uint32 = uint32(Ord(chars[pos]^))
         if not StrfIsLowSurrogate(u1):
             if has_fallback:
-                if fallback_wchar == wchar(0):
-                    wc = wchar(0xFFFFFFFF)
-                else:
+                if fallback_wchar <> wchar(0):
                     wc = fallback_wchar
+                    return true
                 endif
-                return true
+                return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
             endif
             raise EStrError('Invalid UTF-16')
             return false
         endif
 
         pos += 1
-        wc = wchar(0x10000 + ((u0 - 0xD800) << 10) + (u1 - 0xDC00))
+        wc = wchar(int(uint32(0x10000) + ((u0 - uint32(0xD800)) << 10) + (u1 - uint32(0xDC00))))
         return true
     elif StrfIsLowSurrogate(u0):
         if has_fallback:
-            if fallback_wchar == wchar(0):
-                wc = wchar(0xFFFFFFFF)
-            else:
+            if fallback_wchar <> wchar(0):
                 wc = fallback_wchar
+                return true
             endif
-            return true
+            return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
         endif
         raise EStrError('Invalid UTF-16')
         return false
     else:
-        wc = wchar(u0)
+        wc = wchar(int(u0))
         return true
     endif
 endfunc
@@ -361,9 +359,7 @@ function StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wch
     var pos : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback):
-        if wc <> wchar(0xFFFFFFFF):
-            StrfAppendUtf8(result, wc)
-        endif
+        StrfAppendUtf8(result, wc)
     endwhile
 endfunc
 

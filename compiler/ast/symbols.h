@@ -242,6 +242,7 @@ enum ETypeKind
   TK_BOOL         =  3,
   TK_POINTER      =  4,
   TK_ENUM         =  5,
+  TK_CHAR         =  6,
 
   TK_CSTRING      =  8,
   TK_STRVIEW      =  9,

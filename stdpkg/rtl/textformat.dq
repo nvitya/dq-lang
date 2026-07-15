@@ -163,7 +163,7 @@ function DqTextFmtIsDigit(ch : char) -> bool:
 endfunc
 
 function DqTextFmtDigitValue(ch : char) -> int:
-    return int(ch) - int('0')
+    return Ord(ch) - Ord('0')
 endfunc
 
 //-------------------------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ function OTextSinkStdOut.Write(atext : strview) [[override]]:
 endfunc
 
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
-    @.libc_fputc(ch, pstdout)
+    @.libc_fputc(Ord(ch), pstdout)
 endfunc
 
 function OTextSinkCString.*Create(adest : cstring):
@@ -436,11 +436,11 @@ endfunc
 
 function OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
     if adigit < 10:
-        return char(int('0') + int(adigit))
+        return char(Ord('0') + int(adigit))
     elif aupper:
-        return char(int('A') + int(adigit - 10))
+        return char(Ord('A') + int(adigit - 10))
     else:
-        return char(int('a') + int(adigit - 10))
+        return char(Ord('a') + int(adigit - 10))
     endif
 endfunc
 
@@ -463,7 +463,7 @@ endfunc
 function OTextFormatter.WriteReversedDigits(acount : int):
     var i : int = acount - 1
     while i >= 0:
-        sink.WriteChar(lcsbuf[i])
+        sink.WriteChar(char(lcsbuf[i]))
         i -= 1
     endwhile
 endfunc

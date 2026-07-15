@@ -39,7 +39,7 @@ function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
         if c == '-':
             sign = -1
         elif c >= '0'  and  c <= '9':
-            result = result * 10 + int64(c - '0')
+            result = result * 10 + int64(Ord(c) - Ord('0'))
         else:
             return defvalue
         endif
@@ -98,7 +98,7 @@ function StrUpper(astr : strview) -> str:
     for i : int = 0 count astr.length:
         var ch : char = astr[i]
         if ch >= 'a' and ch <= 'z':
-            ch = char(ch - 'a' + 'A')
+            ch = char(Ord(ch) - Ord('a') + Ord('A'))
         endif
         result.Append(ch)
     endfor
@@ -110,7 +110,7 @@ function StrLower(astr : strview) -> str:
     for i : int = 0 count astr.length:
         var ch : char = astr[i]
         if ch >= 'A' and ch <= 'Z':
-            ch = char(ch - 'A' + 'a')
+            ch = char(Ord(ch) - Ord('A') + Ord('a'))
         endif
         result.Append(ch)
     endfor

@@ -87,7 +87,7 @@ function Exception.PrintMessage():
     var view : strview = message
     var i : uint32 = 0
     while i < uint32(view.length):
-        @.printf("%c", int(view[i]))
+        @.printf("%c", Ord(view[i]))
         i += 1
     endwhile
 endfunc

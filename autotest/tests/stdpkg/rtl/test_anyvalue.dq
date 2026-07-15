@@ -30,7 +30,7 @@ function PrintString(label : ^cchar, text : strview):
     printf("%s = len:%li text: \"", label, text.length);
     var i : int = 0;
     while i < text.length:
-        printf("%c", int(text[i]));
+        printf("%c", Ord(text[i]));
         i += 1;
     endwhile
     printf("\"\n");

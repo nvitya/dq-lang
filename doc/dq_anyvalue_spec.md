@@ -26,6 +26,7 @@ const DQTK_FLOAT        : uint8 =  2;
 const DQTK_BOOL         : uint8 =  3;
 const DQTK_POINTER      : uint8 =  4;
 const DQTK_ENUM         : uint8 =  5;
+const DQTK_CHAR         : uint8 =  6;
 const DQTK_CSTRING      : uint8 =  8;
 const DQTK_STRVIEW      : uint8 =  9;
 const DQTK_DYNSTR       : uint8 = 10;

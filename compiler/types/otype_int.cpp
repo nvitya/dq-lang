@@ -19,6 +19,8 @@
 #include "expressions.h"
 #include "dqc.h"
 #include "otype_enum.h"
+#include "otype_char.h"
+#include "scope_builtins.h"
 #include <cmath>
 
 int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
@@ -303,6 +305,12 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (TK_INT != tks)
   {
+    if ((TK_CHAR == tks) && (this == g_builtins->type_cchar))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
     if (is_explicit_cast && (TK_ENUM == tks))
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM, this->name, resolved_src->name);
@@ -334,6 +342,22 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (IsCharacterType(this) || IsCharacterType(intsrc))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      if (is_explicit_cast)
+      {
+        g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
+      }
+      else
+      {
+        g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+      }
+    }
+    return false;
+  }
+
   if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
   {
     *rexpr = new OExprTypeConv(this, src);
@@ -351,6 +375,7 @@ int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_INT != tks)
   {
+    if ((TK_CHAR == tks) && (this == g_builtins->type_cchar)) return 1;
     if (is_explicit_cast && (TK_BOOL == tks)) return 1;
     if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
     if (is_explicit_cast && (TK_POINTER == tks)) return (g_compiler->IsPointerWidthIntegerType(this) ? 1 : -1);
@@ -358,5 +383,6 @@ int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
+  if (IsCharacterType(this) || IsCharacterType(intsrc)) return -1;
   return (((this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned)) ? 0 : 1);
 }

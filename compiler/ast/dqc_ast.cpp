@@ -25,6 +25,7 @@
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "otype_enum.h"
+#include "otype_char.h"
 
 bool ODqCompAst::IsPointerWidthIntegerType(OType * type)
 {
@@ -131,6 +132,12 @@ bool IsCharLiteralExpr(OExpr * expr, uint8_t & rvalue)
 {
   auto * lit = dynamic_cast<OIntLit *>(expr);
   OType * lit_type = lit ? lit->ResolvedType() : nullptr;
+  int64_t wchar_value = 0;
+  if (TryGetDirectWCharLiteralValue(expr, wchar_value) && wchar_value <= 255)
+  {
+    rvalue = uint8_t(wchar_value);
+    return true;
+  }
   if (!lit || !lit_type || (lit_type != g_builtins->type_char && lit_type != g_builtins->type_cchar))
   {
     return false;
@@ -368,6 +375,11 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright)
     return false;
   }
 
+  if (IsCharacterType(lefttype) || IsCharacterType(righttype))
+  {
+    return false;
+  }
+
   ETypeKind tkl = lefttype->kind;
   ETypeKind tkr = righttype->kind;
 
@@ -555,16 +567,36 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   {
     return IsStringFamilyTextType(type) || IsCCharPointerType(type);
   };
+  int64_t literal_value = 0;
   if (BINOP_ADD == op
-      && IsTextSourceType(left->ResolvedType())
-      && IsTextSourceType(right->ResolvedType())
-      && (is_concat_disambiguator(left->ResolvedType()) || is_concat_disambiguator(right->ResolvedType())))
+      && TryGetDirectWCharLiteralValue(newleft, literal_value)
+      && literal_value <= 255
+      && is_concat_disambiguator(newright->ResolvedType()))
+  {
+    newleft = new OExprTypeConv(g_builtins->type_char, newleft);
+  }
+  if (BINOP_ADD == op
+      && TryGetDirectWCharLiteralValue(newright, literal_value)
+      && literal_value <= 255
+      && is_concat_disambiguator(newleft->ResolvedType()))
+  {
+    newright = new OExprTypeConv(g_builtins->type_char, newright);
+  }
+  if (BINOP_ADD == op
+      && IsTextSourceType(newleft->ResolvedType())
+      && IsTextSourceType(newright->ResolvedType())
+      && (is_concat_disambiguator(newleft->ResolvedType()) || is_concat_disambiguator(newright->ResolvedType())))
   {
     if (!EnsureDynStringRtlUseForStringTypes())
     {
       return nullptr;
     }
     return new OBinExpr(op, newleft, newright);
+  }
+  if (IsCharacterType(left->ResolvedType()) || IsCharacterType(right->ResolvedType()))
+  {
+    Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
+    return nullptr;
   }
   if ((op >= BINOP_IAND) and (op <= BINOP_ISHR))
   {
@@ -878,7 +910,7 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
     return false;
   }
 
-  if ((TK_INT == resolved->kind) || (TK_FLOAT == resolved->kind)
+  if ((TK_INT == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_FLOAT == resolved->kind)
       || (TK_BOOL == resolved->kind) || (TK_ARRAY == resolved->kind)
       || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind))
   {
@@ -1732,6 +1764,13 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
     }
     else if (BINOP_NONE != op && TK_DYNSTR == property->ptype->ResolveAlias()->kind)
     {
+      int64_t literal_value = 0;
+      if (!IsTextSourceType(rightexpr->ResolvedType()) &&
+          TryGetDirectWCharLiteralValue(rightexpr, literal_value) && literal_value <= 255)
+      {
+        rightexpr = new OExprTypeConv(g_builtins->type_char, rightexpr);
+      }
+
       if (BINOP_ADD != op || !IsTextSourceType(rightexpr->ResolvedType()))
       {
         Error(DQERR_TYPEMISM_FOR_OP, property->ptype->name, GetBinopSymbol(op), rightexpr->ptype->name);
@@ -1821,6 +1860,13 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
 
   if (BINOP_NONE != op && TK_DYNSTR == targettype->ResolveAlias()->kind)
   {
+    int64_t literal_value = 0;
+    if (!IsTextSourceType(rightexpr->ResolvedType()) &&
+        TryGetDirectWCharLiteralValue(rightexpr, literal_value) && literal_value <= 255)
+    {
+      rightexpr = new OExprTypeConv(g_builtins->type_char, rightexpr);
+    }
+
     if (BINOP_ADD != op || !IsTextSourceType(rightexpr->ResolvedType()))
     {
       Error(DQERR_TYPEMISM_FOR_OP, targettype->name, GetBinopSymbol(op), rightexpr->ptype->name);

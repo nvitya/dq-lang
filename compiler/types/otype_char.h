@@ -15,6 +15,10 @@
 
 #include "otype_int.h"
 
+bool IsCharacterType(OType * type);
+bool IsValidWCharValue(int64_t value);
+bool TryGetDirectWCharLiteralValue(OExpr * expr, int64_t & rvalue);
+
 class OTypeChar : public OTypeInt
 {
 private:
@@ -23,11 +27,13 @@ private:
 public:
   OTypeChar()
   :
-    super("char", 8, false)
+    super("char", 8, false, TK_CHAR)
   {
   }
 
   LlDiType * CreateDiType() override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 class OTypeChar16 : public OTypeInt
@@ -38,11 +44,13 @@ private:
 public:
   OTypeChar16()
   :
-    super("char16", 16, false)
+    super("char16", 16, false, TK_CHAR)
   {
   }
 
   LlDiType * CreateDiType() override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
 class OTypeWchar : public OTypeInt
@@ -53,9 +61,11 @@ private:
 public:
   OTypeWchar()
   :
-    super("wchar", 32, false)
+    super("wchar", 32, false, TK_CHAR)
   {
   }
 
   LlDiType * CreateDiType() override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };

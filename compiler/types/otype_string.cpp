@@ -20,6 +20,7 @@
 #include "dqc.h"
 #include "named_scopes.h"
 #include "otype_func.h"
+#include "otype_char.h"
 
 using namespace std;
 
@@ -326,6 +327,12 @@ bool IsStringFamilyTextType(OType * type)
       && (TK_DYNSTR == resolved->kind
           || TK_STRVIEW == resolved->kind
           || TK_CSTRING == resolved->kind);
+}
+
+static bool IsByteWCharLiteral(OExpr * expr)
+{
+  int64_t value = 0;
+  return TryGetDirectWCharLiteralValue(expr, value) && value <= 255;
 }
 
 LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
@@ -693,12 +700,16 @@ bool OTypeStrView::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (TK_STRVIEW != tks)
   {
-    if (IsTextSourceType(resolved_src))
+    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
     {
       if (is_explicit_cast)
       {
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
+      }
+      if (!IsTextSourceType(resolved_src))
+      {
+        src = new OExprTypeConv(g_builtins->type_char, src);
       }
       *rexpr = new OTextSourceToViewExpr(src, this);
       return true;
@@ -722,7 +733,7 @@ int OTypeStrView::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_STRVIEW != tks)
   {
-    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(expr)) return is_explicit_cast ? -1 : 1;
     return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
@@ -738,7 +749,7 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (TK_DYNSTR != tks)
   {
-    if (IsTextSourceType(resolved_src))
+    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
     {
       if (is_explicit_cast)
       {
@@ -748,6 +759,10 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
       if (!EnsureDynStringRtlUseForStringTypes())
       {
         return false;
+      }
+      if (!IsTextSourceType(resolved_src))
+      {
+        src = new OExprTypeConv(g_builtins->type_char, src);
       }
       *rexpr = new OTextSourceToStringExpr(src, this);
       return true;
@@ -771,7 +786,7 @@ int OTypeDynString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_DYNSTR != tks)
   {
-    if (IsTextSourceType(resolved_src)) return is_explicit_cast ? -1 : 1;
+    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(expr)) return is_explicit_cast ? -1 : 1;
     return OType::GetConversionCostFromExpr(expr, aflags);
   }
 

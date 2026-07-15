@@ -197,7 +197,7 @@ function OStrParse.ReadAlphaNum() -> bool:
     prevp = readp
 
     while cp < bufend:
-        var c : char = cp^
+        var c : char = char(cp^)
         if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'Z') or (c >= 'a'  and c <= 'z')
             or c == '_' or (c == '-'  and cp == readp)):
             result = true
@@ -217,7 +217,7 @@ function OStrParse.ReadDecimalNumbers() -> bool:
     prevp = readp
 
     while cp < bufend:
-        var c : char = cp^
+        var c : char = char(cp^)
         if c >= '0'  and c <= '9':
             result = true
             cp += 1
@@ -236,7 +236,7 @@ function OStrParse.ReadHexNumbers() -> bool:
     prevp = readp
 
     while cp < bufend:
-        var c : char = cp^
+        var c : char = char(cp^)
         if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'F') or (c >= 'a'  and c <= 'f')):
             result = true
             cp += 1
@@ -255,7 +255,7 @@ function OStrParse.ReadFloatNum() -> bool:
     prevp = readp
 
     while cp < bufend:
-        var c : char = cp^
+        var c : char = char(cp^)
         if ((c >= '0'  and c <= '9') or c == float_decimal_point
             or c == '-' or c == '+' or c == 'e' or c == 'E'):
             result = true
@@ -403,9 +403,9 @@ function PCharUCCompare(readp : ref ^cchar, len : int, checkstring : strview) ->
     var csend  : ^cchar = csptr + checkstring.length
 
     while csptr < csend  and cp < endp:
-        var c : char = cp^
+        var c : char = char(cp^)
         if c >= 'a'  and c <= 'z':
-            c = char(c - 'a' + 'A')
+            c = char(Ord(c) - Ord('a') + Ord('A'))
         endif
 
         if c != csptr^:
@@ -430,7 +430,7 @@ function PCharToInt(readp : ^cchar, len : int) -> int:
     var endp : ^cchar = readp + len
 
     while cp < endp:
-        result = result * 10 + int(cp^) - 48
+        result = result * 10 + Ord(char(cp^)) - Ord('0')
         cp += 1
     endwhile
 endfunc
@@ -441,13 +441,13 @@ function PCharHexToInt(readp : ^cchar, len : int) -> uint:
     var endp : ^cchar = readp + len
 
     while cp < endp:
-        var c : char = cp^
+        var c : char = char(cp^)
         if c >= '0'  and c <= '9':
-            result = (result << 4) + uint(c - '0')
+            result = (result << 4) + uint(Ord(c) - Ord('0'))
         elif c >= 'A'  and c <= 'F':
-            result = (result << 4) + uint(c - 'A' + 10)
+            result = (result << 4) + uint(Ord(c) - Ord('A') + 10)
         elif c >= 'a'  and c <= 'f':
-            result = (result << 4) + uint(c - 'a' + 10)
+            result = (result << 4) + uint(Ord(c) - Ord('a') + 10)
         else:
             break
         endif
@@ -471,7 +471,7 @@ function PCharToFloat(readp : ^cchar, len : int) -> float64:
     var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
 
     while pc < pend:
-        var c : char = pc^
+    var c : char = char(pc^)
 
     if c == '+':
         if mode == 2:
@@ -486,7 +486,7 @@ function PCharToFloat(readp : ^cchar, len : int) -> float64:
             nsign = -1.0
         endif
     elif c >= '0'  and c <= '9':
-        var digit : float64 = float64(c - '0')
+        var digit : float64 = float64(Ord(c) - Ord('0'))
         if mode == 1:
             fracmul *= 0.1
             nv += digit * fracmul

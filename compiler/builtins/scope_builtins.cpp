@@ -78,6 +78,7 @@ void OScopeBuiltins::Init()
   type_object->is_abstract = true;
   type_object->EnsureLayout();
   DefineType(type_char);
+  DefineType(type_char16);
   DefineType(type_wchar);
   DefineType(type_cchar);
   DefineType(type_cstring);

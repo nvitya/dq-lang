@@ -23,7 +23,7 @@ function PrintWCharArray(label : ^cchar, arr : []wchar):
     printf("\n");
 endfunc
 
-function PrintU16Array(label : ^cchar, arr : []uint16):
+function PrintChar16Array(label : ^cchar, arr : []char16):
     printf("%s = len:%li data:", label, arr.length);
     var i : int = 0;
     while i < arr.length:
@@ -74,11 +74,11 @@ function *Main() -> int:
     var wchars : [*]wchar = [wchar(65), wchar(233), wchar(8364), wchar(128512)];
     PrintBytes("strf_from_wchars", StrfFromWchars(wchars[:])); //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 
-    var utf16 : [*]uint16 = StrfToUtf16(sample);
-    PrintU16Array("strf_to_utf16", utf16[:]); //?check("strf_to_utf16", "len:6 data: 65 233 8364 55357 56832 0")
+    var utf16 : [*]char16 = StrfToUtf16(sample);
+    PrintChar16Array("strf_to_utf16", utf16[:]); //?check("strf_to_utf16", "len:6 data: 65 233 8364 55357 56832 0")
     PrintBytes("strf_from_utf16", StrfFromUtf16(utf16[:])); //?check("strf_from_utf16", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 
-    var with_zero : [*]uint16 = [uint16(65), uint16(0), uint16(66), uint16(0)];
+    var with_zero : [*]char16 = [char16(65), char16(0), char16(66), char16(0)];
     PrintBytes("strf_utf16_internal_zero", StrfFromUtf16(with_zero[:])); //?check("strf_utf16_internal_zero", "len:3 bytes: 65 0 66")
     PrintBytes("strf_utf16_ptr_exact", StrfFromUtf16Ptr(&with_zero[0], 3)); //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
 
@@ -87,7 +87,7 @@ function *Main() -> int:
     invalid.Append(char(0x80));
     printf("strf_is_utf8 = good:%li bad:%li\n", Flag(StrfIsUtf8(sample)), Flag(StrfIsUtf8(invalid))); //?check("strf_is_utf8", "good:1 bad:0")
 
-    var bad16 : [*]uint16 = [uint16(0xD800), uint16(65), uint16(0)];
+    var bad16 : [*]char16 = [char16(0xD800), char16(65), char16(0)];
     PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], wchar(63))); //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
 
     return 0;

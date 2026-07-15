@@ -23,11 +23,11 @@ function StrfToWchars(text : strview) -> [*]wchar
 function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar
 function StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str
 function StrfFromWchars(chars : []wchar) -> str
-function StrfToUtf16(text : strview) -> [*]uint16
-function StrfFromUtf16(chars : []uint16) -> str
-function StrfFromUtf16Fallback(chars : []uint16, fallback_wchar : wchar) -> str
-function StrfFromUtf16Ptr(chars : ^uint16, count : int) -> str
-function StrfFromUtf16PtrFallback(chars : ^uint16, count : int, fallback_wchar : wchar) -> str
+function StrfToUtf16(text : strview) -> [*]char16
+function StrfFromUtf16(chars : []char16) -> str
+function StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str
+function StrfFromUtf16Ptr(chars : ^char16, count : int) -> str
+function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str
 
 implementation
 
@@ -144,19 +144,18 @@ function StrfAppendUtf8(dst : ref str, wc : wchar):
     endif
 endfunc
 
-function StrfAppendUtf16(dst : ref [*]uint16, wc : wchar):
+function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     if not StrfIsValidWChar(wc):
         StrfRuntimeError('Strf invalid Unicode scalar')
         return
     endif
 
-    var code : uint32 = uint32(wc)
-    if code <= uint32(0xFFFF):
-        dst.Append(uint16(code))
+    if wc <= 0xFFFF:
+        dst.Append(char16(wc))
     else:
-        code -= uint32(0x10000)
-        dst.Append(uint16(uint32(0xD800) OR (code >> 10)))
-        dst.Append(uint16(uint32(0xDC00) OR (code AND uint32(0x3FF))))
+        var code : wchar = wc - 0x10000
+        dst.Append(char16(uint32(0xD800) OR (code >> 10)))
+        dst.Append(char16(uint32(0xDC00) OR (code AND uint32(0x3FF))))
     endif
 endfunc
 
@@ -255,28 +254,29 @@ function StrfFromWchars(chars : []wchar) -> str:
     endwhile
 endfunc
 
-function StrfToUtf16(text : strview) -> [*]uint16:
+function StrfToUtf16(text : strview) -> [*]char16:
     result = []
     var pos : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf8(text, pos, wc):
         StrfAppendUtf16(result, wc)
     endwhile
-    result.Append(uint16(0))
+    result.Append(char16(0))
 endfunc
 
-function StrfDecodeUtf16At(chars : ^uint16, count : int, pos : ref int, wc : refout wchar, fallback_wchar : wchar, has_fallback : bool) -> bool:
+function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout wchar,
+                           fallback_wchar : wchar, has_fallback : bool) -> bool:
     if pos >= count:
         return false
     endif
 
-    var u0 : uint32 = uint32(chars[pos]^)
+    var u0 : wchar = wchar(chars[pos]^)
     pos += 1
     if StrfIsHighSurrogate(u0):
         if pos >= count:
             if has_fallback:
                 if fallback_wchar == wchar(0):
-                    wc = wchar(uint32(0xFFFFFFFF))
+                    wc = wchar(0xFFFFFFFF)
                 else:
                     wc = fallback_wchar
                 endif
@@ -290,7 +290,7 @@ function StrfDecodeUtf16At(chars : ^uint16, count : int, pos : ref int, wc : ref
         if not StrfIsLowSurrogate(u1):
             if has_fallback:
                 if fallback_wchar == wchar(0):
-                    wc = wchar(uint32(0xFFFFFFFF))
+                    wc = wchar(0xFFFFFFFF)
                 else:
                     wc = fallback_wchar
                 endif
@@ -301,12 +301,12 @@ function StrfDecodeUtf16At(chars : ^uint16, count : int, pos : ref int, wc : ref
         endif
 
         pos += 1
-        wc = wchar(uint32(0x10000) + ((u0 - uint32(0xD800)) << 10) + (u1 - uint32(0xDC00)))
+        wc = wchar(0x10000 + ((u0 - 0xD800) << 10) + (u1 - 0xDC00))
         return true
     elif StrfIsLowSurrogate(u0):
         if has_fallback:
             if fallback_wchar == wchar(0):
-                wc = wchar(uint32(0xFFFFFFFF))
+                wc = wchar(0xFFFFFFFF)
             else:
                 wc = fallback_wchar
             endif
@@ -320,7 +320,7 @@ function StrfDecodeUtf16At(chars : ^uint16, count : int, pos : ref int, wc : ref
     endif
 endfunc
 
-function StrfFromUtf16PtrImpl(chars : ^uint16, count : int, fallback_wchar : wchar, has_fallback : bool) -> str:
+function StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wchar, has_fallback : bool) -> str:
     result = ''
     if chars == null or count <= 0:
         return ''
@@ -329,37 +329,37 @@ function StrfFromUtf16PtrImpl(chars : ^uint16, count : int, fallback_wchar : wch
     var pos : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback):
-        if uint32(wc) <> uint32(0xFFFFFFFF):
+        if wc <> wchar(0xFFFFFFFF):
             StrfAppendUtf8(result, wc)
         endif
     endwhile
 endfunc
 
-function StrfUtf16SliceCount(chars : []uint16) -> int:
+function StrfUtf16SliceCount(chars : []char16) -> int:
     result = chars.length
-    if result > 0 and chars[result - 1] == uint16(0):
+    if result > 0 and chars[result - 1] == char16(0):
         result -= 1
     endif
 endfunc
 
-function StrfFromUtf16(chars : []uint16) -> str:
+function StrfFromUtf16(chars : []char16) -> str:
     if chars.length == 0:
         return ''
     endif
     return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), wchar(0), false)
 endfunc
 
-function StrfFromUtf16Fallback(chars : []uint16, fallback_wchar : wchar) -> str:
+function StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str:
     if chars.length == 0:
         return ''
     endif
     return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), fallback_wchar, true)
 endfunc
 
-function StrfFromUtf16Ptr(chars : ^uint16, count : int) -> str:
+function StrfFromUtf16Ptr(chars : ^char16, count : int) -> str:
     return StrfFromUtf16PtrImpl(chars, count, wchar(0), false)
 endfunc
 
-function StrfFromUtf16PtrFallback(chars : ^uint16, count : int, fallback_wchar : wchar) -> str:
+function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str:
     return StrfFromUtf16PtrImpl(chars, count, fallback_wchar, true)
 endfunc

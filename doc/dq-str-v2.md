@@ -154,6 +154,8 @@ Byte indexing and slicing do not validate UTF-8.
 
 ## 5. Unicode Scalar Access
 
+Unicode scalar access always interprets the `str` bytes as UTF-8.
+
 Unicode scalar access uses the `wchar` accessor:
 
 ```dq
@@ -161,6 +163,8 @@ var wc : wchar = s.wchar[n]
 ```
 
 The index is a Unicode scalar index, not a byte index.
+
+The `wchar` accessor does not use any explicit encoding identifier and cannot be used directly on ISO-8859-1 or other non-UTF-8 byte strings. Such strings must first be converted with an explicit encoding operation such as `s.Decode(encIso8859_1)`.
 
 Unicode scalar slicing uses:
 
@@ -264,7 +268,81 @@ Because DQ has no const input parameters, the input slice type is `[]wchar`.
 
 ---
 
-## 7. UTF-16 Conversion
+## 7. Explicit Encoding Conversion
+
+Explicit encoding conversion supports UTF-8 and legacy 8-bit encodings such as ISO-8859-1.
+
+`str` itself does not carry an encoding tag. A `str` remains an owned byte string. The encoding is an explicit argument to conversion operations.
+
+The string encoding identifier type is an enum:
+
+```dq
+enum NTextEncoding = (encUtf8, encIso8859_1)
+```
+
+Additional encodings may be added later by extending this enum.
+
+Conversion from an explicitly encoded `str` to Unicode scalar values:
+
+```dq
+var wchars : [*]wchar = s.ToWchars(encIso8859_1)
+```
+
+Signature:
+
+```dq
+function str.ToWchars(enc : NTextEncoding) -> [*]wchar
+```
+
+The selected encoding determines how input bytes are decoded. For ISO-8859-1, bytes `0x00 .. 0xFF` map directly to Unicode scalar values `U+0000 .. U+00FF`.
+
+Conversion from Unicode scalar values to an explicitly encoded `str`:
+
+```dq
+var s : str = StrFromWchars(wchars, encIso8859_1)
+```
+
+Signature:
+
+```dq
+function StrFromWchars(chars : []wchar, enc : NTextEncoding) -> str
+```
+
+The result is a byte string encoded with the selected encoding and receives the normal `str` hidden trailing zero.
+
+The result type is still `str`. There is no separate `str8` type; the selected encoding only describes how the output bytes are produced.
+
+If a `wchar` value cannot be represented in the selected encoding, the conversion must report a runtime encoding error.
+
+Fallback conversion is supported with:
+
+```dq
+var s : str = StrFromWchars(wchars, encIso8859_1, '?')
+```
+
+Signature:
+
+```dq
+function StrFromWchars(chars : []wchar, enc : NTextEncoding, fallback_char : char) -> str
+```
+
+When a `wchar` value cannot be represented, `fallback_char` is appended to the result instead. The fallback value is an already-encoded byte in the target encoding.
+
+If `fallback_char` is zero, unrepresentable values are removed.
+
+The default overload remains UTF-8:
+
+```dq
+StrFromWchars(wchars)                  // UTF-8
+StrFromWchars(wchars, enc)             // selected encoding, may raise
+StrFromWchars(wchars, enc, fallback)   // selected encoding, with fallback byte
+```
+
+Passing `encUtf8` is equivalent to using the default UTF-8 overload.
+
+---
+
+## 8. UTF-16 Conversion
 
 UTF-16 support exists primarily for Windows API interoperability.
 
@@ -302,7 +380,7 @@ When the terminator is not required, the user may remove it:
 s16.Pop()
 ```
 
-### 7.1 UTF-16 to `str`
+### 8.1 UTF-16 to `str`
 
 Two global overloads are supported.
 
@@ -340,7 +418,7 @@ It does not require a trailing zero and does not stop at an internal zero.
 
 This form is suitable for Windows APIs that return a pointer and an explicit UTF-16 code-unit count.
 
-### 7.2 Invalid UTF-16
+### 8.2 Invalid UTF-16
 
 `StrFromUtf16()` must report a runtime encoding error for malformed UTF-16, including:
 
@@ -354,7 +432,7 @@ Malformed UTF-16 must not be silently replaced or ignored by the default convers
 
 ---
 
-## 8. C String Access
+## 9. C String Access
 
 Every `str` has an enforced trailing zero, so it can expose its storage without copying:
 
@@ -372,7 +450,7 @@ s.pchar -> ^char
 
 The pointer is intended for input use by C-compatible functions.
 
-### 8.1 Internal zeroes
+### 9.1 Internal zeroes
 
 A `str` may contain internal zero bytes.
 
@@ -387,7 +465,7 @@ DQ logical string:  'a' 'b' 0 'c' 'd'
 C-visible string:   "ab"
 ```
 
-### 8.2 Pointer lifetime and mutation
+### 9.2 Pointer lifetime and mutation
 
 The pointer returned by `s.pchar` is valid only while:
 
@@ -406,7 +484,7 @@ cstring(n)
 
 ---
 
-## 9. `strview`
+## 10. `strview`
 
 `strview` is a borrowed byte-string view.
 
@@ -446,7 +524,7 @@ Otherwise, conversion to an owned `str` is required before obtaining a C string 
 
 ---
 
-## 10. Recommended Usage
+## 11. Recommended Usage
 
 Ordinary text and byte data:
 
@@ -476,6 +554,13 @@ Repeated indexed Unicode processing:
 var wchars : [*]wchar = s.ToWchars()
 ```
 
+Explicit encoding conversion:
+
+```dq
+var wchars : [*]wchar = bytes.ToWchars(encIso8859_1)
+var bytes  : str      = StrFromWchars(wchars, encIso8859_1, '?')
+```
+
 Windows UTF-16 interoperability:
 
 ```dq
@@ -491,7 +576,7 @@ SomeCFunction(s.pchar)
 
 ---
 
-## 11. Final API Summary
+## 12. Final API Summary
 
 ```dq
 // Character types
@@ -515,6 +600,12 @@ s.wcstr[begin:end]
 // UTF-32 conversion
 function str.ToWchars() -> [*]wchar
 function StrFromWchars(chars : []wchar) -> str
+
+// Explicit encoding conversion
+enum NTextEncoding = (encUtf8, encIso8859_1)
+function str.ToWchars(enc : NTextEncoding) -> [*]wchar
+function StrFromWchars(chars : []wchar, enc : NTextEncoding) -> str
+function StrFromWchars(chars : []wchar, enc : NTextEncoding, fallback_char : char) -> str
 
 // UTF-16 conversion
 function str.ToUtf16() -> [*]char16

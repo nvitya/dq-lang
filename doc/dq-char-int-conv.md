@@ -18,6 +18,17 @@ The goal is to keep `char` and `wchar` type-safe and incompatible with integers 
 
 They are not implicitly compatible with integer types.
 
+Character literals are always `wchar`.
+
+Assignment of a character literal to `char` is accepted only when the literal's
+`wchar` value is less than `256`.
+
+```dq
+var c1 : char  = 'a'       // valid, Ord('a') < 256
+var c2 : char  = '€'       // compile-time error, Ord('€') >= 256
+var wc : wchar = '€'       // valid
+```
+
 The following assignments are therefore invalid:
 
 ```dq

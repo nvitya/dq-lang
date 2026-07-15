@@ -3184,7 +3184,14 @@ void OTextSourceToStringExpr::DeleteChildTree()
 {
   receiver = areceiver;
   field = afield;
-  ptype = g_builtins->type_int;
+  if (SMF_PCHAR == field)
+  {
+    ptype = g_builtins->type_char->GetPointerType();
+  }
+  else
+  {
+    ptype = g_builtins->type_int;
+  }
 }
 
 LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
@@ -3200,6 +3207,10 @@ LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
   if (SMF_REFCOUNT == field)
   {
     return GenerateStringRefCount(scope, receiver->ptype, receiver->GenerateAddress(scope));
+  }
+  if (SMF_PCHAR == field)
+  {
+    return GenerateStringPChar(scope, receiver->ptype, receiver->GenerateAddress(scope));
   }
   throw logic_error("OStringMetaFieldExpr::Generate: unsupported string metadata field");
 }

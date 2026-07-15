@@ -56,6 +56,17 @@ function EqAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
+function PtrFlag(p : ^char) -> int:
+    if p <> null:
+        return 1;
+    endif
+    return 0;
+endfunc
+
+function TermAtLen(s : str) -> int:
+    return Ord(s.pchar[s.length]^);
+endfunc
+
 function AppendByValue(s : str):
     s.Append("x");
 endfunc
@@ -169,6 +180,23 @@ function *Main() -> int:
     managed = "abc";
     managed = "";
     printf("assign_empty = len:%li cap:%li\n", managed.length, managed.capacity); //?check("assign_empty", "len:0 cap:0")
+
+    var ptest : str;
+    printf("pchar_empty = nonnull:%li term:%li text:%s\n", PtrFlag(ptest.pchar), ptest.pchar[0]^, ptest.pchar); //?check("pchar_empty", "nonnull:1 term:0 text:")
+    ptest = "abc";
+    printf("pchar_assigned = text:%s term:%li\n", ptest.pchar, TermAtLen(ptest)); //?check("pchar_assigned", "text:abc term:0")
+    ptest.Append("def");
+    printf("pchar_append = text:%s term:%li\n", ptest.pchar, TermAtLen(ptest)); //?check("pchar_append", "text:abcdef term:0")
+    ptest.Delete(2, 3);
+    printf("pchar_delete = text:%s term:%li\n", ptest.pchar, TermAtLen(ptest)); //?check("pchar_delete", "text:abf term:0")
+    ptest.SetLength(5, 'x');
+    printf("pchar_setlength = text:%s term:%li\n", ptest.pchar, TermAtLen(ptest)); //?check("pchar_setlength", "text:abfxx term:0")
+    ptest.Truncate(2);
+    printf("pchar_truncate = text:%s term:%li\n", ptest.pchar, TermAtLen(ptest)); //?check("pchar_truncate", "text:ab term:0")
+    var ppop : str = ptest.Pop(1);
+    printf("pchar_pop = src:%s src_term:%li dst:%s dst_term:%li\n", ptest.pchar, TermAtLen(ptest), ppop.pchar, TermAtLen(ppop)); //?check("pchar_pop", "src:a src_term:0 dst:b dst_term:0")
+    ptest.Clear();
+    printf("pchar_clear = len:%li nonnull:%li term:%li text:%s\n", ptest.length, PtrFlag(ptest.pchar), ptest.pchar[0]^, ptest.pchar); //?check("pchar_clear", "len:0 nonnull:1 term:0 text:")
 
     var clone_src : str = "abc";
     var clone_copy : str = clone_src.Clone();

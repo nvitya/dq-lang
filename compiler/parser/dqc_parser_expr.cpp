@@ -2429,6 +2429,15 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
             result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
             continue;
           }
+          if ("pchar" == membername)
+          {
+            if (!EnsureDynStringRtlUse())
+            {
+              return nullptr;
+            }
+            result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
+            continue;
+          }
           if (TK_DYNSTR == tk && "capacity" == membername)
           {
             result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);

@@ -32,6 +32,7 @@ public
     function SetLength(new_length : uint32)
     function Compact()  // sets the capacity to the actual length
     function Clear(free_storage : bool = false)
+    function WriteTerminator()
 
     function Append(asrc : ref SDqTextInfo, acount : int32)
     function Insert(index : int, asrc : ref SDqTextInfo, acount : int32)
@@ -59,6 +60,7 @@ function DynStrByteOffset(index : uint32, achwidth : uint8) -> uint
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32
 function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
 function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
+function DynStrPChar(astr : ref ODynStrMgr) -> ^char
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
 function DynStrCharToByte(ch : char) -> char
@@ -76,6 +78,7 @@ function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo
 function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1)
 
 function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
+function TextInfoPChar(ati : ref SDqTextInfo) -> ^char
 function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
 function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
 function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool
@@ -120,6 +123,10 @@ endfunc
 
 function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
     result = TextInfoCharLen(ati)
+endfunc
+
+function TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
+    result = ati.dataptr
 endfunc
 
 function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
@@ -350,6 +357,7 @@ function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
         MemCopy(newstr.dataptr, oldstr.dataptr, DynStrCalcByteSize(oldstr.length, oldstr.chwidth))
     endif
     newstr.length = oldstr.length
+    newstr.WriteTerminator()
 
     DynStrDecRef(astr)
     astr = newstr
@@ -380,6 +388,12 @@ function ODynStrMgr.*Destroy():
     capacity = 0
 endfunc
 
+function ODynStrMgr.WriteTerminator():
+    if dataptr <> null:
+        dataptr[@.DynStrByteOffset(length, chwidth)]^ = char(0)
+    endif
+endfunc
+
 function ODynStrMgr.SetCapacity(new_capacity : uint32):
     use ., mem
     if new_capacity == capacity:
@@ -396,7 +410,7 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
         return
     endif
 
-    var new_bytes : uint = DynStrCalcByteSize(new_capacity, chwidth)
+    var new_bytes : uint = DynStrCalcByteSize(new_capacity, chwidth) + 1
     if new_bytes == 0:
         return
     endif
@@ -418,6 +432,7 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
     if length > new_capacity:
         length = new_capacity
     endif
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.Reserve(min_capacity : uint32):
@@ -431,6 +446,7 @@ function ODynStrMgr.SetLength(new_length : uint32):
     use ., mem
     if new_length < length:
         length = new_length
+        WriteTerminator()
         return
     endif
 
@@ -452,6 +468,7 @@ function ODynStrMgr.SetLength(new_length : uint32):
 
     MemSet(dataptr[DynStrByteOffset(old_length, chwidth)], 0, zero_bytes)
     length = new_length
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.Compact():
@@ -465,6 +482,8 @@ function ODynStrMgr.Clear(free_storage : bool = false):
     length = 0
     if free_storage:
         SetCapacity(0)
+    else:
+        WriteTerminator()
     endif
 endfunc
 
@@ -505,6 +524,7 @@ function ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
             srcptr,
             DynStrCalcByteSize(add_count, chwidth))
     length = new_length
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
@@ -568,6 +588,7 @@ function ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
     endif
 
     length = new_length
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.Prepend(asrc : ref SDqTextInfo, acount : int32):
@@ -598,6 +619,7 @@ function ODynStrMgr.Delete(index : int, acount : int32):
     endif
 
     length -= delcount
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
@@ -615,6 +637,7 @@ function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     var startpos : uint32 = length - popcount
     popcount = DynStrCopyToCStr(adst, dataptr[DynStrByteOffset(startpos, chwidth)], popcount, chwidth)
     length -= popcount
+    WriteTerminator()
 endfunc
 
 function ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
@@ -713,6 +736,13 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
     return astr.refcount
 endfunc
 
+function DynStrPChar(astr : ref ODynStrMgr) -> ^char:
+    if astr == null or astr.dataptr == null:
+        return ''
+    endif
+    return astr.dataptr
+endfunc
+
 function DynStrCharToByte(ch : char) -> char:
     var chv : int = Ord(ch)
     if chv > 255:
@@ -795,6 +825,7 @@ function DynStrSetLength(astr : ref ODynStrMgr, achwidth : uint8, new_length : u
                 return
             endif
             astr.length = 0
+            astr.WriteTerminator()
         endif
     else:
         if astr == null:
@@ -840,6 +871,7 @@ function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32):
         return
     endif
     astr.length = new_length
+    astr.WriteTerminator()
 endfunc
 
 function DynStrCompact(astr : ref ODynStrMgr):
@@ -959,6 +991,7 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     endif
     @mem.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(astr.length, astr.chwidth))
     adst.length = astr.length
+    adst.WriteTerminator()
 endfunc
 
 function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
@@ -1003,6 +1036,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
                  astr.dataptr[DynStrByteOffset(startpos, astr.chwidth)],
                  DynStrCalcByteSize(popcount, astr.chwidth))
     adst.length = popcount
+    adst.WriteTerminator()
     astr.Delete(int(startpos), int32(popcount))
 endfunc
 
@@ -1045,6 +1079,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
 
     @mem.MemCopy(adst.dataptr, astr.dataptr, DynStrCalcByteSize(popcount, astr.chwidth))
     adst.length = popcount
+    adst.WriteTerminator()
     astr.Delete(0, int32(popcount))
 endfunc
 

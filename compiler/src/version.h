@@ -15,6 +15,8 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.34.2:
+  - str.pchar, strview.pchar + str zero terminator guarantee
 v0.34.1:
   - Dropping multi-byte handling from str
 v0.34.0:

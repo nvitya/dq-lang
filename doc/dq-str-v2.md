@@ -440,7 +440,7 @@ Every `str` has an enforced trailing zero, so it can expose its storage without 
 var p : ^char = s.pchar
 ```
 
-`cstr` is a zero-cost borrowed pointer to the first byte of the string.
+`pchar` is a zero-cost borrowed pointer to the first byte of the string.
 
 Because DQ has no const input type, its result type is:
 
@@ -522,6 +522,22 @@ Zero-cost C string access from a `strview` is valid only when its internal `ZERO
 
 Otherwise, conversion to an owned `str` is required before obtaining a C string pointer.
 
+`strview` also exposes a `.pchar` property:
+
+```dq
+var p : ^char = view.pchar
+```
+
+Its result type is:
+
+```dq
+view.pchar -> ^char
+```
+
+For now, `strview.pchar` is a raw borrowed pointer to the first byte of the view and does not check whether the view is zero-terminated. Unlike `str.pchar`, it does not guarantee that `view.data[view.length] == 0`.
+
+Callers must use `strview.pchar` with C zero-terminated string APIs only when they already know the view is zero-terminated. Otherwise, convert the view to an owned `str` first, because `str` guarantees the hidden trailing zero.
+
 ---
 
 ## 11. Recommended Usage
@@ -574,6 +590,12 @@ C string input:
 SomeCFunction(s.pchar)
 ```
 
+Borrowed C string input from a known zero-terminated view:
+
+```dq
+SomeCFunction(view.pchar)
+```
+
 ---
 
 ## 12. Final API Summary
@@ -614,6 +636,7 @@ function StrFromUtf16(chars : ^char16, count : int) -> str
 
 // C interoperability
 s.pchar -> ^char
+view.pchar -> ^char
 ```
 
 No dedicated `wstr` or `str16` type is required.

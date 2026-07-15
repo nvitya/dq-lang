@@ -432,6 +432,20 @@ LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * stra
   throw logic_error("GenerateStringRefCount requires str");
 }
 
+LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr)
+{
+  OType * resolved = strtype ? strtype->ResolveAlias() : nullptr;
+  if (resolved && TK_DYNSTR == resolved->kind)
+  {
+    return CallDynStrFunc(scope, "DynStrPChar", {straddr});
+  }
+  if (resolved && TK_STRVIEW == resolved->kind)
+  {
+    return CallDynStrFunc(scope, "TextInfoPChar", {straddr});
+  }
+  throw logic_error("GenerateStringPChar requires str or strview");
+}
+
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   OType * rtype = receiver && receiver->ResolvedType() ? receiver->ResolvedType() : nullptr;

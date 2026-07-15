@@ -62,7 +62,8 @@ enum EStringMetaField
 {
   SMF_LENGTH,
   SMF_CAPACITY,
-  SMF_REFCOUNT
+  SMF_REFCOUNT,
+  SMF_PCHAR
 };
 
 enum EStringMethod
@@ -95,6 +96,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr);
 LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * straddr);
+LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr);
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index);
 LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
 void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value);

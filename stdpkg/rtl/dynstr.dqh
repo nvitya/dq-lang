@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/dynstr.dqh, included by "rtl/strfunc.dq"
+ * authors: nvitya
+ * created: 2026-07-17
+ * brief:   Interface file for DQ dynamic string handling
+ */
+
+object ODynStrMgr:
+public
+    refcount : int
+    dataptr  : ^char
+    length   : uint32
+    capacity : uint32
+
+    function *Create()
+    function *Destroy()
+
+    function Reserve(min_capacity : uint32)
+    function SetCapacity(new_capacity : uint32)  // truncates the length if necessary
+    function SetLength(new_length : uint32)
+    function Compact()  // sets the capacity to the actual length
+    function Clear(free_storage : bool = false)
+    function WriteTerminator()
+
+    function Append(asrc : ref SDqTextInfo, acount : int32)
+    function Insert(index : int, asrc : ref SDqTextInfo, acount : int32)
+    function Prepend(asrc : ref SDqTextInfo, acount : int32)
+    function Delete(index : int, acount : int32 = 1)
+    function Pop(acount : int32, adst : ref SDqTextInfo)
+    function PopFirst(acount : int32, adst : ref SDqTextInfo)
+
+    // later
+    // function IndexOf(asrc : refin SDqTextInfo) -> int
+endobj
+
+function DynStrCreate(astr : ref ODynStrMgr)
+function DynStrIncRef(astr : ref ODynStrMgr)
+function DynStrDecRef(astr : ref ODynStrMgr)
+function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr)
+function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo)
+
+function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32)
+function DynStrCheckIndex(index : int, length : uint32)
+
+//function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
+function DynStrGetLength(astr : ref ODynStrMgr) -> uint32
+function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
+function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
+function DynStrPChar(astr : ref ODynStrMgr) -> ^char
+function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
+function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
+function DynStrCharToByte(ch : char) -> char
+
+function DynStrReserve(astr : ref ODynStrMgr, min_capacity : uint32)
+function DynStrSetCapacity(astr : ref ODynStrMgr, new_capacity : uint32)
+function DynStrSetLength(astr : ref ODynStrMgr, new_length : uint32)
+function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillchar : char)
+function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32)
+function DynStrCompact(astr : ref ODynStrMgr)
+function DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false)
+
+function DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32)
+function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32)
+function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1)
+
+function DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo)
+function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int)
+
+// clone, create new str
+
+function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr)
+function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo)
+function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
+function DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
+function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
+function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
+function DynStrPopChar(astr : ref ODynStrMgr) -> char
+function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char
+
+
+function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
+function TextInfoPChar(ati : ref SDqTextInfo) -> ^char
+function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
+function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
+function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool

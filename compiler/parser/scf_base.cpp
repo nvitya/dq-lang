@@ -349,6 +349,8 @@ void OScFeederBase::SetCurPos(OScFile * afile, char * apos)
     prevlen = 0;
 
     RecalcCurLineCol();
+    // A token from another file cannot share this file's line numbering.
+    last_token_end_line = 0;
   }
   else
   {

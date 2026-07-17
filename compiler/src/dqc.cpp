@@ -467,7 +467,7 @@ void ODqCompiler::Run(int argc, char ** argv)
       string stale_reason;
       bool fresh = g_opt.ifgen
           ? artifact_intf.InterfaceArtifactIsFresh(out_filename, stale_reason, false)
-          : artifact_intf.ObjectArtifactIsFresh(out_filename, interface_out_filename, stale_reason);
+          : artifact_intf.ObjectArtifactIsFresh(out_filename, interface_out_filename, stale_reason, false);
       if (fresh)
       {
         return;

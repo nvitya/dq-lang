@@ -7,7 +7,7 @@
  * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
  * for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    rtl/cstrings.dq
+ * file:    rtl/cstrings.dqi, included by "rtl/strfunc.dq"
  * authors: nvitya
  * created: 2026-07-06
  * brief:   RTL Helpers for the DQ cstring handling

@@ -824,6 +824,24 @@ bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
                                         const filesystem::path & interface_path,
                                         string & rreason, bool alock)
 {
+  OArtifactLock object_lock;
+  OArtifactLock interface_lock;
+  if (alock)
+  {
+    // Object writers hold this lock until the matching interface is published.
+    // Keep writer order, then hold both while validating their shared stamp.
+    if (!object_lock.Lock(object_path, EArtifactLockMode::SHARED))
+    {
+      rreason = object_lock.error;
+      return false;
+    }
+    if (!interface_lock.Lock(interface_path, EArtifactLockMode::SHARED))
+    {
+      rreason = interface_lock.error;
+      return false;
+    }
+  }
+
   error_code ec;
   if (!filesystem::exists(object_path, ec) || ec)
   {
@@ -831,7 +849,7 @@ bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
     return false;
   }
 
-  if (!InterfaceArtifactIsFresh(interface_path, rreason, alock))
+  if (!InterfaceArtifactIsFresh(interface_path, rreason, false))
   {
     return false;
   }

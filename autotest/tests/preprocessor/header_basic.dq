@@ -1,3 +1,5 @@
+use rtl/rtlint
+
 #include header
 
 [[external]] function printf(fmt : ^char, ...) -> int;

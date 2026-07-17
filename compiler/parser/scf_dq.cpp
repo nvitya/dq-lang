@@ -317,6 +317,9 @@ repeat_skip:  // jumped here when returning from an include
     OScPosition rpos = returnpos.back();
     returnpos.pop_back();
     SetCurPos(rpos);
+    // The include directive's line break separates the included text from
+    // the following statement, even if the included file has no final EOL.
+    last_token_end_line = max(0, curline - 1);
 
     goto repeat_skip;
   }

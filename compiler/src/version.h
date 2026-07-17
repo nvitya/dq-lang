@@ -11,10 +11,15 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.36.0"
+#define DQ_COMPILER_VERSION  "0.36.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.36.1:
+  - Module lock handling fixes:
+    - shared locks on both object and interface artifacts during validation,
+    - avoiding recursively locking artifacts already exclusively owned by the regeneration process
+  - strfunc split up using includes
 v0.36.0:
   - Standalone .dqm_if interfaces paired with pure .o module objects
   - Separate .dqh headers with #include header

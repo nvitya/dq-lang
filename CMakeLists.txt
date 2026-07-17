@@ -57,6 +57,8 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
   DESTINATION lib/dq/stdpkg
   FILES_MATCHING
     PATTERN "*.dq"
+    PATTERN "*.dqh"
+    PATTERN "*.dqi"
     PATTERN ".dqbuild" EXCLUDE
 )
 

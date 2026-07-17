@@ -123,16 +123,14 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
   bool in_module_stack = artifact_intf.IsInModuleUseStack(module_path.module_id);
   if (g_opt.ifgen || in_module_stack)
   {
-    SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshInterfaceArtifact(module_path, in_module_stack);
+    SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshInterfaceArtifact(module_path);
     if (!result.Ok())
     {
       PrintModuleArtifactError(module_path, result);
       return false;
     }
 
-    string interface_load_path = result.interface_load_path.empty()
-        ? module_path.interface_artifact_path.string()
-        : result.interface_load_path.string();
+    string interface_load_path = module_path.interface_artifact_path.string();
     if (!g_module->UseCompiledModule(module_path.module_id, namespace_name,
                                      interface_load_path,
                                      module_path.artifact_path.string(), merge_scope,
@@ -150,11 +148,12 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
   }
 
   if (!g_module->UseCompiledModule(module_path.module_id, namespace_name,
-                                   module_path.artifact_path.string(),
+                                   module_path.interface_artifact_path.string(),
                                    module_path.artifact_path.string(), merge_scope,
                                    is_private, merge_mode, vector<string>(), false))
   {
-    print("Can not load implicit module interface from \"{}\"\n", module_path.artifact_path.string());
+    print("Can not load implicit module interface from \"{}\"\n",
+          module_path.interface_artifact_path.string());
     return false;
   }
 
@@ -453,6 +452,7 @@ void ODqCompiler::Run(int argc, char ** argv)
   }
 
   OArtifactLock output_artifact_lock;
+  OArtifactLock interface_artifact_lock;
   if (!out_filename.empty())
   {
     if (!output_artifact_lock.Lock(out_filename, EArtifactLockMode::EXCLUSIVE))
@@ -461,17 +461,15 @@ void ODqCompiler::Run(int argc, char ** argv)
       print("{}\n", output_artifact_lock.error);
       return;
     }
-
     if (g_opt.regen_if_stale)
     {
       OModuleIntf artifact_intf(g_builtins, "regen_check");
       string stale_reason;
-      if (artifact_intf.CompiledArtifactIsFresh(out_filename, in_filename, stale_reason, false))
+      bool fresh = g_opt.ifgen
+          ? artifact_intf.InterfaceArtifactIsFresh(out_filename, stale_reason, false)
+          : artifact_intf.ObjectArtifactIsFresh(out_filename, interface_out_filename, stale_reason);
+      if (fresh)
       {
-        if (!g_opt.ifgen)
-        {
-          ArtifactCleanupInterfaceSidecarForObject(out_filename);
-        }
         return;
       }
     }
@@ -549,10 +547,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   if (g_opt.ifgen)
   {
-    // Release the exclusive file lock on the output artifact before replacing it.
-    output_artifact_lock.Unlock();
-
-    if (!g_module->WriteInterface(out_filename, in_filename))
+    if (!g_module->WriteInterface(out_filename, scf->source_dependencies))
     {
       ++errorcnt;
     }
@@ -571,14 +566,6 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
-  vector<uint8_t> dqm_if_data;
-  if (!g_module->BuildInterfaceBytes(dqm_if_data, in_filename))
-  {
-    ++errorcnt;
-    return;
-  }
-  EmbedDqmIfSection(dqm_if_data);
-
   if (ELtoMode::FULL == g_opt.lto_mode)
   {
     EmitBitcode(ArtifactBitcodeSidecarPathForObject(out_filename).string());
@@ -589,16 +576,23 @@ void ODqCompiler::Run(int argc, char ** argv)
     PrintIr();
   }
 
-  // Release the exclusive file lock on the output artifact before replacing it.
-  // MoveFileExW can fail with ERROR_ACCESS_DENIED if the destination file is still open by this process.
-  output_artifact_lock.Unlock();
-
   EmitObject(out_filename);
   if (errorcnt)
   {
     return;
   }
-  ArtifactCleanupInterfaceSidecarForObject(out_filename);
+
+  if (!interface_artifact_lock.Lock(interface_out_filename, EArtifactLockMode::EXCLUSIVE))
+  {
+    ++errorcnt;
+    print("{}\n", interface_artifact_lock.error);
+    return;
+  }
+  if (!g_module->WriteInterface(interface_out_filename, scf->source_dependencies, out_filename))
+  {
+    ++errorcnt;
+    return;
+  }
 
   // linking decision
   if (!g_opt.compile_only)
@@ -618,10 +612,23 @@ void ODqCompiler::Run(int argc, char ** argv)
     }
     else if (has_dash_o)
     {
-      // no main(), no linking: rename the module object to the requested target
+      // no main(), no linking: move the module object and its interface to the requested target
       if (out_filename != link_output)
       {
-        rename(out_filename.c_str(), link_output.c_str());
+        filesystem::path target_interface = ArtifactInterfacePathForObject(link_output);
+        string move_error;
+        bool move_ok = ArtifactAtomicReplace(out_filename, link_output, move_error)
+            && ArtifactAtomicReplace(interface_out_filename, target_interface, move_error);
+        if (move_ok && (ELtoMode::FULL == g_opt.lto_mode))
+        {
+          move_ok = ArtifactAtomicReplace(ArtifactBitcodeSidecarPathForObject(out_filename),
+                                          ArtifactBitcodeSidecarPathForObject(link_output), move_error);
+        }
+        if (!move_ok)
+        {
+          ++errorcnt;
+          print("Can not move compiled module artifacts: {}\n", move_error);
+        }
       }
     }
   }

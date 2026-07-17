@@ -1,0 +1,8 @@
+#include header
+
+[[external]] function printf(fmt : ^char, ...) -> int;
+
+function *Main() -> int:
+    printf("header value = %d\n", HEADER_VALUE); //?check("header value", 36)
+    return 0;
+endfunc

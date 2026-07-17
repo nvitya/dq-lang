@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.35.0"
+#define DQ_COMPILER_VERSION  "0.36.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.36.0:
+  - Standalone .dqm_if interfaces paired with pure .o module objects
+  - Separate .dqh headers with #include header
+  - Multiple source dependencies and #srcdep support
 v0.35.0:
   - Two phase compilation for internal modules too
   - rtl/dynstrmgr.dq -> rtl/strfunc.dq

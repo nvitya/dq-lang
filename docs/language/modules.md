@@ -119,7 +119,8 @@ the compiler's package/module search paths.
 
 Modules may refer to each other when their public interfaces can be loaded
 without requiring private implementation details first. The compiler stores
-compiled module interface data in `.dqm` files.
+compiled module interface data in standalone `.dqm_if` files and links the paired
+`.o` module objects.
 
 ## Method-Local Use
 

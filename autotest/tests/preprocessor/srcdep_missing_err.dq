@@ -1,0 +1,1 @@
+#srcdep "missing_srcdep_file.dqi" //?error(CDirSrcDepFileLoad)

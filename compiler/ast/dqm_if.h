@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    10 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |     8 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    11 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    11 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -89,7 +89,6 @@ public:
   uint64_t Checksum(const vector<uint8_t> & adata) const;
   bool ReadFromData(const vector<uint8_t> & data, const string & filename);
   bool ReadFromFile(const string & filename);
-  bool ReadFromArtifact(const string & filename);
 
   bool Eof() const { return pos >= payload.size(); }
   bool NextRec();
@@ -140,12 +139,16 @@ TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (s
 
 TDqmIfRecId  DQMIF_H_BEGIN                = 0x0100;  // 0
 TDqmIfRecId  DQMIF_H_END                  = 0x01FF;  // 0
-TDqmIfRecId  DQMIF_H_SRC_FILENAME         = 0x0102;  // str
-TDqmIfRecId  DQMIF_H_SRC_FILESIZE         = 0x0103;  // int64
-TDqmIfRecId  DQMIF_H_SRC_FILETIME         = 0x0104;  // int64
+TDqmIfRecId  DQMIF_H_OBJ_FILESIZE         = 0x0103;  // int64, optional for interface-only artifacts
+TDqmIfRecId  DQMIF_H_OBJ_FILETIME         = 0x0104;  // int64, optional for interface-only artifacts
 TDqmIfRecId  DQMIF_H_TARGET_ARCH          = 0x0108;  // str
 TDqmIfRecId  DQMIF_H_TARGET_RTL           = 0x0109;  // str: AKA OS
 TDqmIfRecId  DQMIF_H_BUILD_OPTIONS        = 0x010A;  // str
+TDqmIfRecId  DQMIF_H_SRC_BEGIN            = 0x0110;  // 0
+TDqmIfRecId  DQMIF_H_SRC_FILENAME         = 0x0112;  // str
+TDqmIfRecId  DQMIF_H_SRC_FILESIZE         = 0x0113;  // int64
+TDqmIfRecId  DQMIF_H_SRC_FILETIME         = 0x0114;  // int64
+TDqmIfRecId  DQMIF_H_SRC_END              = 0x011F;  // 0
 
 
 // 0200: Type aliases

@@ -1,0 +1,3 @@
+function SrcDepValue() -> int:
+    return 44;
+endfunc

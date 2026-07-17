@@ -27,7 +27,7 @@ Useful options:
 | `-o <file>` | set output filename |
 | `-c` | compile only; do not link |
 | `--ifgen` | generate a standalone `.dqm_if` interface file |
-| `--ifdump` | dump a `.dqm_if` or embedded `.dqm` interface |
+| `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
 | `--pkg-path <path>` | add a package search root; repeatable |
 | `--build <tag>` | select `.dqbuild/<tag>` |
@@ -64,16 +64,19 @@ artifacts under `.dqbuild`.
 ```text
 .dqbuild/<build-tag>/
   local/
-    app.dqm
+    app.o
+    app.dqm_if
   pkg/
     print/
-      print.dqm
+      print.o
+      print.dqm_if
     rtl/
-      rtl_linux.dqm
+      rtl_linux.o
+      rtl_linux.dqm_if
 ```
 
-`.dqm` files are object files with an embedded `.dqm_if` interface section. They
-are generated artifacts, not source package contents.
+Each module has a normal native `.o` object and a standalone `.dqm_if` interface.
+Both are generated artifacts, not source package contents.
 
 By default the build root is the directory containing the main `.dq` file. The
 default build tag is `<target-arch>-<target-rtl>`, for example

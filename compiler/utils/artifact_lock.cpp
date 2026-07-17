@@ -74,23 +74,21 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
   Unlock();
   error.clear();
 
-  if (EArtifactLockMode::EXCLUSIVE == mode)
+  filesystem::path lock_path = artifact_path;
+  lock_path += ".lock";
+  if (!ArtifactEnsureParentDir(lock_path, error))
   {
-    if (!ArtifactEnsureParentDir(artifact_path, error))
-    {
-      return false;
-    }
+    return false;
   }
 
 #if defined(_WIN32)
-  DWORD access = (EArtifactLockMode::SHARED == mode ? GENERIC_READ : (GENERIC_READ | GENERIC_WRITE));
-  DWORD disposition = (EArtifactLockMode::SHARED == mode ? OPEN_EXISTING : OPEN_ALWAYS);
-  HANDLE new_handle = CreateFileW(artifact_path.wstring().c_str(), access,
+  DWORD access = GENERIC_READ | GENERIC_WRITE;
+  HANDLE new_handle = CreateFileW(lock_path.wstring().c_str(), access,
                                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                  nullptr, disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+                                  nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (INVALID_HANDLE_VALUE == new_handle)
   {
-    error = format("Can not open artifact for locking {}: {}", artifact_path.string(), WindowsErrorMessage(GetLastError()));
+    error = format("Can not open artifact lock {}: {}", lock_path.string(), WindowsErrorMessage(GetLastError()));
     return false;
   }
 
@@ -106,14 +104,12 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
   fd = new_handle;
   return true;
 #else
-  int open_flags = (EArtifactLockMode::SHARED == mode ? O_RDONLY : (O_CREAT | O_RDWR));
-
   while (true)
   {
-    int new_fd = open(artifact_path.c_str(), open_flags | O_CLOEXEC, 0666);
+    int new_fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
     if (new_fd < 0)
     {
-      error = format("Can not open artifact for locking {}: {}", artifact_path.string(), strerror(errno));
+      error = format("Can not open artifact lock {}: {}", lock_path.string(), strerror(errno));
       return false;
     }
 
@@ -133,7 +129,7 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
     struct stat fd_st = {};
     struct stat path_st = {};
     bool same_path = (0 == fstat(new_fd, &fd_st))
-        && (0 == stat(artifact_path.c_str(), &path_st))
+        && (0 == stat(lock_path.c_str(), &path_st))
         && (fd_st.st_dev == path_st.st_dev)
         && (fd_st.st_ino == path_st.st_ino);
 
@@ -287,7 +283,7 @@ void ArtifactRemoveNoError(const filesystem::path & path)
   filesystem::remove(path, ec);
 }
 
-filesystem::path ArtifactInterfaceSidecarPathForObject(const filesystem::path & object_path)
+filesystem::path ArtifactInterfacePathForObject(const filesystem::path & object_path)
 {
   filesystem::path result = object_path;
   result.replace_extension(".dqm_if");
@@ -299,14 +295,4 @@ filesystem::path ArtifactBitcodeSidecarPathForObject(const filesystem::path & ob
   filesystem::path result = object_path;
   result += ".bc";
   return result;
-}
-
-void ArtifactCleanupInterfaceSidecarForObject(const filesystem::path & object_path)
-{
-  filesystem::path sidecar_path = ArtifactInterfaceSidecarPathForObject(object_path);
-  OArtifactLock lock(sidecar_path, EArtifactLockMode::EXCLUSIVE);
-  if (lock.Locked())
-  {
-    ArtifactRemoveNoError(sidecar_path);
-  }
 }

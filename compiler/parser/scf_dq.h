@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "stdint.h"
 #include "scf_base.h"
 #include "errorcodes.h"
@@ -55,10 +56,12 @@ private:
   using                super = OScFeederBase;
 
 public:
-  string               basedir = ".";
+  filesystem::path     main_source_path;
+  filesystem::path     header_source_path;
 
   vector<OScFile *>    scfiles;
   vector<OScPosition>  returnpos;
+  vector<SSourceDependency> source_dependencies;
 
   OScPosition          scpos_start_directive;
 
@@ -68,7 +71,8 @@ public:
   int Init(const string afilename) override;
   void Reset() override;
 
-  OScFile * LoadFile(const string afilename);
+  OScFile * LoadFile(const filesystem::path & filename);
+  void EnterImplementationSection() { implementation_section = true; }
 
 public: // parsing functions
   inline bool Eof() { return ((curp >= bufend) and (returnpos.size() == 0)); }
@@ -82,6 +86,7 @@ protected:
   bool                 inactive_code = false;
   bool                 preproc_closer_brace = true;
   bool                 directive_expr_mode = false;
+  bool                 implementation_section = false;
 
   void ParseDirective();
 
@@ -91,6 +96,7 @@ protected:
   void PreprocError2(const TDiagDefErr & adiag, OScPosition * ascpos = nullptr, bool atryrecover = true);
 
   void ParseDirectiveInclude();
+  void ParseDirectiveSourceDependency();
   void ParseDirectiveDefine();
   void ParseDirectiveLinkLib();
   void ParseDirectiveOpt();
@@ -103,4 +109,8 @@ protected:
   bool CheckConditionals(const string aid);  // processes if, ifdef, else, elif, elifdef, endif. Returns true, when one of those found
 
   void SkipInactiveCode();
+  bool ResolveSourcePath(const string & source_text, filesystem::path & rpath) const;
+  bool AddSourceDependency(const filesystem::path & path);
+  bool AddSourceDependency(const OScFile * file);
+  bool IsDirectIncludeSource() const;
 };

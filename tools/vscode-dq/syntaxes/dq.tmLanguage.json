@@ -73,7 +73,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor.dq",
-          "begin": "^\\s*(#(?:if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|define|include|include_once|linklib|opt|comp))\\b",
+          "begin": "^\\s*(#(?:if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|define|include|include_once|srcdep|linklib|opt|comp))\\b",
           "beginCaptures": {
             "1": {
               "name": "entity.name.function.preprocessor.dq"
@@ -100,7 +100,7 @@
         },
         {
           "name": "meta.preprocessor.inline.dq",
-          "begin": "(#\\{)\\s*(define|if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|include|include_once|linklib|opt|comp)\\b",
+          "begin": "(#\\{)\\s*(define|if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|include|include_once|srcdep|linklib|opt|comp)\\b",
           "beginCaptures": {
             "1": {
               "name": "punctuation.definition.preprocessor.dq"

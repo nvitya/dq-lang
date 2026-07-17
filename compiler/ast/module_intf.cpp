@@ -572,21 +572,69 @@ string OModuleIntf::DqmIfBuildOptions() const
 
 void OModuleIntf::ClearDqmIfMetadata()
 {
-  source_filename.clear();
-  source_filesize = 0;
-  source_filetime = 0;
+  source_dependencies.clear();
+  object_filesize = 0;
+  object_filetime = 0;
   target_arch.clear();
   target_rtl.clear();
   build_options.clear();
   reexport_artifacts.clear();
   link_dependencies.clear();
 
-  has_source_filename = false;
-  has_source_filesize = false;
-  has_source_filetime = false;
+  has_object_filesize = false;
+  has_object_filetime = false;
   has_target_arch = false;
   has_target_rtl = false;
   has_build_options = false;
+}
+
+bool OModuleIntf::ReadDqmIfSourceDependency(ODqmIfReader & reader)
+{
+  if (!reader.ExpectEmpty(DQMIF_H_SRC_BEGIN))
+  {
+    return false;
+  }
+
+  SSourceDependency dep;
+  bool has_filename = false;
+  bool has_filesize = false;
+  bool has_filetime = false;
+  while (true)
+  {
+    if (!reader.NextRec())
+    {
+      return false;
+    }
+    if (DQMIF_H_SRC_END == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_H_SRC_END)) return false;
+      if (!has_filename || !has_filesize || !has_filetime)
+      {
+        return reader.Fail("Incomplete source dependency metadata");
+      }
+      source_dependencies.push_back(dep);
+      return true;
+    }
+    if (DQMIF_H_SRC_FILENAME == reader.recid)
+    {
+      if (!reader.ReadString(dep.filename)) return false;
+      has_filename = true;
+    }
+    else if (DQMIF_H_SRC_FILESIZE == reader.recid)
+    {
+      if (!reader.ReadI64(dep.filesize)) return false;
+      has_filesize = true;
+    }
+    else if (DQMIF_H_SRC_FILETIME == reader.recid)
+    {
+      if (!reader.ReadI64(dep.filetime)) return false;
+      has_filetime = true;
+    }
+    else
+    {
+      return reader.Fail(format("Unexpected source dependency record 0x{:04X}", reader.recid));
+    }
+  }
 }
 
 bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader)
@@ -620,20 +668,19 @@ bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader)
         return reader.ExpectEmpty(DQMIF_H_END);
       }
 
-      if (DQMIF_H_SRC_FILENAME == reader.recid)
+      if (DQMIF_H_SRC_BEGIN == reader.recid)
       {
-        if (!reader.ReadString(source_filename)) return false;
-        has_source_filename = true;
+        if (!ReadDqmIfSourceDependency(reader)) return false;
       }
-      else if (DQMIF_H_SRC_FILESIZE == reader.recid)
+      else if (DQMIF_H_OBJ_FILESIZE == reader.recid)
       {
-        if (!reader.ReadI64(source_filesize)) return false;
-        has_source_filesize = true;
+        if (!reader.ReadI64(object_filesize)) return false;
+        has_object_filesize = true;
       }
-      else if (DQMIF_H_SRC_FILETIME == reader.recid)
+      else if (DQMIF_H_OBJ_FILETIME == reader.recid)
       {
-        if (!reader.ReadI64(source_filetime)) return false;
-        has_source_filetime = true;
+        if (!reader.ReadI64(object_filetime)) return false;
+        has_object_filetime = true;
       }
       else if (DQMIF_H_TARGET_ARCH == reader.recid)
       {
@@ -669,7 +716,7 @@ bool OModuleIntf::ReadMetadata(const string & filename, string & rerror, bool al
   }
 
   ODqmIfReader reader;
-  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfHeaderMetadata(reader))
+  if (!reader.ReadFromFile(filename) || !ReadDqmIfHeaderMetadata(reader))
   {
     rerror = reader.error;
     return false;
@@ -707,73 +754,115 @@ bool OModuleIntf::MetadataMatchesCurrentBuild(string & rreason) const
   return true;
 }
 
-bool OModuleIntf::MetadataMatchesSource(const filesystem::path & source_path, string & rreason) const
+bool OModuleIntf::MetadataMatchesSources(string & rreason) const
 {
-  if (!has_source_filesize || !has_source_filetime)
+  if (source_dependencies.empty())
   {
     rreason = "missing source freshness metadata";
     return false;
   }
 
-  error_code ec;
-  uintmax_t cur_source_filesize = filesystem::file_size(source_path, ec);
-  if (ec)
+  for (const SSourceDependency & dep : source_dependencies)
   {
-    rreason = format("can not read source file size: {}", source_path.string());
-    return false;
-  }
+    filesystem::path source_path(dep.filename);
+    error_code ec;
+    uintmax_t cur_source_filesize = filesystem::file_size(source_path, ec);
+    if (ec)
+    {
+      rreason = format("can not read source file size: {}", dep.filename);
+      return false;
+    }
 
-  if (source_filesize != int64_t(cur_source_filesize))
-  {
-    rreason = format("source file size changed: {} != {}", source_filesize, cur_source_filesize);
-    return false;
-  }
+    if (dep.filesize != int64_t(cur_source_filesize))
+    {
+      rreason = format("source file size changed for {}: {} != {}",
+                       dep.filename, dep.filesize, cur_source_filesize);
+      return false;
+    }
 
-  ec.clear();
-  auto cur_source_filetime = filesystem::last_write_time(source_path, ec);
-  if (ec)
-  {
-    rreason = format("can not read source file time: {}", source_path.string());
-    return false;
-  }
+    ec.clear();
+    auto cur_source_filetime = filesystem::last_write_time(source_path, ec);
+    if (ec)
+    {
+      rreason = format("can not read source file time: {}", dep.filename);
+      return false;
+    }
 
-  int64_t cur_source_filetime_ticks =
-      int64_t(chrono::duration_cast<chrono::nanoseconds>(cur_source_filetime.time_since_epoch()).count());
-  if (source_filetime != cur_source_filetime_ticks)
-  {
-    rreason = "source file modification time changed";
-    return false;
+    int64_t cur_source_filetime_ticks =
+        int64_t(chrono::duration_cast<chrono::nanoseconds>(cur_source_filetime.time_since_epoch()).count());
+    if (dep.filetime != cur_source_filetime_ticks)
+    {
+      rreason = format("source file modification time changed: {}", dep.filename);
+      return false;
+    }
   }
 
   return true;
 }
 
-bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path,
-                                          const filesystem::path & source_path,
-                                          string & rreason, bool alock)
+bool OModuleIntf::InterfaceArtifactIsFresh(const filesystem::path & interface_path,
+                                           string & rreason, bool alock)
 {
   error_code ec;
-  if (!filesystem::exists(artifact_path, ec) || ec)
+  if (!filesystem::exists(interface_path, ec) || ec)
   {
-    rreason = "compiled module artifact is missing";
+    rreason = "module interface artifact is missing";
     return false;
   }
 
   string metadata_error;
-  if (!ReadMetadata(artifact_path.string(), metadata_error, alock))
+  if (!ReadMetadata(interface_path.string(), metadata_error, alock))
   {
     rreason = metadata_error;
     return false;
   }
 
-  if (!MetadataMatchesSource(source_path, rreason) || !MetadataMatchesCurrentBuild(rreason))
+  return MetadataMatchesSources(rreason) && MetadataMatchesCurrentBuild(rreason);
+}
+
+bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
+                                        const filesystem::path & interface_path,
+                                        string & rreason, bool alock)
+{
+  error_code ec;
+  if (!filesystem::exists(object_path, ec) || ec)
   {
+    rreason = "compiled module object is missing";
     return false;
   }
 
-  if ((ELtoMode::FULL == g_opt.lto_mode) && (artifact_path.extension() != ".dqm_if"))
+  if (!InterfaceArtifactIsFresh(interface_path, rreason, alock))
   {
-    filesystem::path bitcode_path = ArtifactBitcodeSidecarPathForObject(artifact_path);
+    return false;
+  }
+  if (!has_object_filesize || !has_object_filetime)
+  {
+    rreason = "module interface has no compiled object stamp";
+    return false;
+  }
+
+  uintmax_t cur_object_filesize = filesystem::file_size(object_path, ec);
+  if (ec || object_filesize != int64_t(cur_object_filesize))
+  {
+    rreason = ec ? format("can not read object file size: {}", object_path.string())
+                 : format("object file size changed: {} != {}", object_filesize, cur_object_filesize);
+    return false;
+  }
+
+  ec.clear();
+  auto cur_object_filetime = filesystem::last_write_time(object_path, ec);
+  int64_t cur_object_filetime_ticks = ec ? 0 : int64_t(
+      chrono::duration_cast<chrono::nanoseconds>(cur_object_filetime.time_since_epoch()).count());
+  if (ec || object_filetime != cur_object_filetime_ticks)
+  {
+    rreason = ec ? format("can not read object file time: {}", object_path.string())
+                 : "object file modification time changed";
+    return false;
+  }
+
+  if (ELtoMode::FULL == g_opt.lto_mode)
+  {
+    filesystem::path bitcode_path = ArtifactBitcodeSidecarPathForObject(object_path);
     if (!filesystem::exists(bitcode_path, ec) || ec)
     {
       rreason = format("LTO bitcode sidecar is missing: {}", bitcode_path.string());
@@ -782,34 +871,6 @@ bool OModuleIntf::CompiledArtifactIsFresh(const filesystem::path & artifact_path
   }
 
   return true;
-}
-
-bool OModuleIntf::FindFreshInterfaceArtifact(const filesystem::path & interface_artifact_path,
-                                             const filesystem::path & object_artifact_path,
-                                             const filesystem::path & source_path,
-                                             filesystem::path & rinterface_path,
-                                             string & rreason)
-{
-  string object_reason;
-  if (CompiledArtifactIsFresh(object_artifact_path, source_path, object_reason))
-  {
-    ArtifactCleanupInterfaceSidecarForObject(object_artifact_path);
-    rinterface_path = object_artifact_path;
-    rreason.clear();
-    return true;
-  }
-
-  string interface_reason;
-  if (CompiledArtifactIsFresh(interface_artifact_path, source_path, interface_reason))
-  {
-    rinterface_path = interface_artifact_path;
-    rreason.clear();
-    return true;
-  }
-
-  rinterface_path.clear();
-  rreason = format("interface artifact: {}; compiled artifact: {}", interface_reason, object_reason);
-  return false;
 }
 
 bool OModuleIntf::IsInModuleUseStack(const string & module_path) const
@@ -887,26 +948,14 @@ static bool RunModuleChildCompile(const vector<string> & args, const string & st
   return false;
 }
 
-SModuleArtifactEnsureResult OModuleIntf::EnsureFreshInterfaceArtifact(const OModulePath & module_path,
-                                                                      bool in_module_stack)
+SModuleArtifactEnsureResult OModuleIntf::EnsureFreshInterfaceArtifact(const OModulePath & module_path)
 {
   SModuleArtifactEnsureResult result;
   string stale_reason;
 
   auto interface_is_fresh = [&]() -> bool
   {
-    if (in_module_stack)
-    {
-      if (CompiledArtifactIsFresh(module_path.interface_artifact_path, module_path.source_path, stale_reason))
-      {
-        result.interface_load_path = module_path.interface_artifact_path;
-        return true;
-      }
-      return false;
-    }
-
-    return FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
-                                      module_path.source_path, result.interface_load_path, stale_reason);
+    return InterfaceArtifactIsFresh(module_path.interface_artifact_path, stale_reason);
   };
 
   if (interface_is_fresh())
@@ -940,13 +989,8 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshCompiledArtifact(const OModu
   SModuleArtifactEnsureResult result;
   string stale_reason;
 
-  if (CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
+  if (ObjectArtifactIsFresh(module_path.artifact_path, module_path.interface_artifact_path, stale_reason))
   {
-    if (!FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
-                                    module_path.source_path, result.interface_load_path, stale_reason))
-    {
-      return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
-    }
     return result;
   }
 
@@ -955,7 +999,7 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshCompiledArtifact(const OModu
     return ModuleArtifactEnsureError(EModuleArtifactEnsureError::SOURCE_MISSING);
   }
 
-  SModuleArtifactEnsureResult interface_result = EnsureFreshInterfaceArtifact(module_path, false);
+  SModuleArtifactEnsureResult interface_result = EnsureFreshInterfaceArtifact(module_path);
   if (!interface_result.Ok())
   {
     return interface_result;
@@ -969,13 +1013,7 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshCompiledArtifact(const OModu
     return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, regen_reason);
   }
 
-  if (!CompiledArtifactIsFresh(module_path.artifact_path, module_path.source_path, stale_reason))
-  {
-    return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
-  }
-
-  if (!FindFreshInterfaceArtifact(module_path.interface_artifact_path, module_path.artifact_path,
-                                  module_path.source_path, result.interface_load_path, stale_reason))
+  if (!ObjectArtifactIsFresh(module_path.artifact_path, module_path.interface_artifact_path, stale_reason))
   {
     return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED, stale_reason);
   }
@@ -1089,22 +1127,35 @@ vector<string> OModuleIntf::ChildInterfaceArgs(const filesystem::path & source_p
   return ModuleChildArgs(source_path, interface_artifact_path, module_path, module_root_dir, true);
 }
 
-bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const string & source_filename)
+bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
+                                           const vector<SSourceDependency> & source_dependencies,
+                                           const string & object_filename)
 {
   if (!writer.AddRecEmpty(DQMIF_H_BEGIN)) return false;
-  if (!source_filename.empty()
-      && !writer.AddRecStr(DQMIF_H_SRC_FILENAME, source_filename)) return false;
-
-  error_code ec;
-  uintmax_t fsize = filesystem::file_size(source_filename, ec);
-  if (!ec && !writer.AddRecI64(DQMIF_H_SRC_FILESIZE, int64_t(fsize))) return false;
-
-  ec.clear();
-  auto ftime = filesystem::last_write_time(source_filename, ec);
-  if (!ec)
+  if (source_dependencies.empty())
   {
+    return writer.Fail("Can not write module interface without source dependencies");
+  }
+  for (const SSourceDependency & dep : source_dependencies)
+  {
+    if (dep.filename.empty()) return writer.Fail("Can not write an unnamed source dependency");
+    if (!writer.AddRecEmpty(DQMIF_H_SRC_BEGIN)) return false;
+    if (!writer.AddRecStr(DQMIF_H_SRC_FILENAME, dep.filename)) return false;
+    if (!writer.AddRecI64(DQMIF_H_SRC_FILESIZE, dep.filesize)) return false;
+    if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, dep.filetime)) return false;
+    if (!writer.AddRecEmpty(DQMIF_H_SRC_END)) return false;
+  }
+
+  if (!object_filename.empty())
+  {
+    error_code ec;
+    uintmax_t fsize = filesystem::file_size(object_filename, ec);
+    if (ec) return writer.Fail(format("Can not read object file size: {}", object_filename));
+    auto ftime = filesystem::last_write_time(object_filename, ec);
+    if (ec) return writer.Fail(format("Can not read object file time: {}", object_filename));
     auto ticks = chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count();
-    if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, int64_t(ticks))) return false;
+    if (!writer.AddRecI64(DQMIF_H_OBJ_FILESIZE, int64_t(fsize))) return false;
+    if (!writer.AddRecI64(DQMIF_H_OBJ_FILETIME, int64_t(ticks))) return false;
   }
 
   if (!writer.AddRecStr(DQMIF_H_TARGET_ARCH, DqmIfTargetArch())) return false;
@@ -1135,9 +1186,11 @@ bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
   return writer.AddRecEmpty(DQMIF_USE_END);
 }
 
-bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & source_filename)
+bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
+                                        const vector<SSourceDependency> & source_dependencies,
+                                        const string & object_filename)
 {
-  if (!WriteDqmIfSourceMetadata(writer, source_filename))
+  if (!WriteDqmIfSourceMetadata(writer, source_dependencies, object_filename))
   {
     return false;
   }
@@ -1237,24 +1290,13 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer, const string & so
   return true;
 }
 
-bool OModuleIntf::BuildInterfaceBytes(vector<uint8_t> & rdata, const string & source_filename)
+bool OModuleIntf::WriteInterface(const string & filename,
+                                 const vector<SSourceDependency> & source_dependencies,
+                                 const string & object_filename)
 {
   ODqmIfWriter writer;
 
-  if (!WriteInterfaceRecords(writer, source_filename) || !writer.BuildFileData(rdata))
-  {
-    print("Can not build module interface data for: {}\n{}\n", source_filename, writer.error);
-    return false;
-  }
-
-  return true;
-}
-
-bool OModuleIntf::WriteInterface(const string & filename, const string & source_filename)
-{
-  ODqmIfWriter writer;
-
-  if (!WriteInterfaceRecords(writer, source_filename))
+  if (!WriteInterfaceRecords(writer, source_dependencies, object_filename))
   {
     print("Can not write module interface file: {}\n{}\n", filename, writer.error);
     return false;
@@ -1266,7 +1308,10 @@ bool OModuleIntf::WriteInterface(const string & filename, const string & source_
     return false;
   }
 
-  print("Module interface written: {}\n", filename);
+  if (g_opt.ifgen)
+  {
+    print("Module interface written: {}\n", filename);
+  }
   return true;
 }
 
@@ -2581,12 +2626,6 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
   }
   filesystem::path interface_artifact_path = artifact_path;
   interface_artifact_path.replace_extension(".dqm_if");
-  filesystem::path load_path = artifact_path;
-  error_code ec;
-  if (filesystem::exists(interface_artifact_path, ec) && !ec)
-  {
-    load_path = interface_artifact_path;
-  }
 
   bool owned_intf = false;
   OModuleIntf * intf = FindLoadedModuleIntf(module_path);
@@ -2595,10 +2634,10 @@ bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
     intf = new OModuleIntf(scope_pub->parent_scope, module_path);
     owned_intf = true;
   }
-  if (owned_intf && !intf->ReadInterface(load_path.string()))
+  if (owned_intf && !intf->ReadInterface(interface_artifact_path.string()))
   {
     delete intf;
-    return reader.Fail(format("Can not load module interface: {}", load_path.string()));
+    return reader.Fail(format("Can not load module interface: {}", interface_artifact_path.string()));
   }
   if (owned_intf && g_module)
   {
@@ -2810,7 +2849,7 @@ bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet
   }
 
   ODqmIfReader reader;
-  if (!reader.ReadFromArtifact(filename) || !ReadDqmIfRecords(reader))
+  if (!reader.ReadFromFile(filename) || !ReadDqmIfRecords(reader))
   {
     last_interface_error = reader.error;
     if (!aquiet)

@@ -1,0 +1,8 @@
+#include "nested_outer.dqi"
+
+[[external]] function printf(fmt : ^char, ...) -> int;
+
+function *Main() -> int:
+    printf("nested include value = %d\n", NESTED_INCLUDE_VALUE); //?check("nested include value", 51)
+    return 0;
+endfunc

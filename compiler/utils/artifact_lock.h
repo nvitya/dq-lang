@@ -64,6 +64,5 @@ bool ArtifactAtomicReplace(const filesystem::path & tmp_path, const filesystem::
                            string & rerror);
 bool ArtifactEnsureParentDir(const filesystem::path & artifact_path, string & rerror);
 void ArtifactRemoveNoError(const filesystem::path & path);
-filesystem::path ArtifactInterfaceSidecarPathForObject(const filesystem::path & object_path);
+filesystem::path ArtifactInterfacePathForObject(const filesystem::path & object_path);
 filesystem::path ArtifactBitcodeSidecarPathForObject(const filesystem::path & object_path);
-void ArtifactCleanupInterfaceSidecarForObject(const filesystem::path & object_path);

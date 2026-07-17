@@ -183,6 +183,7 @@ void ODqCompParser::ParseModule()
 
     if ("implementation" == sid)
     {
+      scf->EnterImplementationSection();
       if (g_opt.ifgen)
       {
         break;  // do not parse the implementation part in --ifgen mode
@@ -503,14 +504,14 @@ void ODqCompParser::ParseUseStatement()
     };
 
     SModuleArtifactEnsureResult artifact_result =
-      artifact_intf.EnsureFreshInterfaceArtifact(use_path, in_module_stack);
+      artifact_intf.EnsureFreshInterfaceArtifact(use_path);
     if (!artifact_result.Ok())
     {
       report_artifact_error(artifact_result);
       return;
     }
 
-    filesystem::path interface_load_path = artifact_result.interface_load_path;
+    filesystem::path interface_load_path = use_path.interface_artifact_path;
 
     if (!g_opt.ifgen && !in_module_stack)
     {
@@ -520,7 +521,6 @@ void ODqCompParser::ParseUseStatement()
         report_artifact_error(artifact_result);
         return;
       }
-      interface_load_path = artifact_result.interface_load_path;
     }
 
     int prev_errorcnt = errorcnt;

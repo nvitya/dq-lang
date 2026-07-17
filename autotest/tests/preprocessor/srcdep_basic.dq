@@ -1,0 +1,13 @@
+#srcdep "srcdep_basic_impl.dqi"
+
+function SrcDepValue() -> int;
+[[external]] function printf(fmt : ^char, ...) -> int;
+
+implementation
+
+#include "srcdep_basic_impl.dqi"
+
+function *Main() -> int:
+    printf("srcdep value = %d\n", SrcDepValue()); //?check("srcdep value", 44)
+    return 0;
+endfunc

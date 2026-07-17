@@ -22,12 +22,14 @@
 #include <format>
 #include <filesystem>
 #include <algorithm>
+#include <chrono>
 
 #include "scf_dq.h"
 #include "scope_defines.h"
 #include "scope_builtins.h"
 
 #include "dqc.h"
+#include "module_path.h"
 
 //---------------------------------------------------------
 
@@ -78,12 +80,18 @@ int OScFeederDq::Init(const string afilename)
 {
   super::Init(afilename);
 
-  filesystem::path  fpath(afilename);
-  basedir = fpath.parent_path().string();
-  if ("" == basedir)  basedir = ".";
-
-  curfile = LoadFile(fpath.filename().string());
+  error_code ec;
+  main_source_path = filesystem::absolute(afilename, ec);
+  if (ec) main_source_path = afilename;
+  main_source_path = main_source_path.lexically_normal();
+  header_source_path = main_source_path;
+  header_source_path.replace_extension(".dqh");
+  curfile = LoadFile(main_source_path);
   if (!curfile)
+  {
+    return 1;
+  }
+  if (!AddSourceDependency(curfile))
   {
     return 1;
   }
@@ -104,26 +112,33 @@ void OScFeederDq::Reset()
 
   scfiles.clear();
   returnpos.clear();
+  source_dependencies.clear();
+  main_source_path.clear();
+  header_source_path.clear();
+  implementation_section = false;
 }
 
-OScFile * OScFeederDq::LoadFile(const string afilename)
+OScFile * OScFeederDq::LoadFile(const filesystem::path & filename)
 {
+  error_code ec;
+  filesystem::path fullpath = filesystem::absolute(filename, ec);
+  if (ec) fullpath = filename;
+  fullpath = fullpath.lexically_normal();
+
   // check if already loaded
   for (OScFile * fs : scfiles)
   {
-    if (fs->name == afilename)
+    if (filesystem::path(fs->fullpath) == fullpath)
     {
       ++fs->usagecount;  // increment usage count for #{include_once}
       return fs;
     }
   }
 
-  string fullname = basedir + "/" + afilename;
-
   OScFile * f = new OScFile();
-  if (!f->Load(afilename, fullname))
+  if (!f->Load(fullpath.filename().string(), fullpath.string()))
   {
-    print("Error loading file: \"{}\"!\n", fullname);
+    print("Error loading file: \"{}\"!\n", fullpath.string());
 
     delete f;
     return nullptr;
@@ -131,12 +146,106 @@ OScFile * OScFeederDq::LoadFile(const string afilename)
 
   if (g_opt.verblevel >= VERBLEVEL_INFO)
   {
-    print("File \"{}\" loaded: {} bytes\n", fullname, f->length);
+    print("File \"{}\" loaded: {} bytes\n", fullpath.string(), f->length);
   }
 
   scfiles.push_back(f);
   f->index = scfiles.size() - 1;
   return f;
+}
+
+bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path & rpath) const
+{
+  filesystem::path raw_path(source_text);
+  filesystem::path candidate;
+  if (source_text.starts_with("./") || source_text.starts_with("../"))
+  {
+    candidate = filesystem::path(curfile->fullpath).parent_path() / raw_path;
+  }
+  else if (source_text.starts_with("^/"))
+  {
+    OModulePath current_module;
+    string path_error;
+    if (!current_module.InitCurrent(main_source_path, path_error))
+    {
+      return false;
+    }
+    candidate = current_module.root_dir / source_text.substr(2);
+  }
+  else
+  {
+    candidate = filesystem::path(curfile->fullpath).parent_path() / raw_path;
+    error_code ec;
+    if (!filesystem::exists(candidate, ec) || ec)
+    {
+      for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
+      {
+        filesystem::path package_candidate = filesystem::path(*it) / raw_path;
+        ec.clear();
+        if (filesystem::exists(package_candidate, ec) && !ec)
+        {
+          candidate = package_candidate;
+          break;
+        }
+      }
+    }
+  }
+
+  error_code ec;
+  rpath = filesystem::absolute(candidate, ec);
+  if (ec) rpath = candidate;
+  rpath = rpath.lexically_normal();
+  return true;
+}
+
+bool OScFeederDq::AddSourceDependency(const filesystem::path & path)
+{
+  error_code ec;
+  filesystem::path fullpath = filesystem::absolute(path, ec);
+  if (ec) fullpath = path;
+  fullpath = fullpath.lexically_normal();
+  string filename = fullpath.string();
+  for (const SSourceDependency & dep : source_dependencies)
+  {
+    if (dep.filename == filename) return true;
+  }
+
+  uintmax_t filesize = filesystem::file_size(fullpath, ec);
+  if (ec) return false;
+  auto filetime = filesystem::last_write_time(fullpath, ec);
+  if (ec) return false;
+
+  SSourceDependency dep;
+  dep.filename = filename;
+  dep.filesize = int64_t(filesize);
+  dep.filetime = int64_t(chrono::duration_cast<chrono::nanoseconds>(filetime.time_since_epoch()).count());
+  source_dependencies.push_back(dep);
+  return true;
+}
+
+bool OScFeederDq::AddSourceDependency(const OScFile * file)
+{
+  if (!file) return false;
+  filesystem::path fullpath(file->fullpath);
+  string filename = fullpath.lexically_normal().string();
+  for (const SSourceDependency & dep : source_dependencies)
+  {
+    if (dep.filename == filename) return true;
+  }
+
+  SSourceDependency dep;
+  dep.filename = filename;
+  dep.filesize = file->length;
+  dep.filetime = file->filetime;
+  source_dependencies.push_back(dep);
+  return true;
+}
+
+bool OScFeederDq::IsDirectIncludeSource() const
+{
+  if (!curfile) return false;
+  filesystem::path current_path(curfile->fullpath);
+  return (current_path == main_source_path) || (current_path == header_source_path);
 }
 
 void OScFeederDq::SkipWhite()
@@ -318,6 +427,10 @@ void OScFeederDq::ParseDirective()
   {
     ParseDirectiveInclude(); // already contains end
   }
+  else if ("srcdep" == sid)
+  {
+    ParseDirectiveSourceDependency();
+  }
   else if ("linklib" == sid)
   {
     ParseDirectiveLinkLib();
@@ -487,14 +600,26 @@ void OScFeederDq::ParseDirectiveLinkLib()
 
 void OScFeederDq::ParseDirectiveInclude()
 {
-  // #include "filename.dq"
+  // #include "filename.dqi" or #include header
   // note: include already consumed!
 
   string sfname;
+  bool include_header = false;
 
-  SkipSpaces();
+  SkipSpaces(false);
 
-  if (not ReadQuotedString(sfname))
+  string include_kind;
+  if (ReadIdentifier(include_kind, false))
+  {
+    if ("header" != include_kind)
+    {
+      PreprocError2(DQERR_CDIR_INC_FN_MISSING);
+      return;
+    }
+    ReadIdentifier(include_kind);
+    include_header = true;
+  }
+  else if (not ReadQuotedString(sfname))
   {
     PreprocError2(DQERR_CDIR_INC_FN_MISSING);
     return;
@@ -505,28 +630,40 @@ void OScFeederDq::ParseDirectiveInclude()
     return;
   }
 
+  filesystem::path include_path;
+  if (include_header)
+  {
+    if (implementation_section || (filesystem::path(curfile->fullpath).extension() == ".dqh"))
+    {
+      PreprocError2(DQERR_CDIR_INC_HEADER_INVALID, nullptr, false);
+      return;
+    }
+    include_path = header_source_path;
+    sfname = include_path.string();
+  }
+  else if (!ResolveSourcePath(sfname, include_path))
+  {
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    return;
+  }
+
   if (g_opt.verblevel >= VERBLEVEL_INFO)
   {
     print("{}: ", scpos_start_directive.Format());
-    print("Including ({})\n", sfname);
+    print("Including ({})\n", include_path.string());
   }
 
-  OScFile * incfile = LoadFile(sfname);
+  bool track_dependency = !implementation_section && (include_header || IsDirectIncludeSource());
+  OScFile * incfile = LoadFile(include_path);
   if (!incfile)
   {
-    // try with the current path
-    filesystem::path  fpath(curfile->name);
-    string parentpath = fpath.parent_path().string();
-    if (!parentpath.empty())
-    {
-      parentpath += filesystem::path::preferred_separator;
-    }
-    incfile = LoadFile(parentpath + sfname);
-    if (!incfile)
-    {
-      PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
-      return;
-    }
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    return;
+  }
+  if (track_dependency && !AddSourceDependency(incfile))
+  {
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    return;
   }
 
   // push return position
@@ -537,6 +674,35 @@ void OScFeederDq::ParseDirectiveInclude()
 
   // switch to the include
   SetCurPos(incfile, incfile->pstart);
+}
+
+void OScFeederDq::ParseDirectiveSourceDependency()
+{
+  string source_name;
+  SkipSpaces(false);
+  if (!ReadQuotedString(source_name))
+  {
+    PreprocError2(DQERR_CDIR_SRCDEP_SYNTAX);
+    return;
+  }
+  if (!FindDirectiveEnd()) return;
+  if (implementation_section)
+  {
+    PreprocError2(DQERR_CDIR_SRCDEP_PLACEMENT, nullptr, false);
+    return;
+  }
+
+  filesystem::path source_path;
+  if (!ResolveSourcePath(source_name, source_path) || !AddSourceDependency(source_path))
+  {
+    PreprocError2(DQERR_CDIR_SRCDEP_LOADING, source_name, nullptr, false);
+    return;
+  }
+
+  if (g_opt.verblevel >= VERBLEVEL_INFO)
+  {
+    print("{}: Source dependency ({})\n", scpos_start_directive.Format(), source_path.string());
+  }
 }
 
 void OScFeederDq::PreprocError2(const TDiagDefErr & adiag, string_view par1, string_view par2, string_view par3, OScPosition *ascpos, bool atryrecover)

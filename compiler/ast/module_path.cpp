@@ -137,7 +137,7 @@ filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_
     result /= item;
   }
 
-  result += (interface_only ? ".dqm_if" : ".dqm");
+  result += (interface_only ? ".dqm_if" : ".o");
   return result.lexically_normal();
 }
 
@@ -430,7 +430,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
       {
         rartifact_path /= item;
       }
-      rartifact_path += ".dqm";
+      rartifact_path += ".o";
       rartifact_path = rartifact_path.lexically_normal();
       return true;
     }

@@ -16,6 +16,7 @@
 
 #include "string.h"
 #include <cmath>
+#include <chrono>
 
 #include <fstream>
 #include <print>
@@ -233,6 +234,7 @@ bool OScFile::Load(const string aname, const string afullpath)
   fullpath = afullpath;
   body = "";
   length = -1;
+  filetime = 0;
   pstart = nullptr;
   pend = nullptr;
 
@@ -251,6 +253,14 @@ bool OScFile::Load(const string aname, const string afullpath)
     pstart = body.data();
     pend = pstart + length;
   }
+
+  error_code ec;
+  auto ftime = filesystem::last_write_time(fullpath, ec);
+  if (ec)
+  {
+    return false;
+  }
+  filetime = int64_t(chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count());
 
   if (g_opt.dbg_info)
   {
@@ -363,6 +373,7 @@ void OScFeederBase::SearchClStart()
 
   char * pstart = curfile->pstart;
   char * p = curp;
+  clstart = pstart;
   if (curp > curfile->pstart)
   {
     while (p > pstart)
@@ -375,7 +386,6 @@ void OScFeederBase::SearchClStart()
       --p;
     }
     // no previous linefeed was found, so point to the file start
-    clstart = pstart;
   }
 }
 

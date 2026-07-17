@@ -74,7 +74,9 @@
           "dq"
         ],
         "extensions": [
-          ".dq"
+          ".dq",
+          ".dqh",
+          ".dqi"
         ],
         "configuration": "./language-configuration.json"
       }

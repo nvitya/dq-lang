@@ -18,9 +18,6 @@
 #include <format>
 #include <print>
 
-#include <llvm/Object/ObjectFile.h>
-#include <llvm/Support/Error.h>
-
 #include "artifact_lock.h"
 
 using namespace std;
@@ -257,11 +254,6 @@ static uint64_t DqmIfReadU64At(const vector<uint8_t> & data, size_t pos)
        | (uint64_t(DqmIfReadU32At(data, pos + 4)) << 32);
 }
 
-static string DqmIfLlvmErrorToString(llvm::Error aerr)
-{
-  return llvm::toString(std::move(aerr));
-}
-
 bool ODqmIfReader::ReadFromFile(const string & filename)
 {
   ifstream inf(filename, ios::binary | ios::ate);
@@ -343,72 +335,6 @@ bool ODqmIfReader::ReadFromData(const vector<uint8_t> & data, const string & fil
   reclen = 0;
   recpos = 0;
   return true;
-}
-
-bool ODqmIfReader::ReadFromArtifact(const string & filename)
-{
-  ifstream inf(filename, ios::binary | ios::ate);
-  if (!inf)
-  {
-    return Fail(format("Can not read module interface artifact: {}", filename));
-  }
-
-  streamsize fsize = inf.tellg();
-  if (fsize < 0)
-  {
-    return Fail(format("Can not read module interface artifact size: {}", filename));
-  }
-
-  vector<uint8_t> data(static_cast<size_t>(fsize));
-  inf.seekg(0, ios::beg);
-  if (!data.empty())
-  {
-    inf.read(reinterpret_cast<char *>(data.data()), fsize);
-  }
-  if (!inf)
-  {
-    return Fail(format("Can not read module interface artifact: {}", filename));
-  }
-
-  if ((data.size() >= sizeof(TDqmIfHeader)) && (memcmp(data.data(), "DQMIF\0", 6) == 0))
-  {
-    return ReadFromData(data, filename);
-  }
-
-  llvm::Expected<llvm::object::OwningBinary<llvm::object::ObjectFile>> obj =
-      llvm::object::ObjectFile::createObjectFile(filename);
-  if (!obj)
-  {
-    return Fail(format("Can not read compiled module artifact: {}\n{}",
-        filename, DqmIfLlvmErrorToString(obj.takeError())));
-  }
-
-  for (const llvm::object::SectionRef & sec : obj->getBinary()->sections())
-  {
-    llvm::Expected<llvm::StringRef> name = sec.getName();
-    if (!name)
-    {
-      return Fail(format("Can not read section name from compiled module artifact: {}\n{}",
-          filename, DqmIfLlvmErrorToString(name.takeError())));
-    }
-
-    if (*name != ".dqm_if")
-    {
-      continue;
-    }
-
-    llvm::Expected<llvm::StringRef> contents = sec.getContents();
-    if (!contents)
-    {
-      return Fail(format("Can not read .dqm_if section from compiled module artifact: {}\n{}",
-          filename, DqmIfLlvmErrorToString(contents.takeError())));
-    }
-
-    vector<uint8_t> dqm_if_data(contents->bytes_begin(), contents->bytes_end());
-    return ReadFromData(dqm_if_data, filename);
-  }
-
-  return Fail(format("Compiled module artifact has no .dqm_if section: {}", filename));
 }
 
 bool ODqmIfReader::NextRec()

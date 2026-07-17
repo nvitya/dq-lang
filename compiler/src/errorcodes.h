@@ -269,6 +269,10 @@ DEF_DQ_ERR(DQERR_CDIR_MULTIPLE_ELSE_PREVPOS,       "CDirMultipleElse",       "Mu
 DEF_DQ_ERR(DQERR_CDIR_COND_WRONG_INC,              "CDirCondWrongInc",       "$1 for $2 in a different include file!");
 DEF_DQ_ERR(DQERR_CDIR_INC_FN_MISSING,              "CDirIncFileNameMissing", "#include error: file name is missing");
 DEF_DQ_ERR(DQERR_CDIR_INC_LOADING,                 "CDirIncFileLoad",        "Error loading #include file \"$1\"");
+DEF_DQ_ERR(DQERR_CDIR_INC_HEADER_INVALID,          "CDirIncHeaderInvalid",   "#include header is invalid after implementation or inside a .dqh file");
+DEF_DQ_ERR(DQERR_CDIR_SRCDEP_SYNTAX,               "CDirSrcDepSyntax",       "#srcdep syntax: expected #srcdep \"filename\"");
+DEF_DQ_ERR(DQERR_CDIR_SRCDEP_PLACEMENT,            "CDirSrcDepPlacement",    "#srcdep is invalid after implementation");
+DEF_DQ_ERR(DQERR_CDIR_SRCDEP_LOADING,              "CDirSrcDepFileLoad",     "Error loading #srcdep file \"$1\"");
 DEF_DQ_ERR(DQERR_CDIR_LINKLIB_SYNTAX,              "CDirLinkLibSyntax",      "#linklib syntax: expected #linklib(\"name\")");
 DEF_DQ_ERR(DQERR_CDIR_LINKLIB_INVALID,             "CDirLinkLibInvalid",     "#linklib error: invalid library name \"$1\"");
 DEF_DQ_ERR(DQERR_CDIR_OPT_SYNTAX,                  "CDirOptSyntax",          "#opt syntax: expected #opt module_root_depth = <non-negative integer>");

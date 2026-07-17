@@ -64,7 +64,6 @@ public:
   void OptimizeIr(int aoptlevel);
   void PrintIr();
 
-  void EmbedDqmIfSection(const vector<uint8_t> & adata);
   void EmitBitcode(const string afilename);
   void EmitObject(const string afilename);
 

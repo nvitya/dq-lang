@@ -22,6 +22,13 @@
 
 using namespace std;
 
+struct SSourceDependency
+{
+  string   filename;
+  int64_t  filesize = 0;
+  int64_t  filetime = 0;
+};
+
 class OScFile
 {
 public:
@@ -30,6 +37,7 @@ public:
   string    fullpath = "";
   string    body = "";
   int32_t   length = -1;
+  int64_t   filetime = 0;
   char *    pstart = nullptr;
   char *    pend   = nullptr;
 

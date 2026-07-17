@@ -120,6 +120,32 @@ Source include directives are supported.
 Include files are processed by the source feeder before parsing the resulting
 DQ source.
 
+A module can keep its public declarations in a same-basename `.dqh` file:
+
+```dq
+#include header
+```
+
+For `file.dq`, this includes `file.dqh`. The directive is valid only before
+`implementation` and cannot be used from a `.dqh` file.
+
+Bare include paths first resolve relative to the current source file and then
+through package search roots. `./` and `../` are source-file relative, while
+`^/` is module-root relative.
+
+Implementation includes that must invalidate the module object can be declared
+before `implementation` without including their contents there:
+
+```dq
+#srcdep "somefunc_impl.dqi"
+```
+
+`#srcdep` uses the same path resolution as `#include`. It records only the named
+file and does not parse it or discover further dependencies. Automatic include
+dependencies are limited to directives written directly in the main `.dq` or its
+same-basename `.dqh`; includes nested inside other `.dqi` files are still parsed
+but are not tracked automatically.
+
 ## Link Libraries
 
 `#linklib` requests linking with an external library.

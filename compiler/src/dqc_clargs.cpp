@@ -21,6 +21,7 @@
 #include "comp_config.h"
 #include "executable_path.h"
 #include "module_path.h"
+#include "artifact_lock.h"
 
 using namespace std;
 
@@ -590,7 +591,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     if (has_dash_o)
     {
       ++errorcnt;
-      print("--ifdump expects only one input .dqm_if or .dqm file.\n");
+      print("--ifdump expects only one input .dqm_if file.\n");
       PrintUsage();
     }
     return;
@@ -641,16 +642,19 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
   if (g_opt.ifgen)
   {
     out_filename = has_dash_o ? explicit_output : default_interface_path.string();
+    interface_out_filename = out_filename;
   }
   else if (g_opt.compile_only)
   {
     // -c: compile only, no linking
     out_filename = has_dash_o ? explicit_output : default_artifact_path.string();
+    interface_out_filename = ArtifactInterfacePathForObject(out_filename).string();
   }
   else
   {
-    // full compilation produces a compiled DQ module object
+    // full compilation produces a DQ module object and its interface
     out_filename = default_artifact_path.string();
+    interface_out_filename = default_interface_path.string();
     // link_output is where the final result should go
     link_output = has_dash_o ? explicit_output : base_name;
   }
@@ -667,7 +671,7 @@ void ODqCompClargs::PrintUsage()
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
-  print("  --ifdump  : dump module interface artifact (.dqm_if or .dqm)\n");
+  print("  --ifdump  : dump module interface artifact (.dqm_if)\n");
   print("  --no-use-sys : do not add the implicit merged sys module\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");

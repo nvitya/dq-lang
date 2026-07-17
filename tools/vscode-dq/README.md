@@ -1,11 +1,11 @@
 # DQ for VSCode
 
-This folder contains a minimal VSCode extension for `.dq` files. It is intentionally declarative: there is no language server and no custom debug adapter.
+This folder contains a minimal VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It is intentionally declarative: there is no language server and no custom debug adapter.
 
 ## What it covers
 
 - DQ keywords such as `function`, `var`, `const`, `if`, `while`, `endfunc`
-- Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#{include ...}`, `#{endif}`
+- Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#include`, `#srcdep`, and `#{endif}`
 - Attributes such as `[[external]]`
 - Builtins such as `len`, `sizeof`, `round`, `ceil`, `floor`
 - Core types seen in this repository such as `int`, `cchar`, `cstring`, `float32`, `float64`
@@ -87,7 +87,7 @@ This assumes `dq-comp -g` emits usable DWARF source information and GDB can reso
 code --extensionDevelopmentPath /lindata/workvc/dq-comp/tools/vscode-dq
 ```
 
-This opens a new Extension Development Host window where `.dq` files should use the `dq` language.
+This opens a new Extension Development Host window where `.dq`, `.dqh`, and `.dqi` files should use the `dq` language.
 
 ## Packaging
 

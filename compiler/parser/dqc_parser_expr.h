@@ -94,3 +94,10 @@ protected:
 public:
   OAttr * attr = nullptr;
 };
+
+
+bool EnsureDynArrayRtlUse();
+bool EnsureStrFuncRtlUse();
+bool EnsureCStringRtlUse();
+bool EnsureDynStringRtlUse();
+bool EnsureTextFormatRtlUse();

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.36.1"
+#define DQ_COMPILER_VERSION  "0.36.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.36.2:
+  - rtl/cstring.dq merged into the rtl/strfunc.dq (as includes)
 v0.36.1:
   - Module lock handling fixes:
     - shared locks on both object and interface artifacts during validation,

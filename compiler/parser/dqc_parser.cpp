@@ -35,33 +35,6 @@
 
 using namespace std;
 
-static bool EnsureDynArrayRtlUse()
-{
-  if (g_namespaces.end() != g_namespaces.find("__dq_dynarray"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/dynarrmgr", "__dq_dynarray", nullptr, true, MUM_NONE);
-}
-
-static bool EnsureCStringRtlUse()
-{
-  if (g_namespaces.end() != g_namespaces.find("__dq_cstring"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/cstrings", "__dq_cstring", nullptr, true, MUM_NONE);
-}
-
-static bool EnsureDynStringRtlUse()
-{
-  if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
-}
-
 static bool IsCStringMethodSourceType(OType * type)
 {
   return IsTextSourceType(type);

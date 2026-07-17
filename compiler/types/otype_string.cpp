@@ -28,15 +28,6 @@ static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
 static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
 static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
-bool EnsureDynStringRtlUseForStringTypes()
-{
-  if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
-  {
-    return true;
-  }
-  return g_compiler && g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
-}
-
 static LlType * LlPtrType()
 {
   return llvm::PointerType::get(ll_ctx, 0);
@@ -120,7 +111,7 @@ static LlValue * NormalizeTextIndexValue(LlValue * index, LlValue * len)
 
 static OValSymFunc * DynStrFunc(const string & name)
 {
-  auto nsit = g_namespaces.find("__dq_dynstr");
+  auto nsit = g_namespaces.find("__dq_strfunc");
   if (nsit == g_namespaces.end() || !nsit->second)
   {
     throw runtime_error("Dynamic string RTL module is not loaded");
@@ -813,7 +804,7 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
-      if (!EnsureDynStringRtlUseForStringTypes())
+      if (!EnsureStrFuncRtlUse())
       {
         return false;
       }

@@ -23,7 +23,7 @@ function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
     endif
 
     // only possible for CStrings
-    result = @cstrings.CStrLen(ati)
+    result = CStrLen(ati)
     ati.charlen = result
     ati.info = ati.info OR DQTIF_CHARLEN_VALID
 endfunc
@@ -173,13 +173,13 @@ function DynStrCheckIndex(index : int, length : uint32):
 endfunc
 
 function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32) -> uint32:
-    @cstrings.CStrClear(adst)
+    CStrClear(adst)
     if srcptr == null  or  srclen == 0:
         return 0
     endif
 
     result = srclen
-    var maxlen : uint32 = @cstrings.CStrMaxLen(adst)
+    var maxlen : uint32 = CStrMaxLen(adst)
     if result > maxlen:
         result = maxlen
     endif
@@ -461,7 +461,7 @@ endfunc
 function ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     use .
     if acount < 1  or  length == 0:
-        @cstrings.CStrClear(adst)
+        CStrClear(adst)
         return
     endif
 
@@ -478,7 +478,7 @@ endfunc
 
 function ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
     if acount < 1  or  length == 0:
-        @cstrings.CStrClear(adst)
+        @.CStrClear(adst)
         return
     endif
 
@@ -808,7 +808,7 @@ endfunc
 
 function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
     if astr == null:
-        @cstrings.CStrClear(adst)
+        CStrClear(adst)
         return
     endif
     DynStrCopyToCStr(adst, astr.dataptr, astr.length)
@@ -854,7 +854,7 @@ endfunc
 
 function DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
     if astr == null:
-        @cstrings.CStrClear(adst)
+        CStrClear(adst)
         return
     endif
     astr.Pop(acount, adst)
@@ -897,7 +897,7 @@ endfunc
 
 function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
     if astr == null:
-        @cstrings.CStrClear(adst)
+        CStrClear(adst)
         return
     endif
     astr.PopFirst(acount, adst)

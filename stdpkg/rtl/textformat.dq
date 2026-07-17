@@ -37,7 +37,7 @@
 // implementation may ignore unsupported fields until the low-level numeric
 // conversion helpers are finalized.
 
-use rtl/rtlint, rtl/cstrings
+use rtl/rtlint
 
 // -----------------------------------------------------------------------------
 // Result flags

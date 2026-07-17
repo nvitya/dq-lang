@@ -13,31 +13,6 @@
  * brief:   RTL Helpers for the DQ cstring handling
  */
 
-use rtl/rtlint
-
-function CStrLen(desc : ref SDqTextInfo) -> uint
-function CStrMaxLen(desc : ref SDqTextInfo) -> uint
-function CStrStorageSize(desc : ref SDqTextInfo) -> uint
-
-function CStrClear(desc : ref SDqTextInfo)
-function CStrAssignChar(desc : ref SDqTextInfo, ch : char)
-function CStrAssignPtr(desc : ref SDqTextInfo, src : ^char)
-function CStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-function CStrAppendPtr(desc : ref SDqTextInfo, src : ^char)
-function CStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-function CStrAppendChar(desc : ref SDqTextInfo, ch : char)
-function CStrPrependPtr(desc : ref SDqTextInfo, src : ^char)
-function CStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-function CStrPrependChar(desc : ref SDqTextInfo, ch : char)
-function CStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char)
-function CStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo)
-function CStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char)
-function CStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1)
-
-implementation
-
-use rtl/mem
-
 function CStrRuntimeError(emsg : ^char):
     RuntimeError(emsg)
 endfunc

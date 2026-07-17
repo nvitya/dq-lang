@@ -15,8 +15,12 @@
 
 use rtl/rtlint
 
+#include "cstrings.dqh"
+#srcdep  "cstrings.dqi"
+
 #include "dynstr.dqh"
 #srcdep  "dynstr.dqi"
+
 
 function StrfIsValidWChar(wc : wchar) -> bool
 function IntToChar(value : int) -> char [[overload]]
@@ -40,9 +44,12 @@ function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar :
 implementation
 
 use rtl/exception, rtl/mem
-use rtl/cstrings
+//use rtl/cstrings
+
+#include "cstrings.dqi"
 
 #include "dynstr.dqi"
+
 
 function StrfIsHighSurrogate(code : uint32) -> bool:
     return code >= uint32(0xD800) and code <= uint32(0xDBFF)

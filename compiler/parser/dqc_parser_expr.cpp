@@ -82,7 +82,7 @@ static bool DecodeSingleUtf8Scalar(const string & bytes, int64_t & rvalue)
   return true;
 }
 
-static bool EnsureDynArrayRtlUse()
+bool EnsureDynArrayRtlUse()
 {
   if (g_namespaces.end() != g_namespaces.find("__dq_dynarray"))
   {
@@ -91,25 +91,34 @@ static bool EnsureDynArrayRtlUse()
   return g_compiler->AddImplicitUse("rtl/dynarrmgr", "__dq_dynarray", nullptr, true, MUM_NONE);
 }
 
-static bool EnsureCStringRtlUse()
+bool EnsureStrFuncRtlUse()
 {
-  if (g_namespaces.end() != g_namespaces.find("__dq_cstring"))
+  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
   {
     return true;
   }
-  return g_compiler->AddImplicitUse("rtl/cstrings", "__dq_cstring", nullptr, true, MUM_NONE);
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
 }
 
-static bool EnsureDynStringRtlUse()
+bool EnsureCStringRtlUse()
 {
-  if (g_namespaces.end() != g_namespaces.find("__dq_dynstr"))
+  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
   {
     return true;
   }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_dynstr", nullptr, true, MUM_NONE);
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
 }
 
-static bool EnsureTextFormatRtlUse()
+bool EnsureDynStringRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+}
+
+bool EnsureTextFormatRtlUse()
 {
   if (g_namespaces.end() != g_namespaces.find("__dq_textformat"))
   {

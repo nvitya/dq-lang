@@ -55,7 +55,7 @@ static LlValue * LlNativeInt(uint64_t value)
 
 static OValSymFunc * CStringFunc(const string & name)
 {
-  auto nsit = g_namespaces.find("__dq_cstring");
+  auto nsit = g_namespaces.find("__dq_strfunc");
   if (nsit == g_namespaces.end() || !nsit->second)
   {
     throw runtime_error("CString RTL module is not loaded");

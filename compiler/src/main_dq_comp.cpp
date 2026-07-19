@@ -37,7 +37,6 @@
 #include <sstream>
 
 #include "dqc.h"
-#include "target_config.h"
 #include "version.h"
 
 #define CALL_TESTCODE 0
@@ -167,7 +166,7 @@ int main(int argc, char ** argv)
   #endif
 
   string target_error;
-  if (!ConfigureTargetFromCommandLine(argc, argv, target_error))
+  if (!g_opt.target.ConfigureFromCommandLine(argc, argv, target_error))
   {
     print("{}\n", target_error);
     return 1;

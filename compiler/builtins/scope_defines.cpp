@@ -27,27 +27,27 @@ void OScopeDefines::Init()
 {
   OScPosition scpos;
 
-  if (g_target.IsWindows())
+  if (g_opt.target.IsWindows())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WINDOWS", true));
   }
 
-  if (g_target.IsLinux())
+  if (g_opt.target.IsLinux())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "LINUX", true));
   }
 
-  if (g_target.IsBare())
+  if (g_opt.target.IsBare())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "BARE", true));
   }
 
-  if (g_target.IsArm())
+  if (g_opt.target.IsArm())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM", true));
   }
 
-  if (4 == g_target.pointer_size)
+  if (4 == g_opt.target.pointer_size)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));
     DefineValSym(g_builtins->native_int->CreateConst(scpos, "PTRSIZE", 4));

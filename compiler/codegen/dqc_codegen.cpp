@@ -98,7 +98,7 @@ void ODqCompCodegen::EnsurePersonalityFn(LlFunction * func)
     return;
   }
 
-  const char * personality_name = (g_target.IsWindows()
+  const char * personality_name = (g_opt.target.IsWindows()
       ? "__gxx_personality_seh0" : "__gxx_personality_v0");
 
   llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction(personality_name,
@@ -437,7 +437,7 @@ void ODqCompCodegen::GenerateIr()
 
 void ODqCompCodegen::PrepareTarget()
 {
-  if (g_target.IsArm())
+  if (g_opt.target.IsArm())
   {
     LLVMInitializeARMTargetInfo();
     LLVMInitializeARMTarget();
@@ -452,7 +452,7 @@ void ODqCompCodegen::PrepareTarget()
     llvm::InitializeNativeTargetAsmPrinter();
   }
 
-  const string & triple = g_target.llvm_triple;
+  const string & triple = g_opt.target.llvm_triple;
 
 #if LLVM_VERSION_MAJOR >= 21
   llvm::Triple ll_triple(triple);
@@ -466,28 +466,28 @@ void ODqCompCodegen::PrepareTarget()
   if (!target) throw runtime_error(err);
 
   llvm::TargetOptions target_options;
-  if (ETargetFloatAbi::HARD == g_target.float_abi)
+  if (TARGET_FLOAT_ABI_HARD == g_opt.target.float_abi)
   {
     target_options.FloatABIType = llvm::FloatABI::Hard;
   }
-  else if (ETargetFloatAbi::SOFT == g_target.float_abi)
+  else if (TARGET_FLOAT_ABI_SOFT == g_opt.target.float_abi)
   {
     target_options.FloatABIType = llvm::FloatABI::Soft;
   }
-  if (g_target.IsArm())
+  if (g_opt.target.IsArm())
   {
     target_options.MCOptions.ABIName = "aapcs";
   }
 
-  optional<llvm::Reloc::Model> reloc_model = (g_target.IsBare()
+  optional<llvm::Reloc::Model> reloc_model = (g_opt.target.IsBare()
       ? llvm::Reloc::Static : llvm::Reloc::PIC_);
 
 #if LLVM_VERSION_MAJOR >= 21
-  ll_machine = target->createTargetMachine(ll_triple, g_target.llvm_cpu,
-      g_target.llvm_features, target_options, reloc_model);
+  ll_machine = target->createTargetMachine(ll_triple, g_opt.target.llvm_cpu,
+      g_opt.target.llvm_features, target_options, reloc_model);
 #else
-  ll_machine = target->createTargetMachine(triple, g_target.llvm_cpu,
-      g_target.llvm_features, target_options, reloc_model);
+  ll_machine = target->createTargetMachine(triple, g_opt.target.llvm_cpu,
+      g_opt.target.llvm_features, target_options, reloc_model);
 #endif
 
   ll_module->setDataLayout(ll_machine->createDataLayout());

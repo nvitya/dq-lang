@@ -162,8 +162,8 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
 
 string ODqCompiler::HostedRtlModuleName() const
 {
-  if (g_target.IsBare()) return "rtl/rtl_bare";
-  if (g_target.IsWindows()) return "rtl/rtl_windows";
+  if (g_opt.target.IsBare()) return "rtl/rtl_bare";
+  if (g_opt.target.IsWindows()) return "rtl/rtl_windows";
   return "rtl/rtl_linux";
 }
 
@@ -175,7 +175,7 @@ string ODqCompiler::DefaultLinkDriver() const
     return env_driver;
   }
 
-  if (g_target.IsWindows())
+  if (g_opt.target.IsWindows())
   {
     if (!g_opt.compiler_executable_dir.empty())
     {
@@ -291,7 +291,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
 {
   rargs.clear();
   rargs.push_back(DefaultLinkDriver());
-  rargs.push_back("--target=" + g_target.llvm_triple);
+  rargs.push_back("--target=" + g_opt.target.llvm_triple);
 
   rargs.push_back("-fuse-ld=lld");
   if (ELtoMode::FULL == g_opt.lto_mode)

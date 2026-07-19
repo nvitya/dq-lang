@@ -68,17 +68,17 @@ string ODqCompClargs::CompilerExecutableDir(const string & compiler_executable)
 
 string ODqCompClargs::DefaultTargetArch()
 {
-  return g_target.arch;
+  return g_opt.target.arch;
 }
 
 string ODqCompClargs::DefaultTargetRtl()
 {
-  return g_target.platform_name;
+  return g_opt.target.platform_name;
 }
 
 string ODqCompClargs::DefaultBuildTag()
 {
-  return g_target.name;
+  return g_opt.target.name;
 }
 
 void ODqCompClargs::AddDefaultPackagePaths()
@@ -293,7 +293,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
   g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.compiler_executable_dir = CompilerExecutableDir(g_opt.compiler_executable);
   g_opt.build_tag = DefaultBuildTag();
-  if (g_target.IsBare())
+  if (g_opt.target.IsBare())
   {
     g_opt.compile_only = true;
     g_opt.no_use_sys = true;

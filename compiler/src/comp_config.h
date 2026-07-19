@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "target_config.h"
+#include "comp_options.h"
 
 #define CONF_DEBUG_INFO  0
 
@@ -59,5 +59,5 @@
 #endif
 
 
-#define TARGET_BITS     (g_target.pointer_size * 8)
-#define TARGET_PTRSIZE  (g_target.pointer_size)
+#define TARGET_BITS     (g_opt.target.pointer_size * 8)
+#define TARGET_PTRSIZE  (g_opt.target.pointer_size)

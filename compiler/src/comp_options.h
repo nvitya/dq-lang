@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include <string>
 
@@ -32,6 +33,44 @@ enum class ELtoMode
   FULL
 };
 
+enum ETargetPlatform
+{
+  TARGET_PLATFORM_LINUX,
+  TARGET_PLATFORM_WIN,
+  TARGET_PLATFORM_BARE
+};
+
+enum ETargetFloatAbi
+{
+  TARGET_FLOAT_ABI_DEFAULT,
+  TARGET_FLOAT_ABI_SOFT,
+  TARGET_FLOAT_ABI_HARD
+};
+
+class OCompTarget
+{
+public:
+  string name;
+  string arch;
+  string platform_name;
+  string llvm_triple;
+  string llvm_cpu = "generic";
+  string llvm_features;
+  string llvm_backend = "native";
+  uint32_t pointer_size = 8;
+  ETargetPlatform platform = TARGET_PLATFORM_LINUX;
+  ETargetFloatAbi float_abi = TARGET_FLOAT_ABI_DEFAULT;
+
+  bool IsWindows() const { return TARGET_PLATFORM_WIN == platform; }
+  bool IsLinux() const { return TARGET_PLATFORM_LINUX == platform; }
+  bool IsBare() const { return TARGET_PLATFORM_BARE == platform; }
+  bool IsArm() const { return "ARM" == llvm_backend; }
+
+  void ConfigureHost();
+  bool Configure(const string & name, string & rerror);
+  bool ConfigureFromCommandLine(int argc, char ** argv, string & rerror);
+};
+
 class OCmdLineDefine
 {
 public:
@@ -45,6 +84,8 @@ public:
 class OCompOptions
 {
 public:
+  OCompTarget target;
+
   bool     print_version = false;  // --version
   int      verblevel = VERBLEVEL_NONE;
   bool     dbg_info = false;      // -g

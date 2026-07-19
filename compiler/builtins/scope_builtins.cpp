@@ -42,7 +42,7 @@ void OScopeBuiltins::Init()
   DefineType(type_uint32);
   DefineType(type_uint64);
 
-  if (4 == g_target.pointer_size)
+  if (4 == g_opt.target.pointer_size)
   {
     native_int  = type_int32;
     native_uint = type_uint32;

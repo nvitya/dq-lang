@@ -511,12 +511,12 @@ string OModuleIntf::LinkerSymbolNameForModule(char atype_prefix, const string & 
 
 string OModuleIntf::DqmIfTargetArch() const
 {
-  return g_target.arch;
+  return g_opt.target.arch;
 }
 
 string OModuleIntf::DqmIfTargetRtl() const
 {
-  return g_target.platform_name;
+  return g_opt.target.platform_name;
 }
 
 string OModuleIntf::DqmIfBuildOptions() const
@@ -1028,7 +1028,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   vector<string> args;
   args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
   args.push_back(interface_only ? "--ifgen" : "-c");
-  args.push_back("--target=" + g_target.name);
+  args.push_back("--target=" + g_opt.target.name);
   args.push_back(source_path.string());
   args.push_back("-o");
   args.push_back(artifact_path.string());

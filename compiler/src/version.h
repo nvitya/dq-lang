@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.37.0"
+#define DQ_COMPILER_VERSION  "0.37.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.37.1:
+  - Code refactoring: merging g_target into the g_opt.target
 v0.37.0:
   - arm_m7f-bare target object generation
 v0.36.2:

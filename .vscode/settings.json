@@ -2,15 +2,15 @@
   "dq.debugTarget": "examples/json/jsontest",
   "dq.debugCwd": "examples/json",
   "files.watcherExclude": {
-    "build-cross/**": true,
-    "sysroots/**": true
+    "**/build-cross/**": true,
+    "**/sysroots/**": true
   },
   "files.exclude": {
-    "build-cross/**": true,
-    "sysroots/**": true
+    "**/build-cross/**": true,
+    "**/sysroots/**": true
   },
   "search.exclude": {
-    "build-cross/**": true,
-    "sysroots/**": true
+    "**/build-cross/**": true,
+    "**/sysroots/**": true
   }
 }

@@ -1,0 +1,19 @@
+#compopts     "--target armm_m0"
+#linkscript   "armm_ramcode.ld"
+
+function _start()  [[export('_start')]]:
+    asm:
+        ldr    r0, =__stack
+        mov    sp, r0
+
+        mov    r0, #0
+        b      Main
+    endasm
+endfunc
+
+function *Main():
+    var i : int = 0
+    while true:
+        i += 1
+    endwhile
+endfunc

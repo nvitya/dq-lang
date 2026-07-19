@@ -162,11 +162,9 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
 
 string ODqCompiler::HostedRtlModuleName() const
 {
-#if defined(TARGET_WIN)
-  return "rtl/rtl_windows";
-#else
+  if (g_target.IsBare()) return "rtl/rtl_bare";
+  if (g_target.IsWindows()) return "rtl/rtl_windows";
   return "rtl/rtl_linux";
-#endif
 }
 
 string ODqCompiler::DefaultLinkDriver() const
@@ -177,90 +175,93 @@ string ODqCompiler::DefaultLinkDriver() const
     return env_driver;
   }
 
-#if defined(TARGET_WIN)
-  if (!g_opt.compiler_executable_dir.empty())
+  if (g_target.IsWindows())
   {
-    filesystem::path bin_dir = g_opt.compiler_executable_dir;
-    filesystem::path root_dir = (bin_dir / "..").lexically_normal();
-
-    vector<filesystem::path> candidates = {
-      root_dir / "toolchain" / "llvm-mingw" / "bin" / "clang++.exe",
-      root_dir / "toolchain" / "bin" / "clang++.exe",
-      root_dir / "llvm-mingw" / "bin" / "clang++.exe",
-      bin_dir / "clang++.exe"
-    };
-
-    error_code ec;
-    auto add_toolchain_dir_candidates = [&](const filesystem::path & parent_dir)
+    if (!g_opt.compiler_executable_dir.empty())
     {
-      ec.clear();
-      if (!filesystem::is_directory(parent_dir, ec) || ec)
-      {
-        return;
-      }
+      filesystem::path bin_dir = g_opt.compiler_executable_dir;
+      filesystem::path root_dir = (bin_dir / "..").lexically_normal();
 
-      ec.clear();
-      for (const filesystem::directory_entry & entry : filesystem::directory_iterator(parent_dir, ec))
+      vector<filesystem::path> candidates = {
+        root_dir / "toolchain" / "llvm-mingw" / "bin" / "clang++.exe",
+        root_dir / "toolchain" / "bin" / "clang++.exe",
+        root_dir / "llvm-mingw" / "bin" / "clang++.exe",
+        bin_dir / "clang++.exe"
+      };
+
+      error_code ec;
+      auto add_toolchain_dir_candidates = [&](const filesystem::path & parent_dir)
       {
-        if (ec)
-        {
-          break;
-        }
         ec.clear();
-        if (entry.is_directory(ec) && !ec)
+        if (!filesystem::is_directory(parent_dir, ec) || ec)
         {
-          candidates.push_back(entry.path() / "bin" / "clang++.exe");
+          return;
+        }
+
+        ec.clear();
+        for (const filesystem::directory_entry & entry : filesystem::directory_iterator(parent_dir, ec))
+        {
+          if (ec)
+          {
+            break;
+          }
+          ec.clear();
+          if (entry.is_directory(ec) && !ec)
+          {
+            candidates.push_back(entry.path() / "bin" / "clang++.exe");
+          }
+        }
+      };
+      add_toolchain_dir_candidates(root_dir);
+      add_toolchain_dir_candidates(root_dir / "toolchain");
+
+      for (const filesystem::path & path : candidates)
+      {
+        ec.clear();
+        if (filesystem::is_regular_file(path, ec) && !ec)
+        {
+          return path.lexically_normal().string();
         }
       }
-    };
-    add_toolchain_dir_candidates(root_dir);
-    add_toolchain_dir_candidates(root_dir / "toolchain");
-
-    for (const filesystem::path & path : candidates)
-    {
-      ec.clear();
-      if (filesystem::is_regular_file(path, ec) && !ec)
-      {
-        return path.lexically_normal().string();
-      }
     }
-  }
 
-  return "clang++.exe";
-#else
-  if (!g_opt.compiler_executable_dir.empty())
+    return "clang++.exe";
+  }
+  else
   {
-    filesystem::path bin_dir = g_opt.compiler_executable_dir;
-    filesystem::path root_dir = (bin_dir / "..").lexically_normal();
-
-    vector<filesystem::path> candidates = {
-      root_dir / "toolchain" / "bin" / "clang++",
-      root_dir / "toolchain" / "bin" / "clang++-21",
-      bin_dir / "clang++",
-      bin_dir / "clang++-21"
-    };
-
-    error_code ec;
-    for (const filesystem::path & path : candidates)
+    if (!g_opt.compiler_executable_dir.empty())
     {
-      ec.clear();
-      if (filesystem::is_regular_file(path, ec) && !ec)
+      filesystem::path bin_dir = g_opt.compiler_executable_dir;
+      filesystem::path root_dir = (bin_dir / "..").lexically_normal();
+
+      vector<filesystem::path> candidates = {
+        root_dir / "toolchain" / "bin" / "clang++",
+        root_dir / "toolchain" / "bin" / "clang++-21",
+        bin_dir / "clang++",
+        bin_dir / "clang++-21"
+      };
+
+      error_code ec;
+      for (const filesystem::path & path : candidates)
       {
-        return path.lexically_normal().string();
+        ec.clear();
+        if (filesystem::is_regular_file(path, ec) && !ec)
+        {
+          return path.lexically_normal().string();
+        }
       }
     }
-  }
 
-  #ifdef DQ_DEFAULT_LINK_DRIVER
+    #ifdef DQ_DEFAULT_LINK_DRIVER
     error_code ec;
     filesystem::path default_driver(DQ_DEFAULT_LINK_DRIVER);
     if (filesystem::is_regular_file(default_driver, ec) && !ec)
     {
       return default_driver.string();
     }
-  #endif
-  return "clang++";
-#endif
+    #endif
+    return "clang++";
+  }
 }
 
 bool ODqCompiler::LinkInputForArtifact(const string & artifact_filename, string & rinput_filename,
@@ -290,34 +291,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
 {
   rargs.clear();
   rargs.push_back(DefaultLinkDriver());
-
-#if defined(TARGET_WIN)
-  #if defined(TARGET_64BIT)
-    rargs.push_back("--target=x86_64-w64-windows-gnu");
-  #else
-    rargs.push_back("--target=i686-w64-windows-gnu");
-  #endif
-#elif defined(TARGET_LINUX)
-  #if defined(HOST_X86)
-    #if defined(TARGET_64BIT)
-      rargs.push_back("--target=x86_64-unknown-linux-gnu");
-    #else
-      rargs.push_back("--target=i386-unknown-linux-gnu");
-    #endif
-  #elif defined(HOST_ARM)
-    #if defined(TARGET_64BIT)
-      rargs.push_back("--target=aarch64-unknown-linux-gnu");
-    #else
-      rargs.push_back("--target=arm-unknown-linux-gnueabihf");
-    #endif
-  #elif defined(HOST_RISCV)
-    #if defined(TARGET_64BIT)
-      rargs.push_back("--target=riscv64-unknown-linux-gnu");
-    #else
-      rargs.push_back("--target=riscv32-unknown-linux-gnu");
-    #endif
-  #endif
-#endif
+  rargs.push_back("--target=" + g_target.llvm_triple);
 
   rargs.push_back("-fuse-ld=lld");
   if (ELtoMode::FULL == g_opt.lto_mode)

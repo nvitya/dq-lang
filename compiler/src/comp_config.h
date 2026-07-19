@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "target_config.h"
+
 #define CONF_DEBUG_INFO  0
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -57,26 +59,5 @@
 #endif
 
 
-#if !defined(TARGET_LINUX) && !defined(TARGET_WIN)
-  #ifdef HOST_WIN
-    #define TARGET_WIN
-  #else
-    #define TARGET_LINUX
-  #endif
-#endif
-
-#if !defined(TARGET_64BIT) && !defined(TARGET_32BIT)
-  #ifdef HOST_32BIT
-    #define TARGET_32BIT
-  #else
-    #define TARGET_64BIT
-  #endif
-#endif
-
-#ifdef TARGET_32BIT
-  #define TARGET_BITS     32
-  #define TARGET_PTRSIZE   4
-#else
-  #define TARGET_BITS     64
-  #define TARGET_PTRSIZE   8
-#endif
+#define TARGET_BITS     (g_target.pointer_size * 8)
+#define TARGET_PTRSIZE  (g_target.pointer_size)

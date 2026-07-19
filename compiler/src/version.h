@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.36.2"
+#define DQ_COMPILER_VERSION  "0.37.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.37.0:
+  - arm_m7f-bare target object generation
 v0.36.2:
   - rtl/cstring.dq merged into the rtl/strfunc.dq (as includes)
 v0.36.1:

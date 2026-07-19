@@ -25,32 +25,29 @@ void init_scope_defines()
 
 void OScopeDefines::Init()
 {
-  // using variables here to compile check the inactive branches too
-  bool target_win = false;
-  bool target_linux = false;
-  bool target_32bit = false;
-
-  #if defined(TARGET_WIN)
-    target_win = true;
-  #elif defined(TARGET_LINUX)
-    target_linux = true;
-  #else
-    #error "unsupported target platform"
-  #endif
-
   OScPosition scpos;
 
-  if (target_win)
+  if (g_target.IsWindows())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WINDOWS", true));
   }
 
-  if (target_linux)
+  if (g_target.IsLinux())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "LINUX", true));
   }
 
-  if (target_32bit)
+  if (g_target.IsBare())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "BARE", true));
+  }
+
+  if (g_target.IsArm())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM", true));
+  }
+
+  if (4 == g_target.pointer_size)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));
     DefineValSym(g_builtins->native_int->CreateConst(scpos, "PTRSIZE", 4));

@@ -34,6 +34,7 @@
 #include <print>
 #include <format>
 #include <filesystem>
+#include <optional>
 
 #include "dqc_codegen.h"
 #include "artifact_lock.h"
@@ -97,11 +98,8 @@ void ODqCompCodegen::EnsurePersonalityFn(LlFunction * func)
     return;
   }
 
-#if defined(TARGET_WIN)
-  constexpr const char * personality_name = "__gxx_personality_seh0";
-#else
-  constexpr const char * personality_name = "__gxx_personality_v0";
-#endif
+  const char * personality_name = (g_target.IsWindows()
+      ? "__gxx_personality_seh0" : "__gxx_personality_v0");
 
   llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction(personality_name,
       LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
@@ -439,23 +437,22 @@ void ODqCompCodegen::GenerateIr()
 
 void ODqCompCodegen::PrepareTarget()
 {
-  // Only initialize native target (not all targets)
-  llvm::InitializeNativeTarget();
-  llvm::InitializeNativeTargetAsmParser();
-  llvm::InitializeNativeTargetAsmPrinter();
-
-  string triple = llvm::sys::getDefaultTargetTriple();
-  if (!g_opt.build_tag.empty())
+  if (g_target.IsArm())
   {
-    if (g_opt.build_tag.find("-linux") != string::npos)
-    {
-      triple = "x86_64-unknown-linux-gnu";
-    }
-    else if (g_opt.build_tag.find("-win") != string::npos)
-    {
-      triple = "x86_64-w64-windows-gnu";
-    }
+    LLVMInitializeARMTargetInfo();
+    LLVMInitializeARMTarget();
+    LLVMInitializeARMTargetMC();
+    LLVMInitializeARMAsmParser();
+    LLVMInitializeARMAsmPrinter();
   }
+  else
+  {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmParser();
+    llvm::InitializeNativeTargetAsmPrinter();
+  }
+
+  const string & triple = g_target.llvm_triple;
 
 #if LLVM_VERSION_MAJOR >= 21
   llvm::Triple ll_triple(triple);
@@ -468,10 +465,29 @@ void ODqCompCodegen::PrepareTarget()
   auto * target = llvm::TargetRegistry::lookupTarget(triple, err);
   if (!target) throw runtime_error(err);
 
+  llvm::TargetOptions target_options;
+  if (ETargetFloatAbi::HARD == g_target.float_abi)
+  {
+    target_options.FloatABIType = llvm::FloatABI::Hard;
+  }
+  else if (ETargetFloatAbi::SOFT == g_target.float_abi)
+  {
+    target_options.FloatABIType = llvm::FloatABI::Soft;
+  }
+  if (g_target.IsArm())
+  {
+    target_options.MCOptions.ABIName = "aapcs";
+  }
+
+  optional<llvm::Reloc::Model> reloc_model = (g_target.IsBare()
+      ? llvm::Reloc::Static : llvm::Reloc::PIC_);
+
 #if LLVM_VERSION_MAJOR >= 21
-  ll_machine = target->createTargetMachine(ll_triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+  ll_machine = target->createTargetMachine(ll_triple, g_target.llvm_cpu,
+      g_target.llvm_features, target_options, reloc_model);
 #else
-  ll_machine = target->createTargetMachine(triple, "generic", "", llvm::TargetOptions(), llvm::Reloc::PIC_);
+  ll_machine = target->createTargetMachine(triple, g_target.llvm_cpu,
+      g_target.llvm_features, target_options, reloc_model);
 #endif
 
   ll_module->setDataLayout(ll_machine->createDataLayout());

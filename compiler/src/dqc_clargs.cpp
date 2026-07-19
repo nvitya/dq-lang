@@ -68,43 +68,17 @@ string ODqCompClargs::CompilerExecutableDir(const string & compiler_executable)
 
 string ODqCompClargs::DefaultTargetArch()
 {
-#if defined(HOST_X86)
-  #if defined(TARGET_64BIT)
-    return "x86_64";
-  #else
-    return "x86";
-  #endif
-#elif defined(HOST_ARM)
-  #if defined(TARGET_64BIT)
-    return "aarch64";
-  #else
-    return "arm";
-  #endif
-#elif defined(HOST_RISCV)
-  #if defined(TARGET_64BIT)
-    return "riscv64";
-  #else
-    return "riscv32";
-  #endif
-#else
-  return "unknown";
-#endif
+  return g_target.arch;
 }
 
 string ODqCompClargs::DefaultTargetRtl()
 {
-#if defined(TARGET_WIN)
-  return "win";
-#elif defined(TARGET_LINUX)
-  return "linux";
-#else
-  return "unknown";
-#endif
+  return g_target.platform_name;
 }
 
 string ODqCompClargs::DefaultBuildTag()
 {
-  return DefaultTargetArch() + "-" + DefaultTargetRtl();
+  return g_target.name;
 }
 
 void ODqCompClargs::AddDefaultPackagePaths()
@@ -319,6 +293,11 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
   g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.compiler_executable_dir = CompilerExecutableDir(g_opt.compiler_executable);
   g_opt.build_tag = DefaultBuildTag();
+  if (g_target.IsBare())
+  {
+    g_opt.compile_only = true;
+    g_opt.no_use_sys = true;
+  }
   AddDefaultPackagePaths();
 
   for (int i = 1; i < argc; i++)
@@ -328,6 +307,30 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     if ('-' == v[0])  // some compiler switch
     {
       if      ("--version" == v)  g_opt.print_version = true;
+      else if (v.starts_with("--target="))
+      {
+        if (v.substr(9).empty())
+        {
+          ++errorcnt;
+          print("Empty target name\n");
+          PrintUsage();
+          return;
+        }
+      }
+      else if ("--target" == v)
+      {
+        if (i + 1 < argc)
+        {
+          ++i; // already validated before target-dependent compiler initialization
+        }
+        else
+        {
+          ++errorcnt;
+          print("Missing target name after --target\n");
+          PrintUsage();
+          return;
+        }
+      }
       else if ("--ifgen"   == v)  g_opt.ifgen = true;
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
       else if ("--no-use-sys" == v)  g_opt.no_use_sys = true;
@@ -673,6 +676,7 @@ void ODqCompClargs::PrintUsage()
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if)\n");
   print("  --no-use-sys : do not add the implicit merged sys module\n");
+  print("  --target=<name> : select the compiler target\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");

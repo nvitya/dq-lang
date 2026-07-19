@@ -1,0 +1,11 @@
+
+// compile with:
+// dq-comp --target=arm_m7f-bare -O0 test1.dq
+
+var g_hbcnt : int = 0
+
+function _start()  [[cexport]]:
+    while true:
+        g_hbcnt += 1
+    endwhile
+endfunc

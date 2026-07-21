@@ -74,8 +74,9 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
   Unlock();
   error.clear();
 
-  filesystem::path lock_path = artifact_path;
+  lock_path = artifact_path;
   lock_path += ".lock";
+  locked_exclusive = (EArtifactLockMode::EXCLUSIVE == mode);
   if (!ArtifactEnsureParentDir(lock_path, error))
   {
     return false;
@@ -83,13 +84,25 @@ bool OArtifactLock::Lock(const filesystem::path & artifact_path, EArtifactLockMo
 
 #if defined(_WIN32)
   DWORD access = GENERIC_READ | GENERIC_WRITE;
-  HANDLE new_handle = CreateFileW(lock_path.wstring().c_str(), access,
-                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                  nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-  if (INVALID_HANDLE_VALUE == new_handle)
+  HANDLE new_handle = INVALID_HANDLE_VALUE;
+  int retries = 0;
+  while (true)
   {
-    error = format("Can not open artifact lock {}: {}", lock_path.string(), WindowsErrorMessage(GetLastError()));
-    return false;
+    new_handle = CreateFileW(lock_path.wstring().c_str(), access,
+                                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                    nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+    if (INVALID_HANDLE_VALUE == new_handle)
+    {
+      if (GetLastError() == ERROR_ACCESS_DENIED && retries < 200)
+      {
+        Sleep(10);
+        retries++;
+        continue;
+      }
+      error = format("Can not open artifact lock {}: {}", lock_path.string(), WindowsErrorMessage(GetLastError()));
+      return false;
+    }
+    break;
   }
 
   OVERLAPPED ov = {};
@@ -159,11 +172,28 @@ void OArtifactLock::Unlock()
 #else
   if (fd >= 0)
   {
+    if (!lock_path.empty())
+    {
+      if (locked_exclusive)
+      {
+        ArtifactRemoveNoError(lock_path);
+      }
+      else
+      {
+        if (flock(fd, LOCK_EX | LOCK_NB) == 0)
+        {
+          ArtifactRemoveNoError(lock_path);
+        }
+      }
+    }
+
     flock(fd, LOCK_UN);
     close(fd);
     fd = -1;
   }
 #endif
+  lock_path.clear();
+  locked_exclusive = false;
 }
 
 filesystem::path ArtifactTempPathFor(const filesystem::path & artifact_path)

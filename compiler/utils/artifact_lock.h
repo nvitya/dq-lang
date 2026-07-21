@@ -37,6 +37,8 @@ private:
 #else
   int fd = -1;
 #endif
+  filesystem::path lock_path;
+  bool locked_exclusive = false;
 
 public:
   OArtifactLock() = default;

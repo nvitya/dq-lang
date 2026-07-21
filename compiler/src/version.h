@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.37.1"
+#define DQ_COMPILER_VERSION  "0.37.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.37.2:
+  - Removing .lock files from the .dqbuild directory
 v0.37.1:
   - Code refactoring: merging g_target into the g_opt.target
 v0.37.0:

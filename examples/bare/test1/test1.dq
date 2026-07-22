@@ -1,18 +1,27 @@
 
 // compile with:
-// dq-comp --target=arm_m7f-bare -O0 test1.dq
+// dq-comp --target=arm_m7f-bare -O0 -g test1.dq
 
 var g_hbcnt : int = 0
 
-function MainFunc()  [[cexport]]:
-    while true:
-        g_hbcnt += 1
-    endwhile
-endfunc
-
-function _start()  [[cexport, asm]]:
+function soft_entry()  [[cexport, asm]]:
     ldr    r0, =__stack
     mov    sp, r0
 
-    b      MainFunc
+    mov    r0, #1
+    b      _start
+endfunc
+
+function cold_entry()  [[cexport, asm]]:
+    ldr    r0, =__stack
+    mov    sp, r0
+
+    mov    r0, #0
+    b      _start
+endfunc
+
+function _start(self_flash : int)  [[cexport]]:
+    while true:
+        g_hbcnt += 1
+    endwhile
 endfunc

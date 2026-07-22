@@ -3,7 +3,7 @@ set -e
 
 VIHAL=/workvc/vihal-dq
 
-../../../build/dq-comp --target=arm_m7f-bare -O0 test1.dq
+../../../build/dq-comp --target=arm_m7f-bare -O0 -g test1.dq
 
 clang++ --target=thumbv7em-none-eabihf -fuse-ld=lld -nostdlib \
   -Xlinker "--library-path=$VIHAL/core/ld" \

@@ -15,10 +15,7 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
+      "group": "build",
       "problemMatcher": []
     },
     {
@@ -37,6 +34,19 @@
       },
       "group": "build",
       "problemMatcher": []
+    },
+    {
+      "label": "dq: build bare test1",
+      "type": "shell",
+      "command": "./test1_comp.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/examples/bare/test1"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }

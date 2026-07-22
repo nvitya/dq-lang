@@ -61,6 +61,39 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "DQ: Debug bare test1 with J-Link",
+            "type": "cortex-debug",
+            "request": "launch",
+
+            "servertype": "external",
+            "gdbTarget": "localhost:2331",
+
+            "device": "Cortex-M7",
+            "interface": "swd",
+
+            "cwd": "${workspaceFolder}/examples/bare/test1",
+            "executable": "${workspaceFolder}/examples/bare/test1/test1.elf",
+
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "objdumpPath": "/usr/bin/llvm-objdump",
+
+            "preLaunchTask": "dq: build bare test1",
+
+            "overrideLaunchCommands": [
+                "monitor reset",
+                "-target-download",
+                "set $pc = soft_entry"
+            ],
+
+            "overrideResetCommands": [
+                "monitor reset",
+                "set $pc = soft_entry"
+            ],
+
+            "runToEntryPoint": "_start",
+            "showDevDebugOutput": "raw"
         }
     ]
 }

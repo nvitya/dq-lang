@@ -523,7 +523,7 @@ string OModuleIntf::DqmIfBuildOptions() const
 {
   string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1;module=" + name;
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
-  result += (ELtoMode::FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
+  result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -852,7 +852,7 @@ bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
     return false;
   }
 
-  if (ELtoMode::FULL == g_opt.lto_mode)
+  if (LTOMODE_FULL == g_opt.lto_mode)
   {
     filesystem::path bitcode_path = ArtifactBitcodeSidecarPathForObject(object_path);
     if (!filesystem::exists(bitcode_path, ec) || ec)
@@ -1052,7 +1052,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("--mod-name");
   args.push_back(module_path);
   args.push_back(format("-O{}", g_opt.optlevel));
-  if (ELtoMode::FULL == g_opt.lto_mode)
+  if (LTOMODE_FULL == g_opt.lto_mode)
   {
     args.push_back("--lto=full");
   }

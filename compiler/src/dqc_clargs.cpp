@@ -225,13 +225,13 @@ bool ODqCompClargs::ParseLtoMode(const string & text)
 {
   if (text.empty() || ("full" == text))
   {
-    g_opt.lto_mode = ELtoMode::FULL;
+    g_opt.lto_mode = LTOMODE_FULL;
     return true;
   }
 
   if ("off" == text)
   {
-    g_opt.lto_mode = ELtoMode::OFF;
+    g_opt.lto_mode = LTOMODE_OFF;
     return true;
   }
 
@@ -244,6 +244,21 @@ bool ODqCompClargs::ParseLtoMode(const string & text)
   {
     print("Unknown LTO mode \"{}\"; use --lto=full or --lto=off\n", text);
   }
+  PrintUsage();
+  return false;
+}
+
+bool ODqCompClargs::SelectLinkMode(ECompLinkMode mode, const string & option)
+{
+  if ((DQC_LINK_AUTO == g_opt.link_mode) || (mode == g_opt.link_mode))
+  {
+    g_opt.link_mode = mode;
+    return true;
+  }
+
+  string previous = (DQC_LINK_COMPILE_ONLY == g_opt.link_mode ? "-c" : "--link");
+  ++errorcnt;
+  print("Conflicting link mode options: {} and {}\n", previous, option);
   PrintUsage();
   return false;
 }
@@ -295,7 +310,6 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
   g_opt.build_tag = DefaultBuildTag();
   if (g_opt.target.IsBare())
   {
-    g_opt.compile_only = true;
     g_opt.no_use_sys = true;
   }
   AddDefaultPackagePaths();
@@ -335,6 +349,22 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
       else if ("--no-use-sys" == v)  g_opt.no_use_sys = true;
       else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
+      else if ("--link" == v)
+      {
+        if (!SelectLinkMode(DQC_LINK_FORCE, v)) return;
+      }
+      else if (v.starts_with("--linker-arg="))
+      {
+        string linker_arg = v.substr(13);
+        if (linker_arg.empty())
+        {
+          ++errorcnt;
+          print("Empty linker argument\n");
+          PrintUsage();
+          return;
+        }
+        g_opt.linker_args.push_back(linker_arg);
+      }
       else if ("--lto" == v)
       {
         if (!ParseLtoMode(""))
@@ -471,7 +501,10 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if (VerblevelSwitch(v))  { /* already handled in the function */ }
       else if ("-g"  == v)    g_opt.dbg_info = true;
       else if ("-ir" == v)    g_opt.ir_print = true;
-      else if ("-c"  == v)    g_opt.compile_only = true;
+      else if ("-c"  == v)
+      {
+        if (!SelectLinkMode(DQC_LINK_COMPILE_ONLY, v)) return;
+      }
       else if ((v.size() > 2) and ('D' == v[1]))
       {
         string defspec = v.substr(2);
@@ -647,9 +680,10 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     out_filename = has_dash_o ? explicit_output : default_interface_path.string();
     interface_out_filename = out_filename;
   }
-  else if (g_opt.compile_only)
+  else if ((DQC_LINK_COMPILE_ONLY == g_opt.link_mode)
+           || ((DQC_LINK_AUTO == g_opt.link_mode) && g_opt.target.IsBare()))
   {
-    // -c: compile only, no linking
+    // Explicit compile-only and automatic bare builds produce an object directly.
     out_filename = has_dash_o ? explicit_output : default_artifact_path.string();
     interface_out_filename = ArtifactInterfacePathForObject(out_filename).string();
   }
@@ -660,6 +694,10 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     interface_out_filename = default_interface_path.string();
     // link_output is where the final result should go
     link_output = has_dash_o ? explicit_output : base_name;
+    if (!has_dash_o && g_opt.target.IsBare())
+    {
+      link_output += ".elf";
+    }
   }
 
   return;
@@ -673,6 +711,8 @@ void ODqCompClargs::PrintUsage()
   print("Options:\n");
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
+  print("  --link    : force linking even without a hosted Main function\n");
+  print("  --linker-arg=<arg> : pass one argument directly to the linker (repeatable)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if)\n");
   print("  --no-use-sys : do not add the implicit merged sys module\n");

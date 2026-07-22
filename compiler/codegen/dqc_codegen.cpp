@@ -529,7 +529,7 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
     ll_optlevel = llvm::OptimizationLevel::O1;
   }
 
-  llvm::ModulePassManager MPM = (ELtoMode::FULL == g_opt.lto_mode)
+  llvm::ModulePassManager MPM = (LTOMODE_FULL == g_opt.lto_mode)
       ? PB.buildLTOPreLinkDefaultPipeline(ll_optlevel)
       : PB.buildPerModuleDefaultPipeline(ll_optlevel);
   MPM.run(*ll_module, MAM);

@@ -51,6 +51,7 @@ public:
   bool ParseDefineIntValue(const string & text, int64_t & rvalue);
   bool ParseDefineBoolValue(const string & text, bool & rvalue);
   bool ParseLtoMode(const string & text);
+  bool SelectLinkMode(ECompLinkMode mode, const string & option);
   bool VerblevelSwitch(const string & aswitch);
 
   void ParseCmdLineArgs(int argc, char ** argv);

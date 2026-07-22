@@ -47,6 +47,7 @@ properties use `property = value`; defines use `define NAME` or
 main       = 'blinkled.dq'
 output     = 'build/blinkled_nucleo_f746.elf'
 target     = 'arm_m7f-bare'
+link       = true
 optlevel   = 2
 debuginfo  = true
 
@@ -90,6 +91,12 @@ The project file is parsed before target-dependent built-in types are
 initialized. Its resolved target and build options are inherited by all child
 module compilations; imported modules do not parse the project file again.
 Explicit command-line options may override project settings.
+
+The `link` property maps to the same link-mode selection as the command line:
+`link = true` is equivalent to `--link`, while `-c` explicitly requests object
+generation. With neither selection, hosted targets link modules containing
+`*Main`, and bare targets produce an object. Each `linkoption` is equivalent to
+one repeatable `--linker-arg=<arg>` value.
 
 ## Compiler targets
 

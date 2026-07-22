@@ -267,7 +267,7 @@ string ODqCompiler::DefaultLinkDriver() const
 bool ODqCompiler::LinkInputForArtifact(const string & artifact_filename, string & rinput_filename,
                                        string & rerror) const
 {
-  if (ELtoMode::FULL != g_opt.lto_mode)
+  if (LTOMODE_FULL != g_opt.lto_mode)
   {
     rinput_filename = artifact_filename;
     return true;
@@ -294,7 +294,16 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   rargs.push_back("--target=" + g_opt.target.llvm_triple);
 
   rargs.push_back("-fuse-ld=lld");
-  if (ELtoMode::FULL == g_opt.lto_mode)
+  if (g_opt.target.IsBare())
+  {
+    rargs.push_back("-nostdlib");
+  }
+  for (const string & linker_arg : g_opt.linker_args)
+  {
+    rargs.push_back("-Xlinker");
+    rargs.push_back(linker_arg);
+  }
+  if (LTOMODE_FULL == g_opt.lto_mode)
   {
     rargs.push_back("-flto=full");
     rargs.push_back(format("-O{}", g_opt.optlevel));
@@ -518,6 +527,7 @@ void ODqCompiler::Run(int argc, char ** argv)
 
   OValSymFunc * main_func = g_module->app_main_func;
   bool has_app_main = (nullptr != main_func);
+  bool should_link = g_opt.ShouldLink(has_app_main);
 
   if (g_opt.ifgen)
   {
@@ -528,7 +538,7 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
-  if (!g_opt.compile_only && has_app_main)
+  if (should_link && has_app_main && !g_opt.target.IsBare())
   {
     g_module->EnsureAppInitFunc(main_func->scpos);
   }
@@ -540,7 +550,7 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
-  if (ELtoMode::FULL == g_opt.lto_mode)
+  if (LTOMODE_FULL == g_opt.lto_mode)
   {
     EmitBitcode(ArtifactBitcodeSidecarPathForObject(out_filename).string());
   }
@@ -569,40 +579,41 @@ void ODqCompiler::Run(int argc, char ** argv)
   }
 
   // linking decision
-  if (!g_opt.compile_only)
+  if (should_link)
   {
-    if (has_app_main)
+    if (has_app_main && !g_opt.target.IsBare())
     {
       if (!AddImplicitUse(HostedRtlModuleName(), "__dq_rtl", nullptr, true, MUM_NONE))
       {
         ++errorcnt;
         return;
       }
+    }
 
-      if (!LinkExecutable(out_filename, link_output))
+    if (!LinkExecutable(out_filename, link_output))
+    {
+      ++errorcnt;
+    }
+  }
+  else if ((DQC_LINK_AUTO == g_opt.link_mode) && !g_opt.target.IsBare() && has_dash_o)
+  {
+    // Automatic mode without an application entry point publishes the module
+    // object at the explicitly requested path.
+    if (out_filename != link_output)
+    {
+      filesystem::path target_interface = ArtifactInterfacePathForObject(link_output);
+      string move_error;
+      bool move_ok = ArtifactAtomicReplace(out_filename, link_output, move_error)
+          && ArtifactAtomicReplace(interface_out_filename, target_interface, move_error);
+      if (move_ok && (LTOMODE_FULL == g_opt.lto_mode))
+      {
+        move_ok = ArtifactAtomicReplace(ArtifactBitcodeSidecarPathForObject(out_filename),
+                                        ArtifactBitcodeSidecarPathForObject(link_output), move_error);
+      }
+      if (!move_ok)
       {
         ++errorcnt;
-      }
-    }
-    else if (has_dash_o)
-    {
-      // no main(), no linking: move the module object and its interface to the requested target
-      if (out_filename != link_output)
-      {
-        filesystem::path target_interface = ArtifactInterfacePathForObject(link_output);
-        string move_error;
-        bool move_ok = ArtifactAtomicReplace(out_filename, link_output, move_error)
-            && ArtifactAtomicReplace(interface_out_filename, target_interface, move_error);
-        if (move_ok && (ELtoMode::FULL == g_opt.lto_mode))
-        {
-          move_ok = ArtifactAtomicReplace(ArtifactBitcodeSidecarPathForObject(out_filename),
-                                          ArtifactBitcodeSidecarPathForObject(link_output), move_error);
-        }
-        if (!move_ok)
-        {
-          ++errorcnt;
-          print("Can not move compiled module artifacts: {}\n", move_error);
-        }
+        print("Can not move compiled module artifacts: {}\n", move_error);
       }
     }
   }

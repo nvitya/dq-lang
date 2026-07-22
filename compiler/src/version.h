@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.38.0"
+#define DQ_COMPILER_VERSION  "0.38.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.38.1:
+  - Automatic, compile-only (-c), and forced (--link) link modes
+  - --linker-arg support for forwarding exact linker arguments
+  - refactoring of ELtoMode to normal enum with LTOMODE_ prefix
 v0.38.0:
   - Support for [[asm]] functions, functions with Assembly body
 v0.37.2:

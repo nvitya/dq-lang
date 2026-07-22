@@ -27,10 +27,10 @@ enum EVerboseLevel
   VERBLEVEL_DEBUG  = 3,   // -vvv or -v3
 };
 
-enum class ELtoMode
+enum ELtoMode
 {
-  OFF,
-  FULL
+  LTOMODE_OFF,
+  LTOMODE_FULL
 };
 
 enum ETargetPlatform
@@ -45,6 +45,13 @@ enum ETargetFloatAbi
   TARGET_FLOAT_ABI_DEFAULT,
   TARGET_FLOAT_ABI_SOFT,
   TARGET_FLOAT_ABI_HARD
+};
+
+enum ECompLinkMode
+{
+  DQC_LINK_AUTO,
+  DQC_LINK_COMPILE_ONLY,
+  DQC_LINK_FORCE
 };
 
 class OCompTarget
@@ -90,9 +97,9 @@ public:
   int      verblevel = VERBLEVEL_NONE;
   bool     dbg_info = false;      // -g
   bool     ir_print = false;      // -ir
-  bool     compile_only = false;  // -c
+  ECompLinkMode link_mode = DQC_LINK_AUTO;
   int      optlevel = 1;          // -On
-  ELtoMode lto_mode = ELtoMode::OFF;
+  ELtoMode lto_mode = LTOMODE_OFF;
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump
@@ -111,11 +118,19 @@ public:
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;
+  vector<string>          linker_args;
 
   // include dirs
   // module dirs
 
   OCompOptions();
+
+  bool ShouldLink(bool has_app_main) const
+  {
+    if (DQC_LINK_FORCE == link_mode) return true;
+    if (DQC_LINK_COMPILE_ONLY == link_mode) return false;
+    return !target.IsBare() && has_app_main;
+  }
 };
 
 extern OCompOptions  g_opt;

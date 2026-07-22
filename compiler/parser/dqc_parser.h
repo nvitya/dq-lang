@@ -59,6 +59,7 @@ protected:
   void    ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer);
   bool    CheckCompoundBlockEnd(const string & block_closer);
   void    RecoverFailedFunctionDecl();
+  bool    ReadAsmFunctionBody(OValSymFunc * func);
   bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
   void    ParseQualifiedObjectFunction(const string & object_name);

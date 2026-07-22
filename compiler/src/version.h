@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.37.2"
+#define DQ_COMPILER_VERSION  "0.38.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.38.0:
+  - Support for [[asm]] functions, functions with Assembly body
 v0.37.2:
   - Removing .lock files from the .dqbuild directory
 v0.37.1:

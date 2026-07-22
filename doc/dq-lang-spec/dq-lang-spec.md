@@ -1272,10 +1272,16 @@ endfunc
 | `[[cdecl]]` | Use cdecl calling convention (default) |
 | `[[override]]` | Override base class method (see section 10.5) |
 | `[[section("name")]]` | Place function in specific memory section |
-| `[[naked]]` | Emit function without prologue/epilogue (embedded use) |
+| `[[asm]]` | Treat the complete `:` ... `endfunc` body as raw target assembly; implies naked and noinline code generation |
 | `[[noreturn]]` | Function never returns (for panic/abort functions) |
 
 **Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
+
+An `[[asm]]` function body is opaque to DQ: comments, directives, register names,
+parameters, and return values are interpreted only by the target assembler. The
+declared function signature still defines the calling ABI, which the assembly
+implementation must honor. Assembly functions require the colon-delimited form;
+brace-delimited bodies are not accepted because braces are valid assembly syntax.
 
 ### 8.6 Variadic Arguments (`varargs`)
 

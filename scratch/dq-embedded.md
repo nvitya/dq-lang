@@ -164,14 +164,12 @@ abi    = ilp32
 
 ## Embedded assembly support
 ```
-function _start()  [[export('_start')]]:
-    asm:
-        ldr    r0, =__stack
-        mov    sp, r0
+function _start()  [[export('_start'), asm]]:
+    ldr    r0, =__stack
+    mov    sp, r0
 
-        mov    r0, #0
-        b      Main
-    endasm
+    mov    r0, #0
+    b      Main
 endfunc
 
 function *Main():

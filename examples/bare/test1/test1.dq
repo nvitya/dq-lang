@@ -4,8 +4,15 @@
 
 var g_hbcnt : int = 0
 
-function _start()  [[cexport]]:
+function MainFunc()  [[cexport]]:
     while true:
         g_hbcnt += 1
     endwhile
+endfunc
+
+function _start()  [[cexport, asm]]:
+    ldr    r0, =__stack
+    mov    sp, r0
+
+    b      MainFunc
 endfunc

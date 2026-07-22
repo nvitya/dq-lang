@@ -128,6 +128,8 @@ DEF_DQ_ERR(DQERR_ATTR_ARG_INT,                     "AttrArgInt",             "At
 DEF_DQ_ERR(DQERR_ATTR_ARG_POSITIVE_INT,            "AttrArgPosInt",          "Attribute \"$1\" expects a positive integer argument");
 DEF_DQ_ERR(DQERR_ATTR_ARG_STRING,                  "AttrArgString",          "Attribute \"$1\" expects a string literal argument");
 DEF_DQ_ERR(DQERR_ATTR_CONFLICT,                    "AttrConflict",           "Conflicting attributes: $1");
+DEF_DQ_ERR(DQERR_ATTR_INVALID_TARGET,              "AttrInvalidTarget",      "Attribute \"$1\" is not valid for $2");
+DEF_DQ_ERR(DQERR_ASM_FUNC_BODY,                    "AsmFuncBody",            "Attribute [[asm]] requires a colon-delimited function body closed by \"endfunc\"");
 
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXPECTED,          "TypeSpecExpected",       "Type specifier \":\" is expected");
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER,         "TypeSpecExpected",       "Type specifier \":\" is expected after \"$1\"");

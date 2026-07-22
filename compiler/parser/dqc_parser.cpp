@@ -15,6 +15,7 @@
 #include <format>
 #include <filesystem>
 #include <ranges>
+#include <string_view>
 #include <utility>
 
 #include "dq_module.h"
@@ -105,6 +106,34 @@ void ODqCompParser::RecoverFailedFunctionDecl()
   }
 
   SkipToModuleStatementStart();
+}
+
+bool ODqCompParser::ReadAsmFunctionBody(OValSymFunc * func)
+{
+  if (!func || !scf->CheckSymbol(":"))
+  {
+    Error(DQERR_ASM_FUNC_BODY);
+    return false;
+  }
+
+  char * body_start = scf->curp;
+  func->has_body = true;
+  while (scf->curp < scf->bufend)
+  {
+    scf->ReadLine();
+    string_view line(scf->prevp, scf->prevlen);
+    size_t first = line.find_first_not_of(" \t");
+    size_t last = line.find_last_not_of(" \t");
+    if ((string_view::npos != first) && (line.substr(first, last - first + 1) == "endfunc"))
+    {
+      func->asm_body.assign(body_start, scf->prevp - body_start);
+      func->scpos_endfunc = OScPosition(scf->curfile, scf->prevp + first);
+      return true;
+    }
+  }
+
+  Error(DQERR_STMTBLK_CLOSE_MISSING, "endfunc", &func->scpos);
+  return false;
 }
 
 void ODqCompParser::ParseModule()
@@ -1057,6 +1086,16 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     delete vsfunc;
     return false;
   }
+  if (vsfunc->is_asm && (vsfunc->attr_is_inline || vsfunc->attr_is_always_inline))
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    string conflict = vsfunc->attr_is_inline ? "[[asm]] and [[inline]]" : "[[asm]] and [[always_inline]]";
+    Error(DQERR_ATTR_CONFLICT, conflict, &errpos);
+    RecoverFailedFunctionDecl();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
 
   if (vsfunc->owner_compound_type)
   {
@@ -1191,6 +1230,25 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   bool has_body = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
   bool is_declaration_only = !has_body;
 
+  if (vsfunc->is_asm)
+  {
+    if (vsfunc->is_external || vsfunc->attr_is_abstract)
+    {
+      string conflict = vsfunc->is_external ? "[[asm]] and [[external]]" : "[[asm]] and [[abstract]]";
+      Error(DQERR_ATTR_CONFLICT, conflict);
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+    if (!has_body || !scf->CheckSymbol(":", false))
+    {
+      Error(DQERR_ASM_FUNC_BODY);
+      RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return false;
+    }
+  }
+
   auto consume_declaration_semicolon = [&](const string & what)
   {
     if (has_body)
@@ -1206,6 +1264,13 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   auto read_function_body = [&](OValSymFunc * bodyfunc)
   {
     curvsfunc = bodyfunc;
+    if (bodyfunc->is_asm)
+    {
+      ReadAsmFunctionBody(bodyfunc);
+      curvsfunc = nullptr;
+      return;
+    }
+
     ReadStatementBlock(bodyfunc->body, "endfunc");
 
     bodyfunc->scpos_endfunc = scf->prevpos;

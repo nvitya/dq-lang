@@ -159,9 +159,11 @@ public:
   OValSym *          receiver_arg = nullptr;
   OScPosition        scpos_endfunc;
   OStmtBlock *       body;
+  string             asm_body;
 
   bool               has_body = false;
   bool               is_external = false;
+  bool               is_asm = false;
   EObjectSpecFuncKind object_specfunc_kind = OSF_NONE;
   ESpecialFuncKind   special_kind = SFK_NONE;
   string             external_linkage_name = "";

@@ -22,6 +22,7 @@
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "otype_array.h"
+#include <llvm/IR/InlineAsm.h>
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -73,6 +74,10 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   {
     is_external = true;
     external_linkage_name = attr->external_linkage_name;
+  }
+  if (ATGT_FUNCTION == atarget)
+  {
+    is_asm = attr->IsSet(ATTF_ASM);
   }
 }
 
@@ -710,7 +715,12 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   {
     ll_func->setSection(attr_section_name);
   }
-  if (attr_is_always_inline)
+  if (is_asm)
+  {
+    ll_func->addFnAttr(llvm::Attribute::Naked);
+    ll_func->addFnAttr(llvm::Attribute::NoInline);
+  }
+  else if (attr_is_always_inline)
   {
     ll_func->addFnAttr(llvm::Attribute::AlwaysInline);
   }
@@ -794,6 +804,7 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   attr_is_inline   = attr_is_inline || other->attr_is_inline;
   attr_is_always_inline = attr_is_always_inline || other->attr_is_always_inline;
   attr_is_noinline = attr_is_noinline || other->attr_is_noinline;
+  is_asm = is_asm || other->is_asm;
   special_kind = other->special_kind;
 }
 
@@ -860,6 +871,16 @@ void OValSymFunc::GenerateFuncBody()
   if (g_opt.dbg_info)
   {
     ll_builder.SetCurrentDebugLocation(llvm::DILocation::get(ll_ctx, scpos.line, scpos.col, di_func));
+  }
+
+  if (is_asm)
+  {
+    LlFuncType * asm_type = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), false);
+    llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(asm_type, asm_body, "", true);
+    ll_builder.CreateCall(asm_type, inline_asm, {});
+    ll_builder.CreateUnreachable();
+    verifyFunction(*ll_func);
+    return;
   }
 
   // Create implicit 'result' variable for functions with return type

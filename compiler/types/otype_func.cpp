@@ -78,6 +78,7 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   if (ATGT_FUNCTION == atarget)
   {
     is_asm = attr->IsSet(ATTF_ASM);
+    attr_is_weak = attr->IsSet(ATTF_WEAK);
   }
 }
 
@@ -675,11 +676,20 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   //print("Found function declaration \"{}\"\n", ptfunc->name);
 
   llvm::GlobalValue::LinkageTypes  linktype;
-  if (is_external) {
+  if (is_external) 
+  {
     linktype = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
-  } else if (attr_has_linkage_name) {
+  } 
+  else if (attr_is_weak) 
+  {
+    linktype = llvm::GlobalValue::LinkageTypes::WeakAnyLinkage;
+  } 
+  else if (attr_has_linkage_name) 
+  {
     linktype = llvm::GlobalValue::LinkageTypes::ExternalLinkage;
-  } else {
+  } 
+  else 
+  {
     linktype = (apublic ? llvm::GlobalValue::LinkageTypes::ExternalLinkage
                         : llvm::GlobalValue::LinkageTypes::InternalLinkage);
   }
@@ -805,6 +815,7 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   attr_is_always_inline = attr_is_always_inline || other->attr_is_always_inline;
   attr_is_noinline = attr_is_noinline || other->attr_is_noinline;
   is_asm = is_asm || other->is_asm;
+  attr_is_weak = attr_is_weak || other->attr_is_weak;
   special_kind = other->special_kind;
 }
 
@@ -1318,12 +1329,26 @@ LlConst * OValueFuncRef::CreateLlConst()
     return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
   }
 
-  if (!target_func || !target_func->ll_func)
+  if (target_func)
   {
-    throw logic_error("FuncRef constant function target is not prepared in LLVM");
+    if (!target_func->ll_func)
+    {
+      throw logic_error("FuncRef constant function target is not prepared in LLVM");
+    }
+    return target_func->ll_func;
   }
 
-  return target_func->ll_func;
+  if (target_symbol)
+  {
+    auto * ll_target = dyn_cast_or_null<LlConst>(target_symbol->ll_value);
+    if (!ll_target)
+    {
+      throw logic_error("FuncRef constant address target is not prepared in LLVM");
+    }
+    return ll_target;
+  }
+
+  throw logic_error("FuncRef constant has no target");
 }
 
 bool OValueFuncRef::WriteDqmIfValue(ODqmIfWriter & writer)
@@ -1339,6 +1364,7 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   is_null = true;
   target_func = nullptr;
+  target_symbol = nullptr;
 
   OExpr * plain = UnwrapConstExpr(expr);
   if (!plain)
@@ -1365,6 +1391,18 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
     }
   }
 
+  if (auto * addrof = dynamic_cast<OAddrOfExpr *>(plain))
+  {
+    auto * varref = dynamic_cast<OLValueVar *>(addrof->target);
+    if (varref && varref->pvalsym
+        && ((VSK_VARIABLE == varref->pvalsym->kind) || (VSK_CONST == varref->pvalsym->kind)))
+    {
+      target_symbol = varref->pvalsym;
+      is_null = false;
+      return true;
+    }
+  }
+
   if (emit_errors)
   {
     g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
@@ -1378,9 +1416,17 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
+  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
   if (TK_FUNCREF != tks)
   {
+    if (is_explicit_cast && !object_ref && (TK_POINTER == tks))
+    {
+      *rexpr = new OExprTypeConv(this, src);
+      FoldExprTreeAfterTypeRewrite(rexpr);
+      return true;
+    }
+
     OValSymFunc * matched_func = nullptr;
     EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(src, matched_func);
     if (OFRM_UNIQUE_MATCH == ovmatch)
@@ -1450,6 +1496,8 @@ int OTypeFuncRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_FUNCREF != tks)
   {
+    if ((aflags & EXPCF_EXPLICIT_CAST) && !object_ref && (TK_POINTER == tks)) return 1;
+
     OValSymFunc * matched_func = nullptr;
     EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(expr, matched_func);
     if (OFRM_UNIQUE_MATCH == ovmatch) return 1;

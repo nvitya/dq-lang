@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.38.1"
+#define DQ_COMPILER_VERSION  "0.38.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.38.2:
+  - [[weak]] attributes
+  - Casting pointers to simple function references
 v0.38.1:
   - Automatic, compile-only (-c), and forced (--link) link modes
   - --linker-arg support for forwarding exact linker arguments

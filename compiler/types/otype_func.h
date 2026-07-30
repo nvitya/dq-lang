@@ -164,6 +164,7 @@ public:
   bool               has_body = false;
   bool               is_external = false;
   bool               is_asm = false;
+  bool               attr_is_weak = false;
   EObjectSpecFuncKind object_specfunc_kind = OSF_NONE;
   ESpecialFuncKind   special_kind = SFK_NONE;
   string             external_linkage_name = "";
@@ -260,6 +261,7 @@ class OValueFuncRef : public OValue
 public:
   bool          is_null = true;
   OValSymFunc * target_func = nullptr;
+  OValSym *     target_symbol = nullptr;
 
   OValueFuncRef(OType * atype, bool ais_null = true)
   :

@@ -1077,6 +1077,24 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   }
 
   vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
+  if (vsfunc->attr_is_weak && vsfunc->is_external)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]", &errpos);
+    RecoverFailedFunctionDecl();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
+  if (vsfunc->attr_is_weak && vsfunc->owner_compound_type)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_INVALID_TARGET, "weak", "object/struct method", &errpos);
+    RecoverFailedFunctionDecl();
+    curvsfunc = nullptr;
+    delete vsfunc;
+    return false;
+  }
   if (vsfunc->attr_is_always_inline && vsfunc->attr_is_noinline)
   {
     OScPosition errpos(scf->curfile, scf->curp);
@@ -1333,6 +1351,16 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       OScPosition errpos(scf->curfile, scf->curp);
       Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
       RecoverFailedFunctionDecl();
+      cleanup_new_func();
+      return true;
+    }
+
+    if ((fwdfunc->attr_is_weak || vsfunc->attr_is_weak)
+        && (fwdfunc->is_external || vsfunc->is_external))
+    {
+      Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]");
+      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+      consume_declaration_semicolon("external function declaration");
       cleanup_new_func();
       return true;
     }

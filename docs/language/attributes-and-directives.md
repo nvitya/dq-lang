@@ -35,6 +35,7 @@ function Run() [[virtual, abstract]]
 | `[[align(n)]]` | Request alignment |
 | `[[volatile]]` | Mark low-level volatile storage/access where supported |
 | `[[cexport]]` | Export a symbol using C-compatible linkage where supported |
+| `[[weak]]` | Emit a module-level function definition with weak linker binding |
 | `[[nowarn]]` | Suppress warnings for the declaration where supported |
 
 Unsupported or inapplicable attributes may be ignored with a compiler warning.
@@ -59,6 +60,22 @@ External global variables are supported.
 ```dq
 var libc_stdout : pointer [[external('stdout')]]
 ```
+
+## Weak Attribute
+
+`[[weak]]` gives a module-level function definition weak linker binding, allowing
+a strong definition with the same linker name to replace it. It does not change
+the function's linker name. Combine it with `[[cexport]]` when C or assembly code
+must override the function by its unmangled DQ name.
+
+```dq
+function DefaultHandler() [[weak, cexport]]:
+    // fallback implementation
+endfunc
+```
+
+The attribute does not take arguments and is not valid on external declarations
+or object and struct methods.
 
 ## Preprocessor Symbols
 

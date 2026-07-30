@@ -39,6 +39,7 @@ enum EAttrFlag
   ATTF_ALWAYS_INLINE  = 0x00800000,
   ATTF_NOINLINE       = 0x01000000,
   ATTF_ASM            = 0x02000000,
+  ATTF_WEAK           = 0x04000000,
 };
 
 enum EAttrTarget

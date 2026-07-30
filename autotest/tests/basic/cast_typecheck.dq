@@ -2,6 +2,9 @@
 
 var bad_float_to_int : int = int(3.14);  //?error(CastFloatToInt)
 var bad_int_to_bool : bool = bool(1);  //?error(CastInvalid)
+type FPlain = function();
+type FObject = function() of object;
+
 function *Main() -> int:
     var addr16 : uint16 = 0x1234;
     var bad_ptr : ^byte = ^byte(addr16);  //?error(CastPtrWidth)
@@ -12,6 +15,10 @@ function *Main() -> int:
 
     var arr : [2]int = [1, 2];
     var parr : ^int = ^int(arr);  //?error(CastInvalid)
+
+    var raw_func : pointer = null;
+    var bad_func_implicit : FPlain = raw_func;  //?error(FuncSigType)
+    var bad_object_func : FObject = FObject(raw_func);  //?error(FuncSigType)
 
     return 0;
 endfunc

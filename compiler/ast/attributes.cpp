@@ -43,6 +43,10 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_INLINE,   atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_ALWAYS_INLINE, atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_NOINLINE, atarget, ATGT_FUNCTION);
+  if (IsSet(ATTF_WEAK) && (ATGT_FUNCTION != atarget))
+  {
+    g_compiler->Error(DQERR_ATTR_INVALID_TARGET, AttrName(ATTF_WEAK), AttrTargetName(atarget), &scpos);
+  }
   if (IsSet(ATTF_ASM) && (ATGT_FUNCTION != atarget))
   {
     g_compiler->Error(DQERR_ATTR_INVALID_TARGET, AttrName(ATTF_ASM), AttrTargetName(atarget), &scpos);
@@ -81,6 +85,7 @@ string AttrName(EAttrFlag aflag)
     case ATTF_ALWAYS_INLINE: return "always_inline";
     case ATTF_NOINLINE:      return "noinline";
     case ATTF_ASM:           return "asm";
+    case ATTF_WEAK:          return "weak";
 
     default:                 return "ATTR_"+to_string(aflag);
   }

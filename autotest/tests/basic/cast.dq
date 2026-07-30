@@ -10,6 +10,11 @@ object OCastBox:
     endfunc
 endobj
 
+type FRawAddress = function();
+
+var cast_address_anchor : int = 0;
+const cast_address_table : [1] FRawAddress = [FRawAddress(&cast_address_anchor)];
+
 function dq_cast_bool_to_int() -> int:
     var btrue : bool = true;
     var bfalse : bool = false;
@@ -51,6 +56,13 @@ function dq_cast_object_pointer_roundtrip() -> int:
     delete box;
 endfunc
 
+function dq_cast_pointer_to_func_ref() -> int:
+    var value : int = 0;
+    var raw : pointer = &value;
+    var callback : FRawAddress = FRawAddress(raw);
+    result = int((callback != null) and (cast_address_table[0] != null));
+endfunc
+
 function *Main() -> int:
     printf("Testing DQ explicit casts:\n");  //?ignore('Testing DQ explicit casts:')
 
@@ -60,5 +72,6 @@ function *Main() -> int:
     printf("dq_cast_multi_source_pointer() = %li\n", dq_cast_multi_source_pointer());  //?check('dq_cast_multi_source_pointer()', 1)
     printf("dq_cast_address_constant() = 0x%lX\n", dq_cast_address_constant());  //?check('dq_cast_address_constant()', 0x7F001000)
     printf("dq_cast_object_pointer_roundtrip() = %li\n", dq_cast_object_pointer_roundtrip());  //?check('dq_cast_object_pointer_roundtrip()', 77)
+    printf("dq_cast_pointer_to_func_ref() = %li\n", dq_cast_pointer_to_func_ref());  //?check('dq_cast_pointer_to_func_ref()', 1)
     return 0;
 endfunc

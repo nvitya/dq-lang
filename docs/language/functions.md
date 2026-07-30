@@ -159,6 +159,20 @@ var value : int = cb(10)
 
 Function references may be `null` and can be compared with `null`.
 
+A typed or opaque pointer can be explicitly cast to a plain function reference
+for low-level interoperability, such as constructing an interrupt vector table.
+The pointer does not carry signature information, so the declared function
+reference signature determines how an indirect call is generated.
+
+```dq
+type FHandler = function()
+var raw : pointer = GetHandlerAddress()
+var handler : FHandler = FHandler(raw)
+```
+
+This conversion is never implicit and is not available for object method
+reference types declared with `of object`.
+
 ```dq
 if cb != null:
     cb(1)

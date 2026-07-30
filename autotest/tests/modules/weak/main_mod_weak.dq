@@ -1,0 +1,11 @@
+use ./mod_weak as weakmod;
+use libc/stdio;
+
+function WeakOverride() -> int [[cexport]]:
+    return 2;
+endfunc
+
+function *Main() -> int:
+    printf("weak override = %d\n", @weakmod.WeakOverride());  //?check('weak override', 2)
+    return 0;
+endfunc

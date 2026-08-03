@@ -1,0 +1,49 @@
+/* This recursive Fibonacci calculation benchmark seems to be standard for testing compiled languages.
+   I think it is pretty irrelevant for the real-life benchmarks, as it is a very inefficient,
+   because the number of calls used internally grow exponentially with the n.
+   The run-time with argument 47 measured in seconds on a very fast CPUs too. 
+   This is pretty bad for adding 47 numbers together...
+
+   DQ achieves ideal code with the -O3 --lto, where the assembly does not contain any unnecessary
+   instructions.
+
+   GCC with -O2 or -O3 runs twice as fast, because the compiler does a lot of heuristics 
+   that I don't event try to understand. The generated assembly is 10x as long as at the DQ.
+
+*/
+
+use print
+
+// The slow, recursive version
+
+function FibonacciRecursive(n : uint64) -> uint64:
+    if n <= 1:
+        return n
+    endif
+    return FibonacciRecursive(n - 1) + FibonacciRecursive(n - 2)
+endfunc
+
+// The normal, non-recursive version
+// This is hard to benchmark, because it runs very fast
+
+function Fibonacci(n : uint64) -> uint64:
+    if n <= 1:
+        return n
+    endif
+    result = 1
+    var cn     : uint64 = 2
+    var prev   : uint64 = 0
+    var newres : uint64 = 0
+    while cn <= n:
+        newres = result + prev
+        prev = result
+        result = newres
+        cn += 1
+    endwhile
+endfunc
+
+function *Main() -> int:
+    PrintLn('{}', [FibonacciRecursive(47)])
+    //PrintLn('{}', [Fibonacci(47)])
+    return 0
+endfunc

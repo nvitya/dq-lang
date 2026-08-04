@@ -1,0 +1,167 @@
+# Inline-Asm support for dq
+
+For the embedded applications it is frequently required to support special CPU instructions, like SSAT, CLZ or RBIT.
+
+In order to reach the maximal performance these special instructions should be integrated into the normal program flow,
+including register optimization.
+
+## C definitions
+
+See the cmsis_gcc.h for C definitions of such instructions.
+
+__STATIC_FORCEINLINE uint32_t __RBIT(uint32_t value)
+{
+  uint32_t result;
+  __ASM ("rbit %0, %1" : "=r" (result) : "r" (value) );
+  return result;
+}
+
+## DQ Version
+
+In DQ a human-friendly register usage hinting is required.
+
+### Assembly dialect
+
+The assembly body uses the target architecture's established dialect. X64 uses Intel syntax, while ARM Cortex-M,
+AArch64, RV32I and RV64G use their native syntax. DQ does not reorder operands, add architecture-specific sigils or
+otherwise translate the assembly language.
+
+The assembly text is passed through unchanged except for `$symbolname` substitution. `$symbolname` references a
+named result or function argument, and the compiler translates it to one of LLVM's positional operands (`$0`, `$1`,
+...).
+
+### Operand hints
+
+An inline-assembly function may have an optional trailing `[[...]]` hint list immediately before `endfunc`. The hint
+list is DQ metadata and is not part of the assembly text. Its entries are asm hint clauses: they use function-call
+syntax, but they are evaluated at compile time and are not functions.
+
+The supported clauses are:
+
+- `immediate(...)` for arguments that must be compile-time immediate values
+- `memread(...)` for memory locations read by the assembly
+- `memwrite(...)` for memory locations written by the assembly
+- `memreadwrite(...)` for memory locations both read and written by the assembly
+- `clobber(...)` for additional target resources modified by the assembly
+
+The first four clauses take function argument names. `clobber(...)` takes target resources such as `flags`, `memory`
+or physical registers. Memory arguments must be typed pointers or references so that the compiler knows the accessed
+element type. An argument must not occur in conflicting clauses.
+
+Clause order and argument order do not affect semantics. Within each operand group, function arguments retain their
+declaration order. The compiler generates LLVM operands in this canonical order:
+
+1. The normal function result output, when present
+2. `memwrite` operands and the write halves of `memreadwrite` operands
+3. Normal register inputs, immediate inputs and `memread` inputs
+4. The implicit read halves of `memreadwrite` operands
+5. Clobbers
+
+For example, several operands may share a hint without making the function signature longer:
+
+```
+[[immediate(scale, shift), memread(source1, source2), memwrite(destination), clobber(flags)]]
+```
+
+
+## Examples
+
+```
+function __RBIT(arg1 : uint) -> uint  [[inline, asm]]:
+    rbit    $result, $arg1
+endfunc
+```
+
+```
+function __SSAT(value : int, bits : int) -> int  [[inline, asm]]:
+    ssat    $result, $bits, $value
+    [[immediate(bits), clobber(flags)]]
+endfunc
+```
+Lowering:
+```
+call i32 asm
+    "ssat $0, $2, $1",
+    "=r,r,i,~{cc}"
+    (i32 %value, i32 %bits)
+```
+
+```
+function Load32(address : ^uint32) -> uint32  [[inline, asm]]:
+    mov     $result, $address
+    [[memread(address)]]
+endfunc
+```
+Lowering:
+```
+%result = call i32 asm inteldialect
+    "mov $0, $1",
+    "=r,*m"
+    (ptr elementtype(i32) %address)
+```
+
+ARM version:
+```
+function Load32(address : ^uint32) -> uint32  [[inline, asm]]:
+    ldr     $result, $address
+    [[memread(address)]]
+endfunc
+```
+Lowering:
+```
+%result = call i32 asm
+    "ldr $0, $1",
+    "=r,*m"
+    (ptr elementtype(i32) %address)
+```
+
+
+```
+function Store32(address : ^uint32, value : uint32)  [[inline, asm]]:
+    mov   $address, $value
+    [[memwrite(address)]]
+endfunc
+```
+Lowering:
+```
+call void asm inteldialect
+    "mov $0, $1",
+    "=*m,r"
+    (ptr elementtype(i32) %address, i32 %value)
+```
+
+Memory read-write:
+```
+function AddTo(address : ^uint32, value : uint32)  [[inline, asm]]:
+    add $address, $value
+    [[memreadwrite(address), clobber(flags)]]
+endfunc
+```
+Lowering:
+```
+call void asm inteldialect
+    "add $0, $1",
+    "=*m,r,*m,~{flags}"
+    (
+        ptr elementtype(i32) %address,
+        i32 %value,
+        ptr elementtype(i32) %address
+    )
+```
+
+```
+function IncMem(address : ^uint32)  [[inline, asm]]:
+    inc    $address
+    [[memreadwrite(address), clobber(flags)]]
+endfunc
+```
+Lowering:
+```
+call void asm inteldialect
+    "inc $0",
+    "=*m,*m,~{flags}"
+    (
+        ptr elementtype(i32) %address,
+        ptr elementtype(i32) %address
+    )
+```

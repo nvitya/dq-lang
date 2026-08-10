@@ -202,7 +202,7 @@ Lowering:
 ```
 call void asm inteldialect
     "add $0, $1",
-    "=*m,r,*m,~{flags}"
+    "=*m,r,*m,~{cc}"
     (
         ptr elementtype(i32) %address,
         i32 %value,
@@ -220,7 +220,7 @@ Lowering:
 ```
 call void asm inteldialect
     "inc $0",
-    "=*m,*m,~{flags}"
+    "=*m,*m,~{cc}"
     (
         ptr elementtype(i32) %address,
         ptr elementtype(i32) %address

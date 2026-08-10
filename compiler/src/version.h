@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.38.2"
+#define DQ_COMPILER_VERSION  "0.39.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.39.0:
+  - Inline ASM with [[inline, asm]] attributes
 v0.38.2:
   - [[weak]] attributes
   - Casting pointers to simple function references

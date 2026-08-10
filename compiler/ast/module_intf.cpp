@@ -2080,6 +2080,11 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
 
   OTypeFunc * sigtype = new OTypeFunc("function_" + declname);
   ESpecialFuncKind special_kind = SFK_NONE;
+  bool is_inline_asm = false;
+  bool has_inline_asm_kinds = false;
+  string inline_asm_body;
+  vector<uint8_t> inline_asm_kinds;
+  vector<string> inline_asm_clobbers;
   while (true)
   {
     if ((amethod && (DQMIF_METHOD_END == reader.recid))
@@ -2133,6 +2138,34 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
         return reader.Fail(format("Invalid special function kind {}", kind));
       }
     }
+    else if (DQMIF_FUNC_INLINE_ASM_BODY == reader.recid)
+    {
+      if (is_inline_asm || !reader.ReadString(inline_asm_body) || !reader.NextRec())
+      {
+        delete sigtype;
+        return false;
+      }
+      is_inline_asm = true;
+    }
+    else if (DQMIF_FUNC_INLINE_ASM_KINDS == reader.recid)
+    {
+      if (has_inline_asm_kinds || !reader.ReadBlob(inline_asm_kinds) || !reader.NextRec())
+      {
+        delete sigtype;
+        return false;
+      }
+      has_inline_asm_kinds = true;
+    }
+    else if (DQMIF_FUNC_INLINE_ASM_CLOBBER == reader.recid)
+    {
+      string clobber;
+      if (!reader.ReadString(clobber) || !reader.NextRec())
+      {
+        delete sigtype;
+        return false;
+      }
+      inline_asm_clobbers.push_back(clobber);
+    }
     else
     {
       delete sigtype;
@@ -2151,6 +2184,32 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & (1u << 6));
   fn->external_linkage_name = attrs.external_linkage_name;
+  if (is_inline_asm)
+  {
+    if (!fn->attr_is_inline || amethod || !has_inline_asm_kinds
+        || inline_asm_kinds.size() != sigtype->params.size())
+    {
+      delete fn;
+      return reader.Fail(format("Invalid inline assembly metadata for function {}", declname));
+    }
+    fn->is_asm = true;
+    fn->asm_body = std::move(inline_asm_body);
+    fn->asm_clobbers = std::move(inline_asm_clobbers);
+    for (uint8_t kind : inline_asm_kinds)
+    {
+      if (kind > IAOP_MEM_READWRITE)
+      {
+        delete fn;
+        return reader.Fail(format("Invalid inline assembly operand kind {}", kind));
+      }
+      fn->asm_operand_kinds.push_back(EInlineAsmOperandKind(kind));
+    }
+  }
+  else if (has_inline_asm_kinds || !inline_asm_clobbers.empty())
+  {
+    delete fn;
+    return reader.Fail(format("Inline assembly metadata has no body for function {}", declname));
+  }
   if (!fn->is_external)
   {
     fn->has_body = false;

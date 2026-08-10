@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    11 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    11 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    12 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    12 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -185,6 +185,9 @@ TDqmIfRecId  DQMIF_FUNC_END               = 0x05FF;  // 0
 // opt.:     attributes (at the front only)
 TDqmIfRecId  DQMIF_FUNC_RETVAL            = 0x0501;  // 0, followed by type spec
 TDqmIfRecId  DQMIF_FUNC_SPECIAL_KIND      = 0x0502;  // uint8: ESpecialFuncKind
+TDqmIfRecId  DQMIF_FUNC_INLINE_ASM_BODY    = 0x0510;  // str: processed LLVM asm template
+TDqmIfRecId  DQMIF_FUNC_INLINE_ASM_KINDS   = 0x0511;  // blob: EInlineAsmOperandKind per parameter
+TDqmIfRecId  DQMIF_FUNC_INLINE_ASM_CLOBBER = 0x0512;  // str: ordered clobber, repeatable
 
 // 0600: function Parameters
 

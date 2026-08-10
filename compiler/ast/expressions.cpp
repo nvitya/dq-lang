@@ -2424,6 +2424,11 @@ LlValue * OCallExpr::Generate(OScope * scope)
 LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
                                const vector<LlValue *> & ll_args, bool force_direct)
 {
+  if (vsfunc->IsInlineAsm())
+  {
+    return vsfunc->GenerateInlineAsmCall(ll_args);
+  }
+
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
   if (!force_direct && vsfunc->attr_is_virtual && owner_object && !ll_args.empty())

@@ -10,19 +10,39 @@ function Store32(address : ^int32, value : int32) [[inline, asm]]:
     [[memwrite(address)]]
 endfunc
 
+// Declaration order differs from canonical LLVM operand order here.
+function StoreValueFirst(value : int32, address : ^int32) [[inline, asm]]:
+    mov     $address, $value
+    [[memwrite(address)]]
+endfunc
+
 function AddTo32(address : ^int32, value : int32) [[inline, asm]]:
     add     $address, $value
     [[memreadwrite(address), clobber(flags)]]
 endfunc
 
 function Inc32(address : ^int32) [[inline, asm]]:
-    inc     $address
+    inc     dword ptr $address
     [[memreadwrite(address), clobber(flags)]]
 endfunc
 
 function CompilerBarrier() [[inline, asm]]:
-    nop
     [[clobber(memory)]]
+endfunc
+
+function LoadRef32(address : refin int32) -> int32 [[inline, asm]]:
+    mov     $result, $address
+    [[memread(address)]]
+endfunc
+
+function StoreRef32(address : refout int32, value : int32) [[inline, asm]]:
+    mov     $address, $value
+    [[memwrite(address)]]
+endfunc
+
+function AddRef32(address : ref int32, value : int32) [[inline, asm]]:
+    add     $address, $value
+    [[memreadwrite(address), clobber(flags)]]
 endfunc
 
 function *Main() -> int:
@@ -35,6 +55,10 @@ function *Main() -> int:
     printf("inline_asm.memory.store = %li\n", int(destination));
     //?check("inline_asm.memory.store", -1234)
 
+    StoreValueFirst(31415, &destination);
+    printf("inline_asm.memory.canonical = %li\n", int(destination));
+    //?check("inline_asm.memory.canonical", 31415)
+
     var accumulator : int32 = 37;
     AddTo32(&accumulator, 4);
     Inc32(&accumulator);
@@ -44,6 +68,16 @@ function *Main() -> int:
     CompilerBarrier();
     printf("inline_asm.memory.barrier = ok\n");
     //?check("inline_asm.memory.barrier", ok)
+
+    var ref_source : int32 = 41;
+    printf("inline_asm.memory.refread = %li\n", int(LoadRef32(ref_source)));
+    //?check("inline_asm.memory.refread", 41)
+
+    var ref_destination : int32;
+    StoreRef32(ref_destination, 40);
+    AddRef32(ref_destination, 2);
+    printf("inline_asm.memory.refwrite = %li\n", int(ref_destination));
+    //?check("inline_asm.memory.refwrite", 42)
 
     return 0;
 endfunc

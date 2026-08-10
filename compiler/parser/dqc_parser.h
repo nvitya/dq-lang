@@ -60,6 +60,9 @@ protected:
   bool    CheckCompoundBlockEnd(const string & block_closer);
   void    RecoverFailedFunctionDecl();
   bool    ReadAsmFunctionBody(OValSymFunc * func);
+  bool    ReadInlineAsmFunctionBody(OValSymFunc * func);
+  bool    ParseInlineAsmHints(OValSymFunc * func);
+  bool    FinalizeInlineAsm(OValSymFunc * func);
   bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
   void    ParseQualifiedObjectFunction(const string & object_name);

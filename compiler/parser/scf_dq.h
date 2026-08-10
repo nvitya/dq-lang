@@ -77,8 +77,10 @@ public:
 public: // parsing functions
   inline bool Eof() { return ((curp >= bufend) and (returnpos.size() == 0)); }
   inline void SetDirectiveExprMode(bool avalue) { directive_expr_mode = avalue; }
+  inline void SetInlineAsmMode(bool avalue) { inline_asm_mode = avalue; }
 
   void SkipWhite(); // jumps to the first normal token
+  bool ReadInlineAsmText(string & rtext);
 
 protected:
 
@@ -86,6 +88,7 @@ protected:
   bool                 inactive_code = false;
   bool                 preproc_closer_brace = true;
   bool                 directive_expr_mode = false;
+  bool                 inline_asm_mode = false;
   bool                 implementation_section = false;
 
   void ParseDirective();
@@ -109,6 +112,7 @@ protected:
   bool CheckConditionals(const string aid);  // processes if, ifdef, else, elif, elifdef, endif. Returns true, when one of those found
 
   void SkipInactiveCode();
+  void SkipInactiveInlineAsmCode();
   bool ResolveSourcePath(const string & source_text, filesystem::path & rpath) const;
   bool AddSourceDependency(const filesystem::path & path);
   bool AddSourceDependency(const OScFile * file);

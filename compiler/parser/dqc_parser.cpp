@@ -116,22 +116,85 @@ bool ODqCompParser::ReadAsmFunctionBody(OValSymFunc * func)
     return false;
   }
 
-  char * body_start = scf->curp;
-  func->has_body = true;
-  while (scf->curp < scf->bufend)
+  bool inline_asm = func->IsInlineAsm();
+  auto * tfunc = dynamic_cast<OTypeFunc *>(func->ptype);
+  if (inline_asm && !tfunc)
   {
-    scf->ReadLine();
-    string_view line(scf->prevp, scf->prevlen);
-    size_t first = line.find_first_not_of(" \t");
-    size_t last = line.find_last_not_of(" \t");
-    if ((string_view::npos != first) && (line.substr(first, last - first + 1) == "endfunc"))
-    {
-      func->asm_body.assign(body_start, scf->prevp - body_start);
-      func->scpos_endfunc = OScPosition(scf->curfile, scf->prevp + first);
-      return true;
-    }
+    return false;
   }
 
+  func->has_body = true;
+  if (inline_asm)
+  {
+    func->asm_operand_kinds.assign(tfunc->params.size(), IAOP_REGISTER);
+  }
+  bool hints_seen = false;
+  scf->SetAsmMode(true);
+
+  auto recover_body = [&]()
+  {
+    while (!scf->Eof())
+    {
+      scf->SkipWhite();
+      OScPosition pos;
+      scf->SaveCurPos(pos);
+      string name;
+      if (scf->ReadIdentifier(name) && ("endfunc" == name))
+      {
+        func->scpos_endfunc = pos;
+        break;
+      }
+      scf->SetCurPos(pos);
+      string ignored;
+      if (!scf->ReadAsmText(ignored)) break;
+    }
+    scf->SetAsmMode(false);
+    return false;
+  };
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->Eof()) break;
+
+    OScPosition item_pos;
+    scf->SaveCurPos(item_pos);
+    string item_name;
+    if (scf->ReadIdentifier(item_name) && ("endfunc" == item_name))
+    {
+      func->scpos_endfunc = item_pos;
+      scf->SetAsmMode(false);
+      return !inline_asm || FinalizeInlineAsm(func);
+    }
+    scf->SetCurPos(item_pos);
+
+    if (inline_asm && scf->CheckSymbol("[[", false))
+    {
+      if (hints_seen)
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "only one trailing hint list is allowed");
+        return recover_body();
+      }
+      if (!ParseInlineAsmHints(func))
+      {
+        return recover_body();
+      }
+      hints_seen = true;
+      continue;
+    }
+
+    if (hints_seen)
+    {
+      Error(DQERR_ASM_HINT_SYNTAX, "assembly text is not allowed after the hint list");
+      return recover_body();
+    }
+
+    string text;
+    if (!scf->ReadAsmText(text)) break;
+    func->asm_body += text;
+  }
+
+  scf->SetAsmMode(false);
   Error(DQERR_STMTBLK_CLOSE_MISSING, "endfunc", &func->scpos);
   return false;
 }
@@ -371,92 +434,6 @@ bool ODqCompParser::FinalizeInlineAsm(OValSymFunc * func)
 
   func->asm_body = std::move(translated);
   return true;
-}
-
-bool ODqCompParser::ReadInlineAsmFunctionBody(OValSymFunc * func)
-{
-  if (!func || !scf->CheckSymbol(":"))
-  {
-    Error(DQERR_ASM_FUNC_BODY);
-    return false;
-  }
-
-  auto * tfunc = dynamic_cast<OTypeFunc *>(func->ptype);
-  if (!tfunc)
-  {
-    return false;
-  }
-  func->has_body = true;
-  func->asm_operand_kinds.assign(tfunc->params.size(), IAOP_REGISTER);
-  bool hints_seen = false;
-  scf->SetInlineAsmMode(true);
-
-  auto recover_body = [&]()
-  {
-    while (!scf->Eof())
-    {
-      scf->SkipWhite();
-      OScPosition pos;
-      scf->SaveCurPos(pos);
-      string name;
-      if (scf->ReadIdentifier(name) && ("endfunc" == name))
-      {
-        func->scpos_endfunc = pos;
-        break;
-      }
-      scf->SetCurPos(pos);
-      string ignored;
-      if (!scf->ReadInlineAsmText(ignored)) break;
-    }
-    scf->SetInlineAsmMode(false);
-    return false;
-  };
-
-  while (!scf->Eof())
-  {
-    scf->SkipWhite();
-    if (scf->Eof()) break;
-
-    OScPosition item_pos;
-    scf->SaveCurPos(item_pos);
-    string item_name;
-    if (scf->ReadIdentifier(item_name) && ("endfunc" == item_name))
-    {
-      func->scpos_endfunc = item_pos;
-      scf->SetInlineAsmMode(false);
-      return FinalizeInlineAsm(func);
-    }
-    scf->SetCurPos(item_pos);
-
-    if (scf->CheckSymbol("[[", false))
-    {
-      if (hints_seen)
-      {
-        Error(DQERR_ASM_HINT_SYNTAX, "only one trailing hint list is allowed");
-        return recover_body();
-      }
-      if (!ParseInlineAsmHints(func))
-      {
-        return recover_body();
-      }
-      hints_seen = true;
-      continue;
-    }
-
-    if (hints_seen)
-    {
-      Error(DQERR_ASM_HINT_SYNTAX, "assembly text is not allowed after the hint list");
-      return recover_body();
-    }
-
-    string text;
-    if (!scf->ReadInlineAsmText(text)) break;
-    func->asm_body += text;
-  }
-
-  scf->SetInlineAsmMode(false);
-  Error(DQERR_STMTBLK_CLOSE_MISSING, "endfunc", &func->scpos);
-  return false;
 }
 
 void ODqCompParser::ParseModule()
@@ -1630,12 +1607,6 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   auto read_function_body = [&](OValSymFunc * bodyfunc)
   {
     curvsfunc = bodyfunc;
-    if (bodyfunc->IsInlineAsm())
-    {
-      ReadInlineAsmFunctionBody(bodyfunc);
-      curvsfunc = nullptr;
-      return;
-    }
     if (bodyfunc->is_asm)
     {
       ReadAsmFunctionBody(bodyfunc);

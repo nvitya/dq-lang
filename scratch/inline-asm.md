@@ -32,11 +32,9 @@ it to one of LLVM's positional operands (`$0`, `$1`, ...).
 
 ### Source processing and comments
 
-An inline-assembly body is part of the normal DQ source stream; it is not an opaque byte range copied line-by-line as
-the current `[[asm]]` function body is. The parser must consume it through the normal `OScFeederDq` / `scf->SkipWhite()`
-processing before deciding whether the next active item is assembly text, an asm hint list or `endfunc`.
-The existing `[[asm]]` form keeps its current raw-body behavior for now; its later revision may reuse a similar source
-processing model and syntax.
+Every assembly body is part of the normal DQ source stream rather than an opaque byte range copied line-by-line. The
+parser consumes both `[[asm]]` and `[[inline, asm]]` bodies through the normal `OScFeederDq` / `scf->SkipWhite()`
+processing before deciding whether the next active item is assembly text, an inline-asm hint list or `endfunc`.
 
 Consequently:
 
@@ -45,7 +43,8 @@ Consequently:
   a comment has no effect.
 - DQ compiler directives retain their normal behavior. Conditional compilation selects the assembly text from the
   active `#if`, `#ifdef`, `#elif`, `#else`, etc. branch; directives and inactive source are not sent to LLVM.
-- The trailing asm hint list and `endfunc` are recognized only when active and outside comments.
+- A trailing asm hint list in `[[inline, asm]]`, and `endfunc` in either form, are recognized only when active and
+  outside comments. `[[...]]` has no special meaning in a non-inline `[[asm]]` body.
 - Source processing must retain a separator between tokens separated by skipped trivia and preserve instruction line
   boundaries. Removing a comment or an inactive branch must not concatenate tokens or adjacent instructions.
 - Once an active assembly instruction has started, its target-specific punctuation remains assembly text. Only DQ
@@ -53,7 +52,7 @@ Consequently:
 
 #### `#` handling
 
-Outside inline-assembly blocks, `#` is handled exactly as it is currently. Inside an inline-assembly block, its
+Outside assembly blocks, `#` is handled exactly as it is currently. Inside an assembly block, its
 meaning is determined by its position on the physical source line:
 
 - If `#` is the first non-whitespace, non-comment character, it starts a normal DQ compiler directive. Indented
@@ -73,8 +72,12 @@ This intentionally treats a line-leading immediate as a directive rather than as
         #1
 ```
 
-Inline assembly should initially keep each instruction on one physical source line. If line-leading immediates are
+Assembly should initially keep each instruction on one physical source line. If line-leading immediates are
 needed later, directive recognition can be refined to inspect the token following `#`.
+
+Applying this processing to ordinary `[[asm]]` bodies intentionally changes their former raw-body behavior. Target
+assembly must avoid DQ's `//` and `/* ... */` comment delimiters and line-leading `#` when those characters are meant
+to reach the assembler.
 
 For example:
 

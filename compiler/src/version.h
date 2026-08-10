@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.39.0"
+#define DQ_COMPILER_VERSION  "0.39.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.39.1:
+  - Common text parsing for inline and non-inline [[asm]] functions
 v0.39.0:
   - Inline ASM with [[inline, asm]] attributes
 v0.38.2:

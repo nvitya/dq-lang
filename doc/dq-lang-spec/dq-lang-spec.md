@@ -1272,16 +1272,26 @@ endfunc
 | `[[cdecl]]` | Use cdecl calling convention (default) |
 | `[[override]]` | Override base class method (see section 10.5) |
 | `[[section("name")]]` | Place function in specific memory section |
-| `[[asm]]` | Treat the complete `:` ... `endfunc` body as raw target assembly; implies naked and noinline code generation |
+| `[[asm]]` | Treat the `:` ... `endfunc` body as target assembly after DQ source processing; implies naked and noinline code generation |
 | `[[noreturn]]` | Function never returns (for panic/abort functions) |
 
 **Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
 
-An `[[asm]]` function body is opaque to DQ: comments, directives, register names,
-parameters, and return values are interpreted only by the target assembler. The
-declared function signature still defines the calling ABI, which the assembly
-implementation must honor. Assembly functions require the colon-delimited form;
-brace-delimited bodies are not accepted because braces are valid assembly syntax.
+An `[[asm]]` function body participates in normal DQ source processing. DQ line
+and block comments are removed, compiler directives are processed, and inactive
+conditional branches are omitted. `endfunc` closes the body only when it is active
+and outside a comment. A `#` as the first non-whitespace, non-comment character
+on a source line begins a DQ directive; after assembly text has started on that
+line, it remains target assembly syntax.
+All other assembly text, including register names, parameters, and return values,
+is interpreted only by the target assembler. The declared function signature still
+defines the calling ABI, which the assembly implementation must honor. Assembly
+functions require the colon-delimited form; brace-delimited bodies are not accepted
+because braces are valid assembly syntax.
+
+This source processing is an intentional compatibility change from the former raw
+`[[asm]]` body behavior. Assembly sources must not use DQ comment delimiters or a
+line-leading `#` when those characters are intended for the target assembler.
 
 ### 8.6 Variadic Arguments (`varargs`)
 

@@ -116,7 +116,7 @@ void OScFeederDq::Reset()
   main_source_path.clear();
   header_source_path.clear();
   implementation_section = false;
-  inline_asm_mode = false;
+  asm_mode = false;
 }
 
 OScFile * OScFeederDq::LoadFile(const filesystem::path & filename)
@@ -307,9 +307,9 @@ repeat_skip:  // jumped here when returning from an include
       }
       else
       {
-        if (inline_asm_mode)
+        if (asm_mode)
         {
-          SkipInactiveInlineAsmCode();
+          SkipInactiveAsmCode();
         }
         else
         {
@@ -335,9 +335,9 @@ repeat_skip:  // jumped here when returning from an include
   return;
 }
 
-void OScFeederDq::SkipInactiveInlineAsmCode()
+void OScFeederDq::SkipInactiveAsmCode()
 {
-  // Inline assembly recognizes directives only at the start of a physical
+  // Assembly recognizes directives only at the start of a physical
   // line. Skip the rest of this inactive assembly line without treating an
   // operand such as "#1" as a directive.
   char * p = curp;
@@ -394,7 +394,7 @@ void OScFeederDq::SkipInactiveInlineAsmCode()
   RecalcCurLineCol();
 }
 
-bool OScFeederDq::ReadInlineAsmText(string & rtext)
+bool OScFeederDq::ReadAsmText(string & rtext)
 {
   rtext.clear();
   if (curp >= bufend)

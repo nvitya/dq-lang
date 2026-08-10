@@ -1,0 +1,22 @@
+use libc/stdio;
+
+function ProcessedAsm() -> int [[asm]]:
+    // Assembly-looking text and endfunc in a line comment are inert.
+    #ifdef ASM_BRANCH_THAT_IS_NOT_DEFINED
+        endfunc
+        this is not valid assembly
+    #else
+        /* Assembly-looking text in this comment must disappear:
+           this is also not valid assembly
+           endfunc
+        */
+        movl /* separator */ $$42, %eax # target assembler comment
+        ret // trailing DQ comment
+    #endif
+endfunc
+
+function *Main() -> int:
+    printf("asm.source_processing = %li\n", ProcessedAsm());
+    //?check("asm.source_processing", 42)
+    return 0;
+endfunc

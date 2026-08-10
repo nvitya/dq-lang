@@ -1,0 +1,29 @@
+use libc/stdio;
+
+// Similar argument names ensure that $name substitution consumes a full name.
+function Add(value : int, value2 : int) -> int [[inline, asm]]:
+    lea     $result, [$value + $value2]
+endfunc
+
+function AddOneThroughRax(value : int) -> int [[inline, asm]]:
+    mov     rax, $value
+    lea     $result, [rax + 1]
+    [[clobber(rax)]]
+endfunc
+
+function ZeroExtend(value : uint8) -> uint32 [[inline, asm]]:
+    movzx   $result, $value
+endfunc
+
+function *Main() -> int:
+    printf("inline_asm.register.add = %li\n", Add(17, 25));
+    //?check("inline_asm.register.add", 42)
+
+    printf("inline_asm.register.clobber = %li\n", AddOneThroughRax(99));
+    //?check("inline_asm.register.clobber", 100)
+
+    printf("inline_asm.register.width = %li\n", int(ZeroExtend(0xFE)));
+    //?check("inline_asm.register.width", 254)
+
+    return 0;
+endfunc

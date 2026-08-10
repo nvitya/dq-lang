@@ -26,9 +26,70 @@ The assembly body uses the target architecture's established dialect. X64 uses I
 AArch64, RV32I and RV64G use their native syntax. DQ does not reorder operands, add architecture-specific sigils or
 otherwise translate the assembly language.
 
-The assembly text is passed through unchanged except for `$symbolname` substitution. `$symbolname` references a
-named result or function argument, and the compiler translates it to one of LLVM's positional operands (`$0`, `$1`,
-...).
+After the DQ source processing described below, the active assembly text is passed through unchanged except for
+`$symbolname` substitution. `$symbolname` references a named result or function argument, and the compiler translates
+it to one of LLVM's positional operands (`$0`, `$1`, ...).
+
+### Source processing and comments
+
+An inline-assembly body is part of the normal DQ source stream; it is not an opaque byte range copied line-by-line as
+the current `[[asm]]` function body is. The parser must consume it through the normal `OScFeederDq` / `scf->SkipWhite()`
+processing before deciding whether the next active item is assembly text, an asm hint list or `endfunc`.
+The existing `[[asm]]` form keeps its current raw-body behavior for now; its later revision may reuse a similar source
+processing model and syntax.
+
+Consequently:
+
+- DQ line comments (`// ...`) and block comments (`/* ... */`) are recognized and removed. A block comment behaves as
+  whitespace, including when it occurs between assembly tokens. Assembly-looking text, `[[...]]` or `endfunc` inside
+  a comment has no effect.
+- DQ compiler directives retain their normal behavior. Conditional compilation selects the assembly text from the
+  active `#if`, `#ifdef`, `#elif`, `#else`, etc. branch; directives and inactive source are not sent to LLVM.
+- The trailing asm hint list and `endfunc` are recognized only when active and outside comments.
+- Source processing must retain a separator between tokens separated by skipped trivia and preserve instruction line
+  boundaries. Removing a comment or an inactive branch must not concatenate tokens or adjacent instructions.
+- Once an active assembly instruction has started, its target-specific punctuation remains assembly text. Only DQ
+  comment syntax is removed; other target-specific assembly syntax is left for the target assembler.
+
+#### `#` handling
+
+Outside inline-assembly blocks, `#` is handled exactly as it is currently. Inside an inline-assembly block, its
+meaning is determined by its position on the physical source line:
+
+- If `#` is the first non-whitespace, non-comment character, it starts a normal DQ compiler directive. Indented
+  directives are therefore supported.
+- After any active assembly text has occurred on the line, `#` is part of the target assembly text. For example, the
+  `#1` in the ARM instruction `mov r0, #1` is passed to the assembler unchanged.
+
+The parser keeps a per-line `assembly_started` state and resets it at every physical newline. It uses normal DQ
+whitespace, comment and directive processing while `assembly_started` is false, but must not let `SkipWhite()` treat a
+later `#` as a directive after assembly text has started. The same line-start rule applies while skipping inactive
+conditional branches, so an ARM immediate in inactive assembly cannot be mistaken for a malformed DQ directive.
+
+This intentionally treats a line-leading immediate as a directive rather than assembly text:
+
+```
+    mov r0,
+        #1
+```
+
+Inline assembly should initially keep each instruction on one physical source line. If line-leading immediates are
+needed later, directive recognition can be refined to inspect the token following `#`.
+
+For example:
+
+```
+function MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
+    // The comment is not part of the assembly template.
+    #ifdef INSERT_DEBUG_NOP
+        nop
+    #endif
+    /* Assembly-looking text in this comment is ignored:
+       imul $result, $value, 99 */
+    imul    $result, $value, $factor  // DQ line comment
+    [[immediate(factor), clobber(flags)]]
+endfunc
+```
 
 ### Operand hints
 

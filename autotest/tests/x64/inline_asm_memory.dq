@@ -1,0 +1,49 @@
+use libc/stdio;
+
+function Load32(address : ^int32) -> int32 [[inline, asm]]:
+    mov     $result, $address
+    [[memread(address)]]
+endfunc
+
+function Store32(address : ^int32, value : int32) [[inline, asm]]:
+    mov     $address, $value
+    [[memwrite(address)]]
+endfunc
+
+function AddTo32(address : ^int32, value : int32) [[inline, asm]]:
+    add     $address, $value
+    [[memreadwrite(address), clobber(flags)]]
+endfunc
+
+function Inc32(address : ^int32) [[inline, asm]]:
+    inc     $address
+    [[memreadwrite(address), clobber(flags)]]
+endfunc
+
+function CompilerBarrier() [[inline, asm]]:
+    nop
+    [[clobber(memory)]]
+endfunc
+
+function *Main() -> int:
+    var source : int32 = 123456789;
+    printf("inline_asm.memory.load = %li\n", int(Load32(&source)));
+    //?check("inline_asm.memory.load", 123456789)
+
+    var destination : int32 = 0;
+    Store32(&destination, -1234);
+    printf("inline_asm.memory.store = %li\n", int(destination));
+    //?check("inline_asm.memory.store", -1234)
+
+    var accumulator : int32 = 37;
+    AddTo32(&accumulator, 4);
+    Inc32(&accumulator);
+    printf("inline_asm.memory.readwrite = %li\n", int(accumulator));
+    //?check("inline_asm.memory.readwrite", 42)
+
+    CompilerBarrier();
+    printf("inline_asm.memory.barrier = ok\n");
+    //?check("inline_asm.memory.barrier", ok)
+
+    return 0;
+endfunc

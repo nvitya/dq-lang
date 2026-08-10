@@ -18,7 +18,7 @@ nav:
   - Motivation: motivation.md
   - Getting Started: getting-started.md
   - Examples: examples/index.md
-  - Language:
+  - Language Guide:
       - Basics: language/basics.md
       - Types: language/types.md
       - Expressions: language/expressions.md
@@ -28,8 +28,26 @@ nav:
       - Modules: language/modules.md
       - Memory and Pointers: language/memory-and-pointers.md
       - Attributes and Directives: language/attributes-and-directives.md
-      - Inter-Operation: language/interop.md
-  - RTL:
+      - C Interoperability: language/interop.md
+      - Assembly Functions: language/asm-functions.md
+  - Language Reference:
+      - Reference Overview: reference/index.md
+      - Lexical Structure: reference/lexical-structure.md
+      - Declarations and Scope: reference/declarations-and-scope.md
+      - Types and Conversions: reference/types-and-conversions.md
+      - Enumerations: reference/enums.md
+      - Arrays and Slices: reference/arrays-and-slices.md
+      - Strings and Characters: reference/strings-and-characters.md
+      - anyvalue: reference/anyvalue.md
+      - Structures, Pointers, and Function References: reference/structures-pointers-and-function-references.md
+      - Expressions and Operators: reference/expressions-and-operators.md
+      - Statements and Control Flow: reference/statements-and-control-flow.md
+      - Functions: reference/functions.md
+      - Objects and Properties: reference/objects-and-properties.md
+      - Modules and Packages: reference/modules-and-packages.md
+      - Attributes, Directives, and Interoperability: reference/attributes-directives-and-interop.md
+      - Assembly Functions: reference/assembly-functions.md
+  - Runtime Library:
       - Overview: rtl/overview.md
       - anyvalue: rtl/anyvalue.md
       - String Methods: rtl/strings.md
@@ -42,4 +60,23 @@ nav:
   - Compiler:
       - Getting the DQ Compiler: compiler/getting-dq-comp.md
       - Using the DQ Compiler: compiler/using-dq-comp.md
-      - DQM Format: compiler/dqm-format.md
+      - DQ Project Files: compiler/project-file.md
+      - Cross-Compiling and Packaging: compiler/cross-compiling.md
+      - Module Artifacts: compiler/dqm-format.md
+  - Contributor Documentation:
+      - Overview: contributing/index.md
+      - Documentation Policy: contributing/documentation-policy.md
+      - Coverage Inventory: contributing/coverage-inventory.md
+      - Module and Interface Internals: contributing/module-and-interface-internals.md
+      - Exceptions and Backtraces: contributing/exceptions-and-backtraces.md
+      - Release and Cross-Build Notes: contributing/release-and-cross-builds.md
+      - Writing Current DQ: contributing/writing-current-dq.md
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn

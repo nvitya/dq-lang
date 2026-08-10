@@ -2,6 +2,9 @@
 
 Each `.dq` file is a module. Modules are imported with `use`.
 
+For canonical identity, package lookup, conflict, cycle, and initialization
+rules, see [Modules and Packages](../reference/modules-and-packages.md).
+
 ## Basic Use
 
 ```dq

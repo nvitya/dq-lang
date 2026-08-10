@@ -1,5 +1,8 @@
 # Functions Implemented in Assembly Language
 
+This is the practical assembly guide. The language contract is summarized in
+[Assembly Functions](../reference/assembly-functions.md).
+
 DQ supports two forms of assembly function:
 
 | Attributes | Meaning |

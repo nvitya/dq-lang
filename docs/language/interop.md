@@ -1,5 +1,8 @@
 # C Interoperability
 
+For the ABI responsibilities and exact declaration rules, see
+[Attributes, Directives, and Interoperability](../reference/attributes-directives-and-interop.md).
+
 DQ is designed to call C libraries directly. Interop code normally combines
 external declarations, C-compatible types, pointers, and `#linklib`.
 

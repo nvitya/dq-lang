@@ -2,6 +2,9 @@
 
 Functions are declared with `function`.
 
+For exact signature, parameter-mode, overload, and result rules, see the
+[Functions reference](../reference/functions.md).
+
 ```dq
 function Add(a : int, b : int) -> int:
     return a + b

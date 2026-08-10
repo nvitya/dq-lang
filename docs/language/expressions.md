@@ -1,5 +1,8 @@
 # Expressions
 
+This page shows common expression forms. For exact typing, evaluation, and
+precedence rules, see [Expressions and Operators](../reference/expressions-and-operators.md).
+
 DQ expressions are statically type-checked. Assignment is a statement, not an
 expression.
 

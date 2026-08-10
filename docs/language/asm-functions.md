@@ -20,14 +20,14 @@ returning to its caller.
 
 ```dq
 function Return42() -> int [[asm]]:
-    movl    $$42, %eax
+    mov     eax, 42
     ret
 endfunc
 ```
 
-This example uses the x86-64 AT&T syntax accepted for complete assembly
-functions. The doubled `$$` emits the literal `$` required by an AT&T immediate
-operand.
+This example uses x86-64 Intel syntax. DQ uses the unified
+`instruction destination, source` operand order and does not support AT&T
+syntax.
 
 The declared DQ signature determines the function's calling ABI. The assembly
 implementation is responsible for obeying that ABI: it must read arguments from

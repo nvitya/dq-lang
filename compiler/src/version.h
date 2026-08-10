@@ -15,6 +15,8 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.4:
+  - non-inline [[asm]] functions use intel syntax
 v0.40.3:
   - Project file parsing refactoring / 3
 v0.40.2:

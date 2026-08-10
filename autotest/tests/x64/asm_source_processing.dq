@@ -10,7 +10,7 @@ function ProcessedAsm() -> int [[asm]]:
            this is also not valid assembly
            endfunc
         */
-        movl /* separator */ $$42, %eax # target assembler comment
+        mov /* separator */ eax, 42 # target assembler comment
         ret // trailing DQ comment
     #endif
 endfunc

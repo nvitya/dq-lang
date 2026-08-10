@@ -1136,7 +1136,10 @@ void OValSymFunc::GenerateFuncBody()
   if (is_asm)
   {
     LlFuncType * asm_type = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), false);
-    llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(asm_type, asm_body, "", true);
+    llvm::InlineAsm::AsmDialect dialect = ("x86_64" == g_opt.target.arch
+        ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
+    llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(
+        asm_type, asm_body, "", true, false, dialect);
     ll_builder.CreateCall(asm_type, inline_asm, {});
     ll_builder.CreateUnreachable();
     verifyFunction(*ll_func);

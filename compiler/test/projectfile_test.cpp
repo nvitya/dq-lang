@@ -45,6 +45,13 @@ static bool HasDiagnostic(const ODqProjectFile & project, const string & id)
   return !project.diagnostics.empty() && (project.diagnostics.front().id == id);
 }
 
+static bool LoadProject(ODqProjectFile & project, const fs::path & filename,
+                        const vector<string> & command_line_package_paths = {})
+{
+  g_opt = OCompOptions();
+  return project.Load(filename, command_line_package_paths);
+}
+
 int main()
 {
   fs::path root = fs::temp_directory_path() / "dq-projectfile-test";
@@ -78,23 +85,24 @@ linkoption = '--gc-sections'
 )");
 
   ODqProjectFile project;
-  Expect(project.Load(root / "full.dqproj", {}, {}), "full project should parse");
-  Expect(project.main_file == fs::absolute(root / "main.dq").lexically_normal(), "main path");
-  Expect(project.output_file && (*project.output_file == fs::absolute(root / "out.elf").lexically_normal()),
+  Expect(LoadProject(project, root / "full.dqproj"), "full project should parse");
+  Expect(g_opt.project_main_filename == fs::absolute(root / "main.dq").lexically_normal().string(), "main path");
+  Expect(g_opt.project_has_output
+         && (g_opt.project_output_filename == fs::absolute(root / "out.elf").lexically_normal().string()),
          "output path");
-  Expect(project.target && (*project.target == "arm_m7f-bare"), "target value");
-  Expect(project.link && *project.link, "link value");
-  Expect(project.optlevel && (*project.optlevel == 2), "optimization value");
-  Expect(project.debuginfo && *project.debuginfo, "debug value");
-  Expect(project.defines.size() == 3, "included and local defines");
-  Expect(project.package_paths.size() == 1, "project package path");
-  Expect(project.link_objects.size() == 1, "link object");
-  Expect(project.linker_args.size() == 3, "ordered linker arguments");
-  if (project.linker_args.size() == 3)
+  Expect(g_opt.target.name == "arm_m7f-bare", "target value");
+  Expect(g_opt.link_mode == DQC_LINK_FORCE, "link value");
+  Expect(g_opt.optlevel == 2, "optimization value");
+  Expect(g_opt.dbg_info, "debug value");
+  Expect(g_opt.cmdline_defines.size() == 3, "included and local defines");
+  Expect(g_opt.package_paths.size() == 1, "project package path");
+  Expect(g_opt.link_objects.size() == 1, "link object");
+  Expect(g_opt.linker_args.size() == 3, "ordered linker arguments");
+  if (g_opt.linker_args.size() == 3)
   {
-    Expect(project.linker_args[0].starts_with("--library-path="), "linker path translation");
-    Expect(project.linker_args[1].starts_with("--script="), "linker script translation");
-    Expect(project.linker_args[2] == "--gc-sections", "raw linker option");
+    Expect(g_opt.linker_args[0].starts_with("--library-path="), "linker path translation");
+    Expect(g_opt.linker_args[1].starts_with("--script="), "linker script translation");
+    Expect(g_opt.linker_args[2] == "--gc-sections", "raw linker option");
   }
 
   fs::create_directories(root / "project-packages" / "selected");
@@ -104,66 +112,67 @@ packagepath = 'project-packages'
 var SELECTED = PackagePath('selected')
 main = '${SELECTED}/main.dq'
 )");
-  Expect(project.Load(root / "package-precedence.dqproj", {}, {(root / "cli-packages").string()}),
+  Expect(LoadProject(project, root / "package-precedence.dqproj", {(root / "cli-packages").string()}),
          "package precedence project should parse");
-  Expect(project.main_file == fs::absolute(root / "cli-packages" / "selected" / "main.dq").lexically_normal(),
+  Expect(g_opt.project_main_filename
+             == fs::absolute(root / "cli-packages" / "selected" / "main.dq").lexically_normal().string(),
          "command-line package root precedence");
 
   WriteFile(root / "duplicate.dqproj", "main='main.dq'\nmain='other.dq'\n");
-  Expect(!project.Load(root / "duplicate.dqproj", {}, {}) && HasDiagnostic(project, "ProjectDuplicate"),
+  Expect(!LoadProject(project, root / "duplicate.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate scalar diagnostic");
 
   WriteFile(root / "duplicate-variable.dqproj", "var ROOT='one'\nvar ROOT='two'\nmain='main.dq'\n");
-  Expect(!project.Load(root / "duplicate-variable.dqproj", {}, {}) && HasDiagnostic(project, "ProjectDuplicate"),
+  Expect(!LoadProject(project, root / "duplicate-variable.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate variable diagnostic");
 
   WriteFile(root / "duplicate-define.dqproj", "main='main.dq'\ndefine SAME\ndefine SAME=2\n");
-  Expect(!project.Load(root / "duplicate-define.dqproj", {}, {}) && HasDiagnostic(project, "ProjectDuplicate"),
+  Expect(!LoadProject(project, root / "duplicate-define.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate define diagnostic");
 
   WriteFile(root / "unknown-variable.dqproj", "main='${UNKNOWN}/main.dq'\n");
-  Expect(!project.Load(root / "unknown-variable.dqproj", {}, {}) && HasDiagnostic(project, "ProjectVariable"),
+  Expect(!LoadProject(project, root / "unknown-variable.dqproj") && HasDiagnostic(project, "ProjectVariable"),
          "unknown variable diagnostic");
 
   WriteFile(root / "missing-package.dqproj", "var SDK=PackagePath('missing')\nmain='main.dq'\n");
-  Expect(!project.Load(root / "missing-package.dqproj", {}, {}) && HasDiagnostic(project, "ProjectPackage"),
+  Expect(!LoadProject(project, root / "missing-package.dqproj") && HasDiagnostic(project, "ProjectPackage"),
          "missing package diagnostic");
 
   WriteFile(root / "missing-main.dqproj", "define FEATURE\n");
-  Expect(!project.Load(root / "missing-main.dqproj", {}, {}) && HasDiagnostic(project, "ProjectMain"),
+  Expect(!LoadProject(project, root / "missing-main.dqproj") && HasDiagnostic(project, "ProjectMain"),
          "missing main diagnostic");
 
   WriteFile(root / "unknown-property.dqproj", "main='main.dq'\nunknown='value'\n");
-  Expect(!project.Load(root / "unknown-property.dqproj", {}, {}) && HasDiagnostic(project, "ProjectProperty"),
+  Expect(!LoadProject(project, root / "unknown-property.dqproj") && HasDiagnostic(project, "ProjectProperty"),
          "unknown property diagnostic");
 
   WriteFile(root / "bad-optlevel.dqproj", "main='main.dq'\noptlevel=4\n");
-  Expect(!project.Load(root / "bad-optlevel.dqproj", {}, {}) && HasDiagnostic(project, "ProjectValue"),
+  Expect(!LoadProject(project, root / "bad-optlevel.dqproj") && HasDiagnostic(project, "ProjectValue"),
          "invalid optimization diagnostic");
 
   WriteFile(root / "trailing.dqproj", "main='main.dq' extra\n");
-  Expect(!project.Load(root / "trailing.dqproj", {}, {}) && HasDiagnostic(project, "ProjectTrailingToken"),
+  Expect(!LoadProject(project, root / "trailing.dqproj") && HasDiagnostic(project, "ProjectTrailingToken"),
          "trailing token diagnostic");
 
   WriteFile(root / "bad-string.dqproj", "main='unterminated\n");
-  Expect(!project.Load(root / "bad-string.dqproj", {}, {}) && HasDiagnostic(project, "ProjectString"),
+  Expect(!LoadProject(project, root / "bad-string.dqproj") && HasDiagnostic(project, "ProjectString"),
          "malformed string diagnostic");
 
   WriteFile(root / "bad-comment.dqproj", "/* unterminated\nmain='main.dq'\n");
-  Expect(!project.Load(root / "bad-comment.dqproj", {}, {}) && HasDiagnostic(project, "ProjectComment"),
+  Expect(!LoadProject(project, root / "bad-comment.dqproj") && HasDiagnostic(project, "ProjectComment"),
          "malformed comment diagnostic");
 
   WriteFile(root / "cycle-a.dqproj", "include 'cycle-b.dqproj'\nmain='main.dq'\n");
   WriteFile(root / "cycle-b.dqproj", "include 'cycle-a.dqproj'\n");
-  Expect(!project.Load(root / "cycle-a.dqproj", {}, {}) && HasDiagnostic(project, "ProjectIncludeCycle"),
+  Expect(!LoadProject(project, root / "cycle-a.dqproj") && HasDiagnostic(project, "ProjectIncludeCycle"),
          "include cycle diagnostic");
 
   WriteFile(root / "unsupported.dqproj", "main='main.dq'\ncpu='cortex-m7'\n");
-  Expect(!project.Load(root / "unsupported.dqproj", {}, {}) && HasDiagnostic(project, "ProjectUnsupported"),
+  Expect(!LoadProject(project, root / "unsupported.dqproj") && HasDiagnostic(project, "ProjectUnsupported"),
          "deferred target tuning diagnostic");
 
   WriteFile(root / "legacy.dqprj", "main='main.dq'\n");
-  Expect(!project.Load(root / "legacy.dqprj", {}, {}) && HasDiagnostic(project, "ProjectExtension"),
+  Expect(!LoadProject(project, root / "legacy.dqprj") && HasDiagnostic(project, "ProjectExtension"),
          "legacy extension diagnostic");
 
   fs::remove_all(root, ec);

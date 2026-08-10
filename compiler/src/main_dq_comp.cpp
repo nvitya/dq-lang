@@ -211,9 +211,9 @@ int main(int argc, char ** argv)
   #endif
 
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
+  g_opt.package_paths = g_opt.DefaultPackagePaths();
   SProjectStartupArgs startup_args = ScanProjectStartupArgs(argc, argv);
   ODqProjectFile project;
-  ODqProjectFile * project_ptr = nullptr;
   if (!startup_args.project_filename.empty())
   {
     if (filesystem::path(startup_args.project_filename).extension() != ".dqproj")
@@ -221,8 +221,7 @@ int main(int argc, char ** argv)
       print("DQ project files must use the .dqproj extension\n");
       return 1;
     }
-    if (!project.Load(startup_args.project_filename, g_opt.DefaultPackagePaths(),
-                      startup_args.command_line_package_paths))
+    if (!project.Load(startup_args.project_filename, startup_args.command_line_package_paths))
     {
       for (const SDqProjectDiagnostic & diagnostic : project.diagnostics)
       {
@@ -230,11 +229,10 @@ int main(int argc, char ** argv)
       }
       return 1;
     }
-    project_ptr = &project;
   }
 
   string target_error;
-  string project_target = (project.target ? *project.target : "");
+  string project_target = (startup_args.project_filename.empty() ? "" : g_opt.target.name);
   if (!g_opt.target.ConfigureFromCommandLine(argc, argv, target_error, project_target))
   {
     print("{}\n", target_error);
@@ -243,7 +241,7 @@ int main(int argc, char ** argv)
 
   dqc_init(); // creates the compiler object
 
-  g_compiler->Run(argc, argv, project_ptr);
+  g_compiler->Run(argc, argv);
   r = g_compiler->errorcnt;
 
   delete g_compiler;

@@ -20,8 +20,6 @@
 
 #include "dqc_codegen.h"
 
-class ODqProjectFile;
-
 using namespace std;
 
 class ODqCompClargs : public ODqCompCodegen
@@ -44,7 +42,6 @@ public:
 
   bool IsValidDefineName(const string & name);
   string DefaultBuildTag();
-  void AddDefaultPackagePaths();
   void ParseModuleUseStack(const string & text, vector<string> & rstack);
   bool ParseDefineIntValue(const string & text, int64_t & rvalue);
   bool ParseDefineBoolValue(const string & text, bool & rvalue);
@@ -52,7 +49,7 @@ public:
   bool SelectLinkMode(ECompLinkMode mode, const string & option);
   bool VerblevelSwitch(const string & aswitch);
 
-  void ParseCmdLineArgs(int argc, char ** argv, const ODqProjectFile * project = nullptr);
+  void ParseCmdLineArgs(int argc, char ** argv);
   void ParseCmdLineArgsVerblevel(int argc, char ** argv);
 
   void PrintUsage();

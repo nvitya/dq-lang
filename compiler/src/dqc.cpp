@@ -406,7 +406,7 @@ bool ODqCompiler::LinkExecutable(const string & object_filename, const string & 
   return true;
 }
 
-void ODqCompiler::Run(int argc, char ** argv, const ODqProjectFile * project)
+void ODqCompiler::Run(int argc, char ** argv)
 {
   errorcnt = 0;
   OScPosition scpos;
@@ -417,7 +417,7 @@ void ODqCompiler::Run(int argc, char ** argv, const ODqProjectFile * project)
     print("DQ Compiler - v{}\n", DQ_COMPILER_VERSION);
   }
 
-  ParseCmdLineArgs(argc, argv, project);
+  ParseCmdLineArgs(argc, argv);
   if (errorcnt)
   {
     return;

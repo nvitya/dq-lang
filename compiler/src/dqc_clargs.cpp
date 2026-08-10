@@ -22,7 +22,6 @@
 #include "comp_config.h"
 #include "module_path.h"
 #include "artifact_lock.h"
-#include "projectfile.h"
 
 using namespace std;
 
@@ -55,11 +54,6 @@ bool ODqCompClargs::IsValidDefineName(const string & name)
 string ODqCompClargs::DefaultBuildTag()
 {
   return g_opt.target.name;
-}
-
-void ODqCompClargs::AddDefaultPackagePaths()
-{
-  g_opt.package_paths = g_opt.DefaultPackagePaths();
 }
 
 void ODqCompClargs::ParseModuleUseStack(const string & text, vector<string> & rstack)
@@ -246,7 +240,7 @@ void ODqCompClargs::ParseCmdLineArgsVerblevel(int argc, char ** argv)
   }
 }
 
-void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv, const ODqProjectFile * project)
+void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 {
   string explicit_output;
   string build_tag_suffix;
@@ -261,27 +255,14 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv, const ODqProjectFil
   {
     g_opt.no_use_sys = true;
   }
-  AddDefaultPackagePaths();
-
-  if (project)
+  if (!g_opt.project_main_filename.empty())
   {
-    in_filename = project->main_file.string();
-    if (project->output_file)
+    in_filename = g_opt.project_main_filename;
+    if (g_opt.project_has_output)
     {
-      explicit_output = project->output_file->string();
+      explicit_output = g_opt.project_output_filename;
       has_output = true;
     }
-    if (project->link)
-    {
-      g_opt.link_mode = *project->link ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY;
-    }
-    if (project->optlevel) g_opt.optlevel = *project->optlevel;
-    if (project->debuginfo) g_opt.dbg_info = *project->debuginfo;
-    g_opt.cmdline_defines = project->defines;
-    g_opt.package_paths.insert(g_opt.package_paths.end(),
-                               project->package_paths.begin(), project->package_paths.end());
-    g_opt.link_objects = project->link_objects;
-    g_opt.linker_args = project->linker_args;
   }
 
   auto select_cli_link_mode = [&](ECompLinkMode mode, const string & option) -> bool
@@ -566,7 +547,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv, const ODqProjectFil
         return;
       }
     }
-    else if (project && !project_argument_seen && v.ends_with(".dqproj"))
+    else if (!g_opt.project_filename.empty() && !project_argument_seen && v.ends_with(".dqproj"))
     {
       project_argument_seen = true;
     }

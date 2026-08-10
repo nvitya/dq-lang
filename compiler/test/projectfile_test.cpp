@@ -40,12 +40,12 @@ static void WriteFile(const fs::path & filename, const string & text)
   output << text;
 }
 
-static bool HasDiagnostic(const ODqProjectFile & project, const string & id)
+static bool HasDiagnostic(const ODqProject & project, const string & id)
 {
   return !project.diagnostics.empty() && (project.diagnostics.front().id == id);
 }
 
-static bool LoadProject(ODqProjectFile & project, const fs::path & filename,
+static bool LoadProject(ODqProject & project, const fs::path & filename,
                         const vector<string> & command_line_package_paths = {})
 {
   g_opt = OCompOptions();
@@ -84,7 +84,7 @@ linkobject = '${SDK}/objects/startup.o'
 linkoption = '--gc-sections'
 )");
 
-  ODqProjectFile project;
+  ODqProject project;
   Expect(LoadProject(project, root / "full.dqproj"), "full project should parse");
   Expect(g_opt.project_main_filename == fs::absolute(root / "main.dq").lexically_normal().string(), "main path");
   Expect(g_opt.project_has_output

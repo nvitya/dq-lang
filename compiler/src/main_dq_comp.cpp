@@ -213,7 +213,7 @@ int main(int argc, char ** argv)
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.package_paths = g_opt.DefaultPackagePaths();
   SProjectStartupArgs startup_args = ScanProjectStartupArgs(argc, argv);
-  ODqProjectFile project;
+  ODqProject project;
   if (!startup_args.project_filename.empty())
   {
     if (filesystem::path(startup_args.project_filename).extension() != ".dqproj")

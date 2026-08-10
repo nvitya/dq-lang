@@ -323,6 +323,10 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
     }
     rargs.push_back(link_input);
   }
+  for (const string & object_path : g_opt.link_objects)
+  {
+    rargs.push_back(object_path);
+  }
   rargs.push_back("-o");
   rargs.push_back(executable_filename);
   for (const string & libname : g_opt.link_libraries)
@@ -402,7 +406,7 @@ bool ODqCompiler::LinkExecutable(const string & object_filename, const string & 
   return true;
 }
 
-void ODqCompiler::Run(int argc, char ** argv)
+void ODqCompiler::Run(int argc, char ** argv, const ODqProjectFile * project)
 {
   errorcnt = 0;
   OScPosition scpos;
@@ -413,7 +417,7 @@ void ODqCompiler::Run(int argc, char ** argv)
     print("DQ Compiler - v{}\n", DQ_COMPILER_VERSION);
   }
 
-  ParseCmdLineArgs(argc, argv);
+  ParseCmdLineArgs(argc, argv, project);
   if (errorcnt)
   {
     return;
@@ -595,7 +599,7 @@ void ODqCompiler::Run(int argc, char ** argv)
       ++errorcnt;
     }
   }
-  else if ((DQC_LINK_AUTO == g_opt.link_mode) && !g_opt.target.IsBare() && has_dash_o)
+  else if ((DQC_LINK_AUTO == g_opt.link_mode) && !g_opt.target.IsBare() && has_output)
   {
     // Automatic mode without an application entry point publishes the module
     // object at the explicitly requested path.

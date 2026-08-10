@@ -24,17 +24,17 @@ BOARD_MIN_F103, BOARD_NUCLEO_F746, BOARD_RPI_PICO, BOARD_DISCOVERY_F746
 
 ## Compiler Project Support
 
-The DQ compiler could support multi-target configurations through special files, like `.dqprj`.
+The DQ compiler supports multi-target configurations through `.dqproj` files.
 
-### .dqprj format
+### .dqproj format
 
-A `.dqprj` file describes one concrete build configuration. This keeps the DQ
+A `.dqproj` file describes one concrete build configuration. This keeps the DQ
 source independent from the target board, so the same main source can be built
 through several project files:
 
 ```
-dq-comp blinkled_nucleo_f746.dqprj
-dq-comp blinkled_rpi_pico.dqprj
+dq-comp blinkled_nucleo_f746.dqproj
+dq-comp blinkled_rpi_pico.dqproj
 ```
 
 The format uses DQ-like lexical rules and a small declarative grammar. Regular
@@ -86,7 +86,7 @@ Properties such as `main`, `output`, `target`, `optlevel`, `debuginfo`, and
 `linkscript` may occur only once. Repeatable entries include `define`,
 `packagepath`, `linkerpath`, `linkobject`, and `linkoption`. Unknown properties
 and duplicate single-value properties are errors. Relative paths are resolved
-from the directory containing the `.dqprj` file.
+from the directory containing the `.dqproj` file.
 
 The project file is parsed before target-dependent built-in types are
 initialized. Its resolved target and build options are inherited by all child
@@ -155,7 +155,7 @@ know its internal linker-script layout:
 
 ```
 var VIHAL = PackagePath('vihal')
-include '${VIHAL}/project/stm32f746xg.dqprj'
+include '${VIHAL}/project/stm32f746xg.dqproj'
 ```
 
 When a variable is used in a path-valued statement, a relative value is
@@ -163,7 +163,7 @@ resolved relative to the file containing the variable declaration and
 normalized. Consequently it keeps the same meaning when referenced from an
 included project fragment. Two built-in path variables are also available:
 
-* `${PROJECT_DIR}` is the directory of the top-level `.dqprj` file.
+* `${PROJECT_DIR}` is the directory of the top-level `.dqproj` file.
 * `${THIS_DIR}` is the directory of the file containing the current statement.
 
 Variable names are case-sensitive and must be declared before use. An unknown
@@ -175,9 +175,9 @@ deterministic and gives the syntax the same meaning on every host platform.
 Common configuration can be inserted with an `include` statement:
 
 ```
-// blinkled_nucleo_f746.dqprj
+// blinkled_nucleo_f746.dqproj
 var VIHAL = PackagePath('vihal')
-include '${VIHAL}/project/stm32f746xg.dqprj'
+include '${VIHAL}/project/stm32f746xg.dqproj'
 
 main       = 'blinkled.dq'
 output     = 'build/blinkled_nucleo_f746.elf'
@@ -187,7 +187,7 @@ define BOARD_NUCLEO_F746
 The included fragment can contain ordinary project statements:
 
 ```
-// vihal/project/stm32f746xg.dqprj
+// vihal/project/stm32f746xg.dqproj
 target     = 'arm_m7f-bare'
 link       = true
 linkerpath = '${THIS_DIR}/../ld'
@@ -201,7 +201,7 @@ include site: path variables declared earlier are visible to it, and its
 declarations remain visible afterwards. Duplicate single-value properties are
 still errors rather than implicit overrides. The parser reports include cycles
 with the include chain. Only the fully assembled top-level project is required
-to contain a complete build configuration, so included `.dqprj` fragments need
+to contain a complete build configuration, so included `.dqproj` fragments need
 not specify `main` or `output`.
 
 ## Compiler targets

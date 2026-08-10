@@ -75,7 +75,8 @@ public:
 
   void ConfigureHost();
   bool Configure(const string & name, string & rerror);
-  bool ConfigureFromCommandLine(int argc, char ** argv, string & rerror);
+  bool ConfigureFromCommandLine(int argc, char ** argv, string & rerror,
+                                const string & default_name = "");
 };
 
 class OCmdLineDefine
@@ -118,12 +119,16 @@ public:
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;
+  vector<string>          link_objects;
   vector<string>          linker_args;
 
   // include dirs
   // module dirs
 
   OCompOptions();
+
+  void InitializeCompilerExecutable(const string & argv0);
+  vector<string> DefaultPackagePaths() const;
 
   bool ShouldLink(bool has_app_main) const
   {

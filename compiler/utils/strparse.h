@@ -63,6 +63,7 @@ class TStrParseObj
     bool ReadHexNumbers();           // sets prevptr, prevlen
     bool ReadFloatNum();             // sets prevptr, prevlen
     bool ReadQuotedString();
+    bool ReadQuotedString(string & rvalue); // DQ-style quoted string with escapes
     bool CheckSymbol(const char * checkstring);
     bool SearchPattern(const char * checkchars);  // sets prevptr, prevlen
 

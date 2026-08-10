@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.39.2"
+#define DQ_COMPILER_VERSION  "0.40.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.0:
+  - Project file support (.dqproj)
 v0.39.2:
   - Inline ASM support for ARM M/A, ARM64, RV32I and RV64G architectures
 v0.39.1:

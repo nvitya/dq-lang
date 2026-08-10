@@ -1,0 +1,6 @@
+//?notest
+
+function *Main() -> int:
+    return 0;
+endfunc
+

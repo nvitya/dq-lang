@@ -47,7 +47,7 @@ void TStrParseObj::Init(char * astr, int buflen)
   {
     buflen = strlen(astr);
   }
-  bufend = bufstart + buflen;
+  bufend = (bufstart ? bufstart + buflen : nullptr);
 
   readptr = bufstart;
   prevptr = bufstart;
@@ -156,13 +156,18 @@ bool TStrParseObj::SearchPattern(const char * checkchars)  // reads until the ch
   char * ccptr;
   unsigned ccslen = strlen(checkchars);
 
+  if (!readptr || (ccslen > unsigned(bufend - readptr)))
+  {
+    return false;
+  }
+
   prevptr = readptr;
   cps = readptr;
   ccstart = (char *)checkchars;
   ccend = ccstart + ccslen;
 
   // check start pos cycle
-  while (cps < bufend - ccslen)
+  while (cps <= bufend - ccslen)
   {
     // check chars cycle
     cp = cps;
@@ -424,6 +429,66 @@ bool TStrParseObj::ReadQuotedString()
   }
 
   return true;
+}
+
+bool TStrParseObj::ReadQuotedString(string & rvalue)
+{
+  rvalue.clear();
+  if ((readptr >= bufend) || ((*readptr != '"') && (*readptr != '\'')))
+  {
+    return false;
+  }
+
+  char * savedptr = readptr;
+  char qchar = *readptr++;
+  prevptr = readptr;
+
+  while (readptr < bufend)
+  {
+    char c = *readptr++;
+    if (c == qchar)
+    {
+      prevlen = (readptr - 1) - prevptr;
+      return true;
+    }
+    if ((c == '\n') || (c == '\r'))
+    {
+      readptr = savedptr;
+      prevptr = savedptr;
+      prevlen = 0;
+      rvalue.clear();
+      return false;
+    }
+    if (c != '\\')
+    {
+      rvalue.push_back(c);
+      continue;
+    }
+
+    if (readptr >= bufend)
+    {
+      break;
+    }
+    c = *readptr++;
+    if      (c == 'n')  rvalue.push_back('\n');
+    else if (c == 'r')  rvalue.push_back('\r');
+    else if (c == 't')  rvalue.push_back('\t');
+    else if (c == '\\') rvalue.push_back('\\');
+    else if (c == '"')  rvalue.push_back('"');
+    else if (c == '\'') rvalue.push_back('\'');
+    else
+    {
+      // Keep unknown escapes compatible with the DQ source parser.
+      rvalue.push_back('\\');
+      rvalue.push_back(c);
+    }
+  }
+
+  readptr = savedptr;
+  prevptr = savedptr;
+  prevlen = 0;
+  rvalue.clear();
+  return false;
 }
 
 string TStrParseObj::PrevStr()

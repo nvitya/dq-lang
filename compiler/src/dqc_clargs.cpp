@@ -13,15 +13,16 @@
 
 #include <print>
 #include <string>
+#include <algorithm>
 #include <limits>
+#include <set>
 #include <filesystem>
-#include <cstdlib>
 #include "dqc_clargs.h"
 #include "comp_options.h"
 #include "comp_config.h"
-#include "executable_path.h"
 #include "module_path.h"
 #include "artifact_lock.h"
+#include "projectfile.h"
 
 using namespace std;
 
@@ -51,31 +52,6 @@ bool ODqCompClargs::IsValidDefineName(const string & name)
   return true;
 }
 
-string ODqCompClargs::ResolveCompilerExecutable(const string & argv0)
-{
-  return CurrentExecutablePath(argv0, "dq-comp");
-}
-
-string ODqCompClargs::CompilerExecutableDir(const string & compiler_executable)
-{
-  filesystem::path p(compiler_executable);
-  if (!p.has_parent_path())
-  {
-    return "";
-  }
-  return p.parent_path().lexically_normal().string();
-}
-
-string ODqCompClargs::DefaultTargetArch()
-{
-  return g_opt.target.arch;
-}
-
-string ODqCompClargs::DefaultTargetRtl()
-{
-  return g_opt.target.platform_name;
-}
-
 string ODqCompClargs::DefaultBuildTag()
 {
   return g_opt.target.name;
@@ -83,38 +59,7 @@ string ODqCompClargs::DefaultBuildTag()
 
 void ODqCompClargs::AddDefaultPackagePaths()
 {
-  g_opt.package_paths.clear();
-
-  g_opt.package_paths.push_back("/usr/lib/dq/stdpkg");
-
-  if (!g_opt.compiler_executable_dir.empty())
-  {
-    filesystem::path prefix_stdpkg_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "lib" / "dq" / "stdpkg";
-    g_opt.package_paths.push_back(prefix_stdpkg_path.lexically_normal().string());
-
-    filesystem::path stdpkg_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "stdpkg";
-    g_opt.package_paths.push_back(stdpkg_path.lexically_normal().string());
-  }
-
-  g_opt.package_paths.push_back("/usr/lib/dq/packages");
-
-  if (!g_opt.compiler_executable_dir.empty())
-  {
-    filesystem::path prefix_packages_path = filesystem::path(g_opt.compiler_executable_dir) / ".." / "lib" / "dq" / "packages";
-    g_opt.package_paths.push_back(prefix_packages_path.lexically_normal().string());
-  }
-
-  const char * home = getenv("HOME");
-  if (home && home[0])
-  {
-    filesystem::path user_packages = filesystem::path(home) / ".dq" / "packages";
-    g_opt.package_paths.push_back(user_packages.lexically_normal().string());
-  }
-}
-
-string ODqCompClargs::NormalizeCompilerExecutable(const string & argv0)
-{
-  return ResolveCompilerExecutable(argv0);
+  g_opt.package_paths = g_opt.DefaultPackagePaths();
 }
 
 void ODqCompClargs::ParseModuleUseStack(const string & text, vector<string> & rstack)
@@ -301,18 +246,54 @@ void ODqCompClargs::ParseCmdLineArgsVerblevel(int argc, char ** argv)
   }
 }
 
-void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
+void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv, const ODqProjectFile * project)
 {
   string explicit_output;
   string build_tag_suffix;
-  g_opt.compiler_executable = NormalizeCompilerExecutable(argc > 0 ? argv[0] : "");
-  g_opt.compiler_executable_dir = CompilerExecutableDir(g_opt.compiler_executable);
+  has_output = false;
+  bool cli_link_mode = false;
+  bool project_argument_seen = false;
+  set<string> cli_define_names;
+
+  g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.build_tag = DefaultBuildTag();
   if (g_opt.target.IsBare())
   {
     g_opt.no_use_sys = true;
   }
   AddDefaultPackagePaths();
+
+  if (project)
+  {
+    in_filename = project->main_file.string();
+    if (project->output_file)
+    {
+      explicit_output = project->output_file->string();
+      has_output = true;
+    }
+    if (project->link)
+    {
+      g_opt.link_mode = *project->link ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY;
+    }
+    if (project->optlevel) g_opt.optlevel = *project->optlevel;
+    if (project->debuginfo) g_opt.dbg_info = *project->debuginfo;
+    g_opt.cmdline_defines = project->defines;
+    g_opt.package_paths.insert(g_opt.package_paths.end(),
+                               project->package_paths.begin(), project->package_paths.end());
+    g_opt.link_objects = project->link_objects;
+    g_opt.linker_args = project->linker_args;
+  }
+
+  auto select_cli_link_mode = [&](ECompLinkMode mode, const string & option) -> bool
+  {
+    if (!cli_link_mode)
+    {
+      g_opt.link_mode = mode;
+      cli_link_mode = true;
+      return true;
+    }
+    return SelectLinkMode(mode, option);
+  };
 
   for (int i = 1; i < argc; i++)
   {
@@ -351,7 +332,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
       else if ("--link" == v)
       {
-        if (!SelectLinkMode(DQC_LINK_FORCE, v)) return;
+        if (!select_cli_link_mode(DQC_LINK_FORCE, v)) return;
       }
       else if (v.starts_with("--linker-arg="))
       {
@@ -503,7 +484,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if ("-ir" == v)    g_opt.ir_print = true;
       else if ("-c"  == v)
       {
-        if (!SelectLinkMode(DQC_LINK_COMPILE_ONLY, v)) return;
+        if (!select_cli_link_mode(DQC_LINK_COMPILE_ONLY, v)) return;
       }
       else if ((v.size() > 2) and ('D' == v[1]))
       {
@@ -547,6 +528,13 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
           }
         }
 
+        if (cli_define_names.insert(def.name).second)
+        {
+          erase_if(g_opt.cmdline_defines, [&](const OCmdLineDefine & existing)
+          {
+            return existing.name == def.name;
+          });
+        }
         g_opt.cmdline_defines.push_back(def);
       }
       else if ("-O0" == v)    g_opt.optlevel = 0;
@@ -560,6 +548,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
           ++i;
           explicit_output = argv[i];
           has_dash_o = true;
+          has_output = true;
         }
         else
         {
@@ -577,6 +566,10 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
         return;
       }
     }
+    else if (project && !project_argument_seen && v.ends_with(".dqproj"))
+    {
+      project_argument_seen = true;
+    }
     else if (in_filename.empty())
     {
       in_filename = v;
@@ -586,6 +579,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       // backward compatibility: second positional arg = output name
       explicit_output = v;
       has_dash_o = true;
+      has_output = true;
     }
     else
     {
@@ -624,7 +618,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 
   if (g_opt.ifdump)
   {
-    if (has_dash_o)
+    if (has_output)
     {
       ++errorcnt;
       print("--ifdump expects only one input .dqm_if file.\n");
@@ -677,14 +671,14 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 
   if (g_opt.ifgen)
   {
-    out_filename = has_dash_o ? explicit_output : default_interface_path.string();
+    out_filename = has_output ? explicit_output : default_interface_path.string();
     interface_out_filename = out_filename;
   }
   else if ((DQC_LINK_COMPILE_ONLY == g_opt.link_mode)
            || ((DQC_LINK_AUTO == g_opt.link_mode) && g_opt.target.IsBare()))
   {
     // Explicit compile-only and automatic bare builds produce an object directly.
-    out_filename = has_dash_o ? explicit_output : default_artifact_path.string();
+    out_filename = has_output ? explicit_output : default_artifact_path.string();
     interface_out_filename = ArtifactInterfacePathForObject(out_filename).string();
   }
   else
@@ -693,8 +687,8 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
     out_filename = default_artifact_path.string();
     interface_out_filename = default_interface_path.string();
     // link_output is where the final result should go
-    link_output = has_dash_o ? explicit_output : base_name;
-    if (!has_dash_o && g_opt.target.IsBare())
+    link_output = has_output ? explicit_output : base_name;
+    if (!has_output && g_opt.target.IsBare())
     {
       link_output += ".elf";
     }
@@ -707,7 +701,7 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 void ODqCompClargs::PrintUsage()
 {
   print("Usage:\n");
-  print("  dq-comp [options] <file.dq>\n");
+  print("  dq-comp [options] <file.dq|file.dqproj>\n");
   print("Options:\n");
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");

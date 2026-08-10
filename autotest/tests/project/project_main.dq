@@ -1,0 +1,18 @@
+//?notest
+
+use ./project_child;
+
+[[external]] function printf(fmt : ^char, ...) -> int;
+
+function *Main() -> int:
+    printf('PROJECT_DEFINE = %ld\n', @def.PROJECT_DEFINE);
+    printf('PROJECT_BOOL = %s\n', iif(@def.PROJECT_BOOL, 'true', 'false'));
+    printf('PROJECT_CHILD_DEFINE = %ld\n', project_child_define());
+    #ifdef EXPECT_OVERRIDE
+        if @def.PROJECT_OVERRIDE != 2: return 1; endif
+    #else
+        if @def.PROJECT_OVERRIDE != 1: return 1; endif
+    #endif
+    return 0;
+endfunc
+

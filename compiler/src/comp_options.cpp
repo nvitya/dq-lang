@@ -13,6 +13,11 @@
 
 #include "comp_options.h"
 
+#include <cstdlib>
+#include <filesystem>
+
+#include "executable_path.h"
+
 OCompOptions  g_opt;
 
 void OCompTarget::ConfigureHost()
@@ -115,9 +120,10 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
   return false;
 }
 
-bool OCompTarget::ConfigureFromCommandLine(int argc, char ** argv, string & rerror)
+bool OCompTarget::ConfigureFromCommandLine(int argc, char ** argv, string & rerror,
+                                           const string & default_name)
 {
-  string target_name;
+  string command_line_target;
 
   for (int i = 1; i < argc; ++i)
   {
@@ -146,18 +152,52 @@ bool OCompTarget::ConfigureFromCommandLine(int argc, char ** argv, string & rerr
       rerror = "Empty target name";
       return false;
     }
-    if (!target_name.empty() && (target_name != value))
+    if (!command_line_target.empty() && (command_line_target != value))
     {
-      rerror = "Conflicting target options \"" + target_name + "\" and \"" + value + "\"";
+      rerror = "Conflicting target options \"" + command_line_target + "\" and \"" + value + "\"";
       return false;
     }
-    target_name = value;
+    command_line_target = value;
   }
 
-  return Configure(target_name, rerror);
+  return Configure(command_line_target.empty() ? default_name : command_line_target, rerror);
 }
 
 OCompOptions::OCompOptions()
 {
   //
+}
+
+void OCompOptions::InitializeCompilerExecutable(const string & argv0)
+{
+  compiler_executable = CurrentExecutablePath(argv0, "dq-comp");
+  filesystem::path path(compiler_executable);
+  compiler_executable_dir = path.has_parent_path() ? path.parent_path().lexically_normal().string() : "";
+}
+
+vector<string> OCompOptions::DefaultPackagePaths() const
+{
+  vector<string> result;
+  result.push_back("/usr/lib/dq/stdpkg");
+
+  if (!compiler_executable_dir.empty())
+  {
+    filesystem::path executable_dir(compiler_executable_dir);
+    result.push_back((executable_dir / ".." / "lib" / "dq" / "stdpkg").lexically_normal().string());
+    result.push_back((executable_dir / ".." / "stdpkg").lexically_normal().string());
+  }
+
+  result.push_back("/usr/lib/dq/packages");
+  if (!compiler_executable_dir.empty())
+  {
+    filesystem::path executable_dir(compiler_executable_dir);
+    result.push_back((executable_dir / ".." / "lib" / "dq" / "packages").lexically_normal().string());
+  }
+
+  const char * user_home = getenv("HOME");
+  if (user_home && user_home[0])
+  {
+    result.push_back((filesystem::path(user_home) / ".dq" / "packages").lexically_normal().string());
+  }
+  return result;
 }

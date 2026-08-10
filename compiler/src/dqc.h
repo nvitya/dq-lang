@@ -24,6 +24,7 @@
 using namespace std;
 
 class OModulePath;
+class ODqProjectFile;
 struct SModuleArtifactEnsureResult;
 
 class ODqCompiler : public ODqCompClargs
@@ -52,7 +53,7 @@ public:
   ODqCompiler();
   virtual ~ODqCompiler();
 
-  void Run(int argc, char ** argv);
+  void Run(int argc, char ** argv, const ODqProjectFile * project = nullptr);
 };
 
 extern ODqCompiler *  g_compiler;

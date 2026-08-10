@@ -129,7 +129,7 @@ void OAtRunner::CollectTestFiles()
     }
 
     fs::path p = de.path();
-    if (".dq" != p.extension().string())
+    if ((".dq" != p.extension().string()) && (".dqproj" != p.extension().string()))
     {
       continue;
     }

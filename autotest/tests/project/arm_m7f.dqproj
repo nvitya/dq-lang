@@ -1,0 +1,4 @@
+//?notest
+main = '../../target/arm_m7f_inline_asm.dq'
+target = 'arm_m7f-bare'
+link = false

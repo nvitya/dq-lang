@@ -87,11 +87,29 @@ add_custom_target(autotest_O0
 add_custom_target(test
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   COMMAND "$<TARGET_FILE:dq-inline-asm-test>"
+  COMMAND "$<TARGET_FILE:dq-projectfile-test>"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_inline_asm.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_inline_asm.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" -o "${DQ_BUILD_DIR}/arm_m7f_project.o"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/arm_m7f.dqproj"
+  COMMAND "$<TARGET_FILE:dq-comp>" -O0 -g -DPROJECT_OVERRIDE=2 -DEXPECT_OVERRIDE
+          -o "${DQ_BUILD_DIR}/project_override"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/basic.dqproj"
+  COMMAND "${DQ_BUILD_DIR}/project_override"
+  COMMAND "$<TARGET_FILE:dq-comp>" --link -o "${DQ_BUILD_DIR}/project_linkmode"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/linkmode_false.dqproj"
+  COMMAND "${DQ_BUILD_DIR}/project_linkmode"
+  COMMAND "${CMAKE_CXX_COMPILER}" -c "${CMAKE_SOURCE_DIR}/compiler/test/project_linkobject.cpp"
+          -o "${DQ_BUILD_DIR}/project_linkobject.o"
+  COMMAND "$<TARGET_FILE:dq-comp>" --linker-arg=--no-undefined
+          -o "${DQ_BUILD_DIR}/project_linkobject"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/linkobject.dqproj"
+  COMMAND "${DQ_BUILD_DIR}/project_linkobject"
+  COMMAND "$<TARGET_FILE:dq-comp>" -c -o "${DQ_BUILD_DIR}/project_compile_only.o"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/linkobject.dqproj"
   COMMAND ${DQ_AUTOTEST_COMMAND}
-  DEPENDS dq-comp dqatrun dq-inline-asm-test
+  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )

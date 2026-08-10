@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.39.1"
+#define DQ_COMPILER_VERSION  "0.39.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.39.2:
+  - Inline ASM support for ARM M/A, ARM64, RV32I and RV64G architectures
 v0.39.1:
   - Common text parsing for inline and non-inline [[asm]] functions
 v0.39.0:

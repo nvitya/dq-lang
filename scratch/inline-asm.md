@@ -26,6 +26,16 @@ The assembly body uses the target architecture's established dialect. X64 uses I
 AArch64, RV32I and RV64G use their native syntax. DQ does not reorder operands, add architecture-specific sigils or
 otherwise translate the assembly language.
 
+Inline assembly recognizes the current target identifiers and their DQ aliases: `x86_64`; the Cortex-M identifiers
+`arm_m0`, `arm_m3`, `arm_m4`, `arm_m4f`, `arm_m33` and `arm_m7f`; `arm` and `arm_a*`; `aarch64` and `arm64`;
+`riscv32` and `rv32i`; and `riscv64` and `rv64g`. Integer and pointer operands use LLVM's `r` constraint. Floating
+operands use `x` on x86-64, `w` on ARM/AArch64, and `f` on RISC-V. The selected LLVM CPU and feature set determine
+whether the requested register class is available.
+
+`clobber(memory)` is available on every supported target. `clobber(flags)` names the condition codes on x86 and ARM,
+but is rejected on RISC-V, which has no corresponding condition-code register. Explicit lowercase scalar register
+names and the conventional ARM and RISC-V aliases are accepted according to the selected architecture.
+
 After the DQ source processing described below, the active assembly text is passed through unchanged except for
 `$symbolname` substitution. `$symbolname` references a named result or function argument, and the compiler translates
 it to one of LLVM's positional operands (`$0`, `$1`, ...).

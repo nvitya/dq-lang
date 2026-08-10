@@ -17,6 +17,7 @@
 #include "dqc.h"
 #include "dq_module.h"
 #include "errorcodes.h"
+#include "inline_asm_target.h"
 #include "ll_defs.h"
 #include "otype_compound.h"
 #include "otype_string.h"
@@ -866,65 +867,24 @@ void OValSymFunc::ResetBodyScope(OScope * aparentscope)
 
 string OValSymFunc::InlineAsmRegisterConstraint(OType * type) const
 {
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  if (!asm_target) return "";
+
   OType * resolved = type ? type->ResolveAlias() : nullptr;
   if (!resolved) return "";
-  if (TK_FLOAT == resolved->kind) return "x";
+  if (TK_FLOAT == resolved->kind) return string(asm_target->RegisterConstraint(true));
   if ((TK_INT == resolved->kind) || (TK_BOOL == resolved->kind) || (TK_POINTER == resolved->kind)
       || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind))
   {
-    return "r";
+    return string(asm_target->RegisterConstraint(false));
   }
   return "";
 }
 
 string OValSymFunc::InlineAsmClobberConstraint(const string & name) const
 {
-  if ("flags" == name) return "~{cc}";
-  if ("memory" == name) return "~{memory}";
-
-  static const vector<string> fixed_registers = {
-    "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp",
-    "eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp",
-    "ax", "bx", "cx", "dx", "si", "di", "bp", "sp",
-    "al", "bl", "cl", "dl", "ah", "bh", "ch", "dh",
-    "sil", "dil", "bpl", "spl", "st"
-  };
-  if (find(fixed_registers.begin(), fixed_registers.end(), name) != fixed_registers.end())
-  {
-    return "~{" + name + "}";
-  }
-
-  auto indexed_register = [&](const string & prefix, unsigned max_index, bool allow_suffix)
-  {
-    if (!name.starts_with(prefix)) return false;
-    size_t pos = prefix.size();
-    size_t digits_end = pos;
-    unsigned index = 0;
-    while (digits_end < name.size() && name[digits_end] >= '0' && name[digits_end] <= '9')
-    {
-      index = index * 10 + unsigned(name[digits_end] - '0');
-      if (index > max_index) return false;
-      ++digits_end;
-    }
-    if (digits_end == pos) return false;
-    if (digits_end == name.size()) return true;
-    return allow_suffix && (digits_end + 1 == name.size())
-        && ((name[digits_end] == 'd') || (name[digits_end] == 'w') || (name[digits_end] == 'b'));
-  };
-
-  if (indexed_register("r", 15, true))
-  {
-    unsigned index = unsigned(name[1] - '0');
-    if ((name.size() > 2) && (name[2] >= '0') && (name[2] <= '9')) index = index * 10 + unsigned(name[2] - '0');
-    if (index >= 8) return "~{" + name + "}";
-  }
-  if (indexed_register("xmm", 31, false) || indexed_register("ymm", 31, false)
-      || indexed_register("zmm", 31, false) || indexed_register("mm", 7, false)
-      || indexed_register("k", 7, false))
-  {
-    return "~{" + name + "}";
-  }
-  return "";
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  return asm_target ? asm_target->ClobberConstraint(name) : "";
 }
 
 OType * OValSymFunc::InlineAsmMemoryElementType(size_t param_index) const
@@ -1115,8 +1075,12 @@ LlValue * OValSymFunc::GenerateInlineAsmCall(const vector<LlValue *> & callargs)
   }
 
   LlFuncType * asm_type = LlFuncType::get(result_type, operand_types, false);
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  if (!asm_target) throw logic_error("Unsupported inline-assembly target");
+  llvm::InlineAsm::AsmDialect dialect = (INLINE_ASM_DIALECT_INTEL == asm_target->dialect
+      ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
   llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(
-      asm_type, asm_body, constraint_text, true, false, llvm::InlineAsm::AD_Intel);
+      asm_type, asm_body, constraint_text, true, false, dialect);
   llvm::CallInst * call = ll_builder.CreateCall(asm_type, inline_asm, operands);
   for (const auto & [index, element_type] : memory_elements)
   {

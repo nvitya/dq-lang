@@ -33,6 +33,7 @@
 #include "expressions.h"
 #include "statements.h"
 #include "module_path.h"
+#include "inline_asm_target.h"
 
 using namespace std;
 
@@ -1416,7 +1417,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   if (vsfunc->IsInlineAsm())
   {
     string invalid_usage;
-    if ("x86_64" != g_opt.target.arch)
+    if (!InlineAsmTargetForArch(g_opt.target.arch))
     {
       Error(DQERR_ASM_INLINE_TARGET, g_opt.target.arch);
       RecoverFailedFunctionDecl();

@@ -1273,6 +1273,7 @@ endfunc
 | `[[override]]` | Override base class method (see section 10.5) |
 | `[[section("name")]]` | Place function in specific memory section |
 | `[[asm]]` | Treat the `:` ... `endfunc` body as target assembly after DQ source processing; implies naked and noinline code generation |
+| `[[inline, asm]]` | Lower calls to the function as typed target inline assembly; arguments may be annotated with assembly operand hints |
 | `[[noreturn]]` | Function never returns (for panic/abort functions) |
 
 **Note**: The exact set of supported attributes and their semantics are implementation-defined. Some attributes may be target-specific.
@@ -1292,6 +1293,19 @@ because braces are valid assembly syntax.
 This source processing is an intentional compatibility change from the former raw
 `[[asm]]` body behavior. Assembly sources must not use DQ comment delimiters or a
 line-leading `#` when those characters are intended for the target assembler.
+
+Combining `[[inline]]` and `[[asm]]` makes the function body an LLVM inline-assembly
+template. Named result and argument references are replaced with positional assembly
+operands. ARM M/A, ARM64, RV32I, RV64G and x86-64 targets are supported. Integer and
+pointer operands use the target's general register class; floating-point operands use
+its native floating-point register class. LLVM diagnoses a floating-point constraint
+that is unavailable for the selected CPU features.
+
+An inline-assembly body may end with an assembly hint list containing
+`immediate(...)`, `memread(...)`, `memwrite(...)`, `memreadwrite(...)` and
+`clobber(...)` clauses. `clobber(memory)` is target-independent;
+`clobber(flags)` is accepted only on architectures with condition codes. Explicit
+register clobbers use lowercase target register names or their conventional aliases.
 
 ### 8.6 Variadic Arguments (`varargs`)
 

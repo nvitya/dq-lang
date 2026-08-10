@@ -1,7 +1,5 @@
 // Project file integration test
-//?check('PROJECT_DEFINE', 42)
-//?check('PROJECT_BOOL', true)
-//?check('PROJECT_CHILD_DEFINE', 42)
+//?ignore('silent project integration test')
 
 packagepath = 'packages'
 var TEST_PACKAGE = PackagePath('projectpkg')

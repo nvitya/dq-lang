@@ -11,14 +11,16 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.2"
+#define DQ_COMPILER_VERSION  "0.40.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.3:
+  - Project file parsing refactoring / 3
 v0.40.2:
-  - Project file parsing refactoring
+  - Project file parsing refactoring / 2
 v0.40.1:
-  - Project file parsing refactoring
+  - Project file parsing refactoring / 1
 v0.40.0:
   - Project file support (.dqproj)
 v0.39.2:

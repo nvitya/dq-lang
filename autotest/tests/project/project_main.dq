@@ -2,12 +2,10 @@
 
 use ./project_child;
 
-[[external]] function printf(fmt : ^char, ...) -> int;
-
 function *Main() -> int:
-    printf('PROJECT_DEFINE = %ld\n', @def.PROJECT_DEFINE);
-    printf('PROJECT_BOOL = %s\n', iif(@def.PROJECT_BOOL, 'true', 'false'));
-    printf('PROJECT_CHILD_DEFINE = %ld\n', project_child_define());
+    if @def.PROJECT_DEFINE != 42: return 2; endif
+    if not (@def.PROJECT_BOOL): return 3; endif
+    if project_child_define() != 42: return 4; endif
     #ifdef EXPECT_OVERRIDE
         if @def.PROJECT_OVERRIDE != 2: return 1; endif
     #else
@@ -15,4 +13,3 @@ function *Main() -> int:
     #endif
     return 0;
 endfunc
-

@@ -446,14 +446,14 @@ bool ODqProjectFile::ParseDefine()
 bool ODqProjectFile::ParseProperty(const string & name)
 {
   bool b;
-  SkipSpace(true, b);
+  SkipSpace(false, b);
 
   if (!sp.CheckSymbol("="))
   {
     return Fail("ProjectSyntax", format("Expected '=' after \"{}\"", name));
   }
 
-  SkipSpace(true, b);
+  SkipSpace(false, b);
 
   filesystem::path  path;
   bool              bvalue = false;
@@ -516,6 +516,7 @@ bool ODqProjectFile::ParseProperty(const string & name)
   }
   else if ("linkscript" == name)
   {
+    if (!CheckDuplicate(name))  return false;
     if (!ReadPath(path)) return false;
     g_opt.linker_args.push_back("--script=" + path.string());
   }
@@ -534,6 +535,7 @@ bool ODqProjectFile::ParseProperty(const string & name)
     {
       return Fail("ProjectValue", "optlevel must be between 0 and 3", sp.prevptr);
     }
+    g_opt.optlevel = value;
   }
   else if ("lto" == name)
   {

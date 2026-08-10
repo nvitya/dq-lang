@@ -445,50 +445,36 @@ bool ODqProjectFile::ParseDefine()
 
 bool ODqProjectFile::ParseProperty(const string & name)
 {
-  static const set<string> unsupported = {"cpu", "abi", "floatabi"};
-  if (unsupported.contains(name))
+  bool b;
+  SkipSpace(true, b);
+
+  if (!sp.CheckSymbol("="))
   {
-    return Fail("ProjectUnsupported", format("Project property \"{}\" is not supported yet", name));
+    return Fail("ProjectSyntax", format("Expected '=' after \"{}\"", name));
   }
 
-  static const set<string> known = {
-    "main", "output", "target", "link", "optlevel", "debuginfo", "linkscript",
-    "packagepath", "linkerpath", "linkobject", "linkoption"
-  };
-  if (!known.contains(name))
-  {
-    return Fail("ProjectProperty", format("Unknown project property \"{}\"", name));
-  }
+  SkipSpace(true, b);
 
-  bool single = (name == "main") || (name == "output") || (name == "target")
-                || (name == "link") || (name == "optlevel") || (name == "debuginfo")
-                || (name == "linkscript");
-  if (single && !CheckDuplicate(name)) return false;
-  if (!RequireInlineSpaceResult("Expected '='") || !sp.CheckSymbol("="))
-  {
-    return pproject->diagnostics.empty()
-             ? Fail("ProjectSyntax", format("Expected '=' after \"{}\"", name)) : false;
-  }
-  if (!RequireInlineSpaceResult("Expected property value")) return false;
+  filesystem::path  path;
+  bool              bvalue = false;
 
-  if ((name == "main") || (name == "output") || (name == "linkscript")
-      || (name == "packagepath") || (name == "linkerpath") || (name == "linkobject"))
+  if ("main" == name)
   {
-    filesystem::path path;
+    if (!CheckDuplicate(name))  return false;
+    if (!ReadPath(path))        return false;
+    g_opt.project_main_filename = path.string();
+  }
+  else if ("output" == name)
+  {
+    if (!CheckDuplicate(name))  return false;
     if (!ReadPath(path)) return false;
-    if      (name == "main")        g_opt.project_main_filename = path.string();
-    else if (name == "output")
-    {
-      g_opt.project_output_filename = path.string();
-      g_opt.project_has_output = true;
-    }
-    else if (name == "packagepath") g_opt.package_paths.push_back(path.string());
-    else if (name == "linkobject")  g_opt.link_objects.push_back(path.string());
-    else if (name == "linkerpath")  g_opt.linker_args.push_back("--library-path=" + path.string());
-    else                             g_opt.linker_args.push_back("--script=" + path.string());
+    g_opt.project_output_filename = path.string();
+    g_opt.project_has_output = true;
   }
-  else if (name == "target")
+  else if ("target" == name)
   {
+    if (!CheckDuplicate(name))  return false;
+
     string value;
     if (!ReadExpandedString(value)) return false;
     string target_error;
@@ -497,29 +483,70 @@ bool ODqProjectFile::ParseProperty(const string & name)
       return Fail("ProjectValue", target_error, sp.prevptr);
     }
   }
-  else if (name == "linkoption")
+  else if (("cpu" == name) || ("abi" == name) || ("floatabi" == name))
+  {
+    return Fail("ProjectUnsupported", format("Project property \"{}\" is not supported yet", name));
+  }
+  else if ("packagepath" == name)
+  {
+    if (!ReadPath(path)) return false;
+    g_opt.package_paths.push_back(path.string());
+  }
+  else if ("link" == name)
+  {
+    if (!CheckDuplicate(name))  return false;
+    if (!ReadBool(bvalue)) return false;
+    g_opt.link_mode = (bvalue ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY);
+  }
+  else if ("linkobject"  == name)
+  {
+    if (!ReadPath(path)) return false;
+    g_opt.link_objects.push_back(path.string());
+  }
+  else if ("linkerpath"  == name)
+  {
+    if (!ReadPath(path)) return false;
+    g_opt.linker_args.push_back("--library-path=" + path.string());
+  }
+  else if ("linkoption" == name)
   {
     string value;
     if (!ReadExpandedString(value)) return false;
     g_opt.linker_args.push_back(value);
   }
-  else if ((name == "link") || (name == "debuginfo"))
+  else if ("linkscript" == name)
   {
-    bool value = false;
-    if (!ReadBool(value)) return false;
-    if (name == "link") g_opt.link_mode = value ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY;
-    else g_opt.dbg_info = value;
+    if (!ReadPath(path)) return false;
+    g_opt.linker_args.push_back("--script=" + path.string());
   }
-  else
+  else if ("debuginfo" == name)
   {
+    if (!CheckDuplicate(name))  return false;
+    if (!ReadBool(bvalue)) return false;
+    g_opt.dbg_info = bvalue;
+  }
+  else if ("optlevel" == name)
+  {
+    if (!CheckDuplicate(name))  return false;
     int64_t value = 0;
     if (!ReadInt(value)) return false;
     if ((value < 0) || (value > 3))
     {
       return Fail("ProjectValue", "optlevel must be between 0 and 3", sp.prevptr);
     }
-    g_opt.optlevel = int(value);
   }
+  else if ("lto" == name)
+  {
+    if (!CheckDuplicate(name))  return false;
+    if (!ReadBool(bvalue)) return false;
+    g_opt.lto_mode = (bvalue ? LTOMODE_FULL : LTOMODE_OFF);
+  }
+
+  else
+  {
+    return Fail("ProjectProperty", format("Unknown project property \"{}\"", name));
+  }
+
   return FinishStatement();
 }
 
@@ -535,15 +562,17 @@ bool ODqProjectFile::ParseFile()
   {
     return Fail("ProjectRead", format("Can not determine project file size for \"{}\"", filename.string()));
   }
+
   text.resize(size_t(size));
+  sp.Init(text.data(), text.size());
+
   input.seekg(0);
   if (size > 0) input.read(text.data(), size);
   if (!input && size > 0)
   {
-    sp.Init(text.data(), text.size());
     return Fail("ProjectRead", format("Can not read project file \"{}\"", filename.string()));
   }
-  sp.Init(text.data(), text.size());
+
   pproject->include_stack.push_back(filename);
 
   bool ok = true;
@@ -565,10 +594,11 @@ bool ODqProjectFile::ParseFile()
       break;
     }
     bool statement_ok = false;
-    if      (statement == "var")     statement_ok = ParseVariable();
-    else if (statement == "include") statement_ok = ParseInclude();
-    else if (statement == "define")  statement_ok = ParseDefine();
+    if      (statement == "var")      statement_ok = ParseVariable();
+    else if (statement == "include")  statement_ok = ParseInclude();
+    else if (statement == "define")   statement_ok = ParseDefine();
     else                              statement_ok = ParseProperty(statement);
+
     if (!statement_ok)
     {
       ok = false;

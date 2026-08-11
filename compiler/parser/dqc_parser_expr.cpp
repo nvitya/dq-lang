@@ -1534,6 +1534,12 @@ OLValueExpr * ODqCompParserExpr::ParseAddressableExpr()
   }
 
   OValSym * varref = dynamic_cast<OLValueVar *>(lval) ? static_cast<OLValueVar *>(lval)->pvalsym : nullptr;
+  if (auto * func = dynamic_cast<OValSymFunc *>(varref); func && func->IsInlineAsm())
+  {
+    Error(DQERR_ASM_FUNC_REF, func->name);
+    delete expr;
+    return nullptr;
+  }
   if (varref and VSK_VARIABLE != varref->kind and VSK_PARAMETER != varref->kind)
   {
     Error(DQERR_EXPR_VS_NOT_ADDRESSABLE, varref->name);
@@ -3591,6 +3597,11 @@ OExpr * ODqCompParserExpr::ParseExprFuncCall(OValSymFunc * vsfunc)
     delete result;
     return nullptr;
   }
+  if (vsfunc->IsInlineAsm() && !vsfunc->ValidateInlineAsmCall(result->args))
+  {
+    delete result;
+    return nullptr;
+  }
 
   return result;
 }
@@ -3782,6 +3793,12 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
     return nullptr;
   }
   if (!BindCallArguments(ovset->name, static_cast<OTypeFunc *>(best_func->ptype), rawargs, result->args))
+  {
+    delete result;
+    FreeRawCallArguments(rawargs);
+    return nullptr;
+  }
+  if (best_func->IsInlineAsm() && !best_func->ValidateInlineAsmCall(result->args))
   {
     delete result;
     FreeRawCallArguments(rawargs);

@@ -1,0 +1,7 @@
+function ReverseBits(value : uint32) -> uint32 [[inline, asm]]:
+    rbit    $result, $value
+endfunc
+
+function UseReverseBits(value : uint32) -> uint32:
+    return ReverseBits(value)
+endfunc

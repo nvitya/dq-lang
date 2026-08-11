@@ -6,10 +6,6 @@ function asm_without_body() [[asm]];  //?error(AsmFuncBody)
 
 function asm_with_braces() [[asm]] { }  //?error(AsmFuncBody)
 
-function asm_inline() [[asm, inline]]:  //?error(AttrConflict)
-    nop
-endfunc
-
 function asm_always_inline() [[asm, always_inline]]:  //?error(AttrConflict)
     nop
 endfunc

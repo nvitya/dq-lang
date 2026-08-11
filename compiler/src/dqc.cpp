@@ -323,6 +323,10 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
     }
     rargs.push_back(link_input);
   }
+  for (const string & object_path : g_opt.link_objects)
+  {
+    rargs.push_back(object_path);
+  }
   rargs.push_back("-o");
   rargs.push_back(executable_filename);
   for (const string & libname : g_opt.link_libraries)
@@ -595,7 +599,7 @@ void ODqCompiler::Run(int argc, char ** argv)
       ++errorcnt;
     }
   }
-  else if ((DQC_LINK_AUTO == g_opt.link_mode) && !g_opt.target.IsBare() && has_dash_o)
+  else if ((DQC_LINK_AUTO == g_opt.link_mode) && !g_opt.target.IsBare() && has_output)
   {
     // Automatic mode without an application entry point publishes the module
     // object at the explicitly requested path.

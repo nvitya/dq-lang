@@ -38,6 +38,10 @@ __Warning: The compiler and the DQ language is under development, not recommende
 
 The DQ compiler and libraries are currently in __Pre-V1__ phase. The language and the compiler is complete enough to develop libraries. A basic set of libraries are required to be developed first for the V1 release, including database access or graphics.
 
+This site documents the compiler checked into the repository's `main` branch.
+During Pre-V1 development it may therefore describe changes newer than the most
+recent release package.
+
 A bigger language and compiler extension is planned only for V2 like embedded target support and template classes.
 
 ## DQ Compiler and Libraries
@@ -73,17 +77,16 @@ Use it for questions, feedback, language-design discussions, examples, and gener
 
 For confirmed bugs and concrete feature requests, please use the [GitHub issue tracker](https://github.com/nvitya/dq-lang/issues)
 
-## Language Documentation
+## Documentation Paths
 
-For more complete language documentation read the following pages:
+Choose the level that matches what you are doing:
 
-* [Basics](language/basics.md)
-* [Types](language/types.md)
-* [Expressions](language/expressions.md)
-* [Statements](language/statements.md)
-* [Functions](language/functions.md)
-* [Objects](language/objects.md)
-* [Modules](language/modules.md)
-* [Memory and Pointers](language/memory-and-pointers.md)
-* [Attributes and Directives](language/attributes-and-directives.md)
-* [Inter-Operation](language/interop.md)
+* Start with [Getting Started](getting-started.md) to install DQ and run a first
+  program.
+* Use the [Language Basics](language/basics.md) and the other Language Guide
+  pages to learn normal DQ code.
+* Use the complete [Language Reference](reference/index.md) for exact typing,
+  lifetime, lookup, and edge-case rules.
+* Compiler and runtime maintainers can use the separate
+  [Contributor Documentation](contributing/index.md). It describes
+  implementation and is not part of the language contract.

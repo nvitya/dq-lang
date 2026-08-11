@@ -1,5 +1,8 @@
 # Attributes and Directives
 
+For the normative rules, including preprocessing and source dependencies, see
+[Attributes, Directives, and Interoperability](../reference/attributes-directives-and-interop.md).
+
 DQ has declaration attributes written with `[[...]]` and source directives
 written with `#`.
 

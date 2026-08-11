@@ -2,7 +2,8 @@
 
 The DQ is a general-purpose, human-friendly, beginner-friendly compiled programming language.
 
-This repository contains the language specification and a compiler.
+This repository contains the DQ compiler, runtime, standard packages, and
+documentation.
 
 __Warning: The compiler and the DQ language is under development, not recommended for production use yet__
 
@@ -18,5 +19,14 @@ The DQ language and compiler documentation can be found here:
 
 For quick start visit this page:
 
-[Getting Started](http://127.0.0.1:8000/getting-started/)
+[Getting Started](https://nvitya.github.io/dq-lang/getting-started/)
 
+The published site has two language-documentation levels:
+
+- the concise [Language Guide](https://nvitya.github.io/dq-lang/language/basics/)
+  for normal usage;
+- the complete [Language Reference](https://nvitya.github.io/dq-lang/reference/)
+  for implemented rules and edge cases.
+
+Historical specifications and design work are preserved under [`doc/archive`](doc/archive/)
+but are not authoritative for the current compiler.

@@ -17,6 +17,7 @@
 #include "dqc.h"
 #include "dq_module.h"
 #include "errorcodes.h"
+#include "inline_asm_target.h"
 #include "ll_defs.h"
 #include "otype_compound.h"
 #include "otype_string.h"
@@ -102,6 +103,19 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
   bool skip_receiver = amethod && owner_compound_type && !sigtype->params.empty()
       && ("__this" == sigtype->params[0]->name);
   if (!sigtype->WriteDqmIfSignatureRecords(writer, skip_receiver)) return false;
+
+  if (IsInlineAsm())
+  {
+    if (!writer.AddRecStr(DQMIF_FUNC_INLINE_ASM_BODY, asm_body)) return false;
+    vector<uint8_t> kinds;
+    kinds.reserve(asm_operand_kinds.size());
+    for (EInlineAsmOperandKind kind : asm_operand_kinds) kinds.push_back(uint8_t(kind));
+    if (!writer.AddRec(DQMIF_FUNC_INLINE_ASM_KINDS, kinds)) return false;
+    for (const string & clobber : asm_clobbers)
+    {
+      if (!writer.AddRecStr(DQMIF_FUNC_INLINE_ASM_CLOBBER, clobber)) return false;
+    }
+  }
 
   return writer.AddRecEmpty(amethod ? DQMIF_METHOD_END : DQMIF_FUNC_END);
 }
@@ -673,6 +687,11 @@ LlDiType * OTypeFunc::CreateDiType()
 
 void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
+  if (IsInlineAsm())
+  {
+    return;
+  }
+
   //print("Found function declaration \"{}\"\n", ptfunc->name);
 
   llvm::GlobalValue::LinkageTypes  linktype;
@@ -846,8 +865,238 @@ void OValSymFunc::ResetBodyScope(OScope * aparentscope)
   has_body = false;
 }
 
+string OValSymFunc::InlineAsmRegisterConstraint(OType * type) const
+{
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  if (!asm_target) return "";
+
+  OType * resolved = type ? type->ResolveAlias() : nullptr;
+  if (!resolved) return "";
+  if (TK_FLOAT == resolved->kind) return string(asm_target->RegisterConstraint(true));
+  if ((TK_INT == resolved->kind) || (TK_BOOL == resolved->kind) || (TK_POINTER == resolved->kind)
+      || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind))
+  {
+    return string(asm_target->RegisterConstraint(false));
+  }
+  return "";
+}
+
+string OValSymFunc::InlineAsmClobberConstraint(const string & name) const
+{
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  return asm_target ? asm_target->ClobberConstraint(name) : "";
+}
+
+OType * OValSymFunc::InlineAsmMemoryElementType(size_t param_index) const
+{
+  auto * tfunc = dynamic_cast<OTypeFunc *>(ptype);
+  if (!tfunc || param_index >= tfunc->params.size()) return nullptr;
+  OFuncParam * param = tfunc->params[param_index];
+  if (param->IsRefLike()) return param->ptype ? param->ptype->ResolveAlias() : nullptr;
+
+  auto * ptrtype = dynamic_cast<OTypePointer *>(param->ptype ? param->ptype->ResolveAlias() : nullptr);
+  if (!ptrtype || !ptrtype->IsTypedPointer() || !ptrtype->basetype) return nullptr;
+  return ptrtype->basetype->ResolveAlias();
+}
+
+bool OValSymFunc::ValidateInlineAsmSignature()
+{
+  auto * tfunc = dynamic_cast<OTypeFunc *>(ptype);
+  if (!tfunc || asm_operand_kinds.size() != tfunc->params.size()) return false;
+
+  if (tfunc->rettype && InlineAsmRegisterConstraint(tfunc->GetLlRetType()).empty())
+  {
+    g_compiler->Error(DQERR_ASM_OPERAND_TYPE, "result", &scpos);
+    return false;
+  }
+
+  bool result = true;
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    OFuncParam * param = tfunc->params[i];
+    EInlineAsmOperandKind kind = asm_operand_kinds[i];
+    if (IAOP_REGISTER == kind)
+    {
+      if (InlineAsmRegisterConstraint(param->GetLlArgType()).empty())
+      {
+        g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+        result = false;
+      }
+      continue;
+    }
+
+    if (IAOP_IMMEDIATE == kind)
+    {
+      OType * resolved = param->ptype ? param->ptype->ResolveAlias() : nullptr;
+      if (param->IsRefLike() || !resolved
+          || !((TK_INT == resolved->kind) || (TK_BOOL == resolved->kind)
+               || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind)))
+      {
+        g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+        result = false;
+      }
+      continue;
+    }
+
+    OType * element_type = InlineAsmMemoryElementType(i);
+    if (!element_type || !element_type->GetLlType() || !element_type->bytesize)
+    {
+      g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+      result = false;
+      continue;
+    }
+    if (param->IsRefLike())
+    {
+      if ((IAOP_MEM_READ == kind) && (FPM_REFOUT == param->mode))
+      {
+        g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+        result = false;
+      }
+      if (((IAOP_MEM_WRITE == kind) || (IAOP_MEM_READWRITE == kind)) && (FPM_REFIN == param->mode))
+      {
+        g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+        result = false;
+      }
+      if ((IAOP_MEM_READWRITE == kind) && (FPM_REFOUT == param->mode))
+      {
+        g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
+        result = false;
+      }
+    }
+  }
+  for (const string & clobber : asm_clobbers)
+  {
+    if (InlineAsmClobberConstraint(clobber).empty())
+    {
+      g_compiler->Error(DQERR_ASM_OPERAND_TYPE, clobber, &scpos);
+      result = false;
+    }
+  }
+  return result;
+}
+
+bool OValSymFunc::ValidateInlineAsmCall(const vector<OExpr *> & callargs) const
+{
+  auto * tfunc = dynamic_cast<OTypeFunc *>(ptype);
+  if (!tfunc || callargs.size() < tfunc->params.size()) return false;
+
+  bool result = true;
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    if (IAOP_IMMEDIATE != asm_operand_kinds[i]) continue;
+    OType * type = callargs[i] ? callargs[i]->ResolvedType() : nullptr;
+    OValue * value = type ? type->CreateValue() : nullptr;
+    bool is_constant = value && value->CalculateConstant(callargs[i], false);
+    delete value;
+    if (!is_constant)
+    {
+      g_compiler->Error(DQERR_ASM_IMMEDIATE_CONST, tfunc->params[i]->name);
+      result = false;
+    }
+  }
+  return result;
+}
+
+LlValue * OValSymFunc::GenerateInlineAsmCall(const vector<LlValue *> & callargs)
+{
+  auto * tfunc = dynamic_cast<OTypeFunc *>(ptype);
+  if (!tfunc || callargs.size() < tfunc->params.size())
+  {
+    throw logic_error("Invalid inline-assembly call arguments");
+  }
+
+  vector<LlType *> operand_types;
+  vector<LlValue *> operands;
+  vector<pair<unsigned, OType *>> memory_elements;
+  vector<string> constraints;
+
+  LlType * result_type = llvm::Type::getVoidTy(ll_ctx);
+  if (tfunc->rettype)
+  {
+    OType * dq_result_type = tfunc->GetLlRetType();
+    result_type = dq_result_type->GetLlType();
+    constraints.push_back("=" + InlineAsmRegisterConstraint(dq_result_type));
+  }
+
+  auto add_memory_operand = [&](size_t index, const string & constraint)
+  {
+    unsigned call_index = operands.size();
+    constraints.push_back(constraint);
+    operand_types.push_back(callargs[index]->getType());
+    operands.push_back(callargs[index]);
+    memory_elements.push_back({call_index, InlineAsmMemoryElementType(index)});
+  };
+  auto add_value_operand = [&](size_t index, const string & constraint)
+  {
+    constraints.push_back(constraint);
+    operand_types.push_back(callargs[index]->getType());
+    operands.push_back(callargs[index]);
+  };
+
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    EInlineAsmOperandKind kind = asm_operand_kinds[i];
+    if ((IAOP_MEM_WRITE == kind) || (IAOP_MEM_READWRITE == kind)) add_memory_operand(i, "=*m");
+  }
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    EInlineAsmOperandKind kind = asm_operand_kinds[i];
+    if (IAOP_REGISTER == kind)
+    {
+      add_value_operand(i, InlineAsmRegisterConstraint(tfunc->params[i]->GetLlArgType()));
+    }
+    else if (IAOP_IMMEDIATE == kind)
+    {
+      if (!llvm::isa<llvm::Constant>(callargs[i]))
+      {
+        throw logic_error("Non-constant inline-assembly immediate reached code generation");
+      }
+      add_value_operand(i, "i");
+    }
+    else if (IAOP_MEM_READ == kind)
+    {
+      add_memory_operand(i, "*m");
+    }
+  }
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    if (IAOP_MEM_READWRITE == asm_operand_kinds[i]) add_memory_operand(i, "*m");
+  }
+  for (const string & clobber : asm_clobbers)
+  {
+    constraints.push_back(InlineAsmClobberConstraint(clobber));
+  }
+
+  string constraint_text;
+  for (const string & constraint : constraints)
+  {
+    if (!constraint_text.empty()) constraint_text += ",";
+    constraint_text += constraint;
+  }
+
+  LlFuncType * asm_type = LlFuncType::get(result_type, operand_types, false);
+  const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+  if (!asm_target) throw logic_error("Unsupported inline-assembly target");
+  llvm::InlineAsm::AsmDialect dialect = (INLINE_ASM_DIALECT_INTEL == asm_target->dialect
+      ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
+  llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(
+      asm_type, asm_body, constraint_text, true, false, dialect);
+  llvm::CallInst * call = ll_builder.CreateCall(asm_type, inline_asm, operands);
+  for (const auto & [index, element_type] : memory_elements)
+  {
+    call->addParamAttr(index, llvm::Attribute::get(
+        ll_ctx, llvm::Attribute::ElementType, element_type->GetLlType()));
+  }
+  return call;
+}
+
 void OValSymFunc::GenerateFuncBody()
 {
+  if (IsInlineAsm())
+  {
+    return;
+  }
+
   if (is_external || !has_body)
   {
     return;  // external functions and unresolved forward declarations have no body to generate
@@ -887,7 +1136,10 @@ void OValSymFunc::GenerateFuncBody()
   if (is_asm)
   {
     LlFuncType * asm_type = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), false);
-    llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(asm_type, asm_body, "", true);
+    llvm::InlineAsm::AsmDialect dialect = ("x86_64" == g_opt.target.arch
+        ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
+    llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(
+        asm_type, asm_body, "", true, false, dialect);
     ll_builder.CreateCall(asm_type, inline_asm, {});
     ll_builder.CreateUnreachable();
     verifyFunction(*ll_func);
@@ -1418,6 +1670,17 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
+  auto reject_inline_asm = [&](OValSymFunc * func)
+  {
+    if (!func || !func->IsInlineAsm()) return false;
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ASM_FUNC_REF, func->name);
+    return true;
+  };
+  if (auto * varref = dynamic_cast<OLValueVar *>(src))
+  {
+    if (reject_inline_asm(dynamic_cast<OValSymFunc *>(varref->pvalsym))) return false;
+  }
+
   if (TK_FUNCREF != tks)
   {
     if (is_explicit_cast && !object_ref && (TK_POINTER == tks))
@@ -1431,6 +1694,7 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(src, matched_func);
     if (OFRM_UNIQUE_MATCH == ovmatch)
     {
+      if (reject_inline_asm(matched_func)) return false;
       if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
       {
         bound_ov->matched_func = matched_func;
@@ -1496,11 +1760,16 @@ int OTypeFuncRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
   if (TK_FUNCREF != tks)
   {
+    if (auto * varref = dynamic_cast<OLValueVar *>(expr))
+    {
+      auto * func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
+      if (func && func->IsInlineAsm()) return -1;
+    }
     if ((aflags & EXPCF_EXPLICIT_CAST) && !object_ref && (TK_POINTER == tks)) return 1;
 
     OValSymFunc * matched_func = nullptr;
     EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(expr, matched_func);
-    if (OFRM_UNIQUE_MATCH == ovmatch) return 1;
+    if (OFRM_UNIQUE_MATCH == ovmatch) return (matched_func->IsInlineAsm() ? -1 : 1);
     if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch)) return -1;
     return (CanAccept(resolved_src) ? 1 : -1);
   }

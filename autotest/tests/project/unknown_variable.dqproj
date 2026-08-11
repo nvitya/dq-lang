@@ -1,0 +1,3 @@
+main = 'project_main.dq'
+output = '${MISSING_VARIABLE}/out.exe' //?error(ProjectVariable, 'Unknown project variable')
+

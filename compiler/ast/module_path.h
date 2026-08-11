@@ -56,6 +56,8 @@ public:
   static bool ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
                                        const filesystem::path & context_artifact,
                                        filesystem::path & rartifact_path);
+  static bool ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
+                                 filesystem::path & rroot_dir);
   static filesystem::path BuildRootDir();
   static filesystem::path BuildTagDir();
   static filesystem::path BuildArtifactPath(const filesystem::path & source_path);

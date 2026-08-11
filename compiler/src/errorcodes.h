@@ -130,6 +130,16 @@ DEF_DQ_ERR(DQERR_ATTR_ARG_STRING,                  "AttrArgString",          "At
 DEF_DQ_ERR(DQERR_ATTR_CONFLICT,                    "AttrConflict",           "Conflicting attributes: $1");
 DEF_DQ_ERR(DQERR_ATTR_INVALID_TARGET,              "AttrInvalidTarget",      "Attribute \"$1\" is not valid for $2");
 DEF_DQ_ERR(DQERR_ASM_FUNC_BODY,                    "AsmFuncBody",            "Attribute [[asm]] requires a colon-delimited function body closed by \"endfunc\"");
+DEF_DQ_ERR(DQERR_ASM_INLINE_TARGET,                 "AsmInlineTarget",        "Inline assembly is not supported for target \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_INLINE_USAGE,                  "AsmInlineUsage",         "Invalid inline-assembly function: $1");
+DEF_DQ_ERR(DQERR_ASM_HINT_SYNTAX,                   "AsmHintSyntax",          "Invalid inline-assembly hint syntax: $1");
+DEF_DQ_ERR(DQERR_ASM_HINT_UNKNOWN,                  "AsmHintUnknown",         "Unknown inline-assembly hint \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_OPERAND_UNKNOWN,               "AsmOperandUnknown",      "Unknown inline-assembly operand \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_OPERAND_CONFLICT,              "AsmOperandConflict",     "Conflicting inline-assembly hints for operand \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_OPERAND_TYPE,                  "AsmOperandType",         "Invalid inline-assembly operand type for \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_SYMBOL_UNKNOWN,                "AsmSymbolUnknown",       "Unknown inline-assembly symbol \"$1\"");
+DEF_DQ_ERR(DQERR_ASM_IMMEDIATE_CONST,               "AsmImmediateConst",      "Inline-assembly argument \"$1\" must be a compile-time integer constant");
+DEF_DQ_ERR(DQERR_ASM_FUNC_REF,                      "AsmFuncRef",             "Inline-assembly function \"$1\" cannot be used as a function reference");
 
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXPECTED,          "TypeSpecExpected",       "Type specifier \":\" is expected");
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER,         "TypeSpecExpected",       "Type specifier \":\" is expected after \"$1\"");

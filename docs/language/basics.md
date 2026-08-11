@@ -1,5 +1,9 @@
 # DQ Language Basics
 
+This is the concise guide to everyday source syntax. For exact lexical,
+declaration, and lookup rules, see [Lexical Structure](../reference/lexical-structure.md)
+and [Declarations and Scope](../reference/declarations-and-scope.md).
+
 This page describes the basic source syntax of the DQ language as implemented by
 the current compiler.
 

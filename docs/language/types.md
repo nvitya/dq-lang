@@ -3,6 +3,12 @@
 DQ is statically and strictly typed. Most conversions must be explicit, with a
 small number of numeric conversions provided for convenience.
 
+For complete rules, use the reference pages for
+[types and conversions](../reference/types-and-conversions.md),
+[enums](../reference/enums.md), [arrays and slices](../reference/arrays-and-slices.md),
+[strings and characters](../reference/strings-and-characters.md), and
+[`anyvalue`](../reference/anyvalue.md).
+
 ## Primitive Types
 
 The common primitive types are:

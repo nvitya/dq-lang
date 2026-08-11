@@ -1,0 +1,6 @@
+//?notest
+
+/* Included project fragments share the top-level declaration state. */
+var PACKAGE_PROJECT_DIR = '..'
+define PROJECT_DEFINE = 42
+

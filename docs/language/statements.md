@@ -3,6 +3,9 @@
 DQ statements are separated by newlines or semicolons. Blocks normally use
 `:` plus an `end...` keyword, and may also use braces.
 
+For complete loop, transfer-of-control, and exception rules, see
+[Statements and Control Flow](../reference/statements-and-control-flow.md).
+
 ## Variable Declaration
 
 ```dq

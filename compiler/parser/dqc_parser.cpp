@@ -33,6 +33,7 @@
 #include "expressions.h"
 #include "statements.h"
 #include "module_path.h"
+#include "inline_asm_target.h"
 
 using namespace std;
 
@@ -116,24 +117,324 @@ bool ODqCompParser::ReadAsmFunctionBody(OValSymFunc * func)
     return false;
   }
 
-  char * body_start = scf->curp;
-  func->has_body = true;
-  while (scf->curp < scf->bufend)
+  bool inline_asm = func->IsInlineAsm();
+  auto * tfunc = dynamic_cast<OTypeFunc *>(func->ptype);
+  if (inline_asm && !tfunc)
   {
-    scf->ReadLine();
-    string_view line(scf->prevp, scf->prevlen);
-    size_t first = line.find_first_not_of(" \t");
-    size_t last = line.find_last_not_of(" \t");
-    if ((string_view::npos != first) && (line.substr(first, last - first + 1) == "endfunc"))
+    return false;
+  }
+
+  func->has_body = true;
+  if (inline_asm)
+  {
+    func->asm_operand_kinds.assign(tfunc->params.size(), IAOP_REGISTER);
+  }
+  bool hints_seen = false;
+  scf->SetAsmMode(true);
+
+  auto recover_body = [&]()
+  {
+    while (!scf->Eof())
     {
-      func->asm_body.assign(body_start, scf->prevp - body_start);
-      func->scpos_endfunc = OScPosition(scf->curfile, scf->prevp + first);
+      scf->SkipWhite();
+      OScPosition pos;
+      scf->SaveCurPos(pos);
+      string name;
+      if (scf->ReadIdentifier(name) && ("endfunc" == name))
+      {
+        func->scpos_endfunc = pos;
+        break;
+      }
+      scf->SetCurPos(pos);
+      string ignored;
+      if (!scf->ReadAsmText(ignored)) break;
+    }
+    scf->SetAsmMode(false);
+    return false;
+  };
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->Eof()) break;
+
+    OScPosition item_pos;
+    scf->SaveCurPos(item_pos);
+    string item_name;
+    if (scf->ReadIdentifier(item_name) && ("endfunc" == item_name))
+    {
+      func->scpos_endfunc = item_pos;
+      scf->SetAsmMode(false);
+      return !inline_asm || FinalizeInlineAsm(func);
+    }
+    scf->SetCurPos(item_pos);
+
+    if (inline_asm && scf->CheckSymbol("[[", false))
+    {
+      if (hints_seen)
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "only one trailing hint list is allowed");
+        return recover_body();
+      }
+      if (!ParseInlineAsmHints(func))
+      {
+        return recover_body();
+      }
+      hints_seen = true;
+      continue;
+    }
+
+    if (hints_seen)
+    {
+      Error(DQERR_ASM_HINT_SYNTAX, "assembly text is not allowed after the hint list");
+      return recover_body();
+    }
+
+    string text;
+    if (!scf->ReadAsmText(text)) break;
+    func->asm_body += text;
+  }
+
+  scf->SetAsmMode(false);
+  Error(DQERR_STMTBLK_CLOSE_MISSING, "endfunc", &func->scpos);
+  return false;
+}
+
+bool ODqCompParser::ParseInlineAsmHints(OValSymFunc * func)
+{
+  if (!func || !scf->CheckSymbol("[["))
+  {
+    return false;
+  }
+
+  auto * tfunc = dynamic_cast<OTypeFunc *>(func->ptype);
+  if (!tfunc)
+  {
+    return false;
+  }
+  if (func->asm_operand_kinds.empty())
+  {
+    func->asm_operand_kinds.resize(tfunc->params.size(), IAOP_REGISTER);
+  }
+  vector<bool> hinted(tfunc->params.size(), false);
+  for (size_t i = 0; i < func->asm_operand_kinds.size(); ++i)
+  {
+    hinted[i] = (IAOP_REGISTER != func->asm_operand_kinds[i]);
+  }
+
+  bool have_clause = false;
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("]]"))
+    {
+      if (!have_clause)
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "empty hint list");
+        return false;
+      }
       return true;
+    }
+    if (have_clause)
+    {
+      if (!scf->CheckSymbol(","))
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "expected ',' or ']]'");
+        return false;
+      }
+      scf->SkipWhite();
+      if (scf->CheckSymbol("]]", false))
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "trailing comma in hint list");
+        return false;
+      }
+    }
+    have_clause = true;
+
+    scf->SkipWhite();
+    string clause;
+    if (!scf->ReadIdentifier(clause))
+    {
+      Error(DQERR_ASM_HINT_SYNTAX, "hint name expected");
+      return false;
+    }
+
+    EInlineAsmOperandKind operand_kind = IAOP_REGISTER;
+    bool is_clobber = false;
+    if      ("immediate" == clause)    operand_kind = IAOP_IMMEDIATE;
+    else if ("memread" == clause)      operand_kind = IAOP_MEM_READ;
+    else if ("memwrite" == clause)     operand_kind = IAOP_MEM_WRITE;
+    else if ("memreadwrite" == clause) operand_kind = IAOP_MEM_READWRITE;
+    else if ("clobber" == clause)      is_clobber = true;
+    else
+    {
+      Error(DQERR_ASM_HINT_UNKNOWN, clause);
+      return false;
+    }
+
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("("))
+    {
+      Error(DQERR_ASM_HINT_SYNTAX, "'(' expected after " + clause);
+      return false;
+    }
+
+    bool first_arg = true;
+    while (!scf->Eof())
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol(")"))
+      {
+        if (first_arg)
+        {
+          Error(DQERR_ASM_HINT_SYNTAX, clause + " requires at least one argument");
+          return false;
+        }
+        break;
+      }
+      if (!first_arg && !scf->CheckSymbol(","))
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "expected ',' or ')' in " + clause);
+        return false;
+      }
+      first_arg = false;
+
+      scf->SkipWhite();
+      string operand_name;
+      if (!scf->ReadIdentifier(operand_name))
+      {
+        Error(DQERR_ASM_HINT_SYNTAX, "identifier expected in " + clause);
+        return false;
+      }
+
+      if (is_clobber)
+      {
+        if (find(func->asm_clobbers.begin(), func->asm_clobbers.end(), operand_name)
+            != func->asm_clobbers.end())
+        {
+          Error(DQERR_ASM_OPERAND_CONFLICT, operand_name);
+          return false;
+        }
+        func->asm_clobbers.push_back(operand_name);
+        continue;
+      }
+
+      size_t param_index = tfunc->params.size();
+      for (size_t i = 0; i < tfunc->params.size(); ++i)
+      {
+        if (tfunc->params[i]->name == operand_name)
+        {
+          param_index = i;
+          break;
+        }
+      }
+      if (param_index >= tfunc->params.size())
+      {
+        Error(DQERR_ASM_OPERAND_UNKNOWN, operand_name);
+        return false;
+      }
+      if (hinted[param_index])
+      {
+        Error(DQERR_ASM_OPERAND_CONFLICT, operand_name);
+        return false;
+      }
+      hinted[param_index] = true;
+      func->asm_operand_kinds[param_index] = operand_kind;
     }
   }
 
-  Error(DQERR_STMTBLK_CLOSE_MISSING, "endfunc", &func->scpos);
+  Error(DQERR_ASM_HINT_SYNTAX, "']] is missing");
   return false;
+}
+
+bool ODqCompParser::FinalizeInlineAsm(OValSymFunc * func)
+{
+  auto * tfunc = dynamic_cast<OTypeFunc *>(func ? func->ptype : nullptr);
+  if (!func || !tfunc || !func->ValidateInlineAsmSignature())
+  {
+    return false;
+  }
+
+  vector<size_t> operand_numbers(tfunc->params.size(), 0);
+  size_t operand_number = (tfunc->rettype ? 1 : 0);
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    EInlineAsmOperandKind kind = func->asm_operand_kinds[i];
+    if ((IAOP_MEM_WRITE == kind) || (IAOP_MEM_READWRITE == kind))
+    {
+      operand_numbers[i] = operand_number++;
+    }
+  }
+  for (size_t i = 0; i < tfunc->params.size(); ++i)
+  {
+    EInlineAsmOperandKind kind = func->asm_operand_kinds[i];
+    if ((IAOP_REGISTER == kind) || (IAOP_IMMEDIATE == kind) || (IAOP_MEM_READ == kind))
+    {
+      operand_numbers[i] = operand_number++;
+    }
+  }
+
+  string translated;
+  translated.reserve(func->asm_body.size());
+  for (size_t pos = 0; pos < func->asm_body.size();)
+  {
+    if ('$' != func->asm_body[pos])
+    {
+      translated.push_back(func->asm_body[pos++]);
+      continue;
+    }
+
+    size_t name_start = pos + 1;
+    size_t name_end = name_start;
+    while (name_end < func->asm_body.size())
+    {
+      char c = func->asm_body[name_end];
+      if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || ('_' == c)
+            || (name_end > name_start && c >= '0' && c <= '9')))
+      {
+        break;
+      }
+      ++name_end;
+    }
+    if (name_end == name_start)
+    {
+      translated.push_back(func->asm_body[pos++]);
+      continue;
+    }
+
+    string name = func->asm_body.substr(name_start, name_end - name_start);
+    if ("result" == name)
+    {
+      if (!tfunc->rettype)
+      {
+        Error(DQERR_ASM_SYMBOL_UNKNOWN, name);
+        return false;
+      }
+      translated += "$0";
+    }
+    else
+    {
+      size_t param_index = tfunc->params.size();
+      for (size_t i = 0; i < tfunc->params.size(); ++i)
+      {
+        if (tfunc->params[i]->name == name)
+        {
+          param_index = i;
+          break;
+        }
+      }
+      if (param_index >= tfunc->params.size())
+      {
+        Error(DQERR_ASM_SYMBOL_UNKNOWN, name);
+        return false;
+      }
+      translated += "$" + to_string(operand_numbers[param_index]);
+    }
+    pos = name_end;
+  }
+
+  func->asm_body = std::move(translated);
+  return true;
 }
 
 void ODqCompParser::ParseModule()
@@ -1104,15 +1405,40 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     delete vsfunc;
     return false;
   }
-  if (vsfunc->is_asm && (vsfunc->attr_is_inline || vsfunc->attr_is_always_inline))
+  if (vsfunc->is_asm && vsfunc->attr_is_always_inline)
   {
     OScPosition errpos(scf->curfile, scf->curp);
-    string conflict = vsfunc->attr_is_inline ? "[[asm]] and [[inline]]" : "[[asm]] and [[always_inline]]";
-    Error(DQERR_ATTR_CONFLICT, conflict, &errpos);
+    Error(DQERR_ATTR_CONFLICT, "[[asm]] and [[always_inline]]", &errpos);
     RecoverFailedFunctionDecl();
     curvsfunc = nullptr;
     delete vsfunc;
     return false;
+  }
+  if (vsfunc->IsInlineAsm())
+  {
+    string invalid_usage;
+    if (!InlineAsmTargetForArch(g_opt.target.arch))
+    {
+      Error(DQERR_ASM_INLINE_TARGET, g_opt.target.arch);
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
+    if (vsfunc->owner_compound_type) invalid_usage = "methods are not supported";
+    else if (vsfunc->IsSpecial()) invalid_usage = "special functions are not supported";
+    else if (vsfunc->attr_is_noinline) invalid_usage = "[[noinline]] is not allowed";
+    else if (vsfunc->attr_is_weak) invalid_usage = "[[weak]] is not allowed";
+    else if (vsfunc->attr_has_linkage_name) invalid_usage = "native export attributes are not allowed";
+    else if (!vsfunc->attr_section_name.empty()) invalid_usage = "[[section]] is not allowed";
+    if (!invalid_usage.empty())
+    {
+      Error(DQERR_ASM_INLINE_USAGE, invalid_usage);
+      RecoverFailedFunctionDecl();
+      curvsfunc = nullptr;
+      delete vsfunc;
+      return false;
+    }
   }
 
   if (vsfunc->owner_compound_type)

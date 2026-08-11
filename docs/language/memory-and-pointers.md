@@ -1,5 +1,10 @@
 # Memory and Pointers
 
+This page gives practical low-level usage. Exact structure, pointer, lifetime,
+and function-reference rules are in
+[Structures, Pointers, and Function References](../reference/structures-pointers-and-function-references.md)
+and [Objects and Properties](../reference/objects-and-properties.md).
+
 DQ has manual memory management, typed pointers, untyped pointers, object
 references, and embedded object storage.
 

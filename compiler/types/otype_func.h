@@ -43,6 +43,15 @@ ESpecialFuncKind SpecialFuncKindFromName(const string & aname);
 const char * SpecialFuncKindName(ESpecialFuncKind akind);
 EObjectSpecFuncKind ObjectSpecFuncKindFromName(const string & aname);
 
+enum EInlineAsmOperandKind : uint8_t
+{
+  IAOP_REGISTER = 0,
+  IAOP_IMMEDIATE,
+  IAOP_MEM_READ,
+  IAOP_MEM_WRITE,
+  IAOP_MEM_READWRITE
+};
+
 struct TFuncCallArgMatch
 {
   OExpr *  expr = nullptr;
@@ -160,6 +169,8 @@ public:
   OScPosition        scpos_endfunc;
   OStmtBlock *       body;
   string             asm_body;
+  vector<EInlineAsmOperandKind> asm_operand_kinds;
+  vector<string>     asm_clobbers;
 
   bool               has_body = false;
   bool               is_external = false;
@@ -201,6 +212,11 @@ public:
     return (SFK_NONE != special_kind);
   }
 
+  inline bool IsInlineAsm() const
+  {
+    return is_asm && attr_is_inline;
+  }
+
   void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;
   void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;
 
@@ -208,6 +224,12 @@ public:
   void MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_names);
   void ValidateForwardDecl() const;
   void ResetBodyScope(OScope * aparentscope);
+  string InlineAsmRegisterConstraint(OType * type) const;
+  string InlineAsmClobberConstraint(const string & name) const;
+  OType * InlineAsmMemoryElementType(size_t param_index) const;
+  bool ValidateInlineAsmSignature();
+  bool ValidateInlineAsmCall(const vector<OExpr *> & callargs) const;
+  LlValue * GenerateInlineAsmCall(const vector<LlValue *> & callargs);
   void GenerateFuncBody();
   void GenerateFuncRet();
   bool WriteDqmIfDecl(ODqmIfWriter & writer) override;

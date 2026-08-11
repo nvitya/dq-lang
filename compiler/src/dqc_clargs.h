@@ -34,19 +34,14 @@ public:
   string           base_name = "";     // in_filename with .dq stripped
   string           link_output = "";   // final executable/output name
   bool             has_dash_o = false; // -o was specified
+  bool             has_output = false; // output selected by project, -o, or legacy positional arg
 
 public:
   ODqCompClargs();
   virtual ~ODqCompClargs();
 
   bool IsValidDefineName(const string & name);
-  string ResolveCompilerExecutable(const string & argv0);
-  string CompilerExecutableDir(const string & compiler_executable);
-  string DefaultTargetArch();
-  string DefaultTargetRtl();
   string DefaultBuildTag();
-  void AddDefaultPackagePaths();
-  string NormalizeCompilerExecutable(const string & argv0);
   void ParseModuleUseStack(const string & text, vector<string> & rstack);
   bool ParseDefineIntValue(const string & text, int64_t & rvalue);
   bool ParseDefineBoolValue(const string & text, bool & rvalue);

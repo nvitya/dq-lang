@@ -118,6 +118,22 @@ bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::p
   return false;
 }
 
+bool OModulePath::ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
+                                     filesystem::path & rroot_dir)
+{
+  for (auto it = package_paths.rbegin(); it != package_paths.rend(); ++it)
+  {
+    filesystem::path candidate = AbsNorm(filesystem::path(*it) / package_name);
+    error_code ec;
+    if (filesystem::is_directory(candidate, ec) && !ec)
+    {
+      rroot_dir = candidate;
+      return true;
+    }
+  }
+  return false;
+}
+
 filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_name, const string & local_path,
                                                          const filesystem::path & root_dir, bool interface_only)
 {
@@ -334,19 +350,7 @@ bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
     resolved_package_name = parts[0];
     resolved_local_path = (parts.size() == 1 ? resolved_package_name : Join(parts, 1));
 
-    bool found_package = false;
-    for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
-    {
-      filesystem::path candidate = AbsNorm(filesystem::path(*it) / resolved_package_name);
-      error_code ec;
-      if (filesystem::is_directory(candidate, ec) && !ec)
-      {
-        resolved_root_dir = candidate;
-        found_package = true;
-        break;
-      }
-    }
-    if (!found_package)
+    if (!ResolvePackageRoot(resolved_package_name, g_opt.package_paths, resolved_root_dir))
     {
       rerror = resolved_package_name;
       return false;
@@ -436,15 +440,11 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
     }
   }
 
-  for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
+  filesystem::path package_dir;
+  if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir))
   {
-    filesystem::path package_dir = AbsNorm(filesystem::path(*it) / package_name);
-    error_code ec;
-    if (filesystem::is_directory(package_dir, ec) && !ec)
-    {
-      rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
-      return true;
-    }
+    rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
+    return true;
   }
 
   return false;

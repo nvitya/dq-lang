@@ -35,8 +35,10 @@
 
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 #include "dqc.h"
+#include "projectfile.h"
 #include "version.h"
 
 #define CALL_TESTCODE 0
@@ -146,6 +148,49 @@ static bool HasVersionArg(int argc, char ** argv)
   return false;
 }
 
+struct SProjectStartupArgs
+{
+  string project_filename;
+  vector<string> command_line_package_paths;
+};
+
+static bool OptionConsumesNextArg(const string & arg)
+{
+  return (arg == "--target") || (arg == "--pkg-path") || (arg == "--build")
+         || (arg == "--build-suffix") || (arg == "--build-root") || (arg == "--mod-root")
+         || (arg == "--mod-name") || (arg == "--ifstack") || (arg == "-o");
+}
+
+static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
+{
+  SProjectStartupArgs result;
+  bool found_first_positional = false;
+
+  for (int i = 1; i < argc; ++i)
+  {
+    string arg(argv[i]);
+    if (arg == "--pkg-path")
+    {
+      if (i + 1 < argc) result.command_line_package_paths.push_back(argv[++i]);
+      continue;
+    }
+    if (OptionConsumesNextArg(arg))
+    {
+      if (i + 1 < argc) ++i;
+      continue;
+    }
+    if (!arg.empty() && (arg[0] == '-')) continue;
+    if (found_first_positional) continue;
+    found_first_positional = true;
+    filesystem::path input(arg);
+    if (input.extension() == ".dqproj" || input.extension() == ".dqprj")
+    {
+      result.project_filename = arg;
+    }
+  }
+  return result;
+}
+
 int main(int argc, char ** argv)
 {
   int r;
@@ -165,8 +210,30 @@ int main(int argc, char ** argv)
     testcode();
   #endif
 
+  g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
+  g_opt.package_paths = g_opt.DefaultPackagePaths();
+  SProjectStartupArgs startup_args = ScanProjectStartupArgs(argc, argv);
+  ODqProject project;
+  if (!startup_args.project_filename.empty())
+  {
+    if (filesystem::path(startup_args.project_filename).extension() != ".dqproj")
+    {
+      print("DQ project files must use the .dqproj extension\n");
+      return 1;
+    }
+    if (!project.Load(startup_args.project_filename, startup_args.command_line_package_paths))
+    {
+      for (const SDqProjectDiagnostic & diagnostic : project.diagnostics)
+      {
+        print("{}\n", diagnostic.Format());
+      }
+      return 1;
+    }
+  }
+
   string target_error;
-  if (!g_opt.target.ConfigureFromCommandLine(argc, argv, target_error))
+  string project_target = (startup_args.project_filename.empty() ? "" : g_opt.target.name);
+  if (!g_opt.target.ConfigureFromCommandLine(argc, argv, target_error, project_target))
   {
     print("{}\n", target_error);
     return 1;

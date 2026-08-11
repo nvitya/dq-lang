@@ -11,10 +11,26 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.38.2"
+#define DQ_COMPILER_VERSION  "0.40.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.4:
+  - non-inline [[asm]] functions use intel syntax
+v0.40.3:
+  - Project file parsing refactoring / 3
+v0.40.2:
+  - Project file parsing refactoring / 2
+v0.40.1:
+  - Project file parsing refactoring / 1
+v0.40.0:
+  - Project file support (.dqproj)
+v0.39.2:
+  - Inline ASM support for ARM M/A, ARM64, RV32I and RV64G architectures
+v0.39.1:
+  - Common text parsing for inline and non-inline [[asm]] functions
+v0.39.0:
+  - Inline ASM with [[inline, asm]] attributes
 v0.38.2:
   - [[weak]] attributes
   - Casting pointers to simple function references

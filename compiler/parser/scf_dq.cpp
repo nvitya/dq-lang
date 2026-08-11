@@ -116,6 +116,7 @@ void OScFeederDq::Reset()
   main_source_path.clear();
   header_source_path.clear();
   implementation_section = false;
+  asm_mode = false;
 }
 
 OScFile * OScFeederDq::LoadFile(const filesystem::path & filename)
@@ -306,7 +307,14 @@ repeat_skip:  // jumped here when returning from an include
       }
       else
       {
-        SkipInactiveCode();  // might return early to let the SkipWhite() to process some parts
+        if (asm_mode)
+        {
+          SkipInactiveAsmCode();
+        }
+        else
+        {
+          SkipInactiveCode();  // might return early to let the SkipWhite() to process some parts
+        }
         RecalcCurCol();
       }
     }
@@ -325,6 +333,143 @@ repeat_skip:  // jumped here when returning from an include
   }
 
   return;
+}
+
+void OScFeederDq::SkipInactiveAsmCode()
+{
+  // Assembly recognizes directives only at the start of a physical
+  // line. Skip the rest of this inactive assembly line without treating an
+  // operand such as "#1" as a directive.
+  char * p = curp;
+  while (p < bufend)
+  {
+    if ((*p == '\r') || (*p == '\n'))
+    {
+      curp = p;
+      ReadLine();
+      return;
+    }
+
+    if (((*p == '\'') || (*p == '"')))
+    {
+      char quote = *p++;
+      while (p < bufend && *p != quote && *p != '\r' && *p != '\n')
+      {
+        if ((*p == '\\') && (p + 1 < bufend)) ++p;
+        ++p;
+      }
+      if ((p < bufend) && (*p == quote)) ++p;
+      continue;
+    }
+
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '/'))
+    {
+      curp = p + 2;
+      ReadTo("\r\n");
+      return;
+    }
+
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '*'))
+    {
+      int start_line = curline;
+      curp = p + 2;
+      if (!SearchPattern("*/", true))
+      {
+        curp = bufend;
+        RecalcCurLineCol();
+        return;
+      }
+      p = curp;
+      if (curline != start_line)
+      {
+        return; // let SkipWhite process the new physical line
+      }
+      continue;
+    }
+
+    ++p;
+  }
+
+  curp = p;
+  RecalcCurLineCol();
+}
+
+bool OScFeederDq::ReadAsmText(string & rtext)
+{
+  rtext.clear();
+  if (curp >= bufend)
+  {
+    return false;
+  }
+
+  char * p = curp;
+  while (p < bufend)
+  {
+    if ((*p == '\r') || (*p == '\n'))
+    {
+      rtext.push_back('\n');
+      curp = p;
+      ReadLine();
+      return true;
+    }
+
+    if ((*p == '\'') || (*p == '"'))
+    {
+      char quote = *p;
+      rtext.push_back(*p++);
+      while (p < bufend && *p != quote && *p != '\r' && *p != '\n')
+      {
+        if ((*p == '\\') && (p + 1 < bufend))
+        {
+          rtext.push_back(*p++);
+        }
+        rtext.push_back(*p++);
+      }
+      if ((p < bufend) && (*p == quote)) rtext.push_back(*p++);
+      continue;
+    }
+
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '/'))
+    {
+      while (p < bufend && *p != '\r' && *p != '\n') ++p;
+      continue;
+    }
+
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '*'))
+    {
+      if (!rtext.empty() && rtext.back() != ' ' && rtext.back() != '\n') rtext.push_back(' ');
+      p += 2;
+      bool crossed_line = false;
+      while (p < bufend)
+      {
+        if ((p + 1 < bufend) && (p[0] == '*') && (p[1] == '/'))
+        {
+          p += 2;
+          break;
+        }
+        if ((*p == '\r') || (*p == '\n'))
+        {
+          rtext.push_back('\n');
+          crossed_line = true;
+          if ((*p == '\r') && (p + 1 < bufend) && (p[1] == '\n')) ++p;
+        }
+        ++p;
+      }
+      curp = p;
+      RecalcCurLineCol();
+      if (crossed_line)
+      {
+        return true; // restart classification at the new physical line
+      }
+      continue;
+    }
+
+    rtext.push_back(*p++);
+  }
+
+  curp = p;
+  RecalcCurLineCol();
+  return !rtext.empty();
 }
 
 void OScFeederDq::SkipInactiveCode()  // for an inactive #{if...} branch, called only from SkipWhite()

@@ -3,6 +3,9 @@
 DQ objects are reference types with fields, methods, constructors,
 destructors, properties, inheritance, and virtual dispatch.
 
+For allocation, lifetime, dispatch, casting, and property rules, see
+[Objects and Properties](../reference/objects-and-properties.md).
+
 ## Declaration
 
 ```dq
@@ -240,7 +243,7 @@ endobj
 
 function Test():
     var firstchild : OJson
-    var rootobj = new JSon()
+    var rootobj : OJson = new OJson()
     rootobj.LoadFromFile('test.json')
     firstchild = rootobj[0]
 endfunc

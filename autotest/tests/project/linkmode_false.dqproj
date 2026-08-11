@@ -1,0 +1,5 @@
+//?notest
+
+main = 'linkmode_main.dq'
+link = false
+

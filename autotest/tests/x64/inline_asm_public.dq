@@ -1,0 +1,10 @@
+//?notest
+
+function PublicAdd(value : int, value2 : int) -> int [[inline, asm]]:
+    lea $result, [$value + $value2]
+endfunc
+
+function PublicMulImmediate(value : int, factor : int) -> int [[inline, asm]]:
+    imul $result, $value, $factor
+    [[immediate(factor), clobber(flags)]]
+endfunc

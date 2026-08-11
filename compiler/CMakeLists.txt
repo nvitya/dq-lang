@@ -47,6 +47,20 @@ file(GLOB SRC_UTILS     CONFIGURE_DEPENDS "utils/*.cpp")
 
 add_executable(dq-comp ${SRC_SRC} ${SRC_AST} ${SRC_TYPES} ${SRC_PARSER} ${SRC_CODEGEN} ${SRC_BUILTINS} ${SRC_SRC_TEST} ${SRC_UTILS})
 add_executable(dq-run tools/main_dq_run.cpp ${SRC_UTILS})
+add_executable(dq-inline-asm-test
+    test/inline_asm_target_test.cpp
+    codegen/inline_asm_target.cpp
+    codegen/inline_asm_target_x86.cpp
+    codegen/inline_asm_target_arm.cpp
+    codegen/inline_asm_target_aarch64.cpp
+    codegen/inline_asm_target_riscv.cpp)
+add_executable(dq-projectfile-test
+    test/projectfile_test.cpp
+    src/projectfile.cpp
+    src/comp_options.cpp
+    ast/module_path.cpp
+    utils/strparse.cpp
+    utils/executable_path.cpp)
 
 if(DQ_DEFAULT_LINK_DRIVER)
   target_compile_definitions(dq-comp PRIVATE DQ_DEFAULT_LINK_DRIVER="${DQ_DEFAULT_LINK_DRIVER}")
@@ -71,9 +85,13 @@ find_library(DQ_STDCXXEXP_LIBRARY stdc++exp)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_link_libraries(dq-comp PRIVATE stdc++exp)
   target_link_libraries(dq-run PRIVATE stdc++exp)
+  target_link_libraries(dq-inline-asm-test PRIVATE stdc++exp)
+  target_link_libraries(dq-projectfile-test PRIVATE stdc++exp)
 elseif(DQ_STDCXXEXP_LIBRARY)
   target_link_libraries(dq-comp PRIVATE ${DQ_STDCXXEXP_LIBRARY})
   target_link_libraries(dq-run PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+  target_link_libraries(dq-inline-asm-test PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+  target_link_libraries(dq-projectfile-test PRIVATE ${DQ_STDCXXEXP_LIBRARY})
 endif()
 
 target_link_libraries(dq-comp PRIVATE ${llvm_libs})

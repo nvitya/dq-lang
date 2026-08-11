@@ -29,6 +29,8 @@ const DEFAULT_PORT : int = 8080
 ```
 
 Constants must be initialized with compile-time constant expressions.
+Constants with a common type can be grouped using
+`const(type): ... endconst`; the group does not introduce a new scope.
 
 ## Assignment
 

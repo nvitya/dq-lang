@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.6"
+#define DQ_COMPILER_VERSION  "0.40.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.7:
+  - const blocks: const(uint32): ... endconst
 v0.40.6:
   - MMIO access attributes: [[regrw]], [[regro]], [[regwo]], [[noread]], and [[nowrite]]
 v0.40.5:

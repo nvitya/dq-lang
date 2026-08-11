@@ -1,0 +1,16 @@
+// grouped constant parsing and recovery diagnostics
+
+const(int)
+    RECOVERED_MEMBER = 1  //?error(StmtBlockStartMissing)
+endconst
+
+const(int):
+    DUPLICATE_MEMBER = 2
+    DUPLICATE_MEMBER = 3  //?error(VsAlreadyDecl)
+    MEMBER_AFTER_ERROR = RECOVERED_MEMBER + 1
+endconst
+
+function grouped_const_mismatched_closer():
+    const(int):
+        LOCAL_MEMBER = MEMBER_AFTER_ERROR
+    endfunc  //?error(StmtBlockCloseMismatch)

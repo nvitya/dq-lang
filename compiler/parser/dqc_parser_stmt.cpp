@@ -466,18 +466,116 @@ void ODqCompParserStmt::ParseStmtRef()
 
 void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
 {
-  // syntax form: "const identifier : type [ = initial value];"
+  // syntax forms:
+  //   const identifier : type = initial_value
+  //   const(type): identifier = initial_value ... endconst
   // note: "const" is already consumed
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    ParseConstDecl(arootstmt, nullptr, false);
+    return;
+  }
+
+  OType * sharedtype = ParseTypeSpec();
+  if (!sharedtype)
+  {
+    SkipToSymbol("endconst");
+    return;
+  }
+  if (TK_DYN_ARRAY == sharedtype->ResolveAlias()->kind)
+  {
+    Error(DQERR_NOT_SUPPORTED, "dynamic array constant");
+    SkipToSymbol("endconst");
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "const type");
+    SkipToSymbol("endconst");
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(":"))
+  {
+    Error(DQERR_STMTBLK_START_MISSING);
+  }
+
+  const OAttr group_attr = *attr;
+  struct TCloserPusher
+  {
+    vector<string> & stack;
+    TCloserPusher(vector<string> & astack) : stack(astack) { stack.push_back("endconst"); }
+    ~TCloserPusher() { stack.pop_back(); }
+  } closer_pusher(expected_block_closers);
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    OScPosition itempos;
+    scf->SaveCurPos(itempos);
+
+    string sid;
+    if (scf->ReadIdentifier(sid, false) && ("endconst" == sid))
+    {
+      scf->ReadIdentifier(sid);
+      *attr = group_attr;
+      return;
+    }
+
+    if (scf->Eof())
+    {
+      break;
+    }
+
+    if (scf->ReadIdentifier(sid, false) && IsBlockCloserWord(sid))
+    {
+      bool expected_by_outer = false;
+      for (size_t i = 0; i + 1 < expected_block_closers.size(); ++i)
+      {
+        auto split_view = expected_block_closers[i] | views::split('|');
+        for (auto chunk : split_view)
+        {
+          if (sid == string_view(chunk)) { expected_by_outer = true; break; }
+        }
+        if (expected_by_outer) break;
+      }
+
+      Error(DQERR_STMTBLK_CLOSE_MISMATCH, "endconst", sid, &itempos);
+      if (!expected_by_outer)
+      {
+        scf->ReadIdentifier(sid);
+      }
+      *attr = group_attr;
+      return;
+    }
+
+    scpos_statement_start = itempos;
+    *attr = group_attr;
+    ParseConstDecl(arootstmt, sharedtype, true);
+  }
+
+  *attr = group_attr;
+  Error(DQERR_STMTBLK_CLOSE_MISSING, "endconst");
+}
+
+void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember)
+{
+  // "const" or the grouped declaration header is already consumed.
 
   string       sid;
   OValSym *    pvalsym;
-  OType *      ptype;
+  OType *      ptype = asharedtype;
   OScPosition  expos;
 
   auto emit_error = [&](const TDiagDefErr & adiag, string_view par1 = "", string_view par2 = "",
                         OScPosition * scpos = nullptr, bool atryrecover = true)
   {
-    if (arootstmt)
+    if (arootstmt && !agroupmember)
     {
       RootStatementError(adiag, par1, par2, scpos, atryrecover);
     }
@@ -513,22 +611,25 @@ void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
     return;
   }
 
-  scf->SkipWhite();
-  if (not scf->CheckSymbol(":"))
+  if (!ptype)
   {
-    emit_error(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
-    return;
-  }
+    scf->SkipWhite();
+    if (not scf->CheckSymbol(":"))
+    {
+      emit_error(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
+      return;
+    }
 
-  ptype = ParseTypeSpec();
-  if (not ptype)
-  {
-    return;
-  }
-  if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
-  {
-    emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
-    return;
+    ptype = ParseTypeSpec();
+    if (not ptype)
+    {
+      return;
+    }
+    if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
+    {
+      emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
+      return;
+    }
   }
 
   scf->SkipWhite();

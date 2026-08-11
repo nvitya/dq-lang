@@ -74,7 +74,7 @@ bool ODqCompBase::RootStatementWord(const string aname)
 
 const string dq_block_closer_words =
    "|endfor|endwhile|endif|endfunc|endtry|except|finally|else|elif"
-   "|endstruct|endobj|endenum|endunion|endclass"
+   "|endstruct|endobj|endconst|endenum|endunion|endclass"
    "|"
 ;
 

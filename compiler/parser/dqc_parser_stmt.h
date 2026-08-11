@@ -37,6 +37,8 @@ public: // statement blocks
   EBinOp ParseAssignOp();
 
 protected:
+  void ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember);
+
   int except_depth = 0;
   vector<string> expected_block_closers;
 };

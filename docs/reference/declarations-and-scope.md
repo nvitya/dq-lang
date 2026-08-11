@@ -43,6 +43,17 @@ initializer.
 const BUFFER_SIZE : int = 4096
 ```
 
+Related constants of the same type can share a declaration block. The block
+does not introduce a scope, and later members can reference earlier members.
+
+```dq
+const(uint32):
+    FLASH_BASE      = 0x08000000
+    FLASH_BANK1_END = FLASH_BASE + 0x7FFF
+    SRAM_BASE       = 0x20000000
+endconst
+```
+
 ## Type Declarations
 
 `type` introduces a type alias. `struct`, `enum`, and `object` introduce compound

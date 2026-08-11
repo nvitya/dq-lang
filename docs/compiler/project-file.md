@@ -25,7 +25,7 @@ var BOARD_SUPPORT = PackagePath('board_support')
 include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
 
 main      = 'src/application.dq'
-output    = 'build/application.elf'
+output    = 'build/${PROJNAME}.elf'
 target    = 'arm_m7f-bare'
 link      = true
 optlevel  = 2
@@ -240,6 +240,7 @@ also cannot redefine either built-in variable:
 
 | Variable | Meaning |
 | --- | --- |
+| `${PROJECT_NAME}` | Name of the top level `.dqproj` file, without extension |
 | `${PROJECT_DIR}` | Directory containing the top-level `.dqproj` file. |
 | `${THIS_DIR}` | Directory containing the file with the current statement. |
 

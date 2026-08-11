@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.3"
+#define DQ_COMPILER_VERSION  "0.40.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.5:
+  - PROJECT_NAME variable is available in the project files
 v0.40.4:
   - non-inline [[asm]] functions use intel syntax
 v0.40.3:

@@ -626,6 +626,9 @@ bool ODqProject::Load(const filesystem::path & top_file,
   project_dir = project_file.filename.parent_path();
   g_opt.project_filename = project_file.filename.string();
 
+  // Create the "PROJECT_NAME" variable as filename of the top project file without .dqproj extension
+  variables["PROJECT_NAME"] = project_file.filename.stem().string();
+
   if (project_file.filename.extension() != ".dqproj")
   {
     return project_file.Fail("ProjectExtension", "DQ project files must use the .dqproj extension");

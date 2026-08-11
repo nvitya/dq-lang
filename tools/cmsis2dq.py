@@ -58,9 +58,13 @@ def process_file(filepath):
                     
                     if val:
                         val = re_number_suffix.sub(r'\1', val)
+                        # strip C casts like (uint32_t)
+                        val = re.sub(r'\(\s*u?int\d+_t\s*\)', '', val)
+                        # strip redundant outer parens around single tokens
+                        val = re.sub(r'^\s*\(\s*([^() ]+)\s*\)\s*$', r'\1', val)
                         
                         if "Type" not in val and "->" not in val and "volatile" not in val:
-                            out_lines.append(f"const {name} : uint32 = {val}")
+                            out_lines.append(f"const {name.ljust(24)} : uint32 = {val}")
                 continue
             
             if re_struct_start.match(line):
@@ -104,6 +108,8 @@ def process_file(filepath):
                     dq_attr = "[[regro]] "
                 elif mod in ("__OM", "__O"):
                     dq_attr = "[[regwo]] "
+                else:
+                    dq_attr = "          "
                 
                 dq_type = ctype
                 if arr:
@@ -111,7 +117,7 @@ def process_file(filepath):
                     arr_val = re_number_suffix.sub(r'\1', arr_val)
                     dq_type = f"[{arr_val}]{dq_type}"
                     
-                field_str = f"    {name} : {dq_attr}{dq_type}"
+                field_str = f"    {name.ljust(12)} : {dq_attr}{dq_type.ljust(8)}"
                 if comment:
                     cm = re_comment.search(comment)
                     if cm:
@@ -144,7 +150,7 @@ def process_file(filepath):
                     val = "0" 
                 
                 comment = m_item.group(3) or ""
-                out_line = f"const {name} : int = {val}"
+                out_line = f"const {name.ljust(24)} : int = {val}"
                 if comment:
                     cm = re_comment.search(comment)
                     if cm:

@@ -87,7 +87,9 @@ endstruct
 ```
 
 Attributes such as `[[packed]]`, `[[align(n)]]`, and `[[volatile]]` are available
-for low-level layout/access cases where supported by the compiler.
+for low-level layout/access cases where supported by the compiler. Memory-mapped
+register fields can use `[[regrw]]`, `[[regro]]`, and `[[regwo]]` for volatile
+read/write, read-only, and write-only access respectively.
 
 ## Linking Libraries
 

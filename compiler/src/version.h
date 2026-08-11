@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.5"
+#define DQ_COMPILER_VERSION  "0.40.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.6:
+  - MMIO access attributes: [[regrw]], [[regro]], [[regwo]], [[noread]], and [[nowrite]]
 v0.40.5:
   - PROJECT_NAME variable is available in the project files
 v0.40.4:

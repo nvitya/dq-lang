@@ -61,6 +61,7 @@ public:
   ODecl * AddDeclOverloadSet(OScPosition & scpos, OValSymOverloadSet * avsoverload);
   bool    ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype);
   void    CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OLValueVar *> & ignored);
+  void    CollectPlainAssignTargetLValues(OLValueExpr * leftexpr, vector<OLValueExpr *> & targets);
   OValSym * GetAssignRootValSym(OLValueExpr * leftexpr);
   OExpr * FreeLeftRight(OExpr * left, OExpr * right);
   OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);
@@ -82,9 +83,16 @@ public: // Moved from ODqCompParser
   OLValueExpr * array_index_context_lval = nullptr;
   bool          array_index_context_wchar = false;
   bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
+  bool          suppress_access_read_check = false;
   struct TSuppressedVarInitDiag
   {
     OLValueVar *  varexpr = nullptr;
+    OValSym *     valsym = nullptr;
+    OScPosition   scpos;
+  };
+  struct TSuppressedAccessDiag
+  {
+    OLValueExpr * lvalue = nullptr;
     OValSym *     valsym = nullptr;
     OScPosition   scpos;
   };
@@ -93,8 +101,10 @@ public: // Moved from ODqCompParser
     OExpr *                        expr = nullptr;
     OScPosition                    scpos_start;
     vector<TSuppressedVarInitDiag> init_diags;
+    vector<TSuppressedAccessDiag> access_diags;
   };
   vector<TSuppressedVarInitDiag>  suppressed_varinit_diags;
+  vector<TSuppressedAccessDiag>   suppressed_access_diags;
   bool FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr);
   bool SupportsFuncParamDefaultType(OType * ptype);
   bool BindCallArguments(const string & callname, OTypeFunc * tfunc, vector<TRawCallArg> & rawargs, vector<OExpr *> & rargs);
@@ -113,6 +123,10 @@ public: // Moved from ODqCompParser
   void    AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos);
   void    EmitSuppressedVarInitDiags();
   void    EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op);
+  void    CheckNoReadAccess(OLValueExpr * lvalue, OValSym * valsym, OScPosition & scpos);
+  void    EmitSuppressedAccessDiags();
+  void    EmitFilteredAssignAccessDiags(OLValueExpr * leftexpr, EBinOp op);
+  void    EmitStoredAccessDiags(const vector<TSuppressedAccessDiag> & diags);
   void FreeRawCallArguments(vector<TRawCallArg> & rawargs);
   void EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags);
 

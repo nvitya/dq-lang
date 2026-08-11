@@ -76,9 +76,12 @@ class OLValueExpr : public OExpr
 public:
   virtual LlValue * GenerateAddress(OScope * scope) = 0;
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
+  LlValue * GenerateMemoryLoad(LlType * type, LlValue * address, const string & name);
   virtual bool IsObjectReferenceExpr() const { return false; }
   virtual bool IsFixedObjectStorageExpr() const { return false; }
   virtual bool RequiresVolatileMemoryAccess() const { return false; }
+  virtual OValSym * NoReadSymbol() const { return nullptr; }
+  virtual OValSym * NoWriteSymbol() const { return nullptr; }
   virtual LlValue * GenerateObjectAddress(OScope * scope);
 };
 
@@ -91,6 +94,9 @@ public:
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       IsFixedObjectStorageExpr() const override;
+  bool       RequiresVolatileMemoryAccess() const override;
+  OValSym *  NoReadSymbol() const override;
+  OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
 };
 
@@ -115,10 +121,14 @@ public:
   OType *        structtype;
   uint32_t       memberindex;
   /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
+  OValSym *  MemberSymbol() const;
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       IsFixedObjectStorageExpr() const override;
+  bool       RequiresVolatileMemoryAccess() const override;
+  OValSym *  NoReadSymbol() const override;
+  OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
@@ -134,6 +144,9 @@ public:
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
+  bool       RequiresVolatileMemoryAccess() const override;
+  OValSym *  NoReadSymbol() const override;
+  OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;

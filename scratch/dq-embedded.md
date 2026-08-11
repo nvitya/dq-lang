@@ -295,3 +295,40 @@ endfunc
 ```
 
 Inline assembly with register usage hinting will be added later.
+
+## I/O Reg Attributes
+
+```C
+typedef struct
+{
+  __IOM uint32_t CTRL;                   /*!< Offset: 0x000 (R/W)  SysTick Control and Status Register */
+  __IOM uint32_t LOAD;                   /*!< Offset: 0x004 (R/W)  SysTick Reload Value Register */
+  __IOM uint32_t VAL;                    /*!< Offset: 0x008 (R/W)  SysTick Current Value Register */
+  __IM  uint32_t CALIB;                  /*!< Offset: 0x00C (R/ )  SysTick Calibration Register */
+} SysTick_Type;
+```
+
+```DQ
+struct SSysTick:
+  CTRL  : [[regrw]] uint32  // Offset: 0x000 (R/W)  SysTick Control and Status Register
+  LOAD  : [[regrw]] uint32  // Offset: 0x004 (R/W)  SysTick Reload Value Register
+  VAL   : [[regrw]] uint32  // Offset: 0x008 (R/W)  SysTick Current Value Register */
+  CALIB : [[regro]] uint32  // Offset: 0x00C (R/ )  SysTick Calibration Register
+endstruct
+```
+
+The register attributes are concise combinations of the underlying access
+attributes:
+
+* `[[regrw]]` = `[[volatile]]`
+* `[[regro]]` = `[[volatile, nowrite]]`
+* `[[regwo]]` = `[[volatile, noread]]`
+
+A write-only command register can therefore be declared without repeating the
+low-level attributes:
+
+```DQ
+struct SPeripheral:
+  COMMAND : [[regwo]] uint32
+endstruct
+```

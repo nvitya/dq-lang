@@ -129,6 +129,8 @@ DEF_DQ_ERR(DQERR_ATTR_ARG_POSITIVE_INT,            "AttrArgPosInt",          "At
 DEF_DQ_ERR(DQERR_ATTR_ARG_STRING,                  "AttrArgString",          "Attribute \"$1\" expects a string literal argument");
 DEF_DQ_ERR(DQERR_ATTR_CONFLICT,                    "AttrConflict",           "Conflicting attributes: $1");
 DEF_DQ_ERR(DQERR_ATTR_INVALID_TARGET,              "AttrInvalidTarget",      "Attribute \"$1\" is not valid for $2");
+DEF_DQ_ERR(DQERR_ACCESS_NO_READ,                    "AccessNoRead",           "Access to \"$1\" is forbidden by [[noread]]");
+DEF_DQ_ERR(DQERR_ACCESS_NO_WRITE,                   "AccessNoWrite",          "Assignment to \"$1\" is forbidden by [[nowrite]]");
 DEF_DQ_ERR(DQERR_ASM_FUNC_BODY,                    "AsmFuncBody",            "Attribute [[asm]] requires a colon-delimited function body closed by \"endfunc\"");
 DEF_DQ_ERR(DQERR_ASM_INLINE_TARGET,                 "AsmInlineTarget",        "Inline assembly is not supported for target \"$1\"");
 DEF_DQ_ERR(DQERR_ASM_INLINE_USAGE,                  "AsmInlineUsage",         "Invalid inline-assembly function: $1");

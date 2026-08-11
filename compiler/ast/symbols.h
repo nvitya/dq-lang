@@ -675,6 +675,8 @@ public:
   bool         attr_is_abstract = false;
   bool         attr_is_final = false;
   bool         attr_is_volatile = false;
+  bool         attr_no_read = false;
+  bool         attr_no_write = false;
   bool         attr_is_inline = false;
   bool         attr_is_always_inline = false;
   bool         attr_is_noinline = false;

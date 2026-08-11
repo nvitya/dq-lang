@@ -26,6 +26,11 @@ void OAttr::Reset()
 
 void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
 {
+  if (IsSet(ATTF_NOREAD) && IsSet(ATTF_NOWRITE))
+  {
+    g_compiler->Error(DQERR_ATTR_CONFLICT, "[[noread]] and [[nowrite]]", &scpos);
+  }
+
   CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR);
   CheckAttrAllowed(ATTF_EXPORT,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_CEXPORT,  atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
@@ -39,6 +44,8 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_FINAL,    atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_FORWARD,  atarget, ATGT_COMPOUND_TYPE);
   CheckAttrAllowed(ATTF_VOLATILE, atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
+  CheckAttrAllowed(ATTF_NOREAD,   atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
+  CheckAttrAllowed(ATTF_NOWRITE,  atarget, ATGT_GLOBAL_VAR | ATGT_STRUCT_MEMBER);
   CheckAttrAllowed(ATTF_NOWARN,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER | ATGT_COMPOUND_TYPE | ATGT_STATEMENT);
   CheckAttrAllowed(ATTF_INLINE,   atarget, ATGT_FUNCTION);
   CheckAttrAllowed(ATTF_ALWAYS_INLINE, atarget, ATGT_FUNCTION);
@@ -86,6 +93,8 @@ string AttrName(EAttrFlag aflag)
     case ATTF_NOINLINE:      return "noinline";
     case ATTF_ASM:           return "asm";
     case ATTF_WEAK:          return "weak";
+    case ATTF_NOREAD:        return "noread";
+    case ATTF_NOWRITE:       return "nowrite";
 
     default:                 return "ATTR_"+to_string(aflag);
   }

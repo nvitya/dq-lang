@@ -28,10 +28,23 @@ an undocumented effect. Important implemented attributes include:
 | `virtual`, `override`, `abstract`, `final` | define object dispatch behavior |
 | `asm` | make a function body target assembly |
 | `packed` or layout attributes | request supported ABI/layout behavior |
+| `volatile`, `noread`, `nowrite` | control direct low-level storage access |
+| `regrw`, `regro`, `regwo` | shorthand for volatile MMIO register access modes |
 
 An attribute cannot override an incompatible language contract. For example, an
 external function has no DQ body, and mutually exclusive inlining choices cannot
 be combined.
+
+`regrw` means `volatile`, `regro` means `volatile, nowrite`, and `regwo`
+means `volatile, noread`. Reads from `noread` declarations and writes to
+`nowrite` declarations are errors; modify-assignment requires both access modes.
+Combining `noread` and `nowrite` is invalid. These restrictions apply to direct
+global, field, and fixed-array-element access and are retained through module
+interfaces.
+
+Volatile access does not provide atomicity or a memory barrier. Address-taking
+and reference binding currently discard `noread` and `nowrite`, and aggregate
+copies are not restricted by member attributes.
 
 ## Preprocessor Defines
 

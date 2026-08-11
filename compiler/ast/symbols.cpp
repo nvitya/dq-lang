@@ -468,6 +468,8 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (attr_is_inline)        flags |= 1ull << 14;
   if (attr_is_always_inline) flags |= 1ull << 15;
   if (attr_is_noinline)      flags |= 1ull << 16;
+  if (attr_no_read)          flags |= 1ull << 17;
+  if (attr_no_write)         flags |= 1ull << 18;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
@@ -650,7 +652,8 @@ bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
   }
 
   LlValue * ll_value = field_init_expr->Generate(scope);
-  ll_builder.CreateStore(ll_value, ll_field_addr);
+  llvm::StoreInst * store = ll_builder.CreateStore(ll_value, ll_field_addr);
+  store->setVolatile(attr_is_volatile);
   return true;
 }
 
@@ -754,6 +757,8 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   if ((ATGT_GLOBAL_VAR == atarget) || (ATGT_STRUCT_MEMBER == atarget))
   {
     attr_is_volatile = attr->IsSet(ATTF_VOLATILE);
+    attr_no_read = attr->IsSet(ATTF_NOREAD);
+    attr_no_write = attr->IsSet(ATTF_NOWRITE);
   }
 }
 

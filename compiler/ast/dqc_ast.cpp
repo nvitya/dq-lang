@@ -334,6 +334,37 @@ void ODqCompAst::CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OL
   }
 }
 
+void ODqCompAst::CollectPlainAssignTargetLValues(OLValueExpr * leftexpr, vector<OLValueExpr *> & targets)
+{
+  if (!leftexpr)
+  {
+    return;
+  }
+
+  if (dynamic_cast<OLValueVar *>(leftexpr))
+  {
+    targets.push_back(leftexpr);
+    return;
+  }
+
+  if (auto * memberref = dynamic_cast<OLValueMember *>(leftexpr))
+  {
+    targets.push_back(leftexpr);
+    CollectPlainAssignTargetLValues(memberref->base, targets);
+    return;
+  }
+
+  if (auto * indexref = dynamic_cast<OLValueIndex *>(leftexpr))
+  {
+    OType * containertype = indexref->containertype ? indexref->containertype->ResolveAlias() : nullptr;
+    if (containertype && (TK_ARRAY == containertype->kind
+        || (TK_CSTRING == containertype->kind && static_cast<OTypeCString *>(containertype)->maxlen > 0)))
+    {
+      CollectPlainAssignTargetLValues(indexref->base, targets);
+    }
+  }
+}
+
 OValSym * ODqCompAst::GetAssignRootValSym(OLValueExpr * leftexpr)
 {
   if (!leftexpr)
@@ -1472,6 +1503,13 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
 
     if (!is_ref_arg)
     {
+      if (!rawarg.access_diags.empty())
+      {
+        EmitStoredAccessDiags(rawarg.access_diags);
+        OExpr::DeleteTree(argexpr);
+        bok = false;
+        break;
+      }
       if (!rawarg.init_diags.empty())
       {
         EmitStoredVarInitDiags(rawarg.init_diags);
@@ -1717,6 +1755,68 @@ void ODqCompAst::EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp o
   suppressed_varinit_diags.clear();
 }
 
+void ODqCompAst::CheckNoReadAccess(OLValueExpr * lvalue, OValSym * valsym, OScPosition & scpos)
+{
+  if (!lvalue || !valsym || !valsym->attr_no_read)
+  {
+    return;
+  }
+
+  if (suppress_access_read_check)
+  {
+    TSuppressedAccessDiag diag;
+    diag.lvalue = lvalue;
+    diag.valsym = valsym;
+    diag.scpos = scpos;
+    suppressed_access_diags.push_back(diag);
+  }
+  else
+  {
+    Error(DQERR_ACCESS_NO_READ, valsym->name, &scpos);
+  }
+}
+
+void ODqCompAst::EmitStoredAccessDiags(const vector<TSuppressedAccessDiag> & diags)
+{
+  for (auto diag : diags)
+  {
+    Error(DQERR_ACCESS_NO_READ, diag.valsym ? diag.valsym->name : "?", &diag.scpos);
+  }
+}
+
+void ODqCompAst::EmitSuppressedAccessDiags()
+{
+  EmitStoredAccessDiags(suppressed_access_diags);
+  suppressed_access_diags.clear();
+}
+
+void ODqCompAst::EmitFilteredAssignAccessDiags(OLValueExpr * leftexpr, EBinOp op)
+{
+  vector<OLValueExpr *> ignored;
+  if (BINOP_NONE == op)
+  {
+    CollectPlainAssignTargetLValues(leftexpr, ignored);
+  }
+
+  for (auto diag : suppressed_access_diags)
+  {
+    bool emit = true;
+    for (OLValueExpr * target : ignored)
+    {
+      if (target == diag.lvalue)
+      {
+        emit = false;
+        break;
+      }
+    }
+    if (emit)
+    {
+      Error(DQERR_ACCESS_NO_READ, diag.valsym ? diag.valsym->name : "?", &diag.scpos);
+    }
+  }
+  suppressed_access_diags.clear();
+}
+
 bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr)
 {
   if (!leftexpr || !rightexpr)
@@ -1794,6 +1894,14 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
     curblock->AddStatement(new OStmtPropertyAssign(
         scpos_statement_start, property_expr, op, rightexpr));
     return true;
+  }
+
+  if (OValSym * restricted = leftexpr->NoWriteSymbol())
+  {
+    Error(DQERR_ACCESS_NO_WRITE, restricted->name);
+    delete leftexpr;
+    delete rightexpr;
+    return false;
   }
 
   OValSym * rootvalsym = GetAssignRootValSym(leftexpr);

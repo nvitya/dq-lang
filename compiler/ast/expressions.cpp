@@ -205,7 +205,14 @@ LlValue * OBoolLit::Generate(OScope * scope)
 LlValue * OLValueExpr::Generate(OScope * scope)
 {
   LlValue * addr = GenerateAddress(scope);
-  return ll_builder.CreateLoad(ptype->GetLlType(), addr, "lval.load");
+  return GenerateMemoryLoad(ptype->GetLlType(), addr, "lval.load");
+}
+
+LlValue * OLValueExpr::GenerateMemoryLoad(LlType * type, LlValue * address, const string & name)
+{
+  llvm::LoadInst * load = ll_builder.CreateLoad(type, address, name);
+  load->setVolatile(RequiresVolatileMemoryAccess());
+  return load;
 }
 
 LlValue * OLValueExpr::GenerateObjectAddress(OScope * scope)
@@ -246,12 +253,12 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   {
     if (auto * alloca = dyn_cast<llvm::AllocaInst>(pvalsym->ll_value))
     {
-      return ll_builder.CreateLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name + ".addr");
+      return GenerateMemoryLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name + ".addr");
     }
 
     if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
     {
-      return ll_builder.CreateLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name + ".addr");
+      return GenerateMemoryLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name + ".addr");
     }
 
     if (VSK_PARAMETER == pvalsym->kind)
@@ -298,25 +305,25 @@ LlValue * OLValueVar::Generate(OScope * scope)
   if (objtype && (pvalsym->IsRefLike() || (objsym && objsym->IsObjectReference())))
   {
     LlValue * ll_slot = GenerateAddress(scope);
-    return ll_builder.CreateLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
+    return GenerateMemoryLoad(pvalsym->GetStorageType()->GetLlType(), ll_slot, pvalsym->name);
   }
 
   if (pvalsym->IsRefLike())
   {
     LlValue * addr = GenerateAddress(scope);
-    return ll_builder.CreateLoad(ptype->GetLlType(), addr, pvalsym->name);
+    return GenerateMemoryLoad(ptype->GetLlType(), addr, pvalsym->name);
   }
 
   auto * alloca = dyn_cast<llvm::AllocaInst>(pvalsym->ll_value);
   if (alloca)
   {
-    return ll_builder.CreateLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name);
+    return GenerateMemoryLoad(alloca->getAllocatedType(), pvalsym->ll_value, pvalsym->name);
   }
 
   auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value);
   if (global)
   {
-    return ll_builder.CreateLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name);
+    return GenerateMemoryLoad(global->getValueType(), pvalsym->ll_value, pvalsym->name);
   }
 
   if (VSK_PARAMETER == pvalsym->kind)
@@ -339,6 +346,21 @@ bool OLValueVar::IsFixedObjectStorageExpr() const
 {
   auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
   return objsym && objsym->IsFixedObjectStorage();
+}
+
+bool OLValueVar::RequiresVolatileMemoryAccess() const
+{
+  return pvalsym && pvalsym->attr_is_volatile;
+}
+
+OValSym * OLValueVar::NoReadSymbol() const
+{
+  return pvalsym && pvalsym->attr_no_read ? pvalsym : nullptr;
+}
+
+OValSym * OLValueVar::NoWriteSymbol() const
+{
+  return pvalsym && pvalsym->attr_no_write ? pvalsym : nullptr;
 }
 
 LlValue * OLValueVar::GenerateObjectAddress(OScope * scope)
@@ -364,17 +386,11 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
 
 LlValue * OLValueDeref::Generate(OScope * scope)
 {
-  llvm::LoadInst * load = nullptr;
   if (TK_OBJECT == ptype->ResolveAlias()->kind)
   {
-    load = ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), GenerateAddress(scope), "obj.deref");
+    return GenerateMemoryLoad(ptype->GetPointerType()->GetLlType(), GenerateAddress(scope), "obj.deref");
   }
-  else
-  {
-    load = ll_builder.CreateLoad(ptype->GetLlType(), GenerateAddress(scope), "ptr.deref");
-  }
-  load->setVolatile(true);
-  return load;
+  return GenerateMemoryLoad(ptype->GetLlType(), GenerateAddress(scope), "ptr.deref");
 }
 
 LlValue * OLValueDeref::GenerateObjectAddress(OScope * scope)
@@ -410,6 +426,12 @@ void OLValueDeref::DeleteChildTree()
   ptype       = amembertype;
 }
 
+OValSym * OLValueMember::MemberSymbol() const
+{
+  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
+  return ctype && memberindex < ctype->member_order.size() ? ctype->member_order[memberindex] : nullptr;
+}
+
 LlValue * OLValueMember::GenerateAddress(OScope * scope)
 {
   LlValue * baseaddr = base->GenerateObjectAddress(scope);
@@ -433,18 +455,32 @@ LlValue * OLValueMember::Generate(OScope * scope)
 
 bool OLValueMember::IsObjectReferenceExpr() const
 {
-  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  OValSym * member = (ctype && (memberindex < ctype->member_order.size()) ? ctype->member_order[memberindex] : nullptr);
-  auto * objmember = dynamic_cast<OVsObject *>(member);
+  auto * objmember = dynamic_cast<OVsObject *>(MemberSymbol());
   return objmember && objmember->IsObjectReference();
 }
 
 bool OLValueMember::IsFixedObjectStorageExpr() const
 {
-  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  OValSym * member = (ctype && (memberindex < ctype->member_order.size()) ? ctype->member_order[memberindex] : nullptr);
-  auto * objmember = dynamic_cast<OVsObject *>(member);
+  auto * objmember = dynamic_cast<OVsObject *>(MemberSymbol());
   return objmember && objmember->IsFixedObjectStorage();
+}
+
+bool OLValueMember::RequiresVolatileMemoryAccess() const
+{
+  OValSym * member = MemberSymbol();
+  return (member && member->attr_is_volatile) || (base && base->RequiresVolatileMemoryAccess());
+}
+
+OValSym * OLValueMember::NoReadSymbol() const
+{
+  OValSym * member = MemberSymbol();
+  return member && member->attr_no_read ? member : (base ? base->NoReadSymbol() : nullptr);
+}
+
+OValSym * OLValueMember::NoWriteSymbol() const
+{
+  OValSym * member = MemberSymbol();
+  return member && member->attr_no_write ? member : (base ? base->NoWriteSymbol() : nullptr);
 }
 
 LlValue * OLValueMember::GenerateObjectAddress(OScope * scope)
@@ -452,7 +488,7 @@ LlValue * OLValueMember::GenerateObjectAddress(OScope * scope)
   if (IsObjectReferenceExpr())
   {
     LlValue * ll_slot = GenerateAddress(scope);
-    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "member.objref");
+    return GenerateMemoryLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "member.objref");
   }
   return GenerateAddress(scope);
 }
@@ -606,12 +642,27 @@ bool OLValueIndex::IsObjectReferenceExpr() const
       && (TK_OBJECT == resolved_type->kind);
 }
 
+bool OLValueIndex::RequiresVolatileMemoryAccess() const
+{
+  return base && base->RequiresVolatileMemoryAccess();
+}
+
+OValSym * OLValueIndex::NoReadSymbol() const
+{
+  return base ? base->NoReadSymbol() : nullptr;
+}
+
+OValSym * OLValueIndex::NoWriteSymbol() const
+{
+  return base ? base->NoWriteSymbol() : nullptr;
+}
+
 LlValue * OLValueIndex::GenerateObjectAddress(OScope * scope)
 {
   if (IsObjectReferenceExpr())
   {
     LlValue * ll_slot = GenerateAddress(scope);
-    return ll_builder.CreateLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "index.objref");
+    return GenerateMemoryLoad(ptype->GetPointerType()->GetLlType(), ll_slot, "index.objref");
   }
   return OLValueExpr::GenerateObjectAddress(scope);
 }

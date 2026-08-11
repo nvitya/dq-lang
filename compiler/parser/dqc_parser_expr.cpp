@@ -405,14 +405,26 @@ bool ODqCompParserExpr::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
-  if ("volatile" == attrname)
+  if ("volatile" == attrname || "noread" == attrname || "nowrite" == attrname
+      || "regrw" == attrname || "regro" == attrname || "regwo" == attrname)
   {
     if (scf->CheckSymbol("(", false))
     {
       Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
       return false;
     }
-    attr->SetFlag(ATTF_VOLATILE);
+    if ("volatile" == attrname || "regrw" == attrname || "regro" == attrname || "regwo" == attrname)
+    {
+      attr->SetFlag(ATTF_VOLATILE);
+    }
+    if ("noread" == attrname || "regwo" == attrname)
+    {
+      attr->SetFlag(ATTF_NOREAD);
+    }
+    if ("nowrite" == attrname || "regro" == attrname)
+    {
+      attr->SetFlag(ATTF_NOWRITE);
+    }
     return true;
   }
 
@@ -1492,7 +1504,12 @@ OExpr * ODqCompParserExpr::ParseExprUnary()
   // address-of operator: consume a full postfix-capable lvalue operand
   if (scf->CheckSymbol("&"))
   {
+    size_t suppressed_start = suppressed_access_diags.size();
+    bool saved_suppress = suppress_access_read_check;
+    suppress_access_read_check = true;
     OLValueExpr * lval = ParseAddressableExpr();
+    suppress_access_read_check = saved_suppress;
+    suppressed_access_diags.resize(suppressed_start);
     if (!lval) return nullptr;
     return new OAddrOfExpr(lval);
   }
@@ -2700,7 +2717,9 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           delete result;
           return nullptr;
         }
-        result = new OLValueMember(memberbase, decl_type, midx, mtype);
+        auto * member_expr = new OLValueMember(memberbase, decl_type, midx, mtype);
+        result = member_expr;
+        CheckNoReadAccess(member_expr, decl_type->member_order[midx], scpos_statement_start);
         continue;
       }
 
@@ -3121,6 +3140,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
 
     result = new OLValueVar(vs);
+    CheckNoReadAccess(static_cast<OLValueVar *>(result), vs, scpos_statement_start);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
       if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
@@ -3246,7 +3266,9 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         int midx = decl_type->FindMemberIndex(sid);
         if (midx >= 0)
         {
-          return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
+          auto * member_expr = new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
+          CheckNoReadAccess(member_expr, member, scpos_statement_start);
+          return member_expr;
         }
       }
     }
@@ -3285,6 +3307,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   if (!result)
   {
     result = new OLValueVar(vs);
+  }
+  if (auto * lvalue = dynamic_cast<OLValueExpr *>(result))
+  {
+    CheckNoReadAccess(lvalue, vs, scpos_statement_start);
   }
   if (auto * property_expr = dynamic_cast<OPropertyExpr *>(result);
       property_expr && !property_expr->property->IsIndexed())
@@ -3563,13 +3589,19 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
     scf->SaveCurPos(rawarg.scpos_start);
 
     size_t suppressed_start = suppressed_varinit_diags.size();
+    size_t suppressed_access_start = suppressed_access_diags.size();
     bool saved_suppress = supress_varinit_check;
+    bool saved_access_suppress = suppress_access_read_check;
     supress_varinit_check = true;
+    suppress_access_read_check = true;
     rawarg.expr = ParseExpression();
     supress_varinit_check = saved_suppress;
+    suppress_access_read_check = saved_access_suppress;
 
     rawarg.init_diags.assign(suppressed_varinit_diags.begin() + suppressed_start, suppressed_varinit_diags.end());
     suppressed_varinit_diags.resize(suppressed_start);
+    rawarg.access_diags.assign(suppressed_access_diags.begin() + suppressed_access_start, suppressed_access_diags.end());
+    suppressed_access_diags.resize(suppressed_access_start);
 
     if (!rawarg.expr)
     {

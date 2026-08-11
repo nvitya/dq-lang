@@ -37,11 +37,45 @@ function Run() [[virtual, abstract]]
 | `[[packed]]` | Request packed aggregate layout |
 | `[[align(n)]]` | Request alignment |
 | `[[volatile]]` | Mark low-level volatile storage/access where supported |
+| `[[noread]]` | Forbid direct reads from low-level storage |
+| `[[nowrite]]` | Forbid direct writes to low-level storage |
+| `[[regrw]]`, `[[regro]]`, `[[regwo]]` | Declare volatile read/write, read-only, or write-only registers |
 | `[[cexport]]` | Export a symbol using C-compatible linkage where supported |
 | `[[weak]]` | Emit a module-level function definition with weak linker binding |
 | `[[nowarn]]` | Suppress warnings for the declaration where supported |
 
 Unsupported or inapplicable attributes may be ignored with a compiler warning.
+
+## Volatile and Register Access
+
+The register attributes provide concise declarations for memory-mapped I/O:
+
+```dq
+struct SDeviceRegisters:
+    STATUS  : [[regro]] uint32
+    CONTROL : [[regrw]] uint32
+    COMMAND : [[regwo]] uint32
+endstruct
+```
+
+They expand to the fundamental access attributes:
+
+| Register attribute | Equivalent attributes | Allowed operations |
+| --- | --- | --- |
+| `[[regrw]]` | `[[volatile]]` | read and write |
+| `[[regro]]` | `[[volatile, nowrite]]` | read only |
+| `[[regwo]]` | `[[volatile, noread]]` | write only |
+
+Reading `[[noread]]` storage or writing `[[nowrite]]` storage is a compile error.
+A modify-assignment such as `|=` reads and writes its target and therefore needs
+both operations to be allowed. `noread` and `nowrite` cannot be combined on the
+same declaration.
+
+Volatile accesses are observable compiler operations, but they are not atomic
+and do not imply a CPU or compiler memory barrier. Taking an address or binding
+a reference currently discards `noread` and `nowrite`; this is an explicit
+low-level escape. Whole-structure initialization and copying also do not yet
+apply the access restrictions of individual fields.
 
 ## External Attribute
 

@@ -2,6 +2,14 @@
 import sys
 import re
 
+# Settings
+MAX_CONST_BLOCK_LENGTH = 32
+CONST_NAME_PADDING = 20
+STRUCT_FIELD_PADDING = 12
+STRUCT_TYPE_PADDING = 8
+ARRAY_TYPE_SPACING = 1
+ATTR_TYPE_SPACING = 2
+
 def process_file(filepath):
     try:
         with open(filepath, 'r', errors='ignore') as f:
@@ -29,6 +37,33 @@ def process_file(filepath):
     struct_name = ""
     struct_fields = []
     
+    pending_const_type = None
+    pending_consts = []
+
+    def flush_consts():
+        nonlocal pending_const_type, pending_consts
+        while pending_consts:
+            chunk = pending_consts[:MAX_CONST_BLOCK_LENGTH]
+            pending_consts = pending_consts[MAX_CONST_BLOCK_LENGTH:]
+            out_lines.append(f"const({pending_const_type}):")
+            for name, val, comment in chunk:
+                line = f"    {name.ljust(CONST_NAME_PADDING)} = {val}"
+                if comment:
+                    line += f"  // {comment}"
+                out_lines.append(line)
+            out_lines.append("endconst\n")
+        pending_const_type = None
+        pending_consts = []
+
+    def add_const(ctype, name, val, comment=""):
+        nonlocal pending_const_type
+        if pending_const_type != ctype and len(pending_consts) > 0:
+            flush_consts()
+        pending_const_type = ctype
+        pending_consts.append((name, val, comment))
+        if len(pending_consts) >= MAX_CONST_BLOCK_LENGTH:
+            flush_consts()
+
     # join lines ending with \
     joined_lines = []
     current_line = ""
@@ -64,10 +99,11 @@ def process_file(filepath):
                         val = re.sub(r'^\s*\(\s*([^() ]+)\s*\)\s*$', r'\1', val)
                         
                         if "Type" not in val and "->" not in val and "volatile" not in val:
-                            out_lines.append(f"const {name.ljust(24)} : uint32 = {val}")
+                            add_const("uint32", name, val)
                 continue
             
             if re_struct_start.match(line):
+                flush_consts()
                 state = 'STRUCT'
                 struct_fields = []
                 continue
@@ -77,6 +113,7 @@ def process_file(filepath):
                 continue
                 
             if re_enum_start.match(line):
+                flush_consts()
                 state = 'ENUM'
                 continue
                 
@@ -103,21 +140,22 @@ def process_file(filepath):
                 
                 dq_attr = ""
                 if mod in ("__IOM", "__IO", "volatile"):
-                    dq_attr = "[[regrw]] "
+                    dq_attr = "[[regrw]]"
                 elif mod in ("__IM", "__I", "volatile const"):
-                    dq_attr = "[[regro]] "
+                    dq_attr = "[[regro]]"
                 elif mod in ("__OM", "__O"):
-                    dq_attr = "[[regwo]] "
-                else:
-                    dq_attr = "          "
+                    dq_attr = "[[regwo]]"
+                
+                dq_attr = dq_attr.ljust(9 + ATTR_TYPE_SPACING)
                 
                 dq_type = ctype
                 if arr:
                     arr_val = arr.strip('[]')
                     arr_val = re_number_suffix.sub(r'\1', arr_val)
-                    dq_type = f"[{arr_val}]{dq_type}"
+                    spacer = " " * ARRAY_TYPE_SPACING
+                    dq_type = f"[{arr_val}]{spacer}{dq_type}"
                     
-                field_str = f"    {name.ljust(12)} : {dq_attr}{dq_type.ljust(8)}"
+                field_str = f"    {name.ljust(STRUCT_FIELD_PADDING)} : {dq_attr}{dq_type.ljust(STRUCT_TYPE_PADDING)}"
                 if comment:
                     cm = re_comment.search(comment)
                     if cm:
@@ -150,12 +188,15 @@ def process_file(filepath):
                     val = "0" 
                 
                 comment = m_item.group(3) or ""
-                out_line = f"const {name.ljust(24)} : int = {val}"
+                cm_str = ""
                 if comment:
                     cm = re_comment.search(comment)
                     if cm:
-                        out_line += f"  // {cm.group(1)}"
-                out_lines.append(out_line)
+                        cm_str = cm.group(1)
+                
+                add_const("int", name, val, cm_str)
+
+    flush_consts()
 
     for l in out_lines:
         print(l)

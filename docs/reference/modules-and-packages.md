@@ -76,6 +76,25 @@ The compiler searches built-in standard/runtime roots, installation roots, the
 user package directory, and explicit `--pkg-path` roots. Later explicit roots
 have higher precedence, allowing a project to override installed packages.
 
+### Built-in Search Roots
+
+The compiler adds these package search roots automatically. `<compiler-dir>` is
+the directory containing the `dq-comp` executable:
+
+```text
+/usr/lib/dq/stdpkg
+<compiler-dir>/../lib/dq/stdpkg
+<compiler-dir>/../stdpkg
+/usr/lib/dq/packages
+<compiler-dir>/../lib/dq/packages
+$HOME/.dq/packages
+```
+
+Package roots are checked from last to first. Therefore, a matching package in
+`$HOME/.dq/packages` takes precedence over the installation roots, and a root
+provided with `--pkg-path` takes precedence over all built-in roots. If several
+`--pkg-path` options are given, the last one takes precedence.
+
 A package is source-first: its directory maps a package name to a module tree.
 The root module conventionally has the same name as the package. Optional
 project/build metadata does not change the language identity of a module.

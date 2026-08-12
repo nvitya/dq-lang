@@ -1,0 +1,125 @@
+# Explicit declaration type inference
+
+In the current DQ compiler, peripheral accesses can be defined this way:
+
+```dq
+const TIM2 : ^TIM_TypeDef = ^TIM_TypeDef(TIM2_BASE)
+const TIM3 : ^TIM_TypeDef = ^TIM_TypeDef(TIM3_BASE)
+const TIM4 : ^TIM_TypeDef = ^TIM_TypeDef(TIM4_BASE)
+```
+
+The type is repeated on both sides of every declaration. It would be useful to
+allow an explicitly inferred declaration type, so the following declarations
+are equivalent:
+
+```dq
+const TIM2 : ? = ^TIM_TypeDef(TIM2_BASE)
+const TIM3 : ? = ^TIM_TypeDef(TIM3_BASE)
+const TIM4 : ? = ^TIM_TypeDef(TIM4_BASE)
+
+var x : ? = ^TIM_TypeDef(someptr)
+```
+
+The `?` marker means that the declaration adopts the initializer's intrinsic
+static type. The initializer must be analyzed without supplying an expected
+type from the declaration. If its type cannot be uniquely determined, the
+declaration must be rejected.
+
+## Initial restrictions
+
+For the initial implementation, inference is allowed only for:
+
+- pointers with a concrete pointee type, such as `^TIM_TypeDef`;
+- structure values;
+- object references.
+
+Integer and floating-point types must not be inferred, even when the initializer
+otherwise has a known integer or floating-point type. Other types remain
+unsupported until they are explicitly added to the inference rules.
+
+Examples:
+
+```dq
+var a : ? = ^TIM_TypeDef(address) // allowed: ^TIM_TypeDef
+var b : ? = GetRegisters()        // allowed if the return type is ^TIM_TypeDef
+var c : ? = &value                // allowed: pointer to the type of value
+var d : ? = existing_struct       // allowed: the exact structure type
+var e : ? = new OChild()          // allowed: OChild
+
+var f : ? = {}                    // rejected: requires a contextual type
+var g : ? = null                  // rejected: has no concrete target type
+var h : ? = 3                     // rejected: integer inference is forbidden
+var i : ? = int32(3)              // rejected: integer inference is forbidden
+var j : ? = 3.0                   // rejected: floating-point inference is forbidden
+```
+
+For objects, inference selects the initializer's exact static type. For example,
+`new OChild()` infers `OChild`, not one of its base types. A base type must still
+be written explicitly when that is the intended declaration type.
+
+The initializer is still subject to the existing declaration rules. In
+particular, a `const` initializer must remain a valid constant expression, and a
+global variable initializer must satisfy the existing global-initialization
+requirements.
+
+## Syntax scope
+
+The `?` marker is declaration syntax, not a general type. It is accepted only in
+the type position of `var` and `const` declarations and always requires an
+initializer:
+
+```dq
+var value : ? = expression
+const VALUE : ? = constant_expression
+```
+
+It must not be accepted for fields, parameters, function return types, casts,
+aliases, or other places where a normal type specification is required.
+
+This use is consistent with `[?]T`, where `?` already marks information inferred
+from an initializer. `[?]T` continues to mean inferred array length and is
+otherwise unaffected.
+
+## Existing related syntax
+
+Local object construction already supports a limited shorthand:
+
+```dq
+var obj = new OThing()
+```
+
+Allowing `var obj : ? = new OThing()` generalizes that behavior while making the
+request for inference explicit.
+
+Grouped constants can also reduce repetition in the motivating example:
+
+```dq
+const(^TIM_TypeDef):
+    TIM2 = ^TIM_TypeDef(TIM2_BASE)
+    TIM3 = ^TIM_TypeDef(TIM3_BASE)
+    TIM4 = ^TIM_TypeDef(TIM4_BASE)
+endconst
+```
+
+This is useful when the declarations are naturally grouped, but inferred types
+also cover isolated declarations and values produced by other typed
+expressions.
+
+## Implementation notes
+
+- Recognize `?` in the `var` and `const` declaration parsers rather than making
+  it an `OType` returned by `ParseTypeSpec()`.
+- Require `=` after an inferred declaration and parse the initializer before
+  creating the value symbol.
+- Inspect the initializer's independently resolved static type and validate it
+  against the initial inference whitelist. Do not infer merely by copying the
+  compiler's default type for an untyped literal.
+- Reject raw, null, or otherwise untyped pointers; an inferred pointer must have
+  a concrete pointee type.
+- Once validated, replace the `?` internally with the ordinary inferred type
+  before symbol creation, assignment checking, constant evaluation, code
+  generation, or module-interface serialization. Later compiler stages should
+  not need to handle a special inferred type.
+- Use a dedicated diagnostic for a missing initializer, an indeterminate type,
+  or a type that is not eligible for inference. The diagnostic should include
+  the initializer's type when one was determined but is forbidden.

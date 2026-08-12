@@ -45,11 +45,11 @@ bool OModuleUse::SymbolSelected(const string & aname) const
   }
   if (MUM_ONLY == merge_mode)
   {
-    return symbol_names.end() != find(symbol_names.begin(), symbol_names.end(), aname);
+    return symbol_name_set.contains(aname);
   }
   if (MUM_EXCLUDE == merge_mode)
   {
-    return symbol_names.end() == find(symbol_names.begin(), symbol_names.end(), aname);
+    return !symbol_name_set.contains(aname);
   }
   return false;
 }
@@ -118,9 +118,13 @@ vector<string> OModuleUse::EffectiveSymbolNames() const
     return result;
   }
 
-  auto add_name = [&result](const string & name)
+  result.reserve(module->scope_pub->typesyms.size() + module->scope_pub->valsyms.size());
+  unordered_set<string> added_names;
+  added_names.reserve(result.capacity());
+
+  auto add_name = [&result, &added_names](const string & name)
   {
-    if (result.end() == find(result.begin(), result.end(), name))
+    if (added_names.insert(name).second)
     {
       result.push_back(name);
     }

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.41.0"
+#define DQ_COMPILER_VERSION  "0.41.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.41.1:
+  - Using hash tables for module use symbols
 v0.41.0:
   - Type inference implemented for concrete typed pointers, structures, or object-references: `var x : ? = sometype`
 v0.40.9:

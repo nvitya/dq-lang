@@ -17,6 +17,7 @@
 
 #include <format>
 #include <string>
+#include <unordered_set>
 #include <vector>
 #include <map>
 
@@ -175,7 +176,7 @@ public:
   bool                 is_private = false;
   bool                 reexport = false;
   EModuleUseMergeMode  merge_mode = MUM_ALL;
-  vector<string>       symbol_names;
+  const vector<string> symbol_names;
 
   OModuleUse(OModuleBase * amodule, const string & anamespace_name,
              bool ais_private, EModuleUseMergeMode amerge_mode,
@@ -186,7 +187,8 @@ public:
     is_private(ais_private),
     reexport(areexport),
     merge_mode(amerge_mode),
-    symbol_names(asymbol_names)
+    symbol_names(asymbol_names),
+    symbol_name_set(asymbol_names.begin(), asymbol_names.end())
   {
   }
 
@@ -200,6 +202,10 @@ public:
   void CopySelectedSymbolsTo(OScope * adst) const;
   void FillScope() const;
   vector<string> EffectiveSymbolNames() const;
+
+private:
+  // Selection is tested for every public symbol, which can number in the tens of thousands.
+  const unordered_set<string> symbol_name_set;
 };
 
 class OModuleBase

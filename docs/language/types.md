@@ -69,15 +69,35 @@ type FCallback = function(value : int) -> int
 
 ## Type Inference
 
-General type inference for variables is not implemented. Write the declared type
-explicitly.
+Variables and constants may request restricted type inference with `?` when an
+initializer independently determines a concrete typed pointer, structure, or
+object-reference type.
 
 ```dq
-var value : int = 3
+const registers : ? = ^SRegisters(0x40000000)
+
+var value : SPoint = {}
+var copy : ? = value
+var value_ptr : ? = &value
+var object_ref : ? = new OThing()
 ```
 
-The special `?` marker is currently used for fixed array length inference from
-an array literal.
+An inferred declaration always requires `=`. Integer and floating-point types
+are not inferred, even from casts or expressions that already have a specific
+numeric type. Null and raw `pointer` values also lack an eligible concrete type.
+
+```dq
+var integer : ? = int32(3) // error: integer inference is forbidden
+var real : ? = 3.0         // error: floating-point inference is forbidden
+var unknown : ? = null     // error: no concrete pointer type
+```
+
+Other type kinds are not inferred. Write the type explicitly when contextual
+typing or a deliberate conversion is required. Object inference preserves the
+initializer's exact static object type rather than selecting a base type.
+
+The same marker is used for fixed array length inference from an array literal;
+this remains separate from declaration type inference.
 
 ```dq
 var values : [?]int = [1, 2, 3]

@@ -1,0 +1,7 @@
+//?notest
+
+struct SImportedInferred:
+    value : uint32;
+endstruct
+
+const imported_inferred_ptr : ? = ^SImportedInferred(0x4567);

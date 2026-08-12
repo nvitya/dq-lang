@@ -1,0 +1,47 @@
+// explicit declaration type inference errors
+
+type FInferCallback = function(avalue : int) -> int;
+
+enum NInferEnum = (first)
+
+function InferIdentity(avalue : int) -> int:
+    return avalue;
+endfunc
+
+function InferCallbackTarget(avalue : int) -> int:
+    return avalue;
+endfunc
+
+var missing_initializer : ?; //?error(TypeInfer)
+const missing_const_initializer : ?; //?error(TypeInfer)
+
+function *Main() -> int:
+    var int_value : int32 = 3;
+    var float_value : float32 = 3.0;
+    var raw_value : pointer = null;
+    var bool_value : bool = true;
+    var string_value : str = "text";
+    var enum_value : NInferEnum = first;
+    var array_value : [2]int = [1, 2];
+    var callback_value : FInferCallback = InferCallbackTarget;
+
+    var zero_initializer : ? = {}; //?error(TypeInfer)
+    var null_value : ? = null; //?error(TypeInfer)
+    var raw_pointer : ? = raw_value; //?error(TypeInfer)
+
+    var int_literal : ? = 3; //?error(TypeInfer)
+    var int_cast : ? = int32(3); //?error(TypeInfer)
+    var typed_int : ? = int_value; //?error(TypeInfer)
+    var int_call : ? = InferIdentity(3); //?error(TypeInfer)
+
+    var float_literal : ? = 3.0; //?error(TypeInfer)
+    var float_cast : ? = float32(3.0); //?error(TypeInfer)
+    var typed_float : ? = float_value; //?error(TypeInfer)
+
+    var inferred_bool : ? = bool_value; //?error(TypeInfer)
+    var inferred_string : ? = string_value; //?error(TypeInfer)
+    var inferred_enum : ? = enum_value; //?error(TypeInfer)
+    var inferred_array : ? = array_value; //?error(TypeInfer)
+    var inferred_callback : ? = callback_value; //?error(TypeInfer)
+    return 0;
+endfunc

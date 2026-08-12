@@ -38,6 +38,7 @@ public: // statement blocks
 
 protected:
   void ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember);
+  OType * GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype);
 
   int except_depth = 0;
   vector<string> expected_block_closers;

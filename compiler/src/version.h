@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.9"
+#define DQ_COMPILER_VERSION  "0.41.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.41.0:
+  - Type inference implemented for concrete typed pointers, structures, or object-references: `var x : ? = sometype`
 v0.40.9:
   - Supporting const pointers with non-null initialization (embedded soc peripheral definitions)
 v0.40.8:

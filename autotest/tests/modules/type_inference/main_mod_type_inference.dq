@@ -1,0 +1,8 @@
+use ./mod_type_inference;
+use libc/stdio;
+
+function *Main() -> int:
+    printf("imported inferred type = %s\n", TypeName(imported_inferred_ptr)); //?check("imported inferred type", "^SImportedInferred")
+    printf("imported inferred ptr = %lu\n", uint(imported_inferred_ptr)); //?check("imported inferred ptr", 17767)
+    return 0;
+endfunc

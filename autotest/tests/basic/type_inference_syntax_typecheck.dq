@@ -1,0 +1,9 @@
+// inferred types are not general type specifications
+
+const(?): //?error(TypeIdExpected)
+    grouped = 1
+endconst
+
+struct SBadInferredField:
+    value : ?; //?error(TypeIdExpected), error(ModStatementExpected)
+endstruct //?error(ModStatementUnknown)

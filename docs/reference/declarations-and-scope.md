@@ -6,16 +6,21 @@ This page defines common declaration and lookup rules. See
 ## Variables
 
 A variable declaration starts with `var` and normally includes an explicit
-type. General local-variable type inference is not implemented.
+type. Restricted declaration type inference is available with `?` when the
+initializer has an independently determined typed-pointer, structure, or object
+reference type.
 
 ```dq
 var count : int = 0
 var ready : bool
+var registers : ? = ^SRegisters(address)
 var values : [?]int = [1, 2, 3]
 ```
 
 An omitted initializer default-initializes the value according to its type.
-`[?]T` is array-length inference, not general variable type inference.
+An inferred declaration requires an initializer. Integer, floating-point, null,
+raw-pointer, and all other unlisted types are not eligible. `[?]T` remains the
+separate syntax for inferring a fixed array's length.
 
 Object fixed-storage declarations use `<-` and are described in
 [Objects and Properties](objects-and-properties.md).
@@ -41,7 +46,12 @@ initializer.
 
 ```dq
 const BUFFER_SIZE : int = 4096
+const REGISTERS : ? = ^SRegisters(0x40000000)
 ```
+
+`?` follows the same restricted inference rules as variables. Inference does
+not relax the requirement for a valid constant expression and is not supported
+in a grouped `const(type): ... endconst` header.
 
 Related constants of the same type can share a declaration block. The block
 does not introduce a scope, and later members can reference earlier members.

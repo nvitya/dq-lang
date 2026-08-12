@@ -11,8 +11,13 @@ For complete loop, transfer-of-control, and exception rules, see
 ```dq
 var x : int = 0
 var y : int
+var registers : ? = ^SRegisters(address)
 var inferred_array : [?]int = [1, 2, 3]
 ```
+
+`?` requests restricted inference from an initializer whose type is a concrete
+typed pointer, structure, or object reference. It cannot infer numeric or other
+types and cannot be used without `=`.
 
 Local reference variables use `ref`.
 
@@ -26,6 +31,7 @@ alias = 20     // value is now 20
 
 ```dq
 const DEFAULT_PORT : int = 8080
+const REGISTERS : ? = ^SRegisters(0x40000000)
 ```
 
 Constants must be initialized with compile-time constant expressions.

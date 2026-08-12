@@ -85,6 +85,48 @@ static void AddMethodUseRootScopes(OScope * dst_scope, OScope * root_scope)
   }
 }
 
+OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype)
+{
+  rdetectedtype = nullptr;
+  if (!ainitexpr)
+  {
+    return nullptr;
+  }
+
+  // Object allocation expressions have an internal pointer result, while DQ
+  // object variables hold an object reference named by the allocated type.
+  if (auto * newexpr = dynamic_cast<ONewExpr *>(ainitexpr))
+  {
+    OType * alloc_type = newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr;
+    if (alloc_type && (TK_OBJECT == alloc_type->kind))
+    {
+      rdetectedtype = alloc_type;
+      return alloc_type;
+    }
+  }
+  if (auto * newexpr = dynamic_cast<ODynamicNewObjectExpr *>(ainitexpr))
+  {
+    if (newexpr->base_object_type)
+    {
+      rdetectedtype = newexpr->base_object_type;
+      return rdetectedtype;
+    }
+  }
+
+  rdetectedtype = ainitexpr->ptype;
+  OType * resolved_type = rdetectedtype ? rdetectedtype->ResolveAlias() : nullptr;
+  if (!resolved_type)
+  {
+    return nullptr;
+  }
+  if ((TK_STRUCT == resolved_type->kind) || (TK_OBJECT == resolved_type->kind))
+  {
+    return rdetectedtype;
+  }
+  auto * ptrtype = dynamic_cast<OTypePointer *>(resolved_type);
+  return (ptrtype && ptrtype->IsTypedPointer()) ? rdetectedtype : nullptr;
+}
+
 
 void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 {
@@ -115,6 +157,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
 
   OExpr * initexpr = nullptr;
+  bool infer_type = false;
   bool zero_init = false;
   bool fixed_object = false;
   bool fixed_ctor_call_at_decl = false;
@@ -156,11 +199,19 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
   else if (scf->CheckSymbol(":"))
   {
-    ptype = ParseTypeSpec();
-    if (not ptype)
+    scf->SkipWhite();
+    if (scf->CheckSymbol("?"))
     {
-      SkipToModuleStatementStart();
-      return;
+      infer_type = true;
+    }
+    else
+    {
+      ptype = ParseTypeSpec();
+      if (not ptype)
+      {
+        SkipToModuleStatementStart();
+        return;
+      }
     }
   }
   else if (!arootstmt && scf->CheckSymbol("="))
@@ -189,6 +240,11 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
 
   scf->SkipWhite();
+  if (infer_type && !scf->CheckSymbol("=", false))
+  {
+    StatementError(DQERR_TYPE_INFER_INIT_REQUIRED, sid);
+    return;
+  }
   if (scf->CheckSymbol("tryfrom"))
   {
     scf->SkipWhite();
@@ -224,6 +280,18 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       delete initexpr;
       SkipToModuleStatementStart();
+      return;
+    }
+  }
+
+  if (infer_type)
+  {
+    OType * detected_type = nullptr;
+    ptype = GetInferredDeclType(initexpr, detected_type);
+    if (!ptype)
+    {
+      StatementError(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?");
+      delete initexpr;
       return;
     }
   }
@@ -570,6 +638,7 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
   string       sid;
   OValSym *    pvalsym;
   OType *      ptype = asharedtype;
+  bool         infer_type = false;
   OScPosition  expos;
 
   auto emit_error = [&](const TDiagDefErr & adiag, string_view par1 = "", string_view par2 = "",
@@ -620,22 +689,30 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
       return;
     }
 
-    ptype = ParseTypeSpec();
-    if (not ptype)
+    scf->SkipWhite();
+    if (scf->CheckSymbol("?"))
     {
-      return;
+      infer_type = true;
     }
-    if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
+    else
     {
-      emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
-      return;
+      ptype = ParseTypeSpec();
+      if (not ptype)
+      {
+        return;
+      }
+      if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
+      {
+        emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
+        return;
+      }
     }
   }
 
   scf->SkipWhite();
   if (not scf->CheckSymbol("="))  // variable initializer specified
   {
-    emit_error(DQERR_MISSING_ASSIGN_FOR, sid);
+    emit_error(infer_type ? DQERR_TYPE_INFER_INIT_REQUIRED : DQERR_MISSING_ASSIGN_FOR, sid);
     return;
   }
 
@@ -647,6 +724,18 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
     delete valueexpr;
     emit_error(DQERR_EXPR_WRONG_VALUE_FOR, sid, "", &expos);
     return;
+  }
+
+  if (infer_type)
+  {
+    OType * detected_type = nullptr;
+    ptype = GetInferredDeclType(valueexpr, detected_type);
+    if (!ptype)
+    {
+      emit_error(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?", &expos);
+      delete valueexpr;
+      return;
+    }
   }
 
   OValue * pvalue = ptype->CreateValue();

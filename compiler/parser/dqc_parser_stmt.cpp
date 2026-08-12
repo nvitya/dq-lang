@@ -405,12 +405,12 @@ void ODqCompParserStmt::ParseStmtRef()
   }
 
   scf->SkipWhite();
-  size_t suppressed_access_start = suppressed_access_diags.size();
+  size_t suppressed_start = suppressed_left_expr_diags.size();
   bool saved_access_suppress = suppress_access_read_check;
   suppress_access_read_check = true;
   OExpr * bindexpr = ParseExpression();
   suppress_access_read_check = saved_access_suppress;
-  suppressed_access_diags.resize(suppressed_access_start);
+  DiscardSuppressedLeftExprDiags(suppressed_start, SLEDK_ACCESS);
   if (!bindexpr)
   {
     return;
@@ -1061,8 +1061,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     // Both start with an expression
 
     int prev_errorcnt = errorcnt;
-    suppressed_varinit_diags.clear();
-    suppressed_access_diags.clear();
+    suppressed_left_expr_diags.clear();
     supress_varinit_check = true;  // do not generate variable not initialized error for the left value
     suppress_access_read_check = true;
     OExpr * leftexpr = ParseExpression();
@@ -1070,8 +1069,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     suppress_access_read_check = false;
     if (!leftexpr)
     {
-      EmitSuppressedVarInitDiags();
-      EmitSuppressedAccessDiags();
+      EmitSuppressedLeftExprDiags();
       if (prev_errorcnt == errorcnt)  // no error was generated yet ?
       {
         Error(DQERR_EXPR_EXPECTED, &scpos_statement_start);
@@ -1099,13 +1097,11 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
         OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
         if (lval)
         {
-          EmitFilteredAssignVarInitDiags(lval, binop);
-          EmitFilteredAssignAccessDiags(lval, binop);
+          EmitFilteredAssignLeftExprDiags(lval, binop);
         }
         else
         {
-          EmitSuppressedVarInitDiags();
-          EmitSuppressedAccessDiags();
+          EmitSuppressedLeftExprDiags();
         }
         delete leftexpr;
         SkipToStatementEnd();  // try to find the ";"
@@ -1121,8 +1117,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
       if (!lval)
       {
-        EmitSuppressedVarInitDiags();
-        EmitSuppressedAccessDiags();
+        EmitSuppressedLeftExprDiags();
         if (dynamic_cast<OEnumOrdExpr *>(leftexpr))
         {
           Error(DQERR_TYPE_ASSIGN_TO_CONST, "ord");
@@ -1136,8 +1131,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
         continue;
       }
 
-      EmitFilteredAssignVarInitDiags(lval, binop);
-      EmitFilteredAssignAccessDiags(lval, binop);
+      EmitFilteredAssignLeftExprDiags(lval, binop);
       FinalizeStmtAssign(lval, binop, rightexpr);
       continue;
     }
@@ -1152,8 +1146,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
                      || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
     if (!is_call_stmt)
     {
-      EmitSuppressedVarInitDiags();
-      EmitSuppressedAccessDiags();
+      EmitSuppressedLeftExprDiags();
       StatementError(DQERR_STMT_ASSIGN_OR_FCALL_EXP);
       scf->SkipWhite();
       if (!scf->CheckSymbol(";"))
@@ -1164,8 +1157,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       continue;
     }
 
-    EmitSuppressedVarInitDiags();
-    EmitSuppressedAccessDiags();
+    EmitSuppressedLeftExprDiags();
     if (!CheckStatementClose())
     {
       OScPosition scpos;

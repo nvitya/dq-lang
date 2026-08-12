@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.40.7"
+#define DQ_COMPILER_VERSION  "0.40.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.40.8:
+  - Refactoring of suppressed "VarInit" and "Access" for left expressions to using common "LeftExprDiags"
 v0.40.7:
   - const blocks: const(uint32): ... endconst
 v0.40.6:

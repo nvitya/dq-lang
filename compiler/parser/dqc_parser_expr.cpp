@@ -1504,12 +1504,12 @@ OExpr * ODqCompParserExpr::ParseExprUnary()
   // address-of operator: consume a full postfix-capable lvalue operand
   if (scf->CheckSymbol("&"))
   {
-    size_t suppressed_start = suppressed_access_diags.size();
+    size_t suppressed_start = suppressed_left_expr_diags.size();
     bool saved_suppress = suppress_access_read_check;
     suppress_access_read_check = true;
     OLValueExpr * lval = ParseAddressableExpr();
     suppress_access_read_check = saved_suppress;
-    suppressed_access_diags.resize(suppressed_start);
+    DiscardSuppressedLeftExprDiags(suppressed_start, SLEDK_ACCESS);
     if (!lval) return nullptr;
     return new OAddrOfExpr(lval);
   }
@@ -3436,9 +3436,9 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
   }
   else if (EFOK_TRY == kind)
   {
-    if (!rawargs[1].init_diags.empty())
+    if (rawargs[1].FindDiag(SLEDK_VAR_INIT))
     {
-      EmitStoredVarInitDiags(rawargs[1].init_diags);
+      EmitStoredLeftExprDiags(rawargs[1].diags, SLEDK_VAR_INIT);
       delete result;
       FreeRawCallArguments(rawargs);
       return nullptr;
@@ -3588,8 +3588,7 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
     TRawCallArg rawarg;
     scf->SaveCurPos(rawarg.scpos_start);
 
-    size_t suppressed_start = suppressed_varinit_diags.size();
-    size_t suppressed_access_start = suppressed_access_diags.size();
+    size_t suppressed_start = suppressed_left_expr_diags.size();
     bool saved_suppress = supress_varinit_check;
     bool saved_access_suppress = suppress_access_read_check;
     supress_varinit_check = true;
@@ -3598,10 +3597,8 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
     supress_varinit_check = saved_suppress;
     suppress_access_read_check = saved_access_suppress;
 
-    rawarg.init_diags.assign(suppressed_varinit_diags.begin() + suppressed_start, suppressed_varinit_diags.end());
-    suppressed_varinit_diags.resize(suppressed_start);
-    rawarg.access_diags.assign(suppressed_access_diags.begin() + suppressed_access_start, suppressed_access_diags.end());
-    suppressed_access_diags.resize(suppressed_access_start);
+    rawarg.diags.assign(suppressed_left_expr_diags.begin() + suppressed_start, suppressed_left_expr_diags.end());
+    suppressed_left_expr_diags.resize(suppressed_start);
 
     if (!rawarg.expr)
     {
@@ -3764,7 +3761,7 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
   callargs.reserve(rawargs.size());
   for (const TRawCallArg & rawarg : rawargs)
   {
-    callargs.push_back({rawarg.expr, !rawarg.init_diags.empty()});
+    callargs.push_back({rawarg.expr, rawarg.FindDiag(SLEDK_VAR_INIT) != nullptr});
   }
 
   OValSymFunc * best_func = nullptr;

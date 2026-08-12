@@ -38,4 +38,7 @@ function Test():
     regs.PLAIN_RO = 1;                 //?error(AccessNoWrite)
     regs.RO += 1;                      //?error(AccessNoWrite)
     regs.WO += 1;                      //?error(AccessNoRead)
+
+    var index : int;
+    regs.WO_ARRAY[index] = 1;          //?error(VarNotInit)
 endfunc

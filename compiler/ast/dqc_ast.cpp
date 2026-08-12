@@ -1360,26 +1360,23 @@ void ODqCompAst::FreeRawCallArguments(vector<TRawCallArg> & rawargs)
   {
     OExpr::DeleteTree(rawarg.expr);
     rawarg.expr = nullptr;
-    rawarg.init_diags.clear();
+    rawarg.diags.clear();
   }
 
   rawargs.clear();
 }
 
-void ODqCompAst::EmitStoredVarInitDiags(const vector<TSuppressedVarInitDiag> & diags)
+const ODqCompAst::TSuppressedLeftExprDiag *
+ODqCompAst::TRawCallArg::FindDiag(ESuppressedLeftExprDiagKind kind) const
 {
   for (const auto & diag : diags)
   {
-    OScPosition scpos = diag.scpos;
-    if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+    if (kind == diag.kind)
     {
-      Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &scpos);
-    }
-    else
-    {
-      Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &scpos);
+      return &diag;
     }
   }
+  return nullptr;
 }
 
 OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym * vs, OScope * found_scope)
@@ -1503,16 +1500,16 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
 
     if (!is_ref_arg)
     {
-      if (!rawarg.access_diags.empty())
+      if (rawarg.FindDiag(SLEDK_ACCESS))
       {
-        EmitStoredAccessDiags(rawarg.access_diags);
+        EmitStoredLeftExprDiags(rawarg.diags, SLEDK_ACCESS);
         OExpr::DeleteTree(argexpr);
         bok = false;
         break;
       }
-      if (!rawarg.init_diags.empty())
+      if (rawarg.FindDiag(SLEDK_VAR_INIT))
       {
-        EmitStoredVarInitDiags(rawarg.init_diags);
+        EmitStoredLeftExprDiags(rawarg.diags, SLEDK_VAR_INIT);
         OExpr::DeleteTree(argexpr);
         bok = false;
         break;
@@ -1585,10 +1582,10 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
           break;
         }
 
-        if (!rawarg.init_diags.empty() && ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode)))
+        const TSuppressedLeftExprDiag * init_diag = rawarg.FindDiag(SLEDK_VAR_INIT);
+        if (init_diag && ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode)))
         {
-          OValSym * uninitvs = rawarg.init_diags[0].valsym;
-          Error(DQERR_FUNC_ARG_REF_UNINIT, uninitvs->name);
+          Error(DQERR_FUNC_ARG_REF_UNINIT, init_diag->valsym->name);
           OExpr::DeleteTree(argexpr);
           bok = false;
           break;
@@ -1681,57 +1678,101 @@ void ODqCompAst::VarInitError(OLValueVar * varexpr, OValSym * valsym, OScPositio
 
 void ODqCompAst::AddSuppressedVarInitDiag(OLValueVar * varexpr, OValSym * valsym, OScPosition & scpos)
 {
-  TSuppressedVarInitDiag diag;
-  diag.varexpr = varexpr;
+  TSuppressedLeftExprDiag diag;
+  diag.kind = SLEDK_VAR_INIT;
+  diag.lvalue = varexpr;
   diag.valsym = valsym;
   diag.scpos = scpos;
-  suppressed_varinit_diags.push_back(diag);
+  suppressed_left_expr_diags.push_back(diag);
 }
 
-void ODqCompAst::EmitSuppressedVarInitDiags()
+void ODqCompAst::EmitLeftExprDiag(const TSuppressedLeftExprDiag & diag)
 {
-  if (suppressed_varinit_diags.empty())
+  OScPosition scpos = diag.scpos;
+  if (SLEDK_ACCESS == diag.kind)
+  {
+    Error(DQERR_ACCESS_NO_READ, diag.valsym ? diag.valsym->name : "?", &scpos);
+    return;
+  }
+
+  if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+  {
+    Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &scpos);
+  }
+  else
+  {
+    Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &scpos);
+  }
+}
+
+void ODqCompAst::EmitStoredLeftExprDiags(const vector<TSuppressedLeftExprDiag> & diags)
+{
+  for (const auto & diag : diags)
+  {
+    EmitLeftExprDiag(diag);
+  }
+}
+
+void ODqCompAst::EmitStoredLeftExprDiags(const vector<TSuppressedLeftExprDiag> & diags,
+                                        ESuppressedLeftExprDiagKind kind)
+{
+  for (const auto & diag : diags)
+  {
+    if (kind == diag.kind)
+    {
+      EmitLeftExprDiag(diag);
+    }
+  }
+}
+
+void ODqCompAst::EmitSuppressedLeftExprDiags()
+{
+  EmitStoredLeftExprDiags(suppressed_left_expr_diags);
+  suppressed_left_expr_diags.clear();
+}
+
+void ODqCompAst::DiscardSuppressedLeftExprDiags(size_t start, ESuppressedLeftExprDiagKind kind)
+{
+  auto first = suppressed_left_expr_diags.begin() + start;
+  suppressed_left_expr_diags.erase(remove_if(first, suppressed_left_expr_diags.end(),
+      [kind](const TSuppressedLeftExprDiag & diag) { return kind == diag.kind; }),
+      suppressed_left_expr_diags.end());
+}
+
+void ODqCompAst::EmitFilteredAssignLeftExprDiags(OLValueExpr * leftexpr, EBinOp op)
+{
+  if (suppressed_left_expr_diags.empty())
   {
     return;
   }
 
-  for (auto & diag : suppressed_varinit_diags)
+  vector<OLValueVar *> ignored_init;
+  vector<OLValueExpr *> ignored_access;
+  if (BINOP_NONE == op)
   {
-    if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
+    CollectIgnoredPlainAssignVars(leftexpr, ignored_init);
+    CollectPlainAssignTargetLValues(leftexpr, ignored_access);
+  }
+
+  for (const auto & diag : suppressed_left_expr_diags)
+  {
+    bool emit = true;
+    if (SLEDK_VAR_INIT == diag.kind)
     {
-      Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &diag.scpos);
+      for (OLValueVar * ignored : ignored_init)
+      {
+        if (ignored == diag.lvalue)
+        {
+          emit = false;
+          break;
+        }
+      }
     }
     else
     {
-      Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
-    }
-  }
-
-  suppressed_varinit_diags.clear();
-}
-
-void ODqCompAst::EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp op)
-{
-  if (suppressed_varinit_diags.empty())
-  {
-    return;
-  }
-
-  vector<OLValueVar *> ignored;
-  if (BINOP_NONE == op)
-  {
-    CollectIgnoredPlainAssignVars(leftexpr, ignored);
-  }
-
-  for (auto & diag : suppressed_varinit_diags)
-  {
-    bool emit = true;
-
-    if (BINOP_NONE == op)
-    {
-      for (OLValueVar * ignoredvar : ignored)
+      for (OLValueExpr * ignored : ignored_access)
       {
-        if (ignoredvar == diag.varexpr)
+        if (ignored == diag.lvalue)
         {
           emit = false;
           break;
@@ -1741,18 +1782,10 @@ void ODqCompAst::EmitFilteredAssignVarInitDiags(OLValueExpr * leftexpr, EBinOp o
 
     if (emit)
     {
-      if (diag.valsym->IsRefLike() && (FPM_REFOUT == diag.valsym->param_mode))
-      {
-        Error(DQERR_REFOUT_READ_BEFORE_WRITE, diag.valsym->name, &diag.scpos);
-      }
-      else
-      {
-        Error(DQERR_VAR_NOT_INITIALIZED, diag.valsym->name, &diag.scpos);
-      }
+      EmitLeftExprDiag(diag);
     }
   }
-
-  suppressed_varinit_diags.clear();
+  suppressed_left_expr_diags.clear();
 }
 
 void ODqCompAst::CheckNoReadAccess(OLValueExpr * lvalue, OValSym * valsym, OScPosition & scpos)
@@ -1764,57 +1797,17 @@ void ODqCompAst::CheckNoReadAccess(OLValueExpr * lvalue, OValSym * valsym, OScPo
 
   if (suppress_access_read_check)
   {
-    TSuppressedAccessDiag diag;
+    TSuppressedLeftExprDiag diag;
+    diag.kind = SLEDK_ACCESS;
     diag.lvalue = lvalue;
     diag.valsym = valsym;
     diag.scpos = scpos;
-    suppressed_access_diags.push_back(diag);
+    suppressed_left_expr_diags.push_back(diag);
   }
   else
   {
     Error(DQERR_ACCESS_NO_READ, valsym->name, &scpos);
   }
-}
-
-void ODqCompAst::EmitStoredAccessDiags(const vector<TSuppressedAccessDiag> & diags)
-{
-  for (auto diag : diags)
-  {
-    Error(DQERR_ACCESS_NO_READ, diag.valsym ? diag.valsym->name : "?", &diag.scpos);
-  }
-}
-
-void ODqCompAst::EmitSuppressedAccessDiags()
-{
-  EmitStoredAccessDiags(suppressed_access_diags);
-  suppressed_access_diags.clear();
-}
-
-void ODqCompAst::EmitFilteredAssignAccessDiags(OLValueExpr * leftexpr, EBinOp op)
-{
-  vector<OLValueExpr *> ignored;
-  if (BINOP_NONE == op)
-  {
-    CollectPlainAssignTargetLValues(leftexpr, ignored);
-  }
-
-  for (auto diag : suppressed_access_diags)
-  {
-    bool emit = true;
-    for (OLValueExpr * target : ignored)
-    {
-      if (target == diag.lvalue)
-      {
-        emit = false;
-        break;
-      }
-    }
-    if (emit)
-    {
-      Error(DQERR_ACCESS_NO_READ, diag.valsym ? diag.valsym->name : "?", &diag.scpos);
-    }
-  }
-  suppressed_access_diags.clear();
 }
 
 bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * rightexpr)

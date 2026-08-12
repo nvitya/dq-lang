@@ -100,7 +100,7 @@ def process_file(filepath):
                             ptr_type = m_ptr.group(1)
                             ptr_val = m_ptr.group(2)
                             flush_consts()
-                            out_lines.append(f"const {name} : ^{ptr_type} = ^{ptr_type}({ptr_val})")
+                            out_lines.append(f"const {name.ljust(12)} : ^{ptr_type} = ^{ptr_type}({ptr_val})")
                             continue
                             
                         # strip C casts like (uint32_t)

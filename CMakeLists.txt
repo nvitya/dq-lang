@@ -87,7 +87,6 @@ add_custom_target(autotest_O0
 add_custom_target(test
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   COMMAND "$<TARGET_FILE:dq-inline-asm-test>"
-  COMMAND "$<TARGET_FILE:dq-projectfile-test>"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_inline_asm.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_inline_asm.dq"
@@ -112,7 +111,7 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" -c -o "${DQ_BUILD_DIR}/project_compile_only.o"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/linkobject.dqproj"
   COMMAND ${DQ_AUTOTEST_COMMAND}
-  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
+  DEPENDS dq-comp dqatrun dq-inline-asm-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )

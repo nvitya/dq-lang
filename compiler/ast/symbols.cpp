@@ -311,27 +311,76 @@ bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
 
 OValue * OTypePointer::CreateValue()
 {
-  return new OValuePointer(this, true);
+  return new OValuePointer(this, 0);
 }
 
 LlConst * OValuePointer::CreateLlConst()
 {
-  if (!is_null)
+  if (0 == address)
   {
-    return nullptr;
+    return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
   }
 
-  return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlType * ll_intptr = LlType::getIntNTy(ll_ctx, TARGET_PTRSIZE * 8);
+  LlConst * ll_address = llvm::ConstantInt::get(ll_intptr, address);
+  return llvm::ConstantExpr::getIntToPtr(ll_address, ptype->GetLlType());
 }
 
 bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
 {
-  is_null = false;
+  address = 0;
 
   if (dynamic_cast<ONullLit *>(expr))
   {
-    is_null = true;
     return true;
+  }
+
+  if (auto * varref = dynamic_cast<OLValueVar *>(expr))
+  {
+    auto * vsconst = dynamic_cast<OValSymConst *>(varref->pvalsym);
+    auto * ptrvalue = (vsconst ? dynamic_cast<OValuePointer *>(vsconst->pvalue) : nullptr);
+    if (ptrvalue)
+    {
+      address = ptrvalue->address;
+      return true;
+    }
+    if (emit_errors && !vsconst)
+    {
+      g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, varref->pvalsym->name, "pointer");
+    }
+    return false;
+  }
+
+  if (auto * conv = dynamic_cast<OExprTypeConv *>(expr))
+  {
+    OType * srctype = conv->src->ResolvedType();
+    if (srctype && (TK_INT == srctype->kind))
+    {
+      OValueInt intvalue(srctype, 0);
+      if (!intvalue.CalculateConstant(conv->src, emit_errors))
+      {
+        return false;
+      }
+
+      address = uint64_t(intvalue.value);
+      uint32_t ptrbits = TARGET_PTRSIZE * 8;
+      if (ptrbits < 64)
+      {
+        address &= (uint64_t(1) << ptrbits) - 1;
+      }
+      return true;
+    }
+
+    if (srctype && (TK_POINTER == srctype->kind))
+    {
+      OValuePointer ptrvalue(srctype, 0);
+      if (!ptrvalue.CalculateConstant(conv->src, emit_errors))
+      {
+        return false;
+      }
+      address = ptrvalue.address;
+      return true;
+    }
   }
 
   if (emit_errors)
@@ -348,11 +397,7 @@ bool OValue::WriteDqmIfValue(ODqmIfWriter & writer)
 
 bool OValuePointer::WriteDqmIfValue(ODqmIfWriter & writer)
 {
-  if (!is_null)
-  {
-    return writer.Fail("Only null pointer constants are supported in DQM interface generation");
-  }
-  return writer.AddRecU64(DQMIF_VALUE_INLINE, 0);
+  return writer.AddRecU64(DQMIF_VALUE_INLINE, address);
 }
 
 LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)

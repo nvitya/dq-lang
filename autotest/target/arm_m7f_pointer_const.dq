@@ -1,0 +1,10 @@
+struct STimerRegisters:
+    CR1 : [[regrw]] uint32;
+endstruct
+
+const TIMER2_BASE : uint32 = 0x40000000;
+const TIMER2 : ^STimerRegisters = ^STimerRegisters(TIMER2_BASE);
+
+function WriteTimerControl(value : uint32):
+    TIMER2.CR1 = value;
+endfunc

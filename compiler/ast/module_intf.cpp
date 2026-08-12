@@ -170,7 +170,7 @@ static string ConstValueText(OValue * avalue)
   }
   if (auto * v = dynamic_cast<OValuePointer *>(avalue))
   {
-    return (v->is_null ? "null" : "<pointer>");
+    return (0 == v->address ? "null" : format("0x{:X}", v->address));
   }
   if (typeid(*avalue) == typeid(OValue))
   {
@@ -1753,11 +1753,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
   {
     uint64_t value = 0;
     if (!reader.ReadU64(value)) return false;
-    if (value != 0)
-    {
-      return reader.Fail("Only null pointer values are supported in DQM interface loading");
-    }
-    rvalue = new OValuePointer(atype, true);
+    rvalue = new OValuePointer(atype, value);
   }
   else if (TK_FUNCREF == rtype->kind)
   {

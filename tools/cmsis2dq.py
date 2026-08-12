@@ -31,6 +31,7 @@ def process_file(filepath):
     re_enum_item = re.compile(r'^\s*([A-Za-z0-9_]+)\s*=\s*([^,/]+)(?:,)?(.*)')
     re_number_suffix = re.compile(r'\b(0x[0-9a-fA-F]+|[0-9]+)[UuLl]+\b')
     re_comment = re.compile(r'/\*!*<*\s*(.*?)\s*\*/')
+    re_ptr_cast = re.compile(r'^\s*\(?\s*\(\s*([A-Za-z0-9_]+)\s*\*\s*\)\s*(.+?)\)?\s*$')
     
     out_lines = []
     
@@ -93,6 +94,15 @@ def process_file(filepath):
                     
                     if val:
                         val = re_number_suffix.sub(r'\1', val)
+
+                        m_ptr = re_ptr_cast.match(val)
+                        if m_ptr:
+                            ptr_type = m_ptr.group(1)
+                            ptr_val = m_ptr.group(2)
+                            flush_consts()
+                            out_lines.append(f"const {name} : ^{ptr_type} = ^{ptr_type}({ptr_val})")
+                            continue
+                            
                         # strip C casts like (uint32_t)
                         val = re.sub(r'\(\s*u?int\d+_t\s*\)', '', val)
                         # strip redundant outer parens around single tokens

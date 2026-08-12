@@ -6,6 +6,8 @@ struct SImportedRegisters:
     WO : [[regwo]] uint32;
 endstruct
 
+const imported_regs_ptr : ^SImportedRegisters = ^SImportedRegisters(0x40000000);
+
 var imported_regs : SImportedRegisters;
 var imported_ro : uint32 [[regro]];
 var imported_wo : uint32 [[regwo]];

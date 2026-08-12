@@ -567,12 +567,12 @@ private:
   using        super = OValue;
 
 public:
-  bool         is_null = true;
+  uint64_t     address = 0;
 
-  OValuePointer(OType * atype, bool ais_null)
+  OValuePointer(OType * atype, uint64_t aaddress)
   :
     super(atype),
-    is_null(ais_null)
+    address(aaddress)
   {
   }
 

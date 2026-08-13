@@ -2,3 +2,8 @@
 
 use ./mod_advuse_reexport_leaf as leaf_alias reexport
 
+#if RE_VAL == 8
+const RE_IF_VALUE : int = 17
+#else
+const RE_IF_VALUE : int = 0
+#endif

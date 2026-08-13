@@ -341,6 +341,47 @@ repeat_skip:  // jumped here when returning from an include
   return;
 }
 
+bool OScFeederDq::LineEndsBeforeNextToken() const
+{
+  const char * p = curp;
+  while (p < bufend)
+  {
+    if ((*p == ' ') || (*p == '\t'))
+    {
+      ++p;
+      continue;
+    }
+    if ((*p == '\r') || (*p == '\n'))
+    {
+      return true;
+    }
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '/'))
+    {
+      return true;
+    }
+    if ((p + 1 < bufend) && (p[0] == '/') && (p[1] == '*'))
+    {
+      p += 2;
+      while (p < bufend)
+      {
+        if ((*p == '\r') || (*p == '\n'))
+        {
+          return true;
+        }
+        if ((p + 1 < bufend) && (p[0] == '*') && (p[1] == '/'))
+        {
+          p += 2;
+          break;
+        }
+        ++p;
+      }
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 void OScFeederDq::SkipInactiveAsmCode()
 {
   // Assembly recognizes directives only at the start of a physical

@@ -80,6 +80,7 @@ public: // parsing functions
   inline void SetAsmMode(bool avalue) { asm_mode = avalue; }
 
   void SkipWhite(); // jumps to the first normal token
+  bool LineEndsBeforeNextToken() const;
   bool ReadAsmText(string & rtext);
 
 protected:

@@ -623,10 +623,18 @@ void ODqCompParser::ParseUseStatement()
     EModuleUseMergeMode merge_mode = MUM_ALL;
     vector<string> symbol_names;
     bool reexport = false;
+    bool closed_by_line_end = false;
     namespace_name = use_path.namespace_name;
 
     while (true) // cycle to get multiple use modifiers
     {
+      // Do not let SkipWhite process a directive on the next line before this
+      // module use has populated the current scope.
+      if (scf->LineEndsBeforeNextToken())
+      {
+        closed_by_line_end = true;
+        break;
+      }
       int line_before = scf->last_token_end_line;
       scf->SkipWhite();
       if (scf->CheckSymbol(";", false) or scf->CheckSymbol(",", false))  // detect the end of the use block
@@ -737,7 +745,7 @@ void ODqCompParser::ParseUseStatement()
     {
       more_use_blocks = true;
     }
-    else if (!CheckStatementClose())
+    else if (!closed_by_line_end && !CheckStatementClose())
     {
       return;
     }

@@ -11,14 +11,16 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.43.1"
+#define DQ_COMPILER_VERSION  "0.43.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.43.2:
+  - Use statement parsing fix for newline termination
 v0.43.1:
   - FirstInt(), FirstBool(), FirstFloat() compiler internal functions implemented
 v0.43.0:
-  - The #if condition expressions handle normal scoped constant expressions, 
+  - The #if condition expressions handle normal scoped constant expressions,
     @def. prefix is required to access the defines. The #ifdef, #ifndef works like before.
 v0.42.0:
   - Compiler fixes to handle all statements properly without semicolons

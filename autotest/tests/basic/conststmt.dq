@@ -12,13 +12,13 @@ const(uint32):
 endconst
 
 function dq_local_const_basic() -> int:
-    const base : int = 3;
-    result = base + 4;
+    const base : int = 3
+    result = base + 4
 endfunc
 
 function dq_local_const_shadow_root() -> int:
-    const rootval : int = 11;
-    result = rootval;
+    const rootval : int = 11
+    result = rootval
 endfunc
 
 function dq_local_const_group() -> uint32:
@@ -30,19 +30,19 @@ function dq_local_const_group() -> uint32:
 endfunc
 
 function dq_pointer_address_const() -> uint:
-    result = uint(address_ptr_alias);
+    result = uint(address_ptr_alias)
 endfunc
 
 function dq_local_const_in_if(a : int) -> int:
     if a > 0:
-        const inc : int = 5;
-        result = inc;
+        const inc : int = 5
+        result = inc
     else:
-        result = rootval;
+        result = rootval
     endif
 endfunc
 
 function dq_local_const_nonconst_expr(a : int) -> int:
     const bad : int = a + 1;  //?error(ConstExprInvalid), error(ConstExprNonConstVs)
-    result = 0;
+    result = 0
 endfunc

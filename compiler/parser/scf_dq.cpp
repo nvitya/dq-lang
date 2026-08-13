@@ -270,6 +270,10 @@ repeat_skip:  // jumped here when returning from an include
   {
     SkipSpaces();
 
+    // Comments are whitespace.  Keep the end line of the last real token so
+    // statement-boundary checks can still see newlines crossed by a comment.
+    int last_code_token_end_line = last_token_end_line;
+
     if (curp >= bufend)
     {
       break;  // end of current file
@@ -278,6 +282,7 @@ repeat_skip:  // jumped here when returning from an include
     if (CheckSymbol("//")) // single line comment
     {
       ReadTo("\n\r");
+      last_token_end_line = last_code_token_end_line;
     }
     else if (CheckSymbol("/*"))  // multi-line comment start
     {
@@ -292,6 +297,7 @@ repeat_skip:  // jumped here when returning from an include
         curp = curfile->pend;
         RecalcCurLineCol();
       }
+      last_token_end_line = last_code_token_end_line;
     }
     else if (CheckSymbol("#"))  // compiler directive
     {

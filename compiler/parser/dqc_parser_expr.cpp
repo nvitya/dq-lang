@@ -544,7 +544,18 @@ bool ODqCompParserExpr::ParseAttributes(bool areset)
 
   while (!scf->Eof())
   {
+    OScPosition before_whitespace;
+    scf->SaveCurPos(before_whitespace);
+    int previous_token_line = scf->last_token_end_line;
     scf->SkipWhite();
+    if (!areset && scf->curline > previous_token_line)
+    {
+      // Trailing attributes belong to the declaration on their physical line.
+      // A prefix attribute on the next line starts the next declaration.
+      scf->SetCurPos(before_whitespace);
+      scf->last_token_end_line = previous_token_line;
+      break;
+    }
     if (!scf->CheckSymbol("[[", false))
     {
       break;
@@ -2324,7 +2335,9 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
 
   while (true)
   {
+    int previous_token_line = scf->last_token_end_line;
     scf->SkipWhite();
+    bool crossed_line = scf->curline > previous_token_line;
 
     if (!result->ptype)
     {
@@ -2881,7 +2894,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
         continue;
       }
 
-      if (scf->CheckSymbol("^")) // p^: dereference -> lvalue
+      if (!crossed_line && scf->CheckSymbol("^")) // p^: dereference -> lvalue
       {
         if (!ptrtype->IsTypedPointer())
         {
@@ -3240,10 +3253,13 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     OType * named_type = cur_mod_scope->FindType(sid);
     auto * enum_type = dynamic_cast<OTypeEnum *>(named_type ? named_type->ResolveAlias() : nullptr);
-    scf->SkipWhite();
-    if (enum_type && scf->CheckSymbol(".", false))
+    if (enum_type)
     {
-      return ParseEnumTypeExpr(enum_type);
+      scf->SkipWhite();
+      if (scf->CheckSymbol(".", false))
+      {
+        return ParseEnumTypeExpr(enum_type);
+      }
     }
 
     if (object_method_scope)  // searching for inherited members

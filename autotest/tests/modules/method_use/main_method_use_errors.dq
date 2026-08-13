@@ -9,18 +9,18 @@ public
         if true:
             use .
         endif
-        var v : int = OUTER_A
-    endfunc  //?error(ObjVsInModuleNs)
+        var v : int = OUTER_A  //?error(ObjVsInModuleNs)
+    endfunc
 
     function DotDoesNotImport():
         use .
-        var v : int = ONLY_A
-    endfunc  //?error(ObjVsInModuleNs, 'Use "@exclm.ONLY_A"')
+        var v : int = ONLY_A  //?error(ObjVsInModuleNs, 'Use "@exclm.ONLY_A"')
+    endfunc
 
     function OnlyDoesNotIncludeHidden():
         use onlym
-        var v : int = HIDDEN_A
-    endfunc  //?error(VsUnknown)
+        var v : int = HIDDEN_A  //?error(VsUnknown)
+    endfunc
 
     function LocalNamespaceDoesNotImport():
         var v : int = @..ONLY_A  //?error(NsVsUnknown)

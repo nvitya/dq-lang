@@ -477,7 +477,8 @@ void ODqCompParser::ParseModule()
     // module root starters
     if (not scf->ReadIdentifier(sid))
     {
-      RootStatementError(DQERR_MODULE_STATEMENT_EXPECTED, &scpos_statement_start);
+      Error(DQERR_MODULE_STATEMENT_EXPECTED, &scpos_statement_start);
+      SkipToModuleStatementStart(true);
       continue;
     }
 
@@ -532,7 +533,8 @@ void ODqCompParser::ParseModule()
     }
     else  // unknown
     {
-      RootStatementError(DQERR_MODULE_STATEMENT_UNKNOWN, sid, &scpos_statement_start);
+      Error(DQERR_MODULE_STATEMENT_UNKNOWN, sid, &scpos_statement_start);
+      SkipToModuleStatementStart(true);
     }
   }
 

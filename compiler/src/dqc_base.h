@@ -81,7 +81,7 @@ public:
   // Error recovery utilities
   void SkipToStatementEnd();
   void SkipCurStatement();
-  void SkipToModuleStatementStart();
+  void SkipToModuleStatementStart(bool astop_at_block_closer = false);
   void SkipToSymbol(const char * asym);
 
   // Warnings

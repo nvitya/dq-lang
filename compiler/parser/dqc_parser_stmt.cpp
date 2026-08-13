@@ -570,7 +570,9 @@ void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
   scf->SkipWhite();
   if (!scf->CheckSymbol(":"))
   {
-    Error(DQERR_STMTBLK_START_MISSING);
+    OScPosition bodypos;
+    scf->SaveCurPos(bodypos);
+    Error(DQERR_STMTBLK_START_MISSING, &bodypos);
   }
 
   const OAttr group_attr = *attr;

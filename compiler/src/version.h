@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.41.1"
+#define DQ_COMPILER_VERSION  "0.42.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.42.0:
+  - Compiler fixes to handle all statements properly without semicolons
+  - Removed semicolons from the autotest files
 v0.41.1:
   - Using hash tables for module use symbols
 v0.41.0:

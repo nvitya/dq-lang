@@ -167,12 +167,12 @@ void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, string_view
   if (!epos) epos = errorpos;
   if (!epos)
   {
-    // use the current parser position by default
     scf->SaveCurPos(log_scpos);
-    epos = &log_scpos;
-
-    // old behaviour: statement_start
-    //epos = &scpos_statement_start;
+    // A statement can only be known to be invalid after whitespace look-ahead
+    // reaches the next line. Keep that diagnostic on the statement that
+    // caused it, while retaining precise positions for errors found within a
+    // multiline statement (notably inline assembly bodies).
+    epos = (scf->curline > scf->last_token_end_line) ? &scpos_statement_start : &log_scpos;
   }
 
   print("{} ERROR({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
@@ -203,6 +203,14 @@ void ODqCompBase::SkipToStatementEnd()
 
 void ODqCompBase::SkipCurStatement()
 {
+  scf->SkipSpaces(false); // skip spaces, but not line feeds
+  if (scf->curline > scf->last_token_end_line)
+  {
+    // The failing parser already looked across the statement-ending newline.
+    // Leave the next statement untouched so recovery can resume from it.
+    return;
+  }
+
   while (not scf->Eof())
   {
     scf->SkipSpaces(false); // skip spaces, but not line feeds
@@ -274,7 +282,7 @@ void ODqCompBase::SkipToSymbol(const char * asym)
   }
 }
 
-void ODqCompBase::SkipToModuleStatementStart()
+void ODqCompBase::SkipToModuleStatementStart(bool astop_at_block_closer)
 {
   while (not scf->Eof())
   {
@@ -295,9 +303,9 @@ void ODqCompBase::SkipToModuleStatementStart()
     string sid;
     if (scf->ReadIdentifier(sid))
     {
-      if (RootStatementWord(sid))
+      if (RootStatementWord(sid) || (astop_at_block_closer && IsBlockCloserWord(sid)))
       {
-        scf->SetCurPos(scpos);  // restore the module keyword starting position
+        scf->SetCurPos(scpos);  // restore the statement/closer keyword position
         return;
       }
 

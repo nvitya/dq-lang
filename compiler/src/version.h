@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.43.0"
+#define DQ_COMPILER_VERSION  "0.43.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.43.1:
+  - FirstInt(), FirstBool(), FirstFloat() compiler internal functions implemented
 v0.43.0:
   - The #if condition expressions handle normal scoped constant expressions, 
     @def. prefix is required to access the defines. The #ifdef, #ifndef works like before.

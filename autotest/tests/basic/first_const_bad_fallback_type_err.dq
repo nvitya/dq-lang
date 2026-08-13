@@ -1,0 +1,6 @@
+const BOOL_VALUE : bool = true
+const SELECTED : bool = FirstBool(BOOL_VALUE, 0) //?error(TypeMismatchAssign), error(ExprWrongValue)
+
+function *Main() -> int:
+    return 0
+endfunc

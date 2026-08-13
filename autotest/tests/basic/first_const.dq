@@ -1,0 +1,81 @@
+// FirstInt, FirstFloat, and FirstBool compile-time intrinsic tests
+
+#define DEFINE_ONLY_VALUE = 77
+
+const ROOT_FIRST : int = 11
+const ROOT_SECOND : int = 22
+const ROOT_SMALL : int8 = 7
+const ROOT_FLOAT : float32 = 1.5
+const ROOT_BOOL : bool = true
+const ROOT_FALSE : bool = false
+const SHADOWED : int = 1
+var NONCONST_AFTER_SELECTION : int = 123
+
+const SELECTED_INT : int = FirstInt(MISSING_INT, ROOT_FIRST, ROOT_SECOND, 99)
+const EARLY_SELECTION : int = FirstInt(ROOT_FIRST, NONCONST_AFTER_SELECTION, 99)
+const FALLBACK_INT : int = FirstInt(MISSING_INT_A, MISSING_INT_B, 40 + 2)
+const CONVERTED_INT : int = FirstInt(MISSING_INT, ROOT_SMALL, 0)
+const DEFINE_NOT_SEARCHED : int = FirstInt(DEFINE_ONLY_VALUE, 5)
+const DEFINE_FALLBACK : int = FirstInt(MISSING_INT, @def.DEFINE_ONLY_VALUE)
+const NESTED_FALLBACK : int = FirstInt(MISSING_INT, FirstInt(ALSO_MISSING_INT, 6))
+const FORWARD_FALLBACK : int = FirstInt(LATER_INT, 8)
+const LATER_INT : int = 9
+
+const SELECTED_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_FLOAT, 2.0)
+const INTEGER_TO_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_SMALL, 2.0)
+const FALLBACK_FLOAT : float = FirstFloat(MISSING_FLOAT, 2.5 + 0.25)
+const INTEGER_FLOAT_FALLBACK : float = FirstFloat(MISSING_FLOAT, 3)
+
+const SELECTED_BOOL : bool = FirstBool(MISSING_BOOL, ROOT_BOOL, false)
+const SELECTED_FALSE : bool = FirstBool(ROOT_FALSE, ROOT_BOOL, true)
+const FALLBACK_BOOL : bool = FirstBool(MISSING_BOOL, false)
+
+var fixed_values : [FirstInt(MISSING_ARRAY_SIZE, 3)]int
+
+#if FirstBool(MISSING_DIRECTIVE_BOOL, ROOT_BOOL, false)
+    const DIRECTIVE_VALUE : int = FirstInt(MISSING_DIRECTIVE_INT, ROOT_SECOND, 0)
+#else
+    const DIRECTIVE_VALUE : int = 0
+#endif
+
+#if false
+    const ELIF_VALUE : int = 0
+#elif FirstBool(MISSING_ELIF_BOOL, ROOT_BOOL, false)
+    const ELIF_VALUE : int = 23
+#else
+    const ELIF_VALUE : int = 0
+#endif
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+function *Main() -> int:
+    const SHADOWED : int = 33
+    const LOCAL_INT : int = FirstInt(MISSING_LOCAL, SHADOWED, 0)
+    var inline_value : int = #{if FirstBool(MISSING_INLINE_BOOL, ROOT_BOOL, false)} 24 #{else} 0 #{endif}
+
+    fixed_values[0] = SELECTED_INT
+    fixed_values[1] = FALLBACK_INT
+    fixed_values[2] = CONVERTED_INT
+
+    printf("selected int = %d\n", SELECTED_INT)              //?check("selected int", 11)
+    printf("early selection = %d\n", EARLY_SELECTION)        //?check("early selection", 11)
+    printf("fallback int = %d\n", FALLBACK_INT)              //?check("fallback int", 42)
+    printf("converted int = %d\n", CONVERTED_INT)            //?check("converted int", 7)
+    printf("definition is separate = %d\n", DEFINE_NOT_SEARCHED) //?check("definition is separate", 5)
+    printf("definition fallback = %d\n", DEFINE_FALLBACK)     //?check("definition fallback", 77)
+    printf("nested fallback = %d\n", NESTED_FALLBACK)         //?check("nested fallback", 6)
+    printf("forward fallback = %d\n", FORWARD_FALLBACK)       //?check("forward fallback", 8)
+    printf("selected float = %.2f\n", SELECTED_FLOAT)         //?check("selected float", 1.50)
+    printf("integer to float = %.2f\n", INTEGER_TO_FLOAT)     //?check("integer to float", 7.00)
+    printf("fallback float = %.2f\n", FALLBACK_FLOAT)         //?check("fallback float", 2.75)
+    printf("integer float fallback = %.2f\n", INTEGER_FLOAT_FALLBACK) //?check("integer float fallback", 3.00)
+    printf("selected bool = %d\n", iif(SELECTED_BOOL, 1, 0))  //?check("selected bool", 1)
+    printf("selected false = %d\n", iif(SELECTED_FALSE, 1, 0)) //?check("selected false", 0)
+    printf("fallback bool = %d\n", iif(FALLBACK_BOOL, 1, 0))  //?check("fallback bool", 0)
+    printf("local shadow = %d\n", LOCAL_INT)                  //?check("local shadow", 33)
+    printf("array size = %d\n", Len(fixed_values))            //?check("array size", 3)
+    printf("directive value = %d\n", DIRECTIVE_VALUE)         //?check("directive value", 22)
+    printf("elif value = %d\n", ELIF_VALUE)                   //?check("elif value", 23)
+    printf("inline value = %d\n", inline_value)               //?check("inline value", 24)
+    return 0
+endfunc

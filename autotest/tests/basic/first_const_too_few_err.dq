@@ -1,0 +1,5 @@
+const SELECTED : int = FirstInt(0) //?error(FuncArgsTooFew), error(ExprWrongValue)
+
+function *Main() -> int:
+    return 0
+endfunc

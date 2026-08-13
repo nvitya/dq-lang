@@ -47,7 +47,8 @@ Although ordinary name lookup is used, a conditional expression must remain a
 compile-time constant Boolean expression. Resolving a variable, parameter,
 function, or another nonconstant symbol therefore does not make it valid in a
 condition; constant evaluation must reject it. An unknown unqualified name is
-also an error unless it is used through `IntVal` as described below.
+also an error unless it is used as an optional candidate of one of the
+`FirstInt`, `FirstFloat`, or `FirstBool` intrinsics described below.
 
 The same rules apply to the inline `#{if ...}` and `#{elif ...}` forms.
 
@@ -90,51 +91,73 @@ preserves constructs such as:
 Thus, the scope change applies only to `#if` and `#elif` condition expressions,
 not to `#define` value expressions or the existence-testing directives.
 
-## Optional integer constants with `IntVal`
+## Typed constant fallbacks with `FirstInt`, `FirstFloat`, and `FirstBool`
 
-`IntVal` is a special expression available only in `#if` and `#elif`
-conditions. It permits a condition to use an optional DQ integer constant and
-provide a value when that constant is absent:
+`FirstInt`, `FirstFloat`, and `FirstBool` are globally available compile-time
+intrinsics. They select the first available DQ constant from a left-to-right
+list of optional names, or use a required final fallback when none of those
+names is declared. They can be used in `#if` and `#elif` conditions and in any
+other expression context:
 
 ```dq
-#if IntVal(BOARD_REVISION, 0) >= 2
+#if FirstInt(BOARD_REVISION, DEFAULT_BOARD_REVISION, 0) >= 2
+    // ...
+#endif
+
+#if FirstFloat(SCALE_FACTOR, DEFAULT_SCALE_FACTOR, 1.0) > 0.5
+    // ...
+#endif
+
+#if FirstBool(ENABLE_CACHE, DEFAULT_ENABLE_CACHE, false)
     // ...
 #endif
 ```
 
-Its syntax is:
+Their syntax is:
 
 ```dq
-IntVal(identifier, default_integer_constant_expression)
+FirstInt(identifier [, identifier ...], fallback_constant_expression) -> int
+FirstFloat(identifier [, identifier ...], fallback_constant_expression) -> float
+FirstBool(identifier [, identifier ...], fallback_constant_expression) -> bool
 ```
 
-The first argument is syntactically an identifier rather than a general
-expression. `IntVal` looks it up using the same DQ lexical-scope rules as an
-unqualified name in the surrounding conditional expression.
+Each form requires at least one optional identifier and a final fallback
+expression. The optional arguments are syntactically identifiers rather than
+general expressions. They are looked up from left to right using the same DQ
+lexical-scope rules as an unqualified name at the intrinsic call location.
 
-- If the identifier resolves to a DQ integer constant, `IntVal` returns its
-  value.
-- If the identifier does not resolve to any symbol, `IntVal` returns the
-  default value.
-- If the identifier resolves to a symbol that is not a constant, compilation
-  fails. The default does not hide an accidental reference to a variable or
-  another nonconstant declaration.
-- If the identifier resolves to a constant whose value is not an integer,
-  compilation fails.
-- The default must be an integer constant expression.
+- If an identifier does not resolve to any symbol, lookup continues with the
+  next optional identifier.
+- Lookup stops at the first identifier that resolves to a symbol. That symbol
+  must be a constant whose value can be converted to the intrinsic's fixed
+  result type using the normal compile-time implicit conversion rules.
+- If the first resolved symbol is not a constant, compilation fails. A later
+  candidate or the fallback does not hide an accidental reference to a
+  variable, parameter, function, or another nonconstant declaration.
+- If the first resolved symbol is a constant that cannot be converted to the
+  fixed result type, compilation fails rather than silently skipping it.
+- If none of the optional identifiers resolves, the final fallback expression
+  is used.
+- The fallback must be a compile-time constant expression convertible to the
+  fixed result type. It is validated even when an optional constant is
+  selected.
 
-The result has the integer type of the default expression. When the named
-constant exists, its value is converted to that type using the normal
-compile-time integer conversion rules. Giving the result a type determined by
-the default keeps the expression's static type independent of whether the
-optional declaration exists.
+The result types are always the canonical built-in types: `int` for
+`FirstInt`, `float` for `FirstFloat`, and `bool` for `FirstBool`. The selected
+constant or fallback value is converted to that fixed type at compile time.
+The complete intrinsic is replaced with an ordinary typed constant expression;
+it does not generate a run-time call.
 
-`IntVal` does not search the preprocessor-definition scope, and its first
-argument cannot be an `@def` expression. Preprocessor definitions can instead
-be tested with `#ifdef` or accessed as `@def.NAME` in an ordinary condition.
+The optional identifiers do not search the preprocessor-definition scope and
+cannot be `@def` expressions. Preprocessor definitions can instead be tested
+with `#ifdef` in directive code or accessed as `@def.NAME` in an ordinary
+expression. The fallback is an ordinary constant expression and may use
+explicitly qualified names.
 
-Outside a directive condition, `IntVal` has no special meaning. The special
-form therefore does not reserve the name for ordinary DQ functions or calls.
+Because the intrinsics are recognized in every expression context,
+`FirstInt`, `FirstFloat`, and `FirstBool` are reserved intrinsic names rather
+than ordinary function names. A string counterpart such as `FirstStr` may be
+added separately in the future but is not part of this specification.
 
 ## Examples
 
@@ -163,12 +186,33 @@ function Configure()
 endfunc
 ```
 
-### Optional constant
+### Optional constants
 
 ```dq
-#if IntVal(OPTIONAL_BUFFER_SIZE, 256) > 128
-    // uses 256 when OPTIONAL_BUFFER_SIZE is not declared
+#if FirstInt(BOARD_BUFFER_SIZE, OPTIONAL_BUFFER_SIZE, 256) > 128
+    // uses the first declared integer constant, or 256 if neither is declared
 #endif
+
+#if FirstFloat(OPTIONAL_SCALE, 1.0) >= 0.5
+    // uses 1.0 when OPTIONAL_SCALE is not declared
+#endif
+
+#if FirstBool(OPTIONAL_LOGGING, false)
+    // selected only when OPTIONAL_LOGGING exists and is true
+#endif
+```
+
+### Use outside conditional directives
+
+The intrinsic is always evaluated during compilation, even when its containing
+expression is not itself a directive condition:
+
+```dq
+const BUFFER_SIZE : int = FirstInt(BOARD_BUFFER_SIZE, DEFAULT_BUFFER_SIZE, 256)
+const SCALE : float = FirstFloat(BOARD_SCALE, 1.0)
+const LOGGING : bool = FirstBool(BOARD_LOGGING, false)
+
+var buffer : [FirstInt(BUFFER_SIZE_OVERRIDE, BUFFER_SIZE)]byte
 ```
 
 ### DQ constant and definition with the same name
@@ -193,11 +237,14 @@ The compiler should diagnose at least the following cases:
 - an unknown bare name in a conditional expression;
 - a resolved nonconstant symbol used in a constant condition;
 - a final `#if` or `#elif` expression that is not Boolean;
-- malformed `IntVal` syntax or an incorrect argument count;
-- a nonconstant or noninteger symbol selected by `IntVal`;
-- a noninteger or nonconstant `IntVal` default expression;
-- an integer value that cannot be converted according to the existing constant
-  conversion rules.
+- malformed `FirstInt`, `FirstFloat`, or `FirstBool` syntax, including an
+  incorrect argument count or a non-identifier optional argument;
+- a nonconstant symbol selected by one of the `First...` forms;
+- a selected constant or fallback expression that cannot be converted to the
+  intrinsic's fixed result type;
+- a nonconstant fallback expression;
+- a compile-time conversion whose value is not valid under the existing
+  constant conversion rules.
 
 ## Compatibility
 
@@ -220,6 +267,10 @@ Such conditions must be migrated to:
 `#ifdef` and related existence tests require no migration. `#define`
 expressions that refer to other definitions also require no migration.
 
+The globally recognized `FirstInt`, `FirstFloat`, and `FirstBool` names are
+also reserved by this change. Existing ordinary functions with those names
+must be renamed.
+
 ## Implementation outline
 
 The conditional-expression parser currently saves the active DQ scope and then
@@ -231,13 +282,18 @@ that path.
 `#define` value parsing should retain its current preprocessor-definition
 scope.
 
-`IntVal` should be recognized by the expression parser only while it is parsing
-a directive condition. It should read its first argument as a raw identifier,
-look up that identifier in the active DQ scope, validate the selected symbol and
-value, and produce an ordinary typed integer constant expression. No run-time
-code generation is required.
+`FirstInt`, `FirstFloat`, and `FirstBool` should be recognized by the expression
+parser in every expression context. The parser should read all arguments except
+the final fallback as raw identifiers, look them up from left to right in the
+active DQ scope, validate and convert the first resolved constant, and produce
+an ordinary constant expression of the intrinsic's fixed built-in result type.
+The final fallback must always be parsed, constant-evaluated, and checked for
+conversion to that result type. No run-time code generation is required.
 
 Tests should cover module and local constants, parent-scope lookup, shadowing,
-forward references, variables and noninteger constants, missing names with and
-without `IntVal`, explicit `@def` access, unchanged `#ifdef` behavior, inline
-directives, and the separation between `#if` and `#define` lookup rules.
+forward references, variables, nonconvertible constants, multiple missing and
+available candidates, fixed result types, fallback conversion, missing names
+with and without the `First...` forms, explicit `@def` access, unchanged
+`#ifdef` behavior, inline directives, use in constant declarations and other
+ordinary expressions, reserved-name handling, and the separation between
+`#if` and `#define` lookup rules.

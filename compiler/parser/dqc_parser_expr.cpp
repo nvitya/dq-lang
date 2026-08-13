@@ -3207,6 +3207,11 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return ParseBuiltinIif();
   }
 
+  if (OType * first_const_type = FirstConstResultType(sid))
+  {
+    return ParseBuiltinFirstConst(sid, first_const_type);
+  }
+
   if ("SizeOf" == sid)
   {
     return ParseBuiltinSizeof();
@@ -4224,6 +4229,189 @@ OExpr * ODqCompParserExpr::ParseBuiltinIif()
   }
 
   return new OIifExpr(condexpr, trueexpr, falseexpr, resulttype);
+}
+
+OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name, OType * result_type)
+{
+  auto recover_tail = [this]()
+  {
+    scf->ReadTo(")");
+    scf->CheckSymbol(")");
+  };
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, intrinsic_name);
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (scf->CheckSymbol(")"))
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "0", intrinsic_name, "at least 2");
+    return nullptr;
+  }
+
+  struct SOptionalConstName
+  {
+    string       name;
+    OScPosition  position;
+  };
+  vector<SOptionalConstName> candidates;
+
+  // Every comma-terminated leading argument must be a raw identifier. The
+  // final argument is rewound and parsed as an ordinary constant expression.
+  while (true)
+  {
+    scf->SkipWhite();
+    OScPosition arg_start;
+    scf->SaveCurPos(arg_start);
+
+    string candidate_name;
+    if (scf->ReadIdentifier(candidate_name))
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol(","))
+      {
+        candidates.push_back({candidate_name, arg_start});
+        continue;
+      }
+    }
+
+    scf->SetCurPos(arg_start);
+    break;
+  }
+
+  OExpr * fallback_expr = ParseExpression();
+  if (!fallback_expr)
+  {
+    recover_tail();
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (scf->CheckSymbol(","))
+  {
+    ErrorTxt(DQERR_FUNC_ARGS_LIST,
+             format("Optional arguments of {} must be identifiers", intrinsic_name));
+    OExpr::DeleteTree(fallback_expr);
+    recover_tail();
+    return nullptr;
+  }
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, intrinsic_name);
+    OExpr::DeleteTree(fallback_expr);
+    recover_tail();
+    return nullptr;
+  }
+  if (candidates.empty())
+  {
+    Error(DQERR_FUNC_ARGS_TOO_FEW, "1", intrinsic_name, "at least 2");
+    OExpr::DeleteTree(fallback_expr);
+    return nullptr;
+  }
+
+  auto evaluate_constant = [this, &intrinsic_name, result_type](OExpr * expr) -> OExpr *
+  {
+    if (!ConvertExprToType(result_type, &expr, EXPCF_GENERATE_ERRORS))
+    {
+      OExpr::DeleteTree(expr);
+      return nullptr;
+    }
+
+    OType * resolved_type = result_type->ResolveAlias();
+    OValue * value = resolved_type->CreateValue();
+    if (!value || !value->CalculateConstant(expr))
+    {
+      delete value;
+      OExpr::DeleteTree(expr);
+      return nullptr;
+    }
+
+    OExpr * result = nullptr;
+    if (auto * int_value = dynamic_cast<OValueInt *>(value))
+    {
+      result = new OIntLit(int_value->value);
+    }
+    else if (auto * float_value = dynamic_cast<OValueFloat *>(value))
+    {
+      result = new OFloatLit(float_value->value);
+    }
+    else if (auto * bool_value = dynamic_cast<OValueBool *>(value))
+    {
+      result = new OBoolLit(bool_value->value);
+    }
+    else
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, format("{} result type", intrinsic_name));
+    }
+
+    delete value;
+    OExpr::DeleteTree(expr);
+    return result;
+  };
+
+  // Always validate the fallback so the intrinsic remains well typed even
+  // when an optional declaration happens to be available in this build.
+  OExpr * fallback_result = evaluate_constant(fallback_expr);
+  if (!fallback_result)
+  {
+    return nullptr;
+  }
+
+  SScopeLookupOptions lookup_options;
+  bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
+  if (object_method_scope)
+  {
+    lookup_options.fallback_stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+    lookup_options.use_method_fallback_scopes = true;
+  }
+
+  OValSym * selected = nullptr;
+  OScPosition selected_position;
+  for (const SOptionalConstName & candidate : candidates)
+  {
+    selected = curscope->FindValSymEx(candidate.name, nullptr, true, lookup_options);
+    if (!selected && object_method_scope)
+    {
+      OCompoundType * declaration_type = nullptr;
+      OValSym * member = curvsfunc->owner_compound_type->FindMemberSymbol(candidate.name, &declaration_type);
+      if (member && ObjectMemberAccessAllowed(declaration_type, member))
+      {
+        selected = member;
+      }
+    }
+    if (selected)
+    {
+      selected_position = candidate.position;
+      break;
+    }
+  }
+
+  if (!selected)
+  {
+    return fallback_result;
+  }
+
+  if (!dynamic_cast<OValSymConst *>(selected))
+  {
+    Error(DQERR_CONSTEXPR_NONCONST_SYM, selected->name, result_type->name, &selected_position);
+    OExpr::DeleteTree(fallback_result);
+    return nullptr;
+  }
+
+  OExpr::DeleteTree(fallback_result);
+  return evaluate_constant(new OLValueVar(selected));
+}
+
+OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) const
+{
+  if ("FirstInt" == intrinsic_name)    return g_builtins->type_int;
+  if ("FirstFloat" == intrinsic_name)  return g_builtins->type_float;
+  if ("FirstBool" == intrinsic_name)   return g_builtins->type_bool;
+  return nullptr;
 }
 
 OExpr * ODqCompParserExpr::ParseBuiltinFloatRound(ERoundMode amode)

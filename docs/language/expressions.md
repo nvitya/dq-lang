@@ -122,6 +122,30 @@ var text : cstring = iif(ptr == null, "null", "not null")
 The first argument must be `bool`. The second and third arguments must be
 compatible with the expected result type.
 
+## Optional Compile-Time Constants
+
+`FirstInt`, `FirstFloat`, and `FirstBool` select the first declared DQ constant
+from a list of optional identifiers. The final argument is a required constant
+fallback expression.
+
+```dq
+const BUFFER_SIZE : int = FirstInt(BOARD_BUFFER_SIZE, DEFAULT_BUFFER_SIZE, 256)
+const SCALE : float = FirstFloat(BOARD_SCALE, 1.0)
+const LOGGING : bool = FirstBool(BOARD_LOGGING, false)
+```
+
+Optional identifiers are resolved from left to right in the lexical scope at
+the call. Missing identifiers are skipped. The first identifier that resolves
+must name a constant convertible to the intrinsic's result type; a variable or
+an incompatible constant is an error. The fallback must also be a convertible
+constant expression and is validated even when an earlier constant is found.
+
+The result types are fixed: `FirstInt` returns `int`, `FirstFloat` returns
+`float`, and `FirstBool` returns `bool`. These intrinsics are always evaluated
+during compilation and can be used in ordinary expressions as well as `#if`
+and `#elif` conditions. Optional identifiers search DQ lexical scopes, not the
+`@def` namespace.
+
 ## Object Type Test
 
 The `is` operator checks whether an object reference is compatible with an

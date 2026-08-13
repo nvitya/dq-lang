@@ -251,6 +251,7 @@ DEF_DQ_ERR(DQERR_FUNC_ARG_REF_BIND,                "FuncArgRefBind",         "Ar
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NULL,                "FuncArgRefNull",         "Argument $1 for function \"$2\" cannot be null");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_TYPE,                "FuncArgRefType",         "Reference argument $1 type mismatch for function \"$2\": expected \"$3\"");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_UNINIT,              "FuncArgRefInit",         "Reference argument \"$1\" is not initialized");
+DEF_DQ_ERR(DQERR_INTRINSIC_NAME_RESERVED,          "IntrinsicNameReserved",  "Name \"$1\" is reserved for a compiler intrinsic");
 DEF_DQ_ERR(DQERR_FUNCSIG_TYPEMISM,                 "FuncSigType",            "Function signature mismatch: \"$1\" = \"$2\"");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_UNKNOWN,             "SpecialFuncUnknown",     "Unknown special function \"$1\"");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_RESERVED,            "SpecialFuncReserved",    "Name \"$1\" is reserved for special function declarations");

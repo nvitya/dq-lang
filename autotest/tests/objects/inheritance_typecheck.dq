@@ -2,17 +2,17 @@
 
 object OBase:
 private
-    secret : int;
+    secret : int
     function SecretFunc():
     endfunc
 protected
-    hidden : int;
+    hidden : int
 public
     function *Create():
     endfunc
 
     function Value() -> int [[virtual]]:
-        return hidden;
+        return hidden
     endfunc
 
     function Done() [[virtual, final]]:
@@ -22,11 +22,11 @@ endobj
 object OChild(OBase):
 public
     function *Create():
-        hidden = 1;
+        hidden = 1
     endfunc
 
     function Value() -> int: //?error(ObjFuncOverride)
-        return hidden;
+        return hidden
     endfunc
 
     function Missing() [[override]]: //?error(ObjFuncOverride)
@@ -51,22 +51,22 @@ endobj
 object OAccessChild(OBase):
 public
     function *Create():
-        inherited Create();
+        inherited Create()
     endfunc
 
     function ReadSecret() -> int:
-        result = 0;
-        result = secret; //?error(MemberUnknown)
+        result = 0
+        result = secret //?error(MemberUnknown)
     endfunc
 
     function CallSecret():
-        inherited SecretFunc(); //?error(OverloadNoMatch)
+        inherited SecretFunc() //?error(OverloadNoMatch)
     endfunc
 endobj
 
 object OAbstract:
 public
-    function Read() -> int [[virtual, abstract]];
+    function Read() -> int [[virtual, abstract]]
 endobj
 
 object OVirtualDtorCall:
@@ -78,7 +78,7 @@ public
     endfunc
 
     function *Destroy():
-        Ping(1); //?error(VirtFuncCallInvalid)
+        Ping(1) //?error(VirtFuncCallInvalid)
     endfunc
 endobj
 
@@ -92,10 +92,10 @@ function MutObjectRef(o : ref OBase):
 endfunc
 
 function *Main() -> int:
-    result = 0;
-    var b <- OBase();
-    var c <- OChild();
-    result = b.hidden;  //?error(MemberUnknown)
-    MutObjectRef(b); //?error(FuncArgRefBind)
-    var a <- OAbstract; //?error(NotSupported)
+    result = 0
+    var b <- OBase()
+    var c <- OChild()
+    result = b.hidden  //?error(MemberUnknown)
+    MutObjectRef(b) //?error(FuncArgRefBind)
+    var a <- OAbstract //?error(NotSupported)
 endfunc

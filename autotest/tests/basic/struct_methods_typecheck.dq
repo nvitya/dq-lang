@@ -4,19 +4,19 @@ object OManaged:
 endobj
 
 struct SBadString:
-    text : str; //?error(NotSupported)
+    text : str //?error(NotSupported)
 endstruct //?error(ModStatementUnknown)
 
 struct SBadDynArray:
-    items : [*]int; //?error(NotSupported)
+    items : [*]int //?error(NotSupported)
 endstruct //?error(ModStatementUnknown)
 
 struct SBadObject:
-    item : OManaged; //?error(NotSupported)
+    item : OManaged //?error(NotSupported)
 endstruct //?error(ModStatementUnknown)
 
 struct SBadFixedArray:
-    items : [2]str; //?error(NotSupported)
+    items : [2]str //?error(NotSupported)
 endstruct //?error(ModStatementUnknown)
 
 struct SNoLifecycle:
@@ -30,5 +30,5 @@ struct SNoVirtual:
 endstruct
 
 function *Main() -> int:
-    return 0;
+    return 0
 endfunc

@@ -1,6 +1,6 @@
 //?notest
-use ./base_mod; // Not reexported!
+use ./base_mod // Not reexported!
 
 object TMidClass(TBaseClass):
-  mid_val: int;
+  mid_val: int
 endobj

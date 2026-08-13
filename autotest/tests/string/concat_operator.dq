@@ -1,59 +1,59 @@
 // String + operator creates a new dynamic str from compatible text sources.
 
-use libc/stdio;
+use libc/stdio
 
-[[external]] function putchar(c : char) -> int;
+function putchar(c : char) -> int [[external]]
 
 function PrintEscapedChar(ch : char):
     if ch == char(34):
-        putchar(char(92));
-        putchar(char(34));
-        return;
+        putchar(char(92))
+        putchar(char(34))
+        return
     endif
     if ch == char(92):
-        putchar(char(92));
-        putchar(char(92));
-        return;
+        putchar(char(92))
+        putchar(char(92))
+        return
     endif
-    putchar(char(ch));
+    putchar(char(ch))
 endfunc
 
 function PrintText(label : ^char, text : strview):
-    printf("%s = [%li] \"", label, text.length);
-    var i : int = 0;
+    printf("%s = [%li] \"", label, text.length)
+    var i : int = 0
     while i < text.length:
-        PrintEscapedChar(text[i]);
-        i += 1;
+        PrintEscapedChar(text[i])
+        i += 1
     endwhile
-    printf("\"\n");
+    printf("\"\n")
 endfunc
 
 function *Main() -> int:
-    printf("string_concat_operator = start\n"); //?check("string_concat_operator", "start")
+    printf("string_concat_operator = start\n") //?check("string_concat_operator", "start")
 
-    var s : str = "ab";
-    var v : strview = "cd";
-    var cs : cstring(7) = "ef";
-    var pc : ^char = "gh";
-    var cc : char = char('!');
+    var s : str = "ab"
+    var v : strview = "cd"
+    var cs : cstring(7) = "ef"
+    var pc : ^char = "gh"
+    var cc : char = char('!')
 
-    PrintText("str_char", s + '?'); //?check("str_char", '[3] "ab?"')
-    PrintText("char_str", '<' + s); //?check("char_str", '[3] "<ab"')
-    PrintText("strview_str", v + s); //?check("strview_str", '[4] "cdab"')
-    PrintText("cstring_str", cs + s); //?check("cstring_str", '[4] "efab"')
-    PrintText("ptr_str", pc + s); //?check("ptr_str", '[4] "ghab"')
-    PrintText("str_char_value", s + cc); //?check("str_char_value", '[3] "ab!"')
-    PrintText("literal_literal", "ij" + "kl"); //?check("literal_literal", '[4] "ijkl"')
+    PrintText("str_char", s + '?') //?check("str_char", '[3] "ab?"')
+    PrintText("char_str", '<' + s) //?check("char_str", '[3] "<ab"')
+    PrintText("strview_str", v + s) //?check("strview_str", '[4] "cdab"')
+    PrintText("cstring_str", cs + s) //?check("cstring_str", '[4] "efab"')
+    PrintText("ptr_str", pc + s) //?check("ptr_str", '[4] "ghab"')
+    PrintText("str_char_value", s + cc) //?check("str_char_value", '[3] "ab!"')
+    PrintText("literal_literal", "ij" + "kl") //?check("literal_literal", '[4] "ijkl"')
 
-    var mod : str = "mn";
-    mod += '?';
-    mod += "op";
-    PrintText("modify_assign", mod); //?check("modify_assign", '[5] "mn?op"')
+    var mod : str = "mn"
+    mod += '?'
+    mod += "op"
+    PrintText("modify_assign", mod) //?check("modify_assign", '[5] "mn?op"')
 
-    var copy : str = s + "";
-    copy[0] = 'X';
-    PrintText("concat_copy_source", s); //?check("concat_copy_source", '[2] "ab"')
-    PrintText("concat_copy_result", copy); //?check("concat_copy_result", '[2] "Xb"')
+    var copy : str = s + ""
+    copy[0] = 'X'
+    PrintText("concat_copy_source", s) //?check("concat_copy_source", '[2] "ab"')
+    PrintText("concat_copy_result", copy) //?check("concat_copy_result", '[2] "Xb"')
 
-    return 0;
+    return 0
 endfunc

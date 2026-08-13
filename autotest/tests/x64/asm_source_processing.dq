@@ -1,4 +1,4 @@
-use libc/stdio;
+use libc/stdio
 
 function ProcessedAsm() -> int [[asm]]:
     // Assembly-looking text and endfunc in a line comment are inert.
@@ -16,7 +16,7 @@ function ProcessedAsm() -> int [[asm]]:
 endfunc
 
 function *Main() -> int:
-    printf("asm.source_processing = %li\n", ProcessedAsm());
+    printf("asm.source_processing = %li\n", ProcessedAsm())
     //?check("asm.source_processing", 42)
-    return 0;
+    return 0
 endfunc

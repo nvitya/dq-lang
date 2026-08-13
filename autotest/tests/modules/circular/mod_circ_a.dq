@@ -1,14 +1,14 @@
 //?notest
 
-const RESULT_A : int = 1;
-const OFFSET_A : int = 10;
+const RESULT_A : int = 1
+const OFFSET_A : int = 10
 
-function func_a() -> int;
+function func_a() -> int
 
 implementation
 
-use ./mod_circ_b;
+use ./mod_circ_b
 
 function func_a() -> int:
-    result = RESULT_A + OFFSET_B;
+    result = RESULT_A + OFFSET_B
 endfunc

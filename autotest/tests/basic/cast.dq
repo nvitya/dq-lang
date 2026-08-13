@@ -24,8 +24,8 @@ endfunc
 
 function dq_cast_pointer_roundtrip() -> int:
     var value : uint32 = 0
-    var pbyte : ^byte = ^byte(&value);
-    ^uint32(pbyte)^ = 0x12345678;
+    var pbyte : ^byte = ^byte(&value)
+    ^uint32(pbyte)^ = 0x12345678
     result = int(value)
 endfunc
 

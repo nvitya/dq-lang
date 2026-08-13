@@ -1,7 +1,7 @@
 use print
 
 object OBase:
-    name : cstring(31);
+    name : cstring(31)
     function *Create():
         name = 'OBase'
     endfunc
@@ -81,5 +81,5 @@ function *Main() -> int:
     @.PrintLn('arg.generated = {}', [a1.v])  //?check('arg.generated', 17)
     @.PrintLn('arg.explicit = {}', [a2.v])   //?check('arg.explicit', 30)
 
-    return 0;
+    return 0
 endfunc

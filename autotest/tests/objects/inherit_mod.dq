@@ -1,17 +1,17 @@
 //?notest
 
-use libc/stdio;
+use libc/stdio
 
 object OModBase:
 protected
-    value : int = 0;
+    value : int = 0
 public
     function *Create(a : int):
-        value = a;
+        value = a
     endfunc
 
     function Get() -> int [[virtual]]:
-        return value;
+        return value
     endfunc
 
     function *Destroy():
@@ -20,22 +20,22 @@ endobj
 
 object OModChild(OModBase):
 private
-    extra : int = 0;
+    extra : int = 0
 public
     function *Create(a : int):
-        inherited Create(a);
-        extra = a + 1;
+        inherited Create(a)
+        extra = a + 1
     endfunc
 
     function Get() -> int [[override]]:
-        return inherited Get() + extra;
+        return inherited Get() + extra
     endfunc
 
     function PrintProt():
-        @.printf("Protected_value = %d\n", value);
+        @.printf("Protected_value = %d\n", value)
     endfunc
 
     function *Destroy():
-        inherited Destroy();
+        inherited Destroy()
     endfunc
 endobj

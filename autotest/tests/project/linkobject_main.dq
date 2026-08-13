@@ -1,11 +1,11 @@
 //?notest
 
-[[external]] function project_external_value() -> int;
+function project_external_value() -> int [[external]]
 
 function *Main() -> int:
     if project_external_value() != 77:
-        return 1;
+        return 1
     endif
-    return 0;
+    return 0
 endfunc
 

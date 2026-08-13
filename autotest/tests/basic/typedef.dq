@@ -1,17 +1,17 @@
 // type definition example
 
-type TFloat = float64;
+type TFloat = float64
 
-var f1 : TFloat = 1;
-var f2 : TFloat = 2;
-var f64 : float = 5.5;
+var f1 : TFloat = 1
+var f2 : TFloat = 2
+var f64 : float = 5.5
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 function *Main() -> int:
-    printf('DQ Typedef test\n');    //?ignore('DQ Typedef test')
-    var f : TFloat = f1;
-    printf('float = %.3f\n', 0.1);  //?check(float, 0.100)
-    printf('f64 = %.3f\n', f64);    //?check(f64,   5.500)
-    printf('f = %.3f\n', f);        //?check(f,     1.000)
-    return 0;
+    printf('DQ Typedef test\n')    //?ignore('DQ Typedef test')
+    var f : TFloat = f1
+    printf('float = %.3f\n', 0.1)  //?check(float, 0.100)
+    printf('f64 = %.3f\n', f64)    //?check(f64,   5.500)
+    printf('f = %.3f\n', f)        //?check(f,     1.000)
+    return 0
 endfunc

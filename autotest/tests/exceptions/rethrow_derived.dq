@@ -1,8 +1,8 @@
 // Re-raise and base-catches-derived exception matching.
 
-use rtl/exception;
+use rtl/exception
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 
 object EDerived(Exception):
 public

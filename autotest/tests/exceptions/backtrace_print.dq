@@ -1,6 +1,6 @@
 // Backtrace capture/printing smoke test.
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 
 function BacktraceLeaf():
     raise Exception("trace")

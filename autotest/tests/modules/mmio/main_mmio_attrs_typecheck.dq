@@ -1,9 +1,9 @@
-use ./mod_mmio_attrs;
+use ./mod_mmio_attrs
 
 function Test():
-    var imported_address : uint = uint(imported_regs_ptr);
-    var a : uint32 = imported_regs.WO; //?error(AccessNoRead)
-    var b : uint32 = imported_wo;      //?error(AccessNoRead)
-    imported_regs.RO = 1;              //?error(AccessNoWrite)
-    imported_ro = 1;                   //?error(AccessNoWrite)
+    var imported_address : uint = uint(imported_regs_ptr)
+    var a : uint32 = imported_regs.WO //?error(AccessNoRead)
+    var b : uint32 = imported_wo      //?error(AccessNoRead)
+    imported_regs.RO = 1              //?error(AccessNoWrite)
+    imported_ro = 1                   //?error(AccessNoWrite)
 endfunc

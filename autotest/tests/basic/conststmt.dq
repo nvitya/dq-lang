@@ -1,8 +1,8 @@
 // local const statement parsing and codegen tests
 
-const rootval : int = 22;
-const address_ptr : ^byte = ^byte(0x7F001000);
-const address_ptr_alias : ^byte = address_ptr;
+const rootval : int = 22
+const address_ptr : ^byte = ^byte(0x7F001000)
+const address_ptr_alias : ^byte = address_ptr
 
 const(uint32):
     FLASH_BASE      = 0x08000000
@@ -43,6 +43,6 @@ function dq_local_const_in_if(a : int) -> int:
 endfunc
 
 function dq_local_const_nonconst_expr(a : int) -> int:
-    const bad : int = a + 1;  //?error(ConstExprInvalid), error(ConstExprNonConstVs)
+    const bad : int = a + 1  //?error(ConstExprInvalid), error(ConstExprNonConstVs)
     result = 0
 endfunc

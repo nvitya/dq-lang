@@ -1,44 +1,44 @@
 struct SBadBoth:
-    direct : [[noread, nowrite]] uint32; //?error(AttrConflict)
+    direct : [[noread, nowrite]] uint32 //?error(AttrConflict)
 endstruct
 
 struct SBadAliases:
-    aliases : [[regro, regwo]] uint32; //?error(AttrConflict)
+    aliases : [[regro, regwo]] uint32 //?error(AttrConflict)
 endstruct
 
 struct SRegisters:
-    RW       : [[regrw]] uint32;
-    RO       : [[regro]] uint32;
-    WO       : [[regwo]] uint32;
-    RAW_RO   : [[volatile, nowrite]] uint32;
-    RAW_WO   : [[volatile, noread]] uint32;
-    PLAIN_RO : [[nowrite]] uint32;
-    PLAIN_WO : [[noread]] uint32;
-    WO_ARRAY : [[regwo]] [2]uint32;
+    RW       : [[regrw]] uint32
+    RO       : [[regro]] uint32
+    WO       : [[regwo]] uint32
+    RAW_RO   : [[volatile, nowrite]] uint32
+    RAW_WO   : [[volatile, noread]] uint32
+    PLAIN_RO : [[nowrite]] uint32
+    PLAIN_WO : [[noread]] uint32
+    WO_ARRAY : [[regwo]] [2]uint32
 endstruct
 
-var regs : SRegisters;
-var global_ro : uint32 [[regro]];
-var global_wo : uint32 [[regwo]];
+var regs : SRegisters
+var global_ro : uint32 [[regro]]
+var global_wo : uint32 [[regwo]]
 
 function TakeValue(value : uint32):
 endfunc
 
 function Test():
-    var a : uint32 = regs.WO;          //?error(AccessNoRead)
-    var b : uint32 = regs.RAW_WO;      //?error(AccessNoRead)
-    var c : uint32 = regs.WO_ARRAY[0]; //?error(AccessNoRead)
-    var d : uint32 = global_wo;        //?error(AccessNoRead)
-    var e : uint32 = regs.PLAIN_WO;    //?error(AccessNoRead)
-    TakeValue(regs.WO);                //?error(AccessNoRead)
+    var a : uint32 = regs.WO          //?error(AccessNoRead)
+    var b : uint32 = regs.RAW_WO      //?error(AccessNoRead)
+    var c : uint32 = regs.WO_ARRAY[0] //?error(AccessNoRead)
+    var d : uint32 = global_wo        //?error(AccessNoRead)
+    var e : uint32 = regs.PLAIN_WO    //?error(AccessNoRead)
+    TakeValue(regs.WO)                //?error(AccessNoRead)
 
-    regs.RO = 1;                       //?error(AccessNoWrite)
-    regs.RAW_RO = 1;                   //?error(AccessNoWrite)
-    global_ro = 1;                     //?error(AccessNoWrite)
-    regs.PLAIN_RO = 1;                 //?error(AccessNoWrite)
-    regs.RO += 1;                      //?error(AccessNoWrite)
-    regs.WO += 1;                      //?error(AccessNoRead)
+    regs.RO = 1                       //?error(AccessNoWrite)
+    regs.RAW_RO = 1                   //?error(AccessNoWrite)
+    global_ro = 1                     //?error(AccessNoWrite)
+    regs.PLAIN_RO = 1                 //?error(AccessNoWrite)
+    regs.RO += 1                      //?error(AccessNoWrite)
+    regs.WO += 1                      //?error(AccessNoRead)
 
-    var index : int;
-    regs.WO_ARRAY[index] = 1;          //?error(VarNotInit)
+    var index : int
+    regs.WO_ARRAY[index] = 1          //?error(VarNotInit)
 endfunc

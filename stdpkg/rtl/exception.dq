@@ -127,8 +127,8 @@ function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
     return true
 endfunc
 
-[[external]]
-function DqExcNativeThrow(e : Exception)
+
+function DqExcNativeThrow(e : Exception) [[external]]
 
 var active_exception  : Exception = null
 var handled_exception : Exception = null

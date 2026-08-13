@@ -1,4 +1,4 @@
-type UnaryCallback = function(value : int) -> int;
+type UnaryCallback = function(value : int) -> int
 
 function *ModuleInit() [[inline, asm]]: //?error(AsmInlineUsage)
     nop
@@ -18,12 +18,12 @@ function OverloadedRegister(value : int) -> int [[overload, inline, asm]]:
     mov $result, $value
 endfunc
 
-var bad_callback : UnaryCallback = Immediate; //?error(AsmFuncRef)
-var bad_overload_callback : UnaryCallback = OverloadedRegister; //?error(AsmFuncRef)
+var bad_callback : UnaryCallback = Immediate //?error(AsmFuncRef)
+var bad_overload_callback : UnaryCallback = OverloadedRegister //?error(AsmFuncRef)
 
-function MissingBody(value : int) [[inline, asm]]; //?error(AsmFuncBody)
+function MissingBody(value : int) [[inline, asm]] //?error(AsmFuncBody)
 
-function ExternalInline(value : int) [[inline, asm, external]]; //?error(AttrConflict)
+function ExternalInline(value : int) [[inline, asm, external]] //?error(AttrConflict)
 
 function NoInlineInline(value : int) [[inline, asm, noinline]]: //?error(AsmInlineUsage)
     nop
@@ -48,9 +48,9 @@ struct InlineAsmOwner:
 endstruct
 
 function *Main() -> int:
-    var dynamic_amount : int = 2;
-    Immediate(40, dynamic_amount); //?error(AsmImmediateConst)
-    OverloadedImmediate(40, dynamic_amount); //?error(AsmImmediateConst)
-    &Immediate; //?error(AsmFuncRef)
-    return 0;
+    var dynamic_amount : int = 2
+    Immediate(40, dynamic_amount) //?error(AsmImmediateConst)
+    OverloadedImmediate(40, dynamic_amount) //?error(AsmImmediateConst)
+    &Immediate //?error(AsmFuncRef)
+    return 0
 endfunc

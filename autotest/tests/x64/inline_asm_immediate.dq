@@ -1,4 +1,4 @@
-use libc/stdio;
+use libc/stdio
 
 function MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
     imul    $result, $value, $factor  // integer multiplication
@@ -8,14 +8,14 @@ function MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
 endfunc
 
 function *Main() -> int:
-    printf("inline_asm.immediate.positive = %li\n", int(MulImmediate(6, 7)));
+    printf("inline_asm.immediate.positive = %li\n", int(MulImmediate(6, 7)))
     //?check("inline_asm.immediate.positive", 42)
 
-    printf("inline_asm.immediate.negative = %li\n", int(MulImmediate(9, -3)));
+    printf("inline_asm.immediate.negative = %li\n", int(MulImmediate(9, -3)))
     //?check("inline_asm.immediate.negative", -27)
 
-    printf("inline_asm.immediate.folded = %li\n", int(MulImmediate(6, 3 + 4)));
+    printf("inline_asm.immediate.folded = %li\n", int(MulImmediate(6, 3 + 4)))
     //?check("inline_asm.immediate.folded", 42)
 
-    return 0;
+    return 0
 endfunc

@@ -16,9 +16,9 @@ function *Main() -> int:
     var arr : [2]int = [1, 2]
     var parr : ^int = ^int(arr)  //?error(CastInvalid)
 
-    var raw_func : pointer = null;
-    var bad_func_implicit : FPlain = raw_func;  //?error(FuncSigType)
-    var bad_object_func : FObject = FObject(raw_func);  //?error(FuncSigType)
+    var raw_func : pointer = null
+    var bad_func_implicit : FPlain = raw_func  //?error(FuncSigType)
+    var bad_object_func : FObject = FObject(raw_func)  //?error(FuncSigType)
 
     return 0
 endfunc

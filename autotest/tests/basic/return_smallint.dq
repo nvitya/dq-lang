@@ -1,19 +1,19 @@
-use libc/stdio;
+use libc/stdio
 
 function RetU8() -> uint8:
-    return 1;
+    return 1
 endfunc
 
 function RetI8() -> int8:
-    return -2;
+    return -2
 endfunc
 
 function RetChar() -> char:
-    return 'A';
+    return 'A'
 endfunc
 
 function *Main() -> int:
     printf("return_smallint = u8:%li i8:%li char:%c\n",
-           int(RetU8()), int(RetI8()), Ord(RetChar())); //?check("return_smallint", "u8:1 i8:-2 char:A")
-    return 0;
+           int(RetU8()), int(RetI8()), Ord(RetChar())) //?check("return_smallint", "u8:1 i8:-2 char:A")
+    return 0
 endfunc

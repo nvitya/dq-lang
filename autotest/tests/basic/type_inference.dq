@@ -1,64 +1,64 @@
 // explicit declaration type inference
 
-use libc/stdio;
+use libc/stdio
 
 struct SInferValue:
-    value : int;
+    value : int
 endstruct
 
 object OInferChild:
 public
-    child_value : int = 0;
+    child_value : int = 0
 
     function *Create(avalue : int):
-        child_value = avalue;
+        child_value = avalue
     endfunc
 endobj
 
-const ROOT_CONST_PTR : ? = ^SInferValue(0x1234);
-var root_var_ptr : ? = ^SInferValue(0x2345);
+const ROOT_CONST_PTR : ? = ^SInferValue(0x1234)
+var root_var_ptr : ? = ^SInferValue(0x2345)
 
 function KeepPointer(aptr : ^SInferValue) -> ^SInferValue:
-    return aptr;
+    return aptr
 endfunc
 
 function *Main() -> int:
-    printf("root const ptr = %lu\n", uint(ROOT_CONST_PTR)); //?check("root const ptr", 4660)
-    printf("root var ptr = %lu\n", uint(root_var_ptr)); //?check("root var ptr", 9029)
+    printf("root const ptr = %lu\n", uint(ROOT_CONST_PTR)) //?check("root const ptr", 4660)
+    printf("root var ptr = %lu\n", uint(root_var_ptr)) //?check("root var ptr", 9029)
 
-    const local_const_ptr : ? = ^SInferValue(0x3456);
-    printf("local const ptr = %lu\n", uint(local_const_ptr)); //?check("local const ptr", 13398)
+    const local_const_ptr : ? = ^SInferValue(0x3456)
+    printf("local const ptr = %lu\n", uint(local_const_ptr)) //?check("local const ptr", 13398)
 
-    var source : SInferValue = {};
-    source.value = 17;
+    var source : SInferValue = {}
+    source.value = 17
 
-    var address_ptr : ? = &source;
-    printf("address ptr value = %li\n", address_ptr.value); //?check("address ptr value", 17)
+    var address_ptr : ? = &source
+    printf("address ptr value = %li\n", address_ptr.value) //?check("address ptr value", 17)
 
-    var call_ptr : ? = KeepPointer(address_ptr);
-    printf("call ptr type = %s\n", TypeName(call_ptr)); //?check("call ptr type", "^SInferValue")
+    var call_ptr : ? = KeepPointer(address_ptr)
+    printf("call ptr type = %s\n", TypeName(call_ptr)) //?check("call ptr type", "^SInferValue")
 
-    var copied : ? = source;
-    printf("struct copy = %s %li\n", TypeName(copied), copied.value); //?check("struct copy", "SInferValue 17")
+    var copied : ? = source
+    printf("struct copy = %s %li\n", TypeName(copied), copied.value) //?check("struct copy", "SInferValue 17")
 
-    var allocated_int : ? = new int(42);
-    printf("allocated int = %li\n", allocated_int^); //?check("allocated int", 42)
+    var allocated_int : ? = new int(42)
+    printf("allocated int = %li\n", allocated_int^) //?check("allocated int", 42)
 
-    var float_value : float = 1.5;
-    var float_ptr : ? = &float_value;
-    printf("float pointer type = %s\n", TypeName(float_ptr)); //?check("float pointer type", "^float")
+    var float_value : float = 1.5
+    var float_ptr : ? = &float_value
+    printf("float pointer type = %s\n", TypeName(float_ptr)) //?check("float pointer type", "^float")
 
-    var child : ? = new OInferChild(23);
-    printf("object inference = %s %li\n", TypeName(child), child.child_value); //?check("object inference", "OInferChild 23")
+    var child : ? = new OInferChild(23)
+    printf("object inference = %s %li\n", TypeName(child), child.child_value) //?check("object inference", "OInferChild 23")
 
-    var child_ref : ? = child;
-    printf("object ref inference = %s %li\n", TypeName(child_ref), child_ref.child_value); //?check("object ref inference", "OInferChild 23")
+    var child_ref : ? = child
+    printf("object ref inference = %s %li\n", TypeName(child_ref), child_ref.child_value) //?check("object ref inference", "OInferChild 23")
 
-    var old_style = new OInferChild(31);
-    printf("old object inference = %s %li\n", TypeName(old_style), old_style.child_value); //?check("old object inference", "OInferChild 31")
+    var old_style = new OInferChild(31)
+    printf("old object inference = %s %li\n", TypeName(old_style), old_style.child_value) //?check("old object inference", "OInferChild 31")
 
-    delete allocated_int;
-    delete child;
-    delete old_style;
-    return 0;
+    delete allocated_int
+    delete child
+    delete old_style
+    return 0
 endfunc

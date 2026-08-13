@@ -25,7 +25,7 @@ struct timespec:
     tv_nsec : int64
 endstruct
 
-function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]];
+function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
 
 const CLOCK_MONOTONIC : int = 1
 

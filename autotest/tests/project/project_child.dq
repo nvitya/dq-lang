@@ -1,6 +1,6 @@
 //?notest
 
 function project_child_define() -> int:
-    return @def.PROJECT_DEFINE;
+    return @def.PROJECT_DEFINE
 endfunc
 

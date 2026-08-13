@@ -1,8 +1,8 @@
 //?skip_test
 
-use pkgdemo;
-use pkgdemo/submod as sub;
+use pkgdemo
+use pkgdemo/submod as sub
 function *Main() -> int:
-    printf("pkg path = %d\n", PKG_VAL + @sub.sub_value());
-    return 0;
+    printf("pkg path = %d\n", PKG_VAL + @sub.sub_value())
+    return 0
 endfunc

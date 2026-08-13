@@ -1,14 +1,14 @@
-use libc/stdio;
+use libc/stdio
 
-use ./mod_init_a;
-use ./mod_init_b;
+use ./mod_init_a
+use ./mod_init_b
 
 function *Main() -> int:
 
     //?check("Module.init.A", "done")
     //?check("Module.init.B", "done")
 
-    printf("Module.init.main = done\n"); //?check("Module.init.main", "done")
+    printf("Module.init.main = done\n") //?check("Module.init.main", "done")
 
-    return 0;
+    return 0
 endfunc

@@ -1,17 +1,17 @@
 // Static property lookup, hiding, inherited accessors, and virtual dispatch.
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 
 object OPropertyBase:
 protected
-    stored : int = 10;
+    stored : int = 10
 
     function GetVirtual() -> int [[virtual]]:
-        return stored;
+        return stored
     endfunc
 
     function SetVirtual(value : int) [[virtual]]:
-        stored = value;
+        stored = value
     endfunc
 
 public
@@ -20,22 +20,22 @@ endobj
 
 object OPropertyChild(OPropertyBase):
 private
-    hidden_value : int = 100;
+    hidden_value : int = 100
 
     function GetVirtual() -> int [[override]]:
-        return stored + 1000;
+        return stored + 1000
     endfunc
 
     function SetVirtual(value : int) [[override]]:
-        stored = value + 100;
+        stored = value + 100
     endfunc
 
     function GetHidden() -> int:
-        return hidden_value;
+        return hidden_value
     endfunc
 
     function SetHidden(value : int):
-        hidden_value = value;
+        hidden_value = value
     endfunc
 
 public
@@ -48,18 +48,18 @@ public
 endobj
 
 function *Main() -> int:
-    var child <- OPropertyChild();
-    var base : OPropertyBase = child;
+    var child <- OPropertyChild()
+    var base : OPropertyBase = child
 
     printf("property.inheritance.lookup = %d %d %d\n",
-           child.value, child.virtual_value, base.value);
+           child.value, child.virtual_value, base.value)
     //?check("property.inheritance.lookup", "100 1010 1010")
 
-    child.value = 7;
-    base.value = 20;
+    child.value = 7
+    base.value = 20
     printf("property.inheritance.dispatch = %d %d %d\n",
-           child.value, child.virtual_value, base.value);
+           child.value, child.virtual_value, base.value)
     //?check("property.inheritance.dispatch", "7 1120 1120")
 
-    return 0;
+    return 0
 endfunc

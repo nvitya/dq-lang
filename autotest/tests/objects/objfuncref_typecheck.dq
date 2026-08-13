@@ -1,9 +1,9 @@
 // object function reference type checking tests (ERROR test)
 
-type FObjText = function(msg : cstring) of object;
-type FObjInt = function(v : int) of object;
-type FObjFloat = function(v : float) of object;
-type FPlainText = function(msg : cstring);
+type FObjText = function(msg : cstring) of object
+type FObjInt = function(v : int) of object
+type FObjFloat = function(v : float) of object
+type FPlainText = function(msg : cstring)
 
 function plain(msg : cstring):
 endfunc
@@ -23,18 +23,18 @@ object OCallback:
 endobj
 
 function *Main() -> int:
-    var obj <- OCallback();
-    var obj_text : FObjText = null;
-    var obj_int : FObjInt = null;
-    var obj_float : FObjFloat = null;
-    var plain_text : FPlainText = plain;
+    var obj <- OCallback()
+    var obj_text : FObjText = null
+    var obj_int : FObjInt = null
+    var obj_float : FObjFloat = null
+    var plain_text : FPlainText = plain
 
-    obj_text = plain;      //?error(FuncSigType)
-    plain_text = obj.Print; //?error(FuncSigType)
-    obj_int = obj.Print;   //?error(FuncSigType)
-    obj_text = obj.Pick;
-    obj_int = obj.Pick;
-    obj_float = obj.Pick;  //?error(OverloadNoMatch)
+    obj_text = plain      //?error(FuncSigType)
+    plain_text = obj.Print //?error(FuncSigType)
+    obj_int = obj.Print   //?error(FuncSigType)
+    obj_text = obj.Pick
+    obj_int = obj.Pick
+    obj_float = obj.Pick  //?error(OverloadNoMatch)
 
-    return 0;
+    return 0
 endfunc

@@ -28,7 +28,7 @@ endobj
 
 object OAbstract:
 public
-    function Read() -> int [[virtual, abstract]];
+    function Read() -> int [[virtual, abstract]]
 endobj
 
 object OTrivialBase:
@@ -44,18 +44,18 @@ public
 endobj
 
 function *Main() -> int:
-    var ft : type of OFactoryBase;
-    ft = OPartialFactory; //?error(TypeMismatchAssign)
-    ft = OUnrelated;      //?error(TypeMismatchAssign)
+    var ft : type of OFactoryBase
+    ft = OPartialFactory //?error(TypeMismatchAssign)
+    ft = OUnrelated      //?error(TypeMismatchAssign)
 
-    var at : type of OAbstract;
-    at = OAbstract;       //?error(TypeMismatchAssign)
+    var at : type of OAbstract
+    at = OAbstract       //?error(TypeMismatchAssign)
 
-    var tt : type of OTrivialBase;
-    tt = ONoDefault;      //?error(TypeMismatchAssign)
+    var tt : type of OTrivialBase
+    tt = ONoDefault      //?error(TypeMismatchAssign)
 
-    var x : int = 0;
-    var ob : OFactoryBase = new x(1); //?error(TypeExpected)
+    var x : int = 0
+    var ob : OFactoryBase = new x(1) //?error(TypeExpected)
 
-    return 0;
+    return 0
 endfunc

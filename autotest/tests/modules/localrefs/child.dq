@@ -1,5 +1,5 @@
 //?notest
 
-const CHILD_VAL : int = 10;
+const CHILD_VAL : int = 10
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]

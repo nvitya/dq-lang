@@ -1,16 +1,16 @@
-use libc/stdio;
+use libc/stdio
 
 function *Main() -> int:  // should be exported as "dq_main"
-    printf("DQ Std Package test\n"); //?ignore('DQ Std Package test')
+    printf("DQ Std Package test\n") //?ignore('DQ Std Package test')
 
-    printf("ArgCount() = %d\n", ArgCount()); //?check('ArgCount()', 1)
+    printf("ArgCount() = %d\n", ArgCount()) //?check('ArgCount()', 1)
 
     // ignore arg(0)
     //?ignore('Arg(0)')
-    var i : int = 0;
+    var i : int = 0
     while i < ArgCount():
-        printf(' Arg(%d) = "%s"\n', i, ArgStr(i));
-        i += 1;
+        printf(' Arg(%d) = "%s"\n', i, ArgStr(i))
+        i += 1
     endwhile
-    return 0;
+    return 0
 endfunc

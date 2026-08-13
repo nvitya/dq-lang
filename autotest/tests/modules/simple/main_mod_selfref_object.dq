@@ -1,15 +1,15 @@
-use ./mod_selfref_object;
+use ./mod_selfref_object
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 
 function *Main() -> int:
-    printf("module selfref object import=%d\n", 1); //?check("module selfref object import", 1)
+    printf("module selfref object import=%d\n", 1) //?check("module selfref object import", 1)
     var root = new OSelfRefObject()
     var child = new OSelfRefObject()
     child.value = 42
     root.children.Append(child)
-    printf("module selfref child=%d\n", root.children[0].value); //?check("module selfref child", 42)
+    printf("module selfref child=%d\n", root.children[0].value) //?check("module selfref child", 42)
     delete child
     delete root
-    return 0;
+    return 0
 endfunc

@@ -126,7 +126,7 @@ endfunc
 function OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
     m_name = ''
     m_children = []
-    m_parent = aparent;
+    m_parent = aparent
     m_kind = akind
 endfunc
 
@@ -334,7 +334,7 @@ function OJson.GetAsPrettyJson() -> str:
 endfunc
 
 function OJson.SaveToFile(afname : strview, apretty : bool = false):
-    var s : str;
+    var s : str
     if apretty:
         AppendToPrettyJsonStr(s, '')
     else:

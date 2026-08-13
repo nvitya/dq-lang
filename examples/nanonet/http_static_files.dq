@@ -50,7 +50,7 @@ function OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
                 response.Add('Get var "c" is not set.\r\n')
             endif
 
-            result = true;
+            result = true
         else:
             result = HandleStaticFiles('./www')
         endif

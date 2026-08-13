@@ -1,8 +1,8 @@
 var invalid_target : int [[asm]]  //?error(AttrInvalidTarget)
 
-function asm_with_args() [[asm(1)]];  //?error(AttrNoArgs)
+function asm_with_args() [[asm(1)]]  //?error(AttrNoArgs)
 
-function asm_without_body() [[asm]];  //?error(AsmFuncBody)
+function asm_without_body() [[asm]]  //?error(AsmFuncBody)
 
 function asm_with_braces() [[asm]] { }  //?error(AsmFuncBody)
 
@@ -10,4 +10,4 @@ function asm_always_inline() [[asm, always_inline]]:  //?error(AttrConflict)
     nop
 endfunc
 
-function asm_external() [[asm, external]];  //?error(AttrConflict)
+function asm_external() [[asm, external]]  //?error(AttrConflict)

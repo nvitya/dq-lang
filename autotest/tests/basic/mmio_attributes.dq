@@ -1,46 +1,46 @@
 struct SRegisters:
-    RW       : [[regrw]] uint32;
-    RO       : [[regro]] uint32;
-    WO       : [[regwo]] uint32;
-    RAW_RW   : [[volatile]] uint32;
-    RAW_RO   : [[volatile, nowrite]] uint32;
-    RAW_WO   : [[volatile, noread]] uint32;
-    PLAIN_RO : [[nowrite]] uint32;
-    PLAIN_WO : [[noread]] uint32;
-    RW_ARRAY : [[regrw]] [2]uint32;
+    RW       : [[regrw]] uint32
+    RO       : [[regro]] uint32
+    WO       : [[regwo]] uint32
+    RAW_RW   : [[volatile]] uint32
+    RAW_RO   : [[volatile, nowrite]] uint32
+    RAW_WO   : [[volatile, noread]] uint32
+    PLAIN_RO : [[nowrite]] uint32
+    PLAIN_WO : [[noread]] uint32
+    RW_ARRAY : [[regrw]] [2]uint32
 endstruct
 
-var regs : SRegisters;
-var global_rw : uint32 [[regrw]];
-var global_ro : uint32 [[regro]];
-var global_wo : uint32 [[regwo]];
+var regs : SRegisters
+var global_rw : uint32 [[regrw]]
+var global_ro : uint32 [[regro]]
+var global_wo : uint32 [[regwo]]
 
 function SetByRef(value : refout uint32):
-    value = 31;
+    value = 31
 endfunc
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]
 
 function *Main() -> int:
-    regs.RW = 10;
-    regs.RW += 2;
-    regs.WO = 20;
-    regs.RAW_RW = 3;
-    regs.RAW_WO = 4;
-    regs.PLAIN_WO = 7;
-    regs.RW_ARRAY[0] = 5;
-    regs.RW_ARRAY[1] = regs.RW_ARRAY[0] + 1;
+    regs.RW = 10
+    regs.RW += 2
+    regs.WO = 20
+    regs.RAW_RW = 3
+    regs.RAW_WO = 4
+    regs.PLAIN_WO = 7
+    regs.RW_ARRAY[0] = 5
+    regs.RW_ARRAY[1] = regs.RW_ARRAY[0] + 1
 
-    global_rw = regs.RW;
-    global_wo = 21;
+    global_rw = regs.RW
+    global_wo = 21
 
     // Address and reference binding intentionally escape the declaration attributes.
-    var ro_ptr : ^uint32 = &regs.RO;
-    ro_ptr^ = 30;
-    SetByRef(regs.RO);
-    ref wo_ref = regs.WO;
+    var ro_ptr : ^uint32 = &regs.RO
+    ro_ptr^ = 30
+    SetByRef(regs.RO)
+    ref wo_ref = regs.WO
 
-    printf("mmio attrs = %u %u %u %u %u\n", regs.RW, regs.RO, wo_ref, regs.RW_ARRAY[1], regs.PLAIN_RO);
+    printf("mmio attrs = %u %u %u %u %u\n", regs.RW, regs.RO, wo_ref, regs.RW_ARRAY[1], regs.PLAIN_RO)
     //?check("mmio attrs", "12 31 20 6 0")
-    return 0;
+    return 0
 endfunc

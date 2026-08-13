@@ -1,13 +1,13 @@
 // weak attribute type checking tests (ERROR test)
 
-var weak_var : int [[weak]];  //?error(AttrInvalidTarget)
+var weak_var : int [[weak]]  //?error(AttrInvalidTarget)
 
-function weak_with_args() [[weak(1)]];  //?error(AttrNoArgs)
+function weak_with_args() [[weak(1)]]  //?error(AttrNoArgs)
 
-function weak_external() [[weak, external]];  //?error(AttrConflict)
+function weak_external() [[weak, external]]  //?error(AttrConflict)
 
-function weak_forward_external() [[weak]];
-function weak_forward_external() [[external]];  //?error(AttrConflict)
+function weak_forward_external() [[weak]]
+function weak_forward_external() [[external]]  //?error(AttrConflict)
 
 object OWeakMethod:
     function Method() [[weak]]:  //?error(AttrInvalidTarget)

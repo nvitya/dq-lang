@@ -63,11 +63,11 @@ function *Main() -> int:
     var long_lived : ONode = BuildTree(max_depth)
     for depth : int = min_depth  while depth <= max_depth  step 2:
         var iterations : int = 1 << (max_depth - depth + min_depth)
-        var sum : int = 0;
+        var sum : int = 0
         for i : int = 0 count iterations:
             sum += CountDepth(depth)
         endfor
-        PrintLn("{}\t trees of depth {}\t check: {}", [iterations, depth, sum]);
+        PrintLn("{}\t trees of depth {}\t check: {}", [iterations, depth, sum])
     endfor
     PrintLn('long lived tree of depth {}\t check: {}', [max_depth, long_lived.NodeCount()])
     delete long_lived

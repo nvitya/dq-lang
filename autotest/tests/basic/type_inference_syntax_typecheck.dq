@@ -5,5 +5,5 @@ const(?): //?error(TypeIdExpected)
 endconst
 
 struct SBadInferredField:
-    value : ?; //?error(TypeIdExpected), error(ModStatementExpected)
+    value : ? //?error(TypeIdExpected), error(ModStatementExpected)
 endstruct //?error(ModStatementUnknown)

@@ -1,5 +1,5 @@
 //?notest
 
-const PKG_VAL : int = 1000;
+const PKG_VAL : int = 1000
 
-[[external]] function printf(fmt : ^char, ...) -> int;
+function printf(fmt : ^char, ...) -> int [[external]]

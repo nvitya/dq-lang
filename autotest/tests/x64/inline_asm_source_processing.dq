@@ -1,4 +1,4 @@
-use libc/stdio;
+use libc/stdio
 
 function ConditionalAdd(value : int, value2 : int) -> int [[inline, asm]]:
     // [[immediate(value)]] and endfunc in a line comment are inert.
@@ -19,7 +19,7 @@ function ConditionalAdd(value : int, value2 : int) -> int [[inline, asm]]:
 endfunc
 
 function *Main() -> int:
-    printf("inline_asm.source_processing = %li\n", ConditionalAdd(19, 23));
+    printf("inline_asm.source_processing = %li\n", ConditionalAdd(19, 23))
     //?check("inline_asm.source_processing", 42)
-    return 0;
+    return 0
 endfunc

@@ -1,11 +1,11 @@
 //?notest
 
-const CONST_MOD_A : int = 1;
+const CONST_MOD_A : int = 1
 
 implementation
 
-use libc/stdio;
+use libc/stdio
 
 function *ModuleInit():
-    printf("Module.init.A = done\n");
+    printf("Module.init.A = done\n")
 endfunc

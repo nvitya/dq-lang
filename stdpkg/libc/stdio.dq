@@ -13,7 +13,7 @@
  * brief:   Very basic libc stdio interface for DQ
  */
 
-[[external]] function printf(fmt : ^char, ...) -> int
+function printf(fmt : ^char, ...) -> int [[external]]
 
 function DqLibcStdout() -> pointer
 

@@ -2,18 +2,18 @@
 
 object OPropertyDeclarationErrors:
 private
-    value : int = 0;
+    value : int = 0
 
     function GetValue() -> int:
-        return value;
+        return value
     endfunc
 
     function SetValue(new_value : int):
-        value = new_value;
+        value = new_value
     endfunc
 
     function GetIndexed(index : int) -> int:
-        return index;
+        return index
     endfunc
 
 public
@@ -29,13 +29,13 @@ public
     property forward_method : int read GetLater //?error(PropertyAccessorUnknown)
 
 private
-    later_field : int = 1;
+    later_field : int = 1
 
     function GetLater() -> int:
-        return later_field;
+        return later_field
     endfunc
 endobj
 
 function *Main() -> int:
-    return 0;
+    return 0
 endfunc

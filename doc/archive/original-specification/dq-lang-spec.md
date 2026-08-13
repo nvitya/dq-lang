@@ -174,9 +174,9 @@ Assignment of a character literal to `char` is accepted only when the literal
 value is less than 256.
 
 ```dq
-var c1 : char  = 'A';   // OK
-var c2 : char  = '€';   // error: value does not fit in char
-var wc : wchar = '€';   // OK
+var c1 : char  = 'A'   // OK
+var c2 : char  = '€'   // error: value does not fit in char
+var wc : wchar = '€'   // OK
 ```
 
 Character values are not implicitly compatible with integer types. Use
@@ -197,7 +197,7 @@ var sql = """
       (d.MTYPE=1)
     order by
       d.MTIME asc
-    """;
+    """
 ```
 
 **Rules**:
@@ -212,14 +212,14 @@ function example():
     var msg = """
         Line 1
         Line 2
-        """;
+        """
     // Result: "Line 1\nLine 2" (8 spaces stripped, no trailing newline)
 endfunc
 ```
 
 **Single-line usage** (useful for strings containing both quote types):
 ```dq
-var json : str = """{"key": "value with 'quotes'"}""";
+var json : str = """{"key": "value with 'quotes'"}"""
 ```
 
 #### Boolean Literals
@@ -275,9 +275,9 @@ of the platform C/C++ `wchar_t` type.
 
 **Character from integer value**:
 ```dq
-var c  : char  = char(0x30);      // byte value for '0'
-var c2 : char  = char(255);       // maximum char value
-var wc : wchar = wchar(0x1F600);  // Unicode scalar value
+var c  : char  = char(0x30)      // byte value for '0'
+var c2 : char  = char(255)       // maximum char value
+var wc : wchar = wchar(0x1F600)  // Unicode scalar value
 ```
 
 Constant casts are checked by the compiler. Runtime casts are explicit and
@@ -293,20 +293,20 @@ required.
 - may contain arbitrary bytes, including internal zero bytes
 
 ```dq
-var s1 : str = "Hello";
-var s2 : str = s1 + " World";
-var len : int = s1.length;      // byte count
-var ch : char = s1[0];          // byte access
-var part : str = s1[1:4];       // byte slice
+var s1 : str = "Hello"
+var s2 : str = s1 + " World"
+var len : int = s1.length      // byte count
+var ch : char = s1[0]          // byte access
+var part : str = s1[1:4]       // byte slice
 ```
 
 Unicode scalar access is explicit and decodes the bytes as UTF-8:
 
 ```dq
-var count : int = s1.wclen;        // Unicode scalar count
-var wc : wchar = s1.wchar[0];      // scalar-indexed access
-var wchars : [*]wchar = s1.wchar[:];
-var utf8_part : str = s1.wcstr[1:$end];
+var count : int = s1.wclen        // Unicode scalar count
+var wc : wchar = s1.wchar[0]      // scalar-indexed access
+var wchars : [*]wchar = s1.wchar[:]
+var utf8_part : str = s1.wcstr[1:$end]
 ```
 
 Malformed UTF-8 causes a runtime encoding error in Unicode-oriented operations.
@@ -319,9 +319,9 @@ UTF-16 interoperability uses `s1.ToUtf16()` and `StrFromUtf16(...)`.
 - For protocols, ABI, packed structs
 
 ```dq
-var name : cstring(32);        // 32 usable bytes plus trailing zero storage
-name = "Viktor";               // copies bytes, truncates to fit, adds NUL
-var s : str = name;            // converts to dynamic string
+var name : cstring(32)        // 32 usable bytes plus trailing zero storage
+name = "Viktor"               // copies bytes, truncates to fit, adds NUL
+var s : str = name            // converts to dynamic string
 ```
 
 ### 4.3 Array Types
@@ -334,9 +334,9 @@ DQ provides three distinct array types, each serving a specific purpose: fixed-s
 - **Use Case**: Small, fixed-size data structures where performance and stack allocation are critical.
 
 ```dq
-var arr : [4]int32;          // 4 integers allocated on the stack
-arr[0] = 10;
-var len : int = arr.length;
+var arr : [4]int32          // 4 integers allocated on the stack
+arr[0] = 10
+var len : int = arr.length
 ```
 
 #### Open Array / Slice (`[]T`)
@@ -350,19 +350,19 @@ var len : int = arr.length;
 ```dq
 // A function accepting any kind of integer array
 function sum(values: []int) -> int:
-    result = 0;
+    result = 0
     for v in values:
-        result += v;
+        result += v
     endfor
 endfunc
 
 // It can be called with different array types:
-var fixed_arr : [3]int = [1, 2, 3];
-var dyn_arr : [...]int = [4, 5, 6];
+var fixed_arr : [3]int = [1, 2, 3]
+var dyn_arr : [...]int = [4, 5, 6]
 
-var s1 : int = sum(fixed_arr);      // slice points to fixed array
-var s2 : int = sum(dyn_arr);        // slice points to dynamic array data
-var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the literal
+var s1 : int = sum(fixed_arr)      // slice points to fixed array
+var s2 : int = sum(dyn_arr)        // slice points to dynamic array data
+var s3 : int = sum([7, 8, 9])      // slice points to temporary array for the literal
 ```
 
 #### Dynamic Array (`[...]T`)
@@ -374,35 +374,35 @@ var s3 : int = sum([7, 8, 9]);      // slice points to temporary array for the l
 - **Use Case**: General-purpose mutable collections of elements, where the size is not known at compile-time.
 
 ```dq
-var arr : [...]int;            // Handle is null initially
-arr = [10, 20];                // Assign a new dynamic array from a literal
-arr.append(30);
-var len : int = arr.length;    // runtime value
+var arr : [...]int            // Handle is null initially
+arr = [10, 20]                // Assign a new dynamic array from a literal
+arr.append(30)
+var len : int = arr.length    // runtime value
 ```
 
 #### Multi-dimensional Arrays
 Multi-dimensional arrays are combinations of the above types.
 
 ```dq
-var matrix : [3][4]int;      // fixed 3x4 matrix
-var grid : [...][...]int;    // fully dynamic 2D array (array of dynamic arrays)
-var rows : [4][]int;         // fixed array of four row slices
+var matrix : [3][4]int      // fixed 3x4 matrix
+var grid : [...][...]int    // fully dynamic 2D array (array of dynamic arrays)
+var rows : [4][]int         // fixed array of four row slices
 ```
 
 ### 4.4 Pointer Types
 
 ```dq
-var p : ^int32;                 // pointer to int32
-var p : ^MyStruct;              // pointer to object/struct
-var ptr : pointer;              // untyped pointer (like void*)
+var p : ^int32                 // pointer to int32
+var p : ^MyStruct              // pointer to object/struct
+var ptr : pointer              // untyped pointer (like void*)
 ```
 
 ### 4.5 Type Aliases
 
 ```dq
-type MyInt = int32;
-type Callback = function(x: int) -> int;
-type MethodCallback = function(x: int) -> int of object;
+type MyInt = int32
+type Callback = function(x: int) -> int
+type MethodCallback = function(x: int) -> int of object
 ```
 
 ### 4.6 Enumeration Types
@@ -413,13 +413,13 @@ Enumerations define a set of named constant values with a mandatory underlying s
 
 ```dq
 // Storage type is mandatory
-type TProcState : byte = (psIdle, psRising, psFalling, psSaving);
+type TProcState : byte = (psIdle, psRising, psFalling, psSaving)
 
 // With explicit values (for protocols, hardware registers, etc.)
-type TCmd : byte = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF);
+type TCmd : byte = (cmdNone = 0, cmdRead = 0x10, cmdWrite = 0x20, cmdErase = 0xFF)
 
 // Auto-increment from last explicit value
-type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1, 2, 3
+type TStatus : int16 = (stNone = 0, stOk, stWarning, stError)  // values: 0, 1, 2, 3
 ```
 
 #### Scope and Naming
@@ -427,7 +427,7 @@ type TStatus : int16 = (stNone = 0, stOk, stWarning, stError);  // values: 0, 1,
 Enum values are placed in the **module scope** (Pascal-style), allowing direct use without qualification:
 
 ```dq
-var state : TProcState = psIdle;
+var state : TProcState = psIdle
 
 if state == psRising:
     // ...
@@ -446,13 +446,13 @@ This convention prevents name collisions when multiple enum types are in scope.
 Conversions between enum types and their underlying integer type must be **explicit**:
 
 ```dq
-var cmd : TCmd = cmdRead;
+var cmd : TCmd = cmdRead
 
 // Enum to integer: explicit cast
-var val : byte = byte(cmd);            // val = 0x10
+var val : byte = byte(cmd)            // val = 0x10
 
 // Integer to enum: explicit cast
-var cmd2 : TCmd = TCmd(0x20);          // cmd2 = cmdWrite
+var cmd2 : TCmd = TCmd(0x20)          // cmd2 = cmdWrite
 
 // Comparison with integer literals: requires cast
 if byte(cmd) == 0x10:  ...  endif    // OK: explicit
@@ -468,8 +468,8 @@ Any integer type can be used as the underlying storage:
 - `uint64`, `int64`
 
 ```dq
-type TSmallEnum : byte = (seA, seB, seC);           // 1 byte
-type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
+type TSmallEnum : byte = (seA, seB, seC)           // 1 byte
+type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF)  // 4 bytes
 ```
 
 ---
@@ -478,11 +478,11 @@ type TLargeFlags : uint32 = (lfNone = 0, lfAll = 0xFFFFFFFF);  // 4 bytes
 
 ### 5.1 Variable Declaration
 
-Variables are declared in `var identifier : type [= initial_value];` form
+Variables are declared in `var identifier : type [= initial_value]` form
 
 ```dq
-var x : int32 = 10;         // explicit type with initialization
-var y : int32;              // uninitialized (must be assigned before use)
+var x : int32 = 10         // explicit type with initialization
+var y : int32              // uninitialized (must be assigned before use)
 ```
 
 ### 5.2 Type Inference with `auto`
@@ -490,9 +490,9 @@ var y : int32;              // uninitialized (must be assigned before use)
 Use the special type `auto` when you want the compiler to infer the type:
 
 ```dq
-var x : auto = 10;          // inferred as int
-var s : auto = "hello";     // inferred as str
-var x : auto = some_function(); // inferred from return type
+var x : auto = 10          // inferred as int
+var s : auto = "hello"     // inferred as str
+var x : auto = some_function() // inferred from return type
 ```
 
 ### 5.3 Constants
@@ -502,9 +502,9 @@ Constants are declared with `const(type)` syntax, where the type is mandatory.
 #### Single-Line Form
 
 ```dq
-const(float)  PI = 3.14159265358979;
-const(uint32) MAGIC = 0xDEADBEEF;
-const(int)    MAX_SIZE = 1024;
+const(float)  PI = 3.14159265358979
+const(uint32) MAGIC = 0xDEADBEEF
+const(int)    MAX_SIZE = 1024
 ```
 
 #### Block Form
@@ -513,14 +513,14 @@ Use the block form to group related constants of the same type:
 
 ```dq
 const(uint):
-    BUFFER_SIZE = 1024;
-    BUFFER_MASK = BUFFER_SIZE - 1;
-    MAX_ITEMS = 256;
+    BUFFER_SIZE = 1024
+    BUFFER_MASK = BUFFER_SIZE - 1
+    MAX_ITEMS = 256
 endconst
 
 const(float):
-    PI = 3.14159265358979;
-    E  = 2.71828182845904;
+    PI = 3.14159265358979
+    E  = 2.71828182845904
 endconst
 ```
 
@@ -544,9 +544,9 @@ Constants are evaluated at compile time and can reference other constants in exp
 **Division Rule**: `/` always yields `float`. Integer division requires explicit `IDIV`.
 
 ```dq
-var f : float = 10 / 3;         // == 3.333...
-var i : int = 10 IDIV 3;        // == 3
-var i : int = round(10 / 3);    // == 3 (explicit rounding)
+var f : float = 10 / 3         // == 3.333...
+var i : int = 10 IDIV 3        // == 3
+var i : int = round(10 / 3)    // == 3 (explicit rounding)
 ```
 
 **Rounding Functions**:
@@ -598,14 +598,14 @@ var i : int = round(10 / 3);    // == 3 (explicit rounding)
 
 **Examples**:
 ```dq
-var x : int = 10;
-var y : int = -x;              // unary minus: y = -10
+var x : int = 10
+var y : int = -x              // unary minus: y = -10
 
-var p : ^int = &x;             // address-of: p points to x
-var z : int = p^;              // dereference: z = 10
+var p : ^int = &x             // address-of: p points to x
+var z : int = p^              // dereference: z = 10
 
-var mask : int = NOT 0xFF;     // bitwise NOT
-var flag : bool = not true;    // logical NOT
+var mask : int = NOT 0xFF     // bitwise NOT
+var flag : bool = not true    // logical NOT
 ```
 
 ### 6.6 Operator Precedence
@@ -645,17 +645,17 @@ if ((i2 AND i1) <> 0) and ((i1 << 1) > 5): ...
 ### 6.7 Assignment Operators
 
 ```dq
-var x : int = 10;
-x += 5;                     // compound: add
-x -= 5;                     // compound: subtract
-x *= 2;                     // compound: multiply
-x /= 2;                     // compound: divide (result is float!)
+var x : int = 10
+x += 5                     // compound: add
+x -= 5                     // compound: subtract
+x *= 2                     // compound: multiply
+x /= 2                     // compound: divide (result is float!)
 ```
 
 **Important**:
 - Assignment uses single `=` operator
 - Assignment is a **statement** — not allowed in expressions (like after `if`)
-- Assignment chaining is not possible (e.g. `a = b = 1;` is a compiler error)
+- Assignment chaining is not possible (e.g. `a = b = 1` is a compiler error)
 - Single `=` is **only** for assignment, never for comparison (use `==` for equality checks)
 
 ### 6.8 Named Arguments
@@ -663,8 +663,8 @@ x /= 2;                     // compound: divide (result is float!)
 Named arguments use the `=` operator, following Python conventions:
 
 ```dq
-connect(port = 80, timeout_ms = 5000);
-var cfg : TConfig = (baud = 115200, parity = .None);
+connect(port = 80, timeout_ms = 5000)
+var cfg : TConfig = (baud = 115200, parity = .None)
 ```
 
 **Note**: Context makes it clear whether `=` is used for assignment (in statements) or named argument binding (in function/constructor calls).
@@ -708,25 +708,25 @@ The result type is determined as follows:
 
 ```dq
 // Integer selection
-var maxv : int = iif(a > b, a, b);
+var maxv : int = iif(a > b, a, b)
 
 // String selection
-var msg : str = iif(ok, "OK", FormatError(code));
+var msg : str = iif(ok, "OK", FormatError(code))
 
 // Numeric promotion: int and float → float
-var f : float = iif(flag, 1, 2.1);      // result type is float
+var f : float = iif(flag, 1, 2.1)      // result type is float
 
 // Nested iif (ternary chains)
-var sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"));
+var sign : str = iif(x > 0, "positive", iif(x < 0, "negative", "zero"))
 
 // Used in expressions
-var result : int = iif(enabled, base * 2, base) + offset;
+var result : int = iif(enabled, base * 2, base) + offset
 
-var i1 : int = iif(count, 1, 3);     // ERROR: condition is not bool
-var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit conversion required to integer
+var i1 : int = iif(count, 1, 3)     // ERROR: condition is not bool
+var i2 : int = iif(count, 1, 3.3)   // ERROR: result type is float, explicit conversion required to integer
 
 // Invalid: incompatible types
-// var s : str = iif(flag, "text", 42);     // ERROR: str vs int
+// var s : str = iif(flag, "text", 42)     // ERROR: str vs int
 
 ```
 
@@ -739,14 +739,14 @@ var i2 : int = iif(count, 1, 3.3);   // ERROR: result type is float, explicit co
 
 ```dq
 // Good use of iif: concise value selection
-var max : int = iif(a > b, a, b);
+var max : int = iif(a > b, a, b)
 
 // Better as if-else when branches have side effects:
 if condition:
-    result =  compute1();
-    result += compute2();
+    result =  compute1()
+    result += compute2()
 else:
-    result = fallback();
+    result = fallback()
 endif
 ```
 
@@ -771,11 +771,11 @@ In indent mode, DQ enforces a consistent, unambiguous syntax using colons and `e
 function HandleState(value : int):
     if curstate == psIdle:
         if value > prevvalue:
-            curstate = psRising;
+            curstate = psRising
         elif value < prevvalue:
-            curstate = psFalling;
+            curstate = psFalling
         else:
-            println('state not handled!');
+            println('state not handled!')
         endif
     elif curstate == psRising:
         // ...
@@ -806,9 +806,9 @@ function Foo():  if a:  var x : int = 1;  endif  endfunc   // valid but discoura
 **Compact form**: Single statements can follow the colon on the same line:
 
 ```dq
-if   value > prevvalue:  curstate = psRising;
-elif value < prevvalue:  curstate = psFalling;
-else:                    println('not handled!');
+if   value > prevvalue:  curstate = psRising
+elif value < prevvalue:  curstate = psFalling
+else:                    println('not handled!')
 endif
 ```
 
@@ -823,9 +823,9 @@ while hasMore():  process();  endwhile
 ensure:  cleanup();  endensure
 
 // Typical usage with ensure:
-    var p : ^Worker = new("Test");
+    var p : ^Worker = new("Test")
 ensure:  delete p;  endensure
-p.DoWork();
+p.DoWork()
 ```
 
 This is purely a style rule — the syntax is always valid regardless of line length.
@@ -841,10 +841,10 @@ In braces mode, alternative syntax forms are allowed:
 function HandleState(value : int) {
     if curstate == psIdle {
         if value > prevvalue {
-            curstate = psRising;
+            curstate = psRising
         }
         else if value < prevvalue {
-            curstate = psFalling;
+            curstate = psFalling
         }
     }
 }
@@ -894,17 +894,17 @@ endif
 ```dq
 // elif - single chain, one endif:
 if a:
-    x = 1;
+    x = 1
 elif b:
-    x = 2;
+    x = 2
 endif
 
 // else: if - nested blocks, two endifs:
 if a:
-    x = 1;
+    x = 1
 else:
     if b:
-        x = 2;
+        x = 2
     endif
 endif
 ```
@@ -959,16 +959,16 @@ endfor
 
 **Example**:
 ```dq
-var arr : [...]int = [1, 2, 3, 4, 5];
+var arr : [...]int = [1, 2, 3, 4, 5]
 
 // Iterate through array indices
 for i = 0 to arr.length - 1:
-    println(arr[i]);
+    println(arr[i])
 endfor
 
 // Reverse iteration
 for i = arr.length - 1 downto 0:
-    println(arr[i]);
+    println(arr[i])
 endfor
 ```
 
@@ -1005,16 +1005,16 @@ endfor
 
 **Example**:
 ```dq
-var arr : [...]int = [1, 2, 3, 4, 5];
+var arr : [...]int = [1, 2, 3, 4, 5]
 
 // Iterate exactly arr.length times
 for i = 0 count arr.length:
-    println(arr[i]);
+    println(arr[i])
 endfor
 
 // Reverse: iterate exactly arr.length times going down
 for i = arr.length - 1 downcount arr.length:
-    println(arr[i]);
+    println(arr[i])
 endfor
 ```
 
@@ -1066,12 +1066,12 @@ endfor
 ```dq
 // Skip over invalid entries
 for i = 0 while i < arr.length and arr[i] >= 0:
-    process(arr[i]);
+    process(arr[i])
 endfor
 
 // Custom increment logic with step
 for i = 1 while i < 1000 step (i * 2):  // exponential growth
-    println(i);
+    println(i)
 endfor
 ```
 
@@ -1082,17 +1082,17 @@ Iterate directly over collection elements without manual indexing.
 ```dq
 // Iterate over string characters
 for ch : char in str_value:
-    println(ch);
+    println(ch)
 endfor
 
 // Iterate over array elements (type inference)
 for item in array_value:
-    println(item);
+    println(item)
 endfor
 
 // Iterate with explicit type
 for value : int in numbers:
-    sum += value;
+    sum += value
 endfor
 ```
 
@@ -1113,15 +1113,15 @@ endfor
 ### 7.5 Break and Continue
 
 ```dq
-break;                      // exit innermost loop
-continue;                   // skip to next iteration
+break                      // exit innermost loop
+continue                   // skip to next iteration
 ```
 
 ### 7.6 Return Statement
 
 ```dq
-return value;               // return from function
-return;                     // return from void function
+return value               // return from function
+return                     // return from void function
 ```
 
 **note**: function return values also can be set using the built-in `result` variable.
@@ -1131,8 +1131,8 @@ return;                     // return from void function
 
 ```dq
 ensure:
-    cleanup_code1();
-    cleanup_code2();
+    cleanup_code1()
+    cleanup_code2()
 endensure
 ```
 
@@ -1156,12 +1156,12 @@ endfunc
 
 ```dq
 function add(a : int, b : int) -> int:
-    return a + b;
+    return a + b
 endfunc
 
 // Alternative (Pascal-style): assign to 'result'
 function add(a : int, b : int) -> int:
-    result = a + b;
+    result = a + b
 endfunc
 ```
 
@@ -1178,7 +1178,7 @@ DQ supports several parameter passing modes to control how arguments are passed 
 
 ```dq
 function Inc(x : ref int, amount : int):
-    x += amount;
+    x += amount
 endfunc
 
 function ParseInt(s : in str, value : out int) -> bool:
@@ -1195,7 +1195,7 @@ endfunc
 
 ```dq
 function Foo(par1 : int) -> int:
-    result = @arg.par1 * 2;    // explicit argument access
+    result = @arg.par1 * 2    // explicit argument access
 endfunc
 ```
 This is useful when a local variable shadows a parameter name.
@@ -1219,14 +1219,14 @@ This clear distinction allows for safe and efficient handling of array data stru
 
 ```dq
 // Function pointer type
-type IntFunc = function(x : int) -> int;
+type IntFunc = function(x : int) -> int
 
 // Method pointer (delegate)
-type Callback = function(x : int) -> int of object;
+type Callback = function(x : int) -> int of object
 
 // Usage
-var cb : Callback = obj.method;
-cb(42);
+var cb : Callback = obj.method
+cb(42)
 ```
 
 ### 8.5 Function Attributes
@@ -1241,29 +1241,29 @@ Multiple attributes can be specified in a single bracket pair (comma-separated) 
 // Attribute before declaration
 [[section("ramcode")]]
 function Foo(x : int) -> int:
-    var px : ^int = &x;
-    @io.println("x = ", px^);
+    var px : ^int = &x
+    @io.println("x = ", px^)
 endfunc
 
 // Attributes after signature
 function Bar(x : int) -> int [[stdcall, override]]:
-    return x * 2;
+    return x * 2
 endfunc
 
 // Static function
 [[static]]
 function Helper(x : int) -> int:
-    return x + 1;
+    return x + 1
 endfunc
 
 // Alternative: attribute after signature
 function Helper2(x : int) -> int [[static]]:
-    return x + 1;
+    return x + 1
 endfunc
 
 // Inline function
 function GetValue() -> int [[inline]]:
-    return 42;
+    return 42
 endfunc
 ```
 
@@ -1336,7 +1336,7 @@ When such a function is called, the compiler automatically handles array literal
 
 ```dq
 // Call site
-print("Values: %d, %s", [10, "text", true]);
+print("Values: %d, %s", [10, "text", true])
 ```
 
 **Mechanism**:
@@ -1355,13 +1355,13 @@ This approach ensures that variadic arguments are handled with the same type-saf
 ```dq
 object OWorker:
     // Fields
-    var name : str;
-    var counter : int;
+    var name : str
+    var counter : int
 
     // Constructor
     function __ctor(aname : str):
-        name = aname;
-        counter = 0;
+        name = aname
+        counter = 0
     endfunc
 
     // Destructor
@@ -1371,12 +1371,12 @@ object OWorker:
 
     // Methods
     function DoWork():
-        counter += 1;
-        write(name + " work #" + str(counter));
+        counter += 1
+        write(name + " work #" + str(counter))
     endfunc
 
     function write(msg : str):
-        .print(msg);        // leading dot = global function
+        .print(msg)        // leading dot = global function
     endfunc
 endobject
 ```
@@ -1385,17 +1385,17 @@ endobject
 
 #### Stack Allocation (Value)
 ```dq
-var w : OWorker("Alice");        // constructor called directly
-w.DoWork();
+var w : OWorker("Alice")        // constructor called directly
+w.DoWork()
 // destructor called automatically at scope exit
 ```
 
 #### Heap Allocation (Pointer)
 ```dq
-var w : ^OWorker = new OWorker("Bob");   // explicit type at new
-var w : ^OWorker = new("Bob");           // target-typed new (type inferred from LHS)
-w.DoWork();
-delete w;                           // explicit deletion
+var w : ^OWorker = new OWorker("Bob")   // explicit type at new
+var w : ^OWorker = new("Bob")           // target-typed new (type inferred from LHS)
+w.DoWork()
+delete w                           // explicit deletion
 ```
 
 ### 9.3 Visibility
@@ -1415,13 +1415,13 @@ endobject
 ```dq
 object OSocket:
 public
-    property port : uint16 read mport write SetPort;
+    property port : uint16 read mport write SetPort
 
 private
-    var mport : uint16;
+    var mport : uint16
 
     function SetPort(value : uint16):
-        mport = value;
+        mport = value
     endfunc
 endobject
 ```
@@ -1432,14 +1432,14 @@ endobject
 object OAnimal:
 public
     function Speak() [[virtual]]:
-        print("beep");
+        print("beep")
     endfunc
 endobject
 
 object ODog(OAnimal):  // inherits from OAnimal
 public
     function Speak() [[override]]:
-        print("woof");
+        print("woof")
     endfunc
 endobject
 ```
@@ -1459,19 +1459,19 @@ Inside object methods:
 3. `.name` always resolves to **global/module namespace**
 
 ```dq
-use math;
+use math
 
 object OCircle:
 public
-    var radius : float;
+    var radius : float
 
     function Area() -> float:
-        return .PI * radius * radius;   // .PI = global PI from math
+        return .PI * radius * radius   // .PI = global PI from math
     endfunc
 
     function Area2() -> float:
-        use math;                        // local injection
-        return PI * radius * radius;     // PI found in injected namespace
+        use math                        // local injection
+        return PI * radius * radius     // PI found in injected namespace
     endfunc
 endobject
 ```
@@ -1483,12 +1483,12 @@ endobject
 ### 10.1 Pointer Syntax
 
 ```dq
-var p : ^int32;            // pointer to int32
-p = &x;                    // address-of (C-style)
-var y : int32 = p^;        // dereference (Pascal-style)
-var sp : ^MyStruct;
-sp^.field1 = 1;            // explicit pointer dereferencing for field access
-sp.field1  = 1;            // implicit pointer dereferencing for field access
+var p : ^int32            // pointer to int32
+p = &x                    // address-of (C-style)
+var y : int32 = p^        // dereference (Pascal-style)
+var sp : ^MyStruct
+sp^.field1 = 1            // explicit pointer dereferencing for field access
+sp.field1  = 1            // implicit pointer dereferencing for field access
 ```
 
 **Note**: The `@` symbol is reserved for namespace references. The `&` symbol is used to get the address of a variable.
@@ -1496,30 +1496,30 @@ sp.field1  = 1;            // implicit pointer dereferencing for field access
 ### 10.2 Pointer Arithmetic
 
 ```dq
-var p : ^byte = buffer;
-var pend : ^byte = p + length;  // pointer arithmetic allowed
-pend = p[length];               // (preferred syntax) same as p + length, still pointer, no dereferencing like in C
+var p : ^byte = buffer
+var pend : ^byte = p + length  // pointer arithmetic allowed
+pend = p[length]               // (preferred syntax) same as p + length, still pointer, no dereferencing like in C
 while p < pend:
     // ...
-    p += 1;
+    p += 1
 endwhile
 ```
 
 ### 10.3 Null
 
 ```dq
-var p : ^Worker = null;
+var p : ^Worker = null
 if p == null:  ...  endif
-delete null;                 // safe (no-op)
+delete null                 // safe (no-op)
 ```
 
 ### 10.4 Ref Binding to Pointer
 
 ```dq
-var p : ^MyStruct = ...;
+var p : ^MyStruct = ...
 if p <> null:
-    ref s : MyStruct = p^; // bind ref to pointee
-    s.field = 10;          // modify through ref
+    ref s : MyStruct = p^ // bind ref to pointee
+    s.field = 10          // modify through ref
 endif
 ```
 
@@ -1534,10 +1534,10 @@ module Net.Socket
 
 // Interface section (public declarations)
 
-type Socket = int32;
+type Socket = int32
 
-function open(host : str, port : uint16) -> Socket;
-function close(s : ref Socket);
+function open(host : str, port : uint16) -> Socket
+function close(s : ref Socket)
 
 implementation
 
@@ -1568,8 +1568,8 @@ endfinalization
 ### 11.2 Use Statements
 
 ```dq
-use math;                           // merge into module-global namespace
-use Drivers.UART as UART;           // alias
+use math                           // merge into module-global namespace
+use Drivers.UART as UART           // alias
 ```
 
 ### 11.3 Qualified Access
@@ -1612,9 +1612,9 @@ DQ source -> Preprocessor (#ifdef/#include) -> comp1 (comptime) -> comp2 (codege
 
 ```dq
 #{ifdef WINDOWS}
-    use windows;
+    use windows
 #{elifdef LINUX}
-    use linux;
+    use linux
 #{else}
     #{error "Platform not supported"}
 #{endif}
@@ -1627,13 +1627,13 @@ DQ source -> Preprocessor (#ifdef/#include) -> comp1 (comptime) -> comp2 (codege
 
 ```dq
 comptime if defined(WINDOWS):
-    use uart_impl_windows;
+    use uart_impl_windows
     ...
 elif defined(LINUX):
-    use uart_impl_linux;
+    use uart_impl_linux
     ...
 else:
-    compile_error("Platform not supported");
+    compile_error("Platform not supported")
 endif
 ```
 
@@ -1671,25 +1671,25 @@ The defines are accessible with a @def. namespace.
 
 ```dq
 // Stack allocation (automatic)
-var x : MyStruct;
+var x : MyStruct
 
 // Heap allocation
-var p : ^MyStruct = new MyStruct();
-var p : ^MyStruct = new();             // target-typed
+var p : ^MyStruct = new MyStruct()
+var p : ^MyStruct = new()             // target-typed
 ```
 
 ### 13.2 Deallocation
 
 ```dq
-delete p;                           // calls destructor, frees memory
-delete null;                        // safe (no-op)
+delete p                           // calls destructor, frees memory
+delete null                        // safe (no-op)
 ```
 
 ### 13.3 Scope-Based Cleanup
 
 ```dq
 function Example():
-    var p : ^Worker = new("Test");
+    var p : ^Worker = new("Test")
     ensure: delete p; endensure    // guaranteed cleanup at scope exit
     // use p...
 endfunc
@@ -1773,7 +1773,7 @@ type TFPGMapObject<TKey, TValue> = object:
 endobject
 
 // Specialization
-type TNanoSocketMap = specialize TFPGMapObject<TSocket, TNanoSocket>;
+type TNanoSocketMap = specialize TFPGMapObject<TSocket, TNanoSocket>
 ```
 
 ### 17.4 Exception Handling (Planned)
@@ -1782,13 +1782,13 @@ Exceptions will follow Pascal/Python style with `raise`:
 
 ```dq
 // Raising exceptions
-raise EInvalidArgument("value out of range");
+raise EInvalidArgument("value out of range")
 
 // Handling exceptions (syntax TBD, likely try/except)
 try:
-    risky_operation();
+    risky_operation()
 except EFileNotFound as e:
-    println("File not found: ", e.message);
+    println("File not found: ", e.message)
 except:
     // catch all
 endtry
@@ -1814,153 +1814,153 @@ endtry
 
 ```dq
 function imul(a : int, b : int) -> int:
-    return a * b;
+    return a * b
 endfunc
 
 function main() -> int:
-    var i1 : int = 2;
-    var i2 : int = 3;
-    var f : float = i1 / i2;
-    println("f =", f);
+    var i1 : int = 2
+    var i2 : int = 3
+    var f : float = i1 / i2
+    println("f =", f)
 
-    var res : int = imul(i1, i2);
-    println("mul(i1, i2) =", res);
+    var res : int = imul(i1, i2)
+    println("mul(i1, i2) =", res)
 
     // for-loop example
-    var sum_for : int = 0;
+    var sum_for : int = 0
     for i = 0 to 4:
-        sum_for += i;
+        sum_for += i
     endfor
-    println("sum_for =", sum_for);
+    println("sum_for =", sum_for)
 
     // while-loop example
-    var sum_while : int = 0;
-    var j : int = 0;
+    var sum_while : int = 0
+    var j : int = 0
     while j < 5:
-        sum_while += j;
-        j += 1;
+        sum_while += j
+        j += 1
     endwhile
-    println("sum_while =", sum_while);
+    println("sum_while =", sum_while)
 
     // if / else with boolean expression
     if (i1 < i2 and sum_for == sum_while) or (res > 0 and f < 1.0):
-        println("condition is TRUE");
+        println("condition is TRUE")
     else:
-        println("condition is FALSE");
+        println("condition is FALSE")
     endif
 
-    return 0;
+    return 0
 endfunc
 ```
 
 ### A.2 Object Example
 
 ```dq
-use io;
+use io
 
 object OWorkHelper:
 public
-    var worklog : [...]int;
+    var worklog : [...]int
 
     function help(anum : int):
-        worklog.append(anum);
+        worklog.append(anum)
     endfunc
 endobject
 
 object OWorker:
 public
-    var name    : str;
-    var counter : int = 0;
-    var helper  : ^OWorkHelper;
+    var name    : str
+    var counter : int = 0
+    var helper  : ^OWorkHelper
 
     function __ctor(aname : str):
-        name = aname;
-        helper = new OWorkHelper();
+        name = aname
+        helper = new OWorkHelper()
     endfunc
 
     function __dtor():
-        delete helper;
+        delete helper
     endfunc
 
     function DoWork(anum : int):
-        helper.help(anum);
-        counter += 1;
-        write(name + " work #" + str(counter));
+        helper.help(anum)
+        counter += 1
+        write(name + " work #" + str(counter))
     endfunc
 
     function write(msg : str):
-        .print(msg);            // global print
+        .print(msg)            // global print
     endfunc
 endobject
 
 function main():
     // stack-allocated object
-    var w1 : OWorker("Alice");
-    w1.DoWork(5);
-    w1.DoWork(3);
+    var w1 : OWorker("Alice")
+    w1.DoWork(5)
+    w1.DoWork(3)
 
     // heap-allocated object
-    var w2 : ^OWorker = new("Bob");
+    var w2 : ^OWorker = new("Bob")
     ensure:
-        delete w2;
+        delete w2
     endensure
-    w2.DoWork(7);
+    w2.DoWork(7)
 endfunc
 ```
 
 ### A.3 Expressions Example
 
 ```dq
-use sockets;
+use sockets
 
-type TSockCallBackFunc = function(aobj : pointer, asock : int) of object;
+type TSockCallBackFunc = function(aobj : pointer, asock : int) of object
 
 object OSockTester:
 public
-    property port : uint16 read mport write SetPort;
-    var onevent : TSockCallBackFunc = null;
+    property port : uint16 read mport write SetPort
+    var onevent : TSockCallBackFunc = null
 
     function __ctor(aport : uint16):
-        mport = aport;
+        mport = aport
     endfunc
 
 private
-    var mport : uint16;
-    var msocket : int = -1;
+    var mport : uint16
+    var msocket : int = -1
 
     function SetPort(avalue : uint16):
-        mport = avalue;
+        mport = avalue
     endfunc
 endobject
 
 function main() -> int:
-    println("Hello from DQ!");
+    println("Hello from DQ!")
 
-    var i1 : int = 3;
-    var i2 : int = 12345;
+    var i1 : int = 3
+    var i2 : int = 12345
 
-    var i3 : int = i2 AND i1;          // bitwise AND
+    var i3 : int = i2 AND i1          // bitwise AND
 
     // if (i3):  ...  endif         // ERROR: bool expression expected
 
     if i3 <> 0:                     // OK: explicit comparison
-        println("i3 is not null!");
+        println("i3 is not null!")
     endif
 
     // Precedence: no parentheses needed here to evaluate this correct
     if i2 AND i1 <> 0 and i1 SHL 1 > 5:
-        println("both are true!");
+        println("both are true!")
     endif
 
-    // i4 : int = i2 / i1;         // ERROR: / returns float
-    var f1 : float = i2 / i1;          // OK
-    var i5 : int = i2 IDIV i1;         // OK: integer division
-    var i6 : int = round(i2 / i1);     // OK: explicit rounding
+    // i4 : int = i2 / i1         // ERROR: / returns float
+    var f1 : float = i2 / i1          // OK
+    var i5 : int = i2 IDIV i1         // OK: integer division
+    var i6 : int = round(i2 / i1)     // OK: explicit rounding
 
-    var b : bool = i2 <> i1;
-    var b2 : bool = (i6 == i5);         // comparison uses '=='
+    var b : bool = i2 <> i1
+    var b2 : bool = (i6 == i5)         // comparison uses '=='
 
-    return 0;
+    return 0
 endfunc
 ```
 

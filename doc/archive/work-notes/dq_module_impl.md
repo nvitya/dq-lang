@@ -370,7 +370,7 @@ Example:
 
 ```dq
 function Add(a : int, b : int) -> int
-  return a + b;
+  return a + b
 endfunc
 ```
 
@@ -509,7 +509,7 @@ For a normal public function body in the interface section:
 ```dq
 function Paint(w : TWindow)
   if w.visible:
-    DrawFrame(w);
+    DrawFrame(w)
   endif
 endfunc
 ```
@@ -537,7 +537,7 @@ In DQ, a `use` declaration can affect lookup for subsequent declarations.
 Example:
 
 ```dq
-use ./core;
+use ./core
 
 type TWindow = object(TGuiObject)
   ...
@@ -995,8 +995,8 @@ A facade module that reexports child modules should store reexported symbols as 
 Example source:
 
 ```dq
-use ./button reexport;
-use ./label reexport;
+use ./button reexport
+use ./label reexport
 ```
 
 The `.dqm_if` for the facade should contain entries like:

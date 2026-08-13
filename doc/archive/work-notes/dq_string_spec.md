@@ -43,7 +43,7 @@ A `cstring(N)` stores at most `N` logical `char` characters and has one hidden z
 For a C-style buffer with raw storage size `maxlen`, the corresponding DQ type is `cstring(maxlen - 1)`, because one byte is reserved for the zero terminator.
 
 ```dq
-var cs : cstring(31);  // 31 usable chars, 32 bytes of storage
+var cs : cstring(31)  // 31 usable chars, 32 bytes of storage
 ```
 
 Unsized `cstring` is not a storage type. It is a non-owning mutable bounded C-string alias represented as a fat pointer / descriptor. It carries at least a data pointer, a maximum logical length, character width/encoding information, flags, and possibly a valid current length.
@@ -75,9 +75,9 @@ A `str` is internally a nullable reference to a dynamic string manager object.
 A null string manager is not an invalid string. It represents the canonical empty string.
 
 ```dq
-var s1 : str;
-var s2 : str = "";
-var s3 : str = '';
+var s1 : str
+var s2 : str = ""
+var s3 : str = ''
 
 s1.length == 0
 s2.length == 0
@@ -105,7 +105,7 @@ s.length == 0
 A `strview` is not nullable as a language value. An empty `strview` has length zero.
 
 ```dq
-var v : strview = "";
+var v : strview = ""
 
 v.length == 0
 v == ""
@@ -120,8 +120,8 @@ A `str` is a refcounted, copy-on-write, mutable character sequence.
 String assignment shares the manager object:
 
 ```dq
-var a : str = "abc";
-var b : str = a;
+var a : str = "abc"
+var b : str = a
 ```
 
 After assignment, both variables may reference the same internal manager:
@@ -134,10 +134,10 @@ manager.refcount == 2
 Before any modification, the runtime ensures that the target string variable has unique writable storage.
 
 ```dq
-var a : str = "abc";
-var b : str = a;
+var a : str = "abc"
+var b : str = a
 
-b[0] = 'X';
+b[0] = 'X'
 
 // a == "abc"
 // b == "Xbc"
@@ -167,8 +167,8 @@ charwidth = 4  otherwise
 The public `char` type remains `uint32` regardless of the internal storage width.
 
 ```dq
-var s : str = "abc";  // may use charwidth = 1
-var ch : char = s[0];    // returns uint32 character value
+var s : str = "abc"  // may use charwidth = 1
+var ch : char = s[0]    // returns uint32 character value
 ```
 
 Indexing is O(1), because the string uses fixed-width character storage internally.
@@ -176,10 +176,10 @@ Indexing is O(1), because the string uses fixed-width character storage internal
 Appending or assigning a wider character may widen the internal storage:
 
 ```dq
-var s : str = "abc";  // charwidth = 1
+var s : str = "abc"  // charwidth = 1
 
-s.Append('€');           // may widen to charwidth = 2
-s.Append(char(0x1F600)); // may widen to charwidth = 4
+s.Append('€')           // may widen to charwidth = 2
+s.Append(char(0x1F600)) // may widen to charwidth = 4
 ```
 
 If the manager is uniquely owned, widening may happen in place. If the manager is shared, widening happens while detaching to a new manager.
@@ -187,9 +187,9 @@ If the manager is uniquely owned, widening may happen in place. If the manager i
 Narrowing should not happen automatically after every modification. Explicit compaction may narrow:
 
 ```dq
-var s : str = "abc€";  // charwidth = 2
-s.Delete(3);              // "abc", still may be charwidth = 2
-s.Compact();              // may shrink capacity and narrow to charwidth = 1
+var s : str = "abc€"  // charwidth = 2
+s.Delete(3)              // "abc", still may be charwidth = 2
+s.Compact()              // may shrink capacity and narrow to charwidth = 1
 ```
 
 ---
@@ -199,7 +199,7 @@ s.Compact();              // may shrink capacity and narrow to charwidth = 1
 For `str`, both `length` and `capacity` are measured in characters.
 
 ```dq
-var s : str;
+var s : str
 
 s.length    // 0
 s.capacity  // 0
@@ -214,10 +214,10 @@ allocated bytes = capacity * charwidth
 `Reserve(n)` ensures that the string has capacity for at least `n` characters.
 
 ```dq
-var s : str;
+var s : str
 
-s.Reserve(4096);
-s.Append("abc");
+s.Reserve(4096)
+s.Append("abc")
 ```
 
 After `Reserve()` on an empty string, the string may have an allocated manager with zero length and non-zero capacity:
@@ -245,9 +245,9 @@ A non-empty string literal is emitted as static read-only character data in `.ro
 The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strview`, `cstring(N)`, or string-helper source.
 
 ```dq
-var s  : str      = "asdf";
-var v  : strview     = "asdf";
-var cs : cstring(31) = "asdf";
+var s  : str      = "asdf"
+var v  : strview     = "asdf"
+var cs : cstring(31) = "asdf"
 ```
 
 These uses can lower to the literal view and do not require zero-terminator scanning.
@@ -268,14 +268,14 @@ The view descriptor may be placed separately from the character data so that it 
 A string literal used as `^char` points directly to the zero-terminated character data:
 
 ```dq
-var pc : ^char = "asdf";  // points to read-only .rodata character data
+var pc : ^char = "asdf"  // points to read-only .rodata character data
 ```
 
 This is valid only when the literal can be represented with `charwidth == 1`. Wider literals require explicit conversion before they can be passed as `^char`.
 
 ```dq
-var pc1 : ^char = "abc";  // OK
-var pc2 : ^char = "€";    // compile error or explicit conversion required
+var pc1 : ^char = "abc"  // OK
+var pc2 : ^char = "€"    // compile error or explicit conversion required
 ```
 
 For wider literals, the compiler chooses the minimum required storage width:
@@ -293,42 +293,42 @@ Literal storage is read-only. Modifying a `str` value that was created from a li
 Empty string literals used as `str` values use the null-manager representation:
 
 ```dq
-var s1 : str = "";
-var s2 : str = '';
+var s1 : str = ""
+var s2 : str = ''
 ```
 
 Empty string literals used as `strview` values use a canonical empty view:
 
 ```dq
-var v : strview = "";
+var v : strview = ""
 ```
 
 As `^char` values, empty string literals point to a static zero byte in `.rodata`:
 
 ```dq
-var pc : ^char = "";  // points to read-only storage containing one zero byte
+var pc : ^char = ""  // points to read-only storage containing one zero byte
 ```
 
 A non-empty literal assigned to `str` may be copied into a normal dynamic string manager immediately, or the runtime may assign from the static literal view.
 
 ```dq
-var s : str = "abc";  // assign from static literal view
-s.Append("def");        // helper receives static literal view, no scan
+var s : str = "abc"  // assign from static literal view
+s.Append("def")        // helper receives static literal view, no scan
 ```
 
 A later optimization may represent string literals as static read-only string managers. Any modification of a read-only/static manager detaches first.
 
 ```dq
-var s : str = "abc";
-s[0] = 'X';  // creates writable storage first if the value references static/read-only storage
+var s : str = "abc"
+s[0] = 'X'  // creates writable storage first if the value references static/read-only storage
 ```
 
 A `char` value can be used as a one-character string source where a string source is accepted:
 
 ```dq
-var s : str = 'a';
-s.Append('b');
-s.Insert(1, 'x');
+var s : str = 'a'
+s.Append('b')
+s.Insert(1, 'x')
 ```
 
 A one-character `char` source may be passed internally as a temporary `strview`/`SDqTextInfo` whose lifetime is limited to the generated helper call.
@@ -338,15 +338,15 @@ A one-character `char` source may be passed internally as a temporary `strview`/
 String indexing is strict. The index must refer to an existing character.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-var c : char;
+var c : char
 
-c = s[0];      // OK, 'a'
-c = s[2];      // OK, 'c'
-c = s[-1];     // runtime bounds error
-c = s[3];      // runtime bounds error
-c = s[$end];   // runtime bounds error
+c = s[0]      // OK, 'a'
+c = s[2]      // OK, 'c'
+c = s[-1]     // runtime bounds error
+c = s[3]      // runtime bounds error
+c = s[$end]   // runtime bounds error
 ```
 
 For a string with length `L`, valid indexes are:
@@ -372,9 +372,9 @@ $end  == 0
 Therefore:
 
 ```dq
-var s : str = "";
-s[$last];  // runtime bounds error
-s[$end];   // runtime bounds error
+var s : str = ""
+s[$last]  // runtime bounds error
+s[$end]   // runtime bounds error
 ```
 
 ---
@@ -384,27 +384,27 @@ s[$end];   // runtime bounds error
 A character of `str` is assignable.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s[0] = 'X';  // "Xbc"
-s[2] = 'Y';  // "XbY"
+s[0] = 'X'  // "Xbc"
+s[2] = 'Y'  // "XbY"
 ```
 
 Character assignment follows strict indexing rules:
 
 ```dq
-s[-1] = 'X';    // runtime bounds error
-s[s.length] = 'X'; // runtime bounds error
-s[$end] = 'X';  // runtime bounds error
+s[-1] = 'X'    // runtime bounds error
+s[s.length] = 'X' // runtime bounds error
+s[$end] = 'X'  // runtime bounds error
 ```
 
 Character assignment may detach, widen, or reallocate the string manager before writing:
 
 ```dq
-var a : str = "abc";
-var b : str = a;
+var a : str = "abc"
+var b : str = a
 
-b[0] = 'X';
+b[0] = 'X'
 
 // a == "abc"
 // b == "Xbc"
@@ -413,8 +413,8 @@ b[0] = 'X';
 Writing a wider character may widen storage:
 
 ```dq
-var s : str = "abc";
-s[1] = char(0x1F600);  // may widen to charwidth = 4
+var s : str = "abc"
+s[1] = char(0x1F600)  // may widen to charwidth = 4
 ```
 
 ---
@@ -426,10 +426,10 @@ Normal `str` slicing returns a new `str` value.
 DQ also has public read-only `strview` values. A string slice expression may produce a `strview` only when the target/context explicitly requires `strview`.
 
 ```dq
-var s : str = "abcdef";
+var s : str = "abcdef"
 
-var x : str  = s[1:4];   // copies: "bcd"
-var v : strview = s[1:4];   // view: no copy, read-only, non-owning
+var x : str  = s[1:4]   // copies: "bcd"
+var v : strview = s[1:4]   // view: no copy, read-only, non-owning
 ```
 
 Slicing syntax follows the array slicing syntax:
@@ -451,7 +451,7 @@ s[2::]    // from index 2 to the last character, inclusive form
 Slicing is forgiving. Invalid slice bounds are clamped to the actual string bounds.
 
 ```dq
-var s : str = "abcde";
+var s : str = "abcde"
 
 s[-5:]      // "abcde"
 s[:100]     // "abcde"
@@ -494,8 +494,8 @@ The conversion must avoid integer overflow in the compiler/runtime implementatio
 A `strview` slice returns another `strview`, because the receiver is already non-owning:
 
 ```dq
-var v1 : strview = "abcdef";
-var v2 : strview = v1[1:4];  // view of "bcd"
+var v1 : strview = "abcdef"
+var v2 : strview = v1[1:4]  // view of "bcd"
 ```
 
 A slice expression passed directly to a helper or to a parameter of type `strview` may be lowered as a temporary `strview` without creating a dynamic `str`:
@@ -505,10 +505,10 @@ function ParseToken(tok : strview):
   ...
 endfunc
 
-var s : str = "abcdef";
+var s : str = "abcdef"
 
-ParseToken(s[1:4]);  // temporary strview
-s.Append(s[1:4]);    // source is passed as temporary strview, no intermediate str required
+ParseToken(s[1:4])  // temporary strview
+s.Append(s[1:4])    // source is passed as temporary strview, no intermediate str required
 ```
 
 The temporary view is read-only and is valid only for the duration guaranteed by the call site.
@@ -518,14 +518,14 @@ The temporary view is read-only and is valid only for the duration guaranteed by
 Whole string assignment shares the string manager:
 
 ```dq
-var a : str = "abc";
-var b : str = a;
+var a : str = "abc"
+var b : str = a
 ```
 
 Modification detaches if needed:
 
 ```dq
-b.Append("def");
+b.Append("def")
 
 // a == "abc"
 // b == "abcdef"
@@ -534,24 +534,24 @@ b.Append("def");
 Assignment from a string source creates or shares a string value depending on the source:
 
 ```dq
-var s1 : str = "abc";     // str from literal
-var s2 : str = s1;        // shares manager
-var s3 : str = s1[1:3];   // new str "bc"
+var s1 : str = "abc"     // str from literal
+var s2 : str = s1        // shares manager
+var s3 : str = s1[1:3]   // new str "bc"
 ```
 
 Assignment to the empty string releases the current manager reference and returns to the canonical null-manager empty string:
 
 ```dq
-var s : str = "abc";
-s = "";  // release manager reference, s becomes null-manager empty
+var s : str = "abc"
+s = ""  // release manager reference, s becomes null-manager empty
 ```
 
 This is different from `Clear()`:
 
 ```dq
-s.Clear();      // length = 0, keep capacity if uniquely owned
-s.Clear(true);  // release storage, return to null-manager empty
-s = "";         // release manager reference, return to null-manager empty
+s.Clear()      // length = 0, keep capacity if uniquely owned
+s.Clear(true)  // release storage, return to null-manager empty
+s = ""         // release manager reference, return to null-manager empty
 ```
 
 ---
@@ -561,45 +561,45 @@ s = "";         // release manager reference, return to null-manager empty
 Dynamic strings support mutating operations similar to dynamic arrays, but with copy-on-write semantics. Source arguments are normally lowered to read-only `strview` values.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
 // add characters
-s.Append('d');        // "abcd"
-s.Append("ef");      // "abcdef"
-s.Append(strview_value); // source view is copied into s
-s.Prepend('X');      // "Xabcdef"
-s.Prepend("--");     // "--Xabcdef"
-s.Insert(1, 'Y');    // insert before normalized index 1
-s.Insert(2, "zz");   // insert string source
+s.Append('d')        // "abcd"
+s.Append("ef")      // "abcdef"
+s.Append(strview_value) // source view is copied into s
+s.Prepend('X')      // "Xabcdef"
+s.Prepend("--")     // "--Xabcdef"
+s.Insert(1, 'Y')    // insert before normalized index 1
+s.Insert(2, "zz")   // insert string source
 
 // remove characters
-s.Delete(0, 1);       // delete first character
-s.Delete(1, 2);       // delete two characters starting at index 1
+s.Delete(0, 1)       // delete first character
+s.Delete(1, 2)       // delete two characters starting at index 1
 
-var tail  : str = s.Pop(5);      // remove and return up to 5 trailing characters
-var head  : str = s.PopFirst(5); // remove and return up to 5 leading characters
-var last  : char = s.Pop();         // optional shorthand: remove and return last character
-var first : char = s.PopFirst();    // optional shorthand: remove and return first character
+var tail  : str = s.Pop(5)      // remove and return up to 5 trailing characters
+var head  : str = s.PopFirst(5) // remove and return up to 5 leading characters
+var last  : char = s.Pop()         // optional shorthand: remove and return last character
+var first : char = s.PopFirst()    // optional shorthand: remove and return first character
 
 // common non-mutating helpers
-var t  : str = s.Trim();
-var lp : str = s.LPad(10, ' ');
-var rp : str = s.RPad(10, '.');
-var ix : int    = s.IndexOf("bc");
+var t  : str = s.Trim()
+var lp : str = s.LPad(10, ' ')
+var rp : str = s.RPad(10, '.')
+var ix : int    = s.IndexOf("bc")
 
 // size and storage management
-s.SetLength(10, ' '); // resize, growing with explicit fill character
-s.Truncate(5);        // equivalent to reducing length to at most 5
-s.Reserve(4096);      // ensure capacity >= 4096 characters
-s.Compact();          // capacity = length, may narrow charwidth
-s.Clear();            // set length to 0, keep capacity when possible
-s.Clear(true);        // release storage and become null-manager empty
+s.SetLength(10, ' ') // resize, growing with explicit fill character
+s.Truncate(5)        // equivalent to reducing length to at most 5
+s.Reserve(4096)      // ensure capacity >= 4096 characters
+s.Compact()          // capacity = length, may narrow charwidth
+s.Clear()            // set length to 0, keep capacity when possible
+s.Clear(true)        // release storage and become null-manager empty
 
 // explicit copy
-var copy : str = s.Clone();
+var copy : str = s.Clone()
 
-var i : int = s.length;
-var c : int = s.capacity;
+var i : int = s.length
+var c : int = s.capacity
 ```
 
 All mutating operations first ensure unique writable storage.
@@ -625,19 +625,19 @@ perform the operation
 `Append(source)` adds characters to the end of the string.
 
 ```dq
-var s : str = "ab";
+var s : str = "ab"
 
-s.Append('c');     // "abc"
-s.Append("def");  // "abcdef"
+s.Append('c')     // "abc"
+s.Append("def")  // "abcdef"
 ```
 
 `Prepend(source)` adds characters to the beginning of the string.
 
 ```dq
-var s : str = "cd";
+var s : str = "cd"
 
-s.Prepend('b');    // "bcd"
-s.Prepend("a");   // "abcd"
+s.Prepend('b')    // "bcd"
+s.Prepend("a")   // "abcd"
 ```
 
 ### Insert and Delete Index Normalization
@@ -651,12 +651,12 @@ index = clamp(index, 0, length)
 `Insert(index, source)` inserts before the normalized index. Inserting before index `0` prepends. Inserting before index `length` appends.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.Insert(0, 'X');      // "Xabc"
-s.Insert(100, 'Y');    // "abcY"
-s.Insert(-5, 'Z');     // "Zabc"
-s.Insert($end, '!');   // "abc!"
+s.Insert(0, 'X')      // "Xabc"
+s.Insert(100, 'Y')    // "abcY"
+s.Insert(-5, 'Z')     // "Zabc"
+s.Insert($end, '!')   // "abc!"
 ```
 
 `Delete(index, count = 1)` removes characters from the normalized index. If `count <= 0`, the operation does nothing. If the requested range extends past the end of the string, only the existing tail characters are deleted.
@@ -670,13 +670,13 @@ actual_count = min(count, length - index)
 Examples:
 
 ```dq
-var s : str = "abcde";
+var s : str = "abcde"
 
-s.Delete(1);       // "acde"
-s.Delete(100);     // unchanged
-s.Delete(1, 100);  // "a"
-s.Delete(-5, 1);   // "bcde"
-s.Delete(2, 0);    // unchanged
+s.Delete(1)       // "acde"
+s.Delete(100)     // unchanged
+s.Delete(1, 100)  // "a"
+s.Delete(-5, 1)   // "bcde"
+s.Delete(2, 0)    // unchanged
 ```
 
 ### SetLength and Truncate
@@ -686,11 +686,11 @@ s.Delete(2, 0);    // unchanged
 Growing requires an explicit fill character:
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.SetLength(5, ' ');  // "abc  "
-s.SetLength(2, ' ');  // "ab"
-s.SetLength(0, ' ');  // ""
+s.SetLength(5, ' ')  // "abc  "
+s.SetLength(2, ' ')  // "ab"
+s.SetLength(0, ' ')  // ""
 ```
 
 There is intentionally no hidden default fill character.
@@ -698,10 +698,10 @@ There is intentionally no hidden default fill character.
 `Truncate(new_length)` only shrinks the string. If `new_length >= length`, it does nothing.
 
 ```dq
-var s : str = "abcdef";
+var s : str = "abcdef"
 
-s.Truncate(3);   // "abc"
-s.Truncate(100); // unchanged
+s.Truncate(3)   // "abc"
+s.Truncate(100) // unchanged
 ```
 
 ### Capacity Rules
@@ -709,13 +709,13 @@ s.Truncate(100); // unchanged
 `Reserve(n)` ensures that capacity is at least `n` characters. It does not promise exact capacity.
 
 ```dq
-s.Reserve(1000);  // capacity >= 1000
+s.Reserve(1000)  // capacity >= 1000
 ```
 
 `Compact()` sets capacity to the current length and may narrow the character storage width.
 
 ```dq
-s.Compact();      // capacity = length, charwidth may become smaller
+s.Compact()      // capacity = length, charwidth may become smaller
 ```
 
 `Clear()` sets length to zero and keeps the current capacity when the manager is uniquely owned.
@@ -727,10 +727,10 @@ s.Compact();      // capacity = length, charwidth may become smaller
 `Clone()` returns an independent dynamic string with copied characters.
 
 ```dq
-var a : str = "abc";
-var b : str = a.Clone();
+var a : str = "abc"
+var b : str = a.Clone()
 
-b[0] = 'X';
+b[0] = 'X'
 
 // a == "abc"
 // b == "Xbc"
@@ -754,10 +754,10 @@ Rules:
 The `count` argument is measured in characters, not bytes.
 
 ```dq
-var s : str = "abcdef";
+var s : str = "abcdef"
 
-var tail : str = s.Pop(2);       // tail = "ef", s = "abcd"
-var head : str = s.PopFirst(3);  // head = "abc", s = "d"
+var tail : str = s.Pop(2)       // tail = "ef", s = "abcd"
+var head : str = s.PopFirst(3)  // head = "abc", s = "d"
 ```
 
 Counted pop operations are clamped and do not produce index-bounds runtime errors:
@@ -770,11 +770,11 @@ actual_count = min(count, length)
 Therefore:
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.Pop(0);       // returns "", s unchanged
-s.Pop(-5);      // returns "", s unchanged
-s.Pop(100);     // returns "abc", s becomes ""
+s.Pop(0)       // returns "", s unchanged
+s.Pop(-5)      // returns "", s unchanged
+s.Pop(100)     // returns "abc", s becomes ""
 ```
 
 The returned substring preserves the original character order.
@@ -782,10 +782,10 @@ The returned substring preserves the original character order.
 The no-argument forms may be supported as shorthand single-character operations:
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-var last  : char = s.Pop();       // last = 'c', s = "ab"
-var first : char = s.PopFirst();  // first = 'a', s = "b"
+var last  : char = s.Pop()       // last = 'c', s = "ab"
+var first : char = s.PopFirst()  // first = 'a', s = "b"
 ```
 
 Calling the no-argument `Pop()` or `PopFirst()` on an empty string is a runtime error, because there is no character to return.
@@ -801,8 +801,8 @@ DQ strings should support a small standard helper set inspired by common JavaScr
 These helpers are non-mutating unless explicitly documented otherwise. They return new `str` values or scalar results. To modify a variable, assign the result back to it:
 
 ```dq
-var s : str = "  abc  ";
-s = s.Trim();  // "abc"
+var s : str = "  abc  "
+s = s.Trim()  // "abc"
 ```
 
 The methods are valid on `str` and `strview`. Read-only helper methods may also be valid on `cstring(N)` and `^char` sources where the receiver can be converted to a `strview`.
@@ -816,11 +816,11 @@ The methods are valid on `str` and `strview`. Read-only helper methods may also 
 `RTrim()` removes only trailing whitespace.
 
 ```dq
-var s : str = "  abc  ";
+var s : str = "  abc  "
 
-s.Trim();   // "abc"
-s.LTrim();  // "abc  "
-s.RTrim();  // "  abc"
+s.Trim()   // "abc"
+s.LTrim()  // "abc  "
+s.RTrim()  // "  abc"
 ```
 
 The default whitespace set is the ASCII whitespace set:
@@ -832,11 +832,11 @@ The default whitespace set is the ASCII whitespace set:
 Overloads with an explicit trim-character set may be supported:
 
 ```dq
-var s : str = "---abc---";
+var s : str = "---abc---"
 
-s.Trim("-");   // "abc"
-s.LTrim("-");  // "abc---"
-s.RTrim("-");  // "---abc"
+s.Trim("-")   // "abc"
+s.LTrim("-")  // "abc---"
+s.RTrim("-")  // "---abc"
 ```
 
 The explicit trim set is interpreted as a set of characters, not as a substring pattern.
@@ -848,11 +848,11 @@ The explicit trim set is interpreted as a set of characters, not as a substring 
 `RPad(target_length, fill)` pads the right side of the string until the result reaches `target_length` characters.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.LPad(5, ' ');   // "  abc"
-s.RPad(5, '.');   // "abc.."
-s.LPad(2, ' ');   // "abc", already long enough
+s.LPad(5, ' ')   // "  abc"
+s.RPad(5, '.')   // "abc.."
+s.LPad(2, ' ')   // "abc", already long enough
 ```
 
 The target length is measured in characters.
@@ -860,10 +860,10 @@ The target length is measured in characters.
 The fill source may be a `char` or a string source:
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.LPad(8, "01");  // "01010abc"
-s.RPad(8, "01");  // "abc01010"
+s.LPad(8, "01")  // "01010abc"
+s.RPad(8, "01")  // "abc01010"
 ```
 
 If the fill source is longer than the required padding, it is repeated and then truncated to the exact required padding length.
@@ -875,12 +875,12 @@ An empty fill source is a runtime error, because padding cannot make progress.
 `IndexOf(needle, start = 0)` returns the index of the first occurrence of `needle`, or `-1` when not found.
 
 ```dq
-var s : str = "abcdefabc";
+var s : str = "abcdefabc"
 
-s.IndexOf('c');       // 2
-s.IndexOf("abc");    // 0
-s.IndexOf("abc", 1); // 6
-s.IndexOf("xyz");    // -1
+s.IndexOf('c')       // 2
+s.IndexOf("abc")    // 0
+s.IndexOf("abc", 1) // 6
+s.IndexOf("xyz")    // -1
 ```
 
 The `start` argument is measured in characters and is clamped to `0 .. length`.
@@ -888,20 +888,20 @@ The `start` argument is measured in characters and is clamped to `0 .. length`.
 An empty search string is found at the normalized start position:
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.IndexOf("", 0);    // 0
-s.IndexOf("", 2);    // 2
-s.IndexOf("", 100);  // 3
+s.IndexOf("", 0)    // 0
+s.IndexOf("", 2)    // 2
+s.IndexOf("", 100)  // 3
 ```
 
 Additional search helpers are recommended as library-level operations:
 
 ```dq
-s.LastIndexOf(needle);       // last occurrence, or -1
-s.Contains(needle);          // bool
-s.StartsWith(prefix);        // bool
-s.EndsWith(suffix);          // bool
+s.LastIndexOf(needle)       // last occurrence, or -1
+s.Contains(needle)          // bool
+s.StartsWith(prefix)        // bool
+s.EndsWith(suffix)          // bool
 ```
 
 All search indexes and lengths are character-based.
@@ -913,12 +913,12 @@ All search indexes and lengths are character-based.
 String operations must correctly handle overlapping source and destination ranges.
 
 ```dq
-var s : str = "abc";
+var s : str = "abc"
 
-s.Append(s);       // "abcabc"
-s.Append(s[1:]);   // valid
-s.Prepend(s);      // "abcabc"
-s.Insert(1, s);    // valid
+s.Append(s)       // "abcabc"
+s.Append(s[1:])   // valid
+s.Prepend(s)      // "abcabc"
+s.Insert(1, s)    // valid
 ```
 
 A `strview` source expression may reference the same manager as the destination.
@@ -941,9 +941,9 @@ For `Insert()` where the source range overlaps the insertion point, the runtime 
 Example:
 
 ```dq
-var s : str = "abcd";
+var s : str = "abcd"
 
-s.Insert(2, s[1:3]);  // "abbccd"
+s.Insert(2, s[1:3])  // "abbccd"
 ```
 
 ---
@@ -957,7 +957,7 @@ The `N` in `cstring(N)` is the maximum logical text length, not the raw storage 
 For a raw C buffer with `maxlen` bytes, the matching DQ type is `cstring(maxlen - 1)`, because one byte is reserved for the zero terminator.
 
 ```dq
-var cs : cstring(31);
+var cs : cstring(31)
 ```
 
 This means:
@@ -977,7 +977,7 @@ char == uint8
 A `cstring(N)` always maintains zero termination.
 
 ```dq
-var cs : cstring(5) = "abc";
+var cs : cstring(5) = "abc"
 ```
 
 Possible storage:
@@ -999,24 +999,24 @@ Unsized `cstring` may be used as a function parameter and may also be used as a 
 
 ```dq
 function Process(cs : cstring):
-  cs.Append("x");
+  cs.Append("x")
 endfunc
 
 function Example():
-  var storage : cstring(31);
-  var alias   : cstring = storage;  // alias/fat pointer, no new storage
+  var storage : cstring(31)
+  var alias   : cstring = storage  // alias/fat pointer, no new storage
 
-  alias.Append("abc");             // modifies storage
+  alias.Append("abc")             // modifies storage
 endfunc
 ```
 
 A standalone unsized `cstring` declaration has no storage and is invalid:
 
 ```dq
-var a : cstring(31);     // OK: creates storage
-var b : cstring = a;     // OK: alias to existing storage
-var c : cstring;         // compile error: no target storage
-var d : cstring = "abc"; // compile error: no writable target storage
+var a : cstring(31)     // OK: creates storage
+var b : cstring = a     // OK: alias to existing storage
+var c : cstring         // compile error: no target storage
+var d : cstring = "abc" // compile error: no writable target storage
 ```
 
 Assignment between unsized `cstring` values creates another alias to the same descriptor/buffer. It does not copy text and does not create an independent fixed buffer.
@@ -1027,9 +1027,9 @@ The ABI descriptor for unsized `cstring` and for internal string-source views is
 
 ```dq
 struct SDqTextInfo:
-  dataptr : pointer;
-  charlen : uint32;
-  info    : uint32;  // maxlen + width/encoding + flags
+  dataptr : pointer
+  charlen : uint32
+  info    : uint32  // maxlen + width/encoding + flags
 endstruct
 ```
 
@@ -1067,7 +1067,7 @@ Mutating helpers that change the logical length update `charlen`, preserve zero 
 ### cstring Properties
 
 ```dq
-var cs : cstring(31) = "abc";
+var cs : cstring(31) = "abc"
 
 cs.length       // 3
 cs.maxlength    // 31
@@ -1088,11 +1088,11 @@ A `cstring(N)` value is still only fixed inline storage in the visible data layo
 
 ```dq
 function Example():
-  var cs : cstring(31);  // initialized to empty string
+  var cs : cstring(31)  // initialized to empty string
 
-  cs.Append("one");
-  cs.Append(" two");
-  cs.Append(" three");
+  cs.Append("one")
+  cs.Append(" two")
+  cs.Append(" three")
 endfunc
 ```
 
@@ -1119,12 +1119,12 @@ For `cstring(N)` fields and array elements, the compiler normally creates a temp
 
 ```dq
 struct STestRec:
-  id   : int32;
-  name : cstring(31);
+  id   : int32
+  name : cstring(31)
 endstruct
 
 function ProcessName(ref tr : STestRec):
-  tr.name.Append(" two");
+  tr.name.Append(" two")
 endfunc
 ```
 
@@ -1142,8 +1142,8 @@ CStrAppend(ref tmp, " two")
 If a standalone local `cstring(N)` buffer is passed to unknown external C code through a raw `^char` pointer, the compiler must assume that the external code may modify the contents and therefore clear `LENGTH_VALID` in the hidden descriptor.
 
 ```dq
-SomeCFunction(&cs[0]);  // may modify the bytes
-cs.Append("x");        // refresh length first if LENGTH_VALID was cleared
+SomeCFunction(&cs[0])  // may modify the bytes
+cs.Append("x")        // refresh length first if LENGTH_VALID was cleared
 ```
 
 External functions may later be annotated as read-only or length-preserving to avoid invalidation.
@@ -1153,9 +1153,9 @@ External functions may later be annotated as read-only or length-preserving to a
 Assignment copies source text into the fixed storage, silently truncates to `maxlength`, and always writes the zero terminator.
 
 ```dq
-var cs : cstring(5);
+var cs : cstring(5)
 
-cs = "abcdefghi";
+cs = "abcdefghi"
 
 // logical content: "abcde"
 // storage bytes:   'a' 'b' 'c' 'd' 'e' 0
@@ -1164,20 +1164,20 @@ cs = "abcdefghi";
 Assignment from `^char` copies until the source zero terminator or until `maxlength` characters have been copied.
 
 ```dq
-var pc : ^char;
-var cs : cstring(31);
+var pc : ^char
+var cs : cstring(31)
 
-pc = "asdf";
-cs = pc;  // copies from zero-terminated char storage
+pc = "asdf"
+cs = pc  // copies from zero-terminated char storage
 ```
 
 Assignment from `str` copies character values into `char` storage. Characters that do not fit into `char` are a runtime conversion error in this draft. Length overflow is silently truncated.
 
 ```dq
-var s  : str = "abcdef";
-var cs : cstring(3);
+var s  : str = "abcdef"
+var cs : cstring(3)
 
-cs = s;  // "abc"
+cs = s  // "abc"
 ```
 
 A future library may provide explicit lossy conversion helpers if desired.
@@ -1189,7 +1189,7 @@ A future library may provide explicit lossy conversion helpers if desired.
 The hidden zero terminator is not part of the logical string and is not reachable through normal indexing.
 
 ```dq
-var cs : cstring(31) = "abc";
+var cs : cstring(31) = "abc"
 
 cs[0]       // OK, 'a'
 cs[2]       // OK, 'c'
@@ -1203,9 +1203,9 @@ cs[$end]    // runtime bounds error
 `cs[31]` is not valid merely because the storage has 32 bytes. Indexing is based on logical length, not raw storage size.
 
 ```dq
-var cs : cstring(31) = "abc";
+var cs : cstring(31) = "abc"
 
-cs[31];  // runtime bounds error
+cs[31]  // runtime bounds error
 ```
 
 When indexing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
@@ -1215,25 +1215,25 @@ When indexing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`
 A `cstring(N)` or unsized `cstring` character is assignable inside the current logical length.
 
 ```dq
-var cs : cstring(31) = "abc";
+var cs : cstring(31) = "abc"
 
-cs[0] = 'X';  // "Xbc"
-cs[2] = 'Y';  // "XbY"
+cs[0] = 'X'  // "Xbc"
+cs[2] = 'Y'  // "XbY"
 ```
 
 Character assignment follows strict indexing rules:
 
 ```dq
-cs[3] = 'Z';     // runtime bounds error
-cs[$end] = 'Z';  // runtime bounds error
+cs[3] = 'Z'     // runtime bounds error
+cs[$end] = 'Z'  // runtime bounds error
 ```
 
 Assigning a zero char terminates the string at that position:
 
 ```dq
-var cs : cstring(31) = "abcdef";
+var cs : cstring(31) = "abcdef"
 
-cs[3] = char(0);
+cs[3] = char(0)
 
 // logical content: "abc"
 // length == 3
@@ -1248,12 +1248,12 @@ A character assigned to `cstring(N)` or unsized `cstring` must fit into `char`. 
 A `cstring(N)` slice expression returns a new `str` by default. In an explicit `strview` context it may return a read-only non-owning view into the fixed cstring storage.
 
 ```dq
-var cs : cstring(31) = "abcdef";
+var cs : cstring(31) = "abcdef"
 
-var s1 : str  = cs[1:4];       // copies "bcd"
-var s2 : str  = cs[:];         // copies "abcdef"
-var s3 : str  = cs[4:100];     // copies "ef"
-var v1 : strview = cs[1:4];    // view of "bcd"
+var s1 : str  = cs[1:4]       // copies "bcd"
+var s2 : str  = cs[:]         // copies "abcdef"
+var s3 : str  = cs[4:100]     // copies "ef"
+var v1 : strview = cs[1:4]    // view of "bcd"
 ```
 
 Slice bounds are clamped exactly like string slice bounds:
@@ -1274,30 +1274,30 @@ When slicing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`,
 Growth operations silently truncate to `maxlength` and always maintain zero termination.
 
 ```dq
-var cs : cstring(5) = "abc";
+var cs : cstring(5) = "abc"
 
-cs.Append('d');      // "abcd"
-cs.Append("efghi"); // "abcde"
-cs.Prepend('X');     // "Xabcd", tail truncated if needed
-cs.Insert(1, 'Y');   // insert before index 1, tail truncated if needed
-cs.Delete(1, 2);     // delete two logical characters
-cs.Clear();          // empty cstring, storage[0] = 0
+cs.Append('d')      // "abcd"
+cs.Append("efghi") // "abcde"
+cs.Prepend('X')     // "Xabcd", tail truncated if needed
+cs.Insert(1, 'Y')   // insert before index 1, tail truncated if needed
+cs.Delete(1, 2)     // delete two logical characters
+cs.Clear()          // empty cstring, storage[0] = 0
 ```
 
 Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` and unsized `cstring` through `strview` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
 
 ```dq
-var cs : cstring(8) = "  abc";
+var cs : cstring(8) = "  abc"
 
-cs.Trim();        // returns string "abc"
-cs.IndexOf('b');  // returns 3
+cs.Trim()        // returns string "abc"
+cs.IndexOf('b')  // returns 3
 ```
 
 `Reserve()`, `Compact()`, and dynamic capacity operations are not valid on `cstring(N)` or unsized `cstring`, because their storage size is fixed by the target buffer.
 
 ```dq
-cs.Reserve(100);  // compile error
-cs.Compact();     // compile error
+cs.Reserve(100)  // compile error
+cs.Compact()     // compile error
 ```
 
 ---
@@ -1307,33 +1307,33 @@ cs.Compact();     // compile error
 `^char` is a pointer to zero-terminated 8-bit C-compatible character storage.
 
 ```dq
-var pc : ^char;
-pc = "asdf";
+var pc : ^char
+pc = "asdf"
 ```
 
 Assigning a string literal to `^char` points to static read-only zero-terminated literal character data in `.rodata`. This is valid only for literals with `charwidth == 1`.
 
 ```dq
-var pc : ^char = "asdf";
+var pc : ^char = "asdf"
 ```
 
 Copying from `^char`, or converting `^char` to `strview`, scans until the first zero terminator.
 
 ```dq
-var s  : str;
-var cs : cstring(31);
-var pc : ^char = "asdf";
+var s  : str
+var cs : cstring(31)
+var pc : ^char = "asdf"
 
-s  = pc;  // scans and creates dynamic string "asdf"
-cs = pc;  // scans and copies into fixed cstring storage
-var v : strview = pc;  // scans once to create a view
+s  = pc  // scans and creates dynamic string "asdf"
+cs = pc  // scans and copies into fixed cstring storage
+var v : strview = pc  // scans once to create a view
 ```
 
 Passing a null `^char` where a valid C string is required is a runtime error in this draft.
 
 ```dq
-var pc : ^char = null;
-var s : str = pc;  // runtime error
+var pc : ^char = null
+var s : str = pc  // runtime error
 ```
 
 A future standard library may provide helpers that treat null C-style texts as empty strings if desired.
@@ -1345,8 +1345,8 @@ A future standard library may provide helpers that treat null C-style texts as e
 String equality compares logical character content.
 
 ```dq
-var a : str = "abc";
-var b : str = "abc";
+var a : str = "abc"
+var b : str = "abc"
 
 if a == b:
   // true
@@ -1363,9 +1363,9 @@ s <> ""   // s.length <> 0
 `cstring(N)` and `strview` equality with `str` compares logical content:
 
 ```dq
-var s  : str = "abc";
-var cs : cstring(31) = "abc";
-var v  : strview = "abc";
+var s  : str = "abc"
+var cs : cstring(31) = "abc"
+var v  : strview = "abc"
 
 s == cs  // true
 cs == s  // true
@@ -1376,7 +1376,7 @@ v == s   // true
 Comparison with `^char` may be supported by scanning the zero-terminated C string:
 
 ```dq
-var pc : ^char = "abc";
+var pc : ^char = "abc"
 
 s == pc  // true, if ^char comparison is enabled
 ```
@@ -1391,7 +1391,7 @@ A function parameter of type `str` receives an owning string value. Passing an `
 
 ```dq
 function PrintName(name : str):
-  printf(name);
+  printf(name)
 endfunc
 ```
 
@@ -1399,11 +1399,11 @@ Inside the function, modifying the parameter detaches locally and does not modif
 
 ```dq
 function F(s : str):
-  s.Append("x");  // modifies only local parameter value
+  s.Append("x")  // modifies only local parameter value
 endfunc
 
-var a : str = "abc";
-F(a);
+var a : str = "abc"
+F(a)
 
 // a == "abc"
 ```
@@ -1412,11 +1412,11 @@ To allow a function to modify the caller's string variable, pass it by `ref` or 
 
 ```dq
 function AppendSuffix(s : ref str):
-  s.Append("_suffix");
+  s.Append("_suffix")
 endfunc
 
-var a : str = "abc";
-AppendSuffix(a);
+var a : str = "abc"
+AppendSuffix(a)
 
 // a == "abc_suffix"
 ```
@@ -1428,15 +1428,15 @@ function ParseName(name : strview):
   ...
 endfunc
 
-var s  : str = "Alice";
-var cs : cstring(31) = "Bob";
-var pc : ^char = "Carol";
+var s  : str = "Alice"
+var cs : cstring(31) = "Bob"
+var pc : ^char = "Carol"
 
-ParseName("Alice");  // static literal view, no scan
-ParseName(s);        // view of dynamic string storage
-ParseName(s[1:4]);   // temporary slice view
-ParseName(cs);       // view of fixed cstring storage
-ParseName(pc);       // scans zero-terminated char storage to form a view
+ParseName("Alice")  // static literal view, no scan
+ParseName(s)        // view of dynamic string storage
+ParseName(s[1:4])   // temporary slice view
+ParseName(cs)       // view of fixed cstring storage
+ParseName(pc)       // scans zero-terminated char storage to form a view
 ```
 
 A `strview` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
@@ -1449,11 +1449,11 @@ function ReadText(s : strview):
 endfunc
 
 function EditCBuffer(cs : cstring):
-  cs.Append("x");
+  cs.Append("x")
 endfunc
 
 function CallC(cs : ^char):
-  SomeCFunction(cs);
+  SomeCFunction(cs)
 endfunc
 ```
 
@@ -1461,13 +1461,13 @@ A `cstring` parameter receives a non-owning descriptor. The caller must provide 
 
 ```dq
 function CsProcess(acs : cstring):
-  var cs : cstring = acs;  // alias to the same descriptor/buffer
-  cs.Append(" four");
+  var cs : cstring = acs  // alias to the same descriptor/buffer
+  cs.Append(" four")
 endfunc
 
 function Test():
-  var cs1 : cstring(31) = "one";
-  CsProcess(cs1);          // cs1 becomes "one four"
+  var cs1 : cstring(31) = "one"
+  CsProcess(cs1)          // cs1 becomes "one four"
 endfunc
 ```
 
@@ -1483,9 +1483,9 @@ Both concepts use the same compact ABI descriptor shape, `SDqTextInfo`, but they
 
 ```dq
 struct SDqTextInfo:
-  dataptr : pointer;
-  charlen : uint32;
-  info    : uint32;  // maxlen + width/encoding + flags
+  dataptr : pointer
+  charlen : uint32
+  info    : uint32  // maxlen + width/encoding + flags
 endstruct
 ```
 
@@ -1526,62 +1526,62 @@ v[1:4]      // strview slice expression
 `strview` is strictly read-only.
 
 ```dq
-var v : strview = "abc";
+var v : strview = "abc"
 
-var ch : char = v[0];  // OK
-v[0] = 'X';            // compile error
-v.Append("x");         // compile error
-v.Delete(0);           // compile error
+var ch : char = v[0]  // OK
+v[0] = 'X'            // compile error
+v.Append("x")         // compile error
+v.Delete(0)           // compile error
 ```
 
 An unsized `cstring` is a mutable alias to an existing bounded C-compatible buffer.
 
 ```dq
 function Process(cs : cstring):
-  cs.Append("x");       // OK, modifies the target buffer
+  cs.Append("x")       // OK, modifies the target buffer
 endfunc
 
 function Example():
-  var storage : cstring(31) = "abc";
-  var alias   : cstring = storage;
+  var storage : cstring(31) = "abc"
+  var alias   : cstring = storage
 
-  alias[0] = 'X';        // storage == "Xbc"
+  alias[0] = 'X'        // storage == "Xbc"
 endfunc
 ```
 
 `strview` and unsized `cstring` indexing is strict, like `str` indexing:
 
 ```dq
-var v : strview = "abc";
+var v : strview = "abc"
 
-v[0];      // OK
-v[2];      // OK
-v[3];      // runtime bounds error
-v[$end];   // runtime bounds error
+v[0]      // OK
+v[2]      // OK
+v[3]      // runtime bounds error
+v[$end]   // runtime bounds error
 ```
 
 `strview` slicing is forgiving, like `str` slicing, and returns another `strview`:
 
 ```dq
-var v : strview = "abcdef";
+var v : strview = "abcdef"
 
-v[1:4];    // strview "bcd"
-v[:100];   // strview "abcdef"
-v[100:];   // empty strview
+v[1:4]    // strview "bcd"
+v[:100]   // strview "abcdef"
+v[100:]   // empty strview
 ```
 
 A `strview` can be assigned to `str`, which copies the viewed characters into an owning dynamic string value:
 
 ```dq
-var v : strview = "abc";
-var s : str = v;  // copies "abc" into str value
+var v : strview = "abc"
+var s : str = v  // copies "abc" into str value
 ```
 
 A `str` can be assigned to `strview`, which creates a view of the current `str` storage:
 
 ```dq
-var s : str = "abcdef";
-var v : strview = s;  // non-owning read-only view of s storage
+var s : str = "abcdef"
+var v : strview = s  // non-owning read-only view of s storage
 ```
 
 This has the same lifetime and invalidation dangers as array slices. The view does not keep the source alive and does not increment a dynamic string manager refcount by itself.
@@ -1589,10 +1589,10 @@ This has the same lifetime and invalidation dangers as array slices. The view do
 Danger example:
 
 ```dq
-var s : str = "abcdef";
-var v : strview = s[1:4];
+var s : str = "abcdef"
+var v : strview = s[1:4]
 
-s.Append("...");  // may detach/reallocate/move s storage
+s.Append("...")  // may detach/reallocate/move s storage
 
 // v may now be invalid
 ```
@@ -1614,19 +1614,19 @@ Rules for unsized `cstring`:
 - `cstring` operations must preserve zero termination.
 - `cstring` assignment aliases the same descriptor/buffer; it does not copy text.
 - `cstring` may become invalid when the target storage goes out of scope, is moved, or is otherwise invalidated.
-- A default local `var cs : cstring;` is invalid because there is no target storage.
+- A default local `var cs : cstring` is invalid because there is no target storage.
 
 Recommended compiler diagnostics:
 
 ```dq
 function BadView() -> strview:
-  var cs : cstring(31) = "abc";
-  return cs[:];  // should be compile error or warning: returns view into local storage
+  var cs : cstring(31) = "abc"
+  return cs[:]  // should be compile error or warning: returns view into local storage
 endfunc
 
 function BadCStr() -> cstring:
-  var cs : cstring(31) = "abc";
-  return cs;  // should be compile error or warning: returns cstring alias to local storage
+  var cs : cstring(31) = "abc"
+  return cs  // should be compile error or warning: returns cstring alias to local storage
 endfunc
 ```
 
@@ -1638,19 +1638,19 @@ Dynamic strings use a hidden refcounted heap manager object:
 
 ```dq
 object ODynStrMgr:
-  refcount  : uint;
-  dataptr   : pointer;
-  length    : uint32;  // character count
-  capacity  : uint32;  // character capacity
-  charwidth : uint8;   // 1, 2, or 4 bytes per character
-  flags     : uint8;   // static/read-only/immortal/etc. if needed
+  refcount  : uint
+  dataptr   : pointer
+  length    : uint32  // character count
+  capacity  : uint32  // character capacity
+  charwidth : uint8   // 1, 2, or 4 bytes per character
+  flags     : uint8   // static/read-only/immortal/etc. if needed
 endobj
 ```
 
 The user-visible `str` variable is internally a nullable reference to `ODynStrMgr`:
 
 ```dq
-var s : str;  // internally: manager reference = null
+var s : str  // internally: manager reference = null
 ```
 
 A null manager represents the canonical empty string:
@@ -1670,59 +1670,59 @@ function DqStrSetChar(
   smgr  : ref ^ODynStrMgr,
   index : int,
   ch    : char
-);
+)
 
 function DqStrAssign(
   smgr : ref ^ODynStrMgr,
   src  : refin strview
-);
+)
 
 function DqStrAppend(
   smgr : ref ^ODynStrMgr,
   src  : refin strview
-);
+)
 
 function DqStrInsert(
   smgr  : ref ^ODynStrMgr,
   index : int,
   src   : refin strview
-);
+)
 
 function DqStrDelete(
   smgr  : ref ^ODynStrMgr,
   index : int,
   count : int = 1
-);
+)
 
 function DqStrPop(
   smgr  : ref ^ODynStrMgr,
   count : int
-) -> str;
+) -> str
 
 function DqStrPopChar(
   smgr : ref ^ODynStrMgr
-) -> char;
+) -> char
 
 function DqStrTrim(
   src        : refin strview,
   trim_chars : refin strview
-) -> str;
+) -> str
 
 function DqStrIndexOf(
   src    : refin strview,
   needle : refin strview,
   start  : int = 0
-) -> int;
+) -> int
 
 function DqStrReserve(
   smgr        : ref ^ODynStrMgr,
   mincapacity : uint32
-);
+)
 
 function DqStrClear(
   smgr            : ref ^ODynStrMgr,
   release_storage : bool = false
-);
+)
 ```
 
 Before a write or structural modification, helpers perform writable-storage preparation:
@@ -1759,38 +1759,38 @@ C-string helper functions operate on an unsized `cstring` descriptor. At ABI lev
 ```dq
 function DqCStrRefreshLength(
   cs : ref cstring
-);
+)
 
 function DqCStrAssign(
   cs  : ref cstring,
   src : refin strview
-);
+)
 
 function DqCStrAppend(
   cs  : ref cstring,
   src : refin strview
-);
+)
 
 function DqCStrPrepend(
   cs  : ref cstring,
   src : refin strview
-);
+)
 
 function DqCStrInsert(
   cs    : ref cstring,
   index : int,
   src   : refin strview
-);
+)
 
 function DqCStrDelete(
   cs    : ref cstring,
   index : int,
   count : int = 1
-);
+)
 
 function DqCStrClear(
   cs : ref cstring
-);
+)
 ```
 
 Helpers that need the current logical length first ensure a valid length:
@@ -1880,8 +1880,8 @@ No type-info handler functions are needed for characters.
 32. `cstring(N)` stores at most `N` logical `char` characters and uses `N + 1` bytes of storage.
 33. `cstring(N)` always maintains a hidden zero terminator.
 34. `cstring(N)` is the only form that creates fixed inline C-string storage.
-35. Plain `var cs : cstring;` is invalid because unsized `cstring` has no storage.
-36. A local `var cs : cstring = existing;` is an alias to an existing `cstring(N)` or unsized `cstring` descriptor/buffer.
+35. Plain `var cs : cstring` is invalid because unsized `cstring` has no storage.
+36. A local `var cs : cstring = existing` is an alias to an existing `cstring(N)` or unsized `cstring` descriptor/buffer.
 37. A function parameter `cs : cstring` receives a bounded mutable descriptor; `maxlen` must be valid and `charlen` is valid only with `LENGTH_VALID`.
 38. Assignment to `cstring(N)` silently truncates by length and always zero-terminates.
 39. `cstring(N)` and unsized `cstring` indexing use logical string rules; the hidden terminator is not indexable.

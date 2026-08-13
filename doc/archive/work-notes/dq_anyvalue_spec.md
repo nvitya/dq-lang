@@ -10,8 +10,8 @@ This document specifies the compact runtime type information records used by DQ 
 `anyvalue` is intended for controlled heterogeneous value passing, especially formatting, logging, and database parameter binding:
 
 ```dq
-print('{}, {}\n', [1, 2]);
-DbExec('insert into t(a, b) values (?, ?)', [1, 'text']);
+print('{}, {}\n', [1, 2])
+DbExec('insert into t(a, b) values (?, ?)', [1, 'text'])
 ```
 
 `anyvalue` is **not** a general dynamic object system. The initial supported value set is intentionally restricted.
@@ -23,25 +23,25 @@ DbExec('insert into t(a, b) values (?, ?)', [1, 'text']);
 The RTL defines broad runtime type categories as `uint8` constants:
 
 ```dq
-const DQTK_VOID         : uint8 =  0;
-const DQTK_INT          : uint8 =  1;
-const DQTK_FLOAT        : uint8 =  2;
-const DQTK_BOOL         : uint8 =  3;
-const DQTK_POINTER      : uint8 =  4;
-const DQTK_ENUM         : uint8 =  5;
-const DQTK_CHAR         : uint8 =  6;
-const DQTK_CSTRING      : uint8 =  8;
-const DQTK_STRVIEW      : uint8 =  9;
-const DQTK_DYNSTR       : uint8 = 10;
-const DQTK_ANYVALUE     : uint8 = 15;
-const DQTK_STRUCT       : uint8 = 16;
-const DQTK_OBJECT       : uint8 = 17;
-const DQTK_ARRAY        : uint8 = 20;
-const DQTK_ARRAY_SLICE  : uint8 = 21;
-const DQTK_DYN_ARRAY    : uint8 = 22;
-const DQTK_FUNCTION     : uint8 = 28;
-const DQTK_FUNCREF      : uint8 = 29;
-const DQTK_ALIAS        : uint8 = 31;
+const DQTK_VOID         : uint8 =  0
+const DQTK_INT          : uint8 =  1
+const DQTK_FLOAT        : uint8 =  2
+const DQTK_BOOL         : uint8 =  3
+const DQTK_POINTER      : uint8 =  4
+const DQTK_ENUM         : uint8 =  5
+const DQTK_CHAR         : uint8 =  6
+const DQTK_CSTRING      : uint8 =  8
+const DQTK_STRVIEW      : uint8 =  9
+const DQTK_DYNSTR       : uint8 = 10
+const DQTK_ANYVALUE     : uint8 = 15
+const DQTK_STRUCT       : uint8 = 16
+const DQTK_OBJECT       : uint8 = 17
+const DQTK_ARRAY        : uint8 = 20
+const DQTK_ARRAY_SLICE  : uint8 = 21
+const DQTK_DYN_ARRAY    : uint8 = 22
+const DQTK_FUNCTION     : uint8 = 28
+const DQTK_FUNCREF      : uint8 = 29
+const DQTK_ALIAS        : uint8 = 31
 ```
 
 The `kind` value describes the broad runtime category. Exact type identity may still be represented elsewhere by the address of an `SDqTypeInfo` record, but `anyvalue` v1 stores a compact inline type descriptor instead of a full `SDqTypeInfo` pointer.
@@ -55,7 +55,7 @@ Subtypes are interpreted according to `kind`.
 The first required subtype is the signed-integer marker:
 
 ```dq
-const DQSUBT_INT_SIGNED : byte = 1;
+const DQSUBT_INT_SIGNED : byte = 1
 ```
 
 For `DQTK_INT`:
@@ -80,14 +80,14 @@ The exact subtype encoding may be extended later for narrower integer widths, `c
 
 ```dq
 struct SDqTypeInfo:
-  storagesize  : uint32;   // array stride, including padding
-  flags        : uint16;   // copy/destroy/init/move properties
-  kind         : uint8;    // one of the DQTK_xxx constants
-  subtype      : uint8;    // kind-specific type addition
-  init_func    : pointer;  // reserved for managed type handling
-  destroy_func : pointer;  // reserved for managed type handling
-  copy_func    : pointer;  // reserved for managed type handling
-  move_func    : pointer;  // reserved for managed type handling
+  storagesize  : uint32   // array stride, including padding
+  flags        : uint16   // copy/destroy/init/move properties
+  kind         : uint8    // one of the DQTK_xxx constants
+  subtype      : uint8    // kind-specific type addition
+  init_func    : pointer  // reserved for managed type handling
+  destroy_func : pointer  // reserved for managed type handling
+  copy_func    : pointer  // reserved for managed type handling
+  move_func    : pointer  // reserved for managed type handling
 endstruct
 ```
 
@@ -119,8 +119,8 @@ The function pointers are nullable for trivial types. For managed types, they po
 
 ```dq
 struct SArraySliceDesc:
-  dataptr : pointer;
-  length  : uint;
+  dataptr : pointer
+  length  : uint
 endstruct
 ```
 
@@ -136,14 +136,14 @@ For `[]anyvalue`, `dataptr` points to the first `SDqAnyValue` element and `lengt
 
 ```dq
 struct SDqAnyValue:
-  data     : [16]byte;  // inline scalar bits or a text descriptor
-  kind     : byte;      // one of the DQTK_xxx values
-  subtype  : byte;      // kind-specific subtype
-  datasize : byte;      // byte size of the stored scalar/descriptor when needed
+  data     : [16]byte  // inline scalar bits or a text descriptor
+  kind     : byte      // one of the DQTK_xxx values
+  subtype  : byte      // kind-specific subtype
+  datasize : byte      // byte size of the stored scalar/descriptor when needed
   #if 4 == @def.PTRSIZE
-    _pad   : [1]byte;
+    _pad   : [1]byte
   #else
-    _pad   : [5]byte;
+    _pad   : [5]byte
   #endif
 endstruct
 ```
@@ -252,16 +252,16 @@ Database null is represented as a special `anyvalue` value. It is not the same t
 The public API is:
 
 ```dq
-function AnyValIsNull(v : ref SDqAnyValue) -> bool;
-function AnyValSetNull(v : ref SDqAnyValue);
+function AnyValIsNull(v : ref SDqAnyValue) -> bool
+function AnyValSetNull(v : ref SDqAnyValue)
 ```
 
 User-level method form:
 
 ```dq
-var av : anyvalue;
+var av : anyvalue
 
-av.SetNull();
+av.SetNull()
 
 if av.IsNull():
   // handle SQL/database NULL
@@ -300,9 +300,9 @@ Destroying an `anyvalue` destroys the contained value according to its contained
 The RTL lifetime helper ABI is:
 
 ```dq
-function AnyValDestroy(v : ref SDqAnyValue);
-function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue);
-function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue);
+function AnyValDestroy(v : ref SDqAnyValue)
+function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue)
+function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue)
 ```
 
 `AnyValDestroy()` releases the contained dynamic string when `kind == DQTK_DYNSTR` and leaves the value as `DQTK_VOID`.
@@ -341,15 +341,15 @@ Predicate functions named `IsXxx` test the stored category. They do not mean tha
 ### 12.1 Null
 
 ```dq
-function AnyValIsNull(v : ref SDqAnyValue) -> bool;
-function AnyValSetNull(v : ref SDqAnyValue);
+function AnyValIsNull(v : ref SDqAnyValue) -> bool
+function AnyValSetNull(v : ref SDqAnyValue)
 ```
 
 Method form:
 
 ```dq
-av.IsNull();
-av.SetNull();
+av.IsNull()
+av.SetNull()
 ```
 
 `AnyValSetNull()` sets a database null value.
@@ -357,13 +357,13 @@ av.SetNull();
 ### 12.2 Number category
 
 ```dq
-function AnyValIsNumber(v : ref SDqAnyValue) -> bool;
+function AnyValIsNumber(v : ref SDqAnyValue) -> bool
 ```
 
 Method form:
 
 ```dq
-av.IsNumber();
+av.IsNumber()
 ```
 
 `AnyValIsNumber()` returns `true` for stored integer and floating-point values.
@@ -371,27 +371,27 @@ av.IsNumber();
 ### 12.3 Integer
 
 ```dq
-function AnyValIsInt(v : ref SDqAnyValue) -> bool;
-function AnyValIsSInt(v : ref SDqAnyValue) -> bool;
-function AnyValIsUint(v : ref SDqAnyValue) -> bool;
-function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int;
-function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint;
-function AnyValSetInt(v : ref SDqAnyValue, value : int);
-function AnyValSetUInt(v : ref SDqAnyValue, value : uint);
+function AnyValIsInt(v : ref SDqAnyValue) -> bool
+function AnyValIsSInt(v : ref SDqAnyValue) -> bool
+function AnyValIsUint(v : ref SDqAnyValue) -> bool
+function AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int
+function AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint
+function AnyValSetInt(v : ref SDqAnyValue, value : int)
+function AnyValSetUInt(v : ref SDqAnyValue, value : uint)
 ```
 
 Method form:
 
 ```dq
-av.IsInt();
-av.IsSInt();
-av.IsUint();
+av.IsInt()
+av.IsSInt()
+av.IsUint()
 
-var i : int  = av.AsInt(-1);
-var u : uint = av.AsUint(0);
+var i : int  = av.AsInt(-1)
+var u : uint = av.AsUint(0)
 
-av.SetInt(-123);
-av.SetUInt(123);
+av.SetInt(-123)
+av.SetUInt(123)
 ```
 
 `AnyValIsInt()` tests whether the stored value is integer-kind.
@@ -409,19 +409,19 @@ If a numeric conversion cannot be represented by the result type, the default va
 ### 12.4 Boolean
 
 ```dq
-function AnyValIsBool(v : ref SDqAnyValue) -> bool;
-function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool;
-function AnyValSetBool(v : ref SDqAnyValue, value : bool);
+function AnyValIsBool(v : ref SDqAnyValue) -> bool
+function AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool
+function AnyValSetBool(v : ref SDqAnyValue, value : bool)
 ```
 
 Method form:
 
 ```dq
-av.IsBool();
+av.IsBool()
 
-var b : bool = av.AsBool(false);
+var b : bool = av.AsBool(false)
 
-av.SetBool(true);
+av.SetBool(true)
 ```
 
 `AnyValAsBool()` accepts stored boolean values. Other stored kinds return `defval`.
@@ -429,31 +429,31 @@ av.SetBool(true);
 ### 12.5 Floating point
 
 ```dq
-function AnyValIsFloat(v : ref SDqAnyValue) -> bool;
-function AnyValIsFloat32(v : ref SDqAnyValue) -> bool;
-function AnyValIsFloat64(v : ref SDqAnyValue) -> bool;
-function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float;
-function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32;
-function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64;
-function AnyValSetFloat(v : ref SDqAnyValue, value : float);
-function AnyValSetFloat32(v : ref SDqAnyValue, value : float32);
-function AnyValSetFloat64(v : ref SDqAnyValue, value : float64);
+function AnyValIsFloat(v : ref SDqAnyValue) -> bool
+function AnyValIsFloat32(v : ref SDqAnyValue) -> bool
+function AnyValIsFloat64(v : ref SDqAnyValue) -> bool
+function AnyValAsFloat(v : ref SDqAnyValue, defval : float) -> float
+function AnyValAsFloat32(v : ref SDqAnyValue, defval : float32) -> float32
+function AnyValAsFloat64(v : ref SDqAnyValue, defval : float64) -> float64
+function AnyValSetFloat(v : ref SDqAnyValue, value : float)
+function AnyValSetFloat32(v : ref SDqAnyValue, value : float32)
+function AnyValSetFloat64(v : ref SDqAnyValue, value : float64)
 ```
 
 Method form:
 
 ```dq
-av.IsFloat();
-av.IsFloat32();
-av.IsFloat64();
+av.IsFloat()
+av.IsFloat32()
+av.IsFloat64()
 
-var f  : float   = av.AsFloat(-1.0);
-var f4 : float32 = av.AsFloat32(-1.0);
-var f8 : float64 = av.AsFloat64(-1.0);
+var f  : float   = av.AsFloat(-1.0)
+var f4 : float32 = av.AsFloat32(-1.0)
+var f8 : float64 = av.AsFloat64(-1.0)
 
-av.SetFloat(3.14);
-av.SetFloat32(3.14);
-av.SetFloat64(3.14);
+av.SetFloat(3.14)
+av.SetFloat32(3.14)
+av.SetFloat64(3.14)
 ```
 
 `AnyValIsFloat()` tests whether the stored value is floating-point-kind.
@@ -469,9 +469,9 @@ If a numeric conversion cannot be represented by the result type, the default va
 The RTL may provide pointer handlers for internal or implementation-specific use:
 
 ```dq
-function AnyValIsPointer(v : ref SDqAnyValue) -> bool;
-function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer;
-function AnyValSetPointer(v : ref SDqAnyValue, value : pointer);
+function AnyValIsPointer(v : ref SDqAnyValue) -> bool
+function AnyValAsPointer(v : ref SDqAnyValue, defval : pointer) -> pointer
+function AnyValSetPointer(v : ref SDqAnyValue, value : pointer)
 ```
 
 These handlers do not make ordinary pointer values part of the public `anyvalue` v1 source set.
@@ -489,8 +489,8 @@ The exact `SDqTextInfo` structure is specified by the DQ string RTL. The `SDqAny
 ### 13.1 Text predicates
 
 ```dq
-function AnyValIsStr(v : ref SDqAnyValue) -> bool;
-function AnyValIsText(v : ref SDqAnyValue) -> bool;
+function AnyValIsStr(v : ref SDqAnyValue) -> bool
+function AnyValIsText(v : ref SDqAnyValue) -> bool
 ```
 
 `AnyValIsStr()` is the current RTL-compatible name.
@@ -502,8 +502,8 @@ A compiler may expose only the method name `IsStr()` or may expose both `IsStr()
 Method form:
 
 ```dq
-av.IsStr();
-av.IsText();
+av.IsStr()
+av.IsText()
 ```
 
 ### 13.2 Heapless text descriptor extraction
@@ -513,14 +513,14 @@ function AnyValAsText(
   v      : ref SDqAnyValue,
   defval : refin SDqTextInfo,
   rv     : refout SDqTextInfo
-);
+)
 ```
 
 Method form:
 
 ```dq
-var ti : SDqTextInfo;
-av.AsText(DefaultTextInfo(""), ti);
+var ti : SDqTextInfo
+av.AsText(DefaultTextInfo(""), ti)
 ```
 
 `AnyValAsText()` returns a text descriptor through `rv`.
@@ -534,10 +534,10 @@ This function must not allocate. It returns or copies only a descriptor. The des
 ### 13.3 Text setter functions
 
 ```dq
-function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo);
-function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo);
-function AnyValSetStr(v : ref SDqAnyValue, value : str);
-function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo);
+function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+function AnyValSetStr(v : ref SDqAnyValue, value : str)
+function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 ```
 
 `AnyValSetText()` stores a borrowed `DQTK_STRVIEW` descriptor.
@@ -555,14 +555,14 @@ function AnyValToCString(
   v      : ref SDqAnyValue,
   defval : refin SDqTextInfo,
   rv     : cstring
-);
+)
 ```
 
 Method form:
 
 ```dq
-var cs : cstring(63);
-av.ToCString(DefaultTextInfo(""), cs);
+var cs : cstring(63)
+av.ToCString(DefaultTextInfo(""), cs)
 ```
 
 `AnyValToCString()` converts the contained value to text and copies it into caller-provided `cstring` storage.
@@ -578,13 +578,13 @@ This function must not allocate. Truncation and bounds behavior follow the norma
 ### 13.5 Owned dynamic string extraction
 
 ```dq
-function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str;
+function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str
 ```
 
 Method form:
 
 ```dq
-var s : str = av.AsStr(DefaultTextInfo(""));
+var s : str = av.AsStr(DefaultTextInfo(""))
 ```
 
 `AnyValAsStr()` returns an owned dynamic `str` value and may allocate.
@@ -600,18 +600,18 @@ If `v` cannot be converted to text, `defval` is copied into the returned dynamic
 ## 14. User-level basic usage
 
 ```dq
-var av : anyvalue;
+var av : anyvalue
 
-av.SetNull();       // database NULL
+av.SetNull()       // database NULL
 
-av.SetInt(123);
-av = 123;           // same as SetInt(123)
+av.SetInt(123)
+av = 123           // same as SetInt(123)
 
-av.SetFloat(3.14);
-av = 3.14;          // same as SetFloat(3.14)
+av.SetFloat(3.14)
+av = 3.14          // same as SetFloat(3.14)
 
-av.SetBool(true);
-av = true;          // same as SetBool(true)
+av.SetBool(true)
+av = true          // same as SetBool(true)
 ```
 
 The `IsXxx()` functions test the stored value category:
@@ -620,14 +620,14 @@ The `IsXxx()` functions test the stored value category:
 if av.IsNull():
   // database NULL
 elif av.IsInt():
-  var i : int = av.AsInt(-1);
+  var i : int = av.AsInt(-1)
 elif av.IsFloat():
-  var f : float = av.AsFloat(-1.0);
+  var f : float = av.AsFloat(-1.0)
 elif av.IsBool():
-  var b : bool = av.AsBool(false);
+  var b : bool = av.AsBool(false)
 elif av.IsStr():
-  var cs : cstring(63);
-  av.ToCString(DefaultTextInfo(""), cs);
+  var cs : cstring(63)
+  av.ToCString(DefaultTextInfo(""), cs)
 endif
 ```
 
@@ -636,8 +636,8 @@ The `AsXxx(defval)` functions never raise a conversion error. If the stored valu
 Numeric `AsXxx()` functions may perform normal numeric conversions. For example, `AsInt()` accepts integer values directly and floating-point values through `Round()`:
 
 ```dq
-av = 2.75;
-var i : int = av.AsInt(-1);  // i == 3
+av = 2.75
+var i : int = av.AsInt(-1)  // i == 3
 ```
 
 If the conversion overflows the target type, the default value is returned.
@@ -645,13 +645,13 @@ If the conversion overflows the target type, the default value is returned.
 Text values can be read in three forms:
 
 ```dq
-var ti : SDqTextInfo;
-av.AsText(DefaultTextInfo(""), ti);     // heapless descriptor result
+var ti : SDqTextInfo
+av.AsText(DefaultTextInfo(""), ti)     // heapless descriptor result
 
-var cs : cstring(63);
-av.ToCString(DefaultTextInfo(""), cs);  // heapless copy into fixed buffer
+var cs : cstring(63)
+av.ToCString(DefaultTextInfo(""), cs)  // heapless copy into fixed buffer
 
-var s : str = av.AsStr(DefaultTextInfo(""));  // owned dynamic string, may allocate
+var s : str = av.AsStr(DefaultTextInfo(""))  // owned dynamic string, may allocate
 ```
 
 `cstring` and `strview` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.
@@ -665,9 +665,9 @@ A `str` value stored in an `anyvalue` is owned and follows normal managed string
 The preferred argument-list type is the ordinary array view:
 
 ```dq
-function print(fmt : str, values : []anyvalue);
-function format(fmt : str, values : []anyvalue) -> str;
-function DbExec(sql : str, params : []anyvalue);
+function print(fmt : str, values : []anyvalue)
+function format(fmt : str, values : []anyvalue) -> str
+function DbExec(sql : str, params : []anyvalue)
 ```
 
 There is no separate `anyvalues` builtin type. Use standard DQ array forms:
@@ -690,14 +690,14 @@ When the expected target type is `[]anyvalue`, `[N]anyvalue`, `[?]anyvalue`, or 
 Example:
 
 ```dq
-print('{}, {}\n', [1, 2]);
+print('{}, {}\n', [1, 2])
 ```
 
 is lowered approximately to:
 
 ```dq
-var __args : [?]anyvalue = [anyvalue(1), anyvalue(2)];
-print('{}, {}\n', __args);
+var __args : [?]anyvalue = [anyvalue(1), anyvalue(2)]
+print('{}, {}\n', __args)
 ```
 
 The temporary array created for a direct `[]anyvalue` function argument is valid for the duration of the call.
@@ -715,18 +715,18 @@ Conversion from `anyvalue` back to a concrete type is explicit and checked throu
 Example:
 
 ```dq
-var v : anyvalue = 123;
+var v : anyvalue = 123
 
 if v.IsInt():
-  var i : int = v.AsInt(-1);
+  var i : int = v.AsInt(-1)
 endif
 ```
 
 Implicit unboxing is not allowed:
 
 ```dq
-var v : anyvalue = 123;
-var i : int = v;      // error
+var v : anyvalue = 123
+var i : int = v      // error
 ```
 
 ---
@@ -736,7 +736,7 @@ var i : int = v;      // error
 The canonical formatting call form is:
 
 ```dq
-print('{}, {}\n', [1, 2]);
+print('{}, {}\n', [1, 2])
 ```
 
 The format implementation uses the `[]anyvalue` descriptor to access the values and dispatches according to `value.kind`, `value.subtype`, and `value.datasize`.
@@ -746,7 +746,7 @@ Format/value mismatches are runtime formatting errors, not ABI errors.
 Example:
 
 ```dq
-print('{} = {}\n', ['temperature', 23.5]);
+print('{} = {}\n', ['temperature', 23.5])
 ```
 
 ---
@@ -759,19 +759,19 @@ Database parameter binding can use `[]anyvalue` directly:
 DbExec(
   'insert into sensor_log(name, value) values (?, ?)',
   ['vbat', 12.4]
-);
+)
 ```
 
 Database null values are passed explicitly:
 
 ```dq
-var n : anyvalue;
-n.SetNull();
+var n : anyvalue
+n.SetNull()
 
 DbExec(
   'insert into sensor_log(name, value) values (?, ?)',
   ['vbat', n]
-);
+)
 ```
 
 Database binders should test `IsNull()` before testing scalar or text categories.

@@ -126,7 +126,7 @@ enum NSigned : int8 = (negative = -1, zero, positive) // ok
 The fully qualified form is always valid.
 
 ```dq
-var c : NColor = NColor.red;
+var c : NColor = NColor.red
 ```
 
 This form is preferred in ambiguous contexts, public APIs, generated code, and documentation.
@@ -136,7 +136,7 @@ This form is preferred in ambiguous contexts, public APIs, generated code, and d
 DQ also allows Delphi-like short enum item names without the enum type name, but only when the expected enum type is known from context.
 
 ```dq
-var c : NColor = red;       // ok: expected type is NColor
+var c : NColor = red       // ok: expected type is NColor
 
 if c == green:              // ok: left side gives NColor context
 endif
@@ -144,15 +144,15 @@ endif
 function SetColor(acolor : NColor):
 endfunc
 
-SetColor(blue);             // ok: parameter type gives NColor context
+SetColor(blue)             // ok: parameter type gives NColor context
 ```
 
 Unqualified enum access is rejected when the enum type cannot be inferred.
 
 ```dq
-var x : int = red;          // error: incompatible types
-var x : ? = red;            // error: enum type is not inferable
-Print(red);                 // error unless the argument type is known
+var x : int = red          // error: incompatible types
+var x : ? = red            // error: enum type is not inferable
+Print(red)                 // error unless the argument type is known
 ```
 
 Rule summary:
@@ -164,25 +164,25 @@ Rule summary:
 Enums are distinct strong types.
 
 ```dq
-var c : NColor = NColor.red;
+var c : NColor = NColor.red
 ```
 
 Implicit enum-to-integer conversion is not allowed.
 
 ```dq
-var i : int = c;            // error
+var i : int = c            // error
 ```
 
 Implicit integer-to-enum conversion is not allowed.
 
 ```dq
-var c : NColor = 1;         // error
+var c : NColor = 1         // error
 ```
 
 Unchecked integer-to-enum casts are not allowed.
 
 ```dq
-var c : NColor = NColor(1); // error
+var c : NColor = NColor(1) // error
 ```
 
 An enum is a safe closed type. It cannot carry an invalid value. Integer values received from external data must be validated before becoming enum values.
@@ -190,8 +190,8 @@ An enum is a safe closed type. It cannot carry an invalid value. Integer values 
 For protocol constants, hardware register fields, open numeric domains, and other values where arbitrary or unknown numeric values may occur, normal integer constants should be used instead of enums.
 
 ```dq
-const CMD_READ  : uint8 = 0x01;
-const CMD_WRITE : uint8 = 0x02;
+const CMD_READ  : uint8 = 0x01
+const CMD_WRITE : uint8 = 0x02
 ```
 
 ## 8. Ordinal Conversion
@@ -199,21 +199,21 @@ const CMD_WRITE : uint8 = 0x02;
 Enum-to-integer conversion is available through the read-only virtual member `ord` and the equivalent built-in `Ord()` function.
 
 ```dq
-var c : NColor = green;
-var i : int = c.ord;        // returns the integer value of green
-var j : int = Ord(c);       // equivalent to c.ord
+var c : NColor = green
+var i : int = c.ord        // returns the integer value of green
+var j : int = Ord(c)       // equivalent to c.ord
 ```
 
 The virtual member may be used on any enum expression, not only variables.
 
 ```dq
-var i : int = GetColor().ord;
+var i : int = GetColor().ord
 ```
 
 Direct casts from enum to integer are not allowed.
 
 ```dq
-var i : int = int(c);       // error: use c.ord or Ord(c)
+var i : int = int(c)       // error: use c.ord or Ord(c)
 ```
 
 The result type of `ord` and `Ord()` is the enum storage type. Assignment or conversion to another integer type follows normal DQ integer conversion rules.
@@ -235,11 +235,11 @@ Example:
 ```dq
 enum NState = (idle = 0, run = 10, stop = 20)
 
-var s : NState;
+var s : NState
 
-s = NState.FromOrd(10);              // ok: run
-s = NState.FromOrd(11);              // runtime error: invalid enum value
-s = NState.FromOrd(11, NState.idle); // returns idle
+s = NState.FromOrd(10)              // ok: run
+s = NState.FromOrd(11)              // runtime error: invalid enum value
+s = NState.FromOrd(11, NState.idle) // returns idle
 
 if NState.TryFromOrd(20, s):     // true, s = stop
 endif
@@ -273,8 +273,8 @@ endif
 Different enum types are not directly comparable.
 
 ```dq
-var c : NColor;
-var s : NLedState;
+var c : NColor
+var s : NLedState
 
 if c == s:                  // error: different enum types
 endif
@@ -313,8 +313,8 @@ enum NState : uint8 = (idle = 0, run = 10, stop = 20)
 Only the declared values are valid enum values.
 
 ```dq
-var s : NState = NState.FromOrd(10); // ok
-var t : NState = NState.FromOrd(11); // runtime error
+var s : NState = NState.FromOrd(10) // ok
+var t : NState = NState.FromOrd(11) // runtime error
 ```
 
 Holes do not make the enum an open integer range.

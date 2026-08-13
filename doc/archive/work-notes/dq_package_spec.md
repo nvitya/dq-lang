@@ -86,9 +86,9 @@ sqlite/connection -> sqlite/connection.dq
 The one-component absolute module path imports the package root module:
 
 ```dq
-use json;              // @json
-use serial/port;       // @port
-use sqlite/connection; // @connection
+use json              // @json
+use serial/port       // @port
+use sqlite/connection // @connection
 ```
 
 Aliases, `only`, `--`, re-exporting, and namespace conflicts follow the module specification.
@@ -119,17 +119,17 @@ serial/
 ```
 
 ```dq
-use serial;
-use serial/port;
-use serial/platform/linux;
+use serial
+use serial/port
+use serial/platform/linux
 ```
 
 The root module may be a facade:
 
 ```dq
 // serial/serial.dq
-use ./port reexport;
-use ./config reexport;
+use ./port reexport
+use ./config reexport
 ```
 
 The same pattern applies to larger packages:
@@ -187,7 +187,7 @@ Initial required fields are `name` and `source_root`. `version` is recommended b
 
 ## 6. Resolution
 
-For `use P;`:
+For `use P`:
 
 ```text
 1. Resolve package P to a package directory.
@@ -197,13 +197,13 @@ For `use P;`:
 5. Create default namespace @P.
 ```
 
-For `use P/a/b;`, use the same package and module root, then load `<module-root>/a/b.dq`, assign canonical module id `P/a/b`, and create default namespace `@b`.
+For `use P/a/b`, use the same package and module root, then load `<module-root>/a/b.dq`, assign canonical module id `P/a/b`, and create default namespace `@b`.
 
 Inside a package, relative imports use the already-known package root and do not search package paths again:
 
 ```dq
-use ./port;
-use ^/platform/linux;
+use ./port
+use ^/platform/linux
 ```
 
 A relative path must not escape above the package/module root.

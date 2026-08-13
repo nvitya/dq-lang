@@ -30,16 +30,16 @@ The storage location does not change the object access model. Methods and fields
 A normal object declaration creates a rebindable reference variable:
 
 ```dq
-var obj : OTest = null;
-var obj : OTest = new OTest(1, "name");
-var obj = new OTest(1, "name");  // type is taken after the new
+var obj : OTest = null
+var obj : OTest = new OTest(1, "name")
+var obj = new OTest(1, "name")  // type is taken after the new
 ```
 
 The variable stores a reference and may be assigned another object reference later:
 
 ```dq
-obj = other;
-obj = null;
+obj = other
+obj = null
 ```
 
 Normal reference variables do not own automatic storage. If they point to heap storage, that storage must be released with `delete`.
@@ -51,24 +51,24 @@ Normal reference variables do not own automatic storage. If they point to heap s
 The `<-` declaration allocates object storage and binds a fixed reference to it:
 
 ```dq
-var local <- OTest(1, "stack");
-var global <- OTest(2, "bss");
+var local <- OTest(1, "stack")
+var global <- OTest(2, "bss")
 ```
 
 For object fields, `<-` embeds the object storage inside the containing object:
 
 ```dq
 object OParent:
-  child <- OChild(1);
+  child <- OChild(1)
 endobj
 ```
 
 A fixed storage reference cannot be rebound:
 
 ```dq
-local = other;   // error
-global = null;   // error
-child = other;   // error
+local = other   // error
+global = null   // error
+child = other   // error
 ```
 
 The compiler may lower fixed storage references without storing a separate reference slot. Uses of the variable can be lowered directly to the address of the owned storage.
@@ -84,9 +84,9 @@ Scalar fields and reference fields may have inline initializers:
 ```dq
 object OSerialConfig:
 public
-  bitrate    : int = 115200;
-  timeout_us : int = 2000;
-  name       : string = "uart0";
+  bitrate    : int = 115200
+  timeout_us : int = 2000
+  name       : string = "uart0"
 endobj
 ```
 
@@ -97,8 +97,8 @@ If an object has inline field initializers and no explicit constructor, the comp
 ```dq
 object OSerialConfig:
 public
-  bitrate    : int = 115200;
-  timeout_us : int = 2000;
+  bitrate    : int = 115200
+  timeout_us : int = 2000
 endobj
 ```
 
@@ -107,12 +107,12 @@ is equivalent to:
 ```dq
 object OSerialConfig:
 public
-  bitrate    : int;
-  timeout_us : int;
+  bitrate    : int
+  timeout_us : int
 
   function *Create():
-    bitrate = 115200;
-    timeout_us = 2000;
+    bitrate = 115200
+    timeout_us = 2000
   endfunc
 endobj
 ```
@@ -122,11 +122,11 @@ For an explicit constructor, field initializers are inserted after the required 
 ```dq
 object OSerialConfig:
 public
-  bitrate    : int = 115200;
-  timeout_us : int = 2000;
+  bitrate    : int = 115200
+  timeout_us : int = 2000
 
   function *Create(abitrate : int):
-    bitrate = abitrate;
+    bitrate = abitrate
   endfunc
 endobj
 ```
@@ -135,9 +135,9 @@ is lowered logically as:
 
 ```dq
 function *Create(abitrate : int):
-  bitrate = 115200;
-  timeout_us = 2000;
-  bitrate = abitrate;
+  bitrate = 115200
+  timeout_us = 2000
+  bitrate = abitrate
 endfunc
 ```
 
@@ -145,17 +145,17 @@ Field initialization is performed in declaration order. Scalar field initializat
 
 ```dq
 object ODevice:
-  id     : int = 1;
-  child1 <- OChild(10);
-  flags  : int = 0;
-  child2 <- OChild();
+  id     : int = 1
+  child1 <- OChild(10)
+  flags  : int = 0
+  child2 <- OChild()
 endobj
 ```
 
 An embedded object field declared without constructor arguments does not imply a constructor call:
 
 ```dq
-child3 <- OChild;  // storage only, not constructed here
+child3 <- OChild  // storage only, not constructed here
 ```
 
 Such a field must still be constructed exactly once by the containing object's constructor.
@@ -176,28 +176,28 @@ endobj
 Constructor calls are part of object initialization:
 
 ```dq
-var a <- OTest(1);            // stack storage, calls Create(1)
-var b : OTest = new OTest(2); // heap storage, calls Create(2)
+var a <- OTest(1)            // stack storage, calls Create(1)
+var b : OTest = new OTest(2) // heap storage, calls Create(2)
 ```
 
 An embedded object may be constructed at field declaration:
 
 ```dq
-child1 <- OChild(1, 2);
-child2 <- OChild();
+child1 <- OChild(1, 2)
+child2 <- OChild()
 ```
 
 Or its storage may be declared without an immediate constructor call:
 
 ```dq
-child3 <- OChild;
+child3 <- OChild
 ```
 
 In that case, the containing object's constructor must construct it exactly once before returning:
 
 ```dq
 function *Create():
-  child3.Create();
+  child3.Create()
 endfunc
 ```
 
@@ -231,7 +231,7 @@ Module-level fixed-storage objects may acquire resources during construction. Th
 For heap storage, destruction happens through `delete`:
 
 ```dq
-delete obj;
+delete obj
 ```
 
 `delete` calls `Destroy`, releases the heap storage, and sets the reference variable to `null`. `delete null` is a no-op.
@@ -245,11 +245,11 @@ For polymorphic objects, `delete` must destroy the most-derived runtime object, 
 Assignment rebinding is allowed only for normal reference variables:
 
 ```dq
-var r : OTest = null;
-var s <- OTest(1);
+var r : OTest = null
+var s <- OTest(1)
 
-r = s;       // allowed, r now references s
-s = r;       // error, s is a fixed storage reference
+r = s       // allowed, r now references s
+s = r       // error, s is a fixed storage reference
 ```
 
 Assigning a reference to stack or embedded storage into a longer-lived variable can create a dangling reference. The compiler should reject obvious lifetime escapes where practical, such as assigning a local fixed-storage object to a global reference or returning it from a function.
@@ -275,8 +275,8 @@ endobj
 The derived object contains the base object as its first subobject. A reference to a derived object may be implicitly converted to a reference to its base object:
 
 ```dq
-var fs : OFileStream = new OFileStream("test.bin");
-var s  : OStream = fs;  // allowed implicit upcast
+var fs : OFileStream = new OFileStream("test.bin")
+var s  : OStream = fs  // allowed implicit upcast
 ```
 
 Because object variables are references, derived-to-base assignment does not copy the object and does not slice it.
@@ -284,8 +284,8 @@ Because object variables are references, derived-to-base assignment does not cop
 The same rule applies to fixed-storage objects, subject to the normal lifetime escape checks:
 
 ```dq
-var fs <- OFileStream("test.bin");
-var s : OStream = fs;  // allowed while fs is alive
+var fs <- OFileStream("test.bin")
+var s : OStream = fs  // allowed while fs is alive
 ```
 
 ---
@@ -337,7 +337,7 @@ Override matching is strict in the first language version. The function name, pa
 A virtual function may be marked `[[abstract]]`:
 
 ```dq
-function Read(buf : ^u8, len : int) -> int [[virtual, abstract]];
+function Read(buf : ^u8, len : int) -> int [[virtual, abstract]]
 ```
 
 An object with one or more unimplemented abstract functions is abstract and cannot be directly constructed.
@@ -360,11 +360,11 @@ Virtual calls inside constructors and destructors should be rejected, or at mini
 Object methods may be captured as bound function references:
 
 ```dq
-type Callback = function(msg : cstring) of object;
+type Callback = function(msg : cstring) of object
 
-var obj <- OPrinter("log");
-var cb : Callback = obj.Print;
-cb("ready");
+var obj <- OPrinter("log")
+var cb : Callback = obj.Print
+cb("ready")
 ```
 
 The `of object` form stores both the method function and the object receiver. The function type lists only the explicit method parameters; the hidden object receiver is not part of the source-level signature.
@@ -372,9 +372,9 @@ The `of object` form stores both the method function and the object receiver. Th
 An object function reference may be assigned `null` and may be compared with `null`:
 
 ```dq
-var cb : Callback = null;
+var cb : Callback = null
 if cb != null:
-  cb("ready");
+  cb("ready")
 endif
 ```
 
@@ -393,15 +393,15 @@ The `inherited` keyword calls the nearest base implementation directly. It is a 
 Explicit form:
 
 ```dq
-inherited Reset();
-inherited Write(buf, len);
+inherited Reset()
+inherited Write(buf, len)
 ```
 
 Inside an overridden non-lifecycle function, the shorthand form is allowed:
 
 ```dq
 function Reset() [[override]]:
-  inherited;
+  inherited
 endfunc
 ```
 
@@ -411,7 +411,7 @@ Example:
 
 ```dq
 function Write(buf : ^u8, len : int) -> int [[override]]:
-  return inherited;
+  return inherited
 endfunc
 ```
 
@@ -419,13 +419,13 @@ is equivalent to:
 
 ```dq
 function Write(buf : ^u8, len : int) -> int [[override]]:
-  return inherited Write(buf, len);
+  return inherited Write(buf, len)
 endfunc
 ```
 
 For a function with a non-void return type, the result of `inherited` must be used. Ignoring the return value is a compile-time error unless the function result type explicitly allows discarding.
 
-The shorthand `inherited;` is not allowed for constructors or destructors. Lifecycle calls must be explicit.
+The shorthand `inherited` is not allowed for constructors or destructors. Lifecycle calls must be explicit.
 
 ---
 
@@ -435,7 +435,7 @@ If an object inherits from a base object, every derived constructor must explici
 
 ```dq
 function *Create(...):
-  inherited Create(...);
+  inherited Create(...)
   ...
 endfunc
 ```
@@ -446,8 +446,8 @@ Valid:
 
 ```dq
 function *Create(aname : string):
-  inherited Create();
-  localvar = 0;
+  inherited Create()
+  localvar = 0
 endfunc
 ```
 
@@ -455,8 +455,8 @@ Invalid:
 
 ```dq
 function *Create(aname : string):
-  localvar = 0;
-  inherited Create();  // error, must be first
+  localvar = 0
+  inherited Create()  // error, must be first
 endfunc
 ```
 
@@ -464,8 +464,8 @@ Invalid:
 
 ```dq
 function *Create(aname : string):
-  inherited Create();
-  inherited Create();  // error, base constructed twice
+  inherited Create()
+  inherited Create()  // error, base constructed twice
 endfunc
 ```
 
@@ -473,7 +473,7 @@ Invalid:
 
 ```dq
 function *Create(aname : string):
-  localvar = 0;        // error, missing inherited Create(...)
+  localvar = 0        // error, missing inherited Create(...)
 endfunc
 ```
 
@@ -484,7 +484,7 @@ If an object inherits from a base object, every derived destructor must explicit
 ```dq
 function *Destroy():
   ...
-  inherited Destroy();
+  inherited Destroy()
 endfunc
 ```
 
@@ -494,8 +494,8 @@ Valid:
 
 ```dq
 function *Destroy():
-  CloseFile();
-  inherited Destroy();
+  CloseFile()
+  inherited Destroy()
 endfunc
 ```
 
@@ -503,8 +503,8 @@ Invalid:
 
 ```dq
 function *Destroy():
-  inherited Destroy();
-  CloseFile();        // error, inherited Destroy() must be last
+  inherited Destroy()
+  CloseFile()        // error, inherited Destroy() must be last
 endfunc
 ```
 
@@ -512,7 +512,7 @@ Invalid:
 
 ```dq
 function *Destroy():
-  CloseFile();        // error, missing inherited Destroy()
+  CloseFile()        // error, missing inherited Destroy()
 endfunc
 ```
 
@@ -520,9 +520,9 @@ Invalid:
 
 ```dq
 function *Destroy():
-  CloseFile();
-  inherited Destroy();
-  inherited Destroy(); // error, base destroyed twice
+  CloseFile()
+  inherited Destroy()
+  inherited Destroy() // error, base destroyed twice
 endfunc
 ```
 
@@ -532,8 +532,8 @@ Therefore this destructor:
 
 ```dq
 function *Destroy():
-  CloseFile();
-  inherited Destroy();
+  CloseFile()
+  inherited Destroy()
 endfunc
 ```
 
@@ -598,7 +598,7 @@ The storage location does not affect layout. Heap, stack, bss, and embedded obje
 
 ```dq
 object OData:
-  data : [3]int;
+  data : [3]int
 endobj
 
 object OCoords:
@@ -606,13 +606,13 @@ object OCoords:
   endfunc
 
   function *Create() [[overload]]:
-    Create(0, 0);
+    Create(0, 0)
   endfunc
 endobj
 
 object OStream:
 protected
-  is_open : bool = false;
+  is_open : bool = false
 
 public
   function *Create():
@@ -627,29 +627,29 @@ endobj
 
 object OFileStream(OStream):
 private
-  data    : OData = null;       // normal reference field
-  bitrate : int = 115200;       // scalar field initializer
-  coords1 <- OCoords(0, 0);     // embedded storage, constructed here
-  coords2 <- OCoords;           // embedded storage, constructed by OFileStream.Create
-  coords3 <- OCoords();         // embedded storage, default constructed here
+  data    : OData = null       // normal reference field
+  bitrate : int = 115200       // scalar field initializer
+  coords1 <- OCoords(0, 0)     // embedded storage, constructed here
+  coords2 <- OCoords           // embedded storage, constructed by OFileStream.Create
+  coords3 <- OCoords()         // embedded storage, default constructed here
 
 public
   function *Create(aname : string):
-    inherited Create();
-    data = new OData();
-    coords2.Create();
-    is_open = true;
+    inherited Create()
+    data = new OData()
+    coords2.Create()
+    is_open = true
   endfunc
 
   function Reset() [[override]]:
-    bitrate = 115200;
-    inherited;
+    bitrate = 115200
+    inherited
   endfunc
 
   function *Destroy():
-    delete data;
-    is_open = false;
-    inherited Destroy();
+    delete data
+    is_open = false
+    inherited Destroy()
   endfunc
 endobj
 ```

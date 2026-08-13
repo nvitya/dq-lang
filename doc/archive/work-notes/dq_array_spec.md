@@ -34,8 +34,8 @@ The type forms have different ownership rules:
 
 ```dq
 struct hidden_slice_T:
-  dataptr : ^T;
-  length  : uint;
+  dataptr : ^T
+  length  : uint
 endstruct
 ```
 
@@ -50,8 +50,8 @@ A dynamic array `[*]T` always owns its element storage. Assigning or initializin
 The length and storage of a static array are fixed.
 
 ```dq
-var arr1 : [3]int;             // fixed-size array, zero-initialized
-var arr2 : [3]int = [1, 2, 3]; // fixed-size array with initialization
+var arr1 : [3]int             // fixed-size array, zero-initialized
+var arr2 : [3]int = [1, 2, 3] // fixed-size array with initialization
 ```
 
 The array length is part of the type:
@@ -69,25 +69,25 @@ A static array cannot be structurally resized. Calling dynamic-array methods suc
 `[?]T` declares a fixed-size static array whose length is inferred from the initializer.
 
 ```dq
-var arr : [?]int = [10, 20, 30];
+var arr : [?]int = [10, 20, 30]
 ```
 
 This is equivalent to:
 
 ```dq
-var arr : [3]int = [10, 20, 30];
+var arr : [3]int = [10, 20, 30]
 ```
 
 The initializer is mandatory:
 
 ```dq
-var arr : [?]int;   // compile error: inferred-length static array requires initializer
+var arr : [?]int   // compile error: inferred-length static array requires initializer
 ```
 
 An empty initializer for `[?]T` is invalid in the initial language version:
 
 ```dq
-var arr : [?]int = [];  // compile error: cannot infer a non-zero static array length
+var arr : [?]int = []  // compile error: cannot infer a non-zero static array length
 ```
 
 If zero-length static arrays are supported later, this rule may be relaxed.
@@ -101,16 +101,16 @@ Dynamic arrays are heap arrays. The user-visible variable is internally a nullab
 The manager object and the element storage are both heap allocated.
 
 ```dq
-var darr1 : [*]int;               // empty dynamic array, no manager, no element storage
-var darr2 : [*]int = [];          // empty dynamic array, no manager, no element storage
-var darr3 : [*]int = [1, 2, 3];   // dynamic array, length = 3, capacity = 3
-var darr4 : [*]int = [7, 11];     // dynamic array, length = 2, capacity = 2
+var darr1 : [*]int               // empty dynamic array, no manager, no element storage
+var darr2 : [*]int = []          // empty dynamic array, no manager, no element storage
+var darr3 : [*]int = [1, 2, 3]   // dynamic array, length = 3, capacity = 3
+var darr4 : [*]int = [7, 11]     // dynamic array, length = 2, capacity = 2
 ```
 
 A non-initialized dynamic array and a dynamic array initialized with `[]` are both represented as a null manager. At the language level this means an empty array.
 
 ```dq
-var arr : [*]int;
+var arr : [*]int
 
 arr.length   // 0
 arr.capacity // 0
@@ -136,8 +136,8 @@ arr <> []
 Indexing an empty dynamic array is an out-of-bounds runtime error:
 
 ```dq
-var arr : [*]int;
-arr[0] = 5;  // runtime bounds error
+var arr : [*]int
+arr[0] = 5  // runtime bounds error
 ```
 
 ---
@@ -147,28 +147,28 @@ arr[0] = 5;  // runtime bounds error
 Array literals can initialize owning arrays:
 
 ```dq
-var sarr : [3]int  = [1, 2, 3];
-var iarr : [?]int  = [1, 2, 3];
-var darr : [*]int  = [1, 2, 3];
+var sarr : [3]int  = [1, 2, 3]
+var iarr : [?]int  = [1, 2, 3]
+var darr : [*]int  = [1, 2, 3]
 ```
 
 An array literal cannot initialize a stored slice variable directly, because the slice would not own the literal storage:
 
 ```dq
-var s : []int = [1, 2, 3];  // compile error: slice cannot own an array literal
+var s : []int = [1, 2, 3]  // compile error: slice cannot own an array literal
 ```
 
 An array literal may be passed directly to a function expecting `[]T`. In that case the compiler creates a temporary array valid for the duration of the call:
 
 ```dq
 function Sum(a : []int) -> int:
-  result = 0;
+  result = 0
   for var i : int = 0 count a.length:
-    result += a[i];
+    result += a[i]
   endfor
 endfunc
 
-var x : int = Sum([1, 2, 3]);  // OK, temporary call-lifetime array view
+var x : int = Sum([1, 2, 3])  // OK, temporary call-lifetime array view
 ```
 
 ---
@@ -180,21 +180,21 @@ var x : int = Sum([1, 2, 3]);  // OK, temporary call-lifetime array view
 Slices can be created from static arrays, inferred-length static arrays, dynamic arrays, or other slices:
 
 ```dq
-var sarr : [5]int = [10, 20, 30, 40, 50];
-var darr : [*]int = [10, 20, 30, 40, 50];
+var sarr : [5]int = [10, 20, 30, 40, 50]
+var darr : [*]int = [10, 20, 30, 40, 50]
 
-var s1 : []int = sarr[1:4];  // view of sarr[1], sarr[2], sarr[3]
-var s2 : []int = darr[1:4];  // view of dynamic array element storage
-var s3 : []int = s1[1:];     // sub-slice view
+var s1 : []int = sarr[1:4]  // view of sarr[1], sarr[2], sarr[3]
+var s2 : []int = darr[1:4]  // view of dynamic array element storage
+var s3 : []int = s1[1:]     // sub-slice view
 ```
 
 Writing through a slice modifies the original array storage:
 
 ```dq
-var arr : [5]int = [10, 20, 30, 40, 50];
-var s   : []int = arr[1:4];
+var arr : [5]int = [10, 20, 30, 40, 50]
+var s   : []int = arr[1:4]
 
-s[0] = 99;  // modifies arr[1]
+s[0] = 99  // modifies arr[1]
 
 // arr is now [10, 99, 30, 40, 50]
 ```
@@ -202,27 +202,27 @@ s[0] = 99;  // modifies arr[1]
 Slice assignment copies only the view, not the elements:
 
 ```dq
-var s1 : []int = arr[1:4];
-var s2 : []int = s1;      // s1 and s2 point to the same element storage
+var s1 : []int = arr[1:4]
+var s2 : []int = s1      // s1 and s2 point to the same element storage
 
-s2[0] = 77;               // modifies arr[1]
+s2[0] = 77               // modifies arr[1]
 ```
 
 A slice has no capacity and cannot structurally modify the referenced storage:
 
 ```dq
-s.Append(1);       // compile error
-s.Prepend(1);      // compile error
-s.Insert(0, 1);    // compile error
-s.Delete(0, 1);    // compile error
-s.SetLength(10);   // compile error
-s.SetCapacity(10); // compile error
-s.Clear();         // compile error
-s.Reserve(100);    // compile error
-s.Compact();       // compile error
-s.Clone();         // compile error
-s.Pop();           // compile error
-s.PopFirst();      // compile error
+s.Append(1)       // compile error
+s.Prepend(1)      // compile error
+s.Insert(0, 1)    // compile error
+s.Delete(0, 1)    // compile error
+s.SetLength(10)   // compile error
+s.SetCapacity(10) // compile error
+s.Clear()         // compile error
+s.Reserve(100)    // compile error
+s.Compact()       // compile error
+s.Clone()         // compile error
+s.Pop()           // compile error
+s.PopFirst()      // compile error
 ```
 
 ### Slice Lifetime and Invalidation
@@ -244,19 +244,19 @@ Example of a dangling slice:
 
 ```dq
 function Bad() -> []int:
-  var arr : [5]int = [1, 2, 3, 4, 5];
-  return arr[1:3];   // dangerous: returns a slice into local stack storage
+  var arr : [5]int = [1, 2, 3, 4, 5]
+  return arr[1:3]   // dangerous: returns a slice into local stack storage
 endfunc
 ```
 
 Example of dynamic-array reallocation danger:
 
 ```dq
-var darr : [*]int = [1, 2, 3, 4];
-var s    : []int = darr[1:3];
+var darr : [*]int = [1, 2, 3, 4]
+var s    : []int = darr[1:3]
 
-darr.Append(5);  // may reallocate the dynamic array storage
-s[0] = 99;       // dangerous: s may now be invalid
+darr.Append(5)  // may reallocate the dynamic array storage
+s[0] = 99       // dangerous: s may now be invalid
 ```
 
 ---
@@ -268,14 +268,14 @@ Array indexing is strict. The index must refer to an existing element.
 Accessing an invalid index causes a runtime bounds error.
 
 ```dq
-var arr : [?]int = [10, 20, 30, 40, 50];
-var i : int;
+var arr : [?]int = [10, 20, 30, 40, 50]
+var i : int
 
-i = arr[0];      // OK
-i = arr[4];     // OK
-i = arr[-1];    // runtime bounds error
-i = arr[5];     // runtime bounds error
-i = arr[$end];  // runtime bounds error, $end is one position after the last element
+i = arr[0]      // OK
+i = arr[4]     // OK
+i = arr[-1]    // runtime bounds error
+i = arr[5]     // runtime bounds error
+i = arr[$end]  // runtime bounds error, $end is one position after the last element
 ```
 
 The same rule applies to static arrays, dynamic arrays, and slices.
@@ -296,7 +296,7 @@ The `:` form is useful for lengths, offsets, splitting, and algorithms.
 The `::` form is useful for human-oriented inclusive ranges.
 
 ```dq
-var arr : [5]int = [10, 20, 30, 40, 50];
+var arr : [5]int = [10, 20, 30, 40, 50]
 
 arr[0:1]   // = [10]
 arr[0::0]  // = [10]
@@ -363,7 +363,7 @@ arr[::$last]        // whole array
 ```
 
 ```dq
-var arr : [?]int = [10, 20, 30, 40, 50];
+var arr : [?]int = [10, 20, 30, 40, 50]
 
 arr[$end - 1]             // 50
 arr[$end - 2]             // 40
@@ -383,12 +383,12 @@ Array indexing is strict, but slicing is forgiving.
 When defining a slice, invalid slice bounds do not cause runtime bounds errors. Slice bounds are clamped to the actual array bounds.
 
 ```dq
-var arr : [?]int = [10, 20, 30, 40, 50];
+var arr : [?]int = [10, 20, 30, 40, 50]
 
-var s1 : []int = arr[-1:];    // start clamped to 0      -> [10, 20, 30, 40, 50]
-var s2 : []int = arr[:8];     // end clamped to length   -> [10, 20, 30, 40, 50]
-var s3 : []int = arr[8:];     // start clamped to length -> []
-var s4 : []int = arr[$end:];  // start clamped to length -> []
+var s1 : []int = arr[-1:]    // start clamped to 0      -> [10, 20, 30, 40, 50]
+var s2 : []int = arr[:8]     // end clamped to length   -> [10, 20, 30, 40, 50]
+var s3 : []int = arr[8:]     // start clamped to length -> []
+var s4 : []int = arr[$end:]  // start clamped to length -> []
 ```
 
 For the half-open form:
@@ -426,35 +426,35 @@ The conversion must avoid integer overflow in the compiler/runtime implementatio
 ## Static Array Operations
 
 ```dq
-var i : int;
-var arr : [3]int = [1, 2, 3];
+var i : int
+var arr : [3]int = [1, 2, 3]
 
-i = arr[1];
-arr[0] = 4;
+i = arr[1]
+arr[0] = 4
 
-i = Len(arr);
-i = arr.length;
+i = Len(arr)
+i = arr.length
 
-var slice1 : []int = arr[1::2];        // view of arr[1], arr[2]
-var slice2 : []int = arr[1::1];        // view of arr[1]
-var slice3 : []int = arr[1:arr.length]; // view of arr[1], arr[2]
-var slice4 : []int = arr[1:6];         // view of arr[1], arr[2], end clamped
+var slice1 : []int = arr[1::2]        // view of arr[1], arr[2]
+var slice2 : []int = arr[1::1]        // view of arr[1]
+var slice3 : []int = arr[1:arr.length] // view of arr[1], arr[2]
+var slice4 : []int = arr[1:6]         // view of arr[1], arr[2], end clamped
 
-slice1[0] = 99;  // modifies arr[1]
+slice1[0] = 99  // modifies arr[1]
 
-i = slice2.length; // 1
+i = slice2.length // 1
 
 if slice1 <> []:  // equivalent to slice1.length <> 0
-  printf('slice1 is not empty!');
+  printf('slice1 is not empty!')
 endif
 
-var last1 : []int = arr[$last:];    // last element
-var last2 : []int = arr[$end - 2:]; // last two elements
+var last1 : []int = arr[$last:]    // last element
+var last2 : []int = arr[$end - 2:] // last two elements
 
-var all_except_last1 : []int = arr[:$end - 1];     // all except the last element
-var all_except_last2 : []int = arr[::$last - 1];   // all except the last element
-var all_except_two1  : []int = arr[:$end - 2];     // all except the last two elements
-var all_except_two2  : []int = arr[::$last - 2];   // all except the last two elements
+var all_except_last1 : []int = arr[:$end - 1]     // all except the last element
+var all_except_last2 : []int = arr[::$last - 1]   // all except the last element
+var all_except_two1  : []int = arr[:$end - 2]     // all except the last two elements
+var all_except_two2  : []int = arr[::$last - 2]   // all except the last two elements
 ```
 
 ---
@@ -464,11 +464,11 @@ var all_except_two2  : []int = arr[::$last - 2];   // all except the last two el
 Whole dynamic-array assignment from another dynamic array shares the manager object:
 
 ```dq
-var a : [*]int = [1, 2, 3];
-var b : [*]int = a;
+var a : [*]int = [1, 2, 3]
+var b : [*]int = a
 
-b[0] = 99;    // a[0] is also 99
-b.Append(4);  // a also sees the appended value
+b[0] = 99    // a[0] is also 99
+b.Append(4)  // a also sees the appended value
 ```
 
 Dynamic arrays are reference-counted for lifetime management only. They are not copy-on-write. If two dynamic array variables reference the same manager, element writes and structural modifications are visible through both variables.
@@ -476,10 +476,10 @@ Dynamic arrays are reference-counted for lifetime management only. They are not 
 Use `.Clone()` to create independent dynamic storage:
 
 ```dq
-var a : [*]int = [1, 2, 3];
-var b : [*]int = a.Clone();
+var a : [*]int = [1, 2, 3]
+var b : [*]int = a.Clone()
 
-b[0] = 99;  // a is unchanged
+b[0] = 99  // a is unchanged
 ```
 
 `Clone()` copies only the actual elements. The cloned array has `capacity == length`. Cloning an empty dynamic array returns the canonical empty/null-manager dynamic array.
@@ -487,39 +487,39 @@ b[0] = 99;  // a is unchanged
 Whole-array assignment from an array literal creates a new manager and rebinds the variable:
 
 ```dq
-b = [7, 8, 9];  // b points to a new manager; a is unchanged
+b = [7, 8, 9]  // b points to a new manager; a is unchanged
 ```
 
 Whole-array assignment from a slice or static array copies elements into newly owned dynamic-array storage:
 
 ```dq
-var sarr : [?]int = [10, 20, 30, 40, 50];
-var view : []int  = sarr[1:4];
+var sarr : [?]int = [10, 20, 30, 40, 50]
+var view : []int  = sarr[1:4]
 
-var copy1 : [*]int = sarr;       // copies all elements
-var copy2 : [*]int = view;       // copies view elements
-var copy3 : [*]int = sarr[1:4];  // copies slice elements
+var copy1 : [*]int = sarr       // copies all elements
+var copy2 : [*]int = view       // copies view elements
+var copy3 : [*]int = sarr[1:4]  // copies slice elements
 ```
 
 This creates independent dynamic storage:
 
 ```dq
-view[0] = 99;    // modifies sarr[1]
-copy2[0] = 77;   // modifies only copy2
+view[0] = 99    // modifies sarr[1]
+copy2[0] = 77   // modifies only copy2
 ```
 
 Assignment to `[]` releases the current manager reference and returns to the canonical empty/null-manager state:
 
 ```dq
-var arr : [*]int = [1, 2, 3];
-arr = [];        // release manager reference, arr becomes empty/null-manager
+var arr : [*]int = [1, 2, 3]
+arr = []        // release manager reference, arr becomes empty/null-manager
 ```
 
 This is different from `.Clear()`:
 
 ```dq
-arr.Clear();     // destroys current elements but keeps manager and capacity
-arr = [];        // releases manager reference and becomes empty/null-manager
+arr.Clear()     // destroys current elements but keeps manager and capacity
+arr = []        // releases manager reference and becomes empty/null-manager
 ```
 
 ---
@@ -527,42 +527,42 @@ arr = [];        // releases manager reference and becomes empty/null-manager
 ## Dynamic Array Operations
 
 ```dq
-var darr : [*]int = [10, 20, 30];
-var arr2 : [?]int = [40, 50, 60];
-var darr3 : [*]int = [70, 80];
+var darr : [*]int = [10, 20, 30]
+var arr2 : [?]int = [40, 50, 60]
+var darr3 : [*]int = [70, 80]
 
 // add elements
-darr.Append(1);          // append single element at the end
-darr.Append([4, 5]);     // append array literal elements
-darr.Append(arr2[1:]);   // append slice elements
-darr.Append(darr3);      // append all elements of another dynamic array
+darr.Append(1)          // append single element at the end
+darr.Append([4, 5])     // append array literal elements
+darr.Append(arr2[1:])   // append slice elements
+darr.Append(darr3)      // append all elements of another dynamic array
 
-darr.Prepend(1);         // insert single element at the beginning
-darr.Prepend([-1, 0]);   // insert array literal elements at the beginning
+darr.Prepend(1)         // insert single element at the beginning
+darr.Prepend([-1, 0])   // insert array literal elements at the beginning
 
-darr.Insert(0, 1);       // insert one element before normalized index 0
-darr.Insert(0, [-1, 0]); // insert two elements before normalized index 0
+darr.Insert(0, 1)       // insert one element before normalized index 0
+darr.Insert(0, [-1, 0]) // insert two elements before normalized index 0
 
 // remove elements
-darr.Delete(0, 1);       // delete the first element
-darr.Delete(1, 2);       // delete two elements: index 1 and index 2
+darr.Delete(0, 1)       // delete the first element
+darr.Delete(1, 2)       // delete two elements: index 1 and index 2
 
-var last  : int = darr.Pop();      // remove and return the last element
-var first : int = darr.PopFirst(); // remove and return the first element
+var last  : int = darr.Pop()      // remove and return the last element
+var first : int = darr.PopFirst() // remove and return the first element
 
 // size and storage management
-darr.SetLength(10);      // resize length, zero-initialize new unmanaged elements
-darr.Reserve(1000);      // ensure capacity >= 1000, length unchanged
-darr.SetCapacity(20);    // set capacity exactly, truncating length if needed
-darr.Compact();          // reduce capacity to length
-darr.Clear();            // set length to 0, keep allocated capacity
-darr.Clear(true);        // set length to 0 and set capacity to 0
+darr.SetLength(10)      // resize length, zero-initialize new unmanaged elements
+darr.Reserve(1000)      // ensure capacity >= 1000, length unchanged
+darr.SetCapacity(20)    // set capacity exactly, truncating length if needed
+darr.Compact()          // reduce capacity to length
+darr.Clear()            // set length to 0, keep allocated capacity
+darr.Clear(true)        // set length to 0 and set capacity to 0
 
 // explicit deep copy
-var copy : [*]int = darr.Clone();
+var copy : [*]int = darr.Clone()
 
-var i : int = darr.length;
-var c : int = darr.capacity;
+var i : int = darr.length
+var c : int = darr.capacity
 ```
 
 Calling `.Append()`, `.Prepend()`, `.Insert()`, `.Delete()`, `.SetLength()`, `.SetCapacity()`, `.Reserve()`, `.Compact()`, `.Clear()`, `.Clone()`, `.Pop()`, or `.PopFirst()` on a static array or slice is a compile-time error.
@@ -586,24 +586,24 @@ actual_count = min(count, length - index)
 Examples:
 
 ```dq
-var a : [*]int = [10, 20, 30];
+var a : [*]int = [10, 20, 30]
 
-a.Delete(1);       // [10, 30]
-a.Delete(100);     // unchanged
-a.Delete(1, 100);  // [10]
-a.Delete(-5, 1);   // [20, 30]
-a.Delete(2, 0);    // unchanged
+a.Delete(1)       // [10, 30]
+a.Delete(100)     // unchanged
+a.Delete(1, 100)  // [10]
+a.Delete(-5, 1)   // [20, 30]
+a.Delete(2, 0)    // unchanged
 ```
 
 `Insert(index, source)` inserts before the normalized index. Inserting before index `0` prepends. Inserting before index `length` appends.
 
 ```dq
-var a : [*]int = [10, 20, 30];
+var a : [*]int = [10, 20, 30]
 
-a.Insert(0, 5);       // [5, 10, 20, 30]
-a.Insert(100, 40);    // [10, 20, 30, 40]
-a.Insert(-5, 1);      // [1, 10, 20, 30]
-a.Insert($end, 40);   // [10, 20, 30, 40]
+a.Insert(0, 5)       // [5, 10, 20, 30]
+a.Insert(100, 40)    // [10, 20, 30, 40]
+a.Insert(-5, 1)      // [1, 10, 20, 30]
+a.Insert($end, 40)   // [10, 20, 30, 40]
 ```
 
 `Prepend(source)` is equivalent to `Insert(0, source)`.
@@ -627,11 +627,11 @@ if new_length > length:
 Examples:
 
 ```dq
-var a : [*]int = [1, 2, 3];
+var a : [*]int = [1, 2, 3]
 
-a.SetLength(5);  // [1, 2, 3, 0, 0]
-a.SetLength(2);  // [1, 2]
-a.SetLength(0);  // empty, capacity kept
+a.SetLength(5)  // [1, 2, 3, 0, 0]
+a.SetLength(2)  // [1, 2]
+a.SetLength(0)  // empty, capacity kept
 ```
 
 For unmanaged element types, shrinking the length does not require element destruction. Managed element types and their handler functions are a future extension.
@@ -641,19 +641,19 @@ For unmanaged element types, shrinking the length does not require element destr
 `Reserve(n)` ensures that the capacity is at least `n`. It does not promise exact capacity.
 
 ```dq
-darr.Reserve(1000);  // capacity >= 1000
+darr.Reserve(1000)  // capacity >= 1000
 ```
 
 `SetCapacity(n)` sets the capacity exactly. If `n < length`, the array length is truncated to `n`.
 
 ```dq
-darr.SetCapacity(10);  // exact capacity = 10
+darr.SetCapacity(10)  // exact capacity = 10
 ```
 
 `Compact()` sets capacity to the current length.
 
 ```dq
-darr.Compact();        // capacity = length
+darr.Compact()        // capacity = length
 ```
 
 `Clear()` sets the length to zero and keeps the current capacity. `Clear(true)` sets the length to zero and releases the element storage, returning the array to capacity zero.
@@ -663,10 +663,10 @@ darr.Compact();        // capacity = length
 `Clone()` returns an independent dynamic array with copied elements.
 
 ```dq
-var a : [*]int = [1, 2, 3];
-var b : [*]int = a.Clone();
+var a : [*]int = [1, 2, 3]
+var b : [*]int = a.Clone()
 
-b[0] = 99;
+b[0] = 99
 
 // a is [1, 2, 3]
 // b is [99, 2, 3]
@@ -685,15 +685,15 @@ Rules:
 `Pop()` removes and returns the last element.
 
 ```dq
-var a : [*]int = [10, 20, 30];
-var x : int = a.Pop();  // x = 30, a = [10, 20]
+var a : [*]int = [10, 20, 30]
+var x : int = a.Pop()  // x = 30, a = [10, 20]
 ```
 
 `PopFirst()` removes and returns the first element.
 
 ```dq
-var a : [*]int = [10, 20, 30];
-var x : int = a.PopFirst();  // x = 10, a = [20, 30]
+var a : [*]int = [10, 20, 30]
+var x : int = a.PopFirst()  // x = 10, a = [20, 30]
 ```
 
 Calling `Pop()` or `PopFirst()` on an empty dynamic array is a runtime error, because there is no element to return.
@@ -705,12 +705,12 @@ Calling `Pop()` or `PopFirst()` on an empty dynamic array is a runtime error, be
 Dynamic array operations must correctly handle overlapping source and destination ranges.
 
 ```dq
-var a : [*]int = [1, 2, 3];
+var a : [*]int = [1, 2, 3]
 
-a.Append(a);       // [1, 2, 3, 1, 2, 3]
-a.Append(a[1:]);   // valid
-a.Prepend(a);      // [1, 2, 3, 1, 2, 3]
-a.Insert(1, a);    // valid
+a.Append(a)       // [1, 2, 3, 1, 2, 3]
+a.Append(a[1:])   // valid
+a.Prepend(a)      // [1, 2, 3, 1, 2, 3]
+a.Insert(1, a)    // valid
 ```
 
 If `Append()` receives a source range that belongs to the destination dynamic array storage, the runtime converts the source pointer to a source element index before any possible reallocation. After reallocation, the source pointer is reconstructed from the new data pointer and the saved source index.
@@ -722,9 +722,9 @@ If the source range crosses the insertion point, the runtime uses a split-copy a
 Example:
 
 ```dq
-var a : [*]int = [1, 2, 3, 4];
+var a : [*]int = [1, 2, 3, 4]
 
-a.Insert(2, a[1:3]);  // [1, 2, 2, 3, 3, 4]
+a.Insert(2, a[1:3])  // [1, 2, 2, 3, 3, 4]
 ```
 
 Implementation model for overlapping `Insert()`:
@@ -762,26 +762,26 @@ For unmanaged element types, tail movement is implemented with `memmove`, and so
 A function parameter of type `[]T` accepts a mutable view of any compatible array storage.
 
 ```dq
-var sarr : [5]int = [10, 20, 30, 40, 50];
-var iarr : [?]int = [10, 20, 30, 40, 50];
-var darr : [*]int = [10, 20, 30, 40, 50];
+var sarr : [5]int = [10, 20, 30, 40, 50]
+var iarr : [?]int = [10, 20, 30, 40, 50]
+var darr : [*]int = [10, 20, 30, 40, 50]
 
 function SumIntArray(aarr : []int) -> int:
-  result = 0;
+  result = 0
   for var i : int = 0 count aarr.length:
-    result += aarr[i];
+    result += aarr[i]
   endfor
 endfunc
 
 function *Main() -> int:
-  var i : int;
+  var i : int
 
-  i = SumIntArray(sarr);
-  i = SumIntArray(iarr);
-  i = SumIntArray(darr);
-  i = SumIntArray(darr[1:4]);
+  i = SumIntArray(sarr)
+  i = SumIntArray(iarr)
+  i = SumIntArray(darr)
+  i = SumIntArray(darr[1:4])
 
-  return 0;
+  return 0
 endfunc
 ```
 
@@ -789,11 +789,11 @@ Because `[]T` is mutable, element writes through the parameter modify the origin
 
 ```dq
 function SetFirst(aarr : []int):
-  aarr[0] = 99;
+  aarr[0] = 99
 endfunc
 
-var arr : [?]int = [1, 2, 3];
-SetFirst(arr);
+var arr : [?]int = [1, 2, 3]
+SetFirst(arr)
 
 // arr is now [99, 2, 3]
 ```
@@ -801,23 +801,23 @@ SetFirst(arr);
 A function parameter of type `[*]T` expects a dynamic array reference. Static arrays and slices are not accepted unless explicitly copied into a dynamic array.
 
 ```dq
-var sarr : [?]int = [10, 20, 30, 40, 50];
-var darr : [*]int = [10, 20, 30, 40, 50];
+var sarr : [?]int = [10, 20, 30, 40, 50]
+var darr : [*]int = [10, 20, 30, 40, 50]
 
 function AppendSum(aarr : [*]int):
-  var sum : int = 0;
+  var sum : int = 0
   for var i : int = 0 count aarr.length:
-    sum += aarr[i];
+    sum += aarr[i]
   endfor
-  aarr.Append(sum);
+  aarr.Append(sum)
 endfunc
 
 function *Main() -> int:
-  AppendSum(sarr);            // compile error: dynamic array expected
-  AppendSum(sarr[1:4]);       // compile error: dynamic array expected
-  AppendSum(darr);            // OK, sum appended to darr's manager
-  AppendSum([*]int(sarr));    // compiler error: dynamic arrays require clear reference variables
-  return 0;
+  AppendSum(sarr)            // compile error: dynamic array expected
+  AppendSum(sarr[1:4])       // compile error: dynamic array expected
+  AppendSum(darr)            // OK, sum appended to darr's manager
+  AppendSum([*]int(sarr))    // compiler error: dynamic arrays require clear reference variables
+  return 0
 endfunc
 ```
 
@@ -827,8 +827,8 @@ A dynamic array parameter is passed as a reference value to the manager object.
 
 ```dq
 function F(aarr : [*]int):
-  aarr.Append(1);  // modifies the shared manager, visible to caller
-  aarr = [];       // rebinds only the local parameter variable
+  aarr.Append(1)  // modifies the shared manager, visible to caller
+  aarr = []       // rebinds only the local parameter variable
 endfunc
 ```
 
@@ -837,9 +837,9 @@ To rebind the caller's dynamic array variable, use `ref` or `refout`:
 ```dq
 function SelectArray(aindex : int, rarr : refout [*]int):
   if 1 == aindex:
-    rarr = darr1;
+    rarr = darr1
   else:
-    rarr = darr2;
+    rarr = darr2
   endif
 endfunc
 ```
@@ -880,21 +880,21 @@ Dynamic arrays use a hidden, refcounted heap manager object:
 
 ```dq
 object ODynArrMgr:
-  refcount : uint;
-  dataptr  : pointer;
-  length   : uint;
-  capacity : uint;
+  refcount : uint
+  dataptr  : pointer
+  length   : uint
+  capacity : uint
 
-  elemsize : uint;        // cached from type info
-  flags    : uint;        // cached element handling flags
-  typeinfo : ^SDqTypeInfo;
+  elemsize : uint        // cached from type info
+  flags    : uint        // cached element handling flags
+  typeinfo : ^SDqTypeInfo
 endobj
 ```
 
 The user-visible dynamic array variable is internally a nullable reference to `ODynArrMgr`:
 
 ```dq
-var arr : [*]int;   // internally: manager reference = null
+var arr : [*]int   // internally: manager reference = null
 ```
 
 A null manager is not an invalid array. It represents an empty dynamic array:
@@ -910,12 +910,12 @@ For the initial unmanaged-element implementation, the element type is described 
 
 ```dq
 struct SDqTypeInfo:
-  storagesize : uint;  // array stride, including padding
-  flags       : uint;  // unmanaged/plain element flags and future extensions
-  init_func    : pointer;  // reserved for the future managed object handling
-  destroy_func : pointer;  // reserved for the future managed object handling
-  copy_func    : pointer;  // reserved for the future managed object handling
-  move_func    : pointer;  // reserved for the future managed object handling
+  storagesize : uint  // array stride, including padding
+  flags       : uint  // unmanaged/plain element flags and future extensions
+  init_func    : pointer  // reserved for the future managed object handling
+  destroy_func : pointer  // reserved for the future managed object handling
+  copy_func    : pointer  // reserved for the future managed object handling
+  move_func    : pointer  // reserved for the future managed object handling
 endstruct
 ```
 
@@ -931,7 +931,7 @@ function DqDynArrayAppend(
   atype   : ^SDqTypeInfo,
   dataptr : pointer,
   count   : uint
-);
+)
 ```
 
 Helpers that return an element value, such as `Pop()` and `PopFirst()`, should use compiler-provided return storage instead of returning a pointer into array storage:
@@ -941,13 +941,13 @@ function DqDynArrayPop(
   amgr   : ref ODynArrMgr,
   atype  : ^SDqTypeInfo,
   outptr : pointer
-);
+)
 
 function DqDynArrayPopFirst(
   amgr   : ref ODynArrMgr,
   atype  : ^SDqTypeInfo,
   outptr : pointer
-);
+)
 ```
 
 The compiler supplies `outptr` as the destination for the function result. The helper copies the removed element into `outptr` and then updates the array length. No temporary heap allocation and no hidden temporary slot inside the array storage are required for unmanaged element types.
@@ -957,9 +957,9 @@ If `amgr == null`, helpers that add storage allocate a new `ODynArrMgr` and init
 The manager caches frequently used type information:
 
 ```dq
-amgr.elemsize = atype.storagesize;
-amgr.flags    = atype.flags;
-amgr.typeinfo = &atype;
+amgr.elemsize = atype.storagesize
+amgr.flags    = atype.flags
+amgr.typeinfo = &atype
 ```
 
 This avoids repeated type-info dereferencing during normal array operations.

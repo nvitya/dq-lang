@@ -182,7 +182,7 @@ present anywhere in a test source, the runner shall skip the file completely.
 The argument inside diagnostic directives shall primarily be the **diagnostic identifier**, for example:
 
 ```dq
-var a : int = true;  //?error(TypeIncompatible)
+var a : int = true  //?error(TypeIncompatible)
 ```
 
 The diagnostic identifier is expected to be the short code emitted by the compiler, for example:
@@ -350,7 +350,7 @@ The parser shall collect all runtime directives from the full file, regardless o
 Example:
 
 ```dq
-some_test_code();  //?check(Test1Result, 1.234), check(strtest1, "abcd")
+some_test_code()  //?check(Test1Result, 1.234), check(strtest1, "abcd")
 ```
 
 When more than one test instruction appears in one line, they shall be separated by commas after the same `//?` marker.

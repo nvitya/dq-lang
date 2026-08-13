@@ -44,9 +44,9 @@ All absolute module paths are package-qualified. The first component of an absol
 Examples:
 
 ```dq
-use dqgui/widgets/button;
-use dqstd/io;
-use sqlite/core --;
+use dqgui/widgets/button
+use dqstd/io
+use sqlite/core --
 ```
 
 The first components are package names:
@@ -169,9 +169,9 @@ There is no required `module` declaration inside the file.
 A module path uses `/` as separator:
 
 ```dq
-use dqgui/widgets;
-use dqgui/widgets/button;
-use dqgui/paint/image;
+use dqgui/widgets
+use dqgui/widgets/button
+use dqgui/paint/image
 ```
 
 The source file path rule is:
@@ -191,7 +191,7 @@ dqgui/widgets/label.dq
 
 Here `dqgui/widgets.dq` defines canonical module `dqgui/widgets`, while `dqgui/widgets/button.dq` defines child module `dqgui/widgets/button`.
 
-Directories alone do not define modules. If `dqgui/widgets.dq` does not exist, then `use dqgui/widgets;` is an error, even if directory `dqgui/widgets/` exists.
+Directories alone do not define modules. If `dqgui/widgets.dq` does not exist, then `use dqgui/widgets` is an error, even if directory `dqgui/widgets/` exists.
 
 ---
 
@@ -204,19 +204,19 @@ Everything before the optional `implementation` keyword belongs to the public in
 Example:
 
 ```dq
-use ../core only(TEvent);
-use ./widget only(TWidget);
+use ../core only(TEvent)
+use ./widget only(TWidget)
 
 type TButton = object(TWidget)
-  text : str;
+  text : str
 endobj
 
-function NewButton(text : str) -> TButton;
+function NewButton(text : str) -> TButton
 
 implementation
 
 function NewButton(text : str) -> TButton
-  result.text = text;
+  result.text = text
 endfunc
 ```
 
@@ -229,10 +229,10 @@ A file without `implementation` is an interface-only module.
 Example facade module:
 
 ```dq
-use ./label reexport;
-use ./textinput reexport;
-use ./button reexport;
-use ./window reexport;
+use ./label reexport
+use ./textinput reexport
+use ./button reexport
+use ./window reexport
 ```
 
 ---
@@ -246,13 +246,13 @@ Everything after `implementation` is private implementation content, except defi
 Example:
 
 ```dq
-use ../core only(TEvent);
+use ../core only(TEvent)
 
-function HandleEvent(ev : TEvent);
+function HandleEvent(ev : TEvent)
 
 implementation
 
-use ../platform --;
+use ../platform --
 
 function HandleEvent(ev : TEvent)
   ...
@@ -270,12 +270,12 @@ Active statements require `;`.
 Examples:
 
 ```dq
-use dqgui/widgets;
-use ./button reexport;
-use ^/system/utils --;
-usepath dqgui/widgets as w;
-x = y + 1;
-return x;
+use dqgui/widgets
+use ./button reexport
+use ^/system/utils --
+usepath dqgui/widgets as w
+x = y + 1
+return x
 ```
 
 Structural keywords do not require `;`.
@@ -304,8 +304,8 @@ namespace    = local name created by `use` for qualified access
 Module paths may contain `/`:
 
 ```dq
-use dqgui/widgets/button;
-use ^/system/utils;
+use dqgui/widgets/button
+use ^/system/utils
 ```
 
 Namespace usage after `@` does not contain module paths.
@@ -346,7 +346,7 @@ Every `use` declaration creates exactly one local namespace, unless this is disa
 Without `as`, the namespace name is the last component of the resolved module path.
 
 ```dq
-use dqgui/widgets;
+use dqgui/widgets
 ```
 
 creates namespace:
@@ -356,7 +356,7 @@ creates namespace:
 ```
 
 ```dq
-use dqgui/widgets/button;
+use dqgui/widgets/button
 ```
 
 creates namespace:
@@ -366,7 +366,7 @@ creates namespace:
 ```
 
 ```dq
-use ^/system/utils;
+use ^/system/utils
 ```
 
 creates namespace:
@@ -378,7 +378,7 @@ creates namespace:
 With `as`, the alias is the namespace name:
 
 ```dq
-use dqgui/widgets/button as btnmod;
+use dqgui/widgets/button as btnmod
 ```
 
 creates namespace:
@@ -390,15 +390,15 @@ creates namespace:
 Examples:
 
 ```dq
-use dqgui/widgets/button;
+use dqgui/widgets/button
 
-btn = @button.TButton("OK");
+btn = @button.TButton("OK")
 ```
 
 ```dq
-use dqgui/widgets/button as btnmod;
+use dqgui/widgets/button as btnmod
 
-btn = @btnmod.TButton("OK");
+btn = @btnmod.TButton("OK")
 ```
 
 The canonical module id is used internally by the compiler. The namespace name is local to the source file.
@@ -412,8 +412,8 @@ Namespace names must be unique within the current source file.
 This is an error:
 
 ```dq
-use dqgui/widgets/button;
-use mygui/widgets/button;
+use dqgui/widgets/button
+use mygui/widgets/button
 ```
 
 Both declarations try to create namespace `@button`.
@@ -421,18 +421,18 @@ Both declarations try to create namespace `@button`.
 The fix is to use explicit aliases:
 
 ```dq
-use dqgui/widgets/button as dqbutton;
-use mygui/widgets/button as mybutton;
+use dqgui/widgets/button as dqbutton
+use mygui/widgets/button as mybutton
 
-b1 = @dqbutton.TButton();
-b2 = @mybutton.TButton();
+b1 = @dqbutton.TButton()
+b2 = @mybutton.TButton()
 ```
 
 The uniqueness rule also applies to `--` imports:
 
 ```dq
-use dqgui/widgets/button --;
-use mygui/widgets/button --;  // error: namespace `button` already exists
+use dqgui/widgets/button --
+use mygui/widgets/button --  // error: namespace `button` already exists
 ```
 
 `--` disables symbol merging, not namespace creation.
@@ -446,7 +446,7 @@ The `use` declaration imports another module.
 Default behavior:
 
 ```dq
-use dqgui/widgets;
+use dqgui/widgets
 ```
 
 Effects:
@@ -460,41 +460,41 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets;
+use dqgui/widgets
 
-btn = TButton("OK");
-btn2 = @widgets.TButton("Cancel");
+btn = TButton("OK")
+btn2 = @widgets.TButton("Cancel")
 ```
 
 For a leaf module:
 
 ```dq
-use dqgui/widgets/button;
+use dqgui/widgets/button
 
-btn = TButton("OK");
-btn2 = @button.TButton("Cancel");
+btn = TButton("OK")
+btn2 = @button.TButton("Cancel")
 ```
 
 For a package-root-relative module:
 
 ```dq
-use ^/system/utils;
+use ^/system/utils
 
-ver = @utils.version;
+ver = @utils.version
 ```
 
 `use` may import a comma-separated list of independent module-use items:
 
 ```dq
-use dqgui/widgets/button, dqgui/widgets/list, dqgui/widgets/edit;
+use dqgui/widgets/button, dqgui/widgets/list, dqgui/widgets/edit
 ```
 
 This is exactly equivalent to:
 
 ```dq
-use dqgui/widgets/button;
-use dqgui/widgets/list;
-use dqgui/widgets/edit;
+use dqgui/widgets/button
+use dqgui/widgets/list
+use dqgui/widgets/edit
 ```
 
 Each item creates its own namespace, using the same rules as a separate `use` declaration:
@@ -508,15 +508,15 @@ Each item creates its own namespace, using the same rules as a separate `use` de
 Each item may also have its own alias and modifiers:
 
 ```dq
-use dqgui/widgets/button as btn, dqgui/widgets/list only(TList), dqgui/widgets/edit --;
+use dqgui/widgets/button as btn, dqgui/widgets/list only(TList), dqgui/widgets/edit --
 ```
 
 This is exactly equivalent to:
 
 ```dq
-use dqgui/widgets/button as btn;
-use dqgui/widgets/list only(TList);
-use dqgui/widgets/edit --;
+use dqgui/widgets/button as btn
+use dqgui/widgets/list only(TList)
+use dqgui/widgets/edit --
 ```
 
 ---
@@ -526,7 +526,7 @@ use dqgui/widgets/edit --;
 A module can be given a local namespace alias:
 
 ```dq
-use dqgui/widgets as w;
+use dqgui/widgets as w
 ```
 
 Effects:
@@ -540,19 +540,19 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets as w;
+use dqgui/widgets as w
 
-btn = TButton("OK");
-btn2 = @w.TButton("Cancel");
+btn = TButton("OK")
+btn2 = @w.TButton("Cancel")
 ```
 
 The original namespace spelling is not automatically introduced by this declaration:
 
 ```dq
-use dqgui/widgets as w;
+use dqgui/widgets as w
 
-@w.TButton("OK");       // OK
-@widgets.TButton("OK"); // error, unless another use created @widgets
+@w.TButton("OK")       // OK
+@widgets.TButton("OK") // error, unless another use created @widgets
 ```
 
 A `use ... as ...` alias is a namespace alias only. It is not a module path shortcut.
@@ -560,8 +560,8 @@ A `use ... as ...` alias is a namespace alias only. It is not a module path shor
 This is invalid unless a separate `usepath` defines `w` as a path alias:
 
 ```dq
-use dqgui/widgets as w;
-use w/button;  // error: `w` is not a path alias
+use dqgui/widgets as w
+use w/button  // error: `w` is not a path alias
 ```
 
 Use `usepath` for path shortcuts.
@@ -573,7 +573,7 @@ Use `usepath` for path shortcuts.
 The `--` modifier imports only the module namespace and does not merge public symbols into the current namespace.
 
 ```dq
-use dqgui/widgets --;
+use dqgui/widgets --
 ```
 
 Effects:
@@ -587,19 +587,19 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets --;
+use dqgui/widgets --
 
-btn = @widgets.TButton("OK");  // OK
-btn = TButton("OK");           // error
+btn = @widgets.TButton("OK")  // OK
+btn = TButton("OK")           // error
 ```
 
 With alias:
 
 ```dq
-use dqgui/widgets as w --;
+use dqgui/widgets as w --
 
-btn = @w.TButton("OK");        // OK
-btn = TButton("OK");           // error
+btn = @w.TButton("OK")        // OK
+btn = TButton("OK")           // error
 ```
 
 ---
@@ -611,7 +611,7 @@ The `only(...)` modifier merges only selected public symbols into the current na
 The module namespace remains available.
 
 ```dq
-use dqgui/widgets only(TButton, TLabel);
+use dqgui/widgets only(TButton, TLabel)
 ```
 
 Effects:
@@ -625,27 +625,27 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets only(TButton, TLabel);
+use dqgui/widgets only(TButton, TLabel)
 
-btn = TButton("OK");       // OK
-lbl = TLabel("Name:");     // OK
-win = TWindow();           // error
-win = @widgets.TWindow();  // OK
+btn = TButton("OK")       // OK
+lbl = TLabel("Name:")     // OK
+win = TWindow()           // error
+win = @widgets.TWindow()  // OK
 ```
 
 With alias:
 
 ```dq
-use dqgui/widgets as w only(TButton, TLabel);
+use dqgui/widgets as w only(TButton, TLabel)
 
-btn = TButton("OK");
-win = @w.TWindow();
+btn = TButton("OK")
+win = @w.TWindow()
 ```
 
 Future extension:
 
 ```dq
-use math only(sin as fsin, cos, PI);
+use math only(sin as fsin, cos, PI)
 ```
 
 Symbol aliases inside `only(...)` are not required for the first implementation, but the grammar should remain compatible with them.
@@ -659,7 +659,7 @@ The `exclude(...)` modifier merges all public symbols into the current namespace
 The module namespace remains available.
 
 ```dq
-use dqgui/widgets exclude(TList);
+use dqgui/widgets exclude(TList)
 ```
 
 Effects:
@@ -673,20 +673,20 @@ Effects:
 Example:
 
 ```dq
-use dqgui/widgets exclude(TList);
+use dqgui/widgets exclude(TList)
 
-btn = TButton("OK");     // OK
-lst = TList();           // error
-lst = @widgets.TList();  // OK
+btn = TButton("OK")     // OK
+lst = TList()           // error
+lst = @widgets.TList()  // OK
 ```
 
 With alias:
 
 ```dq
-use dqgui/widgets as w exclude(TList);
+use dqgui/widgets as w exclude(TList)
 
-btn = TButton("OK");
-lst = @w.TList();
+btn = TButton("OK")
+lst = @w.TList()
 ```
 
 `exclude(...)` is useful when a module's public interface should mostly be merged, but one or more names would conflict with local code or another import.
@@ -700,8 +700,8 @@ The `reexport` modifier makes imported public symbols part of the current module
 It is intended for facade modules.
 
 ```dq
-use ./button reexport;
-use ./label reexport;
+use ./button reexport
+use ./label reexport
 ```
 
 Meaning:
@@ -719,22 +719,22 @@ dqgui/widgets.dq
 ```
 
 ```dq
-use ./widget reexport, ./window reexport, ./button reexport, ./label reexport;
+use ./widget reexport, ./window reexport, ./button reexport, ./label reexport
 ```
 
 Then user code can write:
 
 ```dq
-use dqgui/widgets;
+use dqgui/widgets
 
-btn = TButton("OK");
-win = TWindow();
+btn = TButton("OK")
+win = TWindow()
 ```
 
 and qualified access is through the namespace created by the user's `use`:
 
 ```dq
-btn = @widgets.TButton("OK");
+btn = @widgets.TButton("OK")
 ```
 
 The local child namespaces used inside the facade module, such as `@button` and `@label`, are not automatically exposed to users of the facade module.
@@ -742,8 +742,8 @@ The local child namespaces used inside the facade module, such as `@button` and 
 Selective re-export:
 
 ```dq
-use ./button only(TButton) reexport;
-use ./widgets exclude(TList) reexport;
+use ./button only(TButton) reexport
+use ./widgets exclude(TList) reexport
 ```
 
 Effects:
@@ -757,7 +757,7 @@ Effects:
 Invalid combination:
 
 ```dq
-use ./button -- reexport;
+use ./button -- reexport
 ```
 
 Reason: `--` says symbols are not inserted into the current namespace, while `reexport` says imported symbols become part of the current module's public namespace.
@@ -767,21 +767,21 @@ A modifier belongs only to the module-use item immediately before it.
 For `reexport`, write it on every item that should be re-exported:
 
 ```dq
-use ./button reexport, ./list reexport, ./edit reexport;
+use ./button reexport, ./list reexport, ./edit reexport
 ```
 
 This declaration:
 
 ```dq
-use ./button, ./list, ./edit reexport;
+use ./button, ./list, ./edit reexport
 ```
 
 is valid, but means:
 
 ```dq
-use ./button;
-use ./list;
-use ./edit reexport;
+use ./button
+use ./list
+use ./edit reexport
 ```
 
 Style guide: do not rely on a trailing modifier to visually suggest that it applies to the whole list. Repeat `reexport` for each re-exported item.
@@ -801,17 +801,17 @@ It does not require the target path itself to be an existing module file.
 Example:
 
 ```dq
-usepath dqgui/widgets as w;
+usepath dqgui/widgets as w
 
-use w/button, w/textedit, w/list;
+use w/button, w/textedit, w/list
 ```
 
 This is equivalent to:
 
 ```dq
-use dqgui/widgets/button;
-use dqgui/widgets/textedit;
-use dqgui/widgets/list;
+use dqgui/widgets/button
+use dqgui/widgets/textedit
+use dqgui/widgets/list
 ```
 
 The namespaces created are:
@@ -827,32 +827,32 @@ No namespace `@w` is created.
 Therefore:
 
 ```dq
-@w.TButton();       // error
-@button.TButton();  // OK, if `use w/button;` was used
+@w.TButton()       // error
+@button.TButton()  // OK, if `use w/button` was used
 ```
 
 Path aliases are expanded independently for each comma-separated `use` item:
 
 ```dq
-usepath dqgui/widgets as w;
+usepath dqgui/widgets as w
 
-use w/button as btn, w/list as lst, w/edit;
+use w/button as btn, w/list as lst, w/edit
 ```
 
 This is equivalent to:
 
 ```dq
-use dqgui/widgets/button as btn;
-use dqgui/widgets/list as lst;
-use dqgui/widgets/edit;
+use dqgui/widgets/button as btn
+use dqgui/widgets/list as lst
+use dqgui/widgets/edit
 ```
 
 Qualified access uses the namespace created by each item:
 
 ```dq
-b = @btn.TButton();
-l = @lst.TList();
-e = @edit.TEdit();
+b = @btn.TButton()
+l = @lst.TList()
+e = @edit.TEdit()
 ```
 
 `usepath` aliases are usable only as the first component of later `use` or `usepath` module paths.
@@ -860,10 +860,10 @@ e = @edit.TEdit();
 Example:
 
 ```dq
-usepath dqgui/widgets as w;
-usepath w/internal as wi;
+usepath dqgui/widgets as w
+usepath w/internal as wi
 
-use wi/platformbutton --;
+use wi/platformbutton --
 ```
 
 `usepath` aliases are local to the current source file.
@@ -873,18 +873,18 @@ use wi/platformbutton --;
 A `usepath` alias may be redefined without warning:
 
 ```dq
-usepath dqgui/widgets as w;
-use w/button;       // dqgui/widgets/button
+usepath dqgui/widgets as w
+use w/button       // dqgui/widgets/button
 
-usepath mygui/widgets as w;
-use w/button;       // mygui/widgets/button
+usepath mygui/widgets as w
+use w/button       // mygui/widgets/button
 ```
 
 `usepath` can also use package-root-relative paths:
 
 ```dq
-usepath ^/widgets as w;
-use w/button, w/list, w/edit;
+usepath ^/widgets as w
+use w/button, w/list, w/edit
 ```
 
 The compiler expands path aliases before module resolution.
@@ -906,8 +906,8 @@ path alias path:            w/button
 Absolute paths are package-qualified:
 
 ```dq
-use dqgui/widgets/button;
-usepath dqgui/widgets as w;
+use dqgui/widgets/button
+usepath dqgui/widgets as w
 ```
 
 The first component is the package name.
@@ -926,7 +926,7 @@ In `dqgui/os/linux/gtk/core.dq`:
 ```dq
 #opt module_root_depth = 3
 
-use ^/system/utils;
+use ^/system/utils
 ```
 
 resolves to:
@@ -946,7 +946,7 @@ dqgui/widgets
 this declaration:
 
 ```dq
-use ./button;
+use ./button
 ```
 
 resolves to:
@@ -964,9 +964,9 @@ dqgui/widgets/button
 these declarations:
 
 ```dq
-use ../widget;
-use ../../core;
-use ../../paint/image;
+use ../widget
+use ../../core
+use ../../paint/image
 ```
 
 resolve to:
@@ -984,28 +984,28 @@ Qualified access uses the local namespace created by `use`, not the canonical mo
 Example:
 
 ```dq
-use ./button;
+use ./button
 
-btn = TButton("OK");
-btn2 = @button.TButton("Cancel");
+btn = TButton("OK")
+btn2 = @button.TButton("Cancel")
 ```
 
 With alias:
 
 ```dq
-use ./button as btnmod --;
+use ./button as btnmod --
 
-btn = @btnmod.TButton("OK");
+btn = @btnmod.TButton("OK")
 ```
 
 `usepath` can also use relative and package-root-relative paths:
 
 ```dq
-usepath ./internal as i;
-use i/platformbutton --;
+usepath ./internal as i
+use i/platformbutton --
 
-usepath ^/widgets as w;
-use w/button;
+usepath ^/widgets as w
+use w/button
 ```
 
 ---
@@ -1029,7 +1029,7 @@ module root directory:   dqgui
 Valid:
 
 ```dq
-use ../../../system/utils;
+use ../../../system/utils
 ```
 
 Resolution:
@@ -1047,7 +1047,7 @@ os/linux/gtk
 Invalid:
 
 ```dq
-use ../../../../../utils;
+use ../../../../../utils
 ```
 
 Resolution attempt:
@@ -1072,14 +1072,14 @@ The same rule applies after `usepath` expansion.
 Invalid:
 
 ```dq
-usepath ../../../../.. as bad;
+usepath ../../../../.. as bad
 ```
 
 Invalid:
 
 ```dq
-usepath ../../../system as s;
-use s/../../utils;  // escapes above root after expansion
+usepath ../../../system as s
+use s/../../utils  // escapes above root after expansion
 ```
 
 A package-root-relative path also must not contain components that escape above the root.
@@ -1087,7 +1087,7 @@ A package-root-relative path also must not contain components that escape above 
 Invalid:
 
 ```dq
-use ^/../utils;
+use ^/../utils
 ```
 
 Path normalization uses a stack rule:
@@ -1128,9 +1128,9 @@ dqgui.dq
 ```
 
 ```dq
-use ./core reexport;
-use ./widgets reexport;
-use ./paint reexport;
+use ./core reexport
+use ./widgets reexport
+use ./paint reexport
 ```
 
 Sub-facade:
@@ -1140,30 +1140,30 @@ dqgui/widgets.dq
 ```
 
 ```dq
-use ./button reexport;
-use ./label reexport;
-use ./textinput reexport;
-use ./list reexport;
+use ./button reexport
+use ./label reexport
+use ./textinput reexport
+use ./list reexport
 ```
 
 User code:
 
 ```dq
-use dqgui/widgets;
+use dqgui/widgets
 
-btn = TButton("OK");
-lbl = TLabel("Name:");
-btn2 = @widgets.TButton("Cancel");
+btn = TButton("OK")
+lbl = TLabel("Name:")
+btn2 = @widgets.TButton("Cancel")
 ```
 
 For repeated leaf imports without requiring a facade module:
 
 ```dq
-usepath dqgui/widgets as w;
+usepath dqgui/widgets as w
 
-use w/button;
-use w/textinput;
-use w/list;
+use w/button
+use w/textinput
+use w/list
 ```
 
 This does not require `dqgui/widgets.dq` to exist.
@@ -1171,8 +1171,8 @@ This does not require `dqgui/widgets.dq` to exist.
 Package-internal facade modules may use `^/` when a stable root-relative reference is clearer than a long relative path:
 
 ```dq
-use ^/widgets/button reexport;
-use ^/widgets/label reexport;
+use ^/widgets/button reexport
+use ^/widgets/label reexport
 ```
 
 ---
@@ -1232,8 +1232,8 @@ Merged symbols should not silently overwrite each other.
 This is a warning if both modules export `TButton`:
 
 ```dq
-use gui1/widgets as gw1;
-use gui2/widgets as gw2;
+use gui1/widgets as gw1
+use gui2/widgets as gw2
 ```
 
 Example diagnostic:
@@ -1245,25 +1245,25 @@ WARN(UseNameConflict): symbol 'TButton' imported from both @gw1 and @gw2
 The user should resolve ambiguity with aliases, `only(...)`, `exclude(...)`, or `--`:
 
 ```dq
-use gui1/widgets as gw1 only(TWindow, TLabel);
-use gui2/widgets as gw2 only(TButton);
+use gui1/widgets as gw1 only(TWindow, TLabel)
+use gui2/widgets as gw2 only(TButton)
 ```
 
 or:
 
 ```dq
-use gui1/widgets as gw1 exclude(TButton);
-use gui2/widgets as gw2;
+use gui1/widgets as gw1 exclude(TButton)
+use gui2/widgets as gw2
 ```
 
 or:
 
 ```dq
-use gui1/widgets as gw1 --;
-use gui2/widgets as gw2;
+use gui1/widgets as gw1 --
+use gui2/widgets as gw2
 
-btn = TButton("OK");
-other = @gw1.TButton("Other");
+btn = TButton("OK")
+other = @gw1.TButton("Other")
 ```
 
 `reexport` conflicts also issue warnings.
@@ -1271,8 +1271,8 @@ other = @gw1.TButton("Other");
 Example:
 
 ```dq
-use ./widgets reexport;
-use ./graphics reexport;
+use ./widgets reexport
+use ./graphics reexport
 ```
 
 If both export `TItem`, the facade module should explicitly restrict or rename one side.
@@ -1280,15 +1280,15 @@ If both export `TItem`, the facade module should explicitly restrict or rename o
 Namespace conflicts are errors:
 
 ```dq
-use dqgui/widgets/button;
-use mygui/widgets/button;  // error: namespace `button` already exists
+use dqgui/widgets/button
+use mygui/widgets/button  // error: namespace `button` already exists
 ```
 
 Fix:
 
 ```dq
-use dqgui/widgets/button as dqbutton;
-use mygui/widgets/button as mybutton;
+use dqgui/widgets/button as dqbutton
+use mygui/widgets/button as mybutton
 ```
 
 ---
@@ -1317,14 +1317,14 @@ type TA = object
   ...
 endobj
 
-function MakeA() -> TA;
+function MakeA() -> TA
 
 implementation
 
-use ./b;
+use ./b
 
 function MakeA() -> TA
-  @b.Helper();
+  @b.Helper()
   ...
 endfunc
 ```
@@ -1332,14 +1332,14 @@ endfunc
 ```dq
 // b.dq
 
-function Helper();
+function Helper()
 
 implementation
 
-use ./a;
+use ./a
 
 function Helper()
-  x = @a.MakeA();
+  x = @a.MakeA()
 endfunc
 ```
 
@@ -1448,39 +1448,39 @@ Semantic restrictions:
 #opt module_root_depth = 0
 #opt module_root_depth = 3
 
-use xpackage/xmodule;
-use xpackage/xmodule as xm;
+use xpackage/xmodule
+use xpackage/xmodule as xm
 
-use xpackage/xmodule --;
-use xpackage/xmodule as xm --;
+use xpackage/xmodule --
+use xpackage/xmodule as xm --
 
-use xpackage/xmodule only(Symbol1, Symbol2);
-use xpackage/xmodule as xm only(Symbol1, Symbol2);
-use xpackage/xmodule exclude(Symbol1, Symbol2);
-use xpackage/xmodule as xm exclude(Symbol1, Symbol2);
+use xpackage/xmodule only(Symbol1, Symbol2)
+use xpackage/xmodule as xm only(Symbol1, Symbol2)
+use xpackage/xmodule exclude(Symbol1, Symbol2)
+use xpackage/xmodule as xm exclude(Symbol1, Symbol2)
 
-use xpackage/xmodule reexport;
-use xpackage/xmodule only(Symbol1, Symbol2) reexport;
-use xpackage/xmodule exclude(Symbol1, Symbol2) reexport;
+use xpackage/xmodule reexport
+use xpackage/xmodule only(Symbol1, Symbol2) reexport
+use xpackage/xmodule exclude(Symbol1, Symbol2) reexport
 
-use xpackage/a, xpackage/b, xpackage/c;
-use xpackage/a as a, xpackage/b only(SymbolB), xpackage/c --;
-use ./button reexport, ./list reexport, ./edit reexport;
+use xpackage/a, xpackage/b, xpackage/c
+use xpackage/a as a, xpackage/b only(SymbolB), xpackage/c --
+use ./button reexport, ./list reexport, ./edit reexport
 
-use ^/root_child;
-use ^/system/utils;
-use ^/system/utils as utils --;
+use ^/root_child
+use ^/system/utils
+use ^/system/utils as utils --
 
-use ./child;
-use ../sibling;
-use ../../other/module;
+use ./child
+use ../sibling
+use ../../other/module
 
-usepath package/submodule as sm;
-use sm/child;
-use sm/child as childmod;
+usepath package/submodule as sm
+use sm/child
+use sm/child as childmod
 
-usepath ^/widgets as w;
-use w/button, w/list, w/textinput as ti;
+usepath ^/widgets as w
+use w/button, w/list, w/textinput as ti
 ```
 
 Examples:
@@ -1488,39 +1488,39 @@ Examples:
 ```dq
 #opt module_root_depth = 3
 
-use dqgui/widgets;
-use dqgui/widgets as w;
-use dqgui/widgets --;
-use dqgui/widgets only(TButton, TLabel);
-use dqgui/widgets exclude(TList);
-use dqgui/widgets only(TButton, TLabel) reexport;
-use dqgui/widgets exclude(TList) reexport;
+use dqgui/widgets
+use dqgui/widgets as w
+use dqgui/widgets --
+use dqgui/widgets only(TButton, TLabel)
+use dqgui/widgets exclude(TList)
+use dqgui/widgets only(TButton, TLabel) reexport
+use dqgui/widgets exclude(TList) reexport
 
-use ^/system/utils --;
-use ^/widgets/button reexport;
+use ^/system/utils --
+use ^/widgets/button reexport
 
-use ./button reexport;
-use ./button reexport, ./list reexport, ./edit reexport;
-use ../core only(TEvent);
-use ../../paint/image as img --;
+use ./button reexport
+use ./button reexport, ./list reexport, ./edit reexport
+use ../core only(TEvent)
+use ../../paint/image as img --
 
-usepath dqgui/widgets as widgets_path;
-use widgets_path/button, widgets_path/list, widgets_path/textinput as ti;
+usepath dqgui/widgets as widgets_path
+use widgets_path/button, widgets_path/list, widgets_path/textinput as ti
 
-usepath ^/widgets as local_widgets;
-use local_widgets/button, local_widgets/list;
+usepath ^/widgets as local_widgets
+use local_widgets/button, local_widgets/list
 ```
 
 Qualified access examples:
 
 ```dq
-use dqgui/widgets;
-use dqgui/widgets/button as btnmod;
-use ^/system/utils --;
-use ../../paint/image as img --;
+use dqgui/widgets
+use dqgui/widgets/button as btnmod
+use ^/system/utils --
+use ../../paint/image as img --
 
-w = @widgets.TWindow();
-b = @btnmod.TButton("OK");
-v = @utils.version;
-i = @img.TImage("logo.png");
+w = @widgets.TWindow()
+b = @btnmod.TButton("OK")
+v = @utils.version
+i = @img.TImage("logo.png")
 ```

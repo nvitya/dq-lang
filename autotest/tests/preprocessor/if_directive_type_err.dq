@@ -1,0 +1,7 @@
+const DIRECTIVE_LEVEL : int = 3
+
+var selected : int = #{if DIRECTIVE_LEVEL} 1 #{else} 0 #{endif} //?error(CDirExpr)
+
+function *Main() -> int:
+    return 0
+endfunc

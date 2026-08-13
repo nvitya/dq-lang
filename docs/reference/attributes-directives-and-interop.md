@@ -66,6 +66,12 @@ Nested conditionals must be balanced. A definition has the Boolean or integer
 value supplied by its source; code should not assume that every defined name has
 only the value `true`.
 
+Expressions in `#if` and `#elif` use ordinary DQ lexical name lookup at the
+directive location and must evaluate to a constant Boolean value. Access a
+preprocessor definition in such an expression through `@def.NAME`. The
+existence-testing directives (`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef`)
+continue to take an unqualified preprocessor-definition name.
+
 ## Include and Source Dependencies
 
 `#include` inserts a DQ header/source fragment at the directive location under

@@ -17,7 +17,7 @@ function *Main() -> int:
 
     #ifdef BOOLVAL
         printf('BOOLVAL_defined = true\n')  //?check('BOOLVAL_defined', 'true')
-        #if BOOLVAL
+        #if @def.BOOLVAL
             printf('  BOOLVAL = true\n')
         #else
             printf('  BOOLVAL = false\n')  //?check('BOOLVAL', 'false')
@@ -35,18 +35,18 @@ function *Main() -> int:
     #endif
 
     #ifdef ERRORTEST
-        #if NONEXISTING
+        #if @def.NONEXISTING
             // non-existing define
         #endif
 
-    #if MAXVAL
+    #if @def.MAXVAL
         // maxval is not boolean, compare operator required
     #endif
     #endif
 
-    #if MAXVAL > 2000
+    #if @def.MAXVAL > 2000
         printf('MAXVAL > 2000\n')
-    #elif MAXVAL >= 1000
+    #elif @def.MAXVAL >= 1000
         printf('MAXVAL >= 1000\n')
     #else
         printf('MAXVAL_branch = less_than_1000\n') //?check('MAXVAL_branch', 'less_than_1000')

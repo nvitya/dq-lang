@@ -1,0 +1,7 @@
+#define DEFINE_ONLY = true
+
+var selected : int = #{if DEFINE_ONLY} 1 #{else} 0 #{endif} //?error(VsUnknown)
+
+function *Main() -> int:
+    return 0
+endfunc

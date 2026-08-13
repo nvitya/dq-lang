@@ -4,7 +4,7 @@ use print
 
 #define USE_MOD = true
 
-#if USE_MOD
+#if @def.USE_MOD
     use ./ctor_overload_mod
 #else
 

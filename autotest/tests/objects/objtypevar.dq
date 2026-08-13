@@ -52,7 +52,7 @@ function *Main() -> int:
     var o1 : OBase
     var o2 : OBase
 
-    #if USE_TYPEVAR
+    #if @def.USE_TYPEVAR
         var ot : type of OBase
 
     ot = OFirst

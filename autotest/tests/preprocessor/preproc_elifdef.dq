@@ -3,7 +3,7 @@
 #define DEFINED1
 #define VALUE = 7
 
-#if VALUE < 0
+#if @def.VALUE < 0
     var branch1 : int = 1
 #elifdef DEFINED1
     var branch1 : int = 2
@@ -13,7 +13,7 @@
 
 #ifdef NOT_DEFINED
     var branch2 : int = 10
-#elif VALUE == 7
+#elif @def.VALUE == 7
     var branch2 : int = 20
 #else
     var branch2 : int = 30

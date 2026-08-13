@@ -162,6 +162,28 @@ Directive blocks can also be written inline with `#{...}`.
 var value : int = #{ifdef FAST} 1 #{else} 2 #{endif}
 ```
 
+`#if` and `#elif` expressions resolve unqualified names in the surrounding DQ
+lexical scope. The result must be a compile-time constant Boolean value, and
+only declarations already visible at the directive can be used. Preprocessor
+definitions are a separate namespace and are referenced explicitly:
+
+```dq
+const API_LEVEL : int = 4
+#define TARGET_VERSION = 7
+
+#if API_LEVEL >= 3
+    const HAS_NEW_API : bool = true
+#endif
+
+#if @def.TARGET_VERSION >= 7
+    const HAS_NEW_TARGET : bool = true
+#endif
+```
+
+`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef` continue to test preprocessor
+definitions directly. Bare names in `#define` value expressions also continue
+to refer to earlier preprocessor definitions.
+
 ## Include
 
 Source include directives are supported.

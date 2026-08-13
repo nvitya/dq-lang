@@ -1,0 +1,7 @@
+var selected : int = #{if LATER_CONSTANT} 1 #{else} 0 #{endif} //?error(VsUnknown)
+
+const LATER_CONSTANT : bool = true
+
+function *Main() -> int:
+    return 0
+endfunc

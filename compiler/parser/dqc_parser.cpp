@@ -2805,7 +2805,8 @@ bool ODqCompParser::ParseDefineCondition(const OScPosition & scpos, bool * rok)
 
   scpos_statement_start = scpos;
   errorpos = &scpos_statement_start;
-  curscope = g_defines;
+  // Keep the scope active at the directive location.  Preprocessor values are
+  // still available explicitly through the @def namespace.
   curblock = nullptr;
   scf->SetDirectiveExprMode(true);
 

@@ -43,7 +43,7 @@
 
 #{endif}
 
-#if DEFVAR > 3
+#if @def.DEFVAR > 3
 
    var globvar2 : int = 5
 

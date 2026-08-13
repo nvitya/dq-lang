@@ -1,0 +1,80 @@
+// DQ lexical-scope lookup in #if and #elif conditions
+
+const MODULE_LEVEL : int = 3
+const SHADOWED_LEVEL : int = 1
+const INLINE_LEVEL : int = 4
+const VERSION : int = 2
+
+#define VERSION = 7
+#define BASE_TARGET = 10
+#define NEXT_TARGET = BASE_TARGET + 1
+#define STILL_DEFINED
+
+#if MODULE_LEVEL >= 3
+    const module_branch : int = 31
+#else
+    const module_branch : int = 0
+#endif
+
+#if VERSION == 2
+    const dq_version_branch : int = 22
+#else
+    const dq_version_branch : int = 0
+#endif
+
+#if @def.VERSION == 7 and @def.NEXT_TARGET == 11
+    const define_branch : int = 71
+#else
+    const define_branch : int = 0
+#endif
+
+#ifdef STILL_DEFINED
+    const ifdef_branch : int = 81
+#else
+    const ifdef_branch : int = 0
+#endif
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+function *Main() -> int:
+    const SHADOWED_LEVEL : int = 3
+    const PARENT_LEVEL : int = 5
+
+    #if SHADOWED_LEVEL == 3
+        var shadow_branch : int = 33
+    #else
+        var shadow_branch : int = 0
+    #endif
+
+    #if MODULE_LEVEL == 3
+        var parent_module_branch : int = 41
+    #else
+        var parent_module_branch : int = 0
+    #endif
+
+    if true:
+        #if PARENT_LEVEL == 5
+            printf("parent scope = %d\n", PARENT_LEVEL) //?check("parent scope", 5)
+        #endif
+    endif
+
+    #if MODULE_LEVEL < 0
+        var elif_branch : int = 0
+    #elif MODULE_LEVEL == 3
+        var elif_branch : int = 51
+    #else
+        var elif_branch : int = 0
+    #endif
+
+    var inline_branch : int = #{if INLINE_LEVEL == 4} 61 #{else} 0 #{endif}
+
+    printf("module branch = %d\n", module_branch)             //?check("module branch", 31)
+    printf("shadow branch = %d\n", shadow_branch)             //?check("shadow branch", 33)
+    printf("module parent = %d\n", parent_module_branch)      //?check("module parent", 41)
+    printf("elif branch = %d\n", elif_branch)                 //?check("elif branch", 51)
+    printf("inline branch = %d\n", inline_branch)             //?check("inline branch", 61)
+    printf("DQ version = %d\n", dq_version_branch)            //?check("DQ version", 22)
+    printf("define version = %d\n", define_branch)            //?check("define version", 71)
+    printf("ifdef branch = %d\n", ifdef_branch)               //?check("ifdef branch", 81)
+    return 0
+endfunc

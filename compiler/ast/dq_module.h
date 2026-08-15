@@ -114,6 +114,7 @@ public:
   OValSymFunc * EnsureModuleInitFunc(OScPosition & scpos);
   OValSymFunc * EnsureAppInitFunc(OScPosition & scpos);
   void FinalizeModuleInitFunc();
+  LlDiScope * GetDiScope();
   vector<OValSymFunc *> ModuleInitCallList(bool include_self) const;
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
                          const string & interface_artifact_path, const string & link_artifact_path,

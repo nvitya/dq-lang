@@ -578,9 +578,9 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
     if (g_opt.dbg_info)
     {
       llvm::DIGlobalVariableExpression * debug_expr = di_builder->createGlobalVariableExpression(
-          di_unit,            // The scope (usually the compile unit)
-          name,               // The name in the source code
-          ll_name,            // The linkage name (mangled name, if applicable)
+          g_module->GetDiScope(), // The canonical module path as nested scopes
+          name,                   // The name in the source code
+          "",                     // Keep the mangled linkage name out of debugger expressions
           scpos.scfile->di_file, // The file where it is declared
           scpos.line,         // The line number in the source code (example: line 10)
           ptype->GetDiType(), // The debug type

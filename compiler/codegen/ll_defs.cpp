@@ -49,7 +49,10 @@ void ll_init_debug_info()
     pfile->di_file = di_builder->createFile(pfile->name, ExtractFilePath(pfile->fullpath));
   }
   di_main_file = pfile->di_file;
-  di_unit = di_builder->createCompileUnit(llvm::dwarf::DW_LANG_C, di_main_file, "dqc", false, "", 0);
+  // GDB has no DQ language frontend; use its C++ expression parser so that
+  // canonical DQ module scopes can be addressed with the `::` separator.
+  di_unit = di_builder->createCompileUnit(
+      llvm::dwarf::DW_LANG_C_plus_plus, di_main_file, "dqc", false, "", 0);
 }
 
 LlValue * ToNativeInt(LlValue * value)

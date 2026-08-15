@@ -25,6 +25,7 @@
 #include <chrono>
 
 #include "scf_dq.h"
+#include "named_scopes.h"
 #include "scope_defines.h"
 #include "scope_builtins.h"
 
@@ -992,10 +993,72 @@ bool OScFeederDq::ContinueConditionalBranch(const string & adirective)
   return (not inactive_code);
 }
 
+bool OScFeederDq::ReadConditionalSymbol(const string & adirective, string & rnamespace, string & rsymbol)
+{
+  rnamespace.clear();
+  rsymbol.clear();
+
+  SkipSpaces();
+  if (!CheckSymbol("@"))
+  {
+    if (ReadIdentifier(rsymbol))
+    {
+      return true;
+    }
+    PreprocError2(DQERR_CDIR_COND_ID_MISSING, adirective);
+    return false;
+  }
+
+  if (CheckSymbol(".."))
+  {
+    rnamespace = "..";
+  }
+  else if (CheckSymbol("."))
+  {
+    rnamespace = ".";
+  }
+  else if (!ReadIdentifier(rnamespace))
+  {
+    PreprocError2(DQERR_NS_NAME_EXPECTED);
+    return false;
+  }
+  else if (!CheckSymbol("."))
+  {
+    PreprocError2(DQERR_DOT_MISSING_AFTER_NS_NAME);
+    return false;
+  }
+
+  if (!ReadIdentifier(rsymbol))
+  {
+    PreprocError2(DQERR_ID_EXP_AFTER, "@" + rnamespace);
+    return false;
+  }
+  return true;
+}
+
+bool OScFeederDq::ConditionalSymbolDefined(const string & anamespace, const string & asymbol, bool & rok)
+{
+  rok = true;
+  if (anamespace.empty())
+  {
+    return g_defines->Defined(asymbol);
+  }
+
+  auto it = g_namespaces.find(anamespace);
+  if (it == g_namespaces.end())
+  {
+    PreprocError2(DQERR_NS_UNKNOWN, "@" + anamespace);
+    rok = false;
+    return false;
+  }
+  return (nullptr != it->second->FindValSym(asymbol, nullptr, true));
+}
+
 
 bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a conditional processed
 {
   string sid;
+  string nsname;
   bool condok = false;
   bool condval = false;
 
@@ -1003,24 +1066,31 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
 
   if (("ifdef" == aid) || ("ifndef" == aid))
   {
-    SkipSpaces();
-
     StartConditionalBranch();
 
-    if (!ReadIdentifier(sid))
+    if (!ReadConditionalSymbol("#" + aid, nsname, sid))
     {
-      PreprocError2(DQERR_CDIR_COND_ID_MISSING, "#" + aid);
       inactive_code = true;
     }
     else if (not inactive_code)
     {
-      bool isdefined = g_defines->Defined(sid);
-      ApplyConditionalResult((("ifdef" == aid) and isdefined) or (("ifndef" == aid) and not isdefined));
+      bool isdefined = ConditionalSymbolDefined(nsname, sid, condok);
+      if (condok)
+      {
+        ApplyConditionalResult((("ifdef" == aid) and isdefined) or (("ifndef" == aid) and not isdefined));
+      }
+      else
+      {
+        inactive_code = true;
+      }
     }
 
     if (g_opt.verblevel >= VERBLEVEL_DEBUG)
     {
-      print("{}: #{} \"{}\" {}\n", scpos_start_directive.Format(), aid, sid, (inactive_code ? "(inactive)" : ""));
+      string qualified_name = (nsname.empty() ? sid
+                               : "@" + nsname + (("." == nsname || ".." == nsname) ? "" : ".") + sid);
+      print("{}: #{} \"{}\" {}\n", scpos_start_directive.Format(), aid,
+            qualified_name, (inactive_code ? "(inactive)" : ""));
     }
   }
   else if ("if" == aid)
@@ -1103,22 +1173,32 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
   {
     string directive = "#" + aid;
 
-    SkipSpaces();
-    if (not ReadIdentifier(sid))
+    bool symbol_ok = ReadConditionalSymbol(directive, nsname, sid);
+    bool branch_active = ContinueConditionalBranch(directive);
+
+    if (!symbol_ok)
     {
-      PreprocError2(DQERR_CDIR_COND_ID_MISSING, directive);
       inactive_code = true;
     }
-
-    if (ContinueConditionalBranch(directive))
+    else if (branch_active)
     {
-      bool isdefined = g_defines->Defined(sid);
-      ApplyConditionalResult((("elifdef" == aid) and isdefined) or (("elifndef" == aid) and not isdefined));
+      bool isdefined = ConditionalSymbolDefined(nsname, sid, condok);
+      if (condok)
+      {
+        ApplyConditionalResult((("elifdef" == aid) and isdefined) or (("elifndef" == aid) and not isdefined));
+      }
+      else
+      {
+        inactive_code = true;
+      }
     }
 
     if (g_opt.verblevel >= VERBLEVEL_DEBUG)
     {
-      print("{}: #{} \"{}\" {}\n", scpos_start_directive.Format(), aid, sid, (inactive_code ? "(inactive)" : ""));
+      string qualified_name = (nsname.empty() ? sid
+                               : "@" + nsname + (("." == nsname || ".." == nsname) ? "" : ".") + sid);
+      print("{}: #{} \"{}\" {}\n", scpos_start_directive.Format(), aid,
+            qualified_name, (inactive_code ? "(inactive)" : ""));
     }
   }
   else if ("elif" == aid)

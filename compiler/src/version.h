@@ -11,10 +11,17 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.45.1"
+#define DQ_COMPILER_VERSION  "0.45.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.3:
+  - #ifdef supports all scopes, `@def.` is the default unqualified scope, like before,
+    `@.` can be used for the current module scope
+v0.45.2:
+  - Debugging improvements:
+    - debug symbols emitted as "pkg::submod::variable"
+    - gdb pretty printer installed
 v0.45.1:
   - -O0 debuginfo fix for proper debugger stepping
   - *ModuleInit() calling fix for bare-metal targets

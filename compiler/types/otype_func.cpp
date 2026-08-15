@@ -1117,7 +1117,7 @@ void OValSymFunc::GenerateFuncBody()
   {
     llvm::DISubroutineType * di_func_type = static_cast<llvm::DISubroutineType *>(tfunc->GetDiType()); // debugFuncType = getDebugFuncType(f);
     di_func = di_builder->createFunction(
-        scpos.scfile->di_file, name, name, scpos.scfile->di_file, scpos.line,
+        g_module->GetDiScope(), name, "", scpos.scfile->di_file, scpos.line,
         di_func_type, scpos.line,
         llvm::DINode::FlagZero, llvm::DISubprogram::SPFlagDefinition
     );

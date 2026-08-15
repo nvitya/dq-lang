@@ -33,6 +33,29 @@ void init_dq_module()
   g_module = new OModule();
 }
 
+LlDiScope * OModule::GetDiScope()
+{
+  if (di_scope || !di_builder)
+  {
+    return di_scope;
+  }
+
+  di_scope = di_unit;
+  size_t start = 0;
+  while (start < name.size())
+  {
+    size_t end = name.find('/', start);
+    string component = name.substr(start, end - start);
+    if (!component.empty())
+    {
+      di_scope = di_builder->createNameSpace(di_scope, component, false);
+    }
+    if (string::npos == end) break;
+    start = end + 1;
+  }
+  return di_scope;
+}
+
 ODecl * OModule::DeclareType(bool apublic, OType * atype)
 {
   ODecl * result = new ODecl(apublic, atype);

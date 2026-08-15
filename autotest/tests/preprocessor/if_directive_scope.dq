@@ -34,6 +34,40 @@ const VERSION : int = 2
     const ifdef_branch : int = 0
 #endif
 
+#ifdef @.MODULE_LEVEL
+    const qualified_ifdef_branch : int = 91
+#else
+    const qualified_ifdef_branch : int = 0
+#endif
+
+#ifdef @def.STILL_DEFINED
+    const qualified_define_branch : int = 95
+#else
+    const qualified_define_branch : int = 0
+#endif
+
+#ifndef @.MISSING_MODULE_LEVEL
+    const qualified_ifndef_branch : int = 92
+#else
+    const qualified_ifndef_branch : int = 0
+#endif
+
+#ifdef @.MISSING_MODULE_LEVEL
+    const qualified_elifdef_branch : int = 0
+#elifdef @.MODULE_LEVEL
+    const qualified_elifdef_branch : int = 93
+#else
+    const qualified_elifdef_branch : int = 0
+#endif
+
+#ifdef @.MISSING_MODULE_LEVEL
+    const qualified_elifndef_branch : int = 0
+#elifndef @.ANOTHER_MISSING_MODULE_LEVEL
+    const qualified_elifndef_branch : int = 94
+#else
+    const qualified_elifndef_branch : int = 0
+#endif
+
 function printf(fmt : ^char, ...) -> int [[external]]
 
 function *Main() -> int:
@@ -76,5 +110,10 @@ function *Main() -> int:
     printf("DQ version = %d\n", dq_version_branch)            //?check("DQ version", 22)
     printf("define version = %d\n", define_branch)            //?check("define version", 71)
     printf("ifdef branch = %d\n", ifdef_branch)               //?check("ifdef branch", 81)
+    printf("qualified ifdef = %d\n", qualified_ifdef_branch)   //?check("qualified ifdef", 91)
+    printf("qualified define = %d\n", qualified_define_branch) //?check("qualified define", 95)
+    printf("qualified ifndef = %d\n", qualified_ifndef_branch) //?check("qualified ifndef", 92)
+    printf("qualified elifdef = %d\n", qualified_elifdef_branch) //?check("qualified elifdef", 93)
+    printf("qualified elifndef = %d\n", qualified_elifndef_branch) //?check("qualified elifndef", 94)
     return 0
 endfunc

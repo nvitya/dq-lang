@@ -180,9 +180,10 @@ const API_LEVEL : int = 4
 #endif
 ```
 
-`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef` continue to test preprocessor
-definitions directly. Bare names in `#define` value expressions also continue
-to refer to earlier preprocessor definitions.
+`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef` test preprocessor definitions
+directly when given a bare name. They can also test a value symbol in any named
+scope, for example `#ifdef @.FEATURE` or `#ifdef @module.FEATURE`. Bare names in
+`#define` value expressions continue to refer to earlier preprocessor definitions.
 
 ## Include
 

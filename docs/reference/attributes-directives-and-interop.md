@@ -70,7 +70,8 @@ Expressions in `#if` and `#elif` use ordinary DQ lexical name lookup at the
 directive location and must evaluate to a constant Boolean value. Access a
 preprocessor definition in such an expression through `@def.NAME`. The
 existence-testing directives (`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef`)
-continue to take an unqualified preprocessor-definition name.
+take either an unqualified preprocessor-definition name or a namespace-qualified
+DQ value symbol such as `@.FEATURE` or `@module.FEATURE`.
 
 ## Include and Source Dependencies
 

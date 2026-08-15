@@ -109,6 +109,8 @@ protected:
   void StartConditionalBranch();
   void ApplyConditionalResult(bool acondition_true);
   bool ContinueConditionalBranch(const string & adirective);
+  bool ReadConditionalSymbol(const string & adirective, string & rnamespace, string & rsymbol);
+  bool ConditionalSymbolDefined(const string & anamespace, const string & asymbol, bool & rok);
 
   bool CheckConditionals(const string aid);  // processes if, ifdef, else, elif, elifdef, endif. Returns true, when one of those found
 

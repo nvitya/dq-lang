@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(CheckCXXSourceCompiles)
+include(GNUInstallDirs)
 
 find_library(DQ_STDCXXEXP_LIBRARY stdc++exp)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND DQ_STDCXXEXP_LIBRARY)
@@ -61,6 +62,30 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
     PATTERN "*.dqi"
     PATTERN ".dqbuild" EXCLUDE
 )
+
+set(DQ_GDB_SYSTEM_INIT_DIR "/etc/gdb/gdbinit.d" CACHE PATH
+  "GDB system-wide initialization directory; empty disables auto-loading"
+)
+set(DQ_GDB_PRINTERS_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/dq/gdb")
+set(DQ_GDB_PRINTERS_FILE
+  "${CMAKE_INSTALL_FULL_DATADIR}/dq/gdb/dq_printers.py"
+)
+
+configure_file(
+  "${CMAKE_SOURCE_DIR}/tools/gdb/dq_gdbinit.py"
+  "${DQ_BUILD_DIR}/dq_gdbinit.py"
+  @ONLY
+)
+
+install(FILES "${CMAKE_SOURCE_DIR}/tools/gdb/dq_printers.py"
+  DESTINATION "${DQ_GDB_PRINTERS_INSTALL_DIR}"
+)
+
+if(DQ_GDB_SYSTEM_INIT_DIR)
+  install(FILES "${DQ_BUILD_DIR}/dq_gdbinit.py"
+    DESTINATION "${DQ_GDB_SYSTEM_INIT_DIR}"
+  )
+endif()
 
 set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
 

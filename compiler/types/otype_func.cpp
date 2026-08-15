@@ -723,7 +723,7 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   else
   {
     string symbol_name = generated_linkage_name.empty() ? name : generated_linkage_name;
-    ll_name = GetLinkageName(apublic, 'F', symbol_name);
+    ll_name = GetLinkageName(apublic, symbol_name);
   }
 
   if (apublic)

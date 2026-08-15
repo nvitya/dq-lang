@@ -703,7 +703,7 @@ public:
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
   void GenGlobalImportDecl();
-  string GetLinkageName(bool apublic, char atype_prefix, const string & asymbol_name = "") const;
+  string GetLinkageName(bool apublic, const string & asymbol_name = "") const;
   bool GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr);
   virtual bool WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags = 0);
   virtual bool WriteDqmIfDecl(ODqmIfWriter & writer);

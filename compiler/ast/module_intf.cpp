@@ -525,19 +525,11 @@ OIntfDecl * OModuleIntf::AddPublicValSym(OValSym * avalsym)
   return result;
 }
 
-string OModuleIntf::LinkerSymbolName(char atype_prefix, const string & symbol_name) const
-{
-  return LinkerSymbolNameForModule(atype_prefix, name, symbol_name);
-}
-
-string OModuleIntf::LinkerSymbolNameForModule(char atype_prefix, const string & module_name,
-                                              const string & symbol_name)
+string OModuleIntf::LinkerSymbolNameForModule(const string & module_name, const string & symbol_name)
 {
   string result;
-  result += atype_prefix;
-  result += "dq__";
 
-  auto append_part = [&](const string & text)
+  auto append_qualified = [&](const string & text)
   {
     bool last_was_sep = false;
     for (char c : text)
@@ -549,6 +541,11 @@ string OModuleIntf::LinkerSymbolNameForModule(char atype_prefix, const string & 
         result += c;
         last_was_sep = false;
       }
+      else if (('/' == c) || ('.' == c))
+      {
+        if (!result.empty() && !result.ends_with("::")) result += "::";
+        last_was_sep = true;
+      }
       else if (!last_was_sep)
       {
         result += "_";
@@ -557,12 +554,9 @@ string OModuleIntf::LinkerSymbolNameForModule(char atype_prefix, const string & 
     }
   };
 
-  append_part(module_name);
-  if (!result.ends_with("_"))
-  {
-    result += "_";
-  }
-  append_part(symbol_name);
+  append_qualified(module_name);
+  if (!result.empty() && !result.ends_with("::")) result += "::";
+  append_qualified(symbol_name);
   return result;
 }
 
@@ -578,7 +572,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions() const
 {
-  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=1;module=" + name;
+  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=2;module=" + name;
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
 
@@ -2740,7 +2734,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   if (added && (SFK_MODULE_INIT == fn->special_kind))
   {
     module_init_func = fn;
-    module_init_linkage_name = fn->GetLinkageName(true, 'F');
+    module_init_linkage_name = fn->GetLinkageName(true);
   }
   return added;
 }

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.45.3"
+#define DQ_COMPILER_VERSION  "0.45.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.4:
+  - DQ symbols are emitted as "pkg::submod::variable"
 v0.45.3:
   - #ifdef supports all scopes, `@def.` is the default unqualified scope, like before,
     `@.` can be used for the current module scope

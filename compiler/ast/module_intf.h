@@ -140,9 +140,7 @@ public:
 
   OIntfDecl * AddPublicType(OType * atype);
   OIntfDecl * AddPublicValSym(OValSym * avalsym);
-  string LinkerSymbolName(char atype_prefix, const string & symbol_name) const;
-  static string LinkerSymbolNameForModule(char atype_prefix, const string & module_name,
-                                          const string & symbol_name);
+  static string LinkerSymbolNameForModule(const string & module_name, const string & symbol_name);
 
   bool WriteInterface(const string & filename, const vector<SSourceDependency> & source_dependencies,
                       const string & object_filename = "");

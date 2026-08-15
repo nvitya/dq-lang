@@ -565,7 +565,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
     LlType *          ll_type  = storage_type->GetLlType();
     LlConst *         ll_init_val = (ainitval ? ainitval->GetLlConst()
                                               : llvm::Constant::getNullValue(ll_type));
-    string            ll_name = GetLinkageName(apublic, 'V');
+    string            ll_name = GetLinkageName(apublic);
 
     llvm::GlobalVariable * gv = new llvm::GlobalVariable(*ll_module, ll_type, false, linktype, ll_init_val, ll_name);
     ll_value = gv;
@@ -580,7 +580,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
       llvm::DIGlobalVariableExpression * debug_expr = di_builder->createGlobalVariableExpression(
           g_module->GetDiScope(), // The canonical module path as nested scopes
           name,                   // The name in the source code
-          "",                     // Keep the mangled linkage name out of debugger expressions
+          "",                     // Let GDB use the structured module-qualified name
           scpos.scfile->di_file, // The file where it is declared
           scpos.line,         // The line number in the source code (example: line 10)
           ptype->GetDiType(), // The debug type
@@ -601,7 +601,7 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
 
       LlType * ll_type = ptype->GetLlType();
       LlConst * ll_init_val = vsconst->pvalue->GetLlConst();
-      string ll_name = GetLinkageName(apublic, 'C');
+      string ll_name = GetLinkageName(apublic);
 
       llvm::GlobalVariable * gv =
           new llvm::GlobalVariable(*ll_module, ll_type, true, linktype, ll_init_val, ll_name);
@@ -630,7 +630,7 @@ void OValSym::GenGlobalImportDecl()
   {
     OType *  storage_type = GetStorageType();
     LlType * ll_type = storage_type->GetLlType();
-    string   ll_name = (attr_external_linkage_name.empty() ? GetLinkageName(true, 'V') : attr_external_linkage_name);
+    string   ll_name = (attr_external_linkage_name.empty() ? GetLinkageName(true) : attr_external_linkage_name);
     if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
     {
       ll_value = existing;
@@ -649,7 +649,7 @@ void OValSym::GenGlobalImportDecl()
   else if ((VSK_CONST == kind) && (TK_ARRAY == ptype->kind))
   {
     LlType * ll_type = ptype->GetLlType();
-    string   ll_name = GetLinkageName(true, 'C');
+    string   ll_name = GetLinkageName(true);
     if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
     {
       ll_value = existing;
@@ -667,7 +667,7 @@ void OValSym::GenGlobalImportDecl()
   }
 }
 
-string OValSym::GetLinkageName(bool apublic, char atype_prefix, const string & asymbol_name) const
+string OValSym::GetLinkageName(bool apublic, const string & asymbol_name) const
 {
   string symbol_name = (asymbol_name.empty() ? name : asymbol_name);
   if (attr_has_linkage_name)
@@ -681,7 +681,7 @@ string OValSym::GetLinkageName(bool apublic, char atype_prefix, const string & a
   }
 
   string module_name = owner_module_name.empty() ? (module ? module->name : (g_module ? g_module->name : "")) : owner_module_name;
-  return OModuleIntf::LinkerSymbolNameForModule(atype_prefix, module_name, symbol_name);
+  return OModuleIntf::LinkerSymbolNameForModule(module_name, symbol_name);
 }
 
 OValSym::~OValSym()

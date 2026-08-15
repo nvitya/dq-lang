@@ -199,7 +199,7 @@ void OModule::RegisterSpecialFunction(OValSymFunc * afunc)
   }
 
   module_init_func = afunc;
-  module_init_linkage_name = afunc->GetLinkageName(true, 'F');
+  module_init_linkage_name = afunc->GetLinkageName(true);
 
   if (!module_init_guard)
   {
@@ -233,7 +233,7 @@ vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self) const
     {
       return;
     }
-    string linkage_name = fn->attr_has_linkage_name ? fn->attr_linkage_name : fn->GetLinkageName(true, 'F');
+    string linkage_name = fn->attr_has_linkage_name ? fn->attr_linkage_name : fn->GetLinkageName(true);
     if (seen_linkage_names.end() != find(seen_linkage_names.begin(), seen_linkage_names.end(), linkage_name))
     {
       return;
@@ -307,7 +307,7 @@ OValSymFunc * OModule::EnsureModuleInitFunc(OScPosition & scpos)
   module_init_func->scpos_endfunc.Assign(scpos);
   module_init_func->has_body = true;
   module_init_func->special_kind = SFK_MODULE_INIT;
-  module_init_linkage_name = module_init_func->GetLinkageName(true, 'F');
+  module_init_linkage_name = module_init_func->GetLinkageName(true);
   DeclareHiddenValSym(true, module_init_func);
 
   if (!module_init_guard)

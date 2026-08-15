@@ -449,3 +449,32 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
 
   return false;
 }
+
+bool OModulePath::ResolveCanonicalSource(const string & module_id, const string & context_module_id,
+                                         const filesystem::path & context_artifact,
+                                         filesystem::path & rsource_path)
+{
+  vector<string> target_parts = Split(module_id);
+  if (target_parts.empty()) return false;
+
+  string package_name = target_parts[0];
+  string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
+  filesystem::path package_dir;
+  if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir))
+  {
+    rsource_path = SourcePathForLocal(package_dir, local_path);
+    return true;
+  }
+
+  vector<string> context_parts = Split(context_module_id);
+  filesystem::path local_dir = BuildTagDir() / "local";
+  filesystem::path context_path = AbsNorm(context_artifact);
+  filesystem::path local_rel = context_path.lexically_relative(local_dir);
+  if (!context_parts.empty() && target_parts[0] == context_parts[0]
+      && !local_rel.empty() && !local_rel.generic_string().starts_with(".."))
+  {
+    rsource_path = SourcePathForLocal(BuildRootDir(), local_path);
+    return true;
+  }
+  return false;
+}

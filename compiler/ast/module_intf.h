@@ -16,6 +16,8 @@
 #include <string>
 #include "otype_compound.h"
 #include <format>
+#include <map>
+#include <set>
 #include <vector>
 #include <ostream>
 #include <filesystem>
@@ -62,7 +64,10 @@ private:
   };
 
   bool ReadDqmIfRecords(ODqmIfReader & reader);
-  bool ReadUseDecl(ODqmIfReader & reader);
+  bool ReadEmbeddedModule(ODqmIfReader & reader);
+  bool ReadFlattenedExportGroup(ODqmIfReader & reader, bool aall);
+  bool AddFlattenedExport(ODqmIfReader & reader, const string & amodule_name,
+                          const string & asymbol_name, EIntfDeclKind akind);
   bool ReadTypeSpec(ODqmIfReader & reader, OType *& rtype);
   bool ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmIfRecId aend_recid);
   bool ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_ref, OType *& rtype);
@@ -80,20 +85,23 @@ private:
   bool ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes & attrs);
   bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
   OType * ResolveDqmIfTypeName(const string & atype_name);
+  OType * ResolveDqmIfQualifiedType(const string & amodule_name, const string & atype_name);
   string FormatUnresolvedDqmIfTypeError(const string & atype_name) const;
   void ClearDqmIfMetadata();
-  bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader);
+  bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_current = false);
   bool ReadDqmIfSourceDependency(ODqmIfReader & reader);
   string DqmIfTargetArch() const;
   string DqmIfTargetRtl() const;
   string DqmIfBuildOptions() const;
   bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
+                                const vector<pair<string, string>> & module_sources,
                                 const string & object_filename);
-  bool WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause);
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
                              const string & object_filename);
   bool ReadModuleInitDecl(ODqmIfReader & reader);
   vector<OModuleIntf *> reexport_modules;
+  OModuleIntf * embedded_owner = nullptr;
+  map<string, set<pair<EIntfDeclKind, string>>> embedded_group_symbols;
 
   void WriteTypeDump(ostream & out, OType * atype, const string & indent);
   void WriteValSymDump(ostream & out, OValSym * avsym, const string & indent);
@@ -103,13 +111,13 @@ private:
 
 public:
   vector<SSourceDependency> source_dependencies;
+  vector<pair<string, string>> module_sources;
   int64_t  object_filesize = 0;
   int64_t  object_filetime = 0;
   string   target_arch;
   string   target_rtl;
   string   build_options;
   string   interface_filename;
-  vector<string> reexport_artifacts;
   vector<string> link_dependencies;
   string module_init_linkage_name;
   string last_interface_error;
@@ -120,6 +128,7 @@ public:
   bool     has_target_arch = false;
   bool     has_target_rtl = false;
   bool     has_build_options = false;
+  bool     partial_interface = false;
 
   OModuleIntf(OScope * aparent, const string aname)
   :

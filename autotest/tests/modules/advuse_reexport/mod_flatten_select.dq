@@ -1,0 +1,3 @@
+//?notest
+
+use ./mod_flatten_leaf reexport only(MakeHidden, HiddenValue, printf)

@@ -1,0 +1,6 @@
+use ./mod_flatten_select
+
+function *Main() -> int:
+    printf("flatten hidden closure = %d\n", HiddenValue(MakeHidden(37))) //?check('flatten hidden closure', 37)
+    return 0
+endfunc

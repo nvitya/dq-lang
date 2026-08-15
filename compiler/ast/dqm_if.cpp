@@ -101,6 +101,14 @@ bool ODqmIfWriter::AddRecStr(TDqmIfRecId arecid, const string & avalue)
   return AddRec(arecid, avalue.data(), avalue.size());
 }
 
+bool ODqmIfWriter::AddRecStringPair(TDqmIfRecId arecid, const string & afirst, const string & asecond)
+{
+  string data = afirst;
+  data.push_back('\0');
+  data += asecond;
+  return AddRec(arecid, data.data(), data.size());
+}
+
 bool ODqmIfWriter::AddRecEmpty(TDqmIfRecId arecid)
 {
   return AddRec(arecid, nullptr, 0);
@@ -390,6 +398,23 @@ bool ODqmIfReader::ExpectEmpty(TDqmIfRecId arecid)
 bool ODqmIfReader::ReadString(string & rvalue)
 {
   rvalue.assign(reinterpret_cast<const char *>(payload.data() + recpos), reclen);
+  return true;
+}
+
+bool ODqmIfReader::ReadStringPair(string & rfirst, string & rsecond)
+{
+  const char * begin = reinterpret_cast<const char *>(payload.data() + recpos);
+  const char * separator = static_cast<const char *>(memchr(begin, 0, reclen));
+  if (!separator)
+  {
+    return Fail(format("DQM interface record 0x{:04X} has no string-pair separator", recid));
+  }
+  rfirst.assign(begin, separator);
+  rsecond.assign(separator + 1, begin + reclen);
+  if (rfirst.empty() || rsecond.empty())
+  {
+    return Fail(format("DQM interface record 0x{:04X} has an empty string-pair item", recid));
+  }
   return true;
 }
 

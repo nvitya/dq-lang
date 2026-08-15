@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.43.2"
+#define DQ_COMPILER_VERSION  "0.44.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.44.0:
+  - use ... reexport merges all symbols from the used modules so
+    no child .dqm_if loading is required upon parent use
 v0.43.2:
   - Use statement parsing fix for newline termination
 v0.43.1:

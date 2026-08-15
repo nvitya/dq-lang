@@ -1,0 +1,6 @@
+use ./mod_flatten_outer
+
+function *Main() -> int:
+    printf("flatten nested = %d\n", HiddenValue(MakeHidden(43))) //?check('flatten nested', 43)
+    return 0
+endfunc

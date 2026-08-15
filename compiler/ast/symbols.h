@@ -273,6 +273,8 @@ enum ETypeKind
 class OExpr;
 class OValSymFunc;
 
+bool WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid, OType * atype);
+
 enum EObjectStorageKind
 {
   OSK_PLAIN = 0,

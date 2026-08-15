@@ -344,6 +344,14 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
     }
     loaded_modules.push_back(intf);
   }
+  else if (intf->partial_interface)
+  {
+    if (!intf->ReadInterface(interface_artifact_path, true, true))
+    {
+      last_interface_load_error = intf->last_interface_error;
+      return false;
+    }
+  }
 
   OModuleUse * use = new OModuleUse(intf, namespace_name, ais_private, amerge_mode, asymbol_names, areexport);
   if (!use->ValidateSymbolNames())
@@ -365,13 +373,6 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), link_artifact_path))
   {
     link_module_artifacts.push_back(link_artifact_path);
-  }
-  for (const string & reexport_artifact : intf->reexport_artifacts)
-  {
-    if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), reexport_artifact))
-    {
-      link_module_artifacts.push_back(reexport_artifact);
-    }
   }
   for (const string & link_dep : intf->link_dependencies)
   {

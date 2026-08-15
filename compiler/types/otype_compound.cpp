@@ -1201,8 +1201,11 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
   if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
   if (base_type)
   {
-    int base_tag = IsObject() ? DQMIF_OBJ_BASE : DQMIF_OBJ_BASE; // Structs use DQMIF_OBJ_BASE too in original code
-    if (!writer.AddRecStr(base_tag, base_type->name)) return false;
+    if (base_type->module && !base_type->module->name.empty())
+    {
+      if (!writer.AddRecStringPair(DQMIF_OBJ_BASE_QUAL, base_type->module->name, base_type->name)) return false;
+    }
+    else if (!writer.AddRecStr(DQMIF_OBJ_BASE, base_type->name)) return false;
   }
 
   for (OValSym * member : member_order)
@@ -1467,5 +1470,14 @@ int OTypeObjectTypeRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 
 bool OTypeObjectTypeRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
 {
-  return writer.AddRecStr(DQMIF_TYPE_SPEC_OBJECT_TYPE, object_type ? object_type->name : "?");
+  if (!object_type)
+  {
+    return writer.Fail("Can not write an object type reference without an object type");
+  }
+  if (object_type->module && !object_type->module->name.empty())
+  {
+    return writer.AddRecStringPair(DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL,
+                                   object_type->module->name, object_type->name);
+  }
+  return writer.AddRecStr(DQMIF_TYPE_SPEC_OBJECT_TYPE, object_type->name);
 }

@@ -35,6 +35,19 @@
 
 using namespace std;
 
+bool WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid, OType * atype)
+{
+  if (!atype)
+  {
+    return writer.Fail("Can not write a null DQM interface type reference");
+  }
+  if (atype->module && !atype->module->name.empty())
+  {
+    return writer.AddRecStringPair(DQMIF_TYPE_SPEC_QUALIFIED, atype->module->name, atype->name);
+  }
+  return writer.AddTypeSpecRec(arecid, atype->name);
+}
+
 
 
 bool OModuleUse::SymbolSelected(const string & aname) const
@@ -220,7 +233,7 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
     }
     if (!ptrtype->IsTypedPointer())
     {
-      return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_NAME, ptrtype->name);
+      return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME, ptrtype);
     }
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_PTR)) return false;
     return WriteDqmIfTypeSpecInner(writer, ptrtype->basetype);
@@ -262,7 +275,7 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
     return atype->WriteDqmIfTypeSpec(writer);
   }
 
-  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_NAME, atype->name);
+  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME, atype);
 }
 
 bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
@@ -275,7 +288,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     }
     if (!ptrtype->IsTypedPointer())
     {
-      return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_SIMPLE, ptrtype->name);
+      return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE, ptrtype);
     }
   }
 
@@ -287,7 +300,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
   }
 
-  return writer.AddTypeSpecRec(DQMIF_TYPE_SPEC_SIMPLE, name);
+  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE, this);
 }
 
 bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)

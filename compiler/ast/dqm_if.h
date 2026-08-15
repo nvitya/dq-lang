@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    12 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    12 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    15 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    15 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -54,6 +54,7 @@ public:
   bool AddRec(TDqmIfRecId arecid, const void * adata, size_t alen);
   bool AddRec(TDqmIfRecId arecid, const vector<uint8_t> & adata);
   bool AddRecStr(TDqmIfRecId arecid, const string & avalue);
+  bool AddRecStringPair(TDqmIfRecId arecid, const string & afirst, const string & asecond);
   bool AddRecEmpty(TDqmIfRecId arecid);
   bool AddRecU8(TDqmIfRecId arecid, uint8_t avalue);
   bool AddRecU32(TDqmIfRecId arecid, uint32_t avalue);
@@ -94,6 +95,7 @@ public:
   bool NextRec();
   bool ExpectEmpty(TDqmIfRecId arecid);
   bool ReadString(string & rvalue);
+  bool ReadStringPair(string & rfirst, string & rsecond);
   bool ReadU8(uint8_t & rvalue);
   bool ReadU32(uint32_t & rvalue);
   bool ReadI32(int32_t & rvalue);
@@ -113,6 +115,7 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_SIMPLE       = 0x8000;  // str, simple named type s
 TDqmIfRecId  DQMIF_TYPE_SPEC_BEGIN        = 0x8001;  // 0: complex type spec begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_NAME         = 0x8002;  // str, named type inside complex type spec
 TDqmIfRecId  DQMIF_TYPE_SPEC_PTR          = 0x8003;  // 0: pointer wrapper inside complex type spec
+TDqmIfRecId  DQMIF_TYPE_SPEC_QUALIFIED    = 0x8004;  // str pair: canonical module id, type name
 TDqmIfRecId  DQMIF_TYPE_SPEC_ARRAY_BEGIN  = 0x8010;  // int32: fixed array wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_ARRAY_END    = 0x801F;  // 0
 TDqmIfRecId  DQMIF_TYPE_SPEC_SLICE_BEGIN  = 0x8020;  // 0: array slice wrapper begin
@@ -122,6 +125,7 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_DYN_ARRAY_END   = 0x803F;  // 0
 TDqmIfRecId  DQMIF_TYPE_SPEC_FUNCREF      = 0x80F0;  // 0: function reference wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_OBJFUNCREF   = 0x80F8;  // 0: object function reference wrapper begin
 TDqmIfRecId  DQMIF_TYPE_SPEC_OBJECT_TYPE  = 0x80FC;  // 0: object type reference wrapper begin
+TDqmIfRecId  DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL = 0x80FD; // str pair: module id, object type name
 TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length
@@ -148,6 +152,8 @@ TDqmIfRecId  DQMIF_H_SRC_BEGIN            = 0x0110;  // 0
 TDqmIfRecId  DQMIF_H_SRC_FILENAME         = 0x0112;  // str
 TDqmIfRecId  DQMIF_H_SRC_FILESIZE         = 0x0113;  // int64
 TDqmIfRecId  DQMIF_H_SRC_FILETIME         = 0x0114;  // int64
+TDqmIfRecId  DQMIF_H_MODULE_SOURCE        = 0x0115;  // str pair: canonical module id, source filename
+TDqmIfRecId  DQMIF_H_MODULE_ID             = 0x0116;  // str: canonical module id
 TDqmIfRecId  DQMIF_H_SRC_END              = 0x011F;  // 0
 
 
@@ -209,6 +215,7 @@ TDqmIfRecId  DQMIF_STRUCT_FWD             = 0x070E;  // str: name
 TDqmIfRecId  DQMIF_OBJ_FWD                = 0x070F;  // str: name
 TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
 TDqmIfRecId  DQMIF_OBJ_BASE               = 0x0702;  // str: base compound type name
+TDqmIfRecId  DQMIF_OBJ_BASE_QUAL          = 0x0703;  // str pair: canonical module id, base type name
 TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
 // exp.:     DQMIF_SIZE_SPEC
 TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str
@@ -234,12 +241,14 @@ TDqmIfRecId  DQMIF_METHOD_END             = 0x078F;  // 0
 TDqmIfRecId  DQMIF_LINKLIB                = 0x0800;  // str, no end marker
 TDqmIfRecId  DQMIF_LINKDEP                = 0x0801;  // str, module id required for final linking
 
-// 0900: Uses
-TDqmIfRecId  DQMIF_USE_BEGIN              = 0x0900;  // str
-TDqmIfRecId  DQMIF_USE_ALIAS              = 0x0901;  // str
-TDqmIfRecId  DQMIF_USE_ONLY               = 0x0902;  // str
-TDqmIfRecId  DQMIF_USE_REEXPORT           = 0x09E0;  // 0
-TDqmIfRecId  DQMIF_USE_END                = 0x09FF;  // 0
-
 // 0A00: legacy module lifecycle
 TDqmIfRecId  DQMIF_MODULE_INIT            = 0x0A00;  // str, old public linker symbol for module initialization
+
+// 0B00: flattened declarations from reexported modules
+TDqmIfRecId  DQMIF_EMBED_MODULE_BEGIN     = 0x0B00;  // str: canonical origin module id
+TDqmIfRecId  DQMIF_EMBED_MODULE_END       = 0x0B0F;  // 0
+TDqmIfRecId  DQMIF_EXPORT_MODULE_ALL      = 0x0B12;  // str: export every embedded symbol from module
+TDqmIfRecId  DQMIF_EXPORT_MODULE_BEGIN    = 0x0B20;  // str: origin module id
+TDqmIfRecId  DQMIF_EXPORT_MODULE_TYPE     = 0x0B21;  // str: type name
+TDqmIfRecId  DQMIF_EXPORT_MODULE_VALSYM   = 0x0B22;  // str: value-symbol name
+TDqmIfRecId  DQMIF_EXPORT_MODULE_END      = 0x0B2F;  // 0

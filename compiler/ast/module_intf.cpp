@@ -18,10 +18,14 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <ostream>
 #include <print>
+#include <set>
 #include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "comp_options.h"
 #include "dq_module.h"
@@ -417,6 +421,59 @@ void OModuleIntf::WriteValSymDump(ostream & out, OValSym * avsym, const string &
 
 void OModuleIntf::WriteDump(ostream & out)
 {
+  if (!embedded_group_symbols.empty())
+  {
+    out << "facade exports:\n";
+    for (OIntfDecl * decl : declarations)
+    {
+      if (!decl) continue;
+      if (IDK_TYPE == decl->kind && decl->ptype && decl->ptype->module != this)
+      {
+        out << "  type " << decl->ptype->name << " <- "
+            << decl->ptype->module->name << "." << decl->ptype->name << "\n";
+      }
+      else if (IDK_VALSYM == decl->kind && decl->pvalsym && decl->pvalsym->module != this)
+      {
+        out << "  symbol " << decl->pvalsym->name << " <- "
+            << decl->pvalsym->module->name << "." << decl->pvalsym->name << "\n";
+      }
+    }
+
+    out << "origin groups:\n";
+    for (const auto & [origin_name, symbols] : embedded_group_symbols)
+    {
+      (void)symbols;
+      OModuleIntf * origin = FindLoadedModuleIntf(origin_name);
+      if (!origin)
+      {
+        auto found = find_if(reexport_modules.begin(), reexport_modules.end(),
+          [&](OModuleIntf * intf) { return intf && intf->name == origin_name; });
+        if (found != reexport_modules.end()) origin = *found;
+      }
+      if (!origin) continue;
+      out << "  origin " << origin->name << ":\n";
+      for (OIntfDecl * decl : origin->declarations)
+      {
+        if (!decl) continue;
+        bool exported = false;
+        if (IDK_TYPE == decl->kind && decl->ptype)
+        {
+          auto found = scope_pub->typesyms.find(decl->ptype->name);
+          exported = (found != scope_pub->typesyms.end() && found->second == decl->ptype);
+        }
+        else if (IDK_VALSYM == decl->kind && decl->pvalsym)
+        {
+          auto found = scope_pub->valsyms.find(decl->pvalsym->name);
+          exported = (found != scope_pub->valsyms.end() && found->second == decl->pvalsym);
+        }
+        out << "    [" << (exported ? "export" : "closure") << "]\n";
+        if (IDK_TYPE == decl->kind) WriteTypeDump(out, decl->ptype, "      ");
+        else                        WriteValSymDump(out, decl->pvalsym, "      ");
+      }
+    }
+    out << "module declarations:\n";
+  }
+
   for (OIntfDecl * decl : declarations)
   {
     if (!decl)
@@ -547,13 +604,14 @@ string OModuleIntf::DqmIfBuildOptions() const
 void OModuleIntf::ClearDqmIfMetadata()
 {
   source_dependencies.clear();
+  module_sources.clear();
   object_filesize = 0;
   object_filetime = 0;
   target_arch.clear();
   target_rtl.clear();
   build_options.clear();
-  reexport_artifacts.clear();
   link_dependencies.clear();
+  embedded_group_symbols.clear();
 
   has_object_filesize = false;
   has_object_filetime = false;
@@ -611,75 +669,89 @@ bool OModuleIntf::ReadDqmIfSourceDependency(ODqmIfReader & reader)
   }
 }
 
-bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader)
+bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_current)
 {
-  while (!reader.Eof())
+  if (!abegin_current)
   {
-    if (!reader.NextRec())
+    while (!reader.Eof())
     {
-      return false;
-    }
-
-    if (DQMIF_H_BEGIN != reader.recid)
-    {
-      continue;
-    }
-
-    if (!reader.ExpectEmpty(DQMIF_H_BEGIN))
-    {
-      return false;
-    }
-
-    while (true)
-    {
-      if (!reader.NextRec())
-      {
-        return false;
-      }
-
-      if (DQMIF_H_END == reader.recid)
-      {
-        return reader.ExpectEmpty(DQMIF_H_END);
-      }
-
-      if (DQMIF_H_SRC_BEGIN == reader.recid)
-      {
-        if (!ReadDqmIfSourceDependency(reader)) return false;
-      }
-      else if (DQMIF_H_OBJ_FILESIZE == reader.recid)
-      {
-        if (!reader.ReadI64(object_filesize)) return false;
-        has_object_filesize = true;
-      }
-      else if (DQMIF_H_OBJ_FILETIME == reader.recid)
-      {
-        if (!reader.ReadI64(object_filetime)) return false;
-        has_object_filetime = true;
-      }
-      else if (DQMIF_H_TARGET_ARCH == reader.recid)
-      {
-        if (!reader.ReadString(target_arch)) return false;
-        has_target_arch = true;
-      }
-      else if (DQMIF_H_TARGET_RTL == reader.recid)
-      {
-        if (!reader.ReadString(target_rtl)) return false;
-        has_target_rtl = true;
-      }
-      else if (DQMIF_H_BUILD_OPTIONS == reader.recid)
-      {
-        if (!reader.ReadString(build_options)) return false;
-        has_build_options = true;
-      }
+      if (!reader.NextRec()) return false;
+      if (DQMIF_H_BEGIN == reader.recid) break;
     }
   }
 
-  return reader.Fail("DQM interface header metadata is missing");
+  if (DQMIF_H_BEGIN != reader.recid)
+  {
+    return reader.Fail("DQM interface header metadata is missing");
+  }
+  if (!reader.ExpectEmpty(DQMIF_H_BEGIN)) return false;
+
+  bool has_module_id = false;
+  while (true)
+  {
+    if (!reader.NextRec()) return false;
+
+    if (DQMIF_H_END == reader.recid)
+    {
+      if (!has_module_id) return reader.Fail("DQM interface header has no canonical module identifier");
+      return reader.ExpectEmpty(DQMIF_H_END);
+    }
+
+    if (DQMIF_H_SRC_BEGIN == reader.recid)
+    {
+      if (!ReadDqmIfSourceDependency(reader)) return false;
+    }
+    else if (DQMIF_H_OBJ_FILESIZE == reader.recid)
+    {
+      if (!reader.ReadI64(object_filesize)) return false;
+      has_object_filesize = true;
+    }
+    else if (DQMIF_H_OBJ_FILETIME == reader.recid)
+    {
+      if (!reader.ReadI64(object_filetime)) return false;
+      has_object_filetime = true;
+    }
+    else if (DQMIF_H_TARGET_ARCH == reader.recid)
+    {
+      if (!reader.ReadString(target_arch)) return false;
+      has_target_arch = true;
+    }
+    else if (DQMIF_H_TARGET_RTL == reader.recid)
+    {
+      if (!reader.ReadString(target_rtl)) return false;
+      has_target_rtl = true;
+    }
+    else if (DQMIF_H_BUILD_OPTIONS == reader.recid)
+    {
+      if (!reader.ReadString(build_options)) return false;
+      has_build_options = true;
+    }
+    else if (DQMIF_H_MODULE_SOURCE == reader.recid)
+    {
+      string module_name;
+      string source_filename;
+      if (!reader.ReadStringPair(module_name, source_filename)) return false;
+      module_sources.push_back({module_name, source_filename});
+    }
+    else if (DQMIF_H_MODULE_ID == reader.recid)
+    {
+      string module_name;
+      if (!reader.ReadString(module_name) || module_name.empty()) return false;
+      if (has_module_id) return reader.Fail("DQM interface header has duplicate module identifiers");
+      if ("dqm_if_dump" == name) name = module_name;
+      else if ("regen_check" != name && name != module_name)
+      {
+        return reader.Fail(format("DQM interface module identifier mismatch: {} != {}", module_name, name));
+      }
+      has_module_id = true;
+    }
+  }
 }
 
 bool OModuleIntf::ReadMetadata(const string & filename, string & rerror, bool alock)
 {
   ClearDqmIfMetadata();
+  interface_filename = filename;
   rerror.clear();
 
   OArtifactLock lock;
@@ -767,6 +839,24 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
     if (dep.filetime != cur_source_filetime_ticks)
     {
       rreason = format("source file modification time changed: {}", dep.filename);
+      return false;
+    }
+  }
+
+  for (const auto & [module_name, stored_source] : module_sources)
+  {
+    filesystem::path resolved_source;
+    if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename, resolved_source))
+    {
+      rreason = format("can not resolve flattened module source: {}", module_name);
+      return false;
+    }
+    error_code ec;
+    filesystem::path stored_path = filesystem::absolute(stored_source, ec).lexically_normal();
+    if (ec || resolved_source.lexically_normal() != stored_path)
+    {
+      rreason = format("module source resolution changed for {}: {} != {}",
+                       module_name, stored_source, resolved_source.string());
       return false;
     }
   }
@@ -1104,6 +1194,323 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   return args;
 }
 
+struct SFlattenedDqmExport
+{
+  EIntfDeclKind kind;
+  string module_name;
+  string symbol_name;
+};
+
+struct SFlattenedDqmModule
+{
+  OModuleBase * module = nullptr;
+  unordered_set<OIntfDecl *> declarations;
+  set<string> dependencies;
+};
+
+class OFlattenedDqmInterface
+{
+public:
+  OModuleIntf * root;
+  map<string, SFlattenedDqmModule> modules;
+  vector<SFlattenedDqmExport> exports;
+  vector<SSourceDependency> source_dependencies;
+  vector<pair<string, string>> module_sources;
+  string error;
+
+private:
+  unordered_set<OType *> visited_types;
+  unordered_set<OValSym *> visited_values;
+  unordered_set<OModuleBase *> visited_freshness_modules;
+  set<pair<int, string>> export_keys;
+
+  void AddSourceDependency(const SSourceDependency & dep)
+  {
+    auto found = find_if(source_dependencies.begin(), source_dependencies.end(),
+      [&](const SSourceDependency & item) { return item.filename == dep.filename; });
+    if (found == source_dependencies.end())
+    {
+      source_dependencies.push_back(dep);
+    }
+  }
+
+  void AddModuleSource(const string & module_name, const string & source_filename)
+  {
+    auto found = find_if(module_sources.begin(), module_sources.end(),
+      [&](const auto & item) { return item.first == module_name; });
+    if (found == module_sources.end())
+    {
+      module_sources.push_back({module_name, source_filename});
+    }
+    else if (found->second != source_filename)
+    {
+      error = format("Conflicting source paths for module {}: {} and {}",
+                     module_name, found->second, source_filename);
+    }
+  }
+
+  void CollectFreshnessModule(OModuleBase * module)
+  {
+    if (!module || !visited_freshness_modules.insert(module).second)
+    {
+      return;
+    }
+    if (auto * intf = dynamic_cast<OModuleIntf *>(module))
+    {
+      for (const SSourceDependency & dep : intf->source_dependencies) AddSourceDependency(dep);
+      if (!intf->source_dependencies.empty())
+      {
+        AddModuleSource(intf->name, intf->source_dependencies.front().filename);
+      }
+      for (const auto & [module_name, source_filename] : intf->module_sources)
+      {
+        AddModuleSource(module_name, source_filename);
+      }
+    }
+    for (OModuleUse * use : module->used_modules)
+    {
+      if (use && !use->is_private) CollectFreshnessModule(use->module);
+    }
+  }
+
+  void AddModuleDependency(const string & consumer_module, OModuleBase * dependency)
+  {
+    if (!dependency || consumer_module.empty() || consumer_module == dependency->name
+        || dependency == root)
+    {
+      return;
+    }
+    auto consumer = modules.find(consumer_module);
+    if (consumer != modules.end()) consumer->second.dependencies.insert(dependency->name);
+  }
+
+  void IncludeType(OType * type, const string & consumer_module)
+  {
+    if (!type)
+    {
+      return;
+    }
+
+    OModuleBase * owner = type->module;
+    if (owner && owner != root)
+    {
+      SFlattenedDqmModule & embedded = modules[owner->name];
+      embedded.module = owner;
+      AddModuleDependency(consumer_module, owner);
+    }
+    if (!visited_types.insert(type).second) return;
+
+    if (auto * pointer = dynamic_cast<OTypePointer *>(type))
+    {
+      IncludeType(pointer->basetype, consumer_module);
+      return;
+    }
+    if (auto * array = dynamic_cast<OTypeArray *>(type))
+    {
+      IncludeType(array->elemtype, consumer_module);
+      return;
+    }
+    if (auto * slice = dynamic_cast<OTypeArraySlice *>(type))
+    {
+      IncludeType(slice->elemtype, consumer_module);
+      return;
+    }
+    if (auto * dynarray = dynamic_cast<OTypeDynArray *>(type))
+    {
+      IncludeType(dynarray->elemtype, consumer_module);
+      return;
+    }
+    if (auto * funcref = dynamic_cast<OTypeFuncRef *>(type))
+    {
+      IncludeType(funcref->functype, consumer_module);
+      return;
+    }
+    if (auto * object_ref = dynamic_cast<OTypeObjectTypeRef *>(type))
+    {
+      IncludeType(object_ref->object_type, consumer_module);
+      return;
+    }
+
+    if (owner && owner != root)
+    {
+      SFlattenedDqmModule & embedded = modules[owner->name];
+      bool found = false;
+      for (OIntfDecl * decl : owner->declarations)
+      {
+        if (decl && (IDK_TYPE == decl->kind) && decl->ptype == type)
+        {
+          embedded.declarations.insert(decl);
+          found = true;
+        }
+      }
+      if (!found)
+      {
+        error = format("Can not find declaration for embedded type {}.{}", owner->name, type->name);
+        return;
+      }
+    }
+
+    if (auto * alias = dynamic_cast<OTypeAlias *>(type))
+    {
+      IncludeType(alias->ptype, owner ? owner->name : consumer_module);
+    }
+    else if (auto * enum_type = dynamic_cast<OTypeEnum *>(type))
+    {
+      IncludeType(enum_type->storage_type, owner ? owner->name : consumer_module);
+    }
+    else if (auto * function_type = dynamic_cast<OTypeFunc *>(type))
+    {
+      IncludeType(function_type->rettype, consumer_module);
+      for (OFuncParam * param : function_type->params)
+      {
+        if (param) IncludeType(param->ptype, consumer_module);
+      }
+    }
+    else if (auto * compound = dynamic_cast<OCompoundType *>(type))
+    {
+      string compound_module = owner ? owner->name : consumer_module;
+      IncludeType(compound->base_type, compound_module);
+      for (OValSym * member : compound->member_order)
+      {
+        if (member) IncludeType(member->ptype, compound_module);
+      }
+      for (auto & [member_name, symbol] : compound->Members()->valsyms)
+      {
+        (void)member_name;
+        if (symbol && (VSK_FUNCTION == symbol->kind)) CollectValueDependencies(symbol, compound_module);
+      }
+      for (OValSymProperty * property : compound->properties)
+      {
+        if (!property) continue;
+        IncludeType(property->ptype, compound_module);
+        for (const OPropertyIndex & index : property->indices) IncludeType(index.ptype, compound_module);
+      }
+    }
+  }
+
+  void CollectValueDependencies(OValSym * symbol, const string & consumer_module)
+  {
+    if (!symbol || !visited_values.insert(symbol).second)
+    {
+      return;
+    }
+    IncludeType(symbol->ptype, consumer_module);
+    if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
+    {
+      for (OValSymFunc * function : overloads->funcs)
+      {
+        if (function) IncludeType(function->ptype, consumer_module);
+      }
+    }
+  }
+
+  void IncludeValue(OValSym * symbol, const string & consumer_module)
+  {
+    if (!symbol) return;
+    OModuleBase * owner = symbol->module;
+    if (owner && owner != root)
+    {
+      SFlattenedDqmModule & embedded = modules[owner->name];
+      embedded.module = owner;
+      AddModuleDependency(consumer_module, owner);
+      auto found = find_if(owner->declarations.begin(), owner->declarations.end(),
+        [&](OIntfDecl * decl)
+        {
+          return decl && (IDK_VALSYM == decl->kind) && decl->pvalsym == symbol;
+        });
+      if (found == owner->declarations.end())
+      {
+        error = format("Can not find declaration for embedded symbol {}.{}", owner->name, symbol->name);
+        return;
+      }
+      embedded.declarations.insert(*found);
+    }
+    CollectValueDependencies(symbol, owner ? owner->name : consumer_module);
+  }
+
+  void CollectDeclarationDependencies(OIntfDecl * decl, const string & consumer_module)
+  {
+    if (!decl) return;
+    if (IDK_TYPE == decl->kind) IncludeType(decl->ptype, consumer_module);
+    else                        CollectValueDependencies(decl->pvalsym, consumer_module);
+  }
+
+  void AddExport(EIntfDeclKind kind, OModuleBase * owner, const string & symbol_name)
+  {
+    if (!owner)
+    {
+      error = format("Reexported symbol {} has no canonical owner module", symbol_name);
+      return;
+    }
+    pair<int, string> key = {int(kind), symbol_name};
+    if (export_keys.insert(key).second)
+    {
+      exports.push_back({kind, owner->name, symbol_name});
+    }
+  }
+
+public:
+  OFlattenedDqmInterface(OModuleIntf * aroot, const vector<SSourceDependency> & root_sources)
+  :
+    root(aroot),
+    source_dependencies(root_sources)
+  {
+    for (OIntfDecl * decl : root->declarations)
+    {
+      CollectDeclarationDependencies(decl, root->name);
+    }
+
+    for (OModuleUse * use : root->used_modules)
+    {
+      if (!use || !use->module || use->is_private) continue;
+      CollectFreshnessModule(use->module);
+      if (!use->reexport) continue;
+
+      for (const string & symbol_name : use->EffectiveSymbolNames())
+      {
+        if (OType * type = use->module->scope_pub->FindType(symbol_name, nullptr, false))
+        {
+          AddExport(IDK_TYPE, type->module, type->name);
+          IncludeType(type, root->name);
+        }
+        if (OValSym * symbol = use->module->scope_pub->FindValSym(symbol_name, nullptr, false))
+        {
+          AddExport(IDK_VALSYM, symbol->module, symbol->name);
+          IncludeValue(symbol, root->name);
+        }
+      }
+    }
+  }
+
+  vector<SFlattenedDqmModule *> OrderedModules()
+  {
+    vector<SFlattenedDqmModule *> result;
+    set<string> visited;
+    set<string> active;
+    function<void(const string &)> visit = [&](const string & module_name)
+    {
+      if (visited.contains(module_name)) return;
+      if (!active.insert(module_name).second)
+      {
+        error = format("Cyclic flattened interface type dependency involving {}", module_name);
+        return;
+      }
+      auto found = modules.find(module_name);
+      if (found == modules.end()) return;
+      for (const string & dependency : found->second.dependencies) visit(dependency);
+      active.erase(module_name);
+      visited.insert(module_name);
+      result.push_back(&found->second);
+    };
+    for (auto & [module_name, module] : modules)
+    {
+      (void)module;
+      visit(module_name);
+    }
+    return result;
+  }
+};
+
 vector<string> OModuleIntf::ChildCompileArgs(const filesystem::path & source_path,
                                              const filesystem::path & artifact_path,
                                              const string & module_path,
@@ -1122,6 +1529,7 @@ vector<string> OModuleIntf::ChildInterfaceArgs(const filesystem::path & source_p
 
 bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
                                            const vector<SSourceDependency> & source_dependencies,
+                                           const vector<pair<string, string>> & module_sources,
                                            const string & object_filename)
 {
   if (!writer.AddRecEmpty(DQMIF_H_BEGIN)) return false;
@@ -1138,6 +1546,13 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
     if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, dep.filetime)) return false;
     if (!writer.AddRecEmpty(DQMIF_H_SRC_END)) return false;
   }
+
+  for (const auto & [module_name, source_filename] : module_sources)
+  {
+    if (!writer.AddRecStringPair(DQMIF_H_MODULE_SOURCE, module_name, source_filename)) return false;
+  }
+
+  if (!writer.AddRecStr(DQMIF_H_MODULE_ID, name)) return false;
 
   if (!object_filename.empty())
   {
@@ -1157,33 +1572,15 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
   return writer.AddRecEmpty(DQMIF_H_END);
 }
 
-bool OModuleIntf::WriteDqmIfUse(ODqmIfWriter & writer, OModuleUse * ause)
-{
-  if (!ause || !ause->module || ause->is_private)
-  {
-    return true;
-  }
-
-  if (!writer.AddRecStr(DQMIF_USE_BEGIN, ause->module->name)) return false;
-  if (!ause->namespace_name.empty() && !writer.AddRecStr(DQMIF_USE_ALIAS, ause->namespace_name)) return false;
-  
-  if (ause->reexport)
-  {
-    if (!writer.AddRecEmpty(DQMIF_USE_REEXPORT)) return false;
-    for (const string & name : ause->EffectiveSymbolNames())
-    {
-      if (!writer.AddRecStr(DQMIF_USE_ONLY, name)) return false;
-    }
-  }
-  
-  return writer.AddRecEmpty(DQMIF_USE_END);
-}
-
 bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
                                         const vector<SSourceDependency> & source_dependencies,
                                         const string & object_filename)
 {
-  if (!WriteDqmIfSourceMetadata(writer, source_dependencies, object_filename))
+  OFlattenedDqmInterface flattened(this, source_dependencies);
+  if (!flattened.error.empty()) return writer.Fail(flattened.error);
+
+  if (!WriteDqmIfSourceMetadata(writer, flattened.source_dependencies,
+                                flattened.module_sources, object_filename))
   {
     return false;
   }
@@ -1233,50 +1630,98 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
     }
   }
 
-  for (OModuleUse * use : used_modules)
+  auto write_declaration = [&](OIntfDecl * decl) -> bool
   {
-    if (!WriteDqmIfUse(writer, use))
-    {
-      return false;
-    }
-  }
-
-  for (OIntfDecl * decl : declarations)
-  {
-    if (!decl)
-    {
-      continue;
-    }
-
+    if (!decl) return true;
     if (IDK_TYPE == decl->kind)
     {
       if (!decl->ptype) return false;
-      
       if (decl->is_forward)
       {
         int fwd_tag = 0;
         if (decl->ptype->kind == TK_OBJECT) fwd_tag = DQMIF_OBJ_FWD;
         else if (decl->ptype->kind == TK_STRUCT) fwd_tag = DQMIF_STRUCT_FWD;
-        
-        if (fwd_tag)
-        {
-          if (!writer.AddRecStr(fwd_tag, decl->ptype->name)) return false;
-        }
+        return !fwd_tag || writer.AddRecStr(fwd_tag, decl->ptype->name);
       }
-      else
+      return decl->ptype->WriteDqmIfDecl(writer);
+    }
+    return decl->pvalsym && decl->pvalsym->WriteDqmIfDecl(writer);
+  };
+
+  vector<SFlattenedDqmModule *> embedded_modules = flattened.OrderedModules();
+  if (!flattened.error.empty()) return writer.Fail(flattened.error);
+  for (SFlattenedDqmModule * embedded : embedded_modules)
+  {
+    if (!embedded || !embedded->module) return writer.Fail("Invalid embedded DQM module");
+    if (!writer.AddRecStr(DQMIF_EMBED_MODULE_BEGIN, embedded->module->name)) return false;
+    set<string> predeclared_compounds;
+    for (OIntfDecl * decl : embedded->module->declarations)
+    {
+      if (!decl || !embedded->declarations.contains(decl) || IDK_TYPE != decl->kind
+          || !decl->ptype || !dynamic_cast<OCompoundType *>(decl->ptype)
+          || !predeclared_compounds.insert(decl->ptype->name).second)
       {
-        if (!decl->ptype->WriteDqmIfDecl(writer))
-        {
-          return false;
-        }
+        continue;
+      }
+      TDqmIfRecId recid = (TK_OBJECT == decl->ptype->kind ? DQMIF_OBJ_FWD : DQMIF_STRUCT_FWD);
+      if (!writer.AddRecStr(recid, decl->ptype->name)) return false;
+    }
+    for (OIntfDecl * decl : embedded->module->declarations)
+    {
+      if (embedded->declarations.contains(decl) && !write_declaration(decl)) return false;
+    }
+    if (!writer.AddRecEmpty(DQMIF_EMBED_MODULE_END)) return false;
+  }
+
+  map<string, vector<const SFlattenedDqmExport *>> exports_by_module;
+  for (const SFlattenedDqmExport & exported : flattened.exports)
+  {
+    exports_by_module[exported.module_name].push_back(&exported);
+  }
+  for (const auto & [module_name, module_exports] : exports_by_module)
+  {
+    set<pair<int, string>> embedded_symbols;
+    auto embedded_it = flattened.modules.find(module_name);
+    if (embedded_it == flattened.modules.end()) return writer.Fail("Flattened export has no embedded module");
+    for (OIntfDecl * decl : embedded_it->second.declarations)
+    {
+      if (!decl) continue;
+      if (IDK_TYPE == decl->kind && decl->ptype)
+      {
+        embedded_symbols.insert({int(IDK_TYPE), decl->ptype->name});
+      }
+      else if (IDK_VALSYM == decl->kind && decl->pvalsym)
+      {
+        embedded_symbols.insert({int(IDK_VALSYM), decl->pvalsym->name});
       }
     }
-    else if (IDK_VALSYM == decl->kind)
+    set<pair<int, string>> exported_symbols;
+    for (const SFlattenedDqmExport * exported : module_exports)
     {
-      if (!decl->pvalsym || !decl->pvalsym->WriteDqmIfDecl(writer))
-      {
-        return false;
-      }
+      exported_symbols.insert({int(exported->kind), exported->symbol_name});
+    }
+
+    if (embedded_symbols == exported_symbols)
+    {
+      if (!writer.AddRecStr(DQMIF_EXPORT_MODULE_ALL, module_name)) return false;
+      continue;
+    }
+
+    if (!writer.AddRecStr(DQMIF_EXPORT_MODULE_BEGIN, module_name)) return false;
+    for (const SFlattenedDqmExport * exported : module_exports)
+    {
+      TDqmIfRecId recid = (IDK_TYPE == exported->kind
+        ? DQMIF_EXPORT_MODULE_TYPE : DQMIF_EXPORT_MODULE_VALSYM);
+      if (!writer.AddRecStr(recid, exported->symbol_name)) return false;
+    }
+    if (!writer.AddRecEmpty(DQMIF_EXPORT_MODULE_END)) return false;
+  }
+
+  for (OIntfDecl * decl : declarations)
+  {
+    if (!write_declaration(decl))
+    {
+      return false;
     }
   }
 
@@ -1360,6 +1805,28 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
   return nullptr;
 }
 
+OType * OModuleIntf::ResolveDqmIfQualifiedType(const string & amodule_name, const string & atype_name)
+{
+  if (amodule_name == name)
+  {
+    return scope_pub->FindType(atype_name, nullptr, false);
+  }
+  OModuleIntf * intf = FindLoadedModuleIntf(amodule_name);
+  OModuleIntf * registry = embedded_owner ? embedded_owner : this;
+  if (!intf)
+  {
+    for (OModuleIntf * embedded : registry->reexport_modules)
+    {
+      if (embedded && embedded->name == amodule_name)
+      {
+        intf = embedded;
+        break;
+      }
+    }
+  }
+  return intf ? intf->scope_pub->FindType(atype_name, nullptr, false) : nullptr;
+}
+
 string OModuleIntf::FormatUnresolvedDqmIfTypeError(const string & atype_name) const
 {
   return format("Unknown DQM interface type \"{}\" while loading module \"{}\"; "
@@ -1371,14 +1838,24 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
 {
   rtype = nullptr;
 
-  if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_NAME == reader.recid))
+  if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_NAME == reader.recid)
+      || (DQMIF_TYPE_SPEC_QUALIFIED == reader.recid))
   {
     string typename_str;
-    if (!reader.ReadString(typename_str))
+    if (DQMIF_TYPE_SPEC_QUALIFIED == reader.recid)
+    {
+      string module_name;
+      if (!reader.ReadStringPair(module_name, typename_str)) return false;
+      rtype = ResolveDqmIfQualifiedType(module_name, typename_str);
+    }
+    else if (!reader.ReadString(typename_str))
     {
       return false;
     }
-    rtype = ResolveDqmIfTypeName(typename_str);
+    else
+    {
+      rtype = ResolveDqmIfTypeName(typename_str);
+    }
     if (!rtype)
     {
       return reader.Fail(FormatUnresolvedDqmIfTypeError(typename_str));
@@ -1405,14 +1882,25 @@ bool OModuleIntf::ReadTypeSpec(ODqmIfReader & reader, OType *& rtype)
     return ReadFunctionRefTypeSpec(reader, DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid, rtype);
   }
 
-  if (DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+  if ((DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+      || (DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL == reader.recid))
   {
     string object_type_name;
-    if (!reader.ReadString(object_type_name))
+    OType * base_type = nullptr;
+    if (DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL == reader.recid)
+    {
+      string module_name;
+      if (!reader.ReadStringPair(module_name, object_type_name)) return false;
+      base_type = ResolveDqmIfQualifiedType(module_name, object_type_name);
+    }
+    else if (!reader.ReadString(object_type_name))
     {
       return false;
     }
-    OType * base_type = ResolveDqmIfTypeName(object_type_name);
+    else
+    {
+      base_type = ResolveDqmIfTypeName(object_type_name);
+    }
     auto * object_type = dynamic_cast<OTypeObject *>(base_type ? base_type->ResolveAlias() : nullptr);
     if (!object_type)
     {
@@ -1963,8 +2451,11 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
       mode = FPM_REFNULL;
     }
     else if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
-             || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid)
-             || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid) || (DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+             || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_QUALIFIED == reader.recid)
+             || (DQMIF_TYPE_SPEC_FUNCREF == reader.recid)
+             || (DQMIF_TYPE_SPEC_OBJFUNCREF == reader.recid)
+             || (DQMIF_TYPE_SPEC_OBJECT_TYPE == reader.recid)
+             || (DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL == reader.recid)
              || (DQMIF_TYPE_SPEC_PTR == reader.recid)
              || (DQMIF_TYPE_SPEC_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_SLICE_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid))
@@ -2564,14 +3055,25 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
       }
       ctype->bytesize = uint32_t(bytesize);
     }
-    else if (DQMIF_OBJ_BASE == reader.recid)
+    else if ((DQMIF_OBJ_BASE == reader.recid) || (DQMIF_OBJ_BASE_QUAL == reader.recid))
     {
       string basename;
-      if (!reader.ReadString(basename) || !reader.NextRec())
+      OType * basetype = nullptr;
+      if (DQMIF_OBJ_BASE_QUAL == reader.recid)
+      {
+        string module_name;
+        if (!reader.ReadStringPair(module_name, basename)) return false;
+        basetype = ResolveDqmIfQualifiedType(module_name, basename);
+      }
+      else if (!reader.ReadString(basename))
       {
         return false;
       }
-      OType * basetype = ResolveDqmIfTypeName(basename);
+      else
+      {
+        basetype = ResolveDqmIfTypeName(basename);
+      }
+      if (!reader.NextRec()) return false;
       OCompoundType * base_compound = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
       if (!base_compound || (base_compound->kind != ctype->kind))
       {
@@ -2624,153 +3126,6 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   return true;
 }
 
-bool OModuleIntf::ReadUseDecl(ODqmIfReader & reader)
-{
-  string module_path;
-  if (!reader.ReadString(module_path))
-  {
-    return false;
-  }
-
-  bool reexport = false;
-  string namespace_name;
-  bool has_selection = false;
-  vector<string> symbol_names;
-
-  while (true)
-  {
-    if (!reader.NextRec())
-    {
-      return false;
-    }
-    if (DQMIF_USE_END == reader.recid)
-    {
-      break;
-    }
-    if (DQMIF_USE_ALIAS == reader.recid)
-    {
-      if (!reader.ReadString(namespace_name)) return false;
-    }
-    else if (DQMIF_USE_ONLY == reader.recid)
-    {
-      string name;
-      if (!reader.ReadString(name)) return false;
-      has_selection = true;
-      symbol_names.push_back(name);
-    }
-    else if (DQMIF_USE_REEXPORT == reader.recid)
-    {
-      if (!reader.ExpectEmpty(DQMIF_USE_REEXPORT)) return false;
-      reexport = true;
-    }
-    else
-    {
-      return reader.Fail(format("Unexpected DQM interface use record 0x{:04X}", reader.recid));
-    }
-  }
-
-  filesystem::path artifact_path;
-  if (!OModulePath::ResolveCanonicalArtifact(module_path, name, interface_filename, artifact_path))
-  {
-    return reader.Fail(format("Can not resolve module artifact: {}", module_path));
-  }
-  filesystem::path interface_artifact_path = artifact_path;
-  interface_artifact_path.replace_extension(".dqm_if");
-
-  bool owned_intf = false;
-  OModuleIntf * intf = FindLoadedModuleIntf(module_path);
-  if (!intf)
-  {
-    intf = new OModuleIntf(scope_pub->parent_scope, module_path);
-    owned_intf = true;
-  }
-  if (owned_intf && !intf->ReadInterface(interface_artifact_path.string()))
-  {
-    delete intf;
-    return reader.Fail(format("Can not load module interface: {}", interface_artifact_path.string()));
-  }
-  if (owned_intf && g_module)
-  {
-    g_module->loaded_modules.push_back(intf);
-    owned_intf = false;
-  }
-
-  EModuleUseMergeMode merge_mode = (has_selection ? MUM_ONLY : MUM_ALL);
-  OModuleUse * use = new OModuleUse(intf, namespace_name, false, merge_mode, symbol_names, reexport);
-
-  if (reexport)
-  {
-    if (has_selection)
-    {
-      for (const string & name : symbol_names)
-      {
-        if (!intf->scope_pub->FindType(name, nullptr, false)
-            && !intf->scope_pub->FindValSym(name, nullptr, false))
-        {
-          delete use;
-          if (owned_intf) delete intf;
-          return reader.Fail(format("Reexported module \"{}\" has no public symbol \"{}\"", module_path, name));
-        }
-      }
-    }
-
-    for (const string & name : use->EffectiveSymbolNames())
-    {
-      if (OType * type = intf->scope_pub->FindType(name, nullptr, false))
-      {
-        auto found = scope_pub->typesyms.find(type->name);
-        if (found != scope_pub->typesyms.end() && found->second != type)
-        {
-          delete use;
-          if (owned_intf) delete intf;
-          return reader.Fail(format("Reexported type \"{}\" conflicts in module \"{}\"", type->name, this->name));
-        }
-        if (found == scope_pub->typesyms.end())
-        {
-          scope_pub->typesyms[type->name] = type;
-          declarations.push_back(new OIntfDecl(type));
-        }
-      }
-
-      if (OValSym * vs = intf->scope_pub->FindValSym(name, nullptr, false))
-      {
-        auto found = scope_pub->valsyms.find(vs->name);
-        if (found != scope_pub->valsyms.end() && found->second != vs)
-        {
-          delete use;
-          if (owned_intf) delete intf;
-          return reader.Fail(format("Reexported symbol \"{}\" conflicts in module \"{}\"", vs->name, this->name));
-        }
-        if (found == scope_pub->valsyms.end())
-        {
-          scope_pub->valsyms[vs->name] = vs;
-          declarations.push_back(new OIntfDecl(vs));
-        }
-      }
-    }
-
-    string artifact_name = artifact_path.string();
-    if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), artifact_name))
-    {
-      reexport_artifacts.push_back(artifact_name);
-    }
-    for (const string & child_artifact : intf->reexport_artifacts)
-    {
-      if (reexport_artifacts.end() == find(reexport_artifacts.begin(), reexport_artifacts.end(), child_artifact))
-      {
-        reexport_artifacts.push_back(child_artifact);
-      }
-    }
-  }
-
-  if (owned_intf)
-  {
-    reexport_modules.push_back(intf);
-  }
-  used_modules.push_back(use);
-  return true;
-}
-
 bool OModuleIntf::ReadModuleInitDecl(ODqmIfReader & reader)
 {
   if (!reader.ReadString(module_init_linkage_name))
@@ -2787,8 +3142,263 @@ bool OModuleIntf::ReadModuleInitDecl(ODqmIfReader & reader)
   return true;
 }
 
+bool OModuleIntf::ReadEmbeddedModule(ODqmIfReader & reader)
+{
+  string module_name;
+  if (!reader.ReadString(module_name)) return false;
+
+  auto & group_symbols = embedded_group_symbols[module_name];
+  group_symbols.clear();
+
+  OModuleIntf * intf = FindLoadedModuleIntf(module_name);
+  if (!intf)
+  {
+    intf = new OModuleIntf(scope_pub->parent_scope, module_name);
+    intf->partial_interface = true;
+    intf->interface_filename = interface_filename;
+    if (g_module)
+    {
+      g_module->loaded_modules.push_back(intf);
+    }
+    else
+    {
+      intf->embedded_owner = this;
+      reexport_modules.push_back(intf);
+    }
+  }
+
+  set<string> existing_types;
+  set<string> existing_values;
+  for (const auto & [symbol_name, type] : intf->scope_pub->typesyms)
+  {
+    (void)type;
+    existing_types.insert(symbol_name);
+  }
+  for (const auto & [symbol_name, symbol] : intf->scope_pub->valsyms)
+  {
+    (void)symbol;
+    existing_values.insert(symbol_name);
+  }
+
+  while (true)
+  {
+    if (!reader.NextRec()) return false;
+    if (DQMIF_EMBED_MODULE_END == reader.recid)
+    {
+      return reader.ExpectEmpty(DQMIF_EMBED_MODULE_END);
+    }
+
+    string symbol_name;
+    bool has_name = reader.ReadString(symbol_name);
+    if (!has_name) return false;
+
+    if (DQMIF_TYPE_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_TYPE, symbol_name});
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_TYPE_BEGIN, DQMIF_TYPE_END)) return false;
+      }
+      else if (!intf->ReadTypeDecl(reader)) return false;
+    }
+    else if (DQMIF_ENUM_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_TYPE, symbol_name});
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_ENUM_BEGIN, DQMIF_ENUM_END)) return false;
+      }
+      else if (!intf->ReadEnumDecl(reader)) return false;
+    }
+    else if (DQMIF_CONST_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_VALSYM, symbol_name});
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_CONST_BEGIN, DQMIF_CONST_END)) return false;
+      }
+      else if (!intf->ReadConstDecl(reader)) return false;
+    }
+    else if (DQMIF_VAR_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_VALSYM, symbol_name});
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_VAR_BEGIN, DQMIF_VAR_END)) return false;
+      }
+      else if (!intf->ReadVarDecl(reader)) return false;
+    }
+    else if (DQMIF_FUNC_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_VALSYM, symbol_name});
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_FUNC_BEGIN, DQMIF_FUNC_END)) return false;
+      }
+      else if (!intf->ReadFunctionDecl(reader, nullptr, false)) return false;
+    }
+    else if (DQMIF_STRUCT_BEGIN == reader.recid || DQMIF_OBJ_BEGIN == reader.recid)
+    {
+      group_symbols.insert({IDK_TYPE, symbol_name});
+      bool is_object = (DQMIF_OBJ_BEGIN == reader.recid);
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(reader.recid, is_object ? DQMIF_OBJ_END : DQMIF_STRUCT_END)) return false;
+      }
+      else if (!intf->ReadCompoundDecl(reader, is_object)) return false;
+    }
+    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid)
+    {
+      group_symbols.insert({IDK_TYPE, symbol_name});
+      if (!intf->scope_pub->FindType(symbol_name, nullptr, false))
+      {
+        bool is_object = (DQMIF_OBJ_FWD == reader.recid);
+        OCompoundType * type = is_object
+          ? static_cast<OCompoundType *>(new OTypeObject(symbol_name, intf->scope_pub))
+          : new OCompoundType(symbol_name, intf->scope_pub);
+        type->incomplete = true;
+        if (!intf->AddPublicType(type))
+        {
+          delete type;
+          return false;
+        }
+      }
+    }
+    else
+    {
+      return reader.Fail(format("Unexpected embedded DQM interface record 0x{:04X}", reader.recid));
+    }
+  }
+}
+
+bool OModuleIntf::AddFlattenedExport(ODqmIfReader & reader, const string & module_name,
+                                     const string & symbol_name, EIntfDeclKind akind)
+{
+  OModuleIntf * intf = FindLoadedModuleIntf(module_name);
+  if (!intf)
+  {
+    for (OModuleIntf * embedded : reexport_modules)
+    {
+      if (embedded && embedded->name == module_name)
+      {
+        intf = embedded;
+        break;
+      }
+    }
+  }
+  if (!intf)
+  {
+    return reader.Fail(format("Flattened export references missing module {}", module_name));
+  }
+
+  if (IDK_TYPE == akind)
+  {
+    OType * type = intf->scope_pub->FindType(symbol_name, nullptr, false);
+    if (!type) return reader.Fail(format("Flattened export references missing type {}.{}", module_name, symbol_name));
+    auto found = scope_pub->typesyms.find(symbol_name);
+    if (found != scope_pub->typesyms.end() && found->second != type)
+    {
+      return reader.Fail(format("Reexported type {} conflicts in module {}", symbol_name, name));
+    }
+    if (found == scope_pub->typesyms.end())
+    {
+      scope_pub->typesyms[symbol_name] = type;
+      declarations.push_back(new OIntfDecl(type));
+    }
+  }
+  else
+  {
+    OValSym * symbol = intf->scope_pub->FindValSym(symbol_name, nullptr, false);
+    if (!symbol) return reader.Fail(format("Flattened export references missing symbol {}.{}", module_name, symbol_name));
+    auto found = scope_pub->valsyms.find(symbol_name);
+    if (found != scope_pub->valsyms.end() && found->second != symbol)
+    {
+      return reader.Fail(format("Reexported symbol {} conflicts in module {}", symbol_name, name));
+    }
+    if (found == scope_pub->valsyms.end())
+    {
+      scope_pub->valsyms[symbol_name] = symbol;
+      declarations.push_back(new OIntfDecl(symbol));
+    }
+  }
+  return true;
+}
+
+bool OModuleIntf::ReadFlattenedExportGroup(ODqmIfReader & reader, bool aall)
+{
+  string module_name;
+  if (!reader.ReadString(module_name)) return false;
+
+  OModuleIntf * intf = FindLoadedModuleIntf(module_name);
+  if (!intf)
+  {
+    for (OModuleIntf * embedded : reexport_modules)
+    {
+      if (embedded && embedded->name == module_name)
+      {
+        intf = embedded;
+        break;
+      }
+    }
+  }
+  if (!intf) return reader.Fail(format("Flattened export references missing module {}", module_name));
+
+  if (aall)
+  {
+    auto group_it = embedded_group_symbols.find(module_name);
+    if (group_it == embedded_group_symbols.end())
+    {
+      return reader.Fail(format("Flattened export references missing embedded group {}", module_name));
+    }
+    for (const auto & [kind, symbol_name] : group_it->second)
+    {
+      if (!AddFlattenedExport(reader, module_name, symbol_name, kind)) return false;
+    }
+    return true;
+  }
+
+  while (true)
+  {
+    if (!reader.NextRec()) return false;
+    if (DQMIF_EXPORT_MODULE_END == reader.recid)
+    {
+      return reader.ExpectEmpty(DQMIF_EXPORT_MODULE_END);
+    }
+    string symbol_name;
+    if (!reader.ReadString(symbol_name)) return false;
+    if (DQMIF_EXPORT_MODULE_TYPE == reader.recid)
+    {
+      if (!AddFlattenedExport(reader, module_name, symbol_name, IDK_TYPE)) return false;
+    }
+    else if (DQMIF_EXPORT_MODULE_VALSYM == reader.recid)
+    {
+      if (!AddFlattenedExport(reader, module_name, symbol_name, IDK_VALSYM)) return false;
+    }
+    else
+    {
+      return reader.Fail(format("Unexpected flattened export record 0x{:04X}", reader.recid));
+    }
+  }
+}
+
 bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 {
+  set<string> existing_types;
+  set<string> existing_values;
+  if (partial_interface)
+  {
+    for (const auto & [symbol_name, type] : scope_pub->typesyms)
+    {
+      (void)type;
+      existing_types.insert(symbol_name);
+    }
+    for (const auto & [symbol_name, symbol] : scope_pub->valsyms)
+    {
+      (void)symbol;
+      existing_values.insert(symbol_name);
+    }
+  }
+
   while (!reader.Eof())
   {
     if (!reader.NextRec())
@@ -2798,7 +3408,7 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
 
     if (DQMIF_H_BEGIN == reader.recid)
     {
-      if (!reader.SkipGroup(DQMIF_H_BEGIN, DQMIF_H_END)) return false;
+      if (!ReadDqmIfHeaderMetadata(reader, true)) return false;
     }
     else if (DQMIF_LINKLIB == reader.recid)
     {
@@ -2822,37 +3432,87 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     {
       if (!ReadModuleInitDecl(reader)) return false;
     }
-    else if (DQMIF_USE_BEGIN == reader.recid)
+    else if (DQMIF_EMBED_MODULE_BEGIN == reader.recid)
     {
-      if (!ReadUseDecl(reader)) return false;
+      if (!ReadEmbeddedModule(reader)) return false;
+    }
+    else if (DQMIF_EXPORT_MODULE_ALL == reader.recid)
+    {
+      if (!ReadFlattenedExportGroup(reader, true)) return false;
+    }
+    else if (DQMIF_EXPORT_MODULE_BEGIN == reader.recid)
+    {
+      if (!ReadFlattenedExportGroup(reader, false)) return false;
     }
     else if (DQMIF_TYPE_BEGIN == reader.recid)
     {
-      if (!ReadTypeDecl(reader)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_TYPE_BEGIN, DQMIF_TYPE_END)) return false;
+      }
+      else if (!ReadTypeDecl(reader)) return false;
     }
     else if (DQMIF_ENUM_BEGIN == reader.recid)
     {
-      if (!ReadEnumDecl(reader)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_ENUM_BEGIN, DQMIF_ENUM_END)) return false;
+      }
+      else if (!ReadEnumDecl(reader)) return false;
     }
     else if (DQMIF_CONST_BEGIN == reader.recid)
     {
-      if (!ReadConstDecl(reader)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_CONST_BEGIN, DQMIF_CONST_END)) return false;
+      }
+      else if (!ReadConstDecl(reader)) return false;
     }
     else if (DQMIF_VAR_BEGIN == reader.recid)
     {
-      if (!ReadVarDecl(reader)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_VAR_BEGIN, DQMIF_VAR_END)) return false;
+      }
+      else if (!ReadVarDecl(reader)) return false;
     }
     else if (DQMIF_FUNC_BEGIN == reader.recid)
     {
-      if (!ReadFunctionDecl(reader, nullptr, false)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_values.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_FUNC_BEGIN, DQMIF_FUNC_END)) return false;
+      }
+      else if (!ReadFunctionDecl(reader, nullptr, false)) return false;
     }
     else if (DQMIF_STRUCT_BEGIN == reader.recid)
     {
-      if (!ReadCompoundDecl(reader, false)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_STRUCT_BEGIN, DQMIF_STRUCT_END)) return false;
+      }
+      else if (!ReadCompoundDecl(reader, false)) return false;
     }
     else if (DQMIF_OBJ_BEGIN == reader.recid)
     {
-      if (!ReadCompoundDecl(reader, true)) return false;
+      string symbol_name;
+      if (!reader.ReadString(symbol_name)) return false;
+      if (existing_types.contains(symbol_name))
+      {
+        if (!reader.SkipGroup(DQMIF_OBJ_BEGIN, DQMIF_OBJ_END)) return false;
+      }
+      else if (!ReadCompoundDecl(reader, true)) return false;
     }
     else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid)
     {
@@ -2908,6 +3568,8 @@ bool OModuleIntf::ReadInterface(const string & filename, bool alock, bool aquiet
     }
     return false;
   }
+
+  partial_interface = false;
 
   return true;
 }

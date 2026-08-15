@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.44.0"
+#define DQ_COMPILER_VERSION  "0.45.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.0:
+  - dq_module_init() is generated for bare-metal targets too
+  - the objects now aligned properly to ptrsize (even using through modules)
 v0.44.0:
   - use ... reexport merges all symbols from the used modules so
     no child .dqm_if loading is required upon parent use

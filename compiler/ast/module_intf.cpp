@@ -3035,6 +3035,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     return false;
   }
 
+  bool has_align_spec = false;
   while (true)
   {
     if ((!ais_object && (DQMIF_STRUCT_END == reader.recid))
@@ -3054,6 +3055,17 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
         return reader.Fail(format("Invalid DQM interface size for {}", declname));
       }
       ctype->bytesize = uint32_t(bytesize);
+    }
+    else if (DQMIF_ALIGN_SPEC == reader.recid)
+    {
+      int32_t alignsize = 0;
+      if (has_align_spec || !reader.ReadI32(alignsize) || (alignsize <= 0)
+          || (alignsize & (alignsize - 1)) || !reader.NextRec())
+      {
+        return reader.Fail(format("Invalid DQM interface alignment for {}", declname));
+      }
+      ctype->alignsize = uint32_t(alignsize);
+      has_align_spec = true;
     }
     else if ((DQMIF_OBJ_BASE == reader.recid) || (DQMIF_OBJ_BASE_QUAL == reader.recid))
     {
@@ -3116,6 +3128,10 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
     }
   }
 
+  if (!has_align_spec)
+  {
+    return reader.Fail(format("Missing DQM interface alignment for {}", declname));
+  }
   if (auto * object_type = dynamic_cast<OTypeObject *>(ctype))
   {
     object_type->UpdateObjectInheritanceFlags();

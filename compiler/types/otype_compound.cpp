@@ -1199,6 +1199,11 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
     return writer.Fail(format("Compound type {} is too large for DQM interface: {}", name, bytesize));
   }
   if (!writer.AddRecI32(DQMIF_SIZE_SPEC, int32_t(bytesize))) return false;
+  if (alignsize > uint32_t(numeric_limits<int32_t>::max()))
+  {
+    return writer.Fail(format("Compound type {} alignment is too large for DQM interface: {}", name, alignsize));
+  }
+  if (!writer.AddRecI32(DQMIF_ALIGN_SPEC, int32_t(alignsize))) return false;
   if (base_type)
   {
     if (base_type->module && !base_type->module->name.empty())

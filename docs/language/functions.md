@@ -210,6 +210,11 @@ function *ModuleInit():
 endfunc
 ```
 
+On bare-metal targets, the application owns its entry point and must call the
+compiler-generated `dq_module_init()` after initialized data and zeroed storage
+are ready. This runs the initialization functions of all used DQ modules,
+including generated constructors for global fixed objects.
+
 `*Create` is an object constructor and `*Destroy` is an object destructor.
 
 ```dq

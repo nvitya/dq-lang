@@ -93,6 +93,10 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_pointer_const.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys --link
+          --linker-arg=--entry=_start
+          -o "${DQ_BUILD_DIR}/arm_m7f_module_init.elf"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_module_init.dq"
   COMMAND "$<TARGET_FILE:dq-comp>" -o "${DQ_BUILD_DIR}/arm_m7f_project.o"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/arm_m7f.dqproj"
   COMMAND "$<TARGET_FILE:dq-comp>" -O0 -g -DPROJECT_OVERRIDE=2 -DEXPECT_OVERRIDE

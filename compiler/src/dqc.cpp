@@ -542,9 +542,18 @@ void ODqCompiler::Run(int argc, char ** argv)
     return;
   }
 
-  if (should_link && has_app_main && !g_opt.target.IsBare())
+  bool generate_app_init = should_link && has_app_main && !g_opt.target.IsBare();
+  if (g_opt.target.IsBare() && !g_opt.regen_if_stale)
   {
-    g_module->EnsureAppInitFunc(main_func->scpos);
+    // Bare-metal applications own their entry point and call dq_module_init()
+    // explicitly after their memory has been initialized. Dependency modules
+    // only emit their module-local initializer.
+    generate_app_init = true;
+  }
+  if (generate_app_init)
+  {
+    OScPosition & init_scpos = main_func ? main_func->scpos : scpos_statement_start;
+    g_module->EnsureAppInitFunc(init_scpos);
   }
 
   GenerateIr();

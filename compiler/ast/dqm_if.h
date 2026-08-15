@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    15 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    15 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    16 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    16 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -138,6 +138,7 @@ TDqmIfRecId  DQMIF_ATTR_SECTION_NAME      = 0x8203;  // str
 TDqmIfRecId  DQMIF_ATTR_LINK_NAME         = 0x8204;  // str
 
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
+TDqmIfRecId  DQMIF_ALIGN_SPEC             = 0x8305;  // int32: storage alignment (structs / objects)
 
 // 0100: Header records
 
@@ -217,7 +218,7 @@ TDqmIfRecId  DQMIF_OBJ_BEGIN              = 0x0701;  // str: name
 TDqmIfRecId  DQMIF_OBJ_BASE               = 0x0702;  // str: base compound type name
 TDqmIfRecId  DQMIF_OBJ_BASE_QUAL          = 0x0703;  // str pair: canonical module id, base type name
 TDqmIfRecId  DQMIF_OBJ_END                = 0x07FE;  // 0
-// exp.:     DQMIF_SIZE_SPEC
+// exp.:     DQMIF_SIZE_SPEC, DQMIF_ALIGN_SPEC
 TDqmIfRecId  DQMIF_FIELD_BEGIN            = 0x0710;  // str
 TDqmIfRecId  DQMIF_FIELD_END              = 0x071F;  // 0
 TDqmIfRecId  DQMIF_FIELD_OFFSET           = 0x0711;  // int32

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.45.4"
+#define DQ_COMPILER_VERSION  "0.45.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.5:
+  - Added more targets: arm_m0-bare, arm_m3-bare, arm_m4-bare, arm_m4f-bare, arm_m33f-bare
 v0.45.4:
   - DQ symbols are emitted as "pkg::submod::variable"
 v0.45.3:

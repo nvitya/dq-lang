@@ -54,6 +54,42 @@ static bool LoadProject(ODqProject & project, const fs::path & filename,
 
 int main()
 {
+  struct STargetExpectation
+  {
+    const char * name;
+    const char * arch;
+    const char * triple;
+    const char * cpu;
+    const char * features;
+    ETargetFloatAbi float_abi;
+  };
+  const STargetExpectation target_expectations[] = {
+    {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
+      "+vfp4d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+    {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
+      "+fp-armv8d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+  };
+  for (const STargetExpectation & expected : target_expectations)
+  {
+    OCompTarget target;
+    string error;
+    Expect(target.Configure(expected.name, error), string("configure target ") + expected.name);
+    Expect(target.name == expected.name, string("target name ") + expected.name);
+    Expect(target.arch == expected.arch, string("target architecture ") + expected.name);
+    Expect(target.llvm_triple == expected.triple, string("target triple ") + expected.name);
+    Expect(target.llvm_cpu == expected.cpu, string("target CPU ") + expected.name);
+    Expect(target.llvm_features == expected.features, string("target features ") + expected.name);
+    Expect(target.float_abi == expected.float_abi, string("target float ABI ") + expected.name);
+    Expect(target.IsArm() && target.IsBare() && (target.pointer_size == 4),
+           string("common ARM bare properties ") + expected.name);
+  }
+
   fs::path root = fs::temp_directory_path() / "dq-projectfile-test";
   error_code ec;
   fs::remove_all(root, ec);

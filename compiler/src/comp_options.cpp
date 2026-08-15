@@ -100,19 +100,46 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     return true;
   }
 
-  if ("arm_m7f-bare" == aname)
+  struct SArmBarePreset
   {
+    const char * name;
+    const char * arch;
+    const char * triple;
+    const char * cpu;
+    const char * features;
+    ETargetFloatAbi float_abi;
+  };
+
+  static const SArmBarePreset arm_bare_presets[] = {
+    {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
+      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+    {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
+      "+vfp4d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+    {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
+      "+fp-armv8d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+    {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
+      "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32", TARGET_FLOAT_ABI_HARD},
+  };
+
+  for (const SArmBarePreset & preset : arm_bare_presets)
+  {
+    if (aname != preset.name) continue;
+
     *this = OCompTarget();
-    name = aname;
-    arch = "arm_m7f";
+    name = preset.name;
+    arch = preset.arch;
     platform_name = "bare";
-    llvm_triple = "thumbv7em-none-eabihf";
-    llvm_cpu = "cortex-m7";
-    llvm_features = "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32";
+    llvm_triple = preset.triple;
+    llvm_cpu = preset.cpu;
+    llvm_features = preset.features;
     llvm_backend = "ARM";
     pointer_size = 4;
     platform = TARGET_PLATFORM_BARE;
-    float_abi = TARGET_FLOAT_ABI_HARD;
+    float_abi = preset.float_abi;
     return true;
   }
 

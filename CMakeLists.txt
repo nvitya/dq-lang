@@ -89,6 +89,22 @@ endif()
 
 set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
 
+set(DQ_ARM_BARE_COMPILE_TARGETS
+  arm_m0-bare
+  arm_m3-bare
+  arm_m4-bare
+  arm_m4f-bare
+  arm_m33f-bare
+)
+set(DQ_ARM_TARGET_TEST_COMMANDS)
+foreach(DQ_ARM_TARGET IN LISTS DQ_ARM_BARE_COMPILE_TARGETS)
+  list(APPEND DQ_ARM_TARGET_TEST_COMMANDS
+    COMMAND "$<TARGET_FILE:dq-comp>" "--target=${DQ_ARM_TARGET}" --no-use-sys -c
+            -o "${DQ_BUILD_DIR}/${DQ_ARM_TARGET}_pointer_const.o"
+            "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+  )
+endforeach()
+
 add_custom_target(cleantest
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -112,6 +128,8 @@ add_custom_target(autotest_O0
 add_custom_target(test
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   COMMAND "$<TARGET_FILE:dq-inline-asm-test>"
+  COMMAND "$<TARGET_FILE:dq-projectfile-test>"
+  ${DQ_ARM_TARGET_TEST_COMMANDS}
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_inline_asm.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_inline_asm.dq"
@@ -140,7 +158,7 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" -c -o "${DQ_BUILD_DIR}/project_compile_only.o"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/linkobject.dqproj"
   COMMAND ${DQ_AUTOTEST_COMMAND}
-  DEPENDS dq-comp dqatrun dq-inline-asm-test
+  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )

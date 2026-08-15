@@ -1,0 +1,11 @@
+//?notest
+
+var generated_init_value : int = 0
+
+object OGeneratedGlobal:
+    function *Create():
+        @.generated_init_value = 73
+    endfunc
+endobj
+
+var generated_global <- OGeneratedGlobal()

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.45.0"
+#define DQ_COMPILER_VERSION  "0.45.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.1:
+  - -O0 debuginfo fix for proper debugger stepping
+  - *ModuleInit() calling fix for bare-metal targets
 v0.45.0:
   - dq_module_init() is generated for bare-metal targets too
   - the objects now aligned properly to ptrsize (even using through modules)

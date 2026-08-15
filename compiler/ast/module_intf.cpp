@@ -1630,6 +1630,20 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
     }
   }
 
+  if (module_init_func)
+  {
+    bool has_public_module_init = any_of(declarations.begin(), declarations.end(),
+        [&](OIntfDecl * decl)
+        {
+          return decl && (IDK_VALSYM == decl->kind) && (decl->pvalsym == module_init_func);
+        });
+    if (!has_public_module_init
+        && !writer.AddRecStr(DQMIF_MODULE_INIT, module_init_linkage_name))
+    {
+      return false;
+    }
+  }
+
   auto write_declaration = [&](OIntfDecl * decl) -> bool
   {
     if (!decl) return true;

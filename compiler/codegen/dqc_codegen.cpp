@@ -482,12 +482,21 @@ void ODqCompCodegen::PrepareTarget()
   optional<llvm::Reloc::Model> reloc_model = (g_opt.target.IsBare()
       ? llvm::Reloc::Static : llvm::Reloc::PIC_);
 
+  llvm::CodeGenOptLevel codegen_optlevel;
+  switch (g_opt.optlevel)
+  {
+    case 0:  codegen_optlevel = llvm::CodeGenOptLevel::None;       break;
+    case 1:  codegen_optlevel = llvm::CodeGenOptLevel::Less;       break;
+    case 2:  codegen_optlevel = llvm::CodeGenOptLevel::Default;    break;
+    default: codegen_optlevel = llvm::CodeGenOptLevel::Aggressive; break;
+  }
+
 #if LLVM_VERSION_MAJOR >= 21
   ll_machine = target->createTargetMachine(ll_triple, g_opt.target.llvm_cpu,
-      g_opt.target.llvm_features, target_options, reloc_model);
+      g_opt.target.llvm_features, target_options, reloc_model, nullopt, codegen_optlevel);
 #else
   ll_machine = target->createTargetMachine(triple, g_opt.target.llvm_cpu,
-      g_opt.target.llvm_features, target_options, reloc_model);
+      g_opt.target.llvm_features, target_options, reloc_model, nullopt, codegen_optlevel);
 #endif
 
   ll_module->setDataLayout(ll_machine->createDataLayout());

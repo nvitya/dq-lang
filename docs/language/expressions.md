@@ -146,6 +146,22 @@ during compilation and can be used in ordinary expressions as well as `#if`
 and `#elif` conditions. Optional identifiers search DQ lexical scopes, not the
 `@def` namespace.
 
+## Definition Test
+
+`Defined(NAME)` is a compile-time intrinsic that returns `true` when `NAME`
+exists in the preprocessor-definition scope and `false` otherwise. Like
+`#ifdef`, a bare name searches `@def`, regardless of the definition's value:
+
+```dq
+#if Defined(FEATURE_A) or Defined(FEATURE_B)
+    const FEATURE_AVAILABLE : bool = true
+#endif
+```
+
+A namespace-qualified argument tests a DQ value symbol instead, for example
+`Defined(@.MODULE_CONSTANT)` or `Defined(@module.CONSTANT)`. The result is a
+constant `bool`, so `Defined` can also be used in ordinary code.
+
 ## Object Type Test
 
 The `is` operator checks whether an object reference is compatible with an

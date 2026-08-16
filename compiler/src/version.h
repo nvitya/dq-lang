@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.45.5"
+#define DQ_COMPILER_VERSION  "0.46.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.6:
+  - Added the Defined() compile-time intrinsic for combining definition tests in
+    preprocessor conditions and normal code
 v0.45.5:
   - Added more targets: arm_m0-bare, arm_m3-bare, arm_m4-bare, arm_m4f-bare, arm_m33f-bare
 v0.45.4:

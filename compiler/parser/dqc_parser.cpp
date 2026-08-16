@@ -1861,7 +1861,7 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
     Error(DQERR_ID_EXP_AFTER, "function");
     return false;
   }
-  if (FirstConstResultType(sid))
+  if (IsReservedIntrinsicName(sid))
   {
     Error(DQERR_INTRINSIC_NAME_RESERVED, sid);
     RecoverFailedFunctionDecl();
@@ -2647,7 +2647,7 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
     Error(DQERR_ID_EXP_AFTER, object_name + ".");
     return;
   }
-  if (FirstConstResultType(method_name))
+  if (IsReservedIntrinsicName(method_name))
   {
     Error(DQERR_INTRINSIC_NAME_RESERVED, method_name);
     RecoverFailedFunctionDecl();
@@ -2713,7 +2713,7 @@ void ODqCompParser::ParseFunction()
     Error(DQERR_ID_EXP_AFTER, "function");
     return;
   }
-  if (FirstConstResultType(sid))
+  if (IsReservedIntrinsicName(sid))
   {
     Error(DQERR_INTRINSIC_NAME_RESERVED, sid);
     RecoverFailedFunctionDecl();

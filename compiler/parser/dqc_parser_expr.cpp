@@ -3207,6 +3207,11 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return ParseBuiltinIif();
   }
 
+  if ("Defined" == sid)
+  {
+    return ParseBuiltinDefined();
+  }
+
   if (OType * first_const_type = FirstConstResultType(sid))
   {
     return ParseBuiltinFirstConst(sid, first_const_type);
@@ -4406,12 +4411,74 @@ OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name,
   return evaluate_constant(new OLValueVar(selected));
 }
 
+OExpr * ODqCompParserExpr::ParseBuiltinDefined()
+{
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("("))
+  {
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "Defined");
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  string namespace_name = "def";
+  string symbol_name;
+  if (scf->CheckSymbol("@"))
+  {
+    if (scf->CheckSymbol(".."))
+    {
+      namespace_name = "..";
+    }
+    else if (scf->CheckSymbol("."))
+    {
+      namespace_name = ".";
+    }
+    else if (!scf->ReadIdentifier(namespace_name))
+    {
+      Error(DQERR_NS_NAME_EXPECTED);
+      return nullptr;
+    }
+    else if (!scf->CheckSymbol("."))
+    {
+      Error(DQERR_DOT_MISSING_AFTER_NS_NAME);
+      return nullptr;
+    }
+  }
+
+  if (!scf->ReadIdentifier(symbol_name))
+  {
+    Error(DQERR_ID_EXP_AFTER, "Defined(");
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol(")"))
+  {
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "Defined");
+    return nullptr;
+  }
+
+  auto namespace_it = g_namespaces.find(namespace_name);
+  if (namespace_it == g_namespaces.end())
+  {
+    Error(DQERR_NS_UNKNOWN, "@" + namespace_name);
+    return nullptr;
+  }
+
+  return new OBoolLit(nullptr != namespace_it->second->FindValSym(symbol_name, nullptr, true));
+}
+
 OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) const
 {
   if ("FirstInt" == intrinsic_name)    return g_builtins->type_int;
   if ("FirstFloat" == intrinsic_name)  return g_builtins->type_float;
   if ("FirstBool" == intrinsic_name)   return g_builtins->type_bool;
   return nullptr;
+}
+
+bool ODqCompParserExpr::IsReservedIntrinsicName(const string & name) const
+{
+  return ("Defined" == name) || FirstConstResultType(name);
 }
 
 OExpr * ODqCompParserExpr::ParseBuiltinFloatRound(ERoundMode amode)

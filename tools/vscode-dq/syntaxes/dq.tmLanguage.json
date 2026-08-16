@@ -311,7 +311,7 @@
         },
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:use|implementation|initialization|finalization|var|const|type|struct|endstruct|object|endobj|endobject|private|public|protected|ref|refin|refout|refnull)\\b"
+          "match": "\\b(?:use|implementation|var|const|endconst|type|struct|endstruct|object|endobj|endobject|private|public|protected|ref|refin|refout|refnull)\\b"
         },
         {
           "name": "keyword.operator.word.dq",

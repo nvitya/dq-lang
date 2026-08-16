@@ -1,0 +1,42 @@
+// Defined() compile-time intrinsic tests
+
+#define FIRST_FEATURE
+#define DISABLED_FEATURE = false
+
+const MODULE_CONSTANT : int = 1
+
+#if Defined(MISSING_FEATURE) or Defined(FIRST_FEATURE) or Defined(OTHER_MISSING_FEATURE)
+    const COMBINED_RESULT : int = 11
+#else
+    const COMBINED_RESULT : int = 0
+#endif
+
+#if Defined(DISABLED_FEATURE)
+    const FALSE_VALUE_IS_STILL_DEFINED : int = 12
+#else
+    const FALSE_VALUE_IS_STILL_DEFINED : int = 0
+#endif
+
+#if Defined(@.MODULE_CONSTANT) and not Defined(@.MISSING_CONSTANT)
+    const QUALIFIED_RESULT : int = 13
+#else
+    const QUALIFIED_RESULT : int = 0
+#endif
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+function *Main() -> int:
+    var definition_exists : bool = Defined(FIRST_FEATURE)
+    var definition_missing : bool = Defined(MISSING_FEATURE)
+    var qualified_exists : bool = Defined(@.MODULE_CONSTANT)
+    var qualified_missing : bool = Defined(@.MISSING_CONSTANT)
+
+    printf("combined = %d\n", COMBINED_RESULT) //?check("combined", 11)
+    printf("false value exists = %d\n", FALSE_VALUE_IS_STILL_DEFINED) //?check("false value exists", 12)
+    printf("qualified = %d\n", QUALIFIED_RESULT) //?check("qualified", 13)
+    printf("definition exists = %d\n", definition_exists) //?check("definition exists", 1)
+    printf("definition missing = %d\n", definition_missing) //?check("definition missing", 0)
+    printf("qualified exists = %d\n", qualified_exists) //?check("qualified exists", 1)
+    printf("qualified missing = %d\n", qualified_missing) //?check("qualified missing", 0)
+    return 0
+endfunc

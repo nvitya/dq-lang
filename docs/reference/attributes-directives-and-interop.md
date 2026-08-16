@@ -73,6 +73,11 @@ existence-testing directives (`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef`)
 take either an unqualified preprocessor-definition name or a namespace-qualified
 DQ value symbol such as `@.FEATURE` or `@module.FEATURE`.
 
+`Defined(NAME)` provides the same existence test as a constant Boolean
+expression, allowing tests to be combined with `and`, `or`, and `not` in `#if`
+or ordinary code. A bare name searches `@def`; namespace-qualified forms such
+as `Defined(@.FEATURE)` search the specified DQ scope.
+
 ## Include and Source Dependencies
 
 `#include` inserts a DQ header/source fragment at the directive location under

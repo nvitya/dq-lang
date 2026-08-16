@@ -53,6 +53,7 @@ public: // expressions
   OExpr * ParseNewExpr();
   OExpr * ParseInheritedExpr();
   OExpr * ParseBuiltinIif();
+  OExpr * ParseBuiltinDefined();
   OExpr * ParseBuiltinFirstConst(const string & intrinsic_name, OType * result_type);
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();
@@ -90,6 +91,7 @@ protected:
   OLValueExpr * CreateImplicitMethodReceiver(OCompoundType * method_owner_type);
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);
   OType *   FirstConstResultType(const string & intrinsic_name) const;
+  bool      IsReservedIntrinsicName(const string & name) const;
   bool      CheckSpecialReservedRootName(const string & aname);
   bool      CheckStatementClose(bool emit_error = true);
 

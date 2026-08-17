@@ -156,6 +156,7 @@ ODqCompAst::~ODqCompAst()
 
 bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype)
 {
+  srctype = srctype->ResolveAlias();
   if (srctype->IsCompound())
   {
     memberbase = lval;

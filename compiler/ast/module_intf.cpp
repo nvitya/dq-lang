@@ -68,6 +68,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_ENUM:         return "enum";
     case TK_STRUCT:       return "struct";
     case TK_OBJECT:       return "object";
+    case TK_UNION:        return "union";
     case TK_FUNCTION:     return "function";
     case TK_FUNCREF:      return "funcref";
     case TK_OBJECT_TYPE:  return "object_type";
@@ -301,7 +302,7 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
 {
   auto * object_type = dynamic_cast<OTypeObject *>(atype);
 
-  out << indent << (object_type ? "object " : "struct ")
+  out << indent << (object_type ? "object " : (atype->IsUnion() ? "union " : "struct "))
       << atype->name << "(" << atype->bytesize << ")\n";
 
   for (OValSym * member : atype->member_order)
@@ -342,7 +343,7 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
     }
   }
 
-  out << indent << (object_type ? "endobj" : "endstruct") << "\n";
+  out << indent << (object_type ? "endobj" : (atype->IsUnion() ? "endunion" : "endstruct")) << "\n";
 }
 
 void OModuleIntf::WriteTypeDump(ostream & out, OType * atype, const string & indent)
@@ -1649,12 +1650,29 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
         int fwd_tag = 0;
         if (decl->ptype->kind == TK_OBJECT) fwd_tag = DQMIF_OBJ_FWD;
         else if (decl->ptype->kind == TK_STRUCT) fwd_tag = DQMIF_STRUCT_FWD;
+        else if (decl->ptype->kind == TK_UNION) fwd_tag = DQMIF_UNION_FWD;
         return !fwd_tag || writer.AddRecStr(fwd_tag, decl->ptype->name);
       }
       return decl->ptype->WriteDqmIfDecl(writer);
     }
     return decl->pvalsym && decl->pvalsym->WriteDqmIfDecl(writer);
   };
+
+  // Compound definitions can refer to later declarations (nested unions do
+  // this naturally), so make all public compound names available up front.
+  set<string> predeclared_local_compounds;
+  for (OIntfDecl * decl : declarations)
+  {
+    if (!decl || IDK_TYPE != decl->kind || !decl->ptype
+        || !dynamic_cast<OCompoundType *>(decl->ptype)
+        || !predeclared_local_compounds.insert(decl->ptype->name).second)
+    {
+      continue;
+    }
+    TDqmIfRecId recid = TK_OBJECT == decl->ptype->kind ? DQMIF_OBJ_FWD
+        : (TK_UNION == decl->ptype->kind ? DQMIF_UNION_FWD : DQMIF_STRUCT_FWD);
+    if (!writer.AddRecStr(recid, decl->ptype->name)) return false;
+  }
 
   vector<SFlattenedDqmModule *> embedded_modules = flattened.OrderedModules();
   if (!flattened.error.empty()) return writer.Fail(flattened.error);
@@ -1671,7 +1689,8 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
       {
         continue;
       }
-      TDqmIfRecId recid = (TK_OBJECT == decl->ptype->kind ? DQMIF_OBJ_FWD : DQMIF_STRUCT_FWD);
+      TDqmIfRecId recid = TK_OBJECT == decl->ptype->kind ? DQMIF_OBJ_FWD
+          : (TK_UNION == decl->ptype->kind ? DQMIF_UNION_FWD : DQMIF_STRUCT_FWD);
       if (!writer.AddRecStr(recid, decl->ptype->name)) return false;
     }
     for (OIntfDecl * decl : embedded->module->declarations)
@@ -3005,8 +3024,9 @@ bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_t
   return true;
 }
 
-bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
+bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, ETypeKind akind)
 {
+  bool is_object = TK_OBJECT == akind;
   string declname;
   if (!reader.ReadString(declname))
   {
@@ -3017,7 +3037,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   OCompoundType * ctype = nullptr;
   if (existing)
   {
-    if (existing->incomplete && existing->kind == (ais_object ? TK_OBJECT : TK_STRUCT))
+    if (existing->incomplete && existing->kind == akind)
     {
       ctype = static_cast<OCompoundType *>(existing);
     }
@@ -3028,8 +3048,8 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   }
   else
   {
-    ctype = (ais_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
-                                        : new OCompoundType(declname, scope_pub));
+    ctype = is_object ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
+                      : new OCompoundType(declname, scope_pub, akind);
     ctype->incomplete = true;
     if (!AddPublicType(ctype))
     {
@@ -3046,10 +3066,11 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, bool ais_object)
   bool has_align_spec = false;
   while (true)
   {
-    if ((!ais_object && (DQMIF_STRUCT_END == reader.recid))
-        || (ais_object && (DQMIF_OBJ_END == reader.recid)))
+    TDqmIfRecId end_recid = is_object ? DQMIF_OBJ_END
+        : (TK_UNION == akind ? DQMIF_UNION_END : DQMIF_STRUCT_END);
+    if (end_recid == reader.recid)
     {
-      if (!reader.ExpectEmpty(ais_object ? DQMIF_OBJ_END : DQMIF_STRUCT_END))
+      if (!reader.ExpectEmpty(end_recid))
       {
         return false;
       }
@@ -3261,25 +3282,31 @@ bool OModuleIntf::ReadEmbeddedModule(ODqmIfReader & reader)
       }
       else if (!intf->ReadFunctionDecl(reader, nullptr, false)) return false;
     }
-    else if (DQMIF_STRUCT_BEGIN == reader.recid || DQMIF_OBJ_BEGIN == reader.recid)
+    else if (DQMIF_STRUCT_BEGIN == reader.recid || DQMIF_OBJ_BEGIN == reader.recid
+             || DQMIF_UNION_BEGIN == reader.recid)
     {
       group_symbols.insert({IDK_TYPE, symbol_name});
-      bool is_object = (DQMIF_OBJ_BEGIN == reader.recid);
+      ETypeKind compound_kind = DQMIF_OBJ_BEGIN == reader.recid ? TK_OBJECT
+          : (DQMIF_UNION_BEGIN == reader.recid ? TK_UNION : TK_STRUCT);
+      TDqmIfRecId end_recid = TK_OBJECT == compound_kind ? DQMIF_OBJ_END
+          : (TK_UNION == compound_kind ? DQMIF_UNION_END : DQMIF_STRUCT_END);
       if (existing_types.contains(symbol_name))
       {
-        if (!reader.SkipGroup(reader.recid, is_object ? DQMIF_OBJ_END : DQMIF_STRUCT_END)) return false;
+        if (!reader.SkipGroup(reader.recid, end_recid)) return false;
       }
-      else if (!intf->ReadCompoundDecl(reader, is_object)) return false;
+      else if (!intf->ReadCompoundDecl(reader, compound_kind)) return false;
     }
-    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid)
+    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid
+             || DQMIF_UNION_FWD == reader.recid)
     {
       group_symbols.insert({IDK_TYPE, symbol_name});
       if (!intf->scope_pub->FindType(symbol_name, nullptr, false))
       {
-        bool is_object = (DQMIF_OBJ_FWD == reader.recid);
-        OCompoundType * type = is_object
+        ETypeKind compound_kind = DQMIF_OBJ_FWD == reader.recid ? TK_OBJECT
+            : (DQMIF_UNION_FWD == reader.recid ? TK_UNION : TK_STRUCT);
+        OCompoundType * type = TK_OBJECT == compound_kind
           ? static_cast<OCompoundType *>(new OTypeObject(symbol_name, intf->scope_pub))
-          : new OCompoundType(symbol_name, intf->scope_pub);
+          : new OCompoundType(symbol_name, intf->scope_pub, compound_kind);
         type->incomplete = true;
         if (!intf->AddPublicType(type))
         {
@@ -3518,15 +3545,16 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
       }
       else if (!ReadFunctionDecl(reader, nullptr, false)) return false;
     }
-    else if (DQMIF_STRUCT_BEGIN == reader.recid)
+    else if (DQMIF_STRUCT_BEGIN == reader.recid || DQMIF_UNION_BEGIN == reader.recid)
     {
       string symbol_name;
       if (!reader.ReadString(symbol_name)) return false;
       if (existing_types.contains(symbol_name))
       {
-        if (!reader.SkipGroup(DQMIF_STRUCT_BEGIN, DQMIF_STRUCT_END)) return false;
+        TDqmIfRecId end_recid = DQMIF_UNION_BEGIN == reader.recid ? DQMIF_UNION_END : DQMIF_STRUCT_END;
+        if (!reader.SkipGroup(reader.recid, end_recid)) return false;
       }
-      else if (!ReadCompoundDecl(reader, false)) return false;
+      else if (!ReadCompoundDecl(reader, DQMIF_UNION_BEGIN == reader.recid ? TK_UNION : TK_STRUCT)) return false;
     }
     else if (DQMIF_OBJ_BEGIN == reader.recid)
     {
@@ -3536,18 +3564,21 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
       {
         if (!reader.SkipGroup(DQMIF_OBJ_BEGIN, DQMIF_OBJ_END)) return false;
       }
-      else if (!ReadCompoundDecl(reader, true)) return false;
+      else if (!ReadCompoundDecl(reader, TK_OBJECT)) return false;
     }
-    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid)
+    else if (DQMIF_OBJ_FWD == reader.recid || DQMIF_STRUCT_FWD == reader.recid
+             || DQMIF_UNION_FWD == reader.recid)
     {
-      bool is_obj = (DQMIF_OBJ_FWD == reader.recid);
+      ETypeKind compound_kind = DQMIF_OBJ_FWD == reader.recid ? TK_OBJECT
+          : (DQMIF_UNION_FWD == reader.recid ? TK_UNION : TK_STRUCT);
       string declname;
       if (!reader.ReadString(declname)) return false;
       OType * existing = scope_pub->FindType(declname);
       if (!existing)
       {
-         OCompoundType * ctype = (is_obj ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
-                                         : new OCompoundType(declname, scope_pub));
+         OCompoundType * ctype = (TK_OBJECT == compound_kind
+             ? static_cast<OCompoundType *>(new OTypeObject(declname, scope_pub))
+             : new OCompoundType(declname, scope_pub, compound_kind));
          ctype->incomplete = true;
          AddPublicType(ctype);
       }

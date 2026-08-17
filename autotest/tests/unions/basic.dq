@@ -1,0 +1,102 @@
+// Untagged storage unions: layout, aliasing, copying, nesting, and brace syntax.
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+union UWord:
+    whole : uint64
+    words : [2]uint32
+    bytes : [8]byte
+endunion
+
+union ULayout:
+    small : uint16
+    large : [3]uint32
+endunion
+
+struct SUnionLayout:
+    lead : byte
+    data : ULayout
+    tail : byte
+endstruct
+
+[[packed]] struct SPackedUnionLayout:
+    lead : byte
+    data : ULayout
+    tail : byte
+endstruct
+
+struct SNestedUnion:
+    tag : uint32
+    union value:
+        unsigned_value : uint32
+        signed_value   : int32
+    endunion
+endstruct
+
+struct SBraceUnion {
+    union data {
+        whole : uint64
+        bytes : [8]byte
+    }
+}
+
+object OUnionField:
+private
+    union value:
+        unsigned_value : uint32
+        signed_value   : int32
+    endunion
+
+public
+    function Set(value : uint32):
+        self.value.unsigned_value = value
+    endfunc
+
+    function GetSigned() -> int32:
+        return value.signed_value
+    endfunc
+endobj
+
+var global_word : UWord
+
+function CopyWord(value : UWord) -> UWord:
+    return value
+endfunc
+
+function *Main() -> int:
+    printf("union layout = %li %li %li %li %li\n",
+           SizeOf(ULayout), OffsetOf(ULayout, small), OffsetOf(ULayout, large),
+           SizeOf(SUnionLayout), OffsetOf(SUnionLayout, data))
+    //?check("union layout", "12 0 0 20 4")
+
+    printf("union packed = %li %li %li\n", SizeOf(SPackedUnionLayout),
+           OffsetOf(SPackedUnionLayout, data), OffsetOf(SPackedUnionLayout, tail))
+    //?check("union packed", "14 1 13")
+
+    var word : UWord = {}
+    printf("union zero = %lu\n", word.whole) //?check("union zero", 0)
+    word.whole = 0xFFFFFFFFFFFFFFFF
+    var copied : UWord = CopyWord(word)
+    printf("union copy = %lu\n", copied.whole) //?check("union copy", "18446744073709551615")
+
+    global_word = copied
+    printf("union global = %lu\n", global_word.whole) //?check("union global", "18446744073709551615")
+
+    var nested : SNestedUnion = {}
+    nested.value.unsigned_value = 0xFFFFFFFF
+    printf("union nested = %li %li %li\n", SizeOf(SNestedUnion),
+           OffsetOf(SNestedUnion, value), int(nested.value.signed_value))
+    //?check("union nested", "8 4 -1")
+
+    var brace : SBraceUnion = {}
+    brace.data.whole = 42
+    printf("union brace = %lu\n", brace.data.whole) //?check("union brace", 42)
+
+    var obj <- OUnionField
+    obj.Set(0xFFFFFFFF)
+    printf("union object = %li\n", int(obj.GetSigned())) //?check("union object", -1)
+
+    printf("union addresses = %li\n", int(uint(&word.whole) - uint(&word.bytes)))
+    //?check("union addresses", 0)
+    return 0
+endfunc

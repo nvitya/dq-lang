@@ -1032,6 +1032,30 @@ void OCompoundType::EnsureLayout()
 
   layout_busy = true;
 
+  if (IsUnion())
+  {
+    uint32_t max_size = 0;
+    uint32_t max_align = 1;
+    for (OValSym * member : member_order)
+    {
+      if (!member || !member->ptype)
+      {
+        continue;
+      }
+      OType * storage_type = member->GetStorageType();
+      storage_type->EnsureLayout();
+      member->field_offset = 0;
+      max_size = max(max_size, storage_type->bytesize);
+      max_align = max(max_align, EffectiveStorageAlign(storage_type, member->attr_align));
+    }
+    alignsize = max_align;
+    bytesize = AlignUpU32(max_size, alignsize);
+    manual_ll_layout = true;
+    layout_ready = true;
+    layout_busy = false;
+    return;
+  }
+
   uint32_t offset = 0;
   uint32_t max_align = 1;
   manual_ll_layout = is_packed;
@@ -1088,6 +1112,36 @@ void OCompoundType::EnsureLayout()
 LlType * OCompoundType::CreateLlType()
 {
   EnsureLayout();
+
+  if (IsUnion())
+  {
+    // LLVM has no union type. Use the naturally most-aligned member as the
+    // storage anchor, followed by padding to the union's complete size. With
+    // opaque pointers every source member can still address these same bytes.
+    OValSym * anchor = nullptr;
+    for (OValSym * member : member_order)
+    {
+      if (!anchor || EffectiveStorageAlign(member->GetStorageType(), member->attr_align)
+          > EffectiveStorageAlign(anchor->GetStorageType(), anchor->attr_align))
+      {
+        anchor = member;
+      }
+      member->ll_field_index = 0;
+    }
+
+    vector<LlType *> storage;
+    uint32_t stored_size = 0;
+    if (anchor)
+    {
+      storage.push_back(anchor->GetStorageType()->GetLlType());
+      stored_size = anchor->GetStorageType()->bytesize;
+    }
+    if (bytesize > stored_size)
+    {
+      storage.push_back(llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), bytesize - stored_size));
+    }
+    return llvm::StructType::create(ll_ctx, storage, name);
+  }
 
   vector<LlType *> member_types;
   if (!manual_ll_layout)
@@ -1152,7 +1206,8 @@ LlDiType * OCompoundType::CreateDiType()
   uint64_t total_bits = uint64_t(bytesize) * 8;
 
   llvm::DICompositeType * di_compound_type = di_builder->createReplaceableCompositeType(
-      llvm::dwarf::DW_TAG_structure_type, name, nullptr, nullptr, 0,
+      IsUnion() ? llvm::dwarf::DW_TAG_union_type : llvm::dwarf::DW_TAG_structure_type,
+      name, nullptr, nullptr, 0,
       0, total_bits, alignsize * 8, llvm::DINode::FlagZero);
   di_type = di_compound_type;
 
@@ -1189,9 +1244,9 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
   EnsureLayout();
 
-  int begin_tag = IsObject() ? DQMIF_OBJ_BEGIN : DQMIF_STRUCT_BEGIN;
-  int end_tag = IsObject() ? DQMIF_OBJ_END : DQMIF_STRUCT_END;
-  const char * kind_name = IsObject() ? "object" : "struct";
+  int begin_tag = IsObject() ? DQMIF_OBJ_BEGIN : (IsUnion() ? DQMIF_UNION_BEGIN : DQMIF_STRUCT_BEGIN);
+  int end_tag = IsObject() ? DQMIF_OBJ_END : (IsUnion() ? DQMIF_UNION_END : DQMIF_STRUCT_END);
+  const char * kind_name = IsObject() ? "object" : (IsUnion() ? "union" : "struct");
 
   if (!writer.AddRecStr(begin_tag, name)) return false;
   if (bytesize > uint32_t(numeric_limits<int32_t>::max()))
@@ -1285,11 +1340,35 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
 
 bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
+  if (IsUnion())
+  {
+    OType * source_type = (*rexpr)->ResolvedType();
+    if (source_type == this)
+    {
+      return true;
+    }
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      if (aflags & EXPCF_EXPLICIT_CAST)
+      {
+        g_compiler->Error(DQERR_CAST_INVALID, source_type->name, name);
+      }
+      else
+      {
+        g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, source_type->name);
+      }
+    }
+    return false;
+  }
   return OType::ConvertFromExpr(rexpr, aflags);
 }
 
 int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
+  if (IsUnion())
+  {
+    return expr->ResolvedType() == this ? 0 : -1;
+  }
   return OType::GetConversionCostFromExpr(expr, aflags);
 }
 

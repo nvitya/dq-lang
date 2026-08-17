@@ -1,0 +1,19 @@
+//?notest
+
+// Public union definitions must survive DQM interface serialization.
+
+union UModuleWord:
+    unsigned_value : uint32
+    signed_value   : int32
+endunion
+
+struct SModuleNested:
+    union value:
+        whole : uint64
+        words : [2]uint32
+    endunion
+endstruct
+
+function MakeModuleWord(value : uint32) -> UModuleWord:
+    result.unsigned_value = value
+endfunc

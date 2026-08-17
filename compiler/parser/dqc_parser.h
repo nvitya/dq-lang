@@ -48,6 +48,7 @@ public: // root level items
   void ParseEnumDecl();
   void ParseFunction();
   void ParseStructDecl();
+  void ParseUnionDecl();
   void ParseObjectDecl();
 
 public: // utility
@@ -58,6 +59,9 @@ public: // utility
 protected:
   void    ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer);
   bool    CheckCompoundBlockEnd(const string & block_closer);
+  bool    ParseUnionMembers(OCompoundType * union_type);
+  bool    ParseNestedUnionField(OCompoundType * owner_type, EMemberVisibility avisibility,
+                                OAttr field_attr);
   void    RecoverFailedFunctionDecl();
   bool    ReadAsmFunctionBody(OValSymFunc * func);
   bool    ParseInlineAsmHints(OValSymFunc * func);

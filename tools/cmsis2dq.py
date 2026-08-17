@@ -10,7 +10,7 @@ STRUCT_TYPE_PADDING = 8
 ARRAY_TYPE_SPACING = 1
 ATTR_TYPE_SPACING = 2
 
-def process_file(filepath):
+def process_file(filepath, no_comments=False):
     try:
         with open(filepath, 'r', errors='ignore') as f:
             lines = f.readlines()
@@ -49,7 +49,7 @@ def process_file(filepath):
             out_lines.append(f"const({pending_const_type}):")
             for name, val, comment in chunk:
                 line = f"    {name.ljust(CONST_NAME_PADDING)} = {val}"
-                if comment:
+                if comment and not no_comments:
                     line += f"  // {comment}"
                 out_lines.append(line)
             out_lines.append("endconst\n")
@@ -89,8 +89,7 @@ def process_file(filepath):
                         continue
                         
                     # remove block comments properly
-                    val = re.sub(r'/\*.*?\*/', '', val_raw)
-                    val = val.split('//')[0].strip()
+                    val = val_raw.split('/*')[0].split('//')[0].strip()
                     
                     if val:
                         val = re_number_suffix.sub(r'\1', val)
@@ -108,7 +107,8 @@ def process_file(filepath):
                         # strip redundant outer parens around single tokens
                         val = re.sub(r'^\s*\(\s*([^() ]+)\s*\)\s*$', r'\1', val)
                         
-                        if "Type" not in val and "->" not in val and "volatile" not in val:
+                        if "Type" not in val and "->" not in val and "volatile" not in val and "__I" not in val and "__O" not in val:
+                            val = val.replace('0X', '0x')
                             add_const("uint32", name, val)
                 continue
             
@@ -166,14 +166,15 @@ def process_file(filepath):
                     dq_type = f"[{arr_val}]{spacer}{dq_type}"
                     
                 field_str = f"    {name.ljust(STRUCT_FIELD_PADDING)} : {dq_attr}{dq_type.ljust(STRUCT_TYPE_PADDING)}"
-                if comment:
+                if comment and not no_comments:
                     cm = re_comment.search(comment)
                     if cm:
                         field_str += f"  // {cm.group(1)}"
                 struct_fields.append(field_str)
             else:
                 if "{" not in line and "}" not in line and line.strip():
-                    struct_fields.append(f"    // unparsed: {line.strip()}")
+                    if not no_comments:
+                        struct_fields.append(f"    // unparsed: {line.strip()}")
                     
         elif state == 'UNION':
             m_end = re_end_type.match(line)
@@ -193,6 +194,7 @@ def process_file(filepath):
                 if val:
                     val = val.split('/*')[0].split('//')[0].strip()
                     val = re_number_suffix.sub(r'\1', val)
+                    val = val.replace('0X', '0x')
                 else:
                     # In C, enum values can be omitted. We might just default to previous + 1, but for CMSIS they are usually explicit.
                     val = "0" 
@@ -212,5 +214,7 @@ def process_file(filepath):
         print(l)
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        process_file(sys.argv[1])
+    no_comments = '--no-comments' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--no-comments']
+    if len(args) > 0:
+        process_file(args[0], no_comments)

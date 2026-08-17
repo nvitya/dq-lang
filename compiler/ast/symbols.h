@@ -258,6 +258,7 @@ enum ETypeKind
 
   TK_STRUCT       = 16,
   TK_OBJECT       = 17,
+  TK_UNION        = 18,
 
   TK_ARRAY        = 20,
   TK_ARRAY_SLICE  = 21,   // array descriptor {ptr, length} for function parameters
@@ -356,9 +357,10 @@ public:
   }
 
   inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_DYNSTR == kind); }
-  inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind); }
+  inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind) || (TK_UNION == kind); }
   virtual OType *    ResolveAlias() { return this; }
   virtual bool       ContainsManagedStorage() const;
+  virtual bool       SupportsUnionStorage() const;
   OTypePointer *     GetPointerType();
   OTypeArray *       GetArrayType(uint32_t alength);
   OTypeArraySlice *  GetSliceType();

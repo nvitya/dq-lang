@@ -119,7 +119,8 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   {
     return nullptr;
   }
-  if ((TK_STRUCT == resolved_type->kind) || (TK_OBJECT == resolved_type->kind))
+  if ((TK_STRUCT == resolved_type->kind) || (TK_OBJECT == resolved_type->kind)
+      || (TK_UNION == resolved_type->kind))
   {
     return rdetectedtype;
   }

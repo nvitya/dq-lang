@@ -1,0 +1,37 @@
+// Storage unions reject non-trivial members and remain nominal types.
+
+object OManaged:
+endobj
+
+union UBadString:
+    text : str //?error(UnionMemberType)
+endunion
+
+union UBadArray:
+    values : [*]int //?error(UnionMemberType)
+endunion
+
+union UBadObject:
+    object_ref : OManaged //?error(UnionMemberType)
+endunion
+
+union UEmpty:
+endunion //?error(UnionEmpty)
+
+union UInitializer:
+    bad : uint32 = 1 //?error(NotSupported)
+    good : uint32
+endunion
+
+union UFirst:
+    value : uint32
+endunion
+
+union USecond:
+    value : uint32
+endunion
+
+function UnionTypesAreNominal():
+    var first : UFirst = {}
+    var second : USecond = first //?error(TypeMismatchAssign)
+endfunc

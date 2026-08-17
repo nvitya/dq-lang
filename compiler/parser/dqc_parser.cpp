@@ -527,6 +527,10 @@ void ODqCompParser::ParseModule()
     {
       ParseStructDecl();
     }
+    else if ("union" == sid)
+    {
+      ParseUnionDecl();
+    }
     else if ("object" == sid)
     {
       ParseObjectDecl();
@@ -1326,6 +1330,16 @@ void ODqCompParser::ParseStructDecl()
       continue;
     }
 
+    if (scf->CheckSymbol("union"))
+    {
+      OAttr field_attr = *attr;
+      if (!ParseNestedUnionField(ctype, MV_PUBLIC, field_attr))
+      {
+        break;
+      }
+      continue;
+    }
+
     if (not scf->ReadIdentifier(membername))
     {
       StatementError(DQERR_STRUCT_MBID_EXPECTED);
@@ -1369,6 +1383,213 @@ void ODqCompParser::ParseStructDecl()
   {
     g_module->OModuleBase::declarations.push_back(new OIntfDecl(ctype, false));
   }
+}
+
+bool ODqCompParser::ParseUnionMembers(OCompoundType * union_type)
+{
+  string block_closer;
+  ParseCompoundBlockStart("endunion", block_closer);
+  bool had_error = false;
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (CheckCompoundBlockEnd(block_closer))
+    {
+      break;
+    }
+
+    if (!ParseAttributes(true))
+    {
+      SkipCurStatement();
+      continue;
+    }
+    scf->SkipWhite();
+    if (CheckCompoundBlockEnd(block_closer))
+    {
+      if (attr->flags) attr->CheckInvalidAttributes(ATGT_NONE);
+      break;
+    }
+
+    OScPosition member_pos;
+    scf->SaveCurPos(member_pos);
+    scpos_statement_start = member_pos;
+
+    string member_name;
+    if (!scf->ReadIdentifier(member_name))
+    {
+      StatementError(DQERR_UNION_MBID_EXPECTED);
+      return false;
+    }
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(":"))
+    {
+      StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, member_name);
+      return false;
+    }
+
+    OType * member_type = ParseTypeSpec();
+    if (!member_type)
+    {
+      return false;
+    }
+    if (!member_type->SupportsUnionStorage())
+    {
+      StatementError(DQERR_UNION_MEMBER_TYPE, member_type->name);
+      SkipCurStatement();
+      had_error = true;
+      continue;
+    }
+
+    scf->SkipWhite();
+    if (scf->CheckSymbol("="))
+    {
+      StatementError(DQERR_NOT_SUPPORTED, "union member initializers");
+      SkipCurStatement();
+      had_error = true;
+      continue;
+    }
+    if (!ParseAttributes(false))
+    {
+      SkipCurStatement();
+      continue;
+    }
+    CheckStatementClose();
+
+    OValSym * member = member_type->CreateValSym(member_pos, member_name);
+    member->initialized = true;
+    member->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
+    union_type->AddMember(member);
+  }
+
+  if (union_type->member_order.empty() && !had_error)
+  {
+    Error(DQERR_UNION_EMPTY, union_type->name);
+    return false;
+  }
+  if (had_error)
+  {
+    return false;
+  }
+  union_type->EnsureLayout();
+  union_type->incomplete = false;
+  return true;
+}
+
+void ODqCompParser::ParseUnionDecl()
+{
+  string union_name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(union_name))
+  {
+    RootStatementError(DQERR_ID_EXP_AFTER, "union");
+    return;
+  }
+  if (!CheckSpecialReservedRootName(union_name))
+  {
+    return;
+  }
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    return;
+  }
+
+  OType * existing = cur_mod_scope->FindType(union_name, nullptr, false);
+  if (!existing && !section_public)
+  {
+    existing = g_module->scope_pub->FindType(union_name, nullptr, false);
+  }
+
+  OCompoundType * union_type = nullptr;
+  bool is_forward_def = false;
+  if (existing)
+  {
+    if (existing->incomplete && TK_UNION == existing->kind)
+    {
+      union_type = static_cast<OCompoundType *>(existing);
+      is_forward_def = true;
+    }
+    else
+    {
+      RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, union_name,
+                         existing->module ? existing->module->name : "");
+      return;
+    }
+  }
+  else
+  {
+    union_type = new OCompoundType(union_name, cur_mod_scope, TK_UNION);
+    union_type->incomplete = true;
+    g_module->DeclareType(section_public, union_type);
+  }
+
+  if (attr->flags)
+  {
+    attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
+    if (attr->IsSet(ATTF_PACKED))
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, "packed union");
+    }
+    if (attr->IsSet(ATTF_FORWARD))
+    {
+      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
+      {
+        g_module->OModuleBase::declarations.back()->is_forward = true;
+      }
+      return;
+    }
+  }
+
+  if (!ParseUnionMembers(union_type) && !is_forward_def)
+  {
+    g_module->DiscardTypeDeclaration(union_type);
+    delete union_type;
+    return;
+  }
+  if (is_forward_def)
+  {
+    g_module->OModuleBase::declarations.push_back(new OIntfDecl(union_type, false));
+  }
+}
+
+bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
+                                          EMemberVisibility avisibility,
+                                          OAttr field_attr)
+{
+  OScPosition field_pos;
+  scf->SkipWhite();
+  scf->SaveCurPos(field_pos);
+  string field_name;
+  if (!scf->ReadIdentifier(field_name))
+  {
+    StatementError(DQERR_ID_EXP_AFTER, "union");
+    return false;
+  }
+
+  string nested_name = owner_type->name + "$" + field_name;
+  if (cur_mod_scope->FindType(nested_name, nullptr, false))
+  {
+    StatementError(DQERR_TYPE_ALREADY_DEFINED, nested_name);
+    return false;
+  }
+
+  auto * union_type = new OCompoundType(nested_name, cur_mod_scope, TK_UNION);
+  union_type->incomplete = true;
+  g_module->DeclareType(section_public, union_type);
+  if (!ParseUnionMembers(union_type))
+  {
+    g_module->DiscardTypeDeclaration(union_type);
+    delete union_type;
+    return false;
+  }
+
+  OValSym * field = union_type->CreateValSym(field_pos, field_name);
+  field->initialized = true;
+  field->member_visibility = avisibility;
+  field->ApplyAttributes(&field_attr, ATGT_STRUCT_MEMBER);
+  owner_type->AddMember(field);
+  return true;
 }
 
 bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
@@ -2426,6 +2647,16 @@ void ODqCompParser::ParseObjectDecl()
     if (scf->CheckSymbol("function"))
     {
       ReadCompoundMethod(object_type, current_visibility);
+      continue;
+    }
+
+    if (scf->CheckSymbol("union"))
+    {
+      OAttr field_attr = *attr;
+      if (!ParseNestedUnionField(object_type, current_visibility, field_attr))
+      {
+        break;
+      }
       continue;
     }
 

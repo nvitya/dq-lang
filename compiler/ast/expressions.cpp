@@ -438,6 +438,10 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
   uint32_t ll_index = memberindex;
   if (auto * ctype = dynamic_cast<OCompoundType *>(structtype->ResolveAlias()))
   {
+    if (ctype->IsUnion())
+    {
+      return baseaddr;
+    }
     ctype->GetLlType();
     ll_index = ctype->member_order[memberindex]->ll_field_index;
   }

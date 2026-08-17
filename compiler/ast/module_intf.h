@@ -77,7 +77,7 @@ private:
   bool ReadVarDecl(ODqmIfReader & reader);
   bool ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner_type, bool amethod);
   bool ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype);
-  bool ReadCompoundDecl(ODqmIfReader & reader, bool ais_object);
+  bool ReadCompoundDecl(ODqmIfReader & reader, ETypeKind akind);
   bool ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_type);
   bool ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_type);
   bool ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattrs);

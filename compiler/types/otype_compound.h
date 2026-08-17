@@ -51,6 +51,7 @@ public:
   virtual OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   virtual int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
   virtual bool IsObject() const { return false; }
+  bool IsUnion() const { return TK_UNION == kind; }
   virtual bool IsSameOrDerivedFrom(OCompoundType * abase) const;
   bool ContainsManagedStorage() const override;
 

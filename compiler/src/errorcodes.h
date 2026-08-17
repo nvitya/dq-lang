@@ -180,6 +180,9 @@ DEF_DQ_ERR(DQERR_PTR_OPAQUE_USAGE,                 "PointerOpaque",          "Op
 DEF_DQ_ERR(DQERR_MEMBER_NAME_EXPECTED,             "MemberNameExpected",     "Member name expected after \".\"");
 DEF_DQ_ERR(DQERR_MEMBER_UNKNOWN,                   "MemberUnknown",          "Unknown member \"$1\" in type \"$1\"");
 DEF_DQ_ERR(DQERR_STRUCT_MBID_EXPECTED,             "StructMemberId",         "Member id or \"enstruct\" expected");
+DEF_DQ_ERR(DQERR_UNION_MBID_EXPECTED,              "UnionMemberId",          "Member id or \"endunion\" expected");
+DEF_DQ_ERR(DQERR_UNION_EMPTY,                      "UnionEmpty",             "Union \"$1\" must declare at least one member");
+DEF_DQ_ERR(DQERR_UNION_MEMBER_TYPE,                "UnionMemberType",        "Type \"$1\" does not have trivial union storage");
 
 DEF_DQ_ERR(DQERR_PROPERTY_ACCESSOR_REQUIRED,       "PropertyAccessorRequired", "A property requires a read or write accessor");
 DEF_DQ_ERR(DQERR_PROPERTY_SPECIFIER_DUPLICATE,     "PropertySpecifierDuplicate", "Duplicate property specifier \"$1\"");

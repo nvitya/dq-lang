@@ -315,6 +315,51 @@ bool OType::ContainsManagedStorage() const
   return (TK_OBJECT == kind) || (TK_DYNSTR == kind) || (TK_DYN_ARRAY == kind);
 }
 
+bool OType::SupportsUnionStorage() const
+{
+  OType * resolved = const_cast<OType *>(this)->ResolveAlias();
+  if (resolved != this)
+  {
+    return resolved->SupportsUnionStorage();
+  }
+
+  switch (kind)
+  {
+    case TK_INT:
+    case TK_FLOAT:
+    case TK_BOOL:
+    case TK_POINTER:
+    case TK_ENUM:
+    case TK_CHAR:
+    case TK_FUNCREF:
+      return true;
+
+    case TK_ARRAY:
+    {
+      auto * array_type = static_cast<const OTypeArray *>(this);
+      return array_type->elemtype && array_type->elemtype->SupportsUnionStorage();
+    }
+
+    case TK_STRUCT:
+    case TK_UNION:
+    {
+      auto * compound_type = static_cast<const OCompoundType *>(this);
+      for (OValSym * member : compound_type->member_order)
+      {
+        OType * storage_type = member ? member->GetStorageType() : nullptr;
+        if (!storage_type || !storage_type->SupportsUnionStorage())
+        {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    default:
+      return false;
+  }
+}
+
 bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
 {
   if (!ptype)

@@ -1,0 +1,45 @@
+// struct initializer diagnostics and overload resolution
+
+struct SInitA:
+    x : int
+    y : int
+    z : int
+endstruct
+
+struct SInitB:
+    x : int
+    y : int
+    z : int
+endstruct
+
+function PickInit(a : SInitA) -> int [[overload]]:
+    return 1
+endfunc
+
+function PickInit(a : SInitB) -> int [[overload]]:
+    return 2
+endfunc
+
+function TakeRefInit(a : ref SInitA):
+endfunc
+
+function *Main() -> int:
+    var missing : SInitA = { 1, 2 } //?error(StructInitMissing)
+    var excess : SInitA = { 1, 2, 3, 4 } //?error(StructInitExcess)
+    var duplicate : SInitA = { x: 1, x: 2, y: 3, z: 4 } //?error(StructInitDuplicateField)
+    var unknown : SInitA = { x: 1, y: 2, nope: 3 } //?error(StructInitUnknownField)
+    var redundant : SInitA = { 1, 2, 3, ? } //?error(StructInitFillRedundant)
+    var no_context : ? = { 1, 2, 3 } //?error(StructInitContext)
+    var invalid_member : SInitA = { { 1, 2, 3 }, 2, 3 } //?error(StructInitContext)
+    var incompatible : SInitA = { "text", 2, 3 } //?error(TypeMismatchAssign)
+    var invalid_cast : SInitA = SInitA(1) //?error(CastInvalid)
+
+    var a : SInitA = {}
+    var nominal : SInitB = a //?error(TypeMismatchAssign)
+
+    PickInit({ 1, 2, 3 }) //?error(OverloadAmbiguous)
+    var resolved_overload : int = PickInit(SInitA({ 1, 2, 3 }))
+    TakeRefInit({ 1, 2, 3 }) //?error(FuncArgRefBind)
+
+    return 0
+endfunc

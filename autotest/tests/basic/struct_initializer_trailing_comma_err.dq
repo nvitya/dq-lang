@@ -1,0 +1,8 @@
+struct STrailingComma:
+    a : int
+endstruct
+
+function *Main() -> int:
+    var value : STrailingComma = { 1, } //?error(StructInitTrailingComma)
+    return 0
+endfunc

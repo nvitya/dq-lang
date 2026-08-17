@@ -715,6 +715,28 @@ public:
   void       DeleteChildTree() override;
 };
 
+struct OStructLitEntry
+{
+  string             name;       // empty for a positional entry
+  OExpr *            value = nullptr;
+  OValSym *          field = nullptr; // set by contextual type resolution
+  vector<unsigned>   ll_path;
+};
+
+// A brace literal has no type of its own.  Its target type is supplied by the
+// assignment, call, return, or explicit-cast context.
+class OStructLit : public OExpr
+{
+public:
+  vector<OStructLitEntry> entries;
+  bool fill_missing = false;
+
+  /* ctor */ OStructLit(vector<OStructLitEntry> && aentries, bool afill_missing);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 // --- anyvalue expressions ---
 
 class OAnyValueBoxExpr : public OExpr

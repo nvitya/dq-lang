@@ -63,6 +63,7 @@ public: // expressions
   OExpr * ParseBuiltinTypeName();
   OExpr * ParseBuiltinOrd();
   OExpr * ParseArrayLit();
+  OExpr * ParseStructLit();
 
 public: // type parsing
   OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^T, [N]T, []T

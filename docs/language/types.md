@@ -114,12 +114,22 @@ struct SPoint:
 endstruct
 ```
 
-Struct values can be initialized with `{}` to zero/default initialize their
-fields.
+Struct values use contextual brace initializers. Values may be positional or
+named with `field: value`; every field is required unless a final `?`
+deliberately defaults the unassigned fields. `{}` defaults the whole value.
 
 ```dq
 var p : SPoint = {}
+var q : SPoint = { 10, 20 }
+var r : SPoint = { y: 20, x: 10 }
+var s : SPoint = { x: 10, ? }
 ```
+
+The contextual form works in assignments, calls, returns, arrays, nested
+structures, and constants. Use `SPoint({...})` when an explicit type is needed;
+an uncast brace literal cannot be used with `var value : ?` inference. See
+[Structures, Pointers, and Function References](../reference/structures-pointers-and-function-references.md#structure-initializer-literals)
+for the complete rules.
 
 Struct fields are accessed with `.`.
 

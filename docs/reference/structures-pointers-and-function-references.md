@@ -16,9 +16,57 @@ endstruct
 ```
 
 Structure assignment copies the value. `{}` default-initializes all fields.
-Fields follow declaration order unless an ABI-specific or packing attribute
-changes layout. Structures may define methods, but do not have object identity,
-inheritance, or virtual dispatch.
+Structures may define methods and may inherit from a base structure, but do not
+have object identity or virtual dispatch.
+
+### Structure initializer literals
+
+A brace literal obtains its structure type from its context. Entries may be
+positional, named with `field: value`, or mixed:
+
+```dq
+var point : SPoint = { 10, 20 }
+point = { y: 40, x: 30 }
+DrawPoint({ x: 50, y: 60 })
+```
+
+The context may be a declaration, assignment, function parameter, return type,
+fixed-array element, or containing structure field. The normal cast form makes
+the type explicit when necessary:
+
+```dq
+var inferred : ? = SPoint({ 10, 20 })
+```
+
+An uncast brace literal has no independent type, so `var inferred : ? = { 10,
+20 }` is invalid. Structure types remain nominal: matching field layouts do not
+implicitly convert one named structure type to another.
+
+Positional entries follow source declaration order, independently of padding or
+packed LLVM layout. After a named entry, the positional cursor continues at the
+field following that named field. Every field must be initialized exactly once.
+There is no trailing-comma form.
+
+A final `?` explicitly default-initializes every field not otherwise assigned:
+
+```dq
+var point : SPoint = { x: 10, ? }
+var default_point : SPoint = {?}
+```
+
+`?` must be final and is an error when all fields were already assigned. `{?}`
+and the existing `{}` form both default-initialize the whole structure.
+
+For derived structures, positional order is the flattened base-to-derived
+declaration order. Named lookup uses normal most-derived lookup, so a hidden
+base field cannot be named through the derived type; initialize it positionally
+or leave it to `?`.
+
+Structure literals are rvalues and do not bind directly to reference
+parameters. Nonempty brace literals apply to structures, not objects or unions;
+`{}` retains its existing default-initialization uses for supported aggregates.
+They may also initialize compile-time structure constants, including public
+constants imported from another module.
 
 ## Typed Pointers
 

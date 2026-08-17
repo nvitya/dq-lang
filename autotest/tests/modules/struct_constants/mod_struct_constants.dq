@@ -1,0 +1,14 @@
+//?notest
+
+struct SModulePad:
+    fmux : uint32
+    ioblk : uint32
+    gpio : uint32
+endstruct
+
+const MODULE_PAD : SModulePad = { 4, 0x1A04, 8 }
+
+function SumModulePad(pad : SModulePad) -> uint32:
+    return pad.fmux + pad.ioblk + pad.gpio
+endfunc
+

@@ -17,6 +17,28 @@
 
 class OValSymFunc;
 
+struct OStructConstField
+{
+  OValSym * field = nullptr;
+  vector<unsigned> ll_path;
+  OValue * value = nullptr;
+};
+
+class OValueStruct : public OValue
+{
+private:
+  using super = OValue;
+
+public:
+  vector<OStructConstField> fields;
+
+  OValueStruct(OCompoundType * atype);
+  ~OValueStruct() override;
+  LlConst * CreateLlConst() override;
+  bool CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool WriteDqmIfValue(ODqmIfWriter & writer) override;
+};
+
 class OCompoundType : public OType
 {
 private:
@@ -58,6 +80,7 @@ public:
   void        EnsureLayout() override;
   LlType *    CreateLlType() override;
   LlDiType *  CreateDiType() override;
+  OValue *    CreateValue() override;
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;

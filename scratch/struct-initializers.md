@@ -1,6 +1,6 @@
 # DQ Struct Initializer Literals
 
-Status: design summary; not implemented yet.
+Status: implemented.
 
 ## Motivation
 
@@ -94,6 +94,8 @@ initializers fail rather than silently initialize the new member to zero.
 Unknown members, duplicate members, excess positional values, incompatible
 member values, and missing members are compile errors.
 
+Trailing commas are not accepted.
+
 ## Deliberately missing members
 
 A final `?` explicitly acknowledges that some members are missing and requests
@@ -164,3 +166,19 @@ with the same rank, the call is ambiguous and an explicit cast resolves it:
 ```dq
 ConfigurePad(SPad({ 1, 2, 3 }))
 ```
+
+## Inheritance and layout
+
+Derived structures use a flattened base-to-derived source declaration order
+for positional entries.  This source order does not change for packed or
+explicitly aligned layouts; the compiler maps fields to their actual storage
+paths.
+
+Named lookup follows the normal most-derived member lookup.  If a derived field
+hides a base field with the same name, the hidden base field must be initialized
+positionally or defaulted by `?`.
+
+Nonempty literals are limited to structures.  They do not initialize objects or
+unions.  The existing empty `{}` form remains available wherever whole-
+aggregate default initialization was already supported.  A brace literal is an
+rvalue and does not bind directly to a reference parameter.

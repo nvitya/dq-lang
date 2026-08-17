@@ -233,7 +233,7 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
-    if (resolved_type && (TK_ARRAY == resolved_type->kind))
+    if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
     {
       if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
       {
@@ -281,7 +281,15 @@ LlValue * OLValueVar::Generate(OScope * scope)
     {
       throw logic_error(std::format("Constant \"{}\" has invalid value storage", pvalsym->name));
     }
-    return vsconst->pvalue->GetLlConst();
+    if (LlConst * value = vsconst->pvalue->GetLlConst())
+    {
+      return value;
+    }
+    if (auto * global = dyn_cast_or_null<llvm::GlobalVariable>(pvalsym->ll_value))
+    {
+      return GenerateMemoryLoad(global->getValueType(), global, pvalsym->name);
+    }
+    throw logic_error(std::format("Constant \"{}\" has no value or linked storage", pvalsym->name));
   }
 
   if (!pvalsym->ll_value)
@@ -453,6 +461,21 @@ LlValue * OLValueMember::Generate(OScope * scope)
   if (IsObjectReferenceExpr() || IsFixedObjectStorageExpr())
   {
     return GenerateObjectAddress(scope);
+  }
+  OValSym * root = g_compiler->GetAssignRootValSym(base);
+  if (root && VSK_CONST == root->kind)
+  {
+    LlValue * value = base->Generate(scope);
+    auto * value_type = dynamic_cast<OCompoundType *>(base->ptype ? base->ptype->ResolveAlias() : nullptr);
+    auto * declaring_type = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
+    while (value_type && value_type != declaring_type)
+    {
+      value = ll_builder.CreateExtractValue(value, {0});
+      value_type = value_type->base_type;
+    }
+    declaring_type->GetLlType();
+    unsigned ll_index = declaring_type->member_order[memberindex]->ll_field_index;
+    return ll_builder.CreateExtractValue(value, {ll_index});
   }
   return OLValueExpr::Generate(scope);
 }
@@ -2898,7 +2921,7 @@ OIndirectCallExpr::~OIndirectCallExpr()
     // Infer type from the first element
     // TODO: Check if all elements are compatible
     OType * elemtype = elements[0]->ptype;
-    ptype = elemtype->GetArrayType(elements.size());
+    ptype = elemtype ? elemtype->GetArrayType(elements.size()) : nullptr;
   }
 }
 
@@ -2932,6 +2955,42 @@ void OArrayLit::DeleteChildTree()
     elem = nullptr;
   }
   elements.clear();
+}
+
+/* ctor */ OStructLit::OStructLit(vector<OStructLitEntry> && aentries, bool afill_missing)
+:
+  entries(std::move(aentries)),
+  fill_missing(afill_missing)
+{
+  ptype = nullptr;
+}
+
+LlValue * OStructLit::Generate(OScope * scope)
+{
+  LlValue * result = llvm::Constant::getNullValue(ptype->GetLlType());
+  for (OStructLitEntry & entry : entries)
+  {
+    result = ll_builder.CreateInsertValue(result, entry.value->Generate(scope), entry.ll_path);
+  }
+  return result;
+}
+
+void OStructLit::FoldChildren()
+{
+  for (OStructLitEntry & entry : entries)
+  {
+    OExpr::FoldTree(&entry.value);
+  }
+}
+
+void OStructLit::DeleteChildTree()
+{
+  for (OStructLitEntry & entry : entries)
+  {
+    OExpr::DeleteTree(entry.value);
+    entry.value = nullptr;
+  }
+  entries.clear();
 }
 
 // --- anyvalue expressions ---

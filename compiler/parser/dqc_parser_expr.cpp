@@ -3013,6 +3013,11 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return ParseArrayLit();
   }
 
+  if (scf->CheckSymbol("{"))
+  {
+    return ParseStructLit();
+  }
+
   if (scf->CheckSymbol("$"))
   {
     string ctxname;
@@ -3576,6 +3581,99 @@ OExpr * ODqCompParserExpr::ParseArrayLit()
   }
 
   return new OArrayLit(elems);
+}
+
+OExpr * ODqCompParserExpr::ParseStructLit()
+{
+  // "{" is already consumed.
+  vector<OStructLitEntry> entries;
+  bool fill_missing = false;
+
+  while (!scf->Eof())
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("}"))
+    {
+      return new OStructLit(std::move(entries), fill_missing);
+    }
+    if (!entries.empty() || fill_missing)
+    {
+      if (!scf->CheckSymbol(","))
+      {
+        Error(DQERR_STRUCT_INIT_COMMA);
+        break;
+      }
+      scf->SkipWhite();
+      if (scf->CheckSymbol("}"))
+      {
+        Error(DQERR_STRUCT_INIT_TRAILING_COMMA);
+        break;
+      }
+    }
+
+    if (scf->CheckSymbol("?"))
+    {
+      if (fill_missing)
+      {
+        Error(DQERR_STRUCT_INIT_FILL_REPEATED);
+        break;
+      }
+      fill_missing = true;
+      scf->SkipWhite();
+      if (!scf->CheckSymbol("}"))
+      {
+        if (scf->CheckSymbol(","))
+        {
+          scf->SkipWhite();
+          if (scf->CheckSymbol("?"))
+          {
+            Error(DQERR_STRUCT_INIT_FILL_REPEATED);
+          }
+          else
+          {
+            Error(DQERR_STRUCT_INIT_FILL_FINAL);
+          }
+        }
+        else
+        {
+          Error(DQERR_STRUCT_INIT_FILL_FINAL);
+        }
+        break;
+      }
+      return new OStructLit(std::move(entries), true);
+    }
+
+    OStructLitEntry entry;
+    OScPosition entry_start;
+    scf->SaveCurPos(entry_start);
+    string possible_name;
+    if (scf->ReadIdentifier(possible_name))
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol(":"))
+      {
+        entry.name = possible_name;
+      }
+      else
+      {
+        scf->SetCurPos(entry_start);
+      }
+    }
+
+    entry.value = ParseExpression();
+    if (!entry.value)
+    {
+      break;
+    }
+    entries.push_back(std::move(entry));
+  }
+
+  SkipToSymbol("}");
+  for (OStructLitEntry & entry : entries)
+  {
+    OExpr::DeleteTree(entry.value);
+  }
+  return nullptr;
 }
 
 bool ODqCompParserExpr::ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs)

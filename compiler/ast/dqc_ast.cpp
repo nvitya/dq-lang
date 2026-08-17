@@ -727,6 +727,31 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
     }
     return false;
   }
+  if (dynamic_cast<OStructLit *>(src) && !src->ptype)
+  {
+    auto * literal = static_cast<OStructLit *>(src);
+    if (literal->entries.empty() && !literal->fill_missing
+        && resolved_dst && (TK_ARRAY == resolved_dst->kind))
+    {
+      literal->ptype = dsttype;
+      return true;
+    }
+    auto * compound_dst = dynamic_cast<OCompoundType *>(resolved_dst);
+    if (compound_dst)
+    {
+      return compound_dst->ConvertFromExpr(rexpr, aflags);
+    }
+    if (aflags & EXPCF_GENERATE_ERRORS)
+    {
+      g_compiler->Error(DQERR_STRUCT_INIT_CONTEXT);
+    }
+    return false;
+  }
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(src); arrlit && !src->ptype)
+  {
+    auto * array_dst = dynamic_cast<OTypeArray *>(resolved_dst);
+    return array_dst ? array_dst->ConvertFromExpr(rexpr, aflags) : false;
+  }
   if (!src->ptype)
   {
     return false;
@@ -757,6 +782,22 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
   {
     auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst);
     return enum_dst ? enum_dst->GetConversionCostFromExpr(expr, aflags) : -1;
+  }
+  if (dynamic_cast<OStructLit *>(expr) && !expr->ptype)
+  {
+    auto * literal = static_cast<OStructLit *>(expr);
+    if (literal->entries.empty() && !literal->fill_missing
+        && resolved_dst && (TK_ARRAY == resolved_dst->kind))
+    {
+      return 0;
+    }
+    auto * compound_dst = dynamic_cast<OCompoundType *>(resolved_dst);
+    return compound_dst ? compound_dst->GetConversionCostFromExpr(expr, aflags) : -1;
+  }
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(expr); arrlit && !expr->ptype)
+  {
+    auto * array_dst = dynamic_cast<OTypeArray *>(resolved_dst);
+    return array_dst ? array_dst->GetConversionCostFromExpr(expr, aflags) : -1;
   }
   if (!expr->ptype)
   {

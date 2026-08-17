@@ -1,0 +1,115 @@
+// contextual struct initializer literals
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+struct SPoint:
+    x : int
+    y : int
+    z : int
+endstruct
+
+struct SNested:
+    point : SPoint
+    values : [2]int
+endstruct
+
+struct SBaseInit:
+    base_a : int
+    base_b : int
+endstruct
+
+struct SDerivedInit(SBaseInit):
+    child : int
+endstruct
+
+struct SHiddenBaseInit:
+    value : int
+endstruct
+
+struct SHiddenDerivedInit(SHiddenBaseInit):
+    value : int
+endstruct
+
+[[packed]] struct SPackedInit:
+    byte : uint8
+    value : int
+endstruct
+
+struct SAlignedInit:
+    byte : uint8
+    value : int [[align(16)]]
+    tail : uint8
+endstruct
+
+struct SRegisters:
+    address : ^uint32
+    offset : uint
+endstruct
+
+const ROOT_POINT : SPoint = { x: 31, y: 32, z: 33 }
+const ROOT_REGISTERS : SRegisters = { ^uint32(0x1000), 7 }
+const ROOT_POINTS : [2]SPoint = [{ 1, 2, 3 }, { 4, 5, 6 }]
+const ROOT_ZERO_POINTS : [2]SPoint = {}
+const ROOT_NESTED : SNested = { { 2, 3, 4 }, [5, 6] }
+const ROOT_DERIVED : SDerivedInit = { 7, 8, 9 }
+const ROOT_PACKED : SPackedInit = { 10, 11 }
+var ROOT_GLOBAL_POINT : SPoint = { 34, 35, 36 }
+
+function SumPoint(p : SPoint) -> int:
+    return p.x + p.y + p.z
+endfunc
+
+function MakePoint(a : int) -> SPoint:
+    return { x: a, y: a + 1, z: a + 2 }
+endfunc
+
+function RuntimeValue(a : int) -> int:
+    return a + 4
+endfunc
+
+function *Main() -> int:
+    const LOCAL_POINT : SPoint = { 37, 38, 39 }
+    var positional : SPoint = { 1, 2, 3 }
+    var named : SPoint = { z: 6, x: 4, y: 5 }
+    var mixed : SPoint = { x: 7, 8, 9 }
+    var filled : SPoint = { y: 10, ? }
+    var filled_all : SPoint = {?}
+    var empty : SPoint = {}
+    var explicit : ? = SPoint({ 11, 12, 13 })
+    var nested : SNested = { { 14, 15, 16 }, [17, 18] }
+    var points : [2]SPoint = [{ 1, 1, 1 }, { 2, 2, 2 }]
+    var zero_array : [2]SPoint = {}
+    var derived : SDerivedInit = { 19, 20, 21 }
+    var hidden : SHiddenDerivedInit = { 1, value: 2 }
+    var hidden_fill : SHiddenDerivedInit = { value: 3, ? }
+    var packed : SPackedInit = { 22, 23 }
+    var aligned : SAlignedInit = { 1, 2, 3 }
+    var runtime : SPoint = { RuntimeValue(20), 25, 26 }
+
+    positional = { z: 30, x: 28, y: 29 }
+
+    printf("struct literal positional=%d\n", SumPoint(positional)) //?check("struct literal positional", 87)
+    printf("struct literal named=%d\n", SumPoint(named)) //?check("struct literal named", 15)
+    printf("struct literal mixed=%d\n", SumPoint(mixed)) //?check("struct literal mixed", 24)
+    printf("struct literal fill=%d\n", SumPoint(filled)) //?check("struct literal fill", 10)
+    printf("struct literal fill all=%d\n", SumPoint(filled_all)) //?check("struct literal fill all", 0)
+    printf("struct literal empty=%d\n", SumPoint(empty)) //?check("struct literal empty", 0)
+    printf("struct literal call=%d\n", SumPoint({ 1, 3, 5 })) //?check("struct literal call", 9)
+    printf("struct literal return=%d\n", SumPoint(MakePoint(2))) //?check("struct literal return", 9)
+    printf("struct literal explicit=%d\n", SumPoint(explicit)) //?check("struct literal explicit", 36)
+    printf("struct literal nested=%d\n", SumPoint(nested.point) + nested.values[1]) //?check("struct literal nested", 63)
+    printf("struct literal array=%d\n", SumPoint(points[0]) + SumPoint(points[1]) + SumPoint(zero_array[0])) //?check("struct literal array", 9)
+    printf("struct literal inherited=%d\n", derived.base_a + derived.base_b + derived.child) //?check("struct literal inherited", 60)
+    printf("struct literal hidden=%d\n", hidden.value + hidden_fill.value) //?check("struct literal hidden", 5)
+    printf("struct literal packed=%d\n", int(packed.byte) + packed.value) //?check("struct literal packed", 45)
+    printf("struct literal aligned=%d\n", int(aligned.byte) + aligned.value + int(aligned.tail)) //?check("struct literal aligned", 6)
+    printf("struct literal runtime=%d\n", SumPoint(runtime)) //?check("struct literal runtime", 75)
+    printf("struct literal root const=%d\n", SumPoint(ROOT_POINT) + ROOT_POINT.z) //?check("struct literal root const", 129)
+    printf("struct literal local const=%d\n", SumPoint(LOCAL_POINT) + LOCAL_POINT.x) //?check("struct literal local const", 151)
+    printf("struct literal global=%d\n", SumPoint(ROOT_GLOBAL_POINT)) //?check("struct literal global", 105)
+    printf("struct literal pointer=%d\n", int(uint(ROOT_REGISTERS.address)) + int(ROOT_REGISTERS.offset)) //?check("struct literal pointer", 4103)
+    printf("struct literal const nested=%d\n", SumPoint(ROOT_POINTS[1]) + SumPoint(ROOT_NESTED.point) + ROOT_NESTED.values[1] + SumPoint(ROOT_ZERO_POINTS[0])) //?check("struct literal const nested", 30)
+    printf("struct literal const layouts=%d\n", ROOT_DERIVED.base_b + ROOT_DERIVED.child + int(ROOT_PACKED.byte) + ROOT_PACKED.value) //?check("struct literal const layouts", 38)
+
+    return 0
+endfunc

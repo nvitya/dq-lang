@@ -159,7 +159,6 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 
   OExpr * initexpr = nullptr;
   bool infer_type = false;
-  bool zero_init = false;
   bool fixed_object = false;
   bool fixed_ctor_call_at_decl = false;
   vector<OExpr *> fixed_ctor_args;
@@ -258,21 +257,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   else if (scf->CheckSymbol("="))  // variable initializer specified
   {
     scf->SkipWhite();
-    // Check for {} zero-initializer (for compound types)
-    if (scf->CheckSymbol("{"))
-    {
-      scf->SkipWhite();
-      if (not scf->CheckSymbol("}"))
-      {
-        ErrorTxt(DQERR_EXPR_INITVALUE, "\"}\" expected for zero-initializer");
-        return;
-      }
-      zero_init = true;
-    }
-    else
-    {
-      initexpr = ParseExpression();
-    }
+    initexpr = ParseExpression();
   }
 
   if (arootstmt)
@@ -291,7 +276,14 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     ptype = GetInferredDeclType(initexpr, detected_type);
     if (!ptype)
     {
-      StatementError(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?");
+      if (dynamic_cast<OStructLit *>(initexpr))
+      {
+        StatementError(DQERR_STRUCT_INIT_CONTEXT);
+      }
+      else
+      {
+        StatementError(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?");
+      }
       delete initexpr;
       return;
     }
@@ -316,11 +308,6 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   if (fixed_object && decl_object_type && decl_object_type->is_abstract)
   {
     StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", decl_object_type->name));
-    return;
-  }
-  if (zero_init && decl_object_type && !fixed_object)
-  {
-    StatementError(DQERR_NOT_SUPPORTED, "value-style object zero-initialization");
     return;
   }
   if (fixed_object && fixed_ctor_call_at_decl)
@@ -426,7 +413,6 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
-    if (zero_init)  pvalsym->initialized = true;
     if (pvalsym->ptype && (TK_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
@@ -735,7 +721,14 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
     ptype = GetInferredDeclType(valueexpr, detected_type);
     if (!ptype)
     {
-      emit_error(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?", &expos);
+      if (dynamic_cast<OStructLit *>(valueexpr))
+      {
+        emit_error(DQERR_STRUCT_INIT_CONTEXT, "", "", &expos);
+      }
+      else
+      {
+        emit_error(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?", &expos);
+      }
       delete valueexpr;
       return;
     }

@@ -1,0 +1,9 @@
+struct SFillRepeated:
+    a : int
+    b : int
+endstruct
+
+function *Main() -> int:
+    var value : SFillRepeated = { 1, ?, ? } //?error(StructInitFillRepeated)
+    return 0
+endfunc

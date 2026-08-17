@@ -1,0 +1,9 @@
+struct SFillPosition:
+    a : int
+    b : int
+endstruct
+
+function *Main() -> int:
+    var value : SFillPosition = { ?, 1 } //?error(StructInitFillFinal)
+    return 0
+endfunc

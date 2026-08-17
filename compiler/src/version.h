@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.46.0"
+#define DQ_COMPILER_VERSION  "0.47.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.47.0:
+  - const struct and struct initializers
 v0.46.0:
   - union support
 v0.45.7:

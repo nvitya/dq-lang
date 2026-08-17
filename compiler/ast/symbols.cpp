@@ -638,7 +638,8 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
   else if (VSK_CONST == kind)
   {
     OValSymConst * vsconst = static_cast<OValSymConst *>(this);
-    if (TK_ARRAY == ptype->kind)
+    OType * resolved_type = ResolvedType();
+    if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
     {
       LlLinkType  linktype =
         ((apublic || attr_has_linkage_name) ? LlLinkType::ExternalLinkage
@@ -691,8 +692,13 @@ void OValSym::GenGlobalImportDecl()
       gv->setSection(attr_section_name);
     }
   }
-  else if ((VSK_CONST == kind) && (TK_ARRAY == ptype->kind))
+  else if (VSK_CONST == kind)
   {
+    OType * resolved_type = ResolvedType();
+    if (!resolved_type || (TK_ARRAY != resolved_type->kind && TK_STRUCT != resolved_type->kind))
+    {
+      return;
+    }
     LlType * ll_type = ptype->GetLlType();
     string   ll_name = GetLinkageName(true);
     if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))

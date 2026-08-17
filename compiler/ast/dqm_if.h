@@ -129,7 +129,7 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL = 0x80FD; // str pair: module id, 
 TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length
-TDqmIfRecId  DQMIF_VALUE_LINKED           = 0x8101;  // 0: signalizes value in the object data (arrays)
+TDqmIfRecId  DQMIF_VALUE_LINKED           = 0x8101;  // 0: value is stored in linked object data (aggregates)
 
 TDqmIfRecId  DQMIF_ATTR_FLAGS             = 0x8200;  // uint64
 TDqmIfRecId  DQMIF_ATTR_ALIGN_VALUE       = 0x8201;  // int32

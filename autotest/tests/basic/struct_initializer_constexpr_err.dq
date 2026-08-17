@@ -1,0 +1,14 @@
+struct SConstExprInit:
+    a : int
+    b : int
+endstruct
+
+function RuntimeStructMember() -> int:
+    return 1
+endfunc
+
+const BAD_STRUCT_CONST : SConstExprInit = { RuntimeStructMember(), 2 } //?error(IntConstExpr), error(ConstExprInvalid)
+
+function *Main() -> int:
+    return 0
+endfunc

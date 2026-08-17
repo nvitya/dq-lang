@@ -25,7 +25,7 @@ function *Main() -> int:
     var array_value : [2]int = [1, 2]
     var callback_value : FInferCallback = InferCallbackTarget
 
-    var zero_initializer : ? = {} //?error(TypeInfer)
+    var zero_initializer : ? = {} //?error(StructInitContext)
     var null_value : ? = null //?error(TypeInfer)
     var raw_pointer : ? = raw_value //?error(TypeInfer)
 

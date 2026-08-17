@@ -486,6 +486,17 @@ bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   auto * arrtype = static_cast<OTypeArray *>(ptype);
 
+  if (auto * aggregate = dynamic_cast<OStructLit *>(expr);
+      aggregate && aggregate->entries.empty() && !aggregate->fill_missing)
+  {
+    if (!aggregate->ptype
+        && !g_compiler->ConvertExprToType(ptype, &expr, emit_errors ? EXPCF_GENERATE_ERRORS : 0))
+    {
+      return false;
+    }
+    return true;
+  }
+
   if (auto * arrlit = dynamic_cast<OArrayLit *>(expr))
   {
     if (arrlit->elements.size() != arrtype->arraylength)
@@ -828,6 +839,15 @@ static int ArrayLiteralElementConversionCost(OArrayLit * arrlit, OType * elemtyp
 bool OTypeArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
+  {
+    if (aflags & EXPCF_EXPLICIT_CAST)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, arrlit->ptype ? arrlit->ptype->name : "array literal", name);
+      return false;
+    }
+    return ConvertArrayLiteralElements(arrlit, this->elemtype, this->arraylength, aflags);
+  }
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
@@ -844,10 +864,6 @@ bool OTypeArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   }
 
   OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-  if (auto * arrlit = dynamic_cast<OArrayLit *>(src))
-  {
-    return ConvertArrayLiteralElements(arrlit, this->elemtype, this->arraylength, aflags);
-  }
   if (this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias())
   {
     if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_ELEM_TYPE_MISM, this->elemtype->ResolveAlias()->name, arrsrc->elemtype->ResolveAlias()->name);
@@ -864,6 +880,11 @@ bool OTypeArray::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
 int OTypeArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(expr))
+  {
+    if (aflags & EXPCF_EXPLICIT_CAST) return -1;
+    return ArrayLiteralElementConversionCost(arrlit, this->elemtype, this->arraylength, aflags);
+  }
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
@@ -876,10 +897,6 @@ int OTypeArray::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   if (is_explicit_cast) return -1;
 
   OTypeArray * arrsrc = static_cast<OTypeArray *>(resolved_src);
-  if (auto * arrlit = dynamic_cast<OArrayLit *>(expr))
-  {
-    return ArrayLiteralElementConversionCost(arrlit, this->elemtype, this->arraylength, aflags);
-  }
   if ((this->elemtype->ResolveAlias() != arrsrc->elemtype->ResolveAlias()) || (this->arraylength != arrsrc->arraylength))
   {
     return -1;

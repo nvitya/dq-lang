@@ -225,6 +225,16 @@ DEF_DQ_ERR(DQERR_REFOUT_READ_BEFORE_WRITE,         "RefOutRead",             "Ou
 DEF_DQ_ERR(DQERR_ARR_ELEMCOUNT_MISM,               "ArrElemCount",           "Array element count mismatch: expected $1, got $2");  // for array literal definitions
 DEF_DQ_ERR(DQERR_ARR_ELEM_TYPE_MISM,               "ArrElemType",            "Array element type mismatch: expected \"$1\", got \"$2\"");
 DEF_DQ_ERR(DQERR_ARR_SIZE_MISM,                    "ArrSize",                "Array size mismatch: expected $1, got $2");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_CONTEXT,               "StructInitContext",      "Struct initializer requires a contextual struct type");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_COMMA,                 "StructInitComma",        "Comma expected in struct initializer");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_TRAILING_COMMA,        "StructInitTrailingComma", "Trailing comma is not allowed in struct initializer");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_FILL_FINAL,            "StructInitFillFinal",    "The struct initializer '?' must be the final entry");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_FILL_REPEATED,         "StructInitFillRepeated", "The struct initializer '?' may only appear once");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_FILL_REDUNDANT,        "StructInitFillRedundant", "The struct initializer '?' is redundant because no fields are missing");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_UNKNOWN_FIELD,         "StructInitUnknownField", "Unknown field \"$1\" in struct \"$2\"");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_DUP_FIELD,             "StructInitDuplicateField", "Field \"$1\" is initialized more than once");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_EXCESS,                "StructInitExcess",       "Too many positional values for struct \"$1\"");
+DEF_DQ_ERR(DQERR_STRUCT_INIT_MISSING,               "StructInitMissing",      "Missing initializer for field \"$1\" of struct \"$2\"");
 DEF_DQ_ERR(DQERR_ARR_SLICE_CONVERSION,             "ArrSlice",               "Cannot convert non-variable array to slice");
 DEF_DQ_ERR(DQERR_CSTR_SIZE_EXPECTED,               "CStrSizeExpected",       "cstring size expected, example: cstring(n)");
 DEF_DQ_ERR(DQERR_CSTR_SIZE_INVALID,                "CStrSizeInvalid",        "Invalid cstring size, it must be a positive integer");

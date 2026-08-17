@@ -581,6 +581,12 @@ bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
 
   while (true)
   {
+    // A directive on the next line may depend on symbols imported by this use.
+    // Leave it for ParseModule(), after the module has populated the scope.
+    if (scf->LineEndsBeforeNextToken())
+    {
+      break;
+    }
     scf->SkipWhite();
     if (!scf->CheckSymbol("/"))
     {

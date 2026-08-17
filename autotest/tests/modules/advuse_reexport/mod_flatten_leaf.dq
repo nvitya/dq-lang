@@ -1,5 +1,7 @@
 //?notest
 
+const NESTED_REEXPORT_FLAG : bool = true
+
 struct SHiddenPayload:
     value : int
 endstruct

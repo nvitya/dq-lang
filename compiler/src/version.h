@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.46.6"
+#define DQ_COMPILER_VERSION  "0.46.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.45.7:
+  - use -> #ifdef whitespace problem fix
 v0.45.6:
   - Added the Defined() compile-time intrinsic for combining definition tests in
     preprocessor conditions and normal code

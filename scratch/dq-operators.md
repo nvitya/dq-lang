@@ -54,12 +54,40 @@ regs.OSPEEDR OR= (1 << pinx2)
 DQ cannot use the `^` for "xor" because it is used for the pointer-dereferencing, which is fixed.
 
 I was thinking to change some word operators:
+
  * `band`: bitwise "and"
  * `bor`: bitwise "or"
  * `bnot`: bitwise "not"
  * `bxor`: bitwise "xor"
  * `idiv` or `div`: truncated integer division
  * `imod` or `mod`: integer division remainder
+
+Or maybe prefixing with some not used char:
+
+ * `%and`: bitwise "and"
+ * `%or`: bitwise "or"
+ * `%not`: bitwise "not"
+ * `%xor`: bitwise "xor"
+
+ * `~and`: bitwise "and"
+ * `~or`: bitwise "or"
+ * `~not`: bitwise "not"
+ * `~xor`: bitwise "xor"
+
+ * `!and`: bitwise "and"
+ * `!or`: bitwise "or"
+ * `!not`: bitwise "not"
+ * `!xor`: bitwise "xor"
+
+ * `%div`: truncated integer division
+ * `%mod`: integer division remainder
+
+```
+a %div= 2
+bitmask %or= 2
+
+x = 3 %div 2
+```
 
 ```
 function PinSetup(aportnum : int, apinnum : int, flags : uint) -> bool:

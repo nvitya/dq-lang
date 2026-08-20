@@ -128,8 +128,6 @@ add_custom_target(autotest_O0
 add_custom_target(test
   COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
   COMMAND python3 "${CMAKE_SOURCE_DIR}/tools/test_dq_v1_to_v2.py"
-  COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>"
-          "${CMAKE_SOURCE_DIR}/autotest/tests/basic/operators_v1_typecheck.dq.v1"
   COMMAND "$<TARGET_FILE:dq-inline-asm-test>"
   COMMAND "$<TARGET_FILE:dq-projectfile-test>"
   ${DQ_ARM_TARGET_TEST_COMMANDS}

@@ -1,0 +1,2788 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the DQ programming language">
+      
+      
+      
+      
+        <link rel="prev" href="../project-file/">
+      
+      
+        <link rel="next" href="../dqm-format/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Cross-Compiling and Packaging - DQ Programming Language</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cross-compiling-and-packaging" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="DQ Programming Language" class="md-header__button md-logo" aria-label="DQ Programming Language" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DQ Programming Language
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cross-Compiling and Packaging
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/nvitya/dq-lang" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="DQ Programming Language" class="md-nav__button md-logo" aria-label="DQ Programming Language" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DQ Programming Language
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/nvitya/dq-lang" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../motivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/basics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/expressions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expressions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/statements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/objects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/memory-and-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory and Pointers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/attributes-and-directives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attributes and Directives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C Interoperability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/asm-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/lexical-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexical Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/declarations-and-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Declarations and Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/types-and-conversions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Types and Conversions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enumerations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/arrays-and-slices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arrays and Slices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/strings-and-characters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Strings and Characters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/anyvalue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    anyvalue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/structures-pointers-and-function-references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structures, Pointers, and Function References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/expressions-and-operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expressions and Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/statements-and-control-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statements and Control Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/objects-and-properties/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objects and Properties
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/modules-and-packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules and Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/attributes-directives-and-interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attributes, Directives, and Interoperability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/assembly-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Library
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runtime Library
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/anyvalue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    anyvalue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    String Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/textfmt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Text Formatting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standard Modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Standard Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stdmodules/file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stdmodules/strutils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    strutils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stdmodules/json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stdmodules/nanonet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nanonet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Compiler
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-dq-comp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting the DQ Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using-dq-comp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the DQ Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrating-operators-v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating to Operators V2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DQ Project Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Compiling and Packaging
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Compiling and Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites-llvm-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites: LLVM Dependency
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites: LLVM Dependency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-setting-up-for-aarch64-linux-using-pre-built-llvm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Setting up for aarch64-linux (Using Pre-built LLVM)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#windows-x86_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows x86_64
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Windows x86_64">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-local-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Local Layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-with-llvm-mingw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure With llvm-mingw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-limitation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Limitation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-the-windows-llvm-development-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building the Windows LLVM Development Package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-a-windows-release-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a Windows Release Package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#current-portability-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Portability Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-building-for-aarch64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Building for aarch64
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#toolchain-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toolchain Files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release Packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dqm-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../contributing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributor Documentation
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributor Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/documentation-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/coverage-inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coverage Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/module-and-interface-internals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module and Interface Internals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/exceptions-and-backtraces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions and Backtraces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/release-and-cross-builds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release and Cross-Build Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/writing-current-dq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Current DQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites-llvm-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites: LLVM Dependency
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites: LLVM Dependency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-setting-up-for-aarch64-linux-using-pre-built-llvm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Setting up for aarch64-linux (Using Pre-built LLVM)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#windows-x86_64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows x86_64
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Windows x86_64">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-local-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Local Layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-with-llvm-mingw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure With llvm-mingw
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#important-limitation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Important Limitation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-the-windows-llvm-development-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building the Windows LLVM Development Package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-a-windows-release-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building a Windows Release Package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#current-portability-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Portability Status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-building-for-aarch64" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Building for aarch64
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#toolchain-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toolchain Files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release Packages
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cross-compiling-and-packaging">Cross-Compiling and Packaging</h1>
+<p>This guide explains how to cross-compile the DQ compiler (<code>dq-comp</code>) from an x86_64 Ubuntu host (e.g. 26.04) to different architectures.</p>
+<p>It documents the currently supported repository toolchains. Application target
+selection and <code>.dqproj</code> properties are covered in
+<a href="../using-dq-comp/">Using the Compiler</a> and <a href="../project-file/">DQ Project Files</a>.</p>
+<h2 id="prerequisites-llvm-dependency">Prerequisites: LLVM Dependency</h2>
+<p>The DQ compiler depends on LLVM (<code>find_package(LLVM REQUIRED CONFIG)</code>). To build <code>dq-comp</code> so that it runs on a target architecture (e.g., <code>aarch64</code>), you must provide the target architecture's version of the LLVM libraries. </p>
+<p>This is a known issue on Debian/Ubuntu: installing target-architecture <code>-dev</code> packages (like <code>llvm-dev:arm64</code>) can conflict with critical host packages and try to remove your desktop environment! </p>
+<p><strong>Do NOT use <code>apt</code> to install target LLVM development libraries.</strong></p>
+<p>Instead, use the official pre-built LLVM binaries for the target architecture, or build LLVM from source for the target.</p>
+<h3 id="example-setting-up-for-aarch64-linux-using-pre-built-llvm">Example: Setting up for aarch64-linux (Using Pre-built LLVM)</h3>
+<ol>
+<li>
+<p><strong>Install the cross-compiler and multiarch dependencies on the host:</strong>
+   Because the official LLVM binaries for Linux are compiled with <code>libc++</code> and Link Time Optimization (LTO), we must use <code>clang++</code> and <code>lld</code> as the cross-compiler instead of GNU <code>g++</code>. We also need the target architecture's <code>libc++</code>, <code>zlib</code>, <code>zstd</code>, and <code>libxml2</code> headers.
+   <code>bash
+   sudo apt update
+   sudo apt install clang lld \
+        libc++-dev:arm64 libc++abi-dev:arm64 \
+        zlib1g-dev:arm64 libzstd-dev:arm64 libxml2-dev:arm64</code></p>
+</li>
+<li>
+<p><strong>Download Pre-built LLVM for aarch64:</strong>
+   Go to the <a href="https://github.com/llvm/llvm-project/releases">LLVM GitHub Releases page</a> and download the <code>aarch64-linux-gnu</code> tarball for the LLVM version you want (e.g., LLVM 20).</p>
+</li>
+</ol>
+<p><code>bash
+   mkdir -p sysroots/llvm-aarch64
+   cd sysroots
+   wget https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.0/LLVM-21.1.0-Linux-ARM64.tar.xz
+   tar -xf LLVM-21.1.0-Linux-ARM64.tar.xz -C llvm-aarch64 --strip-components=1
+   cd ..</code></p>
+<ol>
+<li><strong>Configure CMake to use the downloaded LLVM:</strong>
+   When running the make target, you can pass the <code>LLVM_DIR</code> directly via the environment or add it to the make command. For our setup, we can explicitly tell CMake where to find it:</li>
+</ol>
+<p><code>bash
+   make cross-aarch64-linux CMAKE_EXTRA_ARGS="-DLLVM_DIR=$(pwd)/sysroots/llvm-aarch64/lib/cmake/llvm"</code></p>
+<p><em>(For other architectures like <code>armhf</code> or <code>riscv64</code>, substitute <code>:arm64</code> with <code>:armhf</code> or <code>:riscv64</code> in the <code>apt install</code> command above.)</em></p>
+<h2 id="building">Building</h2>
+<p>We have added specific Make targets that simplify the CMake configuration for cross-compiling. The toolchain files are located in <code>toolchains/</code>.</p>
+<h3 id="supported-targets">Supported Targets</h3>
+<ul>
+<li><code>make cross-aarch64-linux</code></li>
+<li><code>make cross-armhf-linux</code></li>
+<li><code>make cross-rv64g-linux</code></li>
+<li><code>make cross-x86_64-win</code></li>
+</ul>
+<h2 id="windows-x86_64">Windows x86_64</h2>
+<p>The Windows cross-build is different from the Linux cross-builds in two ways:</p>
+<ol>
+<li>You need a Windows cross C/C++ toolchain that runs on the Linux host.</li>
+<li><code>dq-comp</code> itself links against LLVM C++ libraries, so the build still needs
+   Windows-target LLVM development libraries visible through <code>LLVM_DIR</code>.</li>
+</ol>
+<p>The <code>llvm-mingw</code> project is a good source for the first part. For an x86_64
+Linux host building x86_64 Windows binaries, use the Ubuntu x86_64 tarball:</p>
+<pre><code class="language-text">llvm-mingw-20251216-ucrt-ubuntu-22.04-x86_64.tar.xz
+</code></pre>
+<p>For the self-contained Windows DQ package, the matching Windows-hosted toolchain
+archive is also required:</p>
+<pre><code class="language-text">llvm-mingw-20251216-ucrt-x86_64.zip
+</code></pre>
+<p>The <code>.tar.xz</code> archive is used on the Linux build machine. The <code>.zip</code> archive is
+for the final Windows package, where it can provide <code>clang.exe</code>, <code>lld</code>, startup
+objects, CRT libraries, and Windows import libraries for DQ users.</p>
+<h3 id="recommended-local-layout">Recommended Local Layout</h3>
+<p>Keep checked-in CMake toolchain files in <code>toolchains/</code>. Put downloaded and
+extracted binary toolchains under <code>sysroots/</code>, which is ignored by git:</p>
+<pre><code class="language-bash">mkdir -p sysroots/llvm-mingw-x86_64
+tar -xf toolchains/llvm-mingw-20251216-ucrt-ubuntu-22.04-x86_64.tar.xz \
+  -C sysroots/llvm-mingw-x86_64 --strip-components=1
+</code></pre>
+<p>If the archive was downloaded somewhere else, use that path instead of the
+<code>toolchains/...tar.xz</code> path above. The important result is:</p>
+<pre><code class="language-text">sysroots/llvm-mingw-x86_64/bin/x86_64-w64-mingw32-clang++
+sysroots/llvm-mingw-x86_64/x86_64-w64-mingw32/
+</code></pre>
+<h3 id="configure-with-llvm-mingw">Configure With llvm-mingw</h3>
+<p>The Windows toolchain file accepts <code>DQ_MINGW_ROOT</code>:</p>
+<pre><code class="language-bash">make cross-x86_64-win CMAKE_EXTRA_ARGS=&quot;\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=/path/to/windows-target-llvm/lib/cmake/llvm&quot;
+</code></pre>
+<p><code>DQ_MINGW_ROOT</code> points CMake at the llvm-mingw cross compiler and target
+headers/libraries. <code>LLVM_DIR</code> must point at the LLVM CMake package for LLVM
+libraries that are linkable into the Windows <code>dq-comp.exe</code>.</p>
+<h3 id="important-limitation">Important Limitation</h3>
+<p>The llvm-mingw release archive provides the compiler, linker, CRT/startup
+objects, and Windows import libraries. It does not provide the LLVM development
+CMake package used by this project:</p>
+<pre><code class="language-text">lib/cmake/llvm/LLVMConfig.cmake
+</code></pre>
+<p>Therefore llvm-mingw alone is probably not sufficient to build <code>dq-comp.exe</code>.
+You still need a compatible Windows-target LLVM development build. The most
+reliable approach is to build LLVM for the same MinGW/UCRT ABI using the
+llvm-mingw toolchain, then pass that build's <code>lib/cmake/llvm</code> directory as
+<code>LLVM_DIR</code>.</p>
+<h3 id="building-the-windows-llvm-development-package">Building the Windows LLVM Development Package</h3>
+<p>Use the helper script after extracting the llvm-mingw Linux-hosted toolchain:</p>
+<pre><code class="language-bash">tools/build-llvm-mingw-ucrt.sh
+</code></pre>
+<p>The script builds and installs a minimal LLVM development package here:</p>
+<pre><code class="language-text">sysroots/llvm-x86_64-win-ucrt
+</code></pre>
+<p>It downloads the matching LLVM source archive if needed, configures LLVM for
+<code>x86_64-w64-windows-gnu</code>, builds only the X86 target backend, disables optional
+compression/XML/terminal dependencies, and installs the CMake package needed by
+<code>dq-comp</code>:</p>
+<pre><code class="language-text">sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm/LLVMConfig.cmake
+</code></pre>
+<p>After that, configure the DQ compiler cross-build with:</p>
+<pre><code class="language-bash">make cross-x86_64-win CMAKE_EXTRA_ARGS=&quot;\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=$(pwd)/sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm&quot;
+</code></pre>
+<h3 id="building-a-windows-release-package">Building a Windows Release Package</h3>
+<p>After the cross-build succeeds, create a distributable zip with:</p>
+<pre><code class="language-bash">make package-x86_64-win CMAKE_EXTRA_ARGS=&quot;\
+  -DDQ_MINGW_ROOT=$(pwd)/sysroots/llvm-mingw-x86_64 \
+  -DLLVM_DIR=$(pwd)/sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm&quot;
+</code></pre>
+<p>The package is written to:</p>
+<pre><code class="language-text">dist/dq-&lt;version&gt;-x86_64-windows-ucrt.zip
+</code></pre>
+<p>It contains:</p>
+<ul>
+<li><code>bin/dq-comp.exe</code></li>
+<li><code>bin/dq-run.exe</code></li>
+<li><code>bin/dqatrun.exe</code></li>
+<li>the required llvm-mingw runtime DLLs</li>
+<li>the Windows-hosted llvm-mingw linker SDK under <code>toolchain/llvm-mingw/</code></li>
+<li><code>stdpkg/</code></li>
+<li>project license and Windows quick-start notes</li>
+</ul>
+<p>The package script expects the Windows-hosted llvm-mingw archive here by
+default:</p>
+<pre><code class="language-text">sysroots/llvm-mingw-20251216-ucrt-x86_64.zip
+</code></pre>
+<p>Override it with <code>DQ_WINDOWS_TOOLCHAIN_ZIP=/path/to/llvm-mingw-ucrt-x86_64.zip</code>,
+or use an already extracted Windows-hosted toolchain with:</p>
+<pre><code class="language-bash">DQ_WINDOWS_TOOLCHAIN_ROOT=/path/to/llvm-mingw-20251216-ucrt-x86_64 \
+  tools/package-windows-release.sh
+</code></pre>
+<p>At runtime, <code>dq-comp.exe</code> links application executables with the packaged
+toolchain:</p>
+<pre><code class="language-text">toolchain\llvm-mingw\bin\clang.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
+</code></pre>
+<p>Set <code>DQ_LINKER_DRIVER</code> to override that driver path.</p>
+<p>If the helper needs a different native <code>llvm-tblgen</code>, set it explicitly:</p>
+<pre><code class="language-bash">LLVM_TBLGEN=/path/to/llvm-tblgen tools/build-llvm-mingw-ucrt.sh
+</code></pre>
+<p>Prebuilt package managers such as MSYS2 may also provide <code>LLVMConfig.cmake</code>, but
+mixing their LLVM libraries with the llvm-mingw toolchain can create C++ ABI and
+runtime mismatches. For the first Windows DQ package, prefer building LLVM with
+the same llvm-mingw toolchain used to build <code>dq-comp.exe</code>.</p>
+<h3 id="current-portability-status">Current Portability Status</h3>
+<p>The repository has a Windows cross-build target and the hosted compiler tools
+now build as Windows executables with the llvm-mingw toolchain:</p>
+<ul>
+<li><code>dq-comp.exe</code></li>
+<li><code>dq-run.exe</code></li>
+<li><code>dqatrun.exe</code></li>
+</ul>
+<p>The compiler sources now guard Linux-only backtrace support, use portable
+executable discovery, and provide a Windows implementation of the process
+runner and artifact locking. Application linking uses the bundled llvm-mingw
+toolchain, and hosted Windows programs use a minimal <code>rtl/rtl_windows.dq</code>
+runtime entry point. That runtime currently omits Linux-only SIGSEGV recovery.</p>
+<h3 id="example-building-for-aarch64">Example: Building for aarch64</h3>
+<p>From the root of the <code>dq-lang</code> project, run:</p>
+<pre><code class="language-bash">make cross-aarch64-linux
+</code></pre>
+<p>This will:
+1. Create a build directory at <code>build-cross/aarch64-linux</code>.
+2. Run CMake configured with <code>-DCMAKE_TOOLCHAIN_FILE=../../toolchains/aarch64-linux.cmake</code>.
+3. Compile the project for the <code>aarch64</code> target.</p>
+<p>The resulting <code>dq-comp</code> executable will be placed in <code>build-cross/aarch64-linux/build/compiler/</code> or standard output directories defined by CMake.</p>
+<h2 id="toolchain-files">Toolchain Files</h2>
+<p>If you need to customize the cross-compilation environment (for example, setting a custom sysroot or pointing to a locally compiled LLVM), you can edit the corresponding toolchain file in the <code>toolchains/</code> directory.</p>
+<ul>
+<li><code>CMAKE_FIND_ROOT_PATH</code> is currently pointed to the default Ubuntu cross-compiler sysroot (e.g., <code>/usr/aarch64-linux-gnu</code>).</li>
+</ul>
+<h2 id="release-packages">Release Packages</h2>
+<p>The repository provides these package targets:</p>
+<pre><code class="language-bash">make -j&quot;$(nproc)&quot; package-linux-release
+make -j&quot;$(nproc)&quot; package-linux-full-release
+make -j&quot;$(nproc)&quot; package-windows-release
+</code></pre>
+<p>The compact Linux package omits bundled LLVM tools. The full Linux and Windows
+packages include the supported toolchain/runtime payload expected by their
+launchers. Package maintainers should follow the clean-environment checks in
+<a href="../../contributing/release-and-cross-builds/">Release and Cross-Build Notes</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -17,6 +17,7 @@ tools/vscode-dq/node_modules/
 /.vscode/numbered-bookmarks.json
 
 .dqbuild
+__pycache__
 
 # Prerequisites
 *.d

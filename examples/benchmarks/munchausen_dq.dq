@@ -16,12 +16,12 @@ function IsMunchausen(number : int32) -> bool:
     var n     : int32 = number
     var total : int32 = 0
     while n > 0:
-        var digit : int = n IMOD 10
+        var digit : int = n mod 10
         total += cache[digit]
         if total > number:
             return false
         endif
-        n =IDIV= 10
+        n =div= 10
     endwhile
     return total == number
 endfunc

@@ -67,7 +67,7 @@ function StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int:
     for pos : int = astart to lastpos:
         var match : bool = true
         for i : int = 0 count aneedle.length:
-            if astr[pos + i] != aneedle[i]:
+            if astr[pos + i] <> aneedle[i]:
                 match = false
                 break
             endif

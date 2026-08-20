@@ -35,7 +35,7 @@ function *Main() -> int:
     global_wo = 21
 
     // Address and reference binding intentionally escape the declaration attributes.
-    var ro_ptr : ^uint32 = &regs.RO
+    var ro_ptr : ^uint32 = %regs.RO
     ro_ptr^ = 30
     SetByRef(regs.RO)
     ref wo_ref = regs.WO

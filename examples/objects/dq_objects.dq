@@ -54,7 +54,7 @@ public
     endfunc
 
     function Print():
-        @.printf("%s(%d)\n", &ddata.name, ddata.intvalue)
+        @.printf("%s(%d)\n", %ddata.name, ddata.intvalue)
     endfunc
 endobj
 

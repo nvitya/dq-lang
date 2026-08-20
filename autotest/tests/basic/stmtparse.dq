@@ -19,14 +19,14 @@ function dq_stmt_targets():
     x += 2
     x <<= 1
     x >>= 1
-    x =AND= 7
+    x &= 7
 
     @.g_value = x
 
     arr[0] = x
     s.value = arr[0]
 
-    var p : ^int = &arr[0]
+    var p : ^int = %arr[0]
     p^ = s.value
 
     if x < y:

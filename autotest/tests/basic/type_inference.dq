@@ -32,7 +32,7 @@ function *Main() -> int:
     var source : SInferValue = {}
     source.value = 17
 
-    var address_ptr : ? = &source
+    var address_ptr : ? = %source
     printf("address ptr value = %li\n", address_ptr.value) //?check("address ptr value", 17)
 
     var call_ptr : ? = KeepPointer(address_ptr)
@@ -45,7 +45,7 @@ function *Main() -> int:
     printf("allocated int = %li\n", allocated_int^) //?check("allocated int", 42)
 
     var float_value : float = 1.5
-    var float_ptr : ? = &float_value
+    var float_ptr : ? = %float_value
     printf("float pointer type = %s\n", TypeName(float_ptr)) //?check("float pointer type", "^float")
 
     var child : ? = new OInferChild(23)

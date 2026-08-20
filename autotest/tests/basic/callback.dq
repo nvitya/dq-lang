@@ -56,7 +56,7 @@ function *Main() -> int:
     printf("choose_cb(true)(9) = %li\n", r)  //?check('choose_cb(true)(9)', 10)
 
     chosen = choose_cb(false)
-    if chosen != null:
+    if chosen <> null:
         r = -1
     else:
         r = 2

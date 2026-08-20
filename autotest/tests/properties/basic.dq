@@ -38,7 +38,7 @@ private
     endfunc
 
     function GetPointer() -> ^int:
-        return &pointer_value
+        return %pointer_value
     endfunc
 
 public

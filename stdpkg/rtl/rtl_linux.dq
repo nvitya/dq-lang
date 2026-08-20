@@ -59,14 +59,14 @@ endfunc
 
 function DqSigSegvHandler(signum : int):
     dq_sigsegv_signal = signum
-    dq_sigsegv_backtrace_count = libc_backtrace(&dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
+    dq_sigsegv_backtrace_count = libc_backtrace(%dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
     if dq_sigsegv_guard_active <> 0:
         dq_sigsegv_guard_active = 0
 
-        // jump back where the libc___sigsetjmp(&dq_sigsegv_jmp, 1) was called
+        // jump back where the libc___sigsetjmp(%dq_sigsegv_jmp, 1) was called
         // but return with 1 (non-zero) !
-        libc_siglongjmp(&dq_sigsegv_jmp[0], 1)
+        libc_siglongjmp(%dq_sigsegv_jmp[0], 1)
     endif
 
     libc_signal(signum, SIG_DFL)  // set back the default signal handler
@@ -82,7 +82,7 @@ endfunc
 
 function RaiseSignalException():
     DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
-                                        &dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
+                                        %dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
 function PrintException(e : Exception) -> int:
@@ -111,7 +111,7 @@ function RunHostedMain() -> int:
     // and stores it in the dq_sigsegv_jmp array.
     // On the first pass it returns 0
 
-    if libc___sigsetjmp(&dq_sigsegv_jmp, 1) == 0:
+    if libc___sigsetjmp(%dq_sigsegv_jmp, 1) == 0:
         try:
             dq_module_init()
         except Exception as e:

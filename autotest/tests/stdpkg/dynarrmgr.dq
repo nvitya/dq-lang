@@ -56,11 +56,11 @@ function RunCoreOps(ti : ^SDqTypeInfo):
     PrintMgr("initial", arr)
 
     var first : [5]int = [10, 20, 30, 40, 50]
-    DynArrAppend(arr, ti, &first[0], 5)
+    DynArrAppend(arr, ti, %first[0], 5)
     PrintMgr("append5", arr)
 
     var ins : [2]int = [111, 222]
-    DynArrInsert(arr, ti, 1, &ins[0], 2)
+    DynArrInsert(arr, ti, 1, %ins[0], 2)
     PrintMgr("insert-mid", arr)
 
     DynArrDelete(arr, -5, 1)
@@ -91,13 +91,13 @@ function RunAssignClonePop(ti : ^SDqTypeInfo):
     var c : ODynArrMgr = null
     var src : [3]int = [1, 2, 3]
 
-    DynArrAssignData(a, ti, &src[0], 3)
+    DynArrAssignData(a, ti, %src[0], 3)
     DynArrAssignOther(b, a)
     PrintRefState("assigned-a", a)
     PrintRefState("assigned-b", b)
 
     var tail : int = 4
-    DynArrAppend(b, ti, &tail, 1)
+    DynArrAppend(b, ti, %tail, 1)
     PrintMgr("shared-a", a)
 
     DynArrClone(c, ti, a)
@@ -106,9 +106,9 @@ function RunAssignClonePop(ti : ^SDqTypeInfo):
     PrintMgr("clone-copy", c)
 
     var popped : int = 0
-    DynArrPop(c, &popped)
+    DynArrPop(c, %popped)
     printf("pop-last = %li\n", popped)
-    DynArrPopFirst(c, &popped)
+    DynArrPopFirst(c, %popped)
     printf("pop-first = %li\n", popped)
     PrintMgr("after-pop", c)
 
@@ -125,7 +125,7 @@ function RunSlicesOverlap(ti : ^SDqTypeInfo):
     var src : [4]int = [1, 2, 3, 4]
     var desc : SArraySliceDesc = {}
 
-    DynArrAssignData(arr, ti, &src[0], 4)
+    DynArrAssignData(arr, ti, %src[0], 4)
     DynArrGetSlice(arr, desc, -2, 3)
     PrintSlice("slice-clamped", desc)
     DynArrGetSlice(arr, desc, 3, 1)
@@ -134,7 +134,7 @@ function RunSlicesOverlap(ti : ^SDqTypeInfo):
     DynArrAppend(arr, ti, arr.dataptr, arr.length)
     PrintMgr("overlap-append", arr)
 
-    DynArrAssignData(arr, ti, &src[0], 4)
+    DynArrAssignData(arr, ti, %src[0], 4)
     DynArrInsert(arr, ti, 2, ^byte(arr.dataptr)[1 * arr.elemsize], 2)
     PrintMgr("overlap-insert-cross", arr)
 
@@ -147,7 +147,7 @@ function *Main() -> int:
     var ti : SDqTypeInfo = {}
     MakeIntTypeInfo(ti)
 
-    RunCoreOps(&ti) //?check("initial", "len:0, cap:0, data: []")
+    RunCoreOps(%ti) //?check("initial", "len:0, cap:0, data: []")
                     //?check("append5", "len:5, cap:8, data: [10,20,30,40,50]")
                     //?check("insert-mid", "len:7, cap:8, data: [10,111,222,20,30,40,50]")
                     //?check("delete-clamped", "len:6, cap:8, data: [111,222,20,30,40,50]")
@@ -158,7 +158,7 @@ function *Main() -> int:
                     //?check("clear-keep", "len:0, cap:6, data: []")
                     //?check("clear-free", "null")
 
-    RunAssignClonePop(&ti) //?check("assigned-a", "refcount:2, len:3, cap:3")
+    RunAssignClonePop(%ti) //?check("assigned-a", "refcount:2, len:3, cap:3")
                             //?check("assigned-b", "refcount:2, len:3, cap:3")
                             //?check("shared-a", "len:4, cap:6, data: [1,2,3,4]")
                             //?check("clone-src", "len:4, cap:6, data: [1,2,3,4]")
@@ -169,7 +169,7 @@ function *Main() -> int:
                             //?check("assign-empty-a", "null")
                             //?check("assign-empty-b", "refcount:1, len:4, cap:6")
 
-    RunSlicesOverlap(&ti) //?check("slice-clamped", "len:3, data: [ 1, 2, 3]")
+    RunSlicesOverlap(%ti) //?check("slice-clamped", "len:3, data: [ 1, 2, 3]")
                            //?check("slice-empty", "len:0, data: []")
                            //?check("overlap-append", "len:8, cap:8, data: [1,2,3,4,1,2,3,4]")
                            //?check("overlap-insert-cross", "len:6, cap:8, data: [1,2,2,3,3,4]")

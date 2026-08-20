@@ -36,7 +36,7 @@ function *Main() -> int:
     //?check("enum.basic.context", "1 0")
 
     printf("enum.basic.compare = %li %li %li\n",
-           int(c == red), int(c != blue), int(qualified == NColor.green))
+           int(c == red), int(c <> blue), int(qualified == NColor.green))
     //?check("enum.basic.compare", "1 1 1")
 
     var state : NState = running

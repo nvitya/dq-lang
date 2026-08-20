@@ -1,9 +1,9 @@
 //?notest
 
 function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^char = &src[0]
+    var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
-    var pd     : ^char = &dst[0]
+    var pd     : ^char = %dst[0]
     var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
     var pdstart : ^char = pd
 
@@ -17,9 +17,9 @@ function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ lib
 endfunc
 
 function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^char = &src[0]
+    var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
-    var pd     : ^char = &dst[0]
+    var pd     : ^char = %dst[0]
     var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
     pd += Len(dst)
     var pdstart : ^char = pd

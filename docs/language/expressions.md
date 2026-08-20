@@ -18,11 +18,11 @@ var f : float = 3 / 2
 
 The `/` operator follows DQ arithmetic rules intended to make common mixed
 numeric expressions behave naturally. Integer division and modulo are written
-with `IDIV` and `IMOD`.
+with `div` and `mod`.
 
 ```dq
-var a : int = 10 IDIV 3
-var b : int = 10 IMOD 3
+var a : int = 10 div 3
+var b : int = 10 mod 3
 ```
 
 The `/` division operator always produces a floating point result.
@@ -35,7 +35,6 @@ Comparison operators produce `bool`.
 
 ```dq
 a == b
-a != b
 a <> b
 a < b
 a <= b
@@ -43,7 +42,7 @@ a > b
 a >= b
 ```
 
-`<>` and `!=` are both accepted for inequality, `<>` is preferred.
+`<>` tests inequality. The C-style `!=` spelling is not accepted.
 
 ## Logical Operators
 
@@ -65,31 +64,33 @@ Operands must be `bool`.
 
 ## Bitwise Operators
 
-Bitwise operators use uppercase words.
+Bitwise operators use symbols except for lowercase `xor`.
 
 ```dq
-var masked : uint = value AND 0xFF
-var flags : uint = a OR b
-var flipped : uint = NOT flags
+var masked : uint = value & 0xFF
+var flags : uint = a | b
+var flipped : uint = ~flags
 ```
 
 The bitwise operators are:
 
-- `AND`
-- `OR`
-- `XOR`
-- `NOT`
-- `SHL` or `<<`
-- `SHR` or `>>`
+- `&`
+- `|`
+- `xor`
+- `~`
+- `<<`
+- `>>`
 
 Bitwise operators have higher precedence than logical operators and arithmetic
 operators.
-Bitwise `AND`, `OR` and `XOR` require a leading `=` when used in modify-assign statements:
+Symbolic bitwise modify-assignment uses `&=` and `|=`. The word operator keeps
+DQ's leading-`=` form, `=xor=`:
 
 ```dq
 var i : int = 0xFF00
-i =OR= (1 << 3)
-i =AND= NOT (1 << 12)
+i |= (1 << 3)
+i &= ~(1 << 12)
+i =xor= 1
 ```
 
 Shift modify-assignment uses `<<=` and `>>=`.
@@ -101,15 +102,18 @@ i >>= 1
 
 ## Casts
 
-Explicit casts use type-call syntax.
+Explicit casts use type-call syntax or `expression as Type`.
 
 ```dq
-var p : pointer = &value
+var p : pointer = %value
 var ip : ^int = ^int(p)
 var f : float64 = float64(value)
+var ip2 : ^int = p as ^int
 ```
 
-Only conversions accepted by the type checker are valid casts.
+Both forms use the same conversion rules. An `as` cast binds at the comparison
+level and is not chainable; parenthesize it before member access or another
+comparison-level operation.
 
 ## Inline If
 
@@ -177,11 +181,11 @@ endif
 
 ## Address and Dereference
 
-`&` takes the address of an addressable value.
+`%` takes the address of an addressable value.
 
 ```dq
 var value : int = 10
-var p : ^int = &value
+var p : ^int = %value
 ```
 
 `^` dereferences a typed pointer.
@@ -241,24 +245,24 @@ Precedence is listed from highest to lowest.
 | --- | --- | --- |
 | 1 | literals, identifiers, `@namespace.name`, `(...)`, `[...]`, `Type(expr)`, `new`, builtins such as `Len(...)`, `SizeOf(...)`, `iif(...)` | Primary expressions, array literals, casts, allocation, builtin forms |
 | 2 | `expr(args...)`, `expr.member`, `expr[index]`, `expr[start:end]`, `ptr[index]`, `ptr^` | Calls, member access, indexing, slicing, pointer indexing, pointer dereference |
-| 3 | `&expr`, `-expr`, `NOT expr` | Address-of, unary minus, bitwise NOT |
-| 4 | `<<`, `SHL`, `>>`, `SHR` | Bit shifts |
-| 5 | `AND` | Bitwise AND |
-| 6 | `OR`, `XOR` | Bitwise OR, bitwise XOR |
-| 7 | `/`, `IDIV`, `IMOD` | Division, integer division, integer modulo |
+| 3 | `%expr`, `-expr`, `~expr` | Address-of, unary minus, bitwise NOT |
+| 4 | `<<`, `>>` | Bit shifts |
+| 5 | `&` | Bitwise AND |
+| 6 | `|`, `xor` | Bitwise OR, bitwise XOR |
+| 7 | `/`, `div`, `mod` | Division, integer division, integer modulo |
 | 8 | `*` | Multiplication |
 | 9 | `+`, `-` | Addition, subtraction |
-| 10 | `==`, `!=`, `<>`, `<`, `<=`, `>`, `>=`, `is` | Comparison and object type test |
+| 10 | `==`, `<>`, `<`, `<=`, `>`, `>=`, `is`, `as` | Comparison, object type test, and explicit cast |
 | 11 | `not` | Logical NOT |
 | 12 | `and` | Logical AND |
 | 13 | `or` | Logical OR |
 
 This order is intentionally different from C in the bitwise levels. For
-example, `value AND mask <> 0` is parsed as `(value AND mask) <> 0`.
+example, `value & mask <> 0` is parsed as `(value & mask) <> 0`.
 
 Assignment operators are statements, not expressions, so they are outside the
 precedence table. Supported modify-assignment forms include `+=`, `-=`, `*=`,
-`/=`, `<<=`, `>>=`, `=IDIV=`, `=IMOD=`, `=AND=`, `=OR=`, and `=XOR=`.
+`/=`, `<<=`, `>>=`, `&=`, `|=`, `=div=`, `=mod=`, and `=xor=`.
 
 ## Member Access
 

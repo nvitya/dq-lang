@@ -95,7 +95,7 @@ function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
 endfunc
 
 function StrfByte(text : strview, index : int) -> uint32:
-    return uint32(Ord(text[index])) AND uint32(0xFF)
+    return uint32(Ord(text[index])) & uint32(0xFF)
 endfunc
 
 function StrfFailUtf8() -> bool:
@@ -108,10 +108,10 @@ function StrfReadCont(text : strview, index : int, outb : refout uint32) -> bool
         return StrfFailUtf8()
     endif
     outb = StrfByte(text, index)
-    if outb AND uint32(0xC0) <> uint32(0x80):
+    if outb & uint32(0xC0) <> uint32(0x80):
         return StrfFailUtf8()
     endif
-    outb = outb AND uint32(0x3F)
+    outb = outb & uint32(0x3F)
     return true
 endfunc
 
@@ -135,7 +135,7 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> boo
         if not StrfReadCont(text, pos + 1, b1):
             return false
         endif
-        decoded = ((b0 AND uint32(0x1F)) << 6) OR b1
+        decoded = ((b0 & uint32(0x1F)) << 6) | b1
         wc = wchar(decoded)
         pos += 2
         return true
@@ -143,7 +143,7 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> boo
         if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2):
             return false
         endif
-        decoded = ((b0 AND uint32(0x0F)) << 12) OR (b1 << 6) OR b2
+        decoded = ((b0 & uint32(0x0F)) << 12) | (b1 << 6) | b2
         wc = wchar(decoded)
         if decoded < uint32(0x800) or not StrfIsValidWChar(wc):
             return StrfFailUtf8()
@@ -154,7 +154,7 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> boo
         if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2) or not StrfReadCont(text, pos + 3, b3):
             return false
         endif
-        decoded = ((b0 AND uint32(0x07)) << 18) OR (b1 << 12) OR (b2 << 6) OR b3
+        decoded = ((b0 & uint32(0x07)) << 18) | (b1 << 12) | (b2 << 6) | b3
         wc = wchar(decoded)
         if decoded < uint32(0x10000) or not StrfIsValidWChar(wc):
             return StrfFailUtf8()
@@ -176,17 +176,17 @@ function StrfAppendUtf8(dst : ref str, wc : wchar):
     if code <= uint32(0x7F):
         dst.Append(char(int(code)))
     elif code <= uint32(0x7FF):
-        dst.Append(char(int(uint32(0xC0) OR (code >> 6))))
-        dst.Append(char(int(uint32(0x80) OR (code AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0xC0) | (code >> 6))))
+        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
     elif code <= uint32(0xFFFF):
-        dst.Append(char(int(uint32(0xE0) OR (code >> 12))))
-        dst.Append(char(int(uint32(0x80) OR ((code >> 6) AND uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) OR (code AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0xE0) | (code >> 12))))
+        dst.Append(char(int(uint32(0x80) | ((code >> 6) & uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
     else:
-        dst.Append(char(int(uint32(0xF0) OR (code >> 18))))
-        dst.Append(char(int(uint32(0x80) OR ((code >> 12) AND uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) OR ((code >> 6) AND uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) OR (code AND uint32(0x3F)))))
+        dst.Append(char(int(uint32(0xF0) | (code >> 18))))
+        dst.Append(char(int(uint32(0x80) | ((code >> 12) & uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) | ((code >> 6) & uint32(0x3F)))))
+        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
     endif
 endfunc
 
@@ -201,8 +201,8 @@ function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
         dst.Append(char16(int(code)))
     else:
         code -= uint32(0x10000)
-        dst.Append(char16(int(uint32(0xD800) OR (code >> 10))))
-        dst.Append(char16(int(uint32(0xDC00) OR (code AND uint32(0x3FF)))))
+        dst.Append(char16(int(uint32(0xD800) | (code >> 10))))
+        dst.Append(char16(int(uint32(0xDC00) | (code & uint32(0x3FF)))))
     endif
 endfunc
 
@@ -388,14 +388,14 @@ function StrfFromUtf16(chars : []char16) -> str:
     if chars.length == 0:
         return ''
     endif
-    return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), wchar(0), false)
+    return StrfFromUtf16PtrImpl(%chars[0], StrfUtf16SliceCount(chars), wchar(0), false)
 endfunc
 
 function StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str:
     if chars.length == 0:
         return ''
     endif
-    return StrfFromUtf16PtrImpl(&chars[0], StrfUtf16SliceCount(chars), fallback_wchar, true)
+    return StrfFromUtf16PtrImpl(%chars[0], StrfUtf16SliceCount(chars), fallback_wchar, true)
 endfunc
 
 function StrfFromUtf16Ptr(chars : ^char16, count : int) -> str:

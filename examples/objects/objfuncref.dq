@@ -3,11 +3,11 @@ use libc/stdio
 type FCallback = function(astr : cstring)
 
 function callback1(astr : cstring):
-    printf('Callback-1(%s)\n', &astr[0])
+    printf('Callback-1(%s)\n', %astr[0])
 endfunc
 
 function callback2(astr : cstring):
-    printf('Callback-2(%s)\n', &astr[0])
+    printf('Callback-2(%s)\n', %astr[0])
 endfunc
 
 var func : FCallback = null
@@ -20,11 +20,11 @@ object OBase:
     endfunc
 
     function CallBack1(astr : cstring):
-        @.printf('%s: Callback1(%s)\n', &name, &astr[0])
+        @.printf('%s: Callback1(%s)\n', %name, %astr[0])
     endfunc
 
     function CallBack2(astr : cstring):
-        @.printf('%s: Callback2(%s)\n', &name, &astr[0])
+        @.printf('%s: Callback2(%s)\n', %name, %astr[0])
     endfunc
 endobj
 

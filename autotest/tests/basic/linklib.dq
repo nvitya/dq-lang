@@ -5,7 +5,7 @@ function printf(fmt : ^char, ...) -> int [[external]]
 var fake_zlib_ver : cstring(20) = "v0.0.1-fake"
 
 function zlibVersion_fake() -> ^char:
-    result = &fake_zlib_ver[0]
+    result = %fake_zlib_ver[0]
 endfunc
 
 #linklib('z')

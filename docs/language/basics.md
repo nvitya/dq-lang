@@ -194,7 +194,7 @@ if number <> 0:
     // ok
 endif
 
-if ptr != null:
+if ptr <> null:
     // ok
 endif
 ```

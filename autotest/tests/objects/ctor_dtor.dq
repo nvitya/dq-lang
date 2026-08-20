@@ -22,7 +22,7 @@ object OTest:
     endfunc
 
     function Print():
-        @.printf("obj = %s(%d)\n", &ddata.name, ddata.intvalue)
+        @.printf("obj = %s(%d)\n", %ddata.name, ddata.intvalue)
     endfunc
 endobj
 

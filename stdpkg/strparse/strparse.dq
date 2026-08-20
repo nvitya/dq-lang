@@ -111,7 +111,7 @@ function OStrParse.ReadLine() -> bool:
     prevp = readp
     var cp : ^char = readp
 
-    while cp < bufend  and cp^ != '\r'  and cp^ != '\n':
+    while cp < bufend  and cp^ <> '\r'  and cp^ <> '\n':
         cp += 1
     endwhile
 
@@ -183,7 +183,7 @@ function OStrParse.CheckSymbol(checkstring : strview) -> bool:
         cp += 1
     endwhile
 
-    if csptr != csend:
+    if csptr <> csend:
         return false
     endif
 
@@ -274,7 +274,7 @@ function OStrParse.ReadQuotedString() -> bool:
         return false
     endif
 
-    if readp^ != '"':
+    if readp^ <> '"':
         return false
     endif
 
@@ -312,7 +312,7 @@ function OStrParse.SearchPattern(checkstring : strview) -> bool:
         var match : bool = true
 
         while ccptr < ccend:
-            if cp^ != ccptr^:
+            if cp^ <> ccptr^:
                 match = false
                 break
             endif
@@ -408,7 +408,7 @@ function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> 
             c = char(Ord(c) - Ord('a') + Ord('A'))
         endif
 
-        if c != csptr^:
+        if c <> csptr^:
             break
         endif
 
@@ -416,7 +416,7 @@ function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> 
         cp += 1
     endwhile
 
-    if csptr != csend:
+    if csptr <> csend:
         return false
     endif
 

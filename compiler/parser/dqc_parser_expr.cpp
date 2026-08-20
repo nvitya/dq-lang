@@ -1254,7 +1254,7 @@ OExpr * ODqCompParserExpr::ParseExprOr()
   while (not scf->Eof())
   {
     scf->SkipWhite();
-    if (scf->CheckSymbol("or"))
+    if (scf->CheckKeyword("or"))
     {
       OExpr * right = ParseExprAnd();
       if (!right)
@@ -1278,7 +1278,7 @@ OExpr * ODqCompParserExpr::ParseExprAnd()
   while (not scf->Eof())
   {
     scf->SkipWhite();
-    if (scf->CheckSymbol("and"))
+    if (scf->CheckKeyword("and"))
     {
       OExpr * right = ParseExprNot(); // Fixed recursion to ParseExprNot (was ParseExprAnd in original logic, but usually it chains to next priority or self)
       if (!right)
@@ -1297,7 +1297,7 @@ OExpr * ODqCompParserExpr::ParseExprAnd()
 OExpr * ODqCompParserExpr::ParseExprNot()
 {
   scf->SkipWhite();
-  if (scf->CheckSymbol("not"))
+  if (scf->CheckKeyword("not"))
   {
     OExpr *  val = ParseExprNot();
     if (!val)
@@ -1329,13 +1329,12 @@ OExpr * ODqCompParserExpr::ParseComparison()
   }
 
   if      (scf->CheckSymbol("=="))    op = COMPOP_EQ;
-  else if (scf->CheckSymbol("!=") or
-           scf->CheckSymbol("<>"))    op = COMPOP_NE;
+  else if (scf->CheckSymbol("<>"))    op = COMPOP_NE;
   else if (scf->CheckSymbol("<="))    op = COMPOP_LE;  // <= before <
   else if (scf->CheckSymbol("<"))     op = COMPOP_LT;
   else if (scf->CheckSymbol(">="))    op = COMPOP_GE;  // >= before >
   else if (scf->CheckSymbol(">"))     op = COMPOP_GT;
-  else if (scf->CheckSymbol("is"))
+  else if (scf->CheckKeyword("is"))
   {
     scf->SkipWhite();
     OType * target_type = ParseTypeSpec();
@@ -1344,6 +1343,21 @@ OExpr * ODqCompParserExpr::ParseComparison()
       return FreeLeftRight(left, nullptr);
     }
     return new OIsExpr(left, target_type);
+  }
+  else if (scf->CheckKeyword("as"))
+  {
+    scf->SkipWhite();
+    OType * target_type = ParseTypeSpec();
+    if (!target_type)
+    {
+      return FreeLeftRight(left, nullptr);
+    }
+    if (!ConvertExprToType(target_type, &left, EXPCF_GENERATE_ERRORS | EXPCF_EXPLICIT_CAST))
+    {
+      delete left;
+      return nullptr;
+    }
+    return left;
   }
   else
   {
@@ -1486,26 +1500,26 @@ OExpr * ODqCompParserExpr::ParseExprMul()
 
 OExpr * ODqCompParserExpr::ParseExprDiv()
 {
-  static const BinOpEntry ops[] = { {"/", BINOP_DIV}, {"IDIV", BINOP_IDIV}, {"IMOD", BINOP_IMOD} };
+  static const BinOpEntry ops[] = { {"/", BINOP_DIV}, {"div", BINOP_IDIV}, {"mod", BINOP_IMOD} };
   return ParseBinOpLevel(&ODqCompParserExpr::ParseExprBinOr, ops, 3);
 }
 
 OExpr * ODqCompParserExpr::ParseExprBinOr()
 {
-  static const BinOpEntry ops[] = { {"OR", BINOP_IOR}, {"XOR", BINOP_IXOR} };
+  static const BinOpEntry ops[] = { {"|", BINOP_IOR}, {"xor", BINOP_IXOR} };
   return ParseBinOpLevel(&ODqCompParserExpr::ParseExprBinAnd, ops, 2);
 }
 
 OExpr * ODqCompParserExpr::ParseExprBinAnd()
 {
-  static const BinOpEntry ops[] = { {"AND", BINOP_IAND} };
+  static const BinOpEntry ops[] = { {"&", BINOP_IAND} };
   return ParseBinOpLevel(&ODqCompParserExpr::ParseExprShift, ops, 1);
 }
 
 OExpr * ODqCompParserExpr::ParseExprShift()
 {
-  static const BinOpEntry ops[] = { {"<<", BINOP_ISHL}, {"SHL", BINOP_ISHL}, {">>", BINOP_ISHR}, {"SHR", BINOP_ISHR} };
-  return ParseBinOpLevel(&ODqCompParserExpr::ParseExprUnary, ops, 4);
+  static const BinOpEntry ops[] = { {"<<", BINOP_ISHL}, {">>", BINOP_ISHR} };
+  return ParseBinOpLevel(&ODqCompParserExpr::ParseExprUnary, ops, 2);
 }
 
 OExpr * ODqCompParserExpr::ParseExprUnary()
@@ -1513,7 +1527,7 @@ OExpr * ODqCompParserExpr::ParseExprUnary()
   scf->SkipWhite();
 
   // address-of operator: consume a full postfix-capable lvalue operand
-  if (scf->CheckSymbol("&"))
+  if (scf->CheckSymbol("%"))
   {
     size_t suppressed_start = suppressed_left_expr_diags.size();
     bool saved_suppress = suppress_access_read_check;
@@ -1532,7 +1546,7 @@ OExpr * ODqCompParserExpr::ParseExprUnary()
     return new ONegExpr(val);
   }
 
-  if (scf->CheckSymbol("NOT"))
+  if (scf->CheckSymbol("~"))
   {
     OExpr * val = ParseExprUnary();
     if (!val) return nullptr;
@@ -4973,7 +4987,9 @@ OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_ne
          or scf->CheckSymbol("*=", false)
          or scf->CheckSymbol("/=", false)
          or scf->CheckSymbol("<<=", false)
-         or scf->CheckSymbol(">>=", false)  )
+         or scf->CheckSymbol(">>=", false)
+         or scf->CheckSymbol("&=", false)
+         or scf->CheckSymbol("|=", false)  )
     {
       break;
     }
@@ -4982,7 +4998,9 @@ OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_ne
     bool blocked_assignop = false;
     for (int i = 0; i < nops; ++i)
     {
-      if (scf->CheckSymbol(ops[i].sym))
+      bool is_word = ((*ops[i].sym >= 'A') && (*ops[i].sym <= 'Z'))
+                  || ((*ops[i].sym >= 'a') && (*ops[i].sym <= 'z'));
+      if (is_word ? scf->CheckKeyword(ops[i].sym) : scf->CheckSymbol(ops[i].sym))
       {
         op = ops[i].op;
         break;

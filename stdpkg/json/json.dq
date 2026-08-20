@@ -636,17 +636,17 @@ function OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
     if codepoint <= uint32(0x7F):
         rstr.Append(char(int(codepoint)))
     elif codepoint <= uint32(0x7FF):
-        rstr.Append(char(int(uint32(0xC0) OR (codepoint >> 6))))
-        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0xC0) | (codepoint >> 6))))
+        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
     elif codepoint <= uint32(0xFFFF):
-        rstr.Append(char(int(uint32(0xE0) OR (codepoint >> 12))))
-        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0xE0) | (codepoint >> 12))))
+        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 6) & uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
     else:
-        rstr.Append(char(int(uint32(0xF0) OR (codepoint >> 18))))
-        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 12) AND uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) OR ((codepoint >> 6) AND uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) OR (codepoint AND uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0xF0) | (codepoint >> 18))))
+        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 12) & uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 6) & uint32(0x3F)))))
+        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
     endif
 endfunc
 

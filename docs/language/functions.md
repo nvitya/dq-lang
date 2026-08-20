@@ -92,14 +92,14 @@ function MakeValue(value : refout int):
 endfunc
 
 function MaybeSet(value : refnull int):
-    if &value == null:
+    if %value == null:
         return
     endif
     value = 44
 endfunc
 ```
 
-`refnull` accepts `null` as an argument. Inside the function, `&param == null`
+`refnull` accepts `null` as an argument. Inside the function, `%param == null`
 tests whether a real storage location was supplied.
 
 ## Default Arguments
@@ -177,7 +177,7 @@ This conversion is never implicit and is not available for object method
 reference types declared with `of object`.
 
 ```dq
-if cb != null:
+if cb <> null:
     cb(1)
 endif
 ```

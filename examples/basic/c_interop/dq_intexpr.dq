@@ -45,10 +45,10 @@ function dq_testfunc2(a : int, b : int) -> int
 }
 
 function dq_ilogiops(a : int, b : int) -> int:
-    if a AND 1 << 5 != 0:
-        result = b OR a
+    if a & 1 << 5 <> 0:
+        result = b | a
     else:
-        result = NOT b XOR 1
+        result = ~ b xor 1
     endif
 endfunc
 

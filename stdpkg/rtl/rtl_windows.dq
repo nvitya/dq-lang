@@ -95,10 +95,10 @@ function DqWinFaultHandler(exception_info : pointer) -> int32:
     endif
 
     dq_win_fault_handling = 1
-    dq_win_fault_backtrace_count = DqCaptureBacktrace(&dq_win_fault_backtrace, DQ_WIN_FAULT_BACKTRACE_MAX)
+    dq_win_fault_backtrace_count = DqCaptureBacktrace(%dq_win_fault_backtrace, DQ_WIN_FAULT_BACKTRACE_MAX)
     try:
         DqExcRaiseWithBacktrace(new ESegFault("Segmentation fault"), true,
-                                            &dq_win_fault_backtrace, dq_win_fault_backtrace_count)
+                                            %dq_win_fault_backtrace, dq_win_fault_backtrace_count)
     except Exception as e:
         PrintException(e)
     endtry

@@ -10,7 +10,7 @@ object OBase:
     endfunc
 
     function *Destroy():
-        @.printf("%s destroy\n", &name[0])
+        @.printf("%s destroy\n", %name[0])
     endfunc
 
     function Count() [[virtual]]:
@@ -18,7 +18,7 @@ object OBase:
     endfunc
 
     function Print():
-        @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2)
+        @.printf('%s: cnt1=%d, cnt2=%d\n', %name[0], cnt1, cnt2)
     endfunc
 endobj
 

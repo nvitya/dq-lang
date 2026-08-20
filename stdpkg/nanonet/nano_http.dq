@@ -182,19 +182,19 @@ function StatFile(afname : strview, st : ref SStat) -> bool:
 
     var path : cstring(4095) = ''
     path.Set(afname)
-    return libc_stat(&path[0], &st) == 0
+    return libc_stat(%path[0], %st) == 0
 endfunc
 
 function HttpDateFromUnix(atime : int64) -> str:
     var tm : STm = {}
     var t : int64 = atime
-    if libc_gmtime_r(&t, &tm) == null:
+    if libc_gmtime_r(%t, %tm) == null:
         return ''
     endif
 
     var fmt : cstring(31) = '%a, %d %b %Y %H:%M:%S GMT'
     var buf : cstring(63) = ''
-    if libc_strftime(buf.pchar, buf.storage_size, fmt.pchar, &tm) == 0:
+    if libc_strftime(buf.pchar, buf.storage_size, fmt.pchar, %tm) == 0:
         return ''
     endif
 
@@ -224,7 +224,7 @@ function IsUrlPathSafe(auri : strview) -> bool:
         return false
     endif
 
-    if auri[0] != '/':
+    if auri[0] <> '/':
         return false
     endif
 
@@ -421,7 +421,7 @@ function OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
         inbuf.SetLength(inbuf.length * 2)
     endif
 
-    var r : int = sock.Recv(&inbuf[infill], inbuf.length - infill)
+    var r : int = sock.Recv(%inbuf[infill], inbuf.length - infill)
     if r > 0:
         infill += uint32(r)
         ProcessInData()
@@ -438,7 +438,7 @@ endfunc
 
 function OSConnectionHttp.ProcessInData():
     while true:
-        sp.Init(^char(&inbuf[0]), infill)
+        sp.Init(^char(%inbuf[0]), infill)
         if not sp.SearchPattern('\r\n\r\n'):
             return
         endif
@@ -446,7 +446,7 @@ function OSConnectionHttp.ProcessInData():
         header_length = sp.readp - sp.bufstart
         var fullmsglen : uint32 = uint32(header_length + 4)
 
-        sp.Init(^char(&inbuf[0]), header_length)
+        sp.Init(^char(%inbuf[0]), header_length)
         if not ParseRequestHeader():
             LogError('invalid request header detected. closing socket.')
             self.Close()
@@ -468,7 +468,7 @@ function OSConnectionHttp.ProcessInData():
         AddHttpOutput()
 
         if infill > fullmsglen:
-            @sys.MemCopy(&inbuf[0], &inbuf[fullmsglen], infill - fullmsglen)
+            @sys.MemCopy(%inbuf[0], %inbuf[fullmsglen], infill - fullmsglen)
             infill -= fullmsglen
         else:
             infill = 0
@@ -638,7 +638,7 @@ function OSConnectionHttp.ParseGetString():
             v = ''
         endif
 
-        if k != '':
+        if k <> '':
             qsvars[k] = v
         endif
 
@@ -650,7 +650,7 @@ function OSConnectionHttp.ParseGetString():
 endfunc
 
 function OSConnectionHttp.CloseFileFd():
-    if file_obj != null:
+    if file_obj <> null:
         delete file_obj
         file_obj = null
     endif
@@ -660,7 +660,7 @@ endfunc
 function OSConnectionHttp.SendOutput():
     while true:
         if outbuf.length > 0:
-            var r : int = sock.Send(&outbuf[0], outbuf.length)
+            var r : int = sock.Send(%outbuf[0], outbuf.length)
             if r > 0:
                 if r < outbuf.length:
                     outbuf.Delete(0, r)
@@ -681,14 +681,14 @@ function OSConnectionHttp.SendOutput():
             endif
         endif
 
-        if file_obj != null and file_remaining > 0:
+        if file_obj <> null and file_remaining > 0:
             var rlen : int64 = file_remaining
             if rlen > 65536:
                 rlen = 65536
             endif
 
             outbuf.SetLength(rlen, char(0))
-            var r : int64 = file_obj.Read(&outbuf[0], rlen)
+            var r : int64 = file_obj.Read(%outbuf[0], rlen)
             if r > 0:
                 file_remaining -= r
                 if r < outbuf.length:
@@ -717,7 +717,7 @@ endfunc
 
 function OSConnectionHttp.PrepareHeaders() [[virtual]]:
     var hsvr : ONanoHttpServer = ONanoHttpServer(server)
-    if hsvr.server_id != '':
+    if hsvr.server_id <> '':
         response_headers['Server'] = hsvr.server_id
     endif
 
@@ -750,7 +750,7 @@ function OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
     endif
 
     var file_rfcdate : str = FileHttpDate(fpath)
-    if file_rfcdate != '':
+    if file_rfcdate <> '':
         response_headers['Last-Modified'] = file_rfcdate
     endif
     var hsvr : ONanoHttpServer = ONanoHttpServer(server)
@@ -758,7 +758,7 @@ function OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
     full_content_length = flen
 
     var modsince_rfcdate : str = ucheaders.KeyDataDef('IF-MODIFIED-SINCE', '')
-    if file_rfcdate != '' and modsince_rfcdate == file_rfcdate:
+    if file_rfcdate <> '' and modsince_rfcdate == file_rfcdate:
         response_code = 304
         return true
     endif

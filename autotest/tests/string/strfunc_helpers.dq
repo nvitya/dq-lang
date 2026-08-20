@@ -7,7 +7,7 @@ function PrintBytes(label : ^char, text : strview):
     printf("%s = len:%li bytes:", label, text.length)
     var i : int = 0
     while i < text.length:
-        printf(" %li", int(uint32(Ord(text[i])) AND uint32(0xFF)))
+        printf(" %li", int(uint32(Ord(text[i])) & uint32(0xFF)))
         i += 1
     endwhile
     printf("\n")
@@ -95,7 +95,7 @@ function *Main() -> int:
 
     var with_zero : [*]char16 = [char16(65), char16(0), char16(66), char16(0)]
     PrintBytes("strf_utf16_internal_zero", StrfFromUtf16(with_zero[:])) //?check("strf_utf16_internal_zero", "len:3 bytes: 65 0 66")
-    PrintBytes("strf_utf16_ptr_exact", StrfFromUtf16Ptr(&with_zero[0], 3)) //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
+    PrintBytes("strf_utf16_ptr_exact", StrfFromUtf16Ptr(%with_zero[0], 3)) //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
 
     var invalid : str = ''
     invalid.Append(char(0xC0))

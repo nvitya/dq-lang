@@ -51,6 +51,6 @@ function *Main() -> int:
     var dynamic_amount : int = 2
     Immediate(40, dynamic_amount) //?error(AsmImmediateConst)
     OverloadedImmediate(40, dynamic_amount) //?error(AsmImmediateConst)
-    &Immediate //?error(AsmFuncRef)
+    %Immediate //?error(AsmFuncRef)
     return 0
 endfunc

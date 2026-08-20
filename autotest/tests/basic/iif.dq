@@ -43,8 +43,8 @@ endfunc
 
 function dq_iif_ptr(flag : bool) -> int:
     var x : int = 33
-    var p : ^int = iif(flag, &x, null)
-    if p != null:
+    var p : ^int = iif(flag, %x, null)
+    if p <> null:
         result = p^
     else:
         result = 0
@@ -101,8 +101,8 @@ function *Main() -> int:
     r = dq_iif_ptr(false)
     printf("dq_iif_ptr(false) = %li\n", r)  //?check('dq_iif_ptr(false)', 0)
 
-    r = dq_iif_guarded(&x)
-    printf("dq_iif_guarded(&x) = %li\n", r)  //?check('dq_iif_guarded(&x)', 77)
+    r = dq_iif_guarded(%x)
+    printf("dq_iif_guarded(%%x) = %li\n", r)  //?check('dq_iif_guarded(%x)', 77)
 
     r = dq_iif_guarded(null)
     printf("dq_iif_guarded(null) = %li\n", r)  //?check('dq_iif_guarded(null)', 0)
@@ -117,9 +117,9 @@ function *Main() -> int:
         printf("g_obj is null!\n")
     endif
 
-    printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0])) //?check('g_obj.name', 'obj is null!')
+    printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0])) //?check('g_obj.name', 'obj is null!')
     g_obj = new OTest()
-    printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", &g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
+    printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
 
     return 0
 endfunc

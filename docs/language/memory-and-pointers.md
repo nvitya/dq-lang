@@ -20,17 +20,17 @@ var p : ^int = null
 dereferencing.
 
 ```dq
-var raw : pointer = &value
+var raw : pointer = %value
 var p : ^int = ^int(raw)
 ```
 
 ## Address and Dereference
 
-`&` takes the address of an addressable value.
+`%` takes the address of an addressable value.
 
 ```dq
 var value : int = 10
-var p : ^int = &value
+var p : ^int = %value
 ```
 
 `^` dereferences a typed pointer.

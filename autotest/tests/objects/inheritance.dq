@@ -10,7 +10,7 @@ public
     function *Create(aname : ^char, a : int):
         value = a
         name = aname
-        @.printf("%s.base.create = %d\n", &name[0], value)
+        @.printf("%s.base.create = %d\n", %name[0], value)
     endfunc
 
     function Get() -> int [[virtual]]:
@@ -34,7 +34,7 @@ public
     endfunc
 
     function *Destroy():
-        @.printf("%s.base.destroy = %d\n", &name[0], value)
+        @.printf("%s.base.destroy = %d\n", %name[0], value)
     endfunc
 endobj
 
@@ -45,7 +45,7 @@ public
     function *Create(aname : ^char, a : int):
         inherited Create(aname, a + 1)
         extra = a + 2
-        @.printf("%s.child.create = %d %d\n", &name[0], value, extra)
+        @.printf("%s.child.create = %d %d\n", %name[0], value, extra)
     endfunc
 
     function Get() -> int [[override]]:
@@ -66,7 +66,7 @@ public
     endfunc
 
     function *Destroy():
-        @.printf("%s.child.destroy = %d %d\n", &name[0], value, extra)
+        @.printf("%s.child.destroy = %d %d\n", %name[0], value, extra)
         inherited Destroy()
     endfunc
 endobj

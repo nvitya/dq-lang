@@ -50,12 +50,12 @@ string GetBinopSymbol(EBinOp op)
   if (BINOP_SUB   == op)  return "-";
   if (BINOP_MUL   == op)  return "*";
   if (BINOP_DIV   == op)  return "/";
-  if (BINOP_IDIV  == op)  return "IDIV";
-  if (BINOP_IMOD  == op)  return "IMOD";
+  if (BINOP_IDIV  == op)  return "div";
+  if (BINOP_IMOD  == op)  return "mod";
 
-  if (BINOP_IAND  == op)  return "AND";
-  if (BINOP_IOR   == op)  return "OR";
-  if (BINOP_IXOR  == op)  return "XOR";
+  if (BINOP_IAND  == op)  return "&";
+  if (BINOP_IOR   == op)  return "|";
+  if (BINOP_IXOR  == op)  return "xor";
   if (BINOP_ISHL  == op)  return "<<";
   if (BINOP_ISHR  == op)  return ">>";
 

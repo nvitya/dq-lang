@@ -42,7 +42,7 @@ Examples:
 ```dq
 var a : ? = ^TIM_TypeDef(address) // allowed: ^TIM_TypeDef
 var b : ? = GetRegisters()        // allowed if the return type is ^TIM_TypeDef
-var c : ? = &value                // allowed: pointer to the type of value
+var c : ? = %value                // allowed: pointer to the type of value
 var d : ? = existing_struct       // allowed: the exact structure type
 var e : ? = new OChild()          // allowed: OChild
 

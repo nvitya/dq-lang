@@ -13,7 +13,7 @@ endobj
 type FRawAddress = function()
 
 var cast_address_anchor : int = 0
-const cast_address_table : [1] FRawAddress = [FRawAddress(&cast_address_anchor)]
+const cast_address_table : [1] FRawAddress = [FRawAddress(%cast_address_anchor)]
 const cast_address_pointer : ^byte = ^byte(0x7F001000)
 
 function dq_cast_bool_to_int() -> int:
@@ -24,14 +24,14 @@ endfunc
 
 function dq_cast_pointer_roundtrip() -> int:
     var value : uint32 = 0
-    var pbyte : ^byte = ^byte(&value)
+    var pbyte : ^byte = ^byte(%value)
     ^uint32(pbyte)^ = 0x12345678
     result = int(value)
 endfunc
 
 function dq_cast_opaque_pointer() -> int:
     var value : uint32 = 55
-    var p : pointer = &value
+    var p : pointer = %value
     var pv : ^uint32 = ^uint32(p)
     result = int(pv^)
 endfunc
@@ -39,8 +39,8 @@ endfunc
 function dq_cast_multi_source_pointer() -> int:
     var iv : int = 7
     var bv : bool = true
-    var p : pointer = &iv
-    p = &bv
+    var p : pointer = %iv
+    p = %bv
     result = int(^bool(p)^)
 endfunc
 
@@ -63,9 +63,9 @@ endfunc
 
 function dq_cast_pointer_to_func_ref() -> int:
     var value : int = 0
-    var raw : pointer = &value
+    var raw : pointer = %value
     var callback : FRawAddress = FRawAddress(raw)
-    result = int((callback != null) and (cast_address_table[0] != null))
+    result = int((callback <> null) and (cast_address_table[0] <> null))
 endfunc
 
 function *Main() -> int:

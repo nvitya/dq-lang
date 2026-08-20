@@ -7,7 +7,7 @@ type FObjInt = function(v : int) of object
 type FPlainText = function(msg : cstring)
 
 function plain(msg : cstring):
-    printf("plain = %s\n", &msg[0])
+    printf("plain = %s\n", %msg[0])
 endfunc
 
 object OCallback:
@@ -18,15 +18,15 @@ object OCallback:
     endfunc
 
     function Print(msg : cstring):
-        @.printf("%s = %s\n", &name, &msg[0])
+        @.printf("%s = %s\n", %name, %msg[0])
     endfunc
 
     function Pick(msg : cstring) [[overload]]:
-        @.printf("%s.picked = %s\n", &name, &msg[0])
+        @.printf("%s.picked = %s\n", %name, %msg[0])
     endfunc
 
     function Pick(v : int) [[overload]]:
-        @.printf("%s.picked = %d\n", &name, v)
+        @.printf("%s.picked = %d\n", %name, v)
     endfunc
 endobj
 
@@ -42,7 +42,7 @@ function *Main() -> int:
     endif
 
     cb = first.Print
-    if cb != null:
+    if cb <> null:
         cb("a")  //?check('first', 'a')
     endif
 

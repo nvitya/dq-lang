@@ -491,6 +491,24 @@ bool OScFeederBase::CheckSymbol(const char * checkstring, bool aconsume)
   return true;
 }
 
+bool OScFeederBase::CheckKeyword(const char * checkstring, bool aconsume)
+{
+  auto is_identifier_char = [](char c)
+  {
+    return ((c >= 'A') and (c <= 'Z')) or ((c >= 'a') and (c <= 'z'))
+        or ((c >= '0') and (c <= '9')) or ('_' == c);
+  };
+
+  const size_t len = strlen(checkstring);
+  if ((curp > curfile->pstart && is_identifier_char(curp[-1]))
+      || (size_t(bufend - curp) > len && is_identifier_char(curp[len])))
+  {
+    return false;
+  }
+
+  return CheckSymbol(checkstring, aconsume);
+}
+
 bool OScFeederBase::ReadIdentifier(string & rvalue, bool aconsume)
 {
   if (prevpos.pos != curp)

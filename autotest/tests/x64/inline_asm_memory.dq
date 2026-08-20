@@ -47,21 +47,21 @@ endfunc
 
 function *Main() -> int:
     var source : int32 = 123456789
-    printf("inline_asm.memory.load = %li\n", int(Load32(&source)))
+    printf("inline_asm.memory.load = %li\n", int(Load32(%source)))
     //?check("inline_asm.memory.load", 123456789)
 
     var destination : int32 = 0
-    Store32(&destination, -1234)
+    Store32(%destination, -1234)
     printf("inline_asm.memory.store = %li\n", int(destination))
     //?check("inline_asm.memory.store", -1234)
 
-    StoreValueFirst(31415, &destination)
+    StoreValueFirst(31415, %destination)
     printf("inline_asm.memory.canonical = %li\n", int(destination))
     //?check("inline_asm.memory.canonical", 31415)
 
     var accumulator : int32 = 37
-    AddTo32(&accumulator, 4)
-    Inc32(&accumulator)
+    AddTo32(%accumulator, 4)
+    Inc32(%accumulator)
     printf("inline_asm.memory.readwrite = %li\n", int(accumulator))
     //?check("inline_asm.memory.readwrite", 42)
 

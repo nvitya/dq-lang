@@ -63,7 +63,7 @@ function sum_ints2(a : int, b : int) -> int
 }
 
 function mask_bit(a : int, bitnum : int) -> int:
-    result = a AND 1 << bitnum
+    result = a & 1 << bitnum
 endfunc
 function *Main() -> int:
     var i : int
@@ -81,15 +81,15 @@ function *Main() -> int:
     i = iv2 + iv3 + iv4 - iv1 - iv2
     printf("2 + 3 + 4 - 1 - 2 = %d\n", i)        //?check('2 + 3 + 4 - 1 - 2', 6)
 
-    i = 4 + 2 * 4 IDIV 2 - 1
-    printf("4 + 2 * 4 IDIV 2 - 1 = %d\n", i)        //?check('4 + 2 * 4 IDIV 2 - 1', 7)
+    i = 4 + 2 * 4 div 2 - 1
+    printf("4 + 2 * 4 div 2 - 1 = %d\n", i)        //?check('4 + 2 * 4 div 2 - 1', 7)
 
-    i = 1234 IMOD 10
-    printf("1234 IMOD 10 = %d\n", i)        //?check('1234 IMOD 10', 4)
+    i = 1234 mod 10
+    printf("1234 mod 10 = %d\n", i)        //?check('1234 mod 10', 4)
 
     // famous example, in C: 10 * 3 / 2 != 3 / 2 * 10
-    printf("10 * 3 IDIV 2 = %d\n", 10 * 3 IDIV 2)  //?check('10 * 3 IDIV 2', 10)
-    printf("3 IDIV 2 * 10 = %d\n", 3 IDIV 2 * 10)  //?check('3 IDIV 2 * 10', 10)
+    printf("10 * 3 div 2 = %d\n", 10 * 3 div 2)  //?check('10 * 3 div 2', 10)
+    printf("3 div 2 * 10 = %d\n", 3 div 2 * 10)  //?check('3 div 2 * 10', 10)
 
     printf("compare_ints(1, 1)   = %d\n", compare_ints(1, 1)   ) //?check('compare_ints(1, 1)'  , 0)
     printf("compare_ints(1, 0)   = %d\n", compare_ints(1, 0)   ) //?check('compare_ints(1, 0)'  , 1)
@@ -112,16 +112,16 @@ function *Main() -> int:
     printf("mask_bit(0x1234, 9) = %d\n", mask_bit(0x1234, 9))  //?check('mask_bit(0x1234, 9)', 512)
 
     // bitwise operation
-    i = (1 << 1) OR (1 << 0) AND 0x0001
+    i = (1 << 1) | (1 << 0) & 0x0001
     printf("bitwise1 = %d\n", i)              //?check(bitwise1, 3)
-    i = ((1 << 1) OR (1 << 0)) AND 0x0001
+    i = ((1 << 1) | (1 << 0)) & 0x0001
     printf("bitwise2 = %d\n", i)              //?check(bitwise2, 1)
 
-    i = 0x3333 AND  NOT 0xF
-    printf("0x3333 AND  NOT 0xF = 0x%04X\n", i)              //?check('0x3333 AND  NOT 0xF', 0x3330)
+    i = 0x3333 &  ~ 0xF
+    printf("0x3333 & ~0xF = 0x%04X\n", i)              //?check('0x3333 & ~0xF', 0x3330)
 
-    i = 0xFF00 XOR 0x0FF0
-    printf("0xFF00 XOR 0x0FF00 = 0x%08X\n", i)  //?check('0xFF00 XOR 0x0FF00', 0x0000F0F0)
+    i = 0xFF00 xor 0x0FF0
+    printf("0xFF00 xor 0x0FF00 = 0x%08X\n", i)  //?check('0xFF00 xor 0x0FF00', 0x0000F0F0)
 
     var ui8 : uint8
     var si8 : int8 = 127

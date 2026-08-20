@@ -177,7 +177,7 @@ var win_dwarf : SDqWinDwarfInfo = {}
 function DqWinBacktraceProcess() -> pointer:
     if win_backtrace_process == null:
         win_backtrace_process = win_GetCurrentProcess()
-        win_SymSetOptions(SYMOPT_UNDNAME OR SYMOPT_DEFERRED_LOADS OR SYMOPT_LOAD_LINES)
+        win_SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES)
         win_backtrace_ready = (win_SymInitialize(win_backtrace_process, null, 1) <> 0)
     endif
     return win_backtrace_process
@@ -201,8 +201,8 @@ function DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
     while p < pend:
         var b : uint8 = p^
         p += 1
-        result =OR= (uint64(b AND 0x7F) << shift)
-        if b AND 0x80 == 0:
+        result |= (uint64(b & 0x7F) << shift)
+        if b & 0x80 == 0:
             return
         endif
         shift += 7
@@ -216,11 +216,11 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
     while p < pend:
         b = p^
         p += 1
-        result =OR= (int(b AND 0x7F) << shift)
+        result |= (int(b & 0x7F) << shift)
         shift += 7
-        if b AND 0x80 == 0:
-            if shift < 64  and  b AND 0x40 <> 0:
-                result =OR= (-(int(1) << shift))
+        if b & 0x80 == 0:
+            if shift < 64  and  b & 0x40 <> 0:
+                result |= (-(int(1) << shift))
             endif
             return
         endif
@@ -375,7 +375,7 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
                 // state flags not needed for address-to-line lookup
             elif op == DW_LNS_CONST_ADD_PC:
                 var adjusted : uint8 = uint8(255) - opcode_base
-                address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
+                address += uint64(adjusted div line_range) * uint64(min_inst_len)
             elif op == DW_LNS_FIXED_ADVANCE_PC:
                 if p + 2 <= unit_end:
                     address += uint64(DqReadU16(p))
@@ -392,8 +392,8 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
             endif
         else:
             var adjusted : uint8 = op - opcode_base
-            address += uint64(adjusted IDIV line_range) * uint64(min_inst_len)
-            line += line_base + int(adjusted IMOD line_range)
+            address += uint64(adjusted div line_range) * uint64(min_inst_len)
+            line += line_base + int(adjusted mod line_range)
             if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
                             matched, last_file, last_line, out_file, out_line):
                 return true
@@ -411,11 +411,11 @@ function DqWinDwarfLoad() -> bool:
     win_dwarf.loaded = true
 
     var path : [DQ_BT_EXE_PATH_MAX]char
-    if win_GetModuleFileName(null, &path[0], uint32(DQ_BT_EXE_PATH_MAX)) == 0:
+    if win_GetModuleFileName(null, %path[0], uint32(DQ_BT_EXE_PATH_MAX)) == 0:
         return false
     endif
 
-    var fp : pointer = libc_fopen(&path[0], "rb")
+    var fp : pointer = libc_fopen(%path[0], "rb")
     if fp == null:
         return false
     endif
@@ -572,27 +572,27 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
     symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
     symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
 
-    if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), &displacement64, &symbol) <> 0:
-        if hide_internal and DqBacktraceNameIsInternal(&symbol.Name[0]):
+    if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), %displacement64, %symbol) <> 0:
+        if hide_internal and DqBacktraceNameIsInternal(%symbol.Name[0]):
             return false
         endif
 
-        if stop_printing <> null and DqIsMainFunction(&symbol.Name[0]):
+        if stop_printing <> null and DqIsMainFunction(%symbol.Name[0]):
             stop_printing^ = true
         endif
 
         var line : SDqWinLineInfo = {}
         var line_displacement : uint32 = 0
         line.SizeOfStruct = DQ_BT_LINE_INFO_SIZE
-        if win_SymGetLineFromAddr64(process, uint64(pc), &line_displacement, &line) <> 0 and line.FileName <> null:
-            printf("  #%d %s @ %s:%lu\n", index, &symbol.Name[0], line.FileName, uint(line.LineNumber))
+        if win_SymGetLineFromAddr64(process, uint64(pc), %line_displacement, %line) <> 0 and line.FileName <> null:
+            printf("  #%d %s @ %s:%lu\n", index, %symbol.Name[0], line.FileName, uint(line.LineNumber))
         else:
             var dwarf_file : ^char = null
             var dwarf_line : uint32 = 0
             if DqWinDwarfLineForPc(pc, dwarf_file, dwarf_line):
-                printf("  #%d %s @ ./%s:%lu\n", index, &symbol.Name[0], dwarf_file, uint(dwarf_line))
+                printf("  #%d %s @ ./%s:%lu\n", index, %symbol.Name[0], dwarf_file, uint(dwarf_line))
             else:
-                printf("  #%d %s + 0x%llx\n", index, &symbol.Name[0], displacement64)
+                printf("  #%d %s + 0x%llx\n", index, %symbol.Name[0], displacement64)
             endif
         endif
         return true

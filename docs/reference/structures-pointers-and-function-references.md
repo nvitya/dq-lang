@@ -70,12 +70,12 @@ constants imported from another module.
 
 ## Typed Pointers
 
-`^T` points to storage containing `T`. `&value` obtains an address and `pointer^`
+`^T` points to storage containing `T`. `%value` obtains an address and `pointer^`
 dereferences a typed pointer.
 
 ```dq
 var value : int = 10
-var p : ^int = &value
+var p : ^int = %value
 p^ = 11
 ```
 
@@ -89,7 +89,7 @@ A pointer to a structure is implicitly dereferenced for member access.
 
 ```dq
 var point : SPoint = {}
-var pp : ^SPoint = &point
+var pp : ^SPoint = %point
 pp.x = 10       // equivalent target to pp^.x
 ```
 

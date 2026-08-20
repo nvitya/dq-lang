@@ -25,7 +25,7 @@ function OTextSinkStdOut.*Create():
 endfunc
 
 function OTextSinkStdOut.Write(atext : strview) [[override]]:
-    @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
+    @.libc_fwrite(%atext[0], 1, atext.length, pstdout)
 endfunc
 
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:

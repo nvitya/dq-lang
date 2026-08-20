@@ -20,7 +20,7 @@ object OBase {
     }
 
     function *Destroy() {
-        @.printf("%s destroy\n", &name[0])
+        @.printf("%s destroy\n", %name[0])
     }
 
     function Count() [[virtual]] {
@@ -28,7 +28,7 @@ object OBase {
     }
 
     function Print() {
-        @.printf('%s: cnt1=%d, cnt2=%d\n', &name[0], cnt1, cnt2)
+        @.printf('%s: cnt1=%d, cnt2=%d\n', %name[0], cnt1, cnt2)
     }
 }
 
@@ -52,15 +52,15 @@ function ObjTest() {
     obase.Print()
     ochild.Print()
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]))
+    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
 
     delete ochild
 }
 
 function cstr_add(dst : cstring, src : cstring) {
-    var ps     : ^char = &src[0]
+    var ps     : ^char = %src[0]
     var psend  : ^char = ps[SizeOf(src)]  // [] does not dereference
-    var pd     : ^char = &dst[0]
+    var pd     : ^char = %dst[0]
     var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
     pd += Len(dst)
     var pdstart : ^char = pd
@@ -79,7 +79,7 @@ function cstr_add(dst : cstring, src : cstring) {
 function putchar(c : char) -> int  [[external]] // from libc
 
 function WriteStr(s : cstring) {
-    var pc : ^char = &s[0]
+    var pc : ^char = %s[0]
     while pc^ <> char(0) {
         putchar(pc^)
         pc += 1
@@ -102,7 +102,7 @@ function *Main() -> int {
     printf("@langdemo_mod.CONST1 = %d\n", CONST1)
     printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2)
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", &ochild.name[0]))
+    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
 
     ObjTest()
 

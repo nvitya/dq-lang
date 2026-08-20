@@ -18,14 +18,14 @@ function DynStrRuntimeError(emsg : ^char):
 endfunc
 
 function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
-    if ati.info AND DQTIF_CHARLEN_VALID <> uint32(0):
+    if ati.info & DQTIF_CHARLEN_VALID <> uint32(0):
         return ati.charlen
     endif
 
     // only possible for CStrings
     result = CStrLen(ati)
     ati.charlen = result
-    ati.info = ati.info OR DQTIF_CHARLEN_VALID
+    ati.info = ati.info | DQTIF_CHARLEN_VALID
 endfunc
 
 function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
@@ -163,7 +163,7 @@ endfunc
 function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
     rti.dataptr = dataptr
     rti.charlen = charlen
-    rti.info = (charlen AND DQTI_MAXCHLEN_MASK) OR DQTIF_CHARLEN_VALID OR DQTIF_READONLY
+    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY
 endfunc
 
 function DynStrCheckIndex(index : int, length : uint32):
@@ -187,7 +187,7 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint3
         MemCopy(adst.dataptr, srcptr, uint(result))
     endif
     adst.charlen = result
-    adst.info = adst.info OR DQTIF_CHARLEN_VALID
+    adst.info = adst.info | DQTIF_CHARLEN_VALID
     if adst.dataptr <> null:
         adst.dataptr[result]^ = char(0)
     endif

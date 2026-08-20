@@ -283,7 +283,7 @@ DEF_DQ_ERR(DQERR_BOOL_EXPR_EXPECTED,               "BoolExprExpected",       "bo
 DEF_DQ_ERR(DQERR_FOR_STEP_POSITIVE,                "ForStepPositive",        "for loop step must be a positive integer for \"$1\"");
 DEF_DQ_ERR(DQERR_MULTIPLE_ELSE,                    "MultipleElse",           "Multiple else branches detected");
 
-DEF_DQ_ERR(DQERR_EXPR_INVALID_ADDROF,              "ExprAddrofInvalid",      "Invalid expression for the address of \"&\" operator");
+DEF_DQ_ERR(DQERR_EXPR_INVALID_ADDROF,              "ExprAddrofInvalid",      "Invalid expression for the address-of \"%\" operator");
 DEF_DQ_ERR(DQERR_EXPR_VS_NOT_ADDRESSABLE,          "ExprVsNotAddressable",   "\"$1\" is not a variable, cannot take its address");
 
 DEF_DQ_ERR(DQERR_CDIR_KW_MISSING,                  "CDirKwMissing",          "Compiler directive keyword is missing");

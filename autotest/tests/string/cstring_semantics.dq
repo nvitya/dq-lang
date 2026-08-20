@@ -153,7 +153,7 @@ function *Main() -> int:
     PrintText('cstring_strview_append', csdest) //?check('cstring_strview_append', '[15] "csdest:appendum"')
 
 //  var external_mut : cstring(8) = "abcdef";
-//  MutateThroughPointer(&external_mut[0]);
+//  MutateThroughPointer(%external_mut[0]);
 //  external_mut.Append("!");
 //  PrintText("cstring_external_rescan", external_mut); //-?check("cstring_external_rescan", '[3] "ZZ!"')
 

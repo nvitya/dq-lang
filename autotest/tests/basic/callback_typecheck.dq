@@ -25,7 +25,7 @@ function *Main() -> int:
 
     cb1 = add         //?error(FuncSigType)
     cb1 = 5           //?error(FuncSigType)
-    cb1 = &inc        //?error(ExprVsNotAddressable)
+    cb1 = %inc        //?error(ExprVsNotAddressable)
     r = use(add)      //?error(FuncSigType)
 
     cb2(1)            //?error(FuncArgsTooFew)

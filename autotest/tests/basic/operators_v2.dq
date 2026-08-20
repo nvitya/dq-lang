@@ -1,0 +1,39 @@
+// DQ Operators V2 runtime and precedence tests
+
+function printf(fmt : ^char, ...) -> int [[external]]
+
+function *Main() -> int:
+    var value : int = 10
+    var p : ^int = %value
+    p^ += 2
+    printf("address_deref = %d\n", value) //?check("address_deref", 12)
+
+    var bits : uint = (uint(0x33) & uint(0x0F)) | uint(0x40)
+    bits &= uint(0x4F)
+    bits |= uint(0x80)
+    bits =xor= uint(0x03)
+    printf("bitwise = 0x%X\n", bits) //?check("bitwise", 0xC0)
+    printf("bitwise_not = 0x%X\n", uint8(~uint8(0x0F))) //?check("bitwise_not", 0xF0)
+
+    var quotient : int = 20
+    quotient =div= 3
+    quotient =mod= 4
+    printf("word_compound = %d\n", quotient) //?check("word_compound", 2)
+    printf("word_binary = %d\n", (20 div 3) * 10 + (20 mod 3)) //?check("word_binary", 62)
+
+    var narrow_source : uint16 = 0x1234
+    var narrow_as : uint8 = narrow_source as uint8
+    var narrow_call : uint8 = uint8(narrow_source)
+    printf("as_cast = %d\n", int(narrow_as == narrow_call)) //?check("as_cast", 1)
+    printf("parenthesized_as = %d\n", int((narrow_source as uint8) + uint8(1))) //?check("parenthesized_as", 53)
+
+    // Preserve the pre-V2 precedence: shifts, &, |/xor, division, *, +.
+    var precedence : int = 4 + 2 * 4 div 2 - 1
+    var bit_precedence : int = (1 << 1) | (1 << 0) & 1
+    printf("arithmetic_precedence = %d\n", precedence) //?check("arithmetic_precedence", 7)
+    printf("bit_precedence = %d\n", bit_precedence) //?check("bit_precedence", 3)
+
+    var division_value : int = 5
+    printf("word_boundary = %d\n", division_value) //?check("word_boundary", 5)
+    return 0
+endfunc

@@ -60,6 +60,7 @@ nav:
   - Compiler:
       - Getting the DQ Compiler: compiler/getting-dq-comp.md
       - Using the DQ Compiler: compiler/using-dq-comp.md
+      - Migrating to Operators V2: compiler/migrating-operators-v2.md
       - DQ Project Files: compiler/project-file.md
       - Cross-Compiling and Packaging: compiler/cross-compiling.md
       - Module Artifacts: compiler/dqm-format.md

@@ -80,7 +80,7 @@ endfunc
 
 
 function Exception.CaptureBacktrace():
-    backtrace_count = @.DqCaptureBacktrace(&backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
+    backtrace_count = @.DqCaptureBacktrace(%backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
 endfunc
 
 function Exception.PrintMessage():
@@ -93,7 +93,7 @@ function Exception.PrintMessage():
 endfunc
 
 function Exception.PrintBacktrace():
-    @backtrace.DqPrintBacktrace(&backtrace[0], backtrace_count)
+    @backtrace.DqPrintBacktrace(%backtrace[0], backtrace_count)
 endfunc
 
 //-------------------------------------------------------------------------------------------------

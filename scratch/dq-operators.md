@@ -1,12 +1,16 @@
-# Operators in C
+## Title: Expressions with Word Operators: Which one would you coose?
+
+I was thinking of the ideal expression syntax for the programming language DQ. I started with the (dominating) C syntax.
+
+## Operators in C
 
 **In C the following operators have shared meanings:**
 
- * `&`: bitwise "and" operation / address of
- * `*`: multiplication / pointer dereference
- * `/`: truncated integer division / floating point division
+ * `&`: bitwise "and" operation **OR** address of
+ * `*`: multiplication **OR** pointer dereference
+ * `/`: truncated integer division **OR** floating point division
 
-**Further operators in C:**
+***Further operators in C:***
 
  * `%`: integer division reminder
  * `&&` or `and`: logical "and"
@@ -14,159 +18,183 @@
  * `!` or `not`: logical "not"
  * `~`: bitwise "not"
  * `^`: bitwise "xor"
+ * `?`: ternary operator
 
-# Operators in DQ
+## Operators in DQ
 
-**In DQ every different operation has its own symbol:**
+I think **for the good source code readability and clarity every different operation should have a different symbol.** Therefore the shared symbols from C are not taken over. These operators are already fixed in DQ:
 
- * `&`: address of (widespread standard)
- * `*`: multiplication only
+ * `&`: address-of operator (widespread standard)
  * `^`: pointer dereference (standard in other languages)
+ * `*`: multiplication only
  * `/`: floating point division only (standard in other languages)
- * `IDIV`: truncated integer division
- * `IMOD`: integer division reminder
- * `and`: logical "and" (widespread standard)
- * `AND`: bitwise "and"
  * `or`: logical "or" (widespread standard)
- * `OR`: bitwise "or"
+ * `and`: logical "and" (widespread standard)
  * `not`: logical "not" (widespread standard)
+
+These symbols are already fixed for special purposes:
+ * `#`: compiler directives (`#ifdef` etc)
+ * `$`: context local specials (e.g. `myarray[0:$end-2]`)
+ * `?`: inference marker
+ * `@`: namespace designator (e.g. `@def.LINUX`)
+
+DQ cannot use the C standard `&`, `|`, `~`, `^` for the bitwise operations, because the `&` and `^` is used for other (fixed) purposes. But **we've run out of the good symbols.** The obvious choice, that other existing languages also use, is reserving some words for the remaining operations. In DQ these (all-capital) words are reserved currently as operators:
+
+ * `AND`: bitwise "and"
+ * `OR`: bitwise "or"
  * `NOT`: bitwise "not"
  * `XOR`: bitwise "xor"
+ * `IDIV`: truncated integer division
+ * `IMOD`: integer division reminder
 
-Further symbols in DQ:
- * `@`: namespace designator (e.g. `@def.LINUX`)
- * `$`: context local specials (e.g. `myarray[0:$end-2]`)
- * `#`: compiler directives
- * `?`: inference marker
-
-If you want this kind of distinguishing you run out of the good symbols quickly, 
-that's why many operators are words in DQ.
-
-For the modify-assign statements with a word operator in DQ a leading `=` is required: 
+For the modify-assign statements with a word operator a leading `=` is required, otherwise it looks awkward:
 ```
+regs.OSPEEDR OR= (1 << pinx2)  // invalid
 regs.OSPEEDR =OR= (1 << pinx2)
 ```
-Othewise it looks awkward:
+
+## DQ Operators V2
+
+ * `.`: structure/object member accesss
+ * `[` + `]`: array definition, array member access, pointer offset
+ * `#`: compiler directives (`#ifdef` etc)
+ * `$`: context local specials (e.g. `myarray[0:$end-2]`)
+ * `?`: inference marker
+ * `@`: namespace designator (e.g. `@def.LINUX`)
+
+Expression operators:
+
+ * `%`: address-of operator
+ * `^`: pointer dereference (standard in other languages)
+ * `*`: multiplication only
+ * `/`: floating point division only (standard in other languages)
+ * `and`: logical "and" (widespread standard)
+ * `or`: logical "or" (widespread standard)
+ * `not`: logical "not" (widespread standard)
+ * `is`: object type check
+ * `as`: casting
+
+ * `<<`: bit shift left
+ * `>>`: bit shift right
+ * `&`: bitwise "and"
+ * `|`: bitwise "or"
+ * `~`: bitwise "not"
+ * `xor`: bitwise "xor"
+ * `div`: truncated integer division (also used in other languages)
+ * `mod`: integer division reminder (also used in other languages)
+
+ Unused symbols:
+  `backtick`, `!`, `\`
+
+  Reserve backtick (`) for Haskell type infix operators
+
 ```
-regs.OSPEEDR OR= (1 << pinx2)
+^byte(%wordarr[2])^
+
+a =xor= 1
+
+a = a xor 1
+
 ```
 
-DQ cannot use the `^` for "xor" because it is used for the pointer-dereferencing, which is fixed.
+## Examples with All-Capital Operators
+```
+tmp = RCC.CFGR
+tmp =AND= NOT 3
+tmp =OR= RCC_CFGR_SW_HSI
+RCC.CFGR = tmp
+while (RCC.CFGR >> 2) AND 3 <> RCC_CFGR_SW_HSI:
+endwhile
 
-I was thinking to change some word operators:
+RCC.CR =AND= NOT RCC_CR_PLLON
+while RCC.CR AND RCC_CR_PLLRDY != 0:
+endwhile
 
- * `band`: bitwise "and"
- * `bor`: bitwise "or"
- * `bnot`: bitwise "not"
- * `bxor`: bitwise "xor"
- * `idiv` or `div`: truncated integer division
- * `imod` or `mod`: integer division remainder
+var pllm : uint = basespeed IDIV pll_input_freq
+var plln : uint = vcospeed  IDIV pll_input_freq
+var pllq : uint = vcospeed  IDIV 48000000
 
-Or maybe prefixing with some not used char:
+RCC.PLLCFGR = (0
+	OR (pllsrc << 22)
+	OR (pllm   <<  0)
+	OR (plln   <<  6)
+	OR (((pllp >> 1) - 1) << 16)
+	OR (pllq   << 24)
+)
+
+regs.MODER =AND= NOT (3 << pinx2)
+regs.MODER =OR=      (n << pinx2)
+
+if flags AND PINCFG_OPENDRAIN <> 0:
+	regs.OTYPER =OR= (1 << apinnum)
+else:
+	regs.OTYPER =AND= NOT (1 << apinnum)
+endif
+
+regs.PUPDR =AND= NOT (3 << pinx2)
+if flags AND PINCFG_PULLUP <> 0:
+	regs.PUPDR =OR= (1 << pinx2)
+elif flags AND PINCFG_PULLDOWN <> 0:
+	regs.PUPDR =OR= (2 << pinx2)
+endif
+
+```
+
+## Prefixed Word Operators
+
+I'm thinking to change the all-capital word operators with a `%` prefixed lowercase words:
 
  * `%and`: bitwise "and"
- * `%or`: bitwise "or"
+ * `%or`:  bitwise "or"
  * `%not`: bitwise "not"
  * `%xor`: bitwise "xor"
+ * `%div` or `%idiv`: truncated integer division
+ * `%mod` or `%idiv`: integer division remainder
 
- * `~and`: bitwise "and"
- * `~or`: bitwise "or"
- * `~not`: bitwise "not"
- * `~xor`: bitwise "xor"
-
- * `!and`: bitwise "and"
- * `!or`: bitwise "or"
- * `!not`: bitwise "not"
- * `!xor`: bitwise "xor"
-
- * `%div`: truncated integer division
- * `%mod`: integer division remainder
+The sample code would look like this way:
 
 ```
-a %div= 2
-bitmask %or= 2
+tmp = RCC.CFGR
+tmp %and= %not 3
+tmp %or= RCC_CFGR_SW_HSI
+RCC.CFGR = tmp
+while (RCC.CFGR >> 2) %and 3 <> RCC_CFGR_SW_HSI:
+endwhile
 
-x = 3 %div 2
+RCC.CR %and= %not RCC_CR_PLLON
+while RCC.CR %and RCC_CR_PLLRDY != 0:
+endwhile
+
+var pllm : uint = basespeed %div pll_input_freq
+var plln : uint = vcospeed  %div pll_input_freq
+var pllq : uint = vcospeed  %div 48000000
+
+RCC.PLLCFGR = (0
+	%or (pllsrc << 22)  // select PLL source
+	%or (pllm   <<  0)
+	%or (plln   <<  6)
+	%or (((pllp >> 1) - 1) << 16)
+	%or (pllq   << 24)
+)
+
+regs.MODER %and= %not (3 << pinx2)
+regs.MODER %or=       (n << pinx2)
+
+if flags %and PINCFG_OPENDRAIN <> 0:
+	regs.OTYPER %or= (1 << apinnum)
+else:
+	regs.OTYPER %and= %not (1 << apinnum)
+endif
+
+regs.PUPDR %and= %not (3 << pinx2)
+if flags %and PINCFG_PULLUP <> 0:
+	regs.PUPDR %or= (1 << pinx2)
+elif flags %and PINCFG_PULLDOWN <> 0:
+	regs.PUPDR %or= (2 << pinx2)
+endif
+
 ```
 
-```
-function PinSetup(aportnum : int, apinnum : int, flags : uint) -> bool:
-    var regs : ^GPIO_TypeDef = GetGpioRegs(aportnum)
-	if regs == null:
-		return false
-	endif
-
-	if apinnum < 0  or  apinnum > 15:
-		return false
-	endif
-
-	// 1. turn on port power
-	GpioPortEnable(aportnum)
-
-    var n : uint
-    var pinx2 : int = apinnum * 2
-
-    // set gpio initial state
-    if flags band PINCFG_GPIO_INIT_1 <> 0:
-      	regs.BSRR = (1 << apinnum)
-    else:
-        regs.BSRR = (0x10000 << apinnum)
-    endif
-
-    // set mode register
-	if flags band PINCFG_AF_MASK <> 0:
-		n = 2  // set alternate function mode
-	elif flags band PINCFG_ANALOGUE <> 0:
-		n = 3
-	elif flags band PINCFG_OUTPUT <> 0:
-		n = 1
-	else:
-	    n = 0
-	endif
-	regs.MODER =band= bnot (3 << pinx2)
-	regs.MODER =bor=       (n << pinx2)
-
-	regs.MODER =band= bnot (3 << pinx2)
-	regs.MODER =bor=       (n << pinx2)
-
-
-    // 3. set open-drain
-    if flags band PINCFG_OPENDRAIN <> 0:
-        regs.OTYPER =bor= (1 << apinnum)
-    else:
-        regs.OTYPER =band= bnot (1 << apinnum)
-    endif
-
-    // 4. set pullup / pulldown
-    regs.PUPDR =band= bnot (3 << pinx2)
-    if flags band PINCFG_PULLUP <> 0:
-        regs.PUPDR =bor= (1 << pinx2) // pullup
-    elif flags band PINCFG_PULLDOWN <> 0:
-        regs.PUPDR =bor= (2 << pinx2) // pulldown
-    endif
-
-    // 5. set speed
-    regs.OSPEEDR =band= bnot (3 << pinx2)
-    if flags band PINCFG_SPEED_MASK == PINCFG_SPEED_MEDIUM:
-        regs.OSPEEDR =bor= (1 << pinx2)
-    elif (flags band PINCFG_SPEED_MASK == PINCFG_SPEED_MED2)  or  (flags band PINCFG_SPEED_MASK == PINCFG_SPEED_FAST):
-        regs.OSPEEDR =bor= (2 << pinx2)
-    elif flags band PINCFG_SPEED_MASK == PINCFG_SPEED_VERYFAST:
-        regs.OSPEEDR =bor= (3 << pinx2)  // this is very special, and does not even work for SDRAM pins
-    endif
-
-	if flags band PINCFG_AF_MASK <> 0:
-		// set the alternate function
-		n = (flags >> PINCFG_AF_SHIFT) band 0xF
-		if apinnum < 8:
-			regs.AFR[0] =band= bnot (0xF << (apinnum * 4))
-			regs.AFR[0] =bor=       (n   << (apinnum * 4))
-		else:
-			regs.AFR[1] =band= bnot (0xF << ((apinnum-8) * 4))
-			regs.AFR[1] =bor=       (n   << ((apinnum-8) * 4))
-		endif
-	endif
-
-    return true
-endfunc
-```
+**Which version do you like more?**
+or
+**Do you have some other ideas for the operator notation?**

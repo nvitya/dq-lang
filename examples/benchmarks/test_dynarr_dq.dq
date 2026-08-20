@@ -32,7 +32,7 @@ endfunc
 
 function FillArrayPtr(maxval : int32):
     darr.SetLength(maxval)
-    var pi32 : ^int32 = &darr[0]
+    var pi32 : ^int32 = %darr[0]
     for i : int32 = 0 count maxval:
         pi32[i]^ = i
     endfor
@@ -50,7 +50,7 @@ endfunc
 function CalcSumPtr() -> int64:
     result = 0
     var arrlen : int32  = darr.length
-    var pi32   : ^int32 = &darr[0]
+    var pi32   : ^int32 = %darr[0]
     for i : int = 0 count arrlen:
         result += pi32[i]^
     endfor
@@ -76,14 +76,14 @@ function *Main() -> int:
     t1 = NanoTime()
     FillArray(maxval)
     t2 = NanoTime()
-    PrintLn('Total fill time: {} us', [(t2 - t1) IDIV 1000])
+    PrintLn('Total fill time: {} us', [(t2 - t1) div 1000])
 
     PrintLn('Summing the dynamic array...')
     t1 = NanoTime()
     sum = CalcSum()
     t2 = NanoTime()
     PrintLn('sum = {}', [sum])
-    PrintLn('Total sum time: {} us', [(t2 - t1) IDIV 1000])
+    PrintLn('Total sum time: {} us', [(t2 - t1) div 1000])
 
     PrintLn('\nUsing pointer operations\n')
 
@@ -91,14 +91,14 @@ function *Main() -> int:
     t1 = NanoTime()
     FillArrayPtr(maxval)
     t2 = NanoTime()
-    PrintLn('Total fill time: {} us', [(t2 - t1) IDIV 1000])
+    PrintLn('Total fill time: {} us', [(t2 - t1) div 1000])
 
     PrintLn('Summing the dynamic array (ptr)...')
     t1 = NanoTime()
     sum = CalcSumPtr()
     t2 = NanoTime()
     PrintLn('sum = {}', [sum])
-    PrintLn('Total sum time: {} us', [(t2 - t1) IDIV 1000])
+    PrintLn('Total sum time: {} us', [(t2 - t1) div 1000])
 
     return 0
 endfunc

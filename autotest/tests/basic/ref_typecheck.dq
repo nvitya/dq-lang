@@ -14,7 +14,7 @@ function takes_refout(a : refout int):
 endfunc
 
 function takes_refnull(a : refnull int):
-    if &a == null:
+    if %a == null:
         return
     endif
 endfunc

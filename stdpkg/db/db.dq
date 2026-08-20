@@ -220,7 +220,7 @@ function ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
 
     // Adding new fieldinfo
     m_fieldinfo.SetLength(new_fieldcount)
-    var pfi : ^SFieldInfo = &m_fieldinfo[old_fieldcount]
+    var pfi : ^SFieldInfo = %m_fieldinfo[old_fieldcount]
     pfi.name.Set(aname)
     pfi.index = old_fieldcount
     pfi.ftype = atype

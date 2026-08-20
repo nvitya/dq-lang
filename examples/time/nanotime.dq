@@ -13,7 +13,7 @@ function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime'
 function NanoTime() -> int64:
     var tv : timespec
     tv.tv_sec = 0
-    clock_gettime(1, &tv)
+    clock_gettime(1, %tv)
     result = tv.tv_nsec + tv.tv_sec * 1000000000
 endfunc
 

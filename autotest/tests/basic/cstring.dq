@@ -19,7 +19,7 @@ function dq_writepc(s : ^char):
 endfunc
 
 function dq_writestr(s : cstring):
-    var pc : ^char = &s[0]
+    var pc : ^char = %s[0]
     while pc^ <> char(0):
         putchar(pc^)
         pc += 1
@@ -27,9 +27,9 @@ function dq_writestr(s : cstring):
 endfunc
 
 function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
-    var ps     : ^char = &src[0]
+    var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
-    var pd     : ^char = &dst[0]
+    var pd     : ^char = %dst[0]
     var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
     pd += Len(dst)
     var pdstart : ^char = pd

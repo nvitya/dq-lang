@@ -61,7 +61,7 @@ function *Main() -> int:
     st.ival = 10000
     st.fval = 3.14
 
-    FileWrite('.tmp/structfile.bin', &st, SizeOf(st))
+    FileWrite('.tmp/structfile.bin', %st, SizeOf(st))
 
     return 0
 endfunc

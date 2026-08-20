@@ -31,7 +31,7 @@ endobj
 
 function OMyConnection.HandleInput(aobj : Object) [[override]]:
     var buf : [256]byte
-    var n : int = sock.Recv(&buf[0], SizeOf(buf))
+    var n : int = sock.Recv(%buf[0], SizeOf(buf))
     if n <= 0:
         Close()
     endif
@@ -117,4 +117,3 @@ The HTTP server maps common extensions such as `.html`, `.css`, `.js`, `.png`,
 
 See the examples in `examples/nanonet/`, especially
 `http_static_files.dq`.
-

@@ -46,8 +46,8 @@ function *Main() -> int:
         printf('ok')
     endif
 
-    f = f AND NOT 1 //?error(TypeMismatchOp)
-    f = Round(f) AND NOT 1
+    f = f & ~ 1 //?error(TypeMismatchOp)
+    f = Round(f) & ~ 1
 
     f = i
     f = i > 5 //?error(TypeMismatchAssign)

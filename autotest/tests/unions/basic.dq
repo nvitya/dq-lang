@@ -96,7 +96,7 @@ function *Main() -> int:
     obj.Set(0xFFFFFFFF)
     printf("union object = %li\n", int(obj.GetSigned())) //?check("union object", -1)
 
-    printf("union addresses = %li\n", int(uint(&word.whole) - uint(&word.bytes)))
+    printf("union addresses = %li\n", int(uint(%word.whole) - uint(%word.bytes)))
     //?check("union addresses", 0)
     return 0
 endfunc

@@ -176,7 +176,7 @@ function OTextSinkStdOut.*Create():
 endfunc
 
 function OTextSinkStdOut.Write(atext : strview) [[override]]:
-    @.libc_fwrite(&atext[0], 1, atext.length, pstdout)
+    @.libc_fwrite(%atext[0], 1, atext.length, pstdout)
 endfunc
 
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
@@ -258,7 +258,7 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
                 if curpos < endpos  and  afmt[curpos] == '}':
                     curpos += 1
                 else:
-                    flags =OR= DQFMT_FMT_ERROR
+                    flags |= DQFMT_FMT_ERROR
                     sink.Write("<}?>")
                     break
                 endif
@@ -276,7 +276,7 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
                 lit_start = curpos
             else:
                 // Unescaped closing brace.
-                flags =OR= DQFMT_FMT_ERROR
+                flags |= DQFMT_FMT_ERROR
                 sink.Write("<!}>")
                 curpos += 1
                 lit_start = curpos
@@ -350,7 +350,7 @@ function OTextFormatter.ParseSpec(afmt : strview):
     endif
 
     // add some error recovery:
-    while p < flen  and  afmt[p] != '}':
+    while p < flen  and  afmt[p] <> '}':
         p += 1
     endwhile
 
@@ -367,7 +367,7 @@ function OTextFormatter.FormatAny(av : anyvalue):
         if fmtspec.kind == @.DQFMT_KIND_DEFAULT  or  fmtspec.kind == @.DQFMT_KIND_STRING:
             sink.Write(av.AsText(''))
         else:
-            flags =OR= @.DQFMT_ARG_ERROR
+            flags |= @.DQFMT_ARG_ERROR
             sink.Write("<s-f!>")
         endif
         return
@@ -383,7 +383,7 @@ function OTextFormatter.FormatAny(av : anyvalue):
         elif @.DQFMT_KIND_HEXLOW == fmtspec.kind:
             FormatHex(av.AsUint(0), false)
         else:
-            flags =OR= @.DQFMT_ARG_ERROR
+            flags |= @.DQFMT_ARG_ERROR
             sink.Write("<i-f!>")
         endif
         return
@@ -393,7 +393,7 @@ function OTextFormatter.FormatAny(av : anyvalue):
         if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_FLOAT == fmtspec.kind:
             FormatFloat(av.AsFloat(0))
         else:
-            flags =OR= @.DQFMT_ARG_ERROR
+            flags |= @.DQFMT_ARG_ERROR
             sink.Write("<f-f!>")
         endif
         return
@@ -407,7 +407,7 @@ function OTextFormatter.FormatAny(av : anyvalue):
                 sink.Write('false')
             endif
         else:
-            flags =OR= @.DQFMT_ARG_ERROR
+            flags |= @.DQFMT_ARG_ERROR
             sink.Write("<b-f!>")
         endif
         return
@@ -418,14 +418,14 @@ function OTextFormatter.FormatAny(av : anyvalue):
             sink.Write('^')
             FormatHex(uint(av.AsPointer(null)), true)
         else:
-            flags =OR= @.DQFMT_ARG_ERROR
+            flags |= @.DQFMT_ARG_ERROR
             sink.Write("<p-f!>")
         endif
         return
     endif
 
 
-    flags =OR= @.DQFMT_ARG_ERROR
+    flags |= @.DQFMT_ARG_ERROR
     sink.Write("<arg-error>")
 endfunc
 
@@ -455,8 +455,8 @@ function OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -
     endif
 
     while v > uint(0):
-        lcsbuf.AppendChar(UIntDigitChar(v IMOD abase, aupper))
-        v = v IDIV abase
+        lcsbuf.AppendChar(UIntDigitChar(v mod abase, aupper))
+        v = v div abase
     endwhile
 
     return int(lcsbuf.length)
@@ -530,12 +530,12 @@ function OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int
 
     if aprecision > 0:
         sink.WriteChar('.')
-        var place : uint = ascale IDIV 10
+        var place : uint = ascale div 10
         while place > uint(0):
-            var digit : uint = afrac IDIV place
+            var digit : uint = afrac div place
             sink.WriteChar(UIntDigitChar(digit, false))
-            afrac = afrac IMOD place
-            place = place IDIV 10
+            afrac = afrac mod place
+            place = place div 10
         endwhile
     endif
 
@@ -602,15 +602,15 @@ function OTextFormatter.FormatFloat(v : float):
             frac -= scale
         endif
 
-        while precision > 0 and (frac IMOD uint(10)) == uint(0):
-            frac = frac IDIV uint(10)
-            scale = scale IDIV uint(10)
+        while precision > 0 and (frac mod uint(10)) == uint(0):
+            frac = frac div uint(10)
+            scale = scale div uint(10)
             precision -= 1
         endwhile
     else:
         var scaled : uint = uint(Floor(work * scale + 0.5))
-        intpart = scaled IDIV scale
-        frac = scaled IMOD scale
+        intpart = scaled div scale
+        frac = scaled mod scale
     endif
 
     WriteFormattedFloat(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale)

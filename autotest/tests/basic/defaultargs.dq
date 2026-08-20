@@ -35,7 +35,7 @@ function *Main() -> int:
     printf("dq_round_default() = %li\n", dq_round_default())  //?check('dq_round_default()', 2)
 
     printf("dq_ptr_default() = %li\n", dq_ptr_default())  //?check('dq_ptr_default()', -5)
-    printf("dq_ptr_default(&x) = %li\n", dq_ptr_default(&x))  //?check('dq_ptr_default(&x)', 12)
+    printf("dq_ptr_default(%%x) = %li\n", dq_ptr_default(%x))  //?check('dq_ptr_default(%x)', 12)
 
     printf("dq_printf_default() = %d\n")  //?check('dq_printf_default()', 77)
 

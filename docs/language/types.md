@@ -78,7 +78,7 @@ const registers : ? = ^SRegisters(0x40000000)
 
 var value : SPoint = {}
 var copy : ? = value
-var value_ptr : ? = &value
+var value_ptr : ? = %value
 var object_ref : ? = new OThing()
 ```
 
@@ -141,7 +141,7 @@ p.y = 20
 Pointers to structs are automatically dereferenced for member access.
 
 ```dq
-var pp : ^SPoint = &p
+var pp : ^SPoint = %p
 pp.x = 11      // same target as pp^.x
 ```
 

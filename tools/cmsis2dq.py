@@ -9,6 +9,18 @@ STRUCT_TYPE_PADDING = 8
 ARRAY_TYPE_SPACING = 1
 ATTR_TYPE_SPACING = 2
 
+C_OPERATOR_RE = re.compile(r'&&|\|\||!=|==|<=|>=|<<|>>|[~&|^/%]')
+C_OPERATOR_MAP = {
+    '&&': 'and', '||': 'or', '!=': '<>',
+    '==': '==', '<=': '<=', '>=': '>=', '<<': '<<', '>>': '>>',
+    '~': '~', '&': '&', '|': '|', '^': 'xor', '/': 'div', '%': 'mod',
+}
+DQ_OPERATOR_WORDS = {'and', 'or', 'not', 'xor', 'div', 'mod'}
+
+
+def convert_c_expr_operators(value):
+    return C_OPERATOR_RE.sub(lambda match: f" {C_OPERATOR_MAP[match.group(0)]} ", value)
+
 def process_file(filepath, no_comments=False):
     try:
         with open(filepath, 'r', errors='ignore') as f:
@@ -100,7 +112,7 @@ def process_file(filepath, no_comments=False):
             arr_val = arr.strip('[]')
             arr_val = re_number_suffix.sub(r'\1', arr_val)
             arr_val = arr_val.replace('0X', '0x')
-            arr_val = arr_val.replace('~', ' NOT ').replace('&', ' AND ').replace('|', ' OR ').replace('^', ' XOR ').replace('/', ' IDIV ').replace('%', ' IMOD ')
+            arr_val = convert_c_expr_operators(arr_val)
             spacer = " " * ARRAY_TYPE_SPACING
             dq_type = f"[{arr_val}]{spacer}{dq_type}"
             
@@ -143,7 +155,7 @@ def process_file(filepath, no_comments=False):
                             
                         val = re.sub(r'\(\s*u?int\d+_t\s*\)', '', val)
                         val = re.sub(r'^\s*\(\s*([^() ]+)\s*\)\s*$', r'\1', val)
-                        val = val.replace('~', ' NOT ').replace('&', ' AND ').replace('|', ' OR ').replace('^', ' XOR ').replace('/', ' IDIV ').replace('%', ' IMOD ')
+                        val = convert_c_expr_operators(val)
                         
                         val = val.replace('0x0x', '0x')
                         if "*)" in val.replace(" ", "") or "!RESET" in val or "!" in val:
@@ -157,7 +169,7 @@ def process_file(filepath, no_comments=False):
                         words = re.findall(r'[A-Za-z_][A-Za-z0-9_]*', temp_val)
                         valid = True
                         for w in words:
-                            if w not in known_consts and w not in ('NOT', 'AND', 'OR', 'XOR', 'IDIV', 'IMOD', 'SHL', 'SHR'):
+                            if w not in known_consts and w not in DQ_OPERATOR_WORDS:
                                 valid = False
                                 break
                         
@@ -306,7 +318,7 @@ def process_file(filepath, no_comments=False):
                     val = val.split('/*')[0].split('//')[0].strip()
                     val = re_number_suffix.sub(r'\1', val)
                     val = val.replace('0X', '0x')
-                    val = val.replace('~', ' NOT ').replace('&', ' AND ').replace('|', ' OR ').replace('^', ' XOR ').replace('/', ' IDIV ').replace('%', ' IMOD ')
+                    val = convert_c_expr_operators(val)
                     
                     val = val.replace('!RESET', '1').replace('!DISABLE', '1').replace('!SUCCESS', '1')
                     val = val.replace('0x0x', '0x')
@@ -315,7 +327,7 @@ def process_file(filepath, no_comments=False):
                     words = re.findall(r'[A-Za-z_][A-Za-z0-9_]*', temp_val)
                     valid = True
                     for w in words:
-                        if w not in known_consts and w not in ('NOT', 'AND', 'OR', 'XOR', 'IDIV', 'IMOD', 'SHL', 'SHR'):
+                        if w not in known_consts and w not in DQ_OPERATOR_WORDS:
                             valid = False
                             break
                     if not valid or "!" in val:

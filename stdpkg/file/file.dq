@@ -355,7 +355,7 @@ function OFile.ReadText() -> str:
 
     result = ''  // to avoid uninitialized variable access
     result.SetLength(flen, char(0))
-    var r : int64 = Read(&result[0], flen)
+    var r : int64 = Read(%result[0], flen)
     if r <> flen:
         result.SetLength(r, char(0))
     endif
@@ -373,7 +373,7 @@ function OFile.ReadBytes() -> [*]byte:
 
     result = []  // to avoid uninitialized variable access
     result.SetLength(flen)
-    var r : int64 = Read(&result[0], flen)
+    var r : int64 = Read(%result[0], flen)
     if r <> flen:
         result.SetLength(r)
     endif
@@ -400,7 +400,7 @@ function OFile.WriteText(atxt : strview):
     if atxt.length <= 0:
         return
     endif
-    Write(&atxt[0], atxt.length)
+    Write(%atxt[0], atxt.length)
 endfunc
 
 function OFile.WriteBytes(abytes : []byte):
@@ -410,7 +410,7 @@ function OFile.WriteBytes(abytes : []byte):
     if abytes.length <= 0:
         return
     endif
-    Write(&abytes[0], abytes.length)
+    Write(%abytes[0], abytes.length)
 endfunc
 
 //--------------------------------------------------------------------------

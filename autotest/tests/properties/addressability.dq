@@ -36,9 +36,9 @@ endfunc
 function *Main() -> int:
     var obj <- OPropertyAddressability()
 
-    var p1 : ^int = &obj.direct //?error(PropertyNotAddressable)
-    var p2 : ^int = &obj.method_value //?error(PropertyNotAddressable)
-    var p3 : ^int = &obj.item[0] //?error(PropertyNotAddressable)
+    var p1 : ^int = %obj.direct //?error(PropertyNotAddressable)
+    var p2 : ^int = %obj.method_value //?error(PropertyNotAddressable)
+    var p3 : ^int = %obj.item[0] //?error(PropertyNotAddressable)
 
     TakeRef(obj.direct) //?error(PropertyNotAddressable)
     TakeRef(obj.method_value) //?error(PropertyNotAddressable)

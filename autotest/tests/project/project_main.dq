@@ -3,21 +3,21 @@
 use ./project_child
 
 function *Main() -> int:
-    if @def.PROJECT_DEFINE != 42:
+    if @def.PROJECT_DEFINE <> 42:
         return 2
     endif
     if not (@def.PROJECT_BOOL):
         return 3
     endif
-    if project_child_define() != 42:
+    if project_child_define() <> 42:
         return 4
     endif
     #ifdef EXPECT_OVERRIDE
-        if @def.PROJECT_OVERRIDE != 2:
+        if @def.PROJECT_OVERRIDE <> 2:
             return 1
         endif
     #else
-        if @def.PROJECT_OVERRIDE != 1:
+        if @def.PROJECT_OVERRIDE <> 1:
             return 1
         endif
     #endif

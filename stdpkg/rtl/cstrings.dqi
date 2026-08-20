@@ -18,7 +18,7 @@ function CStrRuntimeError(emsg : ^char):
 endfunc
 
 function CStrMaxLen(desc : ref SDqTextInfo) -> uint:
-    result = uint(desc.info AND DQTI_MAXCHLEN_MASK)
+    result = uint(desc.info & DQTI_MAXCHLEN_MASK)
 endfunc
 
 function CStrStorageSize(desc : ref SDqTextInfo) -> uint:
@@ -26,7 +26,7 @@ function CStrStorageSize(desc : ref SDqTextInfo) -> uint:
 endfunc
 
 function CStrScanLen(desc : ref SDqTextInfo) -> uint:
-    var maxlen : uint = uint(desc.info AND DQTI_MAXCHLEN_MASK)
+    var maxlen : uint = uint(desc.info & DQTI_MAXCHLEN_MASK)
     if desc.dataptr == null:
         return 0
     endif
@@ -46,13 +46,13 @@ function CStrScanLen(desc : ref SDqTextInfo) -> uint:
 endfunc
 
 function CStrLen(desc : ref SDqTextInfo) -> uint:
-    if desc.info AND DQTIF_CHARLEN_VALID <> uint32(0):
+    if desc.info & DQTIF_CHARLEN_VALID <> uint32(0):
         return uint(desc.charlen)
     endif
 
     result = CStrScanLen(desc)
     desc.charlen = result
-    desc.info =AND= NOT DQTIF_CHARLEN_VALID
+    desc.info &= ~ DQTIF_CHARLEN_VALID
 endfunc
 
 function CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
@@ -63,7 +63,7 @@ endfunc
 
 function CStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
     desc.charlen = newlen
-    desc.info =AND= NOT DQTIF_CHARLEN_VALID
+    desc.info &= ~ DQTIF_CHARLEN_VALID
     if desc.dataptr <> null:
         desc.dataptr[newlen]^ = char(0)
     endif

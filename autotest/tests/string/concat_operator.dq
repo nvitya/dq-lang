@@ -45,10 +45,10 @@ function *Main() -> int:
     PrintText("str_char_value", s + cc) //?check("str_char_value", '[3] "ab!"')
     PrintText("literal_literal", "ij" + "kl") //?check("literal_literal", '[4] "ijkl"')
 
-    var mod : str = "mn"
-    mod += '?'
-    mod += "op"
-    PrintText("modify_assign", mod) //?check("modify_assign", '[5] "mn?op"')
+    var modified : str = "mn"
+    modified += '?'
+    modified += "op"
+    PrintText("modify_assign", modified) //?check("modify_assign", '[5] "mn?op"')
 
     var copy : str = s + ""
     copy[0] = 'X'

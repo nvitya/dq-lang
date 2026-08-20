@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.47.0"
+#define DQ_COMPILER_VERSION  "0.48.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.48.0:
+  - Operators V2 syntax and source migration tool
+  - Added expression `as` casts while retaining type-call casts
 v0.47.0:
   - const struct and struct initializers
 v0.46.0:

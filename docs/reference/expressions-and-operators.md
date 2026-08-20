@@ -16,13 +16,13 @@ effects.
 ## Arithmetic
 
 `+`, `-`, and `*` operate on compatible numeric operands. `/` is floating-point
-division even when both operands are integers. `IDIV` and `IMOD` perform integer
+division even when both operands are integers. `div` and `mod` perform integer
 division and remainder.
 
 ```dq
 var ratio : float = 3 / 2
-var quotient : int = 7 IDIV 3
-var remainder : int = 7 IMOD 3
+var quotient : int = 7 div 3
+var remainder : int = 7 mod 3
 ```
 
 Integer overflow, division by zero, signed division corner cases, and floating
@@ -45,13 +45,13 @@ right operand is evaluated only when required.
 
 ## Integer and Bitwise Operators
 
-`NOT`, `AND`, `OR`, `XOR`, `SHL`, and `SHR` operate on integer values. They are
-distinct from the lowercase Boolean operators.
+`~`, `&`, `|`, `xor`, `<<`, and `>>` operate on integer values. They are
+distinct from the Boolean word operators.
 
 ## Unary Operators
 
-`-` negates a numeric value, `not` negates a Boolean, `NOT` complements integer
-bits, `&` obtains an address, and `^` dereferences a pointer when used in its
+`-` negates a numeric value, `not` negates a Boolean, `~` complements integer
+bits, `%` obtains an address, and `^` dereferences a pointer when used in its
 postfix form.
 
 ## Casts
@@ -62,6 +62,15 @@ Type-call syntax requests an explicit conversion:
 var small : uint8 = uint8(value)
 var typed : ^byte = ^byte(raw)
 ```
+
+The equivalent `expression as Type` form is available at comparison precedence:
+
+```dq
+var typed : ^byte = raw as ^byte
+```
+
+An `as` cast is not chainable with another comparison-level operator. Use
+parentheses when applying member access or another operator to its result.
 
 A cast is valid only when the compiler defines a conversion between the source
 and destination categories. It does not make an invalid pointer, ordinal, or
@@ -99,17 +108,20 @@ From tighter to looser binding, the operator groups are:
 
 1. primary expressions;
 2. calls, member access, indexing, slicing, and postfix dereference;
-3. address-of, unary minus, and integer `NOT`;
-4. shifts (`<<`, `SHL`, `>>`, `SHR`);
-5. integer `AND`;
-6. integer `OR` and `XOR`;
-7. `/`, `IDIV`, and `IMOD`;
+3. address-of (`%`), unary minus, and integer `~`;
+4. shifts (`<<`, `>>`);
+5. integer `&`;
+6. integer `|` and `xor`;
+7. `/`, `div`, and `mod`;
 8. multiplication;
 9. addition and subtraction;
-10. comparisons and `is`;
+10. comparisons, `is`, and `as`;
 11. Boolean `not`;
 12. Boolean `and`;
 13. Boolean `or`.
 
 Parentheses should be used whenever mixed word/symbol operators would obscure
 intent. In particular, do not infer C precedence for DQ word operators.
+
+Modify-assignment forms are `+=`, `-=`, `*=`, `/=`, `<<=`, `>>=`, `&=`,
+`|=`, `=xor=`, `=div=`, and `=mod=`.

@@ -28,12 +28,12 @@ function *Main() -> int:
     var iarr : [5]int = [2,3,5,7,11]
 
     darr.Clear()
-    darr.Append(&iarr[0], 5)
+    darr.Append(%iarr[0], 5)
 
     PrintDynArr('primes', darr)
 
     var iarr2 : [2]int = [13, 17]
-    darr.Append(&iarr2[0], 2)
+    darr.Append(%iarr2[0], 2)
 
     PrintDynArr('primes2', darr)
 
@@ -42,13 +42,13 @@ function *Main() -> int:
     PrintDynArr('primes-[2]', darr)
 
     var iarr_ins : [2]int = [66, 77]
-    darr.Insert(1, &iarr_ins[0], 2)
+    darr.Insert(1, %iarr_ins[0], 2)
 
     PrintDynArr('inserted', darr)
 
     printf('darr.capacity = %d\n', darr.capacity)
 
-    darr.Insert(7, &iarr_ins[0], 1)
+    darr.Insert(7, %iarr_ins[0], 1)
     PrintDynArr('inserted', darr)
     printf('darr.capacity = %d\n', darr.capacity)
 

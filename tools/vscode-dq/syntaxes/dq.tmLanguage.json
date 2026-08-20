@@ -315,7 +315,7 @@
         },
         {
           "name": "keyword.operator.word.dq",
-          "match": "\\b(?:and|or|not|AND|OR|XOR|NOT|IDIV|IMOD|SHL|SHR)\\b"
+          "match": "\\b(?:and|or|not|is|as|xor|div|mod)\\b"
         },
         {
           "name": "constant.language.boolean.dq",
@@ -367,7 +367,7 @@
         },
         {
           "name": "keyword.operator.dq",
-          "match": "\\[\\[|\\]\\]|->|<>|<=|>=|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&<>@.:]"
+          "match": "\\[\\[|\\]\\]|=xor=|=div=|=mod=|<<=|>>=|&=|\\|=|->|<>|<=|>=|<<|>>|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&|~<>@.:]"
         }
       ]
     }

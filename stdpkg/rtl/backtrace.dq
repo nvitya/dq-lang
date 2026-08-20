@@ -48,7 +48,7 @@ function DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
     var printed : int = 0
     var stop_printing : bool = false
     while i < backtrace_count:
-        if DqPrintBacktraceFrameImpl(printed, ^pointer(backtrace)[i]^, printed < DQ_BACKTRACE_INTERNAL_SKIP, &stop_printing):
+        if DqPrintBacktraceFrameImpl(printed, ^pointer(backtrace)[i]^, printed < DQ_BACKTRACE_INTERNAL_SKIP, %stop_printing):
             printed += 1
             if stop_printing:
                 return

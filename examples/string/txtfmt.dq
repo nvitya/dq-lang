@@ -27,7 +27,7 @@ function TestStr():
     PrintLn('Testing str.AddFmt()')
 
     ds.Append("functest: ")
-    DynStrAddFmt(&ds, ", {}, {}, {}", [5, 2.75, 'hi'])
+    DynStrAddFmt(%ds, ", {}, {}, {}", [5, 2.75, 'hi'])
     PrintDs()
 
     ds.Clear()

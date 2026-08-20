@@ -201,5 +201,5 @@ function SetSocketNonBlocking(sockfd : TSocket) -> int:
         return flags
     endif
 
-    return libc_fcntl(sockfd, F_SETFL, flags OR O_NONBLOCK)
+    return libc_fcntl(sockfd, F_SETFL, flags | O_NONBLOCK)
 endfunc

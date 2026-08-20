@@ -19,7 +19,7 @@ function dq_struct_test(sm : ^SMain):
     sm^.id = 5
     sm^.elemcnt = 0
     while sm^.elemcnt < 5:
-        ep = &sm^.elem[sm.elemcnt]
+        ep = %sm^.elem[sm.elemcnt]
         ep^.id = sm^.elemcnt
         ep^.membercnt = 0
         while ep^.membercnt < 3:
@@ -37,7 +37,7 @@ function dq_struct_test_noderef(sm : ^SMain):
     sm.id = 5
     sm.elemcnt = 0
     while sm.elemcnt < 5:
-        ep = &sm.elem[sm.elemcnt]
+        ep = %sm.elem[sm.elemcnt]
         ep.id = sm.elemcnt
         ep.membercnt = 0
         while ep.membercnt < 3:
@@ -56,7 +56,7 @@ function show_struct(aprefix : ^char, sm : ^SMain):
     printf('%s sm.id = %d\n', aprefix, sm.id)
     var n : int = 0
     while n < sm.elemcnt:
-        ep = &sm.elem[n]
+        ep = %sm.elem[n]
         printf('%s sm.elem[%u] = id: %i, wheight: %.5f, members: [', aprefix, n, ep.id, ep.weight)
         var m : int = 0
         while m < ep.membercnt:
@@ -77,8 +77,8 @@ function *Main() -> int:
 
     var sm : SMain = {}
 
-    dq_struct_test(&sm)
-    show_struct("t1", &sm)
+    dq_struct_test(%sm)
+    show_struct("t1", %sm)
 
     //?check('t1 sm.id', 5)
     //?check('t1 sm.elem[0]', 'id: 0, wheight: 1.00000, members: [ 00 01 02 ]')
@@ -87,8 +87,8 @@ function *Main() -> int:
     //?check('t1 sm.elem[3]', 'id: 3, wheight: 0.25000, members: [ 1E 1F 20 ]')
     //?check('t1 sm.elem[4]', 'id: 4, wheight: 0.20000, members: [ 28 29 2A ]')
 
-    dq_struct_test_noderef(&sm)
-    show_struct("t2", &sm)
+    dq_struct_test_noderef(%sm)
+    show_struct("t2", %sm)
 
     //?check('t2 sm.id', 5)
     //?check('t2 sm.elem[0]', 'id: 0, wheight: 1.00000, members: [ 00 01 02 ]')

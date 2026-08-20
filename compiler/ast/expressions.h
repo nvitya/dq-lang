@@ -75,6 +75,7 @@ class OLValueExpr : public OExpr
 {
 public:
   virtual LlValue * GenerateAddress(OScope * scope) = 0;
+  virtual bool TryCalculateConstantAddress(uint64_t & raddress) const { return false; }
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
   LlValue * GenerateMemoryLoad(LlType * type, LlValue * address, const string & name);
   virtual bool IsObjectReferenceExpr() const { return false; }
@@ -106,6 +107,7 @@ public:
   OExpr *  ptrexpr;
   /* ctor */ OLValueDeref(OExpr * aptr);
   LlValue *  GenerateAddress(OScope * scope) override;
+  bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       RequiresVolatileMemoryAccess() const override { return true; }
@@ -123,6 +125,7 @@ public:
   /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
   OValSym *  MemberSymbol() const;
   LlValue *  GenerateAddress(OScope * scope) override;
+  bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       IsFixedObjectStorageExpr() const override;

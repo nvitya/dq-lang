@@ -392,6 +392,17 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
   return ptrexpr->Generate(scope);  // the pointer value IS the address
 }
 
+bool OLValueDeref::TryCalculateConstantAddress(uint64_t & raddress) const
+{
+  OValuePointer ptrvalue(ptrexpr->ptype, 0);
+  if (!ptrvalue.CalculateConstant(ptrexpr, false))
+  {
+    return false;
+  }
+  raddress = ptrvalue.address;
+  return true;
+}
+
 LlValue * OLValueDeref::Generate(OScope * scope)
 {
   if (TK_OBJECT == ptype->ResolveAlias()->kind)
@@ -454,6 +465,17 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
     ll_index = ctype->member_order[memberindex]->ll_field_index;
   }
   return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, ll_index, "member.addr");
+}
+
+bool OLValueMember::TryCalculateConstantAddress(uint64_t & raddress) const
+{
+  OValSym * member = MemberSymbol();
+  if (!member || !base->TryCalculateConstantAddress(raddress))
+  {
+    return false;
+  }
+  raddress += member->field_offset;
+  return true;
 }
 
 LlValue * OLValueMember::Generate(OScope * scope)

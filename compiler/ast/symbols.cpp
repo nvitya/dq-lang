@@ -413,6 +413,25 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
     return false;
   }
 
+  if (auto * addrof = dynamic_cast<OAddrOfExpr *>(expr))
+  {
+    if (!addrof->target->TryCalculateConstantAddress(address))
+    {
+      if (emit_errors)
+      {
+        g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+      }
+      return false;
+    }
+
+    uint32_t ptrbits = TARGET_PTRSIZE * 8;
+    if (ptrbits < 64)
+    {
+      address &= (uint64_t(1) << ptrbits) - 1;
+    }
+    return true;
+  }
+
   if (auto * conv = dynamic_cast<OExprTypeConv *>(expr))
   {
     OType * srctype = conv->src->ResolvedType();

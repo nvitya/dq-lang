@@ -4,5 +4,7 @@ use libc/stdio
 function *Main() -> int:
     printf("imported inferred type = %s\n", TypeName(imported_inferred_ptr)) //?check("imported inferred type", "^SImportedInferred")
     printf("imported inferred ptr = %lu\n", uint(imported_inferred_ptr)) //?check("imported inferred ptr", 17767)
+    printf("imported inferred member type = %s\n", TypeName(imported_inferred_member_ptr)) //?check("imported inferred member type", "^uint32")
+    printf("imported inferred member ptr = %lu\n", uint(imported_inferred_member_ptr)) //?check("imported inferred member ptr", 17771)
     return 0
 endfunc

@@ -110,6 +110,9 @@ External globals are declared with the corresponding external attribute form.
 The declaration's DQ type determines the generated ABI access. DQ does not check
 that the linked symbol actually has that native type.
 
+Without an explicit argument, `[[external]]` uses the DQ declaration name as
+the native symbol name for both functions and global variables.
+
 ## C Strings and Pointers
 
 Use `^char` for a raw zero-terminated C pointer, `cstring` for a borrowed bounded

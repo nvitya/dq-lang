@@ -34,9 +34,11 @@ Use C-compatible argument types and format strings that match the external ABI.
 
 ## External Global Variables
 
-External global variables can be imported with `[[external('name')]]`.
+External global variables can use the DQ declaration name or an explicit native
+symbol name.
 
 ```dq
+var errno : int [[external]]
 var libc_stdout : pointer [[external('stdout')]]
 ```
 

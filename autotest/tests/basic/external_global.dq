@@ -2,9 +2,9 @@
 
 function fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]]
 
-var libc_stdout : pointer [[external("stdout")]]
+var stdout : pointer [[external]]
 
 function *Main() -> int:
-    fprintf(libc_stdout, "external global = %d\n", 42)  //?check("external global", 42)
+    fprintf(stdout, "external global = %d\n", 42)  //?check("external global", 42)
     return 0
 endfunc

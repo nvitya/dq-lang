@@ -695,7 +695,9 @@ void OValSym::GenGlobalImportDecl()
   {
     OType *  storage_type = GetStorageType();
     LlType * ll_type = storage_type->GetLlType();
-    string   ll_name = (attr_external_linkage_name.empty() ? GetLinkageName(true) : attr_external_linkage_name);
+    string   ll_name = (attr_is_external
+                        ? (attr_external_linkage_name.empty() ? name : attr_external_linkage_name)
+                        : GetLinkageName(true));
     if (llvm::GlobalValue * existing = ll_module->getNamedValue(ll_name))
     {
       ll_value = existing;

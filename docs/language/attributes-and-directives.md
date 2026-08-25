@@ -95,6 +95,7 @@ Use an argument when the external symbol name differs.
 External global variables are supported.
 
 ```dq
+var errno : int [[external]]
 var libc_stdout : pointer [[external('stdout')]]
 ```
 

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.49.0"
+#define DQ_COMPILER_VERSION  "0.49.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.49.1:
+  - Unnamed [[external]] global variables use their unmangled declaration name
 v0.49.0:
   - ARM libs now included (gcc 14.3.rel1) to the compiler
 v0.48.1:

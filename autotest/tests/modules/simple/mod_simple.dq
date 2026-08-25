@@ -7,6 +7,8 @@ var g_mod_var : int = 5
 function mod_func_test(a : int) -> int
 
 function printf(fmt : ^char, ...) -> int [[external]]
+function fprintf(stream : pointer, fmt : ^char, ...) -> int [[external]]
+var stdout : pointer [[external]]
 
 implementation
 

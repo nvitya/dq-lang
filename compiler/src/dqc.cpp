@@ -294,14 +294,27 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   rargs.push_back("--target=" + g_opt.target.llvm_triple);
 
   rargs.push_back("-fuse-ld=lld");
+  string compiler_runtime = g_opt.EffectiveCompilerRuntime();
+  string c_runtime = g_opt.EffectiveCRuntime();
+  string gcc_multilib_dir;
   if (g_opt.target.IsBare())
   {
     rargs.push_back("-nostdlib");
+    if ((("none" != compiler_runtime) || ("none" != c_runtime))
+        && !g_opt.ResolveGccMultilibDir(gcc_multilib_dir, rerror))
+    {
+      return false;
+    }
   }
   for (const string & linker_arg : g_opt.linker_args)
   {
     rargs.push_back("-Xlinker");
     rargs.push_back(linker_arg);
+  }
+  if ("newlib-nano" == c_runtime)
+  {
+    rargs.push_back("-Xlinker");
+    rargs.push_back("--library-path=" + gcc_multilib_dir);
   }
   if (LTOMODE_FULL == g_opt.lto_mode)
   {
@@ -329,9 +342,40 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   }
   rargs.push_back("-o");
   rargs.push_back(executable_filename);
+
+  if (g_opt.target.IsBare())
+  {
+    rargs.push_back("-Xlinker");
+    rargs.push_back("--start-group");
+  }
   for (const string & libname : g_opt.link_libraries)
   {
     rargs.push_back("-l" + libname);
+  }
+  auto add_bundled_archive = [&](const char * name) -> bool
+  {
+    filesystem::path archive = filesystem::path(gcc_multilib_dir) / name;
+    error_code ec;
+    if (!filesystem::is_regular_file(archive, ec) || ec)
+    {
+      rerror = format("Bundled runtime archive is missing: \"{}\"", archive.string());
+      return false;
+    }
+    rargs.push_back(archive.string());
+    return true;
+  };
+  if ("newlib-nano" == c_runtime)
+  {
+    if (!add_bundled_archive("libc_nano.a") || !add_bundled_archive("libnosys.a")) return false;
+  }
+  if ("libgcc" == compiler_runtime)
+  {
+    if (!add_bundled_archive("libgcc.a")) return false;
+  }
+  if (g_opt.target.IsBare())
+  {
+    rargs.push_back("-Xlinker");
+    rargs.push_back("--end-group");
   }
 
   return true;

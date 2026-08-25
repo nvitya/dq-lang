@@ -107,22 +107,23 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     const char * triple;
     const char * cpu;
     const char * features;
+    const char * gcc_multilib;
     ETargetFloatAbi float_abi;
   };
 
   static const SArmBarePreset arm_bare_presets[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
-      "+vfp4d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+      "+vfp4d16sp,-fp64,-d32", "thumb/v7e-m+fp/hard", TARGET_FLOAT_ABI_HARD},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
-      "+fp-armv8d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+      "+fp-armv8d16sp,-fp64,-d32", "thumb/v8-m.main+fp/hard", TARGET_FLOAT_ABI_HARD},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
-      "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32", TARGET_FLOAT_ABI_HARD},
+      "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32", "thumb/v7e-m+dp/hard", TARGET_FLOAT_ABI_HARD},
   };
 
   for (const SArmBarePreset & preset : arm_bare_presets)
@@ -136,6 +137,7 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     llvm_triple = preset.triple;
     llvm_cpu = preset.cpu;
     llvm_features = preset.features;
+    gcc_multilib = preset.gcc_multilib;
     llvm_backend = "ARM";
     pointer_size = 4;
     platform = TARGET_PLATFORM_BARE;
@@ -227,4 +229,83 @@ vector<string> OCompOptions::DefaultPackagePaths() const
     result.push_back((filesystem::path(user_home) / ".dq" / "packages").lexically_normal().string());
   }
   return result;
+}
+
+bool OCompOptions::SetCompilerRuntime(const string & value, string & rerror)
+{
+  if (("libgcc" != value) && ("none" != value))
+  {
+    rerror = "compiler_runtime must be 'libgcc' or 'none'";
+    return false;
+  }
+  compiler_runtime = value;
+  return true;
+}
+
+bool OCompOptions::SetCRuntime(const string & value, string & rerror)
+{
+  if (("newlib-nano" != value) && ("none" != value))
+  {
+    rerror = "c_runtime must be 'newlib-nano' or 'none'";
+    return false;
+  }
+  c_runtime = value;
+  return true;
+}
+
+bool OCompOptions::ValidateRuntimeSettings(string & rerror) const
+{
+  if (!target.IsBare() && (!compiler_runtime.empty() || !c_runtime.empty()))
+  {
+    rerror = "compiler_runtime and c_runtime are supported only for bare targets";
+    return false;
+  }
+  return true;
+}
+
+string OCompOptions::EffectiveCompilerRuntime() const
+{
+  return (compiler_runtime.empty() && target.IsBare()) ? "libgcc" : compiler_runtime;
+}
+
+string OCompOptions::EffectiveCRuntime() const
+{
+  return (c_runtime.empty() && target.IsBare()) ? "newlib-nano" : c_runtime;
+}
+
+bool OCompOptions::ResolveGccMultilibDir(string & rpath, string & rerror) const
+{
+  if (target.gcc_multilib.empty())
+  {
+    rerror = "Target \"" + target.name + "\" has no GCC multilib mapping";
+    return false;
+  }
+
+  vector<filesystem::path> roots;
+  if (!compiler_executable_dir.empty())
+  {
+    filesystem::path bin_dir(compiler_executable_dir);
+    filesystem::path install_root = (bin_dir / "..").lexically_normal();
+    roots.push_back(install_root / "gcclibs");
+    roots.push_back(install_root / "lib" / "dq" / "gcclibs");
+  }
+  roots.push_back("/usr/lib/dq/gcclibs");
+#ifdef DQ_DEFAULT_GCCLIBS_DIR
+  roots.push_back(DQ_DEFAULT_GCCLIBS_DIR);
+#endif
+
+  error_code ec;
+  for (const filesystem::path & root : roots)
+  {
+    filesystem::path candidate = root / "arm-none-eabi" / "lib" / target.gcc_multilib;
+    ec.clear();
+    if (filesystem::is_directory(candidate, ec) && !ec)
+    {
+      rpath = candidate.lexically_normal().string();
+      return true;
+    }
+  }
+
+  rerror = "Can not find bundled GCC libraries for target \"" + target.name + "\"";
+  return false;
 }

@@ -498,6 +498,28 @@ bool ODqProjectFile::ParseProperty(const string & name)
     if (!ReadBool(bvalue)) return false;
     g_opt.link_mode = (bvalue ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY);
   }
+  else if ("compiler_runtime" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    string value;
+    if (!ReadExpandedString(value)) return false;
+    string runtime_error;
+    if (!g_opt.SetCompilerRuntime(value, runtime_error))
+    {
+      return Fail("ProjectValue", runtime_error, sp.prevptr);
+    }
+  }
+  else if ("c_runtime" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    string value;
+    if (!ReadExpandedString(value)) return false;
+    string runtime_error;
+    if (!g_opt.SetCRuntime(value, runtime_error))
+    {
+      return Fail("ProjectValue", runtime_error, sp.prevptr);
+    }
+  }
   else if ("linkobject"  == name)
   {
     if (!ReadPath(path)) return false;

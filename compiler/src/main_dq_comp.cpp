@@ -239,6 +239,13 @@ int main(int argc, char ** argv)
     return 1;
   }
 
+  string runtime_error;
+  if (!g_opt.ValidateRuntimeSettings(runtime_error))
+  {
+    print("{}\n", runtime_error);
+    return 1;
+  }
+
   dqc_init(); // creates the compiler object
 
   g_compiler->Run(argc, argv);

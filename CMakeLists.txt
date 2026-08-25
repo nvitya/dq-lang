@@ -63,6 +63,10 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
     PATTERN ".dqbuild" EXCLUDE
 )
 
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/gcclibs/"
+  DESTINATION lib/dq/gcclibs
+)
+
 set(DQ_GDB_SYSTEM_INIT_DIR "/etc/gdb/gdbinit.d" CACHE PATH
   "GDB system-wide initialization directory; empty disables auto-loading"
 )
@@ -140,6 +144,12 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys --link
           --linker-arg=--entry=_start
           -o "${DQ_BUILD_DIR}/arm_m7f_module_init.elf"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_module_init.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m0-bare --no-use-sys --link
+          --linker-arg=--entry=_start
+          --linker-arg=--undefined=memset
+          --linker-arg=--undefined=__aeabi_uidiv
+          -o "${DQ_BUILD_DIR}/arm_m0_bundled_runtimes.elf"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_module_init.dq"
   COMMAND "$<TARGET_FILE:dq-comp>" -o "${DQ_BUILD_DIR}/arm_m7f_project.o"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/arm_m7f.dqproj"

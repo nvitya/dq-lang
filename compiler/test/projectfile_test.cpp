@@ -61,19 +61,22 @@ int main()
     const char * triple;
     const char * cpu;
     const char * features;
+    const char * gcc_multilib;
     ETargetFloatAbi float_abi;
   };
   const STargetExpectation target_expectations[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
-      "-fpregs", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
-      "+vfp4d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+      "+vfp4d16sp,-fp64,-d32", "thumb/v7e-m+fp/hard", TARGET_FLOAT_ABI_HARD},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
-      "+fp-armv8d16sp,-fp64,-d32", TARGET_FLOAT_ABI_HARD},
+      "+fp-armv8d16sp,-fp64,-d32", "thumb/v8-m.main+fp/hard", TARGET_FLOAT_ABI_HARD},
+    {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
+      "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32", "thumb/v7e-m+dp/hard", TARGET_FLOAT_ABI_HARD},
   };
   for (const STargetExpectation & expected : target_expectations)
   {
@@ -85,6 +88,7 @@ int main()
     Expect(target.llvm_triple == expected.triple, string("target triple ") + expected.name);
     Expect(target.llvm_cpu == expected.cpu, string("target CPU ") + expected.name);
     Expect(target.llvm_features == expected.features, string("target features ") + expected.name);
+    Expect(target.gcc_multilib == expected.gcc_multilib, string("GCC multilib ") + expected.name);
     Expect(target.float_abi == expected.float_abi, string("target float ABI ") + expected.name);
     Expect(target.IsArm() && target.IsBare() && (target.pointer_size == 4),
            string("common ARM bare properties ") + expected.name);
@@ -111,6 +115,8 @@ var SDK = PackagePath('sdk')
 include '${SDK}/project/common.dqproj'
 main = '${PROJECT_DIR}/main.dq'; output = '${THIS_DIR}/out.elf'
 target = 'arm_m7f-bare'
+compiler_runtime = 'libgcc'
+c_runtime = 'newlib-nano'
 link = true
 optlevel = 2
 debuginfo = true
@@ -127,6 +133,8 @@ linkoption = '--gc-sections'
          && (g_opt.project_output_filename == fs::absolute(root / "out.elf").lexically_normal().string()),
          "output path");
   Expect(g_opt.target.name == "arm_m7f-bare", "target value");
+  Expect(g_opt.compiler_runtime == "libgcc", "compiler runtime value");
+  Expect(g_opt.c_runtime == "newlib-nano", "C runtime value");
   Expect(g_opt.link_mode == DQC_LINK_FORCE, "link value");
   Expect(g_opt.optlevel == 2, "optimization value");
   Expect(g_opt.dbg_info, "debug value");
@@ -185,6 +193,29 @@ main = '${SELECTED}/main.dq'
   WriteFile(root / "bad-optlevel.dqproj", "main='main.dq'\noptlevel=4\n");
   Expect(!LoadProject(project, root / "bad-optlevel.dqproj") && HasDiagnostic(project, "ProjectValue"),
          "invalid optimization diagnostic");
+
+  WriteFile(root / "bad-compiler-runtime.dqproj",
+            "main='main.dq'\ntarget='arm_m0-bare'\ncompiler_runtime='compiler-rt'\n");
+  Expect(!LoadProject(project, root / "bad-compiler-runtime.dqproj")
+             && HasDiagnostic(project, "ProjectValue"),
+         "invalid compiler runtime diagnostic");
+
+  WriteFile(root / "bad-c-runtime.dqproj",
+            "main='main.dq'\ntarget='arm_m0-bare'\nc_runtime='newlib'\n");
+  Expect(!LoadProject(project, root / "bad-c-runtime.dqproj")
+             && HasDiagnostic(project, "ProjectValue"),
+         "invalid C runtime diagnostic");
+
+  OCompOptions runtime_options;
+  string runtime_error;
+  Expect(runtime_options.target.Configure("arm_m0-bare", runtime_error), "runtime default target");
+  Expect(runtime_options.EffectiveCompilerRuntime() == "libgcc", "bare compiler runtime default");
+  Expect(runtime_options.EffectiveCRuntime() == "newlib-nano", "bare C runtime default");
+  Expect(runtime_options.ValidateRuntimeSettings(runtime_error), "bare runtime settings validation");
+
+  runtime_options.target.ConfigureHost();
+  Expect(runtime_options.SetCompilerRuntime("libgcc", runtime_error), "set hosted compiler runtime");
+  Expect(!runtime_options.ValidateRuntimeSettings(runtime_error), "hosted runtime setting rejection");
 
   WriteFile(root / "trailing.dqproj", "main='main.dq' extra\n");
   Expect(!LoadProject(project, root / "trailing.dqproj") && HasDiagnostic(project, "ProjectTrailingToken"),

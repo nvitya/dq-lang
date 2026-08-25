@@ -65,6 +65,7 @@ add_executable(dq-projectfile-test
 if(DQ_DEFAULT_LINK_DRIVER)
   target_compile_definitions(dq-comp PRIVATE DQ_DEFAULT_LINK_DRIVER="${DQ_DEFAULT_LINK_DRIVER}")
 endif()
+target_compile_definitions(dq-comp PRIVATE DQ_DEFAULT_GCCLIBS_DIR="${CMAKE_SOURCE_DIR}/gcclibs")
 
 # on exception I want to have a nice backtrace
 set_target_properties(dq-comp PROPERTIES ENABLE_EXPORTS ON)

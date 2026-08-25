@@ -129,7 +129,7 @@ if [[ -f "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll
   cp "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll" "$STAGE/bin/"
 fi
 
-copy_tracked_paths stdpkg examples autotest/tests
+copy_tracked_paths stdpkg gcclibs examples autotest/tests
 copy_vscode_extension
 cp "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp "$STAGE/toolchain/llvm-mingw/LICENSE.TXT" "$STAGE/doc/llvm-mingw-LICENSE.txt"
@@ -164,6 +164,7 @@ Included:
   bin/libunwind.dll
   toolchain/llvm-mingw/
   stdpkg/
+  gcclibs/
   examples/
   VSCode/
   autotest/tests/

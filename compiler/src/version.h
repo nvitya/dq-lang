@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.48.1"
+#define DQ_COMPILER_VERSION  "0.49.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.49.0:
+  - ARM libs now included (gcc 14.3.rel1) to the compiler
 v0.48.1:
   - Address-of supports constant expressions: const APB1ENR_REGISTER :? = %(RCC.APB1ENR)
 v0.48.0:

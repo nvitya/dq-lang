@@ -298,7 +298,7 @@ cp -p "$BUILD_DIR/dqatrun" "$STAGE/bin/"
 cp -p "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp -p "$ROOT_DIR/README.md" "$STAGE/README.md"
 
-copy_tracked_paths stdpkg examples docs autotest/tests mkdocs.yml
+copy_tracked_paths stdpkg gcclibs examples docs autotest/tests mkdocs.yml
 copy_vscode_extension
 
 if [[ "$FULL_RELEASE" == "1" ]]; then
@@ -344,6 +344,7 @@ Included:
   bin/dqatrun
 $(if [[ "$FULL_RELEASE" == "1" ]]; then printf "  toolchain/\n  dq-env.sh\n"; fi)
   stdpkg/
+  gcclibs/
   examples/
   docs/
   VSCode/

@@ -64,6 +64,7 @@ public:
   string llvm_cpu = "generic";
   string llvm_features;
   string llvm_backend = "native";
+  string gcc_multilib;
   uint32_t pointer_size = 8;
   ETargetPlatform platform = TARGET_PLATFORM_LINUX;
   ETargetFloatAbi float_abi = TARGET_FLOAT_ABI_DEFAULT;
@@ -126,6 +127,9 @@ public:
   vector<string>          link_objects;
   vector<string>          linker_args;
 
+  string          compiler_runtime;
+  string          c_runtime;
+
   // include dirs
   // module dirs
 
@@ -133,6 +137,12 @@ public:
 
   void InitializeCompilerExecutable(const string & argv0);
   vector<string> DefaultPackagePaths() const;
+  bool SetCompilerRuntime(const string & value, string & rerror);
+  bool SetCRuntime(const string & value, string & rerror);
+  bool ValidateRuntimeSettings(string & rerror) const;
+  string EffectiveCompilerRuntime() const;
+  string EffectiveCRuntime() const;
+  bool ResolveGccMultilibDir(string & rpath, string & rerror) const;
 
   bool ShouldLink(bool has_app_main) const
   {

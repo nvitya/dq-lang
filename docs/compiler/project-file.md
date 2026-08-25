@@ -25,8 +25,10 @@ var BOARD_SUPPORT = PackagePath('board_support')
 include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
 
 main      = 'src/application.dq'
-output    = 'build/${PROJNAME}.elf'
+output    = 'build/${PROJECT_NAME}.elf'
 target    = 'arm_m7f-bare'
+compiler_runtime = 'libgcc'
+c_runtime = 'newlib-nano'
 link      = true
 optlevel  = 2
 debuginfo = true
@@ -133,6 +135,8 @@ single-value properties are errors.
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
+| `compiler_runtime` | string | once, optional | Bare-target compiler support runtime: `libgcc` (default) or `none`. |
+| `c_runtime` | string | once, optional | Bare-target C runtime: `newlib-nano` (default) or `none`. |
 | `linkobject` | path string | repeatable | Add an existing object or other positional linker input. |
 | `linkerpath` | path string | repeatable | Pass `--library-path=<path>` to the linker. |
 | `linkoption` | string | repeatable | Pass one argument directly to the linker. |
@@ -159,6 +163,27 @@ Without a `link` property, the compiler retains its automatic link mode:
 `link = true` is equivalent to explicitly selecting `--link`. It can force a
 bare target to link an ELF image. `link = false` is equivalent to `-c` and
 always requests compile-only output.
+
+### Bare-Metal Runtimes
+
+For supported bare-metal targets, the compiler selects bundled libraries that
+match the target CPU and floating-point ABI. The defaults are equivalent to:
+
+```text
+compiler_runtime = 'libgcc'
+c_runtime = 'newlib-nano'
+```
+
+`compiler_runtime` supplies compiler-generated ABI helper routines.
+`c_runtime` supplies Newlib Nano and its no-system fallback stubs, and makes the
+matching bundled math library available to `#linklib('m')`. Static archive
+members are included only when referenced. Board or application implementations
+override the fallback stubs and must provide functional system calls where the
+application requires them.
+
+Either property may be set to `none` when the application supplies that part
+of the runtime explicitly. These properties are rejected for hosted targets,
+whose runtime libraries continue to be selected by the system linker driver.
 
 ### Defines
 

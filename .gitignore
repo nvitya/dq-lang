@@ -54,6 +54,9 @@ __pycache__
 *.a
 *.lib
 
+# Bundled target runtime archives are intentional source assets.
+!gcclibs/**/*.a
+
 # Executables
 *.exe
 *.out

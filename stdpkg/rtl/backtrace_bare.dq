@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/backtrace_bare.dq
+ * authors: nvitya
+ * created: 2026-08-26
+ * brief:   Backtrace capturing helpers for Bare-metal
+ */
+
+function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
+function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
+
+implementation
+
+use rtl/rtlint
+
+function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
+    result = 0
+endfunc
+
+function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
+    return false
+endfunc

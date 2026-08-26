@@ -20,7 +20,9 @@ function DqPrintBacktrace(backtrace : pointer, backtrace_count : int)
 
 implementation
 
-#ifdef WINDOWS
+#ifdef BARE
+    use rtl/backtrace_bare
+#elifdef WINDOWS
     use rtl/backtrace_win
 #else
     use rtl/backtrace_linux

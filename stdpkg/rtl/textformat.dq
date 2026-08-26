@@ -70,6 +70,8 @@ object OTextSink:
     endfunc
 endobj
 
+#ifndef BARE
+
 object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
@@ -77,6 +79,8 @@ object OTextSinkStdOut(OTextSink):
     function Write(atext : strview) [[override]]
     function WriteChar(ch : char)   [[override]]
 endobj
+
+#endif    
 
 object OTextSinkCString(OTextSink):
     dest : cstring
@@ -147,11 +151,9 @@ implementation
 
 use rtl/strfunc
 
-use libc/stdio
-
-function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
-function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+#ifndef BARE
+  use libc/stdio
+#endif
 
 // -----------------------------------------------------------------------------
 // Low-level conversion hooks
@@ -170,6 +172,12 @@ endfunc
 
 //-------------------------------------------------------------------------------------------------
 
+#ifndef BARE
+
+function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+
 function OTextSinkStdOut.*Create():
     inherited Create()
     pstdout = @stdio.DqLibcStdout()
@@ -182,6 +190,8 @@ endfunc
 function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
     @.libc_fputc(Ord(ch), pstdout)
 endfunc
+
+#endif
 
 function OTextSinkCString.*Create(adest : cstring):
     inherited Create()

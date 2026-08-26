@@ -55,8 +55,11 @@ function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, 
 
 implementation
 
-use libc/stdio
 use rtl/backtrace
+
+#ifndef BARE
+    use libc/stdio
+#endif
 
 function DqExcAddRef(e : Exception)
 function DqExcRelease(e : Exception)
@@ -84,12 +87,14 @@ function Exception.CaptureBacktrace():
 endfunc
 
 function Exception.PrintMessage():
+  #ifndef BARE
     var view : strview = message
     var i : uint32 = 0
     while i < uint32(view.length):
         @.printf("%c", Ord(view[i]))
         i += 1
     endwhile
+  #endif    
 endfunc
 
 function Exception.PrintBacktrace():
@@ -210,9 +215,11 @@ endfunc
 
 
 function DqExcPrintTypeName():
+  #ifndef BARE
     if active_exception <> null:
         printf("%s", TypeName(active_exception))
     else:
         printf("Exception")
     endif
+  #endif
 endfunc

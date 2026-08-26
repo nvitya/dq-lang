@@ -174,7 +174,8 @@ compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 ```
 
-`compiler_runtime` supplies compiler-generated ABI helper routines.
+`compiler_runtime` supplies compiler-generated ABI helper routines, the C++
+exception ABI support used by DQ exceptions, and the target unwinder.
 `c_runtime` supplies Newlib Nano and its no-system fallback stubs, and makes the
 matching bundled math library available to `#linklib('m')`. Static archive
 members are included only when referenced. Board or application implementations

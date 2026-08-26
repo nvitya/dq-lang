@@ -382,7 +382,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   }
   if ("libgcc" == compiler_runtime)
   {
-    if (!add_bundled_archive("libgcc.a")) return false;
+    if (!add_bundled_archive("libsupc++_nano.a") || !add_bundled_archive("libgcc.a")) return false;
   }
   if (g_opt.target.IsBare())
   {

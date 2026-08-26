@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.50.1"
+#define DQ_COMPILER_VERSION  "0.50.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.50.2:
+  - Exception handling preparation for bare-metal
 v0.50.1:
   - Empty backtrace for bare-metal
 v0.50.0:

@@ -964,7 +964,7 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
   } closer_pusher(expected_block_closers, block_closer);
 
   bool endfound = false;
-  while (not scf->Eof())
+  while (not scf->Eof() && !fatal_error)
   {
     scf->SkipWhite();
 

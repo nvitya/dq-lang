@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.49.1"
+#define DQ_COMPILER_VERSION  "0.50.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.50.0:
+  - Compiler fixed to handle 32-bit/64-bit platforms better
 v0.49.1:
   - Unnamed [[external]] global variables use their unmangled declaration name
 v0.49.0:

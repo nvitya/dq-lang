@@ -88,13 +88,18 @@ void ODqCompiler::PrintModuleArtifactError(const OModulePath & module_path,
         module_path.module_id, module_path.source_path.string(), result.reason);
 }
 
-bool ODqCompiler::EnsureCompiledModuleArtifact(const OModulePath & module_path) const
+bool ODqCompiler::EnsureCompiledModuleArtifact(const OModulePath & module_path)
 {
   OModuleIntf artifact_intf(g_builtins, module_path.module_id);
   SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshCompiledArtifact(module_path);
   if (!result.Ok())
   {
     PrintModuleArtifactError(module_path, result);
+    if (!fatal_error)
+    {
+      ++errorcnt;
+      fatal_error = true;
+    }
     return false;
   }
 
@@ -105,6 +110,11 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
                                  OScope * merge_scope, bool is_private,
                                  EModuleUseMergeMode merge_mode)
 {
+  if (fatal_error)
+  {
+    return false;
+  }
+
   OModulePath module_path;
   string path_error;
   if (!ResolveModuleForMainSource(module_name, module_path, path_error))
@@ -127,6 +137,8 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
     if (!result.Ok())
     {
       PrintModuleArtifactError(module_path, result);
+      ++errorcnt;
+      fatal_error = true;
       return false;
     }
 

@@ -13,7 +13,6 @@
 
 #include <vector>
 #include "dqc_ast.h"
-#include <limits>
 #include "otype_cstring.h"
 #include "otype_string.h"
 #include "scope_builtins.h"
@@ -49,6 +48,11 @@ static LlValue * LlU32(uint32_t value)
 static LlValue * LlNativeInt(uint64_t value)
 {
   return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
+}
+
+static LlType * LlNativeIntType()
+{
+  return g_builtins->type_int->GetLlType();
 }
 
 
@@ -213,7 +217,7 @@ LlValue * GenerateCStringDataPtr(OScope * scope, OTypeCString * cstrtype, LlValu
   (void)scope;
   if (cstrtype->maxlen > 0)
   {
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_zero = LlNativeInt(0);
     return ll_builder.CreateGEP(cstrtype->GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
   }
 
@@ -308,7 +312,7 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
   if (!srctype)
   {
     rsrcptr = srcexpr->Generate(scope);
-    rsrclimit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), numeric_limits<uint64_t>::max());
+    rsrclimit = llvm::ConstantInt::getSigned(LlNativeIntType(), -1);
     return;
   }
 
@@ -327,21 +331,21 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
       ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);
     }
 
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_zero = LlNativeInt(0);
     rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "cstr.src.ptr");
-    rsrclimit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), srctype->maxlen);
+    rsrclimit = LlNativeInt(srctype->maxlen);
     return;
   }
 
   LlValue * ll_desc = srcexpr->Generate(scope);
   rsrcptr = ll_builder.CreateExtractValue(ll_desc, {0}, "cstr.src.ptr");
-  rsrclimit = ll_builder.CreateExtractValue(ll_desc, {1}, "cstr.src.size");
+  rsrclimit = ToNativeInt(ll_builder.CreateExtractValue(ll_desc, {1}, "cstr.src.size"));
 }
 
 static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCString * dsttype, OExpr * srcexpr)
 {
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-  LlValue * ll_one = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1);
+  LlValue * ll_zero = LlNativeInt(0);
+  LlValue * ll_one = LlNativeInt(1);
   LlValue * ll_i8_zero = llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 0);
   LlValue * ll_dstptr = ll_builder.CreateGEP(dsttype->GetLlType(), dstdaddr, {ll_zero, ll_zero}, "cstr.dst.ptr");
 
@@ -363,12 +367,12 @@ static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCStrin
   LlBasicBlock * store_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.store", ll_func);
   LlBasicBlock * end_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.end", ll_func);
 
-  LlValue * ll_copy_limit = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), dsttype->maxlen - 1);
+  LlValue * ll_copy_limit = LlNativeInt(dsttype->maxlen - 1);
 
   ll_builder.CreateBr(cond_bb);
 
   ll_builder.SetInsertPoint(cond_bb);
-  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlType::getInt64Ty(ll_ctx), 2, "cstr.copy.i");
+  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlNativeIntType(), 2, "cstr.copy.i");
   ll_i->addIncoming(ll_zero, entry_bb);
   LlValue * ll_dst_room = ll_builder.CreateICmpULT(ll_i, ll_copy_limit, "cstr.copy.dst_room");
   LlValue * ll_src_room = ll_builder.CreateICmpULT(ll_i, ll_srclimit, "cstr.copy.src_room");
@@ -389,7 +393,7 @@ static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCStrin
   ll_builder.CreateBr(cond_bb);
 
   ll_builder.SetInsertPoint(end_bb);
-  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlType::getInt64Ty(ll_ctx), 2, "cstr.term.i");
+  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlNativeIntType(), 2, "cstr.term.i");
   ll_term_index->addIncoming(ll_i, cond_bb);
   ll_term_index->addIncoming(ll_i, load_bb);
   LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_term_index}, "cstr.dst.null");

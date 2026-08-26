@@ -71,7 +71,7 @@ public:
 };
 
 // Array slice / descriptor type, e.g. []int
-// LLVM representation: {ptr, i64}
+// LLVM representation: {ptr, target-native uint}
 // Used for function parameters that accept arrays of any size
 
 class OTypeArraySlice : public OType

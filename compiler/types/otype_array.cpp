@@ -68,7 +68,7 @@ static LlValue * ToNativeUInt(LlValue * value)
   unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
   if (srcbits < dstbits)
   {
-    return ll_builder.CreateSExt(value, dst, "u.ext");
+    return ll_builder.CreateZExt(value, dst, "u.ext");
   }
   if (srcbits > dstbits)
   {
@@ -178,8 +178,8 @@ static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
     {
       for (uint32_t i = 0; i < arrtype->arraylength; ++i)
       {
-        LlValue * idx = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), i);
-        LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+        LlValue * idx = LlConstUInt(i);
+        LlValue * ll_zero = LlZero();
         LlValue * ll_field_addr = ll_builder.CreateGEP(arrtype->GetLlType(), elem_addr, {ll_zero, idx}, "arr.elem.addr");
         GenerateElementDestructor(arrtype->elemtype, ll_field_addr);
       }
@@ -249,8 +249,8 @@ static void GenerateElementCopyRefs(OType * elemtype, LlValue * elem_addr)
     {
       for (uint32_t i = 0; i < arrtype->arraylength; ++i)
       {
-        LlValue * idx = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), i);
-        LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+        LlValue * idx = LlConstUInt(i);
+        LlValue * ll_zero = LlZero();
         LlValue * ll_field_addr = ll_builder.CreateGEP(arrtype->GetLlType(), elem_addr, {ll_zero, idx}, "arr.elem.copy.addr");
         GenerateElementCopyRefs(arrtype->elemtype, ll_field_addr);
       }
@@ -548,13 +548,13 @@ LlDiType * OTypeArray::CreateDiType()
   );
 }
 
-// OTypeArraySlice -- Array descriptor {ptr, i64}
+// OTypeArraySlice -- Array descriptor {ptr, target-native uint}
 
 LlType * OTypeArraySlice::CreateLlType()
 {
   vector<LlType *> fields = {
     llvm::PointerType::get(ll_ctx, 0),
-    LlType::getInt64Ty(ll_ctx)
+    LlNativeUIntType()
   };
   return llvm::StructType::get(ll_ctx, fields);
 }
@@ -563,14 +563,16 @@ LlDiType * OTypeArraySlice::CreateDiType()
 {
   // For debug info, represent as a struct with pointer and length fields
   LlDiType * ptr_di = di_builder->createPointerType(elemtype->GetDiType(), TARGET_PTRSIZE * 8);
-  LlDiType * len_di = di_builder->createBasicType("uint64", 64, llvm::dwarf::DW_ATE_unsigned);
+  unsigned native_bits = TARGET_PTRSIZE * 8;
+  LlDiType * len_di = di_builder->createBasicType(
+      format("uint{}", native_bits), native_bits, llvm::dwarf::DW_ATE_unsigned);
 
   llvm::Metadata * elements[] = {
     di_builder->createMemberType(
         nullptr, "ptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
         0, llvm::DINode::FlagZero, ptr_di),
     di_builder->createMemberType(
-        nullptr, "len", nullptr, 0, 64, 0,
+        nullptr, "len", nullptr, 0, native_bits, 0,
         TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, len_di)
   };
 

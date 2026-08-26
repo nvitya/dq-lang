@@ -141,6 +141,10 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_pointer_const.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare
+          --build-root "${DQ_BUILD_DIR}/arm_m7f_native_collections_build" -c
+          -o "${DQ_BUILD_DIR}/arm_m7f_native_collections.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_native_collections.dq"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys --link
           --linker-arg=--entry=_start
           -o "${DQ_BUILD_DIR}/arm_m7f_module_init.elf"

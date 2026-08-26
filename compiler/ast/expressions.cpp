@@ -27,6 +27,16 @@
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
 
+static LlType * LlNativeIntType()
+{
+  return g_builtins->type_int->GetLlType();
+}
+
+static LlValue * LlNativeIntConst(int64_t value)
+{
+  return llvm::ConstantInt::get(LlNativeIntType(), value);
+}
+
 static bool IsPointerDifferenceExpr(EBinOp op, OExpr * left, OExpr * right)
 {
   OType * ltype = left ? left->ResolvedType() : nullptr;
@@ -586,20 +596,21 @@ void OLValueMember::DeleteChildTree()
 
 static LlValue * NormalizeIndexValue(LlValue * index, LlValue * len)
 {
-  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
-  if (index->getType()->isIntegerTy() && index->getType() != ll_i64)
+  LlType * native_int = LlNativeIntType();
+  if (index->getType()->isIntegerTy() && index->getType() != native_int)
   {
     unsigned srcbits = index->getType()->getIntegerBitWidth();
-    if (srcbits < 64)
+    unsigned dstbits = native_int->getIntegerBitWidth();
+    if (srcbits < dstbits)
     {
-      index = ll_builder.CreateSExt(index, ll_i64);
+      index = ll_builder.CreateSExt(index, native_int);
     }
-    else if (srcbits > 64)
+    else if (srcbits > dstbits)
     {
-      index = ll_builder.CreateTrunc(index, ll_i64);
+      index = ll_builder.CreateTrunc(index, native_int);
     }
   }
-  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  LlValue * zero = LlNativeIntConst(0);
   //TODO: change behaviour: negative index is invalid (runtime error)
   LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "idx.neg");
   return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "idx.from_end"), index, "idx.norm");
@@ -613,9 +624,9 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   {
     // Fixed array: GEP with {0, index} into [N x T]
     OTypeArray * arrtype = static_cast<OTypeArray *>(containertype);
-    ll_index = NormalizeIndexValue(ll_index, llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength));
+    ll_index = NormalizeIndexValue(ll_index, LlNativeIntConst(arrtype->arraylength));
     LlValue * baseaddr = base->GenerateAddress(scope);
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_zero = LlNativeIntConst(0);
     return ll_builder.CreateGEP(
         containertype->GetLlType(), baseaddr,
         {ll_zero, ll_index}, "arr.elem");
@@ -626,7 +637,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     LlValue * baseaddr = base->GenerateAddress(scope);
     LlType * ll_slicetype = containertype->GetLlType();
     LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
-    LlValue * ll_len = ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+    LlValue * ll_len = ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
     ll_index = NormalizeIndexValue(ll_index, ll_len);
     LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 0, "slice.ptr.addr");
     LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "slice.ptr");
@@ -644,7 +655,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     {
       // Sized cstring(N): GEP into [N + 1 x i8] with {0, index}
       LlValue * baseaddr = base->GenerateAddress(scope);
-      LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+      LlValue * ll_zero = LlNativeIntConst(0);
       return ll_builder.CreateGEP(
           cstrtype->GetLlType(), baseaddr,
           {ll_zero, ll_index}, "cstr.elem");
@@ -774,8 +785,8 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
   {
     auto * arrtype = static_cast<OTypeArray *>(containertype);
     elemtype = arrtype->elemtype;
-    len = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
-    LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    len = LlNativeIntConst(arrtype->arraylength);
+    LlValue * zero = LlNativeIntConst(0);
     data_ptr = ll_builder.CreateGEP(containertype->GetLlType(), baseaddr, {zero, zero}, "arr.slice.ptr");
   }
   else if (TK_ARRAY_SLICE == containertype->kind)
@@ -785,10 +796,10 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
     LlValue * ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 0, "slice.ptr.addr");
     data_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ptr_addr, "slice.ptr");
     LlValue * len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
-    len = ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), len_addr, "slice.len");
+    len = ll_builder.CreateLoad(LlNativeIntType(), len_addr, "slice.len");
   }
 
-  LlValue * zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * zero = LlNativeIntConst(0);
 
   LlValue * start = (startexpr ? startexpr->Generate(scope) : zero);
   LlValue * end   = (endexpr   ? endexpr->Generate(scope) : len);
@@ -1354,7 +1365,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     LlValue * baseaddr = lval->GenerateAddress(scope);
     LlType * ll_slicetype = rtype->GetLlType();
     LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
-    return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+    return ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
   };
 
   if ((COMPOP_EQ == op || COMPOP_NE == op)
@@ -1371,7 +1382,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     {
       throw logic_error("array empty comparison requires an array-like lvalue");
     }
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+    LlValue * ll_zero = LlNativeIntConst(0);
     LlValue * ll_eq = ll_builder.CreateICmpEQ(ll_len, ll_zero);
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
@@ -2116,16 +2127,16 @@ LlValue * OArrayToSliceExpr::Generate(OScope * scope)
   OTypeArray * arrtype = static_cast<OTypeArray *>(arrayexpr->ptype->ResolveAlias());
 
   // Get pointer to first element of the fixed array
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * arrayaddr = arrayexpr->GenerateAddress(scope);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
 
-  // Build the slice struct {ptr, i64}
+  // Build the slice struct {ptr, target-native uint}
   LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
   ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
   ll_slice = ll_builder.CreateInsertValue(ll_slice,
-      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength),
+      LlNativeIntConst(arrtype->arraylength),
       1, "slice.len");
   return ll_slice;
 }
@@ -2156,14 +2167,14 @@ LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
   LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
   ll_builder.CreateStore(ll_arr, arraddr);
 
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
 
   LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
   ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
   ll_slice = ll_builder.CreateInsertValue(ll_slice,
-      llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength),
+      LlNativeIntConst(arrtype->arraylength),
       1, "slice.len");
   return ll_slice;
 }
@@ -2199,11 +2210,11 @@ LlValue * OArrayLitToDynArrayExpr::Generate(OScope * scope)
   LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
   ll_builder.CreateStore(ll_arr, arraddr);
 
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
 
-  LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+  LlValue * ll_count = LlNativeIntConst(arrtype->arraylength);
   GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
@@ -2238,11 +2249,11 @@ LlValue * OArrayToDynArrayExpr::Generate(OScope * scope)
 
   LlValue * arrayaddr = arrayexpr->GenerateAddress(scope);
 
-  LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
+  LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
       arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
 
-  LlValue * ll_count = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), arrtype->arraylength);
+  LlValue * ll_count = LlNativeIntConst(arrtype->arraylength);
   GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
@@ -2345,7 +2356,7 @@ LlValue * OArrayMetaFieldExpr::Generate(OScope * scope)
       LlValue * baseaddr = target->GenerateAddress(scope);
       LlType * ll_slicetype = resolved->GetLlType();
       LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
-      return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+      return ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
     }
   }
   else if (TK_DYN_ARRAY == resolved->kind)
@@ -2393,7 +2404,7 @@ LlValue * OSliceLengthExpr::Generate(OScope * scope)
   // Use StructGEP to access the length field (index 1) of the slice struct
   LlType * ll_slicetype = slicevalsym->ptype->GetLlType();
   LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, slicevalsym->ll_value, 1, "slice.len.addr");
-  return ll_builder.CreateLoad(LlType::getInt64Ty(ll_ctx), ll_len_addr, "slice.len");
+  return ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
 }
 
 /* ctor */ ODynArrayLengthExpr::ODynArrayLengthExpr(OValSym * adyn)

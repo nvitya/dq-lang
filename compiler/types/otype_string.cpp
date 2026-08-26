@@ -87,24 +87,25 @@ static LlValue * ToU32(LlValue * value)
 
 static LlValue * NormalizeTextIndexValue(LlValue * index, LlValue * len)
 {
-  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
-  if (index->getType() != ll_i64)
+  LlType * native_int = g_builtins->type_int->GetLlType();
+  if (index->getType() != native_int)
   {
     if (!index->getType()->isIntegerTy())
     {
       throw logic_error("Text index must be an integer value");
     }
     unsigned srcbits = index->getType()->getIntegerBitWidth();
-    if (srcbits < 64)
+    unsigned dstbits = native_int->getIntegerBitWidth();
+    if (srcbits < dstbits)
     {
-      index = ll_builder.CreateSExt(index, ll_i64);
+      index = ll_builder.CreateSExt(index, native_int);
     }
-    else if (srcbits > 64)
+    else if (srcbits > dstbits)
     {
-      index = ll_builder.CreateTrunc(index, ll_i64);
+      index = ll_builder.CreateTrunc(index, native_int);
     }
   }
-  LlValue * zero = llvm::ConstantInt::get(ll_i64, 0);
+  LlValue * zero = llvm::ConstantInt::get(native_int, 0);
   LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "str.idx.neg");
   return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "str.idx.from_end"), index, "str.idx.norm");
 }

@@ -445,7 +445,7 @@ void ODqCompParser::ParseModule()
   cur_mod_scope = g_module->scope_pub;
   curscope = cur_mod_scope;
 
-  while (not scf->Eof())
+  while (not scf->Eof() && !fatal_error)
   {
     scf->SkipWhite(); // jumps to the first normal token
     if (scf->Eof())
@@ -542,7 +542,7 @@ void ODqCompParser::ParseModule()
     }
   }
 
-  if (!g_opt.ifgen)
+  if (!g_opt.ifgen && !fatal_error)
   {
     g_module->FinalizeModuleInitFunc();
     ValidateModuleForwardFuncDecls(g_module);
@@ -823,6 +823,7 @@ void ODqCompParser::ParseUseStatement()
       else
       {
         Error(DQERR_USE_REGEN_FAILED, module_path, source_path.string(), result.reason, &scpos_statement_start);
+        fatal_error = true;
       }
     };
 

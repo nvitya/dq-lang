@@ -37,7 +37,7 @@ public:
                                   OModulePath & rpath, string & rerror) const;
   void PrintModuleArtifactError(const OModulePath & module_path,
                                 const SModuleArtifactEnsureResult & result) const;
-  bool EnsureCompiledModuleArtifact(const OModulePath & module_path) const;
+  bool EnsureCompiledModuleArtifact(const OModulePath & module_path);
   bool AddImplicitUse(const string & module_name, const string & namespace_name,
                       OScope * merge_scope, bool is_private,
                       EModuleUseMergeMode merge_mode);

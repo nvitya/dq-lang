@@ -37,6 +37,7 @@ public:
   int              errorcnt = 0;
   int              warncnt = 0;
   int              hintcnt = 0;
+  bool             fatal_error = false;  // unrecoverable dependency/toolchain failure
   bool             suppress_errors = false;
   bool             suppress_warnings = false;
 

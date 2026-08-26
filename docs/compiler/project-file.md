@@ -41,6 +41,11 @@ linkobject = '${BOARD_SUPPORT}/lib/startup.o'
 linkoption = '--gc-sections'
 ```
 
+`arm_m7f-bare` selects the Cortex-M7 single-precision FPU and makes `float`
+32-bit. Use `arm_m7fd-bare` for Cortex-M7 devices with a double-precision FPU;
+on that target `float` is 64-bit. The explicit `float32` and `float64` types do
+not change with the target.
+
 An included fragment might contain the shared target and linker configuration:
 
 ```text

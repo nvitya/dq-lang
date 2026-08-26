@@ -228,8 +228,8 @@ may follow.
 Typed inline assembly is supported for these target identifiers:
 
 - x86-64: `x86_64`;
-- ARM: `arm_m0`, `arm_m3`, `arm_m4`, `arm_m4f`, `arm_m33`, `arm_m7f`, `arm`,
-  and ARM-A identifiers beginning with `arm_a`;
+- ARM: `arm_m0`, `arm_m3`, `arm_m4`, `arm_m4f`, `arm_m33`, `arm_m7f`,
+  `arm_m7fd`, `arm`, and ARM-A identifiers beginning with `arm_a`;
 - AArch64: `aarch64`, `arm64`;
 - RISC-V 32-bit: `riscv32`, `rv32i`;
 - RISC-V 64-bit: `riscv64`, `rv64g`.

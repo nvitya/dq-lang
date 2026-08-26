@@ -63,9 +63,11 @@ public:
   string llvm_triple;
   string llvm_cpu = "generic";
   string llvm_features;
+  string clang_fpu;
   string llvm_backend = "native";
   string gcc_multilib;
   uint32_t pointer_size = 8;
+  uint8_t default_float_bits = 64;
   ETargetPlatform platform = TARGET_PLATFORM_LINUX;
   ETargetFloatAbi float_abi = TARGET_FLOAT_ABI_DEFAULT;
 

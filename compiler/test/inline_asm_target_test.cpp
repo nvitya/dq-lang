@@ -48,7 +48,7 @@ int main()
 {
   CheckTarget("x86_64", INLINE_ASM_DIALECT_INTEL, "r", "x");
   for (string_view arch : {"arm_m0", "arm_m3", "arm_m4", "arm_m4f", "arm_m33",
-                           "arm_m33f", "arm_m7f", "arm", "arm_a7", "arm_a9"})
+                           "arm_m33f", "arm_m7f", "arm_m7fd", "arm", "arm_a7", "arm_a9"})
   {
     CheckTarget(arch, INLINE_ASM_DIALECT_NATIVE, "r", "w");
   }

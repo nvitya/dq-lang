@@ -574,6 +574,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 string OModuleIntf::DqmIfBuildOptions() const
 {
   string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=2;module=" + name;
+  result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
 

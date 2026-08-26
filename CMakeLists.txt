@@ -99,6 +99,7 @@ set(DQ_ARM_BARE_COMPILE_TARGETS
   arm_m4-bare
   arm_m4f-bare
   arm_m33f-bare
+  arm_m7fd-bare
 )
 set(DQ_ARM_TARGET_TEST_COMMANDS)
 foreach(DQ_ARM_TARGET IN LISTS DQ_ARM_BARE_COMPILE_TARGETS)
@@ -141,6 +142,12 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_pointer_const.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
+          -o "${DQ_BUILD_DIR}/arm_m7f_float_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_float_default.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7fd-bare --no-use-sys -c
+          -o "${DQ_BUILD_DIR}/arm_m7fd_float_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_float_default.dq"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare
           --build-root "${DQ_BUILD_DIR}/arm_m7f_native_collections_build" -c
           -o "${DQ_BUILD_DIR}/arm_m7f_native_collections.o"

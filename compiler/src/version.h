@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.50.4"
+#define DQ_COMPILER_VERSION  "0.50.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.50.5:
+  - added the arm_m7fd-bare double-precision FPU target
+  - plain float defaults to float32 on single-precision FPU targets
 v0.50.4:
   - function-sections and data-sections are activated by default for smaller non-lto executables
 v0.50.3:

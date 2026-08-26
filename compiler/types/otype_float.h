@@ -77,7 +77,7 @@ public:
 
   LlDiType * CreateDiType() override
   {
-    return di_builder->createBasicType("float", 64, llvm::dwarf::DW_ATE_float);
+    return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_float);
   }
 
   LlValue *  GenerateConversion(OScope * scope, OExpr * src)  override;

@@ -107,23 +107,31 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     const char * triple;
     const char * cpu;
     const char * features;
+    const char * clang_fpu;
     const char * gcc_multilib;
     ETargetFloatAbi float_abi;
+    uint8_t default_float_bits;
   };
 
   static const SArmBarePreset arm_bare_presets[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
-      "-fpregs", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
-      "-fpregs", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
-      "-fpregs", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT},
+      "-fpregs", "", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
-      "+vfp4d16sp,-fp64,-d32", "thumb/v7e-m+fp/hard", TARGET_FLOAT_ABI_HARD},
+      "+vfp4d16sp,-fp64,-d32", "fpv4-sp-d16", "thumb/v7e-m+fp/hard",
+      TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
-      "+fp-armv8d16sp,-fp64,-d32", "thumb/v8-m.main+fp/hard", TARGET_FLOAT_ABI_HARD},
+      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v8-m.main+fp/hard",
+      TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
-      "+fp-armv8d16,+fp-armv8d16sp,+fp64,-d32", "thumb/v7e-m+dp/hard", TARGET_FLOAT_ABI_HARD},
+      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
+      TARGET_FLOAT_ABI_HARD, 32},
+    {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-none-eabihf", "cortex-m7",
+      "+fp-armv8d16,+fp64,-d32", "fpv5-d16", "thumb/v7e-m+dp/hard",
+      TARGET_FLOAT_ABI_HARD, 64},
   };
 
   for (const SArmBarePreset & preset : arm_bare_presets)
@@ -137,11 +145,13 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     llvm_triple = preset.triple;
     llvm_cpu = preset.cpu;
     llvm_features = preset.features;
+    clang_fpu = preset.clang_fpu;
     gcc_multilib = preset.gcc_multilib;
     llvm_backend = "ARM";
     pointer_size = 4;
     platform = TARGET_PLATFORM_BARE;
     float_abi = preset.float_abi;
+    default_float_bits = preset.default_float_bits;
     return true;
   }
 

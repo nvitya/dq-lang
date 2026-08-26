@@ -61,24 +61,16 @@ static LlValue * ToNativeUInt(LlValue * value)
   return value;
 }
 
-static LlValue * ToFloat32(LlValue * value)
+static LlValue * ToFloat(LlValue * value, OTypeFloat * target)
 {
-  LlType * dst = g_builtins->type_float32->GetLlType();
+  LlType * dst = target->GetLlType();
   if (value->getType() == dst)
   {
     return value;
   }
-  return ll_builder.CreateFPTrunc(value, dst, "any.f32");
-}
-
-static LlValue * ToFloat64(LlValue * value)
-{
-  LlType * dst = g_builtins->type_float64->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  return ll_builder.CreateFPExt(value, dst, "any.f64");
+  return (target->bitlength <= 32)
+      ? ll_builder.CreateFPTrunc(value, dst, "any.f32")
+      : ll_builder.CreateFPExt(value, dst, "any.f64");
 }
 
 
@@ -278,11 +270,13 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     auto * floattype = static_cast<OTypeFloat *>(srctype);
     if (floattype->bitlength <= 32)
     {
-      CallAnyValueFunc(scope, "AnyValSetFloat32", {targetaddr, ToFloat32(value->Generate(scope))});
+      LlValue * converted = ToFloat(value->Generate(scope), g_builtins->type_float32);
+      CallAnyValueFunc(scope, "AnyValSetFloat32", {targetaddr, converted});
     }
     else
     {
-      CallAnyValueFunc(scope, "AnyValSetFloat64", {targetaddr, ToFloat64(value->Generate(scope))});
+      LlValue * converted = ToFloat(value->Generate(scope), g_builtins->type_float64);
+      CallAnyValueFunc(scope, "AnyValSetFloat64", {targetaddr, converted});
     }
     return true;
   }
@@ -337,12 +331,27 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_IS_FLOAT:   return CallAnyValueFunc(scope, "AnyValIsFloat", {addr});
     case AVM_IS_FLOAT32: return CallAnyValueFunc(scope, "AnyValIsFloat32", {addr});
     case AVM_IS_FLOAT64: return CallAnyValueFunc(scope, "AnyValIsFloat64", {addr});
-    case AVM_AS_FLOAT:   return CallAnyValueFunc(scope, "AnyValAsFloat", {addr, ToFloat64(args[0]->Generate(scope))});
-    case AVM_AS_FLOAT32: return CallAnyValueFunc(scope, "AnyValAsFloat32", {addr, ToFloat32(args[0]->Generate(scope))});
-    case AVM_AS_FLOAT64: return CallAnyValueFunc(scope, "AnyValAsFloat64", {addr, ToFloat64(args[0]->Generate(scope))});
-    case AVM_SET_FLOAT:  CallAnyValueFunc(scope, "AnyValSetFloat", {addr, ToFloat64(args[0]->Generate(scope))}); return nullptr;
-    case AVM_SET_FLOAT32: CallAnyValueFunc(scope, "AnyValSetFloat32", {addr, ToFloat32(args[0]->Generate(scope))}); return nullptr;
-    case AVM_SET_FLOAT64: CallAnyValueFunc(scope, "AnyValSetFloat64", {addr, ToFloat64(args[0]->Generate(scope))}); return nullptr;
+    case AVM_AS_FLOAT:
+      return CallAnyValueFunc(scope, "AnyValAsFloat",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float)});
+    case AVM_AS_FLOAT32:
+      return CallAnyValueFunc(scope, "AnyValAsFloat32",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float32)});
+    case AVM_AS_FLOAT64:
+      return CallAnyValueFunc(scope, "AnyValAsFloat64",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float64)});
+    case AVM_SET_FLOAT:
+      CallAnyValueFunc(scope, "AnyValSetFloat",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float)});
+      return nullptr;
+    case AVM_SET_FLOAT32:
+      CallAnyValueFunc(scope, "AnyValSetFloat32",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float32)});
+      return nullptr;
+    case AVM_SET_FLOAT64:
+      CallAnyValueFunc(scope, "AnyValSetFloat64",
+          {addr, ToFloat(args[0]->Generate(scope), g_builtins->type_float64)});
+      return nullptr;
     case AVM_IS_TEXT:    return CallAnyValueFunc(scope, "AnyValIsText", {addr});
     case AVM_AS_TEXT:
     {

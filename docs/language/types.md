@@ -31,6 +31,11 @@ The common primitive types are:
 `int` and `uint` have the same width as a pointer. Use fixed-width integer types
 when binary layout or C ABI details matter.
 
+`float` is `float32` on targets with a single-precision FPU (`arm_m4f-bare`,
+`arm_m33f-bare`, and `arm_m7f-bare`). It is `float64` on other targets,
+including the double-precision `arm_m7fd-bare` target. Use `float32` or
+`float64` explicitly when storage width is part of an interface or data format.
+
 ## Boolean Type
 
 `bool` is distinct from numeric types. Numeric values are not implicitly used as

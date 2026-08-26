@@ -51,7 +51,7 @@ const OInlineAsmTarget * InlineAsmTargetForArch(string_view arch)
 
   if (("arm_m0" == arch) || ("arm_m3" == arch) || ("arm_m4" == arch)
       || ("arm_m4f" == arch) || ("arm_m33" == arch) || ("arm_m33f" == arch)
-      || ("arm_m7f" == arch)
+      || ("arm_m7f" == arch) || ("arm_m7fd" == arch)
       || ("arm" == arch) || arch.starts_with("arm_a"))
   {
     return &InlineAsmTargetArm();

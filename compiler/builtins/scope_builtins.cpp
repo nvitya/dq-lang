@@ -59,7 +59,7 @@ void OScopeBuiltins::Init()
 
   type_float32 = new OTypeFloat("float32", 32);
   type_float64 = new OTypeFloat("float64", 64);
-  type_float   = new OTypeFloat("float", 64);
+  type_float   = new OTypeFloat("float", g_opt.target.default_float_bits);
   DefineType(type_float32);
   DefineType(type_float64);
   DefineType(type_float);

@@ -332,6 +332,16 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   {
     rargs.push_back("-flto=full");
     rargs.push_back(format("-O{}", g_opt.optlevel));
+    if (g_opt.target.IsArm())
+    {
+      rargs.push_back("-mcpu=" + g_opt.target.llvm_cpu);
+      if (!g_opt.target.clang_fpu.empty())
+      {
+        rargs.push_back("-mfpu=" + g_opt.target.clang_fpu);
+      }
+      rargs.push_back(TARGET_FLOAT_ABI_HARD == g_opt.target.float_abi
+          ? "-mfloat-abi=hard" : "-mfloat-abi=soft");
+    }
     // LLVM canonicalizes the target triple during the Clang LTO link. DQ's
     // bitcode uses the equivalent unqualified triple, so Clang otherwise
     // emits one -Woverride-module diagnostic for every linked module.

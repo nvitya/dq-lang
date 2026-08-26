@@ -332,6 +332,10 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   {
     rargs.push_back("-flto=full");
     rargs.push_back(format("-O{}", g_opt.optlevel));
+    // LLVM canonicalizes the target triple during the Clang LTO link. DQ's
+    // bitcode uses the equivalent unqualified triple, so Clang otherwise
+    // emits one -Woverride-module diagnostic for every linked module.
+    rargs.push_back("-Wno-override-module");
   }
 
   string link_input;

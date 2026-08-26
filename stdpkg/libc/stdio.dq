@@ -19,7 +19,13 @@ function DqLibcStdout() -> pointer
 
 implementation
 
-#ifdef WINDOWS
+#ifdef BARE
+
+    function DqLibcStdout() -> pointer:
+        return null
+    endfunc
+
+#elifdef WINDOWS
     function libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]]
 
     function DqLibcStdout() -> pointer:

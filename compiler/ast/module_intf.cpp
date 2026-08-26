@@ -2191,6 +2191,7 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   avalsym->attr_is_noinline      = (attrs.flags & (1ull << 16));
   avalsym->attr_no_read          = (attrs.flags & (1ull << 17));
   avalsym->attr_no_write         = (attrs.flags & (1ull << 18));
+  avalsym->attr_is_used          = (attrs.flags & (1ull << 19));
   avalsym->attr_external_linkage_name = (dynamic_cast<OValSymFunc *>(avalsym) ? "" : attrs.external_linkage_name);
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;

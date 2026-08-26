@@ -305,6 +305,17 @@ bool ODqCompParserExpr::ParseSingleAttribute(const string & attrname)
     return true;
   }
 
+  if ("used" == attrname)
+  {
+    if (scf->CheckSymbol("(", false))
+    {
+      Error(DQERR_ATTR_PAREN_NOT_ALLOWED, attrname);
+      return false;
+    }
+    attr->SetFlag(ATTF_USED);
+    return true;
+  }
+
   if ("align" == attrname)
   {
     attr->SetFlag(ATTF_ALIGN);

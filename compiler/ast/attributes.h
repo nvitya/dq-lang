@@ -42,6 +42,7 @@ enum EAttrFlag
   ATTF_WEAK           = 0x04000000,
   ATTF_NOREAD         = 0x08000000,
   ATTF_NOWRITE        = 0x10000000,
+  ATTF_USED           = 0x20000000,
 };
 
 enum EAttrTarget

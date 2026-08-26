@@ -149,6 +149,11 @@ add_custom_target(test
           --linker-arg=--entry=_start
           -o "${DQ_BUILD_DIR}/arm_m7f_module_init.elf"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_module_init.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys --link --lto -O1
+          --linker-arg=--entry=soft_entry
+          --linker-arg=--defsym=end=0
+          -o "${DQ_BUILD_DIR}/arm_m7f_lto_asm_export.elf"
+          "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_lto_asm_export.dq"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m0-bare --no-use-sys --link
           --linker-arg=--entry=_start
           --linker-arg=--undefined=memset

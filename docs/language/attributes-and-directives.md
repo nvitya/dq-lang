@@ -41,10 +41,15 @@ function Run() [[virtual, abstract]]
 | `[[nowrite]]` | Forbid direct writes to low-level storage |
 | `[[regrw]]`, `[[regro]]`, `[[regwo]]` | Declare volatile read/write, read-only, or write-only registers |
 | `[[cexport]]` | Export a symbol using C-compatible linkage where supported |
+| `[[used]]` | Retain a function or global storage even without visible references |
 | `[[weak]]` | Emit a module-level function definition with weak linker binding |
 | `[[nowarn]]` | Suppress warnings for the declaration where supported |
 
 Unsupported or inapplicable attributes may be ignored with a compiler warning.
+
+Use `[[used]]` for definitions referenced only by assembly, linker scripts,
+hardware tables, or another source that LLVM cannot inspect. It prevents the
+compiler and linker from discarding the definition during link-time optimization.
 
 ## Volatile and Register Access
 

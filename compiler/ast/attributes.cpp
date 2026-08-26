@@ -34,6 +34,7 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR);
   CheckAttrAllowed(ATTF_EXPORT,   atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_CEXPORT,  atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
+  CheckAttrAllowed(ATTF_USED,     atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_ALIGN,    atarget, ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST | ATGT_STRUCT_MEMBER);
   CheckAttrAllowed(ATTF_SECTION,  atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR | ATGT_GLOBAL_CONST);
   CheckAttrAllowed(ATTF_OVERLOAD, atarget, ATGT_FUNCTION);
@@ -81,6 +82,7 @@ string AttrName(EAttrFlag aflag)
     case ATTF_EXTERNAL:      return "external";
     case ATTF_EXPORT:        return "export";
     case ATTF_CEXPORT:       return "cexport";
+    case ATTF_USED:          return "used";
     case ATTF_SECTION:       return "section";
     case ATTF_VIRTUAL:       return "virtual";
     case ATTF_OVERRIDE:      return "override";

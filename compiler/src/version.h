@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.50.2"
+#define DQ_COMPILER_VERSION  "0.50.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.50.3:
+  - [[used]] attribute for retaining externally referenced definitions through LTO
 v0.50.2:
   - Exception handling preparation for bare-metal
 v0.50.1:

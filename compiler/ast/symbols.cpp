@@ -32,6 +32,7 @@
 #include "dqc.h"
 #include "errorcodes.h"
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/Transforms/Utils/ModuleUtils.h>
 
 using namespace std;
 
@@ -596,6 +597,7 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (attr_is_noinline)      flags |= 1ull << 16;
   if (attr_no_read)          flags |= 1ull << 17;
   if (attr_no_write)         flags |= 1ull << 18;
+  if (attr_is_used)          flags |= 1ull << 19;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;
@@ -681,6 +683,20 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
     {
       ll_value = vsconst->pvalue->GetLlConst();
     }
+  }
+
+  PreserveUsedDefinition(ll_value);
+}
+
+void OValSym::PreserveUsedDefinition(LlValue * avalue)
+{
+  if (!attr_is_used)
+  {
+    return;
+  }
+  if (auto * global_value = llvm::dyn_cast_or_null<llvm::GlobalValue>(avalue))
+  {
+    llvm::appendToUsed(*ll_module, {global_value});
   }
 }
 
@@ -860,6 +876,7 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 
   if ((ATGT_FUNCTION == atarget) || (ATGT_GLOBAL_VAR == atarget) || (ATGT_GLOBAL_CONST == atarget))
   {
+    attr_is_used = attr->IsSet(ATTF_USED);
     if (attr->IsSet(ATTF_SECTION))
     {
       attr_section_name = attr->section_name;

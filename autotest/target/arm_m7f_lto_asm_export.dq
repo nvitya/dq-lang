@@ -1,0 +1,9 @@
+function soft_entry() [[cexport, asm]]:
+    b _start
+endfunc
+
+// This reference is visible to the assembler, but not to LLVM's LTO passes.
+function _start() [[cexport, used]]:
+    while true:
+    endwhile
+endfunc

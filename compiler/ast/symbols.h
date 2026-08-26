@@ -678,6 +678,7 @@ public:
   string       attr_external_linkage_name = "";
   bool         attr_has_linkage_name = false;
   string       attr_linkage_name = "";
+  bool         attr_is_used = false;
   string       owner_module_name = "";
   bool         attr_is_overload = false;
   bool         attr_is_override = false;
@@ -705,6 +706,7 @@ public:
   virtual void ApplyAttributes(OAttr * attr, EAttrTarget atarget);
   virtual void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr);
   void GenGlobalImportDecl();
+  void PreserveUsedDefinition(LlValue * avalue);
   string GetLinkageName(bool apublic, const string & asymbol_name = "") const;
   bool GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr);
   virtual bool WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags = 0);

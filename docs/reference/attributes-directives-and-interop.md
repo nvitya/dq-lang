@@ -25,6 +25,7 @@ an undocumented effect. Important implemented attributes include:
 | `overload` | place functions of the same name in an overload set |
 | `inline`, `always_inline`, `noinline` | control code-generation inlining |
 | `weak` | emit a replaceable weak native definition |
+| `used` | retain a definition whose references are invisible to the optimizer |
 | `virtual`, `override`, `abstract`, `final` | define object dispatch behavior |
 | `asm` | make a function body target assembly |
 | `packed` or layout attributes | request supported ABI/layout behavior |
@@ -34,6 +35,11 @@ an undocumented effect. Important implemented attributes include:
 An attribute cannot override an incompatible language contract. For example, an
 external function has no DQ body, and mutually exclusive inlining choices cannot
 be combined.
+
+`used` applies to functions and global storage. It preserves the emitted
+definition through compilation and linking, including LTO. Use it when a symbol
+is reached only through assembly, a linker script, a hardware table, or another
+mechanism that is not represented by ordinary DQ references.
 
 `regrw` means `volatile`, `regro` means `volatile, nowrite`, and `regwo`
 means `volatile, noread`. Reads from `noread` declarations and writes to

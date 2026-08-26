@@ -734,6 +734,10 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
       {
         ll_func = existing;
         ll_func->setLinkage(linktype);
+        if (has_body)
+        {
+          PreserveUsedDefinition(ll_func);
+        }
         return;
       }
     }
@@ -760,6 +764,11 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
   if (attr_is_noinline)
   {
     ll_func->addFnAttr(llvm::Attribute::NoInline);
+  }
+
+  if (has_body)
+  {
+    PreserveUsedDefinition(ll_func);
   }
 
   //ll_functions[ptfunc->name] = ll_func;
@@ -833,6 +842,7 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
   attr_is_inline   = attr_is_inline || other->attr_is_inline;
   attr_is_always_inline = attr_is_always_inline || other->attr_is_always_inline;
   attr_is_noinline = attr_is_noinline || other->attr_is_noinline;
+  attr_is_used = attr_is_used || other->attr_is_used;
   is_asm = is_asm || other->is_asm;
   attr_is_weak = attr_is_weak || other->attr_is_weak;
   special_kind = other->special_kind;

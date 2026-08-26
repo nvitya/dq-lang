@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.50.3"
+#define DQ_COMPILER_VERSION  "0.50.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.50.4:
+  - function-sections and data-sections are activated by default for smaller non-lto executables
 v0.50.3:
   - [[used]] attribute for retaining externally referenced definitions through LTO
   - suppressed linker --lto target override warning

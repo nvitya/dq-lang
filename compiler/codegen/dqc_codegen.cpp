@@ -466,6 +466,10 @@ void ODqCompCodegen::PrepareTarget()
   if (!target) throw runtime_error(err);
 
   llvm::TargetOptions target_options;
+  // Keep each definition independently collectable by linkers using
+  // --gc-sections, even when LTO is not enabled.
+  target_options.FunctionSections = true;
+  target_options.DataSections = true;
   if (TARGET_FLOAT_ABI_HARD == g_opt.target.float_abi)
   {
     target_options.FloatABIType = llvm::FloatABI::Hard;

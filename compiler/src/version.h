@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------------
 v0.50.3:
   - [[used]] attribute for retaining externally referenced definitions through LTO
+  - suppressed linker --lto target override warning
 v0.50.2:
   - Exception handling preparation for bare-metal
 v0.50.1:

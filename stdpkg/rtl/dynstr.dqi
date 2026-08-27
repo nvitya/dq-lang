@@ -573,7 +573,11 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
 endfunc
 
 function DynStrPChar(astr : ref ODynStrMgr) -> ^char:
-    if astr == null or astr.dataptr == null:
+    // this must be checked separately, with a combined check the -O1 optimizer might make an error
+    if astr == null:
+        return ''
+    endif
+    if astr.dataptr == null:
         return ''
     endif
     return astr.dataptr

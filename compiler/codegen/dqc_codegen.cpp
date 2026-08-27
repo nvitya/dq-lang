@@ -432,7 +432,7 @@ void ODqCompCodegen::GenerateIr()
     di_builder->finalize();
   }
 
-  // OptimizeIr(g_opt.optlevel);
+  OptimizeIr(g_opt.optlevel);
 }
 
 void ODqCompCodegen::PrepareTarget()

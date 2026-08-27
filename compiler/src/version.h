@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.51.0"
+#define DQ_COMPILER_VERSION  "0.51.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.51.1:
+  - Loop un-rolling disabled for -O1
 v0.51.0:
   - Optimization without -lto restored
 v0.50.5:

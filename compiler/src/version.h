@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.52.0"
+#define DQ_COMPILER_VERSION  "0.52.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.52.1:
+  - NoUnwind attributes for call generation when Exceptions are disabled
 v0.52.0:
   - Option for enabling and disabling exceptions. Exceptions are disabled by default for bare-metal
     targets

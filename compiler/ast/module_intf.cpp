@@ -577,7 +577,7 @@ string OModuleIntf::DqmIfBuildOptions() const
   result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
-  result += (g_opt.exceptions ? ";exceptions=true" : ";exceptions=false");
+  result += (g_opt.exceptions ? ";exceptions=true" : ";exceptions=false;nounwind=1");
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {

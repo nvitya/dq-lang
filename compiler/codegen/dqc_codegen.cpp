@@ -427,6 +427,16 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
+  if (!g_opt.exceptions)
+  {
+    // Besides suppressing exception constructs, tell LLVM that calls cannot
+    // unwind so ARM codegen does not retain an EHABI personality and unwinder.
+    for (LlFunction & func : ll_module->functions())
+    {
+      func.addFnAttr(llvm::Attribute::NoUnwind);
+    }
+  }
+
   if (g_opt.dbg_info)
   {
     di_builder->finalize();

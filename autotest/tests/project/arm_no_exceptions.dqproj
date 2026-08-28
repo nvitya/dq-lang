@@ -7,4 +7,5 @@ link = true
 compiler_runtime = 'none'
 c_runtime = 'none'
 linkoption = '--entry=_start'
+linkoption = '--defsym=NoUnwindExternal=0'
 linkoption = '--gc-sections'

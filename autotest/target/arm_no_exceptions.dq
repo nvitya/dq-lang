@@ -1,5 +1,7 @@
 // Exception-free bare linking must not require a C++ unwinder or personality.
 
+function NoUnwindExternal() [[external]]
+
 object OMarker:
     value : int
 
@@ -17,6 +19,7 @@ function OwnedScope():
 endfunc
 
 function _start() [[cexport]]:
+    NoUnwindExternal()
     OwnedScope()
     while true:
     endwhile

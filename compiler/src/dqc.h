@@ -52,7 +52,7 @@ public:
   ODqCompiler();
   virtual ~ODqCompiler();
 
-  void Run(int argc, char ** argv);
+  void Run();
 };
 
 extern ODqCompiler *  g_compiler;

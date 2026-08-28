@@ -273,7 +273,7 @@ int main(int argc, char ** argv)
   init_dq_module();
   init_named_scopes();
 
-  g_compiler->Run(argc, argv);
+  g_compiler->Run();
   r = g_compiler->errorcnt;
 
   delete g_compiler;

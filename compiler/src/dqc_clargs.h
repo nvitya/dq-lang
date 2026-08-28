@@ -40,6 +40,6 @@ public:
   ODqCompClargs();
   virtual ~ODqCompClargs();
 
-  void ParseCmdLineArgs(int argc, char ** argv);
+  void PrepareOutputPaths();
 
 };

@@ -119,6 +119,10 @@ public:
   string   project_main_filename;
   string   project_output_filename;
   bool     project_has_output = false;
+  string   input_filename;
+  string   explicit_output;
+  bool     has_dash_o = false;
+  bool     has_output = false;
   string   build_root_dir;
   string   build_tag;
   vector<string>  module_use_stack;

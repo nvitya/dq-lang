@@ -12,8 +12,6 @@
  */
 
 #include <filesystem>
-#include <print>
-
 #include "dqc_clargs.h"
 #include "module_path.h"
 #include "artifact_lock.h"
@@ -28,86 +26,14 @@ ODqCompClargs::~ODqCompClargs()
 {
 }
 
-void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
+void ODqCompClargs::PrepareOutputPaths()
 {
-  string explicit_output;
-  has_dash_o = false;
-  has_output = false;
-  bool project_argument_seen = false;
+  in_filename = g_opt.input_filename;
+  has_dash_o = g_opt.has_dash_o;
+  has_output = g_opt.has_output;
+  const string & explicit_output = g_opt.explicit_output;
 
-  if (!g_opt.project_main_filename.empty())
-  {
-    in_filename = g_opt.project_main_filename;
-    if (g_opt.project_has_output)
-    {
-      explicit_output = g_opt.project_output_filename;
-      has_output = true;
-    }
-  }
-
-  for (int i = 1; i < argc; ++i)
-  {
-    string v(argv[i]);
-    if (!v.empty() && ('-' == v[0]))
-    {
-      if ("-o" == v)
-      {
-        ++i;  // ProcessCommandLineOpts already validated the argument.
-        explicit_output = argv[i];
-        has_dash_o = true;
-        has_output = true;
-      }
-      else if (OCompOptions::CommandLineOptionHasValue(v))
-      {
-        ++i;  // ProcessCommandLineOpts already validated the argument.
-      }
-      continue;
-    }
-
-    if (!g_opt.project_filename.empty() && !project_argument_seen && v.ends_with(".dqproj"))
-    {
-      project_argument_seen = true;
-    }
-    else if (in_filename.empty())
-    {
-      in_filename = v;
-    }
-    else if (!has_dash_o)
-    {
-      // backward compatibility: second positional arg = output name
-      explicit_output = v;
-      has_dash_o = true;
-      has_output = true;
-    }
-    else
-    {
-      ++errorcnt;
-      print("Unexpected argument: {}\n", v);
-      OCompOptions::PrintUsage();
-      return;
-    }
-  }
-
-  if (g_opt.print_version) return;
-
-  if (in_filename.empty())
-  {
-    ++errorcnt;
-    print("Input file name is missing.\n");
-    OCompOptions::PrintUsage();
-    return;
-  }
-
-  if (g_opt.ifdump)
-  {
-    if (has_output)
-    {
-      ++errorcnt;
-      print("--ifdump expects only one input .dqm_if file.\n");
-      OCompOptions::PrintUsage();
-    }
-    return;
-  }
+  if (g_opt.print_version || g_opt.ifdump) return;
 
   if (g_opt.build_root_dir.empty())
   {

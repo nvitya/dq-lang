@@ -308,9 +308,14 @@ string OCompOptions::ParseLtoMode(const string & text)
 
 string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
 {
+  input_filename = project_main_filename;
+  explicit_output = project_has_output ? project_output_filename : "";
+  has_dash_o = false;
+  has_output = project_has_output;
   build_tag = target.name;
   string build_tag_suffix;
   bool cli_link_mode = false;
+  bool project_argument_seen = false;
   set<string> cli_define_names;
 
   auto require_value = [&](int & index) -> const char *
@@ -334,7 +339,29 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
   for (int i = 1; i < argc; ++i)
   {
     string v(argv[i]);
-    if (v.empty() || ('-' != v[0])) continue;
+    if (v.empty() || ('-' != v[0]))
+    {
+      if (!project_filename.empty() && !project_argument_seen && v.ends_with(".dqproj"))
+      {
+        project_argument_seen = true;
+      }
+      else if (input_filename.empty())
+      {
+        input_filename = v;
+      }
+      else if (!has_dash_o)
+      {
+        // Backward compatibility: second positional argument is the output name.
+        explicit_output = v;
+        has_dash_o = true;
+        has_output = true;
+      }
+      else
+      {
+        return "Unexpected argument: " + v;
+      }
+      continue;
+    }
     if      ("--version" == v)  print_version = true;
     else if (v.starts_with("--target=")) { /* configured before option processing */ }
     else if ("--target" == v)
@@ -467,6 +494,9 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     else if ("-o" == v)
     {
       if (!require_value(i)) return "Missing filename after -o";
+      explicit_output = argv[i];
+      has_dash_o = true;
+      has_output = true;
     }
     else
     {
@@ -478,6 +508,9 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
   {
     return "--ifgen and --ifdump can not be used together.";
   }
+  if (print_version) return {};
+  if (input_filename.empty()) return "Input file name is missing.";
+  if (ifdump && has_output) return "--ifdump expects only one input .dqm_if file.";
   return {};
 }
 

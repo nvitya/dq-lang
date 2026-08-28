@@ -251,10 +251,6 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
 
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.build_tag = DefaultBuildTag();
-  if (g_opt.target.IsBare())
-  {
-    g_opt.no_use_sys = true;
-  }
   if (!g_opt.project_main_filename.empty())
   {
     in_filename = g_opt.project_main_filename;
@@ -310,6 +306,8 @@ void ODqCompClargs::ParseCmdLineArgs(int argc, char ** argv)
       else if ("--ifgen"   == v)  g_opt.ifgen = true;
       else if ("--ifdump"  == v)  g_opt.ifdump = true;
       else if ("--no-use-sys" == v)  g_opt.no_use_sys = true;
+      else if ("--exceptions" == v)     g_opt.SetExceptions(true);
+      else if ("--no-exceptions" == v)  g_opt.SetExceptions(false);
       else if ("--regen-if-stale" == v)  g_opt.regen_if_stale = true;
       else if ("--link" == v)
       {
@@ -691,6 +689,8 @@ void ODqCompClargs::PrintUsage()
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if)\n");
   print("  --no-use-sys : do not add the implicit merged sys module\n");
+  print("  --exceptions : enable exception handling\n");
+  print("  --no-exceptions : disable exception handling\n");
   print("  --target=<name> : select the compiler target\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");

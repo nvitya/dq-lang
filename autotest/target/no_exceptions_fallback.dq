@@ -1,0 +1,27 @@
+// Core RTL errors use RuntimeError and safe values when its handler returns.
+
+use rtl/strfunc
+
+enum NState : uint8 = (idle = 7, running = 9)
+
+var error_count : int = 0
+
+function CaptureRuntimeError(emsg : ^char):
+    error_count += 1
+endfunc
+
+function *Main() -> int:
+    rterror_handler = CaptureRuntimeError
+
+    var bad_char : char = IntToChar(-1)
+    var bad_wchar : wchar = IntToWchar(0xD800)
+    var bad_state : NState = NState.FromOrd(8)
+
+    if error_count <> 3:
+        return 1
+    endif
+    if Ord(bad_char) <> 0 or Ord(bad_wchar) <> 0 or bad_state <> idle:
+        return 2
+    endif
+    return 0
+endfunc

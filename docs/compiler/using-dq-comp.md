@@ -29,6 +29,7 @@ Useful options:
 | `--ifgen` | generate a standalone `.dqm_if` interface file |
 | `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
+| `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
 | `--pkg-path <path>` | add a package search root; repeatable |
 | `--build <tag>` | select `.dqbuild/<tag>` |
 | `--build-suffix <suffix>` | append to the selected build tag |
@@ -41,6 +42,12 @@ Useful options:
 | `-ir` | print generated LLVM IR |
 
 The default optimization level is currently `-O1`.
+
+The `rtl/sys` prelude is implicitly merged for hosted and bare targets. Use
+`--no-use-sys` only for low-level bootstrap or RTL work that must opt out.
+Exception handling defaults to enabled on hosted targets and disabled on bare
+targets; when enabled, `#ifdef EXCEPTIONS` selects exception-aware source code.
+Runtime checks remain active when exception handling is disabled.
 
 ## `dq-run`
 

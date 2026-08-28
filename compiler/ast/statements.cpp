@@ -116,7 +116,7 @@ void OStmtBlock::Generate()
   LlBasicBlock * saved_unwind_lpad_bb = scope->exception_cleanup_bb; // We repurpose exception_cleanup_bb as unwind_lpad_bb
   LlBasicBlock * saved_unwind_cleanup_bb = scope->unwind_cleanup_bb;
 
-  bool needs_unwind = !scope->owned_objects.empty();
+  bool needs_unwind = g_opt.exceptions && !scope->owned_objects.empty();
   
   LlBasicBlock * my_lpad_bb = nullptr;
   LlBasicBlock * my_cleanup_bb = nullptr;

@@ -1,0 +1,5 @@
+//?notest
+
+main = '../../target/exception_switch.dq'
+exceptions = false
+link = false

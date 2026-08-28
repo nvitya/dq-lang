@@ -152,6 +152,8 @@ struct SProjectStartupArgs
 {
   string project_filename;
   vector<string> command_line_package_paths;
+  bool exceptions_set = false;
+  bool exceptions = true;
 };
 
 static bool OptionConsumesNextArg(const string & arg)
@@ -169,6 +171,12 @@ static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
   for (int i = 1; i < argc; ++i)
   {
     string arg(argv[i]);
+    if ((arg == "--exceptions") || (arg == "--no-exceptions"))
+    {
+      result.exceptions_set = true;
+      result.exceptions = (arg == "--exceptions");
+      continue;
+    }
     if (arg == "--pkg-path")
     {
       if (i + 1 < argc) result.command_line_package_paths.push_back(argv[++i]);
@@ -237,6 +245,14 @@ int main(int argc, char ** argv)
   {
     print("{}\n", target_error);
     return 1;
+  }
+  if (startup_args.exceptions_set)
+  {
+    g_opt.SetExceptions(startup_args.exceptions);
+  }
+  else
+  {
+    g_opt.ApplyTargetDefaults();
   }
 
   string runtime_error;

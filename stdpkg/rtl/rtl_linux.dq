@@ -19,13 +19,17 @@ implementation
 
 use rtl/rtlint
 use rtl/mem
+#ifdef EXCEPTIONS
 use rtl/exception
+#endif
 use rtl/prgargs
 use libc/stdio
 
 // These functions created by the DQ compiler:
 function dq_main() -> int  [[external('dq_main')]]
 function dq_module_init()  [[external('dq_module_init')]]
+
+#ifdef EXCEPTIONS
 
 // SIGSEGV Signal handling, converting SIGSEGV to Exception
 
@@ -164,3 +168,21 @@ function main(argc : int, argv : ^^char) -> int  [[cexport]]:
     // no finalize for modules
 
 endfunc
+
+#else
+
+function libc_exit(status : int) [[external('exit')]]
+
+function OsRtErrorHandler(emsg : ^char):
+    printf("RUNTIME ERROR: %s\n", emsg)
+    libc_exit(-1)
+endfunc
+
+function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+    rterror_handler = OsRtErrorHandler
+    @prgargs.__sys_init_params(argc, argv)
+    dq_module_init()
+    result = dq_main()
+endfunc
+
+#endif

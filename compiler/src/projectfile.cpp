@@ -498,6 +498,12 @@ bool ODqProjectFile::ParseProperty(const string & name)
     if (!ReadBool(bvalue)) return false;
     g_opt.link_mode = (bvalue ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY);
   }
+  else if ("exceptions" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    if (!ReadBool(bvalue)) return false;
+    g_opt.SetExceptions(bvalue);
+  }
   else if ("compiler_runtime" == name)
   {
     if (!CheckDuplicate(name)) return false;

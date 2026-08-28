@@ -762,6 +762,22 @@ void ODqCompParser::ParseUseStatement()
 
     if (g_namespaces.end() != g_namespaces.find(namespace_name))
     {
+      bool already_used = false;
+      for (OModuleUse * existing : g_module->used_modules)
+      {
+        if (existing && existing->module
+            && (existing->namespace_name == namespace_name)
+            && (existing->module->name == use_path.source_text))
+        {
+          already_used = true;
+          break;
+        }
+      }
+      if (already_used && (MUM_ALL == merge_mode) && symbol_names.empty() && !reexport)
+      {
+        if (more_use_blocks) continue;
+        break;
+      }
       Error(DQERR_USE_NAMESPACE_CONFLICT, namespace_name, &scpos_statement_start);
       return;
     }

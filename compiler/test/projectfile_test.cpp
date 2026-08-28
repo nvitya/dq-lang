@@ -105,6 +105,20 @@ int main()
            string("common ARM bare properties ") + expected.name);
   }
 
+  OCompOptions hosted_defaults;
+  hosted_defaults.target.ConfigureHost();
+  hosted_defaults.ApplyTargetDefaults();
+  Expect(hosted_defaults.exceptions, "hosted exceptions default");
+
+  OCompOptions bare_defaults;
+  string bare_default_error;
+  Expect(bare_defaults.target.Configure("arm_m0-bare", bare_default_error), "bare default target");
+  bare_defaults.ApplyTargetDefaults();
+  Expect(!bare_defaults.exceptions, "bare exceptions default");
+  bare_defaults.SetExceptions(true);
+  bare_defaults.ApplyTargetDefaults();
+  Expect(bare_defaults.exceptions, "explicit bare exceptions override");
+
   fs::path root = fs::temp_directory_path() / "dq-projectfile-test";
   error_code ec;
   fs::remove_all(root, ec);
@@ -126,6 +140,7 @@ var SDK = PackagePath('sdk')
 include '${SDK}/project/common.dqproj'
 main = '${PROJECT_DIR}/main.dq'; output = '${THIS_DIR}/out.elf'
 target = 'arm_m7f-bare'
+exceptions = false
 compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 link = true
@@ -144,6 +159,7 @@ linkoption = '--gc-sections'
          && (g_opt.project_output_filename == fs::absolute(root / "out.elf").lexically_normal().string()),
          "output path");
   Expect(g_opt.target.name == "arm_m7f-bare", "target value");
+  Expect(!g_opt.exceptions && g_opt.exceptions_explicit, "exceptions value");
   Expect(g_opt.compiler_runtime == "libgcc", "compiler runtime value");
   Expect(g_opt.c_runtime == "newlib-nano", "C runtime value");
   Expect(g_opt.link_mode == DQC_LINK_FORCE, "link value");
@@ -176,6 +192,12 @@ main = '${SELECTED}/main.dq'
   WriteFile(root / "duplicate.dqproj", "main='main.dq'\nmain='other.dq'\n");
   Expect(!LoadProject(project, root / "duplicate.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate scalar diagnostic");
+
+  WriteFile(root / "duplicate-exceptions.dqproj",
+            "main='main.dq'\nexceptions=true\nexceptions=false\n");
+  Expect(!LoadProject(project, root / "duplicate-exceptions.dqproj")
+             && HasDiagnostic(project, "ProjectDuplicate"),
+         "duplicate exceptions diagnostic");
 
   WriteFile(root / "duplicate-variable.dqproj", "var ROOT='one'\nvar ROOT='two'\nmain='main.dq'\n");
   Expect(!LoadProject(project, root / "duplicate-variable.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),

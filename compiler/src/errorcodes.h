@@ -79,6 +79,7 @@ DEF_DQ_ERR(DQERR_ARRAY_CONSTEXPR,                  "ArrayConstExpr",         "Ar
 
 DEF_DQ_ERR(DQERR_NOT_IMPLEMENTED_YET,              "NotImplementedYet",      "$1 is not implemented yet");
 DEF_DQ_ERR(DQERR_NOT_SUPPORTED,                    "NotSupported",           "$1 is not supported");
+DEF_DQ_ERR(DQERR_EXCEPTIONS_DISABLED,              "ExceptionsDisabled",     "Exception handling is disabled; use --exceptions or exceptions = true");
 
 DEF_DQ_ERR(DQERR_OP_INVALID_FOR,                   "OpInvalid",              "Operation \"$1\" is invalid for $2");
 DEF_DQ_ERR(DQERR_OP_UNHANDLED_FOR,                 "OpUnhandled",            "Unhandled operation \"$1\" for $2");

@@ -140,6 +140,7 @@ single-value properties are errors.
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
+| `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets. |
 | `compiler_runtime` | string | once, optional | Bare-target compiler support runtime: `libgcc` (default) or `none`. |
 | `c_runtime` | string | once, optional | Bare-target C runtime: `newlib-nano` (default) or `none`. |
 | `linkobject` | path string | repeatable | Add an existing object or other positional linker input. |
@@ -169,6 +170,21 @@ Without a `link` property, the compiler retains its automatic link mode:
 bare target to link an ELF image. `link = false` is equivalent to `-c` and
 always requests compile-only output.
 
+### Exception Handling
+
+Exception handling is enabled by default for hosted targets and disabled by
+default for bare targets. Projects can override the target default explicitly:
+
+```text
+exceptions = false
+```
+
+When enabled, the compiler defines `EXCEPTIONS` in the `@def` scope, so source
+and RTL code can select exception-dependent code with `#ifdef EXCEPTIONS`.
+Disabling exceptions removes native unwind generation and rejects `try`,
+`except`, `finally`, and `raise`; runtime checks remain enabled and report
+through the `RuntimeError` hook.
+
 ### Bare-Metal Runtimes
 
 For supported bare-metal targets, the compiler selects bundled libraries that
@@ -179,8 +195,8 @@ compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 ```
 
-`compiler_runtime` supplies compiler-generated ABI helper routines, the C++
-exception ABI support used by DQ exceptions, and the target unwinder.
+`compiler_runtime` supplies compiler-generated ABI helper routines and, when
+exceptions are enabled, the C++ exception ABI support and target unwinder.
 `c_runtime` supplies Newlib Nano and its no-system fallback stubs, and makes the
 matching bundled math library available to `#linklib('m')`. Static archive
 members are included only when referenced. Board or application implementations
@@ -364,6 +380,7 @@ explicit command-line selections are then applied on top.
 | Optimization | `-O0` through `-O3` override `optlevel`. |
 | Debug information | `-g` enables debug information even when `debuginfo = false`. There is currently no command-line option to force it off. |
 | LTO | `--lto` or `--lto=full|off` overrides `lto`. |
+| Exceptions | `--exceptions` or `--no-exceptions` overrides `exceptions`; the last command-line flag wins. |
 | Link mode | The first explicit `-c` or `--link` replaces the project mode. Conflicting subsequent command-line link modes are errors. |
 | Defines | The first command-line definition of a name removes the project definition of that name. |
 | Package roots | Command-line roots have higher lookup precedence than project and default roots. |
@@ -413,6 +430,7 @@ statement     := property '=' property-value
 property      := 'main' | 'output' | 'target' | 'packagepath'
                | 'link' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
+               | 'exceptions'
 
 property-value := string | boolean | signed-decimal-integer
 variable-value := string | 'PackagePath' '(' string ')'

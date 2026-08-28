@@ -291,6 +291,11 @@ LlValue * OEnumFromOrdExpr::Generate(OScope * scope)
   EmitExpressionExceptionCheck(scope);
   if (!ll_builder.GetInsertBlock()->getTerminator()) ll_builder.CreateBr(done_bb);
   ll_builder.SetInsertPoint(done_bb);
+  if (!g_opt.exceptions && !enum_type->items.empty())
+  {
+    LlValue * fallback = llvm::ConstantInt::get(enum_type->GetLlType(), enum_type->items.front().value);
+    return ll_builder.CreateSelect(valid, converted, fallback, "enum.fromord.fallback");
+  }
   return converted;
 }
 

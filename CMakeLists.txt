@@ -152,6 +152,39 @@ add_custom_target(test
           --build-root "${DQ_BUILD_DIR}/arm_m7f_native_collections_build" -c
           -o "${DQ_BUILD_DIR}/arm_m7f_native_collections.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_native_collections.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" -c -DEXPECT_EXCEPTIONS
+          -o "${DQ_BUILD_DIR}/host_exceptions_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --no-exceptions -c
+          -o "${DQ_BUILD_DIR}/host_exceptions_disabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare -c
+          -o "${DQ_BUILD_DIR}/arm_exceptions_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --exceptions -DEXPECT_EXCEPTIONS -c
+          -o "${DQ_BUILD_DIR}/arm_exceptions_enabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --no-exceptions --exceptions -DEXPECT_EXCEPTIONS -c
+          -o "${DQ_BUILD_DIR}/exceptions_last_enabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --exceptions --no-exceptions -c
+          -o "${DQ_BUILD_DIR}/exceptions_last_disabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --exceptions -DEXPECT_EXCEPTIONS -c
+          -o "${DQ_BUILD_DIR}/project_exceptions_override.o"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/exceptions_false.dqproj"
+  COMMAND "$<TARGET_FILE:dq-comp>" -o "${DQ_BUILD_DIR}/arm_no_exceptions.elf"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/arm_no_exceptions.dqproj"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DDQ_COMPILER=$<TARGET_FILE:dq-comp>"
+          "-DDQ_SOURCE=${CMAKE_SOURCE_DIR}/autotest/target/exceptions_disabled_error.dq"
+          "-DDQ_SYS_SOURCE=${CMAKE_SOURCE_DIR}/autotest/target/exception_switch.dq"
+          "-DDQ_OUTPUT=${DQ_BUILD_DIR}/exceptions_disabled_error.o"
+          -P "${CMAKE_SOURCE_DIR}/compiler/test/no_exceptions_test.cmake"
+  COMMAND "$<TARGET_FILE:dq-comp>" --no-exceptions
+          -o "${DQ_BUILD_DIR}/no_exceptions_fallback"
+          "${CMAKE_SOURCE_DIR}/autotest/target/no_exceptions_fallback.dq"
+  COMMAND "${DQ_BUILD_DIR}/no_exceptions_fallback"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys --link
           --linker-arg=--entry=_start
           -o "${DQ_BUILD_DIR}/arm_m7f_module_init.elf"

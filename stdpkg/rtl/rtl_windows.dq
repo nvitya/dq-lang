@@ -18,15 +18,19 @@ function main(argc : int, argv : ^^char) -> int  [[cexport]]
 implementation
 
 use rtl/rtlint
+#ifdef EXCEPTIONS
 use rtl/exception
-use rtl/prgargs
 use rtl/backtrace
+#endif
+use rtl/prgargs
 use rtl/mem
 use libc/stdio
 
 // These functions are created by the DQ compiler:
 function dq_main() -> int  [[external('dq_main')]]
 function dq_module_init()  [[external('dq_module_init')]]
+
+#ifdef EXCEPTIONS
 
 // Windows structured exception handling, converting page faults to Exception
 
@@ -149,3 +153,21 @@ function main(argc : int, argv : ^^char) -> int  [[cexport]]:
     // no finalize for modules
 
 endfunc
+
+#else
+
+function win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+
+function OsRtErrorHandler(emsg : ^char):
+    printf("RUNTIME ERROR: %s\n", emsg)
+    win_ExitProcess(uint32(255))
+endfunc
+
+function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+    rterror_handler = OsRtErrorHandler
+    @prgargs.__sys_init_params(argc, argv)
+    dq_module_init()
+    result = dq_main()
+endfunc
+
+#endif

@@ -47,6 +47,11 @@ void OScopeDefines::Init()
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM", true));
   }
 
+  if (g_opt.exceptions)
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "EXCEPTIONS", true));
+  }
+
   if (4 == g_opt.target.pointer_size)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));

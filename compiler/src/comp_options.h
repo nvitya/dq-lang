@@ -101,6 +101,8 @@ public:
   int      verblevel = VERBLEVEL_NONE;
   bool     dbg_info = false;      // -g
   bool     ir_print = false;      // -ir
+  bool     exceptions = true;
+  bool     exceptions_explicit = false;
   ECompLinkMode link_mode = DQC_LINK_AUTO;
   int      optlevel = 1;          // -On
   ELtoMode lto_mode = LTOMODE_OFF;
@@ -136,6 +138,12 @@ public:
   // module dirs
 
   OCompOptions();
+
+  void SetExceptions(bool value) { exceptions = value; exceptions_explicit = true; }
+  void ApplyTargetDefaults()
+  {
+    if (!exceptions_explicit) exceptions = !target.IsBare();
+  }
 
   void InitializeCompilerExecutable(const string & argv0);
   vector<string> DefaultPackagePaths() const;

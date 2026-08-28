@@ -1932,6 +1932,12 @@ void ODqCompParserStmt::ParseStmtIf()
 
 void ODqCompParserStmt::ParseStmtTry()
 {
+  if (!g_opt.exceptions)
+  {
+    StatementError(DQERR_EXCEPTIONS_DISABLED);
+    SkipToSymbol("endtry");
+    return;
+  }
   if (!EnsureExceptionRtlUse())
   {
     ++errorcnt;
@@ -2036,6 +2042,12 @@ void ODqCompParserStmt::ParseStmtTry()
 
 void ODqCompParserStmt::ParseStmtRaise()
 {
+  if (!g_opt.exceptions)
+  {
+    StatementError(DQERR_EXCEPTIONS_DISABLED);
+    SkipToStatementEnd();
+    return;
+  }
   if (!EnsureExceptionRtlUse())
   {
     ++errorcnt;

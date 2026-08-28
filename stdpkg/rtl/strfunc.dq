@@ -43,12 +43,23 @@ function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar :
 
 implementation
 
-use rtl/exception, rtl/mem
+use rtl/mem
+#ifdef EXCEPTIONS
+use rtl/exception
+#endif
 //use rtl/cstrings
 
 #include "cstrings.dqi"
 
 #include "dynstr.dqi"
+
+function StrfRuntimeError(emsg : ^char):
+#ifdef EXCEPTIONS
+    raise EStrError(emsg)
+#else
+    RuntimeError(emsg)
+#endif
+endfunc
 
 
 function StrfIsHighSurrogate(code : uint32) -> bool:
@@ -66,7 +77,11 @@ endfunc
 
 function IntToChar(value : int) -> char [[overload]]:
     if value < 0 or value > 255:
+#ifdef EXCEPTIONS
         raise EStrError('char value out of range: {}', [value])
+#else
+        StrfRuntimeError('char value out of range')
+#endif
         return char(0)
     endif
     return char(value)
@@ -82,7 +97,11 @@ endfunc
 function IntToWchar(value : int) -> wchar [[overload]]:
     result = wchar(value)
     if not StrfIsValidWChar(result):
+#ifdef EXCEPTIONS
         raise EStrError('wchar value out of range: {}', [value])
+#else
+        StrfRuntimeError('wchar value out of range')
+#endif
         return wchar(0)
     endif
 endfunc
@@ -98,24 +117,27 @@ function StrfByte(text : strview, index : int) -> uint32:
     return uint32(Ord(text[index])) & uint32(0xFF)
 endfunc
 
-function StrfFailUtf8() -> bool:
-    raise EStrError('Invalid UTF-8')
+function StrfFailUtf8(report_error : bool) -> bool:
+    if report_error:
+        StrfRuntimeError('Invalid UTF-8')
+    endif
     return false
 endfunc
 
-function StrfReadCont(text : strview, index : int, outb : refout uint32) -> bool:
+function StrfReadCont(text : strview, index : int, outb : refout uint32, report_error : bool) -> bool:
     if index >= text.length:
-        return StrfFailUtf8()
+        return StrfFailUtf8(report_error)
     endif
     outb = StrfByte(text, index)
     if outb & uint32(0xC0) <> uint32(0x80):
-        return StrfFailUtf8()
+        return StrfFailUtf8(report_error)
     endif
     outb = outb & uint32(0x3F)
     return true
 endfunc
 
-function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> bool:
+function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar,
+                        report_error : bool = true) -> bool:
     if pos >= text.length:
         return false
     endif
@@ -132,7 +154,7 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> boo
     var b3 : uint32 = 0
     var decoded : uint32 = 0
     if b0 >= uint32(0xC2) and b0 <= uint32(0xDF):
-        if not StrfReadCont(text, pos + 1, b1):
+        if not StrfReadCont(text, pos + 1, b1, report_error):
             return false
         endif
         decoded = ((b0 & uint32(0x1F)) << 6) | b1
@@ -140,35 +162,39 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar) -> boo
         pos += 2
         return true
     elif b0 >= uint32(0xE0) and b0 <= uint32(0xEF):
-        if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2):
+        if not StrfReadCont(text, pos + 1, b1, report_error) or not StrfReadCont(text, pos + 2, b2, report_error):
             return false
         endif
         decoded = ((b0 & uint32(0x0F)) << 12) | (b1 << 6) | b2
         wc = wchar(decoded)
         if decoded < uint32(0x800) or not StrfIsValidWChar(wc):
-            return StrfFailUtf8()
+            return StrfFailUtf8(report_error)
         endif
         pos += 3
         return true
     elif b0 >= uint32(0xF0) and b0 <= uint32(0xF4):
-        if not StrfReadCont(text, pos + 1, b1) or not StrfReadCont(text, pos + 2, b2) or not StrfReadCont(text, pos + 3, b3):
+        if not StrfReadCont(text, pos + 1, b1, report_error) or not StrfReadCont(text, pos + 2, b2, report_error) or not StrfReadCont(text, pos + 3, b3, report_error):
             return false
         endif
         decoded = ((b0 & uint32(0x07)) << 18) | (b1 << 12) | (b2 << 6) | b3
         wc = wchar(decoded)
         if decoded < uint32(0x10000) or not StrfIsValidWChar(wc):
-            return StrfFailUtf8()
+            return StrfFailUtf8(report_error)
         endif
         pos += 4
         return true
     endif
 
-    return StrfFailUtf8()
+    return StrfFailUtf8(report_error)
 endfunc
 
 function StrfAppendUtf8(dst : ref str, wc : wchar):
     if not StrfIsValidWChar(wc):
+#ifdef EXCEPTIONS
         raise EStrError('Invalid Unicode scalar: {:x}', [wc])
+#else
+        StrfRuntimeError('Invalid Unicode scalar')
+#endif
         return
     endif
 
@@ -192,7 +218,11 @@ endfunc
 
 function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     if not StrfIsValidWChar(wc):
+#ifdef EXCEPTIONS
         raise EStrError('Invalid Unicode scalar: {:x}', [wc])
+#else
+        StrfRuntimeError('Invalid Unicode scalar')
+#endif
         return
     endif
 
@@ -207,16 +237,11 @@ function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
 endfunc
 
 function StrfIsUtf8(text : strview) -> bool:
-    result = false
     var pos : int = 0
     var wc : wchar = wchar(0)
-    try:
-        while StrfDecodeUtf8(text, pos, wc):
-        endwhile
-        result = true
-    except Exception as e:
-        result = false
-    endtry
+    while StrfDecodeUtf8(text, pos, wc, false):
+    endwhile
+    result = pos >= text.length
 endfunc
 
 function StrfWcLen(text : strview) -> int:
@@ -231,7 +256,12 @@ endfunc
 function StrfWCharAt(text : strview, index : int) -> wchar:
     result = wchar(0)
     if index < 0:
+#ifdef EXCEPTIONS
         raise EStrError('wchar index out of bounds: {}', [index])
+#else
+        StrfRuntimeError('wchar index out of bounds')
+#endif
+        return wchar(0)
     endif
 
     var pos : int = 0
@@ -244,7 +274,11 @@ function StrfWCharAt(text : strview, index : int) -> wchar:
         wcidx += 1
     endwhile
 
+#ifdef EXCEPTIONS
     raise EStrError('wchar index out of bounds: {}', [index])
+#else
+    StrfRuntimeError('wchar index out of bounds')
+#endif
 endfunc
 
 function StrfClampIndex(index : int, length : int) -> int:
@@ -328,7 +362,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
                 return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
             endif
 
-            raise EStrError('Invalid UTF-16')
+            StrfRuntimeError('Invalid UTF-16')
             return false
         endif
 
@@ -341,7 +375,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
                 endif
                 return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
             endif
-            raise EStrError('Invalid UTF-16')
+            StrfRuntimeError('Invalid UTF-16')
             return false
         endif
 
@@ -356,7 +390,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
             endif
             return StrfDecodeUtf16At(chars, count, pos, wc, fallback_wchar, has_fallback)
         endif
-        raise EStrError('Invalid UTF-16')
+        StrfRuntimeError('Invalid UTF-16')
         return false
     else:
         wc = wchar(int(u0))

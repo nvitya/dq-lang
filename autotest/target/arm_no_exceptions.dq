@@ -1,0 +1,23 @@
+// Exception-free bare linking must not require a C++ unwinder or personality.
+
+object OMarker:
+    value : int
+
+    function *Create():
+        value = 1
+    endfunc
+
+    function *Destroy():
+        value = 0
+    endfunc
+endobj
+
+function OwnedScope():
+    var marker <- OMarker()
+endfunc
+
+function _start() [[cexport]]:
+    OwnedScope()
+    while true:
+    endwhile
+endfunc

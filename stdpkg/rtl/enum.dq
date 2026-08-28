@@ -18,10 +18,15 @@ function DqEnumInvalidOrd()
 implementation
 
 use rtl/rtlint
+#ifdef EXCEPTIONS
 use rtl/exception
 use rtl/mem
+#endif
 
 function DqEnumInvalidOrd():
+#ifdef EXCEPTIONS
     raise new Exception("Invalid enum ordinal")
+#else
+    RuntimeError("Invalid enum ordinal")
+#endif
 endfunc
-

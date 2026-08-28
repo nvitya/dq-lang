@@ -1,0 +1,10 @@
+//?notest
+
+main = '../../target/arm_no_exceptions.dq'
+target = 'arm_m7f-bare'
+exceptions = false
+link = true
+compiler_runtime = 'none'
+c_runtime = 'none'
+linkoption = '--entry=_start'
+linkoption = '--gc-sections'

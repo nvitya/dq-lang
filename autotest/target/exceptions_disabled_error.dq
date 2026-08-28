@@ -1,0 +1,29 @@
+// Focused diagnostics for exception statements in exception-free builds.
+
+#ifdef TEST_TRY
+function TestTry():
+    try:
+    except:
+    endtry
+endfunc
+#endif
+
+#ifdef TEST_FINALLY
+function TestFinally():
+    try:
+    finally:
+    endtry
+endfunc
+#endif
+
+#ifdef TEST_VALUE_RAISE
+function TestValueRaise():
+    raise Exception("disabled")
+endfunc
+#endif
+
+#ifdef TEST_RERAISE
+function TestReraise():
+    raise
+endfunc
+#endif

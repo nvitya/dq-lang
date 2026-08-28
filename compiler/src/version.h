@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.50.5"
+#define DQ_COMPILER_VERSION  "0.51.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.51.0:
+  - Option for enabling and disabling exceptions. Exceptions are disabled by default for bare-metal
+    targets
 v0.50.5:
   - added the arm_m7fd-bare double-precision FPU target
   - plain float defaults to float32 on single-precision FPU targets

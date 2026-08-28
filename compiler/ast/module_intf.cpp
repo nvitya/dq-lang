@@ -577,6 +577,7 @@ string OModuleIntf::DqmIfBuildOptions() const
   result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
+  result += (g_opt.exceptions ? ";exceptions=true" : ";exceptions=false");
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -1138,6 +1139,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("--mod-name");
   args.push_back(module_path);
   args.push_back(format("-O{}", g_opt.optlevel));
+  args.push_back(g_opt.exceptions ? "--exceptions" : "--no-exceptions");
   if (LTOMODE_FULL == g_opt.lto_mode)
   {
     args.push_back("--lto=full");

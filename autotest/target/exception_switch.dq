@@ -1,0 +1,15 @@
+// Compile-only coverage for the EXCEPTIONS define and the implicit sys prelude.
+
+#ifdef EXPECT_EXCEPTIONS
+  #ifndef EXCEPTIONS
+    var exception_setting_mismatch : OExpectedExceptions
+  #endif
+#else
+  #ifdef EXCEPTIONS
+    var exception_setting_mismatch : OExpectedNoExceptions
+  #endif
+#endif
+
+function ClearMemory(p : pointer):
+    MemSet(p, 0, 0)
+endfunc

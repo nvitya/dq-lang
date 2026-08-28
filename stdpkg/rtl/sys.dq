@@ -14,16 +14,35 @@
  */
 
 use rtl/rtlint     reexport
-use rtl/exception  reexport
 use rtl/mem        reexport
+
+#ifdef EXCEPTIONS
+use rtl/exception  reexport
+#endif
+
+#ifndef BARE
+
 use rtl/prgargs    reexport
+
+#endif
 
 function Exit(status : int)
 
 implementation
+
+#ifdef BARE
+
+function Exit(status : int):
+    while true:
+    endwhile
+endfunc
+
+#else
 
 function libc_exit(status : int)  [[external('exit')]]
 
 function Exit(status : int):
     libc_exit(status)
 endfunc
+
+#endif

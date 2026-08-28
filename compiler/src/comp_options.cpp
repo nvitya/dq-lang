@@ -371,8 +371,10 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     else if ("--ifgen" == v)  ifgen = true;
     else if ("--ifdump" == v)  ifdump = true;
     else if ("--no-use-sys" == v)  no_use_sys = true;
-    else if ("--exceptions" == v)  SetExceptions(true);
+    else if ("--exceptions" == v)     SetExceptions(true);
     else if ("--no-exceptions" == v)  SetExceptions(false);
+    else if ("--dynstrings" == v)     SetDynStrings(true);
+    else if ("--no-dynstrings" == v)  SetDynStrings(false);
     else if ("--regen-if-stale" == v)  regen_if_stale = true;
     else if ("--link" == v)
     {
@@ -528,6 +530,8 @@ void OCompOptions::PrintUsage()
   print("  --no-use-sys : do not add the implicit merged sys module\n");
   print("  --exceptions : enable exception handling\n");
   print("  --no-exceptions : disable exception handling\n");
+  print("  --dynstrings : enable dynamic strings\n");
+  print("  --no-dynstrings : disable dynamic strings\n");
   print("  --target=<name> : select the compiler target\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
@@ -596,6 +600,19 @@ bool OCompOptions::SetCompilerRuntime(const string & value, string & rerror)
   }
   compiler_runtime = value;
   return true;
+}
+
+void OCompOptions::ApplyTargetDefaults()
+{
+  if (!exceptions_explicit)
+  {
+    exceptions = !target.IsBare();
+  }
+
+  if (!dynstrings_explicit)
+  {
+    dynstrings = !target.IsBare();
+  }
 }
 
 bool OCompOptions::SetCRuntime(const string & value, string & rerror)

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.52.2"
+#define DQ_COMPILER_VERSION  "0.52.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.52.3:
+  - "dynstrings" option preparation
 v0.52.2:
   - Option processing rework
 v0.52.1:

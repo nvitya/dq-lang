@@ -52,6 +52,11 @@ void OScopeDefines::Init()
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "EXCEPTIONS", true));
   }
 
+  if (g_opt.dynstrings)
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "DYNSTRINGS", true));
+  }
+
   if (4 == g_opt.target.pointer_size)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));

@@ -103,6 +103,8 @@ public:
   bool     ir_print = false;      // -ir
   bool     exceptions = true;
   bool     exceptions_explicit = false;
+  bool     dynstrings = true;
+  bool     dynstrings_explicit = false;
   ECompLinkMode link_mode = DQC_LINK_AUTO;
   int      optlevel = 1;          // -On
   ELtoMode lto_mode = LTOMODE_OFF;
@@ -143,11 +145,7 @@ public:
 
   OCompOptions();
 
-  void SetExceptions(bool value) { exceptions = value; exceptions_explicit = true; }
-  void ApplyTargetDefaults()
-  {
-    if (!exceptions_explicit) exceptions = !target.IsBare();
-  }
+  void ApplyTargetDefaults();
   string ProcessCommandLineOpts(int argc, char ** argv);
   static void PrintUsage();
   static bool CommandLineOptionHasValue(const string & option);
@@ -167,6 +165,9 @@ public:
     if (DQC_LINK_COMPILE_ONLY == link_mode) return false;
     return !target.IsBare() && has_app_main;
   }
+
+  void SetExceptions(bool value) { exceptions = value; exceptions_explicit = true; }
+  void SetDynStrings(bool value) { dynstrings = value; dynstrings_explicit = true; }
 
 private:
   static bool IsValidDefineName(const string & name);

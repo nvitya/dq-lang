@@ -432,7 +432,7 @@ void ODqCompCodegen::GenerateIr()
     di_builder->finalize();
   }
 
-  // OptimizeIr(g_opt.optlevel);
+  OptimizeIr(g_opt.optlevel);
 }
 
 void ODqCompCodegen::PrepareTarget()
@@ -514,7 +514,9 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
     return;
   }
 
-  llvm::PassBuilder PB(ll_machine);
+  llvm::PipelineTuningOptions tuning_options;
+  tuning_options.LoopUnrolling = (aoptlevel > 1);
+  llvm::PassBuilder PB(ll_machine, tuning_options);
 
   llvm::LoopAnalysisManager     LAM;
   llvm::FunctionAnalysisManager FAM;

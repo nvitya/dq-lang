@@ -109,21 +109,26 @@ int main()
   hosted_defaults.target.ConfigureHost();
   hosted_defaults.ApplyTargetDefaults();
   Expect(hosted_defaults.exceptions, "hosted exceptions default");
+  Expect(hosted_defaults.dynstrings, "hosted dynamic strings default");
 
   OCompOptions bare_defaults;
   string bare_default_error;
   Expect(bare_defaults.target.Configure("arm_m0-bare", bare_default_error), "bare default target");
   bare_defaults.ApplyTargetDefaults();
   Expect(!bare_defaults.exceptions, "bare exceptions default");
+  Expect(!bare_defaults.dynstrings, "bare dynamic strings default");
   bare_defaults.SetExceptions(true);
+  bare_defaults.SetDynStrings(true);
   bare_defaults.ApplyTargetDefaults();
   Expect(bare_defaults.exceptions, "explicit bare exceptions override");
+  Expect(bare_defaults.dynstrings, "explicit bare dynamic strings override");
 
   OCompOptions command_line_options;
   string command_line_error;
   Expect(command_line_options.target.Configure("arm_m0-bare", command_line_error),
          "command line target setup");
   command_line_options.SetExceptions(false);  // Simulate a project setting.
+  command_line_options.SetDynStrings(false);  // Simulate a project setting.
   char opt_arg0[] = "dq-comp";
   char opt_arg1[] = "--exceptions";
   char opt_arg2[] = "-O3";
@@ -132,12 +137,15 @@ int main()
   char opt_arg5[] = "test";
   char opt_arg6[] = "-DVALUE=-42";
   char opt_arg7[] = "main.dq";
-  char * opt_argv[] = {opt_arg0, opt_arg1, opt_arg2, opt_arg3, opt_arg4, opt_arg5, opt_arg6, opt_arg7};
-  command_line_error = command_line_options.ProcessCommandLineOpts(8, opt_argv);
+  char opt_arg8[] = "--dynstrings";
+  char * opt_argv[] = {opt_arg0, opt_arg1, opt_arg2, opt_arg3, opt_arg4, opt_arg5, opt_arg6, opt_arg8, opt_arg7};
+  command_line_error = command_line_options.ProcessCommandLineOpts(9, opt_argv);
   Expect(command_line_error.empty(),
          "command line options should parse");
   Expect(command_line_options.exceptions && command_line_options.exceptions_explicit,
          "command line exceptions overrides project setting");
+  Expect(command_line_options.dynstrings && command_line_options.dynstrings_explicit,
+         "command line dynamic strings override project setting");
   Expect(command_line_options.optlevel == 3, "command line optimization level");
   Expect(command_line_options.lto_mode == LTOMODE_FULL, "command line LTO mode");
   Expect(command_line_options.build_tag == "arm_m0-bare-test", "command line build tag suffix");
@@ -168,6 +176,7 @@ include '${SDK}/project/common.dqproj'
 main = '${PROJECT_DIR}/main.dq'; output = '${THIS_DIR}/out.elf'
 target = 'arm_m7f-bare'
 exceptions = false
+dynstrings = false
 compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 link = true
@@ -187,6 +196,7 @@ linkoption = '--gc-sections'
          "output path");
   Expect(g_opt.target.name == "arm_m7f-bare", "target value");
   Expect(!g_opt.exceptions && g_opt.exceptions_explicit, "exceptions value");
+  Expect(!g_opt.dynstrings && g_opt.dynstrings_explicit, "dynamic strings value");
   Expect(g_opt.compiler_runtime == "libgcc", "compiler runtime value");
   Expect(g_opt.c_runtime == "newlib-nano", "C runtime value");
   Expect(g_opt.link_mode == DQC_LINK_FORCE, "link value");
@@ -225,6 +235,12 @@ main = '${SELECTED}/main.dq'
   Expect(!LoadProject(project, root / "duplicate-exceptions.dqproj")
              && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate exceptions diagnostic");
+
+  WriteFile(root / "duplicate-dynstrings.dqproj",
+            "main='main.dq'\ndynstrings=true\ndynstrings=false\n");
+  Expect(!LoadProject(project, root / "duplicate-dynstrings.dqproj")
+             && HasDiagnostic(project, "ProjectDuplicate"),
+         "duplicate dynamic strings diagnostic");
 
   WriteFile(root / "duplicate-variable.dqproj", "var ROOT='one'\nvar ROOT='two'\nmain='main.dq'\n");
   Expect(!LoadProject(project, root / "duplicate-variable.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),

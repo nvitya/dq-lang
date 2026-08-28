@@ -28,6 +28,10 @@ integer; explicit or checked conversion creates a character from an integer.
 slicing, and capacity count bytes; the terminator is not included. A `str` may
 contain internal zeroes and is not necessarily valid UTF-8.
 
+On targets built with dynamic strings disabled, `str` and operations that
+produce it are unavailable. Text literals, `strview`, and `cstring(N)` remain
+available for non-owning or bounded text processing.
+
 ## Literals
 
 Double quotes always represent text. A single-quoted literal containing exactly

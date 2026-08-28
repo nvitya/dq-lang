@@ -30,6 +30,7 @@ Useful options:
 | `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
 | `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
+| `--dynstrings`, `--no-dynstrings` | enable or disable heap-backed dynamic strings |
 | `--pkg-path <path>` | add a package search root; repeatable |
 | `--build <tag>` | select `.dqbuild/<tag>` |
 | `--build-suffix <suffix>` | append to the selected build tag |
@@ -48,6 +49,10 @@ The `rtl/sys` prelude is implicitly merged for hosted and bare targets. Use
 Exception handling defaults to enabled on hosted targets and disabled on bare
 targets; when enabled, `#ifdef EXCEPTIONS` selects exception-aware source code.
 Runtime checks remain active when exception handling is disabled.
+Dynamic strings follow the same target defaults; when enabled,
+`#ifdef DYNSTRINGS` selects `str`-dependent source. With dynamic strings
+disabled, `strview`, string literals, and bounded `cstring` remain available,
+but owning `str` operations are rejected at compile time.
 
 ## `dq-run`
 

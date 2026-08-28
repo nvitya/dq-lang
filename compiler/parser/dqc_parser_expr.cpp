@@ -111,11 +111,25 @@ bool EnsureCStringRtlUse()
 
 bool EnsureDynStringRtlUse()
 {
+  if (!RequireDynStrings())
+  {
+    return false;
+  }
   if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
   {
     return true;
   }
   return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+}
+
+bool RequireDynStrings()
+{
+  if (g_opt.dynstrings)
+  {
+    return true;
+  }
+  g_compiler->Error(DQERR_DYNSTRINGS_DISABLED);
+  return false;
 }
 
 bool EnsureTextFormatRtlUse()
@@ -885,12 +899,20 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     return ptype;  // unsized cstring (for parameters)
   }
 
-  if (TK_DYNSTR == ptype->kind || TK_STRVIEW == ptype->kind)
+  if (TK_DYNSTR == ptype->kind)
   {
+    if (!RequireDynStrings())
+    {
+      return nullptr;
+    }
     if (!g_opt.ifgen && !EnsureDynStringRtlUse())
     {
       return nullptr;
     }
+  }
+  else if (TK_STRVIEW == ptype->kind && !g_opt.ifgen && !EnsureStrFuncRtlUse())
+  {
+    return nullptr;
   }
 
   if (TK_ANYVALUE == ptype->kind)
@@ -2312,9 +2334,9 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   else if ("AsStrView" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_TEXT; text_arg_index = 0; rettype = g_builtins->type_strview; }
   else if ("SetText" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_TEXT; text_arg_index = 0; }
   else if ("SetCString" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_CSTRING; text_arg_index = 0; }
-  else if ("IsStr" == membername)      { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_STR; rettype = g_builtins->type_bool; }
-  else if ("AsStr" == membername)      { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_STR; text_arg_index = 0; rettype = g_builtins->type_str; }
-  else if ("SetStr" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_STR; text_arg_index = 0; }
+  else if ("IsStr" == membername)      { if (!check_count(0, 0) || !RequireDynStrings()) return free_and_fail(); method = AVM_IS_STR; rettype = g_builtins->type_bool; }
+  else if ("AsStr" == membername)      { if (!check_count(1, 1) || !RequireDynStrings()) return free_and_fail(); method = AVM_AS_STR; text_arg_index = 0; rettype = g_builtins->type_str; }
+  else if ("SetStr" == membername)     { if (!check_count(1, 1) || !RequireDynStrings()) return free_and_fail(); method = AVM_SET_STR; text_arg_index = 0; }
   else
   {
     Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
@@ -2546,7 +2568,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           }
           if ("pchar" == membername)
           {
-            if (!EnsureDynStringRtlUse())
+            if (!EnsureStrFuncRtlUse())
             {
               return nullptr;
             }
@@ -2555,7 +2577,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           }
           if ("wclen" == membername)
           {
-            if (!EnsureDynStringRtlUse())
+            if (!EnsureStrFuncRtlUse())
             {
               return nullptr;
             }
@@ -2564,7 +2586,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           }
           if ("wchar" == membername)
           {
-            if (!EnsureDynStringRtlUse())
+            if (!EnsureStrFuncRtlUse())
             {
               return nullptr;
             }

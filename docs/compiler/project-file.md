@@ -141,6 +141,7 @@ single-value properties are errors.
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
 | `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets. |
+| `dynstrings` | boolean | once, optional | Enable or disable heap-backed dynamic strings. Defaults to enabled on hosted targets and disabled on bare targets. |
 | `compiler_runtime` | string | once, optional | Bare-target compiler support runtime: `libgcc` (default) or `none`. |
 | `c_runtime` | string | once, optional | Bare-target C runtime: `newlib-nano` (default) or `none`. |
 | `linkobject` | path string | repeatable | Add an existing object or other positional linker input. |
@@ -184,6 +185,20 @@ and RTL code can select exception-dependent code with `#ifdef EXCEPTIONS`.
 Disabling exceptions removes native unwind generation and rejects `try`,
 `except`, `finally`, and `raise`; runtime checks remain enabled and report
 through the `RuntimeError` hook.
+
+### Dynamic Strings
+
+Dynamic strings are enabled by default for hosted targets and disabled by
+default for bare targets. Projects can override the target default explicitly:
+
+```text
+dynstrings = true
+```
+
+When enabled, the compiler defines `DYNSTRINGS` in the `@def` scope. When
+disabled, heap-owning `str` declarations, conversions, concatenation, and
+methods are rejected with `DynStringsDisabled`. Non-owning and bounded text
+facilities—text literals, `strview`, and bounded `cstring`—remain available.
 
 ### Bare-Metal Runtimes
 
@@ -381,6 +396,7 @@ explicit command-line selections are then applied on top.
 | Debug information | `-g` enables debug information even when `debuginfo = false`. There is currently no command-line option to force it off. |
 | LTO | `--lto` or `--lto=full|off` overrides `lto`. |
 | Exceptions | `--exceptions` or `--no-exceptions` overrides `exceptions`; the last command-line flag wins. |
+| Dynamic strings | `--dynstrings` or `--no-dynstrings` overrides `dynstrings`; the last command-line flag wins. |
 | Link mode | The first explicit `-c` or `--link` replaces the project mode. Conflicting subsequent command-line link modes are errors. |
 | Defines | The first command-line definition of a name removes the project definition of that name. |
 | Package roots | Command-line roots have higher lookup precedence than project and default roots. |
@@ -430,7 +446,7 @@ statement     := property '=' property-value
 property      := 'main' | 'output' | 'target' | 'packagepath'
                | 'link' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
-               | 'exceptions'
+               | 'exceptions' | 'dynstrings'
 
 property-value := string | boolean | signed-decimal-integer
 variable-value := string | 'PackagePath' '(' string ')'

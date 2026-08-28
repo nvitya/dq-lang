@@ -47,9 +47,6 @@ function DynStrDecRef(astr : ref ODynStrMgr)
 function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr)
 function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo)
 
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32)
-function DynStrCheckIndex(index : int, length : uint32)
-
 //function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32
 function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
@@ -57,7 +54,6 @@ function DynStrGetRefCount(astr : ref ODynStrMgr) -> int
 function DynStrPChar(astr : ref ODynStrMgr) -> ^char
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
-function DynStrCharToByte(ch : char) -> char
 
 function DynStrReserve(astr : ref ODynStrMgr, min_capacity : uint32)
 function DynStrSetCapacity(astr : ref ODynStrMgr, new_capacity : uint32)
@@ -84,10 +80,3 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
 function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
 function DynStrPopChar(astr : ref ODynStrMgr) -> char
 function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char
-
-
-function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
-function TextInfoPChar(ati : ref SDqTextInfo) -> ^char
-function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
-function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
-function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool

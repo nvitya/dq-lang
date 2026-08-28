@@ -1,0 +1,15 @@
+// Compile-only coverage for the DYNSTRINGS define and the implicit sys prelude.
+
+#ifdef EXPECT_DYNSTRINGS
+  #ifndef DYNSTRINGS
+    var dynstrings_setting_mismatch : OExpectedDynStrings
+  #endif
+#else
+  #ifdef DYNSTRINGS
+    var dynstrings_setting_mismatch : OExpectedNoDynStrings
+  #endif
+#endif
+
+function TextLength(text : strview) -> int:
+    return text.length
+endfunc

@@ -148,7 +148,7 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7fd-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7fd_float_default.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_float_default.dq"
-  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --dynstrings
           --build-root "${DQ_BUILD_DIR}/arm_m7f_native_collections_build" -c
           -o "${DQ_BUILD_DIR}/arm_m7f_native_collections.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_native_collections.dq"
@@ -173,6 +173,39 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --exceptions -DEXPECT_EXCEPTIONS -c
           -o "${DQ_BUILD_DIR}/project_exceptions_override.o"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/exceptions_false.dqproj"
+  COMMAND "$<TARGET_FILE:dq-comp>" -c -DEXPECT_DYNSTRINGS
+          -o "${DQ_BUILD_DIR}/host_dynstrings_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --no-dynstrings -c
+          -o "${DQ_BUILD_DIR}/host_dynstrings_disabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare -c
+          -o "${DQ_BUILD_DIR}/arm_dynstrings_default.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --dynstrings -DEXPECT_DYNSTRINGS -c
+          -o "${DQ_BUILD_DIR}/arm_dynstrings_enabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --no-dynstrings --dynstrings -DEXPECT_DYNSTRINGS -c
+          -o "${DQ_BUILD_DIR}/dynstrings_last_enabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --dynstrings --no-dynstrings -c
+          -o "${DQ_BUILD_DIR}/dynstrings_last_disabled.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_switch.dq"
+  COMMAND "$<TARGET_FILE:dq-comp>" --dynstrings -DEXPECT_DYNSTRINGS -c
+          -o "${DQ_BUILD_DIR}/project_dynstrings_override.o"
+          "${CMAKE_SOURCE_DIR}/autotest/tests/project/dynstrings_false.dqproj"
+  COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-dynstrings -c
+          -o "${DQ_BUILD_DIR}/arm_no_dynstrings_text.o"
+          "${CMAKE_SOURCE_DIR}/autotest/target/no_dynstrings_text.dq"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DDQ_NM=${CMAKE_NM}"
+          "-DDQ_OBJECT=${DQ_BUILD_DIR}/arm_no_dynstrings_text.o"
+          -P "${CMAKE_SOURCE_DIR}/compiler/test/no_dynstrings_symbols_test.cmake"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DDQ_COMPILER=$<TARGET_FILE:dq-comp>"
+          "-DDQ_SOURCE=${CMAKE_SOURCE_DIR}/autotest/target/dynstrings_disabled_error.dq"
+          "-DDQ_OUTPUT=${DQ_BUILD_DIR}/dynstrings_disabled_error.o"
+          -P "${CMAKE_SOURCE_DIR}/compiler/test/no_dynstrings_test.cmake"
   COMMAND "$<TARGET_FILE:dq-comp>" -o "${DQ_BUILD_DIR}/arm_no_exceptions.elf"
           "${CMAKE_SOURCE_DIR}/autotest/tests/project/arm_no_exceptions.dqproj"
   COMMAND "${CMAKE_COMMAND}"

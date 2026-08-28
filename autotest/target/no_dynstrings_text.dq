@@ -1,0 +1,22 @@
+// Heap-free text operations must remain available when dynamic strings are disabled.
+
+use strutils
+
+function TextLength(text : strview) -> int:
+    var slice : strview = text[0:text.length]
+    var first : wchar = slice.wchar[0]
+    return slice.wclen + Ord(first)
+endfunc
+
+function FormatText() -> int:
+    var text : cstring(15) = "value="
+    text.AddFmt("{}", [42])
+    var view : strview = text
+    var value : anyvalue = text
+    var copied : strview = value.AsText("")
+    return view.length + copied.length
+endfunc
+
+function ParseText() -> int64:
+    return StrToInt("42")
+endfunc

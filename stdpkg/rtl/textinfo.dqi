@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/textinfo.dqi, included by "rtl/strfunc.dq"
+ * brief:   Heap-free text descriptor helper implementations
+ */
+
+function DynStrRuntimeError(emsg : ^char):
+    RuntimeError(emsg)
+endfunc
+
+function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
+    if ati.info & DQTIF_CHARLEN_VALID <> uint32(0):
+        return ati.charlen
+    endif
+
+    result = CStrLen(ati)
+    ati.charlen = result
+    ati.info = ati.info | DQTIF_CHARLEN_VALID
+endfunc
+
+function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
+    result = TextInfoCharLen(ati)
+endfunc
+
+function TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
+    result = ati.dataptr
+endfunc
+
+function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
+    var alen : uint32 = TextInfoCharLen(ati)
+    DynStrCheckIndex(index, alen)
+    if ati.dataptr == null:
+        DynStrRuntimeError('TextInfo null text data')
+        return char(0)
+    endif
+    result = ati.dataptr[index]^
+endfunc
+
+function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
+    var alen : uint32 = TextInfoCharLen(ati)
+    var b : int = startpos
+    if b < 0:
+        b = 0
+    elif b >= alen:
+        b = alen
+    endif
+
+    var e : int = endposex
+    if e < 0:
+        e = 0
+    elif e >= alen:
+        e = alen
+    endif
+    if e < b:
+        e = b
+    endif
+
+    var viewlen : uint32 = e - b
+    if viewlen == 0  or  ati.dataptr == null:
+        DynStrSetTextInfo(rti, null, 0)
+    else:
+        DynStrSetTextInfo(rti, ati.dataptr[b], viewlen)
+    endif
+endfunc
+
+function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
+    var alen : uint32 = TextInfoCharLen(a)
+    var blen : uint32 = TextInfoCharLen(b)
+    if alen <> blen:
+        return false
+    endif
+    if alen == 0:
+        return true
+    endif
+    if a.dataptr == null  or  b.dataptr == null:
+        return false
+    endif
+    var i : uint32 = 0
+    while i < alen:
+        if a.dataptr[i]^ <> b.dataptr[i]^:
+            return false
+        endif
+        i += 1
+    endwhile
+    return true
+endfunc
+
+function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
+    rti.dataptr = dataptr
+    rti.charlen = charlen
+    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY
+endfunc
+
+function DynStrCheckIndex(index : int, length : uint32):
+    if index < 0  or  index >= length:
+        DynStrRuntimeError('Text index out of bounds')
+    endif
+endfunc
+
+function DynStrCharToByte(ch : char) -> char:
+    return ch
+endfunc

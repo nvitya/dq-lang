@@ -1,0 +1,23 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/textinfo.dqh, included by "rtl/strfunc.dq"
+ * brief:   Heap-free text descriptor helpers
+ */
+
+function DynStrRuntimeError(emsg : ^char)
+function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32)
+function DynStrCheckIndex(index : int, length : uint32)
+function DynStrCharToByte(ch : char) -> char
+
+function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
+function TextInfoPChar(ati : ref SDqTextInfo) -> ^char
+function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
+function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
+function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool

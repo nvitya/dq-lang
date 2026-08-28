@@ -105,4 +105,5 @@ bool EnsureDynArrayRtlUse();
 bool EnsureStrFuncRtlUse();
 bool EnsureCStringRtlUse();
 bool EnsureDynStringRtlUse();
+bool RequireDynStrings();
 bool EnsureTextFormatRtlUse();

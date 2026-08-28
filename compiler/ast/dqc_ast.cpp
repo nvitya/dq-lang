@@ -619,7 +619,7 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
       && IsTextSourceType(newright->ResolvedType())
       && (is_concat_disambiguator(newleft->ResolvedType()) || is_concat_disambiguator(newright->ResolvedType())))
   {
-    if (!EnsureStrFuncRtlUse())
+    if (!EnsureDynStringRtlUse())
     {
       return nullptr;
     }
@@ -1913,7 +1913,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
         delete rightexpr;
         return false;
       }
-      if (!EnsureStrFuncRtlUse())
+      if (!EnsureDynStringRtlUse())
       {
         delete leftexpr;
         delete rightexpr;
@@ -2017,7 +2017,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
       delete rightexpr;
       return false;
     }
-    if (!EnsureStrFuncRtlUse())
+    if (!EnsureDynStringRtlUse())
     {
       delete leftexpr;
       delete rightexpr;

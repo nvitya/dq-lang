@@ -1,0 +1,5 @@
+//?notest
+
+main = '../../target/dynstrings_switch.dq'
+dynstrings = false
+link = false

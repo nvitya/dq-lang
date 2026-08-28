@@ -90,6 +90,7 @@ object OTextSinkCString(OTextSink):
     function WriteChar(ch : char)   [[override]]
 endobj
 
+#ifdef DYNSTRINGS
 object OTextSinkStr(OTextSink):
     dest : ^str
 
@@ -97,6 +98,7 @@ object OTextSinkStr(OTextSink):
     function Write(atext : strview) [[override]]
     function WriteChar(ch : char)   [[override]]
 endobj
+#endif
 
 struct STextFmtSpec:
     kind       : char  // d/u/x/X/s/p/f/?
@@ -145,7 +147,9 @@ protected
 endobj
 
 function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue)
+#ifdef DYNSTRINGS
 function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue)
+#endif
 
 implementation
 
@@ -206,6 +210,7 @@ function OTextSinkCString.WriteChar(ch : char) [[override]]:
     dest.AppendChar(ch)
 endfunc
 
+#ifdef DYNSTRINGS
 function OTextSinkStr.*Create(adest : ^str):
     inherited Create()
     dest = adest
@@ -218,6 +223,7 @@ endfunc
 function OTextSinkStr.WriteChar(ch : char) [[override]]:
     dest^.AppendChar(ch)
 endfunc
+#endif
 
 //-------------------------------------------------------------------------------------------------
 
@@ -634,8 +640,10 @@ function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue):
     ofmt.Format(afmt, aargs)
 endfunc
 
+#ifdef DYNSTRINGS
 function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue):
     var osink <- OTextSinkStr(astr)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)
 endfunc
+#endif

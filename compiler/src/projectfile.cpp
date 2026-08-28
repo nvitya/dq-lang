@@ -504,6 +504,12 @@ bool ODqProjectFile::ParseProperty(const string & name)
     if (!ReadBool(bvalue)) return false;
     g_opt.SetExceptions(bvalue);
   }
+  else if ("dynstrings" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    if (!ReadBool(bvalue)) return false;
+    g_opt.SetDynStrings(bvalue);
+  }
   else if ("compiler_runtime" == name)
   {
     if (!CheckDuplicate(name)) return false;

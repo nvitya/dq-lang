@@ -805,7 +805,7 @@ bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
-      if (!EnsureStrFuncRtlUse())
+      if (!EnsureDynStringRtlUse())
       {
         return false;
       }

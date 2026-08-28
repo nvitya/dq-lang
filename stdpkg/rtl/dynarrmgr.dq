@@ -74,7 +74,10 @@ function DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, sta
 
 implementation
 
-use rtl/mem, rtl/strfunc
+use rtl/mem
+#ifdef DYNSTRINGS
+use rtl/strfunc
+#endif
 
 function libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]]
 
@@ -186,6 +189,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
             i += 1
         endwhile
 
+#ifdef DYNSTRINGS
     elif typeinfo.kind == DQTK_DYNSTR:
         var elemsize : uint = typeinfo.storagesize
         var i : uint = 0
@@ -197,6 +201,7 @@ function DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
             endif
             i += 1
         endwhile
+#endif
 
     elif typeinfo.copy_func <> null:
         typeinfo.copy_func(dataptr, dataptr, length)
@@ -223,6 +228,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
             i += 1
         endwhile
 
+#ifdef DYNSTRINGS
     elif typeinfo.kind == DQTK_DYNSTR:
         var elemsize : uint = typeinfo.storagesize
         var i : uint = 0
@@ -234,6 +240,7 @@ function DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqT
             endif
             i += 1
         endwhile
+#endif
 
     elif typeinfo.destroy_func <> null:
         typeinfo.destroy_func(dataptr, length)

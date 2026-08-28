@@ -1,0 +1,22 @@
+// Compile-only diagnostics for disabled dynamic strings.
+
+#ifdef TEST_STR
+function TestStr():
+    var text : str = "text"
+endfunc
+#endif
+
+#ifdef TEST_CONCAT
+function TestConcat():
+    var left : strview = "left"
+    var right : strview = "right"
+    var text = left + right
+endfunc
+#endif
+
+#ifdef TEST_ANYVALUE
+function TestAnyValue():
+    var value : anyvalue
+    value.SetStr("text")
+endfunc
+#endif

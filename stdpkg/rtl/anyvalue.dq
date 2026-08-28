@@ -71,10 +71,12 @@ function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refo
 function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 
+#ifdef DYNSTRINGS
 function AnyValIsStr(v : ref SDqAnyValue) -> bool   // true only when it is a dynamic string
 function AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str
 function AnyValSetStr(v : ref SDqAnyValue, value : str)
 function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
+#endif
 
 function AnyValDestroy(v : ref SDqAnyValue)
 function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue)
@@ -91,23 +93,29 @@ implementation
 
 use rtl/strfunc
 
+#ifdef DYNSTRINGS
 function AnyValDynStrRef(v : ref SDqAnyValue) -> ^ODynStrMgr:
     return ^ODynStrMgr(%v.data[0])
 endfunc
+#endif
 
 function AnyValSetKind(v : ref SDqAnyValue, akind : byte):
+#ifdef DYNSTRINGS
     if v.kind == DQTK_DYNSTR:
         if akind == DQTK_DYNSTR:
             return
         endif
         DynStrDecRef(AnyValDynStrRef(v)^)
     endif
+#endif
     v.kind = akind
     v.subtype = 0
     v.datasize = 0
+#ifdef DYNSTRINGS
     if akind == DQTK_DYNSTR:
         ^pointer(%v.data[0])^ = null  // null manager object = empty string
     endif
+#endif
 endfunc
 
 function AnyValDestroy(v : ref SDqAnyValue):
@@ -121,9 +129,11 @@ function AnyValCopy(dst : ref SDqAnyValue, src : ref SDqAnyValue):
     endif
     AnyValDestroy(dst)
     dst = src
+#ifdef DYNSTRINGS
     if dst.kind == DQTK_DYNSTR:
         DynStrIncRef(AnyValDynStrRef(dst)^)
     endif
+#endif
 endfunc
 
 function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue):
@@ -330,9 +340,14 @@ endfunc
 // Text / String
 
 function AnyValIsText(v : ref SDqAnyValue) -> bool:
+#ifdef DYNSTRINGS
     return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING
+#else
+    return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_CSTRING
+#endif
 endfunc
 
+#ifdef DYNSTRINGS
 function AnyValIsStr(v : ref SDqAnyValue) -> bool:
     return v.kind == DQTK_DYNSTR
 endfunc
@@ -360,6 +375,7 @@ function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo):
     DynStrAssignData(AnyValDynStrRef(v)^, ati)
     v.datasize = @def.PTRSIZE
 endfunc
+#endif
 
 function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo):
     AnyValSetKind(v, DQTK_STRVIEW)
@@ -376,8 +392,10 @@ endfunc
 function AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
     if v.kind == DQTK_STRVIEW  or  v.kind == DQTK_CSTRING:
         rv = ^SDqTextInfo(%v.data[0])^
+#ifdef DYNSTRINGS
     elif v.kind == DQTK_DYNSTR:
         DynStrGetFullView(AnyValDynStrRef(v)^, rv)
+#endif
     else:
         rv = defval
     endif

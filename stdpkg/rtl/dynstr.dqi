@@ -13,88 +13,6 @@
  * brief:   DQ dynamic string handling implementations
  */
 
-function DynStrRuntimeError(emsg : ^char):
-    RuntimeError(emsg)
-endfunc
-
-function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
-    if ati.info & DQTIF_CHARLEN_VALID <> uint32(0):
-        return ati.charlen
-    endif
-
-    // only possible for CStrings
-    result = CStrLen(ati)
-    ati.charlen = result
-    ati.info = ati.info | DQTIF_CHARLEN_VALID
-endfunc
-
-function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
-    result = TextInfoCharLen(ati)
-endfunc
-
-function TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
-    result = ati.dataptr
-endfunc
-
-function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
-    var alen : uint32 = TextInfoCharLen(ati)
-    DynStrCheckIndex(index, alen)
-    if ati.dataptr == null:
-        DynStrRuntimeError('DynStr null text data')
-        return char(0)
-    endif
-    result = ati.dataptr[index]^
-endfunc
-
-function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
-    var alen : uint32 = TextInfoCharLen(ati)
-    var b : int = startpos
-    if b < 0:
-        b = 0
-    elif b >= alen:
-        b = alen
-    endif
-
-    var e : int = endposex
-    if e < 0:
-        e = 0
-    elif e >= alen:
-        e = alen
-    endif
-    if e < b:
-        e = b
-    endif
-
-    var viewlen : uint32 = e - b
-    if viewlen == 0  or  ati.dataptr == null:
-        DynStrSetTextInfo(rti, null, 0)
-    else:
-        DynStrSetTextInfo(rti, ati.dataptr[b], viewlen)
-    endif
-endfunc
-
-function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
-    var alen : uint32 = TextInfoCharLen(a)
-    var blen : uint32 = TextInfoCharLen(b)
-    if alen <> blen:
-        return false
-    endif
-    if alen == 0:
-        return true
-    endif
-    if a.dataptr == null  or  b.dataptr == null:
-        return false
-    endif
-    var i : uint32 = 0
-    while i < alen:
-        if a.dataptr[i]^ <> b.dataptr[i]^:
-            return false
-        endif
-        i += 1
-    endwhile
-    return true
-endfunc
-
 function DynStrAddLength(length : uint32, acount : int32) -> uint32:
     if acount < 1:
         return length
@@ -157,18 +75,6 @@ function DynStrSourceCount(asrc : ref SDqTextInfo, acount : int32) -> uint32:
     result = uint32(acount)
     if result > srclen:
         result = srclen
-    endif
-endfunc
-
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
-    rti.dataptr = dataptr
-    rti.charlen = charlen
-    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY
-endfunc
-
-function DynStrCheckIndex(index : int, length : uint32):
-    if index < 0  or  index >= length:
-        DynStrRuntimeError('DynStr index out of bounds')
     endif
 endfunc
 
@@ -581,15 +487,6 @@ function DynStrPChar(astr : ref ODynStrMgr) -> ^char:
         return ''
     endif
     return astr.dataptr
-endfunc
-
-function DynStrCharToByte(ch : char) -> char:
-    var chv : int = Ord(ch)
-    if chv > 255:
-        DynStrRuntimeError('DynStr byte-only string support rejects char > 255')
-        return char(0)
-    endif
-    result = char(ch)
 endfunc
 
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:

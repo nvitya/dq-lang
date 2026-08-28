@@ -144,6 +144,9 @@ public:
   {
     if (!exceptions_explicit) exceptions = !target.IsBare();
   }
+  bool ProcessCommandLineOpts(int argc, char ** argv, string & rerror);
+  static void PrintUsage();
+  static bool CommandLineOptionHasValue(const string & option);
 
   void InitializeCompilerExecutable(const string & argv0);
   vector<string> DefaultPackagePaths() const;
@@ -160,6 +163,13 @@ public:
     if (DQC_LINK_COMPILE_ONLY == link_mode) return false;
     return !target.IsBare() && has_app_main;
   }
+
+private:
+  static bool IsValidDefineName(const string & name);
+  static bool ParseDefineIntValue(const string & text, int64_t & rvalue);
+  static bool ParseDefineBoolValue(const string & text, bool & rvalue);
+  static void ParseModuleUseStack(const string & text, vector<string> & rstack);
+  bool ParseLtoMode(const string & text, string & rerror);
 };
 
 extern OCompOptions  g_opt;

@@ -41,6 +41,11 @@
 #include "projectfile.h"
 #include "version.h"
 
+#include "ll_defs.h"
+#include "named_scopes.h"
+#include "scope_builtins.h"
+#include "scope_defines.h"
+
 #define CALL_TESTCODE 0
 
 #if CALL_TESTCODE
@@ -152,16 +157,7 @@ struct SProjectStartupArgs
 {
   string project_filename;
   vector<string> command_line_package_paths;
-  bool exceptions_set = false;
-  bool exceptions = true;
 };
-
-static bool OptionConsumesNextArg(const string & arg)
-{
-  return (arg == "--target") || (arg == "--pkg-path") || (arg == "--build")
-         || (arg == "--build-suffix") || (arg == "--build-root") || (arg == "--mod-root")
-         || (arg == "--mod-name") || (arg == "--ifstack") || (arg == "-o");
-}
 
 static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
 {
@@ -171,18 +167,12 @@ static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
   for (int i = 1; i < argc; ++i)
   {
     string arg(argv[i]);
-    if ((arg == "--exceptions") || (arg == "--no-exceptions"))
-    {
-      result.exceptions_set = true;
-      result.exceptions = (arg == "--exceptions");
-      continue;
-    }
     if (arg == "--pkg-path")
     {
       if (i + 1 < argc) result.command_line_package_paths.push_back(argv[++i]);
       continue;
     }
-    if (OptionConsumesNextArg(arg))
+    if (OCompOptions::CommandLineOptionHasValue(arg))
     {
       if (i + 1 < argc) ++i;
       continue;
@@ -220,7 +210,13 @@ int main(int argc, char ** argv)
 
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.package_paths = g_opt.DefaultPackagePaths();
+
+  // Pre-collect some command line arguments:
+  //   - project file name
+  //   - package search paths making them availabe for project files
   SProjectStartupArgs startup_args = ScanProjectStartupArgs(argc, argv);
+
+  // Process the project file
   ODqProject project;
   if (!startup_args.project_filename.empty())
   {
@@ -239,6 +235,7 @@ int main(int argc, char ** argv)
     }
   }
 
+  // Pre-configure target
   string target_error;
   string project_target = (startup_args.project_filename.empty() ? "" : g_opt.target.name);
   if (!g_opt.target.ConfigureFromCommandLine(argc, argv, target_error, project_target))
@@ -246,13 +243,15 @@ int main(int argc, char ** argv)
     print("{}\n", target_error);
     return 1;
   }
-  if (startup_args.exceptions_set)
+
+  g_opt.ApplyTargetDefaults();
+
+  string command_line_error;
+  if (!g_opt.ProcessCommandLineOpts(argc, argv, command_line_error))
   {
-    g_opt.SetExceptions(startup_args.exceptions);
-  }
-  else
-  {
-    g_opt.ApplyTargetDefaults();
+    print("{}\n", command_line_error);
+    OCompOptions::PrintUsage();
+    return 1;
   }
 
   string runtime_error;
@@ -262,7 +261,17 @@ int main(int argc, char ** argv)
     return 1;
   }
 
-  dqc_init(); // creates the compiler object
+  // Compiler initialization
+
+  ll_defs_init();
+
+  g_compiler = new ODqCompiler();
+
+  init_scope_builtins();   // this may depend on some command line / project options
+  init_scope_defines();    // this may depend on some command line / project options
+
+  init_dq_module();
+  init_named_scopes();
 
   g_compiler->Run(argc, argv);
   r = g_compiler->errorcnt;

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.52.1"
+#define DQ_COMPILER_VERSION  "0.52.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.52.2:
+  - Option processing rework
 v0.52.1:
   - NoUnwind attributes for call generation when Exceptions are disabled
 v0.52.0:

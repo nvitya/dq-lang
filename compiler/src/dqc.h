@@ -56,5 +56,3 @@ public:
 };
 
 extern ODqCompiler *  g_compiler;
-
-void dqc_init();

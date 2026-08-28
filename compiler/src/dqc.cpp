@@ -481,7 +481,6 @@ void ODqCompiler::Run(int argc, char ** argv)
   errorcnt = 0;
   OScPosition scpos;
 
-  ParseCmdLineArgsVerblevel(argc, argv);
   if (g_opt.verblevel >= VERBLEVEL_STATUS)
   {
     print("DQ Compiler - v{}\n", DQ_COMPILER_VERSION);
@@ -707,16 +706,4 @@ void ODqCompiler::Run(int argc, char ** argv)
   }
 
   return;
-}
-
-void dqc_init()
-{
-  ll_defs_init();
-  init_scope_builtins();
-  init_scope_defines();
-
-  init_dq_module();
-  init_named_scopes();
-
-  g_compiler = new ODqCompiler();
 }

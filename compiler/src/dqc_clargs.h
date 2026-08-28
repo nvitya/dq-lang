@@ -40,18 +40,6 @@ public:
   ODqCompClargs();
   virtual ~ODqCompClargs();
 
-  bool IsValidDefineName(const string & name);
-  string DefaultBuildTag();
-  void ParseModuleUseStack(const string & text, vector<string> & rstack);
-  bool ParseDefineIntValue(const string & text, int64_t & rvalue);
-  bool ParseDefineBoolValue(const string & text, bool & rvalue);
-  bool ParseLtoMode(const string & text);
-  bool SelectLinkMode(ECompLinkMode mode, const string & option);
-  bool VerblevelSwitch(const string & aswitch);
-
   void ParseCmdLineArgs(int argc, char ** argv);
-  void ParseCmdLineArgsVerblevel(int argc, char ** argv);
-
-  void PrintUsage();
 
 };

@@ -119,6 +119,31 @@ int main()
   bare_defaults.ApplyTargetDefaults();
   Expect(bare_defaults.exceptions, "explicit bare exceptions override");
 
+  OCompOptions command_line_options;
+  string command_line_error;
+  Expect(command_line_options.target.Configure("arm_m0-bare", command_line_error),
+         "command line target setup");
+  command_line_options.SetExceptions(false);  // Simulate a project setting.
+  char opt_arg0[] = "dq-comp";
+  char opt_arg1[] = "--exceptions";
+  char opt_arg2[] = "-O3";
+  char opt_arg3[] = "--lto=full";
+  char opt_arg4[] = "--build-suffix";
+  char opt_arg5[] = "test";
+  char opt_arg6[] = "-DVALUE=-42";
+  char * opt_argv[] = {opt_arg0, opt_arg1, opt_arg2, opt_arg3, opt_arg4, opt_arg5, opt_arg6};
+  Expect(command_line_options.ProcessCommandLineOpts(7, opt_argv, command_line_error),
+         "command line options should parse");
+  Expect(command_line_options.exceptions && command_line_options.exceptions_explicit,
+         "command line exceptions overrides project setting");
+  Expect(command_line_options.optlevel == 3, "command line optimization level");
+  Expect(command_line_options.lto_mode == LTOMODE_FULL, "command line LTO mode");
+  Expect(command_line_options.build_tag == "arm_m0-bare-test", "command line build tag suffix");
+  Expect((command_line_options.cmdline_defines.size() == 1)
+         && command_line_options.cmdline_defines[0].has_int_value
+         && (command_line_options.cmdline_defines[0].int_value == -42),
+         "command line define");
+
   fs::path root = fs::temp_directory_path() / "dq-projectfile-test";
   error_code ec;
   fs::remove_all(root, ec);

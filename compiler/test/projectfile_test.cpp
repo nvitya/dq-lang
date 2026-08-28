@@ -146,13 +146,26 @@ int main()
          "command line exceptions overrides project setting");
   Expect(command_line_options.dynstrings && command_line_options.dynstrings_explicit,
          "command line dynamic strings override project setting");
-  Expect(command_line_options.optlevel == 3, "command line optimization level");
+  Expect(command_line_options.optlevel == OPTLEVEL_O3, "command line optimization level");
   Expect(command_line_options.lto_mode == LTOMODE_FULL, "command line LTO mode");
   Expect(command_line_options.build_tag == "arm_m0-bare-test", "command line build tag suffix");
   Expect((command_line_options.cmdline_defines.size() == 1)
          && command_line_options.cmdline_defines[0].has_int_value
          && (command_line_options.cmdline_defines[0].int_value == -42),
          "command line define");
+
+  OCompOptions size_options;
+  size_options.target.ConfigureHost();
+  char size_arg0[] = "dq-comp";
+  char size_arg1[] = "-Os";
+  char size_arg2[] = "-Oz";
+  char size_arg3[] = "main.dq";
+  char * size_argv[] = {size_arg0, size_arg1, size_arg2, size_arg3};
+  string size_error = size_options.ProcessCommandLineOpts(4, size_argv);
+  Expect(size_error.empty(), "size optimization options should parse");
+  Expect(size_options.optlevel == OPTLEVEL_OZ, "last size optimization option wins");
+  Expect(size_options.OptimizesForSize(), "minimum-size mode optimizes for size");
+  Expect(string(size_options.OptimizationLevelName()) == "z", "minimum-size option name");
 
   fs::path root = fs::temp_directory_path() / "dq-projectfile-test";
   error_code ec;
@@ -200,7 +213,7 @@ linkoption = '--gc-sections'
   Expect(g_opt.compiler_runtime == "libgcc", "compiler runtime value");
   Expect(g_opt.c_runtime == "newlib-nano", "C runtime value");
   Expect(g_opt.link_mode == DQC_LINK_FORCE, "link value");
-  Expect(g_opt.optlevel == 2, "optimization value");
+  Expect(g_opt.optlevel == OPTLEVEL_O2, "optimization value");
   Expect(g_opt.dbg_info, "debug value");
   Expect(g_opt.cmdline_defines.size() == 3, "included and local defines");
   Expect(g_opt.package_paths.size() == 1, "project package path");

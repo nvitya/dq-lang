@@ -442,7 +442,7 @@ void ODqCompCodegen::GenerateIr()
     di_builder->finalize();
   }
 
-  OptimizeIr(g_opt.optlevel);
+  OptimizeIr();
 }
 
 void ODqCompCodegen::PrepareTarget()
@@ -499,10 +499,10 @@ void ODqCompCodegen::PrepareTarget()
   llvm::CodeGenOptLevel codegen_optlevel;
   switch (g_opt.optlevel)
   {
-    case 0:  codegen_optlevel = llvm::CodeGenOptLevel::None;       break;
-    case 1:  codegen_optlevel = llvm::CodeGenOptLevel::Less;       break;
-    case 2:  codegen_optlevel = llvm::CodeGenOptLevel::Default;    break;
-    default: codegen_optlevel = llvm::CodeGenOptLevel::Aggressive; break;
+    case OPTLEVEL_O0: codegen_optlevel = llvm::CodeGenOptLevel::None;       break;
+    case OPTLEVEL_O1: codegen_optlevel = llvm::CodeGenOptLevel::Less;       break;
+    case OPTLEVEL_O3: codegen_optlevel = llvm::CodeGenOptLevel::Aggressive; break;
+    default:          codegen_optlevel = llvm::CodeGenOptLevel::Default;    break;
   }
 
 #if LLVM_VERSION_MAJOR >= 21
@@ -517,15 +517,26 @@ void ODqCompCodegen::PrepareTarget()
 
 }
 
-void ODqCompCodegen::OptimizeIr(int aoptlevel)
+void ODqCompCodegen::OptimizeIr()
 {
-  if (0 == aoptlevel)
+  EOptimizationLevel aoptlevel = g_opt.optlevel;
+  if (OPTLEVEL_O0 == aoptlevel)
   {
     return;
   }
 
+  if (g_opt.OptimizesForSize())
+  {
+    for (LlFunction & func : ll_module->functions())
+    {
+      if (func.isDeclaration()) continue;
+      func.addFnAttr(llvm::Attribute::OptimizeForSize);
+      if (OPTLEVEL_OZ == aoptlevel) func.addFnAttr(llvm::Attribute::MinSize);
+    }
+  }
+
   llvm::PipelineTuningOptions tuning_options;
-  tuning_options.LoopUnrolling = (aoptlevel > 1);
+  tuning_options.LoopUnrolling = ((OPTLEVEL_O2 == aoptlevel) || (OPTLEVEL_O3 == aoptlevel));
   llvm::PassBuilder PB(ll_machine, tuning_options);
 
   llvm::LoopAnalysisManager     LAM;
@@ -541,17 +552,13 @@ void ODqCompCodegen::OptimizeIr(int aoptlevel)
 
   llvm::OptimizationLevel ll_optlevel;
 
-  if (2 == aoptlevel)
+  switch (aoptlevel)
   {
-    ll_optlevel = llvm::OptimizationLevel::O2;
-  }
-  else if (3 == aoptlevel)
-  {
-    ll_optlevel = llvm::OptimizationLevel::O3;
-  }
-  else
-  {
-    ll_optlevel = llvm::OptimizationLevel::O1;
+    case OPTLEVEL_O2: ll_optlevel = llvm::OptimizationLevel::O2; break;
+    case OPTLEVEL_O3: ll_optlevel = llvm::OptimizationLevel::O3; break;
+    case OPTLEVEL_OS: ll_optlevel = llvm::OptimizationLevel::Os; break;
+    case OPTLEVEL_OZ: ll_optlevel = llvm::OptimizationLevel::Oz; break;
+    default:          ll_optlevel = llvm::OptimizationLevel::O1; break;
   }
 
   llvm::ModulePassManager MPM = (LTOMODE_FULL == g_opt.lto_mode)

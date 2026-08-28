@@ -569,7 +569,7 @@ bool ODqProjectFile::ParseProperty(const string & name)
     {
       return Fail("ProjectValue", "optlevel must be between 0 and 3", sp.prevptr);
     }
-    g_opt.optlevel = value;
+    g_opt.optlevel = static_cast<EOptimizationLevel>(value);
   }
   else if ("lto" == name)
   {

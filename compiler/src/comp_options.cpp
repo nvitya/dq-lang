@@ -131,6 +131,7 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v8-m.main+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
+      //"+fp-armv8d16sp,-fp64,-d32,+no-movt", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-none-eabihf", "cortex-m7",
@@ -489,10 +490,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       }
       cmdline_defines.push_back(def);
     }
-    else if ("-O0" == v)  optlevel = 0;
-    else if ("-O1" == v)  optlevel = 1;
-    else if ("-O2" == v)  optlevel = 2;
-    else if ("-O3" == v)  optlevel = 3;
+    else if ("-O0" == v)  optlevel = OPTLEVEL_O0;
+    else if ("-O1" == v)  optlevel = OPTLEVEL_O1;
+    else if ("-O2" == v)  optlevel = OPTLEVEL_O2;
+    else if ("-O3" == v)  optlevel = OPTLEVEL_O3;
+    else if ("-Os" == v)  optlevel = OPTLEVEL_OS;
+    else if ("-Oz" == v)  optlevel = OPTLEVEL_OZ;
     else if ("-o" == v)
     {
       if (!require_value(i)) return "Missing filename after -o";
@@ -540,7 +543,9 @@ void OCompOptions::PrintUsage()
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
   print("  -D<name>=<value> : defines the <name> symbol with the <value> (int/bool)\n");
-  print("  -On       : optimization level, n=0-3\n");
+  print("  -O0..-O3 : optimize for execution speed\n");
+  print("  -Os       : optimize for code size\n");
+  print("  -Oz       : optimize aggressively for minimum code size\n");
   print("  -g        : generate debug info\n");
   print("  -v,-v1    : print compile status messages\n");
   print("  -vv,-v2   : print detailed compiler information\n");
@@ -555,6 +560,20 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--build-suffix") || (option == "--build-root")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "-o");
+}
+
+const char * OCompOptions::OptimizationLevelName() const
+{
+  switch (optlevel)
+  {
+    case OPTLEVEL_O0: return "0";
+    case OPTLEVEL_O1: return "1";
+    case OPTLEVEL_O2: return "2";
+    case OPTLEVEL_O3: return "3";
+    case OPTLEVEL_OS: return "s";
+    case OPTLEVEL_OZ: return "z";
+  }
+  return "1";
 }
 
 void OCompOptions::InitializeCompilerExecutable(const string &argv0)

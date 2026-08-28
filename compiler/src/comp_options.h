@@ -33,6 +33,16 @@ enum ELtoMode
   LTOMODE_FULL
 };
 
+enum EOptimizationLevel
+{
+  OPTLEVEL_O0 = 0,
+  OPTLEVEL_O1 = 1,
+  OPTLEVEL_O2 = 2,
+  OPTLEVEL_O3 = 3,
+  OPTLEVEL_OS,
+  OPTLEVEL_OZ
+};
+
 enum ETargetPlatform
 {
   TARGET_PLATFORM_LINUX,
@@ -106,7 +116,7 @@ public:
   bool     dynstrings = true;
   bool     dynstrings_explicit = false;
   ECompLinkMode link_mode = DQC_LINK_AUTO;
-  int      optlevel = 1;          // -On
+  EOptimizationLevel optlevel = OPTLEVEL_O1;
   ELtoMode lto_mode = LTOMODE_OFF;
 
   bool     ifgen  = false;  // --ifgen
@@ -158,6 +168,11 @@ public:
   string EffectiveCompilerRuntime() const;
   string EffectiveCRuntime() const;
   bool ResolveGccMultilibDir(string & rpath, string & rerror) const;
+  const char * OptimizationLevelName() const;
+  bool OptimizesForSize() const
+  {
+    return (OPTLEVEL_OS == optlevel) || (OPTLEVEL_OZ == optlevel);
+  }
 
   bool ShouldLink(bool has_app_main) const
   {

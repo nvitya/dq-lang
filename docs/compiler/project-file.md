@@ -392,7 +392,7 @@ explicit command-line selections are then applied on top.
 | --- | --- |
 | Target | `--target` overrides `target`; otherwise the project target overrides the host default. |
 | Output | `-o` overrides `output`; otherwise normal output defaults apply when the property is absent. |
-| Optimization | `-O0` through `-O3` override `optlevel`. |
+| Optimization | `-O0` through `-O3`, `-Os`, and `-Oz` override `optlevel`. |
 | Debug information | `-g` enables debug information even when `debuginfo = false`. There is currently no command-line option to force it off. |
 | LTO | `--lto` or `--lto=full|off` overrides `lto`. |
 | Exceptions | `--exceptions` or `--no-exceptions` overrides `exceptions`; the last command-line flag wins. |

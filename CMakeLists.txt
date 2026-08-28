@@ -142,6 +142,11 @@ add_custom_target(test
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_pointer_const.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+  COMMAND "${CMAKE_COMMAND}"
+          "-DDQ_COMPILER=$<TARGET_FILE:dq-comp>"
+          "-DDQ_SOURCE=${CMAKE_SOURCE_DIR}/autotest/target/arm_m7f_pointer_const.dq"
+          "-DDQ_OUTPUT_DIR=${DQ_BUILD_DIR}"
+          -P "${CMAKE_SOURCE_DIR}/compiler/test/size_optimization_test.cmake"
   COMMAND "$<TARGET_FILE:dq-comp>" --target=arm_m7f-bare --no-use-sys -c
           -o "${DQ_BUILD_DIR}/arm_m7f_float_default.o"
           "${CMAKE_SOURCE_DIR}/autotest/target/arm_float_default.dq"

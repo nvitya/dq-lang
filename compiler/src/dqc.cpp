@@ -331,7 +331,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   if (LTOMODE_FULL == g_opt.lto_mode)
   {
     rargs.push_back("-flto=full");
-    rargs.push_back(format("-O{}", g_opt.optlevel));
+    rargs.push_back(string("-O") + g_opt.OptimizationLevelName());
     if (g_opt.target.IsArm())
     {
       rargs.push_back("-mcpu=" + g_opt.target.llvm_cpu);

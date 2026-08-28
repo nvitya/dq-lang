@@ -61,7 +61,7 @@ public:
   void PrepareTarget();
   void GenerateIr();
   void GenerateDqExcNativeThrowBody();
-  void OptimizeIr(int aoptlevel);
+  void OptimizeIr();
   void PrintIr();
 
   void EmitBitcode(const string afilename);

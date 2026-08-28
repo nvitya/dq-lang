@@ -573,7 +573,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions() const
 {
-  string result = "O" + to_string(g_opt.optlevel) + ";linkmangle=2;module=" + name;
+  string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=2;module=" + name;
   result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
@@ -1139,7 +1139,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back(module_root_dir.string());
   args.push_back("--mod-name");
   args.push_back(module_path);
-  args.push_back(format("-O{}", g_opt.optlevel));
+  args.push_back(string("-O") + g_opt.OptimizationLevelName());
   args.push_back(g_opt.exceptions ? "--exceptions" : "--no-exceptions");
   args.push_back(g_opt.dynstrings ? "--dynstrings" : "--no-dynstrings");
   if (LTOMODE_FULL == g_opt.lto_mode)

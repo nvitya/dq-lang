@@ -289,49 +289,46 @@ bool OCompOptions::ParseDefineBoolValue(const string & text, bool & rvalue)
   return false;
 }
 
-bool OCompOptions::ParseLtoMode(const string & text, string & rerror)
+string OCompOptions::ParseLtoMode(const string & text)
 {
   if (text.empty() || ("full" == text))
   {
     lto_mode = LTOMODE_FULL;
-    return true;
+    return {};
   }
   if ("off" == text)
   {
     lto_mode = LTOMODE_OFF;
-    return true;
+    return {};
   }
-  rerror = ("thin" == text)
+  return ("thin" == text)
     ? "ThinLTO is not supported yet; use --lto=full or --lto=off"
     : "Unknown LTO mode \"" + text + "\"; use --lto=full or --lto=off";
-  return false;
 }
 
-bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerror)
+string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
 {
   build_tag = target.name;
   string build_tag_suffix;
   bool cli_link_mode = false;
   set<string> cli_define_names;
 
-  auto require_value = [&](int & index, const string & option, const char * value_name) -> const char *
+  auto require_value = [&](int & index) -> const char *
   {
     if (++index < argc) return argv[index];
-    rerror = "Missing " + string(value_name) + " after " + option;
     return nullptr;
   };
-  auto select_link_mode = [&](ECompLinkMode mode, const string & option) -> bool
+  auto select_link_mode = [&](ECompLinkMode mode, const string & option) -> string
   {
     if (!cli_link_mode)
     {
       link_mode = mode;
       cli_link_mode = true;
-      return true;
+      return {};
     }
-    if (mode == link_mode) return true;
+    if (mode == link_mode) return {};
     string previous = (DQC_LINK_COMPILE_ONLY == link_mode ? "-c" : "--link");
-    rerror = "Conflicting link mode options: " + previous + " and " + option;
-    return false;
+    return "Conflicting link mode options: " + previous + " and " + option;
   };
 
   for (int i = 1; i < argc; ++i)
@@ -342,7 +339,7 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
     else if (v.starts_with("--target=")) { /* configured before option processing */ }
     else if ("--target" == v)
     {
-      if (!require_value(i, v, "target name")) return false;
+      if (!require_value(i)) return "Missing target name after --target";
     }
     else if ("--ifgen" == v)  ifgen = true;
     else if ("--ifdump" == v)  ifdump = true;
@@ -352,76 +349,73 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
     else if ("--regen-if-stale" == v)  regen_if_stale = true;
     else if ("--link" == v)
     {
-      if (!select_link_mode(DQC_LINK_FORCE, v)) return false;
+      if (string error = select_link_mode(DQC_LINK_FORCE, v); !error.empty()) return error;
     }
     else if (v.starts_with("--linker-arg="))
     {
       string linker_arg = v.substr(13);
       if (linker_arg.empty())
       {
-        rerror = "Empty linker argument";
-        return false;
+        return "Empty linker argument";
       }
       linker_args.push_back(linker_arg);
     }
     else if ("--lto" == v)
     {
-      if (!ParseLtoMode("", rerror)) return false;
+      if (string error = ParseLtoMode(""); !error.empty()) return error;
     }
     else if (v.starts_with("--lto="))
     {
-      if (!ParseLtoMode(v.substr(6), rerror)) return false;
+      if (string error = ParseLtoMode(v.substr(6)); !error.empty()) return error;
     }
     else if ("--ifstack" == v)
     {
-      const char * value = require_value(i, v, "module stack");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing module stack after --ifstack";
       ParseModuleUseStack(value, module_use_stack);
     }
     else if ("--pkg-path" == v)
     {
-      const char * value = require_value(i, v, "path");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --pkg-path";
       package_paths.push_back(value);
     }
     else if ("--build" == v)
     {
-      const char * value = require_value(i, v, "build tag");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing build tag after --build";
       build_tag = value;
       if (build_tag.empty())
       {
-        rerror = "Empty build tag after --build";
-        return false;
+        return "Empty build tag after --build";
       }
     }
     else if ("--build-suffix" == v)
     {
-      const char * value = require_value(i, v, "build tag suffix");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing build tag suffix after --build-suffix";
       build_tag_suffix = value;
       if (build_tag_suffix.empty())
       {
-        rerror = "Empty build tag suffix after --build-suffix";
-        return false;
+        return "Empty build tag suffix after --build-suffix";
       }
     }
     else if ("--build-root" == v)
     {
-      const char * value = require_value(i, v, "path");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --build-root";
       build_root_dir = value;
     }
     else if ("--mod-root" == v)
     {
-      const char * value = require_value(i, v, "path");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --mod-root";
       module_root_dir = value;
     }
     else if ("--mod-name" == v)
     {
-      const char * value = require_value(i, v, "module name");
-      if (!value) return false;
+      const char * value = require_value(i);
+      if (!value) return "Missing module name after --mod-name";
       module_name = value;
     }
     else if (("-v" == v) || ("-v1" == v))  verblevel = VERBLEVEL_STATUS;
@@ -432,7 +426,7 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
     else if ("-ir" == v)  ir_print = true;
     else if ("-c" == v)
     {
-      if (!select_link_mode(DQC_LINK_COMPILE_ONLY, v)) return false;
+      if (string error = select_link_mode(DQC_LINK_COMPILE_ONLY, v); !error.empty()) return error;
     }
     else if ((v.size() > 2) and ('D' == v[1]))
     {
@@ -447,8 +441,7 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
       }
       if (!IsValidDefineName(defname))
       {
-        rerror = "Invalid command line define name: " + defname;
-        return false;
+        return "Invalid command line define name: " + defname;
       }
       OCmdLineDefine def;
       def.name = defname;
@@ -458,8 +451,7 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
         else if (ParseDefineIntValue(defvalue, def.int_value)) def.has_int_value = true;
         else
         {
-          rerror = "Invalid command line define value: " + v;
-          return false;
+          return "Invalid command line define value: " + v;
         }
       }
       if (cli_define_names.insert(def.name).second)
@@ -474,21 +466,19 @@ bool OCompOptions::ProcessCommandLineOpts(int argc, char ** argv, string & rerro
     else if ("-O3" == v)  optlevel = 3;
     else if ("-o" == v)
     {
-      if (!require_value(i, v, "filename")) return false;
+      if (!require_value(i)) return "Missing filename after -o";
     }
     else
     {
-      rerror = "Unknown command line switch: " + v;
-      return false;
+      return "Unknown command line switch: " + v;
     }
   }
   if (!build_tag_suffix.empty()) build_tag += "-" + build_tag_suffix;
   if (ifgen && ifdump)
   {
-    rerror = "--ifgen and --ifdump can not be used together.";
-    return false;
+    return "--ifgen and --ifdump can not be used together.";
   }
-  return true;
+  return {};
 }
 
 void OCompOptions::PrintUsage()

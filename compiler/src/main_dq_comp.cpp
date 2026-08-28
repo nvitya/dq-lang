@@ -246,8 +246,8 @@ int main(int argc, char ** argv)
 
   g_opt.ApplyTargetDefaults();
 
-  string command_line_error;
-  if (!g_opt.ProcessCommandLineOpts(argc, argv, command_line_error))
+  string command_line_error = g_opt.ProcessCommandLineOpts(argc, argv);
+  if (!command_line_error.empty())
   {
     print("{}\n", command_line_error);
     OCompOptions::PrintUsage();
@@ -265,7 +265,7 @@ int main(int argc, char ** argv)
 
   ll_defs_init();
 
-  g_compiler = new ODqCompiler();
+  g_compiler = new ODqCompiler();  // light-weight constructors only
 
   init_scope_builtins();   // this may depend on some command line / project options
   init_scope_defines();    // this may depend on some command line / project options

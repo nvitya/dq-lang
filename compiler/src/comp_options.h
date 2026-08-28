@@ -144,7 +144,7 @@ public:
   {
     if (!exceptions_explicit) exceptions = !target.IsBare();
   }
-  bool ProcessCommandLineOpts(int argc, char ** argv, string & rerror);
+  string ProcessCommandLineOpts(int argc, char ** argv);
   static void PrintUsage();
   static bool CommandLineOptionHasValue(const string & option);
 
@@ -169,7 +169,7 @@ private:
   static bool ParseDefineIntValue(const string & text, int64_t & rvalue);
   static bool ParseDefineBoolValue(const string & text, bool & rvalue);
   static void ParseModuleUseStack(const string & text, vector<string> & rstack);
-  bool ParseLtoMode(const string & text, string & rerror);
+  string ParseLtoMode(const string & text);
 };
 
 extern OCompOptions  g_opt;

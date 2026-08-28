@@ -132,7 +132,8 @@ int main()
   char opt_arg5[] = "test";
   char opt_arg6[] = "-DVALUE=-42";
   char * opt_argv[] = {opt_arg0, opt_arg1, opt_arg2, opt_arg3, opt_arg4, opt_arg5, opt_arg6};
-  Expect(command_line_options.ProcessCommandLineOpts(7, opt_argv, command_line_error),
+  command_line_error = command_line_options.ProcessCommandLineOpts(7, opt_argv);
+  Expect(command_line_error.empty(),
          "command line options should parse");
   Expect(command_line_options.exceptions && command_line_options.exceptions_explicit,
          "command line exceptions overrides project setting");

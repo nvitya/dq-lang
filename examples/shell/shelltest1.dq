@@ -1,0 +1,26 @@
+use print
+use ./shellutils
+
+function *Main() -> int:
+    PrintLn('Shell util test')
+
+    // execute the dq-comp, provide empty input str, collect the output str
+
+    var s : str = ShellOut('dq-comp --version', null)
+    PrintLn('dq-comp version:')
+    PrintLn(s)
+
+    var ecode : int = 0
+
+    s = ShellOut(['dq-comp'], ecode)
+    PrintLn('dq-comp help:')
+    PrintLn(s)
+    PrintLn('result code: {}', [ecode])
+
+    Shell('ls -l')
+
+    s = ShellInOut('cat', 'qqcs', ecode)
+    PrintLn('shellinout result: "{}"', [s])
+
+    return 0
+endfunc

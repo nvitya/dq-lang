@@ -1,0 +1,31 @@
+use print
+use ./time
+
+function *Main() -> int:
+    PrintLn('Shell time test')
+
+    var t1 : float64
+    var t2 : float64
+
+    t1 = Time()
+
+    var delphi_date : str = FormatTime1('yyyy-mm-dd hh:nn:ss.zzz', t1)
+    var python_date : str = FormatTime2('%Y-%m-%d %H:%M:%S.%f', t1)
+    PrintLn('delphi date: {}', [delphi_date])
+    PrintLn('python date: {}', [python_date])
+
+    SleepSecs(0.05)
+    t2 = Time()
+
+    PrintLn('SleepSecs(0.05): elapsed = {}', [t2 - t1])
+
+    t1 = Time()
+    for i : int = 1 to 3:
+        //SleepSecs(0.1)
+        SleepMillis(250)
+        t2 = Time()
+        PrintLn('time diff-{} = {}', [i, t2-t1])
+    endfor
+
+    return 0
+endfunc

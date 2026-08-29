@@ -22,5 +22,16 @@ function *Main() -> int:
     s = ShellInOut('cat', 'qqcs', ecode)
     PrintLn('shellinout result: "{}"', [s])
 
+    s = GetEnv('HOME', '?')
+    PrintLn('HOME={}', [s])
+
+    s = GetEnv('QQRIQ', '?')
+    PrintLn('QQRIQ={}', [s])
+
+    SetEnv('QQRIQ', '123')
+
+    s = GetEnv('QQRIQ', '?')
+    PrintLn('QQRIQ={}', [s])
+
     return 0
 endfunc

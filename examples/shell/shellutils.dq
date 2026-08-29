@@ -14,6 +14,19 @@ function ShellOut(cmdstr : strview, rexitcode : refnull int) -> str  [[overload]
 function ShellInOut(args : []str, instr : strview, rexitcode : refnull int) -> str  [[overload]]
 function ShellInOut(cmdstr : strview, instr : strview, rexitcode : refnull int) -> str  [[overload]]
 
+function GetEnv(name : strview, default_value : strview) -> str
+function SetEnv(name : strview, value : strview)
+
+/*
+object OShellProcess:
+    pid : int
+    function Start(args : []str)
+    function Wait() -> int
+    function Kill()
+    function Running() -> bool
+endobj
+*/
+
 implementation
 
 function libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
@@ -28,6 +41,9 @@ function libc__exit(status : int32)                                  [[external(
 function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
 function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
 function libc_signal(signum : int32, handler : pointer) -> pointer   [[external('signal')]]
+function libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
+function libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
+
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1
@@ -46,6 +62,7 @@ function EShellResult.*Create(acode : int, afmt : strview, avalues : []anyvalue)
 endfunc
 
 //--------------------------------------------------------------------
+
 function Shell(cmdstr : strview) -> int  [[overload]]:
     var command : str = cmdstr
     return Shell(['/bin/sh', '-c', command])
@@ -262,10 +279,31 @@ function ShellInOut(args : []str, instr : strview, rexitcode : refnull int) -> s
     elif exitcode <> 0:
         raise EShellResult(exitcode, 'ShellInOut: process exited with code {}', [exitcode])
     endif
-
 endfunc
 
 function ShellInOut(cmdstr : strview, instr : strview, rexitcode : refnull int) -> str  [[overload]]:
     var command : str = cmdstr
     return ShellInOut(['/bin/sh', '-c', command], instr, rexitcode)
+endfunc
+
+//-----------------------------------------------------------------------------
+
+function GetEnv(name : strview, default_value : strview) -> str:
+    var cname : str = name
+    var value : ^char = libc_getenv(cname.pchar)
+    if value == null:
+        return default_value
+    else:
+        return value
+    endif
+endfunc
+
+function SetEnv(name : strview, value : strview):
+    var cname : str = name
+    var cvalue : str = value
+
+    if libc_setenv(cname.pchar, cvalue.pchar, 1) <> 0:
+        var errorcode : int = libc___errno_location()^
+        raise EShellResult(errorcode, 'SetEnv failed (errno {})', [errorcode])
+    endif
 endfunc

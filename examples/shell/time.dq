@@ -1,0 +1,357 @@
+
+function Time() -> float64     // Python compatible
+function FormatTime1(fmt : strview, atime : float64) -> str  // Delphi compatible (easier to remember)
+function FormatTime2(fmt : strview, atime : float64) -> str  // Python compatible
+
+function MilliTime() -> int64  // monotonic time, counted from system start
+function MicroTime() -> int64  // monotonic time, counted from system start
+function NanoTime() -> int64   // monotonic time, counted from system start
+
+function SleepSecs(asecs : float64)
+function SleepMillis(ams : int64)
+function SleepMicros(aus : int64)
+function SleepNanos(ansecs : int64)
+
+implementation
+
+struct timespec:
+    tv_sec  : int64
+    tv_nsec : int64
+endstruct
+
+struct tm:
+    tm_sec    : int32
+    tm_min    : int32
+    tm_hour   : int32
+    tm_mday   : int32
+    tm_mon    : int32
+    tm_year   : int32
+    tm_wday   : int32
+    tm_yday   : int32
+    tm_isdst  : int32
+    tm_gmtoff : int64
+    tm_zone   : pointer
+endstruct
+
+function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
+function libc_nanosleep(req : ^timespec, rem : ^timespec) -> int32 [[external('nanosleep')]]
+function libc___errno_location() -> ^int32 [[external('__errno_location')]]
+function libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]]
+function libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]]
+
+const EINTR : int32 = 4
+
+const CLOCK_REALTIME  : int = 0
+const CLOCK_MONOTONIC : int = 1
+
+function Time() -> float64:
+    var tv : timespec
+    tv.tv_sec = 0
+    clock_gettime(CLOCK_REALTIME, %tv)
+    result = tv.tv_sec + (tv.tv_nsec / 1000000000)
+endfunc
+
+function MilliTime() -> int64:
+    var tv : timespec
+    tv.tv_sec = 0
+    clock_gettime(CLOCK_MONOTONIC, %tv)
+    result = tv.tv_nsec div 1000000  + tv.tv_sec * 1000
+endfunc
+
+function MicroTime() -> int64:
+    var tv : timespec
+    tv.tv_sec = 0
+    clock_gettime(CLOCK_MONOTONIC, %tv)
+    result = tv.tv_nsec div 1000  + tv.tv_sec * 1000000
+endfunc
+
+function NanoTime() -> int64:
+    var tv : timespec
+    tv.tv_sec = 0
+    clock_gettime(CLOCK_MONOTONIC, %tv)
+    result = tv.tv_nsec + tv.tv_sec * 1000000000
+endfunc
+
+function SleepNanos(ansecs : int64):
+    if ansecs <= 0:
+        return
+    endif
+
+    var delay : timespec
+    delay.tv_sec  = ansecs div 1000000000
+    delay.tv_nsec = ansecs mod 1000000000
+
+    var remaining : timespec
+    remaining.tv_sec = 0
+    remaining.tv_nsec = 0
+    while libc_nanosleep(%delay, %remaining) < 0:
+        if libc___errno_location()^ <> EINTR:
+            return
+        endif
+        delay = remaining
+    endwhile
+endfunc
+
+function SleepSecs(asecs : float64):
+    if asecs <= 0:
+        return
+    endif
+    SleepNanos(Round(asecs * 1000000000))
+endfunc
+
+function SleepMillis(amillis : int64):
+    if amillis <= 0:
+        return
+    endif
+    SleepNanos(amillis * 1000000)
+endfunc
+
+function SleepMicros(amicros : int64):
+    if amicros <= 0:
+        return
+    endif
+    SleepNanos(amicros * 1000000000)
+endfunc
+
+function TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
+    var seconds : int64 = Floor(atime)
+    microseconds = Round((atime - seconds) * 1000000)
+    if microseconds >= 1000000:
+        seconds += 1
+        microseconds -= 1000000
+    endif
+
+    atm = {}
+    return libc_localtime_r(%seconds, %atm) <> null
+endfunc
+
+function FormatTm(fmt : strview, atm : ref tm) -> str:
+    result = ''
+    if fmt.length == 0:
+        return
+    endif
+
+    var cfmt : str = fmt
+    var bufsize : uint = uint(fmt.length + 64)
+    if bufsize < 128:
+        bufsize = 128
+    endif
+
+    // strftime returns zero both for an empty result and for a small buffer.
+    // Retry with progressively larger buffers and eventually return an empty string.
+    for attempt : int = 0 count 8:
+        result.SetLength(bufsize, char(0))
+        var written : uint = libc_strftime(result.pchar, bufsize, cfmt.pchar, %atm)
+        if written > 0:
+            result.SetLength(written, char(0))
+            return
+        endif
+        bufsize *= 2
+    endfor
+
+    result = ''
+endfunc
+
+function LowerAscii(ch : char) -> char:
+    if ch >= 'A' and ch <= 'Z':
+        return char(Ord(ch) - Ord('A') + Ord('a'))
+    endif
+    return ch
+endfunc
+
+function TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
+    if pos + token.length > fmt.length:
+        return false
+    endif
+    for i : int = 0 count token.length:
+        if LowerAscii(fmt[pos + i]) <> LowerAscii(token[i]):
+            return false
+        endif
+    endfor
+    return true
+endfunc
+
+function DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> str:
+    result = ''
+    var twelve_hour : bool = false
+    for i : int = 0 count fmt.length:
+        if TimeFmtMatch(fmt, i, 'am/pm') or TimeFmtMatch(fmt, i, 'ampm') or TimeFmtMatch(fmt, i, 'a/p'):
+            twelve_hour = true
+            break
+        endif
+    endfor
+
+    var pos : int = 0
+    var after_hour : bool = false
+    while pos < fmt.length:
+        var ch : char = fmt[pos]
+
+        // Text between matching quotes is copied literally.
+        if ch == char(39) or ch == '"':
+            var quote : char = ch
+            pos += 1
+            while pos < fmt.length:
+                if fmt[pos] == quote:
+                    break
+                endif
+                if fmt[pos] == '%':
+                    result.Append('%%')
+                else:
+                    result.Append(fmt[pos])
+                endif
+                pos += 1
+            endwhile
+            if pos < fmt.length:
+                pos += 1
+            endif
+            after_hour = false
+            continue
+        endif
+
+        if TimeFmtMatch(fmt, pos, 'am/pm'):
+            result.Append('%p')
+            pos += 5
+            after_hour = false
+            continue
+        elif TimeFmtMatch(fmt, pos, 'ampm'):
+            result.Append('%p')
+            pos += 4
+            after_hour = false
+            continue
+        elif TimeFmtMatch(fmt, pos, 'a/p'):
+            if atm.tm_hour < 12:
+                if ch == 'A': result.Append('A')
+                else:         result.Append('a')
+                endif
+            else:
+                if ch == 'A': result.Append('P')
+                else:         result.Append('p')
+                endif
+            endif
+            pos += 3
+            after_hour = false
+            continue
+        endif
+
+        var lowerch : char = LowerAscii(ch)
+        var count : int = 1
+        while pos + count < fmt.length:
+            if LowerAscii(fmt[pos + count]) <> lowerch:
+                break
+            endif
+            count += 1
+        endwhile
+
+        if lowerch == 'y':
+            result.Append(iif(count <= 2, '%y', '%Y'))
+            after_hour = false
+        elif lowerch == 'm':
+            if after_hour:
+                result.Append(iif(count == 1, '%-M', '%M'))
+            elif count == 1:
+                result.Append('%-m')
+            elif count == 2:
+                result.Append('%m')
+            elif count == 3:
+                result.Append('%b')
+            else:
+                result.Append('%B')
+            endif
+            after_hour = false
+        elif lowerch == 'd':
+            if count >= 5:
+                result.Append('%x')
+            elif count == 4:
+                result.Append('%A')
+            elif count == 3:
+                result.Append('%a')
+            elif count == 2:
+                result.Append('%d')
+            else:
+                result.Append('%-d')
+            endif
+            after_hour = false
+        elif lowerch == 'h':
+            if twelve_hour:
+                result.Append(iif(count == 1, '%-I', '%I'))
+            else:
+                result.Append(iif(count == 1, '%-H', '%H'))
+            endif
+            after_hour = true
+        elif lowerch == 'n':
+            result.Append(iif(count == 1, '%-M', '%M'))
+            after_hour = false
+        elif lowerch == 's':
+            result.Append(iif(count == 1, '%-S', '%S'))
+            after_hour = false
+        elif lowerch == 'z':
+            var milliseconds : int64 = microseconds div 1000
+            if count == 1:
+                result.AddFmt('{}', [milliseconds])
+            elif count == 2:
+                result.AddFmt('{:02d}', [milliseconds])
+            else:
+                result.AddFmt('{:03d}', [milliseconds])
+            endif
+            after_hour = false
+        elif lowerch == 'c':
+            result.Append('%c')
+            after_hour = false
+        elif lowerch == 't':
+            result.Append('%X')
+            after_hour = false
+        else:
+            for i : int = 0 count count:
+                if ch == '%':
+                    result.Append('%%')
+                else:
+                    result.Append(fmt[pos + i])
+                endif
+            endfor
+            if ch <> ':':
+                after_hour = false
+            endif
+        endif
+
+        pos += count
+    endwhile
+endfunc
+
+function FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatible (easier to remember)
+    var atm : tm
+    var microseconds : int64 = 0
+    if not TimeToTm(atime, atm, microseconds):
+        return ''
+    endif
+    return FormatTm(DelphiToStrFTime(fmt, atm, microseconds), atm)
+endfunc
+
+function FormatTime2(fmt : strview, atime : float64) -> str:  // Python compatible
+    var atm : tm
+    var microseconds : int64 = 0
+    if not TimeToTm(atime, atm, microseconds):
+        return ''
+    endif
+
+    // libc strftime implements Python's platform-dependent directives. Python's
+    // datetime adds %f itself, so expand it before delegating to libc as well.
+    var cfmt : str = ''
+    var pos : int = 0
+    while pos < fmt.length:
+        if fmt[pos] == '%' and pos + 1 < fmt.length:
+            if fmt[pos + 1] == '%':
+                cfmt.Append('%%')
+                pos += 2
+                continue
+            elif fmt[pos + 1] == 'f':
+                cfmt.AddFmt('{:06d}', [microseconds])
+                pos += 2
+                continue
+            endif
+        endif
+        cfmt.Append(fmt[pos])
+        pos += 1
+    endwhile
+
+    return FormatTm(cfmt, atm)
+endfunc

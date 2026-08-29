@@ -1,0 +1,5 @@
+//?build_only
+//?compargs('--no-exceptions', '--exceptions')
+main = '../../target/exception_switch.dq'
+link = false
+define EXPECT_EXCEPTIONS

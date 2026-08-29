@@ -1,0 +1,4 @@
+//?exitcode(0)
+main = '../../target/no_exceptions_fallback.dq'
+exceptions = false
+link = true

@@ -1,0 +1,9 @@
+//?exitcode(0)
+//?compargs('-O0', '-g', '-DPROJECT_OVERRIDE=2', '-DEXPECT_OVERRIDE')
+packagepath = 'packages'
+var TEST_PACKAGE = PackagePath('projectpkg')
+include '${TEST_PACKAGE}/project/common.dqproj'
+main = 'project_main.dq'
+link = true
+define PROJECT_BOOL
+define PROJECT_OVERRIDE = 1

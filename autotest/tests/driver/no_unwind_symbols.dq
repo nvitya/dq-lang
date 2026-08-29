@@ -1,0 +1,24 @@
+//?exitcode(0)
+
+use dqautotest
+
+function *Main() -> int:
+    var binary : str = TempPath('.elf')
+    var compile : OTestRun = RunCompiler([
+        '-o', binary, SourcePath('../project/arm_no_exceptions.dqproj')
+    ])
+    ExpectExitCode(compile, 0)
+
+    if compile.exitcode == 0:
+        var symbols : OTestRun = RunTool(['nm', '--undefined-only', binary])
+        ExpectExitCode(symbols, 0)
+        ExpectOutputNotContains(symbols, '__aeabi_unwind')
+        ExpectOutputNotContains(symbols, '_Unwind_')
+        ExpectOutputNotContains(symbols, '__gnu_Unwind')
+        delete symbols
+    endif
+
+    RemoveTemp(binary)
+    delete compile
+    return TestResult()
+endfunc

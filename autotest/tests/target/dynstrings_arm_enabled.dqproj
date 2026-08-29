@@ -1,0 +1,6 @@
+//?build_only
+main = '../../target/dynstrings_switch.dq'
+target = 'arm_m7f-bare'
+dynstrings = true
+link = false
+define EXPECT_DYNSTRINGS

@@ -1,0 +1,15 @@
+//?exitcode(0)
+
+use dqautotest
+
+function CheckTool(name : strview):
+    var run : OTestRun = RunTool([BinPath(name)])
+    ExpectExitCode(run, 0)
+    delete run
+endfunc
+
+function *Main() -> int:
+    CheckTool('dq-inline-asm-test')
+    CheckTool('dq-projectfile-test')
+    return TestResult()
+endfunc

@@ -1,0 +1,5 @@
+//?build_only
+//?compargs('--no-dynstrings', '--dynstrings')
+main = '../../target/dynstrings_switch.dq'
+link = false
+define EXPECT_DYNSTRINGS

@@ -1,0 +1,6 @@
+//?build_only
+main = '../../target/exception_switch.dq'
+target = 'arm_m7f-bare'
+exceptions = true
+link = false
+define EXPECT_EXCEPTIONS

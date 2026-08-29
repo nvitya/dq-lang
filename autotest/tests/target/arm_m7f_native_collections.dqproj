@@ -1,0 +1,5 @@
+//?build_only
+main = '../../target/arm_native_collections.dq'
+target = 'arm_m7f-bare'
+dynstrings = true
+link = false

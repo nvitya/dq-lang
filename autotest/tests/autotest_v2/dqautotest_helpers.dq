@@ -1,0 +1,29 @@
+//?exitcode(0)
+
+use dqautotest
+use file
+
+function *Main() -> int:
+    var run : OTestRun = RunTool(['/bin/sh', '-c', 'printf out; printf err >&2; exit 3'])
+    ExpectExitCode(run, 3)
+    ExpectContains(run.stdout, 'out')
+    ExpectContains(run.stderr, 'err')
+    ExpectNotContains(run.stdout, 'err')
+
+    var missing : OTestRun = RunTool(['/dq-autotest-missing-tool'])
+    ExpectExitCode(missing, 127)
+    ExpectContains(missing.stderr, 'dq-autotest-missing-tool')
+
+    var compiler : OTestRun = RunCompiler(['--version'])
+    ExpectExitCode(compiler, 0)
+    ExpectContains(compiler.output, '.')
+    delete run
+    delete missing
+    delete compiler
+
+    var temp : str = TempPath('.txt')
+    FileWriteText(temp, 'temporary artifact')
+    ExpectFileContains(temp, 'artifact')
+    RemoveTemp(temp)
+    return TestResult()
+endfunc

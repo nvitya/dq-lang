@@ -1,0 +1,41 @@
+//?exitcode(0)
+
+use dqautotest
+
+function ExpectCompileFailure(args : []str, diagnostic : strview):
+    var run : OTestRun = RunCompiler(args)
+    if run.exitcode == 0:
+        Fail('compiler unexpectedly accepted an invalid program')
+    endif
+    ExpectOutputContains(run, diagnostic)
+    delete run
+endfunc
+
+function *Main() -> int:
+    var output : str = TempPath('.o')
+    var dyn_cases : [3]str = ['TEST_STR', 'TEST_CONCAT', 'TEST_ANYVALUE']
+    for i : int = 0 count dyn_cases.length:
+        var define : str = '-D' + dyn_cases[i]
+        ExpectCompileFailure([
+            '--no-dynstrings', define, '-c', '-o', output,
+            SourcePath('../../target/dynstrings_disabled_error.dq')
+        ], 'ERROR(DynStringsDisabled)')
+    endfor
+
+    var exception_cases : [4]str = ['TEST_TRY', 'TEST_FINALLY', 'TEST_VALUE_RAISE', 'TEST_RERAISE']
+    for i : int = 0 count exception_cases.length:
+        var define : str = '-D' + exception_cases[i]
+        ExpectCompileFailure([
+            '--no-exceptions', define, '-c', '-o', output,
+            SourcePath('../../target/exceptions_disabled_error.dq')
+        ], 'ERROR(ExceptionsDisabled)')
+    endfor
+
+    ExpectCompileFailure([
+        '--target=arm_m7f-bare', '--no-use-sys', '-c', '-o', output,
+        SourcePath('../../target/exception_switch.dq')
+    ], 'ERROR(VsUnknown)')
+
+    RemoveTemp(output)
+    return TestResult()
+endfunc

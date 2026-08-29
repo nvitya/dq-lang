@@ -1,0 +1,25 @@
+//?exitcode(0)
+
+use dqautotest
+
+function CheckOptimization(option : strview, expect_minsize : bool):
+    var output : str = TempPath('.o')
+    var opt : str = option
+    var run : OTestRun = RunCompiler([
+        '--target=arm_m7f-bare', '--no-use-sys', opt, '-ir', '-c',
+        '-o', output, SourcePath('../../target/arm_m7f_pointer_const.dq')
+    ])
+    ExpectExitCode(run, 0)
+    ExpectOutputContains(run, 'optsize')
+    if expect_minsize:
+        ExpectOutputContains(run, 'minsize')
+    endif
+    RemoveTemp(output)
+    delete run
+endfunc
+
+function *Main() -> int:
+    CheckOptimization('-Os', false)
+    CheckOptimization('-Oz', true)
+    return TestResult()
+endfunc

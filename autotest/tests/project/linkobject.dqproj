@@ -1,8 +1,0 @@
-//?notest
-
-main = 'linkobject_main.dq'
-link = true
-linkerpath = '${PROJECT_DIR}/../../../build'
-linkoption = '--as-needed'
-linkobject = '${PROJECT_DIR}/../../../build/project_linkobject.o'
-

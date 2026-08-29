@@ -5,6 +5,12 @@ object EShellResult(Exception):
     function *Create(acode : int, afmt : strview, avalues : []anyvalue)  [[overload]]
 endobj
 
+object OShellCapture:
+    exitcode : int
+    stdout   : str
+    stderr   : str
+endobj
+
 function Shell(args : []str) -> int  [[overload]]
 function Shell(cmdstr : strview) -> int  [[overload]]
 
@@ -13,6 +19,9 @@ function ShellOut(cmdstr : strview, rexitcode : refnull int) -> str  [[overload]
 
 function ShellInOut(args : []str, instr : strview, rexitcode : refnull int) -> str  [[overload]]
 function ShellInOut(cmdstr : strview, instr : strview, rexitcode : refnull int) -> str  [[overload]]
+
+function ShellCapture(args : []str) -> OShellCapture  [[overload]]
+function ShellCapture(cmdstr : strview) -> OShellCapture  [[overload]]
 
 function GetEnv(name : strview, default_value : strview) -> str
 function SetEnv(name : strview, value : strview)
@@ -43,10 +52,18 @@ function libc_fflush(stream : pointer) -> int32                      [[external(
 function libc_signal(signum : int32, handler : pointer) -> pointer   [[external('signal')]]
 function libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
 function libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
+function libc_perror(message : ^char)                                  [[external('perror')]]
+function libc_tmpfile() -> pointer                                    [[external('tmpfile')]]
+function libc_fileno(stream : pointer) -> int32                       [[external('fileno')]]
+function libc_fseek(stream : pointer, offset : int64, origin : int32) -> int32 [[external('fseek')]]
+function libc_ftell(stream : pointer) -> int64                         [[external('ftell')]]
+function libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]]
+function libc_fclose(stream : pointer) -> int32                        [[external('fclose')]]
 
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1
+const STDERR_FILENO : int32 = 2
 const EINTR         : int32 = 4
 const EPIPE         : int32 = 32
 const SIGPIPE       : int32 = 13
@@ -92,6 +109,7 @@ function Shell(args : []str) -> int  [[overload]]:
 
     if pid == 0:
         libc_execvp(argv[0], %argv[0])
+        libc_perror(argv[0])
         libc__exit(127)
     endif
 
@@ -167,6 +185,7 @@ function ShellInOut(args : []str, instr : strview, rexitcode : refnull int) -> s
         libc_close(inpipe[0])
         libc_close(outpipe[1])
         libc_execvp(argv[0], %argv[0])
+        libc_perror(argv[0])
         libc__exit(127)
     endif
 
@@ -284,6 +303,97 @@ endfunc
 function ShellInOut(cmdstr : strview, instr : strview, rexitcode : refnull int) -> str  [[overload]]:
     var command : str = cmdstr
     return ShellInOut(['/bin/sh', '-c', command], instr, rexitcode)
+endfunc
+
+function ReadCaptureFile(stream : pointer) -> str:
+    result = ''
+    if libc_fseek(stream, 0, 2) <> 0:
+        return
+    endif
+
+    var length : int64 = libc_ftell(stream)
+    if length <= 0 or libc_fseek(stream, 0, 0) <> 0:
+        return
+    endif
+
+    result.SetLength(length, char(0))
+    var readlen : uint = libc_fread(result.pchar, 1, uint(length), stream)
+    result.SetLength(readlen, char(0))
+endfunc
+
+function ShellCapture(args : []str) -> OShellCapture  [[overload]]:
+    result = new OShellCapture
+    result.exitcode = -1
+
+    if args.length == 0:
+        raise EShellResult(-1, 'ShellCapture: empty argument list')
+    endif
+
+    var argv : [*]^char
+    argv.SetLength(args.length + 1)
+    for i : int = 0 count args.length:
+        argv[i] = args[i].pchar
+    endfor
+    argv[args.length] = null
+
+    // Regular temporary files avoid pipe-buffer deadlocks while preserving stdout
+    // and stderr as separate byte streams.
+    var outfile : pointer = libc_tmpfile()
+    var errfile : pointer = libc_tmpfile()
+    if outfile == null or errfile == null:
+        if outfile <> null:
+            libc_fclose(outfile)
+        endif
+        if errfile <> null:
+            libc_fclose(errfile)
+        endif
+        raise EShellResult(-1, 'ShellCapture: could not create capture files')
+    endif
+
+    libc_fflush(null)
+    var pid : int32 = libc_fork()
+    if pid < 0:
+        libc_fclose(outfile)
+        libc_fclose(errfile)
+        raise EShellResult(-1, 'ShellCapture: could not create the child process')
+    endif
+
+    if pid == 0:
+        if libc_dup2(libc_fileno(outfile), STDOUT_FILENO) < 0 or
+           libc_dup2(libc_fileno(errfile), STDERR_FILENO) < 0:
+            libc__exit(127)
+        endif
+        libc_execvp(argv[0], %argv[0])
+        libc_perror(argv[0])
+        libc__exit(127)
+    endif
+
+    var status : int32 = 0
+    var wait_result : int32 = -1
+    while wait_result < 0:
+        wait_result = libc_waitpid(pid, %status, 0)
+        if wait_result < 0 and libc___errno_location()^ <> EINTR:
+            libc_fclose(outfile)
+            libc_fclose(errfile)
+            raise EShellResult(-1, 'ShellCapture: could not wait for the child process')
+        endif
+    endwhile
+
+    result.stdout = ReadCaptureFile(outfile)
+    result.stderr = ReadCaptureFile(errfile)
+    libc_fclose(outfile)
+    libc_fclose(errfile)
+
+    if (status & int32(0x7F)) == 0:
+        result.exitcode = int((status >> 8) & int32(0xFF))
+    else:
+        result.exitcode = 128 + int(status & int32(0x7F))
+    endif
+endfunc
+
+function ShellCapture(cmdstr : strview) -> OShellCapture  [[overload]]:
+    var command : str = cmdstr
+    return ShellCapture(['/bin/sh', '-c', command])
 endfunc
 
 //-----------------------------------------------------------------------------

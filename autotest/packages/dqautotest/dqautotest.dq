@@ -1,1 +1,187 @@
 // auto-test helper
+use shellutils
+use time
+use file
+use print
+use strutils
+
+object OTestRun:
+    exitcode : int
+    stdout   : str
+    stderr   : str
+    output   : str
+endobj
+
+function RunTool(args : []str) -> OTestRun
+function RunCompiler(args : []str) -> OTestRun
+
+function CompilerPath() -> str
+function BinPath(name : strview) -> str
+function SourcePath(name : strview) -> str
+function TestRootPath(name : strview) -> str
+function TempPath() -> str  [[overload]]
+function TempPath(suffix : strview) -> str  [[overload]]
+function RemoveTemp(path : strview)
+
+function ExpectExitCode(run : OTestRun, expected : int)
+function ExpectOutputContains(run : OTestRun, expected : strview)
+function ExpectOutputNotContains(run : OTestRun, unexpected : strview)
+function ExpectContains(text : strview, expected : strview)
+function ExpectNotContains(text : strview, unexpected : strview)
+function ExpectFileContains(path : strview, expected : strview)
+function ExpectFileNotContains(path : strview, unexpected : strview)
+function Fail(message : strview)
+function TestResult() -> int
+
+implementation
+
+function libc_getpid() -> int32 [[external('getpid')]]
+function libc_unlink(path : ^char) -> int32 [[external('unlink')]]
+
+var failure_count : int = 0
+var temp_counter : int = 0
+
+function JoinPath(base : strview, name : strview) -> str:
+    result = base
+    if result <> '' and result[result.length - 1] <> '/':
+        result.Append('/')
+    endif
+    result.Append(name)
+endfunc
+
+function RunTool(args : []str) -> OTestRun:
+    var captured : OShellCapture = ShellCapture(args)
+    result = new OTestRun
+    result.exitcode = captured.exitcode
+    result.stdout = captured.stdout
+    result.stderr = captured.stderr
+    result.output = captured.stdout
+    result.output.Append(captured.stderr)
+    delete captured
+endfunc
+
+function RunCompiler(args : []str) -> OTestRun:
+    var command : [*]str = [CompilerPath()]
+    for i : int = 0 count args.length:
+        command.Append(args[i])
+    endfor
+    var buildroot : str = TempPath('.build')
+    command.Append('--build-root')
+    command.Append(buildroot)
+    result = RunTool(command)
+    Shell(['/bin/rm', '-rf', '--', buildroot])
+endfunc
+
+function CompilerPath() -> str:
+    return GetEnv('DQ_AUTOTEST_COMPILER', 'dq-comp')
+endfunc
+
+function BinPath(name : strview) -> str:
+    return JoinPath(GetEnv('DQ_AUTOTEST_BINDIR', '.'), name)
+endfunc
+
+function SourcePath(name : strview) -> str:
+    return JoinPath(GetEnv('DQ_AUTOTEST_TEST_DIR', '.'), name)
+endfunc
+
+function TestRootPath(name : strview) -> str:
+    return JoinPath(GetEnv('DQ_AUTOTEST_TEST_ROOT', '.'), name)
+endfunc
+
+function TempPath() -> str  [[overload]]:
+    return TempPath('')
+endfunc
+
+function TempPath(suffix : strview) -> str  [[overload]]:
+    temp_counter += 1
+    var tempdir : str = GetEnv('TMPDIR', '/tmp')
+    result = JoinPath(tempdir, Format('dq-autotest-{}-{}-{}{}', [libc_getpid(), NanoTime(), temp_counter, suffix]))
+endfunc
+
+function RemoveTemp(path : strview):
+    if path == '':
+        return
+    endif
+    var cpath : str = path
+    libc_unlink(cpath.pchar)
+endfunc
+
+function Fail(message : strview):
+    failure_count += 1
+    PrintLn('FAIL: {}', [message])
+endfunc
+
+function ExpectExitCode(run : OTestRun, expected : int):
+    if run.exitcode == expected:
+        return
+    endif
+    Fail(Format('exit code {} != expected {}', [run.exitcode, expected]))
+    if run.stdout <> '':
+        PrintLn('stdout:\n{}', [run.stdout])
+    endif
+    if run.stderr <> '':
+        PrintLn('stderr:\n{}', [run.stderr])
+    endif
+endfunc
+
+function PrintRunOutput(run : OTestRun):
+    if run.stdout <> '':
+        PrintLn('stdout:\n{}', [run.stdout])
+    endif
+    if run.stderr <> '':
+        PrintLn('stderr:\n{}', [run.stderr])
+    endif
+endfunc
+
+function ExpectOutputContains(run : OTestRun, expected : strview):
+    var previous : int = failure_count
+    ExpectContains(run.output, expected)
+    if failure_count <> previous:
+        PrintRunOutput(run)
+    endif
+endfunc
+
+function ExpectOutputNotContains(run : OTestRun, unexpected : strview):
+    var previous : int = failure_count
+    ExpectNotContains(run.output, unexpected)
+    if failure_count <> previous:
+        PrintRunOutput(run)
+    endif
+endfunc
+
+function ExpectContains(text : strview, expected : strview):
+    if StrIndexOf(text, expected) >= 0:
+        return
+    endif
+    Fail(Format('expected text was not found: "{}"', [expected]))
+endfunc
+
+function ExpectNotContains(text : strview, unexpected : strview):
+    if StrIndexOf(text, unexpected) < 0:
+        return
+    endif
+    Fail(Format('unexpected text was found: "{}"', [unexpected]))
+endfunc
+
+function ExpectFileContains(path : strview, expected : strview):
+    if not FileExists(path):
+        Fail(Format('file does not exist: {}', [path]))
+        return
+    endif
+    ExpectContains(FileReadText(path), expected)
+endfunc
+
+function ExpectFileNotContains(path : strview, unexpected : strview):
+    if not FileExists(path):
+        Fail(Format('file does not exist: {}', [path]))
+        return
+    endif
+    ExpectNotContains(FileReadText(path), unexpected)
+endfunc
+
+function TestResult() -> int:
+    if failure_count == 0:
+        return 0
+    endif
+    return 1
+endfunc

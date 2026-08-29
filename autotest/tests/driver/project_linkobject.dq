@@ -1,0 +1,40 @@
+//?exitcode(0)
+
+use dqautotest
+use file
+use strutils
+
+function *Main() -> int:
+    var object_path : str = TempPath('.o')
+    var project_path : str = TempPath('.dqproj')
+    var executable_path : str = TempPath('.exe')
+
+    var cpp : OTestRun = RunTool([
+        'c++', '-c', SourcePath('../../../compiler/test/project_linkobject.cpp'),
+        '-o', object_path
+    ])
+    ExpectExitCode(cpp, 0)
+    delete cpp
+
+    var project : str = Format(
+        "main = '{}'\nlink = true\nlinkoption = '--no-undefined'\nlinkobject = '{}'\n",
+        [SourcePath('../project/linkobject_main.dq'), object_path])
+    FileWriteText(project_path, project)
+
+    var compile : OTestRun = RunCompiler(['-o', executable_path, project_path])
+    ExpectExitCode(compile, 0)
+    delete compile
+
+    if FileExists(executable_path):
+        var execute : OTestRun = RunTool([executable_path])
+        ExpectExitCode(execute, 0)
+        delete execute
+    else:
+        Fail('linkobject project did not produce an executable')
+    endif
+
+    RemoveTemp(executable_path)
+    RemoveTemp(project_path)
+    RemoveTemp(object_path)
+    return TestResult()
+endfunc

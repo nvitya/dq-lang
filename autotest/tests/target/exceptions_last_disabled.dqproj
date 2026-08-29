@@ -1,0 +1,4 @@
+//?build_only
+//?compargs('--exceptions', '--no-exceptions')
+main = '../../target/exception_switch.dq'
+link = false

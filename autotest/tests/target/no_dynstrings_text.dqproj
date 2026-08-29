@@ -1,0 +1,5 @@
+//?build_only
+main = '../../target/no_dynstrings_text.dq'
+target = 'arm_m7f-bare'
+dynstrings = false
+link = false

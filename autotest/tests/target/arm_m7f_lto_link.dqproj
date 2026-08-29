@@ -1,0 +1,9 @@
+//?build_only
+//?compargs('--no-use-sys')
+main = '../../target/arm_m7f_lto_asm_export.dq'
+target = 'arm_m7f-bare'
+link = true
+lto = true
+optlevel = 1
+linkoption = '--entry=soft_entry'
+linkoption = '--defsym=end=0'

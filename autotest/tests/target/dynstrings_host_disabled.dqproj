@@ -1,6 +1,4 @@
 //?build_only
-//?compargs('--dynstrings', '-DEXPECT_DYNSTRINGS')
-
 main = '../../target/dynstrings_switch.dq'
 dynstrings = false
 link = false

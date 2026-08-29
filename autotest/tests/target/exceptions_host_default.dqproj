@@ -1,0 +1,4 @@
+//?build_only
+main = '../../target/exception_switch.dq'
+link = false
+define EXPECT_EXCEPTIONS

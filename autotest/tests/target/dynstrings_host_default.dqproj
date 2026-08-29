@@ -1,0 +1,4 @@
+//?build_only
+main = '../../target/dynstrings_switch.dq'
+link = false
+define EXPECT_DYNSTRINGS

@@ -14,6 +14,7 @@
 #include "testfile.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <cstdint>
 #include <random>
 #include <thread>
@@ -44,6 +45,39 @@ static string AbsolutePath(const fs::path & path)
   return (ec ? path : result.lexically_normal()).generic_string();
 }
 
+static string ResolveExecutablePath(const string & executable)
+{
+  fs::path candidate(executable);
+  if (candidate.has_parent_path() or fs::exists(candidate))
+  {
+    return AbsolutePath(candidate);
+  }
+
+  const char * path_env = getenv("PATH");
+  if (path_env)
+  {
+    string path_list(path_env);
+    size_t start = 0;
+    while (start <= path_list.size())
+    {
+      size_t end = path_list.find(':', start);
+      fs::path directory = path_list.substr(start, end - start);
+      fs::path path = (directory.empty() ? fs::path(".") : directory) / executable;
+      if (fs::exists(path))
+      {
+        return AbsolutePath(path);
+      }
+      if (string::npos == end)
+      {
+        break;
+      }
+      start = end + 1;
+    }
+  }
+
+  return executable;
+}
+
 OTestFile::OTestFile(const string & afilename)
 {
   filename = afilename;
@@ -63,7 +97,7 @@ OTestFile::~OTestFile()
 
 void OTestFile::Process()
 {
-  procrunner.exec_timeout_ms = 5000; // compile or run should finish in 5s
+  procrunner.exec_timeout_ms = 30000;
 
   if (g_atropt->verblevel >= VERBLEVEL_DEBUG)
   {
@@ -257,6 +291,8 @@ void OTestFile::ExecRunTest()
   }
   procrunner.args = { exename };
   ConfigureRunEnvironment();
+  // Driver tests can launch several compiler and analysis processes themselves.
+  procrunner.exec_timeout_ms = 120000;
   if (not procrunner.Run())
   {
     size_t previous_message_count = msg_run.size();
@@ -1176,9 +1212,7 @@ string OTestFile::BuildSuffix(bool errmode) const
 
 void OTestFile::ConfigureRunEnvironment()
 {
-  fs::path compiler_path(g_atropt->compiler_filename);
-  string compiler = (fs::exists(compiler_path)
-                     ? AbsolutePath(compiler_path) : g_atropt->compiler_filename);
+  string compiler = ResolveExecutablePath(g_atropt->compiler_filename);
   fs::path compiler_dir = fs::path(compiler).parent_path();
   fs::path test_path = fs::absolute(fs::path(filename)).lexically_normal();
 

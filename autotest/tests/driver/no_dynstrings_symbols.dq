@@ -1,0 +1,24 @@
+//?exitcode(0)
+
+use dqautotest
+
+function *Main() -> int:
+    var object_path : str = TempPath('.o')
+    var compile : OTestRun = RunCompiler([
+        '--target=arm_m7f-bare', '--no-dynstrings', '-c', '-o', object_path,
+        SourcePath('../../target/no_dynstrings_text.dq')
+    ])
+    ExpectExitCode(compile, 0)
+
+    if compile.exitcode == 0:
+        var symbols : OTestRun = RunTool(['nm', object_path])
+        ExpectExitCode(symbols, 0)
+        ExpectOutputNotContains(symbols, 'DynStr')
+        ExpectOutputNotContains(symbols, 'ODynStr')
+        delete symbols
+    endif
+
+    RemoveTemp(object_path)
+    delete compile
+    return TestResult()
+endfunc

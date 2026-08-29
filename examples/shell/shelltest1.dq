@@ -1,5 +1,5 @@
 use print
-use ./shellutils
+use shellutils
 
 function *Main() -> int:
     PrintLn('Shell util test')

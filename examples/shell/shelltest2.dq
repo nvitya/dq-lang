@@ -1,5 +1,5 @@
 use print
-use ./time
+use time
 
 function *Main() -> int:
     PrintLn('Shell time test')

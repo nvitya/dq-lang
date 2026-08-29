@@ -1,4 +1,5 @@
 // Hosted Linux catches SIGSEGV at the top level and reports it as Exception.
+//?exitcode(255)
 
 function printf(fmt : ^char, ...) -> int [[external]]
 

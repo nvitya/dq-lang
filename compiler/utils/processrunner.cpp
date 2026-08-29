@@ -14,6 +14,7 @@
 #include <array>
 #include <algorithm>
 #include <chrono>
+#include <cwchar>
 #include <stdexcept>
 
 #if defined(_WIN32)
@@ -127,6 +128,60 @@ static string BuildWindowsCommandLine(const vector<string> & args)
     }
     result += QuoteWindowsArg(args[i]);
   }
+  return result;
+}
+
+static bool WindowsEnvironmentNameMatches(const wstring & entry, const wstring & name)
+{
+  size_t equalpos = entry.find(L'=');
+  if ((equalpos == wstring::npos) || (equalpos != name.size()))
+  {
+    return false;
+  }
+
+  return (0 == _wcsnicmp(entry.c_str(), name.c_str(), name.size()));
+}
+
+static wstring BuildWindowsEnvironment(const vector<pair<string, string>> & overrides)
+{
+  if (overrides.empty())
+  {
+    return {};
+  }
+
+  vector<wstring> entries;
+  LPWCH current = GetEnvironmentStringsW();
+  if (current)
+  {
+    for (const wchar_t * p = current; *p; p += wcslen(p) + 1)
+    {
+      entries.emplace_back(p);
+    }
+    FreeEnvironmentStringsW(current);
+  }
+
+  for (const auto & [name, value] : overrides)
+  {
+    wstring wname = Utf8ToWide(name);
+    erase_if(entries, [&](const wstring & entry)
+    {
+      return WindowsEnvironmentNameMatches(entry, wname);
+    });
+    entries.push_back(wname + L"=" + Utf8ToWide(value));
+  }
+
+  sort(entries.begin(), entries.end(), [](const wstring & left, const wstring & right)
+  {
+    return (_wcsicmp(left.c_str(), right.c_str()) < 0);
+  });
+
+  wstring result;
+  for (const wstring & entry : entries)
+  {
+    result += entry;
+    result.push_back(L'\0');
+  }
+  result.push_back(L'\0');
   return result;
 }
 
@@ -258,10 +313,13 @@ bool OProcessRunner::Run()
   string cmd = BuildWindowsCommandLine(args);
   wstring wcmd = Utf8ToWide(cmd);
   wstring wworkdir = Utf8ToWide(workdir);
+  wstring wenvironment = BuildWindowsEnvironment(env_overrides);
 
   auto start_tp = chrono::steady_clock::now();
 
-  BOOL created = CreateProcessW(nullptr, wcmd.data(), nullptr, nullptr, TRUE, 0, nullptr,
+  DWORD creation_flags = wenvironment.empty() ? 0 : CREATE_UNICODE_ENVIRONMENT;
+  void * environment = wenvironment.empty() ? nullptr : wenvironment.data();
+  BOOL created = CreateProcessW(nullptr, wcmd.data(), nullptr, nullptr, TRUE, creation_flags, environment,
                                 workdir.empty() ? nullptr : wworkdir.c_str(), &si, &pi);
 
   CloseHandleNoError(out_write);
@@ -636,6 +694,16 @@ bool OProcessRunner::Run()
   if (0 == pid)
   {
     CloseFd(execerrpipe[0]);
+
+    for (const auto & [name, value] : env_overrides)
+    {
+      if (setenv(name.c_str(), value.c_str(), 1) < 0)
+      {
+        SExecErrorInfo errinfo { PROCRUNERR_SETUP, errno };
+        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
+        _exit(127);
+      }
+    }
 
     if (!workdir.empty())
     {

@@ -11,10 +11,11 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "0.0.14"
+#define ATR_VERSION  "0.1.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.1.0: autotest V2 build_only, compargs, exitcode, hostarch, and driver environment
 v0.0.14: //?check requires unique id always, one id cannot appear twice
 v0.0.13: //?check now requires two arguments, //?ignore must be used for patterns without "="
 v0.0.12: added //?notest or //?skip_test markers

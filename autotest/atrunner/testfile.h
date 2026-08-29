@@ -71,9 +71,18 @@ public:
   bool              processed  = false;
 
   bool              skip_test  = false;
+  bool              build_only = false;
+  bool              has_exit_code = false;
+  bool              has_host_arch = false;
+  bool              exec_build = false;
   bool              exec_run   = false;
   bool              exec_err   = false;
 
+  int               expected_exit_code = 0;
+  string            required_host_arch;
+  vector<string>    compiler_args;
+
+  int               errorcnt_build = 0;
   int               errorcnt_err = 0;
   int               errorcnt_run = 0;
   int               errorcnt_tf  = 0;
@@ -81,6 +90,7 @@ public:
   vector<OErrCapture *>  err_captures;
   vector<ORunCapture *>  run_captures;
 
+  vector<string>    msg_build;
   vector<string>    msg_err;
   vector<string>    msg_run;
   vector<string>    msg_tf;
@@ -95,8 +105,9 @@ public:
   virtual ~OTestFile();
 
   void Process();
+  void ExecBuildTest();
+  void ShowBuildResults();
   void ExecRunTest();
-  void AddRunTestCompileErrors(string & astr);
   void AnalyzeRunOutput();
   void ShowRunResults();
 
@@ -107,6 +118,7 @@ public:
   void ShowErrResults();
 
   void PrintSeparator();
+  void AddBuildError(const string astr);
   void AddRunError(const string astr);
   void AddRunLineError(const string astr);
 
@@ -115,8 +127,19 @@ public:
 protected:
   bool LoadText();
   bool ParseText();
+  bool ValidateMarkers();
   void ParseMarkerError(const string amsgid);
   void ParseMarkerCheck(bool aignore);
+  void ParseMarkerCompilerArgs();
+  void ParseMarkerExitCode();
+  void ParseMarkerHostArch();
+
+  bool HasRunTest() const;
+  void AddCompilerOutputErrors(string & atext, vector<string> & rmessages, int & rerror_count);
+  void AddProcessFailureDetails(vector<string> & rmessages, bool include_stdout);
+  void ConfigureRunEnvironment();
+  string FindAutotestPackagePath() const;
+  string BuildSuffix(bool errmode) const;
 
   void AddTfError(const string astr);
   void AddTfErrorNoLine(const string astr);

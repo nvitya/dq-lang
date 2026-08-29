@@ -1,0 +1,6 @@
+//?hostarch('arm64')
+//?exitcode(0)
+
+function *Main() -> int:
+    return 0
+endfunc

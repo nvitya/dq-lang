@@ -1,0 +1,5 @@
+//?notest
+
+function ProjectBuildOnlyValue() -> uint32:
+    return 0x12345678
+endfunc

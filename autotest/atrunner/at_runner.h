@@ -28,10 +28,13 @@ public:
   vector<OTestFileWorker *>  workers;
 
 public: // stats
+  int                        testcnt_build = 0;
   int                        testcnt_run = 0;
   int                        testcnt_err = 0;
   int                        invalid_tf_cnt = 0;
 
+  int                        errorcnt_build = 0;
+  int                        errorcnt_build_files = 0;
   int                        errorcnt_run = 0;
   int                        errorcnt_run_files = 0;
   int                        errorcnt_err = 0;

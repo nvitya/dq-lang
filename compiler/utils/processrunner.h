@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace std;
@@ -38,6 +39,7 @@ public:
   string            workdir;
   int               exec_timeout_ms = -1;
   vector<string>    args;
+  vector<pair<string, string>>  env_overrides;
 
   int               exit_code = 0;
   int64_t           duration_us = 0;

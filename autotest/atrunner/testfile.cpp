@@ -14,6 +14,7 @@
 #include "testfile.h"
 
 #include <chrono>
+#include <cstdint>
 #include <random>
 #include <thread>
 #include <print>
@@ -25,6 +26,24 @@
 
 namespace fs = std::filesystem;
 
+static string HostArchitecture()
+{
+#if defined(__x86_64__) || defined(_M_X64)
+  return "x64";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+  return "arm64";
+#else
+  return "unknown";
+#endif
+}
+
+static string AbsolutePath(const fs::path & path)
+{
+  error_code ec;
+  fs::path result = fs::absolute(path, ec);
+  return (ec ? path : result.lexically_normal()).generic_string();
+}
+
 OTestFile::OTestFile(const string & afilename)
 {
   filename = afilename;
@@ -32,6 +51,14 @@ OTestFile::OTestFile(const string & afilename)
 
 OTestFile::~OTestFile()
 {
+  for (OErrCapture * capture : err_captures)
+  {
+    delete capture;
+  }
+  for (ORunCapture * capture : run_captures)
+  {
+    delete capture;
+  }
 }
 
 void OTestFile::Process()
@@ -54,7 +81,7 @@ void OTestFile::Process()
     return;
   }
 
-  if (not ParseText())
+  if ((not ParseText()) or (not ValidateMarkers()))
   {
     ShowTestFileErrors();
     processed = true;
@@ -71,10 +98,10 @@ void OTestFile::Process()
     return;
   }
 
-  if (run_captures.empty() and err_captures.empty())
+  if ((not build_only) and (not HasRunTest()) and err_captures.empty())
   {
     // no atr marker was found
-    AddTfErrorNoLine("Neither run test markers nor error test markers were found.");
+    AddTfErrorNoLine("Neither build, run, nor error test markers were found.");
     if (!g_atropt->batchmode)
     {
       print("TF_ERROR: {}\n", msg_tf.back());
@@ -83,7 +110,16 @@ void OTestFile::Process()
     return;
   }
 
-  if (not run_captures.empty())
+  if (build_only)
+  {
+    ExecBuildTest();
+    if (!g_atropt->batchmode)
+    {
+      ShowBuildResults();
+    }
+  }
+
+  if (HasRunTest())
   {
     ExecRunTest();
     if (!g_atropt->batchmode)
@@ -104,6 +140,49 @@ void OTestFile::Process()
   processed = true;
 }
 
+void OTestFile::ExecBuildTest()
+{
+  exec_build = true;
+
+  if (!g_atropt->batchmode)
+  {
+    print("Build-only test \"{}\"\n", filename);
+  }
+
+  if (not ExecCompiler(false))
+  {
+    AddBuildError(format("Error executing the compiler \"{}\"", g_atropt->compiler_filename));
+    AddProcessFailureDetails(msg_build, true);
+    return;
+  }
+
+  if (comp_result != 0)
+  {
+    AddCompilerOutputErrors(comp_out, msg_build, errorcnt_build);
+    if (0 == errorcnt_build)
+    {
+      AddBuildError(format("COMPERR: Compile error {}", comp_result));
+    }
+  }
+}
+
+void OTestFile::ShowBuildResults()
+{
+  if (0 == errorcnt_build)
+  {
+    print("Build-only test PASSED.\n");
+  }
+  else
+  {
+    for (const string & message : msg_build)
+    {
+      print("{}\n", message);
+    }
+    print("Build-only test FAILED: {} failures detected.\n", errorcnt_build);
+  }
+  print("\n");
+}
+
 void OTestFile::ExecRunTest()
 {
   exec_run = true;
@@ -117,10 +196,15 @@ void OTestFile::ExecRunTest()
   if (not ExecCompiler(false))
   {
     // error executing the compiler
+    size_t previous_message_count = msg_run.size();
     AddRunError(format("Error executing the compiler \"{}\"", g_atropt->compiler_filename));
+    AddProcessFailureDetails(msg_run, true);
     if (!g_atropt->batchmode)
     {
-      print("COMPERR: {}\n", msg_run.back());
+      for (size_t i = previous_message_count; i < msg_run.size(); ++i)
+      {
+        print("COMPERR: {}\n", msg_run[i]);
+      }
     }
     return;
   }
@@ -136,10 +220,18 @@ void OTestFile::ExecRunTest()
       }
     }
 
-    AddRunTestCompileErrors(comp_out);
+    size_t previous_message_count = msg_run.size();
+    AddCompilerOutputErrors(comp_out, msg_run, errorcnt_run);
     if (0 == errorcnt_run)
     {
       AddRunError(format("COMPERR: Compile error {}", comp_result));
+    }
+    if (!g_atropt->batchmode)
+    {
+      for (size_t i = previous_message_count; i < msg_run.size(); ++i)
+      {
+        print("{}\n", msg_run[i]);
+      }
     }
     return;
   }
@@ -164,12 +256,18 @@ void OTestFile::ExecRunTest()
     print("Executing \"{}\"\n", exename);
   }
   procrunner.args = { exename };
+  ConfigureRunEnvironment();
   if (not procrunner.Run())
   {
+    size_t previous_message_count = msg_run.size();
     AddRunError(format("Error executing \"{}\"", exename));
+    AddProcessFailureDetails(msg_run, true);
     if (!g_atropt->batchmode)
     {
-      print("{}\n", msg_run.back());
+      for (size_t i = previous_message_count; i < msg_run.size(); ++i)
+      {
+        print("{}\n", msg_run[i]);
+      }
     }
     return;
   }
@@ -181,34 +279,24 @@ void OTestFile::ExecRunTest()
     print("Run output:\n{}\n", run_output);
   }
 
-  AnalyzeRunOutput();
-}
-
-void OTestFile::AddRunTestCompileErrors(string & astr)
-{
-  // add the compile errors to the msg_run
-
-  sp.Init(astr.data(), astr.size());
-  sp.SkipSpaces(); // go to the first non-space
-
-  while (sp.readptr < sp.bufend)
+  if (not run_captures.empty())
   {
-    if (not sp.ReadLine())
-    {
-      break;
-    }
+    AnalyzeRunOutput();
+  }
 
-    curline = sp.PrevStr();
-    if (not curline.empty())
+  if (procrunner.exit_code != expected_exit_code)
+  {
+    size_t previous_message_count = msg_run.size();
+    AddRunError(format("Exit code {} != expected {}", procrunner.exit_code, expected_exit_code));
+    AddProcessFailureDetails(msg_run, run_captures.empty());
+    if (!g_atropt->batchmode)
     {
-      AddRunError("COMPERR: "+curline);
-      if (!g_atropt->batchmode)
+      for (size_t i = previous_message_count; i < msg_run.size(); ++i)
       {
-        print("{}\n", msg_run.back());
+        print("{}\n", msg_run[i]);
       }
     }
   }
-
 }
 
 void OTestFile::AnalyzeRunOutput()
@@ -380,7 +468,7 @@ void OTestFile::ShowRunResults()
   }
   else
   {
-    print("Run test FAILED: {} failures detected.\n", msg_run.size());
+    print("Run test FAILED: {} failures detected.\n", errorcnt_run);
   }
   print("\n");
 }
@@ -607,6 +695,12 @@ void OTestFile::PrintSeparator()
   }
 }
 
+void OTestFile::AddBuildError(const string astr)
+{
+  msg_build.push_back(astr);
+  ++errorcnt_build;
+}
+
 void OTestFile::AddRunError(const string astr)
 {
   msg_run.push_back(astr);
@@ -622,6 +716,55 @@ void OTestFile::AddEtError(const string astr)
 {
   msg_err.push_back(astr);
   ++errorcnt_err;
+}
+
+void OTestFile::AddCompilerOutputErrors(string & atext, vector<string> & rmessages,
+                                        int & rerror_count)
+{
+  sp.Init(atext.data(), atext.size());
+  sp.SkipSpaces();
+
+  while (sp.readptr < sp.bufend)
+  {
+    if (not sp.ReadLine())
+    {
+      break;
+    }
+
+    string line = sp.PrevStr();
+    if (not line.empty())
+    {
+      rmessages.push_back("COMPERR: " + line);
+      ++rerror_count;
+    }
+  }
+}
+
+void OTestFile::AddProcessFailureDetails(vector<string> & rmessages, bool include_stdout)
+{
+  auto append_lines = [&](const string & prefix, string & text)
+  {
+    TStrParseObj parser;
+    parser.Init(text.data(), text.size());
+    while (parser.readptr < parser.bufend)
+    {
+      if (not parser.ReadLine())
+      {
+        break;
+      }
+      string line = parser.PrevStr();
+      if (not line.empty())
+      {
+        rmessages.push_back(prefix + line);
+      }
+    }
+  };
+
+  if (include_stdout)
+  {
+    append_lines("STDOUT: ", procrunner.stdout_text);
+  }
+  append_lines("STDERR: ", procrunner.stderr_text);
 }
 
 bool OTestFile::LoadText()
@@ -681,6 +824,26 @@ bool OTestFile::ParseText()
       {
         skip_test = true;
       }
+      else if ("build_only" == sid)
+      {
+        if (build_only)
+        {
+          AddTfError("Duplicate marker \"build_only\"");
+        }
+        build_only = true;
+      }
+      else if ("compargs" == sid)
+      {
+        ParseMarkerCompilerArgs();
+      }
+      else if ("exitcode" == sid)
+      {
+        ParseMarkerExitCode();
+      }
+      else if ("hostarch" == sid)
+      {
+        ParseMarkerHostArch();
+      }
 
       // run test markers
       else if ("check" == sid)
@@ -709,6 +872,26 @@ bool OTestFile::ParseText()
   }
 
   return (0 == errorcnt_tf);
+}
+
+bool OTestFile::ValidateMarkers()
+{
+  if (build_only and HasRunTest())
+  {
+    AddTfErrorNoLine("//?build_only cannot be combined with runtime test markers.");
+  }
+
+  if (has_host_arch and (required_host_arch != HostArchitecture()))
+  {
+    skip_test = true;
+  }
+
+  return (0 == errorcnt_tf);
+}
+
+bool OTestFile::HasRunTest() const
+{
+  return has_exit_code or (not run_captures.empty());
 }
 
 void OTestFile::ParseMarkerError(const string amsgid)
@@ -831,6 +1014,121 @@ void OTestFile::ParseMarkerCheck(bool aignore)
   run_captures.push_back(new ORunCapture(strid, sv, aignore));
 }
 
+void OTestFile::ParseMarkerCompilerArgs()
+{
+  sp.SkipSpaces(false);
+  if (not sp.CheckSymbol("("))
+  {
+    AddTfError("\"(\" is missing after \"//?compargs\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  if (sp.CheckSymbol(")"))
+  {
+    return;
+  }
+
+  while (true)
+  {
+    string argument;
+    if (not sp.ReadQuotedString(argument))
+    {
+      AddTfError("Quoted compiler argument is expected in \"//?compargs\"");
+      return;
+    }
+    compiler_args.push_back(argument);
+
+    sp.SkipSpaces(false);
+    if (sp.CheckSymbol(")"))
+    {
+      return;
+    }
+    if (not sp.CheckSymbol(","))
+    {
+      AddTfError("\",\" or \")\" is expected in \"//?compargs\"");
+      return;
+    }
+    sp.SkipSpaces(false);
+  }
+}
+
+void OTestFile::ParseMarkerExitCode()
+{
+  sp.SkipSpaces(false);
+  if (not sp.CheckSymbol("("))
+  {
+    AddTfError("\"(\" is missing after \"//?exitcode\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  if (not sp.ReadDecimalNumbers())
+  {
+    AddTfError("Exit code is missing after \"//?exitcode(\"");
+    return;
+  }
+  int exit_code = sp.PrevToInt();
+
+  sp.SkipSpaces(false);
+  if (not sp.CheckSymbol(")"))
+  {
+    AddTfError("\")\" is missing after \"//?exitcode\"");
+    return;
+  }
+  if ((exit_code < 0) or (exit_code > 255))
+  {
+    AddTfError("Exit code must be between 0 and 255");
+    return;
+  }
+  if (has_exit_code)
+  {
+    AddTfError("Duplicate marker \"exitcode\"");
+    return;
+  }
+
+  has_exit_code = true;
+  expected_exit_code = exit_code;
+}
+
+void OTestFile::ParseMarkerHostArch()
+{
+  sp.SkipSpaces(false);
+  if (not sp.CheckSymbol("("))
+  {
+    AddTfError("\"(\" is missing after \"//?hostarch\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  string architecture;
+  if (not sp.ReadQuotedString(architecture))
+  {
+    AddTfError("Quoted architecture is missing after \"//?hostarch(\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  if (not sp.CheckSymbol(")"))
+  {
+    AddTfError("\")\" is missing after \"//?hostarch\"");
+    return;
+  }
+  if (("x64" != architecture) and ("arm64" != architecture))
+  {
+    AddTfError(format("Unknown host architecture \"{}\"", architecture));
+    return;
+  }
+  if (has_host_arch)
+  {
+    AddTfError("Duplicate marker \"hostarch\"");
+    return;
+  }
+
+  has_host_arch = true;
+  required_host_arch = architecture;
+}
+
 void OTestFile::AddTfError(const string astr)
 {
   int linenum = sp.GetLineNum(sp.prevptr);
@@ -844,13 +1142,77 @@ void OTestFile::AddTfErrorNoLine(const string astr)
   ++errorcnt_tf;
 }
 
+string OTestFile::FindAutotestPackagePath() const
+{
+  fs::path cursor = fs::absolute(fs::path(filename)).parent_path();
+  while (not cursor.empty())
+  {
+    fs::path package_root = cursor / "packages";
+    if (fs::exists(package_root / "dqautotest" / "dqautotest.dq"))
+    {
+      return package_root.lexically_normal().generic_string();
+    }
+
+    fs::path parent = cursor.parent_path();
+    if (parent == cursor)
+    {
+      break;
+    }
+    cursor = parent;
+  }
+  return {};
+}
+
+string OTestFile::BuildSuffix(bool errmode) const
+{
+  // Stable per descriptor, so projects sharing modules cannot overwrite each other's artifacts.
+  uint64_t hash = 1469598103934665603ULL;
+  for (unsigned char c : AbsolutePath(filename))
+  {
+    hash = (hash ^ c) * 1099511628211ULL;
+  }
+  return format("atr-{:016x}{}", hash, errmode ? "-err" : "");
+}
+
+void OTestFile::ConfigureRunEnvironment()
+{
+  fs::path compiler_path(g_atropt->compiler_filename);
+  string compiler = (fs::exists(compiler_path)
+                     ? AbsolutePath(compiler_path) : g_atropt->compiler_filename);
+  fs::path compiler_dir = fs::path(compiler).parent_path();
+  fs::path test_path = fs::absolute(fs::path(filename)).lexically_normal();
+
+  procrunner.env_overrides = {
+    {"DQ_AUTOTEST_COMPILER", compiler},
+    {"DQ_AUTOTEST_BINDIR", compiler_dir.generic_string()},
+    {"DQ_AUTOTEST_TEST_ROOT", AbsolutePath(g_atropt->test_root)},
+    {"DQ_AUTOTEST_TEST_FILE", test_path.generic_string()},
+    {"DQ_AUTOTEST_TEST_DIR", test_path.parent_path().generic_string()},
+    {"DQ_AUTOTEST_HOSTARCH", HostArchitecture()}
+  };
+}
+
 bool OTestFile::ExecCompiler(bool errmode)
 {
   bool result = true;
 
   string exename = fs::path(filename).replace_extension("exe").generic_string();
 
-  procrunner.args = { g_atropt->compiler_filename, filename, "-o", exename };
+  procrunner.env_overrides.clear();
+  procrunner.args = { g_atropt->compiler_filename, filename };
+  procrunner.args.insert(procrunner.args.end(), compiler_args.begin(), compiler_args.end());
+
+  string package_path = FindAutotestPackagePath();
+  if (not package_path.empty())
+  {
+    procrunner.args.push_back("--pkg-path");
+    procrunner.args.push_back(package_path);
+  }
+
+  procrunner.args.push_back("-o");
+  procrunner.args.push_back(exename);
+  procrunner.args.push_back("--build-suffix");
+  procrunner.args.push_back(BuildSuffix(errmode));
   if (g_atropt->optlevel >= 0)
   {
     procrunner.args.push_back(format("-O{}", g_atropt->optlevel));
@@ -858,8 +1220,6 @@ bool OTestFile::ExecCompiler(bool errmode)
   if (errmode)
   {
     procrunner.args.push_back("-DERRORTEST");
-    procrunner.args.push_back("--build-suffix");
-    procrunner.args.push_back("errtest");
   }
   if (!procrunner.Run())
   {

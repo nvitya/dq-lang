@@ -1,0 +1,18 @@
+// Multiple compargs markers form one ordered compiler argument list.
+//?build_only
+// Keep compiler-argument validation independent from the shared sys module cache.
+//?compargs('--no-use-sys')
+//?compargs('-DCOMPARG_FIRST')
+//?compargs('-DCOMPARG_SECOND', '-c')
+
+#ifndef COMPARG_FIRST
+var missing_first_compiler_argument : OMissingCompilerArgument
+#endif
+
+#ifndef COMPARG_SECOND
+var missing_second_compiler_argument : OMissingCompilerArgument
+#endif
+
+function BuildOnlyValue() -> int:
+    return 42
+endfunc

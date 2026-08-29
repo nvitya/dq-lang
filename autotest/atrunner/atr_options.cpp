@@ -170,7 +170,7 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
 void OAtrOptions::PrintUsage()
 {
   print("Usage:\n");
-  print("  dqatrun [options] <file.dq>\n");
+  print("  dqatrun [options] <file.dq|file.dqproj>\n");
   print("  dqatrun [options]\n");
   print("Options:\n");
   print("  -c <file> : set compiler executable filename\n");

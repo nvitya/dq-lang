@@ -265,6 +265,28 @@ void OAtRunner::ProcessResults()
 
   for (OTestFile * tf : testfiles)
   {
+    if (tf->exec_build)
+    {
+      ++testcnt_build;
+      if (tf->errorcnt_build > 0)
+      {
+        ++errorcnt_build_files;
+        errorcnt_build += tf->errorcnt_build;
+
+        for (const string & message : tf->msg_build)
+        {
+          print("BLD({}): {}\n", tf->filename, message);
+        }
+      }
+    }
+  }
+  if (errorcnt_build)
+  {
+    print("\n");
+  }
+
+  for (OTestFile * tf : testfiles)
+  {
     if (tf->exec_err)
     {
       ++testcnt_err;
@@ -309,8 +331,12 @@ void OAtRunner::ProcessResults()
 
 
   // display the results
+  print("Build tests executed: {:3}\n", testcnt_build);
   print("Error tests executed: {:3}\n", testcnt_err);
   print("Run tests executed:   {:3}\n", testcnt_run);
+  print("Build tests fails:    {:3}",   errorcnt_build);
+  if (errorcnt_build) print(" ({} files)",  errorcnt_build_files);
+  print("\n");
   print("Error tests fails:    {:3}",   errorcnt_err);
   if (errorcnt_err) print(" ({} files)",  errorcnt_err_files);
   print("\n");
@@ -363,7 +389,7 @@ int OAtRunner::RunBatch()
 
   ProcessResults();
 
-  return errorcnt_run + errorcnt_err + invalid_tf_cnt;
+  return errorcnt_build + errorcnt_run + errorcnt_err + invalid_tf_cnt;
 }
 
 int OAtRunner::RunSingle()
@@ -383,7 +409,7 @@ int OAtRunner::RunSingle()
   OTestFile * tf = new OTestFile(g_atropt->single_test_filename);
   tf->Process();
   tf->processed = true;
-  int result = tf->errorcnt_err + tf->errorcnt_run + tf->errorcnt_tf;
+  int result = tf->errorcnt_build + tf->errorcnt_err + tf->errorcnt_run + tf->errorcnt_tf;
 
 
 

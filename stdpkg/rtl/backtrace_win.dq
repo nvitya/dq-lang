@@ -228,7 +228,7 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
 endfunc
 
 function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
-    while p < pend  and  p^ <> char(0):
+    while p < pend  and  p^ <> 0:
         p += 1
     endwhile
     if p < pend:
@@ -266,7 +266,7 @@ function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bo
         if text[i]^ == char(0):
             return name[i]^ == 0
         endif
-        if name[i]^ <> byte(text[i]^):
+        if name[i]^ <> Ord(text[i]^):
             return false
         endif
         i += 1
@@ -277,7 +277,7 @@ endfunc
 function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^char:
     var p     : ^byte = file_table
     var index : uint64 = 1
-    while p < pend  and  p^ <> char(0):
+    while p < pend  and  p^ <> 0:
         var name : ^char = ^char(p)
         p = DqSkipCstr(p, pend)
         DqReadUleb(p, pend)  // directory index
@@ -543,7 +543,7 @@ function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : r
                 var std_lengths : ^byte = p
                 p += uint(opcode_base - uint8(1))
 
-                while p < header_end  and  p^ <> char(0):
+                while p < header_end  and  p^ <> 0:
                     p = DqSkipCstr(p, header_end)
                 endwhile
                 if p < header_end:

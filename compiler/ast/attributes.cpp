@@ -20,6 +20,7 @@ void OAttr::Reset()
   flags = 0;
   align_value = 0;
   external_linkage_name = "";
+  external_module_name = "";
   export_linkage_name = "";
   section_name = "";
 }
@@ -29,6 +30,11 @@ void OAttr::CheckInvalidAttributes(EAttrTarget atarget)
   if (IsSet(ATTF_NOREAD) && IsSet(ATTF_NOWRITE))
   {
     g_compiler->Error(DQERR_ATTR_CONFLICT, "[[noread]] and [[nowrite]]", &scpos);
+  }
+  if (!external_module_name.empty() && (ATGT_FUNCTION != atarget))
+  {
+    g_compiler->Error(DQERR_ATTR_INVALID_TARGET, "external module argument",
+                      AttrTargetName(atarget), &scpos);
   }
 
   CheckAttrAllowed(ATTF_EXTERNAL, atarget, ATGT_FUNCTION | ATGT_GLOBAL_VAR);

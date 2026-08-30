@@ -59,6 +59,7 @@ private:
     uint64_t  flags = 0;
     uint32_t  align = 0;
     string    external_linkage_name;
+    string    external_module_name;
     string    linkage_name;
     string    section_name;
   };

@@ -1,0 +1,6 @@
+use ./console_import
+
+function RunImports() [[cexport]]:
+    ConsoleStr(0, 0, 0)
+    ConsoleNl()
+endfunc

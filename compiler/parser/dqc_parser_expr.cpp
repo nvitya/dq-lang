@@ -257,7 +257,8 @@ bool ODqCompParserExpr::ParseAttrIntArg(const string & attrname, int64_t & rvalu
   return true;
 }
 
-bool ODqCompParserExpr::ParseAttrStringArg(const string & attrname, string & rvalue)
+bool ODqCompParserExpr::ParseAttrStringArg(const string & attrname, string & rvalue,
+                                           string * roptional_value)
 {
   scf->SkipWhite();
   if (!scf->CheckSymbol("("))
@@ -274,6 +275,16 @@ bool ODqCompParserExpr::ParseAttrStringArg(const string & attrname, string & rva
   }
 
   scf->SkipWhite();
+  if (roptional_value && scf->CheckSymbol(","))
+  {
+    scf->SkipWhite();
+    if (!scf->ReadQuotedString(*roptional_value))
+    {
+      Error(DQERR_ATTR_ARG_STRING, attrname);
+      return false;
+    }
+    scf->SkipWhite();
+  }
   if (!scf->CheckSymbol(")"))
   {
     Error(DQERR_MISSING_CLOSE_PAREN_AFTER, attrname);
@@ -291,9 +302,11 @@ bool ODqCompParserExpr::ParseSingleAttribute(const string & attrname)
   {
     attr->SetFlag(ATTF_EXTERNAL);
     attr->external_linkage_name = "";
+    attr->external_module_name = "";
     if (scf->CheckSymbol("(", false))
     {
-      if (!ParseAttrStringArg(attrname, attr->external_linkage_name))
+      if (!ParseAttrStringArg(attrname, attr->external_linkage_name,
+                              &attr->external_module_name))
       {
         return false;
       }

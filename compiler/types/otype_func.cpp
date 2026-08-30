@@ -75,6 +75,7 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   {
     is_external = true;
     external_linkage_name = attr->external_linkage_name;
+    external_module_name = attr->external_module_name;
   }
   if (ATGT_FUNCTION == atarget)
   {
@@ -98,6 +99,8 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
   if (!WriteDqmIfAttributes(writer, flags)) return false;
   if (!external_linkage_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;
+  if (!external_module_name.empty()
+      && !writer.AddRecStr(DQMIF_ATTR_EXT_MODULE_NAME, external_module_name)) return false;
   if (IsSpecial() && !writer.AddRecU8(DQMIF_FUNC_SPECIAL_KIND, uint8_t(special_kind))) return false;
 
   bool skip_receiver = amethod && owner_compound_type && !sigtype->params.empty()
@@ -685,6 +688,15 @@ LlDiType * OTypeFunc::CreateDiType()
   return di_builder->createSubroutineType(di_builder->getOrCreateTypeArray(di_param_types));
 }
 
+void OValSymFunc::ApplyTargetImportAttributes()
+{
+  if (ll_func && is_external && g_opt.target.IsWasm() && !external_module_name.empty())
+  {
+    ll_func->addFnAttr("wasm-import-module", external_module_name);
+    ll_func->addFnAttr("wasm-import-name", ll_func->getName());
+  }
+}
+
 void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   if (IsInlineAsm())
@@ -738,12 +750,14 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
         {
           PreserveUsedDefinition(ll_func);
         }
+        ApplyTargetImportAttributes();
         return;
       }
     }
   }
 
   ll_func = LlFunction::Create(ll_functype, linktype, ll_name, ll_module);
+  ApplyTargetImportAttributes();
   if (!attr_section_name.empty())
   {
     ll_func->setSection(attr_section_name);
@@ -827,6 +841,7 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
 
   is_external = other->is_external;
   external_linkage_name = other->external_linkage_name;
+  external_module_name = other->external_module_name;
   if (other->attr_align)
   {
     attr_align = other->attr_align;

@@ -82,7 +82,7 @@ protected:
   bool    ParseAttributeBlock();
   bool    ParseSingleAttribute(const string & attrname);
   bool    ParseAttrIntArg(const string & attrname, int64_t & rvalue, bool positive_only = false);
-  bool    ParseAttrStringArg(const string & attrname, string & rvalue);
+  bool    ParseAttrStringArg(const string & attrname, string & rvalue, string * roptional_value = nullptr);
 
   OValSym * ResolveNamespaceValSym();
   OExpr *   ParseEnumTypeExpr(OTypeEnum * enum_type);

@@ -57,6 +57,22 @@ function *Main() -> int:
     CompileTarget('wasm32_bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
     CompileTarget('rv32imac_bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
 
+    var wasm_import : str = TempPath('.wasm')
+    var import_compile : OTestRun = RunCompiler([
+        '-o', wasm_import,
+        SourcePath('../../target/wasm_external_import/wasm_external_import.dqproj')
+    ])
+    ExpectExitCode(import_compile, 0)
+    if import_compile.exitcode == 0:
+        var imports : OTestRun = RunTool(['wasm-objdump', '-x', wasm_import])
+        ExpectExitCode(imports, 0)
+        ExpectOutputContains(imports, 'wasmpascal_env.console_str')
+        ExpectOutputContains(imports, 'env.console_nl')
+        delete imports
+    endif
+    RemoveTemp(wasm_import)
+    delete import_compile
+
     var rv_object : str = TempPath('.o')
     var rv_compile : OTestRun = RunCompiler([
         '--target=rv32imac_bare', '--no-use-sys', '-c', '-o', rv_object,

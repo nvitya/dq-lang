@@ -1,0 +1,8 @@
+main = 'main.dq'
+target = 'wasm32_bare'
+link = true
+compiler_runtime = 'none'
+c_runtime = 'none'
+linkoption = '--no-entry'
+linkoption = '--export=RunImports'
+linkoption = '--allow-undefined'

@@ -1,0 +1,5 @@
+// WebAssembly external-import declarations used by the driver regression test.
+
+function ConsoleStr(address : uint32, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
+
+function ConsoleNl() [[external('console_nl')]]

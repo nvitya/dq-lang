@@ -2115,7 +2115,7 @@ bool OModuleIntf::ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattr
 {
   while ((DQMIF_ATTR_FLAGS == reader.recid) || (DQMIF_ATTR_ALIGN_VALUE == reader.recid)
          || (DQMIF_ATTR_EXT_LINK_NAME == reader.recid) || (DQMIF_ATTR_SECTION_NAME == reader.recid)
-         || (DQMIF_ATTR_LINK_NAME == reader.recid))
+         || (DQMIF_ATTR_LINK_NAME == reader.recid) || (DQMIF_ATTR_EXT_MODULE_NAME == reader.recid))
   {
     if (DQMIF_ATTR_FLAGS == reader.recid)
     {
@@ -2138,6 +2138,10 @@ bool OModuleIntf::ReadAttributes(ODqmIfReader & reader, SDqmIfAttributes & rattr
     else if (DQMIF_ATTR_LINK_NAME == reader.recid)
     {
       if (!reader.ReadString(rattrs.linkage_name)) return false;
+    }
+    else if (DQMIF_ATTR_EXT_MODULE_NAME == reader.recid)
+    {
+      if (!reader.ReadString(rattrs.external_module_name)) return false;
     }
 
     if (!reader.NextRec())
@@ -2706,6 +2710,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & (1u << 6));
   fn->external_linkage_name = attrs.external_linkage_name;
+  fn->external_module_name = attrs.external_module_name;
   if (is_inline_asm)
   {
     if (!fn->attr_is_inline || amethod || !has_inline_asm_kinds

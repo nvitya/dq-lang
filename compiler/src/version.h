@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.1"
+#define DQ_COMPILER_VERSION  "0.53.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.2:
+  - Optional WebAssembly module name for [[external('symbol', 'module')]]
 v0.53.1:
   - Wasm linking fix
 v0.53.0:

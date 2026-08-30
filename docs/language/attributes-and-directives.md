@@ -29,6 +29,7 @@ function Run() [[virtual, abstract]]
 | --- | --- |
 | `[[external]]` | Link a function or global variable to an external symbol |
 | `[[external('name')]]` | Link to a specific external symbol name |
+| `[[external('name', 'module')]]` | Import a function from a specific WebAssembly module |
 | `[[overload]]` | Mark a function, method, or constructor as overloaded |
 | `[[virtual]]` | Mark an object method as virtual |
 | `[[override]]` | Mark an object method as overriding a base virtual method |
@@ -96,6 +97,17 @@ Use an argument when the external symbol name differs.
 ```dq
 [[external('fprintf')]] function c_fprintf(stream : pointer, fmt : ^char, ...) -> int
 ```
+
+On WebAssembly targets, an optional second argument selects the import module.
+The first argument remains the imported function name.
+
+```dq
+function console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
+```
+
+This produces a WebAssembly import named
+`wasmpascal_env.console_str`. Without the second argument, unresolved functions
+retain the linker's default import module, normally `env`.
 
 External global variables are supported.
 

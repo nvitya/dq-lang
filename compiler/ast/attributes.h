@@ -66,6 +66,7 @@ public:
 
   int64_t        align_value = 0;
   string         external_linkage_name = "";
+  string         external_module_name = "";
   string         export_linkage_name = "";
   string         section_name = "";
 

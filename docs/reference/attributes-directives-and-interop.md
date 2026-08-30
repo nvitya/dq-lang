@@ -124,6 +124,17 @@ that the linked symbol actually has that native type.
 Without an explicit argument, `[[external]]` uses the DQ declaration name as
 the native symbol name for both functions and global variables.
 
+`[[external('name', 'module')]]` gives an imported WebAssembly function both
+its import name and import module. The module argument is optional and affects
+WebAssembly targets only.
+
+```dq
+function console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
+```
+
+The two-argument form applies to functions; WebAssembly import-module metadata
+is not supported for external global variables.
+
 ## C Strings and Pointers
 
 Use `^char` for a raw zero-terminated C pointer, `cstring` for a borrowed bounded

@@ -179,6 +179,7 @@ public:
   EObjectSpecFuncKind object_specfunc_kind = OSF_NONE;
   ESpecialFuncKind   special_kind = SFK_NONE;
   string             external_linkage_name = "";
+  string             external_module_name = "";
   string             generated_linkage_name = "";
 
   LlFunction *       ll_func = nullptr;
@@ -218,6 +219,7 @@ public:
   }
 
   void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;
+  void ApplyTargetImportAttributes();
   void GenGlobalDecl(bool apublic, OValue * ainitval = nullptr) override;
 
   bool CheckForwardDeclMatch(OValSymFunc * other) const;

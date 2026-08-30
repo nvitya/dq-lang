@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.3"
+#define DQ_COMPILER_VERSION  "0.53.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.4:
+  - Windows RTL backtrace module fix
 v0.53.3:
   - added optlevel = 's', optlevel = 'z' for .dqproj files
   - added --cpu-features / cpu_features (.dqproj) options, like '+no-movt'

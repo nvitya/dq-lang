@@ -32,6 +32,8 @@ const DQ_BT_SYMBOL_INFO_SIZE : uint32 = 88
 const DQ_BT_LINE_INFO_SIZE   : uint32 = 40
 const DQ_BT_SYMBOL_NAME_MAX  : uint32 = 256
 const DQ_BT_EXE_PATH_MAX     : int = 1024
+const DQ_COFF_SYMBOL_SIZE    : uint = 18
+const DQ_COFF_TYPE_FUNCTION  : uint16 = 0x20
 const SYMOPT_UNDNAME         : uint32 = 0x00000002
 const SYMOPT_DEFERRED_LOADS  : uint32 = 0x00000004
 const SYMOPT_LOAD_LINES      : uint32 = 0x00000010
@@ -89,6 +91,12 @@ struct SDqWinDwarfInfo:
     data_size    : uint
     debug_line   : ^byte
     debug_size   : uint
+    sections      : ^byte
+    section_count : int
+    symbols       : ^byte
+    symbol_count  : uint
+    string_table  : ^byte
+    string_size   : uint
 endstruct
 
 function win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
@@ -111,6 +119,8 @@ function libc_malloc(size : uint) -> pointer [[external('malloc')]]
 function DqWinBacktraceProcess() -> pointer
 function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool
 function DqWinDwarfLoad() -> bool
+function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
+                              displacement : refout uint64) -> bool
 
 //-------------------------------------------------------------------------------------------------
 
@@ -272,6 +282,32 @@ function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bo
         i += 1
     endwhile
     return text[i]^ == char(0)
+endfunc
+
+function DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint) -> bool:
+    if name == null or name_size == 0:
+        return false
+    endif
+
+    var source     : ^byte = symbol
+    var source_end : ^byte = symbol + 8
+    if DqReadU32(symbol) == 0:
+        var offset : uint = DqReadU32(symbol + 4)
+        if win_dwarf.string_table == null or offset < 4 or offset >= win_dwarf.string_size:
+            return false
+        endif
+        source = win_dwarf.string_table + offset
+        source_end = win_dwarf.string_table + win_dwarf.string_size
+    endif
+
+    var i : uint = 0
+    while i + 1 < name_size and source < source_end and source^ <> 0:
+        name[i]^ = char(source^)
+        i += 1
+        source += 1
+    endwhile
+    name[i]^ = char(0)
+    return i <> 0
 endfunc
 
 function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^char:
@@ -466,10 +502,20 @@ function DqWinDwarfLoad() -> bool:
     var string_table : ^byte = null
     var sym_ptr      : uint = DqReadU32(coff + 8)
     var sym_count    : uint = DqReadU32(coff + 12)
-    var string_ptr   : uint = sym_ptr + sym_count * 18
-
-    if string_ptr + 4 <= win_dwarf.data_size:
-        string_table = data + string_ptr
+    if sym_ptr <> 0 and sym_ptr <= win_dwarf.data_size
+       and sym_count <= (win_dwarf.data_size - sym_ptr) div DQ_COFF_SYMBOL_SIZE
+    :
+        win_dwarf.symbols = data + sym_ptr
+        win_dwarf.symbol_count = sym_count
+        var string_ptr : uint = sym_ptr + sym_count * DQ_COFF_SYMBOL_SIZE
+        if string_ptr + 4 <= win_dwarf.data_size:
+            var string_size : uint = DqReadU32(data + string_ptr)
+            if string_size >= 4 and string_size <= win_dwarf.data_size - string_ptr:
+                string_table = data + string_ptr
+                win_dwarf.string_table = string_table
+                win_dwarf.string_size = string_size
+            endif
+        endif
     endif
 
     if DqReadU16(opt) == 0x20B:
@@ -478,6 +524,8 @@ function DqWinDwarfLoad() -> bool:
         win_dwarf.image_base = uint64(DqReadU32(opt[28]))
     endif
     win_dwarf.runtime_base = uint64(win_GetCurrentModule(null))
+    win_dwarf.sections = sections
+    win_dwarf.section_count = section_count
 
     var i : int = 0
     while i < section_count:
@@ -496,6 +544,54 @@ function DqWinDwarfLoad() -> bool:
     endwhile
 
     return false
+endfunc
+
+function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
+                              displacement : refout uint64) -> bool:
+    // DbgHelp on Windows does not reliably load the DWARF/COFF symbols emitted by
+    // LLVM-MinGW, so resolve functions from the executable's COFF table ourselves.
+    DqWinDwarfLoad()
+    if win_dwarf.symbols == null or win_dwarf.sections == null or win_dwarf.runtime_base == 0:
+        return false
+    endif
+
+    var address : uint64 = uint64(pc)
+    if address < win_dwarf.runtime_base:
+        return false
+    endif
+    var target_rva  : uint64 = address - win_dwarf.runtime_base
+    var best_rva    : uint64 = 0
+    var best_symbol : ^byte = null
+    var i : uint = 0
+    while i < win_dwarf.symbol_count:
+        var symbol      : ^byte = win_dwarf.symbols + i * DQ_COFF_SYMBOL_SIZE
+        var section_no  : int = ^int16(symbol + 12)^
+        var symbol_type : uint16 = DqReadU16(symbol + 14)
+        if section_no > 0 and section_no <= win_dwarf.section_count
+           and symbol_type & DQ_COFF_TYPE_FUNCTION <> 0:
+            var section      : ^byte = win_dwarf.sections + (section_no - 1) * 40
+            var section_rva  : uint64 = DqReadU32(section + 12)
+            var section_size : uint64 = DqReadU32(section + 8)
+            var raw_size     : uint64 = DqReadU32(section + 16)
+            if raw_size > section_size:
+                section_size = raw_size
+            endif
+            if target_rva >= section_rva and target_rva < section_rva + section_size:
+                var symbol_rva : uint64 = section_rva + uint64(DqReadU32(symbol + 8))
+                if symbol_rva <= target_rva and (best_symbol == null or symbol_rva > best_rva):
+                    best_rva = symbol_rva
+                    best_symbol = symbol
+                endif
+            endif
+        endif
+        i += 1 + uint(symbol[17]^)
+    endwhile
+
+    if best_symbol == null or not DqWinCopyCoffSymbolName(best_symbol, name, name_size):
+        return false
+    endif
+    displacement = target_rva - best_rva
+    return true
 endfunc
 
 function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool:
@@ -567,17 +663,25 @@ endfunc
 function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
     var process : pointer = DqWinBacktraceProcess()
     var symbol : SDqWinSymbolInfo = {}
+    var coff_name : [DQ_BT_SYMBOL_NAME_MAX]char
+    var symbol_name : ^char = null
     var displacement64 : uint64 = 0
 
     symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
     symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
 
-    if win_backtrace_ready and win_SymFromAddr(process, uint64(pc), %displacement64, %symbol) <> 0:
-        if hide_internal and DqBacktraceNameIsInternal(%symbol.Name[0]):
+    if DqWinCoffSymbolForPc(pc, %coff_name[0], uint(DQ_BT_SYMBOL_NAME_MAX), displacement64):
+        symbol_name = %coff_name[0]
+    elif win_backtrace_ready and win_SymFromAddr(process, uint64(pc), %displacement64, %symbol) <> 0:
+        symbol_name = %symbol.Name[0]
+    endif
+
+    if symbol_name <> null:
+        if hide_internal and DqBacktraceNameIsInternal(symbol_name):
             return false
         endif
 
-        if stop_printing <> null and DqIsMainFunction(%symbol.Name[0]):
+        if stop_printing <> null and DqIsMainFunction(symbol_name):
             stop_printing^ = true
         endif
 
@@ -585,14 +689,14 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
         var line_displacement : uint32 = 0
         line.SizeOfStruct = DQ_BT_LINE_INFO_SIZE
         if win_SymGetLineFromAddr64(process, uint64(pc), %line_displacement, %line) <> 0 and line.FileName <> null:
-            printf("  #%d %s @ %s:%lu\n", index, %symbol.Name[0], line.FileName, uint(line.LineNumber))
+            printf("  #%d %s @ %s:%lu\n", index, symbol_name, line.FileName, uint(line.LineNumber))
         else:
             var dwarf_file : ^char = null
             var dwarf_line : uint32 = 0
             if DqWinDwarfLineForPc(pc, dwarf_file, dwarf_line):
-                printf("  #%d %s @ ./%s:%lu\n", index, %symbol.Name[0], dwarf_file, uint(dwarf_line))
+                printf("  #%d %s @ ./%s:%lu\n", index, symbol_name, dwarf_file, uint(dwarf_line))
             else:
-                printf("  #%d %s + 0x%llx\n", index, %symbol.Name[0], displacement64)
+                printf("  #%d %s + 0x%llx\n", index, symbol_name, displacement64)
             endif
         endif
         return true

@@ -144,6 +144,7 @@ endfunc
 function main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
+    DqPrepareBacktrace()
     win_AddVectoredExceptionHandler(1, DqWinFaultHandler)
 
     @prgargs.__sys_init_params(argc, argv)

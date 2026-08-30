@@ -17,3 +17,4 @@ endfunc
 
 //?ignore("UNCAUGHT EXCEPTION: ESegFault: Segmentation fault")
 //?ignore("Backtrace")
+//?ignore("#")

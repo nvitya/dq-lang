@@ -17,6 +17,7 @@ const DQ_BACKTRACE_INTERNAL_SKIP : int = 2
 
 function DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int
 function DqPrintBacktrace(backtrace : pointer, backtrace_count : int)
+function DqPrepareBacktrace()
 
 implementation
 
@@ -36,6 +37,12 @@ function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
 function DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int:
     result = DqCaptureBacktraceImpl(backtrace, max_frames)
+endfunc
+
+function DqPrepareBacktrace():
+  #ifdef WINDOWS
+    DqPrepareBacktraceImpl()
+  #endif
 endfunc
 
 function DqPrintBacktrace(backtrace : pointer, backtrace_count : int):

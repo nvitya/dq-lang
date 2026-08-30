@@ -17,6 +17,7 @@
 
 function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
 function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
+function DqPrepareBacktraceImpl()
 
 implementation
 
@@ -126,6 +127,13 @@ function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
 
 function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
     result = int(win_RtlCaptureStackBackTrace(0, uint32(max_frames), backtrace, null))
+endfunc
+
+function DqPrepareBacktraceImpl():
+    // File loading and DbgHelp initialization are unsafe to defer until the
+    // vectored exception handler is already processing an access violation.
+    DqWinBacktraceProcess()
+    DqWinDwarfLoad()
 endfunc
 
 function DqCstrContains(text : ^char, needle : ^char) -> bool:
@@ -587,7 +595,10 @@ function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
         i += 1 + uint(symbol[17]^)
     endwhile
 
-    if best_symbol == null or not DqWinCopyCoffSymbolName(best_symbol, name, name_size):
+    if best_symbol == null:
+        return false
+    endif
+    if not DqWinCopyCoffSymbolName(best_symbol, name, name_size):
         return false
     endif
     displacement = target_rva - best_rva
@@ -702,9 +713,8 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
         return true
     endif
 
-    if not hide_internal:
-        printf("  #%d 0x%llx\n", index, uint64(pc))
-        return true
-    endif
-    return false
+    // An unresolved frame is not necessarily an internal frame. Printing it also
+    // prevents one failed lookup from keeping hide_internal set for the full trace.
+    printf("  #%d 0x%llx\n", index, uint64(pc))
+    return true
 endfunc

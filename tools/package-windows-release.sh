@@ -134,8 +134,8 @@ copy_vscode_extension
 cp "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp "$STAGE/toolchain/llvm-mingw/LICENSE.TXT" "$STAGE/doc/llvm-mingw-LICENSE.txt"
 cp "$ROOT_DIR/README.md" "$STAGE/doc/README-project.md"
-cp "$ROOT_DIR/doc/dq-cross-compiling.md" "$STAGE/doc/"
-cp "$ROOT_DIR/doc/dq_package_spec.md" "$STAGE/doc/"
+cp "$ROOT_DIR/docs/compiler/cross-compiling.md" "$STAGE/doc/"
+cp "$ROOT_DIR/docs/reference/modules-and-packages.md" "$STAGE/doc/"
 
 cat > "$STAGE/dq-env.cmd" <<'EOF'
 @echo off

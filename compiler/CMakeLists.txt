@@ -62,6 +62,18 @@ add_executable(dq-projectfile-test
     utils/strparse.cpp
     utils/executable_path.cpp)
 
+set(dq_llvm_targets native)
+set(dq_llvm_definitions)
+foreach(target ARM RISCV WebAssembly)
+  if(target IN_LIST LLVM_TARGETS_TO_BUILD)
+    list(APPEND dq_llvm_targets ${target})
+    string(TOUPPER ${target} target_upper)
+    list(APPEND dq_llvm_definitions DQ_LLVM_HAS_${target_upper})
+  endif()
+endforeach()
+target_compile_definitions(dq-comp PRIVATE ${dq_llvm_definitions})
+target_compile_definitions(dq-projectfile-test PRIVATE ${dq_llvm_definitions})
+
 if(DQ_DEFAULT_LINK_DRIVER)
   target_compile_definitions(dq-comp PRIVATE DQ_DEFAULT_LINK_DRIVER="${DQ_DEFAULT_LINK_DRIVER}")
 endif()
@@ -74,10 +86,7 @@ set_target_properties(dq-comp PROPERTIES ENABLE_EXPORTS ON)
 llvm_map_components_to_libnames(llvm_libs
     core
     support
-    native
-    ARM
-    RISCV
-    WebAssembly
+    ${dq_llvm_targets}
     irreader
     bitwriter
     passes

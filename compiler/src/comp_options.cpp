@@ -117,6 +117,7 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     return &result.back();
   };
 
+#ifdef DQ_LLVM_HAS_ARM
   struct SArmBarePreset
   {
     const char * name;
@@ -160,7 +161,9 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     target->float_abi = preset.float_abi;
     target->default_float_bits = preset.default_float_bits;
   }
+#endif
 
+#ifdef DQ_LLVM_HAS_WEBASSEMBLY
   OCompTarget * wasm_wasi = add_target("wasm32_wasi", "wasm32", "wasi",
       "wasm32-unknown-wasi", "generic", "", "WebAssembly", TARGET_PLATFORM_WASI);
   wasm_wasi->exceptions_supported = false;
@@ -168,11 +171,14 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
 
   add_target("wasm32_bare", "wasm32", "bare", "wasm32-unknown-unknown",
       "generic", "", "WebAssembly", TARGET_PLATFORM_BARE);
+#endif
 
+#ifdef DQ_LLVM_HAS_RISCV
   OCompTarget * rv32 = add_target("rv32imac_bare", "rv32imac", "bare",
       "riscv32-unknown-elf", "generic-rv32", "+m,+a,+c", "RISCV", TARGET_PLATFORM_BARE);
   rv32->clang_arch = "rv32imac";
   rv32->llvm_abi = "ilp32";
+#endif
 
   return result;
 }

@@ -447,6 +447,7 @@ void ODqCompCodegen::GenerateIr()
 
 void ODqCompCodegen::PrepareTarget()
 {
+#ifdef DQ_LLVM_HAS_ARM
   if (g_opt.target.IsArm())
   {
     LLVMInitializeARMTargetInfo();
@@ -455,7 +456,10 @@ void ODqCompCodegen::PrepareTarget()
     LLVMInitializeARMAsmParser();
     LLVMInitializeARMAsmPrinter();
   }
-  else if (g_opt.target.IsWasm())
+  else
+#endif
+#ifdef DQ_LLVM_HAS_WEBASSEMBLY
+  if (g_opt.target.IsWasm())
   {
     LLVMInitializeWebAssemblyTargetInfo();
     LLVMInitializeWebAssemblyTarget();
@@ -463,7 +467,10 @@ void ODqCompCodegen::PrepareTarget()
     LLVMInitializeWebAssemblyAsmParser();
     LLVMInitializeWebAssemblyAsmPrinter();
   }
-  else if (g_opt.target.IsRiscV())
+  else
+#endif
+#ifdef DQ_LLVM_HAS_RISCV
+  if (g_opt.target.IsRiscV())
   {
     LLVMInitializeRISCVTargetInfo();
     LLVMInitializeRISCVTarget();
@@ -472,6 +479,7 @@ void ODqCompCodegen::PrepareTarget()
     LLVMInitializeRISCVAsmPrinter();
   }
   else
+#endif
   {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmParser();

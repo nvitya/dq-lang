@@ -27,9 +27,9 @@ endfunc
 function wasmpas_main() [[cexport]]:
     //
     PrintLn('=== Fibonacci DQ ===')
-    PrintLn(' n    recursive    loop')
+    PrintLn(' n   recursive       loop')
     for i : int = 0 to 15:
-        PrintLn('{:2}    {:8}    {:8}', [i, FibRec(i), FibLoop(i)])
+        PrintLn('{:2}    {:8}   {:8}', [i, FibRec(i), FibLoop(i)])
     endfor
     PrintLn()
     PrintLn('Fib(20) = {} (recursive)', [FibRec(20)])

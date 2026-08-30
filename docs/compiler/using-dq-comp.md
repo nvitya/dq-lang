@@ -30,6 +30,7 @@ Useful options:
 | `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
 | `--target=<name>` | select a compiler target |
+| `--cpu-features=<features>` | append LLVM CPU features to the target defaults |
 | `--targets` | list canonical targets and their LLVM/default settings |
 | `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
 | `--dynstrings`, `--no-dynstrings` | enable or disable heap-backed dynamic strings |
@@ -39,7 +40,7 @@ Useful options:
 | `--lto[=full|off]` | control full LTO bitcode sidecars |
 | `-Dname` | define a compile-time symbol as true |
 | `-Dname=value` | define an integer or boolean symbol |
-| `-O0`..`-O3` | optimization level |
+| `-O0`..`-O3`, `-Os`, `-Oz` | optimization level |
 | `-g` | generate debug info |
 | `-v`, `-vv`, `-vvv` | increasing compiler verbosity |
 | `-ir` | print generated LLVM IR |

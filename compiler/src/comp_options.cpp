@@ -24,6 +24,22 @@
 
 OCompOptions  g_opt;
 
+void OCompTarget::AppendCpuFeatures(const string & features)
+{
+  if (features.empty()) return;
+  if (llvm_features.empty())
+  {
+    llvm_features = features;
+    return;
+  }
+
+  bool existing_comma = (llvm_features.back() == ',');
+  bool added_comma = (features.front() == ',');
+  if (!existing_comma && !added_comma) llvm_features += ',';
+  else if (existing_comma && added_comma) llvm_features.pop_back();
+  llvm_features += features;
+}
+
 void OCompTarget::ConfigureHost()
 {
   *this = OCompTarget();
@@ -432,6 +448,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     {
       if (!require_value(i)) return "Missing target name after --target";
     }
+    else if (v.starts_with("--cpu-features=")) cpu_features = v.substr(15);
     else if ("--ifgen" == v)  ifgen = true;
     else if ("--ifdump" == v)  ifdump = true;
     else if ("--no-use-sys" == v)  no_use_sys = true;
@@ -599,6 +616,7 @@ void OCompOptions::PrintUsage()
   print("  --dynstrings : enable dynamic strings\n");
   print("  --no-dynstrings : disable dynamic strings\n");
   print("  --target=<name> : select the compiler target\n");
+  print("  --cpu-features=<features> : append LLVM CPU features to the target defaults\n");
   print("  --targets : list supported compiler targets\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");

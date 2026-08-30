@@ -483,6 +483,11 @@ bool ODqProjectFile::ParseProperty(const string & name)
       return Fail("ProjectValue", target_error, sp.prevptr);
     }
   }
+  else if ("cpu_features" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    if (!ReadExpandedString(g_opt.cpu_features)) return false;
+  }
   else if (("cpu" == name) || ("abi" == name) || ("floatabi" == name))
   {
     return Fail("ProjectUnsupported", format("Project property \"{}\" is not supported yet", name));
@@ -563,13 +568,31 @@ bool ODqProjectFile::ParseProperty(const string & name)
   else if ("optlevel" == name)
   {
     if (!CheckDuplicate(name))  return false;
-    int64_t value = 0;
-    if (!ReadInt(value)) return false;
-    if ((value < 0) || (value > 3))
+    if ((sp.readptr < sp.bufend) && ((*sp.readptr == '\'') || (*sp.readptr == '"')))
     {
-      return Fail("ProjectValue", "optlevel must be between 0 and 3", sp.prevptr);
+      string value;
+      if (!ReadExpandedString(value)) return false;
+      if      (value == "0") g_opt.optlevel = OPTLEVEL_O0;
+      else if (value == "1") g_opt.optlevel = OPTLEVEL_O1;
+      else if (value == "2") g_opt.optlevel = OPTLEVEL_O2;
+      else if (value == "3") g_opt.optlevel = OPTLEVEL_O3;
+      else if (value == "s") g_opt.optlevel = OPTLEVEL_OS;
+      else if (value == "z") g_opt.optlevel = OPTLEVEL_OZ;
+      else
+      {
+        return Fail("ProjectValue", "optlevel must be 0 through 3, 's', or 'z'", sp.prevptr);
+      }
     }
-    g_opt.optlevel = static_cast<EOptimizationLevel>(value);
+    else
+    {
+      int64_t value = 0;
+      if (!ReadInt(value)) return false;
+      if ((value < 0) || (value > 3))
+      {
+        return Fail("ProjectValue", "optlevel must be 0 through 3, 's', or 'z'", sp.prevptr);
+      }
+      g_opt.optlevel = static_cast<EOptimizationLevel>(value);
+    }
   }
   else if ("lto" == name)
   {

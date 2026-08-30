@@ -3,3 +3,4 @@
 main = '../../target/arm_m7f_pointer_const.dq'
 target = 'arm_m0-bare'
 link = false
+optlevel = 's'

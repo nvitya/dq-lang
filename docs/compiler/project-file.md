@@ -27,6 +27,7 @@ include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
 main      = 'src/application.dq'
 output    = 'build/${PROJECT_NAME}.elf'
 target    = 'arm_m7f-bare'
+cpu_features = '+no-movt'
 compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 link      = true
@@ -143,6 +144,7 @@ single-value properties are errors.
 | `main` | path string | once, required | DQ source file compiled as the project entry module. |
 | `output` | path string | once, optional | Final executable or object filename. Normal compiler output defaults apply when omitted. |
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
+| `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
 | `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; `wasm32_wasi` always disables and rejects enabling exceptions. |
@@ -154,7 +156,7 @@ single-value properties are errors.
 | `linkoption` | string | repeatable | Pass one argument directly to the linker. |
 | `linkscript` | path string | once, optional | Pass `--script=<path>` to the linker. |
 | `debuginfo` | boolean | once, optional | Enable or disable debug information. |
-| `optlevel` | integer `0` through `3` | once, optional | Set the optimization level. |
+| `optlevel` | integer or string `0` through `3`, or string `'s'` or `'z'` | once, optional | Set the optimization level. Numeric levels may be quoted or unquoted; `'s'` and `'z'` optimize for size. |
 | `lto` | boolean | once, optional | Enable full LTO when `true`; disable LTO when `false`. |
 
 `main` is required only after the top-level file and all its includes have been
@@ -396,6 +398,7 @@ explicit command-line selections are then applied on top.
 | Setting | Precedence |
 | --- | --- |
 | Target | `--target` overrides `target`; otherwise the project target overrides the host default. |
+| CPU features | `--cpu-features=` overrides `cpu_features`; the effective value is appended to the selected target defaults. |
 | Output | `-o` overrides `output`; otherwise normal output defaults apply when the property is absent. |
 | Optimization | `-O0` through `-O3`, `-Os`, and `-Oz` override `optlevel`. |
 | Debug information | `-g` enables debug information even when `debuginfo = false`. There is currently no command-line option to force it off. |
@@ -419,7 +422,7 @@ Project evaluation stops at the first error. Diagnostics identify the file,
 line, column, diagnostic identifier, and message:
 
 ```text
-/work/app/application.dqproj(12,8) ERROR(ProjectValue): optlevel must be between 0 and 3
+/work/app/application.dqproj(12,8) ERROR(ProjectValue): optlevel must be 0 through 3, 's', or 'z'
 ```
 
 Project errors include, among others:
@@ -451,7 +454,7 @@ statement     := property '=' property-value
 property      := 'main' | 'output' | 'target' | 'packagepath'
                | 'link' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
-               | 'exceptions' | 'dynstrings'
+               | 'exceptions' | 'dynstrings' | 'cpu_features'
 
 property-value := string | boolean | signed-decimal-integer
 variable-value := string | 'PackagePath' '(' string ')'

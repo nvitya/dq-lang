@@ -579,6 +579,7 @@ string OModuleIntf::DqmIfBuildOptions() const
   result += (LTOMODE_FULL == g_opt.lto_mode ? ";lto=full" : ";lto=off");
   result += (g_opt.exceptions ? ";exceptions=true" : ";exceptions=false;nounwind=1");
   result += (g_opt.dynstrings ? ";dynstrings=true" : ";dynstrings=false");
+  if (!g_opt.cpu_features.empty()) result += ";cpu_features=" + g_opt.cpu_features;
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -1140,6 +1141,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back("--mod-name");
   args.push_back(module_path);
   args.push_back(string("-O") + g_opt.OptimizationLevelName());
+  if (!g_opt.cpu_features.empty()) args.push_back("--cpu-features=" + g_opt.cpu_features);
   args.push_back(g_opt.exceptions ? "--exceptions" : "--no-exceptions");
   args.push_back(g_opt.dynstrings ? "--dynstrings" : "--no-dynstrings");
   if (LTOMODE_FULL == g_opt.lto_mode)

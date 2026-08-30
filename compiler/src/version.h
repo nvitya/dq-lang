@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.2"
+#define DQ_COMPILER_VERSION  "0.53.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.3:
+  - added optlevel = 's', optlevel = 'z' for .dqproj files
+  - added --cpu-features / cpu_features (.dqproj) options, like '+no-movt'
 v0.53.2:
   - Optional WebAssembly module name for [[external('symbol', 'module')]]
 v0.53.1:

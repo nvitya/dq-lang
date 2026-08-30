@@ -96,6 +96,7 @@ public:
   bool IsWasm() const { return "WebAssembly" == llvm_backend; }
   bool IsRiscV() const { return "RISCV" == llvm_backend; }
 
+  void AppendCpuFeatures(const string & features);
   void ConfigureHost();
   bool Configure(const string & name, string & rerror);
   bool ConfigureFromCommandLine(int argc, char ** argv, string & rerror,
@@ -161,6 +162,7 @@ public:
 
   string          compiler_runtime;
   string          c_runtime;
+  string          cpu_features;
 
   // include dirs
   // module dirs

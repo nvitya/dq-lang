@@ -258,6 +258,7 @@ int main(int argc, char ** argv)
     OCompOptions::PrintUsage();
     return 1;
   }
+  g_opt.target.AppendCpuFeatures(g_opt.cpu_features);
 
   string runtime_error;
   if (!g_opt.ValidateTargetSettings(runtime_error))

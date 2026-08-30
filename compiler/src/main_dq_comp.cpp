@@ -140,11 +140,11 @@ void signal_handler(int signal)
 
 //--------------------------------------------------------------------
 
-static bool HasVersionArg(int argc, char ** argv)
+static bool HasArg(int argc, char ** argv, const string & expected)
 {
   for (int i = 1; i < argc; ++i)
   {
-    if (string(argv[i]) == "--version")
+    if (string(argv[i]) == expected)
     {
       return true;
     }
@@ -193,9 +193,14 @@ int main(int argc, char ** argv)
 {
   int r;
 
-  if (HasVersionArg(argc, argv))
+  if (HasArg(argc, argv, "--version"))
   {
     print("{}\n", DQ_COMPILER_VERSION);
+    return 0;
+  }
+  if (HasArg(argc, argv, "--targets"))
+  {
+    OCompTarget::PrintSupportedTargets();
     return 0;
   }
 
@@ -255,6 +260,11 @@ int main(int argc, char ** argv)
   }
 
   string runtime_error;
+  if (!g_opt.ValidateTargetSettings(runtime_error))
+  {
+    print("{}\n", runtime_error);
+    return 1;
+  }
   if (!g_opt.ValidateRuntimeSettings(runtime_error))
   {
     print("{}\n", runtime_error);

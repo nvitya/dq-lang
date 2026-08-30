@@ -105,11 +105,67 @@ int main()
            string("common ARM bare properties ") + expected.name);
   }
 
+  OCompTarget wasm_wasi;
+  string wasm_wasi_error;
+  Expect(wasm_wasi.Configure("wasm32_wasi", wasm_wasi_error), "configure WASI target");
+  Expect(wasm_wasi.arch == "wasm32" && wasm_wasi.platform_name == "wasi",
+         "WASI architecture and platform");
+  Expect(wasm_wasi.llvm_triple == "wasm32-unknown-wasi"
+         && wasm_wasi.llvm_backend == "WebAssembly" && wasm_wasi.llvm_cpu == "generic",
+         "WASI LLVM target metadata");
+  Expect(wasm_wasi.pointer_size == 4 && wasm_wasi.default_float_bits == 64
+         && wasm_wasi.static_relocation && wasm_wasi.IsWasi() && wasm_wasi.IsWasm(),
+         "WASI representation and relocation");
+  Expect(!wasm_wasi.exceptions_supported && !wasm_wasi.default_exceptions
+         && wasm_wasi.default_dynstrings && !wasm_wasi.IsBare(),
+         "WASI target defaults");
+
+  OCompTarget wasm_bare;
+  string wasm_bare_error;
+  Expect(wasm_bare.Configure("wasm32_bare", wasm_bare_error), "configure bare WebAssembly target");
+  Expect(wasm_bare.llvm_triple == "wasm32-unknown-unknown" && wasm_bare.IsWasm()
+         && wasm_bare.IsBare() && wasm_bare.pointer_size == 4 && wasm_bare.static_relocation,
+         "bare WebAssembly target metadata");
+
+  OCompTarget rv32;
+  string rv32_error;
+  Expect(rv32.Configure("rv32imac_bare", rv32_error), "configure RV32IMAC target");
+  Expect(rv32.arch == "rv32imac" && rv32.llvm_triple == "riscv32-unknown-elf"
+         && rv32.llvm_cpu == "generic-rv32" && rv32.llvm_features == "+m,+a,+c",
+         "RV32IMAC LLVM target metadata");
+  Expect(rv32.clang_arch == "rv32imac" && rv32.llvm_abi == "ilp32"
+         && rv32.IsRiscV() && rv32.IsBare() && rv32.pointer_size == 4
+         && rv32.static_relocation,
+         "RV32IMAC ABI and target properties");
+
+  vector<OCompTarget> canonical_targets = OCompTarget::CanonicalTargets();
+  Expect(canonical_targets.size() == 11, "canonical target count");
+  OCompTarget canonical_host;
+  canonical_host.ConfigureHost();
+  Expect(canonical_targets[0].name == canonical_host.name, "host target is listed first");
+  Expect(canonical_targets[8].name == "wasm32_wasi"
+         && canonical_targets[9].name == "wasm32_bare"
+         && canonical_targets[10].name == "rv32imac_bare",
+         "new canonical target ordering");
+
   OCompOptions hosted_defaults;
   hosted_defaults.target.ConfigureHost();
   hosted_defaults.ApplyTargetDefaults();
   Expect(hosted_defaults.exceptions, "hosted exceptions default");
   Expect(hosted_defaults.dynstrings, "hosted dynamic strings default");
+
+  OCompOptions wasi_defaults;
+  string wasi_default_error;
+  Expect(wasi_defaults.target.Configure("wasm32_wasi", wasi_default_error), "WASI default target");
+  wasi_defaults.ApplyTargetDefaults();
+  Expect(!wasi_defaults.exceptions && wasi_defaults.dynstrings,
+         "WASI exception and dynamic-string defaults");
+  Expect(wasi_defaults.ValidateTargetSettings(wasi_default_error),
+         "WASI defaults satisfy target capabilities");
+  wasi_defaults.SetExceptions(true);
+  Expect(!wasi_defaults.ValidateTargetSettings(wasi_default_error)
+         && (wasi_default_error.find("does not support exceptions") != string::npos),
+         "WASI rejects explicit exceptions");
 
   OCompOptions bare_defaults;
   string bare_default_error;

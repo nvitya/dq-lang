@@ -29,6 +29,8 @@ Useful options:
 | `--ifgen` | generate a standalone `.dqm_if` interface file |
 | `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
+| `--target=<name>` | select a compiler target |
+| `--targets` | list canonical targets and their LLVM/default settings |
 | `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
 | `--dynstrings`, `--no-dynstrings` | enable or disable heap-backed dynamic strings |
 | `--pkg-path <path>` | add a package search root; repeatable |
@@ -53,6 +55,36 @@ Dynamic strings follow the same target defaults; when enabled,
 `#ifdef DYNSTRINGS` selects `str`-dependent source. With dynamic strings
 disabled, `strview`, string literals, and bounded `cstring` remain available,
 but owning `str` operations are rejected at compile time.
+
+## Compiler Targets
+
+Run `dq-comp --targets` to print the canonical target names together with their
+architecture, platform, LLVM triple, CPU/features, feature defaults, and
+default link mode. In addition to the current host and Cortex-M targets, the
+compiler supports:
+
+| Target | Behavior |
+| --- | --- |
+| `wasm32_wasi` | Hosted WASI command module; links automatically and defaults to a `.wasm` output |
+| `wasm32_bare` | Bare WebAssembly object generation; compile-only by default |
+| `rv32imac_bare` | Bare RV32IMAC ELF object generation; compile-only by default |
+
+`wasm32_wasi` requires Clang/LLD and a WASI sysroot containing libc at link
+time. DQ exceptions are not supported on this target: `--exceptions` and
+`exceptions = true` are rejected, while dynamic strings remain enabled by
+default. The resulting command module uses WASI libc startup and can be run by
+a WASI runtime such as Wasmtime.
+
+The two bare targets do not bundle startup code, linker scripts, libc, or
+compiler-runtime libraries. They emit objects without linking unless `--link`
+is requested. A forced bare link must supply the appropriate objects and linker
+arguments and normally sets `compiler_runtime = 'none'` and
+`c_runtime = 'none'`.
+
+Target selection defines `WASM`, `WASI`, or `RISCV` as applicable. Bare targets
+also define `BARE`; all three targets define `TARGET_32BIT`. The existing
+`EXCEPTIONS` and `DYNSTRINGS` defines continue to reflect the effective feature
+settings.
 
 ## `dq-run`
 

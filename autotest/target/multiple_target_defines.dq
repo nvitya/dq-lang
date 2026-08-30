@@ -1,0 +1,47 @@
+// Compile-only coverage for architecture/platform defines on cross targets.
+
+#ifdef EXPECT_WASI
+  #ifndef WASM
+    var missing_target_define : OExpectedWasm
+  #endif
+  #ifndef WASI
+    var missing_platform_define : OExpectedWasi
+  #endif
+  #ifdef BARE
+    var unexpected_platform_define : OUnexpectedBare
+  #endif
+  #ifdef EXCEPTIONS
+    var unexpected_feature_define : OUnexpectedExceptions
+  #endif
+  #ifndef DYNSTRINGS
+    var missing_feature_define : OExpectedDynStrings
+  #endif
+#endif
+
+#ifdef EXPECT_WASM_BARE
+  #ifndef WASM
+    var missing_target_define : OExpectedWasm
+  #endif
+  #ifndef BARE
+    var missing_platform_define : OExpectedBare
+  #endif
+  #ifdef EXCEPTIONS
+    var unexpected_feature_define : OUnexpectedExceptions
+  #endif
+  #ifdef DYNSTRINGS
+    var unexpected_feature_define : OUnexpectedDynStrings
+  #endif
+#endif
+
+#ifdef EXPECT_RISCV
+  #ifndef RISCV
+    var missing_target_define : OExpectedRiscV
+  #endif
+  #ifndef BARE
+    var missing_platform_define : OExpectedBare
+  #endif
+#endif
+
+function TargetPointerSize() -> int:
+    return 4
+endfunc

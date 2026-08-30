@@ -56,7 +56,7 @@ int main()
   {
     CheckTarget(arch, INLINE_ASM_DIALECT_NATIVE, "r", "w");
   }
-  for (string_view arch : {"rv32i", "riscv32", "rv64g", "riscv64"})
+  for (string_view arch : {"rv32i", "rv32imac", "riscv32", "rv64g", "riscv64"})
   {
     CheckTarget(arch, INLINE_ASM_DIALECT_NATIVE, "r", "f");
   }

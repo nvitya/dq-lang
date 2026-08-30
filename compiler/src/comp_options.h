@@ -47,6 +47,7 @@ enum ETargetPlatform
 {
   TARGET_PLATFORM_LINUX,
   TARGET_PLATFORM_WIN,
+  TARGET_PLATFORM_WASI,
   TARGET_PLATFORM_BARE
 };
 
@@ -74,22 +75,33 @@ public:
   string llvm_cpu = "generic";
   string llvm_features;
   string clang_fpu;
+  string clang_arch;
+  string llvm_abi;
   string llvm_backend = "native";
   string gcc_multilib;
   uint32_t pointer_size = 8;
   uint8_t default_float_bits = 64;
   ETargetPlatform platform = TARGET_PLATFORM_LINUX;
   ETargetFloatAbi float_abi = TARGET_FLOAT_ABI_DEFAULT;
+  bool exceptions_supported = true;
+  bool default_exceptions = true;
+  bool default_dynstrings = true;
+  bool static_relocation = false;
 
   bool IsWindows() const { return TARGET_PLATFORM_WIN == platform; }
   bool IsLinux() const { return TARGET_PLATFORM_LINUX == platform; }
+  bool IsWasi() const { return TARGET_PLATFORM_WASI == platform; }
   bool IsBare() const { return TARGET_PLATFORM_BARE == platform; }
   bool IsArm() const { return "ARM" == llvm_backend; }
+  bool IsWasm() const { return "WebAssembly" == llvm_backend; }
+  bool IsRiscV() const { return "RISCV" == llvm_backend; }
 
   void ConfigureHost();
   bool Configure(const string & name, string & rerror);
   bool ConfigureFromCommandLine(int argc, char ** argv, string & rerror,
                                 const string & default_name = "");
+  static vector<OCompTarget> CanonicalTargets();
+  static void PrintSupportedTargets();
 };
 
 class OCmdLineDefine
@@ -164,6 +176,7 @@ public:
   vector<string> DefaultPackagePaths() const;
   bool SetCompilerRuntime(const string & value, string & rerror);
   bool SetCRuntime(const string & value, string & rerror);
+  bool ValidateTargetSettings(string & rerror) const;
   bool ValidateRuntimeSettings(string & rerror) const;
   string EffectiveCompilerRuntime() const;
   string EffectiveCRuntime() const;

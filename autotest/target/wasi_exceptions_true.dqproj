@@ -1,0 +1,4 @@
+main = 'multiple_target_defines.dq'
+target = 'wasm32_wasi'
+exceptions = true
+link = false

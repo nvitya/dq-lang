@@ -176,6 +176,7 @@ string ODqCompiler::HostedRtlModuleName() const
 {
   if (g_opt.target.IsBare()) return "rtl/rtl_bare";
   if (g_opt.target.IsWindows()) return "rtl/rtl_windows";
+  if (g_opt.target.IsWasi()) return "rtl/rtl_wasi";
   return "rtl/rtl_linux";
 }
 
@@ -306,6 +307,12 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   rargs.push_back("--target=" + g_opt.target.llvm_triple);
 
   rargs.push_back("-fuse-ld=lld");
+  if (g_opt.target.IsWasi())
+  {
+    // DQ's exception-free WASI runtime only needs libc. Avoid making the
+    // target depend on libc++ and libc++abi being installed in the WASI SDK.
+    rargs.push_back("-nostdlib++");
+  }
   string compiler_runtime = g_opt.EffectiveCompilerRuntime();
   string c_runtime = g_opt.EffectiveCRuntime();
   string gcc_multilib_dir;
@@ -341,6 +348,14 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
       }
       rargs.push_back(TARGET_FLOAT_ABI_HARD == g_opt.target.float_abi
           ? "-mfloat-abi=hard" : "-mfloat-abi=soft");
+    }
+    if (!g_opt.target.clang_arch.empty())
+    {
+      rargs.push_back("-march=" + g_opt.target.clang_arch);
+    }
+    if (!g_opt.target.llvm_abi.empty())
+    {
+      rargs.push_back("-mabi=" + g_opt.target.llvm_abi);
     }
     // LLVM canonicalizes the target triple during the Clang LTO link. DQ's
     // bitcode uses the equivalent unqualified triple, so Clang otherwise

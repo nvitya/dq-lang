@@ -455,6 +455,22 @@ void ODqCompCodegen::PrepareTarget()
     LLVMInitializeARMAsmParser();
     LLVMInitializeARMAsmPrinter();
   }
+  else if (g_opt.target.IsWasm())
+  {
+    LLVMInitializeWebAssemblyTargetInfo();
+    LLVMInitializeWebAssemblyTarget();
+    LLVMInitializeWebAssemblyTargetMC();
+    LLVMInitializeWebAssemblyAsmParser();
+    LLVMInitializeWebAssemblyAsmPrinter();
+  }
+  else if (g_opt.target.IsRiscV())
+  {
+    LLVMInitializeRISCVTargetInfo();
+    LLVMInitializeRISCVTarget();
+    LLVMInitializeRISCVTargetMC();
+    LLVMInitializeRISCVAsmParser();
+    LLVMInitializeRISCVAsmPrinter();
+  }
   else
   {
     llvm::InitializeNativeTarget();
@@ -492,8 +508,12 @@ void ODqCompCodegen::PrepareTarget()
   {
     target_options.MCOptions.ABIName = "aapcs";
   }
+  else if (!g_opt.target.llvm_abi.empty())
+  {
+    target_options.MCOptions.ABIName = g_opt.target.llvm_abi;
+  }
 
-  optional<llvm::Reloc::Model> reloc_model = (g_opt.target.IsBare()
+  optional<llvm::Reloc::Model> reloc_model = (g_opt.target.static_relocation
       ? llvm::Reloc::Static : llvm::Reloc::PIC_);
 
   llvm::CodeGenOptLevel codegen_optlevel;

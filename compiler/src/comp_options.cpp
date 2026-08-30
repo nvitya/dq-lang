@@ -89,20 +89,33 @@ void OCompTarget::ConfigureHost()
 #endif
 }
 
-bool OCompTarget::Configure(const string & aname, string & rerror)
+vector<OCompTarget> OCompTarget::CanonicalTargets()
 {
-  ConfigureHost();
-  if (aname.empty())
-  {
-    return true;
-  }
+  vector<OCompTarget> result;
+  OCompTarget host;
+  host.ConfigureHost();
+  result.push_back(host);
 
-  if ((aname == name)
-      || (("x64-linux" == aname) && ("x86_64-linux" == name))
-      || (("x64-win" == aname) && ("x86_64-win" == name)))
+  auto add_target = [&](const char * name, const char * arch, const char * platform_name,
+                        const char * triple, const char * cpu, const char * features,
+                        const char * backend, ETargetPlatform platform)
   {
-    return true;
-  }
+    OCompTarget target;
+    target.name = name;
+    target.arch = arch;
+    target.platform_name = platform_name;
+    target.llvm_triple = triple;
+    target.llvm_cpu = cpu;
+    target.llvm_features = features;
+    target.llvm_backend = backend;
+    target.pointer_size = 4;
+    target.platform = platform;
+    target.default_exceptions = (TARGET_PLATFORM_BARE != platform);
+    target.default_dynstrings = (TARGET_PLATFORM_BARE != platform);
+    target.static_relocation = true;
+    result.push_back(target);
+    return &result.back();
+  };
 
   struct SArmBarePreset
   {
@@ -131,7 +144,6 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v8-m.main+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
-      //"+fp-armv8d16sp,-fp64,-d32,+no-movt", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-none-eabihf", "cortex-m7",
@@ -141,22 +153,67 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
 
   for (const SArmBarePreset & preset : arm_bare_presets)
   {
-    if (aname != preset.name) continue;
+    OCompTarget * target = add_target(preset.name, preset.arch, "bare", preset.triple,
+        preset.cpu, preset.features, "ARM", TARGET_PLATFORM_BARE);
+    target->clang_fpu = preset.clang_fpu;
+    target->gcc_multilib = preset.gcc_multilib;
+    target->float_abi = preset.float_abi;
+    target->default_float_bits = preset.default_float_bits;
+  }
 
-    *this = OCompTarget();
-    name = preset.name;
-    arch = preset.arch;
-    platform_name = "bare";
-    llvm_triple = preset.triple;
-    llvm_cpu = preset.cpu;
-    llvm_features = preset.features;
-    clang_fpu = preset.clang_fpu;
-    gcc_multilib = preset.gcc_multilib;
-    llvm_backend = "ARM";
-    pointer_size = 4;
-    platform = TARGET_PLATFORM_BARE;
-    float_abi = preset.float_abi;
-    default_float_bits = preset.default_float_bits;
+  OCompTarget * wasm_wasi = add_target("wasm32_wasi", "wasm32", "wasi",
+      "wasm32-unknown-wasi", "generic", "", "WebAssembly", TARGET_PLATFORM_WASI);
+  wasm_wasi->exceptions_supported = false;
+  wasm_wasi->default_exceptions = false;
+
+  add_target("wasm32_bare", "wasm32", "bare", "wasm32-unknown-unknown",
+      "generic", "", "WebAssembly", TARGET_PLATFORM_BARE);
+
+  OCompTarget * rv32 = add_target("rv32imac_bare", "rv32imac", "bare",
+      "riscv32-unknown-elf", "generic-rv32", "+m,+a,+c", "RISCV", TARGET_PLATFORM_BARE);
+  rv32->clang_arch = "rv32imac";
+  rv32->llvm_abi = "ilp32";
+
+  return result;
+}
+
+void OCompTarget::PrintSupportedTargets()
+{
+  print("{:<18} {:<10} {:<8} {:<28} {:<13} {:<29} {:<15} {:<14} {}\n",
+      "TARGET", "ARCH", "PLATFORM", "LLVM TRIPLE", "CPU", "FEATURES",
+      "EXCEPTIONS", "DYNSTRINGS", "DEFAULT MODE");
+  for (const OCompTarget & target : CanonicalTargets())
+  {
+    string exceptions = target.exceptions_supported
+        ? string("default:") + (target.default_exceptions ? "on" : "off")
+        : "unsupported";
+    string dynstrings = string("default:") + (target.default_dynstrings ? "on" : "off");
+    print("{:<18} {:<10} {:<8} {:<28} {:<13} {:<29} {:<15} {:<14} {}\n",
+        target.name, target.arch, target.platform_name, target.llvm_triple,
+        target.llvm_cpu, target.llvm_features.empty() ? "-" : target.llvm_features,
+        exceptions, dynstrings, target.IsBare() ? "compile-only" : "link");
+  }
+}
+
+bool OCompTarget::Configure(const string & aname, string & rerror)
+{
+  ConfigureHost();
+  if (aname.empty())
+  {
+    return true;
+  }
+
+  if ((aname == name)
+      || (("x64-linux" == aname) && ("x86_64-linux" == name))
+      || (("x64-win" == aname) && ("x86_64-win" == name)))
+  {
+    return true;
+  }
+
+  for (const OCompTarget & target : CanonicalTargets())
+  {
+    if (aname != target.name) continue;
+    *this = target;
     return true;
   }
 
@@ -536,6 +593,7 @@ void OCompOptions::PrintUsage()
   print("  --dynstrings : enable dynamic strings\n");
   print("  --no-dynstrings : disable dynamic strings\n");
   print("  --target=<name> : select the compiler target\n");
+  print("  --targets : list supported compiler targets\n");
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
@@ -625,13 +683,24 @@ void OCompOptions::ApplyTargetDefaults()
 {
   if (!exceptions_explicit)
   {
-    exceptions = !target.IsBare();
+    exceptions = target.default_exceptions;
   }
 
   if (!dynstrings_explicit)
   {
-    dynstrings = !target.IsBare();
+    dynstrings = target.default_dynstrings;
   }
+}
+
+bool OCompOptions::ValidateTargetSettings(string & rerror) const
+{
+  if (exceptions && !target.exceptions_supported)
+  {
+    rerror = "Target \"" + target.name + "\" does not support exceptions; "
+             "remove --exceptions or set exceptions = false";
+    return false;
+  }
+  return true;
 }
 
 bool OCompOptions::SetCRuntime(const string & value, string & rerror)

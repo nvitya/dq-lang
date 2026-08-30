@@ -58,6 +58,11 @@ The compiler maintains compile-time definitions in the `@def` namespace.
 Command-line `-Dname` and `-Dname=value`, project definitions, and target/runtime
 definitions contribute values.
 
+Target definitions include `LINUX`, `WINDOWS`, `WASI`, or `BARE` for the
+platform; `ARM`, `WASM`, or `RISCV` for explicit cross-target architectures;
+and `TARGET_32BIT`/`TARGET_64BIT`, `PTRSIZE`, `EXCEPTIONS`, and `DYNSTRINGS` for
+the effective representation and feature settings.
+
 Conditional directives include or discard source before parsing inactive code:
 
 ```dq

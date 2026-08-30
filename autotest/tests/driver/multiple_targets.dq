@@ -1,0 +1,128 @@
+//?exitcode(0)
+
+use dqautotest
+use strutils
+use file
+
+function ExpectOccurrenceCount(text : strview, needle : strview, expected : int):
+    var count : int = 0
+    var start : int = 0
+    while true:
+        var index : int = StrIndexOf(text, needle, start)
+        if index < 0:
+            break
+        endif
+        count += 1
+        start = index + needle.length
+    endwhile
+    if count <> expected:
+        Fail('unexpected target-list occurrence count')
+    endif
+endfunc
+
+function CompileTarget(target : strview, define : strview, expected_format : strview,
+                       expected_arch : strview):
+    var output : str = TempPath('.o')
+    var target_arg : str = '--target=' + target
+    var define_arg : str = '-D' + define
+    var compile : OTestRun = RunCompiler([
+        target_arg, define_arg, '--no-use-sys', '-c', '-o', output,
+        SourcePath('../../target/multiple_target_defines.dq')
+    ])
+    ExpectExitCode(compile, 0)
+    if compile.exitcode == 0:
+        var headers : OTestRun = RunTool(['llvm-readobj', '--file-headers', output])
+        ExpectExitCode(headers, 0)
+        ExpectOutputContains(headers, expected_format)
+        ExpectOutputContains(headers, expected_arch)
+        delete headers
+    endif
+    RemoveTemp(output)
+    delete compile
+endfunc
+
+function *Main() -> int:
+    var targets : OTestRun = RunCompiler(['--targets'])
+    ExpectExitCode(targets, 0)
+    ExpectOutputContains(targets, 'TARGET')
+    ExpectOutputContains(targets, 'LLVM TRIPLE')
+    ExpectOutputContains(targets, 'EXCEPTIONS')
+    ExpectOccurrenceCount(targets.output, 'wasm32_wasi', 1)
+    ExpectOccurrenceCount(targets.output, 'wasm32_bare', 1)
+    ExpectOccurrenceCount(targets.output, 'rv32imac_bare', 1)
+    ExpectOutputNotContains(targets, 'x64-linux')
+    delete targets
+
+    CompileTarget('wasm32_wasi', 'EXPECT_WASI', 'Format: WASM', 'AddressSize: 32bit')
+    CompileTarget('wasm32_bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
+    CompileTarget('rv32imac_bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
+
+    var rv_object : str = TempPath('.o')
+    var rv_compile : OTestRun = RunCompiler([
+        '--target=rv32imac_bare', '--no-use-sys', '-c', '-o', rv_object,
+        SourcePath('../../target/multiple_target_defines.dq')
+    ])
+    ExpectExitCode(rv_compile, 0)
+    if rv_compile.exitcode == 0:
+        var attributes : OTestRun = RunTool(['llvm-readobj', '--arch-specific', rv_object])
+        ExpectExitCode(attributes, 0)
+        ExpectOutputContains(attributes, 'rv32i2p1_m2p0_a2p1_c2p0')
+        delete attributes
+    endif
+    RemoveTemp(rv_object)
+    delete rv_compile
+
+    var rejected : OTestRun = RunCompiler([
+        '--target=wasm32_wasi', '--exceptions', '--no-use-sys', '-c',
+        SourcePath('../../target/multiple_target_defines.dq')
+    ])
+    if rejected.exitcode == 0:
+        Fail('WASI unexpectedly accepted exceptions')
+    endif
+    ExpectOutputContains(rejected, 'does not support exceptions')
+    delete rejected
+
+    var project_rejected : OTestRun = RunCompiler([
+        SourcePath('../../target/wasi_exceptions_true.dqproj')
+    ])
+    if project_rejected.exitcode == 0:
+        Fail('WASI project unexpectedly accepted exceptions')
+    endif
+    ExpectOutputContains(project_rejected, 'does not support exceptions')
+    delete project_rejected
+
+    var final_disabled : OTestRun = RunCompiler([
+        '--target=wasm32_wasi', '--exceptions', '--no-exceptions', '--no-use-sys', '-c',
+        SourcePath('../../target/multiple_target_defines.dq')
+    ])
+    ExpectExitCode(final_disabled, 0)
+    delete final_disabled
+
+    var wasm_base : str = TempPath()
+    var wasm_source : str = wasm_base + '.dq'
+    var wasm : str = wasm_base + '.wasm'
+    FileWriteText(wasm_source, 'function *Main() -> int:\n    return 0\nendfunc\n')
+    var link : OTestRun = RunCompiler([
+        '--target=wasm32_wasi', wasm_source
+    ])
+    ExpectExitCode(link, 0)
+    if link.exitcode == 0:
+        var wasm_headers : OTestRun = RunTool(['llvm-readobj', '--file-headers', wasm])
+        ExpectExitCode(wasm_headers, 0)
+        ExpectOutputContains(wasm_headers, 'Format: WASM')
+        delete wasm_headers
+
+        var has_wasmtime : OTestRun = RunTool(['/bin/sh', '-c', 'command -v wasmtime'])
+        if has_wasmtime.exitcode == 0:
+            var execute : OTestRun = RunTool(['wasmtime', wasm])
+            ExpectExitCode(execute, 0)
+            delete execute
+        endif
+        delete has_wasmtime
+    endif
+    RemoveTemp(wasm_source)
+    RemoveTemp(wasm)
+    delete link
+
+    return TestResult()
+endfunc

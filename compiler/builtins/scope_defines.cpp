@@ -42,9 +42,24 @@ void OScopeDefines::Init()
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "BARE", true));
   }
 
+  if (g_opt.target.IsWasi())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WASI", true));
+  }
+
   if (g_opt.target.IsArm())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM", true));
+  }
+
+  if (g_opt.target.IsWasm())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WASM", true));
+  }
+
+  if (g_opt.target.IsRiscV())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "RISCV", true));
   }
 
   if (g_opt.exceptions)

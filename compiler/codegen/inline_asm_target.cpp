@@ -58,7 +58,7 @@ const OInlineAsmTarget * InlineAsmTargetForArch(string_view arch)
   }
 
   if (("arm64" == arch) || ("aarch64" == arch)) return &InlineAsmTargetAArch64();
-  if (("rv32i" == arch) || ("riscv32" == arch)
+  if (("rv32i" == arch) || ("rv32imac" == arch) || ("riscv32" == arch)
       || ("rv64g" == arch) || ("riscv64" == arch))
   {
     return &InlineAsmTargetRiscV();

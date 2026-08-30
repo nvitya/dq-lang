@@ -148,9 +148,9 @@ sysroots/llvm-x86_64-win-ucrt
 ```
 
 It downloads the matching LLVM source archive if needed, configures LLVM for
-`x86_64-w64-windows-gnu`, builds only the X86 target backend, disables optional
-compression/XML/terminal dependencies, and installs the CMake package needed by
-`dq-comp`:
+`x86_64-w64-windows-gnu`, builds the X86, ARM, RISC-V, and WebAssembly target
+backends, disables optional compression/XML/terminal dependencies, and installs
+the CMake package needed by `dq-comp`:
 
 ```text
 sysroots/llvm-x86_64-win-ucrt/lib/cmake/llvm/LLVMConfig.cmake

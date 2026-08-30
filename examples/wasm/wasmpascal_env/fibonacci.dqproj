@@ -1,0 +1,17 @@
+main = '${PROJECT_NAME}.dq'
+output = '${PROJECT_NAME}.wasm'
+target = 'wasm32_bare'
+link = true
+compiler_runtime = 'none'
+c_runtime = 'none'
+optlevel = 2
+
+// For dynamic strings these are required:
+// dynstrings = true
+// linkobject = '/usr/lib/wasm32-wasi/libc.a'
+
+linkoption = '--entry=wasmpascal_init'  // required by the wasmpascal environment
+linkoption = '--strip-all'
+linkoption = '--allow-undefined'  // required for javascript exports
+
+//linkoption = '--Map=${PROJECT_NAME}.map'

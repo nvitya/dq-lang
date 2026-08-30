@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>fibonacci — wasmpascal standalone</title>
+<style>
+  :root {
+    --bg: #05070d;
+    --panel: #0a0e17;
+    --border: #1b2436;
+    --text: #cdd7ea;
+    --dim: #7d8aa5;
+    --accent: #4ecdc4;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100vh; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; }
+  #abi {
+    font-size: 12px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 10px;
+    white-space: nowrap;
+  }
+  #restart {
+    margin-left: auto;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font: inherit;
+  }
+  #restart:hover { border-color: var(--accent); color: var(--accent); }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 16px;
+    width: 100%;
+    overflow: auto;
+  }
+  #stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: auto;
+  }
+  #stage:empty { display: none; }
+  #stage canvas {
+    image-rendering: pixelated;
+    max-width: 100%;
+    max-height: calc(100vh - 150px);
+    border: 1px solid #30363d;
+    border-radius: 6px;
+  }
+  #output {
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+  }
+  #output:empty { display: none; }
+  #screen {
+    margin: 0 auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font: 15px/1.15 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    white-space: pre;
+    overflow: auto;
+  }
+  #screen > div {
+    min-height: 1.15em;
+  }
+  #input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto 16px;
+    padding: 0 12px;
+  }
+  #input-bar[hidden] { display: none; }
+  #input-bar label { color: var(--accent); white-space: nowrap; }
+  #input-bar input {
+    flex: 1;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font: inherit;
+    outline: none;
+  }
+  #input-bar input:focus { border-color: var(--accent); }
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 8px 16px;
+    color: var(--dim);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>fibonacci</h1>
+  <span id="abi">loading…</span>
+  <button id="restart" title="Reload and run the program again">Restart</button>
+</header>
+<main>
+  <div id="stage"></div>
+  <div id="output"></div>
+</main>
+<div id="input-bar" hidden>
+  <label for="input-field">readln:</label>
+  <input id="input-field" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="type your answer, then Enter">
+</div>
+<footer>
+  <span id="status">Starting…</span>
+  <a href="https://nofuss.co.za/wasmpascal/" target="_blank" rel="noopener">Built with WasmPascal</a>
+</footer>
+<script>
+  window.__WP_STANDALONE__ = {
+    wasm: "fibonacci.wasm",
+    name: "fibonacci",
+    screenCols: 0,
+    screenRows: 0,
+  };
+</script>
+<script src="runtime-core.js"></script>
+<script src="runtime-console.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+// DQ Version
+
+use ./wasmpasenv
+
+// Classic recursive Fibonacci — the standard "does the compiler do
+// recursion?" test, plus an iterative loop for comparison. Pure console.
+
+function FibRec(n : int) -> int:
+    result = iif(n <= 1,  n,  FibRec(n - 1) + FibRec(n - 2))
+endfunc
+
+function FibLoop(n : int) -> int:
+    if n <= 1:
+        result = n
+    else:
+        result = 1
+        var a : int = 0
+        var t : int
+        for i : int = 2 to n:
+            t = a + result
+            a = result
+            result = t
+        endfor
+    endif
+endfunc
+
+function wasmpas_main() [[cexport]]:
+    //
+    PrintLn('=== Fibonacci DQ ===')
+    PrintLn(' n    recursive    loop')
+    for i : int = 0 to 15:
+        PrintLn('{:2}    {:8}    {:8}', [i, FibRec(i), FibLoop(i)])
+    endfor
+    PrintLn()
+    PrintLn('Fib(20) = {} (recursive)', [FibRec(20)])
+    PrintLn('Fib(20) = {} (loop)', [FibLoop(20)])
+
+#ifdef DYNSTRINGS
+    var s : str = "abc"
+    s += 'cdef'
+    PrintLn('Dynamic String test: {}', [s])
+#endif
+endfunc

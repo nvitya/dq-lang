@@ -1,0 +1,10 @@
+main = 'wasmexample.dq'
+output = 'wasmexample.wasm'
+target = 'wasm32_bare'
+link = true
+compiler_runtime = 'none'
+c_runtime = 'none'
+optlevel = 2
+linkoption = '--no-entry'
+linkoption = '--export=Step'
+linkoption = '--strip-all'

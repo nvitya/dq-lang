@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DQ WebAssembly example</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-content: center;
+      gap: 1rem;
+    }
+
+    h1, p {
+      margin: 0;
+    }
+
+    canvas {
+      width: min(80vw, 640px);
+      height: auto;
+      border: 1px solid #475569;
+      border-radius: 0.5rem;
+      background: #0f172a;
+      box-shadow: 0 1rem 3rem #0008;
+    }
+
+    #status {
+      color: #fca5a5;
+    }
+  </style>
+</head>
+<body>
+  <h1>DQ bare WebAssembly</h1>
+  <canvas id="screen" width="640" height="360"></canvas>
+  <p id="status">Loading wasmexample.wasm…</p>
+
+  <script type="module">
+    const canvas = document.querySelector("#screen");
+    const status = document.querySelector("#status");
+    const context = canvas.getContext("2d");
+    const rectangle = { width: 72, height: 48 };
+
+    try {
+      const response = await fetch("wasmexample.wasm");
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+      const { instance } = await WebAssembly.instantiate(await response.arrayBuffer());
+      status.textContent = "The motion and collision logic are running in WebAssembly.";
+      status.style.color = "#94a3b8";
+
+      function draw() {
+        const position = instance.exports.Step(
+          canvas.width - rectangle.width,
+          canvas.height - rectangle.height
+        ) >>> 0;
+        const x = position & 0xffff;
+        const y = position >>> 16;
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#38bdf8";
+        context.fillRect(x, y, rectangle.width, rectangle.height);
+        requestAnimationFrame(draw);
+      }
+
+      requestAnimationFrame(draw);
+    } catch (error) {
+      status.textContent = `Could not load WebAssembly: ${error.message}`;
+    }
+  </script>
+</body>
+</html>

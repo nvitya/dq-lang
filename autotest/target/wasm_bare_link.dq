@@ -1,0 +1,3 @@
+function WasmValue() -> int [[cexport]]:
+    return 42
+endfunc

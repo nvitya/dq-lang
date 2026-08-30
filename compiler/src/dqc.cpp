@@ -384,7 +384,9 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   rargs.push_back("-o");
   rargs.push_back(executable_filename);
 
-  if (g_opt.target.IsBare())
+  // wasm-ld resolves archive members without the ELF linker's group options.
+  bool use_archive_group = g_opt.target.IsBare() && !g_opt.target.IsWasm();
+  if (use_archive_group)
   {
     rargs.push_back("-Xlinker");
     rargs.push_back("--start-group");
@@ -413,7 +415,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   {
     if (!add_bundled_archive("libsupc++_nano.a") || !add_bundled_archive("libgcc.a")) return false;
   }
-  if (g_opt.target.IsBare())
+  if (use_archive_group)
   {
     rargs.push_back("-Xlinker");
     rargs.push_back("--end-group");

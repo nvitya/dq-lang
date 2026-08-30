@@ -1,0 +1,33 @@
+// Bare WebAssembly example. The browser supplies the drawing surface while
+// this module updates the rectangle position and handles wall collisions.
+
+const SPEED : int = 3
+
+var rect_x : int = 24
+var rect_y : int = 24
+var speed_x : int = SPEED
+var speed_y : int = SPEED
+
+// Returns y in the upper 16 bits and x in the lower 16 bits.
+function Step(max_x : int, max_y : int) -> uint32 [[cexport]]:
+    rect_x += speed_x
+    rect_y += speed_y
+
+    if rect_x <= 0:
+        rect_x = 0
+        speed_x = SPEED
+    elif rect_x >= max_x:
+        rect_x = max_x
+        speed_x = -SPEED
+    endif
+
+    if rect_y <= 0:
+        rect_y = 0
+        speed_y = SPEED
+    elif rect_y >= max_y:
+        rect_y = max_y
+        speed_y = -SPEED
+    endif
+
+    return (uint32(rect_y) << 16) | uint32(rect_x)
+endfunc

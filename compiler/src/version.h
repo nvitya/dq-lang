@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.0"
+#define DQ_COMPILER_VERSION  "0.53.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.1:
+  - Wasm linking fix
 v0.53.0:
   - Wasm and RV32IMAC target support added
   - Supported target listing with --targets argument

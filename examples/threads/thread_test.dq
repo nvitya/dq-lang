@@ -1,0 +1,45 @@
+use print
+use libc/stdio
+use time
+
+use ./threads
+
+var thr1 <- OThread()
+var thr2 <- OThread()
+
+function ThreadFunc1(arg : pointer) -> int:
+    printf('ThreadFunc1 started\n')
+    SleepMillis(500)
+    printf('ThreadFunc1 finished\n')
+    return 0
+endfunc
+
+function ThreadFunc2(arg : pointer) -> int:
+    printf('ThreadFunc2 started\n')
+    SleepMillis(600)
+    printf('ThreadFunc2 finished\n')
+    return 0
+endfunc
+
+function *Main() -> int:
+    PrintLn('DQ Threading Test')
+    PrintLn('Starting threads...')
+
+    if thr1.StartFunc(ThreadFunc1, null) <> 0:
+        PrintLn('Unable to start thread 1.')
+        return 1
+    endif
+    if thr2.StartFunc(ThreadFunc2, null) <> 0:
+        PrintLn('Unable to start thread 2.')
+        thr1.Join()
+        return 1
+    endif
+
+    PrintLn('main: waiting threads to finish...')
+    thr1.Join()
+    thr2.Join()
+
+    PrintLn('Exiting main.')
+    PrintLn()
+    return 0
+endfunc

@@ -1,0 +1,64 @@
+// Minimal POSIX thread wrapper for hosted DQ programs.
+//
+// Threads share the process address space.  Synchronization of shared data and
+// output is deliberately left to the caller.
+
+#linklib('pthread')
+
+//use rtl/mem
+
+type FThreadFunc = function(arg : pointer) -> int
+type FNativeThreadFunc = function(arg : pointer) -> pointer
+
+struct SThreadStartData:
+    func : FThreadFunc
+    arg  : pointer
+endstruct
+
+object OThread:
+    thread_id : uint
+    started   : bool
+
+    m_func : FThreadFunc
+    m_arg  : pointer
+
+    function StartFunc(afunc : FThreadFunc, aarg : pointer) -> int
+    function Join() -> int
+endobj
+
+implementation
+
+// pthread_t is unsigned long on the supported POSIX targets, which is the
+// native-width unsigned integer represented by DQ's uint type.
+function pthread_create(thread : ^uint, attr : pointer, start_func : FNativeThreadFunc,
+                        arg : pointer) -> int [[external]]
+function pthread_join(thread : uint, return_value : ^pointer) -> int [[external]]
+
+function ThreadStart(context : pointer) -> pointer:
+    var thr : OThread = OThread(context)
+    thr.m_func(thr.m_arg)
+    return null
+endfunc
+
+function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> int:
+    if started:
+        return -1
+    endif
+    m_func = afunc
+    m_arg  = aarg
+    result = @.pthread_create(%thread_id, null, @.ThreadStart, pointer(self))
+    if result == 0:
+        started = true
+    endif
+endfunc
+
+function OThread.Join() -> int:
+    if not started:
+        return 0
+    endif
+
+    result = @.pthread_join(thread_id, null)
+    if result == 0:
+        started = false
+    endif
+endfunc

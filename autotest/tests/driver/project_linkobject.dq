@@ -2,7 +2,6 @@
 
 use dqautotest
 use file
-use strutils
 
 var run <- OTestRun()
 
@@ -17,9 +16,11 @@ function *Main() -> int:
     ])
     run.ExpectExitCode(0)
 
-    var project : str = Format(
-        "main = '{}'\nlink = true\nlinkoption = '--no-undefined'\nlinkobject = '{}'\n",
-        [SourcePath('../project/linkobject_main.dq'), object_path])
+    var project : str
+    project.AddFmt("main = '{}'\n", [SourcePath('../project/linkobject_main.dq')])
+    project.AddFmt('link = {}\n', [true])
+    project.AddFmt("linkoption = '{}'\n", ['--no-undefined'])
+    project.AddFmt("linkobject = '{}'\n", [object_path])
     FileWriteText(project_path, project)
 
     run.RunCompiler(['-o', executable_path, project_path])

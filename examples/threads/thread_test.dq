@@ -2,7 +2,7 @@ use print
 use libc/stdio
 use time
 
-use ./threads
+use threads
 
 function putchar(c : char) -> int [[external]]
 

@@ -8,17 +8,26 @@
 //use rtl/mem
 
 type FThreadFunc = function(arg : pointer) -> pointer
+type FThreadMethod = function(arg : pointer) -> pointer of object
 
 object OThread:
 protected
-    running   : bool
+    running   : bool = false
 public
+    m_method  : FThreadMethod  // these must be public to use it from outside
+    m_arg     : pointer
+
     thread_id : uint
     retval    : pointer
 
     function StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool
-    function Join()
-    function IsRunning() -> bool
+    function StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool
+    function StartSelf(aarg : pointer) -> bool  // starts the Run()
+
+    function Join()                  // waits until the thread stops
+    function IsRunning() -> bool     // polls for running state, joins
+
+    function Run(aarg : pointer) -> pointer [[virtual]]  // override this for StartSelf()
 endobj
 
 implementation
@@ -27,7 +36,7 @@ implementation
 // native-width unsigned integer represented by DQ's uint type.
 function pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]]
 function pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]]
-function pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]
+function pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]  // Linux specific !
 
 const PTHREAD_EBUSY : int = 16
 
@@ -69,4 +78,47 @@ function OThread.IsRunning() -> bool:
     // some other error or zero
     running = false
     return false
+endfunc
+
+function StartMethodThreadFunc(aarg : pointer) -> pointer:
+    var thr : OThread = OThread(aarg)
+    return thr.m_method(thr.m_arg)
+endfunc
+
+function OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
+    if running:
+        return false
+    endif
+    retval = null
+    m_method = amethod
+    m_arg = aarg
+    var r : int = @.pthread_create(%thread_id, null, @.StartMethodThreadFunc, pointer(self))
+    if r <> 0:
+        return false
+    endif
+    running = true
+    return true
+endfunc
+
+function StartSelfThreadFunc(aarg : pointer) -> pointer:
+    var thr : OThread = OThread(aarg)
+    return thr.Run(thr.m_arg)
+endfunc
+
+function OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
+    if running:
+        return false
+    endif
+    retval = null
+    m_arg = aarg
+    var r : int = @.pthread_create(%thread_id, null, @.StartSelfThreadFunc, pointer(self))
+    if r <> 0:
+        return false
+    endif
+    running = true
+    return true
+endfunc
+
+function OThread.Run(aarg : pointer) -> pointer [[virtual]]:  // empty
+    return null
 endfunc

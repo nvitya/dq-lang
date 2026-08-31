@@ -8,6 +8,45 @@ function putchar(c : char) -> int [[external]]
 
 var thr1 <- OThread()
 var thr2 <- OThread()
+var thr3 <- OThread()
+
+object OTest1:
+    counter : int = 5
+    name    : str = "?"
+
+    function *Create(aname : str):
+        name = aname
+    endfunc
+
+    function ThreadFunc(aarg : pointer) -> pointer:
+        use *
+        PrintLn('Obj({}) started, counter = {}', [name, counter])
+        SleepMillis(1500)
+        PrintLn('Obj({}) finished', [name])
+        return null
+    endfunc
+endobj
+
+var ot1 <- OTest1('ot1')
+
+
+object OWorker(OThread):
+    name    : str = "?"
+
+    function *Create(aname : str):
+        name = aname
+    endfunc
+
+    function Run(aarg : pointer) -> pointer [[override]]:
+        use *
+        PrintLn('OWorker({}) started', [name])
+        SleepMillis(2300)
+        PrintLn('OWorker({}) finished', [name])
+        return null
+    endfunc
+endobj
+
+var wrk <- OWorker('wrk1')
 
 function ThreadFunc1(arg : pointer) -> pointer:
     printf('ThreadFunc1 started\n')
@@ -37,8 +76,11 @@ function *Main() -> int:
         return 1
     endif
 
+    //thr3.StartMethod(ot1.ThreadFunc, null)
+    wrk.StartSelf(null)
+
     PrintLn('main: waiting threads to finish...')
-    while thr1.IsRunning() or thr2.IsRunning():
+    while thr1.IsRunning() or thr2.IsRunning() or thr3.IsRunning() or wrk.IsRunning():
         PrintLn(".")
         SleepMillis(500)
     endwhile

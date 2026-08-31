@@ -7,58 +7,66 @@
 
 //use rtl/mem
 
-type FThreadFunc = function(arg : pointer) -> int
-type FNativeThreadFunc = function(arg : pointer) -> pointer
-
-struct SThreadStartData:
-    func : FThreadFunc
-    arg  : pointer
-endstruct
+type FThreadFunc = function(arg : pointer) -> pointer
 
 object OThread:
+protected
+    running   : bool
+public
     thread_id : uint
-    started   : bool
+    retval    : pointer
 
-    m_func : FThreadFunc
-    m_arg  : pointer
-
-    function StartFunc(afunc : FThreadFunc, aarg : pointer) -> int
-    function Join() -> int
+    function StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool
+    function Join()
+    function IsRunning() -> bool
 endobj
 
 implementation
 
 // pthread_t is unsigned long on the supported POSIX targets, which is the
 // native-width unsigned integer represented by DQ's uint type.
-function pthread_create(thread : ^uint, attr : pointer, start_func : FNativeThreadFunc,
-                        arg : pointer) -> int [[external]]
-function pthread_join(thread : uint, return_value : ^pointer) -> int [[external]]
+function pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]]
+function pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]]
+function pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]
 
-function ThreadStart(context : pointer) -> pointer:
-    var thr : OThread = OThread(context)
-    thr.m_func(thr.m_arg)
-    return null
+const PTHREAD_EBUSY : int = 16
+
+function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
+    if running:
+        return false
+    endif
+    retval = null
+    var r : int = @.pthread_create(%thread_id, null, afunc, aarg)
+    if r <> 0:
+        return false
+    endif
+    running = true
+    return true
 endfunc
 
-function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> int:
-    if started:
-        return -1
+function OThread.Join():
+    if not running:
+        return
     endif
-    m_func = afunc
-    m_arg  = aarg
-    result = @.pthread_create(%thread_id, null, @.ThreadStart, pointer(self))
-    if result == 0:
-        started = true
+    if @.pthread_join(thread_id, %retval) <> 0:
+        // should we set running = false here ?
+        return
     endif
+    running = false
 endfunc
 
-function OThread.Join() -> int:
-    if not started:
-        return 0
+function OThread.IsRunning() -> bool:
+    if not running:
+        return false
     endif
 
-    result = @.pthread_join(thread_id, null)
-    if result == 0:
-        started = false
+    // A successful try-join reaps the thread, just like Join().  Preserve its
+    // return value in retval so callers can inspect it after polling finishes.
+    var r : int = @.pthread_tryjoin_np(thread_id, %retval)
+    if r == @.PTHREAD_EBUSY:
+        return true  // surely still running
     endif
+    // some other error or zero
+    running = false
+    return false
 endfunc

@@ -4,40 +4,46 @@ use time
 
 use ./threads
 
+function putchar(c : char) -> int [[external]]
+
 var thr1 <- OThread()
 var thr2 <- OThread()
 
-function ThreadFunc1(arg : pointer) -> int:
+function ThreadFunc1(arg : pointer) -> pointer:
     printf('ThreadFunc1 started\n')
-    SleepMillis(500)
+    SleepMillis(2300)
     printf('ThreadFunc1 finished\n')
-    return 0
+    return null
 endfunc
 
-function ThreadFunc2(arg : pointer) -> int:
+function ThreadFunc2(arg : pointer) -> pointer:
     printf('ThreadFunc2 started\n')
-    SleepMillis(600)
+    SleepMillis(3600)
     printf('ThreadFunc2 finished\n')
-    return 0
+    return null
 endfunc
 
 function *Main() -> int:
     PrintLn('DQ Threading Test')
     PrintLn('Starting threads...')
 
-    if thr1.StartFunc(ThreadFunc1, null) <> 0:
+    if not thr1.StartFunc(ThreadFunc1, null):
         PrintLn('Unable to start thread 1.')
         return 1
     endif
-    if thr2.StartFunc(ThreadFunc2, null) <> 0:
+    if not thr2.StartFunc(ThreadFunc2, null):
         PrintLn('Unable to start thread 2.')
         thr1.Join()
         return 1
     endif
 
     PrintLn('main: waiting threads to finish...')
-    thr1.Join()
-    thr2.Join()
+    while thr1.IsRunning() or thr2.IsRunning():
+        PrintLn(".")
+        SleepMillis(500)
+    endwhile
+    //thr1.Join()
+    //thr2.Join()
 
     PrintLn('Exiting main.')
     PrintLn()

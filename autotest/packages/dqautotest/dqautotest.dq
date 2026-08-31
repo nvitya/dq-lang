@@ -10,10 +10,15 @@ object OTestRun:
     stdout   : str
     stderr   : str
     output   : str
-endobj
 
-function RunTool(args : []str) -> OTestRun
-function RunCompiler(args : []str) -> OTestRun
+    function RunTool(args : []str) -> int
+    function RunCompiler(args : []str) -> int
+    function ExpectExitCode(expected : int)
+    function PrintRunOutput()
+    function ExpectOutputContains(expected : strview)
+    function ExpectOutputNotContains(unexpected : strview)
+
+endobj
 
 function CompilerPath() -> str
 function BinPath(name : strview) -> str
@@ -23,9 +28,6 @@ function TempPath() -> str  [[overload]]
 function TempPath(suffix : strview) -> str  [[overload]]
 function RemoveTemp(path : strview)
 
-function ExpectExitCode(run : OTestRun, expected : int)
-function ExpectOutputContains(run : OTestRun, expected : strview)
-function ExpectOutputNotContains(run : OTestRun, unexpected : strview)
 function ExpectContains(text : strview, expected : strview)
 function ExpectNotContains(text : strview, unexpected : strview)
 function ExpectFileContains(path : strview, expected : strview)
@@ -49,18 +51,18 @@ function JoinPath(base : strview, name : strview) -> str:
     result.Append(name)
 endfunc
 
-function RunTool(args : []str) -> OTestRun:
-    var captured : OShellCapture = ShellCapture(args)
-    result = new OTestRun
-    result.exitcode = captured.exitcode
-    result.stdout = captured.stdout
-    result.stderr = captured.stderr
-    result.output = captured.stdout
-    result.output.Append(captured.stderr)
-    delete captured
+function OTestRun.RunTool(args : []str) -> int:
+    var captured : OShellCapture = @shellutils.ShellCapture(args)
+    exitcode = captured.exitcode
+    stdout = captured.stdout
+    stderr = captured.stderr
+    output = captured.stdout
+    output.Append(captured.stderr)
+    return exitcode
 endfunc
 
-function RunCompiler(args : []str) -> OTestRun:
+function OTestRun.RunCompiler(args : []str) -> int:
+    use *
     var command : [*]str = [CompilerPath()]
     for i : int = 0 count args.length:
         command.Append(args[i])
@@ -71,6 +73,49 @@ function RunCompiler(args : []str) -> OTestRun:
     result = RunTool(command)
     Shell(['/bin/rm', '-rf', '--', buildroot])
 endfunc
+
+function OTestRun.ExpectExitCode(expected : int):
+    use *
+    if exitcode == expected:
+        return
+    endif
+    Fail(Format('exit code {} != expected {}', [exitcode, expected]))
+    if stdout <> '':
+        PrintLn('stdout:\n{}', [stdout])
+    endif
+    if stderr <> '':
+        PrintLn('stderr:\n{}', [stderr])
+    endif
+endfunc
+
+function OTestRun.PrintRunOutput():
+    use *
+    if stdout <> '':
+        PrintLn('stdout:\n{}', [stdout])
+    endif
+    if stderr <> '':
+        PrintLn('stderr:\n{}', [stderr])
+    endif
+endfunc
+
+function OTestRun.ExpectOutputContains(expected : strview):
+    use *
+    var previous : int = failure_count
+    ExpectContains(output, expected)
+    if failure_count <> previous:
+        PrintRunOutput()
+    endif
+endfunc
+
+function OTestRun.ExpectOutputNotContains(unexpected : strview):
+    use *
+    var previous : int = failure_count
+    ExpectNotContains(output, unexpected)
+    if failure_count <> previous:
+        PrintRunOutput()
+    endif
+endfunc
+
 
 function CompilerPath() -> str:
     return GetEnv('DQ_AUTOTEST_COMPILER', 'dq-comp')
@@ -111,44 +156,6 @@ function Fail(message : strview):
     PrintLn('FAIL: {}', [message])
 endfunc
 
-function ExpectExitCode(run : OTestRun, expected : int):
-    if run.exitcode == expected:
-        return
-    endif
-    Fail(Format('exit code {} != expected {}', [run.exitcode, expected]))
-    if run.stdout <> '':
-        PrintLn('stdout:\n{}', [run.stdout])
-    endif
-    if run.stderr <> '':
-        PrintLn('stderr:\n{}', [run.stderr])
-    endif
-endfunc
-
-function PrintRunOutput(run : OTestRun):
-    if run.stdout <> '':
-        PrintLn('stdout:\n{}', [run.stdout])
-    endif
-    if run.stderr <> '':
-        PrintLn('stderr:\n{}', [run.stderr])
-    endif
-endfunc
-
-function ExpectOutputContains(run : OTestRun, expected : strview):
-    var previous : int = failure_count
-    ExpectContains(run.output, expected)
-    if failure_count <> previous:
-        PrintRunOutput(run)
-    endif
-endfunc
-
-function ExpectOutputNotContains(run : OTestRun, unexpected : strview):
-    var previous : int = failure_count
-    ExpectNotContains(run.output, unexpected)
-    if failure_count <> previous:
-        PrintRunOutput(run)
-    endif
-endfunc
-
 function ExpectContains(text : strview, expected : strview):
     if StrIndexOf(text, expected) >= 0:
         return
@@ -180,8 +187,5 @@ function ExpectFileNotContains(path : strview, unexpected : strview):
 endfunc
 
 function TestResult() -> int:
-    if failure_count == 0:
-        return 0
-    endif
-    return 1
+    return iif(failure_count == 0, 0, 1)
 endfunc

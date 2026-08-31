@@ -2,23 +2,23 @@
 
 use dqautotest
 
+var run <- OTestRun()
+
 function *Main() -> int:
     var binary : str = TempPath('.elf')
-    var compile : OTestRun = RunCompiler([
+    run.RunCompiler([
         '-o', binary, SourcePath('../project/arm_no_exceptions.dqproj')
     ])
-    ExpectExitCode(compile, 0)
+    run.ExpectExitCode(0)
 
-    if compile.exitcode == 0:
-        var symbols : OTestRun = RunTool(['nm', '--undefined-only', binary])
-        ExpectExitCode(symbols, 0)
-        ExpectOutputNotContains(symbols, '__aeabi_unwind')
-        ExpectOutputNotContains(symbols, '_Unwind_')
-        ExpectOutputNotContains(symbols, '__gnu_Unwind')
-        delete symbols
+    if run.exitcode == 0:
+        run.RunTool(['nm', '--undefined-only', binary])
+        run.ExpectExitCode(0)
+        run.ExpectOutputNotContains('__aeabi_unwind')
+        run.ExpectOutputNotContains('_Unwind_')
+        run.ExpectOutputNotContains('__gnu_Unwind')
     endif
 
     RemoveTemp(binary)
-    delete compile
     return TestResult()
 endfunc

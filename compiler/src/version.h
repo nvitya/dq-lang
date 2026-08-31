@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.4"
+#define DQ_COMPILER_VERSION  "0.53.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.5:
+  - Autotest improvements: improved driver utility and driver tests (shell-like tests written in DQ)
 v0.53.4:
   - Windows RTL backtrace module fix
 v0.53.3:

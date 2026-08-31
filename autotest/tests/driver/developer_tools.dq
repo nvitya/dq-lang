@@ -2,10 +2,11 @@
 
 use dqautotest
 
+var run <- OTestRun()
+
 function CheckTool(name : strview):
-    var run : OTestRun = RunTool([BinPath(name)])
-    ExpectExitCode(run, 0)
-    delete run
+    run.RunTool([BinPath(name)])
+    run.ExpectExitCode(0)
 endfunc
 
 function *Main() -> int:

@@ -2,13 +2,14 @@
 
 use dqautotest
 
+var run <- OTestRun()
+
 function ExpectCompileFailure(args : []str, diagnostic : strview):
-    var run : OTestRun = RunCompiler(args)
+    run.RunCompiler(args)
     if run.exitcode == 0:
         Fail('compiler unexpectedly accepted an invalid program')
     endif
-    ExpectOutputContains(run, diagnostic)
-    delete run
+    run.ExpectOutputContains(diagnostic)
 endfunc
 
 function *Main() -> int:

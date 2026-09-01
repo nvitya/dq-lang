@@ -1,0 +1,127 @@
+
+// this is required because the parent directory name is 'file' which collides with
+// the stdpkg
+//#opt module_root_depth = 1
+
+use file
+
+object ODir:
+    m_handle : pointer  // internal libc type
+    m_name   : str
+
+    function *Create()
+    function *Destroy()
+    function Open(adir : strview)
+    function Close()
+    function Opened() -> bool
+    function Next() -> bool
+
+    property name   : str   read m_name
+    property opened : bool  read Opened
+endobj
+
+implementation
+
+function libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
+function libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
+
+// The dirent layout differs between the POSIX implementations used here.
+#ifdef WINDOWS
+struct SDirent:
+    d_ino    : int32
+    d_reclen : uint16
+    d_namlen : uint16
+    d_name   : [260]char
+endstruct
+#else
+struct SDirent:
+    d_ino    : uint64
+    d_off    : int64
+    d_reclen : uint16
+    d_type   : uint8
+    d_name   : [256]char
+endstruct
+#endif
+
+function libc_readdir(dirp : pointer) -> ^SDirent                        [[external('readdir')]]
+
+const DIR_MODE : uint = 511
+const ACCESS_EXISTS : int = 0
+
+function DirEntryName(aname : ^char) -> str:
+    result = ''
+
+    while aname^ <> char(0):
+        result.Append(aname^)
+        aname += 1
+    endwhile
+endfunc
+
+function DirEntryIsNavigation(aname : strview) -> bool:
+    if aname.length == 1:
+        return aname[0] == '.'
+    endif
+
+    if aname.length == 2:
+        return aname[0] == '.' and aname[1] == '.'
+    endif
+
+    return false
+endfunc
+
+function ODir.*Create():
+    m_handle = null
+endfunc
+
+function ODir.*Destroy():
+    Close()
+endfunc
+
+function ODir.Open(adir : strview):
+    Close()
+
+    if adir == '':
+        raise EFileError('ODir.Open: empty directory name')
+    endif
+
+    var path : str = adir
+    m_handle = @.libc_opendir(path.pchar)
+    if m_handle == null:
+        raise EFileError('ODir.Open: cannot open directory: {}', [path])
+    endif
+endfunc
+
+function ODir.Close():
+    if m_handle <> null:
+        @.libc_closedir(m_handle)
+        m_handle = null
+    endif
+endfunc
+
+function ODir.Opened() -> bool:
+    return m_handle <> null
+endfunc
+
+function ODir.Next() -> bool:
+    result = false
+
+    if not Opened():
+        raise EFileError('ODir.Next: directory is not open')
+    endif
+
+    while true:
+        var entry : ^SDirent = @.libc_readdir(m_handle)
+        if entry == null:
+            m_name = ''
+            Close()
+            return false
+        endif
+
+        m_name = @.DirEntryName(%entry^.d_name[0])
+        if not @.DirEntryIsNavigation(m_name):
+            return true
+        endif
+    endwhile
+endfunc
+
+//--------------------------------------------------------------------------

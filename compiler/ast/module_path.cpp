@@ -400,6 +400,7 @@ bool OModulePath::IsLocalReference() const
 
 bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
                                            const filesystem::path & context_artifact,
+                                           const filesystem::path & source_path,
                                            filesystem::path & rartifact_path)
 {
   vector<string> target_parts = Split(module_id);
@@ -410,6 +411,27 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
 
   string package_name = target_parts[0];
   string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
+
+  // A canonical module name alone cannot distinguish a package import from a
+  // local import when the local package happens to have the same name.  The
+  // interface records the resolved source path, which preserves that origin.
+  if (!source_path.empty())
+  {
+    filesystem::path normalized_source = AbsNorm(source_path);
+    filesystem::path package_dir;
+    if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir)
+        && normalized_source == SourcePathForLocal(package_dir, local_path))
+    {
+      rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
+      return true;
+    }
+
+    if (normalized_source == SourcePathForLocal(BuildRootDir(), local_path))
+    {
+      rartifact_path = BuildArtifactPathForModule(package_name, local_path, BuildRootDir(), false);
+      return true;
+    }
+  }
 
   filesystem::path build_tag_dir = BuildTagDir();
   filesystem::path local_dir = build_tag_dir / "local";

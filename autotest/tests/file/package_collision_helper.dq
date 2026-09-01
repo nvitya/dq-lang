@@ -1,0 +1,11 @@
+//?notest
+
+use file
+
+function PackageCollisionHelper() -> int:
+    if FileExists(''):
+        return 1
+    endif
+
+    return 0
+endfunc

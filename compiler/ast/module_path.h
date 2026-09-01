@@ -55,6 +55,7 @@ public:
   static bool SuppressesImplicitSys(const string & module_id, const filesystem::path & root_dir);
   static bool ResolveCanonicalArtifact(const string & module_id, const string & context_module_id,
                                        const filesystem::path & context_artifact,
+                                       const filesystem::path & source_path,
                                        filesystem::path & rartifact_path);
   static bool ResolveCanonicalSource(const string & module_id, const string & context_module_id,
                                      const filesystem::path & context_artifact,

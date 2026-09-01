@@ -1,0 +1,11 @@
+// The local module root is also named "file".  The bare package import must
+// still link the standard file package, even when it is a helper dependency.
+
+use file
+use ./package_collision_helper
+use libc/stdio
+
+function *Main() -> int:
+    printf("package_file_collision = %d\n", PackageCollisionHelper())  //?check("package_file_collision", 0)
+    return 0
+endfunc

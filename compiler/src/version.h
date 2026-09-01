@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.6"
+#define DQ_COMPILER_VERSION  "0.53.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.7:
+  - Linking error fix for mixing local and global modules (stdpkg)
 v0.53.6:
   - shell module provided in the stdpkg with different kind of shell execution
 v0.53.5:

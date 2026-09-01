@@ -1,0 +1,55 @@
+// directory listing
+
+use print
+use file
+use ./dirutils
+
+function JoinPath(adir : strview, aname : strview) -> str:
+    return adir + '/' + aname
+endfunc
+
+function PrintTree(adir : strview, aindent : strview):
+    var dir <- ODir()
+    dir.Open(adir)
+    while dir.Next():
+        var path : str = JoinPath(adir, dir.name)
+        if DirExists(path):
+            PrintLn('{}{}/', [aindent, dir.name])
+            PrintTree(path, aindent + '  ')
+        else:
+            PrintLn('{}{}', [aindent, dir.name])
+        endif
+    endwhile
+endfunc
+
+function *Main() -> int:
+    PrintLn('DQ directory and file listing demo')
+
+    // list the files in the current directory
+    PrintLn('Files in the current directory:')
+    var current <- ODir()
+    current.Open('.')
+    while current.Next():
+        var path : str = JoinPath('.', current.name)
+        if FileExists(path):
+            PrintLn('  {}', [current.name])
+        endif
+    endwhile
+
+    // list the directories in '..' (parent directory)
+    PrintLn('Directories in the parent directory:')
+    var parent <- ODir()
+    parent.Open('..')
+    while parent.Next():
+        var path : str = JoinPath('..', parent.name)
+        if DirExists(path):
+            PrintLn('  {}', [parent.name])
+        endif
+    endwhile
+
+    // print the tree of the files in the parent directory
+    PrintLn('Tree of the parent directory:')
+    PrintTree('..', '  ')
+    
+    return 0
+endfunc

@@ -399,8 +399,16 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   }
   for (const string & link_dep : intf->link_dependencies)
   {
+    filesystem::path dep_source;
+    if (auto source = find_if(intf->module_sources.begin(), intf->module_sources.end(),
+                              [&](const auto & item) { return item.first == link_dep; });
+        source != intf->module_sources.end())
+    {
+      dep_source = source->second;
+    }
+
     filesystem::path dep_artifact;
-    if (OModulePath::ResolveCanonicalArtifact(link_dep, module_path, link_artifact_path, dep_artifact))
+    if (OModulePath::ResolveCanonicalArtifact(link_dep, module_path, link_artifact_path, dep_source, dep_artifact))
     {
       string dep_artifact_name = dep_artifact.string();
       if (link_module_artifacts.end() == find(link_module_artifacts.begin(), link_module_artifacts.end(), dep_artifact_name))

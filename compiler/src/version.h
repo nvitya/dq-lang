@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.5"
+#define DQ_COMPILER_VERSION  "0.53.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.53.6:
+  - shell module provided in the stdpkg with different kind of shell execution
 v0.53.5:
   - Autotest improvements: improved driver utility and driver tests (shell-like tests written in DQ)
 v0.53.4:

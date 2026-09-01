@@ -1,3 +1,5 @@
+//?exitcode(0)
+
 use shell
 use print
 
@@ -22,7 +24,46 @@ function *Main() -> int:
         return 1
     endif
 
-    var r : int = runner.Run('printf stdout; printf stderr >&2; exit 7')
+    var caught : bool = false
+    try:
+        runner.Run('printf failing-out; printf failing-err >&2; exit 17')
+    except EShellResult as e:
+        caught = e.code == 17
+    endtry
+    if not caught:
+        PrintLn('Run exception failed')
+        return 1
+    endif
+    if runner.exitcode <> 17 or runner.out <> 'failing-out' or
+       runner.err <> 'failing-err':
+        PrintLn('Run exception capture failed')
+        return 1
+    endif
+
+    caught = false
+    try:
+        runner.RunWithInput(['/bin/sh', '-c', 'cat >/dev/null; exit 23'], 'input')
+    except EShellResult as e:
+        caught = e.code == 23 and runner.exitcode == 23
+    endtry
+    if not caught:
+        PrintLn('RunWithInput exception failed')
+        return 1
+    endif
+
+    var suppressed_exit : int = runner.Run('exit 29', false)
+    if suppressed_exit <> 29 or runner.exitcode <> 29:
+        PrintLn('Run exception suppression failed')
+        return 1
+    endif
+
+    suppressed_exit = runner.RunWithInput('exit 31', '', false)
+    if suppressed_exit <> 31 or runner.exitcode <> 31:
+        PrintLn('RunWithInput exception suppression failed')
+        return 1
+    endif
+
+    var r : int = runner.Run('printf stdout; printf stderr >&2; exit 7', false)
     if r <> 7 or runner.exitcode <> 7 or not runner.finished:
         PrintLn('unexpected exit state: result={}, exitcode={}, finished={}',
                 [r, runner.exitcode, runner.finished])

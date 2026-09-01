@@ -8,14 +8,13 @@ function *Main() -> int:
 
     // execute the dq-comp, provide empty input str, collect the output str
 
-    osh.Run('dq-comp --version')
     PrintLn('dq-comp version:')
+    osh.Run('dq-comp --version')
     PrintLn(osh.output)
 
-    var ecode : int = 0
-
-    osh.Run(['dq-comp'], false)
     PrintLn('dq-comp help:')
+    //osh.Run(['dq-comp'])
+    osh.Run(['dq-comp'], false) // false: do not cause an exeption when the result code is not 0
     PrintLn(osh.output)
     PrintLn('result code: {}', [osh.exitcode])
 

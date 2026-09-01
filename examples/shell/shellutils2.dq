@@ -1,6 +1,9 @@
-// Foreground shell command runner with separately captured stdout and stderr.
+// Shell command runner with separately captured stdout and stderr.
 
-object OShellRunner:
+use threads
+use time
+
+object OShellRunner(OThread):
     exitcode : int = 0
     finished : bool = true
 
@@ -10,6 +13,11 @@ object OShellRunner:
 
     function Run(acmd : strview) -> int
     function RunWithInput(acmd : strview, ainput : strview) -> int
+    function StartBg(acmd : strview) -> int
+    function StartBgWithInput(acmd : strview, ainput : strview) -> int
+    function Finished() -> bool
+    function WaitFinishMs(ams : int) -> bool
+    function Kill()
 
 public  // should be protected, but the current DQ compiler is too restricted
     pid : int32 = 0
@@ -23,6 +31,7 @@ public  // should be protected, but the current DQ compiler is too restricted
 
     function StartProcess(acmd : strview) -> int
     function MonitorProcess()
+    function MonitorThread(aarg : pointer) -> pointer
 endobj
 
 implementation
@@ -36,6 +45,7 @@ endstruct
 function libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
 function libc_fork() -> int32                                        [[external('fork')]]
 function libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
+function libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
 function libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
 function libc_close(fd : int32) -> int32                             [[external('close')]]
 function libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
@@ -58,6 +68,7 @@ const POLLHUP : int16 = 0x0010
 
 const EINTR  : int32 = 4
 const EAGAIN : int32 = 11
+const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
@@ -134,6 +145,9 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
         libc__exit(127)
     endif
 
+    // The child also sets its process group.  Doing it here closes the small
+    // race where Kill() might run before the child gets scheduled.
+    libc_setpgid(pid, pid)
     libc_close(stdout_pipe[1])
     libc_close(stderr_pipe[1])
     out_fd = stdout_pipe[0]
@@ -143,6 +157,11 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
         in_fd = stdin_pipe[1]
     endif
     return 0
+endfunc
+
+function OShellRunner.MonitorThread(aarg : pointer) -> pointer:
+    MonitorProcess()
+    return null
 endfunc
 
 function OShellRunner.MonitorProcess():
@@ -313,4 +332,87 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     endif
     MonitorProcess()
     return exitcode
+endfunc
+
+function OShellRunner.StartBg(acmd : strview) -> int:
+    use *
+    IsRunning()  // reap a completed monitor thread before starting another
+    if not finished:
+        return -1
+    endif
+
+    out = ''
+    err = ''
+    output = ''
+    exitcode = -1
+    finished = false
+    provide_stdin = false
+    in_fd = -1
+    in_buffer = ''
+    in_buffer_pos = 0
+
+    if StartProcess(acmd) <> 0:
+        finished = true
+        return -1
+    endif
+    if not StartMethod(self.MonitorThread, null):
+        libc_kill(-pid, SIGKILL)
+        MonitorProcess()
+        return -1
+    endif
+    return 0
+endfunc
+
+function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
+    use *
+    IsRunning()  // reap a completed monitor thread before starting another
+    if not finished:
+        return -1
+    endif
+
+    out = ''
+    err = ''
+    output = ''
+    exitcode = -1
+    finished = false
+    provide_stdin = true
+    in_fd = -1
+    in_buffer = ainput
+    in_buffer_pos = 0
+
+    if StartProcess(acmd) <> 0:
+        finished = true
+        return -1
+    endif
+    if not StartMethod(self.MonitorThread, null):
+        libc_kill(-pid, SIGKILL)
+        MonitorProcess()
+        return -1
+    endif
+    return 0
+endfunc
+
+function OShellRunner.Finished() -> bool:
+    IsRunning()
+    return finished
+endfunc
+
+function OShellRunner.WaitFinishMs(ams : int) -> bool:
+    var deadline : int64 = @.MilliTime() + ams
+    while not Finished():
+        if @.MilliTime() >= deadline:
+            return false
+        endif
+        @.SleepMillis(10)
+    endwhile
+    return true
+endfunc
+
+function OShellRunner.Kill():
+    if not finished:
+        if pid > 0:
+            @.libc_kill(-pid, @.SIGKILL)
+        endif
+        WaitFinishMs(2000)
+    endif
 endfunc

@@ -31,6 +31,35 @@ function *Main() -> int:
         return 1
     endif
 
-    PrintLn('foreground shell runner tests passed')
+    r = runner.StartBg('printf bgout; printf bgerr >&2')
+    if r <> 0 or not runner.WaitFinishMs(2000):
+        PrintLn('background command did not finish')
+        return 1
+    endif
+    if runner.exitcode <> 0 or runner.out <> 'bgout' or
+       runner.err <> 'bgerr' or runner.output <> 'bgoutbgerr':
+        PrintLn('unexpected background capture')
+        return 1
+    endif
+
+    r = runner.StartBgWithInput('cat', input)
+    if r <> 0 or not runner.WaitFinishMs(2000) or
+       runner.out <> input or runner.err <> '' or runner.output <> input:
+        PrintLn('background input capture failed')
+        return 1
+    endif
+
+    r = runner.StartBg('sleep 5')
+    if r <> 0 or runner.WaitFinishMs(20):
+        PrintLn('background timeout handling failed')
+        return 1
+    endif
+    runner.Kill()
+    if not runner.Finished() or runner.exitcode <> -1:
+        PrintLn('background kill handling failed')
+        return 1
+    endif
+
+    PrintLn('shell runner tests passed')
     return 0
 endfunc

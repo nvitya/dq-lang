@@ -1,5 +1,5 @@
 // auto-test helper
-use shellutils
+use shell
 use time
 use file
 use print
@@ -18,6 +18,8 @@ object OTestRun:
     function ExpectOutputContains(expected : strview)
     function ExpectOutputNotContains(unexpected : strview)
 
+protected
+    shrunner <- OShellRunner()
 endobj
 
 function CompilerPath() -> str
@@ -52,12 +54,11 @@ function JoinPath(base : strview, name : strview) -> str:
 endfunc
 
 function OTestRun.RunTool(args : []str) -> int:
-    var captured : OShellCapture = @shellutils.ShellCapture(args)
-    exitcode = captured.exitcode
-    stdout = captured.stdout
-    stderr = captured.stderr
-    output = captured.stdout
-    output.Append(captured.stderr)
+    shrunner.Run(args, false)
+    exitcode = shrunner.exitcode
+    stdout = shrunner.out
+    stderr = shrunner.err
+    output = shrunner.output
     return exitcode
 endfunc
 
@@ -71,7 +72,7 @@ function OTestRun.RunCompiler(args : []str) -> int:
     command.Append('--build-root')
     command.Append(buildroot)
     result = RunTool(command)
-    Shell(['/bin/rm', '-rf', '--', buildroot])
+    shrunner.Run(['/bin/rm', '-rf', '--', buildroot], false)
 endfunc
 
 function OTestRun.ExpectExitCode(expected : int):

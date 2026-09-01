@@ -73,6 +73,7 @@ function libc_execvp(file : ^char, argv : ^^char) -> int32            [[external
 function libc__exit(status : int32)                                  [[external('_exit')]]
 function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
 function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+function libc_perror(message : ^char)                                [[external('perror')]]
 function libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
 function libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
 
@@ -179,6 +180,7 @@ function OShellRunner.StartProcess(args : []str) -> int:
         endif
 
         libc_execvp(argv[0], %argv[0])
+        libc_perror(argv[0])
         libc__exit(127)
     endif
 

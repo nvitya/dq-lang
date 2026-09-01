@@ -1,27 +1,31 @@
 use print
-use shellutils
+use shell
+
+var osh <- OShellRunner()
 
 function *Main() -> int:
     PrintLn('Shell util test')
 
     // execute the dq-comp, provide empty input str, collect the output str
 
-    var s : str = ShellOut('dq-comp --version', null)
+    osh.Run('dq-comp --version')
     PrintLn('dq-comp version:')
-    PrintLn(s)
+    PrintLn(osh.output)
 
     var ecode : int = 0
 
-    s = ShellOut(['dq-comp'], ecode)
+    osh.Run(['dq-comp'], false)
     PrintLn('dq-comp help:')
-    PrintLn(s)
-    PrintLn('result code: {}', [ecode])
+    PrintLn(osh.output)
+    PrintLn('result code: {}', [osh.exitcode])
 
-    Shell('ls -l')
+    osh.Run('ls -l')
+    PrintLn(osh.output)
 
-    s = ShellInOut('cat', 'qqcs', ecode)
-    PrintLn('shellinout result: "{}"', [s])
+    osh.RunWithInput('cat', 'qqcs')
+    PrintLn('shellinout result: "{}"', [osh.output])
 
+    var s : str
     s = GetEnv('HOME', '?')
     PrintLn('HOME={}', [s])
 

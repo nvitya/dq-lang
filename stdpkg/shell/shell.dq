@@ -11,10 +11,15 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    function Run(acmd : strview) -> int
-    function RunWithInput(acmd : strview, ainput : strview) -> int
-    function StartBg(acmd : strview) -> int
-    function StartBgWithInput(acmd : strview, ainput : strview) -> int
+    function Run(acmd : strview) -> int [[overload]]
+    function Run(args : []str) -> int [[overload]]
+    function RunWithInput(acmd : strview, ainput : strview) -> int [[overload]]
+    function RunWithInput(args : []str, ainput : strview) -> int [[overload]]
+    function StartBg(acmd : strview) -> int [[overload]]
+    function StartBg(args : []str) -> int [[overload]]
+    function StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]
+    function StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]
+
     function Finished() -> bool
     function WaitFinishMs(ams : int) -> bool
     function Kill()
@@ -29,10 +34,13 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    function StartProcess(acmd : strview) -> int
+    function StartProcess(args : []str) -> int
     function MonitorProcess()
     function MonitorThread(aarg : pointer) -> pointer
 endobj
+
+function GetEnv(name : strview, default_value : strview) -> str
+function SetEnv(name : strview, value : strview)
 
 implementation
 
@@ -56,6 +64,8 @@ function libc_execvp(file : ^char, argv : ^^char) -> int32            [[external
 function libc__exit(status : int32)                                  [[external('_exit')]]
 function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
 function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+function libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
+function libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1
@@ -72,11 +82,15 @@ const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
-function OShellRunner.StartProcess(acmd : strview) -> int:
+function OShellRunner.StartProcess(args : []str) -> int:
     use *
     var stdin_pipe  : [2]int32
     var stdout_pipe : [2]int32
     var stderr_pipe : [2]int32
+
+    if args.length == 0:
+        return -1
+    endif
 
     if libc_pipe(%stdout_pipe[0]) <> 0:
         return -1
@@ -96,15 +110,12 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
         endif
     endif
 
-    var shell_path : str = '/bin/sh'
-    var arg0 : str = 'sh'
-    var arg1 : str = '-c'
-    var command : str = acmd
-    var argv : [4]^char
-    argv[0] = arg0.pchar
-    argv[1] = arg1.pchar
-    argv[2] = command.pchar
-    argv[3] = null
+    var argv : [*]^char
+    argv.SetLength(args.length + 1)
+    for i : int = 0 count args.length:
+        argv[i] = args[i].pchar
+    endfor
+    argv[args.length] = null
 
     libc_fflush(null)
     pid = libc_fork()
@@ -141,7 +152,7 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
             libc_close(stdin_pipe[0])
         endif
 
-        libc_execvp(shell_path.pchar, %argv[0])
+        libc_execvp(argv[0], %argv[0])
         libc__exit(127)
     endif
 
@@ -294,7 +305,12 @@ function OShellRunner.MonitorProcess():
     finished = true
 endfunc
 
-function OShellRunner.Run(acmd : strview) -> int:
+function OShellRunner.Run(acmd : strview) -> int [[overload]]:
+    var command : str = acmd
+    return Run(['/bin/sh', '-c', command])
+endfunc
+
+function OShellRunner.Run(args : []str) -> int [[overload]]:
     out = ''
     err = ''
     output = ''
@@ -305,7 +321,7 @@ function OShellRunner.Run(acmd : strview) -> int:
     in_buffer = ''
     in_buffer_pos = 0
 
-    if StartProcess(acmd) <> 0:
+    if StartProcess(args) <> 0:
         finished = true
         return -1
     endif
@@ -313,7 +329,12 @@ function OShellRunner.Run(acmd : strview) -> int:
     return exitcode
 endfunc
 
-function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
+function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int [[overload]]:
+    var command : str = acmd
+    return RunWithInput(['/bin/sh', '-c', command], ainput)
+endfunc
+
+function OShellRunner.RunWithInput(args : []str, ainput : strview) -> int [[overload]]:
     out = ''
     err = ''
     output = ''
@@ -324,7 +345,7 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     in_buffer = ainput
     in_buffer_pos = 0
 
-    if StartProcess(acmd) <> 0:
+    if StartProcess(args) <> 0:
         finished = true
         return -1
     endif
@@ -332,7 +353,12 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     return exitcode
 endfunc
 
-function OShellRunner.StartBg(acmd : strview) -> int:
+function OShellRunner.StartBg(acmd : strview) -> int [[overload]]:
+    var command : str = acmd
+    return StartBg(['/bin/sh', '-c', command])
+endfunc
+
+function OShellRunner.StartBg(args : []str) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -348,7 +374,7 @@ function OShellRunner.StartBg(acmd : strview) -> int:
     in_buffer = ''
     in_buffer_pos = 0
 
-    if StartProcess(acmd) <> 0:
+    if StartProcess(args) <> 0:
         finished = true
         return -1
     endif
@@ -361,7 +387,12 @@ function OShellRunner.StartBg(acmd : strview) -> int:
     return 0
 endfunc
 
-function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
+function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]:
+    var command : str = acmd
+    return StartBgWithInput(['/bin/sh', '-c', command], ainput)
+endfunc
+
+function OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -377,7 +408,7 @@ function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
     in_buffer = ainput
     in_buffer_pos = 0
 
-    if StartProcess(acmd) <> 0:
+    if StartProcess(args) <> 0:
         finished = true
         return -1
     endif
@@ -414,5 +445,27 @@ function OShellRunner.Kill():
             libc_kill(-pid, SIGKILL)
         endif
         WaitFinishMs(2000)
+    endif
+endfunc
+
+//-----------------------------------------------------------------------------
+
+function GetEnv(name : strview, default_value : strview) -> str:
+    var cname : str = name
+    var value : ^char = libc_getenv(cname.pchar)
+    if value == null:
+        return default_value
+    else:
+        return value
+    endif
+endfunc
+
+function SetEnv(name : strview, value : strview):
+    var cname : str = name
+    var cvalue : str = value
+
+    if libc_setenv(cname.pchar, cvalue.pchar, 1) <> 0:
+        var errorcode : int = libc___errno_location()^
+        raise Exception('SetEnv failed (errno {})', [errorcode])
     endif
 endfunc

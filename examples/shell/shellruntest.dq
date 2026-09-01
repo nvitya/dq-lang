@@ -6,6 +6,22 @@ var runner <- OShellRunner()
 function *Main() -> int:
     PrintLn('ShellRunner test')
 
+    var envname : str = 'DQ_SHELLRUNNER_TEST_39A8E1'
+    if GetEnv(envname, 'missing') <> 'missing':
+        PrintLn('GetEnv default value failed')
+        return 1
+    endif
+    SetEnv(envname, 'first value')
+    if GetEnv(envname, '') <> 'first value':
+        PrintLn('SetEnv initial value failed')
+        return 1
+    endif
+    SetEnv(envname, 'replacement value')
+    if GetEnv(envname, '') <> 'replacement value':
+        PrintLn('SetEnv replacement value failed')
+        return 1
+    endif
+
     var r : int = runner.Run('printf stdout; printf stderr >&2; exit 7')
     if r <> 7 or runner.exitcode <> 7 or not runner.finished:
         PrintLn('unexpected exit state: result={}, exitcode={}, finished={}',
@@ -18,11 +34,18 @@ function *Main() -> int:
         return 1
     endif
 
+    r = runner.Run(['/bin/printf', 'argument output'])
+    if r <> 0 or runner.out <> 'argument output' or
+       runner.err <> '' or runner.output <> 'argument output':
+        PrintLn('argument Run failed')
+        return 1
+    endif
+
     // This is larger than a typical pipe buffer, exercising concurrent input
     // feeding and output draining in the foreground monitor.
     var input : str = ''
     input.SetLength(200000, 'x')
-    r = runner.RunWithInput('cat', input)
+    r = runner.RunWithInput(['cat'], input)
     if r <> 0  or not runner.finished  or runner.out <> input 
        or runner.err <> ''  or runner.output <> input
     :
@@ -42,7 +65,15 @@ function *Main() -> int:
         return 1
     endif
 
-    r = runner.StartBgWithInput('cat', input)
+    r = runner.StartBg(['/bin/printf', 'background arguments'])
+    if r <> 0 or not runner.WaitFinishMs(2000) or
+       runner.out <> 'background arguments' or
+       runner.err <> '' or runner.output <> 'background arguments':
+        PrintLn('argument StartBg failed')
+        return 1
+    endif
+
+    r = runner.StartBgWithInput(['cat'], input)
     if r <> 0 or not runner.WaitFinishMs(2000) or
        runner.out <> input or runner.err <> '' or runner.output <> input:
         PrintLn('background input capture failed')

@@ -287,8 +287,8 @@ function OShellRunner.MonitorProcess():
     endwhile
 
     if wait_result >= 0:
-        if (status & int32(0x7F)) == 0:
-            exitcode = int((status >> 8) & int32(0xFF))
+        if status & 0x7F == 0:
+            exitcode = int((status >> 8) & 0xFF)
         else:
             exitcode = -1
         endif
@@ -335,7 +335,6 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
 endfunc
 
 function OShellRunner.StartBg(acmd : strview) -> int:
-    use *
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -356,6 +355,7 @@ function OShellRunner.StartBg(acmd : strview) -> int:
         return -1
     endif
     if not StartMethod(self.MonitorThread, null):
+        use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()
         return -1
@@ -364,7 +364,6 @@ function OShellRunner.StartBg(acmd : strview) -> int:
 endfunc
 
 function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
-    use *
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -385,6 +384,7 @@ function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
         return -1
     endif
     if not StartMethod(self.MonitorThread, null):
+        use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()
         return -1
@@ -398,12 +398,13 @@ function OShellRunner.Finished() -> bool:
 endfunc
 
 function OShellRunner.WaitFinishMs(ams : int) -> bool:
-    var deadline : int64 = @.MilliTime() + ams
+    use *
+    var deadline : int64 = MilliTime() + ams
     while not Finished():
-        if @.MilliTime() >= deadline:
+        if MilliTime() >= deadline:
             return false
         endif
-        @.SleepMillis(10)
+        SleepMillis(10)
     endwhile
     return true
 endfunc
@@ -411,7 +412,8 @@ endfunc
 function OShellRunner.Kill():
     if not finished:
         if pid > 0:
-            @.libc_kill(-pid, @.SIGKILL)
+            use *
+            libc_kill(-pid, SIGKILL)
         endif
         WaitFinishMs(2000)
     endif

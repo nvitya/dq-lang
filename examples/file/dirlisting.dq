@@ -9,10 +9,13 @@ function JoinPath(adir : strview, aname : strview) -> str:
 endfunc
 
 function PrintTree(adir : strview, aindent : strview):
-    var dir <- ODir()
+    var dir <- ODirReader()
     dir.Open(adir)
     while dir.Next():
         var path : str = JoinPath(adir, dir.name)
+        if dir.name == '.dqbuild':
+            continue
+        endif
         if DirExists(path):
             PrintLn('{}{}/', [aindent, dir.name])
             PrintTree(path, aindent + '  ')
@@ -27,7 +30,7 @@ function *Main() -> int:
 
     // list the files in the current directory
     PrintLn('Files in the current directory:')
-    var current <- ODir()
+    var current <- ODirReader()
     current.Open('.')
     while current.Next():
         var path : str = JoinPath('.', current.name)
@@ -38,7 +41,7 @@ function *Main() -> int:
 
     // list the directories in '..' (parent directory)
     PrintLn('Directories in the parent directory:')
-    var parent <- ODir()
+    var parent <- ODirReader()
     parent.Open('..')
     while parent.Next():
         var path : str = JoinPath('..', parent.name)
@@ -50,6 +53,6 @@ function *Main() -> int:
     // print the tree of the files in the parent directory
     PrintLn('Tree of the parent directory:')
     PrintTree('..', '  ')
-    
+
     return 0
 endfunc

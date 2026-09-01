@@ -5,10 +5,12 @@
 
 use file
 
-object ODir:
+object ODirReader:
+protected
     m_handle : pointer  // internal libc type
     m_name   : str
 
+public
     function *Create()
     function *Destroy()
     function Open(adir : strview)
@@ -69,44 +71,44 @@ function DirEntryIsNavigation(aname : strview) -> bool:
     return false
 endfunc
 
-function ODir.*Create():
+function ODirReader.*Create():
     m_handle = null
 endfunc
 
-function ODir.*Destroy():
+function ODirReader.*Destroy():
     Close()
 endfunc
 
-function ODir.Open(adir : strview):
+function ODirReader.Open(adir : strview):
     Close()
 
     if adir == '':
-        raise EFileError('ODir.Open: empty directory name')
+        raise EFileError('ODirReader.Open: empty directory name')
     endif
 
     var path : str = adir
     m_handle = @.libc_opendir(path.pchar)
     if m_handle == null:
-        raise EFileError('ODir.Open: cannot open directory: {}', [path])
+        raise EFileError('ODirReader.Open: cannot open directory: {}', [path])
     endif
 endfunc
 
-function ODir.Close():
+function ODirReader.Close():
     if m_handle <> null:
         @.libc_closedir(m_handle)
         m_handle = null
     endif
 endfunc
 
-function ODir.Opened() -> bool:
+function ODirReader.Opened() -> bool:
     return m_handle <> null
 endfunc
 
-function ODir.Next() -> bool:
+function ODirReader.Next() -> bool:
     result = false
 
     if not Opened():
-        raise EFileError('ODir.Next: directory is not open')
+        raise EFileError('ODirReader.Next: directory is not open')
     endif
 
     while true:

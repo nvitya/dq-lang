@@ -1,4 +1,4 @@
-use ./shellutils2
+use shell
 use print
 
 var runner <- OShellRunner()

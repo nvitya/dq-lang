@@ -14,4 +14,4 @@ linkoption = '--entry=wasmpascal_init'  // required by the wasmpascal environmen
 linkoption = '--strip-all'
 linkoption = '--allow-undefined'  // required for javascript exports
 
-//linkoption = '--Map=${PROJECT_NAME}.map'
+linkoption = '--Map=${PROJECT_NAME}.map'

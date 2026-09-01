@@ -19,7 +19,7 @@ object OShellRunner(OThread):
     function WaitFinishMs(ams : int) -> bool
     function Kill()
 
-protected  
+protected
     pid : int32 = 0
     provide_stdin : bool = false
 

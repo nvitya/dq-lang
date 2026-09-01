@@ -1,0 +1,316 @@
+// Foreground shell command runner with separately captured stdout and stderr.
+
+object OShellRunner:
+    exitcode : int = 0
+    finished : bool = true
+
+    out    : str = ''
+    err    : str = ''
+    output : str = ''  // stdout and stderr merged in pipe-read order
+
+    function Run(acmd : strview) -> int
+    function RunWithInput(acmd : strview, ainput : strview) -> int
+
+public  // should be protected, but the current DQ compiler is too restricted
+    pid : int32 = 0
+    provide_stdin : bool = false
+
+    in_fd  : int32 = -1
+    out_fd : int32 = -1
+    err_fd : int32 = -1
+    in_buffer : str = ''
+    in_buffer_pos : int = 0
+
+    function StartProcess(acmd : strview) -> int
+    function MonitorProcess()
+endobj
+
+implementation
+
+struct SPollFd:
+    fd      : int32
+    events  : int16
+    revents : int16
+endstruct
+
+function libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
+function libc_fork() -> int32                                        [[external('fork')]]
+function libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
+function libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
+function libc_close(fd : int32) -> int32                             [[external('close')]]
+function libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
+function libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
+function libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
+function libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
+function libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
+function libc__exit(status : int32)                                  [[external('_exit')]]
+function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
+function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+
+const STDIN_FILENO  : int32 = 0
+const STDOUT_FILENO : int32 = 1
+const STDERR_FILENO : int32 = 2
+
+const POLLIN  : int16 = 0x0001
+const POLLOUT : int16 = 0x0004
+const POLLERR : int16 = 0x0008
+const POLLHUP : int16 = 0x0010
+
+const EINTR  : int32 = 4
+const EAGAIN : int32 = 11
+
+//-----------------------------------------------------------------------------
+
+function OShellRunner.StartProcess(acmd : strview) -> int:
+    use *
+    var stdin_pipe  : [2]int32
+    var stdout_pipe : [2]int32
+    var stderr_pipe : [2]int32
+
+    if libc_pipe(%stdout_pipe[0]) <> 0:
+        return -1
+    endif
+    if libc_pipe(%stderr_pipe[0]) <> 0:
+        libc_close(stdout_pipe[0])
+        libc_close(stdout_pipe[1])
+        return -1
+    endif
+    if provide_stdin:
+        if libc_pipe(%stdin_pipe[0]) <> 0:
+            libc_close(stdout_pipe[0])
+            libc_close(stdout_pipe[1])
+            libc_close(stderr_pipe[0])
+            libc_close(stderr_pipe[1])
+            return -1
+        endif
+    endif
+
+    var shell_path : str = '/bin/sh'
+    var arg0 : str = 'sh'
+    var arg1 : str = '-c'
+    var command : str = acmd
+    var argv : [4]^char
+    argv[0] = arg0.pchar
+    argv[1] = arg1.pchar
+    argv[2] = command.pchar
+    argv[3] = null
+
+    libc_fflush(null)
+    pid = libc_fork()
+    if pid < 0:
+        libc_close(stdout_pipe[0])
+        libc_close(stdout_pipe[1])
+        libc_close(stderr_pipe[0])
+        libc_close(stderr_pipe[1])
+        if provide_stdin:
+            libc_close(stdin_pipe[0])
+            libc_close(stdin_pipe[1])
+        endif
+        return -1
+    endif
+
+    if pid == 0:
+        libc_setpgid(0, 0)
+        libc_close(stdout_pipe[0])
+        libc_close(stderr_pipe[0])
+        if libc_dup2(stdout_pipe[1], STDOUT_FILENO) < 0:
+            libc__exit(127)
+        endif
+        if libc_dup2(stderr_pipe[1], STDERR_FILENO) < 0:
+            libc__exit(127)
+        endif
+        libc_close(stdout_pipe[1])
+        libc_close(stderr_pipe[1])
+
+        if provide_stdin:
+            libc_close(stdin_pipe[1])
+            if libc_dup2(stdin_pipe[0], STDIN_FILENO) < 0:
+                libc__exit(127)
+            endif
+            libc_close(stdin_pipe[0])
+        endif
+
+        libc_execvp(shell_path.pchar, %argv[0])
+        libc__exit(127)
+    endif
+
+    libc_close(stdout_pipe[1])
+    libc_close(stderr_pipe[1])
+    out_fd = stdout_pipe[0]
+    err_fd = stderr_pipe[0]
+    if provide_stdin:
+        libc_close(stdin_pipe[0])
+        in_fd = stdin_pipe[1]
+    endif
+    return 0
+endfunc
+
+function OShellRunner.MonitorProcess():
+    use *
+    var fds : [3]SPollFd
+    fds[0].fd = out_fd
+    fds[0].events = POLLIN
+    fds[0].revents = 0
+    fds[1].fd = err_fd
+    fds[1].events = POLLIN
+    fds[1].revents = 0
+    fds[2].fd = -1
+    fds[2].events = 0
+    fds[2].revents = 0
+
+    var nfds : int = 2
+    if provide_stdin and in_fd >= 0:
+        fds[2].fd = in_fd
+        fds[2].events = POLLOUT
+        nfds = 3
+    endif
+
+    while fds[0].fd >= 0  or fds[1].fd >= 0  or fds[2].fd >= 0:
+
+        var poll_result : int32 = libc_poll(%fds[0], uint(nfds), -1)
+        if poll_result < 0:
+            if libc___errno_location()^ == EINTR:
+                continue
+            endif
+            break
+        endif
+
+        for i : int = 0 count 2:
+            if fds[i].fd >= 0  and fds[i].revents & (POLLIN | POLLERR | POLLHUP) <> 0:
+                var chunk : str = ''
+                chunk.SetLength(4096, char(0))
+                var readlen : int64 = libc_read(fds[i].fd, %chunk[0], 4096)
+                if readlen > 0:
+                    chunk.SetLength(int(readlen), char(0))
+                    if i == 0:
+                        out.Append(chunk)
+                    else:
+                        err.Append(chunk)
+                    endif
+                    output.Append(chunk)
+                elif readlen == 0:
+                    libc_close(fds[i].fd)
+                    fds[i].fd = -1
+                else:
+                    var read_errno : int32 = libc___errno_location()^
+                    if read_errno <> EINTR  and read_errno <> EAGAIN:
+                        libc_close(fds[i].fd)
+                        fds[i].fd = -1
+                    endif
+                endif
+            endif
+        endfor
+
+        if fds[2].fd >= 0:
+            if (fds[2].revents & POLLOUT) <> 0:
+                var remaining : int = in_buffer.length - in_buffer_pos
+                if remaining > 0:
+                    // poll(POLLOUT) only promises that a small write can
+                    // proceed.  Keep writes within PIPE_BUF so a large input
+                    // cannot block output draining in this foreground loop.
+                    var writecount : int = remaining
+                    if writecount > 4096:
+                        writecount = 4096
+                    endif
+                    var writelen : int64 = libc_write(fds[2].fd,
+                                                      in_buffer.pchar + in_buffer_pos,
+                                                      uint(writecount))
+                    if writelen > 0:
+                        in_buffer_pos += int(writelen)
+                    elif writelen < 0:
+                        var write_errno : int32 = libc___errno_location()^
+                        if write_errno <> EINTR:
+                            if write_errno <> EAGAIN:
+                                libc_close(fds[2].fd)
+                                fds[2].fd = -1
+                            endif
+                        endif
+                    endif
+                endif
+
+                if fds[2].fd >= 0:
+                    if in_buffer_pos >= in_buffer.length:
+                        libc_close(fds[2].fd)
+                        fds[2].fd = -1
+                    endif
+                endif
+            else:
+                if (fds[2].revents & (POLLERR | POLLHUP)) <> 0:
+                    libc_close(fds[2].fd)
+                    fds[2].fd = -1
+                endif
+            endif
+        endif
+    endwhile
+
+    if fds[0].fd >= 0:
+        libc_close(fds[0].fd)
+    endif
+    if fds[1].fd >= 0:
+        libc_close(fds[1].fd)
+    endif
+    if fds[2].fd >= 0:
+        libc_close(fds[2].fd)
+    endif
+    out_fd = -1
+    err_fd = -1
+    in_fd = -1
+
+    var status : int32 = 0
+    var wait_result : int32 = -1
+    while wait_result < 0:
+        wait_result = libc_waitpid(pid, %status, 0)
+        if wait_result < 0:
+            if libc___errno_location()^ <> EINTR:
+                break
+            endif
+        endif
+    endwhile
+
+    if wait_result >= 0:
+        if (status & int32(0x7F)) == 0:
+            exitcode = int((status >> 8) & int32(0xFF))
+        else:
+            exitcode = -1
+        endif
+    endif
+    finished = true
+endfunc
+
+function OShellRunner.Run(acmd : strview) -> int:
+    out = ''
+    err = ''
+    output = ''
+    exitcode = -1
+    finished = false
+    provide_stdin = false
+    in_fd = -1
+    in_buffer = ''
+    in_buffer_pos = 0
+
+    if StartProcess(acmd) <> 0:
+        finished = true
+        return -1
+    endif
+    MonitorProcess()
+    return exitcode
+endfunc
+
+function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
+    out = ''
+    err = ''
+    output = ''
+    exitcode = -1
+    finished = false
+    provide_stdin = true
+    in_fd = -1
+    in_buffer = ainput
+    in_buffer_pos = 0
+
+    if StartProcess(acmd) <> 0:
+        finished = true
+        return -1
+    endif
+    MonitorProcess()
+    return exitcode
+endfunc

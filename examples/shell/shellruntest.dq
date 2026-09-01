@@ -1,0 +1,36 @@
+use ./shellutils2
+use print
+
+var runner <- OShellRunner()
+
+function *Main() -> int:
+    PrintLn('ShellRunner test')
+
+    var r : int = runner.Run('printf stdout; printf stderr >&2; exit 7')
+    if r <> 7 or runner.exitcode <> 7 or not runner.finished:
+        PrintLn('unexpected exit state: result={}, exitcode={}, finished={}',
+                [r, runner.exitcode, runner.finished])
+        return 1
+    endif
+    if runner.out <> 'stdout' or runner.err <> 'stderr' or runner.output <> 'stdoutstderr':
+        PrintLn('unexpected capture: out="{}", err="{}", output="{}"',
+                [runner.out, runner.err, runner.output])
+        return 1
+    endif
+
+    // This is larger than a typical pipe buffer, exercising concurrent input
+    // feeding and output draining in the foreground monitor.
+    var input : str = ''
+    input.SetLength(200000, 'x')
+    r = runner.RunWithInput('cat', input)
+    if r <> 0  or not runner.finished  or runner.out <> input 
+       or runner.err <> ''  or runner.output <> input
+    :
+        PrintLn('RunWithInput failed: result={}, outlen={}, errlen={}, outputlen={}',
+                [r, runner.out.length, runner.err.length, runner.output.length])
+        return 1
+    endif
+
+    PrintLn('foreground shell runner tests passed')
+    return 0
+endfunc

@@ -1,5 +1,5 @@
 //?build_only
 //?compargs('--exceptions', '--no-exceptions')
-//?build_suffix('exceptions-last-disabled')
+//?build_suffix('exceptions-disabled')
 main = '../../target/exception_switch.dq'
 link = false

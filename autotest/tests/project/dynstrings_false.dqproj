@@ -1,6 +1,6 @@
 //?build_only
 //?compargs('--dynstrings', '-DEXPECT_DYNSTRINGS')
-//?build_suffix('project-dynstrings-false')
+//?build_suffix('dynstrings-enabled')
 
 main = '../../target/dynstrings_switch.dq'
 dynstrings = false

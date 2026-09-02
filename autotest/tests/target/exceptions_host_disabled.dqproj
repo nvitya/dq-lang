@@ -1,5 +1,5 @@
 //?build_only
-//?build_suffix('exceptions-host-disabled')
+//?build_suffix('exceptions-disabled')
 main = '../../target/exception_switch.dq'
 exceptions = false
 link = false

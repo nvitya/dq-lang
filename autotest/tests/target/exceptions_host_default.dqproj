@@ -1,5 +1,5 @@
 //?build_only
-//?build_suffix('exceptions-host-default')
+//?build_suffix('exceptions-enabled')
 main = '../../target/exception_switch.dq'
 link = false
 define EXPECT_EXCEPTIONS

@@ -1,5 +1,4 @@
 //?build_only
-//?build_suffix('dynstrings-arm-default')
 main = '../../target/dynstrings_switch.dq'
 target = 'arm_m7f-bare'
 link = false

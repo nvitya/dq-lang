@@ -21,6 +21,7 @@
 #include <optional>
 #include <sstream>
 #include <unordered_map>
+#include <regex>
 
 #include <llvm/Support/JSON.h>
 

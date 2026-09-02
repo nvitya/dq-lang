@@ -17,6 +17,7 @@
 #include "semantic_result.h"
 
 #include "named_scopes.h"
+#include "otype_compound.h"
 
 namespace
 {
@@ -136,6 +137,38 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
     }
     output << "]";
   }
+  
+  if (g_module)
+  {
+    for (const ODecl * declaration : g_module->declarations)
+    {
+      if (!declaration || DK_TYPE != declaration->kind || !declaration->ptype) continue;
+      if (declaration->ptype->IsCompound())
+      {
+        OCompoundType * ctype = static_cast<OCompoundType *>(declaration->ptype);
+        if (!first_ns) output << ',';
+        first_ns = false;
+        output << "\"" << JsonEscape(ctype->name) << "\":[";
+        bool first_sym = true;
+        for (const auto & [name, type] : ctype->member_scope.typesyms)
+        {
+          if (!type || name.empty() || name.starts_with("__dq_")) continue;
+          if (!first_sym) output << ',';
+          first_sym = false;
+          output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), TypeKind(type->kind));
+        }
+        for (const auto & [name, valsym] : ctype->member_scope.valsyms)
+        {
+          if (!valsym || name.empty() || name.starts_with("__dq_")) continue;
+          if (!first_sym) output << ',';
+          first_sym = false;
+          output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), ValSymKind(valsym->kind));
+        }
+        output << "]";
+      }
+    }
+  }
+  
   output << "}}";
   if (!output)
   {

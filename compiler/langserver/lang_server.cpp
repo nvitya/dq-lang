@@ -625,18 +625,55 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
     }
     
     string result = "[]";
-    auto ns_it = namespaces.find(scope_name);
-    if (ns_it != namespaces.end())
+    if (scope_name == "..")
     {
+      // The user is typing a regular identifier. In DQ, namespaces like `dq` and `def` are merged.
+      // So we offer symbols from all these core scopes.
       result = "[";
       bool first = true;
-      for (const auto & symbol : ns_it->second)
+      const char* merged_scopes[] = { "..", ".", "dq", "def" };
+      for (const char* ns : merged_scopes)
       {
-        if (!first) result += ',';
-        first = false;
-        result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+        auto ns_it = namespaces.find(ns);
+        if (ns_it != namespaces.end())
+        {
+          for (const auto & symbol : ns_it->second)
+          {
+            if (!first) result += ',';
+            first = false;
+            result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+          }
+        }
       }
       result += "]";
+    }
+    else
+    {
+      auto ns_it = namespaces.find(scope_name);
+      if (ns_it == namespaces.end())
+      {
+        // Try to infer type of the variable using simple regex
+        std::regex re("\\b" + scope_name + "\\s*(?::|:=)\\s*([A-Za-z0-9_]+)");
+        std::smatch match;
+        if (std::regex_search(document.text, match, re))
+        {
+          string inferred_type = match[1].str();
+          ns_it = namespaces.find(inferred_type);
+        }
+      }
+      
+      if (ns_it != namespaces.end())
+      {
+        result = "[";
+        bool first = true;
+        for (const auto & symbol : ns_it->second)
+        {
+          if (!first) result += ',';
+          first = false;
+          result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+        }
+        result += "]";
+      }
     }
     Respond(request, result);
     return;

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.6"
+#define DQ_COMPILER_VERSION  "0.55.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.7:
+  - Some language server improvements
 v0.55.6:
   - Language server: Suggestions, outline
 v0.55.5:

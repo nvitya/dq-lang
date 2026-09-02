@@ -38,7 +38,9 @@
 #include <filesystem>
 
 #include "dqc.h"
+#include "lang_server.h"
 #include "projectfile.h"
+#include "source_overlay.h"
 #include "version.h"
 
 #include "ll_defs.h"
@@ -126,7 +128,7 @@ void my_crash_handler()
 
 void signal_handler(int signal)
 {
-  cout << "Cought Signal SIGSEGV" << endl;
+  cerr << "Caught signal " << signal << endl;
 
 #if HAS_STACKTRACE
   // Capture the current stacktrace
@@ -260,6 +262,25 @@ int main(int argc, char ** argv)
   }
   g_opt.target.AppendCpuFeatures(g_opt.cpu_features);
 
+  if (g_opt.langserver_worker)
+  {
+    // A worker only needs semantic parsing and module interfaces.  Avoiding
+    // code generation also keeps all artifacts inside its private build root.
+    g_opt.ifgen = true;
+    g_opt.ifdump = false;
+    g_opt.dbg_info = false;
+    g_opt.ir_print = false;
+    g_opt.lto_mode = LTOMODE_OFF;
+    g_opt.link_mode = DQC_LINK_COMPILE_ONLY;
+  }
+
+  string overlay_error;
+  if (!g_source_overlay.Load(g_opt.source_overlay_filename, overlay_error))
+  {
+    cerr << overlay_error << "\n";
+    return 1;
+  }
+
   string runtime_error;
   if (!g_opt.ValidateTargetSettings(runtime_error))
   {
@@ -270,6 +291,11 @@ int main(int argc, char ** argv)
   {
     print("{}\n", runtime_error);
     return 1;
+  }
+
+  if (g_opt.langserver)
+  {
+    return RunDqLanguageServer();
   }
 
   // Compiler initialization

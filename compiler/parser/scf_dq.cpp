@@ -31,6 +31,7 @@
 
 #include "dqc.h"
 #include "module_path.h"
+#include "source_overlay.h"
 
 //---------------------------------------------------------
 
@@ -178,13 +179,12 @@ bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path
   {
     candidate = filesystem::path(curfile->fullpath).parent_path() / raw_path;
     error_code ec;
-    if (!filesystem::exists(candidate, ec) || ec)
+    if (!g_source_overlay.Exists(candidate))
     {
       for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
       {
         filesystem::path package_candidate = filesystem::path(*it) / raw_path;
-        ec.clear();
-        if (filesystem::exists(package_candidate, ec) && !ec)
+        if (g_source_overlay.Exists(package_candidate))
         {
           candidate = package_candidate;
           break;
@@ -212,15 +212,9 @@ bool OScFeederDq::AddSourceDependency(const filesystem::path & path)
     if (dep.filename == filename) return true;
   }
 
-  uintmax_t filesize = filesystem::file_size(fullpath, ec);
-  if (ec) return false;
-  auto filetime = filesystem::last_write_time(fullpath, ec);
-  if (ec) return false;
-
   SSourceDependency dep;
   dep.filename = filename;
-  dep.filesize = int64_t(filesize);
-  dep.filetime = int64_t(chrono::duration_cast<chrono::nanoseconds>(filetime.time_since_epoch()).count());
+  if (!g_source_overlay.GetMetadata(fullpath, dep.filesize, dep.filetime)) return false;
   source_dependencies.push_back(dep);
   return true;
 }

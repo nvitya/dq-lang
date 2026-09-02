@@ -17,6 +17,58 @@
 
 using namespace std;
 
+static string JsonEscape(string_view text)
+{
+  string result;
+  for (unsigned char c : text)
+  {
+    switch (c)
+    {
+      case '"': result += "\\\""; break;
+      case '\\': result += "\\\\"; break;
+      case '\b': result += "\\b"; break;
+      case '\f': result += "\\f"; break;
+      case '\n': result += "\\n"; break;
+      case '\r': result += "\\r"; break;
+      case '\t': result += "\\t"; break;
+      default:
+        if (c < 0x20) result += format("\\u{:04x}", unsigned(c));
+        else result.push_back(char(c));
+        break;
+    }
+  }
+  return result;
+}
+
+static void PrintDiagnostic(string_view severity, string_view id, string_view message, OScPosition * position)
+{
+  if (!g_opt.diagnostic_json)
+  {
+    print("{} {}({}): {}\n", position->Format(), severity, id, message);
+    return;
+  }
+
+  string path;
+  int64_t offset = 0;
+  int line = 1;
+  int column = 1;
+  if (position)
+  {
+    line = position->line;
+    column = position->col;
+    if (position->scfile)
+    {
+      path = position->scfile->fullpath;
+      if (position->scfile->pstart && position->pos)
+      {
+        offset = position->pos - position->scfile->pstart;
+      }
+    }
+  }
+  print("{{\"kind\":\"diagnostic\",\"severity\":\"{}\",\"code\":\"{}\",\"message\":\"{}\",\"path\":\"{}\",\"line\":{},\"column\":{},\"offset\":{}}}\n",
+        JsonEscape(severity), JsonEscape(id), JsonEscape(message), JsonEscape(path), line, column, offset);
+}
+
 ODqCompBase::ODqCompBase()
 {
   scf = new OScFeederDq();
@@ -137,7 +189,7 @@ void ODqCompBase::ErrorTxt(const TDiagDefErr & adiag, string_view atext, string_
   if (!epos) epos = errorpos;
   if (!epos) epos = &scpos_statement_start;
 
-  print("{} ERROR({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(atext, par1, par2, par3));
+  PrintDiagnostic("ERROR", adiag.strid, FormatDiagMsg(atext, par1, par2, par3), epos);
 
   ++errorcnt;
 }
@@ -175,7 +227,7 @@ void ODqCompBase::Error(const TDiagDefErr & adiag, string_view par1, string_view
     epos = (scf->curline > scf->last_token_end_line) ? &scpos_statement_start : &log_scpos;
   }
 
-  print("{} ERROR({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
+  PrintDiagnostic("ERROR", adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3), epos);
 
   ++errorcnt;
 }
@@ -392,7 +444,7 @@ void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_v
     //epos = &scpos_statement_start;
   }
 
-  print("{} WARNING({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
+  PrintDiagnostic("WARNING", adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3), epos);
 
   ++warncnt;
 }
@@ -428,7 +480,7 @@ void ODqCompBase::Hint(const TDiagDefHint & adiag, string_view par1, string_view
     //epos = &scpos_statement_start;
   }
 
-  print("{} HINT({}): {}\n", epos->Format(), adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3));
+  PrintDiagnostic("HINT", adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3), epos);
 
   ++hintcnt;
 }

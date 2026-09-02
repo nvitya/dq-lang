@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.54.1"
+#define DQ_COMPILER_VERSION  "0.55.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.0:
+  - DQ language server mode preparation for the dq-comp with --langeserver
 v0.54.1:
   - Added --package-build-root for sharing package artifacts independently of local build artifacts
     (Huge autotest speed boost)

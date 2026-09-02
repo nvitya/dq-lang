@@ -25,6 +25,7 @@
 
 #include "scf_base.h"
 #include "comp_options.h"
+#include "source_overlay.h"
 #include "strparse.h"
 
 //-------------------------------------------------------------------------
@@ -103,7 +104,8 @@ bool OScFile::Load(const string aname, const string afullpath)
   pstart = nullptr;
   pend = nullptr;
 
-  ifstream f(fullpath, ios::binary | ios::ate);
+  filesystem::path physical_path = g_source_overlay.PhysicalPath(fullpath);
+  ifstream f(physical_path, ios::binary | ios::ate);
   if (!f)
   {
     return false;
@@ -120,7 +122,7 @@ bool OScFile::Load(const string aname, const string afullpath)
   }
 
   error_code ec;
-  auto ftime = filesystem::last_write_time(fullpath, ec);
+  auto ftime = filesystem::last_write_time(physical_path, ec);
   if (ec)
   {
     return false;

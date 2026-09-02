@@ -134,6 +134,9 @@ public:
 
   bool     ifgen  = false;  // --ifgen
   bool     ifdump = false;  // --ifdump
+  bool     langserver = false;  // --langserver
+  bool     langserver_worker = false;  // internal language-server compiler worker
+  bool     diagnostic_json = false;  // internal JSON-lines diagnostics
   bool     no_use_sys = false;  // --no-use-sys
   bool     regen_if_stale = false;  // internal child module regeneration mode
   int      module_root_depth = 0;
@@ -155,6 +158,7 @@ public:
   vector<string>  package_paths;
   string          module_root_dir;
   string          module_name;
+  string          source_overlay_filename;
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;

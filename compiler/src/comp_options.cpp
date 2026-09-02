@@ -451,6 +451,15 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     else if (v.starts_with("--cpu-features=")) cpu_features = v.substr(15);
     else if ("--ifgen" == v)  ifgen = true;
     else if ("--ifdump" == v)  ifdump = true;
+    else if ("--langserver" == v) langserver = true;
+    else if ("--langserver-worker" == v) langserver_worker = true;
+    else if ("--diagnostic-format=jsonl" == v) diagnostic_json = true;
+    else if ("--source-overlay" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing manifest path after --source-overlay";
+      source_overlay_filename = value;
+    }
     else if ("--no-use-sys" == v)  no_use_sys = true;
     else if ("--exceptions" == v)     SetExceptions(true);
     else if ("--no-exceptions" == v)  SetExceptions(false);
@@ -599,7 +608,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
   {
     return "--ifgen and --ifdump can not be used together.";
   }
-  if (print_version) return {};
+  if (print_version || langserver) return {};
   if (input_filename.empty()) return "Input file name is missing.";
   if (ifdump && has_output) return "--ifdump expects only one input .dqm_if file.";
   return {};
@@ -650,6 +659,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--build-suffix") || (option == "--build-root")
          || (option == "--package-build-root")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
+         || (option == "--source-overlay")
          || (option == "-o");
 }
 

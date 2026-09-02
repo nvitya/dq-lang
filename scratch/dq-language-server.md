@@ -19,9 +19,25 @@ The first implementation targets the stable core of
 [Language Server Protocol 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/).
 It must not depend on proposed or editor-specific protocol extensions.
 
+### Implemented baseline
+
+The current implementation provides the transport and compiler integration on
+which the rest of this specification builds.  It supports `initialize`,
+`shutdown`, `exit`, `textDocument/didOpen`, full
+`textDocument/didChange`, and `textDocument/didClose`.  It publishes compiler
+diagnostics for every open `.dq` root and stages all open DQ documents in a
+private temporary directory before invoking a fresh compiler worker.
+
+It deliberately advertises only full document synchronization and diagnostics.
+Hover, navigation, completion, signature help, and document symbols remain
+specified below as the next semantic-index increment; they are not advertised
+until that index is implemented.  Likewise, cancellation, debounce, file
+watchers, request error responses, and persistent interface caching are design
+requirements for that increment rather than properties of the baseline.
+
 ## Goals
 
-The first release must provide:
+The planned semantic release must provide:
 
 - compiler diagnostics for the current, possibly unsaved, contents of `.dq`,
   `.dqh`, and module-owned `.dqi` files;
@@ -80,19 +96,22 @@ ignored option once.
 
 ```text
 dq-comp --langserver-worker \
-  --langserver-source <original-root.dq> \
-  --langserver-overlay <overlay-manifest.json> \
-  --langserver-result <semantic-result.json> \
+  --source-overlay <overlay-manifest.json> \
+  --diagnostic-format=jsonl \
+  --build-root <temporary-build-root> \
+  --package-build-root <temporary-build-root> \
+  <original-root.dq> \
   [language-analysis options] [project.dqproj]
 ```
 
 Worker mode is one-shot. It performs interface-only compilation of the root,
 allows the normal module loader to invoke further `dq-comp --ifgen` processes,
-writes a semantic result even when compilation reports recoverable errors, and
-returns the normal compiler success/failure status. The server passes private
+and returns the normal compiler success/failure status. The server passes private
 temporary build roots to every worker. The overlay, diagnostic mode, and build
-roots must be propagated by `OModuleIntf::ChildInterfaceArgs` to every nested
-module compilation. Worker-only switches are hidden from normal usage text.
+roots are propagated by `ModuleChildArgs` to every nested module compilation.
+The current worker stream contains JSON-Lines diagnostics; the semantic result
+file is part of the planned semantic-index increment. Worker-only switches are
+hidden from normal usage text.
 Root workers use the language server's original launch directory, not the
 temporary directory, so relative command-line and project paths keep their
 normal meaning.
@@ -147,7 +166,7 @@ as `serverInfo.version`.
 
 ## Advertised capabilities
 
-The first implementation advertises only this surface:
+The planned semantic implementation advertises this surface:
 
 ```json
 {
@@ -172,6 +191,19 @@ The first implementation advertises only this surface:
       "supported": true,
       "changeNotifications": true
     }
+  }
+}
+```
+
+The implemented baseline instead advertises:
+
+```json
+{
+  "positionEncoding": "utf-16",
+  "textDocumentSync": {
+    "openClose": true,
+    "change": 1,
+    "save": { "includeText": false }
   }
 }
 ```
@@ -230,27 +262,23 @@ manifest of the form:
 
 ```json
 {
-  "version": 1,
   "files": [
     {
       "source": "/original/workspace/file.dq",
-      "contents": "/tmp/dq-lsp-.../overlays/0123.../file.dq",
-      "fingerprint": "9a12bc34de56f078"
+      "staged": "/tmp/dq-lsp-.../job-.../sources/0-17.dq"
     }
   ]
 }
 ```
 
 `source` is the canonical logical path used for include resolution, module
-identity, source metadata, and diagnostics. `contents` is the staged regular
-file read by the compiler. The filename component is retained for debugging,
-while its parent directory is derived from a hash of the logical path; no source
-path is appended directly to the temporary root. `fingerprint` is 16 lowercase
-hexadecimal digits containing a stable 64-bit hash of the exact staged bytes
-with an overlay-domain prefix.
+identity, source metadata, and diagnostics. `staged` is the staged regular
+file read by the compiler. The baseline records the staged file's ordinary size
+and timestamp for interface freshness; a content fingerprint is reserved for
+the semantic-index cache.
 
 Worker processes install a small manifest-backed source provider. A read of a
-mapped logical path opens `contents`; an unmapped path opens the logical path
+mapped logical path opens `staged`; an unmapped path opens the logical path
 from the filesystem. Path resolution always uses the logical path, so relative
 includes and module identities behave exactly as they do in a normal build.
 The manifest applies to main modules, same-basename `.dqh` files, `#include`

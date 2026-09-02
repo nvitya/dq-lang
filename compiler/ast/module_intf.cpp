@@ -28,6 +28,7 @@
 #include <unordered_set>
 
 #include "comp_options.h"
+#include "source_overlay.h"
 #include "dq_module.h"
 #include "dqm_if.h"
 #include "module_path.h"
@@ -810,31 +811,21 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
   for (const SSourceDependency & dep : source_dependencies)
   {
     filesystem::path source_path(dep.filename);
-    error_code ec;
-    uintmax_t cur_source_filesize = filesystem::file_size(source_path, ec);
-    if (ec)
+    int64_t cur_source_filesize = 0;
+    int64_t cur_source_filetime_ticks = 0;
+    if (!g_source_overlay.GetMetadata(source_path, cur_source_filesize, cur_source_filetime_ticks))
     {
-      rreason = format("can not read source file size: {}", dep.filename);
+      rreason = format("can not read source freshness metadata: {}", dep.filename);
       return false;
     }
 
-    if (dep.filesize != int64_t(cur_source_filesize))
+    if (dep.filesize != cur_source_filesize)
     {
       rreason = format("source file size changed for {}: {} != {}",
                        dep.filename, dep.filesize, cur_source_filesize);
       return false;
     }
 
-    ec.clear();
-    auto cur_source_filetime = filesystem::last_write_time(source_path, ec);
-    if (ec)
-    {
-      rreason = format("can not read source file time: {}", dep.filename);
-      return false;
-    }
-
-    int64_t cur_source_filetime_ticks =
-        int64_t(chrono::duration_cast<chrono::nanoseconds>(cur_source_filetime.time_since_epoch()).count());
     if (dep.filetime != cur_source_filetime_ticks)
     {
       rreason = format("source file modification time changed: {}", dep.filename);
@@ -998,8 +989,7 @@ static SModuleArtifactEnsureResult ModuleArtifactEnsureError(EModuleArtifactEnsu
 
 static bool ModuleSourceExists(const filesystem::path & source_path)
 {
-  error_code ec;
-  return filesystem::exists(source_path, ec) && !ec;
+  return g_source_overlay.Exists(source_path);
 }
 
 static bool RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason)
@@ -1118,6 +1108,12 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
   args.push_back(interface_only ? "--ifgen" : "-c");
   args.push_back("--target=" + g_opt.target.name);
+  if (g_opt.diagnostic_json) args.push_back("--diagnostic-format=jsonl");
+  if (!g_opt.source_overlay_filename.empty())
+  {
+    args.push_back("--source-overlay");
+    args.push_back(g_opt.source_overlay_filename);
+  }
   args.push_back(source_path.string());
   args.push_back("-o");
   args.push_back(artifact_path.string());
@@ -1785,7 +1781,7 @@ bool OModuleIntf::WriteInterface(const string & filename,
     return false;
   }
 
-  if (g_opt.ifgen)
+  if (g_opt.ifgen && !g_opt.diagnostic_json)
   {
     print("Module interface written: {}\n", filename);
   }

@@ -28,6 +28,7 @@
 #include <unordered_set>
 
 #include "comp_options.h"
+#include "dq_utils.h"
 #include "source_overlay.h"
 #include "dq_module.h"
 #include "dqm_if.h"
@@ -923,8 +924,7 @@ bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
 
   ec.clear();
   auto cur_object_filetime = filesystem::last_write_time(object_path, ec);
-  int64_t cur_object_filetime_ticks = ec ? 0 : int64_t(
-      chrono::duration_cast<chrono::nanoseconds>(cur_object_filetime.time_since_epoch()).count());
+    int64_t cur_object_filetime_ticks = ec ? 0 : FileTimeTicks(cur_object_filetime);
   if (ec || object_filetime != cur_object_filetime_ticks)
   {
     rreason = ec ? format("can not read object file time: {}", object_path.string())
@@ -1564,7 +1564,7 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
     if (ec) return writer.Fail(format("Can not read object file size: {}", object_filename));
     auto ftime = filesystem::last_write_time(object_filename, ec);
     if (ec) return writer.Fail(format("Can not read object file time: {}", object_filename));
-    auto ticks = chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count();
+    int64_t ticks = FileTimeTicks(ftime);
     if (!writer.AddRecI64(DQMIF_H_OBJ_FILESIZE, int64_t(fsize))) return false;
     if (!writer.AddRecI64(DQMIF_H_OBJ_FILETIME, int64_t(ticks))) return false;
   }

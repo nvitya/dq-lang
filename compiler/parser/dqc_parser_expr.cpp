@@ -156,16 +156,6 @@ static string FormatModuleRootValSymAccess(const string & name, OScope * found_s
   return "@." + name;
 }
 
-static bool IsCStringMethodSourceType(OType * type)
-{
-  return IsTextSourceType(type);
-}
-
-static bool IsStringMethodSourceType(OType * type)
-{
-  return IsTextSourceType(type);
-}
-
 static bool ConvertByteWCharLiteralToChar(OExpr ** rexpr)
 {
   int64_t value = 0;
@@ -2048,7 +2038,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
         return free_and_fail();
       }
     }
-    if ((i == source_arg_index) && !IsCStringMethodSourceType(argexpr->ResolvedType())
+    if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, str, strview, cstring, or ^char");
@@ -2263,7 +2253,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
         return free_and_fail();
       }
     }
-    if ((i == source_arg_index) && !IsStringMethodSourceType(argexpr->ResolvedType())
+    if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, strview, cstring, or ^char");

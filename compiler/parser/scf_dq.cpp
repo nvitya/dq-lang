@@ -22,7 +22,6 @@
 #include <format>
 #include <filesystem>
 #include <algorithm>
-#include <chrono>
 
 #include "scf_dq.h"
 #include "named_scopes.h"
@@ -30,6 +29,7 @@
 #include "scope_builtins.h"
 
 #include "dqc.h"
+#include "dq_utils.h"
 #include "module_path.h"
 #include "source_overlay.h"
 
@@ -82,10 +82,7 @@ int OScFeederDq::Init(const string afilename)
 {
   super::Init(afilename);
 
-  error_code ec;
-  main_source_path = filesystem::absolute(afilename, ec);
-  if (ec) main_source_path = afilename;
-  main_source_path = main_source_path.lexically_normal();
+  main_source_path = AbsNormPath(afilename);
   header_source_path = main_source_path;
   header_source_path.replace_extension(".dqh");
   curfile = LoadFile(main_source_path);
@@ -123,10 +120,7 @@ void OScFeederDq::Reset()
 
 OScFile * OScFeederDq::LoadFile(const filesystem::path & filename)
 {
-  error_code ec;
-  filesystem::path fullpath = filesystem::absolute(filename, ec);
-  if (ec) fullpath = filename;
-  fullpath = fullpath.lexically_normal();
+  filesystem::path fullpath = AbsNormPath(filename);
 
   // check if already loaded
   for (OScFile * fs : scfiles)
@@ -193,19 +187,13 @@ bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path
     }
   }
 
-  error_code ec;
-  rpath = filesystem::absolute(candidate, ec);
-  if (ec) rpath = candidate;
-  rpath = rpath.lexically_normal();
+  rpath = AbsNormPath(candidate);
   return true;
 }
 
 bool OScFeederDq::AddSourceDependency(const filesystem::path & path)
 {
-  error_code ec;
-  filesystem::path fullpath = filesystem::absolute(path, ec);
-  if (ec) fullpath = path;
-  fullpath = fullpath.lexically_normal();
+  filesystem::path fullpath = AbsNormPath(path);
   string filename = fullpath.string();
   for (const SSourceDependency & dep : source_dependencies)
   {

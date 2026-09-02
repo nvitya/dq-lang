@@ -16,6 +16,7 @@
 #include <format>
 
 #include "comp_options.h"
+#include "dq_utils.h"
 
 using namespace std;
 
@@ -32,17 +33,6 @@ void OModulePath::Clear()
   source_path.clear();
   artifact_path.clear();
   interface_artifact_path.clear();
-}
-
-filesystem::path OModulePath::AbsNorm(const filesystem::path & path)
-{
-  error_code ec;
-  filesystem::path result = filesystem::absolute(path, ec);
-  if (ec)
-  {
-    result = path;
-  }
-  return result.lexically_normal();
 }
 
 vector<string> OModulePath::Split(const string & path)
@@ -92,9 +82,9 @@ filesystem::path OModulePath::BuildRootDir()
 {
   if (!g_opt.build_root_dir.empty())
   {
-    return AbsNorm(g_opt.build_root_dir);
+    return AbsNormPath(g_opt.build_root_dir);
   }
-  return AbsNorm(filesystem::current_path());
+  return AbsNormPath(filesystem::current_path());
 }
 
 filesystem::path OModulePath::BuildTagDir()
@@ -108,7 +98,7 @@ filesystem::path OModulePath::PackageBuildRootDir()
 {
   if (!g_opt.package_build_root_dir.empty())
   {
-    return AbsNorm(g_opt.package_build_root_dir);
+    return AbsNormPath(g_opt.package_build_root_dir);
   }
   return BuildRootDir();
 }
@@ -122,10 +112,10 @@ filesystem::path OModulePath::PackageBuildTagDir()
 
 bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::path & root_dir)
 {
-  filesystem::path normalized_root = AbsNorm(root_dir);
+  filesystem::path normalized_root = AbsNormPath(root_dir);
   for (const string & package_path : g_opt.package_paths)
   {
-    filesystem::path candidate = AbsNorm(filesystem::path(package_path) / package_name);
+    filesystem::path candidate = AbsNormPath(filesystem::path(package_path) / package_name);
     if (candidate == normalized_root)
     {
       return true;
@@ -139,7 +129,7 @@ bool OModulePath::ResolvePackageRoot(const string & package_name, const vector<s
 {
   for (auto it = package_paths.rbegin(); it != package_paths.rend(); ++it)
   {
-    filesystem::path candidate = AbsNorm(filesystem::path(*it) / package_name);
+    filesystem::path candidate = AbsNormPath(filesystem::path(*it) / package_name);
     error_code ec;
     if (filesystem::is_directory(candidate, ec) && !ec)
     {
@@ -176,7 +166,7 @@ filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_
 
 filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path src = AbsNorm(source_path);
+  filesystem::path src = AbsNormPath(source_path);
   filesystem::path source_no_ext = src;
   source_no_ext.replace_extension();
 
@@ -192,7 +182,7 @@ filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_
 
 filesystem::path OModulePath::BuildInterfaceArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path src = AbsNorm(source_path);
+  filesystem::path src = AbsNormPath(source_path);
   filesystem::path source_no_ext = src;
   source_no_ext.replace_extension();
 
@@ -269,11 +259,11 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
 {
   Clear();
   rerror.clear();
-  source_path = AbsNorm(asource_path);
+  source_path = AbsNormPath(asource_path);
 
   if (!g_opt.module_root_dir.empty() && !g_opt.module_name.empty())
   {
-    root_dir = AbsNorm(g_opt.module_root_dir);
+    root_dir = AbsNormPath(g_opt.module_root_dir);
     module_id = g_opt.module_name;
     vector<string> idparts = Split(module_id);
     if (idparts.empty())
@@ -434,7 +424,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
   // interface records the resolved source path, which preserves that origin.
   if (!source_path.empty())
   {
-    filesystem::path normalized_source = AbsNorm(source_path);
+    filesystem::path normalized_source = AbsNormPath(source_path);
     filesystem::path package_dir;
     if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir)
         && normalized_source == SourcePathForLocal(package_dir, local_path))
@@ -457,7 +447,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
   vector<string> context_parts = Split(context_module_id);
   if (!context_parts.empty() && target_parts[0] == context_parts[0] && !context_artifact.empty())
   {
-    filesystem::path context_path = AbsNorm(context_artifact);
+    filesystem::path context_path = AbsNormPath(context_artifact);
     filesystem::path local_rel = context_path.lexically_relative(local_dir);
     if (!local_rel.empty() && !local_rel.generic_string().starts_with(".."))
     {
@@ -507,7 +497,7 @@ bool OModulePath::ResolveCanonicalSource(const string & module_id, const string 
 
   vector<string> context_parts = Split(context_module_id);
   filesystem::path local_dir = BuildTagDir() / "local";
-  filesystem::path context_path = AbsNorm(context_artifact);
+  filesystem::path context_path = AbsNormPath(context_artifact);
   filesystem::path local_rel = context_path.lexically_relative(local_dir);
   if (!context_parts.empty() && target_parts[0] == context_parts[0]
       && !local_rel.empty() && !local_rel.generic_string().starts_with(".."))

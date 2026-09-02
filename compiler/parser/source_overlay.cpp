@@ -5,25 +5,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <chrono>
 #include <fstream>
 #include <sstream>
 
 #include <llvm/Support/JSON.h>
 
 #include "source_overlay.h"
+#include "dq_utils.h"
 
 using namespace std;
 
 OSourceOverlay g_source_overlay;
-
-string OSourceOverlay::Normalize(const filesystem::path & path)
-{
-  error_code ec;
-  filesystem::path absolute_path = filesystem::absolute(path, ec);
-  if (ec) absolute_path = path;
-  return absolute_path.lexically_normal().string();
-}
 
 bool OSourceOverlay::Load(const string & manifest_filename, string & rerror)
 {
@@ -62,14 +54,14 @@ bool OSourceOverlay::Load(const string & manifest_filename, string & rerror)
     optional<llvm::StringRef> logical = entry->getString("source");
     optional<llvm::StringRef> staged = entry->getString("staged");
     if (!logical || !staged) continue;
-    staged_paths[Normalize(logical->str())] = filesystem::path(staged->str());
+    staged_paths[AbsNormPath(logical->str()).string()] = filesystem::path(staged->str());
   }
   return true;
 }
 
 filesystem::path OSourceOverlay::PhysicalPath(const filesystem::path & logical_path) const
 {
-  auto it = staged_paths.find(Normalize(logical_path));
+  auto it = staged_paths.find(AbsNormPath(logical_path).string());
   if (it != staged_paths.end()) return it->second;
   return logical_path;
 }
@@ -89,6 +81,6 @@ bool OSourceOverlay::GetMetadata(const filesystem::path & logical_path, int64_t 
   auto filetime = filesystem::last_write_time(physical_path, ec);
   if (ec) return false;
   rsize = int64_t(size);
-  rfiletime = int64_t(chrono::duration_cast<chrono::nanoseconds>(filetime.time_since_epoch()).count());
+  rfiletime = FileTimeTicks(filetime);
   return true;
 }

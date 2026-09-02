@@ -28,8 +28,6 @@ public:
 
 private:
   unordered_map<string, filesystem::path> staged_paths;
-
-  static string Normalize(const filesystem::path & path);
 };
 
 extern OSourceOverlay g_source_overlay;

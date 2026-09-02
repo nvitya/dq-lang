@@ -37,16 +37,6 @@
 
 using namespace std;
 
-static bool IsCStringMethodSourceType(OType * type)
-{
-  return IsTextSourceType(type);
-}
-
-static bool IsStringMethodSourceType(OType * type)
-{
-  return IsTextSourceType(type);
-}
-
 static OLValueExpr * CloneContextLValue(OLValueExpr * src)
 {
   if (auto * var = dynamic_cast<OLValueVar *>(src))

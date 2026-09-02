@@ -20,6 +20,7 @@
 #endif
 
 #include "artifact_lock.h"
+#include "dq_utils.h"
 
 #include <atomic>
 #include <cerrno>
@@ -37,27 +38,6 @@
 using namespace std;
 
 static atomic<uint64_t> g_artifact_tmp_counter = 0;
-
-#if defined(_WIN32)
-static string WindowsErrorMessage(DWORD err)
-{
-  LPSTR msg = nullptr;
-  DWORD len = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                             | FORMAT_MESSAGE_IGNORE_INSERTS,
-                             nullptr, err, 0, reinterpret_cast<LPSTR>(&msg), 0, nullptr);
-
-  string result = (len && msg ? string(msg, len) : format("Windows error {}", err));
-  if (msg)
-  {
-    LocalFree(msg);
-  }
-  while (!result.empty() && ((result.back() == '\n') || (result.back() == '\r')))
-  {
-    result.pop_back();
-  }
-  return result;
-}
-#endif
 
 OArtifactLock::OArtifactLock(const filesystem::path & artifact_path, EArtifactLockMode mode)
 {

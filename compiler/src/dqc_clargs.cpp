@@ -15,6 +15,7 @@
 #include "dqc_clargs.h"
 #include "module_path.h"
 #include "artifact_lock.h"
+#include "dq_utils.h"
 
 using namespace std;
 
@@ -37,24 +38,16 @@ void ODqCompClargs::PrepareOutputPaths()
 
   if (g_opt.build_root_dir.empty())
   {
-    error_code ec;
-    filesystem::path input_path = filesystem::absolute(in_filename, ec);
-    if (ec) input_path = in_filename;
-    g_opt.build_root_dir = input_path.parent_path().lexically_normal().string();
+    g_opt.build_root_dir = AbsNormPath(in_filename).parent_path().string();
   }
   else
   {
-    error_code ec;
-    filesystem::path build_root = filesystem::absolute(g_opt.build_root_dir, ec);
-    g_opt.build_root_dir = (ec ? filesystem::path(g_opt.build_root_dir) : build_root).lexically_normal().string();
+    g_opt.build_root_dir = AbsNormPath(g_opt.build_root_dir).string();
   }
 
   if (!g_opt.package_build_root_dir.empty())
   {
-    error_code ec;
-    filesystem::path package_build_root = filesystem::absolute(g_opt.package_build_root_dir, ec);
-    g_opt.package_build_root_dir =
-        (ec ? filesystem::path(g_opt.package_build_root_dir) : package_build_root).lexically_normal().string();
+    g_opt.package_build_root_dir = AbsNormPath(g_opt.package_build_root_dir).string();
   }
 
   // derive base_name by stripping .dq extension

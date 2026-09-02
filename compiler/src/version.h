@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.0"
+#define DQ_COMPILER_VERSION  "0.55.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.1:
+  - Code refactorings
 v0.55.0:
   - DQ language server mode preparation for the dq-comp with --langeserver
 v0.54.1:

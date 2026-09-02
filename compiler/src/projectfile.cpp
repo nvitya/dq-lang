@@ -21,6 +21,7 @@
 #include <set>
 
 #include "module_path.h"
+#include "dq_utils.h"
 
 using namespace std;
 
@@ -37,19 +38,11 @@ ODqProjectFile::ODqProjectFile(ODqProject * aproject, const filesystem::path & a
   sp.Init(text.data(), text.size());
 }
 
-filesystem::path ODqProjectFile::AbsNorm(const filesystem::path & path) const
-{
-  error_code ec;
-  filesystem::path result = filesystem::absolute(path, ec);
-  if (ec) result = path;
-  return result.lexically_normal();
-}
-
 filesystem::path ODqProjectFile::Canonical(const filesystem::path & path) const
 {
   error_code ec;
   filesystem::path result = filesystem::weakly_canonical(path, ec);
-  return ec ? AbsNorm(path) : result;
+  return ec ? AbsNormPath(path) : result;
 }
 
 pair<int, int> ODqProjectFile::LineCol(const char * pos) const
@@ -233,7 +226,7 @@ bool ODqProjectFile::ReadPath(filesystem::path & rpath)
   if (!ReadExpandedString(value)) return false;
   filesystem::path path(value);
   if (path.is_relative()) path = filename.parent_path() / path;
-  rpath = AbsNorm(path);
+  rpath = AbsNormPath(path);
   return true;
 }
 
@@ -348,7 +341,7 @@ bool ODqProjectFile::ParseVariable()
   {
     if (!ReadExpandedString(value)) return false;
     filesystem::path path(value);
-    if (path.is_relative()) value = AbsNorm(filename.parent_path() / path).string();
+    if (path.is_relative()) value = AbsNormPath(filename.parent_path() / path).string();
     else value = path.lexically_normal().string();
   }
   else if (!ReadPackagePathCall(value))

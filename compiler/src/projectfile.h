@@ -54,7 +54,6 @@ public:
 
   bool ParseFile();
 
-  filesystem::path AbsNorm(const filesystem::path & path) const;
   filesystem::path Canonical(const filesystem::path & path) const;
   pair<int, int> LineCol(const char * pos) const;
   bool Fail(const string & id, const string & message, const char * pos = nullptr);

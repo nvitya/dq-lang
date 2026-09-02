@@ -34,29 +34,11 @@
 #endif
 
 #include "processrunner.h"
+#include "dq_utils.h"
 
 using namespace std;
 
 #if defined(_WIN32)
-
-static string WindowsErrorMessage(DWORD err)
-{
-  LPSTR msg = nullptr;
-  DWORD len = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                             | FORMAT_MESSAGE_IGNORE_INSERTS,
-                             nullptr, err, 0, reinterpret_cast<LPSTR>(&msg), 0, nullptr);
-
-  string result = (len && msg ? string(msg, len) : string("Windows error ") + to_string(err));
-  if (msg)
-  {
-    LocalFree(msg);
-  }
-  while (!result.empty() && ((result.back() == '\n') || (result.back() == '\r')))
-  {
-    result.pop_back();
-  }
-  return result;
-}
 
 static wstring Utf8ToWide(const string & text)
 {

@@ -70,7 +70,6 @@ public:
   static filesystem::path BuildInterfaceArtifactPath(const filesystem::path & source_path);
 
 private:
-  static filesystem::path AbsNorm(const filesystem::path & path);
   static vector<string> Split(const string & path);
   static string Join(const vector<string> & items, size_t start = 0);
   static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, const string & local_path);

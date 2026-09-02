@@ -61,6 +61,7 @@ add_executable(dq-projectfile-test
     src/projectfile.cpp
     src/comp_options.cpp
     ast/module_path.cpp
+    utils/dq_utils.cpp
     utils/strparse.cpp
     utils/executable_path.cpp)
 

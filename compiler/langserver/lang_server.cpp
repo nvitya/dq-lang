@@ -3,72 +3,26 @@
  * This file is part of the DQ-Compiler project at https://github.com/nvitya/dq-comp
  *
  * SPDX-License-Identifier: MIT
+ * See LICENSES/MIT.txt for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    lang_server.h
+ * authors: nvitya
+ * created: 2026-09-02
+ * brief:   Language Server implementation
  *
  * The language server deliberately uses a fresh dq-comp worker for each
  * analysis pass.  Compiler globals and module compilation are therefore
  * isolated exactly as they are for command-line builds.
  */
 
-#include <chrono>
-#include <cctype>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <optional>
-#include <sstream>
-#include <unordered_map>
-
-#include <llvm/Support/JSON.h>
 
 #include "comp_options.h"
 #include "lang_server.h"
 #include "processrunner.h"
 
+#include "dq_utils.h"
+
 using namespace std;
-
-namespace
-{
-
-struct SDocument
-{
-  string uri;
-  filesystem::path path;
-  string text;
-  int64_t version = 0;
-};
-
-struct SDiagnostic
-{
-  string path;
-  string severity;
-  string code;
-  string message;
-  int line = 1;
-  int column = 1;
-};
-
-static string JsonEscape(string_view text)
-{
-  string result;
-  for (unsigned char c : text)
-  {
-    switch (c)
-    {
-      case '"': result += "\\\""; break;
-      case '\\': result += "\\\\"; break;
-      case '\b': result += "\\b"; break;
-      case '\f': result += "\\f"; break;
-      case '\n': result += "\\n"; break;
-      case '\r': result += "\\r"; break;
-      case '\t': result += "\\t"; break;
-      default:
-        if (c < 0x20) result += format("\\u{:04x}", unsigned(c));
-        else result.push_back(char(c));
-        break;
-    }
-  }
-  return result;
-}
 
 static string UriDecode(string_view text)
 {
@@ -115,14 +69,6 @@ static string FileUri(const filesystem::path & path)
     }
   }
   return "file://" + encoded;
-}
-
-static string NormalPath(const filesystem::path & path)
-{
-  error_code ec;
-  filesystem::path full = filesystem::absolute(path, ec);
-  if (ec) full = path;
-  return full.lexically_normal().string();
 }
 
 static bool ReadMessage(string & rpayload)
@@ -208,37 +154,6 @@ static int Utf16Column(const string & text, int wanted_line, int wanted_byte_col
   return column;
 }
 
-class ODqLanguageServer
-{
-public:
-  ODqLanguageServer()
-  {
-    error_code ec;
-    temp_root = filesystem::temp_directory_path(ec) / format("dq-lsp-{}", chrono::steady_clock::now().time_since_epoch().count());
-    filesystem::create_directories(temp_root / "sources", ec);
-  }
-
-  ~ODqLanguageServer()
-  {
-    error_code ec;
-    filesystem::remove_all(temp_root, ec);
-  }
-
-  int Run();
-
-private:
-  filesystem::path temp_root;
-  unordered_map<string, SDocument> documents;
-  bool should_exit = false;
-
-  void Handle(const llvm::json::Object & request);
-  void Respond(const llvm::json::Object & request, const string & result);
-  void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
-  void Reanalyze();
-  bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);
-  vector<SDiagnostic> RunWorker(const filesystem::path & source, const filesystem::path & manifest,
-                                const filesystem::path & build_root);
-};
 
 int ODqLanguageServer::Run()
 {
@@ -282,7 +197,7 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
     if (!output) return false;
     if (!first) manifest << ',';
     first = false;
-    manifest << "{\"source\":\"" << JsonEscape(NormalPath(document.path))
+    manifest << "{\"source\":\"" << JsonEscape(AbsNormPath(document.path).string())
              << "\",\"staged\":\"" << JsonEscape(staged.string()) << "\"}";
   }
   manifest << "]}";
@@ -333,7 +248,7 @@ vector<SDiagnostic> ODqLanguageServer::RunWorker(const filesystem::path & source
     optional<llvm::StringRef> message = object->getString("message");
     if (!path || !message) continue;
     SDiagnostic diagnostic;
-    diagnostic.path = NormalPath(path->str());
+    diagnostic.path = AbsNormPath(path->str()).string();
     diagnostic.severity = severity ? severity->str() : "ERROR";
     diagnostic.code = code ? code->str() : "";
     diagnostic.message = message->str();
@@ -380,7 +295,7 @@ void ODqLanguageServer::Reanalyze()
   }
   for (const auto & [uri, document] : documents)
   {
-    auto it = all_diagnostics.find(NormalPath(document.path));
+    auto it = all_diagnostics.find(AbsNormPath(document.path).string());
     PublishDiagnostics(document, it == all_diagnostics.end() ? vector<SDiagnostic>() : it->second);
   }
 }
@@ -444,8 +359,6 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
   document.version = text_document->getInteger("version").value_or(document.version + 1);
   Reanalyze();
 }
-
-} // namespace
 
 int RunDqLanguageServer()
 {

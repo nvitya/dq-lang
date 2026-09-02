@@ -16,7 +16,6 @@
 
 #include "string.h"
 #include <cmath>
-#include <chrono>
 
 #include <fstream>
 #include <print>
@@ -25,6 +24,7 @@
 
 #include "scf_base.h"
 #include "comp_options.h"
+#include "dq_utils.h"
 #include "source_overlay.h"
 #include "strparse.h"
 
@@ -127,7 +127,7 @@ bool OScFile::Load(const string aname, const string afullpath)
   {
     return false;
   }
-  filetime = int64_t(chrono::duration_cast<chrono::nanoseconds>(ftime.time_since_epoch()).count());
+  filetime = FileTimeTicks(ftime);
 
   if (g_opt.dbg_info)
   {

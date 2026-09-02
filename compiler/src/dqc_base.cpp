@@ -14,31 +14,9 @@
 #include <print>
 #include <format>
 #include "dqc_base.h"
+#include "dq_utils.h"
 
 using namespace std;
-
-static string JsonEscape(string_view text)
-{
-  string result;
-  for (unsigned char c : text)
-  {
-    switch (c)
-    {
-      case '"': result += "\\\""; break;
-      case '\\': result += "\\\\"; break;
-      case '\b': result += "\\b"; break;
-      case '\f': result += "\\f"; break;
-      case '\n': result += "\\n"; break;
-      case '\r': result += "\\r"; break;
-      case '\t': result += "\\t"; break;
-      default:
-        if (c < 0x20) result += format("\\u{:04x}", unsigned(c));
-        else result.push_back(char(c));
-        break;
-    }
-  }
-  return result;
-}
 
 static void PrintDiagnostic(string_view severity, string_view id, string_view message, OScPosition * position)
 {

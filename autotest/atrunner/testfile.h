@@ -80,6 +80,7 @@ public:
 
   int               expected_exit_code = 0;
   string            required_host_arch;
+  string            build_suffix;
   vector<string>    compiler_args;
 
   int               errorcnt_build = 0;
@@ -130,6 +131,7 @@ protected:
   bool ValidateMarkers();
   void ParseMarkerError(const string amsgid);
   void ParseMarkerCheck(bool aignore);
+  void ParseMarkerBuildSuffix();
   void ParseMarkerCompilerArgs();
   void ParseMarkerExitCode();
   void ParseMarkerHostArch();
@@ -139,7 +141,6 @@ protected:
   void AddProcessFailureDetails(vector<string> & rmessages, bool include_stdout);
   void ConfigureRunEnvironment();
   string FindAutotestPackagePath() const;
-  string BuildSuffix(bool errmode) const;
 
   void AddTfError(const string astr);
   void AddTfErrorNoLine(const string astr);

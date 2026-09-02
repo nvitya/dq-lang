@@ -1,5 +1,6 @@
 //?build_only
 //?compargs('--exceptions', '-DEXPECT_EXCEPTIONS')
+//?build_suffix('project-exceptions-false')
 
 main = '../../target/exception_switch.dq'
 exceptions = false

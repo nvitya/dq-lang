@@ -1,3 +1,4 @@
 //?build_only
+//?build_suffix('project-linkobject-compile-only')
 main = 'linkobject_main.dq'
 link = false

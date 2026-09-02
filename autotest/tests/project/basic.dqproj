@@ -1,5 +1,6 @@
 // Project file integration test
 //?ignore('silent project integration test')
+//?build_suffix('project-basic')
 
 packagepath = 'packages'
 var TEST_PACKAGE = PackagePath('projectpkg')

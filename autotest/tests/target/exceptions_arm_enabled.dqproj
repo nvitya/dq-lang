@@ -1,4 +1,5 @@
 //?build_only
+//?build_suffix('exceptions-arm-enabled')
 main = '../../target/exception_switch.dq'
 target = 'arm_m7f-bare'
 exceptions = true

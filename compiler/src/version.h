@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.53.7"
+#define DQ_COMPILER_VERSION  "0.54.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.54.0:
+  - Autotest speed degradation fixed with separate build tags for the special tests
 v0.53.7:
   - Linking error fix for mixing local and global modules (stdpkg)
 v0.53.6:

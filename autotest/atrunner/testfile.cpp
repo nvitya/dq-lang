@@ -13,11 +13,7 @@
 
 #include "testfile.h"
 
-#include <chrono>
 #include <cstdlib>
-#include <cstdint>
-#include <random>
-#include <thread>
 #include <print>
 #include <format>
 #include <fstream>
@@ -868,6 +864,10 @@ bool OTestFile::ParseText()
         }
         build_only = true;
       }
+      else if ("build_suffix" == sid)
+      {
+        ParseMarkerBuildSuffix();
+      }
       else if ("compargs" == sid)
       {
         ParseMarkerCompilerArgs();
@@ -1089,6 +1089,38 @@ void OTestFile::ParseMarkerCompilerArgs()
   }
 }
 
+void OTestFile::ParseMarkerBuildSuffix()
+{
+  sp.SkipSpaces(false);
+  if (!sp.CheckSymbol("("))
+  {
+    AddTfError("\"(\" is missing after \"//?build_suffix\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  string suffix;
+  if (!sp.ReadQuotedString(suffix) or suffix.empty())
+  {
+    AddTfError("Non-empty quoted build suffix is expected in \"//?build_suffix\"");
+    return;
+  }
+
+  sp.SkipSpaces(false);
+  if (!sp.CheckSymbol(")"))
+  {
+    AddTfError("\")\" is missing after \"//?build_suffix\"");
+    return;
+  }
+  if (!build_suffix.empty())
+  {
+    AddTfError("Duplicate marker \"build_suffix\"");
+    return;
+  }
+
+  build_suffix = suffix;
+}
+
 void OTestFile::ParseMarkerExitCode()
 {
   sp.SkipSpaces(false);
@@ -1199,17 +1231,6 @@ string OTestFile::FindAutotestPackagePath() const
   return {};
 }
 
-string OTestFile::BuildSuffix(bool errmode) const
-{
-  // Stable per descriptor, so projects sharing modules cannot overwrite each other's artifacts.
-  uint64_t hash = 1469598103934665603ULL;
-  for (unsigned char c : AbsolutePath(filename))
-  {
-    hash = (hash ^ c) * 1099511628211ULL;
-  }
-  return format("atr-{:016x}{}", hash, errmode ? "-err" : "");
-}
-
 void OTestFile::ConfigureRunEnvironment()
 {
   string compiler = ResolveExecutablePath(g_atropt->compiler_filename);
@@ -1245,8 +1266,17 @@ bool OTestFile::ExecCompiler(bool errmode)
 
   procrunner.args.push_back("-o");
   procrunner.args.push_back(exename);
-  procrunner.args.push_back("--build-suffix");
-  procrunner.args.push_back(BuildSuffix(errmode));
+  if (!build_suffix.empty() or errmode)
+  {
+    string suffix = build_suffix;
+    if (errmode)
+    {
+      if (!suffix.empty()) suffix += "-";
+      suffix += "err";
+    }
+    procrunner.args.push_back("--build-suffix");
+    procrunner.args.push_back(suffix);
+  }
   if (g_atropt->optlevel >= 0)
   {
     procrunner.args.push_back(format("-O{}", g_atropt->optlevel));

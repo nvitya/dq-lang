@@ -1,4 +1,5 @@
 //?build_only
+//?build_suffix('dynstrings-host-disabled')
 main = '../../target/dynstrings_switch.dq'
 dynstrings = false
 link = false

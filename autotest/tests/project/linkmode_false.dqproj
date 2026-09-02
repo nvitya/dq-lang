@@ -1,5 +1,6 @@
 //?exitcode(0)
 //?compargs('--link')
+//?build_suffix('project-linkmode-false')
 
 main = 'linkmode_main.dq'
 link = false

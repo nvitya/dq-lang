@@ -37,6 +37,8 @@ Useful options:
 | `--pkg-path <path>` | add a package search root; repeatable |
 | `--build <tag>` | select `.dqbuild/<tag>` |
 | `--build-suffix <suffix>` | append to the selected build tag |
+| `--build-root <path>` | select the local artifact build root |
+| `--package-build-root <path>` | select a separate package artifact build root |
 | `--lto[=full|off]` | control full LTO bitcode sidecars |
 | `-Dname` | define a compile-time symbol as true |
 | `-Dname=value` | define an integer or boolean symbol |
@@ -129,6 +131,12 @@ default build tag is `<target-arch>-<target-rtl>`, for example
 
 The build tag is only a namespace. A tag named `debug` does not imply `-g`, and
 a tag named `release` does not imply `-O3`.
+
+By default, local and package artifacts use the same build root. With
+`--package-build-root <path>`, package and RTL artifacts are instead written to
+`<path>/.dqbuild/<build-tag>/pkg`, while local artifacts remain under the normal
+build root. This allows several projects with the same build context to share
+compiled package modules.
 
 ## Package Search Path
 

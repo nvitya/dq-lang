@@ -49,6 +49,14 @@ void ODqCompClargs::PrepareOutputPaths()
     g_opt.build_root_dir = (ec ? filesystem::path(g_opt.build_root_dir) : build_root).lexically_normal().string();
   }
 
+  if (!g_opt.package_build_root_dir.empty())
+  {
+    error_code ec;
+    filesystem::path package_build_root = filesystem::absolute(g_opt.package_build_root_dir, ec);
+    g_opt.package_build_root_dir =
+        (ec ? filesystem::path(g_opt.package_build_root_dir) : package_build_root).lexically_normal().string();
+  }
+
   // derive base_name by stripping .dq extension
   if (in_filename.size() > 3 && in_filename.substr(in_filename.size() - 3) == ".dq")
   {

@@ -104,6 +104,22 @@ filesystem::path OModulePath::BuildTagDir()
   return result.lexically_normal();
 }
 
+filesystem::path OModulePath::PackageBuildRootDir()
+{
+  if (!g_opt.package_build_root_dir.empty())
+  {
+    return AbsNorm(g_opt.package_build_root_dir);
+  }
+  return BuildRootDir();
+}
+
+filesystem::path OModulePath::PackageBuildTagDir()
+{
+  filesystem::path result = PackageBuildRootDir() / ".dqbuild";
+  result /= (g_opt.build_tag.empty() ? "default" : g_opt.build_tag);
+  return result.lexically_normal();
+}
+
 bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::path & root_dir)
 {
   filesystem::path normalized_root = AbsNorm(root_dir);
@@ -137,8 +153,9 @@ bool OModulePath::ResolvePackageRoot(const string & package_name, const vector<s
 filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_name, const string & local_path,
                                                          const filesystem::path & root_dir, bool interface_only)
 {
-  filesystem::path result = BuildTagDir();
-  if (IsPackageRoot(package_name, root_dir))
+  bool is_package = IsPackageRoot(package_name, root_dir);
+  filesystem::path result = (is_package ? PackageBuildTagDir() : BuildTagDir());
+  if (is_package)
   {
     result /= "pkg";
     result /= package_name;
@@ -435,7 +452,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
 
   filesystem::path build_tag_dir = BuildTagDir();
   filesystem::path local_dir = build_tag_dir / "local";
-  filesystem::path pkg_dir = build_tag_dir / "pkg";
+  filesystem::path pkg_dir = PackageBuildTagDir() / "pkg";
 
   vector<string> context_parts = Split(context_module_id);
   if (!context_parts.empty() && target_parts[0] == context_parts[0] && !context_artifact.empty())
@@ -451,7 +468,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
     filesystem::path pkg_rel = context_path.lexically_relative(pkg_dir);
     if (!pkg_rel.empty() && !pkg_rel.generic_string().starts_with(".."))
     {
-      rartifact_path = BuildTagDir() / "pkg" / package_name;
+      rartifact_path = PackageBuildTagDir() / "pkg" / package_name;
       for (const string & item : Split(local_path))
       {
         rartifact_path /= item;

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.54.0"
+#define DQ_COMPILER_VERSION  "0.54.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.54.1:
+  - Added --package-build-root for sharing package artifacts independently of local build artifacts
+    (Huge autotest speed boost)
 v0.54.0:
   - Autotest speed degradation fixed with separate build tags for the special tests
 v0.53.7:

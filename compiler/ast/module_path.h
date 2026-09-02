@@ -64,6 +64,8 @@ public:
                                  filesystem::path & rroot_dir);
   static filesystem::path BuildRootDir();
   static filesystem::path BuildTagDir();
+  static filesystem::path PackageBuildRootDir();
+  static filesystem::path PackageBuildTagDir();
   static filesystem::path BuildArtifactPath(const filesystem::path & source_path);
   static filesystem::path BuildInterfaceArtifactPath(const filesystem::path & source_path);
 

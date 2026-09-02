@@ -516,6 +516,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing path after --build-root";
       build_root_dir = value;
     }
+    else if ("--package-build-root" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --package-build-root";
+      package_build_root_dir = value;
+    }
     else if ("--mod-root" == v)
     {
       const char * value = require_value(i);
@@ -621,6 +627,8 @@ void OCompOptions::PrintUsage()
   print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
+  print("  --build-root <path> : select the local artifact build root\n");
+  print("  --package-build-root <path> : select a separate package artifact build root\n");
   print("  --lto[=full|off] : emit and link LLVM bitcode sidecars for full LTO\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
@@ -640,6 +648,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
 {
   return (option == "--target") || (option == "--pkg-path") || (option == "--build")
          || (option == "--build-suffix") || (option == "--build-root")
+         || (option == "--package-build-root")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "-o");
 }

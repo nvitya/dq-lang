@@ -1263,6 +1263,11 @@ bool OTestFile::ExecCompiler(bool errmode)
     procrunner.args.push_back("--pkg-path");
     procrunner.args.push_back(package_path);
   }
+  if (g_atropt->batchmode)
+  {
+    procrunner.args.push_back("--package-build-root");
+    procrunner.args.push_back(AbsolutePath(g_atropt->test_root));
+  }
 
   procrunner.args.push_back("-o");
   procrunner.args.push_back(exename);

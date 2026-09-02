@@ -195,9 +195,11 @@ int main()
   char opt_arg7[] = "main.dq";
   char opt_arg8[] = "--dynstrings";
   char opt_arg9[] = "--cpu-features=+no-movt";
+  char opt_arg10[] = "--package-build-root";
+  char opt_arg11[] = "package-cache";
   char * opt_argv[] = {opt_arg0, opt_arg1, opt_arg2, opt_arg3, opt_arg4, opt_arg5, opt_arg6,
-                       opt_arg8, opt_arg9, opt_arg7};
-  command_line_error = command_line_options.ProcessCommandLineOpts(10, opt_argv);
+                       opt_arg8, opt_arg9, opt_arg10, opt_arg11, opt_arg7};
+  command_line_error = command_line_options.ProcessCommandLineOpts(12, opt_argv);
   Expect(command_line_error.empty(),
          "command line options should parse");
   Expect(command_line_options.exceptions && command_line_options.exceptions_explicit,
@@ -207,6 +209,8 @@ int main()
   Expect(command_line_options.optlevel == OPTLEVEL_O3, "command line optimization level");
   Expect(command_line_options.lto_mode == LTOMODE_FULL, "command line LTO mode");
   Expect(command_line_options.build_tag == "arm_m0-bare-test", "command line build tag suffix");
+  Expect(command_line_options.package_build_root_dir == "package-cache",
+         "command line package build root");
   command_line_options.target.AppendCpuFeatures(command_line_options.cpu_features);
   Expect(command_line_options.target.llvm_features == "-fpregs,+no-movt",
          "command line CPU features append to target defaults");

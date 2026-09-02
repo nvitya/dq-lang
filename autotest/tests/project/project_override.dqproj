@@ -1,5 +1,6 @@
 //?exitcode(0)
 //?compargs('-O0', '-g', '-DPROJECT_OVERRIDE=2', '-DEXPECT_OVERRIDE')
+//?build_suffix('project-override')
 packagepath = 'packages'
 var TEST_PACKAGE = PackagePath('projectpkg')
 include '${TEST_PACKAGE}/project/common.dqproj'

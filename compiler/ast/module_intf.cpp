@@ -1131,6 +1131,11 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
     args.push_back("--build-root");
     args.push_back(g_opt.build_root_dir);
   }
+  if (!g_opt.package_build_root_dir.empty())
+  {
+    args.push_back("--package-build-root");
+    args.push_back(g_opt.package_build_root_dir);
+  }
   if (!g_opt.build_tag.empty())
   {
     args.push_back("--build");

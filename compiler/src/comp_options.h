@@ -149,6 +149,7 @@ public:
   bool     has_dash_o = false;
   bool     has_output = false;
   string   build_root_dir;
+  string   package_build_root_dir;
   string   build_tag;
   vector<string>  module_use_stack;
   vector<string>  package_paths;

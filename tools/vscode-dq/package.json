@@ -65,11 +65,6 @@
           "default": "dq-run",
           "description": "Path to the dq-run executable used by DQ: Run Current File."
         },
-        "dq.languageServerPath": {
-          "type": "string",
-          "default": "dq-comp",
-          "description": "Path to the dq-comp executable used for DQ language-server features."
-        },
         "dq.languageServerArgs": {
           "type": "array",
           "default": [],

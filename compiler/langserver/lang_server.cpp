@@ -21,6 +21,7 @@
 #include "processrunner.h"
 
 #include "dq_utils.h"
+#include <llvm/Support/Error.h>
 
 using namespace std;
 
@@ -206,6 +207,7 @@ int ODqLanguageServer::Run()
     auto parsed = llvm::json::parse(payload);
     if (!parsed)
     {
+      llvm::consumeError(parsed.takeError());
       RespondError(nullptr, -32700, "Parse error");
       continue;
     }
@@ -299,7 +301,11 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   while (getline(lines, line))
   {
     auto parsed = llvm::json::parse(line);
-    if (!parsed) continue;  // worker status output is never protocol data.
+    if (!parsed)
+    {
+      llvm::consumeError(parsed.takeError());
+      continue;  // worker status output is never protocol data.
+    }
     llvm::json::Object * object = parsed->getAsObject();
     if (!object || (object->getString("kind") != "diagnostic")) continue;
     optional<llvm::StringRef> path = object->getString("path");
@@ -320,6 +326,10 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   ifstream result_file(result_path, ios::binary);
   string result_text((istreambuf_iterator<char>(result_file)), istreambuf_iterator<char>());
   auto parsed_result = llvm::json::parse(result_text);
+  if (!parsed_result)
+  {
+    llvm::consumeError(parsed_result.takeError());
+  }
   llvm::json::Object * root = parsed_result ? parsed_result->getAsObject() : nullptr;
   llvm::json::Array * symbols = root ? root->getArray("documentSymbols") : nullptr;
   if (symbols)

@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include <llvm/Support/JSON.h>
+#include <llvm/Support/Error.h>
 
 #include "source_overlay.h"
 #include "dq_utils.h"
@@ -32,6 +33,7 @@ bool OSourceOverlay::Load(const string & manifest_filename, string & rerror)
   auto parsed = llvm::json::parse(text);
   if (!parsed)
   {
+    llvm::consumeError(parsed.takeError());
     rerror = "Invalid source overlay manifest: " + manifest_filename;
     return false;
   }

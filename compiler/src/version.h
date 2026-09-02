@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.3"
+#define DQ_COMPILER_VERSION  "0.55.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.4:
+  - Language server json parsing fix
 v0.55.3:
   - Updated VSCode plugin
 v0.55.2:

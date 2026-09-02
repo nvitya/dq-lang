@@ -6,7 +6,7 @@ let languageClient;
 
 function startLanguageServer(context) {
   const configuration = vscode.workspace.getConfiguration("dq");
-  const compilerPath = configuration.get("languageServerPath", "dq-comp");
+  const compilerPath = "dq-comp";
   const extraArgs = configuration.get("languageServerArgs", []);
   const projectFile = configuration.get("languageServerProject", "");
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];

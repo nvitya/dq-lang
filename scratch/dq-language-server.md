@@ -23,10 +23,13 @@ It must not depend on proposed or editor-specific protocol extensions.
 
 The current implementation provides the transport and compiler integration on
 which the rest of this specification builds.  It supports `initialize`,
-`shutdown`, `exit`, `textDocument/didOpen`, full
-`textDocument/didChange`, and `textDocument/didClose`.  It publishes compiler
-diagnostics for every open `.dq` root and stages all open DQ documents in a
-private temporary directory before invoking a fresh compiler worker.
+`initialized`, `shutdown`, `exit`, `textDocument/didOpen`, full
+`textDocument/didChange`, `textDocument/didSave`, and
+`textDocument/didClose`.  It publishes compiler diagnostics for every open
+`.dq` root and stages all open DQ documents in a private temporary directory
+before invoking a fresh compiler worker.  The baseline also validates the
+initialize/shutdown lifecycle and returns JSON-RPC parse, invalid-request,
+not-initialized, and unknown-method errors for requests.
 
 It deliberately advertises only full document synchronization and diagnostics.
 Hover, navigation, completion, signature help, and document symbols remain

@@ -108,6 +108,11 @@ static void WriteMessage(const string & payload)
   cout.flush();
 }
 
+static bool IsRequest(const llvm::json::Object & object)
+{
+  return object.get("id") != nullptr;
+}
+
 static string JsonId(const llvm::json::Object & object)
 {
   const llvm::json::Value * value = object.get("id");
@@ -161,18 +166,33 @@ int ODqLanguageServer::Run()
   while (ReadMessage(payload))
   {
     auto parsed = llvm::json::parse(payload);
-    if (!parsed) continue;
+    if (!parsed)
+    {
+      RespondError(nullptr, -32700, "Parse error");
+      continue;
+    }
     llvm::json::Object * request = parsed->getAsObject();
-    if (!request) continue;
+    if (!request)
+    {
+      RespondError(nullptr, -32600, "Invalid Request");
+      continue;
+    }
     Handle(*request);
     if (should_exit) break;
   }
-  return 0;
+  return exit_status;
 }
 
 void ODqLanguageServer::Respond(const llvm::json::Object & request, const string & result)
 {
   WriteMessage("{\"jsonrpc\":\"2.0\",\"id\":" + JsonId(request) + ",\"result\":" + result + "}");
+}
+
+void ODqLanguageServer::RespondError(const llvm::json::Object * request, int code, string_view message)
+{
+  string id = request ? JsonId(*request) : "null";
+  WriteMessage(format("{{\"jsonrpc\":\"2.0\",\"id\":{},\"error\":{{\"code\":{},\"message\":\"{}\"}}}}",
+                      id, code, JsonEscape(message)));
 }
 
 bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root)
@@ -303,31 +323,80 @@ void ODqLanguageServer::Reanalyze()
 void ODqLanguageServer::Handle(const llvm::json::Object & request)
 {
   optional<llvm::StringRef> method_ref = request.getString("method");
-  if (!method_ref) return;
+  if (!method_ref)
+  {
+    if (IsRequest(request)) RespondError(&request, -32600, "Invalid Request");
+    return;
+  }
   string method = method_ref->str();
   const llvm::json::Object * params = request.getObject("params");
   if (method == "initialize")
   {
+    if (!IsRequest(request)) return;
+    if (initialize_received)
+    {
+      if (IsRequest(request)) RespondError(&request, -32600, "Initialize request already received");
+      return;
+    }
+    initialize_received = true;
     Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}}},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
+    return;
+  }
+  if (method == "initialized")
+  {
+    if (initialize_received && !shutdown_requested)
+    {
+      initialized = true;
+      Reanalyze();
+    }
     return;
   }
   if (method == "shutdown")
   {
+    if (!IsRequest(request)) return;
+    if (!initialize_received)
+    {
+      if (IsRequest(request)) RespondError(&request, -32002, "Server not initialized");
+      return;
+    }
+    shutdown_requested = true;
     Respond(request, "null");
     return;
   }
   if (method == "exit")
   {
+    exit_status = shutdown_requested ? 0 : 1;
     should_exit = true;
     return;
   }
-  if (!params || ((method != "textDocument/didOpen") && (method != "textDocument/didChange") && (method != "textDocument/didClose"))) return;
+  if ((method == "$/setTrace") || (method == "$/cancelRequest")) return;
+  if (!initialize_received || !initialized)
+  {
+    if (IsRequest(request)) RespondError(&request, -32002, "Server not initialized");
+    return;
+  }
+  if (shutdown_requested)
+  {
+    if (IsRequest(request)) RespondError(&request, -32600, "Server is shut down");
+    return;
+  }
+  if (!params || ((method != "textDocument/didOpen") && (method != "textDocument/didChange")
+                  && (method != "textDocument/didClose") && (method != "textDocument/didSave")))
+  {
+    if (IsRequest(request)) RespondError(&request, -32601, "Method not found");
+    return;
+  }
 
   const llvm::json::Object * text_document = params->getObject("textDocument");
   if (!text_document) return;
   optional<llvm::StringRef> uri_ref = text_document->getString("uri");
   if (!uri_ref) return;
   string uri = uri_ref->str();
+  if (method == "textDocument/didSave")
+  {
+    if (documents.contains(uri)) Reanalyze();
+    return;
+  }
   if (method == "textDocument/didClose")
   {
     auto it = documents.find(uri);

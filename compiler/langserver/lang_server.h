@@ -65,10 +65,15 @@ public:
 private:
   filesystem::path temp_root;
   unordered_map<string, SDocument> documents;
+  bool initialize_received = false;
+  bool initialized = false;
+  bool shutdown_requested = false;
   bool should_exit = false;
+  int exit_status = 0;
 
   void Handle(const llvm::json::Object & request);
   void Respond(const llvm::json::Object & request, const string & result);
+  void RespondError(const llvm::json::Object * request, int code, string_view message);
   void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
   void Reanalyze();
   bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);

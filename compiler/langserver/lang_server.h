@@ -57,6 +57,7 @@ struct SWorkerResult
 {
   vector<SDiagnostic> diagnostics;
   vector<SDocumentSymbol> document_symbols;
+  unordered_map<string, vector<SDocumentSymbol>> namespaces;
 };
 
 class ODqLanguageServer
@@ -81,6 +82,7 @@ private:
   filesystem::path temp_root;
   unordered_map<string, SDocument> documents;
   unordered_map<string, vector<SDocumentSymbol>> document_symbols;
+  unordered_map<string, vector<SDocumentSymbol>> namespaces;
   bool initialize_received = false;
   bool initialized = false;
   bool shutdown_requested = false;

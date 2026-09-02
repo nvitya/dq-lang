@@ -350,6 +350,28 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
       result.document_symbols.push_back(move(symbol));
     }
   }
+  llvm::json::Object * namespaces_obj = root ? root->getObject("namespaces") : nullptr;
+  if (namespaces_obj)
+  {
+    for (const auto & [ns_name, ns_val] : *namespaces_obj)
+    {
+      const llvm::json::Array * ns_arr = ns_val.getAsArray();
+      if (!ns_arr) continue;
+      string name = ns_name.str();
+      vector<SDocumentSymbol> & dst = result.namespaces[name];
+      for (const llvm::json::Value & value : *ns_arr)
+      {
+        const llvm::json::Object * object = value.getAsObject();
+        if (!object) continue;
+        optional<llvm::StringRef> sym_name = object->getString("name");
+        if (!sym_name) continue;
+        SDocumentSymbol symbol;
+        symbol.name = sym_name->str();
+        symbol.kind = int(object->getInteger("kind").value_or(13));
+        dst.push_back(move(symbol));
+      }
+    }
+  }
   return result;
 }
 
@@ -374,18 +396,40 @@ void ODqLanguageServer::PublishDiagnostics(const SDocument & document, const vec
 string ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) const
 {
   string result = "[";
+  bool first = true;
   auto it = document_symbols.find(AbsNormPath(document.path).string());
-  if (it == document_symbols.end()) return result + "]";
-  for (size_t i = 0; i < it->second.size(); ++i)
+  if (it != document_symbols.end())
   {
-    const SDocumentSymbol & symbol = it->second[i];
-    if (i) result += ',';
-    int line = max(0, symbol.line - 1);
-    int character = DocumentSymbolNameColumn(document, symbol);
-    int end_character = character + Utf16TextWidth(symbol.name);
-    result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}}}}",
-                     JsonEscape(symbol.name), symbol.kind, line, character, line, end_character,
-                     line, character, line, end_character);
+    for (size_t i = 0; i < it->second.size(); ++i)
+    {
+      const SDocumentSymbol & symbol = it->second[i];
+      if (!first) result += ',';
+      first = false;
+      int line = max(0, symbol.line - 1);
+      int character = DocumentSymbolNameColumn(document, symbol);
+      int end_character = character + Utf16TextWidth(symbol.name);
+      result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}}}}",
+                       JsonEscape(symbol.name), symbol.kind, line, character, line, end_character,
+                       line, character, line, end_character);
+    }
+  }
+  for (const auto & [ns_name, ns_symbols] : namespaces)
+  {
+    if (ns_name == "." || ns_name == "..") continue; // internal scopes
+    if (!first) result += ',';
+    first = false;
+    result += format("{{\"name\":\"{}\",\"kind\":3,\"range\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":0}}}},\"selectionRange\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":0}}}},\"children\":[",
+                     JsonEscape(ns_name));
+    bool first_sym = true;
+    for (const auto & symbol : ns_symbols)
+    {
+      if (!first_sym) result += ',';
+      first_sym = false;
+      int end_character = Utf16TextWidth(symbol.name);
+      result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":{}}}}}}}",
+                       JsonEscape(symbol.name), symbol.kind, end_character, end_character);
+    }
+    result += "]}";
   }
   return result + "]";
 }
@@ -396,6 +440,7 @@ void ODqLanguageServer::Reanalyze()
   filesystem::path build_root;
   unordered_map<string, vector<SDiagnostic>> all_diagnostics;
   unordered_map<string, vector<SDocumentSymbol>> all_document_symbols;
+  unordered_map<string, vector<SDocumentSymbol>> all_namespaces;
   if (StageDocuments(manifest, build_root))
   {
     for (const auto & [uri, document] : documents)
@@ -410,14 +455,34 @@ void ODqLanguageServer::Reanalyze()
       {
         all_document_symbols[symbol.path].push_back(move(symbol));
       }
+      for (auto & [ns_name, ns_symbols] : worker_result.namespaces)
+      {
+        all_namespaces[ns_name] = move(ns_symbols);
+      }
     }
   }
   document_symbols = move(all_document_symbols);
+  namespaces = move(all_namespaces);
   for (const auto & [uri, document] : documents)
   {
     auto it = all_diagnostics.find(AbsNormPath(document.path).string());
     PublishDiagnostics(document, it == all_diagnostics.end() ? vector<SDiagnostic>() : it->second);
   }
+}
+
+static int DocumentSymbolToCompletionKind(int kind)
+{
+  switch (kind)
+  {
+    case 12: return 3; // Function
+    case 13: return 6; // Variable
+    case 14: return 21; // Constant
+    case 7:  return 10; // Property
+    case 10: return 13; // Enum
+    case 5:  return 7; // Class
+    case 23: return 22; // Struct
+  }
+  return 6; // Variable default
 }
 
 void ODqLanguageServer::Handle(const llvm::json::Object & request)
@@ -439,7 +504,7 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
       return;
     }
     initialize_received = true;
-    Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}},\"documentSymbolProvider\":true},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
+    Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}},\"documentSymbolProvider\":true,\"completionProvider\":{\"resolveProvider\":false,\"triggerCharacters\":[\".\",\"@\"]}},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
     return;
   }
   if (method == "initialized")
@@ -482,7 +547,7 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
   }
   if (!params || ((method != "textDocument/didOpen") && (method != "textDocument/didChange")
                   && (method != "textDocument/didClose") && (method != "textDocument/didSave")
-                  && (method != "textDocument/documentSymbol")))
+                  && (method != "textDocument/documentSymbol") && (method != "textDocument/completion")))
   {
     if (IsRequest(request)) RespondError(&request, -32601, "Method not found");
     return;
@@ -497,6 +562,83 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
   {
     auto it = documents.find(uri);
     Respond(request, it == documents.end() ? "[]" : DocumentSymbolsJson(it->second));
+    return;
+  }
+  if (method == "textDocument/completion")
+  {
+    auto it = documents.find(uri);
+    if (it == documents.end())
+    {
+      Respond(request, "[]");
+      return;
+    }
+    const SDocument & document = it->second;
+    const llvm::json::Object * position = params->getObject("position");
+    int line = position ? int(position->getInteger("line").value_or(0)) : 0;
+    int character = position ? int(position->getInteger("character").value_or(0)) : 0;
+    
+    size_t line_start = 0;
+    for (int l = 0; (l < line) && (line_start < document.text.size()); ++l)
+    {
+      size_t line_end = document.text.find('\n', line_start);
+      line_start = (line_end == string::npos ? document.text.size() : line_end + 1);
+    }
+    size_t line_end = document.text.find('\n', line_start);
+    if (line_end == string::npos) line_end = document.text.size();
+    
+    size_t cursor = min(line_end, line_start + character);
+    size_t prefix_start = cursor;
+    while (prefix_start > line_start && (isalnum(document.text[prefix_start - 1]) || document.text[prefix_start - 1] == '_'))
+    {
+      prefix_start--;
+    }
+    
+    string scope_name = "..";
+    if (prefix_start > line_start && document.text[prefix_start - 1] == '.')
+    {
+      size_t dot_pos = prefix_start - 1;
+      size_t ns_start = dot_pos;
+      while (ns_start > line_start && (isalnum(document.text[ns_start - 1]) || document.text[ns_start - 1] == '_'))
+      {
+        ns_start--;
+      }
+      if (ns_start > line_start && document.text[ns_start - 1] == '@')
+      {
+        scope_name = document.text.substr(ns_start, dot_pos - ns_start);
+      }
+    }
+    else if (prefix_start > line_start && document.text[prefix_start - 1] == '@')
+    {
+       // complete namespace names if they type '@'
+       string result = "[";
+       bool first = true;
+       for (const auto & [ns_name, _] : namespaces)
+       {
+         if (ns_name == "." || ns_name == "..") continue;
+         if (!first) result += ',';
+         first = false;
+         result += format("{{\"label\":\"{}\",\"kind\":9}}", JsonEscape(ns_name)); // 9 = Module/Namespace
+       }
+       result += "]";
+       Respond(request, result);
+       return;
+    }
+    
+    string result = "[]";
+    auto ns_it = namespaces.find(scope_name);
+    if (ns_it != namespaces.end())
+    {
+      result = "[";
+      bool first = true;
+      for (const auto & symbol : ns_it->second)
+      {
+        if (!first) result += ',';
+        first = false;
+        result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+      }
+      result += "]";
+    }
+    Respond(request, result);
     return;
   }
   if (method == "textDocument/didSave")

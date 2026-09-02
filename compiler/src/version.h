@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.5"
+#define DQ_COMPILER_VERSION  "0.55.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.6:
+  - Language server: Suggestions, outline
 v0.55.5:
   - VSCode plugin semantic analisis works
 v0.55.4:

@@ -16,6 +16,8 @@
 #include "dq_utils.h"
 #include "semantic_result.h"
 
+#include "named_scopes.h"
+
 namespace
 {
 
@@ -42,6 +44,31 @@ int SymbolKind(const ODecl & declaration)
     case TK_UNION:  return 23; // Struct
     default:        return 26; // TypeParameter is the closest generic type symbol
   }
+}
+
+int ValSymKind(int kind)
+{
+  switch (kind)
+  {
+    case VSK_FUNCTION: return 12;
+    case VSK_VARIABLE: return 13;
+    case VSK_CONST:    return 14;
+    case VSK_PROPERTY: return 7;
+    case VSK_PARAMETER:return 13;
+  }
+  return 13;
+}
+
+int TypeKind(int kind)
+{
+  switch (kind)
+  {
+    case TK_ENUM:   return 10;
+    case TK_OBJECT: return 5;
+    case TK_STRUCT:
+    case TK_UNION:  return 23;
+  }
+  return 26;
 }
 
 const OSymbol * DeclarationSymbol(const ODecl & declaration)
@@ -84,7 +111,32 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
                        position.line, position.col);
     }
   }
-  output << "]}";
+  output << "],\"namespaces\":{";
+  bool first_ns = true;
+  for (const auto & [ns_name, scope] : g_namespaces)
+  {
+    if (!scope) continue;
+    if (!first_ns) output << ',';
+    first_ns = false;
+    output << "\"" << JsonEscape(ns_name) << "\":[";
+    bool first_sym = true;
+    for (const auto & [name, type] : scope->typesyms)
+    {
+      if (!type || name.empty() || name.starts_with("__dq_")) continue;
+      if (!first_sym) output << ',';
+      first_sym = false;
+      output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), TypeKind(type->kind));
+    }
+    for (const auto & [name, valsym] : scope->valsyms)
+    {
+      if (!valsym || name.empty() || name.starts_with("__dq_")) continue;
+      if (!first_sym) output << ',';
+      first_sym = false;
+      output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), ValSymKind(valsym->kind));
+    }
+    output << "]";
+  }
+  output << "}}";
   if (!output)
   {
     rerror = "Can not finish language-server semantic result: " + filename;

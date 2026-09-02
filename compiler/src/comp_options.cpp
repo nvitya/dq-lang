@@ -452,6 +452,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     else if ("--ifgen" == v)  ifgen = true;
     else if ("--ifdump" == v)  ifdump = true;
     else if ("--langserver" == v) langserver = true;
+    else if ("--stdio" == v) {} // Ignored, used by VSCode languageclient automatically
     else if ("--langserver-worker" == v) langserver_worker = true;
     else if ("--diagnostic-format=jsonl" == v) diagnostic_json = true;
     else if ("--source-overlay" == v)

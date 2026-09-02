@@ -939,6 +939,7 @@ void ODqCompParser::ParseRootTypeDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "type");
     return;
   }
+  OScPosition type_name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(sid))
   {
     return;
@@ -975,7 +976,9 @@ void ODqCompParser::ParseRootTypeDecl()
     attr->CheckInvalidAttributes(ATGT_NONE);
   }
 
-  g_module->DeclareType(section_public, new OTypeAlias(sid, ptype));
+  auto * alias_type = new OTypeAlias(sid, ptype);
+  alias_type->scpos.Assign(type_name_pos);
+  g_module->DeclareType(section_public, alias_type);
 
   if (not CheckStatementClose())
   {
@@ -992,6 +995,7 @@ void ODqCompParser::ParseEnumDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "enum");
     return;
   }
+  OScPosition enum_name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(enum_name))
   {
     return;
@@ -1033,6 +1037,7 @@ void ODqCompParser::ParseEnumDecl()
   }
 
   auto * enum_type = new OTypeEnum(enum_name, storage_type);
+  enum_type->scpos.Assign(enum_name_pos);
   g_module->DeclareType(section_public, enum_type);
 
   uint64_t next_value = 0;
@@ -1195,6 +1200,7 @@ void ODqCompParser::ParseStructDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "struct");
     return;
   }
+  OScPosition struct_name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(sname))
   {
     return;
@@ -1231,6 +1237,7 @@ void ODqCompParser::ParseStructDecl()
   else
   {
     ctype = new OCompoundType(sname, cur_mod_scope);
+    ctype->scpos.Assign(struct_name_pos);
     ctype->incomplete = true;
     g_module->DeclareType(section_public, ctype);
   }
@@ -1492,6 +1499,7 @@ void ODqCompParser::ParseUnionDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "union");
     return;
   }
+  OScPosition union_name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(union_name))
   {
     return;
@@ -1527,6 +1535,7 @@ void ODqCompParser::ParseUnionDecl()
   else
   {
     union_type = new OCompoundType(union_name, cur_mod_scope, TK_UNION);
+    union_type->scpos.Assign(union_name_pos);
     union_type->incomplete = true;
     g_module->DeclareType(section_public, union_type);
   }
@@ -2521,6 +2530,7 @@ void ODqCompParser::ParseObjectDecl()
     RootStatementError(DQERR_ID_EXP_AFTER, "object");
     return;
   }
+  OScPosition object_name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(sname))
   {
     return;
@@ -2557,6 +2567,7 @@ void ODqCompParser::ParseObjectDecl()
   else
   {
     object_type = new OTypeObject(sname, cur_mod_scope);
+    object_type->scpos.Assign(object_name_pos);
     object_type->incomplete = true;
     g_module->DeclareType(section_public, object_type);
   }

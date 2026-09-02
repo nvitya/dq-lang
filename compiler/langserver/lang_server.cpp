@@ -131,6 +131,26 @@ static int Utf8CharBytes(unsigned char c)
   return 1;
 }
 
+static int Utf16TextWidth(string_view text)
+{
+  int width = 0;
+  for (size_t pos = 0; pos < text.size();)
+  {
+    int bytes = Utf8CharBytes(static_cast<unsigned char>(text[pos]));
+    if ((bytes == 1) || (pos + bytes > text.size()))
+    {
+      ++pos;
+      ++width;
+    }
+    else
+    {
+      pos += bytes;
+      width += (bytes == 4 ? 2 : 1);
+    }
+  }
+  return width;
+}
+
 static int Utf16Column(const string & text, int wanted_line, int wanted_byte_column)
 {
   size_t start = 0;
@@ -157,6 +177,24 @@ static int Utf16Column(const string & text, int wanted_line, int wanted_byte_col
     }
   }
   return column;
+}
+
+static int DocumentSymbolNameColumn(const SDocument & document, const SDocumentSymbol & symbol)
+{
+  size_t line_start = 0;
+  for (int line = 1; (line < symbol.line) && (line_start < document.text.size()); ++line)
+  {
+    size_t line_end = document.text.find('\n', line_start);
+    line_start = (line_end == string::npos ? document.text.size() : line_end + 1);
+  }
+  size_t line_end = document.text.find('\n', line_start);
+  if (line_end == string::npos) line_end = document.text.size();
+  size_t name_start = document.text.find(symbol.name, line_start);
+  if ((name_start == string::npos) || (name_start >= line_end))
+  {
+    return Utf16Column(document.text, symbol.line, max(0, symbol.column - 1));
+  }
+  return Utf16Column(document.text, symbol.line, int(name_start - line_start));
 }
 
 
@@ -228,14 +266,16 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
   return bool(output);
 }
 
-vector<SDiagnostic> ODqLanguageServer::RunWorker(const filesystem::path & source,
-                                                   const filesystem::path & manifest,
-                                                   const filesystem::path & build_root)
+SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
+                                            const filesystem::path & manifest,
+                                            const filesystem::path & build_root)
 {
+  filesystem::path result_path = build_root / format("semantic-{}.json", documents.size());
   OProcessRunner runner;
   runner.args = {g_opt.compiler_executable, "--langserver-worker", "--diagnostic-format=jsonl",
                  "--source-overlay", manifest.string(), "--build-root", build_root.string(),
                  "--package-build-root", build_root.string(), "--target=" + g_opt.target.name,
+                 "--langserver-result", result_path.string(),
                  source.string()};
   if (g_opt.no_use_sys) runner.args.push_back("--no-use-sys");
   for (const string & path : g_opt.package_paths)
@@ -253,7 +293,7 @@ vector<SDiagnostic> ODqLanguageServer::RunWorker(const filesystem::path & source
   runner.Run();
   if (!runner.stderr_text.empty()) cerr << "dq-lsp worker: " << runner.stderr_text;
 
-  vector<SDiagnostic> result;
+  SWorkerResult result;
   istringstream lines(runner.stdout_text);
   string line;
   while (getline(lines, line))
@@ -274,7 +314,31 @@ vector<SDiagnostic> ODqLanguageServer::RunWorker(const filesystem::path & source
     diagnostic.message = message->str();
     diagnostic.line = int(object->getInteger("line").value_or(1));
     diagnostic.column = int(object->getInteger("column").value_or(1));
-    result.push_back(move(diagnostic));
+    result.diagnostics.push_back(move(diagnostic));
+  }
+
+  ifstream result_file(result_path, ios::binary);
+  string result_text((istreambuf_iterator<char>(result_file)), istreambuf_iterator<char>());
+  auto parsed_result = llvm::json::parse(result_text);
+  llvm::json::Object * root = parsed_result ? parsed_result->getAsObject() : nullptr;
+  llvm::json::Array * symbols = root ? root->getArray("documentSymbols") : nullptr;
+  if (symbols)
+  {
+    for (llvm::json::Value & value : *symbols)
+    {
+      llvm::json::Object * object = value.getAsObject();
+      if (!object) continue;
+      optional<llvm::StringRef> path = object->getString("path");
+      optional<llvm::StringRef> name = object->getString("name");
+      if (!path || !name) continue;
+      SDocumentSymbol symbol;
+      symbol.path = AbsNormPath(path->str()).string();
+      symbol.name = name->str();
+      symbol.kind = int(object->getInteger("kind").value_or(13));
+      symbol.line = int(object->getInteger("line").value_or(1));
+      symbol.column = int(object->getInteger("column").value_or(1));
+      result.document_symbols.push_back(move(symbol));
+    }
   }
   return result;
 }
@@ -297,22 +361,48 @@ void ODqLanguageServer::PublishDiagnostics(const SDocument & document, const vec
   WriteMessage(message);
 }
 
+string ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) const
+{
+  string result = "[";
+  auto it = document_symbols.find(AbsNormPath(document.path).string());
+  if (it == document_symbols.end()) return result + "]";
+  for (size_t i = 0; i < it->second.size(); ++i)
+  {
+    const SDocumentSymbol & symbol = it->second[i];
+    if (i) result += ',';
+    int line = max(0, symbol.line - 1);
+    int character = DocumentSymbolNameColumn(document, symbol);
+    int end_character = character + Utf16TextWidth(symbol.name);
+    result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}}}}",
+                     JsonEscape(symbol.name), symbol.kind, line, character, line, end_character,
+                     line, character, line, end_character);
+  }
+  return result + "]";
+}
+
 void ODqLanguageServer::Reanalyze()
 {
   filesystem::path manifest;
   filesystem::path build_root;
   unordered_map<string, vector<SDiagnostic>> all_diagnostics;
+  unordered_map<string, vector<SDocumentSymbol>> all_document_symbols;
   if (StageDocuments(manifest, build_root))
   {
     for (const auto & [uri, document] : documents)
     {
       if (document.path.extension() != ".dq") continue;
-      for (SDiagnostic & diagnostic : RunWorker(document.path, manifest, build_root))
+      SWorkerResult worker_result = RunWorker(document.path, manifest, build_root);
+      for (SDiagnostic & diagnostic : worker_result.diagnostics)
       {
         all_diagnostics[diagnostic.path].push_back(move(diagnostic));
       }
+      for (SDocumentSymbol & symbol : worker_result.document_symbols)
+      {
+        all_document_symbols[symbol.path].push_back(move(symbol));
+      }
     }
   }
+  document_symbols = move(all_document_symbols);
   for (const auto & [uri, document] : documents)
   {
     auto it = all_diagnostics.find(AbsNormPath(document.path).string());
@@ -339,7 +429,7 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
       return;
     }
     initialize_received = true;
-    Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}}},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
+    Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}},\"documentSymbolProvider\":true},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
     return;
   }
   if (method == "initialized")
@@ -381,7 +471,8 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
     return;
   }
   if (!params || ((method != "textDocument/didOpen") && (method != "textDocument/didChange")
-                  && (method != "textDocument/didClose") && (method != "textDocument/didSave")))
+                  && (method != "textDocument/didClose") && (method != "textDocument/didSave")
+                  && (method != "textDocument/documentSymbol")))
   {
     if (IsRequest(request)) RespondError(&request, -32601, "Method not found");
     return;
@@ -392,6 +483,12 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
   optional<llvm::StringRef> uri_ref = text_document->getString("uri");
   if (!uri_ref) return;
   string uri = uri_ref->str();
+  if (method == "textDocument/documentSymbol")
+  {
+    auto it = documents.find(uri);
+    Respond(request, it == documents.end() ? "[]" : DocumentSymbolsJson(it->second));
+    return;
+  }
   if (method == "textDocument/didSave")
   {
     if (documents.contains(uri)) Reanalyze();

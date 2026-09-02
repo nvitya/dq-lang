@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.1"
+#define DQ_COMPILER_VERSION  "0.55.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.2:
+  - Langugage server semantic analysis implemented
 v0.55.1:
   - Code refactorings
 v0.55.0:

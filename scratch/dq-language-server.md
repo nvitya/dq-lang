@@ -27,16 +27,18 @@ which the rest of this specification builds.  It supports `initialize`,
 `textDocument/didChange`, `textDocument/didSave`, and
 `textDocument/didClose`.  It publishes compiler diagnostics for every open
 `.dq` root and stages all open DQ documents in a private temporary directory
-before invoking a fresh compiler worker.  The baseline also validates the
-initialize/shutdown lifecycle and returns JSON-RPC parse, invalid-request,
-not-initialized, and unknown-method errors for requests.
+before invoking a fresh compiler worker.  It also serves flat top-level
+`textDocument/documentSymbol` results from compiler declarations serialized by
+the worker. The baseline validates the initialize/shutdown lifecycle and
+returns JSON-RPC parse, invalid-request, not-initialized, and unknown-method
+errors for requests.
 
-It deliberately advertises only full document synchronization and diagnostics.
-Hover, navigation, completion, signature help, and document symbols remain
-specified below as the next semantic-index increment; they are not advertised
-until that index is implemented.  Likewise, cancellation, debounce, file
-watchers, request error responses, and persistent interface caching are design
-requirements for that increment rather than properties of the baseline.
+It deliberately advertises only full document synchronization, diagnostics,
+and top-level document symbols. Hover, navigation, completion, signature help,
+and hierarchical symbols remain specified below as the next semantic-index
+increment; they are not advertised until that index is implemented. Likewise,
+cancellation, debounce, file watchers, and persistent interface caching are
+design requirements for that increment rather than properties of the baseline.
 
 ## Goals
 

@@ -460,6 +460,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing manifest path after --source-overlay";
       source_overlay_filename = value;
     }
+    else if ("--langserver-result" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing result path after --langserver-result";
+      langserver_result_filename = value;
+    }
     else if ("--no-use-sys" == v)  no_use_sys = true;
     else if ("--exceptions" == v)     SetExceptions(true);
     else if ("--no-exceptions" == v)  SetExceptions(false);
@@ -660,6 +666,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--package-build-root")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "--source-overlay")
+         || (option == "--langserver-result")
          || (option == "-o");
 }
 

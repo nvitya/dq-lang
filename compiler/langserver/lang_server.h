@@ -44,6 +44,21 @@ struct SDiagnostic
   int column = 1;
 };
 
+struct SDocumentSymbol
+{
+  string path;
+  string name;
+  int kind = 13;
+  int line = 1;
+  int column = 1;
+};
+
+struct SWorkerResult
+{
+  vector<SDiagnostic> diagnostics;
+  vector<SDocumentSymbol> document_symbols;
+};
+
 class ODqLanguageServer
 {
 public:
@@ -65,6 +80,7 @@ public:
 private:
   filesystem::path temp_root;
   unordered_map<string, SDocument> documents;
+  unordered_map<string, vector<SDocumentSymbol>> document_symbols;
   bool initialize_received = false;
   bool initialized = false;
   bool shutdown_requested = false;
@@ -75,10 +91,11 @@ private:
   void Respond(const llvm::json::Object & request, const string & result);
   void RespondError(const llvm::json::Object * request, int code, string_view message);
   void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
+  string DocumentSymbolsJson(const SDocument & document) const;
   void Reanalyze();
   bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);
-  vector<SDiagnostic> RunWorker(const filesystem::path & source, const filesystem::path & manifest,
-                                const filesystem::path & build_root);
+  SWorkerResult RunWorker(const filesystem::path & source, const filesystem::path & manifest,
+                          const filesystem::path & build_root);
 };
 
 

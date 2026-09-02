@@ -39,6 +39,7 @@
 
 #include "dqc.h"
 #include "lang_server.h"
+#include "semantic_result.h"
 #include "projectfile.h"
 #include "source_overlay.h"
 #include "version.h"
@@ -312,6 +313,16 @@ int main(int argc, char ** argv)
 
   g_compiler->Run();
   r = g_compiler->errorcnt;
+
+  if (g_opt.langserver_worker && !g_opt.langserver_result_filename.empty())
+  {
+    string result_error;
+    if (!WriteDqLanguageServerSemanticResult(g_opt.langserver_result_filename, 0 == r, result_error))
+    {
+      cerr << result_error << "\n";
+      if (0 == r) r = 1;
+    }
+  }
 
   delete g_compiler;
 

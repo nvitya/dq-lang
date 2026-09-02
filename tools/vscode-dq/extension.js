@@ -1,7 +1,41 @@
 const path = require("path");
 const vscode = require("vscode");
+const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
+
+let languageClient;
+
+function startLanguageServer(context) {
+  const configuration = vscode.workspace.getConfiguration("dq");
+  const compilerPath = configuration.get("languageServerPath", "dq-comp");
+  const extraArgs = configuration.get("languageServerArgs", []);
+  const projectFile = configuration.get("languageServerProject", "");
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  const args = ["--langserver", ...extraArgs];
+  if (projectFile) {
+    args.push(projectFile);
+  }
+
+  languageClient = new LanguageClient(
+    "dqLanguageServer",
+    "DQ Language Server",
+    {
+      command: compilerPath,
+      args,
+      transport: TransportKind.stdio,
+      options: workspaceFolder ? { cwd: workspaceFolder.uri.fsPath } : undefined
+    },
+    {
+      documentSelector: [{ scheme: "file", language: "dq" }],
+      outputChannelName: "DQ Language Server"
+    }
+  );
+  languageClient.start();
+  context.subscriptions.push({ dispose: () => languageClient?.stop() });
+}
 
 function activate(context) {
+  startLanguageServer(context);
+
   context.subscriptions.push(
     vscode.commands.registerCommand("dq.runCurrentFile", async () => {
       const editor = vscode.window.activeTextEditor;
@@ -47,6 +81,11 @@ function activate(context) {
   );
 }
 
-function deactivate() {}
+async function deactivate() {
+  if (languageClient) {
+    await languageClient.stop();
+    languageClient = undefined;
+  }
+}
 
 module.exports = { activate, deactivate };

@@ -1,6 +1,6 @@
 # DQ for VSCode
 
-This folder contains a minimal VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It is intentionally declarative: there is no language server and no custom debug adapter.
+This folder contains a VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It starts `dq-comp --langserver` for DQ files; there is no custom debug adapter.
 
 ## What it covers
 
@@ -14,8 +14,26 @@ This folder contains a minimal VSCode extension for `.dq`, `.dqh`, and `.dqi` fi
 - Snippets for common DQ constructs
 - A `DQ: Run Current File` command and editor play button powered by `dq-run`
 - A `$dq` problem matcher for compiler output like `file.dq(3,11) ERROR(TypeSpecExpected): expected type specifier`
+- Compiler diagnostics and top-level document symbols supplied by the DQ language server
 
 Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match and autoclose, but they do not affect rainbow nesting.
+
+## Language server
+
+The extension starts `dq-comp --langserver` when a DQ document is opened. By
+default it resolves `dq-comp` from `PATH`. Configure `dq.languageServerPath`
+when using a local build, for example:
+
+```json
+{
+  "dq.languageServerPath": "/path/to/dq-lang/build/dq-comp"
+}
+```
+
+Use `dq.languageServerArgs` for semantic compiler options such as `--target`
+or `--pkg-path`. To load a specific project, set `dq.languageServerProject` to
+its `.dqproj` filename; relative paths use the first workspace folder as the
+working directory.
 
 ## Running the current file
 

@@ -1,12 +1,12 @@
 {
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
-  "description": "Minimal editor, build, and debug configuration support for DQ files.",
-  "version": "0.0.1",
+  "description": "DQ editing, language-server, build, and debug support.",
+  "version": "0.1.0",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package"
   },
   "repository": {
     "type": "git",
@@ -14,6 +14,7 @@
   },
   "main": "./extension.js",
   "activationEvents": [
+    "onLanguage:dq",
     "onCommand:dq.runCurrentFile"
   ],
   "engines": {
@@ -63,6 +64,24 @@
           "type": "string",
           "default": "dq-run",
           "description": "Path to the dq-run executable used by DQ: Run Current File."
+        },
+        "dq.languageServerPath": {
+          "type": "string",
+          "default": "dq-comp",
+          "description": "Path to the dq-comp executable used for DQ language-server features."
+        },
+        "dq.languageServerArgs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional dq-comp options for the DQ language server, excluding --langserver."
+        },
+        "dq.languageServerProject": {
+          "type": "string",
+          "default": "",
+          "description": "Optional .dqproj file passed to the DQ language server. Relative paths use the workspace folder."
         }
       }
     },
@@ -124,5 +143,8 @@
   },
   "overrides": {
     "cheerio": "1.0.0-rc.12"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }

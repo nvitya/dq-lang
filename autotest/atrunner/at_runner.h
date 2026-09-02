@@ -46,6 +46,7 @@ public: // stats
   virtual ~OAtRunner();
 
   int Run();
+  int Clean();
 
 protected:
 

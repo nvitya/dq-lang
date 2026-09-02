@@ -1,3 +1,4 @@
+//?notest
 use ./console_import
 
 function RunImports() [[cexport]]:

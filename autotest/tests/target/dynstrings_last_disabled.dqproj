@@ -1,5 +1,5 @@
 //?build_only
 //?compargs('--dynstrings', '--no-dynstrings')
 //?build_suffix('dynstrings-disabled')
-main = '../../target/dynstrings_switch.dq'
+main = 'dynstrings_switch.dq'
 link = false

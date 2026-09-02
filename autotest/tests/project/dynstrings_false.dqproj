@@ -2,6 +2,6 @@
 //?compargs('--dynstrings', '-DEXPECT_DYNSTRINGS')
 //?build_suffix('dynstrings-enabled')
 
-main = '../../target/dynstrings_switch.dq'
+main = '../target/dynstrings_switch.dq'
 dynstrings = false
 link = false

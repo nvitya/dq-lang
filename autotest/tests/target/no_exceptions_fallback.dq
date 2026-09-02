@@ -1,3 +1,4 @@
+//?notest
 // Core RTL errors use RuntimeError and safe values when its handler returns.
 
 use rtl/strfunc

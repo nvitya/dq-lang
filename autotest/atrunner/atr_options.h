@@ -36,6 +36,8 @@ public:
 
   int               worker_count = 0;  // 0 = auto detect thread count
   bool              print_version = false;  // --version
+  bool              clean = false;       // --clean
+  bool              clean_only = false;  // --clean-only
   int               verblevel = VERBLEVEL_NONE;
   int               optlevel = -1;  // -1 = use compiler default
 

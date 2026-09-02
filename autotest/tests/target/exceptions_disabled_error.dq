@@ -1,3 +1,4 @@
+//?notest
 // Focused diagnostics for exception statements in exception-free builds.
 
 #ifdef TEST_TRY

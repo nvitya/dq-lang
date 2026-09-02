@@ -1,3 +1,4 @@
+//?notest
 // Heap-free text operations must remain available when dynamic strings are disabled.
 
 use strutils

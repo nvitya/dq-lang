@@ -2,6 +2,6 @@
 //?compargs('--exceptions', '-DEXPECT_EXCEPTIONS')
 //?build_suffix('exceptions-enabled')
 
-main = '../../target/exception_switch.dq'
+main = '../target/exception_switch.dq'
 exceptions = false
 link = false

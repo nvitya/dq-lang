@@ -1,6 +1,6 @@
 //?build_only
 
-main = '../../target/arm_no_exceptions.dq'
+main = '../target/arm_no_exceptions.dq'
 target = 'arm_m7f-bare'
 exceptions = false
 link = true

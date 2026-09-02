@@ -1,3 +1,4 @@
+//?notest
 main = 'main.dq'
 target = 'wasm32_bare'
 link = true

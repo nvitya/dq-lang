@@ -1,3 +1,4 @@
+//?notest
 // Compile-only diagnostics for disabled dynamic strings.
 
 #ifdef TEST_STR

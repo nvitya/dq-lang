@@ -1,6 +1,6 @@
 //?build_only
 //?build_suffix('native-collections')
-main = '../../target/arm_native_collections.dq'
+main = 'arm_native_collections.dq'
 target = 'arm_m7f-bare'
 cpu_features = '+no-movt'
 dynstrings = true

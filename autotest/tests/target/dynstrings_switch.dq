@@ -1,3 +1,4 @@
+//?notest
 // Compile-only coverage for the DYNSTRINGS define and the implicit sys prelude.
 
 #ifdef EXPECT_DYNSTRINGS

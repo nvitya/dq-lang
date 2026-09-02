@@ -357,6 +357,20 @@ int OAtRunner::Run()
     return 1;
   }
 
+  if (g_atropt->clean)
+  {
+    int result = Clean();
+    if (result)
+    {
+      return result;
+    }
+  }
+
+  if (g_atropt->clean_only)
+  {
+    return 0;
+  }
+
   if (g_atropt->batchmode)
   {
     return RunBatch();
@@ -365,6 +379,60 @@ int OAtRunner::Run()
   {
     return RunSingle();
   }
+}
+
+int OAtRunner::Clean()
+{
+  fs::path rootpath(g_atropt->test_root);
+  error_code ec;
+  if (!fs::exists(rootpath, ec) or ec)
+  {
+    print("The test root \"{}\" does not exist\n", rootpath.generic_string());
+    return 1;
+  }
+
+  int error_count = 0;
+  fs::recursive_directory_iterator iter(rootpath, fs::directory_options::skip_permission_denied, ec);
+  fs::recursive_directory_iterator end;
+  while (iter != end)
+  {
+    if (ec)
+    {
+      print("Cannot inspect test artifact \"{}\": {}\n", iter->path().generic_string(), ec.message());
+      ++error_count;
+      ec.clear();
+      iter.increment(ec);
+      continue;
+    }
+
+    const fs::directory_entry & entry = *iter;
+    const fs::path path = entry.path();
+
+    if (entry.is_directory(ec) and (".dqbuild" == path.filename().string()))
+    {
+      iter.disable_recursion_pending();
+      fs::remove_all(path, ec);
+    }
+    else if (entry.is_regular_file(ec))
+    {
+      const string extension = path.extension().string();
+      if ((".exe" == extension) or (".o" == extension) or (".dqm_if" == extension) or (".atr" == extension))
+      {
+        fs::remove(path, ec);
+      }
+    }
+
+    if (ec)
+    {
+      print("Cannot remove test artifact \"{}\": {}\n", path.generic_string(), ec.message());
+      ++error_count;
+      ec.clear();
+    }
+
+    iter.increment(ec);
+  }
+
+  return error_count;
 }
 
 int OAtRunner::RunBatch()

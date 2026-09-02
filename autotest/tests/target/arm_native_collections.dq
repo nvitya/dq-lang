@@ -1,3 +1,4 @@
+//?notest
 // Compile-only coverage for target-native collection lengths and indexes.
 
 use rtl/sys

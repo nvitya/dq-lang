@@ -19,7 +19,7 @@ function *Main() -> int:
         var define : str = '-D' + dyn_cases[i]
         ExpectCompileFailure([
             '--no-dynstrings', define, '-c', '-o', output,
-            SourcePath('../../target/dynstrings_disabled_error.dq')
+            SourcePath('../target/dynstrings_disabled_error.dq')
         ], 'ERROR(DynStringsDisabled)')
     endfor
 
@@ -28,13 +28,13 @@ function *Main() -> int:
         var define : str = '-D' + exception_cases[i]
         ExpectCompileFailure([
             '--no-exceptions', define, '-c', '-o', output,
-            SourcePath('../../target/exceptions_disabled_error.dq')
+            SourcePath('../target/exceptions_disabled_error.dq')
         ], 'ERROR(ExceptionsDisabled)')
     endfor
 
     ExpectCompileFailure([
         '--target=arm_m7f-bare', '--no-use-sys', '-c', '-o', output,
-        SourcePath('../../target/exception_switch.dq')
+        SourcePath('../target/exception_switch.dq')
     ], 'ERROR(VsUnknown)')
 
     RemoveTemp(output)

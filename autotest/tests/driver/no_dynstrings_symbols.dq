@@ -8,7 +8,7 @@ function *Main() -> int:
     var object_path : str = TempPath('.o')
     run.RunCompiler([
         '--target=arm_m7f-bare', '--no-dynstrings', '-c', '-o', object_path,
-        SourcePath('../../target/no_dynstrings_text.dq')
+        SourcePath('../target/no_dynstrings_text.dq')
     ])
     run.ExpectExitCode(0)
 

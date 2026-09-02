@@ -94,7 +94,7 @@ endif()
 set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
 
 add_custom_target(cleantest
-  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
+  COMMAND ${DQ_AUTOTEST_COMMAND} --clean-only
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
@@ -114,16 +114,14 @@ add_custom_target(autotest_O0
 )
 
 add_custom_target(test
-  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
-  COMMAND ${DQ_AUTOTEST_COMMAND}
+  COMMAND ${DQ_AUTOTEST_COMMAND} --clean
   DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
 
 add_custom_target(test_O0
-  COMMAND "${CMAKE_SOURCE_DIR}/autotest/clean.sh"
-  COMMAND ${DQ_AUTOTEST_COMMAND} -O0
+  COMMAND ${DQ_AUTOTEST_COMMAND} --clean -O0
   DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL

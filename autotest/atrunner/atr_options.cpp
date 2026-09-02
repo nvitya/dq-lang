@@ -50,6 +50,7 @@ OAtrOptions::~OAtrOptions()
 void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
 {
   vector<string> posargs;
+  bool test_root_specified = false;
 
   for (int i = 1; i < argc; ++i)
   {
@@ -58,6 +59,12 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
     if ('-' == v[0])
     {
       if ("--version" == v)  print_version = true;
+      else if ("--clean" == v) clean = true;
+      else if ("--clean-only" == v)
+      {
+        clean = true;
+        clean_only = true;
+      }
 
       else if ("-v" == v)    verblevel = VERBLEVEL_STATUS;
       else if ("-vv" == v)   verblevel = VERBLEVEL_INFO;
@@ -94,6 +101,7 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
         {
           ++i;
           test_root = argv[i];
+          test_root_specified = true;
         }
         else
         {
@@ -165,6 +173,19 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
   {
     batchmode = true;
   }
+
+  if (clean and !test_root_specified)
+  {
+    test_root = "autotest/tests";
+  }
+
+  if (clean_only and !batchmode)
+  {
+    ++arg_error_count;
+    print("--clean-only cannot be used with a single test file.\n");
+    PrintUsage();
+    return;
+  }
 }
 
 void OAtrOptions::PrintUsage()
@@ -176,6 +197,8 @@ void OAtrOptions::PrintUsage()
   print("  -c <file> : set compiler executable filename\n");
   print("  -r <dir>  : set batch test root directory\n");
   print("  -j <n>    : set batch worker count, 0 = auto detect\n");
+  print("  --clean   : remove generated test artifacts before running tests\n");
+  print("  --clean-only : remove generated test artifacts without running tests\n");
   print("  -v,-v1    : status output\n");
   print("  -vv,-v2   : info output\n");
   print("  -vvv,-v3  : debug output\n");

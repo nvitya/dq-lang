@@ -1,5 +1,5 @@
 //?build_only
 //?build_suffix('dynstrings-enabled')
-main = '../../target/dynstrings_switch.dq'
+main = 'dynstrings_switch.dq'
 link = false
 define EXPECT_DYNSTRINGS

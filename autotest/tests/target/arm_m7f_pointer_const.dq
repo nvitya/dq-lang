@@ -1,3 +1,4 @@
+//?notest
 struct STimerRegisters:
     CR1 : [[regrw]] uint32
 endstruct

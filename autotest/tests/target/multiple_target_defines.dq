@@ -1,3 +1,4 @@
+//?notest
 // Compile-only coverage for architecture/platform defines on cross targets.
 
 #ifdef EXPECT_WASI

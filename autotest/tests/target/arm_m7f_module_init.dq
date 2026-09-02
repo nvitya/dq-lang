@@ -1,3 +1,4 @@
+//?notest
 object OChild:
     value : int
 

@@ -1,6 +1,6 @@
 //?build_only
 //?compargs('--no-dynstrings', '--dynstrings')
 //?build_suffix('dynstrings-enabled')
-main = '../../target/dynstrings_switch.dq'
+main = 'dynstrings_switch.dq'
 link = false
 define EXPECT_DYNSTRINGS

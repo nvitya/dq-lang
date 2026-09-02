@@ -1,6 +1,6 @@
 //?build_only
 //?compargs('--no-use-sys')
-main = '../../target/arm_m7f_pointer_const.dq'
+main = 'arm_m7f_pointer_const.dq'
 target = 'arm_m0-bare'
 link = false
 optlevel = 's'

@@ -1,3 +1,4 @@
+//?notest
 function soft_entry() [[cexport, asm]]:
     b _start
 endfunc

@@ -1,4 +1,4 @@
 //?build_only
-main = '../../target/dynstrings_switch.dq'
+main = 'dynstrings_switch.dq'
 target = 'arm_m7f-bare'
 link = false

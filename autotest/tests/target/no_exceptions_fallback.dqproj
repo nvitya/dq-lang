@@ -1,5 +1,5 @@
 //?exitcode(0)
 //?build_suffix('exceptions-disabled')
-main = '../../target/no_exceptions_fallback.dq'
+main = 'no_exceptions_fallback.dq'
 exceptions = false
 link = true

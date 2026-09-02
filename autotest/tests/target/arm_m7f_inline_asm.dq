@@ -1,3 +1,4 @@
+//?notest
 function ReverseBits(value : uint32) -> uint32 [[inline, asm]]:
     rbit    $result, $value
 endfunc

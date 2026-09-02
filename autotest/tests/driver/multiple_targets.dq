@@ -29,7 +29,7 @@ function CompileTarget(target : strview, define : strview, expected_format : str
     var define_arg : str = '-D' + define
     run.RunCompiler([
         target_arg, define_arg, '--no-use-sys', '-c', '-o', output,
-        SourcePath('../../target/multiple_target_defines.dq')
+        SourcePath('../target/multiple_target_defines.dq')
     ])
     run.ExpectExitCode(0)
     if run.exitcode == 0:
@@ -59,7 +59,7 @@ function *Main() -> int:
     var wasm_import : str = TempPath('.wasm')
     run.RunCompiler([
         '-o', wasm_import,
-        SourcePath('../../target/wasm_external_import/wasm_external_import.dqproj')
+        SourcePath('../target/wasm_external_import/wasm_external_import.dqproj')
     ])
     run.ExpectExitCode(0)
     if run.exitcode == 0:
@@ -73,7 +73,7 @@ function *Main() -> int:
     var rv_object : str = TempPath('.o')
     run.RunCompiler([
         '--target=rv32imac_bare', '--no-use-sys', '-c', '-o', rv_object,
-        SourcePath('../../target/multiple_target_defines.dq')
+        SourcePath('../target/multiple_target_defines.dq')
     ])
     run.ExpectExitCode(0)
     if run.exitcode == 0:
@@ -85,7 +85,7 @@ function *Main() -> int:
 
     run.RunCompiler([
         '--target=wasm32_wasi', '--exceptions', '--no-use-sys', '-c',
-        SourcePath('../../target/multiple_target_defines.dq')
+        SourcePath('../target/multiple_target_defines.dq')
     ])
     if run.exitcode == 0:
         Fail('WASI unexpectedly accepted exceptions')
@@ -93,7 +93,7 @@ function *Main() -> int:
     run.ExpectOutputContains('does not support exceptions')
 
     run.RunCompiler([
-        SourcePath('../../target/wasi_exceptions_true.dqproj')
+        SourcePath('../target/wasi_exceptions_true.dqproj')
     ])
     if run.exitcode == 0:
         Fail('WASI project unexpectedly accepted exceptions')
@@ -102,7 +102,7 @@ function *Main() -> int:
 
     run.RunCompiler([
         '--target=wasm32_wasi', '--exceptions', '--no-exceptions', '--no-use-sys', '-c',
-        SourcePath('../../target/multiple_target_defines.dq')
+        SourcePath('../target/multiple_target_defines.dq')
     ])
     run.ExpectExitCode(0)
 

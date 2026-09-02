@@ -1,3 +1,4 @@
+//?notest
 // Exception-free bare linking must not require a C++ unwinder or personality.
 
 function NoUnwindExternal() [[external]]

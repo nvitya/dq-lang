@@ -9,7 +9,7 @@ function CheckOptimization(option : strview, expect_minsize : bool):
     var opt : str = option
     run.RunCompiler([
         '--target=arm_m7f-bare', '--no-use-sys', opt, '-ir', '-c',
-        '-o', output, SourcePath('../../target/arm_m7f_pointer_const.dq')
+        '-o', output, SourcePath('../target/arm_m7f_pointer_const.dq')
     ])
     run.ExpectExitCode(0)
     run.ExpectOutputContains('optsize')

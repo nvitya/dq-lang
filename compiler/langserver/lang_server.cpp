@@ -21,7 +21,6 @@
 #include "processrunner.h"
 
 #include "dq_utils.h"
-#include <llvm/Support/Error.h>
 
 using namespace std;
 
@@ -109,18 +108,96 @@ static void WriteMessage(const string & payload)
   cout.flush();
 }
 
-static bool IsRequest(const llvm::json::Object & object)
+static const TJsonNode * JsonChild(const TJsonNode & object, const string & name)
 {
-  return object.get("id") != nullptr;
+  return object.GetKind() == nkObject ? object.Child(name) : nullptr;
 }
 
-static string JsonId(const llvm::json::Object & object)
+static bool JsonString(const TJsonNode & object, const string & name, string & rvalue)
 {
-  const llvm::json::Value * value = object.get("id");
-  if (!value) return "null";
-  if (optional<int64_t> id = value->getAsInteger()) return to_string(*id);
-  if (optional<llvm::StringRef> id = value->getAsString()) return "\"" + JsonEscape(id->str()) + "\"";
-  return "null";
+  const TJsonNode * value = JsonChild(object, name);
+  if (!value || value->GetKind() != nkString) return false;
+  rvalue = value->GetAsString();
+  return true;
+}
+
+static bool TryJsonInteger(const TJsonNode * value, long long & rvalue)
+{
+  if (!value || value->GetKind() != nkNumber) return false;
+  try
+  {
+    string text = value->GetAsString();
+    size_t length = 0;
+    long long result = stoll(text, &length);
+    if (length != text.size()) return false;
+    rvalue = result;
+    return true;
+  }
+  catch (...) { return false; }
+}
+
+static long long JsonInteger(const TJsonNode * value, long long default_value)
+{
+  long long result;
+  return TryJsonInteger(value, result) ? result : default_value;
+}
+
+static bool IsRequest(const TJsonNode & object)
+{
+  return JsonChild(object, "id") != nullptr;
+}
+
+static void AddJsonId(TJsonNode & object, const TJsonNode * request)
+{
+  const TJsonNode * value = request ? JsonChild(*request, "id") : nullptr;
+  if (value && value->GetKind() == nkNumber)
+  {
+    long long id;
+    if (TryJsonInteger(value, id))
+    {
+      object.Add("id", id);
+      return;
+    }
+  }
+  if (value && value->GetKind() == nkString)
+  {
+    object.Add("id", value->GetAsString());
+    return;
+  }
+  object.Add("id").GetAsNull();
+}
+
+static void AddPosition(TJsonNode & object, const char * name, int line, int character)
+{
+  TJsonNode & position = object.Add(name).GetAsObject();
+  position.Add("line", line);
+  position.Add("character", character);
+}
+
+static void AddRange(TJsonNode & object, int line, int character, int end_line, int end_character)
+{
+  TJsonNode & range = object.Add("range").GetAsObject();
+  AddPosition(range, "start", line, character);
+  AddPosition(range, "end", end_line, end_character);
+}
+
+static void AddDocumentSymbol(TJsonNode & symbols, const string & name, int kind,
+                              int line, int character, int end_line, int end_character)
+{
+  TJsonNode & symbol = symbols.Add().GetAsObject();
+  symbol.Add("name", name);
+  symbol.Add("kind", kind);
+  AddRange(symbol, line, character, end_line, end_character);
+  TJsonNode & selection_range = symbol.Add("selectionRange").GetAsObject();
+  AddPosition(selection_range, "start", line, character);
+  AddPosition(selection_range, "end", end_line, end_character);
+}
+
+static void AddCompletionItem(TJsonNode & items, const string & label, int kind)
+{
+  TJsonNode & item = items.Add().GetAsObject();
+  item.Add("label", label);
+  item.Add("kind", kind);
 }
 
 static int Utf8CharBytes(unsigned char c)
@@ -204,35 +281,41 @@ int ODqLanguageServer::Run()
   string payload;
   while (ReadMessage(payload))
   {
-    auto parsed = llvm::json::parse(payload);
-    if (!parsed)
+    TJsonNode request;
+    if (!request.TryParse(payload))
     {
-      llvm::consumeError(parsed.takeError());
       RespondError(nullptr, -32700, "Parse error");
       continue;
     }
-    llvm::json::Object * request = parsed->getAsObject();
-    if (!request)
+    if (request.GetKind() != nkObject)
     {
       RespondError(nullptr, -32600, "Invalid Request");
       continue;
     }
-    Handle(*request);
+    Handle(request);
     if (should_exit) break;
   }
   return exit_status;
 }
 
-void ODqLanguageServer::Respond(const llvm::json::Object & request, const string & result)
+void ODqLanguageServer::Respond(const TJsonNode & request, const TJsonNode & result)
 {
-  WriteMessage("{\"jsonrpc\":\"2.0\",\"id\":" + JsonId(request) + ",\"result\":" + result + "}");
+  TJsonNode response(nkObject);
+  response.Add("jsonrpc", "2.0");
+  AddJsonId(response, &request);
+  response.Add("result").SetAsJson(result.GetAsJson(true));
+  WriteMessage(response.GetAsJson(true));
 }
 
-void ODqLanguageServer::RespondError(const llvm::json::Object * request, int code, string_view message)
+void ODqLanguageServer::RespondError(const TJsonNode * request, int code, string_view message)
 {
-  string id = request ? JsonId(*request) : "null";
-  WriteMessage(format("{{\"jsonrpc\":\"2.0\",\"id\":{},\"error\":{{\"code\":{},\"message\":\"{}\"}}}}",
-                      id, code, JsonEscape(message)));
+  TJsonNode response(nkObject);
+  response.Add("jsonrpc", "2.0");
+  AddJsonId(response, request);
+  TJsonNode & error = response.Add("error").GetAsObject();
+  error.Add("code", code);
+  error.Add("message", string(message));
+  WriteMessage(response.GetAsJson(true));
 }
 
 bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root)
@@ -245,9 +328,8 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
   filesystem::create_directories(rbuild_root, ec);
   if (ec) return false;
 
-  ostringstream manifest;
-  manifest << "{\"files\":[";
-  bool first = true;
+  TJsonNode manifest(nkObject);
+  TJsonNode & files = manifest.Add("files").GetAsArray();
   size_t index = 0;
   for (const auto & [uri, document] : documents)
   {
@@ -255,15 +337,13 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
     ofstream output(staged, ios::binary);
     output.write(document.text.data(), static_cast<streamsize>(document.text.size()));
     if (!output) return false;
-    if (!first) manifest << ',';
-    first = false;
-    manifest << "{\"source\":\"" << JsonEscape(AbsNormPath(document.path).string())
-             << "\",\"staged\":\"" << JsonEscape(staged.string()) << "\"}";
+    TJsonNode & file = files.Add().GetAsObject();
+    file.Add("source", AbsNormPath(document.path).string());
+    file.Add("staged", staged.string());
   }
-  manifest << "]}";
   rmanifest = job_dir / "overlay.json";
   ofstream output(rmanifest, ios::binary);
-  string text = manifest.str();
+  string text = manifest.GetAsJson(true);
   output.write(text.data(), static_cast<streamsize>(text.size()));
   return bool(output);
 }
@@ -300,74 +380,63 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   string line;
   while (getline(lines, line))
   {
-    auto parsed = llvm::json::parse(line);
-    if (!parsed)
-    {
-      llvm::consumeError(parsed.takeError());
-      continue;  // worker status output is never protocol data.
-    }
-    llvm::json::Object * object = parsed->getAsObject();
-    if (!object || (object->getString("kind") != "diagnostic")) continue;
-    optional<llvm::StringRef> path = object->getString("path");
-    optional<llvm::StringRef> severity = object->getString("severity");
-    optional<llvm::StringRef> code = object->getString("code");
-    optional<llvm::StringRef> message = object->getString("message");
-    if (!path || !message) continue;
+    TJsonNode object;
+    string kind;
+    if (!object.TryParse(line) || object.GetKind() != nkObject || !JsonString(object, "kind", kind)
+        || kind != "diagnostic") continue; // worker status output is never protocol data.
+    string path;
+    string message;
+    if (!JsonString(object, "path", path) || !JsonString(object, "message", message)) continue;
     SDiagnostic diagnostic;
-    diagnostic.path = AbsNormPath(path->str()).string();
-    diagnostic.severity = severity ? severity->str() : "ERROR";
-    diagnostic.code = code ? code->str() : "";
-    diagnostic.message = message->str();
-    diagnostic.line = int(object->getInteger("line").value_or(1));
-    diagnostic.column = int(object->getInteger("column").value_or(1));
+    diagnostic.path = AbsNormPath(path).string();
+    JsonString(object, "severity", diagnostic.severity);
+    if (diagnostic.severity.empty()) diagnostic.severity = "ERROR";
+    JsonString(object, "code", diagnostic.code);
+    diagnostic.message = message;
+    diagnostic.line = int(JsonInteger(JsonChild(object, "line"), 1));
+    diagnostic.column = int(JsonInteger(JsonChild(object, "column"), 1));
     result.diagnostics.push_back(move(diagnostic));
   }
 
   ifstream result_file(result_path, ios::binary);
   string result_text((istreambuf_iterator<char>(result_file)), istreambuf_iterator<char>());
-  auto parsed_result = llvm::json::parse(result_text);
-  if (!parsed_result)
+  TJsonNode root;
+  if (!root.TryParse(result_text) || root.GetKind() != nkObject) return result;
+  const TJsonNode * symbols = JsonChild(root, "documentSymbols");
+  if (symbols && symbols->GetKind() == nkArray)
   {
-    llvm::consumeError(parsed_result.takeError());
-  }
-  llvm::json::Object * root = parsed_result ? parsed_result->getAsObject() : nullptr;
-  llvm::json::Array * symbols = root ? root->getArray("documentSymbols") : nullptr;
-  if (symbols)
-  {
-    for (llvm::json::Value & value : *symbols)
+    for (int index = 0; index < symbols->GetCount(); ++index)
     {
-      llvm::json::Object * object = value.getAsObject();
-      if (!object) continue;
-      optional<llvm::StringRef> path = object->getString("path");
-      optional<llvm::StringRef> name = object->getString("name");
-      if (!path || !name) continue;
+      const TJsonNode & object = symbols->Child(index);
+      string path;
+      string name;
+      if (object.GetKind() != nkObject || !JsonString(object, "path", path) || !JsonString(object, "name", name)) continue;
       SDocumentSymbol symbol;
-      symbol.path = AbsNormPath(path->str()).string();
-      symbol.name = name->str();
-      symbol.kind = int(object->getInteger("kind").value_or(13));
-      symbol.line = int(object->getInteger("line").value_or(1));
-      symbol.column = int(object->getInteger("column").value_or(1));
+      symbol.path = AbsNormPath(path).string();
+      symbol.name = name;
+      symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
+      symbol.line = int(JsonInteger(JsonChild(object, "line"), 1));
+      symbol.column = int(JsonInteger(JsonChild(object, "column"), 1));
       result.document_symbols.push_back(move(symbol));
     }
   }
-  llvm::json::Object * namespaces_obj = root ? root->getObject("namespaces") : nullptr;
-  if (namespaces_obj)
+  const TJsonNode * namespaces_obj = JsonChild(root, "namespaces");
+  if (namespaces_obj && namespaces_obj->GetKind() == nkObject)
   {
-    for (const auto & [ns_name, ns_val] : *namespaces_obj)
+    for (int index = 0; index < namespaces_obj->GetCount(); ++index)
     {
-      const llvm::json::Array * ns_arr = ns_val.getAsArray();
-      if (!ns_arr) continue;
-      string name = ns_name.str();
+      const TJsonNode & ns_value = namespaces_obj->Child(index);
+      if (ns_value.GetKind() != nkArray) continue;
+      string name = ns_value.GetName();
       vector<SDocumentSymbol> & dst = result.namespaces[name];
-      for (const llvm::json::Value & value : *ns_arr)
+      for (int symbol_index = 0; symbol_index < ns_value.GetCount(); ++symbol_index)
       {
-        const llvm::json::Object * object = value.getAsObject();
-        if (!object) continue;
-        optional<llvm::StringRef> sym_name = object->getString("name");
-        if (!sym_name) continue;
+        const TJsonNode & object = ns_value.Child(symbol_index);
+        string symbol_name;
+        if (object.GetKind() != nkObject || !JsonString(object, "name", symbol_name)) continue;
         SDocumentSymbol symbol;
-        symbol.name = sym_name->str();
-        symbol.kind = int(object->getInteger("kind").value_or(13));
+        symbol.name = symbol_name;
+        symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
         dst.push_back(move(symbol));
       }
     }
@@ -377,61 +446,60 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
 
 void ODqLanguageServer::PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics)
 {
-  string message = "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":{\"uri\":\""
-      + JsonEscape(document.uri) + "\",\"version\":" + to_string(document.version) + ",\"diagnostics\":[";
-  for (size_t i = 0; i < diagnostics.size(); ++i)
+  TJsonNode message(nkObject);
+  message.Add("jsonrpc", "2.0");
+  message.Add("method", "textDocument/publishDiagnostics");
+  TJsonNode & params = message.Add("params").GetAsObject();
+  params.Add("uri", document.uri);
+  params.Add("version", static_cast<long long>(document.version));
+  TJsonNode & json_diagnostics = params.Add("diagnostics").GetAsArray();
+  for (const SDiagnostic & diagnostic : diagnostics)
   {
-    const SDiagnostic & diagnostic = diagnostics[i];
-    if (i) message += ',';
     int severity = diagnostic.severity == "ERROR" ? 1 : (diagnostic.severity == "WARNING" ? 2 : 3);
     int line = max(0, diagnostic.line - 1);
     int character = Utf16Column(document.text, diagnostic.line, max(0, diagnostic.column - 1));
-    message += format("{{\"range\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}},\"severity\":{},\"code\":\"{}\",\"source\":\"dq-comp\",\"message\":\"{}\"}}",
-                      line, character, line, character, severity, JsonEscape(diagnostic.code), JsonEscape(diagnostic.message));
+    TJsonNode & json_diagnostic = json_diagnostics.Add().GetAsObject();
+    AddRange(json_diagnostic, line, character, line, character);
+    json_diagnostic.Add("severity", severity);
+    json_diagnostic.Add("code", diagnostic.code);
+    json_diagnostic.Add("source", "dq-comp");
+    json_diagnostic.Add("message", diagnostic.message);
   }
-  message += "]}}";
-  WriteMessage(message);
+  WriteMessage(message.GetAsJson(true));
 }
 
-string ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) const
+TJsonNode ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) const
 {
-  string result = "[";
-  bool first = true;
+  TJsonNode result(nkArray);
   auto it = document_symbols.find(AbsNormPath(document.path).string());
   if (it != document_symbols.end())
   {
-    for (size_t i = 0; i < it->second.size(); ++i)
+    for (const SDocumentSymbol & symbol : it->second)
     {
-      const SDocumentSymbol & symbol = it->second[i];
-      if (!first) result += ',';
-      first = false;
       int line = max(0, symbol.line - 1);
       int character = DocumentSymbolNameColumn(document, symbol);
       int end_character = character + Utf16TextWidth(symbol.name);
-      result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":{},\"character\":{}}},\"end\":{{\"line\":{},\"character\":{}}}}}}}",
-                       JsonEscape(symbol.name), symbol.kind, line, character, line, end_character,
-                       line, character, line, end_character);
+      AddDocumentSymbol(result, symbol.name, symbol.kind, line, character, line, end_character);
     }
   }
   for (const auto & [ns_name, ns_symbols] : namespaces)
   {
     if (ns_name == "." || ns_name == "..") continue; // internal scopes
-    if (!first) result += ',';
-    first = false;
-    result += format("{{\"name\":\"{}\",\"kind\":3,\"range\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":0}}}},\"selectionRange\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":0}}}},\"children\":[",
-                     JsonEscape(ns_name));
-    bool first_sym = true;
+    TJsonNode & json_namespace = result.Add().GetAsObject();
+    json_namespace.Add("name", ns_name);
+    json_namespace.Add("kind", 3);
+    AddRange(json_namespace, 0, 0, 0, 0);
+    TJsonNode & selection_range = json_namespace.Add("selectionRange").GetAsObject();
+    AddPosition(selection_range, "start", 0, 0);
+    AddPosition(selection_range, "end", 0, 0);
+    TJsonNode & children = json_namespace.Add("children").GetAsArray();
     for (const auto & symbol : ns_symbols)
     {
-      if (!first_sym) result += ',';
-      first_sym = false;
       int end_character = Utf16TextWidth(symbol.name);
-      result += format("{{\"name\":\"{}\",\"kind\":{},\"range\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":{}}}}},\"selectionRange\":{{\"start\":{{\"line\":0,\"character\":0}},\"end\":{{\"line\":0,\"character\":{}}}}}}}",
-                       JsonEscape(symbol.name), symbol.kind, end_character, end_character);
+      AddDocumentSymbol(children, symbol.name, symbol.kind, 0, 0, 0, end_character);
     }
-    result += "]}";
   }
-  return result + "]";
+  return result;
 }
 
 void ODqLanguageServer::Reanalyze()
@@ -485,16 +553,16 @@ static int DocumentSymbolToCompletionKind(int kind)
   return 6; // Variable default
 }
 
-void ODqLanguageServer::Handle(const llvm::json::Object & request)
+void ODqLanguageServer::Handle(const TJsonNode & request)
 {
-  optional<llvm::StringRef> method_ref = request.getString("method");
-  if (!method_ref)
+  string method;
+  if (!JsonString(request, "method", method))
   {
     if (IsRequest(request)) RespondError(&request, -32600, "Invalid Request");
     return;
   }
-  string method = method_ref->str();
-  const llvm::json::Object * params = request.getObject("params");
+  const TJsonNode * params = JsonChild(request, "params");
+  if (params && params->GetKind() != nkObject) params = nullptr;
   if (method == "initialize")
   {
     if (!IsRequest(request)) return;
@@ -504,7 +572,21 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
       return;
     }
     initialize_received = true;
-    Respond(request, "{\"capabilities\":{\"positionEncoding\":\"utf-16\",\"textDocumentSync\":{\"openClose\":true,\"change\":1,\"save\":{\"includeText\":false}},\"documentSymbolProvider\":true,\"completionProvider\":{\"resolveProvider\":false,\"triggerCharacters\":[\".\",\"@\"]}},\"serverInfo\":{\"name\":\"dq-comp\"}}" );
+    TJsonNode result(nkObject);
+    TJsonNode & capabilities = result.Add("capabilities").GetAsObject();
+    capabilities.Add("positionEncoding", "utf-16");
+    TJsonNode & text_document_sync = capabilities.Add("textDocumentSync").GetAsObject();
+    text_document_sync.Add("openClose", true);
+    text_document_sync.Add("change", 1);
+    text_document_sync.Add("save").GetAsObject().Add("includeText", false);
+    capabilities.Add("documentSymbolProvider", true);
+    TJsonNode & completion_provider = capabilities.Add("completionProvider").GetAsObject();
+    completion_provider.Add("resolveProvider", false);
+    TJsonNode & trigger_characters = completion_provider.Add("triggerCharacters").GetAsArray();
+    trigger_characters.Add().SetAsString(".");
+    trigger_characters.Add().SetAsString("@");
+    result.Add("serverInfo").GetAsObject().Add("name", "dq-comp");
+    Respond(request, result);
     return;
   }
   if (method == "initialized")
@@ -525,7 +607,8 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
       return;
     }
     shutdown_requested = true;
-    Respond(request, "null");
+    TJsonNode result(nkNull);
+    Respond(request, result);
     return;
   }
   if (method == "exit")
@@ -553,15 +636,15 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
     return;
   }
 
-  const llvm::json::Object * text_document = params->getObject("textDocument");
-  if (!text_document) return;
-  optional<llvm::StringRef> uri_ref = text_document->getString("uri");
-  if (!uri_ref) return;
-  string uri = uri_ref->str();
+  const TJsonNode * text_document = JsonChild(*params, "textDocument");
+  if (!text_document || text_document->GetKind() != nkObject) return;
+  string uri;
+  if (!JsonString(*text_document, "uri", uri)) return;
   if (method == "textDocument/documentSymbol")
   {
     auto it = documents.find(uri);
-    Respond(request, it == documents.end() ? "[]" : DocumentSymbolsJson(it->second));
+    TJsonNode result = it == documents.end() ? TJsonNode(nkArray) : DocumentSymbolsJson(it->second);
+    Respond(request, result);
     return;
   }
   if (method == "textDocument/completion")
@@ -569,13 +652,15 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
     auto it = documents.find(uri);
     if (it == documents.end())
     {
-      Respond(request, "[]");
+      TJsonNode result(nkArray);
+      Respond(request, result);
       return;
     }
     const SDocument & document = it->second;
-    const llvm::json::Object * position = params->getObject("position");
-    int line = position ? int(position->getInteger("line").value_or(0)) : 0;
-    int character = position ? int(position->getInteger("character").value_or(0)) : 0;
+    const TJsonNode * position = JsonChild(*params, "position");
+    if (position && position->GetKind() != nkObject) position = nullptr;
+    int line = position ? int(JsonInteger(JsonChild(*position, "line"), 0)) : 0;
+    int character = position ? int(JsonInteger(JsonChild(*position, "character"), 0)) : 0;
     
     size_t line_start = 0;
     for (int l = 0; (l < line) && (line_start < document.text.size()); ++l)
@@ -610,27 +695,21 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
     else if (prefix_start > line_start && document.text[prefix_start - 1] == '@')
     {
        // complete namespace names if they type '@'
-       string result = "[";
-       bool first = true;
+       TJsonNode result(nkArray);
        for (const auto & [ns_name, _] : namespaces)
        {
          if (ns_name == "." || ns_name == "..") continue;
-         if (!first) result += ',';
-         first = false;
-         result += format("{{\"label\":\"{}\",\"kind\":9}}", JsonEscape(ns_name)); // 9 = Module/Namespace
+         AddCompletionItem(result, ns_name, 9); // 9 = Module/Namespace
        }
-       result += "]";
        Respond(request, result);
        return;
     }
     
-    string result = "[]";
+    TJsonNode result(nkArray);
     if (scope_name == "..")
     {
       // The user is typing a regular identifier. In DQ, namespaces like `dq` and `def` are merged.
       // So we offer symbols from all these core scopes.
-      result = "[";
-      bool first = true;
       const char* merged_scopes[] = { "..", ".", "dq", "def" };
       for (const char* ns : merged_scopes)
       {
@@ -639,13 +718,10 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
         {
           for (const auto & symbol : ns_it->second)
           {
-            if (!first) result += ',';
-            first = false;
-            result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+            AddCompletionItem(result, symbol.name, DocumentSymbolToCompletionKind(symbol.kind));
           }
         }
       }
-      result += "]";
     }
     else
     {
@@ -664,15 +740,10 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
       
       if (ns_it != namespaces.end())
       {
-        result = "[";
-        bool first = true;
         for (const auto & symbol : ns_it->second)
         {
-          if (!first) result += ',';
-          first = false;
-          result += format("{{\"label\":\"{}\",\"kind\":{}}}", JsonEscape(symbol.name), DocumentSymbolToCompletionKind(symbol.kind));
+          AddCompletionItem(result, symbol.name, DocumentSymbolToCompletionKind(symbol.kind));
         }
-        result += "]";
       }
     }
     Respond(request, result);
@@ -693,25 +764,23 @@ void ODqLanguageServer::Handle(const llvm::json::Object & request)
   }
   string path = FilePathFromUri(uri);
   if (path.empty()) return;
-  const llvm::json::Value * text_value = nullptr;
-  if (method == "textDocument/didOpen") text_value = text_document->get("text");
+  const TJsonNode * text_value = nullptr;
+  if (method == "textDocument/didOpen") text_value = JsonChild(*text_document, "text");
   else
   {
-    const llvm::json::Array * changes = params->getArray("contentChanges");
-    if (changes && !changes->empty())
+    const TJsonNode * changes = JsonChild(*params, "contentChanges");
+    if (changes && changes->GetKind() == nkArray && changes->GetCount() > 0)
     {
-      const llvm::json::Object * change = (*changes)[0].getAsObject();
-      if (change) text_value = change->get("text");
+      const TJsonNode & change = changes->Child(0);
+      if (change.GetKind() == nkObject) text_value = JsonChild(change, "text");
     }
   }
-  if (!text_value) return;
-  optional<llvm::StringRef> text = text_value->getAsString();
-  if (!text) return;
+  if (!text_value || text_value->GetKind() != nkString) return;
   SDocument & document = documents[uri];
   document.uri = uri;
   document.path = filesystem::path(path);
-  document.text = text->str();
-  document.version = text_document->getInteger("version").value_or(document.version + 1);
+  document.text = text_value->GetAsString();
+  document.version = JsonInteger(JsonChild(*text_document, "version"), document.version + 1);
   Reanalyze();
 }
 

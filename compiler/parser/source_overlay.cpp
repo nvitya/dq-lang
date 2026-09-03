@@ -8,11 +8,9 @@
 #include <fstream>
 #include <sstream>
 
-#include <llvm/Support/JSON.h>
-#include <llvm/Support/Error.h>
-
 #include "source_overlay.h"
 #include "dq_utils.h"
+#include "jsontools.h"
 
 using namespace std;
 
@@ -30,33 +28,31 @@ bool OSourceOverlay::Load(const string & manifest_filename, string & rerror)
     return false;
   }
   string text((istreambuf_iterator<char>(input)), istreambuf_iterator<char>());
-  auto parsed = llvm::json::parse(text);
-  if (!parsed)
+  TJsonNode root;
+  if (!root.TryParse(text))
   {
-    llvm::consumeError(parsed.takeError());
     rerror = "Invalid source overlay manifest: " + manifest_filename;
     return false;
   }
-  llvm::json::Object * root = parsed->getAsObject();
-  if (!root)
+  if (root.GetKind() != nkObject)
   {
     rerror = "Source overlay manifest root must be an object";
     return false;
   }
-  llvm::json::Array * files = root->getArray("files");
-  if (!files)
+  const TJsonNode * files = root.Child("files");
+  if (!files || files->GetKind() != nkArray)
   {
     rerror = "Source overlay manifest has no files array";
     return false;
   }
-  for (llvm::json::Value & value : *files)
+  for (int index = 0; index < files->GetCount(); ++index)
   {
-    llvm::json::Object * entry = value.getAsObject();
-    if (!entry) continue;
-    optional<llvm::StringRef> logical = entry->getString("source");
-    optional<llvm::StringRef> staged = entry->getString("staged");
-    if (!logical || !staged) continue;
-    staged_paths[AbsNormPath(logical->str()).string()] = filesystem::path(staged->str());
+    const TJsonNode & entry = files->Child(index);
+    if (entry.GetKind() != nkObject) continue;
+    const TJsonNode * logical = entry.Child("source");
+    const TJsonNode * staged = entry.Child("staged");
+    if (!logical || !staged || logical->GetKind() != nkString || staged->GetKind() != nkString) continue;
+    staged_paths[AbsNormPath(logical->GetAsString()).string()] = filesystem::path(staged->GetAsString());
   }
   return true;
 }

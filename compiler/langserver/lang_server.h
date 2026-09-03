@@ -18,12 +18,11 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <sstream>
 #include <unordered_map>
 #include <regex>
 
-#include <llvm/Support/JSON.h>
+#include "jsontools.h"
 
 using namespace std;
 
@@ -90,11 +89,11 @@ private:
   bool should_exit = false;
   int exit_status = 0;
 
-  void Handle(const llvm::json::Object & request);
-  void Respond(const llvm::json::Object & request, const string & result);
-  void RespondError(const llvm::json::Object * request, int code, string_view message);
+  void Handle(const TJsonNode & request);
+  void Respond(const TJsonNode & request, const TJsonNode & result);
+  void RespondError(const TJsonNode * request, int code, string_view message);
   void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
-  string DocumentSymbolsJson(const SDocument & document) const;
+  TJsonNode DocumentSymbolsJson(const SDocument & document) const;
   void Reanalyze();
   bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);
   SWorkerResult RunWorker(const filesystem::path & source, const filesystem::path & manifest,

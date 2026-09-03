@@ -13,7 +13,7 @@
 #include <format>
 
 #include "dq_module.h"
-#include "dq_utils.h"
+#include "jsontools.h"
 #include "semantic_result.h"
 
 #include "named_scopes.h"
@@ -82,16 +82,10 @@ const OSymbol * DeclarationSymbol(const ODecl & declaration)
 
 bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, string & rerror)
 {
-  ofstream output(filename, ios::binary | ios::trunc);
-  if (!output)
-  {
-    rerror = "Can not write language-server semantic result: " + filename;
-    return false;
-  }
-
-  output << "{\"formatVersion\":1,\"success\":" << (success ? "true" : "false")
-         << ",\"documentSymbols\":[";
-  bool first = true;
+  TJsonNode result(nkObject);
+  result.Add("formatVersion", 1);
+  result.Add("success", success);
+  TJsonNode & document_symbols = result.Add("documentSymbols").GetAsArray();
   if (g_module)
   {
     for (const ODecl * declaration : g_module->declarations)
@@ -104,38 +98,34 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
         continue;
       }
 
-      if (!first) output << ',';
-      first = false;
       const OScPosition & position = symbol->scpos;
-      output << format("{{\"name\":\"{}\",\"kind\":{},\"path\":\"{}\",\"line\":{},\"column\":{}}}",
-                       JsonEscape(symbol->name), SymbolKind(*declaration), JsonEscape(position.scfile->fullpath),
-                       position.line, position.col);
+      TJsonNode & json_symbol = document_symbols.Add().GetAsObject();
+      json_symbol.Add("name", symbol->name);
+      json_symbol.Add("kind", SymbolKind(*declaration));
+      json_symbol.Add("path", position.scfile->fullpath);
+      json_symbol.Add("line", position.line);
+      json_symbol.Add("column", position.col);
     }
   }
-  output << "],\"namespaces\":{";
-  bool first_ns = true;
+  TJsonNode & json_namespaces = result.Add("namespaces").GetAsObject();
   for (const auto & [ns_name, scope] : g_namespaces)
   {
     if (!scope) continue;
-    if (!first_ns) output << ',';
-    first_ns = false;
-    output << "\"" << JsonEscape(ns_name) << "\":[";
-    bool first_sym = true;
+    TJsonNode & json_symbols = json_namespaces.Add(ns_name).GetAsArray();
     for (const auto & [name, type] : scope->typesyms)
     {
       if (!type || name.empty() || name.starts_with("__dq_")) continue;
-      if (!first_sym) output << ',';
-      first_sym = false;
-      output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), TypeKind(type->kind));
+      TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+      json_symbol.Add("name", name);
+      json_symbol.Add("kind", TypeKind(type->kind));
     }
     for (const auto & [name, valsym] : scope->valsyms)
     {
       if (!valsym || name.empty() || name.starts_with("__dq_")) continue;
-      if (!first_sym) output << ',';
-      first_sym = false;
-      output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), ValSymKind(valsym->kind));
+      TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+      json_symbol.Add("name", name);
+      json_symbol.Add("kind", ValSymKind(valsym->kind));
     }
-    output << "]";
   }
   
   if (g_module)
@@ -146,30 +136,33 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       if (declaration->ptype->IsCompound())
       {
         OCompoundType * ctype = static_cast<OCompoundType *>(declaration->ptype);
-        if (!first_ns) output << ',';
-        first_ns = false;
-        output << "\"" << JsonEscape(ctype->name) << "\":[";
-        bool first_sym = true;
+        TJsonNode & json_symbols = json_namespaces.Add(ctype->name).GetAsArray();
         for (const auto & [name, type] : ctype->member_scope.typesyms)
         {
           if (!type || name.empty() || name.starts_with("__dq_")) continue;
-          if (!first_sym) output << ',';
-          first_sym = false;
-          output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), TypeKind(type->kind));
+          TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+          json_symbol.Add("name", name);
+          json_symbol.Add("kind", TypeKind(type->kind));
         }
         for (const auto & [name, valsym] : ctype->member_scope.valsyms)
         {
           if (!valsym || name.empty() || name.starts_with("__dq_")) continue;
-          if (!first_sym) output << ',';
-          first_sym = false;
-          output << format("{{\"name\":\"{}\",\"kind\":{}}}", JsonEscape(name), ValSymKind(valsym->kind));
+          TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+          json_symbol.Add("name", name);
+          json_symbol.Add("kind", ValSymKind(valsym->kind));
         }
-        output << "]";
       }
     }
   }
   
-  output << "}}";
+  ofstream output(filename, ios::binary | ios::trunc);
+  if (!output)
+  {
+    rerror = "Can not write language-server semantic result: " + filename;
+    return false;
+  }
+  string json = result.GetAsJson(true);
+  output.write(json.data(), static_cast<streamsize>(json.size()));
   if (!output)
   {
     rerror = "Can not finish language-server semantic result: " + filename;

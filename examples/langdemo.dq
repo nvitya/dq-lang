@@ -127,9 +127,9 @@ function *Main() -> int:
         PrintLn()
     endfor
 
-    var arr : [5]int = [2, 3, 5, 7, 11]
+    var arr : [?]int = [2, 3, 5, 7, 11]
     Print('primes:')
-    for i : int = 0  while i < Len(arr):
+    for i : int = 0  while i < arr.length:
         Print(' {}', [ arr[i] ])
     endfor
     PrintLn()

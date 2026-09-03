@@ -1,4 +1,4 @@
-use libc/stdio
+use print
 use ./langdemo_mod as ldm  only(CONST1)  // only(), exclude() and "--" control global scope merging
 
 #if false
@@ -20,7 +20,7 @@ object OBase:
     endfunc
 
     function *Destroy():
-        @.printf("%s destroy\n", %name[0])
+        @.PrintLn("{} destroy", [name])
     endfunc
 
     function Count() [[virtual]]:
@@ -28,7 +28,7 @@ object OBase:
     endfunc
 
     function Print():
-        @.printf('%s: cnt1=%d, cnt2=%d\n', %name[0], cnt1, cnt2)
+        @.PrintLn('{}: cnt1={}, cnt2={}', [name, cnt1, cnt2])
     endfunc
 endobj
 
@@ -52,7 +52,7 @@ function ObjTest():
     obase.Print()
     ochild.Print()
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
+    PrintLn('ochild.name: {}', [iif(ochild == null, "OChild is null!", ochild.name)])
 
     delete ochild
 endfunc
@@ -79,7 +79,10 @@ endfunc
 function putchar(c : char) -> int  [[external]] // from libc
 
 function WriteStr(s : cstring):
-    var pc : ^char = %s[0]
+    var pc : ^char = s.pchar
+    if pc == null:
+        return
+    endif
     while pc^ <> char(0):
         putchar(pc^)
         pc += 1
@@ -93,38 +96,43 @@ function *Main() -> int:
     cstr_add(s, " World!\n")
     WriteStr(s)
 
-    if 3 / 2 * 10 == 15:
-        printf('The language is friendly.\n')
+    if 3 / 2 * 10 == 10 * 3 / 2:
+        PrintLn('The language is friendly.')
     else:
-        printf('The language is evil.\n')
+        PrintLn('The language is evil (like C).')
     endif
 
     if 3 div 2 * 10 == 10 * 3 div 2:
-        printf('The language is very friendly.\n')
+        PrintLn('The language is very friendly.')
     else:
-        printf('The language is not very friendly.\n')
+        PrintLn('The language is not very friendly (like Pascal).')
     endif
 
+    var x : int = 0xBEEF;
+    x &= ~(0xF0F0)
+    PrintLn('Bitwise op result: 0x{:04X}', [x])
 
-    printf("@langdemo_mod.CONST1 = %d\n", CONST1)
-    printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2)
+    PrintLn("@langdemo_mod.CONST1 = {}", [CONST1])
+    PrintLn("@langdemo_mod.CONST2 = {:.3f}", [@ldm.CONST2])
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
+    PrintLn("ochild.name: {}", [iif(ochild == null, "OChild is null!", ochild.name)])
 
     ObjTest()
 
     for i : int = 0 to 5:
-        printf(' %d:', i)
+        Print(' {}:', [i])
         for j : int = 0  count i  step 2:
-            printf(' %d', j)
+            Print(' {}', [j])
         endfor
-        printf("\n")
+        PrintLn()
     endfor
 
     var arr : [5]int = [2, 3, 5, 7, 11]
-    printf('primes:')
-    for i : int = 0  while i < Len(arr)  { printf(' %d', arr[i]) }
-    printf("\n")
+    Print('primes:')
+    for i : int = 0  while i < Len(arr):
+        Print(' {}', [ arr[i] ])
+    endfor
+    PrintLn()
 
     return 0
 endfunc
@@ -133,6 +141,7 @@ endfunc
 
 Hello World!
 The language is friendly.
+Bitwise op result: 0x0E0F
 @langdemo_mod.CONST1 = 42
 @langdemo_mod.CONST2 = 3.140
 ochild.name: OChild is null!

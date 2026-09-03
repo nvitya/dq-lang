@@ -1,5 +1,7 @@
 // iif() intrinsic tests
 
+use print
+
 var g_true_hits  : int = 0
 var g_false_hits : int = 0
 
@@ -120,6 +122,12 @@ function *Main() -> int:
     printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0])) //?check('g_obj.name', 'obj is null!')
     g_obj = new OTest()
     printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
+
+    var cstr : cstring(15) = "from buffer"
+    var cstr2 : cstring(15) = "other buffer"
+    PrintLn('iif cstring = {}', [iif(true, "from literal", cstr)])  //?check('iif cstring', 'from literal')
+    PrintLn('iif cstring/2 = {}', [iif(false, "from literal", cstr)])  //?check('iif cstring/2', 'from buffer')
+    PrintLn('iif cstring/3 = {}', [iif(false, cstr, cstr2)])  //?check('iif cstring/3', 'other buffer')
 
     return 0
 endfunc

@@ -917,6 +917,24 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
     return false;
   }
 
+  // Fixed-size cstrings are storage types, so they cannot be the result of
+  // iif().  Use the unsized descriptor type, which also provides a natural
+  // common type for a cstring buffer and a string literal.
+  auto * truecstr = dynamic_cast<OTypeCString *>(truetype);
+  auto * falsecstr = dynamic_cast<OTypeCString *>(falsetype);
+  if ((truecstr && truecstr->maxlen > 0) || (falsecstr && falsecstr->maxlen > 0))
+  {
+    OType * desctype = g_builtins->type_cstring;
+    if (GetAssignTypeConversionCost(desctype, *rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING) >= 0
+        && GetAssignTypeConversionCost(desctype, *rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING) >= 0)
+    {
+      ConvertExprToType(desctype, rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING);
+      ConvertExprToType(desctype, rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING);
+      *rresulttype = desctype;
+      return true;
+    }
+  }
+
   if (truetype == falsetype)
   {
     *rresulttype = truetype;

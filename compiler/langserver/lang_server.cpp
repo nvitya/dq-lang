@@ -181,23 +181,30 @@ static void AddRange(TJsonNode & object, int line, int character, int end_line, 
   AddPosition(range, "end", end_line, end_character);
 }
 
-static void AddDocumentSymbol(TJsonNode & symbols, const string & name, int kind,
-                              int line, int character, int end_line, int end_character)
-{
-  TJsonNode & symbol = symbols.Add().GetAsObject();
-  symbol.Add("name", name);
-  symbol.Add("kind", kind);
-  AddRange(symbol, line, character, end_line, end_character);
-  TJsonNode & selection_range = symbol.Add("selectionRange").GetAsObject();
-  AddPosition(selection_range, "start", line, character);
-  AddPosition(selection_range, "end", end_line, end_character);
-}
-
 static void AddCompletionItem(TJsonNode & items, const string & label, int kind)
 {
   TJsonNode & item = items.Add().GetAsObject();
   item.Add("label", label);
   item.Add("kind", kind);
+}
+
+static bool ReadDocumentSymbol(const TJsonNode & json_symbol, SDocumentSymbol & rsymbol)
+{
+  string path;
+  if (json_symbol.GetKind() != nkObject || !JsonString(json_symbol, "path", path)
+      || !JsonString(json_symbol, "name", rsymbol.name)) return false;
+  rsymbol.path = AbsNormPath(path).string();
+  rsymbol.kind = int(JsonInteger(JsonChild(json_symbol, "kind"), 13));
+  rsymbol.line = int(JsonInteger(JsonChild(json_symbol, "line"), 1));
+  rsymbol.column = int(JsonInteger(JsonChild(json_symbol, "column"), 1));
+  const TJsonNode * json_children = JsonChild(json_symbol, "children");
+  if (!json_children || json_children->GetKind() != nkArray) return true;
+  for (int index = 0; index < json_children->GetCount(); ++index)
+  {
+    SDocumentSymbol child;
+    if (ReadDocumentSymbol(json_children->Child(index), child)) rsymbol.children.push_back(move(child));
+  }
+  return true;
 }
 
 static int Utf8CharBytes(unsigned char c)
@@ -273,6 +280,27 @@ static int DocumentSymbolNameColumn(const SDocument & document, const SDocumentS
     return Utf16Column(document.text, symbol.line, max(0, symbol.column - 1));
   }
   return Utf16Column(document.text, symbol.line, int(name_start - line_start));
+}
+
+static void AddDocumentSymbol(TJsonNode & symbols, const SDocument & document, const SDocumentSymbol & document_symbol)
+{
+  int line = max(0, document_symbol.line - 1);
+  int character = DocumentSymbolNameColumn(document, document_symbol);
+  int end_character = character + Utf16TextWidth(document_symbol.name);
+  TJsonNode & symbol = symbols.Add().GetAsObject();
+  symbol.Add("name", document_symbol.name);
+  symbol.Add("kind", document_symbol.kind);
+  AddRange(symbol, line, character, line, end_character);
+  TJsonNode & selection_range = symbol.Add("selectionRange").GetAsObject();
+  AddPosition(selection_range, "start", line, character);
+  AddPosition(selection_range, "end", line, end_character);
+  if (document_symbol.children.empty()) return;
+
+  TJsonNode & children = symbol.Add("children").GetAsArray();
+  for (const SDocumentSymbol & child : document_symbol.children)
+  {
+    AddDocumentSymbol(children, document, child);
+  }
 }
 
 
@@ -407,17 +435,8 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   {
     for (int index = 0; index < symbols->GetCount(); ++index)
     {
-      const TJsonNode & object = symbols->Child(index);
-      string path;
-      string name;
-      if (object.GetKind() != nkObject || !JsonString(object, "path", path) || !JsonString(object, "name", name)) continue;
       SDocumentSymbol symbol;
-      symbol.path = AbsNormPath(path).string();
-      symbol.name = name;
-      symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
-      symbol.line = int(JsonInteger(JsonChild(object, "line"), 1));
-      symbol.column = int(JsonInteger(JsonChild(object, "column"), 1));
-      result.document_symbols.push_back(move(symbol));
+      if (ReadDocumentSymbol(symbols->Child(index), symbol)) result.document_symbols.push_back(move(symbol));
     }
   }
   const TJsonNode * namespaces_obj = JsonChild(root, "namespaces");
@@ -476,27 +495,7 @@ TJsonNode ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) con
   {
     for (const SDocumentSymbol & symbol : it->second)
     {
-      int line = max(0, symbol.line - 1);
-      int character = DocumentSymbolNameColumn(document, symbol);
-      int end_character = character + Utf16TextWidth(symbol.name);
-      AddDocumentSymbol(result, symbol.name, symbol.kind, line, character, line, end_character);
-    }
-  }
-  for (const auto & [ns_name, ns_symbols] : namespaces)
-  {
-    if (ns_name == "." || ns_name == "..") continue; // internal scopes
-    TJsonNode & json_namespace = result.Add().GetAsObject();
-    json_namespace.Add("name", ns_name);
-    json_namespace.Add("kind", 3);
-    AddRange(json_namespace, 0, 0, 0, 0);
-    TJsonNode & selection_range = json_namespace.Add("selectionRange").GetAsObject();
-    AddPosition(selection_range, "start", 0, 0);
-    AddPosition(selection_range, "end", 0, 0);
-    TJsonNode & children = json_namespace.Add("children").GetAsArray();
-    for (const auto & symbol : ns_symbols)
-    {
-      int end_character = Utf16TextWidth(symbol.name);
-      AddDocumentSymbol(children, symbol.name, symbol.kind, 0, 0, 0, end_character);
+      AddDocumentSymbol(result, document, symbol);
     }
   }
   return result;

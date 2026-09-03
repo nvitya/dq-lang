@@ -51,6 +51,7 @@ struct SDocumentSymbol
   int kind = 13;
   int line = 1;
   int column = 1;
+  vector<SDocumentSymbol> children;
 };
 
 struct SWorkerResult

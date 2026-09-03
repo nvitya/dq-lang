@@ -104,13 +104,13 @@ endfunc
 //-------------------------------------------------------------------------------------------------
 
 function DqExcAddRef(e : Exception):
-    if e <> null:
+    if e <> nil:
         e.refcount += 1
     endif
 endfunc
 
 function DqExcRelease(e : Exception):
-    if e == null:
+    if e == nil:
         return
     endif
     e.refcount -= 1
@@ -120,8 +120,8 @@ function DqExcRelease(e : Exception):
 endfunc
 
 function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
-    if e == null:
-        RuntimeError("raise null exception")
+    if e == nil:
+        RuntimeError("raise nil exception")
         return false
     endif
 
@@ -135,11 +135,11 @@ endfunc
 
 function DqExcNativeThrow(e : Exception) [[external]]
 
-var active_exception  : Exception = null
-var handled_exception : Exception = null
+var active_exception  : Exception = nil
+var handled_exception : Exception = nil
 
 function DqSetActiveException(e : Exception):
-    if active_exception <> null:
+    if active_exception <> nil:
         DqExcRelease(active_exception)
     endif
     active_exception = e
@@ -176,7 +176,7 @@ function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, 
 endfunc
 
 function DqExcRethrow():
-    if handled_exception == null:
+    if handled_exception == nil:
         RuntimeError("re-raise without active exception")
         return
     endif
@@ -184,7 +184,7 @@ function DqExcRethrow():
 endfunc
 
 function DqExcActive() -> bool:
-    return active_exception <> null
+    return active_exception <> nil
 endfunc
 
 function DqExcCurrent() -> Exception:
@@ -192,31 +192,31 @@ function DqExcCurrent() -> Exception:
 endfunc
 
 function DqExcClear():
-    if active_exception <> null:
+    if active_exception <> nil:
         DqExcRelease(active_exception)
     endif
-    active_exception = null
+    active_exception = nil
 endfunc
 
 function DqExcBeginCatch():
-    if handled_exception <> null:
+    if handled_exception <> nil:
         DqExcRelease(handled_exception)
     endif
     handled_exception = active_exception
-    active_exception = null
+    active_exception = nil
 endfunc
 
 function DqExcEndCatch():
-    if handled_exception <> null:
+    if handled_exception <> nil:
         DqExcRelease(handled_exception)
     endif
-    handled_exception = null
+    handled_exception = nil
 endfunc
 
 
 function DqExcPrintTypeName():
   #ifndef BARE
-    if active_exception <> null:
+    if active_exception <> nil:
         printf("%s", TypeName(active_exception))
     else:
         printf("Exception")

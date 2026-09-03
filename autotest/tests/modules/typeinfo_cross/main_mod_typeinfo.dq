@@ -14,12 +14,12 @@ function *Main() -> int:
     endif
 
     var t1 : OFirst tryfrom o1
-    if t1 <> null:
+    if t1 <> nil:
         @.printf("t1.notnull = 1\n") //?check("t1.notnull", 1)
     endif
 
     var t2 : OSecond tryfrom o1
-    if t2 == null:
+    if t2 == nil:
         @.printf("t2.isnull = 1\n") //?check("t2.isnull", 1)
     endif
 

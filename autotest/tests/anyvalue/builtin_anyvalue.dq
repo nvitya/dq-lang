@@ -48,7 +48,7 @@ function *Main() -> int:
     printf("anyvalue_builtin = start\n") //?check("anyvalue_builtin", "start")
 
     var av : anyvalue
-    printf("default-null = %li\n", BoolInt(av.IsNull())) //?check("default-null", 1)
+    printf("default-nil = %li\n", BoolInt(av.IsNull())) //?check("default-nil", 1)
 
     av = 123
     printf("assign-int = isint:%li val:%li\n", BoolInt(av.IsInt()), av.AsInt(-1)) //?check("assign-int", "isint:1 val:123")
@@ -94,7 +94,7 @@ function *Main() -> int:
     printf("fixed-array = a0:%li text:%li\n", arr[0].AsInt(-1), arrtext.length) //?check("fixed-array", "a0:1 text:3")
 
     av.SetNull()
-    printf("method-null = %li\n", BoolInt(av.IsNull())) //?check("method-null", 1)
+    printf("method-nil = %li\n", BoolInt(av.IsNull())) //?check("method-nil", 1)
 
     return 0
 endfunc

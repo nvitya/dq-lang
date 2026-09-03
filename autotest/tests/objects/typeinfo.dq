@@ -87,27 +87,27 @@ function test_tryfrom():
     var o3 : OBase = new OThird(4)
 
     var t1 : OFirst tryfrom o1
-    if t1 <> null:
+    if t1 <> nil:
         @.printf("t1.id = %d\n", t1.id()) //?check("t1.id", 2)
     endif
 
     var t2 : OSecond tryfrom o1
-    if t2 == null:
+    if t2 == nil:
         @.printf("t2.isnull = 1\n") //?check("t2.isnull", 1)
     endif
 
     var t3 : OSecond tryfrom o3
-    if t3 <> null:
+    if t3 <> nil:
         @.printf("t3.id = %d\n", t3.id()) //?check("t3.id", 4)
     endif
 
     var t4 : OFirst = TryCast(OFirst, o1)
-    if t4 <> null:
+    if t4 <> nil:
         @.printf("t4.notnull = 1\n") //?check("t4.notnull", 1)
     endif
 
     var t5 : OSecond = TryCast(OSecond, o1)
-    if t5 == null:
+    if t5 == nil:
         @.printf("t5.isnull = 1\n") //?check("t5.isnull", 1)
     endif
 

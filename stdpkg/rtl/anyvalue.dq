@@ -34,7 +34,7 @@ struct SDqAnyValue:
     _pad     : [@def.PTRSIZE - 1]byte
 endstruct
 
-// Special "null" value for database handling, not same as "null" pointer !
+// Special "null" value for database handling, not same as "nil" pointer !
 function AnyValIsNull(v : ref SDqAnyValue) -> bool
 function AnyValSetNull(v : ref SDqAnyValue)
 
@@ -113,7 +113,7 @@ function AnyValSetKind(v : ref SDqAnyValue, akind : byte):
     v.datasize = 0
 #ifdef DYNSTRINGS
     if akind == DQTK_DYNSTR:
-        ^pointer(%v.data[0])^ = null  // null manager object = empty string
+        ^pointer(%v.data[0])^ = nil  // nil manager object = empty string
     endif
 #endif
 endfunc
@@ -145,7 +145,7 @@ function AnyValMove(dst : ref SDqAnyValue, src : ref SDqAnyValue):
     src.kind = DQTK_VOID
     src.subtype = 0
     src.datasize = 0
-    ^pointer(%src.data[0])^ = null
+    ^pointer(%src.data[0])^ = nil
 endfunc
 
 // DB Null Handling

@@ -122,7 +122,7 @@ function TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64)
     endif
 
     atm = {}
-    return libc_localtime_r(%seconds, %atm) <> null
+    return libc_localtime_r(%seconds, %atm) <> nil
 endfunc
 
 function FormatTm(fmt : strview, atm : ref tm) -> str:

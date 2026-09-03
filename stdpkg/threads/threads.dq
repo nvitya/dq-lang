@@ -44,8 +44,8 @@ function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
     if running:
         return false
     endif
-    retval = null
-    var r : int = @.pthread_create(%thread_id, null, afunc, aarg)
+    retval = nil
+    var r : int = @.pthread_create(%thread_id, nil, afunc, aarg)
     if r <> 0:
         return false
     endif
@@ -89,10 +89,10 @@ function OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
     if running:
         return false
     endif
-    retval = null
+    retval = nil
     m_method = amethod
     m_arg = aarg
-    var r : int = @.pthread_create(%thread_id, null, @.StartMethodThreadFunc, pointer(self))
+    var r : int = @.pthread_create(%thread_id, nil, @.StartMethodThreadFunc, pointer(self))
     if r <> 0:
         return false
     endif
@@ -109,9 +109,9 @@ function OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
     if running:
         return false
     endif
-    retval = null
+    retval = nil
     m_arg = aarg
-    var r : int = @.pthread_create(%thread_id, null, @.StartSelfThreadFunc, pointer(self))
+    var r : int = @.pthread_create(%thread_id, nil, @.StartSelfThreadFunc, pointer(self))
     if r <> 0:
         return false
     endif
@@ -120,5 +120,5 @@ function OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
 endfunc
 
 function OThread.Run(aarg : pointer) -> pointer [[virtual]]:  // empty
-    return null
+    return nil
 endfunc

@@ -3192,7 +3192,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     return result;
   }
 
-  if (scf->CheckSymbol("null"))
+  if (scf->CheckSymbol("nil"))
   {
     result = new ONullLit();
     return result;

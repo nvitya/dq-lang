@@ -1596,7 +1596,7 @@ LlConst * OValueFuncRef::CreateLlConst()
   {
     if (!is_null)
     {
-      throw logic_error("Object FuncRef constants only support null values");
+      throw logic_error("Object FuncRef constants only support nil values");
     }
     return llvm::ConstantAggregateZero::get(fref_type->GetLlType());
   }
@@ -1632,7 +1632,7 @@ bool OValueFuncRef::WriteDqmIfValue(ODqmIfWriter & writer)
 {
   if (!is_null)
   {
-    return writer.Fail("Only null function reference constants are supported in DQM interface generation");
+    return writer.Fail("Only nil function reference constants are supported in DQM interface generation");
   }
   return writer.AddRecU64(DQMIF_VALUE_INLINE, 0);
 }

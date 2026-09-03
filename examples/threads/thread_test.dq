@@ -23,7 +23,7 @@ object OTest1:
         PrintLn('Obj({}) started, counter = {}', [name, counter])
         SleepMillis(1500)
         PrintLn('Obj({}) finished', [name])
-        return null
+        return nil
     endfunc
 endobj
 
@@ -42,7 +42,7 @@ object OWorker(OThread):
         PrintLn('OWorker({}) started', [name])
         SleepMillis(2300)
         PrintLn('OWorker({}) finished', [name])
-        return null
+        return nil
     endfunc
 endobj
 
@@ -52,32 +52,32 @@ function ThreadFunc1(arg : pointer) -> pointer:
     printf('ThreadFunc1 started\n')
     SleepMillis(2300)
     printf('ThreadFunc1 finished\n')
-    return null
+    return nil
 endfunc
 
 function ThreadFunc2(arg : pointer) -> pointer:
     printf('ThreadFunc2 started\n')
     SleepMillis(3600)
     printf('ThreadFunc2 finished\n')
-    return null
+    return nil
 endfunc
 
 function *Main() -> int:
     PrintLn('DQ Threading Test')
     PrintLn('Starting threads...')
 
-    if not thr1.StartFunc(ThreadFunc1, null):
+    if not thr1.StartFunc(ThreadFunc1, nil):
         PrintLn('Unable to start thread 1.')
         return 1
     endif
-    if not thr2.StartFunc(ThreadFunc2, null):
+    if not thr2.StartFunc(ThreadFunc2, nil):
         PrintLn('Unable to start thread 2.')
         thr1.Join()
         return 1
     endif
 
-    //thr3.StartMethod(ot1.ThreadFunc, null)
-    wrk.StartSelf(null)
+    //thr3.StartMethod(ot1.ThreadFunc, nil)
+    wrk.StartSelf(nil)
 
     PrintLn('main: waiting threads to finish...')
     while thr1.IsRunning() or thr2.IsRunning() or thr3.IsRunning() or wrk.IsRunning():

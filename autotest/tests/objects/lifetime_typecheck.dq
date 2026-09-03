@@ -38,7 +38,7 @@ function *Main() -> int:
     result = 0
 
     var fixed <- OTest()
-    var ref : OTest = null
+    var ref : OTest = nil
     var priv <- OPrivate
 
     result = priv.secret //?error(MemberUnknown)

@@ -104,9 +104,9 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
     argv[0] = arg0.pchar
     argv[1] = arg1.pchar
     argv[2] = command.pchar
-    argv[3] = null
+    argv[3] = nil
 
-    libc_fflush(null)
+    libc_fflush(nil)
     pid = libc_fork()
     if pid < 0:
         libc_close(stdout_pipe[0])
@@ -161,7 +161,7 @@ endfunc
 
 function OShellRunner.MonitorThread(aarg : pointer) -> pointer:
     MonitorProcess()
-    return null
+    return nil
 endfunc
 
 function OShellRunner.MonitorProcess():
@@ -352,7 +352,7 @@ function OShellRunner.StartBg(acmd : strview) -> int:
         finished = true
         return -1
     endif
-    if not StartMethod(self.MonitorThread, null):
+    if not StartMethod(self.MonitorThread, nil):
         use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()
@@ -381,7 +381,7 @@ function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
         finished = true
         return -1
     endif
-    if not StartMethod(self.MonitorThread, null):
+    if not StartMethod(self.MonitorThread, nil):
         use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()

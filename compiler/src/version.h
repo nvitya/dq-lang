@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.56.0"
+#define DQ_COMPILER_VERSION  "0.57.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.57.0:
+  - BREAKING CHANGE: null -> nil, nil expresses better the special kind of zero value
 v0.56.0:
   - iif() type conversion fix
 v0.55.11:

@@ -65,7 +65,7 @@ function dq_cast_pointer_to_func_ref() -> int:
     var value : int = 0
     var raw : pointer = %value
     var callback : FRawAddress = FRawAddress(raw)
-    result = int((callback <> null) and (cast_address_table[0] <> null))
+    result = int((callback <> nil) and (cast_address_table[0] <> nil))
 endfunc
 
 function *Main() -> int:

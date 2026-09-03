@@ -47,7 +47,7 @@ function libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__si
 function libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]]
 function libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
 
-const SIG_DFL  : FSignalHandler = null
+const SIG_DFL  : FSignalHandler = nil
 const SIGSEGV  : int = 11
 
 var dq_sigsegv_jmp       : [DQ_SIGSEGV_JMP_SIZE] pointer

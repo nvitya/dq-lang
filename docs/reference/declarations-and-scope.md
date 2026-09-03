@@ -18,7 +18,7 @@ var values : [?]int = [1, 2, 3]
 ```
 
 An omitted initializer default-initializes the value according to its type.
-An inferred declaration requires an initializer. Integer, floating-point, null,
+An inferred declaration requires an initializer. Integer, floating-point, nil,
 raw-pointer, and all other unlisted types are not eligible. `[?]T` remains the
 separate syntax for inferring a fixed array's length.
 

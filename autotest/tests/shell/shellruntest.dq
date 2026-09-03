@@ -42,7 +42,7 @@ function *Main() -> int:
 
     caught = false
     try:
-        runner.RunWithInput(['/bin/sh', '-c', 'cat >/dev/null; exit 23'], 'input')
+        runner.RunWithInput(['/bin/sh', '-c', 'cat >/dev/nil; exit 23'], 'input')
     except EShellResult as e:
         caught = e.code == 23 and runner.exitcode == 23
     endtry

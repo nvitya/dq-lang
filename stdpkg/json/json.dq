@@ -20,7 +20,7 @@ endobj
 
 enum NJsonNodeKind =
 (
-    nkNull,    // The literal value null
+    nkNull,    // The JSON literal value null
     nkBool,    // The literal values true or false
     nkNumber,  // A number value such as 123, 1.23e2, or -1.5
     nkString,  // A string such as "hello\nworld!"
@@ -119,7 +119,7 @@ use strutils, file
 function OJson.*Create()  [[overload]]:
     m_name = ''
     m_children = []
-    m_parent = null
+    m_parent = nil
     m_kind = nkObject
 endfunc
 
@@ -142,7 +142,7 @@ function OJson.Clear():
 endfunc
 
 function OJson.GetName() -> str:
-    if m_parent == null:
+    if m_parent == nil:
         return '0'
     endif
 
@@ -356,7 +356,7 @@ endfunc
 function OJson.Parse(sp : OStrParse)  [[overload]]:
     Clear()
     sp.SkipSpaces()
-    if m_parent == null:
+    if m_parent == nil:
         if sp.readp >= sp.bufend  or (sp.readp^ <> '{'  and sp.readp^ <> '['):
             Error(sp, 'Root JSON node must be an object or array')
         endif
@@ -693,13 +693,13 @@ function OJson.Child(aindex : int) -> OJson:
     if aindex >= 0  and aindex < m_children.length:
         return m_children[aindex]
     else:
-        return null
+        return nil
     endif
 endfunc
 
 function OJson.ChildByName(aname : strview) -> OJson:
     if m_kind <> nkObject:
-        return null
+        return nil
     endif
 
     for i : int = 0 count m_children.length:
@@ -708,7 +708,7 @@ function OJson.ChildByName(aname : strview) -> OJson:
         endif
     endfor
 
-    return null
+    return nil
 endfunc
 
 function OJson.FindNode(apath : strview) -> OJson:
@@ -725,8 +725,8 @@ function OJson.FindNode(apath : strview) -> OJson:
         if c == '.'  or c == '/':
             if name <> '':
                 cur = cur.ChildByName(name)
-                if cur == null:
-                    return null
+                if cur == nil:
+                    return nil
                 endif
                 name = ''
             endif
@@ -737,8 +737,8 @@ function OJson.FindNode(apath : strview) -> OJson:
 
     if name <> '':
         cur = cur.ChildByName(name)
-        if cur == null:
-            return null
+        if cur == nil:
+            return nil
         endif
     endif
 
@@ -747,7 +747,7 @@ endfunc
 
 function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
     var jn : OJson = FindNode(apath)
-    if jn == null:
+    if jn == nil:
         return false
     endif
     rnode = jn
@@ -770,7 +770,7 @@ function OJson.ForcePath(apath : strview) -> OJson:
                 endif
 
                 var next : OJson = cur.ChildByName(name)
-                if next == null:
+                if next == nil:
                     next = cur.AddObj(name)
                 endif
                 cur = next
@@ -788,7 +788,7 @@ function OJson.ForcePath(apath : strview) -> OJson:
         endif
 
         var next : OJson = cur.ChildByName(name)
-        if next == null:
+        if next == nil:
             next = cur.AddObj(name)
         endif
         cur = next

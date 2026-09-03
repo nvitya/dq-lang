@@ -26,7 +26,7 @@ endobj
 object OBox:
     child <- OChild(7)
     value : int = 3
-    ref   : OChild = null
+    ref   : OChild = nil
 
     function *Create(a : int):
         value += a
@@ -80,7 +80,7 @@ function *Main() -> int:
                          //?check("box.print.9", "5 7")
 
     var mchild = new OModChild(9)
-    delete mchild = null //?check("modchild.create", 9)
+    delete mchild = nil //?check("modchild.create", 9)
                           //?check("modchild.destroy", 9)
 
     var rr : int = ReturnWithLocalObjects() //?check("child.create.10", 21)

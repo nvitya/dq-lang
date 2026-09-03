@@ -36,8 +36,8 @@ endfunc
 function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
     var alen : uint32 = TextInfoCharLen(ati)
     DynStrCheckIndex(index, alen)
-    if ati.dataptr == null:
-        DynStrRuntimeError('TextInfo null text data')
+    if ati.dataptr == nil:
+        DynStrRuntimeError('TextInfo nil text data')
         return char(0)
     endif
     result = ati.dataptr[index]^
@@ -63,8 +63,8 @@ function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startp
     endif
 
     var viewlen : uint32 = e - b
-    if viewlen == 0  or  ati.dataptr == null:
-        DynStrSetTextInfo(rti, null, 0)
+    if viewlen == 0  or  ati.dataptr == nil:
+        DynStrSetTextInfo(rti, nil, 0)
     else:
         DynStrSetTextInfo(rti, ati.dataptr[b], viewlen)
     endif
@@ -79,7 +79,7 @@ function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     if alen == 0:
         return true
     endif
-    if a.dataptr == null  or  b.dataptr == null:
+    if a.dataptr == nil  or  b.dataptr == nil:
         return false
     endif
     var i : uint32 = 0

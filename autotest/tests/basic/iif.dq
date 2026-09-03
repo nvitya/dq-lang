@@ -45,8 +45,8 @@ endfunc
 
 function dq_iif_ptr(flag : bool) -> int:
     var x : int = 33
-    var p : ^int = iif(flag, %x, null)
-    if p <> null:
+    var p : ^int = iif(flag, %x, nil)
+    if p <> nil:
         result = p^
     else:
         result = 0
@@ -54,14 +54,14 @@ function dq_iif_ptr(flag : bool) -> int:
 endfunc
 
 function dq_iif_guarded(aptrint : ^int) -> int:
-    result = iif(aptrint <> null, aptrint^, 0)
+    result = iif(aptrint <> nil, aptrint^, 0)
 endfunc
 
 object OTest:
     name : cstring(32) = "OTest-Name-inline"
 endobj
 
-var g_obj : OTest = null
+var g_obj : OTest = nil
 
 function dq_iif_side(flag : bool) -> int:
     g_true_hits = 0
@@ -106,8 +106,8 @@ function *Main() -> int:
     r = dq_iif_guarded(%x)
     printf("dq_iif_guarded(%%x) = %li\n", r)  //?check('dq_iif_guarded(%x)', 77)
 
-    r = dq_iif_guarded(null)
-    printf("dq_iif_guarded(null) = %li\n", r)  //?check('dq_iif_guarded(null)', 0)
+    r = dq_iif_guarded(nil)
+    printf("dq_iif_guarded(nil) = %li\n", r)  //?check('dq_iif_guarded(nil)', 0)
 
     r = dq_iif_side(true)
     printf("dq_iif_side(true) = %li\n", r)  //?check('dq_iif_side(true)', 110)
@@ -115,13 +115,13 @@ function *Main() -> int:
     r = dq_iif_side(false)
     printf("dq_iif_side(false) = %li\n", r)  //?check('dq_iif_side(false)', 1020)
 
-    if g_obj <> null:
-        printf("g_obj is null!\n")
+    if g_obj <> nil:
+        printf("g_obj is nil!\n")
     endif
 
-    printf('g_obj.name = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0])) //?check('g_obj.name', 'obj is null!')
+    printf('g_obj.name = %s\n', iif(g_obj == nil, "obj is nil!", %g_obj.name[0])) //?check('g_obj.name', 'obj is nil!')
     g_obj = new OTest()
-    printf('g_obj.name/2 = %s\n', iif(g_obj == null, "obj is null!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
+    printf('g_obj.name/2 = %s\n', iif(g_obj == nil, "obj is nil!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
 
     var cstr : cstring(15) = "from buffer"
     var cstr2 : cstring(15) = "other buffer"

@@ -32,7 +32,7 @@ function PrintValueApi():
 
     PrintLn('json.api.add = {}', [j.json])
     PrintLn('json.api.bool-get = {}', [BoolInt(jb.as_bool)])
-    PrintLn('json.api.null-get = {} {}', [BoolInt(jn.IsNull()), BoolInt(jn.is_null)])
+    PrintLn('json.api.nil-get = {} {}', [BoolInt(jn.IsNull()), BoolInt(jn.is_null)])
 
     jb.as_bool = false
     jn.SetAsBool(true)
@@ -40,7 +40,7 @@ function PrintValueApi():
 
     jb.SetNull()
     jn.SetNull()
-    PrintLn('json.api.null-set = {}', [j.json])
+    PrintLn('json.api.nil-set = {}', [j.json])
 endfunc
 
 function PrintFindApi():
@@ -101,9 +101,9 @@ function *Main() -> int:
     PrintValueApi()
     //?check("json.api.add", '{"flag":true,"empty":null}')
     //?check("json.api.bool-get", 1)
-    //?check("json.api.null-get", "1 1")
+    //?check("json.api.nil-get", "1 1")
     //?check("json.api.bool-set", '{"flag":false,"empty":true}')
-    //?check("json.api.null-set", '{"flag":null,"empty":null}')
+    //?check("json.api.nil-set", '{"flag":null,"empty":null}')
 
     PrintFindApi()
     //?check("json.find.dot", "localhost")

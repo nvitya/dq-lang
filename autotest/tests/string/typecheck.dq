@@ -3,10 +3,10 @@
 
 function DynamicStrNullComparisonIsInvalid() -> int:
     var s : str
-    if s == null: //?error(TypeMismatchOp)
+    if s == nil: //?error(TypeMismatchOp)
         result = 1
     endif
-    if s <> null: //?error(TypeMismatchOp)
+    if s <> nil: //?error(TypeMismatchOp)
         result = 2
     endif
     result = 0

@@ -22,7 +22,7 @@ implementation
 #ifdef BARE
 
     function DqLibcStdout() -> pointer:
-        return null
+        return nil
     endfunc
 
 #elifdef WINDOWS

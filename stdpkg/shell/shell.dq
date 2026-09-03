@@ -140,11 +140,11 @@ function OShellRunner.StartProcess(args : []str) -> int:
     for i : int = 0 count args.length:
         argv[i] = args[i].pchar
     endfor
-    argv[args.length] = null
+    argv[args.length] = nil
 
     // The child inherits all standard streams. Flush buffered caller output first
     // so that its output cannot overtake text printed before this call.
-    libc_fflush(null)
+    libc_fflush(nil)
     pid = libc_fork()
     if pid < 0:
         libc_close(stdout_pipe[0])
@@ -200,7 +200,7 @@ endfunc
 
 function OShellRunner.MonitorThread(aarg : pointer) -> pointer:
     MonitorProcess()
-    return null
+    return nil
 endfunc
 
 function OShellRunner.MonitorProcess():
@@ -425,7 +425,7 @@ function OShellRunner.StartBg(args : []str) -> int [[overload]]:
         finished = true
         return -1
     endif
-    if not StartMethod(self.MonitorThread, null):
+    if not StartMethod(self.MonitorThread, nil):
         use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()
@@ -459,7 +459,7 @@ function OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[
         finished = true
         return -1
     endif
-    if not StartMethod(self.MonitorThread, null):
+    if not StartMethod(self.MonitorThread, nil):
         use *
         libc_kill(-pid, SIGKILL)
         MonitorProcess()
@@ -500,7 +500,7 @@ endfunc
 function GetEnv(name : strview, default_value : strview) -> str:
     var cname : str = name
     var value : ^char = libc_getenv(cname.pchar)
-    if value == null:
+    if value == nil:
         return default_value
     else:
         return value

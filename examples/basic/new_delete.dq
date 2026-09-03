@@ -13,7 +13,7 @@ function *Main() -> int:
     pint^ = 5
     printf("pint = %d\n", pint^)
     MemFree(pint)
-    pint = null
+    pint = nil
 
     // Using MemFreeRef
     pint = ^int(MemAlloc(SizeOf(int), true))
@@ -27,8 +27,8 @@ function *Main() -> int:
 
     printf("pint2 = %d\n", pint2^)
 
-    delete pint2 = null  // frees the memory at pint and sets to null
-    delete pint2 // nop if pint was null
+    delete pint2 = nil  // frees the memory at pint and sets to nil
+    delete pint2 // nop if pint was nil
 
     // without type specification:
     var pint3 = new int(3)

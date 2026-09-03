@@ -29,10 +29,10 @@ The current codebase commonly uses these labels inside object declarations.
 
 ## Allocation
 
-Object variables are references. A reference may be `null`.
+Object variables are references. A reference may be `nil`.
 
 ```dq
-var obj : OCounter = null
+var obj : OCounter = nil
 ```
 
 Use `new` for heap allocation.
@@ -173,7 +173,7 @@ var child3 : OChild tryfrom base
 ```
 
 If the value is not compatible with the requested object type, the result is
-`null`.
+`nil`.
 
 ## Properties
 

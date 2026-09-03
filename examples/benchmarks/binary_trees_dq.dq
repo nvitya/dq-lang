@@ -15,27 +15,27 @@ function ONode.*Create(aleft : ONode, aright : ONode):
 endfunc
 
 function ONode.*Destroy():
-    if left <> null:
+    if left <> nil:
         delete left
     endif
-    if right <> null:
+    if right <> nil:
         delete right
     endif
 endfunc
 
 function ONode.NodeCount() -> int:
     result = 1
-    if left <> null:
+    if left <> nil:
         result += left.NodeCount()
     endif
-    if right <> null:
+    if right <> nil:
         result += right.NodeCount()
     endif
 endfunc
 
 function BuildTree(depth : int) -> ONode:
     if depth == 0:
-        return new ONode(null, null)
+        return new ONode(nil, nil)
     endif
     return new ONode( BuildTree(depth - 1), BuildTree(depth - 1) )
 endfunc

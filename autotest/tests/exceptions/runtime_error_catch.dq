@@ -6,7 +6,7 @@ var reached : int = 0
 
 function WrongPointer() -> ^int:
     raise Exception('wrongpointer')
-    return null
+    return nil
 endfunc
 
 function *Main() -> int:

@@ -420,7 +420,7 @@ endfunc
 #ifdef DYNSTRINGS
 function StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wchar, has_fallback : bool) -> str:
     result = ''
-    if chars == null or count <= 0:
+    if chars == nil or count <= 0:
         return ''
     endif
 

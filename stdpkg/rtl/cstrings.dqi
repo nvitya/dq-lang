@@ -27,7 +27,7 @@ endfunc
 
 function CStrScanLen(desc : ref SDqTextInfo) -> uint:
     var maxlen : uint = uint(desc.info & DQTI_MAXCHLEN_MASK)
-    if desc.dataptr == null:
+    if desc.dataptr == nil:
         return 0
     endif
 
@@ -56,7 +56,7 @@ function CStrLen(desc : ref SDqTextInfo) -> uint:
 endfunc
 
 function CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
-    if desc.dataptr <> null:
+    if desc.dataptr <> nil:
         desc.dataptr[clen]^ = char(0)
     endif
 endfunc
@@ -64,14 +64,14 @@ endfunc
 function CStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
     desc.charlen = newlen
     desc.info &= ~ DQTIF_CHARLEN_VALID
-    if desc.dataptr <> null:
+    if desc.dataptr <> nil:
         desc.dataptr[newlen]^ = char(0)
     endif
 endfunc
 
 
 function CStrBoundedPtrLen(src : ^char, maxcopy : uint) -> uint:
-    if src == null:
+    if src == nil:
         return 0
     endif
 
@@ -89,7 +89,7 @@ function CStrBoundedPtrLen(src : ^char, maxcopy : uint) -> uint:
 endfunc
 
 function CStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^char, maxcopy : uint) -> uint:
-    if desc.dataptr == null or src == null or maxcopy == uint(0):
+    if desc.dataptr == nil or src == nil or maxcopy == uint(0):
         return 0
     endif
 

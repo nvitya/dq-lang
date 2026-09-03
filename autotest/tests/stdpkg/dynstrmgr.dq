@@ -23,7 +23,7 @@ function PrintText(label : ^char, s : ref ODynStrMgr):
 endfunc
 
 function RunCoreOps():
-    var s : ODynStrMgr = null
+    var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
     var desc : SDqTextInfo = {}
     MakeText(desc, %src[0], 3)
@@ -54,7 +54,7 @@ function RunCoreOps():
 endfunc
 
 function RunOverlapClonePop():
-    var s : ODynStrMgr = null
+    var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
     var desc : SDqTextInfo = {}
     MakeText(desc, %src[0], 3)
@@ -64,16 +64,16 @@ function RunOverlapClonePop():
     DynStrInsert(s, 2, desc, 2)
     PrintText("overlap-insert", s)
 
-    var copy : ODynStrMgr = null
+    var copy : ODynStrMgr = nil
     DynStrClone(s, copy)
     PrintText("clone", copy)
 
-    var tail : ODynStrMgr = null
+    var tail : ODynStrMgr = nil
     DynStrPop(s, 2, tail)
     PrintText("pop-tail", tail)
     PrintText("after-pop-tail", s)
 
-    var head : ODynStrMgr = null
+    var head : ODynStrMgr = nil
     DynStrPopFirst(s, 1, head)
     PrintText("pop-head", head)
     PrintText("after-pop-head", s)
@@ -85,8 +85,8 @@ function RunOverlapClonePop():
 endfunc
 
 function RunCopyOnWrite():
-    var a : ODynStrMgr = null
-    var b : ODynStrMgr = null
+    var a : ODynStrMgr = nil
+    var b : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
     var desc : SDqTextInfo = {}
     MakeText(desc, %src[0], 3)

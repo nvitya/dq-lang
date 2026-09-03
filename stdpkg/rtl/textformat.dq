@@ -432,7 +432,7 @@ function OTextFormatter.FormatAny(av : anyvalue):
     if av.IsPointer():
         if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_POINTER == fmtspec.kind:
             sink.Write('^')
-            FormatHex(uint(av.AsPointer(null)), true)
+            FormatHex(uint(av.AsPointer(nil)), true)
         else:
             flags |= @.DQFMT_ARG_ERROR
             sink.Write("<p-f!>")

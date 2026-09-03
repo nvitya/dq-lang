@@ -41,7 +41,7 @@ object OChild(OBase) {
 
 var obase   <- OBase('OBase')     // '<-' = embedded allocation (global data segment here)
                                    // no automatic destructor call for global embedded objects
-var ochild  : OChild = null
+var ochild  : OChild = nil
 
 function ObjTest() {
     ochild = new OChild('OChild')
@@ -52,7 +52,7 @@ function ObjTest() {
     obase.Print()
     ochild.Print()
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
+    printf("ochild.name: %s \n", iif(ochild == nil, "OChild is nil!", %ochild.name[0]))
 
     delete ochild
 }
@@ -102,7 +102,7 @@ function *Main() -> int {
     printf("@langdemo_mod.CONST1 = %d\n", CONST1)
     printf("@langdemo_mod.CONST2 = %.3f\n", @ldm.CONST2)
 
-    printf("ochild.name: %s \n", iif(ochild == null, "OChild is null!", %ochild.name[0]))
+    printf("ochild.name: %s \n", iif(ochild == nil, "OChild is nil!", %ochild.name[0]))
 
     ObjTest()
 
@@ -126,7 +126,7 @@ Hello World!
 The language is friendly.
 @langdemo_mod.CONST1 = 42
 @langdemo_mod.CONST2 = 3.140
-ochild.name: OChild is null!
+ochild.name: OChild is nil!
 OBase: cnt1=1, cnt2=10
 OChild: cnt1=1, cnt2=11
 ochild.name: OChild

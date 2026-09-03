@@ -319,7 +319,7 @@
         },
         {
           "name": "constant.language.boolean.dq",
-          "match": "\\b(?:true|false|null)\\b"
+          "match": "\\b(?:true|false|nil)\\b"
         }
       ]
     },

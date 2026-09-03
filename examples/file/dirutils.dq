@@ -72,7 +72,7 @@ function DirEntryIsNavigation(aname : strview) -> bool:
 endfunc
 
 function ODirReader.*Create():
-    m_handle = null
+    m_handle = nil
 endfunc
 
 function ODirReader.*Destroy():
@@ -88,20 +88,20 @@ function ODirReader.Open(adir : strview):
 
     var path : str = adir
     m_handle = @.libc_opendir(path.pchar)
-    if m_handle == null:
+    if m_handle == nil:
         raise EFileError('ODirReader.Open: cannot open directory: {}', [path])
     endif
 endfunc
 
 function ODirReader.Close():
-    if m_handle <> null:
+    if m_handle <> nil:
         @.libc_closedir(m_handle)
-        m_handle = null
+        m_handle = nil
     endif
 endfunc
 
 function ODirReader.Opened() -> bool:
-    return m_handle <> null
+    return m_handle <> nil
 endfunc
 
 function ODirReader.Next() -> bool:
@@ -113,7 +113,7 @@ function ODirReader.Next() -> bool:
 
     while true:
         var entry : ^SDirent = @.libc_readdir(m_handle)
-        if entry == null:
+        if entry == nil:
             m_name = ''
             Close()
             return false

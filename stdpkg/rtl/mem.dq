@@ -50,7 +50,7 @@ endfunc
 
 function MemFreeRef(memptrvar : ref pointer):
     libc_free(memptrvar)
-    memptrvar = null
+    memptrvar = nil
 endfunc
 
 function MemRealloc(memptr : pointer, newsize : uint) -> pointer:

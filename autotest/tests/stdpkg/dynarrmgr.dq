@@ -20,8 +20,8 @@ function PrintMgr(label : ^char, arr : ref ODynArrMgr):
 endfunc
 
 function PrintRefState(label : ^char, arr : ODynArrMgr):
-    if arr == null:
-        printf("%s = null\n", label)
+    if arr == nil:
+        printf("%s = nil\n", label)
     else:
         printf("%s = refcount:%li, len:%li, cap:%li\n", label, arr.refcount, arr.length, arr.capacity)
     endif
@@ -45,14 +45,14 @@ function MakeIntTypeInfo(ti : refout SDqTypeInfo):
     ti.flags = 0
     ti.kind = DQTK_INT
     ti.subtype = 0
-    ti.init_func = null
-    ti.destroy_func = null
-    ti.copy_func = null
-    ti.move_func = null
+    ti.init_func = nil
+    ti.destroy_func = nil
+    ti.copy_func = nil
+    ti.move_func = nil
 endfunc
 
 function RunCoreOps(ti : ^SDqTypeInfo):
-    var arr : ODynArrMgr = null
+    var arr : ODynArrMgr = nil
     PrintMgr("initial", arr)
 
     var first : [5]int = [10, 20, 30, 40, 50]
@@ -86,9 +86,9 @@ function RunCoreOps(ti : ^SDqTypeInfo):
 endfunc
 
 function RunAssignClonePop(ti : ^SDqTypeInfo):
-    var a : ODynArrMgr = null
-    var b : ODynArrMgr = null
-    var c : ODynArrMgr = null
+    var a : ODynArrMgr = nil
+    var b : ODynArrMgr = nil
+    var c : ODynArrMgr = nil
     var src : [3]int = [1, 2, 3]
 
     DynArrAssignData(a, ti, %src[0], 3)
@@ -112,7 +112,7 @@ function RunAssignClonePop(ti : ^SDqTypeInfo):
     printf("pop-first = %li\n", popped)
     PrintMgr("after-pop", c)
 
-    DynArrAssignData(a, ti, null, 0)
+    DynArrAssignData(a, ti, nil, 0)
     PrintRefState("assign-empty-a", a)
     PrintRefState("assign-empty-b", b)
 
@@ -121,7 +121,7 @@ function RunAssignClonePop(ti : ^SDqTypeInfo):
 endfunc
 
 function RunSlicesOverlap(ti : ^SDqTypeInfo):
-    var arr : ODynArrMgr = null
+    var arr : ODynArrMgr = nil
     var src : [4]int = [1, 2, 3, 4]
     var desc : SArraySliceDesc = {}
 
@@ -156,7 +156,7 @@ function *Main() -> int:
                     //?check("reserve20", "len:6, cap:32, data: [111,222,20,30,0,0]")
                     //?check("compact", "len:6, cap:6, data: [111,222,20,30,0,0]")
                     //?check("clear-keep", "len:0, cap:6, data: []")
-                    //?check("clear-free", "null")
+                    //?check("clear-free", "nil")
 
     RunAssignClonePop(%ti) //?check("assigned-a", "refcount:2, len:3, cap:3")
                             //?check("assigned-b", "refcount:2, len:3, cap:3")
@@ -166,7 +166,7 @@ function *Main() -> int:
                             //?check("pop-last", 4)
                             //?check("pop-first", 99)
                             //?check("after-pop", "len:2, cap:4, data: [2,3]")
-                            //?check("assign-empty-a", "null")
+                            //?check("assign-empty-a", "nil")
                             //?check("assign-empty-b", "refcount:1, len:4, cap:6")
 
     RunSlicesOverlap(%ti) //?check("slice-clamped", "len:3, data: [ 1, 2, 3]")

@@ -6,14 +6,14 @@ behavior. See the [Objects guide](../language/objects.md) for shorter examples.
 ## Object Types and References
 
 An `object` defines a reference type. A variable of object type contains a
-reference, not the object's fields. It may contain `null`.
+reference, not the object's fields. It may contain `nil`.
 
 ```dq
 object OCounter:
     value : int = 0
 endobj
 
-var counter : OCounter = null
+var counter : OCounter = nil
 ```
 
 Assigning an object variable copies the reference. It does not copy the object
@@ -36,7 +36,7 @@ not heap-owned and must not be passed to `delete`. Local fixed storage is cleane
 up when its scope exits, including during exception unwinding. Global and
 embedded storage follow their containing lifetime.
 
-Deleting `null` is harmless where accepted by the runtime. Using any reference
+Deleting `nil` is harmless where accepted by the runtime. Using any reference
 after its object has been destroyed is invalid.
 
 ## Field Initialization
@@ -85,7 +85,7 @@ Polymorphic objects carry runtime type information sufficient for inheritance
 checks and exception matching.
 
 `value is OType` tests compatibility. `TryCast(OType, value)` and a declaration
-using `tryfrom` return a typed reference or `null` when incompatible.
+using `tryfrom` return a typed reference or `nil` when incompatible.
 
 ```dq
 if base is OChild:

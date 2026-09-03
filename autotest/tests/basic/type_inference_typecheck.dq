@@ -18,7 +18,7 @@ const missing_const_initializer : ? //?error(TypeInfer)
 function *Main() -> int:
     var int_value : int32 = 3
     var float_value : float32 = 3.0
-    var raw_value : pointer = null
+    var raw_value : pointer = nil
     var bool_value : bool = true
     var string_value : str = "text"
     var enum_value : NInferEnum = first
@@ -26,7 +26,7 @@ function *Main() -> int:
     var callback_value : FInferCallback = InferCallbackTarget
 
     var zero_initializer : ? = {} //?error(StructInitContext)
-    var null_value : ? = null //?error(TypeInfer)
+    var null_value : ? = nil //?error(TypeInfer)
     var raw_pointer : ? = raw_value //?error(TypeInfer)
 
     var int_literal : ? = 3 //?error(TypeInfer)

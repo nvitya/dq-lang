@@ -30,7 +30,7 @@ object OChild(OBase):
 endobj
 
 var obase   <- OBase('OBase')     // '<-' = embedded allocation
-var ochild  : OChild = null
+var ochild  : OChild = nil
 
 function *Main() -> int:
     printf('Object Inheritance Test\n')

@@ -57,7 +57,7 @@ function EqAsInt(a : int, b : int) -> int:
 endfunc
 
 function PtrFlag(p : ^char) -> int:
-    if p <> null:
+    if p <> nil:
         return 1
     endif
     return 0

@@ -379,7 +379,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       delete initexpr;
     }
 
-    // global variables are always initialized with 0 / null
+    // global variables are always initialized with 0 / nil
     vdecl->pvalsym->initialized = true;
   }
   else
@@ -1359,7 +1359,7 @@ void ODqCompParserStmt::ParseStmtDelete()
   {
     clear_after_free = true;
     scf->SkipWhite();
-    if (!scf->CheckSymbol("null"))
+    if (!scf->CheckSymbol("nil"))
     {
       delete ptrexpr;
       Error(DQERR_EXPR_WRONG_VALUE_FOR, "delete");

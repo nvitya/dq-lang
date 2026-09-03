@@ -63,7 +63,7 @@ const string dq_reserved_words =
    "|new|delete"
    "|and|not|or|is|as"
    "|xor|div|mod"
-   "|null"
+   "|nil"
    "|function|use|implementation"
    "|struct|endstruct|union|endunion|object|endobj"
    "|"

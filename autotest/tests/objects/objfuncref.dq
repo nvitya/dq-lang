@@ -33,16 +33,16 @@ endobj
 function *Main() -> int:
     var first <- OCallback("first")
     var second <- OCallback("second")
-    var cb : FObjText = null
-    var icb : FObjInt = null
+    var cb : FObjText = nil
+    var icb : FObjInt = nil
     var plaincb : FPlainText = plain
 
-    if cb == null:
-        printf("cb = null\n")  //?check('cb', 'null')
+    if cb == nil:
+        printf("cb = nil\n")  //?check('cb', 'nil')
     endif
 
     cb = first.Print
-    if cb <> null:
+    if cb <> nil:
         cb("a")  //?check('first', 'a')
     endif
 

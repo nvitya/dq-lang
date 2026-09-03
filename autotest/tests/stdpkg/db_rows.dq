@@ -34,9 +34,9 @@ function *Main() -> int:
 
     rows.AddField("active", ftBool)
     rows.First()
-    PrintLn('db_rows.add-field-null = active-null:{} value:{}',
+    PrintLn('db_rows.add-field-nil = active-nil:{} value:{}',
             [rows.IsNull("active"),
-             rows.GetBool("active", true)]) //?check("db_rows.add-field-null", "active-null:true value:true")
+             rows.GetBool("active", true)]) //?check("db_rows.add-field-nil", "active-nil:true value:true")
 
     rows.SetBool("active", true)
     PrintRow("db_rows.row0", rows) //?check("db_rows.row0", "idx:0 id:10 name:alpha active:true")
@@ -53,8 +53,8 @@ function *Main() -> int:
     rows.Prev()
     rows.SetNull("name")
     var defname : str = rows.GetStr("name", "def")
-    PrintLn('db_rows.null-name = isnull:{} def:{}',
-            [rows.IsNull("name"), defname]) //?check("db_rows.null-name", "isnull:true def:def")
+    PrintLn('db_rows.nil-name = isnull:{} def:{}',
+            [rows.IsNull("name"), defname]) //?check("db_rows.nil-name", "isnull:true def:def")
 
     rows.DeleteRow(0)
     rows.First()

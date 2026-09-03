@@ -79,7 +79,7 @@ var p : ^int = %value
 p^ = 11
 ```
 
-`null` is compatible with pointer types. Dereferencing null or an invalid,
+`nil` is compatible with pointer types. Dereferencing nil or an invalid,
 misaligned, expired, or otherwise unsuitable address is a runtime memory error
 or undefined at an external ABI boundary.
 
@@ -129,7 +129,7 @@ var transform : FTransform = Double
 
 A compatible function must have matching parameter types and modes, return type,
 calling convention, and method binding form. Function references can be compared
-with `null`.
+with `nil`.
 
 An `of object` function reference also stores an object instance:
 

@@ -24,9 +24,9 @@ endobj
 
 function *Main() -> int:
     var obj <- OCallback()
-    var obj_text : FObjText = null
-    var obj_int : FObjInt = null
-    var obj_float : FObjFloat = null
+    var obj_text : FObjText = nil
+    var obj_int : FObjInt = nil
+    var obj_float : FObjFloat = nil
     var plain_text : FPlainText = plain
 
     obj_text = plain      //?error(FuncSigType)

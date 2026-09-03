@@ -4,22 +4,22 @@
 function libc_getenv(name : ^char) -> ^char [[external('getenv')]]
 
 function *Main() -> int:
-    if libc_getenv('DQ_AUTOTEST_COMPILER') == null:
+    if libc_getenv('DQ_AUTOTEST_COMPILER') == nil:
         return 1
     endif
-    if libc_getenv('DQ_AUTOTEST_BINDIR') == null:
+    if libc_getenv('DQ_AUTOTEST_BINDIR') == nil:
         return 2
     endif
-    if libc_getenv('DQ_AUTOTEST_TEST_ROOT') == null:
+    if libc_getenv('DQ_AUTOTEST_TEST_ROOT') == nil:
         return 3
     endif
-    if libc_getenv('DQ_AUTOTEST_TEST_FILE') == null:
+    if libc_getenv('DQ_AUTOTEST_TEST_FILE') == nil:
         return 4
     endif
-    if libc_getenv('DQ_AUTOTEST_TEST_DIR') == null:
+    if libc_getenv('DQ_AUTOTEST_TEST_DIR') == nil:
         return 5
     endif
-    if libc_getenv('DQ_AUTOTEST_HOSTARCH') == null:
+    if libc_getenv('DQ_AUTOTEST_HOSTARCH') == nil:
         return 6
     endif
     if ArgCount() <> 1:

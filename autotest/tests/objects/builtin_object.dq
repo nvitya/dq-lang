@@ -19,7 +19,7 @@ public
 endobj
 
 function IsObjectSet(o : Object) -> int:
-    if o == null:
+    if o == nil:
         return 0
     endif
     return 1
@@ -30,8 +30,8 @@ function ObjectFromBase(o : OBase) -> Object:
 endfunc
 
 function *Main() -> int:
-    var any : Object = null
-    printf("object.null = %li\n", IsObjectSet(any)) //?check("object.null", 0)
+    var any : Object = nil
+    printf("object.nil = %li\n", IsObjectSet(any)) //?check("object.nil", 0)
 
     var base : OBase = new OBase(1)
     any = base

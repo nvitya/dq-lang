@@ -42,7 +42,7 @@ for its stored kind.
 ## Null
 
 Database null is distinct from numeric zero, Boolean false, an empty string, and
-a null pointer. Use `SetNull()` and `IsNull()`.
+a nil pointer. Use `SetNull()` and `IsNull()`.
 
 ## Checked Access
 

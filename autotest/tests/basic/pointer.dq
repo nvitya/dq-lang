@@ -18,8 +18,8 @@ function dq_ptr_read(a : int) -> int:
 endfunc
 
 function dq_ptr_null() -> int:
-    var p : ^int = null
-    if p == null:
+    var p : ^int = nil
+    if p == nil:
         result = 1
     else:
         result = 0
@@ -41,7 +41,7 @@ endfunc
 function dq_ptr_notnull(a : int) -> int:
     var x : int = a
     var p : ^int = %x
-    if p <> null:
+    if p <> nil:
         result = p^
     else:
         result = -1

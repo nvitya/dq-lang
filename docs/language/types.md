@@ -90,12 +90,12 @@ var object_ref : ? = new OThing()
 
 An inferred declaration always requires `=`. Integer and floating-point types
 are not inferred, even from casts or expressions that already have a specific
-numeric type. Null and raw `pointer` values also lack an eligible concrete type.
+numeric type. `nil` and raw `pointer` values also lack an eligible concrete type.
 
 ```dq
 var integer : ? = int32(3) // error: integer inference is forbidden
 var real : ? = 3.0         // error: floating-point inference is forbidden
-var unknown : ? = null     // error: no concrete pointer type
+var unknown : ? = nil     // error: no concrete pointer type
 ```
 
 Other type kinds are not inferred. Write the type explicitly when contextual
@@ -383,7 +383,7 @@ var cb : FUnary = Inc
 var result : int = cb(10)
 ```
 
-Function references can be compared with `null`.
+Function references can be compared with `nil`.
 
 Object method references use `of object`.
 

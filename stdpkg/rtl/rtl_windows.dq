@@ -66,12 +66,12 @@ function OsRtErrorHandler(emsg : ^char):
 endfunc
 
 function DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
-    if exception_info == null:
+    if exception_info == nil:
         return false
     endif
 
     var info : ^SDqWinExceptionPointers = ^SDqWinExceptionPointers(exception_info)
-    if info.ExceptionRecord == null:
+    if info.ExceptionRecord == nil:
         return false
     endif
 

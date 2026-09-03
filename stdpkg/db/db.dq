@@ -56,7 +56,7 @@ protected
     m_currow     : int   // can be out of the valid range
     m_onrow      : bool  // is the current row valid ?
 
-    //m_datasource : ODbDataSource  // might be null for standalone / memory datasets
+    //m_datasource : ODbDataSource  // might be nil for standalone / memory datasets
 
     function GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
 

@@ -120,7 +120,7 @@ comparison-level operation.
 DQ provides an inline conditional macro named `iif`.
 
 ```dq
-var text : cstring = iif(ptr == null, "null", "not null")
+var text : cstring = iif(ptr == nil, "nil", "not nil")
 ```
 
 The first argument must be `bool`. The second and third arguments must be
@@ -177,7 +177,7 @@ if obj is OChild:
 endif
 ```
 
-`is` returns `false` for `null`.
+`is` returns `false` for `nil`.
 
 ## Address and Dereference
 

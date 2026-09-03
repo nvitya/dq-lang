@@ -67,7 +67,7 @@ function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
 endfunc
 
 function DqCstrContains(text : ^char, needle : ^char) -> bool:
-    if text == null or needle == null:
+    if text == nil or needle == nil:
         return false
     endif
 
@@ -93,7 +93,7 @@ function DqBacktraceNameIsInternal(name : ^char) -> bool:
 endfunc
 
 function DqIsMainFunction(name : ^char) -> bool:
-    if name == null:
+    if name == nil:
         return false
     endif
     return DqCstrSegmentEq(name, "Main") or DqCstrSegmentEq(name, "main") or DqCstrSegmentEq(name, "RunHostedMain")
@@ -113,7 +113,7 @@ function DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
 endfunc
 
 function DqCstrLen(s : ^char) -> uint:
-    if s == null:
+    if s == nil:
         return 0
     endif
 
@@ -133,24 +133,24 @@ function DqTrimTrailingNewline(s : ^char):
 endfunc
 
 function DqAddr2lineOffset(pc : pointer, base : pointer) -> uint:
-    if pc == null:
+    if pc == nil:
         return 0
     endif
 
     result = uint(pc)
-    if base <> null and uint(base) <= result:
+    if base <> nil and uint(base) <= result:
         result -= uint(base)
     endif
 endfunc
 
 function DqPrintBacktraceFallback(index : int, pc : pointer, info : ref SDqDlInfo, stop_printing : ^bool) -> bool:
-    if stop_printing <> null and DqIsMainFunction(info.dli_sname):
+    if stop_printing <> nil and DqIsMainFunction(info.dli_sname):
         stop_printing^ = true
     endif
 
-    if info.dli_sname <> null:
+    if info.dli_sname <> nil:
         libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", index, info.dli_sname, uint(pc) - uint(info.dli_saddr))
-    elif info.dli_fname <> null:
+    elif info.dli_fname <> nil:
         libc_fprintf(libc_stderr, "  #%d <unknown> @ %s + 0x%lx\n", index, info.dli_fname, DqAddr2lineOffset(pc, info.dli_fbase))
     else:
         libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
@@ -163,7 +163,7 @@ endfunc
 
 function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^char, lineno : int, function_name : ^char) -> int:
     if data^.hide_internal:
-        if function_name == null or DqBacktraceNameIsInternal(function_name):
+        if function_name == nil or DqBacktraceNameIsInternal(function_name):
             return 0
         endif
     endif
@@ -172,14 +172,14 @@ function DqBtFullCallback(data : ^SDqBtData, pc : uint, filename : ^char, lineno
         data^.stop_printing = true
     endif
 
-    if filename <> null:
-        if function_name <> null:
+    if filename <> nil:
+        if function_name <> nil:
             libc_fprintf(libc_stderr, "  #%d %s @ %s:%d\n", data^.index, function_name, filename, lineno)
         else:
             libc_fprintf(libc_stderr, "  #%d <unknown> @ %s:%d\n", data^.index, filename, lineno)
         endif
     else:
-        if function_name <> null:
+        if function_name <> nil:
             libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, function_name, pc)
         else:
             libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
@@ -191,7 +191,7 @@ endfunc
 
 function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^char, symval : uint, symsize : uint):
     if data^.hide_internal:
-        if symname == null or DqBacktraceNameIsInternal(symname):
+        if symname == nil or DqBacktraceNameIsInternal(symname):
             return
         endif
     endif
@@ -200,7 +200,7 @@ function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^char, symv
         data^.stop_printing = true
     endif
 
-    if symname <> null:
+    if symname <> nil:
         libc_fprintf(libc_stderr, "  #%d %s + 0x%lx\n", data^.index, symname, pc - symval)
     else:
         libc_fprintf(libc_stderr, "  #%d 0x%lx\n", data^.index, pc)
@@ -208,11 +208,11 @@ function DqBtSyminfoCallback(data : ^SDqBtData, pc : uint, symname : ^char, symv
     data^.printed = true
 endfunc
 
-var backtrace_state : pointer = null
+var backtrace_state : pointer = nil
 
 function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
-    if backtrace_state == null:
-        backtrace_state = libc_backtrace_create_state(null, 0, DqBtErrorCallback, null)
+    if backtrace_state == nil:
+        backtrace_state = libc_backtrace_create_state(nil, 0, DqBtErrorCallback, nil)
     endif
 
     var bdata : SDqBtData = {}
@@ -221,10 +221,10 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
     bdata.printed = false
     bdata.stop_printing = false
 
-    if backtrace_state <> null:
+    if backtrace_state <> nil:
         libc_backtrace_pcinfo(backtrace_state, uint(pc), DqBtFullCallback, DqBtErrorCallback, %bdata)
         if bdata.printed:
-            if stop_printing <> null:
+            if stop_printing <> nil:
                 stop_printing^ = bdata.stop_printing
             endif
             return true
@@ -232,7 +232,7 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
 
         libc_backtrace_syminfo(backtrace_state, uint(pc), DqBtSyminfoCallback, DqBtErrorCallback, %bdata)
         if bdata.printed:
-            if stop_printing <> null:
+            if stop_printing <> nil:
                 stop_printing^ = bdata.stop_printing
             endif
             return true
@@ -240,7 +240,7 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
     endif
 
     var info : SDqDlInfo = {}
-    if libc_dladdr(pc, info) == 0 or info.dli_fname == null:
+    if libc_dladdr(pc, info) == 0 or info.dli_fname == nil:
         if not hide_internal:
             libc_fprintf(libc_stderr, "  #%d 0x%lx\n", index, uint(pc))
             return true
@@ -248,7 +248,7 @@ function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bo
         return false
     endif
 
-    if hide_internal and (info.dli_sname == null or DqBacktraceNameIsInternal(info.dli_sname)):
+    if hide_internal and (info.dli_sname == nil or DqBacktraceNameIsInternal(info.dli_sname)):
         return false
     endif
 

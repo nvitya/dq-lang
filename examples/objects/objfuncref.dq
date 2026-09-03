@@ -10,7 +10,7 @@ function callback2(astr : cstring):
     printf('Callback-2(%s)\n', %astr[0])
 endfunc
 
-var func : FCallback = null
+var func : FCallback = nil
 
 object OBase:
     name : cstring[32]
@@ -29,10 +29,10 @@ object OBase:
 endobj
 
 var obj1 <- OBase('bss_obj')
-var obj2 : OBase = null
+var obj2 : OBase = nil
 
 type FObjCallback = function(astr : cstring) of object
-var ofunc : FObjCallback = null
+var ofunc : FObjCallback = nil
 
 function *Main() -> int:
     printf('Object Function Ptr Test\n')

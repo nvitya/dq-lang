@@ -34,7 +34,7 @@ function *Main() -> int:
 
     iv(1)             //?error(ExprNotCallable)
 
-    if cb1 == null:    //?error(VarNotInit)
+    if cb1 == nil:    //?error(VarNotInit)
     endif
 
     return 0

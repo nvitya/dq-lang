@@ -324,10 +324,10 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
 
     var ev : SEpollEvent
     ev.events = 0
-    if asock.in_event_handler <> null:
+    if asock.in_event_handler <> nil:
         ev.events |= EPOLLIN
     endif
-    if asock.out_event_handler <> null:
+    if asock.out_event_handler <> nil:
         ev.events |= EPOLLOUT
     endif
     ev.data = pointer(asock)
@@ -351,10 +351,10 @@ function OSocketWatcher.ModifySocket(asock : ONanoSocket):
 
     var ev : SEpollEvent
     ev.events = 0
-    if asock.in_event_handler <> null:
+    if asock.in_event_handler <> nil:
         ev.events |= EPOLLIN
     endif
-    if asock.out_event_handler <> null:
+    if asock.out_event_handler <> nil:
         ev.events |= EPOLLOUT
     endif
     ev.data = pointer(asock)
@@ -369,7 +369,7 @@ function OSocketWatcher.RemoveSocket(asock : ONanoSocket):
     if asock.socket <> INVALID_SOCKET:
         var ev : SEpollEvent
         ev.events = 0
-        ev.data = null
+        ev.data = nil
         libc_epoll_ctl(fd_epoll, EPOLL_CTL_DEL, asock.socket, %ev)
     endif
 endfunc
@@ -397,7 +397,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         var sock : ONanoSocket = ONanoSocket(pev^.data)
 
         if (pev^.events & EPOLLOUT) <> 0:
-            if sock.out_event_handler == null:
+            if sock.out_event_handler == nil:
                 raise ENanoNet('Socket has no output event handler!')
             endif
             sock.out_event_handler(sock.obj_link)
@@ -405,7 +405,7 @@ function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         endif
 
         if (pev^.events & EPOLLIN) <> 0:
-            if sock.in_event_handler == null:
+            if sock.in_event_handler == nil:
                 raise ENanoNet('Socket has no input event handler!')
             endif
             sock.in_event_handler(sock.obj_link)
@@ -426,7 +426,7 @@ function OSConnection.*Destroy():
 endfunc
 
 function OSConnection.Close():
-    if server <> null:
+    if server <> nil:
         server.CloseConnection(self)
     endif
 endfunc
@@ -471,7 +471,7 @@ endfunc
 
 function ONanoServer.InitListener():
     sock_listen.InitListener(listen_port)
-    swatcher.AddSocket(sock_listen, self, self.HandleListener, null)
+    swatcher.AddSocket(sock_listen, self, self.HandleListener, nil)
 endfunc
 
 function ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
@@ -492,7 +492,7 @@ function ONanoServer.HandleListener(aobj : Object):
     endif
 
     connections.Append(conn)
-    swatcher.AddSocket(conn.sock, conn, conn.HandleInput, null)
+    swatcher.AddSocket(conn.sock, conn, conn.HandleInput, nil)
 endfunc
 
 function ONanoServer.CreateSConnection() -> OSConnection:
@@ -500,7 +500,7 @@ function ONanoServer.CreateSConnection() -> OSConnection:
 endfunc
 
 function ONanoServer.CloseConnection(aconn : OSConnection):
-    if aconn == null:
+    if aconn == nil:
         return
     endif
 

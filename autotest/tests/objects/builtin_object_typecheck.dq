@@ -4,8 +4,8 @@ object OBase:
 endobj
 
 function *Main() -> int:
-    var any : Object = null
-    var base : OBase = null
+    var any : Object = nil
+    var base : OBase = nil
 
     base = any //?error(TypeMismatchAssign)
 

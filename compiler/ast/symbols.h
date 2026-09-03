@@ -529,7 +529,7 @@ public:
 
   static OTypePointer * GetNullPtrType()
   {
-    static OTypePointer instance(nullptr, "null", false, true);
+    static OTypePointer instance(nullptr, "nil", false, true);
     return &instance;
   }
 };

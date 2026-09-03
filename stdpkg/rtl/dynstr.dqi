@@ -53,7 +53,7 @@ function DynStrClampIndex(index : int, length : uint32) -> uint32:
 endfunc
 
 function DynStrOwnDataPtrOffset(dataptr : ^char, src : ^char, length : uint32) -> int:
-    if dataptr == null  or  src == null  or  length == 0:
+    if dataptr == nil  or  src == nil  or  length == 0:
         return -1
     endif
 
@@ -80,7 +80,7 @@ endfunc
 
 function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32) -> uint32:
     CStrClear(adst)
-    if srcptr == null  or  srclen == 0:
+    if srcptr == nil  or  srclen == 0:
         return 0
     endif
 
@@ -94,13 +94,13 @@ function DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint3
     endif
     adst.charlen = result
     adst.info = adst.info | DQTIF_CHARLEN_VALID
-    if adst.dataptr <> null:
+    if adst.dataptr <> nil:
         adst.dataptr[result]^ = char(0)
     endif
 endfunc
 
 function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
-    if astr == null:
+    if astr == nil:
         return true
     endif
     if astr.refcount <= 1:
@@ -108,11 +108,11 @@ function DynStrEnsureUnique(astr : ref ODynStrMgr) -> bool:
     endif
 
     var oldstr : ODynStrMgr = astr
-    var newstr : ODynStrMgr = null
+    var newstr : ODynStrMgr = nil
     DynStrCreate(newstr)
     newstr.SetCapacity(oldstr.length)
     if newstr.capacity < oldstr.length:
-        delete newstr = null
+        delete newstr = nil
         return false
     endif
 
@@ -134,20 +134,20 @@ function ODynStrMgr.*Create():
     refcount = 0
     length = 0
     capacity = 0
-    dataptr = null
+    dataptr = nil
 endfunc
 
 function ODynStrMgr.*Destroy():
-    if dataptr <> null:
+    if dataptr <> nil:
         @mem.MemFree(dataptr)
-        dataptr = null
+        dataptr = nil
     endif
     length = 0
     capacity = 0
 endfunc
 
 function ODynStrMgr.WriteTerminator():
-    if dataptr <> null:
+    if dataptr <> nil:
         dataptr[length]^ = char(0)
     endif
 endfunc
@@ -159,9 +159,9 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
     endif
 
     if new_capacity == 0:
-        if dataptr <> null:
+        if dataptr <> nil:
             MemFree(dataptr)
-            dataptr = null
+            dataptr = nil
         endif
         capacity = 0
         length = 0
@@ -173,14 +173,14 @@ function ODynStrMgr.SetCapacity(new_capacity : uint32):
         return
     endif
 
-    var new_dataptr : ^char = null
-    if dataptr == null:
+    var new_dataptr : ^char = nil
+    if dataptr == nil:
         new_dataptr = ^char(MemAlloc(new_bytes))
     else:
         new_dataptr = ^char(MemRealloc(dataptr, new_bytes))
     endif
 
-    if new_dataptr == null:
+    if new_dataptr == nil:
         DynStrRuntimeError('DynStr allocation failed')
         return
     endif
@@ -407,7 +407,7 @@ function DynStrCreate(astr : ref ODynStrMgr):
 endfunc
 
 function DynStrIncRef(astr : ref ODynStrMgr):
-    if astr == null:
+    if astr == nil:
         return
     endif
 
@@ -416,19 +416,19 @@ function DynStrIncRef(astr : ref ODynStrMgr):
 endfunc
 
 function DynStrDecRef(astr : ref ODynStrMgr):
-    if astr == null:
+    if astr == nil:
         return
     endif
 
     // TODO: add thread safety
     astr.refcount -= 1
     if astr.refcount <= 0:
-        delete astr = null
+        delete astr = nil
     endif
 endfunc
 
 function DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr):
-    if asrc <> null:
+    if asrc <> nil:
         DynStrIncRef(asrc)
     endif
     DynStrDecRef(astr)
@@ -439,15 +439,15 @@ function DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo):
     var srclen : uint32 = TextInfoCharLen(ati)
     if srclen < 1:
         DynStrDecRef(astr)
-        astr = null
+        astr = nil
         return
     endif
 
-    var newstr : ODynStrMgr = null
+    var newstr : ODynStrMgr = nil
     DynStrCreate(newstr)
     newstr.SetCapacity(srclen)
     if newstr.capacity < srclen:  // on storage allocation error
-        delete newstr = null
+        delete newstr = nil
         return
     endif
     newstr.Append(ati, int32(srclen))
@@ -458,21 +458,21 @@ endfunc
 
 //function DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 function DynStrGetLength(astr : ref ODynStrMgr) -> uint32:
-    if astr == null:
+    if astr == nil:
         return 0
     endif
     return astr.length
 endfunc
 
 function DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32:
-    if astr == null:
+    if astr == nil:
         return 0
     endif
     return astr.capacity
 endfunc
 
 function DynStrGetRefCount(astr : ref ODynStrMgr) -> int:
-    if astr == null:
+    if astr == nil:
         return 0
     endif
     return astr.refcount
@@ -480,17 +480,17 @@ endfunc
 
 function DynStrPChar(astr : ref ODynStrMgr) -> ^char:
     // this must be checked separately, with a combined check the -O1 optimizer might make an error
-    if astr == null:
+    if astr == nil:
         return ''
     endif
-    if astr.dataptr == null:
+    if astr.dataptr == nil:
         return ''
     endif
     return astr.dataptr
 endfunc
 
 function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
-    if astr == null:
+    if astr == nil:
         DynStrRuntimeError('DynStr index out of bounds')
         return char(0)
     endif
@@ -499,7 +499,7 @@ function DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char:
 endfunc
 
 function DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char):
-    if astr == null:
+    if astr == nil:
         DynStrRuntimeError('DynStr index out of bounds')
         return
     endif
@@ -515,7 +515,7 @@ function DynStrReserve(astr : ref ODynStrMgr, min_capacity : uint32):
     if min_capacity == 0:
         return
     endif
-    if astr == null:
+    if astr == nil:
         DynStrCreate(astr)
     endif
     if not DynStrEnsureUnique(astr):
@@ -527,9 +527,9 @@ endfunc
 function DynStrSetCapacity(astr : ref ODynStrMgr, new_capacity : uint32):
     if new_capacity == 0:
         DynStrDecRef(astr)
-        astr = null
+        astr = nil
     else:
-        if astr == null:
+        if astr == nil:
             DynStrCreate(astr)
         endif
         if not DynStrEnsureUnique(astr):
@@ -541,7 +541,7 @@ endfunc
 
 function DynStrSetLength(astr : ref ODynStrMgr, new_length : uint32):
     if new_length == 0:
-        if astr <> null:
+        if astr <> nil:
             if not DynStrEnsureUnique(astr):
                 return
             endif
@@ -549,7 +549,7 @@ function DynStrSetLength(astr : ref ODynStrMgr, new_length : uint32):
             astr.WriteTerminator()
         endif
     else:
-        if astr == null:
+        if astr == nil:
             DynStrCreate(astr)
         endif
         if not DynStrEnsureUnique(astr):
@@ -563,7 +563,7 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
     var bch : char = DynStrCharToByte(fillchar)
     var old_length : uint32 = DynStrGetLength(astr)
     DynStrSetLength(astr, new_length)
-    if astr == null  or  new_length <= old_length:
+    if astr == nil  or  new_length <= old_length:
         return
     endif
     var i : uint32 = old_length
@@ -574,7 +574,7 @@ function DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillcha
 endfunc
 
 function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32):
-    if astr == null:
+    if astr == nil:
         return
     endif
     if new_length >= astr.length:
@@ -588,16 +588,16 @@ function DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32):
 endfunc
 
 function DynStrCompact(astr : ref ODynStrMgr):
-    if astr <> null:
+    if astr <> nil:
         astr.Compact()
     endif
 endfunc
 
 function DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false):
-    if astr <> null:
+    if astr <> nil:
         if free_storage:
             DynStrDecRef(astr)
-            astr = null
+            astr = nil
             return
         endif
         if not DynStrEnsureUnique(astr):
@@ -612,7 +612,7 @@ function DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : in
     if add_count < 1:
         return
     endif
-    if astr == null:
+    if astr == nil:
         DynStrCreate(astr)
     endif
     if not DynStrEnsureUnique(astr):
@@ -626,7 +626,7 @@ function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo
     if add_count < 1:
         return
     endif
-    if astr == null:
+    if astr == nil:
         DynStrCreate(astr)
     endif
     if not DynStrEnsureUnique(astr):
@@ -636,7 +636,7 @@ function DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo
 endfunc
 
 function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1):
-    if astr <> null:
+    if astr <> nil:
         if not DynStrEnsureUnique(astr):
             return
         endif
@@ -645,16 +645,16 @@ function DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1):
 endfunc
 
 function DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo):
-    if astr == null:
-        DynStrSetTextInfo(rti, null, 0)
+    if astr == nil:
+        DynStrSetTextInfo(rti, nil, 0)
     else:
         DynStrSetTextInfo(rti, astr.dataptr, astr.length)
     endif
 endfunc
 
 function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int):
-    if astr == null:
-        DynStrSetTextInfo(rti, null, 0)
+    if astr == nil:
+        DynStrSetTextInfo(rti, nil, 0)
         return
     endif
 
@@ -679,7 +679,7 @@ function DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos
 
     var viewlen : uint32 = e - b
     if viewlen == 0:
-        DynStrSetTextInfo(rti, null, 0)
+        DynStrSetTextInfo(rti, nil, 0)
     else:
         DynStrSetTextInfo(rti, astr.dataptr[b], viewlen)
     endif
@@ -687,9 +687,9 @@ endfunc
 
 function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     DynStrDecRef(adst)
-    adst = null
+    adst = nil
 
-    if astr == null:
+    if astr == nil:
         return
     endif
     if astr.length == 0:
@@ -699,7 +699,7 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     DynStrCreate(adst)
     adst.SetCapacity(astr.length)
     if adst.capacity < astr.length:
-        delete adst = null
+        delete adst = nil
         return
     endif
     @mem.MemCopy(adst.dataptr, astr.dataptr, uint(astr.length))
@@ -708,7 +708,7 @@ function DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
 endfunc
 
 function DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
-    if astr == null:
+    if astr == nil:
         CStrClear(adst)
         return
     endif
@@ -717,9 +717,9 @@ endfunc
 
 function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr):
     DynStrDecRef(adst)
-    adst = null
+    adst = nil
 
-    if astr == null:
+    if astr == nil:
         return
     endif
     if acount < 1:
@@ -740,7 +740,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
     DynStrCreate(adst)
     adst.SetCapacity(popcount)
     if adst.capacity < popcount:
-        delete adst = null
+        delete adst = nil
         return
     endif
 
@@ -754,7 +754,7 @@ function DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
 endfunc
 
 function DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
-    if astr == null:
+    if astr == nil:
         CStrClear(adst)
         return
     endif
@@ -763,9 +763,9 @@ endfunc
 
 function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr):
     DynStrDecRef(adst)
-    adst = null
+    adst = nil
 
-    if astr == null:
+    if astr == nil:
         return
     endif
     if acount < 1:
@@ -786,7 +786,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
     DynStrCreate(adst)
     adst.SetCapacity(popcount)
     if adst.capacity < popcount:
-        delete adst = null
+        delete adst = nil
         return
     endif
 
@@ -797,7 +797,7 @@ function DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynSt
 endfunc
 
 function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
-    if astr == null:
+    if astr == nil:
         CStrClear(adst)
         return
     endif
@@ -805,7 +805,7 @@ function DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref 
 endfunc
 
 function DynStrPopChar(astr : ref ODynStrMgr) -> char:
-    if astr == null:
+    if astr == nil:
         DynStrRuntimeError('DynStr pop from empty string')
         return char(0)
     endif
@@ -818,7 +818,7 @@ function DynStrPopChar(astr : ref ODynStrMgr) -> char:
 endfunc
 
 function DynStrPopFirstChar(astr : ref ODynStrMgr) -> char:
-    if astr == null:
+    if astr == nil:
         DynStrRuntimeError('DynStr pop from empty string')
         return char(0)
     endif

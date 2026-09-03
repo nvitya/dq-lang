@@ -28,7 +28,7 @@ endobj
 object OTest:
 private
     // heap allocated object
-    ddata  : ODynData = null
+    ddata  : ODynData = nil
 
     // various object embedding cases
 
@@ -50,7 +50,7 @@ public
     endfunc
 
     function *Destroy():  // reserved function name for destructor
-        delete ddata  // also sets the ddata variable to null
+        delete ddata  // also sets the ddata variable to nil
     endfunc
 
     function Print():
@@ -63,7 +63,7 @@ var bssobj <- OTest(5, 'bss')
 
 // heap objects
 
-var heapobj : OTest = null    // global heap object, explicitly initialized with null
+var heapobj : OTest = nil    // global heap object, explicitly initialized with nil
 
 function *Main() -> int:
     // bss object
@@ -77,12 +77,12 @@ function *Main() -> int:
     var lheapobj = new OTest(3, 'lheap')
     // or:  var lheapobj : OTest = new Otest(3, 'lheap');
     lheapobj.Print()
-    delete lheapobj  // also sets the lheapobj to null
+    delete lheapobj  // also sets the lheapobj to nil
 
     // global, heap allocated object
     heapobj = new OTest(9, 'heap')
     heapobj.Print()
-    delete heapobj  // sets the heapobj to null
+    delete heapobj  // sets the heapobj to nil
 
     bssobj = lobj   // ERROR: the in-place allocated object variables are read only !
 

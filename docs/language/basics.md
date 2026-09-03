@@ -124,14 +124,14 @@ var wc : wchar = 'x'
 var ch : char = 'x'
 ```
 
-The `null` literal is used for null pointer, object-reference, and function
+The `nil` literal is used for nil pointer, object-reference, and function
 reference values.
 
 ```dq
 type FIntFunc = function(a : int) -> int
 
-var p : ^int = null
-var cb : FIntFunc = null
+var p : ^int = nil
+var cb : FIntFunc = nil
 ```
 
 ## Declarations
@@ -194,7 +194,7 @@ if number <> 0:
     // ok
 endif
 
-if ptr <> null:
+if ptr <> nil:
     // ok
 endif
 ```

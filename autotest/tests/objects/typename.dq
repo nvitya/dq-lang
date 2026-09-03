@@ -38,7 +38,7 @@ function *Main() -> int:
     @.printf("TypeName(o1) = %s\n", TypeName(o1))   //?check("TypeName(o1)", "OFirst")
     @.printf("TypeName(OFirst) = %s\n", TypeName(OFirst)) //?check("TypeName(OFirst)", "OFirst")
 
-    var onull : OBase = null
+    var onull : OBase = nil
     @.printf("TypeName(onull) = %s\n", TypeName(onull)) //?check("TypeName(onull)", "OBase")
 
     delete ob

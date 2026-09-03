@@ -92,14 +92,14 @@ function MakeValue(value : refout int):
 endfunc
 
 function MaybeSet(value : refnull int):
-    if %value == null:
+    if %value == nil:
         return
     endif
     value = 44
 endfunc
 ```
 
-`refnull` accepts `null` as an argument. Inside the function, `%param == null`
+`refnull` accepts `nil` as an argument. Inside the function, `%param == nil`
 tests whether a real storage location was supplied.
 
 ## Default Arguments
@@ -160,7 +160,7 @@ var cb : FUnary = Inc
 var value : int = cb(10)
 ```
 
-Function references may be `null` and can be compared with `null`.
+Function references may be `nil` and can be compared with `nil`.
 
 A typed or opaque pointer can be explicitly cast to a plain function reference
 for low-level interoperability, such as constructing an interrupt vector table.
@@ -177,7 +177,7 @@ This conversion is never implicit and is not available for object method
 reference types declared with `of object`.
 
 ```dq
-if cb <> null:
+if cb <> nil:
     cb(1)
 endif
 ```
@@ -203,7 +203,7 @@ endfunc
 `*ModuleInit` is a module initialization function, called before the `*Main()`
 
 ```dq
-var g_handler : OHandler = null
+var g_handler : OHandler = nil
 
 function *ModuleInit():
     g_handler = new OHandler()

@@ -3560,7 +3560,7 @@ LlValue * OTryCastExpr::Generate(OScope * scope)
   LlValue * ll_null = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
   LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_src, ll_null, "cast.isnull");
   
-  // We'll use a phi node in bb_done to return either null or the casted value
+  // We'll use a phi node in bb_done to return either nil or the casted value
   LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_check);
 

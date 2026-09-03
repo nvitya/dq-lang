@@ -47,7 +47,7 @@ var d : ? = existing_struct       // allowed: the exact structure type
 var e : ? = new OChild()          // allowed: OChild
 
 var f : ? = {}                    // rejected: requires a contextual type
-var g : ? = null                  // rejected: has no concrete target type
+var g : ? = nil                  // rejected: has no concrete target type
 var h : ? = 3                     // rejected: integer inference is forbidden
 var i : ? = int32(3)              // rejected: integer inference is forbidden
 var j : ? = 3.0                   // rejected: floating-point inference is forbidden
@@ -114,7 +114,7 @@ expressions.
 - Inspect the initializer's independently resolved static type and validate it
   against the initial inference whitelist. Do not infer merely by copying the
   compiler's default type for an untyped literal.
-- Reject raw, null, or otherwise untyped pointers; an inferred pointer must have
+- Reject raw, nil, or otherwise untyped pointers; an inferred pointer must have
   a concrete pointee type.
 - Once validated, replace the `?` internally with the ordinary inferred type
   before symbol creation, assignment checking, constant evaluation, code

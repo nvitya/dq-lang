@@ -230,7 +230,7 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
   {
     if (ptrtype->IsNullPointer())
     {
-      return writer.Fail("Can not write null pointer as a DQM interface type spec");
+      return writer.Fail("Can not write nil pointer as a DQM interface type spec");
     }
     if (!ptrtype->IsTypedPointer())
     {
@@ -285,7 +285,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
   {
     if (ptrtype->IsNullPointer())
     {
-      return writer.Fail("Can not write null pointer as a DQM interface type spec");
+      return writer.Fail("Can not write nil pointer as a DQM interface type spec");
     }
     if (!ptrtype->IsTypedPointer())
     {

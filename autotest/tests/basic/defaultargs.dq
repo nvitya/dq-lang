@@ -14,8 +14,8 @@ function dq_round_default(v : float = 2) -> int:
     result = Round(v)
 endfunc
 
-function dq_ptr_default(p : ^int = null) -> int:
-    if p == null:
+function dq_ptr_default(p : ^int = nil) -> int:
+    if p == nil:
         result = -5
     else:
         result = p^

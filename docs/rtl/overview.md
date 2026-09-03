@@ -43,7 +43,7 @@ work.
 ```dq
 var p : ^int = ^int(MemAlloc(SizeOf(int), true))
 p^ = 123
-MemFreeRef(p)  // frees and sets p to null
+MemFreeRef(p)  // frees and sets p to nil
 ```
 
 ## Program Arguments
@@ -55,7 +55,7 @@ function ArgCount() -> int
 function ArgStr(i : int) -> ^char
 ```
 
-`ArgStr(i)` returns `null` for an out-of-range index.
+`ArgStr(i)` returns `nil` for an out-of-range index.
 
 ## Exceptions And Backtraces
 

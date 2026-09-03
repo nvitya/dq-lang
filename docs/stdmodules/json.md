@@ -80,7 +80,7 @@ endif
 
 // traditional:
 jv = root.FindNode("settings/theme")
-if jv <> null:
+if jv <> nil:
     PrintLn("theme={}", [jv.as_str])
 endif
 
@@ -100,4 +100,3 @@ j.SaveToFile("out.json", true)
 
 The root JSON text must be an object or array. Strings support JSON escapes,
 including Unicode escapes and surrogate pairs.
-

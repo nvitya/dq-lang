@@ -263,7 +263,7 @@ DEF_DQ_ERR(DQERR_FUNC_ARGS_LIST,                   "FuncArgList",            "Fu
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_MANY,               "FuncArgsTooMany",        "Too many arguments are provided for the function \"$1\" call. Expected $2");
 DEF_DQ_ERR(DQERR_FUNC_ARGS_TOO_FEW,                "FuncArgsTooFew",         "Too few arguments ($1) are provided for the function \"$2\" call. Expected $3");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_BIND,                "FuncArgRefBind",         "Argument $1 for function \"$2\" must be an addressable writable variable");
-DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NULL,                "FuncArgRefNull",         "Argument $1 for function \"$2\" cannot be null");
+DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NULL,                "FuncArgRefNull",         "Argument $1 for function \"$2\" cannot be nil");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_TYPE,                "FuncArgRefType",         "Reference argument $1 type mismatch for function \"$2\": expected \"$3\"");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_UNINIT,              "FuncArgRefInit",         "Reference argument \"$1\" is not initialized");
 DEF_DQ_ERR(DQERR_INTRINSIC_NAME_RESERVED,          "IntrinsicNameReserved",  "Name \"$1\" is reserved for a compiler intrinsic");

@@ -31,7 +31,7 @@ Plain parameters are passed by value. Reference modes alias caller storage:
 | `name : ref T` | readable and writable alias |
 | `name : refin T` | readable alias, not writable through the parameter |
 | `name : refout T` | writable output alias; input value is not part of the contract |
-| `name : refnull T` | nullable reference; accepts `null` |
+| `name : refnull T` | nullable reference; accepts `nil` |
 
 The argument must be an addressable, lifetime-compatible value for a reference
 parameter. Passing a reference never transfers ownership unless a specific API

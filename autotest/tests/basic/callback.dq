@@ -15,7 +15,7 @@ var g_later : CBUnary = later_inc
 var g_empty : CBUnary
 
 function apply_unary(cb : CBUnary, a : int) -> int:
-    if cb == null:
+    if cb == nil:
         result = -100
     else:
         result = cb(a)
@@ -26,7 +26,7 @@ function choose_cb(flag : bool) -> CBUnary:
     if flag:
         result = later_inc
     else:
-        result = null
+        result = nil
     endif
 endfunc
 
@@ -36,11 +36,11 @@ function *Main() -> int:
     printf("Testing DQ callbacks:\n\n")  //?ignore('Testing DQ callbacks:')
 
     var r : int = 0
-    var cb : CBUnary = null
+    var cb : CBUnary = nil
     var cb_add : CBBinary = add
     var chosen : CBUnary = choose_cb(true)
 
-    if cb == null:
+    if cb == nil:
         r = 1
     endif
     printf("cb_null = %li\n", r)  //?check('cb_null', 1)
@@ -56,14 +56,14 @@ function *Main() -> int:
     printf("choose_cb(true)(9) = %li\n", r)  //?check('choose_cb(true)(9)', 10)
 
     chosen = choose_cb(false)
-    if chosen <> null:
+    if chosen <> nil:
         r = -1
     else:
         r = 2
     endif
     printf("choose_cb_false = %li\n", r)  //?check('choose_cb_false', 2)
 
-    if g_empty == null:
+    if g_empty == nil:
         r = 3
     else:
         r = -1

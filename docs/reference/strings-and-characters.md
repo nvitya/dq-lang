@@ -105,8 +105,8 @@ valid only while the source is alive and unchanged in a way that can move its
 storage. C functions stop at the first zero byte even when the originating
 `str` contains later bytes.
 
-A null `^char` is not valid where a C string is required unless the called API
-explicitly defines null handling.
+A nil `^char` is not valid where a C string is required unless the called API
+explicitly defines nil handling.
 
 ## Overlap
 

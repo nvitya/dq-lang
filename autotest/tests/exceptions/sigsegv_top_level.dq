@@ -4,7 +4,7 @@
 function printf(fmt : ^char, ...) -> int [[external]]
 
 function CauseSegv():
-    var p : ^int = null
+    var p : ^int = nil
     p^ = 1
 endfunc
 

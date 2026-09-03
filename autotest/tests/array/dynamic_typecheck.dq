@@ -3,10 +3,10 @@
 
 function DynamicNullComparisonIsInvalid() -> int:
     var arr : [*]int
-    if arr == null: //?error(TypeMismatchOp)
+    if arr == nil: //?error(TypeMismatchOp)
         result = 1
     endif
-    if arr <> null: //?error(TypeMismatchOp)
+    if arr <> nil: //?error(TypeMismatchOp)
         result = 2
     endif
     result = 0

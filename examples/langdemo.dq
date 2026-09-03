@@ -41,7 +41,7 @@ endobj
 
 var obase   <- OBase('OBase')     // '<-' = embedded allocation (global data segment here)
                                    // no automatic destructor call for global embedded objects
-var ochild  : OChild = null
+var ochild  : OChild = nil
 
 function ObjTest():
     ochild = new OChild('OChild')
@@ -52,7 +52,7 @@ function ObjTest():
     obase.Print()
     ochild.Print()
 
-    PrintLn('ochild.name: {}', [iif(ochild == null, "OChild is null!", ochild.name)])
+    PrintLn('ochild.name: {}', [iif(ochild == nil, "OChild is nil!", ochild.name)])
 
     delete ochild
 endfunc
@@ -80,7 +80,7 @@ function putchar(c : char) -> int  [[external]] // from libc
 
 function WriteStr(s : cstring):
     var pc : ^char = s.pchar
-    if pc == null:
+    if pc == nil:
         return
     endif
     while pc^ <> char(0):
@@ -115,7 +115,7 @@ function *Main() -> int:
     PrintLn("@langdemo_mod.CONST1 = {}", [CONST1])
     PrintLn("@langdemo_mod.CONST2 = {:.3f}", [@ldm.CONST2])
 
-    PrintLn("ochild.name: {}", [iif(ochild == null, "OChild is null!", ochild.name)])
+    PrintLn("ochild.name: {}", [iif(ochild == nil, "OChild is nil!", ochild.name)])
 
     ObjTest()
 
@@ -144,7 +144,7 @@ The language is friendly.
 Bitwise op result: 0x0E0F
 @langdemo_mod.CONST1 = 42
 @langdemo_mod.CONST2 = 3.140
-ochild.name: OChild is null!
+ochild.name: OChild is nil!
 OBase: cnt1=1, cnt2=10
 OChild: cnt1=1, cnt2=11
 ochild.name: OChild

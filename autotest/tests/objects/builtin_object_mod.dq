@@ -14,7 +14,7 @@ function ExportObject(o : OModObject) -> Object:
 endfunc
 
 function ImportedObjectSet(o : Object) -> int:
-    if o == null:
+    if o == nil:
         return 0
     endif
     return 1

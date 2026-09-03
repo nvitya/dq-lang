@@ -51,7 +51,7 @@ function PrintAnyState(label : ^char, av : ref SDqAnyValue):
            label, int(av.kind), int(AnyValIsText(av)), int(AnyValIsStr(av)), int(view.charlen))
     if av.kind == DQTK_DYNSTR:
         var mgr : ODynStrMgr = AnyMgr(av)
-        if mgr == null:
+        if mgr == nil:
             printf(" ref:0")
         else:
             printf(" ref:%li", mgr.refcount)
@@ -102,7 +102,7 @@ function *Main() -> int:
     var moved : SDqAnyValue = {}
     AnyValMove(moved, copy)
     PrintAnyState("moved-dst", moved) //?check("moved-dst", "kind:10 istext:1 isstr:1 len:6 ref:1")
-    printf("moved-src-null = %li\n", int(AnyValIsNull(copy))) //?check("moved-src-null", 1)
+    printf("moved-src-nil = %li\n", int(AnyValIsNull(copy))) //?check("moved-src-nil", 1)
 
     AnyValDestroy(moved)
     printf("destroyed-moved = kind:%li istext:%li\n", int(moved.kind), int(AnyValIsText(moved))) //?check("destroyed-moved", "kind:0 istext:0")

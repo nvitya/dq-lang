@@ -52,7 +52,7 @@ function DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
     endif
 
     printf("Backtrace =\n")
-    libc_fflush(null)
+    libc_fflush(nil)
     var i : int = 0
     var printed : int = 0
     var stop_printing : bool = false

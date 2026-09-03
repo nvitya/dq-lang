@@ -3,8 +3,8 @@
 use libc/stdio
 
 function print_ptr_state(label : ^char, p : ^int):
-    if p == null:
-        printf("%s = null\n", label)
+    if p == nil:
+        printf("%s = nil\n", label)
     else:
         printf("%s = set\n", label)
     endif
@@ -13,16 +13,16 @@ endfunc
 function *Main() -> int:
     var p1 : ^int = new int
     printf("new int = %d\n", p1^)  //?check('new int', 0)
-    delete p1 = null
-    print_ptr_state("delete clear", p1)  //?check('delete clear', 'null')
+    delete p1 = nil
+    print_ptr_state("delete clear", p1)  //?check('delete clear', 'nil')
 
     var p2 : ^int = new int()
     printf("new int() = %d\n", p2^)  //?check('new int()', 0)
-    delete p2 = null
+    delete p2 = nil
 
     var p3 : ^int = new int(2)
     printf("new int(2) = %d\n", p3^)  //?check('new int(2)', 2)
-    delete p3 = null
+    delete p3 = nil
 
     var p4 = new int(3)
     printf("var new int = %d\n", p4^)  //?check('var new int', 3)
@@ -31,7 +31,7 @@ function *Main() -> int:
 
     var p5 : ^int = new int(5)
     MemFreeRef(p5)
-    print_ptr_state("MemFreeRef typed", p5)  //?check('MemFreeRef typed', 'null')
+    print_ptr_state("MemFreeRef typed", p5)  //?check('MemFreeRef typed', 'nil')
 
     return 0
 endfunc

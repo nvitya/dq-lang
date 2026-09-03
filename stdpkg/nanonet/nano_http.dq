@@ -188,7 +188,7 @@ endfunc
 function HttpDateFromUnix(atime : int64) -> str:
     var tm : STm = {}
     var t : int64 = atime
-    if libc_gmtime_r(%t, %tm) == null:
+    if libc_gmtime_r(%t, %tm) == nil:
         return ''
     endif
 
@@ -381,7 +381,7 @@ function OSConnectionHttp.*Create(aserver : ONanoServer):
     inbuf.SetLength(4096)
     infill = 0
     outbuf = ''
-    file_obj = null
+    file_obj = nil
 
     ucheaders = new OStrMap()
     response_headers = new OStrMap()
@@ -650,9 +650,9 @@ function OSConnectionHttp.ParseGetString():
 endfunc
 
 function OSConnectionHttp.CloseFileFd():
-    if file_obj <> null:
+    if file_obj <> nil:
         delete file_obj
-        file_obj = null
+        file_obj = nil
     endif
     file_remaining = 0
 endfunc
@@ -668,7 +668,7 @@ function OSConnectionHttp.SendOutput():
                     outbuf = ''
                 endif
             else:
-                self.SetOutHandler(null)
+                self.SetOutHandler(nil)
                 outbuf = ''
                 CloseFileFd()
                 self.Close()
@@ -681,7 +681,7 @@ function OSConnectionHttp.SendOutput():
             endif
         endif
 
-        if file_obj <> null and file_remaining > 0:
+        if file_obj <> nil and file_remaining > 0:
             var rlen : int64 = file_remaining
             if rlen > 65536:
                 rlen = 65536
@@ -698,7 +698,7 @@ function OSConnectionHttp.SendOutput():
             endif
 
             outbuf = ''
-            self.SetOutHandler(null)
+            self.SetOutHandler(nil)
             CloseFileFd()
             self.Close()
             return
@@ -707,7 +707,7 @@ function OSConnectionHttp.SendOutput():
         break
     endwhile
 
-    self.SetOutHandler(null)
+    self.SetOutHandler(nil)
     CloseFileFd()
 
     if not keep_alive:

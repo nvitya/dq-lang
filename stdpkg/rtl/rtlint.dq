@@ -68,10 +68,10 @@ endstruct
 
 type FRunTimeErrorHandler = function(emsg : ^char)
 
-var rterror_handler : FRunTimeErrorHandler = null
+var rterror_handler : FRunTimeErrorHandler = nil
 
 function RuntimeError(emsg : ^char):
-    if rterror_handler <> null:
+    if rterror_handler <> nil:
         rterror_handler(emsg)
     endif
 endfunc
@@ -84,8 +84,8 @@ implementation
 use rtl/mem
 
 function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
-    if length == 0  or  dataptr == null:
-        desc.dataptr = null
+    if length == 0  or  dataptr == nil:
+        desc.dataptr = nil
         desc.length = 0
         return
     endif
@@ -108,7 +108,7 @@ function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, start
 
     desc.length = e - b
     if desc.length == 0:
-        desc.dataptr = null
+        desc.dataptr = nil
     else:
         desc.dataptr = ^byte(dataptr)[b * elemsize]
     endif

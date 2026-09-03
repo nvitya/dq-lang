@@ -13,7 +13,7 @@ references, and embedded object storage.
 Typed pointer types are written with `^`.
 
 ```dq
-var p : ^int = null
+var p : ^int = nil
 ```
 
 `pointer` is an untyped generic pointer. Cast it to a typed pointer before
@@ -39,10 +39,10 @@ var p : ^int = %value
 p^ = 11
 ```
 
-`null` is the null pointer value.
+`nil` is the nil pointer value.
 
 ```dq
-if p == null:
+if p == nil:
     return
 endif
 ```
@@ -91,11 +91,11 @@ Both forms address the same field.
 Object variables are references.
 
 ```dq
-var obj : OThing = null
+var obj : OThing = nil
 obj = new OThing()
 ```
 
-Object references can be assigned, compared with `null`, and passed to
+Object references can be assigned, compared with `nil`, and passed to
 functions. Assigning an object reference does not copy the object.
 
 ## Heap Allocation

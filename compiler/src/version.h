@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.10"
+#define DQ_COMPILER_VERSION  "0.55.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.11:
+  - Language server: Go-to defintions for function jumping
+  - Language server: Code folding works
 v0.55.10:
   - Language Server: compound member listing fix
 v0.55.9:

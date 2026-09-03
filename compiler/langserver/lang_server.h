@@ -95,6 +95,7 @@ private:
   void RespondError(const TJsonNode * request, int code, string_view message);
   void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
   TJsonNode DocumentSymbolsJson(const SDocument & document) const;
+  TJsonNode DefinitionJson(const SDocument & document, int line, int character) const;
   void Reanalyze();
   bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);
   SWorkerResult RunWorker(const filesystem::path & source, const filesystem::path & manifest,

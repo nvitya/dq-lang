@@ -282,6 +282,76 @@ static int DocumentSymbolNameColumn(const SDocument & document, const SDocumentS
   return Utf16Column(document.text, symbol.line, int(name_start - line_start));
 }
 
+static bool IsIdentifierChar(char character)
+{
+  return isalnum(static_cast<unsigned char>(character)) || character == '_';
+}
+
+static bool IdentifierAt(const SDocument & document, int line, int character, string & ridentifier, size_t & rstart)
+{
+  size_t line_start = 0;
+  for (int current_line = 0; current_line < line && line_start < document.text.size(); ++current_line)
+  {
+    size_t line_end = document.text.find('\n', line_start);
+    line_start = line_end == string::npos ? document.text.size() : line_end + 1;
+  }
+  size_t line_end = document.text.find('\n', line_start);
+  if (line_end == string::npos) line_end = document.text.size();
+  size_t cursor = min(line_end, line_start + size_t(max(0, character)));
+  if (cursor == line_end || !IsIdentifierChar(document.text[cursor]))
+  {
+    if (cursor == line_start || !IsIdentifierChar(document.text[cursor - 1])) return false;
+    --cursor;
+  }
+  size_t start = cursor;
+  while (start > line_start && IsIdentifierChar(document.text[start - 1])) --start;
+  size_t end = cursor + 1;
+  while (end < line_end && IsIdentifierChar(document.text[end])) ++end;
+  ridentifier = document.text.substr(start, end - start);
+  rstart = start;
+  return true;
+}
+
+static const SDocumentSymbol * FindRootSymbol(const vector<SDocumentSymbol> & symbols, const string & name)
+{
+  for (const SDocumentSymbol & symbol : symbols)
+  {
+    if (symbol.name == name) return &symbol;
+  }
+  return nullptr;
+}
+
+static const SDocumentSymbol * FindChildSymbol(const SDocumentSymbol & parent, const string & name)
+{
+  for (const SDocumentSymbol & child : parent.children)
+  {
+    if (child.name == name) return &child;
+  }
+  return nullptr;
+}
+
+static string InferVariableType(const SDocument & document, const string & name, size_t cursor)
+{
+  string prefix = document.text.substr(0, cursor);
+  regex declaration("\\b" + name + "\\s*(?::=|:|<-)\\s*([A-Za-z0-9_]+)");
+  string result;
+  for (sregex_iterator match(prefix.begin(), prefix.end(), declaration), end; match != end; ++match)
+  {
+    result = (*match)[1].str();
+  }
+  return result;
+}
+
+static string SymbolUri(const SDocumentSymbol & symbol, const unordered_map<string, SDocument> & documents)
+{
+  string symbol_path = AbsNormPath(symbol.path).string();
+  for (const auto & [uri, document] : documents)
+  {
+    if (AbsNormPath(document.path).string() == symbol_path) return uri;
+  }
+  return FileUri(symbol.path);
+}
+
 static void AddDocumentSymbol(TJsonNode & symbols, const SDocument & document, const SDocumentSymbol & document_symbol)
 {
   int line = max(0, document_symbol.line - 1);
@@ -501,6 +571,65 @@ TJsonNode ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) con
   return result;
 }
 
+TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line, int character) const
+{
+  TJsonNode result(nkArray);
+  auto document_it = document_symbols.find(AbsNormPath(document.path).string());
+  if (document_it == document_symbols.end()) return result;
+
+  string name;
+  size_t name_start = 0;
+  if (!IdentifierAt(document, line, character, name, name_start)) return result;
+  const SDocumentSymbol * target = nullptr;
+
+  if (name_start > 0 && document.text[name_start - 1] == '.')
+  {
+    size_t qualifier_end = name_start - 1;
+    size_t qualifier_start = qualifier_end;
+    while (qualifier_start > 0 && IsIdentifierChar(document.text[qualifier_start - 1])) --qualifier_start;
+    string qualifier = document.text.substr(qualifier_start, qualifier_end - qualifier_start);
+    const SDocumentSymbol * compound = FindRootSymbol(document_it->second, qualifier);
+    if (!compound || (compound->kind != 5 && compound->kind != 23))
+    {
+      string type_name = InferVariableType(document, qualifier, name_start);
+      compound = FindRootSymbol(document_it->second, type_name);
+    }
+    if (compound) target = FindChildSymbol(*compound, name);
+  }
+  else
+  {
+    target = FindRootSymbol(document_it->second, name);
+  }
+  if (!target) return result;
+
+  const SDocument * target_document = nullptr;
+  SDocument closed_document;
+  string target_path = AbsNormPath(target->path).string();
+  for (const auto & [uri, open_document] : documents)
+  {
+    if (AbsNormPath(open_document.path).string() == target_path)
+    {
+      target_document = &open_document;
+      break;
+    }
+  }
+  if (!target_document)
+  {
+    ifstream input(target->path, ios::binary);
+    closed_document.path = target->path;
+    closed_document.text.assign(istreambuf_iterator<char>(input), istreambuf_iterator<char>());
+    target_document = &closed_document;
+  }
+  int target_line = max(0, target->line - 1);
+  int target_character = DocumentSymbolNameColumn(*target_document, *target);
+  TJsonNode & location = result.Add().GetAsObject();
+  location.Add("uri", SymbolUri(*target, documents));
+  TJsonNode & range = location.Add("range").GetAsObject();
+  AddPosition(range, "start", target_line, target_character);
+  AddPosition(range, "end", target_line, target_character + Utf16TextWidth(target->name));
+  return result;
+}
+
 void ODqLanguageServer::Reanalyze()
 {
   filesystem::path manifest;
@@ -579,6 +708,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     text_document_sync.Add("change", 1);
     text_document_sync.Add("save").GetAsObject().Add("includeText", false);
     capabilities.Add("documentSymbolProvider", true);
+    capabilities.Add("definitionProvider", true);
     TJsonNode & completion_provider = capabilities.Add("completionProvider").GetAsObject();
     completion_provider.Add("resolveProvider", false);
     TJsonNode & trigger_characters = completion_provider.Add("triggerCharacters").GetAsArray();
@@ -629,7 +759,8 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
   }
   if (!params || ((method != "textDocument/didOpen") && (method != "textDocument/didChange")
                   && (method != "textDocument/didClose") && (method != "textDocument/didSave")
-                  && (method != "textDocument/documentSymbol") && (method != "textDocument/completion")))
+                  && (method != "textDocument/documentSymbol") && (method != "textDocument/completion")
+                  && (method != "textDocument/definition")))
   {
     if (IsRequest(request)) RespondError(&request, -32601, "Method not found");
     return;
@@ -643,6 +774,22 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
   {
     auto it = documents.find(uri);
     TJsonNode result = it == documents.end() ? TJsonNode(nkArray) : DocumentSymbolsJson(it->second);
+    Respond(request, result);
+    return;
+  }
+  if (method == "textDocument/definition")
+  {
+    const TJsonNode * position = JsonChild(*params, "position");
+    if (!position || position->GetKind() != nkObject)
+    {
+      TJsonNode result(nkArray);
+      Respond(request, result);
+      return;
+    }
+    int line = int(JsonInteger(JsonChild(*position, "line"), 0));
+    int character = int(JsonInteger(JsonChild(*position, "character"), 0));
+    auto it = documents.find(uri);
+    TJsonNode result = it == documents.end() ? TJsonNode(nkArray) : DefinitionJson(it->second, line, character);
     Respond(request, result);
     return;
   }

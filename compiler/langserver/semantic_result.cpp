@@ -215,7 +215,7 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
         }
         for (const auto & [name, valsym] : ctype->member_scope.valsyms)
         {
-          if (!valsym || name.empty() || name.starts_with("__dq_")) continue;
+          if (!valsym || valsym->member_visibility != MV_PUBLIC || name.empty() || name.starts_with("__dq_")) continue;
           TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
           json_symbol.Add("name", name);
           json_symbol.Add("kind", ValSymKind(valsym->kind));

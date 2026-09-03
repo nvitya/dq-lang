@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.55.9"
+#define DQ_COMPILER_VERSION  "0.55.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.55.10:
+  - Language Server: compound member listing fix
 v0.55.9:
   - Language Server outline fix
 v0.55.8:

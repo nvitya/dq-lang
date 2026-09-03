@@ -686,10 +686,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
       {
         ns_start--;
       }
-      if (ns_start > line_start && document.text[ns_start - 1] == '@')
-      {
-        scope_name = document.text.substr(ns_start, dot_pos - ns_start);
-      }
+      if (ns_start < dot_pos) scope_name = document.text.substr(ns_start, dot_pos - ns_start);
     }
     else if (prefix_start > line_start && document.text[prefix_start - 1] == '@')
     {
@@ -728,7 +725,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
       if (ns_it == namespaces.end())
       {
         // Try to infer type of the variable using simple regex
-        std::regex re("\\b" + scope_name + "\\s*(?::|:=)\\s*([A-Za-z0-9_]+)");
+        std::regex re("\\b" + scope_name + "\\s*(?::=|:|<-)\\s*([A-Za-z0-9_]+)");
         std::smatch match;
         if (std::regex_search(document.text, match, re))
         {

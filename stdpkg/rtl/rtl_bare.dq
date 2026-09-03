@@ -15,11 +15,11 @@
 
 // Empty, bare-metal mains should define _start() directly
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]
+func main(argc : int, argv : ^^char) -> int  [[cexport]]
 
 implementation
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+func main(argc : int, argv : ^^char) -> int  [[cexport]]:
     return 0
 endfunc
 

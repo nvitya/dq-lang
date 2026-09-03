@@ -5,28 +5,28 @@ use libc/stdio
 object OTest:
     value : int
 
-    function *Create(avalue : int):
+    func *Create(avalue : int):
         value = avalue
     endfunc
-endobj
+endobject
 
 var global_ref : OTest = nil
 
-function RefIsNull(obj : ref OTest) -> int:
+func RefIsNull(obj : ref OTest) -> int:
     if obj == nil:
         return 1
     endif
     return 0
 endfunc
 
-function RefIsNotNull(obj : ref OTest) -> int:
+func RefIsNotNull(obj : ref OTest) -> int:
     if obj <> nil:
         return 1
     endif
     return 0
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("global_ref.nil = %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)) //?check("global_ref.nil", "1 0")
 
     global_ref = new OTest(42)

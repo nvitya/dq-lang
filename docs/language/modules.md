@@ -86,13 +86,13 @@ private implementation.
 
 ```dq
 const PUBLIC_VALUE : int = 1
-function PublicFunc() -> int
+func PublicFunc() -> int
 
 implementation
 
 const PRIVATE_VALUE : int = 2
 
-function PublicFunc() -> int:
+func PublicFunc() -> int:
     return PUBLIC_VALUE + PRIVATE_VALUE
 endfunc
 ```
@@ -131,7 +131,7 @@ Object methods have restricted name lookup. A method may use selected local
 `use` forms to opt in to module-scope names.
 
 ```dq
-function OThing.Method():
+func OThing.Method():
     use .
     use helper_alias
 endfunc

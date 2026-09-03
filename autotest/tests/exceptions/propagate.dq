@@ -1,15 +1,15 @@
-// Exception propagation across a function call.
+// Exception propagation across a func call.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 var reached : int = 0
 
-function Thrower():
+func Thrower():
     raise Exception("from thrower")
     reached = 1
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         Thrower()
         reached = 2

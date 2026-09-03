@@ -1,6 +1,6 @@
 use libc/stdio
 
-function *Main() -> int:
+func *Main() -> int:
     printf('DQ runtime error test\n')
 
     RuntimeError('something')

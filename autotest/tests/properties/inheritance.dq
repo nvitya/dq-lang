@@ -1,40 +1,40 @@
 // Static property lookup, hiding, inherited accessors, and virtual dispatch.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object OPropertyBase:
 protected
     stored : int = 10
 
-    function GetVirtual() -> int [[virtual]]:
+    func GetVirtual() -> int [[virtual]]:
         return stored
     endfunc
 
-    function SetVirtual(value : int) [[virtual]]:
+    func SetVirtual(value : int) [[virtual]]:
         stored = value
     endfunc
 
 public
     property value : int read GetVirtual write SetVirtual
-endobj
+endobject
 
 object OPropertyChild(OPropertyBase):
 private
     hidden_value : int = 100
 
-    function GetVirtual() -> int [[override]]:
+    func GetVirtual() -> int [[override]]:
         return stored + 1000
     endfunc
 
-    function SetVirtual(value : int) [[override]]:
+    func SetVirtual(value : int) [[override]]:
         stored = value + 100
     endfunc
 
-    function GetHidden() -> int:
+    func GetHidden() -> int:
         return hidden_value
     endfunc
 
-    function SetHidden(value : int):
+    func SetHidden(value : int):
         hidden_value = value
     endfunc
 
@@ -45,9 +45,9 @@ public
     // These inherited accessor names are resolved at this declaration, and their
     // calls retain normal virtual dispatch.
     property virtual_value : int read GetVirtual write SetVirtual
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var child <- OPropertyChild()
     var base : OPropertyBase = child
 

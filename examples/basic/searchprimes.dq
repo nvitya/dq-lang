@@ -3,7 +3,7 @@ use libc/stdio
 var prcnt : int = 1
 var prarr : [*]int
 
-function IsPrime(num : int) -> bool:
+func IsPrime(num : int) -> bool:
     var i : int = 2
     while i * i <= num:
         if num mod i == 0:
@@ -14,7 +14,7 @@ function IsPrime(num : int) -> bool:
     return true
 endfunc
 
-function IsPrimeArr(num : int) -> bool:
+func IsPrimeArr(num : int) -> bool:
     var idx : int = 0
     var i : int
     while idx < Len(prarr):
@@ -32,7 +32,7 @@ function IsPrimeArr(num : int) -> bool:
 endfunc
 
 
-function *Main() -> int:
+func *Main() -> int:
     printf('DQ Prime Search\n')
 
     var limit : int = 100

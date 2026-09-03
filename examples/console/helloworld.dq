@@ -1,6 +1,6 @@
 use print
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Hello World!')
     return 0
 endfunc

@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-function PrintArray(label : ^char, arr : []int):
+func PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -12,14 +12,14 @@ function PrintArray(label : ^char, arr : []int):
     printf("\n")
 endfunc
 
-function DynArrayCreate(acnt : int) -> [*]int:
+func DynArrayCreate(acnt : int) -> [*]int:
     result = []
     while result.length < acnt:
         result.Append(result.length + 1)
     endwhile
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("array_dynamic_basics = start\n") //?check("array_dynamic_basics", "start")
 
     var empty : [*]int

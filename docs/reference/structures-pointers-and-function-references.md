@@ -118,9 +118,9 @@ type or lifetime information is attached.
 A function reference type records a signature.
 
 ```dq
-type FTransform = function(value : int) -> int
+type FTransform = func(value : int) -> int
 
-function Double(value : int) -> int:
+func Double(value : int) -> int:
     return value * 2
 endfunc
 
@@ -134,7 +134,7 @@ with `nil`.
 An `of object` function reference also stores an object instance:
 
 ```dq
-type FHandler = function(message : strview) of object
+type FHandler = func(message : strview) of object
 ```
 
 Assigning a virtual method resolves the implementation for that instance.

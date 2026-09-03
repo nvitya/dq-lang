@@ -2,7 +2,7 @@
 
 use file
 
-function PackageCollisionHelper() -> int:
+func PackageCollisionHelper() -> int:
     if FileExists(''):
         return 1
     endif

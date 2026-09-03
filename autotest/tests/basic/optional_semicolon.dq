@@ -1,6 +1,6 @@
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function test_optional_semicolon():
+func test_optional_semicolon():
     var a : int = 10
     var b : int = 20
     var c : int = a + b
@@ -10,7 +10,7 @@ function test_optional_semicolon():
     endif
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     test_optional_semicolon()
     return 0
 endfunc

@@ -53,7 +53,7 @@ The builtin `anyvalue` type exposes convenience methods backed by the RTL
 Example:
 
 ```dq
-function ToLabel(v : anyvalue) -> str:
+func ToLabel(v : anyvalue) -> str:
     if v.IsNull():
         return "<null>"
     elif v.IsText():

@@ -1,6 +1,6 @@
 // simple DQ objects
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 var id  : int = 9
 var id2 : int = 8
@@ -10,39 +10,39 @@ object OElem:
     id        : int
     weight    : float
 
-    function Factor(f : float) -> float:
+    func Factor(f : float) -> float:
         return f * weight * @.g_factor  // without "@." the "g_factor" is unaccessible in the object method context
     endfunc
 
-    function printf():
+    func printf():
         @.printf("elem = OElem(%d, %.2f)\n", id, weight)  // call the module-root printf()
     endfunc
 
-    function MethodFwd() -> int
+    func MethodFwd() -> int
 
-    function Pick(v : int) -> int [[overload]]
+    func Pick(v : int) -> int [[overload]]
 
-endobj
+endobject
 
-function OElem.MethodFwd() -> int:
+func OElem.MethodFwd() -> int:
     result = 5
 endfunc
 
-function OElem.NewMethod() -> int:
+func OElem.NewMethod() -> int:
     result = 6
 endfunc
 
-function OElem.Pick(v : int) -> int [[overload]]:
+func OElem.Pick(v : int) -> int [[overload]]:
     result = v + id
 endfunc
 
-function OElem.Pick(v : float) -> int [[overload]]:
+func OElem.Pick(v : float) -> int [[overload]]:
     result = Round(v) + 10
 endfunc
 
 var g_elem : OElem = nil
 
-function *Main() -> int:
+func *Main() -> int:
     printf('DQ Object test\n')  //?ignore('DQ Object test')
 
     if g_elem == nil:

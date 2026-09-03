@@ -6,7 +6,7 @@ functions. See the [Functions guide](../language/functions.md) for common usage.
 ## Declaration and Definition
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     return a + b
 endfunc
 ```
@@ -46,7 +46,7 @@ A default expression supplies an omitted trailing argument. Named arguments use
 the declared parameter name and participate in overload selection.
 
 ```dq
-function Open(path : strview, retries : int = 0)
+func Open(path : strview, retries : int = 0)
 Open(path = "data.txt", retries = 2)
 ```
 
@@ -73,7 +73,7 @@ agreement; the callee has no DQ signature information for the unnamed values.
 
 ## Function References
 
-Functions can be assigned to a compatible `function(...)` reference type.
+Functions can be assigned to a compatible `func(...)` reference type.
 Object methods require an `of object` reference. See
 [Structures, Pointers, and Function References](structures-pointers-and-function-references.md).
 

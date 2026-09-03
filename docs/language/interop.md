@@ -11,13 +11,13 @@ external declarations, C-compatible types, pointers, and `#linklib`.
 Declare C functions with `[[external]]`.
 
 ```dq
-function printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 When the DQ name should differ from the C symbol, pass the symbol name.
 
 ```dq
-function c_fprintf(stream : pointer, fmt : ^char, ...) -> int  [[external('fprintf')]]
+func c_fprintf(stream : pointer, fmt : ^char, ...) -> int  [[external('fprintf')]]
 ```
 
 ## Variable Arguments
@@ -25,7 +25,7 @@ function c_fprintf(stream : pointer, fmt : ^char, ...) -> int  [[external('fprin
 C-style variadic functions use `...`.
 
 ```dq
-[[external]] function printf(fmt : ^char, ...) -> int
+[[external]] func printf(fmt : ^char, ...) -> int
 
 printf("value = %d\n", 42)
 ```
@@ -47,7 +47,7 @@ var libc_stdout : pointer [[external('stdout')]]
 Use `^char`, `str.pchar`, `cstring`, and `cstring(n)` for C-style strings.
 
 ```dq
-function WriteStr(s : cstring):
+func WriteStr(s : cstring):
     var p : ^char = s.pchar
     while p^ <> 0:
         putchar(p^)
@@ -71,8 +71,8 @@ semantics sees only the prefix before the first zero byte.
 Use `pointer` for opaque C pointers.
 
 ```dq
-[[external]] function fopen(path : ^char, mode : ^char) -> pointer
-[[external]] function fclose(file : pointer) -> int
+[[external]] func fopen(path : ^char, mode : ^char) -> pointer
+[[external]] func fclose(file : pointer) -> int
 ```
 
 Cast to typed pointers before dereferencing.
@@ -99,7 +99,7 @@ Use `#linklib` to request an external library.
 
 ```dq
 #linklib('z')
-[[external]] function zlibVersion() -> ^char
+[[external]] func zlibVersion() -> ^char
 ```
 
 ## Standard Package Declarations

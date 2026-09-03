@@ -1,6 +1,6 @@
 // struct and object brace block parsing
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 struct SBrace {
     id    : int
@@ -10,17 +10,17 @@ struct SBrace {
 object OBrace {
     data : SBrace
 
-    function *Create(id : int) {
+    func *Create(id : int) {
         data.id = id
         data.extra = 2
     }
 
-    function Sum() -> int {
+    func Sum() -> int {
         return data.id + data.extra
     }
 }
 
-function *Main() -> int {
+func *Main() -> int {
     printf("compound braces\n")  //?ignore('compound braces')
 
     var s : SBrace = {}

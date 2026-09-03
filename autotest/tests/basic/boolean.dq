@@ -9,9 +9,9 @@ var g_bool : bool = GVBOOL1 or GVBOOL0
 
 #else
 
-function printf(fmt : ^char, ...) -> int  [[external]] 
+func printf(fmt : ^char, ...) -> int  [[external]]
 
-function printbool(astr : ^char, abool : bool):
+func printbool(astr : ^char, abool : bool):
     printf("%s = ", astr)
     if abool:
         printf("true")
@@ -20,7 +20,7 @@ function printbool(astr : ^char, abool : bool):
     endif
     printf("\n")
 endfunc
-function *Main() -> int:
+func *Main() -> int:
     printf("DQ bool test\n")  //?ignore('DQ bool test')
 
     printbool("GVBOOL0", GVBOOL0)  //?check(GVBOOL0, false)

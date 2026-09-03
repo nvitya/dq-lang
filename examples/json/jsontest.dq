@@ -6,7 +6,7 @@ use strutils
 
 const TEST_FILE_NAME : cstring = 'test.json'
 
-function WriteTest():
+func WriteTest():
     PrintLn('JSON Writing Test')
 
     var jroot <- OJson()
@@ -46,7 +46,7 @@ function WriteTest():
     PrintLn()
 endfunc
 
-function ReadTest():
+func ReadTest():
     PrintLn('JSON Read Test')
 
     var jroot <- OJson()
@@ -89,7 +89,7 @@ function ReadTest():
     PrintLn()
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ JSON test')
 
     PrintLn('Test file name: "{}"', [TEST_FILE_NAME])

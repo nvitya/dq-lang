@@ -6,24 +6,24 @@ object ODynData:
     intvalue : int
     name     : cstring[64]
 
-    function *Create(a : int, aname : cstring):  // constructor
+    func *Create(a : int, aname : cstring):  // constructor
         intvalue = a
         name = aname
     endfunc
-endobj
+endobject
 
 object OCoords:
     coords : [2]float
 
-    function *Create(x : int, y : int) [[overload]]:
+    func *Create(x : int, y : int) [[overload]]:
         coords[0] = x
         coords[1] = y
     endfunc
 
-    function *Create() [[overload]]:
+    func *Create() [[overload]]:
         Create(0, 0)
     endfunc
-endobj
+endobject
 
 object OTest:
 private
@@ -38,7 +38,7 @@ private
     coords4 <- OCoords()       // alternative constructor
 
 public
-    function *Create(a : int, aname : cstring):  // reserved function name for constructor
+    func *Create(a : int, aname : cstring):  // reserved func name for constructor
         ddata = new ODynData(a, aname)
 
     coords1.Create(4, 5)  // ERROR: double constructor call !
@@ -49,14 +49,14 @@ public
     // ERROR: coords3 constructor call is missing
     endfunc
 
-    function *Destroy():  // reserved function name for destructor
+    func *Destroy():  // reserved func name for destructor
         delete ddata  // also sets the ddata variable to nil
     endfunc
 
-    function Print():
+    func Print():
         @.printf("%s(%d)\n", %ddata.name, ddata.intvalue)
     endfunc
-endobj
+endobject
 
 // .bss allocated object
 var bssobj <- OTest(5, 'bss')
@@ -65,7 +65,7 @@ var bssobj <- OTest(5, 'bss')
 
 var heapobj : OTest = nil    // global heap object, explicitly initialized with nil
 
-function *Main() -> int:
+func *Main() -> int:
     // bss object
     bssobj.Print()
 

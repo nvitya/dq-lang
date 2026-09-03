@@ -1,36 +1,36 @@
-// object function reference tests
+// object func reference tests
 
 use libc/stdio
 
-type FObjText = function(msg : cstring) of object
-type FObjInt = function(v : int) of object
-type FPlainText = function(msg : cstring)
+type FObjText = func(msg : cstring) of object
+type FObjInt = func(v : int) of object
+type FPlainText = func(msg : cstring)
 
-function plain(msg : cstring):
+func plain(msg : cstring):
     printf("plain = %s\n", %msg[0])
 endfunc
 
 object OCallback:
     name : cstring(32)
 
-    function *Create(aname : cstring):
+    func *Create(aname : cstring):
         name = aname
     endfunc
 
-    function Print(msg : cstring):
+    func Print(msg : cstring):
         @.printf("%s = %s\n", %name, %msg[0])
     endfunc
 
-    function Pick(msg : cstring) [[overload]]:
+    func Pick(msg : cstring) [[overload]]:
         @.printf("%s.picked = %s\n", %name, %msg[0])
     endfunc
 
-    function Pick(v : int) [[overload]]:
+    func Pick(v : int) [[overload]]:
         @.printf("%s.picked = %d\n", %name, v)
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var first <- OCallback("first")
     var second <- OCallback("second")
     var cb : FObjText = nil

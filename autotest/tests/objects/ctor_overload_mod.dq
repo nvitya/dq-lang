@@ -4,21 +4,21 @@ object OImportedStrCtor:
     text : str
     tag  : int
 
-    function *Create(atext : str) [[overload]]:
+    func *Create(atext : str) [[overload]]:
         text = atext
         tag = 1
     endfunc
 
-    function *Create(atext : str, atag : int) [[overload]]:
+    func *Create(atext : str, atag : int) [[overload]]:
         text = atext
         tag = atag
     endfunc
 
-    function Len() -> int:
+    func Len() -> int:
         return text.length
     endfunc
 
-    function Tag() -> int:
+    func Tag() -> int:
         return tag
     endfunc
-endobj
+endobject

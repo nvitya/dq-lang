@@ -29,16 +29,16 @@ const DQTK_ANYVALUE     : uint8 = 15
 const DQTK_STRUCT       : uint8 = 16
 const DQTK_OBJECT       : uint8 = 17
 const DQTK_ARRAY        : uint8 = 20
-const DQTK_ARRAY_SLICE  : uint8 = 21   // array descriptor {ptr, length} for function parameters
+const DQTK_ARRAY_SLICE  : uint8 = 21   // array descriptor {ptr, length} for func parameters
 const DQTK_DYN_ARRAY    : uint8 = 22   // owning dynamic array [*]T: ORawDynArray-compatible layout
 const DQTK_FUNCTION     : uint8 = 28
-const DQTK_FUNCREF      : uint8 = 29   // function variable (function pointer)
+const DQTK_FUNCREF      : uint8 = 29   // func variable (func pointer)
 const DQTK_ALIAS        : uint8 = 31
 
-type FMgrInitFunc    = function(dataptr : pointer, count : uint)
-type FMgrDestroyFunc = function(dataptr : pointer, count : uint)
-type FMgrCopyFunc    = function(dstptr : pointer, srcptr : pointer, count : uint)
-type FMgrMoveFunc    = function(dstptr : pointer, srcptr : pointer, count : uint)
+type FMgrInitFunc    = func(dataptr : pointer, count : uint)
+type FMgrDestroyFunc = func(dataptr : pointer, count : uint)
+type FMgrCopyFunc    = func(dstptr : pointer, srcptr : pointer, count : uint)
+type FMgrMoveFunc    = func(dstptr : pointer, srcptr : pointer, count : uint)
 
 struct SDqTypeInfo:
     storagesize  : uint32   // array stride, including padding
@@ -66,24 +66,24 @@ struct SDqTextInfo:   // 12 or 16 Bytes
     info    : uint32   // maxlen + charwidth + flags
 endstruct
 
-type FRunTimeErrorHandler = function(emsg : ^char)
+type FRunTimeErrorHandler = func(emsg : ^char)
 
 var rterror_handler : FRunTimeErrorHandler = nil
 
-function RuntimeError(emsg : ^char):
+func RuntimeError(emsg : ^char):
     if rterror_handler <> nil:
         rterror_handler(emsg)
     endif
 endfunc
 
 
-function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc)
+func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc)
 
 implementation
 
 use rtl/mem
 
-function RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
+func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc):
     if length == 0  or  dataptr == nil:
         desc.dataptr = nil
         desc.length = 0

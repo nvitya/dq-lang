@@ -1,5 +1,5 @@
 //?notest
 
-function sub_value() -> int:
+func sub_value() -> int:
     result = 2
 endfunc

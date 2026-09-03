@@ -7,7 +7,7 @@ var darr <- ORawDynArray(SizeOf(int), 1)
 
 //var iarr : [*]int = [];
 
-function PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
+func PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
     printf('%16s:', ainfo)
 
     for i : int = 0 count aarr.length:
@@ -16,7 +16,7 @@ function PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
     printf("\n")
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf('DQ Raw Dynamic Array test\n')
 
     #if not @def.EMBED

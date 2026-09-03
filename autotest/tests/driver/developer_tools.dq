@@ -4,12 +4,12 @@ use dqautotest
 
 var run <- OTestRun()
 
-function CheckTool(name : strview):
+func CheckTool(name : strview):
     run.RunTool([BinPath(name)])
     run.ExpectExitCode(0)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     CheckTool('dq-inline-asm-test')
     CheckTool('dq-projectfile-test')
     return TestResult()

@@ -4,21 +4,21 @@ struct SRefItem:
     value : int
 endstruct
 
-function dq_ref_local_basic() -> int:
+func dq_ref_local_basic() -> int:
     var a : int = 1
     ref ra = a
     ra = 7
     result = a
 endfunc
 
-function dq_ref_local_typed() -> int:
+func dq_ref_local_typed() -> int:
     var a : int = 2
     ref ra : int = a
     ra += 3
     result = a
 endfunc
 
-function dq_ref_local_member() -> int:
+func dq_ref_local_member() -> int:
     var s : SRefItem
     s.value = 11
     ref rv = s.value
@@ -26,26 +26,26 @@ function dq_ref_local_member() -> int:
     result = s.value
 endfunc
 
-function dq_ref_local_array() -> int:
+func dq_ref_local_array() -> int:
     var arr : [3]int = [1, 2, 3]
     ref rv = arr[1]
     rv = 9
     result = arr[1]
 endfunc
 
-function dq_set_ref(a : ref int):
+func dq_set_ref(a : ref int):
     a = 5
 endfunc
 
-function dq_sum_refin(a : refin int) -> int:
+func dq_sum_refin(a : refin int) -> int:
     result = a + 1
 endfunc
 
-function dq_make_refout(a : refout int):
+func dq_make_refout(a : refout int):
     a = 33
 endfunc
 
-function dq_refnull_state(a : refnull int) -> int:
+func dq_refnull_state(a : refnull int) -> int:
     if %a == nil:
         result = 1
     else:
@@ -53,7 +53,7 @@ function dq_refnull_state(a : refnull int) -> int:
     endif
 endfunc
 
-function dq_set_refnull(a : refnull int):
+func dq_set_refnull(a : refnull int):
     if %a == nil:
         return
     endif
@@ -61,8 +61,8 @@ function dq_set_refnull(a : refnull int):
     a = 44
 endfunc
 
-function printf(fmt : ^char, ...) -> int [[external]]
-function *Main() -> int:
+func printf(fmt : ^char, ...) -> int [[external]]
+func *Main() -> int:
     printf("Testing DQ refs:\n\n")  //?ignore('Testing DQ refs:')
 
     var r : int

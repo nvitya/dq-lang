@@ -10,16 +10,16 @@ struct SSharedPayload:
     value : int
 endstruct
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function MakeHidden(value : int) -> SHiddenPayload:
+func MakeHidden(value : int) -> SHiddenPayload:
     result.value = value
 endfunc
 
-function HiddenValue(payload : SHiddenPayload) -> int:
+func HiddenValue(payload : SHiddenPayload) -> int:
     result = payload.value
 endfunc
 
-function MakeShared(value : int) -> SSharedPayload:
+func MakeShared(value : int) -> SSharedPayload:
     result.value = value
 endfunc

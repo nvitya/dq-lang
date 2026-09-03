@@ -26,10 +26,10 @@ Server connections are object types derived from `OSConnection`. Override
 
 ```dq
 object OMyConnection(OSConnection):
-    function HandleInput(aobj : Object) [[override]]
-endobj
+    func HandleInput(aobj : Object) [[override]]
+endobject
 
-function OMyConnection.HandleInput(aobj : Object) [[override]]:
+func OMyConnection.HandleInput(aobj : Object) [[override]]:
     var buf : [256]byte
     var n : int = sock.Recv(%buf[0], SizeOf(buf))
     if n <= 0:
@@ -62,10 +62,10 @@ Override `ProcessRequest()` to handle dynamic responses:
 
 ```dq
 object OConn(OSConnectionHttp):
-    function ProcessRequest() -> bool [[override]]
-endobj
+    func ProcessRequest() -> bool [[override]]
+endobject
 
-function OConn.ProcessRequest() -> bool [[override]]:
+func OConn.ProcessRequest() -> bool [[override]]:
     response_headers["Content-Type"] = "text/plain"
     response = "hello"
     return true
@@ -101,7 +101,7 @@ Response fields:
 paths.
 
 ```dq
-function OConn.ProcessRequest() -> bool [[override]]:
+func OConn.ProcessRequest() -> bool [[override]]:
     if HandleStaticFiles("public"):
         return true
     endif

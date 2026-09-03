@@ -72,7 +72,7 @@ all slices and element pointers into it, even when the change appears to affect
 a different part of the array. A slice cannot resize its owner.
 
 Array values may convert to a full compatible slice in view contexts, including
-function parameters. A slice may not be made from temporary storage whose
+func parameters. A slice may not be made from temporary storage whose
 lifetime would end before the slice.
 
 ## Indexing

@@ -13,10 +13,10 @@
  * brief:   DQ Program arguments handling
  */
 
-function ArgCount() -> int
-function ArgStr(i : int) -> ^char   // 0 = program args
+func ArgCount() -> int
+func ArgStr(i : int) -> ^char   // 0 = program args
 
-function __sys_init_params(argc : int, argv : ^^char)  // called from the hosted RTL entry point main()
+func __sys_init_params(argc : int, argv : ^^char)  // called from the hosted RTL entry point main()
 
 implementation
 
@@ -25,16 +25,16 @@ implementation
 var sys_argc : int      = -1
 var sys_argv : ^^char  = nil
 
-function __sys_init_params(argc : int, argv : ^^char):
+func __sys_init_params(argc : int, argv : ^^char):
     sys_argc = argc
     sys_argv = argv
 endfunc
 
-function ArgCount() -> int:
+func ArgCount() -> int:
     result = sys_argc
 endfunc
 
-function ArgStr(i : int) -> ^char:
+func ArgStr(i : int) -> ^char:
     if i >= sys_argc  or  i < 0:
         return nil
     else:

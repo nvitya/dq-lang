@@ -43,6 +43,6 @@
   #endif
 #endif
 
-function TargetPointerSize() -> int:
+func TargetPointerSize() -> int:
     return 4
 endfunc

@@ -27,27 +27,27 @@ use rtl/rtlint
 #endif
 
 
-function StrfIsValidWChar(wc : wchar) -> bool
-function IntToChar(value : int) -> char [[overload]]
-function IntToChar(value : int, defvalue : char) -> char [[overload]]
-function IntToWchar(value : int) -> wchar [[overload]]
-function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]
+func StrfIsValidWChar(wc : wchar) -> bool
+func IntToChar(value : int) -> char [[overload]]
+func IntToChar(value : int, defvalue : char) -> char [[overload]]
+func IntToWchar(value : int) -> wchar [[overload]]
+func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]
 
-function StrfIsUtf8(text : strview) -> bool
-function StrfWcLen(text : strview) -> int
-function StrfWCharAt(text : strview, index : int) -> wchar
-function StrfToWchars(text : strview) -> [*]wchar
-function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar
+func StrfIsUtf8(text : strview) -> bool
+func StrfWcLen(text : strview) -> int
+func StrfWCharAt(text : strview, index : int) -> wchar
+func StrfToWchars(text : strview) -> [*]wchar
+func StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar
 #ifdef DYNSTRINGS
-function StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str
-function StrfFromWchars(chars : []wchar) -> str
+func StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str
+func StrfFromWchars(chars : []wchar) -> str
 #endif
-function StrfToUtf16(text : strview) -> [*]char16
+func StrfToUtf16(text : strview) -> [*]char16
 #ifdef DYNSTRINGS
-function StrfFromUtf16(chars : []char16) -> str
-function StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str
-function StrfFromUtf16Ptr(chars : ^char16, count : int) -> str
-function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str
+func StrfFromUtf16(chars : []char16) -> str
+func StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str
+func StrfFromUtf16Ptr(chars : ^char16, count : int) -> str
+func StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str
 #endif
 
 implementation
@@ -66,7 +66,7 @@ use rtl/exception
 #include "dynstr.dqi"
 #endif
 
-function StrfRuntimeError(emsg : ^char):
+func StrfRuntimeError(emsg : ^char):
 #ifdef EXCEPTIONS
     raise EStrError(emsg)
 #else
@@ -75,20 +75,20 @@ function StrfRuntimeError(emsg : ^char):
 endfunc
 
 
-function StrfIsHighSurrogate(code : uint32) -> bool:
+func StrfIsHighSurrogate(code : uint32) -> bool:
     return code >= uint32(0xD800) and code <= uint32(0xDBFF)
 endfunc
 
-function StrfIsLowSurrogate(code : uint32) -> bool:
+func StrfIsLowSurrogate(code : uint32) -> bool:
     return code >= uint32(0xDC00) and code <= uint32(0xDFFF)
 endfunc
 
-function StrfIsValidWChar(wc : wchar) -> bool:
+func StrfIsValidWChar(wc : wchar) -> bool:
     var code : uint32 = uint32(Ord(wc))
     return code <= uint32(0x10FFFF) and not (code >= uint32(0xD800) and code <= uint32(0xDFFF))
 endfunc
 
-function IntToChar(value : int) -> char [[overload]]:
+func IntToChar(value : int) -> char [[overload]]:
     if value < 0 or value > 255:
 #ifdef EXCEPTIONS
         raise EStrError('char value out of range: {}', [value])
@@ -100,14 +100,14 @@ function IntToChar(value : int) -> char [[overload]]:
     return char(value)
 endfunc
 
-function IntToChar(value : int, defvalue : char) -> char [[overload]]:
+func IntToChar(value : int, defvalue : char) -> char [[overload]]:
     if value < 0 or value > 255:
         return defvalue
     endif
     return char(value)
 endfunc
 
-function IntToWchar(value : int) -> wchar [[overload]]:
+func IntToWchar(value : int) -> wchar [[overload]]:
     result = wchar(value)
     if not StrfIsValidWChar(result):
 #ifdef EXCEPTIONS
@@ -119,25 +119,25 @@ function IntToWchar(value : int) -> wchar [[overload]]:
     endif
 endfunc
 
-function IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
+func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
     result = wchar(value)
     if not StrfIsValidWChar(result):
         return defvalue
     endif
 endfunc
 
-function StrfByte(text : strview, index : int) -> uint32:
+func StrfByte(text : strview, index : int) -> uint32:
     return uint32(Ord(text[index])) & uint32(0xFF)
 endfunc
 
-function StrfFailUtf8(report_error : bool) -> bool:
+func StrfFailUtf8(report_error : bool) -> bool:
     if report_error:
         StrfRuntimeError('Invalid UTF-8')
     endif
     return false
 endfunc
 
-function StrfReadCont(text : strview, index : int, outb : refout uint32, report_error : bool) -> bool:
+func StrfReadCont(text : strview, index : int, outb : refout uint32, report_error : bool) -> bool:
     if index >= text.length:
         return StrfFailUtf8(report_error)
     endif
@@ -149,7 +149,7 @@ function StrfReadCont(text : strview, index : int, outb : refout uint32, report_
     return true
 endfunc
 
-function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar,
+func StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar,
                         report_error : bool = true) -> bool:
     if pos >= text.length:
         return false
@@ -202,7 +202,7 @@ function StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar,
 endfunc
 
 #ifdef DYNSTRINGS
-function StrfAppendUtf8(dst : ref str, wc : wchar):
+func StrfAppendUtf8(dst : ref str, wc : wchar):
     if not StrfIsValidWChar(wc):
 #ifdef EXCEPTIONS
         raise EStrError('Invalid Unicode scalar: {:x}', [wc])
@@ -231,7 +231,7 @@ function StrfAppendUtf8(dst : ref str, wc : wchar):
 endfunc
 #endif
 
-function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
+func StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     if not StrfIsValidWChar(wc):
 #ifdef EXCEPTIONS
         raise EStrError('Invalid Unicode scalar: {:x}', [wc])
@@ -251,7 +251,7 @@ function StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     endif
 endfunc
 
-function StrfIsUtf8(text : strview) -> bool:
+func StrfIsUtf8(text : strview) -> bool:
     var pos : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf8(text, pos, wc, false):
@@ -259,7 +259,7 @@ function StrfIsUtf8(text : strview) -> bool:
     result = pos >= text.length
 endfunc
 
-function StrfWcLen(text : strview) -> int:
+func StrfWcLen(text : strview) -> int:
     var pos : int = 0
     var wc : wchar = wchar(0)
     result = 0
@@ -268,7 +268,7 @@ function StrfWcLen(text : strview) -> int:
     endwhile
 endfunc
 
-function StrfWCharAt(text : strview, index : int) -> wchar:
+func StrfWCharAt(text : strview, index : int) -> wchar:
     result = wchar(0)
     if index < 0:
 #ifdef EXCEPTIONS
@@ -296,7 +296,7 @@ function StrfWCharAt(text : strview, index : int) -> wchar:
 #endif
 endfunc
 
-function StrfClampIndex(index : int, length : int) -> int:
+func StrfClampIndex(index : int, length : int) -> int:
     if index <= 0:
         return 0
     elif index >= length:
@@ -306,7 +306,7 @@ function StrfClampIndex(index : int, length : int) -> int:
     endif
 endfunc
 
-function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar:
+func StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar:
     result = []
     var wclen : int = StrfWcLen(text)
     var b : int = StrfClampIndex(startpos, wclen)
@@ -327,13 +327,13 @@ function StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wc
 endfunc
 
 #ifdef DYNSTRINGS
-function StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str:
+func StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str:
     var wchars : [*]wchar = StrfWCharSlice(text, startpos, endposex)
     return StrfFromWchars(wchars[:])
 endfunc
 #endif
 
-function StrfToWchars(text : strview) -> [*]wchar:
+func StrfToWchars(text : strview) -> [*]wchar:
     result = []
     var pos : int = 0
     var wc : wchar = wchar(0)
@@ -343,7 +343,7 @@ function StrfToWchars(text : strview) -> [*]wchar:
 endfunc
 
 #ifdef DYNSTRINGS
-function StrfFromWchars(chars : []wchar) -> str:
+func StrfFromWchars(chars : []wchar) -> str:
     result = ''
     var i : int = 0
     while i < chars.length:
@@ -353,7 +353,7 @@ function StrfFromWchars(chars : []wchar) -> str:
 endfunc
 #endif
 
-function StrfToUtf16(text : strview) -> [*]char16:
+func StrfToUtf16(text : strview) -> [*]char16:
     result = []
     var pos : int = 0
     var wc : wchar = wchar(0)
@@ -363,7 +363,7 @@ function StrfToUtf16(text : strview) -> [*]char16:
     result.Append(char16(0))
 endfunc
 
-function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout wchar,
+func StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout wchar,
                            fallback_wchar : wchar, has_fallback : bool) -> bool:
     if pos >= count:
         return false
@@ -418,7 +418,7 @@ function StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : ref
 endfunc
 
 #ifdef DYNSTRINGS
-function StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wchar, has_fallback : bool) -> str:
+func StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wchar, has_fallback : bool) -> str:
     result = ''
     if chars == nil or count <= 0:
         return ''
@@ -432,7 +432,7 @@ function StrfFromUtf16PtrImpl(chars : ^char16, count : int, fallback_wchar : wch
 endfunc
 #endif
 
-function StrfUtf16SliceCount(chars : []char16) -> int:
+func StrfUtf16SliceCount(chars : []char16) -> int:
     result = chars.length
     if result > 0 and chars[result - 1] == char16(0):
         result -= 1
@@ -440,25 +440,25 @@ function StrfUtf16SliceCount(chars : []char16) -> int:
 endfunc
 
 #ifdef DYNSTRINGS
-function StrfFromUtf16(chars : []char16) -> str:
+func StrfFromUtf16(chars : []char16) -> str:
     if chars.length == 0:
         return ''
     endif
     return StrfFromUtf16PtrImpl(%chars[0], StrfUtf16SliceCount(chars), wchar(0), false)
 endfunc
 
-function StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str:
+func StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str:
     if chars.length == 0:
         return ''
     endif
     return StrfFromUtf16PtrImpl(%chars[0], StrfUtf16SliceCount(chars), fallback_wchar, true)
 endfunc
 
-function StrfFromUtf16Ptr(chars : ^char16, count : int) -> str:
+func StrfFromUtf16Ptr(chars : ^char16, count : int) -> str:
     return StrfFromUtf16PtrImpl(chars, count, wchar(0), false)
 endfunc
 
-function StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str:
+func StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str:
     return StrfFromUtf16PtrImpl(chars, count, fallback_wchar, true)
 endfunc
 #endif

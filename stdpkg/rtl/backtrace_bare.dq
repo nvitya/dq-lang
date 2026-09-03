@@ -13,17 +13,17 @@
  * brief:   Backtrace capturing helpers for Bare-metal
  */
 
-function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
-function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
+func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
+func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
 
 implementation
 
 use rtl/rtlint
 
-function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
+func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
     result = 0
 endfunc
 
-function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
+func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
     return false
 endfunc

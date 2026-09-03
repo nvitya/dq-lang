@@ -16,7 +16,7 @@ use print
 
 // The slow, recursive version
 
-function FibonacciRecursive(n : uint64) -> uint64:
+func FibonacciRecursive(n : uint64) -> uint64:
     if n <= 1:
         return n
     endif
@@ -26,7 +26,7 @@ endfunc
 // The normal, non-recursive version
 // This is hard to benchmark, because it runs very fast
 
-function Fibonacci(n : uint64) -> uint64:
+func Fibonacci(n : uint64) -> uint64:
     if n <= 1:
         return n
     endif
@@ -42,7 +42,7 @@ function Fibonacci(n : uint64) -> uint64:
     endwhile
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('{}', [FibonacciRecursive(47)])
     //PrintLn('{}', [Fibonacci(47)])
     return 0

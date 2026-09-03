@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-function ExpectCompileFailure(args : []str, diagnostic : strview):
+func ExpectCompileFailure(args : []str, diagnostic : strview):
     run.RunCompiler(args)
     if run.exitcode == 0:
         Fail('compiler unexpectedly accepted an invalid program')
@@ -12,7 +12,7 @@ function ExpectCompileFailure(args : []str, diagnostic : strview):
     run.ExpectOutputContains(diagnostic)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var output : str = TempPath('.o')
     var dyn_cases : [3]str = ['TEST_STR', 'TEST_CONCAT', 'TEST_ANYVALUE']
     for i : int = 0 count dyn_cases.length:

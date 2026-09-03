@@ -4,13 +4,13 @@ use threads
 use time
 
 object EShellStart(Exception):
-endobj
+endobject
 
 object EShellResult(Exception):
     code : int
-    function *Create(acode : int, amsg : strview)                        [[overload]]
-    function *Create(acode : int, afmt : strview, avalues : []anyvalue)  [[overload]]
-endobj
+    func *Create(acode : int, amsg : strview)                        [[overload]]
+    func *Create(acode : int, afmt : strview, avalues : []anyvalue)  [[overload]]
+endobject
 
 object OShellRunner(OThread):
     exitcode : int = 0
@@ -20,18 +20,18 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    function Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]
-    function Run(args : []str, exitcerr : bool = true) -> int [[overload]]
-    function RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]
-    function RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]
-    function StartBg(acmd : strview) -> int [[overload]]
-    function StartBg(args : []str) -> int [[overload]]
-    function StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]
-    function StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]
+    func Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]
+    func Run(args : []str, exitcerr : bool = true) -> int [[overload]]
+    func RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]
+    func RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]
+    func StartBg(acmd : strview) -> int [[overload]]
+    func StartBg(args : []str) -> int [[overload]]
+    func StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]
+    func StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]
 
-    function Finished() -> bool
-    function WaitFinishMs(ams : int) -> bool
-    function Kill()
+    func Finished() -> bool
+    func WaitFinishMs(ams : int) -> bool
+    func Kill()
 
 protected
     pid : int32 = 0
@@ -43,13 +43,13 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    function StartProcess(args : []str) -> int
-    function MonitorProcess()
-    function MonitorThread(aarg : pointer) -> pointer
-endobj
+    func StartProcess(args : []str) -> int
+    func MonitorProcess()
+    func MonitorThread(aarg : pointer) -> pointer
+endobject
 
-function GetEnv(name : strview, default_value : strview) -> str
-function SetEnv(name : strview, value : strview)
+func GetEnv(name : strview, default_value : strview) -> str
+func SetEnv(name : strview, value : strview)
 
 implementation
 
@@ -59,23 +59,23 @@ struct SPollFd:
     revents : int16
 endstruct
 
-function libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
-function libc_fork() -> int32                                        [[external('fork')]]
-function libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
-function libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
-function libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
-function libc_close(fd : int32) -> int32                             [[external('close')]]
-function libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
-function libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
-function libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
-function libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
-function libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
-function libc__exit(status : int32)                                  [[external('_exit')]]
-function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
-function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
-function libc_perror(message : ^char)                                [[external('perror')]]
-function libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
-function libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
+func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
+func libc_fork() -> int32                                        [[external('fork')]]
+func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
+func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
+func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
+func libc_close(fd : int32) -> int32                             [[external('close')]]
+func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
+func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
+func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
+func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
+func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
+func libc__exit(status : int32)                                  [[external('_exit')]]
+func libc___errno_location() -> ^int32                           [[external('__errno_location')]]
+func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+func libc_perror(message : ^char)                                [[external('perror')]]
+func libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
+func libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1
@@ -92,12 +92,12 @@ const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
-function EShellResult.*Create(acode : int, amsg : strview) [[overload]]:
+func EShellResult.*Create(acode : int, amsg : strview) [[overload]]:
     inherited Create(amsg)
     code = acode
 endfunc
 
-function EShellResult.*Create(acode : int, afmt : strview,
+func EShellResult.*Create(acode : int, afmt : strview,
                               avalues : []anyvalue) [[overload]]:
     inherited Create(afmt, avalues)
     code = acode
@@ -105,7 +105,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-function OShellRunner.StartProcess(args : []str) -> int:
+func OShellRunner.StartProcess(args : []str) -> int:
     use *
     result = 0
 
@@ -198,12 +198,12 @@ function OShellRunner.StartProcess(args : []str) -> int:
     return 0
 endfunc
 
-function OShellRunner.MonitorThread(aarg : pointer) -> pointer:
+func OShellRunner.MonitorThread(aarg : pointer) -> pointer:
     MonitorProcess()
     return nil
 endfunc
 
-function OShellRunner.MonitorProcess():
+func OShellRunner.MonitorProcess():
     use *
     var fds : [3]SPollFd
     fds[0].fd = out_fd
@@ -333,7 +333,7 @@ function OShellRunner.MonitorProcess():
     finished = true
 endfunc
 
-function OShellRunner.Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]:
     if acmd.length == 0:
         raise EShellStart('Empty command')
     endif
@@ -341,7 +341,7 @@ function OShellRunner.Run(acmd : strview, exitcerr : bool = true) -> int [[overl
     return Run(['/bin/sh', '-c', command], exitcerr)
 endfunc
 
-function OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overload]]:
     if args.length == 0:
         raise EShellStart('Empty argument list')
     endif
@@ -367,7 +367,7 @@ function OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overloa
     return exitcode
 endfunc
 
-function OShellRunner.RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
     if acmd.length == 0:
         raise EShellStart('Empty command')
     endif
@@ -375,7 +375,7 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview, exitcerr : 
     return RunWithInput(['/bin/sh', '-c', command], ainput, exitcerr)
 endfunc
 
-function OShellRunner.RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
     if args.length == 0:
         raise EShellStart('Empty argument list')
     endif
@@ -400,12 +400,12 @@ function OShellRunner.RunWithInput(args : []str, ainput : strview, exitcerr : bo
     return exitcode
 endfunc
 
-function OShellRunner.StartBg(acmd : strview) -> int [[overload]]:
+func OShellRunner.StartBg(acmd : strview) -> int [[overload]]:
     var command : str = acmd
     return StartBg(['/bin/sh', '-c', command])
 endfunc
 
-function OShellRunner.StartBg(args : []str) -> int [[overload]]:
+func OShellRunner.StartBg(args : []str) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -434,12 +434,12 @@ function OShellRunner.StartBg(args : []str) -> int [[overload]]:
     return 0
 endfunc
 
-function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]:
     var command : str = acmd
     return StartBgWithInput(['/bin/sh', '-c', command], ainput)
 endfunc
 
-function OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -468,12 +468,12 @@ function OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[
     return 0
 endfunc
 
-function OShellRunner.Finished() -> bool:
+func OShellRunner.Finished() -> bool:
     IsRunning()
     return finished
 endfunc
 
-function OShellRunner.WaitFinishMs(ams : int) -> bool:
+func OShellRunner.WaitFinishMs(ams : int) -> bool:
     use *
     var deadline : int64 = MilliTime() + ams
     while not Finished():
@@ -485,7 +485,7 @@ function OShellRunner.WaitFinishMs(ams : int) -> bool:
     return true
 endfunc
 
-function OShellRunner.Kill():
+func OShellRunner.Kill():
     if not finished:
         if pid > 0:
             use *
@@ -497,7 +497,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-function GetEnv(name : strview, default_value : strview) -> str:
+func GetEnv(name : strview, default_value : strview) -> str:
     var cname : str = name
     var value : ^char = libc_getenv(cname.pchar)
     if value == nil:
@@ -507,7 +507,7 @@ function GetEnv(name : strview, default_value : strview) -> str:
     endif
 endfunc
 
-function SetEnv(name : strview, value : strview):
+func SetEnv(name : strview, value : strview):
     var cname : str = name
     var cvalue : str = value
 

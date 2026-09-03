@@ -19,7 +19,7 @@ With `[[asm]]`, the assembly body implements the complete function, including
 returning to its caller.
 
 ```dq
-function Return42() -> int [[asm]]:
+func Return42() -> int [[asm]]:
     mov     eax, 42
     ret
 endfunc
@@ -34,7 +34,7 @@ implementation is responsible for obeying that ABI: it must read arguments from
 the correct registers or stack locations, place a return value in the correct
 location, preserve all required registers, and return to the caller. Parameter
 names and `result` are not available as operands in a complete assembly
-function.
+func.
 
 The compiler emits an `[[asm]]` function as naked and non-inline. Consequently,
 it does not generate a prologue, epilogue, or DQ `return` operation. `[[asm]]`
@@ -46,7 +46,7 @@ Combining `inline` and `asm` defines an assembly operation with a DQ function
 signature:
 
 ```dq
-function Add(a : int, b : int) -> int [[inline, asm]]:
+func Add(a : int, b : int) -> int [[inline, asm]]:
     lea     $result, [$a + $b]
 endfunc
 
@@ -74,7 +74,7 @@ The compiler replaces these names with the target assembly operands allocated
 for the call.
 
 ```dq
-function ReverseBits(value : uint32) -> uint32 [[inline, asm]]:
+func ReverseBits(value : uint32) -> uint32 [[inline, asm]]:
     rbit    $result, $value
 endfunc
 ```
@@ -97,7 +97,7 @@ An inline assembly function may have one trailing hint list immediately before
 `endfunc`:
 
 ```dq
-function MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
+func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
     imul    $result, $value, $factor
     [[immediate(factor), clobber(flags)]]
 endfunc
@@ -130,7 +130,7 @@ The special clobber `memory` is supported on every inline-assembly target and ca
 be used for a compiler barrier:
 
 ```dq
-function CompilerBarrier() [[inline, asm]]:
+func CompilerBarrier() [[inline, asm]]:
     [[clobber(memory)]]
 endfunc
 ```
@@ -140,7 +140,7 @@ targets. It is not available on RISC-V. A physical register can also be named as
 a clobber, using its lowercase target name or a recognized conventional alias:
 
 ```dq
-function AddOneThroughRax(value : int) -> int [[inline, asm]]:
+func AddOneThroughRax(value : int) -> int [[inline, asm]]:
     mov     rax, $value
     lea     $result, [rax + 1]
     [[clobber(rax)]]
@@ -157,17 +157,17 @@ Memory hints make a named parameter expand as an assembly memory operand rather
 than a register containing an address.
 
 ```dq
-function Load32(address : ^int32) -> int32 [[inline, asm]]:
+func Load32(address : ^int32) -> int32 [[inline, asm]]:
     mov     $result, $address
     [[memread(address)]]
 endfunc
 
-function Store32(address : ^int32, value : int32) [[inline, asm]]:
+func Store32(address : ^int32, value : int32) [[inline, asm]]:
     mov     $address, $value
     [[memwrite(address)]]
 endfunc
 
-function AddTo32(address : ^int32, value : int32) [[inline, asm]]:
+func AddTo32(address : ^int32, value : int32) [[inline, asm]]:
     add     $address, $value
     [[memreadwrite(address), clobber(flags)]]
 endfunc
@@ -178,7 +178,7 @@ explicit size qualifier when its other operands do not determine the access
 width:
 
 ```dq
-function Inc32(address : ^int32) [[inline, asm]]:
+func Inc32(address : ^int32) [[inline, asm]]:
     inc     dword ptr $address
     [[memreadwrite(address), clobber(flags)]]
 endfunc
@@ -199,7 +199,7 @@ This permits target-specific implementations selected with conditional
 compilation:
 
 ```dq
-function Pause() [[inline, asm]]:
+func Pause() [[inline, asm]]:
     #ifdef TARGET_HAS_PAUSE
         pause
     #else

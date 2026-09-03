@@ -6,6 +6,6 @@ implementation
 
 use ./mod_advuse_select as privsel only(hidden_func)
 
-function private_only_value() -> int:
+func private_only_value() -> int:
     result = hidden_func(6)
 endfunc

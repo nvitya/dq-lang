@@ -4,11 +4,11 @@ use print
 use file
 use ./dirutils
 
-function JoinPath(adir : strview, aname : strview) -> str:
+func JoinPath(adir : strview, aname : strview) -> str:
     return adir + '/' + aname
 endfunc
 
-function PrintTree(adir : strview, aindent : strview):
+func PrintTree(adir : strview, aindent : strview):
     var dir <- ODirReader()
     dir.Open(adir)
     while dir.Next():
@@ -25,7 +25,7 @@ function PrintTree(adir : strview, aindent : strview):
     endwhile
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ directory and file listing demo')
 
     // list the files in the current directory

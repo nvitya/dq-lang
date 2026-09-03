@@ -13,7 +13,7 @@ struct SMain:
     elem     : [8]SElem
 endstruct
 
-function dq_struct_test(sm : ^SMain):
+func dq_struct_test(sm : ^SMain):
     var ep : ^SElem
 
     sm^.id = 5
@@ -31,7 +31,7 @@ function dq_struct_test(sm : ^SMain):
     endwhile
 endfunc
 
-function dq_struct_test_noderef(sm : ^SMain):
+func dq_struct_test_noderef(sm : ^SMain):
     var ep : ^SElem
 
     sm.id = 5
@@ -49,9 +49,9 @@ function dq_struct_test_noderef(sm : ^SMain):
     endwhile
 endfunc
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function show_struct(aprefix : ^char, sm : ^SMain):
+func show_struct(aprefix : ^char, sm : ^SMain):
     var ep : ^SElem
     printf('%s sm.id = %d\n', aprefix, sm.id)
     var n : int = 0
@@ -71,7 +71,7 @@ endfunc
 
 // FIX THIS !
 // var sm : SMain;
-function *Main() -> int:
+func *Main() -> int:
 
     printf("DQ Struct test\n")  //?ignore('DQ Struct test')
 

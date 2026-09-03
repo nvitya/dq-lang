@@ -11,17 +11,17 @@ const(uint32):
     PERIPH_BASE     = 0x40000000
 endconst
 
-function dq_local_const_basic() -> int:
+func dq_local_const_basic() -> int:
     const base : int = 3
     result = base + 4
 endfunc
 
-function dq_local_const_shadow_root() -> int:
+func dq_local_const_shadow_root() -> int:
     const rootval : int = 11
     result = rootval
 endfunc
 
-function dq_local_const_group() -> uint32:
+func dq_local_const_group() -> uint32:
     const(uint32):
         first = FLASH_BANK1_END
         second = first + 1
@@ -29,11 +29,11 @@ function dq_local_const_group() -> uint32:
     result = second
 endfunc
 
-function dq_pointer_address_const() -> uint:
+func dq_pointer_address_const() -> uint:
     result = uint(address_ptr_alias)
 endfunc
 
-function dq_local_const_in_if(a : int) -> int:
+func dq_local_const_in_if(a : int) -> int:
     if a > 0:
         const inc : int = 5
         result = inc
@@ -42,7 +42,7 @@ function dq_local_const_in_if(a : int) -> int:
     endif
 endfunc
 
-function dq_local_const_nonconst_expr(a : int) -> int:
+func dq_local_const_nonconst_expr(a : int) -> int:
     const bad : int = a + 1  //?error(ConstExprInvalid), error(ConstExprNonConstVs)
     result = 0
 endfunc

@@ -2,9 +2,9 @@
 
 use libc/stdio
 
-function putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]]
 
-function PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -14,27 +14,27 @@ function PrintText(label : ^char, text : strview):
     printf("\"\n")
 endfunc
 
-function BoolInt(v : bool) -> int:
+func BoolInt(v : bool) -> int:
     return iif(v, 1, 0)
 endfunc
 
-function PassInt(v : anyvalue) -> int:
+func PassInt(v : anyvalue) -> int:
     return v.AsInt(-1)
 endfunc
 
-function PassText(v : anyvalue) -> str:
+func PassText(v : anyvalue) -> str:
     return v.AsStr("")
 endfunc
 
-function PassTextView(v : anyvalue) -> strview:
+func PassTextView(v : anyvalue) -> strview:
     return v.AsText("")
 endfunc
 
-function MakeTextValue(s : str) -> anyvalue:
+func MakeTextValue(s : str) -> anyvalue:
     result = s
 endfunc
 
-function PrintArgs(label : ^char, args : []anyvalue):
+func PrintArgs(label : ^char, args : []anyvalue):
     printf("%s = len:%li a0:%li a1:%li a2:%li\n",
            label,
            args.length,
@@ -44,7 +44,7 @@ function PrintArgs(label : ^char, args : []anyvalue):
     PrintText("slice-text", args[3].AsStr("")) //?check("slice-text", '[5] "hello"')
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("anyvalue_builtin = start\n") //?check("anyvalue_builtin", "start")
 
     var av : anyvalue

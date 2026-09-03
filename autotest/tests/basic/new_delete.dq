@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-function print_ptr_state(label : ^char, p : ^int):
+func print_ptr_state(label : ^char, p : ^int):
     if p == nil:
         printf("%s = nil\n", label)
     else:
@@ -10,7 +10,7 @@ function print_ptr_state(label : ^char, p : ^int):
     endif
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var p1 : ^int = new int
     printf("new int = %d\n", p1^)  //?check('new int', 0)
     delete p1 = nil

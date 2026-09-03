@@ -1,8 +1,8 @@
 use ./mod_union
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     var word : UModuleWord = MakeModuleWord(0xFFFFFFFF)
     var nested : SModuleNested = {}
     nested.value.whole = 17

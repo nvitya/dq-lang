@@ -1,50 +1,50 @@
-function UnknownHint(value : int) [[inline, asm]]:
+func UnknownHint(value : int) [[inline, asm]]:
     nop
     [[mystery(value)]] //?error(AsmHintUnknown)
 endfunc
 
-function UnknownOperand(value : int) [[inline, asm]]:
+func UnknownOperand(value : int) [[inline, asm]]:
     nop
     [[immediate(other)]] //?error(AsmOperandUnknown)
 endfunc
 
-function ConflictingOperand(value : int) [[inline, asm]]:
+func ConflictingOperand(value : int) [[inline, asm]]:
     nop
     [[immediate(value), memread(value)]] //?error(AsmOperandConflict)
 endfunc
 
-function DuplicateOperand(value : int) [[inline, asm]]:
+func DuplicateOperand(value : int) [[inline, asm]]:
     nop
     [[immediate(value, value)]] //?error(AsmOperandConflict)
 endfunc
 
-function InvalidClauseArgument(value : int) [[inline, asm]]:
+func InvalidClauseArgument(value : int) [[inline, asm]]:
     nop
     [[immediate(1)]] //?error(AsmHintSyntax)
 endfunc
 
-function EmptyClause(value : int) [[inline, asm]]:
+func EmptyClause(value : int) [[inline, asm]]:
     nop
     [[clobber()]] //?error(AsmHintSyntax)
 endfunc
 
-function EmptyHintList(value : int) [[inline, asm]]:
+func EmptyHintList(value : int) [[inline, asm]]:
     nop
     [[]] //?error(AsmHintSyntax)
 endfunc
 
-function TrailingHintComma(value : int) [[inline, asm]]:
+func TrailingHintComma(value : int) [[inline, asm]]:
     nop
     [[immediate(value),]] //?error(AsmHintSyntax)
 endfunc
 
-function DuplicateHintList(value : int) [[inline, asm]]:
+func DuplicateHintList(value : int) [[inline, asm]]:
     nop
     [[immediate(value)]]
     [[clobber(flags)]] //?error(AsmHintSyntax)
 endfunc
 
-function TextAfterHints(value : int) [[inline, asm]]:
+func TextAfterHints(value : int) [[inline, asm]]:
     nop
     [[immediate(value)]]
     nop //?error(AsmHintSyntax)

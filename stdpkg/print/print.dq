@@ -13,26 +13,26 @@
  * brief:   Basic stdout printing functions
  */
 
-function Print(fmt : strview) [[overload]]
-function Print(fmt : strview, args : []anyvalue) [[overload]]
-function PrintLn() [[overload]]
-function PrintLn(fmt : strview) [[overload]]
-function PrintLn(fmt : strview, args : []anyvalue) [[overload]]
-function PrintFlush()
+func Print(fmt : strview) [[overload]]
+func Print(fmt : strview, args : []anyvalue) [[overload]]
+func PrintLn() [[overload]]
+func PrintLn(fmt : strview) [[overload]]
+func PrintLn(fmt : strview, args : []anyvalue) [[overload]]
+func PrintFlush()
 
 implementation
 
 use rtl/textformat
 use libc/stdio
 
-function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
-function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+func libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
 var std_out_sink      : OTextSinkStdOut = nil
 var std_out_formatter : OTextFormatter = nil
 
-function StdOutFmtSetup():
+func StdOutFmtSetup():
     if std_out_sink == nil:
         std_out_sink = new OTextSinkStdOut()
     endif
@@ -41,28 +41,28 @@ function StdOutFmtSetup():
     endif
 endfunc
 
-function Print(fmt : strview) [[overload]]:
+func Print(fmt : strview) [[overload]]:
     if std_out_sink == nil:
         StdOutFmtSetup()
     endif
     std_out_sink.Write(fmt)
 endfunc
 
-function Print(fmt : strview, args : []anyvalue) [[overload]]:
+func Print(fmt : strview, args : []anyvalue) [[overload]]:
     if std_out_formatter == nil:
         StdOutFmtSetup()
     endif
     std_out_formatter.Format(fmt, args)
 endfunc
 
-function PrintLn() [[overload]]:
+func PrintLn() [[overload]]:
     if std_out_sink == nil:
         StdOutFmtSetup()
     endif
     std_out_sink.WriteChar('\n')
 endfunc
 
-function PrintLn(fmt : strview) [[overload]]:
+func PrintLn(fmt : strview) [[overload]]:
     if std_out_sink == nil:
         StdOutFmtSetup()
     endif
@@ -70,7 +70,7 @@ function PrintLn(fmt : strview) [[overload]]:
     std_out_sink.WriteChar('\n')
 endfunc
 
-function PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
+func PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
     if std_out_formatter == nil:
         StdOutFmtSetup()
     endif
@@ -78,6 +78,6 @@ function PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
     std_out_sink.WriteChar('\n')
 endfunc
 
-function PrintFlush():
+func PrintFlush():
     libc_fflush(@stdio.DqLibcStdout())
 endfunc

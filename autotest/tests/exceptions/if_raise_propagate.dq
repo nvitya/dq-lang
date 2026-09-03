@@ -4,7 +4,7 @@ use libc/stdio
 
 var reached : int = 0
 
-function ThrowFromIf():
+func ThrowFromIf():
     if 1 == 1:
         raise Exception("if throw")
     endif
@@ -12,7 +12,7 @@ function ThrowFromIf():
     printf("exception.if_raise.after = reached\n")  //?ignore("exception.if_raise.after")
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         ThrowFromIf()
         reached = 2

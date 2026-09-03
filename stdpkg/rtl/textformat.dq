@@ -60,44 +60,44 @@ const DQFMT_KIND_BOOL    : char = 'b'
 const DQFMT_KIND_FLOAT   : char = 'f'
 
 object OTextSink:
-    function *Create():
+    func *Create():
     endfunc
 
-    function Write(atext : strview) [[virtual]]:
+    func Write(atext : strview) [[virtual]]:
     endfunc
 
-    function WriteChar(ch : char)   [[virtual]]:
+    func WriteChar(ch : char)   [[virtual]]:
     endfunc
-endobj
+endobject
 
 #ifndef BARE
 
 object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
-    function *Create()
-    function Write(atext : strview) [[override]]
-    function WriteChar(ch : char)   [[override]]
-endobj
+    func *Create()
+    func Write(atext : strview) [[override]]
+    func WriteChar(ch : char)   [[override]]
+endobject
 
 #endif    
 
 object OTextSinkCString(OTextSink):
     dest : cstring
 
-    function *Create(adest : cstring)
-    function Write(atext : strview) [[override]]
-    function WriteChar(ch : char)   [[override]]
-endobj
+    func *Create(adest : cstring)
+    func Write(atext : strview) [[override]]
+    func WriteChar(ch : char)   [[override]]
+endobject
 
 #ifdef DYNSTRINGS
 object OTextSinkStr(OTextSink):
     dest : ^str
 
-    function *Create(adest : ^str)
-    function Write(atext : strview) [[override]]
-    function WriteChar(ch : char)   [[override]]
-endobj
+    func *Create(adest : ^str)
+    func Write(atext : strview) [[override]]
+    func WriteChar(ch : char)   [[override]]
+endobject
 #endif
 
 struct STextFmtSpec:
@@ -118,9 +118,9 @@ public
 
     fmtspec   : STextFmtSpec
 
-    function *Create(asink : OTextSink)
-    function Reset()
-    function Format(afmt : strview, aargs : []anyvalue)
+    func *Create(asink : OTextSink)
+    func Reset()
+    func Format(afmt : strview, aargs : []anyvalue)
 
 protected
     curpos : int32 = 0
@@ -128,27 +128,27 @@ protected
 
     lcsbuf : cstring(47)
 
-    function ParseSpec(afmt : strview)
-    function FormatAny(av : anyvalue)
+    func ParseSpec(afmt : strview)
+    func FormatAny(av : anyvalue)
 
-    function WritePad(acount : int, ch : char)
-    function UIntDigitChar(adigit : uint, aupper : bool) -> char
-    function BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int
-    function WriteReversedDigits(acount : int)
-    function WriteFormattedDigits(asign : char, adigit_count : int)
-    function WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint)
+    func WritePad(acount : int, ch : char)
+    func UIntDigitChar(adigit : uint, aupper : bool) -> char
+    func BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int
+    func WriteReversedDigits(acount : int)
+    func WriteFormattedDigits(asign : char, adigit_count : int)
+    func WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint)
 
-    function FormatSInt(v : int)
-    function FormatUInt(v : uint)
-    function FormatHex(v : uint, aupper : bool)
+    func FormatSInt(v : int)
+    func FormatUInt(v : uint)
+    func FormatHex(v : uint, aupper : bool)
 
-    function FormatFloat(v : float)
+    func FormatFloat(v : float)
 
-endobj
+endobject
 
-function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue)
+func CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue)
 #ifdef DYNSTRINGS
-function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue)
+func DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue)
 #endif
 
 implementation
@@ -166,11 +166,11 @@ use rtl/strfunc
 // integer/float conversion code can later live in a small, reusable RTL module.
 // The formatter itself must not allocate heap memory.
 
-function DqTextFmtIsDigit(ch : char) -> bool:
+func DqTextFmtIsDigit(ch : char) -> bool:
     return (ch >= '0') and (ch <= '9')
 endfunc
 
-function DqTextFmtDigitValue(ch : char) -> int:
+func DqTextFmtDigitValue(ch : char) -> int:
     return Ord(ch) - Ord('0')
 endfunc
 
@@ -178,66 +178,66 @@ endfunc
 
 #ifndef BARE
 
-function libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-function libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
-function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
+func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+func libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
-function OTextSinkStdOut.*Create():
+func OTextSinkStdOut.*Create():
     inherited Create()
     pstdout = @stdio.DqLibcStdout()
 endfunc
 
-function OTextSinkStdOut.Write(atext : strview) [[override]]:
+func OTextSinkStdOut.Write(atext : strview) [[override]]:
     @.libc_fwrite(%atext[0], 1, atext.length, pstdout)
 endfunc
 
-function OTextSinkStdOut.WriteChar(ch : char) [[override]]:
+func OTextSinkStdOut.WriteChar(ch : char) [[override]]:
     @.libc_fputc(Ord(ch), pstdout)
 endfunc
 
 #endif
 
-function OTextSinkCString.*Create(adest : cstring):
+func OTextSinkCString.*Create(adest : cstring):
     inherited Create()
     dest = adest
 endfunc
 
-function OTextSinkCString.Write(atext : strview) [[override]]:
+func OTextSinkCString.Write(atext : strview) [[override]]:
     dest.Append(atext)
 endfunc
 
-function OTextSinkCString.WriteChar(ch : char) [[override]]:
+func OTextSinkCString.WriteChar(ch : char) [[override]]:
     dest.AppendChar(ch)
 endfunc
 
 #ifdef DYNSTRINGS
-function OTextSinkStr.*Create(adest : ^str):
+func OTextSinkStr.*Create(adest : ^str):
     inherited Create()
     dest = adest
 endfunc
 
-function OTextSinkStr.Write(atext : strview) [[override]]:
+func OTextSinkStr.Write(atext : strview) [[override]]:
     dest^.Append(atext)
 endfunc
 
-function OTextSinkStr.WriteChar(ch : char) [[override]]:
+func OTextSinkStr.WriteChar(ch : char) [[override]]:
     dest^.AppendChar(ch)
 endfunc
 #endif
 
 //-------------------------------------------------------------------------------------------------
 
-function OTextFormatter.*Create(asink : OTextSink):
+func OTextFormatter.*Create(asink : OTextSink):
     sink = asink
 endfunc
 
-function OTextFormatter.Reset():
+func OTextFormatter.Reset():
     arg_index = 0
     flags = 0
     curpos = 0
 endfunc
 
-function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
+func OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
     use .
     Reset()
 
@@ -307,7 +307,7 @@ function OTextFormatter.Format(afmt : strview, aargs : []anyvalue):
     endif
 endfunc
 
-function OTextFormatter.ParseSpec(afmt : strview):
+func OTextFormatter.ParseSpec(afmt : strview):
     var p    : uint = curpos
     var flen : uint = afmt.length
 
@@ -373,7 +373,7 @@ function OTextFormatter.ParseSpec(afmt : strview):
     curpos = p
 endfunc
 
-function OTextFormatter.FormatAny(av : anyvalue):
+func OTextFormatter.FormatAny(av : anyvalue):
     if av.IsNull():
         sink.Write("null")
         return
@@ -445,14 +445,14 @@ function OTextFormatter.FormatAny(av : anyvalue):
     sink.Write("<arg-error>")
 endfunc
 
-function OTextFormatter.WritePad(acount : int, ch : char):
+func OTextFormatter.WritePad(acount : int, ch : char):
     while acount > 0:
         sink.WriteChar(ch)
         acount -= 1
     endwhile
 endfunc
 
-function OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
+func OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
     if adigit < 10:
         return char(Ord('0') + int(adigit))
     elif aupper:
@@ -462,7 +462,7 @@ function OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
     endif
 endfunc
 
-function OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
+func OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
     lcsbuf.Clear()
 
     if v == uint(0):
@@ -478,7 +478,7 @@ function OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -
     return int(lcsbuf.length)
 endfunc
 
-function OTextFormatter.WriteReversedDigits(acount : int):
+func OTextFormatter.WriteReversedDigits(acount : int):
     var i : int = acount - 1
     while i >= 0:
         sink.WriteChar(char(lcsbuf[i]))
@@ -486,7 +486,7 @@ function OTextFormatter.WriteReversedDigits(acount : int):
     endwhile
 endfunc
 
-function OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
+func OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
     var total_len : int = adigit_count
     if asign <> char(0):
         total_len += 1
@@ -516,7 +516,7 @@ function OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
     endif
 endfunc
 
-function OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
+func OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
     var total_len : int = aint_digit_count
     if asign <> char(0):
         total_len += 1
@@ -560,7 +560,7 @@ function OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int
     endif
 endfunc
 
-function OTextFormatter.FormatSInt(v : int):
+func OTextFormatter.FormatSInt(v : int):
     var signch : char = char(0)
     var mag    : uint = uint(v)
 
@@ -574,15 +574,15 @@ function OTextFormatter.FormatSInt(v : int):
     WriteFormattedDigits(signch, BuildUIntDigits(mag, 10, false))
 endfunc
 
-function OTextFormatter.FormatUInt(v : uint):
+func OTextFormatter.FormatUInt(v : uint):
     WriteFormattedDigits(char(0), BuildUIntDigits(v, 10, false))
 endfunc
 
-function OTextFormatter.FormatHex(v : uint, aupper : bool):
+func OTextFormatter.FormatHex(v : uint, aupper : bool):
     WriteFormattedDigits(char(0), BuildUIntDigits(v, 16, aupper))
 endfunc
 
-function OTextFormatter.FormatFloat(v : float):
+func OTextFormatter.FormatFloat(v : float):
     var signch : char = char(0)
     var work : float = v
 
@@ -634,14 +634,14 @@ endfunc
 
 //----------------------------------------------------------------------------------------
 
-function CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue):
+func CStrAddFmt(adest : cstring, afmt : strview, aargs : []anyvalue):
     var osink <- OTextSinkCString(adest)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)
 endfunc
 
 #ifdef DYNSTRINGS
-function DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue):
+func DynStrAddFmt(astr : ^str, afmt : strview, aargs : []anyvalue):
     var osink <- OTextSinkStr(astr)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)

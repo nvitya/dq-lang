@@ -24,62 +24,62 @@ object OStrParse:
     commentmarker       : char = '#'
     float_decimal_point : char = '.'
 
-    function *Create()                           [[overload]]
-    function *Create(astr : ^char, alen : int)  [[overload]]
-    function *Create(astr : strview)             [[overload]]
+    func *Create()                           [[overload]]
+    func *Create(astr : ^char, alen : int)  [[overload]]
+    func *Create(astr : strview)             [[overload]]
 
-    function Init(astr : ^char, alen : int)
+    func Init(astr : ^char, alen : int)
 
-    function SkipSpaces(skiplineend : bool = true)
-    function SkipWhite()
+    func SkipSpaces(skiplineend : bool = true)
+    func SkipWhite()
 
-    function ReadLine() -> bool
-    function ReadTo(checkchars : strview) -> bool
-    function ReadToChar(achar : char) -> bool
-    function ReadAlphaNum() -> bool
-    function ReadDecimalNumbers() -> bool
-    function ReadHexNumbers() -> bool
-    function ReadFloatNum() -> bool
-    function ReadQuotedString() -> bool
-    function SearchPattern(checkstring : strview) -> bool
+    func ReadLine() -> bool
+    func ReadTo(checkchars : strview) -> bool
+    func ReadToChar(achar : char) -> bool
+    func ReadAlphaNum() -> bool
+    func ReadDecimalNumbers() -> bool
+    func ReadHexNumbers() -> bool
+    func ReadFloatNum() -> bool
+    func ReadQuotedString() -> bool
+    func SearchPattern(checkstring : strview) -> bool
 
-    function CheckSymbol(checkstring : strview) -> bool
+    func CheckSymbol(checkstring : strview) -> bool
 
-    function PrevStr() -> str
-    function UCComparePrev(checkstring : strview) -> bool
-    function PrevToInt() -> int
-    function PrevHexToInt() -> uint
-    function PrevToFloat() -> float64
+    func PrevStr() -> str
+    func UCComparePrev(checkstring : strview) -> bool
+    func PrevToInt() -> int
+    func PrevHexToInt() -> uint
+    func PrevToFloat() -> float64
 
-    function GetLineNum(pos : ^char) -> int  [[overload]]
-    function GetLineNum() -> int              [[overload]]
-    function GetColNum(pos : ^char) -> int   [[overload]]
-    function GetColNum() -> int               [[overload]]
+    func GetLineNum(pos : ^char) -> int  [[overload]]
+    func GetLineNum() -> int              [[overload]]
+    func GetColNum(pos : ^char) -> int   [[overload]]
+    func GetColNum() -> int               [[overload]]
 
-endobj
+endobject
 
-function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool
-function PCharToInt(readp : ^char, len : int) -> int
-function PCharHexToInt(readp : ^char, len : int) -> uint
-function PCharToFloat(readp : ^char, len : int) -> float64
+func PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool
+func PCharToInt(readp : ^char, len : int) -> int
+func PCharHexToInt(readp : ^char, len : int) -> uint
+func PCharToFloat(readp : ^char, len : int) -> float64
 
 implementation
 
 use math
 
-function OStrParse.*Create()  [[overload]]:
+func OStrParse.*Create()  [[overload]]:
     // no special init required
 endfunc
 
-function OStrParse.*Create(astr : strview)  [[overload]]:
+func OStrParse.*Create(astr : strview)  [[overload]]:
     Init(astr.pchar, astr.length)
 endfunc
 
-function OStrParse.*Create(astr : ^char, alen : int)  [[overload]]:
+func OStrParse.*Create(astr : ^char, alen : int)  [[overload]]:
     Init(astr, alen)
 endfunc
 
-function OStrParse.Init(astr : ^char, alen : int):
+func OStrParse.Init(astr : ^char, alen : int):
     bufstart = astr
     bufend   = bufstart + alen
 
@@ -88,7 +88,7 @@ function OStrParse.Init(astr : ^char, alen : int):
     prevlen = 0
 endfunc
 
-function OStrParse.SkipSpaces(skiplineend : bool = true):
+func OStrParse.SkipSpaces(skiplineend : bool = true):
     var cp : ^char = readp
     while cp < bufend  and ( cp^ == ' '  or cp^ == '\t'  or (skiplineend and (cp^ == '\r'  or cp^ == '\n')) ):
         cp += 1
@@ -96,7 +96,7 @@ function OStrParse.SkipSpaces(skiplineend : bool = true):
     readp = cp
 endfunc
 
-function OStrParse.SkipWhite():
+func OStrParse.SkipWhite():
     while true:
         SkipSpaces()
         if readp < bufend  and readp^ == commentmarker:
@@ -107,7 +107,7 @@ function OStrParse.SkipWhite():
     endwhile
 endfunc
 
-function OStrParse.ReadLine() -> bool:
+func OStrParse.ReadLine() -> bool:
     prevp = readp
     var cp : ^char = readp
 
@@ -129,7 +129,7 @@ function OStrParse.ReadLine() -> bool:
     return prevp < bufend
 endfunc
 
-function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
+func OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
     var cp      : ^char = readp
     var ccstart : ^char = checkchars.pchar
     var ccend   : ^char = ccstart + checkchars.length
@@ -157,7 +157,7 @@ function OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of 
     return false
 endfunc
 
-function OStrParse.ReadToChar(achar : char) -> bool:
+func OStrParse.ReadToChar(achar : char) -> bool:
     result = false
     var cp : ^char = readp
     prevp = readp
@@ -173,7 +173,7 @@ function OStrParse.ReadToChar(achar : char) -> bool:
     readp = cp
 endfunc
 
-function OStrParse.CheckSymbol(checkstring : strview) -> bool:
+func OStrParse.CheckSymbol(checkstring : strview) -> bool:
     var cp    : ^char = readp
     var csptr : ^char = checkstring.pchar
     var csend : ^char = csptr + checkstring.length
@@ -191,7 +191,7 @@ function OStrParse.CheckSymbol(checkstring : strview) -> bool:
     return true
 endfunc
 
-function OStrParse.ReadAlphaNum() -> bool:
+func OStrParse.ReadAlphaNum() -> bool:
     result = false
     var cp : ^char = readp
     prevp = readp
@@ -211,7 +211,7 @@ function OStrParse.ReadAlphaNum() -> bool:
     readp = cp
 endfunc
 
-function OStrParse.ReadDecimalNumbers() -> bool:
+func OStrParse.ReadDecimalNumbers() -> bool:
     result = false
     var cp : ^char = readp
     prevp = readp
@@ -230,7 +230,7 @@ function OStrParse.ReadDecimalNumbers() -> bool:
     readp = cp
 endfunc
 
-function OStrParse.ReadHexNumbers() -> bool:
+func OStrParse.ReadHexNumbers() -> bool:
     result = false
     var cp : ^char = readp
     prevp = readp
@@ -249,7 +249,7 @@ function OStrParse.ReadHexNumbers() -> bool:
     readp = cp
 endfunc
 
-function OStrParse.ReadFloatNum() -> bool:
+func OStrParse.ReadFloatNum() -> bool:
     result = false
     var cp : ^char = readp
     prevp = readp
@@ -269,7 +269,7 @@ function OStrParse.ReadFloatNum() -> bool:
     readp = cp
 endfunc
 
-function OStrParse.ReadQuotedString() -> bool:
+func OStrParse.ReadQuotedString() -> bool:
     if readp >= bufend:
         return false
     endif
@@ -288,7 +288,7 @@ function OStrParse.ReadQuotedString() -> bool:
     return true
 endfunc
 
-function OStrParse.SearchPattern(checkstring : strview) -> bool:
+func OStrParse.SearchPattern(checkstring : strview) -> bool:
     prevp = readp
     prevlen = 0
 
@@ -332,7 +332,7 @@ function OStrParse.SearchPattern(checkstring : strview) -> bool:
     return false
 endfunc
 
-function OStrParse.PrevStr() -> str:
+func OStrParse.PrevStr() -> str:
     result = ''
     var cp  : ^char = prevp
     var endp : ^char = prevp + prevlen
@@ -343,24 +343,24 @@ function OStrParse.PrevStr() -> str:
     endwhile
 endfunc
 
-function OStrParse.UCComparePrev(checkstring : strview) -> bool:
+func OStrParse.UCComparePrev(checkstring : strview) -> bool:
     var cp : ^char = prevp
     return @.PCharUCCompare(cp, prevlen, checkstring)
 endfunc
 
-function OStrParse.PrevToInt() -> int:
+func OStrParse.PrevToInt() -> int:
     return @.PCharToInt(prevp, prevlen)
 endfunc
 
-function OStrParse.PrevHexToInt() -> uint:
+func OStrParse.PrevHexToInt() -> uint:
     return @.PCharHexToInt(prevp, prevlen)
 endfunc
 
-function OStrParse.PrevToFloat() -> float64:
+func OStrParse.PrevToFloat() -> float64:
     return @.PCharToFloat(prevp, prevlen)
 endfunc
 
-function OStrParse.GetLineNum(pos : ^char) -> int  [[overload]]:
+func OStrParse.GetLineNum(pos : ^char) -> int  [[overload]]:
     result = 1
     var cp : ^char = bufstart
 
@@ -372,11 +372,11 @@ function OStrParse.GetLineNum(pos : ^char) -> int  [[overload]]:
     endwhile
 endfunc
 
-function OStrParse.GetLineNum() -> int  [[overload]]:
+func OStrParse.GetLineNum() -> int  [[overload]]:
     return GetLineNum(prevp)
 endfunc
 
-function OStrParse.GetColNum(pos : ^char) -> int  [[overload]]:
+func OStrParse.GetColNum(pos : ^char) -> int  [[overload]]:
     if pos > bufend:
         pos = bufend
     endif
@@ -392,11 +392,11 @@ function OStrParse.GetColNum(pos : ^char) -> int  [[overload]]:
     return pos - bufstart + 1
 endfunc
 
-function OStrParse.GetColNum() -> int  [[overload]]:
+func OStrParse.GetColNum() -> int  [[overload]]:
     return GetColNum(prevp)
 endfunc
 
-function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool:
+func PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool:
     var cp     : ^char = readp
     var endp   : ^char = cp + len
     var csptr  : ^char = checkstring.pchar
@@ -424,7 +424,7 @@ function PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> 
     return true
 endfunc
 
-function PCharToInt(readp : ^char, len : int) -> int:
+func PCharToInt(readp : ^char, len : int) -> int:
     result = 0
     var cp   : ^char = readp
     var endp : ^char = readp + len
@@ -435,7 +435,7 @@ function PCharToInt(readp : ^char, len : int) -> int:
     endwhile
 endfunc
 
-function PCharHexToInt(readp : ^char, len : int) -> uint:
+func PCharHexToInt(readp : ^char, len : int) -> uint:
     result = 0
     var cp   : ^char = readp
     var endp : ^char = readp + len
@@ -455,7 +455,7 @@ function PCharHexToInt(readp : ^char, len : int) -> uint:
     endwhile
 endfunc
 
-function PCharToFloat(readp : ^char, len : int) -> float64:
+func PCharToFloat(readp : ^char, len : int) -> float64:
     if len < 1:
         return 0.0
     endif

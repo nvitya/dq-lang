@@ -5,14 +5,14 @@ const LIMIT : int = 440000000
 
 var cache : [10] int32
 
-function SetCache():
+func SetCache():
     cache[0] = 0
     for i : int = 1 to 9:
         cache[i] = Round(Pow(i, i))
     endfor
 endfunc
 
-function IsMunchausen(number : int32) -> bool:
+func IsMunchausen(number : int32) -> bool:
     var n     : int32 = number
     var total : int32 = 0
     while n > 0:
@@ -26,7 +26,7 @@ function IsMunchausen(number : int32) -> bool:
     return total == number
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ')
     SetCache()
     for i : int = 0  while i < LIMIT:

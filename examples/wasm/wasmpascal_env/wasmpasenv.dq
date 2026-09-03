@@ -1,38 +1,38 @@
 // some very basic helpers for the WasmPascal environment
 
-function Print(text : strview)
-function PrintLn() [[overload]]
-function PrintLn(text : strview) [[overload]]
-function PrintLn(text : strview, args : []anyvalue) [[overload]]
+func Print(text : strview)
+func PrintLn() [[overload]]
+func PrintLn(text : strview) [[overload]]
+func PrintLn(text : strview, args : []anyvalue) [[overload]]
 
 implementation
 
-function wp_console_str(address : ^char, byte_length : uint32, field_width : int32)  [[external('console_str', 'wasmpascal_env')]]
+func wp_console_str(address : ^char, byte_length : uint32, field_width : int32)  [[external('console_str', 'wasmpascal_env')]]
 
-function Print(text : strview):
+func Print(text : strview):
     wp_console_str(%text[0], text.length, 0)
 endfunc
 
-function PrintLn() [[overload]]:
+func PrintLn() [[overload]]:
     Print("\n")
 endfunc
 
-function PrintLn(text : strview) [[overload]]:
+func PrintLn(text : strview) [[overload]]:
     Print(text)
     Print("\n")
 endfunc
 
-function PrintLn(text : strview, args : []anyvalue) [[overload]]:
+func PrintLn(text : strview, args : []anyvalue) [[overload]]:
     var fmtstr : cstring(255) = ''
     fmtstr.AddFmt(text, args)
     Print(fmtstr)
     Print("\n")
 endfunc
 
-function wasmpas_main()    [[external('wasmpas_main')]]
-function dq_module_init()  [[external('dq_module_init')]]
+func wasmpas_main()    [[external('wasmpas_main')]]
+func dq_module_init()  [[external('dq_module_init')]]
 
-function wasmpascal_init() [[export('wasmpascal_init'), used]]:
+func wasmpascal_init() [[export('wasmpascal_init'), used]]:
     dq_module_init()
     wasmpas_main()
 endfunc

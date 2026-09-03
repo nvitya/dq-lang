@@ -1,13 +1,13 @@
 use libc/stdio
 
-function MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
+func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
     imul    $result, $value, $factor  // integer multiplication
     /* mov rax, abcd  (just here for multi-line comment test */
     [[immediate(factor), clobber(flags)]]
-    // end of function
+    // end of func
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("inline_asm.immediate.positive = %li\n", int(MulImmediate(6, 7)))
     //?check("inline_asm.immediate.positive", 42)
 

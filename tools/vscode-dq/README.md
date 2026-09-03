@@ -4,7 +4,7 @@ This folder contains a VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It 
 
 ## What it covers
 
-- DQ keywords such as `function`, `var`, `const`, `if`, `while`, `endfunc`
+- DQ keywords such as `func`, `var`, `const`, `if`, `while`, `endfunc`
 - Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#include`, `#srcdep`, and `#{endif}`
 - Attributes such as `[[external]]`
 - Builtins such as `len`, `sizeof`, `round`, `ceil`, `floor`

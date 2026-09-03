@@ -4,19 +4,19 @@ object OPropertyAddressability:
 private
     value : int = 1
 
-    function GetValue() -> int:
+    func GetValue() -> int:
         return value
     endfunc
 
-    function SetValue(new_value : int):
+    func SetValue(new_value : int):
         value = new_value
     endfunc
 
-    function GetItem(index : int) -> int:
+    func GetItem(index : int) -> int:
         return value + index
     endfunc
 
-    function SetItem(index : int, new_value : int):
+    func SetItem(index : int, new_value : int):
         value = new_value - index
     endfunc
 
@@ -24,16 +24,16 @@ public
     property direct : int read value write value
     property method_value : int read GetValue write SetValue
     property item : [index : int]int read GetItem write SetItem
-endobj
+endobject
 
-function TakeRef(value : ref int):
+func TakeRef(value : ref int):
 endfunc
 
-function TakeRefOut(value : refout int):
+func TakeRefOut(value : refout int):
     value = 0
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var obj <- OPropertyAddressability()
 
     var p1 : ^int = %obj.direct //?error(PropertyNotAddressable)

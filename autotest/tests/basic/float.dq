@@ -8,63 +8,63 @@ const CONST_FLOOR : int = Floor(10.0 / 3.0)   // Floor(3.333...) = 3
 
 // --- float64 arithmetic ---
 
-function dq_fl_add(a : float64, b : float64) -> float64:
+func dq_fl_add(a : float64, b : float64) -> float64:
     result = a + b
 endfunc
 
-function dq_fl_sub(a : float64, b : float64) -> float64:
+func dq_fl_sub(a : float64, b : float64) -> float64:
     result = a - b
 endfunc
 
-function dq_fl_mul(a : float64, b : float64) -> float64:
+func dq_fl_mul(a : float64, b : float64) -> float64:
     result = a * b
 endfunc
 
-function dq_fl_div(a : float64, b : float64) -> float64:
+func dq_fl_div(a : float64, b : float64) -> float64:
     result = a / b
 endfunc
 
 // --- float32 arithmetic ---
 
-function dq_fl32_add(a : float32, b : float32) -> float32:
+func dq_fl32_add(a : float32, b : float32) -> float32:
     result = a + b
 endfunc
 
-function dq_fl32_mul(a : float32, b : float32) -> float32:
+func dq_fl32_mul(a : float32, b : float32) -> float32:
     result = a * b
 endfunc
 
 // --- round/ceil/floor on float64 ---
 
-function dq_fl_round(v : float64) -> int:
+func dq_fl_round(v : float64) -> int:
     result = Round(v)
 endfunc
 
-function dq_fl_ceil(v : float64) -> int:
+func dq_fl_ceil(v : float64) -> int:
     result = Ceil(v)
 endfunc
 
-function dq_fl_floor(v : float64) -> int:
+func dq_fl_floor(v : float64) -> int:
     result = Floor(v)
 endfunc
 
 // --- round/ceil/floor on float32 ---
 
-function dq_fl32_round(v : float32) -> int:
+func dq_fl32_round(v : float32) -> int:
     result = Round(v)
 endfunc
 
-function dq_fl32_ceil(v : float32) -> int:
+func dq_fl32_ceil(v : float32) -> int:
     result = Ceil(v)
 endfunc
 
-function dq_fl32_floor(v : float32) -> int:
+func dq_fl32_floor(v : float32) -> int:
     result = Floor(v)
 endfunc
 
-function printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     printf("Testing DQ float operations:\n\n")     //?ignore('Testing DQ float operations:')
 
     printf("--- float64 arithmetic ---\n")         //?ignore('--- float64 arithmetic ---')

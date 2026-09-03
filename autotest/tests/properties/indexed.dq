@@ -1,6 +1,6 @@
 // Indexed properties with unnamed, named, and multiple indices.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object OIndexedProperties:
 private
@@ -8,25 +8,25 @@ private
     cells : [6]int = [0, 1, 2, 10, 11, 12]
     set_count : int = 0
 
-    function GetItem(index : int) -> int:
+    func GetItem(index : int) -> int:
         return values[index]
     endfunc
 
-    function SetItem(index : int, value : int):
+    func SetItem(index : int, value : int):
         values[index] = value
         set_count += 1
     endfunc
 
-    function GetCell(row : int, col : int) -> int:
+    func GetCell(row : int, col : int) -> int:
         return cells[row * 3 + col]
     endfunc
 
-    function SetCell(row : int, col : int, value : int):
+    func SetCell(row : int, col : int, value : int):
         cells[row * 3 + col] = value
         set_count += 1
     endfunc
 
-    function GetSetCount() -> int:
+    func GetSetCount() -> int:
         return set_count
     endfunc
 
@@ -35,9 +35,9 @@ public
     property named : [index : int]int read GetItem write SetItem
     property matrix : [row : int, col : int]int read GetCell write SetCell
     property writes : int read GetSetCount
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var values <- OIndexedProperties()
 
     printf("property.indexed.read = %d %d %d\n",

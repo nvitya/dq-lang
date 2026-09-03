@@ -1,2 +1,2 @@
-function asm_missing_endfunc() [[asm]]:  //?error(StmtBlockCloseMissing)
+func asm_missing_endfunc() [[asm]]:  //?error(StmtBlockCloseMissing)
     nop

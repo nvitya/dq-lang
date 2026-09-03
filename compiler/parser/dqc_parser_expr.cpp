@@ -781,9 +781,9 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     scf->SetCurPos(type_kw_pos);
   }
 
-  if (scf->CheckSymbol("function"))
+  if (scf->CheckSymbol("func"))
   {
-    OTypeFunc * sigtype = ParseFunctionType(aemit_errors, "function");
+    OTypeFunc * sigtype = ParseFunctionType(aemit_errors, "func");
     if (!sigtype)
     {
       return nullptr;
@@ -801,7 +801,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
 
       if (aemit_errors)
       {
-        Error(DQERR_NOT_IMPLEMENTED_YET, "\"function(...) of ...\"");
+        Error(DQERR_NOT_IMPLEMENTED_YET, "\"func(...) of ...\"");
       }
       delete sigtype;
       return nullptr;
@@ -975,7 +975,7 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
     {
       if (aemit_errors)
       {
-        Error(DQERR_MISSING_OPEN_PAREN_AFTER, "function");
+        Error(DQERR_MISSING_OPEN_PAREN_AFTER, "func");
       }
       return false;
     }

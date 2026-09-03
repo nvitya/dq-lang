@@ -10,23 +10,23 @@ endstruct
 object OTest:
     ddata : SDynData
 
-    function *Create(a : int):
+    func *Create(a : int):
         //ddata = new SDynData;
         ddata.intvalue = a
         ddata.name = "OTestName"
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         //free ddata;
         //ddata = nil;
     endfunc
 
-    function Print():
+    func Print():
         @.printf("obj = %s(%d)\n", %ddata.name, ddata.intvalue)
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var obj <- OTest(1)
     obj.Print()    //?check('obj', 'OTestName(1)')
     return 0

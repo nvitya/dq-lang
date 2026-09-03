@@ -11,13 +11,13 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    function Run(acmd : strview) -> int
-    function RunWithInput(acmd : strview, ainput : strview) -> int
-    function StartBg(acmd : strview) -> int
-    function StartBgWithInput(acmd : strview, ainput : strview) -> int
-    function Finished() -> bool
-    function WaitFinishMs(ams : int) -> bool
-    function Kill()
+    func Run(acmd : strview) -> int
+    func RunWithInput(acmd : strview, ainput : strview) -> int
+    func StartBg(acmd : strview) -> int
+    func StartBgWithInput(acmd : strview, ainput : strview) -> int
+    func Finished() -> bool
+    func WaitFinishMs(ams : int) -> bool
+    func Kill()
 
 protected  
     pid : int32 = 0
@@ -29,10 +29,10 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    function StartProcess(acmd : strview) -> int
-    function MonitorProcess()
-    function MonitorThread(aarg : pointer) -> pointer
-endobj
+    func StartProcess(acmd : strview) -> int
+    func MonitorProcess()
+    func MonitorThread(aarg : pointer) -> pointer
+endobject
 
 implementation
 
@@ -42,20 +42,20 @@ struct SPollFd:
     revents : int16
 endstruct
 
-function libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
-function libc_fork() -> int32                                        [[external('fork')]]
-function libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
-function libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
-function libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
-function libc_close(fd : int32) -> int32                             [[external('close')]]
-function libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
-function libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
-function libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
-function libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
-function libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
-function libc__exit(status : int32)                                  [[external('_exit')]]
-function libc___errno_location() -> ^int32                           [[external('__errno_location')]]
-function libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
+func libc_fork() -> int32                                        [[external('fork')]]
+func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
+func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
+func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
+func libc_close(fd : int32) -> int32                             [[external('close')]]
+func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
+func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
+func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
+func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
+func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
+func libc__exit(status : int32)                                  [[external('_exit')]]
+func libc___errno_location() -> ^int32                           [[external('__errno_location')]]
+func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1
@@ -72,7 +72,7 @@ const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
-function OShellRunner.StartProcess(acmd : strview) -> int:
+func OShellRunner.StartProcess(acmd : strview) -> int:
     use *
     var stdin_pipe  : [2]int32
     var stdout_pipe : [2]int32
@@ -159,12 +159,12 @@ function OShellRunner.StartProcess(acmd : strview) -> int:
     return 0
 endfunc
 
-function OShellRunner.MonitorThread(aarg : pointer) -> pointer:
+func OShellRunner.MonitorThread(aarg : pointer) -> pointer:
     MonitorProcess()
     return nil
 endfunc
 
-function OShellRunner.MonitorProcess():
+func OShellRunner.MonitorProcess():
     use *
     var fds : [3]SPollFd
     fds[0].fd = out_fd
@@ -294,7 +294,7 @@ function OShellRunner.MonitorProcess():
     finished = true
 endfunc
 
-function OShellRunner.Run(acmd : strview) -> int:
+func OShellRunner.Run(acmd : strview) -> int:
     out = ''
     err = ''
     output = ''
@@ -313,7 +313,7 @@ function OShellRunner.Run(acmd : strview) -> int:
     return exitcode
 endfunc
 
-function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
+func OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     out = ''
     err = ''
     output = ''
@@ -332,7 +332,7 @@ function OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     return exitcode
 endfunc
 
-function OShellRunner.StartBg(acmd : strview) -> int:
+func OShellRunner.StartBg(acmd : strview) -> int:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -361,7 +361,7 @@ function OShellRunner.StartBg(acmd : strview) -> int:
     return 0
 endfunc
 
-function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
+func OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -390,12 +390,12 @@ function OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
     return 0
 endfunc
 
-function OShellRunner.Finished() -> bool:
+func OShellRunner.Finished() -> bool:
     IsRunning()
     return finished
 endfunc
 
-function OShellRunner.WaitFinishMs(ams : int) -> bool:
+func OShellRunner.WaitFinishMs(ams : int) -> bool:
     use *
     var deadline : int64 = MilliTime() + ams
     while not Finished():
@@ -407,7 +407,7 @@ function OShellRunner.WaitFinishMs(ams : int) -> bool:
     return true
 endfunc
 
-function OShellRunner.Kill():
+func OShellRunner.Kill():
     if not finished:
         if pid > 0:
             use *

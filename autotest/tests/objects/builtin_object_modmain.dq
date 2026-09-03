@@ -3,7 +3,7 @@
 use libc/stdio
 use ./builtin_object_mod
 
-function *Main() -> int:
+func *Main() -> int:
     var obj : OModObject = new OModObject(7)
     var any : Object = ExportObject(obj)
 

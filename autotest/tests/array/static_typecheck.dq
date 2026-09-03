@@ -10,7 +10,7 @@ var nonconst_array_len : int = 3
 var bad_static_expr_nonconst : [nonconst_array_len]int //?error(ArraySizeSpec)
 var bad_static_expr_zero : [1 - 1]int //?error(SizeSpec)
 
-function StaticStructuralMethodsAreInvalid():
+func StaticStructuralMethodsAreInvalid():
     var arr : [3]int = [1, 2, 3]
     arr.Append(4) //?error(MemberUnknown)
     arr.Prepend(0) //?error(MemberUnknown)

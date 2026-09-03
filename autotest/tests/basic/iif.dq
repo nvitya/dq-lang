@@ -5,45 +5,45 @@ use print
 var g_true_hits  : int = 0
 var g_false_hits : int = 0
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function hit_true() -> int:
+func hit_true() -> int:
     g_true_hits += 1
     result = 10
 endfunc
 
-function hit_false() -> int:
+func hit_false() -> int:
     g_false_hits += 1
     result = 20
 endfunc
 
-function dq_iif_basic_true() -> int:
+func dq_iif_basic_true() -> int:
     result = iif(true, 11, 22)
 endfunc
 
-function dq_iif_basic_false() -> int:
+func dq_iif_basic_false() -> int:
     result = iif(false, 11, 22)
 endfunc
 
-function dq_iif_float(flag : bool) -> int:
+func dq_iif_float(flag : bool) -> int:
     var f : float = iif(flag, 1, 2.5)
     result = Round(f)
 endfunc
 
-function dq_iif_int_width(flag : bool) -> int32:
+func dq_iif_int_width(flag : bool) -> int32:
     var a : int16 = 1234
     var b : int32 = 567890
     result = iif(flag, a, b)
 endfunc
 
-function dq_iif_float_width(flag : bool) -> int:
+func dq_iif_float_width(flag : bool) -> int:
     var a : float32 = 1.25
     var b : float64 = 2.75
     var f : float64 = iif(flag, a, b)
     result = Round(f * 10.0)
 endfunc
 
-function dq_iif_ptr(flag : bool) -> int:
+func dq_iif_ptr(flag : bool) -> int:
     var x : int = 33
     var p : ^int = iif(flag, %x, nil)
     if p <> nil:
@@ -53,24 +53,24 @@ function dq_iif_ptr(flag : bool) -> int:
     endif
 endfunc
 
-function dq_iif_guarded(aptrint : ^int) -> int:
+func dq_iif_guarded(aptrint : ^int) -> int:
     result = iif(aptrint <> nil, aptrint^, 0)
 endfunc
 
 object OTest:
     name : cstring(32) = "OTest-Name-inline"
-endobj
+endobject
 
 var g_obj : OTest = nil
 
-function dq_iif_side(flag : bool) -> int:
+func dq_iif_side(flag : bool) -> int:
     g_true_hits = 0
     g_false_hits = 0
     result = iif(flag, hit_true(), hit_false())
     result += 100 * g_true_hits
     result += 1000 * g_false_hits
 endfunc
-function *Main() -> int:
+func *Main() -> int:
     printf("DQ iif test\n")  //?ignore('DQ iif test')
 
     var x : int = 77

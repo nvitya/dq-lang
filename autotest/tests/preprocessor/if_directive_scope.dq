@@ -68,9 +68,9 @@ const VERSION : int = 2
     const qualified_elifndef_branch : int = 0
 #endif
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     const SHADOWED_LEVEL : int = 3
     const PARENT_LEVEL : int = 5
 

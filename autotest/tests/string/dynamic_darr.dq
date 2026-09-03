@@ -4,13 +4,13 @@ use print
 
 var sa : [*]str
 
-function PrintSArr(astr : strview):
+func PrintSArr(astr : strview):
     for row : int = 0 count sa.length:
         PrintLn('{}[{}] = "{}"', [astr, row, sa[row]])
     endfor
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ test for dynamic array of dynamic strings')  //?ignore('DQ test for dynamic array of dynamic strings')
 
     sa.Append('Hello!')

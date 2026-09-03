@@ -3,32 +3,32 @@
 object OBase:
 public
     v : int = 0
-    function *Create(av : int):
+    func *Create(av : int):
         v = av
     endfunc
-    function id() -> int [[virtual]]:
+    func id() -> int [[virtual]]:
         return 1
     endfunc
-endobj
+endobject
 
 object OFirst(OBase):
 public
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-endobj
+endobject
 
 object OSecond(OBase):
 public
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-endobj
+endobject
 
-function CreateFirst() -> OBase:
+func CreateFirst() -> OBase:
     return new OFirst(1)
 endfunc
 
-function CreateSecond() -> OBase:
+func CreateSecond() -> OBase:
     return new OSecond(2)
 endfunc

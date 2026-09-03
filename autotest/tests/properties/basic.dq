@@ -1,11 +1,11 @@
 // Basic field-backed and method-backed property behavior.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object OPropertyChild:
 public
     value : int = 7
-endobj
+endobject
 
 object OPropertyBox:
 private
@@ -15,29 +15,29 @@ private
     child_value <- OPropertyChild()
     pointer_value : int = 30
 
-    function GetMethodValue() -> int:
+    func GetMethodValue() -> int:
         return method_value
     endfunc
 
-    function SetMethodValue(value : int):
+    func SetMethodValue(value : int):
         method_value = value * 2
         write_count += 1
     endfunc
 
-    function GetWriteCount() -> int:
+    func GetWriteCount() -> int:
         return write_count
     endfunc
 
-    function SetWriteOnly(value : int):
+    func SetWriteOnly(value : int):
         method_value = value
         write_count += 1
     endfunc
 
-    function GetChild() -> OPropertyChild:
+    func GetChild() -> OPropertyChild:
         return child_value
     endfunc
 
-    function GetPointer() -> ^int:
+    func GetPointer() -> ^int:
         return %pointer_value
     endfunc
 
@@ -48,9 +48,9 @@ public
     property writeonly : int write SetWriteOnly
     property child : OPropertyChild read GetChild
     property targetptr : ^int read GetPointer
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var box <- OPropertyBox()
 
     printf("property.basic.initial = %d %d\n", box.direct, box.calculated)

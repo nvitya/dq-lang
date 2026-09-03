@@ -6,7 +6,7 @@ const NESTED_REEXPORT_VALUE : int = 47
 const NESTED_REEXPORT_VALUE : int = 0
 #endif
 
-function *Main() -> int:
+func *Main() -> int:
     printf("flatten nested = %d\n", HiddenValue(MakeHidden(43))) //?check('flatten nested', 43)
     printf("flatten nested directive = %d\n", NESTED_REEXPORT_VALUE) //?check('flatten nested directive', 47)
     return 0

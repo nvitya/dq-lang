@@ -1,5 +1,5 @@
 const SELECTED : int = FirstInt(0) //?error(FuncArgsTooFew), error(ExprWrongValue)
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

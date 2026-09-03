@@ -7,131 +7,131 @@ protected
     value : int = 1
     name  : cstring(32)
 public
-    function *Create(aname : ^char, a : int):
+    func *Create(aname : ^char, a : int):
         value = a
         name = aname
         @.printf("%s.base.create = %d\n", %name[0], value)
     endfunc
 
-    function Get() -> int [[virtual]]:
+    func Get() -> int [[virtual]]:
         return value
     endfunc
 
-    function Reset():
+    func Reset():
         value = 10
     endfunc
 
-    function BaseOnlyAdd(a : int) -> int:
+    func BaseOnlyAdd(a : int) -> int:
         return value + a
     endfunc
 
-    function BaseOnlyOver(a : int) -> int [[overload]]:
+    func BaseOnlyOver(a : int) -> int [[overload]]:
         return value + a
     endfunc
 
-    function BaseOnlyOver(a : float) -> int [[overload]]:
+    func BaseOnlyOver(a : float) -> int [[overload]]:
         return value + Round(a) + 100
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         @.printf("%s.base.destroy = %d\n", %name[0], value)
     endfunc
-endobj
+endobject
 
 object OChild(OBase):
 private
     extra : int = 2
 public
-    function *Create(aname : ^char, a : int):
+    func *Create(aname : ^char, a : int):
         inherited Create(aname, a + 1)
         extra = a + 2
         @.printf("%s.child.create = %d %d\n", %name[0], value, extra)
     endfunc
 
-    function Get() -> int [[override]]:
+    func Get() -> int [[override]]:
         return inherited Get() + extra
     endfunc
 
-    function Reset():
+    func Reset():
         inherited Reset()
         extra = 20
     endfunc
 
-    function BareBaseCall() -> int:
+    func BareBaseCall() -> int:
         return BaseOnlyAdd(extra)
     endfunc
 
-    function BareBaseOverloadCall() -> int:
+    func BareBaseOverloadCall() -> int:
         return BaseOnlyOver(extra) + BaseOnlyOver(2.4)
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         @.printf("%s.child.destroy = %d %d\n", %name[0], value, extra)
         inherited Destroy()
     endfunc
-endobj
+endobject
 
 object OChildNoDtor(OBase):
-endobj
+endobject
 
 object OImplicitBase:
 protected
     base_value : int = 0
 public
-    function *Create():
+    func *Create():
         base_value = 31
         @.printf("implicit-base.create = %d\n", base_value)
     endfunc
-endobj
+endobject
 
 object OImplicitChild(OImplicitBase):
 public
     extra_value : int = 4
 
-    function Sum() -> int:
+    func Sum() -> int:
         return base_value + extra_value
     endfunc
-endobj
+endobject
 
 object OForwardBase:
 protected
     value : int = 0
 public
-    function *Create(a : int):
+    func *Create(a : int):
         value = a
         @.printf("forward-base.create = %d\n", value)
     endfunc
 
-    function Get() -> int [[virtual]]:
+    func Get() -> int [[virtual]]:
         return value
     endfunc
-endobj
+endobject
 
 object OForwardChild(OForwardBase):
 public
-    function Get() -> int [[override]]:
+    func Get() -> int [[override]]:
         return inherited Get() + 100
     endfunc
-endobj
+endobject
 
 object OOverCtor:
 public
     tag : int = 0
 
-    function *Create(a : int) [[overload]]:
+    func *Create(a : int) [[overload]]:
         tag = a + 10
     endfunc
 
-    function *Create(a : float) [[overload]]:
+    func *Create(a : float) [[overload]]:
         tag = Round(a) + 100
     endfunc
-endobj
+endobject
 
-function PrintBase(b : OBase, label : ^char):
+func PrintBase(b : OBase, label : ^char):
     @.printf("%s = %d\n", label, b.Get())
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var c <- OChild('stack', 3)   //?check('stack.base.create', 4)
                                    //?check('stack.child.create', '4 5')
 

@@ -1,14 +1,14 @@
 // Hosted Linux catches SIGSEGV at the top level and reports it as Exception.
 //?exitcode(255)
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function CauseSegv():
+func CauseSegv():
     var p : ^int = nil
     p^ = 1
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("sigsegv.before = 1\n")  //?check("sigsegv.before", 1)
     CauseSegv()
     printf("sigsegv.after = 1\n")

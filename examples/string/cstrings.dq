@@ -3,11 +3,11 @@ use libc/stdio
 
 // Test1
 
-function CsProcess(cs : cstring):
+func CsProcess(cs : cstring):
     cs.Append(' five')
 endfunc
 
-function Test1():
+func Test1():
     var cs1 : cstring(31) = 'One two three'  // 32 byte storage
 
     cs1.Append(' four')
@@ -21,16 +21,16 @@ struct STestRec:
     name : cstring[31]
 endstruct
 
-function ProcessName(ref tr : STestRec):
+func ProcessName(ref tr : STestRec):
     tr.name.Append(" two")
 endfunc
 
-function Test2():
+func Test2():
     var tr : STestRec
     tr.name = "one"
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf('DQ cstring test\n')
 
     Test1()

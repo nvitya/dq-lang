@@ -1,50 +1,50 @@
 // Default-property lookup and last-declaration-wins behavior.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object ODefaultBase:
 protected
     base_values : [3]int = [10, 20, 30]
 
-    function GetBase(index : int) -> int:
+    func GetBase(index : int) -> int:
         return base_values[index]
     endfunc
 
-    function SetBase(index : int, value : int):
+    func SetBase(index : int, value : int):
         base_values[index] = value
     endfunc
 
 public
     property base_item : [index : int]int default read GetBase write SetBase
-endobj
+endobject
 
 object ODefaultChild(ODefaultBase):
 private
     first_values : [3]int = [100, 200, 300]
     last_values : [3]int = [1000, 2000, 3000]
 
-    function GetFirst(index : int) -> int:
+    func GetFirst(index : int) -> int:
         return first_values[index]
     endfunc
 
-    function SetFirst(index : int, value : int):
+    func SetFirst(index : int, value : int):
         first_values[index] = value
     endfunc
 
-    function GetLast(index : int) -> int:
+    func GetLast(index : int) -> int:
         return last_values[index]
     endfunc
 
-    function SetLast(index : int, value : int):
+    func SetLast(index : int, value : int):
         last_values[index] = value
     endfunc
 
 public
     property first_item : [index : int]int default read GetFirst write SetFirst
     property last_item : [index : int]int default read GetLast write SetLast
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var child <- ODefaultChild()
     var base : ODefaultBase = child
 

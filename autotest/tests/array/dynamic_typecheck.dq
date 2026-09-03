@@ -1,7 +1,7 @@
 
 // Dynamic-array compile-time rejection cases from the array specification.
 
-function DynamicNullComparisonIsInvalid() -> int:
+func DynamicNullComparisonIsInvalid() -> int:
     var arr : [*]int
     if arr == nil: //?error(TypeMismatchOp)
         result = 1

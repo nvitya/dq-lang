@@ -1,6 +1,6 @@
 // Untagged storage unions: layout, aliasing, copying, nesting, and brace syntax.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 union UWord:
     whole : uint64
@@ -48,22 +48,22 @@ private
     endunion
 
 public
-    function Set(value : uint32):
+    func Set(value : uint32):
         self.value.unsigned_value = value
     endfunc
 
-    function GetSigned() -> int32:
+    func GetSigned() -> int32:
         return value.signed_value
     endfunc
-endobj
+endobject
 
 var global_word : UWord
 
-function CopyWord(value : UWord) -> UWord:
+func CopyWord(value : UWord) -> UWord:
     return value
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("union layout = %li %li %li %li %li\n",
            SizeOf(ULayout), OffsetOf(ULayout, small), OffsetOf(ULayout, large),
            SizeOf(SUnionLayout), OffsetOf(SUnionLayout, data))

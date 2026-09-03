@@ -1,20 +1,20 @@
 // callback tests
 
-type CBUnary = function(a : int) -> int
-type CBBinary = function(a : int, b : int) -> int
+type CBUnary = func(a : int) -> int
+type CBBinary = func(a : int, b : int) -> int
 
-function later_inc(a : int) -> int:
+func later_inc(a : int) -> int:
     result = a + 1
 endfunc
 
-function add(a : int, b : int) -> int:
+func add(a : int, b : int) -> int:
     result = a + b
 endfunc
 
 var g_later : CBUnary = later_inc
 var g_empty : CBUnary
 
-function apply_unary(cb : CBUnary, a : int) -> int:
+func apply_unary(cb : CBUnary, a : int) -> int:
     if cb == nil:
         result = -100
     else:
@@ -22,7 +22,7 @@ function apply_unary(cb : CBUnary, a : int) -> int:
     endif
 endfunc
 
-function choose_cb(flag : bool) -> CBUnary:
+func choose_cb(flag : bool) -> CBUnary:
     if flag:
         result = later_inc
     else:
@@ -30,9 +30,9 @@ function choose_cb(flag : bool) -> CBUnary:
     endif
 endfunc
 
-function printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     printf("Testing DQ callbacks:\n\n")  //?ignore('Testing DQ callbacks:')
 
     var r : int = 0

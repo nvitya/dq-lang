@@ -3,48 +3,48 @@ use libc/stdio
 object OBase:
 public
     v : int = 0
-    function *Create(av : int):
+    func *Create(av : int):
         v = av
     endfunc
-    function id() -> int [[virtual]]:
+    func id() -> int [[virtual]]:
         return 1
     endfunc
-endobj
+endobject
 
 object OFirst(OBase):
 public
     f : int = 0
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-    function id() -> int [[override]]:
+    func id() -> int [[override]]:
         return 2
     endfunc
-endobj
+endobject
 
 object OSecond(OBase):
 public
     s : int = 0
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-    function id() -> int [[override]]:
+    func id() -> int [[override]]:
         return 3
     endfunc
-endobj
+endobject
 
 object OThird(OSecond):
 public
     t : int = 0
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-    function id() -> int [[override]]:
+    func id() -> int [[override]]:
         return 4
     endfunc
-endobj
+endobject
 
-function test_is():
+func test_is():
     var ob : OBase = new OBase(1)
     var o1 : OBase = new OFirst(2)
     var o2 : OBase = new OSecond(3)
@@ -82,7 +82,7 @@ function test_is():
     delete o3
 endfunc
 
-function test_tryfrom():
+func test_tryfrom():
     var o1 : OBase = new OFirst(2)
     var o3 : OBase = new OThird(4)
 
@@ -115,7 +115,7 @@ function test_tryfrom():
     delete o3
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     test_is()
     test_tryfrom()
     return 0

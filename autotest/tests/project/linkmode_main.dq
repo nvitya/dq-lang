@@ -1,6 +1,6 @@
 //?notest
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 

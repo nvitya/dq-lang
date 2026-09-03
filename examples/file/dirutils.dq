@@ -11,21 +11,21 @@ protected
     m_name   : str
 
 public
-    function *Create()
-    function *Destroy()
-    function Open(adir : strview)
-    function Close()
-    function Opened() -> bool
-    function Next() -> bool
+    func *Create()
+    func *Destroy()
+    func Open(adir : strview)
+    func Close()
+    func Opened() -> bool
+    func Next() -> bool
 
     property name   : str   read m_name
     property opened : bool  read Opened
-endobj
+endobject
 
 implementation
 
-function libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
-function libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
+func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
+func libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
 
 // The dirent layout differs between the POSIX implementations used here.
 #ifdef WINDOWS
@@ -45,12 +45,12 @@ struct SDirent:
 endstruct
 #endif
 
-function libc_readdir(dirp : pointer) -> ^SDirent                        [[external('readdir')]]
+func libc_readdir(dirp : pointer) -> ^SDirent                        [[external('readdir')]]
 
 const DIR_MODE : uint = 511
 const ACCESS_EXISTS : int = 0
 
-function DirEntryName(aname : ^char) -> str:
+func DirEntryName(aname : ^char) -> str:
     result = ''
 
     while aname^ <> char(0):
@@ -59,7 +59,7 @@ function DirEntryName(aname : ^char) -> str:
     endwhile
 endfunc
 
-function DirEntryIsNavigation(aname : strview) -> bool:
+func DirEntryIsNavigation(aname : strview) -> bool:
     if aname.length == 1:
         return aname[0] == '.'
     endif
@@ -71,15 +71,15 @@ function DirEntryIsNavigation(aname : strview) -> bool:
     return false
 endfunc
 
-function ODirReader.*Create():
+func ODirReader.*Create():
     m_handle = nil
 endfunc
 
-function ODirReader.*Destroy():
+func ODirReader.*Destroy():
     Close()
 endfunc
 
-function ODirReader.Open(adir : strview):
+func ODirReader.Open(adir : strview):
     Close()
 
     if adir == '':
@@ -93,18 +93,18 @@ function ODirReader.Open(adir : strview):
     endif
 endfunc
 
-function ODirReader.Close():
+func ODirReader.Close():
     if m_handle <> nil:
         @.libc_closedir(m_handle)
         m_handle = nil
     endif
 endfunc
 
-function ODirReader.Opened() -> bool:
+func ODirReader.Opened() -> bool:
     return m_handle <> nil
 endfunc
 
-function ODirReader.Next() -> bool:
+func ODirReader.Next() -> bool:
     result = false
 
     if not Opened():

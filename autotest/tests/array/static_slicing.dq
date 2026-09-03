@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-function PrintArray(label : ^char, arr : []int):
+func PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -12,7 +12,7 @@ function PrintArray(label : ^char, arr : []int):
     printf("\n")
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("array_static_slicing = start\n") //?check("array_static_slicing", "start")
 
     var arr : [?]int = [10, 20, 30, 40, 50]

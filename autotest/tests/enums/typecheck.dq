@@ -3,10 +3,10 @@
 enum NColor = (red, green, blue)
 enum NState = (idle, running, stopped)
 
-function SetColor(color : NColor):
+func SetColor(color : NColor):
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var color : NColor = red
     var state : NState = idle
 

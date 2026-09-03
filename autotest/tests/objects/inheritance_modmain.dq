@@ -3,11 +3,11 @@
 use libc/stdio
 use ./inherit_mod
 
-function PrintImported(b : OModBase):
+func PrintImported(b : OModBase):
     @.printf("imported = %d\n", b.Get())
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var c <- OModChild(11)
     PrintImported(c) //?check("imported", 23)
     c.PrintProt()    //?check('Protected_value', 11)

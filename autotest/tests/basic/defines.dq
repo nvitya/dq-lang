@@ -11,8 +11,8 @@ var g_var : int = 555
 
 // #define STRVAL = "Defined String"  // string defines not supported yet
 
-function printf(fmt : ^char, ...) -> int [[external]]
-function *Main() -> int:
+func printf(fmt : ^char, ...) -> int [[external]]
+func *Main() -> int:
     printf('Testing defines...\n')  //?ignore('Testing defines...')
 
     #ifdef BOOLVAL

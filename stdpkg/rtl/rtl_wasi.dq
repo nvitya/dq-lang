@@ -15,7 +15,7 @@
 
 // WASI libc's command startup calls this ABI-level name. Clang normally
 // rewrites a C source-level main() to the same symbol.
-function main(argc : int, argv : ^^char) -> int  [[export('__main_argc_argv')]]
+func main(argc : int, argv : ^^char) -> int  [[export('__main_argc_argv')]]
 
 implementation
 
@@ -25,16 +25,16 @@ use rtl/prgargs
 use libc/stdio
 
 // These functions are created by the DQ compiler:
-function dq_main() -> int  [[external('dq_main')]]
-function dq_module_init()  [[external('dq_module_init')]]
-function libc_exit(status : int) [[external('exit')]]
+func dq_main() -> int  [[external('dq_main')]]
+func dq_module_init()  [[external('dq_module_init')]]
+func libc_exit(status : int) [[external('exit')]]
 
-function OsRtErrorHandler(emsg : ^char):
+func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)
     libc_exit(-1)
 endfunc
 
-function main(argc : int, argv : ^^char) -> int  [[export('__main_argc_argv')]]:
+func main(argc : int, argv : ^^char) -> int  [[export('__main_argc_argv')]]:
     rterror_handler = OsRtErrorHandler
     @prgargs.__sys_init_params(argc, argv)
     dq_module_init()

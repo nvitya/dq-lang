@@ -1,7 +1,7 @@
 use libc/stdio
 use ./ctor_overload_mod
 
-function *Main() -> int:
+func *Main() -> int:
     var o1 <- OImportedStrCtor('alpha')
     var o2 <- OImportedStrCtor('bravo', 7)
 

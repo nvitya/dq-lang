@@ -1,7 +1,7 @@
 use print
 use time
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Shell time test')
 
     var t1 : float64

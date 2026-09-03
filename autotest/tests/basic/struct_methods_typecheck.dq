@@ -1,7 +1,7 @@
 // struct method and managed member type checking
 
 object OManaged:
-endobj
+endobject
 
 struct SBadString:
     text : str //?error(NotSupported)
@@ -20,15 +20,15 @@ struct SBadFixedArray:
 endstruct //?error(ModStatementUnknown)
 
 struct SNoLifecycle:
-    function *Create(): //?error(ObjSpecFuncInvalid)
+    func *Create(): //?error(ObjSpecFuncInvalid)
     endfunc
 endstruct
 
 struct SNoVirtual:
-    function Bad() [[virtual]]: //?error(ObjFuncOverride)
+    func Bad() [[virtual]]: //?error(ObjFuncOverride)
     endfunc
 endstruct
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

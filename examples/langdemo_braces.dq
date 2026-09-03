@@ -15,25 +15,25 @@ object OBase {
     cnt2 : int = 10
     name : cstring(31)
 
-    function *Create(aname : cstring) {  // constructor
+    func *Create(aname : cstring) {  // constructor
         name = aname
     }
 
-    function *Destroy() {
+    func *Destroy() {
         @.printf("%s destroy\n", %name[0])
     }
 
-    function Count() [[virtual]] {
+    func Count() [[virtual]] {
         cnt1 += 1
     }
 
-    function Print() {
+    func Print() {
         @.printf('%s: cnt1=%d, cnt2=%d\n', %name[0], cnt1, cnt2)
     }
 }
 
 object OChild(OBase) {
-    function Count() [[override]] {
+    func Count() [[override]] {
         inherited
         cnt2 += 1
     }
@@ -43,7 +43,7 @@ var obase   <- OBase('OBase')     // '<-' = embedded allocation (global data seg
                                    // no automatic destructor call for global embedded objects
 var ochild  : OChild = nil
 
-function ObjTest() {
+func ObjTest() {
     ochild = new OChild('OChild')
 
     obase.Count()
@@ -57,7 +57,7 @@ function ObjTest() {
     delete ochild
 }
 
-function cstr_add(dst : cstring, src : cstring) {
+func cstr_add(dst : cstring, src : cstring) {
     var ps     : ^char = %src[0]
     var psend  : ^char = ps[SizeOf(src)]  // [] does not dereference
     var pd     : ^char = %dst[0]
@@ -76,9 +76,9 @@ function cstr_add(dst : cstring, src : cstring) {
     }
 }
 
-function putchar(c : char) -> int  [[external]] // from libc
+func putchar(c : char) -> int  [[external]] // from libc
 
-function WriteStr(s : cstring) {
+func WriteStr(s : cstring) {
     var pc : ^char = %s[0]
     while pc^ <> char(0) {
         putchar(pc^)
@@ -86,7 +86,7 @@ function WriteStr(s : cstring) {
     }
 }
 
-function *Main() -> int {
+func *Main() -> int {
 
     var s : cstring(127) = ""
     cstr_add(s, "Hello")

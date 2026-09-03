@@ -70,7 +70,7 @@ functions such as `Round`, `Floor`, or `Ceil` where appropriate.
 
 ```dq
 type TFloat = float64
-type FCallback = function(value : int) -> int
+type FCallback = func(value : int) -> int
 ```
 
 ## Type Inference
@@ -184,7 +184,7 @@ Enum values may be used without qualification when the expected enum type is
 known from context.
 
 ```dq
-function IsGreen(color : NColor) -> bool:
+func IsGreen(color : NColor) -> bool:
     return color == green
 endfunc
 ```
@@ -250,7 +250,7 @@ and provide mutation methods such as `Append`, `Prepend`, `Insert`, `Delete`,
 Function parameters often use view-style array types such as `[]T`.
 
 ```dq
-function Sum(values : []int) -> int:
+func Sum(values : []int) -> int:
     var i : int = 0
     while i < values.length:
         result += values[i]
@@ -370,12 +370,12 @@ Print("{}: {}", ["answer", 42])
 
 ## Function Reference Types
 
-Function references are declared with `function(...)`.
+Function references are declared with `func(...)`.
 
 ```dq
-type FUnary = function(value : int) -> int
+type FUnary = func(value : int) -> int
 
-function Inc(value : int) -> int:
+func Inc(value : int) -> int:
     return value + 1
 endfunc
 
@@ -388,5 +388,5 @@ Function references can be compared with `nil`.
 Object method references use `of object`.
 
 ```dq
-type FObjText = function(msg : cstring) of object
+type FObjText = func(msg : cstring) of object
 ```

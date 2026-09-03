@@ -11,11 +11,11 @@
  * brief:   Heap-free text descriptor helper implementations
  */
 
-function DynStrRuntimeError(emsg : ^char):
+func DynStrRuntimeError(emsg : ^char):
     RuntimeError(emsg)
 endfunc
 
-function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
+func TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
     if ati.info & DQTIF_CHARLEN_VALID <> uint32(0):
         return ati.charlen
     endif
@@ -25,15 +25,15 @@ function TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
     ati.info = ati.info | DQTIF_CHARLEN_VALID
 endfunc
 
-function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
+func TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
     result = TextInfoCharLen(ati)
 endfunc
 
-function TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
+func TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
     result = ati.dataptr
 endfunc
 
-function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
+func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
     var alen : uint32 = TextInfoCharLen(ati)
     DynStrCheckIndex(index, alen)
     if ati.dataptr == nil:
@@ -43,7 +43,7 @@ function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
     result = ati.dataptr[index]^
 endfunc
 
-function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
+func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
     var alen : uint32 = TextInfoCharLen(ati)
     var b : int = startpos
     if b < 0:
@@ -70,7 +70,7 @@ function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startp
     endif
 endfunc
 
-function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
+func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     var alen : uint32 = TextInfoCharLen(a)
     var blen : uint32 = TextInfoCharLen(b)
     if alen <> blen:
@@ -92,18 +92,18 @@ function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     return true
 endfunc
 
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
+func DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
     rti.dataptr = dataptr
     rti.charlen = charlen
     rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY
 endfunc
 
-function DynStrCheckIndex(index : int, length : uint32):
+func DynStrCheckIndex(index : int, length : uint32):
     if index < 0  or  index >= length:
         DynStrRuntimeError('Text index out of bounds')
     endif
 endfunc
 
-function DynStrCharToByte(ch : char) -> char:
+func DynStrCharToByte(ch : char) -> char:
     return ch
 endfunc

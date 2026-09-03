@@ -3,7 +3,7 @@
 use libc/stdio
 use strparse
 
-function *Main() -> int:
+func *Main() -> int:
     var text : str = 'abc\ndef\r\nxy'
     var sp <- OStrParse(text)
 

@@ -6,17 +6,17 @@ use print
 use rtl/exception
 
 object ECustError(Exception):
-endobj
+endobject
 
-function FailFunc():
+func FailFunc():
     raise ECustError('something went wrong.')
 endfunc
 
-function TestFunc():
+func TestFunc():
     FailFunc()
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ Custom Exception Test')
     TestFunc()
     return 0

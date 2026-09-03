@@ -1,6 +1,6 @@
 use libc/stdio
 
-function ProcessedAsm() -> int [[asm]]:
+func ProcessedAsm() -> int [[asm]]:
     // Assembly-looking text and endfunc in a line comment are inert.
     #ifdef ASM_BRANCH_THAT_IS_NOT_DEFINED
         endfunc
@@ -15,7 +15,7 @@ function ProcessedAsm() -> int [[asm]]:
     #endif
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("asm.source_processing = %li\n", ProcessedAsm())
     //?check("asm.source_processing", 42)
     return 0

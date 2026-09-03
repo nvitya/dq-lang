@@ -12,7 +12,7 @@ object OMethodUse:
 public
     FIELD_A : int
 
-    function Calc(PARAM_A : int) -> int:
+    func Calc(PARAM_A : int) -> int:
         use *
         use *
         use nom     //?warning(MethodUseNoEffect)
@@ -24,23 +24,23 @@ public
         return 0
     endfunc
 
-    function DotOnly() -> int:
+    func DotOnly() -> int:
         use .
         return OUTER_A
     endfunc
 
-    function AliasOnly() -> int:
+    func AliasOnly() -> int:
         use onlym
         use onlym
         return ONLY_A + imp_func(2)
     endfunc
 
-    function ExcludeAlias() -> int:
+    func ExcludeAlias() -> int:
         use exclm
         return IMP_A + ONLY_A + imp_func(3)
     endfunc
 
-    function BranchUse() -> int:
+    func BranchUse() -> int:
         if true:
             use .
             return OUTER_A
@@ -48,23 +48,23 @@ public
         return 0
     endfunc
 
-    function WarnAfterStarDot() -> int:
+    func WarnAfterStarDot() -> int:
         use *
         use .       //?warning(MethodUseNoEffect)
         return OUTER_A
     endfunc
 
-    function WarnNoMerge() -> int:
+    func WarnNoMerge() -> int:
         use nom     //?warning(MethodUseNoEffect)
         return @.OUTER_A
     endfunc
 
-    function LocalNamespaceOnly() -> int:
+    func LocalNamespaceOnly() -> int:
         return @..OUTER_A
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var o <- OMethodUse()
     o.FIELD_A = 20
 

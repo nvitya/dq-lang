@@ -15,13 +15,13 @@ var global_rw : uint32 [[regrw]]
 var global_ro : uint32 [[regro]]
 var global_wo : uint32 [[regwo]]
 
-function SetByRef(value : refout uint32):
+func SetByRef(value : refout uint32):
     value = 31
 endfunc
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     regs.RW = 10
     regs.RW += 2
     regs.WO = 20

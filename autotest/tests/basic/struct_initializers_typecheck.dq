@@ -12,18 +12,18 @@ struct SInitB:
     z : int
 endstruct
 
-function PickInit(a : SInitA) -> int [[overload]]:
+func PickInit(a : SInitA) -> int [[overload]]:
     return 1
 endfunc
 
-function PickInit(a : SInitB) -> int [[overload]]:
+func PickInit(a : SInitB) -> int [[overload]]:
     return 2
 endfunc
 
-function TakeRefInit(a : ref SInitA):
+func TakeRefInit(a : ref SInitA):
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var missing : SInitA = { 1, 2 } //?error(StructInitMissing)
     var excess : SInitA = { 1, 2, 3, 4 } //?error(StructInitExcess)
     var duplicate : SInitA = { x: 1, x: 2, y: 3, z: 4 } //?error(StructInitDuplicateField)

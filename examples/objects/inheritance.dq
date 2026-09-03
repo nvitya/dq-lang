@@ -5,34 +5,34 @@ object OBase:
     cnt2 : int = 10
     name : cstring[32]
 
-    function *Create(aname : cstring):  // constructor
+    func *Create(aname : cstring):  // constructor
         name = aname
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         @.printf("%s destroy\n", %name[0])
     endfunc
 
-    function Count() [[virtual]]:
+    func Count() [[virtual]]:
         cnt1 += 1
     endfunc
 
-    function Print():
+    func Print():
         @.printf('%s: cnt1=%d, cnt2=%d\n', %name[0], cnt1, cnt2)
     endfunc
-endobj
+endobject
 
 object OChild(OBase):
-    function Count() [[override]]:
+    func Count() [[override]]:
         inherited
         cnt2 += 1
     endfunc
-endobj
+endobject
 
 var obase   <- OBase('OBase')     // '<-' = embedded allocation
 var ochild  : OChild = nil
 
-function *Main() -> int:
+func *Main() -> int:
     printf('Object Inheritance Test\n')
 
     ochild = new OChild('OChild')

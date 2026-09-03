@@ -1,7 +1,7 @@
-function FirstInt(value : int) -> int: //?error(IntrinsicNameReserved)
+func FirstInt(value : int) -> int: //?error(IntrinsicNameReserved)
     result = value
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

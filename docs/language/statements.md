@@ -123,7 +123,7 @@ Functions with a return type may either `return value` or assign to the built-in
 `result` variable.
 
 ```dq
-function Square(x : int) -> int:
+func Square(x : int) -> int:
     result = x * x
 endfunc
 ```
@@ -173,7 +173,7 @@ Object methods may use a restricted local `use` statement to bring selected
 module-scope names into method lookup.
 
 ```dq
-function OThing.Method():
+func OThing.Method():
     use .
     use helper_module
 endfunc

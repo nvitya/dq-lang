@@ -3,7 +3,7 @@
 use libc/stdio
 use rtl/dynarrmgr
 
-function PrintMgr(label : ^char, arr : ref ODynArrMgr):
+func PrintMgr(label : ^char, arr : ref ODynArrMgr):
     var arrlen : uint = DynArrGetLength(arr)
     printf("%s = len:%li, cap:%li, data: [", label, arrlen, DynArrGetCapacity(arr))
 
@@ -19,7 +19,7 @@ function PrintMgr(label : ^char, arr : ref ODynArrMgr):
     printf("]\n")
 endfunc
 
-function PrintRefState(label : ^char, arr : ODynArrMgr):
+func PrintRefState(label : ^char, arr : ODynArrMgr):
     if arr == nil:
         printf("%s = nil\n", label)
     else:
@@ -27,7 +27,7 @@ function PrintRefState(label : ^char, arr : ODynArrMgr):
     endif
 endfunc
 
-function PrintSlice(label : ^char, desc : SArraySliceDesc):
+func PrintSlice(label : ^char, desc : SArraySliceDesc):
     printf("%s = len:%li, data: [", label, desc.length)
     var i : int = 0
     while i < desc.length:
@@ -40,7 +40,7 @@ function PrintSlice(label : ^char, desc : SArraySliceDesc):
     printf("]\n")
 endfunc
 
-function MakeIntTypeInfo(ti : refout SDqTypeInfo):
+func MakeIntTypeInfo(ti : refout SDqTypeInfo):
     ti.storagesize = SizeOf(int)
     ti.flags = 0
     ti.kind = DQTK_INT
@@ -51,7 +51,7 @@ function MakeIntTypeInfo(ti : refout SDqTypeInfo):
     ti.move_func = nil
 endfunc
 
-function RunCoreOps(ti : ^SDqTypeInfo):
+func RunCoreOps(ti : ^SDqTypeInfo):
     var arr : ODynArrMgr = nil
     PrintMgr("initial", arr)
 
@@ -85,7 +85,7 @@ function RunCoreOps(ti : ^SDqTypeInfo):
     PrintRefState("clear-free", arr)
 endfunc
 
-function RunAssignClonePop(ti : ^SDqTypeInfo):
+func RunAssignClonePop(ti : ^SDqTypeInfo):
     var a : ODynArrMgr = nil
     var b : ODynArrMgr = nil
     var c : ODynArrMgr = nil
@@ -120,7 +120,7 @@ function RunAssignClonePop(ti : ^SDqTypeInfo):
     DynArrDecRef(c)
 endfunc
 
-function RunSlicesOverlap(ti : ^SDqTypeInfo):
+func RunSlicesOverlap(ti : ^SDqTypeInfo):
     var arr : ODynArrMgr = nil
     var src : [4]int = [1, 2, 3, 4]
     var desc : SArraySliceDesc = {}
@@ -141,7 +141,7 @@ function RunSlicesOverlap(ti : ^SDqTypeInfo):
     DynArrDecRef(arr)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("DQ ODynArrMgr test\n") //?ignore("DQ ODynArrMgr test")
 
     var ti : SDqTypeInfo = {}

@@ -21,29 +21,29 @@ object OStrMapItem:
     key   : str
     value : str
 
-    function *Create(akey : str, avalue : str)
-endobj
+    func *Create(akey : str, avalue : str)
+endobject
 
 object OStrMap:
 protected
     m_items : [*]OStrMapItem
 
-    function FindKey(akey : str) -> int
-    function GetKey(aindex : int) -> str
-    function GetValue(aindex : int) -> str
+    func FindKey(akey : str) -> int
+    func GetKey(aindex : int) -> str
+    func GetValue(aindex : int) -> str
 
 public
-    function *Destroy()
+    func *Destroy()
 
-    function Clear()
-    function Add(akey : str, avalue : str)
-    function SetItem(akey : str, avalue : str)
-    function GetItem(akey : str) -> str
-    function KeyDataDef(akey : str, adefvalue : str) -> str
-    function Delete(akey : str)
-    function IndexOf(akey : str) -> int
+    func Clear()
+    func Add(akey : str, avalue : str)
+    func SetItem(akey : str, avalue : str)
+    func GetItem(akey : str) -> str
+    func KeyDataDef(akey : str, adefvalue : str) -> str
+    func Delete(akey : str)
+    func IndexOf(akey : str) -> int
 
-    function GetLength() -> int:
+    func GetLength() -> int:
         return m_items.length
     endfunc
 
@@ -51,7 +51,7 @@ public
     property key    : [aindex : int]str             read GetKey
     property value  : [aindex : int]str             read GetValue
     property length : int  read GetLength
-endobj
+endobject
 
 object OSConnectionHttp(OSConnection):
 protected
@@ -64,11 +64,11 @@ protected
 
     file_obj : OFile
 
-    function ProcessInData()
-    function AddHttpOutput()
-    function ParseGetString()
-    function ParseRequestHeader() -> bool
-    function ParseCookies(astr : strview)
+    func ProcessInData()
+    func AddHttpOutput()
+    func ParseGetString()
+    func ParseRequestHeader() -> bool
+    func ParseCookies(astr : strview)
 
 public
     header_length : int
@@ -83,7 +83,7 @@ public
     full_content_length : int64
     file_remaining      : int64
 
-    function CloseFileFd()
+    func CloseFileFd()
 
 public
     ucheaders : OStrMap
@@ -94,24 +94,24 @@ public
     response_code : int
     response_headers : OStrMap
 
-    function *Create(aserver : ONanoServer)
-    function *Destroy()
+    func *Create(aserver : ONanoServer)
+    func *Destroy()
 
-    function QsVarInt(aname : strview, adefvalue : int) -> int
-    function QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str
+    func QsVarInt(aname : strview, adefvalue : int) -> int
+    func QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str
 
-    function HandleInput(aobj : Object) [[override]]
-    function HandleOutput(aobj : Object) [[override]]
+    func HandleInput(aobj : Object) [[override]]
+    func HandleOutput(aobj : Object) [[override]]
 
-    function SendOutput()
+    func SendOutput()
 
-    function PrepareHeaders() [[virtual]]
-    function ProcessRequest() -> bool [[virtual]]
+    func PrepareHeaders() [[virtual]]
+    func ProcessRequest() -> bool [[virtual]]
 
-    function HandleStaticFiles(arootdir : strview) -> bool
+    func HandleStaticFiles(arootdir : strview) -> bool
 
-    function LogError(astr : strview) [[virtual]]
-endobj
+    func LogError(astr : strview) [[virtual]]
+endobject
 
 type TSConnHttpClass = type of OSConnectionHttp
 
@@ -120,14 +120,14 @@ public
     server_id : str
     ct_by_ext : OStrMap
 
-    function *Create(aclass : TSConnHttpClass, alisten_port : uint16)
-    function *Destroy()
+    func *Create(aclass : TSConnHttpClass, alisten_port : uint16)
+    func *Destroy()
 
-    function InitContentTypeMap()
-    function ContentTypeByExt(aext : strview) -> str
-endobj
+    func InitContentTypeMap()
+    func ContentTypeByExt(aext : strview) -> str
+endobject
 
-function ParseHttpDateRFC1123(adatestr : strview) -> int64
+func ParseHttpDateRFC1123(adatestr : strview) -> int64
 
 implementation
 
@@ -171,11 +171,11 @@ struct STm:
     tm_zone   : pointer
 endstruct
 
-function libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]]
-function libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
-function libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]]
+func libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]]
+func libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
+func libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]]
 
-function StatFile(afname : strview, st : ref SStat) -> bool:
+func StatFile(afname : strview, st : ref SStat) -> bool:
     if afname == '':
         return false
     endif
@@ -185,7 +185,7 @@ function StatFile(afname : strview, st : ref SStat) -> bool:
     return libc_stat(%path[0], %st) == 0
 endfunc
 
-function HttpDateFromUnix(atime : int64) -> str:
+func HttpDateFromUnix(atime : int64) -> str:
     var tm : STm = {}
     var t : int64 = atime
     if libc_gmtime_r(%t, %tm) == nil:
@@ -201,7 +201,7 @@ function HttpDateFromUnix(atime : int64) -> str:
     return buf
 endfunc
 
-function FileHttpDate(afname : strview) -> str:
+func FileHttpDate(afname : strview) -> str:
     var st : SStat = {}
     if not StatFile(afname, st):
         return ''
@@ -210,7 +210,7 @@ function FileHttpDate(afname : strview) -> str:
     return HttpDateFromUnix(st.st_mtim.tv_sec)
 endfunc
 
-function FileSizeByStat(afname : strview) -> int64:
+func FileSizeByStat(afname : strview) -> int64:
     var st : SStat = {}
     if not StatFile(afname, st):
         return -1
@@ -219,7 +219,7 @@ function FileSizeByStat(afname : strview) -> int64:
     return st.st_size
 endfunc
 
-function IsUrlPathSafe(auri : strview) -> bool:
+func IsUrlPathSafe(auri : strview) -> bool:
     if auri == '':
         return false
     endif
@@ -235,14 +235,14 @@ function IsUrlPathSafe(auri : strview) -> bool:
     return true
 endfunc
 
-function TrimRoot(arootdir : strview) -> str:
+func TrimRoot(arootdir : strview) -> str:
     result = @file.PathTranslateSeparators(arootdir)
     while result.length > 1 and @.StrEndsWith(result, '/'):
         result.Delete(result.length - 1)
     endwhile
 endfunc
 
-function ParseHttpDateRFC1123(adatestr : strview) -> int64:
+func ParseHttpDateRFC1123(adatestr : strview) -> int64:
     result = 0
     var sp <- OStrParse(adatestr)
     if adatestr == '':
@@ -290,23 +290,23 @@ function ParseHttpDateRFC1123(adatestr : strview) -> int64:
     return int64(year) * 10000 + int64(mon) * 100 + int64(day)
 endfunc
 
-function OStrMapItem.*Create(akey : str, avalue : str):
+func OStrMapItem.*Create(akey : str, avalue : str):
     key = akey
     value = avalue
 endfunc
 
-function OStrMap.*Destroy():
+func OStrMap.*Destroy():
     Clear()
 endfunc
 
-function OStrMap.Clear():
+func OStrMap.Clear():
     while m_items.length > 0:
         var item : OStrMapItem = m_items.Pop()
         delete item
     endwhile
 endfunc
 
-function OStrMap.FindKey(akey : str) -> int:
+func OStrMap.FindKey(akey : str) -> int:
     for i : int = 0 count m_items.length:
         if m_items[i].key == akey:
             return i
@@ -315,15 +315,15 @@ function OStrMap.FindKey(akey : str) -> int:
     return -1
 endfunc
 
-function OStrMap.IndexOf(akey : str) -> int:
+func OStrMap.IndexOf(akey : str) -> int:
     return FindKey(akey)
 endfunc
 
-function OStrMap.Add(akey : str, avalue : str):
+func OStrMap.Add(akey : str, avalue : str):
     SetItem(akey, avalue)
 endfunc
 
-function OStrMap.SetItem(akey : str, avalue : str):
+func OStrMap.SetItem(akey : str, avalue : str):
     var idx : int = FindKey(akey)
     if idx >= 0:
         m_items[idx].value = avalue
@@ -332,7 +332,7 @@ function OStrMap.SetItem(akey : str, avalue : str):
     endif
 endfunc
 
-function OStrMap.GetItem(akey : str) -> str:
+func OStrMap.GetItem(akey : str) -> str:
     var idx : int = FindKey(akey)
     if idx >= 0:
         return m_items[idx].value
@@ -340,7 +340,7 @@ function OStrMap.GetItem(akey : str) -> str:
     return ''
 endfunc
 
-function OStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
+func OStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
     var idx : int = FindKey(akey)
     if idx >= 0:
         return m_items[idx].value
@@ -348,7 +348,7 @@ function OStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
     return adefvalue
 endfunc
 
-function OStrMap.Delete(akey : str):
+func OStrMap.Delete(akey : str):
     var idx : int = FindKey(akey)
     if idx >= 0:
         var item : OStrMapItem = m_items[idx]
@@ -357,14 +357,14 @@ function OStrMap.Delete(akey : str):
     endif
 endfunc
 
-function OStrMap.GetKey(aindex : int) -> str:
+func OStrMap.GetKey(aindex : int) -> str:
     if aindex < 0 or aindex >= m_items.length:
         return ''
     endif
     return m_items[aindex].key
 endfunc
 
-function OStrMap.GetValue(aindex : int) -> str:
+func OStrMap.GetValue(aindex : int) -> str:
     if aindex < 0 or aindex >= m_items.length:
         return ''
     endif
@@ -373,7 +373,7 @@ endfunc
 
 //-------------------------------------------------------------------------------------------------
 
-function OSConnectionHttp.*Create(aserver : ONanoServer):
+func OSConnectionHttp.*Create(aserver : ONanoServer):
     inherited Create(aserver)
 
     sp = new OStrParse()
@@ -395,7 +395,7 @@ function OSConnectionHttp.*Create(aserver : ONanoServer):
     response_code = 200
 endfunc
 
-function OSConnectionHttp.*Destroy():
+func OSConnectionHttp.*Destroy():
     CloseFileFd()
     delete sp
     delete ucheaders
@@ -405,18 +405,18 @@ function OSConnectionHttp.*Destroy():
     inherited Destroy()
 endfunc
 
-function OSConnectionHttp.QsVarInt(aname : strview, adefvalue : int) -> int:
+func OSConnectionHttp.QsVarInt(aname : strview, adefvalue : int) -> int:
     return int(@strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue))
 endfunc
 
-function OSConnectionHttp.QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str:
+func OSConnectionHttp.QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str:
     result = qsvars.KeyDataDef(aname, adefvalue)
     if amaxlen > 0 and result.length > amaxlen:
         result = result[:amaxlen]
     endif
 endfunc
 
-function OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
+func OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
     if inbuf.length - infill < 4096:
         inbuf.SetLength(inbuf.length * 2)
     endif
@@ -432,11 +432,11 @@ function OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
     endif
 endfunc
 
-function OSConnectionHttp.HandleOutput(aobj : Object) [[override]]:
+func OSConnectionHttp.HandleOutput(aobj : Object) [[override]]:
     SendOutput()
 endfunc
 
-function OSConnectionHttp.ProcessInData():
+func OSConnectionHttp.ProcessInData():
     while true:
         sp.Init(^char(%inbuf[0]), infill)
         if not sp.SearchPattern('\r\n\r\n'):
@@ -482,7 +482,7 @@ function OSConnectionHttp.ProcessInData():
     SendOutput()
 endfunc
 
-function OSConnectionHttp.ParseRequestHeader() -> bool:
+func OSConnectionHttp.ParseRequestHeader() -> bool:
     use strutils
     result = false
 
@@ -561,7 +561,7 @@ function OSConnectionHttp.ParseRequestHeader() -> bool:
     result = true
 endfunc
 
-function OSConnectionHttp.ParseCookies(astr : strview):
+func OSConnectionHttp.ParseCookies(astr : strview):
     use strutils
     var csp <- OStrParse(astr)
     csp.SkipSpaces(false)
@@ -583,7 +583,7 @@ function OSConnectionHttp.ParseCookies(astr : strview):
     endwhile
 endfunc
 
-function OSConnectionHttp.AddHttpOutput():
+func OSConnectionHttp.AddHttpOutput():
     use strutils
     var s : str = 'HTTP/1.1 ' + Format('{}', [response_code]) + ' '
     if response_code == 200:
@@ -617,7 +617,7 @@ function OSConnectionHttp.AddHttpOutput():
     outbuf.Append(s)
 endfunc
 
-function OSConnectionHttp.ParseGetString():
+func OSConnectionHttp.ParseGetString():
     use strutils
     var pos : int = 0
     while pos <= getstr.length:
@@ -649,7 +649,7 @@ function OSConnectionHttp.ParseGetString():
     endwhile
 endfunc
 
-function OSConnectionHttp.CloseFileFd():
+func OSConnectionHttp.CloseFileFd():
     if file_obj <> nil:
         delete file_obj
         file_obj = nil
@@ -657,7 +657,7 @@ function OSConnectionHttp.CloseFileFd():
     file_remaining = 0
 endfunc
 
-function OSConnectionHttp.SendOutput():
+func OSConnectionHttp.SendOutput():
     while true:
         if outbuf.length > 0:
             var r : int = sock.Send(%outbuf[0], outbuf.length)
@@ -715,7 +715,7 @@ function OSConnectionHttp.SendOutput():
     endif
 endfunc
 
-function OSConnectionHttp.PrepareHeaders() [[virtual]]:
+func OSConnectionHttp.PrepareHeaders() [[virtual]]:
     var hsvr : ONanoHttpServer = ONanoHttpServer(server)
     if hsvr.server_id <> '':
         response_headers['Server'] = hsvr.server_id
@@ -724,11 +724,11 @@ function OSConnectionHttp.PrepareHeaders() [[virtual]]:
     response_headers['Content-Type'] = 'text/plain'
 endfunc
 
-function OSConnectionHttp.ProcessRequest() -> bool [[virtual]]:
+func OSConnectionHttp.ProcessRequest() -> bool [[virtual]]:
     return false
 endfunc
 
-function OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
+func OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
     use . , file
     result = false
 
@@ -775,13 +775,13 @@ function OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
     result = true
 endfunc
 
-function OSConnectionHttp.LogError(astr : strview) [[virtual]]:
+func OSConnectionHttp.LogError(astr : strview) [[virtual]]:
     @print.PrintLn('ERROR: {}', [astr])
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
-function ONanoHttpServer.*Create(aclass : TSConnHttpClass, alisten_port : uint16):
+func ONanoHttpServer.*Create(aclass : TSConnHttpClass, alisten_port : uint16):
     inherited Create(aclass, alisten_port)
 
     server_id = 'NanoHttpServer'
@@ -790,12 +790,12 @@ function ONanoHttpServer.*Create(aclass : TSConnHttpClass, alisten_port : uint16
     InitContentTypeMap()
 endfunc
 
-function ONanoHttpServer.*Destroy():
+func ONanoHttpServer.*Destroy():
     delete ct_by_ext
     inherited Destroy()
 endfunc
 
-function ONanoHttpServer.InitContentTypeMap():
+func ONanoHttpServer.InitContentTypeMap():
     ct_by_ext.Clear()
 
     ct_by_ext.Add('html', 'text/html')
@@ -811,7 +811,7 @@ function ONanoHttpServer.InitContentTypeMap():
     ct_by_ext.Add('ico',  'image/vnd.microsoft.icon')
 endfunc
 
-function ONanoHttpServer.ContentTypeByExt(aext : strview) -> str:
+func ONanoHttpServer.ContentTypeByExt(aext : strview) -> str:
     use strutils
     var fext : str = StrLower(aext)
     if StrStartsWith(fext, '.'):

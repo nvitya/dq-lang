@@ -2,9 +2,9 @@
 
 use ./mod_enum
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     var state : NModuleState = NModuleState.idle
     state = ModuleState()
     printf("enum.module = %li %li\n", int(state.ord), SizeOf(NModuleState))

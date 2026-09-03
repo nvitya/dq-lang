@@ -3,7 +3,7 @@
 
 use libc/stdio
 
-function StaticOutOfBoundsExpressions() -> int:
+func StaticOutOfBoundsExpressions() -> int:
     var arr : [?]int = [10, 20, 30, 40, 50]
     var value : int = 0
     value += arr[-1]
@@ -12,7 +12,7 @@ function StaticOutOfBoundsExpressions() -> int:
     result = value
 endfunc
 
-function DynamicOutOfBoundsExpressions() -> int:
+func DynamicOutOfBoundsExpressions() -> int:
     var arr : [*]int = [10, 20, 30]
     var value : int = 0
     value += arr[-1]
@@ -21,7 +21,7 @@ function DynamicOutOfBoundsExpressions() -> int:
     result = value
 endfunc
 
-function SliceOutOfBoundsExpressions() -> int:
+func SliceOutOfBoundsExpressions() -> int:
     var base : [?]int = [10, 20, 30]
     var arr : []int = base[1:2]
     var value : int = 0
@@ -31,7 +31,7 @@ function SliceOutOfBoundsExpressions() -> int:
     result = value
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("array_index_runtime_semantics = compiled\n") //?check("array_index_runtime_semantics", "compiled")
     return 0
 endfunc

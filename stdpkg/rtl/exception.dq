@@ -27,31 +27,31 @@ object Exception:
     backtrace_count : int = 0
     backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
-    function *Create(amsg : strview) [[overload]]
-    function *Create(afmt : strview, avalues : []anyvalue) [[overload]]
-    function *Destroy()
+    func *Create(amsg : strview) [[overload]]
+    func *Create(afmt : strview, avalues : []anyvalue) [[overload]]
+    func *Destroy()
 
-    function GetMessage() -> cstring [[virtual]]
-    function CaptureBacktrace()
-    function PrintMessage()
-    function PrintBacktrace()
-endobj
+    func GetMessage() -> cstring [[virtual]]
+    func CaptureBacktrace()
+    func PrintMessage()
+    func PrintBacktrace()
+endobject
 
 // DQ Internal exceptions
 
 object EStrError(Exception):
-endobj
+endobject
 
-function DqExcRaise(e : Exception, owned_ref : bool)
-function DqExcRethrow()
-function DqExcActive() -> bool
-function DqExcCurrent() -> Exception
-function DqExcClear()
-function DqExcBeginCatch()
-function DqExcEndCatch()
-function DqExcPrintTypeName()
+func DqExcRaise(e : Exception, owned_ref : bool)
+func DqExcRethrow()
+func DqExcActive() -> bool
+func DqExcCurrent() -> Exception
+func DqExcClear()
+func DqExcBeginCatch()
+func DqExcEndCatch()
+func DqExcPrintTypeName()
 
-function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int)
+func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int)
 
 implementation
 
@@ -61,32 +61,32 @@ use rtl/backtrace
     use libc/stdio
 #endif
 
-function DqExcAddRef(e : Exception)
-function DqExcRelease(e : Exception)
+func DqExcAddRef(e : Exception)
+func DqExcRelease(e : Exception)
 
 //-------------------------------------------------------------------------------------------------
 
-function Exception.*Create(amsg : strview) [[overload]]:
+func Exception.*Create(amsg : strview) [[overload]]:
     message.Set(amsg)
 endfunc
 
-function Exception.*Create(afmt : strview, avalues : []anyvalue) [[overload]]:
+func Exception.*Create(afmt : strview, avalues : []anyvalue) [[overload]]:
     message.AddFmt(afmt, avalues)
 endfunc
 
-function Exception.*Destroy():
+func Exception.*Destroy():
 endfunc
 
-function Exception.GetMessage() -> cstring:
+func Exception.GetMessage() -> cstring:
     return message
 endfunc
 
 
-function Exception.CaptureBacktrace():
+func Exception.CaptureBacktrace():
     backtrace_count = @.DqCaptureBacktrace(%backtrace[0], @.DQ_EXCEPTION_BACKTRACE_MAX)
 endfunc
 
-function Exception.PrintMessage():
+func Exception.PrintMessage():
   #ifndef BARE
     var view : strview = message
     var i : uint32 = 0
@@ -97,19 +97,19 @@ function Exception.PrintMessage():
   #endif    
 endfunc
 
-function Exception.PrintBacktrace():
+func Exception.PrintBacktrace():
     @backtrace.DqPrintBacktrace(%backtrace[0], backtrace_count)
 endfunc
 
 //-------------------------------------------------------------------------------------------------
 
-function DqExcAddRef(e : Exception):
+func DqExcAddRef(e : Exception):
     if e <> nil:
         e.refcount += 1
     endif
 endfunc
 
-function DqExcRelease(e : Exception):
+func DqExcRelease(e : Exception):
     if e == nil:
         return
     endif
@@ -119,7 +119,7 @@ function DqExcRelease(e : Exception):
     endif
 endfunc
 
-function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
+func DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
     if e == nil:
         RuntimeError("raise nil exception")
         return false
@@ -133,19 +133,19 @@ function DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
 endfunc
 
 
-function DqExcNativeThrow(e : Exception) [[external]]
+func DqExcNativeThrow(e : Exception) [[external]]
 
 var active_exception  : Exception = nil
 var handled_exception : Exception = nil
 
-function DqSetActiveException(e : Exception):
+func DqSetActiveException(e : Exception):
     if active_exception <> nil:
         DqExcRelease(active_exception)
     endif
     active_exception = e
 endfunc
 
-function DqExcRaise(e : Exception, owned_ref : bool):
+func DqExcRaise(e : Exception, owned_ref : bool):
     if not DqPrepareExceptionRef(e, owned_ref):
         return
     endif
@@ -154,7 +154,7 @@ function DqExcRaise(e : Exception, owned_ref : bool):
     DqExcNativeThrow(e)
 endfunc
 
-function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int):
+func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int):
     if not DqPrepareExceptionRef(e, owned_ref):
         return
     endif
@@ -175,7 +175,7 @@ function DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, 
     DqExcNativeThrow(e)
 endfunc
 
-function DqExcRethrow():
+func DqExcRethrow():
     if handled_exception == nil:
         RuntimeError("re-raise without active exception")
         return
@@ -183,22 +183,22 @@ function DqExcRethrow():
     DqExcNativeThrow(handled_exception)
 endfunc
 
-function DqExcActive() -> bool:
+func DqExcActive() -> bool:
     return active_exception <> nil
 endfunc
 
-function DqExcCurrent() -> Exception:
+func DqExcCurrent() -> Exception:
     return active_exception
 endfunc
 
-function DqExcClear():
+func DqExcClear():
     if active_exception <> nil:
         DqExcRelease(active_exception)
     endif
     active_exception = nil
 endfunc
 
-function DqExcBeginCatch():
+func DqExcBeginCatch():
     if handled_exception <> nil:
         DqExcRelease(handled_exception)
     endif
@@ -206,7 +206,7 @@ function DqExcBeginCatch():
     active_exception = nil
 endfunc
 
-function DqExcEndCatch():
+func DqExcEndCatch():
     if handled_exception <> nil:
         DqExcRelease(handled_exception)
     endif
@@ -214,7 +214,7 @@ function DqExcEndCatch():
 endfunc
 
 
-function DqExcPrintTypeName():
+func DqExcPrintTypeName():
   #ifndef BARE
     if active_exception <> nil:
         printf("%s", TypeName(active_exception))

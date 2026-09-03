@@ -1,16 +1,16 @@
 // struct methods, struct inheritance, and implicit self
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 struct SBase:
     id : int
     tag : cstring(8)
 
-    function SetId(v : int):
+    func SetId(v : int):
         self.id = v
     endfunc
 
-    function BaseValue() -> int:
+    func BaseValue() -> int:
         return id + 1
     endfunc
 endstruct
@@ -19,21 +19,21 @@ struct SChild(SBase):
     extra : int
     names : [2]cstring(8)
 
-    function SetAll(aid : int, aextra : int):
+    func SetAll(aid : int, aextra : int):
         self.SetId(aid)
         extra = aextra
     endfunc
 
-    function Sum() -> int:
+    func Sum() -> int:
         return self.BaseValue() + extra
     endfunc
 endstruct
 
-function SChild.Mul(factor : int) -> int:
+func SChild.Mul(factor : int) -> int:
     return self.Sum() * factor
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var s : SChild = {}
     s.SetAll(5, 7)
     s.tag = "ok"

@@ -1,13 +1,13 @@
 use db
 use print
 
-function PrintRow(label : strview, rows : ODbRows):
+func PrintRow(label : strview, rows : ODbRows):
     var name : str = rows.GetStr("name", "")
     PrintLn('{} = idx:{} id:{} name:{} active:{}',
             [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var rows <- ODbRows()
 
     PrintLn('db_rows.empty = rows:{} fields:{} onrow:{}',

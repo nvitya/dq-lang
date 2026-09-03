@@ -8,17 +8,17 @@ use libc/stdio
 object OMarker:
     id : int
 
-    function *Create(aid : int):
+    func *Create(aid : int):
         id = aid
         @.printf("cleanup.create.%d = 1\n", id)
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         @.printf("cleanup.destroy.%d = 1\n", id)
     endfunc
-endobj
+endobject
 
-function ThrowWithLocals():
+func ThrowWithLocals():
     var outer <- OMarker(1)
     if 1 == 1:
         var inner <- OMarker(2)
@@ -26,7 +26,7 @@ function ThrowWithLocals():
     endif
 endfunc
 
-function BreakWithLocals():
+func BreakWithLocals():
     while 1 == 1:
         if 1 == 1:
             var marker <- OMarker(3)
@@ -36,7 +36,7 @@ function BreakWithLocals():
     printf("cleanup.break.done = 1\n")
 endfunc
 
-function ContinueWithLocals():
+func ContinueWithLocals():
     var count : int = 0
     while count < 1:
         count += 1
@@ -48,7 +48,7 @@ function ContinueWithLocals():
     printf("cleanup.continue.done = %d\n", count)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         ThrowWithLocals()       //?check("cleanup.create.1", 1)
                                 //?check("cleanup.create.2", 1)

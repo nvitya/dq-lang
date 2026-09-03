@@ -10,21 +10,21 @@ endstruct
 object TObjectScopeCheck:
     id : int
 
-    function BadScope():
+    func BadScope():
         object_scope_global  //?error(ObjVsInModuleNs)
     endfunc
-endobj
+endobject
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object TObjectRootScopeFuncCheck:
-    function BadPrintf():
+    func BadPrintf():
         printf('bad')  //?error(ObjVsInModuleNs)
     endfunc
-endobj
+endobject
 
 blabla  //?error(ModStatementUnknown)
-function *Main() -> int:
+func *Main() -> int:
     var i : int = 0
     var f : float = 0
     i = 3 / 2       //?error(TypeMismatchAssign)

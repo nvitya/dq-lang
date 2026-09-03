@@ -1,6 +1,6 @@
 // Slice compile-time rejection cases from the array specification.
 
-function SliceStructuralMethodsAreInvalid():
+func SliceStructuralMethodsAreInvalid():
     var source : [?]int = [1, 2, 3]
     var slice : []int = source[:]
     slice.Append(4) //?error(MemberUnknown)

@@ -26,22 +26,22 @@ use rtl/prgargs    reexport
 
 #endif
 
-function Exit(status : int)
+func Exit(status : int)
 
 implementation
 
 #ifdef BARE
 
-function Exit(status : int):
+func Exit(status : int):
     while true:
     endwhile
 endfunc
 
 #else
 
-function libc_exit(status : int)  [[external('exit')]]
+func libc_exit(status : int)  [[external('exit')]]
 
-function Exit(status : int):
+func Exit(status : int):
     libc_exit(status)
 endfunc
 

@@ -11,13 +11,13 @@
  * brief:   Heap-free text descriptor helpers
  */
 
-function DynStrRuntimeError(emsg : ^char)
-function DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32)
-function DynStrCheckIndex(index : int, length : uint32)
-function DynStrCharToByte(ch : char) -> char
+func DynStrRuntimeError(emsg : ^char)
+func DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32)
+func DynStrCheckIndex(index : int, length : uint32)
+func DynStrCharToByte(ch : char) -> char
 
-function TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
-function TextInfoPChar(ati : ref SDqTextInfo) -> ^char
-function TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
-function TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
-function TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool
+func TextInfoGetLength(ati : ref SDqTextInfo) -> uint32
+func TextInfoPChar(ati : ref SDqTextInfo) -> ^char
+func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
+func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
+func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool

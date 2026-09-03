@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-function PrintArray(label : ^char, arr : []int):
+func PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -12,7 +12,7 @@ function PrintArray(label : ^char, arr : []int):
     printf("\n")
 endfunc
 
-function GeAsInt(a : int, b : int) -> int:
+func GeAsInt(a : int, b : int) -> int:
     if a >= b:
         result = 1
     else:
@@ -20,7 +20,7 @@ function GeAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
-function EqAsInt(a : int, b : int) -> int:
+func EqAsInt(a : int, b : int) -> int:
     if a == b:
         result = 1
     else:
@@ -28,7 +28,7 @@ function EqAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("array_dynamic_operations = start\n") //?check("array_dynamic_operations", "start")
 
     var add : [*]int = [10, 20, 30]

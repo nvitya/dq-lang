@@ -15,9 +15,9 @@
 
 const DQ_BACKTRACE_INTERNAL_SKIP : int = 2
 
-function DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int
-function DqPrintBacktrace(backtrace : pointer, backtrace_count : int)
-function DqPrepareBacktrace()
+func DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int
+func DqPrintBacktrace(backtrace : pointer, backtrace_count : int)
+func DqPrepareBacktrace()
 
 implementation
 
@@ -31,21 +31,21 @@ implementation
 
 use libc/stdio
 
-function libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+func libc_fflush(stream : pointer) -> int  [[external('fflush')]]
 
 //-------------------------------------------------------------------------------------------------
 
-function DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int:
+func DqCaptureBacktrace(backtrace : pointer, max_frames : int) -> int:
     result = DqCaptureBacktraceImpl(backtrace, max_frames)
 endfunc
 
-function DqPrepareBacktrace():
+func DqPrepareBacktrace():
   #ifdef WINDOWS
     DqPrepareBacktraceImpl()
   #endif
 endfunc
 
-function DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
+func DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
     if backtrace_count <= 0:
         printf("Backtrace: <not captured>\n")
         return

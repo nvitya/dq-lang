@@ -1,7 +1,7 @@
 use ./mod_flatten_identity
 use ./mod_flatten_leaf as leaf --
 
-function *Main() -> int:
+func *Main() -> int:
     var payload : SSharedPayload = @leaf.MakeShared(41)
     printf("flatten shared identity = %d\n", payload.value) //?check('flatten shared identity', 41)
     return 0

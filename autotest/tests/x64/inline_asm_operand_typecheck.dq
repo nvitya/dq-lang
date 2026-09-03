@@ -1,37 +1,37 @@
-function BadRegister(value : str) [[inline, asm]]: //?error(AsmOperandType)
+func BadRegister(value : str) [[inline, asm]]: //?error(AsmOperandType)
     nop
 endfunc
 
-function BadImmediate(value : float64) [[inline, asm]]: //?error(AsmOperandType)
+func BadImmediate(value : float64) [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[immediate(value)]]
 endfunc
 
-function BadMemory(value : int) [[inline, asm]]: //?error(AsmOperandType)
+func BadMemory(value : int) [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[memread(value)]]
 endfunc
 
-function BadReadMode(value : refout int) [[inline, asm]]: //?error(AsmOperandType)
+func BadReadMode(value : refout int) [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[memread(value)]]
 endfunc
 
-function BadWriteMode(value : refin int) [[inline, asm]]: //?error(AsmOperandType)
+func BadWriteMode(value : refin int) [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[memwrite(value)]]
 endfunc
 
-function BadReadWriteMode(value : refout int) [[inline, asm]]: //?error(AsmOperandType)
+func BadReadWriteMode(value : refout int) [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[memreadwrite(value)]]
 endfunc
 
-function BadClobber() [[inline, asm]]: //?error(AsmOperandType)
+func BadClobber() [[inline, asm]]: //?error(AsmOperandType)
     nop
     [[clobber(not_a_register)]]
 endfunc
 
-function UnknownSymbol(value : int) [[inline, asm]]:
+func UnknownSymbol(value : int) [[inline, asm]]:
     mov $missing, $value
 endfunc //?error(AsmSymbolUnknown)

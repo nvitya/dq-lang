@@ -34,16 +34,16 @@ object ODbConnection  [[forward]]
 object ODbDataSource  [[forward]]
 
 object EDbField(Exception):
-endobj
+endobject
 
 object EDbRow(Exception):
-endobj
+endobject
 
 object EDbFieldType(Exception):
-endobj
+endobject
 
 object EDbFieldIndex(Exception):
-endobj
+endobject
 
 object ODbRows:
 protected
@@ -58,53 +58,53 @@ protected
 
     //m_datasource : ODbDataSource  // might be nil for standalone / memory datasets
 
-    function GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
+    func GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
 
 public
-    function *Create()
-    function *Destroy()
+    func *Create()
+    func *Destroy()
 
-    function Clear()      // delete all rows, all fields
-    function ClearRows()  // delete all rows, keep the fields
+    func Clear()      // delete all rows, all fields
+    func ClearRows()  // delete all rows, keep the fields
 
-    function RowCount() -> int
-    function FieldCount() -> int
+    func RowCount() -> int
+    func FieldCount() -> int
 
-    function AddField(aname : strview, atype : NDbFieldType) -> int
-    function FieldName(aindex : int) -> str
-    function FieldType(aindex : int) -> NDbFieldType
-    function FieldIndex(aname : strview) -> int
-    function HasField(aname : strview) -> bool
+    func AddField(aname : strview, atype : NDbFieldType) -> int
+    func FieldName(aindex : int) -> str
+    func FieldType(aindex : int) -> NDbFieldType
+    func FieldIndex(aname : strview) -> int
+    func HasField(aname : strview) -> bool
 
-    function AddRow() -> int
-    function DeleteRow(arow : int)
+    func AddRow() -> int
+    func DeleteRow(arow : int)
 
     // cursor navigation
-    function First()
-    function Last()
-    function Next()
-    function Prev()
-    function RowIndex() -> int
-    function SetRowIndex(arow : int)
-    function SelectRow(arow : int) -> bool
+    func First()
+    func Last()
+    func Next()
+    func Prev()
+    func RowIndex() -> int
+    func SetRowIndex(arow : int)
+    func SelectRow(arow : int) -> bool
 
-    function OnRow() -> bool
+    func OnRow() -> bool
 
     // current row access
-    function IsNull(aname : strview) -> bool
-    function GetValue(aname : strview) -> anyvalue
-    function SetValue(aname : strview, avalue : anyvalue)
+    func IsNull(aname : strview) -> bool
+    func GetValue(aname : strview) -> anyvalue
+    func SetValue(aname : strview, avalue : anyvalue)
 
-    function GetInt(aname : strview, defvalue : int) -> int
-    function GetFloat(aname : strview, defvalue : float) -> float
-    function GetBool(aname : strview, defvalue : bool) -> bool
-    function GetStr(aname : strview, defvalue : strview) -> str
+    func GetInt(aname : strview, defvalue : int) -> int
+    func GetFloat(aname : strview, defvalue : float) -> float
+    func GetBool(aname : strview, defvalue : bool) -> bool
+    func GetStr(aname : strview, defvalue : strview) -> str
 
-    function SetInt(aname : strview, avalue : int)
-    function SetFloat(aname : strview, avalue : float)
-    function SetBool(aname : strview, avalue : bool)
-    function SetStr(aname : strview, avalue : strview)
-    function SetNull(aname : strview)
+    func SetInt(aname : strview, avalue : int)
+    func SetFloat(aname : strview, avalue : float)
+    func SetBool(aname : strview, avalue : bool)
+    func SetStr(aname : strview, avalue : strview)
+    func SetNull(aname : strview)
 
     //TODO: add blob handling with [*]byte
 
@@ -112,7 +112,7 @@ public
     property length   : int   read m_rowcount
     property rowindex : int   read RowIndex    write SetRowIndex
 
-endobj
+endobject
 
 /*
 
@@ -120,43 +120,43 @@ object ODbDataSource:
 protected
     m_dbconn : ODbConnection
 public
-    function First(arows : ODbRows) -> bool [[virtual]]
-    function Next(arows : ODbRows) -> bool  [[virtual]]
-    function Last(arows : ODbRows) -> bool  [[virtual]]
-    function Prev(arows : ODbRows) -> bool  [[virtual]]
-    function MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]]
-endobj
+    func First(arows : ODbRows) -> bool [[virtual]]
+    func Next(arows : ODbRows) -> bool  [[virtual]]
+    func Last(arows : ODbRows) -> bool  [[virtual]]
+    func Prev(arows : ODbRows) -> bool  [[virtual]]
+    func MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]]
+endobject
 
 */
 
 /*
 object ODbConnection:
 public
-  function Open(aconnstr : str) -> bool [[virtual]]
-  function Close()  [[virtual]]
-  function IsOpen() -> bool  [[virtual]]
+  func Open(aconnstr : str) -> bool [[virtual]]
+  func Close()  [[virtual]]
+  func IsOpen() -> bool  [[virtual]]
 
-  function Exec(asql : str) -> int  [[virtual]]
-  function Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]]
+  func Exec(asql : str) -> int  [[virtual]]
+  func Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]]
 
-  function Query(asql : str) -> ODbRows  [[virtual]]
-  function Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]]
+  func Query(asql : str) -> ODbRows  [[virtual]]
+  func Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]]
 
-  function BeginTrans() -> bool  [[virtual]]
-  function Commit() -> bool  [[virtual]]
-  function Rollback() -> bool  [[virtual]]
+  func BeginTrans() -> bool  [[virtual]]
+  func Commit() -> bool  [[virtual]]
+  func Rollback() -> bool  [[virtual]]
 
-  function LastInsertId() -> int64  [[virtual]]
-  function RowsAffected() -> int64  [[virtual]]
+  func LastInsertId() -> int64  [[virtual]]
+  func RowsAffected() -> int64  [[virtual]]
 
-  function LastError() -> str  [[virtual]]
-  function LastErrorCode() -> int  [[virtual]]
-endobj
+  func LastError() -> str  [[virtual]]
+  func LastErrorCode() -> int  [[virtual]]
+endobject
 */
 
 implementation
 
-function FieldTypeName(ft : NDbFieldType) -> str:
+func FieldTypeName(ft : NDbFieldType) -> str:
     if   ft == ftInt:       return 'int'
     elif ft == ftFloat:     return 'float'
     elif ft == ftBool:      return 'bool'
@@ -168,40 +168,40 @@ function FieldTypeName(ft : NDbFieldType) -> str:
     endif
 endfunc
 
-function ODbRows.*Create():
+func ODbRows.*Create():
     m_fieldcount = 0
     m_rowcount = 0
     m_currow = -1
     m_onrow = false
 endfunc
 
-function ODbRows.*Destroy():
+func ODbRows.*Destroy():
     Clear()
 endfunc
 
-function ODbRows.Clear():
+func ODbRows.Clear():
     ClearRows()
     m_fieldinfo.Clear(true)
     m_fieldcount = 0
     m_onrow = false
 endfunc
 
-function ODbRows.ClearRows():
+func ODbRows.ClearRows():
     m_data.Clear(true)
     m_rowcount = 0
     m_currow = -1
     m_onrow = false
 endfunc
 
-function ODbRows.RowCount() -> int:
+func ODbRows.RowCount() -> int:
     return m_rowcount
 endfunc
 
-function ODbRows.FieldCount() -> int:
+func ODbRows.FieldCount() -> int:
     return m_fieldcount
 endfunc
 
-function ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
+func ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
     if aname == '':
         raise EDbField('AddField empty name')
     endif
@@ -241,21 +241,21 @@ function ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
     return old_fieldcount
 endfunc
 
-function ODbRows.FieldName(aindex : int) -> str:
+func ODbRows.FieldName(aindex : int) -> str:
     if aindex < 0  or  aindex >= m_fieldcount:
         raise EDbFieldIndex('Invalid Field index: {}', [aindex])
     endif
     return m_fieldinfo[aindex].name
 endfunc
 
-function ODbRows.FieldType(aindex : int) -> NDbFieldType:
+func ODbRows.FieldType(aindex : int) -> NDbFieldType:
     if aindex < 0  or  aindex >= m_fieldcount:
         raise EDbFieldIndex('Invalid Field index: {}', [aindex])
     endif
     return m_fieldinfo[aindex].ftype
 endfunc
 
-function ODbRows.FieldIndex(aname : strview) -> int:
+func ODbRows.FieldIndex(aname : strview) -> int:
     for i : int = 0 count m_fieldcount:
         if m_fieldinfo[i].name == aname:
             return i
@@ -264,11 +264,11 @@ function ODbRows.FieldIndex(aname : strview) -> int:
     return -1
 endfunc
 
-function ODbRows.HasField(aname : strview) -> bool:
+func ODbRows.HasField(aname : strview) -> bool:
     return FieldIndex(aname) >= 0
 endfunc
 
-function ODbRows.AddRow() -> int:
+func ODbRows.AddRow() -> int:
     result = m_rowcount
     m_rowcount += 1
     m_data.SetLength(m_fieldcount * m_rowcount)
@@ -276,7 +276,7 @@ function ODbRows.AddRow() -> int:
     m_onrow = true
 endfunc
 
-function ODbRows.DeleteRow(arow : int):
+func ODbRows.DeleteRow(arow : int):
     if arow < 0  or  arow >= m_rowcount:
         return
     endif
@@ -296,7 +296,7 @@ function ODbRows.DeleteRow(arow : int):
     m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
-function ODbRows.First():
+func ODbRows.First():
     if m_rowcount > 0:
         m_currow = 0
     else:
@@ -305,7 +305,7 @@ function ODbRows.First():
     m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
-function ODbRows.Last():
+func ODbRows.Last():
     if m_rowcount > 0:
         m_currow = m_rowcount - 1
     else:
@@ -314,7 +314,7 @@ function ODbRows.Last():
     m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
-function ODbRows.Next():
+func ODbRows.Next():
     if m_rowcount <= 0:
         m_currow = -1
     elif m_currow < m_rowcount:
@@ -325,7 +325,7 @@ function ODbRows.Next():
     m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
 endfunc
 
-function ODbRows.Prev():
+func ODbRows.Prev():
     if m_rowcount <= 0:
         m_currow = -1
         m_onrow = false
@@ -338,11 +338,11 @@ function ODbRows.Prev():
     endif
 endfunc
 
-function ODbRows.RowIndex() -> int:
+func ODbRows.RowIndex() -> int:
     return m_currow
 endfunc
 
-function ODbRows.SelectRow(arow : int) -> bool:
+func ODbRows.SelectRow(arow : int) -> bool:
     if arow >= 0  and  arow < m_rowcount:
         m_currow = arow
         m_onrow = true
@@ -351,17 +351,17 @@ function ODbRows.SelectRow(arow : int) -> bool:
     return false
 endfunc
 
-function ODbRows.SetRowIndex(arow : int):
+func ODbRows.SetRowIndex(arow : int):
     if not SelectRow(arow):
         raise EDbRow('Invalid row selected: {}', [arow])
     endif
 endfunc
 
-function ODbRows.OnRow() -> bool:
+func ODbRows.OnRow() -> bool:
     return m_onrow
 endfunc
 
-function ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int:
+func ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int:
     var fidx : int = FieldIndex(aname)
     if fidx < 0:
         raise EDbField('Field "{}" not found', [aname])
@@ -373,19 +373,19 @@ function ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) 
     return m_currow * m_fieldcount + fidx
 endfunc
 
-function ODbRows.IsNull(aname : strview) -> bool:
+func ODbRows.IsNull(aname : strview) -> bool:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     return m_data[didx].IsNull()
 endfunc
 
-function ODbRows.GetValue(aname : strview) -> anyvalue:
+func ODbRows.GetValue(aname : strview) -> anyvalue:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     result = m_data[didx]
 endfunc
 
-function ODbRows.SetValue(aname : strview, avalue : anyvalue):
+func ODbRows.SetValue(aname : strview, avalue : anyvalue):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if     (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
@@ -401,7 +401,7 @@ function ODbRows.SetValue(aname : strview, avalue : anyvalue):
     endif
 endfunc
 
-function ODbRows.GetInt(aname : strview, defvalue : int) -> int:
+func ODbRows.GetInt(aname : strview, defvalue : int) -> int:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftInt:
@@ -410,7 +410,7 @@ function ODbRows.GetInt(aname : strview, defvalue : int) -> int:
     return m_data[didx].AsInt(defvalue)
 endfunc
 
-function ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
+func ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftFloat  and ft <> ftInt:
@@ -419,7 +419,7 @@ function ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
     return m_data[didx].AsFloat(defvalue)
 endfunc
 
-function ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
+func ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftBool:
@@ -428,7 +428,7 @@ function ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
     return m_data[didx].AsBool(defvalue)
 endfunc
 
-function ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
+func ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
@@ -437,7 +437,7 @@ function ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
     return m_data[didx].AsStr(defvalue)
 endfunc
 
-function ODbRows.SetInt(aname : strview, avalue : int):
+func ODbRows.SetInt(aname : strview, avalue : int):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftInt:
@@ -446,7 +446,7 @@ function ODbRows.SetInt(aname : strview, avalue : int):
     m_data[didx].SetInt(avalue)
 endfunc
 
-function ODbRows.SetFloat(aname : strview, avalue : float):
+func ODbRows.SetFloat(aname : strview, avalue : float):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftFloat:
@@ -455,7 +455,7 @@ function ODbRows.SetFloat(aname : strview, avalue : float):
     m_data[didx].SetFloat(avalue)
 endfunc
 
-function ODbRows.SetBool(aname : strview, avalue : bool):
+func ODbRows.SetBool(aname : strview, avalue : bool):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftBool:
@@ -464,7 +464,7 @@ function ODbRows.SetBool(aname : strview, avalue : bool):
     m_data[didx].SetBool(avalue)
 endfunc
 
-function ODbRows.SetStr(aname : strview, avalue : strview):
+func ODbRows.SetStr(aname : strview, avalue : strview):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftBlob  and ft <> ftDateTime:
@@ -473,7 +473,7 @@ function ODbRows.SetStr(aname : strview, avalue : strview):
     m_data[didx].SetStr(avalue)
 endfunc
 
-function ODbRows.SetNull(aname : strview):
+func ODbRows.SetNull(aname : strview):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     m_data[didx].SetNull()

@@ -22,17 +22,17 @@ object ONanoServer    [[forward]]
 object OSocketWatcher [[forward]]
 
 object ENanoNet(Exception):
-endobj
+endobject
 
-type FInEventHandler  = function(aobj : Object) of object
-type FOutEventHandler = function(aobj : Object) of object
+type FInEventHandler  = func(aobj : Object) of object
+type FOutEventHandler = func(aobj : Object) of object
 
 object ONanoSocket:
 protected
     m_socket : TSocket
 
-    function SetSockBufSizes()
-    function SetSockParams()
+    func SetSockBufSizes()
+    func SetSockParams()
 
 public
     stype : NSocketType
@@ -50,26 +50,26 @@ public
     out_event_handler : FOutEventHandler
     obj_link          : Object
 
-    function *Create(atype : NSocketType)
-    function *Destroy()
+    func *Create(atype : NSocketType)
+    func *Destroy()
 
-    function Disconnect()
-    function Connected() -> bool
+    func Disconnect()
+    func Connected() -> bool
 
-    function InitListener(aport : uint16)
-    function AcceptConnection(asvrsocket : TSocket) -> bool
+    func InitListener(aport : uint16)
+    func AcceptConnection(asvrsocket : TSocket) -> bool
 
-    function Send(pdata : pointer, srclen : uint) -> int
-    function Recv(pdata : pointer, maxlen : uint) -> int
+    func Send(pdata : pointer, srclen : uint) -> int
+    func Recv(pdata : pointer, maxlen : uint) -> int
 
-    function Connect(aaddr : strview, aport : uint16) -> bool
+    func Connect(aaddr : strview, aport : uint16) -> bool
 
-    function SetNonBlocking()
-    function SetTcpNoDelay(anodelay : bool)
+    func SetNonBlocking()
+    func SetTcpNoDelay(anodelay : bool)
 
 public
     property socket : TSocket  read m_socket
-endobj
+endobject
 
 object OSocketWatcher:
     #ifdef WINDOWS
@@ -81,40 +81,40 @@ object OSocketWatcher:
     maxfds    : int
     maxevents : int = 32
 
-    function *Create(amaxfds : int)
-    function *Destroy()
+    func *Create(amaxfds : int)
+    func *Destroy()
 
-    function AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler)
-    function ModifySocket(asock : ONanoSocket)
-    function RemoveSocket(asock : ONanoSocket)
-    function SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler)
-    function SetInHandler(asock : ONanoSocket, ainev : FInEventHandler)
+    func AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler)
+    func ModifySocket(asock : ONanoSocket)
+    func RemoveSocket(asock : ONanoSocket)
+    func SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler)
+    func SetInHandler(asock : ONanoSocket, ainev : FInEventHandler)
 
-    function WaitForEvents(atimeout_ms : int) -> bool
+    func WaitForEvents(atimeout_ms : int) -> bool
 
-endobj
+endobject
 
 object OSConnection:  // Servers connection to client
     sock   : ONanoSocket
     server : ONanoServer
 
-    function *Create(aserver : ONanoServer)
-    function *Destroy()
+    func *Create(aserver : ONanoServer)
+    func *Destroy()
 
-    function Close()
-    function AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]]
+    func Close()
+    func AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]]
 
-    function HandleInput(aobj : Object) [[virtual]]
-    function HandleOutput(aobj : Object) [[virtual]]
+    func HandleInput(aobj : Object) [[virtual]]
+    func HandleOutput(aobj : Object) [[virtual]]
 
-    function SetOutHandler(aoutev : FOutEventHandler)
-endobj
+    func SetOutHandler(aoutev : FOutEventHandler)
+endobject
 
 type TSConnectionType = type of OSConnection
 
 object ONanoServer:
 protected
-    function ConnectionIndex(aconn : OSConnection) -> int
+    func ConnectionIndex(aconn : OSConnection) -> int
 
 public
     listen_port  : uint16
@@ -127,30 +127,30 @@ public
 
     sconn_type   : TSConnectionType
 
-    function *Create(asconn_type : TSConnectionType, alisten_port : uint16)
-    function *Destroy()
+    func *Create(asconn_type : TSConnectionType, alisten_port : uint16)
+    func *Destroy()
 
-    function InitListener()
-    function WaitForEvents(timeout_ms : int) -> bool
+    func InitListener()
+    func WaitForEvents(timeout_ms : int) -> bool
 
-    function HandleListener(aobj : Object)
+    func HandleListener(aobj : Object)
 
-    function CreateSConnection() -> OSConnection
-    function CloseConnection(aconn : OSConnection)
-endobj
+    func CreateSConnection() -> OSConnection
+    func CloseConnection(aconn : OSConnection)
+endobject
 
 implementation
 
-function ONanoSocket.*Create(atype : NSocketType):
+func ONanoSocket.*Create(atype : NSocketType):
     stype    = atype
     m_socket = @socket.INVALID_SOCKET
 endfunc
 
-function ONanoSocket.*Destroy():
+func ONanoSocket.*Destroy():
     Disconnect()
 endfunc
 
-function ONanoSocket.Disconnect():
+func ONanoSocket.Disconnect():
     if Connected():
         use socket
         libc_close(m_socket)
@@ -158,11 +158,11 @@ function ONanoSocket.Disconnect():
     endif
 endfunc
 
-function ONanoSocket.Connected() -> bool:
+func ONanoSocket.Connected() -> bool:
     return m_socket <> @socket.INVALID_SOCKET
 endfunc
 
-function ONanoSocket.InitListener(aport : uint16):
+func ONanoSocket.InitListener(aport : uint16):
     use socket, sys
     Disconnect()
 
@@ -199,7 +199,7 @@ function ONanoSocket.InitListener(aport : uint16):
     endif
 endfunc
 
-function ONanoSocket.AcceptConnection(asvrsocket : TSocket) -> bool:
+func ONanoSocket.AcceptConnection(asvrsocket : TSocket) -> bool:
     use socket, sys
     Disconnect()
 
@@ -215,7 +215,7 @@ function ONanoSocket.AcceptConnection(asvrsocket : TSocket) -> bool:
     return true
 endfunc
 
-function ONanoSocket.Send(pdata : pointer, srclen : uint) -> int:
+func ONanoSocket.Send(pdata : pointer, srclen : uint) -> int:
     use socket
     result = libc_send(m_socket, pdata, srclen, #{ifndef WINDOWS} MSG_NOSIGNAL #{else} 0 #{endif})
     if result < 0:
@@ -223,7 +223,7 @@ function ONanoSocket.Send(pdata : pointer, srclen : uint) -> int:
     endif
 endfunc
 
-function ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
+func ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
     use socket
     result = libc_recv(m_socket, pdata, maxlen, 0)
     if result < 0:
@@ -231,7 +231,7 @@ function ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
     endif
 endfunc
 
-function ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
+func ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
     use socket, sys
     Disconnect()
 
@@ -265,13 +265,13 @@ function ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
     return true
 endfunc
 
-function ONanoSocket.SetNonBlocking():
+func ONanoSocket.SetNonBlocking():
     if Connected():
         @socket.SetSocketNonBlocking(m_socket)
     endif
 endfunc
 
-function ONanoSocket.SetTcpNoDelay(anodelay : bool):
+func ONanoSocket.SetTcpNoDelay(anodelay : bool):
     var i : int
     if anodelay:
         i = 1
@@ -283,7 +283,7 @@ function ONanoSocket.SetTcpNoDelay(anodelay : bool):
     libc_setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, %i, SizeOf(i))
 endfunc
 
-function ONanoSocket.SetSockBufSizes():
+func ONanoSocket.SetSockBufSizes():
     // The Pascal version intentionally leaves these disabled: forcing them can
     // make large transfers slower on some systems.
     // use socket
@@ -291,7 +291,7 @@ function ONanoSocket.SetSockBufSizes():
     // libc_setsockopt(m_socket, SOL_SOCKET, SO_RCVBUF, %recvbuf_size, SizeOf(recvbuf_size))
 endfunc
 
-function ONanoSocket.SetSockParams():
+func ONanoSocket.SetSockParams():
     SetNonBlocking()
     if stype <> stUdp4:
         SetTcpNoDelay(true)
@@ -301,18 +301,18 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-function OSocketWatcher.*Create(amaxfds : int):
+func OSocketWatcher.*Create(amaxfds : int):
     maxfds = amaxfds
     fd_epoll = @socket.libc_epoll_create(amaxfds)
     revents.SetLength(maxevents)
 endfunc
 
-function OSocketWatcher.*Destroy():
+func OSocketWatcher.*Destroy():
     @socket.libc_close(fd_epoll)
     revents = []
 endfunc
 
-function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler):
+func OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler):
     use socket
     if asock.socket == INVALID_SOCKET:
         raise ENanoNet('SocketWatcher.AddSocket: invalid socket handle.')
@@ -343,7 +343,7 @@ function OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev
     endif
 endfunc
 
-function OSocketWatcher.ModifySocket(asock : ONanoSocket):
+func OSocketWatcher.ModifySocket(asock : ONanoSocket):
     use socket
     if asock.socket == INVALID_SOCKET:
         raise ENanoNet('SocketWatcher.ModifySocket: invalid socket handle.')
@@ -364,7 +364,7 @@ function OSocketWatcher.ModifySocket(asock : ONanoSocket):
     endif
 endfunc
 
-function OSocketWatcher.RemoveSocket(asock : ONanoSocket):
+func OSocketWatcher.RemoveSocket(asock : ONanoSocket):
     use socket
     if asock.socket <> INVALID_SOCKET:
         var ev : SEpollEvent
@@ -374,17 +374,17 @@ function OSocketWatcher.RemoveSocket(asock : ONanoSocket):
     endif
 endfunc
 
-function OSocketWatcher.SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler):
+func OSocketWatcher.SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler):
     asock.out_event_handler = aoutev
     ModifySocket(asock)
 endfunc
 
-function OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandler):
+func OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandler):
     asock.in_event_handler = ainev
     ModifySocket(asock)
 endfunc
 
-function OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
+func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
     use socket
     result = false
     var evcnt : int = libc_epoll_wait(fd_epoll, %revents[0], maxevents, atimeout_ms)
@@ -416,47 +416,47 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-function OSConnection.*Create(aserver : ONanoServer):
+func OSConnection.*Create(aserver : ONanoServer):
     server = aserver
     sock = new ONanoSocket(stTcp4)
 endfunc
 
-function OSConnection.*Destroy():
+func OSConnection.*Destroy():
     delete sock
 endfunc
 
-function OSConnection.Close():
+func OSConnection.Close():
     if server <> nil:
         server.CloseConnection(self)
     endif
 endfunc
 
-function OSConnection.AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]]:
+func OSConnection.AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]]:
     return sock.AcceptConnection(svrsock.socket)
 endfunc
 
-function OSConnection.HandleInput(aobj : Object) [[virtual]]:
+func OSConnection.HandleInput(aobj : Object) [[virtual]]:
     var buf : [256]byte
     sock.Recv(%buf[0], SizeOf(buf))
 endfunc
 
-function OSConnection.HandleOutput(aobj : Object) [[virtual]]:
+func OSConnection.HandleOutput(aobj : Object) [[virtual]]:
 endfunc
 
-function OSConnection.SetOutHandler(aoutev : FOutEventHandler):
+func OSConnection.SetOutHandler(aoutev : FOutEventHandler):
     server.swatcher.SetOutHandler(sock, aoutev)
 endfunc
 
 //-----------------------------------------------------------------------------
 
-function ONanoServer.*Create(asconn_type : TSConnectionType, alisten_port : uint16):
+func ONanoServer.*Create(asconn_type : TSConnectionType, alisten_port : uint16):
     listen_port = alisten_port
     sconn_type = asconn_type
     sock_listen = new ONanoSocket(stTcp4)
     swatcher = new OSocketWatcher(64)
 endfunc
 
-function ONanoServer.*Destroy():
+func ONanoServer.*Destroy():
     while connections.length > 0:
         delete connections.Pop()
     endwhile
@@ -469,12 +469,12 @@ function ONanoServer.*Destroy():
     delete sock_listen
 endfunc
 
-function ONanoServer.InitListener():
+func ONanoServer.InitListener():
     sock_listen.InitListener(listen_port)
     swatcher.AddSocket(sock_listen, self, self.HandleListener, nil)
 endfunc
 
-function ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
+func ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
     // Wait for socket events and call the event handlers when necessary:
     result = swatcher.WaitForEvents(timeout_ms)
 
@@ -484,7 +484,7 @@ function ONanoServer.WaitForEvents(timeout_ms : int) -> bool:
     endwhile
 endfunc
 
-function ONanoServer.HandleListener(aobj : Object):
+func ONanoServer.HandleListener(aobj : Object):
     var conn : OSConnection = CreateSConnection()
     if not conn.AcceptConnection(sock_listen):
         delete conn
@@ -495,11 +495,11 @@ function ONanoServer.HandleListener(aobj : Object):
     swatcher.AddSocket(conn.sock, conn, conn.HandleInput, nil)
 endfunc
 
-function ONanoServer.CreateSConnection() -> OSConnection:
+func ONanoServer.CreateSConnection() -> OSConnection:
     return new sconn_type(self)
 endfunc
 
-function ONanoServer.CloseConnection(aconn : OSConnection):
+func ONanoServer.CloseConnection(aconn : OSConnection):
     if aconn == nil:
         return
     endif
@@ -516,7 +516,7 @@ function ONanoServer.CloseConnection(aconn : OSConnection):
     endif
 endfunc
 
-function ONanoServer.ConnectionIndex(aconn : OSConnection) -> int:
+func ONanoServer.ConnectionIndex(aconn : OSConnection) -> int:
     for i : int = 0  count connections.length:
         if connections[i] == aconn:
             return i

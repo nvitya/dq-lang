@@ -11,41 +11,41 @@ object OTestRun:
     stderr   : str
     output   : str
 
-    function RunTool(args : []str) -> int
-    function RunCompiler(args : []str) -> int
-    function ExpectExitCode(expected : int)
-    function PrintRunOutput()
-    function ExpectOutputContains(expected : strview)
-    function ExpectOutputNotContains(unexpected : strview)
+    func RunTool(args : []str) -> int
+    func RunCompiler(args : []str) -> int
+    func ExpectExitCode(expected : int)
+    func PrintRunOutput()
+    func ExpectOutputContains(expected : strview)
+    func ExpectOutputNotContains(unexpected : strview)
 
 protected
     shrunner <- OShellRunner()
-endobj
+endobject
 
-function CompilerPath() -> str
-function BinPath(name : strview) -> str
-function SourcePath(name : strview) -> str
-function TestRootPath(name : strview) -> str
-function TempPath() -> str  [[overload]]
-function TempPath(suffix : strview) -> str  [[overload]]
-function RemoveTemp(path : strview)
+func CompilerPath() -> str
+func BinPath(name : strview) -> str
+func SourcePath(name : strview) -> str
+func TestRootPath(name : strview) -> str
+func TempPath() -> str  [[overload]]
+func TempPath(suffix : strview) -> str  [[overload]]
+func RemoveTemp(path : strview)
 
-function ExpectContains(text : strview, expected : strview)
-function ExpectNotContains(text : strview, unexpected : strview)
-function ExpectFileContains(path : strview, expected : strview)
-function ExpectFileNotContains(path : strview, unexpected : strview)
-function Fail(message : strview)
-function TestResult() -> int
+func ExpectContains(text : strview, expected : strview)
+func ExpectNotContains(text : strview, unexpected : strview)
+func ExpectFileContains(path : strview, expected : strview)
+func ExpectFileNotContains(path : strview, unexpected : strview)
+func Fail(message : strview)
+func TestResult() -> int
 
 implementation
 
-function libc_getpid() -> int32 [[external('getpid')]]
-function libc_unlink(path : ^char) -> int32 [[external('unlink')]]
+func libc_getpid() -> int32 [[external('getpid')]]
+func libc_unlink(path : ^char) -> int32 [[external('unlink')]]
 
 var failure_count : int = 0
 var temp_counter : int = 0
 
-function JoinPath(base : strview, name : strview) -> str:
+func JoinPath(base : strview, name : strview) -> str:
     result = base
     if result <> '' and result[result.length - 1] <> '/':
         result.Append('/')
@@ -53,7 +53,7 @@ function JoinPath(base : strview, name : strview) -> str:
     result.Append(name)
 endfunc
 
-function OTestRun.RunTool(args : []str) -> int:
+func OTestRun.RunTool(args : []str) -> int:
     shrunner.Run(args, false)
     exitcode = shrunner.exitcode
     stdout = shrunner.out
@@ -62,7 +62,7 @@ function OTestRun.RunTool(args : []str) -> int:
     return exitcode
 endfunc
 
-function OTestRun.RunCompiler(args : []str) -> int:
+func OTestRun.RunCompiler(args : []str) -> int:
     use *
     var command : [*]str = [CompilerPath()]
     for i : int = 0 count args.length:
@@ -75,7 +75,7 @@ function OTestRun.RunCompiler(args : []str) -> int:
     shrunner.Run(['/bin/rm', '-rf', '--', buildroot], false)
 endfunc
 
-function OTestRun.ExpectExitCode(expected : int):
+func OTestRun.ExpectExitCode(expected : int):
     use *
     if exitcode == expected:
         return
@@ -89,7 +89,7 @@ function OTestRun.ExpectExitCode(expected : int):
     endif
 endfunc
 
-function OTestRun.PrintRunOutput():
+func OTestRun.PrintRunOutput():
     use *
     if stdout <> '':
         PrintLn('stdout:\n{}', [stdout])
@@ -99,7 +99,7 @@ function OTestRun.PrintRunOutput():
     endif
 endfunc
 
-function OTestRun.ExpectOutputContains(expected : strview):
+func OTestRun.ExpectOutputContains(expected : strview):
     use *
     var previous : int = failure_count
     ExpectContains(output, expected)
@@ -108,7 +108,7 @@ function OTestRun.ExpectOutputContains(expected : strview):
     endif
 endfunc
 
-function OTestRun.ExpectOutputNotContains(unexpected : strview):
+func OTestRun.ExpectOutputNotContains(unexpected : strview):
     use *
     var previous : int = failure_count
     ExpectNotContains(output, unexpected)
@@ -118,33 +118,33 @@ function OTestRun.ExpectOutputNotContains(unexpected : strview):
 endfunc
 
 
-function CompilerPath() -> str:
+func CompilerPath() -> str:
     return GetEnv('DQ_AUTOTEST_COMPILER', 'dq-comp')
 endfunc
 
-function BinPath(name : strview) -> str:
+func BinPath(name : strview) -> str:
     return JoinPath(GetEnv('DQ_AUTOTEST_BINDIR', '.'), name)
 endfunc
 
-function SourcePath(name : strview) -> str:
+func SourcePath(name : strview) -> str:
     return JoinPath(GetEnv('DQ_AUTOTEST_TEST_DIR', '.'), name)
 endfunc
 
-function TestRootPath(name : strview) -> str:
+func TestRootPath(name : strview) -> str:
     return JoinPath(GetEnv('DQ_AUTOTEST_TEST_ROOT', '.'), name)
 endfunc
 
-function TempPath() -> str  [[overload]]:
+func TempPath() -> str  [[overload]]:
     return TempPath('')
 endfunc
 
-function TempPath(suffix : strview) -> str  [[overload]]:
+func TempPath(suffix : strview) -> str  [[overload]]:
     temp_counter += 1
     var tempdir : str = GetEnv('TMPDIR', '/tmp')
     result = JoinPath(tempdir, Format('dq-autotest-{}-{}-{}{}', [libc_getpid(), NanoTime(), temp_counter, suffix]))
 endfunc
 
-function RemoveTemp(path : strview):
+func RemoveTemp(path : strview):
     if path == '':
         return
     endif
@@ -152,26 +152,26 @@ function RemoveTemp(path : strview):
     libc_unlink(cpath.pchar)
 endfunc
 
-function Fail(message : strview):
+func Fail(message : strview):
     failure_count += 1
     PrintLn('FAIL: {}', [message])
 endfunc
 
-function ExpectContains(text : strview, expected : strview):
+func ExpectContains(text : strview, expected : strview):
     if StrIndexOf(text, expected) >= 0:
         return
     endif
     Fail(Format('expected text was not found: "{}"', [expected]))
 endfunc
 
-function ExpectNotContains(text : strview, unexpected : strview):
+func ExpectNotContains(text : strview, unexpected : strview):
     if StrIndexOf(text, unexpected) < 0:
         return
     endif
     Fail(Format('unexpected text was found: "{}"', [unexpected]))
 endfunc
 
-function ExpectFileContains(path : strview, expected : strview):
+func ExpectFileContains(path : strview, expected : strview):
     if not FileExists(path):
         Fail(Format('file does not exist: {}', [path]))
         return
@@ -179,7 +179,7 @@ function ExpectFileContains(path : strview, expected : strview):
     ExpectContains(FileReadText(path), expected)
 endfunc
 
-function ExpectFileNotContains(path : strview, unexpected : strview):
+func ExpectFileNotContains(path : strview, unexpected : strview):
     if not FileExists(path):
         Fail(Format('file does not exist: {}', [path]))
         return
@@ -187,6 +187,6 @@ function ExpectFileNotContains(path : strview, unexpected : strview):
     ExpectNotContains(FileReadText(path), unexpected)
 endfunc
 
-function TestResult() -> int:
+func TestResult() -> int:
     return iif(failure_count == 0, 0, 1)
 endfunc

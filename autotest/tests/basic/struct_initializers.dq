@@ -1,6 +1,6 @@
 // contextual struct initializer literals
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 struct SPoint:
     x : int
@@ -55,19 +55,19 @@ const ROOT_DERIVED : SDerivedInit = { 7, 8, 9 }
 const ROOT_PACKED : SPackedInit = { 10, 11 }
 var ROOT_GLOBAL_POINT : SPoint = { 34, 35, 36 }
 
-function SumPoint(p : SPoint) -> int:
+func SumPoint(p : SPoint) -> int:
     return p.x + p.y + p.z
 endfunc
 
-function MakePoint(a : int) -> SPoint:
+func MakePoint(a : int) -> SPoint:
     return { x: a, y: a + 1, z: a + 2 }
 endfunc
 
-function RuntimeValue(a : int) -> int:
+func RuntimeValue(a : int) -> int:
     return a + 4
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     const LOCAL_POINT : SPoint = { 37, 38, 39 }
     var positional : SPoint = { 1, 2, 3 }
     var named : SPoint = { z: 6, x: 4, y: 5 }

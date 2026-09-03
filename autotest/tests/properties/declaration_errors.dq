@@ -4,15 +4,15 @@ object OPropertyDeclarationErrors:
 private
     value : int = 0
 
-    function GetValue() -> int:
+    func GetValue() -> int:
         return value
     endfunc
 
-    function SetValue(new_value : int):
+    func SetValue(new_value : int):
         value = new_value
     endfunc
 
-    function GetIndexed(index : int) -> int:
+    func GetIndexed(index : int) -> int:
         return index
     endfunc
 
@@ -31,11 +31,11 @@ public
 private
     later_field : int = 1
 
-    function GetLater() -> int:
+    func GetLater() -> int:
         return later_field
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

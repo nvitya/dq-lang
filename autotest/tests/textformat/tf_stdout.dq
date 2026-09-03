@@ -1,6 +1,6 @@
 use rtl/textformat
 
-function *Main() -> int:
+func *Main() -> int:
     var outs <- OTextSinkStdOut()
     var fmt  <- OTextFormatter(outs)
 

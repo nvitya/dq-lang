@@ -1,9 +1,9 @@
 implementation
 use ./mod_struct_constants
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     printf("module struct constant field=%d\n", MODULE_PAD.gpio) //?check("module struct constant field", 8)
     printf("module struct constant value=%d\n", SumModulePad(MODULE_PAD)) //?check("module struct constant value", 6672)
     return 0

@@ -4,46 +4,46 @@ object OFactoryBase:
 public
     v : int
 
-    function *Create(av : int) [[overload]]:
+    func *Create(av : int) [[overload]]:
         v = av
     endfunc
 
-    function *Create(aname : cstring) [[overload]]:
+    func *Create(aname : cstring) [[overload]]:
         v = 1
     endfunc
-endobj
+endobject
 
 object OPartialFactory(OFactoryBase):
 public
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av)
     endfunc
-endobj
+endobject
 
 object OUnrelated:
 public
-    function *Create(av : int):
+    func *Create(av : int):
     endfunc
-endobj
+endobject
 
 object OAbstract:
 public
-    function Read() -> int [[virtual, abstract]]
-endobj
+    func Read() -> int [[virtual, abstract]]
+endobject
 
 object OTrivialBase:
 public
     value : int
-endobj
+endobject
 
 object ONoDefault(OTrivialBase):
 public
-    function *Create(avalue : int):
+    func *Create(avalue : int):
         value = avalue
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var ft : type of OFactoryBase
     ft = OPartialFactory //?error(TypeMismatchAssign)
     ft = OUnrelated      //?error(TypeMismatchAssign)

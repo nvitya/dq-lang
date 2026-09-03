@@ -1,25 +1,25 @@
 //?notest
 // Exception-free bare linking must not require a C++ unwinder or personality.
 
-function NoUnwindExternal() [[external]]
+func NoUnwindExternal() [[external]]
 
 object OMarker:
     value : int
 
-    function *Create():
+    func *Create():
         value = 1
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         value = 0
     endfunc
-endobj
+endobject
 
-function OwnedScope():
+func OwnedScope():
     var marker <- OMarker()
 endfunc
 
-function _start() [[cexport]]:
+func _start() [[cexport]]:
     NoUnwindExternal()
     OwnedScope()
     while true:

@@ -1,4 +1,4 @@
 //?notest
-function WasmValue() -> int [[cexport]]:
+func WasmValue() -> int [[cexport]]:
     return 42
 endfunc

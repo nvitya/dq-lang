@@ -2,7 +2,7 @@ use print
 use strparse
 use file
 
-function ParseText(atxt : strview):
+func ParseText(atxt : strview):
     PrintLn('--------------------------------')
     var sp <- OStrParse(atxt)
     sp.SkipSpaces()
@@ -33,7 +33,7 @@ function ParseText(atxt : strview):
     PrintLn('parsing finished.')
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Testing OStrParse')
 
     var fdata : str = FileReadText('test.json')

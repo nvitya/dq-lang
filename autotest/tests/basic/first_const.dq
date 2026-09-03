@@ -46,9 +46,9 @@ var fixed_values : [FirstInt(MISSING_ARRAY_SIZE, 3)]int
     const ELIF_VALUE : int = 0
 #endif
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     const SHADOWED : int = 33
     const LOCAL_INT : int = FirstInt(MISSING_LOCAL, SHADOWED, 0)
     var inline_value : int = #{if FirstBool(MISSING_INLINE_BOOL, ROOT_BOOL, false)} 24 #{else} 0 #{endif}

@@ -1,6 +1,6 @@
 // Indexed assignment evaluates receiver, indices, and value exactly once.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 var receiver_calls : int = 0
 var index_calls : int = 0
@@ -12,21 +12,21 @@ private
     getter_calls : int = 0
     setter_calls : int = 0
 
-    function GetItem(index : int) -> int:
+    func GetItem(index : int) -> int:
         getter_calls += 1
         return values[index]
     endfunc
 
-    function SetItem(index : int, value : int):
+    func SetItem(index : int, value : int):
         setter_calls += 1
         values[index] = value
     endfunc
 
-    function GetGetterCalls() -> int:
+    func GetGetterCalls() -> int:
         return getter_calls
     endfunc
 
-    function GetSetterCalls() -> int:
+    func GetSetterCalls() -> int:
         return setter_calls
     endfunc
 
@@ -34,26 +34,26 @@ public
     property items : [index : int]int read GetItem write SetItem
     property gets : int read GetGetterCalls
     property sets : int read GetSetterCalls
-endobj
+endobject
 
 var box <- OEvaluationBox()
 
-function GetBox() -> OEvaluationBox:
+func GetBox() -> OEvaluationBox:
     receiver_calls += 1
     return box
 endfunc
 
-function NextIndex() -> int:
+func NextIndex() -> int:
     index_calls += 1
     return 1
 endfunc
 
-function NextValue() -> int:
+func NextValue() -> int:
     value_calls += 1
     return 99
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     GetBox().items[NextIndex()] = NextValue()
 
     printf("property.eval.assignment = %d %d %d %d %d\n",

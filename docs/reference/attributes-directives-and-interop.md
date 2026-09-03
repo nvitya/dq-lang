@@ -10,8 +10,8 @@ Attributes use `[[...]]` and attach to the declaration they precede or follow.
 Multiple attributes may share one list.
 
 ```dq
-[[weak]] function Hook()
-function Run() [[inline]]:
+[[weak]] func Hook()
+func Run() [[inline]]:
 endfunc
 ```
 
@@ -114,7 +114,7 @@ or ABI selected for the compilation.
 `[[external]]` declares a symbol implemented outside DQ:
 
 ```dq
-function puts(text : ^char) -> int [[external]]
+func puts(text : ^char) -> int [[external]]
 ```
 
 External globals are declared with the corresponding external attribute form.
@@ -129,7 +129,7 @@ its import name and import module. The module argument is optional and affects
 WebAssembly targets only.
 
 ```dq
-function console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
+func console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
 ```
 
 The two-argument form applies to functions; WebAssembly import-module metadata

@@ -128,7 +128,7 @@ Embedded objects are used for stack objects, global objects, and object members.
 ```dq
 object OOwner:
     child <- OChild()
-endobj
+endobject
 ```
 
 Embedded object references are valid while their containing storage is alive.

@@ -1,7 +1,7 @@
 use ./inline_asm_public
 use libc/stdio
 
-function *Main() -> int:
+func *Main() -> int:
     printf("inline_asm.module.register = %li\n", PublicAdd(20, 22))
     //?check("inline_asm.module.register", 42)
     printf("inline_asm.module.immediate = %li\n", PublicMulImmediate(6, 7))

@@ -1,19 +1,19 @@
 // Identically named enumerators remain scoped and resolve from enum context.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 enum NConnection = (unknown, connected, disconnected)
 enum NResult = (unknown, success, failure)
 
-function IsConnected(value : NConnection) -> bool:
+func IsConnected(value : NConnection) -> bool:
     result = value == connected
 endfunc
 
-function IsSuccess(value : NResult) -> bool:
+func IsSuccess(value : NResult) -> bool:
     result = value == success
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var connection : NConnection = unknown
     var result_value : NResult = unknown
 

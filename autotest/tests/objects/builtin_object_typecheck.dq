@@ -1,9 +1,9 @@
 // built-in Object type checking tests (ERROR test)
 
 object OBase:
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var any : Object = nil
     var base : OBase = nil
 

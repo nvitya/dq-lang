@@ -2,9 +2,9 @@
 
 use libc/stdio
 
-function putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]]
 
-function PrintEscapedChar(ch : char):
+func PrintEscapedChar(ch : char):
     if ch == char(9):
         printf("\\t")
         return
@@ -30,7 +30,7 @@ function PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-function PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strview):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -40,7 +40,7 @@ function PrintText(label : ^char, text : strview):
     printf("\"\n")
 endfunc
 
-function GeAsInt(a : int, b : int) -> int:
+func GeAsInt(a : int, b : int) -> int:
     if a >= b:
         result = 1
     else:
@@ -48,7 +48,7 @@ function GeAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
-function EqAsInt(a : int, b : int) -> int:
+func EqAsInt(a : int, b : int) -> int:
     if a == b:
         result = 1
     else:
@@ -56,26 +56,26 @@ function EqAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
-function PtrFlag(p : ^char) -> int:
+func PtrFlag(p : ^char) -> int:
     if p <> nil:
         return 1
     endif
     return 0
 endfunc
 
-function TermAtLen(s : str) -> int:
+func TermAtLen(s : str) -> int:
     return Ord(s.pchar[s.length]^)
 endfunc
 
-function AppendByValue(s : str):
+func AppendByValue(s : str):
     s.Append("x")
 endfunc
 
-function AppendByRef(s : ref str):
+func AppendByRef(s : ref str):
     s.Append("x")
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("string_dynamic_operations = start\n") //?check("string_dynamic_operations", "start")
 
     var cow_a : str = "abc"

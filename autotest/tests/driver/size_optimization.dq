@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-function CheckOptimization(option : strview, expect_minsize : bool):
+func CheckOptimization(option : strview, expect_minsize : bool):
     var output : str = TempPath('.o')
     var opt : str = option
     run.RunCompiler([
@@ -19,7 +19,7 @@ function CheckOptimization(option : strview, expect_minsize : bool):
     RemoveTemp(output)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     CheckOptimization('-Os', false)
     CheckOptimization('-Oz', true)
     return TestResult()

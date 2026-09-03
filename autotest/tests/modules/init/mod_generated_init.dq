@@ -3,9 +3,9 @@
 var generated_init_value : int = 0
 
 object OGeneratedGlobal:
-    function *Create():
+    func *Create():
         @.generated_init_value = 73
     endfunc
-endobj
+endobject
 
 var generated_global <- OGeneratedGlobal()

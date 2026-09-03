@@ -2,7 +2,7 @@
 
 use ./project_child
 
-function *Main() -> int:
+func *Main() -> int:
     if @def.PROJECT_DEFINE <> 42:
         return 2
     endif

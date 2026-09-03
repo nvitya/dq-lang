@@ -1,29 +1,29 @@
 // Property accessors are selected from overload sets by exact signature.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object OPropertyOverloads:
 private
     int_value : int = 10
     float_value : float = 1.5
 
-    function GetValue() -> int [[overload]]:
+    func GetValue() -> int [[overload]]:
         return int_value
     endfunc
 
-    function GetValue(index : int) -> int [[overload]]:
+    func GetValue(index : int) -> int [[overload]]:
         return int_value + index
     endfunc
 
-    function SetValue(value : int) [[overload]]:
+    func SetValue(value : int) [[overload]]:
         int_value = value
     endfunc
 
-    function SetValue(value : float) [[overload]]:
+    func SetValue(value : float) [[overload]]:
         float_value = value
     endfunc
 
-    function GetFloat() -> float:
+    func GetFloat() -> float:
         return float_value
     endfunc
 
@@ -31,9 +31,9 @@ public
     property scalar : int read GetValue write SetValue
     property indexed : [index : int]int read GetValue
     property float_value_prop : float read GetFloat write SetValue
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var obj <- OPropertyOverloads()
 
     obj.scalar = 20

@@ -6,30 +6,30 @@ object OBase:
 public
     value : int = 0
 
-    function *Create(v : int):
+    func *Create(v : int):
         value = v
     endfunc
-endobj
+endobject
 
 object OChild(OBase):
 public
-    function *Create(v : int):
+    func *Create(v : int):
         inherited Create(v + 10)
     endfunc
-endobj
+endobject
 
-function IsObjectSet(o : Object) -> int:
+func IsObjectSet(o : Object) -> int:
     if o == nil:
         return 0
     endif
     return 1
 endfunc
 
-function ObjectFromBase(o : OBase) -> Object:
+func ObjectFromBase(o : OBase) -> Object:
     return o
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var any : Object = nil
     printf("object.nil = %li\n", IsObjectSet(any)) //?check("object.nil", 0)
 

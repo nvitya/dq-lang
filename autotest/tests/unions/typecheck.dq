@@ -1,7 +1,7 @@
 // Storage unions reject non-trivial members and remain nominal types.
 
 object OManaged:
-endobj
+endobject
 
 union UBadString:
     text : str //?error(UnionMemberType)
@@ -31,7 +31,7 @@ union USecond:
     value : uint32
 endunion
 
-function UnionTypesAreNominal():
+func UnionTypesAreNominal():
     var first : UFirst = {}
     var second : USecond = first //?error(TypeMismatchAssign)
 endfunc

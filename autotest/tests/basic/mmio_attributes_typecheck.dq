@@ -21,10 +21,10 @@ var regs : SRegisters
 var global_ro : uint32 [[regro]]
 var global_wo : uint32 [[regwo]]
 
-function TakeValue(value : uint32):
+func TakeValue(value : uint32):
 endfunc
 
-function Test():
+func Test():
     var a : uint32 = regs.WO          //?error(AccessNoRead)
     var b : uint32 = regs.RAW_WO      //?error(AccessNoRead)
     var c : uint32 = regs.WO_ARRAY[0] //?error(AccessNoRead)

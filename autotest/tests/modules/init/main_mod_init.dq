@@ -4,7 +4,7 @@ use ./mod_init_a
 use ./mod_init_b
 use ./mod_generated_init
 
-function *Main() -> int:
+func *Main() -> int:
 
     //?check("Module.init.A", "done")
     //?check("Module.init.B", "done")

@@ -1,9 +1,9 @@
 // dqatrun supplies driver-test context without changing program arguments.
 //?exitcode(0)
 
-function libc_getenv(name : ^char) -> ^char [[external('getenv')]]
+func libc_getenv(name : ^char) -> ^char [[external('getenv')]]
 
-function *Main() -> int:
+func *Main() -> int:
     if libc_getenv('DQ_AUTOTEST_COMPILER') == nil:
         return 1
     endif

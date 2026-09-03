@@ -16,7 +16,7 @@
 use strparse
 
 object EJson(Exception):
-endobj
+endobject
 
 enum NJsonNodeKind =
 (
@@ -37,64 +37,64 @@ private
     m_kind  : NJsonNodeKind = nkObject
     m_value : anyvalue
 
-    function Error(sp : OStrParse, amsg : strview)
-    function ParseValue(sp : OStrParse)
-    function ParseObject(sp : OStrParse)
-    function ParseArray(sp : OStrParse)
-    function ParseString(sp : OStrParse) -> str
-    function ParseNumber(sp : OStrParse) -> float
-    function AppendUtf8(rstr : ref str, codepoint : uint32)
-    function AppendJsonString(rstr : ref str, avalue : strview)
+    func Error(sp : OStrParse, amsg : strview)
+    func ParseValue(sp : OStrParse)
+    func ParseObject(sp : OStrParse)
+    func ParseArray(sp : OStrParse)
+    func ParseString(sp : OStrParse) -> str
+    func ParseNumber(sp : OStrParse) -> float
+    func AppendUtf8(rstr : ref str, codepoint : uint32)
+    func AppendJsonString(rstr : ref str, avalue : strview)
 
 public
-    function *Create()  [[overload]]
-    function *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
-    function *Destroy()
+    func *Create()  [[overload]]
+    func *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
+    func *Destroy()
 
-    function Clear()
-    function GetName() -> str
+    func Clear()
+    func GetName() -> str
 
-    function AddNode(aname : str, akind : NJsonNodeKind) -> OJson
-    function AddNull(aname : str) -> OJson
-    function AddBool(aname : str, avalue : bool) -> OJson
-    function AddStr(aname : str, avalue : str) -> OJson
-    function AddNum(aname : str, avalue : float) -> OJson
-    function AddObj(aname : str) -> OJson
-    function AddArr(aname : str) -> OJson
+    func AddNode(aname : str, akind : NJsonNodeKind) -> OJson
+    func AddNull(aname : str) -> OJson
+    func AddBool(aname : str, avalue : bool) -> OJson
+    func AddStr(aname : str, avalue : str) -> OJson
+    func AddNum(aname : str, avalue : float) -> OJson
+    func AddObj(aname : str) -> OJson
+    func AddArr(aname : str) -> OJson
 
-    function IsNull() -> bool
-    function SetNull()
+    func IsNull() -> bool
+    func SetNull()
 
-    function GetAsBool() -> bool
-    function SetAsBool(avalue : bool)
+    func GetAsBool() -> bool
+    func SetAsBool(avalue : bool)
 
-    function GetAsStr() -> str
-    function SetAsStr(avalue : str)
+    func GetAsStr() -> str
+    func SetAsStr(avalue : str)
 
-    function GetAsNum() -> float
-    function SetAsNum(avalue : float)
+    func GetAsNum() -> float
+    func SetAsNum(avalue : float)
 
-    function AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
-    function AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
+    func AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
+    func AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
 
-    function GetAsJson() -> str
-    function GetAsPrettyJson() -> str
+    func GetAsJson() -> str
+    func GetAsPrettyJson() -> str
 
-    function ChildCount() -> int
-    function Child(aindex : int) -> OJson
-    function ChildByName(aname : strview) -> OJson
+    func ChildCount() -> int
+    func Child(aindex : int) -> OJson
+    func ChildByName(aname : strview) -> OJson
 
-    function FindNode(apath : strview) -> OJson
-    function Find(apath : strview, rnode : refout OJson) -> bool
-    function ForcePath(apath : strview) -> OJson
+    func FindNode(apath : strview) -> OJson
+    func Find(apath : strview, rnode : refout OJson) -> bool
+    func ForcePath(apath : strview) -> OJson
 
-    function SaveToFile(afname : strview, apretty : bool = false)
+    func SaveToFile(afname : strview, apretty : bool = false)
 
 public // Loading / Parsing
-    function LoadFromFile(afname : strview)
+    func LoadFromFile(afname : strview)
 
-    function Parse(astr : strview)  [[overload]]
-    function Parse(sp : OStrParse)  [[overload]]
+    func Parse(astr : strview)  [[overload]]
+    func Parse(sp : OStrParse)  [[overload]]
 
 public
     property name      : str    read GetName
@@ -110,38 +110,38 @@ public
     property length : int        read ChildCount
     property child  : [int]OJson  default  read Child
 
-endobj
+endobject
 
 implementation
 
 use strutils, file
 
-function OJson.*Create()  [[overload]]:
+func OJson.*Create()  [[overload]]:
     m_name = ''
     m_children = []
     m_parent = nil
     m_kind = nkObject
 endfunc
 
-function OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
+func OJson.*Create(aparent : OJson, akind : NJsonNodeKind = nkObject)  [[overload]]:
     m_name = ''
     m_children = []
     m_parent = aparent
     m_kind = akind
 endfunc
 
-function OJson.*Destroy():
+func OJson.*Destroy():
     Clear()
 endfunc
 
-function OJson.Clear():
+func OJson.Clear():
     while m_children.length > 0:
         var child : OJson = m_children.Pop()
         delete child
     endwhile
 endfunc
 
-function OJson.GetName() -> str:
+func OJson.GetName() -> str:
     if m_parent == nil:
         return '0'
     endif
@@ -154,39 +154,39 @@ function OJson.GetName() -> str:
 endfunc
 
 
-function OJson.AddNull(aname : str) -> OJson:
+func OJson.AddNull(aname : str) -> OJson:
     result = AddNode(aname, nkNull)
     result.m_value.SetNull()
 endfunc
 
-function OJson.AddBool(aname : str, avalue : bool) -> OJson:
+func OJson.AddBool(aname : str, avalue : bool) -> OJson:
     result = AddNode(aname, nkBool)
     result.m_value = avalue
 endfunc
 
-function OJson.AddStr(aname : str, avalue : str) -> OJson:
+func OJson.AddStr(aname : str, avalue : str) -> OJson:
     result = AddNode(aname, nkString)
     result.m_value = avalue
 endfunc
 
-function OJson.AddNum(aname : str, avalue : float) -> OJson:
+func OJson.AddNum(aname : str, avalue : float) -> OJson:
     result = AddNode(aname, nkNumber)
     result.m_value = avalue
 endfunc
 
-function OJson.AddObj(aname : str) -> OJson:
+func OJson.AddObj(aname : str) -> OJson:
     result = AddNode(aname, nkObject)
 endfunc
 
-function OJson.AddArr(aname : str) -> OJson:
+func OJson.AddArr(aname : str) -> OJson:
     result = AddNode(aname, nkArray)
 endfunc
 
-function OJson.IsNull() -> bool:
+func OJson.IsNull() -> bool:
     return m_kind == nkNull
 endfunc
 
-function OJson.SetNull():
+func OJson.SetNull():
     if m_children <> []:
         Clear()
     endif
@@ -194,11 +194,11 @@ function OJson.SetNull():
     m_value.SetNull()
 endfunc
 
-function OJson.GetAsBool() -> bool:
+func OJson.GetAsBool() -> bool:
     return m_value.AsBool(false)
 endfunc
 
-function OJson.SetAsBool(avalue : bool):
+func OJson.SetAsBool(avalue : bool):
     if m_children <> []:
         Clear()
     endif
@@ -206,7 +206,7 @@ function OJson.SetAsBool(avalue : bool):
     m_value = avalue
 endfunc
 
-function OJson.GetAsStr() -> str:
+func OJson.GetAsStr() -> str:
     if m_kind == nkString:
         return m_value.AsStr('')
     elif m_kind == nkNull:
@@ -222,7 +222,7 @@ function OJson.GetAsStr() -> str:
     AppendToJsonStr(result)
 endfunc
 
-function OJson.SetAsStr(avalue : str):
+func OJson.SetAsStr(avalue : str):
     if m_children <> []:
         Clear()
     endif
@@ -231,11 +231,11 @@ function OJson.SetAsStr(avalue : str):
 endfunc
 
 
-function OJson.GetAsNum() -> float:
+func OJson.GetAsNum() -> float:
     return m_value.AsFloat(0)
 endfunc
 
-function OJson.SetAsNum(avalue : float):
+func OJson.SetAsNum(avalue : float):
     if m_children <> []:
         Clear()
     endif
@@ -243,7 +243,7 @@ function OJson.SetAsNum(avalue : float):
     m_value = avalue
 endfunc
 
-function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding string reallocations
+func OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding string reallocations
     if m_kind == nkNull:
         rstr.Add('null')
     elif m_kind == nkString:
@@ -273,7 +273,7 @@ function OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding stri
     endif
 endfunc
 
-function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster version avoiding string reallocations
+func OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster version avoiding string reallocations
     var newpad : str = ''
     if m_kind == nkNull:
         rstr.Add('null')
@@ -323,17 +323,17 @@ function OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster v
     endif
 endfunc
 
-function OJson.GetAsJson() -> str:
+func OJson.GetAsJson() -> str:
     result = ''
     AppendToJsonStr(result)
 endfunc
 
-function OJson.GetAsPrettyJson() -> str:
+func OJson.GetAsPrettyJson() -> str:
     result = ''
     AppendToPrettyJsonStr(result, '')
 endfunc
 
-function OJson.SaveToFile(afname : strview, apretty : bool = false):
+func OJson.SaveToFile(afname : strview, apretty : bool = false):
     var s : str
     if apretty:
         AppendToPrettyJsonStr(s, '')
@@ -343,17 +343,17 @@ function OJson.SaveToFile(afname : strview, apretty : bool = false):
     @file.FileWriteText(afname, s)
 endfunc
 
-function OJson.LoadFromFile(afname : strview):
+func OJson.LoadFromFile(afname : strview):
     var jdata : str = @file.FileReadText(afname)
     Parse(jdata)
 endfunc
 
-function OJson.Parse(astr : strview)  [[overload]]:
+func OJson.Parse(astr : strview)  [[overload]]:
     var sp <- OStrParse(astr)
     Parse(sp)
 endfunc
 
-function OJson.Parse(sp : OStrParse)  [[overload]]:
+func OJson.Parse(sp : OStrParse)  [[overload]]:
     Clear()
     sp.SkipSpaces()
     if m_parent == nil:
@@ -368,17 +368,17 @@ function OJson.Parse(sp : OStrParse)  [[overload]]:
     endif
 endfunc
 
-function OJson.Error(sp : OStrParse, amsg : strview):
+func OJson.Error(sp : OStrParse, amsg : strview):
     raise EJson('JSON parse error at line {}, column {}: {}', [sp.GetLineNum(sp.readp), sp.GetColNum(sp.readp), amsg])
 endfunc
 
-function OJson.AddNode(aname : str, akind : NJsonNodeKind) -> OJson:
+func OJson.AddNode(aname : str, akind : NJsonNodeKind) -> OJson:
     result = new OJson(self, akind)
     result.m_name = aname
     m_children.Append(result)
 endfunc
 
-function OJson.ParseValue(sp : OStrParse):
+func OJson.ParseValue(sp : OStrParse):
     Clear()
     sp.SkipSpaces()
 
@@ -423,7 +423,7 @@ function OJson.ParseValue(sp : OStrParse):
     endif
 endfunc
 
-function OJson.ParseObject(sp : OStrParse):
+func OJson.ParseObject(sp : OStrParse):
     if sp.readp >= sp.bufend  or sp.readp^ <> '{':
         Error(sp, 'Expected object')
     endif
@@ -467,7 +467,7 @@ function OJson.ParseObject(sp : OStrParse):
     endwhile
 endfunc
 
-function OJson.ParseArray(sp : OStrParse):
+func OJson.ParseArray(sp : OStrParse):
     if sp.readp >= sp.bufend  or sp.readp^ <> '[':
         Error(sp, 'Expected array')
     endif
@@ -499,7 +499,7 @@ function OJson.ParseArray(sp : OStrParse):
     endwhile
 endfunc
 
-function OJson.ParseString(sp : OStrParse) -> str:
+func OJson.ParseString(sp : OStrParse) -> str:
     result = ''
 
     if sp.readp >= sp.bufend  or sp.readp^ <> '"':
@@ -583,7 +583,7 @@ function OJson.ParseString(sp : OStrParse) -> str:
     Error(sp, 'Unterminated string')
 endfunc
 
-function OJson.ParseNumber(sp : OStrParse) -> float:
+func OJson.ParseNumber(sp : OStrParse) -> float:
     var startp : ^char = sp.readp
     var cp     : ^char = sp.readp
 
@@ -632,7 +632,7 @@ function OJson.ParseNumber(sp : OStrParse) -> float:
     return @.PCharToFloat(startp, cp - startp)
 endfunc
 
-function OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
+func OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
     if codepoint <= uint32(0x7F):
         rstr.Append(char(int(codepoint)))
     elif codepoint <= uint32(0x7FF):
@@ -650,7 +650,7 @@ function OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
     endif
 endfunc
 
-function OJson.AppendJsonString(rstr : ref str, avalue : strview):
+func OJson.AppendJsonString(rstr : ref str, avalue : strview):
     rstr.Append('"')
     for i : int = 0 count avalue.length:
         var c : char = avalue[i]
@@ -685,11 +685,11 @@ function OJson.AppendJsonString(rstr : ref str, avalue : strview):
 endfunc
 
 
-function OJson.ChildCount() -> int:
+func OJson.ChildCount() -> int:
     return m_children.length
 endfunc
 
-function OJson.Child(aindex : int) -> OJson:
+func OJson.Child(aindex : int) -> OJson:
     if aindex >= 0  and aindex < m_children.length:
         return m_children[aindex]
     else:
@@ -697,7 +697,7 @@ function OJson.Child(aindex : int) -> OJson:
     endif
 endfunc
 
-function OJson.ChildByName(aname : strview) -> OJson:
+func OJson.ChildByName(aname : strview) -> OJson:
     if m_kind <> nkObject:
         return nil
     endif
@@ -711,7 +711,7 @@ function OJson.ChildByName(aname : strview) -> OJson:
     return nil
 endfunc
 
-function OJson.FindNode(apath : strview) -> OJson:
+func OJson.FindNode(apath : strview) -> OJson:
     // Supports: a.b.c, a/b/c
     if apath.length == 0:
         return self
@@ -745,7 +745,7 @@ function OJson.FindNode(apath : strview) -> OJson:
     return cur
 endfunc
 
-function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
+func OJson.Find(apath : strview, rnode : refout OJson) -> bool:
     var jn : OJson = FindNode(apath)
     if jn == nil:
         return false
@@ -754,7 +754,7 @@ function OJson.Find(apath : strview, rnode : refout OJson) -> bool:
     return true
 endfunc
 
-function OJson.ForcePath(apath : strview) -> OJson:
+func OJson.ForcePath(apath : strview) -> OJson:
     // Supports: a.b.c, a/b/c
 
     var cur : OJson = self

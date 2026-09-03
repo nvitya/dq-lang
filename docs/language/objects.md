@@ -14,14 +14,14 @@ private
     value : int = 0
 
 public
-    function Inc():
+    func Inc():
         value += 1
     endfunc
 
-    function Value() -> int:
+    func Value() -> int:
         return value
     endfunc
-endobj
+endobject
 ```
 
 Members can be grouped with visibility labels such as `public` and `private`.
@@ -65,26 +65,26 @@ frame, global data, or another object.
 object OData:
     value : int
 
-    function *Create(initial : int):
+    func *Create(initial : int):
         value = initial
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         // cleanup
     endfunc
-endobj
+endobject
 ```
 
 Constructors can be overloaded with `[[overload]]`.
 
 ```dq
 object OText:
-    function *Create() [[overload]]:
+    func *Create() [[overload]]:
     endfunc
 
-    function *Create(text : strview) [[overload]]:
+    func *Create(text : strview) [[overload]]:
     endfunc
-endobj
+endobject
 ```
 
 ## Methods
@@ -94,10 +94,10 @@ object by qualifying the function name.
 
 ```dq
 object OThing:
-    function Run()
-endobj
+    func Run()
+endobject
 
-function OThing.Run():
+func OThing.Run():
     // ...
 endfunc
 ```
@@ -106,7 +106,7 @@ Inside a method, object fields and methods are available without a `self.`
 prefix.
 
 ```dq
-function OCounter.Inc():
+func OCounter.Inc():
     value += 1
 endfunc
 ```
@@ -114,7 +114,7 @@ endfunc
 From the object methods variables and functions outside of the object cannot be accessed without full namespace qualification.
 Method body `use` statements can blend-in namespaces so they can be used without qualification.
 ```dq
-function OCounter.Print()
+func OCounter.Print()
   @print.PrintLn('counter={}', value)  // @print. can be used to access PrintLn()
   @.PrintLn('counter={}', value)       // "@." for access everything that available in the current module
   use print                            // now the symbols in @print are available without qualification
@@ -128,15 +128,15 @@ Objects support single inheritance.
 
 ```dq
 object OBase:
-    function Count() [[virtual]]:
+    func Count() [[virtual]]:
     endfunc
-endobj
+endobject
 
 object OChild(OBase):
-    function Count() [[override]]:
+    func Count() [[override]]:
         inherited
     endfunc
-endobj
+endobject
 ```
 
 `inherited` calls the inherited implementation of the current method.
@@ -148,14 +148,14 @@ Virtual methods are marked with `[[virtual]]`. Overrides are marked with
 
 ```dq
 object OBase:
-    function Write(text : strview) [[virtual]]:
+    func Write(text : strview) [[virtual]]:
     endfunc
-endobj
+endobject
 
 object OChild(OBase):
-    function Write(text : strview) [[override]]:
+    func Write(text : strview) [[override]]:
     endfunc
-endobj
+endobject
 ```
 
 The compiler also recognizes `[[abstract]]` and `[[final]]` in object method
@@ -184,17 +184,17 @@ object OBox:
 private
     stored : int = 0
 
-    function GetStored() -> int:
+    func GetStored() -> int:
         return stored
     endfunc
 
-    function SetStored(value : int):
+    func SetStored(value : int):
         stored = value
     endfunc
 
 public
     property value : int read GetStored write SetStored
-endobj
+endobject
 ```
 
 A property must have at least a `read` or a `write` accessor.
@@ -239,9 +239,9 @@ used when the object itself is indexed.
 object OJson:
     ...
     property child : [int]OJson default read Child
-endobj
+endobject
 
-function Test():
+func Test():
     var firstchild : OJson
     var rootobj : OJson = new OJson()
     rootobj.LoadFromFile('test.json')
@@ -258,7 +258,7 @@ reference can be used to access that object's members.
 Method reference types use `of object`.
 
 ```dq
-type FObjText = function(msg : cstring) of object
+type FObjText = func(msg : cstring) of object
 ```
 
 An object method reference contains both the method and the object instance.

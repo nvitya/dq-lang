@@ -1,8 +1,8 @@
 //?notest
 
-function project_external_value() -> int [[external]]
+func project_external_value() -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     if project_external_value() <> 77:
         return 1
     endif

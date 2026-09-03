@@ -10,19 +10,19 @@ object OInferChild:
 public
     child_value : int = 0
 
-    function *Create(avalue : int):
+    func *Create(avalue : int):
         child_value = avalue
     endfunc
-endobj
+endobject
 
 const ROOT_CONST_PTR : ? = ^SInferValue(0x1234)
 var root_var_ptr : ? = ^SInferValue(0x2345)
 
-function KeepPointer(aptr : ^SInferValue) -> ^SInferValue:
+func KeepPointer(aptr : ^SInferValue) -> ^SInferValue:
     return aptr
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("root const ptr = %lu\n", uint(ROOT_CONST_PTR)) //?check("root const ptr", 4660)
     printf("root var ptr = %lu\n", uint(root_var_ptr)) //?check("root var ptr", 9029)
 

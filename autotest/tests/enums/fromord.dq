@@ -1,10 +1,10 @@
 // Checked integer-to-enum conversion helpers.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 
-function *Main() -> int:
+func *Main() -> int:
     var direct : NState = NState.FromOrd(10)
     var fallback_valid : NState = NState.FromOrd(20, idle)
     var fallback_invalid : NState = NState.FromOrd(11, idle)

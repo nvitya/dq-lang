@@ -15,7 +15,7 @@ DQ is statically and strictly typed. Important categories are:
 - text: `str`, `strview`, `cstring(N)`, and unsized `cstring`;
 - pointers: `^T` and the generic `pointer`;
 - aggregate and reference types: arrays, structures, enumerations, objects,
-  function references, and `anyvalue`.
+  func references, and `anyvalue`.
 
 `byte` aliases `uint8`. `int` and `uint` have pointer-sized width. `Object` is
 the common object-reference type.

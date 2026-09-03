@@ -73,7 +73,7 @@ var value : ? = expression
 const VALUE : ? = constant_expression
 ```
 
-It must not be accepted for fields, parameters, function return types, casts,
+It must not be accepted for fields, parameters, func return types, casts,
 aliases, or other places where a normal type specification is required.
 
 This use is consistent with `[?]T`, where `?` already marks information inferred

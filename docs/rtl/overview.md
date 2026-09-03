@@ -18,7 +18,7 @@ That module reexports:
 It also provides:
 
 ```dq
-function Exit(status : int)
+func Exit(status : int)
 ```
 
 Use `dq-comp --no-use-sys` only for special low-level code that does not want the
@@ -29,11 +29,11 @@ implicit merged runtime symbols.
 Raw memory helpers are available through the implicit runtime interface:
 
 ```dq
-function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer
-function MemFree(memptr : pointer)
-function MemFreeRef(memptrvar : ref pointer)
-function MemCopy(dest : pointer, src : pointer, size : uint)
-function MemSet(dest : pointer, value : int, size : uint)
+func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer
+func MemFree(memptr : pointer)
+func MemFreeRef(memptrvar : ref pointer)
+func MemCopy(dest : pointer, src : pointer, size : uint)
+func MemSet(dest : pointer, value : int, size : uint)
 ```
 
 Prefer normal DQ values, dynamic arrays, strings, and `new`/`delete` for ordinary
@@ -51,8 +51,8 @@ MemFreeRef(p)  // frees and sets p to nil
 The process argument helpers are:
 
 ```dq
-function ArgCount() -> int
-function ArgStr(i : int) -> ^char
+func ArgCount() -> int
+func ArgStr(i : int) -> ^char
 ```
 
 `ArgStr(i)` returns `nil` for an out-of-range index.

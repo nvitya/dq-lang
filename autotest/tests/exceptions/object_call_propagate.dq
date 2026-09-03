@@ -5,13 +5,13 @@ use libc/stdio
 var reached : int = 0
 
 object OThrower:
-    function Throw():
+    func Throw():
         raise Exception("object throw")
         @.reached = 1
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var t <- OThrower()
 
     try:

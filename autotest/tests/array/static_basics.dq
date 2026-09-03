@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-function Sum(arr : []int) -> int:
+func Sum(arr : []int) -> int:
     result = 0
     var i : int = 0
     while i < arr.length:
@@ -11,7 +11,7 @@ function Sum(arr : []int) -> int:
     endwhile
 endfunc
 
-function PrintArray(label : ^char, arr : []int):
+func PrintArray(label : ^char, arr : []int):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -21,7 +21,7 @@ function PrintArray(label : ^char, arr : []int):
     printf("\n")
 endfunc
 
-function PrintByteArray(label : ^char, arr : []byte):
+func PrintByteArray(label : ^char, arr : []byte):
     printf("%s = len:%li data:", label, arr.length)
     for i : int = 0 count arr.length:
         printf(" %d", arr[i])
@@ -29,15 +29,15 @@ function PrintByteArray(label : ^char, arr : []byte):
     printf("\n")
 endfunc
 
-function TakesStatic(arr : [3]int) -> int:
+func TakesStatic(arr : [3]int) -> int:
     result = arr[0] + arr[1] + arr[2]
 endfunc
 
-function TakesSlice(arr : []int) -> int:
+func TakesSlice(arr : []int) -> int:
     result = Sum(arr)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("array_static_basics = start\n") //?check("array_static_basics", "start")
 
     var zero : [3]int

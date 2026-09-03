@@ -2,4 +2,4 @@
 
 const CHILD_VAL : int = 10
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]

@@ -12,15 +12,15 @@ Attributes can appear before a declaration or after the declaration item,
 depending on the declaration kind.
 
 ```dq
-[[external]] function printf(fmt : ^char, ...) -> int
+[[external]] func printf(fmt : ^char, ...) -> int
 
-function printf(fmt : ^char, ...) -> int [[external('printf')]]
+func printf(fmt : ^char, ...) -> int [[external('printf')]]
 ```
 
 Multiple attributes can be written in one list.
 
 ```dq
-function Run() [[virtual, abstract]]
+func Run() [[virtual, abstract]]
 ```
 
 ## Common Attributes
@@ -89,20 +89,20 @@ apply the access restrictions of individual fields.
 symbol name.
 
 ```dq
-[[external]] function puts(s : ^char) -> int
+[[external]] func puts(s : ^char) -> int
 ```
 
 Use an argument when the external symbol name differs.
 
 ```dq
-[[external('fprintf')]] function c_fprintf(stream : pointer, fmt : ^char, ...) -> int
+[[external('fprintf')]] func c_fprintf(stream : pointer, fmt : ^char, ...) -> int
 ```
 
 On WebAssembly targets, an optional second argument selects the import module.
 The first argument remains the imported function name.
 
 ```dq
-function console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
+func console_str(address : ^char, length : uint32, field_width : int32) [[external('console_str', 'wasmpascal_env')]]
 ```
 
 This produces a WebAssembly import named
@@ -124,7 +124,7 @@ the function's linker name. Combine it with `[[cexport]]` when C or assembly cod
 must override the function by its unmangled DQ name.
 
 ```dq
-function DefaultHandler() [[weak, cexport]]:
+func DefaultHandler() [[weak, cexport]]:
     // fallback implementation
 endfunc
 ```
@@ -248,7 +248,7 @@ but are not tracked automatically.
 ```dq
 #linklib('z')
 
-function zlibVersion() -> ^char  [[external]]
+func zlibVersion() -> ^char  [[external]]
 ```
 
 The exact linker behavior depends on the target platform and compiler driver.

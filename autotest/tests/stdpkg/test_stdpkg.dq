@@ -1,6 +1,6 @@
 use libc/stdio
 
-function *Main() -> int:  // should be exported as "dq_main"
+func *Main() -> int:  // should be exported as "dq_main"
     printf("DQ Std Package test\n") //?ignore('DQ Std Package test')
 
     printf("ArgCount() = %d\n", ArgCount()) //?check('ArgCount()', 1)

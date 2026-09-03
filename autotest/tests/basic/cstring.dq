@@ -7,10 +7,10 @@ var dq_cstr  : cstring(255) = "DQ String Test\n"
 var dq_cstr2 : cstring(39)  = 'Using signle quotes\n'
 
 // These functions come from LIBC, so the program must be linked with the libc.
-function putchar(c : char) -> int  [[external]]
-function puts(c : ^char) -> int    [[external]]
+func putchar(c : char) -> int  [[external]]
+func puts(c : ^char) -> int    [[external]]
 
-function dq_writepc(s : ^char):
+func dq_writepc(s : ^char):
     var pc : ^char = s
     while pc^ <> char(0):
         putchar(pc^)
@@ -18,7 +18,7 @@ function dq_writepc(s : ^char):
     endwhile
 endfunc
 
-function dq_writestr(s : cstring):
+func dq_writestr(s : cstring):
     var pc : ^char = %s[0]
     while pc^ <> char(0):
         putchar(pc^)
@@ -26,7 +26,7 @@ function dq_writestr(s : cstring):
     endwhile
 endfunc
 
-function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
+func cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
     var pd     : ^char = %dst[0]
@@ -45,7 +45,7 @@ function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ lib
     endif
 endfunc
 
-function dq_str_append(a : cstring, b : cstring):
+func dq_str_append(a : cstring, b : cstring):
 
     // Len(cstring): length of the actual contents
     // SizeOf(cstring): storage size of the argument variable
@@ -55,7 +55,7 @@ function dq_str_append(a : cstring, b : cstring):
     endif
     cstr_add(a, b)
 endfunc
-function *Main() -> int:
+func *Main() -> int:
     dq_writepc('dq_cstr = ')
     dq_writestr(dq_cstr)  //?check('dq_cstr', 'DQ String Test')
 

@@ -71,7 +71,7 @@ types with their own declaration rules.
 
 ```dq
 type TSize = uint
-type FTransform = function(value : int) -> int
+type FTransform = func(value : int) -> int
 ```
 
 Aliases do not create a distinct runtime type. Enumerations do.

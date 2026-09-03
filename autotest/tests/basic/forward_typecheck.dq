@@ -1,9 +1,9 @@
 #ifdef ERRORTEST
 
-function missing_forward(a : int) -> int  //?error(FuncForwardNotDefined)
+func missing_forward(a : int) -> int  //?error(FuncForwardNotDefined)
 
 #else
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 

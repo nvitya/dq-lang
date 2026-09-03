@@ -4,7 +4,7 @@
 
 var g_hbcnt : int = 0
 
-function soft_entry()  [[cexport, asm]]:
+func soft_entry()  [[cexport, asm]]:
     ldr    r0, =__stack
     mov    sp, r0
 
@@ -12,7 +12,7 @@ function soft_entry()  [[cexport, asm]]:
     b      _start
 endfunc
 
-function cold_entry()  [[cexport, asm]]:
+func cold_entry()  [[cexport, asm]]:
     ldr    r0, =__stack
     mov    sp, r0
 
@@ -20,7 +20,7 @@ function cold_entry()  [[cexport, asm]]:
     b      _start
 endfunc
 
-function _start(self_flash : int)  [[cexport]]:
+func _start(self_flash : int)  [[cexport]]:
     while true:
         g_hbcnt += 1
     endwhile

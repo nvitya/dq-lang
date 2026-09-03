@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-function *Main() -> int:
+func *Main() -> int:
     var object_path : str = TempPath('.o')
     run.RunCompiler([
         '--target=arm_m7f-bare', '--no-dynstrings', '-c', '-o', object_path,

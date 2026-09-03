@@ -1,8 +1,8 @@
 // DQ Operators V2 runtime and precedence tests
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     var value : int = 10
     var p : ^int = %value
     p^ += 2

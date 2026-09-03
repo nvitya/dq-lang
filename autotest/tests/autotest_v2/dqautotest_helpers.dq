@@ -5,7 +5,7 @@ use file
 
 var run <- OTestRun()
 
-function *Main() -> int:
+func *Main() -> int:
     run.RunTool(['/bin/sh', '-c', 'printf out; printf err >&2; exit 3'])
     run.ExpectExitCode(3)
     ExpectContains(run.stdout, 'out')

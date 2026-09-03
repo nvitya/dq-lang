@@ -3,27 +3,27 @@ const ModuleInit : int = 1  //?error(SpecialFuncReserved)
 type Main = int  //?error(SpecialFuncReserved)
 
 object ModuleInit:  //?error(SpecialFuncReserved)
-endobj
+endobject
 
-function Main:  //?error(SpecialFuncReserved)
+func Main:  //?error(SpecialFuncReserved)
     return 0
 endfunc
 
-function *Other():  //?error(SpecialFuncUnknown)
+func *Other():  //?error(SpecialFuncUnknown)
 endfunc
 
-function *Main(value : int) -> int:  //?error(SpecialFuncSignature)
+func *Main(value : int) -> int:  //?error(SpecialFuncSignature)
     return value
 endfunc
 
-function *ModuleInit() -> int:  //?error(SpecialFuncSignature)
+func *ModuleInit() -> int:  //?error(SpecialFuncSignature)
     return 0
 endfunc
 
-function *ModuleInit() [[external]]  //?error(SpecialFuncInvalid)
+func *ModuleInit() [[external]]  //?error(SpecialFuncInvalid)
 
-function *ModuleInit():
+func *ModuleInit():
 endfunc
 
-function *ModuleInit():  //?error(SpecialFuncDuplicate)
+func *ModuleInit():  //?error(SpecialFuncDuplicate)
 endfunc

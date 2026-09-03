@@ -1303,7 +1303,7 @@ void OValSymFunc::GenerateFuncRet()
 
 string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
 {
-  string result = "function(";
+  string result = "func(";
   bool first = true;
   if (sigtype)
   {

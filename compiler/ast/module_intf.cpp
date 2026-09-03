@@ -201,7 +201,7 @@ static bool IsImplicitReceiverParam(OValSymFunc * afunc, OFuncParam * aparam, bo
 static string FunctionSignature(OValSymFunc * afunc)
 {
   OTypeFunc * sigtype = FuncTypeOf(afunc);
-  string result = "function ";
+  string result = "func ";
   if (afunc && afunc->IsSpecial())
   {
     result += "*";
@@ -345,7 +345,7 @@ void OModuleIntf::WriteCompoundDump(ostream & out, OCompoundType * atype, const 
     }
   }
 
-  out << indent << (object_type ? "endobj" : (atype->IsUnion() ? "endunion" : "endstruct")) << "\n";
+  out << indent << (object_type ? "endobject" : (atype->IsUnion() ? "endunion" : "endstruct")) << "\n";
 }
 
 void OModuleIntf::WriteTypeDump(ostream & out, OType * atype, const string & indent)
@@ -1831,7 +1831,7 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
     }
   }
 
-  if (atype_name.starts_with("function("))
+  if (atype_name.starts_with("func("))
   {
     bool object_ref = atype_name.ends_with(" of object");
     return new OTypeFuncRef(nullptr, atype_name, object_ref);
@@ -2059,7 +2059,7 @@ bool OModuleIntf::ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_re
     return false;
   }
 
-  OTypeFunc * sigtype = new OTypeFunc("function");
+  OTypeFunc * sigtype = new OTypeFunc("func");
   while (true)
   {
     if (!reader.NextRec())

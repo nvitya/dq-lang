@@ -1,8 +1,8 @@
 use ./mod_struct_methods
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     var s : SModChild = {}
     s.SetAll(4, 9)
 

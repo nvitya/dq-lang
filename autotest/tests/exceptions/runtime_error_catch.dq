@@ -1,15 +1,15 @@
 // RuntimeError is routed through the hosted exception handler.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 var reached : int = 0
 
-function WrongPointer() -> ^int:
+func WrongPointer() -> ^int:
     raise Exception('wrongpointer')
     return nil
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         RuntimeError("runtime boom")
         reached = 1

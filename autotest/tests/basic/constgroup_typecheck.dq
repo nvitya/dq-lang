@@ -10,7 +10,7 @@ const(int):
     MEMBER_AFTER_ERROR = RECOVERED_MEMBER + 1
 endconst
 
-function grouped_const_mismatched_closer():
+func grouped_const_mismatched_closer():
     const(int):
         LOCAL_MEMBER = MEMBER_AFTER_ERROR
     endfunc  //?error(StmtBlockCloseMismatch)

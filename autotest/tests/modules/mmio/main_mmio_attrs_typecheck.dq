@@ -1,6 +1,6 @@
 use ./mod_mmio_attrs
 
-function Test():
+func Test():
     var imported_address : uint = uint(imported_regs_ptr)
     var a : uint32 = imported_regs.WO //?error(AccessNoRead)
     var b : uint32 = imported_wo      //?error(AccessNoRead)

@@ -6,14 +6,14 @@ use nanonet/nano_http
 const HTTP_LISTEN_PORT : uint16 = 8080
 
 object OSConnHttpApp(OSConnectionHttp):
-  function ProcessRequest() -> bool  [[override]]
-endobj
+  func ProcessRequest() -> bool  [[override]]
+endobject
 
-function GetTs() -> str:
+func GetTs() -> str:
   result = '?' //FormatDateTime('yyyy-mm-dd hh:nn:ss', now);
 endfunc
 
-function OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
+func OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
     //use *
     result = false
 
@@ -64,7 +64,7 @@ function OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
     endtry
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('NanoNet - Simple Http Server')
 
     var svr <- ONanoHttpServer(OSConnHttpApp, HTTP_LISTEN_PORT)

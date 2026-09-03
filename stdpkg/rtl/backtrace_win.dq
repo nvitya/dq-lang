@@ -15,19 +15,19 @@
 
 #linklib('dbghelp')
 
-function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
-function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
-function DqPrepareBacktraceImpl()
+func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
+func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
+func DqPrepareBacktraceImpl()
 
 implementation
 
 use rtl/rtlint
 use libc/stdio
 
-function DqCstrContains(text : ^char, needle : ^char) -> bool
-function DqCstrSegmentEq(text : ^char, name : ^char) -> bool
-function DqBacktraceNameIsInternal(name : ^char) -> bool
-function DqIsMainFunction(name : ^char) -> bool
+func DqCstrContains(text : ^char, needle : ^char) -> bool
+func DqCstrSegmentEq(text : ^char, name : ^char) -> bool
+func DqBacktraceNameIsInternal(name : ^char) -> bool
+func DqIsMainFunction(name : ^char) -> bool
 
 const DQ_BT_SYMBOL_INFO_SIZE : uint32 = 88
 const DQ_BT_LINE_INFO_SIZE   : uint32 = 40
@@ -100,43 +100,43 @@ struct SDqWinDwarfInfo:
     string_size   : uint
 endstruct
 
-function win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
+func win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
                                       backtrace : pointer, backtrace_hash : ^uint32) -> uint16 [[external('RtlCaptureStackBackTrace')]]
-function win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]]
-function win_GetCurrentModule(module_name : ^char) -> pointer [[external('GetModuleHandleA')]]
-function win_GetModuleFileName(module : pointer, filename : ^char, size : uint32) -> uint32 [[external('GetModuleFileNameA')]]
-function win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]]
-function win_SymInitialize(process : pointer, search_path : ^char, invade_process : int32) -> int32 [[external('SymInitialize')]]
-function win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]]
-function win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]]
+func win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]]
+func win_GetCurrentModule(module_name : ^char) -> pointer [[external('GetModuleHandleA')]]
+func win_GetModuleFileName(module : pointer, filename : ^char, size : uint32) -> uint32 [[external('GetModuleFileNameA')]]
+func win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]]
+func win_SymInitialize(process : pointer, search_path : ^char, invade_process : int32) -> int32 [[external('SymInitialize')]]
+func win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]]
+func win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]]
 
-function libc_fopen(filename : ^char, mode : ^char) -> pointer [[external('fopen')]]
-function libc_fclose(stream : pointer) -> int [[external('fclose')]]
-function libc_fseek(stream : pointer, offset : int, origin : int) -> int [[external('fseek')]]
-function libc_ftell(stream : pointer) -> int [[external('ftell')]]
-function libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]]
-function libc_malloc(size : uint) -> pointer [[external('malloc')]]
+func libc_fopen(filename : ^char, mode : ^char) -> pointer [[external('fopen')]]
+func libc_fclose(stream : pointer) -> int [[external('fclose')]]
+func libc_fseek(stream : pointer, offset : int, origin : int) -> int [[external('fseek')]]
+func libc_ftell(stream : pointer) -> int [[external('ftell')]]
+func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]]
+func libc_malloc(size : uint) -> pointer [[external('malloc')]]
 
-function DqWinBacktraceProcess() -> pointer
-function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool
-function DqWinDwarfLoad() -> bool
-function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
+func DqWinBacktraceProcess() -> pointer
+func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool
+func DqWinDwarfLoad() -> bool
+func DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
                               displacement : refout uint64) -> bool
 
 //-------------------------------------------------------------------------------------------------
 
-function DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
+func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int:
     result = int(win_RtlCaptureStackBackTrace(0, uint32(max_frames), backtrace, nil))
 endfunc
 
-function DqPrepareBacktraceImpl():
+func DqPrepareBacktraceImpl():
     // File loading and DbgHelp initialization are unsafe to defer until the
     // vectored exception handler is already processing an access violation.
     DqWinBacktraceProcess()
     DqWinDwarfLoad()
 endfunc
 
-function DqCstrContains(text : ^char, needle : ^char) -> bool:
+func DqCstrContains(text : ^char, needle : ^char) -> bool:
     if text == nil or needle == nil:
         return false
     endif
@@ -158,7 +158,7 @@ function DqCstrContains(text : ^char, needle : ^char) -> bool:
     return false
 endfunc
 
-function DqBacktraceNameIsInternal(name : ^char) -> bool:
+func DqBacktraceNameIsInternal(name : ^char) -> bool:
     return    DqCstrContains(name, "CaptureBacktrace")
            or DqCstrContains(name, "DqExcRaise")
            or DqCstrContains(name, "DqWinFaultHandler")
@@ -166,7 +166,7 @@ function DqBacktraceNameIsInternal(name : ^char) -> bool:
            or DqCstrContains(name, "RtlCaptureStackBackTrace")
 endfunc
 
-function DqIsMainFunction(name : ^char) -> bool:
+func DqIsMainFunction(name : ^char) -> bool:
     if name == nil:
         return false
     endif
@@ -175,7 +175,7 @@ function DqIsMainFunction(name : ^char) -> bool:
            or DqCstrSegmentEq(name, "RunHostedMain")
 endfunc
 
-function DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
+func DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
     var t : ^char = text
     var n : ^char = name
     while n^ <> char(0):
@@ -192,7 +192,7 @@ var win_backtrace_process : pointer = nil
 var win_backtrace_ready : bool = false
 var win_dwarf : SDqWinDwarfInfo = {}
 
-function DqWinBacktraceProcess() -> pointer:
+func DqWinBacktraceProcess() -> pointer:
     if win_backtrace_process == nil:
         win_backtrace_process = win_GetCurrentProcess()
         win_SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES)
@@ -201,19 +201,19 @@ function DqWinBacktraceProcess() -> pointer:
     return win_backtrace_process
 endfunc
 
-function DqReadU16(p : ^byte) -> uint16:
+func DqReadU16(p : ^byte) -> uint16:
     return ^uint16(p)^
 endfunc
 
-function DqReadU32(p : ^byte) -> uint32:
+func DqReadU32(p : ^byte) -> uint32:
     return ^uint32(p)^
 endfunc
 
-function DqReadU64(p : ^byte) -> uint64:
+func DqReadU64(p : ^byte) -> uint64:
     return ^uint64(p)^
 endfunc
 
-function DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
+func DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
     result = 0
     var shift : uint = 0
     while p < pend:
@@ -227,7 +227,7 @@ function DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
     endwhile
 endfunc
 
-function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
+func DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
     result = 0
     var shift : uint = 0
     var b     : uint8 = 0
@@ -245,7 +245,7 @@ function DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
     endwhile
 endfunc
 
-function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
+func DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
     while p < pend  and  p^ <> 0:
         p += 1
     endwhile
@@ -255,7 +255,7 @@ function DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
     return p
 endfunc
 
-function DqCstrEq(text : ^char, name : ^char) -> bool:
+func DqCstrEq(text : ^char, name : ^char) -> bool:
     var p : ^char = text
     var n : ^char = name
     while p^ <> char(0)  or  n^ <> char(0):
@@ -268,7 +268,7 @@ function DqCstrEq(text : ^char, name : ^char) -> bool:
     return true
 endfunc
 
-function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
+func DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
     if name[0]^ == 47  and  string_table <> nil:  // '/' + decimal string-table offset
         var offset : uint = 0
         var i : int = 1
@@ -292,7 +292,7 @@ function DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bo
     return text[i]^ == char(0)
 endfunc
 
-function DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint) -> bool:
+func DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint) -> bool:
     if name == nil or name_size == 0:
         return false
     endif
@@ -318,7 +318,7 @@ function DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint)
     return i <> 0
 endfunc
 
-function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^char:
+func DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^char:
     var p     : ^byte = file_table
     var index : uint64 = 1
     while p < pend  and  p^ <> 0:
@@ -335,7 +335,7 @@ function DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) 
     return nil
 endfunc
 
-function DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line : int,
+func DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line : int,
                         file_table : ^byte, pend : ^byte,
                         matched : ref bool, last_file : ref uint64, last_line : ref int,
                         out_file : refout ^char, out_line : refout uint32) -> bool:
@@ -356,7 +356,7 @@ function DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line :
     return false
 endfunc
 
-function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byte,
+func DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byte,
                                 min_inst_len : uint8, line_base : int,
                                 line_range : uint8, opcode_base : uint8,
                                 std_lengths : ^byte, target : uint64,
@@ -448,7 +448,7 @@ function DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : 
     return false
 endfunc
 
-function DqWinDwarfLoad() -> bool:
+func DqWinDwarfLoad() -> bool:
     if win_dwarf.loaded:
         return win_dwarf.debug_line <> nil
     endif
@@ -554,7 +554,7 @@ function DqWinDwarfLoad() -> bool:
     return false
 endfunc
 
-function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
+func DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
                               displacement : refout uint64) -> bool:
     // DbgHelp on Windows does not reliably load the DWARF/COFF symbols emitted by
     // LLVM-MinGW, so resolve functions from the executable's COFF table ourselves.
@@ -605,7 +605,7 @@ function DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
     return true
 endfunc
 
-function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool:
+func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool:
     file_name = nil
     line_no = 0
     if not DqWinDwarfLoad():
@@ -671,7 +671,7 @@ function DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : r
     return false
 endfunc
 
-function DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
+func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool:
     var process : pointer = DqWinBacktraceProcess()
     var symbol : SDqWinSymbolInfo = {}
     var coff_name : [DQ_BT_SYMBOL_NAME_MAX]char

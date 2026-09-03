@@ -4,7 +4,7 @@ use time
 
 use threads
 
-function putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]]
 
 var thr1 <- OThread()
 var thr2 <- OThread()
@@ -14,18 +14,18 @@ object OTest1:
     counter : int = 5
     name    : str = "?"
 
-    function *Create(aname : str):
+    func *Create(aname : str):
         name = aname
     endfunc
 
-    function ThreadFunc(aarg : pointer) -> pointer:
+    func ThreadFunc(aarg : pointer) -> pointer:
         use *
         PrintLn('Obj({}) started, counter = {}', [name, counter])
         SleepMillis(1500)
         PrintLn('Obj({}) finished', [name])
         return nil
     endfunc
-endobj
+endobject
 
 var ot1 <- OTest1('ot1')
 
@@ -33,36 +33,36 @@ var ot1 <- OTest1('ot1')
 object OWorker(OThread):
     name    : str = "?"
 
-    function *Create(aname : str):
+    func *Create(aname : str):
         name = aname
     endfunc
 
-    function Run(aarg : pointer) -> pointer [[override]]:
+    func Run(aarg : pointer) -> pointer [[override]]:
         use *
         PrintLn('OWorker({}) started', [name])
         SleepMillis(2300)
         PrintLn('OWorker({}) finished', [name])
         return nil
     endfunc
-endobj
+endobject
 
 var wrk <- OWorker('wrk1')
 
-function ThreadFunc1(arg : pointer) -> pointer:
+func ThreadFunc1(arg : pointer) -> pointer:
     printf('ThreadFunc1 started\n')
     SleepMillis(2300)
     printf('ThreadFunc1 finished\n')
     return nil
 endfunc
 
-function ThreadFunc2(arg : pointer) -> pointer:
+func ThreadFunc2(arg : pointer) -> pointer:
     printf('ThreadFunc2 started\n')
     SleepMillis(3600)
     printf('ThreadFunc2 finished\n')
     return nil
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ Threading Test')
     PrintLn('Starting threads...')
 

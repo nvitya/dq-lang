@@ -23,9 +23,9 @@ const MODULE_CONSTANT : int = 1
     const QUALIFIED_RESULT : int = 0
 #endif
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     var definition_exists : bool = Defined(FIRST_FEATURE)
     var definition_missing : bool = Defined(MISSING_FEATURE)
     var qualified_exists : bool = Defined(@.MODULE_CONSTANT)

@@ -1,6 +1,6 @@
 // new/delete type checking tests (ERROR test)
 
-function *Main() -> int:
+func *Main() -> int:
     var bad_infer = 123  //?error(TypeSpecExpected)
 
     var x : int = 1

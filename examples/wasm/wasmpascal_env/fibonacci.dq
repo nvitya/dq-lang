@@ -5,11 +5,11 @@ use ./wasmpasenv
 // Classic recursive Fibonacci — the standard "does the compiler do
 // recursion?" test, plus an iterative loop for comparison. Pure console.
 
-function FibRec(n : int) -> int:
+func FibRec(n : int) -> int:
     result = iif(n <= 1,  n,  FibRec(n - 1) + FibRec(n - 2))
 endfunc
 
-function FibLoop(n : int) -> int:
+func FibLoop(n : int) -> int:
     if n <= 1:
         result = n
     else:
@@ -24,7 +24,7 @@ function FibLoop(n : int) -> int:
     endif
 endfunc
 
-function wasmpas_main() [[cexport]]:
+func wasmpas_main() [[cexport]]:
     //
     PrintLn('=== Fibonacci DQ ===')
     PrintLn(' n   recursive       loop')

@@ -3,13 +3,13 @@
 use print
 use json
 
-function PrintJson(label : strview, source : strview):
+func PrintJson(label : strview, source : strview):
     var j <- OJson()
     j.Parse(source)
     PrintLn('{} = {}', [label, j.json])
 endfunc
 
-function PrintParseError(label : strview, source : strview):
+func PrintParseError(label : strview, source : strview):
     try:
         var j <- OJson()
         j.Parse(source)
@@ -21,11 +21,11 @@ function PrintParseError(label : strview, source : strview):
     endtry
 endfunc
 
-function BoolInt(value : bool) -> int:
+func BoolInt(value : bool) -> int:
     return iif(value, 1, 0)
 endfunc
 
-function PrintValueApi():
+func PrintValueApi():
     var j <- OJson()
     var jb : OJson = j.AddBool('flag', true)
     var jn : OJson = j.AddNull('empty')
@@ -43,7 +43,7 @@ function PrintValueApi():
     PrintLn('json.api.nil-set = {}', [j.json])
 endfunc
 
-function PrintFindApi():
+func PrintFindApi():
     var j <- OJson()
     var cfg : OJson = j.AddObj('cfg')
     var db : OJson = cfg.AddObj('db')
@@ -74,7 +74,7 @@ function PrintFindApi():
     PrintLn('json.find.name = {}', [j.FindNode('first').as_str])
 endfunc
 
-function PrintForcePathApi():
+func PrintForcePathApi():
     var j <- OJson()
 
     var n : OJson = j.ForcePath('first.second.third')
@@ -88,7 +88,7 @@ function PrintForcePathApi():
     PrintLn('json.force.result = {}', [j.json])
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintJson("json.parse.nested", '{"s":"a\\"b\\\\c\\/d","b":true,"f":false,"n":null,"x":-12.5e+2,"a":[1,{"y":"z"}]}')
     //?check("json.parse.nested", '{"s":"a\"b\\c/d","b":true,"f":false,"n":null,"x":-1250,"a":[1,{"y":"z"}]}')
 

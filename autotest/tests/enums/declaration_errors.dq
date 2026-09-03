@@ -17,6 +17,6 @@ enum NInt8TooSmall : int8 = (value = -129) //?error(EnumValueRange)
 // Auto-increment is checked before conversion and must not wrap.
 enum NUint16Overflow : uint16 = (last = 65535, overflow) //?error(EnumValueRange)
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

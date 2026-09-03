@@ -13,7 +13,7 @@ DQ source files use the `.dq` extension. A source file is a module. A program
 entry point is normally declared with the special function `*Main`.
 
 ```dq
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 ```
@@ -29,13 +29,13 @@ Type annotations are written after the declared name with `:`.
 ```dq
 var count : int = 0
 const LIMIT : int = 100
-function Add(a : int, b : int) -> int
+func Add(a : int, b : int) -> int
 ```
 
 Function return types are written after the parameter list with `->`.
 
 ```dq
-function IsReady() -> bool:
+func IsReady() -> bool:
     return true
 endfunc
 ```
@@ -60,7 +60,7 @@ endwhile
 Brace blocks are also accepted by the compiler.
 
 ```dq
-function Sum3() -> int
+func Sum3() -> int
 {
     result = 0
     for i : int = 1 to 3
@@ -128,7 +128,7 @@ The `nil` literal is used for nil pointer, object-reference, and function
 reference values.
 
 ```dq
-type FIntFunc = function(a : int) -> int
+type FIntFunc = func(a : int) -> int
 
 var p : ^int = nil
 var cb : FIntFunc = nil
@@ -208,11 +208,11 @@ Functions with a return type have a built-in `result` variable. Assigning to
 `result` sets the function result. A `return expr` statement is also supported.
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     result = a + b
 endfunc
 
-function Add2(a : int, b : int) -> int:
+func Add2(a : int, b : int) -> int:
     return a + b
 endfunc
 ```
@@ -222,7 +222,7 @@ endfunc
 The program entry point is the special function `*Main`.
 
 ```dq
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 ```

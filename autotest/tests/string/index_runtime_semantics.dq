@@ -3,52 +3,52 @@
 
 use libc/stdio
 
-function ReadBeforeStart() -> char:
+func ReadBeforeStart() -> char:
     var s : str = "abc"
     result = s[-1]
 endfunc
 
-function ReadAtEnd() -> char:
+func ReadAtEnd() -> char:
     var s : str = "abc"
     result = s[3]
 endfunc
 
-function ReadAtEndContext() -> char:
+func ReadAtEndContext() -> char:
     var s : str = "abc"
     result = s[$end]
 endfunc
 
-function ReadEmptyLast() -> char:
+func ReadEmptyLast() -> char:
     var s : str = ""
     result = s[$last]
 endfunc
 
-function WriteBeforeStart():
+func WriteBeforeStart():
     var s : str = "abc"
     s[-1] = 'X'
 endfunc
 
-function WriteAtEnd():
+func WriteAtEnd():
     var s : str = "abc"
     s[s.length] = 'X'
 endfunc
 
-function EmptyPop() -> char:
+func EmptyPop() -> char:
     var s : str = ""
     result = s.Pop()
 endfunc
 
-function EmptyPopFirst() -> char:
+func EmptyPopFirst() -> char:
     var s : str = ""
     result = s.PopFirst()
 endfunc
 
-//function EmptyPadFill() -> str:
+//func EmptyPadFill() -> str:
 //  var s : str = "abc";
 //  result = s.LPad(5, "");
 //endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("string_index_runtime_semantics = compiled\n") //?check("string_index_runtime_semantics", "compiled")
     return 0
 endfunc

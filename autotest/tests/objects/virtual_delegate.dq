@@ -1,24 +1,24 @@
 use libc/stdio
 
-type FObjAction = function() of object
+type FObjAction = func() of object
 
 object CBase:
-    function HandleInput() [[virtual]]:
+    func HandleInput() [[virtual]]:
         @.printf("CBase.HandleInput = ok\n")
     endfunc
-endobj
+endobject
 
 object CDeriv(CBase):
-    function HandleInput() [[override]]:
+    func HandleInput() [[override]]:
         @.printf("CDeriv.HandleInput = ok\n")
     endfunc
-endobj
+endobject
 
-function Invoke(cb : FObjAction):
+func Invoke(cb : FObjAction):
     cb()
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var obj : CBase = new CDeriv()
     var cb : FObjAction = obj.HandleInput
     Invoke(cb)  //?check('CDeriv.HandleInput', 'ok')

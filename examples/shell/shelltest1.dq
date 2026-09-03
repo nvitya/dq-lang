@@ -3,7 +3,7 @@ use shell
 
 var osh <- OShellRunner()
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Shell util test')
 
     // execute the dq-comp, provide empty input str, collect the output str

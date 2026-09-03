@@ -4,16 +4,16 @@ object OModObject:
 public
     value : int = 0
 
-    function *Create(v : int):
+    func *Create(v : int):
         value = v
     endfunc
-endobj
+endobject
 
-function ExportObject(o : OModObject) -> Object:
+func ExportObject(o : OModObject) -> Object:
     return o
 endfunc
 
-function ImportedObjectSet(o : Object) -> int:
+func ImportedObjectSet(o : Object) -> int:
     if o == nil:
         return 0
     endif

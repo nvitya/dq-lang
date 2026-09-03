@@ -1,21 +1,21 @@
 // explicit declaration type inference errors
 
-type FInferCallback = function(avalue : int) -> int
+type FInferCallback = func(avalue : int) -> int
 
 enum NInferEnum = (first)
 
-function InferIdentity(avalue : int) -> int:
+func InferIdentity(avalue : int) -> int:
     return avalue
 endfunc
 
-function InferCallbackTarget(avalue : int) -> int:
+func InferCallbackTarget(avalue : int) -> int:
     return avalue
 endfunc
 
 var missing_initializer : ? //?error(TypeInfer)
 const missing_const_initializer : ? //?error(TypeInfer)
 
-function *Main() -> int:
+func *Main() -> int:
     var int_value : int32 = 3
     var float_value : float32 = 3.0
     var raw_value : pointer = nil

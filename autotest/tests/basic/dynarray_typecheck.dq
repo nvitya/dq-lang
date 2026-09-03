@@ -3,17 +3,17 @@
 var bad_old_dyn : [...]int  //?error(ArraySizeSpec), error(ExprUnexpectedChar)
 const bad_const : [*]int = 0  //?error(NotSupported)
 
-function bad_value_param(arr : [*]int):  //?error(NotSupported)
+func bad_value_param(arr : [*]int):  //?error(NotSupported)
 endfunc
 
-function bad_return() -> [*]int:
+func bad_return() -> [*]int:
 endfunc  //?error(FuncResultNotSet)
 
 struct SBadDynMember:
     arr : [*]int  //?error(NotSupported)
 endstruct  //?error(ModStatementUnknown)
 
-function *Main() -> int:
+func *Main() -> int:
     var a : [*]int
     var b : [*]int
     a = b

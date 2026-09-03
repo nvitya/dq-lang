@@ -1,6 +1,6 @@
 // Basic enum declarations, access, comparison, and ordinal conversion.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 enum NColor = (red, green, blue)
 
@@ -12,15 +12,15 @@ enum NState : uint16 = (
 
 enum NSigned : int8 = (negative = -1, zero, positive)
 
-function GetColor() -> NColor:
+func GetColor() -> NColor:
     result = blue
 endfunc
 
-function IsGreen(color : NColor) -> bool:
+func IsGreen(color : NColor) -> bool:
     result = color == green
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var c : NColor = red
     var qualified : NColor = NColor.green
     var from_call : NColor = GetColor()

@@ -3,7 +3,7 @@
 
 use rtl/sys
 
-function ReadSlice(values : []int, index : int) -> int:
+func ReadSlice(values : []int, index : int) -> int:
     if values == []:
         return 0
     endif
@@ -19,13 +19,13 @@ function ReadSlice(values : []int, index : int) -> int:
     return total + tail[index]
 endfunc
 
-function ReadFixed() -> int:
+func ReadFixed() -> int:
     var values : [4]int = [1, 2, 3, 4]
     var view : []int = values
     return values[0] + ReadSlice(view, 0) + ReadSlice([5, 6], 0)
 endfunc
 
-function CopyCollections(source : []int) -> int:
+func CopyCollections(source : []int) -> int:
     var from_literal : [*]int = [1, 2, 3]
     var from_slice : [*]int = source
     var fixed : [2]int = [4, 5]
@@ -33,16 +33,16 @@ function CopyCollections(source : []int) -> int:
     return from_literal.length + from_slice.length + from_fixed.length
 endfunc
 
-function CopyCString(source : cstring) -> int:
+func CopyCString(source : cstring) -> int:
     var target : cstring(7) = source
     return target.length
 endfunc
 
-function SetStringChar(value : str, index : int) -> char:
+func SetStringChar(value : str, index : int) -> char:
     value[index] = 'x'
     return value[index]
 endfunc
 
-function FormatString(value : ref str):
+func FormatString(value : ref str):
     value.AddFmt('{}', [1])
 endfunc

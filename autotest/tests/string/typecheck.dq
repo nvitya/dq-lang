@@ -1,7 +1,7 @@
 //?notest
 // String compile-time rejection cases from the string specification.
 
-function DynamicStrNullComparisonIsInvalid() -> int:
+func DynamicStrNullComparisonIsInvalid() -> int:
     var s : str
     if s == nil: //?error(TypeMismatchOp)
         result = 1
@@ -12,7 +12,7 @@ function DynamicStrNullComparisonIsInvalid() -> int:
     result = 0
 endfunc
 
-function StrViewIsReadonly():
+func StrViewIsReadonly():
     var v : strview = "abc"
     v[0] = 'X' //?error(NotWriteable)
     v.Append("x") //?error(MemberUnknown)
@@ -27,27 +27,27 @@ function StrViewIsReadonly():
     v.PopFirst() //?error(MemberUnknown)
 endfunc
 
-function CStringDynamicStorageMethodsAreInvalid():
+func CStringDynamicStorageMethodsAreInvalid():
     var cs : cstring(8) = "abc"
     cs.Reserve(100) //?error(MemberUnknown)
     cs.Compact() //?error(MemberUnknown)
 endfunc
 
-function UnsizedCStringMustAliasStorage():
+func UnsizedCStringMustAliasStorage():
     var no_storage : cstring //?error(NotSupported)
     var literal_alias : cstring = "abc" //?error(TypeMismatchAssign)
 endfunc
 
-//function WideLiteralCannotBecomeRawCCharPointer():
+//func WideLiteralCannotBecomeRawCCharPointer():
 //  var bad_pc : ^char = "€"; //-?error(TypeMismatchAssign)
 //endfunc
 
-function StringNeedsExplicitSetLengthFill():
+func StringNeedsExplicitSetLengthFill():
     var s : str = "abc"
     s.SetLength(5) //?error(FuncArgsTooFew)
 endfunc
 
-function CstringCannotStoreWideCharacterWithoutConversion():
+func CstringCannotStoreWideCharacterWithoutConversion():
     var cs : cstring(8) = "abc"
     cs[1] = char(0x1F600) //?error(TypeMismatchAssign)
 endfunc

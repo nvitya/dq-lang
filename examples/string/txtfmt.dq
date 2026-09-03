@@ -3,11 +3,11 @@ use print, rtl/textformat, strutils
 var cs : cstring(255)
 var ds : str
 
-function PrintCs():
+func PrintCs():
     PrintLn('cs="{}"', [cs])
 endfunc
 
-function TestCStr():
+func TestCStr():
     PrintLn('Testing cstring.AddFmt()')
     cs.Append("functest: ")
     CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
@@ -19,11 +19,11 @@ function TestCStr():
     PrintCs()
 endfunc
 
-function PrintDs():
+func PrintDs():
     PrintLn('ds="{}"', [ds])
 endfunc
 
-function TestStr():
+func TestStr():
     PrintLn('Testing str.AddFmt()')
 
     ds.Append("functest: ")
@@ -37,7 +37,7 @@ function TestStr():
     PrintDs()
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     TestCStr()
     TestStr()
  

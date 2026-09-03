@@ -5,7 +5,7 @@ const default_f1 : float64  = 2.200002
 const default_f2 : float64  = 2.200001
 const default_million_iter : int = 5
 
-function StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
+func StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
     result = 0
     var sign : int = 1
     for i : int = 0 count sv.length:
@@ -25,11 +25,11 @@ struct timespec:
     tv_nsec : int64
 endstruct
 
-function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
+func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
 
 const CLOCK_MONOTONIC : int = 1
 
-function MilliTime() -> float64:
+func MilliTime() -> float64:
     var tv : timespec
     tv.tv_sec = 0
     clock_gettime(CLOCK_MONOTONIC, %tv)
@@ -38,7 +38,7 @@ endfunc
 
 //---------------------------------------------------------------------------------------
 
-function FpBench_f32(f1 : float32, f2 : float32, iterations : int) -> float32:
+func FpBench_f32(f1 : float32, f2 : float32, iterations : int) -> float32:
 		result = 1.0
 		for i : int = 0 count iterations:
 			result *= f1
@@ -46,7 +46,7 @@ function FpBench_f32(f1 : float32, f2 : float32, iterations : int) -> float32:
 		endfor
 endfunc
 
-function FpBench_f64(f1 : float64, f2 : float64, iterations : int) -> float64:
+func FpBench_f64(f1 : float64, f2 : float64, iterations : int) -> float64:
 		result = 1.0
 		for i : int = 0 count iterations:
 			result *= f1
@@ -54,7 +54,7 @@ function FpBench_f64(f1 : float64, f2 : float64, iterations : int) -> float64:
 		endfor
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Floating Point Benchmark [DQ]')
 
 		var f1 : float64 = default_f1

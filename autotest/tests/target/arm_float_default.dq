@@ -1,6 +1,6 @@
 //?notest
 // Compile-only coverage for the target-preferred floating-point width.
 
-function dq_default_float_mul(a : float, b : float) -> float [[cexport, used]]:
+func dq_default_float_mul(a : float, b : float) -> float [[cexport, used]]:
     return a * b
 endfunc

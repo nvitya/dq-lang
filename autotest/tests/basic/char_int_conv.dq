@@ -3,18 +3,18 @@
 use libc/stdio
 use rtl/strfunc
 
-function GetValue(v : int) -> int:
+func GetValue(v : int) -> int:
     return v
 endfunc
 
-function Flag(v : bool) -> int:
+func Flag(v : bool) -> int:
     if v:
         return 1
     endif
     return 0
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var c : char = 'A'
     var cmax : char = char(255)
     var wc_ascii : wchar = 'A'

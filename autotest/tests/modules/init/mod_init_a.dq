@@ -6,6 +6,6 @@ implementation
 
 use libc/stdio
 
-function *ModuleInit():
+func *ModuleInit():
     printf("Module.init.A = done\n")
 endfunc

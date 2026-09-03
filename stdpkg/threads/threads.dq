@@ -7,8 +7,8 @@
 
 //use rtl/mem
 
-type FThreadFunc = function(arg : pointer) -> pointer
-type FThreadMethod = function(arg : pointer) -> pointer of object
+type FThreadFunc = func(arg : pointer) -> pointer
+type FThreadMethod = func(arg : pointer) -> pointer of object
 
 object OThread:
 protected
@@ -20,27 +20,27 @@ public
     thread_id : uint
     retval    : pointer
 
-    function StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool
-    function StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool
-    function StartSelf(aarg : pointer) -> bool  // starts the Run()
+    func StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool
+    func StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool
+    func StartSelf(aarg : pointer) -> bool  // starts the Run()
 
-    function Join()                  // waits until the thread stops
-    function IsRunning() -> bool     // polls for running state, joins
+    func Join()                  // waits until the thread stops
+    func IsRunning() -> bool     // polls for running state, joins
 
-    function Run(aarg : pointer) -> pointer [[virtual]]  // override this for StartSelf()
-endobj
+    func Run(aarg : pointer) -> pointer [[virtual]]  // override this for StartSelf()
+endobject
 
 implementation
 
 // pthread_t is unsigned long on the supported POSIX targets, which is the
 // native-width unsigned integer represented by DQ's uint type.
-function pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]]
-function pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]]
-function pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]  // Linux specific !
+func pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]]
+func pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]]
+func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]  // Linux specific !
 
 const PTHREAD_EBUSY : int = 16
 
-function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
+func OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
     if running:
         return false
     endif
@@ -53,7 +53,7 @@ function OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
     return true
 endfunc
 
-function OThread.Join():
+func OThread.Join():
     if not running:
         return
     endif
@@ -64,7 +64,7 @@ function OThread.Join():
     running = false
 endfunc
 
-function OThread.IsRunning() -> bool:
+func OThread.IsRunning() -> bool:
     if not running:
         return false
     endif
@@ -80,12 +80,12 @@ function OThread.IsRunning() -> bool:
     return false
 endfunc
 
-function StartMethodThreadFunc(aarg : pointer) -> pointer:
+func StartMethodThreadFunc(aarg : pointer) -> pointer:
     var thr : OThread = OThread(aarg)
     return thr.m_method(thr.m_arg)
 endfunc
 
-function OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
+func OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
     if running:
         return false
     endif
@@ -100,12 +100,12 @@ function OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
     return true
 endfunc
 
-function StartSelfThreadFunc(aarg : pointer) -> pointer:
+func StartSelfThreadFunc(aarg : pointer) -> pointer:
     var thr : OThread = OThread(aarg)
     return thr.Run(thr.m_arg)
 endfunc
 
-function OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
+func OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
     if running:
         return false
     endif
@@ -119,6 +119,6 @@ function OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
     return true
 endfunc
 
-function OThread.Run(aarg : pointer) -> pointer [[virtual]]:  // empty
+func OThread.Run(aarg : pointer) -> pointer [[virtual]]:  // empty
     return nil
 endfunc

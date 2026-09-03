@@ -1,8 +1,8 @@
 // finally must run before return/break/continue control transfers.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function ReturnWithFinally() -> int:
+func ReturnWithFinally() -> int:
     try:
         return 11
     finally:
@@ -12,7 +12,7 @@ function ReturnWithFinally() -> int:
     return 99
 endfunc
 
-function ReturnReplacedByRaise() -> int:
+func ReturnReplacedByRaise() -> int:
     try:
         return 7
     finally:
@@ -22,7 +22,7 @@ function ReturnReplacedByRaise() -> int:
     return 0
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     var r : int = ReturnWithFinally()
     printf("finally.return.result = %d\n", r)  //?check("finally.return.result", 11)
 

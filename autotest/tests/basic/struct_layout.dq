@@ -31,62 +31,62 @@ endstruct
 [[packed]] object OLayoutPackedObj:
     a : byte
     b : uint32
-endobj
+endobject
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function off_normal_b() -> int:
+func off_normal_b() -> int:
     var s : SLayoutNormal = {}
     result = int(uint(%s.b) - uint(%s.a))
 endfunc
 
-function off_normal_c() -> int:
+func off_normal_c() -> int:
     var s : SLayoutNormal = {}
     result = int(uint(%s.c) - uint(%s.a))
 endfunc
 
-function off_field_align_b() -> int:
+func off_field_align_b() -> int:
     var s : SLayoutFieldAlign = {}
     result = int(uint(%s.b) - uint(%s.a))
 endfunc
 
-function off_packed_b() -> int:
+func off_packed_b() -> int:
     var s : SLayoutPacked = {}
     result = int(uint(%s.b) - uint(%s.a))
 endfunc
 
-function off_packed_c() -> int:
+func off_packed_c() -> int:
     var s : SLayoutPacked = {}
     result = int(uint(%s.c) - uint(%s.a))
 endfunc
 
-function off_packed_align_ignored_b() -> int:
+func off_packed_align_ignored_b() -> int:
     var s : SLayoutPackedAlignIgnored = {}
     result = int(uint(%s.b) - uint(%s.a))
 endfunc
 
-function off_nested_p() -> int:
+func off_nested_p() -> int:
     var s : SLayoutNested = {}
     result = int(uint(%s.p) - uint(%s.a))
 endfunc
 
-function off_nested_b() -> int:
+func off_nested_b() -> int:
     var s : SLayoutNested = {}
     result = int(uint(%s.b) - uint(%s.a))
 endfunc
 
-function packed_array_stride() -> int:
+func packed_array_stride() -> int:
     var a : [2]SLayoutPacked
     a[0].a = 0
     a[1].a = 0
     result = int(uint(%a[1]) - uint(%a[0]))
 endfunc
 
-function off_packed_obj_b() -> int:
+func off_packed_obj_b() -> int:
     var o <- OLayoutPackedObj
     result = int(uint(%o.b) - uint(%o.a))
 endfunc
-function *Main() -> int:
+func *Main() -> int:
     printf("Testing struct layout:\n")  //?ignore('Testing struct layout:')
 
     printf("SizeOf(SLayoutNormal) = %li\n", SizeOf(SLayoutNormal))  //?check('SizeOf(SLayoutNormal)', 12)

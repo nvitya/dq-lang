@@ -1,10 +1,10 @@
 // external global variable import support
 
-function fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]]
+func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]]
 
 var stdout : pointer [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     fprintf(stdout, "external global = %d\n", 42)  //?check("external global", 42)
     return 0
 endfunc

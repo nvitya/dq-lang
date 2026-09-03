@@ -6,36 +6,36 @@ object OModBase:
 protected
     value : int = 0
 public
-    function *Create(a : int):
+    func *Create(a : int):
         value = a
     endfunc
 
-    function Get() -> int [[virtual]]:
+    func Get() -> int [[virtual]]:
         return value
     endfunc
 
-    function *Destroy():
+    func *Destroy():
     endfunc
-endobj
+endobject
 
 object OModChild(OModBase):
 private
     extra : int = 0
 public
-    function *Create(a : int):
+    func *Create(a : int):
         inherited Create(a)
         extra = a + 1
     endfunc
 
-    function Get() -> int [[override]]:
+    func Get() -> int [[override]]:
         return inherited Get() + extra
     endfunc
 
-    function PrintProt():
+    func PrintProt():
         @.printf("Protected_value = %d\n", value)
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         inherited Destroy()
     endfunc
-endobj
+endobject

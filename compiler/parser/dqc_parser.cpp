@@ -473,7 +473,7 @@ void ODqCompParser::ParseModule()
     }
 
     // The module root statement must start with a keyword like
-    //   use, module, var, type, function, implementation
+    //   use, module, var, type, func, implementation
 
     if ("implementation" == sid)
     {
@@ -507,7 +507,7 @@ void ODqCompParser::ParseModule()
     {
       ParseEnumDecl();
     }
-    else if ("function" == sid)
+    else if ("func" == sid)
     {
       ParseFunction();
       curscope = cur_mod_scope;
@@ -1338,7 +1338,7 @@ void ODqCompParser::ParseStructDecl()
     scf->SaveCurPos(mempos);
     scpos_statement_start = mempos;
 
-    if (scf->CheckSymbol("function"))
+    if (scf->CheckSymbol("func"))
     {
       ReadCompoundMethod(ctype, MV_PUBLIC);
       continue;
@@ -2101,7 +2101,7 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
 
   if (not scf->ReadIdentifier(sid))
   {
-    Error(DQERR_ID_EXP_AFTER, "function");
+    Error(DQERR_ID_EXP_AFTER, "func");
     return false;
   }
   if (IsReservedIntrinsicName(sid))
@@ -2521,7 +2521,7 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
 void ODqCompParser::ParseObjectDecl()
 {
   // note: "object" is already consumed
-  // syntax form: "object Name:\n  field : type;  function Method(...): ... endfunc\nendobj" or "object Name { ... }"
+  // syntax form: "object Name:\n  field : type;  func Method(...): ... endfunc\nendobject" or "object Name { ... }"
 
   string sname;
   scf->SkipWhite();
@@ -2628,7 +2628,7 @@ void ODqCompParser::ParseObjectDecl()
   }
 
   string block_closer;
-  ParseCompoundBlockStart("endobj", block_closer);
+  ParseCompoundBlockStart("endobject", block_closer);
 
   OScPosition mempos;
   string membername;
@@ -2662,7 +2662,7 @@ void ODqCompParser::ParseObjectDecl()
     scf->SaveCurPos(mempos);
     scpos_statement_start = mempos;
 
-    if (scf->CheckSymbol("function"))
+    if (scf->CheckSymbol("func"))
     {
       ReadCompoundMethod(object_type, current_visibility);
       continue;
@@ -2955,8 +2955,8 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
 
 void ODqCompParser::ParseFunction()
 {
-  // note: "function" is already consumed
-  // syntax form: "function identifier[(arglist)] [-> return_type] <statement_block | ;>"
+  // note: "func" is already consumed
+  // syntax form: "func identifier[(arglist)] [-> return_type] <statement_block | ;>"
   // statement block must follow, when ';' then it is a forward declaration
 
   string   sid;
@@ -2965,7 +2965,7 @@ void ODqCompParser::ParseFunction()
   bool special_decl = scf->CheckSymbol("*");
   if (not scf->ReadIdentifier(sid))
   {
-    Error(DQERR_ID_EXP_AFTER, "function");
+    Error(DQERR_ID_EXP_AFTER, "func");
     return;
   }
   if (IsReservedIntrinsicName(sid))

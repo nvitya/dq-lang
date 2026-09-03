@@ -1,16 +1,16 @@
 
-function Time() -> float64     // Python compatible
-function FormatTime1(fmt : strview, atime : float64) -> str  // Delphi compatible (easier to remember)
-function FormatTime2(fmt : strview, atime : float64) -> str  // Python compatible
+func Time() -> float64     // Python compatible
+func FormatTime1(fmt : strview, atime : float64) -> str  // Delphi compatible (easier to remember)
+func FormatTime2(fmt : strview, atime : float64) -> str  // Python compatible
 
-function MilliTime() -> int64  // monotonic time, counted from system start
-function MicroTime() -> int64  // monotonic time, counted from system start
-function NanoTime() -> int64   // monotonic time, counted from system start
+func MilliTime() -> int64  // monotonic time, counted from system start
+func MicroTime() -> int64  // monotonic time, counted from system start
+func NanoTime() -> int64   // monotonic time, counted from system start
 
-function SleepSecs(asecs : float64)
-function SleepMillis(ams : int64)
-function SleepMicros(aus : int64)
-function SleepNanos(ansecs : int64)
+func SleepSecs(asecs : float64)
+func SleepMillis(ams : int64)
+func SleepMicros(aus : int64)
+func SleepNanos(ansecs : int64)
 
 implementation
 
@@ -33,46 +33,46 @@ struct tm:
     tm_zone   : pointer
 endstruct
 
-function clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
-function libc_nanosleep(req : ^timespec, rem : ^timespec) -> int32 [[external('nanosleep')]]
-function libc___errno_location() -> ^int32 [[external('__errno_location')]]
-function libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]]
-function libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]]
+func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
+func libc_nanosleep(req : ^timespec, rem : ^timespec) -> int32 [[external('nanosleep')]]
+func libc___errno_location() -> ^int32 [[external('__errno_location')]]
+func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]]
+func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]]
 
 const EINTR : int32 = 4
 
 const CLOCK_REALTIME  : int = 0
 const CLOCK_MONOTONIC : int = 1
 
-function Time() -> float64:
+func Time() -> float64:
     var tv : timespec
     tv.tv_sec = 0
     clock_gettime(CLOCK_REALTIME, %tv)
     result = tv.tv_sec + (tv.tv_nsec / 1000000000)
 endfunc
 
-function MilliTime() -> int64:
+func MilliTime() -> int64:
     var tv : timespec
     tv.tv_sec = 0
     clock_gettime(CLOCK_MONOTONIC, %tv)
     result = tv.tv_nsec div 1000000  + tv.tv_sec * 1000
 endfunc
 
-function MicroTime() -> int64:
+func MicroTime() -> int64:
     var tv : timespec
     tv.tv_sec = 0
     clock_gettime(CLOCK_MONOTONIC, %tv)
     result = tv.tv_nsec div 1000  + tv.tv_sec * 1000000
 endfunc
 
-function NanoTime() -> int64:
+func NanoTime() -> int64:
     var tv : timespec
     tv.tv_sec = 0
     clock_gettime(CLOCK_MONOTONIC, %tv)
     result = tv.tv_nsec + tv.tv_sec * 1000000000
 endfunc
 
-function SleepNanos(ansecs : int64):
+func SleepNanos(ansecs : int64):
     if ansecs <= 0:
         return
     endif
@@ -92,28 +92,28 @@ function SleepNanos(ansecs : int64):
     endwhile
 endfunc
 
-function SleepSecs(asecs : float64):
+func SleepSecs(asecs : float64):
     if asecs <= 0:
         return
     endif
     SleepNanos(Round(asecs * 1000000000))
 endfunc
 
-function SleepMillis(amillis : int64):
+func SleepMillis(amillis : int64):
     if amillis <= 0:
         return
     endif
     SleepNanos(amillis * 1000000)
 endfunc
 
-function SleepMicros(amicros : int64):
+func SleepMicros(amicros : int64):
     if amicros <= 0:
         return
     endif
     SleepNanos(amicros * 1000000000)
 endfunc
 
-function TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
+func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
     var seconds : int64 = Floor(atime)
     microseconds = Round((atime - seconds) * 1000000)
     if microseconds >= 1000000:
@@ -125,7 +125,7 @@ function TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64)
     return libc_localtime_r(%seconds, %atm) <> nil
 endfunc
 
-function FormatTm(fmt : strview, atm : ref tm) -> str:
+func FormatTm(fmt : strview, atm : ref tm) -> str:
     result = ''
     if fmt.length == 0:
         return
@@ -152,14 +152,14 @@ function FormatTm(fmt : strview, atm : ref tm) -> str:
     result = ''
 endfunc
 
-function LowerAscii(ch : char) -> char:
+func LowerAscii(ch : char) -> char:
     if ch >= 'A' and ch <= 'Z':
         return char(Ord(ch) - Ord('A') + Ord('a'))
     endif
     return ch
 endfunc
 
-function TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
+func TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
     if pos + token.length > fmt.length:
         return false
     endif
@@ -171,7 +171,7 @@ function TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
     return true
 endfunc
 
-function DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> str:
+func DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> str:
     result = ''
     var twelve_hour : bool = false
     for i : int = 0 count fmt.length:
@@ -317,7 +317,7 @@ function DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> 
     endwhile
 endfunc
 
-function FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatible (easier to remember)
+func FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatible (easier to remember)
     var atm : tm
     var microseconds : int64 = 0
     if not TimeToTm(atime, atm, microseconds):
@@ -326,7 +326,7 @@ function FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatib
     return FormatTm(DelphiToStrFTime(fmt, atm, microseconds), atm)
 endfunc
 
-function FormatTime2(fmt : strview, atime : float64) -> str:  // Python compatible
+func FormatTime2(fmt : strview, atime : float64) -> str:  // Python compatible
     var atm : tm
     var microseconds : int64 = 0
     if not TimeToTm(atime, atm, microseconds):

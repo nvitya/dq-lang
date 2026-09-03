@@ -6,7 +6,7 @@ use file
 
 var run <- OTestRun()
 
-function ExpectOccurrenceCount(text : strview, needle : strview, expected : int):
+func ExpectOccurrenceCount(text : strview, needle : strview, expected : int):
     var count : int = 0
     var start : int = 0
     while true:
@@ -22,7 +22,7 @@ function ExpectOccurrenceCount(text : strview, needle : strview, expected : int)
     endif
 endfunc
 
-function CompileTarget(target : strview, define : strview, expected_format : strview,
+func CompileTarget(target : strview, define : strview, expected_format : strview,
                        expected_arch : strview):
     var output : str = TempPath('.o')
     var target_arg : str = '--target=' + target
@@ -41,7 +41,7 @@ function CompileTarget(target : strview, define : strview, expected_format : str
     RemoveTemp(output)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     run.RunCompiler(['--targets'])
     run.ExpectExitCode(0)
     run.ExpectOutputContains('TARGET')
@@ -109,7 +109,7 @@ function *Main() -> int:
     var wasm_base : str = TempPath()
     var wasm_source : str = wasm_base + '.dq'
     var wasm : str = wasm_base + '.wasm'
-    FileWriteText(wasm_source, 'function *Main() -> int:\n    return 0\nendfunc\n')
+    FileWriteText(wasm_source, 'func *Main() -> int:\n    return 0\nendfunc\n')
     run.RunCompiler([
         '--target=wasm32_wasi', wasm_source
     ])

@@ -21,7 +21,7 @@ void OScopeBuiltins::Init()
   type_bool = new OTypeBool();
   DefineType(type_bool);
 
-  type_func = new OTypeFunc("function");
+  type_func = new OTypeFunc("func");
   DefineType(type_func);
 
   type_int8  = new OTypeInt("int8",   8, true);

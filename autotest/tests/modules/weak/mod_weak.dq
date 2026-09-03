@@ -1,9 +1,9 @@
 //?notest
 
-function WeakOverride() -> int [[weak, cexport]]
+func WeakOverride() -> int [[weak, cexport]]
 
 implementation
 
-function WeakOverride() -> int:
+func WeakOverride() -> int:
     return 1
 endfunc

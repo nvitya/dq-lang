@@ -2,24 +2,24 @@
 object OChild:
     value : int
 
-    function *Create():
+    func *Create():
         value = 21
     endfunc
-endobj
+endobject
 
 object OGlobal:
     child <- OChild()
     value : int
 
-    function *Create():
+    func *Create():
         value = 42
     endfunc
-endobj
+endobject
 
 var g_object <- OGlobal()
 
-function dq_module_init() [[external('dq_module_init')]]
+func dq_module_init() [[external('dq_module_init')]]
 
-function _start() [[cexport]]:
+func _start() [[cexport]]:
     dq_module_init()
 endfunc

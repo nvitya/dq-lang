@@ -3,7 +3,7 @@
 use libc/stdio
 use rtl/strfunc
 
-function PrintBytes(label : ^char, text : strview):
+func PrintBytes(label : ^char, text : strview):
     printf("%s = len:%li bytes:", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -13,7 +13,7 @@ function PrintBytes(label : ^char, text : strview):
     printf("\n")
 endfunc
 
-function PrintWCharArray(label : ^char, arr : []wchar):
+func PrintWCharArray(label : ^char, arr : []wchar):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -23,7 +23,7 @@ function PrintWCharArray(label : ^char, arr : []wchar):
     printf("\n")
 endfunc
 
-function PrintChar16Array(label : ^char, arr : []char16):
+func PrintChar16Array(label : ^char, arr : []char16):
     printf("%s = len:%li data:", label, arr.length)
     var i : int = 0
     while i < arr.length:
@@ -33,7 +33,7 @@ function PrintChar16Array(label : ^char, arr : []char16):
     printf("\n")
 endfunc
 
-function Flag(v : bool) -> int:
+func Flag(v : bool) -> int:
     if v:
         result = 1
     else:
@@ -41,7 +41,7 @@ function Flag(v : bool) -> int:
     endif
 endfunc
 
-function SampleUtf8() -> str:
+func SampleUtf8() -> str:
     result = ''
     result.Append('A')          // U+0041
     result.Append(char(0xC3))   // U+00E9
@@ -55,7 +55,7 @@ function SampleUtf8() -> str:
     result.Append(char(0x80))
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("string_strfunc_helpers = start\n") //?check("string_strfunc_helpers", "start")
 
     var sample : str = SampleUtf8()

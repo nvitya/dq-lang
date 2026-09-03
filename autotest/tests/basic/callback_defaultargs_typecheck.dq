@@ -2,22 +2,22 @@
 
 const rootarr : [2]int = [1, 2]
 
-function add(a : int, b : int) -> int:
+func add(a : int, b : int) -> int:
     result = a + b
 endfunc
 
-function need_two(a : int, b : int) -> int:
+func need_two(a : int, b : int) -> int:
     result = a + b
 endfunc
 
-var bad_order : function(a : int = 1, b : int) -> int  //?error(FuncParDefaultOrder)
-var bad_ref : function(a : ref int = 1) -> int  //?error(FuncParDefaultRef)
-var bad_nonconst : function(a : int = need_two(1, 2)) -> int  //?error(IntConstExpr)
-var bad_slice : function(arr : []int = rootarr) -> int  //?error(FuncParDefaultType)
+var bad_order : func(a : int = 1, b : int) -> int  //?error(FuncParDefaultOrder)
+var bad_ref : func(a : ref int = 1) -> int  //?error(FuncParDefaultRef)
+var bad_nonconst : func(a : int = need_two(1, 2)) -> int  //?error(IntConstExpr)
+var bad_slice : func(arr : []int = rootarr) -> int  //?error(FuncParDefaultType)
 
-type CBGood = function(a : int, b : int = 1) -> int
-type CBBadSig = function(a : int, b : int, c : int = 1) -> int
-function *Main() -> int:
+type CBGood = func(a : int, b : int = 1) -> int
+type CBBadSig = func(a : int, b : int, c : int = 1) -> int
+func *Main() -> int:
     var cb_ok : CBGood = add
     var cb_bad : CBBadSig = add  //?error(FuncSigType)
     return cb_ok(2)

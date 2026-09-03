@@ -11,7 +11,7 @@ reference, not the object's fields. It may contain `nil`.
 ```dq
 object OCounter:
     value : int = 0
-endobj
+endobject
 
 var counter : OCounter = nil
 ```
@@ -54,7 +54,7 @@ cleaned up in reverse order. The not-fully-constructed object is not returned.
 Construction proceeds base-to-derived; destruction proceeds derived-to-base.
 
 An inherited constructor or destructor can be invoked according to the special
-function rules. The compiler prevents accidental double invocation of the same
+func rules. The compiler prevents accidental double invocation of the same
 base lifetime operation.
 
 ## Members and Visibility

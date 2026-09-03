@@ -3,13 +3,13 @@
 use libc/stdio
 use rtl/strfunc
 
-function MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
+func MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data
     desc.charlen = alen
     desc.info = (alen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID
 endfunc
 
-function PrintText(label : ^char, s : ref ODynStrMgr):
+func PrintText(label : ^char, s : ref ODynStrMgr):
     var view : SDqTextInfo = {}
     DynStrGetFullView(s, view)
 
@@ -22,7 +22,7 @@ function PrintText(label : ^char, s : ref ODynStrMgr):
     printf("\"\n")
 endfunc
 
-function RunCoreOps():
+func RunCoreOps():
     var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
     var desc : SDqTextInfo = {}
@@ -53,7 +53,7 @@ function RunCoreOps():
     PrintText("clear-free", s)
 endfunc
 
-function RunOverlapClonePop():
+func RunOverlapClonePop():
     var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
     var desc : SDqTextInfo = {}
@@ -84,7 +84,7 @@ function RunOverlapClonePop():
     DynStrDecRef(head)
 endfunc
 
-function RunCopyOnWrite():
+func RunCopyOnWrite():
     var a : ODynStrMgr = nil
     var b : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
@@ -103,7 +103,7 @@ function RunCopyOnWrite():
     DynStrDecRef(b)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("DQ ODynStrMgr test\n") //?ignore("DQ ODynStrMgr test")
 
     RunCoreOps() //?check("assign", 'len:3 cap:3 text: "abc"')

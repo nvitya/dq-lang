@@ -1,53 +1,53 @@
-type UnaryCallback = function(value : int) -> int
+type UnaryCallback = func(value : int) -> int
 
-function *ModuleInit() [[inline, asm]]: //?error(AsmInlineUsage)
+func *ModuleInit() [[inline, asm]]: //?error(AsmInlineUsage)
     nop
 endfunc
 
-function Immediate(value : int, amount : int) -> int [[inline, asm]]:
+func Immediate(value : int, amount : int) -> int [[inline, asm]]:
     add $value, $amount
     [[immediate(amount), clobber(flags)]]
 endfunc
 
-function OverloadedImmediate(value : int, amount : int) -> int [[overload, inline, asm]]:
+func OverloadedImmediate(value : int, amount : int) -> int [[overload, inline, asm]]:
     add $value, $amount
     [[immediate(amount), clobber(flags)]]
 endfunc
 
-function OverloadedRegister(value : int) -> int [[overload, inline, asm]]:
+func OverloadedRegister(value : int) -> int [[overload, inline, asm]]:
     mov $result, $value
 endfunc
 
 var bad_callback : UnaryCallback = Immediate //?error(AsmFuncRef)
 var bad_overload_callback : UnaryCallback = OverloadedRegister //?error(AsmFuncRef)
 
-function MissingBody(value : int) [[inline, asm]] //?error(AsmFuncBody)
+func MissingBody(value : int) [[inline, asm]] //?error(AsmFuncBody)
 
-function ExternalInline(value : int) [[inline, asm, external]] //?error(AttrConflict)
+func ExternalInline(value : int) [[inline, asm, external]] //?error(AttrConflict)
 
-function NoInlineInline(value : int) [[inline, asm, noinline]]: //?error(AsmInlineUsage)
+func NoInlineInline(value : int) [[inline, asm, noinline]]: //?error(AsmInlineUsage)
     nop
 endfunc
 
-function WeakInline(value : int) [[inline, asm, weak]]: //?error(AsmInlineUsage)
+func WeakInline(value : int) [[inline, asm, weak]]: //?error(AsmInlineUsage)
     nop
 endfunc
 
-function ExportedInline(value : int) [[inline, asm, cexport]]: //?error(AsmInlineUsage)
+func ExportedInline(value : int) [[inline, asm, cexport]]: //?error(AsmInlineUsage)
     nop
 endfunc
 
-function SectionedInline(value : int) [[inline, asm, section(".text.inline")]]: //?error(AsmInlineUsage)
+func SectionedInline(value : int) [[inline, asm, section(".text.inline")]]: //?error(AsmInlineUsage)
     nop
 endfunc
 
 struct InlineAsmOwner:
-    function Method(value : int) [[inline, asm]]: //?error(AsmInlineUsage)
+    func Method(value : int) [[inline, asm]]: //?error(AsmInlineUsage)
         nop
     endfunc
 endstruct
 
-function *Main() -> int:
+func *Main() -> int:
     var dynamic_amount : int = 2
     Immediate(40, dynamic_amount) //?error(AsmImmediateConst)
     OverloadedImmediate(40, dynamic_amount) //?error(AsmImmediateConst)

@@ -1,7 +1,7 @@
-function SelectFirst(value : int):
+func SelectFirst(value : int):
     var selected : int = FirstInt(value, 0) //?error(ConstExprNonConstVs)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

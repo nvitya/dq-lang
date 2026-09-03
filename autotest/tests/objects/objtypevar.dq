@@ -2,53 +2,53 @@ use print
 
 object OBase:
     name : cstring(31)
-    function *Create():
+    func *Create():
         name = 'OBase'
     endfunc
 
-    function ShowName(aprefix : strview):
+    func ShowName(aprefix : strview):
         @.PrintLn('{} = {}', [aprefix, name])
     endfunc
-endobj
+endobject
 
 object OFirst(OBase):
-    function *Create():
+    func *Create():
         inherited Create()
         name.Add('.OFirst')
     endfunc
-endobj
+endobject
 
 object OSecond(OBase):
-    function *Create():
+    func *Create():
         inherited Create()
         name.Add('.OSecond')
     endfunc
-endobj
+endobject
 
 object OArgBase:
     v : int
 
-    function *Create(av : int):
+    func *Create(av : int):
         v = av
     endfunc
-endobj
+endobject
 
 object OArgGenerated(OArgBase):
-endobj
+endobject
 
 object OArgExplicit(OArgBase):
-    function *Create(av : int):
+    func *Create(av : int):
         inherited Create(av + 10)
     endfunc
-endobj
+endobject
 
-function ShowObjName(aprefix : strview, o : OBase):
+func ShowObjName(aprefix : strview, o : OBase):
     PrintLn('{} = {}', [aprefix, o.name])
 endfunc
 
 #define USE_TYPEVAR = true
 
-function *Main() -> int:
+func *Main() -> int:
     var o1 : OBase
     var o2 : OBase
 

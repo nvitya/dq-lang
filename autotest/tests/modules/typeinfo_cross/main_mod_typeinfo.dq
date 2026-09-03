@@ -1,7 +1,7 @@
 use ./mod_typeinfo
 use libc/stdio
 
-function *Main() -> int:
+func *Main() -> int:
     var o1 : OBase = CreateFirst()
     var o2 : OBase = CreateSecond()
 

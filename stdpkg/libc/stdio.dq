@@ -13,28 +13,28 @@
  * brief:   Very basic libc stdio interface for DQ
  */
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function DqLibcStdout() -> pointer
+func DqLibcStdout() -> pointer
 
 implementation
 
 #ifdef BARE
 
-    function DqLibcStdout() -> pointer:
+    func DqLibcStdout() -> pointer:
         return nil
     endfunc
 
 #elifdef WINDOWS
-    function libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]]
+    func libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]]
 
-    function DqLibcStdout() -> pointer:
+    func DqLibcStdout() -> pointer:
         return libc___acrt_iob_func(1)
     endfunc
 #else
     var libc_stdout : pointer [[external('stdout')]]
 
-    function DqLibcStdout() -> pointer:
+    func DqLibcStdout() -> pointer:
         return libc_stdout
     endfunc
 #endif

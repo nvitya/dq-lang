@@ -4,17 +4,17 @@ object ONode:
     left  : ONode
     right : ONode
 
-    function *Create(aleft : ONode, aright : ONode)
-    function *Destroy()
-    function NodeCount() -> int
-endobj
+    func *Create(aleft : ONode, aright : ONode)
+    func *Destroy()
+    func NodeCount() -> int
+endobject
 
-function ONode.*Create(aleft : ONode, aright : ONode):
+func ONode.*Create(aleft : ONode, aright : ONode):
     left  = aleft
     right = aright
 endfunc
 
-function ONode.*Destroy():
+func ONode.*Destroy():
     if left <> nil:
         delete left
     endif
@@ -23,7 +23,7 @@ function ONode.*Destroy():
     endif
 endfunc
 
-function ONode.NodeCount() -> int:
+func ONode.NodeCount() -> int:
     result = 1
     if left <> nil:
         result += left.NodeCount()
@@ -33,24 +33,24 @@ function ONode.NodeCount() -> int:
     endif
 endfunc
 
-function BuildTree(depth : int) -> ONode:
+func BuildTree(depth : int) -> ONode:
     if depth == 0:
         return new ONode(nil, nil)
     endif
     return new ONode( BuildTree(depth - 1), BuildTree(depth - 1) )
 endfunc
 
-function CountDepth(depth : int) -> int:
+func CountDepth(depth : int) -> int:
     var lnode : ONode = BuildTree(depth)
     result = lnode.NodeCount()
     delete lnode  
 endfunc
 
-function StrechToDepth(depth : int):
+func StrechToDepth(depth : int):
     PrintLn('stretch tree of depth {}\t check: {}', [depth, CountDepth(depth)])
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn("DQ")
     var n : int = 10
     if ArgCount() > 1:

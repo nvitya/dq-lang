@@ -1,6 +1,6 @@
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function test_error_recovery():
+func test_error_recovery():
     var a : int = 10
     var b : int = 20
 
@@ -12,7 +12,7 @@ function test_error_recovery():
     endif
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     test_error_recovery()
     return 0
 endfunc

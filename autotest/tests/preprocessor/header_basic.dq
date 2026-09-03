@@ -2,9 +2,9 @@ use rtl/rtlint
 
 #include header
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     printf("header value = %d\n", HEADER_VALUE) //?check("header value", 36)
     return 0
 endfunc

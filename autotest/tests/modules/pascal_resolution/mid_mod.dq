@@ -3,4 +3,4 @@ use ./base_mod // Not reexported!
 
 object TMidClass(TBaseClass):
   mid_val: int
-endobj
+endobject

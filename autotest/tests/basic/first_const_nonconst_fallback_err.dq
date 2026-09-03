@@ -1,7 +1,7 @@
-function SelectFallback(value : int):
+func SelectFallback(value : int):
     var selected : int = FirstInt(MISSING_VALUE, value) //?error(ConstExprNonConstVs)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

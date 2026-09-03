@@ -1,8 +1,8 @@
 use ./mid_mod
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
   var mid <- TMidClass
   mid.mid_val = 10
   mid.base_val = 42

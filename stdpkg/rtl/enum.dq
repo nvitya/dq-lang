@@ -13,7 +13,7 @@
  * brief:   Runtime support for checked enum conversion.
  */
 
-function DqEnumInvalidOrd()
+func DqEnumInvalidOrd()
 
 implementation
 
@@ -23,7 +23,7 @@ use rtl/exception
 use rtl/mem
 #endif
 
-function DqEnumInvalidOrd():
+func DqEnumInvalidOrd():
 #ifdef EXCEPTIONS
     raise new Exception("Invalid enum ordinal")
 #else

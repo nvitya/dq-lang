@@ -30,7 +30,7 @@ DQ programs are written in `.dq` files.
 ```dq
 use print
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn("hello from DQ")
     return 0
 endfunc
@@ -55,7 +55,7 @@ dq-comp -g -O0 hello.dq
 A program entry point is a special function named `*Main`.
 
 ```dq
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 ```
@@ -69,7 +69,7 @@ Program arguments are available through the implicit runtime module.
 ```dq
 use print
 
-function *Main() -> int:
+func *Main() -> int:
     for i : int = 0 count ArgCount():
         PrintLn("arg {} = {}", [i, ArgStr(i)])
     endfor

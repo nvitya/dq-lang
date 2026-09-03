@@ -1,8 +1,8 @@
 // Basic exception handling smoke test.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         raise Exception("hello")
     except Exception as e:

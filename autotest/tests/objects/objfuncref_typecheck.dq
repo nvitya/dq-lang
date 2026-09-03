@@ -1,28 +1,28 @@
-// object function reference type checking tests (ERROR test)
+// object func reference type checking tests (ERROR test)
 
-type FObjText = function(msg : cstring) of object
-type FObjInt = function(v : int) of object
-type FObjFloat = function(v : float) of object
-type FPlainText = function(msg : cstring)
+type FObjText = func(msg : cstring) of object
+type FObjInt = func(v : int) of object
+type FObjFloat = func(v : float) of object
+type FPlainText = func(msg : cstring)
 
-function plain(msg : cstring):
+func plain(msg : cstring):
 endfunc
 
 object OCallback:
-    function *Create():
+    func *Create():
     endfunc
 
-    function Print(msg : cstring):
+    func Print(msg : cstring):
     endfunc
 
-    function Pick(msg : cstring) [[overload]]:
+    func Pick(msg : cstring) [[overload]]:
     endfunc
 
-    function Pick(v : int) [[overload]]:
+    func Pick(v : int) [[overload]]:
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var obj <- OCallback()
     var obj_text : FObjText = nil
     var obj_int : FObjInt = nil

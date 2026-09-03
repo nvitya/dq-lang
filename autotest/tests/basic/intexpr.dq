@@ -1,8 +1,8 @@
 // DQ integer expression auto-test
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function compare_ints(a : int, b : int) -> int:
+func compare_ints(a : int, b : int) -> int:
     if a < b:
         return -1
     elif a > b:
@@ -12,7 +12,7 @@ function compare_ints(a : int, b : int) -> int:
     endif
 endfunc
 
-function compare_uint16(a : uint16, b : uint16) -> int:
+func compare_uint16(a : uint16, b : uint16) -> int:
     if a < b:
         return -1
     elif a > b:
@@ -22,7 +22,7 @@ function compare_uint16(a : uint16, b : uint16) -> int:
     endif
 endfunc
 
-function compare_int16(a : int16, b : int16) -> int:
+func compare_int16(a : int16, b : int16) -> int:
     if a < b:
         return -1
     elif a > b:
@@ -32,7 +32,7 @@ function compare_int16(a : int16, b : int16) -> int:
     endif
 endfunc
 
-function compare_int16_int32(a : int16, b : int32) -> int:
+func compare_int16_int32(a : int16, b : int32) -> int:
     if a < b:
         return -1
     elif a > b:
@@ -42,7 +42,7 @@ function compare_int16_int32(a : int16, b : int32) -> int:
     endif
 endfunc
 
-function sum_ints(a : int, b : int) -> int:
+func sum_ints(a : int, b : int) -> int:
     result = 0
     var i : int = a
     while i <= b:
@@ -51,7 +51,7 @@ function sum_ints(a : int, b : int) -> int:
     endwhile
 endfunc
 
-function sum_ints2(a : int, b : int) -> int
+func sum_ints2(a : int, b : int) -> int
 {
     result = 0
     var i : int = a
@@ -62,10 +62,10 @@ function sum_ints2(a : int, b : int) -> int
     }
 }
 
-function mask_bit(a : int, bitnum : int) -> int:
+func mask_bit(a : int, bitnum : int) -> int:
     result = a & 1 << bitnum
 endfunc
-function *Main() -> int:
+func *Main() -> int:
     var i : int
 
     printf("DQ Integer expression test\n")  //?ignore('DQ Integer expression test')

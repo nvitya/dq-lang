@@ -3,38 +3,38 @@
 object OTest:
     value : int
 
-    function *Create():
+    func *Create():
     endfunc
 
-    function *Destroy(a : int): //?error(SpecialFuncSignature)
+    func *Destroy(a : int): //?error(SpecialFuncSignature)
     endfunc
-endobj
+endobject
 
 object OMissing:
     child <- OTest
 
-    function *Create():
+    func *Create():
     endfunc //?error(SpecialFuncInvalid)
-endobj
+endobject
 
 object ODouble:
     child <- OTest()
 
-    function *Create():
+    func *Create():
         child.Create() //?error(SpecialFuncInvalid)
     endfunc
-endobj
+endobject
 
 object OPrivate:
 private
     secret : int
 public
-    function Get() -> int:
+    func Get() -> int:
         result = secret
     endfunc
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     result = 0
 
     var fixed <- OTest()

@@ -64,8 +64,8 @@ const string dq_reserved_words =
    "|and|not|or|is|as"
    "|xor|div|mod"
    "|nil"
-   "|function|use|implementation"
-   "|struct|endstruct|union|endunion|object|endobj"
+   "|func|use|implementation"
+   "|struct|endstruct|union|endunion|object|endobject"
    "|"
 ;
 
@@ -84,7 +84,7 @@ bool ODqCompBase::ReservedWord(const string aname)
 
 const string dq_root_statement_words =
    "|var|const|type"
-   "|function|use|implementation"
+   "|func|use|implementation"
    "|struct|union|object"
    "|"
 ;
@@ -104,7 +104,7 @@ bool ODqCompBase::RootStatementWord(const string aname)
 
 const string dq_block_closer_words =
    "|endfor|endwhile|endif|endfunc|endtry|except|finally|else|elif"
-   "|endstruct|endobj|endconst|endenum|endunion|endclass"
+   "|endstruct|endobject|endconst|endenum|endunion|endclass"
    "|"
 ;
 

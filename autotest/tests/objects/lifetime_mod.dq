@@ -5,12 +5,12 @@ use libc/stdio
 object OModChild:
     id : int
 
-    function *Create(a : int):
+    func *Create(a : int):
         id = a
         @.printf("modchild.create = %d\n", id)
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         @.printf("modchild.destroy = %d\n", id)
     endfunc
-endobj
+endobject

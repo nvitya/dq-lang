@@ -67,7 +67,7 @@ public: // expressions
 
 public: // type parsing
   OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^T, [N]T, []T
-  OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "function");
+  OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "func");
 
 public: // utility from parser that are needed early
   bool ParseParamModeKeyword(const string & sid, EParamMode & rmode);

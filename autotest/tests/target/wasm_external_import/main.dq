@@ -1,7 +1,7 @@
 //?notest
 use ./console_import
 
-function RunImports() [[cexport]]:
+func RunImports() [[cexport]]:
     ConsoleStr(0, 0, 0)
     ConsoleNl()
 endfunc

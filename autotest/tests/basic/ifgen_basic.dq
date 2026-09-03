@@ -27,22 +27,22 @@ object OIfgenBox:
     tag   : byte
     value : TIfgenValue
 
-    function Get() -> int:
+    func Get() -> int:
         result = value
     endfunc
-endobj
+endobject
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function IfgenAdd(a : int, b : int) -> int:
+func IfgenAdd(a : int, b : int) -> int:
     result = a + b + IFGEN_BASE
 endfunc
 
-function IfgenSliceLen(values : []int) -> int:
+func IfgenSliceLen(values : []int) -> int:
     result = Len(values)
 endfunc
 
-function testfunc() -> int:
+func testfunc() -> int:
     var pair : SIfgenPair = {}
     pair.left = 2
     pair.right = 3
@@ -57,6 +57,6 @@ endfunc
 
 implementation
 
-function IfgenPrivateHelper(v : int) -> int:
+func IfgenPrivateHelper(v : int) -> int:
     result = v + 1
 endfunc

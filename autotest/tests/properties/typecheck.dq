@@ -5,54 +5,54 @@ private
     int_value : int = 0
     float_value : float = 0
 
-    function GetInt() -> int:
+    func GetInt() -> int:
         return int_value
     endfunc
 
-    function GetFloat() -> float:
+    func GetFloat() -> float:
         return float_value
     endfunc
 
-    function GetVoid():
+    func GetVoid():
     endfunc
 
-    function GetWithParameter(index : int) -> int:
+    func GetWithParameter(index : int) -> int:
         return index
     endfunc
 
-    function SetInt(value : int):
+    func SetInt(value : int):
         int_value = value
     endfunc
 
-    function SetFloat(value : float):
+    func SetFloat(value : float):
         float_value = value
     endfunc
 
-    function SetReturnsValue(value : int) -> int:
+    func SetReturnsValue(value : int) -> int:
         return value
     endfunc
 
-    function SetRef(value : ref int):
+    func SetRef(value : ref int):
         value = 1
     endfunc
 
-    function SetRefOut(value : refout int):
+    func SetRefOut(value : refout int):
         value = 1
     endfunc
 
-    function GetIndexed(index : int) -> int:
+    func GetIndexed(index : int) -> int:
         return index
     endfunc
 
-    function GetIndexedWrongType(index : float) -> int:
+    func GetIndexedWrongType(index : float) -> int:
         return Round(index)
     endfunc
 
-    function SetIndexed(index : int, value : int):
+    func SetIndexed(index : int, value : int):
         int_value = index + value
     endfunc
 
-    function SetIndexedWrongOrder(value : int, index : float):
+    func SetIndexedWrongOrder(value : int, index : float):
         int_value = value + Round(index)
     endfunc
 
@@ -74,9 +74,9 @@ public
     property bad_index_field : [int]int read int_value //?error(PropertyIndexedAccessorMethod)
     property bad_index_type : [int]int read GetIndexedWrongType //?error(PropertyAccessorType)
     property bad_index_setter : [int]int write SetIndexedWrongOrder //?error(PropertyAccessorSignature)
-endobj
+endobject
 
-function *Main() -> int:
+func *Main() -> int:
     var obj <- OPropertyTypecheck()
 
     var read_writeonly : int = obj.writeonly //?error(PropertyWriteOnly)

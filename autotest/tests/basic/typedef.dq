@@ -6,8 +6,8 @@ var f1 : TFloat = 1
 var f2 : TFloat = 2
 var f64 : float = 5.5
 
-function printf(fmt : ^char, ...) -> int [[external]]
-function *Main() -> int:
+func printf(fmt : ^char, ...) -> int [[external]]
+func *Main() -> int:
     printf('DQ Typedef test\n')    //?ignore('DQ Typedef test')
     var f : TFloat = f1
     printf('float = %.3f\n', 0.1)  //?check(float, 0.100)

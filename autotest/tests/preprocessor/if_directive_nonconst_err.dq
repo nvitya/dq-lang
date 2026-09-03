@@ -1,7 +1,7 @@
-function CheckCondition(flag : bool):
+func CheckCondition(flag : bool):
     var selected : int = #{if flag} 1 #{else} 0 #{endif} //?error(ConstExprNonConstVs)
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

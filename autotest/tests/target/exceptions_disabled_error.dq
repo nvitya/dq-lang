@@ -2,7 +2,7 @@
 // Focused diagnostics for exception statements in exception-free builds.
 
 #ifdef TEST_TRY
-function TestTry():
+func TestTry():
     try:
     except:
     endtry
@@ -10,7 +10,7 @@ endfunc
 #endif
 
 #ifdef TEST_FINALLY
-function TestFinally():
+func TestFinally():
     try:
     finally:
     endtry
@@ -18,13 +18,13 @@ endfunc
 #endif
 
 #ifdef TEST_VALUE_RAISE
-function TestValueRaise():
+func TestValueRaise():
     raise Exception("disabled")
 endfunc
 #endif
 
 #ifdef TEST_RERAISE
-function TestReraise():
+func TestReraise():
     raise
 endfunc
 #endif

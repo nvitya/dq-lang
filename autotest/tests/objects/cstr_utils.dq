@@ -1,6 +1,6 @@
 //?notest
 
-function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library function
+func cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
     var pd     : ^char = %dst[0]
@@ -16,7 +16,7 @@ function cstr_set(dst : cstring, src : cstring):  // later this will be a DQ lib
     pd^ = char(0) // terminate
 endfunc
 
-function cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library function
+func cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + SizeOf(src)
     var pd     : ^char = %dst[0]

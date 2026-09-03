@@ -13,6 +13,6 @@ var missing_first_compiler_argument : OMissingCompilerArgument
 var missing_second_compiler_argument : OMissingCompilerArgument
 #endif
 
-function BuildOnlyValue() -> int:
+func BuildOnlyValue() -> int:
     return 42
 endfunc

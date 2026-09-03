@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Linux
  */
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]
+func main(argc : int, argv : ^^char) -> int  [[cexport]]
 
 implementation
 
@@ -26,26 +26,26 @@ use rtl/prgargs
 use libc/stdio
 
 // These functions created by the DQ compiler:
-function dq_main() -> int  [[external('dq_main')]]
-function dq_module_init()  [[external('dq_module_init')]]
+func dq_main() -> int  [[external('dq_main')]]
+func dq_module_init()  [[external('dq_module_init')]]
 
 #ifdef EXCEPTIONS
 
 // SIGSEGV Signal handling, converting SIGSEGV to Exception
 
 object ESegFault(Exception):
-endobj
+endobject
 
 const DQ_SIGSEGV_JMP_SIZE     : int = 32
 const DQ_SIGNAL_BACKTRACE_MAX : int = 32
 
-type FSignalHandler = function(signum : int)
+type FSignalHandler = func(signum : int)
 
-function libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]]
-function libc_raise(signum : int) -> int [[external('raise')]]
-function libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]]
-function libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]]
-function libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
+func libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]]
+func libc_raise(signum : int) -> int [[external('raise')]]
+func libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]]
+func libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]]
+func libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
 
 const SIG_DFL  : FSignalHandler = nil
 const SIGSEGV  : int = 11
@@ -57,11 +57,11 @@ var dq_sigsegv_guard_active : int = 0
 var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
 
-function OsRtErrorHandler(emsg : ^char):
+func OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
-function DqSigSegvHandler(signum : int):
+func DqSigSegvHandler(signum : int):
     dq_sigsegv_signal = signum
     dq_sigsegv_backtrace_count = libc_backtrace(%dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
@@ -77,19 +77,19 @@ function DqSigSegvHandler(signum : int):
     libc_raise(signum)
 endfunc
 
-function SigSegvMessage() -> ^char:
+func SigSegvMessage() -> ^char:
     if dq_sigsegv_signal == SIGSEGV:
         return "Segmentation fault"
     endif
     return "fatal signal"
 endfunc
 
-function RaiseSignalException():
+func RaiseSignalException():
     DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
                                         %dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 
-function PrintException(e : Exception) -> int:
+func PrintException(e : Exception) -> int:
     printf("\nUNCAUGHT EXCEPTION: ")
     printf("%s", TypeName(e))
     printf(": ")
@@ -99,18 +99,18 @@ function PrintException(e : Exception) -> int:
     return -1
 endfunc
 
-function PrintUncaughtException() -> int:
+func PrintUncaughtException() -> int:
     result = PrintException(DqExcCurrent())
     DqExcClear()
 endfunc
 
 //-----------------------------------------------------------------------------
 
-function RunHostedMain() -> int:
+func RunHostedMain() -> int:
     result = 0
     dq_sigsegv_guard_active = 1
 
-    // the libc___sigsetjmp function takes a "snapshot" of the current CPU state
+    // the libc___sigsetjmp func takes a "snapshot" of the current CPU state
     // (registers, stack pointer, instruction pointer, and the current signal mask)
     // and stores it in the dq_sigsegv_jmp array.
     // On the first pass it returns 0
@@ -155,7 +155,7 @@ endfunc
 
 // libc entry point 'main()'
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+func main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
 
@@ -171,14 +171,14 @@ endfunc
 
 #else
 
-function libc_exit(status : int) [[external('exit')]]
+func libc_exit(status : int) [[external('exit')]]
 
-function OsRtErrorHandler(emsg : ^char):
+func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)
     libc_exit(-1)
 endfunc
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+func main(argc : int, argv : ^^char) -> int  [[cexport]]:
     rterror_handler = OsRtErrorHandler
     @prgargs.__sys_init_params(argc, argv)
     dq_module_init()

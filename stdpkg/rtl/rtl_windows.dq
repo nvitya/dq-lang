@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Windows
  */
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]
+func main(argc : int, argv : ^^char) -> int  [[cexport]]
 
 implementation
 
@@ -27,15 +27,15 @@ use rtl/mem
 use libc/stdio
 
 // These functions are created by the DQ compiler:
-function dq_main() -> int  [[external('dq_main')]]
-function dq_module_init()  [[external('dq_module_init')]]
+func dq_main() -> int  [[external('dq_main')]]
+func dq_module_init()  [[external('dq_module_init')]]
 
 #ifdef EXCEPTIONS
 
 // Windows structured exception handling, converting page faults to Exception
 
 object ESegFault(Exception):
-endobj
+endobject
 
 const DQ_WIN_FAULT_BACKTRACE_MAX : int = 32
 
@@ -48,10 +48,10 @@ struct SDqWinExceptionPointers:
     ContextRecord   : pointer
 endstruct
 
-type FWinExceptionFilter = function(exception_info : pointer) -> int32
+type FWinExceptionFilter = func(exception_info : pointer) -> int32
 
-function win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]]
-function win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+func win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]]
+func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
 
 const EXCEPTION_ACCESS_VIOLATION : uint32 = 0xC0000005
 const EXCEPTION_CONTINUE_SEARCH  : int32 = 0
@@ -61,11 +61,11 @@ var dq_win_fault_backtrace : [DQ_WIN_FAULT_BACKTRACE_MAX] pointer
 var dq_win_fault_handling : int = 0
 var dq_win_fault_backtrace_count : int = 0
 
-function OsRtErrorHandler(emsg : ^char):
+func OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
-function DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
+func DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
     if exception_info == nil:
         return false
     endif
@@ -78,7 +78,7 @@ function DqWinFaultIsAccessViolation(exception_info : pointer) -> bool:
     return info.ExceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION
 endfunc
 
-function PrintException(e : Exception) -> int:
+func PrintException(e : Exception) -> int:
     printf("\nUNCAUGHT EXCEPTION: ")
     printf("%s", TypeName(e))
     printf(": ")
@@ -88,12 +88,12 @@ function PrintException(e : Exception) -> int:
     return -1
 endfunc
 
-function PrintUncaughtException() -> int:
+func PrintUncaughtException() -> int:
     result = PrintException(DqExcCurrent())
     DqExcClear()
 endfunc
 
-function DqWinFaultHandler(exception_info : pointer) -> int32:
+func DqWinFaultHandler(exception_info : pointer) -> int32:
     if dq_win_fault_handling <> 0  or  not DqWinFaultIsAccessViolation(exception_info):
         return EXCEPTION_CONTINUE_SEARCH
     endif
@@ -116,7 +116,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-function RunHostedMain() -> int:
+func RunHostedMain() -> int:
     result = 0
     try:
         dq_module_init()
@@ -141,7 +141,7 @@ endfunc
 
 // libc entry point 'main()'
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+func main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
     DqPrepareBacktrace()
@@ -157,14 +157,14 @@ endfunc
 
 #else
 
-function win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
 
-function OsRtErrorHandler(emsg : ^char):
+func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)
     win_ExitProcess(uint32(255))
 endfunc
 
-function main(argc : int, argv : ^^char) -> int  [[cexport]]:
+func main(argc : int, argv : ^^char) -> int  [[cexport]]:
     rterror_handler = OsRtErrorHandler
     @prgargs.__sys_init_params(argc, argv)
     dq_module_init()

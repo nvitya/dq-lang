@@ -9,7 +9,7 @@ var speed_x : int = SPEED
 var speed_y : int = SPEED
 
 // Returns y in the upper 16 bits and x in the lower 16 bits.
-function Step(max_x : int, max_y : int) -> uint32 [[cexport]]:
+func Step(max_x : int, max_y : int) -> uint32 [[cexport]]:
     rect_x += speed_x
     rect_y += speed_y
 

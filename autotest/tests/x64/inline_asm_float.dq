@@ -1,14 +1,14 @@
 use libc/stdio
 
-function Sqrt32(value : float32) -> float32 [[inline, asm]]:
+func Sqrt32(value : float32) -> float32 [[inline, asm]]:
     sqrtss  $result, $value
 endfunc
 
-function Sqrt64(value : float64) -> float64 [[inline, asm]]:
+func Sqrt64(value : float64) -> float64 [[inline, asm]]:
     sqrtsd  $result, $value
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     printf("inline_asm.float32 = %.1f\n", Sqrt32(81.0))
     //?check("inline_asm.float32", 9.0)
 

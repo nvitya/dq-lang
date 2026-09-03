@@ -1,10 +1,10 @@
 // FromOrd(value) rejects values not explicitly declared by the enum.
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 
-function *Main() -> int:
+func *Main() -> int:
     var reached : bool = false
 
     try:

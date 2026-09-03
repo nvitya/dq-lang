@@ -8,7 +8,7 @@ struct STest:
     fval   : float32
 endstruct
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('DQ File IO Test')
 
     DirCreate('.tmp', true)

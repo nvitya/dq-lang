@@ -11,6 +11,6 @@
   #endif
 #endif
 
-function ClearMemory(p : pointer):
+func ClearMemory(p : pointer):
     MemSet(p, 0, 0)
 endfunc

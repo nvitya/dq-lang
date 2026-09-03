@@ -4,6 +4,6 @@ object OSelfRefObject:
     parent   : OSelfRefObject
     children : [*]OSelfRefObject
     value    : int
-endobj
+endobject
 
 implementation

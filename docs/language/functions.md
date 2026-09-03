@@ -1,12 +1,12 @@
 # Functions
 
-Functions are declared with `function`.
+Functions are declared with `func`.
 
 For exact signature, parameter-mode, overload, and result rules, see the
 [Functions reference](../reference/functions.md).
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     return a + b
 endfunc
 ```
@@ -14,7 +14,7 @@ endfunc
 When there is no return value, omit `->`.
 
 ```dq
-function Log(value : int):
+func Log(value : int):
     // ...
 endfunc
 ```
@@ -24,13 +24,13 @@ endfunc
 A function signature may be declared without a body.
 
 ```dq
-function Add(a : int, b : int) -> int
+func Add(a : int, b : int) -> int
 ```
 
 The definition provides the body.
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     return a + b
 endfunc
 ```
@@ -38,7 +38,7 @@ endfunc
 External functions are declarations connected to symbols outside DQ.
 
 ```dq
-function printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 ## Return Values
@@ -46,7 +46,7 @@ function printf(fmt : ^char, ...) -> int  [[external]]
 Functions with a return type have a built-in `result` variable.
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     result = a + b
 endfunc
 ```
@@ -54,7 +54,7 @@ endfunc
 `return value` is also supported.
 
 ```dq
-function Add(a : int, b : int) -> int:
+func Add(a : int, b : int) -> int:
     return a + b
 endfunc
 ```
@@ -64,7 +64,7 @@ endfunc
 The default parameter mode is by value.
 
 ```dq
-function IncCopy(value : int) -> int:
+func IncCopy(value : int) -> int:
     return value + 1
 endfunc
 ```
@@ -79,19 +79,19 @@ Reference parameter modes are:
 | `refnull` | Nullable reference |
 
 ```dq
-function SetValue(value : ref int):
+func SetValue(value : ref int):
     value = 5
 endfunc
 
-function SumInput(value : refin int) -> int:
+func SumInput(value : refin int) -> int:
     return value + 1
 endfunc
 
-function MakeValue(value : refout int):
+func MakeValue(value : refout int):
     value = 33
 endfunc
 
-function MaybeSet(value : refnull int):
+func MaybeSet(value : refnull int):
     if %value == nil:
         return
     endif
@@ -107,7 +107,7 @@ tests whether a real storage location was supplied.
 Parameters may have default values.
 
 ```dq
-function Repeat(text : strview, count : int = 1):
+func Repeat(text : strview, count : int = 1):
     // ...
 endfunc
 ```
@@ -119,7 +119,7 @@ Default arguments are used when the caller omits the trailing argument.
 External functions can declare C-style variable arguments with `...`.
 
 ```dq
-function printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]]
 ```
 
 DQ library functions commonly use `[]anyvalue` for type-checked variable value
@@ -134,11 +134,11 @@ Print("{} {}", ["value", 123])
 Overloaded functions and methods must be marked with `[[overload]]`.
 
 ```dq
-function Print(value : int) [[overload]]:
+func Print(value : int) [[overload]]:
     // ...
 endfunc
 
-function Print(value : strview) [[overload]]:
+func Print(value : strview) [[overload]]:
     // ...
 endfunc
 ```
@@ -150,9 +150,9 @@ The overload set is selected by argument types.
 Function reference types are declared with `type`.
 
 ```dq
-type FUnary = function(value : int) -> int
+type FUnary = func(value : int) -> int
 
-function Inc(value : int) -> int:
+func Inc(value : int) -> int:
     return value + 1
 endfunc
 
@@ -168,7 +168,7 @@ The pointer does not carry signature information, so the declared function
 reference signature determines how an indirect call is generated.
 
 ```dq
-type FHandler = function()
+type FHandler = func()
 var raw : pointer = GetHandlerAddress()
 var handler : FHandler = FHandler(raw)
 ```
@@ -185,7 +185,7 @@ endif
 Object method references add `of object`.
 
 ```dq
-type FObjText = function(msg : cstring) of object
+type FObjText = func(msg : cstring) of object
 ```
 
 ## Special Functions
@@ -195,7 +195,7 @@ Names beginning with `*` are special-purpose functions.
 `*Main` is the program entry point.
 
 ```dq
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc
 ```
@@ -205,7 +205,7 @@ endfunc
 ```dq
 var g_handler : OHandler = nil
 
-function *ModuleInit():
+func *ModuleInit():
     g_handler = new OHandler()
 endfunc
 ```
@@ -219,12 +219,12 @@ including generated constructors for global fixed objects.
 
 ```dq
 object OThing:
-    function *Create(value : int):
+    func *Create(value : int):
         // ...
     endfunc
 
-    function *Destroy():
+    func *Destroy():
         // ...
     endfunc
-endobj
+endobject
 ```

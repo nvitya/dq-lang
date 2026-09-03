@@ -5,44 +5,44 @@ const OUTER_A : int = 5
 
 object OMethodUseErrors:
 public
-    function BranchScope():
+    func BranchScope():
         if true:
             use .
         endif
         var v : int = OUTER_A  //?error(ObjVsInModuleNs)
     endfunc
 
-    function DotDoesNotImport():
+    func DotDoesNotImport():
         use .
         var v : int = ONLY_A  //?error(ObjVsInModuleNs, 'Use "@exclm.ONLY_A"')
     endfunc
 
-    function OnlyDoesNotIncludeHidden():
+    func OnlyDoesNotIncludeHidden():
         use onlym
         var v : int = HIDDEN_A  //?error(VsUnknown)
     endfunc
 
-    function LocalNamespaceDoesNotImport():
+    func LocalNamespaceDoesNotImport():
         var v : int = @..ONLY_A  //?error(NsVsUnknown)
     endfunc
 
-    function UnknownAlias():
+    func UnknownAlias():
         use missing_alias  //?error(MethodUseInvalid)
     endfunc
 
-    function StarWithAlias():
+    func StarWithAlias():
         use *, onlym  //?error(MethodUseInvalid)
     endfunc
 
-    function StarWithDot():
+    func StarWithDot():
         use *, .  //?error(MethodUseInvalid)
     endfunc
 
-    function ModifierSyntax():
+    func ModifierSyntax():
         use only  //?error(MethodUseInvalid)
     endfunc
-endobj
+endobject
 
-function NormalFunctionUse():
+func NormalFunctionUse():
     use .  //?error(MethodUseInvalid)
 endfunc

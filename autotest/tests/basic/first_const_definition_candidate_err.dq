@@ -2,6 +2,6 @@
 
 const SELECTED : int = FirstInt(@def.DEFINITION_VALUE, 0) //?error(FuncArgList), error(ExprWrongValue)
 
-function *Main() -> int:
+func *Main() -> int:
     return 0
 endfunc

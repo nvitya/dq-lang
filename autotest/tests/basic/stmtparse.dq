@@ -6,10 +6,10 @@ struct SItem:
     value : int
 endstruct
 
-function dq_void_call():
+func dq_void_call():
 endfunc
 
-function dq_stmt_targets():
+func dq_stmt_targets():
     var x : int
     var y : int = 3
     var arr : [2]int
@@ -48,7 +48,7 @@ function dq_stmt_targets():
     dq_void_call()
 endfunc
 
-function dq_invalid_expr():
+func dq_invalid_expr():
     var x : int = 1
     x + 1  //?error(StmtAssignOrFCallExp)
 endfunc

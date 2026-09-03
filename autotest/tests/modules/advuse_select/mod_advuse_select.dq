@@ -6,13 +6,13 @@ const EXCL_CONST : int = 11
 var sel_var : int = 5
 var hidden_var : int = 13
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
-function sel_func(a : int) -> int:
+func sel_func(a : int) -> int:
     result = a + 3
 endfunc
 
-function hidden_func(a : int) -> int:
+func hidden_func(a : int) -> int:
     result = a * 2
 endfunc
 

@@ -2,20 +2,20 @@
 
 use rtl/exception
 
-function printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]]
 
 object EDerived(Exception):
 public
-    function *Create(amsg : strview):
+    func *Create(amsg : strview):
         inherited Create(amsg)
     endfunc
-endobj
+endobject
 
-function ThrowDerived():
+func ThrowDerived():
     raise EDerived("derived")
 endfunc
 
-function Rethrower():
+func Rethrower():
     try:
         raise Exception("again")
     except Exception:
@@ -23,7 +23,7 @@ function Rethrower():
     endtry
 endfunc
 
-function *Main() -> int:
+func *Main() -> int:
     try:
         ThrowDerived()
     except Exception as e:

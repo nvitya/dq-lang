@@ -2,7 +2,7 @@
 use print
 use ./nanotime
 
-function *Main() -> int:
+func *Main() -> int:
     PrintLn('Time measurement test')
 
     var iarr : [8]int64

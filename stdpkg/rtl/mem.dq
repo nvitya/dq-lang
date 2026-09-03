@@ -10,33 +10,33 @@
  * file:    rtl/mem.dq
  * authors: nvitya
  * created: 2026-07-06
- * brief:   DQ memory handling function
+ * brief:   DQ memory handling func
  */
 
-function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer
-function MemFree(memptr : pointer)
-function MemFreeRef(memptrvar : ref pointer)
+func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer
+func MemFree(memptr : pointer)
+func MemFreeRef(memptrvar : ref pointer)
 
-function MemRealloc(memptr : pointer, newsize : uint) -> pointer
-function MemReallocRef(memptr : ref pointer, newsize : uint)
+func MemRealloc(memptr : pointer, newsize : uint) -> pointer
+func MemReallocRef(memptr : ref pointer, newsize : uint)
 
-function MemCopy(dest : pointer, src : pointer, size : uint)
-function MemSet(dest : pointer, value : int, size : uint)
+func MemCopy(dest : pointer, src : pointer, size : uint)
+func MemSet(dest : pointer, value : int, size : uint)
 
 implementation
 
 // Memory Allocation
 
-function libc_malloc(size : uint) -> pointer                  [[external('malloc')]]
-function libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]]
-function libc_free(ptr : pointer)                             [[external('free')]]
-function libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]]
+func libc_malloc(size : uint) -> pointer                  [[external('malloc')]]
+func libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]]
+func libc_free(ptr : pointer)                             [[external('free')]]
+func libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]]
 
-function libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]]
-function libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]]
-function libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]]
+func libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]]
+func libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]]
+func libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]]
 
-function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
+func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
     if zeromem:
         result = libc_calloc(1, allocbytes)
     else:
@@ -44,24 +44,24 @@ function MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
     endif
 endfunc
 
-function MemFree(memptr : pointer):
+func MemFree(memptr : pointer):
     libc_free(memptr)
 endfunc
 
-function MemFreeRef(memptrvar : ref pointer):
+func MemFreeRef(memptrvar : ref pointer):
     libc_free(memptrvar)
     memptrvar = nil
 endfunc
 
-function MemRealloc(memptr : pointer, newsize : uint) -> pointer:
+func MemRealloc(memptr : pointer, newsize : uint) -> pointer:
     result = libc_realloc(memptr, newsize)
 endfunc
 
-function MemReallocRef(memptr : ref pointer, newsize : uint):
+func MemReallocRef(memptr : ref pointer, newsize : uint):
     memptr = libc_realloc(memptr, newsize)
 endfunc
 
-function MemCopy(dest : pointer, src : pointer, size : uint):
+func MemCopy(dest : pointer, src : pointer, size : uint):
     if src >= ^byte(dest) + size  or  ^byte(src) + size < dest:
         libc_memcpy(dest, src, size)
     else:  // src and dest overlap, use memmove
@@ -69,7 +69,7 @@ function MemCopy(dest : pointer, src : pointer, size : uint):
     endif
 endfunc
 
-function MemSet(dest : pointer, value : int, size : uint):
+func MemSet(dest : pointer, value : int, size : uint):
     libc_memset(dest, value, size)
 endfunc
 

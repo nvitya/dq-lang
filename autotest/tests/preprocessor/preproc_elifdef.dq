@@ -35,8 +35,8 @@
     var branch4 : int = 3000
 #endif
 
-function printf(fmt : ^char, ...) -> int [[external]]
-function *Main() -> int:
+func printf(fmt : ^char, ...) -> int [[external]]
+func *Main() -> int:
     printf("Preprocessor elifdef test:\n")  //?ignore("Preprocessor elifdef test:")
     printf("branch1 = %i\n", branch1)       //?check(branch1, 2)
     printf("branch2 = %i\n", branch2)       //?check(branch2, 20)

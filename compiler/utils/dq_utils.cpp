@@ -11,14 +11,14 @@
  * brief:   Generic utilities used by the DQ compiler and tools
  */
 
-#include "dq_utils.h"
-
 #if defined(_WIN32)
   #ifndef NOMINMAX
     #define NOMINMAX
   #endif
   #include <windows.h>
 #endif
+
+#include "dq_utils.h"
 
 string JsonEscape(string_view text)
 {

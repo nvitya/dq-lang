@@ -14,6 +14,7 @@ file(GLOB SRC_ATRUNNER CONFIGURE_DEPENDS "*.cpp")
 
 add_executable(dqatrun
   ${SRC_ATRUNNER}
+  ../../compiler/utils/dq_utils.cpp
   ../../compiler/utils/strparse.cpp
   ../../compiler/utils/processrunner.cpp
   ../../compiler/utils/executable_path.cpp

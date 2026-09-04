@@ -45,7 +45,7 @@ reported without changing that file.
 The migration is token-aware and does not cascade a newly generated `&` into
 the new address-of symbol. Running it again produces no further changes.
 
-The words `as`, `is`, `xor`, `div`, and `mod` are reserved in V2. Rename any
+The words `as`, `is`, `xor`, `div`, `rem`, and `mod` are reserved in V2. Rename any
 identifiers that used those names. Because comments and literals are preserved,
 update syntax examples in prose and user-visible diagnostic labels separately.
 

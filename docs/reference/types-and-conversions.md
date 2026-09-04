@@ -37,7 +37,7 @@ var small : int32 = int32(value)
 var real : float64 = integer_value
 ```
 
-Floating-point to integer conversion uses `Round`, `Floor`, or `Ceil` as
+Floating-point to integer conversion uses `Round`, `Floor`, `Ceil`, or `Trunc` as
 appropriate. Assignment and overload resolution reject conversions that are not
 defined for the source and destination types.
 

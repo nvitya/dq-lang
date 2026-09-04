@@ -34,7 +34,7 @@ struct tm:
 endstruct
 
 func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
-func libc_nanosleep(req : ^timespec, rem : ^timespec) -> int32 [[external('nanosleep')]]
+func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]]
 func libc___errno_location() -> ^int32 [[external('__errno_location')]]
 func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]]
 func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]]

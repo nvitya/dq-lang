@@ -1536,8 +1536,8 @@ OExpr * ODqCompParserExpr::ParseExprMul()
 
 OExpr * ODqCompParserExpr::ParseExprDiv()
 {
-  static const BinOpEntry ops[] = { {"/", BINOP_DIV}, {"div", BINOP_IDIV}, {"mod", BINOP_IMOD} };
-  return ParseBinOpLevel(&ODqCompParserExpr::ParseExprBinOr, ops, 3);
+  static const BinOpEntry ops[] = { {"/", BINOP_DIV}, {"div", BINOP_IDIV}, {"rem", BINOP_IREM}, {"mod", BINOP_IMOD} };
+  return ParseBinOpLevel(&ODqCompParserExpr::ParseExprBinOr, ops, 4);
 }
 
 OExpr * ODqCompParserExpr::ParseExprBinOr()
@@ -3285,6 +3285,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   if ("Round" == sid)  return ParseBuiltinFloatRound(RNDMODE_ROUND);
   if ("Ceil" == sid)  return ParseBuiltinFloatRound(RNDMODE_CEIL);
   if ("Floor" == sid)  return ParseBuiltinFloatRound(RNDMODE_FLOOR);
+  if ("Trunc" == sid)  return ParseBuiltinFloatRound(RNDMODE_TRUNC);
 
   if ("TryCast" == sid)  return ParseBuiltinTryCast();
   if ("TypeName" == sid)  return ParseBuiltinTypeName();

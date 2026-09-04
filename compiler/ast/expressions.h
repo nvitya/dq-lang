@@ -240,6 +240,7 @@ enum EBinOp : int
   BINOP_MUL,
   BINOP_DIV,
   BINOP_IDIV,
+  BINOP_IREM,
   BINOP_IMOD,
 
   BINOP_IAND,
@@ -566,7 +567,8 @@ enum ERoundMode
 {
   RNDMODE_ROUND,
   RNDMODE_CEIL,
-  RNDMODE_FLOOR
+  RNDMODE_FLOOR,
+  RNDMODE_TRUNC
 };
 
 string GetRoundModeName(ERoundMode mode);

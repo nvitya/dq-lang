@@ -61,6 +61,7 @@ string GetBinopSymbol(EBinOp op)
   if (BINOP_MUL   == op)  return "*";
   if (BINOP_DIV   == op)  return "/";
   if (BINOP_IDIV  == op)  return "div";
+  if (BINOP_IREM  == op)  return "rem";
   if (BINOP_IMOD  == op)  return "mod";
 
   if (BINOP_IAND  == op)  return "&";
@@ -98,6 +99,7 @@ string GetRoundModeName(ERoundMode mode)
   if (RNDMODE_ROUND == mode)  return "round";
   if (RNDMODE_CEIL  == mode)  return "ceil";
   if (RNDMODE_FLOOR == mode)  return "floor";
+  if (RNDMODE_TRUNC == mode)  return "trunc";
 
   return format("int({})", int(mode));
 }
@@ -1268,8 +1270,8 @@ LlValue * OBinExpr::Generate(OScope * scope)
     else if (BINOP_MUL == op)   return ll_builder.CreateMul(ll_left, ll_right);
     else if (BINOP_IDIV == op)  return ( issigned ? ll_builder.CreateSDiv(ll_left, ll_right)
                                                   : ll_builder.CreateUDiv(ll_left, ll_right) );
-    else if (BINOP_IMOD == op)  return ( issigned ? ll_builder.CreateSRem(ll_left, ll_right)
-                                                  : ll_builder.CreateURem(ll_left, ll_right) );
+    else if (BINOP_IREM == op)  return static_cast<OTypeInt *>(ResolvedType())->GenerateRemainder(ll_left, ll_right);
+    else if (BINOP_IMOD == op)  return static_cast<OTypeInt *>(ResolvedType())->GenerateModulo(ll_left, ll_right);
     else if (BINOP_IOR  == op)  return ll_builder.CreateOr(ll_left, ll_right);
     else if (BINOP_IAND == op)  return ll_builder.CreateAnd(ll_left, ll_right);
     else if (BINOP_IXOR == op)  return ll_builder.CreateXor(ll_left, ll_right);
@@ -2455,13 +2457,17 @@ LlValue * OFloatRoundExpr::Generate(OScope * scope)
     LlValue * ll_sub = ll_builder.CreateZExt(cmp, int_type, "flr.sub");
     return ll_builder.CreateSub(ll_int, ll_sub, "flr.res");
   }
-  else // RNDMODE_CEIL
+  else if (RNDMODE_CEIL == mode)
   {
     LlValue * ll_int = ll_builder.CreateFPToSI(ll_src, int_type, "cil.i");
     LlValue * ll_flt = ll_builder.CreateSIToFP(ll_int, ll_src->getType(), "cil.f");
     LlValue * cmp = ll_builder.CreateFCmpOGT(ll_src, ll_flt, "cil.cmp");
     LlValue * ll_add = ll_builder.CreateZExt(cmp, int_type, "cil.add");
     return ll_builder.CreateAdd(ll_int, ll_add, "cil.res");
+  }
+  else
+  {
+    return ll_builder.CreateFPToSI(ll_src, int_type, "trn.int");
   }
 }
 

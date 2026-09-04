@@ -46,6 +46,28 @@ int64_t OTypeInt::ConvertConstant(int64_t value) const
   return NormalizeConstant(uint64_t(value));
 }
 
+LlValue * OTypeInt::GenerateRemainder(LlValue * left, LlValue * right) const
+{
+  return issigned ? ll_builder.CreateSRem(left, right) : ll_builder.CreateURem(left, right);
+}
+
+LlValue * OTypeInt::GenerateModulo(LlValue * left, LlValue * right) const
+{
+  LlValue * remainder = GenerateRemainder(left, right);
+  if (!issigned)
+  {
+    return remainder;
+  }
+
+  LlValue * zero = llvm::ConstantInt::get(left->getType(), 0);
+  LlValue * is_negative = ll_builder.CreateICmpSLT(remainder, zero, "mod.neg");
+  LlValue * divisor_positive = ll_builder.CreateICmpSGT(right, zero, "mod.divpos");
+  LlValue * add_divisor = ll_builder.CreateAdd(remainder, right, "mod.add");
+  LlValue * sub_divisor = ll_builder.CreateSub(remainder, right, "mod.sub");
+  LlValue * corrected = ll_builder.CreateSelect(divisor_positive, add_divisor, sub_divisor, "mod.corrected");
+  return ll_builder.CreateSelect(is_negative, corrected, remainder, "mod.result");
+}
+
 LlConst * OValueInt::CreateLlConst()
 {
   return llvm::ConstantInt::get(ptype->GetLlType(), value);
@@ -198,8 +220,29 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       else if (BINOP_SUB  == ex->op)  value = vleft.value - vright.value;
       else if (BINOP_MUL  == ex->op)  value = vleft.value * vright.value;
 
-      else if (BINOP_IDIV == ex->op)  value = vleft.value / vright.value;
-      else if (BINOP_IMOD == ex->op)  value = vleft.value % vright.value;
+      else if ((BINOP_IDIV == ex->op) || (BINOP_IREM == ex->op) || (BINOP_IMOD == ex->op))
+      {
+        auto * inttype = static_cast<OTypeInt *>(ResolvedType());
+        if (inttype->issigned)
+        {
+          if      (BINOP_IDIV == ex->op)  value = vleft.value / vright.value;
+          else
+          {
+            value = vleft.value % vright.value;
+            if ((BINOP_IMOD == ex->op) && (value < 0))
+            {
+              uint64_t adjustment = (vright.value > 0) ? uint64_t(vright.value) : -uint64_t(vright.value);
+              value = int64_t(uint64_t(value) + adjustment);
+            }
+          }
+        }
+        else
+        {
+          uint64_t left = uint64_t(vleft.value);
+          uint64_t right = uint64_t(vright.value);
+          value = (BINOP_IDIV == ex->op) ? int64_t(left / right) : int64_t(left % right);
+        }
+      }
 
       else if (BINOP_IAND == ex->op)  value = (vleft.value & vright.value);
       else if (BINOP_IOR  == ex->op)  value = (vleft.value | vright.value);
@@ -233,7 +276,8 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       }
       if      (RNDMODE_ROUND == ex->mode)  value = (int64_t)std::round(vf.value);
       else if (RNDMODE_CEIL  == ex->mode)  value = (int64_t)std::ceil(vf.value);
-      else                                 value = (int64_t)std::floor(vf.value);
+      else if (RNDMODE_FLOOR == ex->mode)  value = (int64_t)std::floor(vf.value);
+      else                                 value = (int64_t)std::trunc(vf.value);
       value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(value);
       return true;
     }

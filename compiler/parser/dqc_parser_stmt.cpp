@@ -2196,6 +2196,7 @@ EBinOp ODqCompParserStmt::ParseAssignOp()
   else if (scf->CheckSymbol("&="))      return BINOP_IAND;
   else if (scf->CheckSymbol("|="))      return BINOP_IOR;
   else if (scf->CheckSymbol("=div="))   return BINOP_IDIV;
+  else if (scf->CheckSymbol("=rem="))   return BINOP_IREM;
   else if (scf->CheckSymbol("=mod="))   return BINOP_IMOD;
   else if (scf->CheckSymbol("=xor="))   return BINOP_IXOR;
   else if (scf->CheckSymbol("="))       return BINOP_NONE;  // must come after =XXX=!, simple assign (ab)uses BINOP_NONE

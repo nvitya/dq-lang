@@ -62,7 +62,7 @@ i = Round(f + 1)
 ```
 
 Floating point to integer conversions should use the available conversion
-functions such as `Round`, `Floor`, or `Ceil` where appropriate.
+functions such as `Round`, `Floor`, `Ceil`, or `Trunc` where appropriate.
 
 ## Type Aliases
 

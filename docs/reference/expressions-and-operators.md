@@ -16,13 +16,16 @@ effects.
 ## Arithmetic
 
 `+`, `-`, and `*` operate on compatible numeric operands. `/` is floating-point
-division even when both operands are integers. `div` and `mod` perform integer
-division and remainder.
+division even when both operands are integers. `div` performs integer division.
+`rem` is integer remainder with the dividend's sign; `mod` is integer modulo and
+is never negative. `mod` and `rem` result the same for positive arguments,
+however `mod` is slower than the `rem` because it usually requires multiple instructions.
 
 ```dq
 var ratio : float = 3 / 2
 var quotient : int = 7 div 3
-var remainder : int = 7 mod 3
+var remainder : int = -7 rem 3 // -1
+var modulo : int = -7 mod 3    // 2
 ```
 
 Integer overflow, division by zero, signed division corner cases, and floating
@@ -112,7 +115,7 @@ From tighter to looser binding, the operator groups are:
 4. shifts (`<<`, `>>`);
 5. integer `&`;
 6. integer `|` and `xor`;
-7. `/`, `div`, and `mod`;
+7. `/`, `div`, `rem`, and `mod`;
 8. multiplication;
 9. addition and subtraction;
 10. comparisons, `is`, and `as`;
@@ -124,4 +127,4 @@ Parentheses should be used whenever mixed word/symbol operators would obscure
 intent. In particular, do not infer C precedence for DQ word operators.
 
 Modify-assignment forms are `+=`, `-=`, `*=`, `/=`, `<<=`, `>>=`, `&=`,
-`|=`, `=xor=`, `=div=`, and `=mod=`.
+`|=`, `=xor=`, `=div=`, `=rem=`, and `=mod=`.

@@ -15,7 +15,7 @@ C_OPERATOR_MAP = {
     '==': '==', '<=': '<=', '>=': '>=', '<<': '<<', '>>': '>>',
     '~': '~', '&': '&', '|': '|', '^': 'xor', '/': 'div', '%': 'mod',
 }
-DQ_OPERATOR_WORDS = {'and', 'or', 'not', 'xor', 'div', 'mod'}
+DQ_OPERATOR_WORDS = {'and', 'or', 'not', 'xor', 'div', 'rem', 'mod'}
 
 
 def convert_c_expr_operators(value):

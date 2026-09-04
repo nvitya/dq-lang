@@ -62,7 +62,7 @@ const string dq_reserved_words =
    "|endfor|try|except|finally|endtry|raise"
    "|new|delete"
    "|and|not|or|is|as"
-   "|xor|div|mod"
+   "|xor|div|rem|mod"
    "|nil"
    "|func|use|implementation"
    "|struct|endstruct|union|endunion|object|endobject"

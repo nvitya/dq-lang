@@ -315,7 +315,7 @@
         },
         {
           "name": "keyword.operator.word.dq",
-          "match": "\\b(?:and|or|not|is|as|xor|div|mod)\\b"
+          "match": "\\b(?:and|or|not|is|as|xor|div|rem|mod)\\b"
         },
         {
           "name": "constant.language.boolean.dq",
@@ -327,7 +327,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.dq",
-          "match": "\\b(?:Len|SizeOf|Round|Ceil|Floor)\\b(?=\\s*\\()"
+          "match": "\\b(?:Len|SizeOf|Round|Ceil|Floor|Trunc)\\b(?=\\s*\\()"
         }
       ]
     },
@@ -367,7 +367,7 @@
         },
         {
           "name": "keyword.operator.dq",
-          "match": "\\[\\[|\\]\\]|=xor=|=div=|=mod=|<<=|>>=|&=|\\|=|->|<>|<=|>=|<<|>>|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&|~<>@.:]"
+          "match": "\\[\\[|\\]\\]|=xor=|=div=|=rem=|=mod=|<<=|>>=|&=|\\|=|->|<>|<=|>=|<<|>>|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&|~<>@.:]"
         }
       ]
     }

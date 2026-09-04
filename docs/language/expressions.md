@@ -17,17 +17,18 @@ var f : float = 3 / 2
 ```
 
 The `/` operator follows DQ arithmetic rules intended to make common mixed
-numeric expressions behave naturally. Integer division and modulo are written
-with `div` and `mod`.
+numeric expressions behave naturally. Integer division, remainder, and modulo are written
+with `div`, `rem`, and `mod`.
 
 ```dq
 var a : int = 10 div 3
-var b : int = 10 mod 3
+var b : int = 10 rem 3
+var c : int = 10 mod 3
 ```
 
 The `/` division operator always produces a floating point result.
 Floating point values are not converted automatically to integers, explicit
-conversion functions required: `Round`, `Ceil` or `Floor`
+conversion functions required: `Round`, `Ceil`, `Floor`, or `Trunc`
 
 ## Comparison
 
@@ -249,7 +250,7 @@ Precedence is listed from highest to lowest.
 | 4 | `<<`, `>>` | Bit shifts |
 | 5 | `&` | Bitwise AND |
 | 6 | `|`, `xor` | Bitwise OR, bitwise XOR |
-| 7 | `/`, `div`, `mod` | Division, integer division, integer modulo |
+| 7 | `/`, `div`, `rem`, `mod` | Division, integer division, remainder, integer modulo |
 | 8 | `*` | Multiplication |
 | 9 | `+`, `-` | Addition, subtraction |
 | 10 | `==`, `<>`, `<`, `<=`, `>`, `>=`, `is`, `as` | Comparison, object type test, and explicit cast |
@@ -262,7 +263,7 @@ example, `value & mask <> 0` is parsed as `(value & mask) <> 0`.
 
 Assignment operators are statements, not expressions, so they are outside the
 precedence table. Supported modify-assignment forms include `+=`, `-=`, `*=`,
-`/=`, `<<=`, `>>=`, `&=`, `|=`, `=div=`, `=mod=`, and `=xor=`.
+`/=`, `<<=`, `>>=`, `&=`, `|=`, `=div=`, `=rem=`, `=mod=`, and `=xor=`.
 
 ## Member Access
 

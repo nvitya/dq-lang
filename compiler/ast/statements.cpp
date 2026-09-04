@@ -574,8 +574,8 @@ LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
     else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
     else if (BINOP_IDIV == op)  ll_newval = ( issigned ? ll_builder.CreateSDiv(ll_curval, ll_mod_value)
                                                        : ll_builder.CreateUDiv(ll_curval, ll_mod_value) );
-    else if (BINOP_IMOD == op)  ll_newval = ( issigned ? ll_builder.CreateSRem(ll_curval, ll_mod_value)
-                                                       : ll_builder.CreateURem(ll_curval, ll_mod_value) );
+    else if (BINOP_IREM == op)  ll_newval = static_cast<OTypeInt *>(valtype->ResolveAlias())->GenerateRemainder(ll_curval, ll_mod_value);
+    else if (BINOP_IMOD == op)  ll_newval = static_cast<OTypeInt *>(valtype->ResolveAlias())->GenerateModulo(ll_curval, ll_mod_value);
     else if (BINOP_IAND == op)  ll_newval = ll_builder.CreateAnd(ll_curval, ll_mod_value);
     else if (BINOP_IOR  == op)  ll_newval = ll_builder.CreateOr (ll_curval, ll_mod_value);
     else if (BINOP_IXOR == op)  ll_newval = ll_builder.CreateXor(ll_curval, ll_mod_value);

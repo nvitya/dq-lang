@@ -20,6 +20,13 @@ func *Main() -> int:
     quotient =mod= 4
     printf("word_compound = %d\n", quotient) //?check("word_compound", 2)
     printf("word_binary = %d\n", (20 div 3) * 10 + (20 mod 3)) //?check("word_binary", 62)
+    quotient = -7
+    quotient =rem= 3
+    printf("word_rem_compound = %d\n", quotient) //?check("word_rem_compound", -1)
+    printf("word_rem = %d\n", -7 rem 3) //?check("word_rem", -1)
+    printf("word_mod = %d\n", -7 mod 3) //?check("word_mod", 2)
+    printf("word_mod_negative_divisor = %d\n", 7 mod -3) //?check("word_mod_negative_divisor", 1)
+    printf("word_mod_both_negative = %d\n", -7 mod -3) //?check("word_mod_both_negative", 2)
 
     var narrow_source : uint16 = 0x1234
     var narrow_as : uint8 = narrow_source as uint8

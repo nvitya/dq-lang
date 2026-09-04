@@ -33,7 +33,7 @@ WORD_OPERATORS = {
 }
 
 NON_TERMINATING_WORDS = {
-    b"and", b"or", b"not", b"is", b"as", b"xor", b"div", b"mod",
+    b"and", b"or", b"not", b"is", b"as", b"xor", b"div", b"rem", b"mod",
     b"if", b"elif", b"while", b"for", b"step", b"return", b"raise",
     b"delete", b"new", b"var", b"const",
 }

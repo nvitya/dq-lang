@@ -80,6 +80,8 @@ public:
   }
 
   LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
+  LlValue * GenerateRemainder(LlValue * left, LlValue * right) const;
+  LlValue * GenerateModulo(LlValue * left, LlValue * right) const;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 

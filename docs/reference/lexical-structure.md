@@ -49,8 +49,8 @@ Language keywords are lowercase. Contextual loop words such as `to`, `downto`,
 forms.
 
 Logical Boolean operators are the lowercase words `and`, `or`, and `not`.
-Integer division, remainder, and XOR use the lowercase words `div`, `mod`, and
-`xor`; other bitwise operators use `&`, `|`, `~`, `<<`, and `>>`. The words
+Integer division, remainder, modulo, and XOR use the lowercase words `div`,
+`rem`, `mod`, and `xor`; other bitwise operators use `&`, `|`, `~`, `<<`, and `>>`. The words
 `is` and `as` provide object testing and explicit casting.
 
 ## Numeric Literals

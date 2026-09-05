@@ -1,0 +1,22 @@
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  margin-bottom: 0.35em;
+}
+
+.md-typeset h2 {
+  margin-top: 1.1em;
+}
+
+.md-typeset h3,
+.md-typeset h4 {
+  margin-top: 0.9em;
+}
+
+.md-typeset h1 + *,
+.md-typeset h2 + *,
+.md-typeset h3 + *,
+.md-typeset h4 + * {
+  margin-top: 0.35em;
+}

@@ -33,8 +33,8 @@ when binary layout or C ABI details matter.
 
 `float` is `float32` on targets with a single-precision FPU (`arm_m4f-bare`,
 `arm_m33f-bare`, and `arm_m7f-bare`). It is `float64` on other targets,
-including `arm_m7fd-bare`, `wasm32_wasi`, `wasm32_bare`, and
-`rv32imac_bare`. Use `float32` or `float64` explicitly when storage width is
+including `arm_m7fd-bare`, `wasm32-wasi`, `wasm32-bare`, and
+`rv32imac-bare`. Use `float32` or `float64` explicitly when storage width is
 part of an interface or data format.
 
 ## Boolean Type

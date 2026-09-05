@@ -48,9 +48,9 @@ on that target `float` is 64-bit. The explicit `float32` and `float64` types do
 not change with the target.
 
 Use `dq-comp --targets` for the canonical target list and detailed defaults.
-The additional cross targets are `wasm32_wasi`, `wasm32_bare`, and
-`rv32imac_bare`. WASI exceptions are unsupported, so a project selecting
-`wasm32_wasi` must not set `exceptions = true`.
+The additional cross targets are `wasm32-wasi`, `wasm32-bare`, and
+`rv32imac-bare`. WASI exceptions are unsupported, so a project selecting
+`wasm32-wasi` must not set `exceptions = true`.
 
 An included fragment might contain the shared target and linker configuration:
 
@@ -147,7 +147,7 @@ single-value properties are errors.
 | `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
-| `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; `wasm32_wasi` always disables and rejects enabling exceptions. |
+| `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; `wasm32-wasi` always disables and rejects enabling exceptions. |
 | `dynstrings` | boolean | once, optional | Enable or disable heap-backed dynamic strings. Defaults to enabled on hosted targets and disabled on bare targets. |
 | `compiler_runtime` | string | once, optional | Bare-target compiler support runtime: `libgcc` (default) or `none`. |
 | `c_runtime` | string | once, optional | Bare-target C runtime: `newlib-nano` (default) or `none`. |

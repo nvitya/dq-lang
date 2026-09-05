@@ -62,28 +62,29 @@ int main()
     const char * cpu;
     const char * features;
     const char * clang_fpu;
+    const char * gcc_toolchain;
     const char * gcc_multilib;
     ETargetFloatAbi float_abi;
     uint8_t default_float_bits;
   };
   const STargetExpectation target_expectations[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-none-eabi", "cortex-m0",
-      "-fpregs", "", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m3-bare", "arm_m3", "thumbv7m-none-eabi", "cortex-m3",
-      "-fpregs", "", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m4-bare", "arm_m4", "thumbv7em-none-eabi", "cortex-m4",
-      "-fpregs", "", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-none-eabihf", "cortex-m4",
-      "+vfp4d16sp,-fp64,-d32", "fpv4-sp-d16", "thumb/v7e-m+fp/hard",
+      "+vfp4d16sp,-fp64,-d32", "fpv4-sp-d16", "arm-none-eabi", "thumb/v7e-m+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-none-eabihf", "cortex-m33",
-      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v8-m.main+fp/hard",
+      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "arm-none-eabi", "thumb/v8-m.main+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-none-eabihf", "cortex-m7",
-      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
+      "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "arm-none-eabi", "thumb/v7e-m+fp/hard",
       TARGET_FLOAT_ABI_HARD, 32},
     {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-none-eabihf", "cortex-m7",
-      "+fp-armv8d16,+fp64,-d32", "fpv5-d16", "thumb/v7e-m+dp/hard",
+      "+fp-armv8d16,+fp64,-d32", "fpv5-d16", "arm-none-eabi", "thumb/v7e-m+dp/hard",
       TARGET_FLOAT_ABI_HARD, 64},
   };
   for (const STargetExpectation & expected : target_expectations)
@@ -97,6 +98,8 @@ int main()
     Expect(target.llvm_cpu == expected.cpu, string("target CPU ") + expected.name);
     Expect(target.llvm_features == expected.features, string("target features ") + expected.name);
     Expect(target.clang_fpu == expected.clang_fpu, string("Clang FPU ") + expected.name);
+    Expect(target.gcc_toolchain == expected.gcc_toolchain,
+           string("GCC toolchain ") + expected.name);
     Expect(target.gcc_multilib == expected.gcc_multilib, string("GCC multilib ") + expected.name);
     Expect(target.float_abi == expected.float_abi, string("target float ABI ") + expected.name);
     Expect(target.default_float_bits == expected.default_float_bits,
@@ -107,7 +110,7 @@ int main()
 
   OCompTarget wasm_wasi;
   string wasm_wasi_error;
-  Expect(wasm_wasi.Configure("wasm32_wasi", wasm_wasi_error), "configure WASI target");
+  Expect(wasm_wasi.Configure("wasm32-wasi", wasm_wasi_error), "configure WASI target");
   Expect(wasm_wasi.arch == "wasm32" && wasm_wasi.platform_name == "wasi",
          "WASI architecture and platform");
   Expect(wasm_wasi.llvm_triple == "wasm32-unknown-wasi"
@@ -122,18 +125,20 @@ int main()
 
   OCompTarget wasm_bare;
   string wasm_bare_error;
-  Expect(wasm_bare.Configure("wasm32_bare", wasm_bare_error), "configure bare WebAssembly target");
+  Expect(wasm_bare.Configure("wasm32-bare", wasm_bare_error), "configure bare WebAssembly target");
   Expect(wasm_bare.llvm_triple == "wasm32-unknown-unknown" && wasm_bare.IsWasm()
          && wasm_bare.IsBare() && wasm_bare.pointer_size == 4 && wasm_bare.static_relocation,
          "bare WebAssembly target metadata");
 
   OCompTarget rv32;
   string rv32_error;
-  Expect(rv32.Configure("rv32imac_bare", rv32_error), "configure RV32IMAC target");
+  Expect(rv32.Configure("rv32imac-bare", rv32_error), "configure RV32IMAC target");
   Expect(rv32.arch == "rv32imac" && rv32.llvm_triple == "riscv32-unknown-elf"
-         && rv32.llvm_cpu == "generic-rv32" && rv32.llvm_features == "+m,+a,+c",
+         && rv32.llvm_cpu == "generic-rv32" && rv32.llvm_features == "+m,+a,+c,+zicsr",
          "RV32IMAC LLVM target metadata");
-  Expect(rv32.clang_arch == "rv32imac" && rv32.llvm_abi == "ilp32"
+  Expect(rv32.clang_arch == "rv32imac_zicsr" && rv32.llvm_abi == "ilp32"
+         && rv32.gcc_toolchain == "riscv-none-elf"
+         && rv32.gcc_multilib == "rv32imac_zicsr"
          && rv32.IsRiscV() && rv32.IsBare() && rv32.pointer_size == 4
          && rv32.static_relocation,
          "RV32IMAC ABI and target properties");
@@ -143,9 +148,9 @@ int main()
   OCompTarget canonical_host;
   canonical_host.ConfigureHost();
   Expect(canonical_targets[0].name == canonical_host.name, "host target is listed first");
-  Expect(canonical_targets[8].name == "wasm32_wasi"
-         && canonical_targets[9].name == "wasm32_bare"
-         && canonical_targets[10].name == "rv32imac_bare",
+  Expect(canonical_targets[8].name == "wasm32-wasi"
+         && canonical_targets[9].name == "wasm32-bare"
+         && canonical_targets[10].name == "rv32imac-bare",
          "new canonical target ordering");
 
   OCompOptions hosted_defaults;
@@ -156,7 +161,7 @@ int main()
 
   OCompOptions wasi_defaults;
   string wasi_default_error;
-  Expect(wasi_defaults.target.Configure("wasm32_wasi", wasi_default_error), "WASI default target");
+  Expect(wasi_defaults.target.Configure("wasm32-wasi", wasi_default_error), "WASI default target");
   wasi_defaults.ApplyTargetDefaults();
   Expect(!wasi_defaults.exceptions && wasi_defaults.dynstrings,
          "WASI exception and dynamic-string defaults");

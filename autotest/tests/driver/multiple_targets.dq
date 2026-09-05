@@ -47,14 +47,14 @@ func *Main() -> int:
     run.ExpectOutputContains('TARGET')
     run.ExpectOutputContains('LLVM TRIPLE')
     run.ExpectOutputContains('EXCEPTIONS')
-    ExpectOccurrenceCount(run.output, 'wasm32_wasi', 1)
-    ExpectOccurrenceCount(run.output, 'wasm32_bare', 1)
-    ExpectOccurrenceCount(run.output, 'rv32imac_bare', 1)
+    ExpectOccurrenceCount(run.output, 'wasm32-wasi', 1)
+    ExpectOccurrenceCount(run.output, 'wasm32-bare', 1)
+    ExpectOccurrenceCount(run.output, 'rv32imac-bare', 1)
     run.ExpectOutputNotContains('x64-linux')
 
-    CompileTarget('wasm32_wasi', 'EXPECT_WASI', 'Format: WASM', 'AddressSize: 32bit')
-    CompileTarget('wasm32_bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
-    CompileTarget('rv32imac_bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
+    CompileTarget('wasm32-wasi', 'EXPECT_WASI', 'Format: WASM', 'AddressSize: 32bit')
+    CompileTarget('wasm32-bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
+    CompileTarget('rv32imac-bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
 
     var wasm_import : str = TempPath('.wasm')
     run.RunCompiler([
@@ -72,19 +72,32 @@ func *Main() -> int:
 
     var rv_object : str = TempPath('.o')
     run.RunCompiler([
-        '--target=rv32imac_bare', '--no-use-sys', '-c', '-o', rv_object,
+        '--target=rv32imac-bare', '--no-use-sys', '-c', '-o', rv_object,
         SourcePath('../target/multiple_target_defines.dq')
     ])
     run.ExpectExitCode(0)
     if run.exitcode == 0:
         run.RunTool(['llvm-readobj', '--arch-specific', rv_object])
         run.ExpectExitCode(0)
-        run.ExpectOutputContains('rv32i2p1_m2p0_a2p1_c2p0')
+        run.ExpectOutputContains('rv32i2p1_m2p0_a2p1_c2p0_zicsr2p0')
     endif
     RemoveTemp(rv_object)
 
+    var rv_elf : str = TempPath('.elf')
     run.RunCompiler([
-        '--target=wasm32_wasi', '--exceptions', '--no-use-sys', '-c',
+        '--target=rv32imac-bare', '--link', '--no-use-sys', '-o', rv_elf,
+        SourcePath('../target/multiple_target_defines.dq')
+    ])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool(['llvm-readobj', '--file-headers', rv_elf])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('Format: elf32-littleriscv')
+    endif
+    RemoveTemp(rv_elf)
+
+    run.RunCompiler([
+        '--target=wasm32-wasi', '--exceptions', '--no-use-sys', '-c',
         SourcePath('../target/multiple_target_defines.dq')
     ])
     if run.exitcode == 0:
@@ -101,7 +114,7 @@ func *Main() -> int:
     run.ExpectOutputContains('does not support exceptions')
 
     run.RunCompiler([
-        '--target=wasm32_wasi', '--exceptions', '--no-exceptions', '--no-use-sys', '-c',
+        '--target=wasm32-wasi', '--exceptions', '--no-exceptions', '--no-use-sys', '-c',
         SourcePath('../target/multiple_target_defines.dq')
     ])
     run.ExpectExitCode(0)
@@ -111,7 +124,7 @@ func *Main() -> int:
     var wasm : str = wasm_base + '.wasm'
     FileWriteText(wasm_source, 'func *Main() -> int:\n    return 0\nendfunc\n')
     run.RunCompiler([
-        '--target=wasm32_wasi', wasm_source
+        '--target=wasm32-wasi', wasm_source
     ])
     run.ExpectExitCode(0)
     if run.exitcode == 0:

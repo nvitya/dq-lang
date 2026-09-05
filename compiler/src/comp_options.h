@@ -78,6 +78,7 @@ public:
   string clang_arch;
   string llvm_abi;
   string llvm_backend = "native";
+  string gcc_toolchain;
   string gcc_multilib;
   uint32_t pointer_size = 8;
   uint8_t default_float_bits = 64;

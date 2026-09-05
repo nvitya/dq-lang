@@ -1,5 +1,5 @@
 //?notest
 main = 'multiple_target_defines.dq'
-target = 'wasm32_wasi'
+target = 'wasm32-wasi'
 exceptions = true
 link = false

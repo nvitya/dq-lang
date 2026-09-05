@@ -1,0 +1,8 @@
+xPack GNU RISC-V Embedded GCC: 14.3.0-1
+GCC: 14.3.0
+GNU Binutils: 2.45
+Newlib: 4.5.0.20241231
+Target: riscv-none-elf
+Default architecture: rv32imac
+Default ABI: ilp32
+Multilib: enabled

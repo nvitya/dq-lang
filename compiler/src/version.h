@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.59.0"
+#define DQ_COMPILER_VERSION  "0.60.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.60.0:
+  - Libraries included for rv32imac_zicsr
+  - Some targets renamed for consintent naming like '-bare'
 v0.59.0:
   - Added Trunc() function for float -> int conversion (the fastest way)
   - Added `rem` operator for integer remainder, replacing the previous `mod`

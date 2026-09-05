@@ -68,11 +68,11 @@ compiler supports:
 
 | Target | Behavior |
 | --- | --- |
-| `wasm32_wasi` | Hosted WASI command module; links automatically and defaults to a `.wasm` output |
-| `wasm32_bare` | Bare WebAssembly object generation; compile-only by default |
-| `rv32imac_bare` | Bare RV32IMAC ELF object generation; compile-only by default |
+| `wasm32-wasi` | Hosted WASI command module; links automatically and defaults to a `.wasm` output |
+| `wasm32-bare` | Bare WebAssembly object generation; compile-only by default |
+| `rv32imac-bare` | Bare RV32IMAC ELF object generation; compile-only by default |
 
-`wasm32_wasi` requires Clang/LLD and a WASI sysroot containing libc at link
+`wasm32-wasi` requires Clang/LLD and a WASI sysroot containing libc at link
 time. DQ exceptions are not supported on this target: `--exceptions` and
 `exceptions = true` are rejected, while dynamic strings remain enabled by
 default. The resulting command module uses WASI libc startup and can be run by

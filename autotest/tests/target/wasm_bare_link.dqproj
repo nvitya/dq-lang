@@ -1,7 +1,7 @@
 //?build_only
 
 main = 'wasm_bare_link.dq'
-target = 'wasm32_bare'
+target = 'wasm32-bare'
 link = true
 compiler_runtime = 'none'
 c_runtime = 'none'

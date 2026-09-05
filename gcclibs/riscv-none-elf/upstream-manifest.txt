@@ -1,0 +1,6 @@
+Source distribution: xPack GNU RISC-V Embedded GCC 14.3.0-1
+Source target: riscv-none-elf
+GCC configure options: --with-newlib --with-arch=rv32imac --with-abi=ilp32 --enable-multilib
+Selected runtime configuration: -march=rv32imac_zicsr -mabi=ilp32
+Selected xPack multilib directory: .
+Bundled DQ library directory: rv32imac_zicsr

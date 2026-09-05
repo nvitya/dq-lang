@@ -173,6 +173,7 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     OCompTarget * target = add_target(preset.name, preset.arch, "bare", preset.triple,
         preset.cpu, preset.features, "ARM", TARGET_PLATFORM_BARE);
     target->clang_fpu = preset.clang_fpu;
+    target->gcc_toolchain = "arm-none-eabi";
     target->gcc_multilib = preset.gcc_multilib;
     target->float_abi = preset.float_abi;
     target->default_float_bits = preset.default_float_bits;
@@ -180,20 +181,22 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
 #endif
 
 #ifdef DQ_LLVM_HAS_WEBASSEMBLY
-  OCompTarget * wasm_wasi = add_target("wasm32_wasi", "wasm32", "wasi",
+  OCompTarget * wasm_wasi = add_target("wasm32-wasi", "wasm32", "wasi",
       "wasm32-unknown-wasi", "generic", "", "WebAssembly", TARGET_PLATFORM_WASI);
   wasm_wasi->exceptions_supported = false;
   wasm_wasi->default_exceptions = false;
 
-  add_target("wasm32_bare", "wasm32", "bare", "wasm32-unknown-unknown",
+  add_target("wasm32-bare", "wasm32", "bare", "wasm32-unknown-unknown",
       "generic", "", "WebAssembly", TARGET_PLATFORM_BARE);
 #endif
 
 #ifdef DQ_LLVM_HAS_RISCV
-  OCompTarget * rv32 = add_target("rv32imac_bare", "rv32imac", "bare",
-      "riscv32-unknown-elf", "generic-rv32", "+m,+a,+c", "RISCV", TARGET_PLATFORM_BARE);
-  rv32->clang_arch = "rv32imac";
+  OCompTarget * rv32 = add_target("rv32imac-bare", "rv32imac", "bare",
+      "riscv32-unknown-elf", "generic-rv32", "+m,+a,+c,+zicsr", "RISCV", TARGET_PLATFORM_BARE);
+  rv32->clang_arch = "rv32imac_zicsr";
   rv32->llvm_abi = "ilp32";
+  rv32->gcc_toolchain = "riscv-none-elf";
+  rv32->gcc_multilib = "rv32imac_zicsr";
 #endif
 
   return result;
@@ -787,7 +790,7 @@ string OCompOptions::EffectiveCRuntime() const
 
 bool OCompOptions::ResolveGccMultilibDir(string & rpath, string & rerror) const
 {
-  if (target.gcc_multilib.empty())
+  if (target.gcc_toolchain.empty() || target.gcc_multilib.empty())
   {
     rerror = "Target \"" + target.name + "\" has no GCC multilib mapping";
     return false;
@@ -809,7 +812,7 @@ bool OCompOptions::ResolveGccMultilibDir(string & rpath, string & rerror) const
   error_code ec;
   for (const filesystem::path & root : roots)
   {
-    filesystem::path candidate = root / "arm-none-eabi" / "lib" / target.gcc_multilib;
+    filesystem::path candidate = root / target.gcc_toolchain / "lib" / target.gcc_multilib;
     ec.clear();
     if (filesystem::is_directory(candidate, ec) && !ec)
     {

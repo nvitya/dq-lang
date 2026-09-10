@@ -27,8 +27,26 @@ var overlay_program : uint32
 var overlay_texture : uint32
 var overlay_sampler_uniform : uint32
 var frame_counter : uint32 = 0
+var frame_counter_text : cstring(31)
 var direction      : float32 = 1.0
 var offset         : float32 = 0.0
+
+// Keep text construction in DQ so the browser-side API remains useful for any
+// future text, rather than knowing about this example's frame counter.
+func UpdateFrameCounterText():
+    frame_counter_text = 'FrameCounter = '
+    var divisor : uint32 = 1
+    var remaining : uint32 = frame_counter
+    while remaining >= 10:
+        divisor *= 10
+        remaining =div= 10
+    endwhile
+    while divisor > 0:
+        var digit : uint32 = (frame_counter div divisor) mod uint32(10)
+        frame_counter_text.Append(char(Ord('0') + int(digit)))
+        divisor =div= 10
+    endwhile
+endfunc
 
 func Init() [[cexport]]:
     vertex_buffer = GlCreateBuffer(SizeOf(vertices), GL_STATIC_DRAW)
@@ -94,8 +112,8 @@ func Init() [[cexport]]:
 
     var overlay_sampler_name : cstring(15) = 'text_texture'
     overlay_sampler_uniform = GlGetUniformLocation(overlay_program, overlay_sampler_name.pchar, overlay_sampler_name.length)
-    var overlay_text : cstring(31) = 'FrameCounter = 0'
-    overlay_texture = GlCreateTextTexture(overlay_text.pchar, overlay_text.length)
+    UpdateFrameCounterText()
+    overlay_texture = GlCreateTextTexture(frame_counter_text.pchar, frame_counter_text.length)
 endfunc
 
 // Called by requestAnimationFrame. The host supplies elapsed seconds since the
@@ -123,7 +141,8 @@ func Render(seconds : float32) [[cexport]]:
     GlSetVertexBuffer(overlay_buffer)
     GlVertexAttribPointer(0, 2, 16, 0)
     GlVertexAttribPointer(1, 2, 16, 8)
-    GlUpdateFrameCounterTexture(overlay_texture, frame_counter)
+    UpdateFrameCounterText()
+    GlUpdateTextTexture(overlay_texture, frame_counter_text.pchar, frame_counter_text.length)
     GlSetTexture(overlay_texture)
     GlSetUniform1i(overlay_sampler_uniform, 0)
     GlEnableAlphaBlending()

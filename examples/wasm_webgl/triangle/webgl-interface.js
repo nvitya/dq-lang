@@ -75,8 +75,9 @@ export function createWebGLInterface(gl, canvas, getMemory) {
       uploadTextTexture(texture, text);
       return handle(textures, texture);
     },
-    GlUpdateFrameCounterTexture(texture, frame_counter) {
-      uploadTextTexture(object(textures, texture, "texture"), `FrameCounter = ${frame_counter}`);
+    GlUpdateTextTexture(texture, address, length) {
+      const text = decoder.decode(new Uint8Array(getMemory().buffer, address, length));
+      uploadTextTexture(object(textures, texture, "texture"), text);
     },
     GlCreateShader(type, address, length) {
       const shader = gl.createShader(type);

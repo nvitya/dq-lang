@@ -7,9 +7,9 @@ const GL_FRAGMENT_SHADER : uint32 = 0x8B30
 
 func GlCreateBuffer(size : uint32, usage : uint32) -> uint32 [[external('GlCreateBuffer', 'webgl')]]
 func GlWriteBuffer(buffer : uint32, data : pointer, size : uint32) [[external('GlWriteBuffer', 'webgl')]]
-// The browser rasterizes this UTF-8 text into a WebGL texture.
+// Generic browser text-rasterization services. DQ owns all text content.
 func GlCreateTextTexture(text : ^char, length : uint32) -> uint32 [[external('GlCreateTextTexture', 'webgl')]]
-func GlUpdateFrameCounterTexture(texture : uint32, frame_counter : uint32) [[external('GlUpdateFrameCounterTexture', 'webgl')]]
+func GlUpdateTextTexture(texture : uint32, text : ^char, length : uint32) [[external('GlUpdateTextTexture', 'webgl')]]
 
 func GlCreateShader(shader_type : uint32, source : ^char, length : uint32) -> uint32 [[external('GlCreateShader', 'webgl')]]
 func GlCreateProgram(vertex_shader : uint32, fragment_shader : uint32) -> uint32 [[external('GlCreateProgram', 'webgl')]]

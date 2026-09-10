@@ -9,9 +9,24 @@ var vertices : [15]float32 = [
      0.42, -0.34, 0.25, 0.50, 1.00
 ]
 
+// Position and UV pairs for a wide, screen-space text overlay.
+var overlay_vertices : [24]float32 = [
+    -0.80,  0.12, 0.0, 1.0,
+    -0.80, -0.12, 0.0, 0.0,
+     0.80, -0.12, 1.0, 0.0,
+    -0.80,  0.12, 0.0, 1.0,
+     0.80, -0.12, 1.0, 0.0,
+     0.80,  0.12, 1.0, 1.0
+]
+
 var vertex_buffer  : uint32
 var program        : uint32
 var offset_uniform : uint32
+var overlay_buffer : uint32
+var overlay_program : uint32
+var overlay_texture : uint32
+var overlay_sampler_uniform : uint32
+var frame_counter : uint32 = 0
 var direction      : float32 = 1.0
 var offset         : float32 = 0.0
 
@@ -47,11 +62,46 @@ func Init() [[cexport]]:
 
     var offset_name : cstring(15) = 'offset'
     offset_uniform = GlGetUniformLocation(program, offset_name.pchar, offset_name.length)
+
+    overlay_buffer = GlCreateBuffer(SizeOf(overlay_vertices), GL_STATIC_DRAW)
+    GlWriteBuffer(overlay_buffer, %overlay_vertices[0], SizeOf(overlay_vertices))
+
+    var overlay_vertex_shader_source : cstring(1023) = """
+        #version 300 es
+        layout(location = 0) in vec2 position;
+        layout(location = 1) in vec2 uv;
+        out vec2 texture_uv;
+
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+            texture_uv = uv;
+        }
+        """
+    var overlay_fragment_shader_source : cstring(1023) = """
+        #version 300 es
+        precision mediump float;
+        in vec2 texture_uv;
+        uniform sampler2D text_texture;
+        out vec4 fragment_color;
+
+        void main() {
+            fragment_color = texture(text_texture, texture_uv);
+        }
+        """
+    var overlay_vertex_shader : uint32 = GlCreateShader(GL_VERTEX_SHADER, overlay_vertex_shader_source.pchar, overlay_vertex_shader_source.length)
+    var overlay_fragment_shader : uint32 = GlCreateShader(GL_FRAGMENT_SHADER, overlay_fragment_shader_source.pchar, overlay_fragment_shader_source.length)
+    overlay_program = GlCreateProgram(overlay_vertex_shader, overlay_fragment_shader)
+
+    var overlay_sampler_name : cstring(15) = 'text_texture'
+    overlay_sampler_uniform = GlGetUniformLocation(overlay_program, overlay_sampler_name.pchar, overlay_sampler_name.length)
+    var overlay_text : cstring(31) = 'FrameCounter = 0'
+    overlay_texture = GlCreateTextTexture(overlay_text.pchar, overlay_text.length)
 endfunc
 
 // Called by requestAnimationFrame. The host supplies elapsed seconds since the
 // page loaded; DQ advances the animation and sends every drawing command.
 func Render(seconds : float32) [[cexport]]:
+    frame_counter += 1
     offset += direction * seconds * 0.25
     if offset >= 0.45:
         offset = 0.45
@@ -68,5 +118,15 @@ func Render(seconds : float32) [[cexport]]:
     GlVertexAttribPointer(1, 3, 20, 8)
     GlSetUniform2f(offset_uniform, offset, 0.0)
     GlDraw(3)
+
+    GlSetProgram(overlay_program)
+    GlSetVertexBuffer(overlay_buffer)
+    GlVertexAttribPointer(0, 2, 16, 0)
+    GlVertexAttribPointer(1, 2, 16, 8)
+    GlUpdateFrameCounterTexture(overlay_texture, frame_counter)
+    GlSetTexture(overlay_texture)
+    GlSetUniform1i(overlay_sampler_uniform, 0)
+    GlEnableAlphaBlending()
+    GlDraw(6)
     GlEndFrame()
 endfunc

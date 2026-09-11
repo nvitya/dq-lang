@@ -142,6 +142,8 @@ public:
   void GenerateVTableStore(LlValue * ll_object_addr);
   void GenerateFieldInitializers(OScope * scope, LlValue * ll_object_addr);
   void GenerateFieldDestructors(OScope * scope, LlValue * ll_object_addr);
+  LlValue * GenerateInstanceOf(OScope * scope, OTypeObject * src_obj, LlValue * ll_src);
+  LlValue * GenerateDynamicCast(OScope * scope, OTypeObject * src_obj, LlValue * ll_src);
 
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;

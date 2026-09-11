@@ -234,7 +234,7 @@ bool OTypeFunc::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
   return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
 }
 
-bool OTypeFunc::MatchesOverloadDeclIdentity(const OTypeFunc * other) const
+bool OTypeFunc::MatchesSignature(const OTypeFunc * other, bool check_modes) const
 {
   if (!other)
   {
@@ -265,52 +265,7 @@ bool OTypeFunc::MatchesOverloadDeclIdentity(const OTypeFunc * other) const
       return false;
     }
 
-    if (!left->ptype || !right->ptype)
-    {
-      return false;
-    }
-
-    if (left->ptype->ResolveAlias() != right->ptype->ResolveAlias())
-    {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool OTypeFunc::MatchesSignature(const OTypeFunc * other) const
-{
-  if (!other)
-  {
-    return false;
-  }
-
-  if (has_varargs != other->has_varargs)
-  {
-    return false;
-  }
-
-  if (params.size() != other->params.size())
-  {
-    return false;
-  }
-
-  if (ResolvedRetType() != other->ResolvedRetType())
-  {
-    return false;
-  }
-
-  for (size_t i = 0; i < params.size(); ++i)
-  {
-    OFuncParam * left = params[i];
-    OFuncParam * right = other->params[i];
-    if (!left || !right)
-    {
-      return false;
-    }
-
-    if (left->mode != right->mode)
+    if (check_modes && left->mode != right->mode)
     {
       return false;
     }

@@ -151,13 +151,6 @@
    - Break [`ODqCompParserStmt::ReadStatementBlock`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L934) (325 lines) into an isolated `ParseStatement()` dispatcher, separating loop control and block boundary scanning from individual statement parsing.
    - Extract the nested lambdas in [`ODqCompParser::FinishFunctionDecl`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser.cpp#L1613) (481 lines) into private class member functions (`ReadFunctionBody`, `DeclareFunctionSymbol`, `ResolveForwardDecl`).
 
-2. **Adopt RAII for `TRawCallArg`**:
-   - Replace manual invocations of `FreeRawCallArguments` across 39 call sites with RAII cleanup or movable argument ownership on `TRawCallArg`.
-
-3. **Deduplicate Shared Infrastructure**:
-   - Centralize LLVM RTTI walk generation between `OTryCastExpr` and `OIsExpr`.
-   - Merge `MatchesOverloadDeclIdentity` and `MatchesSignature` in `OTypeFunc` with a boolean parameter for mode checking.
-
 ---
 
 ## 5. Implemented and Ignored
@@ -207,6 +200,22 @@
      - Added `OFuncParam::ModeText()` and `OFuncParam::ModeText(EParamMode)` on `OFuncParam` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
      - Added `OValSymFunc::GetTypeFunc()`, `OValSymFunc::IsImplicitReceiver()`, `OValSymFunc::SignatureText()`, and `OValSymFunc::StateText()` on `OValSymFunc` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
      - Removed static helper cluster from `compiler/ast/module_intf.cpp` and updated `WriteFunctionDump` to call the new methods.
+
+9. **Shared Infrastructure Deduplication (was 4.3)**:
+   - **Original Issue:**
+     - `OTryCastExpr::Generate` and `OIsExpr::Generate` contained duplicate LLVM IR generation for polymorphic RTTI vtable/typeinfo inspection loops.
+     - `MatchesOverloadDeclIdentity` and `MatchesSignature` in `OTypeFunc` duplicated 45 lines of signature comparison logic differing only by whether parameter modes are checked.
+   - **Resolution:**
+     - Added `OTypeObject::GenerateInstanceOf` and `OTypeObject::GenerateDynamicCast` to [`compiler/types/otype_compound.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_compound.h). Reduced `OTryCastExpr::Generate` and `OIsExpr::Generate` in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp) to direct delegates.
+     - Added `bool check_modes = true` parameter to `OTypeFunc::MatchesSignature` and inlined `MatchesOverloadDeclIdentity(other)` as `MatchesSignature(other, false)` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
+
+10. **Adopt RAII for `TRawCallArg` (was 4.2)**:
+    - **Original Issue:** `TRawCallArg` did not own its expression, requiring 37 manual calls to `FreeRawCallArguments(rawargs)` across `dqc_parser.cpp`, `dqc_parser_stmt.cpp`, and `dqc_parser_expr.cpp` at every early return and block exit.
+    - **Resolution:**
+      - Added destructor `~TRawCallArg()` to [`compiler/ast/dqc_ast.h`](file:///lindata/workvc/dq-lang/compiler/ast/dqc_ast.h) that invokes `OExpr::DeleteTree(expr)` on unconsumed expressions.
+      - Implemented move constructor and move assignment, deleted copy constructor and copy assignment to enforce single ownership, and added `TakeExpr()`.
+      - Simplified `ODqCompAst::FreeRawCallArguments` in [`compiler/ast/dqc_ast.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/dqc_ast.cpp) to `rawargs.clear()`.
+      - Removed all 37 manual `FreeRawCallArguments(rawargs)` calls across `dqc_parser.cpp`, `dqc_parser_stmt.cpp`, and `dqc_parser_expr.cpp`.
 
 ### B. Ignored
 

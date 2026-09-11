@@ -191,10 +191,8 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       }
       for (TRawCallArg & rawarg : rawargs)
       {
-        fixed_ctor_args.push_back(rawarg.expr);
-        rawarg.expr = nullptr;
+        fixed_ctor_args.push_back(rawarg.TakeExpr());
       }
-      FreeRawCallArguments(rawargs);
     }
   }
   else if (scf->CheckSymbol(":"))
@@ -1449,10 +1447,8 @@ void ODqCompParserStmt::ParseStmtInherited()
     }
     for (TRawCallArg & rawarg : rawargs)
     {
-      args.push_back(rawarg.expr);
-      rawarg.expr = nullptr;
+      args.push_back(rawarg.TakeExpr());
     }
-    FreeRawCallArguments(rawargs);
 
     CheckStatementClose();
   }
@@ -2114,10 +2110,8 @@ void ODqCompParserStmt::ParseStmtRaise()
     vector<OExpr *> ctor_args;
     for (TRawCallArg & rawarg : rawargs)
     {
-      ctor_args.push_back(rawarg.expr);
-      rawarg.expr = nullptr;
+      ctor_args.push_back(rawarg.TakeExpr());
     }
-    FreeRawCallArguments(rawargs);
 
     OValSymFunc * ctor = nullptr;
     if (!CheckObjectCtorArgs(object_type, ctor_args, ctor))

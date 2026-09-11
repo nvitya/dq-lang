@@ -1416,13 +1416,6 @@ OValSymFunc * ODqCompAst::FindInheritedMethod(const string & method_name, const 
 
 void ODqCompAst::FreeRawCallArguments(vector<TRawCallArg> & rawargs)
 {
-  for (TRawCallArg & rawarg : rawargs)
-  {
-    OExpr::DeleteTree(rawarg.expr);
-    rawarg.expr = nullptr;
-    rawarg.diags.clear();
-  }
-
   rawargs.clear();
 }
 

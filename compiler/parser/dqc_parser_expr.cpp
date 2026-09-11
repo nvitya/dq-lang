@@ -1697,7 +1697,6 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
 
   auto free_and_fail = [&]() -> OExpr *
   {
-    FreeRawCallArguments(rawargs);
     delete receiver_expr;
     return nullptr;
   };
@@ -1872,8 +1871,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   auto * callexpr = new ODynArrayMethodCallExpr(dynmethod, receiver, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
-    OExpr * argexpr = rawargs[i].expr;
-    rawargs[i].expr = nullptr;
+    OExpr * argexpr = rawargs[i].TakeExpr();
     uint32_t conv_flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING;
     if (argtypes[i]->ResolveAlias()->kind == TK_ARRAY_SLICE)
     {
@@ -1887,7 +1885,6 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     }
     callexpr->args.push_back(argexpr);
   }
-  FreeRawCallArguments(rawargs);
   return callexpr;
 }
 
@@ -1918,7 +1915,6 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
 
   auto free_and_fail = [&]() -> OExpr *
   {
-    FreeRawCallArguments(rawargs);
     delete receiver_expr;
     return nullptr;
   };
@@ -2009,8 +2005,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
   auto * callexpr = new OCStringMethodCallExpr(receiver, method);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
-    OExpr * argexpr = rawargs[i].expr;
-    rawargs[i].expr = nullptr;
+    OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS))
@@ -2030,7 +2025,6 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     }
     callexpr->args.push_back(argexpr);
   }
-  FreeRawCallArguments(rawargs);
   return callexpr;
 }
 
@@ -2061,7 +2055,6 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
 
   auto free_and_fail = [&]() -> OExpr *
   {
-    FreeRawCallArguments(rawargs);
     delete receiver_expr;
     return nullptr;
   };
@@ -2224,8 +2217,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
   auto * callexpr = new OStringMethodCallExpr(receiver, method, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
-    OExpr * argexpr = rawargs[i].expr;
-    rawargs[i].expr = nullptr;
+    OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
@@ -2245,7 +2237,6 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     }
     callexpr->args.push_back(argexpr);
   }
-  FreeRawCallArguments(rawargs);
   return callexpr;
 }
 
@@ -2264,7 +2255,6 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
 
   auto free_and_fail = [&]() -> OExpr *
   {
-    FreeRawCallArguments(rawargs);
     delete receiver_expr;
     return nullptr;
   };
@@ -2336,8 +2326,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   auto * callexpr = new OAnyValueMethodCallExpr(receiver, method, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
-    OExpr * argexpr = rawargs[i].expr;
-    rawargs[i].expr = nullptr;
+    OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
@@ -2356,7 +2345,6 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     }
     callexpr->args.push_back(argexpr);
   }
-  FreeRawCallArguments(rawargs);
   return callexpr;
 }
 
@@ -2510,7 +2498,6 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           {
             vector<TRawCallArg> rawargs;
             ParseRawCallArguments(membername, rawargs);
-            FreeRawCallArguments(rawargs);
             delete result;
             result = new OInvalidCallExpr();
           }
@@ -2659,7 +2646,6 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
           {
             vector<TRawCallArg> rawargs;
             ParseRawCallArguments(membername, rawargs);
-            FreeRawCallArguments(rawargs);
             delete result;
             result = new OInvalidCallExpr();
           }
@@ -3459,23 +3445,19 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
   if (rawargs.size() < expected_min)
   {
     Error(DQERR_FUNC_ARGS_TOO_FEW, to_string(rawargs.size()), member_name, to_string(expected_min));
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
   if (rawargs.size() > expected_max)
   {
     Error(DQERR_FUNC_ARGS_TOO_MANY, member_name, to_string(expected_max));
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
-  OExpr * value_expr = rawargs[0].expr;
-  rawargs[0].expr = nullptr;
+  OExpr * value_expr = rawargs[0].TakeExpr();
   if (!value_expr->ResolvedType() || TK_INT != value_expr->ResolvedType()->kind)
   {
     Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", "int", value_expr->ptype ? value_expr->ptype->name : "?");
     OExpr::DeleteTree(value_expr);
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
@@ -3487,13 +3469,11 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
 
   if (EFOK_DEFAULT == kind)
   {
-    OExpr * default_expr = rawargs[1].expr;
-    rawargs[1].expr = nullptr;
+    OExpr * default_expr = rawargs[1].TakeExpr();
     if (!ConvertExprToType(enum_type, &default_expr, EXPCF_GENERATE_ERRORS))
     {
       OExpr::DeleteTree(default_expr);
       delete result;
-      FreeRawCallArguments(rawargs);
       return nullptr;
     }
     result->default_expr = default_expr;
@@ -3504,11 +3484,9 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
     {
       EmitStoredLeftExprDiags(rawargs[1].diags, SLEDK_VAR_INIT);
       delete result;
-      FreeRawCallArguments(rawargs);
       return nullptr;
     }
-    OExpr * output = rawargs[1].expr;
-    rawargs[1].expr = nullptr;
+    OExpr * output = rawargs[1].TakeExpr();
     auto * output_lval = dynamic_cast<OLValueExpr *>(output);
     if (!output_lval || output->ResolvedType() != enum_type)
     {
@@ -3516,7 +3494,6 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
           format("Reference argument 2 type mismatch for function \"TryFromOrd\": expected \"{}\"", enum_type->name));
       OExpr::DeleteTree(output);
       delete result;
-      FreeRawCallArguments(rawargs);
       return nullptr;
     }
     result->output_expr = output_lval;
@@ -3524,11 +3501,9 @@ OExpr * ODqCompParserExpr::ParseEnumTypeExpr(OTypeEnum * enum_type)
   else if (!EnsureEnumRtlUse())
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
-  FreeRawCallArguments(rawargs);
   return result;
 }
 
@@ -3717,9 +3692,7 @@ bool ODqCompParserExpr::ParseCallArguments(const string & callname, OTypeFunc * 
     return false;
   }
 
-  bool result = BindCallArguments(callname, tfunc, rawargs, rargs);
-  FreeRawCallArguments(rawargs);
-  return result;
+  return BindCallArguments(callname, tfunc, rawargs, rargs);
 }
 
 bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs)
@@ -3738,7 +3711,7 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
     if ((pcnt > 0) and not scf->CheckSymbol(","))
     {
       Error(DQERR_FUNC_ARGS_LIST, "\",\" or \")\" is missing at function \"$1\"call arguments", callname);
-      FreeRawCallArguments(rargs);
+      rargs.clear();
       return false;
     }
 
@@ -3759,11 +3732,11 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
 
     if (!rawarg.expr)
     {
-      FreeRawCallArguments(rargs);
+      rargs.clear();
       return false;
     }
 
-    rargs.push_back(rawarg);
+    rargs.push_back(std::move(rawarg));
     ++pcnt;
   }
 
@@ -3840,7 +3813,7 @@ OExpr * ODqCompParserExpr::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr
     Error(DQERR_EXPR_NOT_CALLABLE, vsfunc->name);
     return nullptr;
   }
-  rawargs.push_back(thisarg);
+  rawargs.push_back(std::move(thisarg));
 
   if (!ParseRawCallArguments(vsfunc->name, rawargs))
   {
@@ -3851,11 +3824,9 @@ OExpr * ODqCompParserExpr::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr
   if (!BindCallArguments(vsfunc->name, static_cast<OTypeFunc *>(vsfunc->ptype), rawargs, result->args))
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
-  FreeRawCallArguments(rawargs);
   return result;
 }
 
@@ -3896,7 +3867,7 @@ OExpr * ODqCompParserExpr::ParseExprMethodOverloadCall(OValSymOverloadSet * ovse
     Error(DQERR_EXPR_NOT_CALLABLE, ovset->name);
     return nullptr;
   }
-  rawargs.push_back(thisarg);
+  rawargs.push_back(std::move(thisarg));
 
   return ParseExprOverloadCallWithRawArgs(ovset, rawargs);
 }
@@ -3957,7 +3928,6 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
 
   if (!best_func || ambiguous)
   {
-    FreeRawCallArguments(rawargs);
     if (ambiguous)
     {
       Error(DQERR_OVERLOAD_AMBIGUOUS, ovset->name);
@@ -3974,24 +3944,20 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
       ((OSF_CREATE == curvsfunc->object_specfunc_kind) or (OSF_DESTROY == curvsfunc->object_specfunc_kind)) )
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     ErrorTxt(DQERR_VIRT_FUNC_CALL_INVALID, best_func->name, "constructors or destructors");
     return nullptr;
   }
   if (!BindCallArguments(ovset->name, static_cast<OTypeFunc *>(best_func->ptype), rawargs, result->args))
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
   if (best_func->IsInlineAsm() && !best_func->ValidateInlineAsmCall(result->args))
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
-  FreeRawCallArguments(rawargs);
   return result;
 }
 
@@ -4080,10 +4046,8 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
       }
       for (TRawCallArg & rawarg : rawargs)
       {
-        ctor_args.push_back(rawarg.expr);
-        rawarg.expr = nullptr;
+        ctor_args.push_back(rawarg.TakeExpr());
       }
-      FreeRawCallArguments(rawargs);
     }
 
     OValSymFunc * ctor = nullptr;
@@ -4136,10 +4100,8 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
       }
       for (TRawCallArg & rawarg : rawargs)
       {
-        ctor_args.push_back(rawarg.expr);
-        rawarg.expr = nullptr;
+        ctor_args.push_back(rawarg.TakeExpr());
       }
-      FreeRawCallArguments(rawargs);
     }
 
     OValSymFunc * ctor = nullptr;
@@ -4233,7 +4195,7 @@ OExpr * ODqCompParserExpr::ParseInheritedExpr()
   TRawCallArg thisarg;
   scf->SaveCurPos(thisarg.scpos_start);
   thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
-  rawargs.push_back(thisarg);
+  rawargs.push_back(std::move(thisarg));
   if (!ParseRawCallArguments(method_name, rawargs))
   {
     return nullptr;
@@ -4248,7 +4210,6 @@ OExpr * ODqCompParserExpr::ParseInheritedExpr()
   user_args.clear();
   if (!method)
   {
-    FreeRawCallArguments(rawargs);
     Error(DQERR_OVERLOAD_NO_MATCH, method_name);
     return nullptr;
   }
@@ -4258,11 +4219,9 @@ OExpr * ODqCompParserExpr::ParseInheritedExpr()
   if (!BindCallArguments(method_name, static_cast<OTypeFunc *>(method->ptype), rawargs, result->args))
   {
     delete result;
-    FreeRawCallArguments(rawargs);
     return nullptr;
   }
 
-  FreeRawCallArguments(rawargs);
   return result;
 }
 

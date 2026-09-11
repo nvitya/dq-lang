@@ -102,6 +102,53 @@ public: // Moved from ODqCompParser
     OScPosition                       scpos_start;
     vector<TSuppressedLeftExprDiag>   diags;
 
+    TRawCallArg() = default;
+    TRawCallArg(OExpr * aexpr, const OScPosition & apos = {})
+    : expr(aexpr), scpos_start(apos)
+    {
+    }
+
+    ~TRawCallArg()
+    {
+      if (expr)
+      {
+        OExpr::DeleteTree(expr);
+        expr = nullptr;
+      }
+    }
+
+    TRawCallArg(const TRawCallArg &) = delete;
+    TRawCallArg & operator=(const TRawCallArg &) = delete;
+
+    TRawCallArg(TRawCallArg && other) noexcept
+    : expr(other.expr), scpos_start(other.scpos_start), diags(std::move(other.diags))
+    {
+      other.expr = nullptr;
+    }
+
+    TRawCallArg & operator=(TRawCallArg && other) noexcept
+    {
+      if (this != &other)
+      {
+        if (expr)
+        {
+          OExpr::DeleteTree(expr);
+        }
+        expr = other.expr;
+        scpos_start = other.scpos_start;
+        diags = std::move(other.diags);
+        other.expr = nullptr;
+      }
+      return *this;
+    }
+
+    OExpr * TakeExpr()
+    {
+      OExpr * res = expr;
+      expr = nullptr;
+      return res;
+    }
+
     const TSuppressedLeftExprDiag * FindDiag(ESuppressedLeftExprDiagKind kind) const;
   };
   vector<TSuppressedLeftExprDiag> suppressed_left_expr_diags;

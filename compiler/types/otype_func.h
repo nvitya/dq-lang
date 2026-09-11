@@ -139,8 +139,8 @@ public:
   OType *       ResolvedRetType() const;
   OType *       GetLlRetType() const;
   bool          WriteDqmIfSignatureRecords(ODqmIfWriter & writer, bool askip_first_param = false) const;
-  bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const;
-  bool          MatchesSignature(const OTypeFunc * other) const;
+  bool          MatchesSignature(const OTypeFunc * other, bool check_modes = true) const;
+  bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const { return MatchesSignature(other, false); }
   void          MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names);
   bool          AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
                                      TFuncCallMatchScore & rscore) const;

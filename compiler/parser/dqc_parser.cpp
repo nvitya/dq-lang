@@ -2647,10 +2647,8 @@ void ODqCompParser::ParseObjectDecl()
         }
         for (TRawCallArg & rawarg : rawargs)
         {
-          ctor_args.push_back(rawarg.expr);
-          rawarg.expr = nullptr;
+          ctor_args.push_back(rawarg.TakeExpr());
         }
-        FreeRawCallArguments(rawargs);
       }
 
       if (!ParseAttributes(false))

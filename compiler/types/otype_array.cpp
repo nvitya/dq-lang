@@ -124,14 +124,14 @@ static LlValue * IntExprValue(OScope * scope, OExpr * expr)
   return ToNativeUInt(expr->Generate(scope));
 }
 
-static OType * DynArrayElementStorageType(OTypeDynArray * dyntype)
+OType * OTypeDynArray::ElementStorageType() const
 {
-  OType * elemtype = dyntype->elemtype->ResolveAlias();
-  if (TK_OBJECT == elemtype->kind)
+  OType * etype = elemtype->ResolveAlias();
+  if (TK_OBJECT == etype->kind)
   {
-    return elemtype->GetPointerType();
+    return etype->GetPointerType();
   }
-  return elemtype;
+  return etype;
 }
 
 static string SanitizeLlName(const string & src)
@@ -150,12 +150,12 @@ static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
   if (auto * dyntype = dynamic_cast<OTypeDynArray *>(elemtype))
   {
     LlValue * ll_mgr = ll_builder.CreateLoad(dyntype->GetLlType(), elem_addr, "dynarr.mgr");
-    GenerateDynArrayDestroy(nullptr, dyntype, ll_mgr);
+    dyntype->GenerateDestroy(nullptr, ll_mgr);
   }
   else if (auto * strtype = dynamic_cast<OTypeDynString *>(elemtype))
   {
     LlValue * ll_str = ll_builder.CreateLoad(strtype->GetLlType(), elem_addr, "dynstr");
-    GenerateStringDestroy(nullptr, ll_str);
+    strtype->GenerateDestroy(nullptr, ll_str);
   }
   else if (auto * anytype = dynamic_cast<OTypeAnyValue *>(elemtype))
   {
@@ -239,8 +239,7 @@ static void GenerateElementCopyRefs(OType * elemtype, LlValue * elem_addr)
   }
   else if (auto * strtype = dynamic_cast<OTypeDynString *>(elemtype))
   {
-    (void)strtype;
-    GenerateStringIncRef(nullptr, elem_addr);
+    strtype->GenerateIncRef(nullptr, elem_addr);
   }
   else if (TK_ARRAY == elemtype->kind)
   {
@@ -405,9 +404,9 @@ static llvm::Function * GetTypeCopyFunc(OType * elemtype)
   return func;
 }
 
-static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
+LlValue * OTypeDynArray::GetTypeInfo()
 {
-  string gvname = "__dq_dynarr_typeinfo_" + SanitizeLlName(dyntype->elemtype->name);
+  string gvname = "__dq_dynarr_typeinfo_" + SanitizeLlName(elemtype->name);
   if (auto * existing = ll_module->getNamedGlobal(gvname))
   {
     return existing;
@@ -422,7 +421,7 @@ static LlValue * DynArrayTypeInfo(OTypeDynArray * dyntype)
     ptrtype, ptrtype, ptrtype, ptrtype
   };
   auto * ti_type = llvm::StructType::get(ll_ctx, fields);
-  OType * storage_type = DynArrayElementStorageType(dyntype);
+  OType * storage_type = ElementStorageType();
   llvm::Function * ll_destroy_func = GetTypeDestroyFunc(storage_type);
   llvm::Function * ll_copy_func = GetTypeCopyFunc(storage_type);
 
@@ -596,49 +595,43 @@ LlDiType * OTypeDynArray::CreateDiType()
   return di_builder->createPointerType(mgr_di, TARGET_PTRSIZE * 8);
 }
 
-LlValue * GenerateDynArrayDataPtr(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateDataPtr(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
-  LlValue * descaddr = CreateEntryBlockAlloca(dyntype->elemtype->GetSliceType()->GetLlType(), nullptr, "dyn.data.desc");
+  LlValue * descaddr = CreateEntryBlockAlloca(elemtype->GetSliceType()->GetLlType(), nullptr, "dyn.data.desc");
   CallDynArrayFunc(scope, "DynArrGetFullSlice", {dynaddr, descaddr});
-  LlValue * desc = ll_builder.CreateLoad(dyntype->elemtype->GetSliceType()->GetLlType(), descaddr, "dyn.data.slice");
+  LlValue * desc = ll_builder.CreateLoad(elemtype->GetSliceType()->GetLlType(), descaddr, "dyn.data.slice");
   return ll_builder.CreateExtractValue(desc, {0}, "dyn.ptr");
 }
 
-LlValue * GenerateDynArrayLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateLength(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
   return CallDynArrayFunc(scope, "DynArrGetLength", {dynaddr});
 }
 
-LlValue * GenerateDynArrayCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateCapacity(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
   return CallDynArrayFunc(scope, "DynArrGetCapacity", {dynaddr});
 }
 
-LlValue * GenerateDynArrayRefCount(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateRefCount(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
   return CallDynArrayFunc(scope, "DynArrGetRefCount", {dynaddr});
 }
 
-LlValue * GenerateDynArrayElementAddress(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * index)
+LlValue * OTypeDynArray::GenerateElementAddress(OScope * scope, LlValue * dynaddr, LlValue * index)
 {
-  (void)dyntype;
   LlValue * result = CallDynArrayFunc(scope, "DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
   EmitExpressionExceptionCheck(scope);
   return result;
 }
 
-LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr,
-                                OExpr * start_expr, OExpr * end_expr, OType * slicetype)
+LlValue * OTypeDynArray::GenerateSlice(OScope * scope, LlValue * dynaddr,
+                                       OExpr * start_expr, OExpr * end_expr, OType * slicetype)
 {
-  (void)dyntype;
   LlValue * descaddr = CreateEntryBlockAlloca(slicetype->GetLlType(), nullptr, "dyn.slice.desc");
   if (!start_expr && !end_expr)
   {
@@ -648,151 +641,182 @@ LlValue * GenerateDynArraySlice(OScope * scope, OTypeDynArray * dyntype, LlValue
   else
   {
     LlValue * start = start_expr ? IntExprValue(scope, start_expr) : LlZero();
-    LlValue * end = end_expr ? IntExprValue(scope, end_expr) : GenerateDynArrayLength(scope, dyntype, dynaddr);
+    LlValue * end = end_expr ? IntExprValue(scope, end_expr) : GenerateLength(scope, dynaddr);
     CallDynArrayFunc(scope, "DynArrGetSlice", {dynaddr, descaddr, start, end});
     EmitExpressionExceptionCheck(scope);
   }
   return ll_builder.CreateLoad(slicetype->GetLlType(), descaddr, "dyn.slice");
 }
 
-void GenerateDynArrayCreate(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+void OTypeDynArray::GenerateCreate(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), dynaddr);
 }
 
-void GenerateDynArrayDestroy(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+void OTypeDynArray::GenerateDestroy(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
   CallDynArrayFunc(scope, "DynArrDecRef", {dynaddr});
 }
 
-LlValue * GenerateDynArrayManagerValue(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateManagerValue(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr, "dyn.mgr");
+  return ll_builder.CreateLoad(GetLlType(), dynaddr, "dyn.mgr");
 }
 
-void GenerateDynArrayAssignOther(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * srcmgr)
+void OTypeDynArray::GenerateAssignOther(OScope * scope, LlValue * dynaddr, LlValue * srcmgr)
 {
   (void)scope;
-  (void)dyntype;
   CallDynArrayFunc(scope, "DynArrAssignOther", {dynaddr, srcmgr});
 }
 
-void GenerateDynArrayAssignData(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, LlValue * srcptr, LlValue * count)
+bool OTypeDynArray::GenerateAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * value)
 {
-  (void)scope;
-  CallDynArrayFunc(scope, "DynArrAssignData", {dynaddr, DynArrayTypeInfo(dyntype), srcptr, ToNativeUInt(count)});
+  if (!value || !value->ptype)
+  {
+    return false;
+  }
+
+  OType * srctype = value->ResolvedType();
+  if (!srctype)
+  {
+    return false;
+  }
+
+  if (TK_DYN_ARRAY == srctype->kind)
+  {
+    LlValue * srcmgr = value->Generate(scope);
+    if (dynamic_cast<OLValueExpr *>(value))
+    {
+      GenerateAssignOther(scope, targetaddr, srcmgr);
+    }
+    else
+    {
+      GenerateDestroy(scope, targetaddr);
+      ll_builder.CreateStore(srcmgr, targetaddr);
+    }
+    return true;
+  }
+
+  return false;
 }
 
-void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+bool OTypeDynArray::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  (void)volatile_store;
+  return GenerateAssignExpr(scope, targetaddr, value);
+}
+
+void OTypeDynArray::GenerateAssignData(OScope * scope, LlValue * dynaddr, LlValue * srcptr, LlValue * count)
 {
   (void)scope;
-  (void)dyntype;
+  CallDynArrayFunc(scope, "DynArrAssignData", {dynaddr, GetTypeInfo(), srcptr, ToNativeUInt(count)});
+}
+
+void OTypeDynArray::GenerateClear(OScope * scope, LlValue * dynaddr)
+{
+  (void)scope;
   CallDynArrayFunc(scope, "DynArrClear", {dynaddr, LlBool(false)});
 }
 
-void GenerateDynArrayClear(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * free_storage)
+void OTypeDynArray::GenerateClear(OScope * scope, LlValue * dynaddr, OExpr * free_storage)
 {
-  (void)dyntype;
   CallDynArrayFunc(scope, "DynArrClear", {dynaddr, free_storage ? free_storage->Generate(scope) : LlBool(false)});
 }
 
-void GenerateDynArrayReserve(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * min_capacity)
+void OTypeDynArray::GenerateReserve(OScope * scope, LlValue * dynaddr, OExpr * min_capacity)
 {
-  CallDynArrayFunc(scope, "DynArrReserve", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, min_capacity)});
+  CallDynArrayFunc(scope, "DynArrReserve", {dynaddr, GetTypeInfo(), IntExprValue(scope, min_capacity)});
 }
 
-void GenerateDynArrayCompact(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+void OTypeDynArray::GenerateCompact(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  (void)dyntype;
   CallDynArrayFunc(scope, "DynArrCompact", {dynaddr});
 }
 
-void GenerateDynArraySetLength(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_length)
+void OTypeDynArray::GenerateSetLength(OScope * scope, LlValue * dynaddr, OExpr * new_length)
 {
-  CallDynArrayFunc(scope, "DynArrSetLength", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_length)});
+  CallDynArrayFunc(scope, "DynArrSetLength", {dynaddr, GetTypeInfo(), IntExprValue(scope, new_length)});
 }
 
-void GenerateDynArraySetCapacity(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * new_capacity)
+void OTypeDynArray::GenerateSetCapacity(OScope * scope, LlValue * dynaddr, OExpr * new_capacity)
 {
-  CallDynArrayFunc(scope, "DynArrSetCapacity", {dynaddr, DynArrayTypeInfo(dyntype), IntExprValue(scope, new_capacity)});
+  CallDynArrayFunc(scope, "DynArrSetCapacity", {dynaddr, GetTypeInfo(), IntExprValue(scope, new_capacity)});
 }
 
-void GenerateDynArrayAppend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
+void OTypeDynArray::GenerateAppend(OScope * scope, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.append.value");
+  LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.append.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, GetTypeInfo(), tmp, LlOne()});
 }
 
-void GenerateDynArrayAppendSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values)
+void OTypeDynArray::GenerateAppendSlice(OScope * scope, LlValue * dynaddr, OExpr * values)
 {
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "append.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "append.count");
-  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, DynArrayTypeInfo(dyntype), src, count});
+  CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, GetTypeInfo(), src, count});
 }
 
-void GenerateDynArrayPrepend(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * value)
+void OTypeDynArray::GeneratePrepend(OScope * scope, LlValue * dynaddr, OExpr * value)
 {
-  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.prepend.value");
+  LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.prepend.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), LlZero(), tmp, LlOne()});
 }
 
-void GenerateDynArrayPrependSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * values)
+void OTypeDynArray::GeneratePrependSlice(OScope * scope, LlValue * dynaddr, OExpr * values)
 {
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "prepend.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "prepend.count");
-  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), LlZero(), src, count});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), LlZero(), src, count});
 }
 
-void GenerateDynArrayInsert(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * value)
+void OTypeDynArray::GenerateInsert(OScope * scope, LlValue * dynaddr, OExpr * index, OExpr * value)
 {
   LlValue * idx = IntExprValue(scope, index);
-  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, "dyn.insert.value");
+  LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.insert.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
-  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, tmp, LlOne()});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), idx, tmp, LlOne()});
 }
 
-void GenerateDynArrayInsertSlice(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * values)
+void OTypeDynArray::GenerateInsertSlice(OScope * scope, LlValue * dynaddr, OExpr * index, OExpr * values)
 {
   LlValue * idx = IntExprValue(scope, index);
   LlValue * slice = values->Generate(scope);
   LlValue * src = ll_builder.CreateExtractValue(slice, {0}, "insert.src");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "insert.count");
-  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, DynArrayTypeInfo(dyntype), idx, src, count});
+  CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), idx, src, count});
 }
 
-void GenerateDynArrayDelete(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, OExpr * index, OExpr * count)
+void OTypeDynArray::GenerateDelete(OScope * scope, LlValue * dynaddr, OExpr * index, OExpr * count)
 {
-  (void)dyntype;
   LlValue * idx = IntExprValue(scope, index);
   LlValue * cnt = count ? IntExprValue(scope, count) : LlOne();
   CallDynArrayFunc(scope, "DynArrDelete", {dynaddr, idx, cnt});
 }
 
-LlValue * GenerateDynArrayClone(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr)
+LlValue * OTypeDynArray::GenerateClone(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
-  LlValue * tmp = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "dyn.clone.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(GetLlType(), nullptr, "dyn.clone.tmp");
   ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), tmp);
-  LlValue * srcmgr = GenerateDynArrayManagerValue(scope, dyntype, dynaddr);
-  CallDynArrayFunc(scope, "DynArrClone", {tmp, DynArrayTypeInfo(dyntype), srcmgr});
-  return ll_builder.CreateLoad(dyntype->GetLlType(), tmp, "dyn.clone");
+  LlValue * srcmgr = GenerateManagerValue(scope, dynaddr);
+  CallDynArrayFunc(scope, "DynArrClone", {tmp, GetTypeInfo(), srcmgr});
+  return ll_builder.CreateLoad(GetLlType(), tmp, "dyn.clone");
 }
 
-LlValue * GenerateDynArrayPop(OScope * scope, OTypeDynArray * dyntype, LlValue * dynaddr, bool first)
+LlValue * OTypeDynArray::GeneratePop(OScope * scope, LlValue * dynaddr, bool first)
 {
   (void)scope;
-  LlValue * tmp = CreateEntryBlockAlloca(DynArrayElementStorageType(dyntype)->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, first ? "dyn.popfirst.tmp" : "dyn.pop.tmp");
   CallDynArrayFunc(scope, first ? "DynArrPopFirst" : "DynArrPop", {dynaddr, tmp});
-  return ll_builder.CreateLoad(DynArrayElementStorageType(dyntype)->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
+  return ll_builder.CreateLoad(ElementStorageType()->GetLlType(), tmp, first ? "dyn.popfirst" : "dyn.pop");
 }
 
 static bool ConvertArrayLiteralElements(OArrayLit * arrlit, OType * elemtype, uint32_t arraylength, uint32_t aflags)

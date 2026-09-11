@@ -534,6 +534,13 @@ LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)
   throw logic_error(format("Unsupported pointer conversion from \"{}\"", src->ptype->name));
 }
 
+bool OType::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  llvm::StoreInst * store = ll_builder.CreateStore(value->Generate(scope), targetaddr);
+  store->setVolatile(volatile_store);
+  return true;
+}
+
 
 
 
@@ -1082,4 +1089,72 @@ bool OTypeAlias::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 int OTypeAlias::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   return (ptype ? ptype->GetConversionCostFromExpr(expr, aflags) : -1);
+}
+
+bool OType::IsStringFamily()
+{
+  OType * resolved = ResolveAlias();
+  return resolved && resolved->IsString();
+}
+
+bool OType::IsStringComparable()
+{
+  OType * resolved = ResolveAlias();
+  return resolved && (resolved->IsString() || IsCCharPointerType(resolved));
+}
+
+bool OType::IsTextSource()
+{
+  OType * resolved = ResolveAlias();
+  return resolved
+      && (resolved->IsString()
+          || resolved == g_builtins->type_char
+          || IsCCharPointerType(resolved));
+}
+
+EPropertyAccessorMismatch OValSymProperty::MatchMethod(OValSymFunc * method, bool write) const
+{
+  auto * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
+  if (!sig || sig->params.empty())
+  {
+    return PAM_SIGNATURE;
+  }
+
+  size_t expected_explicit = indices.size() + (write ? 1 : 0);
+  if (sig->params.size() != expected_explicit + 1)
+  {
+    return PAM_SIGNATURE;
+  }
+  if (write ? (sig->rettype != nullptr) : !SameType(sig->rettype))
+  {
+    return write ? PAM_SIGNATURE : PAM_TYPE;
+  }
+
+  for (size_t i = 0; i < indices.size(); ++i)
+  {
+    OFuncParam * param = sig->params[i + 1];
+    const OPropertyIndex & index = indices[i];
+    if (param->mode != index.mode)
+    {
+      return PAM_MODE;
+    }
+    if (!param->ptype || !index.ptype || (param->ptype->ResolveAlias() != index.ptype->ResolveAlias()))
+    {
+      return write ? PAM_SIGNATURE : PAM_TYPE;
+    }
+  }
+
+  if (write)
+  {
+    OFuncParam * value_param = sig->params.back();
+    if (FPM_REF == value_param->mode || FPM_REFOUT == value_param->mode || FPM_REFNULL == value_param->mode)
+    {
+      return PAM_MODE;
+    }
+    if (!SameType(value_param->ptype))
+    {
+      return IsIndexed() ? PAM_SIGNATURE : PAM_TYPE;
+    }
+  }
+  return PAM_NONE;
 }

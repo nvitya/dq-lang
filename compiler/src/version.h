@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.62.2"
+#define DQ_COMPILER_VERSION  "0.62.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.62.3:
+  - Compiler code refactoring: lot of free functions converted to object member functions
 v0.62.2:
   - Compiler code refactoring: removed duplicated functions: CloneContextLValue, TextFormatFunc
 v0.62.1:

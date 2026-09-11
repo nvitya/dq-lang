@@ -664,7 +664,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
   else if (TK_DYN_ARRAY == containertype->kind)
   {
-    return GenerateDynArrayElementAddress(scope, static_cast<OTypeDynArray *>(containertype), base->GenerateAddress(scope), ll_index);
+    return static_cast<OTypeDynArray *>(containertype)->GenerateElementAddress(scope, base->GenerateAddress(scope), ll_index);
   }
   else if (TK_CSTRING == containertype->kind)
   {
@@ -689,9 +689,9 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
       return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem");
     }
   }
-  else if (TK_DYNSTR == containertype->kind || TK_STRVIEW == containertype->kind)
+  else if (auto * strtype = dynamic_cast<OTypeString *>(containertype))
   {
-    return GenerateStringCharAddress(scope, base, ll_index);
+    return strtype->GenerateCharAddress(scope, base, ll_index);
   }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
@@ -700,9 +700,9 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
 LlValue * OLValueIndex::Generate(OScope * scope)
 {
   OType * resolved_container = containertype->ResolveAlias();
-  if (TK_DYNSTR == resolved_container->kind || TK_STRVIEW == resolved_container->kind)
+  if (auto * strtype = dynamic_cast<OTypeString *>(resolved_container))
   {
-    return GenerateStringGetChar(scope, base, indexexpr->Generate(scope));
+    return strtype->GenerateGetChar(scope, base, indexexpr->Generate(scope));
   }
   if (IsObjectReferenceExpr())
   {
@@ -792,7 +792,7 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
 {
   if (TK_DYN_ARRAY == containertype->kind)
   {
-    return GenerateDynArraySlice(scope, static_cast<OTypeDynArray *>(containertype), base->GenerateAddress(scope),
+    return static_cast<OTypeDynArray *>(containertype)->GenerateSlice(scope, base->GenerateAddress(scope),
         startexpr, endexpr, ptype);
   }
 
@@ -871,7 +871,8 @@ void OArraySliceExpr::DeleteChildTree()
 
 LlValue * OStringSliceExpr::Generate(OScope * scope)
 {
-  return GenerateStringSlice(scope, base, startexpr, endexpr, end_inclusive);
+  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
+  return strtype->GenerateSlice(scope, base, startexpr, endexpr, end_inclusive);
 }
 
 void OStringSliceExpr::FoldChildren()
@@ -902,7 +903,8 @@ void OStringSliceExpr::DeleteChildTree()
 
 LlValue * OStringWCharIndexExpr::Generate(OScope * scope)
 {
-  return GenerateStringWCharAt(scope, base, indexexpr);
+  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
+  return strtype->GenerateWCharAt(scope, base, indexexpr);
 }
 
 void OStringWCharIndexExpr::FoldChildren()
@@ -933,7 +935,8 @@ void OStringWCharIndexExpr::DeleteChildTree()
 
 LlValue * OStringWCharSliceExpr::Generate(OScope * scope)
 {
-  return GenerateStringWCharSlice(scope, base, startexpr, endexpr, end_inclusive);
+  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
+  return strtype->GenerateWCharSlice(scope, base, startexpr, endexpr, end_inclusive);
 }
 
 void OStringWCharSliceExpr::FoldChildren()
@@ -1133,10 +1136,12 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
     ll_curval = ll_builder.CreateLoad(ptype->GetLlType(), ll_addr, "property");
   }
 
+  auto * strtype = dynamic_cast<OTypeDynString *>(ptype->ResolveAlias());
+
   LlValue * ll_newval = nullptr;
-  if (TK_DYNSTR == ptype->ResolveAlias()->kind && BINOP_ADD == op)
+  if (strtype && BINOP_ADD == op)
   {
-    ll_newval = GenerateStringConcatFromStringValue(scope, ll_curval, value);
+    ll_newval = OTypeDynString::GenerateConcatFromStringValue(scope, ll_curval, value);
   }
   else
   {
@@ -1166,9 +1171,9 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
   {
     LlValue * ll_addr = GeneratePropertyFieldAddress(
         scope, this, property->write_accessor, property->write_decl_type, ll_receiver);
-    if (TK_DYNSTR == ptype->ResolveAlias()->kind && BINOP_ADD == op)
+    if (strtype && BINOP_ADD == op)
     {
-      GenerateStringDestroy(scope, ll_addr);
+      strtype->GenerateDestroy(scope, ll_addr);
     }
     ll_builder.CreateStore(ll_newval, ll_addr);
   }
@@ -1210,11 +1215,11 @@ void OPropertyExpr::DeleteChildTree()
   ptype = aleft->ptype;  // the right shuld be the same or compatible
   auto is_concat_disambiguator = [](OType * type) -> bool
   {
-    return IsStringFamilyTextType(type) || IsCCharPointerType(type);
+    return type && (type->IsStringFamily() || IsCCharPointerType(type));
   };
   if (BINOP_ADD == op
-      && IsTextSourceType(left->ResolvedType())
-      && IsTextSourceType(right->ResolvedType())
+      && left->ResolvedType() && left->ResolvedType()->IsTextSource()
+      && right->ResolvedType() && right->ResolvedType()->IsTextSource()
       && (is_concat_disambiguator(left->ResolvedType()) || is_concat_disambiguator(right->ResolvedType())))
   {
     ptype = g_builtins->type_str;
@@ -1240,7 +1245,7 @@ LlValue * OBinExpr::Generate(OScope * scope)
 {
   if (BINOP_ADD == op && TK_DYNSTR == ptype->kind)
   {
-    return GenerateStringConcat(scope, left, right);
+    return OTypeDynString::GenerateConcat(scope, left, right);
   }
 
   LlValue * ll_left  = left->Generate(scope);
@@ -1375,7 +1380,7 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     }
     if (TK_DYN_ARRAY == rtype->kind)
     {
-      return GenerateDynArrayLength(scope, static_cast<OTypeDynArray *>(rtype), lval->GenerateAddress(scope));
+      return static_cast<OTypeDynArray *>(rtype)->GenerateLength(scope, lval->GenerateAddress(scope));
     }
     if (TK_ARRAY_SLICE != rtype->kind)
     {
@@ -1407,11 +1412,11 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   }
 
   if ((COMPOP_EQ == op || COMPOP_NE == op)
-      && IsStringComparableTextType(left->ResolvedType())
-      && IsStringComparableTextType(right->ResolvedType())
-      && (IsStringFamilyTextType(left->ResolvedType()) || IsStringFamilyTextType(right->ResolvedType())))
+      && left->ResolvedType() && left->ResolvedType()->IsStringComparable()
+      && right->ResolvedType() && right->ResolvedType()->IsStringComparable()
+      && (left->ResolvedType()->IsStringFamily() || right->ResolvedType()->IsStringFamily()))
   {
-    LlValue * ll_eq = GenerateStringEqual(scope, left, right);
+    LlValue * ll_eq = OTypeString::GenerateEqual(scope, left, right);
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
 
@@ -2234,7 +2239,7 @@ LlValue * OArrayLitToDynArrayExpr::Generate(OScope * scope)
       arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
 
   LlValue * ll_count = LlNativeIntConst(arrtype->arraylength);
-  GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
+  dyntype->GenerateAssignData(scope, dynaddr, ll_elemptr, ll_count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
 }
@@ -2273,7 +2278,7 @@ LlValue * OArrayToDynArrayExpr::Generate(OScope * scope)
       arrtype->GetLlType(), arrayaddr, {ll_zero, ll_zero}, "arr.data");
 
   LlValue * ll_count = LlNativeIntConst(arrtype->arraylength);
-  GenerateDynArrayAssignData(scope, dyntype, dynaddr, ll_elemptr, ll_count);
+  dyntype->GenerateAssignData(scope, dynaddr, ll_elemptr, ll_count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
 }
@@ -2308,7 +2313,7 @@ LlValue * OSliceToDynArrayExpr::Generate(OScope * scope)
   LlValue * srcptr = ll_builder.CreateExtractValue(slice, {0}, "dyn.slice.ptr");
   LlValue * count = ll_builder.CreateExtractValue(slice, {1}, "dyn.slice.len");
 
-  GenerateDynArrayAssignData(scope, dyntype, dynaddr, srcptr, count);
+  dyntype->GenerateAssignData(scope, dynaddr, srcptr, count);
 
   return ll_builder.CreateLoad(dyntype->GetLlType(), dynaddr);
 }
@@ -2333,7 +2338,7 @@ void OSliceToDynArrayExpr::DeleteChildTree()
 LlValue * ODynArrayToSliceExpr::Generate(OScope * scope)
 {
   auto * dyntype = static_cast<OTypeDynArray *>(arrayexpr->ptype->ResolveAlias());
-  return GenerateDynArraySlice(scope, dyntype, arrayexpr->GenerateAddress(scope), nullptr, nullptr, ptype);
+  return dyntype->GenerateSlice(scope, arrayexpr->GenerateAddress(scope), nullptr, nullptr, ptype);
 }
 
 void ODynArrayToSliceExpr::FoldChildren()
@@ -2384,15 +2389,15 @@ LlValue * OArrayMetaFieldExpr::Generate(OScope * scope)
     LlValue * dynaddr = target->GenerateAddress(scope);
     if (AMF_LENGTH == field)
     {
-      return GenerateDynArrayLength(scope, dyntype, dynaddr);
+      return dyntype->GenerateLength(scope, dynaddr);
     }
     if (AMF_CAPACITY == field)
     {
-      return GenerateDynArrayCapacity(scope, dyntype, dynaddr);
+      return dyntype->GenerateCapacity(scope, dynaddr);
     }
     if (AMF_REFCOUNT == field)
     {
-      return GenerateDynArrayRefCount(scope, dyntype, dynaddr);
+      return dyntype->GenerateRefCount(scope, dynaddr);
     }
   }
 
@@ -2436,7 +2441,7 @@ LlValue * ODynArrayLengthExpr::Generate(OScope * scope)
 {
   (void)scope;
   auto * dyntype = static_cast<OTypeDynArray *>(dynvalsym->ptype->ResolveAlias());
-  return GenerateDynArrayLength(scope, dyntype, dynvalsym->ll_value);
+  return dyntype->GenerateLength(scope, dynvalsym->ll_value);
 }
 
 /* ctor */ OFloatRoundExpr::OFloatRoundExpr(ERoundMode amode, OExpr * asrc)
@@ -2645,23 +2650,23 @@ LlValue * ODynArrayMethodCallExpr::Generate(OScope * scope)
   LlValue * dynaddr = receiver->GenerateAddress(scope);
   switch (method)
   {
-    case DYNM_CLEAR:        GenerateDynArrayClear(scope, dyntype, dynaddr, args.empty() ? nullptr : args[0]); break;
-    case DYNM_RESERVE:      GenerateDynArrayReserve(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_COMPACT:      GenerateDynArrayCompact(scope, dyntype, dynaddr); break;
-    case DYNM_SET_LENGTH:   GenerateDynArraySetLength(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_SET_CAPACITY: GenerateDynArraySetCapacity(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_APPEND:       GenerateDynArrayAppend(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_APPEND_SLICE: GenerateDynArrayAppendSlice(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_PREPEND:       GenerateDynArrayPrepend(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_PREPEND_SLICE: GenerateDynArrayPrependSlice(scope, dyntype, dynaddr, args[0]); break;
-    case DYNM_INSERT:       GenerateDynArrayInsert(scope, dyntype, dynaddr, args[0], args[1]); break;
-    case DYNM_INSERT_SLICE: GenerateDynArrayInsertSlice(scope, dyntype, dynaddr, args[0], args[1]); break;
+    case DYNM_CLEAR:        dyntype->GenerateClear(scope, dynaddr, args.empty() ? nullptr : args[0]); break;
+    case DYNM_RESERVE:      dyntype->GenerateReserve(scope, dynaddr, args[0]); break;
+    case DYNM_COMPACT:      dyntype->GenerateCompact(scope, dynaddr); break;
+    case DYNM_SET_LENGTH:   dyntype->GenerateSetLength(scope, dynaddr, args[0]); break;
+    case DYNM_SET_CAPACITY: dyntype->GenerateSetCapacity(scope, dynaddr, args[0]); break;
+    case DYNM_APPEND:       dyntype->GenerateAppend(scope, dynaddr, args[0]); break;
+    case DYNM_APPEND_SLICE: dyntype->GenerateAppendSlice(scope, dynaddr, args[0]); break;
+    case DYNM_PREPEND:       dyntype->GeneratePrepend(scope, dynaddr, args[0]); break;
+    case DYNM_PREPEND_SLICE: dyntype->GeneratePrependSlice(scope, dynaddr, args[0]); break;
+    case DYNM_INSERT:       dyntype->GenerateInsert(scope, dynaddr, args[0], args[1]); break;
+    case DYNM_INSERT_SLICE: dyntype->GenerateInsertSlice(scope, dynaddr, args[0], args[1]); break;
     case DYNM_DELETE:
-      GenerateDynArrayDelete(scope, dyntype, dynaddr, args[0], args.size() > 1 ? args[1] : nullptr);
+      dyntype->GenerateDelete(scope, dynaddr, args[0], args.size() > 1 ? args[1] : nullptr);
       break;
-    case DYNM_CLONE:     return GenerateDynArrayClone(scope, dyntype, dynaddr);
-    case DYNM_POP:       return GenerateDynArrayPop(scope, dyntype, dynaddr, false);
-    case DYNM_POP_FIRST: return GenerateDynArrayPop(scope, dyntype, dynaddr, true);
+    case DYNM_CLONE:     return dyntype->GenerateClone(scope, dynaddr);
+    case DYNM_POP:       return dyntype->GeneratePop(scope, dynaddr, false);
+    case DYNM_POP_FIRST: return dyntype->GeneratePop(scope, dynaddr, true);
   }
   return nullptr;
 }
@@ -3158,7 +3163,7 @@ LlValue * OCharLitToCStringPtrExpr::Generate(OScope * scope)
 LlValue * OCStringSizeExpr::Generate(OScope * scope)
 {
   auto * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  return GenerateCStringMetaField(scope, cstrtype, cstrvalsym->ll_value, CSMF_STORAGE_SIZE);
+  return cstrtype->GenerateMetaField(scope, cstrvalsym->ll_value, CSMF_STORAGE_SIZE);
 }
 
 /* ctor */ OCStringLenExpr::OCStringLenExpr(OValSym * avs)
@@ -3223,7 +3228,7 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 LlValue * OCStringLenExpr::Generate(OScope * scope)
 {
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  return GenerateCStringMetaField(scope, cstrtype, cstrvalsym->ll_value, CSMF_LENGTH);
+  return cstrtype->GenerateMetaField(scope, cstrvalsym->ll_value, CSMF_LENGTH);
 }
 
 #endif
@@ -3245,7 +3250,7 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 LlValue * OCStringMetaFieldExpr::Generate(OScope * scope)
 {
   auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
-  return GenerateCStringMetaField(scope, cstrtype, receiver->GenerateAddress(scope), field);
+  return cstrtype->GenerateMetaField(scope, receiver->GenerateAddress(scope), field);
 }
 
 void OCStringMetaFieldExpr::FoldChildren()
@@ -3271,7 +3276,7 @@ void OCStringMetaFieldExpr::DeleteChildTree()
 LlValue * OCStringMethodCallExpr::Generate(OScope * scope)
 {
   auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
-  return GenerateCStringMethodCall(scope, cstrtype, receiver->GenerateAddress(scope), method, args);
+  return cstrtype->GenerateMethodCall(scope, receiver->GenerateAddress(scope), method, args);
 }
 
 void OCStringMethodCallExpr::FoldChildren()
@@ -3404,18 +3409,21 @@ void OTextSourceToViewExpr::DeleteChildTree()
 
 LlValue * OTextSourceToStringExpr::Generate(OScope * scope)
 {
-  LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.cast.tmp");
-  GenerateStringCreate(scope, tmp);
-  if (!GenerateStringAssignExpr(scope, tmp, source))
+  auto * dyntype = static_cast<OTypeDynString *>(ptype->ResolveAlias());
+  LlValue * tmp = CreateEntryBlockAlloca(dyntype->GetLlType(), nullptr, "str.cast.tmp");
+  dyntype->GenerateCreate(scope, tmp);
+  if (!dyntype->GenerateAssignExpr(scope, tmp, source))
   {
     throw logic_error("Unsupported text source to str conversion");
   }
-  return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.cast");
+  return ll_builder.CreateLoad(dyntype->GetLlType(), tmp, "str.cast");
 }
 
 void OTextSourceToStringExpr::FoldChildren()
 {
-  OExpr::FoldTree(&source);
+  OExpr * source_tmp = source;
+  OExpr::FoldTree(&source_tmp);
+  source = source_tmp;
 }
 
 void OTextSourceToStringExpr::DeleteChildTree()
@@ -3440,27 +3448,8 @@ void OTextSourceToStringExpr::DeleteChildTree()
 
 LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
 {
-  if (SMF_LENGTH == field)
-  {
-    return GenerateStringLength(scope, receiver->ptype, receiver->GenerateAddress(scope));
-  }
-  if (SMF_CAPACITY == field)
-  {
-    return GenerateStringCapacity(scope, receiver->ptype, receiver->GenerateAddress(scope));
-  }
-  if (SMF_REFCOUNT == field)
-  {
-    return GenerateStringRefCount(scope, receiver->ptype, receiver->GenerateAddress(scope));
-  }
-  if (SMF_PCHAR == field)
-  {
-    return GenerateStringPChar(scope, receiver->ptype, receiver->GenerateAddress(scope));
-  }
-  if (SMF_WCLEN == field)
-  {
-    return GenerateStringWcLen(scope, receiver);
-  }
-  throw logic_error("OStringMetaFieldExpr::Generate: unsupported string metadata field");
+  auto * strtype = static_cast<OTypeString *>(receiver->ptype->ResolveAlias());
+  return strtype->GenerateMetaField(scope, receiver, field);
 }
 
 void OStringMetaFieldExpr::FoldChildren()
@@ -3485,7 +3474,8 @@ void OStringMetaFieldExpr::DeleteChildTree()
 
 LlValue * OStringMethodCallExpr::Generate(OScope * scope)
 {
-  return GenerateStringMethodCall(scope, receiver, method, args);
+  auto * dyntype = static_cast<OTypeDynString *>(receiver->ptype->ResolveAlias());
+  return dyntype->GenerateMethodCall(scope, receiver, method, args);
 }
 
 void OStringMethodCallExpr::FoldChildren()

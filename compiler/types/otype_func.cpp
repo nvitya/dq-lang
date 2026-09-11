@@ -1216,9 +1216,12 @@ void OValSymFunc::GenerateFuncBody()
     {
       ll_builder.CreateStore(&arg, vsarg->ll_value);
     }
-    if (!fpar->IsRefLike() && fpar->ptype && TK_DYNSTR == fpar->ptype->ResolveAlias()->kind)
+    if (!fpar->IsRefLike() && fpar->ptype)
     {
-      GenerateStringIncRef(body->scope, vsarg->ll_value);
+      if (auto * strtype = dynamic_cast<OTypeDynString *>(fpar->ptype->ResolveAlias()))
+      {
+        strtype->GenerateIncRef(body->scope, vsarg->ll_value);
+      }
     }
     if (g_opt.dbg_info)
     {
@@ -1301,6 +1304,98 @@ void OValSymFunc::GenerateFuncRet()
   }
 }
 
+string OFuncParam::ModeText(EParamMode amode)
+{
+  switch (amode)
+  {
+    case FPM_VALUE:    return "";
+    case FPM_REF:      return "ref ";
+    case FPM_REFIN:    return "refin ";
+    case FPM_REFOUT:   return "refout ";
+    case FPM_REFNULL:  return "refnull ";
+  }
+  return "";
+}
+
+string OFuncParam::ModeText() const
+{
+  return ModeText(mode);
+}
+
+string OValSymFunc::SignatureText() const
+{
+  OTypeFunc * sigtype = GetTypeFunc();
+  string result = "func ";
+  if (IsSpecial())
+  {
+    result += "*";
+  }
+  result += name;
+  result += "(";
+
+  bool first = true;
+  if (sigtype)
+  {
+    for (OFuncParam * param : sigtype->params)
+    {
+      if (IsImplicitReceiver(param, first))
+      {
+        continue;
+      }
+
+      if (!first)
+      {
+        result += ", ";
+      }
+
+      result += param->name;
+      result += " : ";
+      result += param->ModeText();
+      result += (param->ptype ? param->ptype->name : "?");
+      first = false;
+    }
+
+    if (sigtype->has_varargs)
+    {
+      if (!first)
+      {
+        result += ", ";
+      }
+      result += "...";
+    }
+
+    result += ")";
+    if (sigtype->rettype)
+    {
+      result += " -> ";
+      result += (sigtype->rettype ? sigtype->rettype->name : "?");
+    }
+  }
+  else
+  {
+    result += ")";
+  }
+
+  return result;
+}
+
+string OValSymFunc::StateText() const
+{
+  if (is_external)
+  {
+    return "external";
+  }
+  if (IsForwardDecl())
+  {
+    return "forward";
+  }
+  if (has_body)
+  {
+    return "body";
+  }
+  return "decl";
+}
+
 string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
 {
   string result = "func(";
@@ -1316,10 +1411,7 @@ string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
 
       result += param->name;
       result += " : ";
-      if (FPM_REF == param->mode)       result += "ref ";
-      else if (FPM_REFIN == param->mode)  result += "refin ";
-      else if (FPM_REFOUT == param->mode) result += "refout ";
-      else if (FPM_REFNULL == param->mode) result += "refnull ";
+      result += param->ModeText();
       result += (param->ptype ? param->ptype->name : "?");
       first = false;
     }

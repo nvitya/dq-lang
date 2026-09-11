@@ -179,16 +179,16 @@ bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
   return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype);
 }
 
-LlValue * GenerateCStringDataPtr(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr)
+LlValue * OTypeCString::GenerateDataPtr(OScope * scope, LlValue * cstraddr)
 {
   (void)scope;
-  if (cstrtype->maxlen > 0)
+  if (maxlen > 0)
   {
     LlValue * ll_zero = LlNativeInt(0);
-    return ll_builder.CreateGEP(cstrtype->GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
+    return ll_builder.CreateGEP(GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
   }
 
-  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(cstrtype->GetLlType(), cstraddr, 0, "cstr.ptr.addr");
+  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(GetLlType(), cstraddr, 0, "cstr.ptr.addr");
   return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "cstr.ptr");
 }
 
@@ -200,7 +200,7 @@ LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
   }
 
   LlValue * descaddr = CreateEntryBlockAlloca(g_builtins->type_cstring->GetLlType(), nullptr, "cstr.desc.tmp");
-  LlValue * dataptr = GenerateCStringDataPtr(scope, this, cstraddr);
+  LlValue * dataptr = GenerateDataPtr(scope, cstraddr);
   LlType * desctype = g_builtins->type_cstring->GetLlType();
   LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "cstr.desc.ptr.addr");
   LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "cstr.desc.len.addr");
@@ -229,26 +229,26 @@ static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
   return srctype->GenerateDescriptor(scope, tmp);
 }
 
-LlValue * GenerateCStringMetaField(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr, ECStringMetaField field)
+LlValue * OTypeCString::GenerateMetaField(OScope * scope, LlValue * cstraddr, ECStringMetaField field)
 {
   if (CSMF_PCHAR == field)
   {
-    return GenerateCStringDataPtr(scope, cstrtype, cstraddr);
+    return GenerateDataPtr(scope, cstraddr);
   }
 
-  if (cstrtype->maxlen > 0)
+  if (maxlen > 0)
   {
     if (CSMF_MAXLENGTH == field)
     {
-      return LlNativeInt(cstrtype->maxlen);
+      return LlNativeInt(maxlen);
     }
     if (CSMF_STORAGE_SIZE == field)
     {
-      return LlNativeInt(uint64_t(cstrtype->maxlen) + 1);
+      return LlNativeInt(uint64_t(maxlen) + 1);
     }
   }
 
-  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstraddr);
+  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
   switch (field)
   {
     case CSMF_LENGTH:
@@ -400,6 +400,15 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
   return false;
 }
 
+bool OTypeCString::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  if (maxlen > 0)
+  {
+    return GenerateStore(scope, targetaddr, value);
+  }
+  return OType::GenerateAssignment(scope, targetaddr, value, volatile_store);
+}
+
 static bool IsCStringCharSource(OExpr * expr)
 {
   OType * type = expr ? expr->ResolvedType() : nullptr;
@@ -442,10 +451,10 @@ static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const
   return CallCStringFunc(ptr_func, args);
 }
 
-LlValue * GenerateCStringMethodCall(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr,
+LlValue * OTypeCString::GenerateMethodCall(OScope * scope, LlValue * cstraddr,
                                     ECStringMethod method, const vector<OExpr *> & args)
 {
-  LlValue * dstdesc = cstrtype->GenerateDescriptor(scope, cstraddr);
+  LlValue * dstdesc = GenerateDescriptor(scope, cstraddr);
   switch (method)
   {
     case CSM_CLEAR:

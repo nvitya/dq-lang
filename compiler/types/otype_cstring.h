@@ -41,6 +41,25 @@ public:
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
+enum ECStringMetaField
+{
+  CSMF_LENGTH,
+  CSMF_MAXLENGTH,
+  CSMF_STORAGE_SIZE,
+  CSMF_PCHAR
+};
+
+enum ECStringMethod
+{
+  CSM_CLEAR,
+  CSM_SET,
+  CSM_APPEND,
+  CSM_PREPEND,
+  CSM_INSERT,
+  CSM_DELETE,
+  CSM_ADDFMT
+};
+
 // OTypeCString: C-compatible null-terminated string type
 //   maxlen > 0: fixed-size buffer cstring(N), LLVM type = [N + 1 x i8]
 //   maxlen == 0: unsized alias, LLVM type = SDqTextInfo-compatible {ptr, i32, i32}
@@ -106,28 +125,10 @@ public:
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
-};
+  bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
 
-enum ECStringMetaField
-{
-  CSMF_LENGTH,
-  CSMF_MAXLENGTH,
-  CSMF_STORAGE_SIZE,
-  CSMF_PCHAR
+  LlValue * GenerateDataPtr(OScope * scope, LlValue * cstraddr);
+  LlValue * GenerateMetaField(OScope * scope, LlValue * cstraddr, ECStringMetaField field);
+  LlValue * GenerateMethodCall(OScope * scope, LlValue * cstraddr,
+                               ECStringMethod method, const vector<OExpr *> & args);
 };
-
-enum ECStringMethod
-{
-  CSM_CLEAR,
-  CSM_SET,
-  CSM_APPEND,
-  CSM_PREPEND,
-  CSM_INSERT,
-  CSM_DELETE,
-  CSM_ADDFMT
-};
-
-LlValue * GenerateCStringDataPtr(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr);
-LlValue * GenerateCStringMetaField(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr, ECStringMetaField field);
-LlValue * GenerateCStringMethodCall(OScope * scope, OTypeCString * cstrtype, LlValue * cstraddr,
-                                    ECStringMethod method, const vector<OExpr *> & args);

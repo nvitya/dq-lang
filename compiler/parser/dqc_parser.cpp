@@ -2152,80 +2152,6 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
   return ok;
 }
 
-static bool SamePropertyType(OType * left, OType * right)
-{
-  return left && right && (left->ResolveAlias() == right->ResolveAlias());
-}
-
-static bool PropertyAccessorVisibleFrom(OTypeObject * owner, OCompoundType * decl_type, OValSym * accessor)
-{
-  if (!owner || !decl_type || !accessor)
-  {
-    return false;
-  }
-  if (owner == decl_type || MV_PUBLIC == accessor->member_visibility)
-  {
-    return true;
-  }
-  return MV_PROTECTED == accessor->member_visibility && owner->IsSameOrDerivedFrom(decl_type);
-}
-
-enum EPropertyAccessorMismatch
-{
-  PAM_NONE,
-  PAM_TYPE,
-  PAM_SIGNATURE,
-  PAM_MODE
-};
-
-static EPropertyAccessorMismatch MatchPropertyMethod(OValSymFunc * method, OValSymProperty * property,
-                                                      bool write)
-{
-  auto * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
-  if (!sig || sig->params.empty())
-  {
-    return PAM_SIGNATURE;
-  }
-
-  size_t expected_explicit = property->indices.size() + (write ? 1 : 0);
-  if (sig->params.size() != expected_explicit + 1)
-  {
-    return PAM_SIGNATURE;
-  }
-  if (write ? (sig->rettype != nullptr) : !SamePropertyType(sig->rettype, property->ptype))
-  {
-    return write ? PAM_SIGNATURE : PAM_TYPE;
-  }
-
-  for (size_t i = 0; i < property->indices.size(); ++i)
-  {
-    OFuncParam * param = sig->params[i + 1];
-    const OPropertyIndex & index = property->indices[i];
-    if (param->mode != index.mode)
-    {
-      return PAM_MODE;
-    }
-    if (!SamePropertyType(param->ptype, index.ptype))
-    {
-      return write ? PAM_SIGNATURE : PAM_TYPE;
-    }
-  }
-
-  if (write)
-  {
-    OFuncParam * value_param = sig->params.back();
-    if (FPM_REF == value_param->mode || FPM_REFOUT == value_param->mode || FPM_REFNULL == value_param->mode)
-    {
-      return PAM_MODE;
-    }
-    if (!SamePropertyType(value_param->ptype, property->ptype))
-    {
-      return property->IsIndexed() ? PAM_SIGNATURE : PAM_TYPE;
-    }
-  }
-  return PAM_NONE;
-}
-
 bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibility avisibility)
 {
   string property_name;
@@ -2413,7 +2339,7 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
     }
     OCompoundType * decl_type = nullptr;
     OValSym * symbol = object_type->FindMemberSymbol(accessor_name, &decl_type);
-    if (!symbol || !PropertyAccessorVisibleFrom(object_type, decl_type, symbol))
+    if (!symbol || !decl_type || !decl_type->IsAccessorVisible(symbol, object_type))
     {
       Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
       return;
@@ -2432,7 +2358,7 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
       {
         Error(DQERR_PROPERTY_INDEXED_ACCESSOR_METHOD, accessor_name, &property->scpos);
       }
-      else if (!SamePropertyType(symbol->ptype, property->ptype))
+      else if (!property->SameType(symbol->ptype))
       {
         Error(DQERR_PROPERTY_ACCESSOR_TYPE, accessor_name, &property->scpos);
       }
@@ -2458,7 +2384,7 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
     EPropertyAccessorMismatch best_mismatch = PAM_SIGNATURE;
     for (OValSymFunc * candidate : candidates)
     {
-      EPropertyAccessorMismatch mismatch = MatchPropertyMethod(candidate, property, write);
+      EPropertyAccessorMismatch mismatch = property->MatchMethod(candidate, write);
       if (PAM_NONE == mismatch)
       {
         if (match)

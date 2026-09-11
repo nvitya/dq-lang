@@ -26,39 +26,6 @@
 
 using namespace std;
 
-
-
-static bool GenerateDynArrayAssignExpr(OScope * scope, OTypeDynArray * dyntype, LlValue * targetaddr, OExpr * value)
-{
-  if (!value || !value->ptype)
-  {
-    return false;
-  }
-
-  OType * srctype = value->ResolvedType();
-  if (!srctype)
-  {
-    return false;
-  }
-
-  if (TK_DYN_ARRAY == srctype->kind)
-  {
-    LlValue * srcmgr = value->Generate(scope);
-    if (dynamic_cast<OLValueExpr *>(value))
-    {
-      GenerateDynArrayAssignOther(scope, dyntype, targetaddr, srcmgr);
-    }
-    else
-    {
-      GenerateDynArrayDestroy(scope, dyntype, targetaddr);
-      ll_builder.CreateStore(srcmgr, targetaddr);
-    }
-    return true;
-  }
-
-  return false;
-}
-
 bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
                                  LlValue * targetaddr, OExpr * value,
                                  bool volatile_store)
@@ -68,27 +35,7 @@ bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
   {
     return false;
   }
-  if (TK_DYNSTR == resolved_type->kind)
-  {
-    return GenerateStringAssignExpr(scope, targetaddr, value);
-  }
-  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(resolved_type))
-  {
-    return GenerateDynArrayAssignExpr(scope, dyntype, targetaddr, value);
-  }
-  if (TK_ANYVALUE == resolved_type->kind)
-  {
-    return GenerateAnyValueAssignExpr(scope, targetaddr, value);
-  }
-  if (auto * cstrtype = dynamic_cast<OTypeCString *>(resolved_type);
-      cstrtype && cstrtype->maxlen > 0)
-  {
-    return cstrtype->GenerateStore(scope, targetaddr, value);
-  }
-
-  llvm::StoreInst * store = ll_builder.CreateStore(value->Generate(scope), targetaddr);
-  store->setVolatile(volatile_store);
-  return true;
+  return resolved_type->GenerateAssignment(scope, targetaddr, value, volatile_store);
 }
 
 void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
@@ -206,16 +153,16 @@ void OStmtReturn::Generate(OScope * scope)
     {
       throw logic_error("OStmtReturn::Generate(): return value provided for void function");
     }
-    if (TK_DYNSTR == vsfunc->vsresult->ptype->ResolveAlias()->kind)
+    if (auto * strtype = dynamic_cast<OTypeDynString *>(vsfunc->vsresult->ptype->ResolveAlias()))
     {
-      if (!GenerateStringAssignExpr(scope, vsfunc->vsresult->ll_value, value))
+      if (!strtype->GenerateAssignExpr(scope, vsfunc->vsresult->ll_value, value))
       {
         throw logic_error("Unsupported string return value");
       }
     }
     else if (auto * dyntype = dynamic_cast<OTypeDynArray *>(vsfunc->vsresult->ptype->ResolveAlias()))
     {
-      if (!GenerateDynArrayAssignExpr(scope, dyntype, vsfunc->vsresult->ll_value, value))
+      if (!dyntype->GenerateAssignExpr(scope, vsfunc->vsresult->ll_value, value))
       {
         throw logic_error("Unsupported dynamic array return value");
       }
@@ -302,10 +249,10 @@ void OStmtVarDecl::Generate(OScope * scope)
 
   if (auto * dyntype = dynamic_cast<OTypeDynArray *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
   {
-    GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
+    dyntype->GenerateCreate(scope, variable->ll_value);
     if (initvalue)
     {
-      if (!GenerateDynArrayAssignExpr(scope, dyntype, variable->ll_value, initvalue))
+      if (!dyntype->GenerateAssignExpr(scope, variable->ll_value, initvalue))
       {
         throw logic_error(std::format("Unsupported dynamic array initializer for \"{}\"", variable->name));
       }
@@ -316,11 +263,10 @@ void OStmtVarDecl::Generate(OScope * scope)
 
   if (auto * strtype = dynamic_cast<OTypeDynString *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
   {
-    (void)strtype;
-    GenerateStringCreate(scope, variable->ll_value);
+    strtype->GenerateCreate(scope, variable->ll_value);
     if (initvalue)
     {
-      if (!GenerateStringAssignExpr(scope, variable->ll_value, initvalue))
+      if (!strtype->GenerateAssignExpr(scope, variable->ll_value, initvalue))
       {
         throw logic_error(std::format("Unsupported string initializer for \"{}\"", variable->name));
       }
@@ -501,17 +447,16 @@ void OStmtConstructDynArray::Generate(OScope * scope)
   {
     return;
   }
-  GenerateDynArrayCreate(scope, dyntype, variable->ll_value);
+  dyntype->GenerateCreate(scope, variable->ll_value);
 }
 
 void OStmtAssign::Generate(OScope * scope)
 {
   if (auto * idx = dynamic_cast<OLValueIndex *>(target))
   {
-    OType * ctype = idx->containertype ? idx->containertype->ResolveAlias() : nullptr;
-    if (ctype && TK_DYNSTR == ctype->kind)
+    if (auto * dyntype = dynamic_cast<OTypeDynString *>(idx->containertype ? idx->containertype->ResolveAlias() : nullptr))
     {
-      GenerateStringSetChar(scope, idx->base, idx->indexexpr, value);
+      dyntype->GenerateSetChar(scope, idx->base, idx->indexexpr, value);
       return;
     }
   }
@@ -528,10 +473,10 @@ void OStmtModifyAssign::Generate(OScope * scope)
   LlValue * ll_addr = target->GenerateAddress(scope);
   OType * valtype = target->ptype;
 
-  if (TK_DYNSTR == valtype->ResolveAlias()->kind && BINOP_ADD == op)
+  if (auto * dyntype = dynamic_cast<OTypeDynString *>(valtype->ResolveAlias()); dyntype && BINOP_ADD == op)
   {
-    LlValue * ll_newval = GenerateStringConcat(scope, target, value);
-    GenerateStringDestroy(scope, ll_addr);
+    LlValue * ll_newval = OTypeDynString::GenerateConcat(scope, target, value);
+    dyntype->GenerateDestroy(scope, ll_addr);
     ll_builder.CreateStore(ll_newval, ll_addr);
     return;
   }

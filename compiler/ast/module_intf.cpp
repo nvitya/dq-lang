@@ -79,20 +79,6 @@ static string TypeKindName(ETypeKind akind)
   return "unknown";
 }
 
-static string ParamModeText(EParamMode amode)
-{
-  switch (amode)
-  {
-    case FPM_VALUE:    return "";
-    case FPM_REF:      return "ref ";
-    case FPM_REFIN:    return "refin ";
-    case FPM_REFOUT:   return "refout ";
-    case FPM_REFNULL:  return "refnull ";
-  }
-
-  return "";
-}
-
 static string EscapeStringLiteral(const string & avalue)
 {
   string result = "\"";
@@ -187,99 +173,14 @@ static string ConstValueText(OValue * avalue)
   return "<unsupported>";
 }
 
-static OTypeFunc * FuncTypeOf(OValSymFunc * afunc)
-{
-  return (afunc ? dynamic_cast<OTypeFunc *>(afunc->ptype) : nullptr);
-}
-
-static bool IsImplicitReceiverParam(OValSymFunc * afunc, OFuncParam * aparam, bool afirst_param)
-{
-  return (afirst_param && afunc && afunc->owner_compound_type
-          && aparam && ("__this" == aparam->name));
-}
-
-static string FunctionSignature(OValSymFunc * afunc)
-{
-  OTypeFunc * sigtype = FuncTypeOf(afunc);
-  string result = "func ";
-  if (afunc && afunc->IsSpecial())
-  {
-    result += "*";
-  }
-  result += (afunc ? afunc->name : "?");
-  result += "(";
-
-  bool first = true;
-  if (sigtype)
-  {
-    for (OFuncParam * param : sigtype->params)
-    {
-      if (IsImplicitReceiverParam(afunc, param, first))
-      {
-        continue;
-      }
-
-      if (!first)
-      {
-        result += ", ";
-      }
-
-      result += param->name;
-      result += " : ";
-      result += ParamModeText(param->mode);
-      result += TypeName(param->ptype);
-      first = false;
-    }
-
-    if (sigtype->has_varargs)
-    {
-      if (!first)
-      {
-        result += ", ";
-      }
-      result += "...";
-    }
-
-    result += ")";
-    if (sigtype->rettype)
-    {
-      result += " -> ";
-      result += TypeName(sigtype->rettype);
-    }
-  }
-  else
-  {
-    result += ")";
-  }
-
-  return result;
-}
-
-static string FunctionState(OValSymFunc * afunc)
+void OModuleIntf::WriteFunctionDump(ostream & out, OValSymFunc * afunc, const string & indent)
 {
   if (!afunc)
   {
-    return "unknown";
+    return;
   }
-  if (afunc->is_external)
-  {
-    return "external";
-  }
-  if (afunc->IsForwardDecl())
-  {
-    return "forward";
-  }
-  if (afunc->has_body)
-  {
-    return "body";
-  }
-  return "decl";
-}
-
-void OModuleIntf::WriteFunctionDump(ostream & out, OValSymFunc * afunc, const string & indent)
-{
-  string state = FunctionState(afunc);
-  out << indent << FunctionSignature(afunc);
+  string state = afunc->StateText();
+  out << indent << afunc->SignatureText();
   if ("forward" != state)
   {
     out << " [" << state << "]";
@@ -2834,40 +2735,6 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
   return true;
 }
 
-static bool ImportedPropertyMethodMatches(OValSymFunc * method, OValSymProperty * property, bool write)
-{
-  auto * sig = dynamic_cast<OTypeFunc *>(method ? method->ptype : nullptr);
-  size_t explicit_count = property->indices.size() + (write ? 1 : 0);
-  if (!sig || sig->params.size() != explicit_count + 1)
-  {
-    return false;
-  }
-  if (write ? (sig->rettype != nullptr)
-            : (!sig->rettype || sig->rettype->ResolveAlias() != property->ptype->ResolveAlias()))
-  {
-    return false;
-  }
-  for (size_t i = 0; i < property->indices.size(); ++i)
-  {
-    OFuncParam * param = sig->params[i + 1];
-    const OPropertyIndex & index = property->indices[i];
-    if (param->mode != index.mode || param->ptype->ResolveAlias() != index.ptype->ResolveAlias())
-    {
-      return false;
-    }
-  }
-  if (write)
-  {
-    OFuncParam * value = sig->params.back();
-    if ((FPM_VALUE != value->mode && FPM_REFIN != value->mode)
-        || value->ptype->ResolveAlias() != property->ptype->ResolveAlias())
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_type)
 {
   if (!aowner_type)
@@ -2993,7 +2860,7 @@ bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_t
     }
     if (VSK_FUNCTION != symbol->kind)
     {
-      if (property->IsIndexed() || symbol->ptype->ResolveAlias() != property->ptype->ResolveAlias())
+      if (property->IsIndexed() || !property->SameType(symbol->ptype))
       {
         return false;
       }
@@ -3005,7 +2872,7 @@ bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_t
     bool ambiguous = false;
     auto consider = [&](OValSymFunc * candidate)
     {
-      if (ImportedPropertyMethodMatches(candidate, property, write))
+      if (property->MatchMethod(candidate, write) == PAM_NONE)
       {
         ambiguous = (match != nullptr);
         match = candidate;

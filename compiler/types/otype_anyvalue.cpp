@@ -200,7 +200,7 @@ static bool GenerateAnyValueTextAssign(OScope * scope, LlValue * targetaddr, OEx
     {
       LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.str.tmp");
       ll_builder.CreateStore(srcstr, tmp);
-      GenerateStringDestroy(scope, tmp);
+      g_builtins->type_str->GenerateDestroy(scope, tmp);
     }
     return true;
   }
@@ -295,6 +295,12 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
   return false;
 }
 
+bool OTypeAnyValue::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  (void)volatile_store;
+  return GenerateAnyValueAssignExpr(scope, targetaddr, value);
+}
+
 LlValue * GenerateAnyValueBoxExpr(OScope * scope, OType * anytype, OExpr * source)
 {
   LlValue * tmp = CreateEntryBlockAlloca(anytype->GetLlType(), nullptr, "any.box.tmp");
@@ -375,7 +381,7 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
         {
           LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "any.setstr.tmp");
           ll_builder.CreateStore(srcstr, tmp);
-          GenerateStringDestroy(scope, tmp);
+          g_builtins->type_str->GenerateDestroy(scope, tmp);
         }
       }
       else

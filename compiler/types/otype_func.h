@@ -97,6 +97,9 @@ public:
     return ((IsRefLike() || (compound && compound->IsObject())) ? ptype->GetPointerType() : ptype);
   }
 
+  string ModeText() const;
+  static string ModeText(EParamMode amode);
+
   bool WriteDqmIf(ODqmIfWriter & writer) const;
 };
 
@@ -217,6 +220,14 @@ public:
   {
     return is_asm && attr_is_inline;
   }
+
+  inline OTypeFunc * GetTypeFunc() const { return dynamic_cast<OTypeFunc *>(ptype); }
+  inline bool IsImplicitReceiver(OFuncParam * aparam, bool afirst_param = true) const
+  {
+    return (afirst_param && owner_compound_type && aparam && ("__this" == aparam->name));
+  }
+  string SignatureText() const;
+  string StateText() const;
 
   void ApplyAttributes(OAttr * attr, EAttrTarget atarget) override;
   void ApplyTargetImportAttributes();

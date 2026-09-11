@@ -358,6 +358,9 @@ public:
 
   inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_DYNSTR == kind); }
   inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind) || (TK_UNION == kind); }
+  bool               IsTextSource();
+  bool               IsStringComparable();
+  bool               IsStringFamily();
   virtual OType *    ResolveAlias() { return this; }
   virtual bool       ContainsManagedStorage() const;
   virtual bool       SupportsUnionStorage() const;
@@ -370,6 +373,7 @@ public:
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
   virtual bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags);
   virtual int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags);
+  virtual bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false);
   virtual bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer);
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
 };
@@ -739,6 +743,14 @@ struct OPropertyIndex
   EParamMode  mode = FPM_VALUE;
 };
 
+enum EPropertyAccessorMismatch
+{
+  PAM_NONE,
+  PAM_TYPE,
+  PAM_SIGNATURE,
+  PAM_MODE
+};
+
 class OValSymProperty : public OValSym
 {
 private:
@@ -760,6 +772,11 @@ public:
   }
 
   bool IsIndexed() const { return !indices.empty(); }
+  bool SameType(OType * other_type) const
+  {
+    return ptype && other_type && (ptype->ResolveAlias() == other_type->ResolveAlias());
+  }
+  EPropertyAccessorMismatch MatchMethod(OValSymFunc * method, bool write) const;
 };
 
 class OValSymConst : public OValSym

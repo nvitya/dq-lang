@@ -16,6 +16,14 @@
 #include "symbols.h"
 
 class OValSymFunc;
+class OStructLit;
+class OTypeObject;
+
+struct SStructInitField
+{
+  OValSym * field = nullptr;
+  vector<unsigned> ll_path;
+};
 
 struct OStructConstField
 {
@@ -84,6 +92,10 @@ public:
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+
+  void CollectInitFields(const vector<unsigned> & prefix, vector<SStructInitField> & result);
+  int  AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool do_convert);
+  bool IsAccessorVisible(OValSym * accessor, OTypeObject * context_owner) const;
 };
 
 

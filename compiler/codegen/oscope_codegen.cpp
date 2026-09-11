@@ -54,12 +54,12 @@ void OScope::EmitOwnedObjectDestructors()
     auto * dyntype = dynamic_cast<OTypeDynArray *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
     if (dyntype && vs->ll_value)
     {
-      GenerateDynArrayDestroy(this, dyntype, vs->ll_value);
+      dyntype->GenerateDestroy(this, vs->ll_value);
     }
     auto * strtype = dynamic_cast<OTypeDynString *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
     if (strtype && vs->ll_value)
     {
-      GenerateStringDestroy(this, vs->ll_value);
+      strtype->GenerateDestroy(this, vs->ll_value);
     }
     auto * anytype = dynamic_cast<OTypeAnyValue *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
     if (anytype && vs->ll_value)

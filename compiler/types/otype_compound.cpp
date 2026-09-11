@@ -780,13 +780,13 @@ void OTypeObject::GenerateFieldDestructors(OScope * scope, LlValue * ll_object_a
 
     if (auto * dyntype = dynamic_cast<OTypeDynArray *>(member->ptype ? member->ptype->ResolveAlias() : nullptr))
     {
-      GenerateDynArrayDestroy(scope, dyntype, ll_field_addr);
+      dyntype->GenerateDestroy(scope, ll_field_addr);
       continue;
     }
 
     if (auto * strtype = dynamic_cast<OTypeDynString *>(member->ptype ? member->ptype->ResolveAlias() : nullptr))
     {
-      GenerateStringDestroy(scope, ll_field_addr);
+      strtype->GenerateDestroy(scope, ll_field_addr);
       continue;
     }
 
@@ -997,6 +997,19 @@ bool OCompoundType::IsSameOrDerivedFrom(OCompoundType * abase) const
     }
   }
   return false;
+}
+
+bool OCompoundType::IsAccessorVisible(OValSym * accessor, OTypeObject * context_owner) const
+{
+  if (!context_owner || !accessor)
+  {
+    return false;
+  }
+  if (context_owner == this || MV_PUBLIC == accessor->member_visibility)
+  {
+    return true;
+  }
+  return MV_PROTECTED == accessor->member_visibility && context_owner->IsSameOrDerivedFrom(const_cast<OCompoundType *>(this));
 }
 
 bool OCompoundType::ContainsManagedStorage() const
@@ -1339,24 +1352,18 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
   return writer.AddRecEmpty(end_tag);
 }
 
-struct SStructInitField
-{
-  OValSym * field;
-  vector<unsigned> ll_path;
-};
-
-static void CollectStructInitFields(OCompoundType * type, const vector<unsigned> & prefix,
-                                    vector<SStructInitField> & result)
+void OCompoundType::CollectInitFields(const vector<unsigned> & prefix,
+                                     vector<SStructInitField> & result)
 {
   // LLVM field indices are assigned while the concrete LLVM layout is built.
-  type->GetLlType();
-  if (type->base_type)
+  GetLlType();
+  if (base_type)
   {
     vector<unsigned> base_path(prefix);
     base_path.push_back(0);
-    CollectStructInitFields(type->base_type, base_path, result);
+    base_type->CollectInitFields(base_path, result);
   }
-  for (OValSym * field : type->member_order)
+  for (OValSym * field : member_order)
   {
     vector<unsigned> path(prefix);
     path.push_back(field->ll_field_index);
@@ -1369,7 +1376,7 @@ OValueStruct::OValueStruct(OCompoundType * atype)
   super(atype)
 {
   vector<SStructInitField> init_fields;
-  CollectStructInitFields(atype, {}, init_fields);
+  atype->CollectInitFields({}, init_fields);
   fields.reserve(init_fields.size());
   for (const SStructInitField & init_field : init_fields)
   {
@@ -1452,12 +1459,11 @@ OValue * OCompoundType::CreateValue()
   return (TK_STRUCT == kind) ? new OValueStruct(this) : nullptr;
 }
 
-static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
-                                uint32_t aflags, bool convert)
+int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool convert)
 {
   if (literal->entries.empty() && !literal->fill_missing)
   {
-    if (TK_OBJECT == type->kind)
+    if (TK_OBJECT == kind)
     {
       if (convert && (aflags & EXPCF_GENERATE_ERRORS))
       {
@@ -1467,11 +1473,11 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
     }
     if (convert)
     {
-      literal->ptype = type;
+      literal->ptype = this;
     }
     return 0;
   }
-  if ((TK_STRUCT != type->kind) || type->IsUnion())
+  if ((TK_STRUCT != kind) || IsUnion())
   {
     if (convert && (aflags & EXPCF_GENERATE_ERRORS))
     {
@@ -1481,7 +1487,7 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
   }
 
   vector<SStructInitField> fields;
-  CollectStructInitFields(type, {}, fields);
+  CollectInitFields({}, fields);
   vector<bool> assigned(fields.size(), false);
   size_t cursor = 0;
   int total_cost = 0;
@@ -1496,7 +1502,7 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
       {
         if (convert && (aflags & EXPCF_GENERATE_ERRORS))
         {
-          g_compiler->Error(DQERR_STRUCT_INIT_EXCESS, type->name);
+          g_compiler->Error(DQERR_STRUCT_INIT_EXCESS, name);
         }
         return -1;
       }
@@ -1505,12 +1511,12 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
     else
     {
       OCompoundType * declaring_type = nullptr;
-      int local_index = type->FindFieldIndex(entry.name, &declaring_type);
+      int local_index = FindFieldIndex(entry.name, &declaring_type);
       if (local_index < 0)
       {
         if (convert && (aflags & EXPCF_GENERATE_ERRORS))
         {
-          g_compiler->Error(DQERR_STRUCT_INIT_UNKNOWN_FIELD, entry.name, type->name);
+          g_compiler->Error(DQERR_STRUCT_INIT_UNKNOWN_FIELD, entry.name, name);
         }
         return -1;
       }
@@ -1575,7 +1581,7 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
   {
     if (convert && (aflags & EXPCF_GENERATE_ERRORS))
     {
-      g_compiler->Error(DQERR_STRUCT_INIT_MISSING, fields[missing_index].field->name, type->name);
+      g_compiler->Error(DQERR_STRUCT_INIT_MISSING, fields[missing_index].field->name, name);
     }
     return -1;
   }
@@ -1590,7 +1596,7 @@ static int AnalyzeStructLiteral(OCompoundType * type, OStructLit * literal,
 
   if (convert)
   {
-    literal->ptype = type;
+    literal->ptype = this;
   }
   return total_cost;
 }
@@ -1599,7 +1605,7 @@ bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   if (auto * literal = dynamic_cast<OStructLit *>(*rexpr); literal && !literal->ptype)
   {
-    return AnalyzeStructLiteral(this, literal, aflags, true) >= 0;
+    return AnalyzeLiteral(literal, aflags, true) >= 0;
   }
   if (IsUnion())
   {
@@ -1644,7 +1650,7 @@ int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   if (auto * literal = dynamic_cast<OStructLit *>(expr); literal && !literal->ptype)
   {
-    return AnalyzeStructLiteral(this, literal, aflags, false);
+    return AnalyzeLiteral(literal, aflags, false);
   }
   if (IsUnion())
   {

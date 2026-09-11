@@ -61,18 +61,6 @@
 7. **Atomic Compilation Artifact Publishing**:
    - [`ODqCompCodegen::EmitObject`](file:///lindata2/workpr/dq-lang/compiler/codegen/dqc_codegen.cpp#L619-L645) and [`ODqCompCodegen::EmitBitcode`](file:///lindata2/workpr/dq-lang/compiler/codegen/dqc_codegen.cpp#L654-L676) duplicate directory creation, temporary file name creation, output stream error checks, and atomic file replacement.
 
-8. **Array LLVM IR Loop Generation**:
-   - [`GetTypeDtorFunc`](file:///lindata2/workpr/dq-lang/compiler/types/otype_array.cpp#L325-L340) and [`GetTypeCopyFunc`](file:///lindata2/workpr/dq-lang/compiler/types/otype_array.cpp#L390-L405) in [`compiler/types/otype_array.cpp`](file:///lindata2/workpr/dq-lang/compiler/types/otype_array.cpp) duplicate identical IR block setup (`entry`, `loop.cond`, `loop.body`, `loop.inc`, `loop.end`), index counter alloca, offset computation, and element address GEPs.
-
-9. **Redundant Branch in `OCompoundType::ConvertFromExpr`**:
-    - [`compiler/types/otype_compound.cpp:1606-1622`](file:///lindata2/workpr/dq-lang/compiler/types/otype_compound.cpp#L1606-L1622) (`if (IsUnion())`) and [`compiler/types/otype_compound.cpp:1624-1640`](file:///lindata2/workpr/dq-lang/compiler/types/otype_compound.cpp#L1624-L1640) contain the exact same 17 lines of code; the `IsUnion()` branch is redundant.
-
-10. **Function Signature Matching**:
-    - [`MatchesOverloadDeclIdentity`](file:///lindata2/workpr/dq-lang/compiler/types/otype_func.cpp#L237-L280) and [`MatchesSignature`](file:///lindata2/workpr/dq-lang/compiler/types/otype_func.cpp#L282-L325) share 40 lines of identical checks (varargs, count, return type, parameter types); `MatchesSignature` simply adds an extra mode equality check.
-
-11. **Character Subtype Forwarding**:
-    - `OTypeChar`, `OTypeChar16`, and `OTypeWchar` in [`compiler/types/otype_char.cpp:115-162`](file:///lindata2/workpr/dq-lang/compiler/types/otype_char.cpp#L115-L162) duplicate forwarding implementations calling static helpers `CharConvertFromExpr` and `CharConversionCostFromExpr` rather than inheriting from a shared base class `OTypeCharBase`.
-
 ---
 
 ## 2. Very Long Functions
@@ -206,6 +194,22 @@
 15. **Type Interface Serialization & Effective Alignment (was 3.E)**:
     - **Original Issue:** `WriteDqmIfTypeRef`, `WriteDqmIfTypeSpecInner`, and `EffectiveStorageAlign` in `compiler/ast/symbols.cpp` were free/static functions operating on `OType`.
     - **Resolution:** Added `WriteDqmIfTypeRef(writer, arecid)`, `WriteDqmIfTypeSpecInner(writer)`, and `EffectiveAlign(attr_align)` as member methods on `OType` in [`compiler/ast/symbols.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h). Retained inline free functions for non-intrusive caller compatibility.
+
+16. **Array LLVM IR Loop Generation (was 1.8)**:
+    - **Original Issue:** `GetTypeDestroyFunc` and `GetTypeCopyFunc` in `compiler/types/otype_array.cpp` duplicated identical IR block setup (`entry`, `loop.cond`, `loop.body`, `loop.inc`, `loop.end`), index counter alloca, offset calculation, and element address GEPs.
+    - **Resolution:** Factored loop skeleton into template helper `EmitArrayElementLoop` in [`compiler/types/otype_array.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_array.cpp), deduplicating 45 lines of repetitive LLVM IR emission.
+
+17. **Redundant Branch in Compound Type Conversion (was 1.9)**:
+    - **Original Issue:** `OCompoundType::ConvertFromExpr` in `compiler/types/otype_compound.cpp` contained an `if (IsUnion())` branch with 17 lines of type checking and error reporting identical to the fallback branch directly below it.
+    - **Resolution:** Removed the redundant `if (IsUnion())` block in [`compiler/types/otype_compound.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_compound.cpp).
+
+18. **Function Signature Matching (was 1.10)**:
+    - **Original Issue:** `MatchesOverloadDeclIdentity` and `MatchesSignature` in `OTypeFunc` duplicated 40 lines of parameter and return type validation.
+    - **Resolution:** Unified via `OTypeFunc::MatchesSignature(other, bool check_modes)` and inlined `MatchesOverloadDeclIdentity(other)` as `MatchesSignature(other, false)` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
+
+19. **Character Subtype Forwarding (was 1.11)**:
+    - **Original Issue:** `OTypeChar`, `OTypeChar16`, and `OTypeWchar` each duplicated implementations of `CreateDiType`, `ConvertFromExpr`, and `GetConversionCostFromExpr`.
+    - **Resolution:** Created intermediate base class `OTypeCharBase : public OTypeInt` in [`compiler/types/otype_char.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_char.h) implementing these three methods once, with `OTypeChar`, `OTypeChar16`, and `OTypeWchar` inheriting from it.
 
 ### B. Ignored
 

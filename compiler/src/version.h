@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.62.5"
+#define DQ_COMPILER_VERSION  "0.62.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.62.6:
+  - Compiler code refactoring: Array LLVM IR Loop Generation, Compound Type Conversion,
+    Function Signature Matching, Character Subtype Forwarding
 v0.62.5:
   - Compiler code refactoring: more free functions converted to object member functions
 v0.62.4:

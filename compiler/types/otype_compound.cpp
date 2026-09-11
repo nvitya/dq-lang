@@ -1654,26 +1654,6 @@ bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   {
     return AnalyzeLiteral(literal, aflags, true) >= 0;
   }
-  if (IsUnion())
-  {
-    OType * source_type = (*rexpr)->ResolvedType();
-    if (source_type == this)
-    {
-      return true;
-    }
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      if (aflags & EXPCF_EXPLICIT_CAST)
-      {
-        g_compiler->Error(DQERR_CAST_INVALID, source_type->name, name);
-      }
-      else
-      {
-        g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, source_type->name);
-      }
-    }
-    return false;
-  }
   OType * source_type = (*rexpr)->ResolvedType();
   if (source_type == this)
   {

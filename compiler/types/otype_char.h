@@ -19,53 +19,49 @@ bool IsCharacterType(OType * type);
 bool IsValidWCharValue(int64_t value);
 bool TryGetDirectWCharLiteralValue(OExpr * expr, int64_t & rvalue);
 
-class OTypeChar : public OTypeInt
+class OTypeCharBase : public OTypeInt
 {
 private:
   using super = OTypeInt;
 
+public:
+  OTypeCharBase(const string aname, uint32_t abitlength)
+  :
+    super(aname, abitlength, false, TK_CHAR)
+  {
+  }
+
+  LlDiType * CreateDiType() override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+};
+
+class OTypeChar : public OTypeCharBase
+{
 public:
   OTypeChar()
   :
-    super("char", 8, false, TK_CHAR)
+    OTypeCharBase("char", 8)
   {
   }
-
-  LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
-class OTypeChar16 : public OTypeInt
+class OTypeChar16 : public OTypeCharBase
 {
-private:
-  using super = OTypeInt;
-
 public:
   OTypeChar16()
   :
-    super("char16", 16, false, TK_CHAR)
+    OTypeCharBase("char16", 16)
   {
   }
-
-  LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };
 
-class OTypeWchar : public OTypeInt
+class OTypeWchar : public OTypeCharBase
 {
-private:
-  using super = OTypeInt;
-
 public:
   OTypeWchar()
   :
-    super("wchar", 32, false, TK_CHAR)
+    OTypeCharBase("wchar", 32)
   {
   }
-
-  LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 };

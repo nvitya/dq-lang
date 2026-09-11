@@ -271,6 +271,52 @@ static void GenerateElementCopyRefs(OType * elemtype, LlValue * elem_addr)
   }
 }
 
+template <typename BodyFn>
+static void EmitArrayElementLoop(llvm::Function * func, llvm::Value * dataptr, llvm::Value * count,
+                                 OType * elemtype, BodyFn && body_fn)
+{
+  LlType * uint_type = LlNativeUIntType();
+  LlBasicBlock * old_bb = ll_builder.GetInsertBlock();
+
+  LlBasicBlock * bb_entry = LlBasicBlock::Create(ll_ctx, "entry", func);
+  LlBasicBlock * bb_cond = LlBasicBlock::Create(ll_ctx, "loop.cond", func);
+  LlBasicBlock * bb_body = LlBasicBlock::Create(ll_ctx, "loop.body", func);
+  LlBasicBlock * bb_inc = LlBasicBlock::Create(ll_ctx, "loop.inc", func);
+  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "loop.end", func);
+
+  ll_builder.SetInsertPoint(bb_entry);
+  LlValue * ll_idx_ptr = CreateEntryBlockAlloca(uint_type, nullptr, "idx");
+  ll_builder.CreateStore(llvm::ConstantInt::get(uint_type, 0), ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_cond);
+  LlValue * ll_idx = ll_builder.CreateLoad(uint_type, ll_idx_ptr, "idx.val");
+  LlValue * ll_cmp = ll_builder.CreateICmpULT(ll_idx, count, "cmp");
+  ll_builder.CreateCondBr(ll_cmp, bb_body, bb_end);
+
+  ll_builder.SetInsertPoint(bb_body);
+  LlValue * ll_bytesize = llvm::ConstantInt::get(uint_type, elemtype->bytesize);
+  LlValue * ll_offset = ll_builder.CreateMul(ll_idx, ll_bytesize, "offset");
+  LlValue * ll_elem_addr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), dataptr, ll_offset, "elem.addr");
+
+  body_fn(ll_elem_addr);
+
+  ll_builder.CreateBr(bb_inc);
+
+  ll_builder.SetInsertPoint(bb_inc);
+  LlValue * ll_next_idx = ll_builder.CreateAdd(ll_idx, llvm::ConstantInt::get(uint_type, 1), "idx.next");
+  ll_builder.CreateStore(ll_next_idx, ll_idx_ptr);
+  ll_builder.CreateBr(bb_cond);
+
+  ll_builder.SetInsertPoint(bb_end);
+  ll_builder.CreateRetVoid();
+
+  if (old_bb)
+  {
+    ll_builder.SetInsertPoint(old_bb);
+  }
+}
+
 static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
 {
   if (!elemtype->ContainsManagedStorage()) return nullptr;
@@ -285,10 +331,10 @@ static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
     return existing;
   }
 
-  LlType * ptr_type = LlPtrType();
-  LlType * uint_type = LlNativeUIntType();
-  llvm::FunctionType * func_type = llvm::FunctionType::get(LlType::getVoidTy(ll_ctx), {ptr_type, uint_type}, false);
-  llvm::Function * func = llvm::Function::Create(func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
+  llvm::FunctionType * func_type = llvm::FunctionType::get(
+      LlType::getVoidTy(ll_ctx), {LlPtrType(), LlNativeUIntType()}, false);
+  llvm::Function * func = llvm::Function::Create(
+      func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
 
   auto arg_it = func->arg_begin();
   llvm::Argument * arg_ptr = &*arg_it++;
@@ -296,45 +342,9 @@ static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
   llvm::Argument * arg_count = &*arg_it++;
   arg_count->setName("count");
 
-  LlBasicBlock * old_bb = ll_builder.GetInsertBlock();
-
-  LlBasicBlock * bb_entry = LlBasicBlock::Create(ll_ctx, "entry", func);
-  LlBasicBlock * bb_cond = LlBasicBlock::Create(ll_ctx, "loop.cond", func);
-  LlBasicBlock * bb_body = LlBasicBlock::Create(ll_ctx, "loop.body", func);
-  LlBasicBlock * bb_inc = LlBasicBlock::Create(ll_ctx, "loop.inc", func);
-  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "loop.end", func);
-
-  ll_builder.SetInsertPoint(bb_entry);
-  LlValue * ll_idx_ptr = CreateEntryBlockAlloca(uint_type, nullptr, "idx");
-  ll_builder.CreateStore(llvm::ConstantInt::get(uint_type, 0), ll_idx_ptr);
-  ll_builder.CreateBr(bb_cond);
-
-  ll_builder.SetInsertPoint(bb_cond);
-  LlValue * ll_idx = ll_builder.CreateLoad(uint_type, ll_idx_ptr, "idx.val");
-  LlValue * ll_cmp = ll_builder.CreateICmpULT(ll_idx, arg_count, "cmp");
-  ll_builder.CreateCondBr(ll_cmp, bb_body, bb_end);
-
-  ll_builder.SetInsertPoint(bb_body);
-  LlValue * ll_bytesize = llvm::ConstantInt::get(uint_type, elemtype->bytesize);
-  LlValue * ll_offset = ll_builder.CreateMul(ll_idx, ll_bytesize, "offset");
-  LlValue * ll_elem_addr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), arg_ptr, ll_offset, "elem.addr");
-  
-  GenerateElementDestructor(elemtype, ll_elem_addr);
-
-  ll_builder.CreateBr(bb_inc);
-
-  ll_builder.SetInsertPoint(bb_inc);
-  LlValue * ll_next_idx = ll_builder.CreateAdd(ll_idx, llvm::ConstantInt::get(uint_type, 1), "idx.next");
-  ll_builder.CreateStore(ll_next_idx, ll_idx_ptr);
-  ll_builder.CreateBr(bb_cond);
-
-  ll_builder.SetInsertPoint(bb_end);
-  ll_builder.CreateRetVoid();
-
-  if (old_bb)
-  {
-    ll_builder.SetInsertPoint(old_bb);
-  }
+  EmitArrayElementLoop(func, arg_ptr, arg_count, elemtype, [&](LlValue * ll_elem_addr) {
+    GenerateElementDestructor(elemtype, ll_elem_addr);
+  });
 
   return func;
 }
@@ -349,10 +359,10 @@ static llvm::Function * GetTypeCopyFunc(OType * elemtype)
     return existing;
   }
 
-  LlType * ptr_type = LlPtrType();
-  LlType * uint_type = LlNativeUIntType();
-  llvm::FunctionType * func_type = llvm::FunctionType::get(LlType::getVoidTy(ll_ctx), {ptr_type, ptr_type, uint_type}, false);
-  llvm::Function * func = llvm::Function::Create(func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
+  llvm::FunctionType * func_type = llvm::FunctionType::get(
+      LlType::getVoidTy(ll_ctx), {LlPtrType(), LlPtrType(), LlNativeUIntType()}, false);
+  llvm::Function * func = llvm::Function::Create(
+      func_type, llvm::GlobalValue::InternalLinkage, func_name, ll_module);
 
   auto arg_it = func->arg_begin();
   llvm::Argument * arg_dst = &*arg_it++;
@@ -361,45 +371,11 @@ static llvm::Function * GetTypeCopyFunc(OType * elemtype)
   arg_src->setName("srcptr");
   llvm::Argument * arg_count = &*arg_it++;
   arg_count->setName("count");
-
-  LlBasicBlock * old_bb = ll_builder.GetInsertBlock();
-
-  LlBasicBlock * bb_entry = LlBasicBlock::Create(ll_ctx, "entry", func);
-  LlBasicBlock * bb_cond = LlBasicBlock::Create(ll_ctx, "loop.cond", func);
-  LlBasicBlock * bb_body = LlBasicBlock::Create(ll_ctx, "loop.body", func);
-  LlBasicBlock * bb_inc = LlBasicBlock::Create(ll_ctx, "loop.inc", func);
-  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "loop.end", func);
-
-  ll_builder.SetInsertPoint(bb_entry);
-  LlValue * ll_idx_ptr = CreateEntryBlockAlloca(uint_type, nullptr, "idx");
-  ll_builder.CreateStore(llvm::ConstantInt::get(uint_type, 0), ll_idx_ptr);
-  ll_builder.CreateBr(bb_cond);
-
-  ll_builder.SetInsertPoint(bb_cond);
-  LlValue * ll_idx = ll_builder.CreateLoad(uint_type, ll_idx_ptr, "idx.val");
-  LlValue * ll_cmp = ll_builder.CreateICmpULT(ll_idx, arg_count, "cmp");
-  ll_builder.CreateCondBr(ll_cmp, bb_body, bb_end);
-
-  ll_builder.SetInsertPoint(bb_body);
   (void)arg_src;
-  LlValue * ll_bytesize = llvm::ConstantInt::get(uint_type, elemtype->bytesize);
-  LlValue * ll_offset = ll_builder.CreateMul(ll_idx, ll_bytesize, "offset");
-  LlValue * ll_elem_addr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), arg_dst, ll_offset, "elem.addr");
-  GenerateElementCopyRefs(elemtype, ll_elem_addr);
-  ll_builder.CreateBr(bb_inc);
 
-  ll_builder.SetInsertPoint(bb_inc);
-  LlValue * ll_next_idx = ll_builder.CreateAdd(ll_idx, llvm::ConstantInt::get(uint_type, 1), "idx.next");
-  ll_builder.CreateStore(ll_next_idx, ll_idx_ptr);
-  ll_builder.CreateBr(bb_cond);
-
-  ll_builder.SetInsertPoint(bb_end);
-  ll_builder.CreateRetVoid();
-
-  if (old_bb)
-  {
-    ll_builder.SetInsertPoint(old_bb);
-  }
+  EmitArrayElementLoop(func, arg_dst, arg_count, elemtype, [&](LlValue * ll_elem_addr) {
+    GenerateElementCopyRefs(elemtype, ll_elem_addr);
+  });
 
   return func;
 }

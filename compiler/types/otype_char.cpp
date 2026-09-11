@@ -116,47 +116,17 @@ static int CharConversionCostFromExpr(OType * dsttype, OExpr * expr, uint32_t af
   return -1;
 }
 
-LlDiType * OTypeChar::CreateDiType()
+LlDiType * OTypeCharBase::CreateDiType()
 {
   return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
 }
 
-bool OTypeChar::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+bool OTypeCharBase::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   return CharConvertFromExpr(this, rexpr, aflags);
 }
 
-int OTypeChar::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return CharConversionCostFromExpr(this, expr, aflags);
-}
-
-LlDiType * OTypeChar16::CreateDiType()
-{
-  return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
-}
-
-bool OTypeChar16::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  return CharConvertFromExpr(this, rexpr, aflags);
-}
-
-int OTypeChar16::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return CharConversionCostFromExpr(this, expr, aflags);
-}
-
-LlDiType * OTypeWchar::CreateDiType()
-{
-  return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
-}
-
-bool OTypeWchar::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  return CharConvertFromExpr(this, rexpr, aflags);
-}
-
-int OTypeWchar::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+int OTypeCharBase::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   return CharConversionCostFromExpr(this, expr, aflags);
 }

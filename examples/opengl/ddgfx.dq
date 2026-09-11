@@ -46,10 +46,10 @@ struct SDdVertex:
 endstruct
 
 struct SDdColor:  // use struct literal to set this. e.g: {1.0, 0.5, 0.5, 1.0}
-    red   : float32
-    green : float32
-    blue  : float32
-    alpha : float32
+    r  : float32
+    g  : float32
+    b  : float32
+    a  : float32
 endstruct
 
 func DdMatIdentity() -> SDdMatrix;
@@ -356,7 +356,7 @@ endfunc
 
 func OColorProgram.SetColor(color : SDdColor, alpha : float32):
     use *
-    GlUniform4f(color_location, color.red, color.green, color.blue, color.alpha * alpha)
+    GlUniform4f(color_location, color.r, color.g, color.b, color.a * alpha)
 endfunc
 
 //-----------------------------------------------------------------------------
@@ -450,7 +450,7 @@ endfunc
 
 func OTextureProgram.SetColor(color : SDdColor, alpha : float32):
     use *
-    GlUniform4f(color_location, color.red, color.green, color.blue, color.alpha * alpha)
+    GlUniform4f(color_location, color.r, color.g, color.b, color.a * alpha)
 endfunc
 
 func OTextureProgram.SetAlphaMap(value : int32):
@@ -943,7 +943,7 @@ func ODdScene.BeginFrame(width : int, height : int):
     use *
     GlViewport(0, 0, width, height)
     projection = DdMatProjection(width, height)
-    GlClearColor(background.red, background.green, background.blue, background.alpha)
+    GlClearColor(background.r, background.g, background.b, background.a)
     GlClear(GL_COLOR_BUFFER_BIT)
     root.Draw(projection, 1.0)
 endfunc

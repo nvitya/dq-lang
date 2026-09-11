@@ -392,6 +392,13 @@ LlValue * OLValueVar::GenerateObjectAddress(OScope * scope)
   return GenerateAddress(scope);
 }
 
+OLValueExpr * OLValueVar::Clone() const
+{
+  auto * res = new OLValueVar(pvalsym);
+  res->ptype = ptype;
+  return res;
+}
+
 /* ctor */ OLValueDeref::OLValueDeref(OExpr * aptr)
 {
   ptrexpr = aptr;
@@ -565,6 +572,16 @@ void OLValueMember::DeleteChildTree()
 {
   OExpr::DeleteTree(base);
   base = nullptr;
+}
+
+OLValueExpr * OLValueMember::Clone() const
+{
+  OLValueExpr * new_base = base ? base->Clone() : nullptr;
+  if (!new_base)
+  {
+    return nullptr;
+  }
+  return new OLValueMember(new_base, structtype, memberindex, ptype);
 }
 
 /* ctor */ OLValueIndex::OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex)

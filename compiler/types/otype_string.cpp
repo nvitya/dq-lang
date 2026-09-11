@@ -147,7 +147,7 @@ static LlValue * CallDynStrFunc(OScope * scope, const string & name, vector<LlVa
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
-static OValSymFunc * TextFormatFunc(const string & name)
+OValSymFunc * TextFormatFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_textformat");
   if (nsit == g_namespaces.end() || !nsit->second)
@@ -174,7 +174,7 @@ static OValSymFunc * TextFormatFunc(const string & name)
   return fn;
 }
 
-static LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
+LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args)
 {
   OValSymFunc * fn = TextFormatFunc(name);
   if (scope)

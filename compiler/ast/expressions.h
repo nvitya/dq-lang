@@ -84,6 +84,7 @@ public:
   virtual OValSym * NoReadSymbol() const { return nullptr; }
   virtual OValSym * NoWriteSymbol() const { return nullptr; }
   virtual LlValue * GenerateObjectAddress(OScope * scope);
+  virtual OLValueExpr * Clone() const { return nullptr; }
 };
 
 class OLValueVar : public OLValueExpr
@@ -99,6 +100,7 @@ public:
   OValSym *  NoReadSymbol() const override;
   OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
+  OLValueExpr * Clone() const override;
 };
 
 class OLValueDeref : public OLValueExpr
@@ -135,6 +137,7 @@ public:
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
+  OLValueExpr * Clone() const override;
 };
 
 class OLValueIndex : public OLValueExpr

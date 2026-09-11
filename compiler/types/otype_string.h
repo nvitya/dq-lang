@@ -93,6 +93,8 @@ bool IsTextSourceType(OType * type);
 bool IsStringComparableTextType(OType * type);
 bool IsStringFamilyTextType(OType * type);
 bool EnsureDynStringRtlUseForStringTypes();
+OValSymFunc * TextFormatFunc(const string & name);
+LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {});
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr);
 LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr);
 LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr);

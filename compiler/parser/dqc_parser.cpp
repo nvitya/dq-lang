@@ -37,24 +37,6 @@
 
 using namespace std;
 
-static OLValueExpr * CloneContextLValue(OLValueExpr * src)
-{
-  if (auto * var = dynamic_cast<OLValueVar *>(src))
-  {
-    return new OLValueVar(var->pvalsym);
-  }
-  if (auto * member = dynamic_cast<OLValueMember *>(src))
-  {
-    OLValueExpr * base = CloneContextLValue(member->base);
-    if (!base)
-    {
-      return nullptr;
-    }
-    return new OLValueMember(base, member->structtype, member->memberindex, member->ptype);
-  }
-  return nullptr;
-}
-
 filesystem::path ODqCompParser::CurrentSourcePath() const
 {
   if (scf && scf->curfile && !scf->curfile->fullpath.empty())

@@ -168,24 +168,6 @@ static bool ConvertByteWCharLiteralToChar(OExpr ** rexpr)
   return true;
 }
 
-static OLValueExpr * CloneContextLValue(OLValueExpr * src)
-{
-  if (auto * var = dynamic_cast<OLValueVar *>(src))
-  {
-    return new OLValueVar(var->pvalsym);
-  }
-  if (auto * member = dynamic_cast<OLValueMember *>(src))
-  {
-    OLValueExpr * base = CloneContextLValue(member->base);
-    if (!base)
-    {
-      return nullptr;
-    }
-    return new OLValueMember(base, member->structtype, member->memberindex, member->ptype);
-  }
-  return nullptr;
-}
-
 bool ODqCompParserExpr::ParseParamModeKeyword(const string & sid, EParamMode & rmode)
 {
   if ("ref" == sid)
@@ -3083,7 +3065,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
     if (array_index_context_lval)
     {
-      OLValueExpr * ctx_lval = CloneContextLValue(array_index_context_lval);
+      OLValueExpr * ctx_lval = array_index_context_lval->Clone();
       if (!ctx_lval)
       {
         Error(DQERR_NOT_SUPPORTED, "$" + ctxname + " for this array expression");

@@ -45,21 +45,13 @@ struct SDdVertex:
     y : float32
 endstruct
 
-struct SDdColor:
+struct SDdColor:  // use struct literal to set this. e.g: {1.0, 0.5, 0.5, 1.0}
     red   : float32
     green : float32
     blue  : float32
     alpha : float32
-
-    func Set(ared : float32, agreen : float32, ablue : float32, aalpha : float32 = 1.0):
-        red   = ared
-        green = agreen
-        blue  = ablue
-        alpha = aalpha
-    endfunc
 endstruct
 
-func DdColor(red : float32, green : float32, blue : float32, alpha : float32 = 1.0) -> SDdColor;
 func DdMatIdentity() -> SDdMatrix;
 func DdMatMultiply(first : SDdMatrix, second : SDdMatrix) -> SDdMatrix;
 func DdMatTransformPoint(matrix : SDdMatrix, point : SDdVertex) -> SDdVertex;
@@ -97,7 +89,7 @@ object OPrimitive:
 endobject
 
 object OShape(ODrawable):
-    color      : SDdColor = DdColor(1.0, 1.0, 1.0)
+    color      : SDdColor = {1.0, 1.0, 1.0, 1.0}
     line_width : float32 = 1.0
     primitives : [*]OPrimitive
 
@@ -110,7 +102,7 @@ endobject
 
 object OClonedShape(ODrawable):
     original : OShape = nil
-    color    : SDdColor = DdColor(1.0, 1.0, 1.0)
+    color    : SDdColor = {1.0, 1.0, 1.0, 1.0}
 
     func *Create(parent : ODrawable, original : OShape)
     func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
@@ -141,7 +133,7 @@ object OAlphaMap(ODrawable):
     width   : int = 0
     height  : int = 0
     data    : [*]uint8
-    color   : SDdColor = DdColor(1.0, 1.0, 1.0)
+    color   : SDdColor = {1.0, 1.0, 1.0, 1.0}
 
     texture        : uint32 = 0
     vao            : uint32 = 0
@@ -221,7 +213,7 @@ endobject
 object ODdScene:
     window     : pointer = nil
     root       : ODrawGroup = nil
-    background : SDdColor = DdColor(0.0, 0.0, 0.0)
+    background : SDdColor = {0.0, 0.0, 0.0, 1.0}
     projection : SDdMatrix
 
     func *Create(window : pointer)
@@ -234,14 +226,6 @@ var g_colorProgram   : OColorProgram   = nil
 var g_textureProgram : OTextureProgram = nil
 
 implementation
-
-
-func DdColor(red : float32, green : float32, blue : float32, alpha : float32 = 1.0) -> SDdColor:
-    result.red = red
-    result.green = green
-    result.blue = blue
-    result.alpha = alpha
-endfunc
 
 func DdMatIdentity() -> SDdMatrix:
     result.values[0] = 1
@@ -719,7 +703,7 @@ func OPixmap.Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]
 
     g_textureProgram.Activate()
     g_textureProgram.SetMatrix(DdMatMultiply(Matrix(), parent_matrix))
-    g_textureProgram.SetColor(DdColor(1.0, 1.0, 1.0), parent_alpha * alpha)
+    g_textureProgram.SetColor({1.0, 1.0, 1.0, 1.0}, parent_alpha * alpha)
     g_textureProgram.SetAlphaMap(0)
     GlActiveTexture(GL_TEXTURE0)
     GlBindTexture(GL_TEXTURE_2D, texture)

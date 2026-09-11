@@ -30,7 +30,7 @@ func *Main() -> int:
     GlfwSwapInterval(1)
 
     var scene : ODdScene = new ODdScene(window)
-    scene.background = DdColor(0.4, 0.4, 0.2)
+    scene.background = {0.4, 0.4, 0.2, 1.0}
 
     var bitmap : OPixmap = scene.root.NewPixmap(200, 100)
     bitmap.x = 100.0

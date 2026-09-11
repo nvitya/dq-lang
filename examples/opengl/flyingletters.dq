@@ -94,7 +94,7 @@ func OFlyingLettersScene.*Create(window : pointer):
 
     use *
     libc_srand(uint32(Floor(GlfwGetTime() * 1000000)))
-    background = DdColor(0.04, 0.06, 0.12)
+    background = {0.04, 0.06, 0.12, 1.0}
     font_manager = new OFontManager()
     font = font_manager.GetFont('LiberationSerif-Regular.ttf')
     if not font.SetPixelSize(font_pixels):
@@ -113,11 +113,12 @@ func OFlyingLettersScene.*Create(window : pointer):
 
         var text : str = StrfFromUtf16(character)
         var letter : OFlyingLetter = new OFlyingLetter(root, font, text)
-        letter.color = DdColor(
+        letter.color = {
             0.25 + 0.75 * RandomUnit(),
             0.25 + 0.75 * RandomUnit(),
-            0.25 + 0.75 * RandomUnit()
-        )
+            0.25 + 0.75 * RandomUnit(),
+            1.0
+        }
         letter.x = window_width * RandomUnit()
         letter.y = window_height * RandomUnit()
         letter.speed_x = speed_scale * (RandomUnit() - 0.5)

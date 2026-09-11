@@ -34,7 +34,7 @@ func OTestScene.*Create(window : pointer):
     inherited Create(window)
 
     use *
-    background = DdColor(0.4, 0.4, 0.2)
+    background = {0.4, 0.3, 0.2, 1.0}
 
     triangle[0].x = 0
     triangle[0].y = 0
@@ -48,7 +48,7 @@ func OTestScene.*Create(window : pointer):
     original_shape.scalex = 100
     original_shape.scaley = 100
     original_shape.alpha = 0.5
-    original_shape.color = DdColor(1.0, 0.0, 0.0)
+    original_shape.color = {1.0, 0.0, 0.0, 1.0}
 
     original_group = new ODrawGroup(nil)
     original_group.CloneShape(original_shape)
@@ -57,12 +57,12 @@ func OTestScene.*Create(window : pointer):
     clone_shape = original_group.CloneShape(original_shape)
     clone_shape.x += 50
     clone_shape.rotation = 20
-    clone_shape.color = DdColor(0.0, 1.0, 0.0, 0.4)
+    clone_shape.color = {0.0, 1.0, 0.0, 0.4}
 
     clone_shape = original_group.CloneShape(original_shape)
     clone_shape.x += 70
     clone_shape.rotation = 30
-    clone_shape.color = DdColor(0.0, 0.0, 1.0, 0.4)
+    clone_shape.color = {0.0, 0.0, 1.0, 0.4}
 
     var clone_group : OClonedGroup
     clone_group = root.CloneGroup(original_group)

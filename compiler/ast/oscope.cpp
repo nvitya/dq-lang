@@ -254,3 +254,26 @@ bool OScope::FirstAssigned(OValSym * avs)
   }
   return false;
 }
+
+void OScope::AddMethodUseRootScopes(OScope * root_scope)
+{
+  for (OScope * scope = root_scope; scope; scope = scope->parent_scope)
+  {
+    AddMethodUseScope(scope);
+    if (!scope->vs_lookup_parent)
+    {
+      break;
+    }
+  }
+}
+
+OTypeObject * OScope::GetExceptionBaseType()
+{
+  OType * type = FindType("Exception");
+  return dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
+}
+
+void OScope::EmitExpressionExceptionCheck()
+{
+  // No-op: zero-cost exceptions handle unwinding natively via invoke and landingpad.
+}

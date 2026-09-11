@@ -38,6 +38,7 @@ class OModuleBase;
 class OModuleUse;
 class ODqCompAst;
 class OExpr;
+class OTypeObject;
 
 struct SScopeLookupOptions
 {
@@ -109,6 +110,9 @@ public:
   bool        MethodUseDotVisible(OScope * astop_scope = nullptr);
   bool        MethodUseStarVisible(OScope * astop_scope = nullptr);
   void        AddMethodUseScope(OScope * ascope);
+  void        AddMethodUseRootScopes(OScope * root_scope);
+  OTypeObject * GetExceptionBaseType();
+  void        EmitExpressionExceptionCheck();
 
   LlDiScope *  GetDiScope();
 
@@ -235,6 +239,18 @@ public:
       delete use;
     }
     delete scope_pub;
+  }
+
+  OModuleUse * FindModuleUseByNamespace(const string & namespace_name) const
+  {
+    for (OModuleUse * use : used_modules)
+    {
+      if (use && (use->namespace_name == namespace_name))
+      {
+        return use;
+      }
+    }
+    return nullptr;
   }
 };
 
@@ -376,6 +392,9 @@ public:
   virtual bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false);
   virtual bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer);
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
+  bool               WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid) const;
+  bool               WriteDqmIfTypeSpecInner(ODqmIfWriter & writer) const;
+  uint32_t           EffectiveAlign(uint32_t aattr_align = 0);
 };
 
 uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign);
@@ -634,6 +653,8 @@ public:
   {
     return (ptype ? ptype->ResolveAlias() : nullptr);
   }
+
+  OTypeObject * GetExceptionObjectType() const;
 };
 
 // Value Symbols

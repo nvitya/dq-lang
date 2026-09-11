@@ -27,62 +27,10 @@ static bool EnsureExceptionRtlUse()
   return g_compiler->AddImplicitUse("rtl/exception", "__dq_exception", g_module->scope_pub, false, MUM_ALL);
 }
 
-static OTypeObject * ExceptionBaseType(OScope * scope)
-{
-  OType * type = scope ? scope->FindType("Exception") : nullptr;
-  return dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
-}
-
 static bool IsExceptionType(OTypeObject * type, OScope * scope)
 {
-  OTypeObject * base = ExceptionBaseType(scope);
+  OTypeObject * base = scope ? scope->GetExceptionBaseType() : nullptr;
   return type && base && type->IsSameOrDerivedFrom(base);
-}
-
-static OTypeObject * ExceptionObjectTypeFromExpr(OExpr * expr)
-{
-  OType * type = expr ? expr->ResolvedType() : nullptr;
-  type = type ? type->ResolveAlias() : nullptr;
-  if (auto * object_type = dynamic_cast<OTypeObject *>(type))
-  {
-    return object_type;
-  }
-  if (auto * ptrtype = dynamic_cast<OTypePointer *>(type))
-  {
-    return dynamic_cast<OTypeObject *>(ptrtype->basetype ? ptrtype->basetype->ResolveAlias() : nullptr);
-  }
-  return nullptr;
-}
-
-static OModuleUse * FindModuleUseByNamespace(const string & namespace_name)
-{
-  if (!g_module)
-  {
-    return nullptr;
-  }
-  for (OModuleUse * use : g_module->used_modules)
-  {
-    if (use && (use->namespace_name == namespace_name))
-    {
-      return use;
-    }
-  }
-  return nullptr;
-}
-
-static void AddMethodUseRootScopes(OScope * dst_scope, OScope * root_scope)
-{
-  for (OScope * scope = root_scope; scope; scope = scope->parent_scope)
-  {
-    if (dst_scope)
-    {
-      dst_scope->AddMethodUseScope(scope);
-    }
-    if (!scope->vs_lookup_parent)
-    {
-      break;
-    }
-  }
 }
 
 OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype)
@@ -823,7 +771,7 @@ void ODqCompParserStmt::ParseStmtMethodUse()
     curscope->method_use_star = true;
     auto nsit = g_namespaces.find(".");
     OScope * root_scope = (g_namespaces.end() != nsit ? nsit->second : nullptr);
-    AddMethodUseRootScopes(curscope, root_scope);
+    curscope->AddMethodUseRootScopes(root_scope);
   };
 
   auto add_alias = [&](const string & alias)
@@ -838,7 +786,7 @@ void ODqCompParserStmt::ParseStmtMethodUse()
       return;
     }
 
-    OModuleUse * use = FindModuleUseByNamespace(alias);
+    OModuleUse * use = (g_module ? g_module->FindModuleUseByNamespace(alias) : nullptr);
     if (!use)
     {
       StatementError(DQERR_METHOD_USE_INVALID, "unknown namespace alias \"" + alias + "\"");
@@ -2159,7 +2107,7 @@ void ODqCompParserStmt::ParseStmtRaise()
     return;
   }
 
-  OTypeObject * expr_object_type = ExceptionObjectTypeFromExpr(expr);
+  OTypeObject * expr_object_type = expr->GetExceptionObjectType();
   if (!IsExceptionType(expr_object_type, curscope))
   {
     Error(DQERR_TYPE_EXPECTED, "Exception", expr->ResolvedType() ? expr->ResolvedType()->name : string("?"));

@@ -23,11 +23,18 @@
 
 using namespace std;
 
-void EmitExpressionExceptionCheck(OScope * scope);
+inline void EmitExpressionExceptionCheck(OScope * scope)
+{
+  if (scope)
+  {
+    scope->EmitExpressionExceptionCheck();
+  }
+}
 LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
                                const vector<LlValue *> & ll_args, bool force_direct = false);
 
 enum EBinOp : int;
+class OFuncParam;
 
 class OExprTypeConv : public OExpr
 {
@@ -173,6 +180,11 @@ public:
   LlValue * GenerateObjectAddress(OScope * scope) override;
   void GenerateWrite(OScope * scope, OExpr * value);
   void GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value);
+  LlValue * GenerateReceiver(OScope * scope);
+  LlValue * GenerateExplicitArgument(OScope * scope, OExpr * expr, OFuncParam * param);
+  vector<LlValue *> GenerateCallArgs(OScope * scope, OValSymFunc * accessor, OExpr * value = nullptr);
+  LlValue * GenerateFieldAddress(OScope * scope, OValSym * accessor, OCompoundType * decl_type,
+                                 LlValue * ll_receiver = nullptr);
   void FoldChildren() override;
   void DeleteChildTree() override;
 };

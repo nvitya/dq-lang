@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.62.4"
+#define DQ_COMPILER_VERSION  "0.62.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.62.5:
+  - Compiler code refactoring: more free functions converted to object member functions
 v0.62.4:
   - Compiler code refactoring: Centralized Polymorphic RTTI Emission, Signature Matching Deduplication,
     Adopt RAII for TRawCallArg

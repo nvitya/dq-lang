@@ -112,39 +112,9 @@
 
 ---
 
-## 3. Functions That Could Be Made Member Functions
-
-### A. Method Signatures & Matching (`OValSymFunc`)
-- [`CloneMethodVisibleSignature(OValSymFunc * vsfunc)`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp#L2675-L2692) in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp) -> belongs on [`OValSymFunc::CloneVisibleSignature()`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
-- [`ConstructorUserSignaturesMatch(OValSymFunc * left, OValSymFunc * right)`](file:///lindata/workvc/dq-lang/compiler/types/otype_compound.cpp#L245-L273) in [`compiler/types/otype_compound.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_compound.cpp) -> belongs on [`OValSymFunc::UserSignaturesMatch(OValSymFunc * other)`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
-
-### B. Function Types (`OTypeFunc`)
-- [`FuncTypeName(OTypeFunc * sigtype)`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.cpp#L1304-L1346) in [`compiler/types/otype_func.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.cpp) -> belongs on [`OTypeFunc::FormattedTypeName()`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
-- [`FuncRefTypeName(OTypeFunc * sigtype, bool object_ref)`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.cpp#L1348-L1356) -> belongs on [`OTypeFunc::FormattedRefTypeName(bool object_ref)`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
-- [`CreateObjectFuncRefLlCallType(OTypeFunc * sigtype)`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp#L2694-L2713) in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp) -> belongs on [`OTypeFunc::CreateObjectRefLlCallType()`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h).
-
-### C. Expression Helpers (`OPropertyExpr`, `OExpr`)
-- In [`compiler/ast/expressions.cpp:964-1026`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp#L964-L1026), four static functions handle property code generation:
-  - `GeneratePropertyReceiver(OScope * scope, OExpr * receiver)`
-  - `GeneratePropertyExplicitArgument(OScope * scope, OExpr * expr, OFuncParam * param)`
-  - `GeneratePropertyCallArgs(OScope * scope, OPropertyExpr * expr, ...)`
-  - `GeneratePropertyFieldAddress(OScope * scope, OPropertyExpr * expr, ...)`
-  All four belong on [`OPropertyExpr`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h).
-- [`ExceptionObjectTypeFromExpr(OExpr * expr)`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L42-L55) in [`compiler/parser/dqc_parser_stmt.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp) -> belongs on [`OExpr::GetExceptionObjectType()`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h).
-
-### D. Scope & Module Helpers (`OScope` & `TDQModule`)
-- [`ExceptionBaseType(OScope * scope)`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L30-L34) in [`compiler/parser/dqc_parser_stmt.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp) -> belongs on [`OScope::GetExceptionBaseType()`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h).
-- [`AddMethodUseRootScopes(OScope * dst_scope, OScope * root_scope)`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L73-L86) in [`compiler/parser/dqc_parser_stmt.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp) -> belongs on [`OScope::AddMethodUseRootScopes(OScope * root_scope)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h).
-- [`EmitExpressionExceptionCheck(OScope * scope)`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp#L50-L54) in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp) -> belongs on [`OScope::EmitExpressionExceptionCheck()`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h).
-- [`FindModuleUseByNamespace(const string & namespace_name)`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L57-L71) in [`compiler/parser/dqc_parser_stmt.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp) -> belongs on [`TDQModule::FindModuleUseByNamespace(...)`](file:///lindata/workvc/dq-lang/compiler/ast/dq_module.h).
-
-### E. Type Interface Serialization (`OType` / `ODqmIfWriter`)
-- [`WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid, OType * atype)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.cpp#L39-L50) and [`WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.cpp#L222-L280) in [`compiler/ast/symbols.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.cpp) -> belongs on [`OType::WriteDqmIfTypeRef(...)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h) or [`ODqmIfWriter::WriteTypeRef(...)`](file:///lindata/workvc/dq-lang/compiler/ast/dqm_if.h).
-- [`EffectiveStorageAlign(OType * atype, uint32_t aattr_align)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.cpp#L562-L570) in [`compiler/ast/symbols.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.cpp) -> belongs on [`OType::EffectiveAlign(uint32_t attr_align)`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h).
-
 ---
 
-## 4. Key Architectural Recommendations
+## 3. Key Architectural Recommendations
 
 1. **Decompose Top-Heavy Parser Functions**:
    - Break [`ODqCompParserExpr::ParsePostfix`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2382) (583 lines) into distinct helper member methods: `ParsePostfixDotMember`, `ParsePostfixIndexOrSlice`, `ParsePostfixCall`, and `ParsePostfixPointerOps`.
@@ -153,7 +123,7 @@
 
 ---
 
-## 5. Implemented and Ignored
+## 4. Implemented and Ignored
 
 ### A. Implemented
 
@@ -216,6 +186,26 @@
       - Implemented move constructor and move assignment, deleted copy constructor and copy assignment to enforce single ownership, and added `TakeExpr()`.
       - Simplified `ODqCompAst::FreeRawCallArguments` in [`compiler/ast/dqc_ast.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/dqc_ast.cpp) to `rawargs.clear()`.
       - Removed all 37 manual `FreeRawCallArguments(rawargs)` calls across `dqc_parser.cpp`, `dqc_parser_stmt.cpp`, and `dqc_parser_expr.cpp`.
+
+11. **Method Signatures & Matching (was 3.A)**:
+    - **Original Issue:** `CloneMethodVisibleSignature` in `compiler/ast/expressions.cpp` and `ConstructorUserSignaturesMatch` in `compiler/types/otype_compound.cpp` were static free functions operating directly on `OValSymFunc`.
+    - **Resolution:** Added `OValSymFunc::CloneVisibleSignature()` and `OValSymFunc::UserSignaturesMatch(OValSymFunc * other)` directly to `OValSymFunc` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h). Removed static helpers and updated call sites in `compiler/ast/expressions.cpp` and `compiler/types/otype_compound.cpp`.
+
+12. **Function Types Formatting & Call Type Generation (was 3.B)**:
+    - **Original Issue:** Free functions `FuncTypeName` and `FuncRefTypeName` in `compiler/types/otype_func.cpp`, and `CreateObjectFuncRefLlCallType` in `compiler/ast/expressions.cpp`.
+    - **Resolution:** Added `FormattedTypeName()`, `FormattedRefTypeName(bool object_ref)`, and `CreateObjectRefLlCallType()` directly as member methods on `OTypeFunc` in [`compiler/types/otype_func.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_func.h). Maintained backwards-compatible inline bridge wrappers for existing call sites.
+
+13. **Expression Helpers Encapsulation (was 3.C)**:
+    - **Original Issue:** Static functions `GeneratePropertyReceiver`, `GeneratePropertyExplicitArgument`, `GeneratePropertyCallArgs`, and `GeneratePropertyFieldAddress` in `compiler/ast/expressions.cpp` handled property code generation. In `compiler/parser/dqc_parser_stmt.cpp`, `ExceptionObjectTypeFromExpr` extracted object types from expressions.
+    - **Resolution:** Added `GenerateReceiver`, `GenerateExplicitArgument`, `GenerateCallArgs`, and `GenerateFieldAddress` as member methods on `OPropertyExpr` in [`compiler/ast/expressions.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h). Added `OExpr::GetExceptionObjectType()` to `OExpr` in [`compiler/ast/symbols.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h) and updated statement parsing.
+
+14. **Scope & Module Helpers (was 3.D)**:
+    - **Original Issue:** Static functions `ExceptionBaseType`, `AddMethodUseRootScopes`, and `FindModuleUseByNamespace` in `compiler/parser/dqc_parser_stmt.cpp`, and `EmitExpressionExceptionCheck` in `compiler/ast/expressions.cpp`.
+    - **Resolution:** Added `GetExceptionBaseType()`, `AddMethodUseRootScopes(root_scope)`, and `EmitExpressionExceptionCheck()` directly onto `OScope` in [`compiler/ast/symbols.h`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h) / [`compiler/ast/oscope.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/oscope.cpp). Added `FindModuleUseByNamespace(namespace_name)` directly to `OModuleBase` in [`compiler/ast/symbols.h`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h). Updated callers across parser and expression codegen.
+
+15. **Type Interface Serialization & Effective Alignment (was 3.E)**:
+    - **Original Issue:** `WriteDqmIfTypeRef`, `WriteDqmIfTypeSpecInner`, and `EffectiveStorageAlign` in `compiler/ast/symbols.cpp` were free/static functions operating on `OType`.
+    - **Resolution:** Added `WriteDqmIfTypeRef(writer, arecid)`, `WriteDqmIfTypeSpecInner(writer)`, and `EffectiveAlign(attr_align)` as member methods on `OType` in [`compiler/ast/symbols.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h). Retained inline free functions for non-intrusive caller compatibility.
 
 ### B. Ignored
 

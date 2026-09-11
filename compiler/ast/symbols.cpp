@@ -36,17 +36,19 @@
 
 using namespace std;
 
+bool OType::WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid) const
+{
+  if (module && !module->name.empty())
+  {
+    return writer.AddRecStringPair(DQMIF_TYPE_SPEC_QUALIFIED, module->name, name);
+  }
+  return writer.AddTypeSpecRec(arecid, name);
+}
+
 bool WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid, OType * atype)
 {
-  if (!atype)
-  {
-    return writer.Fail("Can not write a null DQM interface type reference");
-  }
-  if (atype->module && !atype->module->name.empty())
-  {
-    return writer.AddRecStringPair(DQMIF_TYPE_SPEC_QUALIFIED, atype->module->name, atype->name);
-  }
-  return writer.AddTypeSpecRec(arecid, atype->name);
+  return atype ? atype->WriteDqmIfTypeRef(writer, arecid)
+               : writer.Fail("Can not write a null DQM interface type reference");
 }
 
 
@@ -219,14 +221,9 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
   return result;
 }
 
-static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
+bool OType::WriteDqmIfTypeSpecInner(ODqmIfWriter & writer) const
 {
-  if (!atype)
-  {
-    return writer.Fail("Can not write null type spec");
-  }
-
-  if (auto * ptrtype = dynamic_cast<OTypePointer *>(atype))
+  if (auto * ptrtype = dynamic_cast<const OTypePointer *>(this))
   {
     if (ptrtype->IsNullPointer())
     {
@@ -234,13 +231,14 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
     }
     if (!ptrtype->IsTypedPointer())
     {
-      return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME, ptrtype);
+      return ptrtype->WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME);
     }
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_PTR)) return false;
-    return WriteDqmIfTypeSpecInner(writer, ptrtype->basetype);
+    return ptrtype->basetype ? ptrtype->basetype->WriteDqmIfTypeSpecInner(writer)
+                             : writer.Fail("Can not write null type spec");
   }
 
-  if (auto * arrtype = dynamic_cast<OTypeArray *>(atype))
+  if (auto * arrtype = dynamic_cast<const OTypeArray *>(this))
   {
     if (arrtype->arraylength > uint32_t(numeric_limits<int32_t>::max()))
     {
@@ -248,35 +246,35 @@ static bool WriteDqmIfTypeSpecInner(ODqmIfWriter & writer, OType * atype)
           arrtype->name, arrtype->arraylength));
     }
     if (!writer.AddRecI32(DQMIF_TYPE_SPEC_ARRAY_BEGIN, int32_t(arrtype->arraylength))) return false;
-    if (!WriteDqmIfTypeSpecInner(writer, arrtype->elemtype)) return false;
+    if (!arrtype->elemtype || !arrtype->elemtype->WriteDqmIfTypeSpecInner(writer)) return false;
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_ARRAY_END);
   }
 
-  if (auto * slicetype = dynamic_cast<OTypeArraySlice *>(atype))
+  if (auto * slicetype = dynamic_cast<const OTypeArraySlice *>(this))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_BEGIN)) return false;
-    if (!WriteDqmIfTypeSpecInner(writer, slicetype->elemtype)) return false;
+    if (!slicetype->elemtype || !slicetype->elemtype->WriteDqmIfTypeSpecInner(writer)) return false;
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_SLICE_END);
   }
 
-  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(atype))
+  if (auto * dyntype = dynamic_cast<const OTypeDynArray *>(this))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN)) return false;
-    if (!WriteDqmIfTypeSpecInner(writer, dyntype->elemtype)) return false;
+    if (!dyntype->elemtype || !dyntype->elemtype->WriteDqmIfTypeSpecInner(writer)) return false;
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_DYN_ARRAY_END);
   }
 
-  if ((TK_FUNCTION == atype->kind) || (TK_FUNCREF == atype->kind))
+  if ((TK_FUNCTION == kind) || (TK_FUNCREF == kind))
   {
-    return atype->WriteDqmIfTypeSpec(writer);
+    return const_cast<OType *>(this)->WriteDqmIfTypeSpec(writer);
   }
 
-  if (TK_OBJECT_TYPE == atype->kind)
+  if (TK_OBJECT_TYPE == kind)
   {
-    return atype->WriteDqmIfTypeSpec(writer);
+    return const_cast<OType *>(this)->WriteDqmIfTypeSpec(writer);
   }
 
-  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME, atype);
+  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_NAME);
 }
 
 bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
@@ -289,7 +287,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     }
     if (!ptrtype->IsTypedPointer())
     {
-      return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE, ptrtype);
+      return ptrtype->WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE);
     }
   }
 
@@ -297,11 +295,11 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
       || (TK_OBJECT_TYPE == kind))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_BEGIN)) return false;
-    if (!WriteDqmIfTypeSpecInner(writer, this)) return false;
+    if (!WriteDqmIfTypeSpecInner(writer)) return false;
     return writer.AddRecEmpty(DQMIF_TYPE_SPEC_END);
   }
 
-  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE, this);
+  return WriteDqmIfTypeRef(writer, DQMIF_TYPE_SPEC_SIMPLE);
 }
 
 bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)
@@ -566,14 +564,15 @@ uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
   return uint32_t(((value + align - 1) / align) * align);
 }
 
+uint32_t OType::EffectiveAlign(uint32_t aattr_align)
+{
+  EnsureLayout();
+  return max<uint32_t>(max<uint32_t>(1, alignsize), aattr_align);
+}
+
 uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align)
 {
-  if (!atype)
-  {
-    return max<uint32_t>(1, aattr_align);
-  }
-  atype->EnsureLayout();
-  return max<uint32_t>(max<uint32_t>(1, atype->alignsize), aattr_align);
+  return atype ? atype->EffectiveAlign(aattr_align) : max<uint32_t>(1, aattr_align);
 }
 
 
@@ -924,6 +923,20 @@ void OValSym::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
 OExpr::OExpr()
 {
   ptype = g_builtins->type_int;
+}
+
+OTypeObject * OExpr::GetExceptionObjectType() const
+{
+  OType * type = ResolvedType();
+  if (auto * object_type = dynamic_cast<OTypeObject *>(type))
+  {
+    return object_type;
+  }
+  if (auto * ptrtype = dynamic_cast<OTypePointer *>(type))
+  {
+    return dynamic_cast<OTypeObject *>(ptrtype->basetype ? ptrtype->basetype->ResolveAlias() : nullptr);
+  }
+  return nullptr;
 }
 
 

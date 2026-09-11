@@ -139,6 +139,9 @@ public:
   OType *       ResolvedRetType() const;
   OType *       GetLlRetType() const;
   bool          WriteDqmIfSignatureRecords(ODqmIfWriter & writer, bool askip_first_param = false) const;
+  string        FormattedTypeName() const;
+  string        FormattedRefTypeName(bool object_ref) const;
+  LlFuncType *  CreateObjectRefLlCallType() const;
   bool          MatchesSignature(const OTypeFunc * other, bool check_modes = true) const;
   bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const { return MatchesSignature(other, false); }
   void          MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names);
@@ -245,6 +248,8 @@ public:
   LlValue * GenerateInlineAsmCall(const vector<LlValue *> & callargs);
   void GenerateFuncBody();
   void GenerateFuncRet();
+  OTypeFunc * CloneVisibleSignature() const;
+  bool UserSignaturesMatch(OValSymFunc * other) const;
   bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
   bool WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod);
 };

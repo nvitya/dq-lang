@@ -242,36 +242,6 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
   return (ambiguous ? nullptr : best_func);
 }
 
-static bool ConstructorUserSignaturesMatch(OValSymFunc * left, OValSymFunc * right)
-{
-  auto * lsig = dynamic_cast<OTypeFunc *>(left ? left->ptype : nullptr);
-  auto * rsig = dynamic_cast<OTypeFunc *>(right ? right->ptype : nullptr);
-  if (!lsig || !rsig || lsig->params.empty() || rsig->params.empty())
-  {
-    return false;
-  }
-
-  if (lsig->has_varargs || rsig->has_varargs || lsig->params.size() != rsig->params.size())
-  {
-    return false;
-  }
-
-  for (size_t i = 1; i < lsig->params.size(); ++i)
-  {
-    OFuncParam * lp = lsig->params[i];
-    OFuncParam * rp = rsig->params[i];
-    if (!lp || !rp || lp->mode != rp->mode)
-    {
-      return false;
-    }
-    if ((lp->ptype ? lp->ptype->ResolveAlias() : nullptr) != (rp->ptype ? rp->ptype->ResolveAlias() : nullptr))
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
 OValSymFunc * OTypeObject::FindConstructorMatchingSignature(OValSymFunc * acontract_ctor) const
 {
   if (!acontract_ctor)
@@ -281,7 +251,7 @@ OValSymFunc * OTypeObject::FindConstructorMatchingSignature(OValSymFunc * acontr
 
   for (OValSymFunc * ctor : constructors)
   {
-    if (ConstructorUserSignaturesMatch(acontract_ctor, ctor))
+    if (acontract_ctor->UserSignaturesMatch(ctor))
     {
       return ctor;
     }
@@ -345,7 +315,7 @@ vector<OValSymFunc *> OTypeObject::ConstructorContractSlots() const
     bool inherited_slot = false;
     for (OValSymFunc * existing : result)
     {
-      if ((existing == ctor) || (existing && ConstructorUserSignaturesMatch(existing, ctor)))
+      if ((existing == ctor) || (existing && existing->UserSignaturesMatch(ctor)))
       {
         inherited_slot = true;
         break;
@@ -378,7 +348,7 @@ int OTypeObject::FindConstructorContractSlot(OValSymFunc * acontract_ctor) const
       }
       continue;
     }
-    if (slot_ctor && ConstructorUserSignaturesMatch(acontract_ctor, slot_ctor))
+    if (slot_ctor && acontract_ctor->UserSignaturesMatch(slot_ctor))
     {
       return int(i);
     }

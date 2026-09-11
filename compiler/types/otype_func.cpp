@@ -1351,55 +1351,124 @@ string OValSymFunc::StateText() const
   return "decl";
 }
 
-string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
+OTypeFunc * OValSymFunc::CloneVisibleSignature() const
+{
+  OTypeFunc * srcsig = GetTypeFunc();
+  OTypeFunc * result = new OTypeFunc(name.empty() ? "method" : name);
+  if (!srcsig)
+  {
+    return result;
+  }
+
+  result->rettype = srcsig->rettype;
+  result->has_varargs = srcsig->has_varargs;
+  for (size_t i = 1; i < srcsig->params.size(); ++i)
+  {
+    OFuncParam * srcpar = srcsig->params[i];
+    result->AddParam(srcpar->name, srcpar->ptype, srcpar->mode);
+  }
+  return result;
+}
+
+bool OValSymFunc::UserSignaturesMatch(OValSymFunc * other) const
+{
+  OTypeFunc * lsig = GetTypeFunc();
+  OTypeFunc * rsig = other ? other->GetTypeFunc() : nullptr;
+  if (!lsig || !rsig || lsig->params.empty() || rsig->params.empty())
+  {
+    return false;
+  }
+
+  if (lsig->has_varargs || rsig->has_varargs || lsig->params.size() != rsig->params.size())
+  {
+    return false;
+  }
+
+  for (size_t i = 1; i < lsig->params.size(); ++i)
+  {
+    OFuncParam * lp = lsig->params[i];
+    OFuncParam * rp = rsig->params[i];
+    if (!lp || !rp || lp->mode != rp->mode)
+    {
+      return false;
+    }
+    if ((lp->ptype ? lp->ptype->ResolveAlias() : nullptr) != (rp->ptype ? rp->ptype->ResolveAlias() : nullptr))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+string OTypeFunc::FormattedTypeName() const
 {
   string result = "func(";
   bool first = true;
-  if (sigtype)
+  for (OFuncParam * param : params)
   {
-    for (OFuncParam * param : sigtype->params)
+    if (!first)
     {
-      if (!first)
-      {
-        result += ", ";
-      }
-
-      result += param->name;
-      result += " : ";
-      result += param->ModeText();
-      result += (param->ptype ? param->ptype->name : "?");
-      first = false;
+      result += ", ";
     }
 
-    if (sigtype->has_varargs)
+    result += param->name;
+    result += " : ";
+    result += param->ModeText();
+    result += (param->ptype ? param->ptype->name : "?");
+    first = false;
+  }
+
+  if (has_varargs)
+  {
+    if (!first)
     {
-      if (!first)
-      {
-        result += ", ";
-      }
-      result += "...";
+      result += ", ";
     }
+    result += "...";
   }
 
   result += ")";
 
-  if (sigtype && sigtype->rettype)
+  if (rettype)
   {
     result += " -> ";
-    result += sigtype->rettype->name;
+    result += rettype->name;
   }
 
   return result;
 }
 
-string FuncRefTypeName(OTypeFunc * sigtype, bool object_ref)
+string OTypeFunc::FormattedRefTypeName(bool object_ref) const
 {
-  string result = FuncTypeName(sigtype);
+  string result = FormattedTypeName();
   if (object_ref)
   {
     result += " of object";
   }
   return result;
+}
+
+LlFuncType * OTypeFunc::CreateObjectRefLlCallType() const
+{
+  vector<LlType *> ll_partypes;
+  ll_partypes.push_back(llvm::PointerType::get(ll_ctx, 0));
+  for (OFuncParam * fpar : params)
+  {
+    ll_partypes.push_back(fpar->GetLlArgType()->GetLlType());
+  }
+
+  LlType * ll_rettype = rettype ? GetLlRetType()->GetLlType() : llvm::Type::getVoidTy(ll_ctx);
+  return LlFuncType::get(ll_rettype, ll_partypes, has_varargs);
+}
+
+string FuncTypeName(OTypeFunc * sigtype)  // argument can be nullptr too
+{
+  return sigtype ? sigtype->FormattedTypeName() : "func()";
+}
+
+string FuncRefTypeName(OTypeFunc * sigtype, bool object_ref)
+{
+  return sigtype ? sigtype->FormattedRefTypeName(object_ref) : (object_ref ? "func() of object" : "func()");
 }
 
 OExpr * OValueFuncRef::UnwrapConstExpr(OExpr * expr) const

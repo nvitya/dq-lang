@@ -7,8 +7,6 @@
 
 ## Table of Contents
 1. [Code Duplications](#1-code-duplications)
-   - [A. Direct Cross-File Copy-Pastes](#a-direct-cross-file-copy-pastes)
-   - [B. Structural & Algorithmic Duplications](#b-structural--algorithmic-duplications)
 2. [Very Long Functions](#2-very-long-functions)
 3. [Functions That Could Be Made Member Functions](#3-functions-that-could-be-made-member-functions)
    - [A. Dynamic Array Operations (`OTypeDynArray`)](#a-dynamic-array-operations-otypedynarray)
@@ -21,44 +19,15 @@
    - [H. Scope & Module Helpers (`OScope` & `TDQModule`)](#h-scope--module-helpers-oscope--tdqmodule)
    - [I. Type Interface Serialization (`OType` / `ODqmIfWriter`)](#i-type-interface-serialization-otype--odqmifwriter)
 4. [Key Architectural Recommendations](#4-key-architectural-recommendations)
+5. [Implemented and Ignored](#5-implemented-and-ignored)
+   - [A. Implemented](#a-implemented)
+   - [B. Ignored](#b-ignored)
 
 ---
 
 ## 1. Code Duplications
 
-### A. Direct Cross-File Copy-Pastes
-
-1. **LValue Cloning**:
-   - [`CloneContextLValue`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser.cpp#L40-L56) in [`compiler/parser/dqc_parser.cpp`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser.cpp) and [`CloneContextLValue`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L171-L187) in [`compiler/parser/dqc_parser_expr.cpp`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp) are 100% identical 17-line static functions:
-     ```cpp
-     static OLValueExpr * CloneContextLValue(OLValueExpr * src)
-     {
-       if (auto * var = dynamic_cast<OLValueVar *>(src))
-       {
-         return new OLValueVar(var->pvalsym);
-       }
-       if (auto * member = dynamic_cast<OLValueMember *>(src))
-       {
-         OLValueExpr * base = CloneContextLValue(member->base);
-         if (!base) return nullptr;
-         return new OLValueMember(base, member->structtype, member->memberindex, member->ptype);
-       }
-       return nullptr;
-     }
-     ```
-
-2. **TextFormat RTL Function Lookup**:
-   - [`TextFormatFunc`](file:///lindata2/workpr/dq-lang/compiler/types/otype_cstring.cpp#L93-L105) in [`compiler/types/otype_cstring.cpp`](file:///lindata2/workpr/dq-lang/compiler/types/otype_cstring.cpp) and [`TextFormatFunc`](file:///lindata2/workpr/dq-lang/compiler/types/otype_string.cpp#L150-L162) in [`compiler/types/otype_string.cpp`](file:///lindata2/workpr/dq-lang/compiler/types/otype_string.cpp) are identical 14-line static functions looking up symbols in `__dq_textformat`.
-
-3. **String Scanner Duplication**:
-   - Source scanning primitives in [`OScFeederBase`](file:///lindata2/workpr/dq-lang/compiler/parser/scf_base.cpp#L816-L915) (`ReadDecimalNumbers`, `ReadHexNumbers`, `ReadBinNumbers`, `ReadQuotedString`) and [`TStrParseObj`](file:///lindata2/workpr/dq-lang/compiler/utils/strparse.cpp#L310-L490) share near-identical scanning loops and quote-escape logic.
-
-4. **String Literal Escaping**:
-   - [`EscapeStringLiteral`](file:///lindata2/workpr/dq-lang/compiler/ast/module_intf.cpp#L96-L128) in [`compiler/ast/module_intf.cpp`](file:///lindata2/workpr/dq-lang/compiler/ast/module_intf.cpp) vs [`JsonEscape`](file:///lindata2/workpr/dq-lang/compiler/utils/dq_utils.cpp#L23-L44) in [`compiler/utils/dq_utils.cpp`](file:///lindata2/workpr/dq-lang/compiler/utils/dq_utils.cpp).
-
----
-
-### B. Structural & Algorithmic Duplications
+### Structural & Algorithmic Duplications
 
 1. **Property Accessor Signature Matching**:
    - [`MatchPropertyMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser.cpp#L2199-L2245) in [`compiler/parser/dqc_parser.cpp`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser.cpp) and [`ImportedPropertyMethodMatches`](file:///lindata2/workpr/dq-lang/compiler/ast/module_intf.cpp#L2837-L2869) in [`compiler/ast/module_intf.cpp`](file:///lindata2/workpr/dq-lang/compiler/ast/module_intf.cpp) execute the exact same algorithm to validate whether a candidate getter/setter method matches a property's indices, value type, and modes. Unifying this logic on `OValSymProperty::MatchMethod` avoids maintaining two distinct implementations.
@@ -199,7 +168,7 @@ In [`compiler/types/otype_cstring.h:102-133`](file:///lindata2/workpr/dq-lang/co
   - `GeneratePropertyCallArgs(OScope * scope, OPropertyExpr * expr, ...)`
   - `GeneratePropertyFieldAddress(OScope * scope, OPropertyExpr * expr, ...)`
   All four belong on [`OPropertyExpr`](file:///lindata2/workpr/dq-lang/compiler/ast/expressions.h#L620).
-- `CloneContextLValue(OLValueExpr * src)` -> belongs on [`OLValueExpr`](file:///lindata2/workpr/dq-lang/compiler/ast/expressions.h#L240) as virtual `virtual OLValueExpr * Clone() const = 0;`.
+- ~~`CloneContextLValue(OLValueExpr * src)` -> belongs on [`OLValueExpr`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L74) as virtual `virtual OLValueExpr * Clone() const = 0;`.~~ *(Implemented)*
 - [`ExceptionObjectTypeFromExpr(OExpr * expr)`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L42-L55) in [`compiler/parser/dqc_parser_stmt.cpp`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_stmt.cpp) -> belongs on [`OExpr::GetExceptionObjectType()`](file:///lindata2/workpr/dq-lang/compiler/ast/expressions.h#L50).
 
 ### H. Scope & Module Helpers (`OScope` & `TDQModule`)
@@ -232,3 +201,27 @@ In [`compiler/types/otype_cstring.h:102-133`](file:///lindata2/workpr/dq-lang/co
    - Unify property accessor matching between `dqc_parser.cpp` and `module_intf.cpp` in `OValSymProperty::MatchMethod`.
    - Centralize LLVM RTTI walk generation between `OTryCastExpr` and `OIsExpr`.
    - Merge `MatchesOverloadDeclIdentity` and `MatchesSignature` in `OTypeFunc` with a boolean parameter for mode checking.
+
+---
+
+## 5. Implemented and Ignored
+
+### A. Implemented
+
+1. **LValue Cloning (was 1.A.1)**:
+   - **Original Issue:** `CloneContextLValue` in [`compiler/parser/dqc_parser.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser.cpp#L40-L56) and `CloneContextLValue` in [`compiler/parser/dqc_parser_expr.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.cpp#L171-L187) were 100% identical 17-line static functions with manual `dynamic_cast` checks. In `dqc_parser.cpp` it was completely unused dead code.
+   - **Resolution:** Replaced with virtual `virtual OLValueExpr * Clone() const` on [`OLValueExpr`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L74) and overrides on [`OLValueVar`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L89) and [`OLValueMember`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L119) in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp). Removed both static functions and updated the call site in [`dqc_parser_expr.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.cpp).
+
+2. **TextFormat RTL Function Lookup (was 1.A.2)**:
+   - **Original Issue:** `TextFormatFunc` in [`compiler/types/otype_cstring.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_cstring.cpp#L93-L105) and `TextFormatFunc` in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp#L150-L162) were identical 14-line static functions looking up symbols in `__dq_textformat`.
+   - **Resolution:** Declared `TextFormatFunc` and `CallTextFormatFunc` in [`compiler/types/otype_string.h`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.h) and defined them non-static in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp). Deleted duplicated static functions in [`compiler/types/otype_cstring.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_cstring.cpp) and passed `scope` to `CallTextFormatFunc` for proper exception invoke handling.
+
+### B. Ignored
+
+1. **String Scanner Duplication (was 1.A.3)**:
+   - Source scanning primitives in [`OScFeederBase`](file:///lindata/workvc/dq-lang/compiler/parser/scf_base.cpp#L816-L915) (`ReadDecimalNumbers`, `ReadHexNumbers`, `ReadBinNumbers`, `ReadQuotedString`) and [`TStrParseObj`](file:///lindata/workvc/dq-lang/compiler/utils/strparse.cpp#L310-L490) share near-identical scanning loops and quote-escape logic.
+   - **Decision:** Kept separate as-is for code efficiency and readability (avoids coupling tokenizer scanner primitives with general string parsing).
+
+2. **String Literal Escaping (was 1.A.4)**:
+   - [`EscapeStringLiteral`](file:///lindata/workvc/dq-lang/compiler/ast/module_intf.cpp#L96-L128) in [`compiler/ast/module_intf.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/module_intf.cpp) vs [`JsonEscape`](file:///lindata/workvc/dq-lang/compiler/utils/dq_utils.cpp#L23-L44) in [`compiler/utils/dq_utils.cpp`](file:///lindata/workvc/dq-lang/compiler/utils/dq_utils.cpp).
+   - **Decision:** Kept separate as-is for code efficiency and readability.

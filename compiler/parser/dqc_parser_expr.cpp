@@ -2348,6 +2348,609 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   return callexpr;
 }
 
+void ODqCompParserExpr::HandleUnknownMemberError(
+    OExpr *& result, const string & membername, const string & typename_str)
+{
+  Error(DQERR_MEMBER_UNKNOWN, membername, typename_str);
+  if (scf->CheckSymbol("("))
+  {
+    vector<TRawCallArg> rawargs;
+    ParseRawCallArguments(membername, rawargs);
+    delete result;
+    result = new OInvalidCallExpr();
+  }
+}
+
+ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
+    OExpr *& result, OLValueExpr * lval, ETypeKind tk)
+{
+  if (auto * property_expr = dynamic_cast<OPropertyExpr *>(result);
+      property_expr && property_expr->property->IsIndexed() && property_expr->indices.empty()
+      && scf->CheckSymbol("["))
+  {
+    if (!ParsePropertyIndices(property_expr))
+    {
+      return EPostfixResult::Stop;
+    }
+    CheckPropertyReadable(property_expr);
+    return EPostfixResult::Continue;
+  }
+
+  OType * resolved_result_type = result->ResolvedType();
+  auto * result_object_type = dynamic_cast<OTypeObject *>(resolved_result_type);
+  if (result_object_type && scf->CheckSymbol("["))
+  {
+    OCompoundType * decl_type = nullptr;
+    OValSymProperty * default_property = result_object_type->FindDefaultProperty(&decl_type);
+    if (!default_property || !ObjectMemberAccessAllowed(decl_type, default_property))
+    {
+      Error(DQERR_MEMBER_UNKNOWN, "default property", result_object_type->name);
+      return EPostfixResult::Stop;
+    }
+    auto * property_expr = new OPropertyExpr(result, default_property);
+    result = property_expr;
+    if (!ParsePropertyIndices(property_expr))
+    {
+      return EPostfixResult::Stop;
+    }
+    CheckPropertyReadable(property_expr);
+    return EPostfixResult::Continue;
+  }
+
+  // Array/slice/dynamic-array/cstring/string index on any lvalue: x[i], or slice x[a:b]
+  if (lval
+      && (TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
+          or TK_DYNSTR == tk or TK_STRVIEW == tk)
+      && scf->CheckSymbol("["))
+  {
+    if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
+    {
+      delete result;
+      result = nullptr;
+      return EPostfixResult::Stop;
+    }
+    if (auto * property = dynamic_cast<OPropertyExpr *>(lval))
+    {
+      Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);
+      return EPostfixResult::Stop;
+    }
+    OExpr * indexexpr = nullptr;
+    OExpr * endexpr = nullptr;
+    bool has_first_expr = false;
+    bool inclusive_slice = false;
+    int64_t prev_context_len = array_index_context_len;
+    OLValueExpr * prev_context_lval = array_index_context_lval;
+    bool prev_context_wchar = array_index_context_wchar;
+    if (TK_ARRAY == tk)
+    {
+      array_index_context_len = static_cast<OTypeArray *>(lval->ptype->ResolveAlias())->arraylength;
+      array_index_context_lval = nullptr;
+    }
+    else
+    {
+      array_index_context_len = -1;
+      array_index_context_lval = lval;
+    }
+    array_index_context_wchar = false;
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(":", false))
+    {
+      indexexpr = ParseExpression();
+      has_first_expr = true;
+    }
+    scf->SkipWhite();
+    if (scf->CheckSymbol(":"))
+    {
+      inclusive_slice = scf->CheckSymbol(":");
+      if (TK_CSTRING == tk)
+      {
+        Error(DQERR_NOT_SUPPORTED, "cstring slicing");
+        OExpr::DeleteTree(indexexpr);
+        array_index_context_len = prev_context_len;
+        array_index_context_lval = prev_context_lval;
+        array_index_context_wchar = prev_context_wchar;
+        return EPostfixResult::Stop;
+      }
+      scf->SkipWhite();
+      if (!scf->CheckSymbol("]", false))
+      {
+        endexpr = ParseExpression();
+      }
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("]"))
+      {
+        Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "slice");
+      }
+      array_index_context_len = prev_context_len;
+      array_index_context_lval = prev_context_lval;
+      array_index_context_wchar = prev_context_wchar;
+      if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+      {
+        result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
+      }
+      else
+      {
+        result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
+      }
+      return EPostfixResult::Continue;
+    }
+    if (!has_first_expr)
+    {
+      Error(DQERR_EXPR_EXPECTED);
+      array_index_context_len = prev_context_len;
+      array_index_context_lval = prev_context_lval;
+      array_index_context_wchar = prev_context_wchar;
+      return EPostfixResult::Stop;
+    }
+    if (not scf->CheckSymbol("]"))
+    {
+      Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
+    }
+    array_index_context_len = prev_context_len;
+    array_index_context_lval = prev_context_lval;
+    array_index_context_wchar = prev_context_wchar;
+    result = new OLValueIndex(lval, lval->ptype, indexexpr);
+    return EPostfixResult::Continue;
+  }
+
+  return EPostfixResult::NotMatched;
+}
+
+ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
+    OExpr *& result, OLValueExpr * lval, ETypeKind tk)
+{
+  OType * resolved_result_type = result->ResolvedType();
+  auto * result_object_type = dynamic_cast<OTypeObject *>(resolved_result_type);
+
+  if (!lval && result_object_type && scf->CheckSymbol("."))
+  {
+    string membername;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(membername))
+    {
+      Error(DQERR_MEMBER_NAME_EXPECTED);
+      return EPostfixResult::Stop;
+    }
+    OCompoundType * decl_type = result_object_type;
+    OValSym * member = result_object_type->FindMemberSymbol(membername, &decl_type);
+    auto * property = dynamic_cast<OValSymProperty *>(member);
+    if (!property || !ObjectMemberAccessAllowed(decl_type, property))
+    {
+      Error(DQERR_MEMBER_UNKNOWN, membername, result_object_type->name);
+      return EPostfixResult::Stop;
+    }
+    auto * property_expr = new OPropertyExpr(result, property);
+    result = property_expr;
+    if (!property->IsIndexed())
+    {
+      CheckPropertyReadable(property_expr);
+    }
+    return EPostfixResult::Continue;
+  }
+
+  if (TK_ENUM == tk && scf->CheckSymbol("."))
+  {
+    string membername;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(membername))
+    {
+      Error(DQERR_MEMBER_NAME_EXPECTED);
+      return EPostfixResult::Stop;
+    }
+    if ("ord" == membername)
+    {
+      result = new OEnumOrdExpr(result);
+      return EPostfixResult::Continue;
+    }
+    Error(DQERR_MEMBER_UNKNOWN, membername, result->ptype->name);
+    return EPostfixResult::Stop;
+  }
+
+  if (lval && scf->CheckSymbol("."))
+  {
+    string membername;
+    scf->SkipWhite();
+    if (not scf->ReadIdentifier(membername))
+    {
+      Error(DQERR_MEMBER_NAME_EXPECTED);
+      return EPostfixResult::Stop;
+    }
+
+    if (TK_ARRAY == tk || TK_ARRAY_SLICE == tk || TK_DYN_ARRAY == tk)
+    {
+      if ("length" == membername)
+      {
+        if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_LENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ((TK_DYN_ARRAY == tk) && ("capacity" == membername))
+      {
+        if (!EnsureDynArrayRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_CAPACITY);
+        return EPostfixResult::Continue;
+      }
+      if ((TK_DYN_ARRAY == tk) && ("refcount" == membername))
+      {
+        if (!EnsureDynArrayRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_REFCOUNT);
+        return EPostfixResult::Continue;
+      }
+      if (TK_DYN_ARRAY == tk)
+      {
+        result = ParseDynArrayMethod(result, lval, membername);
+        if (!result) return EPostfixResult::Stop;
+        return EPostfixResult::Continue;
+      }
+
+      HandleUnknownMemberError(result, membername, lval->ptype->name);
+      return EPostfixResult::Stop;
+    }
+
+    if (TK_CSTRING == tk)
+    {
+      if ("length" == membername)
+      {
+        result = new OCStringMetaFieldExpr(lval, CSMF_LENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("maxlength" == membername)
+      {
+        result = new OCStringMetaFieldExpr(lval, CSMF_MAXLENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("storage_size" == membername)
+      {
+        result = new OCStringMetaFieldExpr(lval, CSMF_STORAGE_SIZE);
+        return EPostfixResult::Continue;
+      }
+      if ("pchar" == membername)
+      {
+        result = new OCStringMetaFieldExpr(lval, CSMF_PCHAR);
+        return EPostfixResult::Continue;
+      }
+      result = ParseCStringMethod(result, lval, membername);
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+    {
+      if ("length" == membername)
+      {
+        result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("pchar" == membername)
+      {
+        if (!EnsureStrFuncRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
+        return EPostfixResult::Continue;
+      }
+      if ("wclen" == membername)
+      {
+        if (!EnsureStrFuncRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        result = new OStringMetaFieldExpr(lval, SMF_WCLEN);
+        return EPostfixResult::Continue;
+      }
+      if ("wchar" == membername)
+      {
+        if (!EnsureStrFuncRtlUse())
+        {
+          delete result;
+          result = nullptr;
+          return EPostfixResult::Stop;
+        }
+        scf->SkipWhite();
+        if (!scf->CheckSymbol("["))
+        {
+          Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
+          return EPostfixResult::Stop;
+        }
+
+        OExpr * indexexpr = nullptr;
+        OExpr * endexpr = nullptr;
+        bool has_first_expr = false;
+        bool inclusive_slice = false;
+        int64_t prev_context_len = array_index_context_len;
+        OLValueExpr * prev_context_lval = array_index_context_lval;
+        bool prev_context_wchar = array_index_context_wchar;
+        array_index_context_len = -1;
+        array_index_context_lval = lval;
+        array_index_context_wchar = true;
+
+        scf->SkipWhite();
+        if (!scf->CheckSymbol(":", false))
+        {
+          indexexpr = ParseExpression();
+          has_first_expr = true;
+        }
+        scf->SkipWhite();
+        if (scf->CheckSymbol(":"))
+        {
+          inclusive_slice = scf->CheckSymbol(":");
+          scf->SkipWhite();
+          if (!scf->CheckSymbol("]", false))
+          {
+            endexpr = ParseExpression();
+          }
+          scf->SkipWhite();
+          if (not scf->CheckSymbol("]"))
+          {
+            Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar slice");
+          }
+          array_index_context_len = prev_context_len;
+          array_index_context_lval = prev_context_lval;
+          array_index_context_wchar = prev_context_wchar;
+          result = new OStringWCharSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
+          return EPostfixResult::Continue;
+        }
+        if (!has_first_expr)
+        {
+          Error(DQERR_EXPR_EXPECTED);
+          array_index_context_len = prev_context_len;
+          array_index_context_lval = prev_context_lval;
+          array_index_context_wchar = prev_context_wchar;
+          return EPostfixResult::Stop;
+        }
+        if (not scf->CheckSymbol("]"))
+        {
+          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar index");
+        }
+        array_index_context_len = prev_context_len;
+        array_index_context_lval = prev_context_lval;
+        array_index_context_wchar = prev_context_wchar;
+        result = new OStringWCharIndexExpr(lval, indexexpr);
+        return EPostfixResult::Continue;
+      }
+      if (TK_DYNSTR == tk && "capacity" == membername)
+      {
+        result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);
+        return EPostfixResult::Continue;
+      }
+      if (TK_DYNSTR == tk && "refcount" == membername)
+      {
+        result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
+        return EPostfixResult::Continue;
+      }
+      if (TK_DYNSTR == tk)
+      {
+        result = ParseStringMethod(result, lval, membername);
+        if (!result) return EPostfixResult::Stop;
+        return EPostfixResult::Continue;
+      }
+
+      HandleUnknownMemberError(result, membername, lval->ptype->name);
+      return EPostfixResult::Stop;
+    }
+
+    if (TK_ANYVALUE == tk)
+    {
+      result = ParseAnyValueMethod(result, lval, membername);
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    OLValueExpr * memberbase = nullptr;
+    OCompoundType * ctype = nullptr;
+    if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
+    {
+      OTypePointer * ptrtype = dynamic_cast<OTypePointer *>(lval->ResolvedType());
+      if (ptrtype && ptrtype->IsOpaquePointer())
+      {
+        Error(DQERR_PTR_OPAQUE_USAGE, "member access");
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+      else
+      {
+        Error(DQERR_TYPE_NO_MEMBERS);
+      }
+      return EPostfixResult::Stop;
+    }
+
+    OCompoundType * decl_type = ctype;
+    OValSym * objsym = ctype->FindMemberSymbol(membername, &decl_type);
+    if (auto * property = dynamic_cast<OValSymProperty *>(objsym))
+    {
+      if (!ObjectMemberAccessAllowed(decl_type, property))
+      {
+        Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+      auto * property_expr = new OPropertyExpr(memberbase, property);
+      result = property_expr;
+      if (!property->IsIndexed())
+      {
+        CheckPropertyReadable(property_expr);
+      }
+      return EPostfixResult::Continue;
+    }
+    if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
+    {
+      if (!ObjectMemberAccessAllowed(decl_type, method))
+      {
+        Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+      if (!scf->CheckSymbol("("))
+      {
+        result = new OBoundMethodExpr(method, memberbase);
+        return EPostfixResult::Continue;
+      }
+
+      OExpr * callexpr = ParseExprMethodCall(method, memberbase);
+      result = callexpr;
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+    if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(objsym))
+    {
+      if (!ObjectMemberAccessAllowed(decl_type, ovset))
+      {
+        Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+      if (!scf->CheckSymbol("("))
+      {
+        result = new OBoundMethodOverloadExpr(ovset, memberbase);
+        return EPostfixResult::Continue;
+      }
+
+      OExpr * callexpr = ParseExprMethodOverloadCall(ovset, memberbase);
+      result = callexpr;
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    decl_type = ctype;
+    int midx = ctype->FindFieldIndex(membername, &decl_type);
+    if (midx < 0)
+    {
+      Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+      return EPostfixResult::Stop;
+    }
+    OType * mtype = decl_type->member_order[midx]->ptype;
+    if (!ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
+    {
+      Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
+      delete result;
+      result = nullptr;
+      return EPostfixResult::Stop;
+    }
+    auto * member_expr = new OLValueMember(memberbase, decl_type, midx, mtype);
+    result = member_expr;
+    CheckNoReadAccess(member_expr, decl_type->member_order[midx], scpos_statement_start);
+    return EPostfixResult::Continue;
+  }
+
+  return EPostfixResult::NotMatched;
+}
+
+ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixCall(
+    OExpr *& result, OLValueExpr * lval, ETypeKind tk)
+{
+  // Function call: f(args)
+  OLValueVar * varref = dynamic_cast<OLValueVar *>(lval);
+  if (varref)
+  {
+    if (dynamic_cast<OValSymOverloadSet *>(varref->pvalsym) && scf->CheckSymbol("("))
+    {
+      OExpr * callexpr = ParseExprOverloadCall(static_cast<OValSymOverloadSet *>(varref->pvalsym));
+      delete result;
+      result = callexpr;
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    OValSymFunc * vsfunc = dynamic_cast<OValSymFunc *>(varref->pvalsym);
+    if (vsfunc && scf->CheckSymbol("("))
+    {
+      OExpr * callexpr = ParseExprFuncCall(vsfunc);
+      delete result;
+      result = callexpr;
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+  }
+
+  if (scf->CheckSymbol("(", false))
+  {
+    if (TK_FUNCREF == tk)
+    {
+      scf->CheckSymbol("(");
+      OTypeFuncRef * calltype = static_cast<OTypeFuncRef *>(result->ResolvedType());
+      OExpr * callexpr = ParseExprIndirectCall(result, calltype);
+      result = callexpr;
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    Error(DQERR_EXPR_NOT_CALLABLE, result->ptype->name);
+    delete result;
+    result = nullptr;
+    return EPostfixResult::Stop;
+  }
+
+  return EPostfixResult::NotMatched;
+}
+
+ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixPointerOps(
+    OExpr *& result, ETypeKind tk, bool crossed_line)
+{
+  // pointer operations — apply to any expression (not just lvalue)
+  if (TK_POINTER == tk)
+  {
+    OTypePointer * ptrtype = static_cast<OTypePointer *>(result->ResolvedType());
+    if (scf->CheckSymbol("[")) // p[i]: pointer indexing, no dereference
+    {
+      if (!ptrtype->IsTypedPointer())
+      {
+        Error(DQERR_PTR_OPAQUE_USAGE, "pointer indexing");
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+
+      OExpr * indexexpr = ParseExpression();
+      scf->SkipWhite();
+      if (not scf->CheckSymbol("]"))
+      {
+        Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "pointer index");
+      }
+      result = new OPointerIndexExpr(result, indexexpr);
+      return EPostfixResult::Continue;
+    }
+
+    if (!crossed_line && scf->CheckSymbol("^")) // p^: dereference -> lvalue
+    {
+      if (!ptrtype->IsTypedPointer())
+      {
+        Error(DQERR_PTR_OPAQUE_USAGE, "dereference");
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+      result = new OLValueDeref(result);
+      return EPostfixResult::Continue;
+    }
+  }
+
+  return EPostfixResult::NotMatched;
+}
+
 OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
 {
   OExpr * result = base;
@@ -2367,563 +2970,21 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
     ETypeKind      tk   = result->ptype->kind;
     OLValueExpr *  lval = dynamic_cast<OLValueExpr *>(result);
 
-    if (auto * property_expr = dynamic_cast<OPropertyExpr *>(result);
-        property_expr && property_expr->property->IsIndexed() && property_expr->indices.empty()
-        && scf->CheckSymbol("["))
-    {
-      if (!ParsePropertyIndices(property_expr))
-      {
-        return result;
-      }
-      CheckPropertyReadable(property_expr);
-      continue;
-    }
+    EPostfixResult status = ParsePostfixIndexOrSlice(result, lval, tk);
+    if (EPostfixResult::Continue == status) continue;
+    if (EPostfixResult::Stop == status) return result;
 
-    OType * resolved_result_type = result->ResolvedType();
-    auto * result_object_type = dynamic_cast<OTypeObject *>(resolved_result_type);
-    if (result_object_type && scf->CheckSymbol("["))
-    {
-      OCompoundType * decl_type = nullptr;
-      OValSymProperty * default_property = result_object_type->FindDefaultProperty(&decl_type);
-      if (!default_property || !ObjectMemberAccessAllowed(decl_type, default_property))
-      {
-        Error(DQERR_MEMBER_UNKNOWN, "default property", result_object_type->name);
-        return result;
-      }
-      auto * property_expr = new OPropertyExpr(result, default_property);
-      result = property_expr;
-      if (!ParsePropertyIndices(property_expr))
-      {
-        return result;
-      }
-      CheckPropertyReadable(property_expr);
-      continue;
-    }
+    status = ParsePostfixDotMember(result, lval, tk);
+    if (EPostfixResult::Continue == status) continue;
+    if (EPostfixResult::Stop == status) return result;
 
-    if (!lval && result_object_type && scf->CheckSymbol("."))
-    {
-      string membername;
-      scf->SkipWhite();
-      if (!scf->ReadIdentifier(membername))
-      {
-        Error(DQERR_MEMBER_NAME_EXPECTED);
-        return result;
-      }
-      OCompoundType * decl_type = result_object_type;
-      OValSym * member = result_object_type->FindMemberSymbol(membername, &decl_type);
-      auto * property = dynamic_cast<OValSymProperty *>(member);
-      if (!property || !ObjectMemberAccessAllowed(decl_type, property))
-      {
-        Error(DQERR_MEMBER_UNKNOWN, membername, result_object_type->name);
-        return result;
-      }
-      auto * property_expr = new OPropertyExpr(result, property);
-      result = property_expr;
-      if (!property->IsIndexed())
-      {
-        CheckPropertyReadable(property_expr);
-      }
-      continue;
-    }
+    status = ParsePostfixCall(result, lval, tk);
+    if (EPostfixResult::Continue == status) continue;
+    if (EPostfixResult::Stop == status) return result;
 
-    if (TK_ENUM == tk && scf->CheckSymbol("."))
-    {
-      string membername;
-      scf->SkipWhite();
-      if (!scf->ReadIdentifier(membername))
-      {
-        Error(DQERR_MEMBER_NAME_EXPECTED);
-        return result;
-      }
-      if ("ord" == membername)
-      {
-        result = new OEnumOrdExpr(result);
-        continue;
-      }
-      Error(DQERR_MEMBER_UNKNOWN, membername, result->ptype->name);
-      return result;
-    }
-
-    if (lval)
-    {
-      // Struct member access on a compound lvalue or a ^compound pointer: x.field / p.field
-      if (scf->CheckSymbol("."))
-      {
-        string membername;
-        scf->SkipWhite();
-        if (not scf->ReadIdentifier(membername))
-        {
-          Error(DQERR_MEMBER_NAME_EXPECTED);
-          return result;
-        }
-
-        if (TK_ARRAY == tk || TK_ARRAY_SLICE == tk || TK_DYN_ARRAY == tk)
-        {
-          if ("length" == membername)
-          {
-            if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
-            {
-              return nullptr;
-            }
-            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_LENGTH);
-            continue;
-          }
-          if ((TK_DYN_ARRAY == tk) && ("capacity" == membername))
-          {
-            if (!EnsureDynArrayRtlUse())
-            {
-              return nullptr;
-            }
-            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_CAPACITY);
-            continue;
-          }
-          if ((TK_DYN_ARRAY == tk) && ("refcount" == membername))
-          {
-            if (!EnsureDynArrayRtlUse())
-            {
-              return nullptr;
-            }
-            result = new OArrayMetaFieldExpr(lval, lval->ptype, AMF_REFCOUNT);
-            continue;
-          }
-          if (TK_DYN_ARRAY == tk)
-          {
-            result = ParseDynArrayMethod(result, lval, membername);
-            if (!result) return nullptr;
-            continue;
-          }
-
-          Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
-          if (scf->CheckSymbol("("))
-          {
-            vector<TRawCallArg> rawargs;
-            ParseRawCallArguments(membername, rawargs);
-            delete result;
-            result = new OInvalidCallExpr();
-          }
-          return result;
-        }
-
-        if (TK_CSTRING == tk)
-        {
-          if ("length" == membername)
-          {
-            result = new OCStringMetaFieldExpr(lval, CSMF_LENGTH);
-            continue;
-          }
-          if ("maxlength" == membername)
-          {
-            result = new OCStringMetaFieldExpr(lval, CSMF_MAXLENGTH);
-            continue;
-          }
-          if ("storage_size" == membername)
-          {
-            result = new OCStringMetaFieldExpr(lval, CSMF_STORAGE_SIZE);
-            continue;
-          }
-          if ("pchar" == membername)
-          {
-            result = new OCStringMetaFieldExpr(lval, CSMF_PCHAR);
-            continue;
-          }
-          result = ParseCStringMethod(result, lval, membername);
-          if (!result) return nullptr;
-          continue;
-        }
-
-        if (TK_DYNSTR == tk || TK_STRVIEW == tk)
-        {
-          if ("length" == membername)
-          {
-            result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
-            continue;
-          }
-          if ("pchar" == membername)
-          {
-            if (!EnsureStrFuncRtlUse())
-            {
-              return nullptr;
-            }
-            result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
-            continue;
-          }
-          if ("wclen" == membername)
-          {
-            if (!EnsureStrFuncRtlUse())
-            {
-              return nullptr;
-            }
-            result = new OStringMetaFieldExpr(lval, SMF_WCLEN);
-            continue;
-          }
-          if ("wchar" == membername)
-          {
-            if (!EnsureStrFuncRtlUse())
-            {
-              return nullptr;
-            }
-            scf->SkipWhite();
-            if (!scf->CheckSymbol("["))
-            {
-              Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
-              return result;
-            }
-
-            OExpr * indexexpr = nullptr;
-            OExpr * endexpr = nullptr;
-            bool has_first_expr = false;
-            bool inclusive_slice = false;
-            int64_t prev_context_len = array_index_context_len;
-            OLValueExpr * prev_context_lval = array_index_context_lval;
-            bool prev_context_wchar = array_index_context_wchar;
-            array_index_context_len = -1;
-            array_index_context_lval = lval;
-            array_index_context_wchar = true;
-
-            scf->SkipWhite();
-            if (!scf->CheckSymbol(":", false))
-            {
-              indexexpr = ParseExpression();
-              has_first_expr = true;
-            }
-            scf->SkipWhite();
-            if (scf->CheckSymbol(":"))
-            {
-              inclusive_slice = scf->CheckSymbol(":");
-              scf->SkipWhite();
-              if (!scf->CheckSymbol("]", false))
-              {
-                endexpr = ParseExpression();
-              }
-              scf->SkipWhite();
-              if (not scf->CheckSymbol("]"))
-              {
-                Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar slice");
-              }
-              array_index_context_len = prev_context_len;
-              array_index_context_lval = prev_context_lval;
-              array_index_context_wchar = prev_context_wchar;
-              result = new OStringWCharSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
-              continue;
-            }
-            if (!has_first_expr)
-            {
-              Error(DQERR_EXPR_EXPECTED);
-              array_index_context_len = prev_context_len;
-              array_index_context_lval = prev_context_lval;
-              array_index_context_wchar = prev_context_wchar;
-              return result;
-            }
-            if (not scf->CheckSymbol("]"))
-            {
-              Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "wchar index");
-            }
-            array_index_context_len = prev_context_len;
-            array_index_context_lval = prev_context_lval;
-            array_index_context_wchar = prev_context_wchar;
-            result = new OStringWCharIndexExpr(lval, indexexpr);
-            continue;
-          }
-          if (TK_DYNSTR == tk && "capacity" == membername)
-          {
-            result = new OStringMetaFieldExpr(lval, SMF_CAPACITY);
-            continue;
-          }
-          if (TK_DYNSTR == tk && "refcount" == membername)
-          {
-            result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
-            continue;
-          }
-          if (TK_DYNSTR == tk)
-          {
-            result = ParseStringMethod(result, lval, membername);
-            if (!result) return nullptr;
-            continue;
-          }
-
-          Error(DQERR_MEMBER_UNKNOWN, membername, lval->ptype->name);
-          if (scf->CheckSymbol("("))
-          {
-            vector<TRawCallArg> rawargs;
-            ParseRawCallArguments(membername, rawargs);
-            delete result;
-            result = new OInvalidCallExpr();
-          }
-          return result;
-        }
-
-        if (TK_ANYVALUE == tk)
-        {
-          result = ParseAnyValueMethod(result, lval, membername);
-          if (!result) return nullptr;
-          continue;
-        }
-
-        OLValueExpr * memberbase = nullptr;
-        OCompoundType * ctype = nullptr;
-        if (!ResolveCompoundMemberBase(lval, lval->ptype, memberbase, ctype))
-        {
-          OTypePointer * ptrtype = dynamic_cast<OTypePointer *>(lval->ResolvedType());
-          if (ptrtype && ptrtype->IsOpaquePointer())
-          {
-            Error(DQERR_PTR_OPAQUE_USAGE, "member access");
-            delete result;
-            return nullptr;
-          }
-          else
-          {
-            Error(DQERR_TYPE_NO_MEMBERS);
-          }
-          return result;
-        }
-
-        OCompoundType * decl_type = ctype;
-        OValSym * objsym = ctype->FindMemberSymbol(membername, &decl_type);
-        if (auto * property = dynamic_cast<OValSymProperty *>(objsym))
-        {
-          if (!ObjectMemberAccessAllowed(decl_type, property))
-          {
-            Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
-            delete result;
-            return nullptr;
-          }
-          auto * property_expr = new OPropertyExpr(memberbase, property);
-          result = property_expr;
-          if (!property->IsIndexed())
-          {
-            CheckPropertyReadable(property_expr);
-          }
-          continue;
-        }
-        if (auto * method = dynamic_cast<OValSymFunc *>(objsym))
-        {
-          if (!ObjectMemberAccessAllowed(decl_type, method))
-          {
-            Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
-            delete result;
-            return nullptr;
-          }
-          if (!scf->CheckSymbol("("))
-          {
-            result = new OBoundMethodExpr(method, memberbase);
-            continue;
-          }
-
-          OExpr * callexpr = ParseExprMethodCall(method, memberbase);
-          result = callexpr;
-          if (!result) return nullptr;
-          continue;
-        }
-        if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(objsym))
-        {
-          if (!ObjectMemberAccessAllowed(decl_type, ovset))
-          {
-            Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
-            delete result;
-            return nullptr;
-          }
-          if (!scf->CheckSymbol("("))
-          {
-            result = new OBoundMethodOverloadExpr(ovset, memberbase);
-            continue;
-          }
-
-          OExpr * callexpr = ParseExprMethodOverloadCall(ovset, memberbase);
-          result = callexpr;
-          if (!result) return nullptr;
-          continue;
-        }
-
-        decl_type = ctype;
-        int midx = ctype->FindFieldIndex(membername, &decl_type);
-        if (midx < 0)
-        {
-          Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
-          return result;
-        }
-        OType * mtype = decl_type->member_order[midx]->ptype;
-        if (!ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
-        {
-          Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
-          delete result;
-          return nullptr;
-        }
-        auto * member_expr = new OLValueMember(memberbase, decl_type, midx, mtype);
-        result = member_expr;
-        CheckNoReadAccess(member_expr, decl_type->member_order[midx], scpos_statement_start);
-        continue;
-      }
-
-      // Array/slice/dynamic-array/cstring/string index on any lvalue: x[i], or slice x[a:b]
-      if ((TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
-           or TK_DYNSTR == tk or TK_STRVIEW == tk)
-          and scf->CheckSymbol("["))
-      {
-        if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
-        {
-          return nullptr;
-        }
-        if (auto * property = dynamic_cast<OPropertyExpr *>(lval))
-        {
-          Error(DQERR_PROPERTY_NOT_ADDRESSABLE, property->property->name);
-          return result;
-        }
-        OExpr * indexexpr = nullptr;
-        OExpr * endexpr = nullptr;
-        bool has_first_expr = false;
-        bool inclusive_slice = false;
-        int64_t prev_context_len = array_index_context_len;
-        OLValueExpr * prev_context_lval = array_index_context_lval;
-        bool prev_context_wchar = array_index_context_wchar;
-        if (TK_ARRAY == tk)
-        {
-          array_index_context_len = static_cast<OTypeArray *>(lval->ptype->ResolveAlias())->arraylength;
-          array_index_context_lval = nullptr;
-        }
-        else
-        {
-          array_index_context_len = -1;
-          array_index_context_lval = lval;
-        }
-        array_index_context_wchar = false;
-        scf->SkipWhite();
-        if (!scf->CheckSymbol(":", false))
-        {
-          indexexpr = ParseExpression();
-          has_first_expr = true;
-        }
-        scf->SkipWhite();
-        if (scf->CheckSymbol(":"))
-        {
-          inclusive_slice = scf->CheckSymbol(":");
-          if (TK_CSTRING == tk)
-          {
-            Error(DQERR_NOT_SUPPORTED, "cstring slicing");
-            OExpr::DeleteTree(indexexpr);
-            array_index_context_len = prev_context_len;
-            array_index_context_lval = prev_context_lval;
-            array_index_context_wchar = prev_context_wchar;
-            return result;
-          }
-          scf->SkipWhite();
-          if (!scf->CheckSymbol("]", false))
-          {
-            endexpr = ParseExpression();
-          }
-          scf->SkipWhite();
-          if (not scf->CheckSymbol("]"))
-          {
-            Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "slice");
-          }
-          array_index_context_len = prev_context_len;
-          array_index_context_lval = prev_context_lval;
-          array_index_context_wchar = prev_context_wchar;
-          if (TK_DYNSTR == tk || TK_STRVIEW == tk)
-          {
-            result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
-          }
-          else
-          {
-            result = new OArraySliceExpr(lval, lval->ptype, indexexpr, endexpr, inclusive_slice);
-          }
-          continue;
-        }
-        if (!has_first_expr)
-        {
-          Error(DQERR_EXPR_EXPECTED);
-          array_index_context_len = prev_context_len;
-          array_index_context_lval = prev_context_lval;
-          array_index_context_wchar = prev_context_wchar;
-          return result;
-        }
-        if (not scf->CheckSymbol("]"))
-        {
-          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "index");
-        }
-        array_index_context_len = prev_context_len;
-        array_index_context_lval = prev_context_lval;
-        array_index_context_wchar = prev_context_wchar;
-        result = new OLValueIndex(lval, lval->ptype, indexexpr);
-        continue;
-      }
-
-      // Function call: f(args)
-      OLValueVar * varref = dynamic_cast<OLValueVar *>(lval);
-      if (varref)
-      {
-        if (dynamic_cast<OValSymOverloadSet *>(varref->pvalsym) && scf->CheckSymbol("("))
-        {
-          OExpr * callexpr = ParseExprOverloadCall(static_cast<OValSymOverloadSet *>(varref->pvalsym));
-          delete result;
-          result = callexpr;
-          if (!result) return nullptr;
-          continue;
-        }
-
-        OValSymFunc * vsfunc = dynamic_cast<OValSymFunc *>(varref->pvalsym);
-        if (vsfunc && scf->CheckSymbol("("))
-        {
-          OExpr * callexpr = ParseExprFuncCall(vsfunc);
-          delete result;
-          result = callexpr;
-          if (!result) return nullptr;
-          continue;
-        }
-      }
-    }
-
-    if (scf->CheckSymbol("(", false))
-    {
-      if (TK_FUNCREF == tk)
-      {
-        scf->CheckSymbol("(");
-        OTypeFuncRef * calltype = static_cast<OTypeFuncRef *>(result->ResolvedType());
-        OExpr * callexpr = ParseExprIndirectCall(result, calltype);
-        result = callexpr;
-        if (!result) return nullptr;
-        continue;
-      }
-
-      Error(DQERR_EXPR_NOT_CALLABLE, result->ptype->name);
-      delete result;
-      return nullptr;
-    }
-
-    // pointer operations — apply to any expression (not just lvalue)
-    if (TK_POINTER == tk)
-    {
-      OTypePointer * ptrtype = static_cast<OTypePointer *>(result->ResolvedType());
-      if (scf->CheckSymbol("[")) // p[i]: pointer indexing, no dereference
-      {
-        if (!ptrtype->IsTypedPointer())
-        {
-          Error(DQERR_PTR_OPAQUE_USAGE, "pointer indexing");
-          delete result;
-          return nullptr;
-        }
-
-        OExpr * indexexpr = ParseExpression();
-        scf->SkipWhite();
-        if (not scf->CheckSymbol("]"))
-        {
-          Error(DQERR_MISSING_CLOSE_BRACKET_AFTER, "pointer index");
-        }
-        result = new OPointerIndexExpr(result, indexexpr);
-        continue;
-      }
-
-      if (!crossed_line && scf->CheckSymbol("^")) // p^: dereference -> lvalue
-      {
-        if (!ptrtype->IsTypedPointer())
-        {
-          Error(DQERR_PTR_OPAQUE_USAGE, "dereference");
-          delete result;
-          return nullptr;
-        }
-        result = new OLValueDeref(result);
-        continue;
-      }
-    }
+    status = ParsePostfixPointerOps(result, tk, crossed_line);
+    if (EPostfixResult::Continue == status) continue;
+    if (EPostfixResult::Stop == status) return result;
 
     break;
   }

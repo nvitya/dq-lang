@@ -878,7 +878,6 @@ void ODqCompParserStmt::ParseStmtMethodUse()
 
 void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr)
 {
-
   OStmtBlock * prev_block = curblock;
   OScope *     prev_scope = curscope;
 
@@ -886,7 +885,6 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
   curscope = stblock->scope;
 
   string block_closer;
-  string sid;
 
   scf->SkipWhite();
   if (scf->CheckSymbol("{"))
@@ -938,269 +936,293 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
       break;
     }
 
-    scf->SaveCurPos(scpos_statement_start);
-
-    if (scf->CheckSymbol(";"))  // empty ";", just ignore it
+    if (!ParseStatement(block_closer))
     {
-      Hint(DQHINT_MEANINGLESS_SEMICOLON);
-      continue;
+      break;
     }
+  }
 
-    if (!ParseAttributes(true))
+  curscope = prev_scope;
+  curblock = prev_block;
+}
+
+bool ODqCompParserStmt::ParseStatement(const string & block_closer)
+{
+  scf->SaveCurPos(scpos_statement_start);
+
+  if (scf->CheckSymbol(";"))  // empty ";", just ignore it
+  {
+    Hint(DQHINT_MEANINGLESS_SEMICOLON);
+    return true;
+  }
+
+  if (!ParseAttributes(true))
+  {
+    SkipCurStatement();
+    return true;
+  }
+
+  ODqCompBaseSuppressWarningsScope sws(this, attr->IsSet(ATTF_NOWARN));
+  if (attr->flags)
+  {
+    attr->CheckInvalidAttributes(ATGT_STATEMENT);
+  }
+
+  // Try keywords first, use ReadIdentifier for whole word checking
+
+  scf->SaveCurPos(scpos_statement_start);  // we jump back here if the identifier is unknown
+  string sid;
+  if (scf->ReadIdentifier(sid))
+  {
+    if ("var" == sid)  // local variable declaration
     {
-      SkipCurStatement();
-      continue;
+      ParseStmtVar(false);
+      return true;
     }
-
-    ODqCompBaseSuppressWarningsScope sws(this, attr->IsSet(ATTF_NOWARN));
-    if (attr->flags)
+    else if ("ref" == sid)
     {
-      attr->CheckInvalidAttributes(ATGT_STATEMENT);
+      ParseStmtRef();
+      return true;
     }
-
-    // Try keywords first, use ReadIdentifier for whole word checking
-
-    scf->SaveCurPos(scpos_statement_start);  // we jump back here if the identifier is unknown
-    if (scf->ReadIdentifier(sid))
+    else if ("refin" == sid || "refout" == sid || "refnull" == sid)
     {
-      if ("var" == sid)  // local variable declaration
-      {
-        ParseStmtVar(false);
-        continue;
-      }
-      else if ("ref" == sid)
-      {
-        ParseStmtRef();
-        continue;
-      }
-      else if ("refin" == sid || "refout" == sid || "refnull" == sid)
-      {
-        StatementError(DQERR_REF_LOCAL_MODE_UNSUPPORTED, sid);
-        continue;
-      }
-      else if ("const" == sid)
-      {
-        ParseStmtConst(false);
-        continue;
-      }
-      else if ("return" == sid)
-      {
-        ParseStmtReturn();
-        continue;
-      }
-      else if ("break" == sid)
-      {
-        if (loop_depth < 1)
-        {
-          StatementError(DQERR_STMT_INVALID, sid);
-          continue;
-        }
-        if (!CheckStatementClose())
-        {
-          continue;
-        }
-        curblock->AddStatement(new OBreakStmt(scpos_statement_start));
-        continue;
-      }
-      else if ("continue" == sid)
-      {
-        if (loop_depth < 1)
-        {
-          StatementError(DQERR_STMT_INVALID, sid);
-          continue;
-        }
-        if (!CheckStatementClose())
-        {
-          continue;
-        }
-        curblock->AddStatement(new OContinueStmt(scpos_statement_start));
-        continue;
-      }
-      else if ("while" == sid)
-      {
-        ParseStmtWhile();
-        continue;
-      }
-      else if ("for" == sid)
-      {
-        ParseStmtFor();
-        continue;
-      }
-      else if ("if" == sid)
-      {
-        ParseStmtIf();
-        continue;
-      }
-      else if ("try" == sid)
-      {
-        ParseStmtTry();
-        continue;
-      }
-      else if ("raise" == sid)
-      {
-        ParseStmtRaise();
-        continue;
-      }
-      else if ("delete" == sid)
-      {
-        ParseStmtDelete();
-        continue;
-      }
-      else if ("inherited" == sid)
-      {
-        ParseStmtInherited();
-        continue;
-      }
-      else if ("use" == sid)
-      {
-        ParseStmtMethodUse();
-        continue;
-      }
-      else if (IsBlockCloserWord(sid))
-      {
-        bool expected_by_outer = false;
-        for (const auto& closers : expected_block_closers)
-        {
-          auto split_view = closers | views::split('|');
-          for (auto chunk : split_view)
-          {
-            if (sid == string_view(chunk)) { expected_by_outer = true; break; }
-          }
-          if (expected_by_outer) break;
-        }
-
-        scf->SetCurPos(scpos_statement_start);
-        StatementError(DQERR_STMTBLK_CLOSE_MISMATCH, block_closer, sid);
-        if (!expected_by_outer)
-        {
-          scf->ReadIdentifier(sid, true); // consume the unexpected keyword
-        }
-        break;
-      }
-      else if (ReservedWord(sid))
-      {
-        StatementError(DQERR_STMT_INVALID, sid);
-        continue;
-      }
-      else  // not handled, restore position and go on with expression parsing
-      {
-        scf->SetCurPos(scpos_statement_start);
-      }
+      StatementError(DQERR_REF_LOCAL_MODE_UNSUPPORTED, sid);
+      return true;
     }
-
-    // Now, there are two possibilities: function call or  - assignment
-    // Both start with an expression
-
-    int prev_errorcnt = errorcnt;
-    suppressed_left_expr_diags.clear();
-    supress_varinit_check = true;  // do not generate variable not initialized error for the left value
-    suppress_access_read_check = true;
-    OExpr * leftexpr = ParseExpression();
-    supress_varinit_check = false;
-    suppress_access_read_check = false;
-    if (!leftexpr)
+    else if ("const" == sid)
     {
-      EmitSuppressedLeftExprDiags();
+      ParseStmtConst(false);
+      return true;
+    }
+    else if ("return" == sid)
+    {
+      ParseStmtReturn();
+      return true;
+    }
+    else if ("break" == sid)
+    {
+      ParseStmtBreak();
+      return true;
+    }
+    else if ("continue" == sid)
+    {
+      ParseStmtContinue();
+      return true;
+    }
+    else if ("while" == sid)
+    {
+      ParseStmtWhile();
+      return true;
+    }
+    else if ("for" == sid)
+    {
+      ParseStmtFor();
+      return true;
+    }
+    else if ("if" == sid)
+    {
+      ParseStmtIf();
+      return true;
+    }
+    else if ("try" == sid)
+    {
+      ParseStmtTry();
+      return true;
+    }
+    else if ("raise" == sid)
+    {
+      ParseStmtRaise();
+      return true;
+    }
+    else if ("delete" == sid)
+    {
+      ParseStmtDelete();
+      return true;
+    }
+    else if ("inherited" == sid)
+    {
+      ParseStmtInherited();
+      return true;
+    }
+    else if ("use" == sid)
+    {
+      ParseStmtMethodUse();
+      return true;
+    }
+    else if (IsBlockCloserWord(sid))
+    {
+      bool expected_by_outer = false;
+      for (const auto& closers : expected_block_closers)
+      {
+        auto split_view = closers | views::split('|');
+        for (auto chunk : split_view)
+        {
+          if (sid == string_view(chunk)) { expected_by_outer = true; break; }
+        }
+        if (expected_by_outer) break;
+      }
+
+      scf->SetCurPos(scpos_statement_start);
+      StatementError(DQERR_STMTBLK_CLOSE_MISMATCH, block_closer, sid);
+      if (!expected_by_outer)
+      {
+        scf->ReadIdentifier(sid, true); // consume the unexpected keyword
+      }
+      return false;
+    }
+    else if (ReservedWord(sid))
+    {
+      StatementError(DQERR_STMT_INVALID, sid);
+      return true;
+    }
+    else  // not handled, restore position and go on with expression parsing
+    {
+      scf->SetCurPos(scpos_statement_start);
+    }
+  }
+
+  ParseAssignOrCallStmt();
+  return true;
+}
+
+void ODqCompParserStmt::ParseStmtBreak()
+{
+  if (loop_depth < 1)
+  {
+    StatementError(DQERR_STMT_INVALID, "break");
+    return;
+  }
+  if (!CheckStatementClose())
+  {
+    return;
+  }
+  curblock->AddStatement(new OBreakStmt(scpos_statement_start));
+}
+
+void ODqCompParserStmt::ParseStmtContinue()
+{
+  if (loop_depth < 1)
+  {
+    StatementError(DQERR_STMT_INVALID, "continue");
+    return;
+  }
+  if (!CheckStatementClose())
+  {
+    return;
+  }
+  curblock->AddStatement(new OContinueStmt(scpos_statement_start));
+}
+
+void ODqCompParserStmt::ParseAssignOrCallStmt()
+{
+  // Now, there are two possibilities: function call or  - assignment
+  // Both start with an expression
+
+  int prev_errorcnt = errorcnt;
+  suppressed_left_expr_diags.clear();
+  supress_varinit_check = true;  // do not generate variable not initialized error for the left value
+  suppress_access_read_check = true;
+  OExpr * leftexpr = ParseExpression();
+  supress_varinit_check = false;
+  suppress_access_read_check = false;
+  if (!leftexpr)
+  {
+    EmitSuppressedLeftExprDiags();
+    if (prev_errorcnt == errorcnt)  // no error was generated yet ?
+    {
+      Error(DQERR_EXPR_EXPECTED, &scpos_statement_start);
+    }
+    SkipToStatementEnd();  // try to find the ";"
+    return;
+  }
+
+  scf->SkipWhite();
+
+  // check for assignment operator
+
+  EBinOp binop = ODqCompParserStmt::ParseAssignOp();
+  if (int(binop) >= 0)
+  {
+    scf->SkipWhite();
+    prev_errorcnt = errorcnt;
+    OExpr * rightexpr = ParseExpression();
+    if (!rightexpr)
+    {
       if (prev_errorcnt == errorcnt)  // no error was generated yet ?
       {
-        Error(DQERR_EXPR_EXPECTED, &scpos_statement_start);
+        Error(DQERR_EXPR_EXPECTED);
       }
-      SkipToStatementEnd();  // try to find the ";"
-      continue;
-    }
-
-    scf->SkipWhite();
-
-    // check for assignment operator
-
-    EBinOp binop = ODqCompParserStmt::ParseAssignOp();
-    if (int(binop) >= 0)
-    {
-      scf->SkipWhite();
-      prev_errorcnt = errorcnt;
-      OExpr * rightexpr = ParseExpression();
-      if (!rightexpr)
-      {
-        if (prev_errorcnt == errorcnt)  // no error was generated yet ?
-        {
-          Error(DQERR_EXPR_EXPECTED);
-        }
-        OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
-        if (lval)
-        {
-          EmitFilteredAssignLeftExprDiags(lval, binop);
-        }
-        else
-        {
-          EmitSuppressedLeftExprDiags();
-        }
-        delete leftexpr;
-        SkipToStatementEnd();  // try to find the ";"
-        continue;
-      }
-
-      if (!CheckStatementClose())
-      {
-        OScPosition scpos;
-        scf->SaveCurPos(scpos);
-      }
-
       OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
-      if (!lval)
+      if (lval)
+      {
+        EmitFilteredAssignLeftExprDiags(lval, binop);
+      }
+      else
       {
         EmitSuppressedLeftExprDiags();
-        if (dynamic_cast<OEnumOrdExpr *>(leftexpr))
-        {
-          Error(DQERR_TYPE_ASSIGN_TO_CONST, "ord");
-        }
-        else
-        {
-          Error(DQERR_LVALUE_NOT_WRITEABLE);
-        }
-        delete leftexpr;
-        delete rightexpr;
-        continue;
-      }
-
-      EmitFilteredAssignLeftExprDiags(lval, binop);
-      FinalizeStmtAssign(lval, binop, rightexpr);
-      continue;
-    }
-
-    // the leftexpr should be a callable expression
-    bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OStringMethodCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OAnyValueMethodCallExpr *>(leftexpr) != nullptr)
-                     || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
-    if (!is_call_stmt)
-    {
-      EmitSuppressedLeftExprDiags();
-      StatementError(DQERR_STMT_ASSIGN_OR_FCALL_EXP);
-      scf->SkipWhite();
-      if (!scf->CheckSymbol(";"))
-      {
-        SkipToStatementEnd();
       }
       delete leftexpr;
-      continue;
+      SkipToStatementEnd();  // try to find the ";"
+      return;
     }
 
-    EmitSuppressedLeftExprDiags();
     if (!CheckStatementClose())
     {
       OScPosition scpos;
       scf->SaveCurPos(scpos);
     }
 
-    FinalizeStmtVoidCall(leftexpr);
+    OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
+    if (!lval)
+    {
+      EmitSuppressedLeftExprDiags();
+      if (dynamic_cast<OEnumOrdExpr *>(leftexpr))
+      {
+        Error(DQERR_TYPE_ASSIGN_TO_CONST, "ord");
+      }
+      else
+      {
+        Error(DQERR_LVALUE_NOT_WRITEABLE);
+      }
+      delete leftexpr;
+      delete rightexpr;
+      return;
+    }
 
+    EmitFilteredAssignLeftExprDiags(lval, binop);
+    FinalizeStmtAssign(lval, binop, rightexpr);
+    return;
   }
 
-  curscope = prev_scope;
-  curblock = prev_block;
+  // the leftexpr should be a callable expression
+  bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OStringMethodCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OAnyValueMethodCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);
+  if (!is_call_stmt)
+  {
+    EmitSuppressedLeftExprDiags();
+    StatementError(DQERR_STMT_ASSIGN_OR_FCALL_EXP);
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(";"))
+    {
+      SkipToStatementEnd();
+    }
+    delete leftexpr;
+    return;
+  }
+
+  EmitSuppressedLeftExprDiags();
+  if (!CheckStatementClose())
+  {
+    OScPosition scpos;
+    scf->SaveCurPos(scpos);
+  }
+
+  FinalizeStmtVoidCall(leftexpr);
 }
 
 void ODqCompParserStmt::ParseStmtReturn()

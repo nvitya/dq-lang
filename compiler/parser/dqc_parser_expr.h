@@ -88,6 +88,19 @@ protected:
   OExpr *   ParseEnumTypeExpr(OTypeEnum * enum_type);
   bool      ParsePropertyIndices(OPropertyExpr * property_expr);
   void      CheckPropertyReadable(OPropertyExpr * property_expr);
+
+  enum class EPostfixResult
+  {
+    NotMatched,
+    Continue,
+    Stop
+  };
+
+  EPostfixResult ParsePostfixIndexOrSlice(OExpr *& result, OLValueExpr * lval, ETypeKind tk);
+  EPostfixResult ParsePostfixDotMember(OExpr *& result, OLValueExpr * lval, ETypeKind tk);
+  EPostfixResult ParsePostfixCall(OExpr *& result, OLValueExpr * lval, ETypeKind tk);
+  EPostfixResult ParsePostfixPointerOps(OExpr *& result, ETypeKind tk, bool crossed_line);
+  void HandleUnknownMemberError(OExpr *& result, const string & membername, const string & typename_str);
   bool      IsKnownEnumItem(const string & item_name);
   OLValueExpr * CreateImplicitMethodReceiver(OCompoundType * method_owner_type);
   OExpr *   ParseExprOverloadCallWithRawArgs(OValSymOverloadSet * ovset, vector<TRawCallArg> & rawargs);

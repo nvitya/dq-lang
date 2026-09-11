@@ -1590,6 +1590,300 @@ bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
   return true;
 }
 
+bool ODqCompParser::ValidateFunctionDecl(OValSymFunc * vsfunc, bool aallow_external, const string & aowner_desc)
+{
+  OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
+
+  vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
+  if (vsfunc->attr_is_weak && vsfunc->is_external)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]", &errpos);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+  if (vsfunc->attr_is_weak && vsfunc->owner_compound_type)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_INVALID_TARGET, "weak", "object/struct method", &errpos);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+  if (vsfunc->attr_is_always_inline && vsfunc->attr_is_noinline)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+  if (vsfunc->is_asm && vsfunc->attr_is_always_inline)
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[asm]] and [[always_inline]]", &errpos);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+  if (vsfunc->IsInlineAsm())
+  {
+    string invalid_usage;
+    if (!InlineAsmTargetForArch(g_opt.target.arch))
+    {
+      Error(DQERR_ASM_INLINE_TARGET, g_opt.target.arch);
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+    if (vsfunc->owner_compound_type) invalid_usage = "methods are not supported";
+    else if (vsfunc->IsSpecial()) invalid_usage = "special functions are not supported";
+    else if (vsfunc->attr_is_noinline) invalid_usage = "[[noinline]] is not allowed";
+    else if (vsfunc->attr_is_weak) invalid_usage = "[[weak]] is not allowed";
+    else if (vsfunc->attr_has_linkage_name) invalid_usage = "native export attributes are not allowed";
+    else if (!vsfunc->attr_section_name.empty()) invalid_usage = "[[section]] is not allowed";
+    if (!invalid_usage.empty())
+    {
+      Error(DQERR_ASM_INLINE_USAGE, invalid_usage);
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+  }
+
+  if (vsfunc->owner_compound_type)
+  {
+    auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
+    if (!owner_object
+        && (vsfunc->attr_is_virtual || vsfunc->attr_is_override
+            || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
+    {
+      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE,
+               "struct methods cannot be virtual, override, abstract, or final");
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    if (    ((OSF_CREATE == vsfunc->object_specfunc_kind) or (OSF_DESTROY == vsfunc->object_specfunc_kind))
+        and (vsfunc->attr_is_virtual || vsfunc->attr_is_override || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
+    {
+      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, "object lifecycle functions cannot be virtual, override, abstract, or final");
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    OValSymFunc * base_virtual = (owner_object ? owner_object->FindVirtualBaseMethod(vsfunc) : nullptr);
+    if (vsfunc->attr_is_override)
+    {
+      if (!base_virtual)
+      {
+        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" is marked override but no inherited virtual method matches", vsfunc->name));
+        RecoverFailedFunctionDecl();
+        return false;
+      }
+      if (base_virtual->attr_is_final)
+      {
+        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides final inherited method", vsfunc->name));
+        RecoverFailedFunctionDecl();
+        return false;
+      }
+      vsfunc->attr_is_virtual = true;
+    }
+    else if (base_virtual)
+    {
+      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides an inherited virtual method but is missing [[override]]", vsfunc->name));
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+    if (vsfunc->attr_is_abstract && !vsfunc->attr_is_virtual)
+    {
+      ErrorTxt(DQERR_OBJ_FUNC_ABSTRACT, format("abstract method \"{}\" must also be virtual", vsfunc->name));
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+  }
+
+  if (vsfunc->IsSpecial())
+  {
+    if (vsfunc->owner_compound_type)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions must be module-level declarations");
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    if (((OSF_CREATE != vsfunc->object_specfunc_kind) && vsfunc->attr_is_overload) || vsfunc->is_external)
+    {
+      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "only Create special functions can be overloaded; special functions cannot be external");
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    OValSymFunc * existing_special = g_module->FindSpecialFunction(vsfunc->special_kind);
+    if (existing_special && !existing_special->IsForwardDecl())
+    {
+      Error(DQERR_SPECIAL_FUNC_DUPLICATE, SpecialFuncKindName(vsfunc->special_kind));
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    if (!SpecialFunctionSignatureIsValid(vsfunc))
+    {
+      Error(DQERR_SPECIAL_FUNC_SIGNATURE, SpecialFuncKindName(vsfunc->special_kind));
+      RecoverFailedFunctionDecl();
+      return false;
+    }
+
+    if (SFK_MAIN == vsfunc->special_kind)
+    {
+      vsfunc->attr_has_linkage_name = true;
+      vsfunc->attr_linkage_name = "dq_main";
+    }
+  }
+
+  if (vsfunc->is_external && !aallow_external)
+  {
+    Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, aowner_desc);
+    RecoverFailedFunctionDecl();
+    return false;
+  }
+
+  if (tfunc->has_varargs && !vsfunc->is_external)
+  {
+    Error(DQERR_VARARGS_NOT_ALLOWED);
+  }
+
+  return true;
+}
+
+void ODqCompParser::ConsumeDeclarationSemicolon(bool has_body, const string & what)
+{
+  if (has_body)
+  {
+    Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, what);
+  }
+  else if (not CheckStatementClose())
+  {
+    // CheckStatementClose generates error if missing
+  }
+}
+
+void ODqCompParser::ReadFunctionBody(OValSymFunc * bodyfunc)
+{
+  curvsfunc = bodyfunc;
+  if (bodyfunc->is_asm)
+  {
+    ReadAsmFunctionBody(bodyfunc);
+    curvsfunc = nullptr;
+    return;
+  }
+
+  ReadStatementBlock(bodyfunc->body, "endfunc");
+
+  bodyfunc->scpos_endfunc = scf->prevpos;
+  bodyfunc->has_body = true;
+
+  if (bodyfunc->vsresult and not bodyfunc->vsresult->initialized)
+  {
+    Error(DQERR_FUNC_RESULT_NOT_SET, bodyfunc->name, &bodyfunc->scpos_endfunc);
+  }
+
+  ValidateConstructorEmbeddedObjects(bodyfunc);
+
+  curvsfunc = nullptr;
+}
+
+void ODqCompParser::DeclareFunctionSymbol(OValSymFunc * fn, OScope * decl_scope, bool ahidden_decl)
+{
+  if (ahidden_decl)
+  {
+    decl_scope->DefineValSym(fn);
+    g_module->DeclareHiddenValSym(fn->owner_compound_type != nullptr, fn);
+    PrepareFuncDecl(scpos_statement_start, fn);
+  }
+  else
+  {
+    AddDeclFunc(scpos_statement_start, fn);
+  }
+}
+
+void ODqCompParser::DeclareOverloadSet(OValSymOverloadSet * ovset, OScope * decl_scope, bool ahidden_decl)
+{
+  if (ahidden_decl)
+  {
+    decl_scope->DefineValSym(ovset);
+    g_module->DeclareHiddenValSym(ovset->owner_compound_type != nullptr, ovset);
+  }
+  else
+  {
+    AddDeclOverloadSet(scpos_statement_start, ovset);
+  }
+}
+
+bool ODqCompParser::ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsfunc, OScope * body_parent_scope,
+                                       bool is_declaration_only, bool has_body)
+{
+  if (!fwdfunc || !vsfunc)
+  {
+    return false;
+  }
+
+  auto cleanup_new_func = [&]()
+  {
+    if (curvsfunc == vsfunc)
+    {
+      curvsfunc = nullptr;
+    }
+    delete vsfunc;
+    vsfunc = nullptr;
+  };
+
+  if (!fwdfunc->CheckForwardDeclMatch(vsfunc))
+  {
+    RecoverFailedFunctionDecl();
+    cleanup_new_func();
+    return true;
+  }
+
+  if ((fwdfunc->attr_is_always_inline || vsfunc->attr_is_always_inline)
+      && (fwdfunc->attr_is_noinline || vsfunc->attr_is_noinline))
+  {
+    OScPosition errpos(scf->curfile, scf->curp);
+    Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
+    RecoverFailedFunctionDecl();
+    cleanup_new_func();
+    return true;
+  }
+
+  if ((fwdfunc->attr_is_weak || vsfunc->attr_is_weak)
+      && (fwdfunc->is_external || vsfunc->is_external))
+  {
+    Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]");
+    fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+    ConsumeDeclarationSemicolon(has_body, "external function declaration");
+    cleanup_new_func();
+    return true;
+  }
+
+  if (vsfunc->is_external)
+  {
+    fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+    ConsumeDeclarationSemicolon(has_body, "external function declaration");
+    cleanup_new_func();
+    return true;
+  }
+
+  if (is_declaration_only)
+  {
+    fwdfunc->MergeForwardDeclFrom(vsfunc, false);
+    ConsumeDeclarationSemicolon(has_body, "function declaration");
+    cleanup_new_func();
+    return true;
+  }
+
+  fwdfunc->MergeForwardDeclFrom(vsfunc, true);
+  fwdfunc->ResetBodyScope(body_parent_scope);
+  PrepareFuncDecl(scpos_statement_start, fwdfunc);
+  cleanup_new_func();
+  ReadFunctionBody(fwdfunc);
+  return true;
+}
+
 bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                                        bool ahidden_decl, bool aallow_external, const string & aowner_desc)
 {
@@ -1612,132 +1906,11 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     return false;
   }
 
-  vsfunc->ApplyAttributes(attr, ATGT_FUNCTION);
-  if (vsfunc->attr_is_weak && vsfunc->is_external)
+  if (!ValidateFunctionDecl(vsfunc, aallow_external, aowner_desc))
   {
-    OScPosition errpos(scf->curfile, scf->curp);
-    Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]", &errpos);
-    RecoverFailedFunctionDecl();
     curvsfunc = nullptr;
     delete vsfunc;
     return false;
-  }
-  if (vsfunc->attr_is_weak && vsfunc->owner_compound_type)
-  {
-    OScPosition errpos(scf->curfile, scf->curp);
-    Error(DQERR_ATTR_INVALID_TARGET, "weak", "object/struct method", &errpos);
-    RecoverFailedFunctionDecl();
-    curvsfunc = nullptr;
-    delete vsfunc;
-    return false;
-  }
-  if (vsfunc->attr_is_always_inline && vsfunc->attr_is_noinline)
-  {
-    OScPosition errpos(scf->curfile, scf->curp);
-    Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
-    RecoverFailedFunctionDecl();
-    curvsfunc = nullptr;
-    delete vsfunc;
-    return false;
-  }
-  if (vsfunc->is_asm && vsfunc->attr_is_always_inline)
-  {
-    OScPosition errpos(scf->curfile, scf->curp);
-    Error(DQERR_ATTR_CONFLICT, "[[asm]] and [[always_inline]]", &errpos);
-    RecoverFailedFunctionDecl();
-    curvsfunc = nullptr;
-    delete vsfunc;
-    return false;
-  }
-  if (vsfunc->IsInlineAsm())
-  {
-    string invalid_usage;
-    if (!InlineAsmTargetForArch(g_opt.target.arch))
-    {
-      Error(DQERR_ASM_INLINE_TARGET, g_opt.target.arch);
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
-    if (vsfunc->owner_compound_type) invalid_usage = "methods are not supported";
-    else if (vsfunc->IsSpecial()) invalid_usage = "special functions are not supported";
-    else if (vsfunc->attr_is_noinline) invalid_usage = "[[noinline]] is not allowed";
-    else if (vsfunc->attr_is_weak) invalid_usage = "[[weak]] is not allowed";
-    else if (vsfunc->attr_has_linkage_name) invalid_usage = "native export attributes are not allowed";
-    else if (!vsfunc->attr_section_name.empty()) invalid_usage = "[[section]] is not allowed";
-    if (!invalid_usage.empty())
-    {
-      Error(DQERR_ASM_INLINE_USAGE, invalid_usage);
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
-  }
-
-  if (vsfunc->owner_compound_type)
-  {
-    auto * owner_object = dynamic_cast<OTypeObject *>(vsfunc->owner_compound_type);
-    if (!owner_object
-        && (vsfunc->attr_is_virtual || vsfunc->attr_is_override
-            || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
-    {
-      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE,
-               "struct methods cannot be virtual, override, abstract, or final");
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
-
-    if (    ((OSF_CREATE == vsfunc->object_specfunc_kind) or (OSF_DESTROY == vsfunc->object_specfunc_kind))
-        and (vsfunc->attr_is_virtual || vsfunc->attr_is_override || vsfunc->attr_is_abstract || vsfunc->attr_is_final))
-    {
-      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, "object lifecycle functions cannot be virtual, override, abstract, or final");
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
-
-    OValSymFunc * base_virtual = (owner_object ? owner_object->FindVirtualBaseMethod(vsfunc) : nullptr);
-    if (vsfunc->attr_is_override)
-    {
-      if (!base_virtual)
-      {
-        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" is marked override but no inherited virtual method matches", vsfunc->name));
-        RecoverFailedFunctionDecl();
-        curvsfunc = nullptr;
-        delete vsfunc;
-        return false;
-      }
-      if (base_virtual->attr_is_final)
-      {
-        ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides final inherited method", vsfunc->name));
-        RecoverFailedFunctionDecl();
-        curvsfunc = nullptr;
-        delete vsfunc;
-        return false;
-      }
-      vsfunc->attr_is_virtual = true;
-    }
-    else if (base_virtual)
-    {
-      ErrorTxt(DQERR_OBJ_FUNC_OVERRIDE, format("method \"{}\" overrides an inherited virtual method but is missing [[override]]", vsfunc->name));
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
-    if (vsfunc->attr_is_abstract && !vsfunc->attr_is_virtual)
-    {
-      ErrorTxt(DQERR_OBJ_FUNC_ABSTRACT, format("abstract method \"{}\" must also be virtual", vsfunc->name));
-      RecoverFailedFunctionDecl();
-      curvsfunc = nullptr;
-      delete vsfunc;
-      return false;
-    }
   }
 
   auto cleanup_new_func = [&]()
@@ -1749,61 +1922,6 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     delete vsfunc;
     vsfunc = nullptr;
   };
-
-  if (vsfunc->IsSpecial())
-  {
-    if (vsfunc->owner_compound_type)
-    {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "special functions must be module-level declarations");
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return false;
-    }
-
-    if (((OSF_CREATE != vsfunc->object_specfunc_kind) && vsfunc->attr_is_overload) || vsfunc->is_external)
-    {
-      ErrorTxt(DQERR_SPECIAL_FUNC_INVALID, "only Create special functions can be overloaded; special functions cannot be external");
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return false;
-    }
-
-    OValSymFunc * existing_special = g_module->FindSpecialFunction(vsfunc->special_kind);
-    if (existing_special && !existing_special->IsForwardDecl())
-    {
-      Error(DQERR_SPECIAL_FUNC_DUPLICATE, SpecialFuncKindName(vsfunc->special_kind));
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return false;
-    }
-
-    if (!SpecialFunctionSignatureIsValid(vsfunc))
-    {
-      Error(DQERR_SPECIAL_FUNC_SIGNATURE, SpecialFuncKindName(vsfunc->special_kind));
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return false;
-    }
-
-    if (SFK_MAIN == vsfunc->special_kind)
-    {
-      vsfunc->attr_has_linkage_name = true;
-      vsfunc->attr_linkage_name = "dq_main";
-    }
-  }
-
-  if (vsfunc->is_external && !aallow_external)
-  {
-    Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, aowner_desc);
-    RecoverFailedFunctionDecl();
-    cleanup_new_func();
-    return false;
-  }
-
-  if (tfunc->has_varargs && !vsfunc->is_external)
-  {
-    Error(DQERR_VARARGS_NOT_ALLOWED);
-  }
 
   scf->SkipWhite();
   bool has_body = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
@@ -1827,128 +1945,6 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       return false;
     }
   }
-
-  auto consume_declaration_semicolon = [&](const string & what)
-  {
-    if (has_body)
-    {
-      Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, what);
-    }
-    else if (not CheckStatementClose())
-    {
-      // CheckStatementClose generates error if missing
-    }
-  };
-
-  auto read_function_body = [&](OValSymFunc * bodyfunc)
-  {
-    curvsfunc = bodyfunc;
-    if (bodyfunc->is_asm)
-    {
-      ReadAsmFunctionBody(bodyfunc);
-      curvsfunc = nullptr;
-      return;
-    }
-
-    ReadStatementBlock(bodyfunc->body, "endfunc");
-
-    bodyfunc->scpos_endfunc = scf->prevpos;
-    bodyfunc->has_body = true;
-
-    if (bodyfunc->vsresult and not bodyfunc->vsresult->initialized)
-    {
-      Error(DQERR_FUNC_RESULT_NOT_SET, bodyfunc->name, &bodyfunc->scpos_endfunc);
-    }
-
-    ValidateConstructorEmbeddedObjects(bodyfunc);
-
-    curvsfunc = nullptr;
-  };
-
-  auto declare_function = [&](OValSymFunc * fn)
-  {
-    if (ahidden_decl)
-    {
-      decl_scope->DefineValSym(fn);
-      g_module->DeclareHiddenValSym(fn->owner_compound_type != nullptr, fn);
-      PrepareFuncDecl(scpos_statement_start, fn);
-    }
-    else
-    {
-      AddDeclFunc(scpos_statement_start, fn);
-    }
-  };
-
-  auto declare_overload_set = [&](OValSymOverloadSet * ovset)
-  {
-    if (ahidden_decl)
-    {
-      decl_scope->DefineValSym(ovset);
-      g_module->DeclareHiddenValSym(ovset->owner_compound_type != nullptr, ovset);
-    }
-    else
-    {
-      AddDeclOverloadSet(scpos_statement_start, ovset);
-    }
-  };
-
-  auto fill_forward_decl = [&](OValSymFunc * fwdfunc) -> bool
-  {
-    if (!fwdfunc || !vsfunc)
-    {
-      return false;
-    }
-
-    if (!fwdfunc->CheckForwardDeclMatch(vsfunc))
-    {
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return true;
-    }
-
-    if ((fwdfunc->attr_is_always_inline || vsfunc->attr_is_always_inline)
-        && (fwdfunc->attr_is_noinline || vsfunc->attr_is_noinline))
-    {
-      OScPosition errpos(scf->curfile, scf->curp);
-      Error(DQERR_ATTR_CONFLICT, "[[always_inline]] and [[noinline]]", &errpos);
-      RecoverFailedFunctionDecl();
-      cleanup_new_func();
-      return true;
-    }
-
-    if ((fwdfunc->attr_is_weak || vsfunc->attr_is_weak)
-        && (fwdfunc->is_external || vsfunc->is_external))
-    {
-      Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]");
-      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-      consume_declaration_semicolon("external function declaration");
-      cleanup_new_func();
-      return true;
-    }
-
-    if (vsfunc->is_external)
-    {
-      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-      consume_declaration_semicolon("external function declaration");
-      cleanup_new_func();
-      return true;
-    }
-
-    if (is_declaration_only)
-    {
-      fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-      consume_declaration_semicolon("function declaration");
-      cleanup_new_func();
-      return true;
-    }
-
-    fwdfunc->MergeForwardDeclFrom(vsfunc, true);
-    fwdfunc->ResetBodyScope(body_parent_scope);
-    PrepareFuncDecl(scpos_statement_start, fwdfunc);
-    cleanup_new_func();
-    read_function_body(fwdfunc);
-    return true;
-  };
 
   OValSym * existing = decl_scope->FindValSym(vsfunc->name, nullptr, false);
   if (!existing && !section_public)
@@ -1985,7 +1981,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       ovset->member_visibility = vsfunc->member_visibility;
       PrepareFuncDecl(scpos_statement_start, vsfunc);
       ovset->AddFunc(vsfunc);
-      declare_overload_set(ovset);
+      DeclareOverloadSet(ovset, decl_scope, ahidden_decl);
     }
     else if (ovset)
     {
@@ -2002,7 +1998,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       {
         if (matching_decl->IsForwardDecl())
         {
-          return fill_forward_decl(matching_decl);
+          return ResolveForwardDecl(matching_decl, vsfunc, body_parent_scope, is_declaration_only, has_body);
         }
 
         Error(DQERR_OVERLOAD_DUP_SIGNATURE, vsfunc->name);
@@ -2036,7 +2032,7 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     {
       if (existing_func->IsForwardDecl())
       {
-        return fill_forward_decl(existing_func);
+        return ResolveForwardDecl(existing_func, vsfunc, body_parent_scope, is_declaration_only, has_body);
       }
 
       Error(DQERR_VS_ALREADY_DECL_SCOPE, vsfunc->name, decl_scope->debugname);
@@ -2053,24 +2049,24 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
       return false;
     }
 
-    declare_function(vsfunc);
+    DeclareFunctionSymbol(vsfunc, decl_scope, ahidden_decl);
   }
 
   if (vsfunc->is_external)
   {
-    consume_declaration_semicolon("external function declaration");
+    ConsumeDeclarationSemicolon(has_body, "external function declaration");
     curvsfunc = nullptr;
     return true;
   }
 
   if (is_declaration_only)
   {
-    consume_declaration_semicolon("function declaration");
+    ConsumeDeclarationSemicolon(has_body, "function declaration");
     curvsfunc = nullptr;
     return true;
   }
 
-  read_function_body(vsfunc);
+  ReadFunctionBody(vsfunc);
   return true;
 }
 

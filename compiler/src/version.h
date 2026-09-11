@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.62.6"
+#define DQ_COMPILER_VERSION  "0.62.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.62.7:
+  - Compiler code refactoring - decomposed long functions: ODqCompParserExpr::ParsePostfix,
+    ODqCompParserStmt::ReadStatementBlock, ODqCompParser::FinishFunctionDecl
 v0.62.6:
   - Compiler code refactoring: Array LLVM IR Loop Generation, Compound Type Conversion,
     Function Signature Matching, Character Subtype Forwarding

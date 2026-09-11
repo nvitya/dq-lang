@@ -19,6 +19,10 @@ class ODqCompParserStmt : public ODqCompParserExpr
 {
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);
+  bool ParseStatement(const string & block_closer);
+  void ParseStmtBreak();
+  void ParseStmtContinue();
+  void ParseAssignOrCallStmt();
   void ParseStmtReturn();
   void ParseStmtWhile();
   void ParseStmtFor();

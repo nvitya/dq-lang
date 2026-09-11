@@ -104,10 +104,7 @@
 
 ## 3. Key Architectural Recommendations
 
-1. **Decompose Top-Heavy Parser Functions**:
-   - Break [`ODqCompParserExpr::ParsePostfix`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2382) (583 lines) into distinct helper member methods: `ParsePostfixDotMember`, `ParsePostfixIndexOrSlice`, `ParsePostfixCall`, and `ParsePostfixPointerOps`.
-   - Break [`ODqCompParserStmt::ReadStatementBlock`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.cpp#L934) (325 lines) into an isolated `ParseStatement()` dispatcher, separating loop control and block boundary scanning from individual statement parsing.
-   - Extract the nested lambdas in [`ODqCompParser::FinishFunctionDecl`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser.cpp#L1613) (481 lines) into private class member functions (`ReadFunctionBody`, `DeclareFunctionSymbol`, `ResolveForwardDecl`).
+*(All architectural recommendations in this section have been implemented; see [4.A.20](#a-implemented) for details.)*
 
 ---
 
@@ -210,6 +207,13 @@
 19. **Character Subtype Forwarding (was 1.11)**:
     - **Original Issue:** `OTypeChar`, `OTypeChar16`, and `OTypeWchar` each duplicated implementations of `CreateDiType`, `ConvertFromExpr`, and `GetConversionCostFromExpr`.
     - **Resolution:** Created intermediate base class `OTypeCharBase : public OTypeInt` in [`compiler/types/otype_char.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_char.h) implementing these three methods once, with `OTypeChar`, `OTypeChar16`, and `OTypeWchar` inheriting from it.
+
+20. **Decompose Top-Heavy Parser Functions (was 3.1)**:
+    - **Original Issue:** Monolithic parser routines (`ParsePostfix` at 583 lines, `FinishFunctionDecl` at 481 lines, and `ReadStatementBlock` at 325 lines) suffered from deep nesting (up to 8 levels), complex lambdas with captured state, and high cyclomatic complexity.
+    - **Resolution:**
+      - Decomposed `ODqCompParserExpr::ParsePostfix` in [`compiler/parser/dqc_parser_expr.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.h) into member helpers `ParsePostfixIndexOrSlice`, `ParsePostfixDotMember`, `ParsePostfixCall`, `ParsePostfixPointerOps`, and `HandleUnknownMemberError`, turning `ParsePostfix` into a concise ~25-line dispatch loop.
+      - Decomposed `ODqCompParserStmt::ReadStatementBlock` in [`compiler/parser/dqc_parser_stmt.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_stmt.h) into `ParseStatement`, `ParseAssignOrCallStmt`, `ParseStmtBreak`, and `ParseStmtContinue`, reducing `ReadStatementBlock` from 325 lines to ~55 lines.
+      - Decomposed `ODqCompParser::FinishFunctionDecl` in [`compiler/parser/dqc_parser.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser.h) by extracting validation logic and nested lambdas into member functions `ValidateFunctionDecl`, `ReadFunctionBody`, `DeclareFunctionSymbol`, `DeclareOverloadSet`, `ResolveForwardDecl`, and `ConsumeDeclarationSemicolon`, reducing `FinishFunctionDecl` from 481 lines to ~95 lines.
 
 ### B. Ignored
 

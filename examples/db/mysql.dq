@@ -21,8 +21,7 @@ public
     func *Destroy()
 
     // A port of zero selects the client library default (normally 3306).
-    func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char,
-              aport : uint = 0)
+    func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char, aport : uint = 0)
     func Close()
     func Opened() -> bool
     func NativeHandle() -> pointer
@@ -64,8 +63,7 @@ public
     func *Create()
     func *Destroy()
 
-    func Prepare(adb : OMySqlDb, asql : ^char) [[overload]]
-    func Prepare(adb : OMySqlDb, asql : strview) [[overload]]
+    func Prepare(adb : OMySqlDb, asql : rostr)
     func Finalize()
     func Reset()
     func Prepared() -> bool
@@ -146,8 +144,7 @@ func OMySqlDb.RequireOpen(aoperation : ^char):
     endif
 endfunc
 
-func OMySqlDb.Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char,
-                   aport : uint = 0):
+func OMySqlDb.Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char, aport : uint = 0):
     Close()
 
     var handle : pointer = @.mysql_init(nil)
@@ -274,28 +271,17 @@ func OMySqlStmt.CheckColumnIndex(aindex : int):
     endif
 endfunc
 
-func OMySqlStmt.Prepare(adb : OMySqlDb, asql : ^char) [[overload]]:
+func OMySqlStmt.Prepare(adb : OMySqlDb, asql : rostr):
     Finalize()
     if not adb.Opened():
         raise EMySqlError('MySQL query: database is not open')
     endif
-    if asql == nil:
+    if asql.length == 0:
         raise EMySqlError('MySQL query: null SQL text')
     endif
 
     var dbhandle : pointer = adb.NativeHandle()
     @.MySqlCheck(dbhandle, @.mysql_query(dbhandle, asql), 'MySQL query')
-    StoreResult(adb, dbhandle)
-endfunc
-
-func OMySqlStmt.Prepare(adb : OMySqlDb, asql : strview) [[overload]]:
-    Finalize()
-    if not adb.Opened():
-        raise EMySqlError('MySQL query: database is not open')
-    endif
-
-    var dbhandle : pointer = adb.NativeHandle()
-    @.MySqlCheck(dbhandle, @.mysql_real_query(dbhandle, asql.pchar, uint(asql.length)), 'MySQL query')
     StoreResult(adb, dbhandle)
 endfunc
 

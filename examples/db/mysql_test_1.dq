@@ -21,7 +21,7 @@ func *Main() -> int:
         ID, CITY, COUNTRY
     from
         capitals
-    where
+    wherex
         CONTINENT = 'Europe'
     order by
         CITY

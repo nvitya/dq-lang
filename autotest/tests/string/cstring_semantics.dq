@@ -68,12 +68,21 @@ func CStrTermAtLen(cs : cstring) -> int:
     return Ord(cs.pchar[cs.length]^)
 endfunc
 
+func CStringFirstChar(text : ^char) -> int:
+    return Ord(text^)
+endfunc
+
+func CStringParameterFirstChar(text : cstring) -> int:
+    return CStringFirstChar(text)
+endfunc
+
 func *Main() -> int:
     printf("string_cstring_semantics = start\n") //?check("string_cstring_semantics", "start")
 
     var cs : [[nowarn]] cstring(5) = "abc"
     printf("cstring_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size) //?check("cstring_props", "len:3 max:5 storage:6")
     PrintText("cstring_initial", cs) //?check("cstring_initial", '[3] "abc"')
+    printf("cstring_implicit_pchar = fixed:%li descriptor:%li\n", CStringFirstChar(cs), CStringParameterFirstChar(cs)) //?check("cstring_implicit_pchar", "fixed:97 descriptor:97")
 
     cs = "abcdefghi"
     PrintText("cstring_assign_trunc", cs) //?check("cstring_assign_trunc", '[5] "abcde"')

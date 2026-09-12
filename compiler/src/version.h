@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.63.2"
+#define DQ_COMPILER_VERSION  "0.63.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.63.3:
+  - cstring type can be passed directly to ^char without internal conversions
 v0.63.2:
   - Added support for ^char consts:  const TXT : ^char = '...'
 v0.63.1:

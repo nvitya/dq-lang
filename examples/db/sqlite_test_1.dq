@@ -17,7 +17,7 @@ create table capitals
 );
 """
 
-const CAPITALS_DATA : ^char =
+const CAPITALS_DATA : cstring =
 """
 INSERT INTO capitals (CITY, COUNTRY, CONTINENT) VALUES
     ('Algiers', 'Algeria', 'Africa'),
@@ -227,10 +227,10 @@ func *Main() -> int:
     endif
 
     var db <- OSqlite3Db()
-    db.Open(DB_NAME.pchar)
+    db.Open(DB_NAME)
 
     // Create the schema and populate it in one transaction.
-    db.Execute(CAPITALS_STRUCT.pchar)
+    db.Execute(CAPITALS_STRUCT)
     db.Begin()
     db.Execute(CAPITALS_DATA)
     db.Commit()

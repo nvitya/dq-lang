@@ -983,6 +983,12 @@ bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
+  if (IsCCharPointerType(this) && (TK_CSTRING == tks))
+  {
+    *rexpr = new OCStringMetaFieldExpr(src, CSMF_PCHAR);
+    return true;
+  }
+
   if (TK_POINTER != tks)
   {
     if (is_explicit_cast && (TK_INT == tks))
@@ -1066,6 +1072,8 @@ int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (IsCCharPointerType(this) && (TK_CSTRING == tks)) return 1;
 
   if (TK_POINTER != tks)
   {

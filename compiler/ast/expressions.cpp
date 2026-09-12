@@ -3198,7 +3198,7 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 
 #endif
 
-/* ctor */ OCStringMetaFieldExpr::OCStringMetaFieldExpr(OLValueExpr * areceiver, ECStringMetaField afield)
+/* ctor */ OCStringMetaFieldExpr::OCStringMetaFieldExpr(OExpr * areceiver, ECStringMetaField afield)
 {
   receiver = areceiver;
   field = afield;
@@ -3215,14 +3215,19 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 LlValue * OCStringMetaFieldExpr::Generate(OScope * scope)
 {
   auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
-  return cstrtype->GenerateMetaField(scope, receiver->GenerateAddress(scope), field);
+  if (auto * lvalue = dynamic_cast<OLValueExpr *>(receiver))
+  {
+    return cstrtype->GenerateMetaField(scope, lvalue->GenerateAddress(scope), field);
+  }
+
+  LlValue * temp = CreateEntryBlockAlloca(cstrtype->GetLlType(), nullptr, "cstr.meta.tmp");
+  ll_builder.CreateStore(receiver->Generate(scope), temp);
+  return cstrtype->GenerateMetaField(scope, temp, field);
 }
 
 void OCStringMetaFieldExpr::FoldChildren()
 {
-  OExpr * tmp = receiver;
-  OExpr::FoldTree(&tmp);
-  receiver = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&receiver);
 }
 
 void OCStringMetaFieldExpr::DeleteChildTree()

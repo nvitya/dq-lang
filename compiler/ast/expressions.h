@@ -836,10 +836,10 @@ public:
 class OCStringMetaFieldExpr : public OExpr
 {
 public:
-  OLValueExpr *     receiver;
+  OExpr *           receiver;
   ECStringMetaField field;
 
-  /* ctor */ OCStringMetaFieldExpr(OLValueExpr * areceiver, ECStringMetaField afield);
+  /* ctor */ OCStringMetaFieldExpr(OExpr * areceiver, ECStringMetaField afield);
   ~OCStringMetaFieldExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;

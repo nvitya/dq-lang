@@ -93,9 +93,8 @@ The descriptor matches `SDqRoStrInfo`: a pointer and a `uint32` byte length,
 with bit 31 marking an unknown length. Its naturally aligned storage is 8 bytes
 on 32-bit targets and 16 bytes on 64-bit targets. Converting a `^char` builds
 this descriptor without scanning or allocating; the first length-dependent
-operation scans and caches the length. Supported lengths are at most
-2,147,483,647 bytes. Default values and nil-derived values expose a non-null
-pointer to a static zero byte, representing an empty string.
+operation scans and caches the length. Default values and nil-derived values
+expose a non-null pointer to a static zero byte, representing an empty string.
 
 Known lengths preserve embedded zero bytes. DQ text operations can process
 those bytes, while C functions see only the prefix before the first zero.

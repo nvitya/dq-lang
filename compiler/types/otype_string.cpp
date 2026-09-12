@@ -1057,12 +1057,6 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source)
     LlValue * known = ll_builder.CreateICmpNE(
         ll_builder.CreateAnd(flags, LlU32(DQTIF_CHARLEN_VALID)), LlU32(0));
     len = ll_builder.CreateSelect(known, ll_builder.CreateExtractValue(info, 1), LlU32(0x80000000));
-    // Dynamic string lengths may use all 32 bits; bit 31 is reserved here.
-    if (TK_DYNSTR == srctype->kind)
-    {
-      len = CallDynStrFunc(scope, "RoStrCheckLength", {len});
-      EmitExpressionExceptionCheck(scope);
-    }
   }
   LlValue * value = llvm::UndefValue::get(GetLlType());
   value = ll_builder.CreateInsertValue(value, ptr, 0);

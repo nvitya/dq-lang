@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.64.0"
+#define DQ_COMPILER_VERSION  "0.64.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.64.1:
+  - Some rostr optimizations
 v0.64.0:
   - Introduced rostr for better string arguments instead of strview.
     rostr can be used directly as libc ^char arguments

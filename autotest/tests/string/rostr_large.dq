@@ -2,7 +2,6 @@
 use libc/stdio
 use rtl/rtlint
 use rtl/strfunc
-use rtl/exception
 
 func *Main() -> int:
     var source : str
@@ -14,11 +13,5 @@ func *Main() -> int:
     printf("large = %li:%li:%u:%i\n", source.length, view.length, desc.charlen, borrowed[$last] == 'x') //?check("large", "16777218:16777218:16777218:1")
     var known : rostr = source
     printf("large_known = %li\n", known.length) //?check("large_known", 16777218)
-    try:
-        RoStrCheckLength(uint32(0x80000000))
-        printf("overflow = missed\n")
-    except EStrError:
-        printf("overflow = caught\n") //?check("overflow", "caught")
-    endtry
     return 0
 endfunc

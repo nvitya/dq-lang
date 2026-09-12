@@ -108,29 +108,19 @@ func DynStrCharToByte(ch : char) -> char:
     return ch
 endfunc
 
-func RoStrCheckLength(length : uint32) -> uint32:
-    if length & DQROSTR_CHARLEN_INVALID <> uint32(0):
-        StrfRuntimeError('rostr length exceeds 2147483647 bytes')
-        return 0
-    endif
-    return length
-endfunc
-
 func RoStrGetLength(text : ref SDqRoStrInfo) -> uint32:
-    if text.charlen & DQROSTR_CHARLEN_INVALID == uint32(0):
+    if text.charlen & DQROSTR_CHARLEN_INVALID == 0:
         return text.charlen
     endif
-    var length : uint32 = 0
+    var length : uint32
     if text.dataptr <> nil:
         var p : ^char = text.dataptr
         while p^ <> char(0):
-            if length == uint32(0x7FFFFFFF):
-                StrfRuntimeError('rostr length exceeds 2147483647 bytes')
-                return 0
-            endif
-            length += 1
             p += 1
         endwhile
+        length = p - text.dataptr
+    else:
+        length = 0
     endif
     text.charlen = length
     return length

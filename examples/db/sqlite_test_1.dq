@@ -17,7 +17,7 @@ create table capitals
 );
 """
 
-const CAPITALS_DATA : cstring =
+const CAPITALS_DATA : ^char =
 """
 INSERT INTO capitals (CITY, COUNTRY, CONTINENT) VALUES
     ('Algiers', 'Algeria', 'Africa'),
@@ -232,7 +232,7 @@ func *Main() -> int:
     // Create the schema and populate it in one transaction.
     db.Execute(CAPITALS_STRUCT.pchar)
     db.Begin()
-    db.Execute(CAPITALS_DATA.pchar)
+    db.Execute(CAPITALS_DATA)
     db.Commit()
     PrintLn('Inserted rows = {}', [db.changes])
 

@@ -377,6 +377,30 @@ OValue * OTypePointer::CreateValue()
 
 LlConst * OValuePointer::CreateLlConst()
 {
+  if (string_literal_source)
+  {
+    LlConst * source = string_literal_source->GetLlConst();
+    if (source->getType() == ptype->GetLlType())
+    {
+      return source;
+    }
+    return llvm::ConstantExpr::getBitCast(source, ptype->GetLlType());
+  }
+
+  if (has_string_literal)
+  {
+    auto * init = llvm::ConstantDataArray::getString(ll_ctx, string_literal);
+    auto * global = new llvm::GlobalVariable(
+        *ll_module,
+        init->getType(),
+        true,
+        llvm::GlobalValue::PrivateLinkage,
+        init,
+        ".str.const");
+    global->setAlignment(llvm::Align(1));
+    return llvm::ConstantExpr::getBitCast(global, ptype->GetLlType());
+  }
+
   if (0 == address)
   {
     return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
@@ -390,6 +414,16 @@ LlConst * OValuePointer::CreateLlConst()
 bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   address = 0;
+  has_string_literal = false;
+  string_literal.clear();
+  string_literal_source = nullptr;
+
+  if (auto * strlit = dynamic_cast<OCStringLit *>(expr))
+  {
+    has_string_literal = true;
+    string_literal = strlit->value;
+    return true;
+  }
 
   if (dynamic_cast<ONullLit *>(expr))
   {
@@ -403,6 +437,12 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
     if (ptrvalue)
     {
       address = ptrvalue->address;
+      if (ptrvalue->GetStringLiteral())
+      {
+        has_string_literal = ptrvalue->has_string_literal;
+        string_literal = ptrvalue->string_literal;
+        string_literal_source = ptrvalue->string_literal_source ? ptrvalue->string_literal_source : ptrvalue;
+      }
       return true;
     }
     if (emit_errors && !vsconst)
@@ -459,6 +499,9 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
       address = ptrvalue.address;
+      has_string_literal = ptrvalue.has_string_literal;
+      string_literal = ptrvalue.string_literal;
+      string_literal_source = ptrvalue.string_literal_source;
       return true;
     }
   }
@@ -478,7 +521,20 @@ bool OValue::WriteDqmIfValue(ODqmIfWriter & writer)
 
 bool OValuePointer::WriteDqmIfValue(ODqmIfWriter & writer)
 {
+  if (const string * value = GetStringLiteral())
+  {
+    return writer.AddRecStr(DQMIF_VALUE_CSTRING_POINTER, *value);
+  }
   return writer.AddRecU64(DQMIF_VALUE_INLINE, address);
+}
+
+const string * OValuePointer::GetStringLiteral() const
+{
+  if (has_string_literal)
+  {
+    return &string_literal;
+  }
+  return (string_literal_source ? string_literal_source->GetStringLiteral() : nullptr);
 }
 
 LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)
@@ -539,20 +595,6 @@ bool OType::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * val
   return true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 uint32_t AlignUpU32(uint32_t avalue, uint32_t aalign)
 {
   if (aalign <= 1)
@@ -574,12 +616,6 @@ uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align)
 {
   return atype ? atype->EffectiveAlign(aattr_align) : max<uint32_t>(1, aattr_align);
 }
-
-
-
-
-
-
 
 bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
 {

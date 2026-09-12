@@ -31,6 +31,7 @@
 #include "dq_utils.h"
 #include "source_overlay.h"
 #include "dq_module.h"
+#include "dqc_ast.h"
 #include "dqm_if.h"
 #include "module_path.h"
 #include "otype_func.h"
@@ -163,6 +164,10 @@ static string ConstValueText(OValue * avalue)
   }
   if (auto * v = dynamic_cast<OValuePointer *>(avalue))
   {
+    if (const string * value = v->GetStringLiteral())
+    {
+      return EscapeStringLiteral(*value);
+    }
     return (0 == v->address ? "nil" : format("0x{:X}", v->address));
   }
   if (typeid(*avalue) == typeid(OValue))
@@ -2131,7 +2136,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     return true;
   }
 
-  if (DQMIF_VALUE_INLINE != reader.recid)
+  if ((DQMIF_VALUE_INLINE != reader.recid) && (DQMIF_VALUE_CSTRING_POINTER != reader.recid))
   {
     return reader.Fail(format("Expected DQM interface value record, got 0x{:04X}", reader.recid));
   }
@@ -2142,7 +2147,20 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     return reader.Fail("DQM interface value type can not be resolved");
   }
 
-  if (TK_INT == rtype->kind || TK_CHAR == rtype->kind)
+  if (DQMIF_VALUE_CSTRING_POINTER == reader.recid)
+  {
+    if (!IsCCharPointerType(atype))
+    {
+      return reader.Fail("DQM interface C string pointer value has a non-^char type");
+    }
+    string value;
+    if (!reader.ReadString(value)) return false;
+    auto * ptrvalue = new OValuePointer(atype, 0);
+    ptrvalue->has_string_literal = true;
+    ptrvalue->string_literal = value;
+    rvalue = ptrvalue;
+  }
+  else if (TK_INT == rtype->kind || TK_CHAR == rtype->kind)
   {
     int64_t value = 0;
     if (!reader.ReadI64(value)) return false;
@@ -2408,7 +2426,8 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
         return false;
       }
     }
-    else if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid))
+    else if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
+             || (DQMIF_VALUE_CSTRING_POINTER == reader.recid))
     {
       if (!ptype)
       {
@@ -2710,7 +2729,8 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
     return false;
   }
 
-  if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid))
+  if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
+      || (DQMIF_VALUE_CSTRING_POINTER == reader.recid))
   {
     OValue * ignored_value = nullptr;
     if (!ReadInlineValue(reader, ptype, ignored_value) || !reader.NextRec())

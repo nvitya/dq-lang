@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.63.1"
+#define DQ_COMPILER_VERSION  "0.63.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.63.2:
+  - Added support for ^char consts:  const TXT : ^char = '...'
 v0.63.1:
   - Added FileRemove() to the file module
 v0.63.0:

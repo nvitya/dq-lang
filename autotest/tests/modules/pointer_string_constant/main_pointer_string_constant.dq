@@ -1,0 +1,8 @@
+use ./mod_pointer_string_constant
+use libc/stdio
+
+func *Main() -> int:
+    printf("module pointer constant = %s\n", MODULE_TEXT) //?check('module pointer constant', 'module text')
+    printf("module pointer terminator = %d\n", MODULE_TEXT[11]^) //?check('module pointer terminator', 0)
+    return 0
+endfunc

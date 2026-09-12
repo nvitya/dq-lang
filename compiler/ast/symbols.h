@@ -601,6 +601,9 @@ private:
 
 public:
   uint64_t     address = 0;
+  bool         has_string_literal = false;
+  string       string_literal;
+  OValuePointer * string_literal_source = nullptr;
 
   OValuePointer(OType * atype, uint64_t aaddress)
   :
@@ -612,6 +615,8 @@ public:
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
+
+  const string * GetStringLiteral() const;
 };
 
 // Expression Base

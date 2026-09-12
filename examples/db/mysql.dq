@@ -20,6 +20,10 @@ public
     func *Create()
     func *Destroy()
 
+    // Low-level error helpers used by result cursors sharing this connection.
+    func MySqlErrorText() -> ^char
+    func MySqlCheck(aresult : int, aoperation : ^char)
+
     // A port of zero selects the client library default (normally 3306).
     func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char, aport : uint = 0)
     func Close()
@@ -51,7 +55,7 @@ object OMySqlStmt:
 protected
     m_db         : OMySqlDb
     m_result     : pointer
-    m_row        : pointer
+    m_row        : ^^char  // MYSQL_ROW: an array of nullable char pointers
     m_db_handle  : pointer
     m_fieldcount : int
 
@@ -116,18 +120,18 @@ struct SMySqlField:
     name : ^char
 endstruct
 
-func MySqlErrorText(adb : pointer) -> ^char:
-    if adb == nil:
+func OMySqlDb.MySqlErrorText() -> ^char:
+    if m_handle == nil:
         return 'no MySQL error message is available'
     endif
-    return mysql_error(adb)
+    return @.mysql_error(m_handle)
 endfunc
 
-func MySqlCheck(adb : pointer, aresult : int, aoperation : ^char):
+func OMySqlDb.MySqlCheck(aresult : int, aoperation : ^char):
     if aresult == 0:
         return
     endif
-    raise EMySqlError('{}: {} (MySQL code {})', [aoperation, MySqlErrorText(adb), mysql_errno(adb)])
+    raise EMySqlError('{}: {} (MySQL code {})', [aoperation, MySqlErrorText(), ErrorCode()])
 endfunc
 
 func OMySqlDb.*Create():
@@ -151,15 +155,14 @@ func OMySqlDb.Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : 
     if handle == nil:
         raise EMySqlError('MySQL open: cannot allocate client handle')
     endif
+    m_handle = handle
 
     if @.mysql_real_connect(handle, ahost, auser, apassword, adatabase, aport, nil, 0) == nil:
-        var message : ^char = @.MySqlErrorText(handle)
-        var code : uint = @.mysql_errno(handle)
-        @.mysql_close(handle)
+        var message : ^char = MySqlErrorText()
+        var code : uint = ErrorCode()
+        Close()
         raise EMySqlError('MySQL open: {} (MySQL code {})', [message, code])
     endif
-
-    m_handle = handle
 endfunc
 
 func OMySqlDb.Close():
@@ -179,7 +182,7 @@ endfunc
 
 func OMySqlDb.Ping():
     RequireOpen('MySQL ping')
-    @.MySqlCheck(m_handle, @.mysql_ping(m_handle), 'MySQL ping')
+    MySqlCheck(@.mysql_ping(m_handle), 'MySQL ping')
 endfunc
 
 func OMySqlDb.Execute(asql : ^char):
@@ -187,7 +190,7 @@ func OMySqlDb.Execute(asql : ^char):
     if asql == nil:
         raise EMySqlError('MySQL execute: null SQL text')
     endif
-    @.MySqlCheck(m_handle, @.mysql_query(m_handle, asql), 'MySQL execute')
+    MySqlCheck(@.mysql_query(m_handle, asql), 'MySQL execute')
 
     // A result-producing statement must be consumed by OMySqlStmt instead.
     if @.mysql_field_count(m_handle) <> 0:
@@ -233,7 +236,7 @@ func OMySqlDb.ErrorCode() -> uint:
 endfunc
 
 func OMySqlDb.ErrorMessage() -> ^char:
-    return @.MySqlErrorText(m_handle)
+    return MySqlErrorText()
 endfunc
 
 func OMySqlDb.SetCharacterSet(acharset : ^char):
@@ -241,7 +244,7 @@ func OMySqlDb.SetCharacterSet(acharset : ^char):
     if acharset == nil:
         raise EMySqlError('MySQL set character set: null character set')
     endif
-    @.MySqlCheck(m_handle, @.mysql_set_character_set(m_handle, acharset), 'MySQL set character set')
+    MySqlCheck(@.mysql_set_character_set(m_handle, acharset), 'MySQL set character set')
 endfunc
 
 
@@ -281,7 +284,7 @@ func OMySqlStmt.Prepare(adb : OMySqlDb, asql : rostr):
     endif
 
     var dbhandle : pointer = adb.NativeHandle()
-    @.MySqlCheck(dbhandle, @.mysql_query(dbhandle, asql), 'MySQL query')
+    adb.MySqlCheck(@.mysql_query(dbhandle, asql), 'MySQL query')
     StoreResult(adb, dbhandle)
 endfunc
 
@@ -291,7 +294,7 @@ func OMySqlStmt.StoreResult(adb : OMySqlDb, adbhandle : pointer):
         // mysql_store_result() also returns nil on an error, which is reported
         // through the connection's error state.
         raise EMySqlError('MySQL store result: {} (MySQL code {})',
-                          [@.MySqlErrorText(adbhandle), @.mysql_errno(adbhandle)])
+                          [adb.MySqlErrorText(), adb.ErrorCode()])
     endif
 
     m_db = adb
@@ -334,7 +337,7 @@ func OMySqlStmt.Step() -> bool:
     if m_result == nil:
         return false
     endif
-    m_row = @.mysql_fetch_row(m_result)
+    m_row = ^^char(@.mysql_fetch_row(m_result))
     return m_row <> nil
 endfunc
 
@@ -357,7 +360,7 @@ func OMySqlStmt.ColumnIsNull(aindex : int) -> bool:
     if m_row == nil:
         raise EMySqlError('MySQL column access: no current row')
     endif
-    return ^pointer(m_row)[aindex]^ == nil
+    return m_row[aindex]^ == nil
 endfunc
 
 func OMySqlStmt.ColumnInt(aindex : int) -> int64:
@@ -366,7 +369,7 @@ func OMySqlStmt.ColumnInt(aindex : int) -> int64:
     if ColumnIsNull(aindex):
         return 0
     endif
-    return @.libc_strtoll(^char(^pointer(m_row)[aindex]^), nil, 10)
+    return @.libc_strtoll(m_row[aindex]^, nil, 10)
 endfunc
 
 func OMySqlStmt.ColumnFloat(aindex : int) -> float64:
@@ -375,7 +378,7 @@ func OMySqlStmt.ColumnFloat(aindex : int) -> float64:
     if ColumnIsNull(aindex):
         return 0
     endif
-    return @.libc_strtod(^char(^pointer(m_row)[aindex]^), nil)
+    return @.libc_strtod(m_row[aindex]^, nil)
 endfunc
 
 func OMySqlStmt.ColumnText(aindex : int) -> ^char:
@@ -384,5 +387,5 @@ func OMySqlStmt.ColumnText(aindex : int) -> ^char:
     if m_row == nil:
         raise EMySqlError('MySQL column access: no current row')
     endif
-    return ^char(^pointer(m_row)[aindex]^)
+    return m_row[aindex]^
 endfunc

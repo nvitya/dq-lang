@@ -1,6 +1,7 @@
 {
-  "dq.debugTarget": "examples/json/jsontest",
-  "dq.debugCwd": "examples/json",
+  "dq.debugTarget": "examples/db/sqlite_test_1",
+  "dq.debugCwd":    "examples/db",
+
   "files.watcherExclude": {
     "**/build-cross/**": true,
     "**/sysroots/**": true

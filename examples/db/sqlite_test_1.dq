@@ -1,0 +1,256 @@
+// testing sqlite database handling
+
+use ./sqlite3
+use print
+use file
+
+const DB_NAME : cstring = 'capitals.db'
+
+const CAPITALS_STRUCT : cstring =
+"""
+create table capitals
+(
+    ID         integer PRIMARY KEY AUTOINCREMENT,
+    CITY       varchar(80),
+    COUNTRY    varchar(80),
+    CONTINENT  varchar(40)
+);
+"""
+
+const CAPITALS_DATA : cstring =
+"""
+INSERT INTO capitals (CITY, COUNTRY, CONTINENT) VALUES
+    ('Algiers', 'Algeria', 'Africa'),
+    ('Luanda', 'Angola', 'Africa'),
+    ('Porto-Novo', 'Benin', 'Africa'),
+    ('Gaborone', 'Botswana', 'Africa'),
+    ('Ouagadougou', 'Burkina Faso', 'Africa'),
+    ('Gitega', 'Burundi', 'Africa'),
+    ('Praia', 'Cabo Verde', 'Africa'),
+    ('Yaoundé', 'Cameroon', 'Africa'),
+    ('Bangui', 'Central African Republic', 'Africa'),
+    ('N''Djamena', 'Chad', 'Africa'),
+    ('Moroni', 'Comoros', 'Africa'),
+    ('Brazzaville', 'Republic of the Congo', 'Africa'),
+    ('Kinshasa', 'Democratic Republic of the Congo', 'Africa'),
+    ('Yamoussoukro', 'Côte d''Ivoire', 'Africa'),
+    ('Djibouti', 'Djibouti', 'Africa'),
+    ('Cairo', 'Egypt', 'Africa'),
+    ('Ciudad de la Paz', 'Equatorial Guinea', 'Africa'),
+    ('Asmara', 'Eritrea', 'Africa'),
+    ('Mbabane', 'Eswatini', 'Africa'),
+    ('Addis Ababa', 'Ethiopia', 'Africa'),
+    ('Libreville', 'Gabon', 'Africa'),
+    ('Banjul', 'Gambia', 'Africa'),
+    ('Accra', 'Ghana', 'Africa'),
+    ('Conakry', 'Guinea', 'Africa'),
+    ('Bissau', 'Guinea-Bissau', 'Africa'),
+    ('Nairobi', 'Kenya', 'Africa'),
+    ('Maseru', 'Lesotho', 'Africa'),
+    ('Monrovia', 'Liberia', 'Africa'),
+    ('Tripoli', 'Libya', 'Africa'),
+    ('Antananarivo', 'Madagascar', 'Africa'),
+    ('Lilongwe', 'Malawi', 'Africa'),
+    ('Bamako', 'Mali', 'Africa'),
+    ('Nouakchott', 'Mauritania', 'Africa'),
+    ('Port Louis', 'Mauritius', 'Africa'),
+    ('Rabat', 'Morocco', 'Africa'),
+    ('Maputo', 'Mozambique', 'Africa'),
+    ('Windhoek', 'Namibia', 'Africa'),
+    ('Niamey', 'Niger', 'Africa'),
+    ('Abuja', 'Nigeria', 'Africa'),
+    ('Kigali', 'Rwanda', 'Africa'),
+    ('São Tomé', 'São Tomé and Príncipe', 'Africa'),
+    ('Dakar', 'Senegal', 'Africa'),
+    ('Victoria', 'Seychelles', 'Africa'),
+    ('Freetown', 'Sierra Leone', 'Africa'),
+    ('Mogadishu', 'Somalia', 'Africa'),
+    ('Pretoria', 'South Africa', 'Africa'),
+    ('Juba', 'South Sudan', 'Africa'),
+    ('Khartoum', 'Sudan', 'Africa'),
+    ('Dodoma', 'Tanzania', 'Africa'),
+    ('Lomé', 'Togo', 'Africa'),
+    ('Tunis', 'Tunisia', 'Africa'),
+    ('Kampala', 'Uganda', 'Africa'),
+    ('Lusaka', 'Zambia', 'Africa'),
+    ('Harare', 'Zimbabwe', 'Africa'),
+    ('Kabul', 'Afghanistan', 'Asia'),
+    ('Yerevan', 'Armenia', 'Asia'),
+    ('Baku', 'Azerbaijan', 'Asia'),
+    ('Manama', 'Bahrain', 'Asia'),
+    ('Dhaka', 'Bangladesh', 'Asia'),
+    ('Thimphu', 'Bhutan', 'Asia'),
+    ('Bandar Seri Begawan', 'Brunei', 'Asia'),
+    ('Phnom Penh', 'Cambodia', 'Asia'),
+    ('Beijing', 'China', 'Asia'),
+    ('Nicosia', 'Cyprus', 'Asia'),
+    ('Tbilisi', 'Georgia', 'Asia'),
+    ('New Delhi', 'India', 'Asia'),
+    ('Jakarta', 'Indonesia', 'Asia'),
+    ('Tehran', 'Iran', 'Asia'),
+    ('Baghdad', 'Iraq', 'Asia'),
+    ('Jerusalem', 'Israel', 'Asia'),
+    ('Tokyo', 'Japan', 'Asia'),
+    ('Amman', 'Jordan', 'Asia'),
+    ('Astana', 'Kazakhstan', 'Asia'),
+    ('Kuwait City', 'Kuwait', 'Asia'),
+    ('Bishkek', 'Kyrgyzstan', 'Asia'),
+    ('Vientiane', 'Laos', 'Asia'),
+    ('Beirut', 'Lebanon', 'Asia'),
+    ('Kuala Lumpur', 'Malaysia', 'Asia'),
+    ('Malé', 'Maldives', 'Asia'),
+    ('Ulaanbaatar', 'Mongolia', 'Asia'),
+    ('Naypyidaw', 'Myanmar', 'Asia'),
+    ('Kathmandu', 'Nepal', 'Asia'),
+    ('Pyongyang', 'North Korea', 'Asia'),
+    ('Muscat', 'Oman', 'Asia'),
+    ('Islamabad', 'Pakistan', 'Asia'),
+    ('East Jerusalem', 'State of Palestine', 'Asia'),
+    ('Manila', 'Philippines', 'Asia'),
+    ('Doha', 'Qatar', 'Asia'),
+    ('Riyadh', 'Saudi Arabia', 'Asia'),
+    ('Singapore', 'Singapore', 'Asia'),
+    ('Seoul', 'South Korea', 'Asia'),
+    ('Sri Jayawardenepura Kotte', 'Sri Lanka', 'Asia'),
+    ('Damascus', 'Syria', 'Asia'),
+    ('Dushanbe', 'Tajikistan', 'Asia'),
+    ('Bangkok', 'Thailand', 'Asia'),
+    ('Dili', 'Timor-Leste', 'Asia'),
+    ('Ankara', 'Türkiye', 'Asia'),
+    ('Ashgabat', 'Turkmenistan', 'Asia'),
+    ('Abu Dhabi', 'United Arab Emirates', 'Asia'),
+    ('Tashkent', 'Uzbekistan', 'Asia'),
+    ('Hanoi', 'Vietnam', 'Asia'),
+    ('Sana''a', 'Yemen', 'Asia'),
+    ('Tirana', 'Albania', 'Europe'),
+    ('Andorra la Vella', 'Andorra', 'Europe'),
+    ('Vienna', 'Austria', 'Europe'),
+    ('Minsk', 'Belarus', 'Europe'),
+    ('Brussels', 'Belgium', 'Europe'),
+    ('Sarajevo', 'Bosnia and Herzegovina', 'Europe'),
+    ('Sofia', 'Bulgaria', 'Europe'),
+    ('Zagreb', 'Croatia', 'Europe'),
+    ('Prague', 'Czechia', 'Europe'),
+    ('Copenhagen', 'Denmark', 'Europe'),
+    ('Tallinn', 'Estonia', 'Europe'),
+    ('Helsinki', 'Finland', 'Europe'),
+    ('Paris', 'France', 'Europe'),
+    ('Berlin', 'Germany', 'Europe'),
+    ('Athens', 'Greece', 'Europe'),
+    ('Vatican City', 'Holy See', 'Europe'),
+    ('Budapest', 'Hungary', 'Europe'),
+    ('Reykjavík', 'Iceland', 'Europe'),
+    ('Dublin', 'Ireland', 'Europe'),
+    ('Rome', 'Italy', 'Europe'),
+    ('Riga', 'Latvia', 'Europe'),
+    ('Vaduz', 'Liechtenstein', 'Europe'),
+    ('Vilnius', 'Lithuania', 'Europe'),
+    ('Luxembourg', 'Luxembourg', 'Europe'),
+    ('Valletta', 'Malta', 'Europe'),
+    ('Chișinău', 'Moldova', 'Europe'),
+    ('Monaco', 'Monaco', 'Europe'),
+    ('Podgorica', 'Montenegro', 'Europe'),
+    ('Amsterdam', 'Netherlands', 'Europe'),
+    ('Skopje', 'North Macedonia', 'Europe'),
+    ('Oslo', 'Norway', 'Europe'),
+    ('Warsaw', 'Poland', 'Europe'),
+    ('Lisbon', 'Portugal', 'Europe'),
+    ('Bucharest', 'Romania', 'Europe'),
+    ('Moscow', 'Russia', 'Europe'),
+    ('San Marino', 'San Marino', 'Europe'),
+    ('Belgrade', 'Serbia', 'Europe'),
+    ('Bratislava', 'Slovakia', 'Europe'),
+    ('Ljubljana', 'Slovenia', 'Europe'),
+    ('Madrid', 'Spain', 'Europe'),
+    ('Stockholm', 'Sweden', 'Europe'),
+    ('Bern', 'Switzerland', 'Europe'),
+    ('Kyiv', 'Ukraine', 'Europe'),
+    ('London', 'United Kingdom', 'Europe'),
+    ('Saint John''s', 'Antigua and Barbuda', 'North America'),
+    ('Nassau', 'Bahamas', 'North America'),
+    ('Bridgetown', 'Barbados', 'North America'),
+    ('Belmopan', 'Belize', 'North America'),
+    ('Ottawa', 'Canada', 'North America'),
+    ('San José', 'Costa Rica', 'North America'),
+    ('Havana', 'Cuba', 'North America'),
+    ('Roseau', 'Dominica', 'North America'),
+    ('Santo Domingo', 'Dominican Republic', 'North America'),
+    ('San Salvador', 'El Salvador', 'North America'),
+    ('St. George''s', 'Grenada', 'North America'),
+    ('Guatemala City', 'Guatemala', 'North America'),
+    ('Port-au-Prince', 'Haiti', 'North America'),
+    ('Tegucigalpa', 'Honduras', 'North America'),
+    ('Kingston', 'Jamaica', 'North America'),
+    ('Mexico City', 'Mexico', 'North America'),
+    ('Managua', 'Nicaragua', 'North America'),
+    ('Panama City', 'Panama', 'North America'),
+    ('Basseterre', 'Saint Kitts and Nevis', 'North America'),
+    ('Castries', 'Saint Lucia', 'North America'),
+    ('Kingstown', 'Saint Vincent and the Grenadines', 'North America'),
+    ('Port of Spain', 'Trinidad and Tobago', 'North America'),
+    ('Washington, D.C.', 'United States', 'North America'),
+    ('Buenos Aires', 'Argentina', 'South America'),
+    ('Sucre', 'Bolivia', 'South America'),
+    ('Brasília', 'Brazil', 'South America'),
+    ('Santiago', 'Chile', 'South America'),
+    ('Bogotá', 'Colombia', 'South America'),
+    ('Quito', 'Ecuador', 'South America'),
+    ('Georgetown', 'Guyana', 'South America'),
+    ('Asunción', 'Paraguay', 'South America'),
+    ('Lima', 'Peru', 'South America'),
+    ('Paramaribo', 'Suriname', 'South America'),
+    ('Montevideo', 'Uruguay', 'South America'),
+    ('Caracas', 'Venezuela', 'South America'),
+    ('Canberra', 'Australia', 'Oceania'),
+    ('Suva', 'Fiji', 'Oceania'),
+    ('South Tarawa', 'Kiribati', 'Oceania'),
+    ('Majuro', 'Marshall Islands', 'Oceania'),
+    ('Palikir', 'Micronesia', 'Oceania'),
+    ('Yaren', 'Nauru', 'Oceania'),
+    ('Wellington', 'New Zealand', 'Oceania'),
+    ('Ngerulmud', 'Palau', 'Oceania'),
+    ('Port Moresby', 'Papua New Guinea', 'Oceania'),
+    ('Apia', 'Samoa', 'Oceania'),
+    ('Honiara', 'Solomon Islands', 'Oceania'),
+    ('Nuku''alofa', 'Tonga', 'Oceania'),
+    ('Funafuti', 'Tuvalu', 'Oceania'),
+    ('Port Vila', 'Vanuatu', 'Oceania');
+"""
+
+
+func *Main() -> int:
+    PrintLn('SQLite test')
+
+    // delete the previous database
+    if FileExists(DB_NAME):
+        FileRemove(DB_NAME)
+    endif
+
+    var db <- OSqlite3Db()
+    db.Open(DB_NAME)
+
+    // Create the schema and populate it in one transaction.
+    db.Execute(CAPITALS_STRUCT)
+    db.Begin()
+    db.Execute(CAPITALS_DATA)
+    db.Commit()
+    PrintLn('Inserted rows = {}', [db.changes])
+
+    // Query the data through a prepared statement.
+    var query <- OSqlite3Stmt()
+    query.Prepare(db,
+    """
+    select
+        CITY, COUNTRY
+    from
+        capitals
+    where
+        CONTINENT = 'Europe'
+    order by
+        CITY limit 50
+    """)
+    while query.Step():
+        PrintLn('{} - {}', [query.ColumnText(0), query.ColumnText(1)])
+    endwhile
+    return 0
+endfunc

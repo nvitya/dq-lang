@@ -274,7 +274,8 @@ DQ has several text-related types:
 | Type | Meaning |
 | --- | --- |
 | `str` | Dynamic heap-managed string |
-| `strview` | Non-owning string view |
+| `rostr` | Read-only borrowed zero-terminated string |
+| `strview` | Non-owning string view without guaranteed termination |
 | `cstring(n)` | Fixed-size zero-terminated C-style string storage |
 | `cstring` | C-style string argument type |
 | `^char` | Pointer to byte-oriented C string data |

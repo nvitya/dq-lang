@@ -8,8 +8,8 @@ endobject
 
 object EShellResult(Exception):
     code : int
-    func *Create(acode : int, amsg : strview)                        [[overload]]
-    func *Create(acode : int, afmt : strview, avalues : []anyvalue)  [[overload]]
+    func *Create(acode : int, amsg : rostr)                        [[overload]]
+    func *Create(acode : int, afmt : rostr, avalues : []anyvalue)  [[overload]]
 endobject
 
 object OShellRunner(OThread):
@@ -20,13 +20,13 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    func Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]
+    func Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]]
     func Run(args : []str, exitcerr : bool = true) -> int [[overload]]
-    func RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]
+    func RunWithInput(acmd : rostr, ainput : strview, exitcerr : bool = true) -> int [[overload]]
     func RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]
-    func StartBg(acmd : strview) -> int [[overload]]
+    func StartBg(acmd : rostr) -> int [[overload]]
     func StartBg(args : []str) -> int [[overload]]
-    func StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]
+    func StartBgWithInput(acmd : rostr, ainput : strview) -> int [[overload]]
     func StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]
 
     func Finished() -> bool
@@ -48,8 +48,8 @@ protected
     func MonitorThread(aarg : pointer) -> pointer
 endobject
 
-func GetEnv(name : strview, default_value : strview) -> str
-func SetEnv(name : strview, value : strview)
+func GetEnv(name : rostr, default_value : rostr) -> str
+func SetEnv(name : rostr, value : rostr)
 
 implementation
 
@@ -92,12 +92,12 @@ const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
-func EShellResult.*Create(acode : int, amsg : strview) [[overload]]:
+func EShellResult.*Create(acode : int, amsg : rostr) [[overload]]:
     inherited Create(amsg)
     code = acode
 endfunc
 
-func EShellResult.*Create(acode : int, afmt : strview,
+func EShellResult.*Create(acode : int, afmt : rostr,
                               avalues : []anyvalue) [[overload]]:
     inherited Create(afmt, avalues)
     code = acode
@@ -333,7 +333,7 @@ func OShellRunner.MonitorProcess():
     finished = true
 endfunc
 
-func OShellRunner.Run(acmd : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]]:
     if acmd.length == 0:
         raise EShellStart('Empty command')
     endif
@@ -367,7 +367,7 @@ func OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overload]]:
     return exitcode
 endfunc
 
-func OShellRunner.RunWithInput(acmd : strview, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(acmd : rostr, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
     if acmd.length == 0:
         raise EShellStart('Empty command')
     endif
@@ -400,7 +400,7 @@ func OShellRunner.RunWithInput(args : []str, ainput : strview, exitcerr : bool =
     return exitcode
 endfunc
 
-func OShellRunner.StartBg(acmd : strview) -> int [[overload]]:
+func OShellRunner.StartBg(acmd : rostr) -> int [[overload]]:
     var command : str = acmd
     return StartBg(['/bin/sh', '-c', command])
 endfunc
@@ -434,7 +434,7 @@ func OShellRunner.StartBg(args : []str) -> int [[overload]]:
     return 0
 endfunc
 
-func OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(acmd : rostr, ainput : strview) -> int [[overload]]:
     var command : str = acmd
     return StartBgWithInput(['/bin/sh', '-c', command], ainput)
 endfunc
@@ -497,9 +497,8 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-func GetEnv(name : strview, default_value : strview) -> str:
-    var cname : str = name
-    var value : ^char = libc_getenv(cname.pchar)
+func GetEnv(name : rostr, default_value : rostr) -> str:
+    var value : ^char = libc_getenv(name)
     if value == nil:
         return default_value
     else:
@@ -507,11 +506,9 @@ func GetEnv(name : strview, default_value : strview) -> str:
     endif
 endfunc
 
-func SetEnv(name : strview, value : strview):
-    var cname : str = name
-    var cvalue : str = value
+func SetEnv(name : rostr, value : rostr):
 
-    if libc_setenv(cname.pchar, cvalue.pchar, 1) <> 0:
+    if libc_setenv(name, value, 1) <> 0:
         var errorcode : int = libc___errno_location()^
         raise Exception('SetEnv failed (errno {})', [errorcode])
     endif

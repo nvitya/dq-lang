@@ -1,11 +1,12 @@
 # String Methods
 
-DQ has three main text forms:
+DQ has four main text forms:
 
 | Type | Meaning |
 | --- | --- |
 | `str` | dynamic heap-managed string |
-| `strview` | non-owning string view |
+| `rostr` | read-only borrowed zero-terminated string |
+| `strview` | non-owning string view, including unterminated slices |
 | `cstring(n)` | fixed-size zero-terminated storage |
 
 `str` is an owned byte string with an enforced trailing zero. Its `.length`
@@ -21,6 +22,12 @@ var a : str = "abc"
 var b : str = a
 b[0] = 'X'  // a is still "abc"
 ```
+
+`rostr` provides read-only byte and Unicode access. It borrows storage without
+copying, converts directly to C string pointers, and returns `strview` slices.
+`AddFmt` format arguments use `rostr`; mutation sources still accept arbitrary
+text views. See [Strings and Characters](../reference/strings-and-characters.md)
+for conversions and lifetime requirements.
 
 ## Common Operations
 

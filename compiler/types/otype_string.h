@@ -8,7 +8,7 @@
  * file:    otype_string.h
  * authors: nvitya
  * created: 2026-06-09
- * brief:   Byte-only str and strview types
+ * brief:   Byte-only str, rostr, and strview types
  */
 
 #pragma once
@@ -143,6 +143,42 @@ public:
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
   LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                           OExpr * end_expr, bool end_inclusive) override;
+};
+
+// Literal-backed rostr constants reuse relocatable C string literal storage.
+class OValueRoStr : public OValue
+{
+public:
+  OValuePointer literal;
+  OValueRoStr(OType * atype);
+  LlConst * CreateLlConst() override;
+  bool CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool WriteDqmIfValue(ODqmIfWriter & writer) override;
+};
+
+class OTypeRoStr : public OTypeString
+{
+public:
+  OTypeRoStr() : OTypeString("rostr", TK_ROSTR)
+  {
+    alignsize = TARGET_PTRSIZE;
+    bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
+  }
+
+  LlType * CreateLlType() override;
+  LlDiType * CreateDiType() override;
+  OValue * CreateValue() override { return new OValueRoStr(this); }
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
+  LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
+  LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
+  LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                          OExpr * end_expr, bool end_inclusive) override;
+
+  LlValue * GenerateBorrow(OScope * scope, OExpr * source);
+  LlValue * GenerateTextInfo(OScope * scope, OExpr * source);
+  LlValue * ExtractPChar(LlValue * value);
 };
 
 inline bool IsTextSourceType(OType * type) { return type && type->IsTextSource(); }

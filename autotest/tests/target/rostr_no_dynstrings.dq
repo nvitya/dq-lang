@@ -1,0 +1,30 @@
+//?notest
+use rtl/rtlint
+
+const TEXT : rostr = "static"
+struct SRoStrField:
+    lead : byte
+    text : rostr
+endstruct
+
+func BorrowOnly(text : ^char) -> rostr:
+    return text
+endfunc
+func PointerOnly(text : rostr) -> ^char:
+    return text
+endfunc
+func ForwardOnly(text : rostr) -> rostr:
+    return text
+endfunc
+func TextTest(text : ^char) -> int:
+    var r : rostr = text
+    var s : strview = r[1:]
+    var c : cstring(15) = r
+    var a : anyvalue = r
+    c.AddFmt("{}", [r])
+    return r.length + s.length + c.length + TEXT.length
+endfunc
+func Layout() -> bool:
+    var arr : [2]rostr
+    return SizeOf(rostr) == SizeOf(SDqRoStrInfo) and uint(%arr[1]) - uint(%arr[0]) == SizeOf(rostr)
+endfunc

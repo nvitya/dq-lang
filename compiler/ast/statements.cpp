@@ -290,7 +290,7 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (TK_STRVIEW == variable->ptype->ResolveAlias()->kind)
+  if (TK_STRVIEW == variable->ptype->ResolveAlias()->kind || TK_ROSTR == variable->ptype->ResolveAlias()->kind)
   {
     if (!initvalue)
     {

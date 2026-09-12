@@ -1003,7 +1003,7 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
 
   if ((TK_INT == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_FLOAT == resolved->kind)
       || (TK_BOOL == resolved->kind) || (TK_ARRAY == resolved->kind)
-      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind))
+      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind) || (TK_ROSTR == resolved->kind))
   {
     return true;
   }
@@ -1581,6 +1581,11 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
         // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
         rargs[pcnt] = argexpr;
       }
+      else if (TK_ROSTR == argexpr->ResolvedType()->kind)
+      {
+        // Apply the same C variadic string conversion for direct and indirect calls.
+        rargs[pcnt] = new OExprTypeConv(g_builtins->type_char->GetPointerType(), argexpr);
+      }
     }
     else
     {
@@ -1608,7 +1613,8 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
           break;
         }
         OValSym * rootvalsym = (arglval ? GetAssignRootValSym(arglval) : nullptr);
-        bool bind_ok = (arglval != nullptr);
+        bool bind_ok = (arglval != nullptr)
+            && (FPM_REFIN == fparam->mode || !arglval->IsReadOnlyTextElement());
         if (bind_ok && rootvalsym)
         {
           if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())
@@ -1979,7 +1985,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
   if (auto * idx = dynamic_cast<OLValueIndex *>(leftexpr))
   {
     OType * ctype = idx->containertype ? idx->containertype->ResolveAlias() : nullptr;
-    if (ctype && TK_STRVIEW == ctype->kind)
+    if (ctype && (TK_STRVIEW == ctype->kind || TK_ROSTR == ctype->kind))
     {
       Error(DQERR_LVALUE_NOT_WRITEABLE);
       delete leftexpr;

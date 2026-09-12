@@ -74,6 +74,7 @@ void OScopeBuiltins::Init()
   type_cstring = new OTypeCString(0);  // base unsized type
   type_str     = new OTypeDynString();
   type_strview = new OTypeStrView();
+  type_rostr = new OTypeRoStr();
   type_anyvalue = new OTypeAnyValue();
   type_object = new OTypeObject("Object", this);
   type_object->is_abstract = true;
@@ -84,6 +85,7 @@ void OScopeBuiltins::Init()
   DefineType(type_cstring);
   DefineType(type_str);
   DefineType(type_strview);
+  DefineType(type_rostr);
   DefineType(type_anyvalue);
   DefineType(type_object);
 

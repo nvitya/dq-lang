@@ -12,7 +12,7 @@ DQ is statically and strictly typed. Important categories are:
 - unsigned integers: `uint`, `uint8`, `uint16`, `uint32`, `uint64`;
 - floating point: `float`, `float32`, `float64`;
 - characters: `char`, `char16`, `wchar`;
-- text: `str`, `strview`, `cstring(N)`, and unsized `cstring`;
+- text: `str`, `rostr`, `strview`, `cstring(N)`, and unsized `cstring`;
 - pointers: `^T` and the generic `pointer`;
 - aggregate and reference types: arrays, structures, enumerations, objects,
   func references, and `anyvalue`.
@@ -74,7 +74,7 @@ conversions are explicit and are the programmer's responsibility.
 
 ## Text Conversion
 
-Text conversions distinguish ownership and encoding. Passing `str`, `strview`,
+Text conversions distinguish ownership and encoding. Passing `str`, `rostr`, `strview`,
 or compatible `cstring` data to a view-style parameter may borrow storage;
 producing an owned `str` retains or copies as required. UTF-8, UTF-16, and
 Unicode-scalar conversion uses explicit helpers. See

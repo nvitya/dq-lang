@@ -182,7 +182,8 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
 
       OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(arg);
       OValSym * rootvalsym = (arglval ? g_compiler->GetAssignRootValSym(arglval) : nullptr);
-      bool bind_ok = (arglval != nullptr);
+      bool bind_ok = (arglval != nullptr)
+          && (FPM_REFIN == fparam->mode || !arglval->IsReadOnlyTextElement());
       if (bind_ok && rootvalsym)
       {
         bind_ok = ((VSK_CONST != rootvalsym->kind) && rootvalsym->IsRefWriteable());

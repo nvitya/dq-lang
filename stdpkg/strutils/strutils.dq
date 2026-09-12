@@ -14,7 +14,7 @@
  */
 
 #ifdef DYNSTRINGS
-func Format(afmt : strview, aargs : []anyvalue) -> str
+func Format(afmt : rostr, aargs : []anyvalue) -> str
 #endif
 
 func StrToInt(sv : strview, defvalue : int64 = 0) -> int64
@@ -30,7 +30,7 @@ func StrLower(astr : strview) -> str
 implementation
 
 #ifdef DYNSTRINGS
-func Format(afmt : strview, aargs : []anyvalue) -> str:
+func Format(afmt : rostr, aargs : []anyvalue) -> str:
     var s : str
     s.AddFmt(afmt, aargs)
     return s

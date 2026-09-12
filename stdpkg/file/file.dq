@@ -23,7 +23,7 @@ object OFile:
 
     func *Create()
     func *Destroy()
-    func Open(afname : strview, afmode : strview)
+    func Open(afname : rostr, afmode : rostr)
     func Close()
     func Opened() -> bool
     func Size() -> int64
@@ -46,20 +46,20 @@ object OFile:
 endobject
 
 
-func FileRead(afname : strview, dataptr : pointer, maxlen : int64) -> int64
-func FileReadText(afname : strview) -> str
-func FileReadBytes(afname : strview) -> [*]byte
+func FileRead(afname : rostr, dataptr : pointer, maxlen : int64) -> int64
+func FileReadText(afname : rostr) -> str
+func FileReadBytes(afname : rostr) -> [*]byte
 
-func FileWrite(afname : strview, dataptr : pointer, datalen : int64)
-func FileWriteText(afname : strview, adata : strview)
-func FileWriteBytes(afname : strview, adata : []byte)
+func FileWrite(afname : rostr, dataptr : pointer, datalen : int64)
+func FileWriteText(afname : rostr, adata : strview)
+func FileWriteBytes(afname : rostr, adata : []byte)
 
-func FileExists(afname : strview) -> bool
-func FileRemove(afname : strview)
+func FileExists(afname : rostr) -> bool
+func FileRemove(afname : rostr)
 
-func DirExists(adir : strview) -> bool
-func DirCreate(adir : strview, aforce : bool = false)
-func DirRemove(adir : strview)
+func DirExists(adir : rostr) -> bool
+func DirCreate(adir : rostr, aforce : bool = false)
+func DirRemove(adir : rostr)
 
 func PathTranslateSeparators(apath : str) -> str
 func PathDirName(apath : str) -> str
@@ -88,7 +88,7 @@ func libc_closedir(dirp : pointer) -> int                             [[external
 const DIR_MODE : uint = 511
 const ACCESS_EXISTS : int = 0
 
-func FileExists(afname : strview) -> bool:
+func FileExists(afname : rostr) -> bool:
     if afname == '':
         return false
     endif
@@ -97,16 +97,16 @@ func FileExists(afname : strview) -> bool:
         return false
     endif
 
-    var path : str = afname
+    var path : rostr = afname
     return libc_access(path.pchar, ACCESS_EXISTS) == 0
 endfunc
 
-func FileRemove(afname : strview):
+func FileRemove(afname : rostr):
     if afname == '':
         raise EFileError('FileRemove: empty file name')
     endif
 
-    var path : str = afname
+    var path : rostr = afname
     if not FileExists(path):
         raise EFileError('FileRemove: file does not exist: {}', [path])
     endif
@@ -118,12 +118,12 @@ func FileRemove(afname : strview):
     endif
 endfunc
 
-func DirExists(adir : strview) -> bool:
+func DirExists(adir : rostr) -> bool:
     if adir == '':
         return false
     endif
 
-    var path : str = adir
+    var path : rostr = adir
     var dir : pointer = libc_opendir(path.pchar)
     if dir == nil:
         return false
@@ -133,12 +133,12 @@ func DirExists(adir : strview) -> bool:
     return true
 endfunc
 
-func CreateOneDir(adir : strview):
+func CreateOneDir(adir : rostr):
     if adir == '':
         return
     endif
 
-    var path : str = adir
+    var path : rostr = adir
 
     if DirExists(path):
         return
@@ -151,12 +151,12 @@ func CreateOneDir(adir : strview):
     endif
 endfunc
 
-func DirCreate(adir : strview, aforce : bool = false):
+func DirCreate(adir : rostr, aforce : bool = false):
     if adir == '':
         raise EFileError('DirCreate: empty directory name')
     endif
 
-    var path : str = adir
+    var path : rostr = adir
 
     if not aforce:
         if DirExists(path):
@@ -174,7 +174,8 @@ func DirCreate(adir : strview, aforce : bool = false):
     for i : int = 0 count path.length:
         if path[i] == '/':
             if i > 0:
-                CreateOneDir(path[:i])
+                var prefix : str = path[:i]
+                CreateOneDir(prefix)
             endif
         endif
     endfor
@@ -182,12 +183,12 @@ func DirCreate(adir : strview, aforce : bool = false):
     CreateOneDir(path)
 endfunc
 
-func DirRemove(adir : strview):
+func DirRemove(adir : rostr):
     if adir == '':
         raise EFileError('DirRemove: empty directory name')
     endif
 
-    var path : str = adir
+    var path : rostr = adir
     if not DirExists(path):
         raise EFileError('DirRemove: directory does not exist: {}', [path])
     endif
@@ -270,7 +271,7 @@ func OFile.*Destroy():
     endif
 endfunc
 
-func OFile.Open(afname : strview, afmode : strview):
+func OFile.Open(afname : rostr, afmode : rostr):
     if Opened():
         Close()
     endif
@@ -435,42 +436,42 @@ endfunc
 
 //--------------------------------------------------------------------------
 
-func FileRead(afname : strview, dataptr : pointer, maxlen : int64) -> int64:
+func FileRead(afname : rostr, dataptr : pointer, maxlen : int64) -> int64:
     var f <- OFile()
     f.Open(afname, 'rb')
     result = f.Read(dataptr, maxlen)
     f.Close()
 endfunc
 
-func FileReadText(afname : strview) -> str:
+func FileReadText(afname : rostr) -> str:
     var f <- OFile()
     f.Open(afname, 'r')
     result = f.ReadText()
     f.Close()
 endfunc
 
-func FileReadBytes(afname : strview) -> [*]byte:
+func FileReadBytes(afname : rostr) -> [*]byte:
     var f <- OFile()
     f.Open(afname, 'rb')
     result = f.ReadBytes()
     f.Close()
 endfunc
 
-func FileWrite(afname : strview, dataptr : pointer, datalen : int64):
+func FileWrite(afname : rostr, dataptr : pointer, datalen : int64):
     var f <- OFile()
     f.Open(afname, 'wb')
     f.Write(dataptr, datalen)
     f.Close()
 endfunc
 
-func FileWriteText(afname : strview, adata : strview):
+func FileWriteText(afname : rostr, adata : strview):
     var f <- OFile()
     f.Open(afname, 'w')
     f.WriteText(adata)
     f.Close()
 endfunc
 
-func FileWriteBytes(afname : strview, adata : []byte):
+func FileWriteBytes(afname : rostr, adata : []byte):
     var f <- OFile()
     f.Open(afname, 'w')
     f.WriteBytes(adata)

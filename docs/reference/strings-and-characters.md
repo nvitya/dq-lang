@@ -19,7 +19,8 @@ integer; explicit or checked conversion creates a character from an integer.
 | Type | Ownership and representation |
 | --- | --- |
 | `str` | owned, dynamic, reference-counted copy-on-write byte string |
-| `strview` | read-only borrowed view of text bytes |
+| `rostr` | read-only borrowed, zero-terminated byte string |
+| `strview` | read-only borrowed view of text bytes; termination is not guaranteed |
 | `cstring(N)` | fixed-capacity, mutable, zero-terminated byte storage |
 | `cstring` | unsized borrowed bounded C-string descriptor |
 | `^char` | raw pointer to zero-terminated byte storage |
@@ -29,7 +30,7 @@ slicing, and capacity count bytes; the terminator is not included. A `str` may
 contain internal zeroes and is not necessarily valid UTF-8.
 
 On targets built with dynamic strings disabled, `str` and operations that
-produce it are unavailable. Text literals, `strview`, and `cstring(N)` remain
+produce it are unavailable. Text literals, `rostr`, `strview`, and `cstring(N)` remain
 available for non-owning or bounded text processing.
 
 ## Literals
@@ -59,6 +60,53 @@ b[0] = 'X'       // a remains "abc"
 
 `Clone()` forces independent storage. Operations that can grow or detach a
 string invalidate borrowed pointers and views into its previous storage.
+
+## Read-Only Zero-Terminated Strings
+
+`rostr` borrows terminated storage from text literals, `str`, `cstring(N)`,
+unsized `cstring`, or `^char`. It does not copy bytes or retain the owner.
+The owner must stay alive and its storage and contents must remain stable while
+borrowed. Assigning a `rostr` copies its descriptor; the descriptor itself may
+be reassigned, but character writes and writable character references are rejected.
+
+```dq
+func strlen(text : ^char) -> uint [[external]]
+func Inspect(text : rostr):
+    var size : uint = strlen(text)  // passes the underlying pointer directly
+    var part : strview = text[1:4]
+endfunc
+
+var owned : str = "hello"
+var borrowed : rostr = owned
+Inspect(borrowed)
+```
+
+`.length` counts bytes and `.pchar` exposes the borrowed pointer. Indexing,
+slicing, comparison, and Unicode access follow the existing string rules.
+Every byte slice returns `strview`, including full-range and suffix slices.
+There is no direct conversion from `strview` to `rostr`, even by a cast. When
+terminated storage is needed for a slice, first assign it to an owning `str`.
+A `rostr` converts to `strview`, owned `str`, or fixed-capacity `cstring(N)`;
+it cannot become an unsized writable `cstring` alias.
+
+The descriptor matches `SDqRoStrInfo`: a pointer and a `uint32` byte length,
+with bit 31 marking an unknown length. Its naturally aligned storage is 8 bytes
+on 32-bit targets and 16 bytes on 64-bit targets. Converting a `^char` builds
+this descriptor without scanning or allocating; the first length-dependent
+operation scans and caches the length. Supported lengths are at most
+2,147,483,647 bytes. Default values and nil-derived values expose a non-null
+pointer to a static zero byte, representing an empty string.
+
+Known lengths preserve embedded zero bytes. DQ text operations can process
+those bytes, while C functions see only the prefix before the first zero.
+`rostr` converts automatically to declared `^char` parameters and to `^char`
+in C variadic positions, so `printf("%s", borrowed)` passes a pointer.
+Raw pointers retain their existing mutability; callers must respect the
+borrowed storage's read-only contract.
+
+Standard-library paths, names, commands, messages, and format strings use
+`rostr`. Parser input, generic text algorithms, output chunks, and byte payloads
+continue to use `strview` so they accept slices without allocating.
 
 ## Byte Indexing and Slicing
 

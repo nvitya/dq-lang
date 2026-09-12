@@ -82,6 +82,7 @@ class OLValueExpr : public OExpr
 {
 public:
   virtual LlValue * GenerateAddress(OScope * scope) = 0;
+  virtual bool IsReadOnlyTextElement() const { return false; }
   virtual bool TryCalculateConstantAddress(uint64_t & raddress) const { return false; }
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
   LlValue * GenerateMemoryLoad(LlType * type, LlValue * address, const string & name);
@@ -154,6 +155,11 @@ public:
   OType *        containertype;  // array, slice, dynamic array, or cstring type
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
+  bool IsReadOnlyTextElement() const override
+  {
+    OType * type = containertype ? containertype->ResolveAlias() : nullptr;
+    return type && (TK_ROSTR == type->kind || TK_STRVIEW == type->kind);
+  }
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
@@ -896,13 +902,13 @@ public:
 
 // --- str / strview expressions ---
 
-class OTextSourceToViewExpr : public OExpr
+class OTextBorrowExpr : public OExpr
 {
 public:
   OExpr * source;
 
-  /* ctor */ OTextSourceToViewExpr(OExpr * asource, OType * atype);
-  ~OTextSourceToViewExpr() override = default;
+  /* ctor */ OTextBorrowExpr(OExpr * asource, OType * atype);
+  ~OTextBorrowExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;

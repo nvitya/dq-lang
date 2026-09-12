@@ -62,7 +62,7 @@ public
     func Send(pdata : pointer, srclen : uint) -> int
     func Recv(pdata : pointer, maxlen : uint) -> int
 
-    func Connect(aaddr : strview, aport : uint16) -> bool
+    func Connect(aaddr : rostr, aport : uint16) -> bool
 
     func SetNonBlocking()
     func SetTcpNoDelay(anodelay : bool)
@@ -231,18 +231,15 @@ func ONanoSocket.Recv(pdata : pointer, maxlen : uint) -> int:
     endif
 endfunc
 
-func ONanoSocket.Connect(aaddr : strview, aport : uint16) -> bool:
+func ONanoSocket.Connect(aaddr : rostr, aport : uint16) -> bool:
     use socket, sys
     Disconnect()
-
-    var addrbuf : cstring(63) = ''
-    addrbuf.Set(aaddr)
 
     MemSet(%remote_addr, 0, SizeOf(remote_addr))
     remote_addr.sin_family = AF_INET
     remote_addr.sin_port = libc_htons(aport)
 
-    if libc_inet_pton(AF_INET, %addrbuf[0], %remote_addr.sin_addr) <> 1:
+    if libc_inet_pton(AF_INET, aaddr, %remote_addr.sin_addr) <> 1:
         raise ENanoNet('Invalid Host IP address: {}', [aaddr])
     endif
 

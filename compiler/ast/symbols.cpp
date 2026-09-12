@@ -331,6 +331,7 @@ bool OType::SupportsUnionStorage() const
     case TK_ENUM:
     case TK_CHAR:
     case TK_FUNCREF:
+    case TK_ROSTR:
       return true;
 
     case TK_ARRAY:
@@ -543,6 +544,11 @@ LlValue * OTypePointer::GenerateConversion(OScope * scope, OExpr * src)
   if (!srctype)
   {
     throw logic_error("Pointer conversion requires a source type");
+  }
+
+  if (TK_ROSTR == srctype->kind && IsCCharPointerType(this))
+  {
+    return g_builtins->type_rostr->ExtractPChar(src->Generate(scope));
   }
 
   if (TK_POINTER == srctype->kind)
@@ -983,6 +989,12 @@ bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
+  if (IsCCharPointerType(this) && TK_ROSTR == tks)
+  {
+    *rexpr = new OExprTypeConv(this, src);
+    return true;
+  }
+
   if (IsCCharPointerType(this) && (TK_CSTRING == tks))
   {
     *rexpr = new OCStringMetaFieldExpr(src, CSMF_PCHAR);
@@ -1073,7 +1085,7 @@ int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (IsCCharPointerType(this) && (TK_CSTRING == tks)) return 1;
+  if (IsCCharPointerType(this) && (TK_CSTRING == tks || TK_ROSTR == tks)) return 1;
 
   if (TK_POINTER != tks)
   {

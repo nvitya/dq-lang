@@ -895,7 +895,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       return nullptr;
     }
   }
-  else if (TK_STRVIEW == ptype->kind && !g_opt.ifgen && !EnsureStrFuncRtlUse())
+  else if ((TK_STRVIEW == ptype->kind || TK_ROSTR == ptype->kind) && !g_opt.ifgen && !EnsureStrFuncRtlUse())
   {
     return nullptr;
   }
@@ -1964,7 +1964,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
   {
     if (!check_count(2, 2)) return free_and_fail();
     method = CSM_ADDFMT;
-    argtypes.push_back(g_builtins->type_strview);
+    argtypes.push_back(g_builtins->type_rostr);
     argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
@@ -2018,7 +2018,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, str, strview, cstring, or ^char");
+      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, str, rostr, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2137,7 +2137,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
   {
     if (!check_count(2, 2)) return free_and_fail();
     method = STRM_ADDFMT;
-    argtypes.push_back(g_builtins->type_strview);
+    argtypes.push_back(g_builtins->type_rostr);
     argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
@@ -2209,7 +2209,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     return free_and_fail();
   }
 
-  if (!EnsureDynStringRtlUse())
+  if (!(STRM_TO_WCHARS == method ? EnsureStrFuncRtlUse() : EnsureDynStringRtlUse()))
   {
     return free_and_fail();
   }
@@ -2230,7 +2230,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, strview, cstring, or ^char");
+      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, rostr, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2338,7 +2338,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     }
     if ((i == text_arg_index) && !IsTextSourceType(argexpr->ResolvedType()))
     {
-      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, strview, cstring, or ^char");
+      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, rostr, strview, cstring, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2400,7 +2400,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
   // Array/slice/dynamic-array/cstring/string index on any lvalue: x[i], or slice x[a:b]
   if (lval
       && (TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
-          or TK_DYNSTR == tk or TK_STRVIEW == tk)
+          or TK_DYNSTR == tk or TK_STRVIEW == tk || TK_ROSTR == tk)
       && scf->CheckSymbol("["))
   {
     if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
@@ -2464,7 +2464,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
       array_index_context_len = prev_context_len;
       array_index_context_lval = prev_context_lval;
       array_index_context_wchar = prev_context_wchar;
-      if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+      if (TK_DYNSTR == tk || TK_STRVIEW == tk || TK_ROSTR == tk)
       {
         result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
       }
@@ -2629,7 +2629,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Continue;
     }
 
-    if (TK_DYNSTR == tk || TK_STRVIEW == tk)
+    if (TK_DYNSTR == tk || TK_STRVIEW == tk || TK_ROSTR == tk)
     {
       if ("length" == membername)
       {
@@ -2738,7 +2738,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
         return EPostfixResult::Continue;
       }
-      if (TK_DYNSTR == tk)
+      if (TK_DYNSTR == tk || (TK_ROSTR == tk && "ToWchars" == membername))
       {
         result = ParseStringMethod(result, lval, membername);
         if (!result) return EPostfixResult::Stop;
@@ -3119,7 +3119,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         return nullptr;
       }
       OType * ctx_type = ctx_lval->ptype ? ctx_lval->ptype->ResolveAlias() : nullptr;
-      OExpr * lenexpr = (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRVIEW == ctx_type->kind))
+      OExpr * lenexpr = (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRVIEW == ctx_type->kind || TK_ROSTR == ctx_type->kind))
           ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, array_index_context_wchar ? SMF_WCLEN : SMF_LENGTH))
           : static_cast<OExpr *>(new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH));
       if ("end" == ctxname)
@@ -4703,7 +4703,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
   {
     return new OCStringLenExpr(lenvs);
   }
-  else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRVIEW == lenvs->ptype->ResolveAlias()->kind)
+  else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRVIEW == lenvs->ptype->ResolveAlias()->kind || TK_ROSTR == lenvs->ptype->ResolveAlias()->kind)
   {
     return new OStringMetaFieldExpr(new OLValueVar(lenvs), SMF_LENGTH);
   }

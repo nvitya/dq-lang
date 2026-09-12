@@ -34,19 +34,19 @@ object OStrParse:
     func SkipWhite()
 
     func ReadLine() -> bool
-    func ReadTo(checkchars : strview) -> bool
+    func ReadTo(checkchars : rostr) -> bool
     func ReadToChar(achar : char) -> bool
     func ReadAlphaNum() -> bool
     func ReadDecimalNumbers() -> bool
     func ReadHexNumbers() -> bool
     func ReadFloatNum() -> bool
     func ReadQuotedString() -> bool
-    func SearchPattern(checkstring : strview) -> bool
+    func SearchPattern(checkstring : rostr) -> bool
 
-    func CheckSymbol(checkstring : strview) -> bool
+    func CheckSymbol(checkstring : rostr) -> bool
 
     func PrevStr() -> str
-    func UCComparePrev(checkstring : strview) -> bool
+    func UCComparePrev(checkstring : rostr) -> bool
     func PrevToInt() -> int
     func PrevHexToInt() -> uint
     func PrevToFloat() -> float64
@@ -58,7 +58,7 @@ object OStrParse:
 
 endobject
 
-func PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool
+func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool
 func PCharToInt(readp : ^char, len : int) -> int
 func PCharHexToInt(readp : ^char, len : int) -> uint
 func PCharToFloat(readp : ^char, len : int) -> float64
@@ -129,7 +129,7 @@ func OStrParse.ReadLine() -> bool:
     return prevp < bufend
 endfunc
 
-func OStrParse.ReadTo(checkchars : strview) -> bool:  // reads until one of the checkchars reached.
+func OStrParse.ReadTo(checkchars : rostr) -> bool:  // reads until one of the checkchars reached.
     var cp      : ^char = readp
     var ccstart : ^char = checkchars.pchar
     var ccend   : ^char = ccstart + checkchars.length
@@ -173,7 +173,7 @@ func OStrParse.ReadToChar(achar : char) -> bool:
     readp = cp
 endfunc
 
-func OStrParse.CheckSymbol(checkstring : strview) -> bool:
+func OStrParse.CheckSymbol(checkstring : rostr) -> bool:
     var cp    : ^char = readp
     var csptr : ^char = checkstring.pchar
     var csend : ^char = csptr + checkstring.length
@@ -288,7 +288,7 @@ func OStrParse.ReadQuotedString() -> bool:
     return true
 endfunc
 
-func OStrParse.SearchPattern(checkstring : strview) -> bool:
+func OStrParse.SearchPattern(checkstring : rostr) -> bool:
     prevp = readp
     prevlen = 0
 
@@ -343,7 +343,7 @@ func OStrParse.PrevStr() -> str:
     endwhile
 endfunc
 
-func OStrParse.UCComparePrev(checkstring : strview) -> bool:
+func OStrParse.UCComparePrev(checkstring : rostr) -> bool:
     var cp : ^char = prevp
     return @.PCharUCCompare(cp, prevlen, checkstring)
 endfunc
@@ -396,7 +396,7 @@ func OStrParse.GetColNum() -> int  [[overload]]:
     return GetColNum(prevp)
 endfunc
 
-func PCharUCCompare(readp : ref ^char, len : int, checkstring : strview) -> bool:
+func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool:
     var cp     : ^char = readp
     var endp   : ^char = cp + len
     var csptr  : ^char = checkstring.pchar

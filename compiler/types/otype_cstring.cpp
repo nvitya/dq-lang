@@ -176,7 +176,8 @@ bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
   }
 
   OType * srctype = srcexpr->ResolvedType();
-  return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype);
+  return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype)
+      || (srctype && TK_ROSTR == srctype->kind);
 }
 
 LlValue * OTypeCString::GenerateDataPtr(OScope * scope, LlValue * cstraddr)
@@ -488,7 +489,7 @@ LlValue * OTypeCString::GenerateMethodCall(OScope * scope, LlValue * cstraddr,
 
     case CSM_ADDFMT:
     {
-      LlValue * arg0_val = GenerateTextInfoValue(scope, args[0]);
+      LlValue * arg0_val = g_builtins->type_rostr->GenerateBorrow(scope, args[0]);
       LlValue * arg1_val = args[1]->Generate(scope);
       LlValue * dstdesc_val = ll_builder.CreateLoad(g_builtins->type_cstring->GetLlType(), dstdesc, "cstr.desc.val");
       return CallTextFormatFunc(scope, "CStrAddFmt", {dstdesc_val, arg0_val, arg1_val});
@@ -576,6 +577,9 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
+  if (TK_ROSTR == tks && maxlen > 0 && !is_explicit_cast
+      && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) return true;
+
   if (TK_CSTRING != tks)
   {
     if (TK_POINTER == tks)
@@ -639,6 +643,9 @@ int OTypeCString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+
+  if (TK_ROSTR == tks)
+    return (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) ? 1 : -1;
 
   if (TK_CSTRING != tks)
   {

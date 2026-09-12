@@ -27,6 +27,7 @@ use rtl/rtlint
 #endif
 
 
+func StrfRuntimeError(emsg : ^char)
 func StrfIsValidWChar(wc : wchar) -> bool
 func IntToChar(value : int) -> char [[overload]]
 func IntToChar(value : int, defvalue : char) -> char [[overload]]

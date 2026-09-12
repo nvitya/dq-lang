@@ -1,0 +1,105 @@
+use libc/stdio
+use rtl/rtlint
+use rtl/anyvalue
+use strutils
+
+func strlen(text : ^char) -> uint [[external]]
+type FPrint = func(fmt : ^char, ...) -> int
+
+const GREETING : rostr = "hello"
+const ALSO_GREETING : rostr = GREETING
+var global_text : rostr = "global"
+
+struct SText:
+    tag : byte
+    text : rostr
+    tail : byte
+endstruct
+
+func Forward(text : rostr) -> rostr:
+    return text
+endfunc
+
+func Default(text : rostr = "default") -> rostr:
+    return text
+endfunc
+
+func CStringBorrow(text : cstring) -> rostr:
+    return text
+endfunc
+
+func *Main() -> int:
+    var raw : ^char = "pointer"
+    var text : rostr = raw
+    var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%text)
+    printf("lazy = %u\n", desc.charlen) //?check("lazy", 2147483648)
+    var forwarded : rostr = Forward(text)
+    var forward_desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%forwarded)
+    printf("forward_lazy = %u\n", forward_desc.charlen) //?check("forward_lazy", 2147483648)
+    printf("ptr_identity = %i\n", text.pchar == raw) //?check("ptr_identity", 1)
+    printf("length = %li\n", text.length) //?check("length", 7)
+    printf("cached = %u\n", desc.charlen) //?check("cached", 7)
+    printf("c_length = %lu\n", strlen(text)) //?check("c_length", 7)
+    printf("varargs = %s:%i:%s\n", text, 42, GREETING) //?check("varargs", "pointer:42:hello")
+    var indirect : FPrint = printf
+    indirect("indirect = %s:%i:%s\n", text, 17, global_text) //?check("indirect", "pointer:17:global")
+    printf("constants = %s:%s:%s\n", GREETING, ALSO_GREETING, Default()) //?check("constants", "hello:hello:default")
+
+    var empty : rostr
+    var raw_nil : ^char = nil
+    var from_nil : rostr = raw_nil
+    var emptystr : str
+    var from_emptystr : rostr = emptystr
+    var fields : SText = {}
+    var values : [2]rostr
+    printf("empty = %lu:%lu:%lu:%lu:%lu\n", strlen(empty), strlen(from_nil), strlen(from_emptystr), strlen(fields.text), strlen(values[1])) //?check("empty", "0:0:0:0:0")
+    printf("layout = %i:%i:%i\n", SizeOf(rostr) == SizeOf(SDqRoStrInfo), uint(%values[1]) - uint(%values[0]) == SizeOf(rostr), OffsetOf(SText, text) == SizeOf(pointer)) //?check("layout", "1:1:1")
+
+    var owned : str = "a_bc"
+    owned[1] = char(0)
+    var refs : int = owned.refcount
+    var borrowed : rostr = owned
+    printf("owned = %li:%li:%i:%i\n", borrowed.length, int(strlen(borrowed)), refs == owned.refcount, borrowed.pchar == owned.pchar) //?check("owned", "4:1:1:1")
+    var view : strview = borrowed
+    var copy : str = borrowed
+    var boxed : anyvalue = borrowed
+    var boxed_info : ^SDqAnyValue = ^SDqAnyValue(%boxed)
+    var unboxed : strview = boxed.AsText("")
+    var set_boxed : anyvalue
+    set_boxed.SetText(borrowed)
+    var set_boxed_info : ^SDqAnyValue = ^SDqAnyValue(%set_boxed)
+    printf("bytes = %li:%li:%li:%i:%i:%i\n", view.length, copy.length, unboxed.length, copy == borrowed, boxed_info.kind == DQTK_ROSTR, set_boxed_info.kind == DQTK_ROSTR) //?check("bytes", "4:4:4:1:1:1")
+    var slice : strview = text[1:4]
+    printf("slice = %li:%i:%i\n", slice.length, slice == "oin", text[:] == text) //?check("slice", "3:1:1")
+    printf("index = %i:%i\n", text[0] == 'p', text[$last] == 'r') //?check("index", "1:1")
+    var sum : int = 0
+    for i : int = 0 count text.length:
+        sum += Ord(text[i])
+    endfor
+    printf("iteration = %li\n", sum) //?check("iteration", 769)
+    var joined : str = GREETING + text
+    printf("concat = %s\n", joined.pchar) //?check("concat", "hellopointer")
+
+    var buffer : cstring(7) = "buffer"
+    var cborrow : rostr = buffer
+    var alias_borrow : rostr = CStringBorrow(buffer)
+    var bounded : cstring(3) = text
+    printf("cstring = %s:%s:%s\n", cborrow, alias_borrow, bounded.pchar) //?check("cstring", "buffer:buffer:poi")
+    bounded = GREETING
+    printf("cstring_assign = %s\n", bounded.pchar) //?check("cstring_assign", "hel")
+    var unicode : rostr = "aé€"
+    printf("unicode = %li:%li:%i\n", unicode.length, unicode.wclen, unicode.wchar[1] == 'é') //?check("unicode", "6:3:1")
+    var scalars : [*]wchar = unicode.ToWchars()
+    var scalar_slice : [*]wchar = unicode.wchar[1:]
+    printf("scalars = %li:%li:%i\n", scalars.length, scalar_slice.length, scalars[2] == '€') //?check("scalars", "3:2:1")
+    printf("typename = %s\n", TypeName(rostr)) //?check("typename", "rostr")
+    var clamp : strview = text[-4:100]
+    var reverse : strview = text[4:1]
+    var end_slice : strview = text[$end:]
+    printf("bounds = %li:%li:%li:%i\n", clamp.length, reverse.length, end_slice.length, text[1::3] == "oin") //?check("bounds", "7:0:0:1")
+    var charlit : rostr = 'x'
+    printf("charlit = %s:%li\n", charlit, charlit.length) //?check("charlit", "x:1")
+    var formatted : str = Format("{}:{}", [text, borrowed.length])
+    printf("format = %s\n", formatted.pchar) //?check("format", "pointer:4")
+    return 0
+endfunc

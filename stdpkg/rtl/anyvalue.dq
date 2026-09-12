@@ -69,6 +69,7 @@ func AnyValSetFloat64(v : ref SDqAnyValue, value : float64)
 func AnyValIsText(v : ref SDqAnyValue) -> bool
 func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo)
 func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 func AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 
 #ifdef DYNSTRINGS
@@ -341,9 +342,9 @@ endfunc
 
 func AnyValIsText(v : ref SDqAnyValue) -> bool:
 #ifdef DYNSTRINGS
-    return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING
+    return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING
 #else
-    return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_CSTRING
+    return v.kind == DQTK_STRVIEW  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_CSTRING
 #endif
 endfunc
 
@@ -383,6 +384,12 @@ func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo):
     v.datasize = SizeOf(SDqTextInfo)
 endfunc
 
+func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo):
+    AnyValSetKind(v, DQTK_ROSTR)
+    ^SDqTextInfo(%v.data[0])^ = ati
+    v.datasize = SizeOf(SDqTextInfo)
+endfunc
+
 func AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo):
     AnyValSetKind(v, DQTK_CSTRING)
     ^SDqTextInfo(%v.data[0])^ = ati
@@ -390,7 +397,7 @@ func AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo):
 endfunc
 
 func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
-    if v.kind == DQTK_STRVIEW  or  v.kind == DQTK_CSTRING:
+    if v.kind == DQTK_STRVIEW  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_CSTRING:
         rv = ^SDqTextInfo(%v.data[0])^
 #ifdef DYNSTRINGS
     elif v.kind == DQTK_DYNSTR:

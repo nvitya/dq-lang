@@ -3,7 +3,7 @@
 func Print(text : strview)
 func PrintLn() [[overload]]
 func PrintLn(text : strview) [[overload]]
-func PrintLn(text : strview, args : []anyvalue) [[overload]]
+func PrintLn(text : rostr, args : []anyvalue) [[overload]]
 
 implementation
 
@@ -22,7 +22,7 @@ func PrintLn(text : strview) [[overload]]:
     Print("\n")
 endfunc
 
-func PrintLn(text : strview, args : []anyvalue) [[overload]]:
+func PrintLn(text : rostr, args : []anyvalue) [[overload]]:
     var fmtstr : cstring(255) = ''
     fmtstr.AddFmt(text, args)
     Print(fmtstr)

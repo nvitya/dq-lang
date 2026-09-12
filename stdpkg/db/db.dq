@@ -58,7 +58,7 @@ protected
 
     //m_datasource : ODbDataSource  // might be nil for standalone / memory datasets
 
-    func GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int
+    func GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int
 
 public
     func *Create()
@@ -70,11 +70,11 @@ public
     func RowCount() -> int
     func FieldCount() -> int
 
-    func AddField(aname : strview, atype : NDbFieldType) -> int
+    func AddField(aname : rostr, atype : NDbFieldType) -> int
     func FieldName(aindex : int) -> str
     func FieldType(aindex : int) -> NDbFieldType
-    func FieldIndex(aname : strview) -> int
-    func HasField(aname : strview) -> bool
+    func FieldIndex(aname : rostr) -> int
+    func HasField(aname : rostr) -> bool
 
     func AddRow() -> int
     func DeleteRow(arow : int)
@@ -91,20 +91,20 @@ public
     func OnRow() -> bool
 
     // current row access
-    func IsNull(aname : strview) -> bool
-    func GetValue(aname : strview) -> anyvalue
-    func SetValue(aname : strview, avalue : anyvalue)
+    func IsNull(aname : rostr) -> bool
+    func GetValue(aname : rostr) -> anyvalue
+    func SetValue(aname : rostr, avalue : anyvalue)
 
-    func GetInt(aname : strview, defvalue : int) -> int
-    func GetFloat(aname : strview, defvalue : float) -> float
-    func GetBool(aname : strview, defvalue : bool) -> bool
-    func GetStr(aname : strview, defvalue : strview) -> str
+    func GetInt(aname : rostr, defvalue : int) -> int
+    func GetFloat(aname : rostr, defvalue : float) -> float
+    func GetBool(aname : rostr, defvalue : bool) -> bool
+    func GetStr(aname : rostr, defvalue : strview) -> str
 
-    func SetInt(aname : strview, avalue : int)
-    func SetFloat(aname : strview, avalue : float)
-    func SetBool(aname : strview, avalue : bool)
-    func SetStr(aname : strview, avalue : strview)
-    func SetNull(aname : strview)
+    func SetInt(aname : rostr, avalue : int)
+    func SetFloat(aname : rostr, avalue : float)
+    func SetBool(aname : rostr, avalue : bool)
+    func SetStr(aname : rostr, avalue : strview)
+    func SetNull(aname : rostr)
 
     //TODO: add blob handling with [*]byte
 
@@ -201,7 +201,7 @@ func ODbRows.FieldCount() -> int:
     return m_fieldcount
 endfunc
 
-func ODbRows.AddField(aname : strview, atype : NDbFieldType) -> int:
+func ODbRows.AddField(aname : rostr, atype : NDbFieldType) -> int:
     if aname == '':
         raise EDbField('AddField empty name')
     endif
@@ -255,7 +255,7 @@ func ODbRows.FieldType(aindex : int) -> NDbFieldType:
     return m_fieldinfo[aindex].ftype
 endfunc
 
-func ODbRows.FieldIndex(aname : strview) -> int:
+func ODbRows.FieldIndex(aname : rostr) -> int:
     for i : int = 0 count m_fieldcount:
         if m_fieldinfo[i].name == aname:
             return i
@@ -264,7 +264,7 @@ func ODbRows.FieldIndex(aname : strview) -> int:
     return -1
 endfunc
 
-func ODbRows.HasField(aname : strview) -> bool:
+func ODbRows.HasField(aname : rostr) -> bool:
     return FieldIndex(aname) >= 0
 endfunc
 
@@ -361,7 +361,7 @@ func ODbRows.OnRow() -> bool:
     return m_onrow
 endfunc
 
-func ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> int:
+func ODbRows.GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int:
     var fidx : int = FieldIndex(aname)
     if fidx < 0:
         raise EDbField('Field "{}" not found', [aname])
@@ -373,19 +373,19 @@ func ODbRows.GetCurRowDataIndex(aname : strview, rft : refout NDbFieldType) -> i
     return m_currow * m_fieldcount + fidx
 endfunc
 
-func ODbRows.IsNull(aname : strview) -> bool:
+func ODbRows.IsNull(aname : rostr) -> bool:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     return m_data[didx].IsNull()
 endfunc
 
-func ODbRows.GetValue(aname : strview) -> anyvalue:
+func ODbRows.GetValue(aname : rostr) -> anyvalue:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     result = m_data[didx]
 endfunc
 
-func ODbRows.SetValue(aname : strview, avalue : anyvalue):
+func ODbRows.SetValue(aname : rostr, avalue : anyvalue):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if     (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
@@ -401,7 +401,7 @@ func ODbRows.SetValue(aname : strview, avalue : anyvalue):
     endif
 endfunc
 
-func ODbRows.GetInt(aname : strview, defvalue : int) -> int:
+func ODbRows.GetInt(aname : rostr, defvalue : int) -> int:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftInt:
@@ -410,7 +410,7 @@ func ODbRows.GetInt(aname : strview, defvalue : int) -> int:
     return m_data[didx].AsInt(defvalue)
 endfunc
 
-func ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
+func ODbRows.GetFloat(aname : rostr, defvalue : float) -> float:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftFloat  and ft <> ftInt:
@@ -419,7 +419,7 @@ func ODbRows.GetFloat(aname : strview, defvalue : float) -> float:
     return m_data[didx].AsFloat(defvalue)
 endfunc
 
-func ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
+func ODbRows.GetBool(aname : rostr, defvalue : bool) -> bool:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftBool:
@@ -428,7 +428,7 @@ func ODbRows.GetBool(aname : strview, defvalue : bool) -> bool:
     return m_data[didx].AsBool(defvalue)
 endfunc
 
-func ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
+func ODbRows.GetStr(aname : rostr, defvalue : strview) -> str:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
@@ -437,7 +437,7 @@ func ODbRows.GetStr(aname : strview, defvalue : strview) -> str:
     return m_data[didx].AsStr(defvalue)
 endfunc
 
-func ODbRows.SetInt(aname : strview, avalue : int):
+func ODbRows.SetInt(aname : rostr, avalue : int):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftInt:
@@ -446,7 +446,7 @@ func ODbRows.SetInt(aname : strview, avalue : int):
     m_data[didx].SetInt(avalue)
 endfunc
 
-func ODbRows.SetFloat(aname : strview, avalue : float):
+func ODbRows.SetFloat(aname : rostr, avalue : float):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftFloat:
@@ -455,7 +455,7 @@ func ODbRows.SetFloat(aname : strview, avalue : float):
     m_data[didx].SetFloat(avalue)
 endfunc
 
-func ODbRows.SetBool(aname : strview, avalue : bool):
+func ODbRows.SetBool(aname : rostr, avalue : bool):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftBool:
@@ -464,7 +464,7 @@ func ODbRows.SetBool(aname : strview, avalue : bool):
     m_data[didx].SetBool(avalue)
 endfunc
 
-func ODbRows.SetStr(aname : strview, avalue : strview):
+func ODbRows.SetStr(aname : rostr, avalue : strview):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftBlob  and ft <> ftDateTime:
@@ -473,7 +473,7 @@ func ODbRows.SetStr(aname : strview, avalue : strview):
     m_data[didx].SetStr(avalue)
 endfunc
 
-func ODbRows.SetNull(aname : strview):
+func ODbRows.SetNull(aname : rostr):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     m_data[didx].SetNull()

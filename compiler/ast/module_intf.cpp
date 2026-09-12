@@ -66,6 +66,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_DYN_ARRAY:    return "dynamic_array";
     case TK_CSTRING:      return "cstring";
     case TK_STRVIEW:      return "strview";
+    case TK_ROSTR:        return "rostr";
     case TK_DYNSTR:       return "dynstr";
     case TK_ALIAS:        return "alias";
     case TK_ENUM:         return "enum";
@@ -2149,16 +2150,25 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
 
   if (DQMIF_VALUE_CSTRING_POINTER == reader.recid)
   {
-    if (!IsCCharPointerType(atype))
+    if (!IsCCharPointerType(atype) && TK_ROSTR != rtype->kind)
     {
       return reader.Fail("DQM interface C string pointer value has a non-^char type");
     }
     string value;
     if (!reader.ReadString(value)) return false;
-    auto * ptrvalue = new OValuePointer(atype, 0);
-    ptrvalue->has_string_literal = true;
-    ptrvalue->string_literal = value;
-    rvalue = ptrvalue;
+    if (TK_ROSTR == rtype->kind)
+    {
+      auto * rovalue = new OValueRoStr(atype);
+      rovalue->literal.string_literal = value;
+      rvalue = rovalue;
+    }
+    else
+    {
+      auto * ptrvalue = new OValuePointer(atype, 0);
+      ptrvalue->has_string_literal = true;
+      ptrvalue->string_literal = value;
+      rvalue = ptrvalue;
+    }
   }
   else if (TK_INT == rtype->kind || TK_CHAR == rtype->kind)
   {

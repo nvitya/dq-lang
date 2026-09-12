@@ -269,6 +269,7 @@ enum ETypeKind
   TK_CSTRING      =  8,
   TK_STRVIEW      =  9,
   TK_DYNSTR       = 10,
+  TK_ROSTR        = 11,
 
   TK_ANYVALUE     = 15,
 
@@ -372,7 +373,7 @@ public:
     return di_type;
   }
 
-  inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_DYNSTR == kind); }
+  inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_ROSTR == kind) || (TK_DYNSTR == kind); }
   inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind) || (TK_UNION == kind); }
   bool               IsTextSource();
   bool               IsStringComparable();

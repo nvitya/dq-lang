@@ -1,7 +1,7 @@
 
 func Time() -> float64     // Python compatible
-func FormatTime1(fmt : strview, atime : float64) -> str  // Delphi compatible (easier to remember)
-func FormatTime2(fmt : strview, atime : float64) -> str  // Python compatible
+func FormatTime1(fmt : rostr, atime : float64) -> str  // Delphi compatible (easier to remember)
+func FormatTime2(fmt : rostr, atime : float64) -> str  // Python compatible
 
 func MilliTime() -> int64  // monotonic time, counted from system start
 func MicroTime() -> int64  // monotonic time, counted from system start
@@ -125,13 +125,12 @@ func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> 
     return libc_localtime_r(%seconds, %atm) <> nil
 endfunc
 
-func FormatTm(fmt : strview, atm : ref tm) -> str:
+func FormatTm(fmt : rostr, atm : ref tm) -> str:
     result = ''
     if fmt.length == 0:
         return
     endif
 
-    var cfmt : str = fmt
     var bufsize : uint = uint(fmt.length + 64)
     if bufsize < 128:
         bufsize = 128
@@ -141,7 +140,7 @@ func FormatTm(fmt : strview, atm : ref tm) -> str:
     // Retry with progressively larger buffers and eventually return an empty string.
     for attempt : int = 0 count 8:
         result.SetLength(bufsize, char(0))
-        var written : uint = libc_strftime(result.pchar, bufsize, cfmt.pchar, %atm)
+        var written : uint = libc_strftime(result.pchar, bufsize, fmt, %atm)
         if written > 0:
             result.SetLength(written, char(0))
             return
@@ -159,7 +158,7 @@ func LowerAscii(ch : char) -> char:
     return ch
 endfunc
 
-func TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
+func TimeFmtMatch(fmt : rostr, pos : int, token : rostr) -> bool:
     if pos + token.length > fmt.length:
         return false
     endif
@@ -171,7 +170,7 @@ func TimeFmtMatch(fmt : strview, pos : int, token : strview) -> bool:
     return true
 endfunc
 
-func DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> str:
+func DelphiToStrFTime(fmt : rostr, atm : ref tm, microseconds : int64) -> str:
     result = ''
     var twelve_hour : bool = false
     for i : int = 0 count fmt.length:
@@ -317,7 +316,7 @@ func DelphiToStrFTime(fmt : strview, atm : ref tm, microseconds : int64) -> str:
     endwhile
 endfunc
 
-func FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatible (easier to remember)
+func FormatTime1(fmt : rostr, atime : float64) -> str:  // Delphi compatible (easier to remember)
     var atm : tm
     var microseconds : int64 = 0
     if not TimeToTm(atime, atm, microseconds):
@@ -326,7 +325,7 @@ func FormatTime1(fmt : strview, atime : float64) -> str:  // Delphi compatible (
     return FormatTm(DelphiToStrFTime(fmt, atm, microseconds), atm)
 endfunc
 
-func FormatTime2(fmt : strview, atime : float64) -> str:  // Python compatible
+func FormatTime2(fmt : rostr, atime : float64) -> str:  // Python compatible
     var atm : tm
     var microseconds : int64 = 0
     if not TimeToTm(atime, atm, microseconds):

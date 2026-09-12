@@ -159,6 +159,7 @@ bool IsAnyValueSourceType(OType * type)
     case TK_POINTER:
     case TK_CSTRING:
     case TK_STRVIEW:
+    case TK_ROSTR:
     case TK_DYNSTR:
       return true;
     default:
@@ -206,7 +207,11 @@ static bool GenerateAnyValueTextAssign(OScope * scope, LlValue * targetaddr, OEx
   }
 
   LlValue * descaddr = GenerateTextInfoAddress(scope, value);
-  if (TK_STRVIEW == srctype->kind)
+  if (TK_ROSTR == srctype->kind)
+  {
+    CallAnyValueFunc(scope, "AnyValSetRoStr", {targetaddr, descaddr});
+  }
+  else if (TK_STRVIEW == srctype->kind)
   {
     CallAnyValueFunc(scope, "AnyValSetText", {targetaddr, descaddr});
   }
@@ -281,7 +286,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return true;
   }
 
-  if (TK_CSTRING == srctype->kind || TK_STRVIEW == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
+  if (TK_CSTRING == srctype->kind || TK_STRVIEW == srctype->kind || TK_ROSTR == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
   {
     return GenerateAnyValueTextAssign(scope, targetaddr, value, srctype);
   }
@@ -366,7 +371,12 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
       CallAnyValueFunc(scope, "AnyValAsText", {addr, defaddr, viewaddr});
       return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), viewaddr, "any.text");
     }
-    case AVM_SET_TEXT:   CallAnyValueFunc(scope, "AnyValSetText", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
+    case AVM_SET_TEXT:
+    {
+      const char * setter = (args[0]->ResolvedType()->kind == TK_ROSTR ? "AnyValSetRoStr" : "AnyValSetText");
+      CallAnyValueFunc(scope, setter, {addr, GenerateTextInfoAddress(scope, args[0])});
+      return nullptr;
+    }
     case AVM_SET_CSTRING: CallAnyValueFunc(scope, "AnyValSetCString", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
     case AVM_IS_STR:     return CallAnyValueFunc(scope, "AnyValIsStr", {addr});
     case AVM_AS_STR:     return CallAnyValueFunc(scope, "AnyValAsStr", {addr, GenerateTextInfoAddress(scope, args[0])});

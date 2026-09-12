@@ -240,10 +240,9 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
-    if (resolved_type && TK_CSTRING == resolved_type->kind)
+    if (resolved_type && (TK_CSTRING == resolved_type->kind || TK_ROSTR == resolved_type->kind))
     {
-      // Constants are normally LLVM values, but cstring metadata needs storage
-      // for its descriptor (or fixed buffer).
+      // Text metadata needs addressable descriptor storage, even for constants.
       LlValue * cstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "cstr.const.tmp");
       ll_builder.CreateStore(pvalsym->ll_value, cstraddr);
       return cstraddr;
@@ -609,7 +608,7 @@ OLValueExpr * OLValueMember::Clone() const
   {
     ptype = g_builtins->type_char;
   }
-  else if (TK_DYNSTR == acontainertype->kind || TK_STRVIEW == acontainertype->kind)
+  else if (TK_DYNSTR == acontainertype->kind || TK_STRVIEW == acontainertype->kind || TK_ROSTR == acontainertype->kind)
   {
     ptype = g_builtins->type_char;
   }
@@ -3348,25 +3347,27 @@ void OCStringLitToDescExpr::DeleteChildTree()
   litexpr = nullptr;
 }
 
-// --- str / strview expressions ---
+// --- borrowed text expressions ---
 
-/* ctor */ OTextSourceToViewExpr::OTextSourceToViewExpr(OExpr * asource, OType * atype)
+/* ctor */ OTextBorrowExpr::OTextBorrowExpr(OExpr * asource, OType * atype)
 {
   source = asource;
   ptype = atype;
 }
 
-LlValue * OTextSourceToViewExpr::Generate(OScope * scope)
+LlValue * OTextBorrowExpr::Generate(OScope * scope)
 {
+  if (TK_ROSTR == ResolvedType()->kind)
+    return g_builtins->type_rostr->GenerateBorrow(scope, source);
   return GenerateTextInfoValue(scope, source);
 }
 
-void OTextSourceToViewExpr::FoldChildren()
+void OTextBorrowExpr::FoldChildren()
 {
   OExpr::FoldTree(&source);
 }
 
-void OTextSourceToViewExpr::DeleteChildTree()
+void OTextBorrowExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(source);
   source = nullptr;
@@ -3445,6 +3446,8 @@ void OStringMetaFieldExpr::DeleteChildTree()
 
 LlValue * OStringMethodCallExpr::Generate(OScope * scope)
 {
+  if (STRM_TO_WCHARS == method)
+    return static_cast<OTypeString *>(receiver->ResolvedType())->GenerateToWchars(scope, receiver);
   auto * dyntype = static_cast<OTypeDynString *>(receiver->ptype->ResolveAlias());
   return dyntype->GenerateMethodCall(scope, receiver, method, args);
 }

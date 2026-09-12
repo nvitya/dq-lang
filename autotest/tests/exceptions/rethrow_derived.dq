@@ -6,7 +6,7 @@ func printf(fmt : ^char, ...) -> int [[external]]
 
 object EDerived(Exception):
 public
-    func *Create(amsg : strview):
+    func *Create(amsg : rostr):
         inherited Create(amsg)
     endfunc
 endobject

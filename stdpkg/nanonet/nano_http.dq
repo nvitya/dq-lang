@@ -97,8 +97,8 @@ public
     func *Create(aserver : ONanoServer)
     func *Destroy()
 
-    func QsVarInt(aname : strview, adefvalue : int) -> int
-    func QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str
+    func QsVarInt(aname : rostr, adefvalue : int) -> int
+    func QsVarStr(aname : rostr, adefvalue : strview, amaxlen : int) -> str
 
     func HandleInput(aobj : Object) [[override]]
     func HandleOutput(aobj : Object) [[override]]
@@ -108,9 +108,9 @@ public
     func PrepareHeaders() [[virtual]]
     func ProcessRequest() -> bool [[virtual]]
 
-    func HandleStaticFiles(arootdir : strview) -> bool
+    func HandleStaticFiles(arootdir : rostr) -> bool
 
-    func LogError(astr : strview) [[virtual]]
+    func LogError(astr : rostr) [[virtual]]
 endobject
 
 type TSConnHttpClass = type of OSConnectionHttp
@@ -124,7 +124,7 @@ public
     func *Destroy()
 
     func InitContentTypeMap()
-    func ContentTypeByExt(aext : strview) -> str
+    func ContentTypeByExt(aext : rostr) -> str
 endobject
 
 func ParseHttpDateRFC1123(adatestr : strview) -> int64
@@ -175,14 +175,12 @@ func libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]]
 func libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
 func libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]]
 
-func StatFile(afname : strview, st : ref SStat) -> bool:
+func StatFile(afname : rostr, st : ref SStat) -> bool:
     if afname == '':
         return false
     endif
 
-    var path : cstring(4095) = ''
-    path.Set(afname)
-    return libc_stat(%path[0], %st) == 0
+    return libc_stat(afname, %st) == 0
 endfunc
 
 func HttpDateFromUnix(atime : int64) -> str:
@@ -201,7 +199,7 @@ func HttpDateFromUnix(atime : int64) -> str:
     return buf
 endfunc
 
-func FileHttpDate(afname : strview) -> str:
+func FileHttpDate(afname : rostr) -> str:
     var st : SStat = {}
     if not StatFile(afname, st):
         return ''
@@ -210,7 +208,7 @@ func FileHttpDate(afname : strview) -> str:
     return HttpDateFromUnix(st.st_mtim.tv_sec)
 endfunc
 
-func FileSizeByStat(afname : strview) -> int64:
+func FileSizeByStat(afname : rostr) -> int64:
     var st : SStat = {}
     if not StatFile(afname, st):
         return -1
@@ -235,7 +233,7 @@ func IsUrlPathSafe(auri : strview) -> bool:
     return true
 endfunc
 
-func TrimRoot(arootdir : strview) -> str:
+func TrimRoot(arootdir : rostr) -> str:
     result = @file.PathTranslateSeparators(arootdir)
     while result.length > 1 and @.StrEndsWith(result, '/'):
         result.Delete(result.length - 1)
@@ -405,11 +403,11 @@ func OSConnectionHttp.*Destroy():
     inherited Destroy()
 endfunc
 
-func OSConnectionHttp.QsVarInt(aname : strview, adefvalue : int) -> int:
+func OSConnectionHttp.QsVarInt(aname : rostr, adefvalue : int) -> int:
     return int(@strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue))
 endfunc
 
-func OSConnectionHttp.QsVarStr(aname : strview, adefvalue : strview, amaxlen : int) -> str:
+func OSConnectionHttp.QsVarStr(aname : rostr, adefvalue : strview, amaxlen : int) -> str:
     result = qsvars.KeyDataDef(aname, adefvalue)
     if amaxlen > 0 and result.length > amaxlen:
         result = result[:amaxlen]
@@ -728,7 +726,7 @@ func OSConnectionHttp.ProcessRequest() -> bool [[virtual]]:
     return false
 endfunc
 
-func OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
+func OSConnectionHttp.HandleStaticFiles(arootdir : rostr) -> bool:
     use . , file
     result = false
 
@@ -775,7 +773,7 @@ func OSConnectionHttp.HandleStaticFiles(arootdir : strview) -> bool:
     result = true
 endfunc
 
-func OSConnectionHttp.LogError(astr : strview) [[virtual]]:
+func OSConnectionHttp.LogError(astr : rostr) [[virtual]]:
     @print.PrintLn('ERROR: {}', [astr])
 endfunc
 
@@ -811,7 +809,7 @@ func ONanoHttpServer.InitContentTypeMap():
     ct_by_ext.Add('ico',  'image/vnd.microsoft.icon')
 endfunc
 
-func ONanoHttpServer.ContentTypeByExt(aext : strview) -> str:
+func ONanoHttpServer.ContentTypeByExt(aext : rostr) -> str:
     use strutils
     var fext : str = StrLower(aext)
     if StrStartsWith(fext, '.'):

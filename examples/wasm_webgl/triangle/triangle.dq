@@ -42,8 +42,8 @@ func UpdateFrameCounterText():
         remaining =div= 10
     endwhile
     while divisor > 0:
-        var digit : uint32 = (frame_counter div divisor) mod uint32(10)
-        frame_counter_text.Append(char(Ord('0') + int(digit)))
+        var digit : uint32 = (frame_counter div divisor) rem 10
+        frame_counter_text.Append(char(Ord('0') + digit))
         divisor =div= 10
     endwhile
 endfunc
@@ -52,7 +52,7 @@ func Init() [[cexport]]:
     vertex_buffer = GlCreateBuffer(SizeOf(vertices), GL_STATIC_DRAW)
     GlWriteBuffer(vertex_buffer, %vertices[0], SizeOf(vertices))
 
-    var vertex_shader_source : cstring(1023) = """
+    const vertex_shader_source : cstring = """
         #version 300 es
         layout(location = 0) in vec2 position;
         layout(location = 1) in vec3 color;
@@ -64,7 +64,7 @@ func Init() [[cexport]]:
             vertex_color = color;
         }
         """
-    var fragment_shader_source : cstring(1023) = """
+    const fragment_shader_source : cstring = """
         #version 300 es
         precision mediump float;
         in vec3 vertex_color;

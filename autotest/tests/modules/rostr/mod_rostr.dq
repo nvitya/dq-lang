@@ -1,0 +1,23 @@
+//?notest
+
+type TText = rostr
+const MODULE_TEXT : TText = "module"
+const MODULE_ALIAS : rostr = MODULE_TEXT
+var module_global : rostr = "global"
+
+struct SModuleText:
+    text : TText
+endstruct
+
+func Borrow(text : TText = MODULE_TEXT) -> rostr
+func ReadLength(text : refin rostr) -> int
+
+implementation
+
+func Borrow(text : TText = MODULE_TEXT) -> rostr:
+    return text
+endfunc
+
+func ReadLength(text : refin rostr) -> int:
+    return text.length
+endfunc

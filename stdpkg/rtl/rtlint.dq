@@ -25,6 +25,7 @@ const DQTK_CHAR         : uint8 =  6
 const DQTK_CSTRING      : uint8 =  8
 const DQTK_STRVIEW      : uint8 =  9
 const DQTK_DYNSTR       : uint8 = 10
+const DQTK_ROSTR        : uint8 = 11
 const DQTK_ANYVALUE     : uint8 = 15
 const DQTK_STRUCT       : uint8 = 16
 const DQTK_OBJECT       : uint8 = 17
@@ -65,6 +66,15 @@ struct SDqTextInfo:   // 12 or 16 Bytes
     charlen : uint32   // number of characters
     info    : uint32   // maxlen + charwidth + flags
 endstruct
+
+const DQROSTR_CHARLEN_INVALID : uint32 = 0x80000000
+
+struct SDqRoStrInfo:   // 8 or 16 Bytes (natural alignment, including tail padding)
+    dataptr : ^char    // points to the first character
+    charlen : uint32   // number of chars (without terminating zero)
+                       // invalid when bit31 is set!
+endstruct
+
 
 type FRunTimeErrorHandler = func(emsg : ^char)
 

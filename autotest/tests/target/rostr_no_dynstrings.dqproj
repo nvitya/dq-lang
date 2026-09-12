@@ -1,0 +1,5 @@
+//?build_only
+main = 'rostr_no_dynstrings.dq'
+target = 'arm_m7f-bare'
+dynstrings = false
+link = false

@@ -21,3 +21,6 @@ func TextInfoPChar(ati : ref SDqTextInfo) -> ^char
 func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char
 func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int)
 func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool
+
+func RoStrCheckLength(length : uint32) -> uint32
+func RoStrGetLength(text : ref SDqRoStrInfo) -> uint32

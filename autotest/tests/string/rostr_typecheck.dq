@@ -1,0 +1,26 @@
+func Take(text : rostr):
+endfunc
+func Edit(ch : ref char):
+endfunc
+func EditBuffer(text : cstring):
+endfunc
+
+func Rejections():
+    var view : strview = "abc"
+    var bad : rostr = view //?error(TypeMismatchAssign)
+    Take(view) //?error(TypeMismatchAssign)
+    var badcast : rostr = rostr(view) //?error(CastInvalid)
+    var text : rostr = "abc"
+    text[0] = 'x' //?error(NotWriteable)
+    text.Append("x") //?error(MemberUnknown)
+    text.Clear() //?error(MemberUnknown)
+    text.SetLength(1, 'x') //?error(MemberUnknown)
+    Edit(text[0]) //?error(FuncArgRefBind)
+    ref ch : char = text[0] //?error(RefLocalBind)
+    EditBuffer(text) //?error(TypeMismatchAssign)
+    var buffer : cstring = text //?error(TypeMismatchAssign)
+    var byte : char = 'x'
+    Take(byte) //?error(TypeMismatchAssign)
+    Take(text[:]) //?error(TypeMismatchAssign)
+    Take(text[1:]) //?error(TypeMismatchAssign)
+endfunc

@@ -9,7 +9,7 @@ use strutils
 ## Formatting
 
 ```dq
-func Format(afmt : strview, aargs : []anyvalue) -> str
+func Format(afmt : rostr, aargs : []anyvalue) -> str
 ```
 
 `Format` returns a new dynamic string using the runtime formatter.

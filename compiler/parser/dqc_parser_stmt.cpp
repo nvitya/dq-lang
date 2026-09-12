@@ -351,7 +351,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
-    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRVIEW == pvalsym->ptype->ResolveAlias()->kind))
+    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRVIEW == pvalsym->ptype->ResolveAlias()->kind || TK_ROSTR == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }
@@ -426,7 +426,7 @@ void ODqCompParserStmt::ParseStmtRef()
     return;
   }
   OValSym * rootvalsym = (bindlval ? GetAssignRootValSym(bindlval) : nullptr);
-  if (!bindlval || (rootvalsym && (VSK_CONST == rootvalsym->kind || !rootvalsym->IsRefWriteable())))
+  if (!bindlval || bindlval->IsReadOnlyTextElement() || (rootvalsym && (VSK_CONST == rootvalsym->kind || !rootvalsym->IsRefWriteable())))
   {
     delete bindexpr;
     StatementError(DQERR_REF_LOCAL_BIND_TARGET, sid);

@@ -27,8 +27,8 @@ object Exception:
     backtrace_count : int = 0
     backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
-    func *Create(amsg : strview) [[overload]]
-    func *Create(afmt : strview, avalues : []anyvalue) [[overload]]
+    func *Create(amsg : rostr) [[overload]]
+    func *Create(afmt : rostr, avalues : []anyvalue) [[overload]]
     func *Destroy()
 
     func GetMessage() -> cstring [[virtual]]
@@ -66,11 +66,11 @@ func DqExcRelease(e : Exception)
 
 //-------------------------------------------------------------------------------------------------
 
-func Exception.*Create(amsg : strview) [[overload]]:
+func Exception.*Create(amsg : rostr) [[overload]]:
     message.Set(amsg)
 endfunc
 
-func Exception.*Create(afmt : strview, avalues : []anyvalue) [[overload]]:
+func Exception.*Create(afmt : rostr, avalues : []anyvalue) [[overload]]:
     message.AddFmt(afmt, avalues)
 endfunc
 

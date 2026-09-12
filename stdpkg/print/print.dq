@@ -14,10 +14,10 @@
  */
 
 func Print(fmt : strview) [[overload]]
-func Print(fmt : strview, args : []anyvalue) [[overload]]
+func Print(fmt : rostr, args : []anyvalue) [[overload]]
 func PrintLn() [[overload]]
 func PrintLn(fmt : strview) [[overload]]
-func PrintLn(fmt : strview, args : []anyvalue) [[overload]]
+func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]
 func PrintFlush()
 
 implementation
@@ -48,7 +48,7 @@ func Print(fmt : strview) [[overload]]:
     std_out_sink.Write(fmt)
 endfunc
 
-func Print(fmt : strview, args : []anyvalue) [[overload]]:
+func Print(fmt : rostr, args : []anyvalue) [[overload]]:
     if std_out_formatter == nil:
         StdOutFmtSetup()
     endif
@@ -70,7 +70,7 @@ func PrintLn(fmt : strview) [[overload]]:
     std_out_sink.WriteChar('\n')
 endfunc
 
-func PrintLn(fmt : strview, args : []anyvalue) [[overload]]:
+func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]:
     if std_out_formatter == nil:
         StdOutFmtSetup()
     endif

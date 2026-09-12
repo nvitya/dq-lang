@@ -387,7 +387,8 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
 
     OLValueExpr * arglval = dynamic_cast<OLValueExpr *>(callarg.expr);
     OValSym * rootvalsym = (arglval ? g_compiler->GetAssignRootValSym(arglval) : nullptr);
-    bool bind_ok = (arglval != nullptr);
+    bool bind_ok = (arglval != nullptr)
+        && (FPM_REFIN == fparam->mode || !arglval->IsReadOnlyTextElement());
     if (bind_ok && rootvalsym)
     {
       if ((VSK_CONST == rootvalsym->kind) || !rootvalsym->IsRefWriteable())

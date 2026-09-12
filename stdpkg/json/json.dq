@@ -37,7 +37,7 @@ private
     m_kind  : NJsonNodeKind = nkObject
     m_value : anyvalue
 
-    func Error(sp : OStrParse, amsg : strview)
+    func Error(sp : OStrParse, amsg : rostr)
     func ParseValue(sp : OStrParse)
     func ParseObject(sp : OStrParse)
     func ParseArray(sp : OStrParse)
@@ -82,16 +82,16 @@ public
 
     func ChildCount() -> int
     func Child(aindex : int) -> OJson
-    func ChildByName(aname : strview) -> OJson
+    func ChildByName(aname : rostr) -> OJson
 
-    func FindNode(apath : strview) -> OJson
-    func Find(apath : strview, rnode : refout OJson) -> bool
-    func ForcePath(apath : strview) -> OJson
+    func FindNode(apath : rostr) -> OJson
+    func Find(apath : rostr, rnode : refout OJson) -> bool
+    func ForcePath(apath : rostr) -> OJson
 
-    func SaveToFile(afname : strview, apretty : bool = false)
+    func SaveToFile(afname : rostr, apretty : bool = false)
 
 public // Loading / Parsing
-    func LoadFromFile(afname : strview)
+    func LoadFromFile(afname : rostr)
 
     func Parse(astr : strview)  [[overload]]
     func Parse(sp : OStrParse)  [[overload]]
@@ -333,7 +333,7 @@ func OJson.GetAsPrettyJson() -> str:
     AppendToPrettyJsonStr(result, '')
 endfunc
 
-func OJson.SaveToFile(afname : strview, apretty : bool = false):
+func OJson.SaveToFile(afname : rostr, apretty : bool = false):
     var s : str
     if apretty:
         AppendToPrettyJsonStr(s, '')
@@ -343,7 +343,7 @@ func OJson.SaveToFile(afname : strview, apretty : bool = false):
     @file.FileWriteText(afname, s)
 endfunc
 
-func OJson.LoadFromFile(afname : strview):
+func OJson.LoadFromFile(afname : rostr):
     var jdata : str = @file.FileReadText(afname)
     Parse(jdata)
 endfunc
@@ -368,7 +368,7 @@ func OJson.Parse(sp : OStrParse)  [[overload]]:
     endif
 endfunc
 
-func OJson.Error(sp : OStrParse, amsg : strview):
+func OJson.Error(sp : OStrParse, amsg : rostr):
     raise EJson('JSON parse error at line {}, column {}: {}', [sp.GetLineNum(sp.readp), sp.GetColNum(sp.readp), amsg])
 endfunc
 
@@ -697,7 +697,7 @@ func OJson.Child(aindex : int) -> OJson:
     endif
 endfunc
 
-func OJson.ChildByName(aname : strview) -> OJson:
+func OJson.ChildByName(aname : rostr) -> OJson:
     if m_kind <> nkObject:
         return nil
     endif
@@ -711,7 +711,7 @@ func OJson.ChildByName(aname : strview) -> OJson:
     return nil
 endfunc
 
-func OJson.FindNode(apath : strview) -> OJson:
+func OJson.FindNode(apath : rostr) -> OJson:
     // Supports: a.b.c, a/b/c
     if apath.length == 0:
         return self
@@ -745,7 +745,7 @@ func OJson.FindNode(apath : strview) -> OJson:
     return cur
 endfunc
 
-func OJson.Find(apath : strview, rnode : refout OJson) -> bool:
+func OJson.Find(apath : rostr, rnode : refout OJson) -> bool:
     var jn : OJson = FindNode(apath)
     if jn == nil:
         return false
@@ -754,7 +754,7 @@ func OJson.Find(apath : strview, rnode : refout OJson) -> bool:
     return true
 endfunc
 
-func OJson.ForcePath(apath : strview) -> OJson:
+func OJson.ForcePath(apath : rostr) -> OJson:
     // Supports: a.b.c, a/b/c
 
     var cur : OJson = self

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.62.7"
+#define DQ_COMPILER_VERSION  "0.63.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.63.0:
+  - Compiler fix calculating length for cstring constants
 v0.62.7:
   - Compiler code refactoring - decomposed long functions: ODqCompParserExpr::ParsePostfix,
     ODqCompParserStmt::ReadStatementBlock, ODqCompParser::FinishFunctionDecl

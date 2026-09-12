@@ -5,5 +5,7 @@ const CSTR_CONST : cstring = 'constant cstring'
 func *Main() -> int:
     PrintLn('inline_const = "{}"', ['abc'])     //?check('inline_const', '"abc"')
     PrintLn('CSTR_CONST = "{}"', [CSTR_CONST])  //?check('CSTR_CONST', '"constant cstring"')
+    PrintLn('CSTR_CONST.length = {}', [CSTR_CONST.length])  //?check('CSTR_CONST.length', '16')
+    PrintLn('Len(CSTR_CONST) = {}', [Len(CSTR_CONST)])      //?check('Len(CSTR_CONST)', '16')
     return 0
 endfunc

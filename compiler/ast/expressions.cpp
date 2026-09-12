@@ -240,6 +240,14 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
+    if (resolved_type && TK_CSTRING == resolved_type->kind)
+    {
+      // Constants are normally LLVM values, but cstring metadata needs storage
+      // for its descriptor (or fixed buffer).
+      LlValue * cstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "cstr.const.tmp");
+      ll_builder.CreateStore(pvalsym->ll_value, cstraddr);
+      return cstraddr;
+    }
     if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
     {
       if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
@@ -3118,7 +3126,8 @@ LlValue * OCharLitToCStringPtrExpr::Generate(OScope * scope)
 LlValue * OCStringSizeExpr::Generate(OScope * scope)
 {
   auto * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  return cstrtype->GenerateMetaField(scope, cstrvalsym->ll_value, CSMF_STORAGE_SIZE);
+  OLValueVar cstrlval(cstrvalsym);
+  return cstrtype->GenerateMetaField(scope, cstrlval.GenerateAddress(scope), CSMF_STORAGE_SIZE);
 }
 
 /* ctor */ OCStringLenExpr::OCStringLenExpr(OValSym * avs)
@@ -3183,7 +3192,8 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 LlValue * OCStringLenExpr::Generate(OScope * scope)
 {
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  return cstrtype->GenerateMetaField(scope, cstrvalsym->ll_value, CSMF_LENGTH);
+  OLValueVar cstrlval(cstrvalsym);
+  return cstrtype->GenerateMetaField(scope, cstrlval.GenerateAddress(scope), CSMF_LENGTH);
 }
 
 #endif
@@ -3266,8 +3276,9 @@ void OCStringMethodCallExpr::DeleteChildTree()
 LlValue * OCStringToDescExpr::Generate(OScope * scope)
 {
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+  OLValueVar cstrlval(cstrvalsym);
 
-  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrvalsym->ll_value);
+  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval.GenerateAddress(scope));
   return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "cstr.desc");
 }
 

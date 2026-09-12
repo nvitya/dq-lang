@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS capitals
+(
+    ID         int not null AUTO_INCREMENT,
+    CITY       VARCHAR(80),
+    COUNTRY    VARCHAR(80),
+    CONTINENT  VARCHAR(40),
+
+    PRIMARY KEY (ID)
+);

@@ -2,18 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "DQ: Debug DdGfx test 1 cleanup",
+            "name": "DQ: Debug Example",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/opengl/ddgfxtest1",
+            "program": "${workspaceFolder}/examples/db/mysql_test_1",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/examples/db",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "${workspaceFolder}/.vscode/gdb_wrapper.sh",
-            "preLaunchTask": "dq: build DdGfx test 1 debug",
+            "preLaunchTask": "dq: build example debug",
             "sourceFileMap": {
                 "/lindata/workvc/dq-lang": "${workspaceFolder}"
             },
@@ -22,22 +22,6 @@
                     "description": "Enable GDB pretty-printers",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
-                },
-                {
-                    "description": "Stop at scene cleanup",
-                    "text": "break 'opengl::ddgfx::ODdGfxScene::Destroy'"
-                },
-                {
-                    "description": "Trace group cleanup",
-                    "text": "break 'opengl::ddgfx::ODdGfxDrawGroup::Destroy'"
-                },
-                {
-                    "description": "Trace child removal",
-                    "text": "break 'opengl::ddgfx::ODdGfxDrawGroup::RemoveChild'"
-                },
-                {
-                    "description": "Trace drawable cleanup",
-                    "text": "break 'opengl::ddgfx::ODdGfxDrawable::Destroy'"
                 }
             ]
         },

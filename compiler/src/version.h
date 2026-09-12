@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.64.3"
+#define DQ_COMPILER_VERSION  "0.65.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.65.0:
+  - Logical expression evaluation shortcut for expessions like this: if m_db <> nil and m_db.Opened(): ...
 v0.64.3:
   - Providing more user friendly message for `const x : str = "..."` cases
 v0.64.2:

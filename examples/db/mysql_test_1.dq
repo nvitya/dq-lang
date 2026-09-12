@@ -1,0 +1,42 @@
+// testing mysql database handling
+
+use ./mysql
+use print
+use file
+
+// mysql -u dbuser -h 192.168.0.80 -D capitals
+
+const MYSQL_HOST : rostr = '192.168.0.80'
+const MYSQL_USER : rostr = 'dbuser'
+const MYSQL_PASS : rostr = ''
+const MYSQL_DB   : rostr = 'capitals'
+
+func *Main() -> int:
+    PrintLn('MySQL database test')
+
+    var sql : str
+
+    sql = """
+    select
+        ID, CITY, COUNTRY
+    from
+        capitals
+    where
+        CONTINENT = 'Europe'
+    order by
+        CITY
+    limit
+        50
+    """
+
+    var db <- OMySqlDb()
+    db.Open(MYSQL_HOST, MYSQL_USER, MYSQL_PASS, MYSQL_DB)
+
+    var query <- OMySqlStmt()
+    query.Prepare(db, sql)
+    while query.Step():
+        PrintLn('{}: {} - {}', [query.ColumnInt(0), query.ColumnText(1), query.ColumnText(2)])
+    endwhile
+
+    return 0
+endfunc

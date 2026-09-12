@@ -1,0 +1,402 @@
+// Minimal MySQL client interface for the database examples.
+//
+// It uses the classic MySQL C client API, which is also supplied by MariaDB
+// Connector/C on most Linux distributions. Install the matching development
+// package when the library is not already available, for example:
+//   sudo apt install default-libmysqlclient-dev
+
+#linklib('mysqlclient')
+
+object EMySqlError(Exception):
+endobject
+
+object OMySqlDb:
+protected
+    m_handle : pointer
+
+    func RequireOpen(aoperation : ^char)
+
+public
+    func *Create()
+    func *Destroy()
+
+    // A port of zero selects the client library default (normally 3306).
+    func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char,
+              aport : uint = 0)
+    func Close()
+    func Opened() -> bool
+    func NativeHandle() -> pointer
+    func Ping()
+
+    // Execute a statement which does not return rows.
+    func Execute(asql : ^char)
+    func Begin()
+    func Commit()
+    func Rollback()
+
+    func Changes() -> int64
+    func LastInsertId() -> uint64
+    func ErrorCode() -> uint
+    func ErrorMessage() -> ^char
+    func SetCharacterSet(acharset : ^char)
+
+    property opened         : bool   read Opened
+    property changes        : int64  read Changes
+    property last_insert_id : uint64 read LastInsertId
+endobject
+
+// OMySqlStmt represents the result of one direct SQL query. Its name and
+// cursor API intentionally mirror OSqlite3Stmt for the examples, but MySQL
+// executes the SQL in Prepare(); it does not use MYSQL_STMT bindings.
+object OMySqlStmt:
+protected
+    m_db         : OMySqlDb
+    m_result     : pointer
+    m_row        : pointer
+    m_db_handle  : pointer
+    m_fieldcount : int
+
+    func RequirePrepared()
+    func CheckColumnIndex(aindex : int)
+    func StoreResult(adb : OMySqlDb, adbhandle : pointer)
+
+public
+    func *Create()
+    func *Destroy()
+
+    func Prepare(adb : OMySqlDb, asql : ^char) [[overload]]
+    func Prepare(adb : OMySqlDb, asql : strview) [[overload]]
+    func Finalize()
+    func Reset()
+    func Prepared() -> bool
+
+    // Step returns true while another result row is available.
+    func Step() -> bool
+
+    func ColumnCount() -> int
+    // Returned pointers are owned by MySQL and are valid until the next Step(),
+    // Reset(), or Finalize(). ColumnText returns nil for SQL NULL.
+    func ColumnName(aindex : int) -> ^char
+    func ColumnIsNull(aindex : int) -> bool
+    func ColumnInt(aindex : int) -> int64
+    func ColumnFloat(aindex : int) -> float64
+    func ColumnText(aindex : int) -> ^char
+
+    property prepared     : bool  read Prepared
+    property column_count : int   read ColumnCount
+endobject
+
+
+implementation
+
+func mysql_init(mysql : pointer) -> pointer [[external]]
+func mysql_close(mysql : pointer) [[external]]
+func mysql_real_connect(mysql : pointer, host : ^char, user : ^char, password : ^char,
+                        database : ^char, port : uint, unix_socket : ^char,
+                        client_flag : uint64) -> pointer [[external]]
+func mysql_ping(mysql : pointer) -> int [[external]]
+func mysql_query(mysql : pointer, query : ^char) -> int [[external]]
+func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int [[external]]
+func mysql_store_result(mysql : pointer) -> pointer [[external]]
+func mysql_free_result(aresult : pointer) [[external]]
+func mysql_fetch_row(aresult : pointer) -> pointer [[external]]
+func mysql_num_fields(aresult : pointer) -> uint [[external]]
+func mysql_fetch_fields(aresult : pointer) -> pointer [[external]]
+func mysql_field_count(mysql : pointer) -> uint [[external]]
+func mysql_affected_rows(mysql : pointer) -> int64 [[external]]
+func mysql_insert_id(mysql : pointer) -> uint64 [[external]]
+func mysql_errno(mysql : pointer) -> uint [[external]]
+func mysql_error(mysql : pointer) -> ^char [[external]]
+func mysql_set_character_set(mysql : pointer, charset : ^char) -> int [[external]]
+func mysql_data_seek(aresult : pointer, offset : uint64) [[external]]
+func libc_strtoll(nptr : ^char, endptr : ^pointer, base : int) -> int64 [[external('strtoll')]]
+func libc_strtod(nptr : ^char, endptr : ^pointer) -> float64 [[external('strtod')]]
+
+// MYSQL_FIELD starts with a sequence of pointer members. Only the first
+// member (name) is needed here, so the rest remains intentionally opaque.
+struct SMySqlField:
+    name : ^char
+endstruct
+
+func MySqlErrorText(adb : pointer) -> ^char:
+    if adb == nil:
+        return 'no MySQL error message is available'
+    endif
+    return mysql_error(adb)
+endfunc
+
+func MySqlCheck(adb : pointer, aresult : int, aoperation : ^char):
+    if aresult == 0:
+        return
+    endif
+    raise EMySqlError('{}: {} (MySQL code {})', [aoperation, MySqlErrorText(adb), mysql_errno(adb)])
+endfunc
+
+func OMySqlDb.*Create():
+    m_handle = nil
+endfunc
+
+func OMySqlDb.*Destroy():
+    Close()
+endfunc
+
+func OMySqlDb.RequireOpen(aoperation : ^char):
+    if not Opened():
+        raise EMySqlError('{}: database is not open', [aoperation])
+    endif
+endfunc
+
+func OMySqlDb.Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char,
+                   aport : uint = 0):
+    Close()
+
+    var handle : pointer = @.mysql_init(nil)
+    if handle == nil:
+        raise EMySqlError('MySQL open: cannot allocate client handle')
+    endif
+
+    if @.mysql_real_connect(handle, ahost, auser, apassword, adatabase, aport, nil, 0) == nil:
+        var message : ^char = @.MySqlErrorText(handle)
+        var code : uint = @.mysql_errno(handle)
+        @.mysql_close(handle)
+        raise EMySqlError('MySQL open: {} (MySQL code {})', [message, code])
+    endif
+
+    m_handle = handle
+endfunc
+
+func OMySqlDb.Close():
+    if m_handle <> nil:
+        @.mysql_close(m_handle)
+        m_handle = nil
+    endif
+endfunc
+
+func OMySqlDb.Opened() -> bool:
+    return m_handle <> nil
+endfunc
+
+func OMySqlDb.NativeHandle() -> pointer:
+    return m_handle
+endfunc
+
+func OMySqlDb.Ping():
+    RequireOpen('MySQL ping')
+    @.MySqlCheck(m_handle, @.mysql_ping(m_handle), 'MySQL ping')
+endfunc
+
+func OMySqlDb.Execute(asql : ^char):
+    RequireOpen('MySQL execute')
+    if asql == nil:
+        raise EMySqlError('MySQL execute: null SQL text')
+    endif
+    @.MySqlCheck(m_handle, @.mysql_query(m_handle, asql), 'MySQL execute')
+
+    // A result-producing statement must be consumed by OMySqlStmt instead.
+    if @.mysql_field_count(m_handle) <> 0:
+        var result : pointer = @.mysql_store_result(m_handle)
+        if result <> nil:
+            @.mysql_free_result(result)
+        endif
+        raise EMySqlError('MySQL execute: statement returned rows; use OMySqlStmt.Prepare')
+    endif
+endfunc
+
+func OMySqlDb.Begin():
+    Execute('START TRANSACTION')
+endfunc
+
+func OMySqlDb.Commit():
+    Execute('COMMIT')
+endfunc
+
+func OMySqlDb.Rollback():
+    Execute('ROLLBACK')
+endfunc
+
+func OMySqlDb.Changes() -> int64:
+    if not Opened():
+        return 0
+    endif
+    return @.mysql_affected_rows(m_handle)
+endfunc
+
+func OMySqlDb.LastInsertId() -> uint64:
+    if not Opened():
+        return 0
+    endif
+    return @.mysql_insert_id(m_handle)
+endfunc
+
+func OMySqlDb.ErrorCode() -> uint:
+    if not Opened():
+        return 0
+    endif
+    return @.mysql_errno(m_handle)
+endfunc
+
+func OMySqlDb.ErrorMessage() -> ^char:
+    return @.MySqlErrorText(m_handle)
+endfunc
+
+func OMySqlDb.SetCharacterSet(acharset : ^char):
+    RequireOpen('MySQL set character set')
+    if acharset == nil:
+        raise EMySqlError('MySQL set character set: null character set')
+    endif
+    @.MySqlCheck(m_handle, @.mysql_set_character_set(m_handle, acharset), 'MySQL set character set')
+endfunc
+
+
+func OMySqlStmt.*Create():
+    m_result = nil
+    m_row = nil
+    m_db_handle = nil
+    m_fieldcount = 0
+endfunc
+
+func OMySqlStmt.*Destroy():
+    Finalize()
+endfunc
+
+func OMySqlStmt.RequirePrepared():
+    if m_db_handle == nil:
+        raise EMySqlError('MySQL statement is not prepared')
+    endif
+    if not m_db.Opened():
+        raise EMySqlError('MySQL statement: database has been closed')
+    endif
+endfunc
+
+func OMySqlStmt.CheckColumnIndex(aindex : int):
+    if aindex < 0 or aindex >= m_fieldcount:
+        raise EMySqlError('MySQL column index {} is out of range', [aindex])
+    endif
+endfunc
+
+func OMySqlStmt.Prepare(adb : OMySqlDb, asql : ^char) [[overload]]:
+    Finalize()
+    if not adb.Opened():
+        raise EMySqlError('MySQL query: database is not open')
+    endif
+    if asql == nil:
+        raise EMySqlError('MySQL query: null SQL text')
+    endif
+
+    var dbhandle : pointer = adb.NativeHandle()
+    @.MySqlCheck(dbhandle, @.mysql_query(dbhandle, asql), 'MySQL query')
+    StoreResult(adb, dbhandle)
+endfunc
+
+func OMySqlStmt.Prepare(adb : OMySqlDb, asql : strview) [[overload]]:
+    Finalize()
+    if not adb.Opened():
+        raise EMySqlError('MySQL query: database is not open')
+    endif
+
+    var dbhandle : pointer = adb.NativeHandle()
+    @.MySqlCheck(dbhandle, @.mysql_real_query(dbhandle, asql.pchar, uint(asql.length)), 'MySQL query')
+    StoreResult(adb, dbhandle)
+endfunc
+
+func OMySqlStmt.StoreResult(adb : OMySqlDb, adbhandle : pointer):
+    var result : pointer = @.mysql_store_result(adbhandle)
+    if result == nil and @.mysql_field_count(adbhandle) <> 0:
+        // mysql_store_result() also returns nil on an error, which is reported
+        // through the connection's error state.
+        raise EMySqlError('MySQL store result: {} (MySQL code {})',
+                          [@.MySqlErrorText(adbhandle), @.mysql_errno(adbhandle)])
+    endif
+
+    m_db = adb
+    m_db_handle = adbhandle
+    m_result = result
+    if result <> nil:
+        m_fieldcount = @.mysql_num_fields(result)
+    else:
+        m_fieldcount = 0
+    endif
+endfunc
+
+func OMySqlStmt.Finalize():
+    // mysql_close() releases all outstanding result sets. Do not free one a
+    // second time if callers closed the connection before the statement.
+    if m_result <> nil and m_db <> nil and m_db.Opened():
+        @.mysql_free_result(m_result)
+    endif
+    m_result = nil
+    m_row = nil
+    m_fieldcount = 0
+    m_db_handle = nil
+    m_db = nil
+endfunc
+
+func OMySqlStmt.Reset():
+    RequirePrepared()
+    if m_result <> nil:
+        @.mysql_data_seek(m_result, 0)
+    endif
+    m_row = nil
+endfunc
+
+func OMySqlStmt.Prepared() -> bool:
+    return m_db_handle <> nil
+endfunc
+
+func OMySqlStmt.Step() -> bool:
+    RequirePrepared()
+    if m_result == nil:
+        return false
+    endif
+    m_row = @.mysql_fetch_row(m_result)
+    return m_row <> nil
+endfunc
+
+func OMySqlStmt.ColumnCount() -> int:
+    RequirePrepared()
+    return m_fieldcount
+endfunc
+
+func OMySqlStmt.ColumnName(aindex : int) -> ^char:
+    RequirePrepared()
+    CheckColumnIndex(aindex)
+    var fields : ^SMySqlField = ^SMySqlField(@.mysql_fetch_fields(m_result))
+    var field : ^SMySqlField = fields + aindex
+    return field.name
+endfunc
+
+func OMySqlStmt.ColumnIsNull(aindex : int) -> bool:
+    RequirePrepared()
+    CheckColumnIndex(aindex)
+    if m_row == nil:
+        raise EMySqlError('MySQL column access: no current row')
+    endif
+    return ^pointer(m_row)[aindex]^ == nil
+endfunc
+
+func OMySqlStmt.ColumnInt(aindex : int) -> int64:
+    RequirePrepared()
+    CheckColumnIndex(aindex)
+    if ColumnIsNull(aindex):
+        return 0
+    endif
+    return @.libc_strtoll(^char(^pointer(m_row)[aindex]^), nil, 10)
+endfunc
+
+func OMySqlStmt.ColumnFloat(aindex : int) -> float64:
+    RequirePrepared()
+    CheckColumnIndex(aindex)
+    if ColumnIsNull(aindex):
+        return 0
+    endif
+    return @.libc_strtod(^char(^pointer(m_row)[aindex]^), nil)
+endfunc
+
+func OMySqlStmt.ColumnText(aindex : int) -> ^char:
+    RequirePrepared()
+    CheckColumnIndex(aindex)
+    if m_row == nil:
+        raise EMySqlError('MySQL column access: no current row')
+    endif
+    return ^char(^pointer(m_row)[aindex]^)
+endfunc

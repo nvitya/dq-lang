@@ -2,22 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "dq: build DdGfx test 1 debug",
+      "label": "dq: build example debug",
       "type": "shell",
-      "command": "build/dq-comp",
+      "command": "../../build/dq-comp",
       "args": [
         "-g",
         "-O0",
         "--build",
-        "vscode_ddgfx",
-        "--pkg-path",
-        "${workspaceFolder}/stdpkg",
-        "examples/opengl/ddgfxtest1.dq",
-        "-o",
-        "examples/opengl/ddgfxtest1"
+        "vscode_dbg",
+        "mysql_test_1.dq",
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/examples/db"
       },
       "problemMatcher": [],
       "group": "build"

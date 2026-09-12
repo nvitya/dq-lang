@@ -1686,14 +1686,49 @@ void OIifExpr::DeleteChildTree()
 
 LlValue * OLogicalExpr::Generate(OScope * scope)
 {
-  LlValue * ll_left  = left->Generate(scope);
+  LlValue * ll_left = left->Generate(scope);
+
+  if (LOGIOP_XOR == op)
+  {
+    return ll_builder.CreateXor(ll_left, right->Generate(scope));
+  }
+
+  if ((LOGIOP_AND != op) && (LOGIOP_OR != op))
+  {
+    throw logic_error(std::format("GenerateExpr(): Unhandled logical operation= {} ", int(op)));
+  }
+
+  // Unlike LLVM's eager and/or instructions, DQ logical and/or must not
+  // evaluate the right operand when the left operand already determines the
+  // result.  This also makes chained guard expressions safe.
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * right_bb = LlBasicBlock::Create(ll_ctx, "logical.right", ll_func);
+  LlBasicBlock * short_bb = LlBasicBlock::Create(ll_ctx, "logical.short", ll_func);
+  LlBasicBlock * merge_bb = LlBasicBlock::Create(ll_ctx, "logical.end", ll_func);
+
+  if (LOGIOP_AND == op)
+  {
+    ll_builder.CreateCondBr(ll_left, right_bb, short_bb);
+  }
+  else
+  {
+    ll_builder.CreateCondBr(ll_left, short_bb, right_bb);
+  }
+
+  ll_builder.SetInsertPoint(right_bb);
   LlValue * ll_right = right->Generate(scope);
+  LlBasicBlock * right_end_bb = ll_builder.GetInsertBlock();
+  ll_builder.CreateBr(merge_bb);
 
-  if      (LOGIOP_AND == op)  return ll_builder.CreateAnd(ll_left, ll_right);
-  else if (LOGIOP_OR  == op)  return ll_builder.CreateOr(ll_left, ll_right);
-  else if (LOGIOP_XOR == op)  return ll_builder.CreateXor(ll_left, ll_right);
+  ll_builder.SetInsertPoint(short_bb);
+  ll_builder.CreateBr(merge_bb);
 
-  throw logic_error(std::format("GenerateExpr(): Unhandled logical operation= {} ", int(op)));
+  ll_builder.SetInsertPoint(merge_bb);
+  llvm::PHINode * ll_result = ll_builder.CreatePHI(g_builtins->type_bool->GetLlType(), 2, "logical.result");
+  ll_result->addIncoming(ll_right, right_end_bb);
+  ll_result->addIncoming(llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), LOGIOP_OR == op), short_bb);
+  return ll_result;
+
 }
 
 void OLogicalExpr::FoldChildren()

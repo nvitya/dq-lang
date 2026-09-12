@@ -20,6 +20,21 @@ func printbool(astr : ^char, abool : bool):
     endif
     printf("\n")
 endfunc
+
+var g_short_circuit_hits : int = 0
+
+func CountedTrue() -> bool:
+    g_short_circuit_hits += 1
+    result = true
+endfunc
+
+object OOpenedProbe:
+    func Opened() -> bool:
+        @.g_short_circuit_hits += 1
+        result = true
+    endfunc
+endobject
+
 func *Main() -> int:
     printf("DQ bool test\n")  //?ignore('DQ bool test')
 
@@ -42,6 +57,19 @@ func *Main() -> int:
 
     bexpr = b0  or b1 and not b1
     printbool("bexpr1", bexpr)  //?check('bexpr1', false)
+
+    g_short_circuit_hits = 0
+    printbool("false and CountedTrue", false and CountedTrue())  //?check('false and CountedTrue', false)
+    printf("false and CountedTrue hits = %li\n", g_short_circuit_hits)  //?check('false and CountedTrue hits', 0)
+
+    g_short_circuit_hits = 0
+    printbool("true or CountedTrue", true or CountedTrue())  //?check('true or CountedTrue', true)
+    printf("true or CountedTrue hits = %li\n", g_short_circuit_hits)  //?check('true or CountedTrue hits', 0)
+
+    var probe : OOpenedProbe = nil
+    g_short_circuit_hits = 0
+    printbool("nil probe and Opened", probe <> nil and probe.Opened())  //?check('nil probe and Opened', false)
+    printf("nil probe and Opened hits = %li\n", g_short_circuit_hits)  //?check('nil probe and Opened hits', 0)
 
     return 0
 endfunc

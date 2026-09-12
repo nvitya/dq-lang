@@ -48,8 +48,9 @@ endobject
 
 object OSqlite3Stmt:
 protected
-    m_handle : pointer
-    m_db     : pointer
+    m_db        : OSqlite3Db
+    m_handle    : pointer
+    m_db_handle : pointer
 
     func RequirePrepared()
 
@@ -234,7 +235,7 @@ endfunc
 
 func OSqlite3Stmt.*Create():
     m_handle = nil
-    m_db = nil
+    m_db_handle = nil
 endfunc
 
 func OSqlite3Stmt.*Destroy():
@@ -252,6 +253,8 @@ endfunc
 
 func OSqlite3Stmt.Prepare(adb : OSqlite3Db, asql : ^char):
     Finalize()
+
+    m_db = adb
     if not adb.Opened():
         raise ESqlite3Error('SQLite prepare: database is not open')
     endif
@@ -263,7 +266,7 @@ func OSqlite3Stmt.Prepare(adb : OSqlite3Db, asql : ^char):
     var statement : pointer = nil
     var dbhandle : pointer = adb.NativeHandle()
     @.Sqlite3Check(dbhandle, @.sqlite3_prepare_v2(dbhandle, asql, -1, %statement, nil), 'SQLite prepare')
-    m_db = dbhandle
+    m_db_handle = dbhandle
     m_handle = statement
 endfunc
 
@@ -273,21 +276,22 @@ func OSqlite3Stmt.Finalize():
     endif
 
     var statement : pointer = m_handle
-    var dbhandle : pointer = m_db
+    var dbhandle : pointer = m_db_handle
     m_handle = nil
     var rc : int = @.sqlite3_finalize(statement)
+    m_db_handle = nil
     m_db = nil
     @.Sqlite3Check(dbhandle, rc, 'SQLite finalize')
 endfunc
 
 func OSqlite3Stmt.Reset():
     RequirePrepared()
-    @.Sqlite3Check(m_db, @.sqlite3_reset(m_handle), 'SQLite reset')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_reset(m_handle), 'SQLite reset')
 endfunc
 
 func OSqlite3Stmt.ClearBindings():
     RequirePrepared()
-    @.Sqlite3Check(m_db, @.sqlite3_clear_bindings(m_handle), 'SQLite clear bindings')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_clear_bindings(m_handle), 'SQLite clear bindings')
 endfunc
 
 func OSqlite3Stmt.Prepared() -> bool:
@@ -296,17 +300,17 @@ endfunc
 
 func OSqlite3Stmt.BindNull(aindex : int):
     RequirePrepared()
-    @.Sqlite3Check(m_db, @.sqlite3_bind_null(m_handle, aindex), 'SQLite bind null')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_bind_null(m_handle, aindex), 'SQLite bind null')
 endfunc
 
 func OSqlite3Stmt.BindInt(aindex : int, avalue : int64):
     RequirePrepared()
-    @.Sqlite3Check(m_db, @.sqlite3_bind_int64(m_handle, aindex, avalue), 'SQLite bind integer')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_bind_int64(m_handle, aindex, avalue), 'SQLite bind integer')
 endfunc
 
 func OSqlite3Stmt.BindFloat(aindex : int, avalue : float64):
     RequirePrepared()
-    @.Sqlite3Check(m_db, @.sqlite3_bind_double(m_handle, aindex, avalue), 'SQLite bind float')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_bind_double(m_handle, aindex, avalue), 'SQLite bind float')
 endfunc
 
 func OSqlite3Stmt.BindText(aindex : int, avalue : ^char):
@@ -315,7 +319,7 @@ func OSqlite3Stmt.BindText(aindex : int, avalue : ^char):
         BindNull(aindex)
         return
     endif
-    @.Sqlite3Check(m_db, @.sqlite3_bind_text(m_handle, aindex, avalue, -1, @.SQLITE_TRANSIENT), 'SQLite bind text')
+    @.Sqlite3Check(m_db_handle, @.sqlite3_bind_text(m_handle, aindex, avalue, -1, @.SQLITE_TRANSIENT), 'SQLite bind text')
 endfunc
 
 func OSqlite3Stmt.Step() -> bool:
@@ -327,7 +331,7 @@ func OSqlite3Stmt.Step() -> bool:
     if rc == @.SQLITE_DONE:
         return false
     endif
-    @.Sqlite3Check(m_db, rc, 'SQLite step')
+    @.Sqlite3Check(m_db_handle, rc, 'SQLite step')
     return false
 endfunc
 

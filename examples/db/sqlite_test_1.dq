@@ -6,7 +6,7 @@ use file
 
 const DB_NAME : rostr = 'capitals.db'
 
-const CAPITALS_STRUCT : str =
+const CAPITALS_STRUCT : rostr =
 """
 create table capitals
 (
@@ -241,16 +241,34 @@ func *Main() -> int:
     query.Prepare(db,
     """
     select
-        CITY, COUNTRY
+        ID, CITY, COUNTRY
     from
         capitals
     where
         CONTINENT = 'Europe'
     order by
-        CITY limit 50
+        CITY
+    limit
+        50
     """)
     while query.Step():
-        PrintLn('{} - {}', [query.ColumnText(0), query.ColumnText(1)])
+        PrintLn('{}: {} - {}', [query.ColumnInt(0), query.ColumnText(1), query.ColumnText(2)])
     endwhile
+
+    PrintLn()
+    PrintLn('Continent countries:')
+    query.Prepare(db,
+    """
+    select
+        CONTINENT, count(*) as COUNTRY_COUNT
+    from
+        capitals
+    group by
+        CONTINENT
+    """)
+    while query.Step():
+        PrintLn('{} - {}', [query.ColumnText(0), query.ColumnInt(1)])
+    endwhile
+
     return 0
 endfunc

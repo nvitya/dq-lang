@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.64.2"
+#define DQ_COMPILER_VERSION  "0.64.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.64.3:
+  - Providing more user friendly message for `const x : str = "..."` cases
 v0.64.2:
   - SDqTextInfo (str, strview) length indication uses the same method as at rostr
 v0.64.1:

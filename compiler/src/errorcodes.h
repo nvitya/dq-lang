@@ -103,6 +103,7 @@ DEF_DQ_ERR(DQERR_BOOL_CONSTEXPR_ERROR,             "BoolConstExpr",          "Bo
 DEF_DQ_ERR(DQERR_FLOAT_CONSTEXPR_ERROR,            "FloatConstExpr",         "Floating point constant expressions error");
 DEF_DQ_ERR(DQERR_CONSTEXPR_ERROR,                  "ConstExpr",              "$1 constant expressions error");
 DEF_DQ_ERR(DQERR_CONSTEXPR_INVALID_FOR,            "ConstExprInvalid",       "Invalid constant expression for \"$1\"");
+DEF_DQ_ERR(DQERR_CONST_DYNSTR,                      "ConstDynStr",            "Constants cannot have dynamic string type \"str\"; use \"rostr\" instead");
 DEF_DQ_ERR(DQERR_CONSTEXPR_NONCONST_SYM,           "ConstExprNonConstVs",    "Non-constant symbol \"$1\" in $2 constant expression");
 
 DEF_DQ_ERR(DQERR_MODULE_STATEMENT_EXPECTED,        "ModStatementExpected",   "Module statement keyword expected");

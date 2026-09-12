@@ -4,9 +4,9 @@ use ./sqlite3
 use print
 use file
 
-const DB_NAME : cstring = 'capitals.db'
+const DB_NAME : rostr = 'capitals.db'
 
-const CAPITALS_STRUCT : cstring =
+const CAPITALS_STRUCT : str =
 """
 create table capitals
 (
@@ -17,7 +17,7 @@ create table capitals
 );
 """
 
-const CAPITALS_DATA : cstring =
+const CAPITALS_DATA : rostr =
 """
 INSERT INTO capitals (CITY, COUNTRY, CONTINENT) VALUES
     ('Algiers', 'Algeria', 'Africa'),

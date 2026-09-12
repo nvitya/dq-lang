@@ -683,7 +683,8 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
   OValue * pvalue = ptype->CreateValue();
   if (!pvalue)
   {
-    emit_error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
+    emit_error((TK_DYNSTR == ptype->ResolveAlias()->kind) ? DQERR_CONST_DYNSTR : DQERR_CONSTEXPR_INVALID_FOR,
+               sid, "", &expos);
     delete valueexpr;
     return;
   }

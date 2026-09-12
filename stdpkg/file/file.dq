@@ -55,6 +55,7 @@ func FileWriteText(afname : strview, adata : strview)
 func FileWriteBytes(afname : strview, adata : []byte)
 
 func FileExists(afname : strview) -> bool
+func FileRemove(afname : strview)
 
 func DirExists(adir : strview) -> bool
 func DirCreate(adir : strview, aforce : bool = false)
@@ -76,6 +77,7 @@ func libc_ftell(stream : pointer) -> int                              [[external
 func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint   [[external('fread')]]
 func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
 func libc_access(pathname : ^char, mode : int) -> int                [[external('access')]]
+func libc_remove(pathname : ^char) -> int                            [[external('remove')]]
 func libc_mkdir(pathname : ^char, mode : uint) -> int                [[external('mkdir')]]
 func libc_rmdir(pathname : ^char) -> int                             [[external('rmdir')]]
 func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
@@ -97,6 +99,23 @@ func FileExists(afname : strview) -> bool:
 
     var path : str = afname
     return libc_access(path.pchar, ACCESS_EXISTS) == 0
+endfunc
+
+func FileRemove(afname : strview):
+    if afname == '':
+        raise EFileError('FileRemove: empty file name')
+    endif
+
+    var path : str = afname
+    if not FileExists(path):
+        raise EFileError('FileRemove: file does not exist: {}', [path])
+    endif
+
+    if libc_remove(path.pchar) <> 0:
+        if FileExists(path):
+            raise EFileError('File remove error: {}', [path])
+        endif
+    endif
 endfunc
 
 func DirExists(adir : strview) -> bool:

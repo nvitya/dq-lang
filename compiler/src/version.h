@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.63.0"
+#define DQ_COMPILER_VERSION  "0.63.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.63.1:
+  - Added FileRemove() to the file module
 v0.63.0:
   - Compiler fix calculating length for cstring constants
 v0.62.7:

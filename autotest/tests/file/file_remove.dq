@@ -1,0 +1,12 @@
+use file
+use print
+
+func *Main() -> int:
+    var test_file : str = 'dq-autotest-file-remove.tmp'
+    FileWriteText(test_file, 'temporary file')
+    PrintLn('exists before remove = {}', [FileExists(test_file)])  //?check('exists before remove', 'true')
+
+    FileRemove(test_file)
+    PrintLn('exists after remove = {}', [FileExists(test_file)])   //?check('exists after remove', 'false')
+    return 0
+endfunc

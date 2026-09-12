@@ -49,9 +49,12 @@ FileWriteText(name, text)
 FileWriteBytes(name, bytes)
 
 FileExists(name)
+FileRemove(name)
 ```
 
 `FileExists` returns false for directories.
+`FileRemove` removes an existing file and raises `EFileError` for an empty,
+missing, or unremovable file.
 
 ## Directories
 
@@ -74,4 +77,3 @@ PathFileExt(path)
 ```
 
 Separators are normalized to `/`.
-

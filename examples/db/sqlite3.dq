@@ -1,5 +1,8 @@
 // Minimal SQLite 3 interface for the database examples.
 
+// install the supporting lib with
+//   sudo apt install libsqlite3-dev
+
 #linklib('sqlite3')
 
 const SQLITE_OK   : int = 0
@@ -21,13 +24,13 @@ public
     func *Create()
     func *Destroy()
 
-    func Open(afilename : strview)
+    func Open(afilename : ^char)
     func Close()
     func Opened() -> bool
     func NativeHandle() -> pointer
 
     // Execute DDL and data-manipulation statements without result rows.
-    func Execute(asql : strview)
+    func Execute(asql : ^char)
 
     func Begin()
     func Commit()
@@ -36,7 +39,7 @@ public
     func SetBusyTimeout(ams : int)
     func Changes() -> int
     func LastInsertId() -> int64
-    func ErrorMessage() -> str
+    func ErrorMessage() -> ^char
 
     property opened         : bool  read Opened
     property changes        : int   read Changes
@@ -54,7 +57,7 @@ public
     func *Create()
     func *Destroy()
 
-    func Prepare(adb : OSqlite3Db, asql : strview)
+    func Prepare(adb : OSqlite3Db, asql : ^char)
     func Finalize()
     func Reset()
     func ClearBindings()
@@ -63,17 +66,18 @@ public
     func BindNull(aindex : int)
     func BindInt(aindex : int, avalue : int64)
     func BindFloat(aindex : int, avalue : float64)
-    func BindText(aindex : int, avalue : strview)
+    func BindText(aindex : int, avalue : ^char)
 
     // Step returns true for SQLITE_ROW and false for SQLITE_DONE.
     func Step() -> bool
 
     func ColumnCount() -> int
-    func ColumnName(aindex : int) -> str
+    // Returned text pointers are valid until the next Step(), Reset(), or Finalize().
+    func ColumnName(aindex : int) -> ^char
     func ColumnIsNull(aindex : int) -> bool
     func ColumnInt(aindex : int) -> int64
     func ColumnFloat(aindex : int) -> float64
-    func ColumnText(aindex : int) -> str
+    func ColumnText(aindex : int) -> ^char
 
     property prepared     : bool  read Prepared
     property column_count : int   read ColumnCount
@@ -110,26 +114,14 @@ func sqlite3_column_double(statement : pointer, index : int) -> float64 [[extern
 func sqlite3_column_text(statement : pointer, index : int) -> ^char [[external]]
 
 
-func Sqlite3CopyText(aptr : ^char) -> str:
-    if aptr == nil:
-        return ''
-    endif
-
-    result = ''
-    while aptr^ <> char(0):
-        result.Append(aptr^)
-        aptr += 1
-    endwhile
-endfunc
-
-func Sqlite3ErrorText(adb : pointer) -> str:
+func Sqlite3ErrorText(adb : pointer) -> ^char:
     if adb == nil:
         return 'no SQLite error message is available'
     endif
-    return Sqlite3CopyText(sqlite3_errmsg(adb))
+    return sqlite3_errmsg(adb)
 endfunc
 
-func Sqlite3Check(adb : pointer, aresult : int, aoperation : strview):
+func Sqlite3Check(adb : pointer, aresult : int, aoperation : ^char):
     if aresult == SQLITE_OK:
         return
     endif
@@ -148,21 +140,23 @@ func OSqlite3Db.*Destroy():
     endif
 endfunc
 
-func OSqlite3Db.Open(afilename : strview):
+func OSqlite3Db.Open(afilename : ^char):
     Close()
-    if afilename == '':
+    if afilename == nil:
+        raise ESqlite3Error('SQLite open: empty file name')
+    endif
+    if afilename^ == char(0):
         raise ESqlite3Error('SQLite open: empty file name')
     endif
 
-    var filename : str = afilename
     var handle : pointer = nil
-    var rc : int = @.sqlite3_open(filename.pchar, %handle)
+    var rc : int = @.sqlite3_open(afilename, %handle)
     if rc <> @.SQLITE_OK:
-        var message : str = @.Sqlite3ErrorText(handle)
+        var message : ^char = @.Sqlite3ErrorText(handle)
         if handle <> nil:
             @.sqlite3_close(handle)
         endif
-        raise ESqlite3Error('SQLite open {}: {} (SQLite code {})', [filename, message, rc])
+        raise ESqlite3Error('SQLite open {}: {} (SQLite code {})', [afilename, message, rc])
     endif
 
     m_handle = handle
@@ -189,13 +183,15 @@ func OSqlite3Db.NativeHandle() -> pointer:
     return m_handle
 endfunc
 
-func OSqlite3Db.Execute(asql : strview):
+func OSqlite3Db.Execute(asql : ^char):
     if not Opened():
         raise ESqlite3Error('SQLite execute: database is not open')
     endif
+    if asql == nil:
+        raise ESqlite3Error('SQLite execute: null SQL text')
+    endif
 
-    var sql : str = asql
-    @.Sqlite3Check(m_handle, @.sqlite3_exec(m_handle, sql.pchar, nil, nil, nil), 'SQLite execute')
+    @.Sqlite3Check(m_handle, @.sqlite3_exec(m_handle, asql, nil, nil, nil), 'SQLite execute')
 endfunc
 
 func OSqlite3Db.Begin():
@@ -231,7 +227,7 @@ func OSqlite3Db.LastInsertId() -> int64:
     return @.sqlite3_last_insert_rowid(m_handle)
 endfunc
 
-func OSqlite3Db.ErrorMessage() -> str:
+func OSqlite3Db.ErrorMessage() -> ^char:
     return @.Sqlite3ErrorText(m_handle)
 endfunc
 
@@ -254,16 +250,19 @@ func OSqlite3Stmt.RequirePrepared():
     endif
 endfunc
 
-func OSqlite3Stmt.Prepare(adb : OSqlite3Db, asql : strview):
+func OSqlite3Stmt.Prepare(adb : OSqlite3Db, asql : ^char):
     Finalize()
     if not adb.Opened():
         raise ESqlite3Error('SQLite prepare: database is not open')
     endif
 
-    var sql : str = asql
+    if asql == nil:
+        raise ESqlite3Error('SQLite prepare: null SQL text')
+    endif
+
     var statement : pointer = nil
     var dbhandle : pointer = adb.NativeHandle()
-    @.Sqlite3Check(dbhandle, @.sqlite3_prepare_v2(dbhandle, sql.pchar, -1, %statement, nil), 'SQLite prepare')
+    @.Sqlite3Check(dbhandle, @.sqlite3_prepare_v2(dbhandle, asql, -1, %statement, nil), 'SQLite prepare')
     m_db = dbhandle
     m_handle = statement
 endfunc
@@ -310,10 +309,13 @@ func OSqlite3Stmt.BindFloat(aindex : int, avalue : float64):
     @.Sqlite3Check(m_db, @.sqlite3_bind_double(m_handle, aindex, avalue), 'SQLite bind float')
 endfunc
 
-func OSqlite3Stmt.BindText(aindex : int, avalue : strview):
+func OSqlite3Stmt.BindText(aindex : int, avalue : ^char):
     RequirePrepared()
-    var value : str = avalue
-    @.Sqlite3Check(m_db, @.sqlite3_bind_text(m_handle, aindex, value.pchar, value.length, @.SQLITE_TRANSIENT), 'SQLite bind text')
+    if avalue == nil:
+        BindNull(aindex)
+        return
+    endif
+    @.Sqlite3Check(m_db, @.sqlite3_bind_text(m_handle, aindex, avalue, -1, @.SQLITE_TRANSIENT), 'SQLite bind text')
 endfunc
 
 func OSqlite3Stmt.Step() -> bool:
@@ -334,9 +336,9 @@ func OSqlite3Stmt.ColumnCount() -> int:
     return @.sqlite3_column_count(m_handle)
 endfunc
 
-func OSqlite3Stmt.ColumnName(aindex : int) -> str:
+func OSqlite3Stmt.ColumnName(aindex : int) -> ^char:
     RequirePrepared()
-    return @.Sqlite3CopyText(@.sqlite3_column_name(m_handle, aindex))
+    return @.sqlite3_column_name(m_handle, aindex)
 endfunc
 
 func OSqlite3Stmt.ColumnIsNull(aindex : int) -> bool:
@@ -354,7 +356,7 @@ func OSqlite3Stmt.ColumnFloat(aindex : int) -> float64:
     return @.sqlite3_column_double(m_handle, aindex)
 endfunc
 
-func OSqlite3Stmt.ColumnText(aindex : int) -> str:
+func OSqlite3Stmt.ColumnText(aindex : int) -> ^char:
     RequirePrepared()
-    return @.Sqlite3CopyText(@.sqlite3_column_text(m_handle, aindex))
+    return @.sqlite3_column_text(m_handle, aindex)
 endfunc

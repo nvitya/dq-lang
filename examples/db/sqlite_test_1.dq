@@ -227,12 +227,12 @@ func *Main() -> int:
     endif
 
     var db <- OSqlite3Db()
-    db.Open(DB_NAME)
+    db.Open(DB_NAME.pchar)
 
     // Create the schema and populate it in one transaction.
-    db.Execute(CAPITALS_STRUCT)
+    db.Execute(CAPITALS_STRUCT.pchar)
     db.Begin()
-    db.Execute(CAPITALS_DATA)
+    db.Execute(CAPITALS_DATA.pchar)
     db.Commit()
     PrintLn('Inserted rows = {}', [db.changes])
 

@@ -15,6 +15,7 @@
 #include "dqc_ast.h"
 #include "otype_cstring.h"
 #include "otype_string.h"
+#include "rtlint.h"
 #include "scope_builtins.h"
 #include "dqm_if.h"
 #include "expressions.h"
@@ -23,10 +24,6 @@
 #include "otype_func.h"
 
 using namespace std;
-
-static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
-static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
-static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
 static LlType * LlPtrType()
 {
@@ -207,7 +204,7 @@ LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
   LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "cstr.desc.len.addr");
   LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "cstr.desc.info.addr");
   ll_builder.CreateStore(dataptr, ptraddr);
-  ll_builder.CreateStore(LlU32(0), lenaddr);
+  ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
   ll_builder.CreateStore(LlU32(maxlen & DQTI_MAXCHLEN_MASK), infoaddr);
   return descaddr;
 }
@@ -515,7 +512,7 @@ LlConst * OValueCString::CreateLlConst()
     str_gv->setAlignment(llvm::Align(1));
 
     uint32_t charlen = uint32_t(value.size());
-    uint32_t info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY;
+    uint32_t info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
     vector<llvm::Constant *> fields = {
       llvm::ConstantExpr::getBitCast(str_gv, LlPtrType()),
       llvm::ConstantInt::get(LlCStringLenType(), charlen),

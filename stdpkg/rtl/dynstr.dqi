@@ -93,7 +93,6 @@ func DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32) -
         MemCopy(adst.dataptr, srcptr, uint(result))
     endif
     adst.charlen = result
-    adst.info = adst.info | DQTIF_CHARLEN_VALID
     if adst.dataptr <> nil:
         adst.dataptr[result]^ = char(0)
     endif

@@ -16,13 +16,12 @@ func DynStrRuntimeError(emsg : ^char):
 endfunc
 
 func TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
-    if ati.info & DQTIF_CHARLEN_VALID <> uint32(0):
+    if ati.charlen & DQTIF_CHARLEN_INVALID == 0:
         return ati.charlen
     endif
 
     result = CStrLen(ati)
     ati.charlen = result
-    ati.info = ati.info | DQTIF_CHARLEN_VALID
 endfunc
 
 func TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
@@ -95,7 +94,7 @@ endfunc
 func DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
     rti.dataptr = dataptr
     rti.charlen = charlen
-    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY
+    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY
 endfunc
 
 func DynStrCheckIndex(index : int, length : uint32):
@@ -109,7 +108,7 @@ func DynStrCharToByte(ch : char) -> char:
 endfunc
 
 func RoStrGetLength(text : ref SDqRoStrInfo) -> uint32:
-    if text.charlen & DQROSTR_CHARLEN_INVALID == 0:
+    if text.charlen & DQTIF_CHARLEN_INVALID == 0:
         return text.charlen
     endif
     var length : uint32

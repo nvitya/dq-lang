@@ -25,6 +25,7 @@
 
 #include "comp_config.h"
 #include "attributes.h"
+#include "rtlint.h"
 
 using namespace std;
 
@@ -252,40 +253,6 @@ public:
     }
     return nullptr;
   }
-};
-
-// Types
-
-enum ETypeKind
-{
-  TK_VOID         =  0,
-  TK_INT          =  1,
-  TK_FLOAT        =  2,
-  TK_BOOL         =  3,
-  TK_POINTER      =  4,
-  TK_ENUM         =  5,
-  TK_CHAR         =  6,
-
-  TK_CSTRING      =  8,
-  TK_STRVIEW      =  9,
-  TK_DYNSTR       = 10,
-  TK_ROSTR        = 11,
-
-  TK_ANYVALUE     = 15,
-
-  TK_STRUCT       = 16,
-  TK_OBJECT       = 17,
-  TK_UNION        = 18,
-
-  TK_ARRAY        = 20,
-  TK_ARRAY_SLICE  = 21,   // array descriptor {ptr, length} for function parameters
-  TK_DYN_ARRAY    = 22,   // owning dynamic array [*]T: ORawDynArray-compatible layout
-
-  TK_FUNCTION     = 28,
-  TK_FUNCREF      = 29,   // function variable (function pointer)
-  TK_OBJECT_TYPE  = 30,   // object type reference: type of TObject
-
-  TK_ALIAS        = 31,
 };
 
 class OExpr;

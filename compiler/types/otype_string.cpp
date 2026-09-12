@@ -15,6 +15,7 @@
 #include "dqc_ast.h"
 #include "otype_string.h"
 #include "otype_cstring.h"
+#include "rtlint.h"
 #include "scope_builtins.h"
 #include "expressions.h"
 #include "dqc.h"
@@ -23,10 +24,6 @@
 #include "otype_char.h"
 
 using namespace std;
-
-static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
-static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
-static constexpr uint32_t DQTIF_READONLY = 0x02000000;
 
 static LlType * LlPtrType()
 {
@@ -211,12 +208,12 @@ static LlValue * GeneratePointerTextInfo(OScope * scope, OExpr * expr)
 {
   (void)scope;
   LlValue * ptr = expr->Generate(scope);
-  uint32_t charlen = 0;
+  uint32_t charlen = DQTIF_CHARLEN_INVALID;
   uint32_t info = DQTI_MAXCHLEN_MASK;
   if (auto * lit = dynamic_cast<OCStringLit *>(expr))
   {
     charlen = uint32_t(lit->value.size());
-    info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID | DQTIF_READONLY;
+    info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
   }
   return TextInfoValue(ptr, charlen, info);
 }
@@ -227,7 +224,7 @@ static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
   LlValue * ch = ToCharValue(expr->Generate(scope));
   LlValue * bch = CallDynStrFunc(scope, "DynStrCharToByte", {ch});
   ll_builder.CreateStore(bch, tmp);
-  return TextInfoValue(tmp, 1, DQTIF_CHARLEN_VALID | DQTIF_READONLY | 1);
+  return TextInfoValue(tmp, 1, DQTIF_READONLY | 1);
 }
 
 static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
@@ -1047,16 +1044,16 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source)
   {
     ptr = source->Generate(scope);
     auto * literal = dynamic_cast<OCStringLit *>(source);
-    len = LlU32(literal ? uint32_t(literal->value.size()) : 0x80000000);
+    len = LlU32(literal ? uint32_t(literal->value.size()) : DQTIF_CHARLEN_INVALID);
   }
   else
   {
     LlValue * info = GenerateTextInfoValue(scope, source);
     ptr = ll_builder.CreateExtractValue(info, 0);
-    LlValue * flags = ll_builder.CreateExtractValue(info, 2);
-    LlValue * known = ll_builder.CreateICmpNE(
-        ll_builder.CreateAnd(flags, LlU32(DQTIF_CHARLEN_VALID)), LlU32(0));
-    len = ll_builder.CreateSelect(known, ll_builder.CreateExtractValue(info, 1), LlU32(0x80000000));
+    LlValue * charlen = ll_builder.CreateExtractValue(info, 1);
+    LlValue * known = ll_builder.CreateICmpEQ(
+        ll_builder.CreateAnd(charlen, LlU32(DQTIF_CHARLEN_INVALID)), LlU32(0));
+    len = ll_builder.CreateSelect(known, charlen, LlU32(DQTIF_CHARLEN_INVALID));
   }
   LlValue * value = llvm::UndefValue::get(GetLlType());
   value = ll_builder.CreateInsertValue(value, ptr, 0);
@@ -1087,7 +1084,7 @@ LlValue * OTypeRoStr::GenerateTextInfo(OScope * scope, OExpr * source)
     ll_builder.CreateStore(source->Generate(scope), addr);
   }
   LlValue * len = ToU32(GenerateLength(scope, addr));
-  LlValue * info = TextInfoValue(GeneratePChar(scope, addr), 0, DQTIF_READONLY | DQTIF_CHARLEN_VALID);
+  LlValue * info = TextInfoValue(GeneratePChar(scope, addr), 0, DQTIF_READONLY);
   return ll_builder.CreateInsertValue(info, len, 1);
 }
 

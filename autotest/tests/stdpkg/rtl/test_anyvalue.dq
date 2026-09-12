@@ -9,7 +9,7 @@ use rtl/strfunc
 func MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
     desc.dataptr = data
     desc.charlen = alen
-    desc.info = (alen & DQTI_MAXCHLEN_MASK) | DQTIF_CHARLEN_VALID
+    desc.info = alen & DQTI_MAXCHLEN_MASK
 endfunc
 
 func AnyMgr(v : ref SDqAnyValue) -> ODynStrMgr:

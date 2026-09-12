@@ -20,6 +20,7 @@
 #include "otype_array.h"
 #include "otype_cstring.h"
 #include "otype_string.h"
+#include "rtlint.h"
 #include "otype_func.h"
 #include "otype_compound.h"
 #include "otype_enum.h"
@@ -3088,9 +3089,6 @@ LlValue * OInvalidCallExpr::Generate(OScope * scope)
 
 // --- cstring expressions ---
 
-static constexpr uint32_t DQTI_MAXCHLEN_MASK = 0x00FFFFFF;
-static constexpr uint32_t DQTIF_CHARLEN_VALID = 0x01000000;
-
 /* ctor */ OCStringLit::OCStringLit(const string & avalue)
 {
   value = avalue;
@@ -3322,8 +3320,8 @@ void OCStringLValueToDescExpr::DeleteChildTree()
 LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
 {
   LlValue * ll_ptr = litexpr->Generate(scope);
-  uint32_t charlen = (litlen ? litlen - 1 : 0);
-  uint32_t info = (litlen ? charlen | DQTIF_CHARLEN_VALID : DQTI_MAXCHLEN_MASK);
+  uint32_t charlen = (litlen ? litlen - 1 : DQTIF_CHARLEN_INVALID);
+  uint32_t info = (litlen ? charlen : DQTI_MAXCHLEN_MASK);
 
   LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
   ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");

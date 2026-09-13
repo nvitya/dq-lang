@@ -28,7 +28,7 @@ func EqAsInt(a : int, b : int) -> int:
     endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("array_dynamic_operations = start\n") //?check("array_dynamic_operations", "start")
 
     var add : [*]int = [10, 20, 30]
@@ -100,5 +100,4 @@ func *Main() -> int:
     sized.Clear(true)
     printf("dynamic_clear_free = len:%li cap:%li\n", sized.length, sized.capacity) //?check("dynamic_clear_free", "len:0 cap:0")
 
-    return 0
 endfunc

@@ -57,7 +57,7 @@ func CalcSumPtr() -> int64:
 endfunc
 
 
-func *Main() -> int:
+func *Main():
     PrintLn('DynArray Test [DQ]')
 
     var maxval : int64 = default_maxval
@@ -99,6 +99,4 @@ func *Main() -> int:
     t2 = NanoTime()
     PrintLn('sum = {}', [sum])
     PrintLn('Total sum time: {} us', [(t2 - t1) div 1000])
-
-    return 0
 endfunc

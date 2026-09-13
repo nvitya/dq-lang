@@ -3,27 +3,33 @@
 
 func libc_getenv(name : ^char) -> ^char [[external('getenv')]]
 
-func *Main() -> int:
+func *Main():
     if libc_getenv('DQ_AUTOTEST_COMPILER') == nil:
-        return 1
+        exit_code = 1
+        return
     endif
     if libc_getenv('DQ_AUTOTEST_BINDIR') == nil:
-        return 2
+        exit_code = 2
+        return
     endif
     if libc_getenv('DQ_AUTOTEST_TEST_ROOT') == nil:
-        return 3
+        exit_code = 3
+        return
     endif
     if libc_getenv('DQ_AUTOTEST_TEST_FILE') == nil:
-        return 4
+        exit_code = 4
+        return
     endif
     if libc_getenv('DQ_AUTOTEST_TEST_DIR') == nil:
-        return 5
+        exit_code = 5
+        return
     endif
     if libc_getenv('DQ_AUTOTEST_HOSTARCH') == nil:
-        return 6
+        exit_code = 6
+        return
     endif
     if ArgCount() <> 1:
-        return 7
+        exit_code = 7
+        return
     endif
-    return 0
 endfunc

@@ -115,8 +115,7 @@ func test_tryfrom():
     delete o3
 endfunc
 
-func *Main() -> int:
+func *Main():
     test_is()
     test_tryfrom()
-    return 0
 endfunc

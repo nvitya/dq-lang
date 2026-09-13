@@ -13,7 +13,7 @@ func IsSuccess(value : NResult) -> bool:
     result = value == success
 endfunc
 
-func *Main() -> int:
+func *Main():
     var connection : NConnection = unknown
     var result_value : NResult = unknown
 
@@ -32,5 +32,4 @@ func *Main() -> int:
            int(NConnection.unknown.ord), int(NResult.unknown.ord))
     //?check("enum.contextual.qualified", "0 0")
 
-    return 0
 endfunc

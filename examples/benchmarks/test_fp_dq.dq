@@ -39,51 +39,49 @@ endfunc
 //---------------------------------------------------------------------------------------
 
 func FpBench_f32(f1 : float32, f2 : float32, iterations : int) -> float32:
-		result = 1.0
-		for i : int = 0 count iterations:
-			result *= f1
-			result /= f2
-		endfor
+	result = 1.0
+	for i : int = 0 count iterations:
+		result *= f1
+		result /= f2
+	endfor
 endfunc
 
 func FpBench_f64(f1 : float64, f2 : float64, iterations : int) -> float64:
-		result = 1.0
-		for i : int = 0 count iterations:
-			result *= f1
-			result /= f2
-		endfor
+	result = 1.0
+	for i : int = 0 count iterations:
+		result *= f1
+		result /= f2
+	endfor
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('Floating Point Benchmark [DQ]')
 
-		var f1 : float64 = default_f1
-		var f2 : float64 = default_f2
+	var f1 : float64 = default_f1
+	var f2 : float64 = default_f2
     var million_iter : int = default_million_iter
 
     var ans : float64
 		var tstart : float64
     var tend : float64
 
-		if ArgCount() > 1:
-			million_iter = StrToInt(ArgStr(1), million_iter)
+	if ArgCount() > 1:
+		million_iter = StrToInt(ArgStr(1), million_iter)
     endif
 
-		var iterations : int = million_iter * 1000000
+	var iterations : int = million_iter * 1000000
 
-		PrintLn("FP32 benchmark with F1={}, F2={}, million_iterations={}:", [f1, f2, million_iter])
-		tstart = MilliTime()
-		ans = FpBench_f32(f1, f2, iterations)
-		tend = MilliTime()
-		PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
-		PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
+	PrintLn("FP32 benchmark with F1={}, F2={}, million_iterations={}:", [f1, f2, million_iter])
+	tstart = MilliTime()
+	ans = FpBench_f32(f1, f2, iterations)
+	tend = MilliTime()
+	PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
+	PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
 
-		PrintLn("FP64 benchmark with F1={}, F2={}, million_iterations={}:", [f1, f2, million_iter])
-		tstart = MilliTime()
-		ans = FpBench_f64(f1, f2, iterations)
-		tend = MilliTime()
-		PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
-		PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
-
-    return 0
+	PrintLn("FP64 benchmark with F1={}, F2={}, million_iterations={}:", [f1, f2, million_iter])
+	tstart = MilliTime()
+	ans = FpBench_f64(f1, f2, iterations)
+	tend = MilliTime()
+	PrintLn("  ans = {}, time = {:.3f} ms", [ans, tend - tstart])
+	PrintLn("  {} loop/msec", [Floor(iterations/(tend - tstart))])
 endfunc

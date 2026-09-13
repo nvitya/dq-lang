@@ -19,7 +19,7 @@ func PrintArr2(astr : strview):
     endfor
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ Multi-dimensional array test')  //?ignore('DQ Multi-dimensional array test')
 
     mdda.Append([1,2,3])
@@ -32,5 +32,4 @@ func *Main() -> int:
     //?check('mdda.row[1]', '[11, 22, 33, 44]')
     //?check('mdda.row[2]', '[161, 162]')
 
-    return 0
 endfunc

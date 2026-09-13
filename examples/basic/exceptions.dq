@@ -16,9 +16,8 @@ func TestFunc():
     FailFunc()
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ Custom Exception Test')
     TestFunc()
-    return 0
 endfunc
 

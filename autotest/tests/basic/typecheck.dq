@@ -24,7 +24,7 @@ object TObjectRootScopeFuncCheck:
 endobject
 
 blabla  //?error(ModStatementUnknown)
-func *Main() -> int:
+func *Main():
     var i : int = 0
     var f : float = 0
     i = 3 / 2       //?error(TypeMismatchAssign)
@@ -57,5 +57,4 @@ func *Main() -> int:
     var s2 : cstring(11) = ""
     s1 = s2
 
-    return 0
 endfunc

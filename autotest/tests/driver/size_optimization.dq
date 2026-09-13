@@ -19,8 +19,8 @@ func CheckOptimization(option : strview, expect_minsize : bool):
     RemoveTemp(output)
 endfunc
 
-func *Main() -> int:
+func *Main():
     CheckOptimization('-Os', false)
     CheckOptimization('-Oz', true)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

@@ -1,13 +1,13 @@
 /* This recursive Fibonacci calculation benchmark seems to be standard for testing compiled languages.
    I think it is pretty irrelevant for the real-life benchmarks, as it is a very inefficient,
    because the number of calls used internally grow exponentially with the n.
-   The run-time with argument 47 measured in seconds on a very fast CPUs too. 
+   The run-time with argument 47 measured in seconds on a very fast CPUs too.
    This is pretty bad for adding 47 numbers together...
 
    DQ achieves ideal code with the -O3 --lto, where the assembly does not contain any unnecessary
    instructions.
 
-   GCC with -O2 or -O3 runs twice as fast, because the compiler does a lot of heuristics 
+   GCC with -O2 or -O3 runs twice as fast, because the compiler does a lot of heuristics
    that I don't event try to understand. The generated assembly is 10x as long as at the DQ.
 
 */
@@ -42,8 +42,7 @@ func Fibonacci(n : uint64) -> uint64:
     endwhile
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('{}', [FibonacciRecursive(47)])
     //PrintLn('{}', [Fibonacci(47)])
-    return 0
 endfunc

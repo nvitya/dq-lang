@@ -64,7 +64,7 @@ public
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var o <- OMethodUse()
     o.FIELD_A = 20
 
@@ -77,5 +77,4 @@ func *Main() -> int:
     printf("method_use.nomerge = %d\n", o.WarnNoMerge())        //?check("method_use.nomerge", 5)
     printf("method_use.local_ns = %d\n", o.LocalNamespaceOnly()) //?check("method_use.local_ns", 5)
 
-    return 0
 endfunc

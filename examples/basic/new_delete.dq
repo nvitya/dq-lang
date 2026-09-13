@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-func *Main() -> int:
+func *Main():
     printf("DQ new, delete test\n")
 
     // using functions
@@ -34,6 +34,4 @@ func *Main() -> int:
     var pint3 = new int(3)
     printf("pint3 = %d\n", pint3^)
     delete pint3 // deletes the pint3
-
-    return 0
 endfunc

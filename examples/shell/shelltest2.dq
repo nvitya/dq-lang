@@ -1,7 +1,7 @@
 use print
 use time
 
-func *Main() -> int:
+func *Main():
     PrintLn('Shell time test')
 
     var t1 : float64
@@ -27,5 +27,4 @@ func *Main() -> int:
         PrintLn('time diff-{} = {}', [i, t2-t1])
     endfor
 
-    return 0
 endfunc

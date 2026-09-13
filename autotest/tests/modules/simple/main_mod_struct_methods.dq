@@ -2,12 +2,11 @@ use ./mod_struct_methods
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     var s : SModChild = {}
     s.SetAll(4, 9)
 
     printf("module struct total=%d\n", s.Total()) //?check("module struct total", 13)
     printf("module struct base field=%d\n", s.id) //?check("module struct base field", 4)
 
-    return 0
 endfunc

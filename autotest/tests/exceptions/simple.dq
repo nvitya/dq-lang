@@ -2,7 +2,7 @@
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     try:
         raise Exception("hello")
     except Exception as e:
@@ -13,5 +13,4 @@ func *Main() -> int:
         printf("exception.finally = ran\n")  //?check("exception.finally", "ran")
     endtry
 
-    return 0
 endfunc

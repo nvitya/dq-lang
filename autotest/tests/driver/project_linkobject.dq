@@ -5,7 +5,7 @@ use file
 
 var run <- OTestRun()
 
-func *Main() -> int:
+func *Main():
     var object_path : str = TempPath('.o')
     var project_path : str = TempPath('.dqproj')
     var executable_path : str = TempPath('.exe')
@@ -36,5 +36,5 @@ func *Main() -> int:
     RemoveTemp(executable_path)
     RemoveTemp(project_path)
     RemoveTemp(object_path)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

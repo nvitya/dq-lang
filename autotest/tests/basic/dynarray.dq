@@ -55,7 +55,7 @@ func dyn_global() -> int:
     result = sum_slice(garr[:])
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("Testing DQ dynamic arrays:\n")  //?ignore('Testing DQ dynamic arrays:')
 
     var r : int
@@ -71,5 +71,4 @@ func *Main() -> int:
     r = dyn_global()
     printf("dyn_global() = %li\n", r)  //?check('dyn_global()', 15)
 
-    return 0
 endfunc

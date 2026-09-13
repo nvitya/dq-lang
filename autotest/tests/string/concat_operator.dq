@@ -28,7 +28,7 @@ func PrintText(label : ^char, text : strview):
     printf("\"\n")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_concat_operator = start\n") //?check("string_concat_operator", "start")
 
     var s : str = "ab"
@@ -55,5 +55,4 @@ func *Main() -> int:
     PrintText("concat_copy_source", s) //?check("concat_copy_source", '[2] "ab"')
     PrintText("concat_copy_result", copy) //?check("concat_copy_result", '[2] "Xb"')
 
-    return 0
 endfunc

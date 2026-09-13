@@ -22,7 +22,7 @@ object OCallback:
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var obj <- OCallback()
     var obj_text : FObjText = nil
     var obj_int : FObjInt = nil
@@ -36,5 +36,4 @@ func *Main() -> int:
     obj_int = obj.Pick
     obj_float = obj.Pick  //?error(OverloadNoMatch)
 
-    return 0
 endfunc

@@ -6,7 +6,7 @@ enum NState = (idle, running, stopped)
 func SetColor(color : NColor):
 endfunc
 
-func *Main() -> int:
+func *Main():
     var color : NColor = red
     var state : NState = idle
 
@@ -28,5 +28,4 @@ func *Main() -> int:
     var bad_output : NState = idle
     NColor.TryFromOrd(1, bad_output) //?error(FuncArgRefType)
 
-    return 0
 endfunc

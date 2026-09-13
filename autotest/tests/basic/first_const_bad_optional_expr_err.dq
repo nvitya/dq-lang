@@ -1,6 +1,5 @@
 const KNOWN_VALUE : int = 1
 const SELECTED : int = FirstInt(KNOWN_VALUE + 1, MISSING_VALUE, 0) //?error(FuncArgList), error(ExprWrongValue)
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

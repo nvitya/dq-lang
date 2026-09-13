@@ -109,12 +109,12 @@ endfunc
 
 var g_scene : OTestScene
 
-func *Main() -> int:
+func *Main():
     PrintLn('DdGfx for DQ Test 1')
 
     if GlfwInit() == GLFW_FALSE:
         PrintLn('Could not initialize GLFW')
-        return 1
+        Exit(1)
     endif
 
     // DdGfx uses shaders, vertex-array objects, and vertex buffers.  A
@@ -127,7 +127,7 @@ func *Main() -> int:
     if window == nil:
         PrintLn('Could not create the OpenGL window')
         GlfwTerminate()
-        return 1
+        Exit(1)
     endif
 
     GlfwMakeContextCurrent(window)
@@ -150,5 +150,4 @@ func *Main() -> int:
     delete g_scene = nil
     GlfwDestroyWindow(window)
     GlfwTerminate()
-    return 0
 endfunc

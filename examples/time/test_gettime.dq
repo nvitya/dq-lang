@@ -2,7 +2,7 @@
 use print
 use ./nanotime
 
-func *Main() -> int:
+func *Main():
     PrintLn('Time measurement test')
 
     var iarr : [8]int64
@@ -20,5 +20,4 @@ func *Main() -> int:
     PrintLn('td2={}', [iarr[2] - iarr[1]])
     PrintLn('td3={}', [iarr[3] - iarr[2]])
 
-    return 0
 endfunc

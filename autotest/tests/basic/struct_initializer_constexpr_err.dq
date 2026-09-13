@@ -9,6 +9,5 @@ endfunc
 
 const BAD_STRUCT_CONST : SConstExprInit = { RuntimeStructMember(), 2 } //?error(IntConstExpr), error(ConstExprInvalid)
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

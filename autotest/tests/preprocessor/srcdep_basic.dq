@@ -7,7 +7,6 @@ implementation
 
 #include "srcdep_basic_impl.dqi"
 
-func *Main() -> int:
+func *Main():
     printf("srcdep value = %d\n", SrcDepValue()) //?check("srcdep value", 44)
-    return 0
 endfunc

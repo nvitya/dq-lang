@@ -21,7 +21,7 @@ endfunc
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     regs.RW = 10
     regs.RW += 2
     regs.WO = 20
@@ -42,5 +42,4 @@ func *Main() -> int:
 
     printf("mmio attrs = %u %u %u %u %u\n", regs.RW, regs.RO, wo_ref, regs.RW_ARRAY[1], regs.PLAIN_RO)
     //?check("mmio attrs", "12 31 20 6 0")
-    return 0
 endfunc

@@ -1,6 +1,5 @@
 use ./mod_flatten_select
 
-func *Main() -> int:
-    result = 0
+func *Main():
     var hidden : SHiddenPayload //?error(TypeUnknown)
 endfunc

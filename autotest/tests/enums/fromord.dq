@@ -4,7 +4,7 @@ func printf(fmt : ^char, ...) -> int [[external]]
 
 enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 
-func *Main() -> int:
+func *Main():
     var direct : NState = NState.FromOrd(10)
     var fallback_valid : NState = NState.FromOrd(20, idle)
     var fallback_invalid : NState = NState.FromOrd(11, idle)
@@ -23,5 +23,4 @@ func *Main() -> int:
     printf("enum.fromord.try_invalid = %li %li\n", int(invalid), int(output.ord))
     //?check("enum.fromord.try_invalid", "0 10")
 
-    return 0
 endfunc

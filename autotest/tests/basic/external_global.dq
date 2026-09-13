@@ -4,7 +4,6 @@ func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]]
 
 var stdout : pointer [[external]]
 
-func *Main() -> int:
+func *Main():
     fprintf(stdout, "external global = %d\n", 42)  //?check("external global", 42)
-    return 0
 endfunc

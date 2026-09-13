@@ -16,7 +16,7 @@ func PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
     printf("\n")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf('DQ Raw Dynamic Array test\n')
 
     #if not @def.EMBED
@@ -54,5 +54,4 @@ func *Main() -> int:
 
     printf("test finished.\n")
 
-    return 0
 endfunc

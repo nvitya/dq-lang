@@ -2,7 +2,7 @@
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     var value : int = 10
     var p : ^int = %value
     p^ += 2
@@ -42,5 +42,4 @@ func *Main() -> int:
 
     var division_value : int = 5
     printf("word_boundary = %d\n", division_value) //?check("word_boundary", 5)
-    return 0
 endfunc

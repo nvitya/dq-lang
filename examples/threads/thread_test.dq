@@ -62,18 +62,18 @@ func ThreadFunc2(arg : pointer) -> pointer:
     return nil
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ Threading Test')
     PrintLn('Starting threads...')
 
     if not thr1.StartFunc(ThreadFunc1, nil):
         PrintLn('Unable to start thread 1.')
-        return 1
+        Exit(1)
     endif
     if not thr2.StartFunc(ThreadFunc2, nil):
         PrintLn('Unable to start thread 2.')
         thr1.Join()
-        return 1
+        Exit(1)
     endif
 
     //thr3.StartMethod(ot1.ThreadFunc, nil)
@@ -89,5 +89,4 @@ func *Main() -> int:
 
     PrintLn('Exiting main.')
     PrintLn()
-    return 0
 endfunc

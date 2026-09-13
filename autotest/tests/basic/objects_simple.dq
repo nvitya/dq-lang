@@ -42,7 +42,7 @@ endfunc
 
 var g_elem : OElem = nil
 
-func *Main() -> int:
+func *Main():
     printf('DQ Object test\n')  //?ignore('DQ Object test')
 
     if g_elem == nil:
@@ -65,5 +65,4 @@ func *Main() -> int:
     printf('elem.Pick(5) = %d\n', elem.Pick(5)) //?check('elem.Pick(5)', 7)
     printf('elem.Pick(2.4) = %d\n', elem.Pick(2.4)) //?check('elem.Pick(2.4)', 12)
 
-    return 0
 endfunc

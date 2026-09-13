@@ -78,7 +78,7 @@ const MERGED_DEFINE_VALUE : int = NEXT_TARGET
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     const SHADOWED_LEVEL : int = 3
     const PARENT_LEVEL : int = 5
 
@@ -125,5 +125,4 @@ func *Main() -> int:
     printf("qualified ifndef = %d\n", qualified_ifndef_branch) //?check("qualified ifndef", 92)
     printf("qualified elifdef = %d\n", qualified_elifdef_branch) //?check("qualified elifdef", 93)
     printf("qualified elifndef = %d\n", qualified_elifndef_branch) //?check("qualified elifndef", 94)
-    return 0
 endfunc

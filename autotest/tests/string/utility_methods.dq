@@ -49,7 +49,7 @@ func Flag(v : bool) -> int:
     endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_utility_methods = start\n") //?check("string_utility_methods", "start")
 
     var spaced : str = " \t\nabc\r\n "
@@ -85,5 +85,4 @@ func *Main() -> int:
     PrintText("cstring_trim", cs.Trim()) //?check("cstring_trim", '[3] "abc"')
     printf("cstring_indexof = %li\n", cs.IndexOf('b')) //?check("cstring_indexof", 3)
 
-    return 0
 endfunc

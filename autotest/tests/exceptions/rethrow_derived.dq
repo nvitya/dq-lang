@@ -23,7 +23,7 @@ func Rethrower():
     endtry
 endfunc
 
-func *Main() -> int:
+func *Main():
     try:
         ThrowDerived()
     except Exception as e:
@@ -40,5 +40,4 @@ func *Main() -> int:
         printf("\n")
     endtry
 
-    return 0
 endfunc

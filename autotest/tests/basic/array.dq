@@ -100,7 +100,7 @@ func dq_arr_prefix_combos() -> int:
 
     result = pa^[1] + ap[2]^ + matrix[1][2]
 endfunc
-func *Main() -> int:
+func *Main():
     printf("Testing DQ arrays:\n")  //?ignore('Testing DQ arrays:')
 
     var r : int
@@ -134,7 +134,6 @@ func *Main() -> int:
     printf("dq_arr_modify() = %li\n", r)  //?check('dq_arr_modify()', 999)
     printf("dq_arr_modify source = %li\n", a[0])  //?check('dq_arr_modify source', 999)
 
-    return 0
 endfunc
 
 #endif

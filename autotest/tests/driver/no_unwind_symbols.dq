@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-func *Main() -> int:
+func *Main():
     var binary : str = TempPath('.elf')
     run.RunCompiler([
         '-o', binary, SourcePath('../project/arm_no_exceptions.dqproj')
@@ -20,5 +20,5 @@ func *Main() -> int:
     endif
 
     RemoveTemp(binary)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

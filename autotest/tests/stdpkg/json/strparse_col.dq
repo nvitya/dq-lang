@@ -3,7 +3,7 @@
 use libc/stdio
 use strparse
 
-func *Main() -> int:
+func *Main():
     var text : str = 'abc\ndef\r\nxy'
     var sp <- OStrParse(text)
 
@@ -19,5 +19,4 @@ func *Main() -> int:
     printf("strparse.col.eof = %d\n", sp.GetColNum(sp.bufend))
     //?check("strparse.col.eof", 3)
 
-    return 0
 endfunc

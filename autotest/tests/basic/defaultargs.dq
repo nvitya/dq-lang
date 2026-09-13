@@ -23,7 +23,7 @@ func dq_ptr_default(p : ^int = nil) -> int:
 endfunc
 
 func printf(fmt : ^char, value : int = 77, ...) -> int [[external]]
-func *Main() -> int:
+func *Main():
     var x : int = 12
 
     printf("dq_sum(3) = %li\n", dq_sum(3))  //?check('dq_sum(3)', 2)
@@ -39,5 +39,4 @@ func *Main() -> int:
 
     printf("dq_printf_default() = %d\n")  //?check('dq_printf_default()', 77)
 
-    return 0
 endfunc

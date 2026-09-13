@@ -141,7 +141,7 @@ func RunSlicesOverlap(ti : ^SDqTypeInfo):
     DynArrDecRef(arr)
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("DQ ODynArrMgr test\n") //?ignore("DQ ODynArrMgr test")
 
     var ti : SDqTypeInfo = {}
@@ -174,5 +174,4 @@ func *Main() -> int:
                            //?check("overlap-append", "len:8, cap:8, data: [1,2,3,4,1,2,3,4]")
                            //?check("overlap-insert-cross", "len:6, cap:8, data: [1,2,2,3,3,4]")
 
-    return 0
 endfunc

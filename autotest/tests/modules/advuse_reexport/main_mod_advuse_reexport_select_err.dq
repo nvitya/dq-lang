@@ -1,7 +1,6 @@
 use ./mod_advuse_reexport_facade_only_err as onlyf
-func *Main() -> int:
+func *Main():
     var i : int
     i = HIDDEN_VAL  //?error(VsUnknown)
     i = ONLY_VAL    //?error(VsUnknown)
-    return 0
 endfunc

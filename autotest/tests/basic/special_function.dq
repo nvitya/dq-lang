@@ -4,7 +4,6 @@ func *ModuleInit():
     printf("special.module_init = done\n") //?check("special.module_init", "done")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("special.main = done\n") //?check("special.main", "done")
-    return 0
 endfunc

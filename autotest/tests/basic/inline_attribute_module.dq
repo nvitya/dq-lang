@@ -4,9 +4,8 @@ use ./inline_attribute_public
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     var value : int = 41
     value = AddOne(value)
     printf("cross-module inline attribute = %d\n", value)  //?check("cross-module inline attribute", 42)
-    return 0
 endfunc

@@ -26,7 +26,7 @@ func IsMunchausen(number : int32) -> bool:
     return total == number
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ')
     SetCache()
     for i : int = 0  while i < LIMIT:
@@ -34,5 +34,4 @@ func *Main() -> int:
             PrintLn('{}', [i])
         endif
     endfor
-    return 0
 endfunc

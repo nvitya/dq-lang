@@ -51,7 +51,7 @@ endfunc
 
 var svr : ONanoServer
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ NanoNet - SimpleBin Server')
 
     svr = new ONanoServer(OSConnectionSimple, 4444)
@@ -69,5 +69,4 @@ func *Main() -> int:
         PrintFlush()
     endwhile
 
-    return 0
 endfunc

@@ -18,8 +18,7 @@ func ConditionalAdd(value : int, value2 : int) -> int [[inline, asm]]:
     #endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("inline_asm.source_processing = %li\n", ConditionalAdd(19, 23))
     //?check("inline_asm.source_processing", 42)
-    return 0
 endfunc

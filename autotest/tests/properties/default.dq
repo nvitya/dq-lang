@@ -44,7 +44,7 @@ public
     property last_item : [index : int]int default read GetLast write SetLast
 endobject
 
-func *Main() -> int:
+func *Main():
     var child <- ODefaultChild()
     var base : ODefaultBase = child
 
@@ -60,5 +60,4 @@ func *Main() -> int:
            child.last_item[1], child.first_item[1], base.base_item[1])
     //?check("property.default.write", "2222 200 22")
 
-    return 0
 endfunc

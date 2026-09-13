@@ -11,7 +11,7 @@ object OThrower:
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var t <- OThrower()
 
     try:
@@ -24,5 +24,4 @@ func *Main() -> int:
         //?check("exception.object_call", "object throw reached=0")
     endtry
 
-    return 0
 endfunc

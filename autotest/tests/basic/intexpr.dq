@@ -65,7 +65,7 @@ func sum_ints2(a : int, b : int) -> int
 func mask_bit(a : int, bitnum : int) -> int:
     result = a & 1 << bitnum
 endfunc
-func *Main() -> int:
+func *Main():
     var i : int
 
     printf("DQ Integer expression test\n")  //?ignore('DQ Integer expression test')
@@ -221,5 +221,4 @@ func *Main() -> int:
     endif
     //?check('scsmall-scuint5', 'negative')
 
-    return 0
 endfunc

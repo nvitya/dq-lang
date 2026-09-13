@@ -13,7 +13,7 @@ func sum3(a : int, b : int, c : int) -> int:
 endfunc
 
 func printf(fmt : ^char, ...) -> int [[external]]
-func *Main() -> int:
+func *Main():
     var cb : CBOne = add
     var cb_src : CBSrc = add
     var cb_dst : CBOne = cb_src
@@ -28,5 +28,4 @@ func *Main() -> int:
     printf("cb_many(1, 5) = %li\n", cb_many(1, 5))  //?check('cb_many(1, 5)', 9)
     printf("cb_many(1, 5, 7) = %li\n", cb_many(1, 5, 7))  //?check('cb_many(1, 5, 7)', 13)
 
-    return 0
 endfunc

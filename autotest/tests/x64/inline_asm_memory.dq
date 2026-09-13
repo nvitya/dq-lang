@@ -45,7 +45,7 @@ func AddRef32(address : ref int32, value : int32) [[inline, asm]]:
     [[memreadwrite(address), clobber(flags)]]
 endfunc
 
-func *Main() -> int:
+func *Main():
     var source : int32 = 123456789
     printf("inline_asm.memory.load = %li\n", int(Load32(%source)))
     //?check("inline_asm.memory.load", 123456789)
@@ -79,5 +79,4 @@ func *Main() -> int:
     printf("inline_asm.memory.refwrite = %li\n", int(ref_destination))
     //?check("inline_asm.memory.refwrite", 42)
 
-    return 0
 endfunc

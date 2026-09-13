@@ -218,7 +218,7 @@ INSERT INTO capitals (CITY, COUNTRY, CONTINENT) VALUES
 """
 
 
-func *Main() -> int:
+func *Main():
     PrintLn('SQLite test')
 
     // delete the previous database
@@ -269,6 +269,4 @@ func *Main() -> int:
     while query.Step():
         PrintLn('{} - {}', [query.ColumnText(0), query.ColumnInt(1)])
     endwhile
-
-    return 0
 endfunc

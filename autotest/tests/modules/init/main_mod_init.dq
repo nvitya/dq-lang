@@ -4,7 +4,7 @@ use ./mod_init_a
 use ./mod_init_b
 use ./mod_generated_init
 
-func *Main() -> int:
+func *Main():
 
     //?check("Module.init.A", "done")
     //?check("Module.init.B", "done")
@@ -12,5 +12,4 @@ func *Main() -> int:
     printf("Module.generated.init = %d\n", generated_init_value) //?check("Module.generated.init", 73)
     printf("Module.init.main = done\n") //?check("Module.init.main", "done")
 
-    return 0
 endfunc

@@ -30,7 +30,7 @@ func PrintText(label : ^char, text : strview):
     printf("\n")
 endfunc
 
-func *Main() -> int:
+func *Main():
     var double_quoted : str = """
         first
           second
@@ -48,5 +48,4 @@ func *Main() -> int:
     PrintText("single", single_quoted) //?check(single, [12] alpha\n  beta)
     PrintText("escaped", escaped) //?check(escaped, [14] first\nsecond\t\\)
     PrintText("inline", inline) //?check(inline, [18] both "quote" kinds)
-    return 0
 endfunc

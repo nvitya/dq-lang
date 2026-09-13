@@ -19,7 +19,7 @@ func DynArrayCreate(acnt : int) -> [*]int:
     endwhile
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("array_dynamic_basics = start\n") //?check("array_dynamic_basics", "start")
 
     var empty : [*]int
@@ -103,5 +103,4 @@ func *Main() -> int:
     var darr_ret : [*]int = DynArrayCreate(5)
     PrintArray('dynarray_ret', darr_ret)  //?check('dynarray_ret', 'len:5 data: 1 2 3 4 5')
 
-    return 0
 endfunc

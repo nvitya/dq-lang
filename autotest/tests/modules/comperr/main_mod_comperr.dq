@@ -2,6 +2,5 @@
 //?notest
 
 use ./mod_comperr  //?error(UseRegenFailed)
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

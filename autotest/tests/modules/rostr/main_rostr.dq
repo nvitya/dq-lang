@@ -4,11 +4,10 @@ use libc/stdio
 const IMPORTED : rostr = MODULE_TEXT
 var imported_global : rostr = MODULE_ALIAS
 
-func *Main() -> int:
+func *Main():
     var text : rostr = Borrow()
     var cell : SModuleText = {text: MODULE_TEXT}
     var array : [2]TText = [MODULE_TEXT, MODULE_ALIAS]
     printf("module = %s:%s:%s:%s\n", text, IMPORTED, imported_global, module_global) //?check("module", "module:module:module:global")
     printf("aggregate = %s:%s:%li\n", cell.text, array[1], ReadLength(text)) //?check("aggregate", "module:module:6")
-    return 0
 endfunc

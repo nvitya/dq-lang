@@ -48,7 +48,7 @@ var fixed_values : [FirstInt(MISSING_ARRAY_SIZE, 3)]int
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     const SHADOWED : int = 33
     const LOCAL_INT : int = FirstInt(MISSING_LOCAL, SHADOWED, 0)
     var inline_value : int = #{if FirstBool(MISSING_INLINE_BOOL, ROOT_BOOL, false)} 24 #{else} 0 #{endif}
@@ -77,5 +77,4 @@ func *Main() -> int:
     printf("directive value = %d\n", DIRECTIVE_VALUE)         //?check("directive value", 22)
     printf("elif value = %d\n", ELIF_VALUE)                   //?check("elif value", 23)
     printf("inline value = %d\n", inline_value)               //?check("inline value", 24)
-    return 0
 endfunc

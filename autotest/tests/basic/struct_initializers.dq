@@ -67,7 +67,7 @@ func RuntimeValue(a : int) -> int:
     return a + 4
 endfunc
 
-func *Main() -> int:
+func *Main():
     const LOCAL_POINT : SPoint = { 37, 38, 39 }
     var positional : SPoint = { 1, 2, 3 }
     var named : SPoint = { z: 6, x: 4, y: 5 }
@@ -111,5 +111,4 @@ func *Main() -> int:
     printf("struct literal const nested=%d\n", SumPoint(ROOT_POINTS[1]) + SumPoint(ROOT_NESTED.point) + ROOT_NESTED.values[1] + SumPoint(ROOT_ZERO_POINTS[0])) //?check("struct literal const nested", 30)
     printf("struct literal const layouts=%d\n", ROOT_DERIVED.base_b + ROOT_DERIVED.child + int(ROOT_PACKED.byte) + ROOT_PACKED.value) //?check("struct literal const layouts", 38)
 
-    return 0
 endfunc

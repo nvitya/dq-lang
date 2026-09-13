@@ -48,7 +48,7 @@ func ContinueWithLocals():
     printf("cleanup.continue.done = %d\n", count)
 endfunc
 
-func *Main() -> int:
+func *Main():
     try:
         ThrowWithLocals()       //?check("cleanup.create.1", 1)
                                 //?check("cleanup.create.2", 1)
@@ -68,5 +68,4 @@ func *Main() -> int:
                               //?check("cleanup.destroy.4", 1)
                               //?check("cleanup.continue.done", 1)
 
-    return 0
 endfunc

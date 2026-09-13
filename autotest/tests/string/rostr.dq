@@ -28,7 +28,7 @@ func CStringBorrow(text : cstring) -> rostr:
     return text
 endfunc
 
-func *Main() -> int:
+func *Main():
     var raw : ^char = "pointer"
     var text : rostr = raw
     var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%text)
@@ -101,5 +101,4 @@ func *Main() -> int:
     printf("charlit = %s:%li\n", charlit, charlit.length) //?check("charlit", "x:1")
     var formatted : str = Format("{}:{}", [text, borrowed.length])
     printf("format = %s\n", formatted.pchar) //?check("format", "pointer:4")
-    return 0
 endfunc

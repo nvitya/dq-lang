@@ -1048,7 +1048,8 @@ bool ODqCompAst::SpecialFunctionSignatureIsValid(OValSymFunc * vsfunc)
 
   if (SFK_MAIN == vsfunc->special_kind)
   {
-    return tfunc->rettype && (tfunc->rettype->ResolveAlias() == g_builtins->native_int);
+    OType * rettype = tfunc->rettype ? tfunc->rettype->ResolveAlias() : nullptr;
+    return !rettype || (TK_VOID == rettype->kind);
   }
 
   if (SFK_MODULE_INIT == vsfunc->special_kind)

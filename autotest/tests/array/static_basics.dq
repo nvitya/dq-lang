@@ -37,7 +37,7 @@ func TakesSlice(arr : []int) -> int:
     result = Sum(arr)
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("array_static_basics = start\n") //?check("array_static_basics", "start")
 
     var zero : [3]int
@@ -70,5 +70,4 @@ func *Main() -> int:
     var i16arr : [?]int16 = [30000, -1234, 42]
     printf("int16array = len:%li data: %d %d %d\n", i16arr.length, int(i16arr[0]), int(i16arr[1]), int(i16arr[2])) //?check('int16array', 'len:3 data: 30000 -1234 42')
 
-    return 0
 endfunc

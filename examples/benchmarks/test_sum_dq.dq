@@ -26,7 +26,7 @@ func CalcSum(amax : int64) -> int64:
     endfor
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('Sum time test [DQ]')
 
     var maxval : int64 = 100000000
@@ -47,6 +47,4 @@ func *Main() -> int:
 
     PrintLn('sum = {}', [sum])
     PrintLn('Total exec time: {} ns', [t2 - t1])
-
-    return 0
 endfunc

@@ -33,7 +33,7 @@ func SChild.Mul(factor : int) -> int:
     return self.Sum() * factor
 endfunc
 
-func *Main() -> int:
+func *Main():
     var s : SChild = {}
     s.SetAll(5, 7)
     s.tag = "ok"
@@ -44,5 +44,4 @@ func *Main() -> int:
     printf("struct qualified mul=%d\n", s.Mul(3)) //?check("struct qualified mul", 39)
     printf("struct inherited field=%d\n", s.id) //?check("struct inherited field", 5)
 
-    return 0
 endfunc

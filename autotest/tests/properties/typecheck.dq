@@ -76,7 +76,7 @@ public
     property bad_index_setter : [int]int write SetIndexedWrongOrder //?error(PropertyAccessorSignature)
 endobject
 
-func *Main() -> int:
+func *Main():
     var obj <- OPropertyTypecheck()
 
     var read_writeonly : int = obj.writeonly //?error(PropertyWriteOnly)
@@ -86,5 +86,4 @@ func *Main() -> int:
     obj.good = 1.5 //?error(TypeMismatchAssign)
     obj.good_indexed[1] = 1.5 //?error(TypeMismatchAssign)
 
-    return 0
 endfunc

@@ -32,7 +32,7 @@ func IsPrimeArr(num : int) -> bool:
 endfunc
 
 
-func *Main() -> int:
+func *Main():
     printf('DQ Prime Search\n')
 
     var limit : int = 100
@@ -57,6 +57,4 @@ func *Main() -> int:
         printf(' %d', prarr[i])
     endfor
     printf("\n")
-
-    return 0
 endfunc

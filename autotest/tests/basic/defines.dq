@@ -12,7 +12,7 @@ var g_var : int = 555
 // #define STRVAL = "Defined String"  // string defines not supported yet
 
 func printf(fmt : ^char, ...) -> int [[external]]
-func *Main() -> int:
+func *Main():
     printf('Testing defines...\n')  //?ignore('Testing defines...')
 
     #ifdef BOOLVAL
@@ -62,5 +62,4 @@ func *Main() -> int:
 
     // @def.MAXVAL = 123;   // this should fail
 
-    return 0
 endfunc

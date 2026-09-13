@@ -89,7 +89,7 @@ func ReadTest():
     PrintLn()
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ JSON test')
 
     PrintLn('Test file name: "{}"', [TEST_FILE_NAME])
@@ -97,6 +97,4 @@ func *Main() -> int:
     WriteTest()
 
     ReadTest()
-
-    return 0
 endfunc

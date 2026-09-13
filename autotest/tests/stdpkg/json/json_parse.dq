@@ -88,7 +88,7 @@ func PrintForcePathApi():
     PrintLn('json.force.result = {}', [j.json])
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintJson("json.parse.nested", '{"s":"a\\"b\\\\c\\/d","b":true,"f":false,"n":null,"x":-12.5e+2,"a":[1,{"y":"z"}]}')
     //?check("json.parse.nested", '{"s":"a\"b\\c/d","b":true,"f":false,"n":null,"x":-1250,"a":[1,{"y":"z"}]}')
 
@@ -128,5 +128,4 @@ func *Main() -> int:
     PrintParseError("json.error.root-kind", '"root string"')
     //?check("json.error.root-kind", "JSON parse error at line 1, column 1: Root JSON node must be an object or array")
 
-    return 0
 endfunc

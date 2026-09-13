@@ -50,7 +50,7 @@ public
     property targetptr : ^int read GetPointer
 endobject
 
-func *Main() -> int:
+func *Main():
     var box <- OPropertyBox()
 
     printf("property.basic.initial = %d %d\n", box.direct, box.calculated)
@@ -79,5 +79,4 @@ func *Main() -> int:
            box.child.value, box.targetptr^)
     //?check("property.basic.returned", "17 55")
 
-    return 0
 endfunc

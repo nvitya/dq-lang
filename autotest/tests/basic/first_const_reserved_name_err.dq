@@ -2,6 +2,5 @@ func FirstInt(value : int) -> int: //?error(IntrinsicNameReserved)
     result = value
 endfunc
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

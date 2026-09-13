@@ -25,7 +25,7 @@ use rtl/prgargs
 use libc/stdio
 
 // These functions are created by the DQ compiler:
-func dq_main() -> int  [[external('dq_main')]]
+func dq_main()         [[external('dq_main')]]
 func dq_module_init()  [[external('dq_module_init')]]
 func libc_exit(status : int) [[external('exit')]]
 
@@ -38,5 +38,6 @@ func main(argc : int, argv : ^^char) -> int  [[export('__main_argc_argv')]]:
     rterror_handler = OsRtErrorHandler
     @prgargs.__sys_init_params(argc, argv)
     dq_module_init()
-    result = dq_main()
+    dq_main()
+    result = exit_code
 endfunc

@@ -12,7 +12,6 @@ func test_error_recovery():
     endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     test_error_recovery()
-    return 0
 endfunc

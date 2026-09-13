@@ -1,6 +1,5 @@
 use libc/stdio
 
-func *Main() -> int:
+func *Main():
     printf('Hello World! [libc]\n')
-    return 0
 endfunc

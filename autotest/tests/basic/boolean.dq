@@ -35,7 +35,7 @@ object OOpenedProbe:
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     printf("DQ bool test\n")  //?ignore('DQ bool test')
 
     printbool("GVBOOL0", GVBOOL0)  //?check(GVBOOL0, false)
@@ -71,7 +71,6 @@ func *Main() -> int:
     printbool("nil probe and Opened", probe <> nil and probe.Opened())  //?check('nil probe and Opened', false)
     printf("nil probe and Opened hits = %li\n", g_short_circuit_hits)  //?check('nil probe and Opened hits', 0)
 
-    return 0
 endfunc
 
 #endif

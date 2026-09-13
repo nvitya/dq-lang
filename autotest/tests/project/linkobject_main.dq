@@ -2,10 +2,9 @@
 
 func project_external_value() -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     if project_external_value() <> 77:
-        return 1
+        exit_code = 1
+        return
     endif
-    return 0
 endfunc
-

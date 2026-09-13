@@ -5,7 +5,6 @@ func WeakOverride() -> int [[cexport]]:
     return 2
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("weak override = %d\n", @weakmod.WeakOverride())  //?check('weak override', 2)
-    return 0
 endfunc

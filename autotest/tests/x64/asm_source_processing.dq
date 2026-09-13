@@ -15,8 +15,7 @@ func ProcessedAsm() -> int [[asm]]:
     #endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("asm.source_processing = %li\n", ProcessedAsm())
     //?check("asm.source_processing", 42)
-    return 0
 endfunc

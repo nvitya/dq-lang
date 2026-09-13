@@ -34,14 +34,13 @@ public
     endfunc
 endobject
 
-func *Main() -> int:
-    result = 0
+func *Main():
 
     var fixed <- OTest()
     var ref : OTest = nil
     var priv <- OPrivate
 
-    result = priv.secret //?error(MemberUnknown)
+    exit_code = priv.secret //?error(MemberUnknown)
     fixed = ref          //?error(RefReadonly)
     var bad : OTest = {} //?error(NotSupported)
 

@@ -7,7 +7,7 @@ func PrintRow(label : strview, rows : ODbRows):
             [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])
 endfunc
 
-func *Main() -> int:
+func *Main():
     var rows <- ODbRows()
 
     PrintLn('db_rows.empty = rows:{} fields:{} onrow:{}',
@@ -70,5 +70,4 @@ func *Main() -> int:
     PrintLn('db_rows.clear = rows:{} fields:{}',
             [rows.RowCount(), rows.FieldCount()]) //?check("db_rows.clear", "rows:0 fields:0")
 
-    return 0
 endfunc

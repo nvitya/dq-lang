@@ -1,10 +1,9 @@
 use libc/stdio
 
-func *Main() -> int:
+func *Main():
     printf('DQ runtime error test\n')
 
     RuntimeError('something')
 
     printf('test finished.\n')
-    return 0
 endfunc

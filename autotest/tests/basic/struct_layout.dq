@@ -86,7 +86,7 @@ func off_packed_obj_b() -> int:
     var o <- OLayoutPackedObj
     result = int(uint(%o.b) - uint(%o.a))
 endfunc
-func *Main() -> int:
+func *Main():
     printf("Testing struct layout:\n")  //?ignore('Testing struct layout:')
 
     printf("SizeOf(SLayoutNormal) = %li\n", SizeOf(SLayoutNormal))  //?check('SizeOf(SLayoutNormal)', 12)
@@ -121,5 +121,4 @@ func *Main() -> int:
     printf("OffsetOf(OLayoutPackedObj, b) = %li\n", OffsetOf(OLayoutPackedObj, b))  //?check('OffsetOf(OLayoutPackedObj, b)', 1)
     printf("off_packed_obj_b() = %li\n", off_packed_obj_b())              //?check('off_packed_obj_b()', 1)
 
-    return 0
 endfunc

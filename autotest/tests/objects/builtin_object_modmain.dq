@@ -3,7 +3,7 @@
 use libc/stdio
 use ./builtin_object_mod
 
-func *Main() -> int:
+func *Main():
     var obj : OModObject = new OModObject(7)
     var any : Object = ExportObject(obj)
 
@@ -11,5 +11,4 @@ func *Main() -> int:
     printf("object.import.arg = %li\n", ImportedObjectSet(obj)) //?check("object.import.arg", 1)
 
     delete obj
-    return 0
 endfunc

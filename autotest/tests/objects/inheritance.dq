@@ -131,7 +131,7 @@ func PrintBase(b : OBase, label : ^char):
     @.printf("%s = %d\n", label, b.Get())
 endfunc
 
-func *Main() -> int:
+func *Main():
     var c <- OChild('stack', 3)   //?check('stack.base.create', 4)
                                    //?check('stack.child.create', '4 5')
 
@@ -167,6 +167,6 @@ func *Main() -> int:
     var of <- OOverCtor(2.4)
     @.printf("over.ctor = %d %d\n", oi.tag, of.tag) //?check("over.ctor", "15 102")
 
-    return 0                    //?check("stack.child.destroy", "10 20")
+    return                    //?check("stack.child.destroy", "10 20")
                                 //?check("stack.base.destroy", 10)
 endfunc

@@ -11,7 +11,7 @@ const MYSQL_USER : rostr = 'dbuser'
 const MYSQL_PASS : rostr = ''
 const MYSQL_DB   : rostr = 'capitals'
 
-func *Main() -> int:
+func *Main():
     PrintLn('MySQL database test')
 
     var sql : str
@@ -37,6 +37,4 @@ func *Main() -> int:
     while query.Step():
         PrintLn('{}: {} - {}', [query.ColumnInt(0), query.ColumnText(1), query.ColumnText(2)])
     endwhile
-
-    return 0
 endfunc

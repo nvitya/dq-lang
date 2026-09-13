@@ -44,7 +44,7 @@ func PrintArgs(label : ^char, args : []anyvalue):
     PrintText("slice-text", args[3].AsStr("")) //?check("slice-text", '[5] "hello"')
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("anyvalue_builtin = start\n") //?check("anyvalue_builtin", "start")
 
     var av : anyvalue
@@ -96,5 +96,4 @@ func *Main() -> int:
     av.SetNull()
     printf("method-nil = %li\n", BoolInt(av.IsNull())) //?check("method-nil", 1)
 
-    return 0
 endfunc

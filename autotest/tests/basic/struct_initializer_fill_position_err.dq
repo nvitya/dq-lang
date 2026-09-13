@@ -3,7 +3,6 @@ struct SFillPosition:
     b : int
 endstruct
 
-func *Main() -> int:
+func *Main():
     var value : SFillPosition = { ?, 1 } //?error(StructInitFillFinal)
-    return 0
 endfunc

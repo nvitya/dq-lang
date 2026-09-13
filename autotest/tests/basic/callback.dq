@@ -32,7 +32,7 @@ endfunc
 
 func printf(fmt : ^char, ...) -> int  [[external]]
 
-func *Main() -> int:
+func *Main():
     printf("Testing DQ callbacks:\n\n")  //?ignore('Testing DQ callbacks:')
 
     var r : int = 0
@@ -76,5 +76,4 @@ func *Main() -> int:
     r = cb_add(3, 4)
     printf("cb_add(3, 4) = %li\n", r)  //?check('cb_add(3, 4)', 7)
 
-    return 0
 endfunc

@@ -1,6 +1,5 @@
 //?hostarch('x64')
 //?exitcode(0)
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

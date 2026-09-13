@@ -75,7 +75,7 @@ func AppendByRef(s : ref str):
     s.Append("x")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_dynamic_operations = start\n") //?check("string_dynamic_operations", "start")
 
     var cow_a : str = "abc"
@@ -222,5 +222,4 @@ func *Main() -> int:
     //wide[1] = char(0x1F600);
     //printf("wide_assign = len:%li mid:%li\n", wide.length, wide[1]); //-?check("wide_assign", "len:3 mid:128512")
 
-    return 0
 endfunc

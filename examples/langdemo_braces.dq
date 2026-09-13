@@ -86,8 +86,7 @@ func WriteStr(s : cstring) {
     }
 }
 
-func *Main() -> int {
-
+func *Main() {
     var s : cstring(127) = ""
     cstr_add(s, "Hello")
     cstr_add(s, " World!\n")
@@ -116,8 +115,6 @@ func *Main() -> int {
     printf('primes:')
     for i : int = 0  while i < Len(arr)  { printf(' %d', arr[i]) }
     printf("\n")
-
-    return 0
 }
 
 /* OUTPUT:

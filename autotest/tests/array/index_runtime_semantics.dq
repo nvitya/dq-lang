@@ -31,7 +31,6 @@ func SliceOutOfBoundsExpressions() -> int:
     result = value
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("array_index_runtime_semantics = compiled\n") //?check("array_index_runtime_semantics", "compiled")
-    return 0
 endfunc

@@ -8,10 +8,10 @@ use print
 use ./openglutils
 use math
 
-func *Main() -> int:
+func *Main():
     if GlfwInit() == GLFW_FALSE:
         PrintLn('Could not initialize GLFW')
-        return 1
+        Exit(1)
     endif
 
     // Request an old enough context that supports the compact immediate-mode
@@ -23,7 +23,7 @@ func *Main() -> int:
     if window == nil:
         PrintLn('Could not create the OpenGL window')
         GlfwTerminate()
-        return 1
+        Exit(1)
     endif
 
     GlfwMakeContextCurrent(window)
@@ -50,5 +50,4 @@ func *Main() -> int:
 
     GlfwDestroyWindow(window)
     GlfwTerminate()
-    return 0
 endfunc

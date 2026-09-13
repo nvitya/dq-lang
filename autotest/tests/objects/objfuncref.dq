@@ -30,7 +30,7 @@ object OCallback:
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var first <- OCallback("first")
     var second <- OCallback("second")
     var cb : FObjText = nil
@@ -56,5 +56,4 @@ func *Main() -> int:
     icb(5)  //?check('second.picked', 5)
 
     plaincb("ok")  //?check('plain', 'ok')
-    return 0
 endfunc

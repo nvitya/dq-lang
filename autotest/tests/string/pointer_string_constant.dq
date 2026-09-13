@@ -8,10 +8,9 @@ const MULTILINE : ^char =
       second
     """
 
-func *Main() -> int:
+func *Main():
     printf("pointer constant = %s\n", PLAIN) //?check('pointer constant', 'pointer constant')
     printf("pointer alias = %d\n", PLAIN == PLAIN_ALIAS) //?check('pointer alias', 1)
     printf("pointer terminator = %d\n", PLAIN[16]^) //?check('pointer terminator', 0)
     printf("pointer multiline layout = %d %d\n", MULTILINE[5]^, MULTILINE[6]^) //?check('pointer multiline layout', '10 32')
-    return 0
 endfunc

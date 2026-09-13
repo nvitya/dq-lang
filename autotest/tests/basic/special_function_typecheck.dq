@@ -12,8 +12,8 @@ endfunc
 func *Other():  //?error(SpecialFuncUnknown)
 endfunc
 
-func *Main(value : int) -> int:  //?error(SpecialFuncSignature)
-    return value
+func *Main() -> int:  //?error(SpecialFuncSignature)
+    return 0
 endfunc
 
 func *ModuleInit() -> int:  //?error(SpecialFuncSignature)

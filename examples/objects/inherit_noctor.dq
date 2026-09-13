@@ -33,12 +33,10 @@ func OTextSinkStdOut.WriteChar(ch : char) [[override]]:
 endfunc
 
 
-func *Main() -> int:
+func *Main():
     printf('DQ no constructor test\n')
 
     var cout <- OTextSinkStdOut()
 
     cout.Write('OTextSinkStdOut.Write()\n')
-
-    return 0
 endfunc

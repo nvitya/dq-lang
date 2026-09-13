@@ -4,11 +4,9 @@ use ./mod_enum
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     var state : NModuleState = NModuleState.idle
     state = ModuleState()
     printf("enum.module = %li %li\n", int(state.ord), SizeOf(NModuleState))
     //?check("enum.module", "10 2")
-    return 0
 endfunc
-

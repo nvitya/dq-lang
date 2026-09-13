@@ -53,7 +53,7 @@ func NextValue() -> int:
     return 99
 endfunc
 
-func *Main() -> int:
+func *Main():
     GetBox().items[NextIndex()] = NextValue()
 
     printf("property.eval.assignment = %d %d %d %d %d\n",
@@ -71,5 +71,4 @@ func *Main() -> int:
     printf("property.eval.modified-result = %d %d\n", box.items[1], box.gets)
     //?check("property.eval.modified-result", "198 3")
 
-    return 0
 endfunc

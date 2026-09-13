@@ -55,7 +55,7 @@ func dq_str_append(a : cstring, b : cstring):
     endif
     cstr_add(a, b)
 endfunc
-func *Main() -> int:
+func *Main():
     dq_writepc('dq_cstr = ')
     dq_writestr(dq_cstr)  //?check('dq_cstr', 'DQ String Test')
 
@@ -105,5 +105,4 @@ func *Main() -> int:
     dq_writestr(cs)
     dq_writepc('"\n')     //?check(cs, '"asdf"')
 
-    return 0
 endfunc

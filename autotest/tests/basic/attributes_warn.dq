@@ -9,8 +9,7 @@ func puts(s : ^char) -> int [[external]]
 var gv : int [[virtual]]                    //?warning(AttrIgnored)
 const gc : int = 123 [[volatile]]          //?warning(AttrIgnored)
 [[volatile]] func onlyext() -> int [[external]]  //?warning(AttrIgnored)
-func *Main() -> int:
+func *Main():
     printf("attr test %d\n", gc)
     puts("done")
-    return 0
 endfunc

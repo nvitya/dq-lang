@@ -15,7 +15,7 @@ endfunc
 var missing_initializer : ? //?error(TypeInfer)
 const missing_const_initializer : ? //?error(TypeInfer)
 
-func *Main() -> int:
+func *Main():
     var int_value : int32 = 3
     var float_value : float32 = 3.0
     var raw_value : pointer = nil
@@ -43,5 +43,4 @@ func *Main() -> int:
     var inferred_enum : ? = enum_value //?error(TypeInfer)
     var inferred_array : ? = array_value //?error(TypeInfer)
     var inferred_callback : ? = callback_value //?error(TypeInfer)
-    return 0
 endfunc

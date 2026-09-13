@@ -6,9 +6,8 @@ func AddOne(value : int) -> int [[inline]]:
     return value + 1
 endfunc
 
-func *Main() -> int:
+func *Main():
     var value : int = 41
     value = AddOne(value)
     printf("inline attribute = %d\n", value)  //?check("inline attribute", 42)
-    return 0
 endfunc

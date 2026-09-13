@@ -76,7 +76,7 @@ func CStringParameterFirstChar(text : cstring) -> int:
     return CStringFirstChar(text)
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_cstring_semantics = start\n") //?check("string_cstring_semantics", "start")
 
     var cs : [[nowarn]] cstring(5) = "abc"
@@ -166,5 +166,4 @@ func *Main() -> int:
 //  external_mut.Append("!");
 //  PrintText("cstring_external_rescan", external_mut); //-?check("cstring_external_rescan", '[3] "ZZ!"')
 
-    return 0
 endfunc

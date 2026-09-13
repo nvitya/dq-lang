@@ -29,7 +29,7 @@ func ObjectFromBase(o : OBase) -> Object:
     return o
 endfunc
 
-func *Main() -> int:
+func *Main():
     var any : Object = nil
     printf("object.nil = %li\n", IsObjectSet(any)) //?check("object.nil", 0)
 
@@ -50,5 +50,4 @@ func *Main() -> int:
 
     delete base
     delete child
-    return 0
 endfunc

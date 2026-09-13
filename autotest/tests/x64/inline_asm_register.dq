@@ -15,7 +15,7 @@ func ZeroExtend(value : uint8) -> uint32 [[inline, asm]]:
     movzx   $result, $value
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("inline_asm.register.add = %li\n", Add(17, 25))
     //?check("inline_asm.register.add", 42)
 
@@ -25,5 +25,4 @@ func *Main() -> int:
     printf("inline_asm.register.width = %li\n", int(ZeroExtend(0xFE)))
     //?check("inline_asm.register.width", 254)
 
-    return 0
 endfunc

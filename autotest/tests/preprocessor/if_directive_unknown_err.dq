@@ -2,6 +2,5 @@
 
 var selected : int = #{if MISSING_VALUE} 1 #{else} 0 #{endif} //?error(VsUnknown)
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

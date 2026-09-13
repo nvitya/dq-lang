@@ -8,12 +8,12 @@ use ./ddgfx
 const original_width  : int = 800
 const original_height : int = 600
 
-func *Main() -> int:
+func *Main():
     PrintLn('DdGfx for DQ bitmap test')
 
     if GlfwInit() == GLFW_FALSE:
         PrintLn('Could not initialize GLFW')
-        return 1
+        Exit(1)
     endif
 
     GlfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
@@ -23,7 +23,7 @@ func *Main() -> int:
     if window == nil:
         PrintLn('Could not create the OpenGL window')
         GlfwTerminate()
-        return 1
+        Exit(1)
     endif
 
     GlfwMakeContextCurrent(window)
@@ -80,5 +80,4 @@ func *Main() -> int:
     delete scene = nil
     GlfwDestroyWindow(window)
     GlfwTerminate()
-    return 0
 endfunc

@@ -9,8 +9,8 @@ func CheckTool(name : strview):
     run.ExpectExitCode(0)
 endfunc
 
-func *Main() -> int:
+func *Main():
     CheckTool('dq-inline-asm-test')
     CheckTool('dq-projectfile-test')
-    return TestResult()
+    exit_code = TestResult()
 endfunc

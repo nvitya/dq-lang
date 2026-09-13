@@ -36,6 +36,5 @@ private
     endfunc
 endobject
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

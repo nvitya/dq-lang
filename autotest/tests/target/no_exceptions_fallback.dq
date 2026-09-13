@@ -11,7 +11,7 @@ func CaptureRuntimeError(emsg : ^char):
     error_count += 1
 endfunc
 
-func *Main() -> int:
+func *Main():
     rterror_handler = CaptureRuntimeError
 
     var bad_char : char = IntToChar(-1)
@@ -19,10 +19,11 @@ func *Main() -> int:
     var bad_state : NState = NState.FromOrd(8)
 
     if error_count <> 3:
-        return 1
+        exit_code = 1
+        return
     endif
     if Ord(bad_char) <> 0 or Ord(bad_wchar) <> 0 or bad_state <> idle:
-        return 2
+        exit_code = 2
+        return
     endif
-    return 0
 endfunc

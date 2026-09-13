@@ -166,8 +166,7 @@ func dq_for_braces() -> int
     }
 }
 
-func *Main() -> int:
-    result = 0
+func *Main():
     printf("DQ for loop test\n")  //?ignore('DQ for loop test')
 
     printf("dq_for_to_sum() = %li\n", dq_for_to_sum())  //?check('dq_for_to_sum()', 15)

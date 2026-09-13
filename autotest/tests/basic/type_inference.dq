@@ -22,7 +22,7 @@ func KeepPointer(aptr : ^SInferValue) -> ^SInferValue:
     return aptr
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("root const ptr = %lu\n", uint(ROOT_CONST_PTR)) //?check("root const ptr", 4660)
     printf("root var ptr = %lu\n", uint(root_var_ptr)) //?check("root var ptr", 9029)
 
@@ -60,5 +60,4 @@ func *Main() -> int:
     delete allocated_int
     delete child
     delete old_style
-    return 0
 endfunc

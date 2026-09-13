@@ -1,5 +1,5 @@
 
-use libc/stdio
+use print
 
 // Test1
 
@@ -12,29 +12,30 @@ func Test1():
 
     cs1.Append(' four')
     CsProcess(cs1)
+
+    PrintLn('Test1: "{}"', [cs1])
 endfunc
 
 // Test2
 
 struct STestRec:
     id   : int32
-    name : cstring[31]
+    name : cstring(31)
 endstruct
 
-func ProcessName(ref tr : STestRec):
+func ProcessName(tr : ref STestRec):
     tr.name.Append(" two")
 endfunc
 
 func Test2():
     var tr : STestRec
     tr.name = "one"
+    ProcessName(tr)
+    PrintLn('Test2: "{}"', [tr.name])
 endfunc
 
-func *Main() -> int:
-    printf('DQ cstring test\n')
-
+func *Main():
+    PrintLn('DQ cstring test')
     Test1()
     Test2()
-
-    return 0
 endfunc

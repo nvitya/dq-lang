@@ -18,6 +18,8 @@ func ArgStr(i : int) -> ^char   // 0 = program args
 
 func __sys_init_params(argc : int, argv : ^^char)  // called from the hosted RTL entry point main()
 
+var exit_code : int = 0  [[export('exit_code')]]
+
 implementation
 
 // Program Argument Handling

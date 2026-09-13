@@ -57,7 +57,7 @@ func EditCBuffer(cs : cstring):
     cs.Append("_edit")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_argument_conversions = start\n") //?check("string_argument_conversions", "start")
 
     var s : str = "abc"
@@ -87,5 +87,4 @@ func *Main() -> int:
     var view_from_pc : strview = pc
     PrintText("assign_pc_to_view", view_from_pc) //?check("assign_pc_to_view", '[5] "pcstr"')
 
-    return 0
 endfunc

@@ -3,7 +3,7 @@ use libc/stdio
 use rtl/rtlint
 use rtl/strfunc
 
-func *Main() -> int:
+func *Main():
     var source : str
     source.SetLength(0x1000002, 'x')
     var raw : ^char = source.pchar
@@ -13,5 +13,4 @@ func *Main() -> int:
     printf("large = %li:%li:%u:%i\n", source.length, view.length, desc.charlen, borrowed[$last] == 'x') //?check("large", "16777218:16777218:16777218:1")
     var known : rostr = source
     printf("large_known = %li\n", known.length) //?check("large_known", 16777218)
-    return 0
 endfunc

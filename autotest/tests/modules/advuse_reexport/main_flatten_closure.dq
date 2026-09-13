@@ -1,6 +1,5 @@
 use ./mod_flatten_select
 
-func *Main() -> int:
+func *Main():
     printf("flatten hidden closure = %d\n", HiddenValue(MakeHidden(37))) //?check('flatten hidden closure', 37)
-    return 0
 endfunc

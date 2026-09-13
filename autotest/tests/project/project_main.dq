@@ -2,24 +2,28 @@
 
 use ./project_child
 
-func *Main() -> int:
+func *Main():
     if @def.PROJECT_DEFINE <> 42:
-        return 2
+        exit_code = 2
+        return
     endif
     if not (@def.PROJECT_BOOL):
-        return 3
+        exit_code = 3
+        return
     endif
     if project_child_define() <> 42:
-        return 4
+        exit_code = 4
+        return
     endif
     #ifdef EXPECT_OVERRIDE
         if @def.PROJECT_OVERRIDE <> 2:
-            return 1
+            exit_code = 1
+            return
         endif
     #else
         if @def.PROJECT_OVERRIDE <> 1:
-            return 1
+            exit_code = 1
+            return
         endif
     #endif
-    return 0
 endfunc

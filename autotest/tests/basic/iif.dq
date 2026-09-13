@@ -70,7 +70,7 @@ func dq_iif_side(flag : bool) -> int:
     result += 100 * g_true_hits
     result += 1000 * g_false_hits
 endfunc
-func *Main() -> int:
+func *Main():
     printf("DQ iif test\n")  //?ignore('DQ iif test')
 
     var x : int = 77
@@ -129,5 +129,4 @@ func *Main() -> int:
     PrintLn('iif cstring/2 = {}', [iif(false, "from literal", cstr)])  //?check('iif cstring/2', 'from buffer')
     PrintLn('iif cstring/3 = {}', [iif(false, cstr, cstr2)])  //?check('iif cstring/3', 'other buffer')
 
-    return 0
 endfunc

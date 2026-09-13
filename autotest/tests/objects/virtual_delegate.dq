@@ -18,9 +18,8 @@ func Invoke(cb : FObjAction):
     cb()
 endfunc
 
-func *Main() -> int:
+func *Main():
     var obj : CBase = new CDeriv()
     var cb : FObjAction = obj.HandleInput
     Invoke(cb)  //?check('CDeriv.HandleInput', 'ok')
-    return 0
 endfunc

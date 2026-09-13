@@ -64,7 +64,7 @@ func OSConnHttpApp.ProcessRequest() -> bool  [[override]]:
     endtry
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('NanoNet - Simple Http Server')
 
     var svr <- ONanoHttpServer(OSConnHttpApp, HTTP_LISTEN_PORT)
@@ -88,6 +88,4 @@ func *Main() -> int:
             e.PrintBacktrace()  // print stack trace with line infos
         endtry
     endwhile
-
-    return 0
 endfunc

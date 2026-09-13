@@ -62,7 +62,7 @@ func dq_set_refnull(a : refnull int):
 endfunc
 
 func printf(fmt : ^char, ...) -> int [[external]]
-func *Main() -> int:
+func *Main():
     printf("Testing DQ refs:\n\n")  //?ignore('Testing DQ refs:')
 
     var r : int
@@ -102,5 +102,4 @@ func *Main() -> int:
     dq_set_refnull(nil)
     printf("dq_set_refnull(nil) = ok\n")  //?check('dq_set_refnull(nil)', 'ok')
 
-    return 0
 endfunc

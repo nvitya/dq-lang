@@ -43,14 +43,14 @@ endfunc
 func CountDepth(depth : int) -> int:
     var lnode : ONode = BuildTree(depth)
     result = lnode.NodeCount()
-    delete lnode  
+    delete lnode
 endfunc
 
 func StrechToDepth(depth : int):
     PrintLn('stretch tree of depth {}\t check: {}', [depth, CountDepth(depth)])
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn("DQ")
     var n : int = 10
     if ArgCount() > 1:
@@ -71,5 +71,4 @@ func *Main() -> int:
     endfor
     PrintLn('long lived tree of depth {}\t check: {}', [max_depth, long_lived.NodeCount()])
     delete long_lived
-    return 0
 endfunc

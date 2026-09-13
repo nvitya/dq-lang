@@ -3,7 +3,7 @@
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     printf("exitcode-only stdout is diagnostic payload\n")
-    return 7
+    exit_code = 7
 endfunc

@@ -2,7 +2,6 @@ struct STrailingComma:
     a : int
 endstruct
 
-func *Main() -> int:
+func *Main():
     var value : STrailingComma = { 1, } //?error(StructInitTrailingComma)
-    return 0
 endfunc

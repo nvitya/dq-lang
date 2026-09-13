@@ -1,6 +1,6 @@
 
 use ./mod_simple
-func *Main() -> int:
+func *Main():
     printf("DQ simple module test\n")  //?ignore('DQ simple module test')
 
     printf("mod_func_test(2) = %d\n", mod_func_test(2))  //?check('mod_func_test(2)', 4)
@@ -9,5 +9,4 @@ func *Main() -> int:
     printf("g_mod_var = %d\n", g_mod_var)  //?check('g_mod_var', 5)
     fprintf(stdout, "external global via module = %d\n", 42)  //?check('external global via module', 42)
 
-    return 0
 endfunc

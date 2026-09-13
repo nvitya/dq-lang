@@ -5,7 +5,7 @@ use file
 
 var run <- OTestRun()
 
-func *Main() -> int:
+func *Main():
     run.RunTool(['/bin/sh', '-c', 'printf out; printf err >&2; exit 3'])
     run.ExpectExitCode(3)
     ExpectContains(run.stdout, 'out')
@@ -23,5 +23,5 @@ func *Main() -> int:
     FileWriteText(temp, 'temporary artifact')
     ExpectFileContains(temp, 'artifact')
     RemoveTemp(temp)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

@@ -1,6 +1,6 @@
 use rtl/textformat
 
-func *Main() -> int:
+func *Main():
     var outs <- OTextSinkStdOut()
     var fmt  <- OTextFormatter(outs)
 
@@ -20,5 +20,4 @@ func *Main() -> int:
     fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',
                [fa[0], fa[1], fa[2], fa[3]]) //?check('tf-float-default', '|1|2|3|42|')
 
-    return 0
 endfunc

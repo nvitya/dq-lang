@@ -29,6 +29,5 @@ struct SNoVirtual:
     endfunc
 endstruct
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

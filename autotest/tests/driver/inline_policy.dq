@@ -48,9 +48,9 @@ func CheckLto(option : strview, expect_plain : bool):
     RemoveTemp(binary)
 endfunc
 
-func *Main() -> int:
+func *Main():
     CheckLocal()
     CheckLto('-O1', true)
     CheckLto('-O2', false)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

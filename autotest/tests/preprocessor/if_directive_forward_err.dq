@@ -2,6 +2,5 @@ var selected : int = #{if LATER_CONSTANT} 1 #{else} 0 #{endif} //?error(VsUnknow
 
 const LATER_CONSTANT : bool = true
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc

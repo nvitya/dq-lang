@@ -48,7 +48,6 @@ endfunc
 //  result = s.LPad(5, "");
 //endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_index_runtime_semantics = compiled\n") //?check("string_index_runtime_semantics", "compiled")
-    return 0
 endfunc

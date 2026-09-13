@@ -13,10 +13,9 @@ struct SBadDynMember:
     arr : [*]int  //?error(NotSupported)
 endstruct  //?error(ModStatementUnknown)
 
-func *Main() -> int:
+func *Main():
     var a : [*]int
     var b : [*]int
     a = b
 
-    return 0
 endfunc

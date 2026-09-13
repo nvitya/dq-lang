@@ -43,7 +43,7 @@ public
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var ft : type of OFactoryBase
     ft = OPartialFactory //?error(TypeMismatchAssign)
     ft = OUnrelated      //?error(TypeMismatchAssign)
@@ -57,5 +57,4 @@ func *Main() -> int:
     var x : int = 0
     var ob : OFactoryBase = new x(1) //?error(TypeExpected)
 
-    return 0
 endfunc

@@ -37,12 +37,11 @@ func TestStr():
     PrintDs()
 endfunc
 
-func *Main() -> int:
+func *Main():
     TestCStr()
     TestStr()
- 
-  PrintLn(Format('Format: {}, {}, {}', [42, 'hello', 1.8]))
+
+    PrintLn(Format('Format: {}, {}, {}', [42, 'hello', 1.8]))
 
     PrintLn()
-    return 0
 endfunc

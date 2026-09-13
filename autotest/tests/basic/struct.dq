@@ -71,7 +71,7 @@ endfunc
 
 // FIX THIS !
 // var sm : SMain;
-func *Main() -> int:
+func *Main():
 
     printf("DQ Struct test\n")  //?ignore('DQ Struct test')
 
@@ -97,5 +97,4 @@ func *Main() -> int:
     //?check('t2 sm.elem[3]', 'id: 3, wheight: 0.25000, members: [ 1E 1F 20 ]')
     //?check('t2 sm.elem[4]', 'id: 4, wheight: 0.20000, members: [ 28 29 2A ]')
 
-    return 0
 endfunc

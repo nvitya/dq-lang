@@ -22,7 +22,7 @@ func ReturnReplacedByRaise() -> int:
     return 0
 endfunc
 
-func *Main() -> int:
+func *Main():
     var r : int = ReturnWithFinally()
     printf("finally.return.result = %d\n", r)  //?check("finally.return.result", 11)
 
@@ -56,5 +56,4 @@ func *Main() -> int:
         printf("\n")
     endtry
 
-    return 0
 endfunc

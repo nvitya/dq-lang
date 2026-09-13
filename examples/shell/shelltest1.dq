@@ -3,7 +3,7 @@ use shell
 
 var osh <- OShellRunner()
 
-func *Main() -> int:
+func *Main():
     PrintLn('Shell util test')
 
     // execute the dq-comp, provide empty input str, collect the output str
@@ -35,6 +35,4 @@ func *Main() -> int:
 
     s = GetEnv('QQRIQ', '?')
     PrintLn('QQRIQ={}', [s])
-
-    return 0
 endfunc

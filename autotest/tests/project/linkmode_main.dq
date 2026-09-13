@@ -1,6 +1,4 @@
 //?notest
 
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc
-

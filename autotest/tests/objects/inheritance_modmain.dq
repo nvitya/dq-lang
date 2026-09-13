@@ -7,9 +7,8 @@ func PrintImported(b : OModBase):
     @.printf("imported = %d\n", b.Get())
 endfunc
 
-func *Main() -> int:
+func *Main():
     var c <- OModChild(11)
     PrintImported(c) //?check("imported", 23)
     c.PrintProt()    //?check('Protected_value', 11)
-    return 0
 endfunc

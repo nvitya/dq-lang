@@ -37,7 +37,7 @@ public
     property writes : int read GetSetCount
 endobject
 
-func *Main() -> int:
+func *Main():
     var values <- OIndexedProperties()
 
     printf("property.indexed.read = %d %d %d\n",
@@ -53,5 +53,4 @@ func *Main() -> int:
            values.writes)
     //?check("property.indexed.write", "101 404 111 3")
 
-    return 0
 endfunc

@@ -103,7 +103,7 @@ func RunCopyOnWrite():
     DynStrDecRef(b)
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("DQ ODynStrMgr test\n") //?ignore("DQ ODynStrMgr test")
 
     RunCoreOps() //?check("assign", 'len:3 cap:3 text: "abc"')
@@ -124,5 +124,4 @@ func *Main() -> int:
     RunCopyOnWrite() //?check("cow-src", 'len:3 cap:3 text: "abc"')
                       //?check("cow-mutated", 'len:4 cap:6 text: "abcx"')
 
-    return 0
 endfunc

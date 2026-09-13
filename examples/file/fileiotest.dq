@@ -8,7 +8,7 @@ struct STest:
     fval   : float32
 endstruct
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ File IO Test')
 
     DirCreate('.tmp', true)
@@ -63,5 +63,4 @@ func *Main() -> int:
 
     FileWrite('.tmp/structfile.bin', %st, SizeOf(st))
 
-    return 0
 endfunc

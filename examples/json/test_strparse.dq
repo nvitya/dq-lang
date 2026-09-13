@@ -33,13 +33,11 @@ func ParseText(atxt : strview):
     PrintLn('parsing finished.')
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('Testing OStrParse')
 
     var fdata : str = FileReadText('test.json')
 
     PrintLn('Test file data:\n{}', [fdata])
     ParseText(fdata)
-
-    return 0
 endfunc

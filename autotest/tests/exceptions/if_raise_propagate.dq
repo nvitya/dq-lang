@@ -12,7 +12,7 @@ func ThrowFromIf():
     printf("exception.if_raise.after = reached\n")  //?ignore("exception.if_raise.after")
 endfunc
 
-func *Main() -> int:
+func *Main():
     try:
         ThrowFromIf()
         reached = 2
@@ -23,5 +23,4 @@ func *Main() -> int:
         //?check("exception.if_raise", "if throw reached=0")
     endtry
 
-    return 0
 endfunc

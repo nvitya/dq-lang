@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.65.0"
+#define DQ_COMPILER_VERSION  "0.66.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.66.0:
+  - BREAKING CHANGE: *Main() does not have a return value, a global exit_code introduced with zero default value
 v0.65.0:
   - Logical expression evaluation shortcut for expessions like this: if m_db <> nil and m_db.Opened(): ...
 v0.64.3:

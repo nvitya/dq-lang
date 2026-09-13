@@ -29,7 +29,7 @@ endobject
 
 #endif
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ object constructor overload test')
     var o <- OTest('test1', 'Message1')
     o.Print()
@@ -38,6 +38,4 @@ func *Main() -> int:
     o2.Print()
 
     raise Exception('Formatted exception msg = {}, {}', [1, 3.14])
-
-    return 0
 endfunc

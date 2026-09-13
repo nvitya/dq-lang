@@ -17,7 +17,7 @@ endfunc
 
 var bad_global : CB1 = add  //?error(FuncSigType)
 
-func *Main() -> int:
+func *Main():
     var cb1 : CB1
     var cb2 : CB2 = add
     var iv : int = 1
@@ -37,5 +37,4 @@ func *Main() -> int:
     if cb1 == nil:    //?error(VarNotInit)
     endif
 
-    return 0
 endfunc

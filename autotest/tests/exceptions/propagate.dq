@@ -9,7 +9,7 @@ func Thrower():
     reached = 1
 endfunc
 
-func *Main() -> int:
+func *Main():
     try:
         Thrower()
         reached = 2
@@ -20,5 +20,4 @@ func *Main() -> int:
         //?check("exception.propagate", "caught from thrower reached=0")
     endtry
 
-    return 0
 endfunc

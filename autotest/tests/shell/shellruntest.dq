@@ -5,23 +5,26 @@ use print
 
 var runner <- OShellRunner()
 
-func *Main() -> int:
+func *Main():
     PrintLn('ShellRunner test')
 
     var envname : str = 'DQ_SHELLRUNNER_TEST_39A8E1'
     if GetEnv(envname, 'missing') <> 'missing':
         PrintLn('GetEnv default value failed')
-        return 1
+        exit_code = 1
+        return
     endif
     SetEnv(envname, 'first value')
     if GetEnv(envname, '') <> 'first value':
         PrintLn('SetEnv initial value failed')
-        return 1
+        exit_code = 1
+        return
     endif
     SetEnv(envname, 'replacement value')
     if GetEnv(envname, '') <> 'replacement value':
         PrintLn('SetEnv replacement value failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     var caught : bool = false
@@ -32,12 +35,14 @@ func *Main() -> int:
     endtry
     if not caught:
         PrintLn('Run exception failed')
-        return 1
+        exit_code = 1
+        return
     endif
     if runner.exitcode <> 17 or runner.out <> 'failing-out' or
        runner.err <> 'failing-err':
         PrintLn('Run exception capture failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     caught = false
@@ -48,38 +53,44 @@ func *Main() -> int:
     endtry
     if not caught:
         PrintLn('RunWithInput exception failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     var suppressed_exit : int = runner.Run('exit 29', false)
     if suppressed_exit <> 29 or runner.exitcode <> 29:
         PrintLn('Run exception suppression failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     suppressed_exit = runner.RunWithInput('exit 31', '', false)
     if suppressed_exit <> 31 or runner.exitcode <> 31:
         PrintLn('RunWithInput exception suppression failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     var r : int = runner.Run('printf stdout; printf stderr >&2; exit 7', false)
     if r <> 7 or runner.exitcode <> 7 or not runner.finished:
         PrintLn('unexpected exit state: result={}, exitcode={}, finished={}',
                 [r, runner.exitcode, runner.finished])
-        return 1
+        exit_code = 1
+        return
     endif
     if runner.out <> 'stdout' or runner.err <> 'stderr' or runner.output <> 'stdoutstderr':
         PrintLn('unexpected capture: out="{}", err="{}", output="{}"',
                 [runner.out, runner.err, runner.output])
-        return 1
+        exit_code = 1
+        return
     endif
 
     r = runner.Run(['/bin/printf', 'argument output'])
     if r <> 0 or runner.out <> 'argument output' or
        runner.err <> '' or runner.output <> 'argument output':
         PrintLn('argument Run failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     // This is larger than a typical pipe buffer, exercising concurrent input
@@ -92,18 +103,21 @@ func *Main() -> int:
     :
         PrintLn('RunWithInput failed: result={}, outlen={}, errlen={}, outputlen={}',
                 [r, runner.out.length, runner.err.length, runner.output.length])
-        return 1
+        exit_code = 1
+        return
     endif
 
     r = runner.StartBg('printf bgout; printf bgerr >&2')
     if r <> 0 or not runner.WaitFinishMs(2000):
         PrintLn('background command did not finish')
-        return 1
+        exit_code = 1
+        return
     endif
     if runner.exitcode <> 0 or runner.out <> 'bgout' or
        runner.err <> 'bgerr' or runner.output <> 'bgoutbgerr':
         PrintLn('unexpected background capture')
-        return 1
+        exit_code = 1
+        return
     endif
 
     r = runner.StartBg(['/bin/printf', 'background arguments'])
@@ -111,27 +125,30 @@ func *Main() -> int:
        runner.out <> 'background arguments' or
        runner.err <> '' or runner.output <> 'background arguments':
         PrintLn('argument StartBg failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     r = runner.StartBgWithInput(['cat'], input)
     if r <> 0 or not runner.WaitFinishMs(2000) or
        runner.out <> input or runner.err <> '' or runner.output <> input:
         PrintLn('background input capture failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     r = runner.StartBg('sleep 5')
     if r <> 0 or runner.WaitFinishMs(20):
         PrintLn('background timeout handling failed')
-        return 1
+        exit_code = 1
+        return
     endif
     runner.Kill()
     if not runner.Finished() or runner.exitcode <> -1:
         PrintLn('background kill handling failed')
-        return 1
+        exit_code = 1
+        return
     endif
 
     PrintLn('shell runner tests passed')
-    return 0
 endfunc

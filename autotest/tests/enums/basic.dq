@@ -20,7 +20,7 @@ func IsGreen(color : NColor) -> bool:
     result = color == green
 endfunc
 
-func *Main() -> int:
+func *Main():
     var c : NColor = red
     var qualified : NColor = NColor.green
     var from_call : NColor = GetColor()
@@ -48,5 +48,4 @@ func *Main() -> int:
            SizeOf(NColor), SizeOf(NState), SizeOf(NSigned))
     //?check("enum.basic.sizes", "1 2 1")
 
-    return 0
 endfunc

@@ -61,7 +61,7 @@ func ReturnWithLocalObjects() -> int:
     return 0
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("main = start\n") //?check("child.create.1", 9)
                           //?check("main", "start")
 
@@ -89,6 +89,6 @@ func *Main() -> int:
                                              //?check("child.destroy.13", 21)
     printf("return.cleanup = %d\n", rr) //?check("return.cleanup", 5)
 
-    return 0            //?check("box.destroy.14", "5 7")
+    return            //?check("box.destroy.14", "5 7")
                          //?check("child.destroy.15", 7)
 endfunc

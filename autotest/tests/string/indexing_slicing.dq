@@ -40,7 +40,7 @@ func PrintText(label : ^char, text : strview):
     printf("\"\n")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("string_indexing_slicing = start\n") //?check("string_indexing_slicing", "start")
 
     var s : str = "abcdef"
@@ -80,5 +80,4 @@ func *Main() -> int:
     var vv : strview = v[1:4]
     PrintText("strview_slice", vv) //?check("strview_slice", '[3] "bcd"')
 
-    return 0
 endfunc

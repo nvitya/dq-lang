@@ -9,7 +9,7 @@ func WrongPointer() -> ^int:
     return nil
 endfunc
 
-func *Main() -> int:
+func *Main():
     try:
         RuntimeError("runtime boom")
         reached = 1
@@ -56,5 +56,4 @@ func *Main() -> int:
     endtry
 
 
-    return 0
 endfunc

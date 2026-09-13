@@ -3,7 +3,6 @@ struct SFillRepeated:
     b : int
 endstruct
 
-func *Main() -> int:
+func *Main():
     var value : SFillRepeated = { 1, ?, ? } //?error(StructInitFillRepeated)
-    return 0
 endfunc

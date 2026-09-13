@@ -10,7 +10,7 @@ func print_ptr_state(label : ^char, p : ^int):
     endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     var p1 : ^int = new int
     printf("new int = %d\n", p1^)  //?check('new int', 0)
     delete p1 = nil
@@ -33,5 +33,4 @@ func *Main() -> int:
     MemFreeRef(p5)
     print_ptr_state("MemFreeRef typed", p5)  //?check('MemFreeRef typed', 'nil')
 
-    return 0
 endfunc

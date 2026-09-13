@@ -26,7 +26,7 @@ func RefIsNotNull(obj : ref OTest) -> int:
     return 0
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("global_ref.nil = %d %d\n", RefIsNull(global_ref), RefIsNotNull(global_ref)) //?check("global_ref.nil", "1 0")
 
     global_ref = new OTest(42)
@@ -34,5 +34,4 @@ func *Main() -> int:
     printf("global_ref.value = %d\n", global_ref.value) //?check("global_ref.value", 42)
     delete global_ref = nil
 
-    return 0
 endfunc

@@ -3,8 +3,7 @@
 func missing_forward(a : int) -> int  //?error(FuncForwardNotDefined)
 
 #else
-func *Main() -> int:
-    return 0
+func *Main():
 endfunc
 
 #endif

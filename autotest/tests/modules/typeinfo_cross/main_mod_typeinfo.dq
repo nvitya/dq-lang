@@ -1,7 +1,7 @@
 use ./mod_typeinfo
 use libc/stdio
 
-func *Main() -> int:
+func *Main():
     var o1 : OBase = CreateFirst()
     var o2 : OBase = CreateSecond()
 
@@ -25,5 +25,4 @@ func *Main() -> int:
 
     delete o1
     delete o2
-    return 0
 endfunc

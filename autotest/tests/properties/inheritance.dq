@@ -47,7 +47,7 @@ public
     property virtual_value : int read GetVirtual write SetVirtual
 endobject
 
-func *Main() -> int:
+func *Main():
     var child <- OPropertyChild()
     var base : OPropertyBase = child
 
@@ -61,5 +61,4 @@ func *Main() -> int:
            child.value, child.virtual_value, base.value)
     //?check("property.inheritance.dispatch", "7 1120 1120")
 
-    return 0
 endfunc

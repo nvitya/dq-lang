@@ -48,7 +48,7 @@ endfunc
 
 #define USE_TYPEVAR = true
 
-func *Main() -> int:
+func *Main():
     var o1 : OBase
     var o2 : OBase
 
@@ -81,5 +81,4 @@ func *Main() -> int:
     @.PrintLn('arg.generated = {}', [a1.v])  //?check('arg.generated', 17)
     @.PrintLn('arg.explicit = {}', [a2.v])   //?check('arg.explicit', 30)
 
-    return 0
 endfunc

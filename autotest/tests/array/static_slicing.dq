@@ -12,7 +12,7 @@ func PrintArray(label : ^char, arr : []int):
     printf("\n")
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("array_static_slicing = start\n") //?check("array_static_slicing", "start")
 
     var arr : [?]int = [10, 20, 30, 40, 50]
@@ -58,5 +58,4 @@ func *Main() -> int:
     PrintArray("slice_clamp_end_context", arr[$end:]) //?check("slice_clamp_end_context", "len:0 data:")
     PrintArray("slice_clamp_then_empty", arr[3:-2]) //?check("slice_clamp_then_empty", "len:0 data:")
 
-    return 0
 endfunc

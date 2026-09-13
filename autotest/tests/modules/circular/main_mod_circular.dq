@@ -5,9 +5,8 @@ use ./mod_circ_a, ./mod_circ_b
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     printf('DQ Circular module reference test\n')  //?ignore('DQ Circular module reference test')
     printf('func_a() = %d\n', func_a())  //?check('func_a()', 21)
     printf('func_b() = %d\n', func_b())  //?check('func_b()', 12)
-    return 0
 endfunc

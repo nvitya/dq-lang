@@ -3,7 +3,7 @@
 object OBase:
 endobject
 
-func *Main() -> int:
+func *Main():
     var any : Object = nil
     var base : OBase = nil
 
@@ -12,5 +12,4 @@ func *Main() -> int:
     var fixed <- Object //?error(NotSupported)
     var heap : Object = new Object //?error(NotSupported)
 
-    return 0
 endfunc

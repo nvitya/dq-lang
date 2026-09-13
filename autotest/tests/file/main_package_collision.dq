@@ -5,7 +5,6 @@ use file
 use ./package_collision_helper
 use libc/stdio
 
-func *Main() -> int:
+func *Main():
     printf("package_file_collision = %d\n", PackageCollisionHelper())  //?check("package_file_collision", 0)
-    return 0
 endfunc

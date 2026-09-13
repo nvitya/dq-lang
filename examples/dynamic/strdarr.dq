@@ -10,7 +10,7 @@ func PrintSArr(astr : strview):
     endfor
 endfunc
 
-func *Main() -> int:
+func *Main():
     PrintLn('DQ test for dynamic array of dynamic strings')
 
     sa.Append('Hello!')
@@ -18,6 +18,4 @@ func *Main() -> int:
     sa.Append('abc')
 
     PrintSArr('sa')
-
-    return 0
 endfunc

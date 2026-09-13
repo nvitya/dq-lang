@@ -7,7 +7,7 @@ func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
     // end of func
 endfunc
 
-func *Main() -> int:
+func *Main():
     printf("inline_asm.immediate.positive = %li\n", int(MulImmediate(6, 7)))
     //?check("inline_asm.immediate.positive", 42)
 
@@ -17,5 +17,4 @@ func *Main() -> int:
     printf("inline_asm.immediate.folded = %li\n", int(MulImmediate(6, 3 + 4)))
     //?check("inline_asm.immediate.folded", 42)
 
-    return 0
 endfunc

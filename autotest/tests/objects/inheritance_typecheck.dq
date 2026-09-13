@@ -91,11 +91,10 @@ endfunc
 func MutObjectRef(o : ref OBase):
 endfunc
 
-func *Main() -> int:
-    result = 0
+func *Main():
     var b <- OBase()
     var c <- OChild()
-    result = b.hidden  //?error(MemberUnknown)
+    exit_code = b.hidden  //?error(MemberUnknown)
     MutObjectRef(b) //?error(FuncArgRefBind)
     var a <- OAbstract //?error(NotSupported)
 endfunc

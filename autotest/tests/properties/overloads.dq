@@ -33,7 +33,7 @@ public
     property float_value_prop : float read GetFloat write SetValue
 endobject
 
-func *Main() -> int:
+func *Main():
     var obj <- OPropertyOverloads()
 
     obj.scalar = 20
@@ -42,5 +42,4 @@ func *Main() -> int:
            obj.scalar, obj.indexed[3], obj.float_value_prop)
     //?check("property.overloads", "20 23 2.5")
 
-    return 0
 endfunc

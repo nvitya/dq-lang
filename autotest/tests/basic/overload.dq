@@ -139,7 +139,7 @@ endfunc
 
 var good_cb : CB1 = oltest_int
 var bad_cb : CBBad = oltest_int  //?error(OverloadNoMatch)
-func *Main() -> int:
+func *Main():
     oltest_int(2)
     oldefault(2)
     oconv(2)
@@ -152,7 +152,6 @@ func *Main() -> int:
     var x : int
     orescue(x)  //?error(OverloadNoMatch)
 
-    return 0
 endfunc
 
 #else
@@ -199,7 +198,7 @@ endfunc
 func use_cb(cb : CB1, v : int) -> int:
     return cb(v)
 endfunc
-func *Main() -> int:
+func *Main():
     printf("Overload collection test\n")  //?ignore('Overload collection test')
 
     var cb : CB1 = oltest_int
@@ -216,7 +215,6 @@ func *Main() -> int:
 
     extpick("extpick = fixed %d")  //?check('extpick', 'fixed %d')
 
-    return 0
 endfunc
 
 #endif

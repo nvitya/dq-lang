@@ -41,7 +41,7 @@ func CompileTarget(target : strview, define : strview, expected_format : strview
     RemoveTemp(output)
 endfunc
 
-func *Main() -> int:
+func *Main():
     run.RunCompiler(['--targets'])
     run.ExpectExitCode(0)
     run.ExpectOutputContains('TARGET')
@@ -122,7 +122,7 @@ func *Main() -> int:
     var wasm_base : str = TempPath()
     var wasm_source : str = wasm_base + '.dq'
     var wasm : str = wasm_base + '.wasm'
-    FileWriteText(wasm_source, 'func *Main() -> int:\n    return 0\nendfunc\n')
+    FileWriteText(wasm_source, 'func *Main():\nendfunc\n')
     run.RunCompiler([
         '--target=wasm32-wasi', wasm_source
     ])
@@ -141,5 +141,5 @@ func *Main() -> int:
     RemoveTemp(wasm_source)
     RemoveTemp(wasm)
 
-    return TestResult()
+    exit_code = TestResult()
 endfunc

@@ -12,7 +12,7 @@ func ExpectCompileFailure(args : []str, diagnostic : strview):
     run.ExpectOutputContains(diagnostic)
 endfunc
 
-func *Main() -> int:
+func *Main():
     var output : str = TempPath('.o')
     var dyn_cases : [3]str = ['TEST_STR', 'TEST_CONCAT', 'TEST_ANYVALUE']
     for i : int = 0 count dyn_cases.length:
@@ -38,5 +38,5 @@ func *Main() -> int:
     ], 'ERROR(VsUnknown)')
 
     RemoveTemp(output)
-    return TestResult()
+    exit_code = TestResult()
 endfunc

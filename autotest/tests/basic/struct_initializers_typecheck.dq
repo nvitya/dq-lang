@@ -23,7 +23,7 @@ endfunc
 func TakeRefInit(a : ref SInitA):
 endfunc
 
-func *Main() -> int:
+func *Main():
     var missing : SInitA = { 1, 2 } //?error(StructInitMissing)
     var excess : SInitA = { 1, 2, 3, 4 } //?error(StructInitExcess)
     var duplicate : SInitA = { x: 1, x: 2, y: 3, z: 4 } //?error(StructInitDuplicateField)
@@ -41,5 +41,4 @@ func *Main() -> int:
     var resolved_overload : int = PickInit(SInitA({ 1, 2, 3 }))
     TakeRefInit({ 1, 2, 3 }) //?error(FuncArgRefBind)
 
-    return 0
 endfunc

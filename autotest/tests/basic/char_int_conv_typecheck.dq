@@ -9,7 +9,7 @@ var bad_wchar_large : wchar = wchar(0x110000) //?error(CastInvalid)
 var bad_char16_negative : char16 = char16(-1) //?error(CastInvalid)
 var bad_char16_const : char16 = char16(0x10000) //?error(CastInvalid)
 
-func *Main() -> int:
+func *Main():
     var c : char = 'A'
     var wc : wchar = 'A'
     var c16 : char16 = char16(65)
@@ -31,5 +31,4 @@ func *Main() -> int:
     c16 = c16 + 1 //?error(TypeMismatchOp)
     c = char(wc) //?error(CastInvalid)
 
-    return 0
 endfunc

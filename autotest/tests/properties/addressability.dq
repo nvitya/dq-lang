@@ -33,7 +33,7 @@ func TakeRefOut(value : refout int):
     value = 0
 endfunc
 
-func *Main() -> int:
+func *Main():
     var obj <- OPropertyAddressability()
 
     var p1 : ^int = %obj.direct //?error(PropertyNotAddressable)
@@ -49,5 +49,4 @@ func *Main() -> int:
     ref method_ref = obj.method_value //?error(PropertyNotAddressable)
     ref item_ref = obj.item[0] //?error(PropertyNotAddressable)
 
-    return 0
 endfunc

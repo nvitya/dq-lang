@@ -20,7 +20,7 @@ object OBrace {
     }
 }
 
-func *Main() -> int {
+func *Main() {
     printf("compound braces\n")  //?ignore('compound braces')
 
     var s : SBrace = {}
@@ -31,5 +31,4 @@ func *Main() -> int {
     var obj <- OBrace(40)
     printf("object sum=%d\n", obj.Sum())  //?check('object sum', 42)
 
-    return 0
 }

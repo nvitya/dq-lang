@@ -10,8 +10,6 @@ func test_optional_semicolon():
     endif
 endfunc
 
-func *Main() -> int:
+func *Main():
     test_optional_semicolon()
-    return 0
 endfunc
-

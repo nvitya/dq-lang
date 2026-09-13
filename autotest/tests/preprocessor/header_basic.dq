@@ -4,7 +4,6 @@ use rtl/rtlint
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-func *Main() -> int:
+func *Main():
     printf("header value = %d\n", HEADER_VALUE) //?check("header value", 36)
-    return 0
 endfunc

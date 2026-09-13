@@ -70,7 +70,7 @@ var globvar6 : int = 66
 // showing the rsults
 
 func printf(fmt : ^char, ...) -> int [[external]]
-func *Main() -> int:
+func *Main():
     printf("DQ Pre-Processor (source code feeder) test:\n\n")     //?ignore('DQ Pre-Processor (source code feeder) test:')
 
     printf("globvar1 = %i\n", globvar1)           //?check(globvar1, 22)
@@ -83,5 +83,4 @@ func *Main() -> int:
     printf("includevar2 = %i\n", includevar2)     //?check(includevar2, 2033)
     printf("includevar21 = %i\n", includevar21)   //?check(includevar21, 2101)
 
-    return 0
 endfunc

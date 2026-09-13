@@ -26,8 +26,7 @@ object OTest:
     endfunc
 endobject
 
-func *Main() -> int:
+func *Main():
     var obj <- OTest(1)
     obj.Print()    //?check('obj', 'OTestName(1)')
-    return 0
 endfunc

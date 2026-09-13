@@ -17,14 +17,14 @@
 func Format(afmt : rostr, aargs : []anyvalue) -> str
 #endif
 
-func StrToInt(sv : strview, defvalue : int64 = 0) -> int64
+func StrToInt(sv : strslice, defvalue : int64 = 0) -> int64
 
-func StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int
-func StrStartsWith(astr : strview, aprefix : strview) -> bool
-func StrEndsWith(astr : strview, asuffix : strview) -> bool
+func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int
+func StrStartsWith(astr : strslice, aprefix : strslice) -> bool
+func StrEndsWith(astr : strslice, asuffix : strslice) -> bool
 #ifdef DYNSTRINGS
-func StrUpper(astr : strview) -> str
-func StrLower(astr : strview) -> str
+func StrUpper(astr : strslice) -> str
+func StrLower(astr : strslice) -> str
 #endif
 
 implementation
@@ -37,7 +37,7 @@ func Format(afmt : rostr, aargs : []anyvalue) -> str:
 endfunc
 #endif
 
-func StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
+func StrToInt(sv : strslice, defvalue : int64 = 0) -> int64:
     result = 0
     var sign : int = 1
     for i : int = 0 count sv.length:
@@ -53,7 +53,7 @@ func StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
     result = sign * result  // apply the sign
 endfunc
 
-func StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int:
+func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int:
     if astart < 0:
         astart = 0
     endif
@@ -86,11 +86,11 @@ func StrIndexOf(astr : strview, aneedle : strview, astart : int = 0) -> int:
     return -1
 endfunc
 
-func StrStartsWith(astr : strview, aprefix : strview) -> bool:
+func StrStartsWith(astr : strslice, aprefix : strslice) -> bool:
     return StrIndexOf(astr, aprefix) == 0
 endfunc
 
-func StrEndsWith(astr : strview, asuffix : strview) -> bool:
+func StrEndsWith(astr : strslice, asuffix : strslice) -> bool:
     if asuffix.length > astr.length:
         return false
     endif
@@ -99,7 +99,7 @@ func StrEndsWith(astr : strview, asuffix : strview) -> bool:
 endfunc
 
 #ifdef DYNSTRINGS
-func StrUpper(astr : strview) -> str:
+func StrUpper(astr : strslice) -> str:
     result = ''
     result.Reserve(astr.length)
     for i : int = 0 count astr.length:
@@ -111,7 +111,7 @@ func StrUpper(astr : strview) -> str:
     endfor
 endfunc
 
-func StrLower(astr : strview) -> str:
+func StrLower(astr : strslice) -> str:
     result = ''
     result.Reserve(astr.length)
     for i : int = 0 count astr.length:

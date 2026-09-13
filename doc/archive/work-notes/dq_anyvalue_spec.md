@@ -31,7 +31,7 @@ const DQTK_POINTER      : uint8 =  4
 const DQTK_ENUM         : uint8 =  5
 const DQTK_CHAR         : uint8 =  6
 const DQTK_CSTRING      : uint8 =  8
-const DQTK_STRVIEW      : uint8 =  9
+const DQTK_STRSLICE      : uint8 =  9
 const DQTK_DYNSTR       : uint8 = 10
 const DQTK_ANYVALUE     : uint8 = 15
 const DQTK_STRUCT       : uint8 = 16
@@ -173,7 +173,7 @@ char                   -> anyvalue
 floating-point types   -> anyvalue
 str                    -> anyvalue
 cstring                -> anyvalue
-strview                -> anyvalue
+strslice                -> anyvalue
 string literal         -> anyvalue as cstring
 pointer/object         -> anyvalue (as pointer)
 ```
@@ -187,7 +187,7 @@ int/uint/char     DQTK_INT
 float32/float64   DQTK_FLOAT
 str               DQTK_DYNSTR
 cstring           DQTK_CSTRING
-strview           DQTK_STRVIEW
+strslice           DQTK_STRSLICE
 pointer           DQTK_POINTER
 anyvalue          DQTK_ANYVALUE
 ```
@@ -235,13 +235,13 @@ DQTK_INT        data[0..datasize-1] = integer bits, sign from subtype
 DQTK_FLOAT      data[0..datasize-1] = IEEE bits, width from datasize
 DQTK_POINTER    data[0..@def.PTRSIZE-1]
 DQTK_CSTRING    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
-DQTK_STRVIEW    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
+DQTK_STRSLICE    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
 DQTK_DYNSTR     data[0..@def.PTRSIZE-1] = owned ODynStrMgr pointer
 ```
 
 `DQTK_DYNSTR` uses the same `ODynStrMgr` manager object as the normal DQ `str` type. The `data` field stores only the manager pointer. A null manager pointer represents the empty string, matching normal `str` behavior.
 
-`DQTK_CSTRING` and `DQTK_STRVIEW` are borrowed descriptor values. `DQTK_DYNSTR` is owned/refcounted managed storage.
+`DQTK_CSTRING` and `DQTK_STRSLICE` are borrowed descriptor values. `DQTK_DYNSTR` is owned/refcounted managed storage.
 
 ---
 
@@ -285,9 +285,9 @@ The old boolean form `SetNull(true)` is obsolete. User code should only use `Set
 
 For scalar values, copying and destruction are trivial.
 
-For `cstring` and `strview` values, `anyvalue` stores a borrowed text descriptor. Copying the `anyvalue` copies only the descriptor. Destroying the `anyvalue` does not destroy the referenced text storage.
+For `cstring` and `strslice` values, `anyvalue` stores a borrowed text descriptor. Copying the `anyvalue` copies only the descriptor. Destroying the `anyvalue` does not destroy the referenced text storage.
 
-Implicit boxing of `cstring` and `strview` is only allowed when the source text storage is guaranteed to remain valid for the lifetime of the resulting `anyvalue`. Direct `[]anyvalue` call arguments satisfy this rule for ordinary expression sources because the temporary array is only valid for the duration of the call. Persistent `anyvalue` storage may require an explicit conversion to owned `str`.
+Implicit boxing of `cstring` and `strslice` is only allowed when the source text storage is guaranteed to remain valid for the lifetime of the resulting `anyvalue`. Direct `[]anyvalue` call arguments satisfy this rule for ordinary expression sources because the temporary array is only valid for the duration of the call. Persistent `anyvalue` storage may require an explicit conversion to owned `str`.
 
 For `str` values, `anyvalue` must obey the normal `str` copy/destroy semantics. Therefore `anyvalue` itself is a managed type if it can contain owned `str`.
 
@@ -495,7 +495,7 @@ function AnyValIsText(v : ref SDqAnyValue) -> bool
 
 `AnyValIsStr()` is the current RTL-compatible name.
 
-`AnyValIsText()` is the preferred semantic alias. It returns `true` for `DQTK_CSTRING`, `DQTK_STRVIEW`, and `DQTK_DYNSTR`.
+`AnyValIsText()` is the preferred semantic alias. It returns `true` for `DQTK_CSTRING`, `DQTK_STRSLICE`, and `DQTK_DYNSTR`.
 
 A compiler may expose only the method name `IsStr()` or may expose both `IsStr()` and `IsText()`.
 
@@ -525,7 +525,7 @@ av.AsText(DefaultTextInfo(""), ti)
 
 `AnyValAsText()` returns a text descriptor through `rv`.
 
-If `v` contains `cstring`, `strview`, or `str`, the result describes the contained text.
+If `v` contains `cstring`, `strslice`, or `str`, the result describes the contained text.
 
 If `v` does not contain text, `rv` receives `defval`.
 
@@ -540,7 +540,7 @@ function AnyValSetStr(v : ref SDqAnyValue, value : str)
 function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 ```
 
-`AnyValSetText()` stores a borrowed `DQTK_STRVIEW` descriptor.
+`AnyValSetText()` stores a borrowed `DQTK_STRSLICE` descriptor.
 
 `AnyValSetCString()` stores a borrowed `DQTK_CSTRING` descriptor.
 
@@ -654,7 +654,7 @@ av.ToCString(DefaultTextInfo(""), cs)  // heapless copy into fixed buffer
 var s : str = av.AsStr(DefaultTextInfo(""))  // owned dynamic string, may allocate
 ```
 
-`cstring` and `strview` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.
+`cstring` and `strslice` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.
 
 A `str` value stored in an `anyvalue` is owned and follows normal managed string copy/destroy rules.
 

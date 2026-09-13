@@ -6,7 +6,7 @@ DQ has four main text forms:
 | --- | --- |
 | `str` | dynamic heap-managed string |
 | `rostr` | read-only borrowed zero-terminated string |
-| `strview` | non-owning string view, including unterminated slices |
+| `strslice` | non-owning string view, including unterminated slices |
 | `cstring(n)` | fixed-size zero-terminated storage |
 
 `str` is an owned byte string with an enforced trailing zero. Its `.length`
@@ -24,7 +24,7 @@ b[0] = 'X'  // a is still "abc"
 ```
 
 `rostr` provides read-only byte and Unicode access. It borrows storage without
-copying, converts directly to C string pointers, and returns `strview` slices.
+copying, converts directly to C string pointers, and returns `strslice` slices.
 `AddFmt` format arguments use `rostr`; mutation sources still accept arbitrary
 text views. See [Strings and Characters](../reference/strings-and-characters.md)
 for conversions and lifetime requirements.

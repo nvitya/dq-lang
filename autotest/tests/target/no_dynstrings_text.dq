@@ -3,8 +3,8 @@
 
 use strutils
 
-func TextLength(text : strview) -> int:
-    var slice : strview = text[0:text.length]
+func TextLength(text : strslice) -> int:
+    var slice : strslice = text[0:text.length]
     var first : wchar = slice.wchar[0]
     return slice.wclen + Ord(first)
 endfunc
@@ -12,9 +12,9 @@ endfunc
 func FormatText() -> int:
     var text : cstring(15) = "value="
     text.AddFmt("{}", [42])
-    var view : strview = text
+    var view : strslice = text
     var value : anyvalue = text
-    var copied : strview = value.AsText("")
+    var copied : strslice = value.AsText("")
     return view.length + copied.length
 endfunc
 

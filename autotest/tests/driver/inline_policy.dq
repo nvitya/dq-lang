@@ -18,7 +18,7 @@ func CheckLocal():
     RemoveTemp(output)
 endfunc
 
-func CheckLto(option : strview, expect_plain : bool):
+func CheckLto(option : strslice, expect_plain : bool):
     var binary : str = TempPath('.elf')
     var opt : str = option
     run.RunCompiler([

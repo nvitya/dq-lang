@@ -134,7 +134,7 @@ with `nil`.
 An `of object` function reference also stores an object instance:
 
 ```dq
-type FHandler = func(message : strview) of object
+type FHandler = func(message : strslice) of object
 ```
 
 Assigning a virtual method resolves the implementation for that instance.

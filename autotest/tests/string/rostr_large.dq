@@ -8,7 +8,7 @@ func *Main():
     source.SetLength(0x1000002, 'x')
     var raw : ^char = source.pchar
     var borrowed : rostr = raw
-    var view : strview = borrowed
+    var view : strslice = borrowed
     var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%borrowed)
     printf("large = %li:%li:%u:%i\n", source.length, view.length, desc.charlen, borrowed[$last] == 'x') //?check("large", "16777218:16777218:16777218:1")
     var known : rostr = source

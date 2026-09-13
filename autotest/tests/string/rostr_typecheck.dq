@@ -6,7 +6,7 @@ func EditBuffer(text : cstring):
 endfunc
 
 func Rejections():
-    var view : strview = "abc"
+    var view : strslice = "abc"
     var bad : rostr = view //?error(TypeMismatchAssign)
     Take(view) //?error(TypeMismatchAssign)
     var badcast : rostr = rostr(view) //?error(CastInvalid)

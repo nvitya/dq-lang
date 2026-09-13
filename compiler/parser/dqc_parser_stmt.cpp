@@ -351,7 +351,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
-    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRVIEW == pvalsym->ptype->ResolveAlias()->kind || TK_ROSTR == pvalsym->ptype->ResolveAlias()->kind))
+    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRSLICE == pvalsym->ptype->ResolveAlias()->kind || TK_ROSTR == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }

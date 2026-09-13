@@ -1,4 +1,4 @@
-// Spec-level str, strview, cstring, and ^char func argument behavior.
+// Spec-level str, strslice, cstring, and ^char func argument behavior.
 
 use libc/stdio
 
@@ -30,7 +30,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -40,7 +40,7 @@ func PrintText(label : ^char, text : strview):
     printf("\"\n")
 endfunc
 
-func PrintReadonly(label : ^char, text : strview):
+func PrintReadonly(label : ^char, text : strslice):
     PrintText(label, text)
 endfunc
 
@@ -84,7 +84,7 @@ func *Main():
 
     var assigned_from_pc : str = pc
     PrintText("assign_pc_to_str", assigned_from_pc) //?check("assign_pc_to_str", '[5] "pcstr"')
-    var view_from_pc : strview = pc
+    var view_from_pc : strslice = pc
     PrintText("assign_pc_to_view", view_from_pc) //?check("assign_pc_to_view", '[5] "pcstr"')
 
 endfunc

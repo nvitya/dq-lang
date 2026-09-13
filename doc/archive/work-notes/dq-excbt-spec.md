@@ -33,7 +33,7 @@ public
   message    : str
   backtrace  : [*]pointer  // storage shape may be implementation-specific
 
-  function *Create(amsg : strview)
+  function *Create(amsg : strslice)
   function *Destroy()
 
   function GetMessage() -> str

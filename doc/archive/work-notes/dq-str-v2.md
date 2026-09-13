@@ -495,11 +495,11 @@ For `cstring(n)`, `.pchar` points to the first byte of its fixed zero-terminated
 
 ---
 
-## 10. `strview`
+## 10. `strslice`
 
-`strview` is a borrowed byte-string view.
+`strslice` is a borrowed byte-string view.
 
-Unlike `str`, a `strview` is not always zero-terminated at its logical end.
+Unlike `str`, a `strslice` is not always zero-terminated at its logical end.
 
 The internal string-view flags should include a zero-termination flag:
 
@@ -518,8 +518,8 @@ A view covering an entire `str` can normally retain this flag.
 A substring view generally cannot:
 
 ```dq
-var whole : strview = s
-var part  : strview = s[3:10]
+var whole : strslice = s
+var part  : strslice = s[3:10]
 ```
 
 Typical state:
@@ -529,11 +529,11 @@ whole: ZEROTERM set
 part:  ZEROTERM not set
 ```
 
-Zero-cost C string access from a `strview` is valid only when its internal `ZEROTERM` flag is set.
+Zero-cost C string access from a `strslice` is valid only when its internal `ZEROTERM` flag is set.
 
 Otherwise, conversion to an owned `str` is required before obtaining a C string pointer.
 
-`strview` also exposes a `.pchar` property:
+`strslice` also exposes a `.pchar` property:
 
 ```dq
 var p : ^char = view.pchar
@@ -545,9 +545,9 @@ Its result type is:
 view.pchar -> ^char
 ```
 
-For now, `strview.pchar` is a raw borrowed pointer to the first byte of the view and does not check whether the view is zero-terminated. Unlike `str.pchar`, it does not guarantee that `view.data[view.length] == 0`.
+For now, `strslice.pchar` is a raw borrowed pointer to the first byte of the view and does not check whether the view is zero-terminated. Unlike `str.pchar`, it does not guarantee that `view.data[view.length] == 0`.
 
-Callers must use `strview.pchar` with C zero-terminated string APIs only when they already know the view is zero-terminated. Otherwise, convert the view to an owned `str` first, because `str` guarantees the hidden trailing zero.
+Callers must use `strslice.pchar` with C zero-terminated string APIs only when they already know the view is zero-terminated. Otherwise, convert the view to an owned `str` first, because `str` guarantees the hidden trailing zero.
 
 ---
 

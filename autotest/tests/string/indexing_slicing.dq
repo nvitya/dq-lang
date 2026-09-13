@@ -30,7 +30,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -54,7 +54,7 @@ func *Main():
 
     s = "abcdef"
     var copy_mid : str = s[1:4]
-    var view_mid : strview = s[1:4]
+    var view_mid : strslice = s[1:4]
     PrintText("slice_copy_mid", copy_mid) //?check("slice_copy_mid", '[3] "bcd"')
     PrintText("slice_view_mid", view_mid) //?check("slice_view_mid", '[3] "bcd"')
 
@@ -76,8 +76,8 @@ func *Main():
     PrintText("slice_except_last", s[:$end - 1]) //?check("slice_except_last", '[5] "abcde"')
     PrintText("slice_last_two_inclusive", s[$end - 2::$end - 1]) //?check("slice_last_two_inclusive", '[2] "ef"')
 
-    var v : strview = "abcdef"
-    var vv : strview = v[1:4]
-    PrintText("strview_slice", vv) //?check("strview_slice", '[3] "bcd"')
+    var v : strslice = "abcdef"
+    var vv : strslice = v[1:4]
+    PrintText("strslice_slice", vv) //?check("strslice_slice", '[3] "bcd"')
 
 endfunc

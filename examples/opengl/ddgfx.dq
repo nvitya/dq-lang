@@ -260,7 +260,7 @@ func DdMatProjection(width : int, height : int) -> SDdMatrix:
 endfunc
 
 
-func DdCompileShader(shader_type : uint32, source : strview) -> uint32:
+func DdCompileShader(shader_type : uint32, source : strslice) -> uint32:
     result = GlCreateShader(shader_type)
     var shader_source  : str = source
     var source_pointer : ^char = shader_source.pchar

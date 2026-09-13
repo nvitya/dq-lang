@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-func CheckTool(name : strview):
+func CheckTool(name : strslice):
     run.RunTool([BinPath(name)])
     run.ExpectExitCode(0)
 endfunc

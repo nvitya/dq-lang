@@ -9,7 +9,7 @@ the repository. It is not another specification: follow the
 
 - Use colon/end-keyword blocks and two-space indentation.
 - Declare variable types explicitly; `[?]T` infers only a fixed-array length.
-- Use `str` for owned text, `strview` for read-only borrowed text, and
+- Use `str` for owned text, `rostr`, `strslice` for read-only borrowed text, and
   `cstring(N)` only for fixed C-compatible storage.
 - Use double quotes for text and single quotes for a character scalar.
 - Use lowercase Boolean operators and uppercase integer/bitwise word operators.
@@ -18,7 +18,7 @@ the repository. It is not another specification: follow the
 ## Ownership and Aliasing
 
 - `[*]T` owns dynamic array storage; `[]T` borrows a view.
-- `str` is managed copy-on-write; `.pchar`, `strview`, slices, and `cstring`
+- `str` is managed copy-on-write; `.pchar`, `rostr`, `strslice`, slices, and `cstring`
   descriptors borrow storage.
 - Object variables are references. Use `new`/`delete` for heap objects and `<-`
   for fixed storage.

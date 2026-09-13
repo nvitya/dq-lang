@@ -609,7 +609,7 @@ OLValueExpr * OLValueMember::Clone() const
   {
     ptype = g_builtins->type_char;
   }
-  else if (TK_DYNSTR == acontainertype->kind || TK_STRVIEW == acontainertype->kind || TK_ROSTR == acontainertype->kind)
+  else if (TK_DYNSTR == acontainertype->kind || TK_STRSLICE == acontainertype->kind || TK_ROSTR == acontainertype->kind)
   {
     ptype = g_builtins->type_char;
   }
@@ -869,7 +869,7 @@ void OArraySliceExpr::DeleteChildTree()
   startexpr = astart;
   endexpr = aend;
   end_inclusive = aend_inclusive;
-  ptype = g_builtins->type_strview;
+  ptype = g_builtins->type_strslice;
 }
 
 LlValue * OStringSliceExpr::Generate(OScope * scope)

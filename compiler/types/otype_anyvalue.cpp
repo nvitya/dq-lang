@@ -158,7 +158,7 @@ bool IsAnyValueSourceType(OType * type)
     case TK_FLOAT:
     case TK_POINTER:
     case TK_CSTRING:
-    case TK_STRVIEW:
+    case TK_STRSLICE:
     case TK_ROSTR:
     case TK_DYNSTR:
       return true;
@@ -211,7 +211,7 @@ static bool GenerateAnyValueTextAssign(OScope * scope, LlValue * targetaddr, OEx
   {
     CallAnyValueFunc(scope, "AnyValSetRoStr", {targetaddr, descaddr});
   }
-  else if (TK_STRVIEW == srctype->kind)
+  else if (TK_STRSLICE == srctype->kind)
   {
     CallAnyValueFunc(scope, "AnyValSetText", {targetaddr, descaddr});
   }
@@ -286,7 +286,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return true;
   }
 
-  if (TK_CSTRING == srctype->kind || TK_STRVIEW == srctype->kind || TK_ROSTR == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
+  if (TK_CSTRING == srctype->kind || TK_STRSLICE == srctype->kind || TK_ROSTR == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
   {
     return GenerateAnyValueTextAssign(scope, targetaddr, value, srctype);
   }
@@ -367,9 +367,9 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_AS_TEXT:
     {
       LlValue * defaddr = GenerateTextInfoAddress(scope, args[0]);
-      LlValue * viewaddr = CreateEntryBlockAlloca(g_builtins->type_strview->GetLlType(), nullptr, "any.text.view");
+      LlValue * viewaddr = CreateEntryBlockAlloca(g_builtins->type_strslice->GetLlType(), nullptr, "any.text.view");
       CallAnyValueFunc(scope, "AnyValAsText", {addr, defaddr, viewaddr});
-      return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), viewaddr, "any.text");
+      return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), viewaddr, "any.text");
     }
     case AVM_SET_TEXT:
     {

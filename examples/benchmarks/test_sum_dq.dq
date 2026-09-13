@@ -2,7 +2,7 @@
 use print
 use ./nanotime
 
-func StrToInt(sv : strview, defvalue : int64 = 0) -> int64:
+func StrToInt(sv : strslice, defvalue : int64 = 0) -> int64:
     result = 0
     var sign : int = 1
     for i : int = 0 count sv.length:

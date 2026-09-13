@@ -30,7 +30,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -54,7 +54,7 @@ func *Main():
     var s_default : str
     var s_double  : str = ""
     var s_single  : str = ''
-    var v_empty   : strview = ""
+    var v_empty   : strslice = ""
 
     printf("empty_lengths = default:%li double:%li single:%li view:%li\n",
            s_default.length, s_double.length, s_single.length, v_empty.length) //?check("empty_lengths", "default:0 double:0 single:0 view:0")
@@ -64,7 +64,7 @@ func *Main():
            Flag(s_default == ""), Flag(s_double == ""), Flag(s_single == ""), Flag(v_empty == "")) //?check("empty_equality", "default:1 double:1 single:1 view:1")
 
     var s_lit : str = "asdf"
-    var v_lit : strview = "asdf"
+    var v_lit : strslice = "asdf"
     var cs_lit : cstring(31) = "asdf"
     var pc_lit : ^char = "asdf"
     PrintText("literal_str", s_lit) //?check("literal_str", '[4] "asdf"')
@@ -84,7 +84,7 @@ func *Main():
     printf("type_sizes = char:%li wchar:%li\n", SizeOf(char), SizeOf(wchar)) //?check("type_sizes", "char:1 wchar:4")
 
     var eq_str : str = "abc"
-    var eq_view : strview = "abc"
+    var eq_view : strslice = "abc"
     var eq_cs : cstring(8) = "abc"
     var eq_pc : ^char = "abc"
     printf("string_equality = str:%li view:%li cstring:%li pc:%li ne:%li\n",

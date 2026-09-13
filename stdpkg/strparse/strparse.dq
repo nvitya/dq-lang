@@ -26,7 +26,7 @@ object OStrParse:
 
     func *Create()                           [[overload]]
     func *Create(astr : ^char, alen : int)  [[overload]]
-    func *Create(astr : strview)             [[overload]]
+    func *Create(astr : strslice)             [[overload]]
 
     func Init(astr : ^char, alen : int)
 
@@ -71,7 +71,7 @@ func OStrParse.*Create()  [[overload]]:
     // no special init required
 endfunc
 
-func OStrParse.*Create(astr : strview)  [[overload]]:
+func OStrParse.*Create(astr : strslice)  [[overload]]:
     Init(astr.pchar, astr.length)
 endfunc
 

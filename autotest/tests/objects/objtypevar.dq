@@ -6,7 +6,7 @@ object OBase:
         name = 'OBase'
     endfunc
 
-    func ShowName(aprefix : strview):
+    func ShowName(aprefix : strslice):
         @.PrintLn('{} = {}', [aprefix, name])
     endfunc
 endobject
@@ -42,7 +42,7 @@ object OArgExplicit(OArgBase):
     endfunc
 endobject
 
-func ShowObjName(aprefix : strview, o : OBase):
+func ShowObjName(aprefix : strslice, o : OBase):
     PrintLn('{} = {}', [aprefix, o.name])
 endfunc
 

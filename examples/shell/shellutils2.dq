@@ -11,10 +11,10 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    func Run(acmd : strview) -> int
-    func RunWithInput(acmd : strview, ainput : strview) -> int
-    func StartBg(acmd : strview) -> int
-    func StartBgWithInput(acmd : strview, ainput : strview) -> int
+    func Run(acmd : strslice) -> int
+    func RunWithInput(acmd : strslice, ainput : strslice) -> int
+    func StartBg(acmd : strslice) -> int
+    func StartBgWithInput(acmd : strslice, ainput : strslice) -> int
     func Finished() -> bool
     func WaitFinishMs(ams : int) -> bool
     func Kill()
@@ -29,7 +29,7 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    func StartProcess(acmd : strview) -> int
+    func StartProcess(acmd : strslice) -> int
     func MonitorProcess()
     func MonitorThread(aarg : pointer) -> pointer
 endobject
@@ -72,7 +72,7 @@ const SIGKILL : int32 = 9
 
 //-----------------------------------------------------------------------------
 
-func OShellRunner.StartProcess(acmd : strview) -> int:
+func OShellRunner.StartProcess(acmd : strslice) -> int:
     use *
     var stdin_pipe  : [2]int32
     var stdout_pipe : [2]int32
@@ -294,7 +294,7 @@ func OShellRunner.MonitorProcess():
     finished = true
 endfunc
 
-func OShellRunner.Run(acmd : strview) -> int:
+func OShellRunner.Run(acmd : strslice) -> int:
     out = ''
     err = ''
     output = ''
@@ -313,7 +313,7 @@ func OShellRunner.Run(acmd : strview) -> int:
     return exitcode
 endfunc
 
-func OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
+func OShellRunner.RunWithInput(acmd : strslice, ainput : strslice) -> int:
     out = ''
     err = ''
     output = ''
@@ -332,7 +332,7 @@ func OShellRunner.RunWithInput(acmd : strview, ainput : strview) -> int:
     return exitcode
 endfunc
 
-func OShellRunner.StartBg(acmd : strview) -> int:
+func OShellRunner.StartBg(acmd : strslice) -> int:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -361,7 +361,7 @@ func OShellRunner.StartBg(acmd : strview) -> int:
     return 0
 endfunc
 
-func OShellRunner.StartBgWithInput(acmd : strview, ainput : strview) -> int:
+func OShellRunner.StartBgWithInput(acmd : strslice, ainput : strslice) -> int:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1

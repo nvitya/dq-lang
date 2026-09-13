@@ -30,7 +30,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:

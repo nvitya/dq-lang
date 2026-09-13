@@ -8,7 +8,7 @@
  * file:    otype_string.cpp
  * authors: nvitya
  * created: 2026-06-09
- * brief:   Byte-only str, rostr, and strview type implementation
+ * brief:   Byte-only str, rostr, and strslice type implementation
  */
 
 #include <vector>
@@ -185,12 +185,12 @@ LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue
 
 static LlValue * TextInfoAlloca()
 {
-  return CreateEntryBlockAlloca(g_builtins->type_strview->GetLlType(), nullptr, "text.desc");
+  return CreateEntryBlockAlloca(g_builtins->type_strslice->GetLlType(), nullptr, "text.desc");
 }
 
 static LlValue * TextInfoValue(LlValue * ptr, uint32_t charlen, uint32_t info)
 {
-  LlValue * desc = llvm::UndefValue::get(g_builtins->type_strview->GetLlType());
+  LlValue * desc = llvm::UndefValue::get(g_builtins->type_strslice->GetLlType());
   desc = ll_builder.CreateInsertValue(desc, ptr, 0, "text.desc.ptr");
   desc = ll_builder.CreateInsertValue(desc, LlU32(charlen), 1, "text.desc.len");
   desc = ll_builder.CreateInsertValue(desc, LlU32(info), 2, "text.desc.info");
@@ -241,10 +241,10 @@ static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
   }
   LlValue * descaddr = TextInfoAlloca();
   CallDynStrFunc(scope, "DynStrGetFullView", {straddr, descaddr});
-  return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), descaddr, "str.full.view");
+  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.full.view");
 }
 
-// OTypeDynString / OTypeStrView
+// OTypeDynString / OTypeStrSlice
 
 LlType * OTypeDynString::CreateLlType()
 {
@@ -257,7 +257,7 @@ LlDiType * OTypeDynString::CreateDiType()
   return di_builder->createPointerType(mgr_di, TARGET_PTRSIZE * 8);
 }
 
-LlType * OTypeStrView::CreateLlType()
+LlType * OTypeStrSlice::CreateLlType()
 {
   vector<LlType *> fields = {
     LlPtrType(),
@@ -267,7 +267,7 @@ LlType * OTypeStrView::CreateLlType()
   return llvm::StructType::get(ll_ctx, fields);
 }
 
-LlDiType * OTypeStrView::CreateDiType()
+LlDiType * OTypeStrSlice::CreateDiType()
 {
   LlDiType * ptr_di = di_builder->createPointerType(
       di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char),
@@ -307,7 +307,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
     return g_builtins->type_rostr->GenerateTextInfo(scope, expr);
   }
 
-  if (TK_STRVIEW == srctype->kind)
+  if (TK_STRSLICE == srctype->kind)
   {
     return expr->Generate(scope);
   }
@@ -335,7 +335,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
       throw logic_error("cstring text source requires an lvalue");
     }
     LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstraddr);
-    return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), descaddr, "cstr.text");
+    return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "cstr.text");
   }
 
   if (IsCCharPointerType(srctype))
@@ -354,7 +354,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr)
 {
   if (auto * lval = dynamic_cast<OLValueExpr *>(expr);
-      lval && lval->ResolvedType() && TK_STRVIEW == lval->ResolvedType()->kind)
+      lval && lval->ResolvedType() && TK_STRSLICE == lval->ResolvedType()->kind)
   {
     return lval->GenerateAddress(scope);
   }
@@ -378,7 +378,7 @@ LlValue * OTypeString::GenerateCharAddress(OScope * scope, OLValueExpr * receive
   LlValue * len = ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {descaddr}));
   LlValue * norm_index = NormalizeTextIndexValue(index, len);
 
-  LlType * desctype = g_builtins->type_strview->GetLlType();
+  LlType * desctype = g_builtins->type_strslice->GetLlType();
   LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "str.ptr.addr");
   LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "str.ptr");
   return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), dataptr, {norm_index}, "str.elem");
@@ -493,7 +493,7 @@ LlValue * OTypeDynString::GenerateSlice(OScope * scope, OLValueExpr * receiver, 
   }
 
   CallDynStrFunc(scope, "DynStrGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
-  return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), descaddr, "str.slice");
+  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.slice");
 }
 
 LlValue * OTypeDynString::GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field)
@@ -684,28 +684,28 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
   throw logic_error("Unhandled string method");
 }
 
-// OTypeStrView
+// OTypeStrSlice
 
-LlValue * OTypeStrView::GenerateLength(OScope * scope, LlValue * straddr)
+LlValue * OTypeStrSlice::GenerateLength(OScope * scope, LlValue * straddr)
 {
   (void)scope;
   return ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {straddr}));
 }
 
-LlValue * OTypeStrView::GeneratePChar(OScope * scope, LlValue * straddr)
+LlValue * OTypeStrSlice::GeneratePChar(OScope * scope, LlValue * straddr)
 {
   (void)scope;
   return CallDynStrFunc(scope, "TextInfoPChar", {straddr});
 }
 
-LlValue * OTypeStrView::GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
+LlValue * OTypeStrSlice::GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   LlValue * result = CallDynStrFunc(scope, "TextInfoGetChar", {receiver->GenerateAddress(scope), ToNativeInt(index)});
   EmitExpressionExceptionCheck(scope);
   return result;
 }
 
-LlValue * OTypeStrView::GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+LlValue * OTypeStrSlice::GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                       OExpr * end_expr, bool end_inclusive)
 {
   LlValue * sourceaddr = GenerateTextInfoAddress(scope, receiver);
@@ -728,7 +728,7 @@ LlValue * OTypeStrView::GenerateSlice(OScope * scope, OLValueExpr * receiver, OE
   }
 
   CallDynStrFunc(scope, "TextInfoGetView", {sourceaddr, descaddr, start, end});
-  return ll_builder.CreateLoad(g_builtins->type_strview->GetLlType(), descaddr, "str.slice");
+  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.slice");
 }
 
 // Free function helpers
@@ -754,14 +754,14 @@ bool GenerateStringAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * valu
 }
 
 
-bool OTypeStrView::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+bool OTypeStrSlice::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (TK_STRVIEW != tks)
+  if (TK_STRSLICE != tks)
   {
     if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
     {
@@ -788,13 +788,13 @@ bool OTypeStrView::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   return true;
 }
 
-int OTypeStrView::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+int OTypeStrSlice::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (TK_STRVIEW != tks)
+  if (TK_STRSLICE != tks)
   {
     if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(expr)) return is_explicit_cast ? -1 : 1;
     return OType::GetConversionCostFromExpr(expr, aflags);
@@ -859,14 +859,14 @@ int OTypeDynString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr)
 {
   auto * st = dynamic_cast<OTypeString *>(strtype ? strtype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringLength requires str or strview");
+  if (!st) throw logic_error("GenerateStringLength requires str or strslice");
   return st->GenerateLength(scope, straddr);
 }
 
 LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr)
 {
   auto * st = dynamic_cast<OTypeString *>(strtype ? strtype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringPChar requires str or strview");
+  if (!st) throw logic_error("GenerateStringPChar requires str or strslice");
   return st->GeneratePChar(scope, straddr);
 }
 
@@ -902,14 +902,14 @@ LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalu
 LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringGetChar requires str or strview");
+  if (!st) throw logic_error("GenerateStringGetChar requires str or strslice");
   return st->GenerateGetChar(scope, receiver, index);
 }
 
 LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringCharAddress requires str or strview");
+  if (!st) throw logic_error("GenerateStringCharAddress requires str or strslice");
   return st->GenerateCharAddress(scope, receiver, index);
 }
 
@@ -924,21 +924,21 @@ LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * st
                               OExpr * end_expr, bool end_inclusive)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringSlice requires str or strview");
+  if (!st) throw logic_error("GenerateStringSlice requires str or strslice");
   return st->GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWcLen requires str or strview");
+  if (!st) throw logic_error("GenerateStringWcLen requires str or strslice");
   return st->GenerateWcLen(scope, receiver);
 }
 
 LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWCharAt requires str or strview");
+  if (!st) throw logic_error("GenerateStringWCharAt requires str or strslice");
   return st->GenerateWCharAt(scope, receiver, index);
 }
 
@@ -946,14 +946,14 @@ LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr
                                    OExpr * end_expr, bool end_inclusive)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWCharSlice requires str or strview");
+  if (!st) throw logic_error("GenerateStringWCharSlice requires str or strslice");
   return st->GenerateWCharSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 LlValue * GenerateStringToWchars(OScope * scope, OLValueExpr * receiver)
 {
   auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringToWchars requires str or strview");
+  if (!st) throw logic_error("GenerateStringToWchars requires str or strslice");
   return st->GenerateToWchars(scope, receiver);
 }
 
@@ -1099,7 +1099,7 @@ LlValue * OTypeRoStr::GenerateGetChar(OScope * scope, OLValueExpr * receiver, Ll
 LlValue * OTypeRoStr::GenerateSlice(OScope * scope, OLValueExpr * receiver,
     OExpr * start_expr, OExpr * end_expr, bool end_inclusive)
 {
-  return g_builtins->type_strview->GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
+  return g_builtins->type_strslice->GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 OValueRoStr::OValueRoStr(OType * atype)

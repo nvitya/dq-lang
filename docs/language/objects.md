@@ -82,7 +82,7 @@ object OText:
     func *Create() [[overload]]:
     endfunc
 
-    func *Create(text : strview) [[overload]]:
+    func *Create(text : strslice) [[overload]]:
     endfunc
 endobject
 ```
@@ -148,12 +148,12 @@ Virtual methods are marked with `[[virtual]]`. Overrides are marked with
 
 ```dq
 object OBase:
-    func Write(text : strview) [[virtual]]:
+    func Write(text : strslice) [[virtual]]:
     endfunc
 endobject
 
 object OChild(OBase):
-    func Write(text : strview) [[override]]:
+    func Write(text : strslice) [[override]]:
     endfunc
 endobject
 ```

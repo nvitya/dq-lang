@@ -18,7 +18,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -32,14 +32,14 @@ func *Main():
     printf("string_concat_operator = start\n") //?check("string_concat_operator", "start")
 
     var s : str = "ab"
-    var v : strview = "cd"
+    var v : strslice = "cd"
     var cs : cstring(7) = "ef"
     var pc : ^char = "gh"
     var cc : char = char('!')
 
     PrintText("str_char", s + '?') //?check("str_char", '[3] "ab?"')
     PrintText("char_str", '<' + s) //?check("char_str", '[3] "<ab"')
-    PrintText("strview_str", v + s) //?check("strview_str", '[4] "cdab"')
+    PrintText("strslice_str", v + s) //?check("strslice_str", '[4] "cdab"')
     PrintText("cstring_str", cs + s) //?check("cstring_str", '[4] "efab"')
     PrintText("ptr_str", pc + s) //?check("ptr_str", '[4] "ghab"')
     PrintText("str_char_value", s + cc) //?check("str_char_value", '[3] "ab!"')

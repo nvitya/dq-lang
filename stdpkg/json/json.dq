@@ -44,7 +44,7 @@ private
     func ParseString(sp : OStrParse) -> str
     func ParseNumber(sp : OStrParse) -> float
     func AppendUtf8(rstr : ref str, codepoint : uint32)
-    func AppendJsonString(rstr : ref str, avalue : strview)
+    func AppendJsonString(rstr : ref str, avalue : strslice)
 
 public
     func *Create()  [[overload]]
@@ -93,7 +93,7 @@ public
 public // Loading / Parsing
     func LoadFromFile(afname : rostr)
 
-    func Parse(astr : strview)  [[overload]]
+    func Parse(astr : strslice)  [[overload]]
     func Parse(sp : OStrParse)  [[overload]]
 
 public
@@ -348,7 +348,7 @@ func OJson.LoadFromFile(afname : rostr):
     Parse(jdata)
 endfunc
 
-func OJson.Parse(astr : strview)  [[overload]]:
+func OJson.Parse(astr : strslice)  [[overload]]:
     var sp <- OStrParse(astr)
     Parse(sp)
 endfunc
@@ -650,7 +650,7 @@ func OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
     endif
 endfunc
 
-func OJson.AppendJsonString(rstr : ref str, avalue : strview):
+func OJson.AppendJsonString(rstr : ref str, avalue : strslice):
     rstr.Append('"')
     for i : int = 0 count avalue.length:
         var c : char = avalue[i]

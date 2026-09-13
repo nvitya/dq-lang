@@ -158,7 +158,7 @@ public:
   bool IsReadOnlyTextElement() const override
   {
     OType * type = containertype ? containertype->ResolveAlias() : nullptr;
-    return type && (TK_ROSTR == type->kind || TK_STRVIEW == type->kind);
+    return type && (TK_ROSTR == type->kind || TK_STRSLICE == type->kind);
   }
   LlValue *  GenerateAddress(OScope * scope) override;
   LlValue *  Generate(OScope * scope) override;
@@ -900,7 +900,7 @@ public:
   void       DeleteChildTree() override;
 };
 
-// --- str / strview expressions ---
+// --- str / strslice expressions ---
 
 class OTextBorrowExpr : public OExpr
 {

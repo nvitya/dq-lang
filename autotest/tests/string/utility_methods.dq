@@ -31,7 +31,7 @@ func PrintEscapedChar(ch : char):
     putchar(char(ch))
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -77,9 +77,9 @@ func *Main():
     printf("search_helpers = last:%li contains:%li starts:%li ends:%li misses:%li\n",
            search.LastIndexOf("abc"), Flag(search.Contains("def")), Flag(search.StartsWith("abc")), Flag(search.EndsWith("abc")), Flag(search.Contains("zzz"))) //?check("search_helpers", "last:6 contains:1 starts:1 ends:1 misses:0")
 
-    var view : strview = "  view  "
-    PrintText("strview_trim", view.Trim()) //?check("strview_trim", '[4] "view"')
-    printf("strview_indexof = %li\n", view.IndexOf("ie")) //?check("strview_indexof", 3)
+    var view : strslice = "  view  "
+    PrintText("strslice_trim", view.Trim()) //?check("strslice_trim", '[4] "view"')
+    printf("strslice_indexof = %li\n", view.IndexOf("ie")) //?check("strslice_indexof", 3)
 
     var cs : cstring(8) = "  abc"
     PrintText("cstring_trim", cs.Trim()) //?check("cstring_trim", '[3] "abc"')

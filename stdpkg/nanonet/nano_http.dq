@@ -68,7 +68,7 @@ protected
     func AddHttpOutput()
     func ParseGetString()
     func ParseRequestHeader() -> bool
-    func ParseCookies(astr : strview)
+    func ParseCookies(astr : strslice)
 
 public
     header_length : int
@@ -98,7 +98,7 @@ public
     func *Destroy()
 
     func QsVarInt(aname : rostr, adefvalue : int) -> int
-    func QsVarStr(aname : rostr, adefvalue : strview, amaxlen : int) -> str
+    func QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str
 
     func HandleInput(aobj : Object) [[override]]
     func HandleOutput(aobj : Object) [[override]]
@@ -127,7 +127,7 @@ public
     func ContentTypeByExt(aext : rostr) -> str
 endobject
 
-func ParseHttpDateRFC1123(adatestr : strview) -> int64
+func ParseHttpDateRFC1123(adatestr : strslice) -> int64
 
 implementation
 
@@ -217,7 +217,7 @@ func FileSizeByStat(afname : rostr) -> int64:
     return st.st_size
 endfunc
 
-func IsUrlPathSafe(auri : strview) -> bool:
+func IsUrlPathSafe(auri : strslice) -> bool:
     if auri == '':
         return false
     endif
@@ -240,7 +240,7 @@ func TrimRoot(arootdir : rostr) -> str:
     endwhile
 endfunc
 
-func ParseHttpDateRFC1123(adatestr : strview) -> int64:
+func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
     result = 0
     var sp <- OStrParse(adatestr)
     if adatestr == '':
@@ -407,7 +407,7 @@ func OSConnectionHttp.QsVarInt(aname : rostr, adefvalue : int) -> int:
     return int(@strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue))
 endfunc
 
-func OSConnectionHttp.QsVarStr(aname : rostr, adefvalue : strview, amaxlen : int) -> str:
+func OSConnectionHttp.QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str:
     result = qsvars.KeyDataDef(aname, adefvalue)
     if amaxlen > 0 and result.length > amaxlen:
         result = result[:amaxlen]
@@ -559,7 +559,7 @@ func OSConnectionHttp.ParseRequestHeader() -> bool:
     result = true
 endfunc
 
-func OSConnectionHttp.ParseCookies(astr : strview):
+func OSConnectionHttp.ParseCookies(astr : strslice):
     use strutils
     var csp <- OStrParse(astr)
     csp.SkipSpaces(false)

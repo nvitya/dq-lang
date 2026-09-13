@@ -13,7 +13,7 @@ protected
 public
     func *Create()
     func *Destroy()
-    func Open(adir : strview)
+    func Open(adir : strslice)
     func Close()
     func Opened() -> bool
     func Next() -> bool
@@ -59,7 +59,7 @@ func DirEntryName(aname : ^char) -> str:
     endwhile
 endfunc
 
-func DirEntryIsNavigation(aname : strview) -> bool:
+func DirEntryIsNavigation(aname : strslice) -> bool:
     if aname.length == 1:
         return aname[0] == '.'
     endif
@@ -79,7 +79,7 @@ func ODirReader.*Destroy():
     Close()
 endfunc
 
-func ODirReader.Open(adir : strview):
+func ODirReader.Open(adir : strslice):
     Close()
 
     if adir == '':

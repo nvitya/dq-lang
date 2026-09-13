@@ -5,7 +5,7 @@ use libc/stdio
 
 func putchar(c : char) -> int [[external]]
 
-func PrintEscaped(text : strview):
+func PrintEscaped(text : strslice):
     var i : int = 0
     while i < text.length:
         var ch : char = text[i]
@@ -24,7 +24,7 @@ func PrintEscaped(text : strview):
     endwhile
 endfunc
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] ", label, text.length)
     PrintEscaped(text)
     printf("\n")

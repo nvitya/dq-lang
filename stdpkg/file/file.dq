@@ -36,7 +36,7 @@ object OFile:
     func ReadBytes() -> [*]byte
 
     func Write(asrc : pointer, asize : int64)
-    func WriteText(atxt : strview)
+    func WriteText(atxt : strslice)
     func WriteBytes(abytes : []byte)
 
     property name     : str    read m_filename
@@ -51,7 +51,7 @@ func FileReadText(afname : rostr) -> str
 func FileReadBytes(afname : rostr) -> [*]byte
 
 func FileWrite(afname : rostr, dataptr : pointer, datalen : int64)
-func FileWriteText(afname : rostr, adata : strview)
+func FileWriteText(afname : rostr, adata : strslice)
 func FileWriteBytes(afname : rostr, adata : []byte)
 
 func FileExists(afname : rostr) -> bool
@@ -406,7 +406,7 @@ func OFile.Write(asrc : pointer, asize : int64):
     endif
 endfunc
 
-func OFile.WriteText(atxt : strview):
+func OFile.WriteText(atxt : strslice):
     if not Opened():
         raise EFileError('OFile.WriteText: file is not open')
     endif
@@ -456,7 +456,7 @@ func FileWrite(afname : rostr, dataptr : pointer, datalen : int64):
     f.Close()
 endfunc
 
-func FileWriteText(afname : rostr, adata : strview):
+func FileWriteText(afname : rostr, adata : strslice):
     var f <- OFile()
     f.Open(afname, 'w')
     f.WriteText(adata)

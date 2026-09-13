@@ -22,12 +22,12 @@ object OShellRunner(OThread):
 
     func Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]]
     func Run(args : []str, exitcerr : bool = true) -> int [[overload]]
-    func RunWithInput(acmd : rostr, ainput : strview, exitcerr : bool = true) -> int [[overload]]
-    func RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]
+    func RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]]
+    func RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]]
     func StartBg(acmd : rostr) -> int [[overload]]
     func StartBg(args : []str) -> int [[overload]]
-    func StartBgWithInput(acmd : rostr, ainput : strview) -> int [[overload]]
-    func StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]
+    func StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[overload]]
+    func StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]]
 
     func Finished() -> bool
     func WaitFinishMs(ams : int) -> bool
@@ -367,7 +367,7 @@ func OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overload]]:
     return exitcode
 endfunc
 
-func OShellRunner.RunWithInput(acmd : rostr, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]]:
     if acmd.length == 0:
         raise EShellStart('Empty command')
     endif
@@ -375,7 +375,7 @@ func OShellRunner.RunWithInput(acmd : rostr, ainput : strview, exitcerr : bool =
     return RunWithInput(['/bin/sh', '-c', command], ainput, exitcerr)
 endfunc
 
-func OShellRunner.RunWithInput(args : []str, ainput : strview, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]]:
     if args.length == 0:
         raise EShellStart('Empty argument list')
     endif
@@ -434,12 +434,12 @@ func OShellRunner.StartBg(args : []str) -> int [[overload]]:
     return 0
 endfunc
 
-func OShellRunner.StartBgWithInput(acmd : rostr, ainput : strview) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[overload]]:
     var command : str = acmd
     return StartBgWithInput(['/bin/sh', '-c', command], ainput)
 endfunc
 
-func OShellRunner.StartBgWithInput(args : []str, ainput : strview) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1

@@ -275,7 +275,7 @@ DQ has several text-related types:
 | --- | --- |
 | `str` | Dynamic heap-managed string |
 | `rostr` | Read-only borrowed zero-terminated string |
-| `strview` | Non-owning string view without guaranteed termination |
+| `strslice` | Non-owning string view without guaranteed termination |
 | `cstring(n)` | Fixed-size zero-terminated C-style string storage |
 | `cstring` | C-style string argument type |
 | `^char` | Pointer to byte-oriented C string data |
@@ -304,7 +304,7 @@ if url == "/":
 endif
 
 if url == '/':
-    // wrong: '/' is wchar, not str/strview/cstring text
+    // wrong: '/' is wchar, not str/strslice/cstring text
 endif
 ```
 

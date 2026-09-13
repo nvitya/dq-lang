@@ -205,7 +205,7 @@ dynstrings = true
 When enabled, the compiler defines `DYNSTRINGS` in the `@def` scope. When
 disabled, heap-owning `str` declarations, conversions, concatenation, and
 methods are rejected with `DynStringsDisabled`. Non-owning and bounded text
-facilities—text literals, `strview`, and bounded `cstring`—remain available.
+facilities—text literals, `rostr`, `strslice`, and bounded `cstring`—remain available.
 
 ### Bare-Metal Runtimes
 

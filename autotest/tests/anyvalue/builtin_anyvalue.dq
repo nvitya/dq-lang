@@ -4,7 +4,7 @@ use libc/stdio
 
 func putchar(c : char) -> int [[external]]
 
-func PrintText(label : ^char, text : strview):
+func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)
     var i : int = 0
     while i < text.length:
@@ -26,7 +26,7 @@ func PassText(v : anyvalue) -> str:
     return v.AsStr("")
 endfunc
 
-func PassTextView(v : anyvalue) -> strview:
+func PassTextView(v : anyvalue) -> strslice:
     return v.AsText("")
 endfunc
 
@@ -66,7 +66,7 @@ func *Main():
     printf("assign-literal = istext:%li isstr:%li\n", BoolInt(av.IsText()), BoolInt(av.IsStr())) //?check("assign-literal", "istext:1 isstr:0")
     PrintText("literal-asstr", av.AsStr("")) //?check("literal-asstr", '[7] "literal"')
     PrintText("literal-astext", av.AsText("")) //?check("literal-astext", '[7] "literal"')
-    PrintText("literal-asstrview", av.AsStrView("")) //?check("literal-asstrview", '[7] "literal"')
+    PrintText("literal-asstrslice", av.AsStrSlice("")) //?check("literal-asstrslice", '[7] "literal"')
 
     var s : str = "abc"
     av = s

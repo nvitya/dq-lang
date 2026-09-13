@@ -56,7 +56,7 @@ targets; when enabled, `#ifdef EXCEPTIONS` selects exception-aware source code.
 Runtime checks remain active when exception handling is disabled.
 Dynamic strings follow the same target defaults; when enabled,
 `#ifdef DYNSTRINGS` selects `str`-dependent source. With dynamic strings
-disabled, `strview`, string literals, and bounded `cstring` remain available,
+disabled, `strslice`, `rostr`, string literals, and bounded `cstring` remain available,
 but owning `str` operations are rejected at compile time.
 
 ## Compiler Targets

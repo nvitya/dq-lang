@@ -3,13 +3,13 @@
 use print
 use json
 
-func PrintJson(label : strview, source : strview):
+func PrintJson(label : strslice, source : strslice):
     var j <- OJson()
     j.Parse(source)
     PrintLn('{} = {}', [label, j.json])
 endfunc
 
-func PrintParseError(label : strview, source : strview):
+func PrintParseError(label : strslice, source : strslice):
     try:
         var j <- OJson()
         j.Parse(source)

@@ -26,7 +26,7 @@ func PrintText(label : ^char, ti : ref SDqTextInfo):
     printf("\"\n")
 endfunc
 
-func PrintString(label : ^char, text : strview):
+func PrintString(label : ^char, text : strslice):
     printf("%s = len:%li text: \"", label, text.length)
     var i : int = 0
     while i < text.length:

@@ -11,6 +11,6 @@
   #endif
 #endif
 
-func TextLength(text : strview) -> int:
+func TextLength(text : strslice) -> int:
     return text.length
 endfunc

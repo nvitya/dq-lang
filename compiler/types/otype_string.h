@@ -8,7 +8,7 @@
  * file:    otype_string.h
  * authors: nvitya
  * created: 2026-06-09
- * brief:   Byte-only str, rostr, and strview types
+ * brief:   Byte-only str, rostr, and strslice types
  */
 
 #pragma once
@@ -119,15 +119,15 @@ public:
   static LlValue * GenerateConcatFromStringValue(OScope * scope, LlValue * leftvalue, OExpr * right);
 };
 
-class OTypeStrView : public OTypeString
+class OTypeStrSlice : public OTypeString
 {
 private:
   using super = OTypeString;
 
 public:
-  OTypeStrView()
+  OTypeStrSlice()
   :
-    super("strview", TK_STRVIEW)
+    super("strslice", TK_STRSLICE)
   {
     bytesize = TARGET_PTRSIZE + 8;
     alignsize = TARGET_PTRSIZE;

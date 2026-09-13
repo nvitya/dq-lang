@@ -107,7 +107,7 @@ tests whether a real storage location was supplied.
 Parameters may have default values.
 
 ```dq
-func Repeat(text : strview, count : int = 1):
+func Repeat(text : strslice, count : int = 1):
     // ...
 endfunc
 ```
@@ -138,7 +138,7 @@ func Print(value : int) [[overload]]:
     // ...
 endfunc
 
-func Print(value : strview) [[overload]]:
+func Print(value : strslice) [[overload]]:
     // ...
 endfunc
 ```

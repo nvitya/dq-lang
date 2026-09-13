@@ -4,11 +4,11 @@ use print
 use file
 use ./dirutils
 
-func JoinPath(adir : strview, aname : strview) -> str:
+func JoinPath(adir : strslice, aname : strslice) -> str:
     return adir + '/' + aname
 endfunc
 
-func PrintTree(adir : strview, aindent : strview):
+func PrintTree(adir : strslice, aindent : strslice):
     var dir <- ODirReader()
     dir.Open(adir)
     while dir.Next():

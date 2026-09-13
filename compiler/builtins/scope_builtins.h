@@ -61,7 +61,7 @@ public:
   OTypeWchar *    type_wchar;
   OTypeCString *  type_cstring;
   OTypeDynString * type_str;
-  OTypeStrView *   type_strview;
+  OTypeStrSlice *   type_strslice;
   OTypeRoStr *     type_rostr;
   OTypeAnyValue *  type_anyvalue;
   OTypeObject *    type_object;

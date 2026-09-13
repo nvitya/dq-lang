@@ -13,10 +13,10 @@
  * brief:   Basic stdout printing functions
  */
 
-func Print(fmt : strview) [[overload]]
+func Print(fmt : strslice) [[overload]]
 func Print(fmt : rostr, args : []anyvalue) [[overload]]
 func PrintLn() [[overload]]
-func PrintLn(fmt : strview) [[overload]]
+func PrintLn(fmt : strslice) [[overload]]
 func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]
 func PrintFlush()
 
@@ -41,7 +41,7 @@ func StdOutFmtSetup():
     endif
 endfunc
 
-func Print(fmt : strview) [[overload]]:
+func Print(fmt : strslice) [[overload]]:
     if std_out_sink == nil:
         StdOutFmtSetup()
     endif
@@ -62,7 +62,7 @@ func PrintLn() [[overload]]:
     std_out_sink.WriteChar('\n')
 endfunc
 
-func PrintLn(fmt : strview) [[overload]]:
+func PrintLn(fmt : strslice) [[overload]]:
     if std_out_sink == nil:
         StdOutFmtSetup()
     endif

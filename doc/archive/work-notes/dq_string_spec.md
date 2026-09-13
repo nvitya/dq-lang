@@ -13,30 +13,30 @@ Scope: dynamic strings, string views, fixed-size C-style texts, character types,
 DQ has these string-related character/text forms in this draft:
 
 ```dq
-char          // uint32 character value
 char         // uint8 C-compatible character value
-str           // dynamic refcounted copy-on-write character string
-strview       // read-only non-owning view of character data
+wchar        // uint32 unicode character value
+str          // dynamic refcounted copy-on-write character string
+strslice     // read-only non-owning view of character data
 cstring(N)   // fixed-size C-compatible zero-terminated char storage
 cstring      // non-owning mutable bounded C-string alias / fat pointer
 ^char        // pointer to zero-terminated C-compatible char storage
 ```
 
-`char` is the normal DQ character type.
-
-```dq
-char == uint32
-```
-
-`char` is the C-compatible 8-bit character type.
+`char` is the normal DQ character type, C-compatible, 8-bit.
 
 ```dq
 char == uint8
 ```
 
+`wchar` is the unicode 32-bit character type.
+
+```dq
+wchar == uint32
+```
+
 A `str` stores `char` values. Its public length is measured in characters, not bytes.
 
-A `strview` is a read-only, non-owning view of existing character data. Its public length is also measured in characters. A `strview` may refer to dynamic str storage, fixed `cstring(N)` storage, str literal storage, temporary compiler-generated source data, or external C-compatible zero-terminated storage after scanning.
+A `strslice` is a read-only, non-owning view of existing character data. Its public length is also measured in characters. A `strslice` may refer to dynamic str storage, fixed `cstring(N)` storage, str literal storage, temporary compiler-generated source data, or external C-compatible zero-terminated storage after scanning.
 
 A `cstring(N)` stores at most `N` logical `char` characters and has one hidden zero terminator byte. Therefore its actual storage size is `N + 1` bytes.
 
@@ -56,7 +56,7 @@ endfunc
 
 `str` is the normal owning DQ text type.
 
-`strview` is the normal non-owning read-only string source type for high-performance APIs.
+`strslice` is the normal non-owning read-only string source type for high-performance APIs.
 
 `cstring(N)`, unsized `cstring`, and `^char` exist mainly for C interoperability.
 
@@ -65,7 +65,7 @@ endfunc
 | Type form | Owns storage | Length | Storage location | Character width | Can resize | Mutability |
 |---|---:|---:|---|---|---:|---|
 | `str` | yes | runtime | heap manager, null for empty | 1, 2, or 4 bytes per character | yes | mutable with copy-on-write |
-| `strview` | no | runtime | borrowed/external/static | 1, 2, or 4 bytes per character | no | read-only |
+| `strslice` | no | runtime | borrowed/external/static | 1, 2, or 4 bytes per character | no | read-only |
 | `cstring(N)` | yes | runtime, max `N` | inline/static/local/object storage | 1 byte | up to max length | mutable |
 | `cstring` | no | known or lazily scanned, max carried | borrowed bounded C-string storage | 1 byte in this draft | no | mutable alias when writable |
 | `^char` | no | zero-terminated | external/static/C-owned storage | 1 byte | no | pointer may target mutable or read-only storage |
@@ -102,16 +102,16 @@ s <> ""
 s.length == 0
 ```
 
-A `strview` is not nullable as a language value. An empty `strview` has length zero.
+A `strslice` is not nullable as a language value. An empty `strslice` has length zero.
 
 ```dq
-var v : strview = ""
+var v : strslice = ""
 
 v.length == 0
 v == ""
 ```
 
-The internal pointer of an empty `strview` may be null or may point to static empty literal storage. User code must not depend on that pointer value.
+The internal pointer of an empty `strslice` may be null or may point to static empty literal storage. User code must not depend on that pointer value.
 
 ## Dynamic `str` Semantics
 
@@ -242,11 +242,11 @@ String literals are compile-time string source values.
 
 A non-empty string literal is emitted as static read-only character data in `.rodata`. The character data always contains a trailing zero character after the logical characters. The trailing zero is not included in the literal character length.
 
-The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strview`, `cstring(N)`, or string-helper source.
+The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strslice`, `cstring(N)`, or string-helper source.
 
 ```dq
 var s  : str      = "asdf"
-var v  : strview     = "asdf"
+var v  : strslice     = "asdf"
 var cs : cstring(31) = "asdf"
 ```
 
@@ -297,10 +297,10 @@ var s1 : str = ""
 var s2 : str = ''
 ```
 
-Empty string literals used as `strview` values use a canonical empty view:
+Empty string literals used as `strslice` values use a canonical empty view:
 
 ```dq
-var v : strview = ""
+var v : strslice = ""
 ```
 
 As `^char` values, empty string literals point to a static zero byte in `.rodata`:
@@ -331,7 +331,7 @@ s.Append('b')
 s.Insert(1, 'x')
 ```
 
-A one-character `char` source may be passed internally as a temporary `strview`/`SDqTextInfo` whose lifetime is limited to the generated helper call.
+A one-character `char` source may be passed internally as a temporary `strslice`/`SDqTextInfo` whose lifetime is limited to the generated helper call.
 
 ## String Indexing
 
@@ -423,13 +423,13 @@ s[1] = char(0x1F600)  // may widen to charwidth = 4
 
 Normal `str` slicing returns a new `str` value.
 
-DQ also has public read-only `strview` values. A string slice expression may produce a `strview` only when the target/context explicitly requires `strview`.
+DQ also has public read-only `strslice` values. A string slice expression may produce a `strslice` only when the target/context explicitly requires `strslice`.
 
 ```dq
 var s : str = "abcdef"
 
 var x : str  = s[1:4]   // copies: "bcd"
-var v : strview = s[1:4]   // view: no copy, read-only, non-owning
+var v : strslice = s[1:4]   // view: no copy, read-only, non-owning
 ```
 
 Slicing syntax follows the array slicing syntax:
@@ -491,24 +491,24 @@ s[start::end] == s[start : end + 1]
 
 The conversion must avoid integer overflow in the compiler/runtime implementation.
 
-A `strview` slice returns another `strview`, because the receiver is already non-owning:
+A `strslice` slice returns another `strslice`, because the receiver is already non-owning:
 
 ```dq
-var v1 : strview = "abcdef"
-var v2 : strview = v1[1:4]  // view of "bcd"
+var v1 : strslice = "abcdef"
+var v2 : strslice = v1[1:4]  // view of "bcd"
 ```
 
-A slice expression passed directly to a helper or to a parameter of type `strview` may be lowered as a temporary `strview` without creating a dynamic `str`:
+A slice expression passed directly to a helper or to a parameter of type `strslice` may be lowered as a temporary `strslice` without creating a dynamic `str`:
 
 ```dq
-function ParseToken(tok : strview):
+function ParseToken(tok : strslice):
   ...
 endfunc
 
 var s : str = "abcdef"
 
-ParseToken(s[1:4])  // temporary strview
-s.Append(s[1:4])    // source is passed as temporary strview, no intermediate str required
+ParseToken(s[1:4])  // temporary strslice
+s.Append(s[1:4])    // source is passed as temporary strslice, no intermediate str required
 ```
 
 The temporary view is read-only and is valid only for the duration guaranteed by the call site.
@@ -558,7 +558,7 @@ s = ""         // release manager reference, return to null-manager empty
 
 ## Dynamic String Operations
 
-Dynamic strings support mutating operations similar to dynamic arrays, but with copy-on-write semantics. Source arguments are normally lowered to read-only `strview` values.
+Dynamic strings support mutating operations similar to dynamic arrays, but with copy-on-write semantics. Source arguments are normally lowered to read-only `strslice` values.
 
 ```dq
 var s : str = "abc"
@@ -566,7 +566,7 @@ var s : str = "abc"
 // add characters
 s.Append('d')        // "abcd"
 s.Append("ef")      // "abcdef"
-s.Append(strview_value) // source view is copied into s
+s.Append(strslice_value) // source view is copied into s
 s.Prepend('X')      // "Xabcdef"
 s.Prepend("--")     // "--Xabcdef"
 s.Insert(1, 'Y')    // insert before normalized index 1
@@ -805,7 +805,7 @@ var s : str = "  abc  "
 s = s.Trim()  // "abc"
 ```
 
-The methods are valid on `str` and `strview`. Read-only helper methods may also be valid on `cstring(N)` and `^char` sources where the receiver can be converted to a `strview`.
+The methods are valid on `str` and `strslice`. Read-only helper methods may also be valid on `cstring(N)` and `^char` sources where the receiver can be converted to a `strslice`.
 
 ### Trim, LTrim, and RTrim
 
@@ -921,7 +921,7 @@ s.Prepend(s)      // "abcabc"
 s.Insert(1, s)    // valid
 ```
 
-A `strview` source expression may reference the same manager as the destination.
+A `strslice` source expression may reference the same manager as the destination.
 
 Before any possible detach, widening, or reallocation, the runtime/compiler must preserve enough information to reconstruct the source range after the destination storage changes.
 
@@ -1245,7 +1245,7 @@ A character assigned to `cstring(N)` or unsized `cstring` must fit into `char`. 
 
 `cstring(N)` and unsized `cstring` slicing use the same slicing rules as normal strings.
 
-A `cstring(N)` slice expression returns a new `str` by default. In an explicit `strview` context it may return a read-only non-owning view into the fixed cstring storage.
+A `cstring(N)` slice expression returns a new `str` by default. In an explicit `strslice` context it may return a read-only non-owning view into the fixed cstring storage.
 
 ```dq
 var cs : cstring(31) = "abcdef"
@@ -1253,7 +1253,7 @@ var cs : cstring(31) = "abcdef"
 var s1 : str  = cs[1:4]       // copies "bcd"
 var s2 : str  = cs[:]         // copies "abcdef"
 var s3 : str  = cs[4:100]     // copies "ef"
-var v1 : strview = cs[1:4]    // view of "bcd"
+var v1 : strslice = cs[1:4]    // view of "bcd"
 ```
 
 Slice bounds are clamped exactly like string slice bounds:
@@ -1284,7 +1284,7 @@ cs.Delete(1, 2)     // delete two logical characters
 cs.Clear()          // empty cstring, storage[0] = 0
 ```
 
-Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` and unsized `cstring` through `strview` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
+Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` and unsized `cstring` through `strslice` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
 
 ```dq
 var cs : cstring(8) = "  abc"
@@ -1317,7 +1317,7 @@ Assigning a string literal to `^char` points to static read-only zero-terminated
 var pc : ^char = "asdf"
 ```
 
-Copying from `^char`, or converting `^char` to `strview`, scans until the first zero terminator.
+Copying from `^char`, or converting `^char` to `strslice`, scans until the first zero terminator.
 
 ```dq
 var s  : str
@@ -1326,7 +1326,7 @@ var pc : ^char = "asdf"
 
 s  = pc  // scans and creates dynamic string "asdf"
 cs = pc  // scans and copies into fixed cstring storage
-var v : strview = pc  // scans once to create a view
+var v : strslice = pc  // scans once to create a view
 ```
 
 Passing a null `^char` where a valid C string is required is a runtime error in this draft.
@@ -1360,12 +1360,12 @@ s == ""   // s.length == 0
 s <> ""   // s.length <> 0
 ```
 
-`cstring(N)` and `strview` equality with `str` compares logical content:
+`cstring(N)` and `strslice` equality with `str` compares logical content:
 
 ```dq
 var s  : str = "abc"
 var cs : cstring(31) = "abc"
-var v  : strview = "abc"
+var v  : strslice = "abc"
 
 s == cs  // true
 cs == s  // true
@@ -1421,10 +1421,10 @@ AppendSuffix(a)
 // a == "abc_suffix"
 ```
 
-A function parameter of type `strview` receives a read-only non-owning view. This avoids allocation and is the recommended parameter type for read-only string processing.
+A function parameter of type `strslice` receives a read-only non-owning view. This avoids allocation and is the recommended parameter type for read-only string processing.
 
 ```dq
-function ParseName(name : strview):
+function ParseName(name : strslice):
   ...
 endfunc
 
@@ -1439,12 +1439,12 @@ ParseName(cs)       // view of fixed cstring storage
 ParseName(pc)       // scans zero-terminated char storage to form a view
 ```
 
-A `strview` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
+A `strslice` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
 
-A function should use `strview` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^char` for raw C APIs that only accept a zero-terminated pointer.
+A function should use `strslice` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^char` for raw C APIs that only accept a zero-terminated pointer.
 
 ```dq
-function ReadText(s : strview):
+function ReadText(s : strslice):
   ...
 endfunc
 
@@ -1473,9 +1473,9 @@ endfunc
 
 A local unsized `cstring` variable is an alias to an existing descriptor/buffer, not a fixed buffer and not a value copy. It must be initialized from an existing `cstring(N)` or unsized `cstring`.
 
-## Public `strview`, Unsized `cstring`, and ABI `SDqTextInfo`
+## Public `strslice`, Unsized `cstring`, and ABI `SDqTextInfo`
 
-`strview` is a public DQ type for a read-only, non-owning view of character data.
+`strslice` is a public DQ type for a read-only, non-owning view of character data.
 
 Unsized `cstring` is a public DQ type for a non-owning mutable bounded C-compatible string buffer alias.
 
@@ -1499,7 +1499,7 @@ width   = character storage width encoded in info
 flags   = descriptor flags encoded in info
 ```
 
-For read-only `strview` descriptors, `LENGTH_VALID` is normally set and `maxlen == charlen`. For writable unsized `cstring` descriptors, `maxlen` is the writable maximum logical length of the target C buffer and `charlen` may be valid or unknown depending on `LENGTH_VALID`.
+For read-only `strslice` descriptors, `LENGTH_VALID` is normally set and `maxlen == charlen`. For writable unsized `cstring` descriptors, `maxlen` is the writable maximum logical length of the target C buffer and `charlen` may be valid or unknown depending on `LENGTH_VALID`.
 
 For empty views:
 
@@ -1511,22 +1511,22 @@ width   = 1
 flags   = READONLY | LENGTH_VALID
 ```
 
-A `strview` can represent source data from:
+A `strslice` can represent source data from:
 
 ```dq
 "abc"       // string literal, view points into .rodata
 s           // dynamic string
 cs          // cstring(N), as read-only view
 pc          // ^char, after scanning length
-s[1:4]      // string slice expression in strview context
-v[1:4]      // strview slice expression
+s[1:4]      // string slice expression in strslice context
+v[1:4]      // strslice slice expression
 'a'         // one-character temporary source
 ```
 
-`strview` is strictly read-only.
+`strslice` is strictly read-only.
 
 ```dq
-var v : strview = "abc"
+var v : strslice = "abc"
 
 var ch : char = v[0]  // OK
 v[0] = 'X'            // compile error
@@ -1549,10 +1549,10 @@ function Example():
 endfunc
 ```
 
-`strview` and unsized `cstring` indexing is strict, like `str` indexing:
+`strslice` and unsized `cstring` indexing is strict, like `str` indexing:
 
 ```dq
-var v : strview = "abc"
+var v : strslice = "abc"
 
 v[0]      // OK
 v[2]      // OK
@@ -1560,28 +1560,28 @@ v[3]      // runtime bounds error
 v[$end]   // runtime bounds error
 ```
 
-`strview` slicing is forgiving, like `str` slicing, and returns another `strview`:
+`strslice` slicing is forgiving, like `str` slicing, and returns another `strslice`:
 
 ```dq
-var v : strview = "abcdef"
+var v : strslice = "abcdef"
 
-v[1:4]    // strview "bcd"
-v[:100]   // strview "abcdef"
-v[100:]   // empty strview
+v[1:4]    // strslice "bcd"
+v[:100]   // strslice "abcdef"
+v[100:]   // empty strslice
 ```
 
-A `strview` can be assigned to `str`, which copies the viewed characters into an owning dynamic string value:
+A `strslice` can be assigned to `str`, which copies the viewed characters into an owning dynamic string value:
 
 ```dq
-var v : strview = "abc"
+var v : strslice = "abc"
 var s : str = v  // copies "abc" into str value
 ```
 
-A `str` can be assigned to `strview`, which creates a view of the current `str` storage:
+A `str` can be assigned to `strslice`, which creates a view of the current `str` storage:
 
 ```dq
 var s : str = "abcdef"
-var v : strview = s  // non-owning read-only view of s storage
+var v : strslice = s  // non-owning read-only view of s storage
 ```
 
 This has the same lifetime and invalidation dangers as array slices. The view does not keep the source alive and does not increment a dynamic string manager refcount by itself.
@@ -1590,21 +1590,21 @@ Danger example:
 
 ```dq
 var s : str = "abcdef"
-var v : strview = s[1:4]
+var v : strslice = s[1:4]
 
 s.Append("...")  // may detach/reallocate/move s storage
 
 // v may now be invalid
 ```
 
-Rules for `strview`:
+Rules for `strslice`:
 
-- `strview` does not own the referenced character storage.
-- `strview` does not increment `str` refcounts by itself.
-- `strview` cannot be used to mutate the referenced storage.
-- `strview` may become invalid when the source storage is destroyed, resized, detached, moved, or otherwise invalidated.
-- `strview` may be stored or returned only with the same care as pointers or array slices.
-- Assigning `strview` to `str` copies the characters and produces safe owning storage.
+- `strslice` does not own the referenced character storage.
+- `strslice` does not increment `str` refcounts by itself.
+- `strslice` cannot be used to mutate the referenced storage.
+- `strslice` may become invalid when the source storage is destroyed, resized, detached, moved, or otherwise invalidated.
+- `strslice` may be stored or returned only with the same care as pointers or array slices.
+- Assigning `strslice` to `str` copies the characters and produces safe owning storage.
 
 Rules for unsized `cstring`:
 
@@ -1619,7 +1619,7 @@ Rules for unsized `cstring`:
 Recommended compiler diagnostics:
 
 ```dq
-function BadView() -> strview:
+function BadView() -> strslice:
   var cs : cstring(31) = "abc"
   return cs[:]  // should be compile error or warning: returns view into local storage
 endfunc
@@ -1630,7 +1630,7 @@ function BadCStr() -> cstring:
 endfunc
 ```
 
-The compiler does not need to prove all `strview` or unsized `cstring` lifetimes safe. Both are explicit advanced borrowed types.
+The compiler does not need to prove all `strslice` or unsized `cstring` lifetimes safe. Both are explicit advanced borrowed types.
 
 ## Dynamic String Runtime Handling
 
@@ -1663,7 +1663,7 @@ s == ""
 
 Operations that need storage allocate a manager automatically.
 
-Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strview` values. At ABI level, read-only string sources and mutable bounded `cstring` aliases use the `SDqTextInfo` descriptor shape.
+Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strslice` values. At ABI level, read-only string sources and mutable bounded `cstring` aliases use the `SDqTextInfo` descriptor shape.
 
 ```dq
 function DqStrSetChar(
@@ -1674,18 +1674,18 @@ function DqStrSetChar(
 
 function DqStrAssign(
   smgr : ref ^ODynStrMgr,
-  src  : refin strview
+  src  : refin strslice
 )
 
 function DqStrAppend(
   smgr : ref ^ODynStrMgr,
-  src  : refin strview
+  src  : refin strslice
 )
 
 function DqStrInsert(
   smgr  : ref ^ODynStrMgr,
   index : int,
-  src   : refin strview
+  src   : refin strslice
 )
 
 function DqStrDelete(
@@ -1704,13 +1704,13 @@ function DqStrPopChar(
 ) -> char
 
 function DqStrTrim(
-  src        : refin strview,
-  trim_chars : refin strview
+  src        : refin strslice,
+  trim_chars : refin strslice
 ) -> str
 
 function DqStrIndexOf(
-  src    : refin strview,
-  needle : refin strview,
+  src    : refin strslice,
+  needle : refin strslice,
   start  : int = 0
 ) -> int
 
@@ -1763,23 +1763,23 @@ function DqCStrRefreshLength(
 
 function DqCStrAssign(
   cs  : ref cstring,
-  src : refin strview
+  src : refin strslice
 )
 
 function DqCStrAppend(
   cs  : ref cstring,
-  src : refin strview
+  src : refin strslice
 )
 
 function DqCStrPrepend(
   cs  : ref cstring,
-  src : refin strview
+  src : refin strslice
 )
 
 function DqCStrInsert(
   cs    : ref cstring,
   index : int,
-  src   : refin strview
+  src   : refin strslice
 )
 
 function DqCStrDelete(
@@ -1815,7 +1815,7 @@ Mutating helpers follow these rules:
 6. Keep LENGTH_VALID set.
 ```
 
-Source arguments are normally passed as `strview`. If the source is a `cstring` whose `LENGTH_VALID` flag is not set, the source descriptor is refreshed before copying or searching.
+Source arguments are normally passed as `strslice`. If the source is a `cstring` whose `LENGTH_VALID` flag is not set, the source descriptor is refreshed before copying or searching.
 
 Overlapping source and destination ranges must be handled correctly. If a `cstring` source aliases the destination buffer, the helper must preserve enough source range information before moving bytes or truncating the destination.
 
@@ -1849,34 +1849,34 @@ No type-info handler functions are needed for characters.
 1. `char` is `uint32`.
 2. `char` is `uint8`.
 3. `str` is a refcounted, copy-on-write dynamic character string.
-4. `strview` is a public read-only non-owning view of character data.
+4. `strslice` is a public read-only non-owning view of character data.
 5. Unsized `cstring` is a public non-owning mutable bounded C-string alias / fat pointer.
-6. `strview` and unsized `cstring` use the ABI descriptor shape `SDqTextInfo` with `dataptr`, `charlen`, and packed `info`.
+6. `strslice` and unsized `cstring` use the ABI descriptor shape `SDqTextInfo` with `dataptr`, `charlen`, and packed `info`.
 7. `SDqTextInfo.info` carries maximum length, character width/encoding, and flags.
 8. `LENGTH_VALID` means `charlen` may be trusted. If it is not set, helpers must scan lazily when they need the current length.
 9. Empty dynamic strings use a null manager and allocate no storage.
-10. `str.length`, `str.capacity`, and `strview.length` are measured in characters.
+10. `str.length`, `str.capacity`, and `strslice.length` are measured in characters.
 11. Dynamic string storage uses one fixed width per manager: 1, 2, or 4 bytes per character.
 12. String assignment shares the manager.
 13. Any string modification first ensures unique writable storage.
 14. Modifying one string variable never modifies another string variable assigned from it.
-15. `str` and `strview` indexing are strict and invalid indexes cause runtime bounds errors.
+15. `str` and `strslice` indexing are strict and invalid indexes cause runtime bounds errors.
 16. `s[i] = ch` is valid for `str` and may detach, widen, or reallocate the manager.
-17. `v[i] = ch` is invalid for `strview` because views are read-only.
+17. `v[i] = ch` is invalid for `strslice` because views are read-only.
 18. Normal `str` slicing returns a new `str`, not a view.
-19. A string slice expression may produce a `strview` only when the target/context explicitly requires `strview`.
-20. `strview` slicing returns another `strview`.
-21. `str` and `strview` slice bounds are clamped like array slice bounds.
+19. A string slice expression may produce a `strslice` only when the target/context explicitly requires `strslice`.
+20. `strslice` slicing returns another `strslice`.
+21. `str` and `strslice` slice bounds are clamped like array slice bounds.
 22. String literals emit zero-terminated read-only character data in `.rodata`.
 23. String literals used as `str` sources also emit static read-only `SDqTextInfo` descriptors in `.rodata`.
 24. A string literal can be used directly as `^char` only when its `charwidth` is 1.
-25. Source arguments to string helpers are normally passed as `strview` / `SDqTextInfo`.
+25. Source arguments to string helpers are normally passed as `strslice` / `SDqTextInfo`.
 26. `Append()`, `Prepend()`, `Insert()`, `Delete()`, `SetLength()`, `Truncate()`, `Reserve()`, `Compact()`, `Clear()`, `Clone()`, `Pop(count)`, and `PopFirst(count)` are valid on dynamic strings.
 27. `Insert()` and `Delete()` clamp their index arguments and do not produce index-bounds runtime errors.
 28. `Pop(count)` and `PopFirst(count)` clamp their count argument and return a `str`.
 29. No-argument `Pop()` and `PopFirst()` may be supported as single-character shorthands and are runtime errors on empty strings.
 30. `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `LastIndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` are recommended common string helpers.
-31. Read-only string helpers should accept `strview` sources where practical.
+31. Read-only string helpers should accept `strslice` sources where practical.
 32. `cstring(N)` stores at most `N` logical `char` characters and uses `N + 1` bytes of storage.
 33. `cstring(N)` always maintains a hidden zero terminator.
 34. `cstring(N)` is the only form that creates fixed inline C-string storage.
@@ -1885,10 +1885,10 @@ No type-info handler functions are needed for characters.
 37. A function parameter `cs : cstring` receives a bounded mutable descriptor; `maxlen` must be valid and `charlen` is valid only with `LENGTH_VALID`.
 38. Assignment to `cstring(N)` silently truncates by length and always zero-terminates.
 39. `cstring(N)` and unsized `cstring` indexing use logical string rules; the hidden terminator is not indexable.
-40. `cstring(N)` slicing returns a new `str` by default and may produce `strview` in explicit `strview` context.
+40. `cstring(N)` slicing returns a new `str` by default and may produce `strslice` in explicit `strslice` context.
 41. `cstring(N)` mutating methods may use a hidden compiler-maintained descriptor for standalone local variables.
 42. Hidden cstring descriptors are not part of public storage layout and should not be permanently inserted into struct fields, object fields, array elements, or externally visible records.
 43. Passing a `cstring(N)` buffer to unknown external C code through `^char` invalidates known length information unless the call is annotated as read-only or length-preserving.
 44. `^char` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
-45. Converting `^char` to `strview` requires scanning until the first zero terminator.
-46. `strview` and unsized `cstring` have the same lifetime and invalidation dangers as array slices or raw pointers.
+45. Converting `^char` to `strslice` requires scanning until the first zero terminator.
+46. `strslice` and unsized `cstring` have the same lifetime and invalidation dangers as array slices or raw pointers.

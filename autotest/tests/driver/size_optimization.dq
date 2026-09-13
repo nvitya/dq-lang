@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-func CheckOptimization(option : strview, expect_minsize : bool):
+func CheckOptimization(option : strslice, expect_minsize : bool):
     var output : str = TempPath('.o')
     var opt : str = option
     run.RunCompiler([

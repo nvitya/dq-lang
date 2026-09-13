@@ -84,7 +84,7 @@
 | **230** | `ODqCompiler::Run` | [`dqc.cpp:505-734`](file:///lindata2/workpr/dq-lang/compiler/src/dqc.cpp#L505-L734) | Compiler pipeline coordinator (module resolution, parsing, dependency ordering, AST analysis, codegen, linking, and cleanup). |
 | **229** | `ODqCompParserExpr::ParseSingleAttribute` | [`dqc_parser_expr.cpp:288-516`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L288-L516) | Long switch over attribute string names (`[[packed]]`, `[[section]]`, `[[align]]`, `[[inline]]`, etc.) and argument validation. |
 | **220** | `ODqCompParserExpr::ParseDynArrayMethod` | [`dqc_parser_expr.cpp:1691-1910`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L1691-L1910) | Dispatch for all dynamic array member functions (`append`, `insert`, `clear`, `resize`, `clone`, etc.). |
-| **213** | `ODqCompParserExpr::ParseStringMethod` | [`dqc_parser_expr.cpp:2056-2268`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2056-L2268) | Dispatch for all `str` and `strview` member methods. |
+| **213** | `ODqCompParserExpr::ParseStringMethod` | [`dqc_parser_expr.cpp:2056-2268`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2056-L2268) | Dispatch for all `str` and `strslice` member methods. |
 | **210** | `OValueInt::CalculateConstant` | [`otype_int.cpp:82-291`](file:///lindata2/workpr/dq-lang/compiler/types/otype_int.cpp#L82-L291) | Inlined evaluation covering 15 different expression types for integer constexpr. |
 | **209** | `ODqCompParser::ParseStructDecl` | [`dqc_parser.cpp:1192-1400`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser.cpp#L1192-L1400) | Struct header parsing, attribute application, member fields loop, and packing layout calculation. |
 | **198** | `ODqCompAst::BindCallArguments` | [`dqc_ast.cpp:1528-1725`](file:///lindata2/workpr/dq-lang/compiler/ast/dqc_ast.cpp#L1528-L1725) | Positional & default argument resolution, type conversion cost calculation, and error generation. |
@@ -132,7 +132,7 @@
    - **Original Issue:** Over 20 free functions for string operations and 3 free functions for type classification (`IsTextSourceType`, `IsStringComparableTextType`, `IsStringFamilyTextType`).
    - **Resolution:**
      - Added `IsTextSource()`, `IsStringComparable()`, and `IsStringFamily()` directly on `OType` in [`compiler/ast/symbols.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/ast/symbols.h).
-     - Created a shared base class `OTypeString : public OType` in [`compiler/types/otype_string.h`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.h) for common string behavior (`OTypeDynString` and `OTypeStrView`).
+     - Created a shared base class `OTypeString : public OType` in [`compiler/types/otype_string.h`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.h) for common string behavior (`OTypeDynString` and `OTypeStrSlice`).
      - Added virtual and common member methods on `OTypeString`: `GenerateLength`, `GeneratePChar`, `GenerateGetChar`, `GenerateCharAddress`, `GenerateSlice`, `GenerateMetaField`, `GenerateWcLen`, `GenerateWCharAt`, `GenerateWCharSlice`, `GenerateToWchars`, `GenerateEqual`.
      - Added lifecycle and mutation methods on `OTypeDynString`: `GenerateCapacity`, `GenerateRefCount`, `GenerateCreate`, `GenerateIncRef`, `GenerateDestroy`, `GenerateAssignExpr`, `GenerateSetChar`, `GenerateMethodCall`, `GenerateConcat`, `GenerateConcatFromStringValue`.
      - Updated all call sites across AST expressions, statements, codegen, array types, compound types, anyvalue types, and func types.
@@ -224,4 +224,3 @@
 2. **String Literal Escaping (was 1.A.4)**:
    - [`EscapeStringLiteral`](file:///lindata/workvc/dq-lang/compiler/ast/module_intf.cpp#L96-L128) in [`compiler/ast/module_intf.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/module_intf.cpp) vs [`JsonEscape`](file:///lindata/workvc/dq-lang/compiler/utils/dq_utils.cpp#L23-L44) in [`compiler/utils/dq_utils.cpp`](file:///lindata/workvc/dq-lang/compiler/utils/dq_utils.cpp).
    - **Decision:** Kept separate as-is for code efficiency and readability.
-

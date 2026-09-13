@@ -37,7 +37,7 @@ The argument must be an addressable, lifetime-compatible value for a reference
 parameter. Passing a reference never transfers ownership unless a specific API
 documents a separate ownership convention.
 
-View types such as `[]T`, `strview`, and `cstring` borrow their underlying
+View types such as `[]T`, `rostr`, `strslice`, and `cstring` borrow their underlying
 storage even when the descriptor itself is passed by value.
 
 ## Default and Named Arguments
@@ -46,7 +46,7 @@ A default expression supplies an omitted trailing argument. Named arguments use
 the declared parameter name and participate in overload selection.
 
 ```dq
-func Open(path : strview, retries : int = 0)
+func Open(path : rostr, retries : int = 0)
 Open(path = "data.txt", retries = 2)
 ```
 

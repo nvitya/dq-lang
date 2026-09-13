@@ -18,7 +18,7 @@ func ForwardOnly(text : rostr) -> rostr:
 endfunc
 func TextTest(text : ^char) -> int:
     var r : rostr = text
-    var s : strview = r[1:]
+    var s : strslice = r[1:]
     var c : cstring(15) = r
     var a : anyvalue = r
     c.AddFmt("{}", [r])

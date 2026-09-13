@@ -340,7 +340,7 @@ public:
     return di_type;
   }
 
-  inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRVIEW == kind) || (TK_ROSTR == kind) || (TK_DYNSTR == kind); }
+  inline bool        IsString()     { return (TK_CSTRING == kind) || (TK_STRSLICE == kind) || (TK_ROSTR == kind) || (TK_DYNSTR == kind); }
   inline bool        IsCompound()   { return (TK_STRUCT == kind) || (TK_OBJECT == kind) || (TK_UNION == kind); }
   bool               IsTextSource();
   bool               IsStringComparable();

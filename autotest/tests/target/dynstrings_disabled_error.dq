@@ -9,8 +9,8 @@ endfunc
 
 #ifdef TEST_CONCAT
 func TestConcat():
-    var left : strview = "left"
-    var right : strview = "right"
+    var left : strslice = "left"
+    var right : strslice = "right"
     var text = left + right
 endfunc
 #endif

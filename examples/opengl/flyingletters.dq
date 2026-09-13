@@ -38,11 +38,11 @@ public
     size_phase     : float64 = 0.0
     size_speed     : float64 = 0.0
 
-    func *Create(parent : ODrawable, font : OFont, text : strview)
+    func *Create(parent : ODrawable, font : OFont, text : strslice)
     func Step(elapsed : float64, time : float64, scene_width : int, scene_height : int)
 endobject
 
-func OFlyingLetter.*Create(parent : ODrawable, font : OFont, text : strview):
+func OFlyingLetter.*Create(parent : ODrawable, font : OFont, text : strslice):
     inherited Create(parent, font, text)
     alpha = 0.6
 endfunc

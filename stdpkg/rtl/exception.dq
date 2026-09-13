@@ -88,7 +88,7 @@ endfunc
 
 func Exception.PrintMessage():
   #ifndef BARE
-    var view : strview = message
+    var view : strslice = message
     var i : uint32 = 0
     while i < uint32(view.length):
         @.printf("%c", Ord(view[i]))

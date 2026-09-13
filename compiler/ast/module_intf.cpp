@@ -65,7 +65,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_ARRAY_SLICE:  return "array_slice";
     case TK_DYN_ARRAY:    return "dynamic_array";
     case TK_CSTRING:      return "cstring";
-    case TK_STRVIEW:      return "strview";
+    case TK_STRSLICE:      return "strslice";
     case TK_ROSTR:        return "rostr";
     case TK_DYNSTR:       return "dynstr";
     case TK_ALIAS:        return "alias";

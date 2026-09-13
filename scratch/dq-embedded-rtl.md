@@ -156,7 +156,7 @@ Required behavior:
 - document interrupt/thread safety. The initial allocator and exception state
   should be main-context only unless protected by the platform.
 
-Disabling dynamic strings later must not disable `strview`, string literals, or
+Disabling dynamic strings later must not disable `strslice`, string literals, or
 bounded `cstring`; those are useful heap-free types. It should disable owning
 `str` operations and other heap-owning facilities with compile-time errors.
 

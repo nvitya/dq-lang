@@ -6,7 +6,7 @@ use file
 
 var run <- OTestRun()
 
-func ExpectOccurrenceCount(text : strview, needle : strview, expected : int):
+func ExpectOccurrenceCount(text : strslice, needle : strslice, expected : int):
     var count : int = 0
     var start : int = 0
     while true:
@@ -22,8 +22,8 @@ func ExpectOccurrenceCount(text : strview, needle : strview, expected : int):
     endif
 endfunc
 
-func CompileTarget(target : strview, define : strview, expected_format : strview,
-                       expected_arch : strview):
+func CompileTarget(target : strslice, define : strslice, expected_format : strslice,
+                       expected_arch : strslice):
     var output : str = TempPath('.o')
     var target_arg : str = '--target=' + target
     var define_arg : str = '-D' + define

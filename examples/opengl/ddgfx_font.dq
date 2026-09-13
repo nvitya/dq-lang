@@ -11,14 +11,14 @@ object OFont:
     pixel_size : int = 0
     filename   : str = ''
 
-    func *Create(library : pointer, filename : strview)
+    func *Create(library : pointer, filename : strslice)
     func *Destroy()
     func SetPixelSize(size : int) -> bool
     func Glyph(codepoint : uint32) -> ^SFreeTypeGlyphSlot
-    func TextWidth(text : strview) -> int
+    func TextWidth(text : strslice) -> int
     func Height() -> int
     func Ascender() -> int
-    func RenderToAlphaMap(text : strview, target : OAlphaMap)
+    func RenderToAlphaMap(text : strslice, target : OAlphaMap)
 endobject
 
 object OFontManager:
@@ -27,14 +27,14 @@ object OFontManager:
 
     func *Create()
     func *Destroy()
-    func GetFont(filename : strview) -> OFont
+    func GetFont(filename : strslice) -> OFont
 endobject
 
 object OTextBox(OAlphaMap):
     font  : OFont = nil
     ftext : str = ''
 
-    func *Create(parent : ODrawable, font : OFont, text : strview)
+    func *Create(parent : ODrawable, font : OFont, text : strslice)
     func SetText(text : str)
 
     property text : str read ftext write SetText
@@ -44,7 +44,7 @@ endobject
 implementation
 
 
-func OFont.*Create(library : pointer, filename : strview):
+func OFont.*Create(library : pointer, filename : strslice):
     var path : str = filename
     self.filename = path
     if @.FtNewFace(library, path.pchar, 0, %face) <> 0:
@@ -80,7 +80,7 @@ func OFont.Glyph(codepoint : uint32) -> ^SFreeTypeGlyphSlot:
     return ^SFreeTypeGlyphSlot(ft_face.glyph)
 endfunc
 
-func OFont.TextWidth(text : strview) -> int:
+func OFont.TextWidth(text : strslice) -> int:
     var source : str = text
     var chars : [*]char16 = @strfunc.StrfToUtf16(source)
     var pen_x : int = 0
@@ -114,7 +114,7 @@ func OFont.Ascender() -> int:
     return ft_size.metrics.ascender div 64
 endfunc
 
-func OFont.RenderToAlphaMap(text : strview, target : OAlphaMap):
+func OFont.RenderToAlphaMap(text : strslice, target : OAlphaMap):
     target.Clear(0)
     var source : str = text
     var chars : [*]char16 = @strfunc.StrfToUtf16(source)
@@ -158,7 +158,7 @@ func OFontManager.*Destroy():
     endif
 endfunc
 
-func OFontManager.GetFont(filename : strview) -> OFont:
+func OFontManager.GetFont(filename : strslice) -> OFont:
     var path : str = filename
     for index : int = 0 count fonts.length:
         if fonts[index].filename == path:
@@ -169,7 +169,7 @@ func OFontManager.GetFont(filename : strview) -> OFont:
     fonts.Append(result)
 endfunc
 
-func OTextBox.*Create(parent : ODrawable, font : OFont, text : strview):
+func OTextBox.*Create(parent : ODrawable, font : OFont, text : strslice):
     inherited Create(parent, 1, 1)
     self.font = font
     SetText(text)

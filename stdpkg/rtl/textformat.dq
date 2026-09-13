@@ -63,7 +63,7 @@ object OTextSink:
     func *Create():
     endfunc
 
-    func Write(atext : strview) [[virtual]]:
+    func Write(atext : strslice) [[virtual]]:
     endfunc
 
     func WriteChar(ch : char)   [[virtual]]:
@@ -76,7 +76,7 @@ object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
     func *Create()
-    func Write(atext : strview) [[override]]
+    func Write(atext : strslice) [[override]]
     func WriteChar(ch : char)   [[override]]
 endobject
 
@@ -86,7 +86,7 @@ object OTextSinkCString(OTextSink):
     dest : cstring
 
     func *Create(adest : cstring)
-    func Write(atext : strview) [[override]]
+    func Write(atext : strslice) [[override]]
     func WriteChar(ch : char)   [[override]]
 endobject
 
@@ -95,7 +95,7 @@ object OTextSinkStr(OTextSink):
     dest : ^str
 
     func *Create(adest : ^str)
-    func Write(atext : strview) [[override]]
+    func Write(atext : strslice) [[override]]
     func WriteChar(ch : char)   [[override]]
 endobject
 #endif
@@ -187,7 +187,7 @@ func OTextSinkStdOut.*Create():
     pstdout = @stdio.DqLibcStdout()
 endfunc
 
-func OTextSinkStdOut.Write(atext : strview) [[override]]:
+func OTextSinkStdOut.Write(atext : strslice) [[override]]:
     @.libc_fwrite(%atext[0], 1, atext.length, pstdout)
 endfunc
 
@@ -202,7 +202,7 @@ func OTextSinkCString.*Create(adest : cstring):
     dest = adest
 endfunc
 
-func OTextSinkCString.Write(atext : strview) [[override]]:
+func OTextSinkCString.Write(atext : strslice) [[override]]:
     dest.Append(atext)
 endfunc
 
@@ -216,7 +216,7 @@ func OTextSinkStr.*Create(adest : ^str):
     dest = adest
 endfunc
 
-func OTextSinkStr.Write(atext : strview) [[override]]:
+func OTextSinkStr.Write(atext : strslice) [[override]]:
     dest^.Append(atext)
 endfunc
 

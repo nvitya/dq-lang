@@ -34,16 +34,16 @@ func IntToChar(value : int, defvalue : char) -> char [[overload]]
 func IntToWchar(value : int) -> wchar [[overload]]
 func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]
 
-func StrfIsUtf8(text : strview) -> bool
-func StrfWcLen(text : strview) -> int
-func StrfWCharAt(text : strview, index : int) -> wchar
-func StrfToWchars(text : strview) -> [*]wchar
-func StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar
+func StrfIsUtf8(text : strslice) -> bool
+func StrfWcLen(text : strslice) -> int
+func StrfWCharAt(text : strslice, index : int) -> wchar
+func StrfToWchars(text : strslice) -> [*]wchar
+func StrfWCharSlice(text : strslice, startpos : int, endposex : int) -> [*]wchar
 #ifdef DYNSTRINGS
-func StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str
+func StrfWcStrSlice(text : strslice, startpos : int, endposex : int) -> str
 func StrfFromWchars(chars : []wchar) -> str
 #endif
-func StrfToUtf16(text : strview) -> [*]char16
+func StrfToUtf16(text : strslice) -> [*]char16
 #ifdef DYNSTRINGS
 func StrfFromUtf16(chars : []char16) -> str
 func StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str
@@ -127,7 +127,7 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
     endif
 endfunc
 
-func StrfByte(text : strview, index : int) -> uint32:
+func StrfByte(text : strslice, index : int) -> uint32:
     return uint32(Ord(text[index])) & uint32(0xFF)
 endfunc
 
@@ -138,7 +138,7 @@ func StrfFailUtf8(report_error : bool) -> bool:
     return false
 endfunc
 
-func StrfReadCont(text : strview, index : int, outb : refout uint32, report_error : bool) -> bool:
+func StrfReadCont(text : strslice, index : int, outb : refout uint32, report_error : bool) -> bool:
     if index >= text.length:
         return StrfFailUtf8(report_error)
     endif
@@ -150,7 +150,7 @@ func StrfReadCont(text : strview, index : int, outb : refout uint32, report_erro
     return true
 endfunc
 
-func StrfDecodeUtf8(text : strview, pos : ref int, wc : refout wchar,
+func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
                         report_error : bool = true) -> bool:
     if pos >= text.length:
         return false
@@ -252,7 +252,7 @@ func StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
     endif
 endfunc
 
-func StrfIsUtf8(text : strview) -> bool:
+func StrfIsUtf8(text : strslice) -> bool:
     var pos : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf8(text, pos, wc, false):
@@ -260,7 +260,7 @@ func StrfIsUtf8(text : strview) -> bool:
     result = pos >= text.length
 endfunc
 
-func StrfWcLen(text : strview) -> int:
+func StrfWcLen(text : strslice) -> int:
     var pos : int = 0
     var wc : wchar = wchar(0)
     result = 0
@@ -269,7 +269,7 @@ func StrfWcLen(text : strview) -> int:
     endwhile
 endfunc
 
-func StrfWCharAt(text : strview, index : int) -> wchar:
+func StrfWCharAt(text : strslice, index : int) -> wchar:
     result = wchar(0)
     if index < 0:
 #ifdef EXCEPTIONS
@@ -307,7 +307,7 @@ func StrfClampIndex(index : int, length : int) -> int:
     endif
 endfunc
 
-func StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar:
+func StrfWCharSlice(text : strslice, startpos : int, endposex : int) -> [*]wchar:
     result = []
     var wclen : int = StrfWcLen(text)
     var b : int = StrfClampIndex(startpos, wclen)
@@ -328,13 +328,13 @@ func StrfWCharSlice(text : strview, startpos : int, endposex : int) -> [*]wchar:
 endfunc
 
 #ifdef DYNSTRINGS
-func StrfWcStrSlice(text : strview, startpos : int, endposex : int) -> str:
+func StrfWcStrSlice(text : strslice, startpos : int, endposex : int) -> str:
     var wchars : [*]wchar = StrfWCharSlice(text, startpos, endposex)
     return StrfFromWchars(wchars[:])
 endfunc
 #endif
 
-func StrfToWchars(text : strview) -> [*]wchar:
+func StrfToWchars(text : strslice) -> [*]wchar:
     result = []
     var pos : int = 0
     var wc : wchar = wchar(0)
@@ -354,7 +354,7 @@ func StrfFromWchars(chars : []wchar) -> str:
 endfunc
 #endif
 
-func StrfToUtf16(text : strview) -> [*]char16:
+func StrfToUtf16(text : strslice) -> [*]char16:
     result = []
     var pos : int = 0
     var wc : wchar = wchar(0)

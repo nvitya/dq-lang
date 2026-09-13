@@ -1,7 +1,7 @@
 use db
 use print
 
-func PrintRow(label : strview, rows : ODbRows):
+func PrintRow(label : strslice, rows : ODbRows):
     var name : str = rows.GetStr("name", "")
     PrintLn('{} = idx:{} id:{} name:{} active:{}',
             [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])

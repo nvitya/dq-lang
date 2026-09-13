@@ -1,7 +1,7 @@
 use libc/stdio
 
 object OTextSink:
-    func Write(atext : strview) [[virtual, abstract]]
+    func Write(atext : strslice) [[virtual, abstract]]
     func WriteChar(ch : char)   [[virtual, abstract]]
 endobject
 
@@ -9,7 +9,7 @@ object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
     func *Create()
-    func Write(atext : strview) [[override]]
+    func Write(atext : strslice) [[override]]
     func WriteChar(ch : char)   [[override]]
 endobject
 
@@ -24,7 +24,7 @@ func OTextSinkStdOut.*Create():
     pstdout = @.libc_stdout
 endfunc
 
-func OTextSinkStdOut.Write(atext : strview) [[override]]:
+func OTextSinkStdOut.Write(atext : strslice) [[override]]:
     @.libc_fwrite(%atext[0], 1, atext.length, pstdout)
 endfunc
 

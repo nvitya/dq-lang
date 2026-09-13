@@ -12,8 +12,8 @@ func DynamicStrNullComparisonIsInvalid() -> int:
     result = 0
 endfunc
 
-func StrViewIsReadonly():
-    var v : strview = "abc"
+func StrSliceIsReadonly():
+    var v : strslice = "abc"
     v[0] = 'X' //?error(NotWriteable)
     v.Append("x") //?error(MemberUnknown)
     v.Prepend("x") //?error(MemberUnknown)

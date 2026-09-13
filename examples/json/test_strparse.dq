@@ -2,7 +2,7 @@ use print
 use strparse
 use file
 
-func ParseText(atxt : strview):
+func ParseText(atxt : strslice):
     PrintLn('--------------------------------')
     var sp <- OStrParse(atxt)
     sp.SkipSpaces()

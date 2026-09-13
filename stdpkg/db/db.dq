@@ -98,12 +98,12 @@ public
     func GetInt(aname : rostr, defvalue : int) -> int
     func GetFloat(aname : rostr, defvalue : float) -> float
     func GetBool(aname : rostr, defvalue : bool) -> bool
-    func GetStr(aname : rostr, defvalue : strview) -> str
+    func GetStr(aname : rostr, defvalue : strslice) -> str
 
     func SetInt(aname : rostr, avalue : int)
     func SetFloat(aname : rostr, avalue : float)
     func SetBool(aname : rostr, avalue : bool)
-    func SetStr(aname : rostr, avalue : strview)
+    func SetStr(aname : rostr, avalue : strslice)
     func SetNull(aname : rostr)
 
     //TODO: add blob handling with [*]byte
@@ -428,7 +428,7 @@ func ODbRows.GetBool(aname : rostr, defvalue : bool) -> bool:
     return m_data[didx].AsBool(defvalue)
 endfunc
 
-func ODbRows.GetStr(aname : rostr, defvalue : strview) -> str:
+func ODbRows.GetStr(aname : rostr, defvalue : strslice) -> str:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
@@ -464,7 +464,7 @@ func ODbRows.SetBool(aname : rostr, avalue : bool):
     m_data[didx].SetBool(avalue)
 endfunc
 
-func ODbRows.SetStr(aname : rostr, avalue : strview):
+func ODbRows.SetStr(aname : rostr, avalue : strslice):
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftBlob  and ft <> ftDateTime:

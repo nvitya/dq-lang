@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-func ExpectCompileFailure(args : []str, diagnostic : strview):
+func ExpectCompileFailure(args : []str, diagnostic : strslice):
     run.RunCompiler(args)
     if run.exitcode == 0:
         Fail('compiler unexpectedly accepted an invalid program')

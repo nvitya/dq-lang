@@ -1986,7 +1986,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
   if (auto * idx = dynamic_cast<OLValueIndex *>(leftexpr))
   {
     OType * ctype = idx->containertype ? idx->containertype->ResolveAlias() : nullptr;
-    if (ctype && (TK_STRVIEW == ctype->kind || TK_ROSTR == ctype->kind))
+    if (ctype && (TK_STRSLICE == ctype->kind || TK_ROSTR == ctype->kind))
     {
       Error(DQERR_LVALUE_NOT_WRITEABLE);
       delete leftexpr;

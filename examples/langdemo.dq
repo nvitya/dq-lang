@@ -89,7 +89,7 @@ func WriteStr(s : cstring):
     endwhile
 endfunc
 
-func *Main() -> int:
+func *Main():
 
     var s : cstring(127) = ""
     cstr_add(s, "Hello")
@@ -113,7 +113,8 @@ func *Main() -> int:
     PrintLn('Bitwise op result: 0x{:04X}', [x])
 
     PrintLn("@langdemo_mod.CONST1 = {}", [CONST1])
-    PrintLn("@langdemo_mod.CONST2 = {:.3f}", [@ldm.CONST2])
+    PrintLn("@langdemo_mod.CONST2 = {:.3f}", [@ldm.CONST2])  // CONST2 is not merged into the main scope,
+                                                             // must be accessed with namespace qualification (@ldm.)
 
     PrintLn("ochild.name: {}", [iif(ochild == nil, "OChild is nil!", ochild.name)])
 
@@ -134,7 +135,6 @@ func *Main() -> int:
     endfor
     PrintLn()
 
-    return 0
 endfunc
 
 /* OUTPUT:

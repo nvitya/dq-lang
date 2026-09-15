@@ -51,11 +51,7 @@ func CStrLen(desc : ref SDqTextInfo) -> uint:
     endif
 
     result = CStrScanLen(desc)
-    if desc.info & DQTIF_CHARLEN_EXTERNAL <> 0:
-        desc.charlen = result | DQTIF_CHARLEN_INVALID
-    else:
-        desc.charlen = result
-    endif
+    desc.charlen = result
 endfunc
 
 func CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
@@ -65,11 +61,7 @@ func CStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
 endfunc
 
 func CStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
-    if desc.info & DQTIF_CHARLEN_EXTERNAL <> 0:
-        desc.charlen = newlen | DQTIF_CHARLEN_INVALID
-    else:
-        desc.charlen = newlen
-    endif
+    desc.charlen = newlen
     if desc.dataptr <> nil:
         desc.dataptr[newlen]^ = char(0)
     endif

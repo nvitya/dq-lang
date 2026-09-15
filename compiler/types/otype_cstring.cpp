@@ -202,15 +202,6 @@ void OTypeCString::ResetDescriptorLength(OScope * scope, LlValue * cstraddr)
   ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
 }
 
-void OTypeCString::InvalidateDescriptor(OScope * scope, LlValue * cstraddr)
-{
-  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
-  LlValue * infoaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 2, "cstr.info.addr");
-  LlValue * info = ll_builder.CreateLoad(LlCStringLenType(), infoaddr, "cstr.info");
-  ll_builder.CreateStore(ll_builder.CreateOr(info, LlU32(DQTIF_CHARLEN_EXTERNAL), "cstr.info.external"), infoaddr);
-  ResetDescriptorLength(scope, cstraddr);
-}
-
 static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
 {
   auto * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
@@ -233,9 +224,8 @@ LlValue * OTypeCString::GenerateMetaField(OScope * scope, LlValue * cstraddr, EC
 {
   if (CSMF_PCHAR == field)
   {
-    // A raw pointer can escape to unknown code, so its shared length cache can
-    // no longer be trusted after this access.
-    InvalidateDescriptor(scope, cstraddr);
+    // The caller may change the raw storage before the next descriptor use.
+    ResetDescriptorLength(scope, cstraddr);
     return GenerateDataPtr(scope, cstraddr);
   }
 

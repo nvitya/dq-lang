@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.68.0"
+#define DQ_COMPILER_VERSION  "0.68.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.68.1:
+  - embstr length cacheing fix
 v0.68.0:
   - BREAKING CHANGE: cstring -> embstr (Embedded String) rename
   - embstr(n) occupies n bytes, capable to store maximum n-1 8-bit character units + zero terminator

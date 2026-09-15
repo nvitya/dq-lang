@@ -674,9 +674,8 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     // CString indexing
     OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
     LlValue * baseaddr = base->GenerateAddress(scope);
-    // Addressing a character may expose mutable storage through a raw pointer,
-    // so a shared descriptor must rescan before its next length-dependent use.
-    cstrtype->InvalidateDescriptor(scope, baseaddr);
+    // Addressing a character can mutate storage without updating the descriptor.
+    cstrtype->ResetDescriptorLength(scope, baseaddr);
     if (cstrtype->maxlen > 0)
     {
       // Sized embstr(N): GEP into [N x i8] with {0, index}

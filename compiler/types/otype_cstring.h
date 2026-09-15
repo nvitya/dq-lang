@@ -123,7 +123,6 @@ public:
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlValue * GenerateDescriptor(OScope * scope, LlValue * cstraddr);
   void ResetDescriptorLength(OScope * scope, LlValue * cstraddr);
-  void InvalidateDescriptor(OScope * scope, LlValue * cstraddr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;

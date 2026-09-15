@@ -2,39 +2,142 @@ const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
 
-let languageClient;
+const languageClients = new Map();
 
-function startLanguageServer(context) {
-  const configuration = vscode.workspace.getConfiguration("dq");
-  const compilerPath = "dq-comp";
+function workspaceKey(workspaceFolder) {
+  return workspaceFolder.uri.toString();
+}
+
+function configuredProjectFile(workspaceFolder) {
+  const projects = vscode.workspace
+    .getConfiguration("dq")
+    .get("languageServerProjects", {});
+  const projectFile = projects?.[workspaceFolder.name];
+  if (typeof projectFile === "string" && projectFile.trim()) {
+    return projectFile.trim();
+  }
+
+  return vscode.workspace
+    .getConfiguration("dq", workspaceFolder.uri)
+    .get("languageServerProject", "")
+    .trim();
+}
+
+function languageServerInfo(workspaceFolder) {
+  const configuration = vscode.workspace.getConfiguration("dq", workspaceFolder.uri);
+  const compilerPath = configuration.get("languageServerPath", "dq-comp");
   const extraArgs = configuration.get("languageServerArgs", []);
-  const projectFile = configuration.get("languageServerProject", "");
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  const configuredProject = configuredProjectFile(workspaceFolder);
+  const projectFile = configuredProject
+    ? path.resolve(workspaceFolder.uri.fsPath, configuredProject)
+    : "";
   const args = ["--langserver", ...extraArgs];
   if (projectFile) {
     args.push(projectFile);
   }
 
-  languageClient = new LanguageClient(
-    "dqLanguageServer",
-    "DQ Language Server",
+  return {
+    compilerPath,
+    args,
+    cwd: projectFile ? path.dirname(projectFile) : workspaceFolder.uri.fsPath,
+    signature: JSON.stringify([compilerPath, args, projectFile ? path.dirname(projectFile) : workspaceFolder.uri.fsPath])
+  };
+}
+
+function startLanguageServer(workspaceFolder) {
+  const key = workspaceKey(workspaceFolder);
+  if (languageClients.has(key)) return;
+
+  const server = languageServerInfo(workspaceFolder);
+  const client = new LanguageClient(
+    `dqLanguageServer.${workspaceFolder.name}`,
+    `DQ Language Server (${workspaceFolder.name})`,
     {
-      command: compilerPath,
-      args,
+      command: server.compilerPath,
+      args: server.args,
       transport: TransportKind.stdio,
-      options: workspaceFolder ? { cwd: workspaceFolder.uri.fsPath } : undefined
+      options: { cwd: server.cwd }
     },
     {
-      documentSelector: [{ scheme: "file", language: "dq" }],
-      outputChannelName: "DQ Language Server"
+      documentSelector: [{
+        scheme: "file",
+        language: "dq",
+        pattern: new vscode.RelativePattern(workspaceFolder.uri, "**/*")
+      }],
+      outputChannelName: `DQ Language Server (${workspaceFolder.name})`
     }
   );
-  languageClient.start();
-  context.subscriptions.push({ dispose: () => languageClient?.stop() });
+  languageClients.set(key, { client, signature: server.signature });
+  void client.start();
+}
+
+async function stopLanguageServer(workspaceFolder) {
+  const key = workspaceKey(workspaceFolder);
+  const entry = languageClients.get(key);
+  if (!entry) return;
+  languageClients.delete(key);
+  await entry.client.stop();
+}
+
+async function restartChangedLanguageServers() {
+  for (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
+    const entry = languageClients.get(workspaceKey(workspaceFolder));
+    if (entry && entry.signature !== languageServerInfo(workspaceFolder).signature) {
+      await stopLanguageServer(workspaceFolder);
+      startLanguageServer(workspaceFolder);
+    }
+  }
+}
+
+async function selectLanguageServerProject() {
+  let workspaceFolder = vscode.window.activeTextEditor
+    ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
+    : undefined;
+  const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+  if (!workspaceFolder && workspaceFolders.length === 1) {
+    workspaceFolder = workspaceFolders[0];
+  }
+  if (!workspaceFolder) {
+    const selectedFolder = await vscode.window.showQuickPick(
+      workspaceFolders.map(folder => ({ label: folder.name, folder })),
+      { placeHolder: "Select the DQ workspace folder" }
+    );
+    workspaceFolder = selectedFolder?.folder;
+  }
+  if (!workspaceFolder) return;
+
+  const projectFiles = await vscode.workspace.findFiles(
+    new vscode.RelativePattern(workspaceFolder.uri, "**/*.dqproj"),
+    "**/{.git,.dqbuild,node_modules}/**"
+  );
+  const selectedProject = await vscode.window.showQuickPick(
+    projectFiles.map(uri => ({
+      label: path.relative(workspaceFolder.uri.fsPath, uri.fsPath),
+      uri
+    })),
+    { placeHolder: `Select the DQ project for ${workspaceFolder.name}` }
+  );
+  if (!selectedProject) return;
+
+  const configuration = vscode.workspace.getConfiguration("dq");
+  const projects = { ...configuration.get("languageServerProjects", {}) };
+  projects[workspaceFolder.name] = selectedProject.label;
+  await configuration.update("languageServerProjects", projects, vscode.ConfigurationTarget.Workspace);
 }
 
 function activate(context) {
-  startLanguageServer(context);
+  for (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
+    startLanguageServer(workspaceFolder);
+  }
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(() => restartChangedLanguageServers()),
+    vscode.workspace.onDidChangeWorkspaceFolders(async event => {
+      for (const workspaceFolder of event.removed) await stopLanguageServer(workspaceFolder);
+      for (const workspaceFolder of event.added) startLanguageServer(workspaceFolder);
+    }),
+    vscode.commands.registerCommand("dq.selectLanguageServerProject", selectLanguageServerProject),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("dq.runCurrentFile", async () => {
@@ -82,10 +185,8 @@ function activate(context) {
 }
 
 async function deactivate() {
-  if (languageClient) {
-    await languageClient.stop();
-    languageClient = undefined;
-  }
+  await Promise.all([...languageClients.values()].map(entry => entry.client.stop()));
+  languageClients.clear();
 }
 
 module.exports = { activate, deactivate };

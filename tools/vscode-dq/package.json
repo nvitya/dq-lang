@@ -2,7 +2,7 @@
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
   "description": "DQ editing, language-server, build, and debug support.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
@@ -15,7 +15,8 @@
   "main": "./extension.js",
   "activationEvents": [
     "onLanguage:dq",
-    "onCommand:dq.runCurrentFile"
+    "onCommand:dq.runCurrentFile",
+    "onCommand:dq.selectLanguageServerProject"
   ],
   "engines": {
     "vscode": "^1.85.0"
@@ -46,6 +47,11 @@
         "category": "DQ",
         "enablement": "editorLangId == dq",
         "icon": "$(play)"
+      },
+      {
+        "command": "dq.selectLanguageServerProject",
+        "title": "Select Language Server Project",
+        "category": "DQ"
       }
     ],
     "menus": {
@@ -60,6 +66,12 @@
     "configuration": {
       "title": "DQ",
       "properties": {
+        "dq.languageServerPath": {
+          "type": "string",
+          "default": "dq-comp",
+          "scope": "resource",
+          "description": "Path to the dq-comp executable used as the DQ language server."
+        },
         "dq.runPath": {
           "type": "string",
           "default": "dq-run",
@@ -68,6 +80,7 @@
         "dq.languageServerArgs": {
           "type": "array",
           "default": [],
+          "scope": "resource",
           "items": {
             "type": "string"
           },
@@ -76,7 +89,17 @@
         "dq.languageServerProject": {
           "type": "string",
           "default": "",
-          "description": "Optional .dqproj file passed to the DQ language server. Relative paths use the workspace folder."
+          "scope": "resource",
+          "description": "Fallback .dqproj file for this workspace folder. Relative paths use the workspace folder."
+        },
+        "dq.languageServerProjects": {
+          "type": "object",
+          "default": {},
+          "scope": "window",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Map of multi-root workspace folder names to their active .dqproj files. Entries override dq.languageServerProject."
         }
       }
     },

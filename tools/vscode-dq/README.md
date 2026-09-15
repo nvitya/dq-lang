@@ -20,9 +20,9 @@ Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match 
 
 ## Language server
 
-The extension starts `dq-comp --langserver` when a DQ document is opened. By
-default it resolves `dq-comp` from `PATH`. Configure `dq.languageServerPath`
-when using a local build, for example:
+The extension starts one stdio `dq-comp --langserver` process for each workspace
+folder. By default it resolves `dq-comp` from `PATH`. Configure
+`dq.languageServerPath` when using a local build, for example:
 
 ```json
 {
@@ -31,9 +31,34 @@ when using a local build, for example:
 ```
 
 Use `dq.languageServerArgs` for semantic compiler options such as `--target`
-or `--pkg-path`. To load a specific project, set `dq.languageServerProject` to
-its `.dqproj` filename; relative paths use the first workspace folder as the
-working directory.
+or `--pkg-path`. To load a specific project in a single-folder workspace, set
+`dq.languageServerProject` to its `.dqproj` filename. Relative paths are
+resolved from that workspace folder; when a project is selected, `dq-comp` is
+started with the `.dqproj` parent directory as its working directory.
+
+For a multi-root workspace, put the active projects in the shared
+`.code-workspace` file. Keys are the workspace-folder names:
+
+```jsonc
+{
+  "folders": [
+    { "name": "uart", "path": "uart" },
+    { "name": "blinkled", "path": "blinkled" }
+  ],
+  "settings": {
+    "dq.languageServerPath": "/path/to/dq-lang/build/dq-comp",
+    "dq.languageServerProjects": {
+      "uart": "uart_nucleo_f746.dqproj",
+      "blinkled": "blinkled_nucleo_f746.dqproj"
+    }
+  }
+}
+```
+
+Run **DQ: Select Language Server Project** to choose a `.dqproj` for the
+active folder. The extension updates this map and restarts only that folder's
+language server. A map entry overrides the folder-local
+`dq.languageServerProject` fallback.
 
 ## Running the current file
 

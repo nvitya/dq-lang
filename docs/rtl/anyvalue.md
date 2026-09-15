@@ -25,7 +25,7 @@ PrintLn("{}: {}", ["answer", 42])
 | boolean | `bool` |
 | pointer | `pointer` and pointer values |
 | floating point | `float`, `float32`, `float64` |
-| text | `str`, `strslice`, `cstring` |
+| text | `str`, `strslice`, `embstr` |
 
 Dynamic strings stored in an `anyvalue` keep the correct reference-counted string
 lifetime.
@@ -45,7 +45,7 @@ The builtin `anyvalue` type exposes convenience methods backed by the RTL
 | `IsPointer()` / `AsPointer(def)` | test/read pointer |
 | `IsFloat()` / `IsFloat32()` / `IsFloat64()` | test floating point kind |
 | `AsFloat(def)` / `AsFloat32(def)` / `AsFloat64(def)` | convert float or integer |
-| `IsText()` | true for `str`, `strslice`, or `cstring` values |
+| `IsText()` | true for `str`, `strslice`, or `embstr` values |
 | `IsStr()` | true only for dynamic `str` |
 | `AsStr(def)` | return a dynamic string |
 | `AsText(def)` | return a text view-style value |

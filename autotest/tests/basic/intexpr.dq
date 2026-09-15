@@ -166,7 +166,7 @@ func *Main():
         printf("[32]SizeOf(ptr_pad) = %d\n", SizeOf(ptr_pad))          //?check('[32]SizeOf(ptr_pad)', 3)
     #endif
     printf("SizeOf(int32) = %d\n", SizeOf(int32))              //?check('SizeOf(int32)', 4)
-    printf("SizeOf(cstring(12)) = %d\n", SizeOf(cstring(12)))  //?check('SizeOf(cstring(12))', 13)
+    printf("SizeOf(embstr(12)) = %d\n", SizeOf(embstr(12)))  //?check('SizeOf(embstr(12))', 12)
 
     // implicit uint -> int conversions at substractions
 

@@ -2,7 +2,7 @@
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-var g_str : cstring(64) = "asdf"
+var g_str : embstr(65) = "asdf"
 func *Main():
     printf("Hello = %s!\n", "World")  //?check('Hello', 'World!')
     printf("Integer = %ld\n", 42)    //?check('Integer', 42)

@@ -10,7 +10,7 @@
  * file:    rtl/cstrings.dqh, included by "rtl/strfunc.dq"
  * authors: nvitya
  * created: 2026-07-06
- * brief:   RTL Helpers for the DQ cstring handling (interface only)
+ * brief:   RTL Helpers for the DQ embstr handling (interface only)
  */
 
 func CStrLen(desc : ref SDqTextInfo) -> uint

@@ -65,7 +65,7 @@ func *Main():
 
     var s_lit : str = "asdf"
     var v_lit : strslice = "asdf"
-    var cs_lit : cstring(31) = "asdf"
+    var cs_lit : embstr(32) = "asdf"
     var pc_lit : ^char = "asdf"
     PrintText("literal_str", s_lit) //?check("literal_str", '[4] "asdf"')
     PrintText("literal_view", v_lit) //?check("literal_view", '[4] "asdf"')
@@ -85,9 +85,9 @@ func *Main():
 
     var eq_str : str = "abc"
     var eq_view : strslice = "abc"
-    var eq_cs : cstring(8) = "abc"
+    var eq_cs : embstr(9) = "abc"
     var eq_pc : ^char = "abc"
-    printf("string_equality = str:%li view:%li cstring:%li pc:%li ne:%li\n",
-           Flag(eq_str == "abc"), Flag(eq_str == eq_view), Flag(eq_cs == eq_str), Flag(eq_str == eq_pc), Flag(eq_str <> "abd")) //?check("string_equality", "str:1 view:1 cstring:1 pc:1 ne:1")
+    printf("string_equality = str:%li view:%li embstr:%li pc:%li ne:%li\n",
+           Flag(eq_str == "abc"), Flag(eq_str == eq_view), Flag(eq_cs == eq_str), Flag(eq_str == eq_pc), Flag(eq_str <> "abd")) //?check("string_equality", "str:1 view:1 embstr:1 pc:1 ne:1")
 
 endfunc

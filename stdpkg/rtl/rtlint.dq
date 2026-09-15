@@ -57,9 +57,10 @@ struct SArraySliceDesc:
     length  : uint
 endstruct
 
-const DQTI_MAXCHLEN_MASK    : uint32 = 0x00FFFFFF
-const DQTIF_CHARLEN_INVALID : uint32 = 0x80000000
-const DQTIF_READONLY        : uint32 = 0x02000000
+const DQTI_MAXCHLEN_MASK     : uint32 = 0x00FFFFFF
+const DQTIF_CHARLEN_EXTERNAL : uint32 = 0x01000000  // storage escaped through a raw pointer
+const DQTIF_CHARLEN_INVALID  : uint32 = 0x80000000
+const DQTIF_READONLY         : uint32 = 0x02000000
 
 struct SDqTextInfo:   // 12 or 16 Bytes
     dataptr : ^char    // points to the first character

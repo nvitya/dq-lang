@@ -251,7 +251,7 @@
             },
             {
               "name": "storage.type.dq",
-              "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|cstring|float|float32|float64)\\b"
+              "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|embstr|float|float32|float64)\\b"
             },
             {
               "name": "keyword.control.dq",
@@ -335,7 +335,7 @@
       "patterns": [
         {
           "name": "storage.type.dq",
-          "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|cstring|float|float32|float64|pointer|Object)\\b"
+          "match": "\\b(?:bool|int|uint|byte|int8|uint8|int16|uint16|int32|uint32|int64|uint64|char|cchar|embstr|float|float32|float64|pointer|Object)\\b"
         }
       ]
     },

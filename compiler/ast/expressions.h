@@ -152,7 +152,7 @@ class OLValueIndex : public OLValueExpr
 {
 public:
   OLValueExpr *  base;
-  OType *        containertype;  // array, slice, dynamic array, or cstring type
+  OType *        containertype;  // array, slice, dynamic array, or embstr type
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
   bool IsReadOnlyTextElement() const override
@@ -799,7 +799,7 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// --- cstring expressions ---
+// --- embstr expressions ---
 
 // String literal: "hello" — type is ^char, creates global constant
 class OCStringLit : public OExpr
@@ -821,7 +821,7 @@ public:
   LlValue * Generate(OScope * scope) override;
 };
 
-// sizeof() for unsized cstring parameter: reads SDqTextInfo-compatible descriptor metadata
+// sizeof() for unsized embstr parameter: reads SDqTextInfo-compatible descriptor metadata
 class OCStringSizeExpr : public OExpr
 {
 public:
@@ -830,7 +830,7 @@ public:
   LlValue *  Generate(OScope * scope) override;
 };
 
-// len() for cstring: runtime strlen (inline loop scanning for null terminator)
+// len() for embstr: runtime strlen (inline loop scanning for null terminator)
 class OCStringLenExpr : public OExpr
 {
 public:
@@ -866,7 +866,7 @@ public:
   void      DeleteChildTree() override;
 };
 
-// Convert cstring(N) variable to SDqTextInfo-compatible cstring descriptor.
+// Convert embstr(N) variable to an SDqTextInfo-compatible embstr descriptor.
 class OCStringToDescExpr : public OExpr
 {
 public:
@@ -887,7 +887,7 @@ public:
   void      DeleteChildTree() override;
 };
 
-// Convert a ^char expression to an SDqTextInfo-compatible cstring descriptor.
+// Convert a ^char expression to an SDqTextInfo-compatible embstr descriptor.
 // String literals carry a known length; other pointers scan lazily at runtime.
 class OCStringLitToDescExpr : public OExpr
 {

@@ -19,7 +19,7 @@ endfunc
 func TextTest(text : ^char) -> int:
     var r : rostr = text
     var s : strslice = r[1:]
-    var c : cstring(15) = r
+    var c : embstr(16) = r
     var a : anyvalue = r
     c.AddFmt("{}", [r])
     return r.length + s.length + c.length + TEXT.length

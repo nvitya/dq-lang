@@ -1,6 +1,6 @@
 use print, rtl/textformat, strutils
 
-var cs : cstring(255)
+var cs : embstr(256)
 var ds : str
 
 func PrintCs():
@@ -8,7 +8,7 @@ func PrintCs():
 endfunc
 
 func TestCStr():
-    PrintLn('Testing cstring.AddFmt()')
+    PrintLn('Testing embstr.AddFmt()')
     cs.Append("functest: ")
     CStrAddFmt(cs, ", {}, {}, {}", [1, 3.14, 'qqcs'])
     PrintCs()

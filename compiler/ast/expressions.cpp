@@ -673,10 +673,13 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   {
     // CString indexing
     OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
+    LlValue * baseaddr = base->GenerateAddress(scope);
+    // Addressing a character may expose mutable storage through a raw pointer,
+    // so a shared descriptor must rescan before its next length-dependent use.
+    cstrtype->InvalidateDescriptor(scope, baseaddr);
     if (cstrtype->maxlen > 0)
     {
-      // Sized cstring(N): GEP into [N + 1 x i8] with {0, index}
-      LlValue * baseaddr = base->GenerateAddress(scope);
+      // Sized embstr(N): GEP into [N x i8] with {0, index}
       LlValue * ll_zero = LlNativeIntConst(0);
       return ll_builder.CreateGEP(
           cstrtype->GetLlType(), baseaddr,
@@ -684,10 +687,10 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
     }
     else
     {
-      // Unsized cstring param: extract ptr from descriptor, then GEP
-      LlValue * baseaddr = base->GenerateAddress(scope);
-      LlType * ll_desctype = cstrtype->GetLlType();
-      LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, baseaddr, 0, "cstr.ptr.addr");
+      // Unsized embstr aliases point at their shared descriptor.
+      LlValue * descaddr = cstrtype->GenerateDescriptor(scope, baseaddr);
+      LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(
+          g_builtins->type_strslice->GetLlType(), descaddr, 0, "cstr.ptr.addr");
       LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
       return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem");
     }
@@ -3122,7 +3125,7 @@ LlValue * OInvalidCallExpr::Generate(OScope * scope)
   return nullptr;
 }
 
-// --- cstring expressions ---
+// --- embstr expressions ---
 
 /* ctor */ OCStringLit::OCStringLit(const string & avalue)
 {
@@ -3179,14 +3182,14 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 
   if (cstrtype->maxlen > 0)
   {
-    // Fixed cstring(N): GEP to element 0
+    // Fixed embstr(N): GEP to element 0
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
     ll_charptr = ll_builder.CreateGEP(cstrtype->GetLlType(), cstrvalsym->ll_value,
         {ll_zero, ll_zero}, "cstr.ptr");
   }
   else
   {
-    // Unsized cstring param: extract pointer from descriptor
+    // Unsized embstr param: extract pointer from descriptor
     LlType * ll_desctype = cstrtype->GetLlType();
     LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 0, "cstr.ptr.addr");
     ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
@@ -3316,7 +3319,7 @@ LlValue * OCStringToDescExpr::Generate(OScope * scope)
   OLValueVar cstrlval(cstrvalsym);
 
   LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval.GenerateAddress(scope));
-  return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "cstr.desc");
+  return descaddr;
 }
 
 /* ctor */ OCStringLValueToDescExpr::OCStringLValueToDescExpr(OLValueExpr * alval, OType * desctype)
@@ -3329,7 +3332,7 @@ LlValue * OCStringLValueToDescExpr::Generate(OScope * scope)
 {
   OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrlval->ptype->ResolveAlias());
   LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval->GenerateAddress(scope));
-  return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "cstr.desc");
+  return descaddr;
 }
 
 void OCStringLValueToDescExpr::FoldChildren()
@@ -3358,7 +3361,9 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
   uint32_t charlen = (litlen ? litlen - 1 : DQTIF_CHARLEN_INVALID);
   uint32_t info = (litlen ? charlen : DQTI_MAXCHLEN_MASK);
 
-  LlValue * ll_desc = llvm::UndefValue::get(ptype->GetLlType());
+  LlType * desc_type = g_builtins->type_strslice->GetLlType();
+  LlValue * descaddr = CreateEntryBlockAlloca(desc_type, nullptr, "strlit.desc");
+  LlValue * ll_desc = llvm::UndefValue::get(desc_type);
   ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");
   ll_desc = ll_builder.CreateInsertValue(ll_desc,
       llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), charlen),
@@ -3366,7 +3371,8 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
   ll_desc = ll_builder.CreateInsertValue(ll_desc,
       llvm::ConstantInt::get(LlType::getInt32Ty(ll_ctx), info),
       2, "strlit.desc.info");
-  return ll_desc;
+  ll_builder.CreateStore(ll_desc, descaddr);
+  return descaddr;
 }
 
 void OCStringLitToDescExpr::FoldChildren()

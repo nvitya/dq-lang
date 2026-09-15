@@ -13,9 +13,9 @@ const CONST2 : float = 3.14
 object OBase:
     cnt1 : int = 0
     cnt2 : int = 10
-    name : cstring(31)
+    name : embstr(32)
 
-    func *Create(aname : cstring):  // constructor
+    func *Create(aname : embstr):  // constructor
         name = aname
     endfunc
 
@@ -57,11 +57,11 @@ func ObjTest():
     delete ochild
 endfunc
 
-func cstr_add(dst : cstring, src : cstring):
+func cstr_add(dst : embstr, src : embstr):
     var ps     : ^char = %src[0]
-    var psend  : ^char = ps[SizeOf(src)]  // [] does not dereference
+    var psend  : ^char = ps[src.storage_size]  // [] does not dereference
     var pd     : ^char = %dst[0]
-    var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
+    var pdend  : ^char = pd + dst.storage_size - 1 // leave one char for the terminating
     pd += Len(dst)
     var pdstart : ^char = pd
 
@@ -78,7 +78,7 @@ endfunc
 
 func putchar(c : char) -> int  [[external]] // from libc
 
-func WriteStr(s : cstring):
+func WriteStr(s : embstr):
     var pc : ^char = s.pchar
     if pc == nil:
         return
@@ -91,7 +91,7 @@ endfunc
 
 func *Main():
 
-    var s : cstring(127) = ""
+    var s : embstr(128) = ""
     cstr_add(s, "Hello")
     cstr_add(s, " World!\n")
     WriteStr(s)

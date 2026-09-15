@@ -2,26 +2,26 @@
 
 use libc/stdio
 
-type FObjText = func(msg : cstring) of object
+type FObjText = func(msg : embstr) of object
 type FObjInt = func(v : int) of object
-type FPlainText = func(msg : cstring)
+type FPlainText = func(msg : embstr)
 
-func plain(msg : cstring):
+func plain(msg : embstr):
     printf("plain = %s\n", %msg[0])
 endfunc
 
 object OCallback:
-    name : cstring(32)
+    name : embstr(33)
 
-    func *Create(aname : cstring):
+    func *Create(aname : embstr):
         name = aname
     endfunc
 
-    func Print(msg : cstring):
+    func Print(msg : embstr):
         @.printf("%s = %s\n", %name, %msg[0])
     endfunc
 
-    func Pick(msg : cstring) [[overload]]:
+    func Pick(msg : embstr) [[overload]]:
         @.printf("%s.picked = %s\n", %name, %msg[0])
     endfunc
 

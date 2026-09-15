@@ -27,7 +27,7 @@ var overlay_program : uint32
 var overlay_texture : uint32
 var overlay_sampler_uniform : uint32
 var frame_counter : uint32 = 0
-var frame_counter_text : cstring(31)
+var frame_counter_text : embstr(32)
 var direction      : float32 = 1.0
 var offset         : float32 = 0.0
 
@@ -52,7 +52,7 @@ func Init() [[cexport]]:
     vertex_buffer = GlCreateBuffer(SizeOf(vertices), GL_STATIC_DRAW)
     GlWriteBuffer(vertex_buffer, %vertices[0], SizeOf(vertices))
 
-    const vertex_shader_source : cstring = """
+    const vertex_shader_source : embstr = """
         #version 300 es
         layout(location = 0) in vec2 position;
         layout(location = 1) in vec3 color;
@@ -64,7 +64,7 @@ func Init() [[cexport]]:
             vertex_color = color;
         }
         """
-    const fragment_shader_source : cstring = """
+    const fragment_shader_source : embstr = """
         #version 300 es
         precision mediump float;
         in vec3 vertex_color;
@@ -78,13 +78,13 @@ func Init() [[cexport]]:
     var fragment_shader : uint32 = GlCreateShader(GL_FRAGMENT_SHADER, fragment_shader_source.pchar, fragment_shader_source.length)
     program = GlCreateProgram(vertex_shader, fragment_shader)
 
-    var offset_name : cstring(15) = 'offset'
+    var offset_name : embstr(16) = 'offset'
     offset_uniform = GlGetUniformLocation(program, offset_name.pchar, offset_name.length)
 
     overlay_buffer = GlCreateBuffer(SizeOf(overlay_vertices), GL_STATIC_DRAW)
     GlWriteBuffer(overlay_buffer, %overlay_vertices[0], SizeOf(overlay_vertices))
 
-    var overlay_vertex_shader_source : cstring(1023) = """
+    var overlay_vertex_shader_source : embstr(1024) = """
         #version 300 es
         layout(location = 0) in vec2 position;
         layout(location = 1) in vec2 uv;
@@ -95,7 +95,7 @@ func Init() [[cexport]]:
             texture_uv = uv;
         }
         """
-    var overlay_fragment_shader_source : cstring(1023) = """
+    var overlay_fragment_shader_source : embstr(1024) = """
         #version 300 es
         precision mediump float;
         in vec2 texture_uv;
@@ -110,7 +110,7 @@ func Init() [[cexport]]:
     var overlay_fragment_shader : uint32 = GlCreateShader(GL_FRAGMENT_SHADER, overlay_fragment_shader_source.pchar, overlay_fragment_shader_source.length)
     overlay_program = GlCreateProgram(overlay_vertex_shader, overlay_fragment_shader)
 
-    var overlay_sampler_name : cstring(15) = 'text_texture'
+    var overlay_sampler_name : embstr(16) = 'text_texture'
     overlay_sampler_uniform = GlGetUniformLocation(overlay_program, overlay_sampler_name.pchar, overlay_sampler_name.length)
     UpdateFrameCounterText()
     overlay_texture = GlCreateTextTexture(frame_counter_text.pchar, frame_counter_text.length)

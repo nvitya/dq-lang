@@ -1,10 +1,10 @@
 //?notest
 
-func cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library func
+func cstr_set(dst : embstr, src : embstr):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
-    var psend  : ^char = ps + SizeOf(src)
+    var psend  : ^char = ps + src.storage_size
     var pd     : ^char = %dst[0]
-    var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
+    var pdend  : ^char = pd + dst.storage_size - 1 // leave one char for the terminating
     var pdstart : ^char = pd
 
     while pd < pdend  and ps < psend  and ps^ <> char(0):
@@ -16,11 +16,11 @@ func cstr_set(dst : cstring, src : cstring):  // later this will be a DQ library
     pd^ = char(0) // terminate
 endfunc
 
-func cstr_add(dst : cstring, src : cstring):  // later this will be a DQ library func
+func cstr_add(dst : embstr, src : embstr):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
-    var psend  : ^char = ps + SizeOf(src)
+    var psend  : ^char = ps + src.storage_size
     var pd     : ^char = %dst[0]
-    var pdend  : ^char = pd + SizeOf(dst) - 1 // leave one char for the terminating
+    var pdend  : ^char = pd + dst.storage_size - 1 // leave one char for the terminating
     pd += Len(dst)
     var pdstart : ^char = pd
 

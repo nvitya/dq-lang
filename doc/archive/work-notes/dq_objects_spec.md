@@ -360,7 +360,7 @@ Virtual calls inside constructors and destructors should be rejected, or at mini
 Object methods may be captured as bound function references:
 
 ```dq
-type Callback = function(msg : cstring) of object
+type Callback = function(msg : embstr) of object
 
 var obj <- OPrinter("log")
 var cb : Callback = obj.Print

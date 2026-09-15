@@ -37,7 +37,7 @@ The argument must be an addressable, lifetime-compatible value for a reference
 parameter. Passing a reference never transfers ownership unless a specific API
 documents a separate ownership convention.
 
-View types such as `[]T`, `rostr`, `strslice`, and `cstring` borrow their underlying
+View types such as `[]T`, `rostr`, `strslice`, and `embstr` borrow their underlying
 storage even when the descriptor itself is passed by value.
 
 ## Default and Named Arguments

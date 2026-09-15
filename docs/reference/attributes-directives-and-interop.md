@@ -145,10 +145,10 @@ func console_str(address : ^char, length : uint32, field_width : int32) [[extern
 The two-argument form applies to functions; WebAssembly import-module metadata
 is not supported for external global variables.
 
-## C Strings and Pointers
+## Embedded Strings and C Pointers
 
-Use `^char` for a raw zero-terminated C pointer, `cstring` for a borrowed bounded
-descriptor, and `cstring(N)` for owned fixed storage. `.pchar` obtains a borrowed
+Use `^char` for a raw zero-terminated C pointer, `embstr` for a borrowed bounded
+shared descriptor, and `embstr(N)` for owned fixed storage. `.pchar` obtains a borrowed
 raw pointer from compatible text storage.
 
 `pointer` corresponds to an untyped native address. Explicit casts are required

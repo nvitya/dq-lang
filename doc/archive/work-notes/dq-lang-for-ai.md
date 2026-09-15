@@ -15,7 +15,7 @@ disagree.
 - Indent with 2 spaces. Semicolons are optional; prefer omitting them in new code.
 - Prefer readable names and explicit types at declarations.
 - Prefer `use print` and `PrintLn()` for examples/tools instead of raw `printf`.
-- Use `str` for owned text, `strslice` for read-only text parameters, `cstring(N)`
+- Use `str` for owned text, `strslice` for read-only text parameters, `embstr(N)`
   only for fixed C-compatible buffers.
 - Use `ref`, `refin`, `refout`, or `refnull` when a parameter should alias or mutate
   caller storage. Plain parameters are by value.
@@ -165,14 +165,14 @@ item = 10
 ```dq
 var s : str = 'hello'
 var v : strslice = s
-var cs : cstring(31) = 'fixed buffer'
+var cs : embstr(31) = 'fixed buffer'
 ```
 
 - One-character literal is `char`; empty or multi-character literal is `str`.
 - Single and double quotes both work. Prefer the one that avoids escaping.
 - `str` is owned, mutable, refcounted copy-on-write.
 - `strslice` is a non-owning read-only view; prefer for input parameters.
-- `cstring(N)` is inline C-compatible zero-terminated storage; unsized `cstring`
+- `embstr(N)` is inline C-compatible zero-terminated storage; unsized `embstr`
   is a bounded mutable alias parameter.
 - Use `s.length`, `s.capacity`, `s.Append(x)`, `s.Prepend(x)`, `s.Insert(i, x)`,
   `s.Delete(i, count)`, `s.Clear()`, `s.SetLength(n, fill)`, `s.Clone()`.

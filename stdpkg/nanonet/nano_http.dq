@@ -190,8 +190,8 @@ func HttpDateFromUnix(atime : int64) -> str:
         return ''
     endif
 
-    var fmt : cstring(31) = '%a, %d %b %Y %H:%M:%S GMT'
-    var buf : cstring(63) = ''
+    var fmt : embstr(32) = '%a, %d %b %Y %H:%M:%S GMT'
+    var buf : embstr(64) = ''
     if libc_strftime(buf.pchar, buf.storage_size, fmt.pchar, %tm) == 0:
         return ''
     endif
@@ -263,7 +263,7 @@ func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
     if not sp.ReadTo(' '):
         return
     endif
-    var monthnames : cstring(63) = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,'
+    var monthnames : embstr(64) = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,'
     var monpos : int = StrIndexOf(monthnames, sp.PrevStr() + ',')
     if monpos < 0:
         return

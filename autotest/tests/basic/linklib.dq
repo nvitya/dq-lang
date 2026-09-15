@@ -2,7 +2,7 @@
 
 func printf(fmt : ^char, ...) -> int [[external]]
 
-var fake_zlib_ver : cstring(20) = "v0.0.1-fake"
+var fake_zlib_ver : embstr(21) = "v0.0.1-fake"
 
 func zlibVersion_fake() -> ^char:
     result = %fake_zlib_ver[0]

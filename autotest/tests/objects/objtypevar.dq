@@ -1,7 +1,7 @@
 use print
 
 object OBase:
-    name : cstring(31)
+    name : embstr(32)
     func *Create():
         name = 'OBase'
     endfunc

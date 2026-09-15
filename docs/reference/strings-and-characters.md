@@ -21,8 +21,8 @@ integer; explicit or checked conversion creates a character from an integer.
 | `str` | owned, dynamic, reference-counted copy-on-write byte string |
 | `rostr` | read-only borrowed, zero-terminated byte string |
 | `strslice` | read-only borrowed view of text bytes; termination is not guaranteed |
-| `cstring(N)` | fixed-capacity, mutable, zero-terminated byte storage |
-| `cstring` | unsized borrowed bounded C-string descriptor |
+| `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage |
+| `embstr` | unsized borrowed reference to a shared Embedded String descriptor |
 | `^char` | raw pointer to zero-terminated byte storage |
 
 `str` stores bytes and always has a hidden trailing zero. `.length`, indexing,
@@ -30,7 +30,7 @@ slicing, and capacity count bytes; the terminator is not included. A `str` may
 contain internal zeroes and is not necessarily valid UTF-8.
 
 On targets built with dynamic strings disabled, `str` and operations that
-produce it are unavailable. Text literals, `rostr`, `strslice`, and `cstring(N)` remain
+produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
 available for non-owning or bounded text processing.
 
 ## Literals
@@ -63,8 +63,8 @@ string invalidate borrowed pointers and views into its previous storage.
 
 ## Read-Only Zero-Terminated Strings
 
-`rostr` borrows terminated storage from text literals, `str`, `cstring(N)`,
-unsized `cstring`, or `^char`. It does not copy bytes or retain the owner.
+`rostr` borrows terminated storage from text literals, `str`, `embstr(N)`,
+unsized `embstr`, or `^char`. It does not copy bytes or retain the owner.
 The owner must stay alive and its storage and contents must remain stable while
 borrowed. Assigning a `rostr` copies its descriptor; the descriptor itself may
 be reassigned, but character writes and writable character references are rejected.
@@ -86,8 +86,8 @@ slicing, comparison, and Unicode access follow the existing string rules.
 Every byte slice returns `strslice`, including full-range and suffix slices.
 There is no direct conversion from `strslice` to `rostr`, even by a cast. When
 terminated storage is needed for a slice, first assign it to an owning `str`.
-A `rostr` converts to `strslice`, owned `str`, or fixed-capacity `cstring(N)`;
-it cannot become an unsized writable `cstring` alias.
+A `rostr` converts to `strslice`, owned `str`, or fixed-capacity `embstr(N)`;
+it cannot become an unsized writable `embstr` alias.
 
 The descriptor matches `SDqRoStrInfo`: a pointer and a `uint32` byte length,
 with bit 31 marking an unknown length. Its naturally aligned storage is 8 bytes
@@ -132,18 +132,21 @@ Unicode-oriented operations interpret `str` bytes as UTF-8:
 Malformed UTF-8, invalid scalar values, and malformed UTF-16 produce runtime
 encoding errors. `ToUtf16` returns an array that includes a final zero code unit.
 
-## Fixed C Strings
+## Embedded Strings
 
-`cstring(N)` owns space for `N` visible bytes plus a terminator. Assignment and
+`embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
+the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
 append-style operations truncate to fit rather than growing the value.
 
 ```dq
-var name : cstring(5) = "abc"
+var name : embstr(6) = "abc"
 name.Append("def")    // stores "abcde"
 ```
 
-An unsized `cstring` borrows existing bounded C-string storage and is commonly
-used at ABI boundaries. Its lifetime and writability come from the source.
+An unsized `embstr` borrows existing bounded C-string storage through a shared
+descriptor. Assigning or passing it preserves that descriptor reference, so
+length updates made through one alias are visible to the others. Its lifetime
+and writability come from the source.
 
 ## Raw C String Pointers
 

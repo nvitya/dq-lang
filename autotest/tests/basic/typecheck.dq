@@ -53,8 +53,8 @@ func *Main():
     f = i > 5 //?error(TypeMismatchAssign)
     i = Round(f)
 
-    var s1 : cstring(7) = ""
-    var s2 : cstring(11) = ""
+    var s1 : embstr(8) = ""
+    var s2 : embstr(12) = ""
     s1 = s2
 
 endfunc

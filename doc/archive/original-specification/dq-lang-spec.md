@@ -313,13 +313,13 @@ Malformed UTF-8 causes a runtime encoding error in Unicode-oriented operations.
 For repeated indexed Unicode processing, convert once with `s1.ToWchars()`.
 UTF-16 interoperability uses `s1.ToUtf16()` and `StrFromUtf16(...)`.
 
-#### Fixed-Size String Buffer (`cstring(N)`)
+#### Fixed-Size String Buffer (`embstr(N)`)
 - N bytes inline (no heap)
 - NUL-terminated
 - For protocols, ABI, packed structs
 
 ```dq
-var name : cstring(32)        // 32 usable bytes plus trailing zero storage
+var name : embstr(32)        // 31 usable bytes plus the trailing zero
 name = "Viktor"               // copies bytes, truncates to fit, adds NUL
 var s : str = name            // converts to dynamic string
 ```

@@ -28,14 +28,14 @@ func StrSliceIsReadonly():
 endfunc
 
 func CStringDynamicStorageMethodsAreInvalid():
-    var cs : cstring(8) = "abc"
+    var cs : embstr(9) = "abc"
     cs.Reserve(100) //?error(MemberUnknown)
     cs.Compact() //?error(MemberUnknown)
 endfunc
 
 func UnsizedCStringMustAliasStorage():
-    var no_storage : cstring //?error(NotSupported)
-    var literal_alias : cstring = "abc" //?error(TypeMismatchAssign)
+    var no_storage : embstr //?error(NotSupported)
+    var literal_alias : embstr = "abc" //?error(TypeMismatchAssign)
 endfunc
 
 //func WideLiteralCannotBecomeRawCCharPointer():
@@ -48,6 +48,6 @@ func StringNeedsExplicitSetLengthFill():
 endfunc
 
 func CstringCannotStoreWideCharacterWithoutConversion():
-    var cs : cstring(8) = "abc"
+    var cs : embstr(9) = "abc"
     cs[1] = char(0x1F600) //?error(TypeMismatchAssign)
 endfunc

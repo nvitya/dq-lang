@@ -23,7 +23,7 @@ const DQ_EXCEPTION_MSG_MAX       : int = 127
 
 object Exception:
     refcount        : int = 1
-    message         : cstring(DQ_EXCEPTION_MSG_MAX)
+    message         : embstr(DQ_EXCEPTION_MSG_MAX + 1)
     backtrace_count : int = 0
     backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
@@ -31,7 +31,7 @@ object Exception:
     func *Create(afmt : rostr, avalues : []anyvalue) [[overload]]
     func *Destroy()
 
-    func GetMessage() -> cstring [[virtual]]
+    func GetMessage() -> embstr [[virtual]]
     func CaptureBacktrace()
     func PrintMessage()
     func PrintBacktrace()
@@ -77,7 +77,7 @@ endfunc
 func Exception.*Destroy():
 endfunc
 
-func Exception.GetMessage() -> cstring:
+func Exception.GetMessage() -> embstr:
     return message
 endfunc
 

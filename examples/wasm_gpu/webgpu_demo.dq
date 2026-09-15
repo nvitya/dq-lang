@@ -24,7 +24,7 @@ func Init() [[cexport]]:
 
     frame_buffer = WgpuCreateBuffer(SizeOf(frame_data), WGPU_BUFFER_USAGE_UNIFORM | WGPU_BUFFER_USAGE_COPY_DST)
     
-    var vertex_shader_source   : cstring(1023) = """
+    var vertex_shader_source   : embstr(1024) = """
         struct Frame {
             offset: vec2f,
             padding: vec2f,
@@ -45,7 +45,7 @@ func Init() [[cexport]]:
             return result;
         }
         """
-    var fragment_shader_source : cstring(1023) = """
+    var fragment_shader_source : embstr(1024) = """
         @fragment
         fn fs_main(@location(0) color: vec3f) -> @location(0) vec4f {
             return vec4f(color, 1.0);

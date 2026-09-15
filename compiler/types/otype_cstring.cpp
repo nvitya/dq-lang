@@ -35,6 +35,10 @@ static LlType * LlCStringLenType()
   return LlType::getInt32Ty(ll_ctx);
 }
 
+static LlType * LlCStringDescType()
+{
+  return g_builtins->type_strslice->GetLlType();
+}
 
 
 static LlValue * LlU32(uint32_t value)
@@ -93,18 +97,13 @@ LlType * OTypeCString::CreateLlType()
 {
   if (maxlen > 0)
   {
-    // Fixed-size storage: N usable bytes plus the hidden terminator slot.
-    return llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), uint64_t(maxlen) + 1);
+    // Fixed-size storage includes the terminator slot.
+    return llvm::ArrayType::get(LlType::getInt8Ty(ll_ctx), maxlen);
   }
   else
   {
-    // Unsized descriptor: SDqTextInfo {ptr, u32 charlen, u32 info}
-    vector<LlType *> fields = {
-      LlPtrType(),
-      LlCStringLenType(),
-      LlCStringLenType()
-    };
-    return llvm::StructType::get(ll_ctx, fields);
+    // Unsized aliases share a descriptor instead of copying its cached length.
+    return LlPtrType();
   }
 }
 
@@ -115,38 +114,17 @@ LlDiType * OTypeCString::CreateDiType()
     // Debug info as array of i8
     LlDiType * elem_di = di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_signed_char);
     llvm::Metadata * subscripts[] = {
-      di_builder->getOrCreateSubrange(0, uint64_t(maxlen) + 1)
+      di_builder->getOrCreateSubrange(0, maxlen)
     };
     return di_builder->createArrayType(
-        (uint64_t(maxlen) + 1) * 8, 0, elem_di,
+        uint64_t(maxlen) * 8, 0, elem_di,
         di_builder->getOrCreateArray(subscripts)
     );
   }
   else
   {
-    // Unsized descriptor: struct {ptr, u32, u32}
-    LlDiType * ptr_di = di_builder->createPointerType(
-        di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_signed_char),
-        TARGET_PTRSIZE * 8);
-    LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
-
-    llvm::Metadata * elements[] = {
-      di_builder->createMemberType(
-          nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
-          0, llvm::DINode::FlagZero, ptr_di),
-      di_builder->createMemberType(
-          nullptr, "charlen", nullptr, 0, 32, 0,
-          TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, u32_di),
-      di_builder->createMemberType(
-          nullptr, "info", nullptr, 0, 32, 0,
-          TARGET_PTRSIZE * 8 + 32, llvm::DINode::FlagZero, u32_di)
-    };
-
-    return di_builder->createStructType(
-        nullptr, name, nullptr, 0, bytesize * 8, 0,
-        llvm::DINode::FlagZero, nullptr,
-        di_builder->getOrCreateArray(elements)
-    );
+    return di_builder->createPointerType(
+        g_builtins->type_strslice->GetDiType(), TARGET_PTRSIZE * 8);
   }
 }
 
@@ -186,7 +164,8 @@ LlValue * OTypeCString::GenerateDataPtr(OScope * scope, LlValue * cstraddr)
     return ll_builder.CreateGEP(GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
   }
 
-  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(GetLlType(), cstraddr, 0, "cstr.ptr.addr");
+  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
+  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 0, "cstr.ptr.addr");
   return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "cstr.ptr");
 }
 
@@ -194,19 +173,42 @@ LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
 {
   if (maxlen == 0)
   {
-    return cstraddr;
+    return ll_builder.CreateLoad(GetLlType(), cstraddr, "cstr.desc");
   }
 
-  LlValue * descaddr = CreateEntryBlockAlloca(g_builtins->type_cstring->GetLlType(), nullptr, "cstr.desc.tmp");
+  auto cache_it = descriptor_caches.find(cstraddr);
+  if (cache_it != descriptor_caches.end())
+  {
+    return cache_it->second;
+  }
+
+  LlValue * descaddr = CreateEntryBlockAlloca(LlCStringDescType(), nullptr, "cstr.desc.tmp");
   LlValue * dataptr = GenerateDataPtr(scope, cstraddr);
-  LlType * desctype = g_builtins->type_cstring->GetLlType();
+  LlType * desctype = LlCStringDescType();
   LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "cstr.desc.ptr.addr");
   LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "cstr.desc.len.addr");
   LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "cstr.desc.info.addr");
   ll_builder.CreateStore(dataptr, ptraddr);
   ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
-  ll_builder.CreateStore(LlU32(maxlen & DQTI_MAXCHLEN_MASK), infoaddr);
+  ll_builder.CreateStore(LlU32((maxlen - 1) & DQTI_MAXCHLEN_MASK), infoaddr);
+  descriptor_caches[cstraddr] = descaddr;
   return descaddr;
+}
+
+void OTypeCString::ResetDescriptorLength(OScope * scope, LlValue * cstraddr)
+{
+  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
+  LlValue * lenaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 1, "cstr.len.addr");
+  ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
+}
+
+void OTypeCString::InvalidateDescriptor(OScope * scope, LlValue * cstraddr)
+{
+  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
+  LlValue * infoaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 2, "cstr.info.addr");
+  LlValue * info = ll_builder.CreateLoad(LlCStringLenType(), infoaddr, "cstr.info");
+  ll_builder.CreateStore(ll_builder.CreateOr(info, LlU32(DQTIF_CHARLEN_EXTERNAL), "cstr.info.external"), infoaddr);
+  ResetDescriptorLength(scope, cstraddr);
 }
 
 static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
@@ -231,6 +233,9 @@ LlValue * OTypeCString::GenerateMetaField(OScope * scope, LlValue * cstraddr, EC
 {
   if (CSMF_PCHAR == field)
   {
+    // A raw pointer can escape to unknown code, so its shared length cache can
+    // no longer be trusted after this access.
+    InvalidateDescriptor(scope, cstraddr);
     return GenerateDataPtr(scope, cstraddr);
   }
 
@@ -238,11 +243,11 @@ LlValue * OTypeCString::GenerateMetaField(OScope * scope, LlValue * cstraddr, EC
   {
     if (CSMF_MAXLENGTH == field)
     {
-      return LlNativeInt(maxlen);
+      return LlNativeInt(maxlen - 1);
     }
     if (CSMF_STORAGE_SIZE == field)
     {
-      return LlNativeInt(uint64_t(maxlen) + 1);
+      return LlNativeInt(maxlen);
     }
   }
 
@@ -298,13 +303,15 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
 
     LlValue * ll_zero = LlNativeInt(0);
     rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "cstr.src.ptr");
-    rsrclimit = LlNativeInt(srctype->maxlen);
+    rsrclimit = LlNativeInt(srctype->maxlen - 1);
     return;
   }
 
-  LlValue * ll_desc = srcexpr->Generate(scope);
-  rsrcptr = ll_builder.CreateExtractValue(ll_desc, {0}, "cstr.src.ptr");
-  rsrclimit = ToNativeInt(ll_builder.CreateExtractValue(ll_desc, {1}, "cstr.src.size"));
+  LlValue * descaddr = srcexpr->Generate(scope);
+  LlValue * ptraddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 0, "cstr.src.ptr.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 1, "cstr.src.len.addr");
+  rsrcptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "cstr.src.ptr");
+  rsrclimit = ToNativeInt(ll_builder.CreateLoad(LlCStringLenType(), lenaddr, "cstr.src.size"));
 }
 
 static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCString * dsttype, OExpr * srcexpr)
@@ -376,6 +383,7 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
   {
     LlConst * ll_zero = llvm::ConstantAggregateZero::get(GetLlType());
     ll_builder.CreateStore(ll_zero, dstdaddr);
+    ResetDescriptorLength(scope, dstdaddr);
     return true;
   }
 
@@ -385,6 +393,7 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
     val.value = strlit->value;
     LlConst * ll_const = val.CreateLlConst();
     ll_builder.CreateStore(ll_const, dstdaddr);
+    ResetDescriptorLength(scope, dstdaddr);
     return true;
   }
 
@@ -488,8 +497,7 @@ LlValue * OTypeCString::GenerateMethodCall(OScope * scope, LlValue * cstraddr,
     {
       LlValue * arg0_val = g_builtins->type_rostr->GenerateBorrow(scope, args[0]);
       LlValue * arg1_val = args[1]->Generate(scope);
-      LlValue * dstdesc_val = ll_builder.CreateLoad(g_builtins->type_cstring->GetLlType(), dstdesc, "cstr.desc.val");
-      return CallTextFormatFunc(scope, "CStrAddFmt", {dstdesc_val, arg0_val, arg1_val});
+      return CallTextFormatFunc(scope, "CStrAddFmt", {dstdesc, arg0_val, arg1_val});
     }
   }
   return nullptr;
@@ -518,20 +526,26 @@ LlConst * OValueCString::CreateLlConst()
       llvm::ConstantInt::get(LlCStringLenType(), charlen),
       llvm::ConstantInt::get(LlCStringLenType(), info)
     };
-    return llvm::ConstantStruct::get(
-        static_cast<llvm::StructType *>(ptype->GetLlType()),
-        fields);
+    auto * desc_gv = new llvm::GlobalVariable(
+        *ll_module,
+        LlCStringDescType(),
+        true,
+        llvm::GlobalValue::PrivateLinkage,
+        llvm::ConstantStruct::get(static_cast<llvm::StructType *>(LlCStringDescType()), fields),
+        ".embstr.desc.const");
+    desc_gv->setAlignment(llvm::Align(TARGET_PTRSIZE));
+    return desc_gv;
   }
 
-  // Create [maxlen + 1 x i8] constant, padded with zeros.
+  // Create [maxlen x i8] constant, reserving the final byte for the terminator.
   vector<llvm::Constant *> chars;
-  chars.reserve(uint64_t(maxlen) + 1);
+  chars.reserve(maxlen);
 
   LlType * i8type = LlType::getInt8Ty(ll_ctx);
 
-  for (uint32_t i = 0; i <= maxlen; ++i)
+  for (uint32_t i = 0; i < maxlen; ++i)
   {
-    if ((i < maxlen) && (i < value.size()))
+    if ((i < maxlen - 1) && (i < value.size()))
     {
       chars.push_back(llvm::ConstantInt::get(i8type, (uint8_t)value[i]));
     }
@@ -541,7 +555,7 @@ LlConst * OValueCString::CreateLlConst()
     }
   }
 
-  llvm::ArrayType * arrtype = llvm::ArrayType::get(i8type, uint64_t(maxlen) + 1);
+  llvm::ArrayType * arrtype = llvm::ArrayType::get(i8type, maxlen);
   return llvm::ConstantArray::get(arrtype, chars);
 }
 
@@ -617,7 +631,7 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
     if (!lval)
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue cstring to descriptor");
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue embstr to descriptor");
       return false;
     }
     *rexpr = new OCStringLValueToDescExpr(lval, this);
@@ -628,7 +642,7 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 
   if (this->maxlen != cstrsrc->maxlen)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cstring sizes do not match");
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "embstr sizes do not match");
     return false;
   }
 

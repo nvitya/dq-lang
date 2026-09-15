@@ -8,7 +8,7 @@ public
         v = av
     endfunc
 
-    func *Create(aname : cstring) [[overload]]:
+    func *Create(aname : embstr) [[overload]]:
         v = 1
     endfunc
 endobject

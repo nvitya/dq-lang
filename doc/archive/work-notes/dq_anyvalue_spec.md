@@ -172,9 +172,9 @@ unsigned integer types -> anyvalue
 char                   -> anyvalue
 floating-point types   -> anyvalue
 str                    -> anyvalue
-cstring                -> anyvalue
+embstr                -> anyvalue
 strslice                -> anyvalue
-string literal         -> anyvalue as cstring
+string literal         -> anyvalue as embstr
 pointer/object         -> anyvalue (as pointer)
 ```
 
@@ -186,7 +186,7 @@ bool              DQTK_BOOL
 int/uint/char     DQTK_INT
 float32/float64   DQTK_FLOAT
 str               DQTK_DYNSTR
-cstring           DQTK_CSTRING
+embstr           DQTK_CSTRING
 strslice           DQTK_STRSLICE
 pointer           DQTK_POINTER
 anyvalue          DQTK_ANYVALUE
@@ -194,7 +194,7 @@ anyvalue          DQTK_ANYVALUE
 
 `char` is represented as an integer-like scalar. The exact distinction between signed integer, unsigned integer, and character is stored in `subtype` or by compiler-known source type information.
 
-String literals used in an `anyvalue` context are boxed as `cstring` values. They reference static read-only storage and therefore satisfy the borrowed lifetime rules for `cstring`.
+String literals used in an `anyvalue` context are boxed as `embstr` values. They reference static read-only storage and therefore satisfy the borrowed lifetime rules for `embstr`.
 
 ---
 
@@ -285,9 +285,9 @@ The old boolean form `SetNull(true)` is obsolete. User code should only use `Set
 
 For scalar values, copying and destruction are trivial.
 
-For `cstring` and `strslice` values, `anyvalue` stores a borrowed text descriptor. Copying the `anyvalue` copies only the descriptor. Destroying the `anyvalue` does not destroy the referenced text storage.
+For `embstr` and `strslice` values, `anyvalue` stores a borrowed text descriptor. Copying the `anyvalue` copies only the descriptor. Destroying the `anyvalue` does not destroy the referenced text storage.
 
-Implicit boxing of `cstring` and `strslice` is only allowed when the source text storage is guaranteed to remain valid for the lifetime of the resulting `anyvalue`. Direct `[]anyvalue` call arguments satisfy this rule for ordinary expression sources because the temporary array is only valid for the duration of the call. Persistent `anyvalue` storage may require an explicit conversion to owned `str`.
+Implicit boxing of `embstr` and `strslice` is only allowed when the source text storage is guaranteed to remain valid for the lifetime of the resulting `anyvalue`. Direct `[]anyvalue` call arguments satisfy this rule for ordinary expression sources because the temporary array is only valid for the duration of the call. Persistent `anyvalue` storage may require an explicit conversion to owned `str`.
 
 For `str` values, `anyvalue` must obey the normal `str` copy/destroy semantics. Therefore `anyvalue` itself is a managed type if it can contain owned `str`.
 
@@ -525,7 +525,7 @@ av.AsText(DefaultTextInfo(""), ti)
 
 `AnyValAsText()` returns a text descriptor through `rv`.
 
-If `v` contains `cstring`, `strslice`, or `str`, the result describes the contained text.
+If `v` contains `embstr`, `strslice`, or `str`, the result describes the contained text.
 
 If `v` does not contain text, `rv` receives `defval`.
 
@@ -548,24 +548,24 @@ function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 
 `AnyValSetStrText()` copies text described by `SDqTextInfo` into owned dynamic string storage and stores it as `DQTK_DYNSTR`.
 
-### 13.4 Heapless copy into fixed `cstring`
+### 13.4 Heapless copy into fixed `embstr`
 
 ```dq
 function AnyValToCString(
   v      : ref SDqAnyValue,
   defval : refin SDqTextInfo,
-  rv     : cstring
+  rv     : embstr
 )
 ```
 
 Method form:
 
 ```dq
-var cs : cstring(63)
+var cs : embstr(63)
 av.ToCString(DefaultTextInfo(""), cs)
 ```
 
-`AnyValToCString()` converts the contained value to text and copies it into caller-provided `cstring` storage.
+`AnyValToCString()` converts the contained value to text and copies it into caller-provided `embstr` storage.
 
 If `v` contains text, the text is copied.
 
@@ -573,7 +573,7 @@ If `v` contains a numeric or boolean value, the implementation may format it usi
 
 If `v` cannot be converted to text, `defval` is copied.
 
-This function must not allocate. Truncation and bounds behavior follow the normal `cstring` assignment/copy rules.
+This function must not allocate. Truncation and bounds behavior follow the normal `embstr` assignment/copy rules.
 
 ### 13.5 Owned dynamic string extraction
 
@@ -626,7 +626,7 @@ elif av.IsFloat():
 elif av.IsBool():
   var b : bool = av.AsBool(false)
 elif av.IsStr():
-  var cs : cstring(63)
+  var cs : embstr(63)
   av.ToCString(DefaultTextInfo(""), cs)
 endif
 ```
@@ -648,13 +648,13 @@ Text values can be read in three forms:
 var ti : SDqTextInfo
 av.AsText(DefaultTextInfo(""), ti)     // heapless descriptor result
 
-var cs : cstring(63)
+var cs : embstr(63)
 av.ToCString(DefaultTextInfo(""), cs)  // heapless copy into fixed buffer
 
 var s : str = av.AsStr(DefaultTextInfo(""))  // owned dynamic string, may allocate
 ```
 
-`cstring` and `strslice` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.
+`embstr` and `strslice` values stored in an `anyvalue` are borrowed. The referenced text storage must remain valid for the lifetime of the `anyvalue`.
 
 A `str` value stored in an `anyvalue` is owned and follows normal managed string copy/destroy rules.
 

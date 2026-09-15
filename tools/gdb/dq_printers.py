@@ -144,7 +144,7 @@ class DqDynStrPrinter:
 
 
 class DqCStringPrinter:
-    """Pretty-printer for fixed DQ cstring(N), emitted as cchar[N + 1]."""
+    """Pretty-printer for fixed DQ embstr(N), emitted as cchar[N]."""
 
     def __init__(self, val):
         self.val = val

@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.67.0"
+#define DQ_COMPILER_VERSION  "0.68.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.68.0:
+  - BREAKING CHANGE: cstring -> embstr (Embedded String) rename
+  - embstr(n) occupies n bytes, capable to store maximum n-1 8-bit character units + zero terminator
+  - unsized embstr aliases share descriptor metadata and length cache
 v0.67.0:
   - BREAKING CHANGE: strview -> strslice rename (to better express the real nature)
 v0.66.0:

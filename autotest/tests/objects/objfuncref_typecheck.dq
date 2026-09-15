@@ -1,21 +1,21 @@
 // object func reference type checking tests (ERROR test)
 
-type FObjText = func(msg : cstring) of object
+type FObjText = func(msg : embstr) of object
 type FObjInt = func(v : int) of object
 type FObjFloat = func(v : float) of object
-type FPlainText = func(msg : cstring)
+type FPlainText = func(msg : embstr)
 
-func plain(msg : cstring):
+func plain(msg : embstr):
 endfunc
 
 object OCallback:
     func *Create():
     endfunc
 
-    func Print(msg : cstring):
+    func Print(msg : embstr):
     endfunc
 
-    func Pick(msg : cstring) [[overload]]:
+    func Pick(msg : embstr) [[overload]]:
     endfunc
 
     func Pick(v : int) [[overload]]:

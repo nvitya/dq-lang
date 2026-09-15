@@ -276,8 +276,8 @@ DQ has several text-related types:
 | `str` | Dynamic heap-managed string |
 | `rostr` | Read-only borrowed zero-terminated string |
 | `strslice` | Non-owning string view without guaranteed termination |
-| `cstring(n)` | Fixed-size zero-terminated C-style string storage |
-| `cstring` | C-style string argument type |
+| `embstr(n)` | Embedded String: fixed-size zero-terminated storage; `n` includes the terminator |
+| `embstr` | Embedded String argument type |
 | `^char` | Pointer to byte-oriented C string data |
 
 ## String and Character Literals
@@ -304,7 +304,7 @@ if url == "/":
 endif
 
 if url == '/':
-    // wrong: '/' is wchar, not str/strslice/cstring text
+    // wrong: '/' is wchar, not str/strslice/embstr text
 endif
 ```
 
@@ -389,5 +389,5 @@ Function references can be compared with `nil`.
 Object method references use `of object`.
 
 ```dq
-type FObjText = func(msg : cstring) of object
+type FObjText = func(msg : embstr) of object
 ```

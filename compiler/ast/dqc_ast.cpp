@@ -818,92 +818,6 @@ int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint3
 }
 
 // ---- Virtual Implementations of ConvertFromExpr ----
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // --------------------------------------------------
 
 bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype)
@@ -917,9 +831,9 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
     return false;
   }
 
-  // Fixed-size cstrings are storage types, so they cannot be the result of
+  // Fixed-size embstr values are storage types, so they cannot be the result of
   // iif().  Use the unsized descriptor type, which also provides a natural
-  // common type for a cstring buffer and a string literal.
+  // common type for an embstr buffer and a string literal.
   auto * truecstr = dynamic_cast<OTypeCString *>(truetype);
   auto * falsecstr = dynamic_cast<OTypeCString *>(falsetype);
   if ((truecstr && truecstr->maxlen > 0) || (falsecstr && falsecstr->maxlen > 0))

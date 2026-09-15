@@ -16,7 +16,7 @@ The repository contains small focused examples and larger demonstrations.
 
 | Example | Shows |
 | --- | --- |
-| `examples/string/cstrings.dq` | fixed C strings |
+| `examples/string/embstrs.dq` | Embedded Strings |
 | `examples/string/txtfmt.dq` | `Format`, `AddFmt`, stdout formatting |
 
 ## Files
@@ -40,4 +40,3 @@ dq-run examples/string/txtfmt.dq
 
 Some examples, especially networking examples, may need a free local port and a
 host platform with the required socket APIs.
-

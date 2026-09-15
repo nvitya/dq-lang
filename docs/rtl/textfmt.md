@@ -7,7 +7,7 @@ DQ text formatting is used by:
 | `Format(fmt, args)` from `strutils` | returns a new `str` |
 | `Print(fmt, args)` / `PrintLn(fmt, args)` from `print` | writes to stdout |
 | `str.AddFmt(fmt, args)` | appends formatted text to a dynamic string |
-| `cstring.AddFmt(fmt, args)` | appends formatted text to fixed C string storage |
+| `embstr.AddFmt(fmt, args)` | appends formatted text to an Embedded String |
 | `Exception.Create(fmt, args)` | formats an exception message |
 
 Formatting arguments are passed as `[]anyvalue`.
@@ -63,16 +63,15 @@ writes a short marker such as `<i-f!>` and records an internal formatter flag.
 ## Sinks
 
 The runtime formatter writes through `OTextSink`. The built-in sinks are stdout,
-fixed `cstring`, and dynamic `str`.
+fixed `embstr`, and dynamic `str`.
 
 ```dq
 var s : str = "value: "
 s.AddFmt("{}", [123])
 
-var cs : cstring(31) = ""
+var cs : embstr(31) = ""
 cs.AddFmt("{}", [123])
 ```
 
-`cstring` formatting is bounded by the destination storage. Dynamic `str`
+`embstr` formatting is bounded by the destination storage. Dynamic `str`
 formatting can allocate as needed.
-

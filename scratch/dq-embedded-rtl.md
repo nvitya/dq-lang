@@ -157,7 +157,7 @@ Required behavior:
   should be main-context only unless protected by the platform.
 
 Disabling dynamic strings later must not disable `strslice`, string literals, or
-bounded `cstring`; those are useful heap-free types. It should disable owning
+bounded `embstr`; those are useful heap-free types. It should disable owning
 `str` operations and other heap-owning facilities with compile-time errors.
 
 ## Exceptions on Cortex-M
@@ -232,9 +232,9 @@ and continue from arbitrary hardware faults.
 ### Phase 0: make 32-bit RTL compilation trustworthy
 
 Status (2026-08-26): implemented. Slice descriptors and collection indexes now
-use the target-native integer width, including adjacent string/cstring index
+use the target-native integer width, including adjacent string/embstr index
 paths. The ARM compile-only regression covers fixed arrays, slices, dynamic
-array conversions, string/cstring indexing, and text formatting. A failed
+array conversions, string/embstr indexing, and text formatting. A failed
 child-module regeneration now aborts the current parse after its root error.
 The UART graph reaches linking without an LLVM assertion; its remaining
 `-lbacktrace` failure belongs to the provider/link work below.

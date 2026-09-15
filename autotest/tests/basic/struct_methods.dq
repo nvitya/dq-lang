@@ -4,7 +4,7 @@ func printf(fmt : ^char, ...) -> int [[external]]
 
 struct SBase:
     id : int
-    tag : cstring(8)
+    tag : embstr(9)
 
     func SetId(v : int):
         self.id = v
@@ -17,7 +17,7 @@ endstruct
 
 struct SChild(SBase):
     extra : int
-    names : [2]cstring(8)
+    names : [2]embstr(9)
 
     func SetAll(aid : int, aextra : int):
         self.SetId(aid)

@@ -322,7 +322,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
     OTypeCString * cstrtype = static_cast<OTypeCString *>(srctype);
     if (cstrtype->maxlen == 0)
     {
-      return expr->Generate(scope);
+      return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), expr->Generate(scope), "embstr.text");
     }
 
     LlValue * cstraddr = nullptr;
@@ -332,7 +332,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
     }
     if (!cstraddr)
     {
-      throw logic_error("cstring text source requires an lvalue");
+      throw logic_error("embstr text source requires an lvalue");
     }
     LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstraddr);
     return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "cstr.text");
@@ -353,6 +353,11 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
 
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr)
 {
+  if (expr && expr->ResolvedType() && TK_CSTRING == expr->ResolvedType()->kind
+      && static_cast<OTypeCString *>(expr->ResolvedType())->maxlen == 0)
+  {
+    return expr->Generate(scope);
+  }
   if (auto * lval = dynamic_cast<OLValueExpr *>(expr);
       lval && lval->ResolvedType() && TK_STRSLICE == lval->ResolvedType()->kind)
   {

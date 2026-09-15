@@ -7,7 +7,7 @@ DQ has four main text forms:
 | `str` | dynamic heap-managed string |
 | `rostr` | read-only borrowed zero-terminated string |
 | `strslice` | non-owning string view, including unterminated slices |
-| `cstring(n)` | fixed-size zero-terminated storage |
+| `embstr(n)` | Embedded String: fixed-size zero-terminated storage |
 
 `str` is an owned byte string with an enforced trailing zero. Its `.length`
 counts bytes, not Unicode scalar values, and the hidden terminator is not
@@ -104,7 +104,7 @@ returned by `ToUtf16()` includes a final zero terminator as an ordinary element.
 
 ## C String Access
 
-`str` and `cstring` expose `.pchar`, a borrowed `^char` pointer to their
+`str` and `embstr` expose `.pchar`, a borrowed `^char` pointer to their
 zero-terminated byte storage.
 
 ```dq
@@ -116,20 +116,22 @@ is not reallocated. Internal zero bytes are preserved in the `str`, but C APIs
 using zero-terminated semantics see only the bytes before the first internal
 zero.
 
-## `cstring`
+## `embstr`
 
-`cstring(n)` owns fixed storage of `n` bytes plus the zero terminator.
+`embstr(n)` owns exactly `n` bytes of fixed storage, including the zero
+terminator. Its maximum content length is `n - 1` bytes.
 Appending and assigning truncate to fit.
 
 ```dq
-var cs : cstring(5) = "abc"
+var cs : embstr(6) = "abc"
 cs.Append("def")  // stores "abcde"
 ```
 
-`cstring` supports many of the same mutation methods as `str`, including `Set`,
+`embstr` supports many of the same mutation methods as `str`, including `Set`,
 `Append`, `Add`, `AppendChar`, `Prepend`, `Insert`, `Delete`, `Clear`, and
 `AddFmt`. It does not support dynamic capacity operations such as `Reserve` or
 `Compact`.
 
-An unsized `cstring` is an alias/view over existing C string storage, commonly
-used for parameters.
+An unsized `embstr` is an alias/view over existing C string storage, commonly
+used for parameters. Aliases share descriptor metadata, including the cached
+length, so mutations through one alias are observed by the others.

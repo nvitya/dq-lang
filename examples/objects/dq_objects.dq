@@ -4,9 +4,9 @@ use libc/stdio
 
 object ODynData:
     intvalue : int
-    name     : cstring(63)
+    name     : embstr(64)
 
-    func *Create(a : int, aname : cstring):  // constructor
+    func *Create(a : int, aname : embstr):  // constructor
         intvalue = a
         name = aname
     endfunc
@@ -38,7 +38,7 @@ private
     coords4 <- OCoords()       // alternative constructor
 
 public
-    func *Create(a : int, aname : cstring):  // reserved func name for constructor
+    func *Create(a : int, aname : embstr):  // reserved func name for constructor
         ddata = new ODynData(a, aname)
 
         coords1.Create(4, 5)  // ERROR: double constructor call !

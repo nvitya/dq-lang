@@ -481,17 +481,17 @@ Foreign code should treat the pointer as read-only, even though its DQ type is `
 Writable C buffers should use a dedicated mutable buffer such as:
 
 ```dq
-cstring(n)
+embstr(n)
 [*]char
 ```
 
-`cstring` also exposes a `.pchar` property:
+`embstr` also exposes a `.pchar` property:
 
 ```dq
 var p : ^char = cs.pchar
 ```
 
-For `cstring(n)`, `.pchar` points to the first byte of its fixed zero-terminated storage. For an unsized `cstring` alias, `.pchar` points to the aliased storage.
+For `embstr(n)`, `.pchar` points to the first byte of its fixed zero-terminated storage. For an unsized `embstr` alias, `.pchar` points to the aliased storage.
 
 ---
 

@@ -8,7 +8,7 @@ This folder contains a VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It 
 - Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#include`, `#srcdep`, and `#{endif}`
 - Attributes such as `[[external]]`
 - Builtins such as `len`, `sizeof`, `round`, `ceil`, `floor`
-- Core types seen in this repository such as `int`, `cchar`, `cstring`, `float32`, `float64`
+- Core types seen in this repository such as `int`, `cchar`, `embstr`, `float32`, `float64`
 - Strings, numbers, operators, pointers like `^int` and `p^`, namespace access like `@def.MAXVAL`
 - Test directives such as `//?check(...)` and `//?error(...)`
 - Snippets for common DQ constructs

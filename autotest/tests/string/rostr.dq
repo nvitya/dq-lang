@@ -24,7 +24,7 @@ func Default(text : rostr = "default") -> rostr:
     return text
 endfunc
 
-func CStringBorrow(text : cstring) -> rostr:
+func CStringBorrow(text : embstr) -> rostr:
     return text
 endfunc
 
@@ -80,13 +80,13 @@ func *Main():
     var joined : str = GREETING + text
     printf("concat = %s\n", joined.pchar) //?check("concat", "hellopointer")
 
-    var buffer : cstring(7) = "buffer"
+    var buffer : embstr(8) = "buffer"
     var cborrow : rostr = buffer
     var alias_borrow : rostr = CStringBorrow(buffer)
-    var bounded : cstring(3) = text
-    printf("cstring = %s:%s:%s\n", cborrow, alias_borrow, bounded.pchar) //?check("cstring", "buffer:buffer:poi")
+    var bounded : embstr(4) = text
+    printf("embstr = %s:%s:%s\n", cborrow, alias_borrow, bounded.pchar) //?check("embstr", "buffer:buffer:poi")
     bounded = GREETING
-    printf("cstring_assign = %s\n", bounded.pchar) //?check("cstring_assign", "hel")
+    printf("embstr_assign = %s\n", bounded.pchar) //?check("embstr_assign", "hel")
     var unicode : rostr = "aé€"
     printf("unicode = %li:%li:%i\n", unicode.length, unicode.wclen, unicode.wchar[1] == 'é') //?check("unicode", "6:3:1")
     var scalars : [*]wchar = unicode.ToWchars()

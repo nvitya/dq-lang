@@ -3,12 +3,12 @@ use print
 
 // Test1
 
-func CsProcess(cs : cstring):
+func CsProcess(cs : embstr):
     cs.Append(' five')
 endfunc
 
 func Test1():
-    var cs1 : cstring(31) = 'One two three'  // 32 byte storage
+    var cs1 : embstr(33) = 'One two three'  // 32 byte storage
 
     cs1.Append(' four')
     CsProcess(cs1)
@@ -20,7 +20,7 @@ endfunc
 
 struct STestRec:
     id   : int32
-    name : cstring(31)
+    name : embstr(32)
 endstruct
 
 func ProcessName(tr : ref STestRec):
@@ -35,7 +35,7 @@ func Test2():
 endfunc
 
 func *Main():
-    PrintLn('DQ cstring test')
+    PrintLn('DQ embstr test')
     Test1()
     Test2()
 endfunc

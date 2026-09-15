@@ -58,7 +58,7 @@ func dq_iif_guarded(aptrint : ^int) -> int:
 endfunc
 
 object OTest:
-    name : cstring(32) = "OTest-Name-inline"
+    name : embstr(33) = "OTest-Name-inline"
 endobject
 
 var g_obj : OTest = nil
@@ -123,10 +123,10 @@ func *Main():
     g_obj = new OTest()
     printf('g_obj.name/2 = %s\n', iif(g_obj == nil, "obj is nil!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
 
-    var cstr : cstring(15) = "from buffer"
-    var cstr2 : cstring(15) = "other buffer"
-    PrintLn('iif cstring = {}', [iif(true, "from literal", cstr)])  //?check('iif cstring', 'from literal')
-    PrintLn('iif cstring/2 = {}', [iif(false, "from literal", cstr)])  //?check('iif cstring/2', 'from buffer')
-    PrintLn('iif cstring/3 = {}', [iif(false, cstr, cstr2)])  //?check('iif cstring/3', 'other buffer')
+    var cstr : embstr(16) = "from buffer"
+    var cstr2 : embstr(16) = "other buffer"
+    PrintLn('iif embstr = {}', [iif(true, "from literal", cstr)])  //?check('iif embstr', 'from literal')
+    PrintLn('iif embstr/2 = {}', [iif(false, "from literal", cstr)])  //?check('iif embstr/2', 'from buffer')
+    PrintLn('iif embstr/3 = {}', [iif(false, cstr, cstr2)])  //?check('iif embstr/3', 'other buffer')
 
 endfunc

@@ -121,7 +121,7 @@ comparison-level operation.
 DQ provides an inline conditional macro named `iif`.
 
 ```dq
-var text : cstring = iif(ptr == nil, "nil", "not nil")
+var text : embstr = iif(ptr == nil, "nil", "not nil")
 ```
 
 The first argument must be `bool`. The second and third arguments must be
@@ -206,7 +206,7 @@ point_ptr.x = 10
 
 ## Indexing
 
-Arrays, strings, C strings, and typed pointers support indexing.
+Arrays, strings, Embedded Strings, and typed pointers support indexing.
 
 ```dq
 var a : [3]int = [1, 2, 3]

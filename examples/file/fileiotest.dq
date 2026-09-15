@@ -3,7 +3,7 @@ use file
 
 struct STest:
     marker : uint32
-    name   : cstring(15)
+    name   : embstr(16)
     ival   : int32
     fval   : float32
 endstruct

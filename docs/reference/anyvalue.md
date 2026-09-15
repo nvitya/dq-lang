@@ -14,7 +14,7 @@ An `anyvalue` can represent:
 - Boolean values;
 - `float32`, `float64`, and `float`;
 - typed and generic pointers;
-- `str`, `rostr`, `strslice`, and `cstring` text values.
+- `str`, `rostr`, `strslice`, and `embstr` text values.
 
 Objects, structures, function references, and arbitrary arrays are not boxed as
 general secondary values. An array literal may nevertheless convert element by

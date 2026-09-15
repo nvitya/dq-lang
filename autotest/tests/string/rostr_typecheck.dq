@@ -2,7 +2,7 @@ func Take(text : rostr):
 endfunc
 func Edit(ch : ref char):
 endfunc
-func EditBuffer(text : cstring):
+func EditBuffer(text : embstr):
 endfunc
 
 func Rejections():
@@ -18,7 +18,7 @@ func Rejections():
     Edit(text[0]) //?error(FuncArgRefBind)
     ref ch : char = text[0] //?error(RefLocalBind)
     EditBuffer(text) //?error(TypeMismatchAssign)
-    var buffer : cstring = text //?error(TypeMismatchAssign)
+    var buffer : embstr = text //?error(TypeMismatchAssign)
     var byte : char = 'x'
     Take(byte) //?error(TypeMismatchAssign)
     Take(text[:]) //?error(TypeMismatchAssign)

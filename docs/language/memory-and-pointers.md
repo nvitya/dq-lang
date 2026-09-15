@@ -133,12 +133,13 @@ endobject
 
 Embedded object references are valid while their containing storage is alive.
 
-## C Strings
+## Embedded Strings
 
-`cstring(n)` stores a fixed-size zero-terminated character buffer.
+`embstr(n)` stores a fixed-size zero-terminated character buffer of exactly
+`n` bytes. Its maximum content length is `n - 1`.
 
 ```dq
-var buf : cstring(64) = "hello"
+var buf : embstr(64) = "hello"
 var p : ^char = buf.pchar
 ```
 

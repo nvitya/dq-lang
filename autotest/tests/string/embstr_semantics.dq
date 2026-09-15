@@ -1,0 +1,175 @@
+// Spec-level fixed embstr(N), unsized embstr alias, truncation, and mutation behavior.
+
+use libc/stdio
+
+const TEST_CS_LEN : int = 32
+
+func putchar(c : char) -> int [[external]]
+
+func PrintEscapedChar(ch : char):
+    if ch == char(9):
+        printf("\\t")
+        return
+    endif
+    if ch == char(10):
+        printf("\\n")
+        return
+    endif
+    if ch == char(13):
+        printf("\\r")
+        return
+    endif
+    if ch == char(34):
+        putchar(char(92))
+        putchar(char(34))
+        return
+    endif
+    if ch == char(92):
+        putchar(char(92))
+        putchar(char(92))
+        return
+    endif
+    putchar(char(ch))
+endfunc
+
+func PrintText(label : ^char, text : embstr):
+    printf("%s = [%li] \"", label, text.length)
+    var i : int = 0
+    while i < text.length:
+        PrintEscapedChar(text[i])
+        i += 1
+    endwhile
+    printf("\"\n")
+endfunc
+
+func EditAlias(cs : embstr):
+    cs.Append(" four")
+endfunc
+
+struct SName:
+    id : int32
+    name : embstr(16)
+endstruct
+
+func AppendName(item : ref SName):
+    item.name.Append(" two")
+endfunc
+
+func MutateThroughPointer(apc : ^char):
+    var pc : ^char = apc
+    pc^ = char('Z')
+    pc += 1
+    pc^ = char('Z')
+    pc += 1
+    pc^ = char(0)
+endfunc
+
+func CStrTermAtLen(cs : embstr) -> int:
+    return Ord(cs.pchar[cs.length]^)
+endfunc
+
+func CStringFirstChar(text : ^char) -> int:
+    return Ord(text^)
+endfunc
+
+func CStringParameterFirstChar(text : embstr) -> int:
+    return CStringFirstChar(text)
+endfunc
+
+func *Main():
+    printf("string_embstr_semantics = start\n") //?check("string_embstr_semantics", "start")
+
+    var cs : [[nowarn]] embstr(5) = "abc"
+    printf("embstr_props = len:%li max:%li storage:%li\n", cs.length, cs.maxlength, cs.storage_size) //?check("embstr_props", "len:3 max:4 storage:5")
+    PrintText("embstr_initial", cs) //?check("embstr_initial", '[3] "abc"')
+    printf("embstr_implicit_pchar = fixed:%li descriptor:%li\n", CStringFirstChar(cs), CStringParameterFirstChar(cs)) //?check("embstr_implicit_pchar", "fixed:97 descriptor:97")
+
+    cs = "abcdefghi"
+    PrintText("embstr_assign_trunc", cs) //?check("embstr_assign_trunc", '[4] "abcd"')
+    printf("embstr_pchar = text:%s term:%li\n", cs.pchar, CStrTermAtLen(cs)) //?check("embstr_pchar", "text:abcd term:0")
+
+    var pc : ^char = "asdf"
+    var cs_pc : embstr(4)
+    cs_pc = pc
+    PrintText("embstr_assign_pc_trunc", cs_pc) //?check("embstr_assign_pc_trunc", '[3] "asd"')
+    PrintText("embstr_param_pc", pc) //?check("embstr_param_pc", '[4] "asdf"')
+
+    var source : [[nowarn]] embstr(7) = "abcdef"
+    var cs_str : embstr(4)
+    cs_str = source
+    PrintText("embstr_assign_cstr_trunc", cs_str) //?check("embstr_assign_cstr_trunc", '[3] "abc"')
+
+    cs = "abc"
+    cs[0] = char('X')
+    cs[2] = char('Y')
+    PrintText("embstr_index_assign", cs) //?check("embstr_index_assign", '[3] "XbY"')
+    cs = "abcdef"
+    cs[3] = char(0)
+    PrintText("embstr_zero_assign", cs) //?check("embstr_zero_assign", '[3] "abc"')
+
+    cs = "abc"
+    cs.Append('d')
+    cs.AppendChar('e')
+    cs.Append("efghi")
+    PrintText("embstr_append_trunc", cs) //?check("embstr_append_trunc", '[4] "abcd"')
+    cs = "abc"
+    cs.Add('d')
+    cs.Add("efghi")
+    PrintText("embstr_add_trunc", cs) //?check("embstr_add_trunc", '[4] "abcd"')
+    cs.Clear()
+    cs.AddFmt("{}, {}", [1, 'hi'])
+    PrintText("embstr_addfmt", cs) //?check("embstr_addfmt", '[4] "1, h"')
+    cs = "abcde"
+    cs.Prepend('X')
+    PrintText("embstr_prepend_trunc", cs) //?check("embstr_prepend_trunc", '[4] "Xabc"')
+    cs.Insert(1, 'Y')
+    PrintText("embstr_insert_trunc", cs) //?check("embstr_insert_trunc", '[4] "XYab"')
+    cs.Delete(1, 2)
+    PrintText("embstr_delete", cs) //?check("embstr_delete", '[2] "Xb"')
+    cs.Clear()
+    PrintText("embstr_clear", cs) //?check("embstr_clear", '[0] ""')
+
+    var storage : embstr(TEST_CS_LEN) = "one"
+    var alias : embstr = storage
+    alias.Append(" two")
+    EditAlias(alias)
+    PrintText("embstr_alias_storage", storage) //?check("embstr_alias_storage", '[12] "one two four"')
+    printf("embstr_alias_pchar = text:%s term:%li\n", alias.pchar, CStrTermAtLen(alias)) //?check("embstr_alias_pchar", "text:one two four term:0")
+
+    var alias2 : embstr = alias
+    alias2.Append(" five")
+    PrintText("embstr_alias_chain", storage) //?check("embstr_alias_chain", '[17] "one two four five"')
+
+    storage.Append(" six")
+    PrintText("embstr_cache_direct", alias) //?check("embstr_cache_direct", '[21] "one two four five six"')
+
+    MutateThroughPointer(storage.pchar)
+    PrintText("embstr_cache_external", alias) //?check("embstr_cache_external", '[2] "ZZ"')
+
+    var item : SName
+    item.name = "one"
+    AppendName(item)
+    PrintText("embstr_struct_field", item.name) //?check("embstr_struct_field", '[7] "one two"')
+
+    //var slice_source : embstr(15) = "abcdef";
+    //var slice_copy : str = slice_source[1:4];
+    //var slice_view : strslice = slice_source[1:4];
+//  PrintText("cstring_slice_copy", slice_copy); //-?check("cstring_slice_copy", '[3] "bcd"')
+//  PrintText("cstring_slice_view", slice_view); //-?check("cstring_slice_view", '[3] "bcd"')
+//  PrintText("cstring_slice_clamp", slice_source[-5:100]); //-?check("cstring_slice_clamp", '[6] "abcdef"')
+//  PrintText("cstring_slice_last", slice_source[$last:]); //-?check("cstring_slice_last", '[1] "f"')
+
+    //var csdest : embstr(31) = "storage: ";
+    var csdest : embstr = storage
+    csdest.Set("csdest:")
+    var appendum : embstr(16) = "appendum"
+    //var csv : strslice = appendum;
+    csdest.Append(appendum)
+    PrintText('embstr_strslice_append', csdest) //?check('embstr_strslice_append', '[15] "csdest:appendum"')
+
+//  var external_mut : embstr(8) = "abcdef";
+//  MutateThroughPointer(%external_mut[0]);
+//  external_mut.Append("!");
+//  PrintText("cstring_external_rescan", external_mut); //-?check("cstring_external_rescan", '[3] "ZZ!"')
+
+endfunc

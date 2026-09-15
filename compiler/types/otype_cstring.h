@@ -27,7 +27,7 @@ private:
 
 public:
   string       value;     // the string content (without padding)
-  uint32_t     maxlen;    // maximum logical char count (from cstring(N))
+  uint32_t     maxlen;    // storage size from embstr(N); content holds at most maxlen - 1 bytes
 
   OValueCString(OType * atype, uint32_t amaxlen)
   :
@@ -60,9 +60,9 @@ enum ECStringMethod
   CSM_ADDFMT
 };
 
-// OTypeCString: C-compatible null-terminated string type
-//   maxlen > 0: fixed-size buffer cstring(N), LLVM type = [N + 1 x i8]
-//   maxlen == 0: unsized alias, LLVM type = SDqTextInfo-compatible {ptr, i32, i32}
+// OTypeCString: embedded, null-terminated string type
+//   maxlen > 0: fixed-size buffer embstr(N), LLVM type = [N x i8]
+//   maxlen == 0: unsized alias, LLVM type = pointer to a shared SDqTextInfo descriptor
 
 class OTypeCString : public OType
 {
@@ -70,6 +70,7 @@ private:
   using        super = OType;
 
   map<uint32_t, OTypeCString *>  sized_types;  // cached sized variants
+  map<LlValue *, LlValue *>      descriptor_caches;  // fixed storage address -> shared descriptor
 
   bool IsCCharPointerType(OType * type) const;
 
@@ -78,17 +79,17 @@ public:
 
   OTypeCString(uint32_t amaxlen)
   :
-    super(amaxlen > 0 ? "cstring(" + to_string(amaxlen) + ")" : "cstring", TK_CSTRING),
+    super(amaxlen > 0 ? "embstr(" + to_string(amaxlen) + ")" : "embstr", TK_CSTRING),
     maxlen(amaxlen)
   {
     if (amaxlen > 0)
     {
-      bytesize = amaxlen + 1;
+      bytesize = amaxlen;
       alignsize = 1;
     }
     else
     {
-      bytesize = TARGET_PTRSIZE + 8;  // descriptor: ptr + uint32 charlen + uint32 info
+      bytesize = TARGET_PTRSIZE;  // pointer to the shared descriptor
       alignsize = TARGET_PTRSIZE;
     }
   }
@@ -121,6 +122,8 @@ public:
   bool CanStoreFrom(OExpr * srcexpr) const;
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlValue * GenerateDescriptor(OScope * scope, LlValue * cstraddr);
+  void ResetDescriptorLength(OScope * scope, LlValue * cstraddr);
+  void InvalidateDescriptor(OScope * scope, LlValue * cstraddr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;

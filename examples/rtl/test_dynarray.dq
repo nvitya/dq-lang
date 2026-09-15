@@ -7,7 +7,7 @@ var darr <- ORawDynArray(SizeOf(int), 1)
 
 //var iarr : [*]int = [];
 
-func PrintDynArr(ainfo : cstring, aarr : ORawDynArray):
+func PrintDynArr(ainfo : embstr, aarr : ORawDynArray):
     printf('%16s:', ainfo)
 
     for i : int = 0 count aarr.length:

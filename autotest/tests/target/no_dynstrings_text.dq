@@ -10,7 +10,7 @@ func TextLength(text : strslice) -> int:
 endfunc
 
 func FormatText() -> int:
-    var text : cstring(15) = "value="
+    var text : embstr(16) = "value="
     text.AddFmt("{}", [42])
     var view : strslice = text
     var value : anyvalue = text

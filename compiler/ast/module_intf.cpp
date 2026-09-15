@@ -64,7 +64,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_ARRAY:        return "array";
     case TK_ARRAY_SLICE:  return "array_slice";
     case TK_DYN_ARRAY:    return "dynamic_array";
-    case TK_CSTRING:      return "cstring";
+    case TK_CSTRING:      return "embstr";
     case TK_STRSLICE:      return "strslice";
     case TK_ROSTR:        return "rostr";
     case TK_DYNSTR:       return "dynstr";
@@ -1719,11 +1719,11 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
     }
   }
 
-  const string cstring_prefix = "cstring(";
-  if (atype_name.starts_with(cstring_prefix) && atype_name.ends_with(")"))
+  const string embstr_prefix = "embstr(";
+  if (atype_name.starts_with(embstr_prefix) && atype_name.ends_with(")"))
   {
-    string lenstr = atype_name.substr(cstring_prefix.size(),
-        atype_name.size() - cstring_prefix.size() - 1);
+    string lenstr = atype_name.substr(embstr_prefix.size(),
+        atype_name.size() - embstr_prefix.size() - 1);
     try
     {
       size_t used = 0;

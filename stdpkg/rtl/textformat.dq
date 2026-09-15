@@ -17,7 +17,7 @@
 //   * one heap-free formatter core
 //   * stack-allocated formatter object
 //   * lightweight polymorphic text sinks
-//   * cstring sink: bounded, no heap usage
+//   * embstr sink: bounded, no heap usage
 //   * str sink: dynamic, heap/realloc allowed by the sink only
 //   * file/stdout sink: direct streaming, no intermediate string
 //
@@ -83,9 +83,9 @@ endobject
 #endif    
 
 object OTextSinkCString(OTextSink):
-    dest : cstring
+    dest : embstr
 
-    func *Create(adest : cstring)
+    func *Create(adest : embstr)
     func Write(atext : strslice) [[override]]
     func WriteChar(ch : char)   [[override]]
 endobject
@@ -126,7 +126,7 @@ protected
     curpos : int32 = 0
     endpos : int32 = 0
 
-    lcsbuf : cstring(47)
+    lcsbuf : embstr(48)
 
     func ParseSpec(afmt : rostr)
     func FormatAny(av : anyvalue)
@@ -146,7 +146,7 @@ protected
 
 endobject
 
-func CStrAddFmt(adest : cstring, afmt : rostr, aargs : []anyvalue)
+func CStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue)
 #ifdef DYNSTRINGS
 func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue)
 #endif
@@ -197,7 +197,7 @@ endfunc
 
 #endif
 
-func OTextSinkCString.*Create(adest : cstring):
+func OTextSinkCString.*Create(adest : embstr):
     inherited Create()
     dest = adest
 endfunc
@@ -634,7 +634,7 @@ endfunc
 
 //----------------------------------------------------------------------------------------
 
-func CStrAddFmt(adest : cstring, afmt : rostr, aargs : []anyvalue):
+func CStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue):
     var osink <- OTextSinkCString(adest)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)

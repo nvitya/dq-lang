@@ -1,29 +1,29 @@
 use libc/stdio
 
-type FCallback = func(astr : cstring)
+type FCallback = func(astr : embstr)
 
-func callback1(astr : cstring):
+func callback1(astr : embstr):
     printf('Callback-1(%s)\n', %astr[0])
 endfunc
 
-func callback2(astr : cstring):
+func callback2(astr : embstr):
     printf('Callback-2(%s)\n', %astr[0])
 endfunc
 
 var ffunc : FCallback = nil
 
 object OBase:
-    name : cstring(32)
+    name : embstr(33)
 
-    func *Create(aname : cstring):
+    func *Create(aname : embstr):
         name = aname
     endfunc
 
-    func CallBack1(astr : cstring):
+    func CallBack1(astr : embstr):
         @.printf('%s: Callback1(%s)\n', %name, %astr[0])
     endfunc
 
-    func CallBack2(astr : cstring):
+    func CallBack2(astr : embstr):
         @.printf('%s: Callback2(%s)\n', %name, %astr[0])
     endfunc
 endobject
@@ -31,7 +31,7 @@ endobject
 var obj1 <- OBase('bss_obj')
 var obj2 : OBase = nil
 
-type FObjCallback = func(astr : cstring) of object
+type FObjCallback = func(astr : embstr) of object
 var ofunc : FObjCallback = nil
 
 func *Main():

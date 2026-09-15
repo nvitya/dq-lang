@@ -24,7 +24,7 @@ enum NDbFieldType : byte = (
 )
 
 struct SFieldInfo:  // 72 bytes
-    name  : cstring(67)
+    name  : embstr(68)
     index : byte
     ftype : NDbFieldType
     _pad  : [2]byte

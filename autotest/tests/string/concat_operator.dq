@@ -33,7 +33,7 @@ func *Main():
 
     var s : str = "ab"
     var v : strslice = "cd"
-    var cs : cstring(7) = "ef"
+    var cs : embstr(8) = "ef"
     var pc : ^char = "gh"
     var cc : char = char('!')
 

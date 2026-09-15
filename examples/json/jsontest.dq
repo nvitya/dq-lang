@@ -4,7 +4,7 @@ use print
 use json
 use strutils
 
-const TEST_FILE_NAME : cstring = 'test.json'
+const TEST_FILE_NAME : embstr = 'test.json'
 
 func WriteTest():
     PrintLn('JSON Writing Test')

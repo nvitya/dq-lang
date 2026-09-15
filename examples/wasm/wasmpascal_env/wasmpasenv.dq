@@ -23,7 +23,7 @@ func PrintLn(text : strslice) [[overload]]:
 endfunc
 
 func PrintLn(text : rostr, args : []anyvalue) [[overload]]:
-    var fmtstr : cstring(255) = ''
+    var fmtstr : embstr(256) = ''
     fmtstr.AddFmt(text, args)
     Print(fmtstr)
     Print("\n")

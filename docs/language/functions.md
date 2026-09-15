@@ -185,7 +185,7 @@ endif
 Object method references add `of object`.
 
 ```dq
-type FObjText = func(msg : cstring) of object
+type FObjText = func(msg : embstr) of object
 ```
 
 ## Special Functions

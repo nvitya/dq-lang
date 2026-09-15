@@ -258,7 +258,7 @@ reference can be used to access that object's members.
 Method reference types use `of object`.
 
 ```dq
-type FObjText = func(msg : cstring) of object
+type FObjText = func(msg : embstr) of object
 ```
 
 An object method reference contains both the method and the object instance.

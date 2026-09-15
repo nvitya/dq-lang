@@ -22,7 +22,7 @@ func bad_slice(arr : []int = rootarr) -> int:  //?error(FuncParDefaultType)
     result = Len(arr)
 endfunc
 
-func bad_cstring(s : cstring = "x") -> int:  //?error(FuncParDefaultType)
+func bad_embstr(s : embstr = "x") -> int:  //?error(FuncParDefaultType)
     result = Len(s)
 endfunc
 func *Main():

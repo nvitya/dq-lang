@@ -5,7 +5,7 @@ use libc/stdio
 object OBase:
 protected
     value : int = 1
-    name  : cstring(32)
+    name  : embstr(33)
 public
     func *Create(aname : ^char, a : int):
         value = a

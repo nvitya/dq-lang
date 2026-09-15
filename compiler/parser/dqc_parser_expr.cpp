@@ -813,7 +813,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     ptype = ptype->ResolveAlias();
   }
 
-  // cstring(N) handling: N is the usable logical length; storage has N + 1 bytes.
+  // embstr(N) handling: N is the total storage size, including the terminator.
   if (TK_CSTRING == ptype->kind)
   {
     if (!g_opt.ifgen && !EnsureCStringRtlUse())
@@ -829,7 +829,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     {
       if (aemit_errors)
       {
-        ErrorTxt(DQERR_CSTR_SIZE_EXPECTED, "cstring size expected; use cstring(n), not cstring[n]");
+        ErrorTxt(DQERR_CSTR_SIZE_EXPECTED, "embstr size expected; use embstr(n), not embstr[n]");
       }
       return nullptr;
     }
@@ -871,17 +871,17 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       {
         if (aemit_errors)
         {
-          Error(DQERR_MISSING_CLOSE_PAREN_FOR, "cstring size");
+          Error(DQERR_MISSING_CLOSE_PAREN_FOR, "embstr size");
         }
         return nullptr;
       }
-      if (aemit_errors && (((maxlen + 1) % 4) != 0))
+      if (aemit_errors && ((maxlen % 4) != 0))
       {
-        Warning(DQWARN_CSTR_STORAGE_SIZE, to_string(maxlen), to_string(maxlen + 1), &scf->prevpos);
+        Warning(DQWARN_CSTR_STORAGE_SIZE, to_string(maxlen), to_string(maxlen), &scf->prevpos);
       }
       return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
     }
-    return ptype;  // unsized cstring (for parameters)
+    return ptype;  // unsized embstr (for parameters)
   }
 
   if (TK_DYNSTR == ptype->kind)
@@ -2018,7 +2018,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_CSTR_CONVERSION, "cstring method source must be char, str, rostr, strslice, cstring, or ^char");
+      ErrorTxt(DQERR_CSTR_CONVERSION, "embstr method source must be char, str, rostr, strslice, embstr, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2230,7 +2230,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, rostr, strslice, cstring, or ^char");
+      ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, rostr, strslice, embstr, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2338,7 +2338,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     }
     if ((i == text_arg_index) && !IsTextSourceType(argexpr->ResolvedType()))
     {
-      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, rostr, strslice, cstring, or ^char");
+      ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, rostr, strslice, embstr, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2397,7 +2397,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
     return EPostfixResult::Continue;
   }
 
-  // Array/slice/dynamic-array/cstring/string index on any lvalue: x[i], or slice x[a:b]
+  // Array/slice/dynamic-array/embstr/string index on any lvalue: x[i], or slice x[a:b]
   if (lval
       && (TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
           or TK_DYNSTR == tk or TK_STRSLICE == tk || TK_ROSTR == tk)
@@ -2444,7 +2444,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
       inclusive_slice = scf->CheckSymbol(":");
       if (TK_CSTRING == tk)
       {
-        Error(DQERR_NOT_SUPPORTED, "cstring slicing");
+        Error(DQERR_NOT_SUPPORTED, "embstr slicing");
         OExpr::DeleteTree(indexexpr);
         array_index_context_len = prev_context_len;
         array_index_context_lval = prev_context_lval;

@@ -18,7 +18,7 @@ endobject
 
 object OFile:
     m_filename : str
-    m_fmode    : cstring(7)
+    m_fmode    : embstr(8)
     m_fhandle  : pointer  // internal libc type
 
     func *Create()

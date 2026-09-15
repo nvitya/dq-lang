@@ -42,12 +42,12 @@ var errno : int [[external]]
 var libc_stdout : pointer [[external('stdout')]]
 ```
 
-## C Strings
+## Embedded Strings
 
-Use `^char`, `str.pchar`, `cstring`, and `cstring(n)` for C-style strings.
+Use `^char`, `str.pchar`, `embstr`, and `embstr(n)` for C-style strings.
 
 ```dq
-func WriteStr(s : cstring):
+func WriteStr(s : embstr):
     var p : ^char = s.pchar
     while p^ <> 0:
         putchar(p^)
@@ -56,10 +56,11 @@ func WriteStr(s : cstring):
 endfunc
 ```
 
-`cstring(n)` declares fixed storage.
+`embstr(n)` declares exactly `n` bytes of fixed storage, including its zero
+terminator; its maximum content length is `n - 1`.
 
 ```dq
-var buf : cstring(127) = "hello"
+var buf : embstr(127) = "hello"
 ```
 
 `str` has an enforced trailing zero and can be passed with `.pchar` without

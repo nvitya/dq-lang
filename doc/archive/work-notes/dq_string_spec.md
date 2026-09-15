@@ -17,8 +17,8 @@ char         // uint8 C-compatible character value
 wchar        // uint32 unicode character value
 str          // dynamic refcounted copy-on-write character string
 strslice     // read-only non-owning view of character data
-cstring(N)   // fixed-size C-compatible zero-terminated char storage
-cstring      // non-owning mutable bounded C-string alias / fat pointer
+embstr(N)   // fixed-size C-compatible zero-terminated char storage
+embstr      // non-owning mutable bounded C-string alias via a shared descriptor
 ^char        // pointer to zero-terminated C-compatible char storage
 ```
 
@@ -36,20 +36,22 @@ wchar == uint32
 
 A `str` stores `char` values. Its public length is measured in characters, not bytes.
 
-A `strslice` is a read-only, non-owning view of existing character data. Its public length is also measured in characters. A `strslice` may refer to dynamic str storage, fixed `cstring(N)` storage, str literal storage, temporary compiler-generated source data, or external C-compatible zero-terminated storage after scanning.
+A `strslice` is a read-only, non-owning view of existing character data. Its public length is also measured in characters. A `strslice` may refer to dynamic str storage, fixed `embstr(N)` storage, str literal storage, temporary compiler-generated source data, or external C-compatible zero-terminated storage after scanning.
 
-A `cstring(N)` stores at most `N` logical `char` characters and has one hidden zero terminator byte. Therefore its actual storage size is `N + 1` bytes.
+A `embstr(N)` stores exactly `N` bytes, including the zero terminator. Therefore
+its maximum logical `char` length is `N - 1` bytes.
 
-For a C-style buffer with raw storage size `maxlen`, the corresponding DQ type is `cstring(maxlen - 1)`, because one byte is reserved for the zero terminator.
+For a C-style buffer with raw storage size `maxlen`, the corresponding DQ type is
+`embstr(maxlen)`; its final byte is reserved for the zero terminator.
 
 ```dq
-var cs : cstring(31)  // 31 usable chars, 32 bytes of storage
+var cs : embstr(32)  // 31 usable chars, 32 bytes of storage
 ```
 
-Unsized `cstring` is not a storage type. It is a non-owning mutable bounded C-string alias represented as a fat pointer / descriptor. It carries at least a data pointer, a maximum logical length, character width/encoding information, flags, and possibly a valid current length.
+Unsized `embstr` is not a storage type. It is a non-owning mutable bounded C-string alias represented by a reference to a shared descriptor. The descriptor carries the data pointer, maximum logical length, flags, and cached current length.
 
 ```dq
-function Process(cs : cstring):  // receives a bounded mutable C-string alias
+function Process(cs : embstr):  // receives a bounded mutable C-string alias
   cs.Append("x")
 endfunc
 ```
@@ -58,7 +60,7 @@ endfunc
 
 `strslice` is the normal non-owning read-only string source type for high-performance APIs.
 
-`cstring(N)`, unsized `cstring`, and `^char` exist mainly for C interoperability.
+`embstr(N)`, unsized `embstr`, and `^char` exist mainly for C interoperability.
 
 ## Type Overview
 
@@ -66,8 +68,8 @@ endfunc
 |---|---:|---:|---|---|---:|---|
 | `str` | yes | runtime | heap manager, null for empty | 1, 2, or 4 bytes per character | yes | mutable with copy-on-write |
 | `strslice` | no | runtime | borrowed/external/static | 1, 2, or 4 bytes per character | no | read-only |
-| `cstring(N)` | yes | runtime, max `N` | inline/static/local/object storage | 1 byte | up to max length | mutable |
-| `cstring` | no | known or lazily scanned, max carried | borrowed bounded C-string storage | 1 byte in this draft | no | mutable alias when writable |
+| `embstr(N)` | yes | runtime, max `N - 1` | inline/static/local/object storage | 1 byte | up to max length | mutable |
+| `embstr` | no | known or lazily scanned, max carried | borrowed bounded C-string storage | 1 byte in this draft | no | mutable alias when writable |
 | `^char` | no | zero-terminated | external/static/C-owned storage | 1 byte | no | pointer may target mutable or read-only storage |
 
 A `str` is internally a nullable reference to a dynamic string manager object.
@@ -242,12 +244,12 @@ String literals are compile-time string source values.
 
 A non-empty string literal is emitted as static read-only character data in `.rodata`. The character data always contains a trailing zero character after the logical characters. The trailing zero is not included in the literal character length.
 
-The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strslice`, `cstring(N)`, or string-helper source.
+The compiler also emits a valid static read-only `SDqTextInfo` descriptor for a literal when the literal is used as a `str`, `strslice`, `embstr(N)`, or string-helper source.
 
 ```dq
 var s  : str      = "asdf"
 var v  : strslice     = "asdf"
-var cs : cstring(31) = "asdf"
+var cs : embstr(31) = "asdf"
 ```
 
 These uses can lower to the literal view and do not require zero-terminator scanning.
@@ -805,7 +807,7 @@ var s : str = "  abc  "
 s = s.Trim()  // "abc"
 ```
 
-The methods are valid on `str` and `strslice`. Read-only helper methods may also be valid on `cstring(N)` and `^char` sources where the receiver can be converted to a `strslice`.
+The methods are valid on `str` and `strslice`. Read-only helper methods may also be valid on `embstr(N)` and `^char` sources where the receiver can be converted to a `strslice`.
 
 ### Trim, LTrim, and RTrim
 
@@ -948,16 +950,16 @@ s.Insert(2, s[1:3])  // "abbccd"
 
 ---
 
-## `cstring(N)` and Unsized `cstring`
+## `embstr(N)` and Unsized `embstr`
 
-`cstring(N)` is fixed-size inline C-compatible zero-terminated storage.
+`embstr(N)` is fixed-size inline C-compatible zero-terminated storage.
 
-The `N` in `cstring(N)` is the maximum logical text length, not the raw storage size.
+The `N` in `embstr(N)` is the raw storage size, including the zero terminator.
 
-For a raw C buffer with `maxlen` bytes, the matching DQ type is `cstring(maxlen - 1)`, because one byte is reserved for the zero terminator.
+For a raw C buffer with `maxlen` bytes, the matching DQ type is `embstr(maxlen)`.
 
 ```dq
-var cs : cstring(31)
+var cs : embstr(32)
 ```
 
 This means:
@@ -965,19 +967,19 @@ This means:
 ```text
 maximum logical length = 31 chars
 actual storage size    = 32 bytes
-storage[N]             = hidden zero terminator position when full
+storage[N - 1]         = zero terminator position when full
 ```
 
-A `cstring(N)` stores `char` values. `char` is `uint8`.
+An `embstr(N)` stores `char` values. `char` is `uint8`.
 
 ```dq
 char == uint8
 ```
 
-A `cstring(N)` always maintains zero termination.
+A `embstr(N)` always maintains zero termination.
 
 ```dq
-var cs : cstring(5) = "abc"
+var cs : embstr(5) = "abc"
 ```
 
 Possible storage:
@@ -988,42 +990,42 @@ Possible storage:
 
 The bytes after the first terminator are not part of the logical string. The implementation may zero them or leave them unspecified.
 
-Unsized `cstring` is different from `cstring(N)`:
+Unsized `embstr` is different from `embstr(N)`:
 
 ```text
-cstring(N) = fixed inline storage, N usable chars, N + 1 bytes total
-cstring    = non-owning mutable bounded C-string alias / fat pointer
+embstr(N) = fixed inline storage, N bytes total, N - 1 usable chars
+embstr    = non-owning mutable bounded C-string alias via a shared descriptor
 ```
 
-Unsized `cstring` may be used as a function parameter and may also be used as a local alias initialized from an existing `cstring(N)` or another unsized `cstring` value.
+Unsized `embstr` may be used as a function parameter and may also be used as a local alias initialized from an existing `embstr(N)` or another unsized `embstr` value.
 
 ```dq
-function Process(cs : cstring):
+function Process(cs : embstr):
   cs.Append("x")
 endfunc
 
 function Example():
-  var storage : cstring(31)
-  var alias   : cstring = storage  // alias/fat pointer, no new storage
+  var storage : embstr(31)
+  var alias   : embstr = storage  // alias/shared descriptor, no new storage
 
   alias.Append("abc")             // modifies storage
 endfunc
 ```
 
-A standalone unsized `cstring` declaration has no storage and is invalid:
+A standalone unsized `embstr` declaration has no storage and is invalid:
 
 ```dq
-var a : cstring(31)     // OK: creates storage
-var b : cstring = a     // OK: alias to existing storage
-var c : cstring         // compile error: no target storage
-var d : cstring = "abc" // compile error: no writable target storage
+var a : embstr(31)     // OK: creates storage
+var b : embstr = a     // OK: alias to existing storage
+var c : embstr         // compile error: no target storage
+var d : embstr = "abc" // compile error: no writable target storage
 ```
 
-Assignment between unsized `cstring` values creates another alias to the same descriptor/buffer. It does not copy text and does not create an independent fixed buffer.
+Assignment between unsized `embstr` values creates another alias to the same descriptor/buffer. It does not copy text and does not create an independent fixed buffer.
 
-### cstring ABI Descriptor
+### embstr ABI Descriptor
 
-The ABI descriptor for unsized `cstring` and for internal string-source views is `SDqTextInfo`:
+The ABI descriptor for unsized `embstr` and for internal string-source views is `SDqTextInfo`:
 
 ```dq
 struct SDqTextInfo:
@@ -1052,7 +1054,7 @@ STATIC        // points to static program storage
 TEMPORARY     // valid only for the current helper call
 ```
 
-For a `cstring` descriptor, `dataptr`, `maxlen`, width, and zero-termination contract must be valid. `charlen` may be trusted only when `LENGTH_VALID` is set.
+For an `embstr` descriptor, `dataptr`, `maxlen`, and the zero-termination contract must be valid. `charlen` may be trusted when `DQTIF_CHARLEN_INVALID` is clear; otherwise it is refreshed by a bounded scan.
 
 If `LENGTH_VALID` is not set, helpers that need the current length must scan from `dataptr` until the first zero terminator or until `maxlen` is reached. After scanning, they update `charlen` and set `LENGTH_VALID`.
 
@@ -1064,10 +1066,10 @@ if not flags has LENGTH_VALID:
 
 Mutating helpers that change the logical length update `charlen`, preserve zero termination, and keep `LENGTH_VALID` set.
 
-### cstring Properties
+### embstr Properties
 
 ```dq
-var cs : cstring(31) = "abc"
+var cs : embstr(32) = "abc"
 
 cs.length       // 3
 cs.maxlength    // 31
@@ -1078,17 +1080,17 @@ cs.storage_size // 32
 
 If the implementation has a valid descriptor with `LENGTH_VALID`, `length` is O(1). Otherwise it is computed by bounded scanning.
 
-`maxlength` is the declared maximum logical length `N` for `cstring(N)` or the carried maximum length for unsized `cstring`.
+`maxlength` is one less than the declared storage size `N` for `embstr(N)`, or the carried maximum length for unsized `embstr`.
 
-`storage_size` is `N + 1` for `cstring(N)`.
+`storage_size` is exactly `N` for `embstr(N)`.
 
-### Hidden cstring Descriptor Optimization
+### Hidden embstr Descriptor Optimization
 
-A `cstring(N)` value is still only fixed inline storage in the visible data layout. The compiler may maintain a hidden unsized `cstring` / `SDqTextInfo` descriptor for standalone local `cstring(N)` variables when useful.
+A `embstr(N)` value is still only fixed inline storage in the visible data layout. The compiler maintains a shared `SDqTextInfo` descriptor cache when fixed storage is borrowed as an unsized `embstr`.
 
 ```dq
 function Example():
-  var cs : cstring(31)  // initialized to empty string
+  var cs : embstr(32)  // initialized to empty string
 
   cs.Append("one")
   cs.Append(" two")
@@ -1113,14 +1115,14 @@ CStrAppend(ref cs_info, " three")
 
 The repeated append operations do not need to rescan the buffer because the descriptor length is known and kept valid.
 
-This hidden descriptor is not part of the public layout of `cstring(N)`. It should not be added permanently to struct fields, object fields, array elements, or externally visible storage, because that would enlarge records and make raw copying incorrect.
+This hidden descriptor is not part of the public layout of `embstr(N)`. It should not be added permanently to struct fields, object fields, array elements, or externally visible storage, because that would enlarge records and make raw copying incorrect.
 
-For `cstring(N)` fields and array elements, the compiler normally creates a temporary descriptor at the use site:
+For `embstr(N)` fields and array elements, the compiler normally creates a temporary descriptor at the use site:
 
 ```dq
 struct STestRec:
   id   : int32
-  name : cstring(31)
+  name : embstr(31)
 endstruct
 
 function ProcessName(ref tr : STestRec):
@@ -1139,7 +1141,7 @@ tmp.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
 CStrAppend(ref tmp, " two")
 ```
 
-If a standalone local `cstring(N)` buffer is passed to unknown external C code through a raw `^char` pointer, the compiler must assume that the external code may modify the contents and therefore clear `LENGTH_VALID` in the hidden descriptor.
+If an `embstr(N)` buffer is passed to unknown external C code through a raw `^char` pointer, the compiler must assume that the external code may modify the contents and therefore invalidate the shared descriptor cache.
 
 ```dq
 SomeCFunction(&cs[0])  // may modify the bytes
@@ -1148,24 +1150,24 @@ cs.Append("x")        // refresh length first if LENGTH_VALID was cleared
 
 External functions may later be annotated as read-only or length-preserving to avoid invalidation.
 
-### cstring Assignment
+### embstr Assignment
 
 Assignment copies source text into the fixed storage, silently truncates to `maxlength`, and always writes the zero terminator.
 
 ```dq
-var cs : cstring(5)
+var cs : embstr(5)
 
 cs = "abcdefghi"
 
-// logical content: "abcde"
-// storage bytes:   'a' 'b' 'c' 'd' 'e' 0
+// logical content: "abcd"
+// storage bytes:   'a' 'b' 'c' 'd' 0
 ```
 
 Assignment from `^char` copies until the source zero terminator or until `maxlength` characters have been copied.
 
 ```dq
 var pc : ^char
-var cs : cstring(31)
+var cs : embstr(31)
 
 pc = "asdf"
 cs = pc  // copies from zero-terminated char storage
@@ -1175,21 +1177,21 @@ Assignment from `str` copies character values into `char` storage. Characters th
 
 ```dq
 var s  : str = "abcdef"
-var cs : cstring(3)
+var cs : embstr(3)
 
 cs = s  // "abc"
 ```
 
 A future library may provide explicit lossy conversion helpers if desired.
 
-### cstring Indexing
+### embstr Indexing
 
-`cstring(N)` and unsized `cstring` indexing use the same logical indexing rules as normal strings.
+`embstr(N)` and unsized `embstr` indexing use the same logical indexing rules as normal strings.
 
 The hidden zero terminator is not part of the logical string and is not reachable through normal indexing.
 
 ```dq
-var cs : cstring(31) = "abc"
+var cs : embstr(31) = "abc"
 
 cs[0]       // OK, 'a'
 cs[2]       // OK, 'c'
@@ -1200,22 +1202,23 @@ cs[3]       // runtime bounds error
 cs[$end]    // runtime bounds error
 ```
 
-`cs[31]` is not valid merely because the storage has 32 bytes. Indexing is based on logical length, not raw storage size.
+`cs[30]` is not valid merely because the storage has 31 bytes of character data
+plus its terminator. Indexing is based on logical length, not raw storage size.
 
 ```dq
-var cs : cstring(31) = "abc"
+var cs : embstr(31) = "abc"
 
 cs[31]  // runtime bounds error
 ```
 
-When indexing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
+When indexing an unsized `embstr` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
 
-### cstring Character Assignment
+### embstr Character Assignment
 
-A `cstring(N)` or unsized `cstring` character is assignable inside the current logical length.
+A `embstr(N)` or unsized `embstr` character is assignable inside the current logical length.
 
 ```dq
-var cs : cstring(31) = "abc"
+var cs : embstr(31) = "abc"
 
 cs[0] = 'X'  // "Xbc"
 cs[2] = 'Y'  // "XbY"
@@ -1231,7 +1234,7 @@ cs[$end] = 'Z'  // runtime bounds error
 Assigning a zero char terminates the string at that position:
 
 ```dq
-var cs : cstring(31) = "abcdef"
+var cs : embstr(31) = "abcdef"
 
 cs[3] = char(0)
 
@@ -1239,16 +1242,16 @@ cs[3] = char(0)
 // length == 3
 ```
 
-A character assigned to `cstring(N)` or unsized `cstring` must fit into `char`. Otherwise it is a runtime conversion error.
+A character assigned to `embstr(N)` or unsized `embstr` must fit into `char`. Otherwise it is a runtime conversion error.
 
-### cstring Slicing
+### embstr Slicing
 
-`cstring(N)` and unsized `cstring` slicing use the same slicing rules as normal strings.
+`embstr(N)` and unsized `embstr` slicing use the same slicing rules as normal strings.
 
-A `cstring(N)` slice expression returns a new `str` by default. In an explicit `strslice` context it may return a read-only non-owning view into the fixed cstring storage.
+A `embstr(N)` slice expression returns a new `str` by default. In an explicit `strslice` context it may return a read-only non-owning view into the fixed embstr storage.
 
 ```dq
-var cs : cstring(31) = "abcdef"
+var cs : embstr(31) = "abcdef"
 
 var s1 : str  = cs[1:4]       // copies "bcd"
 var s2 : str  = cs[:]         // copies "abcdef"
@@ -1259,41 +1262,41 @@ var v1 : strslice = cs[1:4]    // view of "bcd"
 Slice bounds are clamped exactly like string slice bounds:
 
 ```dq
-cs[-5:]      // whole logical cstring as str/view, depending on context
-cs[:100]     // whole logical cstring as str/view, depending on context
+cs[-5:]      // whole logical embstr as str/view, depending on context
+cs[:100]     // whole logical embstr as str/view, depending on context
 cs[100:]     // ""
 cs[$last:]   // last logical char as str/view, depending on context
 ```
 
-When slicing an unsized `cstring` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
+When slicing an unsized `embstr` whose descriptor does not have `LENGTH_VALID`, the runtime first scans up to `maxlen` to recover the logical length.
 
-### cstring Mutating Methods
+### embstr Mutating Methods
 
-`cstring(N)` and unsized `cstring` may support a restricted `str`-like API.
+`embstr(N)` and unsized `embstr` may support a restricted `str`-like API.
 
 Growth operations silently truncate to `maxlength` and always maintain zero termination.
 
 ```dq
-var cs : cstring(5) = "abc"
+var cs : embstr(6) = "abc"
 
 cs.Append('d')      // "abcd"
 cs.Append("efghi") // "abcde"
 cs.Prepend('X')     // "Xabcd", tail truncated if needed
 cs.Insert(1, 'Y')   // insert before index 1, tail truncated if needed
 cs.Delete(1, 2)     // delete two logical characters
-cs.Clear()          // empty cstring, storage[0] = 0
+cs.Clear()          // empty embstr, storage[0] = 0
 ```
 
-Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `cstring(N)` and unsized `cstring` through `strslice` conversion. Methods that produce text return a new `str`, not a `cstring(N)`.
+Read-only helper methods such as `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` may also be supported on `embstr(N)` and unsized `embstr` through `strslice` conversion. Methods that produce text return a new `str`, not a `embstr(N)`.
 
 ```dq
-var cs : cstring(8) = "  abc"
+var cs : embstr(8) = "  abc"
 
 cs.Trim()        // returns string "abc"
 cs.IndexOf('b')  // returns 3
 ```
 
-`Reserve()`, `Compact()`, and dynamic capacity operations are not valid on `cstring(N)` or unsized `cstring`, because their storage size is fixed by the target buffer.
+`Reserve()`, `Compact()`, and dynamic capacity operations are not valid on `embstr(N)` or unsized `embstr`, because their storage size is fixed by the target buffer.
 
 ```dq
 cs.Reserve(100)  // compile error
@@ -1321,11 +1324,11 @@ Copying from `^char`, or converting `^char` to `strslice`, scans until the first
 
 ```dq
 var s  : str
-var cs : cstring(31)
+var cs : embstr(31)
 var pc : ^char = "asdf"
 
 s  = pc  // scans and creates dynamic string "asdf"
-cs = pc  // scans and copies into fixed cstring storage
+cs = pc  // scans and copies into fixed embstr storage
 var v : strslice = pc  // scans once to create a view
 ```
 
@@ -1360,11 +1363,11 @@ s == ""   // s.length == 0
 s <> ""   // s.length <> 0
 ```
 
-`cstring(N)` and `strslice` equality with `str` compares logical content:
+`embstr(N)` and `strslice` equality with `str` compares logical content:
 
 ```dq
 var s  : str = "abc"
-var cs : cstring(31) = "abc"
+var cs : embstr(31) = "abc"
 var v  : strslice = "abc"
 
 s == cs  // true
@@ -1429,26 +1432,26 @@ function ParseName(name : strslice):
 endfunc
 
 var s  : str = "Alice"
-var cs : cstring(31) = "Bob"
+var cs : embstr(31) = "Bob"
 var pc : ^char = "Carol"
 
 ParseName("Alice")  // static literal view, no scan
 ParseName(s)        // view of dynamic string storage
 ParseName(s[1:4])   // temporary slice view
-ParseName(cs)       // view of fixed cstring storage
+ParseName(cs)       // view of fixed embstr storage
 ParseName(pc)       // scans zero-terminated char storage to form a view
 ```
 
 A `strslice` parameter must not be stored beyond the lifetime guaranteed by the caller unless the function explicitly documents that the caller must provide persistent storage.
 
-A function should use `strslice` for read-only text, unsized `cstring` for mutable bounded C-compatible buffers, and `^char` for raw C APIs that only accept a zero-terminated pointer.
+A function should use `strslice` for read-only text, unsized `embstr` for mutable bounded C-compatible buffers, and `^char` for raw C APIs that only accept a zero-terminated pointer.
 
 ```dq
 function ReadText(s : strslice):
   ...
 endfunc
 
-function EditCBuffer(cs : cstring):
+function EditCBuffer(cs : embstr):
   cs.Append("x")
 endfunc
 
@@ -1457,27 +1460,27 @@ function CallC(cs : ^char):
 endfunc
 ```
 
-A `cstring` parameter receives a non-owning descriptor. The caller must provide valid storage and a valid maximum length. The current length is trusted only when the descriptor has `LENGTH_VALID`; otherwise helpers scan lazily up to the maximum length.
+A `embstr` parameter receives a non-owning descriptor. The caller must provide valid storage and a valid maximum length. The current length is trusted only when the descriptor has `LENGTH_VALID`; otherwise helpers scan lazily up to the maximum length.
 
 ```dq
-function CsProcess(acs : cstring):
-  var cs : cstring = acs  // alias to the same descriptor/buffer
+function CsProcess(acs : embstr):
+  var cs : embstr = acs  // alias to the same descriptor/buffer
   cs.Append(" four")
 endfunc
 
 function Test():
-  var cs1 : cstring(31) = "one"
+  var cs1 : embstr(31) = "one"
   CsProcess(cs1)          // cs1 becomes "one four"
 endfunc
 ```
 
-A local unsized `cstring` variable is an alias to an existing descriptor/buffer, not a fixed buffer and not a value copy. It must be initialized from an existing `cstring(N)` or unsized `cstring`.
+A local unsized `embstr` variable is an alias to an existing descriptor/buffer, not a fixed buffer and not a value copy. It must be initialized from an existing `embstr(N)` or unsized `embstr`.
 
-## Public `strslice`, Unsized `cstring`, and ABI `SDqTextInfo`
+## Public `strslice`, Unsized `embstr`, and ABI `SDqTextInfo`
 
 `strslice` is a public DQ type for a read-only, non-owning view of character data.
 
-Unsized `cstring` is a public DQ type for a non-owning mutable bounded C-compatible string buffer alias.
+Unsized `embstr` is a public DQ type for a non-owning mutable bounded C-compatible string buffer alias.
 
 Both concepts use the same compact ABI descriptor shape, `SDqTextInfo`, but they have different language-level permissions.
 
@@ -1499,7 +1502,7 @@ width   = character storage width encoded in info
 flags   = descriptor flags encoded in info
 ```
 
-For read-only `strslice` descriptors, `LENGTH_VALID` is normally set and `maxlen == charlen`. For writable unsized `cstring` descriptors, `maxlen` is the writable maximum logical length of the target C buffer and `charlen` may be valid or unknown depending on `LENGTH_VALID`.
+For read-only `strslice` descriptors, `LENGTH_VALID` is normally set and `maxlen == charlen`. For writable unsized `embstr` descriptors, `maxlen` is the writable maximum logical length of the target C buffer and `charlen` may be valid or unknown depending on `LENGTH_VALID`.
 
 For empty views:
 
@@ -1516,7 +1519,7 @@ A `strslice` can represent source data from:
 ```dq
 "abc"       // string literal, view points into .rodata
 s           // dynamic string
-cs          // cstring(N), as read-only view
+cs          // embstr(N), as read-only view
 pc          // ^char, after scanning length
 s[1:4]      // string slice expression in strslice context
 v[1:4]      // strslice slice expression
@@ -1534,22 +1537,22 @@ v.Append("x")         // compile error
 v.Delete(0)           // compile error
 ```
 
-An unsized `cstring` is a mutable alias to an existing bounded C-compatible buffer.
+An unsized `embstr` is a mutable alias to an existing bounded C-compatible buffer.
 
 ```dq
-function Process(cs : cstring):
+function Process(cs : embstr):
   cs.Append("x")       // OK, modifies the target buffer
 endfunc
 
 function Example():
-  var storage : cstring(31) = "abc"
-  var alias   : cstring = storage
+  var storage : embstr(31) = "abc"
+  var alias   : embstr = storage
 
   alias[0] = 'X'        // storage == "Xbc"
 endfunc
 ```
 
-`strslice` and unsized `cstring` indexing is strict, like `str` indexing:
+`strslice` and unsized `embstr` indexing is strict, like `str` indexing:
 
 ```dq
 var v : strslice = "abc"
@@ -1606,31 +1609,31 @@ Rules for `strslice`:
 - `strslice` may be stored or returned only with the same care as pointers or array slices.
 - Assigning `strslice` to `str` copies the characters and produces safe owning storage.
 
-Rules for unsized `cstring`:
+Rules for unsized `embstr`:
 
-- `cstring` does not own the referenced character storage.
-- `cstring` carries or can recover the current logical length.
-- `cstring` carries the maximum logical writable length.
-- `cstring` operations must preserve zero termination.
-- `cstring` assignment aliases the same descriptor/buffer; it does not copy text.
-- `cstring` may become invalid when the target storage goes out of scope, is moved, or is otherwise invalidated.
-- A default local `var cs : cstring` is invalid because there is no target storage.
+- `embstr` does not own the referenced character storage.
+- `embstr` carries or can recover the current logical length.
+- `embstr` carries the maximum logical writable length.
+- `embstr` operations must preserve zero termination.
+- `embstr` assignment aliases the same descriptor/buffer; it does not copy text.
+- `embstr` may become invalid when the target storage goes out of scope, is moved, or is otherwise invalidated.
+- A default local `var cs : embstr` is invalid because there is no target storage.
 
 Recommended compiler diagnostics:
 
 ```dq
 function BadView() -> strslice:
-  var cs : cstring(31) = "abc"
+  var cs : embstr(31) = "abc"
   return cs[:]  // should be compile error or warning: returns view into local storage
 endfunc
 
-function BadCStr() -> cstring:
-  var cs : cstring(31) = "abc"
-  return cs  // should be compile error or warning: returns cstring alias to local storage
+function BadCStr() -> embstr:
+  var cs : embstr(31) = "abc"
+  return cs  // should be compile error or warning: returns embstr alias to local storage
 endfunc
 ```
 
-The compiler does not need to prove all `strslice` or unsized `cstring` lifetimes safe. Both are explicit advanced borrowed types.
+The compiler does not need to prove all `strslice` or unsized `embstr` lifetimes safe. Both are explicit advanced borrowed types.
 
 ## Dynamic String Runtime Handling
 
@@ -1663,7 +1666,7 @@ s == ""
 
 Operations that need storage allocate a manager automatically.
 
-Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strslice` values. At ABI level, read-only string sources and mutable bounded `cstring` aliases use the `SDqTextInfo` descriptor shape.
+Mutating string helper functions must generally receive the manager reference by reference because they may need to rebind the string variable after allocation, detach, widening, releasing, or reallocation. Source arguments should normally be passed as read-only `strslice` values. At ABI level, read-only string sources and mutable bounded `embstr` aliases use the `SDqTextInfo` descriptor shape.
 
 ```dq
 function DqStrSetChar(
@@ -1752,44 +1755,44 @@ All calculations of `capacity * charwidth` must be checked for integer overflow.
 
 ---
 
-## C String Runtime Handling
+## Embedded String Runtime Handling
 
-C-string helper functions operate on an unsized `cstring` descriptor. At ABI level this is `SDqTextInfo` with writable, zero-terminated, width-1 storage in this draft.
+C-string helper functions operate on an unsized `embstr` descriptor. At ABI level this is `SDqTextInfo` with writable, zero-terminated, width-1 storage in this draft.
 
 ```dq
 function DqCStrRefreshLength(
-  cs : ref cstring
+  cs : ref embstr
 )
 
 function DqCStrAssign(
-  cs  : ref cstring,
+  cs  : ref embstr,
   src : refin strslice
 )
 
 function DqCStrAppend(
-  cs  : ref cstring,
+  cs  : ref embstr,
   src : refin strslice
 )
 
 function DqCStrPrepend(
-  cs  : ref cstring,
+  cs  : ref embstr,
   src : refin strslice
 )
 
 function DqCStrInsert(
-  cs    : ref cstring,
+  cs    : ref embstr,
   index : int,
   src   : refin strslice
 )
 
 function DqCStrDelete(
-  cs    : ref cstring,
+  cs    : ref embstr,
   index : int,
   count : int = 1
 )
 
 function DqCStrClear(
-  cs : ref cstring
+  cs : ref embstr
 )
 ```
 
@@ -1815,11 +1818,11 @@ Mutating helpers follow these rules:
 6. Keep LENGTH_VALID set.
 ```
 
-Source arguments are normally passed as `strslice`. If the source is a `cstring` whose `LENGTH_VALID` flag is not set, the source descriptor is refreshed before copying or searching.
+Source arguments are normally passed as `strslice`. If the source is a `embstr` whose `LENGTH_VALID` flag is not set, the source descriptor is refreshed before copying or searching.
 
-Overlapping source and destination ranges must be handled correctly. If a `cstring` source aliases the destination buffer, the helper must preserve enough source range information before moving bytes or truncating the destination.
+Overlapping source and destination ranges must be handled correctly. If a `embstr` source aliases the destination buffer, the helper must preserve enough source range information before moving bytes or truncating the destination.
 
-A raw `^char` does not carry `maxlen`, so it is not a valid mutable `cstring` argument by itself. To create an unsized `cstring` alias from a raw buffer, the programmer or caller must provide the maximum logical length explicitly through a library helper or another typed wrapper.
+A raw `^char` does not carry `maxlen`, so it is not a valid mutable `embstr` argument by itself. To create an unsized `embstr` alias from a raw buffer, the programmer or caller must provide the maximum logical length explicitly through a library helper or another typed wrapper.
 
 ---
 
@@ -1850,8 +1853,8 @@ No type-info handler functions are needed for characters.
 2. `char` is `uint8`.
 3. `str` is a refcounted, copy-on-write dynamic character string.
 4. `strslice` is a public read-only non-owning view of character data.
-5. Unsized `cstring` is a public non-owning mutable bounded C-string alias / fat pointer.
-6. `strslice` and unsized `cstring` use the ABI descriptor shape `SDqTextInfo` with `dataptr`, `charlen`, and packed `info`.
+5. Unsized `embstr` is a public non-owning mutable bounded C-string alias through a shared descriptor.
+6. `strslice` and unsized `embstr` use the ABI descriptor shape `SDqTextInfo` with `dataptr`, `charlen`, and packed `info`.
 7. `SDqTextInfo.info` carries maximum length, character width/encoding, and flags.
 8. `LENGTH_VALID` means `charlen` may be trusted. If it is not set, helpers must scan lazily when they need the current length.
 9. Empty dynamic strings use a null manager and allocate no storage.
@@ -1877,18 +1880,18 @@ No type-info handler functions are needed for characters.
 29. No-argument `Pop()` and `PopFirst()` may be supported as single-character shorthands and are runtime errors on empty strings.
 30. `Trim()`, `LTrim()`, `RTrim()`, `LPad()`, `RPad()`, `IndexOf()`, `LastIndexOf()`, `Contains()`, `StartsWith()`, and `EndsWith()` are recommended common string helpers.
 31. Read-only string helpers should accept `strslice` sources where practical.
-32. `cstring(N)` stores at most `N` logical `char` characters and uses `N + 1` bytes of storage.
-33. `cstring(N)` always maintains a hidden zero terminator.
-34. `cstring(N)` is the only form that creates fixed inline C-string storage.
-35. Plain `var cs : cstring` is invalid because unsized `cstring` has no storage.
-36. A local `var cs : cstring = existing` is an alias to an existing `cstring(N)` or unsized `cstring` descriptor/buffer.
-37. A function parameter `cs : cstring` receives a bounded mutable descriptor; `maxlen` must be valid and `charlen` is valid only with `LENGTH_VALID`.
-38. Assignment to `cstring(N)` silently truncates by length and always zero-terminates.
-39. `cstring(N)` and unsized `cstring` indexing use logical string rules; the hidden terminator is not indexable.
-40. `cstring(N)` slicing returns a new `str` by default and may produce `strslice` in explicit `strslice` context.
-41. `cstring(N)` mutating methods may use a hidden compiler-maintained descriptor for standalone local variables.
-42. Hidden cstring descriptors are not part of public storage layout and should not be permanently inserted into struct fields, object fields, array elements, or externally visible records.
-43. Passing a `cstring(N)` buffer to unknown external C code through `^char` invalidates known length information unless the call is annotated as read-only or length-preserving.
+32. `embstr(N)` uses exactly `N` bytes of storage and stores at most `N - 1` logical `char` characters.
+33. `embstr(N)` always maintains a hidden zero terminator.
+34. `embstr(N)` is the only form that creates fixed inline C-string storage.
+35. Plain `var cs : embstr` is invalid because unsized `embstr` has no storage.
+36. A local `var cs : embstr = existing` is an alias to an existing `embstr(N)` or unsized `embstr` descriptor/buffer.
+37. A function parameter `cs : embstr` receives a bounded mutable descriptor; `maxlen` must be valid and `charlen` is valid only with `LENGTH_VALID`.
+38. Assignment to `embstr(N)` silently truncates by length and always zero-terminates.
+39. `embstr(N)` and unsized `embstr` indexing use logical string rules; the hidden terminator is not indexable.
+40. `embstr(N)` slicing returns a new `str` by default and may produce `strslice` in explicit `strslice` context.
+41. `embstr(N)` mutating methods may use a hidden compiler-maintained descriptor for standalone local variables.
+42. Hidden embstr descriptors are not part of public storage layout and should not be permanently inserted into struct fields, object fields, array elements, or externally visible records.
+43. Passing a `embstr(N)` buffer to unknown external C code through `^char` invalidates known length information unless the call is annotated as read-only or length-preserving.
 44. `^char` is a non-owning pointer to zero-terminated 8-bit C-compatible storage.
 45. Converting `^char` to `strslice` requires scanning until the first zero terminator.
-46. `strslice` and unsized `cstring` have the same lifetime and invalidation dangers as array slices or raw pointers.
+46. `strslice` and unsized `embstr` have the same lifetime and invalidation dangers as array slices or raw pointers.

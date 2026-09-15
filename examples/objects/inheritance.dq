@@ -3,9 +3,9 @@ use print
 object OBase:
     cnt1 : int = 0
     cnt2 : int = 10
-    name : cstring(31)
+    name : embstr(32)
 
-    func *Create(aname : cstring):  // constructor
+    func *Create(aname : embstr):  // constructor
         name = aname
     endfunc
 

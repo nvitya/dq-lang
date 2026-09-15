@@ -275,7 +275,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   if (auto * cstrtype = dynamic_cast<OTypeCString *>(ptype ? ptype->ResolveAlias() : nullptr);
       cstrtype && (0 == cstrtype->maxlen) && !initexpr)
   {
-    StatementError(DQERR_NOT_SUPPORTED, "standalone unsized cstring declaration without target storage");
+    StatementError(DQERR_NOT_SUPPORTED, "standalone unsized embstr declaration without target storage");
     return;
   }
 

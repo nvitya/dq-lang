@@ -33,8 +33,8 @@ func CopyCollections(source : []int) -> int:
     return from_literal.length + from_slice.length + from_fixed.length
 endfunc
 
-func CopyCString(source : cstring) -> int:
-    var target : cstring(7) = source
+func CopyCString(source : embstr) -> int:
+    var target : embstr(8) = source
     return target.length
 endfunc
 

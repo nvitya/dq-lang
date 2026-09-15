@@ -539,6 +539,15 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
       if (name.GetKind() == nkString) result.module_namespaces.insert(name.GetAsString());
     }
   }
+  const TJsonNode * used_module_sources = JsonChild(root, "usedModuleSources");
+  if (used_module_sources && used_module_sources->GetKind() == nkArray)
+  {
+    for (int index = 0; index < used_module_sources->GetCount(); ++index)
+    {
+      const TJsonNode & path = used_module_sources->Child(index);
+      if (path.GetKind() == nkString) result.used_module_sources.emplace_back(path.GetAsString());
+    }
+  }
   return result;
 }
 
@@ -590,6 +599,7 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   size_t name_start = 0;
   if (!IdentifierAt(document, line, character, name, name_start)) return result;
   const SDocumentSymbol * target = nullptr;
+  string target_owner;
 
   if (name_start > 0 && document.text[name_start - 1] == '.')
   {
@@ -608,6 +618,23 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   else
   {
     target = FindRootSymbol(document_it->second, name);
+  }
+  if (!target)
+  {
+    // Imported interfaces retain member names but not source locations.  Their
+    // direct sources are analyzed with the open document, so find a unique
+    // matching member declaration there.
+    for (const auto & [path, symbols] : document_symbols)
+    {
+      for (const SDocumentSymbol & compound : symbols)
+      {
+        const SDocumentSymbol * member = FindChildSymbol(compound, name);
+        if (!member) continue;
+        if (target) return result;
+        target = member;
+        target_owner = compound.name;
+      }
+    }
   }
   if (!target) return result;
 
@@ -631,6 +658,19 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   }
   int target_line = max(0, target->line - 1);
   int target_character = DocumentSymbolNameColumn(*target_document, *target);
+  if (!target_owner.empty())
+  {
+    string implementation_prefix = "func " + target_owner + "." + target->name;
+    size_t implementation = target_document->text.find(implementation_prefix);
+    if (implementation != string::npos)
+    {
+      target_line = int(count(target_document->text.begin(), target_document->text.begin() + implementation, '\n'));
+      size_t line_start = target_document->text.rfind('\n', implementation);
+      line_start = (line_start == string::npos ? 0 : line_start + 1);
+      target_character = Utf16Column(target_document->text, target_line + 1,
+                                     int(implementation + implementation_prefix.size() - target->name.size() - line_start));
+    }
+  }
   TJsonNode & location = result.Add().GetAsObject();
   location.Add("uri", SymbolUri(*target, documents));
   TJsonNode & range = location.Add("range").GetAsObject();
@@ -649,10 +689,19 @@ void ODqLanguageServer::Reanalyze()
   unordered_set<string> all_module_namespaces;
   if (StageDocuments(manifest, build_root))
   {
+    vector<filesystem::path> analysis_sources;
+    unordered_set<string> analysis_paths;
     for (const auto & [uri, document] : documents)
     {
-      if (document.path.extension() != ".dq") continue;
-      SWorkerResult worker_result = RunWorker(document.path, manifest, build_root);
+      if ((document.path.extension() == ".dq") && analysis_paths.insert(AbsNormPath(document.path).string()).second)
+      {
+        analysis_sources.push_back(document.path);
+      }
+    }
+    size_t open_document_count = analysis_sources.size();
+    for (size_t source_index = 0; source_index < analysis_sources.size(); ++source_index)
+    {
+      SWorkerResult worker_result = RunWorker(analysis_sources[source_index], manifest, build_root);
       for (SDiagnostic & diagnostic : worker_result.diagnostics)
       {
         all_diagnostics[diagnostic.path].push_back(move(diagnostic));
@@ -666,6 +715,17 @@ void ODqLanguageServer::Reanalyze()
         all_namespaces[ns_name] = move(ns_symbols);
       }
       all_module_namespaces.insert(worker_result.module_namespaces.begin(), worker_result.module_namespaces.end());
+      if (source_index < open_document_count)
+      {
+        for (const filesystem::path & source : worker_result.used_module_sources)
+        {
+          filesystem::path normalized_source = AbsNormPath(source);
+          if ((normalized_source.extension() == ".dq") && analysis_paths.insert(normalized_source.string()).second)
+          {
+            analysis_sources.push_back(move(normalized_source));
+          }
+        }
+      }
     }
   }
   document_symbols = move(all_document_symbols);

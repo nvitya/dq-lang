@@ -14,6 +14,7 @@
 #include <unordered_set>
 
 #include "dq_module.h"
+#include "module_intf.h"
 #include "jsontools.h"
 #include "semantic_result.h"
 
@@ -196,6 +197,31 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
       json_symbol.Add("name", name);
       json_symbol.Add("kind", ValSymKind(valsym->kind));
+    }
+  }
+
+  TJsonNode & json_used_module_sources = result.Add("usedModuleSources").GetAsArray();
+  unordered_set<string> used_module_sources;
+  if (g_module)
+  {
+    for (const OModuleUse * use : g_module->used_modules)
+    {
+      const auto * module = use ? dynamic_cast<const OModuleIntf *>(use->module) : nullptr;
+      if (!module) continue;
+      bool added_source = false;
+      for (const auto & [module_name, source] : module->module_sources)
+      {
+        if ((module_name == module->name) && used_module_sources.insert(source).second)
+        {
+          json_used_module_sources.Add().SetAsString(source);
+          added_source = true;
+        }
+      }
+      if (!added_source && !module->source_dependencies.empty())
+      {
+        const string & source = module->source_dependencies.front().filename;
+        if (used_module_sources.insert(source).second) json_used_module_sources.Add().SetAsString(source);
+      }
     }
   }
   

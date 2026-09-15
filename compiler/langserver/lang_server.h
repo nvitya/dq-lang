@@ -61,6 +61,7 @@ struct SWorkerResult
   vector<SDocumentSymbol> document_symbols;
   unordered_map<string, vector<SDocumentSymbol>> namespaces;
   unordered_set<string> module_namespaces;
+  vector<filesystem::path> used_module_sources;
 };
 
 class ODqLanguageServer

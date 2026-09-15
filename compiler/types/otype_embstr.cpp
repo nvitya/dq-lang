@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: MIT
  * See LICENSES/MIT.txt for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    otype_cstring.cpp
+ * file:    otype_embstr.cpp
  * authors: nvitya
  * created: 2026-03-08
  * brief:   C-string type implementation
@@ -13,7 +13,7 @@
 
 #include <vector>
 #include "dqc_ast.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_string.h"
 #include "rtlint.h"
 #include "scope_builtins.h"
@@ -30,12 +30,12 @@ static LlType * LlPtrType()
   return llvm::PointerType::get(ll_ctx, 0);
 }
 
-static LlType * LlCStringLenType()
+static LlType * LlEmbStrLenType()
 {
   return LlType::getInt32Ty(ll_ctx);
 }
 
-static LlType * LlCStringDescType()
+static LlType * LlEmbStrDescType()
 {
   return g_builtins->type_strslice->GetLlType();
 }
@@ -43,7 +43,7 @@ static LlType * LlCStringDescType()
 
 static LlValue * LlU32(uint32_t value)
 {
-  return llvm::ConstantInt::get(LlCStringLenType(), value);
+  return llvm::ConstantInt::get(LlEmbStrLenType(), value);
 }
 
 static LlValue * LlNativeInt(uint64_t value)
@@ -58,12 +58,12 @@ static LlType * LlNativeIntType()
 
 
 
-static OValSymFunc * CStringFunc(const string & name)
+static OValSymFunc * EmbStrFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_strfunc");
   if (nsit == g_namespaces.end() || !nsit->second)
   {
-    throw runtime_error("CString RTL module is not loaded");
+    throw runtime_error("EmbStr RTL module is not loaded");
   }
 
   OValSym * vs = nsit->second->FindValSym(name, nullptr, false);
@@ -80,20 +80,20 @@ static OValSymFunc * CStringFunc(const string & name)
   }
   if (!fn || !fn->ll_func)
   {
-    throw runtime_error("CString RTL function is not available: " + name);
+    throw runtime_error("EmbStr RTL function is not available: " + name);
   }
   return fn;
 }
 
-static LlValue * CallCStringFunc(const string & name, vector<LlValue *> args = {})
+static LlValue * CallEmbStrFunc(const string & name, vector<LlValue *> args = {})
 {
-  OValSymFunc * fn = CStringFunc(name);
+  OValSymFunc * fn = EmbStrFunc(name);
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
-// OTypeCString
+// OTypeEmbStr
 
-LlType * OTypeCString::CreateLlType()
+LlType * OTypeEmbStr::CreateLlType()
 {
   if (maxlen > 0)
   {
@@ -107,7 +107,7 @@ LlType * OTypeCString::CreateLlType()
   }
 }
 
-LlDiType * OTypeCString::CreateDiType()
+LlDiType * OTypeEmbStr::CreateDiType()
 {
   if (maxlen > 0)
   {
@@ -128,12 +128,12 @@ LlDiType * OTypeCString::CreateDiType()
   }
 }
 
-bool OTypeCString::IsCCharPointerType(OType * type) const
+bool OTypeEmbStr::IsCCharPointerType(OType * type) const
 {
   return ::IsCCharPointerType(type);
 }
 
-bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
+bool OTypeEmbStr::CanStoreFrom(OExpr * srcexpr) const
 {
   if (maxlen <= 0)
   {
@@ -145,66 +145,66 @@ bool OTypeCString::CanStoreFrom(OExpr * srcexpr) const
     return true;
   }
 
-  if (dynamic_cast<OCStringLit *>(srcexpr))
+  if (dynamic_cast<OEmbStrLit *>(srcexpr))
   {
     return true;
   }
 
   OType * srctype = srcexpr->ResolvedType();
-  return dynamic_cast<OTypeCString *>(srctype) || IsCCharPointerType(srctype)
+  return dynamic_cast<OTypeEmbStr *>(srctype) || IsCCharPointerType(srctype)
       || (srctype && TK_ROSTR == srctype->kind);
 }
 
-LlValue * OTypeCString::GenerateDataPtr(OScope * scope, LlValue * cstraddr)
+LlValue * OTypeEmbStr::GenerateDataPtr(OScope * scope, LlValue * embstraddr)
 {
   (void)scope;
   if (maxlen > 0)
   {
     LlValue * ll_zero = LlNativeInt(0);
-    return ll_builder.CreateGEP(GetLlType(), cstraddr, {ll_zero, ll_zero}, "cstr.data");
+    return ll_builder.CreateGEP(GetLlType(), embstraddr, {ll_zero, ll_zero}, "embstr.data");
   }
 
-  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
-  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 0, "cstr.ptr.addr");
-  return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "cstr.ptr");
+  LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
+  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.ptr.addr");
+  return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "embstr.ptr");
 }
 
-LlValue * OTypeCString::GenerateDescriptor(OScope * scope, LlValue * cstraddr)
+LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
 {
   if (maxlen == 0)
   {
-    return ll_builder.CreateLoad(GetLlType(), cstraddr, "cstr.desc");
+    return ll_builder.CreateLoad(GetLlType(), embstraddr, "embstr.desc");
   }
 
-  auto cache_it = descriptor_caches.find(cstraddr);
+  auto cache_it = descriptor_caches.find(embstraddr);
   if (cache_it != descriptor_caches.end())
   {
     return cache_it->second;
   }
 
-  LlValue * descaddr = CreateEntryBlockAlloca(LlCStringDescType(), nullptr, "cstr.desc.tmp");
-  LlValue * dataptr = GenerateDataPtr(scope, cstraddr);
-  LlType * desctype = LlCStringDescType();
-  LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "cstr.desc.ptr.addr");
-  LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "cstr.desc.len.addr");
-  LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "cstr.desc.info.addr");
+  LlValue * descaddr = CreateEntryBlockAlloca(LlEmbStrDescType(), nullptr, "embstr.desc.tmp");
+  LlValue * dataptr = GenerateDataPtr(scope, embstraddr);
+  LlType * desctype = LlEmbStrDescType();
+  LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "embstr.desc.ptr.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "embstr.desc.len.addr");
+  LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "embstr.desc.info.addr");
   ll_builder.CreateStore(dataptr, ptraddr);
   ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
   ll_builder.CreateStore(LlU32((maxlen - 1) & DQTI_MAXCHLEN_MASK), infoaddr);
-  descriptor_caches[cstraddr] = descaddr;
+  descriptor_caches[embstraddr] = descaddr;
   return descaddr;
 }
 
-void OTypeCString::ResetDescriptorLength(OScope * scope, LlValue * cstraddr)
+void OTypeEmbStr::ResetDescriptorLength(OScope * scope, LlValue * embstraddr)
 {
-  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
-  LlValue * lenaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 1, "cstr.len.addr");
+  LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
+  LlValue * lenaddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 1, "embstr.len.addr");
   ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
 }
 
-static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
+static LlValue * EmbStrSourceDescriptor(OScope * scope, OExpr * srcexpr)
 {
-  auto * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
+  auto * srctype = dynamic_cast<OTypeEmbStr *>(srcexpr->ResolvedType());
   if (!srctype)
   {
     return nullptr;
@@ -215,60 +215,60 @@ static LlValue * CStringSourceDescriptor(OScope * scope, OExpr * srcexpr)
     return srctype->GenerateDescriptor(scope, srclval->GenerateAddress(scope));
   }
 
-  LlValue * tmp = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "embstr.src.tmp");
   ll_builder.CreateStore(srcexpr->Generate(scope), tmp);
   return srctype->GenerateDescriptor(scope, tmp);
 }
 
-LlValue * OTypeCString::GenerateMetaField(OScope * scope, LlValue * cstraddr, ECStringMetaField field)
+LlValue * OTypeEmbStr::GenerateMetaField(OScope * scope, LlValue * embstraddr, EEmbStrMetaField field)
 {
-  if (CSMF_PCHAR == field)
+  if (ESMF_PCHAR == field)
   {
     // The caller may change the raw storage before the next descriptor use.
-    ResetDescriptorLength(scope, cstraddr);
-    return GenerateDataPtr(scope, cstraddr);
+    ResetDescriptorLength(scope, embstraddr);
+    return GenerateDataPtr(scope, embstraddr);
   }
 
   if (maxlen > 0)
   {
-    if (CSMF_MAXLENGTH == field)
+    if (ESMF_MAXLENGTH == field)
     {
       return LlNativeInt(maxlen - 1);
     }
-    if (CSMF_STORAGE_SIZE == field)
+    if (ESMF_STORAGE_SIZE == field)
     {
       return LlNativeInt(maxlen);
     }
   }
 
-  LlValue * descaddr = GenerateDescriptor(scope, cstraddr);
+  LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
   switch (field)
   {
-    case CSMF_LENGTH:
-      return ToNativeInt(CallCStringFunc("CStrLen", {descaddr}));
-    case CSMF_MAXLENGTH:
-      return ToNativeInt(CallCStringFunc("CStrMaxLen", {descaddr}));
-    case CSMF_STORAGE_SIZE:
-      return ToNativeInt(CallCStringFunc("CStrStorageSize", {descaddr}));
+    case ESMF_LENGTH:
+      return ToNativeInt(CallEmbStrFunc("EmbStrLen", {descaddr}));
+    case ESMF_MAXLENGTH:
+      return ToNativeInt(CallEmbStrFunc("EmbStrMaxLen", {descaddr}));
+    case ESMF_STORAGE_SIZE:
+      return ToNativeInt(CallEmbStrFunc("EmbStrStorageSize", {descaddr}));
   }
   return LlNativeInt(0);
 }
 
-static void CallCStringStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
+static void CallEmbStrStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
 {
   OType * srctype = srcexpr->ResolvedType();
   if (srctype && !IsCCharPointerType(srctype) && IsTextSourceType(srctype))
   {
-    CallCStringFunc("CStrAssignDesc", {dstdesc, GenerateTextInfoAddress(scope, srcexpr)});
+    CallEmbStrFunc("EmbStrAssignDesc", {dstdesc, GenerateTextInfoAddress(scope, srcexpr)});
     return;
   }
 
-  CallCStringFunc("CStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
+  CallEmbStrFunc("EmbStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
 }
 
-static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
+static void GetEmbStrCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
 {
-  OTypeCString * srctype = dynamic_cast<OTypeCString *>(srcexpr->ResolvedType());
+  OTypeEmbStr * srctype = dynamic_cast<OTypeEmbStr *>(srcexpr->ResolvedType());
   if (!srctype)
   {
     rsrcptr = srcexpr->Generate(scope);
@@ -285,84 +285,84 @@ static void GetCStringCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsr
     }
     else
     {
-      auto * src_alloca = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "cstr.src.tmp");
+      auto * src_alloca = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "embstr.src.tmp");
       src_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(srctype)));
       srcaddr = src_alloca;
       ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);
     }
 
     LlValue * ll_zero = LlNativeInt(0);
-    rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "cstr.src.ptr");
+    rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "embstr.src.ptr");
     rsrclimit = LlNativeInt(srctype->maxlen - 1);
     return;
   }
 
   LlValue * descaddr = srcexpr->Generate(scope);
-  LlValue * ptraddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 0, "cstr.src.ptr.addr");
-  LlValue * lenaddr = ll_builder.CreateStructGEP(LlCStringDescType(), descaddr, 1, "cstr.src.len.addr");
-  rsrcptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "cstr.src.ptr");
-  rsrclimit = ToNativeInt(ll_builder.CreateLoad(LlCStringLenType(), lenaddr, "cstr.src.size"));
+  LlValue * ptraddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.src.ptr.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 1, "embstr.src.len.addr");
+  rsrcptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.src.ptr");
+  rsrclimit = ToNativeInt(ll_builder.CreateLoad(LlEmbStrLenType(), lenaddr, "embstr.src.size"));
 }
 
-static void EmitSizedCStringCopy(OScope * scope, LlValue * dstdaddr, OTypeCString * dsttype, OExpr * srcexpr)
+static void EmitSizedEmbStrCopy(OScope * scope, LlValue * dstdaddr, OTypeEmbStr * dsttype, OExpr * srcexpr)
 {
   LlValue * ll_zero = LlNativeInt(0);
   LlValue * ll_one = LlNativeInt(1);
   LlValue * ll_i8_zero = llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 0);
-  LlValue * ll_dstptr = ll_builder.CreateGEP(dsttype->GetLlType(), dstdaddr, {ll_zero, ll_zero}, "cstr.dst.ptr");
+  LlValue * ll_dstptr = ll_builder.CreateGEP(dsttype->GetLlType(), dstdaddr, {ll_zero, ll_zero}, "embstr.dst.ptr");
 
   if (dsttype->maxlen <= 1)
   {
-    LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_zero}, "cstr.dst.null");
+    LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_zero}, "embstr.dst.null");
     ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
     return;
   }
 
   LlValue * ll_srcptr = nullptr;
   LlValue * ll_srclimit = nullptr;
-  GetCStringCopySource(scope, srcexpr, ll_srcptr, ll_srclimit);
+  GetEmbStrCopySource(scope, srcexpr, ll_srcptr, ll_srclimit);
 
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * entry_bb = ll_builder.GetInsertBlock();
-  LlBasicBlock * cond_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.cond", ll_func);
-  LlBasicBlock * load_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.load", ll_func);
-  LlBasicBlock * store_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.store", ll_func);
-  LlBasicBlock * end_bb = LlBasicBlock::Create(ll_ctx, "cstr.copy.end", ll_func);
+  LlBasicBlock * cond_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.cond", ll_func);
+  LlBasicBlock * load_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.load", ll_func);
+  LlBasicBlock * store_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.store", ll_func);
+  LlBasicBlock * end_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.end", ll_func);
 
   LlValue * ll_copy_limit = LlNativeInt(dsttype->maxlen - 1);
 
   ll_builder.CreateBr(cond_bb);
 
   ll_builder.SetInsertPoint(cond_bb);
-  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlNativeIntType(), 2, "cstr.copy.i");
+  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlNativeIntType(), 2, "embstr.copy.i");
   ll_i->addIncoming(ll_zero, entry_bb);
-  LlValue * ll_dst_room = ll_builder.CreateICmpULT(ll_i, ll_copy_limit, "cstr.copy.dst_room");
-  LlValue * ll_src_room = ll_builder.CreateICmpULT(ll_i, ll_srclimit, "cstr.copy.src_room");
-  LlValue * ll_can_copy = ll_builder.CreateAnd(ll_dst_room, ll_src_room, "cstr.copy.can_copy");
+  LlValue * ll_dst_room = ll_builder.CreateICmpULT(ll_i, ll_copy_limit, "embstr.copy.dst_room");
+  LlValue * ll_src_room = ll_builder.CreateICmpULT(ll_i, ll_srclimit, "embstr.copy.src_room");
+  LlValue * ll_can_copy = ll_builder.CreateAnd(ll_dst_room, ll_src_room, "embstr.copy.can_copy");
   ll_builder.CreateCondBr(ll_can_copy, load_bb, end_bb);
 
   ll_builder.SetInsertPoint(load_bb);
-  LlValue * ll_srcchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_srcptr, {ll_i}, "cstr.src.ch.ptr");
-  LlValue * ll_srcch = ll_builder.CreateLoad(LlType::getInt8Ty(ll_ctx), ll_srcchptr, "cstr.src.ch");
-  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_srcch, ll_i8_zero, "cstr.src.is_null");
+  LlValue * ll_srcchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_srcptr, {ll_i}, "embstr.src.ch.ptr");
+  LlValue * ll_srcch = ll_builder.CreateLoad(LlType::getInt8Ty(ll_ctx), ll_srcchptr, "embstr.src.ch");
+  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_srcch, ll_i8_zero, "embstr.src.is_null");
   ll_builder.CreateCondBr(ll_is_null, end_bb, store_bb);
 
   ll_builder.SetInsertPoint(store_bb);
-  LlValue * ll_dstchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_i}, "cstr.dst.ch.ptr");
+  LlValue * ll_dstchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_i}, "embstr.dst.ch.ptr");
   ll_builder.CreateStore(ll_srcch, ll_dstchptr);
-  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, ll_one, "cstr.copy.i.next");
+  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, ll_one, "embstr.copy.i.next");
   ll_i->addIncoming(ll_i_next, store_bb);
   ll_builder.CreateBr(cond_bb);
 
   ll_builder.SetInsertPoint(end_bb);
-  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlNativeIntType(), 2, "cstr.term.i");
+  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlNativeIntType(), 2, "embstr.term.i");
   ll_term_index->addIncoming(ll_i, cond_bb);
   ll_term_index->addIncoming(ll_i, load_bb);
-  LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_term_index}, "cstr.dst.null");
+  LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_term_index}, "embstr.dst.null");
   ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
 }
 
-bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr)
+bool OTypeEmbStr::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr)
 {
   if (maxlen <= 0)
   {
@@ -377,9 +377,9 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
     return true;
   }
 
-  if (auto * strlit = dynamic_cast<OCStringLit *>(srcexpr))
+  if (auto * strlit = dynamic_cast<OEmbStrLit *>(srcexpr))
   {
-    OValueCString val(this, maxlen);
+    OValueEmbStr val(this, maxlen);
     val.value = strlit->value;
     LlConst * ll_const = val.CreateLlConst();
     ll_builder.CreateStore(ll_const, dstdaddr);
@@ -390,14 +390,14 @@ bool OTypeCString::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * src
   if (CanStoreFrom(srcexpr))
   {
     LlValue * dstdesc = GenerateDescriptor(scope, dstdaddr);
-    CallCStringStore(scope, dstdesc, srcexpr);
+    CallEmbStrStore(scope, dstdesc, srcexpr);
     return true;
   }
 
   return false;
 }
 
-bool OTypeCString::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+bool OTypeEmbStr::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
 {
   if (maxlen > 0)
   {
@@ -406,17 +406,17 @@ bool OTypeCString::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExp
   return OType::GenerateAssignment(scope, targetaddr, value, volatile_store);
 }
 
-static bool IsCStringCharSource(OExpr * expr)
+static bool IsEmbStrCharSource(OExpr * expr)
 {
   OType * type = expr ? expr->ResolvedType() : nullptr;
   return type && type == g_builtins->type_char;
 }
 
-static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const string & ptr_func,
+static LlValue * GenerateEmbStrMethodSource(OScope * scope, OExpr * expr, const string & ptr_func,
                                              const string & desc_func, const string & char_func,
                                              LlValue * dstdesc, LlValue * index = nullptr)
 {
-  if (IsCStringCharSource(expr))
+  if (IsEmbStrCharSource(expr))
   {
     vector<LlValue *> args = {dstdesc};
     if (index)
@@ -424,7 +424,7 @@ static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const
       args.push_back(index);
     }
     args.push_back(ToCharValue(expr->Generate(scope)));
-    return CallCStringFunc(char_func, args);
+    return CallEmbStrFunc(char_func, args);
   }
 
   OType * srctype = expr->ResolvedType();
@@ -436,7 +436,7 @@ static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const
       args.push_back(index);
     }
     args.push_back(GenerateTextInfoAddress(scope, expr));
-    return CallCStringFunc(desc_func, args);
+    return CallEmbStrFunc(desc_func, args);
   }
 
   vector<LlValue *> args = {dstdesc};
@@ -445,57 +445,57 @@ static LlValue * GenerateCStringMethodSource(OScope * scope, OExpr * expr, const
     args.push_back(index);
   }
   args.push_back(expr->Generate(scope));
-  return CallCStringFunc(ptr_func, args);
+  return CallEmbStrFunc(ptr_func, args);
 }
 
-LlValue * OTypeCString::GenerateMethodCall(OScope * scope, LlValue * cstraddr,
-                                    ECStringMethod method, const vector<OExpr *> & args)
+LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
+                                    EEmbStrMethod method, const vector<OExpr *> & args)
 {
-  LlValue * dstdesc = GenerateDescriptor(scope, cstraddr);
+  LlValue * dstdesc = GenerateDescriptor(scope, embstraddr);
   switch (method)
   {
-    case CSM_CLEAR:
-      return CallCStringFunc("CStrClear", {dstdesc});
+    case ESM_CLEAR:
+      return CallEmbStrFunc("EmbStrClear", {dstdesc});
 
-    case CSM_SET:
-      return GenerateCStringMethodSource(scope, args[0], "CStrAssignPtr", "CStrAssignDesc",
-                                         "CStrAssignChar", dstdesc);
+    case ESM_SET:
+      return GenerateEmbStrMethodSource(scope, args[0], "EmbStrAssignPtr", "EmbStrAssignDesc",
+                                         "EmbStrAssignChar", dstdesc);
 
-    case CSM_APPEND:
-      return GenerateCStringMethodSource(scope, args[0], "CStrAppendPtr", "CStrAppendDesc",
-                                         "CStrAppendChar", dstdesc);
+    case ESM_APPEND:
+      return GenerateEmbStrMethodSource(scope, args[0], "EmbStrAppendPtr", "EmbStrAppendDesc",
+                                         "EmbStrAppendChar", dstdesc);
 
-    case CSM_PREPEND:
-      return GenerateCStringMethodSource(scope, args[0], "CStrPrependPtr", "CStrPrependDesc",
-                                         "CStrPrependChar", dstdesc);
+    case ESM_PREPEND:
+      return GenerateEmbStrMethodSource(scope, args[0], "EmbStrPrependPtr", "EmbStrPrependDesc",
+                                         "EmbStrPrependChar", dstdesc);
 
-    case CSM_INSERT:
+    case ESM_INSERT:
     {
       LlValue * index = ToNativeInt(args[0]->Generate(scope));
-      return GenerateCStringMethodSource(scope, args[1], "CStrInsertPtr", "CStrInsertDesc",
-                                         "CStrInsertChar", dstdesc, index);
+      return GenerateEmbStrMethodSource(scope, args[1], "EmbStrInsertPtr", "EmbStrInsertDesc",
+                                         "EmbStrInsertChar", dstdesc, index);
     }
 
-    case CSM_DELETE:
+    case ESM_DELETE:
     {
       LlValue * index = ToNativeInt(args[0]->Generate(scope));
       LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1));
-      return CallCStringFunc("CStrDelete", {dstdesc, index, count});
+      return CallEmbStrFunc("EmbStrDelete", {dstdesc, index, count});
     }
 
-    case CSM_ADDFMT:
+    case ESM_ADDFMT:
     {
       LlValue * arg0_val = g_builtins->type_rostr->GenerateBorrow(scope, args[0]);
       LlValue * arg1_val = args[1]->Generate(scope);
-      return CallTextFormatFunc(scope, "CStrAddFmt", {dstdesc, arg0_val, arg1_val});
+      return CallTextFormatFunc(scope, "EmbStrAddFmt", {dstdesc, arg0_val, arg1_val});
     }
   }
   return nullptr;
 }
 
-// OValueCString
+// OValueEmbStr
 
-LlConst * OValueCString::CreateLlConst()
+LlConst * OValueEmbStr::CreateLlConst()
 {
   if (maxlen == 0)
   {
@@ -506,22 +506,22 @@ LlConst * OValueCString::CreateLlConst()
         true,
         llvm::GlobalValue::PrivateLinkage,
         str_init,
-        ".cstr.const");
+        ".embstr.const");
     str_gv->setAlignment(llvm::Align(1));
 
     uint32_t charlen = uint32_t(value.size());
     uint32_t info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
     vector<llvm::Constant *> fields = {
       llvm::ConstantExpr::getBitCast(str_gv, LlPtrType()),
-      llvm::ConstantInt::get(LlCStringLenType(), charlen),
-      llvm::ConstantInt::get(LlCStringLenType(), info)
+      llvm::ConstantInt::get(LlEmbStrLenType(), charlen),
+      llvm::ConstantInt::get(LlEmbStrLenType(), info)
     };
     auto * desc_gv = new llvm::GlobalVariable(
         *ll_module,
-        LlCStringDescType(),
+        LlEmbStrDescType(),
         true,
         llvm::GlobalValue::PrivateLinkage,
-        llvm::ConstantStruct::get(static_cast<llvm::StructType *>(LlCStringDescType()), fields),
+        llvm::ConstantStruct::get(static_cast<llvm::StructType *>(LlEmbStrDescType()), fields),
         ".embstr.desc.const");
     desc_gv->setAlignment(llvm::Align(TARGET_PTRSIZE));
     return desc_gv;
@@ -549,14 +549,14 @@ LlConst * OValueCString::CreateLlConst()
   return llvm::ConstantArray::get(arrtype, chars);
 }
 
-bool OValueCString::WriteDqmIfValue(ODqmIfWriter & writer)
+bool OValueEmbStr::WriteDqmIfValue(ODqmIfWriter & writer)
 {
   return writer.AddRecStr(DQMIF_VALUE_INLINE, value);
 }
 
-bool OValueCString::CalculateConstant(OExpr * expr, bool emit_errors)
+bool OValueEmbStr::CalculateConstant(OExpr * expr, bool emit_errors)
 {
-  auto * strlit = dynamic_cast<OCStringLit *>(expr);
+  auto * strlit = dynamic_cast<OEmbStrLit *>(expr);
   if (strlit)
   {
     value = strlit->value;
@@ -565,13 +565,13 @@ bool OValueCString::CalculateConstant(OExpr * expr, bool emit_errors)
 
   if (emit_errors)
   {
-    g_compiler->Error(DQERR_CSTR_CONSTEXPR);
+    g_compiler->Error(DQERR_EMBSTR_CONSTEXPR);
   }
   return false;
 }
 
 
-bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+bool OTypeEmbStr::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
@@ -579,9 +579,9 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
   if (TK_ROSTR == tks && maxlen > 0 && !is_explicit_cast
-      && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) return true;
+      && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)) return true;
 
-  if (TK_CSTRING != tks)
+  if (TK_EMBSTR != tks)
   {
     if (TK_POINTER == tks)
     {
@@ -592,15 +592,15 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
       }
       if (this->maxlen != 0)
       {
-        if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+        if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(src)) return true;
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
         return false;
       }
-      if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src))
+      if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && IsCCharPointerType(resolved_src))
       {
-        auto * strlit = dynamic_cast<OCStringLit *>(src);
+        auto * strlit = dynamic_cast<OEmbStrLit *>(src);
         uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
-        *rexpr = new OCStringLitToDescExpr(src, known_len, this);
+        *rexpr = new OEmbStrLitToDescExpr(src, known_len, this);
         return true;
       }
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
@@ -615,54 +615,54 @@ bool OTypeCString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     return false;
   }
 
-  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
-  if ((this->maxlen == 0) and (cstrsrc->maxlen > 0))
+  OTypeEmbStr * embstrsrc = static_cast<OTypeEmbStr *>(resolved_src);
+  if ((this->maxlen == 0) and (embstrsrc->maxlen > 0))
   {
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
     if (!lval)
     {
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "cannot convert non-lvalue embstr to descriptor");
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_EMBSTR_CONVERSION, "cannot convert non-lvalue embstr to descriptor");
       return false;
     }
-    *rexpr = new OCStringLValueToDescExpr(lval, this);
+    *rexpr = new OEmbStrLValueToDescExpr(lval, this);
     return true;
   }
 
-  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(src)) return true;
+  if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(src)) return true;
 
-  if (this->maxlen != cstrsrc->maxlen)
+  if (this->maxlen != embstrsrc->maxlen)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CSTR_CONVERSION, "embstr sizes do not match");
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_EMBSTR_CONVERSION, "embstr sizes do not match");
     return false;
   }
 
   return true;
 }
 
-int OTypeCString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+int OTypeEmbStr::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
   OType * resolved_src = expr->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
   if (TK_ROSTR == tks)
-    return (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_CSTRING)) ? 1 : -1;
+    return (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)) ? 1 : -1;
 
-  if (TK_CSTRING != tks)
+  if (TK_EMBSTR != tks)
   {
     if (TK_POINTER == tks)
     {
       if (is_explicit_cast) return -1;
-      if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) ? 0 : -1;
-      return ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && IsCCharPointerType(resolved_src)) ? 1 : -1;
+      if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(expr)) ? 0 : -1;
+      return ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && IsCCharPointerType(resolved_src)) ? 1 : -1;
     }
     return OType::GetConversionCostFromExpr(expr, aflags);
   }
 
   if (is_explicit_cast) return -1;
 
-  OTypeCString * cstrsrc = static_cast<OTypeCString *>(resolved_src);
-  if ((this->maxlen == 0) && (cstrsrc->maxlen > 0)) return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
-  if ((aflags & EXPCF_ALLOW_LAZY_CSTRING) && this->CanStoreFrom(expr)) return 0;
-  return (this->maxlen == cstrsrc->maxlen) ? 0 : -1;
+  OTypeEmbStr * embstrsrc = static_cast<OTypeEmbStr *>(resolved_src);
+  if ((this->maxlen == 0) && (embstrsrc->maxlen > 0)) return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
+  if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(expr)) return 0;
+  return (this->maxlen == embstrsrc->maxlen) ? 0 : -1;
 }

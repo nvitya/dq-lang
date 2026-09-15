@@ -73,10 +73,10 @@ func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : i
 // clone, create new str
 
 func DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr)
-func DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo)
+func DynStrCloneToEmbStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo)
 func DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
-func DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
+func DynStrPopToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
 func DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
-func DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
+func DynStrPopFirstToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
 func DynStrPopChar(astr : ref ODynStrMgr) -> char
 func DynStrPopFirstChar(astr : ref ODynStrMgr) -> char

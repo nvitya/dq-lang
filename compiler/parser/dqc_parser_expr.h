@@ -36,7 +36,7 @@ public: // expressions
   OLValueExpr * ParseAddressableExpr();
   OExpr * ParsePostfix(OExpr * base);
   OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
-  OExpr * ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
+  OExpr * ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseAnyValueMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseExprPostfix();
@@ -116,7 +116,7 @@ public:
 
 bool EnsureDynArrayRtlUse();
 bool EnsureStrFuncRtlUse();
-bool EnsureCStringRtlUse();
+bool EnsureEmbStrRtlUse();
 bool EnsureDynStringRtlUse();
 bool RequireDynStrings();
 bool EnsureTextFormatRtlUse();

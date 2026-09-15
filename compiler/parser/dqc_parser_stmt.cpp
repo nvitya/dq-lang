@@ -272,8 +272,8 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     return;
   }
 
-  if (auto * cstrtype = dynamic_cast<OTypeCString *>(ptype ? ptype->ResolveAlias() : nullptr);
-      cstrtype && (0 == cstrtype->maxlen) && !initexpr)
+  if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(ptype ? ptype->ResolveAlias() : nullptr);
+      embstrtype && (0 == embstrtype->maxlen) && !initexpr)
   {
     StatementError(DQERR_NOT_SUPPORTED, "standalone unsized embstr declaration without target storage");
     return;
@@ -1199,7 +1199,7 @@ void ODqCompParserStmt::ParseAssignOrCallStmt()
   bool is_call_stmt = (dynamic_cast<OCallExpr *>(leftexpr) != nullptr)
                    || (dynamic_cast<OIndirectCallExpr *>(leftexpr) != nullptr)
                    || (dynamic_cast<ODynArrayMethodCallExpr *>(leftexpr) != nullptr)
-                   || (dynamic_cast<OCStringMethodCallExpr *>(leftexpr) != nullptr)
+                   || (dynamic_cast<OEmbStrMethodCallExpr *>(leftexpr) != nullptr)
                    || (dynamic_cast<OStringMethodCallExpr *>(leftexpr) != nullptr)
                    || (dynamic_cast<OAnyValueMethodCallExpr *>(leftexpr) != nullptr)
                    || (dynamic_cast<OInvalidCallExpr *>(leftexpr) != nullptr);

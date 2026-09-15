@@ -14,7 +14,7 @@
 #include <vector>
 #include "dqc_ast.h"
 #include "otype_string.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "rtlint.h"
 #include "scope_builtins.h"
 #include "expressions.h"
@@ -210,7 +210,7 @@ static LlValue * GeneratePointerTextInfo(OScope * scope, OExpr * expr)
   LlValue * ptr = expr->Generate(scope);
   uint32_t charlen = DQTIF_CHARLEN_INVALID;
   uint32_t info = DQTI_MAXCHLEN_MASK;
-  if (auto * lit = dynamic_cast<OCStringLit *>(expr))
+  if (auto * lit = dynamic_cast<OEmbStrLit *>(expr))
   {
     charlen = uint32_t(lit->value.size());
     info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
@@ -317,25 +317,25 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
     return GenerateDynStringFullView(scope, expr);
   }
 
-  if (TK_CSTRING == srctype->kind)
+  if (TK_EMBSTR == srctype->kind)
   {
-    OTypeCString * cstrtype = static_cast<OTypeCString *>(srctype);
-    if (cstrtype->maxlen == 0)
+    OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(srctype);
+    if (embstrtype->maxlen == 0)
     {
       return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), expr->Generate(scope), "embstr.text");
     }
 
-    LlValue * cstraddr = nullptr;
+    LlValue * embstraddr = nullptr;
     if (auto * lval = dynamic_cast<OLValueExpr *>(expr))
     {
-      cstraddr = lval->GenerateAddress(scope);
+      embstraddr = lval->GenerateAddress(scope);
     }
-    if (!cstraddr)
+    if (!embstraddr)
     {
       throw logic_error("embstr text source requires an lvalue");
     }
-    LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstraddr);
-    return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "cstr.text");
+    LlValue * descaddr = embstrtype->GenerateDescriptor(scope, embstraddr);
+    return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "embstr.text");
   }
 
   if (IsCCharPointerType(srctype))
@@ -353,8 +353,8 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
 
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr)
 {
-  if (expr && expr->ResolvedType() && TK_CSTRING == expr->ResolvedType()->kind
-      && static_cast<OTypeCString *>(expr->ResolvedType())->maxlen == 0)
+  if (expr && expr->ResolvedType() && TK_EMBSTR == expr->ResolvedType()->kind
+      && static_cast<OTypeEmbStr *>(expr->ResolvedType())->maxlen == 0)
   {
     return expr->Generate(scope);
   }
@@ -997,7 +997,7 @@ int OTypeRoStr::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   OType * source = expr->ResolvedType();
   if (TK_ROSTR == source->kind) return 0;
   uint8_t ch;
-  return (TK_DYNSTR == source->kind || TK_CSTRING == source->kind
+  return (TK_DYNSTR == source->kind || TK_EMBSTR == source->kind
           || IsCCharPointerType(source) || IsCharLiteralExpr(expr, ch)) ? 1 : -1;
 }
 
@@ -1018,7 +1018,7 @@ bool OTypeRoStr::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   if (IsCharLiteralExpr(*rexpr, ch))
   {
     OExpr::DeleteTree(*rexpr);
-    *rexpr = new OCStringLit(string(1, char(ch)));
+    *rexpr = new OEmbStrLit(string(1, char(ch)));
   }
   *rexpr = new OTextBorrowExpr(*rexpr, this);
   return true;
@@ -1048,7 +1048,7 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source)
   if (IsCCharPointerType(srctype))
   {
     ptr = source->Generate(scope);
-    auto * literal = dynamic_cast<OCStringLit *>(source);
+    auto * literal = dynamic_cast<OEmbStrLit *>(source);
     len = LlU32(literal ? uint32_t(literal->value.size()) : DQTIF_CHARLEN_INVALID);
   }
   else

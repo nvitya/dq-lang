@@ -14,7 +14,7 @@
 #include "symbols.h"
 #include "dqc_codegen.h"
 #include "otype_array.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_anyvalue.h"
 #include "otype_string.h"
 #include "otype_func.h"

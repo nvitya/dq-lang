@@ -78,14 +78,14 @@ func DynStrSourceCount(asrc : ref SDqTextInfo, acount : int32) -> uint32:
     endif
 endfunc
 
-func DynStrCopyToCStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32) -> uint32:
-    CStrClear(adst)
+func DynStrCopyToEmbStr(adst : ref SDqTextInfo, srcptr : ^char, srclen : uint32) -> uint32:
+    EmbStrClear(adst)
     if srcptr == nil  or  srclen == 0:
         return 0
     endif
 
     result = srclen
-    var maxlen : uint32 = CStrMaxLen(adst)
+    var maxlen : uint32 = EmbStrMaxLen(adst)
     if result > maxlen:
         result = maxlen
     endif
@@ -366,7 +366,7 @@ endfunc
 func ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     use .
     if acount < 1  or  length == 0:
-        CStrClear(adst)
+        EmbStrClear(adst)
         return
     endif
 
@@ -376,14 +376,14 @@ func ODynStrMgr.Pop(acount : int32, adst : ref SDqTextInfo):
     endif
 
     var startpos : uint32 = length - popcount
-    popcount = DynStrCopyToCStr(adst, dataptr[startpos], popcount)
+    popcount = DynStrCopyToEmbStr(adst, dataptr[startpos], popcount)
     length -= popcount
     WriteTerminator()
 endfunc
 
 func ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
     if acount < 1  or  length == 0:
-        @.CStrClear(adst)
+        @.EmbStrClear(adst)
         return
     endif
 
@@ -392,7 +392,7 @@ func ODynStrMgr.PopFirst(acount : int32, adst : ref SDqTextInfo):
         popcount = length
     endif
 
-    popcount = @..DynStrCopyToCStr(adst, dataptr, popcount)
+    popcount = @..DynStrCopyToEmbStr(adst, dataptr, popcount)
     Delete(0, int32(popcount))
 endfunc
 
@@ -706,12 +706,12 @@ func DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr):
     adst.WriteTerminator()
 endfunc
 
-func DynStrCloneToCStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
+func DynStrCloneToEmbStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo):
     if astr == nil:
-        CStrClear(adst)
+        EmbStrClear(adst)
         return
     endif
-    DynStrCopyToCStr(adst, astr.dataptr, astr.length)
+    DynStrCopyToEmbStr(adst, astr.dataptr, astr.length)
 endfunc
 
 func DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr):
@@ -752,9 +752,9 @@ func DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr):
     astr.Delete(int(startpos), int32(popcount))
 endfunc
 
-func DynStrPopToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
+func DynStrPopToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
     if astr == nil:
-        CStrClear(adst)
+        EmbStrClear(adst)
         return
     endif
     astr.Pop(acount, adst)
@@ -795,9 +795,9 @@ func DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr
     astr.Delete(0, int32(popcount))
 endfunc
 
-func DynStrPopFirstToCStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
+func DynStrPopFirstToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo):
     if astr == nil:
-        CStrClear(adst)
+        EmbStrClear(adst)
         return
     endif
     astr.PopFirst(acount, adst)

@@ -69,7 +69,7 @@ func *Main():
     var pc_lit : ^char = "asdf"
     PrintText("literal_str", s_lit) //?check("literal_str", '[4] "asdf"')
     PrintText("literal_view", v_lit) //?check("literal_view", '[4] "asdf"')
-    PrintText("literal_cstring", cs_lit) //?check("literal_cstring", '[4] "asdf"')
+    PrintText("literal_embstr", cs_lit) //?check("literal_embstr", '[4] "asdf"')
     PrintText("literal_pc", pc_lit) //?check("literal_pc", '[4] "asdf"')
 
     var one : str = 'a'

@@ -15,7 +15,7 @@
 #include "dqc_ast.h"
 #include "otype_anyvalue.h"
 #include "otype_bool.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_float.h"
 #include "otype_int.h"
 #include "otype_compound.h"
@@ -157,7 +157,7 @@ bool IsAnyValueSourceType(OType * type)
     case TK_CHAR:
     case TK_FLOAT:
     case TK_POINTER:
-    case TK_CSTRING:
+    case TK_EMBSTR:
     case TK_STRSLICE:
     case TK_ROSTR:
     case TK_DYNSTR:
@@ -217,7 +217,7 @@ static bool GenerateAnyValueTextAssign(OScope * scope, LlValue * targetaddr, OEx
   }
   else
   {
-    CallAnyValueFunc(scope, "AnyValSetCString", {targetaddr, descaddr});
+    CallAnyValueFunc(scope, "AnyValSetEmbStr", {targetaddr, descaddr});
   }
   return true;
 }
@@ -286,7 +286,7 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return true;
   }
 
-  if (TK_CSTRING == srctype->kind || TK_STRSLICE == srctype->kind || TK_ROSTR == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
+  if (TK_EMBSTR == srctype->kind || TK_STRSLICE == srctype->kind || TK_ROSTR == srctype->kind || TK_DYNSTR == srctype->kind || IsCCharPointerType(srctype))
   {
     return GenerateAnyValueTextAssign(scope, targetaddr, value, srctype);
   }
@@ -377,7 +377,7 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
       CallAnyValueFunc(scope, setter, {addr, GenerateTextInfoAddress(scope, args[0])});
       return nullptr;
     }
-    case AVM_SET_CSTRING: CallAnyValueFunc(scope, "AnyValSetCString", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
+    case AVM_SET_EMBSTR: CallAnyValueFunc(scope, "AnyValSetEmbStr", {addr, GenerateTextInfoAddress(scope, args[0])}); return nullptr;
     case AVM_IS_STR:     return CallAnyValueFunc(scope, "AnyValIsStr", {addr});
     case AVM_AS_STR:     return CallAnyValueFunc(scope, "AnyValAsStr", {addr, GenerateTextInfoAddress(scope, args[0])});
     case AVM_SET_STR:

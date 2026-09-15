@@ -40,7 +40,7 @@
 #include "otype_float.h"
 #include "otype_bool.h"
 #include "otype_enum.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_compound.h"
 #include "scope_builtins.h"
 #include "artifact_lock.h"
@@ -64,7 +64,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_ARRAY:        return "array";
     case TK_ARRAY_SLICE:  return "array_slice";
     case TK_DYN_ARRAY:    return "dynamic_array";
-    case TK_CSTRING:      return "embstr";
+    case TK_EMBSTR:      return "embstr";
     case TK_STRSLICE:      return "strslice";
     case TK_ROSTR:        return "rostr";
     case TK_DYNSTR:       return "dynstr";
@@ -159,7 +159,7 @@ static string ConstValueText(OValue * avalue)
   {
     return (v->value ? "true" : "false");
   }
-  if (auto * v = dynamic_cast<OValueCString *>(avalue))
+  if (auto * v = dynamic_cast<OValueEmbStr *>(avalue))
   {
     return EscapeStringLiteral(v->value);
   }
@@ -1730,7 +1730,7 @@ OType * OModuleIntf::ResolveDqmIfTypeName(const string & atype_name)
       unsigned long len = stoul(lenstr, &used, 10);
       if ((used == lenstr.size()) && (len > 0) && (len <= UINT32_MAX))
       {
-        return g_builtins->type_cstring->GetSizedType(uint32_t(len));
+        return g_builtins->type_embstr->GetSizedType(uint32_t(len));
       }
     }
     catch (...)
@@ -2137,7 +2137,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     return true;
   }
 
-  if ((DQMIF_VALUE_INLINE != reader.recid) && (DQMIF_VALUE_CSTRING_POINTER != reader.recid))
+  if ((DQMIF_VALUE_INLINE != reader.recid) && (DQMIF_VALUE_EMBSTR_POINTER != reader.recid))
   {
     return reader.Fail(format("Expected DQM interface value record, got 0x{:04X}", reader.recid));
   }
@@ -2148,7 +2148,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     return reader.Fail("DQM interface value type can not be resolved");
   }
 
-  if (DQMIF_VALUE_CSTRING_POINTER == reader.recid)
+  if (DQMIF_VALUE_EMBSTR_POINTER == reader.recid)
   {
     if (!IsCCharPointerType(atype) && TK_ROSTR != rtype->kind)
     {
@@ -2197,13 +2197,13 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     memcpy(&value, &bits, sizeof(value));
     rvalue = new OValueFloat(atype, value);
   }
-  else if (TK_CSTRING == rtype->kind)
+  else if (TK_EMBSTR == rtype->kind)
   {
     string value;
     if (!reader.ReadString(value)) return false;
-    auto * cstrtype = dynamic_cast<OTypeCString *>(atype);
-    uint32_t maxlen = (cstrtype ? cstrtype->maxlen : 0);
-    auto * cvalue = new OValueCString(atype, maxlen);
+    auto * embstrtype = dynamic_cast<OTypeEmbStr *>(atype);
+    uint32_t maxlen = (embstrtype ? embstrtype->maxlen : 0);
+    auto * cvalue = new OValueEmbStr(atype, maxlen);
     cvalue->value = value;
     rvalue = cvalue;
   }
@@ -2437,7 +2437,7 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
       }
     }
     else if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
-             || (DQMIF_VALUE_CSTRING_POINTER == reader.recid))
+             || (DQMIF_VALUE_EMBSTR_POINTER == reader.recid))
     {
       if (!ptype)
       {
@@ -2740,7 +2740,7 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
   }
 
   if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
-      || (DQMIF_VALUE_CSTRING_POINTER == reader.recid))
+      || (DQMIF_VALUE_EMBSTR_POINTER == reader.recid))
   {
     OValue * ignored_value = nullptr;
     if (!ReadInlineValue(reader, ptype, ignored_value) || !reader.NextRec())

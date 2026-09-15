@@ -71,7 +71,7 @@ void OScopeBuiltins::Init()
   type_char16  = new OTypeChar16();
   type_wchar   = new OTypeWchar();
 
-  type_cstring = new OTypeCString(0);  // base unsized type
+  type_embstr = new OTypeEmbStr(0);  // base unsized type
   type_str     = new OTypeDynString();
   type_strslice = new OTypeStrSlice();
   type_rostr = new OTypeRoStr();
@@ -82,7 +82,7 @@ void OScopeBuiltins::Init()
   DefineType(type_char);
   DefineType(type_char16);
   DefineType(type_wchar);
-  DefineType(type_cstring);
+  DefineType(type_embstr);
   DefineType(type_str);
   DefineType(type_strslice);
   DefineType(type_rostr);

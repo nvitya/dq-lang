@@ -17,7 +17,7 @@
 #include "dqc_ast.h"
 #include "../src/dqc.h"
 #include "otype_array.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_float.h"
 #include "otype_func.h"
 #include "otype_int.h"
@@ -321,10 +321,10 @@ void ODqCompAst::CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OL
       return;
     }
 
-    if (TK_CSTRING == containertype->kind)
+    if (TK_EMBSTR == containertype->kind)
     {
-      OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
-      if (cstrtype->maxlen > 0)
+      OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(containertype);
+      if (embstrtype->maxlen > 0)
       {
         CollectIgnoredPlainAssignVars(indexref->base, ignored);
       }
@@ -359,7 +359,7 @@ void ODqCompAst::CollectPlainAssignTargetLValues(OLValueExpr * leftexpr, vector<
   {
     OType * containertype = indexref->containertype ? indexref->containertype->ResolveAlias() : nullptr;
     if (containertype && (TK_ARRAY == containertype->kind
-        || (TK_CSTRING == containertype->kind && static_cast<OTypeCString *>(containertype)->maxlen > 0)))
+        || (TK_EMBSTR == containertype->kind && static_cast<OTypeEmbStr *>(containertype)->maxlen > 0)))
     {
       CollectPlainAssignTargetLValues(indexref->base, targets);
     }
@@ -834,16 +834,16 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
   // Fixed-size embstr values are storage types, so they cannot be the result of
   // iif().  Use the unsized descriptor type, which also provides a natural
   // common type for an embstr buffer and a string literal.
-  auto * truecstr = dynamic_cast<OTypeCString *>(truetype);
-  auto * falsecstr = dynamic_cast<OTypeCString *>(falsetype);
-  if ((truecstr && truecstr->maxlen > 0) || (falsecstr && falsecstr->maxlen > 0))
+  auto * trueembstr = dynamic_cast<OTypeEmbStr *>(truetype);
+  auto * falseembstr = dynamic_cast<OTypeEmbStr *>(falsetype);
+  if ((trueembstr && trueembstr->maxlen > 0) || (falseembstr && falseembstr->maxlen > 0))
   {
-    OType * desctype = g_builtins->type_cstring;
-    if (GetAssignTypeConversionCost(desctype, *rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING) >= 0
-        && GetAssignTypeConversionCost(desctype, *rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING) >= 0)
+    OType * desctype = g_builtins->type_embstr;
+    if (GetAssignTypeConversionCost(desctype, *rtrueexpr, EXPCF_ALLOW_LAZY_EMBSTR) >= 0
+        && GetAssignTypeConversionCost(desctype, *rfalseexpr, EXPCF_ALLOW_LAZY_EMBSTR) >= 0)
     {
-      ConvertExprToType(desctype, rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING);
-      ConvertExprToType(desctype, rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING);
+      ConvertExprToType(desctype, rtrueexpr, EXPCF_ALLOW_LAZY_EMBSTR);
+      ConvertExprToType(desctype, rfalseexpr, EXPCF_ALLOW_LAZY_EMBSTR);
       *rresulttype = desctype;
       return true;
     }
@@ -882,13 +882,13 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
     return false;
   }
 
-  if (ConvertExprToType(truetype, rfalseexpr, EXPCF_ALLOW_LAZY_CSTRING))
+  if (ConvertExprToType(truetype, rfalseexpr, EXPCF_ALLOW_LAZY_EMBSTR))
   {
     *rresulttype = truetype;
     return true;
   }
 
-  if (ConvertExprToType(falsetype, rtrueexpr, EXPCF_ALLOW_LAZY_CSTRING))
+  if (ConvertExprToType(falsetype, rtrueexpr, EXPCF_ALLOW_LAZY_EMBSTR))
   {
     *rresulttype = falsetype;
     return true;
@@ -901,7 +901,7 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
 bool ODqCompAst::CheckAssignType(OType * dsttype, OExpr ** rexpr, const string astmt)
 {
   (void)astmt;
-  return ConvertExprToType(dsttype, rexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING);
+  return ConvertExprToType(dsttype, rexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR);
 }
 
 
@@ -922,10 +922,10 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
     return true;
   }
 
-  if (TK_CSTRING == resolved->kind)
+  if (TK_EMBSTR == resolved->kind)
   {
-    OTypeCString * cstrtype = dynamic_cast<OTypeCString *>(resolved);
-    return cstrtype && (cstrtype->maxlen > 0);
+    OTypeEmbStr * embstrtype = dynamic_cast<OTypeEmbStr *>(resolved);
+    return embstrtype && (embstrtype->maxlen > 0);
   }
 
   return false;
@@ -1488,7 +1488,7 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
       {
         OType * argtype = tfunc->params[pcnt]->ptype;
         if (!ConvertExprToType(argtype, &argexpr,
-                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING | EXPCF_ALLOW_ARRAY_LITERAL_SLICE))
+                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_ARRAY_LITERAL_SLICE))
         {
           bok = false;
           break;

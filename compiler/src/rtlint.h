@@ -24,8 +24,8 @@ enum ETypeKind
   TK_ENUM         =  5,
   TK_CHAR         =  6,
 
-  TK_CSTRING      =  8,
-  TK_STRSLICE      =  9,
+  TK_EMBSTR       =  8,
+  TK_STRSLICE     =  9,
   TK_DYNSTR       = 10,
   TK_ROSTR        = 11,
 

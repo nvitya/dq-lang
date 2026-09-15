@@ -17,7 +17,7 @@
 #include <vector>
 #include "symbols.h"
 #include "ll_defs.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 
@@ -802,86 +802,86 @@ public:
 // --- embstr expressions ---
 
 // String literal: "hello" — type is ^char, creates global constant
-class OCStringLit : public OExpr
+class OEmbStrLit : public OExpr
 {
 public:
   string     value;  // resolved string content (escape-processed)
 
-  /* ctor */ OCStringLit(const string & avalue);
+  /* ctor */ OEmbStrLit(const string & avalue);
   LlValue *  Generate(OScope * scope) override;
 };
 
 // Convert a char/char literal to a temporary zero-terminated C string pointer.
-class OCharLitToCStringPtrExpr : public OExpr
+class OCharLitToEmbStrPtrExpr : public OExpr
 {
 public:
   uint8_t value;
 
-  /* ctor */ OCharLitToCStringPtrExpr(uint8_t avalue);
+  /* ctor */ OCharLitToEmbStrPtrExpr(uint8_t avalue);
   LlValue * Generate(OScope * scope) override;
 };
 
 // sizeof() for unsized embstr parameter: reads SDqTextInfo-compatible descriptor metadata
-class OCStringSizeExpr : public OExpr
+class OEmbStrSizeExpr : public OExpr
 {
 public:
-  OValSym *  cstrvalsym;
-  /* ctor */ OCStringSizeExpr(OValSym * avs);
+  OValSym *  embstrvalsym;
+  /* ctor */ OEmbStrSizeExpr(OValSym * avs);
   LlValue *  Generate(OScope * scope) override;
 };
 
 // len() for embstr: runtime strlen (inline loop scanning for null terminator)
-class OCStringLenExpr : public OExpr
+class OEmbStrLenExpr : public OExpr
 {
 public:
-  OValSym *  cstrvalsym;
-  /* ctor */ OCStringLenExpr(OValSym * avs);
+  OValSym *  embstrvalsym;
+  /* ctor */ OEmbStrLenExpr(OValSym * avs);
   LlValue *  Generate(OScope * scope) override;
 };
 
-class OCStringMetaFieldExpr : public OExpr
+class OEmbStrMetaFieldExpr : public OExpr
 {
 public:
   OExpr *           receiver;
-  ECStringMetaField field;
+  EEmbStrMetaField field;
 
-  /* ctor */ OCStringMetaFieldExpr(OExpr * areceiver, ECStringMetaField afield);
-  ~OCStringMetaFieldExpr() override = default;
+  /* ctor */ OEmbStrMetaFieldExpr(OExpr * areceiver, EEmbStrMetaField afield);
+  ~OEmbStrMetaFieldExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;
 };
 
-class OCStringMethodCallExpr : public OExpr
+class OEmbStrMethodCallExpr : public OExpr
 {
 public:
   OLValueExpr *    receiver;
-  ECStringMethod   method;
+  EEmbStrMethod   method;
   vector<OExpr *>  args;
 
-  /* ctor */ OCStringMethodCallExpr(OLValueExpr * areceiver, ECStringMethod amethod);
-  ~OCStringMethodCallExpr() override = default;
+  /* ctor */ OEmbStrMethodCallExpr(OLValueExpr * areceiver, EEmbStrMethod amethod);
+  ~OEmbStrMethodCallExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;
 };
 
 // Convert embstr(N) variable to an SDqTextInfo-compatible embstr descriptor.
-class OCStringToDescExpr : public OExpr
+class OEmbStrToDescExpr : public OExpr
 {
 public:
-  OValSym *  cstrvalsym;
-  /* ctor */ OCStringToDescExpr(OValSym * avs, OType * desctype);
+  OValSym *  embstrvalsym;
+  /* ctor */ OEmbStrToDescExpr(OValSym * avs, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
 };
 
-class OCStringLValueToDescExpr : public OExpr
+class OEmbStrLValueToDescExpr : public OExpr
 {
 public:
-  OLValueExpr * cstrlval;
+  OLValueExpr * embstrlval;
 
-  /* ctor */ OCStringLValueToDescExpr(OLValueExpr * alval, OType * desctype);
-  ~OCStringLValueToDescExpr() override = default;
+  /* ctor */ OEmbStrLValueToDescExpr(OLValueExpr * alval, OType * desctype);
+  ~OEmbStrLValueToDescExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;
@@ -889,12 +889,12 @@ public:
 
 // Convert a ^char expression to an SDqTextInfo-compatible embstr descriptor.
 // String literals carry a known length; other pointers scan lazily at runtime.
-class OCStringLitToDescExpr : public OExpr
+class OEmbStrLitToDescExpr : public OExpr
 {
 public:
   OExpr *    litexpr;
   uint32_t   litlen;  // known buffer size: strlen + 1, or zero for unknown ^char
-  /* ctor */ OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
+  /* ctor */ OEmbStrLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;

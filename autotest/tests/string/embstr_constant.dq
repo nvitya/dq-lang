@@ -1,10 +1,10 @@
 use print
 
-const CSTR_CONST : embstr = 'constant embstr'
+const EMBSTR_CONST : embstr = 'constant embstr'
 
 func *Main():
     PrintLn('inline_const = "{}"', ['abc'])     //?check('inline_const', '"abc"')
-    PrintLn('CSTR_CONST = "{}"', [CSTR_CONST])  //?check('CSTR_CONST', '"constant embstr"')
-    PrintLn('CSTR_CONST.length = {}', [CSTR_CONST.length])  //?check('CSTR_CONST.length', '15')
-    PrintLn('Len(CSTR_CONST) = {}', [Len(CSTR_CONST)])      //?check('Len(CSTR_CONST)', '15')
+    PrintLn('EMBSTR_CONST = "{}"', [EMBSTR_CONST])  //?check('EMBSTR_CONST', '"constant embstr"')
+    PrintLn('EMBSTR_CONST.length = {}', [EMBSTR_CONST.length])  //?check('EMBSTR_CONST.length', '15')
+    PrintLn('Len(EMBSTR_CONST) = {}', [Len(EMBSTR_CONST)])      //?check('Len(EMBSTR_CONST)', '15')
 endfunc

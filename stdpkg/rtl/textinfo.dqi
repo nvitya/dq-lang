@@ -20,7 +20,7 @@ func TextInfoCharLen(ati : ref SDqTextInfo) -> uint32:
         return ati.charlen
     endif
 
-    result = CStrLen(ati)
+    result = EmbStrLen(ati)
     ati.charlen = result
 endfunc
 

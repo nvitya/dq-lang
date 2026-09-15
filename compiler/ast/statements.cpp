@@ -15,7 +15,7 @@
 #include "scope_builtins.h"
 #include "statements.h"
 #include "otype_array.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "otype_func.h"
@@ -325,10 +325,10 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (TK_CSTRING == variable->ptype->kind)
+  if (TK_EMBSTR == variable->ptype->kind)
   {
-    OTypeCString * cstrtype = static_cast<OTypeCString *>(variable->ptype);
-    if (cstrtype->GenerateStore(scope, variable->ll_value, initvalue))
+    OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(variable->ptype);
+    if (embstrtype->GenerateStore(scope, variable->ll_value, initvalue))
     {
       if (!initvalue)
       {

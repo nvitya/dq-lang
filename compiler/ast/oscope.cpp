@@ -15,7 +15,7 @@
 #include "dqc_base.h"
 #include "otype_compound.h"
 #include "otype_array.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_anyvalue.h"
 #include "dqc.h"
 #include "errorcodes.h"

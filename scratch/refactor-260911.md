@@ -26,7 +26,7 @@
 ### Structural & Algorithmic Duplications
 
 1. **Built-in Type Method Call Parsing Boilerplate**:
-   - [`ParseDynArrayMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L1691-L1737), [`ParseCStringMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L1913-L1958), [`ParseStringMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2056-L2100), and [`ParseAnyValueMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2270-L2304) share identical sequences for:
+   - [`ParseDynArrayMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L1691-L1737), [`ParseEmbStrMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L1913-L1958), [`ParseStringMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2056-L2100), and [`ParseAnyValueMethod`](file:///lindata2/workpr/dq-lang/compiler/parser/dqc_parser_expr.cpp#L2270-L2304) share identical sequences for:
      - Opening parenthesis check
      - Context preservation and restoration (`array_index_context_len`, `array_index_context_lval`, `array_index_context_wchar`)
      - Raw argument parsing and cleanup (`free_and_fail`, `check_count` lambdas)
@@ -117,8 +117,8 @@
    - **Resolution:** Replaced with virtual `virtual OLValueExpr * Clone() const` on [`OLValueExpr`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L74) and overrides on [`OLValueVar`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L89) and [`OLValueMember`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.h#L119) in [`compiler/ast/expressions.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/expressions.cpp). Removed both static functions and updated the call site in [`dqc_parser_expr.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser_expr.cpp).
 
 2. **TextFormat RTL Function Lookup (was 1.A.2)**:
-   - **Original Issue:** `TextFormatFunc` in [`compiler/types/otype_cstring.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_cstring.cpp#L93-L105) and `TextFormatFunc` in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp#L150-L162) were identical 14-line static functions looking up symbols in `__dq_textformat`.
-   - **Resolution:** Declared `TextFormatFunc` and `CallTextFormatFunc` in [`compiler/types/otype_string.h`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.h) and defined them non-static in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp). Deleted duplicated static functions in [`compiler/types/otype_cstring.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_cstring.cpp) and passed `scope` to `CallTextFormatFunc` for proper exception invoke handling.
+   - **Original Issue:** `TextFormatFunc` in [`compiler/types/otype_embstr.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_embstr.cpp#L93-L105) and `TextFormatFunc` in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp#L150-L162) were identical 14-line static functions looking up symbols in `__dq_textformat`.
+   - **Resolution:** Declared `TextFormatFunc` and `CallTextFormatFunc` in [`compiler/types/otype_string.h`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.h) and defined them non-static in [`compiler/types/otype_string.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_string.cpp). Deleted duplicated static functions in [`compiler/types/otype_embstr.cpp`](file:///lindata/workvc/dq-lang/compiler/types/otype_embstr.cpp) and passed `scope` to `CallTextFormatFunc` for proper exception invoke handling.
 
 3. **Property Accessor Signature Matching (was 1.1, 3.E, 4.4)**:
    - **Original Issue:** `MatchPropertyMethod` in [`compiler/parser/dqc_parser.cpp`](file:///lindata/workvc/dq-lang/compiler/parser/dqc_parser.cpp) and `ImportedPropertyMethodMatches` in [`compiler/ast/module_intf.cpp`](file:///lindata/workvc/dq-lang/compiler/ast/module_intf.cpp) executed the exact same algorithm to validate whether a candidate getter/setter method matched a property's indices, value type, and modes.
@@ -137,9 +137,9 @@
      - Added lifecycle and mutation methods on `OTypeDynString`: `GenerateCapacity`, `GenerateRefCount`, `GenerateCreate`, `GenerateIncRef`, `GenerateDestroy`, `GenerateAssignExpr`, `GenerateSetChar`, `GenerateMethodCall`, `GenerateConcat`, `GenerateConcatFromStringValue`.
      - Updated all call sites across AST expressions, statements, codegen, array types, compound types, anyvalue types, and func types.
 
-6. **CString Operations Encapsulation (was 3.C & 4.1)**:
-   - **Original Issue:** Free functions `GenerateCStringDataPtr`, `GenerateCStringMetaField`, `GenerateCStringMethodCall` in `compiler/types/otype_cstring.h` alongside existing member functions.
-   - **Resolution:** Converted to member methods on `OTypeCString` in [`compiler/types/otype_cstring.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_cstring.h): `GenerateDataPtr`, `GenerateMetaField`, and `GenerateMethodCall`. Moved helper enums `ECStringMetaField` and `ECStringMethod` before `OTypeCString` and updated call sites in `compiler/ast/expressions.cpp`.
+6. **EmbStr Operations Encapsulation (was 3.C & 4.1)**:
+   - **Original Issue:** Free functions `GenerateEmbStrDataPtr`, `GenerateEmbStrMetaField`, `GenerateEmbStrMethodCall` in `compiler/types/otype_embstr.h` alongside existing member functions.
+   - **Resolution:** Converted to member methods on `OTypeEmbStr` in [`compiler/types/otype_embstr.{h,cpp}`](file:///lindata/workvc/dq-lang/compiler/types/otype_embstr.h): `GenerateDataPtr`, `GenerateMetaField`, and `GenerateMethodCall`. Moved helper enums `EEmbStrMetaField` and `EEmbStrMethod` before `OTypeEmbStr` and updated call sites in `compiler/ast/expressions.cpp`.
 
 7. **Compound & Struct Type Helpers Encapsulation (was 3.D & 4.1)**:
    - **Original Issue:** File-static functions `CollectStructInitFields` and `AnalyzeStructLiteral` in `otype_compound.cpp`, and `PropertyAccessorVisibleFrom` in `dqc_parser.cpp`.

@@ -1108,9 +1108,9 @@ cs_info.charlen = 0
 cs_info.maxlen  = 31
 cs_info.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
 
-CStrAppend(ref cs_info, "one")
-CStrAppend(ref cs_info, " two")
-CStrAppend(ref cs_info, " three")
+EmbStrAppend(ref cs_info, "one")
+EmbStrAppend(ref cs_info, " two")
+EmbStrAppend(ref cs_info, " three")
 ```
 
 The repeated append operations do not need to rescan the buffer because the descriptor length is known and kept valid.
@@ -1138,7 +1138,7 @@ tmp.charlen = bounded_zero_scan(tmp.dataptr, 31)
 tmp.maxlen  = 31
 tmp.flags   = WRITABLE | ZEROTERM | WIDTH1 | LENGTH_VALID
 
-CStrAppend(ref tmp, " two")
+EmbStrAppend(ref tmp, " two")
 ```
 
 If an `embstr(N)` buffer is passed to unknown external C code through a raw `^char` pointer, the compiler must assume that the external code may modify the contents and therefore invalidate the shared descriptor cache.
@@ -1627,7 +1627,7 @@ function BadView() -> strslice:
   return cs[:]  // should be compile error or warning: returns view into local storage
 endfunc
 
-function BadCStr() -> embstr:
+function BadEmbStr() -> embstr:
   var cs : embstr(31) = "abc"
   return cs  // should be compile error or warning: returns embstr alias to local storage
 endfunc
@@ -1760,38 +1760,38 @@ All calculations of `capacity * charwidth` must be checked for integer overflow.
 C-string helper functions operate on an unsized `embstr` descriptor. At ABI level this is `SDqTextInfo` with writable, zero-terminated, width-1 storage in this draft.
 
 ```dq
-function DqCStrRefreshLength(
+function DqEmbStrRefreshLength(
   cs : ref embstr
 )
 
-function DqCStrAssign(
+function DqEmbStrAssign(
   cs  : ref embstr,
   src : refin strslice
 )
 
-function DqCStrAppend(
+function DqEmbStrAppend(
   cs  : ref embstr,
   src : refin strslice
 )
 
-function DqCStrPrepend(
+function DqEmbStrPrepend(
   cs  : ref embstr,
   src : refin strslice
 )
 
-function DqCStrInsert(
+function DqEmbStrInsert(
   cs    : ref embstr,
   index : int,
   src   : refin strslice
 )
 
-function DqCStrDelete(
+function DqEmbStrDelete(
   cs    : ref embstr,
   index : int,
   count : int = 1
 )
 
-function DqCStrClear(
+function DqEmbStrClear(
   cs : ref embstr
 )
 ```
@@ -1799,7 +1799,7 @@ function DqCStrClear(
 Helpers that need the current logical length first ensure a valid length:
 
 ```text
-function EnsureCStrLength(cs):
+function EnsureEmbStrLength(cs):
   if cs.flags has LENGTH_VALID:
     return
 
@@ -1810,7 +1810,7 @@ function EnsureCStrLength(cs):
 Mutating helpers follow these rules:
 
 ```text
-1. EnsureCStrLength(cs) when the operation needs the current length.
+1. EnsureEmbStrLength(cs) when the operation needs the current length.
 2. Clamp insertion/deletion indexes like dynamic string Insert/Delete.
 3. Copy only as many chars as fit into cs.maxlen.
 4. Always write a zero terminator at cs.dataptr[cs.charlen].

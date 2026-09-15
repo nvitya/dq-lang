@@ -18,7 +18,7 @@
 #include "otype_float.h"
 #include "otype_int.h"
 #include "otype_array.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_string.h"
 #include "rtlint.h"
 #include "otype_func.h"
@@ -241,12 +241,12 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
-    if (resolved_type && (TK_CSTRING == resolved_type->kind || TK_ROSTR == resolved_type->kind))
+    if (resolved_type && (TK_EMBSTR == resolved_type->kind || TK_ROSTR == resolved_type->kind))
     {
       // Text metadata needs addressable descriptor storage, even for constants.
-      LlValue * cstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "cstr.const.tmp");
-      ll_builder.CreateStore(pvalsym->ll_value, cstraddr);
-      return cstraddr;
+      LlValue * embstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "embstr.const.tmp");
+      ll_builder.CreateStore(pvalsym->ll_value, embstraddr);
+      return embstraddr;
     }
     if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
     {
@@ -605,7 +605,7 @@ OLValueExpr * OLValueMember::Clone() const
   {
     ptype = static_cast<OTypeDynArray *>(acontainertype)->elemtype;
   }
-  else if (TK_CSTRING == acontainertype->kind)
+  else if (TK_EMBSTR == acontainertype->kind)
   {
     ptype = g_builtins->type_char;
   }
@@ -669,29 +669,29 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   {
     return static_cast<OTypeDynArray *>(containertype)->GenerateElementAddress(scope, base->GenerateAddress(scope), ll_index);
   }
-  else if (TK_CSTRING == containertype->kind)
+  else if (TK_EMBSTR == containertype->kind)
   {
-    // CString indexing
-    OTypeCString * cstrtype = static_cast<OTypeCString *>(containertype);
+    // EmbStr indexing
+    OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(containertype);
     LlValue * baseaddr = base->GenerateAddress(scope);
     // Addressing a character can mutate storage without updating the descriptor.
-    cstrtype->ResetDescriptorLength(scope, baseaddr);
-    if (cstrtype->maxlen > 0)
+    embstrtype->ResetDescriptorLength(scope, baseaddr);
+    if (embstrtype->maxlen > 0)
     {
       // Sized embstr(N): GEP into [N x i8] with {0, index}
       LlValue * ll_zero = LlNativeIntConst(0);
       return ll_builder.CreateGEP(
-          cstrtype->GetLlType(), baseaddr,
-          {ll_zero, ll_index}, "cstr.elem");
+          embstrtype->GetLlType(), baseaddr,
+          {ll_zero, ll_index}, "embstr.elem");
     }
     else
     {
       // Unsized embstr aliases point at their shared descriptor.
-      LlValue * descaddr = cstrtype->GenerateDescriptor(scope, baseaddr);
+      LlValue * descaddr = embstrtype->GenerateDescriptor(scope, baseaddr);
       LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(
-          g_builtins->type_strslice->GetLlType(), descaddr, 0, "cstr.ptr.addr");
-      LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
-      return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "cstr.elem");
+          g_builtins->type_strslice->GetLlType(), descaddr, 0, "embstr.ptr.addr");
+      LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "embstr.ptr");
+      return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "embstr.elem");
     }
   }
   else if (auto * strtype = dynamic_cast<OTypeString *>(containertype))
@@ -3126,47 +3126,47 @@ LlValue * OInvalidCallExpr::Generate(OScope * scope)
 
 // --- embstr expressions ---
 
-/* ctor */ OCStringLit::OCStringLit(const string & avalue)
+/* ctor */ OEmbStrLit::OEmbStrLit(const string & avalue)
 {
   value = avalue;
   ptype = g_builtins->type_char->GetPointerType();  // ^char
 }
 
-LlValue * OCStringLit::Generate(OScope * scope)
+LlValue * OEmbStrLit::Generate(OScope * scope)
 {
   return ll_builder.CreateGlobalString(value, ".str");
 }
 
-/* ctor */ OCharLitToCStringPtrExpr::OCharLitToCStringPtrExpr(uint8_t avalue)
+/* ctor */ OCharLitToEmbStrPtrExpr::OCharLitToEmbStrPtrExpr(uint8_t avalue)
 {
   value = avalue;
   ptype = g_builtins->type_char->GetPointerType();  // ^char
 }
 
-LlValue * OCharLitToCStringPtrExpr::Generate(OScope * scope)
+LlValue * OCharLitToEmbStrPtrExpr::Generate(OScope * scope)
 {
   (void)scope;
   string s;
   s.push_back(char(value));
-  return ll_builder.CreateGlobalString(s, ".cstr.ch");
+  return ll_builder.CreateGlobalString(s, ".embstr.ch");
 }
 
-/* ctor */ OCStringSizeExpr::OCStringSizeExpr(OValSym * avs)
+/* ctor */ OEmbStrSizeExpr::OEmbStrSizeExpr(OValSym * avs)
 {
-  cstrvalsym = avs;
+  embstrvalsym = avs;
   ptype = g_builtins->type_int;
 }
 
-LlValue * OCStringSizeExpr::Generate(OScope * scope)
+LlValue * OEmbStrSizeExpr::Generate(OScope * scope)
 {
-  auto * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  OLValueVar cstrlval(cstrvalsym);
-  return cstrtype->GenerateMetaField(scope, cstrlval.GenerateAddress(scope), CSMF_STORAGE_SIZE);
+  auto * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
+  OLValueVar embstrlval(embstrvalsym);
+  return embstrtype->GenerateMetaField(scope, embstrlval.GenerateAddress(scope), ESMF_STORAGE_SIZE);
 }
 
-/* ctor */ OCStringLenExpr::OCStringLenExpr(OValSym * avs)
+/* ctor */ OEmbStrLenExpr::OEmbStrLenExpr(OValSym * avs)
 {
-  cstrvalsym = avs;
+  embstrvalsym = avs;
   ptype = g_builtins->type_int;
 }
 
@@ -3174,24 +3174,24 @@ LlValue * OCStringSizeExpr::Generate(OScope * scope)
 
 #if USE_INLINE_STRLEN  // inline version
 
-LlValue * OCStringLenExpr::Generate(OScope * scope)
+LlValue * OEmbStrLenExpr::Generate(OScope * scope)
 {
   LlValue * ll_charptr;
-  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
+  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
 
-  if (cstrtype->maxlen > 0)
+  if (embstrtype->maxlen > 0)
   {
     // Fixed embstr(N): GEP to element 0
     LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-    ll_charptr = ll_builder.CreateGEP(cstrtype->GetLlType(), cstrvalsym->ll_value,
-        {ll_zero, ll_zero}, "cstr.ptr");
+    ll_charptr = ll_builder.CreateGEP(embstrtype->GetLlType(), embstrvalsym->ll_value,
+        {ll_zero, ll_zero}, "embstr.ptr");
   }
   else
   {
     // Unsized embstr param: extract pointer from descriptor
-    LlType * ll_desctype = cstrtype->GetLlType();
-    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, cstrvalsym->ll_value, 0, "cstr.ptr.addr");
-    ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "cstr.ptr");
+    LlType * ll_desctype = embstrtype->GetLlType();
+    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, embstrvalsym->ll_value, 0, "embstr.ptr.addr");
+    ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "embstr.ptr");
   }
 
   // Inline strlen loop
@@ -3223,20 +3223,20 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
 
 #else  // call the strnlen from libc
 
-LlValue * OCStringLenExpr::Generate(OScope * scope)
+LlValue * OEmbStrLenExpr::Generate(OScope * scope)
 {
-  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  OLValueVar cstrlval(cstrvalsym);
-  return cstrtype->GenerateMetaField(scope, cstrlval.GenerateAddress(scope), CSMF_LENGTH);
+  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
+  OLValueVar embstrlval(embstrvalsym);
+  return embstrtype->GenerateMetaField(scope, embstrlval.GenerateAddress(scope), ESMF_LENGTH);
 }
 
 #endif
 
-/* ctor */ OCStringMetaFieldExpr::OCStringMetaFieldExpr(OExpr * areceiver, ECStringMetaField afield)
+/* ctor */ OEmbStrMetaFieldExpr::OEmbStrMetaFieldExpr(OExpr * areceiver, EEmbStrMetaField afield)
 {
   receiver = areceiver;
   field = afield;
-  if (CSMF_PCHAR == field)
+  if (ESMF_PCHAR == field)
   {
     ptype = g_builtins->type_char->GetPointerType();
   }
@@ -3246,44 +3246,44 @@ LlValue * OCStringLenExpr::Generate(OScope * scope)
   }
 }
 
-LlValue * OCStringMetaFieldExpr::Generate(OScope * scope)
+LlValue * OEmbStrMetaFieldExpr::Generate(OScope * scope)
 {
-  auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
+  auto * embstrtype = static_cast<OTypeEmbStr *>(receiver->ptype->ResolveAlias());
   if (auto * lvalue = dynamic_cast<OLValueExpr *>(receiver))
   {
-    return cstrtype->GenerateMetaField(scope, lvalue->GenerateAddress(scope), field);
+    return embstrtype->GenerateMetaField(scope, lvalue->GenerateAddress(scope), field);
   }
 
-  LlValue * temp = CreateEntryBlockAlloca(cstrtype->GetLlType(), nullptr, "cstr.meta.tmp");
+  LlValue * temp = CreateEntryBlockAlloca(embstrtype->GetLlType(), nullptr, "embstr.meta.tmp");
   ll_builder.CreateStore(receiver->Generate(scope), temp);
-  return cstrtype->GenerateMetaField(scope, temp, field);
+  return embstrtype->GenerateMetaField(scope, temp, field);
 }
 
-void OCStringMetaFieldExpr::FoldChildren()
+void OEmbStrMetaFieldExpr::FoldChildren()
 {
   OExpr::FoldTree(&receiver);
 }
 
-void OCStringMetaFieldExpr::DeleteChildTree()
+void OEmbStrMetaFieldExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(receiver);
   receiver = nullptr;
 }
 
-/* ctor */ OCStringMethodCallExpr::OCStringMethodCallExpr(OLValueExpr * areceiver, ECStringMethod amethod)
+/* ctor */ OEmbStrMethodCallExpr::OEmbStrMethodCallExpr(OLValueExpr * areceiver, EEmbStrMethod amethod)
 {
   receiver = areceiver;
   method = amethod;
   ptype = nullptr;
 }
 
-LlValue * OCStringMethodCallExpr::Generate(OScope * scope)
+LlValue * OEmbStrMethodCallExpr::Generate(OScope * scope)
 {
-  auto * cstrtype = static_cast<OTypeCString *>(receiver->ptype->ResolveAlias());
-  return cstrtype->GenerateMethodCall(scope, receiver->GenerateAddress(scope), method, args);
+  auto * embstrtype = static_cast<OTypeEmbStr *>(receiver->ptype->ResolveAlias());
+  return embstrtype->GenerateMethodCall(scope, receiver->GenerateAddress(scope), method, args);
 }
 
-void OCStringMethodCallExpr::FoldChildren()
+void OEmbStrMethodCallExpr::FoldChildren()
 {
   OExpr * tmp = receiver;
   OExpr::FoldTree(&tmp);
@@ -3294,7 +3294,7 @@ void OCStringMethodCallExpr::FoldChildren()
   }
 }
 
-void OCStringMethodCallExpr::DeleteChildTree()
+void OEmbStrMethodCallExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(receiver);
   receiver = nullptr;
@@ -3306,55 +3306,55 @@ void OCStringMethodCallExpr::DeleteChildTree()
   args.clear();
 }
 
-/* ctor */ OCStringToDescExpr::OCStringToDescExpr(OValSym * avs, OType * desctype)
+/* ctor */ OEmbStrToDescExpr::OEmbStrToDescExpr(OValSym * avs, OType * desctype)
 {
-  cstrvalsym = avs;
+  embstrvalsym = avs;
   ptype = desctype;
 }
 
-LlValue * OCStringToDescExpr::Generate(OScope * scope)
+LlValue * OEmbStrToDescExpr::Generate(OScope * scope)
 {
-  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrvalsym->ptype);
-  OLValueVar cstrlval(cstrvalsym);
+  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
+  OLValueVar embstrlval(embstrvalsym);
 
-  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval.GenerateAddress(scope));
+  LlValue * descaddr = embstrtype->GenerateDescriptor(scope, embstrlval.GenerateAddress(scope));
   return descaddr;
 }
 
-/* ctor */ OCStringLValueToDescExpr::OCStringLValueToDescExpr(OLValueExpr * alval, OType * desctype)
+/* ctor */ OEmbStrLValueToDescExpr::OEmbStrLValueToDescExpr(OLValueExpr * alval, OType * desctype)
 {
-  cstrlval = alval;
+  embstrlval = alval;
   ptype = desctype;
 }
 
-LlValue * OCStringLValueToDescExpr::Generate(OScope * scope)
+LlValue * OEmbStrLValueToDescExpr::Generate(OScope * scope)
 {
-  OTypeCString * cstrtype = static_cast<OTypeCString *>(cstrlval->ptype->ResolveAlias());
-  LlValue * descaddr = cstrtype->GenerateDescriptor(scope, cstrlval->GenerateAddress(scope));
+  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrlval->ptype->ResolveAlias());
+  LlValue * descaddr = embstrtype->GenerateDescriptor(scope, embstrlval->GenerateAddress(scope));
   return descaddr;
 }
 
-void OCStringLValueToDescExpr::FoldChildren()
+void OEmbStrLValueToDescExpr::FoldChildren()
 {
-  OExpr * tmp = cstrlval;
+  OExpr * tmp = embstrlval;
   OExpr::FoldTree(&tmp);
-  cstrlval = static_cast<OLValueExpr *>(tmp);
+  embstrlval = static_cast<OLValueExpr *>(tmp);
 }
 
-void OCStringLValueToDescExpr::DeleteChildTree()
+void OEmbStrLValueToDescExpr::DeleteChildTree()
 {
-  OExpr::DeleteTree(cstrlval);
-  cstrlval = nullptr;
+  OExpr::DeleteTree(embstrlval);
+  embstrlval = nullptr;
 }
 
-/* ctor */ OCStringLitToDescExpr::OCStringLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype)
+/* ctor */ OEmbStrLitToDescExpr::OEmbStrLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype)
 {
   litexpr = alit;
   litlen  = alen;
   ptype   = desctype;
 }
 
-LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
+LlValue * OEmbStrLitToDescExpr::Generate(OScope * scope)
 {
   LlValue * ll_ptr = litexpr->Generate(scope);
   uint32_t charlen = (litlen ? litlen - 1 : DQTIF_CHARLEN_INVALID);
@@ -3374,12 +3374,12 @@ LlValue * OCStringLitToDescExpr::Generate(OScope * scope)
   return descaddr;
 }
 
-void OCStringLitToDescExpr::FoldChildren()
+void OEmbStrLitToDescExpr::FoldChildren()
 {
   OExpr::FoldTree(&litexpr);
 }
 
-void OCStringLitToDescExpr::DeleteChildTree()
+void OEmbStrLitToDescExpr::DeleteChildTree()
 {
   OExpr::DeleteTree(litexpr);
   litexpr = nullptr;

@@ -1,0 +1,280 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/embstrs.dqi, included by "rtl/strfunc.dq"
+ * authors: nvitya
+ * created: 2026-07-06
+ * brief:   RTL Helpers for the DQ embstr handling
+ */
+
+func EmbStrRuntimeError(emsg : ^char):
+    RuntimeError(emsg)
+endfunc
+
+func EmbStrMaxLen(desc : ref SDqTextInfo) -> uint:
+    result = desc.info & DQTI_MAXCHLEN_MASK
+endfunc
+
+func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint:
+    return EmbStrMaxLen(desc) + 1
+endfunc
+
+func EmbStrScanLen(desc : ref SDqTextInfo) -> uint:
+    var maxlen : uint = desc.info & DQTI_MAXCHLEN_MASK
+    if desc.dataptr == nil:
+        return 0
+    endif
+
+    // register-optimised version
+    var pstart : ^char = desc.dataptr
+    var p      : ^char = pstart
+    var pend   : ^char = p[maxlen]
+    while p < pend:
+        if p^ == char(0):
+            return p - pstart
+        endif
+        p += 1
+    endwhile
+
+    return maxlen
+endfunc
+
+func EmbStrLen(desc : ref SDqTextInfo) -> uint:
+    if desc.charlen & DQTIF_CHARLEN_INVALID == 0:
+        return desc.charlen
+    endif
+
+    result = EmbStrScanLen(desc)
+    desc.charlen = result
+endfunc
+
+func EmbStrWriteTerm(desc : ref SDqTextInfo, clen : uint):
+    if desc.dataptr <> nil:
+        desc.dataptr[clen]^ = char(0)
+    endif
+endfunc
+
+func EmbStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
+    desc.charlen = newlen
+    if desc.dataptr <> nil:
+        desc.dataptr[newlen]^ = char(0)
+    endif
+endfunc
+
+
+func EmbStrBoundedPtrLen(src : ^char, maxcopy : uint) -> uint:
+    if src == nil:
+        return 0
+    endif
+
+    // register optimized version
+    var srcp   : ^char = src
+    var srcend : ^char = src[maxcopy]
+    while srcp < srcend:
+        if srcp^ == char(0):
+            return srcp - src
+        endif
+        srcp += 1
+    endwhile
+
+    return maxcopy
+endfunc
+
+func EmbStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^char, maxcopy : uint) -> uint:
+    if desc.dataptr == nil  or src == nil  or maxcopy == 0:
+        return 0
+    endif
+
+    var count : uint = EmbStrBoundedPtrLen(src, maxcopy)
+    if count > 0:
+        MemCopy(desc.dataptr[dstpos], src, count)
+    endif
+    return count
+endfunc
+
+func EmbStrClear(desc : ref SDqTextInfo):
+    EmbStrSetLenAndTerm(desc, 0)
+endfunc
+
+func EmbStrAssignChar(desc : ref SDqTextInfo, ch : char):
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if maxlen <= 0:
+        EmbStrSetLenAndTerm(desc, 0)
+        return
+    endif
+
+    desc.dataptr^ = char(ch)
+    EmbStrSetLenAndTerm(desc, 1)
+endfunc
+
+func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char):
+    var maxlen : uint = EmbStrMaxLen(desc)
+    var copied : uint = EmbStrCopyFromPtr(desc, 0, src, maxlen)
+    EmbStrSetLenAndTerm(desc, copied)
+endfunc
+
+func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+    var srclen : uint = EmbStrLen(src)
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if srclen > maxlen:
+        srclen = maxlen
+    endif
+    if srclen > 0:
+        MemCopy(desc.dataptr, src.dataptr, srclen)
+    endif
+    EmbStrSetLenAndTerm(desc, srclen)
+endfunc
+
+func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char):
+    var clen : uint = EmbStrLen(desc)
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if clen >= maxlen:
+        EmbStrWriteTerm(desc, maxlen)
+        return
+    endif
+
+    var copied : uint = EmbStrCopyFromPtr(desc, clen, src, maxlen - clen)
+    clen += copied
+    EmbStrSetLenAndTerm(desc, clen)
+endfunc
+
+func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+    EmbStrInsertDesc(desc, EmbStrLen(desc), src)
+endfunc
+
+func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char):
+    var clen : uint = EmbStrLen(desc)
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if clen >= maxlen:
+        EmbStrWriteTerm(desc, maxlen)
+        return
+    endif
+
+    desc.dataptr[clen]^ = char(ch)
+    clen += 1
+    EmbStrSetLenAndTerm(desc, clen)
+endfunc
+
+func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char):
+    EmbStrInsertPtr(desc, 0, src)
+endfunc
+
+func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+    EmbStrInsertDesc(desc, 0, src)
+endfunc
+
+func EmbStrPrependChar(desc : ref SDqTextInfo, ch : char):
+    EmbStrInsertChar(desc, 0, ch)
+endfunc
+
+func EmbStrClampIndex(index : int, clen : uint) -> uint:
+    if index <= 0:
+        return 0
+    elif index >= clen:
+        return clen
+    else:
+        result = index
+    endif
+endfunc
+
+func EmbStrOpenGap(desc : ref SDqTextInfo, index : uint, addlen : uint, oldlen : uint) -> uint:
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if addlen == 0  or index >= maxlen:
+        return 0
+    endif
+    if addlen > maxlen - index:
+        addlen = maxlen - index
+    endif
+
+    if index < oldlen and index + addlen < maxlen:
+        var movecount : uint = oldlen - index
+        if movecount > maxlen - index - addlen:
+            movecount = maxlen - index - addlen
+        endif
+        MemCopy(desc.dataptr[index + addlen], desc.dataptr[index], movecount)
+    endif
+    return addlen
+endfunc
+
+func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char):
+    var oldlen : uint = EmbStrLen(desc)
+    var pos : uint = EmbStrClampIndex(index, oldlen)
+    var maxlen : uint = EmbStrMaxLen(desc)
+    var addlen : uint = EmbStrBoundedPtrLen(src, maxlen - pos)
+    addlen = EmbStrOpenGap(desc, pos, addlen, oldlen)
+    if addlen > 0:
+        MemCopy(desc.dataptr[pos], src, addlen)
+    endif
+    var newlen : uint = oldlen + addlen
+    if newlen > maxlen:
+        newlen = maxlen
+    endif
+    EmbStrSetLenAndTerm(desc, newlen)
+endfunc
+
+func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo):
+    var oldlen : uint = EmbStrLen(desc)
+    var pos : uint = EmbStrClampIndex(index, oldlen)
+    var maxlen : uint = EmbStrMaxLen(desc)
+    var addlen : uint = EmbStrLen(src)
+    if addlen > maxlen - pos:
+        addlen = maxlen - pos
+    endif
+    addlen = EmbStrOpenGap(desc, pos, addlen, oldlen)
+    if addlen > 0:
+        MemCopy(desc.dataptr[pos], src.dataptr, addlen)
+    endif
+    var newlen : uint = oldlen + addlen
+    if newlen > maxlen:
+        newlen = maxlen
+    endif
+    EmbStrSetLenAndTerm(desc, newlen)
+endfunc
+
+func EmbStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char):
+    var oldlen : uint = EmbStrLen(desc)
+    var pos    : uint = EmbStrClampIndex(index, oldlen)
+    var addlen : uint = EmbStrOpenGap(desc, pos, 1, oldlen)
+    if addlen > 0:
+        var p : ^char = desc.dataptr
+        p += pos
+        p^ = char(ch)
+    endif
+    var newlen : uint = oldlen + addlen
+    var maxlen : uint = EmbStrMaxLen(desc)
+    if newlen > maxlen:
+        newlen = maxlen
+    endif
+    EmbStrSetLenAndTerm(desc, newlen)
+endfunc
+
+func EmbStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1):
+    if count <= 0:
+        return
+    endif
+
+    var clen : uint = EmbStrLen(desc)
+    var pos  : uint = EmbStrClampIndex(index, clen)
+    if pos >= clen:
+        return
+    endif
+
+    var delcount : uint = count
+    if delcount > clen - pos:
+        delcount = clen - pos
+    endif
+
+    var tail : uint = clen - pos - delcount
+    if tail > 0:
+        MemCopy(desc.dataptr[pos], desc.dataptr[pos + delcount], tail)
+    endif
+
+    clen -= delcount
+    EmbStrSetLenAndTerm(desc, clen)
+endfunc

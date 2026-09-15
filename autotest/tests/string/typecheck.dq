@@ -27,13 +27,13 @@ func StrSliceIsReadonly():
     v.PopFirst() //?error(MemberUnknown)
 endfunc
 
-func CStringDynamicStorageMethodsAreInvalid():
+func EmbStrDynamicStorageMethodsAreInvalid():
     var cs : embstr(9) = "abc"
     cs.Reserve(100) //?error(MemberUnknown)
     cs.Compact() //?error(MemberUnknown)
 endfunc
 
-func UnsizedCStringMustAliasStorage():
+func UnsizedEmbStrMustAliasStorage():
     var no_storage : embstr //?error(NotSupported)
     var literal_alias : embstr = "abc" //?error(TypeMismatchAssign)
 endfunc
@@ -47,7 +47,7 @@ func StringNeedsExplicitSetLengthFill():
     s.SetLength(5) //?error(FuncArgsTooFew)
 endfunc
 
-func CstringCannotStoreWideCharacterWithoutConversion():
+func EmbStrCannotStoreWideCharacterWithoutConversion():
     var cs : embstr(9) = "abc"
     cs[1] = char(0x1F600) //?error(TypeMismatchAssign)
 endfunc

@@ -70,7 +70,7 @@ func AnyValIsText(v : ref SDqAnyValue) -> bool
 func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo)
 func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo)
-func AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 
 #ifdef DYNSTRINGS
 func AnyValIsStr(v : ref SDqAnyValue) -> bool   // true only when it is a dynamic string
@@ -342,9 +342,9 @@ endfunc
 
 func AnyValIsText(v : ref SDqAnyValue) -> bool:
 #ifdef DYNSTRINGS
-    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_CSTRING
+    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_EMBSTR
 #else
-    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_CSTRING
+    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_EMBSTR
 #endif
 endfunc
 
@@ -390,14 +390,14 @@ func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo):
     v.datasize = SizeOf(SDqTextInfo)
 endfunc
 
-func AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo):
-    AnyValSetKind(v, DQTK_CSTRING)
+func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqTextInfo):
+    AnyValSetKind(v, DQTK_EMBSTR)
     ^SDqTextInfo(%v.data[0])^ = ati
     v.datasize = SizeOf(SDqTextInfo)
 endfunc
 
 func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
-    if v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_CSTRING:
+    if v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_EMBSTR:
         rv = ^SDqTextInfo(%v.data[0])^
 #ifdef DYNSTRINGS
     elif v.kind == DQTK_DYNSTR:

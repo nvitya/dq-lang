@@ -40,7 +40,7 @@ func *Main():
     PrintText("str_char", s + '?') //?check("str_char", '[3] "ab?"')
     PrintText("char_str", '<' + s) //?check("char_str", '[3] "<ab"')
     PrintText("strslice_str", v + s) //?check("strslice_str", '[4] "cdab"')
-    PrintText("cstring_str", cs + s) //?check("cstring_str", '[4] "efab"')
+    PrintText("embstring_str", cs + s) //?check("embstring_str", '[4] "efab"')
     PrintText("ptr_str", pc + s) //?check("ptr_str", '[4] "ghab"')
     PrintText("str_char_value", s + cc) //?check("str_char_value", '[3] "ab!"')
     PrintText("literal_literal", "ij" + "kl") //?check("literal_literal", '[4] "ijkl"')

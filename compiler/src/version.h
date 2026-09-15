@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.68.1"
+#define DQ_COMPILER_VERSION  "0.68.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.68.2:
+  - Compiler code refactoring: cstring -> embstr internal renames
 v0.68.1:
   - embstr length cacheing fix
 v0.68.0:
@@ -37,13 +39,13 @@ v0.64.0:
   - Introduced rostr for better string arguments instead of strview.
     rostr can be used directly as libc ^char arguments
 v0.63.3:
-  - cstring type can be passed directly to ^char without internal conversions
+  - embstr type can be passed directly to ^char without internal conversions
 v0.63.2:
   - Added support for ^char consts:  const TXT : ^char = '...'
 v0.63.1:
   - Added FileRemove() to the file module
 v0.63.0:
-  - Compiler fix calculating length for cstring constants
+  - Compiler fix calculating length for embstr constants
 v0.62.7:
   - Compiler code refactoring - decomposed long functions: ODqCompParserExpr::ParsePostfix,
     ODqCompParserStmt::ReadStatementBlock, ODqCompParser::FinishFunctionDecl
@@ -257,7 +259,7 @@ v0.37.1:
 v0.37.0:
   - arm_m7f-bare target object generation
 v0.36.2:
-  - rtl/cstring.dq merged into the rtl/strfunc.dq (as includes)
+  - rtl/embstr.dq merged into the rtl/strfunc.dq (as includes)
 v0.36.1:
   - Module lock handling fixes:
     - shared locks on both object and interface artifacts during validation,
@@ -342,7 +344,7 @@ v0.28.6:
 v0.28.5:
   - Exception propagation fix
 v0.28.4:
-  - Working `const STR_CONST : cstring = 'constant'`
+  - Working `const STR_CONST : embstr = 'constant'`
 v0.28.3:
   - Human-friendly default floating point formatting, not displaying trailing zeroes
 v0.28.2:
@@ -422,7 +424,7 @@ v0.20.15:
   - Pointers are initialized to null by default
   - Top-level signal handler refactoring
 v0.20.14:
-  - cstring size parsing fix
+  - embstr size parsing fix
 v0.20.13:
   - Exception refactorings
 v0.20.12:
@@ -435,7 +437,7 @@ v0.20.10:
 v0.20.9:
   - Backtrace printing fix: skipping the first two internal positions
 v0.20.8:
-  - Exceptions use embedded cstring(127) instead str (dynamic string) for message
+  - Exceptions use embedded embstr(127) instead str (dynamic string) for message
 v0.20.7:
   - Exception handling fix for not using invalid return values
 v0.20.6:
@@ -463,11 +465,11 @@ v0.19.11:
 v0.19.10:
   - Format() function added to the strutils module
 v0.19.9:
-  - Allow the [[nowarn]] attribute after the type specifier:  var cs : [[nowarn]] cstring(4)
+  - Allow the [[nowarn]] attribute after the type specifier:  var cs : [[nowarn]] embstr(4)
 v0.19.8:
-  - Warning, when the cstring storage size is not divisible with 4
+  - Warning, when the embstr storage size is not divisible with 4
 v0.19.7:
-  - New methods added to cstring and str: .Add(), .AddFmt()
+  - New methods added to embstr and str: .Add(), .AddFmt()
 v0.19.6:
   - No object forward declaration is required for struct/object to linking to own
   - Added strutils module with the StrToInt() function
@@ -544,11 +546,11 @@ v0.14.4:
 v0.14.3:
   - ETypeKind split to future expansions
 v0.14.2:
-  - allow string literal to cstring conversion
+  - allow string literal to embstr conversion
 v0.14.1:
-  - Slightly optimized cstring handling RTL
+  - Slightly optimized embstr handling RTL
 v0.14.0:
-  - New cstring implementation
+  - New embstr implementation
 v0.13.1:
   - Dynamic arrays implemented according the new specification
 v0.13.0:
@@ -558,7 +560,7 @@ v0.13.0:
     - $end, $last local symbols
     - [?] for inferred length
 v0.12.4:
-  - ^char is now assignable to cstring(n)
+  - ^char is now assignable to embstr(n)
 v0.12.3:
   - Another object reference handling fix
 v0.12.2:
@@ -571,7 +573,7 @@ v0.12.0:
 v0.11.27:
   - Allow braces block mode for object and struct
 v0.11.26:
-  - cstring initialization fix
+  - embstr initialization fix
 v0.11.25:
   - Object comparison fix, constructorless object handling fix
 v0.11.24:

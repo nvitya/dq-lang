@@ -57,7 +57,7 @@ func ObjTest():
     delete ochild
 endfunc
 
-func cstr_add(dst : embstr, src : embstr):
+func embstr_add(dst : embstr, src : embstr):
     var ps     : ^char = %src[0]
     var psend  : ^char = ps[src.storage_size]  // [] does not dereference
     var pd     : ^char = %dst[0]
@@ -92,8 +92,8 @@ endfunc
 func *Main():
 
     var s : embstr(128) = ""
-    cstr_add(s, "Hello")
-    cstr_add(s, " World!\n")
+    embstr_add(s, "Hello")
+    embstr_add(s, " World!\n")
     WriteStr(s)
 
     if 3 / 2 * 10 == 10 * 3 / 2:

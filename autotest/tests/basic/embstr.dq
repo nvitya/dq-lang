@@ -3,8 +3,8 @@
 // new type: "char": 8-bit char, same as "char" in C
 // embstr(N): N bytes of storage, including the terminating zero byte
 
-var dq_cstr  : embstr(256) = "DQ String Test\n"
-var dq_cstr2 : embstr(40)  = 'Using signle quotes\n'
+var dq_embstr  : embstr(256) = "DQ String Test\n"
+var dq_embstr2 : embstr(40)  = 'Using signle quotes\n'
 
 // These functions come from LIBC, so the program must be linked with the libc.
 func putchar(c : char) -> int  [[external]]
@@ -26,7 +26,7 @@ func dq_writestr(s : embstr):
     endwhile
 endfunc
 
-func cstr_add(dst : embstr, src : embstr):  // later this will be a DQ library func
+func embstr_add(dst : embstr, src : embstr):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + src.storage_size
     var pd     : ^char = %dst[0]
@@ -53,21 +53,21 @@ func dq_str_append(a : embstr, b : embstr):
     if Len(a) + Len(b) > a.storage_size - 1:  // append to the a only when the whole will fit.
         return
     endif
-    cstr_add(a, b)
+    embstr_add(a, b)
 endfunc
 func *Main():
-    dq_writepc('dq_cstr = ')
-    dq_writestr(dq_cstr)  //?check('dq_cstr', 'DQ String Test')
+    dq_writepc('dq_embstr = ')
+    dq_writestr(dq_embstr)  //?check('dq_embstr', 'DQ String Test')
 
     var s : embstr(128) = ""
 
-    var warn_s1 : embstr(5) //?warning(CStrStorageSize)
+    var warn_s1 : embstr(5) //?warning(EmbStrStorageSize)
     var warn_s2 : [[nowarn]] embstr(5)
 
     var hello : embstr(16) = "Hello"
     var world : embstr(16) = " World!\n"
-    cstr_add(s, hello)
-    cstr_add(s, world)
+    embstr_add(s, hello)
+    embstr_add(s, world)
 
     dq_writepc('s = ')
     dq_writestr(s)

@@ -160,7 +160,7 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
       if (!fparam->IsRefLike())
       {
         int conv_cost = g_compiler->GetAssignTypeConversionCost(
-            fparam->ptype, arg, EXPCF_ALLOW_LAZY_CSTRING | EXPCF_ALLOW_ARRAY_LITERAL_SLICE);
+            fparam->ptype, arg, EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_ARRAY_LITERAL_SLICE);
         if (conv_cost < 0)
         {
           match = false;
@@ -1593,7 +1593,7 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
     if (convert)
     {
       if (!g_compiler->ConvertExprToType(field_type, &entry.value,
-                                         aflags | EXPCF_ALLOW_LAZY_CSTRING))
+                                         aflags | EXPCF_ALLOW_LAZY_EMBSTR))
       {
         return -1;
       }
@@ -1603,7 +1603,7 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
     else
     {
       int cost = g_compiler->GetAssignTypeConversionCost(
-          field_type, entry.value, aflags | EXPCF_ALLOW_LAZY_CSTRING);
+          field_type, entry.value, aflags | EXPCF_ALLOW_LAZY_EMBSTR);
       if (cost < 0)
       {
         return -1;

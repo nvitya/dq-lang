@@ -239,10 +239,10 @@ DEF_DQ_ERR(DQERR_STRUCT_INIT_DUP_FIELD,             "StructInitDuplicateField", 
 DEF_DQ_ERR(DQERR_STRUCT_INIT_EXCESS,                "StructInitExcess",       "Too many positional values for struct \"$1\"");
 DEF_DQ_ERR(DQERR_STRUCT_INIT_MISSING,               "StructInitMissing",      "Missing initializer for field \"$1\" of struct \"$2\"");
 DEF_DQ_ERR(DQERR_ARR_SLICE_CONVERSION,             "ArrSlice",               "Cannot convert non-variable array to slice");
-DEF_DQ_ERR(DQERR_CSTR_SIZE_EXPECTED,               "CStrSizeExpected",       "embstr size expected, example: embstr(n)");
-DEF_DQ_ERR(DQERR_CSTR_SIZE_INVALID,                "CStrSizeInvalid",        "Invalid embstr size, it must be a positive integer");
-DEF_DQ_ERR(DQERR_CSTR_CONSTEXPR,                   "CStrConstExpr",          "CString constant expression error: string literal expected");
-DEF_DQ_ERR(DQERR_CSTR_CONVERSION,                  "CStrConversion",         "Invalid CString conversion");  // used with custom text
+DEF_DQ_ERR(DQERR_EMBSTR_SIZE_EXPECTED,               "EmbStrSizeExpected",       "embstr size expected, example: embstr(n)");
+DEF_DQ_ERR(DQERR_EMBSTR_SIZE_INVALID,                "EmbStrSizeInvalid",        "Invalid embstr size, it must be a positive integer");
+DEF_DQ_ERR(DQERR_EMBSTR_CONSTEXPR,                   "EmbStrConstExpr",          "EmbStr constant expression error: string literal expected");
+DEF_DQ_ERR(DQERR_EMBSTR_CONVERSION,                  "EmbStrConversion",         "Invalid EmbStr conversion");  // used with custom text
 
 DEF_DQ_ERR(DQERR_PTRARITH_TYPE,                    "PtrArithType",           "Pointer arithmetic requires an integer offset, got \"$1\"");
 
@@ -319,7 +319,7 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 //-----------------------------------------------------------------------------
 
 DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
-DEF_DQ_WARN(DQWARN_CSTR_STORAGE_SIZE,              "CStrStorageSize",        "embstr($1) storage size ($2) is not divisible by 4");
+DEF_DQ_WARN(DQWARN_EMBSTR_STORAGE_SIZE,              "EmbStrStorageSize",        "embstr($1) storage size ($2) is not divisible by 4");
 DEF_DQ_WARN(DQWARN_METHOD_USE_NO_EFFECT,           "MethodUseNoEffect",      "Method-body use \"$1\" has no effect");
 
 //-----------------------------------------------------------------------------

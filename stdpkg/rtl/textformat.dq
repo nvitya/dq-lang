@@ -82,7 +82,7 @@ endobject
 
 #endif    
 
-object OTextSinkCString(OTextSink):
+object OTextSinkEmbStr(OTextSink):
     dest : embstr
 
     func *Create(adest : embstr)
@@ -146,7 +146,7 @@ protected
 
 endobject
 
-func CStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue)
+func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue)
 #ifdef DYNSTRINGS
 func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue)
 #endif
@@ -197,16 +197,16 @@ endfunc
 
 #endif
 
-func OTextSinkCString.*Create(adest : embstr):
+func OTextSinkEmbStr.*Create(adest : embstr):
     inherited Create()
     dest = adest
 endfunc
 
-func OTextSinkCString.Write(atext : strslice) [[override]]:
+func OTextSinkEmbStr.Write(atext : strslice) [[override]]:
     dest.Append(atext)
 endfunc
 
-func OTextSinkCString.WriteChar(ch : char) [[override]]:
+func OTextSinkEmbStr.WriteChar(ch : char) [[override]]:
     dest.AppendChar(ch)
 endfunc
 
@@ -634,8 +634,8 @@ endfunc
 
 //----------------------------------------------------------------------------------------
 
-func CStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue):
-    var osink <- OTextSinkCString(adest)
+func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue):
+    var osink <- OTextSinkEmbStr(adest)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)
 endfunc

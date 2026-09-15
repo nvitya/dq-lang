@@ -1,6 +1,6 @@
 //?notest
 
-func cstr_set(dst : embstr, src : embstr):  // later this will be a DQ library func
+func embstr_set(dst : embstr, src : embstr):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + src.storage_size
     var pd     : ^char = %dst[0]
@@ -16,7 +16,7 @@ func cstr_set(dst : embstr, src : embstr):  // later this will be a DQ library f
     pd^ = char(0) // terminate
 endfunc
 
-func cstr_add(dst : embstr, src : embstr):  // later this will be a DQ library func
+func embstr_add(dst : embstr, src : embstr):  // later this will be a DQ library func
     var ps     : ^char = %src[0]
     var psend  : ^char = ps + src.storage_size
     var pd     : ^char = %dst[0]

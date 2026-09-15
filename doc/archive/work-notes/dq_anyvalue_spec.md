@@ -30,7 +30,7 @@ const DQTK_BOOL         : uint8 =  3
 const DQTK_POINTER      : uint8 =  4
 const DQTK_ENUM         : uint8 =  5
 const DQTK_CHAR         : uint8 =  6
-const DQTK_CSTRING      : uint8 =  8
+const DQTK_EMBSTR      : uint8 =  8
 const DQTK_STRSLICE      : uint8 =  9
 const DQTK_DYNSTR       : uint8 = 10
 const DQTK_ANYVALUE     : uint8 = 15
@@ -186,7 +186,7 @@ bool              DQTK_BOOL
 int/uint/char     DQTK_INT
 float32/float64   DQTK_FLOAT
 str               DQTK_DYNSTR
-embstr           DQTK_CSTRING
+embstr           DQTK_EMBSTR
 strslice           DQTK_STRSLICE
 pointer           DQTK_POINTER
 anyvalue          DQTK_ANYVALUE
@@ -234,14 +234,14 @@ DQTK_BOOL       data[0] = 0 or 1
 DQTK_INT        data[0..datasize-1] = integer bits, sign from subtype
 DQTK_FLOAT      data[0..datasize-1] = IEEE bits, width from datasize
 DQTK_POINTER    data[0..@def.PTRSIZE-1]
-DQTK_CSTRING    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
+DQTK_EMBSTR    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
 DQTK_STRSLICE    data[0..15] = borrowed text descriptor compatible with SDqTextInfo
 DQTK_DYNSTR     data[0..@def.PTRSIZE-1] = owned ODynStrMgr pointer
 ```
 
 `DQTK_DYNSTR` uses the same `ODynStrMgr` manager object as the normal DQ `str` type. The `data` field stores only the manager pointer. A null manager pointer represents the empty string, matching normal `str` behavior.
 
-`DQTK_CSTRING` and `DQTK_STRSLICE` are borrowed descriptor values. `DQTK_DYNSTR` is owned/refcounted managed storage.
+`DQTK_EMBSTR` and `DQTK_STRSLICE` are borrowed descriptor values. `DQTK_DYNSTR` is owned/refcounted managed storage.
 
 ---
 
@@ -495,7 +495,7 @@ function AnyValIsText(v : ref SDqAnyValue) -> bool
 
 `AnyValIsStr()` is the current RTL-compatible name.
 
-`AnyValIsText()` is the preferred semantic alias. It returns `true` for `DQTK_CSTRING`, `DQTK_STRSLICE`, and `DQTK_DYNSTR`.
+`AnyValIsText()` is the preferred semantic alias. It returns `true` for `DQTK_EMBSTR`, `DQTK_STRSLICE`, and `DQTK_DYNSTR`.
 
 A compiler may expose only the method name `IsStr()` or may expose both `IsStr()` and `IsText()`.
 
@@ -535,14 +535,14 @@ This function must not allocate. It returns or copies only a descriptor. The des
 
 ```dq
 function AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo)
-function AnyValSetCString(v : ref SDqAnyValue, ati : refin SDqTextInfo)
+function AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqTextInfo)
 function AnyValSetStr(v : ref SDqAnyValue, value : str)
 function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 ```
 
 `AnyValSetText()` stores a borrowed `DQTK_STRSLICE` descriptor.
 
-`AnyValSetCString()` stores a borrowed `DQTK_CSTRING` descriptor.
+`AnyValSetEmbStr()` stores a borrowed `DQTK_EMBSTR` descriptor.
 
 `AnyValSetStr()` stores an owned/refcounted dynamic string reference. It increments the source manager refcount through normal dynamic string assignment rules.
 
@@ -551,7 +551,7 @@ function AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo)
 ### 13.4 Heapless copy into fixed `embstr`
 
 ```dq
-function AnyValToCString(
+function AnyValToEmbStr(
   v      : ref SDqAnyValue,
   defval : refin SDqTextInfo,
   rv     : embstr
@@ -562,10 +562,10 @@ Method form:
 
 ```dq
 var cs : embstr(63)
-av.ToCString(DefaultTextInfo(""), cs)
+av.ToEmbStr(DefaultTextInfo(""), cs)
 ```
 
-`AnyValToCString()` converts the contained value to text and copies it into caller-provided `embstr` storage.
+`AnyValToEmbStr()` converts the contained value to text and copies it into caller-provided `embstr` storage.
 
 If `v` contains text, the text is copied.
 
@@ -627,7 +627,7 @@ elif av.IsBool():
   var b : bool = av.AsBool(false)
 elif av.IsStr():
   var cs : embstr(63)
-  av.ToCString(DefaultTextInfo(""), cs)
+  av.ToEmbStr(DefaultTextInfo(""), cs)
 endif
 ```
 
@@ -649,7 +649,7 @@ var ti : SDqTextInfo
 av.AsText(DefaultTextInfo(""), ti)     // heapless descriptor result
 
 var cs : embstr(63)
-av.ToCString(DefaultTextInfo(""), cs)  // heapless copy into fixed buffer
+av.ToEmbStr(DefaultTextInfo(""), cs)  // heapless copy into fixed buffer
 
 var s : str = av.AsStr(DefaultTextInfo(""))  // owned dynamic string, may allocate
 ```

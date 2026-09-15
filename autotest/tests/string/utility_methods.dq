@@ -82,7 +82,7 @@ func *Main():
     printf("strslice_indexof = %li\n", view.IndexOf("ie")) //?check("strslice_indexof", 3)
 
     var cs : embstr(9) = "  abc"
-    PrintText("cstring_trim", cs.Trim()) //?check("cstring_trim", '[3] "abc"')
-    printf("cstring_indexof = %li\n", cs.IndexOf('b')) //?check("cstring_indexof", 3)
+    PrintText("embstring_trim", cs.Trim()) //?check("embstring_trim", '[3] "abc"')
+    printf("embstring_indexof = %li\n", cs.IndexOf('b')) //?check("embstring_indexof", 3)
 
 endfunc

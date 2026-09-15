@@ -100,7 +100,7 @@ bool EnsureStrFuncRtlUse()
   return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
 }
 
-bool EnsureCStringRtlUse()
+bool EnsureEmbStrRtlUse()
 {
   if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
   {
@@ -814,9 +814,9 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
   }
 
   // embstr(N) handling: N is the total storage size, including the terminator.
-  if (TK_CSTRING == ptype->kind)
+  if (TK_EMBSTR == ptype->kind)
   {
-    if (!g_opt.ifgen && !EnsureCStringRtlUse())
+    if (!g_opt.ifgen && !EnsureEmbStrRtlUse())
     {
       return nullptr;
     }
@@ -829,7 +829,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     {
       if (aemit_errors)
       {
-        ErrorTxt(DQERR_CSTR_SIZE_EXPECTED, "embstr size expected; use embstr(n), not embstr[n]");
+        ErrorTxt(DQERR_EMBSTR_SIZE_EXPECTED, "embstr size expected; use embstr(n), not embstr[n]");
       }
       return nullptr;
     }
@@ -844,7 +844,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       {
         if (aemit_errors)
         {
-          Error(DQERR_CSTR_SIZE_EXPECTED);
+          Error(DQERR_EMBSTR_SIZE_EXPECTED);
         }
         return nullptr;
       }
@@ -853,7 +853,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
         OExpr::DeleteTree(maxlen_expr);
         if (aemit_errors)
         {
-          Error(DQERR_CSTR_SIZE_EXPECTED);
+          Error(DQERR_EMBSTR_SIZE_EXPECTED);
         }
         return nullptr;
       }
@@ -862,7 +862,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       {
         if (aemit_errors)
         {
-          Error(DQERR_CSTR_SIZE_EXPECTED);
+          Error(DQERR_EMBSTR_SIZE_EXPECTED);
         }
         return nullptr;
       }
@@ -877,9 +877,9 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
       }
       if (aemit_errors && ((maxlen % 4) != 0))
       {
-        Warning(DQWARN_CSTR_STORAGE_SIZE, to_string(maxlen), to_string(maxlen), &scf->prevpos);
+        Warning(DQWARN_EMBSTR_STORAGE_SIZE, to_string(maxlen), to_string(maxlen), &scf->prevpos);
       }
-      return g_builtins->type_cstring->GetSizedType(uint32_t(maxlen));
+      return g_builtins->type_embstr->GetSizedType(uint32_t(maxlen));
     }
     return ptype;  // unsized embstr (for parameters)
   }
@@ -1728,10 +1728,10 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   auto prefer_slice_append = [&](OExpr * expr) -> bool
   {
     if (!is_range_arg(expr)) return false;
-    int cost_elem = dyntype->elemtype->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_CSTRING);
+    int cost_elem = dyntype->elemtype->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
     if (cost_elem >= 0)
     {
-      int cost_slice = dyntype->elemtype->GetSliceType()->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_CSTRING);
+      int cost_slice = dyntype->elemtype->GetSliceType()->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
       if (cost_slice < 0 || cost_elem >= cost_slice) return false;
     }
     return true;
@@ -1872,7 +1872,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
     OExpr * argexpr = rawargs[i].TakeExpr();
-    uint32_t conv_flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING;
+    uint32_t conv_flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR;
     if (argtypes[i]->ResolveAlias()->kind == TK_ARRAY_SLICE)
     {
       conv_flags |= EXPCF_ALLOW_ARRAY_LITERAL_SLICE;
@@ -1888,7 +1888,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   return callexpr;
 }
 
-OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
+OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
 {
   vector<TRawCallArg> rawargs;
   if (!scf->CheckSymbol("("))
@@ -1934,36 +1934,36 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     return true;
   };
 
-  ECStringMethod method = CSM_CLEAR;
+  EEmbStrMethod method = ESM_CLEAR;
   vector<OType *> argtypes;
   size_t source_arg_index = rawargs.size();
   if ("Clear" == membername)
   {
     if (!check_count(0, 0)) return free_and_fail();
-    method = CSM_CLEAR;
+    method = ESM_CLEAR;
   }
   else if ("AppendChar" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    method = CSM_APPEND;
+    method = ESM_APPEND;
     argtypes.push_back(g_builtins->type_char);
   }
   else if ("Set" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    method = CSM_SET;
+    method = ESM_SET;
     source_arg_index = 0;
   }
   else if ("Append" == membername || "Add" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    method = CSM_APPEND;
+    method = ESM_APPEND;
     source_arg_index = 0;
   }
   else if ("AddFmt" == membername)
   {
     if (!check_count(2, 2)) return free_and_fail();
-    method = CSM_ADDFMT;
+    method = ESM_ADDFMT;
     argtypes.push_back(g_builtins->type_rostr);
     argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
@@ -1971,20 +1971,20 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
   else if ("Prepend" == membername)
   {
     if (!check_count(1, 1)) return free_and_fail();
-    method = CSM_PREPEND;
+    method = ESM_PREPEND;
     source_arg_index = 0;
   }
   else if ("Insert" == membername)
   {
     if (!check_count(2, 2)) return free_and_fail();
-    method = CSM_INSERT;
+    method = ESM_INSERT;
     argtypes.push_back(g_builtins->type_int);
     source_arg_index = 1;
   }
   else if ("Delete" == membername)
   {
     if (!check_count(1, 2)) return free_and_fail();
-    method = CSM_DELETE;
+    method = ESM_DELETE;
     argtypes.push_back(g_builtins->type_int);
     if (rawargs.size() > 1)
     {
@@ -1997,12 +1997,12 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     return free_and_fail();
   }
 
-  if (!EnsureCStringRtlUse())
+  if (!EnsureEmbStrRtlUse())
   {
     return free_and_fail();
   }
 
-  auto * callexpr = new OCStringMethodCallExpr(receiver, method);
+  auto * callexpr = new OEmbStrMethodCallExpr(receiver, method);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
     OExpr * argexpr = rawargs[i].TakeExpr();
@@ -2018,7 +2018,7 @@ OExpr * ODqCompParserExpr::ParseCStringMethod(OExpr * receiver_expr, OLValueExpr
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
-      ErrorTxt(DQERR_CSTR_CONVERSION, "embstr method source must be char, str, rostr, strslice, embstr, or ^char");
+      ErrorTxt(DQERR_EMBSTR_CONVERSION, "embstr method source must be char, str, rostr, strslice, embstr, or ^char");
       OExpr::DeleteTree(argexpr);
       delete callexpr;
       return free_and_fail();
@@ -2220,7 +2220,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
-      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
       {
         OExpr::DeleteTree(argexpr);
         delete callexpr;
@@ -2308,7 +2308,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   else if ("AsText" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_TEXT; text_arg_index = 0; rettype = g_builtins->type_strslice; }
   else if ("AsStrSlice" == membername)  { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_TEXT; text_arg_index = 0; rettype = g_builtins->type_strslice; }
   else if ("SetText" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_TEXT; text_arg_index = 0; }
-  else if ("SetCString" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_CSTRING; text_arg_index = 0; }
+  else if ("SetEmbStr" == membername) { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_EMBSTR; text_arg_index = 0; }
   else if ("IsStr" == membername)      { if (!check_count(0, 0) || !RequireDynStrings()) return free_and_fail(); method = AVM_IS_STR; rettype = g_builtins->type_bool; }
   else if ("AsStr" == membername)      { if (!check_count(1, 1) || !RequireDynStrings()) return free_and_fail(); method = AVM_AS_STR; text_arg_index = 0; rettype = g_builtins->type_str; }
   else if ("SetStr" == membername)     { if (!check_count(1, 1) || !RequireDynStrings()) return free_and_fail(); method = AVM_SET_STR; text_arg_index = 0; }
@@ -2329,7 +2329,7 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
-      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_CSTRING))
+      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
       {
         OExpr::DeleteTree(argexpr);
         delete callexpr;
@@ -2399,7 +2399,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
 
   // Array/slice/dynamic-array/embstr/string index on any lvalue: x[i], or slice x[a:b]
   if (lval
-      && (TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_CSTRING == tk
+      && (TK_ARRAY == tk or TK_ARRAY_SLICE == tk or TK_DYN_ARRAY == tk or TK_EMBSTR == tk
           or TK_DYNSTR == tk or TK_STRSLICE == tk || TK_ROSTR == tk)
       && scf->CheckSymbol("["))
   {
@@ -2442,7 +2442,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
     if (scf->CheckSymbol(":"))
     {
       inclusive_slice = scf->CheckSymbol(":");
-      if (TK_CSTRING == tk)
+      if (TK_EMBSTR == tk)
       {
         Error(DQERR_NOT_SUPPORTED, "embstr slicing");
         OExpr::DeleteTree(indexexpr);
@@ -2602,29 +2602,29 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Stop;
     }
 
-    if (TK_CSTRING == tk)
+    if (TK_EMBSTR == tk)
     {
       if ("length" == membername)
       {
-        result = new OCStringMetaFieldExpr(lval, CSMF_LENGTH);
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_LENGTH);
         return EPostfixResult::Continue;
       }
       if ("maxlength" == membername)
       {
-        result = new OCStringMetaFieldExpr(lval, CSMF_MAXLENGTH);
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_MAXLENGTH);
         return EPostfixResult::Continue;
       }
       if ("storage_size" == membername)
       {
-        result = new OCStringMetaFieldExpr(lval, CSMF_STORAGE_SIZE);
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_STORAGE_SIZE);
         return EPostfixResult::Continue;
       }
       if ("pchar" == membername)
       {
-        result = new OCStringMetaFieldExpr(lval, CSMF_PCHAR);
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_PCHAR);
         return EPostfixResult::Continue;
       }
-      result = ParseCStringMethod(result, lval, membername);
+      result = ParseEmbStrMethod(result, lval, membername);
       if (!result) return EPostfixResult::Stop;
       return EPostfixResult::Continue;
     }
@@ -3200,7 +3200,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       {
         return new OIntLit(char_value, g_builtins->type_wchar);
       }
-      return new OCStringLit(strval);
+      return new OEmbStrLit(strval);
     }
     else
     {
@@ -4699,9 +4699,9 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
   {
     return new ODynArrayLengthExpr(lenvs);
   }
-  else if (TK_CSTRING == lenvs->ptype->kind)
+  else if (TK_EMBSTR == lenvs->ptype->kind)
   {
-    return new OCStringLenExpr(lenvs);
+    return new OEmbStrLenExpr(lenvs);
   }
   else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRSLICE == lenvs->ptype->ResolveAlias()->kind || TK_ROSTR == lenvs->ptype->ResolveAlias()->kind)
   {
@@ -4805,7 +4805,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinTypeName()
   OExpr * result_expr = nullptr;
   if (argtype)
   {
-    result_expr = new OCStringLit(argtype->name);
+    result_expr = new OEmbStrLit(argtype->name);
   }
   else
   {

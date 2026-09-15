@@ -72,7 +72,7 @@ func *Main():
     PrintAnyState("borrowed-view", av) //?check("borrowed-view", "kind:9 istext:1 isstr:0 len:5")
     PrintAnyText("borrowed-view-text", av) //?check("borrowed-view-text", 'len:5 text: "abcde"')
 
-    AnyValSetCString(av, desc)
+    AnyValSetEmbStr(av, desc)
     PrintAnyState("borrowed-embstr", av) //?check("borrowed-embstr", "kind:8 istext:1 isstr:0 len:5")
     PrintAnyText("borrowed-embstr-text", av) //?check("borrowed-embstr-text", 'len:5 text: "abcde"')
 

@@ -24,7 +24,7 @@ func Default(text : rostr = "default") -> rostr:
     return text
 endfunc
 
-func CStringBorrow(text : embstr) -> rostr:
+func EmbStrBorrow(text : embstr) -> rostr:
     return text
 endfunc
 
@@ -82,7 +82,7 @@ func *Main():
 
     var buffer : embstr(8) = "buffer"
     var cborrow : rostr = buffer
-    var alias_borrow : rostr = CStringBorrow(buffer)
+    var alias_borrow : rostr = EmbStrBorrow(buffer)
     var bounded : embstr(4) = text
     printf("embstr = %s:%s:%s\n", cborrow, alias_borrow, bounded.pchar) //?check("embstr", "buffer:buffer:poi")
     bounded = GREETING

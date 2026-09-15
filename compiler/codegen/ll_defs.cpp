@@ -70,11 +70,11 @@ LlValue * ToNativeInt(LlValue * value)
   unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
   if (srcbits < dstbits)
   {
-    return ll_builder.CreateZExt(value, dst, "cstr.int.ext");
+    return ll_builder.CreateZExt(value, dst, "embstr.int.ext");
   }
   if (srcbits > dstbits)
   {
-    return ll_builder.CreateTrunc(value, dst, "cstr.int.trunc");
+    return ll_builder.CreateTrunc(value, dst, "embstr.int.trunc");
   }
   return value;
 }
@@ -94,11 +94,11 @@ LlValue * ToCharValue(LlValue * value)
   unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
   if (srcbits < dstbits)
   {
-    return ll_builder.CreateZExt(value, dst, "cstr.ch.ext");
+    return ll_builder.CreateZExt(value, dst, "embstr.ch.ext");
   }
   if (srcbits > dstbits)
   {
-    return ll_builder.CreateTrunc(value, dst, "cstr.ch.trunc");
+    return ll_builder.CreateTrunc(value, dst, "embstr.ch.trunc");
   }
   return value;
 }

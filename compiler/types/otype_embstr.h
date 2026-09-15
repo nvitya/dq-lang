@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: MIT
  * See LICENSES/MIT.txt for the full license text.
  * ---------------------------------------------------------------------------------
- * file:    otype_cstring.h
+ * file:    otype_embstr.h
  * authors: nvitya
  * created: 2026-03-08
  * brief:   C-string type: null-terminated fixed-size char buffer
@@ -17,10 +17,10 @@
 #include <vector>
 #include "symbols.h"
 
-class OCStringLit;  // forward declaration
+class OEmbStrLit;  // forward declaration
 
-// OValueCString: compile-time string value for global variable initialization
-class OValueCString : public OValue
+// OValueEmbStr: compile-time string value for global variable initialization
+class OValueEmbStr : public OValue
 {
 private:
   using        super = OValue;
@@ -29,7 +29,7 @@ public:
   string       value;     // the string content (without padding)
   uint32_t     maxlen;    // storage size from embstr(N); content holds at most maxlen - 1 bytes
 
-  OValueCString(OType * atype, uint32_t amaxlen)
+  OValueEmbStr(OType * atype, uint32_t amaxlen)
   :
     super(atype),
     maxlen(amaxlen)
@@ -41,35 +41,35 @@ public:
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
-enum ECStringMetaField
+enum EEmbStrMetaField
 {
-  CSMF_LENGTH,
-  CSMF_MAXLENGTH,
-  CSMF_STORAGE_SIZE,
-  CSMF_PCHAR
+  ESMF_LENGTH,
+  ESMF_MAXLENGTH,
+  ESMF_STORAGE_SIZE,
+  ESMF_PCHAR
 };
 
-enum ECStringMethod
+enum EEmbStrMethod
 {
-  CSM_CLEAR,
-  CSM_SET,
-  CSM_APPEND,
-  CSM_PREPEND,
-  CSM_INSERT,
-  CSM_DELETE,
-  CSM_ADDFMT
+  ESM_CLEAR,
+  ESM_SET,
+  ESM_APPEND,
+  ESM_PREPEND,
+  ESM_INSERT,
+  ESM_DELETE,
+  ESM_ADDFMT
 };
 
-// OTypeCString: embedded, null-terminated string type
+// OTypeEmbStr: embedded, null-terminated string type
 //   maxlen > 0: fixed-size buffer embstr(N), LLVM type = [N x i8]
 //   maxlen == 0: unsized alias, LLVM type = pointer to a shared SDqTextInfo descriptor
 
-class OTypeCString : public OType
+class OTypeEmbStr : public OType
 {
 private:
   using        super = OType;
 
-  map<uint32_t, OTypeCString *>  sized_types;  // cached sized variants
+  map<uint32_t, OTypeEmbStr *>  sized_types;  // cached sized variants
   map<LlValue *, LlValue *>      descriptor_caches;  // fixed storage address -> shared descriptor
 
   bool IsCCharPointerType(OType * type) const;
@@ -77,9 +77,9 @@ private:
 public:
   uint32_t     maxlen;
 
-  OTypeCString(uint32_t amaxlen)
+  OTypeEmbStr(uint32_t amaxlen)
   :
-    super(amaxlen > 0 ? "embstr(" + to_string(amaxlen) + ")" : "embstr", TK_CSTRING),
+    super(amaxlen > 0 ? "embstr(" + to_string(amaxlen) + ")" : "embstr", TK_EMBSTR),
     maxlen(amaxlen)
   {
     if (amaxlen > 0)
@@ -94,7 +94,7 @@ public:
     }
   }
 
-  ~OTypeCString()
+  ~OTypeEmbStr()
   {
     for (auto & [len, st] : sized_types)
     {
@@ -102,35 +102,35 @@ public:
     }
   }
 
-  OTypeCString * GetSizedType(uint32_t amaxlen)
+  OTypeEmbStr * GetSizedType(uint32_t amaxlen)
   {
     auto it = sized_types.find(amaxlen);
     if (it != sized_types.end())
     {
       return it->second;
     }
-    OTypeCString * result = new OTypeCString(amaxlen);
+    OTypeEmbStr * result = new OTypeEmbStr(amaxlen);
     sized_types[amaxlen] = result;
     return result;
   }
 
   OValue * CreateValue() override
   {
-    return new OValueCString(this, maxlen);
+    return new OValueEmbStr(this, maxlen);
   }
 
   bool CanStoreFrom(OExpr * srcexpr) const;
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
-  LlValue * GenerateDescriptor(OScope * scope, LlValue * cstraddr);
-  void ResetDescriptorLength(OScope * scope, LlValue * cstraddr);
+  LlValue * GenerateDescriptor(OScope * scope, LlValue * embstraddr);
+  void ResetDescriptorLength(OScope * scope, LlValue * embstraddr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
   bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
 
-  LlValue * GenerateDataPtr(OScope * scope, LlValue * cstraddr);
-  LlValue * GenerateMetaField(OScope * scope, LlValue * cstraddr, ECStringMetaField field);
-  LlValue * GenerateMethodCall(OScope * scope, LlValue * cstraddr,
-                               ECStringMethod method, const vector<OExpr *> & args);
+  LlValue * GenerateDataPtr(OScope * scope, LlValue * embstraddr);
+  LlValue * GenerateMetaField(OScope * scope, LlValue * embstraddr, EEmbStrMetaField field);
+  LlValue * GenerateMethodCall(OScope * scope, LlValue * embstraddr,
+                               EEmbStrMethod method, const vector<OExpr *> & args);
 };

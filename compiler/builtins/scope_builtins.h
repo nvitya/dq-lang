@@ -21,7 +21,7 @@
 #include "otype_char.h"
 #include "otype_float.h"
 #include "otype_func.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 
@@ -59,7 +59,7 @@ public:
   OTypeChar *     type_char;
   OTypeChar16 *   type_char16;
   OTypeWchar *    type_wchar;
-  OTypeCString *  type_cstring;
+  OTypeEmbStr *  type_embstr;
   OTypeDynString * type_str;
   OTypeStrSlice *   type_strslice;
   OTypeRoStr *     type_rostr;

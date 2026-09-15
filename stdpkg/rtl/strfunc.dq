@@ -15,8 +15,8 @@
 
 use rtl/rtlint
 
-#include "cstrings.dqh"
-#srcdep  "cstrings.dqi"
+#include "embstrs.dqh"
+#srcdep  "embstrs.dqi"
 
 #include "textinfo.dqh"
 #srcdep  "textinfo.dqi"
@@ -57,9 +57,9 @@ use rtl/mem
 #ifdef EXCEPTIONS
 use rtl/exception
 #endif
-//use rtl/cstrings
+//use rtl/embstr
 
-#include "cstrings.dqi"
+#include "embstrs.dqi"
 
 #include "textinfo.dqi"
 

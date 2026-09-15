@@ -143,7 +143,7 @@ class DqDynStrPrinter:
         return None
 
 
-class DqCStringPrinter:
+class DqEmbStrPrinter:
     """Pretty-printer for fixed DQ embstr(N), emitted as cchar[N]."""
 
     def __init__(self, val):
@@ -215,7 +215,7 @@ def dq_lookup_pretty_printer(val):
                 return DqDynStrPrinter(val)
         elif gdb_type.code == gdb.TYPE_CODE_ARRAY:
             if _type_name(gdb_type.target()) == "cchar":
-                return DqCStringPrinter(val)
+                return DqEmbStrPrinter(val)
     except Exception:
         return None
     return None

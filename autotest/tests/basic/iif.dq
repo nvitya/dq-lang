@@ -123,10 +123,10 @@ func *Main():
     g_obj = new OTest()
     printf('g_obj.name/2 = %s\n', iif(g_obj == nil, "obj is nil!", %g_obj.name[0]))  //?check('g_obj.name/2', 'OTest-Name-inline')
 
-    var cstr : embstr(16) = "from buffer"
-    var cstr2 : embstr(16) = "other buffer"
-    PrintLn('iif embstr = {}', [iif(true, "from literal", cstr)])  //?check('iif embstr', 'from literal')
-    PrintLn('iif embstr/2 = {}', [iif(false, "from literal", cstr)])  //?check('iif embstr/2', 'from buffer')
-    PrintLn('iif embstr/3 = {}', [iif(false, cstr, cstr2)])  //?check('iif embstr/3', 'other buffer')
+    var embstr : embstr(16) = "from buffer"
+    var embstr2 : embstr(16) = "other buffer"
+    PrintLn('iif embstr = {}', [iif(true, "from literal", embstr)])  //?check('iif embstr', 'from literal')
+    PrintLn('iif embstr/2 = {}', [iif(false, "from literal", embstr)])  //?check('iif embstr/2', 'from buffer')
+    PrintLn('iif embstr/3 = {}', [iif(false, embstr, embstr2)])  //?check('iif embstr/3', 'other buffer')
 
 endfunc

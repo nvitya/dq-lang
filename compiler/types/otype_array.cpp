@@ -808,7 +808,7 @@ static bool ConvertArrayLiteralElements(OArrayLit * arrlit, OType * elemtype, ui
 
   for (OExpr *& elem : arrlit->elements)
   {
-    if (!g_compiler->ConvertExprToType(elemtype, &elem, aflags | EXPCF_ALLOW_LAZY_CSTRING))
+    if (!g_compiler->ConvertExprToType(elemtype, &elem, aflags | EXPCF_ALLOW_LAZY_EMBSTR))
     {
       return false;
     }
@@ -827,7 +827,7 @@ static int ArrayLiteralElementConversionCost(OArrayLit * arrlit, OType * elemtyp
   int result = 0;
   for (OExpr * elem : arrlit->elements)
   {
-    int cost = g_compiler->GetAssignTypeConversionCost(elemtype, elem, aflags | EXPCF_ALLOW_LAZY_CSTRING);
+    int cost = g_compiler->GetAssignTypeConversionCost(elemtype, elem, aflags | EXPCF_ALLOW_LAZY_EMBSTR);
     if (cost < 0)
     {
       return -1;

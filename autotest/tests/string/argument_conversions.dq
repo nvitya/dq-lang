@@ -67,7 +67,7 @@ func *Main():
     PrintReadonly("arg_literal", "literal") //?check("arg_literal", '[7] "literal"')
     PrintReadonly("arg_str", s) //?check("arg_str", '[3] "abc"')
     PrintReadonly("arg_str_slice", s[1:]) //?check("arg_str_slice", '[2] "bc"')
-    PrintReadonly("arg_cstring", cs) //?check("arg_cstring", '[4] "cbuf"')
+    PrintReadonly("arg_embstr", cs) //?check("arg_embstr", '[4] "cbuf"')
     PrintReadonly("arg_pc", pc) //?check("arg_pc", '[5] "pcstr"')
 
     OwnAndMutate(s)
@@ -76,11 +76,11 @@ func *Main():
     PrintText("ref_param_caller", s) //?check("ref_param_caller", '[7] "abc_ref"')
 
     EditCBuffer(cs)
-    PrintText("cstring_param_alias", cs) //?check("cstring_param_alias", '[9] "cbuf_edit"')
+    PrintText("embstring_param_alias", cs) //?check("embstring_param_alias", '[9] "cbuf_edit"')
 
     var alias : embstr = cs
     EditCBuffer(alias)
-    PrintText("cstring_local_alias", cs) //?check("cstring_local_alias", '[14] "cbuf_edit_edit"')
+    PrintText("embstring_local_alias", cs) //?check("embstring_local_alias", '[14] "cbuf_edit_edit"')
 
     var assigned_from_pc : str = pc
     PrintText("assign_pc_to_str", assigned_from_pc) //?check("assign_pc_to_str", '[5] "pcstr"')

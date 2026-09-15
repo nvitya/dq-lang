@@ -25,7 +25,7 @@
 #include "expressions.h"
 #include "otype_array.h"
 #include "otype_anyvalue.h"
-#include "otype_cstring.h"
+#include "otype_embstr.h"
 #include "otype_func.h"
 #include "otype_int.h"
 #include "otype_compound.h"
@@ -419,7 +419,7 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
   string_literal.clear();
   string_literal_source = nullptr;
 
-  if (auto * strlit = dynamic_cast<OCStringLit *>(expr))
+  if (auto * strlit = dynamic_cast<OEmbStrLit *>(expr))
   {
     has_string_literal = true;
     string_literal = strlit->value;
@@ -524,7 +524,7 @@ bool OValuePointer::WriteDqmIfValue(ODqmIfWriter & writer)
 {
   if (const string * value = GetStringLiteral())
   {
-    return writer.AddRecStr(DQMIF_VALUE_CSTRING_POINTER, *value);
+    return writer.AddRecStr(DQMIF_VALUE_EMBSTR_POINTER, *value);
   }
   return writer.AddRecU64(DQMIF_VALUE_INLINE, address);
 }
@@ -845,9 +845,9 @@ bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
     return GenerateAnyValueAssignExpr(scope, ll_field_addr, field_init_expr);
   }
 
-  if (auto * cstrtype = dynamic_cast<OTypeCString *>(storage_type))
+  if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(storage_type))
   {
-    return cstrtype->GenerateStore(scope, ll_field_addr, field_init_expr);
+    return embstrtype->GenerateStore(scope, ll_field_addr, field_init_expr);
   }
 
   LlValue * ll_value = field_init_expr->Generate(scope);
@@ -995,9 +995,9 @@ bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     return true;
   }
 
-  if (IsCCharPointerType(this) && (TK_CSTRING == tks))
+  if (IsCCharPointerType(this) && (TK_EMBSTR == tks))
   {
-    *rexpr = new OCStringMetaFieldExpr(src, CSMF_PCHAR);
+    *rexpr = new OEmbStrMetaFieldExpr(src, ESMF_PCHAR);
     return true;
   }
 
@@ -1033,7 +1033,7 @@ bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
       uint8_t charlit = 0;
       if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
       {
-        *rexpr = new OCharLitToCStringPtrExpr(charlit);
+        *rexpr = new OCharLitToEmbStrPtrExpr(charlit);
         return true;
       }
     }
@@ -1060,7 +1060,7 @@ bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   uint8_t charlit = 0;
   if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
   {
-    *rexpr = new OCharLitToCStringPtrExpr(charlit);
+    *rexpr = new OCharLitToEmbStrPtrExpr(charlit);
     return true;
   }
 
@@ -1085,7 +1085,7 @@ int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (IsCCharPointerType(this) && (TK_CSTRING == tks || TK_ROSTR == tks)) return 1;
+  if (IsCCharPointerType(this) && (TK_EMBSTR == tks || TK_ROSTR == tks)) return 1;
 
   if (TK_POINTER != tks)
   {

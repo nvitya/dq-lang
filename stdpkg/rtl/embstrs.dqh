@@ -1,0 +1,33 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/embstrs.dqh, included by "rtl/strfunc.dq"
+ * authors: nvitya
+ * created: 2026-07-06
+ * brief:   RTL Helpers for the DQ embstr handling (interface only)
+ */
+
+func EmbStrLen(desc : ref SDqTextInfo) -> uint
+func EmbStrMaxLen(desc : ref SDqTextInfo) -> uint
+func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint
+
+func EmbStrClear(desc : ref SDqTextInfo)
+func EmbStrAssignChar(desc : ref SDqTextInfo, ch : char)
+func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char)
+func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
+func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char)
+func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
+func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char)
+func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char)
+func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
+func EmbStrPrependChar(desc : ref SDqTextInfo, ch : char)
+func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char)
+func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo)
+func EmbStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char)
+func EmbStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1)

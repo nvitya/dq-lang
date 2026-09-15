@@ -8,6 +8,7 @@ In general try to find the most elegant solution (least code), which is not alwa
 - Make human readable code
 - Add comments when necessary to describe non-trivial solutions
 - Put helper behavior on the objects that own the responsibility, avoiding new broad file-static helper clusters.
+- Do not use number hinting like 1.0, or uint32(0), the compiler converts the numbers properly when needed
 
 ## Build Defaults
 

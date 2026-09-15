@@ -28,9 +28,10 @@ var remainder : int = -7 rem 3 // -1
 var modulo : int = -7 mod 3    // 2
 ```
 
-Integer overflow, division by zero, signed division corner cases, and floating
-behavior follow the compiler/runtime checks and target representation. Use an
-explicit destination type when width matters.
+Integer arithmetic is fixed-width and wraps at its calculation width; conversion
+to a narrow storage type truncates again. See [Integer calculations](../language/expressions.md#integer-calculations)
+for operand-width, signed/unsigned subtraction, shift, and division corner
+cases.
 
 ## Comparison
 

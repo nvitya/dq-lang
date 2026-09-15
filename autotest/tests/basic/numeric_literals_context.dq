@@ -1,0 +1,43 @@
+// Numeric literals take their type from context; no uint(...) or x.0 hints are needed.
+// Integer expressions use their natural width and wrap only when stored in a narrow type.
+
+func printf(format : ^char, ...) -> int [[external]]
+
+func EchoByte(value : uint8) -> uint8:
+    return value
+endfunc
+
+func ReturnByte() -> uint8:
+    return 255
+endfunc
+
+func AddOne(value : float) -> float:
+    return value + 1
+endfunc
+
+func ReturnFloat() -> float:
+    return 2
+endfunc
+
+func *Main():
+    var unsigned_byte : uint8 = 250
+    var second_unsigned_byte : uint8 = 10
+    var signed_byte : int8 = 120
+    var bytes : [2]uint8 = [250, 5]
+    var factors : [2]float = [1, 2]
+    var rate : float = 2
+
+    var unsigned_wide : int = unsigned_byte + 10
+    var narrow_sum : int = unsigned_byte + second_unsigned_byte
+    var signed_wide : int = signed_byte + 10
+    unsigned_byte = unsigned_byte + 10
+    signed_byte = signed_byte + 10
+    rate = rate + 1
+
+    printf("integer storage=%d,%d,%d,%d,%d\n", unsigned_wide, narrow_sum, unsigned_byte, signed_wide, signed_byte)
+    //?check("integer storage", "260,4,4,130,-126")
+    printf("integer context=%d,%d,%d\n", EchoByte(255), ReturnByte(), bytes[0] + bytes[1])
+    //?check("integer context", "255,255,255")
+    printf("float context=%.1f,%.1f,%.1f,%.1f\n", rate, AddOne(2), ReturnFloat(), factors[0] + factors[1])
+    //?check("float context", "3.0,3.0,2.0,3.0")
+endfunc

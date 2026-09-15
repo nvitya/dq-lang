@@ -30,6 +30,101 @@ The `/` division operator always produces a floating point result.
 Floating point values are not converted automatically to integers, explicit
 conversion functions required: `Round`, `Ceil`, `Floor`, or `Trunc`
 
+## Integer calculations
+
+DQ integer arithmetic is fixed-width and has no overflow checks. This keeps
+the generated code suitable for embedded targets: values use the selected
+integer width, and bits that do not fit are discarded.
+
+### Bare numeric values are contextual
+
+Whole-number literals need no type suffix or conversion call. A declaration,
+assignment, function parameter, return type, or typed array element supplies
+the required storage type:
+
+```dq
+var retry_count : uint8 = 3
+var threshold : float = 2       // no `2.0` required just to make it a float
+var masks : [2]uint8 = [240, 15]
+```
+
+A bare whole-number literal has the ordinary `int` calculation type. Therefore
+it also widens a mixed expression to `int`, before any result is stored:
+
+```dq
+var byte_value : uint8 = 250
+var whole : int = byte_value + 10 // 260: `10` makes this an `int` calculation
+
+byte_value = byte_value + 10      // 4: 260 is truncated when stored as `uint8`
+```
+
+The destination of an expression does not widen that expression. The widest
+operand determines its calculation width. Two `uint8` operands consequently
+calculate at eight bits, even if their result is assigned to an `int`:
+
+```dq
+var left : uint8 = 250
+var right : uint8 = 10
+var sum : int = left + right // 4, not 260
+```
+
+Use an `int` operand or an explicitly wider intermediate when the full result
+is needed.
+
+### Storage truncation and signed values
+
+Converting an integer result to a narrower integer type keeps its low bits.
+For unsigned types those bits are the resulting unsigned value; for signed
+types they are interpreted as a two's-complement value. The rule is the same
+for constant and runtime expressions.
+
+```dq
+var unsigned_byte : uint8 = 250
+var signed_byte : int8 = 120
+
+var unsigned_wide : int = unsigned_byte + 10 // 260
+var signed_wide : int = signed_byte + 10     // 130
+
+unsigned_byte = unsigned_byte + 10 // 4
+signed_byte = signed_byte + 10     // -126
+```
+
+This makes register fields, counters, and packed values efficient and
+predictable. If wrapping must happen at a particular point in a longer
+calculation, store the intermediate in the desired narrow type at that point.
+
+### Signed and unsigned operands
+
+Integer operands are converted to a common calculation width. Subtraction has
+an additional rule: if either operand is signed, its result is signed at the
+widest operand width. A bare whole-number literal is signed `int`, so unsigned
+subtraction with a literal can represent a negative result:
+
+```dq
+var available : uint = 3
+var remaining : int = available - 5 // -2
+```
+
+When intentionally relying on unsigned wraparound, use an unsigned operand of
+the appropriate width, for example a typed variable, rather than relying on a
+literal hint.
+
+### Division and shifts
+
+Use `div`, `rem`, and `mod` for integer division. `rem` keeps the dividend's
+sign; `mod` is non-negative. `/` always performs floating-point division.
+
+```dq
+var quotient : int = 7 div 3   // 2
+var remainder : int = -7 rem 3 // -1
+var modulo : int = -7 mod 3    // 2
+```
+
+`>>` is an arithmetic right shift for signed values and a logical right shift
+for unsigned values. Shift counts must be non-negative and smaller than the
+calculation width. Division by zero, and signed minimum-value divided by `-1`,
+have no defined result; code that can reach either case must guard it first.
+
 ## Comparison
 
 Comparison operators produce `bool`.

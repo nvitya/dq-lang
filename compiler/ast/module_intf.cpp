@@ -744,6 +744,11 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
 
   for (const auto & [module_name, stored_source] : module_sources)
   {
+    // Language-server workers place artifacts under a private build root.  A
+    // local module's original source root cannot be recovered from that
+    // relocated artifact path, but every interface was created in this worker.
+    if (g_opt.langserver_worker) continue;
+
     filesystem::path resolved_source;
     if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename, resolved_source))
     {
@@ -1015,6 +1020,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
   vector<string> args;
   args.push_back(g_opt.compiler_executable.empty() ? "dq-comp" : g_opt.compiler_executable);
   args.push_back(interface_only ? "--ifgen" : "-c");
+  if (g_opt.langserver_worker) args.push_back("--langserver-worker");
   args.push_back("--target=" + g_opt.target.name);
   if (g_opt.diagnostic_json) args.push_back("--diagnostic-format=jsonl");
   if (!g_opt.source_overlay_filename.empty())

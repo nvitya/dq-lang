@@ -530,6 +530,15 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
       }
     }
   }
+  const TJsonNode * module_namespaces = JsonChild(root, "moduleNamespaces");
+  if (module_namespaces && module_namespaces->GetKind() == nkArray)
+  {
+    for (int index = 0; index < module_namespaces->GetCount(); ++index)
+    {
+      const TJsonNode & name = module_namespaces->Child(index);
+      if (name.GetKind() == nkString) result.module_namespaces.insert(name.GetAsString());
+    }
+  }
   return result;
 }
 
@@ -637,6 +646,7 @@ void ODqLanguageServer::Reanalyze()
   unordered_map<string, vector<SDiagnostic>> all_diagnostics;
   unordered_map<string, vector<SDocumentSymbol>> all_document_symbols;
   unordered_map<string, vector<SDocumentSymbol>> all_namespaces;
+  unordered_set<string> all_module_namespaces;
   if (StageDocuments(manifest, build_root))
   {
     for (const auto & [uri, document] : documents)
@@ -655,10 +665,12 @@ void ODqLanguageServer::Reanalyze()
       {
         all_namespaces[ns_name] = move(ns_symbols);
       }
+      all_module_namespaces.insert(worker_result.module_namespaces.begin(), worker_result.module_namespaces.end());
     }
   }
   document_symbols = move(all_document_symbols);
   namespaces = move(all_namespaces);
+  module_namespaces = move(all_module_namespaces);
   for (const auto & [uri, document] : documents)
   {
     auto it = all_diagnostics.find(AbsNormPath(document.path).string());
@@ -851,19 +863,32 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     TJsonNode result(nkArray);
     if (scope_name == "..")
     {
-      // The user is typing a regular identifier. In DQ, namespaces like `dq` and `def` are merged.
-      // So we offer symbols from all these core scopes.
-      const char* merged_scopes[] = { "..", ".", "dq", "def" };
-      for (const char* ns : merged_scopes)
+      // Unqualified lookup contains the merged core scopes and every module imported with `use`.
+      // Keep type member scopes out: they are recorded in `namespaces` too for member completion.
+      unordered_set<string> completed_names;
+      auto add_namespace_symbols = [&](const string & ns_name)
       {
-        auto ns_it = namespaces.find(ns);
-        if (ns_it != namespaces.end())
+        auto ns_it = namespaces.find(ns_name);
+        if (ns_it == namespaces.end()) return;
+        for (const auto & symbol : ns_it->second)
         {
-          for (const auto & symbol : ns_it->second)
+          if (completed_names.insert(symbol.name).second)
           {
             AddCompletionItem(result, symbol.name, DocumentSymbolToCompletionKind(symbol.kind));
           }
         }
+      };
+
+      const char* merged_scopes[] = { "..", ".", "dq", "def" };
+      for (const char* ns : merged_scopes)
+      {
+        add_namespace_symbols(ns);
+      }
+      vector<string> used_module_scopes(module_namespaces.begin(), module_namespaces.end());
+      sort(used_module_scopes.begin(), used_module_scopes.end());
+      for (const string & ns : used_module_scopes)
+      {
+        add_namespace_symbols(ns);
       }
     }
     else

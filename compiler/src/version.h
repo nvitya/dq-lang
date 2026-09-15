@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.68.3"
+#define DQ_COMPILER_VERSION  "0.69.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.69.0:
+  - Language server improvements: provide completition for used modules
 v0.68.3:
   - Removed unnecessary number hintings
 v0.68.2:

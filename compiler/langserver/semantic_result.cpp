@@ -177,9 +177,11 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
     }
   }
   TJsonNode & json_namespaces = result.Add("namespaces").GetAsObject();
+  TJsonNode & json_module_namespaces = result.Add("moduleNamespaces").GetAsArray();
   for (const auto & [ns_name, scope] : g_namespaces)
   {
     if (!scope) continue;
+    json_module_namespaces.Add().SetAsString(ns_name);
     TJsonNode & json_symbols = json_namespaces.Add(ns_name).GetAsArray();
     for (const auto & [name, type] : scope->typesyms)
     {

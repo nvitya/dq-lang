@@ -176,7 +176,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
         pos += 2
         return true
     elif b0 >= 0xE0 and b0 <= 0xEF:
-        if not StrfReadCont(text, pos + 1, b1, report_error) 
+        if    not StrfReadCont(text, pos + 1, b1, report_error) 
            or not StrfReadCont(text, pos + 2, b2, report_error)
         :
             return false
@@ -189,7 +189,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
         pos += 3
         return true
     elif b0 >= 0xF0 and b0 <= 0xF4:
-        if not StrfReadCont(text, pos + 1, b1, report_error) 
+        if    not StrfReadCont(text, pos + 1, b1, report_error) 
            or not StrfReadCont(text, pos + 2, b2, report_error) 
            or not StrfReadCont(text, pos + 3, b3, report_error)
         :

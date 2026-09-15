@@ -22,6 +22,9 @@
 
 #include "dq_utils.h"
 
+#include <algorithm>
+#include <utility>
+
 using namespace std;
 
 static string UriDecode(string_view text)
@@ -202,7 +205,7 @@ static bool ReadDocumentSymbol(const TJsonNode & json_symbol, SDocumentSymbol & 
   for (int index = 0; index < json_children->GetCount(); ++index)
   {
     SDocumentSymbol child;
-    if (ReadDocumentSymbol(json_children->Child(index), child)) rsymbol.children.push_back(move(child));
+    if (ReadDocumentSymbol(json_children->Child(index), child)) rsymbol.children.push_back(std::move(child));
   }
   return true;
 }
@@ -493,7 +496,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
     diagnostic.message = message;
     diagnostic.line = int(JsonInteger(JsonChild(object, "line"), 1));
     diagnostic.column = int(JsonInteger(JsonChild(object, "column"), 1));
-    result.diagnostics.push_back(move(diagnostic));
+    result.diagnostics.push_back(std::move(diagnostic));
   }
 
   ifstream result_file(result_path, ios::binary);
@@ -506,7 +509,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
     for (int index = 0; index < symbols->GetCount(); ++index)
     {
       SDocumentSymbol symbol;
-      if (ReadDocumentSymbol(symbols->Child(index), symbol)) result.document_symbols.push_back(move(symbol));
+      if (ReadDocumentSymbol(symbols->Child(index), symbol)) result.document_symbols.push_back(std::move(symbol));
     }
   }
   const TJsonNode * namespaces_obj = JsonChild(root, "namespaces");
@@ -526,7 +529,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
         SDocumentSymbol symbol;
         symbol.name = symbol_name;
         symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
-        dst.push_back(move(symbol));
+        dst.push_back(std::move(symbol));
       }
     }
   }
@@ -739,11 +742,11 @@ void ODqLanguageServer::Reanalyze()
       SWorkerResult worker_result = RunWorker(analysis_sources[source_index], manifest, build_root);
       for (SDiagnostic & diagnostic : worker_result.diagnostics)
       {
-        all_diagnostics[diagnostic.path].push_back(move(diagnostic));
+        all_diagnostics[diagnostic.path].push_back(std::move(diagnostic));
       }
       for (SDocumentSymbol & symbol : worker_result.document_symbols)
       {
-        all_document_symbols[symbol.path].push_back(move(symbol));
+        all_document_symbols[symbol.path].push_back(std::move(symbol));
       }
       for (auto & [ns_name, ns_symbols] : worker_result.namespaces)
       {
@@ -751,7 +754,7 @@ void ODqLanguageServer::Reanalyze()
         {
           all_document_local_namespaces[AbsNormPath(analysis_sources[source_index]).string()][ns_name] = ns_symbols;
         }
-        all_namespaces[ns_name] = move(ns_symbols);
+        all_namespaces[ns_name] = std::move(ns_symbols);
       }
       all_module_namespaces.insert(worker_result.module_namespaces.begin(), worker_result.module_namespaces.end());
       if (source_index < open_document_count)
@@ -761,16 +764,16 @@ void ODqLanguageServer::Reanalyze()
           filesystem::path normalized_source = AbsNormPath(source);
           if ((normalized_source.extension() == ".dq") && analysis_paths.insert(normalized_source.string()).second)
           {
-            analysis_sources.push_back(move(normalized_source));
+            analysis_sources.push_back(std::move(normalized_source));
           }
         }
       }
     }
   }
-  document_symbols = move(all_document_symbols);
-  namespaces = move(all_namespaces);
-  document_local_namespaces = move(all_document_local_namespaces);
-  module_namespaces = move(all_module_namespaces);
+  document_symbols = std::move(all_document_symbols);
+  namespaces = std::move(all_namespaces);
+  document_local_namespaces = std::move(all_document_local_namespaces);
+  module_namespaces = std::move(all_module_namespaces);
   for (const auto & [uri, document] : documents)
   {
     auto it = all_diagnostics.find(AbsNormPath(document.path).string());
@@ -1006,7 +1009,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
         add_namespace_symbols(ns);
       }
       vector<string> used_module_scopes(module_namespaces.begin(), module_namespaces.end());
-      sort(used_module_scopes.begin(), used_module_scopes.end());
+      std::sort(used_module_scopes.begin(), used_module_scopes.end());
       for (const string & ns : used_module_scopes)
       {
         add_namespace_symbols(ns);

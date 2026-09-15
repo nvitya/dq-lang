@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.69.6"
+#define DQ_COMPILER_VERSION  "0.69.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.69.7:
+  - Compile fix for windows
 v0.69.6:
   - Language server improvements: autocompletition includes non-public symbols
 v0.69.5:

@@ -825,7 +825,7 @@ void ODqCompParser::ParseUseStatement()
 
     filesystem::path interface_load_path = use_path.interface_artifact_path;
 
-    if (!g_opt.ifgen && !in_module_stack)
+    if (!g_opt.ifgen && !g_opt.langserver_worker && !in_module_stack)
     {
       artifact_result = artifact_intf.EnsureFreshCompiledArtifact(use_path);
       if (!artifact_result.Ok())

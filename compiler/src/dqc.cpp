@@ -131,7 +131,7 @@ bool ODqCompiler::AddImplicitUse(const string & module_name, const string & name
 
   OModuleIntf artifact_intf(g_builtins, module_path.module_id);
   bool in_module_stack = artifact_intf.IsInModuleUseStack(module_path.module_id);
-  if (g_opt.ifgen || in_module_stack)
+  if (g_opt.ifgen || g_opt.langserver_worker || in_module_stack)
   {
     SModuleArtifactEnsureResult result = artifact_intf.EnsureFreshInterfaceArtifact(module_path);
     if (!result.Ok())
@@ -620,6 +620,11 @@ void ODqCompiler::Run()
     {
       print("Compile error.\n");
     }
+    return;
+  }
+
+  if (g_opt.langserver_worker && !g_opt.ifgen)
+  {
     return;
   }
 

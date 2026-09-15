@@ -265,9 +265,8 @@ int main(int argc, char ** argv)
 
   if (g_opt.langserver_worker)
   {
-    // A worker only needs semantic parsing and module interfaces.  Avoiding
-    // code generation also keeps all artifacts inside its private build root.
-    g_opt.ifgen = true;
+    // A worker parses the complete source so editor features can see private
+    // implementation declarations.  ODqCompiler stops before code generation.
     g_opt.ifdump = false;
     g_opt.dbg_info = false;
     g_opt.ir_print = false;

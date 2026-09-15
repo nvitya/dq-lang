@@ -4,9 +4,9 @@
  *
  * SPDX-License-Identifier: MIT
  *
- * Worker-side serialization deliberately walks compiler declarations.  It does
- * not reparse source text: the result only contains facts produced by the DQ
- * parser and semantic model.
+ * Worker-side serialization deliberately walks compiler declarations.  Source
+ * text is used only to locate the body of a forward-declared function after
+ * the parser has resolved its owner and signature.
  */
 
 #include <fstream>
@@ -92,14 +92,75 @@ bool IsGeneratedMethod(const OValSymFunc * function)
   return function && function->has_body && (function->scpos.pos == function->scpos_endfunc.pos);
 }
 
+OScPosition SymbolPosition(const OSymbol & symbol)
+{
+  const auto * function = dynamic_cast<const OValSymFunc *>(&symbol);
+  if (!function || !function->scpos.scfile || !function->scpos.scfile->pstart)
+  {
+    return symbol.scpos;
+  }
+
+  string declaration = "func ";
+  if (function->owner_compound_type)
+  {
+    declaration += function->owner_compound_type->name + ".";
+    if (function->object_specfunc_kind != OSF_NONE) declaration += "*";
+  }
+  declaration += function->name;
+
+  OScFile * file = function->scpos.scfile;
+  string_view source(file->pstart, file->length);
+  if (!function->owner_compound_type)
+  {
+    size_t position = source.rfind(declaration);
+    return ((position == string_view::npos) || (file->pstart + position <= function->scpos.pos))
+        ? symbol.scpos : OScPosition(file, file->pstart + position);
+  }
+
+  size_t overload_index = 0;
+  const auto * overload_set = dynamic_cast<const OValSymOverloadSet *>(
+      function->owner_compound_type->Members()->FindValSym(function->name, nullptr, false));
+  if (overload_set)
+  {
+    auto it = find(overload_set->funcs.begin(), overload_set->funcs.end(), function);
+    if (it != overload_set->funcs.end()) overload_index = size_t(it - overload_set->funcs.begin());
+  }
+
+  size_t position = 0;
+  size_t found_count = 0;
+  while (true)
+  {
+    position = source.find(declaration, position);
+    if (position == string_view::npos) return symbol.scpos;
+    position += declaration.length();
+    if ((file->pstart + position > function->scpos.pos) && (found_count++ == overload_index)) break;
+  }
+
+  return OScPosition(function->scpos.scfile, function->scpos.scfile->pstart + position - declaration.length());
+}
+
+bool IsCompoundMember(const OValSym * symbol)
+{
+  if (const auto * function = dynamic_cast<const OValSymFunc *>(symbol))
+  {
+    return function->owner_compound_type != nullptr;
+  }
+  if (const auto * overload_set = dynamic_cast<const OValSymOverloadSet *>(symbol))
+  {
+    return overload_set->owner_compound_type != nullptr;
+  }
+  return false;
+}
+
 void AddSymbol(TJsonNode & symbols, const OSymbol & symbol, int kind, TJsonNode ** rout = nullptr)
 {
+  OScPosition position = SymbolPosition(symbol);
   TJsonNode & json_symbol = symbols.Add().GetAsObject();
   json_symbol.Add("name", symbol.name);
   json_symbol.Add("kind", kind);
-  json_symbol.Add("path", symbol.scpos.scfile->fullpath);
-  json_symbol.Add("line", symbol.scpos.line);
-  json_symbol.Add("column", symbol.scpos.col);
+  json_symbol.Add("path", position.scfile->fullpath);
+  json_symbol.Add("line", position.line);
+  json_symbol.Add("column", position.col);
   if (rout) *rout = &json_symbol;
 }
 
@@ -116,6 +177,13 @@ void AddCompoundMembers(TJsonNode & json_parent, const OCompoundType & compound)
   {
     if (HasSourcePosition(symbol) && seen.insert(symbol).second) members.push_back({symbol, kind});
   };
+  auto add_function = [&](const OValSymFunc * function)
+  {
+    if (function && (function->owner_compound_type == &compound) && !IsGeneratedMethod(function))
+    {
+      add_member(function, ValSymKind(function->kind));
+    }
+  };
 
   for (const OValSym * member : compound.member_order)
   {
@@ -125,14 +193,14 @@ void AddCompoundMembers(TJsonNode & json_parent, const OCompoundType & compound)
   {
     if (property) add_member(property, ValSymKind(property->kind));
   }
-  for (const ODecl * declaration : g_module->declarations)
+  for (const auto & entry : compound.member_scope.valsyms)
   {
-    if (!declaration || declaration->kind != DK_VALSYM) continue;
-    const auto * function = dynamic_cast<const OValSymFunc *>(declaration->pvalsym);
-    if (function && function->owner_compound_type == &compound && !IsGeneratedMethod(function))
+    const OValSym * member = entry.second;
+    if (const auto * overload_set = dynamic_cast<const OValSymOverloadSet *>(member))
     {
-      add_member(function, ValSymKind(function->kind));
+      for (const OValSymFunc * function : overload_set->funcs) add_function(function);
     }
+    else add_function(dynamic_cast<const OValSymFunc *>(member));
   }
   if (members.empty()) return;
 
@@ -165,8 +233,9 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       if (!HasSourcePosition(symbol)) continue;
       if (declaration->kind == DK_VALSYM)
       {
+        if (IsCompoundMember(declaration->pvalsym)) continue;
         const auto * function = dynamic_cast<const OValSymFunc *>(declaration->pvalsym);
-        if (function && (function->owner_compound_type || function->special_kind == SFK_MODULE_INIT)) continue;
+        if (function && (function->special_kind == SFK_MODULE_INIT)) continue;
       }
 
       TJsonNode * json_symbol = nullptr;

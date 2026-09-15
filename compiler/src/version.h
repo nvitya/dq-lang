@@ -11,10 +11,16 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.69.1"
+#define DQ_COMPILER_VERSION  "0.69.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.69.4:
+  - Language server improvements: cross module goto with overload
+v0.69.3:
+  - Language server improvements: cross module goto / 2
+v0.69.2:
+  - Language server improvements: @. handling
 v0.69.1:
   - Language server improvements: cross-module go to
 v0.69.0:

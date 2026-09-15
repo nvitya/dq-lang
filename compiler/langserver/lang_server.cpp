@@ -600,8 +600,16 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   if (!IdentifierAt(document, line, character, name, name_start)) return result;
   const SDocumentSymbol * target = nullptr;
   string target_owner;
+  bool module_scope = (name_start >= 2) && (document.text[name_start - 2] == '@') && (document.text[name_start - 1] == '.');
+  bool own_module_scope = (name_start >= 3) && (document.text[name_start - 3] == '@')
+                       && (document.text[name_start - 2] == '.') && (document.text[name_start - 1] == '.');
+  bool unqualified = (name_start == 0) || (document.text[name_start - 1] != '.');
 
-  if (name_start > 0 && document.text[name_start - 1] == '.')
+  if (module_scope || own_module_scope)
+  {
+    target = FindRootSymbol(document_it->second, name);
+  }
+  else if (name_start > 0 && document.text[name_start - 1] == '.')
   {
     size_t qualifier_end = name_start - 1;
     size_t qualifier_start = qualifier_end;
@@ -619,7 +627,20 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   {
     target = FindRootSymbol(document_it->second, name);
   }
-  if (!target)
+  if (!target && (module_scope || unqualified))
+  {
+    // `@.` and unqualified lookup see the current module's merged imports.
+    // Their sources are analyzed with the open document, so find a unique
+    // matching top-level declaration among them.
+    for (const auto & [path, symbols] : document_symbols)
+    {
+      const SDocumentSymbol * imported_target = FindRootSymbol(symbols, name);
+      if (!imported_target) continue;
+      if (target) return result;
+      target = imported_target;
+    }
+  }
+  if (!target && !own_module_scope)
   {
     // Imported interfaces retain member names but not source locations.  Their
     // direct sources are analyzed with the open document, so find a unique
@@ -633,6 +654,19 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
         if (target) return result;
         target = member;
         target_owner = compound.name;
+      }
+    }
+
+    // Overloaded imported methods are represented by their interface as
+    // top-level declarations rather than compound members.
+    if (!target)
+    {
+      for (const auto & [path, symbols] : document_symbols)
+      {
+        const SDocumentSymbol * imported_target = FindRootSymbol(symbols, name);
+        if (!imported_target) continue;
+        if (target) return result;
+        target = imported_target;
       }
     }
   }

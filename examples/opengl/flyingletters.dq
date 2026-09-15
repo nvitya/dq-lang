@@ -182,6 +182,9 @@ func *Main():
     GlfwSwapInterval(1)
 
     g_scene = new OFlyingLettersScene(window)
+
+    var x :? = g_scene.root.NewGroup()
+
     if not g_scene.ready:
         PrintLn('Could not load LiberationSans-Regular.ttf')
         delete g_scene = nil

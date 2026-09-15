@@ -87,6 +87,7 @@ private:
   unordered_map<string, SDocument> documents;
   unordered_map<string, vector<SDocumentSymbol>> document_symbols;
   unordered_map<string, vector<SDocumentSymbol>> namespaces;
+  unordered_map<string, unordered_map<string, vector<SDocumentSymbol>>> document_local_namespaces;
   unordered_set<string> module_namespaces;
   bool initialize_received = false;
   bool initialized = false;

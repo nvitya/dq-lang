@@ -720,6 +720,7 @@ void ODqLanguageServer::Reanalyze()
   unordered_map<string, vector<SDiagnostic>> all_diagnostics;
   unordered_map<string, vector<SDocumentSymbol>> all_document_symbols;
   unordered_map<string, vector<SDocumentSymbol>> all_namespaces;
+  unordered_map<string, unordered_map<string, vector<SDocumentSymbol>>> all_document_local_namespaces;
   unordered_set<string> all_module_namespaces;
   if (StageDocuments(manifest, build_root))
   {
@@ -746,6 +747,10 @@ void ODqLanguageServer::Reanalyze()
       }
       for (auto & [ns_name, ns_symbols] : worker_result.namespaces)
       {
+        if ((ns_name == ".") || (ns_name == ".."))
+        {
+          all_document_local_namespaces[AbsNormPath(analysis_sources[source_index]).string()][ns_name] = ns_symbols;
+        }
         all_namespaces[ns_name] = move(ns_symbols);
       }
       all_module_namespaces.insert(worker_result.module_namespaces.begin(), worker_result.module_namespaces.end());
@@ -764,6 +769,7 @@ void ODqLanguageServer::Reanalyze()
   }
   document_symbols = move(all_document_symbols);
   namespaces = move(all_namespaces);
+  document_local_namespaces = move(all_document_local_namespaces);
   module_namespaces = move(all_module_namespaces);
   for (const auto & [uri, document] : documents)
   {
@@ -934,12 +940,19 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     if (prefix_start > line_start && document.text[prefix_start - 1] == '.')
     {
       size_t dot_pos = prefix_start - 1;
-      size_t ns_start = dot_pos;
-      while (ns_start > line_start && (isalnum(document.text[ns_start - 1]) || document.text[ns_start - 1] == '_'))
+      if (dot_pos > line_start && document.text[dot_pos - 1] == '@')
       {
-        ns_start--;
+        scope_name = ".";
       }
-      if (ns_start < dot_pos) scope_name = document.text.substr(ns_start, dot_pos - ns_start);
+      else
+      {
+        size_t ns_start = dot_pos;
+        while (ns_start > line_start && (isalnum(document.text[ns_start - 1]) || document.text[ns_start - 1] == '_'))
+        {
+          ns_start--;
+        }
+        if (ns_start < dot_pos) scope_name = document.text.substr(ns_start, dot_pos - ns_start);
+      }
     }
     else if (prefix_start > line_start && document.text[prefix_start - 1] == '@')
     {
@@ -955,6 +968,20 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     }
     
     TJsonNode result(nkArray);
+    const auto local_namespaces = document_local_namespaces.find(AbsNormPath(document.path).string());
+    auto find_namespace = [&](const string & ns_name) -> const vector<SDocumentSymbol> *
+    {
+      if ((ns_name == ".") || (ns_name == ".."))
+      {
+        if (local_namespaces != document_local_namespaces.end())
+        {
+          auto local_it = local_namespaces->second.find(ns_name);
+          if (local_it != local_namespaces->second.end()) return &local_it->second;
+        }
+      }
+      auto it = namespaces.find(ns_name);
+      return it == namespaces.end() ? nullptr : &it->second;
+    };
     if (scope_name == "..")
     {
       // Unqualified lookup contains the merged core scopes and every module imported with `use`.
@@ -962,9 +989,9 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
       unordered_set<string> completed_names;
       auto add_namespace_symbols = [&](const string & ns_name)
       {
-        auto ns_it = namespaces.find(ns_name);
-        if (ns_it == namespaces.end()) return;
-        for (const auto & symbol : ns_it->second)
+        const vector<SDocumentSymbol> * symbols = find_namespace(ns_name);
+        if (!symbols) return;
+        for (const auto & symbol : *symbols)
         {
           if (completed_names.insert(symbol.name).second)
           {
@@ -987,8 +1014,8 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     }
     else
     {
-      auto ns_it = namespaces.find(scope_name);
-      if (ns_it == namespaces.end())
+      const vector<SDocumentSymbol> * symbols = find_namespace(scope_name);
+      if (!symbols)
       {
         // Try to infer type of the variable using simple regex
         std::regex re("\\b" + scope_name + "\\s*(?::=|:|<-)\\s*([A-Za-z0-9_]+)");
@@ -996,13 +1023,13 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
         if (std::regex_search(document.text, match, re))
         {
           string inferred_type = match[1].str();
-          ns_it = namespaces.find(inferred_type);
+          symbols = find_namespace(inferred_type);
         }
       }
       
-      if (ns_it != namespaces.end())
+      if (symbols)
       {
-        for (const auto & symbol : ns_it->second)
+        for (const auto & symbol : *symbols)
         {
           AddCompletionItem(result, symbol.name, DocumentSymbolToCompletionKind(symbol.kind));
         }

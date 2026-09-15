@@ -77,16 +77,16 @@ endfunc
 
 
 func StrfIsHighSurrogate(code : uint32) -> bool:
-    return code >= uint32(0xD800) and code <= uint32(0xDBFF)
+    return code >= 0xD800 and code <= 0xDBFF
 endfunc
 
 func StrfIsLowSurrogate(code : uint32) -> bool:
-    return code >= uint32(0xDC00) and code <= uint32(0xDFFF)
+    return code >= 0xDC00 and code <= 0xDFFF
 endfunc
 
 func StrfIsValidWChar(wc : wchar) -> bool:
-    var code : uint32 = uint32(Ord(wc))
-    return code <= uint32(0x10FFFF) and not (code >= uint32(0xD800) and code <= uint32(0xDFFF))
+    var code : uint32 = Ord(wc)
+    return code <= 0x10FFFF and not (code >= 0xD800 and code <= 0xDFFF)
 endfunc
 
 func IntToChar(value : int) -> char [[overload]]:
@@ -128,7 +128,7 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
 endfunc
 
 func StrfByte(text : strslice, index : int) -> uint32:
-    return uint32(Ord(text[index])) & uint32(0xFF)
+    return Ord(text[index]) & 0xFF
 endfunc
 
 func StrfFailUtf8(report_error : bool) -> bool:
@@ -143,10 +143,10 @@ func StrfReadCont(text : strslice, index : int, outb : refout uint32, report_err
         return StrfFailUtf8(report_error)
     endif
     outb = StrfByte(text, index)
-    if outb & uint32(0xC0) <> uint32(0x80):
+    if outb & 0xC0 <> 0x80:
         return StrfFailUtf8(report_error)
     endif
-    outb = outb & uint32(0x3F)
+    outb = outb & 0x3F
     return true
 endfunc
 
@@ -157,7 +157,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
     endif
 
     var b0 : uint32 = StrfByte(text, pos)
-    if b0 <= uint32(0x7F):
+    if b0 <= 0x7F:
         wc = wchar(b0)
         pos += 1
         return true
@@ -167,32 +167,37 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
     var b2 : uint32 = 0
     var b3 : uint32 = 0
     var decoded : uint32 = 0
-    if b0 >= uint32(0xC2) and b0 <= uint32(0xDF):
+    if b0 >= 0xC2 and b0 <= 0xDF:
         if not StrfReadCont(text, pos + 1, b1, report_error):
             return false
         endif
-        decoded = ((b0 & uint32(0x1F)) << 6) | b1
+        decoded = ((b0 & 0x1F) << 6) | b1
         wc = wchar(decoded)
         pos += 2
         return true
-    elif b0 >= uint32(0xE0) and b0 <= uint32(0xEF):
-        if not StrfReadCont(text, pos + 1, b1, report_error) or not StrfReadCont(text, pos + 2, b2, report_error):
+    elif b0 >= 0xE0 and b0 <= 0xEF:
+        if not StrfReadCont(text, pos + 1, b1, report_error) 
+           or not StrfReadCont(text, pos + 2, b2, report_error)
+        :
             return false
         endif
-        decoded = ((b0 & uint32(0x0F)) << 12) | (b1 << 6) | b2
+        decoded = ((b0 & 0x0F) << 12) | (b1 << 6) | b2
         wc = wchar(decoded)
-        if decoded < uint32(0x800) or not StrfIsValidWChar(wc):
+        if decoded < 0x800  or not StrfIsValidWChar(wc):
             return StrfFailUtf8(report_error)
         endif
         pos += 3
         return true
-    elif b0 >= uint32(0xF0) and b0 <= uint32(0xF4):
-        if not StrfReadCont(text, pos + 1, b1, report_error) or not StrfReadCont(text, pos + 2, b2, report_error) or not StrfReadCont(text, pos + 3, b3, report_error):
+    elif b0 >= 0xF0 and b0 <= 0xF4:
+        if not StrfReadCont(text, pos + 1, b1, report_error) 
+           or not StrfReadCont(text, pos + 2, b2, report_error) 
+           or not StrfReadCont(text, pos + 3, b3, report_error)
+        :
             return false
         endif
-        decoded = ((b0 & uint32(0x07)) << 18) | (b1 << 12) | (b2 << 6) | b3
+        decoded = ((b0 & 0x07) << 18) | (b1 << 12) | (b2 << 6) | b3
         wc = wchar(decoded)
-        if decoded < uint32(0x10000) or not StrfIsValidWChar(wc):
+        if decoded < 0x10000 or not StrfIsValidWChar(wc):
             return StrfFailUtf8(report_error)
         endif
         pos += 4
@@ -213,21 +218,21 @@ func StrfAppendUtf8(dst : ref str, wc : wchar):
         return
     endif
 
-    var code : uint32 = uint32(Ord(wc))
-    if code <= uint32(0x7F):
+    var code : uint32 = Ord(wc)
+    if code <= 0x7F:
         dst.Append(char(int(code)))
-    elif code <= uint32(0x7FF):
-        dst.Append(char(int(uint32(0xC0) | (code >> 6))))
-        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
-    elif code <= uint32(0xFFFF):
-        dst.Append(char(int(uint32(0xE0) | (code >> 12))))
-        dst.Append(char(int(uint32(0x80) | ((code >> 6) & uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
+    elif code <= 0x7FF:
+        dst.Append(char(int(0xC0 | (code >> 6))))
+        dst.Append(char(int(0x80 | (code & 0x3F))))
+    elif code <= 0xFFFF:
+        dst.Append(char(int(0xE0 | (code >> 12))))
+        dst.Append(char(int(0x80 | ((code >> 6) & 0x3F))))
+        dst.Append(char(int(0x80 | (code & 0x3F))))
     else:
-        dst.Append(char(int(uint32(0xF0) | (code >> 18))))
-        dst.Append(char(int(uint32(0x80) | ((code >> 12) & uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) | ((code >> 6) & uint32(0x3F)))))
-        dst.Append(char(int(uint32(0x80) | (code & uint32(0x3F)))))
+        dst.Append(char(int(0xF0 | (code >> 18))))
+        dst.Append(char(int(0x80 | ((code >> 12) & 0x3F))))
+        dst.Append(char(int(0x80 | ((code >> 6) & 0x3F))))
+        dst.Append(char(int(0x80 | (code & 0x3F))))
     endif
 endfunc
 #endif
@@ -242,13 +247,13 @@ func StrfAppendUtf16(dst : ref [*]char16, wc : wchar):
         return
     endif
 
-    var code : uint32 = uint32(Ord(wc))
-    if code <= uint32(0xFFFF):
+    var code : uint32 = Ord(wc)
+    if code <= 0xFFFF:
         dst.Append(char16(int(code)))
     else:
-        code -= uint32(0x10000)
-        dst.Append(char16(int(uint32(0xD800) | (code >> 10))))
-        dst.Append(char16(int(uint32(0xDC00) | (code & uint32(0x3FF)))))
+        code -= 0x10000
+        dst.Append(char16(int(0xD800 | (code >> 10))))
+        dst.Append(char16(int(0xDC00 | (code & 0x3FF))))
     endif
 endfunc
 
@@ -370,7 +375,7 @@ func StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout 
         return false
     endif
 
-    var u0 : uint32 = uint32(Ord(chars[pos]^))
+    var u0 : uint32 = Ord(chars[pos]^)
     pos += 1
     if StrfIsHighSurrogate(u0):
         if pos >= count:
@@ -386,7 +391,7 @@ func StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout 
             return false
         endif
 
-        var u1 : uint32 = uint32(Ord(chars[pos]^))
+        var u1 : uint32 = Ord(chars[pos]^)
         if not StrfIsLowSurrogate(u1):
             if has_fallback:
                 if fallback_wchar <> wchar(0):
@@ -400,7 +405,7 @@ func StrfDecodeUtf16At(chars : ^char16, count : int, pos : ref int, wc : refout 
         endif
 
         pos += 1
-        wc = wchar(int(uint32(0x10000) + ((u0 - uint32(0xD800)) << 10) + (u1 - uint32(0xDC00))))
+        wc = wchar(int(0x10000 + ((u0 - 0xD800) << 10) + (u1 - 0xDC00)))
         return true
     elif StrfIsLowSurrogate(u0):
         if has_fallback:

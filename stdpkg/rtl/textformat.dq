@@ -465,12 +465,12 @@ endfunc
 func OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
     lcsbuf.Clear()
 
-    if v == uint(0):
+    if v == 0:
         lcsbuf.AppendChar('0')
         return 1
     endif
 
-    while v > uint(0):
+    while v > 0:
         lcsbuf.AppendChar(UIntDigitChar(v mod abase, aupper))
         v = v div abase
     endwhile
@@ -547,7 +547,7 @@ func OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, af
     if aprecision > 0:
         sink.WriteChar('.')
         var place : uint = ascale div 10
-        while place > uint(0):
+        while place > 0:
             var digit : uint = afrac div place
             sink.WriteChar(UIntDigitChar(digit, false))
             afrac = afrac mod place
@@ -586,7 +586,7 @@ func OTextFormatter.FormatFloat(v : float):
     var signch : char = char(0)
     var work : float = v
 
-    if work < 0.0:
+    if work < 0:
         signch = '-'
         work = -work
     elif fmtspec.sign_plus:
@@ -605,8 +605,8 @@ func OTextFormatter.FormatFloat(v : float):
         scale *= 10
     endfor
 
-    var intpart : uint = uint(0)
-    var frac    : uint = uint(0)
+    var intpart : uint = 0
+    var frac    : uint = 0
 
     if fmtspec.precision < 0:
         var intpart_int : int = Floor(work)
@@ -618,9 +618,9 @@ func OTextFormatter.FormatFloat(v : float):
             frac -= scale
         endif
 
-        while precision > 0 and (frac mod uint(10)) == uint(0):
-            frac = frac div uint(10)
-            scale = scale div uint(10)
+        while precision > 0 and (frac mod 10) == 0:
+            frac = frac div 10
+            scale = scale div 10
             precision -= 1
         endwhile
     else:

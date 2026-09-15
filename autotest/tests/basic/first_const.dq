@@ -21,8 +21,8 @@ const NESTED_FALLBACK : int = FirstInt(MISSING_INT, FirstInt(ALSO_MISSING_INT, 6
 const FORWARD_FALLBACK : int = FirstInt(LATER_INT, 8)
 const LATER_INT : int = 9
 
-const SELECTED_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_FLOAT, 2.0)
-const INTEGER_TO_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_SMALL, 2.0)
+const SELECTED_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_FLOAT, 2)
+const INTEGER_TO_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_SMALL, 2)
 const FALLBACK_FLOAT : float = FirstFloat(MISSING_FLOAT, 2.5 + 0.25)
 const INTEGER_FLOAT_FALLBACK : float = FirstFloat(MISSING_FLOAT, 3)
 

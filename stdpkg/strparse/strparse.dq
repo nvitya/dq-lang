@@ -457,17 +457,17 @@ endfunc
 
 func PCharToFloat(readp : ^char, len : int) -> float64:
     if len < 1:
-        return 0.0
+        return 0
     endif
 
     var pc   : ^char = readp
     var pend : ^char = readp + len
 
-    var nsign   : float64 = 1.0
-    var esign   : float64 = 1.0
-    var fracmul : float64 = 1.0
-    var nv      : float64 = 0.0
-    var ev      : float64 = 0.0
+    var nsign   : float64 = 1
+    var esign   : float64 = 1
+    var fracmul : float64 = 1
+    var nv      : float64 = 0
+    var ev      : float64 = 0
     var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
 
     while pc < pend:
@@ -475,15 +475,15 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
 
     if c == '+':
         if mode == 2:
-            esign = 1.0
+            esign = 1
         else:
-            nsign = 1.0
+            nsign = 1
         endif
     elif c == '-':
         if mode == 2:
-            esign = -1.0
+            esign = -1
         else:
-            nsign = -1.0
+            nsign = -1
         endif
     elif c >= '0'  and c <= '9':
         var digit : float64 = float64(Ord(c) - Ord('0'))
@@ -491,9 +491,9 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
             fracmul *= 0.1
             nv += digit * fracmul
         elif mode == 2:
-            ev = ev * 10.0 + digit
+            ev = ev * 10 + digit
         else:
-            nv = nv * 10.0 + digit
+            nv = nv * 10 + digit
         endif
     elif c == '.'  or c == ',':
         mode = 1
@@ -506,5 +506,5 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
     pc += 1
     endwhile
 
-    return nsign * nv * Pow(10.0, esign * ev)
+    return nsign * nv * Pow(10, esign * ev)
 endfunc

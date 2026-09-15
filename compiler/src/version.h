@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.68.2"
+#define DQ_COMPILER_VERSION  "0.68.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.68.3:
+  - Removed unnecessary number hintings
 v0.68.2:
   - Compiler code refactoring: cstring -> embstr internal renames
 v0.68.1:

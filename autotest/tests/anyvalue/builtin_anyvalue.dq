@@ -60,7 +60,7 @@ func *Main():
     printf("assign-bool = isbool:%li val:%li\n", BoolInt(av.IsBool()), BoolInt(av.AsBool(false))) //?check("assign-bool", "isbool:1 val:1")
 
     av = 2.5
-    printf("assign-float = isfloat:%li val:%li\n", BoolInt(av.IsFloat()), Round(av.AsFloat(0.0) * 10.0)) //?check("assign-float", "isfloat:1 val:25")
+    printf("assign-float = isfloat:%li val:%li\n", BoolInt(av.IsFloat()), Round(av.AsFloat(0) * 10)) //?check("assign-float", "isfloat:1 val:25")
 
     av = "literal"
     printf("assign-literal = istext:%li isstr:%li\n", BoolInt(av.IsText()), BoolInt(av.IsStr())) //?check("assign-literal", "istext:1 isstr:0")

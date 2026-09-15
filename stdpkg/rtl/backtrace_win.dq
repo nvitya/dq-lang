@@ -238,7 +238,7 @@ func DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
         shift += 7
         if b & 0x80 == 0:
             if shift < 64  and  b & 0x40 <> 0:
-                result |= (-(int(1) << shift))
+                result |= (-(1 << shift))
             endif
             return
         endif

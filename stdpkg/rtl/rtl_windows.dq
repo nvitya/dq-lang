@@ -109,7 +109,7 @@ func DqWinFaultHandler(exception_info : pointer) -> int32:
     if DqExcActive():
         PrintUncaughtException()
     endif
-    win_ExitProcess(uint32(255))
+    win_ExitProcess(255)
 
     return EXCEPTION_CONTINUE_SEARCH
 endfunc
@@ -162,7 +162,7 @@ func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
 
 func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)
-    win_ExitProcess(uint32(255))
+    win_ExitProcess(255)
 endfunc
 
 func main(argc : int, argv : ^^char) -> int  [[cexport]]:

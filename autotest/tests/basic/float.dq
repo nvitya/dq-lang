@@ -3,9 +3,9 @@
 // --- constant expressions ---
 
 const CONST_ROUND : int = Round(3.1 / 1.13)   // Round(2.7433...) = 3
-const CONST_CEIL  : int = Ceil(2.1 * 3.0)     // Ceil(6.3) = 7
-const CONST_FLOOR : int = Floor(10.0 / 3.0)   // Floor(3.333...) = 3
-const CONST_TRUNC : int = Trunc(-10.0 / 3.0)  // Trunc(-3.333...) = -3
+const CONST_CEIL  : int = Ceil(2.1 * 3)     // Ceil(6.3) = 7
+const CONST_FLOOR : int = Floor(10 / 3)     // Floor(3.333...) = 3
+const CONST_TRUNC : int = Trunc(-10 / 3)    // Trunc(-3.333...) = -3
 
 // --- float64 arithmetic ---
 
@@ -81,16 +81,16 @@ func *Main():
     printf('dq_fl_add(1.5, 2.5) = %.3f\n',     dq_fl_add(1.5, 2.5)  )  //?check('dq_fl_add(1.5, 2.5)', 4.000)
     printf("dq_fl_add(-1.5, 2.5) = %.3f\n",    dq_fl_add(-1.5, 2.5) )  //?check('dq_fl_add(-1.5, 2.5)', 1.000)
     printf("dq_fl_sub(5.5, 2.5) = %.3f\n",     dq_fl_sub(5.5, 2.5)  )  //?check('dq_fl_sub(5.5, 2.5)', 3.000)
-    printf("dq_fl_sub(1.0, 3.5) = %.3f\n",     dq_fl_sub(1.0, 3.5)  )  //?check('dq_fl_sub(1.0, 3.5)',   -2.500)
-    printf("dq_fl_mul(2.5, 4.0) = %.3f\n",     dq_fl_mul(2.5, 4.0)  )  //?check('dq_fl_mul(2.5, 4.0)',   10.000)
-    printf("dq_fl_mul(-3.0, 2.5) = %.3f\n",    dq_fl_mul(-3.0, 2.5) )  //?check('dq_fl_mul(-3.0, 2.5)',  -7.500)
-    printf("dq_fl_div(10.0, 4.0) = %.3f\n",    dq_fl_div(10.0, 4.0) )  //?check('dq_fl_div(10.0, 4.0)',   2.500)
+    printf("dq_fl_sub(1, 3.5) = %.3f\n",       dq_fl_sub(1, 3.5)    )  //?check('dq_fl_sub(1, 3.5)',   -2.500)
+    printf("dq_fl_mul(2.5, 4) = %.3f\n",       dq_fl_mul(2.5, 4)    )  //?check('dq_fl_mul(2.5, 4)',   10.000)
+    printf("dq_fl_mul(-3, 2.5) = %.3f\n",      dq_fl_mul(-3, 2.5)   )  //?check('dq_fl_mul(-3, 2.5)',  -7.500)
+    printf("dq_fl_div(10, 4) = %.3f\n",        dq_fl_div(10, 4)     )  //?check('dq_fl_div(10, 4)',   2.500)
     printf("dq_fl_div(-7.5, 2.5) = %.3f\n",    dq_fl_div(-7.5, 2.5) )  //?check('dq_fl_div(-7.5, 2.5)',  -3.000)
 
     printf("\n--- float32 arithmetic ---\n")  //?ignore('--- float32 arithmetic ---')
 
     printf("dq_fl32_add(1.5, 2.5) = %.3f\n",  dq_fl32_add(1.5, 2.5) )  //?check('dq_fl32_add(1.5, 2.5)', 4.000)
-    printf("dq_fl32_mul(2.5, 4.0) = %.3f\n",  dq_fl32_mul(2.5, 4.0) )  //?check('dq_fl32_mul(2.5, 4.0)', 10.000)
+    printf("dq_fl32_mul(2.5, 4) = %.3f\n",    dq_fl32_mul(2.5, 4)   )  //?check('dq_fl32_mul(2.5, 4)', 10.000)
 
     printf("\n--- Round(float64) -> int ---\n") //?ignore('--- Round(float64) -> int ---')
 
@@ -101,25 +101,25 @@ func *Main():
     printf("Round(-1.4) = %i\n",   dq_fl_round(-1.4)  )   //?check('Round(-1.4)', -1)
     printf("Round(-1.5) = %i\n",   dq_fl_round(-1.5)  )   //?check('Round(-1.5)', -2)
     printf("Round(-1.6) = %i\n",   dq_fl_round(-1.6)  )   //?check('Round(-1.6)', -2)
-    printf("Round(0.0) = %i\n",    dq_fl_round(0.0)   )   //?check('Round(0.0)', 0)
+    printf("Round(0) = %i\n",      dq_fl_round(0)     )   //?check('Round(0)', 0)
 
     printf("\n--- Ceil(float64) -> int ---\n") //?ignore('--- Ceil(float64) -> int ---')
 
-    printf("Ceil(1.0) = %i\n",     dq_fl_ceil(1.0)    )   //?check('Ceil(1.0)', 1)
+    printf("Ceil(1) = %i\n",       dq_fl_ceil(1)      )   //?check('Ceil(1)', 1)
     printf("Ceil(1.1) = %i\n",     dq_fl_ceil(1.1)    )   //?check('Ceil(1.1)', 2)
     printf("Ceil(1.9) = %i\n",     dq_fl_ceil(1.9)    )   //?check('Ceil(1.9)', 2)
     printf("Ceil(-1.1) = %i\n",    dq_fl_ceil(-1.1)   )   //?check('Ceil(-1.1)', -1)
     printf("Ceil(-1.9) = %i\n",    dq_fl_ceil(-1.9)   )   //?check('Ceil(-1.9)', -1)
-    printf("Ceil(0.0) = %i\n",     dq_fl_ceil(0.0)    )   //?check('Ceil(0.0)', 0)
+    printf("Ceil(0) = %i\n",       dq_fl_ceil(0)      )   //?check('Ceil(0)', 0)
 
     printf("\n--- Floor(float64) -> int ---\n")  //?ignore('--- Floor(float64) -> int ---')
 
-    printf("Floor(1.0) = %i\n",    dq_fl_floor(1.0)   )   //?check('Floor(1.0)', 1)
+    printf("Floor(1) = %i\n",      dq_fl_floor(1)     )   //?check('Floor(1)', 1)
     printf("Floor(1.1) = %i\n",    dq_fl_floor(1.1)   )   //?check('Floor(1.1)', 1)
     printf("Floor(1.9) = %i\n",    dq_fl_floor(1.9)   )   //?check('Floor(1.9)', 1)
     printf("Floor(-1.1) = %i\n",   dq_fl_floor(-1.1)  )   //?check('Floor(-1.1)', -2)
     printf("Floor(-1.9) = %i\n",   dq_fl_floor(-1.9)  )   //?check('Floor(-1.9)', -2)
-    printf("Floor(0.0) = %i\n",    dq_fl_floor(0.0)   )   //?check('Floor(0.0)', 0)
+    printf("Floor(0) = %i\n",      dq_fl_floor(0)     )   //?check('Floor(0)', 0)
 
     printf("Trunc(1.9) = %i\n",    dq_fl_trunc(1.9)   )   //?check('Trunc(1.9)', 1)
     printf("Trunc(-1.9) = %i\n",   dq_fl_trunc(-1.9)  )   //?check('Trunc(-1.9)', -1)
@@ -136,7 +136,7 @@ func *Main():
     printf("trunc32(-1.9) = %i\n",  dq_fl32_trunc(-1.9) )  //?check('trunc32(-1.9)', -1)
 
     printf("Round(1.25 + 1.25) = %i\n", Round(1.25 + 1.25))  //?check('Round(1.25 + 1.25)', 3)
-    printf("Ceil(2.0 + 0.1) = %i\n", Ceil(2.0 + 0.1))        //?check('Ceil(2.0 + 0.1)', 3)
+    printf("Ceil(2 + 0.1) = %i\n", Ceil(2 + 0.1))            //?check('Ceil(2 + 0.1)', 3)
     printf("3 / 2 = %.3f\n", 3 / 2)                          //?check('3 / 2', 1.500)
 
     // ---- constant expressions ----

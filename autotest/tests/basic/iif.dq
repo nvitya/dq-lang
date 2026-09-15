@@ -40,7 +40,7 @@ func dq_iif_float_width(flag : bool) -> int:
     var a : float32 = 1.25
     var b : float64 = 2.75
     var f : float64 = iif(flag, a, b)
-    result = Round(f * 10.0)
+    result = Round(f * 10)
 endfunc
 
 func dq_iif_ptr(flag : bool) -> int:

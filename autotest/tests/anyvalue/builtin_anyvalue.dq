@@ -2,7 +2,7 @@
 
 use libc/stdio
 
-func putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]] ..
 
 func PrintText(label : ^char, text : strslice):
     printf("%s = [%li] \"", label, text.length)

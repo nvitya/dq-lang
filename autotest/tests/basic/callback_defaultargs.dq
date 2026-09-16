@@ -12,7 +12,7 @@ func sum3(a : int, b : int, c : int) -> int:
     result = a + b + c
 endfunc
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 func *Main():
     var cb : CBOne = add
     var cb_src : CBSrc = add

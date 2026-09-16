@@ -11,13 +11,13 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    func Run(acmd : strslice) -> int
-    func RunWithInput(acmd : strslice, ainput : strslice) -> int
-    func StartBg(acmd : strslice) -> int
-    func StartBgWithInput(acmd : strslice, ainput : strslice) -> int
-    func Finished() -> bool
-    func WaitFinishMs(ams : int) -> bool
-    func Kill()
+    func Run(acmd : strslice) -> int ..
+    func RunWithInput(acmd : strslice, ainput : strslice) -> int ..
+    func StartBg(acmd : strslice) -> int ..
+    func StartBgWithInput(acmd : strslice, ainput : strslice) -> int ..
+    func Finished() -> bool ..
+    func WaitFinishMs(ams : int) -> bool ..
+    func Kill() ..
 
 protected  
     pid : int32 = 0
@@ -29,9 +29,9 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    func StartProcess(acmd : strslice) -> int
-    func MonitorProcess()
-    func MonitorThread(aarg : pointer) -> pointer
+    func StartProcess(acmd : strslice) -> int ..
+    func MonitorProcess() ..
+    func MonitorThread(aarg : pointer) -> pointer ..
 endobject
 
 implementation
@@ -42,20 +42,20 @@ struct SPollFd:
     revents : int16
 endstruct
 
-func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
-func libc_fork() -> int32                                        [[external('fork')]]
-func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
-func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
-func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
-func libc_close(fd : int32) -> int32                             [[external('close')]]
-func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
-func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
-func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
-func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
-func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
-func libc__exit(status : int32)                                  [[external('_exit')]]
-func libc___errno_location() -> ^int32                           [[external('__errno_location')]]
-func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
+func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]] ..
+func libc_fork() -> int32                                        [[external('fork')]] ..
+func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]] ..
+func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]] ..
+func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]] ..
+func libc_close(fd : int32) -> int32                             [[external('close')]] ..
+func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]] ..
+func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]] ..
+func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]] ..
+func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]] ..
+func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]] ..
+func libc__exit(status : int32)                                  [[external('_exit')]] ..
+func libc___errno_location() -> ^int32                           [[external('__errno_location')]] ..
+func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]] ..
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1

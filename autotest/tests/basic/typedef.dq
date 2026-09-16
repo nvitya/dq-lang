@@ -6,7 +6,7 @@ var f1 : TFloat = 1
 var f2 : TFloat = 2
 var f64 : float = 5.5
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 func *Main():
     printf('DQ Typedef test\n')    //?ignore('DQ Typedef test')
     var f : TFloat = f1

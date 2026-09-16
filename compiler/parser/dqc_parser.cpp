@@ -59,6 +59,10 @@ ODqCompParser::~ODqCompParser()
 void ODqCompParser::RecoverFailedFunctionDecl()
 {
   scf->SkipWhite();
+  if (scf->CheckSymbol(".."))
+  {
+    return;
+  }
   if (scf->CheckSymbol(";"))
   {
     return;
@@ -1751,15 +1755,15 @@ bool ODqCompParser::ValidateFunctionDecl(OValSymFunc * vsfunc, bool aallow_exter
   return true;
 }
 
-void ODqCompParser::ConsumeDeclarationSemicolon(bool has_body, const string & what)
+void ODqCompParser::ConsumeFunctionDeclarationEnd(bool has_body, const string & what)
 {
   if (has_body)
   {
     Error(DQERR_FUNC_NO_BODY_ALLOWED_AFTER, what);
   }
-  else if (not CheckStatementClose())
+  else if (not scf->CheckSymbol(".."))
   {
-    // CheckStatementClose generates error if missing
+    Error(DQERR_FUNC_BODY_OR_FORWARD_EXPECTED);
   }
 }
 
@@ -1855,7 +1859,7 @@ bool ODqCompParser::ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsf
   {
     Error(DQERR_ATTR_CONFLICT, "[[weak]] and [[external]]");
     fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-    ConsumeDeclarationSemicolon(has_body, "external function declaration");
+    ConsumeFunctionDeclarationEnd(has_body, "external function declaration");
     cleanup_new_func();
     return true;
   }
@@ -1863,7 +1867,7 @@ bool ODqCompParser::ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsf
   if (vsfunc->is_external)
   {
     fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-    ConsumeDeclarationSemicolon(has_body, "external function declaration");
+    ConsumeFunctionDeclarationEnd(has_body, "external function declaration");
     cleanup_new_func();
     return true;
   }
@@ -1871,7 +1875,7 @@ bool ODqCompParser::ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsf
   if (is_declaration_only)
   {
     fwdfunc->MergeForwardDeclFrom(vsfunc, false);
-    ConsumeDeclarationSemicolon(has_body, "function declaration");
+    ConsumeFunctionDeclarationEnd(has_body, "function declaration");
     cleanup_new_func();
     return true;
   }
@@ -1925,7 +1929,14 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
 
   scf->SkipWhite();
   bool has_body = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
-  bool is_declaration_only = !has_body;
+  bool is_declaration_only = scf->CheckSymbol("..", false);
+  if (!has_body && !is_declaration_only)
+  {
+    Error(DQERR_FUNC_BODY_OR_FORWARD_EXPECTED);
+    RecoverFailedFunctionDecl();
+    cleanup_new_func();
+    return false;
+  }
 
   if (vsfunc->is_asm)
   {
@@ -2054,14 +2065,14 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
 
   if (vsfunc->is_external)
   {
-    ConsumeDeclarationSemicolon(has_body, "external function declaration");
+    ConsumeFunctionDeclarationEnd(has_body, "external function declaration");
     curvsfunc = nullptr;
     return true;
   }
 
   if (is_declaration_only)
   {
-    ConsumeDeclarationSemicolon(has_body, "function declaration");
+    ConsumeFunctionDeclarationEnd(has_body, "function declaration");
     curvsfunc = nullptr;
     return true;
   }
@@ -2858,8 +2869,7 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
 void ODqCompParser::ParseFunction()
 {
   // note: "func" is already consumed
-  // syntax form: "func identifier[(arglist)] [-> return_type] <statement_block | ;>"
-  // statement block must follow, when ';' then it is a forward declaration
+  // syntax form: "func identifier[(arglist)] [-> return_type] <: statement_block | { statement_block } | ..>"
 
   string   sid;
 

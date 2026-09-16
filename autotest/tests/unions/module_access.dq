@@ -1,6 +1,6 @@
 use ./mod_union
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     var word : UModuleWord = MakeModuleWord(0xFFFFFFFF)

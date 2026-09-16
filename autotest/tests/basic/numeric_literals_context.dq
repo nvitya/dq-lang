@@ -1,7 +1,7 @@
 // Numeric literals take their type from context; no uint(...) or x.0 hints are needed.
 // Integer expressions use their natural width and wrap only when stored in a narrow type.
 
-func printf(format : ^char, ...) -> int [[external]]
+func printf(format : ^char, ...) -> int [[external]] ..
 
 func EchoByte(value : uint8) -> uint8:
     return value

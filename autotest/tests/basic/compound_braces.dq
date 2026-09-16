@@ -1,6 +1,6 @@
 // struct and object brace block parsing
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 struct SBrace {
     id    : int

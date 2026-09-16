@@ -4,7 +4,7 @@ use time
 
 use threads
 
-func putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]] ..
 
 var thr1 <- OThread()
 var thr2 <- OThread()

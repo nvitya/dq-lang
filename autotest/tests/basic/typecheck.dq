@@ -15,7 +15,7 @@ object TObjectScopeCheck:
     endfunc
 endobject
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 object TObjectRootScopeFuncCheck:
     func BadPrintf():

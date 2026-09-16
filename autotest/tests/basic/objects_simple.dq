@@ -1,6 +1,6 @@
 // simple DQ objects
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var id  : int = 9
 var id2 : int = 8
@@ -18,9 +18,9 @@ object OElem:
         @.printf("elem = OElem(%d, %.2f)\n", id, weight)  // call the module-root printf()
     endfunc
 
-    func MethodFwd() -> int
+    func MethodFwd() -> int ..
 
-    func Pick(v : int) -> int [[overload]]
+    func Pick(v : int) -> int [[overload]] ..
 
 endobject
 

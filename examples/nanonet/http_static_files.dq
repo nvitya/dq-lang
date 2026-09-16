@@ -6,7 +6,7 @@ use nanonet/nano_http
 const HTTP_LISTEN_PORT : uint16 = 8080
 
 object OSConnHttpApp(OSConnectionHttp):
-  func ProcessRequest() -> bool  [[override]]
+  func ProcessRequest() -> bool  [[override]] ..
 endobject
 
 func GetTs() -> str:

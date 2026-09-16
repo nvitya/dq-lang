@@ -3,7 +3,7 @@ use rtl/rtlint
 use rtl/anyvalue
 use strutils
 
-func strlen(text : ^char) -> uint [[external]]
+func strlen(text : ^char) -> uint [[external]] ..
 type FPrint = func(fmt : ^char, ...) -> int
 
 const GREETING : rostr = "hello"

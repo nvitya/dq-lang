@@ -1,6 +1,6 @@
 use ./mod_selfref_object
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     printf("module selfref object import=%d\n", 1) //?check("module selfref object import", 1)

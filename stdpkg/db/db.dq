@@ -58,53 +58,53 @@ protected
 
     //m_datasource : ODbDataSource  // might be nil for standalone / memory datasets
 
-    func GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int
+    func GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int ..
 
 public
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
-    func Clear()      // delete all rows, all fields
-    func ClearRows()  // delete all rows, keep the fields
+    func Clear() ..  // delete all rows, all fields
+    func ClearRows() ..  // delete all rows, keep the fields
 
-    func RowCount() -> int
-    func FieldCount() -> int
+    func RowCount() -> int ..
+    func FieldCount() -> int ..
 
-    func AddField(aname : rostr, atype : NDbFieldType) -> int
-    func FieldName(aindex : int) -> str
-    func FieldType(aindex : int) -> NDbFieldType
-    func FieldIndex(aname : rostr) -> int
-    func HasField(aname : rostr) -> bool
+    func AddField(aname : rostr, atype : NDbFieldType) -> int ..
+    func FieldName(aindex : int) -> str ..
+    func FieldType(aindex : int) -> NDbFieldType ..
+    func FieldIndex(aname : rostr) -> int ..
+    func HasField(aname : rostr) -> bool ..
 
-    func AddRow() -> int
-    func DeleteRow(arow : int)
+    func AddRow() -> int ..
+    func DeleteRow(arow : int) ..
 
     // cursor navigation
-    func First()
-    func Last()
-    func Next()
-    func Prev()
-    func RowIndex() -> int
-    func SetRowIndex(arow : int)
-    func SelectRow(arow : int) -> bool
+    func First() ..
+    func Last() ..
+    func Next() ..
+    func Prev() ..
+    func RowIndex() -> int ..
+    func SetRowIndex(arow : int) ..
+    func SelectRow(arow : int) -> bool ..
 
-    func OnRow() -> bool
+    func OnRow() -> bool ..
 
     // current row access
-    func IsNull(aname : rostr) -> bool
-    func GetValue(aname : rostr) -> anyvalue
-    func SetValue(aname : rostr, avalue : anyvalue)
+    func IsNull(aname : rostr) -> bool ..
+    func GetValue(aname : rostr) -> anyvalue ..
+    func SetValue(aname : rostr, avalue : anyvalue) ..
 
-    func GetInt(aname : rostr, defvalue : int) -> int
-    func GetFloat(aname : rostr, defvalue : float) -> float
-    func GetBool(aname : rostr, defvalue : bool) -> bool
-    func GetStr(aname : rostr, defvalue : strslice) -> str
+    func GetInt(aname : rostr, defvalue : int) -> int ..
+    func GetFloat(aname : rostr, defvalue : float) -> float ..
+    func GetBool(aname : rostr, defvalue : bool) -> bool ..
+    func GetStr(aname : rostr, defvalue : strslice) -> str ..
 
-    func SetInt(aname : rostr, avalue : int)
-    func SetFloat(aname : rostr, avalue : float)
-    func SetBool(aname : rostr, avalue : bool)
-    func SetStr(aname : rostr, avalue : strslice)
-    func SetNull(aname : rostr)
+    func SetInt(aname : rostr, avalue : int) ..
+    func SetFloat(aname : rostr, avalue : float) ..
+    func SetBool(aname : rostr, avalue : bool) ..
+    func SetStr(aname : rostr, avalue : strslice) ..
+    func SetNull(aname : rostr) ..
 
     //TODO: add blob handling with [*]byte
 
@@ -120,11 +120,11 @@ object ODbDataSource:
 protected
     m_dbconn : ODbConnection
 public
-    func First(arows : ODbRows) -> bool [[virtual]]
-    func Next(arows : ODbRows) -> bool  [[virtual]]
-    func Last(arows : ODbRows) -> bool  [[virtual]]
-    func Prev(arows : ODbRows) -> bool  [[virtual]]
-    func MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]]
+    func First(arows : ODbRows) -> bool [[virtual]] ..
+    func Next(arows : ODbRows) -> bool  [[virtual]] ..
+    func Last(arows : ODbRows) -> bool  [[virtual]] ..
+    func Prev(arows : ODbRows) -> bool  [[virtual]] ..
+    func MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]] ..
 endobject
 
 */
@@ -132,25 +132,25 @@ endobject
 /*
 object ODbConnection:
 public
-  func Open(aconnstr : str) -> bool [[virtual]]
-  func Close()  [[virtual]]
-  func IsOpen() -> bool  [[virtual]]
+  func Open(aconnstr : str) -> bool [[virtual]] ..
+  func Close()  [[virtual]] ..
+  func IsOpen() -> bool  [[virtual]] ..
 
-  func Exec(asql : str) -> int  [[virtual]]
-  func Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]]
+  func Exec(asql : str) -> int  [[virtual]] ..
+  func Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]] ..
 
-  func Query(asql : str) -> ODbRows  [[virtual]]
-  func Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]]
+  func Query(asql : str) -> ODbRows  [[virtual]] ..
+  func Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]] ..
 
-  func BeginTrans() -> bool  [[virtual]]
-  func Commit() -> bool  [[virtual]]
-  func Rollback() -> bool  [[virtual]]
+  func BeginTrans() -> bool  [[virtual]] ..
+  func Commit() -> bool  [[virtual]] ..
+  func Rollback() -> bool  [[virtual]] ..
 
-  func LastInsertId() -> int64  [[virtual]]
-  func RowsAffected() -> int64  [[virtual]]
+  func LastInsertId() -> int64  [[virtual]] ..
+  func RowsAffected() -> int64  [[virtual]] ..
 
-  func LastError() -> str  [[virtual]]
-  func LastErrorCode() -> int  [[virtual]]
+  func LastError() -> str  [[virtual]] ..
+  func LastErrorCode() -> int  [[virtual]] ..
 endobject
 */
 

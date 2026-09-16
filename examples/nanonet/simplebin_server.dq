@@ -7,11 +7,11 @@ object OSConnectionSimple(OSConnection):
     inbuf  : str
     indata : str
 
-    func *Create(aserver : ONanoServer)
-    func *Destroy()
+    func *Create(aserver : ONanoServer) ..
+    func *Destroy() ..
 
-    func HandleInput(aobj : Object)  [[override]]
-    func ProcessInData()
+    func HandleInput(aobj : Object)  [[override]] ..
+    func ProcessInData() ..
 endobject
 
 func OSConnectionSimple.*Create(aserver : ONanoServer):

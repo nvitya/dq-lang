@@ -19,7 +19,7 @@ func SetByRef(value : refout uint32):
     value = 31
 endfunc
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     regs.RW = 10

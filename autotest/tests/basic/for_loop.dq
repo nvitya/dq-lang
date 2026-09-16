@@ -38,7 +38,7 @@ endfunc
 
 #else
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func dq_for_to_sum() -> int:
     result = 0

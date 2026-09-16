@@ -47,70 +47,70 @@ endconst
 
 
 // GLFW's GLFWwindow is opaque to DQ.
-func GlfwInit() -> int32 [[external('glfwInit')]]
-func GlfwTerminate() [[external('glfwTerminate')]]
-func GlfwWindowHint(hint : int32, value : int32) [[external('glfwWindowHint')]]
+func GlfwInit() -> int32 [[external('glfwInit')]] ..
+func GlfwTerminate() [[external('glfwTerminate')]] ..
+func GlfwWindowHint(hint : int32, value : int32) [[external('glfwWindowHint')]] ..
 func GlfwCreateWindow(width : int32, height : int32, title : ^char,
-                      monitor : pointer, share : pointer) -> pointer [[external('glfwCreateWindow')]]
-func GlfwDestroyWindow(window : pointer) [[external('glfwDestroyWindow')]]
-func GlfwMakeContextCurrent(window : pointer) [[external('glfwMakeContextCurrent')]]
-func GlfwWindowShouldClose(window : pointer) -> int32 [[external('glfwWindowShouldClose')]]
-func GlfwPollEvents() [[external('glfwPollEvents')]]
-func GlfwSwapBuffers(window : pointer) [[external('glfwSwapBuffers')]]
-func GlfwSwapInterval(interval : int32) [[external('glfwSwapInterval')]]
-func GlfwGetTime() -> float64 [[external('glfwGetTime')]]
-func GlfwGetFramebufferSize(window : pointer, width : ^int32, height : ^int32) [[external('glfwGetFramebufferSize')]]
+                      monitor : pointer, share : pointer) -> pointer [[external('glfwCreateWindow')]] ..
+func GlfwDestroyWindow(window : pointer) [[external('glfwDestroyWindow')]] ..
+func GlfwMakeContextCurrent(window : pointer) [[external('glfwMakeContextCurrent')]] ..
+func GlfwWindowShouldClose(window : pointer) -> int32 [[external('glfwWindowShouldClose')]] ..
+func GlfwPollEvents() [[external('glfwPollEvents')]] ..
+func GlfwSwapBuffers(window : pointer) [[external('glfwSwapBuffers')]] ..
+func GlfwSwapInterval(interval : int32) [[external('glfwSwapInterval')]] ..
+func GlfwGetTime() -> float64 [[external('glfwGetTime')]] ..
+func GlfwGetFramebufferSize(window : pointer, width : ^int32, height : ^int32) [[external('glfwGetFramebufferSize')]] ..
 
 // OpenGL 1.x compatibility entry points. GLFW creates the context and makes
 // these symbols available through libGL on the Linux host target.
-func GlClearColor(red : float32, green : float32, blue : float32, alpha : float32) [[external('glClearColor')]]
-func GlClear(mask : uint32) [[external('glClear')]]
-func GlBegin(mode : uint32) [[external('glBegin')]]
-func GlColor3f(red : float32, green : float32, blue : float32) [[external('glColor3f')]]
-func GlColor4f(red : float32, green : float32, blue : float32, alpha : float32) [[external('glColor4f')]]
-func GlVertex2f(x : float32, y : float32) [[external('glVertex2f')]]
-func GlEnd() [[external('glEnd')]]
-func GlLineWidth(width : float32) [[external('glLineWidth')]]
-func GlEnable(capability : uint32) [[external('glEnable')]]
-func GlBlendFunc(source : uint32, destination : uint32) [[external('glBlendFunc')]]
-func GlDisable(capability : uint32) [[external('glDisable')]]
-func GlGenTextures(count : int32, textures : ^uint32) [[external('glGenTextures')]]
-func GlDeleteTextures(count : int32, textures : ^uint32) [[external('glDeleteTextures')]]
-func GlBindTexture(target : uint32, texture : uint32) [[external('glBindTexture')]]
-func GlTexParameteri(target : uint32, pname : uint32, value : int32) [[external('glTexParameteri')]]
+func GlClearColor(red : float32, green : float32, blue : float32, alpha : float32) [[external('glClearColor')]] ..
+func GlClear(mask : uint32) [[external('glClear')]] ..
+func GlBegin(mode : uint32) [[external('glBegin')]] ..
+func GlColor3f(red : float32, green : float32, blue : float32) [[external('glColor3f')]] ..
+func GlColor4f(red : float32, green : float32, blue : float32, alpha : float32) [[external('glColor4f')]] ..
+func GlVertex2f(x : float32, y : float32) [[external('glVertex2f')]] ..
+func GlEnd() [[external('glEnd')]] ..
+func GlLineWidth(width : float32) [[external('glLineWidth')]] ..
+func GlEnable(capability : uint32) [[external('glEnable')]] ..
+func GlBlendFunc(source : uint32, destination : uint32) [[external('glBlendFunc')]] ..
+func GlDisable(capability : uint32) [[external('glDisable')]] ..
+func GlGenTextures(count : int32, textures : ^uint32) [[external('glGenTextures')]] ..
+func GlDeleteTextures(count : int32, textures : ^uint32) [[external('glDeleteTextures')]] ..
+func GlBindTexture(target : uint32, texture : uint32) [[external('glBindTexture')]] ..
+func GlTexParameteri(target : uint32, pname : uint32, value : int32) [[external('glTexParameteri')]] ..
 func GlTexImage2D(target : uint32, level : int32, internal_format : int32,
                   width : int32, height : int32, border : int32,
-                  format : uint32, pixel_type : uint32, pixels : pointer) [[external('glTexImage2D')]]
-func GlTexCoord2f(s : float32, t : float32) [[external('glTexCoord2f')]]
-func GlPixelStorei(pname : uint32, value : int32) [[external('glPixelStorei')]]
-func GlViewport(x : int32, y : int32, width : int32, height : int32) [[external('glViewport')]]
+                  format : uint32, pixel_type : uint32, pixels : pointer) [[external('glTexImage2D')]] ..
+func GlTexCoord2f(s : float32, t : float32) [[external('glTexCoord2f')]] ..
+func GlPixelStorei(pname : uint32, value : int32) [[external('glPixelStorei')]] ..
+func GlViewport(x : int32, y : int32, width : int32, height : int32) [[external('glViewport')]] ..
 
-func GlGenVertexArrays(count : int32, arrays : ^uint32) [[external('glGenVertexArrays')]]
-func GlDeleteVertexArrays(count : int32, arrays : ^uint32) [[external('glDeleteVertexArrays')]]
-func GlBindVertexArray(array : uint32) [[external('glBindVertexArray')]]
-func GlGenBuffers(count : int32, buffers : ^uint32) [[external('glGenBuffers')]]
-func GlDeleteBuffers(count : int32, buffers : ^uint32) [[external('glDeleteBuffers')]]
-func GlBindBuffer(target : uint32, buffer : uint32) [[external('glBindBuffer')]]
-func GlBufferData(target : uint32, size : uint, data : pointer, usage : uint32) [[external('glBufferData')]]
-func GlEnableVertexAttribArray(index : uint32) [[external('glEnableVertexAttribArray')]]
+func GlGenVertexArrays(count : int32, arrays : ^uint32) [[external('glGenVertexArrays')]] ..
+func GlDeleteVertexArrays(count : int32, arrays : ^uint32) [[external('glDeleteVertexArrays')]] ..
+func GlBindVertexArray(array : uint32) [[external('glBindVertexArray')]] ..
+func GlGenBuffers(count : int32, buffers : ^uint32) [[external('glGenBuffers')]] ..
+func GlDeleteBuffers(count : int32, buffers : ^uint32) [[external('glDeleteBuffers')]] ..
+func GlBindBuffer(target : uint32, buffer : uint32) [[external('glBindBuffer')]] ..
+func GlBufferData(target : uint32, size : uint, data : pointer, usage : uint32) [[external('glBufferData')]] ..
+func GlEnableVertexAttribArray(index : uint32) [[external('glEnableVertexAttribArray')]] ..
 func GlVertexAttribPointer(index : uint32, size : int32, value_type : uint32,
-                           normalized : uint8, stride : int32, pointer : pointer) [[external('glVertexAttribPointer')]]
-func GlDrawArrays(mode : uint32, first : int32, count : int32) [[external('glDrawArrays')]]
+                           normalized : uint8, stride : int32, pointer : pointer) [[external('glVertexAttribPointer')]] ..
+func GlDrawArrays(mode : uint32, first : int32, count : int32) [[external('glDrawArrays')]] ..
 
-func GlCreateProgram() -> uint32 [[external('glCreateProgram')]]
-func GlDeleteProgram(program : uint32) [[external('glDeleteProgram')]]
-func GlUseProgram(program : uint32) [[external('glUseProgram')]]
-func GlCreateShader(shader_type : uint32) -> uint32 [[external('glCreateShader')]]
-func GlDeleteShader(shader : uint32) [[external('glDeleteShader')]]
-func GlShaderSource(shader : uint32, count : int32, strings : ^^char, lengths : ^int32) [[external('glShaderSource')]]
-func GlCompileShader(shader : uint32) [[external('glCompileShader')]]
-func GlGetShaderiv(shader : uint32, pname : uint32, value : ^int32) [[external('glGetShaderiv')]]
-func GlAttachShader(program : uint32, shader : uint32) [[external('glAttachShader')]]
-func GlLinkProgram(program : uint32) [[external('glLinkProgram')]]
-func GlGetProgramiv(program : uint32, pname : uint32, value : ^int32) [[external('glGetProgramiv')]]
-func GlBindAttribLocation(program : uint32, index : uint32, name : ^char) [[external('glBindAttribLocation')]]
-func GlGetUniformLocation(program : uint32, name : ^char) -> int32 [[external('glGetUniformLocation')]]
-func GlUniformMatrix3fv(location : int32, count : int32, transpose : uint8, value : ^float32) [[external('glUniformMatrix3fv')]]
-func GlUniform4f(location : int32, x : float32, y : float32, z : float32, w : float32) [[external('glUniform4f')]]
-func GlUniform1i(location : int32, value : int32) [[external('glUniform1i')]]
-func GlActiveTexture(texture : uint32) [[external('glActiveTexture')]]
+func GlCreateProgram() -> uint32 [[external('glCreateProgram')]] ..
+func GlDeleteProgram(program : uint32) [[external('glDeleteProgram')]] ..
+func GlUseProgram(program : uint32) [[external('glUseProgram')]] ..
+func GlCreateShader(shader_type : uint32) -> uint32 [[external('glCreateShader')]] ..
+func GlDeleteShader(shader : uint32) [[external('glDeleteShader')]] ..
+func GlShaderSource(shader : uint32, count : int32, strings : ^^char, lengths : ^int32) [[external('glShaderSource')]] ..
+func GlCompileShader(shader : uint32) [[external('glCompileShader')]] ..
+func GlGetShaderiv(shader : uint32, pname : uint32, value : ^int32) [[external('glGetShaderiv')]] ..
+func GlAttachShader(program : uint32, shader : uint32) [[external('glAttachShader')]] ..
+func GlLinkProgram(program : uint32) [[external('glLinkProgram')]] ..
+func GlGetProgramiv(program : uint32, pname : uint32, value : ^int32) [[external('glGetProgramiv')]] ..
+func GlBindAttribLocation(program : uint32, index : uint32, name : ^char) [[external('glBindAttribLocation')]] ..
+func GlGetUniformLocation(program : uint32, name : ^char) -> int32 [[external('glGetUniformLocation')]] ..
+func GlUniformMatrix3fv(location : int32, count : int32, transpose : uint8, value : ^float32) [[external('glUniformMatrix3fv')]] ..
+func GlUniform4f(location : int32, x : float32, y : float32, z : float32, w : float32) [[external('glUniform4f')]] ..
+func GlUniform1i(location : int32, value : int32) [[external('glUniform1i')]] ..
+func GlActiveTexture(texture : uint32) [[external('glActiveTexture')]] ..

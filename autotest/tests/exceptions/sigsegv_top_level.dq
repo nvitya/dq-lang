@@ -1,7 +1,7 @@
 // Hosted Linux catches SIGSEGV at the top level and reports it as Exception.
 //?exitcode(255)
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func CauseSegv():
     var p : ^int = nil

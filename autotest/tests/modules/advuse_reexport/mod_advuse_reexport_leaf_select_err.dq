@@ -6,9 +6,8 @@ const HIDDEN_VAL : int = 21
 
 var re_var : int = 4
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func re_func(a : int) -> int:
     result = a + re_var
 endfunc
-

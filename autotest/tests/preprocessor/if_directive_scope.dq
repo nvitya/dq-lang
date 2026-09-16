@@ -76,7 +76,7 @@ const MERGED_DEFINE_VALUE : int = NEXT_TARGET
     const qualified_elifndef_branch : int = 0
 #endif
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     const SHADOWED_LEVEL : int = 3

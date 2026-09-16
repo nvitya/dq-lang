@@ -1,6 +1,6 @@
 // dynamic array tests
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var garr : [*]int
 

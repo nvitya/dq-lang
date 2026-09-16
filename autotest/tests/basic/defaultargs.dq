@@ -22,7 +22,7 @@ func dq_ptr_default(p : ^int = nil) -> int:
     endif
 endfunc
 
-func printf(fmt : ^char, value : int = 77, ...) -> int [[external]]
+func printf(fmt : ^char, value : int = 77, ...) -> int [[external]] ..
 func *Main():
     var x : int = 12
 

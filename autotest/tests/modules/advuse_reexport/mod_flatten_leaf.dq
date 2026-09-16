@@ -10,7 +10,7 @@ struct SSharedPayload:
     value : int
 endstruct
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func MakeHidden(value : int) -> SHiddenPayload:
     result.value = value

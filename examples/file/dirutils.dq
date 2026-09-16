@@ -11,12 +11,12 @@ protected
     m_name   : str
 
 public
-    func *Create()
-    func *Destroy()
-    func Open(adir : strslice)
-    func Close()
-    func Opened() -> bool
-    func Next() -> bool
+    func *Create() ..
+    func *Destroy() ..
+    func Open(adir : strslice) ..
+    func Close() ..
+    func Opened() -> bool ..
+    func Next() -> bool ..
 
     property name   : str   read m_name
     property opened : bool  read Opened
@@ -24,8 +24,8 @@ endobject
 
 implementation
 
-func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
-func libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
+func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]] ..
+func libc_closedir(dirp : pointer) -> int                             [[external('closedir')]] ..
 
 // The dirent layout differs between the POSIX implementations used here.
 #ifdef WINDOWS
@@ -45,7 +45,7 @@ struct SDirent:
 endstruct
 #endif
 
-func libc_readdir(dirp : pointer) -> ^SDirent                        [[external('readdir')]]
+func libc_readdir(dirp : pointer) -> ^SDirent                        [[external('readdir')]] ..
 
 const DIR_MODE : uint = 511
 const ACCESS_EXISTS : int = 0

@@ -86,7 +86,7 @@ func RuntimeError(emsg : ^char):
 endfunc
 
 
-func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc)
+func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc) ..
 
 implementation
 

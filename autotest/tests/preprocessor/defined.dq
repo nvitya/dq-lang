@@ -23,7 +23,7 @@ const MODULE_CONSTANT : int = 1
     const QUALIFIED_RESULT : int = 0
 #endif
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     var definition_exists : bool = Defined(FIRST_FEATURE)

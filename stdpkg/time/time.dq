@@ -1,16 +1,16 @@
 
-func Time() -> float64     // Python compatible
-func FormatTime1(fmt : rostr, atime : float64) -> str  // Delphi compatible (easier to remember)
-func FormatTime2(fmt : rostr, atime : float64) -> str  // Python compatible
+func Time() -> float64 ..  // Python compatible
+func FormatTime1(fmt : rostr, atime : float64) -> str ..  // Delphi compatible (easier to remember)
+func FormatTime2(fmt : rostr, atime : float64) -> str ..  // Python compatible
 
-func MilliTime() -> int64  // monotonic time, counted from system start
-func MicroTime() -> int64  // monotonic time, counted from system start
-func NanoTime() -> int64   // monotonic time, counted from system start
+func MilliTime() -> int64 ..  // monotonic time, counted from system start
+func MicroTime() -> int64 ..  // monotonic time, counted from system start
+func NanoTime() -> int64 ..  // monotonic time, counted from system start
 
-func SleepSecs(asecs : float64)
-func SleepMillis(ams : int64)
-func SleepMicros(aus : int64)
-func SleepNanos(ansecs : int64)
+func SleepSecs(asecs : float64) ..
+func SleepMillis(ams : int64) ..
+func SleepMicros(aus : int64) ..
+func SleepNanos(ansecs : int64) ..
 
 implementation
 
@@ -33,11 +33,11 @@ struct tm:
     tm_zone   : pointer
 endstruct
 
-func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
-func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]]
-func libc___errno_location() -> ^int32 [[external('__errno_location')]]
-func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]]
-func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]]
+func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]] ..
+func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
+func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
+func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
+func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]] ..
 
 const EINTR : int32 = 4
 

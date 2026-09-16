@@ -1,13 +1,13 @@
 // some very basic helpers for the WasmPascal environment
 
-func Print(text : strslice)
-func PrintLn() [[overload]]
-func PrintLn(text : strslice) [[overload]]
-func PrintLn(text : rostr, args : []anyvalue) [[overload]]
+func Print(text : strslice) ..
+func PrintLn() [[overload]] ..
+func PrintLn(text : strslice) [[overload]] ..
+func PrintLn(text : rostr, args : []anyvalue) [[overload]] ..
 
 implementation
 
-func wp_console_str(address : ^char, byte_length : uint32, field_width : int32)  [[external('console_str', 'wasmpascal_env')]]
+func wp_console_str(address : ^char, byte_length : uint32, field_width : int32)  [[external('console_str', 'wasmpascal_env')]] ..
 
 func Print(text : strslice):
     wp_console_str(%text[0], text.length, 0)
@@ -29,8 +29,8 @@ func PrintLn(text : rostr, args : []anyvalue) [[overload]]:
     Print("\n")
 endfunc
 
-func wasmpas_main()    [[external('wasmpas_main')]]
-func dq_module_init()  [[external('dq_module_init')]]
+func wasmpas_main()    [[external('wasmpas_main')]] ..
+func dq_module_init()  [[external('dq_module_init')]] ..
 
 func wasmpascal_init() [[export('wasmpascal_init'), used]]:
     dq_module_init()

@@ -24,44 +24,44 @@ object OStrParse:
     commentmarker       : char = '#'
     float_decimal_point : char = '.'
 
-    func *Create()                           [[overload]]
-    func *Create(astr : ^char, alen : int)  [[overload]]
-    func *Create(astr : strslice)             [[overload]]
+    func *Create()                           [[overload]] ..
+    func *Create(astr : ^char, alen : int)  [[overload]] ..
+    func *Create(astr : strslice)             [[overload]] ..
 
-    func Init(astr : ^char, alen : int)
+    func Init(astr : ^char, alen : int) ..
 
-    func SkipSpaces(skiplineend : bool = true)
-    func SkipWhite()
+    func SkipSpaces(skiplineend : bool = true) ..
+    func SkipWhite() ..
 
-    func ReadLine() -> bool
-    func ReadTo(checkchars : rostr) -> bool
-    func ReadToChar(achar : char) -> bool
-    func ReadAlphaNum() -> bool
-    func ReadDecimalNumbers() -> bool
-    func ReadHexNumbers() -> bool
-    func ReadFloatNum() -> bool
-    func ReadQuotedString() -> bool
-    func SearchPattern(checkstring : rostr) -> bool
+    func ReadLine() -> bool ..
+    func ReadTo(checkchars : rostr) -> bool ..
+    func ReadToChar(achar : char) -> bool ..
+    func ReadAlphaNum() -> bool ..
+    func ReadDecimalNumbers() -> bool ..
+    func ReadHexNumbers() -> bool ..
+    func ReadFloatNum() -> bool ..
+    func ReadQuotedString() -> bool ..
+    func SearchPattern(checkstring : rostr) -> bool ..
 
-    func CheckSymbol(checkstring : rostr) -> bool
+    func CheckSymbol(checkstring : rostr) -> bool ..
 
-    func PrevStr() -> str
-    func UCComparePrev(checkstring : rostr) -> bool
-    func PrevToInt() -> int
-    func PrevHexToInt() -> uint
-    func PrevToFloat() -> float64
+    func PrevStr() -> str ..
+    func UCComparePrev(checkstring : rostr) -> bool ..
+    func PrevToInt() -> int ..
+    func PrevHexToInt() -> uint ..
+    func PrevToFloat() -> float64 ..
 
-    func GetLineNum(pos : ^char) -> int  [[overload]]
-    func GetLineNum() -> int              [[overload]]
-    func GetColNum(pos : ^char) -> int   [[overload]]
-    func GetColNum() -> int               [[overload]]
+    func GetLineNum(pos : ^char) -> int  [[overload]] ..
+    func GetLineNum() -> int              [[overload]] ..
+    func GetColNum(pos : ^char) -> int   [[overload]] ..
+    func GetColNum() -> int               [[overload]] ..
 
 endobject
 
-func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool
-func PCharToInt(readp : ^char, len : int) -> int
-func PCharHexToInt(readp : ^char, len : int) -> uint
-func PCharToFloat(readp : ^char, len : int) -> float64
+func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool ..
+func PCharToInt(readp : ^char, len : int) -> int ..
+func PCharHexToInt(readp : ^char, len : int) -> uint ..
+func PCharToFloat(readp : ^char, len : int) -> float64 ..
 
 implementation
 

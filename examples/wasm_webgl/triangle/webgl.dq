@@ -5,23 +5,23 @@ const GL_STATIC_DRAW   : uint32 = 0x88E4
 const GL_VERTEX_SHADER : uint32 = 0x8B31
 const GL_FRAGMENT_SHADER : uint32 = 0x8B30
 
-func GlCreateBuffer(size : uint32, usage : uint32) -> uint32 [[external('GlCreateBuffer', 'webgl')]]
-func GlWriteBuffer(buffer : uint32, data : pointer, size : uint32) [[external('GlWriteBuffer', 'webgl')]]
+func GlCreateBuffer(size : uint32, usage : uint32) -> uint32 [[external('GlCreateBuffer', 'webgl')]] ..
+func GlWriteBuffer(buffer : uint32, data : pointer, size : uint32) [[external('GlWriteBuffer', 'webgl')]] ..
 // Generic browser text-rasterization services. DQ owns all text content.
-func GlCreateTextTexture(text : ^char, length : uint32) -> uint32 [[external('GlCreateTextTexture', 'webgl')]]
-func GlUpdateTextTexture(texture : uint32, text : ^char, length : uint32) [[external('GlUpdateTextTexture', 'webgl')]]
+func GlCreateTextTexture(text : ^char, length : uint32) -> uint32 [[external('GlCreateTextTexture', 'webgl')]] ..
+func GlUpdateTextTexture(texture : uint32, text : ^char, length : uint32) [[external('GlUpdateTextTexture', 'webgl')]] ..
 
-func GlCreateShader(shader_type : uint32, source : ^char, length : uint32) -> uint32 [[external('GlCreateShader', 'webgl')]]
-func GlCreateProgram(vertex_shader : uint32, fragment_shader : uint32) -> uint32 [[external('GlCreateProgram', 'webgl')]]
-func GlGetUniformLocation(program : uint32, name : ^char, length : uint32) -> uint32 [[external('GlGetUniformLocation', 'webgl')]]
+func GlCreateShader(shader_type : uint32, source : ^char, length : uint32) -> uint32 [[external('GlCreateShader', 'webgl')]] ..
+func GlCreateProgram(vertex_shader : uint32, fragment_shader : uint32) -> uint32 [[external('GlCreateProgram', 'webgl')]] ..
+func GlGetUniformLocation(program : uint32, name : ^char, length : uint32) -> uint32 [[external('GlGetUniformLocation', 'webgl')]] ..
 
-func GlBeginFrame(red : float32, green : float32, blue : float32, alpha : float32) [[external('GlBeginFrame', 'webgl')]]
-func GlSetProgram(program : uint32) [[external('GlSetProgram', 'webgl')]]
-func GlSetVertexBuffer(buffer : uint32) [[external('GlSetVertexBuffer', 'webgl')]]
-func GlVertexAttribPointer(index : uint32, component_count : uint32, stride : uint32, offset : uint32) [[external('GlVertexAttribPointer', 'webgl')]]
-func GlSetUniform2f(location : uint32, x : float32, y : float32) [[external('GlSetUniform2f', 'webgl')]]
-func GlSetUniform1i(location : uint32, value : uint32) [[external('GlSetUniform1i', 'webgl')]]
-func GlSetTexture(texture : uint32) [[external('GlSetTexture', 'webgl')]]
-func GlEnableAlphaBlending() [[external('GlEnableAlphaBlending', 'webgl')]]
-func GlDraw(vertex_count : uint32) [[external('GlDraw', 'webgl')]]
-func GlEndFrame() [[external('GlEndFrame', 'webgl')]]
+func GlBeginFrame(red : float32, green : float32, blue : float32, alpha : float32) [[external('GlBeginFrame', 'webgl')]] ..
+func GlSetProgram(program : uint32) [[external('GlSetProgram', 'webgl')]] ..
+func GlSetVertexBuffer(buffer : uint32) [[external('GlSetVertexBuffer', 'webgl')]] ..
+func GlVertexAttribPointer(index : uint32, component_count : uint32, stride : uint32, offset : uint32) [[external('GlVertexAttribPointer', 'webgl')]] ..
+func GlSetUniform2f(location : uint32, x : float32, y : float32) [[external('GlSetUniform2f', 'webgl')]] ..
+func GlSetUniform1i(location : uint32, value : uint32) [[external('GlSetUniform1i', 'webgl')]] ..
+func GlSetTexture(texture : uint32) [[external('GlSetTexture', 'webgl')]] ..
+func GlEnableAlphaBlending() [[external('GlEnableAlphaBlending', 'webgl')]] ..
+func GlDraw(vertex_count : uint32) [[external('GlDraw', 'webgl')]] ..
+func GlEndFrame() [[external('GlEndFrame', 'webgl')]] ..

@@ -1,6 +1,6 @@
 // Static property lookup, hiding, inherited accessors, and virtual dispatch.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 object OPropertyBase:
 protected

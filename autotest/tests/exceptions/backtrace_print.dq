@@ -1,6 +1,6 @@
 // Backtrace capture/printing smoke test.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func BacktraceLeaf():
     raise Exception("trace")

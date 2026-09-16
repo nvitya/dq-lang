@@ -1,6 +1,6 @@
 // struct methods, struct inheritance, and implicit self
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 struct SBase:
     id : int

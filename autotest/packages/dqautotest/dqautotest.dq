@@ -11,36 +11,36 @@ object OTestRun:
     stderr   : str
     output   : str
 
-    func RunTool(args : []str) -> int
-    func RunCompiler(args : []str) -> int
-    func ExpectExitCode(expected : int)
-    func PrintRunOutput()
-    func ExpectOutputContains(expected : strslice)
-    func ExpectOutputNotContains(unexpected : strslice)
+    func RunTool(args : []str) -> int ..
+    func RunCompiler(args : []str) -> int ..
+    func ExpectExitCode(expected : int) ..
+    func PrintRunOutput() ..
+    func ExpectOutputContains(expected : strslice) ..
+    func ExpectOutputNotContains(unexpected : strslice) ..
 
 protected
     shrunner <- OShellRunner()
 endobject
 
-func CompilerPath() -> str
-func BinPath(name : strslice) -> str
-func SourcePath(name : strslice) -> str
-func TestRootPath(name : strslice) -> str
-func TempPath() -> str  [[overload]]
-func TempPath(suffix : strslice) -> str  [[overload]]
-func RemoveTemp(path : strslice)
+func CompilerPath() -> str ..
+func BinPath(name : strslice) -> str ..
+func SourcePath(name : strslice) -> str ..
+func TestRootPath(name : strslice) -> str ..
+func TempPath() -> str  [[overload]] ..
+func TempPath(suffix : strslice) -> str  [[overload]] ..
+func RemoveTemp(path : strslice) ..
 
-func ExpectContains(text : strslice, expected : strslice)
-func ExpectNotContains(text : strslice, unexpected : strslice)
-func ExpectFileContains(path : rostr, expected : strslice)
-func ExpectFileNotContains(path : rostr, unexpected : strslice)
-func Fail(message : strslice)
-func TestResult() -> int
+func ExpectContains(text : strslice, expected : strslice) ..
+func ExpectNotContains(text : strslice, unexpected : strslice) ..
+func ExpectFileContains(path : rostr, expected : strslice) ..
+func ExpectFileNotContains(path : rostr, unexpected : strslice) ..
+func Fail(message : strslice) ..
+func TestResult() -> int ..
 
 implementation
 
-func libc_getpid() -> int32 [[external('getpid')]]
-func libc_unlink(path : ^char) -> int32 [[external('unlink')]]
+func libc_getpid() -> int32 [[external('getpid')]] ..
+func libc_unlink(path : ^char) -> int32 [[external('unlink')]] ..
 
 var failure_count : int = 0
 var temp_counter : int = 0

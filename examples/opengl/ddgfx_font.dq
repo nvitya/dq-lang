@@ -11,31 +11,31 @@ object OFont:
     pixel_size : int = 0
     filename   : str = ''
 
-    func *Create(library : pointer, filename : strslice)
-    func *Destroy()
-    func SetPixelSize(size : int) -> bool
-    func Glyph(codepoint : uint32) -> ^SFreeTypeGlyphSlot
-    func TextWidth(text : strslice) -> int
-    func Height() -> int
-    func Ascender() -> int
-    func RenderToAlphaMap(text : strslice, target : OAlphaMap)
+    func *Create(library : pointer, filename : strslice) ..
+    func *Destroy() ..
+    func SetPixelSize(size : int) -> bool ..
+    func Glyph(codepoint : uint32) -> ^SFreeTypeGlyphSlot ..
+    func TextWidth(text : strslice) -> int ..
+    func Height() -> int ..
+    func Ascender() -> int ..
+    func RenderToAlphaMap(text : strslice, target : OAlphaMap) ..
 endobject
 
 object OFontManager:
     library : pointer = nil
     fonts   : [*]OFont
 
-    func *Create()
-    func *Destroy()
-    func GetFont(filename : strslice) -> OFont
+    func *Create() ..
+    func *Destroy() ..
+    func GetFont(filename : strslice) -> OFont ..
 endobject
 
 object OTextBox(OAlphaMap):
     font  : OFont = nil
     ftext : str = ''
 
-    func *Create(parent : ODrawable, font : OFont, text : strslice)
-    func SetText(text : str)
+    func *Create(parent : ODrawable, font : OFont, text : strslice) ..
+    func SetText(text : str) ..
 
     property text : str read ftext write SetText
 endobject

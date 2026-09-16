@@ -2,7 +2,7 @@
 
 use ./mod_enum
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     var state : NModuleState = NModuleState.idle

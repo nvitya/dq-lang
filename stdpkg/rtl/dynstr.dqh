@@ -20,63 +20,63 @@ public
     length   : uint32
     capacity : uint32
 
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
-    func Reserve(min_capacity : uint32)
-    func SetCapacity(new_capacity : uint32)  // truncates the length if necessary
-    func SetLength(new_length : uint32)
-    func Compact()  // sets the capacity to the actual length
-    func Clear(free_storage : bool = false)
-    func WriteTerminator()
+    func Reserve(min_capacity : uint32) ..
+    func SetCapacity(new_capacity : uint32) ..  // truncates the length if necessary
+    func SetLength(new_length : uint32) ..
+    func Compact() ..  // sets the capacity to the actual length
+    func Clear(free_storage : bool = false) ..
+    func WriteTerminator() ..
 
-    func Append(asrc : ref SDqTextInfo, acount : int32)
-    func Insert(index : int, asrc : ref SDqTextInfo, acount : int32)
-    func Prepend(asrc : ref SDqTextInfo, acount : int32)
-    func Delete(index : int, acount : int32 = 1)
-    func Pop(acount : int32, adst : ref SDqTextInfo)
-    func PopFirst(acount : int32, adst : ref SDqTextInfo)
+    func Append(asrc : ref SDqTextInfo, acount : int32) ..
+    func Insert(index : int, asrc : ref SDqTextInfo, acount : int32) ..
+    func Prepend(asrc : ref SDqTextInfo, acount : int32) ..
+    func Delete(index : int, acount : int32 = 1) ..
+    func Pop(acount : int32, adst : ref SDqTextInfo) ..
+    func PopFirst(acount : int32, adst : ref SDqTextInfo) ..
 
     // later
     // func IndexOf(asrc : refin SDqTextInfo) -> int
 endobject
 
-func DynStrCreate(astr : ref ODynStrMgr)
-func DynStrIncRef(astr : ref ODynStrMgr)
-func DynStrDecRef(astr : ref ODynStrMgr)
-func DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr)
-func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo)
+func DynStrCreate(astr : ref ODynStrMgr) ..
+func DynStrIncRef(astr : ref ODynStrMgr) ..
+func DynStrDecRef(astr : ref ODynStrMgr) ..
+func DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr) ..
+func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo) ..
 
 //func DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
-func DynStrGetLength(astr : ref ODynStrMgr) -> uint32
-func DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32
-func DynStrGetRefCount(astr : ref ODynStrMgr) -> int
-func DynStrPChar(astr : ref ODynStrMgr) -> ^char
-func DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char
-func DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char)
+func DynStrGetLength(astr : ref ODynStrMgr) -> uint32 ..
+func DynStrGetCapacity(astr : ref ODynStrMgr) -> uint32 ..
+func DynStrGetRefCount(astr : ref ODynStrMgr) -> int ..
+func DynStrPChar(astr : ref ODynStrMgr) -> ^char ..
+func DynStrGetChar(astr : ref ODynStrMgr, index : int) -> char ..
+func DynStrSetChar(astr : ref ODynStrMgr, index : int, ch : char) ..
 
-func DynStrReserve(astr : ref ODynStrMgr, min_capacity : uint32)
-func DynStrSetCapacity(astr : ref ODynStrMgr, new_capacity : uint32)
-func DynStrSetLength(astr : ref ODynStrMgr, new_length : uint32)
-func DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillchar : char)
-func DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32)
-func DynStrCompact(astr : ref ODynStrMgr)
-func DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false)
+func DynStrReserve(astr : ref ODynStrMgr, min_capacity : uint32) ..
+func DynStrSetCapacity(astr : ref ODynStrMgr, new_capacity : uint32) ..
+func DynStrSetLength(astr : ref ODynStrMgr, new_length : uint32) ..
+func DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillchar : char) ..
+func DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32) ..
+func DynStrCompact(astr : ref ODynStrMgr) ..
+func DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false) ..
 
-func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32)
-func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32)
-func DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1)
+func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32) ..
+func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32) ..
+func DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1) ..
 
-func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo)
-func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int)
+func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo) ..
+func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int) ..
 
 // clone, create new str
 
-func DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr)
-func DynStrCloneToEmbStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo)
-func DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
-func DynStrPopToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
-func DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr)
-func DynStrPopFirstToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo)
-func DynStrPopChar(astr : ref ODynStrMgr) -> char
-func DynStrPopFirstChar(astr : ref ODynStrMgr) -> char
+func DynStrClone(astr : ref ODynStrMgr, adst : ref ODynStrMgr) ..
+func DynStrCloneToEmbStr(astr : ref ODynStrMgr, adst : ref SDqTextInfo) ..
+func DynStrPop(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr) ..
+func DynStrPopToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo) ..
+func DynStrPopFirst(astr : ref ODynStrMgr, acount : int32, adst : ref ODynStrMgr) ..
+func DynStrPopFirstToEmbStr(astr : ref ODynStrMgr, acount : int32, adst : ref SDqTextInfo) ..
+func DynStrPopChar(astr : ref ODynStrMgr) -> char ..
+func DynStrPopFirstChar(astr : ref ODynStrMgr) -> char ..

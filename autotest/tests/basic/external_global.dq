@@ -1,6 +1,6 @@
 // external global variable import support
 
-func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]]
+func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external("fprintf")]] ..
 
 var stdout : pointer [[external]]
 

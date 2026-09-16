@@ -1,6 +1,6 @@
 #ifdef ERRORTEST
 
-func missing_forward(a : int) -> int  //?error(FuncForwardNotDefined)
+func missing_forward(a : int) -> int ..  //?error(FuncForwardNotDefined)
 
 #else
 func *Main():

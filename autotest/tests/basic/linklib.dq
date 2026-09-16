@@ -1,6 +1,6 @@
 // linked library test
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var fake_zlib_ver : embstr(21) = "v0.0.1-fake"
 
@@ -10,7 +10,7 @@ endfunc
 
 #linklib('z')
 
-func zlibVersion() -> ^char [[external]]
+func zlibVersion() -> ^char [[external]] ..
 func *Main():
     printf('Linked library test\n') //?ignore('Linked library test')
 

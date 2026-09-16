@@ -1,6 +1,6 @@
 // finally must run before return/break/continue control transfers.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func ReturnWithFinally() -> int:
     try:

@@ -13,9 +13,9 @@
  * brief:   Very basic libc stdio interface for DQ
  */
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
-func DqLibcStdout() -> pointer
+func DqLibcStdout() -> pointer ..
 
 implementation
 
@@ -26,7 +26,7 @@ implementation
     endfunc
 
 #elifdef WINDOWS
-    func libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]]
+    func libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]] ..
 
     func DqLibcStdout() -> pointer:
         return libc___acrt_iob_func(1)

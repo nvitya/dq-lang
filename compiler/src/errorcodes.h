@@ -255,7 +255,8 @@ DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_ORDER,            "FuncParDefaultOrder",    "Fu
 DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_TYPE,             "FuncParDefaultType",     "Function parameter \"$1\" default value is not supported for type \"$2\"");
 DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_REF,              "FuncParDefaultRef",      "Reference parameter \"$1\" cannot have a default value");
 DEF_DQ_ERR(DQERR_FUNC_RETTYPE_EXPECTED,            "FuncRettypeExpected",    "Function return type identifier expected after \"->\"");
-DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "FuncNoBodyAllowed",      "\";\" is expected after $1");
+DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "FuncNoBodyAllowed",      "Function body is not allowed after $1");
+DEF_DQ_ERR(DQERR_FUNC_BODY_OR_FORWARD_EXPECTED,    "FuncBodyOrForward",      "Function body \":\" or forward declaration marker \"..\" is expected");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "FuncResultNotSet",       "Function \"$1\" result is not set");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_SPECIFIED,            "FuncResultSet",          "Function \"$1\" result is set for function returning no value");
 DEF_DQ_ERR(DQERR_FUNC_FORWARD_NOT_DEFINED,         "FuncForwardNotDefined",  "Function \"$1\" is declared but not defined");

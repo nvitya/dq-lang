@@ -1,6 +1,6 @@
 // LLVM inlining attribute test
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func AddOne(value : int) -> int [[inline]]:
     return value + 1

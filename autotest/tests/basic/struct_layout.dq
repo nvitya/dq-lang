@@ -33,7 +33,7 @@ endstruct
     b : uint32
 endobject
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func off_normal_b() -> int:
     var s : SLayoutNormal = {}

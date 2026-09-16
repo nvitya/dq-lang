@@ -4,7 +4,7 @@ use libc/stdio
 
 const TEST_CS_LEN : int = 32
 
-func putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]] ..
 
 func PrintEscapedChar(ch : char):
     if ch == char(9):

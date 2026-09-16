@@ -1,6 +1,6 @@
 // Exception propagation across a func call.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var reached : int = 0
 

@@ -18,7 +18,7 @@ endobject
 
 var g_object <- OGlobal()
 
-func dq_module_init() [[external('dq_module_init')]]
+func dq_module_init() [[external('dq_module_init')]] ..
 
 func _start() [[cexport]]:
     dq_module_init()

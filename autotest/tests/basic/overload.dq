@@ -10,7 +10,7 @@ func mix_plain(a : int) -> int:
     return a
 endfunc
 
-func mix_plain(a : int, b : int) -> int [[overload]]  //?error(OverloadMixedDecl)
+func mix_plain(a : int, b : int) -> int [[overload]] ..  //?error(OverloadMixedDecl)
 
 func oltest_int(a : int) -> int [[overload]]:
     return 0
@@ -88,7 +88,7 @@ endfunc
 
 object OOverloadErr:
     id : int
-    func fwd(a : int) -> int
+    func fwd(a : int) -> int ..
 endobject
 
 func OOverloadErr.fwd(a : float) -> int:  //?error(FuncSigType)
@@ -115,7 +115,7 @@ func OOverloadErr.mix(a : int) -> int:
     return a
 endfunc
 
-func OOverloadErr.mix(a : float) -> int [[overload]]  //?error(OverloadMixedDecl)
+func OOverloadErr.mix(a : float) -> int [[overload]] ..  //?error(OverloadMixedDecl)
 
 func OMissingObject.method() -> int:  //?error(TypeUnknown)
     return 0
@@ -127,8 +127,8 @@ func ONotObject.method() -> int:  //?error(TypeExpected)
     return 0
 endfunc
 
-func extpick(msg : ^char) -> int [[overload]] [[external("puts")]]
-func extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]] [[external("printf")]]
+func extpick(msg : ^char) -> int [[overload]] [[external("puts")]] ..
+func extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]] [[external("printf")]] ..
 
 type CB1 = func(a : int) -> int
 type CBBad = func(a : float) -> int
@@ -156,9 +156,9 @@ endfunc
 
 #else
 
-func printf(fmt : ^char, ...) -> int [[external]]
-func extpick(msg : ^char) -> int [[overload]] [[external("puts")]]
-func extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]] [[external("printf")]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
+func extpick(msg : ^char) -> int [[overload]] [[external("puts")]] ..
+func extpick(fmt : ^char, value : int = 77, ...) -> int [[overload]] [[external("printf")]] ..
 
 type TIntAlias = int
 type CB1 = func(a : int) -> int

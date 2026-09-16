@@ -27,14 +27,14 @@ object Exception:
     backtrace_count : int = 0
     backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
-    func *Create(amsg : rostr) [[overload]]
-    func *Create(afmt : rostr, avalues : []anyvalue) [[overload]]
-    func *Destroy()
+    func *Create(amsg : rostr) [[overload]] ..
+    func *Create(afmt : rostr, avalues : []anyvalue) [[overload]] ..
+    func *Destroy() ..
 
-    func GetMessage() -> embstr [[virtual]]
-    func CaptureBacktrace()
-    func PrintMessage()
-    func PrintBacktrace()
+    func GetMessage() -> embstr [[virtual]] ..
+    func CaptureBacktrace() ..
+    func PrintMessage() ..
+    func PrintBacktrace() ..
 endobject
 
 // DQ Internal exceptions
@@ -42,16 +42,16 @@ endobject
 object EStrError(Exception):
 endobject
 
-func DqExcRaise(e : Exception, owned_ref : bool)
-func DqExcRethrow()
-func DqExcActive() -> bool
-func DqExcCurrent() -> Exception
-func DqExcClear()
-func DqExcBeginCatch()
-func DqExcEndCatch()
-func DqExcPrintTypeName()
+func DqExcRaise(e : Exception, owned_ref : bool) ..
+func DqExcRethrow() ..
+func DqExcActive() -> bool ..
+func DqExcCurrent() -> Exception ..
+func DqExcClear() ..
+func DqExcBeginCatch() ..
+func DqExcEndCatch() ..
+func DqExcPrintTypeName() ..
 
-func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int)
+func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int) ..
 
 implementation
 
@@ -61,8 +61,8 @@ use rtl/backtrace
     use libc/stdio
 #endif
 
-func DqExcAddRef(e : Exception)
-func DqExcRelease(e : Exception)
+func DqExcAddRef(e : Exception) ..
+func DqExcRelease(e : Exception) ..
 
 //-------------------------------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ func DqPrepareExceptionRef(e : Exception, owned_ref : bool) -> bool:
 endfunc
 
 
-func DqExcNativeThrow(e : Exception) [[external]]
+func DqExcNativeThrow(e : Exception) [[external]] ..
 
 var active_exception  : Exception = nil
 var handled_exception : Exception = nil

@@ -76,7 +76,7 @@ func embstr_add(dst : embstr, src : embstr) {
     }
 }
 
-func putchar(c : char) -> int  [[external]] // from libc
+func putchar(c : char) -> int  [[external]] ..  // from libc
 
 func WriteStr(s : embstr) {
     var pc : ^char = %s[0]

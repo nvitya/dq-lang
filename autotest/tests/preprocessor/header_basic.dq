@@ -2,7 +2,7 @@ use rtl/rtlint
 
 #include header
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     printf("header value = %d\n", HEADER_VALUE) //?check("header value", 36)

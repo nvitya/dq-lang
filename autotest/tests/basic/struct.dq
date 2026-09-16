@@ -49,7 +49,7 @@ func dq_struct_test_noderef(sm : ^SMain):
     endwhile
 endfunc
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func show_struct(aprefix : ^char, sm : ^SMain):
     var ep : ^SElem

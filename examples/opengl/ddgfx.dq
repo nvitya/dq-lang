@@ -52,10 +52,10 @@ struct SDdColor:  // use struct literal to set this. e.g: {1.0, 0.5, 0.5, 1.0}
     a  : float32
 endstruct
 
-func DdMatIdentity() -> SDdMatrix;
-func DdMatMultiply(first : SDdMatrix, second : SDdMatrix) -> SDdMatrix;
-func DdMatTransformPoint(matrix : SDdMatrix, point : SDdVertex) -> SDdVertex;
-func DdMatProjection(width : int, height : int) -> SDdMatrix;
+func DdMatIdentity() -> SDdMatrix; ..
+func DdMatMultiply(first : SDdMatrix, second : SDdMatrix) -> SDdMatrix; ..
+func DdMatTransformPoint(matrix : SDdMatrix, point : SDdVertex) -> SDdVertex; ..
+func DdMatProjection(width : int, height : int) -> SDdMatrix; ..
 
 //-----------------------------------------------------------------------------
 
@@ -69,10 +69,10 @@ object ODrawable:
     alpha    : float32 = 1.0
     visible  : bool = true
 
-    func *Create(parent : ODrawable)
-    func *Destroy()
-    func Matrix() -> SDdMatrix
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[virtual]]
+    func *Create(parent : ODrawable) ..
+    func *Destroy() ..
+    func Matrix() -> SDdMatrix ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[virtual]] ..
 endobject
 
 object OPrimitive:
@@ -83,9 +83,9 @@ object OPrimitive:
 
     buffer_ready : bool = false
 
-    func *Create(mode : uint32, vertices : []SDdVertex)
-    func *Destroy()
-    func Draw()
+    func *Create(mode : uint32, vertices : []SDdVertex) ..
+    func *Destroy() ..
+    func Draw() ..
 endobject
 
 object OShape(ODrawable):
@@ -93,19 +93,19 @@ object OShape(ODrawable):
     line_width : float32 = 1.0
     primitives : [*]OPrimitive
 
-    func *Create(parent : ODrawable)
-    func *Destroy()
-    func AddPrimitive(mode : uint32, vertices : []SDdVertex) -> OPrimitive
-    func Clear()
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable) ..
+    func *Destroy() ..
+    func AddPrimitive(mode : uint32, vertices : []SDdVertex) -> OPrimitive ..
+    func Clear() ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 object OClonedShape(ODrawable):
     original : OShape = nil
     color    : SDdColor = {1.0, 1.0, 1.0, 1.0}
 
-    func *Create(parent : ODrawable, original : OShape)
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable, original : OShape) ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 object OPixmap(ODrawable):
@@ -121,12 +121,12 @@ object OPixmap(ODrawable):
     needs_update   : bool = true
     geometry_ready : bool = false
 
-    func *Create(parent : ODrawable, width : int, height : int)
-    func *Destroy()
-    func Clear(color : uint32)
-    func UpdateGeometry()
-    func UpdateTexture()
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable, width : int, height : int) ..
+    func *Destroy() ..
+    func Clear(color : uint32) ..
+    func UpdateGeometry() ..
+    func UpdateTexture() ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 object OAlphaMap(ODrawable):
@@ -143,13 +143,13 @@ object OAlphaMap(ODrawable):
     needs_update   : bool   = true
     geometry_ready : bool   = false
 
-    func *Create(parent : ODrawable, width : int, height : int)
-    func *Destroy()
-    func Clear(value : uint8)
-    func SetSize(width : int, height : int)
-    func UpdateGeometry()
-    func UpdateTexture()
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable, width : int, height : int) ..
+    func *Destroy() ..
+    func Clear(value : uint8) ..
+    func SetSize(width : int, height : int) ..
+    func UpdateGeometry() ..
+    func UpdateTexture() ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 object OClonedGroup(ODrawable):
@@ -157,24 +157,24 @@ object OClonedGroup(ODrawable):
     // declaration between a group and a clone of a group.
     original : ODrawable = nil
 
-    func *Create(parent : ODrawable, original : ODrawable)
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable, original : ODrawable) ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 object ODrawGroup(ODrawable):
     children : [*]ODrawable
 
-    func *Create(parent : ODrawable)
-    func *Destroy()
-    func AddChild(child : ODrawable)
-    func RemoveChild(child : ODrawable)
-    func NewGroup() -> ODrawGroup
-    func NewShape() -> OShape
-    func NewPixmap(width : int, height : int) -> OPixmap
-    func NewAlphaMap(width : int, height : int) -> OAlphaMap
-    func CloneShape(original : OShape) -> OClonedShape
-    func CloneGroup(original : ODrawGroup) -> OClonedGroup
-    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]
+    func *Create(parent : ODrawable) ..
+    func *Destroy() ..
+    func AddChild(child : ODrawable) ..
+    func RemoveChild(child : ODrawable) ..
+    func NewGroup() -> ODrawGroup ..
+    func NewShape() -> OShape ..
+    func NewPixmap(width : int, height : int) -> OPixmap ..
+    func NewAlphaMap(width : int, height : int) -> OAlphaMap ..
+    func CloneShape(original : OShape) -> OClonedShape ..
+    func CloneGroup(original : ODrawGroup) -> OClonedGroup ..
+    func Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]] ..
 endobject
 
 // The shaders apply the scene matrix on the GPU.  Vertex data stays in local
@@ -186,11 +186,11 @@ object OColorProgram:
     matrix_location : int32 = -1
     color_location  : int32 = -1
 
-    func *Create()
-    func *Destroy()
-    func Activate()
-    func SetMatrix(matrix : SDdMatrix)
-    func SetColor(color : SDdColor, alpha : float32)
+    func *Create() ..
+    func *Destroy() ..
+    func Activate() ..
+    func SetMatrix(matrix : SDdMatrix) ..
+    func SetColor(color : SDdColor, alpha : float32) ..
 endobject
 
 object OTextureProgram:
@@ -202,12 +202,12 @@ object OTextureProgram:
     texture_location  : int32 = -1
     alphamap_location : int32 = -1
 
-    func *Create()
-    func *Destroy()
-    func Activate()
-    func SetMatrix(matrix : SDdMatrix)
-    func SetColor(color : SDdColor, alpha : float32)
-    func SetAlphaMap(value : int32)
+    func *Create() ..
+    func *Destroy() ..
+    func Activate() ..
+    func SetMatrix(matrix : SDdMatrix) ..
+    func SetColor(color : SDdColor, alpha : float32) ..
+    func SetAlphaMap(value : int32) ..
 endobject
 
 object ODdScene:
@@ -216,10 +216,10 @@ object ODdScene:
     background : SDdColor = {0.0, 0.0, 0.0, 1.0}
     projection : SDdMatrix
 
-    func *Create(window : pointer)
-    func *Destroy()
-    func BeginFrame(width : int, height : int)
-    func EndFrame()
+    func *Create(window : pointer) ..
+    func *Destroy() ..
+    func BeginFrame(width : int, height : int) ..
+    func EndFrame() ..
 endobject
 
 var g_colorProgram   : OColorProgram   = nil

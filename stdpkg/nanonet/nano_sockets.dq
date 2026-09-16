@@ -31,8 +31,8 @@ object ONanoSocket:
 protected
     m_socket : TSocket
 
-    func SetSockBufSizes()
-    func SetSockParams()
+    func SetSockBufSizes() ..
+    func SetSockParams() ..
 
 public
     stype : NSocketType
@@ -50,22 +50,22 @@ public
     out_event_handler : FOutEventHandler
     obj_link          : Object
 
-    func *Create(atype : NSocketType)
-    func *Destroy()
+    func *Create(atype : NSocketType) ..
+    func *Destroy() ..
 
-    func Disconnect()
-    func Connected() -> bool
+    func Disconnect() ..
+    func Connected() -> bool ..
 
-    func InitListener(aport : uint16)
-    func AcceptConnection(asvrsocket : TSocket) -> bool
+    func InitListener(aport : uint16) ..
+    func AcceptConnection(asvrsocket : TSocket) -> bool ..
 
-    func Send(pdata : pointer, srclen : uint) -> int
-    func Recv(pdata : pointer, maxlen : uint) -> int
+    func Send(pdata : pointer, srclen : uint) -> int ..
+    func Recv(pdata : pointer, maxlen : uint) -> int ..
 
-    func Connect(aaddr : rostr, aport : uint16) -> bool
+    func Connect(aaddr : rostr, aport : uint16) -> bool ..
 
-    func SetNonBlocking()
-    func SetTcpNoDelay(anodelay : bool)
+    func SetNonBlocking() ..
+    func SetTcpNoDelay(anodelay : bool) ..
 
 public
     property socket : TSocket  read m_socket
@@ -81,16 +81,16 @@ object OSocketWatcher:
     maxfds    : int
     maxevents : int = 32
 
-    func *Create(amaxfds : int)
-    func *Destroy()
+    func *Create(amaxfds : int) ..
+    func *Destroy() ..
 
-    func AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler)
-    func ModifySocket(asock : ONanoSocket)
-    func RemoveSocket(asock : ONanoSocket)
-    func SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler)
-    func SetInHandler(asock : ONanoSocket, ainev : FInEventHandler)
+    func AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler) ..
+    func ModifySocket(asock : ONanoSocket) ..
+    func RemoveSocket(asock : ONanoSocket) ..
+    func SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler) ..
+    func SetInHandler(asock : ONanoSocket, ainev : FInEventHandler) ..
 
-    func WaitForEvents(atimeout_ms : int) -> bool
+    func WaitForEvents(atimeout_ms : int) -> bool ..
 
 endobject
 
@@ -98,23 +98,23 @@ object OSConnection:  // Servers connection to client
     sock   : ONanoSocket
     server : ONanoServer
 
-    func *Create(aserver : ONanoServer)
-    func *Destroy()
+    func *Create(aserver : ONanoServer) ..
+    func *Destroy() ..
 
-    func Close()
-    func AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]]
+    func Close() ..
+    func AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]] ..
 
-    func HandleInput(aobj : Object) [[virtual]]
-    func HandleOutput(aobj : Object) [[virtual]]
+    func HandleInput(aobj : Object) [[virtual]] ..
+    func HandleOutput(aobj : Object) [[virtual]] ..
 
-    func SetOutHandler(aoutev : FOutEventHandler)
+    func SetOutHandler(aoutev : FOutEventHandler) ..
 endobject
 
 type TSConnectionType = type of OSConnection
 
 object ONanoServer:
 protected
-    func ConnectionIndex(aconn : OSConnection) -> int
+    func ConnectionIndex(aconn : OSConnection) -> int ..
 
 public
     listen_port  : uint16
@@ -127,16 +127,16 @@ public
 
     sconn_type   : TSConnectionType
 
-    func *Create(asconn_type : TSConnectionType, alisten_port : uint16)
-    func *Destroy()
+    func *Create(asconn_type : TSConnectionType, alisten_port : uint16) ..
+    func *Destroy() ..
 
-    func InitListener()
-    func WaitForEvents(timeout_ms : int) -> bool
+    func InitListener() ..
+    func WaitForEvents(timeout_ms : int) -> bool ..
 
-    func HandleListener(aobj : Object)
+    func HandleListener(aobj : Object) ..
 
-    func CreateSConnection() -> OSConnection
-    func CloseConnection(aconn : OSConnection)
+    func CreateSConnection() -> OSConnection ..
+    func CloseConnection(aconn : OSConnection) ..
 endobject
 
 implementation

@@ -67,7 +67,7 @@ protected:
   bool    ParseInlineAsmHints(OValSymFunc * func);
   bool    FinalizeInlineAsm(OValSymFunc * func);
   bool    ValidateFunctionDecl(OValSymFunc * vsfunc, bool aallow_external, const string & aowner_desc);
-  void    ConsumeDeclarationSemicolon(bool has_body, const string & what);
+  void    ConsumeFunctionDeclarationEnd(bool has_body, const string & what);
   void    ReadFunctionBody(OValSymFunc * bodyfunc);
   void    DeclareFunctionSymbol(OValSymFunc * fn, OScope * decl_scope, bool ahidden_decl);
   void    DeclareOverloadSet(OValSymOverloadSet * ovset, OScope * decl_scope, bool ahidden_decl);

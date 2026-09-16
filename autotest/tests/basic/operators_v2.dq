@@ -1,6 +1,6 @@
 // DQ Operators V2 runtime and precedence tests
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     var value : int = 10

@@ -1,6 +1,6 @@
 use ./mid_mod
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
   var mid <- TMidClass

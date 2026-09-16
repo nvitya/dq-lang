@@ -1,6 +1,6 @@
 // Basic exception handling smoke test.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     try:

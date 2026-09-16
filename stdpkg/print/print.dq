@@ -13,21 +13,21 @@
  * brief:   Basic stdout printing functions
  */
 
-func Print(fmt : strslice) [[overload]]
-func Print(fmt : rostr, args : []anyvalue) [[overload]]
-func PrintLn() [[overload]]
-func PrintLn(fmt : strslice) [[overload]]
-func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]
-func PrintFlush()
+func Print(fmt : strslice) [[overload]] ..
+func Print(fmt : rostr, args : []anyvalue) [[overload]] ..
+func PrintLn() [[overload]] ..
+func PrintLn(fmt : strslice) [[overload]] ..
+func PrintLn(fmt : rostr, args : []anyvalue) [[overload]] ..
+func PrintFlush() ..
 
 implementation
 
 use rtl/textformat
 use libc/stdio
 
-func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
-func libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]] ..
+func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]] ..
+func libc_fflush(stream : pointer) -> int  [[external('fflush')]] ..
 
 var std_out_sink      : OTextSinkStdOut = nil
 var std_out_formatter : OTextFormatter = nil

@@ -1,6 +1,6 @@
 //?notest
 
-func WeakOverride() -> int [[weak, cexport]]
+func WeakOverride() -> int [[weak, cexport]] ..
 
 implementation
 

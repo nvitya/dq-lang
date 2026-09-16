@@ -1,6 +1,6 @@
 // contextual struct initializer literals
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 struct SPoint:
     x : int

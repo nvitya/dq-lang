@@ -26,7 +26,7 @@ use rtl/prgargs    reexport
 
 #endif
 
-func Exit(status : int)
+func Exit(status : int) ..
 
 implementation
 
@@ -39,7 +39,7 @@ endfunc
 
 #else
 
-func libc_exit(status : int)  [[external('exit')]]
+func libc_exit(status : int)  [[external('exit')]] ..
 
 func Exit(status : int):
     libc_exit(status)

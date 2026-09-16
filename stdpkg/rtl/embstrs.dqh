@@ -13,21 +13,21 @@
  * brief:   RTL Helpers for the DQ embstr handling (interface only)
  */
 
-func EmbStrLen(desc : ref SDqTextInfo) -> uint
-func EmbStrMaxLen(desc : ref SDqTextInfo) -> uint
-func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint
+func EmbStrLen(desc : ref SDqTextInfo) -> uint ..
+func EmbStrMaxLen(desc : ref SDqTextInfo) -> uint ..
+func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint ..
 
-func EmbStrClear(desc : ref SDqTextInfo)
-func EmbStrAssignChar(desc : ref SDqTextInfo, ch : char)
-func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char)
-func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char)
-func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char)
-func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char)
-func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo)
-func EmbStrPrependChar(desc : ref SDqTextInfo, ch : char)
-func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char)
-func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo)
-func EmbStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char)
-func EmbStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1)
+func EmbStrClear(desc : ref SDqTextInfo) ..
+func EmbStrAssignChar(desc : ref SDqTextInfo, ch : char) ..
+func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char) ..
+func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char) ..
+func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char) ..
+func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char) ..
+func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrPrependChar(desc : ref SDqTextInfo, ch : char) ..
+func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char) ..
+func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo) ..
+func EmbStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char) ..
+func EmbStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1) ..

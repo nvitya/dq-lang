@@ -1,6 +1,6 @@
 // printf test - variadic external func support
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var g_str : embstr(65) = "asdf"
 func *Main():

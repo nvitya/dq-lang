@@ -28,49 +28,49 @@ public
     subtype  : uint8
     typeinfo : ^SDqTypeInfo
 
-    func *Create(atypeinfo : ^SDqTypeInfo)
-    func *Destroy()
+    func *Create(atypeinfo : ^SDqTypeInfo) ..
+    func *Destroy() ..
 
-    func Reserve(min_capacity : uint)
-    func SetCapacity(new_capacity : uint)  // truncates the length if necessary
-    func SetLength(new_length : uint)
-    func Compact()  // sets the capacity to the actual length
-    func Clear(free_storage : bool = false)
+    func Reserve(min_capacity : uint) ..
+    func SetCapacity(new_capacity : uint) ..  // truncates the length if necessary
+    func SetLength(new_length : uint) ..
+    func Compact() ..  // sets the capacity to the actual length
+    func Clear(free_storage : bool = false) ..
 
-    func Append(asrc : pointer, acount : int)
-    func Insert(index : int, src : pointer, acount : int)
-    func Prepend(src : pointer, acount : int)
-    func Delete(index : int, acount : int = 1)
-    func Pop(outptr : pointer)
-    func PopFirst(outptr : pointer)
+    func Append(asrc : pointer, acount : int) ..
+    func Insert(index : int, src : pointer, acount : int) ..
+    func Prepend(src : pointer, acount : int) ..
+    func Delete(index : int, acount : int = 1) ..
+    func Pop(outptr : pointer) ..
+    func PopFirst(outptr : pointer) ..
 endobject
 
-func DynArrCreate(arr : ref ODynArrMgr, ati : ^SDqTypeInfo)
-func DynArrIncRef(arr : ref ODynArrMgr)
-func DynArrDecRef(arr : ref ODynArrMgr)
-func DynArrAssignOther(arr : ref ODynArrMgr, srcarr : ODynArrMgr)
-func DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int)
+func DynArrCreate(arr : ref ODynArrMgr, ati : ^SDqTypeInfo) ..
+func DynArrIncRef(arr : ref ODynArrMgr) ..
+func DynArrDecRef(arr : ref ODynArrMgr) ..
+func DynArrAssignOther(arr : ref ODynArrMgr, srcarr : ODynArrMgr) ..
+func DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int) ..
 
-func DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer
-func DynArrGetLength(arr : ref ODynArrMgr) -> uint
-func DynArrGetCapacity(arr : ref ODynArrMgr) -> uint
-func DynArrGetRefCount(arr : ref ODynArrMgr) -> int
+func DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer ..
+func DynArrGetLength(arr : ref ODynArrMgr) -> uint ..
+func DynArrGetCapacity(arr : ref ODynArrMgr) -> uint ..
+func DynArrGetRefCount(arr : ref ODynArrMgr) -> int ..
 
-func DynArrReserve(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, min_capacity : uint)
-func DynArrSetLength(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_length : uint)
-func DynArrSetCapacity(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_capacity : uint)
-func DynArrCompact(arr : ref ODynArrMgr)
-func DynArrClear(arr : ref ODynArrMgr, free_storage : bool = false)
+func DynArrReserve(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, min_capacity : uint) ..
+func DynArrSetLength(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_length : uint) ..
+func DynArrSetCapacity(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, new_capacity : uint) ..
+func DynArrCompact(arr : ref ODynArrMgr) ..
+func DynArrClear(arr : ref ODynArrMgr, free_storage : bool = false) ..
 
-func DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int)
-func DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : pointer, acount : int)
-func DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1)
-func DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr)
-func DynArrPop(arr : ref ODynArrMgr, outptr : pointer)
-func DynArrPopFirst(arr : ref ODynArrMgr, outptr : pointer)
+func DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int) ..
+func DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : pointer, acount : int) ..
+func DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1) ..
+func DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr) ..
+func DynArrPop(arr : ref ODynArrMgr, outptr : pointer) ..
+func DynArrPopFirst(arr : ref ODynArrMgr, outptr : pointer) ..
 
-func DynArrGetFullSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc)
-func DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, startpos : int, endposex : int)
+func DynArrGetFullSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc) ..
+func DynArrGetSlice(arr : ref ODynArrMgr, desc : refout SArraySliceDesc, startpos : int, endposex : int) ..
 
 implementation
 
@@ -79,7 +79,7 @@ use rtl/mem
 use rtl/strfunc
 #endif
 
-func libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]]
+func libc_memset(dest : pointer, value : int, size : uint) -> pointer [[external('memset')]] ..
 
 func DynArrRuntimeError(emsg : ^char):
     RuntimeError(emsg)

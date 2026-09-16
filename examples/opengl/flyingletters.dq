@@ -21,8 +21,8 @@ const font_pixels   : int = 2*56  // Render large, then scale the glyphs down.
 
 
 // rand and srand are provided by the C runtime linked with native DQ programs.
-func libc_rand() -> int32 [[external('rand')]]
-func libc_srand(seed : uint32) [[external('srand')]]
+func libc_rand() -> int32 [[external('rand')]] ..
+func libc_srand(seed : uint32) [[external('srand')]] ..
 
 func RandomUnit() -> float64:
     return libc_rand() / 2147483647.0
@@ -38,8 +38,8 @@ public
     size_phase     : float64 = 0.0
     size_speed     : float64 = 0.0
 
-    func *Create(parent : ODrawable, font : OFont, text : strslice)
-    func Step(elapsed : float64, time : float64, scene_width : int, scene_height : int)
+    func *Create(parent : ODrawable, font : OFont, text : strslice) ..
+    func Step(elapsed : float64, time : float64, scene_width : int, scene_height : int) ..
 endobject
 
 func OFlyingLetter.*Create(parent : ODrawable, font : OFont, text : strslice):
@@ -84,9 +84,9 @@ public
     last_time    : float64 = 0
     ready        : bool = false
 
-    func *Create(window : pointer)
-    func *Destroy()
-    func Step(width : int, height : int)
+    func *Create(window : pointer) ..
+    func *Destroy() ..
+    func Step(width : int, height : int) ..
 endobject
 
 func OFlyingLettersScene.*Create(window : pointer):

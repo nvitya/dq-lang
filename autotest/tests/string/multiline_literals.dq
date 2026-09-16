@@ -3,7 +3,7 @@
 
 use libc/stdio
 
-func putchar(c : char) -> int [[external]]
+func putchar(c : char) -> int [[external]] ..
 
 func PrintEscaped(text : strslice):
     var i : int = 0

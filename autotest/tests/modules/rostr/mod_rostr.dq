@@ -9,8 +9,8 @@ struct SModuleText:
     text : TText
 endstruct
 
-func Borrow(text : TText = MODULE_TEXT) -> rostr
-func ReadLength(text : refin rostr) -> int
+func Borrow(text : TText = MODULE_TEXT) -> rostr ..
+func ReadLength(text : refin rostr) -> int ..
 
 implementation
 

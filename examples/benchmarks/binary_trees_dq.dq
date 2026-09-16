@@ -4,9 +4,9 @@ object ONode:
     left  : ONode
     right : ONode
 
-    func *Create(aleft : ONode, aright : ONode)
-    func *Destroy()
-    func NodeCount() -> int
+    func *Create(aleft : ONode, aright : ONode) ..
+    func *Destroy() ..
+    func NodeCount() -> int ..
 endobject
 
 func ONode.*Create(aleft : ONode, aright : ONode):

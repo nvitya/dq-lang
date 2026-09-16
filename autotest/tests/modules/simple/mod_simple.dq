@@ -4,10 +4,10 @@ const MOD_CONST : int = 99
 
 var g_mod_var : int = 5
 
-func mod_func_test(a : int) -> int
+func mod_func_test(a : int) -> int ..
 
-func printf(fmt : ^char, ...) -> int [[external]]
-func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
+func fprintf(stream : pointer, fmt : ^char, ...) -> int [[external]] ..
 var stdout : pointer [[external]]
 
 implementation

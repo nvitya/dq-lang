@@ -3,7 +3,7 @@
 const RESULT_A : int = 1
 const OFFSET_A : int = 10
 
-func func_a() -> int
+func func_a() -> int ..
 
 implementation
 

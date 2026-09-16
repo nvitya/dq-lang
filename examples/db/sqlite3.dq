@@ -21,29 +21,29 @@ protected
     m_handle : pointer
 
 public
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
     // Low-level error helpers used by statements sharing this connection.
-    func Sqlite3ErrorText() -> ^char
-    func Sqlite3Check(aresult : int, aoperation : ^char)
+    func Sqlite3ErrorText() -> ^char ..
+    func Sqlite3Check(aresult : int, aoperation : ^char) ..
 
-    func Open(afilename : ^char)
-    func Close()
-    func Opened() -> bool
-    func NativeHandle() -> pointer
+    func Open(afilename : ^char) ..
+    func Close() ..
+    func Opened() -> bool ..
+    func NativeHandle() -> pointer ..
 
     // Execute DDL and data-manipulation statements without result rows.
-    func Execute(asql : ^char)
+    func Execute(asql : ^char) ..
 
-    func Begin()
-    func Commit()
-    func Rollback()
+    func Begin() ..
+    func Commit() ..
+    func Rollback() ..
 
-    func SetBusyTimeout(ams : int)
-    func Changes() -> int
-    func LastInsertId() -> int64
-    func ErrorMessage() -> ^char
+    func SetBusyTimeout(ams : int) ..
+    func Changes() -> int ..
+    func LastInsertId() -> int64 ..
+    func ErrorMessage() -> ^char ..
 
     property opened         : bool  read Opened
     property changes        : int   read Changes
@@ -56,33 +56,33 @@ protected
     m_handle    : pointer
     m_db_handle : pointer
 
-    func RequirePrepared()
+    func RequirePrepared() ..
 
 public
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
-    func Prepare(adb : OSqlite3Db, asql : ^char)
-    func Finalize()
-    func Reset()
-    func ClearBindings()
-    func Prepared() -> bool
+    func Prepare(adb : OSqlite3Db, asql : ^char) ..
+    func Finalize() ..
+    func Reset() ..
+    func ClearBindings() ..
+    func Prepared() -> bool ..
 
-    func BindNull(aindex : int)
-    func BindInt(aindex : int, avalue : int64)
-    func BindFloat(aindex : int, avalue : float64)
-    func BindText(aindex : int, avalue : ^char)
+    func BindNull(aindex : int) ..
+    func BindInt(aindex : int, avalue : int64) ..
+    func BindFloat(aindex : int, avalue : float64) ..
+    func BindText(aindex : int, avalue : ^char) ..
 
     // Step returns true for SQLITE_ROW and false for SQLITE_DONE.
-    func Step() -> bool
+    func Step() -> bool ..
 
-    func ColumnCount() -> int
+    func ColumnCount() -> int ..
     // Returned text pointers are valid until the next Step(), Reset(), or Finalize().
-    func ColumnName(aindex : int) -> ^char
-    func ColumnIsNull(aindex : int) -> bool
-    func ColumnInt(aindex : int) -> int64
-    func ColumnFloat(aindex : int) -> float64
-    func ColumnText(aindex : int) -> ^char
+    func ColumnName(aindex : int) -> ^char ..
+    func ColumnIsNull(aindex : int) -> bool ..
+    func ColumnInt(aindex : int) -> int64 ..
+    func ColumnFloat(aindex : int) -> float64 ..
+    func ColumnText(aindex : int) -> ^char ..
 
     property prepared     : bool  read Prepared
     property column_count : int   read ColumnCount
@@ -91,32 +91,32 @@ endobject
 
 implementation
 
-func sqlite3_open(filename : ^char, db : ^pointer) -> int [[external]]
-func sqlite3_close(db : pointer) -> int [[external]]
-func sqlite3_errmsg(db : pointer) -> ^char [[external]]
+func sqlite3_open(filename : ^char, db : ^pointer) -> int [[external]] ..
+func sqlite3_close(db : pointer) -> int [[external]] ..
+func sqlite3_errmsg(db : pointer) -> ^char [[external]] ..
 func sqlite3_exec(db : pointer, sql : ^char, callback : pointer, callback_data : pointer,
-                  error_message : ^pointer) -> int [[external]]
-func sqlite3_busy_timeout(db : pointer, ms : int) -> int [[external]]
-func sqlite3_changes(db : pointer) -> int [[external]]
-func sqlite3_last_insert_rowid(db : pointer) -> int64 [[external]]
+                  error_message : ^pointer) -> int [[external]] ..
+func sqlite3_busy_timeout(db : pointer, ms : int) -> int [[external]] ..
+func sqlite3_changes(db : pointer) -> int [[external]] ..
+func sqlite3_last_insert_rowid(db : pointer) -> int64 [[external]] ..
 
 func sqlite3_prepare_v2(db : pointer, sql : ^char, sql_length : int, statement : ^pointer,
-                         tail : ^pointer) -> int [[external]]
-func sqlite3_finalize(statement : pointer) -> int [[external]]
-func sqlite3_reset(statement : pointer) -> int [[external]]
-func sqlite3_clear_bindings(statement : pointer) -> int [[external]]
-func sqlite3_step(statement : pointer) -> int [[external]]
-func sqlite3_bind_null(statement : pointer, index : int) -> int [[external]]
-func sqlite3_bind_int64(statement : pointer, index : int, value : int64) -> int [[external]]
-func sqlite3_bind_double(statement : pointer, index : int, value : float64) -> int [[external]]
+                         tail : ^pointer) -> int [[external]] ..
+func sqlite3_finalize(statement : pointer) -> int [[external]] ..
+func sqlite3_reset(statement : pointer) -> int [[external]] ..
+func sqlite3_clear_bindings(statement : pointer) -> int [[external]] ..
+func sqlite3_step(statement : pointer) -> int [[external]] ..
+func sqlite3_bind_null(statement : pointer, index : int) -> int [[external]] ..
+func sqlite3_bind_int64(statement : pointer, index : int, value : int64) -> int [[external]] ..
+func sqlite3_bind_double(statement : pointer, index : int, value : float64) -> int [[external]] ..
 func sqlite3_bind_text(statement : pointer, index : int, value : ^char, value_length : int,
-                       destructor : pointer) -> int [[external]]
-func sqlite3_column_count(statement : pointer) -> int [[external]]
-func sqlite3_column_name(statement : pointer, index : int) -> ^char [[external]]
-func sqlite3_column_type(statement : pointer, index : int) -> int [[external]]
-func sqlite3_column_int64(statement : pointer, index : int) -> int64 [[external]]
-func sqlite3_column_double(statement : pointer, index : int) -> float64 [[external]]
-func sqlite3_column_text(statement : pointer, index : int) -> ^char [[external]]
+                       destructor : pointer) -> int [[external]] ..
+func sqlite3_column_count(statement : pointer) -> int [[external]] ..
+func sqlite3_column_name(statement : pointer, index : int) -> ^char [[external]] ..
+func sqlite3_column_type(statement : pointer, index : int) -> int [[external]] ..
+func sqlite3_column_int64(statement : pointer, index : int) -> int64 [[external]] ..
+func sqlite3_column_double(statement : pointer, index : int) -> float64 [[external]] ..
+func sqlite3_column_text(statement : pointer, index : int) -> ^char [[external]] ..
 
 
 func OSqlite3Db.Sqlite3ErrorText() -> ^char:

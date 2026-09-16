@@ -21,27 +21,27 @@ object OStrMapItem:
     key   : str
     value : str
 
-    func *Create(akey : str, avalue : str)
+    func *Create(akey : str, avalue : str) ..
 endobject
 
 object OStrMap:
 protected
     m_items : [*]OStrMapItem
 
-    func FindKey(akey : str) -> int
-    func GetKey(aindex : int) -> str
-    func GetValue(aindex : int) -> str
+    func FindKey(akey : str) -> int ..
+    func GetKey(aindex : int) -> str ..
+    func GetValue(aindex : int) -> str ..
 
 public
-    func *Destroy()
+    func *Destroy() ..
 
-    func Clear()
-    func Add(akey : str, avalue : str)
-    func SetItem(akey : str, avalue : str)
-    func GetItem(akey : str) -> str
-    func KeyDataDef(akey : str, adefvalue : str) -> str
-    func Delete(akey : str)
-    func IndexOf(akey : str) -> int
+    func Clear() ..
+    func Add(akey : str, avalue : str) ..
+    func SetItem(akey : str, avalue : str) ..
+    func GetItem(akey : str) -> str ..
+    func KeyDataDef(akey : str, adefvalue : str) -> str ..
+    func Delete(akey : str) ..
+    func IndexOf(akey : str) -> int ..
 
     func GetLength() -> int:
         return m_items.length
@@ -64,11 +64,11 @@ protected
 
     file_obj : OFile
 
-    func ProcessInData()
-    func AddHttpOutput()
-    func ParseGetString()
-    func ParseRequestHeader() -> bool
-    func ParseCookies(astr : strslice)
+    func ProcessInData() ..
+    func AddHttpOutput() ..
+    func ParseGetString() ..
+    func ParseRequestHeader() -> bool ..
+    func ParseCookies(astr : strslice) ..
 
 public
     header_length : int
@@ -83,7 +83,7 @@ public
     full_content_length : int64
     file_remaining      : int64
 
-    func CloseFileFd()
+    func CloseFileFd() ..
 
 public
     ucheaders : OStrMap
@@ -94,23 +94,23 @@ public
     response_code : int
     response_headers : OStrMap
 
-    func *Create(aserver : ONanoServer)
-    func *Destroy()
+    func *Create(aserver : ONanoServer) ..
+    func *Destroy() ..
 
-    func QsVarInt(aname : rostr, adefvalue : int) -> int
-    func QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str
+    func QsVarInt(aname : rostr, adefvalue : int) -> int ..
+    func QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str ..
 
-    func HandleInput(aobj : Object) [[override]]
-    func HandleOutput(aobj : Object) [[override]]
+    func HandleInput(aobj : Object) [[override]] ..
+    func HandleOutput(aobj : Object) [[override]] ..
 
-    func SendOutput()
+    func SendOutput() ..
 
-    func PrepareHeaders() [[virtual]]
-    func ProcessRequest() -> bool [[virtual]]
+    func PrepareHeaders() [[virtual]] ..
+    func ProcessRequest() -> bool [[virtual]] ..
 
-    func HandleStaticFiles(arootdir : rostr) -> bool
+    func HandleStaticFiles(arootdir : rostr) -> bool ..
 
-    func LogError(astr : rostr) [[virtual]]
+    func LogError(astr : rostr) [[virtual]] ..
 endobject
 
 type TSConnHttpClass = type of OSConnectionHttp
@@ -120,14 +120,14 @@ public
     server_id : str
     ct_by_ext : OStrMap
 
-    func *Create(aclass : TSConnHttpClass, alisten_port : uint16)
-    func *Destroy()
+    func *Create(aclass : TSConnHttpClass, alisten_port : uint16) ..
+    func *Destroy() ..
 
-    func InitContentTypeMap()
-    func ContentTypeByExt(aext : rostr) -> str
+    func InitContentTypeMap() ..
+    func ContentTypeByExt(aext : rostr) -> str ..
 endobject
 
-func ParseHttpDateRFC1123(adatestr : strslice) -> int64
+func ParseHttpDateRFC1123(adatestr : strslice) -> int64 ..
 
 implementation
 
@@ -171,9 +171,9 @@ struct STm:
     tm_zone   : pointer
 endstruct
 
-func libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]]
-func libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]]
-func libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]]
+func libc_stat(pathname : ^char, statbuf : ^SStat) -> int [[external('stat')]] ..
+func libc_gmtime_r(timep : ^int64, tmout : ^STm) -> ^STm [[external('gmtime_r')]] ..
+func libc_strftime(s : ^char, max : uint, format : ^char, tm : ^STm) -> uint [[external('strftime')]] ..
 
 func StatFile(afname : rostr, st : ref SStat) -> bool:
     if afname == '':

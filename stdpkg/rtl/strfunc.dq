@@ -27,28 +27,28 @@ use rtl/rtlint
 #endif
 
 
-func StrfRuntimeError(emsg : ^char)
-func StrfIsValidWChar(wc : wchar) -> bool
-func IntToChar(value : int) -> char [[overload]]
-func IntToChar(value : int, defvalue : char) -> char [[overload]]
-func IntToWchar(value : int) -> wchar [[overload]]
-func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]
+func StrfRuntimeError(emsg : ^char) ..
+func StrfIsValidWChar(wc : wchar) -> bool ..
+func IntToChar(value : int) -> char [[overload]] ..
+func IntToChar(value : int, defvalue : char) -> char [[overload]] ..
+func IntToWchar(value : int) -> wchar [[overload]] ..
+func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
 
-func StrfIsUtf8(text : strslice) -> bool
-func StrfWcLen(text : strslice) -> int
-func StrfWCharAt(text : strslice, index : int) -> wchar
-func StrfToWchars(text : strslice) -> [*]wchar
-func StrfWCharSlice(text : strslice, startpos : int, endposex : int) -> [*]wchar
+func StrfIsUtf8(text : strslice) -> bool ..
+func StrfWcLen(text : strslice) -> int ..
+func StrfWCharAt(text : strslice, index : int) -> wchar ..
+func StrfToWchars(text : strslice) -> [*]wchar ..
+func StrfWCharSlice(text : strslice, startpos : int, endposex : int) -> [*]wchar ..
 #ifdef DYNSTRINGS
-func StrfWcStrSlice(text : strslice, startpos : int, endposex : int) -> str
-func StrfFromWchars(chars : []wchar) -> str
+func StrfWcStrSlice(text : strslice, startpos : int, endposex : int) -> str ..
+func StrfFromWchars(chars : []wchar) -> str ..
 #endif
-func StrfToUtf16(text : strslice) -> [*]char16
+func StrfToUtf16(text : strslice) -> [*]char16 ..
 #ifdef DYNSTRINGS
-func StrfFromUtf16(chars : []char16) -> str
-func StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str
-func StrfFromUtf16Ptr(chars : ^char16, count : int) -> str
-func StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str
+func StrfFromUtf16(chars : []char16) -> str ..
+func StrfFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str ..
+func StrfFromUtf16Ptr(chars : ^char16, count : int) -> str ..
+func StrfFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -> str ..
 #endif
 
 implementation

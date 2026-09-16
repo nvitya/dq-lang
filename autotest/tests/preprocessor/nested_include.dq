@@ -1,6 +1,6 @@
 #include "nested_outer.dqi"
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     printf("nested include value = %d\n", NESTED_INCLUDE_VALUE) //?check("nested include value", 51)

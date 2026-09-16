@@ -7,7 +7,7 @@ const RE_ARRAY : [3]int = [4, 5, 6]
 
 var re_var : int = 4
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func re_func(a : int) -> int:
     result = a + re_var

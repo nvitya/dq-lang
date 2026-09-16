@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Windows
  */
 
-func main(argc : int, argv : ^^char) -> int  [[cexport]]
+func main(argc : int, argv : ^^char) -> int  [[cexport]] ..
 
 implementation
 
@@ -27,8 +27,8 @@ use rtl/mem
 use libc/stdio
 
 // These functions are created by the DQ compiler:
-func dq_main()         [[external('dq_main')]]
-func dq_module_init()  [[external('dq_module_init')]]
+func dq_main()         [[external('dq_main')]] ..
+func dq_module_init()  [[external('dq_module_init')]] ..
 
 #ifdef EXCEPTIONS
 
@@ -50,8 +50,8 @@ endstruct
 
 type FWinExceptionFilter = func(exception_info : pointer) -> int32
 
-func win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]]
-func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+func win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]] ..
+func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]] ..
 
 const EXCEPTION_ACCESS_VIOLATION : uint32 = 0xC0000005
 const EXCEPTION_CONTINUE_SEARCH  : int32 = 0
@@ -158,7 +158,7 @@ endfunc
 
 #else
 
-func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]]
+func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]] ..
 
 func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)

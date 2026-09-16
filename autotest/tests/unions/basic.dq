@@ -1,6 +1,6 @@
 // Untagged storage unions: layout, aliasing, copying, nesting, and brace syntax.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 union UWord:
     whole : uint64

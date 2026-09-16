@@ -13,7 +13,7 @@
  * brief:   DQ program initialization and default exception handler for Linux
  */
 
-func main(argc : int, argv : ^^char) -> int  [[cexport]]
+func main(argc : int, argv : ^^char) -> int  [[cexport]] ..
 
 implementation
 
@@ -26,8 +26,8 @@ use rtl/prgargs
 use libc/stdio
 
 // These functions created by the DQ compiler:
-func dq_main()         [[external('dq_main')]]
-func dq_module_init()  [[external('dq_module_init')]]
+func dq_main()         [[external('dq_main')]] ..
+func dq_module_init()  [[external('dq_module_init')]] ..
 
 #ifdef EXCEPTIONS
 
@@ -41,11 +41,11 @@ const DQ_SIGNAL_BACKTRACE_MAX : int = 32
 
 type FSignalHandler = func(signum : int)
 
-func libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]]
-func libc_raise(signum : int) -> int [[external('raise')]]
-func libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]]
-func libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]]
-func libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]]
+func libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]] ..
+func libc_raise(signum : int) -> int [[external('raise')]] ..
+func libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]] ..
+func libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]] ..
+func libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]] ..
 
 const SIG_DFL  : FSignalHandler = nil
 const SIGSEGV  : int = 11
@@ -172,7 +172,7 @@ endfunc
 
 #else
 
-func libc_exit(status : int) [[external('exit')]]
+func libc_exit(status : int) [[external('exit')]] ..
 
 func OsRtErrorHandler(emsg : ^char):
     printf("RUNTIME ERROR: %s\n", emsg)

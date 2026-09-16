@@ -1,7 +1,7 @@
 #srcdep "srcdep_basic_impl.dqi"
 
-func SrcDepValue() -> int
-func printf(fmt : ^char, ...) -> int [[external]]
+func SrcDepValue() -> int ..
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 implementation
 

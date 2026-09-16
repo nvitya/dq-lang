@@ -20,23 +20,23 @@ public
     thread_id : uint
     retval    : pointer
 
-    func StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool
-    func StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool
-    func StartSelf(aarg : pointer) -> bool  // starts the Run()
+    func StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool ..
+    func StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool ..
+    func StartSelf(aarg : pointer) -> bool ..  // starts the Run()
 
-    func Join()                  // waits until the thread stops
-    func IsRunning() -> bool     // polls for running state, joins
+    func Join() ..  // waits until the thread stops
+    func IsRunning() -> bool ..  // polls for running state, joins
 
-    func Run(aarg : pointer) -> pointer [[virtual]]  // override this for StartSelf()
+    func Run(aarg : pointer) -> pointer [[virtual]] ..  // override this for StartSelf()
 endobject
 
 implementation
 
 // pthread_t is unsigned long on the supported POSIX targets, which is the
 // native-width unsigned integer represented by DQ's uint type.
-func pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]]
-func pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]]
-func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]]  // Linux specific !
+func pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]] ..
+func pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]] ..
+func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]] ..  // Linux specific !
 
 const PTHREAD_EBUSY : int = 16
 

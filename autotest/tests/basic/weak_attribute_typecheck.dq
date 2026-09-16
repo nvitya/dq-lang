@@ -2,12 +2,12 @@
 
 var weak_var : int [[weak]]  //?error(AttrInvalidTarget)
 
-func weak_with_args() [[weak(1)]]  //?error(AttrNoArgs)
+func weak_with_args() [[weak(1)]] ..  //?error(AttrNoArgs)
 
-func weak_external() [[weak, external]]  //?error(AttrConflict)
+func weak_external() [[weak, external]] ..  //?error(AttrConflict)
 
-func weak_forward_external() [[weak]]
-func weak_forward_external() [[external]]  //?error(AttrConflict)
+func weak_forward_external() [[weak]] ..
+func weak_forward_external() [[external]] ..  //?error(AttrConflict)
 
 object OWeakMethod:
     func Method() [[weak]]:  //?error(AttrInvalidTarget)

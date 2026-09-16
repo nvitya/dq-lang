@@ -1,7 +1,7 @@
 // An exitcode marker is sufficient to create a runtime test; output is diagnostic payload.
 //?exitcode(7)
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     printf("exitcode-only stdout is diagnostic payload\n")

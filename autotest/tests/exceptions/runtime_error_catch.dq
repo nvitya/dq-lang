@@ -1,6 +1,6 @@
 // RuntimeError is routed through the hosted exception handler.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 var reached : int = 0
 

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.69.7"
+#define DQ_COMPILER_VERSION  "0.70.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.70.0:
+  - BREAKING CHANGE: Forward declaration must end with ".."
 v0.69.7:
   - Compile fix for windows
 v0.69.6:

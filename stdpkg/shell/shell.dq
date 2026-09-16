@@ -8,8 +8,8 @@ endobject
 
 object EShellResult(Exception):
     code : int
-    func *Create(acode : int, amsg : rostr)                        [[overload]]
-    func *Create(acode : int, afmt : rostr, avalues : []anyvalue)  [[overload]]
+    func *Create(acode : int, amsg : rostr)                        [[overload]] ..
+    func *Create(acode : int, afmt : rostr, avalues : []anyvalue)  [[overload]] ..
 endobject
 
 object OShellRunner(OThread):
@@ -20,18 +20,18 @@ object OShellRunner(OThread):
     err    : str = ''
     output : str = ''  // stdout and stderr merged in pipe-read order
 
-    func Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]]
-    func Run(args : []str, exitcerr : bool = true) -> int [[overload]]
-    func RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]]
-    func RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]]
-    func StartBg(acmd : rostr) -> int [[overload]]
-    func StartBg(args : []str) -> int [[overload]]
-    func StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[overload]]
-    func StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]]
+    func Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]] ..
+    func Run(args : []str, exitcerr : bool = true) -> int [[overload]] ..
+    func RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]] ..
+    func RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]] ..
+    func StartBg(acmd : rostr) -> int [[overload]] ..
+    func StartBg(args : []str) -> int [[overload]] ..
+    func StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[overload]] ..
+    func StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]] ..
 
-    func Finished() -> bool
-    func WaitFinishMs(ams : int) -> bool
-    func Kill()
+    func Finished() -> bool ..
+    func WaitFinishMs(ams : int) -> bool ..
+    func Kill() ..
 
 protected
     pid : int32 = 0
@@ -43,13 +43,13 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    func StartProcess(args : []str) -> int
-    func MonitorProcess()
-    func MonitorThread(aarg : pointer) -> pointer
+    func StartProcess(args : []str) -> int ..
+    func MonitorProcess() ..
+    func MonitorThread(aarg : pointer) -> pointer ..
 endobject
 
-func GetEnv(name : rostr, default_value : rostr) -> str
-func SetEnv(name : rostr, value : rostr)
+func GetEnv(name : rostr, default_value : rostr) -> str ..
+func SetEnv(name : rostr, value : rostr) ..
 
 implementation
 
@@ -59,23 +59,23 @@ struct SPollFd:
     revents : int16
 endstruct
 
-func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]]
-func libc_fork() -> int32                                        [[external('fork')]]
-func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]]
-func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]]
-func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]]
-func libc_close(fd : int32) -> int32                             [[external('close')]]
-func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]]
-func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]]
-func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]]
-func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]]
-func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]]
-func libc__exit(status : int32)                                  [[external('_exit')]]
-func libc___errno_location() -> ^int32                           [[external('__errno_location')]]
-func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]]
-func libc_perror(message : ^char)                                [[external('perror')]]
-func libc_getenv(name : ^char) -> ^char                          [[external('getenv')]]
-func libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]]
+func libc_pipe(pipefd : ^int32) -> int32                         [[external('pipe')]] ..
+func libc_fork() -> int32                                        [[external('fork')]] ..
+func libc_setpgid(pid : int32, pgid : int32) -> int32            [[external('setpgid')]] ..
+func libc_kill(pid : int32, signal : int32) -> int32              [[external('kill')]] ..
+func libc_dup2(oldfd : int32, newfd : int32) -> int32            [[external('dup2')]] ..
+func libc_close(fd : int32) -> int32                             [[external('close')]] ..
+func libc_read(fd : int32, buf : pointer, count : uint) -> int64 [[external('read')]] ..
+func libc_write(fd : int32, buf : pointer, count : uint) -> int64 [[external('write')]] ..
+func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external('poll')]] ..
+func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]] ..
+func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]] ..
+func libc__exit(status : int32)                                  [[external('_exit')]] ..
+func libc___errno_location() -> ^int32                           [[external('__errno_location')]] ..
+func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]] ..
+func libc_perror(message : ^char)                                [[external('perror')]] ..
+func libc_getenv(name : ^char) -> ^char                          [[external('getenv')]] ..
+func libc_setenv(name : ^char, value : ^char, overwrite : int32) -> int32 [[external('setenv')]] ..
 
 const STDIN_FILENO  : int32 = 0
 const STDOUT_FILENO : int32 = 1

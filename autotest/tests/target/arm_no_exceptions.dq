@@ -1,7 +1,7 @@
 //?notest
 // Exception-free bare linking must not require a C++ unwinder or personality.
 
-func NoUnwindExternal() [[external]]
+func NoUnwindExternal() [[external]] ..
 
 object OMarker:
     value : int

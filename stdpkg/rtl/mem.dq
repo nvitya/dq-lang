@@ -13,28 +13,28 @@
  * brief:   DQ memory handling func
  */
 
-func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer
-func MemFree(memptr : pointer)
-func MemFreeRef(memptrvar : ref pointer)
+func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer ..
+func MemFree(memptr : pointer) ..
+func MemFreeRef(memptrvar : ref pointer) ..
 
-func MemRealloc(memptr : pointer, newsize : uint) -> pointer
-func MemReallocRef(memptr : ref pointer, newsize : uint)
+func MemRealloc(memptr : pointer, newsize : uint) -> pointer ..
+func MemReallocRef(memptr : ref pointer, newsize : uint) ..
 
-func MemCopy(dest : pointer, src : pointer, size : uint)
-func MemSet(dest : pointer, value : int, size : uint)
+func MemCopy(dest : pointer, src : pointer, size : uint) ..
+func MemSet(dest : pointer, value : int, size : uint) ..
 
 implementation
 
 // Memory Allocation
 
-func libc_malloc(size : uint) -> pointer                  [[external('malloc')]]
-func libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]]
-func libc_free(ptr : pointer)                             [[external('free')]]
-func libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]]
+func libc_malloc(size : uint) -> pointer                  [[external('malloc')]] ..
+func libc_calloc(count : uint, size : uint) -> pointer    [[external('calloc')]] ..
+func libc_free(ptr : pointer)                             [[external('free')]] ..
+func libc_realloc(ptr : pointer, size : uint) -> pointer  [[external('realloc')]] ..
 
-func libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]]
-func libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]]
-func libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]]
+func libc_memcpy(dest : pointer, src : pointer, size : uint) -> pointer   [[external('memcpy')]] ..
+func libc_memmove(dest : pointer, src : pointer, size : uint) -> pointer  [[external('memmove')]] ..
+func libc_memset(dest : pointer, value : int, size : uint) -> pointer     [[external('memset')]] ..
 
 func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
     if zeromem:
@@ -43,6 +43,7 @@ func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
         result = libc_malloc(allocbytes)
     endif
 endfunc
+
 
 func MemFree(memptr : pointer):
     libc_free(memptr)
@@ -72,4 +73,3 @@ endfunc
 func MemSet(dest : pointer, value : int, size : uint):
     libc_memset(dest, value, size)
 endfunc
-

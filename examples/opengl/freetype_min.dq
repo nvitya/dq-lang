@@ -81,9 +81,9 @@ struct SFreeTypeGlyphSlot:
     bitmap_top  : int32
 endstruct
 
-func FtInitFreeType(library : ^pointer) -> int32 [[external('FT_Init_FreeType')]]
-func FtDoneFreeType(library : pointer) -> int32 [[external('FT_Done_FreeType')]]
-func FtNewFace(library : pointer, filename : ^char, face_index : int64, face : ^pointer) -> int32 [[external('FT_New_Face')]]
-func FtDoneFace(face : pointer) -> int32 [[external('FT_Done_Face')]]
-func FtSetPixelSizes(face : pointer, width : uint32, height : uint32) -> int32 [[external('FT_Set_Pixel_Sizes')]]
-func FtLoadChar(face : pointer, char_code : uint32, load_flags : int32) -> int32 [[external('FT_Load_Char')]]
+func FtInitFreeType(library : ^pointer) -> int32 [[external('FT_Init_FreeType')]] ..
+func FtDoneFreeType(library : pointer) -> int32 [[external('FT_Done_FreeType')]] ..
+func FtNewFace(library : pointer, filename : ^char, face_index : int64, face : ^pointer) -> int32 [[external('FT_New_Face')]] ..
+func FtDoneFace(face : pointer) -> int32 [[external('FT_Done_Face')]] ..
+func FtSetPixelSizes(face : pointer, width : uint32, height : uint32) -> int32 [[external('FT_Set_Pixel_Sizes')]] ..
+func FtLoadChar(face : pointer, char_code : uint32, load_flags : int32) -> int32 [[external('FT_Load_Char')]] ..

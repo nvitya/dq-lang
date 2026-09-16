@@ -14,34 +14,34 @@ object OMySqlDb:
 protected
     m_handle : pointer
 
-    func RequireOpen(aoperation : ^char)
+    func RequireOpen(aoperation : ^char) ..
 
 public
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
     // Low-level error helpers used by result cursors sharing this connection.
-    func MySqlErrorText() -> ^char
-    func MySqlCheck(aresult : int, aoperation : ^char)
+    func MySqlErrorText() -> ^char ..
+    func MySqlCheck(aresult : int, aoperation : ^char) ..
 
     // A port of zero selects the client library default (normally 3306).
-    func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char, aport : uint = 0)
-    func Close()
-    func Opened() -> bool
-    func NativeHandle() -> pointer
-    func Ping()
+    func Open(ahost : ^char, auser : ^char, apassword : ^char, adatabase : ^char, aport : uint = 0) ..
+    func Close() ..
+    func Opened() -> bool ..
+    func NativeHandle() -> pointer ..
+    func Ping() ..
 
     // Execute a statement which does not return rows.
-    func Execute(asql : ^char)
-    func Begin()
-    func Commit()
-    func Rollback()
+    func Execute(asql : ^char) ..
+    func Begin() ..
+    func Commit() ..
+    func Rollback() ..
 
-    func Changes() -> int64
-    func LastInsertId() -> uint64
-    func ErrorCode() -> uint
-    func ErrorMessage() -> ^char
-    func SetCharacterSet(acharset : ^char)
+    func Changes() -> int64 ..
+    func LastInsertId() -> uint64 ..
+    func ErrorCode() -> uint ..
+    func ErrorMessage() -> ^char ..
+    func SetCharacterSet(acharset : ^char) ..
 
     property opened         : bool   read Opened
     property changes        : int64  read Changes
@@ -59,30 +59,30 @@ protected
     m_db_handle  : pointer
     m_fieldcount : int
 
-    func RequirePrepared()
-    func CheckColumnIndex(aindex : int)
-    func StoreResult(adb : OMySqlDb, adbhandle : pointer)
+    func RequirePrepared() ..
+    func CheckColumnIndex(aindex : int) ..
+    func StoreResult(adb : OMySqlDb, adbhandle : pointer) ..
 
 public
-    func *Create()
-    func *Destroy()
+    func *Create() ..
+    func *Destroy() ..
 
-    func Prepare(adb : OMySqlDb, asql : rostr)
-    func Finalize()
-    func Reset()
-    func Prepared() -> bool
+    func Prepare(adb : OMySqlDb, asql : rostr) ..
+    func Finalize() ..
+    func Reset() ..
+    func Prepared() -> bool ..
 
     // Step returns true while another result row is available.
-    func Step() -> bool
+    func Step() -> bool ..
 
-    func ColumnCount() -> int
+    func ColumnCount() -> int ..
     // Returned pointers are owned by MySQL and are valid until the next Step(),
     // Reset(), or Finalize(). ColumnText returns nil for SQL NULL.
-    func ColumnName(aindex : int) -> ^char
-    func ColumnIsNull(aindex : int) -> bool
-    func ColumnInt(aindex : int) -> int64
-    func ColumnFloat(aindex : int) -> float64
-    func ColumnText(aindex : int) -> ^char
+    func ColumnName(aindex : int) -> ^char ..
+    func ColumnIsNull(aindex : int) -> bool ..
+    func ColumnInt(aindex : int) -> int64 ..
+    func ColumnFloat(aindex : int) -> float64 ..
+    func ColumnText(aindex : int) -> ^char ..
 
     property prepared     : bool  read Prepared
     property column_count : int   read ColumnCount
@@ -91,28 +91,28 @@ endobject
 
 implementation
 
-func mysql_init(mysql : pointer) -> pointer [[external]]
-func mysql_close(mysql : pointer) [[external]]
+func mysql_init(mysql : pointer) -> pointer [[external]] ..
+func mysql_close(mysql : pointer) [[external]] ..
 func mysql_real_connect(mysql : pointer, host : ^char, user : ^char, password : ^char,
                         database : ^char, port : uint, unix_socket : ^char,
-                        client_flag : uint64) -> pointer [[external]]
-func mysql_ping(mysql : pointer) -> int [[external]]
-func mysql_query(mysql : pointer, query : ^char) -> int [[external]]
-func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int [[external]]
-func mysql_store_result(mysql : pointer) -> pointer [[external]]
-func mysql_free_result(aresult : pointer) [[external]]
-func mysql_fetch_row(aresult : pointer) -> pointer [[external]]
-func mysql_num_fields(aresult : pointer) -> uint [[external]]
-func mysql_fetch_fields(aresult : pointer) -> pointer [[external]]
-func mysql_field_count(mysql : pointer) -> uint [[external]]
-func mysql_affected_rows(mysql : pointer) -> int64 [[external]]
-func mysql_insert_id(mysql : pointer) -> uint64 [[external]]
-func mysql_errno(mysql : pointer) -> uint [[external]]
-func mysql_error(mysql : pointer) -> ^char [[external]]
-func mysql_set_character_set(mysql : pointer, charset : ^char) -> int [[external]]
-func mysql_data_seek(aresult : pointer, offset : uint64) [[external]]
-func libc_strtoll(nptr : ^char, endptr : ^pointer, base : int) -> int64 [[external('strtoll')]]
-func libc_strtod(nptr : ^char, endptr : ^pointer) -> float64 [[external('strtod')]]
+                        client_flag : uint64) -> pointer [[external]] ..
+func mysql_ping(mysql : pointer) -> int [[external]] ..
+func mysql_query(mysql : pointer, query : ^char) -> int [[external]] ..
+func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int [[external]] ..
+func mysql_store_result(mysql : pointer) -> pointer [[external]] ..
+func mysql_free_result(aresult : pointer) [[external]] ..
+func mysql_fetch_row(aresult : pointer) -> pointer [[external]] ..
+func mysql_num_fields(aresult : pointer) -> uint [[external]] ..
+func mysql_fetch_fields(aresult : pointer) -> pointer [[external]] ..
+func mysql_field_count(mysql : pointer) -> uint [[external]] ..
+func mysql_affected_rows(mysql : pointer) -> int64 [[external]] ..
+func mysql_insert_id(mysql : pointer) -> uint64 [[external]] ..
+func mysql_errno(mysql : pointer) -> uint [[external]] ..
+func mysql_error(mysql : pointer) -> ^char [[external]] ..
+func mysql_set_character_set(mysql : pointer, charset : ^char) -> int [[external]] ..
+func mysql_data_seek(aresult : pointer, offset : uint64) [[external]] ..
+func libc_strtoll(nptr : ^char, endptr : ^pointer, base : int) -> int64 [[external('strtoll')]] ..
+func libc_strtod(nptr : ^char, endptr : ^pointer) -> float64 [[external('strtod')]] ..
 
 // MYSQL_FIELD starts with a sequence of pointer members. Only the first
 // member (name) is needed here, so the rest remains intentionally opaque.

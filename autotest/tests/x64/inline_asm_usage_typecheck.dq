@@ -21,9 +21,9 @@ endfunc
 var bad_callback : UnaryCallback = Immediate //?error(AsmFuncRef)
 var bad_overload_callback : UnaryCallback = OverloadedRegister //?error(AsmFuncRef)
 
-func MissingBody(value : int) [[inline, asm]] //?error(AsmFuncBody)
+func MissingBody(value : int) [[inline, asm]] ..  //?error(AsmFuncBody)
 
-func ExternalInline(value : int) [[inline, asm, external]] //?error(AttrConflict)
+func ExternalInline(value : int) [[inline, asm, external]] ..  //?error(AttrConflict)
 
 func NoInlineInline(value : int) [[inline, asm, noinline]]: //?error(AsmInlineUsage)
     nop

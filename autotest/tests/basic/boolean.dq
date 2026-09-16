@@ -9,7 +9,7 @@ var g_bool : bool = GVBOOL1 or GVBOOL0
 
 #else
 
-func printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]] ..
 
 func printbool(astr : ^char, abool : bool):
     printf("%s = ", astr)

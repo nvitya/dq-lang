@@ -7,8 +7,8 @@ var dq_embstr  : embstr(256) = "DQ String Test\n"
 var dq_embstr2 : embstr(40)  = 'Using signle quotes\n'
 
 // These functions come from LIBC, so the program must be linked with the libc.
-func putchar(c : char) -> int  [[external]]
-func puts(c : ^char) -> int    [[external]]
+func putchar(c : char) -> int  [[external]] ..
+func puts(c : ^char) -> int    [[external]] ..
 
 func dq_writepc(s : ^char):
     var pc : ^char = s

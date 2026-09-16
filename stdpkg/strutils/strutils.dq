@@ -14,17 +14,17 @@
  */
 
 #ifdef DYNSTRINGS
-func Format(afmt : rostr, aargs : []anyvalue) -> str
+func Format(afmt : rostr, aargs : []anyvalue) -> str ..
 #endif
 
-func StrToInt(sv : strslice, defvalue : int64 = 0) -> int64
+func StrToInt(sv : strslice, defvalue : int64 = 0) -> int64 ..
 
-func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int
-func StrStartsWith(astr : strslice, aprefix : strslice) -> bool
-func StrEndsWith(astr : strslice, asuffix : strslice) -> bool
+func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int ..
+func StrStartsWith(astr : strslice, aprefix : strslice) -> bool ..
+func StrEndsWith(astr : strslice, asuffix : strslice) -> bool ..
 #ifdef DYNSTRINGS
-func StrUpper(astr : strslice) -> str
-func StrLower(astr : strslice) -> str
+func StrUpper(astr : strslice) -> str ..
+func StrLower(astr : strslice) -> str ..
 #endif
 
 implementation

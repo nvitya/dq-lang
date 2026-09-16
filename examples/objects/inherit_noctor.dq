@@ -1,24 +1,24 @@
 use libc/stdio
 
 object OTextSink:
-    func Write(atext : strslice) [[virtual, abstract]]
-    func WriteChar(ch : char)   [[virtual, abstract]]
+    func Write(atext : strslice) [[virtual, abstract]] ..
+    func WriteChar(ch : char)   [[virtual, abstract]] ..
 endobject
 
 object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
-    func *Create()
-    func Write(atext : strslice) [[override]]
-    func WriteChar(ch : char)   [[override]]
+    func *Create() ..
+    func Write(atext : strslice) [[override]] ..
+    func WriteChar(ch : char)   [[override]] ..
 endobject
 
 implementation
 
 var libc_stdout : pointer [[external('stdout')]]
 
-func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]] ..
+func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]] ..
 
 func OTextSinkStdOut.*Create():
     pstdout = @.libc_stdout

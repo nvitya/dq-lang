@@ -20,7 +20,7 @@ func *ModuleInit() -> int:  //?error(SpecialFuncSignature)
     return 0
 endfunc
 
-func *ModuleInit() [[external]]  //?error(SpecialFuncInvalid)
+func *ModuleInit() [[external]] ..  //?error(SpecialFuncInvalid)
 
 func *ModuleInit():
 endfunc

@@ -69,7 +69,7 @@ var globvar6 : int = 66
 
 // showing the rsults
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 func *Main():
     printf("DQ Pre-Processor (source code feeder) test:\n\n")     //?ignore('DQ Pre-Processor (source code feeder) test:')
 

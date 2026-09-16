@@ -46,7 +46,7 @@ var fixed_values : [FirstInt(MISSING_ARRAY_SIZE, 3)]int
     const ELIF_VALUE : int = 0
 #endif
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     const SHADOWED : int = 33

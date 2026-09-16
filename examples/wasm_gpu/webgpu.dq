@@ -6,15 +6,15 @@ const WGPU_BUFFER_USAGE_COPY_DST : uint32 = 0x00000008
 const WGPU_BUFFER_USAGE_VERTEX   : uint32 = 0x00000020
 const WGPU_BUFFER_USAGE_UNIFORM  : uint32 = 0x00000040
 
-func WgpuCreateBuffer(size : uint32, usage : uint32) -> uint32 [[external('create_buffer', 'webgpu')]]
-func WgpuWriteBuffer(buffer : uint32, data : pointer, size : uint32) [[external('write_buffer', 'webgpu')]]
+func WgpuCreateBuffer(size : uint32, usage : uint32) -> uint32 [[external('create_buffer', 'webgpu')]] ..
+func WgpuWriteBuffer(buffer : uint32, data : pointer, size : uint32) [[external('write_buffer', 'webgpu')]] ..
 
-func WgpuCreateShader(source : ^char, length : uint32) -> uint32 [[external('create_shader', 'webgpu')]]
-func WgpuCreateRenderPipeline(vertex_shader : uint32, fragment_shader : uint32) -> uint32 [[external('create_render_pipeline', 'webgpu')]]
+func WgpuCreateShader(source : ^char, length : uint32) -> uint32 [[external('create_shader', 'webgpu')]] ..
+func WgpuCreateRenderPipeline(vertex_shader : uint32, fragment_shader : uint32) -> uint32 [[external('create_render_pipeline', 'webgpu')]] ..
 
-func WgpuBeginFrame(red : float32, green : float32, blue : float32, alpha : float32) [[external('begin_frame', 'webgpu')]]
-func WgpuSetPipeline(pipeline : uint32) [[external('set_pipeline', 'webgpu')]]
-func WgpuSetVertexBuffer(buffer : uint32) [[external('set_vertex_buffer', 'webgpu')]]
-func WgpuSetUniformBuffer(buffer : uint32) [[external('set_uniform_buffer', 'webgpu')]]
-func WgpuDraw(vertex_count : uint32) [[external('draw', 'webgpu')]]
-func WgpuEndFrame() [[external('end_frame', 'webgpu')]]
+func WgpuBeginFrame(red : float32, green : float32, blue : float32, alpha : float32) [[external('begin_frame', 'webgpu')]] ..
+func WgpuSetPipeline(pipeline : uint32) [[external('set_pipeline', 'webgpu')]] ..
+func WgpuSetVertexBuffer(buffer : uint32) [[external('set_vertex_buffer', 'webgpu')]] ..
+func WgpuSetUniformBuffer(buffer : uint32) [[external('set_uniform_buffer', 'webgpu')]] ..
+func WgpuDraw(vertex_count : uint32) [[external('draw', 'webgpu')]] ..
+func WgpuEndFrame() [[external('end_frame', 'webgpu')]] ..

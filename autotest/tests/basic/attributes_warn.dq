@@ -3,12 +3,12 @@ struct SAttr:
     b : int [[volatile]]
 endstruct
 
-func printf(fmt : ^char, ...) -> int [[external('printf')]]
-func puts(s : ^char) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external('printf')]] ..
+func puts(s : ^char) -> int [[external]] ..
 
 var gv : int [[virtual]]                    //?warning(AttrIgnored)
 const gc : int = 123 [[volatile]]          //?warning(AttrIgnored)
-[[volatile]] func onlyext() -> int [[external]]  //?warning(AttrIgnored)
+[[volatile]] func onlyext() -> int [[external]] ..  //?warning(AttrIgnored)
 func *Main():
     printf("attr test %d\n", gc)
     puts("done")

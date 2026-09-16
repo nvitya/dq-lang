@@ -1,0 +1,9 @@
+#ifdef ERRORTEST
+
+func missing_marker(a : int) -> int  //?error(FuncBodyOrForward)
+
+#else
+func *Main():
+endfunc
+
+#endif

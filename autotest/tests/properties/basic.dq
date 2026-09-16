@@ -1,6 +1,6 @@
 // Basic field-backed and method-backed property behavior.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 object OPropertyChild:
 public

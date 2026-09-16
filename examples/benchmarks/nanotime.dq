@@ -1,5 +1,5 @@
 
-func NanoTime() -> int64
+func NanoTime() -> int64 ..
 
 implementation
 
@@ -8,7 +8,7 @@ struct timespec:
     tv_nsec : int64
 endstruct
 
-func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]]
+func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]] ..
 
 func NanoTime() -> int64:
     var tv : timespec
@@ -16,4 +16,3 @@ func NanoTime() -> int64:
     clock_gettime(1, %tv)
     result = tv.tv_nsec + tv.tv_sec * 1000000000
 endfunc
-

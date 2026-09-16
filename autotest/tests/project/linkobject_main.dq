@@ -1,6 +1,6 @@
 //?notest
 
-func project_external_value() -> int [[external]]
+func project_external_value() -> int [[external]] ..
 
 func *Main():
     if project_external_value() <> 77:

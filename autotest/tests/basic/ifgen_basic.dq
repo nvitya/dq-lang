@@ -32,7 +32,7 @@ object OIfgenBox:
     endfunc
 endobject
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func IfgenAdd(a : int, b : int) -> int:
     result = a + b + IFGEN_BASE

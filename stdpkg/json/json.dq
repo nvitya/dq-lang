@@ -37,64 +37,64 @@ private
     m_kind  : NJsonNodeKind = nkObject
     m_value : anyvalue
 
-    func Error(sp : OStrParse, amsg : rostr)
-    func ParseValue(sp : OStrParse)
-    func ParseObject(sp : OStrParse)
-    func ParseArray(sp : OStrParse)
-    func ParseString(sp : OStrParse) -> str
-    func ParseNumber(sp : OStrParse) -> float
-    func AppendUtf8(rstr : ref str, codepoint : uint32)
-    func AppendJsonString(rstr : ref str, avalue : strslice)
+    func Error(sp : OStrParse, amsg : rostr) ..
+    func ParseValue(sp : OStrParse) ..
+    func ParseObject(sp : OStrParse) ..
+    func ParseArray(sp : OStrParse) ..
+    func ParseString(sp : OStrParse) -> str ..
+    func ParseNumber(sp : OStrParse) -> float ..
+    func AppendUtf8(rstr : ref str, codepoint : uint32) ..
+    func AppendJsonString(rstr : ref str, avalue : strslice) ..
 
 public
-    func *Create()  [[overload]]
-    func *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]]
-    func *Destroy()
+    func *Create()  [[overload]] ..
+    func *Create(aparent : OJson, akind : NJsonNodeKind)  [[overload]] ..
+    func *Destroy() ..
 
-    func Clear()
-    func GetName() -> str
+    func Clear() ..
+    func GetName() -> str ..
 
-    func AddNode(aname : str, akind : NJsonNodeKind) -> OJson
-    func AddNull(aname : str) -> OJson
-    func AddBool(aname : str, avalue : bool) -> OJson
-    func AddStr(aname : str, avalue : str) -> OJson
-    func AddNum(aname : str, avalue : float) -> OJson
-    func AddObj(aname : str) -> OJson
-    func AddArr(aname : str) -> OJson
+    func AddNode(aname : str, akind : NJsonNodeKind) -> OJson ..
+    func AddNull(aname : str) -> OJson ..
+    func AddBool(aname : str, avalue : bool) -> OJson ..
+    func AddStr(aname : str, avalue : str) -> OJson ..
+    func AddNum(aname : str, avalue : float) -> OJson ..
+    func AddObj(aname : str) -> OJson ..
+    func AddArr(aname : str) -> OJson ..
 
-    func IsNull() -> bool
-    func SetNull()
+    func IsNull() -> bool ..
+    func SetNull() ..
 
-    func GetAsBool() -> bool
-    func SetAsBool(avalue : bool)
+    func GetAsBool() -> bool ..
+    func SetAsBool(avalue : bool) ..
 
-    func GetAsStr() -> str
-    func SetAsStr(avalue : str)
+    func GetAsStr() -> str ..
+    func SetAsStr(avalue : str) ..
 
-    func GetAsNum() -> float
-    func SetAsNum(avalue : float)
+    func GetAsNum() -> float ..
+    func SetAsNum(avalue : float) ..
 
-    func AppendToJsonStr(rstr : ref str)  // faster version avoiding string reallocations
-    func AppendToPrettyJsonStr(rstr : ref str, indent : str)  // faster version avoiding string reallocations
+    func AppendToJsonStr(rstr : ref str) ..  // faster version avoiding string reallocations
+    func AppendToPrettyJsonStr(rstr : ref str, indent : str) ..  // faster version avoiding string reallocations
 
-    func GetAsJson() -> str
-    func GetAsPrettyJson() -> str
+    func GetAsJson() -> str ..
+    func GetAsPrettyJson() -> str ..
 
-    func ChildCount() -> int
-    func Child(aindex : int) -> OJson
-    func ChildByName(aname : rostr) -> OJson
+    func ChildCount() -> int ..
+    func Child(aindex : int) -> OJson ..
+    func ChildByName(aname : rostr) -> OJson ..
 
-    func FindNode(apath : rostr) -> OJson
-    func Find(apath : rostr, rnode : refout OJson) -> bool
-    func ForcePath(apath : rostr) -> OJson
+    func FindNode(apath : rostr) -> OJson ..
+    func Find(apath : rostr, rnode : refout OJson) -> bool ..
+    func ForcePath(apath : rostr) -> OJson ..
 
-    func SaveToFile(afname : rostr, apretty : bool = false)
+    func SaveToFile(afname : rostr, apretty : bool = false) ..
 
 public // Loading / Parsing
-    func LoadFromFile(afname : rostr)
+    func LoadFromFile(afname : rostr) ..
 
-    func Parse(astr : strslice)  [[overload]]
-    func Parse(sp : OStrParse)  [[overload]]
+    func Parse(astr : strslice)  [[overload]] ..
+    func Parse(sp : OStrParse)  [[overload]] ..
 
 public
     property name      : str    read GetName

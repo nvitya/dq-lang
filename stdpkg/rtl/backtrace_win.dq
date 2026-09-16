@@ -15,19 +15,19 @@
 
 #linklib('dbghelp')
 
-func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int
-func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool
-func DqPrepareBacktraceImpl()
+func DqCaptureBacktraceImpl(backtrace : pointer, max_frames : int) -> int ..
+func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, stop_printing : ^bool) -> bool ..
+func DqPrepareBacktraceImpl() ..
 
 implementation
 
 use rtl/rtlint
 use libc/stdio
 
-func DqCstrContains(text : ^char, needle : ^char) -> bool
-func DqCstrSegmentEq(text : ^char, name : ^char) -> bool
-func DqBacktraceNameIsInternal(name : ^char) -> bool
-func DqIsMainFunction(name : ^char) -> bool
+func DqCstrContains(text : ^char, needle : ^char) -> bool ..
+func DqCstrSegmentEq(text : ^char, name : ^char) -> bool ..
+func DqBacktraceNameIsInternal(name : ^char) -> bool ..
+func DqIsMainFunction(name : ^char) -> bool ..
 
 const DQ_BT_SYMBOL_INFO_SIZE : uint32 = 88
 const DQ_BT_LINE_INFO_SIZE   : uint32 = 40
@@ -101,27 +101,27 @@ struct SDqWinDwarfInfo:
 endstruct
 
 func win_RtlCaptureStackBackTrace(frames_to_skip : uint32, frames_to_capture : uint32,
-                                      backtrace : pointer, backtrace_hash : ^uint32) -> uint16 [[external('RtlCaptureStackBackTrace')]]
-func win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]]
-func win_GetCurrentModule(module_name : ^char) -> pointer [[external('GetModuleHandleA')]]
-func win_GetModuleFileName(module : pointer, filename : ^char, size : uint32) -> uint32 [[external('GetModuleFileNameA')]]
-func win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]]
-func win_SymInitialize(process : pointer, search_path : ^char, invade_process : int32) -> int32 [[external('SymInitialize')]]
-func win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]]
-func win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]]
+                                      backtrace : pointer, backtrace_hash : ^uint32) -> uint16 [[external('RtlCaptureStackBackTrace')]] ..
+func win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]] ..
+func win_GetCurrentModule(module_name : ^char) -> pointer [[external('GetModuleHandleA')]] ..
+func win_GetModuleFileName(module : pointer, filename : ^char, size : uint32) -> uint32 [[external('GetModuleFileNameA')]] ..
+func win_SymSetOptions(options : uint32) -> uint32 [[external('SymSetOptions')]] ..
+func win_SymInitialize(process : pointer, search_path : ^char, invade_process : int32) -> int32 [[external('SymInitialize')]] ..
+func win_SymFromAddr(process : pointer, address : uint64, displacement : ^uint64, symbol : ^SDqWinSymbolInfo) -> int32 [[external('SymFromAddr')]] ..
+func win_SymGetLineFromAddr64(process : pointer, address : uint64, displacement : ^uint32, line : ^SDqWinLineInfo) -> int32 [[external('SymGetLineFromAddr64')]] ..
 
-func libc_fopen(filename : ^char, mode : ^char) -> pointer [[external('fopen')]]
-func libc_fclose(stream : pointer) -> int [[external('fclose')]]
-func libc_fseek(stream : pointer, offset : int, origin : int) -> int [[external('fseek')]]
-func libc_ftell(stream : pointer) -> int [[external('ftell')]]
-func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]]
-func libc_malloc(size : uint) -> pointer [[external('malloc')]]
+func libc_fopen(filename : ^char, mode : ^char) -> pointer [[external('fopen')]] ..
+func libc_fclose(stream : pointer) -> int [[external('fclose')]] ..
+func libc_fseek(stream : pointer, offset : int, origin : int) -> int [[external('fseek')]] ..
+func libc_ftell(stream : pointer) -> int [[external('ftell')]] ..
+func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]] ..
+func libc_malloc(size : uint) -> pointer [[external('malloc')]] ..
 
-func DqWinBacktraceProcess() -> pointer
-func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool
-func DqWinDwarfLoad() -> bool
+func DqWinBacktraceProcess() -> pointer ..
+func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refout uint32) -> bool ..
+func DqWinDwarfLoad() -> bool ..
 func DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
-                              displacement : refout uint64) -> bool
+                              displacement : refout uint64) -> bool ..
 
 //-------------------------------------------------------------------------------------------------
 

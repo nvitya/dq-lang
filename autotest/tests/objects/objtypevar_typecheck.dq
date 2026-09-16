@@ -28,7 +28,7 @@ endobject
 
 object OAbstract:
 public
-    func Read() -> int [[virtual, abstract]]
+    func Read() -> int [[virtual, abstract]] ..
 endobject
 
 object OTrivialBase:

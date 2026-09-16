@@ -13,7 +13,7 @@
  * brief:   Runtime support for checked enum conversion.
  */
 
-func DqEnumInvalidOrd()
+func DqEnumInvalidOrd() ..
 
 implementation
 

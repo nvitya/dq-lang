@@ -1,6 +1,6 @@
 // DQ integer expression auto-test
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func compare_ints(a : int, b : int) -> int:
     if a < b:

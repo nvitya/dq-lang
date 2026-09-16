@@ -1,6 +1,6 @@
 use ./mod_struct_methods
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
     var s : SModChild = {}

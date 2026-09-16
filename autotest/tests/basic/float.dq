@@ -71,7 +71,7 @@ func dq_fl32_trunc(v : float32) -> int:
     result = Trunc(v)
 endfunc
 
-func printf(fmt : ^char, ...) -> int  [[external]]
+func printf(fmt : ^char, ...) -> int  [[external]] ..
 
 func *Main():
     printf("Testing DQ float operations:\n\n")     //?ignore('Testing DQ float operations:')

@@ -75,9 +75,9 @@ endobject
 object OTextSinkStdOut(OTextSink):
     pstdout : pointer
 
-    func *Create()
-    func Write(atext : strslice) [[override]]
-    func WriteChar(ch : char)   [[override]]
+    func *Create() ..
+    func Write(atext : strslice) [[override]] ..
+    func WriteChar(ch : char)   [[override]] ..
 endobject
 
 #endif    
@@ -85,18 +85,18 @@ endobject
 object OTextSinkEmbStr(OTextSink):
     dest : embstr
 
-    func *Create(adest : embstr)
-    func Write(atext : strslice) [[override]]
-    func WriteChar(ch : char)   [[override]]
+    func *Create(adest : embstr) ..
+    func Write(atext : strslice) [[override]] ..
+    func WriteChar(ch : char)   [[override]] ..
 endobject
 
 #ifdef DYNSTRINGS
 object OTextSinkStr(OTextSink):
     dest : ^str
 
-    func *Create(adest : ^str)
-    func Write(atext : strslice) [[override]]
-    func WriteChar(ch : char)   [[override]]
+    func *Create(adest : ^str) ..
+    func Write(atext : strslice) [[override]] ..
+    func WriteChar(ch : char)   [[override]] ..
 endobject
 #endif
 
@@ -118,9 +118,9 @@ public
 
     fmtspec   : STextFmtSpec
 
-    func *Create(asink : OTextSink)
-    func Reset()
-    func Format(afmt : rostr, aargs : []anyvalue)
+    func *Create(asink : OTextSink) ..
+    func Reset() ..
+    func Format(afmt : rostr, aargs : []anyvalue) ..
 
 protected
     curpos : int32 = 0
@@ -128,27 +128,27 @@ protected
 
     lcsbuf : embstr(48)
 
-    func ParseSpec(afmt : rostr)
-    func FormatAny(av : anyvalue)
+    func ParseSpec(afmt : rostr) ..
+    func FormatAny(av : anyvalue) ..
 
-    func WritePad(acount : int, ch : char)
-    func UIntDigitChar(adigit : uint, aupper : bool) -> char
-    func BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int
-    func WriteReversedDigits(acount : int)
-    func WriteFormattedDigits(asign : char, adigit_count : int)
-    func WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint)
+    func WritePad(acount : int, ch : char) ..
+    func UIntDigitChar(adigit : uint, aupper : bool) -> char ..
+    func BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int ..
+    func WriteReversedDigits(acount : int) ..
+    func WriteFormattedDigits(asign : char, adigit_count : int) ..
+    func WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint) ..
 
-    func FormatSInt(v : int)
-    func FormatUInt(v : uint)
-    func FormatHex(v : uint, aupper : bool)
+    func FormatSInt(v : int) ..
+    func FormatUInt(v : uint) ..
+    func FormatHex(v : uint, aupper : bool) ..
 
-    func FormatFloat(v : float)
+    func FormatFloat(v : float) ..
 
 endobject
 
-func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue)
+func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue) ..
 #ifdef DYNSTRINGS
-func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue)
+func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue) ..
 #endif
 
 implementation
@@ -178,9 +178,9 @@ endfunc
 
 #ifndef BARE
 
-func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]]
-func libc_fflush(stream : pointer) -> int  [[external('fflush')]]
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]] ..
+func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]] ..
+func libc_fflush(stream : pointer) -> int  [[external('fflush')]] ..
 
 func OTextSinkStdOut.*Create():
     inherited Create()

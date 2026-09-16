@@ -20,10 +20,10 @@ public
     original_group : ODrawGroup
     group_clones   : [*]OClonedGroup
 
-    func *Create(window : pointer)
-    func *Destroy()
+    func *Create(window : pointer) ..
+    func *Destroy() ..
 
-    func Step(width : int, height : int)
+    func Step(width : int, height : int) ..
 
 protected
     triangle : [3]SDdVertex

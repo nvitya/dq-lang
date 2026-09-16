@@ -21,23 +21,23 @@ object OFile:
     m_fmode    : embstr(8)
     m_fhandle  : pointer  // internal libc type
 
-    func *Create()
-    func *Destroy()
-    func Open(afname : rostr, afmode : rostr)
-    func Close()
-    func Opened() -> bool
-    func Size() -> int64
+    func *Create() ..
+    func *Destroy() ..
+    func Open(afname : rostr, afmode : rostr) ..
+    func Close() ..
+    func Opened() -> bool ..
+    func Size() -> int64 ..
 
-    func Seek(apos : int64)
-    func CurPos() -> int64
+    func Seek(apos : int64) ..
+    func CurPos() -> int64 ..
 
-    func Read(adest : pointer, asize : int64) -> int64
-    func ReadText() -> str
-    func ReadBytes() -> [*]byte
+    func Read(adest : pointer, asize : int64) -> int64 ..
+    func ReadText() -> str ..
+    func ReadBytes() -> [*]byte ..
 
-    func Write(asrc : pointer, asize : int64)
-    func WriteText(atxt : strslice)
-    func WriteBytes(abytes : []byte)
+    func Write(asrc : pointer, asize : int64) ..
+    func WriteText(atxt : strslice) ..
+    func WriteBytes(abytes : []byte) ..
 
     property name     : str    read m_filename
     property opened   : bool   read Opened
@@ -46,42 +46,42 @@ object OFile:
 endobject
 
 
-func FileRead(afname : rostr, dataptr : pointer, maxlen : int64) -> int64
-func FileReadText(afname : rostr) -> str
-func FileReadBytes(afname : rostr) -> [*]byte
+func FileRead(afname : rostr, dataptr : pointer, maxlen : int64) -> int64 ..
+func FileReadText(afname : rostr) -> str ..
+func FileReadBytes(afname : rostr) -> [*]byte ..
 
-func FileWrite(afname : rostr, dataptr : pointer, datalen : int64)
-func FileWriteText(afname : rostr, adata : strslice)
-func FileWriteBytes(afname : rostr, adata : []byte)
+func FileWrite(afname : rostr, dataptr : pointer, datalen : int64) ..
+func FileWriteText(afname : rostr, adata : strslice) ..
+func FileWriteBytes(afname : rostr, adata : []byte) ..
 
-func FileExists(afname : rostr) -> bool
-func FileRemove(afname : rostr)
+func FileExists(afname : rostr) -> bool ..
+func FileRemove(afname : rostr) ..
 
-func DirExists(adir : rostr) -> bool
-func DirCreate(adir : rostr, aforce : bool = false)
-func DirRemove(adir : rostr)
+func DirExists(adir : rostr) -> bool ..
+func DirCreate(adir : rostr, aforce : bool = false) ..
+func DirRemove(adir : rostr) ..
 
-func PathTranslateSeparators(apath : str) -> str
-func PathDirName(apath : str) -> str
-func PathFileName(apath : str) -> str
-func PathFileExt(apath : str) -> str
+func PathTranslateSeparators(apath : str) -> str ..
+func PathDirName(apath : str) -> str ..
+func PathFileName(apath : str) -> str ..
+func PathFileExt(apath : str) -> str ..
 
 
 implementation
 
 
-func libc_fopen(filename : ^char, mode : ^char) -> pointer          [[external('fopen')]]
-func libc_fclose(stream : pointer) -> int                             [[external('fclose')]]
-func libc_fseek(stream : pointer, offset : int, origin : int) -> int  [[external('fseek')]]
-func libc_ftell(stream : pointer) -> int                              [[external('ftell')]]
-func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint   [[external('fread')]]
-func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]]
-func libc_access(pathname : ^char, mode : int) -> int                [[external('access')]]
-func libc_remove(pathname : ^char) -> int                            [[external('remove')]]
-func libc_mkdir(pathname : ^char, mode : uint) -> int                [[external('mkdir')]]
-func libc_rmdir(pathname : ^char) -> int                             [[external('rmdir')]]
-func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]]
-func libc_closedir(dirp : pointer) -> int                             [[external('closedir')]]
+func libc_fopen(filename : ^char, mode : ^char) -> pointer          [[external('fopen')]] ..
+func libc_fclose(stream : pointer) -> int                             [[external('fclose')]] ..
+func libc_fseek(stream : pointer, offset : int, origin : int) -> int  [[external('fseek')]] ..
+func libc_ftell(stream : pointer) -> int                              [[external('ftell')]] ..
+func libc_fread(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint   [[external('fread')]] ..
+func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> uint  [[external('fwrite')]] ..
+func libc_access(pathname : ^char, mode : int) -> int                [[external('access')]] ..
+func libc_remove(pathname : ^char) -> int                            [[external('remove')]] ..
+func libc_mkdir(pathname : ^char, mode : uint) -> int                [[external('mkdir')]] ..
+func libc_rmdir(pathname : ^char) -> int                             [[external('rmdir')]] ..
+func libc_opendir(name : ^char) -> pointer                           [[external('opendir')]] ..
+func libc_closedir(dirp : pointer) -> int                             [[external('closedir')]] ..
 
 //--------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 // Basic enum declarations, access, comparison, and ordinal conversion.
 
-func printf(fmt : ^char, ...) -> int [[external]]
+func printf(fmt : ^char, ...) -> int [[external]] ..
 
 enum NColor = (red, green, blue)
 

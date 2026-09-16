@@ -39,7 +39,25 @@ endif
 `while condition` evaluates a Boolean condition before each iteration.
 `continue` starts the next iteration and `break` exits the nearest loop.
 
-## Numeric For Loops
+## For Loops
+
+Array iteration visits each element of a fixed array, array slice, or dynamic
+array. The element variable may already exist, have an explicit type, or infer
+its type from the array.
+
+```dq
+var item : int
+for item in values:
+endfor
+
+for item :? in values:
+endfor
+```
+
+The iteration source must be an addressable array value. The element variable
+receives the current element before every execution of the loop body.
+
+### Numeric Loops
 
 The implemented forms are:
 

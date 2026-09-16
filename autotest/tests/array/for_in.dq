@@ -1,0 +1,47 @@
+use libc/stdio
+
+object OElem:
+    value : int
+endobject
+
+func *Main():
+    var fixed : [4]int = [10, 20, 30, 40]
+    var value : int
+    var fixed_sum : int = 0
+    for value in fixed:
+        fixed_sum += value
+    endfor
+    printf("for_in fixed = %li\n", fixed_sum) //?check("for_in fixed", 100)
+
+    var slice : []int = fixed[1:]
+    var slice_sum : int = 0
+    for value :? in slice:
+        slice_sum += value
+    endfor
+    printf("for_in slice = %li\n", slice_sum) //?check("for_in slice", 90)
+
+    var dynamic : [*]int = [1, 2, 3, 4]
+    var dynamic_sum : int = 0
+    for value :? in dynamic:
+        dynamic_sum += value
+    endfor
+    printf("for_in dynamic = %li\n", dynamic_sum) //?check("for_in dynamic", 10)
+
+    var objects : [*]OElem
+    var first = new OElem()
+    var second = new OElem()
+    first.value = 101
+    second.value = 202
+    objects.Append(first)
+    objects.Append(second)
+
+    var elem : OElem
+    var object_sum : int = 0
+    for elem in objects:
+        object_sum += elem.value
+    endfor
+    for inferred :? in objects:
+        object_sum += inferred.value
+    endfor
+    printf("for_in objects = %li\n", object_sum) //?check("for_in objects", 606)
+endfunc

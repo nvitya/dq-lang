@@ -1480,6 +1480,7 @@ void ODqCompParserStmt::ParseStmtFor()
   //   for i = start count|downcount count_expr [step step_expr]: ... endfor
   //   for i = start while condition [step step_expr]: ... endfor
   //   for i : T = start ...
+  //   for item [: T|?] in array: ... endfor
 
   enum class EForKind
   {
@@ -1563,18 +1564,145 @@ void ODqCompParserStmt::ParseStmtFor()
   };
 
   OType * specified_type = nullptr;
+  bool infer_type = false;
   scf->SkipWhite();
   if (scf->CheckSymbol(":"))
   {
-    specified_type = ParseTypeSpec();
-    if (!specified_type)
+    scf->SkipWhite();
+    if (scf->CheckSymbol("?"))
     {
-      abort_for();
-      return;
+      infer_type = true;
+    }
+    else
+    {
+      specified_type = ParseTypeSpec();
+      if (!specified_type)
+      {
+        abort_for();
+        return;
+      }
     }
   }
 
   scf->SkipWhite();
+  string for_keyword;
+  if (scf->ReadIdentifier(for_keyword, false) && ("in" == for_keyword))
+  {
+    scf->ReadIdentifier(for_keyword);
+    scf->SkipWhite();
+    OExpr * arrayexpr = ParseExpression();
+    auto * arraylval = dynamic_cast<OLValueExpr *>(arrayexpr);
+    OType * arraytype = (arraylval && arraylval->ptype ? arraylval->ptype->ResolveAlias() : nullptr);
+    if (!arraylval || !arraytype
+        || (TK_ARRAY != arraytype->kind && TK_ARRAY_SLICE != arraytype->kind && TK_DYN_ARRAY != arraytype->kind))
+    {
+      Error(DQERR_TYPE_EXPECTED, "array", arrayexpr && arrayexpr->ResolvedType() ? arrayexpr->ResolvedType()->name : "?");
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+    if ((TK_DYN_ARRAY == arraytype->kind) && !g_opt.ifgen && !EnsureDynArrayRtlUse())
+    {
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+
+    OType * elemtype = nullptr;
+    if (TK_ARRAY == arraytype->kind)
+    {
+      elemtype = static_cast<OTypeArray *>(arraytype)->elemtype;
+    }
+    else if (TK_ARRAY_SLICE == arraytype->kind)
+    {
+      elemtype = static_cast<OTypeArraySlice *>(arraytype)->elemtype;
+    }
+    else
+    {
+      elemtype = static_cast<OTypeDynArray *>(arraytype)->elemtype;
+    }
+
+    OValSym * loopvar = saved_scope->FindValSym(loopvar_name);
+    bool declare_loopvar = false;
+    if (infer_type)
+    {
+      specified_type = elemtype;
+    }
+    if (specified_type)
+    {
+      if (loopvar)
+      {
+        if (loopvar->ptype != specified_type)
+        {
+          Error(DQERR_TYPEMISM_STMT_ASSIGN, "for loop variable", specified_type->name, loopvar->ptype->name);
+          OExpr::DeleteTree(arrayexpr);
+          abort_for();
+          return;
+        }
+      }
+      else
+      {
+        loopvar = specified_type->CreateValSym(scpos_statement_start, loopvar_name);
+        declare_loopvar = true;
+      }
+    }
+    else if (!loopvar)
+    {
+      Error(DQERR_VAR_UNKNOWN, loopvar_name);
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+
+    if (loopvar->kind == VSK_CONST)
+    {
+      Error(DQERR_TYPE_ASSIGN_TO_CONST, loopvar->name);
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+    if (!loopvar->IsRefWriteable())
+    {
+      Error(DQERR_REF_ASSIGN_READONLY, loopvar->name);
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+
+    OValSym * indexvar = g_builtins->type_int->CreateValSym(scpos_statement_start,
+        format("__for_index_{}_{}", scpos_statement_start.line, scpos_statement_start.col));
+    st->init->scope->DefineValSym(indexvar);
+    st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, indexvar, new OIntLit(0)));
+    if (declare_loopvar)
+    {
+      st->init->scope->DefineValSym(loopvar);
+      st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, nullptr));
+    }
+
+    OLValueExpr * length_array = arraylval->Clone();
+    if (!length_array)
+    {
+      Error(DQERR_NOT_SUPPORTED, "non-addressable array iteration");
+      OExpr::DeleteTree(arrayexpr);
+      abort_for();
+      return;
+    }
+    OExpr * length_expr = new OArrayMetaFieldExpr(length_array, arraylval->ptype, AMF_LENGTH);
+    st->condition = make_compare(indexvar, COMPOP_LT, length_expr);
+    st->body->AddStatement(new OStmtAssign(scpos_statement_start, new OLValueVar(loopvar),
+        new OLValueIndex(arraylval, arraytype, new OLValueVar(indexvar))));
+    st->body->scope->SetVarInitialized(loopvar);
+    st->step->AddStatement(new OStmtModifyAssign(scpos_statement_start, new OLValueVar(indexvar), BINOP_ADD, new OIntLit(1)));
+
+    curscope = st->init->scope;
+    ++loop_depth;
+    ReadStatementBlock(st->body, "endfor");
+    --loop_depth;
+    st->body->scope->RevertFirstAssignments();
+    restore_scope();
+    return;
+  }
+
   if (!scf->CheckSymbol("="))
   {
     StatementError(DQERR_MISSING_ASSIGN_FOR, loopvar_name);

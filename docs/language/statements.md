@@ -75,6 +75,22 @@ endwhile
 
 ## For
 
+Arrays can be iterated directly. This works for fixed arrays, slices, and
+dynamic arrays.
+
+```dq
+var item : int
+for item in values:
+    PrintInt(item)
+endfor
+
+for item :? in values:
+    PrintInt(item)
+endfor
+```
+
+In the second form, `item` is declared with the array element type.
+
 DQ numeric `for` loops have several forms.
 
 ```dq

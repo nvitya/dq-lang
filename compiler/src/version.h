@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.70.0"
+#define DQ_COMPILER_VERSION  "0.71.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.71.0:
+  - `for ... in` statement: `for x in array` and `for x :? in somarr`
 v0.70.0:
   - BREAKING CHANGE: Forward declaration must end with ".."
 v0.69.7:

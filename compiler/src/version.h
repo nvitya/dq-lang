@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.72.0"
+#define DQ_COMPILER_VERSION  "0.72.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.72.1:
+  - String helper functions made available: StrFromWchars() etc StrFromUtf16()
 v0.72.0:
   - .IndexOf() member function added to arrays and array slices
   - pointer - number type checking fixes

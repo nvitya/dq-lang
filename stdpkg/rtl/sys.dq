@@ -26,6 +26,8 @@ use rtl/prgargs    reexport
 
 #endif
 
+use rtl/strfunc    reexport
+
 func Exit(status : int) ..
 
 implementation

@@ -1,7 +1,6 @@
 // RTL string conversion and scalar slicing helpers for dq-str-v2 preparation.
 
 use libc/stdio
-use rtl/strfunc
 
 func PrintBytes(label : ^char, text : strslice):
     printf("%s = len:%li bytes:", label, text.length)
@@ -87,15 +86,15 @@ func *Main():
     PrintWCharArray("strslice_syntax_wchar_slice", view_slice[:]) //?check("strslice_syntax_wchar_slice", "len:2 data: 65 233")
 
     var wchars : [*]wchar = [wchar(65), wchar(233), wchar(8364), wchar(128512)]
-    PrintBytes("strf_from_wchars", StrfFromWchars(wchars[:])) //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
+    PrintBytes("strf_from_wchars", StrFromWchars(wchars[:])) //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 
     var utf16 : [*]char16 = StrfToUtf16(sample)
     PrintChar16Array("strf_to_utf16", utf16[:]) //?check("strf_to_utf16", "len:6 data: 65 233 8364 55357 56832 0")
-    PrintBytes("strf_from_utf16", StrfFromUtf16(utf16[:])) //?check("strf_from_utf16", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
+    PrintBytes("strf_from_utf16", StrFromUtf16(utf16[:])) //?check("strf_from_utf16", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")
 
     var with_zero : [*]char16 = [char16(65), char16(0), char16(66), char16(0)]
-    PrintBytes("strf_utf16_internal_zero", StrfFromUtf16(with_zero[:])) //?check("strf_utf16_internal_zero", "len:3 bytes: 65 0 66")
-    PrintBytes("strf_utf16_ptr_exact", StrfFromUtf16Ptr(%with_zero[0], 3)) //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
+    PrintBytes("strf_utf16_internal_zero", StrFromUtf16(with_zero[:])) //?check("strf_utf16_internal_zero", "len:3 bytes: 65 0 66")
+    PrintBytes("strf_utf16_ptr_exact", StrFromUtf16Ptr(%with_zero[0], 3)) //?check("strf_utf16_ptr_exact", "len:3 bytes: 65 0 66")
 
     var invalid : str = ''
     invalid.Append(char(0xC0))
@@ -103,7 +102,7 @@ func *Main():
     printf("strf_is_utf8 = good:%li bad:%li\n", Flag(StrfIsUtf8(sample)), Flag(StrfIsUtf8(invalid))) //?check("strf_is_utf8", "good:1 bad:0")
 
     var bad16 : [*]char16 = [char16(0xD800), char16(65), char16(0)]
-    PrintBytes("strf_utf16_fallback", StrfFromUtf16Fallback(bad16[:], wchar(63))) //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
+    PrintBytes("strf_utf16_fallback", StrFromUtf16Fallback(bad16[:], wchar(63))) //?check("strf_utf16_fallback", "len:2 bytes: 63 65")
 
     printf("int_to_char = %li %li %li\n", Ord(IntToChar(65)), Ord(IntToChar(255)), Ord(IntToChar(-1, '?'))) //?check("int_to_char", "65 255 63")
     printf("int_to_wchar = %li %li\n", Ord(IntToWchar(0x41)), Ord(IntToWchar(0x110000, '?'))) //?check("int_to_wchar", "65 63")

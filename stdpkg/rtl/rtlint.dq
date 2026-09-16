@@ -87,6 +87,7 @@ endfunc
 
 
 func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos : int, endposex : int, desc : refout SArraySliceDesc) ..
+func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^byte) -> int ..
 
 implementation
 
@@ -121,4 +122,68 @@ func RawArrayGetSlice(dataptr : pointer, length : int, elemsize : int, startpos 
     else:
         desc.dataptr = ^byte(dataptr)[b * elemsize]
     endif
+endfunc
+
+func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^byte) -> int:
+    if dataptr == nil or length <= 0:
+        return -1
+    endif
+
+    if elemsize == PTRSIZE:  // very probable case
+        var parr   : ^uint = ^uint(dataptr)
+        var value  : uint = ^uint(valueptr)^
+        for i : int = 0 count length:
+            if parr^ == value:
+                return i
+            endif
+            parr += 1
+        endfor
+  #if PTRSIZE == 8
+    elif elemsize == 4:
+        var parr   : ^uint32 = ^uint32(dataptr)
+        var value  : uint32 = ^uint32(valueptr)^
+        for i : int = 0 count length:
+            if parr^ == value:
+                return i
+            endif
+            parr += 1
+        endfor
+  #endif
+    elif elemsize == 2:
+        var parr   : ^uint16 = ^uint16(dataptr)
+        var value  : uint16 = ^uint16(valueptr)^
+        for i : int = 0 count length:
+            if parr^ == value:
+                return i
+            endif
+            parr += 1
+        endfor
+    elif elemsize == 1:
+        var parr   : ^byte = dataptr
+        var value  : byte = valueptr^
+        for i : int = 0 count length:
+            if parr^ == value:
+                return i
+            endif
+            parr += 1
+        endfor
+    else:
+        // optimized byte-by-byte comparison using pointers
+        var pvend : ^byte = valueptr + elemsize
+        for i : int = 0 count length:
+            var pd     : ^byte = dataptr[i * elemsize]
+            var pv     : ^byte = valueptr
+            while pv < pvend:
+                if pv^ <> pd^:
+                    break
+                endif
+                pd += 1
+                pv += 1
+            endwhile
+            if pv >= pvend: // matches
+                return i
+            endif
+        endfor
+    endif
+    return -1
 endfunc

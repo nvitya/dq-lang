@@ -1499,6 +1499,26 @@ OExpr * ODqCompParserExpr::ParseComparison()
     }
   }
 
+  if (((ltype && TK_POINTER == ltype->kind) || (rtype && TK_POINTER == rtype->kind))
+      && !dynamic_cast<OTypeObject *>(ltype) && !dynamic_cast<OTypeObject *>(rtype))
+  {
+    OType * common_ptr_type = nullptr;
+    OType * common_func_type = nullptr;
+    auto * left_ptr = dynamic_cast<OTypePointer *>(ltype);
+    auto * right_ptr = dynamic_cast<OTypePointer *>(rtype);
+    bool opaque_pointer_pair = left_ptr && right_ptr
+        && (left_ptr->IsOpaquePointer() || right_ptr->IsOpaquePointer());
+    if (!ResolveCommonPointerType(left, right, &common_ptr_type)
+        && !ResolveCommonFuncRefType(left, right, &common_func_type)
+        && !opaque_pointer_pair)
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, compare_symbol(op), right->ptype->name);
+      OExpr::DeleteTree(left);
+      OExpr::DeleteTree(right);
+      return new OBoolLit(false);
+    }
+  }
+
   HarmonizeNumericOperands(&left, &right);
 
   return new OCompareExpr(op, left, right);
@@ -1886,6 +1906,65 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     callexpr->args.push_back(argexpr);
   }
   return callexpr;
+}
+
+OExpr * ODqCompParserExpr::ParseArrayIndexOfMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
+{
+  if ("IndexOf" != membername || !scf->CheckSymbol("("))
+  {
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver_expr->ptype->name);
+    return nullptr;
+  }
+
+  vector<TRawCallArg> rawargs;
+  if (!ParseRawCallArguments(membername, rawargs))
+  {
+    delete receiver_expr;
+    return nullptr;
+  }
+  if (rawargs.size() != 1)
+  {
+    if (rawargs.empty())
+    {
+      Error(DQERR_FUNC_ARGS_TOO_FEW, "0", membername, "1");
+    }
+    else
+    {
+      Error(DQERR_FUNC_ARGS_TOO_MANY, membername, "1");
+    }
+    delete receiver_expr;
+    return nullptr;
+  }
+
+  OType * arraytype = receiver_expr->ptype->ResolveAlias();
+  OType * elemtype = nullptr;
+  if (TK_ARRAY == arraytype->kind)
+  {
+    elemtype = static_cast<OTypeArray *>(arraytype)->elemtype;
+  }
+  else if (TK_ARRAY_SLICE == arraytype->kind)
+  {
+    elemtype = static_cast<OTypeArraySlice *>(arraytype)->elemtype;
+  }
+  else
+  {
+    elemtype = static_cast<OTypeDynArray *>(arraytype)->elemtype;
+    if (!receiver)
+    {
+      Error(DQERR_MEMBER_UNKNOWN, membername, receiver_expr->ptype->name);
+      delete receiver_expr;
+      return nullptr;
+    }
+  }
+
+  OExpr * value = rawargs[0].TakeExpr();
+  if (!ConvertExprToType(elemtype, &value, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
+  {
+    OExpr::DeleteTree(value);
+    delete receiver_expr;
+    return nullptr;
+  }
+  return new OArrayIndexOfExpr(receiver_expr, value);
 }
 
 OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername)
@@ -2546,6 +2625,19 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     return EPostfixResult::Stop;
   }
 
+  if (!lval && TK_ARRAY_SLICE == tk && scf->CheckSymbol("."))
+  {
+    string membername;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(membername))
+    {
+      Error(DQERR_MEMBER_NAME_EXPECTED);
+      return EPostfixResult::Stop;
+    }
+    result = ParseArrayIndexOfMethod(result, nullptr, membername);
+    return result ? EPostfixResult::Continue : EPostfixResult::Stop;
+  }
+
   if (lval && scf->CheckSymbol("."))
   {
     string membername;
@@ -2554,6 +2646,12 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     {
       Error(DQERR_MEMBER_NAME_EXPECTED);
       return EPostfixResult::Stop;
+    }
+
+    if ("IndexOf" == membername)
+    {
+      result = ParseArrayIndexOfMethod(result, lval, membername);
+      return result ? EPostfixResult::Continue : EPostfixResult::Stop;
     }
 
     if (TK_ARRAY == tk || TK_ARRAY_SLICE == tk || TK_DYN_ARRAY == tk)

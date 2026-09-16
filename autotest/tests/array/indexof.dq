@@ -1,0 +1,55 @@
+// IndexOf is available on fixed arrays, slices, and dynamic arrays.
+
+use libc/stdio
+use print
+
+object OIndexOfElem:
+    value : int
+endobject
+
+struct STest:
+  a : uint32
+  b : uint32
+  c : uint32
+endstruct
+
+func *Main():
+    var fixed : [5]int = [3, 7, 3, 9, 7]
+    printf("indexof_fixed = first:%li missing:%li converted:%li\n", fixed.IndexOf(7), fixed.IndexOf(4), fixed.IndexOf(byte(9))) //?check("indexof_fixed", "first:1 missing:-1 converted:3")
+
+    var view : []int = fixed[1:4]
+    printf("indexof_slice = first:%li missing:%li empty:%li expr:%li\n", view.IndexOf(3), view.IndexOf(4), fixed[2:2].IndexOf(3), fixed[2:].IndexOf(9)) //?check("indexof_slice", "first:1 missing:-1 empty:-1 expr:1")
+
+    var dynamic : [*]int = [5, 8, 5, 2]
+    var empty : [*]int
+    printf("indexof_dynamic = first:%li missing:%li empty:%li\n", dynamic.IndexOf(5), dynamic.IndexOf(1), empty.IndexOf(0)) //?check("indexof_dynamic", "first:0 missing:-1 empty:-1")
+
+    var first = new OIndexOfElem()
+    var second = new OIndexOfElem()
+    var missing = new OIndexOfElem()
+    var objects : [4]OIndexOfElem
+    objects[0] = first
+    objects[1] = second
+    objects[2] = first
+    objects[3] = second
+    var object_view : []OIndexOfElem = objects[1:]
+    var object_dynamic : [*]OIndexOfElem = objects
+    printf("indexof_objects = fixed:%li/%li/%li slice:%li/%li dynamic:%li/%li/%li\n",
+        objects.IndexOf(first), objects.IndexOf(second), objects.IndexOf(missing),
+        object_view.IndexOf(first), object_view.IndexOf(missing),
+        object_dynamic.IndexOf(first), object_dynamic.IndexOf(second), object_dynamic.IndexOf(missing)) //?check("indexof_objects", "fixed:0/1/-1 slice:1/-1 dynamic:0/1/-1")
+
+
+    var starr : [*]STest
+
+    var s1 : STest = {1, 0, 0}
+    var s2 : STest = {0, 1, 0}
+    var s3 : STest = {0, 0, 1}
+    var s4 : STest = {2, 0, 0}
+
+    starr.Append(s1)
+    starr.Append(s2)
+    starr.Append(s3)
+
+    PrintLn('indexof_starr = s2:{}, s3:{}, s4:{}', [starr.IndexOf(s2), starr.IndexOf(s3), starr.IndexOf(s4)]) //?check("indexof_starr", "s2:1, s3:2, s4:-1")
+endfunc

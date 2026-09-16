@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.71.0"
+#define DQ_COMPILER_VERSION  "0.72.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.72.0:
+  - .IndexOf() member function added to arrays and array slices
+  - pointer - number type checking fixes
 v0.71.0:
   - `for ... in` statement: `for x in array` and `for x :? in somarr`
 v0.70.0:

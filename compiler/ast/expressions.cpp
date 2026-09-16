@@ -793,6 +793,23 @@ static OValSymFunc * SysRawArrayGetSliceFunc()
   return fn;
 }
 
+static OValSymFunc * SysRawArrayIndexOfFunc()
+{
+  auto nsit = g_namespaces.find("sys");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("sys module is not loaded");
+  }
+
+  OValSym * vs = nsit->second->FindValSym("RawArrayIndexOf", nullptr, false);
+  auto * fn = dynamic_cast<OValSymFunc *>(vs);
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("sys.RawArrayIndexOf function is not available");
+  }
+  return fn;
+}
+
 LlValue * OArraySliceExpr::Generate(OScope * scope)
 {
   if (TK_DYN_ARRAY == containertype->kind)
@@ -862,6 +879,72 @@ void OArraySliceExpr::DeleteChildTree()
   base = nullptr;
   startexpr = nullptr;
   endexpr = nullptr;
+}
+
+/* ctor */ OArrayIndexOfExpr::OArrayIndexOfExpr(OExpr * areceiver, OExpr * avalue)
+{
+  receiver = areceiver;
+  value = avalue;
+  ptype = g_builtins->type_int;
+}
+
+LlValue * OArrayIndexOfExpr::Generate(OScope * scope)
+{
+  OType * arraytype = receiver->ptype->ResolveAlias();
+  OType * elemtype = nullptr;
+  LlValue * dataptr = nullptr;
+  LlValue * length = nullptr;
+
+  if (TK_ARRAY == arraytype->kind)
+  {
+    auto * lval = dynamic_cast<OLValueExpr *>(receiver);
+    if (!lval) throw logic_error("fixed array IndexOf requires an lvalue receiver");
+    auto * fixedtype = static_cast<OTypeArray *>(arraytype);
+    elemtype = fixedtype->elemtype;
+    LlValue * zero = LlNativeIntConst(0);
+    dataptr = ll_builder.CreateGEP(arraytype->GetLlType(), lval->GenerateAddress(scope), {zero, zero}, "arr.indexof.ptr");
+    length = LlNativeIntConst(fixedtype->arraylength);
+  }
+  else if (TK_ARRAY_SLICE == arraytype->kind)
+  {
+    elemtype = static_cast<OTypeArraySlice *>(arraytype)->elemtype;
+    LlValue * slice = receiver->Generate(scope);
+    dataptr = ll_builder.CreateExtractValue(slice, {0}, "slice.indexof.ptr");
+    length = ll_builder.CreateExtractValue(slice, {1}, "slice.indexof.len");
+  }
+  else
+  {
+    auto * lval = dynamic_cast<OLValueExpr *>(receiver);
+    if (!lval) throw logic_error("dynamic array IndexOf requires an lvalue receiver");
+    auto * dyntype = static_cast<OTypeDynArray *>(arraytype);
+    elemtype = dyntype->ElementStorageType();
+    LlValue * dynaddr = lval->GenerateAddress(scope);
+    dataptr = dyntype->GenerateDataPtr(scope, dynaddr);
+    length = dyntype->GenerateLength(scope, dynaddr);
+  }
+
+  LlValue * valueaddr = CreateEntryBlockAlloca(elemtype->GetLlType(), nullptr, "arr.indexof.value");
+  ll_builder.CreateStore(value->Generate(scope), valueaddr);
+  return ll_builder.CreateCall(SysRawArrayIndexOfFunc()->ll_func, {
+      dataptr,
+      ToNativeInt(length),
+      llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),
+      valueaddr
+  });
+}
+
+void OArrayIndexOfExpr::FoldChildren()
+{
+  OExpr::FoldTree(&receiver);
+  OExpr::FoldTree(&value);
+}
+
+void OArrayIndexOfExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(receiver);
+  receiver = nullptr;
+  OExpr::DeleteTree(value);
+  value = nullptr;
 }
 
 /* ctor */ OStringSliceExpr::OStringSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,

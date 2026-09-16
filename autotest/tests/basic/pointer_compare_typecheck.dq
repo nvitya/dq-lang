@@ -1,0 +1,6 @@
+func InvalidPointerValueCompare():
+    var value : byte = 0
+    var p : ^byte = %value
+    if p == value: //?error(TypeMismatchOp)
+    endif
+endfunc

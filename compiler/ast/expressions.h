@@ -211,6 +211,18 @@ public:
   void       DeleteChildTree() override;
 };
 
+class OArrayIndexOfExpr : public OExpr
+{
+public:
+  OExpr *  receiver;
+  OExpr *  value;
+
+  /* ctor */ OArrayIndexOfExpr(OExpr * areceiver, OExpr * avalue);
+  LlValue *  Generate(OScope * scope) override;
+  void       FoldChildren() override;
+  void       DeleteChildTree() override;
+};
+
 class OStringSliceExpr : public OExpr
 {
 public:

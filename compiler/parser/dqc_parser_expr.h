@@ -35,6 +35,7 @@ public: // expressions
   OExpr * ParseExprUnary();
   OLValueExpr * ParseAddressableExpr();
   OExpr * ParsePostfix(OExpr * base);
+  OExpr * ParseArrayIndexOfMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseDynArrayMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseStringMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);

@@ -198,7 +198,7 @@ func OStrParse.ReadAlphaNum() -> bool:
 
     while cp < bufend:
         var c : char = char(cp^)
-        if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'Z') or (c >= 'a'  and c <= 'z')
+        if (('0' <= c <= '9') or ('A' <= c <= 'Z') or ('a' <= c <= 'z')
             or c == '_' or (c == '-'  and cp == readp)):
             result = true
             cp += 1
@@ -218,7 +218,7 @@ func OStrParse.ReadDecimalNumbers() -> bool:
 
     while cp < bufend:
         var c : char = char(cp^)
-        if c >= '0'  and c <= '9':
+        if '0' <= c <= '9':
             result = true
             cp += 1
         else:
@@ -237,7 +237,7 @@ func OStrParse.ReadHexNumbers() -> bool:
 
     while cp < bufend:
         var c : char = char(cp^)
-        if ((c >= '0'  and c <= '9') or (c >= 'A'  and c <= 'F') or (c >= 'a'  and c <= 'f')):
+        if (('0' <= c <= '9') or ('A' <= c <= 'F') or ('a' <= c <= 'f')):
             result = true
             cp += 1
         else:
@@ -256,7 +256,7 @@ func OStrParse.ReadFloatNum() -> bool:
 
     while cp < bufend:
         var c : char = char(cp^)
-        if ((c >= '0'  and c <= '9') or c == float_decimal_point
+        if (('0' <= c <= '9') or c == float_decimal_point
             or c == '-' or c == '+' or c == 'e' or c == 'E'):
             result = true
             cp += 1
@@ -404,7 +404,7 @@ func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool:
 
     while csptr < csend  and cp < endp:
         var c : char = char(cp^)
-        if c >= 'a'  and c <= 'z':
+        if 'a' <= c <= 'z':
             c = char(Ord(c) - Ord('a') + Ord('A'))
         endif
 
@@ -442,11 +442,11 @@ func PCharHexToInt(readp : ^char, len : int) -> uint:
 
     while cp < endp:
         var c : char = char(cp^)
-        if c >= '0'  and c <= '9':
+        if '0' <= c <= '9':
             result = (result << 4) + uint(Ord(c) - Ord('0'))
-        elif c >= 'A'  and c <= 'F':
+        elif 'A' <= c <= 'F':
             result = (result << 4) + uint(Ord(c) - Ord('A') + 10)
-        elif c >= 'a'  and c <= 'f':
+        elif 'a' <= c <= 'f':
             result = (result << 4) + uint(Ord(c) - Ord('a') + 10)
         else:
             break
@@ -485,7 +485,7 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
         else:
             nsign = -1
         endif
-    elif c >= '0'  and c <= '9':
+    elif '0' <= c <= '9':
         var digit : float64 = float64(Ord(c) - Ord('0'))
         if mode == 1:
             fracmul *= 0.1

@@ -166,11 +166,11 @@ use rtl/strfunc
 // integer/float conversion code can later live in a small, reusable RTL module.
 // The formatter itself must not allocate heap memory.
 
-func DqTextFmtIsDigit(ch : char) -> bool:
-    return (ch >= '0') and (ch <= '9')
+func DqTextFmtIsDigit(ch : char) -> bool  [[inline]]:
+    return '0' <= ch <= '9'
 endfunc
 
-func DqTextFmtDigitValue(ch : char) -> int:
+func DqTextFmtDigitValue(ch : char) -> int  [[inline]]:
     return Ord(ch) - Ord('0')
 endfunc
 

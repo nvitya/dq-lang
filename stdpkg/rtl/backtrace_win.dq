@@ -272,7 +272,7 @@ func DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
     if name[0]^ == 47  and  string_table <> nil:  // '/' + decimal string-table offset
         var offset : uint = 0
         var i : int = 1
-        while i < 8  and  name[i]^ >= 48  and  name[i]^ <= 57:
+        while i < 8  and  48 <= name[i]^ <= 57:
             offset = offset * 10 + name[i]^ - 48
             i += 1
         endwhile
@@ -301,7 +301,7 @@ func DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint) -> 
     var source_end : ^byte = symbol + 8
     if DqReadU32(symbol) == 0:
         var offset : uint = DqReadU32(symbol + 4)
-        if win_dwarf.string_table == nil or offset < 4 or offset >= win_dwarf.string_size:
+        if win_dwarf.string_table == nil or not (4 <= offset < win_dwarf.string_size):
             return false
         endif
         source = win_dwarf.string_table + offset
@@ -518,7 +518,7 @@ func DqWinDwarfLoad() -> bool:
         var string_ptr : uint = sym_ptr + sym_count * DQ_COFF_SYMBOL_SIZE
         if string_ptr + 4 <= win_dwarf.data_size:
             var string_size : uint = DqReadU32(data + string_ptr)
-            if string_size >= 4 and string_size <= win_dwarf.data_size - string_ptr:
+            if 4 <= string_size <= win_dwarf.data_size - string_ptr:
                 string_table = data + string_ptr
                 win_dwarf.string_table = string_table
                 win_dwarf.string_size = string_size
@@ -575,7 +575,7 @@ func DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
         var symbol      : ^byte = win_dwarf.symbols + i * DQ_COFF_SYMBOL_SIZE
         var section_no  : int = ^int16(symbol + 12)^
         var symbol_type : uint16 = DqReadU16(symbol + 14)
-        if section_no > 0 and section_no <= win_dwarf.section_count
+        if win_dwarf.section_count >= section_no > 0
            and symbol_type & DQ_COFF_TYPE_FUNCTION <> 0:
             var section      : ^byte = win_dwarf.sections + (section_no - 1) * 40
             var section_rva  : uint64 = DqReadU32(section + 12)
@@ -584,7 +584,7 @@ func DqWinCoffSymbolForPc(pc : pointer, name : ^char, name_size : uint,
             if raw_size > section_size:
                 section_size = raw_size
             endif
-            if target_rva >= section_rva and target_rva < section_rva + section_size:
+            if section_rva <= target_rva < section_rva + section_size:
                 var symbol_rva : uint64 = section_rva + uint64(DqReadU32(symbol + 8))
                 if symbol_rva <= target_rva and (best_symbol == nil or symbol_rva > best_rva):
                     best_rva = symbol_rva

@@ -152,7 +152,7 @@ func FormatTm(fmt : rostr, atm : ref tm) -> str:
 endfunc
 
 func LowerAscii(ch : char) -> char:
-    if ch >= 'A' and ch <= 'Z':
+    if 'A' <= ch <= 'Z':
         return char(Ord(ch) - Ord('A') + Ord('a'))
     endif
     return ch

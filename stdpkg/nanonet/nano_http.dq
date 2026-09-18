@@ -255,7 +255,7 @@ func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
         return
     endif
     var day : int = StrToInt(sp.PrevStr(), -1)
-    if day < 1 or day > 31:
+    if not (1 <= day <= 31):
         return
     endif
     sp.CheckSymbol(' ')
@@ -356,14 +356,14 @@ func OStrMap.Delete(akey : str):
 endfunc
 
 func OStrMap.GetKey(aindex : int) -> str:
-    if aindex < 0 or aindex >= m_items.length:
+    if not (0 <= aindex < m_items.length):
         return ''
     endif
     return m_items[aindex].key
 endfunc
 
 func OStrMap.GetValue(aindex : int) -> str:
-    if aindex < 0 or aindex >= m_items.length:
+    if not (0 <= aindex < m_items.length):
         return ''
     endif
     return m_items[aindex].value

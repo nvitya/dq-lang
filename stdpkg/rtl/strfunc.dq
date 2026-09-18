@@ -83,20 +83,20 @@ endfunc
 
 
 func StrfIsHighSurrogate(code : uint32) -> bool:
-    return code >= 0xD800 and code <= 0xDBFF
+    return 0xD800 <= code <= 0xDBFF
 endfunc
 
 func StrfIsLowSurrogate(code : uint32) -> bool:
-    return code >= 0xDC00 and code <= 0xDFFF
+    return 0xDC00 <= code <= 0xDFFF
 endfunc
 
 func IsValidWchar(wc : wchar) -> bool:
     var code : uint32 = Ord(wc)
-    return code <= 0x10FFFF and not (code >= 0xD800 and code <= 0xDFFF)
+    return code <= 0x10FFFF and not (0xD800 <= code <= 0xDFFF)
 endfunc
 
 func IntToChar(value : int) -> char [[overload]]:
-    if value < 0 or value > 255:
+    if not (0 <= value <= 255):
 #ifdef EXCEPTIONS
         raise EStrError('char value out of range: {}', [value])
 #else
@@ -108,7 +108,7 @@ func IntToChar(value : int) -> char [[overload]]:
 endfunc
 
 func IntToChar(value : int, defvalue : char) -> char [[overload]]:
-    if value < 0 or value > 255:
+    if not (0 <= value <= 255):
         return defvalue
     endif
     return char(value)
@@ -173,7 +173,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
     var b2 : uint32 = 0
     var b3 : uint32 = 0
     var decoded : uint32 = 0
-    if b0 >= 0xC2 and b0 <= 0xDF:
+    if 0xC2 <= b0 <= 0xDF:
         if not StrfReadCont(text, pos + 1, b1, report_error):
             return false
         endif
@@ -181,7 +181,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
         wc = wchar(decoded)
         pos += 2
         return true
-    elif b0 >= 0xE0 and b0 <= 0xEF:
+    elif 0xE0 <= b0 <= 0xEF:
         if    not StrfReadCont(text, pos + 1, b1, report_error)
            or not StrfReadCont(text, pos + 2, b2, report_error)
         :
@@ -194,7 +194,7 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
         endif
         pos += 3
         return true
-    elif b0 >= 0xF0 and b0 <= 0xF4:
+    elif 0xF0 <= b0 <= 0xF4:
         if    not StrfReadCont(text, pos + 1, b1, report_error)
            or not StrfReadCont(text, pos + 2, b2, report_error)
            or not StrfReadCont(text, pos + 3, b3, report_error)
@@ -331,7 +331,7 @@ func StrfWCharSlice(text : strslice, startpos : int, endposex : int) -> [*]wchar
     var wcidx : int = 0
     var wc : wchar = wchar(0)
     while StrfDecodeUtf8(text, pos, wc):
-        if wcidx >= b and wcidx < e:
+        if b <= wcidx < e:
             result.Append(wc)
         endif
         wcidx += 1

@@ -37,7 +37,7 @@ func ArgCount() -> int:
 endfunc
 
 func ArgStr(i : int) -> ^char:
-    if i >= sys_argc  or  i < 0:
+    if not (0 <= i < sys_argc):
         return nil
     else:
         return sys_argv[i]^

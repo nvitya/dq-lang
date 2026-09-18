@@ -242,14 +242,14 @@ func ODbRows.AddField(aname : rostr, atype : NDbFieldType) -> int:
 endfunc
 
 func ODbRows.FieldName(aindex : int) -> str:
-    if aindex < 0  or  aindex >= m_fieldcount:
+    if not 0 <= aindex < m_fieldcount:
         raise EDbFieldIndex('Invalid Field index: {}', [aindex])
     endif
     return m_fieldinfo[aindex].name
 endfunc
 
 func ODbRows.FieldType(aindex : int) -> NDbFieldType:
-    if aindex < 0  or  aindex >= m_fieldcount:
+    if not 0 <= aindex < m_fieldcount:
         raise EDbFieldIndex('Invalid Field index: {}', [aindex])
     endif
     return m_fieldinfo[aindex].ftype
@@ -277,7 +277,7 @@ func ODbRows.AddRow() -> int:
 endfunc
 
 func ODbRows.DeleteRow(arow : int):
-    if arow < 0  or  arow >= m_rowcount:
+    if not 0 <= arow < m_rowcount:
         return
     endif
 
@@ -293,7 +293,7 @@ func ODbRows.DeleteRow(arow : int):
     elif m_currow >= m_rowcount:
         m_currow = m_rowcount - 1
     endif
-    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
+    m_onrow = (0 <= m_currow < m_rowcount)
 endfunc
 
 func ODbRows.First():
@@ -302,7 +302,7 @@ func ODbRows.First():
     else:
         m_currow = -1
     endif
-    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
+    m_onrow = (0 <= m_currow < m_rowcount)
 endfunc
 
 func ODbRows.Last():
@@ -311,7 +311,7 @@ func ODbRows.Last():
     else:
         m_currow = -1
     endif
-    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
+    m_onrow = (0 <= m_currow < m_rowcount)
 endfunc
 
 func ODbRows.Next():
@@ -322,7 +322,7 @@ func ODbRows.Next():
     else:
         m_currow = m_rowcount
     endif
-    m_onrow = (m_currow >= 0  and m_currow < m_rowcount)
+    m_onrow = (0 <= m_currow < m_rowcount)
 endfunc
 
 func ODbRows.Prev():
@@ -343,7 +343,7 @@ func ODbRows.RowIndex() -> int:
 endfunc
 
 func ODbRows.SelectRow(arow : int) -> bool:
-    if arow >= 0  and  arow < m_rowcount:
+    if 0 <= arow < m_rowcount:
         m_currow = arow
         m_onrow = true
         return true

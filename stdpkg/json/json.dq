@@ -415,7 +415,7 @@ func OJson.ParseValue(sp : OStrParse):
         endif
         m_kind = nkNull
         m_value.SetNull()
-    elif c == '-'  or (c >= '0'  and c <= '9'):
+    elif c == '-'  or ('0' <= c <= '9'):
         m_kind = nkNumber
         m_value = ParseNumber(sp)
     else:
@@ -555,7 +555,7 @@ func OJson.ParseString(sp : OStrParse) -> str:
             endif
             var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
 
-        if cp >= uint32(0xD800)  and cp <= uint32(0xDBFF):
+        if uint32(0xD800) <= cp <= uint32(0xDBFF):
             if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
                 Error(sp, 'Invalid unicode surrogate pair')
             endif
@@ -570,7 +570,7 @@ func OJson.ParseString(sp : OStrParse) -> str:
                 Error(sp, 'Invalid low unicode surrogate')
             endif
             cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
-        elif cp >= uint32(0xDC00)  and cp <= uint32(0xDFFF):
+        elif uint32(0xDC00) <= cp <= uint32(0xDFFF):
             Error(sp, 'Unexpected low unicode surrogate')
         endif
 
@@ -597,8 +597,8 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
 
     if cp^ == '0':
         cp += 1
-    elif cp^ >= '1'  and cp^ <= '9':
-        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+    elif '1' <= cp^ <= '9':
+        while cp < sp.bufend  and '0' <= cp^ <= '9':
             cp += 1
         endwhile
     else:
@@ -607,10 +607,10 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
 
     if cp < sp.bufend  and cp^ == '.':
         cp += 1
-        if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+        if cp >= sp.bufend  or not '0' <= cp^ <= '9':
             Error(sp, 'Invalid number fractional part')
         endif
-        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+        while cp < sp.bufend  and '0' <= cp^ <= '9':
             cp += 1
         endwhile
     endif
@@ -620,10 +620,10 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
         if cp < sp.bufend  and (cp^ == '+'  or cp^ == '-'):
             cp += 1
         endif
-        if cp >= sp.bufend  or cp^ < '0'  or cp^ > '9':
+        if cp >= sp.bufend  or not '0' <= cp^ <= '9':
             Error(sp, 'Invalid number exponent')
         endif
-        while cp < sp.bufend  and cp^ >= '0'  and cp^ <= '9':
+        while cp < sp.bufend  and '0' <= cp^ <= '9':
             cp += 1
         endwhile
     endif
@@ -690,7 +690,7 @@ func OJson.ChildCount() -> int:
 endfunc
 
 func OJson.Child(aindex : int) -> OJson:
-    if aindex >= 0  and aindex < m_children.length:
+    if 0 <= aindex < m_children.length:
         return m_children[aindex]
     else:
         return nil

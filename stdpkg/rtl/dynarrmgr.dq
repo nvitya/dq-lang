@@ -152,7 +152,7 @@ func DynArrOwnDataPtrOffset(dataptr : pointer, src : pointer, length : uint, ele
 
     var baseaddr : uint = uint(dataptr)
     var srcaddr  : uint = uint(src)
-    if srcaddr < baseaddr  or  srcaddr >= baseaddr + used_bytes:
+    if not (baseaddr <= srcaddr < baseaddr + used_bytes):
         return -1
     endif
 
@@ -562,7 +562,7 @@ func DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, 
 endfunc
 
 func DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer:
-    if arr == nil  or  index < 0  or  index >= arr.length:
+    if arr == nil  or not (0 <= index < arr.length):
         DynArrRuntimeError('DynArray access out of bounds')
         return nil
     endif

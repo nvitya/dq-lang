@@ -269,7 +269,7 @@ func OMySqlStmt.RequirePrepared():
 endfunc
 
 func OMySqlStmt.CheckColumnIndex(aindex : int):
-    if aindex < 0 or aindex >= m_fieldcount:
+    if not (0 <= aindex < m_fieldcount):
         raise EMySqlError('MySQL column index {} is out of range', [aindex])
     endif
 endfunc

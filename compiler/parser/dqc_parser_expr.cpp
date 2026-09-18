@@ -1328,6 +1328,17 @@ OExpr * ODqCompParserExpr::ParseExprNot()
   return ParseComparison();
 }
 
+ECompareOp ODqCompParserExpr::ParseCompareOp(bool consume)
+{
+  if      (scf->CheckSymbol("==", consume))  return COMPOP_EQ;
+  else if (scf->CheckSymbol("<>", consume))  return COMPOP_NE;
+  else if (scf->CheckSymbol("<=", consume))  return COMPOP_LE;
+  else if (scf->CheckSymbol("<", consume))   return COMPOP_LT;
+  else if (scf->CheckSymbol(">=", consume))  return COMPOP_GE;
+  else if (scf->CheckSymbol(">", consume))   return COMPOP_GT;
+  return COMPOP_NONE;
+}
+
 OExpr * ODqCompParserExpr::ParseComparison()
 {
   OExpr *  left = ParseExprAdd();
@@ -1338,21 +1349,14 @@ OExpr * ODqCompParserExpr::ParseComparison()
 
   scf->SkipWhite();
 
-  ECompareOp op = COMPOP_NONE;
-
   // check first the ambigous expression terminators
   if (scf->CheckSymbol("<<=", false) or scf->CheckSymbol(">>=", false))
   {
     return left;
   }
 
-  if      (scf->CheckSymbol("=="))    op = COMPOP_EQ;
-  else if (scf->CheckSymbol("<>"))    op = COMPOP_NE;
-  else if (scf->CheckSymbol("<="))    op = COMPOP_LE;  // <= before <
-  else if (scf->CheckSymbol("<"))     op = COMPOP_LT;
-  else if (scf->CheckSymbol(">="))    op = COMPOP_GE;  // >= before >
-  else if (scf->CheckSymbol(">"))     op = COMPOP_GT;
-  else if (scf->CheckKeyword("is"))
+  ECompareOp op = ParseCompareOp();
+  if (COMPOP_NONE == op && scf->CheckKeyword("is"))
   {
     scf->SkipWhite();
     OType * target_type = ParseTypeSpec();
@@ -1362,7 +1366,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
     }
     return new OIsExpr(left, target_type);
   }
-  else if (scf->CheckKeyword("as"))
+  else if (COMPOP_NONE == op && scf->CheckKeyword("as"))
   {
     scf->SkipWhite();
     OType * target_type = ParseTypeSpec();
@@ -1377,7 +1381,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
     }
     return left;
   }
-  else
+  else if (COMPOP_NONE == op)
   {
     return left;
   }
@@ -1388,6 +1392,37 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return FreeLeftRight(left, nullptr);
   }
 
+  scf->SkipWhite();
+  ECompareOp next_op = ParseCompareOp(false);
+  bool is_range = (COMPOP_LT == op && COMPOP_LT == next_op)
+      || (COMPOP_LE == op && (COMPOP_LT == next_op || COMPOP_LE == next_op))
+      || (COMPOP_GT == op && COMPOP_GT == next_op)
+      || (COMPOP_GE == op && (COMPOP_GT == next_op || COMPOP_GE == next_op));
+  if (!is_range)
+  {
+    return CreateCompareExpr(op, left, right);
+  }
+
+  auto * middle = new OCompareCachedExpr(right);
+  OExpr * first_expr = CreateCompareExpr(op, left, middle);
+  auto * first = dynamic_cast<OCompareExpr *>(first_expr);
+  if (!first)
+  {
+    return first_expr;
+  }
+
+  ParseCompareOp();
+  OExpr * range_right = ParseExprAdd();
+  if (!range_right)
+  {
+    return FreeLeftRight(first, nullptr);
+  }
+  OExpr * second = CreateCompareExpr(next_op, new OCompareCachedLoadExpr(middle), range_right);
+  return new OLogicalExpr(LOGIOP_AND, first, second);
+}
+
+OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr * right)
+{
   auto * unresolved_left = dynamic_cast<OUnresolvedEnumItemExpr *>(left);
   auto * unresolved_right = dynamic_cast<OUnresolvedEnumItemExpr *>(right);
   auto * left_enum = dynamic_cast<OTypeEnum *>(left->ResolvedType());

@@ -140,6 +140,16 @@ a >= b
 
 `<>` tests inequality. The C-style `!=` spelling is not accepted.
 
+Ordering comparisons can be chained to test a range:
+
+```dq
+lower <= value < upper
+high >= value >= low
+```
+
+The middle operand is evaluated once. The final operand is evaluated only if
+the first comparison succeeds.
+
 ## Logical Operators
 
 Logical operators use lowercase words.

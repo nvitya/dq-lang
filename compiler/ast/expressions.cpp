@@ -1667,6 +1667,47 @@ void OCompareExpr::DeleteChildTree()
   right = nullptr;
 }
 
+/* ctor */ OCompareCachedExpr::OCompareCachedExpr(OExpr * asource)
+{
+  source = asource;
+  ptype = source->ptype;
+}
+
+LlValue * OCompareCachedExpr::Generate(OScope * scope)
+{
+  LlValue * value = source->Generate(scope);
+  ll_storage = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "range.middle");
+  ll_builder.CreateStore(value, ll_storage);
+  return value;
+}
+
+void OCompareCachedExpr::FoldChildren()
+{
+  OExpr::FoldTree(&source);
+  ptype = source->ptype;
+}
+
+void OCompareCachedExpr::DeleteChildTree()
+{
+  OExpr::DeleteTree(source);
+  source = nullptr;
+}
+
+/* ctor */ OCompareCachedLoadExpr::OCompareCachedLoadExpr(OCompareCachedExpr * asource)
+{
+  source = asource;
+  ptype = source->ptype;
+}
+
+LlValue * OCompareCachedLoadExpr::Generate(OScope * scope)
+{
+  if (!source->ll_storage)
+  {
+    throw logic_error("Range comparison middle operand was not evaluated");
+  }
+  return ll_builder.CreateLoad(ptype->GetLlType(), source->ll_storage, "range.middle");
+}
+
 /* ctor */ OIifExpr::OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type)
 {
   condition  = acond;

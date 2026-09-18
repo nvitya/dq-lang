@@ -39,6 +39,11 @@ cases.
 ordering where defined. Operands must be compatible; there is no numeric-to-bool
 coercion.
 
+Ordering comparisons can express a range without repeating its middle operand:
+`x < y < z`, `x <= y < z`, `x <= y <= z`, and their descending counterparts.
+The middle operand is evaluated once, and the upper/lower endpoint is evaluated
+only when the first comparison succeeds.
+
 Object references and pointers compare identity/address. General array sequence
 equality is not implicitly defined.
 

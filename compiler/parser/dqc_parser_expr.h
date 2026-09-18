@@ -78,6 +78,8 @@ protected:
   struct BinOpEntry { const char * sym; EBinOp op; };
   OExpr * ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_next)(),
                           const BinOpEntry ops[], int nops);
+  ECompareOp ParseCompareOp(bool consume = true);
+  OExpr * CreateCompareExpr(ECompareOp op, OExpr * left, OExpr * right);
   bool    ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, const string & aowner_name, bool aemit_errors = true);
 
   bool    ParseAttributeBlock();

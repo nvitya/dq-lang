@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.72.1"
+#define DQ_COMPILER_VERSION  "0.73.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.73.0:
+  - Range compare expressions: x <= y < z
 v0.72.1:
   - String helper functions made available: StrFromWchars() etc StrFromUtf16()
 v0.72.0:

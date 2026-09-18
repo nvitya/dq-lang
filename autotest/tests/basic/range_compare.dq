@@ -1,0 +1,32 @@
+// Range comparison expressions
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+var calls : int
+
+enum NRange = (low, middle, high)
+
+func MiddleValue() -> int:
+    calls += 1
+    return 2
+endfunc
+
+func RightValue() -> int:
+    calls += 1
+    return 4
+endfunc
+
+func *Main():
+    var range_value : NRange = middle
+
+    printf("range.ascending = %li %li %li\n", 1 < 2 < 3, 1 <= 1 < 2, 1 <= 1 <= 1) //?check("range.ascending", "1 1 1")
+    printf("range.descending = %li %li %li\n", 3 > 2 > 1, 3 >= 3 > 2, 3 >= 3 >= 3) //?check("range.descending", "1 1 1")
+    printf("range.outside = %li %li\n", 1 < 3 < 2, 3 >= 2 > 3) //?check("range.outside", "0 0")
+    printf("range.enum = %li\n", low < range_value < high) //?check("range.enum", 1)
+
+    calls = 0
+    printf("range.middle_once = %li %li\n", 1 < MiddleValue() < 3, calls) //?check("range.middle_once", "1 1")
+
+    calls = 0
+    printf("range.short_circuit = %li %li\n", 3 < 2 < RightValue(), calls) //?check("range.short_circuit", "0 0")
+endfunc

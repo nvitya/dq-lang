@@ -325,6 +325,28 @@ public:
   void         DeleteChildTree() override;
 };
 
+// A range comparison uses this pair to evaluate its shared middle operand once.
+class OCompareCachedExpr : public OExpr
+{
+public:
+  OExpr *      source;
+  LlValue *    ll_storage = nullptr;
+
+  /* ctor */   OCompareCachedExpr(OExpr * asource);
+  LlValue *    Generate(OScope * scope) override;
+  void         FoldChildren() override;
+  void         DeleteChildTree() override;
+};
+
+class OCompareCachedLoadExpr : public OExpr
+{
+public:
+  OCompareCachedExpr * source;
+
+  /* ctor */   OCompareCachedLoadExpr(OCompareCachedExpr * asource);
+  LlValue *    Generate(OScope * scope) override;
+};
+
 class OIifExpr : public OExpr
 {
 public:

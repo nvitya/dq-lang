@@ -343,7 +343,7 @@ func DqDwarfEmitRow(target : uint64, address : uint64, file : uint64, line : int
         if matched:
             out_file = DqDwarfFileName(file_table, pend, last_file)
             out_line = uint32(last_line)
-            return out_file <> nil and out_line <> uint32(0)
+            return out_file <> nil and out_line <> 0
         endif
         return false
     endif
@@ -418,7 +418,7 @@ func DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byt
             elif op == DW_LNS_NEGATE_STMT or op == DW_LNS_SET_BASIC_BLOCK or op == DW_LNS_SET_PROLOGUE_END or op == DW_LNS_SET_EPILOGUE_BEGIN:
                 // state flags not needed for address-to-line lookup
             elif op == DW_LNS_CONST_ADD_PC:
-                var adjusted : uint8 = uint8(255) - opcode_base
+                var adjusted : uint8 = 255 - opcode_base
                 address += uint64(adjusted div line_range) * uint64(min_inst_len)
             elif op == DW_LNS_FIXED_ADVANCE_PC:
                 if p + 2 <= unit_end:
@@ -613,7 +613,7 @@ func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refou
     endif
 
     var target : uint64 = uint64(pc)
-    if win_dwarf.runtime_base <> uint64(0)  and  win_dwarf.image_base <> uint64(0):
+    if win_dwarf.runtime_base <> 0  and  win_dwarf.image_base <> 0:
         target = target - win_dwarf.runtime_base + win_dwarf.image_base
     endif
 
@@ -648,7 +648,7 @@ func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refou
                 var opcode_base : uint8 = p^
                 p += 1
                 var std_lengths : ^byte = p
-                p += uint(opcode_base - uint8(1))
+                p += uint(opcode_base - 1)
 
                 while p < header_end  and  p^ <> 0:
                     p = DqSkipCstr(p, header_end)
@@ -679,7 +679,7 @@ func DqPrintBacktraceFrameImpl(index : int, pc : pointer, hide_internal : bool, 
     var displacement64 : uint64 = 0
 
     symbol.SizeOfStruct = DQ_BT_SYMBOL_INFO_SIZE
-    symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - uint32(1)
+    symbol.MaxNameLen = DQ_BT_SYMBOL_NAME_MAX - 1
 
     if DqWinCoffSymbolForPc(pc, %coff_name[0], uint(DQ_BT_SYMBOL_NAME_MAX), displacement64):
         symbol_name = %coff_name[0]

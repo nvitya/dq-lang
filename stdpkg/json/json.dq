@@ -415,7 +415,7 @@ func OJson.ParseValue(sp : OStrParse):
         endif
         m_kind = nkNull
         m_value.SetNull()
-    elif c == '-'  or ('0' <= c <= '9'):
+    elif c == '-'  or '0' <= c <= '9':
         m_kind = nkNumber
         m_value = ParseNumber(sp)
     else:
@@ -553,10 +553,10 @@ func OJson.ParseString(sp : OStrParse) -> str:
             if sp.prevlen <> 4:
                 Error(sp, 'Invalid unicode escape')
             endif
-            var cp : uint32 = uint32(@.PCharHexToInt(startp, 4))
+            var cp : uint32 = @.PCharHexToInt(startp, 4)
 
-        if uint32(0xD800) <= cp <= uint32(0xDBFF):
-            if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or (sp.readp + 1)^ <> 'u':
+        if 0xD800 <= cp <= 0xDBFF:
+            if sp.readp + 6 > sp.bufend  or sp.readp^ <> char(92)  or sp.readp[1]^ <> 'u':
                 Error(sp, 'Invalid unicode surrogate pair')
             endif
             sp.readp += 2
@@ -565,12 +565,12 @@ func OJson.ParseString(sp : OStrParse) -> str:
             if sp.prevlen <> 4:
                 Error(sp, 'Invalid unicode escape')
             endif
-            var low : uint32 = uint32(@.PCharHexToInt(startp, 4))
-            if low < uint32(0xDC00)  or low > uint32(0xDFFF):
+            var low : uint32 = @.PCharHexToInt(startp, 4)
+            if not 0xDC00 <= low <= 0xDFFF:
                 Error(sp, 'Invalid low unicode surrogate')
             endif
-            cp = uint32(0x10000) + ((cp - uint32(0xD800)) << 10) + (low - uint32(0xDC00))
-        elif uint32(0xDC00) <= cp <= uint32(0xDFFF):
+            cp = 0x10000 + ((cp - 0xD800) << 10) + (low - 0xDC00)
+        elif 0xDC00 <= cp <= 0xDFFF:
             Error(sp, 'Unexpected low unicode surrogate')
         endif
 
@@ -633,20 +633,20 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
 endfunc
 
 func OJson.AppendUtf8(rstr : ref str, codepoint : uint32):
-    if codepoint <= uint32(0x7F):
+    if codepoint <= 0x7F:
         rstr.Append(char(int(codepoint)))
-    elif codepoint <= uint32(0x7FF):
-        rstr.Append(char(int(uint32(0xC0) | (codepoint >> 6))))
-        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
-    elif codepoint <= uint32(0xFFFF):
-        rstr.Append(char(int(uint32(0xE0) | (codepoint >> 12))))
-        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 6) & uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
+    elif codepoint <= 0x7FF:
+        rstr.Append(char(int(0xC0 | (codepoint >> 6))))
+        rstr.Append(char(int(0x80 | (codepoint & 0x3F))))
+    elif codepoint <= 0xFFFF:
+        rstr.Append(char(int(0xE0 | (codepoint >> 12))))
+        rstr.Append(char(int(0x80 | ((codepoint >> 6) & 0x3F))))
+        rstr.Append(char(int(0x80 | (codepoint & 0x3F))))
     else:
-        rstr.Append(char(int(uint32(0xF0) | (codepoint >> 18))))
-        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 12) & uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) | ((codepoint >> 6) & uint32(0x3F)))))
-        rstr.Append(char(int(uint32(0x80) | (codepoint & uint32(0x3F)))))
+        rstr.Append(char(int(0xF0 | (codepoint >> 18))))
+        rstr.Append(char(int(0x80 | ((codepoint >> 12) & 0x3F))))
+        rstr.Append(char(int(0x80 | ((codepoint >> 6) & 0x3F))))
+        rstr.Append(char(int(0x80 | (codepoint & 0x3F))))
     endif
 endfunc
 

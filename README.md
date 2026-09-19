@@ -19,12 +19,8 @@ For quick start visit this page:
 
 [Getting Started](https://nvitya.github.io/dq-lang/getting-started/)
 
-The published site has two language-documentation levels:
+For more information about the DQ language follow these links:
 
-- the concise [Language Guide](https://nvitya.github.io/dq-lang/language/basics/)
-  for normal usage;
-- the complete [Language Reference](https://nvitya.github.io/dq-lang/reference/)
-  for implemented rules and edge cases.
+- [Language Guide](https://nvitya.github.io/dq-lang/language/basics/)
+- [Language Reference](https://nvitya.github.io/dq-lang/reference/)
 
-Historical specifications and design work are preserved under [`doc/archive`](doc/archive/)
-but are not authoritative for the current compiler.

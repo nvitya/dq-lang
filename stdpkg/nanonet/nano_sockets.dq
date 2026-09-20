@@ -113,9 +113,6 @@ endobject
 type TSConnectionType = type of OSConnection
 
 object ONanoServer:
-protected
-    func ConnectionIndex(aconn : OSConnection) -> int ..
-
 public
     listen_port  : uint16
     sock_listen  : ONanoSocket
@@ -504,20 +501,11 @@ func ONanoServer.CloseConnection(aconn : OSConnection):
     swatcher.RemoveSocket(aconn.sock)
     aconn.sock.Disconnect()
 
-    var idx : int = ConnectionIndex(aconn)
+    var idx : int = connections.IndexOf(aconn)
     if idx >= 0:
         // schedule the socket object for later deletion,
         // the current calling context might be sensible to instant-free (like self.Close())
         connections.Delete(idx)
         closed_conns.Append(aconn)
     endif
-endfunc
-
-func ONanoServer.ConnectionIndex(aconn : OSConnection) -> int:
-    for i : int = 0  count connections.length:
-        if connections[i] == aconn:
-            return i
-        endif
-    endfor
-    return -1
 endfunc

@@ -16,42 +16,7 @@
 use nanonet/nano_sockets
 use strparse
 use file
-
-object OStrMapItem:
-    key   : str
-    value : str
-
-    func *Create(akey : str, avalue : str) ..
-endobject
-
-object OStrMap:
-protected
-    m_items : [*]OStrMapItem
-
-    func FindKey(akey : str) -> int ..
-    func GetKey(aindex : int) -> str ..
-    func GetValue(aindex : int) -> str ..
-
-public
-    func *Destroy() ..
-
-    func Clear() ..
-    func Add(akey : str, avalue : str) ..
-    func SetItem(akey : str, avalue : str) ..
-    func GetItem(akey : str) -> str ..
-    func KeyDataDef(akey : str, adefvalue : str) -> str ..
-    func Delete(akey : str) ..
-    func IndexOf(akey : str) -> int ..
-
-    func GetLength() -> int:
-        return m_items.length
-    endfunc
-
-    property item   : [akey : str]str  default  read GetItem  write SetItem
-    property key    : [aindex : int]str             read GetKey
-    property value  : [aindex : int]str             read GetValue
-    property length : int  read GetLength
-endobject
+use collections/strstrmap
 
 object OSConnectionHttp(OSConnection):
 protected
@@ -86,13 +51,13 @@ public
     func CloseFileFd() ..
 
 public
-    ucheaders : OStrMap
-    qsvars    : OStrMap
-    cookies   : OStrMap
+    ucheaders : OStrStrMap
+    qsvars    : OStrStrMap
+    cookies   : OStrStrMap
 
     response : str
     response_code : int
-    response_headers : OStrMap
+    response_headers : OStrStrMap
 
     func *Create(aserver : ONanoServer) ..
     func *Destroy() ..
@@ -118,7 +83,7 @@ type TSConnHttpClass = type of OSConnectionHttp
 object ONanoHttpServer(ONanoServer):
 public
     server_id : str
-    ct_by_ext : OStrMap
+    ct_by_ext : OStrStrMap
 
     func *Create(aclass : TSConnHttpClass, alisten_port : uint16) ..
     func *Destroy() ..
@@ -288,87 +253,6 @@ func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
     return int64(year) * 10000 + int64(mon) * 100 + int64(day)
 endfunc
 
-func OStrMapItem.*Create(akey : str, avalue : str):
-    key = akey
-    value = avalue
-endfunc
-
-func OStrMap.*Destroy():
-    Clear()
-endfunc
-
-func OStrMap.Clear():
-    while m_items.length > 0:
-        var item : OStrMapItem = m_items.Pop()
-        delete item
-    endwhile
-endfunc
-
-func OStrMap.FindKey(akey : str) -> int:
-    for i : int = 0 count m_items.length:
-        if m_items[i].key == akey:
-            return i
-        endif
-    endfor
-    return -1
-endfunc
-
-func OStrMap.IndexOf(akey : str) -> int:
-    return FindKey(akey)
-endfunc
-
-func OStrMap.Add(akey : str, avalue : str):
-    SetItem(akey, avalue)
-endfunc
-
-func OStrMap.SetItem(akey : str, avalue : str):
-    var idx : int = FindKey(akey)
-    if idx >= 0:
-        m_items[idx].value = avalue
-    else:
-        m_items.Append(new OStrMapItem(akey, avalue))
-    endif
-endfunc
-
-func OStrMap.GetItem(akey : str) -> str:
-    var idx : int = FindKey(akey)
-    if idx >= 0:
-        return m_items[idx].value
-    endif
-    return ''
-endfunc
-
-func OStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
-    var idx : int = FindKey(akey)
-    if idx >= 0:
-        return m_items[idx].value
-    endif
-    return adefvalue
-endfunc
-
-func OStrMap.Delete(akey : str):
-    var idx : int = FindKey(akey)
-    if idx >= 0:
-        var item : OStrMapItem = m_items[idx]
-        m_items.Delete(idx)
-        delete item
-    endif
-endfunc
-
-func OStrMap.GetKey(aindex : int) -> str:
-    if not (0 <= aindex < m_items.length):
-        return ''
-    endif
-    return m_items[aindex].key
-endfunc
-
-func OStrMap.GetValue(aindex : int) -> str:
-    if not (0 <= aindex < m_items.length):
-        return ''
-    endif
-    return m_items[aindex].value
-endfunc
-
 //-------------------------------------------------------------------------------------------------
 
 func OSConnectionHttp.*Create(aserver : ONanoServer):
@@ -381,10 +265,10 @@ func OSConnectionHttp.*Create(aserver : ONanoServer):
     outbuf = ''
     file_obj = nil
 
-    ucheaders = new OStrMap()
-    response_headers = new OStrMap()
-    qsvars = new OStrMap()
-    cookies = new OStrMap()
+    ucheaders = new OStrStrMap()
+    response_headers = new OStrStrMap()
+    qsvars = new OStrStrMap()
+    cookies = new OStrStrMap()
 
     header_length = 0
     uri = ''
@@ -783,7 +667,7 @@ func ONanoHttpServer.*Create(aclass : TSConnHttpClass, alisten_port : uint16):
     inherited Create(aclass, alisten_port)
 
     server_id = 'NanoHttpServer'
-    ct_by_ext = new OStrMap()
+    ct_by_ext = new OStrStrMap()
 
     InitContentTypeMap()
 endfunc

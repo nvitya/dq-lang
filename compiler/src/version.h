@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.74.0"
+#define DQ_COMPILER_VERSION  "0.74.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.74.1:
+  - Bugfix: .dqm_if ordering fix to put enums to front
 v0.74.0:
   - BREAKING CHANGE: object, struct and union forward declaration must end with ".."
 v0.73.1:

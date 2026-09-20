@@ -1639,9 +1639,23 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
           : (TK_UNION == decl->ptype->kind ? DQMIF_UNION_FWD : DQMIF_STRUCT_FWD);
       if (!writer.AddRecStr(recid, decl->ptype->name)) return false;
     }
+
+    // Embedded object fields are read immediately.  Unlike compounds, enums
+    // cannot be forward-declared, so make their definitions available before
+    // any embedded compound can refer to them.
     for (OIntfDecl * decl : embedded->module->declarations)
     {
-      if (embedded->declarations.contains(decl) && !write_declaration(decl)) return false;
+      if (embedded->declarations.contains(decl) && IDK_TYPE == decl->kind && decl->ptype
+          && decl->ptype->kind == TK_ENUM && !write_declaration(decl))
+      {
+        return false;
+      }
+    }
+    for (OIntfDecl * decl : embedded->module->declarations)
+    {
+      if (embedded->declarations.contains(decl)
+          && (IDK_TYPE != decl->kind || !decl->ptype || decl->ptype->kind != TK_ENUM)
+          && !write_declaration(decl)) return false;
     }
     if (!writer.AddRecEmpty(DQMIF_EMBED_MODULE_END)) return false;
   }

@@ -182,14 +182,14 @@ func OTextBox.SetText(text : str):
         Clear(0)
         return
     endif
-    var width : int = font.TextWidth(text)
-    var height : int = font.Height()
-    if width < 1:
-        width = 1
+    var lwidth : int = font.TextWidth(text)
+    var lheight : int = font.Height()
+    if lwidth < 1:
+        lwidth = 1
     endif
-    if height < 1:
-        height = 1
+    if lheight < 1:
+        lheight = 1
     endif
-    SetSize(width, height)
+    SetSize(lwidth, lheight)
     font.RenderToAlphaMap(text, self)
 endfunc

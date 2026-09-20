@@ -5,7 +5,6 @@
 use print
 use math
 use strutils
-use rtl/strfunc
 use ./openglutils
 use ./ddgfx
 use ./ddgfx_font
@@ -21,8 +20,8 @@ const font_pixels   : int = 2*56  // Render large, then scale the glyphs down.
 
 
 // rand and srand are provided by the C runtime linked with native DQ programs.
-func libc_rand() -> int32 [[external('rand')]] ..
-func libc_srand(seed : uint32) [[external('srand')]] ..
+func libc_rand() -> int32       [[external('rand')]] ..
+func libc_srand(seed : uint32)  [[external('srand')]] ..
 
 func RandomUnit() -> float64:
     return libc_rand() / 2147483647.0
@@ -111,7 +110,7 @@ func OFlyingLettersScene.*Create(window : pointer):
         character[0] = characters[libc_rand() rem (characters.length - 1)]
         character[1] = char16(0)
 
-        var text : str = StrfFromUtf16(character)
+        var text : str = StrFromUtf16(character)
         var letter : OFlyingLetter = new OFlyingLetter(root, font, text)
         letter.color = {
             0.25 + 0.75 * RandomUnit(),

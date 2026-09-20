@@ -52,10 +52,10 @@ struct SDdColor:  // use struct literal to set this. e.g: {1.0, 0.5, 0.5, 1.0}
     a  : float32
 endstruct
 
-func DdMatIdentity() -> SDdMatrix; ..
-func DdMatMultiply(first : SDdMatrix, second : SDdMatrix) -> SDdMatrix; ..
-func DdMatTransformPoint(matrix : SDdMatrix, point : SDdVertex) -> SDdVertex; ..
-func DdMatProjection(width : int, height : int) -> SDdMatrix; ..
+func DdMatIdentity() -> SDdMatrix ..
+func DdMatMultiply(first : SDdMatrix, second : SDdMatrix) -> SDdMatrix ..
+func DdMatTransformPoint(matrix : SDdMatrix, point : SDdVertex) -> SDdVertex ..
+func DdMatProjection(width : int, height : int) -> SDdMatrix ..
 
 //-----------------------------------------------------------------------------
 

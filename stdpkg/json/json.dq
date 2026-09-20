@@ -701,19 +701,11 @@ func OJson.ChildByName(aname : rostr) -> OJson:
     if m_kind <> nkObject:
         return nil
     endif
-#if false
-    for i : int = 0 count m_children.length:
-        if m_children[i].m_name == aname:
-            return m_children[i]
+    for lchild :? in m_children:
+        if lchild.m_name == aname:
+            return lchild
         endif
     endfor
-#else // 2
-    for child :? in m_children:
-        if child.m_name == aname:
-            return child
-        endif
-    endfor
-#endif
 
     return nil
 endfunc

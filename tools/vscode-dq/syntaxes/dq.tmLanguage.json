@@ -240,7 +240,7 @@
               "name": "punctuation.section.parameters.begin.dq"
             }
           },
-          "end": "(?=[:;{]|$)",
+          "end": "(?=[:;{]|\\.\\.|$)",
           "patterns": [
             {
               "include": "#attributes"
@@ -273,7 +273,7 @@
       "patterns": [
         {
           "name": "meta.compound.dq",
-          "begin": "\\b(struct|object)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(\\()\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(\\)))?",
+          "begin": "\\b(struct|union|object)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(\\()\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(\\)))?",
           "beginCaptures": {
             "1": {
               "name": "keyword.control.dq"
@@ -291,7 +291,7 @@
               "name": "punctuation.section.inheritance.end.dq"
             }
           },
-          "end": "(?=[:{])"
+          "end": "(?=[:{]|\\.\\.)"
         }
       ]
     },

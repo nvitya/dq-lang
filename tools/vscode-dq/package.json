@@ -2,7 +2,7 @@
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
   "description": "DQ editing, language-server, build, and debug support.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {

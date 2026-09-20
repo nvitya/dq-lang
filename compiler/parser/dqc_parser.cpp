@@ -1169,6 +1169,27 @@ void ODqCompParser::ParseCompoundBlockStart(const string & end_keyword, string &
   rblock_closer = end_keyword;
 }
 
+ODqCompParser::ECompoundDeclStart ODqCompParser::ParseCompoundDeclStart(bool is_forward_def,
+                                                                          const TDiagDefErr & missing_error)
+{
+  scf->SkipSpaces(false);
+  if (scf->CheckSymbol(".."))
+  {
+    if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
+    {
+      g_module->OModuleBase::declarations.back()->is_forward = true;
+    }
+    return CDS_FORWARD;
+  }
+  if (scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false))
+  {
+    return CDS_BLOCK;
+  }
+
+  Error(missing_error);
+  return CDS_INVALID;
+}
+
 bool ODqCompParser::CheckCompoundBlockEnd(const string & block_closer)
 {
   return !block_closer.empty() && scf->CheckSymbol(block_closer.c_str());
@@ -1232,14 +1253,6 @@ void ODqCompParser::ParseStructDecl()
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     ctype->is_packed = attr->IsSet(ATTF_PACKED);
-    if (attr->IsSet(ATTF_FORWARD))
-    {
-      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
-      {
-        g_module->OModuleBase::declarations.back()->is_forward = true;
-      }
-      return;
-    }
   }
 
 
@@ -1288,6 +1301,17 @@ void ODqCompParser::ParseStructDecl()
       discard_failed_new_decl();
       return;
     }
+  }
+
+  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_STRUCT_BODY_OR_FORWARD_EXPECTED);
+  if (CDS_FORWARD == decl_start)
+  {
+    return;
+  }
+  if (CDS_INVALID == decl_start)
+  {
+    discard_failed_new_decl();
+    return;
   }
 
   string block_closer;
@@ -1533,14 +1557,21 @@ void ODqCompParser::ParseUnionDecl()
     {
       ErrorTxt(DQERR_NOT_SUPPORTED, "packed union");
     }
-    if (attr->IsSet(ATTF_FORWARD))
+  }
+
+  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_UNION_BODY_OR_FORWARD_EXPECTED);
+  if (CDS_FORWARD == decl_start)
+  {
+    return;
+  }
+  if (CDS_INVALID == decl_start)
+  {
+    if (!is_forward_def)
     {
-      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
-      {
-        g_module->OModuleBase::declarations.back()->is_forward = true;
-      }
-      return;
+      g_module->DiscardTypeDeclaration(union_type);
+      delete union_type;
     }
+    return;
   }
 
   if (!ParseUnionMembers(union_type) && !is_forward_def)
@@ -2534,18 +2565,13 @@ void ODqCompParser::ParseObjectDecl()
     }
   }
 
-  scf->SkipSpaces(false);
-  if (scf->CheckSymbol(".."))
+  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED);
+  if (CDS_FORWARD == decl_start)
   {
-    if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
-    {
-      g_module->OModuleBase::declarations.back()->is_forward = true;
-    }
     return;
   }
-  if (!scf->CheckSymbol(":", false) && !scf->CheckSymbol("{", false))
+  if (CDS_INVALID == decl_start)
   {
-    Error(DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED);
     discard_failed_new_decl();
     return;
   }

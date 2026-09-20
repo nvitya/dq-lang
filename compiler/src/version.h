@@ -16,7 +16,7 @@
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
 v0.74.0:
-  - BREAKING CHANGE: Object forward declaration must end with ".."
+  - BREAKING CHANGE: object, struct and union forward declaration must end with ".."
 v0.73.1:
   - Loop variables can override existing object members
   - Warning on defining local variable with the name of existing object member

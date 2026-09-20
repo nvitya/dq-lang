@@ -1,0 +1,3 @@
+// Forward declarations must use '..', not an attribute.
+
+object OLegacyForward [[forward]] .. //?error(AttrUnknown)

@@ -1,0 +1,20 @@
+// Forward declarations use '..' consistently for compound types.
+
+use libc/stdio
+
+union UForward ..
+
+struct SHolder:
+    value : ^UForward
+endstruct
+
+union UForward:
+    value : int
+    alternate : uint
+endunion
+
+func *Main():
+    var forward : UForward
+    forward.value = 42
+    @.printf("forward-union = %d\n", forward.value) //?check("forward-union", 42)
+endfunc

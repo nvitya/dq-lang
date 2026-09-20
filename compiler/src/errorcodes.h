@@ -257,7 +257,9 @@ DEF_DQ_ERR(DQERR_FUNCPAR_DEFAULT_REF,              "FuncParDefaultRef",      "Re
 DEF_DQ_ERR(DQERR_FUNC_RETTYPE_EXPECTED,            "FuncRettypeExpected",    "Function return type identifier expected after \"->\"");
 DEF_DQ_ERR(DQERR_FUNC_NO_BODY_ALLOWED_AFTER,       "FuncNoBodyAllowed",      "Function body is not allowed after $1");
 DEF_DQ_ERR(DQERR_FUNC_BODY_OR_FORWARD_EXPECTED,    "FuncBodyOrForward",      "Function body \":\" or forward declaration marker \"..\" is expected");
+DEF_DQ_ERR(DQERR_STRUCT_BODY_OR_FORWARD_EXPECTED,  "StructBodyOrForward",    "Struct body \":\" or forward declaration marker \"..\" is expected");
 DEF_DQ_ERR(DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED,  "ObjectBodyOrForward",    "Object body \":\" or forward declaration marker \"..\" is expected");
+DEF_DQ_ERR(DQERR_UNION_BODY_OR_FORWARD_EXPECTED,   "UnionBodyOrForward",     "Union body \":\" or forward declaration marker \"..\" is expected");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_NOT_SET,              "FuncResultNotSet",       "Function \"$1\" result is not set");
 DEF_DQ_ERR(DQERR_FUNC_RESULT_SPECIFIED,            "FuncResultSet",          "Function \"$1\" result is set for function returning no value");
 DEF_DQ_ERR(DQERR_FUNC_FORWARD_NOT_DEFINED,         "FuncForwardNotDefined",  "Function \"$1\" is declared but not defined");

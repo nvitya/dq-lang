@@ -34,6 +34,13 @@ class ODqCompParser : public ODqCompParserStmt
 private:
   using             super = ODqCompParserStmt;
 
+  enum ECompoundDeclStart
+  {
+    CDS_BLOCK,
+    CDS_FORWARD,
+    CDS_INVALID
+  };
+
 public:
   ODqCompParser();
   virtual ~ODqCompParser();
@@ -57,6 +64,7 @@ public: // utility
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
 
 protected:
+  ECompoundDeclStart ParseCompoundDeclStart(bool is_forward_def, const TDiagDefErr & missing_error);
   void    ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer);
   bool    CheckCompoundBlockEnd(const string & block_closer);
   bool    ParseUnionMembers(OCompoundType * union_type);

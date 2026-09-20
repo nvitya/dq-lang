@@ -1,0 +1,19 @@
+// Struct forward declarations use the same explicit '..' marker as functions.
+
+use libc/stdio
+
+struct SForward ..
+
+struct SHolder:
+    value : ^SForward
+endstruct
+
+struct SForward:
+    value : int
+endstruct
+
+func *Main():
+    var forward : SForward
+    forward.value = 42
+    @.printf("forward-struct = %d\n", forward.value) //?check("forward-struct", 42)
+endfunc

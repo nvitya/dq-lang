@@ -1,0 +1,18 @@
+// Object forward declarations use the same explicit '..' marker as functions.
+
+use libc/stdio
+
+object OForward ..
+
+object OHolder:
+    value : OForward
+endobject
+
+object OForward:
+    value : int = 42
+endobject
+
+func *Main():
+    var forward <- OForward()
+    @.printf("forward-object = %d\n", forward.value) //?check("forward-object", 42)
+endfunc

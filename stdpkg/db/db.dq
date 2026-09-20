@@ -30,8 +30,8 @@ struct SFieldInfo:  // 72 bytes
     _pad  : [2]byte
 endstruct
 
-object ODbConnection  [[forward]]
-object ODbDataSource  [[forward]]
+object ODbConnection  ..
+object ODbDataSource  ..
 
 object EDbField(Exception):
 endobject

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.73.1"
+#define DQ_COMPILER_VERSION  "0.74.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.74.0:
+  - BREAKING CHANGE: Object forward declaration must end with ".."
 v0.73.1:
   - Loop variables can override existing object members
   - Warning on defining local variable with the name of existing object member

@@ -2491,14 +2491,6 @@ void ODqCompParser::ParseObjectDecl()
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
     object_type->is_packed = attr->IsSet(ATTF_PACKED);
-    if (attr->IsSet(ATTF_FORWARD))
-    {
-      if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
-      {
-        g_module->OModuleBase::declarations.back()->is_forward = true;
-      }
-      return;
-    }
   }
 
 
@@ -2540,6 +2532,22 @@ void ODqCompParser::ParseObjectDecl()
       discard_failed_new_decl();
       return;
     }
+  }
+
+  scf->SkipSpaces(false);
+  if (scf->CheckSymbol(".."))
+  {
+    if (!is_forward_def && !g_module->OModuleBase::declarations.empty())
+    {
+      g_module->OModuleBase::declarations.back()->is_forward = true;
+    }
+    return;
+  }
+  if (!scf->CheckSymbol(":", false) && !scf->CheckSymbol("{", false))
+  {
+    Error(DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED);
+    discard_failed_new_decl();
+    return;
   }
 
   string block_closer;

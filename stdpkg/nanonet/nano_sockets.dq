@@ -18,8 +18,8 @@ use socket
 
 enum NSocketType = (stTcp4, stUdp4)
 
-object ONanoServer    [[forward]]
-object OSocketWatcher [[forward]]
+object ONanoServer    ..
+object OSocketWatcher ..
 
 object ENanoNet(Exception):
 endobject

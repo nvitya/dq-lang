@@ -1,0 +1,117 @@
+object OStrStrMapItem:
+    key   : str
+    value : str
+
+    func *Create(akey : str, avalue : str) ..
+endobject
+
+object OStrStrMap:
+protected
+    m_items : [*]OStrStrMapItem
+
+    func FindKey(akey : str) -> int ..
+    func GetKey(aindex : int) -> str ..
+    func GetValue(aindex : int) -> str ..
+
+public
+    func *Destroy() ..
+
+    func Clear() ..
+    func Add(akey : str, avalue : str) ..
+    func SetItem(akey : str, avalue : str) ..
+    func GetItem(akey : str) -> str ..
+    func KeyDataDef(akey : str, adefvalue : str) -> str ..
+    func Delete(akey : str) ..
+    func IndexOf(akey : str) -> int ..
+
+    func GetLength() -> int:
+        return m_items.length
+    endfunc
+
+    property item   : [akey : str]str  default  read GetItem  write SetItem
+    property key    : [aindex : int]str             read GetKey
+    property value  : [aindex : int]str             read GetValue
+    property length : int  read GetLength
+endobject
+
+implementation
+
+func OStrStrMapItem.*Create(akey : str, avalue : str):
+    key = akey
+    value = avalue
+endfunc
+
+func OStrStrMap.*Destroy():
+    Clear()
+endfunc
+
+func OStrStrMap.Clear():
+    while m_items.length > 0:
+        delete m_items.Pop()
+    endwhile
+endfunc
+
+func OStrStrMap.FindKey(akey : str) -> int:
+    for i : int = 0 count m_items.length:
+        if m_items[i].key == akey:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+func OStrStrMap.IndexOf(akey : str) -> int:
+    return FindKey(akey)
+endfunc
+
+func OStrStrMap.Add(akey : str, avalue : str):
+    SetItem(akey, avalue)
+endfunc
+
+func OStrStrMap.SetItem(akey : str, avalue : str):
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        m_items[idx].value = avalue
+    else:
+        m_items.Append(new OStrStrMapItem(akey, avalue))
+    endif
+endfunc
+
+func OStrStrMap.GetItem(akey : str) -> str:
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        return m_items[idx].value
+    endif
+    return ''
+endfunc
+
+func OStrStrMap.KeyDataDef(akey : str, adefvalue : str) -> str:
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        return m_items[idx].value
+    endif
+    return adefvalue
+endfunc
+
+func OStrStrMap.Delete(akey : str):
+    var idx : int = FindKey(akey)
+    if idx >= 0:
+        var litem : OStrStrMapItem = m_items[idx]
+        m_items.Delete(idx)
+        delete litem
+    endif
+endfunc
+
+func OStrStrMap.GetKey(aindex : int) -> str:
+    if not 0 <= aindex < m_items.length:
+        return ''
+    endif
+    return m_items[aindex].key
+endfunc
+
+func OStrStrMap.GetValue(aindex : int) -> str:
+    if not 0 <= aindex < m_items.length:
+        return ''
+    endif
+    return m_items[aindex].value
+endfunc

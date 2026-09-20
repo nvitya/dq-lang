@@ -43,6 +43,7 @@ public: // statement blocks
 protected:
   void ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember);
   OType * GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype);
+  void WarnLocalVarObjectMemberCollision(const string & name, OScPosition & scpos);
 
   int except_depth = 0;
   vector<string> expected_block_closers;

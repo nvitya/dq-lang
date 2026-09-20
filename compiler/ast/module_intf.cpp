@@ -905,13 +905,37 @@ static bool ModuleSourceExists(const filesystem::path & source_path)
   return g_source_overlay.Exists(source_path);
 }
 
+static void PrintModuleChildDiagnostics(const string & output)
+{
+  for (size_t begin = 0; begin < output.size(); )
+  {
+    size_t end = output.find('\n', begin);
+    string_view line(output.data() + begin, (end == string::npos ? output.size() : end) - begin);
+    bool is_diagnostic = g_opt.diagnostic_json
+        ? line.starts_with("{\"kind\":\"diagnostic\"")
+        : (line.contains(" ERROR(") || line.contains(" WARNING(") || line.contains(" HINT("));
+    if (is_diagnostic)
+    {
+      print("{}\n", line);
+    }
+    if (end == string::npos)
+    {
+      break;
+    }
+    begin = end + 1;
+  }
+}
+
 static bool RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason)
 {
   OProcessRunner procrunner;
   procrunner.args = args;
   bool exec_ok = procrunner.Run();
+
   if (exec_ok && (0 == procrunner.exit_code))
   {
+    PrintModuleChildDiagnostics(procrunner.stdout_text);
+    PrintModuleChildDiagnostics(procrunner.stderr_text);
     return true;
   }
 

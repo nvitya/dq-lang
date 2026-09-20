@@ -76,6 +76,15 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   return (ptrtype && ptrtype->IsTypedPointer()) ? rdetectedtype : nullptr;
 }
 
+void ODqCompParserStmt::WarnLocalVarObjectMemberCollision(const string & name, OScPosition & scpos)
+{
+  if (curvsfunc && curvsfunc->owner_compound_type
+      && curvsfunc->owner_compound_type->FindMemberSymbol(name))
+  {
+    Warning(DQWARN_LOCAL_VAR_OBJECT_MEMBER, name, &scpos);
+  }
+}
+
 
 void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 {
@@ -330,6 +339,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
   else
   {
+    WarnLocalVarObjectMemberCollision(sid, scpos_statement_start);
     pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
     if (fixed_object)
     {
@@ -453,6 +463,7 @@ void ODqCompParserStmt::ParseStmtRef()
 
   CheckStatementClose();
 
+  WarnLocalVarObjectMemberCollision(sid, scpos_statement_start);
   pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
   pvalsym->param_mode = FPM_REF;
   pvalsym->is_ref_alias = true;
@@ -1546,6 +1557,21 @@ void ODqCompParserStmt::ParseStmtFor()
     return new OCompareExpr(op, new OLValueVar(var), right);
   };
 
+  auto find_loopvar = [&](const string & name) -> OValSym *
+  {
+    OScope * found_scope = nullptr;
+    OValSym * result = saved_scope->FindValSym(name, &found_scope);
+
+    // Object members are available as implicit expressions in method bodies,
+    // but cannot provide storage for a loop-local declaration.
+    if (curvsfunc && curvsfunc->owner_compound_type
+        && (found_scope == curvsfunc->owner_compound_type->Members()))
+    {
+      return nullptr;
+    }
+    return result;
+  };
+
   string loopvar_name;
   scf->SkipWhite();
   if (!scf->ReadIdentifier(loopvar_name))
@@ -1622,7 +1648,7 @@ void ODqCompParserStmt::ParseStmtFor()
       elemtype = static_cast<OTypeDynArray *>(arraytype)->elemtype;
     }
 
-    OValSym * loopvar = saved_scope->FindValSym(loopvar_name);
+    OValSym * loopvar = find_loopvar(loopvar_name);
     bool declare_loopvar = false;
     if (infer_type)
     {
@@ -1675,6 +1701,7 @@ void ODqCompParserStmt::ParseStmtFor()
     st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, indexvar, new OIntLit(0)));
     if (declare_loopvar)
     {
+      WarnLocalVarObjectMemberCollision(loopvar_name, scpos_statement_start);
       st->init->scope->DefineValSym(loopvar);
       st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, nullptr));
     }
@@ -1718,7 +1745,7 @@ void ODqCompParserStmt::ParseStmtFor()
     return;
   }
 
-  OValSym * loopvar = saved_scope->FindValSym(loopvar_name);
+  OValSym * loopvar = find_loopvar(loopvar_name);
   bool declare_loopvar = false;
 
   if (specified_type)
@@ -1780,6 +1807,7 @@ void ODqCompParserStmt::ParseStmtFor()
 
   if (declare_loopvar)
   {
+    WarnLocalVarObjectMemberCollision(loopvar_name, scpos_statement_start);
     st->init->scope->DefineValSym(loopvar);
     st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, start_expr));
   }

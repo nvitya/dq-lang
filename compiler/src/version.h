@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.73.0"
+#define DQ_COMPILER_VERSION  "0.73.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.73.1:
+  - Loop variables can override existing object members
+  - Warning on defining local variable with the name of existing object member
 v0.73.0:
   - Range compare expressions: x <= y < z
 v0.72.1:

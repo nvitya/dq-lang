@@ -136,8 +136,8 @@ endfunc
 
 func OJson.Clear():
     while m_children.length > 0:
-        var child : OJson = m_children.Pop()
-        delete child
+        var jch : OJson = m_children.Pop()
+        delete jch
     endwhile
 endfunc
 
@@ -448,8 +448,8 @@ func OJson.ParseObject(sp : OStrParse):
         endif
         sp.readp += 1
 
-        var child : OJson = AddNode(n, nkNull)
-        child.ParseValue(sp)
+        var jch : OJson = AddNode(n, nkNull)
+        jch.ParseValue(sp)
 
         sp.SkipSpaces()
         if sp.readp >= sp.bufend:
@@ -480,8 +480,8 @@ func OJson.ParseArray(sp : OStrParse):
     endif
 
     while true:
-        var child : OJson = AddNode('', nkNull)
-        child.ParseValue(sp)
+        var lchild : OJson = AddNode('', nkNull)
+        lchild.ParseValue(sp)
 
         sp.SkipSpaces()
         if sp.readp >= sp.bufend:
@@ -701,12 +701,19 @@ func OJson.ChildByName(aname : rostr) -> OJson:
     if m_kind <> nkObject:
         return nil
     endif
-
+#if false
     for i : int = 0 count m_children.length:
         if m_children[i].m_name == aname:
             return m_children[i]
         endif
     endfor
+#else // 2
+    for child :? in m_children:
+        if child.m_name == aname:
+            return child
+        endif
+    endfor
+#endif
 
     return nil
 endfunc
@@ -718,25 +725,25 @@ func OJson.FindNode(apath : rostr) -> OJson:
     endif
 
     var cur : OJson = self
-    var name : str = ''
+    var lname : str = ''
 
     for i : int = 0 count apath.length:
         var c : char = apath[i]
         if c == '.'  or c == '/':
-            if name <> '':
-                cur = cur.ChildByName(name)
+            if lname <> '':
+                cur = cur.ChildByName(lname)
                 if cur == nil:
                     return nil
                 endif
-                name = ''
+                lname = ''
             endif
         else:
-            name.Append(char(c))
+            lname.Append(char(c))
         endif
     endfor
 
-    if name <> '':
-        cur = cur.ChildByName(name)
+    if lname <> '':
+        cur = cur.ChildByName(lname)
         if cur == nil:
             return nil
         endif
@@ -758,38 +765,38 @@ func OJson.ForcePath(apath : rostr) -> OJson:
     // Supports: a.b.c, a/b/c
 
     var cur : OJson = self
-    var name : str = ''
+    var lname : str = ''
 
     for i : int = 0 count apath.length:
         var c : char = apath[i]
         if c == '.'  or c == '/':
-            if name <> '':
+            if lname <> '':
                 if cur.m_kind <> nkObject:
                     cur.Clear()
                     cur.m_kind = nkObject
                 endif
 
-                var next : OJson = cur.ChildByName(name)
+                var next : OJson = cur.ChildByName(lname)
                 if next == nil:
-                    next = cur.AddObj(name)
+                    next = cur.AddObj(lname)
                 endif
                 cur = next
-                name = ''
+                lname = ''
             endif
         else:
-            name.Append(char(c))
+            lname.Append(char(c))
         endif
     endfor
 
-    if name <> '':
+    if lname <> '':
         if cur.m_kind <> nkObject:
             cur.Clear()
             cur.m_kind = nkObject
         endif
 
-        var next : OJson = cur.ChildByName(name)
+        var next : OJson = cur.ChildByName(lname)
         if next == nil:
-            next = cur.AddObj(name)
+            next = cur.AddObj(lname)
         endif
         cur = next
     endif

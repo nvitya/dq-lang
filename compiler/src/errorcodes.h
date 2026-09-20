@@ -322,6 +322,7 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
 DEF_DQ_WARN(DQWARN_EMBSTR_STORAGE_SIZE,              "EmbStrStorageSize",        "embstr($1) storage size ($2) is not divisible by 4");
 DEF_DQ_WARN(DQWARN_METHOD_USE_NO_EFFECT,           "MethodUseNoEffect",      "Method-body use \"$1\" has no effect");
+DEF_DQ_WARN(DQWARN_LOCAL_VAR_OBJECT_MEMBER,        "LocalVarObjectMember",  "Local variable \"$1\" hides an object member with the same name");
 
 //-----------------------------------------------------------------------------
 // HINTS

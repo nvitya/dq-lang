@@ -4,6 +4,36 @@ object OElem:
     value : int
 endobject
 
+object OMemberNameCollision:
+    value : int
+    m_child : int
+
+    func SumValues() -> int ..
+    func LocalChild() -> int ..
+    func GetChild() -> int ..
+
+    property child : int read GetChild
+endobject
+
+implementation
+
+func OMemberNameCollision.SumValues() -> int:
+    var values : [3]int = [7, 8, 9]
+    result = 0
+    for child :? in values: //?warning(LocalVarObjectMember)
+        result += child
+    endfor
+endfunc
+
+func OMemberNameCollision.LocalChild() -> int:
+    var child : int = 5 //?warning(LocalVarObjectMember)
+    return child
+endfunc
+
+func OMemberNameCollision.GetChild() -> int:
+    return m_child
+endfunc
+
 func *Main():
     var fixed : [4]int = [10, 20, 30, 40]
     var value : int
@@ -44,4 +74,8 @@ func *Main():
         object_sum += inferred.value
     endfor
     printf("for_in objects = %li\n", object_sum) //?check("for_in objects", 606)
+
+    var collision = new OMemberNameCollision()
+    printf("for_in member collision = %li\n", collision.SumValues()) //?check("for_in member collision", 24)
+    printf("local var member collision = %li\n", collision.LocalChild()) //?check("local var member collision", 5)
 endfunc

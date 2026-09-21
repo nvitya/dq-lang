@@ -99,14 +99,14 @@ public
     func GetFloat(aname : rostr, defvalue : float) -> float ..
     func GetBool(aname : rostr, defvalue : bool) -> bool ..
     func GetStr(aname : rostr, defvalue : strslice) -> str ..
+    func GetBlob(aname : rostr) -> [*]byte ..
 
     func SetInt(aname : rostr, avalue : int) ..
     func SetFloat(aname : rostr, avalue : float) ..
     func SetBool(aname : rostr, avalue : bool) ..
     func SetStr(aname : rostr, avalue : strslice) ..
+    func SetBlob(aname : rostr, avalue : []byte) ..
     func SetNull(aname : rostr) ..
-
-    //TODO: add blob handling with [*]byte
 
     property onrow    : bool  read m_onrow
     property length   : int   read m_rowcount
@@ -395,7 +395,13 @@ func ODbRows.SetValue(aname : rostr, avalue : anyvalue):
         or (ft == ftBlob     and avalue.IsText())
         or (ft == ftDateTime and avalue.IsText())
     :
-        m_data[didx] = avalue
+        // Row data outlives the caller.  Copy text into an owned dynamic string
+        // so borrowed strslice, rostr, and embstr values cannot dangle.
+        if ft == ftText  or  ft == ftBlob  or  ft == ftDateTime:
+            m_data[didx].SetStr(avalue.AsText(""))
+        else:
+            m_data[didx] = avalue
+        endif
     else:
         raise EDbFieldType('Invalid value for field "{}" with type "{}"', [aname, @..FieldTypeName(ft)])
     endif
@@ -432,9 +438,28 @@ func ODbRows.GetStr(aname : rostr, defvalue : strslice) -> str:
     var ft : NDbFieldType
     var didx : int = GetCurRowDataIndex(aname, ft)
     if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
-        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
+        raise EDbFieldType('"{}" field "{}" is not available as Str', [@..FieldTypeName(ft), aname])
     endif
     return m_data[didx].AsStr(defvalue)
+endfunc
+
+func ODbRows.GetBlob(aname : rostr) -> [*]byte:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Blob', [@..FieldTypeName(ft), aname])
+    endif
+
+    if m_data[didx].IsNull():  // return empty array
+        return []
+    endif
+
+    var blobstr : str = m_data[didx].AsStr("")
+    result = []  // required for the DQ variable initialization checker
+    result.SetLength(blobstr.length)
+    if blobstr.length > 0:
+        @.MemCopy(%result[0], %blobstr[0], blobstr.length)
+    endif
 endfunc
 
 func ODbRows.SetInt(aname : rostr, avalue : int):
@@ -471,6 +496,21 @@ func ODbRows.SetStr(aname : rostr, avalue : strslice):
         raise EDbFieldType('"{}" field "{}" is not available as Str', [@..FieldTypeName(ft), aname])
     endif
     m_data[didx].SetStr(avalue)
+endfunc
+
+func ODbRows.SetBlob(aname : rostr, avalue : []byte):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Blob', [@..FieldTypeName(ft), aname])
+    endif
+
+    var blobstr : str = ''
+    blobstr.SetLength(avalue.length, char(0))
+    if avalue.length > 0:
+        @.MemCopy(%blobstr[0], %avalue[0], avalue.length)
+    endif
+    m_data[didx].SetStr(blobstr)
 endfunc
 
 func ODbRows.SetNull(aname : rostr):

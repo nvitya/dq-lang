@@ -33,16 +33,24 @@ func *Main():
             [rows.RowCount(), rows.FieldCount(), fname0, fname1]) //?check("db_rows.counts", "rows:2 fields:2 f0:id f1:name")
 
     rows.AddField("active", ftBool)
+    rows.AddField("blob", ftBlob)
     rows.First()
     PrintLn('db_rows.add-field-nil = active-nil:{} value:{}',
             [rows.IsNull("active"),
              rows.GetBool("active", true)]) //?check("db_rows.add-field-nil", "active-nil:true value:true")
 
     rows.SetBool("active", true)
+    var blob : [*]byte = [byte(65), byte(0), byte(66)]
+    rows.SetBlob("blob", blob)
+    var saved_blob : [*]byte = rows.GetBlob("blob")
+    PrintLn('db_rows.blob = len:{} bytes:{}:{}:{}',
+            [saved_blob.length, int(saved_blob[0]), int(saved_blob[1]), int(saved_blob[2])]) //?check("db_rows.blob", "len:3 bytes:65:0:66")
     PrintRow("db_rows.row0", rows) //?check("db_rows.row0", "idx:0 id:10 name:alpha active:true")
 
     rows.Next()
     PrintRow("db_rows.row1", rows) //?check("db_rows.row1", "idx:1 id:20 name:beta active:false")
+    var null_blob : [*]byte = rows.GetBlob("blob")
+    PrintLn('db_rows.nil-blob = len:{}', [null_blob.length]) //?check("db_rows.nil-blob", "len:0")
     var idval : anyvalue = rows.GetValue("id")
     PrintLn('db_rows.value = {}', [idval.AsInt(-1)]) //?check("db_rows.value", "20")
 
@@ -64,7 +72,7 @@ func *Main():
 
     rows.ClearRows()
     PrintLn('db_rows.clear-rows = rows:{} fields:{} onrow:{}',
-            [rows.RowCount(), rows.FieldCount(), rows.OnRow()]) //?check("db_rows.clear-rows", "rows:0 fields:3 onrow:false")
+            [rows.RowCount(), rows.FieldCount(), rows.OnRow()]) //?check("db_rows.clear-rows", "rows:0 fields:4 onrow:false")
 
     rows.Clear()
     PrintLn('db_rows.clear = rows:{} fields:{}',

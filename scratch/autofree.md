@@ -95,3 +95,30 @@ endif // all non-nil values in darr are freed automatically (and then the intern
 
 ```
 
+## Type compatibility
+
+```
+func ObjWorker(aobj : OSome):
+endfunc
+
+func ObjManipulator1(aobj : ref OSome):
+endfunc
+
+func ObjManipulator2(aobj : ref autofree OSome):
+endfunc
+
+func ObjManipulator3(aobj : refin autofree OSome):  // ERROR: use (aobj : OSome)
+endfunc
+
+func ObjManipulator4(aobj : refout autofree OSome):  // ERROR: use (aobj : ref autofree OSome)
+endfunc
+
+
+var obj : autofree OSome
+
+ObjWorker(obj) // ok, non-ref argument
+
+ObjManipulator1(obj)  // ERROR: ref types must match at autofree property
+ObjManipulator2(obj)  // ok
+
+```

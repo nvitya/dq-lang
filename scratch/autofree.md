@@ -144,40 +144,45 @@ var owned : autofree ? = darr.Pop()    // claims ownership for automatic cleanup
 
 `Delete()` removes and frees the selected `autofree` elements.
 
-Function arguments:
-```
-func ObjManipulator(aobj : ref autofree OSomeObject):
-    aobj = new OSomeObject(66)  // should free the previously pointed object,
-                                // when aobj was not nil before
-endfunc
-
-ObjManipulator(o1)  // valid
-
-func ObjManipulator2(aobj : ref OSomeObject):
-    aobj = new OSomeObject(99)
-endfunc
-
-ObjManipulator2(o1)  // ERROR: o1 is autofree type,
-                     // ObjManipulator2 expects non-autofree
-
-func ObjUser(aobj : OSomeObject):
-    if aobj <> nil:
-        aobj.DoWork()
-    endif
-endfunc
-
-ObjUser(o1) // ok, accepts autofree and non-autofree arguments too
-
-
-func SomeCreator() -> autofree OSomeObject:  // ERROR: returning an autofree type is not allowed
-    return new OSomeObject(33)
-endfunc
-
-```
+## Function arguments and type compatibility
 
 An `autofree` argument passed to a normal value parameter is borrowed. The
-callee may use it but must not retain or free it. An `autofree` value may be
-passed by `ref` only to a matching `ref autofree T` parameter.
+callee may use it but must not retain or free it. `ref` parameters require an
+exact match of the `autofree` property: an `autofree` value can be passed by
+`ref` only to a matching `ref autofree T` parameter.
+
+`refin autofree T` is invalid because it cannot transfer or replace ownership;
+use a normal value parameter for a borrowed read-only argument. A `refout autofree T`
+parameter is invalid; use `ref autofree T` so the callee can free any prior value
+before assigning the replacement.
+
+```
+func ObjWorker(aobj : OSome):
+endfunc
+
+func ObjManipulator1(aobj : ref OSome):
+endfunc
+
+func ObjManipulator2(aobj : ref autofree OSome):
+    aobj = new OSome(66)  // frees the previous object when it is not nil
+endfunc
+
+func ObjManipulator3(aobj : refin autofree OSome):  // ERROR: use (aobj : OSome)
+endfunc
+
+func ObjManipulator4(aobj : refout autofree OSome):  // ERROR: use (aobj : ref autofree OSome)
+endfunc
+
+var obj : autofree OSome
+
+ObjWorker(obj)        // ok, non-ref argument
+ObjManipulator1(obj)  // ERROR: ref types must match at autofree property
+ObjManipulator2(obj)  // ok
+
+func SomeCreator() -> autofree OSome:  // ERROR: returning an autofree type is not allowed
+    return new OSome(33)
+endfunc
+```
 
 Function result types cannot be `autofree`. A normal object or pointer result
 can be assigned to an `autofree` variable, which claims ownership of it.

@@ -19,6 +19,10 @@ var counter : OCounter = nil
 Assigning an object variable copies the reference. It does not copy the object
 or transfer ownership.
 
+Use `autofree OType` when a reference storage location must own and release a
+heap object automatically. Its moves and cleanup rules are defined in
+[`autofree` Ownership Types](autofree.md).
+
 ## Storage Forms
 
 `new OType(...)` allocates an object on the heap and returns a reference.

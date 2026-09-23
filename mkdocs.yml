@@ -35,6 +35,7 @@ nav:
       - Lexical Structure: reference/lexical-structure.md
       - Declarations and Scope: reference/declarations-and-scope.md
       - Types and Conversions: reference/types-and-conversions.md
+      - autofree Ownership Types: reference/autofree.md
       - Enumerations: reference/enums.md
       - Arrays and Slices: reference/arrays-and-slices.md
       - Strings and Characters: reference/strings-and-characters.md

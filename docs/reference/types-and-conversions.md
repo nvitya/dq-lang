@@ -20,6 +20,10 @@ DQ is statically and strictly typed. Important categories are:
 `byte` aliases `uint8`. `int` and `uint` have pointer-sized width. `Object` is
 the common object-reference type.
 
+`autofree T` adds unique heap-cleanup ownership to an object-reference or
+pointer type without changing its runtime representation. See
+[`autofree` Ownership Types](autofree.md) for its assignment and lifetime rules.
+
 ## Boolean Isolation
 
 `bool` is not an integer. Conditions and lowercase logical operators require

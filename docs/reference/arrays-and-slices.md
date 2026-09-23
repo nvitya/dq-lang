@@ -33,6 +33,10 @@ the length can be determined. Different fixed lengths are different types.
 Assignment between compatible fixed arrays copies the elements. Fixed arrays
 cannot change length or capacity.
 
+For `[N]autofree T`, whole-array assignment instead moves each owning element.
+See [`autofree` Ownership Types](autofree.md) for the element and self-assignment
+rules.
+
 ## Dynamic Arrays
 
 `[*]T` is a managed dynamic array. Assignment shares its manager/storage; a
@@ -120,3 +124,10 @@ mode when a function must replace the caller's dynamic array variable.
 
 Array equality is not a general implicit operation. Compare lengths and elements
 explicitly when sequence equality is needed.
+
+## Owning Elements
+
+`[*]autofree T` still shares its dynamic-array manager on array assignment, but
+each element is uniquely owned by that manager. Its single-element move methods,
+range-copy restrictions, and `Pop`/`PopFirst` extraction behavior are defined in
+[`autofree` Ownership Types](autofree.md).

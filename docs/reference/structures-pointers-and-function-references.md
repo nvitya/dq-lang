@@ -83,6 +83,10 @@ p^ = 11
 misaligned, expired, or otherwise unsuitable address is a runtime memory error
 or undefined at an external ABI boundary.
 
+`autofree ^T` owns a heap allocation represented by a typed pointer and releases
+it when the owner is overwritten or destroyed. See
+[`autofree` Ownership Types](autofree.md).
+
 ## Pointer Member Access
 
 A pointer to a structure is implicitly dereferenced for member access.

@@ -40,6 +40,11 @@ documents a separate ownership convention.
 View types such as `[]T`, `rostr`, `strslice`, and `embstr` borrow their underlying
 storage even when the descriptor itself is passed by value.
 
+An `autofree` value parameter is borrowed by a normal value parameter. `ref`
+parameters require matching ownership qualification; `autofree` return values
+and `refin`/`refout autofree` parameters are not allowed. See
+[`autofree` Ownership Types](autofree.md).
+
 ## Default and Named Arguments
 
 A default expression supplies an omitted trailing argument. Named arguments use

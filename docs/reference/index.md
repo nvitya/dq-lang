@@ -14,7 +14,7 @@ restrictions, and edge cases.
 | Area | Pages |
 | --- | --- |
 | Source language | [Lexical Structure](lexical-structure.md), [Declarations and Scope](declarations-and-scope.md) |
-| Types | [Types and Conversions](types-and-conversions.md), [Enums](enums.md), [Arrays and Slices](arrays-and-slices.md), [Strings and Characters](strings-and-characters.md), [`anyvalue`](anyvalue.md), [Structures, Pointers, and Function References](structures-pointers-and-function-references.md) |
+| Types | [Types and Conversions](types-and-conversions.md), [`autofree` Ownership Types](autofree.md), [Enums](enums.md), [Arrays and Slices](arrays-and-slices.md), [Strings and Characters](strings-and-characters.md), [`anyvalue`](anyvalue.md), [Structures, Pointers, and Function References](structures-pointers-and-function-references.md) |
 | Execution | [Expressions and Operators](expressions-and-operators.md), [Statements and Control Flow](statements-and-control-flow.md), [Functions](functions.md) |
 | Larger units | [Objects and Properties](objects-and-properties.md), [Modules and Packages](modules-and-packages.md) |
 | Platform access | [Attributes, Directives, and Interoperability](attributes-directives-and-interop.md), [Assembly Functions](assembly-functions.md) |

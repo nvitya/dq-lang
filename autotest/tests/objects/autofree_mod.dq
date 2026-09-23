@@ -1,0 +1,25 @@
+//?notest
+
+use libc/stdio
+
+object OAutoFreeModItem:
+public
+    id : int
+
+    func *Create(aid : int):
+        id = aid
+    endfunc
+
+    func *Destroy():
+        @stdio.printf("module.drop%d = %d\n", id, id)
+    endfunc
+endobject
+
+object OAutoFreeModBox:
+public
+    item : autofree OAutoFreeModItem
+endobject
+
+func ReplaceItem(item : ref autofree OAutoFreeModItem):
+    item = new OAutoFreeModItem(2)
+endfunc

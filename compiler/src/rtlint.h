@@ -44,6 +44,7 @@ enum ETypeKind
   TK_OBJECT_TYPE  = 30,
 
   TK_ALIAS        = 31,
+  TK_AUTOFREE     = 32,
 };
 
 // SDqTextInfo and SDqRoStrInfo charlen and info bits.

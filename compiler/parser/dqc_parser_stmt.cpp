@@ -45,6 +45,11 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   // object variables hold an object reference named by the allocated type.
   if (auto * newexpr = dynamic_cast<ONewExpr *>(ainitexpr))
   {
+    if (AsAutoFreeType(newexpr->ptype))
+    {
+      rdetectedtype = newexpr->ptype;
+      return rdetectedtype;
+    }
     OType * alloc_type = newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr;
     if (alloc_type && (TK_OBJECT == alloc_type->kind))
     {
@@ -116,6 +121,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 
   OExpr * initexpr = nullptr;
   bool infer_type = false;
+  bool infer_autofree = false;
   bool fixed_object = false;
   bool fixed_ctor_call_at_decl = false;
   vector<OExpr *> fixed_ctor_args;
@@ -127,6 +133,11 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     if (not ptype)
     {
       SkipToModuleStatementStart();
+      return;
+    }
+    if (AsAutoFreeType(ptype))
+    {
+      StatementError(DQERR_NOT_SUPPORTED, "autofree embedded object");
       return;
     }
 
@@ -155,11 +166,31 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   else if (scf->CheckSymbol(":"))
   {
     scf->SkipWhite();
-    if (scf->CheckSymbol("?"))
+    OScPosition typepos;
+    scf->SaveCurPos(typepos);
+    string typeprefix;
+    if (scf->ReadIdentifier(typeprefix) && ("autofree" == typeprefix))
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("?"))
+      {
+        infer_type = true;
+        infer_autofree = true;
+      }
+      else
+      {
+        scf->SetCurPos(typepos);
+      }
+    }
+    else
+    {
+      scf->SetCurPos(typepos);
+    }
+    if (!infer_type && scf->CheckSymbol("?"))
     {
       infer_type = true;
     }
-    else
+    else if (!infer_type)
     {
       ptype = ParseTypeSpec();
       if (not ptype)
@@ -185,8 +216,15 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
       return;
     }
+    if (AsAutoFreeType(newexpr->ptype))
+    {
+      ptype = newexpr->ptype;
+    }
+    else
+    {
     OTypeObject * new_object_type = dynamic_cast<OTypeObject *>(newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr);
     ptype = (new_object_type ? newexpr->alloc_type : newexpr->ptype);
+    }
   }
   else
   {
@@ -241,6 +279,17 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       }
       delete initexpr;
       return;
+    }
+    if (infer_autofree && !AsAutoFreeType(ptype))
+    {
+      OType * resolved = ptype->ResolveAlias();
+      if (TK_OBJECT != resolved->kind && TK_POINTER != resolved->kind)
+      {
+        StatementError(DQERR_TYPE_EXPECTED, "object or pointer", ptype->name);
+        delete initexpr;
+        return;
+      }
+      ptype = ptype->GetAutoFreeType();
     }
   }
 
@@ -356,6 +405,10 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     else if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
     {
       objsym->SetObjectStorage(OSK_OBJECT_REF);
+    }
+    if (AsAutoFreeType(pvalsym->ptype))
+    {
+      pvalsym->initialized = true;
     }
     if (pvalsym->ptype && (TK_DYN_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
     {
@@ -1298,7 +1351,8 @@ void ODqCompParserStmt::ParseStmtDelete()
   OType * ptrtype = ptrexpr->ResolvedType();
   OTypeObject * delete_object_type = dynamic_cast<OTypeObject *>(ptrtype);
   bool deleting_object = delete_object_type;
-  bool clear_after_free = deleting_object;
+  bool deleting_autofree = AsAutoFreeType(ptrexpr->ptype);
+  bool clear_after_free = deleting_object || deleting_autofree;
   if (!ptrtype || ((TK_POINTER != ptrtype->kind) && !deleting_object))
   {
     string got = (ptrtype ? ptrtype->name : "?");
@@ -1307,7 +1361,7 @@ void ODqCompParserStmt::ParseStmtDelete()
     SkipToStatementEnd();
     return;
   }
-  if (deleting_object)
+  if (deleting_object || deleting_autofree)
   {
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
     OValSym * rootvalsym = (lval ? GetAssignRootValSym(lval) : nullptr);

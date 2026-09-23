@@ -1,0 +1,96 @@
+// autofree ownership and cleanup
+
+use libc/stdio
+use rtl/mem
+
+object OItem:
+    id : int
+
+    func *Create(aid : int):
+        id = aid
+    endfunc
+
+    func *Destroy():
+        @stdio.printf("drop%d = %d\n", id, id)
+    endfunc
+endobject
+
+var global_item : autofree OItem
+
+object OBox:
+    item : autofree OItem
+endobject
+
+func Borrow(item : OItem) -> int:
+    result = item.id
+endfunc
+
+func ReturnWithAuto() -> int:
+    var item : autofree OItem = new OItem(10)
+    return item.id
+endfunc
+
+func *Main():
+    var first : autofree OItem = new OItem(1)
+    var second : autofree OItem = first
+    printf("move = %d %d\n", first == nil, second.id) //?check("move", "1 1")
+    second = new OItem(2) //?check("drop1", 1)
+    delete second
+    printf("delete.nil = %d\n", second == nil) //?check("drop2", 2)
+                                                  //?check("delete.nil", 1)
+
+    var source : [2]autofree OItem
+    source[0] = new OItem(3)
+    source[1] = new OItem(4)
+    var target : [2]autofree OItem
+    target = source
+    target = target
+    printf("fixed = %d %d %d\n", source[0] == nil, target[0].id, target[1].id) //?check("fixed", "1 3 4")
+
+    var items : [*]autofree OItem
+    var item : autofree OItem = new OItem(5)
+    items.Append(item)
+    items[0] = new OItem(16) //?check("drop5", 5)
+    items.Append(new autofree OItem(6))
+    var popped : ? = items.Pop()
+    printf("pop = %d %d\n", item == nil, popped.id) //?check("pop", "1 6")
+    delete popped //?check("drop6", 6)
+    items.Delete(0) //?check("drop16", 16)
+
+    var moved : [*]autofree OItem
+    moved.Append(new autofree OItem(14))
+    moved.Append(new autofree OItem(15))
+    moved.Append(moved[0])
+    moved.Prepend(moved[1])
+    moved.Insert(2, moved[3])
+    var alias : [*]autofree OItem = moved
+    printf("dynmove = %d %d %d %d %d\n", moved[0].id, moved[1] == nil, moved[2].id, moved[3] == nil, moved[4] == nil) //?check("dynmove", "15 1 14 1 1")
+
+    var box : autofree OBox = new OBox
+    box.item = new OItem(7)
+    box = nil //?check("drop7", 7)
+
+    var raw : autofree ^int = ^int(MemAlloc(SizeOf(int)))
+    delete raw
+    printf("raw.nil = %d\n", raw == nil) //?check("raw.nil", 1)
+
+    var borrowed : autofree OItem = new OItem(9)
+    printf("borrow = %d\n", Borrow(borrowed)) //?check("borrow", 9)
+    var ordinary : OItem = new OItem(11)
+    printf("return = %d\n", ReturnWithAuto()) //?check("drop10", 10)
+                                                //?check("return", 10)
+    delete ordinary //?check("drop11", 11)
+
+    var claimed_source : OItem = new OItem(17)
+    var claimed : autofree OItem = claimed_source
+    printf("claim = %d\n", claimed.id) //?check("claim", 17)
+    delete claimed //?check("drop17", 17)
+
+    global_item = new OItem(12)
+    global_item = new OItem(13) //?check("drop12", 12)
+    global_item = nil //?check("drop13", 13)
+endfunc //?check("drop4", 4)
+        //?check("drop3", 3)
+        //?check("drop14", 14)
+        //?check("drop15", 15)
+        //?check("drop9", 9)

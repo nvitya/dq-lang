@@ -722,8 +722,8 @@ bool OLValueIndex::IsObjectReferenceExpr() const
   OType * resolved_container = containertype ? containertype->ResolveAlias() : nullptr;
   OType * resolved_type = ptype ? ptype->ResolveAlias() : nullptr;
   return resolved_container && resolved_type
-      && (TK_DYN_ARRAY == resolved_container->kind)
-      && (TK_OBJECT == resolved_type->kind);
+      && (TK_OBJECT == resolved_type->kind)
+      && ((TK_DYN_ARRAY == resolved_container->kind) || AsAutoFreeType(ptype));
 }
 
 bool OLValueIndex::RequiresVolatileMemoryAccess() const
@@ -1591,6 +1591,10 @@ LlValue * OCompareExpr::Generate(OScope * scope)
   ll_right = right->Generate(scope);
 
   OType * optype = left->ptype;
+  if (AsAutoFreeType(optype))
+  {
+    optype = optype->ResolveAlias();
+  }
 
   if (TK_FLOAT == optype->kind)
   {

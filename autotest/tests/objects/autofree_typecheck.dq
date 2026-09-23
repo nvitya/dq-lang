@@ -1,0 +1,40 @@
+// autofree placement and compatibility errors
+
+object OTest:
+endobject
+
+var primitive : autofree int //?error(TypeExpected)
+
+struct SBad:
+    item : autofree OTest //?error(NotSupported)
+endstruct //?error(ModStatementUnknown)
+
+union UBad:
+    item : autofree OTest //?error(UnionMemberType)
+endunion
+
+object OProperty:
+    property item : autofree OTest //?error(NotSupported)
+endobject
+
+func BadRefIn(item : refin autofree OTest): //?error(NotSupported)
+endfunc
+
+func BadRefOut(item : refout autofree OTest): //?error(NotSupported)
+endfunc
+
+func BadReturn() -> autofree OTest [[external]] .. //?error(NotSupported)
+
+func NeedAuto(item : ref autofree OTest):
+endfunc
+
+func *Main():
+    var normal : OTest = nil
+    NeedAuto(normal) //?error(FuncArgRefType)
+
+    var values : [*]autofree OTest
+    values.Clone() //?error(NotSupported)
+    values.Append(values[:]) //?error(NotSupported)
+    values.Prepend(values[:]) //?error(NotSupported)
+    values.Insert(0, values[:]) //?error(NotSupported)
+endfunc

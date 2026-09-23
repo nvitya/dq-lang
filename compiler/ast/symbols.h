@@ -286,6 +286,7 @@ class OTypeFuncRef;      // forward declaration
 class OTypeArray;        // forward declaration
 class OTypeArraySlice;   // forward declaration
 class OTypeDynArray;     // forward declaration
+class OTypeAutoFree;     // forward declaration
 class OCompoundType;     // forward declaration
 class OTypeObject;       // forward declaration
 class OTypeObjectTypeRef;// forward declaration
@@ -298,6 +299,7 @@ private:
   OTypePointer *     ptr_type = nullptr;    // cached pointer-to-this type
   OTypeArraySlice *  slice_type = nullptr;  // cached slice type
   OTypeDynArray *    dyn_array_type = nullptr; // cached dynamic array type
+  OTypeAutoFree *    autofree_type = nullptr;  // cached ownership-qualified type
   map<uint32_t, OTypeArray *>  array_types; // cached fixed-size array types
 
 public:
@@ -352,12 +354,15 @@ public:
   OTypeArray *       GetArrayType(uint32_t alength);
   OTypeArraySlice *  GetSliceType();
   OTypeDynArray *    GetDynArrayType();
+  OTypeAutoFree *    GetAutoFreeType();
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
   virtual bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags);
   virtual int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags);
   virtual bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false);
+  virtual bool RequiresCleanup() const { return false; }
+  virtual void GenerateCleanup(OScope * scope, LlValue * addr) {}
   virtual bool       WriteDqmIfTypeSpec(ODqmIfWriter & writer);
   virtual bool       WriteDqmIfDecl(ODqmIfWriter & writer);
   bool               WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid) const;
@@ -433,6 +438,18 @@ public:
   bool ContainsManagedStorage() const override
   {
     return ptype && ptype->ContainsManagedStorage();
+  }
+  bool RequiresCleanup() const override
+  {
+    return ptype && ptype->RequiresCleanup();
+  }
+  void GenerateCleanup(OScope * scope, LlValue * addr) override
+  {
+    if (ptype) ptype->GenerateCleanup(scope, addr);
+  }
+  bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override
+  {
+    return ptype && ptype->GenerateAssignment(scope, targetaddr, value, volatile_store);
   }
 
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
@@ -524,6 +541,52 @@ public:
     return &instance;
   }
 };
+
+// Ownership-qualified object or pointer type.  It has the same storage and
+// expression representation as basetype, but remains distinguishable in
+// declarations and reference-parameter compatibility checks.
+class OTypeAutoFree : public OType
+{
+private:
+  using super = OType;
+
+public:
+  OType * basetype;
+
+  OTypeAutoFree(OType * abasetype)
+  :
+    super("autofree " + (abasetype ? abasetype->name : string("?")), TK_AUTOFREE),
+    basetype(abasetype)
+  {
+    bytesize = basetype ? basetype->bytesize : 0;
+    alignsize = basetype ? basetype->alignsize : 1;
+  }
+
+  void EnsureLayout() override;
+  OType * ResolveAlias() override;
+  bool ContainsManagedStorage() const override { return true; }
+  bool SupportsUnionStorage() const override { return false; }
+  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
+  OValue * CreateValue() override;
+  LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
+  int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  LlType * GetLlType() override;
+  LlDiType * CreateDiType() override;
+  bool RequiresCleanup() const override { return true; }
+  void GenerateCleanup(OScope * scope, LlValue * addr) override;
+  bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
+  void GenerateMoveAssignment(OScope * scope, LlValue * targetaddr, LlValue * sourceaddr, bool volatile_store = false);
+};
+
+inline OTypeAutoFree * AsAutoFreeType(OType * type)
+{
+  while (auto * alias = dynamic_cast<OTypeAlias *>(type))
+  {
+    type = alias->ptype;
+  }
+  return dynamic_cast<OTypeAutoFree *>(type);
+}
 
 // Values
 

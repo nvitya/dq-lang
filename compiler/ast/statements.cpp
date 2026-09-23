@@ -30,7 +30,11 @@ bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
                                  LlValue * targetaddr, OExpr * value,
                                  bool volatile_store)
 {
-  OType * resolved_type = targettype ? targettype->ResolveAlias() : nullptr;
+  OType * resolved_type = AsAutoFreeType(targettype);
+  if (!resolved_type)
+  {
+    resolved_type = targettype ? targettype->ResolveAlias() : nullptr;
+  }
   if (!resolved_type || !targetaddr || !value)
   {
     return false;
@@ -244,6 +248,28 @@ void OStmtVarDecl::Generate(OScope * scope)
 
     LlValue * ll_initaddr = initvalue->Generate(scope);
     ll_builder.CreateStore(ll_initaddr, variable->ll_value);
+    return;
+  }
+
+  if (auto * autofree = AsAutoFreeType(variable->ptype))
+  {
+    ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), variable->ll_value);
+    if (initvalue && !autofree->GenerateAssignment(scope, variable->ll_value, initvalue))
+    {
+      throw logic_error(std::format("Unsupported autofree initializer for \"{}\"", variable->name));
+    }
+    variable->initialized = true;
+    return;
+  }
+
+  if (variable->ptype && variable->ptype->RequiresCleanup())
+  {
+    ll_builder.CreateStore(llvm::Constant::getNullValue(storage_type->GetLlType()), variable->ll_value);
+    if (initvalue && !GenerateAssignmentToAddress(scope, variable->ptype, variable->ll_value, initvalue))
+    {
+      throw logic_error(std::format("Unsupported managed initializer for \"{}\"", variable->name));
+    }
+    variable->initialized = true;
     return;
   }
 

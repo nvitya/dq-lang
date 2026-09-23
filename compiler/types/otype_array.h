@@ -64,6 +64,12 @@ public:
   {
     return elemtype && elemtype->ContainsManagedStorage();
   }
+  bool RequiresCleanup() const override
+  {
+    return elemtype && elemtype->RequiresCleanup();
+  }
+  void GenerateCleanup(OScope * scope, LlValue * addr) override;
+  bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;

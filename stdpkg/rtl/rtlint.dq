@@ -35,6 +35,7 @@ const DQTK_DYN_ARRAY    : uint8 = 22   // owning dynamic array [*]T: ORawDynArra
 const DQTK_FUNCTION     : uint8 = 28
 const DQTK_FUNCREF      : uint8 = 29   // func variable (func pointer)
 const DQTK_ALIAS        : uint8 = 31
+const DQTK_AUTOFREE     : uint8 = 32
 
 type FMgrInitFunc    = func(dataptr : pointer, count : uint)
 type FMgrDestroyFunc = func(dataptr : pointer, count : uint)

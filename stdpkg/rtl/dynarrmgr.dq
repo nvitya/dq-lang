@@ -38,7 +38,9 @@ public
     func Clear(free_storage : bool = false) ..
 
     func Append(asrc : pointer, acount : int) ..
+    func AppendMove(src : pointer) -> bool ..
     func Insert(index : int, src : pointer, acount : int) ..
+    func InsertMove(index : int, src : pointer) -> bool ..
     func Prepend(src : pointer, acount : int) ..
     func Delete(index : int, acount : int = 1) ..
     func Pop(outptr : pointer) ..
@@ -63,7 +65,9 @@ func DynArrCompact(arr : ref ODynArrMgr) ..
 func DynArrClear(arr : ref ODynArrMgr, free_storage : bool = false) ..
 
 func DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int) ..
+func DynArrAppendMove(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, src : pointer) -> bool ..
 func DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : pointer, acount : int) ..
+func DynArrInsertMove(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, src : pointer) -> bool ..
 func DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1) ..
 func DynArrClone(dstarr : ref ODynArrMgr, ati : ^SDqTypeInfo, srcarr : ODynArrMgr) ..
 func DynArrPop(arr : ref ODynArrMgr, outptr : pointer) ..
@@ -380,6 +384,33 @@ func ODynArrMgr.Append(asrc : pointer, acount : int):
     length = new_length
 endfunc
 
+func ODynArrMgr.AppendMove(src : pointer) -> bool:
+    use . , mem
+    var old_length : uint = length
+    var new_length : uint = DynArrAddLength(old_length, 1)
+    if new_length <= old_length:
+        return false
+    endif
+
+    var owndata_src_index : int = DynArrOwnDataPtrOffset(dataptr, src, old_length, elemsize)
+    if new_length > capacity:
+        Reserve(new_length)
+        if capacity < new_length:
+            return false
+        endif
+    endif
+
+    var srcptr : pointer = src
+    if owndata_src_index >= 0:
+        srcptr = ^byte(dataptr)[uint(owndata_src_index) * elemsize]
+    endif
+
+    MemCopy(^byte(dataptr)[old_length * elemsize], srcptr, elemsize)
+    MemSet(srcptr, 0, elemsize)
+    length = new_length
+    return true
+endfunc
+
 func ODynArrMgr.Insert(index : int, src : pointer, acount : int):
     use . , mem
     if acount < 1:
@@ -441,6 +472,45 @@ func ODynArrMgr.Insert(index : int, src : pointer, acount : int):
     DynArrIncRefElements(dstptr, add_count, typeinfo)
 
     length = new_length
+endfunc
+
+func ODynArrMgr.InsertMove(index : int, src : pointer) -> bool:
+    use . , mem
+    var old_length : uint = length
+    var insertpos : uint = DynArrClampIndex(index, old_length)
+    var new_length : uint = DynArrAddLength(old_length, 1)
+    if new_length <= old_length:
+        return false
+    endif
+
+    var owndata_src_index : int = DynArrOwnDataPtrOffset(dataptr, src, old_length, elemsize)
+    if new_length > capacity:
+        Reserve(new_length)
+        if capacity < new_length:
+            return false
+        endif
+    endif
+
+    var tail_count : uint = old_length - insertpos
+    if tail_count > 0:
+        MemCopy(^byte(dataptr)[(insertpos + 1) * elemsize],
+                ^byte(dataptr)[insertpos * elemsize],
+                DynArrCalcByteSize(tail_count, elemsize))
+    endif
+
+    var srcptr : pointer = src
+    if owndata_src_index >= 0:
+        var srcindex : uint = owndata_src_index
+        if srcindex >= insertpos:
+            srcindex += 1
+        endif
+        srcptr = ^byte(dataptr)[srcindex * elemsize]
+    endif
+
+    MemCopy(^byte(dataptr)[insertpos * elemsize], srcptr, elemsize)
+    MemSet(srcptr, 0, elemsize)
+    length = new_length
+    return true
 endfunc
 
 func ODynArrMgr.Prepend(src : pointer, acount : int):
@@ -652,6 +722,13 @@ func DynArrAppend(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acou
     arr.Append(asrc, acount)
 endfunc
 
+func DynArrAppendMove(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, src : pointer) -> bool:
+    if arr == nil:
+        DynArrCreate(arr, ati)
+    endif
+    result = arr.AppendMove(src)
+endfunc
+
 func DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : pointer, acount : int):
     if acount < 1:
         return
@@ -660,6 +737,13 @@ func DynArrInsert(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, asrc : 
         DynArrCreate(arr, ati)
     endif
     arr.Insert(index, asrc, acount)
+endfunc
+
+func DynArrInsertMove(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, index : int, src : pointer) -> bool:
+    if arr == nil:
+        DynArrCreate(arr, ati)
+    endif
+    result = arr.InsertMove(index, src)
 endfunc
 
 func DynArrDelete(arr : ref ODynArrMgr, index : int, acount : int = 1):

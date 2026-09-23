@@ -316,6 +316,10 @@ void OTypeFunc::MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names)
 
 bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
 {
+  if (bool(AsAutoFreeType(dsttype)) != bool(AsAutoFreeType(srctype)))
+  {
+    return false;
+  }
   OType * resolved_dst = (dsttype ? dsttype->ResolveAlias() : nullptr);
   OType * resolved_src = (srctype ? srctype->ResolveAlias() : nullptr);
   auto * ptrdst = dynamic_cast<OTypePointer *>(resolved_dst);

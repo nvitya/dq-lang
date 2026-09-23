@@ -600,6 +600,33 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     }
   }
 
+  OScPosition autofree_pos;
+  scf->SaveCurPos(autofree_pos);
+  string type_prefix;
+  if (scf->ReadIdentifier(type_prefix) && ("autofree" == type_prefix))
+  {
+    OType * basetype = ParseTypeSpec(aemit_errors);
+    OType * resolved = basetype ? basetype->ResolveAlias() : nullptr;
+    if (!resolved || (TK_OBJECT != resolved->kind && TK_POINTER != resolved->kind))
+    {
+      if (aemit_errors && basetype)
+      {
+        Error(DQERR_TYPE_EXPECTED, "object or pointer", basetype->name, &autofree_pos);
+      }
+      return nullptr;
+    }
+    if (AsAutoFreeType(basetype))
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_NOT_SUPPORTED, "nested autofree type", &autofree_pos);
+      }
+      return nullptr;
+    }
+    return basetype->GetAutoFreeType();
+  }
+  scf->SetCurPos(autofree_pos);
+
   if (scf->CheckSymbol("^"))
   {
     OType * basetype = ParseTypeSpec(aemit_errors);
@@ -1062,6 +1089,23 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
         continue;
       }
 
+      if (AsAutoFreeType(ptype) && (FPM_REFIN == pmode || FPM_REFOUT == pmode))
+      {
+        if (aemit_errors)
+        {
+          Error(DQERR_NOT_SUPPORTED, (FPM_REFIN == pmode ? "refin autofree parameter" : "refout autofree parameter"));
+        }
+        if (atypespec)
+        {
+          return false;
+        }
+        if (!fail_or_recover())
+        {
+          break;
+        }
+        continue;
+      }
+
       if ((TK_DYN_ARRAY == ptype->ResolveAlias()->kind) && !ParamModeIsRefLike(pmode))
       {
         if (aemit_errors)
@@ -1224,6 +1268,14 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
     tfunc->rettype = ParseTypeSpec(aemit_errors);
     if (!tfunc->rettype)
     {
+      return false;
+    }
+    if (AsAutoFreeType(tfunc->rettype))
+    {
+      if (aemit_errors)
+      {
+        Error(DQERR_NOT_SUPPORTED, "autofree function result");
+      }
       return false;
     }
   }
@@ -1900,6 +1952,14 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
 
   if (!EnsureDynArrayRtlUse())
   {
+    return free_and_fail();
+  }
+
+  if (AsAutoFreeType(dyntype->elemtype)
+      && (DYNM_CLONE == dynmethod || DYNM_APPEND_SLICE == dynmethod
+          || DYNM_PREPEND_SLICE == dynmethod || DYNM_INSERT_SLICE == dynmethod))
+  {
+    Error(DQERR_NOT_SUPPORTED, membername + " for dynamic array with autofree elements");
     return free_and_fail();
   }
 
@@ -4256,6 +4316,11 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
     result->ctor_args = ctor_args;
     return result;
   }
+  OTypeAutoFree * autofree_type = AsAutoFreeType(alloc_type);
+  if (autofree_type)
+  {
+    alloc_type = autofree_type->basetype;
+  }
   alloc_type = alloc_type->ResolveAlias();
   alloc_type->EnsureLayout();
 
@@ -4295,6 +4360,10 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
     }
 
     ONewExpr * result = new ONewExpr(alloc_type, nullptr, memalloc_func);
+    if (autofree_type)
+    {
+      result->ptype = autofree_type;
+    }
     result->ctor_func = ctor;
     result->ctor_args = ctor_args;
     return result;
@@ -4343,7 +4412,12 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
     }
   }
 
-  return new ONewExpr(alloc_type, initexpr, memalloc_func);
+  ONewExpr * result = new ONewExpr(alloc_type, initexpr, memalloc_func);
+  if (autofree_type)
+  {
+    result->ptype = autofree_type;
+  }
+  return result;
 }
 
 OExpr * ODqCompParserExpr::ParseInheritedExpr()

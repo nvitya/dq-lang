@@ -25,6 +25,7 @@
 #include <llvm/IR/GlobalVariable.h>
 #include "otype_string.h"
 #include "otype_anyvalue.h"
+#include "statements.h"
 
 using namespace std;
 
@@ -126,12 +127,26 @@ static LlValue * IntExprValue(OScope * scope, OExpr * expr)
 
 OType * OTypeDynArray::ElementStorageType() const
 {
+  if (AsAutoFreeType(elemtype))
+  {
+    return elemtype;
+  }
   OType * etype = elemtype->ResolveAlias();
   if (TK_OBJECT == etype->kind)
   {
     return etype->GetPointerType();
   }
   return etype;
+}
+
+static LlValue * GetAutoFreeSourceAddress(OScope * scope, OExpr * value)
+{
+  auto * source = dynamic_cast<OLValueExpr *>(value);
+  if (source && AsAutoFreeType(source->ptype))
+  {
+    return source->GenerateAddress(scope);
+  }
+  return nullptr;
 }
 
 static string SanitizeLlName(const string & src)
@@ -147,6 +162,11 @@ static string SanitizeLlName(const string & src)
 
 static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
 {
+  if (elemtype && elemtype->RequiresCleanup())
+  {
+    elemtype->GenerateCleanup(nullptr, elem_addr);
+    return;
+  }
   if (auto * dyntype = dynamic_cast<OTypeDynArray *>(elemtype))
   {
     LlValue * ll_mgr = ll_builder.CreateLoad(dyntype->GetLlType(), elem_addr, "dynarr.mgr");
@@ -199,6 +219,47 @@ static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
       }
     }
   }
+}
+
+void OTypeArray::GenerateCleanup(OScope * scope, LlValue * addr)
+{
+  if (!elemtype || !elemtype->RequiresCleanup() || !addr)
+  {
+    return;
+  }
+  for (uint32_t i = 0; i < arraylength; ++i)
+  {
+    LlValue * elemaddr = ll_builder.CreateInBoundsGEP(GetLlType(), addr, {LlZero(), LlConstUInt(i)}, "autofree.array.elem");
+    elemtype->GenerateCleanup(scope, elemaddr);
+  }
+}
+
+bool OTypeArray::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  auto * source = dynamic_cast<OLValueExpr *>(value);
+  auto * source_array = dynamic_cast<OTypeArray *>(source && source->ptype ? source->ptype->ResolveAlias() : nullptr);
+  if (!elemtype || !elemtype->RequiresCleanup() || !source || !source_array || source_array->arraylength != arraylength)
+  {
+    return OType::GenerateAssignment(scope, targetaddr, value, volatile_store);
+  }
+
+  LlValue * sourceaddr = source->GenerateAddress(scope);
+  for (uint32_t i = 0; i < arraylength; ++i)
+  {
+    LlValue * targetelem = ll_builder.CreateInBoundsGEP(GetLlType(), targetaddr, {LlZero(), LlConstUInt(i)}, "autofree.array.target");
+    LlValue * sourceelem = ll_builder.CreateInBoundsGEP(GetLlType(), sourceaddr, {LlZero(), LlConstUInt(i)}, "autofree.array.source");
+    if (auto * autofree = AsAutoFreeType(elemtype))
+    {
+      autofree->GenerateMoveAssignment(scope, targetelem, sourceelem, volatile_store);
+    }
+    else
+    {
+      LlValue * sourceval = ll_builder.CreateLoad(elemtype->GetLlType(), sourceelem, "autofree.array.value");
+      elemtype->GenerateCleanup(scope, targetelem);
+      ll_builder.CreateStore(sourceval, targetelem);
+    }
+  }
+  return true;
 }
 
 static bool CanGenerateElementCopyRefs(OType * elemtype)
@@ -725,6 +786,14 @@ void OTypeDynArray::GenerateSetCapacity(OScope * scope, LlValue * dynaddr, OExpr
 
 void OTypeDynArray::GenerateAppend(OScope * scope, LlValue * dynaddr, OExpr * value)
 {
+  if (AsAutoFreeType(elemtype))
+  {
+    if (LlValue * sourceaddr = GetAutoFreeSourceAddress(scope, value))
+    {
+      CallDynArrayFunc(scope, "DynArrAppendMove", {dynaddr, GetTypeInfo(), sourceaddr});
+      return;
+    }
+  }
   LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.append.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, GetTypeInfo(), tmp, LlOne()});
@@ -740,6 +809,14 @@ void OTypeDynArray::GenerateAppendSlice(OScope * scope, LlValue * dynaddr, OExpr
 
 void OTypeDynArray::GeneratePrepend(OScope * scope, LlValue * dynaddr, OExpr * value)
 {
+  if (AsAutoFreeType(elemtype))
+  {
+    if (LlValue * sourceaddr = GetAutoFreeSourceAddress(scope, value))
+    {
+      CallDynArrayFunc(scope, "DynArrInsertMove", {dynaddr, GetTypeInfo(), LlZero(), sourceaddr});
+      return;
+    }
+  }
   LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.prepend.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), LlZero(), tmp, LlOne()});
@@ -756,6 +833,14 @@ void OTypeDynArray::GeneratePrependSlice(OScope * scope, LlValue * dynaddr, OExp
 void OTypeDynArray::GenerateInsert(OScope * scope, LlValue * dynaddr, OExpr * index, OExpr * value)
 {
   LlValue * idx = IntExprValue(scope, index);
+  if (AsAutoFreeType(elemtype))
+  {
+    if (LlValue * sourceaddr = GetAutoFreeSourceAddress(scope, value))
+    {
+      CallDynArrayFunc(scope, "DynArrInsertMove", {dynaddr, GetTypeInfo(), idx, sourceaddr});
+      return;
+    }
+  }
   LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.insert.value");
   ll_builder.CreateStore(value->Generate(scope), tmp);
   CallDynArrayFunc(scope, "DynArrInsert", {dynaddr, GetTypeInfo(), idx, tmp, LlOne()});

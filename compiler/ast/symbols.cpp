@@ -24,15 +24,17 @@
 #include "dqm_if.h"
 #include "expressions.h"
 #include "otype_array.h"
+#include "otype_compound.h"
+#include "named_scopes.h"
 #include "otype_anyvalue.h"
 #include "otype_embstr.h"
 #include "otype_func.h"
 #include "otype_int.h"
-#include "otype_compound.h"
 #include "dqc.h"
 #include "errorcodes.h"
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
+#include <llvm/IR/BasicBlock.h>
 
 using namespace std;
 
@@ -170,6 +172,7 @@ OType::~OType()
   delete ptr_type;
   delete slice_type;
   delete dyn_array_type;
+  delete autofree_type;
   for (auto & [len, arrtype] : array_types)
   {
     delete arrtype;
@@ -215,6 +218,184 @@ OTypeDynArray * OType::GetDynArrayType()
   return dyn_array_type;
 }
 
+OTypeAutoFree * OType::GetAutoFreeType()
+{
+  if (!autofree_type)
+  {
+    autofree_type = new OTypeAutoFree(this);
+  }
+  return autofree_type;
+}
+
+void OTypeAutoFree::EnsureLayout()
+{
+  if (basetype)
+  {
+    basetype->EnsureLayout();
+    if (dynamic_cast<OTypeObject *>(basetype->ResolveAlias()))
+    {
+      bytesize = TARGET_PTRSIZE;
+      alignsize = TARGET_PTRSIZE;
+    }
+    else
+    {
+      bytesize = basetype->bytesize;
+      alignsize = basetype->alignsize;
+    }
+  }
+}
+
+OType * OTypeAutoFree::ResolveAlias()
+{
+  return basetype ? basetype->ResolveAlias() : this;
+}
+
+OValSym * OTypeAutoFree::CreateValSym(OScPosition & apos, const string aname)
+{
+  if (dynamic_cast<OTypeObject *>(ResolveAlias()))
+  {
+    return new OVsObject(apos, aname, this);
+  }
+  return OType::CreateValSym(apos, aname);
+}
+
+OValue * OTypeAutoFree::CreateValue()
+{
+  return basetype ? basetype->CreateValue() : nullptr;
+}
+
+LlValue * OTypeAutoFree::GenerateConversion(OScope * scope, OExpr * src)
+{
+  return basetype ? basetype->GenerateConversion(scope, src) : nullptr;
+}
+
+bool OTypeAutoFree::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+{
+  return basetype && basetype->ConvertFromExpr(rexpr, aflags);
+}
+
+int OTypeAutoFree::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+{
+  return basetype ? basetype->GetConversionCostFromExpr(expr, aflags) : -1;
+}
+
+LlType * OTypeAutoFree::GetLlType()
+{
+  if (auto * object_type = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr))
+  {
+    return object_type->GetPointerType()->GetLlType();
+  }
+  return basetype ? basetype->GetLlType() : nullptr;
+}
+
+LlDiType * OTypeAutoFree::CreateDiType()
+{
+  return basetype ? basetype->GetDiType() : nullptr;
+}
+
+void OTypeAutoFree::GenerateCleanup(OScope * scope, LlValue * addr)
+{
+  if (!addr || !basetype)
+  {
+    return;
+  }
+
+  OScope * lookup_scope = scope ? scope : (g_module ? g_module->scope_pub : nullptr);
+  auto * memfree = dynamic_cast<OValSymFunc *>(lookup_scope ? lookup_scope->FindValSym("MemFree") : nullptr);
+  if (!memfree)
+  {
+    auto nsit = g_namespaces.find("sys");
+    if (nsit != g_namespaces.end() && nsit->second)
+    {
+      memfree = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym("MemFree", nullptr, false));
+    }
+  }
+  if (!memfree || !memfree->ll_func)
+  {
+    throw runtime_error("autofree cleanup requires MemFree");
+  }
+
+  LlValue * value = ll_builder.CreateLoad(GetLlType(), addr, "autofree.value");
+  LlValue * null_value = llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  LlValue * is_null = ll_builder.CreateICmpEQ(value, null_value, "autofree.isnull");
+  LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * free_bb = LlBasicBlock::Create(ll_ctx, "autofree.free", func);
+  LlBasicBlock * done_bb = LlBasicBlock::Create(ll_ctx, "autofree.done", func);
+  ll_builder.CreateCondBr(is_null, done_bb, free_bb);
+
+  ll_builder.SetInsertPoint(free_bb);
+  if (auto * object_type = dynamic_cast<OTypeObject *>(basetype->ResolveAlias()))
+  {
+    OValSymFunc * dtor = object_type->FindSpecialMethod(OSF_DESTROY);
+    if (object_type->is_polymorphic)
+    {
+      OTypeObject * root = object_type;
+      while (root->base_type)
+      {
+        root = root->GetBaseObject();
+      }
+      root->GetLlType();
+      LlValue * vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), value, root->vtable_field_index, "autofree.vtable.addr");
+      LlValue * vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), vptr_addr, "autofree.vtable");
+      LlValue * slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), vptr,
+          {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "autofree.dtor.slot");
+      LlValue * dtor_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), slot_addr, "autofree.dtor");
+      if (dtor)
+      {
+        ll_builder.CreateCall(static_cast<LlFuncType *>(dtor->ptype->GetLlType()), dtor_ptr, {value});
+      }
+    }
+    else if (dtor && dtor->ll_func)
+    {
+      ll_builder.CreateCall(dtor->ll_func, {value});
+    }
+  }
+  ll_builder.CreateCall(memfree->ll_func, {value});
+  ll_builder.CreateStore(null_value, addr);
+  ll_builder.CreateBr(done_bb);
+  ll_builder.SetInsertPoint(done_bb);
+}
+
+bool OTypeAutoFree::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
+{
+  if (!scope || !targetaddr || !value)
+  {
+    return false;
+  }
+
+  auto * source_lvalue = dynamic_cast<OLValueExpr *>(value);
+  OTypeAutoFree * source_type = source_lvalue ? AsAutoFreeType(source_lvalue->ptype) : nullptr;
+  if (!source_type)
+  {
+    GenerateCleanup(scope, targetaddr);
+    llvm::StoreInst * store = ll_builder.CreateStore(value->Generate(scope), targetaddr);
+    store->setVolatile(volatile_store);
+    return true;
+  }
+
+  LlValue * sourceaddr = source_lvalue->GenerateAddress(scope);
+  GenerateMoveAssignment(scope, targetaddr, sourceaddr, volatile_store);
+  return true;
+}
+
+void OTypeAutoFree::GenerateMoveAssignment(OScope * scope, LlValue * targetaddr, LlValue * sourceaddr, bool volatile_store)
+{
+  LlValue * sameaddr = ll_builder.CreateICmpEQ(targetaddr, sourceaddr, "autofree.same");
+  LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * move_bb = LlBasicBlock::Create(ll_ctx, "autofree.move", func);
+  LlBasicBlock * done_bb = LlBasicBlock::Create(ll_ctx, "autofree.assign.done", func);
+  ll_builder.CreateCondBr(sameaddr, done_bb, move_bb);
+
+  ll_builder.SetInsertPoint(move_bb);
+  LlValue * sourceval = ll_builder.CreateLoad(GetLlType(), sourceaddr, "autofree.move.value");
+  GenerateCleanup(scope, targetaddr);
+  llvm::StoreInst * store = ll_builder.CreateStore(sourceval, targetaddr);
+  store->setVolatile(volatile_store);
+  ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), sourceaddr);
+  ll_builder.CreateBr(done_bb);
+  ll_builder.SetInsertPoint(done_bb);
+}
+
 OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
 {
   OValSym * result = new OValSym(apos, aname, this);
@@ -223,6 +404,13 @@ OValSym * OType::CreateValSym(OScPosition & apos, const string aname)
 
 bool OType::WriteDqmIfTypeSpecInner(ODqmIfWriter & writer) const
 {
+  if (auto * autofree = dynamic_cast<const OTypeAutoFree *>(this))
+  {
+    if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_AUTOFREE_BEGIN)) return false;
+    if (!autofree->basetype || !autofree->basetype->WriteDqmIfTypeSpecInner(writer)) return false;
+    return writer.AddRecEmpty(DQMIF_TYPE_SPEC_AUTOFREE_END);
+  }
+
   if (auto * ptrtype = dynamic_cast<const OTypePointer *>(this))
   {
     if (ptrtype->IsNullPointer())
@@ -291,7 +479,7 @@ bool OType::WriteDqmIfTypeSpec(ODqmIfWriter & writer)
     }
   }
 
-  if ((TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind) || (TK_DYN_ARRAY == kind)
+  if ((TK_AUTOFREE == kind) || (TK_POINTER == kind) || (TK_ARRAY == kind) || (TK_ARRAY_SLICE == kind) || (TK_DYN_ARRAY == kind)
       || (TK_OBJECT_TYPE == kind))
   {
     if (!writer.AddRecEmpty(DQMIF_TYPE_SPEC_BEGIN)) return false;

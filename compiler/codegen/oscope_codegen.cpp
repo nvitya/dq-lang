@@ -44,6 +44,16 @@ void OScope::EmitOwnedObjectDestructors()
   for (auto it = owned_objects.rbegin(); it != owned_objects.rend(); ++it)
   {
     OValSym * vs = *it;
+    if (auto * autofree = AsAutoFreeType(vs ? vs->ptype : nullptr); autofree && vs->ll_value)
+    {
+      autofree->GenerateCleanup(this, vs->ll_value);
+      continue;
+    }
+    if (vs && vs->ptype && vs->ptype->RequiresCleanup() && vs->ll_value)
+    {
+      vs->ptype->GenerateCleanup(this, vs->ll_value);
+      continue;
+    }
     auto * objvar = dynamic_cast<OVsObject *>(vs);
     if (objvar && objvar->IsFixedObjectStorage())
     {

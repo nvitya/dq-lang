@@ -69,6 +69,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_ROSTR:        return "rostr";
     case TK_DYNSTR:       return "dynstr";
     case TK_ALIAS:        return "alias";
+    case TK_AUTOFREE:     return "autofree";
     case TK_ENUM:         return "enum";
     case TK_STRUCT:       return "struct";
     case TK_OBJECT:       return "object";
@@ -1995,6 +1996,30 @@ bool OModuleIntf::ReadTypeSpecInner(ODqmIfReader & reader, OType *& rtype, TDqmI
     return true;
   }
 
+  if (DQMIF_TYPE_SPEC_AUTOFREE_BEGIN == reader.recid)
+  {
+    if (!reader.ExpectEmpty(DQMIF_TYPE_SPEC_AUTOFREE_BEGIN))
+    {
+      return false;
+    }
+    OType * basetype = nullptr;
+    if (!reader.NextRec() || !ReadTypeSpec(reader, basetype))
+    {
+      return false;
+    }
+    OType * resolved = basetype ? basetype->ResolveAlias() : nullptr;
+    if (!resolved || (TK_OBJECT != resolved->kind && TK_POINTER != resolved->kind))
+    {
+      return reader.Fail("Invalid autofree DQM interface type");
+    }
+    if (!reader.NextRec() || !reader.ExpectEmpty(DQMIF_TYPE_SPEC_AUTOFREE_END))
+    {
+      return false;
+    }
+    rtype = basetype->GetAutoFreeType();
+    return true;
+  }
+
   if (reader.recid == aend_recid)
   {
     return reader.Fail("Empty DQM interface type spec");
@@ -2472,7 +2497,7 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
              || (DQMIF_TYPE_SPEC_OBJECT_TYPE_QUAL == reader.recid)
              || (DQMIF_TYPE_SPEC_PTR == reader.recid)
              || (DQMIF_TYPE_SPEC_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_SLICE_BEGIN == reader.recid)
-             || (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid))
+             || (DQMIF_TYPE_SPEC_DYN_ARRAY_BEGIN == reader.recid) || (DQMIF_TYPE_SPEC_AUTOFREE_BEGIN == reader.recid))
     {
       if (!ReadTypeSpec(reader, ptype))
       {

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.74.1"
+#define DQ_COMPILER_VERSION  "0.75.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.75.0:
+  - Implemented autofree type attribute
 v0.74.1:
   - Bugfix: .dqm_if ordering fix to put enums to front
 v0.74.0:

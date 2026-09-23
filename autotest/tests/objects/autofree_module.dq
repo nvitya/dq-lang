@@ -1,0 +1,11 @@
+// imported autofree interfaces
+
+use libc/stdio
+use ./autofree_mod
+
+func *Main():
+    var box : autofree OAutoFreeModBox = new OAutoFreeModBox
+    box.item = new OAutoFreeModItem(1)
+    ReplaceItem(box.item) //?check("module.drop1", 1)
+    printf("module.item = %d\n", box.item.id) //?check("module.item", 2)
+endfunc //?check("module.drop2", 2)

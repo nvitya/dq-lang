@@ -723,6 +723,17 @@ void OTypeObject::GenerateFieldInitializers(OScope * scope, LlValue * ll_object_
     LlValue * ll_field_addr = ll_builder.CreateStructGEP(GetLlType(), ll_object_addr,
         member->ll_field_index, member->name + ".addr");
 
+    if (member->ptype && member->ptype->RequiresCleanup())
+    {
+      OType * storage_type = member->GetStorageType();
+      ll_builder.CreateStore(llvm::Constant::getNullValue(storage_type->GetLlType()), ll_field_addr);
+      if (member->field_init_expr)
+      {
+        member->ptype->GenerateAssignment(scope, ll_field_addr, member->field_init_expr);
+      }
+      continue;
+    }
+
     if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
     {
       objmember->GenerateConstructorCall(scope, ll_field_addr);
@@ -742,6 +753,12 @@ void OTypeObject::GenerateFieldDestructors(OScope * scope, LlValue * ll_object_a
     OValSym * member = *it;
     LlValue * ll_field_addr = ll_builder.CreateStructGEP(GetLlType(), ll_object_addr,
         member->ll_field_index, member->name + ".addr");
+
+    if (member->ptype && member->ptype->RequiresCleanup())
+    {
+      member->ptype->GenerateCleanup(scope, ll_field_addr);
+      continue;
+    }
 
     if (auto * objmember = dynamic_cast<OVsObject *>(member); objmember && objmember->IsFixedObjectStorage())
     {

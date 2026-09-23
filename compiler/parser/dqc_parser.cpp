@@ -2268,6 +2268,12 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
         delete property;
         return false;
       }
+      if (AsAutoFreeType(index.ptype))
+      {
+        Error(DQERR_NOT_SUPPORTED, "autofree property index", &property->scpos);
+        delete property;
+        return false;
+      }
       property->indices.push_back(index);
 
       scf->SkipWhite();
@@ -2291,6 +2297,12 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
 
   if (!property->ptype)
   {
+    delete property;
+    return false;
+  }
+  if (AsAutoFreeType(property->ptype))
+  {
+    Error(DQERR_NOT_SUPPORTED, "autofree property", &property->scpos);
     delete property;
     return false;
   }

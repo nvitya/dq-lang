@@ -242,7 +242,7 @@ func *Main():
     PrintLn('Capitals in Europe:')
     // Query the data through a prepared statement.
 
-    var cur : autofree ODbCursor
+    var cur : autofree ODbCursor  // previous object will be freed on reassignment
 
     cur = conn.Query(
     """

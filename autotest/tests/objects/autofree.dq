@@ -13,6 +13,10 @@ object OItem:
     func *Destroy():
         @stdio.printf("drop%d = %d\n", id, id)
     endfunc
+
+    func Id() -> int:
+        return id
+    endfunc
 endobject
 
 var global_item : autofree OItem
@@ -76,6 +80,7 @@ func *Main():
 
     var borrowed : autofree OItem = new OItem(9)
     printf("borrow = %d\n", Borrow(borrowed)) //?check("borrow", 9)
+    printf("method = %d\n", borrowed.Id()) //?check("method", 9)
     var ordinary : OItem = new OItem(11)
     printf("return = %d\n", ReturnWithAuto()) //?check("drop10", 10)
                                                 //?check("return", 10)

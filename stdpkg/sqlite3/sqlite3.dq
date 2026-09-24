@@ -1,0 +1,340 @@
+
+use db
+
+#linklib('sqlite3')
+
+object OSqlite3Connection(ODbConnection):
+protected
+    m_handle : pointer = nil
+
+    func Sqlite3ErrorText() -> ^char ..
+    func Sqlite3Check(aresult : int, aoperation : ^char) ..
+
+public
+    filename : str = ''
+
+    func *Create() ..
+    func *Destroy() ..
+
+    func Open()            [[override]] ..
+    func Close()           [[override]] ..
+    func Opened() -> bool  [[override]] ..
+
+    func NativeHandle() -> pointer  [[override]] ..
+    func SetBusyTimeout(ams : int)  [[override]] ..
+
+    // Execute DDL and data-manipulation statements without result rows.
+    func Execute(asql : rostr)  [[override]] ..
+    func Query(asql : rostr) -> ODbCursor  [[override]] ..
+
+    func Begin()     [[override]] ..
+    func Commit()    [[override]] ..
+    func Rollback()  [[override]] ..
+
+
+    func Changes() -> int         [[override]] ..
+    func LastInsertId() -> int64  [[override]] ..
+    func ErrorMessage() -> str    [[override]] ..
+endobject
+
+object OSqlite3Cursor(ODbCursor):
+protected
+    m_handle : pointer = nil
+
+    func LoadFieldData() ..
+
+public
+    func *Create(aconnection : ODbConnection, ahandle : pointer) ..
+    func *Destroy() ..
+
+    func Next()           [[override]] ..
+    func First()          [[override]] ..
+
+    func IsNull(aidx : int) -> bool                       [[override, overload]] ..
+    func GetInt(aidx : int, defvalue : int) -> int        [[override, overload]] ..
+    func GetFloat(aidx : int, defvalue : float) -> float  [[override, overload]] ..
+    func GetBool(aidx : int, defvalue : bool) -> bool     [[override, overload]] ..
+    func GetStr(aidx : int, defvalue : strslice) -> str   [[override, overload]] ..
+    func GetBlob(aidx : int) -> [*]byte                   [[override, overload]] ..
+endobject
+
+
+implementation  //---------------------------------------------------------------------------------
+
+
+const SQLITE_OK   : int = 0
+const SQLITE_ROW  : int = 100
+const SQLITE_DONE : int = 101
+
+const(int):
+    SQLITE_INTEGER  = 1
+    SQLITE_FLOAT    = 2
+    SQLITE_TEXT     = 3
+    SQLITE_BLOB     = 4
+    SQLITE_NULL     = 5
+endconst
+
+// sqlite3_bind_text() copies the text before returning.
+const SQLITE_TRANSIENT : pointer = pointer(-1)
+
+func sqlite3_open(filename : ^char, db : ^pointer) -> int [[external]] ..
+func sqlite3_close(db : pointer) -> int [[external]] ..
+func sqlite3_errmsg(db : pointer) -> ^char [[external]] ..
+func sqlite3_exec(db : pointer, sql : ^char, callback : pointer, callback_data : pointer,
+                  error_message : ^pointer) -> int [[external]] ..
+func sqlite3_busy_timeout(db : pointer, ms : int) -> int [[external]] ..
+func sqlite3_changes(db : pointer) -> int [[external]] ..
+func sqlite3_last_insert_rowid(db : pointer) -> int64 [[external]] ..
+
+func sqlite3_prepare_v2(db : pointer, sql : ^char, sql_length : int, statement : ^pointer,
+                         tail : ^pointer) -> int [[external]] ..
+func sqlite3_finalize(statement : pointer) -> int [[external]] ..
+func sqlite3_reset(statement : pointer) -> int [[external]] ..
+func sqlite3_clear_bindings(statement : pointer) -> int [[external]] ..
+func sqlite3_step(statement : pointer) -> int [[external]] ..
+func sqlite3_bind_null(statement : pointer, index : int) -> int [[external]] ..
+func sqlite3_bind_int64(statement : pointer, index : int, value : int64) -> int [[external]] ..
+func sqlite3_bind_double(statement : pointer, index : int, value : float64) -> int [[external]] ..
+func sqlite3_bind_text(statement : pointer, index : int, value : ^char, value_length : int,
+                       destructor : pointer) -> int [[external]] ..
+func sqlite3_column_count(statement : pointer) -> int [[external]] ..
+func sqlite3_column_name(statement : pointer, index : int) -> ^char [[external]] ..
+func sqlite3_column_type(statement : pointer, index : int) -> int [[external]] ..
+func sqlite3_column_int64(statement : pointer, index : int) -> int64 [[external]] ..
+func sqlite3_column_double(statement : pointer, index : int) -> float64 [[external]] ..
+func sqlite3_column_text(statement : pointer, index : int) -> ^char [[external]] ..
+
+func sqlite3_column_decltype(statement : pointer, index : int) -> ^char [[external]] ..
+
+//-----------------------------------------------------------------------------
+
+func OSqlite3Connection.*Create():
+    inherited Create()
+endfunc
+
+func OSqlite3Connection.*Destroy():
+    if m_handle <> nil:
+        @.sqlite3_close(m_handle)
+        m_handle = nil
+    endif
+endfunc
+
+func OSqlite3Connection.Sqlite3ErrorText() -> ^char:
+    if m_handle == nil:
+        return 'no SQLite error message is available'
+    endif
+    return @.sqlite3_errmsg(m_handle)
+endfunc
+
+func OSqlite3Connection.Sqlite3Check(aresult : int, aoperation : ^char):
+    if aresult == @.SQLITE_OK:
+        return
+    endif
+    raise EDbConnection('{}: {} (SQLite code {})', [aoperation, Sqlite3ErrorText(), aresult])
+endfunc
+
+func OSqlite3Connection.Open()  [[override]]:
+    Close()
+    if filename == '':
+        raise EDbConnection('SQLite open: empty file name')
+    endif
+
+    var handle : pointer = nil
+    var rc : int = @.sqlite3_open(filename.pchar, %handle)
+    if rc <> @.SQLITE_OK:
+        m_handle = handle
+        var message : ^char = Sqlite3ErrorText()
+        if handle <> nil:
+            @.sqlite3_close(handle)
+        endif
+        m_handle = nil
+        raise EDbConnection('SQLite open {}: {} (SQLite code {})', [filename, message, rc])
+    endif
+
+    m_handle = handle
+endfunc
+
+func OSqlite3Connection.Close()  [[override]]:
+    if m_handle == nil:
+        return
+    endif
+
+    var handle : pointer = m_handle
+    var rc : int = @.sqlite3_close(handle)
+    if rc <> @.SQLITE_OK:
+        Sqlite3Check(rc, 'SQLite close')
+    endif
+    m_handle = nil
+endfunc
+
+func OSqlite3Connection.Opened() -> bool  [[override]]:
+    return m_handle <> nil
+endfunc
+
+func OSqlite3Connection.NativeHandle() -> pointer  [[override]]:
+    return m_handle
+endfunc
+
+func OSqlite3Connection.Execute(asql : rostr)  [[override]]:
+    if not Opened():
+        raise EDbConnection('SQLite execute: database is not open')
+    endif
+    if asql == '':
+        raise EDbStatement('SQLite execute: null SQL text')
+    endif
+
+    var r : int = @.sqlite3_exec(m_handle, asql.pchar, nil, nil, nil)
+    if r == @.SQLITE_OK:
+        return
+    endif
+
+    raise EDbStatement('SQLite execute: {} (SQLite code {})', [Sqlite3ErrorText(), r])
+endfunc
+
+func OSqlite3Connection.Query(asql : rostr) -> ODbCursor  [[override]]:
+    if not Opened():
+        raise EDbConnection('SQLite query: database is not open')
+    endif
+    if asql == '':
+        raise EDbStatement('SQLite query: null SQL text')
+    endif
+
+    var stmt_handle : pointer = nil
+    var r : int
+    r = @.sqlite3_prepare_v2(m_handle, asql.pchar, -1, %stmt_handle, nil)
+    if r <> @.SQLITE_OK:
+        raise EDbStatement('SQLite query: {} (SQLite code {})', [Sqlite3ErrorText(), r])
+    endif
+
+    result = new OSqlite3Cursor(self, stmt_handle)
+endfunc
+
+func OSqlite3Connection.Begin()  [[override]]:
+    Execute('BEGIN TRANSACTION')
+endfunc
+
+func OSqlite3Connection.Commit()  [[override]]:
+    Execute('COMMIT')
+endfunc
+
+func OSqlite3Connection.Rollback()  [[override]]:
+    Execute('ROLLBACK')
+endfunc
+
+func OSqlite3Connection.SetBusyTimeout(ams : int)  [[override]]:
+    if not Opened():
+        raise EDbConnection('SQLite busy timeout: database is not open')
+    endif
+    Sqlite3Check(@.sqlite3_busy_timeout(m_handle, ams), 'SQLite busy timeout')
+endfunc
+
+func OSqlite3Connection.Changes() -> int  [[override]]:
+    if not Opened():
+        return 0
+    endif
+    return @.sqlite3_changes(m_handle)
+endfunc
+
+func OSqlite3Connection.LastInsertId() -> int64  [[override]]:
+    if not Opened():
+        return 0
+    endif
+    return @.sqlite3_last_insert_rowid(m_handle)
+endfunc
+
+func OSqlite3Connection.ErrorMessage() -> str  [[override]]:
+    return Sqlite3ErrorText()
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func OSqlite3Cursor.*Create(aconnection : ODbConnection, ahandle : pointer):
+    inherited Create(aconnection)
+    m_handle = ahandle
+
+    LoadFieldData()
+
+    // do a first step
+    var rc : int = @.sqlite3_step(m_handle)
+    m_onrow = (rc == @.SQLITE_ROW)
+endfunc
+
+func OSqlite3Cursor.*Destroy():
+    m_fieldinfo = []
+    if m_handle <> nil:
+        @.sqlite3_finalize(m_handle)
+        m_handle = nil
+    endif
+    inherited Destroy()
+endfunc
+
+func OSqlite3Cursor.LoadFieldData():
+    m_fieldinfo = []
+    m_fieldcount = @.sqlite3_column_count(m_handle)
+    for n : uint = 0 count m_fieldcount:
+        var fi : SFieldInfo
+        fi.name = @.sqlite3_column_name(m_handle, n)
+        fi.index = n
+        fi.ftype = ftText
+
+        //var ft : int = @.sqlite3_column_type(m_handle, n)
+        //if ft == @.SQLITE_NULL:
+        //    fi.ftype = ftUnknown
+        //endif
+
+        m_fieldinfo.Append(fi)
+    endfor
+endfunc
+
+func OSqlite3Cursor.Next()  [[override]]:
+    if not m_onrow:  // do not step after done
+        return
+    endif
+    var rc : int = @.sqlite3_step(m_handle)
+    m_onrow = (rc == @.SQLITE_ROW)
+endfunc
+
+func OSqlite3Cursor.First()  [[override]]:
+    @.sqlite3_reset(m_handle)
+    var rc : int = @.sqlite3_step(m_handle)
+    m_onrow = (rc == @.SQLITE_ROW)
+endfunc
+
+func OSqlite3Cursor.IsNull(aidx : int) -> bool  [[override, overload]]:
+    return @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL
+endfunc
+
+func OSqlite3Cursor.GetInt(aidx : int, defvalue : int) -> int  [[override, overload]]:
+    if @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL:
+        return defvalue
+    endif
+    return @.sqlite3_column_int64(m_handle, aidx)
+endfunc
+
+func OSqlite3Cursor.GetFloat(aidx : int, defvalue : float) -> float  [[override, overload]]:
+    if @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL:
+        return defvalue
+    endif
+    return @.sqlite3_column_double(m_handle, aidx)
+endfunc
+
+func OSqlite3Cursor.GetBool(aidx : int, defvalue : bool) -> bool  [[override, overload]]:
+    if @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL:
+        return defvalue
+    endif
+    return @.sqlite3_column_int64(m_handle, aidx) <> 0
+endfunc
+
+func OSqlite3Cursor.GetStr(aidx : int, defvalue : strslice) -> str  [[override, overload]]:
+    if @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL:
+        return defvalue
+    endif
+    return @.sqlite3_column_text(m_handle, aidx)
+endfunc
+
+func OSqlite3Cursor.GetBlob(aidx : int) -> [*]byte  [[override, overload]]:
+    if @.sqlite3_column_type(m_handle, aidx) == @.SQLITE_NULL:
+        return []
+    endif
+    return []
+endfunc

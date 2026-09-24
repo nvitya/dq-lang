@@ -314,8 +314,16 @@ void OTypeFunc::MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names)
   }
 }
 
-bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype)
+bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype, bool ignore_source_autofree)
 {
+  if (ignore_source_autofree)
+  {
+    if (auto * autofree = AsAutoFreeType(srctype))
+    {
+      srctype = autofree->basetype;
+    }
+  }
+
   if (bool(AsAutoFreeType(dsttype)) != bool(AsAutoFreeType(srctype)))
   {
     return false;
@@ -401,7 +409,8 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
       }
     }
 
-    if (!bind_ok || !SameRefBindingType(fparam->ptype, callarg.expr->ptype))
+    bool hidden_receiver_arg = (0 == i) && ("__this" == fparam->name);
+    if (!bind_ok || !SameRefBindingType(fparam->ptype, callarg.expr->ptype, hidden_receiver_arg))
     {
       return false;
     }

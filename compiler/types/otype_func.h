@@ -148,7 +148,7 @@ public:
   bool          AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
                                      TFuncCallMatchScore & rscore) const;
 
-  static bool   SameRefBindingType(OType * dsttype, OType * srctype);
+  static bool   SameRefBindingType(OType * dsttype, OType * srctype, bool ignore_source_autofree = false);
   static int    CompareCallCandidateScore(const TFuncCallMatchScore & left,
                                           const TFuncCallMatchScore & right);
 

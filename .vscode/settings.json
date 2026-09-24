@@ -2,6 +2,12 @@
   "dq.debugTarget": "examples/db/sqlite_test_1",
   "dq.debugCwd":    "examples/db",
 
+  "dq.languageServerPath": "/workvc/dq-lang/build/dq-comp",
+  "dq.languageServerArgs": [
+    "--pkg-path",
+    "/workvc/dq-lang/stdpkg"
+  ],
+
   "files.watcherExclude": {
     "**/build-cross/**": true,
     "**/sysroots/**": true

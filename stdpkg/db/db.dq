@@ -30,7 +30,6 @@ struct SFieldInfo:  // 72 bytes
     _pad  : [2]byte
 endstruct
 
-object ODbConnection  ..
 object ODbDataSource  ..
 
 object EDbField(Exception):
@@ -43,6 +42,82 @@ object EDbFieldType(Exception):
 endobject
 
 object EDbFieldIndex(Exception):
+endobject
+
+object EDbConnection(Exception):
+endobject
+
+object EDbStatement(Exception):
+endobject
+
+object ODbCursor ..
+
+object ODbConnection:
+    func *Create():
+    endfunc
+
+    func Open()            [[virtual, abstract]] ..
+    func Close()           [[virtual, abstract]] ..
+    func Opened() -> bool  [[virtual, abstract]] ..
+    func NativeHandle() -> pointer  [[virtual, abstract]] ..
+    func SetBusyTimeout(ams : int)  [[virtual, abstract]] ..
+
+    func Execute(asql : rostr)             [[virtual, abstract]] ..
+    func Query(asql : rostr) -> ODbCursor  [[virtual, abstract]] ..
+
+    func Begin()           [[virtual, abstract]] ..
+    func Commit()          [[virtual, abstract]] ..
+    func Rollback()        [[virtual, abstract]] ..
+    func Changes() -> int  [[virtual, abstract]] ..
+
+    func LastInsertId() -> int64  [[virtual, abstract]] ..
+    func ErrorMessage() -> str    [[virtual, abstract]] ..
+
+    property opened         : bool  read Opened
+    property changes        : int   read Changes
+    property last_insert_id : int64 read LastInsertId
+endobject
+
+object ODbCursor:
+protected
+    m_connection   : ODbConnection
+
+    m_fieldinfo  : [*]SFieldInfo
+    m_fieldcount : int
+    m_onrow      : bool  // is the current row valid ?
+
+public
+    func *Create(aconnection : ODbConnection):
+        m_connection = aconnection
+    endfunc
+
+    func Next()           [[virtual, abstract]] ..
+    func First()          [[virtual, abstract]] ..
+
+    func IsNull(aidx : int) -> bool                       [[overload, virtual, abstract]] ..
+    func GetInt(aidx : int, defvalue : int) -> int        [[overload, virtual, abstract]] ..
+    func GetFloat(aidx : int, defvalue : float) -> float  [[overload, virtual, abstract]] ..
+    func GetBool(aidx : int, defvalue : bool) -> bool     [[overload, virtual, abstract]] ..
+    func GetStr(aidx : int, defvalue : strslice) -> str   [[overload, virtual, abstract]] ..
+    func GetBlob(aidx : int) -> [*]byte                   [[overload, virtual, abstract]] ..
+
+    func IsNull(aname : rostr) -> bool                       [[overload, inline]] ..
+    func GetInt(aname : rostr, defvalue : int) -> int        [[overload, inline]] ..
+    func GetFloat(aname : rostr, defvalue : float) -> float  [[overload, inline]] ..
+    func GetBool(aname : rostr, defvalue : bool) -> bool     [[overload, inline]] ..
+    func GetStr(aname : rostr, defvalue : strslice) -> str   [[overload, inline]] ..
+    func GetBlob(aname : rostr) -> [*]byte                   [[overload, inline]] ..
+
+    func OnRow() -> bool ..
+    func FieldCount() -> int ..
+    func FieldName(aindex : int) -> str ..
+    func FieldType(aindex : int) -> NDbFieldType ..
+    func FieldIndex(aname : rostr) -> int ..
+    func HasField(aname : rostr) -> bool ..
+
+    property onrow      : bool           read m_onrow
+    property connection : ODbConnection  read m_connection
+
 endobject
 
 object ODbRows:
@@ -114,47 +189,9 @@ public
 
 endobject
 
-/*
-
-object ODbDataSource:
-protected
-    m_dbconn : ODbConnection
-public
-    func First(arows : ODbRows) -> bool [[virtual]] ..
-    func Next(arows : ODbRows) -> bool  [[virtual]] ..
-    func Last(arows : ODbRows) -> bool  [[virtual]] ..
-    func Prev(arows : ODbRows) -> bool  [[virtual]] ..
-    func MoveTo(arows : ODbRows, arow : int) -> bool  [[virtual]] ..
-endobject
-
-*/
-
-/*
-object ODbConnection:
-public
-  func Open(aconnstr : str) -> bool [[virtual]] ..
-  func Close()  [[virtual]] ..
-  func IsOpen() -> bool  [[virtual]] ..
-
-  func Exec(asql : str) -> int  [[virtual]] ..
-  func Exec(asql : str, aparams : []anyvalue) -> int  [[virtual]] ..
-
-  func Query(asql : str) -> ODbRows  [[virtual]] ..
-  func Query(asql : str, aparams : []anyvalue) -> ODbRows  [[virtual]] ..
-
-  func BeginTrans() -> bool  [[virtual]] ..
-  func Commit() -> bool  [[virtual]] ..
-  func Rollback() -> bool  [[virtual]] ..
-
-  func LastInsertId() -> int64  [[virtual]] ..
-  func RowsAffected() -> int64  [[virtual]] ..
-
-  func LastError() -> str  [[virtual]] ..
-  func LastErrorCode() -> int  [[virtual]] ..
-endobject
-*/
 
 implementation
+
 
 func FieldTypeName(ft : NDbFieldType) -> str:
     if   ft == ftInt:       return 'int'
@@ -167,6 +204,69 @@ func FieldTypeName(ft : NDbFieldType) -> str:
         return 'unknown'
     endif
 endfunc
+
+//-----------------------------------------------------------------------------
+
+func ODbCursor.OnRow() -> bool:
+    return m_onrow
+endfunc
+
+func ODbCursor.FieldCount() -> int:
+    return m_fieldcount
+endfunc
+
+func ODbCursor.FieldName(aindex : int) -> str:
+    if not 0 <= aindex < m_fieldcount:
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
+    endif
+    return m_fieldinfo[aindex].name
+endfunc
+
+func ODbCursor.FieldType(aindex : int) -> NDbFieldType:
+    if not 0 <= aindex < m_fieldcount:
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
+    endif
+    return m_fieldinfo[aindex].ftype
+endfunc
+
+func ODbCursor.FieldIndex(aname : rostr) -> int:
+    for i : int = 0 count m_fieldcount:
+        if m_fieldinfo[i].name == aname:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+func ODbCursor.HasField(aname : rostr) -> bool:
+    return FieldIndex(aname) >= 0
+endfunc
+
+func ODbCursor.IsNull(aname : rostr) -> bool  [[overload, inline]]:
+    return IsNull(FieldIndex(aname))
+endfunc
+
+func ODbCursor.GetInt(aname : rostr, defvalue : int) -> int        [[overload, inline]]:
+    return GetInt(FieldIndex(aname), defvalue)
+endfunc
+
+func ODbCursor.GetFloat(aname : rostr, defvalue : float) -> float  [[overload, inline]]:
+    return GetFloat(FieldIndex(aname), defvalue)
+endfunc
+
+func ODbCursor.GetBool(aname : rostr, defvalue : bool) -> bool     [[overload, inline]]:
+    return GetBool(FieldIndex(aname), defvalue)
+endfunc
+
+func ODbCursor.GetStr(aname : rostr, defvalue : strslice) -> str   [[overload, inline]]:
+    return GetStr(FieldIndex(aname), defvalue)
+endfunc
+
+func ODbCursor.GetBlob(aname : rostr) -> [*]byte                   [[overload, inline]]:
+    return GetBlob(FieldIndex(aname))
+endfunc
+
+//-----------------------------------------------------------------------------
 
 func ODbRows.*Create():
     m_fieldcount = 0

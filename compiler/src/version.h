@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.76.0"
+#define DQ_COMPILER_VERSION  "0.76.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.76.1:
+  - autofree fix for object implicit self parameters
+  - new, unified db interface, implemented for sqlite3
 v0.76.0:
   - Implemented ++i, and --i statements
 v0.75.0:

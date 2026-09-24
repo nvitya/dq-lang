@@ -1546,7 +1546,8 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
           break;
         }
 
-        if (!OTypeFunc::SameRefBindingType(fparam->ptype, argexpr->ptype))
+        bool hidden_receiver_arg = (0 == pcnt) && ("__this" == fparam->name);
+        if (!OTypeFunc::SameRefBindingType(fparam->ptype, argexpr->ptype, hidden_receiver_arg))
         {
           string type_text = format("{} = {}", fparam->ptype->name, argexpr->ptype->name);
           ErrorTxt(DQERR_FUNC_ARG_REF_TYPE,
@@ -1568,7 +1569,6 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
         OTypeObject * ref_object_type = dynamic_cast<OTypeObject *>(fparam->ptype ? fparam->ptype->ResolveAlias() : nullptr);
         if (ref_object_type)
         {
-          bool hidden_receiver_arg = (0 == pcnt) && ("__this" == fparam->name);
           auto * root_obj = dynamic_cast<OVsObject *>(rootvalsym);
           if (!hidden_receiver_arg && root_obj && root_obj->IsFixedObjectStorage()
               && (FPM_REFIN != fparam->mode))

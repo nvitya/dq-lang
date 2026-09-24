@@ -38,7 +38,7 @@ func Fibonacci(n : uint64) -> uint64:
         newres = result + prev
         prev = result
         result = newres
-        cn += 1
+        ++cn
     endwhile
 endfunc
 

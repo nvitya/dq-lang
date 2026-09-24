@@ -498,7 +498,7 @@ func OPrimitive.*Create(mode : uint32, vertices : []SDdVertex):
     var index : int = 0
     while index < vertices.length:
         self.vertices.Append(vertices[index])
-        index += 1
+        ++index
     endwhile
 endfunc
 

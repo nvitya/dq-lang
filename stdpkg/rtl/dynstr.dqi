@@ -411,7 +411,7 @@ func DynStrIncRef(astr : ref ODynStrMgr):
     endif
 
     // TODO: add thread safety
-    astr.refcount += 1
+    ++astr.refcount
 endfunc
 
 func DynStrDecRef(astr : ref ODynStrMgr):
@@ -420,7 +420,7 @@ func DynStrDecRef(astr : ref ODynStrMgr):
     endif
 
     // TODO: add thread safety
-    astr.refcount -= 1
+    --astr.refcount
     if astr.refcount <= 0:
         delete astr = nil
     endif
@@ -568,7 +568,7 @@ func DynStrSetLengthFill(astr : ref ODynStrMgr, new_length : uint32, fillchar : 
     var i : uint32 = old_length
     while i < new_length:
         astr.dataptr[i]^ = bch
-        i += 1
+        ++i
     endwhile
 endfunc
 

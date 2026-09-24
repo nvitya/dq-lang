@@ -146,13 +146,13 @@ func DqCstrContains(text : ^char, needle : ^char) -> bool:
         var t : ^char = p
         var n : ^char = needle
         while n^ <> char(0) and t^ == n^:
-            t += 1
-            n += 1
+            ++t
+            ++n
         endwhile
         if n^ == char(0):
             return true
         endif
-        p += 1
+        ++p
     endwhile
 
     return false
@@ -182,8 +182,8 @@ func DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
         if t^ <> n^:
             return false
         endif
-        t += 1
-        n += 1
+        ++t
+        ++n
     endwhile
     return t^ == char(0)  or  t^ == char(124)
 endfunc
@@ -218,7 +218,7 @@ func DqReadUleb(p : ref ^byte, pend : ^byte) -> uint64:
     var shift : uint = 0
     while p < pend:
         var b : uint8 = p^
-        p += 1
+        ++p
         result |= (uint64(b & 0x7F) << shift)
         if b & 0x80 == 0:
             return
@@ -233,7 +233,7 @@ func DqReadSleb(p : ref ^byte, pend : ^byte) -> int:
     var b     : uint8 = 0
     while p < pend:
         b = p^
-        p += 1
+        ++p
         result |= (int(b & 0x7F) << shift)
         shift += 7
         if b & 0x80 == 0:
@@ -247,10 +247,10 @@ endfunc
 
 func DqSkipCstr(p : ^byte, pend : ^byte) -> ^byte:
     while p < pend  and  p^ <> 0:
-        p += 1
+        ++p
     endwhile
     if p < pend:
-        p += 1
+        ++p
     endif
     return p
 endfunc
@@ -262,8 +262,8 @@ func DqCstrEq(text : ^char, name : ^char) -> bool:
         if p^ <> n^:
             return false
         endif
-        p += 1
-        n += 1
+        ++p
+        ++n
     endwhile
     return true
 endfunc
@@ -274,7 +274,7 @@ func DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
         var i : int = 1
         while i < 8  and  48 <= name[i]^ <= 57:
             offset = offset * 10 + name[i]^ - 48
-            i += 1
+            ++i
         endwhile
         return DqCstrEq(^char(string_table + offset), text)
     endif
@@ -287,7 +287,7 @@ func DqSectionNameEq(name : ^byte, string_table : ^byte, text : ^char) -> bool:
         if name[i]^ <> Ord(text[i]^):
             return false
         endif
-        i += 1
+        ++i
     endwhile
     return text[i]^ == char(0)
 endfunc
@@ -311,8 +311,8 @@ func DqWinCopyCoffSymbolName(symbol : ^byte, name : ^char, name_size : uint) -> 
     var i : uint = 0
     while i + 1 < name_size and source < source_end and source^ <> 0:
         name[i]^ = char(source^)
-        i += 1
-        source += 1
+        ++i
+        ++source
     endwhile
     name[i]^ = char(0)
     return i <> 0
@@ -330,7 +330,7 @@ func DqDwarfFileName(file_table : ^byte, pend : ^byte, file_index : uint64) -> ^
         if index == file_index:
             return name
         endif
-        index += 1
+        ++index
     endwhile
     return nil
 endfunc
@@ -376,7 +376,7 @@ func DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byt
 
     while p < unit_end:
         var op : uint8 = p^
-        p += 1
+        ++p
 
         if op == 0:
             var ext_len : uint64 = DqReadUleb(p, unit_end)
@@ -385,7 +385,7 @@ func DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byt
                 return false
             endif
             var subop : uint8 = p^
-            p += 1
+            ++p
             if subop == DW_LNE_END_SEQUENCE:
                 if DqDwarfEmitRow(target, address, file, line, file_table, unit_end,
                                 matched, last_file, last_line, out_file, out_line):
@@ -431,7 +431,7 @@ func DqDwarfScanLineProgram(program : ^byte, unit_end : ^byte, file_table : ^byt
                 var n : int = 0
                 while n < int(std_lengths[op - 1]^):
                     DqReadUleb(p, unit_end)
-                    n += 1
+                    ++n
                 endwhile
             endif
         else:
@@ -548,7 +548,7 @@ func DqWinDwarfLoad() -> bool:
             endif
             return false
         endif
-        i += 1
+        ++i
     endwhile
 
     return false
@@ -638,15 +638,15 @@ func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refou
             var header_end : ^byte = p[header_len]
             if header_end <= unit_end:
                 var min_inst_len : uint8 = p^
-                p += 1
-                p += 1  // max_ops_per_inst
-                p += 1  // default_is_stmt
+                ++p
+                ++p  // max_ops_per_inst
+                ++p  // default_is_stmt
                 var line_base : int = ^int8(p)^
-                p += 1
+                ++p
                 var line_range : uint8 = p^
-                p += 1
+                ++p
                 var opcode_base : uint8 = p^
-                p += 1
+                ++p
                 var std_lengths : ^byte = p
                 p += uint(opcode_base - 1)
 
@@ -654,7 +654,7 @@ func DqWinDwarfLineForPc(pc : pointer, file_name : refout ^char, line_no : refou
                     p = DqSkipCstr(p, header_end)
                 endwhile
                 if p < header_end:
-                    p += 1
+                    ++p
                 endif
                 var file_table : ^byte = p
 

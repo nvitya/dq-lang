@@ -58,11 +58,11 @@ func DqPrintBacktrace(backtrace : pointer, backtrace_count : int):
     var stop_printing : bool = false
     while i < backtrace_count:
         if DqPrintBacktraceFrameImpl(printed, ^pointer(backtrace)[i]^, printed < DQ_BACKTRACE_INTERNAL_SKIP, %stop_printing):
-            printed += 1
+            ++printed
             if stop_printing:
                 return
             endif
         endif
-        i += 1
+        ++i
     endwhile
 endfunc

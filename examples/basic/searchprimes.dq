@@ -9,7 +9,7 @@ func IsPrime(num : int) -> bool:
         if num mod i == 0:
             return false
         endif
-        i += 1
+        ++i
     endwhile
     return true
 endfunc
@@ -26,7 +26,7 @@ func IsPrimeArr(num : int) -> bool:
     if i * i > num:
         return true
     endif
-    idx += 1
+    ++idx
     endwhile
     return true
 endfunc

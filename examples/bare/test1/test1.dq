@@ -22,6 +22,6 @@ endfunc
 
 func _start(self_flash : int)  [[cexport]]:
     while true:
-        g_hbcnt += 1
+        ++g_hbcnt
     endwhile
 endfunc

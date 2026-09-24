@@ -39,7 +39,7 @@ func EmbStrScanLen(desc : ref SDqTextInfo) -> uint:
         if p^ == char(0):
             return p - pstart
         endif
-        p += 1
+        ++p
     endwhile
 
     return maxlen
@@ -80,7 +80,7 @@ func EmbStrBoundedPtrLen(src : ^char, maxcopy : uint) -> uint:
         if srcp^ == char(0):
             return srcp - src
         endif
-        srcp += 1
+        ++srcp
     endwhile
 
     return maxcopy
@@ -157,7 +157,7 @@ func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char):
     endif
 
     desc.dataptr[clen]^ = char(ch)
-    clen += 1
+    ++clen
     EmbStrSetLenAndTerm(desc, clen)
 endfunc
 

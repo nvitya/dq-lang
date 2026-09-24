@@ -91,7 +91,7 @@ endfunc
 func OStrParse.SkipSpaces(skiplineend : bool = true):
     var cp : ^char = readp
     while cp < bufend  and ( cp^ == ' '  or cp^ == '\t'  or (skiplineend and (cp^ == '\r'  or cp^ == '\n')) ):
-        cp += 1
+        ++cp
     endwhile
     readp = cp
 endfunc
@@ -112,17 +112,17 @@ func OStrParse.ReadLine() -> bool:
     var cp : ^char = readp
 
     while cp < bufend  and cp^ <> '\r'  and cp^ <> '\n':
-        cp += 1
+        ++cp
     endwhile
 
     prevlen = cp - readp
 
     // skip the line end, but only one CR and one LF
     if cp < bufend  and cp^ == '\r':
-        cp += 1
+        ++cp
     endif
     if cp < bufend  and cp^ == '\n':
-        cp += 1
+        ++cp
     endif
 
     readp = cp
@@ -146,9 +146,9 @@ func OStrParse.ReadTo(checkchars : rostr) -> bool:  // reads until one of the ch
                 readp = cp
                 return true
             endif
-            ccptr += 1
+            ++ccptr
         endwhile
-        cp += 1
+        ++cp
     endwhile
 
     // end of buffer, store the remaining length:
@@ -166,7 +166,7 @@ func OStrParse.ReadToChar(achar : char) -> bool:
             result = true
             break
         endif
-        cp += 1
+        ++cp
     endwhile
 
     prevlen = cp - readp
@@ -179,8 +179,8 @@ func OStrParse.CheckSymbol(checkstring : rostr) -> bool:
     var csend : ^char = csptr + checkstring.length
 
     while csptr < csend  and cp < bufend  and csptr^ == cp^:
-        csptr += 1
-        cp += 1
+        ++csptr
+        ++cp
     endwhile
 
     if csptr <> csend:
@@ -201,7 +201,7 @@ func OStrParse.ReadAlphaNum() -> bool:
         if (('0' <= c <= '9') or ('A' <= c <= 'Z') or ('a' <= c <= 'z')
             or c == '_' or (c == '-'  and cp == readp)):
             result = true
-            cp += 1
+            ++cp
         else:
             break
         endif
@@ -220,7 +220,7 @@ func OStrParse.ReadDecimalNumbers() -> bool:
         var c : char = char(cp^)
         if '0' <= c <= '9':
             result = true
-            cp += 1
+            ++cp
         else:
             break
         endif
@@ -239,7 +239,7 @@ func OStrParse.ReadHexNumbers() -> bool:
         var c : char = char(cp^)
         if (('0' <= c <= '9') or ('A' <= c <= 'F') or ('a' <= c <= 'f')):
             result = true
-            cp += 1
+            ++cp
         else:
             break
         endif
@@ -259,7 +259,7 @@ func OStrParse.ReadFloatNum() -> bool:
         if (('0' <= c <= '9') or c == float_decimal_point
             or c == '-' or c == '+' or c == 'e' or c == 'E'):
             result = true
-            cp += 1
+            ++cp
         else:
             break
         endif
@@ -278,11 +278,11 @@ func OStrParse.ReadQuotedString() -> bool:
         return false
     endif
 
-    readp += 1
+    ++readp
     ReadToChar('"')
 
     if readp < bufend  and readp^ == '"':
-        readp += 1
+        ++readp
     endif
 
     return true
@@ -316,8 +316,8 @@ func OStrParse.SearchPattern(checkstring : rostr) -> bool:
                 match = false
                 break
             endif
-            cp += 1
-            ccptr += 1
+            ++cp
+            ++ccptr
         endwhile
 
         if match:
@@ -326,7 +326,7 @@ func OStrParse.SearchPattern(checkstring : rostr) -> bool:
             return true
         endif
 
-        cps += 1
+        ++cps
     endwhile
 
     return false
@@ -339,7 +339,7 @@ func OStrParse.PrevStr() -> str:
 
     while cp < endp:
         result.Append(char(cp^))
-        cp += 1
+        ++cp
     endwhile
 endfunc
 
@@ -366,9 +366,9 @@ func OStrParse.GetLineNum(pos : ^char) -> int  [[overload]]:
 
     while cp < pos  and cp < bufend:
         if cp^ == '\n':
-            result += 1
+            ++result
         endif
-        cp += 1
+        ++cp
     endwhile
 endfunc
 
@@ -383,7 +383,7 @@ func OStrParse.GetColNum(pos : ^char) -> int  [[overload]]:
 
     var cp : ^char = pos
     while cp > bufstart:
-        cp -= 1
+        --cp
         if cp^ == '\r'  or cp^ == '\n':
             return pos - cp
         endif
@@ -412,8 +412,8 @@ func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool:
             break
         endif
 
-        csptr += 1
-        cp += 1
+        ++csptr
+        ++cp
     endwhile
 
     if csptr <> csend:
@@ -431,7 +431,7 @@ func PCharToInt(readp : ^char, len : int) -> int:
 
     while cp < endp:
         result = result * 10 + Ord(char(cp^)) - Ord('0')
-        cp += 1
+        ++cp
     endwhile
 endfunc
 
@@ -451,7 +451,7 @@ func PCharHexToInt(readp : ^char, len : int) -> uint:
         else:
             break
         endif
-        cp += 1
+        ++cp
     endwhile
 endfunc
 
@@ -503,7 +503,7 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
         break
     endif
 
-    pc += 1
+    ++pc
     endwhile
 
     return nsign * nv * Pow(10, esign * ev)

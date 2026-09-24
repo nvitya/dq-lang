@@ -119,7 +119,7 @@ endfunc
 // Called by requestAnimationFrame. The host supplies elapsed seconds since the
 // page loaded; DQ advances the animation and sends every drawing command.
 func Render(seconds : float32) [[cexport]]:
-    frame_counter += 1
+    ++frame_counter
     offset += direction * seconds * 0.25
     if offset >= 0.45:
         offset = 0.45

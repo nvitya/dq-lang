@@ -14,7 +14,7 @@ object OBase:
     endfunc
 
     func Count() [[virtual]]:
-        cnt1 += 1
+        ++cnt1
     endfunc
 
     func Print():
@@ -25,7 +25,7 @@ endobject
 object OChild(OBase):
     func Count() [[override]]:
         inherited
-        cnt2 += 1
+        ++cnt2
     endfunc
 endobject
 

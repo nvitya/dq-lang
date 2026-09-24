@@ -55,7 +55,7 @@ func DirEntryName(aname : ^char) -> str:
 
     while aname^ <> char(0):
         result.Append(aname^)
-        aname += 1
+        ++aname
     endwhile
 endfunc
 

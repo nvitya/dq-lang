@@ -270,7 +270,7 @@ endfunc
 
 func ODbRows.AddRow() -> int:
     result = m_rowcount
-    m_rowcount += 1
+    ++m_rowcount
     m_data.SetLength(m_fieldcount * m_rowcount)
     m_currow = result
     m_onrow = true
@@ -284,12 +284,12 @@ func ODbRows.DeleteRow(arow : int):
     if m_fieldcount > 0:
         m_data.Delete(arow * m_fieldcount, m_fieldcount)
     endif
-    m_rowcount -= 1
+    --m_rowcount
 
     if m_rowcount <= 0:
         m_currow = -1
     elif m_currow > arow:
-        m_currow -= 1
+        --m_currow
     elif m_currow >= m_rowcount:
         m_currow = m_rowcount - 1
     endif
@@ -318,7 +318,7 @@ func ODbRows.Next():
     if m_rowcount <= 0:
         m_currow = -1
     elif m_currow < m_rowcount:
-        m_currow += 1
+        ++m_currow
     else:
         m_currow = m_rowcount
     endif
@@ -333,7 +333,7 @@ func ODbRows.Prev():
         m_currow = m_rowcount - 1
         m_onrow = true
     else:
-        m_currow -= 1
+        --m_currow
         m_onrow = true
     endif
 endfunc

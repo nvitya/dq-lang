@@ -86,7 +86,7 @@ func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
         if a.dataptr[i]^ <> b.dataptr[i]^:
             return false
         endif
-        i += 1
+        ++i
     endwhile
     return true
 endfunc
@@ -115,7 +115,7 @@ func RoStrGetLength(text : ref SDqRoStrInfo) -> uint32:
     if text.dataptr <> nil:
         var p : ^char = text.dataptr
         while p^ <> char(0):
-            p += 1
+            ++p
         endwhile
         length = p - text.dataptr
     else:

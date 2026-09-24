@@ -235,7 +235,7 @@ func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
     endif
     var mon : int = 1
     while monpos >= 4:
-        mon += 1
+        ++mon
         monpos -= 4
     endwhile
     sp.CheckSymbol(' ')

@@ -253,10 +253,10 @@ func OTextFormatter.Format(afmt : rostr, aargs : []anyvalue):
             if curpos > lit_start:
                 sink.Write(afmt[lit_start:curpos])
             endif
-            curpos += 1
+            ++curpos
             if curpos < endpos and afmt[curpos] == '{':
                 sink.WriteChar('{')
-                curpos += 1
+                ++curpos
                 lit_start = curpos
                 continue
             else:
@@ -269,10 +269,10 @@ func OTextFormatter.Format(afmt : rostr, aargs : []anyvalue):
                     nv.SetNull()
                     FormatAny(nv)
                 endif
-                arg_index += 1
+                ++arg_index
 
                 if curpos < endpos  and  afmt[curpos] == '}':
-                    curpos += 1
+                    ++curpos
                 else:
                     flags |= DQFMT_FMT_ERROR
                     sink.Write("<}?>")
@@ -285,20 +285,20 @@ func OTextFormatter.Format(afmt : rostr, aargs : []anyvalue):
             if curpos > lit_start:
                 sink.Write(afmt[lit_start:curpos])
             endif
-            curpos += 1
+            ++curpos
             if curpos < endpos  and  afmt[curpos] == '}':
                 sink.WriteChar('}')
-                curpos += 1
+                ++curpos
                 lit_start = curpos
             else:
                 // Unescaped closing brace.
                 flags |= DQFMT_FMT_ERROR
                 sink.Write("<!}>")
-                curpos += 1
+                ++curpos
                 lit_start = curpos
             endif
         else:
-            curpos += 1
+            ++curpos
         endif
     endwhile
 
@@ -320,35 +320,35 @@ func OTextFormatter.ParseSpec(afmt : rostr):
     fmtspec.upper     = false
 
     if p < flen  and  afmt[p] == ':':
-        p += 1
+        ++p
     endif
 
     // Fill/alignment subset. Examples planned for later: {:08x}, {:>8}, {:<8}
     if p < flen  and  afmt[p] == '0':
         fmtspec.fill = '0'
-        p += 1
+        ++p
     endif
 
     if p < flen  and  afmt[p] == '+':
         fmtspec.sign_plus = true
-        p += 1
+        ++p
     endif
 
     if p < flen  and  afmt[p] == '-':
         fmtspec.left = true
-        p += 1
+        ++p
     endif
 
     if p < flen and @.DqTextFmtIsDigit(afmt[p]):
         fmtspec.width = 0
         while (p < flen) and @.DqTextFmtIsDigit(afmt[p]):
             fmtspec.width = fmtspec.width * 10 + @.DqTextFmtDigitValue(afmt[p])
-            p += 1
+            ++p
         endwhile
     endif
 
     if p < flen  and  afmt[p] == '.':
-        p += 1
+        ++p
         fmtspec.precision = 0
         while (p < flen) and @.DqTextFmtIsDigit(afmt[p]):
             fmtspec.precision = fmtspec.precision * 10 + @.DqTextFmtDigitValue(afmt[p])
@@ -361,13 +361,13 @@ func OTextFormatter.ParseSpec(afmt : rostr):
         if (k == 'd') or (k == 'u') or (k == 'x') or (k == 'X') or (k == 's') or (k == 'p') or (k == 'f') or (k == '?'):
             fmtspec.kind = k
             fmtspec.upper = (k == 'X')
-            p += 1
+            ++p
         endif
     endif
 
     // add some error recovery:
     while p < flen  and  afmt[p] <> '}':
-        p += 1
+        ++p
     endwhile
 
     curpos = p
@@ -448,7 +448,7 @@ endfunc
 func OTextFormatter.WritePad(acount : int, ch : char):
     while acount > 0:
         sink.WriteChar(ch)
-        acount -= 1
+        --acount
     endwhile
 endfunc
 
@@ -482,14 +482,14 @@ func OTextFormatter.WriteReversedDigits(acount : int):
     var i : int = acount - 1
     while i >= 0:
         sink.WriteChar(char(lcsbuf[i]))
-        i -= 1
+        --i
     endwhile
 endfunc
 
 func OTextFormatter.WriteFormattedDigits(asign : char, adigit_count : int):
     var total_len : int = adigit_count
     if asign <> char(0):
-        total_len += 1
+        ++total_len
     endif
 
     var pad : int = fmtspec.width - total_len
@@ -519,7 +519,7 @@ endfunc
 func OTextFormatter.WriteFormattedFloat(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
     var total_len : int = aint_digit_count
     if asign <> char(0):
-        total_len += 1
+        ++total_len
     endif
     if aprecision > 0:
         total_len += aprecision + 1
@@ -614,14 +614,14 @@ func OTextFormatter.FormatFloat(v : float):
         frac = uint(Floor((work - intpart_int) * scale + 0.5))
 
         if frac >= scale:
-            intpart += 1
+            ++intpart
             frac -= scale
         endif
 
         while precision > 0 and (frac mod 10) == 0:
             frac = frac div 10
             scale = scale div 10
-            precision -= 1
+            --precision
         endwhile
     else:
         var scaled : uint = uint(Floor(work * scale + 0.5))

@@ -24,7 +24,7 @@ object OBase {
     }
 
     func Count() [[virtual]] {
-        cnt1 += 1
+        ++cnt1
     }
 
     func Print() {
@@ -35,7 +35,7 @@ object OBase {
 object OChild(OBase) {
     func Count() [[override]] {
         inherited
-        cnt2 += 1
+        ++cnt2
     }
 }
 
@@ -67,8 +67,8 @@ func embstr_add(dst : embstr, src : embstr) {
 
     while pd < pdend  and ps < psend  and ps^ <> char(0) {
         pd^ = ps^
-        pd += 1
-        ps += 1
+        ++pd
+        ++ps
     }
 
     if pd <> pdstart {
@@ -82,7 +82,7 @@ func WriteStr(s : embstr) {
     var pc : ^char = %s[0]
     while pc^ <> char(0) {
         putchar(pc^)
-        pc += 1
+        ++pc
     }
 }
 

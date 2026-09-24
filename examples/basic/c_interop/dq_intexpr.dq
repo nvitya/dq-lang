@@ -29,7 +29,7 @@ func dq_testfunc(a : int, b : int) -> int:
     result = 0
     while i < b:
         result += i
-        i += 1
+        ++i
     endwhile
 endfunc
 
@@ -40,7 +40,7 @@ func dq_testfunc2(a : int, b : int) -> int
     while i < b
     {
         result += i
-        i += 1
+        ++i
     }
 }
 

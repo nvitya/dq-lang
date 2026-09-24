@@ -92,7 +92,7 @@ func Exception.PrintMessage():
     var i : uint32 = 0
     while i < uint32(view.length):
         @.printf("%c", Ord(view[i]))
-        i += 1
+        ++i
     endwhile
   #endif    
 endfunc
@@ -105,7 +105,7 @@ endfunc
 
 func DqExcAddRef(e : Exception):
     if e <> nil:
-        e.refcount += 1
+        ++e.refcount
     endif
 endfunc
 
@@ -113,7 +113,7 @@ func DqExcRelease(e : Exception):
     if e == nil:
         return
     endif
-    e.refcount -= 1
+    --e.refcount
     if e.refcount <= 0:
         delete e
     endif
@@ -169,7 +169,7 @@ func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_c
     var i : int = 0
     while i < e.backtrace_count:
         e.backtrace[i] = ^pointer(bt)[i + DQ_BACKTRACE_INTERNAL_SKIP]^
-        i += 1
+        ++i
     endwhile
 
     DqExcNativeThrow(e)

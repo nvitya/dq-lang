@@ -427,11 +427,11 @@ func OJson.ParseObject(sp : OStrParse):
     if sp.readp >= sp.bufend  or sp.readp^ <> '{':
         Error(sp, 'Expected object')
     endif
-    sp.readp += 1
+    ++sp.readp
     sp.SkipSpaces()
 
     if sp.readp < sp.bufend  and sp.readp^ == '}':
-        sp.readp += 1
+        ++sp.readp
         return
     endif
 
@@ -446,7 +446,7 @@ func OJson.ParseObject(sp : OStrParse):
         if sp.readp >= sp.bufend  or sp.readp^ <> ':':
             Error(sp, 'Expected ":" after object name')
         endif
-        sp.readp += 1
+        ++sp.readp
 
         var jch : OJson = AddNode(n, nkNull)
         jch.ParseValue(sp)
@@ -457,9 +457,9 @@ func OJson.ParseObject(sp : OStrParse):
         endif
 
         if sp.readp^ == ',':
-            sp.readp += 1
+            ++sp.readp
         elif sp.readp^ == '}':
-            sp.readp += 1
+            ++sp.readp
             return
         else:
             Error(sp, 'Expected "," or "}" in object')
@@ -471,11 +471,11 @@ func OJson.ParseArray(sp : OStrParse):
     if sp.readp >= sp.bufend  or sp.readp^ <> '[':
         Error(sp, 'Expected array')
     endif
-    sp.readp += 1
+    ++sp.readp
     sp.SkipSpaces()
 
     if sp.readp < sp.bufend  and sp.readp^ == ']':
-        sp.readp += 1
+        ++sp.readp
         return
     endif
 
@@ -489,9 +489,9 @@ func OJson.ParseArray(sp : OStrParse):
         endif
 
         if sp.readp^ == ',':
-            sp.readp += 1
+            ++sp.readp
         elif sp.readp^ == ']':
-            sp.readp += 1
+            ++sp.readp
             return
         else:
             Error(sp, 'Expected "," or "]" in array')
@@ -505,11 +505,11 @@ func OJson.ParseString(sp : OStrParse) -> str:
     if sp.readp >= sp.bufend  or sp.readp^ <> '"':
         Error(sp, 'Expected string')
     endif
-    sp.readp += 1
+    ++sp.readp
 
     while sp.readp < sp.bufend:
         var c : char = sp.readp^
-        sp.readp += 1
+        ++sp.readp
 
         if c == '"':
             return
@@ -529,7 +529,7 @@ func OJson.ParseString(sp : OStrParse) -> str:
         endif
 
         var e : char = sp.readp^
-        sp.readp += 1
+        ++sp.readp
 
         if e == '"':
             result.Append('"')
@@ -588,7 +588,7 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
     var cp     : ^char = sp.readp
 
     if cp < sp.bufend  and cp^ == '-':
-        cp += 1
+        ++cp
     endif
 
     if cp >= sp.bufend:
@@ -596,35 +596,35 @@ func OJson.ParseNumber(sp : OStrParse) -> float:
     endif
 
     if cp^ == '0':
-        cp += 1
+        ++cp
     elif '1' <= cp^ <= '9':
         while cp < sp.bufend  and '0' <= cp^ <= '9':
-            cp += 1
+            ++cp
         endwhile
     else:
         Error(sp, 'Invalid number')
     endif
 
     if cp < sp.bufend  and cp^ == '.':
-        cp += 1
+        ++cp
         if cp >= sp.bufend  or not '0' <= cp^ <= '9':
             Error(sp, 'Invalid number fractional part')
         endif
         while cp < sp.bufend  and '0' <= cp^ <= '9':
-            cp += 1
+            ++cp
         endwhile
     endif
 
     if cp < sp.bufend  and (cp^ == 'e'  or cp^ == 'E'):
-        cp += 1
+        ++cp
         if cp < sp.bufend  and (cp^ == '+'  or cp^ == '-'):
-            cp += 1
+            ++cp
         endif
         if cp >= sp.bufend  or not '0' <= cp^ <= '9':
             Error(sp, 'Invalid number exponent')
         endif
         while cp < sp.bufend  and '0' <= cp^ <= '9':
-            cp += 1
+            ++cp
         endwhile
     endif
 

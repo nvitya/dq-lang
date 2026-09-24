@@ -137,7 +137,7 @@ func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^
             if parr^ == value:
                 return i
             endif
-            parr += 1
+            ++parr
         endfor
   #if PTRSIZE == 8
     elif elemsize == 4:
@@ -147,7 +147,7 @@ func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^
             if parr^ == value:
                 return i
             endif
-            parr += 1
+            ++parr
         endfor
   #endif
     elif elemsize == 2:
@@ -157,7 +157,7 @@ func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^
             if parr^ == value:
                 return i
             endif
-            parr += 1
+            ++parr
         endfor
     elif elemsize == 1:
         var parr   : ^byte = dataptr
@@ -166,7 +166,7 @@ func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^
             if parr^ == value:
                 return i
             endif
-            parr += 1
+            ++parr
         endfor
     else:
         // optimized byte-by-byte comparison using pointers
@@ -178,8 +178,8 @@ func RawArrayIndexOf(dataptr : ^byte, length : int, elemsize : int, valueptr : ^
                 if pv^ <> pd^:
                     break
                 endif
-                pd += 1
-                pv += 1
+                ++pd
+                ++pv
             endwhile
             if pv >= pvend: // matches
                 return i

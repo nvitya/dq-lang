@@ -76,13 +76,13 @@ func DqCstrContains(text : ^char, needle : ^char) -> bool:
         var t : ^char = p
         var n : ^char = needle
         while n^ <> char(0) and t^ == n^:
-            t += 1
-            n += 1
+            ++t
+            ++n
         endwhile
         if n^ == char(0):
             return true
         endif
-        p += 1
+        ++p
     endwhile
 
     return false
@@ -106,8 +106,8 @@ func DqCstrSegmentEq(text : ^char, name : ^char) -> bool:
         if t^ <> n^:
             return false
         endif
-        t += 1
-        n += 1
+        ++t
+        ++n
     endwhile
     return t^ == char(0)  or  t^ == char(124)
 endfunc
@@ -119,7 +119,7 @@ func DqCstrLen(s : ^char) -> uint:
 
     var p : ^char = s
     while p^ <> char(0):
-        p += 1
+        ++p
     endwhile
     return uint(p - s)
 endfunc
@@ -128,7 +128,7 @@ func DqTrimTrailingNewline(s : ^char):
     var len : uint = DqCstrLen(s)
     while len > 0 and (s[len - 1]^ == char(10) or s[len - 1]^ == char(13)):
         s[len - 1]^ = char(0)
-        len -= 1
+        --len
     endwhile
 endfunc
 

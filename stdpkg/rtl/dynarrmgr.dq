@@ -190,7 +190,7 @@ func DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeI
             if mgr <> nil:
                 DynArrIncRef(mgr)
             endif
-            i += 1
+            ++i
         endwhile
 
 #ifdef DYNSTRINGS
@@ -203,7 +203,7 @@ func DynArrIncRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeI
             if mgr <> nil:
                 DynStrIncRef(mgr)
             endif
-            i += 1
+            ++i
         endwhile
 #endif
 
@@ -229,7 +229,7 @@ func DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeI
             if mgr <> nil:
                 DynArrDecRef(mgr)
             endif
-            i += 1
+            ++i
         endwhile
 
 #ifdef DYNSTRINGS
@@ -242,7 +242,7 @@ func DynArrDecRefElements(dataptr : pointer, length : uint, typeinfo : ^SDqTypeI
             if mgr <> nil:
                 DynStrDecRef(mgr)
             endif
-            i += 1
+            ++i
         endwhile
 #endif
 
@@ -502,7 +502,7 @@ func ODynArrMgr.InsertMove(index : int, src : pointer) -> bool:
     if owndata_src_index >= 0:
         var srcindex : uint = owndata_src_index
         if srcindex >= insertpos:
-            srcindex += 1
+            ++srcindex
         endif
         srcptr = ^byte(dataptr)[srcindex * elemsize]
     endif
@@ -570,7 +570,7 @@ func ODynArrMgr.PopFirst(outptr : pointer):
     if movecount > 0:
         MemCopy(dataptr, ^byte(dataptr)[elemsize], DynArrCalcByteSize(movecount, elemsize))
     endif
-    length -= 1
+    --length
 endfunc
 
 //----------------------------------------------------------------------------------------------
@@ -588,7 +588,7 @@ func DynArrIncRef(arr : ref ODynArrMgr):
     endif
 
     // TODO: add thread safety
-    arr.refcount += 1
+    ++arr.refcount
 endfunc
 
 func DynArrDecRef(arr : ref ODynArrMgr):
@@ -597,7 +597,7 @@ func DynArrDecRef(arr : ref ODynArrMgr):
     endif
 
     // TODO: add thread safety
-    arr.refcount -= 1
+    --arr.refcount
     if arr.refcount <= 0:
         delete arr = nil
     endif

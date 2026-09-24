@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.75.0"
+#define DQ_COMPILER_VERSION  "0.76.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.76.0:
+  - Implemented ++i, and --i statements
 v0.75.0:
   - Implemented autofree type attribute
 v0.74.1:

@@ -5219,6 +5219,8 @@ OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_ne
     // check first the ambigous expression terminators
     if (    scf->CheckSymbol("+=", false)
          or scf->CheckSymbol("-=", false)
+         or scf->CheckSymbol("++", false)
+         or scf->CheckSymbol("--", false)
          or scf->CheckSymbol("*=", false)
          or scf->CheckSymbol("/=", false)
          or scf->CheckSymbol("<<=", false)

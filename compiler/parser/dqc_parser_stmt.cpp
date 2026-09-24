@@ -1146,8 +1146,59 @@ bool ODqCompParserStmt::ParseStatement(const string & block_closer)
     }
   }
 
+  if (scf->CheckSymbol("++"))
+  {
+    ParseStmtIncDec(BINOP_ADD);
+    return true;
+  }
+
+  if (scf->CheckSymbol("--"))
+  {
+    ParseStmtIncDec(BINOP_SUB);
+    return true;
+  }
+
   ParseAssignOrCallStmt();
   return true;
+}
+
+void ODqCompParserStmt::ParseStmtIncDec(EBinOp op)
+{
+  int prev_errorcnt = errorcnt;
+  suppressed_left_expr_diags.clear();
+  supress_varinit_check = true;
+  suppress_access_read_check = true;
+  OExpr * leftexpr = ParseExprPostfix();
+  supress_varinit_check = false;
+  suppress_access_read_check = false;
+  if (!leftexpr)
+  {
+    EmitSuppressedLeftExprDiags();
+    if (prev_errorcnt == errorcnt)
+    {
+      Error(DQERR_EXPR_EXPECTED, &scpos_statement_start);
+    }
+    SkipToStatementEnd();
+    return;
+  }
+
+  if (!CheckStatementClose())
+  {
+    delete leftexpr;
+    return;
+  }
+
+  OLValueExpr * lval = dynamic_cast<OLValueExpr *>(leftexpr);
+  if (!lval)
+  {
+    EmitSuppressedLeftExprDiags();
+    Error(DQERR_LVALUE_NOT_WRITEABLE);
+    delete leftexpr;
+    return;
+  }
+
+  EmitFilteredAssignLeftExprDiags(lval, op);
+  FinalizeStmtAssign(lval, op, new OIntLit(1));
 }
 
 void ODqCompParserStmt::ParseStmtBreak()

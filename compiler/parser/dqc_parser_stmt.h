@@ -23,6 +23,7 @@ public: // statement blocks
   void ParseStmtBreak();
   void ParseStmtContinue();
   void ParseAssignOrCallStmt();
+  void ParseStmtIncDec(EBinOp op);
   void ParseStmtReturn();
   void ParseStmtWhile();
   void ParseStmtFor();

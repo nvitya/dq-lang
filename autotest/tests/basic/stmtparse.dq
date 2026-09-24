@@ -17,6 +17,8 @@ func dq_stmt_targets():
 
     x = 1
     x += 2
+    ++x
+    --x
     x <<= 1
     x >>= 1
     x &= 7
@@ -46,6 +48,17 @@ func dq_stmt_targets():
     endif
 
     dq_void_call()
+endfunc
+
+func dq_incdec_newline_parse() -> int:
+    var x : int = 3 + 2
+    ++x
+
+    var y : int = 3
+    + 2
+    ++y
+
+    result = x * 10 + y
 endfunc
 
 func dq_invalid_expr():

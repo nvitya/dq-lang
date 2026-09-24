@@ -42,4 +42,12 @@ func *Main():
 
     var division_value : int = 5
     printf("word_boundary = %d\n", division_value) //?check("word_boundary", 5)
+
+    var same_line : int = 3 + 2
+    ++same_line
+    var continued_line : int = 3
+    + 2
+    --continued_line
+    printf("prefix_increment = %d\n", same_line) //?check("prefix_increment", 6)
+    printf("prefix_decrement = %d\n", continued_line) //?check("prefix_decrement", 4)
 endfunc

@@ -61,6 +61,12 @@ func dq_localvar_modassign_noinit() -> int:
     result = 0
 endfunc
 
+func dq_localvar_incdec_noinit() -> int:
+    var i : int
+    ++i  //?error(VarNotInit)
+    result = 0
+endfunc
+
 func dq_ptrassign_noinit() -> int:
     var p : ^byte
     p^ = 1  //?error(VarNotInit)

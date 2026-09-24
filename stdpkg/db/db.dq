@@ -112,7 +112,7 @@ public
     func FieldCount() -> int ..
     func FieldName(aindex : int) -> str ..
     func FieldType(aindex : int) -> NDbFieldType ..
-    func FieldIndex(aname : rostr) -> int ..
+    func FieldIndex(aname : rostr, aexception : bool = false) -> int ..
     func HasField(aname : rostr) -> bool ..
 
     property onrow      : bool           read m_onrow
@@ -229,12 +229,15 @@ func ODbCursor.FieldType(aindex : int) -> NDbFieldType:
     return m_fieldinfo[aindex].ftype
 endfunc
 
-func ODbCursor.FieldIndex(aname : rostr) -> int:
+func ODbCursor.FieldIndex(aname : rostr, aexception : bool = false) -> int:
     for i : int = 0 count m_fieldcount:
         if m_fieldinfo[i].name == aname:
             return i
         endif
     endfor
+    if aexception:
+        raise EDbField('Invalid field name: "{}"', [aname])
+    endif
     return -1
 endfunc
 
@@ -243,27 +246,27 @@ func ODbCursor.HasField(aname : rostr) -> bool:
 endfunc
 
 func ODbCursor.IsNull(aname : rostr) -> bool  [[overload, inline]]:
-    return IsNull(FieldIndex(aname))
+    return IsNull(FieldIndex(aname, true))
 endfunc
 
 func ODbCursor.GetInt(aname : rostr, defvalue : int) -> int        [[overload, inline]]:
-    return GetInt(FieldIndex(aname), defvalue)
+    return GetInt(FieldIndex(aname, true), defvalue)
 endfunc
 
 func ODbCursor.GetFloat(aname : rostr, defvalue : float) -> float  [[overload, inline]]:
-    return GetFloat(FieldIndex(aname), defvalue)
+    return GetFloat(FieldIndex(aname, true), defvalue)
 endfunc
 
 func ODbCursor.GetBool(aname : rostr, defvalue : bool) -> bool     [[overload, inline]]:
-    return GetBool(FieldIndex(aname), defvalue)
+    return GetBool(FieldIndex(aname, true), defvalue)
 endfunc
 
 func ODbCursor.GetStr(aname : rostr, defvalue : strslice) -> str   [[overload, inline]]:
-    return GetStr(FieldIndex(aname), defvalue)
+    return GetStr(FieldIndex(aname, true), defvalue)
 endfunc
 
 func ODbCursor.GetBlob(aname : rostr) -> [*]byte                   [[overload, inline]]:
-    return GetBlob(FieldIndex(aname))
+    return GetBlob(FieldIndex(aname, true))
 endfunc
 
 //-----------------------------------------------------------------------------

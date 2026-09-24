@@ -275,7 +275,7 @@ func *Main():
         CONTINENT
     """)
     while cur.OnRow():
-        PrintLn('{} - {}', [cur.GetStr(0, '?'), cur.GetInt(1, 0)])
+        PrintLn('{} - {}', [cur.GetStr('CONTINENT', '?'), cur.GetInt('COUNTRY_COUNT', 0)])
         cur.Next()
     endwhile
 endfunc

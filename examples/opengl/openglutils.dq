@@ -1,8 +1,14 @@
 // Minimal GLFW/OpenGL declarations used by the examples in this directory.
 // These are intentionally local to the examples until the interface settles.
 
-#linklib('glfw')
-#linklib('GL')
+#ifdef WINDOWS
+  #linklib('opengl32')
+  #linklib('gdi32')
+  #linklib('glfw3')
+#else
+  #linklib('glfw')
+  #linklib('GL')
+#endif
 
 const GLFW_FALSE : int32 = 0
 const GLFW_TRUE  : int32 = 1

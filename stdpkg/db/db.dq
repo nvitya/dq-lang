@@ -60,7 +60,6 @@ object ODbConnection:
     func Close()           [[virtual, abstract]] ..
     func Opened() -> bool  [[virtual, abstract]] ..
     func NativeHandle() -> pointer  [[virtual, abstract]] ..
-    func SetBusyTimeout(ams : int)  [[virtual, abstract]] ..
 
     func Execute(asql : rostr)             [[virtual, abstract]] ..
     func Query(asql : rostr) -> ODbCursor  [[virtual, abstract]] ..

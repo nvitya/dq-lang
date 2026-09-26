@@ -228,23 +228,24 @@ func *Main():
         FileRemove(DB_NAME)
     endif
 
-    var conn <- OSqlite3Connection()
-    conn.filename = DB_NAME
-    conn.Open()
+    var db <- OSqlite3Connection()
+
+    db.filename = DB_NAME
+    db.Open()
 
     // Create the schema and populate it in one transaction.
-    conn.Execute(CAPITALS_STRUCT)
-    conn.Begin()
-    conn.Execute(CAPITALS_DATA)
-    conn.Commit()
-    PrintLn('Inserted rows = {}', [conn.changes])
+    db.Execute(CAPITALS_STRUCT)
+    db.Begin()
+    db.Execute(CAPITALS_DATA)
+    db.Commit()
+    PrintLn('Inserted rows = {}', [db.changes])
 
     PrintLn('Capitals in Europe:')
     // Query the data through a prepared statement.
 
     var cur : autofree ODbCursor  // previous object will be freed on reassignment
 
-    cur = conn.Query(
+    cur = db.Query(
     """
     select
         ID, CITY, COUNTRY
@@ -265,7 +266,7 @@ func *Main():
 
     PrintLn()
     PrintLn('Continent countries:')
-    cur = conn.Query(
+    cur = db.Query(
     """
     select
         CONTINENT, count(*) as COUNTRY_COUNT

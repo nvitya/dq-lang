@@ -1,5 +1,5 @@
 {
-  "dq.debugTarget": "examples/db/sqlite_test_1",
+  "dq.debugTarget": "examples/db/mysql_test_2",
   "dq.debugCwd":    "examples/db",
 
   "dq.languageServerPath": "/workvc/dq-lang/build/dq-comp",

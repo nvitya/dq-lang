@@ -1,0 +1,467 @@
+
+use db
+
+#linklib('mysqlclient')
+
+// It uses the classic MySQL C client API, which is also supplied by MariaDB
+// Connector/C on most Linux distributions. Install the matching development
+// package when the library is not already available, for example:
+//   sudo apt install default-libmysqlclient-dev
+
+// This must mirror MYSQL_FIELD completely.  mysql_fetch_fields() returns an
+// array of these structures, so a partial declaration gives pointer indexing
+// the wrong stride and makes every field after the first read unrelated data.
+struct SMySqlField:
+    name            : ^char
+    org_name        : ^char
+    table           : ^char
+    org_table       : ^char
+    db              : ^char
+    catalog         : ^char
+    def             : ^char
+    length          : uint64  // unsigned long on supported 64-bit targets
+    max_length      : uint64
+    name_length     : uint32
+    org_name_length : uint32
+    table_length    : uint32
+    org_table_length: uint32
+    db_length       : uint32
+    catalog_length  : uint32
+    def_length      : uint32
+    flags           : uint32
+    decimals        : uint32
+    charsetnr       : uint32
+    ftype           : uint32  // enum enum_field_types
+    extension       : pointer
+endstruct
+
+
+object OMySqlConnection(ODbConnection):
+protected
+    m_handle : pointer = nil
+
+    func ErrorText() -> ^char ..
+    func ErrorCode() -> uint ..
+    func ErrorCheck(aresult : int, aoperation : ^char) ..
+
+public
+    host     : str = ''
+    port     : uint16 = 0  // 0 = use the default port (3306)
+    user     : str = ''
+    password : str = ''
+    database : str = ''
+
+    func *Create() ..
+    func *Destroy() ..
+
+    func Open()            [[override]] ..
+    func Close()           [[override]] ..
+    func Opened() -> bool  [[override]] ..
+
+    func NativeHandle() -> pointer  [[override]] ..
+
+    // Execute DDL and data-manipulation statements without result rows.
+    func Execute(asql : rostr)  [[override]] ..
+    func Query(asql : rostr) -> ODbCursor  [[override]] ..
+
+    func Begin()     [[override]] ..
+    func Commit()    [[override]] ..
+    func Rollback()  [[override]] ..
+
+    func Changes() -> int         [[override]] ..
+    func LastInsertId() -> int64  [[override]] ..
+    func ErrorMessage() -> str    [[override]] ..
+
+public // special functions
+
+    func Ping() ..
+
+endobject
+
+
+
+object OMySqlCursor(ODbCursor):
+protected
+    m_handle  : pointer = nil
+    m_row     : ^^char  // MYSQL_ROW: an array of nullable char pointers
+    m_fields  : ^SMySqlField
+    m_lengths : ^uint64
+
+    func LoadFieldData() ..
+    func DbFieldType(amysqltype : uint32) -> NDbFieldType ..
+
+    func CheckFieldAccess(aidx : int)  [[inline]]:
+        if not m_onrow:
+            raise EDbRow('No current row')
+        endif
+        if not 0 <= aidx < m_fieldcount:
+            raise EDbField('Invalid field index: {}', [aidx])
+        endif
+    endfunc
+
+public
+    func *Create(aconnection : ODbConnection, ahandle : pointer) ..
+    func *Destroy() ..
+
+    func Next()           [[override]] ..
+    func First()          [[override]] ..
+
+    func IsNull(aidx : int) -> bool                       [[override, overload]] ..
+    func GetInt(aidx : int, defvalue : int) -> int        [[override, overload]] ..
+    func GetFloat(aidx : int, defvalue : float) -> float  [[override, overload]] ..
+    func GetBool(aidx : int, defvalue : bool) -> bool     [[override, overload]] ..
+    func GetStr(aidx : int, defvalue : strslice) -> str   [[override, overload]] ..
+    func GetBlob(aidx : int) -> [*]byte                   [[override, overload]] ..
+endobject
+
+
+implementation  //---------------------------------------------------------------------------------
+
+// Values from enum enum_field_types in mysql_com.h.
+const MYSQL_TYPE_DECIMAL    : uint32 = 0
+const MYSQL_TYPE_TINY       : uint32 = 1
+const MYSQL_TYPE_SHORT      : uint32 = 2
+const MYSQL_TYPE_LONG       : uint32 = 3
+const MYSQL_TYPE_FLOAT      : uint32 = 4
+const MYSQL_TYPE_DOUBLE     : uint32 = 5
+const MYSQL_TYPE_TIMESTAMP  : uint32 = 7
+const MYSQL_TYPE_LONGLONG   : uint32 = 8
+const MYSQL_TYPE_INT24      : uint32 = 9
+const MYSQL_TYPE_DATE       : uint32 = 10
+const MYSQL_TYPE_TIME       : uint32 = 11
+const MYSQL_TYPE_DATETIME   : uint32 = 12
+const MYSQL_TYPE_YEAR       : uint32 = 13
+const MYSQL_TYPE_NEWDATE    : uint32 = 14
+const MYSQL_TYPE_VARCHAR    : uint32 = 15
+const MYSQL_TYPE_BIT        : uint32 = 16
+const MYSQL_TYPE_TIMESTAMP2 : uint32 = 17
+const MYSQL_TYPE_DATETIME2  : uint32 = 18
+const MYSQL_TYPE_TIME2      : uint32 = 19
+const MYSQL_TYPE_JSON       : uint32 = 245
+const MYSQL_TYPE_NEWDECIMAL : uint32 = 246
+const MYSQL_TYPE_ENUM       : uint32 = 247
+const MYSQL_TYPE_SET        : uint32 = 248
+const MYSQL_TYPE_TINY_BLOB  : uint32 = 249
+const MYSQL_TYPE_MEDIUM_BLOB: uint32 = 250
+const MYSQL_TYPE_LONG_BLOB  : uint32 = 251
+const MYSQL_TYPE_BLOB       : uint32 = 252
+const MYSQL_TYPE_VAR_STRING : uint32 = 253
+const MYSQL_TYPE_STRING     : uint32 = 254
+const MYSQL_TYPE_GEOMETRY   : uint32 = 255
+
+
+func mysql_init(mysql : pointer) -> pointer [[external]] ..
+func mysql_close(mysql : pointer) [[external]] ..
+func mysql_real_connect(mysql : pointer, host : ^char, user : ^char, password : ^char,
+                        database : ^char, port : uint, unix_socket : ^char,
+                        client_flag : uint64) -> pointer [[external]] ..
+func mysql_ping(mysql : pointer) -> int [[external]] ..
+func mysql_query(mysql : pointer, query : ^char) -> int [[external]] ..
+func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int [[external]] ..
+func mysql_store_result(mysql : pointer) -> pointer [[external]] ..
+func mysql_free_result(aresult : pointer) [[external]] ..
+func mysql_fetch_row(aresult : pointer) -> pointer [[external]] ..
+func mysql_fetch_lengths(aresult : pointer) -> ^uint64 [[external]] ..
+func mysql_num_fields(aresult : pointer) -> uint [[external]] ..
+func mysql_fetch_fields(aresult : pointer) -> pointer [[external]] ..
+func mysql_field_count(mysql : pointer) -> uint [[external]] ..
+func mysql_affected_rows(mysql : pointer) -> int64 [[external]] ..
+func mysql_insert_id(mysql : pointer) -> uint64 [[external]] ..
+func mysql_errno(mysql : pointer) -> uint [[external]] ..
+func mysql_error(mysql : pointer) -> ^char [[external]] ..
+func mysql_set_character_set(mysql : pointer, charset : ^char) -> int [[external]] ..
+func mysql_data_seek(aresult : pointer, offset : uint64) [[external]] ..
+
+func libc_strtoll(nptr : ^char, endptr : ^pointer, base : int) -> int64 [[external('strtoll')]] ..
+func libc_strtod(nptr : ^char, endptr : ^pointer) -> float64 [[external('strtod')]] ..
+
+//-----------------------------------------------------------------------------
+
+func OMySqlConnection.*Create():
+    inherited Create()
+endfunc
+
+func OMySqlConnection.*Destroy():
+    if m_handle <> nil:
+        @.mysql_close(m_handle)
+        m_handle = nil
+    endif
+endfunc
+
+func OMySqlConnection.ErrorCode() -> uint:
+    if m_handle == nil:
+        return 0
+    endif
+    return @.mysql_errno(m_handle)
+endfunc
+
+func OMySqlConnection.ErrorText() -> ^char:
+    if m_handle == nil:
+        return 'no MySQL error message is available'
+    endif
+    return @.mysql_error(m_handle)
+endfunc
+
+func OMySqlConnection.ErrorCheck(aresult : int, aoperation : ^char):
+    if aresult == 0:
+        return
+    endif
+    raise EDbConnection('{}: {} (SQLite code {})', [aoperation, ErrorText(), aresult])
+endfunc
+
+func OMySqlConnection.Open()  [[override]]:
+    Close()
+
+    var handle : pointer = @.mysql_init(nil)
+    if handle == nil:
+        raise EDbConnection('MySQL open: cannot allocate client handle')
+    endif
+
+    m_handle = handle
+
+    if @.mysql_real_connect(m_handle, host.pchar, user.pchar, password.pchar, database.pchar, port, nil, 0) == nil:
+        var message : ^char = ErrorText()
+        var code    : uint  = ErrorCode()
+        Close()
+        raise EDbConnection('MySQL open: {} (MySQL code {})', [message, code])
+    endif
+endfunc
+
+func OMySqlConnection.Close()  [[override]]:
+    if m_handle <> nil:
+        @.mysql_close(m_handle)
+        m_handle = nil
+    endif
+endfunc
+
+func OMySqlConnection.Opened() -> bool  [[override]]:
+    return m_handle <> nil
+endfunc
+
+func OMySqlConnection.NativeHandle() -> pointer  [[override]]:
+    return m_handle
+endfunc
+
+func OMySqlConnection.Ping():
+    if m_handle == nil:
+        raise EDbConnection('MySQL Ping: database is not open')
+    endif
+    ErrorCheck(@.mysql_ping(m_handle), 'MySQL ping')
+endfunc
+
+func OMySqlConnection.Execute(asql : rostr)  [[override]]:
+    if not Opened():
+        raise EDbConnection('MySql execute: database is not open')
+    endif
+    if asql == '':
+        raise EDbStatement('MySql execute: empty SQL text')
+    endif
+
+    ErrorCheck(@.mysql_query(m_handle, asql), 'MySQL execute')
+
+    // A result-producing statement must be consumed by OMySqlStmt instead.
+    if @.mysql_field_count(m_handle) <> 0:
+        var result : pointer = @.mysql_store_result(m_handle)
+        if result <> nil:
+            @.mysql_free_result(result)
+        endif
+        raise EDbStatement('MySQL execute: statement returned rows; use OMySqlConnection.Query')
+    endif
+endfunc
+
+func OMySqlConnection.Query(asql : rostr) -> ODbCursor  [[override]]:
+    if not Opened():
+        raise EDbConnection('MySql query: database is not open')
+    endif
+    if asql == '':
+        raise EDbStatement('MySql query: empty SQL text')
+    endif
+
+    ErrorCheck(@.mysql_query(m_handle, asql), 'MySQL query')
+
+    var qres : pointer = @.mysql_store_result(m_handle)
+    if qres == nil  and @.mysql_field_count(m_handle) <> 0:
+        // mysql_store_result() also returns nil on an error, which is reported
+        // through the connection's error state.
+        raise EDbConnection('MySQL store result: {} (MySQL code {})', [ErrorText(), ErrorCode()])
+    endif
+
+    result = new OMySqlCursor(self, qres)
+endfunc
+
+func OMySqlConnection.Begin()  [[override]]:
+    Execute('BEGIN TRANSACTION')
+endfunc
+
+func OMySqlConnection.Commit()  [[override]]:
+    Execute('COMMIT')
+endfunc
+
+func OMySqlConnection.Rollback()  [[override]]:
+    Execute('ROLLBACK')
+endfunc
+
+func OMySqlConnection.Changes() -> int  [[override]]:
+    if not Opened():
+        return 0
+    endif
+    return @.mysql_affected_rows(m_handle)
+endfunc
+
+func OMySqlConnection.LastInsertId() -> int64  [[override]]:
+    if not Opened():
+        return 0
+    endif
+    return @.mysql_insert_id(m_handle)
+endfunc
+
+func OMySqlConnection.ErrorMessage() -> str  [[override]]:
+    return ErrorText()
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func OMySqlCursor.*Create(aconnection : ODbConnection, ahandle : pointer):
+    inherited Create(aconnection)
+    m_handle = ahandle
+
+    LoadFieldData()
+
+    // Fetch the first row
+    m_row = ^^char(@.mysql_fetch_row(m_handle))
+    m_onrow = (m_row <> nil)
+endfunc
+
+func OMySqlCursor.*Destroy():
+    m_fieldinfo = []
+    if m_handle <> nil:
+        @.mysql_free_result(m_handle)
+        m_handle = nil
+    endif
+    inherited Destroy()
+endfunc
+
+func OMySqlCursor.DbFieldType(amysqltype : uint32) -> NDbFieldType:
+    use .
+    if amysqltype == MYSQL_TYPE_TINY or amysqltype == MYSQL_TYPE_SHORT
+       or amysqltype == MYSQL_TYPE_LONG or amysqltype == MYSQL_TYPE_LONGLONG
+       or amysqltype == MYSQL_TYPE_INT24 or amysqltype == MYSQL_TYPE_YEAR
+    :
+        return ftInt
+    endif
+
+    if amysqltype == MYSQL_TYPE_DECIMAL or amysqltype == MYSQL_TYPE_NEWDECIMAL
+       or amysqltype == MYSQL_TYPE_FLOAT or amysqltype == MYSQL_TYPE_DOUBLE
+    :
+        return ftFloat
+    endif
+
+    if amysqltype == MYSQL_TYPE_TIMESTAMP or amysqltype == MYSQL_TYPE_DATE
+       or amysqltype == MYSQL_TYPE_TIME or amysqltype == MYSQL_TYPE_DATETIME
+       or amysqltype == MYSQL_TYPE_NEWDATE or amysqltype == MYSQL_TYPE_TIMESTAMP2
+       or amysqltype == MYSQL_TYPE_DATETIME2 or amysqltype == MYSQL_TYPE_TIME2
+    :
+        return ftDateTime
+    endif
+
+    if amysqltype == MYSQL_TYPE_BIT or amysqltype == MYSQL_TYPE_TINY_BLOB
+       or amysqltype == MYSQL_TYPE_MEDIUM_BLOB or amysqltype == MYSQL_TYPE_LONG_BLOB
+       or amysqltype == MYSQL_TYPE_BLOB or amysqltype == MYSQL_TYPE_GEOMETRY
+    :
+        return ftBlob
+    endif
+
+    if amysqltype == MYSQL_TYPE_VARCHAR or amysqltype == MYSQL_TYPE_VAR_STRING
+       or amysqltype == MYSQL_TYPE_STRING or amysqltype == MYSQL_TYPE_JSON
+       or amysqltype == MYSQL_TYPE_ENUM or amysqltype == MYSQL_TYPE_SET
+    :
+        return ftText
+    endif
+
+    return ftUnknown
+endfunc
+
+func OMySqlCursor.LoadFieldData():
+    m_fieldinfo = []
+    m_fieldcount = @.mysql_num_fields(m_handle)
+    m_lengths    = @.mysql_fetch_lengths(m_handle)
+    m_fields     = ^SMySqlField(@.mysql_fetch_fields(m_handle))
+    for n : uint = 0 count m_fieldcount:
+        var fi : SFieldInfo
+        var pfield : ^SMySqlField = m_fields[n]
+        fi.name = pfield.name
+        fi.index = n
+        fi.ftype = DbFieldType(pfield.ftype)
+
+        m_fieldinfo.Append(fi)
+    endfor
+endfunc
+
+func OMySqlCursor.Next()  [[override]]:
+    if not m_onrow:  // do not step after done
+        return
+    endif
+    m_row = ^^char(@.mysql_fetch_row(m_handle))
+    m_onrow = (m_row <> nil)
+endfunc
+
+func OMySqlCursor.First()  [[override]]:
+    @.mysql_data_seek(m_handle, 0)
+    m_row = ^^char(@.mysql_fetch_row(m_handle))
+    m_onrow = (m_row <> nil)
+endfunc
+
+func OMySqlCursor.IsNull(aidx : int) -> bool  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    return m_row[aidx]^ == nil
+endfunc
+
+func OMySqlCursor.GetInt(aidx : int, defvalue : int) -> int  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    var pvalue : ^char = m_row[aidx]^
+    if pvalue == nil:
+        return defvalue
+    endif
+    return @.libc_strtoll(pvalue, nil, 10)
+endfunc
+
+func OMySqlCursor.GetFloat(aidx : int, defvalue : float) -> float  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    var pvalue : ^char = m_row[aidx]^
+    if pvalue == nil:
+        return defvalue
+    endif
+    return @.libc_strtod(pvalue, nil)
+endfunc
+
+func OMySqlCursor.GetBool(aidx : int, defvalue : bool) -> bool  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    var pvalue : ^char = m_row[aidx]^
+    if pvalue == nil:
+        return defvalue
+    endif
+    return @.libc_strtoll(pvalue, nil, 10) <> 0
+endfunc
+
+func OMySqlCursor.GetStr(aidx : int, defvalue : strslice) -> str  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    var pvalue : ^char = m_row[aidx]^
+    if pvalue == nil:
+        return defvalue
+    endif
+    return pvalue
+endfunc
+
+func OMySqlCursor.GetBlob(aidx : int) -> [*]byte  [[override, overload]]:
+    CheckFieldAccess(aidx)
+    var pvalue : ^char = m_row[aidx]^
+    if pvalue == nil:
+        return []
+    endif
+    result = []  // required for the DQ variable initialization checker
+    var length : uint64 = m_lengths[aidx]^
+    result.SetLength(length)
+    if length > 0:
+        @.MemCopy(%result[0], pvalue, length)
+    endif
+endfunc

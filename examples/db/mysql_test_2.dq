@@ -1,0 +1,73 @@
+// testing mysql database handling
+
+use db
+use mysql
+
+use print
+
+// mysql -u dbuser -h 192.168.0.80 -D capitals
+
+const MYSQL_HOST : rostr = '192.168.0.80'
+const MYSQL_USER : rostr = 'dbuser'
+const MYSQL_PASS : rostr = ''
+const MYSQL_DB   : rostr = 'capitals'
+
+func *Main():
+    PrintLn('MySQL database test')
+
+    var db <- OMySqlConnection()
+
+    db.host     = MYSQL_HOST
+    db.user     = MYSQL_USER
+    db.password = MYSQL_PASS
+    db.database = MYSQL_DB
+    db.Open()
+
+    PrintLn('Capitals in Europe:')
+    // Query the data through a prepared statement.
+
+    var cur : autofree ODbCursor  // previous object will be freed on reassignment
+
+    cur = db.Query(
+    """
+    select
+        ID, CITY, COUNTRY
+    from
+        capitals
+    where
+        CONTINENT = 'Europe'
+    order by
+        CITY
+    limit
+        50
+    """)
+
+    while cur.OnRow():
+        PrintLn('{}: {} - {}', [cur.GetInt(0, 0), cur.GetStr(1, '?'), cur.GetStr(2, '?')])
+        cur.Next()
+    endwhile
+
+    PrintLn()
+    PrintLn('Continent countries:')
+    cur = db.Query(
+    """
+    select
+        CONTINENT, count(*) as COUNTRY_COUNT
+    from
+        capitals
+    group by
+        CONTINENT
+    """)
+
+    PrintLn('Result field names:')
+    for n : int = 0 count cur.FieldCount():
+        PrintLn('  {}', [cur.FieldName(n)])
+    endfor
+    PrintLn()
+
+    while cur.OnRow():
+        PrintLn('{} - {}', [cur.GetStr('CONTINENT', '?'), cur.GetInt('COUNTRY_COUNT', 0)])
+        cur.Next()
+    endwhile
+
+endfunc

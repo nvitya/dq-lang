@@ -8,7 +8,7 @@
  * file:    main_atrunner.cpp
  * authors: Codex
  * created: 2026-03-17
- * brief:   dqatrun main entry point
+ * brief:   dq-atrun main entry point
  */
 
 #include "stdio.h"

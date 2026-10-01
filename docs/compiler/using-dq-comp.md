@@ -6,7 +6,7 @@ The main tools are:
 | --- | --- |
 | `dq-comp` | compile DQ modules and link executables |
 | `dq-run` | compile a single DQ file and run it |
-| `dqatrun` | run compiler autotests |
+| `dq-atrun` | run compiler autotests |
 
 For instructions on building these tools from source, see
 [Getting the DQ Compiler](getting-dq-comp.md).

@@ -133,7 +133,7 @@ testing command-line overrides of project properties.
 
 Runner-owned arguments, such as a unique output path and build suffix, must be
 kept separate from the test-supplied arguments. The precedence of a global
-runner optimization override, such as `dqatrun -O0`, must be defined
+runner optimization override, such as `dq-atrun -O0`, must be defined
 explicitly.
 
 ## Cortex-M and multiple architectures
@@ -177,7 +177,7 @@ architecture filter:
 //?hostarch('x64')
 ```
 
-The marker describes the architecture of the machine running `dqatrun`, not
+The marker describes the architecture of the machine running `dq-atrun`, not
 the target selected for `dq-comp`. The runner detects its host architecture at
 startup. Initially, the only recognized identifiers are:
 
@@ -250,7 +250,7 @@ This replaces both built-in runner analyzers and special shell-test files. No
 `//?analyser()`, `//?shell()`, `.sht`, or general prerequisite marker is
 required.
 
-A driver test is run by `dqatrun` like any other runtime test:
+A driver test is run by `dq-atrun` like any other runtime test:
 
 ```dq
 //?exitcode(0)
@@ -297,7 +297,7 @@ The test helper package is located at:
 autotest/packages/dqautotest/dqautotest.dq
 ```
 
-`dqatrun` should add `autotest/packages` to the compiler package paths so that
+`dq-atrun` should add `autotest/packages` to the compiler package paths so that
 driver tests can simply write:
 
 ```dq
@@ -323,14 +323,14 @@ process-running behavior may later move into the standard DQ library, while
 compiler-test expectations and paths remain in `dqautotest`.
 
 The helper should print detailed diagnostics only when an expectation fails.
-The DQ driver then returns nonzero. `dqatrun` reports the exit-code mismatch
+The DQ driver then returns nonzero. `dq-atrun` reports the exit-code mismatch
 and includes the driver's captured stdout and stderr; it does not need to
 understand the inner compiler diagnostic format.
 
 ## Runner environment
 
 DQ driver tests must know which compiler and developer tools belong to the
-current test run. `dqatrun` should provide this through child-process
+current test run. `dq-atrun` should provide this through child-process
 environment variables:
 
 ```text

@@ -17,13 +17,12 @@ In general try to find the most elegant solution (least code), which is not alwa
 ## DQ Compiler Testing
 
 - Run the DQ compiler autotests with `make test`.
-- Or run them directly with `build/dqatrun --clean -c build/dq-comp -r autotest/tests`.
-- single tests can be run like `build/dqatrun --clean -c build/dq-comp autotest/tests/basic/printf.dq` which provides more detailed output
-- module recompilation can be tested without the `--clean` flag: `build/dqatrun -c build/dq-comp -r autotest/tests`
+- Or run them directly with `build/dq-atrun --clean -c build/dq-comp -r autotest/tests`.
+- single tests can be run like `build/dq-atrun --clean -c build/dq-comp autotest/tests/basic/printf.dq` which provides more detailed output
+- module recompilation can be tested without the `--clean` flag: `build/dq-atrun -c build/dq-comp -r autotest/tests`
 
 ## DQ Single File Run and Debugging
 
 - You can compile and run single files with `build/dq-run file.dq`. This way no autotest markers are required in the file.
 - `build/dq-run file.dq` compiles with `-g O0` so if the compiled executable crashes you should get a stack backtrace
 - You can compile single file with debugging info using `build/dq-comp -g -O0 file.dq`. And then you can try debugging with `gdb`.
-

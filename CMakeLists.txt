@@ -91,7 +91,7 @@ if(DQ_GDB_SYSTEM_INIT_DIR)
   )
 endif()
 
-set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dqatrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
+set(DQ_AUTOTEST_COMMAND "$<TARGET_FILE:dq-atrun>" -c "$<TARGET_FILE:dq-comp>" -r autotest/tests)
 
 add_custom_target(cleantest
   COMMAND ${DQ_AUTOTEST_COMMAND} --clean-only
@@ -101,28 +101,28 @@ add_custom_target(cleantest
 
 add_custom_target(autotest
   COMMAND ${DQ_AUTOTEST_COMMAND}
-  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
+  DEPENDS dq-comp dq-atrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
 
 add_custom_target(autotest_O0
   COMMAND ${DQ_AUTOTEST_COMMAND} -O0
-  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
+  DEPENDS dq-comp dq-atrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
 
 add_custom_target(test
   COMMAND ${DQ_AUTOTEST_COMMAND} --clean
-  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
+  DEPENDS dq-comp dq-atrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )
 
 add_custom_target(test_O0
   COMMAND ${DQ_AUTOTEST_COMMAND} --clean -O0
-  DEPENDS dq-comp dqatrun dq-inline-asm-test dq-projectfile-test
+  DEPENDS dq-comp dq-atrun dq-inline-asm-test dq-projectfile-test
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   USES_TERMINAL
 )

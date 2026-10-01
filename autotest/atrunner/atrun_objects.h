@@ -8,7 +8,7 @@
  * file:    atrun_objects.h
  * authors: Codex
  * created: 2026-03-17
- * brief:   dqatrun object hierarchy draft
+ * brief:   dq-atrun object hierarchy draft
  */
 
 #pragma once

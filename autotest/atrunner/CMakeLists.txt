@@ -12,7 +12,7 @@ include_directories(../../compiler/utils)
 
 file(GLOB SRC_ATRUNNER CONFIGURE_DEPENDS "*.cpp")
 
-add_executable(dqatrun
+add_executable(dq-atrun
   ${SRC_ATRUNNER}
   ../../compiler/utils/dq_utils.cpp
   ../../compiler/utils/strparse.cpp
@@ -21,13 +21,13 @@ add_executable(dqatrun
 )
 
 # on exception I want to have a nice backtrace
-set_target_properties(dqatrun PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(dq-atrun PROPERTIES ENABLE_EXPORTS ON)
 
 find_library(DQ_STDCXXEXP_LIBRARY stdc++exp)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(dqatrun PRIVATE stdc++exp)
+  target_link_libraries(dq-atrun PRIVATE stdc++exp)
 elseif(DQ_STDCXXEXP_LIBRARY)
-  target_link_libraries(dqatrun PRIVATE ${DQ_STDCXXEXP_LIBRARY})
+  target_link_libraries(dq-atrun PRIVATE ${DQ_STDCXXEXP_LIBRARY})
 endif()
 
-install(TARGETS dqatrun DESTINATION bin)
+install(TARGETS dq-atrun DESTINATION bin)

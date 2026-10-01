@@ -99,7 +99,7 @@ install_windows_toolchain() {
 
 require_file "$BUILD_DIR/bin/dq-comp.exe"
 require_file "$BUILD_DIR/bin/dq-run.exe"
-require_file "$BUILD_DIR/bin/dqatrun.exe"
+require_file "$BUILD_DIR/bin/dq-atrun.exe"
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
 require_file "$ROOT_DIR/tools/vscode-dq/dq-syntax-0.0.1.vsix"
@@ -122,7 +122,7 @@ install_windows_toolchain
 
 cp "$BUILD_DIR/bin/dq-comp.exe" "$STAGE/bin/"
 cp "$BUILD_DIR/bin/dq-run.exe" "$STAGE/bin/"
-cp "$BUILD_DIR/bin/dqatrun.exe" "$STAGE/bin/"
+cp "$BUILD_DIR/bin/dq-atrun.exe" "$STAGE/bin/"
 cp "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libc++.dll" "$STAGE/bin/"
 cp "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libunwind.dll" "$STAGE/bin/"
 if [[ -f "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll" ]]; then
@@ -159,7 +159,7 @@ Quick start:
 Included:
   bin/dq-comp.exe
   bin/dq-run.exe
-  bin/dqatrun.exe
+  bin/dq-atrun.exe
   bin/libc++.dll
   bin/libunwind.dll
   toolchain/llvm-mingw/

@@ -191,8 +191,8 @@ void OAtrOptions::ParseCmdLineArgs(int argc, char ** argv)
 void OAtrOptions::PrintUsage()
 {
   print("Usage:\n");
-  print("  dqatrun [options] <file.dq|file.dqproj>\n");
-  print("  dqatrun [options]\n");
+  print("  dq-atrun [options] <file.dq|file.dqproj>\n");
+  print("  dq-atrun [options]\n");
   print("Options:\n");
   print("  -c <file> : set compiler executable filename\n");
   print("  -r <dir>  : set batch test root directory\n");

@@ -8,7 +8,7 @@
  * file:    atr_options.h
  * authors: Codex
  * created: 2026-03-17
- * brief:   dqatrun options
+ * brief:   dq-atrun options
  */
 
 #pragma once

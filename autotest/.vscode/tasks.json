@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "cmake-configure-dqatrun",
+      "label": "cmake-configure-dq-atrun",
       "type": "shell",
       "command": "cmake",
       "args": [
@@ -14,7 +14,7 @@
       "problemMatcher": []
     },
     {
-      "label": "build-dqatrun",
+      "label": "build-dq-atrun",
       "type": "shell",
       "command": "cmake",
       "args": [
@@ -29,7 +29,7 @@
         "kind": "build",
         "isDefault": true
       },
-      "dependsOn": "cmake-configure-dqatrun",
+      "dependsOn": "cmake-configure-dq-atrun",
       "problemMatcher": [
         "$gcc"
       ]

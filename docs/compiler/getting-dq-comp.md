@@ -201,7 +201,7 @@ directory:
 ```text
 build/dq-comp
 build/dq-run
-build/dqatrun
+build/dq-atrun
 ```
 
 ### Install

@@ -1,4 +1,4 @@
-// dqatrun supplies driver-test context without changing program arguments.
+// dq-atrun supplies driver-test context without changing program arguments.
 //?exitcode(0)
 
 func libc_getenv(name : ^char) -> ^char [[external('getenv')]] ..

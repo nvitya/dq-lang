@@ -1,0 +1,4 @@
+site_name: packages/strutils
+
+nav:
+  - Overview: index.md

@@ -1,0 +1,4 @@
+site_name: packages/json
+
+nav:
+  - Overview: index.md

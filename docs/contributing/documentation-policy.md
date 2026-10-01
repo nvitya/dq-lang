@@ -2,9 +2,10 @@
 
 ## Published Sources
 
-`docs/` is the only maintained source for the published DQ documentation. The
-site tracks the compiler on the repository's `main` branch during Pre-V1
-development.
+`docs/` and package-local `docs/` directories are the maintained sources for
+the published DQ documentation. The aggregate site includes package
+documentation through each package's `mkdocs.yml`. The site tracks the compiler
+on the repository's `main` branch during Pre-V1 development.
 
 Documentation has four explicitly different roles:
 

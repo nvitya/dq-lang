@@ -18,7 +18,8 @@ func Format(afmt : rostr, aargs : []anyvalue) -> str
 var s : str = Format("{} = {:04X}", ["value", 255])
 ```
 
-See [Text Formatting](../rtl/textfmt.md) for the format language.
+See the [Text Formatting](https://nvitya.github.io/dq-lang/rtl/textfmt/) documentation
+for the format language.
 
 ## Conversion
 

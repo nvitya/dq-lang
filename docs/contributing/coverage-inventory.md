@@ -38,5 +38,5 @@ The archived copies are historical and do not override the listed destinations.
 | Pointers and memory | [Structures, Pointers, and Function References](../reference/structures-pointers-and-function-references.md), [Objects and Properties](../reference/objects-and-properties.md) |
 | Modules and namespaces | [Modules and Packages](../reference/modules-and-packages.md) |
 | Compiler directives and C access | [Attributes, Directives, and Interoperability](../reference/attributes-directives-and-interop.md) |
-| Standard library | Runtime and Standard Modules sections of the site |
+| Standard library | Runtime Library and Standard Packages sections of the site |
 | Rejected features and open questions | Historical only unless reintroduced as a separate design proposal |

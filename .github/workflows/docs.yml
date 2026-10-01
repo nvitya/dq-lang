@@ -5,11 +5,15 @@ on:
     branches: [master, main]
     paths:
       - docs/**
+      - stdpkg/*/docs/**
+      - stdpkg/*/mkdocs.yml
       - mkdocs.yml
       - .github/workflows/docs.yml
   pull_request:
     paths:
       - docs/**
+      - stdpkg/*/docs/**
+      - stdpkg/*/mkdocs.yml
       - mkdocs.yml
       - .github/workflows/docs.yml
   workflow_dispatch:
@@ -27,7 +31,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material
+      - run: pip install mkdocs-material mkdocs-monorepo-plugin
 
       - run: mkdocs build --strict
 
@@ -44,6 +48,6 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material
+      - run: pip install mkdocs-material mkdocs-monorepo-plugin
 
       - run: mkdocs gh-deploy --force

@@ -1,6 +1,7 @@
 const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
+const { blockCloserForHeader } = require("./block-closer");
 
 const languageClients = new Map();
 
@@ -125,12 +126,41 @@ async function selectLanguageServerProject() {
   await configuration.update("languageServerProjects", projects, vscode.ConfigurationTarget.Workspace);
 }
 
+function appendBlockCloser(event) {
+  if (event.document.languageId !== "dq" || event.contentChanges.length !== 1) return;
+
+  const change = event.contentChanges[0];
+  if (change.rangeLength !== 0 || !/^\n[\t ]*$/.test(change.text)) return;
+
+  const headerLineNumber = change.range.start.line;
+  const blockCloser = blockCloserForHeader(event.document.lineAt(headerLineNumber).text);
+  if (!blockCloser) return;
+
+  const bodyLine = event.document.lineAt(headerLineNumber + 1);
+  if (bodyLine.text.trim()) return;
+
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document !== event.document) return;
+
+  const bodyIndentation = `${blockCloser.indentation}    `;
+  const cursorPosition = new vscode.Position(headerLineNumber + 1, bodyIndentation.length);
+  void editor.edit(edit => {
+    edit.replace(
+      bodyLine.range,
+      `${bodyIndentation}\n${blockCloser.indentation}${blockCloser.text}`
+    );
+  }).then(applied => {
+    if (applied) editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+  });
+}
+
 function activate(context) {
   for (const workspaceFolder of vscode.workspace.workspaceFolders ?? []) {
     startLanguageServer(workspaceFolder);
   }
 
   context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument(appendBlockCloser),
     vscode.workspace.onDidChangeConfiguration(() => restartChangedLanguageServers()),
     vscode.workspace.onDidChangeWorkspaceFolders(async event => {
       for (const workspaceFolder of event.removed) await stopLanguageServer(workspaceFolder);

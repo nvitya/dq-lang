@@ -22,6 +22,14 @@
     ["\"", "\""],
     ["'", "'"]
   ],
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(?:if|for|while|func|object|struct)\\b.*:\\s*$",
+      "action": {
+        "indent": "indent"
+      }
+    }
+  ],
   "colorizedBracketPairs": [
     ["{", "}"],
     ["(", ")"]

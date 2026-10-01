@@ -2,11 +2,12 @@
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
   "description": "DQ editing, language-server, build, and debug support.",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "node test/block-closer.test.js"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   },
   "files": [
     "extension.js",
+    "block-closer.js",
     "language-configuration.json",
     "package.json",
     "README.md",

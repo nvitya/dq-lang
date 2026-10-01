@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.76.4"
+#define DQ_COMPILER_VERSION  "0.76.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.76.5:
+  - VSCode plugin improvement: adding endwords automatically
 v0.76.4:
   - Module regeneration when module/package path is different
 v0.76.3:

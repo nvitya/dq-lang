@@ -1,0 +1,5 @@
+//?notest
+
+object OPrivatePayload:
+    value : int
+endobject

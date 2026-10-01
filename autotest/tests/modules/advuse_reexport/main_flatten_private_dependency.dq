@@ -1,0 +1,6 @@
+//?build_only
+
+use ./mod_flatten_private_mid
+
+func *Main():
+endfunc

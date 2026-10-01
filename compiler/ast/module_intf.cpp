@@ -1320,6 +1320,11 @@ private:
       IncludeType(object_ref->object_type, consumer_module);
       return;
     }
+    if (auto * autofree = dynamic_cast<OTypeAutoFree *>(type))
+    {
+      IncludeType(autofree->basetype, consumer_module);
+      return;
+    }
 
     if (owner && owner != root)
     {

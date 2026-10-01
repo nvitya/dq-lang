@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.78.0"
+#define DQ_COMPILER_VERSION  "0.78.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.78.2:
+  - Cross module autofree handling fix
+v0.78.1:
+  - Module interface dependency collection fix for autofree field types
 v0.78.0:
   - Deferred embedded constructor (`embobj <- OSome`) now requires `..` to avoid unexpected runtime errors later
 v0.77.2:

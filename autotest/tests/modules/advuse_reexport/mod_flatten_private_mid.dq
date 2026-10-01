@@ -1,0 +1,7 @@
+//?notest
+
+use ./mod_flatten_private_leaf
+
+object OPrivateServer:
+    payload : autofree OPrivatePayload
+endobject

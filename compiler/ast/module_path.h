@@ -59,6 +59,7 @@ public:
                                        filesystem::path & rartifact_path);
   static bool ResolveCanonicalSource(const string & module_id, const string & context_module_id,
                                      const filesystem::path & context_artifact,
+                                     const filesystem::path & context_source,
                                      filesystem::path & rsource_path);
   static bool ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
                                  filesystem::path & rroot_dir);

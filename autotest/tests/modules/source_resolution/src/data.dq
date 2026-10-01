@@ -1,0 +1,5 @@
+//?notest
+
+use ./prg
+
+const DATA_VALUE : int = PRG_VALUE

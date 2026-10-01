@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.77.0"
+#define DQ_COMPILER_VERSION  "0.77.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.77.1:
+  - Module interface freshness check relative path handling fix
 v0.77.0:
   - Supporting hexadecimal values in text literals, like "\xEF\xBB\xBF"
 v0.76.5:

@@ -1,0 +1,9 @@
+//?compargs('--pkg-path', 'autotest/tests/modules/source_resolution/search')
+
+use ./data
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+func *Main():
+    printf("source resolution = %d\n", DATA_VALUE)  //?check('source resolution', 1)
+endfunc

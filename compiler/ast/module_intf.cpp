@@ -751,7 +751,8 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
     if (g_opt.langserver_worker) continue;
 
     filesystem::path resolved_source;
-    if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename, resolved_source))
+    if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename,
+                                             source_dependencies.front().filename, resolved_source))
     {
       rreason = format("can not resolve flattened module source: {}", module_name);
       return false;
@@ -1002,7 +1003,8 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshInterfaceArtifact(const OMod
     {
       filesystem::path resolved_source;
       if (!OModulePath::ResolveCanonicalSource(dependency_name, module_path.module_id,
-                                               module_path.interface_artifact_path, resolved_source)
+                                               module_path.interface_artifact_path, module_path.source_path,
+                                               resolved_source)
           || AbsNormPath(stored_source) == resolved_source)
       {
         continue;

@@ -481,6 +481,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
 
 bool OModulePath::ResolveCanonicalSource(const string & module_id, const string & context_module_id,
                                          const filesystem::path & context_artifact,
+                                         const filesystem::path & context_source,
                                          filesystem::path & rsource_path)
 {
   vector<string> target_parts = Split(module_id);
@@ -488,6 +489,25 @@ bool OModulePath::ResolveCanonicalSource(const string & module_id, const string 
 
   string package_name = target_parts[0];
   string local_path = (target_parts.size() == 1 ? package_name : Join(target_parts, 1));
+
+  vector<string> context_parts = Split(context_module_id);
+  // Module IDs do not preserve whether a use was package-qualified or local.
+  // The source of the current module does preserve its package root, though.
+  // Keep sibling modules in that root instead of letting an unrelated package
+  // search path with the same package name override a local use.
+  if (!context_source.empty() && (target_parts.size() > 1) && (context_parts.size() > 1)
+      && (target_parts[0] == context_parts[0]))
+  {
+    filesystem::path context_root = AbsNormPath(context_source);
+    context_root.replace_extension();
+    for (size_t i = 1; i < context_parts.size(); ++i)
+    {
+      context_root = context_root.parent_path();
+    }
+    rsource_path = SourcePathForLocal(context_root, local_path);
+    return true;
+  }
+
   filesystem::path package_dir;
   if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir))
   {
@@ -495,7 +515,6 @@ bool OModulePath::ResolveCanonicalSource(const string & module_id, const string 
     return true;
   }
 
-  vector<string> context_parts = Split(context_module_id);
   filesystem::path local_dir = BuildTagDir() / "local";
   filesystem::path context_path = AbsNormPath(context_artifact);
   filesystem::path local_rel = context_path.lexically_relative(local_dir);

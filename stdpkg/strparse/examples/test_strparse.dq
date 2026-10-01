@@ -2,6 +2,31 @@ use print
 use strparse
 use file
 
+const test_str : rostr =
+"""
+{
+  "strnode":"hello",
+  "numnode":3.14,
+  "boolnode":true,
+  "objnode":{
+    "substr":"abc",
+    "subnum":46,
+    "subbool":false,
+    "subnull":null
+  },
+  "arrnode":[
+    1,
+    2,
+    3
+  ],
+  "first":{
+    "second":{
+      "third":"deepvalue"
+    }
+  }
+}
+"""
+
 func ParseText(atxt : strslice):
     PrintLn('--------------------------------')
     var sp <- OStrParse(atxt)
@@ -36,8 +61,6 @@ endfunc
 func *Main():
     PrintLn('Testing OStrParse')
 
-    var fdata : str = FileReadText('test.json')
-
-    PrintLn('Test file data:\n{}', [fdata])
-    ParseText(fdata)
+    PrintLn('Test data:\n{}', [test_str])
+    ParseText(test_str)
 endfunc

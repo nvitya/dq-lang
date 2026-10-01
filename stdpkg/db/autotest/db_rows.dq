@@ -1,0 +1,81 @@
+use db
+use print
+
+func PrintRow(label : strslice, rows : ODbRows):
+    var name : str = rows.GetStr("name", "")
+    PrintLn('{} = idx:{} id:{} name:{} active:{}',
+            [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])
+endfunc
+
+func *Main():
+    var rows <- ODbRows()
+
+    PrintLn('db_rows.empty = rows:{} fields:{} onrow:{}',
+            [rows.RowCount(), rows.FieldCount(), rows.OnRow()]) //?check("db_rows.empty", "rows:0 fields:0 onrow:false")
+
+    PrintLn('db_rows.fields = id:{} name:{} has-name:{} missing:{}',
+            [rows.AddField("id", ftInt),
+             rows.AddField("name", ftText),
+             rows.HasField("name"),
+             rows.FieldIndex("missing")]) //?check("db_rows.fields", "id:0 name:1 has-name:true missing:-1")
+
+    rows.AddRow()
+    rows.SetInt("id", 10)
+    rows.SetStr("name", "alpha")
+
+    rows.AddRow()
+    rows.SetValue("id", 20)
+    rows.SetValue("name", "beta")
+
+    var fname0 : str = rows.FieldName(0)
+    var fname1 : str = rows.FieldName(1)
+    PrintLn('db_rows.counts = rows:{} fields:{} f0:{} f1:{}',
+            [rows.RowCount(), rows.FieldCount(), fname0, fname1]) //?check("db_rows.counts", "rows:2 fields:2 f0:id f1:name")
+
+    rows.AddField("active", ftBool)
+    rows.AddField("blob", ftBlob)
+    rows.First()
+    PrintLn('db_rows.add-field-nil = active-nil:{} value:{}',
+            [rows.IsNull("active"),
+             rows.GetBool("active", true)]) //?check("db_rows.add-field-nil", "active-nil:true value:true")
+
+    rows.SetBool("active", true)
+    var blob : [*]byte = [byte(65), byte(0), byte(66)]
+    rows.SetBlob("blob", blob)
+    var saved_blob : [*]byte = rows.GetBlob("blob")
+    PrintLn('db_rows.blob = len:{} bytes:{}:{}:{}',
+            [saved_blob.length, int(saved_blob[0]), int(saved_blob[1]), int(saved_blob[2])]) //?check("db_rows.blob", "len:3 bytes:65:0:66")
+    PrintRow("db_rows.row0", rows) //?check("db_rows.row0", "idx:0 id:10 name:alpha active:true")
+
+    rows.Next()
+    PrintRow("db_rows.row1", rows) //?check("db_rows.row1", "idx:1 id:20 name:beta active:false")
+    var null_blob : [*]byte = rows.GetBlob("blob")
+    PrintLn('db_rows.nil-blob = len:{}', [null_blob.length]) //?check("db_rows.nil-blob", "len:0")
+    var idval : anyvalue = rows.GetValue("id")
+    PrintLn('db_rows.value = {}', [idval.AsInt(-1)]) //?check("db_rows.value", "20")
+
+    rows.Next()  // invalid row !
+    PrintLn('db_rows.eof = idx:{} onrow:{}',
+            [rows.RowIndex(), rows.OnRow()]) //?check("db_rows.eof", "idx:2 onrow:false")
+
+    rows.Prev()
+    rows.SetNull("name")
+    var defname : str = rows.GetStr("name", "def")
+    PrintLn('db_rows.nil-name = isnull:{} def:{}',
+            [rows.IsNull("name"), defname]) //?check("db_rows.nil-name", "isnull:true def:def")
+
+    rows.DeleteRow(0)
+    rows.First()
+    defname = rows.GetStr("name", "def")
+    PrintLn('db_rows.after-delete = rows:{} idx:{} id:{} name:{}',
+            [rows.RowCount(), rows.RowIndex(), rows.GetInt("id", -1), defname]) //?check("db_rows.after-delete", "rows:1 idx:0 id:20 name:def")
+
+    rows.ClearRows()
+    PrintLn('db_rows.clear-rows = rows:{} fields:{} onrow:{}',
+            [rows.RowCount(), rows.FieldCount(), rows.OnRow()]) //?check("db_rows.clear-rows", "rows:0 fields:4 onrow:false")
+
+    rows.Clear()
+    PrintLn('db_rows.clear = rows:{} fields:{}',
+            [rows.RowCount(), rows.FieldCount()]) //?check("db_rows.clear", "rows:0 fields:0")
+
+endfunc

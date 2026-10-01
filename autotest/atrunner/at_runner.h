@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -51,7 +52,10 @@ public: // stats
 protected:
 
   void SleepMs(unsigned ms);
-  void CollectTestFiles();
+  bool CollectTestFiles();
+  bool CollectTestFilesInDirectory(const std::filesystem::path & dirpath, std::vector<std::filesystem::path> & foundfiles);
+  bool ReadTestDirectory(const std::filesystem::path & atdirpath, std::filesystem::path & dirpath);
+  int CleanTestDirectory(const std::filesystem::path & dirpath);
   void DebugPrintCollectedFiles();
   void StartWorkers();
   void StopWorkers();

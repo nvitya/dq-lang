@@ -97,6 +97,14 @@ This is preferred over in-process compiler invocation because it provides:
 
 ---
 
+### 4.1 Included test directories
+
+A batch test directory may contain `.atdir` files. Each `.atdir` file shall contain exactly one directory path. Relative paths are resolved from the `.atdir` file's directory. The referenced directory must exist and is scanned recursively like the batch test root, including any nested `.atdir` files.
+
+Comments, blank paths, and multiple paths are not supported. Duplicate or recursive directory inclusion is a test-suite configuration error that the author must resolve. Standard package includes should use the name `stdpkg-<package>.atdir`.
+
+---
+
 ## 5. Test File Model
 
 Each test is normally one `.dq` file.

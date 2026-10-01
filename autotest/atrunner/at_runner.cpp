@@ -14,6 +14,7 @@
 #include <print>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <algorithm>
 #include <thread>
@@ -105,7 +106,85 @@ void OAtRunner::SleepMs(unsigned ms)
   this_thread::sleep_for(chrono::milliseconds(ms));
 }
 
-void OAtRunner::CollectTestFiles()
+bool OAtRunner::ReadTestDirectory(const fs::path & atdirpath, fs::path & dirpath)
+{
+  ifstream atdirfile(atdirpath);
+  string pathtext;
+  if (!getline(atdirfile, pathtext))
+  {
+    print("The test directory file \"{}\" is empty\n", atdirpath.generic_string());
+    return false;
+  }
+
+  if (!pathtext.empty() and ('\r' == pathtext.back()))
+  {
+    pathtext.pop_back();
+  }
+
+  string extra_line;
+  if (getline(atdirfile, extra_line))
+  {
+    print("The test directory file \"{}\" must contain only one path\n", atdirpath.generic_string());
+    return false;
+  }
+
+  if (pathtext.empty())
+  {
+    print("The test directory file \"{}\" contains an empty path\n", atdirpath.generic_string());
+    return false;
+  }
+
+  dirpath = fs::path(pathtext);
+  if (dirpath.is_relative())
+  {
+    dirpath = atdirpath.parent_path() / dirpath;
+  }
+  dirpath = dirpath.lexically_normal();
+
+  error_code ec;
+  if (!fs::exists(dirpath, ec) or ec)
+  {
+    print("The test directory \"{}\" from \"{}\" does not exist\n", dirpath.generic_string(), atdirpath.generic_string());
+    return false;
+  }
+
+  if (!fs::is_directory(dirpath, ec) or ec)
+  {
+    print("The test directory \"{}\" from \"{}\" is not a directory\n", dirpath.generic_string(), atdirpath.generic_string());
+    return false;
+  }
+
+  return true;
+}
+
+bool OAtRunner::CollectTestFilesInDirectory(const fs::path & dirpath, vector<fs::path> & foundfiles)
+{
+  for (const fs::directory_entry & de : fs::recursive_directory_iterator(dirpath))
+  {
+    if (!de.is_regular_file())
+    {
+      continue;
+    }
+
+    fs::path p = de.path();
+    if (".atdir" == p.extension().string())
+    {
+      fs::path included_dirpath;
+      if (!ReadTestDirectory(p, included_dirpath) or !CollectTestFilesInDirectory(included_dirpath, foundfiles))
+      {
+        return false;
+      }
+    }
+    else if ((".dq" == p.extension().string()) or (".dqproj" == p.extension().string()))
+    {
+      foundfiles.push_back(p);
+    }
+  }
+
+  return true;
+}
+
+bool OAtRunner::CollectTestFiles()
 {
   for (OTestFile * tf : testfiles)
   {
@@ -116,33 +195,24 @@ void OAtRunner::CollectTestFiles()
   fs::path rootpath(g_atropt->test_root);
   if (!fs::exists(rootpath))
   {
-    return;
+    print("The test root \"{}\" does not exist\n", rootpath.generic_string());
+    return false;
   }
 
   vector<fs::path> foundfiles;
-
-  for (const fs::directory_entry & de : fs::recursive_directory_iterator(rootpath))
+  if (!CollectTestFilesInDirectory(rootpath, foundfiles))
   {
-    if (!de.is_regular_file())
-    {
-      continue;
-    }
-
-    fs::path p = de.path();
-    if ((".dq" != p.extension().string()) && (".dqproj" != p.extension().string()))
-    {
-      continue;
-    }
-
-    foundfiles.push_back(fs::relative(p, rootpath));
+    return false;
   }
 
   sort(foundfiles.begin(), foundfiles.end());
 
-  for (const fs::path & rp : foundfiles)
+  for (const fs::path & path : foundfiles)
   {
-    testfiles.push_back(new OTestFile((rootpath / rp).generic_string()));
+    testfiles.push_back(new OTestFile(path.generic_string()));
   }
+
+  return true;
 }
 
 void OAtRunner::DebugPrintCollectedFiles()
@@ -381,18 +451,11 @@ int OAtRunner::Run()
   }
 }
 
-int OAtRunner::Clean()
+int OAtRunner::CleanTestDirectory(const fs::path & dirpath)
 {
-  fs::path rootpath(g_atropt->test_root);
   error_code ec;
-  if (!fs::exists(rootpath, ec) or ec)
-  {
-    print("The test root \"{}\" does not exist\n", rootpath.generic_string());
-    return 1;
-  }
-
   int error_count = 0;
-  fs::recursive_directory_iterator iter(rootpath, fs::directory_options::skip_permission_denied, ec);
+  fs::recursive_directory_iterator iter(dirpath, fs::directory_options::skip_permission_denied, ec);
   fs::recursive_directory_iterator end;
   while (iter != end)
   {
@@ -416,7 +479,19 @@ int OAtRunner::Clean()
     else if (entry.is_regular_file(ec))
     {
       const string extension = path.extension().string();
-      if ((".exe" == extension) or (".o" == extension) or (".dqm_if" == extension) or (".atr" == extension))
+      if (".atdir" == extension)
+      {
+        fs::path included_dirpath;
+        if (!ReadTestDirectory(path, included_dirpath))
+        {
+          ++error_count;
+        }
+        else
+        {
+          error_count += CleanTestDirectory(included_dirpath);
+        }
+      }
+      else if ((".exe" == extension) or (".o" == extension) or (".dqm_if" == extension) or (".atr" == extension))
       {
         fs::remove(path, ec);
       }
@@ -435,10 +510,26 @@ int OAtRunner::Clean()
   return error_count;
 }
 
+int OAtRunner::Clean()
+{
+  fs::path rootpath(g_atropt->test_root);
+  error_code ec;
+  if (!fs::exists(rootpath, ec) or ec)
+  {
+    print("The test root \"{}\" does not exist\n", rootpath.generic_string());
+    return 1;
+  }
+
+  return CleanTestDirectory(rootpath);
+}
+
 int OAtRunner::RunBatch()
 {
   PrintBatchHeader();
-  CollectTestFiles();
+  if (!CollectTestFiles())
+  {
+    return 1;
+  }
 
   used_worker_count = g_atropt->worker_count;
   if (used_worker_count < 1)

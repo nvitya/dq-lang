@@ -11,11 +11,13 @@
  * brief:   DQ Compiler Auto-Test Runner Version Description
  */
 
-#define ATR_VERSION  "2.0"
+#define ATR_VERSION  "2.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v2.1: Added .atdir support
 v2.0: Versioning Changed, added --clean, and --clean-only arguments to remove the previous build artifacts
+
 v0.1.1: Disabled per-test build-tag and added //?build_suffix() marker support
 v0.1.0: autotest V2 build_only, compargs, exitcode, hostarch, and driver environment
 v0.0.14: //?check requires unique id always, one id cannot appear twice

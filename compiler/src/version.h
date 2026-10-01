@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.76.2"
+#define DQ_COMPILER_VERSION  "0.76.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.76.4:
+  - Module regeneration when module/package path is different
+v0.76.3:
+  - Const string lowering fix
 v0.76.2:
   - project file handling fix: the default executable and build directory follows the project file, not the main source
 v0.76.1:

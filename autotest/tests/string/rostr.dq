@@ -63,12 +63,15 @@ func *Main():
     var view : strslice = borrowed
     var copy : str = borrowed
     var boxed : anyvalue = borrowed
+    var boxed_constant : anyvalue = GREETING
     var boxed_info : ^SDqAnyValue = ^SDqAnyValue(%boxed)
+    var boxed_constant_info : ^SDqAnyValue = ^SDqAnyValue(%boxed_constant)
     var unboxed : strslice = boxed.AsText("")
     var set_boxed : anyvalue
     set_boxed.SetText(borrowed)
     var set_boxed_info : ^SDqAnyValue = ^SDqAnyValue(%set_boxed)
     printf("bytes = %li:%li:%li:%i:%i:%i\n", view.length, copy.length, unboxed.length, copy == borrowed, boxed_info.kind == DQTK_ROSTR, set_boxed_info.kind == DQTK_ROSTR) //?check("bytes", "4:4:4:1:1:1")
+    printf("boxed_constant = %i\n", boxed_constant_info.kind == DQTK_ROSTR) //?check("boxed_constant", 1)
     var slice : strslice = text[1:4]
     printf("slice = %li:%i:%i\n", slice.length, slice == "oin", text[:] == text) //?check("slice", "3:1:1")
     printf("index = %i:%i\n", text[0] == 'p', text[$last] == 'r') //?check("index", "1:1")

@@ -906,6 +906,11 @@ static bool ModuleSourceExists(const filesystem::path & source_path)
   return g_source_overlay.Exists(source_path);
 }
 
+static bool IsSourceResolutionChange(const string & reason)
+{
+  return reason.starts_with("module source resolution changed for ");
+}
+
 static void PrintModuleChildDiagnostics(const string & output)
 {
   for (size_t begin = 0; begin < output.size(); )
@@ -975,6 +980,47 @@ SModuleArtifactEnsureResult OModuleIntf::EnsureFreshInterfaceArtifact(const OMod
   if (!ModuleSourceExists(module_path.source_path))
   {
     return ModuleArtifactEnsureError(EModuleArtifactEnsureError::SOURCE_MISSING);
+  }
+
+  // A flattened interface retains the source paths of its dependencies.  It
+  // cannot safely seed a rebuild after its package roots change: stale paths
+  // would otherwise be copied into the replacement interface.
+  if (IsSourceResolutionChange(stale_reason))
+  {
+    error_code ec;
+    filesystem::remove(module_path.interface_artifact_path, ec);
+    if (ec)
+    {
+      return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED,
+                                       format("can not remove stale module interface: {}", ec.message()));
+    }
+
+    // The interface may also contain flattened metadata from dependencies
+    // which were resolved through the old package roots.  Remove their
+    // interfaces as well, so the child compiler cannot reuse that metadata.
+    for (const auto & [dependency_name, stored_source] : module_sources)
+    {
+      filesystem::path resolved_source;
+      if (!OModulePath::ResolveCanonicalSource(dependency_name, module_path.module_id,
+                                               module_path.interface_artifact_path, resolved_source)
+          || AbsNormPath(stored_source) == resolved_source)
+      {
+        continue;
+      }
+      filesystem::path dependency_artifact;
+      if (!OModulePath::ResolveCanonicalArtifact(dependency_name, module_path.module_id,
+                                                 module_path.interface_artifact_path, stored_source,
+                                                 dependency_artifact))
+      {
+        continue;
+      }
+      filesystem::remove(ArtifactInterfacePathForObject(dependency_artifact), ec);
+      if (ec)
+      {
+        return ModuleArtifactEnsureError(EModuleArtifactEnsureError::REGEN_FAILED,
+                                         format("can not remove stale module interface: {}", ec.message()));
+      }
+    }
   }
 
   string regen_reason;

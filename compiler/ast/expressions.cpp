@@ -245,7 +245,7 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
     {
       // Text metadata needs addressable descriptor storage, even for constants.
       LlValue * embstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "embstr.const.tmp");
-      ll_builder.CreateStore(pvalsym->ll_value, embstraddr);
+      ll_builder.CreateStore(Generate(scope), embstraddr);
       return embstraddr;
     }
     if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))

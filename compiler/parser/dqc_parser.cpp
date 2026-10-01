@@ -2703,6 +2703,12 @@ void ODqCompParser::ParseObjectDecl()
           ctor_args.push_back(rawarg.TakeExpr());
         }
       }
+      else if (!scf->CheckSymbol(".."))
+      {
+        Error(DQERR_OBJ_CTOR_CALL_OR_DEFERRED);
+        SkipCurStatement();
+        continue;
+      }
 
       if (!ParseAttributes(false))
       {

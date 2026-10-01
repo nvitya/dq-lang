@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.77.2"
+#define DQ_COMPILER_VERSION  "0.78.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.78.0:
+  - Deferred embedded constructor (`embobj <- OSome`) now requires `..` to avoid unexpected runtime errors later
 v0.77.2:
   - Implicit dynamic string module use fix for inherited str properties
 v0.77.1:

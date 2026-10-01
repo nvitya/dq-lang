@@ -11,7 +11,7 @@ object OTest:
 endobject
 
 object OMissing:
-    child <- OTest
+    child <- OTest ..
 
     func *Create():
     endfunc //?error(SpecialFuncInvalid)
@@ -34,11 +34,16 @@ public
     endfunc
 endobject
 
+object OMissingDeferredMarker:
+    child <- OTest //?error(ObjCtorCallOrDeferred)
+endobject
+
 func *Main():
 
     var fixed <- OTest()
     var ref : OTest = nil
-    var priv <- OPrivate
+    var priv <- OPrivate()
+    var missing_marker <- OPrivate //?error(ObjCtorCallOrDeferred)
 
     exit_code = priv.secret //?error(MemberUnknown)
     fixed = ref          //?error(RefReadonly)

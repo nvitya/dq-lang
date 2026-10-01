@@ -147,6 +147,11 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       StatementError(DQERR_TYPE_EXPECTED, "object", ptype->name);
       return;
     }
+    if (object_type->is_abstract)
+    {
+      StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", object_type->name));
+      return;
+    }
 
     scf->SkipWhite();
     if (scf->CheckSymbol("("))
@@ -161,6 +166,12 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       {
         fixed_ctor_args.push_back(rawarg.TakeExpr());
       }
+    }
+    else if (!scf->CheckSymbol(".."))
+    {
+      StatementError(DQERR_OBJ_CTOR_CALL_OR_DEFERRED);
+      SkipToStatementEnd();
+      return;
     }
   }
   else if (scf->CheckSymbol(":"))

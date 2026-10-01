@@ -33,8 +33,8 @@ private
     // various object embedding cases
 
     coords1 <- OCoords(0, 0)   // with constructor call at declaration
-    coords2 <- OCoords         // constructor call in parent constructor
-    coords3 <- OCoords         // missing constructor call
+    coords2 <- OCoords ..      // constructor call in parent constructor
+    coords3 <- OCoords ..      // missing constructor call
     coords4 <- OCoords()       // alternative constructor
 
 public

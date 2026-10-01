@@ -35,6 +35,20 @@ aggregate:
 var local_counter <- OCounter()
 ```
 
+The parentheses invoke the object's constructor, including when it has no
+arguments. To reserve the storage and call `Create` manually later, mark that
+intent explicitly with `..`:
+
+```dq
+object OOwner:
+    child <- OChild ..
+
+    func *Create():
+        child.Create()
+    endfunc
+endobject
+```
+
 The resulting reference uses the same member-access model, but its storage is
 not heap-owned and must not be passed to `delete`. Local fixed storage is cleaned
 up when its scope exits, including during exception unwinding. Global and

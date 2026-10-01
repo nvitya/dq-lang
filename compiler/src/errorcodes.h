@@ -79,6 +79,7 @@ DEF_DQ_ERR(DQERR_ARRAY_CONSTEXPR,                  "ArrayConstExpr",         "Ar
 
 DEF_DQ_ERR(DQERR_NOT_IMPLEMENTED_YET,              "NotImplementedYet",      "$1 is not implemented yet");
 DEF_DQ_ERR(DQERR_NOT_SUPPORTED,                    "NotSupported",           "$1 is not supported");
+DEF_DQ_ERR(DQERR_OBJ_CTOR_CALL_OR_DEFERRED,         "ObjCtorCallOrDeferred",  "Embedded object construction requires \"()\" or deferred construction marker \"..\"");
 DEF_DQ_ERR(DQERR_EXCEPTIONS_DISABLED,              "ExceptionsDisabled",     "Exception handling is disabled; use --exceptions or exceptions = true");
 DEF_DQ_ERR(DQERR_DYNSTRINGS_DISABLED,              "DynStringsDisabled",     "Dynamic strings are disabled; use --dynstrings or dynstrings = true");
 

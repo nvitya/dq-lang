@@ -51,7 +51,7 @@ func *Main():
 
     g_elem = new OElem()
 
-    var elem <- OElem
+    var elem <- OElem()
 
     elem.id = 2
     elem.weight = 3.14

@@ -131,6 +131,9 @@ object OOwner:
 endobject
 ```
 
+Use `..` after the type only when construction is deliberately deferred and
+`Create` will be called manually later.
+
 Embedded object references are valid while their containing storage is alive.
 
 ## Embedded Strings

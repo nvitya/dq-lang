@@ -83,7 +83,7 @@ func packed_array_stride() -> int:
 endfunc
 
 func off_packed_obj_b() -> int:
-    var o <- OLayoutPackedObj
+    var o <- OLayoutPackedObj()
     result = int(uint(%o.b) - uint(%o.a))
 endfunc
 func *Main():

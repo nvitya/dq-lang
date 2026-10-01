@@ -3,7 +3,7 @@ use ./mid_mod
 func printf(fmt : ^char, ...) -> int [[external]] ..
 
 func *Main():
-  var mid <- TMidClass
+  var mid <- TMidClass()
   mid.mid_val = 10
   mid.base_val = 42
   

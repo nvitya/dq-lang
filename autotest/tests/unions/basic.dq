@@ -92,7 +92,7 @@ func *Main():
     brace.data.whole = 42
     printf("union brace = %lu\n", brace.data.whole) //?check("union brace", 42)
 
-    var obj <- OUnionField
+    var obj <- OUnionField()
     obj.Set(0xFFFFFFFF)
     printf("union object = %li\n", int(obj.GetSigned())) //?check("union object", -1)
 

@@ -26,6 +26,7 @@
 */
 
 #include "strparse.h"
+#include "dq_utils.h"
 #include "string.h"
 #include <strings.h>
 #include "math.h"
@@ -476,6 +477,22 @@ bool TStrParseObj::ReadQuotedString(string & rvalue)
     else if (c == '\\') rvalue.push_back('\\');
     else if (c == '"')  rvalue.push_back('"');
     else if (c == '\'') rvalue.push_back('\'');
+    else if ((c == 'x') && (readptr + 1 < bufend))
+    {
+      int high = HexDigitValue(readptr[0]);
+      int low = HexDigitValue(readptr[1]);
+      if ((high >= 0) && (low >= 0))
+      {
+        rvalue.push_back(char((high << 4) | low));
+        readptr += 2;
+      }
+      else
+      {
+        // Keep unknown escapes compatible with the DQ source parser.
+        rvalue.push_back('\\');
+        rvalue.push_back(c);
+      }
+    }
     else
     {
       // Keep unknown escapes compatible with the DQ source parser.

@@ -81,8 +81,10 @@ var message : str = 'hello'
 
 Quoted literals end on the same physical line. Use escape sequences such as
 `\n`, `\r`, `\t`, `\\`, `\"`, and `\'` for control characters and embedded
-delimiters. See [Strings and Characters](strings-and-characters.md) for typing
-and conversion rules.
+delimiters. `\xNN` inserts one byte specified by exactly two hexadecimal digits;
+for example, `"\xEF\xBB\xBF"` is the UTF-8 byte-order mark. See
+[Strings and Characters](strings-and-characters.md) for typing and conversion
+rules.
 
 ## Attributes and Directives
 

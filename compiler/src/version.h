@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.76.5"
+#define DQ_COMPILER_VERSION  "0.77.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.77.0:
+  - Supporting hexadecimal values in text literals, like "\xEF\xBB\xBF"
 v0.76.5:
   - VSCode plugin improvement: adding endwords automatically
 v0.76.4:

@@ -77,6 +77,12 @@ func *Main():
     one.Append(char(99))
     PrintText("char_sources", one) //?check("char_sources", '[3] "abc"')
 
+    var hex_bytes : str = "\xEF\xbb\xBFX\x00"
+    printf("hex_escape = len:%li bytes:%li %li %li %li %li\n",
+           hex_bytes.length, Ord(hex_bytes[0]), Ord(hex_bytes[1]), Ord(hex_bytes[2]), Ord(hex_bytes[3]), Ord(hex_bytes[4])) //?check("hex_escape", "len:5 bytes:239 187 191 88 0")
+    var hex_char : wchar = '\x41'
+    printf("hex_escape_char = %li\n", Ord(hex_char)) //?check("hex_escape_char", 65)
+
     //var wide16 : str = "€";
     //var wide32 : str = "😀";
     //printf("wide_literal_codes = u16:%li u32:%li\n", wide16[0], wide32[0]); //-?check("wide_literal_codes", "u16:8364 u32:128512")

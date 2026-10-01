@@ -21,6 +21,14 @@
 
 using namespace std;
 
+inline int HexDigitValue(char c)
+{
+  if ((c >= '0') && (c <= '9')) return c - '0';
+  if ((c >= 'a') && (c <= 'f')) return c - 'a' + 10;
+  if ((c >= 'A') && (c <= 'F')) return c - 'A' + 10;
+  return -1;
+}
+
 string JsonEscape(string_view text);
 filesystem::path AbsNormPath(const filesystem::path & path);
 int64_t FileTimeTicks(filesystem::file_time_type filetime);

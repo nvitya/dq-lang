@@ -799,6 +799,23 @@ bool OScFeederBase::ReadQuotedString(string & rvalue)
       case 'r': result += '\r'; break;
       case 't': result += '\t'; break;
       case '\\': result += '\\'; break;
+      case 'x':
+      {
+        if ((i + 2 < raw_value.size()))
+        {
+          int high = HexDigitValue(raw_value[i + 1]);
+          int low = HexDigitValue(raw_value[i + 2]);
+          if ((high >= 0) && (low >= 0))
+          {
+            result += char((high << 4) | low);
+            i += 2;
+            break;
+          }
+        }
+        result += '\\';
+        result += escaped;
+        break;
+      }
       default:
         result += '\\';
         result += escaped;

@@ -38,7 +38,10 @@ void ODqCompClargs::PrepareOutputPaths()
 
   if (g_opt.build_root_dir.empty())
   {
-    g_opt.build_root_dir = AbsNormPath(in_filename).parent_path().string();
+    // A project owns its complete build tree, even when its main source is in
+    // a subdirectory.
+    const string & build_owner = g_opt.project_filename.empty() ? in_filename : g_opt.project_filename;
+    g_opt.build_root_dir = AbsNormPath(build_owner).parent_path().string();
   }
   else
   {
@@ -50,14 +53,20 @@ void ODqCompClargs::PrepareOutputPaths()
     g_opt.package_build_root_dir = AbsNormPath(g_opt.package_build_root_dir).string();
   }
 
-  // derive base_name by stripping .dq extension
-  if (in_filename.size() > 3 && in_filename.substr(in_filename.size() - 3) == ".dq")
+  // A project file names the application; otherwise the main source does.
+  const string & output_owner = g_opt.project_filename.empty() ? in_filename : g_opt.project_filename;
+  if (!g_opt.project_filename.empty())
   {
-    base_name = in_filename.substr(0, in_filename.size() - 3);
+    base_name = filesystem::path(output_owner).replace_extension().string();
+  }
+  // derive base_name by stripping .dq extension
+  else if (output_owner.size() > 3 && output_owner.substr(output_owner.size() - 3) == ".dq")
+  {
+    base_name = output_owner.substr(0, output_owner.size() - 3);
   }
   else
   {
-    base_name = in_filename;
+    base_name = output_owner;
   }
 
   OModulePath current_module;

@@ -1,0 +1,69 @@
+
+object ODbRows:
+protected
+    m_fieldcount : int
+    m_rowcount   : int
+    m_fieldinfo  : [*]SFieldInfo
+
+    m_data       : [*]anyvalue  // length = fieldcount * rowcount
+
+    m_currow     : int   // can be out of the valid range
+    m_onrow      : bool  // is the current row valid ?
+
+    //m_datasource : ODbDataSource  // might be nil for standalone / memory datasets
+
+    func GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int ..
+
+public
+    func *Create() ..
+    func *Destroy() ..
+
+    func Clear() ..  // delete all rows, all fields
+    func ClearRows() ..  // delete all rows, keep the fields
+
+    func RowCount() -> int ..
+    func FieldCount() -> int ..
+
+    func AddField(aname : rostr, atype : NDbFieldType) -> int ..
+    func FieldName(aindex : int) -> str ..
+    func FieldType(aindex : int) -> NDbFieldType ..
+    func FieldIndex(aname : rostr) -> int ..
+    func HasField(aname : rostr) -> bool ..
+
+    func AddRow() -> int ..
+    func DeleteRow(arow : int) ..
+
+    // cursor navigation
+    func First() ..
+    func Last() ..
+    func Next() ..
+    func Prev() ..
+    func RowIndex() -> int ..
+    func SetRowIndex(arow : int) ..
+    func SelectRow(arow : int) -> bool ..
+
+    func OnRow() -> bool ..
+
+    // current row access
+    func IsNull(aname : rostr) -> bool ..
+    func GetValue(aname : rostr) -> anyvalue ..
+    func SetValue(aname : rostr, avalue : anyvalue) ..
+
+    func GetInt(aname : rostr, defvalue : int) -> int ..
+    func GetFloat(aname : rostr, defvalue : float) -> float ..
+    func GetBool(aname : rostr, defvalue : bool) -> bool ..
+    func GetStr(aname : rostr, defvalue : strslice) -> str ..
+    func GetBlob(aname : rostr) -> [*]byte ..
+
+    func SetInt(aname : rostr, avalue : int) ..
+    func SetFloat(aname : rostr, avalue : float) ..
+    func SetBool(aname : rostr, avalue : bool) ..
+    func SetStr(aname : rostr, avalue : strslice) ..
+    func SetBlob(aname : rostr, avalue : []byte) ..
+    func SetNull(aname : rostr) ..
+
+    property onrow    : bool  read m_onrow
+    property length   : int   read m_rowcount
+    property rowindex : int   read RowIndex    write SetRowIndex
+
+endobject

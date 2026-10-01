@@ -36,10 +36,10 @@ struct SDqRunOptions
 static void PrintUsage()
 {
   print("Usage:\n");
-  print("  dq-run [compiler-options] <file.dq> [program-args...]\n");
-  print("  dq-run [compiler-options] <file.dq> -- [program-args...]\n");
+  print("  dq-run [compiler-options] <file.dq|file.dqproj> [program-args...]\n");
+  print("  dq-run [compiler-options] <file.dq|file.dqproj> -- [program-args...]\n");
   print("Notes:\n");
-  print("  - compiler options must come before <file.dq>\n");
+  print("  - compiler options must come before the input file\n");
   print("  - program output is shown live\n");
   print("  - -c is not supported by dq-run\n");
 }
@@ -116,14 +116,12 @@ static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
 
   if (!opt.has_dash_o)
   {
-    if (opt.input_filename.size() > 3 && opt.input_filename.substr(opt.input_filename.size() - 3) == ".dq")
+    fs::path output_path(opt.input_filename);
+    if (output_path.extension() == ".dq" || output_path.extension() == ".dqproj")
     {
-      opt.output_filename = opt.input_filename.substr(0, opt.input_filename.size() - 3);
+      output_path.replace_extension();
     }
-    else
-    {
-      opt.output_filename = opt.input_filename;
-    }
+    opt.output_filename = output_path.string();
   }
 
   return true;

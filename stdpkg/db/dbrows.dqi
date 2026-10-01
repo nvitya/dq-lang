@@ -1,0 +1,351 @@
+
+func ODbRows.*Create():
+    m_fieldcount = 0
+    m_rowcount = 0
+    m_currow = -1
+    m_onrow = false
+endfunc
+
+func ODbRows.*Destroy():
+    Clear()
+endfunc
+
+func ODbRows.Clear():
+    ClearRows()
+    m_fieldinfo.Clear(true)
+    m_fieldcount = 0
+    m_onrow = false
+endfunc
+
+func ODbRows.ClearRows():
+    m_data.Clear(true)
+    m_rowcount = 0
+    m_currow = -1
+    m_onrow = false
+endfunc
+
+func ODbRows.RowCount() -> int:
+    return m_rowcount
+endfunc
+
+func ODbRows.FieldCount() -> int:
+    return m_fieldcount
+endfunc
+
+func ODbRows.AddField(aname : rostr, atype : NDbFieldType) -> int:
+    if aname == '':
+        raise EDbField('AddField empty name')
+    endif
+
+    result = FieldIndex(aname)
+    if result >= 0:
+        raise EDbField('Field name "{}" already exists', [aname])
+    endif
+
+    if m_fieldcount >= 256:
+        raise EDbField('Maximal field count reached.')
+    endif
+
+    var old_fieldcount : int = m_fieldcount
+    var new_fieldcount : int = old_fieldcount + 1
+
+    // Adding new fieldinfo
+    m_fieldinfo.SetLength(new_fieldcount)
+    var pfi : ^SFieldInfo = %m_fieldinfo[old_fieldcount]
+    pfi.name.Set(aname)
+    pfi.index = old_fieldcount
+    pfi.ftype = atype
+
+    // migrate the existing data
+    if m_rowcount > 0:
+        var newdata : [*]anyvalue = []
+        newdata.SetLength(new_fieldcount * m_rowcount)
+        for row : int = 0 count m_rowcount:
+            for field : int = 0 count old_fieldcount:
+                newdata[row * new_fieldcount + field] = m_data[row * old_fieldcount + field]
+            endfor
+        endfor
+        m_data = newdata
+    endif
+
+    m_fieldcount = new_fieldcount
+    return old_fieldcount
+endfunc
+
+func ODbRows.FieldName(aindex : int) -> str:
+    if not 0 <= aindex < m_fieldcount:
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
+    endif
+    return m_fieldinfo[aindex].name
+endfunc
+
+func ODbRows.FieldType(aindex : int) -> NDbFieldType:
+    if not 0 <= aindex < m_fieldcount:
+        raise EDbFieldIndex('Invalid Field index: {}', [aindex])
+    endif
+    return m_fieldinfo[aindex].ftype
+endfunc
+
+func ODbRows.FieldIndex(aname : rostr) -> int:
+    for i : int = 0 count m_fieldcount:
+        if m_fieldinfo[i].name == aname:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+func ODbRows.HasField(aname : rostr) -> bool:
+    return FieldIndex(aname) >= 0
+endfunc
+
+func ODbRows.AddRow() -> int:
+    result = m_rowcount
+    ++m_rowcount
+    m_data.SetLength(m_fieldcount * m_rowcount)
+    m_currow = result
+    m_onrow = true
+endfunc
+
+func ODbRows.DeleteRow(arow : int):
+    if not 0 <= arow < m_rowcount:
+        return
+    endif
+
+    if m_fieldcount > 0:
+        m_data.Delete(arow * m_fieldcount, m_fieldcount)
+    endif
+    --m_rowcount
+
+    if m_rowcount <= 0:
+        m_currow = -1
+    elif m_currow > arow:
+        --m_currow
+    elif m_currow >= m_rowcount:
+        m_currow = m_rowcount - 1
+    endif
+    m_onrow = (0 <= m_currow < m_rowcount)
+endfunc
+
+func ODbRows.First():
+    if m_rowcount > 0:
+        m_currow = 0
+    else:
+        m_currow = -1
+    endif
+    m_onrow = (0 <= m_currow < m_rowcount)
+endfunc
+
+func ODbRows.Last():
+    if m_rowcount > 0:
+        m_currow = m_rowcount - 1
+    else:
+        m_currow = -1
+    endif
+    m_onrow = (0 <= m_currow < m_rowcount)
+endfunc
+
+func ODbRows.Next():
+    if m_rowcount <= 0:
+        m_currow = -1
+    elif m_currow < m_rowcount:
+        ++m_currow
+    else:
+        m_currow = m_rowcount
+    endif
+    m_onrow = (0 <= m_currow < m_rowcount)
+endfunc
+
+func ODbRows.Prev():
+    if m_rowcount <= 0:
+        m_currow = -1
+        m_onrow = false
+    elif m_currow >= m_rowcount:
+        m_currow = m_rowcount - 1
+        m_onrow = true
+    else:
+        --m_currow
+        m_onrow = true
+    endif
+endfunc
+
+func ODbRows.RowIndex() -> int:
+    return m_currow
+endfunc
+
+func ODbRows.SelectRow(arow : int) -> bool:
+    if 0 <= arow < m_rowcount:
+        m_currow = arow
+        m_onrow = true
+        return true
+    endif
+    return false
+endfunc
+
+func ODbRows.SetRowIndex(arow : int):
+    if not SelectRow(arow):
+        raise EDbRow('Invalid row selected: {}', [arow])
+    endif
+endfunc
+
+func ODbRows.OnRow() -> bool:
+    return m_onrow
+endfunc
+
+func ODbRows.GetCurRowDataIndex(aname : rostr, rft : refout NDbFieldType) -> int:
+    var fidx : int = FieldIndex(aname)
+    if fidx < 0:
+        raise EDbField('Field "{}" not found', [aname])
+    endif
+    if not m_onrow:
+        raise EDbRow('Invalid row')
+    endif
+    rft = FieldType(fidx)
+    return m_currow * m_fieldcount + fidx
+endfunc
+
+func ODbRows.IsNull(aname : rostr) -> bool:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    return m_data[didx].IsNull()
+endfunc
+
+func ODbRows.GetValue(aname : rostr) -> anyvalue:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    result = m_data[didx]
+endfunc
+
+func ODbRows.SetValue(aname : rostr, avalue : anyvalue):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if     (ft == ftInt      and (avalue.IsInt() or avalue.IsUint()))
+        or (ft == ftFloat    and avalue.IsFloat())
+        or (ft == ftBool     and avalue.IsBool())
+        or (ft == ftText     and avalue.IsText())
+        or (ft == ftBlob     and avalue.IsText())
+        or (ft == ftDateTime and avalue.IsText())
+    :
+        // Row data outlives the caller.  Copy text into an owned dynamic string
+        // so borrowed strslice, rostr, and embstr values cannot dangle.
+        if ft == ftText  or  ft == ftBlob  or  ft == ftDateTime:
+            m_data[didx].SetStr(avalue.AsText(""))
+        else:
+            m_data[didx] = avalue
+        endif
+    else:
+        raise EDbFieldType('Invalid value for field "{}" with type "{}"', [aname, @..FieldTypeName(ft)])
+    endif
+endfunc
+
+func ODbRows.GetInt(aname : rostr, defvalue : int) -> int:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Int', [@..FieldTypeName(ft), aname])
+    endif
+    return m_data[didx].AsInt(defvalue)
+endfunc
+
+func ODbRows.GetFloat(aname : rostr, defvalue : float) -> float:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftFloat  and ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Float', [@..FieldTypeName(ft), aname])
+    endif
+    return m_data[didx].AsFloat(defvalue)
+endfunc
+
+func ODbRows.GetBool(aname : rostr, defvalue : bool) -> bool:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBool:
+        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
+    endif
+    return m_data[didx].AsBool(defvalue)
+endfunc
+
+func ODbRows.GetStr(aname : rostr, defvalue : strslice) -> str:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftText  and ft <> ftDateTime  and ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Str', [@..FieldTypeName(ft), aname])
+    endif
+    return m_data[didx].AsStr(defvalue)
+endfunc
+
+func ODbRows.GetBlob(aname : rostr) -> [*]byte:
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Blob', [@..FieldTypeName(ft), aname])
+    endif
+
+    if m_data[didx].IsNull():  // return empty array
+        return []
+    endif
+
+    var blobstr : str = m_data[didx].AsStr("")
+    result = []  // required for the DQ variable initialization checker
+    result.SetLength(blobstr.length)
+    if blobstr.length > 0:
+        @.MemCopy(%result[0], %blobstr[0], blobstr.length)
+    endif
+endfunc
+
+func ODbRows.SetInt(aname : rostr, avalue : int):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftInt:
+        raise EDbFieldType('"{}" field "{}" is not available as Int', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetInt(avalue)
+endfunc
+
+func ODbRows.SetFloat(aname : rostr, avalue : float):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftFloat:
+        raise EDbFieldType('"{}" field "{}" is not available as Float', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetFloat(avalue)
+endfunc
+
+func ODbRows.SetBool(aname : rostr, avalue : bool):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBool:
+        raise EDbFieldType('"{}" field "{}" is not available as Bool', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetBool(avalue)
+endfunc
+
+func ODbRows.SetStr(aname : rostr, avalue : strslice):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftText  and ft <> ftBlob  and ft <> ftDateTime:
+        raise EDbFieldType('"{}" field "{}" is not available as Str', [@..FieldTypeName(ft), aname])
+    endif
+    m_data[didx].SetStr(avalue)
+endfunc
+
+func ODbRows.SetBlob(aname : rostr, avalue : []byte):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    if ft <> ftBlob:
+        raise EDbFieldType('"{}" field "{}" is not available as Blob', [@..FieldTypeName(ft), aname])
+    endif
+
+    var blobstr : str = ''
+    blobstr.SetLength(avalue.length, char(0))
+    if avalue.length > 0:
+        @.MemCopy(%blobstr[0], %avalue[0], avalue.length)
+    endif
+    m_data[didx].SetStr(blobstr)
+endfunc
+
+func ODbRows.SetNull(aname : rostr):
+    var ft : NDbFieldType
+    var didx : int = GetCurRowDataIndex(aname, ft)
+    m_data[didx].SetNull()
+endfunc

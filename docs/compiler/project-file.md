@@ -14,6 +14,10 @@ dq-comp -O0 -g -o build/application application.dqproj
 
 (the dq-comp options provided in the command line override the options in the .dqproj file)
 
+Unless `output` or `-o` selects another path, the executable is named after the
+project file and written beside it. Build artifacts are kept below the project
+directory's `.dqbuild` directory, independently of the `main` source location.
+
 ## Project File Example
 
 ```text

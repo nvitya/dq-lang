@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.76.1"
+#define DQ_COMPILER_VERSION  "0.76.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.76.2:
+  - project file handling fix: the default executable and build directory follows the project file, not the main source
 v0.76.1:
   - autofree fix for object implicit self parameters
   - new, unified db interface, implemented for sqlite3

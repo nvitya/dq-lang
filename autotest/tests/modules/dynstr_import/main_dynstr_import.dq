@@ -1,0 +1,9 @@
+//?build_only
+
+use ./mod_dynstr_import
+
+func *Main():
+    var left : OTextPair = new OTextPair
+    var right : OTextPair = new OTextPair
+    left.text = right.text
+endfunc

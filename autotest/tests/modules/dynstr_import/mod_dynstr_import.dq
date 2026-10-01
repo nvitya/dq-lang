@@ -1,0 +1,5 @@
+//?notest
+
+object OTextPair:
+    text : str
+endobject

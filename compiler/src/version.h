@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.77.1"
+#define DQ_COMPILER_VERSION  "0.77.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.77.2:
+  - Implicit dynamic string module use fix for inherited str properties
 v0.77.1:
   - Module interface freshness check relative path handling fix
 v0.77.0:

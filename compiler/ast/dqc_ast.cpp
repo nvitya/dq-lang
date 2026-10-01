@@ -764,6 +764,10 @@ bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t afl
 
   if (resolved_dst == resolved_src)
   {
+    if (!g_opt.ifgen && (TK_DYNSTR == resolved_dst->kind) && !EnsureDynStringRtlUse())
+    {
+      return false;
+    }
     return true;
   }
 

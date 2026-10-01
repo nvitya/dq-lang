@@ -25,10 +25,11 @@ object OStrParse:
     float_decimal_point : char = '.'
 
     func *Create()                           [[overload]] ..
-    func *Create(astr : ^char, alen : int)  [[overload]] ..
-    func *Create(astr : strslice)             [[overload]] ..
+    func *Create(astr : ^char, alen : int)   [[overload]] ..
+    func *Create(astr : strslice)            [[overload]] ..
 
-    func Init(astr : ^char, alen : int) ..
+    func Init(astr : ^char, alen : int)      [[overload]] ..
+    func Init(astr : strslice)               [[overload]] ..
 
     func SkipSpaces(skiplineend : bool = true) ..
     func SkipWhite() ..
@@ -79,13 +80,17 @@ func OStrParse.*Create(astr : ^char, alen : int)  [[overload]]:
     Init(astr, alen)
 endfunc
 
-func OStrParse.Init(astr : ^char, alen : int):
+func OStrParse.Init(astr : ^char, alen : int)  [[overload]]:
     bufstart = astr
     bufend   = bufstart + alen
 
     readp = bufstart
     prevp = bufstart
     prevlen = 0
+endfunc
+
+func OStrParse.Init(astr : strslice)  [[overload]]:
+    Init(%astr[0], astr.length)
 endfunc
 
 func OStrParse.SkipSpaces(skiplineend : bool = true):

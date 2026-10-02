@@ -75,6 +75,10 @@ func AppendByRef(s : ref str):
     s.Append("x")
 endfunc
 
+object OResponseConnection:
+    response : str
+endobject
+
 func *Main():
     printf("string_dynamic_operations = start\n") //?check("string_dynamic_operations", "start")
 
@@ -94,6 +98,14 @@ func *Main():
     PrintText("arg_after_value", arg) //?check("arg_after_value", '[3] "abc"')
     AppendByRef(arg)
     PrintText("arg_after_ref", arg) //?check("arg_after_ref", '[4] "abcx"')
+
+    var sconn <- OResponseConnection()
+    ref response = sconn.response
+    response.Reserve(1024)
+    response.AddFmt("{} {}", ["status", 200])
+    sconn.response.Append("!")
+    printf("ref_empty_field = ge1024:%li len:%li\n", GeAsInt(sconn.response.capacity, 1024), response.length) //?check("ref_empty_field", "ge1024:1 len:11")
+    PrintText("ref_field_contents", response) //?check("ref_field_contents", '[11] "status 200!"')
 
     var add : str = "ab"
     add.Append('c')

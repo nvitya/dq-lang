@@ -17,4 +17,13 @@ function blockCloserForHeader(line) {
   };
 }
 
-module.exports = { blockCloserForHeader };
+function hasIndentedBodyLine(lines, indentation) {
+  return lines.some(line => {
+    const lineIndentation = /^\s*/.exec(line)[0];
+    return line.trim() &&
+      lineIndentation.startsWith(indentation) &&
+      lineIndentation.length > indentation.length;
+  });
+}
+
+module.exports = { blockCloserForHeader, hasIndentedBodyLine };

@@ -1,7 +1,7 @@
 const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
-const { blockCloserForHeader } = require("./block-closer");
+const { blockCloserForHeader, hasIndentedBodyLine } = require("./block-closer");
 
 const languageClients = new Map();
 
@@ -138,6 +138,11 @@ function appendBlockCloser(event) {
 
   const bodyLine = event.document.lineAt(headerLineNumber + 1);
   if (bodyLine.text.trim()) return;
+  const nearbyLines = [];
+  for (let offset = 1; offset <= 2 && headerLineNumber + offset < event.document.lineCount; ++offset) {
+    nearbyLines.push(event.document.lineAt(headerLineNumber + offset).text);
+  }
+  if (hasIndentedBodyLine(nearbyLines, blockCloser.indentation)) return;
 
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document !== event.document) return;

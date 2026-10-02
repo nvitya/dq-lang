@@ -71,6 +71,8 @@ public
     func GetBlob(aidx : int) -> [*]byte                   [[override, overload]] ..
 endobject
 
+func SqliteQuoteStr(astr : strslice) -> str ..
+
 
 implementation  //---------------------------------------------------------------------------------
 
@@ -123,8 +125,27 @@ func sqlite3_column_decltype(statement : pointer, index : int) -> ^char [[extern
 
 //-----------------------------------------------------------------------------
 
+func SqliteQuoteStr(astr : strslice) -> str:
+    result = ''
+    result.Reserve(astr.length + 2)
+    result.Add("'")
+    result.Add(astr)
+    result.Add("'")
+    // just double the '
+    var i : int = 1
+    while i < result.length-1:
+        var c : char = result[i]
+        if c == '\'':
+            ++i
+            result.Insert(i, "'")
+        endif
+        ++i
+    endwhile
+endfunc
+
 func OSqlite3Connection.*Create():
     inherited Create()
+    quote_str_func = @.SqliteQuoteStr
 endfunc
 
 func OSqlite3Connection.*Destroy():

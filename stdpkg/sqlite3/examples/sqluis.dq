@@ -1,0 +1,157 @@
+
+use db
+use strutils
+
+object OFieldPair:
+    name  : embstr(64)
+    value : anyvalue
+
+    func *Create(aname : rostr):
+        name  = aname
+        value.SetNull()
+    endfunc
+
+    func GetFieldValueText(qfunc : FSqlQuoteStr) -> str ..
+endobject
+
+object OSqlUis:
+protected
+    field_pairs  : [*] autofree OFieldPair
+    func GetField(afname : rostr) -> OFieldPair ..
+public
+    table_name   : str
+    parametrized : bool = false
+
+    func *Create(atable : rostr) ..
+
+    func Init(atable : rostr) ..
+    func Clear() ..
+
+    func Field(afname : rostr, avalue : anyvalue) ..
+    func FieldStr(afname : rostr, avalue : strslice) ..
+    func FieldInt(afname : rostr, avalue : int) ..
+    func FieldFloat(afname : rostr, avalue : float) ..
+    func FieldNull(afname : rostr) ..
+
+    func InsertStatement(adb : ODbConnection) -> str ..
+    func UpdateStatement(adb : ODbConnection, where : rostr) -> str ..
+
+    func ExecInsert(adb : ODbConnection) ..
+    func ExecUpdate(adb : ODbConnection, where : rostr) ..
+endobject
+
+
+implementation
+
+func OFieldPair.GetFieldValueText(qfunc : FSqlQuoteStr) -> str:
+    if value.IsText():
+        result = qfunc(value.AsText(''))
+    else:
+        result = @.Format("{}", [value])
+    endif
+endfunc
+
+func OSqlUis.*Create(atable : rostr):
+    Init(atable)
+endfunc
+
+func OSqlUis.Clear():
+    field_pairs = []
+endfunc
+
+func OSqlUis.Init(atable : rostr):
+    table_name = atable
+    Clear()
+endfunc
+
+func OSqlUis.GetField(afname : rostr) -> OFieldPair:
+    for i : int = 0 count field_pairs.length:
+        if field_pairs[i].name == afname:
+            return field_pairs[i]
+        endif
+    endfor
+    // allocate new
+    result = new OFieldPair(afname)
+    field_pairs.Append(result)
+endfunc
+
+func OSqlUis.Field(afname : rostr, avalue : anyvalue):
+    var fp : OFieldPair = GetField(afname)
+    fp.value = avalue
+endfunc
+
+func OSqlUis.FieldStr(afname : rostr, avalue : strslice):
+    var fp : OFieldPair = GetField(afname)
+    var s : str = avalue
+    fp.value = s
+endfunc
+
+func OSqlUis.FieldInt(afname : rostr, avalue : int):
+    var fp : OFieldPair = GetField(afname)
+    fp.value = avalue
+endfunc
+
+func OSqlUis.FieldFloat(afname : rostr, avalue : float):
+    var fp : OFieldPair = GetField(afname)
+    fp.value = avalue
+endfunc
+
+func OSqlUis.FieldNull(afname : rostr):
+    var fp : OFieldPair = GetField(afname)
+    fp.value.SetNull()
+endfunc
+
+func OSqlUis.InsertStatement(adb : ODbConnection) -> str:
+    var fs : str = ""
+    var vs : str = ""
+    for i : int = 0 count field_pairs.length:
+        var fp :? = field_pairs[i]
+        if i > 0:
+            fs.Add(", ")
+            vs.Add(", ")
+        endif
+        fs.Add(fp.name)
+        vs.Add(fp.GetFieldValueText(adb.quote_str_func))
+    endfor
+    result = @.Format(
+    """
+    insert into {}
+        ({})
+    values
+        ({})
+    """
+    , [table_name, fs, vs]
+    )
+endfunc
+
+func OSqlUis.UpdateStatement(adb : ODbConnection, where : rostr) -> str:
+    var list : str = ''
+    for i : int = 0 count field_pairs.length:
+        var fp :? = field_pairs[i]
+        if i > 0:
+            list.Add(", ")
+        endif
+        list.Add(fp.name)
+        list.Add('=')
+        list.Add(fp.GetFieldValueText(adb.quote_str_func))
+    endfor
+    result = @.Format(
+    """
+    update
+        {}
+    set
+        {}
+    where
+        {}
+    """
+    , [table_name, list, where]
+    )
+endfunc
+
+func OSqlUis.ExecInsert(adb : ODbConnection):
+    adb.Execute(InsertStatement(adb))
+endfunc
+
+func OSqlUis.ExecUpdate(adb : ODbConnection, where : rostr):
+    adb.Execute(UpdateStatement(adb, where))
+endfunc

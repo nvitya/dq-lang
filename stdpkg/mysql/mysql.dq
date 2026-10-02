@@ -114,6 +114,8 @@ public
     func GetBlob(aidx : int) -> [*]byte                   [[override, overload]] ..
 endobject
 
+func MysqlQuoteStr(astr : strslice) -> str ..
+
 
 implementation  //---------------------------------------------------------------------------------
 
@@ -177,8 +179,46 @@ func libc_strtod(nptr : ^char, endptr : ^pointer) -> float64 [[external('strtod'
 
 //-----------------------------------------------------------------------------
 
+func MysqlQuoteStr(astr : strslice) -> str:
+    result = ''
+    result.Reserve(astr.length + 2)
+    result.Add("'")
+    result.Add(astr)
+    result.Add("'")
+    var i : int = 1
+    while i < result.length - 1:
+        var c : char = result[i]
+        if c == '\'':
+            ++i
+            result.Insert(i, "'")
+        elif c == '\\':
+            ++i
+            result.Insert(i, "\\")
+        elif c == '\n':
+            result[i] = '\\'
+            ++i
+            result.Insert(i, "n")
+        elif c == '\r':
+            result[i] = '\\'
+            ++i
+            result.Insert(i, "r")
+        elif c == '\x1A':
+            result[i] = '\\'
+            ++i
+            result.Insert(i, "Z")
+        elif c == '\x00':
+            result[i] = '\\'
+            ++i
+            result.Insert(i, "0")
+        endif
+        ++i
+    endwhile
+endfunc
+
+
 func OMySqlConnection.*Create():
     inherited Create()
+    quote_str_func = @.MysqlQuoteStr
 endfunc
 
 func OMySqlConnection.*Destroy():

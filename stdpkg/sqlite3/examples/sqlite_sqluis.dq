@@ -1,0 +1,98 @@
+use db
+use sqlite3
+
+use print
+use file
+
+use ./sqluis
+
+const DB_NAME : rostr = 'capitals_uis.db'
+
+const CAPITALS_STRUCT : rostr =
+"""
+create table capitals
+(
+    ID         integer PRIMARY KEY AUTOINCREMENT,
+    CITY       varchar(80),
+    COUNTRY    varchar(80),
+    CONTINENT  varchar(40)
+);
+"""
+
+func *Main():
+    PrintLn('SQLite SqlUis test')
+
+    // delete the previous database
+    if FileExists(DB_NAME):
+        FileRemove(DB_NAME)
+    endif
+
+    var db <- OSqlite3Connection()
+
+    db.filename = DB_NAME
+    db.Open()
+
+    // Create the schema and populate it in one transaction.
+    db.Execute(CAPITALS_STRUCT)
+    db.Begin()
+
+    var uis = new autofree OSqlUis('capitals')
+
+    uis.Clear()
+    uis.FieldStr('CITY',      'Budapest')
+    uis.FieldStr('COUNTRY',   'Hungary')
+    uis.FieldStr('CONTINENT', 'Europe')
+
+    PrintLn(uis.InsertStatement(db))
+    PrintLn(uis.InsertStatement(db))
+
+    uis.ExecInsert(db)
+
+    uis.Clear()
+    uis.FieldStr('CITY',      'Vienna')
+    uis.FieldStr('COUNTRY',   'Austria')
+    uis.FieldStr('CONTINENT', 'Europe')
+    uis.ExecInsert(db)
+
+    db.Commit()
+    PrintLn('Inserted rows = {}', [db.changes])
+
+    PrintLn('Capitals in Europe:')
+
+    var cur : autofree ODbCursor  // previous object will be freed on reassignment
+
+    cur = db.Query(
+    """
+    select
+        ID, CITY, COUNTRY
+    from
+        capitals
+    where
+        CONTINENT = 'Europe'
+    order by
+        CITY
+    limit
+        50
+    """)
+
+    while cur.OnRow():
+        PrintLn('{}: {} - {}', [cur.GetInt(0, 0), cur.GetStr(1, '?'), cur.GetStr(2, '?')])
+        cur.Next()
+    endwhile
+
+    PrintLn()
+    PrintLn('Continent countries:')
+    cur = db.Query(
+    """
+    select
+        CONTINENT, count(*) as COUNTRY_COUNT
+    from
+        capitals
+    group by
+        CONTINENT
+    """)
+    while cur.OnRow():
+        PrintLn('{} - {}', [cur.GetStr('CONTINENT', '?'), cur.GetInt('COUNTRY_COUNT', 0)])
+        cur.Next()
+    endwhile
+endfunc

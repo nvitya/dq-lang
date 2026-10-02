@@ -50,9 +50,14 @@ endobject
 object EDbStatement(Exception):
 endobject
 
+type FSqlQuoteStr = func(astr : strslice) -> str
+
 object ODbCursor ..
 
 object ODbConnection:
+
+    quote_str_func : FSqlQuoteStr = nil
+
     func *Create():
     endfunc
 
@@ -71,6 +76,10 @@ object ODbConnection:
 
     func LastInsertId() -> int64  [[virtual, abstract]] ..
     func ErrorMessage() -> str    [[virtual, abstract]] ..
+
+    func QuoteStr(astr : strslice) -> str  [[inline]]:
+        result = quote_str_func(astr)
+    endfunc
 
     property opened         : bool  read Opened
     property changes        : int   read Changes

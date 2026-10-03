@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.79.0"
+#define DQ_COMPILER_VERSION  "0.80.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.80.0:
+  - new cross targets: arm64-linux, rv64g-linux, armhf-linux
 v0.79.0:
   - autofree dropped at type inference: in "var item :? = autofree_array[i]" does not takes over ownership
   - "ref" added to "for ... in" loop: "for item : ref in autofree_array"

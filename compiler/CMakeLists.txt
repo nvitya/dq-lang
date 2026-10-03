@@ -67,7 +67,7 @@ add_executable(dq-projectfile-test
 
 set(dq_llvm_targets native)
 set(dq_llvm_definitions)
-foreach(target ARM RISCV WebAssembly)
+foreach(target AArch64 ARM RISCV WebAssembly)
   if(target IN_LIST LLVM_TARGETS_TO_BUILD)
     list(APPEND dq_llvm_targets ${target})
     string(TOUPPER ${target} target_upper)

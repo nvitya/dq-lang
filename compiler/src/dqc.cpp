@@ -305,6 +305,10 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   rargs.clear();
   rargs.push_back(DefaultLinkDriver());
   rargs.push_back("--target=" + g_opt.target.llvm_triple);
+  if (!g_opt.sysroot_dir.empty())
+  {
+    rargs.push_back("--sysroot=" + g_opt.sysroot_dir);
+  }
 
   rargs.push_back("-fuse-ld=lld");
   if (g_opt.target.IsWasi())

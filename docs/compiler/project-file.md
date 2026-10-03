@@ -52,9 +52,11 @@ on that target `float` is 64-bit. The explicit `float32` and `float64` types do
 not change with the target.
 
 Use `dq-comp --targets` for the canonical target list and detailed defaults.
-The additional cross targets are `wasm32-wasi`, `wasm32-bare`, and
-`rv32imac-bare`. WASI exceptions are unsupported, so a project selecting
-`wasm32-wasi` must not set `exceptions = true`.
+The additional hosted Linux targets are `armhf-linux`, `arm64-linux`, and
+`rv64g-linux`; select the target distribution or SDK root with `sysroot` when
+linking for one of them. The additional cross targets are `wasm32-wasi`,
+`wasm32-bare`, and `rv32imac-bare`. WASI exceptions are unsupported, so a
+project selecting `wasm32-wasi` must not set `exceptions = true`.
 
 An included fragment might contain the shared target and linker configuration:
 
@@ -148,6 +150,7 @@ single-value properties are errors.
 | `main` | path string | once, required | DQ source file compiled as the project entry module. |
 | `output` | path string | once, optional | Final executable or object filename. Normal compiler output defaults apply when omitted. |
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
+| `sysroot` | path string | once, optional | Target system root passed to the Clang linker driver for hosted cross builds. |
 | `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |

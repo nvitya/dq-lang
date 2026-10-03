@@ -30,6 +30,7 @@ Useful options:
 | `--ifdump` | dump a standalone `.dqm_if` interface |
 | `--no-use-sys` | disable implicit merged `sys` import |
 | `--target=<name>` | select a compiler target |
+| `--sysroot=<path>` | select the target system root used for linking |
 | `--cpu-features=<features>` | append LLVM CPU features to the target defaults |
 | `--targets` | list canonical targets and their LLVM/default settings |
 | `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
@@ -68,6 +69,9 @@ compiler supports:
 
 | Target | Behavior |
 | --- | --- |
+| `armhf-linux` | ARMv7-A hard-float Linux executable |
+| `arm64-linux` | AArch64 Linux executable |
+| `rv64g-linux` | RV64G/LP64D Linux executable |
 | `wasm32-wasi` | Hosted WASI command module; links automatically and defaults to a `.wasm` output |
 | `wasm32-bare` | Bare WebAssembly object generation; compile-only by default |
 | `rv32imac-bare` | Bare RV32IMAC ELF object generation; compile-only by default |
@@ -77,6 +81,18 @@ time. DQ exceptions are not supported on this target: `--exceptions` and
 `exceptions = true` are rejected, while dynamic strings remain enabled by
 default. The resulting command module uses WASI libc startup and can be run by
 a WASI runtime such as Wasmtime.
+
+The foreign Linux targets require a target sysroot at link time. Select it with
+`--sysroot=/path/to/sysroot` or the `sysroot` project property. DQ passes this
+to its Clang linker driver as `--sysroot`; the sysroot must come from the
+target distribution or SDK and match the deployed C library and development
+packages.
+
+For example, an ARM64 Debian sysroot is selected per build:
+
+```bash
+dq-comp --target=arm64-linux --sysroot=/path/to/debian-arm64-sysroot app.dq
+```
 
 The two bare targets do not bundle startup code, linker scripts, libc, or
 compiler-runtime libraries. They emit objects without linking unless `--link`

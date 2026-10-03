@@ -50,11 +50,17 @@ func *Main():
     ExpectOccurrenceCount(run.output, 'wasm32-wasi', 1)
     ExpectOccurrenceCount(run.output, 'wasm32-bare', 1)
     ExpectOccurrenceCount(run.output, 'rv32imac-bare', 1)
+    ExpectOccurrenceCount(run.output, 'armhf-linux', 1)
+    ExpectOccurrenceCount(run.output, 'arm64-linux', 1)
+    ExpectOccurrenceCount(run.output, 'rv64g-linux', 1)
     run.ExpectOutputNotContains('x64-linux')
 
     CompileTarget('wasm32-wasi', 'EXPECT_WASI', 'Format: WASM', 'AddressSize: 32bit')
     CompileTarget('wasm32-bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
     CompileTarget('rv32imac-bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
+    CompileTarget('armhf-linux', 'EXPECT_ARMHF', 'Format: elf32-littlearm', 'Machine: EM_ARM')
+    CompileTarget('arm64-linux', 'EXPECT_ARM64', 'Format: elf64-littleaarch64', 'Machine: EM_AARCH64')
+    CompileTarget('rv64g-linux', 'EXPECT_RV64G', 'Format: elf64-littleriscv', 'Machine: EM_RISCV')
 
     var wasm_import : str = TempPath('.wasm')
     run.RunCompiler([

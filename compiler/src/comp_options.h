@@ -94,6 +94,7 @@ public:
   bool IsWasi() const { return TARGET_PLATFORM_WASI == platform; }
   bool IsBare() const { return TARGET_PLATFORM_BARE == platform; }
   bool IsArm() const { return "ARM" == llvm_backend; }
+  bool IsAArch64() const { return "AArch64" == llvm_backend; }
   bool IsWasm() const { return "WebAssembly" == llvm_backend; }
   bool IsRiscV() const { return "RISCV" == llvm_backend; }
 
@@ -154,6 +155,7 @@ public:
   bool     has_output = false;
   string   build_root_dir;
   string   package_build_root_dir;
+  string   sysroot_dir;
   string   build_tag;
   vector<string>  module_use_stack;
   vector<string>  package_paths;

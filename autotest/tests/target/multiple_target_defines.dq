@@ -1,6 +1,39 @@
 //?notest
 // Compile-only coverage for architecture/platform defines on cross targets.
 
+#ifdef EXPECT_ARMHF
+  #ifndef ARM
+    var missing_target_define : OExpectedArm
+  #endif
+  #ifndef LINUX
+    var missing_platform_define : OExpectedLinux
+  #endif
+  #ifndef TARGET_32BIT
+    var missing_width_define : OExpected32Bit
+  #endif
+#endif
+
+#ifdef EXPECT_ARM64
+  #ifndef LINUX
+    var missing_platform_define : OExpectedLinux
+  #endif
+  #ifndef TARGET_64BIT
+    var missing_width_define : OExpected64Bit
+  #endif
+#endif
+
+#ifdef EXPECT_RV64G
+  #ifndef RISCV
+    var missing_target_define : OExpectedRiscV
+  #endif
+  #ifndef LINUX
+    var missing_platform_define : OExpectedLinux
+  #endif
+  #ifndef TARGET_64BIT
+    var missing_width_define : OExpected64Bit
+  #endif
+#endif
+
 #ifdef EXPECT_WASI
   #ifndef WASM
     var missing_target_define : OExpectedWasm

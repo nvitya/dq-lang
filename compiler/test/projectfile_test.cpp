@@ -108,6 +108,40 @@ int main()
            string("common ARM bare properties ") + expected.name);
   }
 
+#ifdef DQ_LLVM_HAS_ARM
+  OCompTarget armhf;
+  string armhf_error;
+  Expect(armhf.Configure("armhf-linux", armhf_error), "configure ARM hard-float Linux target");
+  Expect(armhf.arch == "arm" && armhf.llvm_triple == "armv7-unknown-linux-gnueabihf"
+         && armhf.llvm_features == "+v7,+vfp3,+d16" && armhf.clang_arch == "armv7-a"
+         && armhf.clang_fpu == "vfpv3-d16" && armhf.float_abi == TARGET_FLOAT_ABI_HARD
+         && armhf.IsArm() && armhf.IsLinux() && armhf.pointer_size == 4
+         && !armhf.static_relocation,
+         "ARM hard-float Linux target metadata");
+#endif
+
+#ifdef DQ_LLVM_HAS_AARCH64
+  OCompTarget arm64;
+  string arm64_error;
+  Expect(arm64.Configure("arm64-linux", arm64_error), "configure ARM64 Linux target");
+  Expect(arm64.arch == "arm64" && arm64.llvm_triple == "aarch64-unknown-linux-gnu"
+         && arm64.IsAArch64() && arm64.IsLinux() && arm64.pointer_size == 8
+         && !arm64.static_relocation,
+         "ARM64 Linux target metadata");
+#endif
+
+#ifdef DQ_LLVM_HAS_RISCV
+  OCompTarget rv64g;
+  string rv64g_error;
+  Expect(rv64g.Configure("rv64g-linux", rv64g_error), "configure RV64G Linux target");
+  Expect(rv64g.arch == "rv64g" && rv64g.llvm_triple == "riscv64-unknown-linux-gnu"
+         && rv64g.llvm_features == "+m,+a,+f,+d,+zicsr,+zifencei"
+         && rv64g.clang_arch == "rv64g_zicsr_zifencei" && rv64g.llvm_abi == "lp64d"
+         && rv64g.IsRiscV() && rv64g.IsLinux() && rv64g.pointer_size == 8
+         && !rv64g.static_relocation,
+         "RV64G Linux target metadata");
+#endif
+
   OCompTarget wasm_wasi;
   string wasm_wasi_error;
   Expect(wasm_wasi.Configure("wasm32-wasi", wasm_wasi_error), "configure WASI target");
@@ -144,14 +178,39 @@ int main()
          "RV32IMAC ABI and target properties");
 
   vector<OCompTarget> canonical_targets = OCompTarget::CanonicalTargets();
-  Expect(canonical_targets.size() == 11, "canonical target count");
+  size_t canonical_target_count = 1;
+#ifdef DQ_LLVM_HAS_ARM
+  canonical_target_count += 8;
+#endif
+#ifdef DQ_LLVM_HAS_AARCH64
+  ++canonical_target_count;
+#endif
+#ifdef DQ_LLVM_HAS_WEBASSEMBLY
+  canonical_target_count += 2;
+#endif
+#ifdef DQ_LLVM_HAS_RISCV
+  canonical_target_count += 2;
+#endif
+  Expect(canonical_targets.size() == canonical_target_count, "canonical target count");
   OCompTarget canonical_host;
   canonical_host.ConfigureHost();
   Expect(canonical_targets[0].name == canonical_host.name, "host target is listed first");
-  Expect(canonical_targets[8].name == "wasm32-wasi"
-         && canonical_targets[9].name == "wasm32-bare"
-         && canonical_targets[10].name == "rv32imac-bare",
-         "new canonical target ordering");
+  auto has_canonical_target = [&](const char * name) {
+    for (const OCompTarget & target : canonical_targets)
+    {
+      if (target.name == name) return true;
+    }
+    return false;
+  };
+#ifdef DQ_LLVM_HAS_ARM
+  Expect(has_canonical_target("armhf-linux"), "ARM hard-float Linux target is listed");
+#endif
+#ifdef DQ_LLVM_HAS_AARCH64
+  Expect(has_canonical_target("arm64-linux"), "ARM64 Linux target is listed");
+#endif
+#ifdef DQ_LLVM_HAS_RISCV
+  Expect(has_canonical_target("rv64g-linux"), "RV64G Linux target is listed");
+#endif
 
   OCompOptions hosted_defaults;
   hosted_defaults.target.ConfigureHost();
@@ -224,6 +283,17 @@ int main()
          && (command_line_options.cmdline_defines[0].int_value == -42),
          "command line define");
 
+  OCompOptions sysroot_options;
+  sysroot_options.target.ConfigureHost();
+  char sysroot_arg0[] = "dq-comp";
+  char sysroot_arg1[] = "--sysroot";
+  char sysroot_arg2[] = "target-sysroot";
+  char sysroot_arg3[] = "main.dq";
+  char * sysroot_argv[] = {sysroot_arg0, sysroot_arg1, sysroot_arg2, sysroot_arg3};
+  string sysroot_error = sysroot_options.ProcessCommandLineOpts(4, sysroot_argv);
+  Expect(sysroot_error.empty() && sysroot_options.sysroot_dir == "target-sysroot",
+         "command line sysroot option");
+
   OCompOptions size_options;
   size_options.target.ConfigureHost();
   char size_arg0[] = "dq-comp";
@@ -266,6 +336,7 @@ include '${SDK}/project/common.dqproj'
 main = '${PROJECT_DIR}/main.dq'; output = '${THIS_DIR}/out.elf'
 target = 'arm_m7f-bare'
 cpu_features = '+no-movt'
+sysroot = '${THIS_DIR}/target-sysroot'
 exceptions = false
 dynstrings = false
 compiler_runtime = 'libgcc'
@@ -287,6 +358,8 @@ linkoption = '--gc-sections'
          "output path");
   Expect(g_opt.target.name == "arm_m7f-bare", "target value");
   Expect(g_opt.cpu_features == "+no-movt", "project CPU features value");
+  Expect(g_opt.sysroot_dir == fs::absolute(root / "target-sysroot").lexically_normal().string(),
+         "project sysroot path");
   g_opt.target.AppendCpuFeatures(g_opt.cpu_features);
   Expect(g_opt.target.llvm_features == "+fp-armv8d16sp,-fp64,-d32,+no-movt",
          "project CPU features append to target defaults");
@@ -336,6 +409,12 @@ main = '${SELECTED}/main.dq'
   Expect(!LoadProject(project, root / "duplicate-dynstrings.dqproj")
              && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate dynamic strings diagnostic");
+
+  WriteFile(root / "duplicate-sysroot.dqproj",
+            "main='main.dq'\nsysroot='one'\nsysroot='two'\n");
+  Expect(!LoadProject(project, root / "duplicate-sysroot.dqproj")
+             && HasDiagnostic(project, "ProjectDuplicate"),
+         "duplicate sysroot diagnostic");
 
   WriteFile(root / "duplicate-variable.dqproj", "var ROOT='one'\nvar ROOT='two'\nmain='main.dq'\n");
   Expect(!LoadProject(project, root / "duplicate-variable.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),

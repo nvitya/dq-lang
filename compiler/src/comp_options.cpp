@@ -178,6 +178,21 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     target->float_abi = preset.float_abi;
     target->default_float_bits = preset.default_float_bits;
   }
+
+  OCompTarget * armhf = add_target("armhf-linux", "arm", "linux",
+      "armv7-unknown-linux-gnueabihf", "generic", "+v7,+vfp3,+d16", "ARM",
+      TARGET_PLATFORM_LINUX);
+  armhf->clang_arch = "armv7-a";
+  armhf->clang_fpu = "vfpv3-d16";
+  armhf->float_abi = TARGET_FLOAT_ABI_HARD;
+  armhf->static_relocation = false;
+#endif
+
+#ifdef DQ_LLVM_HAS_AARCH64
+  OCompTarget * arm64 = add_target("arm64-linux", "arm64", "linux",
+      "aarch64-unknown-linux-gnu", "generic", "", "AArch64", TARGET_PLATFORM_LINUX);
+  arm64->pointer_size = 8;
+  arm64->static_relocation = false;
 #endif
 
 #ifdef DQ_LLVM_HAS_WEBASSEMBLY
@@ -191,6 +206,14 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
 #endif
 
 #ifdef DQ_LLVM_HAS_RISCV
+  OCompTarget * rv64g = add_target("rv64g-linux", "rv64g", "linux",
+      "riscv64-unknown-linux-gnu", "generic-rv64", "+m,+a,+f,+d,+zicsr,+zifencei", "RISCV",
+      TARGET_PLATFORM_LINUX);
+  rv64g->clang_arch = "rv64g_zicsr_zifencei";
+  rv64g->llvm_abi = "lp64d";
+  rv64g->pointer_size = 8;
+  rv64g->static_relocation = false;
+
   OCompTarget * rv32 = add_target("rv32imac-bare", "rv32imac", "bare",
       "riscv32-unknown-elf", "generic-rv32", "+m,+a,+c,+zicsr", "RISCV", TARGET_PLATFORM_BARE);
   rv32->clang_arch = "rv32imac_zicsr";
@@ -541,6 +564,18 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing path after --package-build-root";
       package_build_root_dir = value;
     }
+    else if (v.starts_with("--sysroot="))
+    {
+      sysroot_dir = v.substr(10);
+      if (sysroot_dir.empty()) return "Empty sysroot path";
+    }
+    else if ("--sysroot" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --sysroot";
+      sysroot_dir = value;
+      if (sysroot_dir.empty()) return "Empty sysroot path";
+    }
     else if ("--mod-root" == v)
     {
       const char * value = require_value(i);
@@ -648,6 +683,7 @@ void OCompOptions::PrintUsage()
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
   print("  --build-root <path> : select the local artifact build root\n");
   print("  --package-build-root <path> : select a separate package artifact build root\n");
+  print("  --sysroot <path> : select the target system root for linking\n");
   print("  --lto[=full|off] : emit and link LLVM bitcode sidecars for full LTO\n");
   print("  --version : print compiler version\n");
   print("  -D<name>  : defines the <name> symbol with boolean true\n");
@@ -668,6 +704,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
   return (option == "--target") || (option == "--pkg-path") || (option == "--build")
          || (option == "--build-suffix") || (option == "--build-root")
          || (option == "--package-build-root")
+         || (option == "--sysroot")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "--source-overlay")
          || (option == "--langserver-result")

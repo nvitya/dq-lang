@@ -447,6 +447,17 @@ void ODqCompCodegen::GenerateIr()
 
 void ODqCompCodegen::PrepareTarget()
 {
+#ifdef DQ_LLVM_HAS_AARCH64
+  if (g_opt.target.IsAArch64())
+  {
+    LLVMInitializeAArch64TargetInfo();
+    LLVMInitializeAArch64Target();
+    LLVMInitializeAArch64TargetMC();
+    LLVMInitializeAArch64AsmParser();
+    LLVMInitializeAArch64AsmPrinter();
+  }
+  else
+#endif
 #ifdef DQ_LLVM_HAS_ARM
   if (g_opt.target.IsArm())
   {

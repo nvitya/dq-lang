@@ -481,6 +481,12 @@ bool ODqProjectFile::ParseProperty(const string & name)
     if (!CheckDuplicate(name)) return false;
     if (!ReadExpandedString(g_opt.cpu_features)) return false;
   }
+  else if ("sysroot" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    if (!ReadPath(path)) return false;
+    g_opt.sysroot_dir = path.string();
+  }
   else if (("cpu" == name) || ("abi" == name) || ("floatabi" == name))
   {
     return Fail("ProjectUnsupported", format("Project property \"{}\" is not supported yet", name));

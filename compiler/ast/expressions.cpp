@@ -3671,8 +3671,25 @@ void OEmbStrLitToDescExpr::DeleteChildTree()
 LlValue * OTextBorrowExpr::Generate(OScope * scope)
 {
   if (TK_ROSTR == ResolvedType()->kind)
-    return g_builtins->type_rostr->GenerateBorrow(scope, source);
-  return GenerateTextInfoValue(scope, source);
+    return g_builtins->type_rostr->GenerateBorrow(scope, source, &temporary_string_address);
+  return GenerateTextInfoValue(scope, source, &temporary_string_address);
+}
+
+bool OTextBorrowExpr::NeedsCallCleanup() const
+{
+  OType * srctype = source->ResolvedType();
+  auto * lvalue = dynamic_cast<OLValueExpr *>(source);
+  // Properties use getter results rather than stable string storage.
+  return srctype && (TK_DYNSTR == srctype->kind)
+      && (!lvalue || dynamic_cast<OPropertyExpr *>(source));
+}
+
+void OTextBorrowExpr::GenerateCallCleanup(OScope * scope)
+{
+  if (temporary_string_address)
+  {
+    g_builtins->type_str->GenerateDestroy(scope, temporary_string_address);
+  }
 }
 
 void OTextBorrowExpr::FoldChildren()

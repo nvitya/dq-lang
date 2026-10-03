@@ -1,0 +1,17 @@
+// Borrowing a temporary str as rostr keeps it alive only through the call.
+
+use libc/stdio
+
+func MakeStr() -> str:
+    return "temporary"
+endfunc
+
+func Consume(value : rostr):
+endfunc
+
+func *Main():
+    for n : int = 0 count 10000:
+        Consume(MakeStr())
+    endfor
+    printf("temporary-rostr-cleanup = done\n") //?check("temporary-rostr-cleanup", "done")
+endfunc

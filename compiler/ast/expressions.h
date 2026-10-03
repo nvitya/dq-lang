@@ -943,10 +943,13 @@ class OTextBorrowExpr : public OExpr
 {
 public:
   OExpr * source;
+  LlValue * temporary_string_address = nullptr;
 
   /* ctor */ OTextBorrowExpr(OExpr * asource, OType * atype);
   ~OTextBorrowExpr() override = default;
   LlValue * Generate(OScope * scope) override;
+  bool      NeedsCallCleanup() const override;
+  void      GenerateCallCleanup(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;
 };

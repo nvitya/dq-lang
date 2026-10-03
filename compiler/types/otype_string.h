@@ -176,7 +176,7 @@ public:
   LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                           OExpr * end_expr, bool end_inclusive) override;
 
-  LlValue * GenerateBorrow(OScope * scope, OExpr * source);
+  LlValue * GenerateBorrow(OScope * scope, OExpr * source, LlValue ** temporary_string_address = nullptr);
   LlValue * GenerateTextInfo(OScope * scope, OExpr * source);
   LlValue * ExtractPChar(LlValue * value);
 };
@@ -189,7 +189,7 @@ bool EnsureDynStringRtlUseForStringTypes();
 OValSymFunc * TextFormatFunc(const string & name);
 LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {});
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr);
-LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr);
+LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** temporary_string_address = nullptr);
 
 void GenerateStringCreate(OScope * scope, LlValue * straddr);
 void GenerateStringIncRef(OScope * scope, LlValue * straddr);

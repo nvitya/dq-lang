@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.81.1"
+#define DQ_COMPILER_VERSION  "0.81.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.81.2:
+  - returned dynamic string cleanup fix
 v0.81.1:
   - anyvalue management fix for []anyvalue
 v0.81.0:

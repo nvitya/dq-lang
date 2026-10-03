@@ -227,7 +227,7 @@ static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
   return TextInfoValue(tmp, 1, DQTIF_READONLY | 1);
 }
 
-static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
+static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr, LlValue ** temporary_string_address)
 {
   LlValue * straddr = nullptr;
   if (auto * lval = dynamic_cast<OLValueExpr *>(expr); lval && !dynamic_cast<OPropertyExpr *>(expr))
@@ -237,6 +237,11 @@ static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr)
   else
   {
     straddr = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.tmp.slot");
+    ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), straddr);
+    if (temporary_string_address)
+    {
+      *temporary_string_address = straddr;
+    }
     ll_builder.CreateStore(expr->Generate(scope), straddr);
   }
   LlValue * descaddr = TextInfoAlloca();
@@ -294,7 +299,7 @@ static bool IsByteWCharLiteral(OExpr * expr)
   return TryGetDirectWCharLiteralValue(expr, value) && value <= 255;
 }
 
-LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
+LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** temporary_string_address)
 {
   OType * srctype = expr ? expr->ResolvedType() : nullptr;
   if (!srctype)
@@ -314,7 +319,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr)
 
   if (TK_DYNSTR == srctype->kind)
   {
-    return GenerateDynStringFullView(scope, expr);
+    return GenerateDynStringFullView(scope, expr, temporary_string_address);
   }
 
   if (TK_EMBSTR == srctype->kind)
@@ -1039,7 +1044,7 @@ LlValue * OTypeRoStr::ExtractPChar(LlValue * value)
   return ll_builder.CreateSelect(ll_builder.CreateIsNull(ptr), empty, ptr, "rostr.pchar");
 }
 
-LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source)
+LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source, LlValue ** temporary_string_address)
 {
   OType * srctype = source->ResolvedType();
   if (TK_ROSTR == srctype->kind) return source->Generate(scope);
@@ -1053,7 +1058,7 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source)
   }
   else
   {
-    LlValue * info = GenerateTextInfoValue(scope, source);
+    LlValue * info = GenerateTextInfoValue(scope, source, temporary_string_address);
     ptr = ll_builder.CreateExtractValue(info, 0);
     LlValue * charlen = ll_builder.CreateExtractValue(info, 1);
     LlValue * known = ll_builder.CreateICmpEQ(

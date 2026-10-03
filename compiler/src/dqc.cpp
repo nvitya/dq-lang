@@ -249,9 +249,9 @@ string ODqCompiler::DefaultLinkDriver() const
 
       vector<filesystem::path> candidates = {
         root_dir / "toolchain" / "bin" / "clang++",
-        root_dir / "toolchain" / "bin" / "clang++-21",
+        root_dir / "toolchain" / "bin" / format("clang++-{}", LLVM_VERSION_MAJOR),
         bin_dir / "clang++",
-        bin_dir / "clang++-21"
+        bin_dir / format("clang++-{}", LLVM_VERSION_MAJOR)
       };
 
       error_code ec;

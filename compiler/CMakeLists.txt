@@ -9,14 +9,18 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+# Do not retain a driver found for a previous LLVM configuration. LLVM bitcode
+# is not generally compatible across LLVM major versions.
+unset(DQ_DEFAULT_LINK_DRIVER)
+unset(DQ_DEFAULT_LINK_DRIVER CACHE)
 find_program(DQ_DEFAULT_LINK_DRIVER
-  NAMES "clang++-${LLVM_VERSION_MAJOR}" clang++
+  NAMES "clang++-${LLVM_VERSION_MAJOR}"
   HINTS "${LLVM_TOOLS_BINARY_DIR}"
 )
 if(DQ_DEFAULT_LINK_DRIVER)
   message(STATUS "Using DQ default link driver: ${DQ_DEFAULT_LINK_DRIVER}")
 else()
-  message(WARNING "Could not find clang++; dq-comp will require DQ_LINKER_DRIVER at runtime")
+  message(WARNING "Could not find a matching clang++; dq-comp will require DQ_LINKER_DRIVER at runtime")
 endif()
 
 include_directories(${LLVM_INCLUDE_DIRS})

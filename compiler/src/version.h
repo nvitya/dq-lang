@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.80.1"
+#define DQ_COMPILER_VERSION  "0.80.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.80.2:
+  - LTO bitcode mismatch fix for cross-compilations
 v0.80.1:
   - More target specific defines: X86, X64, ARM64, ARMHF, ARM_A, ARM_M, RV32, RV64
   - Epoll struct correction for ARM64 in sockets

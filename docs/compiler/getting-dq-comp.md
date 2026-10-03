@@ -278,7 +278,8 @@ files into an executable. A compiler built from these instructions uses LLVM's
 own `clang++` from the configured LLVM installation by default.
 
 If you are using an older build, or if you want to select another linker driver,
-set `DQ_LINKER_DRIVER`:
+set `DQ_LINKER_DRIVER`. Its LLVM major version must match the LLVM version used
+to build `dq-comp`:
 
 ```bash
 DQ_LINKER_DRIVER=clang++-21 dq-run examples/basic/test1.dq

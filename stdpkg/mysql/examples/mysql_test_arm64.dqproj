@@ -1,0 +1,3 @@
+main    = 'mysql_test.dq'
+target  = 'arm64-linux'
+sysroot = '/lindata/dev_arm/sysroot_arm64_trixie'

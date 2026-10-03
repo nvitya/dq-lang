@@ -1,0 +1,7 @@
+main = 'http_static_files.dq'
+
+target  = 'arm64-linux'
+sysroot = '/lindata/dev_arm/sysroot_arm64_trixie'
+
+optlevel = 0
+debuginfo = true

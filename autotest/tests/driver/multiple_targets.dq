@@ -57,7 +57,8 @@ func *Main():
 
     CompileTarget('wasm32-wasi', 'EXPECT_WASI', 'Format: WASM', 'AddressSize: 32bit')
     CompileTarget('wasm32-bare', 'EXPECT_WASM_BARE', 'Format: WASM', 'AddressSize: 32bit')
-    CompileTarget('rv32imac-bare', 'EXPECT_RISCV', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
+    CompileTarget('rv32imac-bare', 'EXPECT_RV32', 'Format: elf32-littleriscv', 'Machine: EM_RISCV')
+    CompileTarget('arm_m0-bare', 'EXPECT_ARM_M', 'Format: elf32-littlearm', 'Machine: EM_ARM')
     CompileTarget('armhf-linux', 'EXPECT_ARMHF', 'Format: elf32-littlearm', 'Machine: EM_ARM')
     CompileTarget('arm64-linux', 'EXPECT_ARM64', 'Format: elf64-littleaarch64', 'Machine: EM_AARCH64')
     CompileTarget('rv64g-linux', 'EXPECT_RV64G', 'Format: elf64-littleriscv', 'Machine: EM_RISCV')

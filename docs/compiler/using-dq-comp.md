@@ -100,10 +100,13 @@ is requested. A forced bare link must supply the appropriate objects and linker
 arguments and normally sets `compiler_runtime = 'none'` and
 `c_runtime = 'none'`.
 
-Target selection defines `WASM`, `WASI`, or `RISCV` as applicable. Bare targets
-also define `BARE`; all three targets define `TARGET_32BIT`. The existing
-`EXCEPTIONS` and `DYNSTRINGS` defines continue to reflect the effective feature
-settings.
+Target selection defines architecture and ABI markers as applicable: 32-bit
+x86 uses `X86_FAMILY` and `X86`, while 64-bit x86 uses `X86_FAMILY` and `X64`.
+Arm targets use `ARM` plus `ARM_M` or `ARM_A`; the hosted hard-float target also
+defines `ARMHF`. AArch64 defines `ARM_A`, `ARM64`, and `AARCH64`. RISC-V targets
+define `RISCV` plus `RV32` or `RV64`. Bare targets also define `BARE`, and
+`WASM`/`WASI`, `TARGET_32BIT`/`TARGET_64BIT`, `EXCEPTIONS`, and `DYNSTRINGS`
+continue to reflect the selected target and feature settings.
 
 ## `dq-run`
 

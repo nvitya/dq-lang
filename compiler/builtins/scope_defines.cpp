@@ -47,9 +47,37 @@ void OScopeDefines::Init()
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "WASI", true));
   }
 
+  if (g_opt.target.IsX86())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "X86_FAMILY", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "X86", true));
+  }
+
+  if (g_opt.target.IsX64())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "X86_FAMILY", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "X64", true));
+  }
+
   if (g_opt.target.IsArm())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM", true));
+    if (g_opt.target.IsArmM())
+    {
+      DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM_M", true));
+    }
+    if (g_opt.target.IsArmHf())
+    {
+      DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM_A", true));
+      DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARMHF", true));
+    }
+  }
+
+  if (g_opt.target.IsAArch64())
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM_A", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "ARM64", true));
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "AARCH64", true));
   }
 
   if (g_opt.target.IsWasm())
@@ -60,6 +88,14 @@ void OScopeDefines::Init()
   if (g_opt.target.IsRiscV())
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "RISCV", true));
+    if (8 == g_opt.target.pointer_size)
+    {
+      DefineValSym(g_builtins->type_bool->CreateConst(scpos, "RV64", true));
+    }
+    else
+    {
+      DefineValSym(g_builtins->type_bool->CreateConst(scpos, "RV32", true));
+    }
   }
 
   if (g_opt.exceptions)

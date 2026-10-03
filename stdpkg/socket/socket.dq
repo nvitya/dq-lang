@@ -126,9 +126,10 @@ struct SSockAddrStorage:
     __align   : uint
 endstruct
 
-// glibc packs epoll_event to { uint32 events; epoll_data_t data; }.
-// Represent the union payload by its pointer-sized member, which also covers fd/u32/u64 storage.
-[[packed]] struct SEpollEvent:
+// Linux only packs epoll_event on X64.  Other Linux ABIs naturally align
+// the pointer-sized payload after events.
+
+struct SEpollEvent  #{ifdef X64} [[packed]] #{endif}:
     events : uint32
     data   : pointer
 endstruct

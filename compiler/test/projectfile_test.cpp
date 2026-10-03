@@ -54,6 +54,14 @@ static bool LoadProject(ODqProject & project, const fs::path & filename,
 
 int main()
 {
+  OCompTarget x86;
+  x86.arch = "x86";
+  Expect(x86.IsX86() && !x86.IsX64(), "x86 target classification");
+
+  OCompTarget x64;
+  x64.arch = "x86_64";
+  Expect(!x64.IsX86() && x64.IsX64(), "x64 target classification");
+
   struct STargetExpectation
   {
     const char * name;

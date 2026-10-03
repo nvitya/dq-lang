@@ -1,5 +1,17 @@
 //?hostarch('x64')
 //?exitcode(0)
 
+#ifndef X86_FAMILY
+  var missing_x86_family_define : OExpectedX86Family
+#endif
+
+#ifndef X64
+  var missing_x64_define : OExpectedX64
+#endif
+
+#ifdef X86
+  var unexpected_x86_define : OUnexpectedX86
+#endif
+
 func *Main():
 endfunc

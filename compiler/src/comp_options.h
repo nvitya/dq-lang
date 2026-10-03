@@ -93,7 +93,12 @@ public:
   bool IsLinux() const { return TARGET_PLATFORM_LINUX == platform; }
   bool IsWasi() const { return TARGET_PLATFORM_WASI == platform; }
   bool IsBare() const { return TARGET_PLATFORM_BARE == platform; }
+  bool IsX86() const { return "x86" == arch; }
+  bool IsX64() const { return "x86_64" == arch; }
   bool IsArm() const { return "ARM" == llvm_backend; }
+  bool IsArmM() const { return IsArm() && arch.starts_with("arm_m"); }
+  bool IsArmA() const { return IsArm() && (("arm" == arch) || arch.starts_with("arm_a")); }
+  bool IsArmHf() const { return IsArmA() && IsLinux() && (TARGET_FLOAT_ABI_HARD == float_abi); }
   bool IsAArch64() const { return "AArch64" == llvm_backend; }
   bool IsWasm() const { return "WebAssembly" == llvm_backend; }
   bool IsRiscV() const { return "RISCV" == llvm_backend; }

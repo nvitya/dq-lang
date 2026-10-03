@@ -5,6 +5,15 @@
   #ifndef ARM
     var missing_target_define : OExpectedArm
   #endif
+  #ifndef ARM_A
+    var missing_profile_define : OExpectedArmA
+  #endif
+  #ifndef ARMHF
+    var missing_abi_define : OExpectedArmHf
+  #endif
+  #ifdef ARM_M
+    var unexpected_profile_define : OUnexpectedArmM
+  #endif
   #ifndef LINUX
     var missing_platform_define : OExpectedLinux
   #endif
@@ -14,6 +23,15 @@
 #endif
 
 #ifdef EXPECT_ARM64
+  #ifndef ARM_A
+    var missing_profile_define : OExpectedArmA
+  #endif
+  #ifndef ARM64
+    var missing_target_define : OExpectedArm64
+  #endif
+  #ifndef AARCH64
+    var missing_target_define : OExpectedAArch64
+  #endif
   #ifndef LINUX
     var missing_platform_define : OExpectedLinux
   #endif
@@ -22,9 +40,33 @@
   #endif
 #endif
 
+#ifdef EXPECT_ARM_M
+  #ifndef ARM
+    var missing_target_define : OExpectedArm
+  #endif
+  #ifndef ARM_M
+    var missing_profile_define : OExpectedArmM
+  #endif
+  #ifdef ARM_A
+    var unexpected_profile_define : OUnexpectedArmA
+  #endif
+  #ifdef ARMHF
+    var unexpected_abi_define : OUnexpectedArmHf
+  #endif
+  #ifndef BARE
+    var missing_platform_define : OExpectedBare
+  #endif
+#endif
+
 #ifdef EXPECT_RV64G
   #ifndef RISCV
     var missing_target_define : OExpectedRiscV
+  #endif
+  #ifndef RV64
+    var missing_width_define : OExpectedRv64
+  #endif
+  #ifdef RV32
+    var unexpected_width_define : OUnexpectedRv32
   #endif
   #ifndef LINUX
     var missing_platform_define : OExpectedLinux
@@ -67,9 +109,15 @@
   #endif
 #endif
 
-#ifdef EXPECT_RISCV
+#ifdef EXPECT_RV32
   #ifndef RISCV
     var missing_target_define : OExpectedRiscV
+  #endif
+  #ifndef RV32
+    var missing_width_define : OExpectedRv32
+  #endif
+  #ifdef RV64
+    var unexpected_width_define : OUnexpectedRv64
   #endif
   #ifndef BARE
     var missing_platform_define : OExpectedBare

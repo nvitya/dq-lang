@@ -67,9 +67,19 @@ Command-line `-Dname` and `-Dname=value`, project definitions, and target/runtim
 definitions contribute values.
 
 Target definitions include `LINUX`, `WINDOWS`, `WASI`, or `BARE` for the
-platform; `ARM`, `WASM`, or `RISCV` for explicit cross-target architectures;
-and `TARGET_32BIT`/`TARGET_64BIT`, `PTRSIZE`, `EXCEPTIONS`, and `DYNSTRINGS` for
-the effective representation and feature settings.
+platform; `WASM` for WebAssembly; and the following architecture, profile, and
+ABI markers. `TARGET_32BIT`/`TARGET_64BIT`, `PTRSIZE`, `EXCEPTIONS`, and
+`DYNSTRINGS` describe the effective representation and feature settings.
+
+| Target | Defines |
+| --- | --- |
+| 32-bit x86 | `X86_FAMILY`, `X86` |
+| 64-bit x86 | `X86_FAMILY`, `X64` |
+| Arm Cortex-M | `ARM`, `ARM_M` |
+| Arm-A hard-float Linux | `ARM`, `ARM_A`, `ARMHF` |
+| AArch64 | `ARM_A`, `ARM64`, `AARCH64` |
+| RISC-V 32-bit | `RISCV`, `RV32` |
+| RISC-V 64-bit | `RISCV`, `RV64` |
 
 Conditional directives include or discard source before parsing inactive code:
 

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.80.0"
+#define DQ_COMPILER_VERSION  "0.80.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.80.1:
+  - More target specific defines: X86, X64, ARM64, ARMHF, ARM_A, ARM_M, RV32, RV64
+  - Epoll struct correction for ARM64 in sockets
 v0.80.0:
   - new cross targets: arm64-linux, rv64g-linux, armhf-linux
 v0.79.0:

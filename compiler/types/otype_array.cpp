@@ -632,6 +632,24 @@ LlDiType * OTypeDynArray::CreateDiType()
   return di_builder->createPointerType(mgr_di, TARGET_PTRSIZE * 8);
 }
 
+LlValue * OTypeDynArray::GenerateManagerFieldAddress(LlValue * mgr, const string & fieldname)
+{
+  // Use the RTL parameter type so field offsets follow its actual target layout.
+  auto * functype = static_cast<OTypeFunc *>(DynArrayFunc("DynArrGetLength")->ptype);
+  auto * mgrtype = dynamic_cast<OTypeObject *>(functype->params[0]->ptype->ResolveAlias());
+  if (!mgrtype)
+  {
+    throw runtime_error("Dynamic array RTL manager type is not available");
+  }
+  LlType * ll_mgrtype = mgrtype->GetLlType();
+  OValSym * field = mgrtype->FindMemberSymbol(fieldname);
+  if (!field)
+  {
+    throw runtime_error("Dynamic array RTL manager field is not available: " + fieldname);
+  }
+  return ll_builder.CreateStructGEP(ll_mgrtype, mgr, field->ll_field_index, "dyn." + fieldname + ".addr");
+}
+
 LlValue * OTypeDynArray::GenerateDataPtr(OScope * scope, LlValue * dynaddr)
 {
   (void)scope;
@@ -661,8 +679,39 @@ LlValue * OTypeDynArray::GenerateRefCount(OScope * scope, LlValue * dynaddr)
 
 LlValue * OTypeDynArray::GenerateElementAddress(OScope * scope, LlValue * dynaddr, LlValue * index)
 {
-  LlValue * result = CallDynArrayFunc(scope, "DynArrGetElemPtr", {dynaddr, ToNativeUInt(index)});
+  index = ToNativeUInt(index);
+  LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+  LlBasicBlock * bb_bounds = LlBasicBlock::Create(ll_ctx, "dyn.index.bounds", func);
+  LlBasicBlock * bb_element = LlBasicBlock::Create(ll_ctx, "dyn.index.element", func);
+  LlBasicBlock * bb_error = LlBasicBlock::Create(ll_ctx, "dyn.index.error", func);
+  LlBasicBlock * bb_end = LlBasicBlock::Create(ll_ctx, "dyn.index.end", func);
+
+  LlValue * mgr = GenerateManagerValue(scope, dynaddr);
+  ll_builder.CreateCondBr(ll_builder.CreateIsNotNull(mgr), bb_bounds, bb_error);
+
+  ll_builder.SetInsertPoint(bb_bounds);
+  LlValue * length = ll_builder.CreateLoad(LlNativeUIntType(), GenerateManagerFieldAddress(mgr, "length"), "dyn.length");
+  // Match the RTL's native signed index comparisons, including negative indices.
+  LlValue * valid = ll_builder.CreateAnd(ll_builder.CreateICmpSGE(index, LlZero()),
+      ll_builder.CreateICmpSLT(index, length));
+  ll_builder.CreateCondBr(valid, bb_element, bb_error);
+
+  ll_builder.SetInsertPoint(bb_element);
+  LlValue * data = ll_builder.CreateLoad(LlPtrType(), GenerateManagerFieldAddress(mgr, "dataptr"), "dyn.data");
+  LlValue * element = ll_builder.CreateGEP(ElementStorageType()->GetLlType(), data, {index}, "dyn.element");
+  ll_builder.CreateBr(bb_end);
+
+  ll_builder.SetInsertPoint(bb_error);
+  // Retain the runtime's error handling, including handlers that return normally.
+  CallDynArrayFunc(scope, "DynArrBoundsError");
   EmitExpressionExceptionCheck(scope);
+  bb_error = ll_builder.GetInsertBlock();
+  ll_builder.CreateBr(bb_end);
+
+  ll_builder.SetInsertPoint(bb_end);
+  auto * result = ll_builder.CreatePHI(LlPtrType(), 2, "dyn.element.addr");
+  result->addIncoming(element, bb_element);
+  result->addIncoming(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), bb_error);
   return result;
 }
 
@@ -794,9 +843,46 @@ void OTypeDynArray::GenerateAppend(OScope * scope, LlValue * dynaddr, OExpr * va
       return;
     }
   }
-  LlValue * tmp = CreateEntryBlockAlloca(ElementStorageType()->GetLlType(), nullptr, "dyn.append.value");
-  ll_builder.CreateStore(value->Generate(scope), tmp);
+  OType * storage_type = ElementStorageType();
+  LlValue * tmp = CreateEntryBlockAlloca(storage_type->GetLlType(), nullptr, "dyn.append.value");
+  LlValue * elemvalue = value->Generate(scope);
+  ll_builder.CreateStore(elemvalue, tmp);
+
+  LlBasicBlock * bb_end = nullptr;
+  // Ordinary objects store borrowed pointers; autofree retains its owning type.
+  if (!storage_type->ContainsManagedStorage() && !storage_type->RequiresCleanup())
+  {
+    LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+    LlBasicBlock * bb_capacity = LlBasicBlock::Create(ll_ctx, "dyn.append.capacity", func);
+    LlBasicBlock * bb_store = LlBasicBlock::Create(ll_ctx, "dyn.append.store", func);
+    LlBasicBlock * bb_slow = LlBasicBlock::Create(ll_ctx, "dyn.append.slow", func);
+    bb_end = LlBasicBlock::Create(ll_ctx, "dyn.append.end", func);
+
+    // Evaluate the value before loading the manager: it may mutate/rebind the array.
+    LlValue * mgr = GenerateManagerValue(scope, dynaddr);
+    ll_builder.CreateCondBr(ll_builder.CreateIsNotNull(mgr), bb_capacity, bb_slow);
+
+    ll_builder.SetInsertPoint(bb_capacity);
+    LlValue * lenaddr = GenerateManagerFieldAddress(mgr, "length");
+    LlValue * length = ll_builder.CreateLoad(LlNativeUIntType(), lenaddr, "dyn.length");
+    LlValue * capacity = ll_builder.CreateLoad(LlNativeUIntType(), GenerateManagerFieldAddress(mgr, "capacity"), "dyn.capacity");
+    ll_builder.CreateCondBr(ll_builder.CreateICmpULT(length, capacity), bb_store, bb_slow);
+
+    ll_builder.SetInsertPoint(bb_store);
+    LlValue * data = ll_builder.CreateLoad(LlPtrType(), GenerateManagerFieldAddress(mgr, "dataptr"), "dyn.data");
+    LlValue * dst = ll_builder.CreateGEP(storage_type->GetLlType(), data, {length}, "dyn.append.element");
+    ll_builder.CreateStore(elemvalue, dst);
+    ll_builder.CreateStore(ll_builder.CreateAdd(length, LlOne()), lenaddr);
+    ll_builder.CreateBr(bb_end);
+
+    ll_builder.SetInsertPoint(bb_slow);
+  }
   CallDynArrayFunc(scope, "DynArrAppend", {dynaddr, GetTypeInfo(), tmp, LlOne()});
+  if (bb_end)
+  {
+    ll_builder.CreateBr(bb_end);
+    ll_builder.SetInsertPoint(bb_end);
+  }
 }
 
 void OTypeDynArray::GenerateAppendSlice(OScope * scope, LlValue * dynaddr, OExpr * values)

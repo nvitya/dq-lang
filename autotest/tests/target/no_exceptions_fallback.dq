@@ -26,4 +26,18 @@ func *Main():
         exit_code = 2
         return
     endif
+
+    var arr : [*]int32
+    arr.Append(7)
+    var past_end : ^int32 = %arr[1]
+    var negative : int32 = -1
+    var before_start : ^int32 = %arr[negative]
+    arr.Clear()
+    var empty : ^int32 = %arr[0]
+    arr.Clear(true)
+    var unallocated : ^int32 = %arr[0]
+    if error_count <> 7 or past_end <> nil or before_start <> nil or empty <> nil or unallocated <> nil:
+        exit_code = 3
+        return
+    endif
 endfunc

@@ -1,0 +1,120 @@
+// Typed indexing and single-element append must preserve aliasing and evaluation order.
+use print
+
+type TInt = int32
+
+struct SPair:
+    first : int32
+    second : int64
+endstruct
+
+var evaluations : int = 0
+var destroyed : int = 0
+
+object OReference:
+    value : int32
+    text : str
+
+    func *Destroy():
+        ++@.destroyed
+    endfunc
+endobject
+
+type TReference = OReference
+
+func ReplaceArray(arr : ref [*]TInt) -> TInt:
+    ++evaluations
+    arr = [40, 50]
+    arr.Reserve(4)
+    return 60
+endfunc
+
+func CheckIndex(arr : ref [*]TInt, index : int) -> int [[noinline]]:
+    result = 0
+    try:
+        var addr : ^TInt = %arr[index]
+    except Exception as e:
+        e.PrintMessage()
+        PrintLn('')
+        result = 1
+    endtry
+endfunc
+
+func *Main():
+    var arr : [*]TInt
+    for i : int32 = 0 count 257:
+        arr.Append(i)
+    endfor
+    var sum : int64 = 0
+    for i : int = 0 count arr.length:
+        sum += arr[i]
+    endfor
+    PrintLn('growth = {} {}', [arr.length, sum]) //?check('growth', '257 32896')
+
+    arr = [10, 20]
+    arr.Append(arr[0]) // source must survive reallocation
+    arr.Reserve(8)
+    var shared : [*]TInt = arr
+    shared.Append(arr[1]) // fast append must update the shared manager
+    PrintLn('alias = {} {} {}', [arr.length, arr[2], arr[3]]) //?check('alias', '4 10 20')
+
+    arr.Append(ReplaceArray(arr))
+    PrintLn('evaluation = {} {} {} {}', [evaluations, arr.length, arr[0], arr[2]]) //?check('evaluation', '1 3 40 60')
+    arr.Clear()
+    arr.Append(-7)
+    PrintLn('reuse = {} {}', [arr.length, int(arr[0])]) //?check('reuse', '1 -7')
+
+    var pairs : [*]SPair
+    pairs.Reserve(4)
+    var pair : SPair = {first: 3, second: 10000000000}
+    pairs.Append(pair)
+    pairs.Append(pairs[0])
+    pairs[1].first = 9
+    PrintLn('record = {} {} {}', [pairs[0].first, pairs[1].first, pairs[1].second]) //?check('record', '3 9 10000000000')
+
+    var floats : [*]float64
+    floats.Reserve(2)
+    floats.Append(1.5)
+    floats.Append(floats[0] + 2)
+    PrintLn('float = {}', [floats[1] == 3.5]) //?check('float', 'true')
+
+    var strings : [*]str
+    strings.Reserve(4)
+    var text : str = 'hello'
+    strings.Append(text)
+    strings.Append(strings[0])
+    text = ''
+    PrintLn('managed = {} {}', [strings[0], strings[1]]) //?check('managed', 'hello hello')
+
+    var first = new OReference()
+    var second = new OReference()
+    first.value = 7
+    second.text = 'second'
+    var refs : [*]TReference
+    refs.Append(first)
+    refs.Append(refs[0]) // growth must preserve the same object reference
+    refs.Reserve(8)
+    refs.Append(second)
+    refs.Append(nil)
+    var shared_refs : [*]TReference = refs
+    shared_refs.Append(refs[0])
+    refs[4].value = 42
+    PrintLn('objects = {} {} {} {} {} {}',
+        [refs.length, refs[0] == first, refs[1] == first, refs[3] == nil, first.value, refs[2].text]) //?check('objects', '5 true true true 42 second')
+    refs.Clear()
+    PrintLn('borrowed = {}', [destroyed]) //?check('borrowed', 0)
+    delete first
+    delete second
+    PrintLn('deleted = {}', [destroyed]) //?check('deleted', 2)
+
+    var narrow : int32 = -1
+    var caught : int = 0
+    caught += CheckIndex(arr, narrow) //?ignore('DynArray access out of bounds')
+    caught += CheckIndex(arr, arr.length) //?ignore('DynArray access out of bounds')
+    caught += CheckIndex(arr, 0x7FFFFFFFFFFFFFFF) //?ignore('DynArray access out of bounds')
+    arr.Clear()
+    caught += CheckIndex(arr, 0) //?ignore('DynArray access out of bounds')
+    arr.Clear(true)
+    caught += CheckIndex(arr, 0) //?ignore('DynArray access out of bounds')
+    PrintLn('bounds = {}', [caught]) //?check('bounds', 5)
+endfunc

@@ -110,6 +110,7 @@ class OTypeDynArray : public OType
 {
 private:
   using        super = OType;
+  LlValue * GenerateManagerFieldAddress(LlValue * mgr, const string & fieldname);
 
 public:
   OType *      elemtype;

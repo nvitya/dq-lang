@@ -54,6 +54,7 @@ func DynArrAssignOther(arr : ref ODynArrMgr, srcarr : ODynArrMgr) ..
 func DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, acount : int) ..
 
 func DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer ..
+func DynArrBoundsError() ..
 func DynArrGetLength(arr : ref ODynArrMgr) -> uint ..
 func DynArrGetCapacity(arr : ref ODynArrMgr) -> uint ..
 func DynArrGetRefCount(arr : ref ODynArrMgr) -> int ..
@@ -631,9 +632,13 @@ func DynArrAssignData(arr : ref ODynArrMgr, ati : ^SDqTypeInfo, asrc : pointer, 
     arr = newarr
 endfunc
 
+func DynArrBoundsError():
+    DynArrRuntimeError('DynArray access out of bounds')
+endfunc
+
 func DynArrGetElemPtr(arr : ref ODynArrMgr, index : int) -> pointer:
     if arr == nil  or not (0 <= index < arr.length):
-        DynArrRuntimeError('DynArray access out of bounds')
+        DynArrBoundsError()
         return nil
     endif
     return ^byte(arr.dataptr)[uint(index) * arr.elemsize]

@@ -1284,11 +1284,11 @@ LlDiType * OCompoundType::CreateDiType()
   EnsureLayout();
   uint64_t total_bits = uint64_t(bytesize) * 8;
 
-  llvm::DICompositeType * di_compound_type = di_builder->createReplaceableCompositeType(
+  llvm::TempDIType temporary_type(di_builder->createReplaceableCompositeType(
       IsUnion() ? llvm::dwarf::DW_TAG_union_type : llvm::dwarf::DW_TAG_structure_type,
       name, nullptr, nullptr, 0,
-      0, total_bits, alignsize * 8, llvm::DINode::FlagZero);
-  di_type = di_compound_type;
+      0, total_bits, alignsize * 8, llvm::DINode::FlagZero));
+  di_type = temporary_type.get();
 
   vector<llvm::Metadata *> elements;
   if (base_type)
@@ -1315,8 +1315,20 @@ LlDiType * OCompoundType::CreateDiType()
         offset_bits, llvm::DINode::FlagZero, storage_type->GetDiType()));
   }
 
-  di_builder->replaceArrays(di_compound_type, di_builder->getOrCreateArray(elements));
-  return di_compound_type;
+  llvm::DINodeArray di_elements = di_builder->getOrCreateArray(elements);
+  LlDiType * permanent_type;
+  if (IsUnion())
+  {
+    permanent_type = di_builder->createUnionType(nullptr, name, nullptr, 0,
+        total_bits, alignsize * 8, llvm::DINode::FlagZero, di_elements);
+  }
+  else
+  {
+    permanent_type = di_builder->createStructType(nullptr, name, nullptr, 0,
+        total_bits, alignsize * 8, llvm::DINode::FlagZero, nullptr, di_elements);
+  }
+  di_type = di_builder->replaceTemporary(move(temporary_type), permanent_type);
+  return di_type;
 }
 
 bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)

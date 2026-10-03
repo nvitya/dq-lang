@@ -20,6 +20,7 @@
 #include <llvm/Config/llvm-config.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/AsmParser/Parser.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/TargetParser/Triple.h>
 
@@ -437,12 +438,12 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
+  OptimizeIr();
+
   if (g_opt.dbg_info)
   {
     di_builder->finalize();
   }
-
-  OptimizeIr();
 }
 
 void ODqCompCodegen::PrepareTarget()
@@ -677,7 +678,22 @@ void ODqCompCodegen::EmitBitcode(const string afilename)
     throw runtime_error(ec.message());
   }
 
-  llvm::WriteBitcodeToFile(*ll_module, out);
+  // Reparse the generated IR in a fresh context before serializing it. This
+  // normalizes recursive metadata which LLVM 20's direct bitcode writer can
+  // otherwise encode into an unreadable LTO sidecar.
+  string ir_text;
+  llvm::raw_string_ostream ir_stream(ir_text);
+  ll_module->print(ir_stream, nullptr);
+  ir_stream.flush();
+
+  LlContext bitcode_context;
+  llvm::SMDiagnostic diagnostic;
+  unique_ptr<LlModule> bitcode_module = llvm::parseAssemblyString(ir_text, diagnostic, bitcode_context);
+  if (!bitcode_module)
+  {
+    throw runtime_error("Can not normalize LLVM IR for LTO bitcode output");
+  }
+  llvm::WriteBitcodeToFile(*bitcode_module, out);
   out.flush();
   out.close();
 

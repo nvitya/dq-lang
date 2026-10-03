@@ -1,6 +1,5 @@
 
 use db
-use strutils
 
 object OFieldPair:
     name  : embstr(64)
@@ -42,6 +41,8 @@ endobject
 
 
 implementation
+
+use strutils
 
 func OFieldPair.GetFieldValueText(qfunc : FSqlQuoteStr) -> str:
     if value.IsText():
@@ -105,7 +106,7 @@ func OSqlUis.InsertStatement(adb : ODbConnection) -> str:
     var fs : str = ""
     var vs : str = ""
     for i : int = 0 count field_pairs.length:
-        var fp :? = field_pairs[i]
+        ref fp = field_pairs[i]
         if i > 0:
             fs.Add(", ")
             vs.Add(", ")
@@ -127,7 +128,7 @@ endfunc
 func OSqlUis.UpdateStatement(adb : ODbConnection, where : rostr) -> str:
     var list : str = ''
     for i : int = 0 count field_pairs.length:
-        var fp :? = field_pairs[i]
+        ref fp = field_pairs[i]
         if i > 0:
             list.Add(", ")
         endif

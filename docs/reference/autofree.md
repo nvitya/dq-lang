@@ -26,15 +26,19 @@ var fixed : [2]autofree OThing
 var dynamic : [*]autofree OThing
 ```
 
-`new autofree T` allocates a `T` and gives the expression type `autofree T`, so
-the ownership type can be inferred:
+Use `new autofree T` to declare an owning variable directly:
 
 ```dq
-var owner : ? = new autofree OThing()
+var owner = new autofree OThing()
 ```
 
 Ordinary `new T` still produces `T`. Assigning that normal result to an
 `autofree T` destination claims it.
+
+Bare `:?` inference always produces the normal, non-owning type. It cannot be
+combined with `new autofree T`; omit `:?` as above, or write `autofree ?` when
+the destination's ownership must be explicit. The same rule applies to inferred
+`for ... in` variables.
 
 Type aliases may name an `autofree` type, but all placement restrictions still
 apply where the alias is used.
@@ -133,6 +137,10 @@ destination array, including when the operation reallocates or shifts elements.
 slice insertion operations are rejected for `[*]autofree T`, because copying an
 array range would duplicate ownership. Borrowed `[]autofree T` views remain
 usable for indexing, iteration, and read-only APIs.
+
+Use `for item : ref in owners` to replace an owning array element in place. The
+reference preserves the element's ownership qualification, so assigning a new
+value cleans up the previous element and leaves the array as the owner.
 
 `Pop()` and `PopFirst()` are ownership extraction operations for an
 `[*]autofree T`: they remove an element without destroying it and return normal

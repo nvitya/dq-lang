@@ -43,6 +43,11 @@ func *Main():
     printf("delete.nil = %d\n", second == nil) //?check("drop2", 2)
                                                   //?check("delete.nil", 1)
 
+    var inferred_owner = new autofree OItem(18)
+    var inferred_borrow :? = inferred_owner
+    printf("infer.borrow = %d %d\n", inferred_owner.id, inferred_borrow.id) //?check("infer.borrow", "18 18")
+    delete inferred_owner //?check("drop18", 18)
+
     var source : [2]autofree OItem
     source[0] = new OItem(3)
     source[1] = new OItem(4)
@@ -60,6 +65,32 @@ func *Main():
     printf("pop = %d %d\n", item == nil, popped.id) //?check("pop", "1 6")
     delete popped //?check("drop6", 6)
     items.Delete(0) //?check("drop16", 16)
+
+    var iterated : [*]autofree OItem
+    iterated.Append(new OItem(19))
+    iterated.Append(new OItem(20))
+    var iterated_sum : int = 0
+    for inferred :? in iterated:
+        iterated_sum += inferred.id
+    endfor
+    printf("infer.loop = %d %d %d\n", iterated_sum, iterated[0].id, iterated[1].id) //?check("infer.loop", "39 19 20")
+    iterated.Delete(0) //?check("drop19", 19)
+    iterated.Delete(0) //?check("drop20", 20)
+
+    var replaced : [*]autofree OItem
+    replaced.Append(new OItem(21))
+    replaced.Append(new OItem(22))
+    for item : ref in replaced:
+        if item.id == 21:
+            item = new OItem(23)
+        else:
+            item = new OItem(24)
+        endif
+    endfor //?check("drop21", 21)
+           //?check("drop22", 22)
+    printf("ref.loop = %d %d\n", replaced[0].id, replaced[1].id) //?check("ref.loop", "23 24")
+    replaced.Delete(0) //?check("drop23", 23)
+    replaced.Delete(0) //?check("drop24", 24)
 
     var moved : [*]autofree OItem
     moved.Append(new autofree OItem(14))

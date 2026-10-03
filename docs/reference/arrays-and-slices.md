@@ -90,6 +90,31 @@ indices are normalized according to the operation. Operations that require an
 existing element reject the one-past-end position; insertion may accept it to
 append.
 
+## Iteration
+
+An inferred `for` variable is an ordinary, non-owning value, even when an array
+stores `autofree` elements:
+
+```dq
+for item :? in items:
+    Use(item)
+endfor
+```
+
+Use `ref` when the loop body must access each element's storage, including to
+replace an owning element in place:
+
+```dq
+for item : ref in items:
+    item = new OThing()
+endfor
+```
+
+A reference iteration variable has the element's exact type and writes through
+to the array slot. Do not resize, insert into, delete from, or otherwise
+structurally modify a dynamic array while its reference iteration variable is in
+use: such operations can invalidate the current element address.
+
 ## Slicing
 
 `array[start:end]` uses a half-open interval: it contains `start` and excludes

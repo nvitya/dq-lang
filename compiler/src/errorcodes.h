@@ -151,6 +151,7 @@ DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXPECTED,          "TypeSpecExpected",       "Ty
 DEF_DQ_ERR(DQERR_TYPE_SPECIFIER_EXP_AFTER,         "TypeSpecExpected",       "Type specifier \":\" is expected after \"$1\"");
 DEF_DQ_ERR(DQERR_TYPE_INFER_INIT_REQUIRED,          "TypeInfer",              "Type inference for \"$1\" requires an initializer");
 DEF_DQ_ERR(DQERR_TYPE_INFER_UNSUPPORTED,            "TypeInfer",              "Type \"$2\" cannot be inferred for \"$1\"");
+DEF_DQ_ERR(DQERR_TYPE_INFER_AUTOFREE_NEW,            "AutoFreeInference",      "Cannot combine \"?\" type inference with \"new autofree\" for \"$1\": omit \"?\" or use \"autofree ?\"");
 DEF_DQ_ERR(DQERR_TYPE_UNKNOWN,                     "TypeUnknown",            "Type \"$1\" is unknown");
 DEF_DQ_ERR(DQERR_TYPE_ID_EXP,                      "TypeIdExpected",         "Type identifier is expected");
 DEF_DQ_ERR(DQERR_TYPE_ALREADY_DEFINED,             "TypeAlreadyDef",         "Type \"$1\" is already defined");

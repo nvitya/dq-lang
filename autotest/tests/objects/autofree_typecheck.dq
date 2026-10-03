@@ -29,10 +29,15 @@ func NeedAuto(item : ref autofree OTest):
 endfunc
 
 func *Main():
+    var bad_inferred_owner :? = new autofree OTest //?error(AutoFreeInference)
+
+    var values : [*]autofree OTest
+    for item : autofree ? in values: //?error(NotSupported)
+    endfor
+
     var normal : OTest = nil
     NeedAuto(normal) //?error(FuncArgRefType)
 
-    var values : [*]autofree OTest
     values.Clone() //?error(NotSupported)
     values.Append(values[:]) //?error(NotSupported)
     values.Prepend(values[:]) //?error(NotSupported)

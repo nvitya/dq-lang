@@ -43,7 +43,10 @@ public: // statement blocks
 
 protected:
   void ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember);
+  bool ParseTypeSpecOrInference(OType *& rtype, bool & rinfer_type, bool & rinfer_autofree);
   OType * GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype);
+  OType * GetAutoFreeInferredType(OType * type);
+  OValSym * CreateRefLocal(OScPosition & scpos, const string & name, OType * type);
   void WarnLocalVarObjectMemberCollision(const string & name, OScPosition & scpos);
 
   int except_depth = 0;

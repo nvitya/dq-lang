@@ -341,11 +341,8 @@ endfunc
 // Text / String
 
 func AnyValIsText(v : ref SDqAnyValue) -> bool:
-#ifdef DYNSTRINGS
-    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_DYNSTR  or  v.kind == DQTK_EMBSTR
-#else
-    return v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_EMBSTR
-#endif
+    return v.kind == DQTK_STRSLICE  or v.kind == DQTK_ROSTR  or v.kind == DQTK_EMBSTR
+           #{ifdef DYNSTRINGS}  or v.kind == DQTK_DYNSTR  #{endif}
 endfunc
 
 #ifdef DYNSTRINGS

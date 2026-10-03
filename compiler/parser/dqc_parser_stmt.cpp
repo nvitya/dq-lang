@@ -45,13 +45,8 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   // object variables hold an object reference named by the allocated type.
   if (auto * newexpr = dynamic_cast<ONewExpr *>(ainitexpr))
   {
-    if (AsAutoFreeType(newexpr->ptype))
-    {
-      rdetectedtype = newexpr->ptype;
-      return rdetectedtype;
-    }
     OType * alloc_type = newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr;
-    if (alloc_type && (TK_OBJECT == alloc_type->kind))
+    if (alloc_type && (TK_OBJECT == alloc_type->kind) && !AsAutoFreeType(newexpr->ptype))
     {
       rdetectedtype = alloc_type;
       return alloc_type;
@@ -67,6 +62,10 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   }
 
   rdetectedtype = ainitexpr->ptype;
+  if (auto * autofree = AsAutoFreeType(rdetectedtype))
+  {
+    rdetectedtype = autofree->basetype;
+  }
   OType * resolved_type = rdetectedtype ? rdetectedtype->ResolveAlias() : nullptr;
   if (!resolved_type)
   {
@@ -79,6 +78,65 @@ OType * ODqCompParserStmt::GetInferredDeclType(OExpr * ainitexpr, OType *& rdete
   }
   auto * ptrtype = dynamic_cast<OTypePointer *>(resolved_type);
   return (ptrtype && ptrtype->IsTypedPointer()) ? rdetectedtype : nullptr;
+}
+
+bool ODqCompParserStmt::ParseTypeSpecOrInference(OType *& rtype, bool & rinfer_type, bool & rinfer_autofree)
+{
+  rinfer_type = false;
+  rinfer_autofree = false;
+
+  scf->SkipWhite();
+  OScPosition typepos;
+  scf->SaveCurPos(typepos);
+  string typeprefix;
+  if (scf->ReadIdentifier(typeprefix) && ("autofree" == typeprefix))
+  {
+    scf->SkipWhite();
+    if (scf->CheckSymbol("?"))
+    {
+      rinfer_type = true;
+      rinfer_autofree = true;
+      return true;
+    }
+    scf->SetCurPos(typepos);
+  }
+  else
+  {
+    scf->SetCurPos(typepos);
+  }
+
+  if (scf->CheckSymbol("?"))
+  {
+    rinfer_type = true;
+    return true;
+  }
+
+  rtype = ParseTypeSpec();
+  return (rtype != nullptr);
+}
+
+OType * ODqCompParserStmt::GetAutoFreeInferredType(OType * type)
+{
+  OType * resolved = type ? type->ResolveAlias() : nullptr;
+  if (!resolved || (TK_OBJECT != resolved->kind && TK_POINTER != resolved->kind))
+  {
+    StatementError(DQERR_TYPE_EXPECTED, "object or pointer", type ? type->name : "?");
+    return nullptr;
+  }
+  return type->GetAutoFreeType();
+}
+
+OValSym * ODqCompParserStmt::CreateRefLocal(OScPosition & scpos, const string & name, OType * type)
+{
+  OValSym * result = type->CreateValSym(scpos, name);
+  result->param_mode = FPM_REF;
+  result->is_ref_alias = true;
+  result->initialized = true;
+  if (auto * objsym = dynamic_cast<OVsObject *>(result))
+  {
+    objsym->SetObjectStorage(OSK_PLAIN);
+  }
+  return result;
 }
 
 void ODqCompParserStmt::WarnLocalVarObjectMemberCollision(const string & name, OScPosition & scpos)
@@ -176,39 +234,10 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   }
   else if (scf->CheckSymbol(":"))
   {
-    scf->SkipWhite();
-    OScPosition typepos;
-    scf->SaveCurPos(typepos);
-    string typeprefix;
-    if (scf->ReadIdentifier(typeprefix) && ("autofree" == typeprefix))
+    if (!ParseTypeSpecOrInference(ptype, infer_type, infer_autofree))
     {
-      scf->SkipWhite();
-      if (scf->CheckSymbol("?"))
-      {
-        infer_type = true;
-        infer_autofree = true;
-      }
-      else
-      {
-        scf->SetCurPos(typepos);
-      }
-    }
-    else
-    {
-      scf->SetCurPos(typepos);
-    }
-    if (!infer_type && scf->CheckSymbol("?"))
-    {
-      infer_type = true;
-    }
-    else if (!infer_type)
-    {
-      ptype = ParseTypeSpec();
-      if (not ptype)
-      {
-        SkipToModuleStatementStart();
-        return;
-      }
+      SkipToModuleStatementStart();
+      return;
     }
   }
   else if (!arootstmt && scf->CheckSymbol("="))
@@ -276,6 +305,12 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 
   if (infer_type)
   {
+    if (!infer_autofree && dynamic_cast<ONewExpr *>(initexpr) && AsAutoFreeType(initexpr->ptype))
+    {
+      StatementError(DQERR_TYPE_INFER_AUTOFREE_NEW, sid);
+      delete initexpr;
+      return;
+    }
     OType * detected_type = nullptr;
     ptype = GetInferredDeclType(initexpr, detected_type);
     if (!ptype)
@@ -291,16 +326,14 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       delete initexpr;
       return;
     }
-    if (infer_autofree && !AsAutoFreeType(ptype))
+    if (infer_autofree)
     {
-      OType * resolved = ptype->ResolveAlias();
-      if (TK_OBJECT != resolved->kind && TK_POINTER != resolved->kind)
+      ptype = GetAutoFreeInferredType(ptype);
+      if (!ptype)
       {
-        StatementError(DQERR_TYPE_EXPECTED, "object or pointer", ptype->name);
         delete initexpr;
         return;
       }
-      ptype = ptype->GetAutoFreeType();
     }
   }
 
@@ -528,14 +561,7 @@ void ODqCompParserStmt::ParseStmtRef()
   CheckStatementClose();
 
   WarnLocalVarObjectMemberCollision(sid, scpos_statement_start);
-  pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
-  pvalsym->param_mode = FPM_REF;
-  pvalsym->is_ref_alias = true;
-  pvalsym->initialized = true;
-  if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
-  {
-    objsym->SetObjectStorage(OSK_PLAIN);
-  }
+  pvalsym = CreateRefLocal(scpos_statement_start, sid, ptype);
   curscope->DefineValSym(pvalsym);
   curblock->AddStatement(new OStmtVarDecl(scpos_statement_start, pvalsym, new OAddrOfExpr(bindlval)));
 }
@@ -1707,22 +1733,28 @@ void ODqCompParserStmt::ParseStmtFor()
 
   OType * specified_type = nullptr;
   bool infer_type = false;
+  bool infer_autofree = false;
+  bool ref_loopvar = false;
   scf->SkipWhite();
   if (scf->CheckSymbol(":"))
   {
     scf->SkipWhite();
-    if (scf->CheckSymbol("?"))
+    string typeprefix;
+    if (scf->ReadIdentifier(typeprefix, false) && ("ref" == typeprefix))
     {
-      infer_type = true;
+      scf->ReadIdentifier(typeprefix);
+      ref_loopvar = true;
     }
-    else
+    else if (!ParseTypeSpecOrInference(specified_type, infer_type, infer_autofree))
     {
-      specified_type = ParseTypeSpec();
-      if (!specified_type)
-      {
-        abort_for();
-        return;
-      }
+      abort_for();
+      return;
+    }
+    if (infer_autofree)
+    {
+      Error(DQERR_NOT_SUPPORTED, "autofree inferred for loop variable");
+      abort_for();
+      return;
     }
   }
 
@@ -1764,13 +1796,23 @@ void ODqCompParserStmt::ParseStmtFor()
       elemtype = static_cast<OTypeDynArray *>(arraytype)->elemtype;
     }
 
-    OValSym * loopvar = find_loopvar(loopvar_name);
+    OValSym * loopvar = (ref_loopvar ? nullptr : find_loopvar(loopvar_name));
     bool declare_loopvar = false;
     if (infer_type)
     {
-      specified_type = elemtype;
+      OType * inferred_type = elemtype;
+      if (auto * autofree = AsAutoFreeType(inferred_type))
+      {
+        inferred_type = autofree->basetype;
+      }
+      specified_type = inferred_type;
     }
-    if (specified_type)
+    if (ref_loopvar)
+    {
+      loopvar = CreateRefLocal(scpos_statement_start, loopvar_name, elemtype);
+      declare_loopvar = true;
+    }
+    else if (specified_type)
     {
       if (loopvar)
       {
@@ -1818,8 +1860,15 @@ void ODqCompParserStmt::ParseStmtFor()
     if (declare_loopvar)
     {
       WarnLocalVarObjectMemberCollision(loopvar_name, scpos_statement_start);
-      st->init->scope->DefineValSym(loopvar);
-      st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, nullptr));
+      if (ref_loopvar)
+      {
+        st->body->scope->DefineValSym(loopvar);
+      }
+      else
+      {
+        st->init->scope->DefineValSym(loopvar);
+        st->init->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar, nullptr));
+      }
     }
 
     OLValueExpr * length_array = arraylval->Clone();
@@ -1832,8 +1881,16 @@ void ODqCompParserStmt::ParseStmtFor()
     }
     OExpr * length_expr = new OArrayMetaFieldExpr(length_array, arraylval->ptype, AMF_LENGTH);
     st->condition = make_compare(indexvar, COMPOP_LT, length_expr);
-    st->body->AddStatement(new OStmtAssign(scpos_statement_start, new OLValueVar(loopvar),
-        new OLValueIndex(arraylval, arraytype, new OLValueVar(indexvar))));
+    OExpr * element = new OLValueIndex(arraylval, arraytype, new OLValueVar(indexvar));
+    if (ref_loopvar)
+    {
+      st->body->AddStatement(new OStmtVarDecl(scpos_statement_start, loopvar,
+          new OAddrOfExpr(static_cast<OLValueExpr *>(element))));
+    }
+    else
+    {
+      st->body->AddStatement(new OStmtAssign(scpos_statement_start, new OLValueVar(loopvar), element));
+    }
     st->body->scope->SetVarInitialized(loopvar);
     st->step->AddStatement(new OStmtModifyAssign(scpos_statement_start, new OLValueVar(indexvar), BINOP_ADD, new OIntLit(1)));
 
@@ -1843,6 +1900,13 @@ void ODqCompParserStmt::ParseStmtFor()
     --loop_depth;
     st->body->scope->RevertFirstAssignments();
     restore_scope();
+    return;
+  }
+
+  if (ref_loopvar)
+  {
+    Error(DQERR_NOT_SUPPORTED, "reference range loop");
+    abort_for();
     return;
   }
 

@@ -1,0 +1,37 @@
+object OFieldPair:
+    name  : embstr(64)
+    value : anyvalue
+
+    func *Create(aname : rostr):
+        name  = aname
+        value.SetNull()
+    endfunc
+
+    func GetFieldValueText(qfunc : FSqlQuoteStr) -> str ..
+endobject
+
+object OSqlUis:
+protected
+    field_pairs  : [*] autofree OFieldPair
+    func GetField(afname : rostr) -> OFieldPair ..
+public
+    table_name   : str
+    parametrized : bool = false
+
+    func *Create(atable : rostr) ..
+
+    func Init(atable : rostr) ..
+    func Clear() ..
+
+    func Field(afname : rostr, avalue : anyvalue) ..
+    func FieldStr(afname : rostr, avalue : strslice) ..
+    func FieldInt(afname : rostr, avalue : int) ..
+    func FieldFloat(afname : rostr, avalue : float) ..
+    func FieldNull(afname : rostr) ..
+
+    func InsertStatement(adb : ODbConnection) -> str ..
+    func UpdateStatement(adb : ODbConnection, where : rostr) -> str ..
+
+    func ExecInsert(adb : ODbConnection) ..
+    func ExecUpdate(adb : ODbConnection, where : rostr) ..
+endobject

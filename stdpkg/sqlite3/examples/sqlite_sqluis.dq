@@ -4,8 +4,6 @@ use sqlite3
 use print
 use file
 
-use ./sqluis
-
 const DB_NAME : rostr = 'capitals_uis.db'
 
 const CAPITALS_STRUCT : rostr =
@@ -34,7 +32,7 @@ func *Main():
 
     // Create the schema and populate it in one transaction.
     db.Execute(CAPITALS_STRUCT)
-    db.Begin()
+    //db.Begin()
 
     var uis = new autofree OSqlUis('capitals')
 
@@ -42,10 +40,7 @@ func *Main():
     uis.FieldStr('CITY',      'Budapest')
     uis.FieldStr('COUNTRY',   'Hungary')
     uis.FieldStr('CONTINENT', 'Europe')
-
-    PrintLn(uis.InsertStatement(db))
-    PrintLn(uis.InsertStatement(db))
-
+    //PrintLn(uis.InsertStatement(db))
     uis.ExecInsert(db)
 
     uis.Clear()
@@ -54,29 +49,26 @@ func *Main():
     uis.FieldStr('CONTINENT', 'Europe')
     uis.ExecInsert(db)
 
-    db.Commit()
-    PrintLn('Inserted rows = {}', [db.changes])
+    //db.Commit()
+    //PrintLn('Inserted rows = {}', [db.changes])
 
-    PrintLn('Capitals in Europe:')
+    PrintLn('Capitals:')
 
     var cur : autofree ODbCursor  // previous object will be freed on reassignment
 
     cur = db.Query(
     """
     select
-        ID, CITY, COUNTRY
+        ID, CITY, COUNTRY, CONTINENT
     from
         capitals
-    where
-        CONTINENT = 'Europe'
     order by
         CITY
     limit
         50
     """)
-
     while cur.OnRow():
-        PrintLn('{}: {} - {}', [cur.GetInt(0, 0), cur.GetStr(1, '?'), cur.GetStr(2, '?')])
+        PrintLn('{}: {} - {} / {}', [cur.GetInt(0, 0), cur.GetStr(1, '?'), cur.GetStr(2, '?'), cur.GetStr(3, '?')])
         cur.Next()
     endwhile
 
@@ -95,4 +87,27 @@ func *Main():
         PrintLn('{} - {}', [cur.GetStr('CONTINENT', '?'), cur.GetInt('COUNTRY_COUNT', 0)])
         cur.Next()
     endwhile
+
+    // change the city to the hungarian name
+    uis.Clear()
+    uis.FieldStr('CITY', 'Bécs')
+    uis.ExecUpdate(db, "COUNTRY = 'Austria'")
+
+    PrintLn('New capitals:')
+    cur = db.Query(
+    """
+    select
+        ID, CITY, COUNTRY, CONTINENT
+    from
+        capitals
+    order by
+        CITY
+    limit
+        50
+    """)
+    while cur.OnRow():
+        PrintLn('{}: {} - {} / {}', [cur.GetInt(0, 0), cur.GetStr(1, '?'), cur.GetStr(2, '?'), cur.GetStr(3, '?')])
+        cur.Next()
+    endwhile
+
 endfunc

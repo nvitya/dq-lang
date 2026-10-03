@@ -131,8 +131,14 @@ endobject
 #include "dbrows.dqh"
 #srcdep  "dbrows.dqi"
 
+#include "sqluis.dqh"
+#srcdep  "sqluis.dqi"
+
+
 implementation
 
+
+use strutils
 
 func FieldTypeName(ft : NDbFieldType) -> str:
     if   ft == ftInt:       return 'int'
@@ -213,4 +219,6 @@ endfunc
 //-----------------------------------------------------------------------------
 
 #include "dbrows.dqi"
+
+#include "sqluis.dqi"
 

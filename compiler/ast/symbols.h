@@ -126,6 +126,7 @@ public:
   void        EmitOwnedObjectDestructorsForReturn(class OValSymFunc * vsfunc);
 
   LlBasicBlock * GetExceptionCleanupBB();
+  LlBasicBlock * GetUnwindCleanupBB();
   LlValue *      GenerateCallOrInvoke(LlFuncType * func_type, LlValue * callee, const std::vector<LlValue*> & args, const std::string & invoke_cont_name = "invoke.cont", LlBasicBlock * override_cleanup_bb = nullptr);
 };
 
@@ -670,6 +671,11 @@ public:
   {
     throw logic_error(std::format("Unhandled OExpr::Generate for \"{}\"", typeid(this).name()));
   }
+
+  // Arguments may create storage that is valid only until their consuming call
+  // returns. Calls invoke this hook on both their normal and unwind paths.
+  virtual bool NeedsCallCleanup() const { return false; }
+  virtual void GenerateCallCleanup(OScope * scope) {}
 
   virtual void FoldChildren()
   {

@@ -2352,14 +2352,17 @@ void OArrayToSliceExpr::DeleteChildTree()
 
 LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
 {
-  LlValue * ll_arr = arraylit->Generate(scope);
   OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
-  LlValue * arraddr = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
-  ll_builder.CreateStore(ll_arr, arraddr);
+  temporary_address = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
+  // An element expression may throw before the literal is complete. Its unwind
+  // cleanup must still be able to safely destroy this call-lifetime storage.
+  ll_builder.CreateStore(llvm::ConstantAggregateZero::get(arrtype->GetLlType()), temporary_address);
+  LlValue * ll_arr = arraylit->Generate(scope);
+  ll_builder.CreateStore(ll_arr, temporary_address);
 
   LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
-      arrtype->GetLlType(), arraddr, {ll_zero, ll_zero}, "arr.lit.data");
+      arrtype->GetLlType(), temporary_address, {ll_zero, ll_zero}, "arr.lit.data");
 
   LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
   ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
@@ -2367,6 +2370,22 @@ LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
       LlNativeIntConst(arrtype->arraylength),
       1, "slice.len");
   return ll_slice;
+}
+
+bool OArrayLitToSliceExpr::NeedsCallCleanup() const
+{
+  auto * arrtype = dynamic_cast<OTypeArray *>(arraylit->ResolvedType());
+  return arrtype && arrtype->RequiresCleanup();
+}
+
+void OArrayLitToSliceExpr::GenerateCallCleanup(OScope * scope)
+{
+  auto * arrtype = static_cast<OTypeArray *>(arraylit->ResolvedType());
+  if (!temporary_address)
+  {
+    throw logic_error("OArrayLitToSliceExpr::GenerateCallCleanup(): temporary was not generated");
+  }
+  arrtype->GenerateCleanup(scope, temporary_address);
 }
 
 void OArrayLitToSliceExpr::FoldChildren()
@@ -2381,6 +2400,115 @@ void OArrayLitToSliceExpr::DeleteChildTree()
   OExpr::DeleteTree(arraylit);
   arraylit = nullptr;
 }
+
+class OCallLifetimeCleanup
+{
+private:
+  OScope * scope;
+  vector<OExpr *> temporaries;
+  LlBasicBlock * saved_lpad_bb = nullptr;
+  LlBasicBlock * saved_scope_cleanup_bb = nullptr;
+  LlBasicBlock * next_cleanup_bb = nullptr;
+  LlBasicBlock * lpad_bb = nullptr;
+  LlBasicBlock * cleanup_bb = nullptr;
+
+  void RestoreScope()
+  {
+    if (lpad_bb)
+    {
+      scope->exception_cleanup_bb = saved_lpad_bb;
+      scope->unwind_cleanup_bb = saved_scope_cleanup_bb;
+    }
+  }
+
+  void GenerateExceptionCleanup()
+  {
+    if (!lpad_bb)
+    {
+      return;
+    }
+
+    LlBasicBlock * normal_bb = ll_builder.GetInsertBlock();
+    LlFunction * ll_func = normal_bb->getParent();
+
+    ll_builder.SetInsertPoint(lpad_bb);
+    g_compiler->EnsurePersonalityFn(ll_func);
+    auto * lpad = ll_builder.CreateLandingPad(
+        llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
+        1, "lpad");
+    lpad->setCleanup(true);
+    if (!g_compiler->ll_exn_storage)
+    {
+      LlBasicBlock * entry = &ll_func->getEntryBlock();
+      llvm::IRBuilder<> entry_builder(entry, entry->begin());
+      g_compiler->ll_exn_storage = entry_builder.CreateAlloca(lpad->getType(), nullptr, "exn.storage");
+    }
+    ll_builder.CreateStore(lpad, g_compiler->ll_exn_storage);
+    ll_builder.CreateBr(cleanup_bb);
+
+    ll_builder.SetInsertPoint(cleanup_bb);
+    for (OExpr * temporary : temporaries)
+    {
+      temporary->GenerateCallCleanup(scope);
+    }
+    if (next_cleanup_bb)
+    {
+      ll_builder.CreateBr(next_cleanup_bb);
+    }
+    else
+    {
+      LlValue * exn = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage, "exn.val");
+      ll_builder.CreateResume(exn);
+    }
+
+    ll_builder.SetInsertPoint(normal_bb);
+  }
+
+public:
+  OCallLifetimeCleanup(OScope * ascope, const vector<OExpr *> & args)
+    : scope(ascope)
+  {
+    for (OExpr * arg : args)
+    {
+      if (arg->NeedsCallCleanup())
+      {
+        temporaries.push_back(arg);
+      }
+    }
+  }
+
+  void Prepare()
+  {
+    if (temporaries.empty() || !g_opt.exceptions)
+    {
+      return;
+    }
+
+    LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+    saved_lpad_bb = scope->exception_cleanup_bb;
+    saved_scope_cleanup_bb = scope->unwind_cleanup_bb;
+    next_cleanup_bb = scope->GetUnwindCleanupBB();
+    lpad_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.lpad", ll_func);
+    cleanup_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.cleanup", ll_func);
+    scope->exception_cleanup_bb = lpad_bb;
+    scope->unwind_cleanup_bb = cleanup_bb;
+  }
+
+  void Cleanup()
+  {
+    if (temporaries.empty())
+    {
+      return;
+    }
+
+    RestoreScope();
+    for (OExpr * temporary : temporaries)
+    {
+      temporary->GenerateCallCleanup(scope);
+    }
+    GenerateExceptionCleanup();
+  }
+};
 
 /* ctor */ OArrayLitToDynArrayExpr::OArrayLitToDynArrayExpr(OArrayLit * alit, OType * adyntype)
 {
@@ -2691,6 +2819,8 @@ void OFloatRoundExpr::DeleteChildTree()
 LlValue * OCallExpr::Generate(OScope * scope)
 {
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
   vector<LlValue *>   ll_args;
   for (size_t i = 0; i < args.size(); ++i)
   {
@@ -2723,7 +2853,9 @@ LlValue * OCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
-  return GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
+  LlValue * result = GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
+  cleanup.Cleanup();
+  return result;
 }
 
 LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
@@ -2812,8 +2944,11 @@ OCallExpr::~OCallExpr()
 
 LlValue * ODynArrayMethodCallExpr::Generate(OScope * scope)
 {
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
   auto * dyntype = static_cast<OTypeDynArray *>(receiver->ptype->ResolveAlias());
   LlValue * dynaddr = receiver->GenerateAddress(scope);
+  LlValue * result = nullptr;
   switch (method)
   {
     case DYNM_CLEAR:        dyntype->GenerateClear(scope, dynaddr, args.empty() ? nullptr : args[0]); break;
@@ -2830,11 +2965,12 @@ LlValue * ODynArrayMethodCallExpr::Generate(OScope * scope)
     case DYNM_DELETE:
       dyntype->GenerateDelete(scope, dynaddr, args[0], args.size() > 1 ? args[1] : nullptr);
       break;
-    case DYNM_CLONE:     return dyntype->GenerateClone(scope, dynaddr);
-    case DYNM_POP:       return dyntype->GeneratePop(scope, dynaddr, false);
-    case DYNM_POP_FIRST: return dyntype->GeneratePop(scope, dynaddr, true);
+    case DYNM_CLONE:     result = dyntype->GenerateClone(scope, dynaddr); break;
+    case DYNM_POP:       result = dyntype->GeneratePop(scope, dynaddr, false); break;
+    case DYNM_POP_FIRST: result = dyntype->GeneratePop(scope, dynaddr, true); break;
   }
-  return nullptr;
+  cleanup.Cleanup();
+  return result;
 }
 
 void ODynArrayMethodCallExpr::FoldChildren()
@@ -3022,6 +3158,8 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
 
   ll_builder.SetInsertPoint(ok_bb);
 
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
   vector<LlValue *> ll_args;
   if (object_ref)
   {
@@ -3059,6 +3197,7 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
                                          : static_cast<LlFuncType *>(sigtype->GetLlType()));
   LlValue * result = scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
   EmitExpressionExceptionCheck(scope);
+  cleanup.Cleanup();
   return result;
 }
 
@@ -3215,7 +3354,11 @@ void OAnyValueBoxExpr::DeleteChildTree()
 
 LlValue * OAnyValueMethodCallExpr::Generate(OScope * scope)
 {
-  return GenerateAnyValueMethodCall(scope, receiver, method, args);
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
+  LlValue * result = GenerateAnyValueMethodCall(scope, receiver, method, args);
+  cleanup.Cleanup();
+  return result;
 }
 
 void OAnyValueMethodCallExpr::FoldChildren()
@@ -3407,8 +3550,12 @@ void OEmbStrMetaFieldExpr::DeleteChildTree()
 
 LlValue * OEmbStrMethodCallExpr::Generate(OScope * scope)
 {
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
   auto * embstrtype = static_cast<OTypeEmbStr *>(receiver->ptype->ResolveAlias());
-  return embstrtype->GenerateMethodCall(scope, receiver->GenerateAddress(scope), method, args);
+  LlValue * result = embstrtype->GenerateMethodCall(scope, receiver->GenerateAddress(scope), method, args);
+  cleanup.Cleanup();
+  return result;
 }
 
 void OEmbStrMethodCallExpr::FoldChildren()
@@ -3612,10 +3759,18 @@ void OStringMetaFieldExpr::DeleteChildTree()
 
 LlValue * OStringMethodCallExpr::Generate(OScope * scope)
 {
+  OCallLifetimeCleanup cleanup(scope, args);
+  cleanup.Prepare();
   if (STRM_TO_WCHARS == method)
-    return static_cast<OTypeString *>(receiver->ResolvedType())->GenerateToWchars(scope, receiver);
+  {
+    LlValue * result = static_cast<OTypeString *>(receiver->ResolvedType())->GenerateToWchars(scope, receiver);
+    cleanup.Cleanup();
+    return result;
+  }
   auto * dyntype = static_cast<OTypeDynString *>(receiver->ptype->ResolveAlias());
-  return dyntype->GenerateMethodCall(scope, receiver, method, args);
+  LlValue * result = dyntype->GenerateMethodCall(scope, receiver, method, args);
+  cleanup.Cleanup();
+  return result;
 }
 
 void OStringMethodCallExpr::FoldChildren()

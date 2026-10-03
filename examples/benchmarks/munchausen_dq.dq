@@ -16,7 +16,7 @@ func IsMunchausen(number : int32) -> bool:
     var n     : int32 = number
     var total : int32 = 0
     while n > 0:
-        var digit : int = n mod 10
+        var digit : int = n rem 10
         total += cache[digit]
         if total > number:
             return false

@@ -69,6 +69,8 @@ public:
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
+  bool RequiresCleanup() const override { return true; }
+  void GenerateCleanup(OScope * scope, LlValue * addr) override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
   bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;

@@ -531,8 +531,11 @@ class OArrayLitToSliceExpr : public OExpr
 {
 public:
   OArrayLit *  arraylit;
+  LlValue *    temporary_address = nullptr;
   /* ctor */ OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype);
   LlValue *  Generate(OScope * scope) override;
+  bool       NeedsCallCleanup() const override;
+  void       GenerateCallCleanup(OScope * scope) override;
   void       FoldChildren() override;
   void       DeleteChildTree() override;
 };

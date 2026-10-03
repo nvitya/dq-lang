@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.81.0"
+#define DQ_COMPILER_VERSION  "0.81.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.81.1:
+  - anyvalue management fix for []anyvalue
 v0.81.0:
   - Dynamic array handling optimizations for simple elements
 v0.80.2:

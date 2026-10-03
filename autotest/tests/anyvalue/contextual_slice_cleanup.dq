@@ -1,0 +1,18 @@
+// Contextual []anyvalue literals own their boxed values only for the call.
+
+use libc/stdio
+
+func ReturnedText() -> str:
+    result = "call-lifetime"
+endfunc
+
+func *Main():
+    var formatted : str
+    var i : int = 0
+    while i < 10000:
+        formatted.AddFmt("{}", [ReturnedText()])
+        formatted.Clear()
+        i += 1
+    endwhile
+    printf("contextual-slice-cleanup = %li\n", formatted.length) //?check("contextual-slice-cleanup", 0)
+endfunc

@@ -109,6 +109,18 @@ LlBasicBlock * OScope::GetExceptionCleanupBB()
   return nullptr;
 }
 
+LlBasicBlock * OScope::GetUnwindCleanupBB()
+{
+  for (OScope * cur = this; cur; cur = cur->parent_scope)
+  {
+    if (cur->unwind_cleanup_bb)
+    {
+      return cur->unwind_cleanup_bb;
+    }
+  }
+  return nullptr;
+}
+
 LlValue * OScope::GenerateCallOrInvoke(LlFuncType * func_type, LlValue * callee, const std::vector<LlValue*> & args, const std::string & invoke_cont_name, LlBasicBlock * override_cleanup_bb)
 {
   LlBasicBlock * bb_cleanup = override_cleanup_bb ? override_cleanup_bb : GetExceptionCleanupBB();

@@ -142,6 +142,11 @@ LlDiType * OTypeAnyValue::CreateDiType()
   );
 }
 
+void OTypeAnyValue::GenerateCleanup(OScope * scope, LlValue * addr)
+{
+  GenerateAnyValueDestroy(scope, addr);
+}
+
 bool IsAnyValueSourceType(OType * type)
 {
   OType * resolved = type ? type->ResolveAlias() : nullptr;

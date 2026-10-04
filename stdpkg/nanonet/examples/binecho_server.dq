@@ -1,0 +1,164 @@
+/*-----------------------------------------------------------------------------
+  Copyright (c) 2025 Viktor Nagy, nvitya
+
+  This code is released into the public domain.
+  You may use it for any purpose, without restriction.
+  ---------------------------------------------------------------------------
+  file:     binecho_server.dq
+  brief:    Simple binary echo server, use it with the binecho_client
+*/
+
+/* Protocol:
+header:
+  bodylength : uint32;  // in bytes
+  rqid       : uint32;
+data:
+  n * byte;
+*/
+
+use print
+use nanonet/nano_sockets
+
+struct SEchoHeader:
+    bodylength : uint32
+    rqid       : uint32
+endstruct
+
+object OSConnBinEcho(OSConnection):
+    inbuf   : [*]byte
+    outbuf  : [*]byte
+    infill  : uint32 = 0
+    outfill : uint32 = 0
+
+    func *Create(aserver : ONanoServer) ..
+
+    func HandleInput(aobj : Object)   [[override]] ..
+    func HandleOutput(aobj : Object)  [[override]] ..
+    func ProcessInData() ..
+    func SendOutput() ..
+
+endobject
+
+// OSConnBinEcho
+
+func OSConnBinEcho.*Create(aserver : ONanoServer):
+    inherited Create(aserver)
+
+    inbuf.SetLength(65536)
+    outbuf.SetLength(65536)
+endfunc
+
+func OSConnBinEcho.HandleInput(aobj : Object)   [[override]]:
+    var r : int
+
+    // do not call inherited.
+
+    if inbuf.length - infill < 4096:
+        inbuf.SetLength(inbuf.length * 2)  // double the inbuf
+    endif
+
+    r = sock.Recv(%inbuf[infill], inbuf.length - infill)
+    if r > 0:
+        infill += r
+        ProcessInData()
+    elif r == 0:
+        // the socket is closed !
+        server.CloseConnection(self)  // this connection is scheduled for removal, safe freeing in other context
+    else:
+        // ignore errors
+    endif
+endfunc
+
+func OSConnBinEcho.HandleOutput(aobj : Object)  [[override]]:
+    SendOutput()
+endfunc
+
+func OSConnBinEcho.ProcessInData():
+    while true:  // repeat_incheck
+        if infill < SizeOf(SEchoHeader):
+            return
+        endif
+
+        // wait a whole request before start sending
+        var ph :? = ^SEchoHeader(%inbuf[0])
+        var fullmsglen : uint32 = SizeOf(SEchoHeader) + ph.bodylength
+
+        if infill < fullmsglen:
+            // wait until the full message received.
+            // todo: handle timeout !
+            return
+        endif
+
+        // a full message is present in the inbuf
+        //@.PrintLn('msg arrived: id={}, len={}', [ph.rqid, ph.bodylength])
+
+        // 1. ensure that there is enough space in the outbuf
+        var newoutsize : uint32 = outbuf.length
+        while newoutsize - outfill < fullmsglen:
+            newoutsize *= 2
+        endwhile
+        if newoutsize <> outbuf.length:
+            outbuf.SetLength(newoutsize)
+        endif
+
+        // 2. copy the response into the outbuf
+        @.MemCopy(%outbuf[outfill], %inbuf[0], fullmsglen)
+        outfill += fullmsglen
+
+        // 3. remove this message from the inbuf
+        if infill > fullmsglen:
+            @.MemCopy(%inbuf[0], %inbuf[fullmsglen], infill - fullmsglen)
+            infill -= fullmsglen
+
+            // 3.b repeat the input check for the case multiple requests are present in the input buffer
+            if infill > 0:
+                continue
+            endif
+        else:
+            infill = 0
+            break
+        endif
+    endwhile
+
+    // 4. start the output sending
+    SendOutput()
+endfunc
+
+func OSConnBinEcho.SendOutput():
+    var r : int
+    if outfill > 0:
+        r = sock.Send(%outbuf[0], outfill)
+        if r > 0:
+            // remove this chunk from the output
+            @.MemCopy(%outbuf[0], %outbuf[r], r)
+            outfill -= r
+        endif
+    endif
+
+    if outfill > 0:
+        // some data remained, request HandleOutput()
+        SetOutHandler(self.HandleOutput)
+    else:
+        // everything is sent, stop requesting HandleOutput()
+        SetOutHandler(nil)
+    endif
+endfunc
+
+//-----------------------------------------------------------------------------
+
+var svr : ONanoServer
+
+func *Main():
+    PrintLn('NanoNet - BinEcho Server')
+
+    svr = new ONanoServer(OSConnBinEcho, 4488)
+    svr.InitListener()  // may raise an exception when the listener port is not available
+    PrintLn('Server listening at port {}', [svr.listen_port])
+
+    PrintLn('Entering main loop...')
+    while true:
+        svr.WaitForEvents(1000)
+
+        // you can do something else here
+    endwhile
+endfunc

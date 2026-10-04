@@ -1,0 +1,175 @@
+
+use db
+use json
+use time
+use nanonet/nano_http
+
+object ONanoJsq:
+protected
+    m_dbconn : ODbConnection  // not owned, linked only
+public
+    keep_last_sql_result : bool = false
+
+    jroot : autofree OJson
+    jdata : OJson //
+
+    func *Create(aconn : ODbConnection) ..
+
+    func Reset() ..
+
+    func SetError(acode : int, amsg : rostr) ..
+
+    func ReturnJson(sconn : OSConnectionHttp) ..
+    func ReturnError(sconn : OSConnectionHttp, acode : int, amsg : rostr) ..
+
+    func ReturnSqlData(sconn : OSConnectionHttp, asql : rostr) ..
+endobject
+
+
+implementation
+
+
+func ONanoJsq.*Create(aconn : ODbConnection):
+    m_dbconn = aconn
+    jroot = new OJson()
+endfunc
+
+func ONanoJsq.Reset():
+    jroot.Clear()
+    jroot.AddNum('error', 0)
+    jroot.AddStr('errormsg', '')
+    jdata = jroot.AddNull('data')
+endfunc
+
+func ONanoJsq.SetError(acode : int, amsg : rostr):
+    jroot.AddNum('error', acode)
+    jroot.AddStr('errormsg', amsg)
+endfunc
+
+func ONanoJsq.ReturnJson(sconn : OSConnectionHttp):
+    sconn.response = jroot.GetAsJson()
+    if not keep_last_sql_result:
+        Reset() // frees the JSON data
+    endif
+endfunc
+
+func ONanoJsq.ReturnError(sconn : OSConnectionHttp, acode : int, amsg : rostr):
+    SetError(acode, amsg)
+    ReturnJson(sconn)
+endfunc
+
+#define DIRECT_STR_MODE = true
+
+#if DIRECT_STR_MODE
+
+// build directly the JSON response string
+
+func ONanoJsq.ReturnSqlData(sconn : OSConnectionHttp, asql : rostr):
+    Reset()
+    try:
+        ref s = sconn.response   // just a shortcut
+        s.Reserve(1024 * 256)    // reserve a big block to avoid frequent re-allocations
+        s.SetLength(0, char(0))  // ensure no content, keeping the reserved memory
+
+        var dbcur : autofree ODbCursor
+        dbcur = m_dbconn.Query(asql)
+
+        var fcnt : int = dbcur.FieldCount()
+
+        s.Add('{"error":0,"errormsg":"","fieldnames":[')
+
+        // add the fields first
+        for n : int = 0 count fcnt:
+            if n > 0:
+                s.Add(',');
+            endif
+            s.Add('"')
+            s.Add(dbcur.FieldName(n))
+            s.Add('"')
+        endfor
+
+        // then the data
+        s.Add('],"data":[')
+
+        var rowcnt : int = 0
+        while dbcur.OnRow():
+            if rowcnt > 0:
+                s.Add(",")
+            endif
+            s.Add("[")
+            for fi : int = 0 count fcnt:
+                if fi > 0:
+                    s.Add(',')
+                endif
+
+                var ft : NDbFieldType = dbcur.FieldType(fi)
+
+                if   ft == ftInt:       s.AddFmt("{}", [dbcur.GetInt(fi, 0)])
+                elif ft == ftDateTime:  s.AddFmt('"{}"', [dbcur.GetStr(fi, '')])
+                elif ft == ftBool:      s.Add(iif(dbcur.GetBool(fi, false), 'true', 'false'))
+                elif ft == ftFloat:     s.AddFmt("{}", [dbcur.GetFloat(fi, 0)])
+                else:  // fallback to string
+                    s.AddFmt('"{}"', [dbcur.GetStr(fi, '')])
+                endif
+            endfor
+            s.Add("]")
+            ++rowcnt
+            dbcur.Next()
+        endwhile
+
+        // close the data block
+        s.Add(']}')
+
+    except Exception as e:
+        Reset()
+        SetError(901, e.message)
+        ReturnJson(sconn)
+    endtry
+endfunc
+
+#else
+
+// use the OJson package to build the response
+
+func ONanoJsq.ReturnSqlData(sconn : OSConnectionHttp, asql : rostr):
+    Reset()
+    try:
+        var dbcur : autofree ODbCursor
+
+        dbcur = m_dbconn.Query(asql)
+
+        var fcnt : int = dbcur.FieldCount()
+
+        // add the fields first
+        var jfnames :? = jroot.AddArr('fieldnames')
+        for n : int = 0 count fcnt:
+            jfnames.AddStr('', dbcur.FieldName(n))
+        endfor
+
+        // then the data
+        jdata = jroot.AddArr('data')
+        while dbcur.OnRow():
+            var jrow :? = jdata.AddArr('')
+            for fi : int = 0 count fcnt:
+                var ft : NDbFieldType = dbcur.FieldType(fi)
+
+                if   ft == ftInt:       jrow.AddNum('', dbcur.GetInt(fi, 0))
+                elif ft == ftDateTime:  jrow.AddStr('', dbcur.GetStr(fi, ''))
+                elif ft == ftBool:      jrow.AddBool('', dbcur.GetBool(fi, false))
+                elif ft == ftFloat:     jrow.AddNum('', dbcur.GetFloat(fi, 0))
+                else:  // fallback to string
+                    jrow.AddStr('', dbcur.GetStr(fi, ''))
+                endif
+            endfor
+            dbcur.Next()
+        endwhile
+
+    except Exception as e:
+        Reset()
+        SetError(901, e.message)
+    endtry
+
+    ReturnJson(sconn)
+endfunc
+
+#endif

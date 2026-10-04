@@ -1,6 +1,6 @@
 {
-  "dq.debugTarget": "stdpkg/sqlite3/examples/sqlite_sqluis",
-  "dq.debugCwd":    "stdpkg/sqlite3/examples",
+  "dq.debugTarget": "stdpkg/nanonet/examples/binecho_server",
+  "dq.debugCwd":    "stdpkg/nanonet/examples",
 
   "dq.languageServerPath": "/workvc/dq-lang/build/dq-comp",
   "dq.languageServerArgs": [

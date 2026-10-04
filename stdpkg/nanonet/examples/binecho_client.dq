@@ -1,0 +1,297 @@
+/*-----------------------------------------------------------------------------
+  Copyright (c) 2026 Viktor Guath-Nagy, nvitya
+
+  This code is released into the public domain.
+  You may use it for any purpose, without restriction.
+  ---------------------------------------------------------------------------
+  file:     binecho_client.dq
+  brief:    Simple binary echo client with performance measurements
+            use it with the binecho_server
+*/
+
+/* Protocol:
+header:
+  bodylength : uint32;  // in bytes
+  rqid       : uint32;
+data:
+  n * byte;
+*/
+
+use print
+use time
+use nanonet/nano_sockets
+use ./binecho_common
+
+const CLIENT_COUNT  : uint = 4
+const TX_MSG_DWORDS : uint = 16
+
+const ECHO_SVR_ADDR : rostr  = '127.0.0.1'
+const ECHO_SVR_PORT : uint16 = 4488
+
+struct SConnectionStats:
+    tx_bytes : uint32
+    rx_bytes : uint32
+
+    tx_msg   : uint32
+    rx_msg   : uint32
+endstruct
+
+object OEchoConnManager(OMultiClientManager):
+    last_stat_time : int64
+
+    stats      : SConnectionStats
+    prev_stats : SConnectionStats
+
+    func *Create():
+        last_stat_time = @.MicroTime()
+    endfunc
+
+    func PrintStats() ..
+endobject
+
+object OCConnBinEcho(OCConnection):
+    msgdwords : uint32
+    msg_seed  : uint32
+
+    inbuf     : [*]byte
+    outbuf    : [*]byte
+
+    infill    : uint32
+    outfill   : uint32
+
+    phase     : int
+
+    pstats    : ^SConnectionStats
+
+    func *Create(amgr : OMultiClientManager) ..
+
+    func HandleInput(aobj : Object)  [[override]] ..
+    func HandleOutput(aobj : Object) [[override]] ..
+
+    func SendMessage() ..
+    func AddToOutput(adata : pointer, alen : uint32) ..
+
+    func ProcessInData() ..
+    func ProcessInMsg() ..
+    func SendOutput() ..
+endobject
+
+func OEchoConnManager.PrintStats():
+    use *
+    var mt : int64 = MicroTime()
+    if mt - last_stat_time < 1000000:
+        return
+    endif
+    var t : float64 = Time()
+    Print(FormatTime1('hh:nn:ss:', t))
+    var v : uint32
+    v = stats.tx_bytes - prev_stats.tx_bytes
+    if v > 0:
+        Print(' TX_BYTES={}', [v])
+    endif
+    v = stats.rx_bytes - prev_stats.rx_bytes
+    if v > 0:
+        Print(' RX_BYTES={}', [v])
+    endif
+    v = stats.tx_msg - prev_stats.tx_msg;
+    if v > 0:
+        Print(' TX_MSG={}', [v])
+    endif
+    v = stats.rx_msg - prev_stats.rx_msg
+    if v > 0:
+        Print(' RX_MSG={}', [v])
+    endif
+    PrintLn()
+    prev_stats = stats
+    last_stat_time = mt
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func OCConnBinEcho.*Create(amgr : OMultiClientManager):
+    inherited Create(amgr)
+
+    server_port = @.ECHO_SVR_PORT
+    server_addr = @.ECHO_SVR_ADDR
+
+    msgdwords = @.TX_MSG_DWORDS
+
+    var bufsize : uint = 4096
+    if bufsize < 64 + 4 * msgdwords:
+        bufsize = 4 * msgdwords + 64
+    endif
+
+    inbuf.SetLength(bufsize)
+    outbuf.SetLength(bufsize)
+
+    infill   = 0
+    outfill  = 0
+    msg_seed = 1
+    phase    = 0
+
+    // TODO: fix the compiler for this:
+    // pstats = %OEchoConnManager(amgr).stats
+    var mgr :? = OEchoConnManager(amgr)
+    pstats = %mgr.stats
+endfunc
+
+func OCConnBinEcho.HandleInput(aobj : Object)  [[override]]:  // called when the socket has some input data
+
+    if inbuf.length - infill < 4096:
+        inbuf.SetLength(inbuf.length * 2)  // double the inbuf
+    endif
+
+    var r : int = sock.Recv(%inbuf[infill], inbuf.length - infill)
+    if r > 0:
+        pstats^.rx_bytes += r;
+        //writeln('Input chunk arrived, len=', r);
+        infill += r;
+        ProcessInData();
+    elif r == 0:
+        // the socket is closed !
+        raise ENanoNet('implement socket close!');
+        //server.CloseConnection(self);  // this connection is scheduled for removal, safe freeing in other context
+    else:
+        // ignore errors
+    endif
+endfunc
+
+func OCConnBinEcho.HandleOutput(aobj : Object)  [[override]]:  // called when the socket is ready to send more output
+    if outfill == 0:
+        SendMessage()
+        return
+    endif
+
+    //writeln('continue sending, outfill=', outfill);
+
+    SendOutput();
+endfunc
+
+func OCConnBinEcho.SendMessage():
+    //PrintLn('Sending msg {}', [msg_seed]);
+    var eh : SEchoHeader = {bodylength: msgdwords * 4, rqid: msg_seed}
+    AddToOutput(%eh, SizeOf(eh))
+
+    var msg : [*]uint32
+    msg.SetLength(msgdwords)
+    for n : uint = 0 count msgdwords:
+        msg[n] = msg_seed + 1 + n
+    endfor
+    AddToOutput(%msg[0], 4 * msgdwords)
+
+    SendOutput()
+
+    pstats.tx_msg += 1
+    ++msg_seed
+endfunc
+
+func OCConnBinEcho.AddToOutput(adata : pointer, alen : uint32):
+    if alen > outfill + outbuf.length:
+        return
+    endif
+    @.MemCopy(%outbuf[outfill], adata, alen)
+    outfill += alen
+    pstats^.tx_bytes += alen
+endfunc
+
+func OCConnBinEcho.ProcessInData()
+:
+    while true: //repeat_incheck:
+        if infill < SizeOf(SEchoHeader):
+            return
+        endif
+
+        // wait a whole request before start sending
+        var ph :? = ^SEchoHeader(%inbuf[0])
+        var fullmsglen : uint = SizeOf(SEchoHeader) + ph.bodylength
+
+        if infill < fullmsglen:
+            // wait until the full message received.
+            // todo: handle timeout !
+            return
+        endif
+
+        // a full message is present in the inbuf
+        //Writeln('echo arrived, id=', ph^.rqid, ', len=', ph^.bodylength);
+        ProcessInMsg();
+
+        // Remove this message from the inbuf
+        if infill > fullmsglen:
+            @.MemCopy(%inbuf[0], %inbuf[fullmsglen], infill - fullmsglen)
+            infill -= fullmsglen
+
+            // 3.b repeat the input check for the case multiple requests are present in the input buffer
+            if infill > 0:
+                continue
+            endif
+        else:
+            infill = 0
+        endif
+    endwhile
+
+  // send another message...
+  #if true
+    SendMessage()
+  #else
+    if msg_seed < 5:
+        SendMessage()
+    else:
+        PrintLn('this is enough for now.')
+        Exit(4)
+    endif
+  #endif
+endfunc
+
+func OCConnBinEcho.ProcessInMsg():
+  pstats.rx_msg += 1
+endfunc
+
+func OCConnBinEcho.SendOutput():
+    if outfill > 0:
+        var r : int = sock.Send(%outbuf[0], outfill)
+        if r > 0:
+            //PrintLn('chunk sent, len={}', [r]);
+            // remove this chunk from the output
+            if outfill - r > 0:
+                @.MemCopy(%outbuf[0], %outbuf[r], outfill - r)
+            endif
+            outfill -= r;
+        endif
+    endif
+
+    if outfill > 0:
+        // some data remained, request HandleOutput()
+        SetOutHandler(self.HandleOutput)
+    else:
+        // everything is sent, stop requesting HandleOutput()
+        SetOutHandler(nil)
+    endif
+endfunc
+
+var mgr : OEchoConnManager
+
+func *Main():
+    var c : OCConnBinEcho
+    PrintLn('NanoNet - BinEcho Multi-Client')
+
+    mgr = new OEchoConnManager()
+
+    PrintLn('client count: {}', [CLIENT_COUNT]);
+    PrintLn('msg_size: {}', [TX_MSG_DWORDS + SizeOf(SEchoHeader)]);
+
+    for n : int = 0 count CLIENT_COUNT:
+        var c = new OCConnBinEcho(mgr)
+        c.server_addr = ECHO_SVR_ADDR
+        c.server_port = ECHO_SVR_PORT
+        c.Connect()
+    endfor
+
+    PrintLn('Entering main loop...')
+
+    while true:
+        mgr.WaitForEvents(250);
+
+        // you can do something else here
+        mgr.PrintStats()
+    endwhile
+endfunc

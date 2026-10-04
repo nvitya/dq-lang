@@ -18,11 +18,7 @@ data:
 
 use print
 use nanonet/nano_sockets
-
-struct SEchoHeader:
-    bodylength : uint32
-    rqid       : uint32
-endstruct
+use ./binecho_common
 
 object OSConnBinEcho(OSConnection):
     inbuf   : [*]byte

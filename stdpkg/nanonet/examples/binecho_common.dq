@@ -1,0 +1,22 @@
+/*-----------------------------------------------------------------------------
+  Copyright (c) 2025 Viktor Nagy, nvitya
+
+  This code is released into the public domain.
+  You may use it for any purpose, without restriction.
+  ---------------------------------------------------------------------------
+  file:     binecho_common.dq
+  brief:    binecho server/client shared module
+*/
+
+/* Protocol:
+header:
+  bodylength : uint32;  // in bytes
+  rqid       : uint32;
+data:
+  n * byte;
+*/
+
+struct SEchoHeader:
+    bodylength : uint32
+    rqid       : uint32
+endstruct

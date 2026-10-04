@@ -20,6 +20,8 @@ enum NSocketType = (stTcp4, stUdp4)
 
 object ONanoServer    ..
 object OSocketWatcher ..
+object OMultiClientManager ..
+object ONanoUdpServer ..
 
 object ENanoNet(Exception):
 endobject
@@ -94,12 +96,17 @@ object OSocketWatcher:
 
 endobject
 
-object OSConnection:  // Servers connection to client
-    sock   : ONanoSocket
-    server : ONanoServer
+//-----------------------------------------------------------------
+// Nano-Server (TCP/IP)
+//-----------------------------------------------------------------
 
-    func *Create(aserver : ONanoServer) ..
-    func *Destroy() ..
+object OSConnection:  // Servers connection to client
+    sock   <- ONanoSocket(stTcp4)
+    server :  ONanoServer
+
+    func *Create(aserver : ONanoServer):
+        server = aserver
+    endfunc
 
     func Close() ..
     func AcceptConnection(svrsock : ONanoSocket) -> bool [[virtual]] ..
@@ -114,18 +121,29 @@ type TSConnectionType = type of OSConnection
 
 object ONanoServer:
 public
+    sconn_type   : TSConnectionType
     listen_port  : uint16
-    sock_listen  : ONanoSocket
 
     connections  : [*]OSConnection
     closed_conns : [*]OSConnection
 
-    swatcher     : OSocketWatcher
+    sock_listen  <- ONanoSocket(stTcp4)
+    swatcher     :  autofree OSocketWatcher
 
-    sconn_type   : TSConnectionType
+    func *Create(asconn_type : TSConnectionType, alisten_port : uint16):
+        sconn_type  = asconn_type
+        listen_port = alisten_port
+        swatcher    = new OSocketWatcher(64)
+    endfunc
 
-    func *Create(asconn_type : TSConnectionType, alisten_port : uint16) ..
-    func *Destroy() ..
+    func *Destroy():
+        while connections.length > 0:
+            delete connections.Pop()
+        endwhile
+        while closed_conns.length > 0:
+            delete closed_conns.Pop()
+        endwhile
+    endfunc
 
     func InitListener() ..
     func WaitForEvents(timeout_ms : int) -> bool ..
@@ -136,7 +154,98 @@ public
     func CloseConnection(aconn : OSConnection) ..
 endobject
 
+//-----------------------------------------------------------------------------
+// Multi-client connections
+//-----------------------------------------------------------------------------
+
+object OCConnection:  // Client connection to server
+    server_port : uint16 = 80
+    server_addr : embstr(128) = '127.0.0.1'
+
+    sock    <- ONanoSocket(stTcp4)
+
+    manager :  OMultiClientManager
+
+    func *Create(amanager : OMultiClientManager) ..
+
+    func Connect() [[virtual]] ..
+    func HandleOutputForConnect(aobj : Object) [[virtual]] ..
+    func HandleInput(aobj : Object) [[virtual]] ..
+    func HandleOutput(aobj : Object) [[virtual]] ..
+    func HandleConnectError(aerror : int) [[virtual]] ..
+
+    func SetOutHandler(aoutev : FOutEventHandler) ..
+endobject
+
+object OMultiClientManager:
+    swatcher    : autofree OSocketWatcher
+    connections : [*]OCConnection
+
+    func *Create():
+        swatcher = new OSocketWatcher(64)
+    endfunc
+
+    func *Destroy():
+        while connections.length > 0:
+            delete connections.Pop()
+        endwhile
+    endfunc
+
+    func AddConnection(aconn : OCConnection) ..
+    func CloseConnection(aconn : OCConnection) ..
+    func WaitForEvents(timeout_ms : int) -> bool ..
+endobject
+
+//-----------------------------------------------------------------------------
+// UDP / datagram handling
+//-----------------------------------------------------------------------------
+
+const NANODG_MAX_LEN : uint = 1472  // maximal UDP payload size
+
+object ONanoDatagram:
+    remote_addr     : TSockAddr
+    remote_addr_len : TSockLen
+
+    server          : ONanoUdpServer
+    keep_in_memory  : bool = false // false: released after processing
+
+    rawdata_len     : int
+    rawdata         : [NANODG_MAX_LEN + 1] byte
+
+    func *Create(aserver : ONanoUdpServer) ..
+
+    func RecvRawData() -> int ..
+    func SendRawData() -> int ..
+    func ProcessInData() [[virtual]] ..
+
+    func SetRemoteAddr(aaddr : rostr, aport : uint16) ..
+    func GetRemoteAddrStr() -> str ..
+endobject
+
+type TNanoDatagramType = type of ONanoDatagram
+
+object ONanoUdpServer:
+    dg_type     : TNanoDatagramType
+    listen_port : uint16
+
+    sock_listen <- ONanoSocket(stUdp4)
+    swatcher    :  autofree OSocketWatcher
+
+    func *Create(adg_type : TNanoDatagramType, alisten_port : uint16):
+        dg_type = adg_type
+        listen_port = alisten_port
+        swatcher = new OSocketWatcher(64)
+    endfunc
+
+    func InitListener() ..
+    func WaitForEvents(timeout_ms : int) -> bool ..
+    func HandleListener(aobj : Object) ..
+    func CreateDatagram() -> ONanoDatagram ..
+endobject
+
 implementation
+
+use print, strutils
 
 func ONanoSocket.*Create(atype : NSocketType):
     stype    = atype
@@ -410,15 +519,6 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-func OSConnection.*Create(aserver : ONanoServer):
-    server = aserver
-    sock = new ONanoSocket(stTcp4)
-endfunc
-
-func OSConnection.*Destroy():
-    delete sock
-endfunc
-
 func OSConnection.Close():
     if server <> nil:
         server.CloseConnection(self)
@@ -442,26 +542,6 @@ func OSConnection.SetOutHandler(aoutev : FOutEventHandler):
 endfunc
 
 //-----------------------------------------------------------------------------
-
-func ONanoServer.*Create(asconn_type : TSConnectionType, alisten_port : uint16):
-    listen_port = alisten_port
-    sconn_type = asconn_type
-    sock_listen = new ONanoSocket(stTcp4)
-    swatcher = new OSocketWatcher(64)
-endfunc
-
-func ONanoServer.*Destroy():
-    while connections.length > 0:
-        delete connections.Pop()
-    endwhile
-
-    while closed_conns.length > 0:
-        delete closed_conns.Pop()
-    endwhile
-
-    delete swatcher
-    delete sock_listen
-endfunc
 
 func ONanoServer.InitListener():
     sock_listen.InitListener(listen_port)
@@ -508,4 +588,149 @@ func ONanoServer.CloseConnection(aconn : OSConnection):
         connections.Delete(idx)
         closed_conns.Append(aconn)
     endif
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func OCConnection.*Create(amanager : OMultiClientManager):
+    manager = amanager
+    manager.AddConnection(self)
+endfunc
+
+func OCConnection.Connect() [[virtual]]:
+    if not sock.Connect(server_addr, server_port):
+        raise ENanoNet('OCConnection.Connect: error initiating a connection')
+    endif
+
+    manager.swatcher.AddSocket(sock, self, nil, self.HandleOutputForConnect)
+endfunc
+
+func OCConnection.HandleOutputForConnect(aobj : Object) [[virtual]]:
+    use socket
+    var err : int = 0
+    var len : TSockLen = SizeOf(err)
+    if libc_getsockopt(sock.socket, SOL_SOCKET, SO_ERROR, %err, %len) <> 0:
+        err = SocketError()
+    endif
+
+    if err <> 0:
+        HandleConnectError(err)
+    else:
+        // Connection completed: switch to the regular input/output handlers.
+        sock.in_event_handler = self.HandleInput
+        sock.out_event_handler = self.HandleOutput
+        manager.swatcher.ModifySocket(sock)
+        HandleOutput(sock.obj_link)
+    endif
+endfunc
+
+func OCConnection.HandleInput(aobj : Object) [[virtual]]:
+endfunc
+
+func OCConnection.HandleOutput(aobj : Object) [[virtual]]:
+endfunc
+
+func OCConnection.HandleConnectError(aerror : int) [[virtual]]:
+    use print
+    PrintLn('connect error: {}', [aerror])
+    manager.CloseConnection(self)
+endfunc
+
+func OCConnection.SetOutHandler(aoutev : FOutEventHandler):
+    manager.swatcher.SetOutHandler(sock, aoutev)
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func OMultiClientManager.AddConnection(aconn : OCConnection):
+    connections.Append(aconn)
+endfunc
+
+func OMultiClientManager.CloseConnection(aconn : OCConnection):
+    // Keep the connection object for reuse; the manager owns it until destruction.
+    swatcher.RemoveSocket(aconn.sock)
+    aconn.sock.Disconnect()
+endfunc
+
+func OMultiClientManager.WaitForEvents(timeout_ms : int) -> bool:
+    return swatcher.WaitForEvents(timeout_ms)
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func ONanoDatagram.*Create(aserver : ONanoUdpServer):
+    server = aserver
+    @sys.MemSet(%remote_addr, 0, SizeOf(remote_addr))
+    remote_addr_len = SizeOf(remote_addr)
+endfunc
+
+func ONanoDatagram.RecvRawData() -> int:
+    remote_addr_len = SizeOf(remote_addr)
+    result = @socket.libc_recvfrom(server.sock_listen.socket, %rawdata[0], rawdata.length, 0, %remote_addr, %remote_addr_len)
+    if result > 0:
+        rawdata_len = result
+    else:
+        rawdata_len = 0
+    endif
+endfunc
+
+func ONanoDatagram.SendRawData() -> int:
+    return @socket.libc_sendto(server.sock_listen.socket, %rawdata[0], rawdata_len, 0, %remote_addr, remote_addr_len)
+endfunc
+
+func ONanoDatagram.ProcessInData() [[virtual]]:
+    // Override to process the received datagram.
+endfunc
+
+func ONanoDatagram.SetRemoteAddr(aaddr : rostr, aport : uint16):
+    use socket, sys
+    MemSet(%remote_addr, 0, SizeOf(remote_addr))
+    remote_addr_len = SizeOf(remote_addr)
+    remote_addr.sin_family = AF_INET
+    remote_addr.sin_port = libc_htons(aport)
+
+    if libc_inet_pton(AF_INET, aaddr, %remote_addr.sin_addr) <> 1:
+        raise ENanoNet('Invalid Host IP address: {}', [aaddr])
+    endif
+endfunc
+
+func ONanoDatagram.GetRemoteAddrStr() -> str:
+    use socket, strutils
+    var buf : [INET_ADDRSTRLEN]char
+    var addr : ^char = libc_inet_ntop(AF_INET, %remote_addr.sin_addr, %buf[0], SizeOf(buf))
+    if addr == nil:
+        raise ENanoNet('GetRemoteAddrStr: Error formatting remote address')
+    endif
+    return Format('{}:{}', [addr, libc_ntohs(remote_addr.sin_port)])
+endfunc
+
+//-----------------------------------------------------------------------------
+
+func ONanoUdpServer.*Create(adg_type : TNanoDatagramType, alisten_port : uint16):
+    dg_type = adg_type
+    listen_port = alisten_port
+    swatcher = new OSocketWatcher(64)
+endfunc
+
+func ONanoUdpServer.InitListener():
+    sock_listen.InitListener(listen_port)
+    swatcher.AddSocket(sock_listen, self, self.HandleListener, nil)
+endfunc
+
+func ONanoUdpServer.WaitForEvents(timeout_ms : int) -> bool:
+    return swatcher.WaitForEvents(timeout_ms)
+endfunc
+
+func ONanoUdpServer.HandleListener(aobj : Object):
+    var dg : ONanoDatagram = CreateDatagram()
+    if dg.RecvRawData() > 0:
+        dg.ProcessInData()
+    endif
+    if not dg.keep_in_memory:
+        delete dg
+    endif
+endfunc
+
+func ONanoUdpServer.CreateDatagram() -> ONanoDatagram:
+    return new dg_type(self)
 endfunc

@@ -1,0 +1,8 @@
+
+struct SSimpleMsg:
+    rqid       : uint32
+    operation  : uint32    // 0 = add, 1 = multiply
+    arg1       : int32
+    arg2       : int32
+    result     : int32
+endstruct

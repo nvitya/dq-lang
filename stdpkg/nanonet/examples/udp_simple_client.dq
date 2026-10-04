@@ -1,0 +1,108 @@
+/*-----------------------------------------------------------------------------
+  Copyright (c) 2025 Viktor Guath-Nagy, nvitya
+
+  This code is released into the public domain.
+  You may use it for any purpose, without restriction.
+  ---------------------------------------------------------------------------
+  file:     udp_simple_client.dq
+  brief:    Simple UDP client
+            use it with the simple_udp_server
+*/
+
+use print
+use time
+use nanonet/nano_sockets
+use ./udp_simple_common
+
+const SERVER_ADDR : rostr = '127.0.0.1'
+
+object OSimpleDatagram(ONanoDatagram):
+    response_arrived  : bool = false
+    rq_send_microtime : int64 = 0
+
+    pmsg : ^SSimpleMsg
+
+    func *Create(aserver : ONanoUdpServer):
+        inherited Create(aserver)
+        rawdata_len = SizeOf(rawdata)
+        pmsg = ^SSimpleMsg(%rawdata[0])
+        pmsg.rqid = 0
+        pmsg.result = -1
+    endfunc
+
+    func ProcessInData() [[override]] ..
+
+    func SendRequest(aop : int, aarg1 : int, aarg2 : int) ..
+    func WaitResponse(atimeout_ms : int) -> bool ..
+endobject
+
+var rqmsg  : OSimpleDatagram
+var svr    : ONanoUdpServer
+
+func OSimpleDatagram.ProcessInData() [[override]]:
+    use *
+    PrintLn('Response received:')
+    PrintLn('  rqid = {}', [pmsg^.rqid])
+    PrintLn('  op   = {}', [pmsg^.operation])
+    PrintLn('  arg1 = {}', [pmsg^.arg1])
+    PrintLn('  arg2 = {}', [pmsg^.arg2])
+    PrintLn('  res. = {}', [pmsg^.result])
+
+    if pmsg.rqid == rqmsg.pmsg.rqid:
+        rqmsg.response_arrived = true
+    endif
+endfunc
+
+func OSimpleDatagram.SendRequest(aop : int, aarg1 : int, aarg2 : int):
+    ++pmsg.rqid
+    pmsg.operation = aop
+    pmsg.arg1 = aarg1
+    pmsg.arg2 = aarg2
+
+    response_arrived = false
+
+    SendRawData()
+    rq_send_microtime = @.MicroTime()
+endfunc
+
+func OSimpleDatagram.WaitResponse(atimeout_ms : int) -> bool
+:
+    var td : int64 = rq_send_microtime + atimeout_ms * 1000
+    while not response_arrived:
+        var t : int64 = @.MicroTime()
+        var to_ms : int64 = (td - t) div 1000;  // the remaining time to wait for the response
+        if to_ms <= 0:
+            return false // timeout elapsed
+        endif
+        server.WaitForEvents(to_ms)    // may receive multiple unrelated packets too
+    endwhile
+    return true
+endfunc
+
+//--------------------------------------------------------------------------------
+
+func *Main():
+    PrintLn('NanoNet - UDP Simple Client')
+
+    svr = new ONanoUdpServer(OSimpleDatagram, 0)  // UDP server for receiving the responses, port=0: auto-allocate
+    svr.InitListener()
+    rqmsg = OSimpleDatagram(svr.CreateDatagram())
+    rqmsg.SetRemoteAddr(SERVER_ADDR, 4455)
+
+    PrintLn('Listening at port {}', [svr.listen_port])
+
+    PrintLn('Sending request...')
+
+    rqmsg.SendRequest(1, 3, 2)
+    //PrintLn('Waiting for the response...');
+    if not rqmsg.WaitResponse(500):
+        PrintLn('Response timeout!')
+    endif
+
+    rqmsg.SendRequest(0, 3, 2)
+    if not rqmsg.WaitResponse(500):
+        PrintLn('Response timeout!')
+    endif
+
+    PrintLn('test finished.')
+endfunc

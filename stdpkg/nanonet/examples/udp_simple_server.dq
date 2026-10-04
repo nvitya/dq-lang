@@ -1,0 +1,65 @@
+/*-----------------------------------------------------------------------------
+  Copyright (c) 2025 Viktor Nagy, nvitya
+
+  This code is released into the public domain.
+  You may use it for any purpose, without restriction.
+  ---------------------------------------------------------------------------
+  file:     udp_simple_server.dq
+  brief:    Simple UDP server, use it with the udp_simple_client
+*/
+
+use print
+use nanonet/nano_sockets
+use ./udp_simple_common
+
+object OSimpleDatagram(ONanoDatagram):
+    pmsg : ^SSimpleMsg
+
+    func *Create(aserver : ONanoUdpServer):
+        inherited Create(aserver)
+        pmsg = ^SSimpleMsg(%rawdata[0])
+        rawdata_len = SizeOf(rawdata)
+    endfunc
+
+    func ProcessInData() [[override]] ..
+endobject
+
+var rspmsg : OSimpleDatagram
+var svr    : ONanoUdpServer
+
+func OSimpleDatagram.ProcessInData() [[override]]:
+    use *
+    PrintLn('Msg received from {}, len={}', [GetRemoteAddrStr(), rawdata_len]);
+
+    rspmsg.pmsg^ = pmsg^;  // copy the request
+
+    var r : int32
+    if pmsg^.operation == 1:
+        r = pmsg^.arg1 * pmsg^.arg2
+    else:
+        r = pmsg^.arg1 + pmsg^.arg2
+    endif
+    rspmsg.pmsg^.result = r
+    rspmsg.remote_addr = remote_addr
+    rspmsg.SendRawData()
+endfunc
+
+//--------------------------------------------------------------------------------
+
+func *Main():
+  PrintLn('NanoNet - UDP Simple Server')
+
+  svr = new ONanoUdpServer(OSimpleDatagram, 4455)
+
+  svr.InitListener()  // may raise an exception when the listener port is not available
+  rspmsg = OSimpleDatagram(svr.CreateDatagram())
+
+  PrintLn('Server listening at port {}', [svr.listen_port])
+  PrintLn('Entering main loop...')
+
+  while true:
+    svr.WaitForEvents(1000)
+
+    // you can do something else here
+  endwhile
+endfunc

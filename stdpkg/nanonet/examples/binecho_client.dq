@@ -22,8 +22,8 @@ use time
 use nanonet/nano_sockets
 use ./binecho_common
 
-const CLIENT_COUNT  : uint = 4
-const TX_MSG_DWORDS : uint = 16
+const CLIENT_COUNT  : uint = 8
+const TX_MSG_DWORDS : uint = 16 * 256
 
 const ECHO_SVR_ADDR : rostr  = '127.0.0.1'
 const ECHO_SVR_PORT : uint16 = 4488
@@ -212,7 +212,7 @@ func OCConnBinEcho.ProcessInData()
         endif
 
         // a full message is present in the inbuf
-        //Writeln('echo arrived, id=', ph^.rqid, ', len=', ph^.bodylength);
+        //PrintLn('echo arrived, id={}, len={}', [ph.rqid, ph.bodylength]);
         ProcessInMsg();
 
         // Remove this message from the inbuf
@@ -227,6 +227,8 @@ func OCConnBinEcho.ProcessInData()
         else:
             infill = 0
         endif
+
+        break
     endwhile
 
   // send another message...

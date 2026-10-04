@@ -1,5 +1,5 @@
 {
-  "dq.debugTarget": "stdpkg/nanonet/examples/binecho_server",
+  "dq.debugTarget": "stdpkg/nanonet/examples/binecho_client",
   "dq.debugCwd":    "stdpkg/nanonet/examples",
 
   "dq.languageServerPath": "/workvc/dq-lang/build/dq-comp",

@@ -112,8 +112,9 @@ func OSConnBinEcho.ProcessInData():
             endif
         else:
             infill = 0
-            break
         endif
+
+        break
     endwhile
 
     // 4. start the output sending

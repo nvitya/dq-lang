@@ -706,12 +706,6 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-func ONanoUdpServer.*Create(adg_type : TNanoDatagramType, alisten_port : uint16):
-    dg_type = adg_type
-    listen_port = alisten_port
-    swatcher = new OSocketWatcher(64)
-endfunc
-
 func ONanoUdpServer.InitListener():
     sock_listen.InitListener(listen_port)
     swatcher.AddSocket(sock_listen, self, self.HandleListener, nil)

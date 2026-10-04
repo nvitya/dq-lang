@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.81.2"
+#define DQ_COMPILER_VERSION  "0.81.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.81.3:
+  - dynamic string implicit module use fix
+  - SizeOf()
 v0.81.2:
   - returned dynamic string cleanup fix
 v0.81.1:

@@ -25,6 +25,20 @@
 
 using namespace std;
 
+bool EnsureDynStringRtlUseForStringTypes()
+{
+  if (!g_opt.dynstrings)
+  {
+    g_compiler->Error(DQERR_DYNSTRINGS_DISABLED);
+    return false;
+  }
+  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+}
+
 static LlType * LlPtrType()
 {
   return llvm::PointerType::get(ll_ctx, 0);

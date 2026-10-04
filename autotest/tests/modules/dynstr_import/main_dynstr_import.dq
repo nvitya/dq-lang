@@ -2,8 +2,12 @@
 
 use ./mod_dynstr_import
 
+func Consume(args : []anyvalue):
+endfunc
+
 func *Main():
     var left : OTextPair = new OTextPair
     var right : OTextPair = new OTextPair
     left.text = right.text
+    Consume([MakeText()])
 endfunc

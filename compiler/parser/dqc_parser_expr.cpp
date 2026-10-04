@@ -111,15 +111,7 @@ bool EnsureEmbStrRtlUse()
 
 bool EnsureDynStringRtlUse()
 {
-  if (!RequireDynStrings())
-  {
-    return false;
-  }
-  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+  return EnsureDynStringRtlUseForStringTypes();
 }
 
 bool RequireDynStrings()
@@ -4860,14 +4852,14 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "len");
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "Len");
     return nullptr;
   }
   scf->SkipWhite();
   string lenarg;
   if (not scf->ReadIdentifier(lenarg))
   {
-    Error(DQERR_VARNAME_EXP_AFTER, "len");
+    Error(DQERR_VARNAME_EXP_AFTER, "Len");
     return nullptr;
   }
   OValSym * lenvs = curscope->FindValSym(lenarg);
@@ -4879,7 +4871,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "len");
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "Len");
     return nullptr;
   }
   if (TK_ARRAY == lenvs->ptype->kind)
@@ -5060,7 +5052,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "sizeof");
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "SizeOf");
     return nullptr;
   }
   scf->SkipWhite();
@@ -5078,7 +5070,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
     string sarg;
     if (not scf->ReadIdentifier(sarg))
     {
-      ErrorTxt(DQERR_VARNAME_EXP_AFTER, "Variable or type name is expected after \"sizeof\"");
+      ErrorTxt(DQERR_VARNAME_EXP_AFTER, "Variable or type name is expected after \"SizeOf\"");
       return nullptr;
     }
 
@@ -5089,15 +5081,32 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
     }
     else
     {
-      OType * foundtype = cur_mod_scope->FindType(sarg);
-      if (!foundtype)
+      if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
       {
-        ErrorTxt(DQERR_EXPR_EXPECTED, "sizeof() expects a variable or type name");
-        return nullptr;
+        OCompoundType * decl_type = nullptr;
+        int midx = curvsfunc->owner_compound_type->FindFieldIndex(sarg, &decl_type);
+        if (midx >= 0 && ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
+        {
+          sizetype = decl_type->member_order[midx]->ptype;
+        }
+        else if (midx >= 0)
+        {
+          Error(DQERR_MEMBER_UNKNOWN, sarg, curvsfunc->owner_compound_type->name);
+          return nullptr;
+        }
       }
+      if (!sizetype)
+      {
+        OType * foundtype = cur_mod_scope->FindType(sarg);
+        if (!foundtype)
+        {
+          ErrorTxt(DQERR_EXPR_EXPECTED, "SizeOf() expects a variable or type name");
+          return nullptr;
+        }
 
-      scf->SetCurPos(argpos);
-      sizetype = ParseTypeSpec();
+        scf->SetCurPos(argpos);
+        sizetype = ParseTypeSpec();
+      }
     }
   }
 
@@ -5110,13 +5119,13 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "sizeof");
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "SizeOf");
     return nullptr;
   }
 
   if (0 == sizetype->bytesize)
   {
-    ErrorTxt(DQERR_NOT_SUPPORTED, "sizeof() requires a statically sized type or value");
+    ErrorTxt(DQERR_NOT_SUPPORTED, "SizeOf() requires a statically sized type or value");
     return nullptr;
   }
 
@@ -5128,7 +5137,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
   scf->SkipWhite();
   if (not scf->CheckSymbol("("))
   {
-    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "offsetof");
+    Error(DQERR_MISSING_OPEN_PAREN_AFTER, "OffsetOf");
     return nullptr;
   }
 
@@ -5172,7 +5181,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
   {
-    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "offsetof");
+    Error(DQERR_MISSING_CLOSE_PAREN_FOR, "OffsetOf");
     return nullptr;
   }
 

@@ -6,6 +6,7 @@ object OBase:
 protected
     value : int = 1
     name  : embstr(33)
+    payload : [7] byte
 public
     func *Create(aname : ^char, a : int):
         value = a
@@ -63,6 +64,10 @@ public
 
     func BareBaseOverloadCall() -> int:
         return BaseOnlyOver(extra) + BaseOnlyOver(2.4)
+    endfunc
+
+    func InheritedPayloadSize() -> int:
+        return SizeOf(payload)
     endfunc
 
     func *Destroy():
@@ -138,6 +143,7 @@ func *Main():
     PrintBase(c, "fixed")         //?check('fixed', 9)
     @.printf("bare-base-call = %d\n", c.BareBaseCall()) //?check("bare-base-call", 9)
     @.printf("bare-base-overload-call = %d\n", c.BareBaseOverloadCall()) //?check("bare-base-overload-call", 115)
+    @.printf("inherited-payload-size = %d\n", c.InheritedPayloadSize()) //?check("inherited-payload-size", 7)
     c.Reset()
     PrintBase(c, "reset")         //?check('reset', 30)
 

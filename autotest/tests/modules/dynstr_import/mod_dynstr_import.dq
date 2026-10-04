@@ -3,3 +3,7 @@
 object OTextPair:
     text : str
 endobject
+
+func MakeText() -> str:
+    result = "module text"
+endfunc

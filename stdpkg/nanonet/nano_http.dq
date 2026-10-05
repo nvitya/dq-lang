@@ -325,8 +325,8 @@ func OSConnectionHttp.ProcessInData():
             return  // the message is incomplete wait more
         endif
 
-        header_length = sp.readp - sp.bufstart
-        var fullmsglen : uint32 = uint32(header_length + 4)
+        header_length = (sp.readp - sp.bufstart) + 4
+        var fullmsglen : uint32 = header_length
 
         sp.Init(^char(%inbuf[0]), header_length)
         if not ParseRequestHeader():
@@ -428,6 +428,10 @@ func OSConnectionHttp.ParseRequestHeader() -> bool:
         endif
         var sval : str = sp.PrevStr()
 
+        if not sp.CheckSymbol('\r\n'):
+            return false
+        endif
+
         ucheaders.Add(skey, sval)
 
         if skey == 'CONNECTION' and StrUpper(sval) == 'KEEP-ALIVE':
@@ -437,7 +441,9 @@ func OSConnectionHttp.ParseRequestHeader() -> bool:
             ParseCookies(sval)
         endif
 
-        sp.SkipSpaces(true)
+        if sp.CheckSymbol('\r\n'):
+            break // end of headers
+        endif
     endwhile
 
     result = true

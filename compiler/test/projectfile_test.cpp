@@ -291,6 +291,19 @@ int main()
          && (command_line_options.cmdline_defines[0].int_value == -42),
          "command line define");
 
+  OCompOptions language_server_options;
+  language_server_options.target.ConfigureHost();
+  char language_server_arg0[] = "dq-comp";
+  char language_server_arg1[] = "--langserver";
+  char language_server_arg2[] = "--stdio";
+  char language_server_arg3[] = "--clientProcessId=1234";
+  char * language_server_argv[] = {
+    language_server_arg0, language_server_arg1, language_server_arg2, language_server_arg3
+  };
+  string language_server_error = language_server_options.ProcessCommandLineOpts(4, language_server_argv);
+  Expect(language_server_error.empty() && language_server_options.langserver,
+         "VSCode language-server arguments should parse");
+
   OCompOptions sysroot_options;
   sysroot_options.target.ConfigureHost();
   char sysroot_arg0[] = "dq-comp";

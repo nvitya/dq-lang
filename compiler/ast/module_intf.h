@@ -120,6 +120,7 @@ public:
   string   build_options;
   string   interface_filename;
   vector<string> link_dependencies;
+  vector<string> dependency_module_init_linkage_names;
   string module_init_linkage_name;
   string last_interface_error;
   OValSymFunc * module_init_func = nullptr;

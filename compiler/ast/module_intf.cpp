@@ -521,6 +521,7 @@ void OModuleIntf::ClearDqmIfMetadata()
   target_rtl.clear();
   build_options.clear();
   link_dependencies.clear();
+  dependency_module_init_linkage_names.clear();
   embedded_group_symbols.clear();
 
   has_object_filesize = false;
@@ -1636,6 +1637,17 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
         && !writer.AddRecStr(DQMIF_MODULE_INIT, module_init_linkage_name))
     {
       return false;
+    }
+  }
+
+  if (auto * module = dynamic_cast<OModule *>(this))
+  {
+    for (OValSymFunc * init_func : module->ModuleInitCallList(false))
+    {
+      if (!init_func || !writer.AddRecStr(DQMIF_DEP_MODULE_INIT, init_func->GetLinkageName(true)))
+      {
+        return false;
+      }
     }
   }
 
@@ -3516,6 +3528,17 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
     else if (DQMIF_MODULE_INIT == reader.recid)
     {
       if (!ReadModuleInitDecl(reader)) return false;
+    }
+    else if (DQMIF_DEP_MODULE_INIT == reader.recid)
+    {
+      string linkage_name;
+      if (!reader.ReadString(linkage_name)) return false;
+      if (dependency_module_init_linkage_names.end()
+          == find(dependency_module_init_linkage_names.begin(),
+                  dependency_module_init_linkage_names.end(), linkage_name))
+      {
+        dependency_module_init_linkage_names.push_back(linkage_name);
+      }
     }
     else if (DQMIF_EMBED_MODULE_BEGIN == reader.recid)
     {

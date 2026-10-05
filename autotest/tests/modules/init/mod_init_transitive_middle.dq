@@ -1,0 +1,5 @@
+//?notest
+
+implementation
+
+use ./mod_init_transitive_leaf

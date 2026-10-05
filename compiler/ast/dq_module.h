@@ -75,6 +75,7 @@ private:
 public:
   vector<ODecl *>  declarations;
   vector<OModuleIntf *>  loaded_modules;
+  vector<OValSymFunc *>  imported_module_init_funcs;
   vector<string>   link_module_artifacts;
   string           last_interface_load_error;
 
@@ -96,15 +97,7 @@ public:
     scope_local->vs_lookup_parent = false;
   }
 
-  virtual ~OModule()
-  {
-    for (OModuleIntf * intf : loaded_modules)
-    {
-      delete intf;
-    }
-    delete scope_priv;
-    delete scope_local;
-  }
+  virtual ~OModule();
 
   ODecl * DeclareType(bool apublic, OType * atype);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
@@ -116,7 +109,7 @@ public:
   OValSymFunc * EnsureAppInitFunc(OScPosition & scpos);
   void FinalizeModuleInitFunc();
   LlDiScope * GetDiScope();
-  vector<OValSymFunc *> ModuleInitCallList(bool include_self) const;
+  vector<OValSymFunc *> ModuleInitCallList(bool include_self);
   bool UseCompiledModule(const string & module_path, const string & namespace_name,
                          const string & interface_artifact_path, const string & link_artifact_path,
                          OScope * amerge_scope, bool ais_private,

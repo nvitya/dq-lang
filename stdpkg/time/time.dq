@@ -16,7 +16,12 @@ implementation
 
 struct timespec:
     tv_sec  : int64
-    tv_nsec : int64
+    #ifdef WINDOWS
+        tv_nsec : int32
+        __pad   : int32
+    #else
+        tv_nsec : int64
+    #endif
 endstruct
 
 struct tm:
@@ -29,14 +34,24 @@ struct tm:
     tm_wday   : int32
     tm_yday   : int32
     tm_isdst  : int32
-    tm_gmtoff : int64
-    tm_zone   : pointer
+    #ifndef WINDOWS
+        tm_gmtoff : int64
+        tm_zone   : pointer
+    #endif
 endstruct
 
-func clock_gettime(clk_id : int, res : ^timespec) [[external('clock_gettime')]] ..
-func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
-func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
-func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
+#ifdef WINDOWS
+    func win_timespec64_get(ts : ^timespec, base : int32) -> int32 [[external('_timespec64_get')]] ..
+    func win_QueryPerformanceCounter(value : ^int64) -> int32 [[external('QueryPerformanceCounter')]] ..
+    func win_QueryPerformanceFrequency(value : ^int64) -> int32 [[external('QueryPerformanceFrequency')]] ..
+    func win_Sleep(milliseconds : uint32) [[external('Sleep')]] ..
+    func win_localtime64_s(tmout : ^tm, timep : ^int64) -> int32 [[external('_localtime64_s')]] ..
+#else
+    func clock_gettime(clk_id : int32, res : ^timespec) -> int32 [[external('clock_gettime')]] ..
+    func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
+    func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
+    func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
+#endif
 func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]] ..
 
 const EINTR : int32 = 4
@@ -44,32 +59,74 @@ const EINTR : int32 = 4
 const CLOCK_REALTIME  : int = 0
 const CLOCK_MONOTONIC : int = 1
 
+#ifdef WINDOWS
+const TIME_UTC : int32 = 1
+
+var qpc_frequency : int64 = 0
+
+func InitPerformanceTimer():
+    if qpc_frequency == 0:
+        if win_QueryPerformanceFrequency(%qpc_frequency) == 0  or  qpc_frequency <= 0:
+            qpc_frequency = 1
+        endif
+    endif
+endfunc
+
+func *ModuleInit():
+    InitPerformanceTimer()
+endfunc
+
+func PerformanceNanoTime() -> int64:
+    InitPerformanceTimer()
+    var counter : int64 = 0
+    if win_QueryPerformanceCounter(%counter) == 0:
+        return 0
+    endif
+
+    // Split the quotient to avoid overflowing counter * 1,000,000,000.
+    return (counter div qpc_frequency) * 1000000000
+           + ((counter mod qpc_frequency) * 1000000000) div qpc_frequency
+endfunc
+#endif
+
 func Time() -> float64:
-    var tv : timespec
-    tv.tv_sec = 0
-    clock_gettime(CLOCK_REALTIME, %tv)
-    result = tv.tv_sec + (tv.tv_nsec / 1000000000)
+    var tv : timespec = {}
+    #ifdef WINDOWS
+        win_timespec64_get(%tv, TIME_UTC)
+    #else
+        clock_gettime(CLOCK_REALTIME, %tv)
+    #endif
+    result = float64(tv.tv_sec) + float64(tv.tv_nsec) / 1000000000.0
 endfunc
 
 func MilliTime() -> int64:
-    var tv : timespec
-    tv.tv_sec = 0
-    clock_gettime(CLOCK_MONOTONIC, %tv)
-    result = tv.tv_nsec div 1000000  + tv.tv_sec * 1000
+    #ifdef WINDOWS
+        return PerformanceNanoTime() div 1000000
+    #else
+        var tv : timespec = {}
+        clock_gettime(CLOCK_MONOTONIC, %tv)
+        result = tv.tv_nsec div 1000000  + tv.tv_sec * 1000
+    #endif
 endfunc
 
 func MicroTime() -> int64:
-    var tv : timespec
-    tv.tv_sec = 0
-    clock_gettime(CLOCK_MONOTONIC, %tv)
-    result = tv.tv_nsec div 1000  + tv.tv_sec * 1000000
+    #ifdef WINDOWS
+        return PerformanceNanoTime() div 1000
+    #else
+        var tv : timespec = {}
+        clock_gettime(CLOCK_MONOTONIC, %tv)
+        result = tv.tv_nsec div 1000  + tv.tv_sec * 1000000
+    #endif
 endfunc
 
 func NanoTime() -> int64:
-    var tv : timespec
-    tv.tv_sec = 0
-    clock_gettime(CLOCK_MONOTONIC, %tv)
-    result = tv.tv_nsec + tv.tv_sec * 1000000000
+    #ifdef WINDOWS
+        return PerformanceNanoTime()
+    #else
+        var tv : timespec = {}
+        clock_gettime(CLOCK_MONOTONIC, %tv)
+        result = tv.tv_nsec + tv.tv_sec * 1000000000
+    #endif
 endfunc
 
 func SleepNanos(ansecs : int64):
@@ -77,19 +134,33 @@ func SleepNanos(ansecs : int64):
         return
     endif
 
-    var delay : timespec
-    delay.tv_sec  = ansecs div 1000000000
-    delay.tv_nsec = ansecs mod 1000000000
+    #ifdef WINDOWS
+        // Sleep accepts milliseconds. Round up so a positive sub-millisecond
+        // request still yields instead of returning immediately.
+        var millis : int64 = (ansecs + 999999) div 1000000
+        while millis > 0:
+            var chunk : uint32
+            if millis > 0xFFFFFFFF:
+                chunk = 0xFFFFFFFF
+            else:
+                chunk = uint32(millis)
+            endif
+            win_Sleep(chunk)
+            millis -= chunk
+        endwhile
+    #else
+        var delay : timespec = {}
+        delay.tv_sec  = ansecs div 1000000000
+        delay.tv_nsec = ansecs mod 1000000000
 
-    var remaining : timespec
-    remaining.tv_sec = 0
-    remaining.tv_nsec = 0
-    while libc_nanosleep(%delay, %remaining) < 0:
-        if libc___errno_location()^ <> EINTR:
-            return
-        endif
-        delay = remaining
-    endwhile
+        var remaining : timespec = {}
+        while libc_nanosleep(%delay, %remaining) < 0:
+            if libc___errno_location()^ <> EINTR:
+                return
+            endif
+            delay = remaining
+        endwhile
+    #endif
 endfunc
 
 func SleepSecs(asecs : float64):
@@ -110,7 +181,7 @@ func SleepMicros(amicros : int64):
     if amicros <= 0:
         return
     endif
-    SleepNanos(amicros * 1000000000)
+    SleepNanos(amicros * 1000)
 endfunc
 
 func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
@@ -122,7 +193,11 @@ func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> 
     endif
 
     atm = {}
-    return libc_localtime_r(%seconds, %atm) <> nil
+    #ifdef WINDOWS
+        return win_localtime64_s(%atm, %seconds) == 0
+    #else
+        return libc_localtime_r(%seconds, %atm) <> nil
+    #endif
 endfunc
 
 func FormatTm(fmt : rostr, atm : ref tm) -> str:

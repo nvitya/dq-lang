@@ -11,10 +11,15 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.83.0"
+#define DQ_COMPILER_VERSION  "0.83.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.83.2:
+  - Windows adjustments for time, sockets and nanonet
+  - ModuleInit calling fix for transitive dependencies
+v0.83.1:
+  - Language Server fixes for Windows
 v0.83.0:
   - Big dynamic string handling updates finally fixing memory leaks
 v0.82.0:

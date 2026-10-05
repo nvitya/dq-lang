@@ -75,8 +75,12 @@ endobject
 
 object OSocketWatcher:
     #ifdef WINDOWS
+        polllist  : [*]SWSAPollFd
+        pollsocks : [*]ONanoSocket
+
+        func FindPollIndex(asocket : TSocket) -> int ..
     #else
-        fd_epoll : int
+        fd_epoll : TSocket
         revents  : [*]SEpollEvent
     #endif
 
@@ -249,6 +253,11 @@ implementation
 use print, strutils
 
 func ONanoSocket.*Create(atype : NSocketType):
+    var init_error : int = @socket.SocketInit()
+    if init_error <> 0:
+        raise ENanoNet('Winsock initialization failed (socket error {})', [init_error])
+    endif
+
     stype    = atype
     m_socket = @socket.INVALID_SOCKET
 endfunc
@@ -280,7 +289,7 @@ func ONanoSocket.InitListener(aport : uint16):
     endif
 
     if m_socket == INVALID_SOCKET:
-        raise ENanoNet('InitListener: Error creating the listener socket')
+        raise ENanoNet('InitListener: Error creating the listener socket (socket error {})', [SocketError()])
     endif
 
     SetSockParams()
@@ -405,6 +414,144 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
+#ifdef WINDOWS
+
+func OSocketWatcher.*Create(amaxfds : int):
+    maxfds = amaxfds
+endfunc
+
+func OSocketWatcher.*Destroy():
+    polllist = []
+    pollsocks = []
+endfunc
+
+func OSocketWatcher.FindPollIndex(asocket : TSocket) -> int:
+    for i : int = 0  while i < polllist.length:
+        if polllist[i].fd == asocket:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+func OSocketWatcher.AddSocket(asock : ONanoSocket, aobj_link : Object, ainev : FInEventHandler, outev : FOutEventHandler):
+    if asock.socket == @socket.INVALID_SOCKET:
+        raise ENanoNet('SocketWatcher.AddSocket: invalid socket handle.')
+    endif
+
+    asock.obj_link = aobj_link
+    asock.in_event_handler = ainev
+    asock.out_event_handler = outev
+    ModifySocket(asock)
+endfunc
+
+func OSocketWatcher.ModifySocket(asock : ONanoSocket):
+    use socket
+    if asock.socket == INVALID_SOCKET:
+        raise ENanoNet('SocketWatcher.ModifySocket: invalid socket handle.')
+    endif
+
+    if asock.in_event_handler == nil  and  asock.out_event_handler == nil:
+        RemoveSocket(asock)
+        return
+    endif
+
+    var poll_events : uint16 = 0
+    if asock.in_event_handler <> nil:
+        poll_events |= POLLRDNORM
+    endif
+    if asock.out_event_handler <> nil:
+        poll_events |= POLLWRNORM
+    endif
+
+    var idx : int = FindPollIndex(asock.socket)
+    if idx < 0:
+        if polllist.length >= maxfds:
+            raise ENanoNet('SocketWatcher.ModifySocket: socket limit reached.')
+        endif
+
+        var pollrec : SWSAPollFd = {}
+        pollrec.fd = asock.socket
+        pollrec.events = poll_events
+        polllist.Append(pollrec)
+        pollsocks.Append(asock)
+    else:
+        polllist[idx].events = poll_events
+        polllist[idx].revents = 0
+        pollsocks[idx] = asock
+    endif
+endfunc
+
+func OSocketWatcher.RemoveSocket(asock : ONanoSocket):
+    if asock.socket == @socket.INVALID_SOCKET:
+        return
+    endif
+
+    var idx : int = FindPollIndex(asock.socket)
+    if idx >= 0:
+        polllist.Delete(idx)
+        pollsocks.Delete(idx)
+    endif
+endfunc
+
+func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
+    use socket
+    result = false
+    if polllist.length == 0:
+        return false
+    endif
+
+    var evcnt : int = win_WSAPoll(%polllist[0], uint32(polllist.length), int32(atimeout_ms))
+    if evcnt <= 0:
+        return false
+    endif
+
+    // Event handlers are allowed to remove sockets, so copy the ready set
+    // before invoking callbacks instead of iterating the mutable poll arrays.
+    var ready_socks  : [*]ONanoSocket
+    var ready_events : [*]uint16
+    for i : int = 0  while i < polllist.length:
+        if polllist[i].revents <> 0:
+            ready_socks.Append(pollsocks[i])
+            ready_events.Append(polllist[i].revents)
+        endif
+    endfor
+
+    for i : int = 0  while i < ready_socks.length:
+        var sock : ONanoSocket = ready_socks[i]
+        var events : uint16 = ready_events[i]
+        var has_error : bool = (events & (POLLERR | POLLHUP | POLLNVAL)) <> 0
+        var input_ready : bool = (events & POLLRDNORM) <> 0
+        var output_ready : bool = (events & POLLWRNORM) <> 0
+
+        if has_error:
+            if sock.in_event_handler <> nil:
+                input_ready = true
+            elif sock.out_event_handler <> nil:
+                output_ready = true
+            endif
+        endif
+
+        if output_ready:
+            if sock.out_event_handler == nil:
+                raise ENanoNet('Socket has no output event handler!')
+            endif
+            sock.out_event_handler(sock.obj_link)
+            result = true
+        endif
+
+        if input_ready:
+            if sock.in_event_handler == nil:
+                raise ENanoNet('Socket has no input event handler!')
+            endif
+            sock.in_event_handler(sock.obj_link)
+            result = true
+        endif
+    endfor
+endfunc
+
+#else
+
 func OSocketWatcher.*Create(amaxfds : int):
     maxfds = amaxfds
     fd_epoll = @socket.libc_epoll_create(amaxfds)
@@ -478,6 +625,8 @@ func OSocketWatcher.RemoveSocket(asock : ONanoSocket):
     endif
 endfunc
 
+#endif
+
 func OSocketWatcher.SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler):
     asock.out_event_handler = aoutev
     ModifySocket(asock)
@@ -488,6 +637,7 @@ func OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandler):
     ModifySocket(asock)
 endfunc
 
+#ifndef WINDOWS
 func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
     use socket
     result = false
@@ -517,6 +667,7 @@ func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         endif
     endfor
 endfunc
+#endif
 
 //-----------------------------------------------------------------------------
 

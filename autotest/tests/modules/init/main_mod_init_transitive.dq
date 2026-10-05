@@ -1,0 +1,9 @@
+use libc/stdio
+
+use ./mod_init_transitive_middle
+
+func *Main():
+    printf("Module.init.transitive.main = done\n")
+    //?check("Module.init.transitive.leaf", "done")
+    //?check("Module.init.transitive.main", "done")
+endfunc

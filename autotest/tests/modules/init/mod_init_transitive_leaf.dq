@@ -1,0 +1,9 @@
+//?notest
+
+implementation
+
+use libc/stdio
+
+func *ModuleInit():
+    printf("Module.init.transitive.leaf = done\n")
+endfunc

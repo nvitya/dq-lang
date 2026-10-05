@@ -352,6 +352,11 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
+  for (OValSymFunc * init_func : g_module->ModuleInitCallList(false))
+  {
+    init_func->GenGlobalDecl(true, nullptr);
+  }
+
   for (ODecl * decl : g_module->declarations)
   {
     if (DK_VALSYM == decl->kind)

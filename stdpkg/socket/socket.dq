@@ -13,38 +13,71 @@
  * brief:   Low-level socket handling routines
  */
 
-type TSocket  = int
-type TSockLen = uint32
+#ifdef WINDOWS
+    #linklib('ws2_32')
 
-const INVALID_SOCKET : TSocket = -1
+    type TSocket  = uint
+    type TSockLen = int32
+
+    const INVALID_SOCKET : TSocket = 0xFFFFFFFFFFFFFFFF
+#else
+    type TSocket  = int32
+    type TSockLen = uint32
+
+    const INVALID_SOCKET : TSocket = -1
+#endif
 
 const AF_UNSPEC : int = 0
 const AF_UNIX   : int = 1
 const AF_INET   : int = 2
-const AF_INET6  : int = 10
+#ifdef WINDOWS
+    const AF_INET6 : int = 23
+#else
+    const AF_INET6 : int = 10
+#endif
 
 const SOCK_STREAM    : int = 1
 const SOCK_DGRAM     : int = 2
 const SOCK_RAW       : int = 3
-const SOCK_NONBLOCK  : int = 0x00000800
-const SOCK_CLOEXEC   : int = 0x00080000
+#ifdef WINDOWS
+    const SOCK_NONBLOCK : int = 0
+    const SOCK_CLOEXEC  : int = 0
+#else
+    const SOCK_NONBLOCK : int = 0x00000800
+    const SOCK_CLOEXEC  : int = 0x00080000
+#endif
 
 const IPPROTO_IP  : int = 0
 const IPPROTO_TCP : int = 6
 const IPPROTO_UDP : int = 17
 
-const SOL_SOCKET   : int = 1
-const SO_REUSEADDR : int = 2
-const SO_SNDBUF    : int = 7
-const SO_RCVBUF    : int = 8
-const SO_KEEPALIVE : int = 9
-const SO_REUSEPORT : int = 15
-const SO_ERROR     : int = 4
+#ifdef WINDOWS
+    const SOL_SOCKET   : int = 0xFFFF
+    const SO_REUSEADDR : int = 0x0004
+    const SO_SNDBUF    : int = 0x1001
+    const SO_RCVBUF    : int = 0x1002
+    const SO_KEEPALIVE : int = 0x0008
+    const SO_REUSEPORT : int = 0
+    const SO_ERROR     : int = 0x1007
+#else
+    const SOL_SOCKET   : int = 1
+    const SO_REUSEADDR : int = 2
+    const SO_SNDBUF    : int = 7
+    const SO_RCVBUF    : int = 8
+    const SO_KEEPALIVE : int = 9
+    const SO_REUSEPORT : int = 15
+    const SO_ERROR     : int = 4
+#endif
 
 const TCP_NODELAY : int = 1
 
-const MSG_DONTWAIT : int = 0x00000040
-const MSG_NOSIGNAL : int = 0x00004000
+#ifdef WINDOWS
+    const MSG_DONTWAIT : int = 0
+    const MSG_NOSIGNAL : int = 0
+#else
+    const MSG_DONTWAIT : int = 0x00000040
+    const MSG_NOSIGNAL : int = 0x00004000
+#endif
 
 const SHUT_RD   : int = 0
 const SHUT_WR   : int = 1
@@ -59,13 +92,23 @@ const FD_CLOEXEC : int = 1
 const O_NONBLOCK : int = 0x00000800
 const O_CLOEXEC  : int = 0x00080000
 
-const EAGAIN      : int = 11
-const EWOULDBLOCK : int = 11
-const EINTR       : int = 4
-const EINPROGRESS : int = 115
-const EEXIST      : int = 17
-const ECONNRESET  : int = 104
-const EPIPE       : int = 32
+#ifdef WINDOWS
+    const EAGAIN      : int = 10035
+    const EWOULDBLOCK : int = 10035
+    const EINTR       : int = 10004
+    const EINPROGRESS : int = 10036
+    const EEXIST      : int = 10048
+    const ECONNRESET  : int = 10054
+    const EPIPE       : int = 10058
+#else
+    const EAGAIN      : int = 11
+    const EWOULDBLOCK : int = 11
+    const EINTR       : int = 4
+    const EINPROGRESS : int = 115
+    const EEXIST      : int = 17
+    const ECONNRESET  : int = 104
+    const EPIPE       : int = 32
+#endif
 
 const INADDR_ANY       : uint32 = 0x00000000
 const INADDR_NONE      : uint32 = 0xFFFFFFFF
@@ -142,25 +185,64 @@ type PSockAddr       = ^SSockAddr
 type PSockAddrIn     = ^SSockAddrIn
 type PSockAddrStorage = ^SSockAddrStorage
 
+#ifdef WINDOWS
+    const POLLRDNORM : uint16 = 0x0100
+    const POLLWRNORM : uint16 = 0x0010
+    const POLLERR    : uint16 = 0x0001
+    const POLLHUP    : uint16 = 0x0002
+    const POLLNVAL   : uint16 = 0x0004
+
+    const FIONBIO : uint32 = 0x8004667E
+
+    struct SWSAPollFd:
+        fd      : TSocket
+        events  : uint16
+        revents : uint16
+    endstruct
+
+    struct SWSAData:
+        version          : uint16
+        high_version     : uint16
+        max_sockets      : uint16
+        max_udp_datagram : uint16
+        vendor_info      : ^char
+        description      : [257]char
+        system_status    : [129]char
+    endstruct
+#endif
+
 func libc_socket(domain : int, sock_type : int, protocol : int) -> TSocket [[external('socket')]] ..
-func libc_bind(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int [[external('bind')]] ..
-func libc_listen(sockfd : TSocket, backlog : int) -> int [[external('listen')]] ..
+func libc_bind(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int32 [[external('bind')]] ..
+func libc_listen(sockfd : TSocket, backlog : int) -> int32 [[external('listen')]] ..
 func libc_accept(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> TSocket [[external('accept')]] ..
-func libc_connect(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int [[external('connect')]] ..
-func libc_shutdown(sockfd : TSocket, how : int) -> int [[external('shutdown')]] ..
-func libc_close(fd : int) -> int [[external('close')]] ..
+func libc_connect(sockfd : TSocket, addr : pointer, addrlen : TSockLen) -> int32 [[external('connect')]] ..
+func libc_shutdown(sockfd : TSocket, how : int) -> int32 [[external('shutdown')]] ..
 
-func libc_recv(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int [[external('recv')]] ..
-func libc_send(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int [[external('send')]] ..
-func libc_recvfrom(sockfd : TSocket, buf : pointer, len : uint, flags : int, src_addr : pointer, addrlen : ^TSockLen) -> int [[external('recvfrom')]] ..
-func libc_sendto(sockfd : TSocket, buf : pointer, len : uint, flags : int, dest_addr : pointer, addrlen : TSockLen) -> int [[external('sendto')]] ..
+#ifdef WINDOWS
+    func libc_close(sockfd : TSocket) -> int32 [[external('closesocket')]] ..
+#else
+    func libc_close(fd : TSocket) -> int32 [[external('close')]] ..
+#endif
 
-func libc_setsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : TSockLen) -> int [[external('setsockopt')]] ..
-func libc_getsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : ^TSockLen) -> int [[external('getsockopt')]] ..
-func libc_getsockname(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int [[external('getsockname')]] ..
-func libc_getpeername(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int [[external('getpeername')]] ..
+func libc_recv(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int32 [[external('recv')]] ..
+func libc_send(sockfd : TSocket, buf : pointer, len : uint, flags : int) -> int32 [[external('send')]] ..
+func libc_recvfrom(sockfd : TSocket, buf : pointer, len : uint, flags : int, src_addr : pointer, addrlen : ^TSockLen) -> int32 [[external('recvfrom')]] ..
+func libc_sendto(sockfd : TSocket, buf : pointer, len : uint, flags : int, dest_addr : pointer, addrlen : TSockLen) -> int32 [[external('sendto')]] ..
 
-func libc_fcntl(fd : int, cmd : int, ...) -> int [[external('fcntl')]] ..
+func libc_setsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : TSockLen) -> int32 [[external('setsockopt')]] ..
+func libc_getsockopt(sockfd : TSocket, level : int, optname : int, optval : pointer, optlen : ^TSockLen) -> int32 [[external('getsockopt')]] ..
+func libc_getsockname(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int32 [[external('getsockname')]] ..
+func libc_getpeername(sockfd : TSocket, addr : pointer, addrlen : ^TSockLen) -> int32 [[external('getpeername')]] ..
+
+#ifdef WINDOWS
+    func win_ioctlsocket(sockfd : TSocket, cmd : uint32, argp : ^uint32) -> int32 [[external('ioctlsocket')]] ..
+    func win_WSAPoll(fds : ^SWSAPollFd, nfds : uint32, timeout : int32) -> int32 [[external('WSAPoll')]] ..
+    func win_WSAStartup(version : uint16, data : ^SWSAData) -> int32 [[external('WSAStartup')]] ..
+    func win_WSACleanup() -> int32 [[external('WSACleanup')]] ..
+    func win_WSAGetLastError() -> int32 [[external('WSAGetLastError')]] ..
+#else
+    func libc_fcntl(fd : TSocket, cmd : int, ...) -> int32 [[external('fcntl')]] ..
+#endif
 
 func libc_htons(hostshort : uint16) -> uint16 [[external('htons')]] ..
 func libc_htonl(hostlong : uint32) -> uint32 [[external('htonl')]] ..
@@ -170,26 +252,55 @@ func libc_inet_addr(cp : ^char) -> uint32 [[external('inet_addr')]] ..
 func libc_inet_pton(af : int, src : ^char, dst : pointer) -> int [[external('inet_pton')]] ..
 func libc_inet_ntop(af : int, src : pointer, dst : ^char, size : TSockLen) -> ^char [[external('inet_ntop')]] ..
 
-func libc_epoll_create(size : int) -> int [[external('epoll_create')]] ..
-func libc_epoll_create1(flags : int) -> int [[external('epoll_create1')]] ..
-func libc_epoll_ctl(epfd : int, op : int, fd : int, event : ^SEpollEvent) -> int [[external('epoll_ctl')]] ..
-func libc_epoll_wait(epfd : int, events : ^SEpollEvent, maxevents : int, timeout : int) -> int [[external('epoll_wait')]] ..
+#ifndef WINDOWS
+    func libc_epoll_create(size : int) -> int32 [[external('epoll_create')]] ..
+    func libc_epoll_create1(flags : int) -> int32 [[external('epoll_create1')]] ..
+    func libc_epoll_ctl(epfd : int32, op : int, fd : TSocket, event : ^SEpollEvent) -> int32 [[external('epoll_ctl')]] ..
+    func libc_epoll_wait(epfd : int32, events : ^SEpollEvent, maxevents : int, timeout : int) -> int32 [[external('epoll_wait')]] ..
 
-func libc___errno_location() -> ^int [[external('__errno_location')]] ..
+    func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
+#endif
 
 func SocketError() -> int ..
 func SocketErrno() -> int ..
+func SocketInit() -> int ..
 func CloseSocket(sockfd : TSocket) -> int ..
 func SetSocketNonBlocking(sockfd : TSocket) -> int ..
 
 implementation
 
+#ifdef WINDOWS
+var socket_initialized : bool = false
+var socket_init_error  : int32 = 0
+
+func *ModuleInit():
+    SocketInit()
+endfunc
+#endif
+
+func SocketInit() -> int:
+    #ifdef WINDOWS
+        if not socket_initialized:
+            var wsa_data : SWSAData = {}
+            socket_init_error = win_WSAStartup(0x0202, %wsa_data)
+            socket_initialized = (socket_init_error == 0)
+        endif
+        return socket_init_error
+    #else
+        return 0
+    #endif
+endfunc
+
 func SocketError() -> int:
-    return libc___errno_location()^
+    #ifdef WINDOWS
+        return win_WSAGetLastError()
+    #else
+        return libc___errno_location()^
+    #endif
 endfunc
 
 func SocketErrno() -> int:
-    return libc___errno_location()^
+    return SocketError()
 endfunc
 
 func CloseSocket(sockfd : TSocket) -> int:
@@ -197,10 +308,15 @@ func CloseSocket(sockfd : TSocket) -> int:
 endfunc
 
 func SetSocketNonBlocking(sockfd : TSocket) -> int:
-    var flags : int = libc_fcntl(sockfd, F_GETFL)
-    if flags < 0:
-        return flags
-    endif
+    #ifdef WINDOWS
+        var enabled : uint32 = 1
+        return win_ioctlsocket(sockfd, FIONBIO, %enabled)
+    #else
+        var flags : int = libc_fcntl(sockfd, F_GETFL)
+        if flags < 0:
+            return flags
+        endif
 
-    return libc_fcntl(sockfd, F_SETFL, flags | O_NONBLOCK)
+        return libc_fcntl(sockfd, F_SETFL, flags | O_NONBLOCK)
+    #endif
 endfunc

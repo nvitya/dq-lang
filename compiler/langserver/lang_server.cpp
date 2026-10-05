@@ -25,6 +25,11 @@
 #include <algorithm>
 #include <utility>
 
+#if defined(_WIN32)
+  #include <fcntl.h>
+  #include <io.h>
+#endif
+
 using namespace std;
 
 static string UriDecode(string_view text)
@@ -1078,6 +1083,13 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
 
 int RunDqLanguageServer()
 {
+#if defined(_WIN32)
+  // LSP framing and payloads are byte-oriented.  In text mode the Windows CRT
+  // expands the explicit CRLF framing written by WriteMessage().
+  _setmode(_fileno(stdin), _O_BINARY);
+  _setmode(_fileno(stdout), _O_BINARY);
+#endif
+
   ODqLanguageServer server;
   return server.Run();
 }

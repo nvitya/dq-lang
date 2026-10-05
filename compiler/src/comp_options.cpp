@@ -479,6 +479,13 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     else if ("--ifdump" == v)  ifdump = true;
     else if ("--langserver" == v) langserver = true;
     else if ("--stdio" == v) {} // Ignored, used by VSCode languageclient automatically
+    // vscode-languageclient adds this process-lifetime hint to executable servers.
+    // DQ does not need it, but accepting it is required for the LSP handshake.
+    else if (v.starts_with("--clientProcessId=")) {}
+    else if ("--clientProcessId" == v)
+    {
+      if (!require_value(i)) return "Missing process ID after --clientProcessId";
+    }
     else if ("--langserver-worker" == v) langserver_worker = true;
     else if ("--diagnostic-format=jsonl" == v) diagnostic_json = true;
     else if ("--source-overlay" == v)
@@ -708,6 +715,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "--source-overlay")
          || (option == "--langserver-result")
+         || (option == "--clientProcessId")
          || (option == "-o");
 }
 

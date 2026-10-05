@@ -33,6 +33,20 @@ void init_dq_module()
   g_module = new OModule();
 }
 
+OModule::~OModule()
+{
+  for (OValSymFunc * func : imported_module_init_funcs)
+  {
+    delete func;
+  }
+  for (OModuleIntf * intf : loaded_modules)
+  {
+    delete intf;
+  }
+  delete scope_priv;
+  delete scope_local;
+}
+
 LlDiScope * OModule::GetDiScope()
 {
   if (di_scope || !di_builder)
@@ -222,7 +236,7 @@ OValSymFunc * OModule::FindSpecialFunction(ESpecialFuncKind akind) const
   return nullptr;
 }
 
-vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self) const
+vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self)
 {
   vector<OValSymFunc *> result;
   vector<string> seen_linkage_names;
@@ -242,12 +256,55 @@ vector<OValSymFunc *> OModule::ModuleInitCallList(bool include_self) const
     result.push_back(fn);
   };
 
+  auto find_or_create_imported_init = [&](const string & linkage_name) -> OValSymFunc *
+  {
+    if (linkage_name.empty())
+    {
+      return nullptr;
+    }
+
+    auto has_linkage_name = [&](OValSymFunc * func) -> bool
+    {
+      return func && (func->GetLinkageName(true) == linkage_name);
+    };
+    if (has_linkage_name(module_init_func))
+    {
+      return module_init_func;
+    }
+    for (OModuleIntf * intf : loaded_modules)
+    {
+      if (intf && has_linkage_name(intf->module_init_func))
+      {
+        return intf->module_init_func;
+      }
+    }
+    for (OValSymFunc * func : imported_module_init_funcs)
+    {
+      if (has_linkage_name(func))
+      {
+        return func;
+      }
+    }
+
+    OScPosition scpos;
+    auto * signature = new OTypeFunc("__dq_module_init");
+    auto * func = new OValSymFunc(scpos, "__dq_module_init", signature, scope_pub->parent_scope);
+    func->attr_has_linkage_name = true;
+    func->attr_linkage_name = linkage_name;
+    imported_module_init_funcs.push_back(func);
+    return func;
+  };
+
   for (OModuleUse * use : used_modules)
   {
     OModuleIntf * intf = dynamic_cast<OModuleIntf *>(use ? use->module : nullptr);
     if (intf)
     {
       add_func(intf->module_init_func);
+      for (const string & linkage_name : intf->dependency_module_init_linkage_names)
+      {
+        add_func(find_or_create_imported_init(linkage_name));
+      }
     }
   }
 

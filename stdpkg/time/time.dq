@@ -2,6 +2,7 @@
 func Time() -> float64 ..  // Python compatible
 func FormatTime1(fmt : rostr, atime : float64) -> str ..  // Delphi compatible (easier to remember)
 func FormatTime2(fmt : rostr, atime : float64) -> str ..  // Python compatible
+func FormatTimeUtc(fmt : rostr, atime : float64) -> str ..  // strftime-compatible UTC time
 
 func MilliTime() -> int64 ..  // monotonic time, counted from system start
 func MicroTime() -> int64 ..  // monotonic time, counted from system start
@@ -46,11 +47,13 @@ endstruct
     func win_QueryPerformanceFrequency(value : ^int64) -> int32 [[external('QueryPerformanceFrequency')]] ..
     func win_Sleep(milliseconds : uint32) [[external('Sleep')]] ..
     func win_localtime64_s(tmout : ^tm, timep : ^int64) -> int32 [[external('_localtime64_s')]] ..
+    func win_gmtime64_s(tmout : ^tm, timep : ^int64) -> int32 [[external('_gmtime64_s')]] ..
 #else
     func clock_gettime(clk_id : int32, res : ^timespec) -> int32 [[external('clock_gettime')]] ..
     func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
     func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
     func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
+    func libc_gmtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('gmtime_r')]] ..
 #endif
 func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]] ..
 
@@ -197,6 +200,22 @@ func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> 
         return win_localtime64_s(%atm, %seconds) == 0
     #else
         return libc_localtime_r(%seconds, %atm) <> nil
+    #endif
+endfunc
+
+func UtcTimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
+    var seconds : int64 = Floor(atime)
+    microseconds = Round((atime - seconds) * 1000000)
+    if microseconds >= 1000000:
+        ++seconds
+        microseconds -= 1000000
+    endif
+
+    atm = {}
+    #ifdef WINDOWS
+        return win_gmtime64_s(%atm, %seconds) == 0
+    #else
+        return libc_gmtime_r(%seconds, %atm) <> nil
     #endif
 endfunc
 
@@ -428,4 +447,13 @@ func FormatTime2(fmt : rostr, atime : float64) -> str:  // Python compatible
     endwhile
 
     return FormatTm(cfmt, atm)
+endfunc
+
+func FormatTimeUtc(fmt : rostr, atime : float64) -> str:
+    var atm : tm
+    var microseconds : int64 = 0
+    if not UtcTimeToTm(atime, atm, microseconds):
+        return ''
+    endif
+    return FormatTm(fmt, atm)
 endfunc

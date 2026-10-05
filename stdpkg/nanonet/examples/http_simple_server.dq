@@ -28,7 +28,7 @@ func OSConnHttpApp.ProcessRequest() -> bool [[override]]:
     use *
     try:
         if uri == "/"  or uri == '/index.html':
-            response = ''
+            response.Clear()  // this keeps the preallocated storage
             response.AddFmt("""This is my plain text http response.\r
                 uri="{}"\r
                 getstr="{}"\r

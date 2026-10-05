@@ -37,7 +37,14 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "${workspaceFolder}/.vscode/gdb_wrapper.sh",
-            "preLaunchTask": "dq: build configured target"
+            "preLaunchTask": "dq: build configured target",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty-printers",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         },
         {
             "name": "DQ: Debug active file",
@@ -51,7 +58,14 @@
             "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "${workspaceFolder}/.vscode/gdb_wrapper.sh",
-            "preLaunchTask": "dq: build active file"
+            "preLaunchTask": "dq: build active file",
+            "setupCommands": [
+                {
+                    "description": "Enable GDB pretty-printers",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         },
         {
             "name": "CMake Debug",

@@ -32,6 +32,7 @@ func IntToChar(value : int) -> char [[overload]] ..
 func IntToChar(value : int, defvalue : char) -> char [[overload]] ..
 func IntToWchar(value : int) -> wchar [[overload]] ..
 func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
+func StrSlice(data : ^char, length : int) -> strslice ..
 
 #ifdef DYNSTRINGS
 func StrFromWchars(chars : []wchar) -> str ..
@@ -131,6 +132,20 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
     if not IsValidWchar(result):
         return defvalue
     endif
+endfunc
+
+func StrSlice(data : ^char, length : int) -> strslice:
+    var info : SDqTextInfo = {}
+    if length < 0  or  uint(length) > 0x7FFFFFFF:
+        StrfRuntimeError('strslice length out of range')
+        return ^strslice(%info)^
+    endif
+    if data == nil  and length <> 0:
+        StrfRuntimeError('strslice nil data')
+        return ^strslice(%info)^
+    endif
+    DynStrSetTextInfo(info, data, uint32(length))
+    return ^strslice(%info)^
 endfunc
 
 func StrfByte(text : strslice, index : int) -> uint32:

@@ -169,6 +169,7 @@ object OCConnection:  // Client connection to server
     func *Create(amanager : OMultiClientManager) ..
 
     func Connect() [[virtual]] ..
+    func Disconnect() [[virtual]] ..
     func HandleOutputForConnect(aobj : Object) [[virtual]] ..
     func HandleInput(aobj : Object) [[virtual]] ..
     func HandleOutput(aobj : Object) [[virtual]] ..
@@ -603,6 +604,10 @@ func OCConnection.Connect() [[virtual]]:
     endif
 
     manager.swatcher.AddSocket(sock, self, nil, self.HandleOutputForConnect)
+endfunc
+
+func OCConnection.Disconnect() [[virtual]]:
+    manager.CloseConnection(self)
 endfunc
 
 func OCConnection.HandleOutputForConnect(aobj : Object) [[virtual]]:

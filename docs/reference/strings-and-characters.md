@@ -107,6 +107,17 @@ Standard-library paths, names, commands, messages, and format strings use
 `rostr`. Parser input, generic text algorithms, output chunks, and byte payloads
 continue to use `strslice` so they accept slices without allocating.
 
+Use `StrSlice(data, length)` to borrow a known-length byte range from a
+`^char`, including an unterminated range or one containing zero bytes. The
+caller keeps the storage alive and stable for as long as the view is used.
+
+```dq
+use rtl/strfunc
+
+var view : strslice = StrSlice(data, data_length)
+buffer.Append(view)
+```
+
 ## Byte Indexing and Slicing
 
 `text[index]` reads or writes one `char` byte. `text[start:end]` uses a half-open

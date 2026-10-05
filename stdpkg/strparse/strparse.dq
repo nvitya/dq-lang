@@ -46,7 +46,7 @@ object OStrParse:
 
     func CheckSymbol(checkstring : rostr) -> bool ..
 
-    func PrevStr() -> str ..
+    func PrevStr() -> strslice ..
     func UCComparePrev(checkstring : rostr) -> bool ..
     func PrevToInt() -> int ..
     func PrevHexToInt() -> uint ..
@@ -337,15 +337,8 @@ func OStrParse.SearchPattern(checkstring : rostr) -> bool:
     return false
 endfunc
 
-func OStrParse.PrevStr() -> str:
-    result = ''
-    var cp  : ^char = prevp
-    var endp : ^char = prevp + prevlen
-
-    while cp < endp:
-        result.Append(char(cp^))
-        ++cp
-    endwhile
+func OStrParse.PrevStr() -> strslice:
+    result = @.StrSlice(prevp, prevlen)
 endfunc
 
 func OStrParse.UCComparePrev(checkstring : rostr) -> bool:

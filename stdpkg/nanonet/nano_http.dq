@@ -321,8 +321,8 @@ endfunc
 func OSConnectionHttp.ProcessInData():
     while true:
         sp.Init(^char(%inbuf[0]), infill)
-        if not sp.SearchPattern('\r\n\r\n'):
-            return
+        if not sp.SearchPattern('\r\n\r\n'):  // search for end of the header
+            return  // the message is incomplete wait more
         endif
 
         header_length = sp.readp - sp.bufstart

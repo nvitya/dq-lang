@@ -1,0 +1,24 @@
+// StrSlice borrows an exact byte range from raw character storage.
+
+use libc/stdio
+use rtl/strfunc
+
+func PrintText(label : ^char, text : strslice):
+    printf("%s = len:%li bytes:", label, text.length)
+    var i : int = 0
+    while i < text.length:
+        printf(" %li", Ord(text[i]))
+        i += 1
+    endwhile
+    printf("\n")
+endfunc
+
+func *Main():
+    var data : [5]char = [char('a'), char(0), char('b'), char('c'), char('d')]
+    var view : strslice = StrSlice(%data[0], 4)
+    PrintText("strslice_from_ptr", view) //?check("strslice_from_ptr", "len:4 bytes: 97 0 98 99")
+
+    var result : embstr(8) = "<"
+    result.Append(view)
+    PrintText("strslice_append", result) //?check("strslice_append", "len:5 bytes: 60 97 0 98 99")
+endfunc

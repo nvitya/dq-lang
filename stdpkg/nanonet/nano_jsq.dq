@@ -69,7 +69,7 @@ func ONanoJsq.ReturnSqlData(sconn : OSConnectionHttp, asql : rostr):
     try:
         ref s = sconn.response   // just a shortcut
         s.Reserve(1024 * 256)    // reserve a big block to avoid frequent re-allocations
-        s.SetLength(0, char(0))  // ensure no content, keeping the reserved memory
+        s.Clear()                // ensure no content, keeping the reserved memory
 
         var dbcur : autofree ODbCursor
         dbcur = m_dbconn.Query(asql)

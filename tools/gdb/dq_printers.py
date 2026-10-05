@@ -7,7 +7,7 @@ import gdb
 
 
 _PRINTER_NAME = "dq-runtime-printers"
-_MAX_PREVIEW_CHARS = 512
+_MAX_PREVIEW_BYTES = 512
 
 
 def _inferior():
@@ -67,7 +67,6 @@ class DqDynStrPrinter:
         self.dataptr = 0
         self.length = 0
         self.capacity = 0
-        self.chwidth = 1
         self._loaded = False
         self._error = None
 
@@ -83,14 +82,10 @@ class DqDynStrPrinter:
             #   dataptr  : pointer
             #   length   : uint32
             #   capacity : uint32
-            #   chwidth  : uint8
             self.refcount = _read_int(base, ps)
             self.dataptr = _read_uint(base + ps, ps)
             self.length = _read_uint(base + 2 * ps, 4)
             self.capacity = _read_uint(base + 2 * ps + 4, 4)
-            self.chwidth = _read_uint(base + 2 * ps + 8, 1)
-            if self.chwidth not in (1, 2, 4):
-                self.chwidth = 1
             self._loaded = True
         except Exception as exc:
             self._error = str(exc)
@@ -102,33 +97,26 @@ class DqDynStrPrinter:
         if self.addr == 0 or self.length == 0 or self.dataptr == 0:
             return ""
 
-        shown_chars = min(self.length, _MAX_PREVIEW_CHARS)
-        byte_count = shown_chars * self.chwidth
+        shown_bytes = min(self.length, _MAX_PREVIEW_BYTES)
 
         try:
-            data = _inferior().read_memory(self.dataptr, byte_count).tobytes()
-            if self.chwidth == 1:
-                text = data.decode("utf-8", errors="replace")
-            elif self.chwidth == 2:
-                text = data.decode("utf-16-le", errors="replace")
-            else:
-                text = data.decode("utf-32-le", errors="replace")
+            data = _inferior().read_memory(self.dataptr, shown_bytes).tobytes()
+            text = data.decode("utf-8", errors="replace")
         except Exception as exc:
             return "<error: %s>" % exc
 
-        if self.length > shown_chars:
+        if self.length > shown_bytes:
             text += "...<truncated>"
         return text
 
     def to_string(self):
         self._load_header()
         text = self._read_text()
-        return '"%s" len=%d cap=%d refs=%d chwidth=%d' % (
+        return '"%s" len=%d cap=%d refs=%d' % (
             _escape_text(text),
             self.length,
             self.capacity,
             self.refcount,
-            self.chwidth,
         )
 
     def children(self):
@@ -136,7 +124,6 @@ class DqDynStrPrinter:
         yield "length", self.length
         yield "capacity", self.capacity
         yield "refcount", self.refcount
-        yield "chwidth", self.chwidth
         yield "dataptr", self.dataptr
 
     def display_hint(self):

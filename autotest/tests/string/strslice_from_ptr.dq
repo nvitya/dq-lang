@@ -2,6 +2,7 @@
 
 use libc/stdio
 use rtl/strfunc
+use strparse
 
 func PrintText(label : ^char, text : strslice):
     printf("%s = len:%li bytes:", label, text.length)
@@ -21,4 +22,10 @@ func *Main():
     var result : embstr(8) = "<"
     result.Append(view)
     PrintText("strslice_append", result) //?check("strslice_append", "len:5 bytes: 60 97 0 98 99")
+
+    var parser <- OStrParse("abc;")
+    parser.ReadTo(';')
+    var parsed : embstr(4)
+    parsed = parser.PrevStr()
+    PrintText("strparse_prevstr_to_embstr", parsed) //?check("strparse_prevstr_to_embstr", "len:3 bytes: 97 98 99")
 endfunc

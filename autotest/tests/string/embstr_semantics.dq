@@ -99,6 +99,10 @@ func *Main():
     cs_str = source
     PrintText("embstr_assign_embstr_trunc", cs_str) //?check("embstr_assign_embstr_trunc", '[3] "abc"')
 
+    var slice_source : str = "abcdef"
+    cs_str = slice_source[1:5]
+    PrintText("embstr_assign_strslice_trunc", cs_str) //?check("embstr_assign_strslice_trunc", '[3] "bcd"')
+
     cs = "abc"
     cs[0] = char('X')
     cs[2] = char('Y')

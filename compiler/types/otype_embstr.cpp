@@ -151,8 +151,7 @@ bool OTypeEmbStr::CanStoreFrom(OExpr * srcexpr) const
   }
 
   OType * srctype = srcexpr->ResolvedType();
-  return dynamic_cast<OTypeEmbStr *>(srctype) || IsCCharPointerType(srctype)
-      || (srctype && TK_ROSTR == srctype->kind);
+  return (srctype && srctype->IsString()) || IsCCharPointerType(srctype);
 }
 
 LlValue * OTypeEmbStr::GenerateDataPtr(OScope * scope, LlValue * embstraddr)
@@ -578,8 +577,8 @@ bool OTypeEmbStr::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (TK_ROSTR == tks && maxlen > 0 && !is_explicit_cast
-      && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)) return true;
+  if (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)
+      && CanStoreFrom(src)) return true;
 
   if (TK_EMBSTR != tks)
   {

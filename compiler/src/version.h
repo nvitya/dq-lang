@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.81.4"
+#define DQ_COMPILER_VERSION  "0.81.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.81.5:
+  - embstr(n) = strslice assignment fix
 v0.81.4:
   - StrSlice() function added to create strslice from pointer+len
 v0.81.3:

@@ -88,6 +88,8 @@ There is no direct conversion from `strslice` to `rostr`, even by a cast. When
 terminated storage is needed for a slice, first assign it to an owning `str`.
 A `rostr` converts to `strslice`, owned `str`, or fixed-capacity `embstr(N)`;
 it cannot become an unsized writable `embstr` alias.
+A `strslice` converts to owned `str` or fixed-capacity `embstr(N)`, copying its
+byte range into the destination and truncating only when the destination lacks capacity.
 
 The descriptor matches `SDqRoStrInfo`: a pointer and a `uint32` byte length,
 with bit 31 marking an unknown length. Its naturally aligned storage is 8 bytes

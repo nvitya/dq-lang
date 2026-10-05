@@ -1,0 +1,18 @@
+// Dynamic string rvalues passed to value parameters must be released after the call.
+// Run this under Valgrind to verify that the loop does not retain allocations.
+
+use collections/strstrmap
+use print
+use strutils
+
+func *Main():
+    var values <- OStrStrMap()
+
+    for n : int = 0 count 10000:
+        values.Add(Format('key={}', [n]), Format('value={}', [n]))
+        values['last'] = Format('value={}', [n])
+        values.Clear()
+    endfor
+
+    PrintLn('temporary_cleanup = done') //?check('temporary_cleanup', 'done')
+endfunc

@@ -370,7 +370,7 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** tempora
   throw logic_error("unsupported text source type: " + srctype->name);
 }
 
-LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr)
+LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr, LlValue ** temporary_string_address)
 {
   if (expr && expr->ResolvedType() && TK_EMBSTR == expr->ResolvedType()->kind
       && static_cast<OTypeEmbStr *>(expr->ResolvedType())->maxlen == 0)
@@ -382,7 +382,7 @@ LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr)
   {
     return lval->GenerateAddress(scope);
   }
-  return StoreTextInfoValue(GenerateTextInfoValue(scope, expr));
+  return StoreTextInfoValue(GenerateTextInfoValue(scope, expr, temporary_string_address));
 }
 
 // OTypeString
@@ -452,9 +452,14 @@ LlValue * OTypeString::GenerateToWchars(OScope * scope, OLValueExpr * receiver)
 
 LlValue * OTypeString::GenerateEqual(OScope * scope, OExpr * left, OExpr * right)
 {
-  LlValue * ldesc = GenerateTextInfoAddress(scope, left);
-  LlValue * rdesc = GenerateTextInfoAddress(scope, right);
-  return CallDynStrFunc(scope, "TextInfoEqual", {ldesc, rdesc});
+  LlValue * left_temporary = nullptr;
+  LlValue * right_temporary = nullptr;
+  LlValue * ldesc = GenerateTextInfoAddress(scope, left, &left_temporary);
+  LlValue * rdesc = GenerateTextInfoAddress(scope, right, &right_temporary);
+  LlValue * result = CallDynStrFunc(scope, "TextInfoEqual", {ldesc, rdesc});
+  if (right_temporary) g_builtins->type_str->GenerateDestroy(scope, right_temporary);
+  if (left_temporary) g_builtins->type_str->GenerateDestroy(scope, left_temporary);
+  return result;
 }
 
 // OTypeDynString
@@ -578,7 +583,10 @@ bool OTypeDynString::GenerateAssignExpr(OScope * scope, LlValue * targetaddr, OE
 
   if (srctype->IsTextSource())
   {
-    CallDynStrFunc(scope, "DynStrAssignData", {targetaddr, GenerateTextInfoAddress(scope, value)});
+    LlValue * temporary = nullptr;
+    LlValue * text = GenerateTextInfoAddress(scope, value, &temporary);
+    CallDynStrFunc(scope, "DynStrAssignData", {targetaddr, text});
+    if (temporary) GenerateDestroy(scope, temporary);
     return true;
   }
 
@@ -596,9 +604,15 @@ LlValue * OTypeDynString::GenerateConcat(OScope * scope, OExpr * left, OExpr * r
   LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.concat.tmp");
   g_builtins->type_str->GenerateCreate(scope, tmp);
   CallDynStrFunc(scope, "DynStrCreate", {tmp});
-  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, left), LlI32(-1)});
+  LlValue * left_temporary = nullptr;
+  LlValue * left_text = GenerateTextInfoAddress(scope, left, &left_temporary);
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, left_text, LlI32(-1)});
+  if (left_temporary) g_builtins->type_str->GenerateDestroy(scope, left_temporary);
   EmitExpressionExceptionCheck(scope);
-  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  LlValue * right_temporary = nullptr;
+  LlValue * right_text = GenerateTextInfoAddress(scope, right, &right_temporary);
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, right_text, LlI32(-1)});
+  if (right_temporary) g_builtins->type_str->GenerateDestroy(scope, right_temporary);
   EmitExpressionExceptionCheck(scope);
   return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
 }
@@ -615,7 +629,10 @@ LlValue * OTypeDynString::GenerateConcatFromStringValue(OScope * scope, LlValue 
   CallDynStrFunc(scope, "DynStrCreate", {tmp});
   CallDynStrFunc(scope, "DynStrAppend", {tmp, ldesc, LlI32(-1)});
   EmitExpressionExceptionCheck(scope);
-  CallDynStrFunc(scope, "DynStrAppend", {tmp, GenerateTextInfoAddress(scope, right), LlI32(-1)});
+  LlValue * right_temporary = nullptr;
+  LlValue * right_text = GenerateTextInfoAddress(scope, right, &right_temporary);
+  CallDynStrFunc(scope, "DynStrAppend", {tmp, right_text, LlI32(-1)});
+  if (right_temporary) g_builtins->type_str->GenerateDestroy(scope, right_temporary);
   EmitExpressionExceptionCheck(scope);
   return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.concat");
 }

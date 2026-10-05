@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.81.5"
+#define DQ_COMPILER_VERSION  "0.82.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.82.0:
+  - internally allocated temporary dynamic string cleanup fixes
 v0.81.5:
   - embstr(n) = strslice assignment fix
 v0.81.4:

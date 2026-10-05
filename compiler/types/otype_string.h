@@ -188,7 +188,8 @@ inline bool IsStringFamilyTextType(OType * type) { return type && type->IsString
 bool EnsureDynStringRtlUseForStringTypes();
 OValSymFunc * TextFormatFunc(const string & name);
 LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {});
-LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr);
+LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr,
+                                  LlValue ** temporary_string_address = nullptr);
 LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** temporary_string_address = nullptr);
 
 void GenerateStringCreate(OScope * scope, LlValue * straddr);

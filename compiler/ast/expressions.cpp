@@ -28,6 +28,39 @@
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
 
+static bool NeedsTemporaryDynStrCleanup(OExpr * expr, OFuncParam * param = nullptr)
+{
+  if (!expr || !expr->ResolvedType())
+  {
+    return false;
+  }
+
+  OType * type = param ? param->ptype->ResolveAlias() : expr->ResolvedType();
+  if (TK_DYNSTR != type->kind)
+  {
+    return false;
+  }
+
+  auto * lvalue = dynamic_cast<OLValueExpr *>(expr);
+  return !lvalue || dynamic_cast<OPropertyExpr *>(expr);
+}
+
+static LlValue * CaptureTemporaryDynStr(LlValue * value)
+{
+  LlValue * temporary = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr,
+                                                "str.call.tmp");
+  ll_builder.CreateStore(value, temporary);
+  return temporary;
+}
+
+static void ReleaseTemporaryDynStrs(OScope * scope, const vector<LlValue *> & temporaries)
+{
+  for (LlValue * temporary : temporaries)
+  {
+    g_builtins->type_str->GenerateDestroy(scope, temporary);
+  }
+}
+
 static LlType * LlNativeIntType()
 {
   return g_builtins->type_int->GetLlType();
@@ -1177,7 +1210,25 @@ void OPropertyExpr::GenerateWrite(OScope * scope, OExpr * value)
 
   if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
   {
-    GenerateFunctionCall(scope, setter, GenerateCallArgs(scope, setter, value));
+    vector<LlValue *> args = GenerateCallArgs(scope, setter, value);
+    auto * sig = static_cast<OTypeFunc *>(setter->ptype);
+    vector<LlValue *> temporary_dynstrs;
+    for (size_t i = 0; i < indices.size(); ++i)
+    {
+      OFuncParam * param = sig->params[i + 1];
+      if (FPM_VALUE == param->mode && NeedsTemporaryDynStrCleanup(indices[i], param))
+      {
+        temporary_dynstrs.push_back(CaptureTemporaryDynStr(args[i + 1]));
+      }
+    }
+    OFuncParam * value_param = sig->params.back();
+    if (FPM_VALUE == value_param->mode && NeedsTemporaryDynStrCleanup(value, value_param))
+    {
+      temporary_dynstrs.push_back(CaptureTemporaryDynStr(args.back()));
+    }
+
+    GenerateFunctionCall(scope, setter, args);
+    ReleaseTemporaryDynStrs(scope, temporary_dynstrs);
     return;
   }
 
@@ -1251,7 +1302,17 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
       ll_builder.CreateStore(ll_newval, ll_temp);
       ll_args.push_back(ll_temp);
     }
+    LlValue * temporary_dynstr = nullptr;
+    if (FPM_VALUE == value_param->mode && strtype && BINOP_ADD == op)
+    {
+      temporary_dynstr = CaptureTemporaryDynStr(ll_newval);
+    }
+
     GenerateFunctionCall(scope, setter, ll_args);
+    if (temporary_dynstr)
+    {
+      g_builtins->type_str->GenerateDestroy(scope, temporary_dynstr);
+    }
   }
   else
   {
@@ -2822,9 +2883,17 @@ LlValue * OCallExpr::Generate(OScope * scope)
   OCallLifetimeCleanup cleanup(scope, args);
   cleanup.Prepare();
   vector<LlValue *>   ll_args;
+  vector<LlValue *>   temporary_dynstrs;
   for (size_t i = 0; i < args.size(); ++i)
   {
     LlValue * val = args[i]->Generate(scope);
+
+    if (i < tfunc->params.size()
+        && FPM_VALUE == tfunc->params[i]->mode
+        && NeedsTemporaryDynStrCleanup(args[i], tfunc->params[i]))
+    {
+      temporary_dynstrs.push_back(CaptureTemporaryDynStr(val));
+    }
 
     // C varargs default argument promotions for extra arguments
     if (tfunc->has_varargs && i >= tfunc->params.size())
@@ -2854,6 +2923,7 @@ LlValue * OCallExpr::Generate(OScope * scope)
   }
 
   LlValue * result = GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
+  ReleaseTemporaryDynStrs(scope, temporary_dynstrs);
   cleanup.Cleanup();
   return result;
 }

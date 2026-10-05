@@ -67,7 +67,7 @@ func OSConnHttpApp.ProcessRequest() -> bool [[override]]:
                 response.Add('Get var "c" is not set.\r\n')
             endif
 
-            var pb : ^byte = nil
+            //var pb : ^byte = nil
             //Writeln('this causes an exception:' , pb^);
 
             return true

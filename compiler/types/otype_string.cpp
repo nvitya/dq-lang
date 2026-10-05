@@ -569,7 +569,7 @@ bool OTypeDynString::GenerateAssignExpr(OScope * scope, LlValue * targetaddr, OE
   if (TK_DYNSTR == srctype->kind)
   {
     LlValue * srcmgr = value->Generate(scope);
-    if (dynamic_cast<OLValueExpr *>(value))
+    if (value->IsStableStorageLValue())
     {
       CallDynStrFunc(scope, "DynStrAssignOther", {targetaddr, srcmgr});
     }

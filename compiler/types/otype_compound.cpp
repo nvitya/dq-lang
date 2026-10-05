@@ -942,13 +942,20 @@ void OVsObject::GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr
     return;
   }
 
+  OCallLifetimeCleanup cleanup(scope, object_ctor_args);
+  auto * ctor_sig = dynamic_cast<OTypeFunc *>(ctor->ptype ? ctor->ptype->ResolveAlias() : nullptr);
   vector<LlValue *> ll_args;
   ll_args.push_back(ll_object_addr);
-  for (OExpr * arg : object_ctor_args)
+  for (size_t i = 0; i < object_ctor_args.size(); ++i)
   {
-    ll_args.push_back(arg->Generate(scope));
+    LlValue * arg_val = object_ctor_args[i]->Generate(scope);
+    OFuncParam * param = (ctor_sig && (i + 1) < ctor_sig->params.size()) ? ctor_sig->params[i + 1] : nullptr;
+    cleanup.CaptureArgument(object_ctor_args[i], arg_val, param);
+    ll_args.push_back(arg_val);
   }
+  cleanup.Prepare();
   ll_builder.CreateCall(ctor->ll_func, ll_args);
+  cleanup.Cleanup();
 }
 
 void OVsObject::GenerateDestructorCall(LlValue * ll_object_addr) const

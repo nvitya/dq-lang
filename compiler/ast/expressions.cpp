@@ -28,39 +28,6 @@
 #include "dqc.h"
 #include <llvm/IR/Intrinsics.h>
 
-static bool NeedsTemporaryDynStrCleanup(OExpr * expr, OFuncParam * param = nullptr)
-{
-  if (!expr || !expr->ResolvedType())
-  {
-    return false;
-  }
-
-  OType * type = param ? param->ptype->ResolveAlias() : expr->ResolvedType();
-  if (TK_DYNSTR != type->kind)
-  {
-    return false;
-  }
-
-  auto * lvalue = dynamic_cast<OLValueExpr *>(expr);
-  return !lvalue || dynamic_cast<OPropertyExpr *>(expr);
-}
-
-static LlValue * CaptureTemporaryDynStr(LlValue * value)
-{
-  LlValue * temporary = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr,
-                                                "str.call.tmp");
-  ll_builder.CreateStore(value, temporary);
-  return temporary;
-}
-
-static void ReleaseTemporaryDynStrs(OScope * scope, const vector<LlValue *> & temporaries)
-{
-  for (LlValue * temporary : temporaries)
-  {
-    g_builtins->type_str->GenerateDestroy(scope, temporary);
-  }
-}
-
 static LlType * LlNativeIntType()
 {
   return g_builtins->type_int->GetLlType();
@@ -1191,6 +1158,11 @@ LlValue * OPropertyExpr::Generate(OScope * scope)
   return ll_builder.CreateLoad(ptype->GetLlType(), ll_addr, "property");
 }
 
+bool OPropertyExpr::HasStableStorage() const
+{
+  return (property && !dynamic_cast<OValSymFunc *>(property->read_accessor));
+}
+
 bool OPropertyExpr::IsObjectReferenceExpr() const
 {
   return ptype && (TK_OBJECT == ptype->ResolveAlias()->kind);
@@ -1210,25 +1182,23 @@ void OPropertyExpr::GenerateWrite(OScope * scope, OExpr * value)
 
   if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
   {
+    vector<OExpr *> all_args = indices;
+    all_args.push_back(value);
+    OCallLifetimeCleanup cleanup(scope, all_args);
+
     vector<LlValue *> args = GenerateCallArgs(scope, setter, value);
     auto * sig = static_cast<OTypeFunc *>(setter->ptype);
-    vector<LlValue *> temporary_dynstrs;
     for (size_t i = 0; i < indices.size(); ++i)
     {
       OFuncParam * param = sig->params[i + 1];
-      if (FPM_VALUE == param->mode && NeedsTemporaryDynStrCleanup(indices[i], param))
-      {
-        temporary_dynstrs.push_back(CaptureTemporaryDynStr(args[i + 1]));
-      }
+      cleanup.CaptureArgument(indices[i], args[i + 1], param);
     }
     OFuncParam * value_param = sig->params.back();
-    if (FPM_VALUE == value_param->mode && NeedsTemporaryDynStrCleanup(value, value_param))
-    {
-      temporary_dynstrs.push_back(CaptureTemporaryDynStr(args.back()));
-    }
+    cleanup.CaptureArgument(value, args.back(), value_param);
 
+    cleanup.Prepare();
     GenerateFunctionCall(scope, setter, args);
-    ReleaseTemporaryDynStrs(scope, temporary_dynstrs);
+    cleanup.Cleanup();
     return;
   }
 
@@ -1259,12 +1229,14 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
     }
   }
 
+  bool curval_from_getter = false;
   LlValue * ll_curval = nullptr;
   if (auto * getter = dynamic_cast<OValSymFunc *>(property->read_accessor))
   {
     vector<LlValue *> ll_args = {ll_receiver};
     ll_args.insert(ll_args.end(), ll_indices.begin(), ll_indices.end());
     ll_curval = GenerateFunctionCall(scope, getter, ll_args);
+    curval_from_getter = true;
   }
   else
   {
@@ -1279,6 +1251,12 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
   if (strtype && BINOP_ADD == op)
   {
     ll_newval = OTypeDynString::GenerateConcatFromStringValue(scope, ll_curval, value);
+    if (curval_from_getter)
+    {
+      LlValue * curval_tmp = CreateEntryBlockAlloca(strtype->GetLlType(), nullptr, "prop.getter.tmp");
+      ll_builder.CreateStore(ll_curval, curval_tmp);
+      strtype->GenerateDestroy(scope, curval_tmp);
+    }
   }
   else
   {
@@ -1305,7 +1283,8 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
     LlValue * temporary_dynstr = nullptr;
     if (FPM_VALUE == value_param->mode && strtype && BINOP_ADD == op)
     {
-      temporary_dynstr = CaptureTemporaryDynStr(ll_newval);
+      temporary_dynstr = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.call.tmp");
+      ll_builder.CreateStore(ll_newval, temporary_dynstr);
     }
 
     GenerateFunctionCall(scope, setter, ll_args);
@@ -2229,14 +2208,21 @@ LlValue * ONewExpr::Generate(OScope * scope)
 
   if (ctor_func)
   {
+    OCallLifetimeCleanup cleanup(scope, ctor_args);
+    auto * ctor_type = dynamic_cast<OTypeFunc *>(ctor_func->ptype ? ctor_func->ptype->ResolveAlias() : nullptr);
     vector<LlValue *> ll_args;
     ll_args.push_back(ll_ptr);
-    for (OExpr * arg : ctor_args)
+    for (size_t i = 0; i < ctor_args.size(); ++i)
     {
-      ll_args.push_back(arg->Generate(scope));
+      LlValue * arg_val = ctor_args[i]->Generate(scope);
+      OFuncParam * param = (ctor_type && (i + 1) < ctor_type->params.size()) ? ctor_type->params[i + 1] : nullptr;
+      cleanup.CaptureArgument(ctor_args[i], arg_val, param);
+      ll_args.push_back(arg_val);
     }
+    cleanup.Prepare();
     scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()), ctor_func->ll_func, ll_args);
     EmitExpressionExceptionCheck(scope);
+    cleanup.Cleanup();
   }
 
   return ll_ptr;
@@ -2462,114 +2448,142 @@ void OArrayLitToSliceExpr::DeleteChildTree()
   arraylit = nullptr;
 }
 
-class OCallLifetimeCleanup
+void OCallLifetimeCleanup::RestoreScope()
 {
-private:
-  OScope * scope;
-  vector<OExpr *> temporaries;
-  LlBasicBlock * saved_lpad_bb = nullptr;
-  LlBasicBlock * saved_scope_cleanup_bb = nullptr;
-  LlBasicBlock * next_cleanup_bb = nullptr;
-  LlBasicBlock * lpad_bb = nullptr;
-  LlBasicBlock * cleanup_bb = nullptr;
-
-  void RestoreScope()
+  if (lpad_bb)
   {
-    if (lpad_bb)
-    {
-      scope->exception_cleanup_bb = saved_lpad_bb;
-      scope->unwind_cleanup_bb = saved_scope_cleanup_bb;
-    }
+    scope->exception_cleanup_bb = saved_lpad_bb;
+    scope->unwind_cleanup_bb = saved_scope_cleanup_bb;
+  }
+}
+
+void OCallLifetimeCleanup::GenerateExceptionCleanup()
+{
+  if (!lpad_bb)
+  {
+    return;
   }
 
-  void GenerateExceptionCleanup()
+  LlBasicBlock * normal_bb = ll_builder.GetInsertBlock();
+  LlFunction * ll_func = normal_bb->getParent();
+
+  ll_builder.SetInsertPoint(lpad_bb);
+  g_compiler->EnsurePersonalityFn(ll_func);
+  auto * lpad = ll_builder.CreateLandingPad(
+      llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
+      1, "lpad");
+  lpad->setCleanup(true);
+  if (!g_compiler->ll_exn_storage)
   {
-    if (!lpad_bb)
-    {
-      return;
-    }
+    LlBasicBlock * entry = &ll_func->getEntryBlock();
+    llvm::IRBuilder<> entry_builder(entry, entry->begin());
+    g_compiler->ll_exn_storage = entry_builder.CreateAlloca(lpad->getType(), nullptr, "exn.storage");
+  }
+  ll_builder.CreateStore(lpad, g_compiler->ll_exn_storage);
+  ll_builder.CreateBr(cleanup_bb);
 
-    LlBasicBlock * normal_bb = ll_builder.GetInsertBlock();
-    LlFunction * ll_func = normal_bb->getParent();
-
-    ll_builder.SetInsertPoint(lpad_bb);
-    g_compiler->EnsurePersonalityFn(ll_func);
-    auto * lpad = ll_builder.CreateLandingPad(
-        llvm::StructType::get(ll_ctx, {llvm::PointerType::get(ll_ctx, 0), llvm::Type::getInt32Ty(ll_ctx)}),
-        1, "lpad");
-    lpad->setCleanup(true);
-    if (!g_compiler->ll_exn_storage)
-    {
-      LlBasicBlock * entry = &ll_func->getEntryBlock();
-      llvm::IRBuilder<> entry_builder(entry, entry->begin());
-      g_compiler->ll_exn_storage = entry_builder.CreateAlloca(lpad->getType(), nullptr, "exn.storage");
-    }
-    ll_builder.CreateStore(lpad, g_compiler->ll_exn_storage);
-    ll_builder.CreateBr(cleanup_bb);
-
-    ll_builder.SetInsertPoint(cleanup_bb);
-    for (OExpr * temporary : temporaries)
-    {
-      temporary->GenerateCallCleanup(scope);
-    }
-    if (next_cleanup_bb)
-    {
-      ll_builder.CreateBr(next_cleanup_bb);
-    }
-    else
-    {
-      LlValue * exn = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage, "exn.val");
-      ll_builder.CreateResume(exn);
-    }
-
-    ll_builder.SetInsertPoint(normal_bb);
+  ll_builder.SetInsertPoint(cleanup_bb);
+  for (OExpr * temporary : temporaries)
+  {
+    temporary->GenerateCallCleanup(scope);
+  }
+  for (LlValue * temporary_dynstr : temporary_dynstrs)
+  {
+    g_builtins->type_str->GenerateDestroy(scope, temporary_dynstr);
+  }
+  if (next_cleanup_bb)
+  {
+    ll_builder.CreateBr(next_cleanup_bb);
+  }
+  else
+  {
+    LlValue * exn = ll_builder.CreateLoad(lpad->getType(), g_compiler->ll_exn_storage, "exn.val");
+    ll_builder.CreateResume(exn);
   }
 
-public:
-  OCallLifetimeCleanup(OScope * ascope, const vector<OExpr *> & args)
-    : scope(ascope)
+  ll_builder.SetInsertPoint(normal_bb);
+}
+
+OCallLifetimeCleanup::OCallLifetimeCleanup(OScope * ascope, const vector<OExpr *> & args)
+  : scope(ascope)
+{
+  for (OExpr * arg : args)
   {
-    for (OExpr * arg : args)
+    if (arg && arg->NeedsCallCleanup())
     {
-      if (arg->NeedsCallCleanup())
-      {
-        temporaries.push_back(arg);
-      }
+      temporaries.push_back(arg);
     }
   }
+}
 
-  void Prepare()
+void OCallLifetimeCleanup::Prepare()
+{
+  if (!HasCleanups() || !g_opt.exceptions)
   {
-    if (temporaries.empty() || !g_opt.exceptions)
-    {
-      return;
-    }
-
-    LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
-    saved_lpad_bb = scope->exception_cleanup_bb;
-    saved_scope_cleanup_bb = scope->unwind_cleanup_bb;
-    next_cleanup_bb = scope->GetUnwindCleanupBB();
-    lpad_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.lpad", ll_func);
-    cleanup_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.cleanup", ll_func);
-    scope->exception_cleanup_bb = lpad_bb;
-    scope->unwind_cleanup_bb = cleanup_bb;
+    return;
   }
 
-  void Cleanup()
-  {
-    if (temporaries.empty())
-    {
-      return;
-    }
+  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
+  saved_lpad_bb = scope->exception_cleanup_bb;
+  saved_scope_cleanup_bb = scope->unwind_cleanup_bb;
+  next_cleanup_bb = scope->GetUnwindCleanupBB();
+  lpad_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.lpad", ll_func);
+  cleanup_bb = LlBasicBlock::Create(ll_ctx, "call.tmp.cleanup", ll_func);
+  scope->exception_cleanup_bb = lpad_bb;
+  scope->unwind_cleanup_bb = cleanup_bb;
+}
 
-    RestoreScope();
-    for (OExpr * temporary : temporaries)
-    {
-      temporary->GenerateCallCleanup(scope);
-    }
-    GenerateExceptionCleanup();
+void OCallLifetimeCleanup::Cleanup()
+{
+  if (!HasCleanups())
+  {
+    return;
   }
-};
+
+  RestoreScope();
+  for (OExpr * temporary : temporaries)
+  {
+    temporary->GenerateCallCleanup(scope);
+  }
+  for (LlValue * temporary_dynstr : temporary_dynstrs)
+  {
+    g_builtins->type_str->GenerateDestroy(scope, temporary_dynstr);
+  }
+  GenerateExceptionCleanup();
+}
+
+void OCallLifetimeCleanup::CaptureArgument(OExpr * expr, LlValue * val, OFuncParam * param)
+{
+  if (!expr || !val)
+  {
+    return;
+  }
+  if (param && param->IsRefLike())
+  {
+    return;
+  }
+
+  OType * type = param ? param->ptype->ResolveAlias() : expr->ResolvedType();
+  if (!type || TK_DYNSTR != type->kind)
+  {
+    return;
+  }
+
+  if (!expr->IsStableStorageLValue())
+  {
+    LlValue * temporary = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.call.tmp");
+    ll_builder.CreateStore(val, temporary);
+    temporary_dynstrs.push_back(temporary);
+  }
+}
+
+void OCallLifetimeCleanup::RegisterTemporaryDynStr(LlValue * tmp)
+{
+  if (tmp)
+  {
+    temporary_dynstrs.push_back(tmp);
+  }
+}
 
 /* ctor */ OArrayLitToDynArrayExpr::OArrayLitToDynArrayExpr(OArrayLit * alit, OType * adyntype)
 {
@@ -2881,19 +2895,13 @@ LlValue * OCallExpr::Generate(OScope * scope)
 {
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   OCallLifetimeCleanup cleanup(scope, args);
-  cleanup.Prepare();
   vector<LlValue *>   ll_args;
-  vector<LlValue *>   temporary_dynstrs;
   for (size_t i = 0; i < args.size(); ++i)
   {
     LlValue * val = args[i]->Generate(scope);
 
-    if (i < tfunc->params.size()
-        && FPM_VALUE == tfunc->params[i]->mode
-        && NeedsTemporaryDynStrCleanup(args[i], tfunc->params[i]))
-    {
-      temporary_dynstrs.push_back(CaptureTemporaryDynStr(val));
-    }
+    OFuncParam * param = (i < tfunc->params.size() ? tfunc->params[i] : nullptr);
+    cleanup.CaptureArgument(args[i], val, param);
 
     // C varargs default argument promotions for extra arguments
     if (tfunc->has_varargs && i >= tfunc->params.size())
@@ -2922,8 +2930,8 @@ LlValue * OCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
+  cleanup.Prepare();
   LlValue * result = GenerateFunctionCall(scope, vsfunc, ll_args, force_direct);
-  ReleaseTemporaryDynStrs(scope, temporary_dynstrs);
   cleanup.Cleanup();
   return result;
 }
@@ -3229,7 +3237,6 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   ll_builder.SetInsertPoint(ok_bb);
 
   OCallLifetimeCleanup cleanup(scope, args);
-  cleanup.Prepare();
   vector<LlValue *> ll_args;
   if (object_ref)
   {
@@ -3238,6 +3245,9 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   for (size_t i = 0; i < args.size(); ++i)
   {
     LlValue * val = args[i]->Generate(scope);
+
+    OFuncParam * param = (i < sigtype->params.size() ? sigtype->params[i] : nullptr);
+    cleanup.CaptureArgument(args[i], val, param);
 
     if (sigtype->has_varargs && i >= sigtype->params.size())
     {
@@ -3263,6 +3273,7 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
     ll_args.push_back(val);
   }
 
+  cleanup.Prepare();
   LlFuncType * ll_calltype = (object_ref ? sigtype->CreateObjectRefLlCallType()
                                          : static_cast<LlFuncType *>(sigtype->GetLlType()));
   LlValue * result = scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
@@ -3748,10 +3759,7 @@ LlValue * OTextBorrowExpr::Generate(OScope * scope)
 bool OTextBorrowExpr::NeedsCallCleanup() const
 {
   OType * srctype = source->ResolvedType();
-  auto * lvalue = dynamic_cast<OLValueExpr *>(source);
-  // Properties use getter results rather than stable string storage.
-  return srctype && (TK_DYNSTR == srctype->kind)
-      && (!lvalue || dynamic_cast<OPropertyExpr *>(source));
+  return srctype && (TK_DYNSTR == srctype->kind) && !source->IsStableStorageLValue();
 }
 
 void OTextBorrowExpr::GenerateCallCleanup(OScope * scope)

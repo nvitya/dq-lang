@@ -93,6 +93,8 @@ public:
   virtual OValSym * NoWriteSymbol() const { return nullptr; }
   virtual LlValue * GenerateObjectAddress(OScope * scope);
   virtual OLValueExpr * Clone() const { return nullptr; }
+  virtual bool HasStableStorage() const { return true; }
+  bool IsStableStorageLValue() const override { return HasStableStorage(); }
 };
 
 class OLValueVar : public OLValueExpr
@@ -183,6 +185,7 @@ public:
   LlValue * GenerateAddress(OScope * scope) override;
   LlValue * Generate(OScope * scope) override;
   bool IsObjectReferenceExpr() const override;
+  bool HasStableStorage() const override;
   LlValue * GenerateObjectAddress(OScope * scope) override;
   void GenerateWrite(OScope * scope, OExpr * value);
   void GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value);
@@ -1020,3 +1023,31 @@ public:
   void      FoldChildren() override;
   void      DeleteChildTree() override;
 };
+
+class OCallLifetimeCleanup
+{
+private:
+  OScope * scope;
+  vector<OExpr *> temporaries;
+  vector<LlValue *> temporary_dynstrs;
+  LlBasicBlock * saved_lpad_bb = nullptr;
+  LlBasicBlock * saved_scope_cleanup_bb = nullptr;
+  LlBasicBlock * next_cleanup_bb = nullptr;
+  LlBasicBlock * lpad_bb = nullptr;
+  LlBasicBlock * cleanup_bb = nullptr;
+
+  void RestoreScope();
+  void GenerateExceptionCleanup();
+
+public:
+  OCallLifetimeCleanup(OScope * ascope, const vector<OExpr *> & args);
+  ~OCallLifetimeCleanup() = default;
+
+  void Prepare();
+  void Cleanup();
+
+  void CaptureArgument(OExpr * expr, LlValue * val, OFuncParam * param = nullptr);
+  void RegisterTemporaryDynStr(LlValue * tmp);
+  bool HasCleanups() const { return !temporaries.empty() || !temporary_dynstrs.empty(); }
+};
+

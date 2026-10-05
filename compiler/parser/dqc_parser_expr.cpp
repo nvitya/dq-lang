@@ -2287,6 +2287,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if (!check_count(1, 1)) return free_and_fail();
     method = STRM_APPEND;
     source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
   }
   else if ("AddFmt" == membername)
   {
@@ -2301,6 +2302,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if (!check_count(1, 1)) return free_and_fail();
     method = STRM_PREPEND;
     source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
   }
   else if ("Insert" == membername)
   {
@@ -2308,6 +2310,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     method = STRM_INSERT;
     argtypes.push_back(g_builtins->type_int);
     source_arg_index = 1;
+    argtypes.push_back(g_builtins->type_strslice);
   }
   else if ("Delete" == membername)
   {

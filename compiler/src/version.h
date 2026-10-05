@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.82.0"
+#define DQ_COMPILER_VERSION  "0.83.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.83.0:
+  - Big dynamic string handling updates finally fixing memory leaks
 v0.82.0:
   - internally allocated temporary dynamic string cleanup fixes
 v0.81.5:

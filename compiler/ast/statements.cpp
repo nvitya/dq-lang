@@ -398,13 +398,20 @@ void OStmtObjectCall::Generate(OScope * scope)
     return;
   }
 
+  OCallLifetimeCleanup cleanup(scope, args);
+  auto * method_sig = dynamic_cast<OTypeFunc *>(method->ptype ? method->ptype->ResolveAlias() : nullptr);
   vector<LlValue *> ll_args;
   ll_args.push_back(target->GenerateObjectAddress(scope));
-  for (OExpr * arg : args)
+  for (size_t i = 0; i < args.size(); ++i)
   {
-    ll_args.push_back(arg->Generate(scope));
+    LlValue * arg_val = args[i]->Generate(scope);
+    OFuncParam * param = (method_sig && (i + 1) < method_sig->params.size()) ? method_sig->params[i + 1] : nullptr;
+    cleanup.CaptureArgument(args[i], arg_val, param);
+    ll_args.push_back(arg_val);
   }
+  cleanup.Prepare();
   GenerateFunctionCall(scope, method, ll_args);
+  cleanup.Cleanup();
 }
 
 OStmtInheritedCall::~OStmtInheritedCall()
@@ -436,13 +443,20 @@ void OStmtInheritedCall::Generate(OScope * scope)
     }
   }
 
+  OCallLifetimeCleanup cleanup(scope, args);
+  auto * method_sig = dynamic_cast<OTypeFunc *>(method->ptype ? method->ptype->ResolveAlias() : nullptr);
   vector<LlValue *> ll_args;
   ll_args.push_back(ll_this);
-  for (OExpr * arg : args)
+  for (size_t i = 0; i < args.size(); ++i)
   {
-    ll_args.push_back(arg->Generate(scope));
+    LlValue * arg_val = args[i]->Generate(scope);
+    OFuncParam * param = (method_sig && (i + 1) < method_sig->params.size()) ? method_sig->params[i + 1] : nullptr;
+    cleanup.CaptureArgument(args[i], arg_val, param);
+    ll_args.push_back(arg_val);
   }
+  cleanup.Prepare();
   GenerateFunctionCall(scope, method, ll_args, true);
+  cleanup.Cleanup();
 
   if (emit_derived_field_init && caller->owner_compound_type)
   {
@@ -589,6 +603,12 @@ void OStmtPropertyAssign::Generate(OScope * scope)
 void OStmtVoidCall::Generate(OScope * scope)
 {
   LlValue * ll_value = callexpr->Generate(scope);
+  if (callexpr->ResolvedType() && TK_DYNSTR == callexpr->ResolvedType()->ResolveAlias()->kind)
+  {
+    LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "voidcall.tmp");
+    ll_builder.CreateStore(ll_value, tmp);
+    g_builtins->type_str->GenerateDestroy(scope, tmp);
+  }
 }
 
 void OStmtDelete::Generate(OScope * scope)

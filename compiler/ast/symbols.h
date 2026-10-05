@@ -677,6 +677,8 @@ public:
   virtual bool NeedsCallCleanup() const { return false; }
   virtual void GenerateCallCleanup(OScope * scope) {}
 
+  virtual bool IsStableStorageLValue() const { return false; }
+
   virtual void FoldChildren()
   {
   }

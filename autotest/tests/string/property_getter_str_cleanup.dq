@@ -1,0 +1,50 @@
+// Test that property getters returning str, string method arguments (Append, Prepend, Insert),
+// and temporary constructor arguments do not leak memory.
+
+use collections/strstrmap
+use print
+use strutils
+
+object OItem:
+    key : str
+    val : str
+
+    func *Create(akey : str, aval : str):
+        key = akey
+        val = aval
+    endfunc
+endobject
+
+func *Main():
+    var map <- OStrStrMap()
+    map['Content-Type'] = 'text/plain'
+    map['Server'] = 'TestServer'
+
+    // 1. Property getter assigned to local variable
+    for i : int = 0 count 1000:
+        var k : str = map.key[0]
+        var v : str = map.value[0]
+    endfor
+
+    // 2. Property getter passed to Append/Prepend/Insert
+    var s : str = ''
+    for i : int = 0 count map.length:
+        s.Append(map.key[i])
+        s.Append(': ')
+        s.Append(map.value[i])
+        s.Append('\r\n')
+    endfor
+
+    // 3. New expression with temporary strings
+    for i : int = 0 count 1000:
+        var item : OItem = new OItem('dynamic_' + 'key', 'dynamic_' + 'value')
+        delete item
+    endfor
+
+    // 4. Discarded return value
+    for i : int = 0 count 1000:
+        map.GetItem('Server')
+    endfor
+
+    PrintLn('result={}', [s.length > 0]) //?check('result', 'true')
+endfunc

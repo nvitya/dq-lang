@@ -68,6 +68,7 @@ nav:
       - DQ Project Files: compiler/project-file.md
       - Cross-Compiling and Packaging: compiler/cross-compiling.md
       - Module Artifacts: compiler/dqm-format.md
+      - Windows Debugging: compiler/windows-debugging.md
   - Contributor Documentation:
       - Overview: contributing/index.md
       - Documentation Policy: contributing/documentation-policy.md

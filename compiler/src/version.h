@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.83.3"
+#define DQ_COMPILER_VERSION  "0.83.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.83.4:
+  - Documentation update for windows debugging
 v0.83.3:
   - More windows compatibility fixes (nano_http, time)
 v0.83.2:

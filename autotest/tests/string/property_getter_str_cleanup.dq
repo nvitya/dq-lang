@@ -1,5 +1,7 @@
 // Test that property getters returning str, string method arguments (Append, Prepend, Insert),
 // and temporary constructor arguments do not leak memory.
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
 
 use collections/strstrmap
 use print
@@ -15,7 +17,7 @@ object OItem:
     endfunc
 endobject
 
-func *Main():
+func RunPropertyGetterCleanup() -> bool:
     var map <- OStrStrMap()
     map['Content-Type'] = 'text/plain'
     map['Server'] = 'TestServer'
@@ -46,5 +48,18 @@ func *Main():
         map.GetItem('Server')
     endfor
 
-    PrintLn('result={}', [s.length > 0]) //?check('result', 'true')
+    return s.length > 0
+endfunc
+
+func *Main():
+    var membaseline : int64 = heap_allocated_size
+    var result : bool = RunPropertyGetterCleanup()
+
+    if heap_allocated_size <> membaseline:
+        PrintLn('heapcheck = leak detected')
+    else:
+        PrintLn('heapcheck = ok')  //?check('heapcheck', 'ok')
+    endif
+
+    PrintLn('result={}', [result]) //?check('result', 'true')
 endfunc

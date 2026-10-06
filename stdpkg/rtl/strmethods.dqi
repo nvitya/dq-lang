@@ -1,0 +1,228 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/strmethods.dqi, included by "rtl/strfunc.dq"
+ * authors: nvitya
+ * created: 2026-10-06
+ * brief:   String utility methods implementation
+ */
+
+func StrfIsAsciiSpace(ch : char) -> bool:
+    var b : uint = Ord(ch)
+    return b == 32 or (9 <= b <= 13)
+endfunc
+
+func StrfInCutset(ch : char, cutset : strslice) -> bool:
+    var i : int = 0
+    while i < cutset.length:
+        if ch == cutset[i]:
+            return true
+        endif
+        ++i
+    endwhile
+    return false
+endfunc
+
+func StrIndexOf(text : strslice, needle : strslice, start : int = 0) -> int:
+    var tlen : int = text.length
+    var nlen : int = needle.length
+    var s : int = start
+    if s < 0:
+        s = 0
+    elif s > tlen:
+        s = tlen
+    endif
+
+    if nlen == 0:
+        return s
+    endif
+
+    var max_pos : int = tlen - nlen
+    var i : int = s
+    while i <= max_pos:
+        var j : int = 0
+        while j < nlen and text[i + j] == needle[j]:
+            ++j
+        endwhile
+        if j == nlen:
+            return i
+        endif
+        ++i
+    endwhile
+    return -1
+endfunc
+
+func StrLastIndexOf(text : strslice, needle : strslice) -> int:
+    var tlen : int = text.length
+    var nlen : int = needle.length
+
+    if nlen == 0:
+        return tlen
+    endif
+
+    var i : int = tlen - nlen
+    while i >= 0:
+        var j : int = 0
+        while j < nlen and text[i + j] == needle[j]:
+            ++j
+        endwhile
+        if j == nlen:
+            return i
+        endif
+        --i
+    endwhile
+    return -1
+endfunc
+
+func StrContains(text : strslice, needle : strslice) -> bool:
+    return StrIndexOf(text, needle, 0) >= 0
+endfunc
+
+func StrStartsWith(text : strslice, prefix : strslice) -> bool:
+    var plen : int = prefix.length
+    if plen == 0:
+        return true
+    endif
+    if plen > text.length:
+        return false
+    endif
+    var i : int = 0
+    while i < plen:
+        if text[i] <> prefix[i]:
+            return false
+        endif
+        ++i
+    endwhile
+    return true
+endfunc
+
+func StrEndsWith(text : strslice, suffix : strslice) -> bool:
+    var slen : int = suffix.length
+    var tlen : int = text.length
+    if slen == 0:
+        return true
+    endif
+    if slen > tlen:
+        return false
+    endif
+    var offset : int = tlen - slen
+    var i : int = 0
+    while i < slen:
+        if text[offset + i] <> suffix[i]:
+            return false
+        endif
+        ++i
+    endwhile
+    return true
+endfunc
+
+#ifdef DYNSTRINGS
+func StrLTrim(text : strslice) -> str [[overload]]:
+    var start : int = 0
+    while start < text.length and StrfIsAsciiSpace(text[start]):
+        ++start
+    endwhile
+    result = text[start:]
+endfunc
+
+func StrLTrim(text : strslice, cutset : strslice) -> str [[overload]]:
+    var start : int = 0
+    while start < text.length and StrfInCutset(text[start], cutset):
+        ++start
+    endwhile
+    result = text[start:]
+endfunc
+
+func StrRTrim(text : strslice) -> str [[overload]]:
+    var endpos : int = text.length
+    while endpos > 0 and StrfIsAsciiSpace(text[endpos - 1]):
+        --endpos
+    endwhile
+    result = text[:endpos]
+endfunc
+
+func StrRTrim(text : strslice, cutset : strslice) -> str [[overload]]:
+    var endpos : int = text.length
+    while endpos > 0 and StrfInCutset(text[endpos - 1], cutset):
+        --endpos
+    endwhile
+    result = text[:endpos]
+endfunc
+
+func StrTrim(text : strslice) -> str [[overload]]:
+    var start : int = 0
+    while start < text.length and StrfIsAsciiSpace(text[start]):
+        ++start
+    endwhile
+    var endpos : int = text.length
+    while endpos > start and StrfIsAsciiSpace(text[endpos - 1]):
+        --endpos
+    endwhile
+    result = text[start:endpos]
+endfunc
+
+func StrTrim(text : strslice, cutset : strslice) -> str [[overload]]:
+    var start : int = 0
+    while start < text.length and StrfInCutset(text[start], cutset):
+        ++start
+    endwhile
+    var endpos : int = text.length
+    while endpos > start and StrfInCutset(text[endpos - 1], cutset):
+        --endpos
+    endwhile
+    result = text[start:endpos]
+endfunc
+
+func StrLPad(text : strslice, target_len : int, fill : strslice) -> str:
+    if fill.length == 0:
+        StrfRuntimeError('LPad: fill string cannot be empty')
+        return ''
+    endif
+    if target_len <= text.length:
+        result = text
+        return
+    endif
+    result = ''
+    result.Reserve(target_len)
+    var pad_len : int = target_len - text.length
+    var full_repeats : int = pad_len div fill.length
+    var rem : int = pad_len mod fill.length
+    while full_repeats > 0:
+        result.Append(fill)
+        --full_repeats
+    endwhile
+    if rem > 0:
+        result.Append(fill[0:rem])
+    endif
+    result.Append(text)
+endfunc
+
+func StrRPad(text : strslice, target_len : int, fill : strslice) -> str:
+    if fill.length == 0:
+        StrfRuntimeError('RPad: fill string cannot be empty')
+        return ''
+    endif
+    if target_len <= text.length:
+        result = text
+        return
+    endif
+    result = text
+    result.Reserve(target_len)
+    var pad_len : int = target_len - text.length
+    var full_repeats : int = pad_len div fill.length
+    var rem : int = pad_len mod fill.length
+    while full_repeats > 0:
+        result.Append(fill)
+        --full_repeats
+    endwhile
+    if rem > 0:
+        result.Append(fill[0:rem])
+    endif
+endfunc
+#endif

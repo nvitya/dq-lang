@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    rtl/strmethods.dqh, included by "rtl/strfunc.dq"
+ * authors: nvitya
+ * created: 2026-10-06
+ * brief:   String utility methods interface
+ */
+
+func StrIndexOf(text : strslice, needle : strslice, start : int = 0) -> int ..
+func StrLastIndexOf(text : strslice, needle : strslice) -> int ..
+func StrContains(text : strslice, needle : strslice) -> bool ..
+func StrStartsWith(text : strslice, prefix : strslice) -> bool ..
+func StrEndsWith(text : strslice, suffix : strslice) -> bool ..
+
+#ifdef DYNSTRINGS
+func StrTrim(text : strslice) -> str [[overload]] ..
+func StrTrim(text : strslice, cutset : strslice) -> str [[overload]] ..
+func StrLTrim(text : strslice) -> str [[overload]] ..
+func StrLTrim(text : strslice, cutset : strslice) -> str [[overload]] ..
+func StrRTrim(text : strslice) -> str [[overload]] ..
+func StrRTrim(text : strslice, cutset : strslice) -> str [[overload]] ..
+func StrLPad(text : strslice, target_len : int, fill : strslice) -> str ..
+func StrRPad(text : strslice, target_len : int, fill : strslice) -> str ..
+#endif

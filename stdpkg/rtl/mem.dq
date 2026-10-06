@@ -23,6 +23,10 @@ func MemReallocRef(memptr : ref pointer, newsize : uint) ..
 func MemCopy(dest : pointer, src : pointer, size : uint) ..
 func MemSet(dest : pointer, value : int, size : uint) ..
 
+func MemBlockSize(memptr : pointer) -> uint ..
+
+var heap_allocated_size : int64 = 0  // handled only when HEAPCHECK is defined
+
 implementation
 
 // Memory Allocation
@@ -42,24 +46,45 @@ func MemAlloc(allocbytes : int, zeromem : bool = false) -> pointer:
     else:
         result = libc_malloc(allocbytes)
     endif
+  #ifdef HEAPCHECK
+    if result <> nil:
+        heap_allocated_size += int64(MemBlockSize(result))
+    endif
+  #endif
 endfunc
 
 
 func MemFree(memptr : pointer):
+  #ifdef HEAPCHECK
+    if memptr <> nil:
+        heap_allocated_size -= int64(MemBlockSize(memptr))
+    endif
+  #endif
     libc_free(memptr)
 endfunc
 
 func MemFreeRef(memptrvar : ref pointer):
-    libc_free(memptrvar)
+    MemFree(memptrvar)
     memptrvar = nil
 endfunc
 
 func MemRealloc(memptr : pointer, newsize : uint) -> pointer:
+  #ifdef HEAPCHECK
+    var oldsize : uint = 0
+    if memptr <> nil:
+        oldsize = MemBlockSize(memptr)
+    endif
+  #endif
     result = libc_realloc(memptr, newsize)
+  #ifdef HEAPCHECK
+    if result <> nil:
+        heap_allocated_size += int64(MemBlockSize(result)) - int64(oldsize)
+    endif
+  #endif
 endfunc
 
 func MemReallocRef(memptr : ref pointer, newsize : uint):
-    memptr = libc_realloc(memptr, newsize)
+    memptr = MemRealloc(memptr, newsize)
 endfunc
 
 func MemCopy(dest : pointer, src : pointer, size : uint):
@@ -73,3 +98,27 @@ endfunc
 func MemSet(dest : pointer, value : int, size : uint):
     libc_memset(dest, value, size)
 endfunc
+
+#ifdef WINDOWS
+
+func libc__msize(memptr : pointer) -> uint [[external('_msize')]] ..
+
+func MemBlockSize(memptr : pointer) -> uint:
+    result = libc__msize(memptr)
+endfunc
+
+#elifdef LINUX
+
+func libc_malloc_usable_size(memptr : pointer) -> uint [[external('malloc_usable_size')]] ..
+
+func MemBlockSize(memptr : pointer) -> uint:
+    result = libc_malloc_usable_size(memptr)
+endfunc
+
+#else
+
+func MemBlockSize(memptr : pointer) -> uint:
+    result = 0
+endfunc
+
+#endif

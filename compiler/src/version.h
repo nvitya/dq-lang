@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.83.4"
+#define DQ_COMPILER_VERSION  "0.84.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.84.0:
+  - Integrated heap leak checking with -DHEAPCHECK and heap_allocated_size (int64)
 v0.83.4:
   - Documentation update for windows debugging
 v0.83.3:

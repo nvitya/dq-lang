@@ -1,0 +1,18 @@
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+// The HEAPCHECK counter returns to its baseline after a small allocation is freed.
+
+use print
+
+func *Main():
+    var baseline : int64 = heap_allocated_size
+    var memory : ^byte = ^byte(MemAlloc(16))
+    memory^ = 0
+    MemFree(memory)
+
+    if heap_allocated_size <> baseline:
+        PrintLn('heapcheck.leak = detected')
+    else:
+        PrintLn('heapcheck.leak = not detected')  //?check('heapcheck.leak', 'not detected')
+    endif
+endfunc

@@ -1,18 +1,32 @@
 // Dynamic string rvalues passed to value parameters must be released after the call.
 // Run this under Valgrind to verify that the loop does not retain allocations.
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
 
 use collections/strstrmap
 use print
 use strutils
 
-func *Main():
+func RunTemporaryCleanup():
     var values <- OStrStrMap()
+
+    values.Clear()
 
     for n : int = 0 count 10000:
         values.Add(Format('key={}', [n]), Format('value={}', [n]))
         values['last'] = Format('value={}', [n])
         values.Clear()
     endfor
+endfunc
 
-    PrintLn('temporary_cleanup = done') //?check('temporary_cleanup', 'done')
+func *Main():
+    var membaseline : int64 = heap_allocated_size
+
+    RunTemporaryCleanup()
+
+    if heap_allocated_size <> membaseline:
+        PrintLn('heapcheck = leak detected')
+    else:
+        PrintLn('heapcheck = ok')  //?check('heapcheck', 'ok')
+    endif
 endfunc

@@ -4,7 +4,7 @@ use dqautotest
 
 var run <- OTestRun()
 
-func ExpectCompileFailure(args : []str, diagnostic : strslice):
+func ExpectCompileFailure(args : []rostr, diagnostic : strslice):
     run.RunCompiler(args)
     if run.exitcode == 0:
         Fail('compiler unexpectedly accepted an invalid program')
@@ -14,7 +14,7 @@ endfunc
 
 func *Main():
     var output : str = TempPath('.o')
-    var dyn_cases : [3]str = ['TEST_STR', 'TEST_CONCAT', 'TEST_ANYVALUE']
+    var dyn_cases : [3]rostr = ['TEST_STR', 'TEST_CONCAT', 'TEST_ANYVALUE']
     for i : int = 0 count dyn_cases.length:
         var define : str = '-D' + dyn_cases[i]
         ExpectCompileFailure([
@@ -23,7 +23,7 @@ func *Main():
         ], 'ERROR(DynStringsDisabled)')
     endfor
 
-    var exception_cases : [4]str = ['TEST_TRY', 'TEST_FINALLY', 'TEST_VALUE_RAISE', 'TEST_RERAISE']
+    var exception_cases : [4]rostr = ['TEST_TRY', 'TEST_FINALLY', 'TEST_VALUE_RAISE', 'TEST_RERAISE']
     for i : int = 0 count exception_cases.length:
         var define : str = '-D' + exception_cases[i]
         ExpectCompileFailure([

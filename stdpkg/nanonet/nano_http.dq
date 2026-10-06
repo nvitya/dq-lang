@@ -130,7 +130,7 @@ func IsUrlPathSafe(auri : strslice) -> bool:
 endfunc
 
 func TrimRoot(arootdir : rostr) -> str:
-    result = @file.PathTranslateSeparators(arootdir)
+    result = @file.PathSlashSeparators(arootdir)
     while result.length > 1 and @.StrEndsWith(result, '/'):
         result.Delete(result.length - 1)
     endwhile
@@ -557,7 +557,7 @@ func OSConnectionHttp.HandleStaticFiles(arootdir : rostr) -> bool:
     endif
 
     var fpath : str = TrimRoot(arootdir) + uri
-    fpath = PathTranslateSeparators(fpath)
+    fpath = PathSlashSeparators(fpath)
 
     if not FileExists(fpath):
         return false

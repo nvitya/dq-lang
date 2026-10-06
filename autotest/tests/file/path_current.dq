@@ -1,0 +1,27 @@
+use file
+use print
+
+func *Main():
+    var expected_path : str
+    #ifdef WINDOWS
+        expected_path = 'dir\\nested\\file.txt'
+    #else
+        expected_path = 'dir/nested/file.txt'
+    #endif
+    PrintLn('platform separators = {}', [PathPlatformSeparators('dir\\nested/file.txt') == expected_path])  //?check('platform separators', 'true')
+
+    var current : str = GetCurrentPath()
+    PrintLn('current path nonempty = {}', [current.length > 0])  //?check('current path nonempty', 'true')
+    PrintLn('current path exists = {}', [DirExists(current)])    //?check('current path exists', 'true')
+    PrintLn('absolute empty path = {}', [PathToAbsolute('') == current])  //?check('absolute empty path', 'true')
+    PrintLn('absolute current path = {}', [PathToAbsolute(current) == current])  //?check('absolute current path', 'true')
+
+    var test_dir : str = 'dq-autotest-path-current'
+    DirCreate(test_dir)
+    PrintLn('absolute relative path = {}', [PathToAbsolute(test_dir) <> test_dir])  //?check('absolute relative path', 'true')
+    PrintLn('absolute normalized path = {}', [PathToAbsolute(test_dir + '/./nested/../file') == current + '/' + test_dir + '/file'])  //?check('absolute normalized path', 'true')
+    SetCurrentPath(test_dir)
+    PrintLn('current path changed = {}', [PathFileName(GetCurrentPath()) == test_dir])  //?check('current path changed', 'true')
+    SetCurrentPath(current)
+    DirRemove(test_dir)
+endfunc

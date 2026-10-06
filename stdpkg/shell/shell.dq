@@ -21,13 +21,13 @@ object OShellRunner(OThread):
     output : str = ''  // stdout and stderr merged in pipe-read order
 
     func Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]] ..
-    func Run(args : []str, exitcerr : bool = true) -> int [[overload]] ..
+    func Run(args : []rostr, exitcerr : bool = true) -> int [[overload]] ..
     func RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]] ..
-    func RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]] ..
+    func RunWithInput(args : []rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]] ..
     func StartBg(acmd : rostr) -> int [[overload]] ..
-    func StartBg(args : []str) -> int [[overload]] ..
+    func StartBg(args : []rostr) -> int [[overload]] ..
     func StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[overload]] ..
-    func StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]] ..
+    func StartBgWithInput(args : []rostr, ainput : strslice) -> int [[overload]] ..
 
     func Finished() -> bool ..
     func WaitFinishMs(ams : int) -> bool ..
@@ -43,7 +43,7 @@ protected
     in_buffer : str = ''
     in_buffer_pos : int = 0
 
-    func StartProcess(args : []str) -> int ..
+    func StartProcess(args : []rostr) -> int ..
     func MonitorProcess() ..
     func MonitorThread(aarg : pointer) -> pointer ..
 endobject
@@ -105,7 +105,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-func OShellRunner.StartProcess(args : []str) -> int:
+func OShellRunner.StartProcess(args : []rostr) -> int:
     use *
     result = 0
 
@@ -341,7 +341,7 @@ func OShellRunner.Run(acmd : rostr, exitcerr : bool = true) -> int [[overload]]:
     return Run(['/bin/sh', '-c', command], exitcerr)
 endfunc
 
-func OShellRunner.Run(args : []str, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.Run(args : []rostr, exitcerr : bool = true) -> int [[overload]]:
     if args.length == 0:
         raise EShellStart('Empty argument list')
     endif
@@ -375,7 +375,7 @@ func OShellRunner.RunWithInput(acmd : rostr, ainput : strslice, exitcerr : bool 
     return RunWithInput(['/bin/sh', '-c', command], ainput, exitcerr)
 endfunc
 
-func OShellRunner.RunWithInput(args : []str, ainput : strslice, exitcerr : bool = true) -> int [[overload]]:
+func OShellRunner.RunWithInput(args : []rostr, ainput : strslice, exitcerr : bool = true) -> int [[overload]]:
     if args.length == 0:
         raise EShellStart('Empty argument list')
     endif
@@ -405,7 +405,7 @@ func OShellRunner.StartBg(acmd : rostr) -> int [[overload]]:
     return StartBg(['/bin/sh', '-c', command])
 endfunc
 
-func OShellRunner.StartBg(args : []str) -> int [[overload]]:
+func OShellRunner.StartBg(args : []rostr) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1
@@ -439,7 +439,7 @@ func OShellRunner.StartBgWithInput(acmd : rostr, ainput : strslice) -> int [[ove
     return StartBgWithInput(['/bin/sh', '-c', command], ainput)
 endfunc
 
-func OShellRunner.StartBgWithInput(args : []str, ainput : strslice) -> int [[overload]]:
+func OShellRunner.StartBgWithInput(args : []rostr, ainput : strslice) -> int [[overload]]:
     IsRunning()  // reap a completed monitor thread before starting another
     if not finished:
         return -1

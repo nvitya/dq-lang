@@ -62,10 +62,16 @@ func DirExists(adir : rostr) -> bool ..
 func DirCreate(adir : rostr, aforce : bool = false) ..
 func DirRemove(adir : rostr) ..
 
-func PathTranslateSeparators(apath : str) -> str ..
-func PathDirName(apath : str) -> str ..
-func PathFileName(apath : str) -> str ..
-func PathFileExt(apath : str) -> str ..
+func PathSlashSeparators(apath : strslice) -> str ..
+func PathPlatformSeparators(apath : strslice) -> str ..
+func PathToAbsolute(apath : strslice) -> str ..
+
+func PathDirName(apath : strslice) -> str ..
+func PathFileName(apath : strslice) -> str ..
+func PathFileExt(apath : strslice) -> str ..
+
+func GetCurrentPath() -> str ..
+func SetCurrentPath(apath : rostr) ..
 
 
 implementation
@@ -98,6 +104,9 @@ struct SWin32FileAttributeData:
 endstruct
 
 func win_GetFileAttributesExA(filename : ^char, infolevel : int32, info : ^SWin32FileAttributeData) -> int32 [[external('GetFileAttributesExA')]] ..
+func win_GetCurrentDirectoryA(size : uint32, buffer : ^char) -> uint32 [[external('GetCurrentDirectoryA')]] ..
+func win_SetCurrentDirectoryA(path : ^char) -> int32 [[external('SetCurrentDirectoryA')]] ..
+func win_GetFullPathNameA(path : ^char, size : uint32, buffer : ^char, filepart : ^^char) -> uint32 [[external('GetFullPathNameA')]] ..
 #else
 struct SFileTimespec:
     tv_sec  : int64
@@ -123,22 +132,26 @@ struct SFileStat:
 endstruct
 
 func libc_stat(pathname : ^char, statbuf : ^SFileStat) -> int [[external('stat')]] ..
+func libc_getcwd(buffer : ^char, size : uint) -> ^char [[external('getcwd')]] ..
+func libc_chdir(path : ^char) -> int [[external('chdir')]] ..
+func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
 #endif
 
 //--------------------------------------------------------------------------
 
-const DIR_MODE : uint = 511
+const DIR_MODE      : uint = 511
 const ACCESS_EXISTS : int = 0
+#ifndef WINDOWS
+const ERANGE        : int32 = 34
+#endif
 
 func FileExists(afname : rostr) -> bool:
     if afname == '':
         return false
     endif
-
     if DirExists(afname):
         return false
     endif
-
     return libc_access(afname, ACCESS_EXISTS) == 0
 endfunc
 
@@ -146,34 +159,30 @@ func FileModifiedTime(afname : rostr) -> int64:
     if afname == '':
         return -1
     endif
-
-    #ifdef WINDOWS
-        var data : SWin32FileAttributeData = {}
-        if win_GetFileAttributesExA(afname, 0, %data) == 0:
-            return -1
-        endif
-
-        var filetime : int64 = int64(data.last_write_time_high) * 4294967296
-                              + int64(data.last_write_time_low)
-        return filetime div 10000000 - 11644473600
-    #else
-        var statbuf : SFileStat = {}
-        if libc_stat(afname, %statbuf) <> 0:
-            return -1
-        endif
-        return statbuf.st_mtim.tv_sec
-    #endif
+  #ifdef WINDOWS
+    var data : SWin32FileAttributeData = {}
+    if win_GetFileAttributesExA(afname, 0, %data) == 0:
+        return -1
+    endif
+    var filetime : int64 = int64(data.last_write_time_high) * 4294967296
+                            + int64(data.last_write_time_low)
+    return filetime div 10000000 - 11644473600
+  #else
+    var statbuf : SFileStat = {}
+    if libc_stat(afname, %statbuf) <> 0:
+        return -1
+    endif
+    return statbuf.st_mtim.tv_sec
+  #endif
 endfunc
 
 func FileRemove(afname : rostr):
     if afname == '':
         raise EFileError('FileRemove: empty file name')
     endif
-
     if not FileExists(afname):
         raise EFileError('FileRemove: file does not exist: {}', [afname])
     endif
-
     if libc_remove(afname) <> 0:
         if FileExists(afname):
             raise EFileError('File remove error: {}', [afname])
@@ -185,12 +194,10 @@ func DirExists(adir : rostr) -> bool:
     if adir == '':
         return false
     endif
-
     var dir : pointer = libc_opendir(adir)
     if dir == nil:
         return false
     endif
-
     libc_closedir(dir)
     return true
 endfunc
@@ -199,11 +206,9 @@ func CreateOneDir(adir : rostr):
     if adir == '':
         return
     endif
-
     if DirExists(adir):
         return
     endif
-
     if libc_mkdir(adir, DIR_MODE) <> 0:
         if not DirExists(adir):
             raise EFileError('Directory create error: {}', [adir])
@@ -215,20 +220,17 @@ func DirCreate(adir : rostr, aforce : bool = false):
     if adir == '':
         raise EFileError('DirCreate: empty directory name')
     endif
-
     if not aforce:
         if DirExists(adir):
             raise EFileError('DirCreate: directory already exists: {}', [adir])
         endif
-
-    if libc_mkdir(adir, DIR_MODE) <> 0:
-        if not DirExists(adir):
-            raise EFileError('Directory create error: {}', [adir])
+        if libc_mkdir(adir, DIR_MODE) <> 0:
+            if not DirExists(adir):
+                raise EFileError('Directory create error: {}', [adir])
+            endif
         endif
+        return
     endif
-    return
-    endif
-
     for i : int = 0 count adir.length:
         if adir[i] == '/':
             if i > 0:
@@ -237,7 +239,6 @@ func DirCreate(adir : rostr, aforce : bool = false):
             endif
         endif
     endfor
-
     CreateOneDir(adir)
 endfunc
 
@@ -245,11 +246,9 @@ func DirRemove(adir : rostr):
     if adir == '':
         raise EFileError('DirRemove: empty directory name')
     endif
-
     if not DirExists(adir):
         raise EFileError('DirRemove: directory does not exist: {}', [adir])
     endif
-
     if libc_rmdir(adir) <> 0:
         if DirExists(adir):
             raise EFileError('Directory remove error: {}', [adir])
@@ -259,14 +258,157 @@ endfunc
 
 //--------------------------------------------------------------------------
 
-func PathTranslateSeparators(apath : str) -> str:
+func PathSlashSeparators(apath : strslice) -> str:
     result = apath
-
     for i : int = 0 count result.length:
         if result[i] == char(92):
             result[i] = '/'
         endif
     endfor
+endfunc
+
+func PathPlatformSeparators(apath : strslice) -> str:
+    result = apath
+    for i : int = 0 count result.length:
+      #ifdef WINDOWS
+        if result[i] == '/':
+            result[i] = char(92)
+        endif
+      #else
+        if result[i] == char(92):
+            result[i] = '/'
+        endif
+      #endif
+    endfor
+endfunc
+
+const PATH_CURRENT_INITIAL_BUFFER_SIZE : uint32 = 256
+const PATH_CURRENT_MAX_ATTEMPTS        : int    = 16
+
+func PathCleanAbsolute(apath : strslice) -> str:
+    result = '/'
+    var pos : int = 0
+    while pos < apath.length:
+        while pos < apath.length and apath[pos] == '/':
+            ++pos
+        endwhile
+
+        var start : int = pos
+        while pos < apath.length and apath[pos] <> '/':
+            ++pos
+        endwhile
+
+        if start == pos:
+            continue
+        endif
+
+        var segment : strslice = apath[start:pos]
+        if segment.length == 1 and segment[0] == '.':
+            continue
+        endif
+
+        if segment.length == 2 and segment[0] == '.' and segment[1] == '.':
+            if result.length > 1:
+                for endpos : int = int(result.length) - 1 downto 0:
+                    if result[endpos] == '/':
+                        result.Truncate(endpos)
+                        if result == '':
+                            result = '/'
+                        endif
+                        break
+                    endif
+                endfor
+            endif
+            continue
+        endif
+
+        if result.length > 1:
+            result.Append('/')
+        endif
+        result.Append(segment)
+    endwhile
+endfunc
+
+func PathToAbsolute(apath : strslice) -> str:
+    if apath == '':
+        return GetCurrentPath()
+    endif
+
+  #ifdef WINDOWS
+    result = ''
+    var bufsize : uint32 = PATH_CURRENT_INITIAL_BUFFER_SIZE
+    for attempt : int = 0 count PATH_CURRENT_MAX_ATTEMPTS:
+        result.SetLength(bufsize, char(0))
+        var pathlen : uint32 = win_GetFullPathNameA(apath, bufsize, result.pchar, nil)
+        if pathlen == 0:
+            raise EFileError('Cannot make path absolute: {}', [apath])
+        endif
+        if pathlen < bufsize:
+            result.SetLength(pathlen, char(0))
+            result = PathSlashSeparators(result)
+            return
+        endif
+        // The returned size includes the terminator when the buffer is too small.
+        bufsize = pathlen + 1
+    endfor
+    raise EFileError('Absolute path is too long: {}', [apath])
+  #else
+    result = PathSlashSeparators(apath)
+    if result[0] == '/':
+        result = PathCleanAbsolute(result)
+        return
+    endif
+    result = GetCurrentPath() + '/' + result
+    result = PathCleanAbsolute(result)
+  #endif
+endfunc
+
+func GetCurrentPath() -> str:
+    result = ''
+    var bufsize : uint32 = PATH_CURRENT_INITIAL_BUFFER_SIZE
+    for attempt : int = 0 count PATH_CURRENT_MAX_ATTEMPTS:
+        result.SetLength(bufsize, char(0))
+      #ifdef WINDOWS
+        var pathlen : uint32 = win_GetCurrentDirectoryA(bufsize, result.pchar)
+        if pathlen == 0:
+            raise EFileError('Cannot get current directory')
+        endif
+        if pathlen < bufsize:
+            result.SetLength(pathlen, char(0))
+            result = PathSlashSeparators(result)
+            return
+        endif
+        // The returned size includes the terminator when the buffer is too small.
+        bufsize = pathlen + 1
+      #else
+        if libc_getcwd(result.pchar, bufsize) <> nil:
+            for pathlen : int = 0 count result.length:
+                if result[pathlen] == char(0):
+                    result.SetLength(pathlen, char(0))
+                    return
+                endif
+            endfor
+        endif
+        if libc___errno_location()^ <> ERANGE:
+            raise EFileError('Cannot get current directory')
+        endif
+        bufsize *= 2
+      #endif
+    endfor
+    raise EFileError('Current directory path is too long')
+endfunc
+
+func SetCurrentPath(apath : rostr):
+    if apath == '':
+        raise EFileError('SetCurrentPath: empty path')
+    endif
+  #ifdef WINDOWS
+    if win_SetCurrentDirectoryA(apath) == 0:
+  #else
+    if libc_chdir(apath) <> 0:
+  #endif
+        raise EFileError('Cannot set current directory: {}', [apath])
+    endif
 endfunc
 
 func PathLastSeparator(apath : str) -> int:
@@ -275,45 +417,37 @@ func PathLastSeparator(apath : str) -> int:
             return i
         endif
     endfor
-
     return -1
 endfunc
 
-func PathDirName(apath : str) -> str:
-    var path : str = PathTranslateSeparators(apath)
+func PathDirName(apath : strslice) -> str:
+    var path : str = PathSlashSeparators(apath)
     var sep : int = PathLastSeparator(path)
-
     if sep < 0:
         return ''
     endif
-
     if sep == 0:
         return '/'
     endif
-
     return path[:sep]
 endfunc
 
-func PathFileName(apath : str) -> str:
-    var path : str = PathTranslateSeparators(apath)
+func PathFileName(apath : strslice) -> str:
+    var path : str = PathSlashSeparators(apath)
     var sep : int = PathLastSeparator(path)
-
     if sep < 0:
         return path
     endif
-
     return path[sep + 1:]
 endfunc
 
-func PathFileExt(apath : str) -> str:
+func PathFileExt(apath : strslice) -> str:
     var fname : str = PathFileName(apath)
-
     for i : int = int(fname.length) - 1 downto 1:
         if fname[i] == '.':
             return fname[i:]
         endif
     endfor
-
     return ''
 endfunc
 
@@ -332,13 +466,11 @@ func OFile.Open(afname : rostr, afmode : rostr):
     if Opened():
         Close()
     endif
-
     m_filename =  afname
     m_fmode.Set(afmode)
     if afname == '':
         raise EFileError('OFile.Open: empty file name')
     endif
-
     m_fhandle = @..libc_fopen(afname, afmode)
     if m_fhandle == nil:
         raise EFileError('File open error')  // todo: get the error code
@@ -364,7 +496,6 @@ func OFile.Seek(apos : int64):
     if not Opened():
         raise EFileError('OFile.Seek: file is not open')
     endif
-
     if @..libc_fseek(m_fhandle, apos, @..SEEK_SET) <> 0:
         raise EFileError('OFile.Seek error')
     endif
@@ -374,7 +505,6 @@ func OFile.CurPos() -> int64:
     if not Opened():
         raise EFileError('OFile.CurPos: file is not open')
     endif
-
     result = @..libc_ftell(m_fhandle)
     if result < 0:
         raise EFileError('OFile.CurPos error')
@@ -385,25 +515,20 @@ func OFile.Size() -> int64:
     if not Opened():
         raise EFileError('OFile.Size: file is not open')
     endif
-
     var oldpos : int64 = @..libc_ftell(m_fhandle)
     if oldpos < 0:
         raise EFileError('OFile.Size: ftell failed')
     endif
-
     if @..libc_fseek(m_fhandle, 0, @..SEEK_END) <> 0:
         raise EFileError('OFile.Size: fseek end failed')
     endif
-
     var endpos : int64 = @..libc_ftell(m_fhandle)
     if endpos < 0:
         raise EFileError('OFile.Size: ftell end failed')
     endif
-
     if @..libc_fseek(m_fhandle, oldpos, @..SEEK_SET) <> 0:
         raise EFileError('OFile.Size: fseek restore failed')
     endif
-
     return endpos
 endfunc
 
@@ -411,7 +536,6 @@ func OFile.Read(adest : pointer, asize : int64) -> int64:
     if not Opened():
         raise EFileError('OFile.Read: file is not open')
     endif
-
     if asize < 0:
         raise EFileError('Invalid read size: {}', [asize])
     endif
@@ -425,12 +549,10 @@ func OFile.ReadText() -> str:
     if not Opened():
         raise EFileError('OFile.ReadText: file is not open')
     endif
-
     var flen : int64 = Size()
     if flen <= 0:
         return ''
     endif
-
     result = ''  // to avoid uninitialized variable access
     result.SetLength(flen, char(0))
     var r : int64 = Read(%result[0], flen)
@@ -443,12 +565,10 @@ func OFile.ReadBytes() -> [*]byte:
     if not Opened():
         raise EFileError('OFile.ReadBytes: file is not open')
     endif
-
     var flen : int64 = Size()
     if flen <= 0:
         return []
     endif
-
     result = []  // to avoid uninitialized variable access
     result.SetLength(flen)
     var r : int64 = Read(%result[0], flen)

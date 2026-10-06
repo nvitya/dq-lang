@@ -275,6 +275,7 @@ copy_vscode_extension() {
 require_file "$BUILD_DIR/dq-comp"
 require_file "$BUILD_DIR/dq-run"
 require_file "$BUILD_DIR/dq-atrun"
+require_file "$BUILD_DIR/dq-pkg"
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
 require_file "$ROOT_DIR/tools/vscode-dq/dq-syntax-0.0.1.vsix"
@@ -295,6 +296,7 @@ mkdir -p "$STAGE/bin" "$OUT_DIR"
 cp -p "$BUILD_DIR/dq-comp" "$STAGE/bin/"
 cp -p "$BUILD_DIR/dq-run" "$STAGE/bin/"
 cp -p "$BUILD_DIR/dq-atrun" "$STAGE/bin/"
+cp -p "$BUILD_DIR/dq-pkg" "$STAGE/bin/"
 cp -p "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp -p "$ROOT_DIR/README.md" "$STAGE/README.md"
 
@@ -342,6 +344,7 @@ Included:
   bin/dq-comp
   bin/dq-run
   bin/dq-atrun
+  bin/dq-pkg
 $(if [[ "$FULL_RELEASE" == "1" ]]; then printf "  toolchain/\n  dq-env.sh\n"; fi)
   stdpkg/
   gcclibs/

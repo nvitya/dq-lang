@@ -1,7 +1,32 @@
 
 use print
+use file
+use shell
+use strutils
+
 use ./version
+
+var comp_path : str
+
+var shrun <- OShellRunner()
 
 func *Main():
     PrintLn('DQ Package Tool - v{}', [PRG_VERSION])
+
+    // detect compiler path
+    var cmdline : str = ArgStr(0)
+
+    comp_path = PathDirName(PathToAbsolute(cmdline))+'/dq-comp'
+  #ifdef WINDOWS
+    comp_path.Append('.exe')
+  #endif
+
+    PrintLn('ArgStr(0)={}', [cmdline])
+    PrintLn('Absolute path={}', [PathToAbsolute(cmdline)])
+    PrintLn('Compiler: {}', [comp_path])
+
+    shrun.Run([comp_path, '--version'])
+    var comp_ver : str = shrun.output.Trim()
+    //comp_ver = comp_ver.Trim()
+    PrintLn('Compiler version: {}', [comp_ver])
 endfunc

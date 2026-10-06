@@ -11,8 +11,8 @@ object OTestRun:
     stderr   : str
     output   : str
 
-    func RunTool(args : []str) -> int ..
-    func RunCompiler(args : []str) -> int ..
+    func RunTool(args : []rostr) -> int ..
+    func RunCompiler(args : []rostr) -> int ..
     func ExpectExitCode(expected : int) ..
     func PrintRunOutput() ..
     func ExpectOutputContains(expected : strslice) ..
@@ -53,7 +53,7 @@ func JoinPath(base : strslice, name : strslice) -> str:
     result.Append(name)
 endfunc
 
-func OTestRun.RunTool(args : []str) -> int:
+func OTestRun.RunTool(args : []rostr) -> int:
     shrunner.Run(args, false)
     exitcode = shrunner.exitcode
     stdout = shrunner.out
@@ -62,9 +62,9 @@ func OTestRun.RunTool(args : []str) -> int:
     return exitcode
 endfunc
 
-func OTestRun.RunCompiler(args : []str) -> int:
+func OTestRun.RunCompiler(args : []rostr) -> int:
     use *
-    var command : [*]str = [CompilerPath()]
+    var command : [*]rostr = [CompilerPath()]
     for i : int = 0 count args.length:
         command.Append(args[i])
     endfor

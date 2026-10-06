@@ -70,10 +70,19 @@ existing directory is an error.
 ## Path Helpers
 
 ```dq
-PathTranslateSeparators(path)
+PathSlashSeparators(path)
+PathPlatformSeparators(path)
+PathToAbsolute(path)
+GetCurrentPath()
+SetCurrentPath(path)
 PathDirName(path)
 PathFileName(path)
 PathFileExt(path)
 ```
 
-Separators are normalized to `/`.
+`PathSlashSeparators()` normalizes separators to `/`, while
+`PathPlatformSeparators()` uses `\\` on Windows and `/` elsewhere.
+`PathToAbsolute()` resolves a relative path against the current directory and
+normalizes `.` and `..` path segments.
+`GetCurrentPath()` returns the absolute current working directory.
+`SetCurrentPath(path)` changes the process working directory.

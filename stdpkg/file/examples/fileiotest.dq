@@ -30,7 +30,10 @@ func *Main():
     DirRemove('.tmp/remove-me')
     PrintLn('removed dir exists: {}', [DirExists('.tmp/remove-me')])
 
-    PrintLn('path translated: {}', [PathTranslateSeparators('c:\\temp\\file.txt')])
+    PrintLn('path slash separators: {}', [PathSlashSeparators('c:\\temp\\file.txt')])
+    PrintLn('platform path: {}', [PathPlatformSeparators('dir\\nested/file.txt')])
+    PrintLn('absolute path: {}', [PathToAbsolute('dir/nested/file.txt')])
+    PrintLn('current path: {}', [GetCurrentPath()])
     PrintLn('path dirname: {}', [PathDirName('dir/sub/file.txt')])
     PrintLn('path filename: {}', [PathFileName('dir/sub/file.txt')])
     PrintLn('path fileext: {}', [PathFileExt('dir/sub/file.txt')])

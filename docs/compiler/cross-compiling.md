@@ -185,6 +185,7 @@ It contains:
 - `bin/dq-comp.exe`
 - `bin/dq-run.exe`
 - `bin/dq-atrun.exe`
+- `bin/dq-pkg.exe`
 - the required llvm-mingw runtime DLLs
 - the Windows-hosted llvm-mingw linker SDK under `toolchain/llvm-mingw/`
 - `stdpkg/`
@@ -233,6 +234,7 @@ now build as Windows executables with the llvm-mingw toolchain:
 - `dq-comp.exe`
 - `dq-run.exe`
 - `dq-atrun.exe`
+- `dq-pkg.exe`
 
 The compiler sources now guard Linux-only backtrace support, use portable
 executable discovery, and provide a Windows implementation of the process

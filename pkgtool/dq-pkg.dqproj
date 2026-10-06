@@ -1,2 +1,3 @@
 
 main = 'src/main_dqpkg.dq'
+output = '../build/dq-pkg'

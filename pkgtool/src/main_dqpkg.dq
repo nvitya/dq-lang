@@ -1,0 +1,7 @@
+
+use print
+use ./version
+
+func *Main():
+    PrintLn('DQ Package Tool - v{}', [PRG_VERSION])
+endfunc

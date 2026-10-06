@@ -26,7 +26,7 @@ func *Main():
     PrintLn('Compiler: {}', [comp_path])
 
     shrun.Run([comp_path, '--version'])
-    var comp_ver : str = shrun.output.Trim()
+    var comp_ver : str = shrun.output //.Trim()
     //comp_ver = comp_ver.Trim()
     PrintLn('Compiler version: {}', [comp_ver])
 endfunc

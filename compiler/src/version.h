@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.84.1"
+#define DQ_COMPILER_VERSION  "0.85.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.85.0:
+  - Anyvalue cleanup fix
+  - print initialization uses embedded objects
 v0.84.1:
   - Heapcheck added to some autotests, dbrows are failing for now
 v0.84.0:

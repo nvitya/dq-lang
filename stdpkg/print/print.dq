@@ -29,51 +29,27 @@ func libc_fwrite(ptr : pointer, size : uint, count : uint, stream : pointer) -> 
 func libc_fputc(ch : int, stream : pointer) -> int  [[external("fputc")]] ..
 func libc_fflush(stream : pointer) -> int  [[external('fflush')]] ..
 
-var std_out_sink      : OTextSinkStdOut = nil
-var std_out_formatter : OTextFormatter = nil
-
-func StdOutFmtSetup():
-    if std_out_sink == nil:
-        std_out_sink = new OTextSinkStdOut()
-    endif
-    if std_out_formatter == nil:
-        std_out_formatter = new OTextFormatter(std_out_sink)
-    endif
-endfunc
+var std_out_sink      <- OTextSinkStdOut()
+var std_out_formatter <- OTextFormatter(std_out_sink)
 
 func Print(fmt : strslice) [[overload]]:
-    if std_out_sink == nil:
-        StdOutFmtSetup()
-    endif
     std_out_sink.Write(fmt)
 endfunc
 
 func Print(fmt : rostr, args : []anyvalue) [[overload]]:
-    if std_out_formatter == nil:
-        StdOutFmtSetup()
-    endif
     std_out_formatter.Format(fmt, args)
 endfunc
 
 func PrintLn() [[overload]]:
-    if std_out_sink == nil:
-        StdOutFmtSetup()
-    endif
     std_out_sink.WriteChar('\n')
 endfunc
 
 func PrintLn(fmt : strslice) [[overload]]:
-    if std_out_sink == nil:
-        StdOutFmtSetup()
-    endif
     std_out_sink.Write(fmt)
     std_out_sink.WriteChar('\n')
 endfunc
 
 func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]:
-    if std_out_formatter == nil:
-        StdOutFmtSetup()
-    endif
     std_out_formatter.Format(fmt, args)
     std_out_sink.WriteChar('\n')
 endfunc

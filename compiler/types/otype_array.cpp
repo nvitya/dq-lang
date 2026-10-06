@@ -385,6 +385,10 @@ static llvm::Function * GetTypeDestroyFunc(OType * elemtype)
   {
     return nullptr; // Handled natively by RTL without code bloat
   }
+  if (elemtype->kind == TK_ANYVALUE && !EnsureAnyValueRtlUse())
+  {
+    return nullptr;
+  }
 
   string func_name = "__dq_destroy_" + SanitizeLlName(elemtype->name);
   if (auto * existing = ll_module->getFunction(func_name))

@@ -499,7 +499,7 @@ bool OType::WriteDqmIfDecl(ODqmIfWriter & writer)
 
 bool OType::ContainsManagedStorage() const
 {
-  return (TK_OBJECT == kind) || (TK_DYNSTR == kind) || (TK_DYN_ARRAY == kind);
+  return (TK_OBJECT == kind) || (TK_DYNSTR == kind) || (TK_DYN_ARRAY == kind) || (TK_ANYVALUE == kind);
 }
 
 bool OType::SupportsUnionStorage() const

@@ -25,6 +25,15 @@
 
 using namespace std;
 
+bool EnsureStrFuncRtlUse()
+{
+  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+}
+
 bool EnsureDynStringRtlUseForStringTypes()
 {
   if (!g_opt.dynstrings)
@@ -32,11 +41,7 @@ bool EnsureDynStringRtlUseForStringTypes()
     g_compiler->Error(DQERR_DYNSTRINGS_DISABLED);
     return false;
   }
-  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+  return EnsureStrFuncRtlUse();
 }
 
 static LlType * LlPtrType()
@@ -811,6 +816,7 @@ bool OTypeStrSlice::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
         return false;
       }
+      if (!EnsureStrFuncRtlUse()) return false;
       if (!IsTextSourceType(resolved_src))
       {
         src = new OExprTypeConv(g_builtins->type_char, src);

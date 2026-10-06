@@ -17,6 +17,7 @@
 #include "otype_compound.h"
 #include "otype_enum.h"
 #include "otype_char.h"
+#include "otype_string.h"
 #include "named_scopes.h"
 
 static bool DecodeSingleUtf8Scalar(const string & bytes, int64_t & rvalue)
@@ -91,22 +92,9 @@ bool EnsureDynArrayRtlUse()
   return g_compiler->AddImplicitUse("rtl/dynarrmgr", "__dq_dynarray", nullptr, true, MUM_NONE);
 }
 
-bool EnsureStrFuncRtlUse()
-{
-  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
-}
-
 bool EnsureEmbStrRtlUse()
 {
-  if (g_namespaces.end() != g_namespaces.find("__dq_strfunc"))
-  {
-    return true;
-  }
-  return g_compiler->AddImplicitUse("rtl/strfunc", "__dq_strfunc", nullptr, true, MUM_NONE);
+  return EnsureStrFuncRtlUse();
 }
 
 bool EnsureDynStringRtlUse()
@@ -1526,6 +1514,12 @@ OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr 
       OExpr::DeleteTree(right);
       return new OBoolLit(false);
     }
+    if (!EnsureStrFuncRtlUse())
+    {
+      OExpr::DeleteTree(left);
+      OExpr::DeleteTree(right);
+      return nullptr;
+    }
     return new OCompareExpr(op, left, right);
   }
   if ((ltype && (TK_DYN_ARRAY == ltype->kind || TK_ARRAY_SLICE == ltype->kind))
@@ -2480,6 +2474,10 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   {
     return free_and_fail();
   }
+  if (text_arg_index != rawargs.size() && !EnsureStrFuncRtlUse())
+  {
+    return free_and_fail();
+  }
 
   auto * callexpr = new OAnyValueMethodCallExpr(receiver, method, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
@@ -2562,6 +2560,12 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
       && scf->CheckSymbol("["))
   {
     if (TK_DYN_ARRAY == tk && !EnsureDynArrayRtlUse())
+    {
+      delete result;
+      result = nullptr;
+      return EPostfixResult::Stop;
+    }
+    if ((TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk) && !EnsureStrFuncRtlUse())
     {
       delete result;
       result = nullptr;
@@ -2808,6 +2812,13 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
 
     if (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk)
     {
+      if (!EnsureStrFuncRtlUse())
+      {
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+
       if ("length" == membername)
       {
         result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
@@ -2815,34 +2826,16 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       }
       if ("pchar" == membername)
       {
-        if (!EnsureStrFuncRtlUse())
-        {
-          delete result;
-          result = nullptr;
-          return EPostfixResult::Stop;
-        }
         result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
         return EPostfixResult::Continue;
       }
       if ("wclen" == membername)
       {
-        if (!EnsureStrFuncRtlUse())
-        {
-          delete result;
-          result = nullptr;
-          return EPostfixResult::Stop;
-        }
         result = new OStringMetaFieldExpr(lval, SMF_WCLEN);
         return EPostfixResult::Continue;
       }
       if ("wchar" == membername)
       {
-        if (!EnsureStrFuncRtlUse())
-        {
-          delete result;
-          result = nullptr;
-          return EPostfixResult::Stop;
-        }
         scf->SkipWhite();
         if (!scf->CheckSymbol("["))
         {

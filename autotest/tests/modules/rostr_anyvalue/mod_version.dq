@@ -1,0 +1,3 @@
+//?notest
+
+const PRG_VERSION : rostr = '0.1.0'

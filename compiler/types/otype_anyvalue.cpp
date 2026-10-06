@@ -423,7 +423,14 @@ bool OTypeAnyValue::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
       return false;
     }
-    if (TK_DYNSTR == tks && !EnsureDynStringRtlUseForStringTypes()) return false;
+    if (TK_DYNSTR == tks)
+    {
+      if (!EnsureDynStringRtlUseForStringTypes()) return false;
+    }
+    else if (IsTextSourceType(resolved_src) && TK_CHAR != tks)
+    {
+      if (!EnsureStrFuncRtlUse()) return false;
+    }
     if (!EnsureAnyValueRtlUse()) return false;
     *rexpr = new OAnyValueBoxExpr(src, this);
     return true;

@@ -1,0 +1,9 @@
+use print
+use ./mod_version
+
+func *Main():
+    PrintLn('version = {}', [PRG_VERSION]) //?check('version', '0.1.0')
+    var av : anyvalue = PRG_VERSION
+    PrintLn('boxed = {}', [av]) //?check('boxed', '0.1.0')
+    PrintLn('len = {}', [PRG_VERSION.length]) //?check('len', 5)
+endfunc

@@ -185,6 +185,7 @@ inline bool IsTextSourceType(OType * type) { return type && type->IsTextSource()
 inline bool IsStringComparableTextType(OType * type) { return type && type->IsStringComparable(); }
 inline bool IsStringFamilyTextType(OType * type) { return type && type->IsStringFamily(); }
 
+bool EnsureStrFuncRtlUse();
 bool EnsureDynStringRtlUseForStringTypes();
 OValSymFunc * TextFormatFunc(const string & name);
 LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue *> args = {});

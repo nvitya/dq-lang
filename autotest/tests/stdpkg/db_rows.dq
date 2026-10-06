@@ -1,3 +1,6 @@
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+
 use db
 use print
 
@@ -7,8 +10,9 @@ func PrintRow(label : strslice, rows : ODbRows):
             [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])
 endfunc
 
-func *Main():
+func RunDbRowsTests():
     var rows <- ODbRows()
+    var membaseline : int64 = heap_allocated_size
 
     PrintLn('db_rows.empty = rows:{} fields:{} onrow:{}',
             [rows.RowCount(), rows.FieldCount(), rows.OnRow()]) //?check("db_rows.empty", "rows:0 fields:0 onrow:false")
@@ -78,4 +82,27 @@ func *Main():
     PrintLn('db_rows.clear = rows:{} fields:{}',
             [rows.RowCount(), rows.FieldCount()]) //?check("db_rows.clear", "rows:0 fields:0")
 
+    fname0 = ''
+    fname1 = ''
+    defname = ''
+    blob.Clear(true)
+    saved_blob.Clear(true)
+    null_blob.Clear(true)
+    idval.SetNull()
+
+    PrintLn('db_rows.localdelta = {}', [heap_allocated_size - membaseline]) //?ignore('db_rows.localdelta')
+
+endfunc
+
+func *Main():
+    var membaseline : int64 = heap_allocated_size
+
+    RunDbRowsTests()
+
+    PrintLn('db_rows.heapdelta = {}', [heap_allocated_size - membaseline]) //?ignore('db_rows.heapdelta')
+    if heap_allocated_size <> membaseline:
+        PrintLn('db_rows.heapcheck = leak detected')
+    else:
+        PrintLn('db_rows.heapcheck = ok') //?check('db_rows.heapcheck', ok)
+    endif
 endfunc

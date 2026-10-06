@@ -1,4 +1,6 @@
 // ODynStrMgr regression tests
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
 
 use libc/stdio
 use rtl/strfunc
@@ -106,6 +108,8 @@ endfunc
 func *Main():
     printf("DQ ODynStrMgr test\n") //?ignore("DQ ODynStrMgr test")
 
+    var membaseline : int64 = heap_allocated_size
+
     RunCoreOps() //?check("assign", 'len:3 cap:3 text: "abc"')
                   //?check("append", 'len:5 cap:6 text: "abcde"')
                   //?check("insert", 'len:7 cap:12 text: "abXYcde"')
@@ -123,5 +127,11 @@ func *Main():
 
     RunCopyOnWrite() //?check("cow-src", 'len:3 cap:3 text: "abc"')
                       //?check("cow-mutated", 'len:4 cap:6 text: "abcx"')
+
+    if heap_allocated_size <> membaseline:
+        printf("dynstrmgr.heapcheck = leak detected\n")
+    else:
+        printf("dynstrmgr.heapcheck = ok\n") //?check('dynstrmgr.heapcheck', ok)
+    endif
 
 endfunc

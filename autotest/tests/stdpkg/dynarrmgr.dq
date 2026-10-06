@@ -1,4 +1,6 @@
 // ODynArrMgr regression tests
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
 
 use libc/stdio
 use rtl/dynarrmgr
@@ -144,6 +146,7 @@ endfunc
 func *Main():
     printf("DQ ODynArrMgr test\n") //?ignore("DQ ODynArrMgr test")
 
+    var membaseline : int64 = heap_allocated_size
     var ti : SDqTypeInfo = {}
     MakeIntTypeInfo(ti)
 
@@ -173,5 +176,11 @@ func *Main():
                            //?check("slice-empty", "len:0, data: []")
                            //?check("overlap-append", "len:8, cap:8, data: [1,2,3,4,1,2,3,4]")
                            //?check("overlap-insert-cross", "len:6, cap:8, data: [1,2,2,3,3,4]")
+
+    if heap_allocated_size <> membaseline:
+        printf("dynarrmgr.heapcheck = leak detected\n")
+    else:
+        printf("dynarrmgr.heapcheck = ok\n") //?check('dynarrmgr.heapcheck', ok)
+    endif
 
 endfunc

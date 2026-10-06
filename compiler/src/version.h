@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.84.0"
+#define DQ_COMPILER_VERSION  "0.84.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.84.1:
+  - Heapcheck added to some autotests, dbrows are failing for now
 v0.84.0:
   - Integrated heap leak checking with -DHEAPCHECK and heap_allocated_size (int64)
 v0.83.4:

@@ -20,6 +20,8 @@ func PrintLn(fmt : strslice) [[overload]] ..
 func PrintLn(fmt : rostr, args : []anyvalue) [[overload]] ..
 func PrintFlush() ..
 
+func PrintSetUnbuffered() ..
+
 implementation
 
 use rtl/textformat
@@ -55,5 +57,9 @@ func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]:
 endfunc
 
 func PrintFlush():
-    libc_fflush(@stdio.DqLibcStdout())
+    libc_fflush(@stdio.StdOut())
+endfunc
+
+func PrintSetUnbuffered():
+    @stdio.SetStdOutUnbuffered()
 endfunc

@@ -1,0 +1,20 @@
+use libc/stdio
+
+func *Main():
+    if not SetStdOutFullyBuffered():
+        printf("failed to enable full buffering\n")
+        return
+    endif
+
+    if not SetStdOutLineBuffered():
+        printf("failed to enable line buffering\n")
+        return
+    endif
+
+    if not SetStdOutUnbuffered():
+        printf("failed to disable buffering\n")
+        return
+    endif
+
+    printf("libc stdout buffering = configured\n")  //?check('libc stdout buffering', 'configured')
+endfunc

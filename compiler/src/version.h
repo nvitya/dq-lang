@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.85.0"
+#define DQ_COMPILER_VERSION  "0.85.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.85.1:
+  - Added functions to turn off buffered stdout (PrintSetUnbuffered(), libc/stdio.SetStdOutUnbuffered())
 v0.85.0:
   - Anyvalue cleanup fix
   - print initialization uses embedded objects

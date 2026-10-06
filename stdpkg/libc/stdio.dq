@@ -15,26 +15,66 @@
 
 func printf(fmt : ^char, ...) -> int [[external]] ..
 
-func DqLibcStdout() -> pointer ..
+func StdOut() -> pointer ..
+
+func SetStdOutUnbuffered() -> bool ..
+func SetStdOutLineBuffered() -> bool ..
+func SetStdOutFullyBuffered() -> bool ..
 
 implementation
 
 #ifdef BARE
 
-    func DqLibcStdout() -> pointer:
+    func StdOut() -> pointer:
         return nil
     endfunc
 
-#elifdef WINDOWS
-    func libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]] ..
-
-    func DqLibcStdout() -> pointer:
-        return libc___acrt_iob_func(1)
+    func SetStdOutUnbuffered() -> bool:
+        return false
     endfunc
-#else
-    var libc_stdout : pointer [[external('stdout')]]
 
-    func DqLibcStdout() -> pointer:
-        return libc_stdout
+    func SetStdOutFullyBuffered() -> bool:
+        return false
+    endfunc
+
+    func SetStdOutLineBuffered() -> bool:
+        return false
+    endfunc
+
+#else
+    func libc_setvbuf(stream : pointer, buffer : ^char, mode : int, size : uint) -> int [[external('setvbuf')]] ..
+
+    #ifdef WINDOWS
+        const LIBC_IOFBF : int = 0
+        const LIBC_IOLBF : int = 0x40
+        const LIBC_IONBF : int = 0x04
+
+        func libc___acrt_iob_func(index : uint) -> pointer  [[external('__acrt_iob_func')]] ..
+
+        func StdOut() -> pointer:
+            return libc___acrt_iob_func(1)
+        endfunc
+    #else
+        const LIBC_IOFBF : int = 0
+        const LIBC_IOLBF : int = 1
+        const LIBC_IONBF : int = 2
+
+        var libc_stdout : pointer [[external('stdout')]]
+
+        func StdOut() -> pointer:
+            return libc_stdout
+        endfunc
+    #endif
+
+    func SetStdOutUnbuffered() -> bool:
+        return libc_setvbuf(StdOut(), nil, LIBC_IONBF, 0) == 0
+    endfunc
+
+    func SetStdOutFullyBuffered() -> bool:
+        return libc_setvbuf(StdOut(), nil, LIBC_IOFBF, 0) == 0
+    endfunc
+
+    func SetStdOutLineBuffered() -> bool:
+        return libc_setvbuf(StdOut(), nil, LIBC_IOLBF, 0) == 0
     endfunc
 #endif

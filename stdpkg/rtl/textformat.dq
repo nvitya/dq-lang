@@ -80,7 +80,7 @@ object OTextSinkStdOut(OTextSink):
     func WriteChar(ch : char)   [[override]] ..
 endobject
 
-#endif    
+#endif
 
 object OTextSinkEmbStr(OTextSink):
     dest : embstr
@@ -184,7 +184,7 @@ func libc_fflush(stream : pointer) -> int  [[external('fflush')]] ..
 
 func OTextSinkStdOut.*Create():
     inherited Create()
-    pstdout = @stdio.DqLibcStdout()
+    pstdout = @stdio.StdOut()
 endfunc
 
 func OTextSinkStdOut.Write(atext : strslice) [[override]]:

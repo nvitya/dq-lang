@@ -1,0 +1,43 @@
+// Test that dynamic arrays containing anyvalue properly release managed elements
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+
+use print
+
+func RunDynArrAnyValueTests():
+    var arr : [*]anyvalue = []
+
+    // 1. Array growth and element assignment with dynamic strings
+    arr.SetLength(3)
+    arr[0] = 'first'
+    arr[1] = 'second'
+    arr[2] = 'third'
+
+    PrintLn('dynarr_anyvalue.len = {}', [arr.length]) //?check('dynarr_anyvalue.len', 3)
+
+    // 2. Element deletion
+    arr.Delete(1, 1)
+
+    // 3. Array reassignment / migration
+    var arr2 : [*]anyvalue = []
+    arr2.SetLength(3)
+    arr2[0] = arr[0]
+    arr2[1] = arr[1]
+    arr2[2] = 'third'
+    arr = arr2
+
+    // 4. Element clear
+    arr.Clear()
+endfunc
+
+func *Main():
+    var membaseline : int64 = heap_allocated_size
+
+    RunDynArrAnyValueTests()
+
+    if heap_allocated_size <> membaseline:
+        PrintLn('dynarr_anyvalue.heapcheck = leak detected')
+    else:
+        PrintLn('dynarr_anyvalue.heapcheck = ok') //?check('dynarr_anyvalue.heapcheck', ok)
+    endif
+endfunc

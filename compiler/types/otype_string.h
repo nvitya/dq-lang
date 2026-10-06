@@ -46,8 +46,23 @@ enum EStringMethod
   STRM_POP_CHAR,
   STRM_POP_FIRST_CHAR,
   STRM_ADDFMT,
-  STRM_TO_WCHARS
+  STRM_TO_WCHARS,
+  STRM_TRIM,
+  STRM_LTRIM,
+  STRM_RTRIM,
+  STRM_LPAD,
+  STRM_RPAD,
+  STRM_INDEXOF,
+  STRM_LASTINDEXOF,
+  STRM_CONTAINS,
+  STRM_STARTSWITH,
+  STRM_ENDSWITH
 };
+
+inline bool IsStringUtilityMethod(EStringMethod method)
+{
+  return method >= STRM_TRIM && method <= STRM_ENDSWITH;
+}
 
 class OTypeString : public OType
 {
@@ -73,7 +88,7 @@ public:
   LlValue * GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
   LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                OExpr * end_expr, bool end_inclusive);
-  LlValue * GenerateToWchars(OScope * scope, OLValueExpr * receiver);
+  LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
 
   static LlValue * GenerateEqual(OScope * scope, OExpr * left, OExpr * right);
 };
@@ -214,6 +229,6 @@ LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver);
 LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
 LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                    OExpr * end_expr, bool end_inclusive);
-LlValue * GenerateStringToWchars(OScope * scope, OLValueExpr * receiver);
-LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStringMethod method,
+LlValue * GenerateStringToWchars(OScope * scope, OExpr * receiver);
+LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,
                                    const vector<OExpr *> & args);

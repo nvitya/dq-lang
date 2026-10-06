@@ -126,7 +126,7 @@ static LlValue * NormalizeTextIndexValue(LlValue * index, LlValue * len)
   return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "str.idx.from_end"), index, "str.idx.norm");
 }
 
-static OValSymFunc * DynStrFunc(const string & name)
+static OValSymFunc * DynStrFunc(const string & name, int arg_count = -1)
 {
   auto nsit = g_namespaces.find("__dq_strfunc");
   if (nsit == g_namespaces.end() || !nsit->second)
@@ -140,7 +140,19 @@ static OValSymFunc * DynStrFunc(const string & name)
   {
     if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
     {
-      if (!ovset->funcs.empty())
+      if (arg_count >= 0)
+      {
+        for (auto * f : ovset->funcs)
+        {
+          auto * tf = dynamic_cast<OTypeFunc *>(f->ptype);
+          if (tf && tf->params.size() == (size_t)arg_count)
+          {
+            fn = f;
+            break;
+          }
+        }
+      }
+      if (!fn && !ovset->funcs.empty())
       {
         fn = ovset->funcs[0];
       }
@@ -155,7 +167,7 @@ static OValSymFunc * DynStrFunc(const string & name)
 
 static LlValue * CallDynStrFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
-  OValSymFunc * fn = DynStrFunc(name);
+  OValSymFunc * fn = DynStrFunc(name, (int)args.size());
   if (scope)
   {
     return scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
@@ -448,9 +460,12 @@ LlValue * OTypeString::GenerateWCharSlice(OScope * scope, OLValueExpr * receiver
   return result;
 }
 
-LlValue * OTypeString::GenerateToWchars(OScope * scope, OLValueExpr * receiver)
+LlValue * OTypeString::GenerateToWchars(OScope * scope, OExpr * receiver)
 {
-  LlValue * result = CallDynStrFunc(scope, "StrfToWchars", {GenerateTextInfoValue(scope, receiver)});
+  LlValue * rec_temporary = nullptr;
+  LlValue * rec_info = GenerateTextInfoValue(scope, receiver, &rec_temporary);
+  LlValue * result = CallDynStrFunc(scope, "StrfToWchars", {rec_info});
+  if (rec_temporary) g_builtins->type_str->GenerateDestroy(scope, rec_temporary);
   EmitExpressionExceptionCheck(scope);
   return result;
 }
@@ -997,19 +1012,113 @@ LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr
   return st->GenerateWCharSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
-LlValue * GenerateStringToWchars(OScope * scope, OLValueExpr * receiver)
+LlValue * GenerateStringToWchars(OScope * scope, OExpr * receiver)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringToWchars requires str or strslice");
+  auto * st = dynamic_cast<OTypeString *>(receiver->ResolvedType());
+  if (!st) throw logic_error("GenerateStringToWchars requires string-family receiver");
   return st->GenerateToWchars(scope, receiver);
 }
 
-LlValue * GenerateStringMethodCall(OScope * scope, OLValueExpr * receiver, EStringMethod method,
+LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,
                                    const vector<OExpr *> & args)
 {
-  auto * st = dynamic_cast<OTypeDynString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
+  if (STRM_TO_WCHARS == method)
+  {
+    return GenerateStringToWchars(scope, receiver);
+  }
+
+  if (IsStringUtilityMethod(method))
+  {
+    LlValue * rec_tmp = nullptr;
+    LlValue * rec_info = GenerateTextInfoValue(scope, receiver, &rec_tmp);
+
+    LlValue * result = nullptr;
+    switch (method)
+    {
+      case STRM_TRIM:
+      case STRM_LTRIM:
+      case STRM_RTRIM:
+      {
+        string func_name = (STRM_TRIM == method ? "StrTrim" : (STRM_LTRIM == method ? "StrLTrim" : "StrRTrim"));
+        if (args.empty())
+        {
+          result = CallDynStrFunc(scope, func_name, {rec_info});
+        }
+        else
+        {
+          LlValue * arg_tmp = nullptr;
+          LlValue * arg_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+          result = CallDynStrFunc(scope, func_name, {rec_info, arg_info});
+          if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        }
+        break;
+      }
+      case STRM_LPAD:
+      case STRM_RPAD:
+      {
+        string func_name = (STRM_LPAD == method ? "StrLPad" : "StrRPad");
+        LlValue * target_len = ToNativeInt(args[0]->Generate(scope));
+        LlValue * arg_tmp = nullptr;
+        LlValue * fill_info = GenerateTextInfoValue(scope, args[1], &arg_tmp);
+        result = CallDynStrFunc(scope, func_name, {rec_info, target_len, fill_info});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      case STRM_INDEXOF:
+      {
+        LlValue * arg_tmp = nullptr;
+        LlValue * needle_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+        LlValue * start_val = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(0));
+        result = CallDynStrFunc(scope, "StrIndexOf", {rec_info, needle_info, start_val});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      case STRM_LASTINDEXOF:
+      {
+        LlValue * arg_tmp = nullptr;
+        LlValue * needle_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+        result = CallDynStrFunc(scope, "StrLastIndexOf", {rec_info, needle_info});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      case STRM_CONTAINS:
+      {
+        LlValue * arg_tmp = nullptr;
+        LlValue * needle_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+        result = CallDynStrFunc(scope, "StrContains", {rec_info, needle_info});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      case STRM_STARTSWITH:
+      {
+        LlValue * arg_tmp = nullptr;
+        LlValue * prefix_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+        result = CallDynStrFunc(scope, "StrStartsWith", {rec_info, prefix_info});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      case STRM_ENDSWITH:
+      {
+        LlValue * arg_tmp = nullptr;
+        LlValue * suffix_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
+        result = CallDynStrFunc(scope, "StrEndsWith", {rec_info, suffix_info});
+        if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (rec_tmp) g_builtins->type_str->GenerateDestroy(scope, rec_tmp);
+    EmitExpressionExceptionCheck(scope);
+    return result;
+  }
+
+  auto * lval = dynamic_cast<OLValueExpr *>(receiver);
+  if (!lval) throw logic_error("Mutating string method requires an lvalue");
+  auto * st = dynamic_cast<OTypeDynString *>(lval->ptype ? lval->ptype->ResolveAlias() : nullptr);
   if (!st) throw logic_error("GenerateStringMethodCall requires str");
-  return st->GenerateMethodCall(scope, receiver, method, args);
+  return st->GenerateMethodCall(scope, lval, method, args);
 }
 
 // rostr keeps the zero-termination contract separately from arbitrary text views.

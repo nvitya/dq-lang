@@ -21,6 +21,9 @@ use rtl/rtlint
 #include "textinfo.dqh"
 #srcdep  "textinfo.dqi"
 
+#include "strmethods.dqh"
+#srcdep  "strmethods.dqi"
+
 #ifdef DYNSTRINGS
 #include "dynstr.dqh"
 #srcdep  "dynstr.dqi"
@@ -73,6 +76,8 @@ use rtl/exception
 #ifdef DYNSTRINGS
 #include "dynstr.dqi"
 #endif
+
+#include "strmethods.dqi"
 
 func StrfRuntimeError(emsg : ^char):
 #ifdef EXCEPTIONS

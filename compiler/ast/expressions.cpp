@@ -3845,7 +3845,7 @@ void OStringMetaFieldExpr::DeleteChildTree()
   receiver = nullptr;
 }
 
-/* ctor */ OStringMethodCallExpr::OStringMethodCallExpr(OLValueExpr * areceiver, EStringMethod amethod, OType * arettype)
+/* ctor */ OStringMethodCallExpr::OStringMethodCallExpr(OExpr * areceiver, EStringMethod amethod, OType * arettype)
 {
   receiver = areceiver;
   method = amethod;
@@ -3856,23 +3856,14 @@ LlValue * OStringMethodCallExpr::Generate(OScope * scope)
 {
   OCallLifetimeCleanup cleanup(scope, args);
   cleanup.Prepare();
-  if (STRM_TO_WCHARS == method)
-  {
-    LlValue * result = static_cast<OTypeString *>(receiver->ResolvedType())->GenerateToWchars(scope, receiver);
-    cleanup.Cleanup();
-    return result;
-  }
-  auto * dyntype = static_cast<OTypeDynString *>(receiver->ptype->ResolveAlias());
-  LlValue * result = dyntype->GenerateMethodCall(scope, receiver, method, args);
+  LlValue * result = GenerateStringMethodCall(scope, receiver, method, args);
   cleanup.Cleanup();
   return result;
 }
 
 void OStringMethodCallExpr::FoldChildren()
 {
-  OExpr * tmp = receiver;
-  OExpr::FoldTree(&tmp);
-  receiver = static_cast<OLValueExpr *>(tmp);
+  OExpr::FoldTree(&receiver);
   for (OExpr *& arg : args)
   {
     OExpr::FoldTree(&arg);

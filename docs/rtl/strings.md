@@ -72,6 +72,70 @@ var part : str = s[3:10]
 Indices are normalized by the runtime operations. For example, deleting past
 the end is clamped, and inserting with `$end` appends.
 
+## Utility Methods
+
+The following read-only methods are available on `str`, `rostr`, `strslice`,
+and `embstr` values. They accept a `char` or a text value where a search,
+prefix, suffix, trim set, or fill value is required. Search positions and
+lengths are byte-based, just like `.length` and normal indexing.
+
+| Member | Result | Meaning |
+| --- | --- | --- |
+| `Trim()` / `Trim(set)` | `str` | remove whitespace, or bytes in `set`, from both ends |
+| `LTrim()` / `LTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the left end |
+| `RTrim()` / `RTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the right end |
+| `LPad(length, fill)` | `str` | pad the left side to `length` bytes |
+| `RPad(length, fill)` | `str` | pad the right side to `length` bytes |
+| `IndexOf(needle, start = 0)` | `int` | first matching byte offset, or `-1` |
+| `LastIndexOf(needle)` | `int` | last matching byte offset, or `-1` |
+| `Contains(needle)` | `bool` | whether the value contains `needle` |
+| `StartsWith(prefix)` | `bool` | whether the value begins with `prefix` |
+| `EndsWith(suffix)` | `bool` | whether the value ends with `suffix` |
+
+These methods do not modify the receiver. Assign a returned `str` to retain a
+trimmed or padded value.
+
+```dq
+var text : str = "  abc  "
+text = text.Trim()  // "abc"
+```
+
+`Trim`, `LTrim`, and `RTrim` use the ASCII whitespace bytes space, tab,
+line feed, carriage return, vertical tab, and form feed by default. With an
+argument, that argument is a set of bytes rather than a substring pattern.
+
+```dq
+var marked : str = "---abc---"
+var name : str = marked.Trim("-")  // "abc"
+```
+
+Padding repeats the fill value and truncates the final repetition to produce
+exactly the requested length. A target length no greater than the receiver
+length returns an unchanged copy. An empty fill value raises a runtime error.
+
+```dq
+var code : str = "abc"
+code.LPad(8, "01")  // "01010abc"
+code.RPad(5, '.')   // "abc.."
+```
+
+`IndexOf` clamps `start` to `0 .. text.length`. An empty needle matches at the
+normalized start position. `LastIndexOf("")` returns `text.length`; an empty
+prefix or suffix matches every text value.
+
+```dq
+var text : str = "abcdefabc"
+text.IndexOf("abc", 1)  // 6
+text.IndexOf("", 100)   // 9
+text.LastIndexOf("abc")  // 6
+text.StartsWith("abc")   // true
+text.EndsWith("abc")     // true
+```
+
+The trim and padding methods create a `str`, so they are unavailable on
+targets built with dynamic strings disabled. The search methods only return
+scalar values and remain available for the supported text views.
+
 ## Unicode Operations
 
 Unicode-oriented operations decode string bytes as UTF-8 and work with `wchar`,

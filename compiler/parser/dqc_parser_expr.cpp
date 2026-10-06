@@ -2355,18 +2355,129 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     method = STRM_TO_WCHARS;
     rettype = g_builtins->type_wchar->GetDynArrayType();
   }
+  else if ("Trim" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    method = STRM_TRIM;
+    if (!rawargs.empty())
+    {
+      source_arg_index = 0;
+      argtypes.push_back(g_builtins->type_strslice);
+    }
+    rettype = g_builtins->type_str;
+  }
+  else if ("LTrim" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    method = STRM_LTRIM;
+    if (!rawargs.empty())
+    {
+      source_arg_index = 0;
+      argtypes.push_back(g_builtins->type_strslice);
+    }
+    rettype = g_builtins->type_str;
+  }
+  else if ("RTrim" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    method = STRM_RTRIM;
+    if (!rawargs.empty())
+    {
+      source_arg_index = 0;
+      argtypes.push_back(g_builtins->type_strslice);
+    }
+    rettype = g_builtins->type_str;
+  }
+  else if ("LPad" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = STRM_LPAD;
+    argtypes.push_back(g_builtins->type_int);
+    source_arg_index = 1;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_str;
+  }
+  else if ("RPad" == membername)
+  {
+    if (!check_count(2, 2)) return free_and_fail();
+    method = STRM_RPAD;
+    argtypes.push_back(g_builtins->type_int);
+    source_arg_index = 1;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_str;
+  }
+  else if ("IndexOf" == membername)
+  {
+    if (!check_count(1, 2)) return free_and_fail();
+    method = STRM_INDEXOF;
+    source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
+    if (rawargs.size() > 1)
+    {
+      argtypes.push_back(g_builtins->type_int);
+    }
+    rettype = g_builtins->type_int;
+  }
+  else if ("LastIndexOf" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_LASTINDEXOF;
+    source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_int;
+  }
+  else if ("Contains" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_CONTAINS;
+    source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_bool;
+  }
+  else if ("StartsWith" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_STARTSWITH;
+    source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_bool;
+  }
+  else if ("EndsWith" == membername)
+  {
+    if (!check_count(1, 1)) return free_and_fail();
+    method = STRM_ENDSWITH;
+    source_arg_index = 0;
+    argtypes.push_back(g_builtins->type_strslice);
+    rettype = g_builtins->type_bool;
+  }
   else
   {
-    Error(DQERR_MEMBER_UNKNOWN, membername, receiver->ptype->name);
+    Error(DQERR_MEMBER_UNKNOWN, membername, receiver_expr->ptype->name);
     return free_and_fail();
   }
 
-  if (!(STRM_TO_WCHARS == method ? EnsureStrFuncRtlUse() : EnsureDynStringRtlUse()))
+  bool needs_dynstrings = !IsStringUtilityMethod(method) && (STRM_TO_WCHARS != method);
+  if (STRM_TRIM == method || STRM_LTRIM == method || STRM_RTRIM == method
+      || STRM_LPAD == method || STRM_RPAD == method)
+  {
+    needs_dynstrings = true;
+  }
+
+  if (!(needs_dynstrings ? EnsureDynStringRtlUse() : EnsureStrFuncRtlUse()))
   {
     return free_and_fail();
   }
 
-  auto * callexpr = new OStringMethodCallExpr(receiver, method, rettype);
+  if (!IsStringUtilityMethod(method) && STRM_TO_WCHARS != method)
+  {
+    if (!receiver)
+    {
+      Error(DQERR_MEMBER_UNKNOWN, membername, receiver_expr->ptype->name);
+      return free_and_fail();
+    }
+  }
+
+  auto * callexpr = new OStringMethodCallExpr(receiver_expr, method, rettype);
   for (size_t i = 0; i < rawargs.size(); ++i)
   {
     OExpr * argexpr = rawargs[i].TakeExpr();
@@ -2658,6 +2769,20 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
   return EPostfixResult::NotMatched;
 }
 
+static bool IsStringUtilityMethodName(const string & name)
+{
+  return name == "Trim"
+      || name == "LTrim"
+      || name == "RTrim"
+      || name == "LPad"
+      || name == "RPad"
+      || name == "IndexOf"
+      || name == "LastIndexOf"
+      || name == "Contains"
+      || name == "StartsWith"
+      || name == "EndsWith";
+}
+
 ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     OExpr *& result, OLValueExpr * lval, ETypeKind tk)
 {
@@ -2721,6 +2846,24 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     return result ? EPostfixResult::Continue : EPostfixResult::Stop;
   }
 
+  if (!lval && (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk) && scf->CheckSymbol("."))
+  {
+    string membername;
+    scf->SkipWhite();
+    if (!scf->ReadIdentifier(membername))
+    {
+      Error(DQERR_MEMBER_NAME_EXPECTED);
+      return EPostfixResult::Stop;
+    }
+    if (IsStringUtilityMethodName(membername) || (TK_DYNSTR == tk && "ToWchars" == membername))
+    {
+      result = ParseStringMethod(result, nullptr, membername);
+      return result ? EPostfixResult::Continue : EPostfixResult::Stop;
+    }
+    HandleUnknownMemberError(result, membername, result->ptype->name);
+    return EPostfixResult::Stop;
+  }
+
   if (lval && scf->CheckSymbol("."))
   {
     string membername;
@@ -2731,7 +2874,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Stop;
     }
 
-    if ("IndexOf" == membername)
+    if ("IndexOf" == membername && (TK_ARRAY == tk || TK_ARRAY_SLICE == tk || TK_DYN_ARRAY == tk))
     {
       result = ParseArrayIndexOfMethod(result, lval, membername);
       return result ? EPostfixResult::Continue : EPostfixResult::Stop;
@@ -2803,6 +2946,12 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       if ("pchar" == membername)
       {
         result = new OEmbStrMetaFieldExpr(lval, ESMF_PCHAR);
+        return EPostfixResult::Continue;
+      }
+      if (IsStringUtilityMethodName(membername))
+      {
+        result = ParseStringMethod(result, lval, membername);
+        if (!result) return EPostfixResult::Stop;
         return EPostfixResult::Continue;
       }
       result = ParseEmbStrMethod(result, lval, membername);
@@ -2908,7 +3057,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
         return EPostfixResult::Continue;
       }
-      if (TK_DYNSTR == tk || (TK_ROSTR == tk && "ToWchars" == membername))
+      if (TK_DYNSTR == tk || (TK_ROSTR == tk && "ToWchars" == membername) || IsStringUtilityMethodName(membername))
       {
         result = ParseStringMethod(result, lval, membername);
         if (!result) return EPostfixResult::Stop;

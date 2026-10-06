@@ -1,4 +1,3 @@
-//?notest
 // Spec-level string utility methods.
 
 use libc/stdio
@@ -80,9 +79,25 @@ func *Main():
     var view : strslice = "  view  "
     PrintText("strslice_trim", view.Trim()) //?check("strslice_trim", '[4] "view"')
     printf("strslice_indexof = %li\n", view.IndexOf("ie")) //?check("strslice_indexof", 3)
+    printf("strslice_search = %li %li %li\n", Flag(view.StartsWith("  vi")), Flag(view.EndsWith("  ")), Flag(view.Contains("iew"))) //?check("strslice_search", "1 1 1")
+    PrintText("strslice_lpad", view.LPad(10, '-')) //?check("strslice_lpad", '[10] "--  view  "')
 
     var cs : embstr(9) = "  abc"
     PrintText("embstring_trim", cs.Trim()) //?check("embstring_trim", '[3] "abc"')
     printf("embstring_indexof = %li\n", cs.IndexOf('b')) //?check("embstring_indexof", 3)
+    printf("embstring_search = %li %li %li\n", Flag(cs.StartsWith("  a")), Flag(cs.EndsWith("bc")), Flag(cs.Contains("ab"))) //?check("embstring_search", "1 1 1")
+    PrintText("embstring_rpad", cs.RPad(8, '+')) //?check("embstring_rpad", '[8] "  abc+++"')
+
+    var ro : rostr = "  read-only  "
+    PrintText("rostr_trim", ro.Trim()) //?check("rostr_trim", '[9] "read-only"')
+    printf("rostr_indexof = %li\n", ro.IndexOf("on")) //?check("rostr_indexof", 7)
+    printf("rostr_starts = %li\n", Flag(ro.StartsWith("  read"))) //?check("rostr_starts", 1)
+    printf("rostr_search = %li %li\n", Flag(ro.EndsWith("only  ")), Flag(ro.Contains("ad-o"))) //?check("rostr_search", "1 1")
+    PrintText("rostr_lpad", ro.LPad(15, '=')) //?check("rostr_lpad", '[15] "==  read-only  "')
+
+    PrintText("chained_trim", spaced.Trim().Trim()) //?check("chained_trim", '[3] "abc"')
 
 endfunc
+
+
+

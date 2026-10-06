@@ -985,11 +985,11 @@ public:
 class OStringMethodCallExpr : public OExpr
 {
 public:
-  OLValueExpr *    receiver;
+  OExpr *          receiver;
   EStringMethod    method;
   vector<OExpr *>  args;
 
-  /* ctor */ OStringMethodCallExpr(OLValueExpr * areceiver, EStringMethod amethod, OType * arettype = nullptr);
+  /* ctor */ OStringMethodCallExpr(OExpr * areceiver, EStringMethod amethod, OType * arettype = nullptr);
   ~OStringMethodCallExpr() override = default;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;

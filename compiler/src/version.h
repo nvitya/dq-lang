@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.85.2"
+#define DQ_COMPILER_VERSION  "0.86.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.86.0:
+  - Added lot of string utility methods, like .Trim(), IndexOf(), LPad() etc.
 v0.85.2:
   - String RTL loading fix and string helper improvements
 v0.85.1:

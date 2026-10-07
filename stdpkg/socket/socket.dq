@@ -169,13 +169,24 @@ struct SSockAddrStorage:
     __align   : uint
 endstruct
 
-// Linux only packs epoll_event on X64.  Other Linux ABIs naturally align
-// the pointer-sized payload after events.
+// Linux packs epoll_event on x64.  Other Linux ABIs use the 8-byte-aligned
+// epoll_data_t union, even where its active pointer member is only 32 bits.
 
-struct SEpollEvent  #{ifdef X64} [[packed]] #{endif}:
+#ifdef X64
+
+struct SEpollEvent [[packed]]:
     events : uint32
     data   : pointer
 endstruct
+
+#else
+
+struct SEpollEvent:
+    events : uint32
+    data   : pointer [[align(8)]]
+endstruct
+
+#endif
 
 type TSockAddr       = SSockAddrIn
 type TEpollEvent     = SEpollEvent

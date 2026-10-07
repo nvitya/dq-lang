@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    nanonet/nano_jsq.dq
+ * authors: nvitya
+ * created: 2026-10-05
+ * brief:   Simple Javascript result helper with direct database query
+ */
 
 use db
 use json
@@ -11,9 +25,12 @@ public
     keep_last_sql_result : bool = false
 
     jroot : autofree OJson
-    jdata : OJson //
+    jdata : OJson // just a link to the data part, not owned
 
-    func *Create(aconn : ODbConnection) ..
+    func *Create(aconn : ODbConnection):
+        m_dbconn = aconn
+        jroot = new OJson()
+    endfunc
 
     func Reset() ..
 
@@ -28,11 +45,6 @@ endobject
 
 implementation
 
-
-func ONanoJsq.*Create(aconn : ODbConnection):
-    m_dbconn = aconn
-    jroot = new OJson()
-endfunc
 
 func ONanoJsq.Reset():
     jroot.Clear()
@@ -135,7 +147,6 @@ func ONanoJsq.ReturnSqlData(sconn : OSConnectionHttp, asql : rostr):
     Reset()
     try:
         var dbcur : autofree ODbCursor
-
         dbcur = m_dbconn.Query(asql)
 
         var fcnt : int = dbcur.FieldCount()

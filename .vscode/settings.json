@@ -1,6 +1,6 @@
 {
-  "dq.debugTarget": "stdpkg/nanonet/examples/http_tester",
-  "dq.debugTargetx": "stdpkg/nanonet/examples/http_simple_server",
+  "dq.debugTargetx": "stdpkg/nanonet/examples/http_tester",
+  "dq.debugTarget": "stdpkg/nanonet/examples/http_simple_server",
   "dq.debugCwd":    "stdpkg/nanonet/examples",
 
   "dq.languageServerPath": "/workvc/dq-lang/build/dq-comp",

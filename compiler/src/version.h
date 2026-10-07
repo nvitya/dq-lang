@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.86.0"
+#define DQ_COMPILER_VERSION  "0.86.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.86.1:
+  - Some stdpkg improvements: strparse, strutils
 v0.86.0:
   - Added lot of string utility methods, like .Trim(), IndexOf(), LPad() etc.
 v0.85.2:

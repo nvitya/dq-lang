@@ -10,8 +10,7 @@
  * file:    strparse/strparse.dq
  * authors: nvitya
  * created: 2026-07-08
- * brief:   String parsing helpers
- * notes:   only for 8-bit strings so far !
+ * brief:   String parsing helpers using ^char and mosty avoiding string copiing
 */
 
 object OStrParse:
@@ -37,6 +36,7 @@ object OStrParse:
     func ReadLine() -> bool ..
     func ReadTo(checkchars : rostr) -> bool ..
     func ReadToChar(achar : char) -> bool ..
+    func ReadIdentifier(rvalue : refout str) ..  // returns "" when invalid
     func ReadAlphaNum() -> bool ..
     func ReadDecimalNumbers() -> bool ..
     func ReadHexNumbers() -> bool ..
@@ -62,7 +62,7 @@ endobject
 func PCharUCCompare(readp : ref ^char, len : int, checkstring : rostr) -> bool ..
 func PCharToInt(readp : ^char, len : int) -> int ..
 func PCharHexToInt(readp : ^char, len : int) -> uint ..
-func PCharToFloat(readp : ^char, len : int) -> float64 ..
+func PCharToFloat(readp : ^char, len : int) -> float ..
 
 implementation
 
@@ -194,6 +194,30 @@ func OStrParse.CheckSymbol(checkstring : rostr) -> bool:
 
     readp = cp
     return true
+endfunc
+
+func OStrParse.ReadIdentifier(rvalue : refout str):  // returns "" when invalid
+    var cp : ^char = readp
+    prevp = readp
+    while cp < bufend:
+        var c : char = char(cp^)
+        if 'A' <= c <= 'Z'  or 'a' <= c <= 'z' or ('0' <= c <= '9' and cp > readp)
+            or c == '_':
+            ++cp
+        else:
+            break
+        endif
+    endwhile
+    prevlen = cp - readp
+    if prevlen > 0:
+        var s : str
+        s.SetLength(prevlen, char(0))
+        @.MemCopy(%s[0], readp, prevlen)
+        rvalue = s
+    else:
+        rvalue = ''
+    endif
+    readp = cp
 endfunc
 
 func OStrParse.ReadAlphaNum() -> bool:
@@ -453,7 +477,7 @@ func PCharHexToInt(readp : ^char, len : int) -> uint:
     endwhile
 endfunc
 
-func PCharToFloat(readp : ^char, len : int) -> float64:
+func PCharToFloat(readp : ^char, len : int) -> float:
     if len < 1:
         return 0
     endif
@@ -461,48 +485,50 @@ func PCharToFloat(readp : ^char, len : int) -> float64:
     var pc   : ^char = readp
     var pend : ^char = readp + len
 
-    var nsign   : float64 = 1
-    var esign   : float64 = 1
-    var fracmul : float64 = 1
-    var nv      : float64 = 0
-    var ev      : float64 = 0
+    var nsign   : float = 1
+    var esign   : float = 1
+    var fracmul : float = 1
+    var nv      : float = 0
+    var ev      : float = 0
     var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
 
     while pc < pend:
-    var c : char = char(pc^)
+        var c : char = char(pc^)
 
-    if c == '+':
-        if mode == 2:
-            esign = 1
+        if c == '+':
+            if mode == 2:
+                esign = 1
+            else:
+                nsign = 1
+            endif
+        elif c == '-':
+            if mode == 2:
+                esign = -1
+            else:
+                nsign = -1
+            endif
+        elif '0' <= c <= '9':
+            var digit : int = Ord(c) - Ord('0')
+            if mode == 1:
+                fracmul *= 0.1
+                nv += digit * fracmul
+            elif mode == 2:
+                ev = ev * 10 + digit
+            else:
+                nv = nv * 10 + digit
+            endif
+        elif c == '.'  or c == ',':
+            mode = 1
+        elif c == 'e'  or c == 'E':
+            mode = 2
         else:
-            nsign = 1
+            break
         endif
-    elif c == '-':
-        if mode == 2:
-            esign = -1
-        else:
-            nsign = -1
-        endif
-    elif '0' <= c <= '9':
-        var digit : float64 = float64(Ord(c) - Ord('0'))
-        if mode == 1:
-            fracmul *= 0.1
-            nv += digit * fracmul
-        elif mode == 2:
-            ev = ev * 10 + digit
-        else:
-            nv = nv * 10 + digit
-        endif
-    elif c == '.'  or c == ',':
-        mode = 1
-    elif c == 'e'  or c == 'E':
-        mode = 2
-    else:
-        break
-    endif
 
-    ++pc
+        ++pc
     endwhile
+
+    //TODO: if pc < pend: early exit means invalid value !
 
     return nsign * nv * Pow(10, esign * ev)
 endfunc

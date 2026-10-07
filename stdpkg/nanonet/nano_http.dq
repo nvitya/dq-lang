@@ -64,6 +64,7 @@ public
     func *Destroy() ..
 
     func QsVarInt(aname : rostr, adefvalue : int) -> int ..
+    func QsVarFloat(aname : rostr, adefvalue : float) -> float ..
     func QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str ..
 
     func HandleInput(aobj : Object) [[override]] ..
@@ -219,7 +220,7 @@ func OSConnectionHttp.*Destroy():
 endfunc
 
 func OSConnectionHttp.QsVarInt(aname : rostr, adefvalue : int) -> int:
-    return int(@strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue))
+    return @strutils.StrToInt(qsvars.KeyDataDef(aname, ''), adefvalue)
 endfunc
 
 func OSConnectionHttp.QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : int) -> str:
@@ -228,6 +229,11 @@ func OSConnectionHttp.QsVarStr(aname : rostr, adefvalue : strslice, amaxlen : in
         result = result[:amaxlen]
     endif
 endfunc
+
+func OSConnectionHttp.QsVarFloat(aname : rostr, adefvalue : float) -> float:
+    return @strutils.StrToFloat(qsvars.KeyDataDef(aname, ''), adefvalue)
+endfunc
+
 
 func OSConnectionHttp.HandleInput(aobj : Object) [[override]]:
     if inbuf.length - infill < 4096:

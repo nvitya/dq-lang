@@ -17,6 +17,19 @@ sudo debootstrap \
   "$TSYSROOT" \
   https://deb.debian.org/debian
 ```
+ARMHF
+```
+export TSYSROOT=/lindata/dev_arm/sysroot_armhf_trixie
+
+sudo debootstrap \
+  --arch=armhf \
+  --variant=minbase \
+  --foreign \
+  trixie \
+  "$TSYSROOT" \
+  https://deb.debian.org/debian
+```
+
 RV64
 ```
 export TSYSROOT=/lindata/dev_riscv/sysroot_riscv64_trixie
@@ -39,7 +52,6 @@ sudo cp --dereference /etc/resolv.conf "$TSYSROOT/etc/resolv.conf"
 
 Enter the target:
 ```
-export TSYSROOT=/lindata/dev_arm/sysroot_arm64_trixie
 sudo chroot "$TSYSROOT" bash
 ```
 In the target/emulated sysroot:

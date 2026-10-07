@@ -27,7 +27,7 @@ av.IsNull()
 const DQSUBT_INT_SIGNED : byte = 1
 
 struct SDqAnyValue:
-    data     : [16]byte  // The SDqTextInfo must fit into this, must be padded with zeroes
+    data     : [16]byte [[align(8)]]  // The SDqTextInfo must fit into this, must be padded with zeroes
     kind     : byte      // one of the DQTK_xxx values
     subtype  : byte
     datasize : byte

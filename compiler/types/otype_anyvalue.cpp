@@ -35,6 +35,11 @@ static LlType * LlI8Type()
   return LlType::getInt8Ty(ll_ctx);
 }
 
+static LlType * LlI64Type()
+{
+  return LlType::getInt64Ty(ll_ctx);
+}
+
 
 
 static LlValue * ToNativeUInt(LlValue * value)
@@ -124,7 +129,7 @@ static LlValue * CallAnyValueFunc(OScope * scope, const string & name, vector<Ll
 LlType * OTypeAnyValue::CreateLlType()
 {
   vector<LlType *> fields = {
-    llvm::ArrayType::get(LlI8Type(), 16),
+    llvm::ArrayType::get(LlI64Type(), 2),
     LlI8Type(),
     LlI8Type(),
     LlI8Type(),

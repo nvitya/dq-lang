@@ -63,8 +63,8 @@ public:
   :
     super("anyvalue", TK_ANYVALUE)
   {
-    bytesize = 16 + 3 + TARGET_PTRSIZE - 1;
-    alignsize = 1;
+    bytesize = AlignUpU32(16 + 3 + TARGET_PTRSIZE - 1, 8);
+    alignsize = 8;
   }
 
   LlType * CreateLlType() override;

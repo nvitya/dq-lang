@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.86.1"
+#define DQ_COMPILER_VERSION  "0.87.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.87.0:
+  - armhf-linux target (32-bit) fixes
 v0.86.1:
   - Some stdpkg improvements: strparse, strutils
 v0.86.0:

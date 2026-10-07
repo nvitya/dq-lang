@@ -1,8 +1,12 @@
 # Getting sysroot with debootstrap
 
+Preparation
 ```
 apt install qemu-user qemu-user-binfmt debootstrap
+```
 
+ARM64
+```
 export TSYSROOT=/lindata/dev_arm/sysroot_arm64_trixie
 
 sudo debootstrap \
@@ -12,8 +16,21 @@ sudo debootstrap \
   trixie \
   "$TSYSROOT" \
   https://deb.debian.org/debian
+```
+RV64
+```
+export TSYSROOT=/lindata/dev_riscv/sysroot_riscv64_trixie
 
+sudo debootstrap \
+  --arch=riscv64 \
+  --variant=minbase \
+  --foreign \
+  trixie \
+  "$TSYSROOT" \
+  https://deb.debian.org/debian
+```
 
+```
 sudo chroot "$TSYSROOT" /debootstrap/debootstrap --second-stage
 
 sudo cp --dereference /etc/resolv.conf "$TSYSROOT/etc/resolv.conf"

@@ -180,7 +180,7 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
   }
 
   OCompTarget * armhf = add_target("armhf-linux", "arm", "linux",
-      "armv7-unknown-linux-gnueabihf", "generic", "+v7,+vfp3,+d16", "ARM",
+      "armv7-unknown-linux-gnueabihf", "generic", "+v7,+vfp3d16", "ARM",
       TARGET_PLATFORM_LINUX);
   armhf->clang_arch = "armv7-a";
   armhf->clang_fpu = "vfpv3-d16";

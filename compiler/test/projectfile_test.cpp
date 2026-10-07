@@ -121,7 +121,7 @@ int main()
   string armhf_error;
   Expect(armhf.Configure("armhf-linux", armhf_error), "configure ARM hard-float Linux target");
   Expect(armhf.arch == "arm" && armhf.llvm_triple == "armv7-unknown-linux-gnueabihf"
-         && armhf.llvm_features == "+v7,+vfp3,+d16" && armhf.clang_arch == "armv7-a"
+         && armhf.llvm_features == "+v7,+vfp3d16" && armhf.clang_arch == "armv7-a"
          && armhf.clang_fpu == "vfpv3-d16" && armhf.float_abi == TARGET_FLOAT_ABI_HARD
          && armhf.IsArm() && armhf.IsLinux() && armhf.pointer_size == 4
          && !armhf.static_relocation,

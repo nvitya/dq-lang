@@ -19,8 +19,8 @@ struct SMySqlField:
     db              : ^char
     catalog         : ^char
     def             : ^char
-    length          : uint64  // unsigned long on supported 64-bit targets
-    max_length      : uint64
+    length          : uint    // unsigned long
+    max_length      : uint
     name_length     : uint32
     org_name_length : uint32
     table_length    : uint32
@@ -85,7 +85,7 @@ protected
     m_handle  : pointer = nil
     m_row     : ^^char  // MYSQL_ROW: an array of nullable char pointers
     m_fields  : ^SMySqlField
-    m_lengths : ^uint64
+    m_lengths : ^uint
 
     func LoadFieldData() ..
     func DbFieldType(amysqltype : uint32) -> NDbFieldType ..
@@ -155,23 +155,23 @@ const MYSQL_TYPE_GEOMETRY   : uint32 = 255
 func mysql_init(mysql : pointer) -> pointer [[external]] ..
 func mysql_close(mysql : pointer) [[external]] ..
 func mysql_real_connect(mysql : pointer, host : ^char, user : ^char, password : ^char,
-                        database : ^char, port : uint, unix_socket : ^char,
-                        client_flag : uint64) -> pointer [[external]] ..
-func mysql_ping(mysql : pointer) -> int [[external]] ..
-func mysql_query(mysql : pointer, query : ^char) -> int [[external]] ..
-func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int [[external]] ..
+                        database : ^char, port : uint32, unix_socket : ^char,
+                        client_flag : uint) -> pointer [[external]] ..
+func mysql_ping(mysql : pointer) -> int32 [[external]] ..
+func mysql_query(mysql : pointer, query : ^char) -> int32 [[external]] ..
+func mysql_real_query(mysql : pointer, query : ^char, length : uint) -> int32 [[external]] ..
 func mysql_store_result(mysql : pointer) -> pointer [[external]] ..
 func mysql_free_result(aresult : pointer) [[external]] ..
 func mysql_fetch_row(aresult : pointer) -> pointer [[external]] ..
-func mysql_fetch_lengths(aresult : pointer) -> ^uint64 [[external]] ..
-func mysql_num_fields(aresult : pointer) -> uint [[external]] ..
+func mysql_fetch_lengths(aresult : pointer) -> ^uint [[external]] ..
+func mysql_num_fields(aresult : pointer) -> uint32 [[external]] ..
 func mysql_fetch_fields(aresult : pointer) -> pointer [[external]] ..
-func mysql_field_count(mysql : pointer) -> uint [[external]] ..
-func mysql_affected_rows(mysql : pointer) -> int64 [[external]] ..
+func mysql_field_count(mysql : pointer) -> uint32 [[external]] ..
+func mysql_affected_rows(mysql : pointer) -> uint64 [[external]] ..
 func mysql_insert_id(mysql : pointer) -> uint64 [[external]] ..
-func mysql_errno(mysql : pointer) -> uint [[external]] ..
+func mysql_errno(mysql : pointer) -> uint32 [[external]] ..
 func mysql_error(mysql : pointer) -> ^char [[external]] ..
-func mysql_set_character_set(mysql : pointer, charset : ^char) -> int [[external]] ..
+func mysql_set_character_set(mysql : pointer, charset : ^char) -> int32 [[external]] ..
 func mysql_data_seek(aresult : pointer, offset : uint64) [[external]] ..
 
 func libc_strtoll(nptr : ^char, endptr : ^pointer, base : int) -> int64 [[external('strtoll')]] ..

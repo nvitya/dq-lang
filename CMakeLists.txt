@@ -54,19 +54,19 @@ endif()
 add_subdirectory(compiler build/compiler)
 add_subdirectory(autotest/atrunner build/autotest/atrunner)
 
-set(DQ_PKG_PROJECT "${CMAKE_SOURCE_DIR}/pkgtool/dq-pkg.dqproj")
-set(DQ_PKG_OUTPUT "${DQ_BUILD_DIR}/dq-pkg")
-file(GLOB DQ_PKG_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/pkgtool/src/*.dq")
+#set(DQ_PKG_PROJECT "${CMAKE_SOURCE_DIR}/pkgtool/dq-pkg.dqproj")
+#set(DQ_PKG_OUTPUT "${DQ_BUILD_DIR}/dq-pkg")
+#file(GLOB DQ_PKG_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/pkgtool/src/*.dq")
 
-add_custom_command(
-  OUTPUT "${DQ_PKG_OUTPUT}"
-  COMMAND $<TARGET_FILE:dq-comp> "${DQ_PKG_PROJECT}"
-  DEPENDS dq-comp "${DQ_PKG_PROJECT}" ${DQ_PKG_SOURCES}
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  VERBATIM
-)
+#add_custom_command(
+#  OUTPUT "${DQ_PKG_OUTPUT}"
+#  COMMAND $<TARGET_FILE:dq-comp> "${DQ_PKG_PROJECT}"
+#  DEPENDS dq-comp "${DQ_PKG_PROJECT}" ${DQ_PKG_SOURCES}
+#  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+#  VERBATIM
+#)
 
-add_custom_target(dq-pkg ALL DEPENDS "${DQ_PKG_OUTPUT}")
+#add_custom_target(dq-pkg ALL DEPENDS "${DQ_PKG_OUTPUT}")
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
   DESTINATION lib/dq/stdpkg
@@ -77,7 +77,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/stdpkg/"
     PATTERN ".dqbuild" EXCLUDE
 )
 
-install(PROGRAMS "${DQ_PKG_OUTPUT}" DESTINATION bin)
+#install(PROGRAMS "${DQ_PKG_OUTPUT}" DESTINATION bin)
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/gcclibs/"
   DESTINATION lib/dq/gcclibs

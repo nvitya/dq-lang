@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.87.0"
+#define DQ_COMPILER_VERSION  "0.87.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.87.1:
+  - Object debug info generation fix
 v0.87.0:
   - armhf-linux target (32-bit) fixes
 v0.86.1:

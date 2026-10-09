@@ -886,7 +886,11 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
           "",                     // Let GDB use the structured module-qualified name
           scpos.scfile->di_file, // The file where it is declared
           scpos.line,         // The line number in the source code (example: line 10)
-          ptype->GetDiType(), // The debug type
+          // Globals are described at their actual storage address.  Object
+          // reference variables (and ref aliases) therefore need the pointer
+          // storage type here, rather than their source-level referent type.
+          // Otherwise GDB interprets the pointer slot as an inline object.
+          storage_type->GetDiType(), // The debug type
           not apublic         // Is it local to the compile unit? (false for true globals)
       );
       gv->addDebugInfo(debug_expr);

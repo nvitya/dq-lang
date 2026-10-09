@@ -1,6 +1,7 @@
 object OFieldPair:
-    name  : embstr(64)
-    value : anyvalue
+    name   : embstr(64)
+    value  : anyvalue
+    direct : bool = false
 
     func *Create(aname : rostr):
         name  = aname
@@ -28,6 +29,7 @@ public
     func FieldInt(afname : rostr, avalue : int) ..
     func FieldFloat(afname : rostr, avalue : float) ..
     func FieldNull(afname : rostr) ..
+    func FieldSpec(afname : rostr, avalue : rostr) ..
 
     func InsertStatement(adb : ODbConnection) -> str ..
     func UpdateStatement(adb : ODbConnection, where : rostr) -> str ..

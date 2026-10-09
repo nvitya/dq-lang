@@ -1,5 +1,5 @@
 func OFieldPair.GetFieldValueText(qfunc : FSqlQuoteStr) -> str:
-    if value.IsText():
+    if value.IsText() and not direct:
         result = qfunc(value.AsText(''))
     else:
         result = @.Format("{}", [value])
@@ -39,6 +39,7 @@ func OSqlUis.FieldStr(afname : rostr, avalue : strslice):
     var fp : OFieldPair = GetField(afname)
     var s : str = avalue
     fp.value = s
+    fp.direct = false  // will be quoted
 endfunc
 
 func OSqlUis.FieldInt(afname : rostr, avalue : int):
@@ -55,6 +56,13 @@ func OSqlUis.FieldNull(afname : rostr):
     var fp : OFieldPair = GetField(afname)
     fp.value.SetNull()
 endfunc
+
+func OSqlUis.FieldSpec(afname : rostr, avalue : rostr):
+    var fp : OFieldPair = GetField(afname)
+    fp.value = avalue
+    fp.direct = true
+endfunc
+
 
 func OSqlUis.InsertStatement(adb : ODbConnection) -> str:
     var fs : str = ""

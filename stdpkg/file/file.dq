@@ -64,7 +64,7 @@ func DirRemove(adir : rostr) ..
 
 func PathSlashSeparators(apath : strslice) -> str ..
 func PathPlatformSeparators(apath : strslice) -> str ..
-func PathToAbsolute(apath : strslice) -> str ..
+func PathToAbsolute(apath : rostr) -> str ..
 
 func PathDirName(apath : strslice) -> str ..
 func PathFileName(apath : strslice) -> str ..
@@ -329,7 +329,7 @@ func PathCleanAbsolute(apath : strslice) -> str:
     endwhile
 endfunc
 
-func PathToAbsolute(apath : strslice) -> str:
+func PathToAbsolute(apath : rostr) -> str:
     if apath == '':
         return GetCurrentPath()
     endif

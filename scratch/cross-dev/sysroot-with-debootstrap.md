@@ -50,6 +50,12 @@ sudo cp --dereference /etc/resolv.conf "$TSYSROOT/etc/resolv.conf"
 
 ```
 
+For Ubuntu 24.04 (not required on Ubuntu 26.04)
+```
+sudo apt install debootstrap qemu-user-static binfmt-support
+sudo cp /usr/bin/qemu-riscv64-static "$TSYSROOT/usr/bin/"
+```
+
 Enter the target:
 ```
 sudo chroot "$TSYSROOT" bash

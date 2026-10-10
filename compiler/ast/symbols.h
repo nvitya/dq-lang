@@ -54,6 +54,7 @@ class OSymbol
 public:
   string         name;
   OType *        ptype;
+  string         declaration_position;
 
   OModuleBase *  module = nullptr;
   OScPosition    scpos;
@@ -77,6 +78,8 @@ public:
   OScope *    parent_scope;
   string      debugname; // Helpful for debugging (e.g., "Class Body", "Func Body")
   bool        vs_lookup_parent = true;
+  bool        warn_shadowing = false;
+  bool        suppress_child_shadowing_warnings = false;
 
   map<string, OType *>    typesyms;
   map<string, OValSym *>  valsyms;

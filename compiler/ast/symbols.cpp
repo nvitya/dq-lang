@@ -1065,6 +1065,9 @@ bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)
   }
 
   if (!writer.AddRecStr(DQMIF_VAR_BEGIN, name)) return false;
+  string declaration_pos = scpos.Format();
+  if (declaration_pos.empty()) declaration_pos = declaration_position;
+  if (!declaration_pos.empty() && !writer.AddRecStr(DQMIF_DECL_SOURCE_POS, declaration_pos)) return false;
   if (!WriteDqmIfAttributes(writer)) return false;
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
   return writer.AddRecEmpty(DQMIF_VAR_END);
@@ -1082,6 +1085,9 @@ bool OValSymConst::WriteDqmIfDecl(ODqmIfWriter & writer)
   }
 
   if (!writer.AddRecStr(DQMIF_CONST_BEGIN, name)) return false;
+  string declaration_pos = scpos.Format();
+  if (declaration_pos.empty()) declaration_pos = declaration_position;
+  if (!declaration_pos.empty() && !writer.AddRecStr(DQMIF_DECL_SOURCE_POS, declaration_pos)) return false;
   if (!WriteDqmIfAttributes(writer)) return false;
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
   if (!pvalue->WriteDqmIfValue(writer)) return false;

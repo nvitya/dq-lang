@@ -1,0 +1,20 @@
+use print
+use time
+
+func *Main():
+    var target_time : float64 = Time() + 0.01
+    SleepToTime(target_time)
+    PrintLn('SleepToTime = {}', [Time() >= target_time])  //?check('SleepToTime', 'true')
+
+    var target_millis : int64 = MilliTime() + 10
+    SleepToMilliTime(target_millis)
+    PrintLn('SleepToMilliTime = {}', [MilliTime() >= target_millis])  //?check('SleepToMilliTime', 'true')
+
+    var target_micros : int64 = MicroTime() + 10000
+    SleepToMicroTime(target_micros)
+    PrintLn('SleepToMicroTime = {}', [MicroTime() >= target_micros])  //?check('SleepToMicroTime', 'true')
+
+    var target_nanos : int64 = NanoTime() + 10000000
+    SleepToNanoTime(target_nanos)
+    PrintLn('SleepToNanoTime = {}', [NanoTime() >= target_nanos])  //?check('SleepToNanoTime', 'true')
+endfunc

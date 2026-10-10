@@ -79,6 +79,7 @@ public:
   OStmtBlock(OScope * aparentscope, const string adebugname)
   {
     scope = new OScope(aparentscope, adebugname);
+    scope->warn_shadowing = true;
   }
 
   virtual ~OStmtBlock()

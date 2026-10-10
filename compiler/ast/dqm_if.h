@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    23 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    23 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    24 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    24 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -140,6 +140,7 @@ TDqmIfRecId  DQMIF_ATTR_EXT_LINK_NAME     = 0x8202;  // str
 TDqmIfRecId  DQMIF_ATTR_SECTION_NAME      = 0x8203;  // str
 TDqmIfRecId  DQMIF_ATTR_LINK_NAME         = 0x8204;  // str
 TDqmIfRecId  DQMIF_ATTR_EXT_MODULE_NAME   = 0x8205;  // str
+TDqmIfRecId  DQMIF_DECL_SOURCE_POS        = 0x8206;  // str: formatted declaration source position
 
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
 TDqmIfRecId  DQMIF_ALIGN_SPEC             = 0x8305;  // int32: storage alignment (structs / objects)

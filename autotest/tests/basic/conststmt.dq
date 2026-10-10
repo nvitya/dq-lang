@@ -18,7 +18,7 @@ func dq_local_const_basic() -> int:
 endfunc
 
 func dq_local_const_shadow_root() -> int:
-    const rootval : int = 11
+    const rootval : int = 11  //?warning(ShadowValSym)
     result = rootval
 endfunc
 

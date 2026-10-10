@@ -1,0 +1,31 @@
+// autotest to detect global variable shadowing
+
+use ./shadow_mod
+
+var intvar : int
+
+func TestProc():
+    var intvar : int = 5  //?warning(ShadowValSym)
+endfunc
+
+func TestProc2(intvar : int):  //?warning(ShadowValSym)
+
+endfunc
+
+func GlobalFunc():  //?warning(ShadowValSym)
+
+endfunc
+
+func TestProc3():
+    var globalvar : int = 6  //?warning(ShadowValSym)
+endfunc
+
+object OSome:
+    member : int = 1
+
+    func DoWork():
+        var member : int = 6  //?warning(LocalVarObjectMember)
+
+        var intvar : int = 3  // no warning here, no collision in object scope
+    endfunc
+endobject

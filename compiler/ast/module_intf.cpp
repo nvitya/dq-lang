@@ -2444,6 +2444,15 @@ bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
     return false;
   }
 
+  string declaration_pos;
+  if (DQMIF_DECL_SOURCE_POS == reader.recid)
+  {
+    if (!reader.ReadString(declaration_pos) || !reader.NextRec())
+    {
+      return false;
+    }
+  }
+
   SDqmIfAttributes attrs;
   if (!ReadAttributes(reader, attrs))
   {
@@ -2469,6 +2478,7 @@ bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
 
   OScPosition scpos;
   OValSymConst * vsym = new OValSymConst(scpos, declname, ptype, pvalue);
+  vsym->declaration_position = std::move(declaration_pos);
   vsym->owner_module_name = name;
   ApplyDqmIfAttributes(vsym, attrs);
   return AddPublicValSym(vsym) != nullptr;
@@ -2480,6 +2490,15 @@ bool OModuleIntf::ReadVarDecl(ODqmIfReader & reader)
   if (!reader.ReadString(declname) || !reader.NextRec())
   {
     return false;
+  }
+
+  string declaration_pos;
+  if (DQMIF_DECL_SOURCE_POS == reader.recid)
+  {
+    if (!reader.ReadString(declaration_pos) || !reader.NextRec())
+    {
+      return false;
+    }
   }
 
   SDqmIfAttributes attrs;
@@ -2500,6 +2519,7 @@ bool OModuleIntf::ReadVarDecl(ODqmIfReader & reader)
 
   OScPosition scpos;
   OValSym * vsym = ptype->CreateValSym(scpos, declname);
+  vsym->declaration_position = std::move(declaration_pos);
   vsym->initialized = true;
   vsym->owner_module_name = name;
   ApplyDqmIfAttributes(vsym, attrs);
@@ -2666,6 +2686,15 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     return false;
   }
 
+  string declaration_pos;
+  if (DQMIF_DECL_SOURCE_POS == reader.recid)
+  {
+    if (!reader.ReadString(declaration_pos) || !reader.NextRec())
+    {
+      return false;
+    }
+  }
+
   SDqmIfAttributes attrs;
   if (!ReadAttributes(reader, attrs))
   {
@@ -2773,6 +2802,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     sigtype->params.insert(sigtype->params.begin(), new OFuncParam("__this", aowner_type, FPM_REF));
   }
   OValSymFunc * fn = new OValSymFunc(scpos, declname, sigtype, nullptr);
+  fn->declaration_position = std::move(declaration_pos);
   fn->owner_module_name = name;
   fn->special_kind = special_kind;
   ApplyDqmIfAttributes(fn, attrs);

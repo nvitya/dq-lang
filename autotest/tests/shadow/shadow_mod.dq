@@ -1,0 +1,7 @@
+//?notest
+
+var globalvar : int = 1
+
+func GlobalFunc():
+
+endfunc

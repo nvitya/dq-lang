@@ -13,6 +13,11 @@ func SleepMillis(ams : int64) ..
 func SleepMicros(aus : int64) ..
 func SleepNanos(ansecs : int64) ..
 
+func SleepToTime(asecs : float64) ..
+func SleepToMilliTime(ams : int64) ..
+func SleepToMicroTime(aus : int64) ..
+func SleepToNanoTime(ansecs : int64) ..
+
 implementation
 
 struct timespec:
@@ -50,6 +55,7 @@ endstruct
     func win_gmtime64_s(tmout : ^tm, timep : ^int64) -> int32 [[external('_gmtime64_s')]] ..
 #else
     func clock_gettime(clk_id : int32, res : ^timespec) -> int32 [[external('clock_gettime')]] ..
+    func libc_clock_nanosleep(clk_id : int32, flags : int32, req : ^timespec, remaining : ^timespec) -> int32 [[external('clock_nanosleep')]] ..
     func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
     func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
     func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
@@ -58,6 +64,7 @@ endstruct
 func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]] ..
 
 const EINTR : int32 = 4
+const TIMER_ABSTIME : int32 = 1
 
 const CLOCK_REALTIME  : int = 0
 const CLOCK_MONOTONIC : int = 1
@@ -185,6 +192,56 @@ func SleepMicros(amicros : int64):
         return
     endif
     SleepNanos(amicros * 1000)
+endfunc
+
+func SleepToTime(asecs : float64):
+    if asecs <= 0:
+        return
+    endif
+
+    #ifdef WINDOWS
+        while Time() < asecs:
+            SleepSecs(asecs - Time())
+        endwhile
+    #else
+        var deadline : timespec = {}
+        deadline.tv_sec = Floor(asecs)
+        deadline.tv_nsec = Round((asecs - deadline.tv_sec) * 1000000000)
+        if deadline.tv_nsec >= 1000000000:
+            ++deadline.tv_sec
+            deadline.tv_nsec -= 1000000000
+        endif
+
+        while libc_clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, %deadline, nil) == EINTR:
+        endwhile
+    #endif
+endfunc
+
+func SleepToMilliTime(ams : int64):
+    SleepToNanoTime(ams * 1000000)
+endfunc
+
+func SleepToMicroTime(aus : int64):
+    SleepToNanoTime(aus * 1000)
+endfunc
+
+func SleepToNanoTime(ansecs : int64):
+    if ansecs <= 0:
+        return
+    endif
+
+    #ifdef WINDOWS
+        while NanoTime() < ansecs:
+            SleepNanos(ansecs - NanoTime())
+        endwhile
+    #else
+        var deadline : timespec = {}
+        deadline.tv_sec = ansecs div 1000000000
+        deadline.tv_nsec = ansecs mod 1000000000
+
+        while libc_clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, %deadline, nil) == EINTR:
+        endwhile
+    #endif
 endfunc
 
 func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:

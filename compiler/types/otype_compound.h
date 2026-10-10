@@ -119,6 +119,7 @@ public:
     super(name, aparent_scope, TK_OBJECT)
   {
     member_scope.vs_lookup_parent = false;
+    member_scope.suppress_child_shadowing_warnings = true;
   }
 
   bool IsObject() const override { return true; }

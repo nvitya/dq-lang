@@ -92,7 +92,9 @@ public:
   :
     super(g_defines, "module_pub")
   {
+    scope_pub->warn_shadowing = true;
     scope_priv = new OScope(scope_pub,  "module_priv");
+    scope_priv->warn_shadowing = true;
     scope_local = new OScope(nullptr, "module_local");
     scope_local->vs_lookup_parent = false;
   }

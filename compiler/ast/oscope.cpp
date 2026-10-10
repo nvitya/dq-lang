@@ -46,6 +46,44 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
     return found->second;
   }
 
+  if (warn_shadowing)
+  {
+    OValSym * shadowed = nullptr;
+    for (OScope * scope = parent_scope; scope; scope = scope->parent_scope)
+    {
+      if (scope->suppress_child_shadowing_warnings)
+      {
+        break;
+      }
+
+      auto outer = scope->valsyms.find(avalsym->name);
+      if (outer != scope->valsyms.end())
+      {
+        shadowed = outer->second;
+        break;
+      }
+      if (!scope->vs_lookup_parent)
+      {
+        break;
+      }
+    }
+
+    if (shadowed)
+    {
+      string shadowed_type = shadowed->ptype ? shadowed->ptype->name : "?";
+      string shadowed_pos = shadowed->scpos.Format();
+      if (shadowed_pos.empty())
+      {
+        shadowed_pos = shadowed->declaration_position;
+      }
+      g_compiler->Warning(DQWARN_SHADOW_VALSYM, avalsym->name,
+                          avalsym->ptype ? avalsym->ptype->name : "?",
+                          format("\"{}\" declared at {}", shadowed_type,
+                                 shadowed_pos.empty() ? "an unknown position" : shadowed_pos),
+                          &avalsym->scpos);
+    }
+  }
+
   valsyms[avalsym->name] = avalsym;
   auto * objsym = dynamic_cast<OVsObject *>(avalsym);
   if ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype && AsAutoFreeType(avalsym->ptype)

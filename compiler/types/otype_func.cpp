@@ -94,6 +94,10 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
 
   if (!writer.AddRecStr(amethod ? DQMIF_METHOD_BEGIN : DQMIF_FUNC_BEGIN, name)) return false;
 
+  string declaration_pos = scpos.Format();
+  if (declaration_pos.empty()) declaration_pos = declaration_position;
+  if (!declaration_pos.empty() && !writer.AddRecStr(DQMIF_DECL_SOURCE_POS, declaration_pos)) return false;
+
   uint64_t flags = 0;
   if (is_external) flags |= 1u << 6;
   if (!WriteDqmIfAttributes(writer, flags)) return false;

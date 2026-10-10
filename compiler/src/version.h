@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.87.1"
+#define DQ_COMPILER_VERSION  "0.88.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.88.0:
+  - Warning at value symbol shadowing
+v0.87.2:
+  - time module: added SleepToTime(), SleepToMilliTime(), SleepToMicroTime(), SleepToNanoTime()
 v0.87.1:
   - Object debug info generation fix
 v0.87.0:

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.88.0"
+#define DQ_COMPILER_VERSION  "0.88.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.88.1:
+  - Errno() global function gives the libc errno value
 v0.88.0:
   - Warning at value symbol shadowing
 v0.87.2:

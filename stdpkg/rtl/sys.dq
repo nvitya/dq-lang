@@ -29,6 +29,7 @@ use rtl/prgargs    reexport
 use rtl/strfunc    reexport
 
 func Exit(status : int) ..
+func Errno() -> int32 ..  // libc errno
 
 implementation
 
@@ -39,12 +40,21 @@ func Exit(status : int):
     endwhile
 endfunc
 
+func Errno():
+    return -1
+endfunc
+
 #else
 
 func libc_exit(status : int)  [[external('exit')]] ..
+func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
 
 func Exit(status : int):
     libc_exit(status)
+endfunc
+
+func Errno() -> int32:
+    result = libc___errno_location()^
 endfunc
 
 #endif

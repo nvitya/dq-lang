@@ -1,4 +1,5 @@
 #linklib('atomic')
+use threads/waitevent
 
 // the Channel message is a fixed 16-byte struct
 
@@ -36,9 +37,12 @@ protected
     idx_put : [[volatile]] uint32
     idx_get : [[volatile]] uint32
     m_lock  : uint32 = 0
+    put_event <- OThreadEvent()
+    get_event <- OThreadEvent()
 
     func Lock()    [[inline]] ..
     func Unlock()  [[inline]] ..
+    func WaitDeadline(atimeoutms : int) -> int64 ..
 public
     // Configure these flags before sharing the channel between threads.
     locking            : bool = true
@@ -53,6 +57,7 @@ public
     func Put(amsg : SChMsg) -> bool  ..
     func Get(rmsg : refout SChMsg) -> bool  ..
 
+    // Zero tries once; negative waits indefinitely; positive waits up to the timeout.
     func PutWaitMillis(amsg : SChMsg, atimeoutms : int) -> bool  ..
     func GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -> bool ..
 endobject
@@ -60,6 +65,7 @@ endobject
 
 implementation
 
+use time
 
 func atomic_exchange(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_exchange_4')]] ..
 func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
@@ -98,6 +104,9 @@ func OMsgChannel.Put(amsg : SChMsg) -> bool
         result = true
     endif
     Unlock()
+    if result:
+        get_event.Signal()
+    endif
 endfunc
 
 func OMsgChannel.Get(rmsg : refout SChMsg) -> bool
@@ -110,15 +119,58 @@ func OMsgChannel.Get(rmsg : refout SChMsg) -> bool
         result = true
     endif
     Unlock()
+    if result:
+        put_event.Signal()
+    endif
 endfunc
 
 func OMsgChannel.PutWaitMillis(amsg : SChMsg, atimeoutms : int) -> bool
 :
+    if atimeoutms == 0:
+        return Put(amsg)
+    endif
+    var deadline : int64 = WaitDeadline(atimeoutms)
     result = false
+    while true:
+        // Snapshot before testing the queue, so a concurrent Get cannot be missed.
+        var sequence : uint32 = put_event.Snapshot()
+        if Put(amsg):
+            return true
+        endif
+        if not put_event.WaitUntilNanos(sequence, deadline):
+            return false
+        endif
+    endwhile
 endfunc
 
 func OMsgChannel.GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -> bool
 :
+    if atimeoutms == 0:
+        return Get(rmsg)
+    endif
+    var deadline : int64 = WaitDeadline(atimeoutms)
     result = false
+    while true:
+        var sequence : uint32 = get_event.Snapshot()
+        if Get(rmsg):
+            return true
+        endif
+        if not get_event.WaitUntilNanos(sequence, deadline):
+            return false
+        endif
+    endwhile
+endfunc
+
+func OMsgChannel.WaitDeadline(atimeoutms : int) -> int64:
+    if atimeoutms < 0:
+        return -1
+    endif
+    var now : int64 = @time.NanoTime()
+    var timeout_ms : int64 = atimeoutms
+    // Saturate very large timeouts rather than overflowing the absolute deadline.
+    if timeout_ms > (0x7FFFFFFFFFFFFFFF - now) div 1000000:
+        return 0x7FFFFFFFFFFFFFFF
+    endif
+    return now + timeout_ms * 1000000
 endfunc
 

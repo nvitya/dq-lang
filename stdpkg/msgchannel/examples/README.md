@@ -10,11 +10,12 @@ usable), and a 15-second timeout per scenario. The tester uses `threads.OThread`
 and requires `libatomic` for channel locking and its own start/stop coordination.
 
 Optional positional arguments are worker count, messages per producer, ring
-slots, and timeout in seconds:
+slots, timeout in seconds, and an optional operation wait timeout in milliseconds:
 
 ```sh
 build/dq-run stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 257 30
 build/dq-run -O3 stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 2 30
+build/dq-run -O3 stdpkg/msgchannel/examples/stress_test.dq -- 32 20000 2 30 100
 ```
 
 The first checks exercise empty/full behavior and FIFO across repeated ring
@@ -30,10 +31,11 @@ payloads. Each consumer tracks its own received IDs; after joining, the tester
 checks for missing and duplicate messages and exact sent/received totals. With
 one consumer it also checks each producer's FIFO order. Failed nonblocking
 operations are retried with `sched_yield()`.
+The optional fifth argument enables waiting operations instead of nonblocking
+attempts; zero is the default. Waiting workers check cancellation on every attempt.
 
-The harness never locks around channel operations. Channel locking is enabled;
-both blocking flags remain disabled until blocking is implemented. All scenarios
-should pass with channel locking enabled. Two workers
+The harness never locks around channel operations. Channel locking is enabled.
+All scenarios should pass with channel locking enabled. Two workers
 reduce every scenario to one producer and one consumer, useful as a control run.
 
 Exit status is 0 for success, 1 for test failure/timeout, or 2 for invalid
@@ -41,3 +43,29 @@ arguments/thread creation failure. On timeout, workers are asked to stop; a
 two-second grace period catches deadlocks. Consumer bookkeeping uses roughly
 `producers * consumers * messages_per_producer` bytes, so larger worker counts
 and message counts can require substantial memory.
+
+Run the simple wait-method tester with:
+
+```sh
+build/dq-run stdpkg/msgchannel/examples/wait_test.dq
+```
+
+It checks immediate success, full/empty timeouts, unchanged messages on failure,
+and success after a delayed worker enqueues or dequeues, with both finite and
+indefinite waits. It also checks notifications preceding the kernel wait and
+repeated signal interruptions without restarting the deadline, and reports
+notification-to-return latency. It uses a queue with one usable slot and exits
+with status 1 if a check fails.
+
+`PutWaitMillis(message, timeout_ms)` and `GetWaitMillis(message, timeout_ms)`
+return `true` on success and `false` on timeout. Zero makes one immediate attempt;
+any negative timeout waits indefinitely. Positive timeouts use monotonic time.
+Waiting uses Linux `FUTEX_WAIT_BITSET_PRIVATE` with an absolute monotonic deadline,
+and successful `Put`/`Get` operations wake one waiter on the opposite operation's
+event. No periodic polling or sleeps are used. Sequence counters prevent missed
+notifications between checking the queue and entering the kernel wait. The
+reusable primitive is `threads/waitevent.OThreadEvent`; its futex words are
+process-private, so the channel is for threads sharing one process. Do not destroy
+a channel while operations are still running. Scheduling and channel-lock
+contention can delay return past the deadline. On 32-bit Linux, waiting requires
+the `futex_time64` syscall (Linux 5.1 or later).

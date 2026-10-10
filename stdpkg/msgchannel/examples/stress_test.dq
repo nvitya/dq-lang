@@ -20,6 +20,7 @@ object OStressTest:
     consumers : int
     messages : int
     total : int
+    wait_timeout_ms : int = 0
 
     // Only harness coordination uses atomics; Put/Get receive no outside lock.
     started : uint32 = 0
@@ -122,7 +123,7 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
     var attempts : uint64 = 0
     var done : bool = false
     while true:
-        if attempts rem 1024 == 0:
+        if attempts rem 1024 == 0 or test.wait_timeout_ms > 0:
             if atomic_load(%test.stopped, SEQ_CST) <> 0: break
             endif
             if not producer:
@@ -134,7 +135,7 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
             if transferred == test.messages: break
             endif
             var msg : SChMsg = test.Message(index * test.messages + transferred)
-            if test.channel.Put(msg):
+            if test.channel.PutWaitMillis(msg, test.wait_timeout_ms):
                 ++transferred
             else:
                 ++retries
@@ -142,7 +143,7 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
             endif
         else:
             var msg : SChMsg
-            if test.channel.Get(msg):
+            if test.channel.GetWaitMillis(msg, test.wait_timeout_ms):
                 ++transferred
                 if not test.Valid(msg):
                     ++corrupt
@@ -267,6 +268,7 @@ func *Main():
     var messages : int = 50000
     var slots : int = 257
     var timeout_seconds : int = 15
+    var wait_timeout_ms : int = 0
     if ArgCount() > 1: count = StrToInt(ArgStr(1), -1)
     endif
     if ArgCount() > 2: messages = StrToInt(ArgStr(2), -1)
@@ -275,13 +277,17 @@ func *Main():
     endif
     if ArgCount() > 4: timeout_seconds = StrToInt(ArgStr(4), -1)
     endif
-    if ArgCount() > 5 or not (2 <= count <= 256) or not (1 <= messages <= 1000000)
-       or not (2 <= slots <= 1000000) or not (1 <= timeout_seconds <= 3600):
-        PrintLn('Usage: stress_test [workers:2..256] [messages/producer:1..1000000] [slots:2..1000000] [timeout seconds:1..3600]')
+    if ArgCount() > 5: wait_timeout_ms = StrToInt(ArgStr(5), -1)
+    endif
+    if ArgCount() > 6 or not (2 <= count <= 256) or not (1 <= messages <= 1000000)
+       or not (2 <= slots <= 1000000) or not (1 <= timeout_seconds <= 3600)
+       or not (0 <= wait_timeout_ms <= 1000):
+        PrintLn('Usage: stress_test [workers:2..256] [messages/producer:1..1000000] [slots:2..1000000] [timeout seconds:1..3600] [wait ms:0..1000]')
         Exit(2)
     endif
     PrintLn('OMsgChannel stress test: {} online processors, {} workers, {} slots (capacity {})',
             [cpus, count, slots, slots - 1])
+    PrintLn('Channel operation timeout: {} ms (0 = nonblocking)', [wait_timeout_ms])
     var passed : bool = true
     for scenario : int = 0 count 2:
         var size : int = iif(scenario == 0, 2, slots)
@@ -302,6 +308,7 @@ func *Main():
             consumers = count - producers
         endif
         var test = new OStressTest(producers, consumers, messages, slots)
+        test.wait_timeout_ms = wait_timeout_ms
         if not test.Run(timeout_seconds): passed = false
         endif
         delete test

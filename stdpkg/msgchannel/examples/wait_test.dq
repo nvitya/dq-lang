@@ -1,0 +1,176 @@
+// Standalone tests for immediate, timed, and indefinite channel operations.
+use msgchannel
+use threads
+use threads/waitevent
+use time
+use print
+
+type FSignalHandler = func(signum : int32)
+func signal(signum : int32, handler : FSignalHandler) -> FSignalHandler [[external]] ..
+func pthread_self() -> uint [[external]] ..
+func pthread_kill(thread : uint, signum : int32) -> int32 [[external]] ..
+
+func IgnoreSignal(signum : int32):
+endfunc
+
+object OWaitTest(OThread):
+    channel : OMsgChannel
+    producing : bool = false
+    worker_ok : bool = false
+    worker_message : SChMsg
+    signal_time : int64 = 0
+    interrupting : bool = false
+    target_thread : uint
+
+    func *Create():
+        channel = new OMsgChannel(2) // one usable slot
+    endfunc
+
+    func *Destroy():
+        delete channel
+    endfunc
+
+    func Check(ok : bool, description : rostr):
+        use *
+        if not ok:
+            PrintLn('FAIL: {}', [description])
+            Exit(1)
+        endif
+        PrintLn('PASS: {}', [description])
+    endfunc
+
+    func Run(aarg : pointer) -> pointer [[override]]:
+        use *
+        if interrupting:
+            worker_ok = true
+            for i : int = 0 count 120:
+                SleepMillis(1)
+                if pthread_kill(target_thread, 10) <> 0:
+                    worker_ok = false
+                endif
+            endfor
+            return nil
+        endif
+        SleepMillis(50)
+        signal_time = NanoTime()
+        if producing:
+            worker_ok = channel.Put(worker_message)
+        else:
+            worker_ok = channel.Get(worker_message)
+        endif
+        return nil
+    endfunc
+
+    func Delayed(putting : bool, timeout_ms : int):
+        use *
+        var message : SChMsg = {}
+        message.data.u64 = 12345
+        worker_message = message
+        producing = not putting
+        worker_ok = false
+        if putting:
+            Check(channel.Put(message), 'fill queue before waiting Put')
+        endif
+        Check(StartSelf(nil), 'start delayed worker')
+        var start : int64 = MilliTime()
+        var ok : bool
+        if putting:
+            message.data.u64 = 67890
+            ok = channel.PutWaitMillis(message, timeout_ms)
+        else:
+            ok = channel.GetWaitMillis(message, timeout_ms)
+        endif
+        var elapsed : int64 = MilliTime() - start
+        var finished : int64 = NanoTime()
+        Join()
+        Check(ok and worker_ok, 'operation succeeds after another thread changes the queue')
+        if putting:
+            Check(worker_message.data.u64 == 12345, 'worker received the original message')
+            Check(channel.Get(message), 'waiting Put enqueued a message')
+            Check(message.data.u64 == 67890, 'waiting Put preserved the payload')
+        else:
+            Check(message.data.u64 == 12345, 'waiting Get preserved the payload')
+        endif
+        Check(not channel.Get(message), 'queue empty after delayed operation')
+        PrintLn('  putting={}, timeout={} ms, elapsed={} ms', [putting, timeout_ms, elapsed])
+        PrintLn('  notification to return: {} us', [(finished - signal_time) div 1000])
+    endfunc
+
+    func Test():
+        use *
+        var message : SChMsg = {}
+        var received : SChMsg = {}
+        message.data.u64 = 12345
+        Check(channel.PutWaitMillis(message, 0), 'Put with zero timeout succeeds immediately')
+        Check(not channel.PutWaitMillis(message, 0), 'Put with zero timeout fails on full queue')
+        Check(channel.GetWaitMillis(received, 0), 'Get with zero timeout succeeds immediately')
+        Check(received.data.u64 == message.data.u64, 'immediate Get preserved the payload')
+        Check(not channel.GetWaitMillis(received, 0), 'Get with zero timeout fails on empty queue')
+
+        var start : int64 = MilliTime()
+        Check(channel.PutWaitMillis(message, 1000), 'Put with positive timeout on available queue')
+        Check(channel.GetWaitMillis(received, 1000), 'Get with positive timeout on available queue')
+        Check(MilliTime() - start < 1000, 'available operations do not wait for the timeout')
+
+        start = MilliTime()
+        received.data.u64 = 99999
+        var ok : bool = channel.GetWaitMillis(received, 40)
+        var elapsed : int64 = MilliTime() - start
+        Check(not ok and elapsed >= 40, 'Get times out on empty queue')
+        Check(received.data.u64 == 99999, 'timed-out Get leaves output unchanged')
+        PrintLn('  Get timeout elapsed={} ms', [elapsed])
+
+        Check(channel.Put(message), 'fill queue before Put timeout')
+        message.data.u64 = 67890
+        start = MilliTime()
+        ok = channel.PutWaitMillis(message, 40)
+        elapsed = MilliTime() - start
+        Check(not ok and elapsed >= 40, 'Put times out on full queue')
+        Check(channel.Get(received), 'drain queue after Put timeout')
+        Check(received.data.u64 == 12345, 'timed-out Put leaves queued message unchanged')
+        PrintLn('  Put timeout elapsed={} ms', [elapsed])
+
+        for mode : int = 0 count 3:
+            var timeout_ms : int = iif(mode == 0, 1000, -1)
+            if mode == 2:
+                #if @def.PTRSIZE == 8
+                    timeout_ms = 0x7FFFFFFFFFFFFFFF
+                #else
+                    timeout_ms = 0x7FFFFFFF
+                #endif
+            endif
+            Delayed(false, timeout_ms)
+            Delayed(true, timeout_ms)
+        endfor
+
+        var event <- OThreadEvent()
+        var sequence : uint32 = event.Snapshot()
+        event.Signal()
+        start = MilliTime()
+        Check(event.WaitUntilNanos(sequence, NanoTime() + 100000000),
+              'notification before kernel wait is not lost')
+        Check(MilliTime() - start < 100, 'changed sequence prevents sleeping')
+
+        // Interrupt the wait repeatedly for longer than its timeout. The deadline
+        // must not restart after each EINTR, and interruption is not queue readiness.
+        var previous_handler : FSignalHandler = signal(10, IgnoreSignal) // SIGUSR1 on Linux
+        target_thread = pthread_self()
+        interrupting = true
+        Check(StartSelf(nil), 'start interrupting worker')
+        start = MilliTime()
+        ok = channel.GetWaitMillis(received, 40)
+        elapsed = MilliTime() - start
+        Join()
+        interrupting = false
+        signal(10, previous_handler)
+        Check(worker_ok and not ok and 40 <= elapsed < 100,
+              'interruptions preserve the original timeout')
+        PrintLn('  interrupted Get elapsed={} ms', [elapsed])
+    endfunc
+endobject
+
+func *Main():
+    var test <- OWaitTest()
+    test.Test()
+    PrintLn('All channel wait tests passed.')
+endfunc

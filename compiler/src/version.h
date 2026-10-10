@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.89.0"
+#define DQ_COMPILER_VERSION  "0.89.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.89.1:
+  - Improved msgchannel with waiting (using futexes)
 v0.89.0:
   - msgchannel packaga with some multi-threaded messaging test
 v0.88.3:

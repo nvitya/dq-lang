@@ -1,0 +1,83 @@
+// Linux thread notification. Snapshot before testing the shared predicate;
+// WaitUntilNanos then sleeps only if no notification occurred in the meantime.
+#ifdef LINUX
+#linklib('atomic')
+
+object OThreadEvent:
+protected
+    m_sequence : uint32 = 0
+    m_waiters  : uint32 = 0
+public
+    func Snapshot() -> uint32 [[inline]] ..
+    func Signal() .. // notify one waiter
+    // Absolute time from NanoTime(); negative means no deadline.
+    // A true result means recheck the predicate (wake, interruption, or changed sequence).
+    func WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool ..
+endobject
+
+implementation
+
+use time
+
+struct SFutexTime:
+    tv_sec  : int64
+    tv_nsec : int64
+endstruct
+
+// 32-bit Linux uses futex_time64 to keep the same timespec layout.
+#ifdef X64
+    const SYS_FUTEX : int = 202
+#elifdef X86
+    const SYS_FUTEX : int = 422
+#elifdef ARM
+    const SYS_FUTEX : int = 422
+#else // ARM64 and RISCV64 use the generic syscall table.
+    const SYS_FUTEX : int = 98
+#endif
+
+const FUTEX_WAIT_BITSET_PRIVATE : int32 = 137
+const FUTEX_WAKE_PRIVATE : int32 = 129
+const FUTEX_BITSET_MATCH_ANY : uint32 = 0xFFFFFFFF
+const ATOMIC_SEQ_CST : int32 = 5
+const EINTR : int32 = 4
+const EAGAIN : int32 = 11
+
+func futex(number : int, address : ^uint32, operation : int32, value : uint32,
+           timeout : ^SFutexTime, address2 : pointer, bitset : uint32) -> int [[external('syscall')]] ..
+func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
+func atomic_add(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_fetch_add_4')]] ..
+
+func OThreadEvent.Snapshot() -> uint32 [[inline]]:
+    return @.atomic_load(%m_sequence, @.ATOMIC_SEQ_CST)
+endfunc
+
+func OThreadEvent.Signal():
+    @.atomic_add(%m_sequence, 1, @.ATOMIC_SEQ_CST)
+    // The sequence change and waiter registration are totally ordered: either
+    // we wake a registered waiter, or its kernel comparison sees the change.
+    if @.atomic_load(%m_waiters, @.ATOMIC_SEQ_CST) <> 0:
+        @.futex(@.SYS_FUTEX, %m_sequence, @.FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
+    endif
+endfunc
+
+func OThreadEvent.WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool:
+    var timeout : SFutexTime
+    var timeout_ptr : ^SFutexTime = nil
+    if adeadline >= 0:
+        if @time.NanoTime() >= adeadline:
+            return false
+        endif
+        timeout.tv_sec = adeadline div 1000000000
+        timeout.tv_nsec = adeadline rem 1000000000
+        timeout_ptr = %timeout
+    endif
+
+    @.atomic_add(%m_waiters, 1, @.ATOMIC_SEQ_CST)
+    var rc : int = @.futex(@.SYS_FUTEX, %m_sequence, @.FUTEX_WAIT_BITSET_PRIVATE,
+                          asequence, timeout_ptr, nil, @.FUTEX_BITSET_MATCH_ANY)
+    var error : int32 = @sys.Errno()
+    @.atomic_add(%m_waiters, 0xFFFFFFFF, @.ATOMIC_SEQ_CST) // unregister, including on timeout
+    return rc == 0 or error == @.EAGAIN or error == @.EINTR
+endfunc
+
+#endif

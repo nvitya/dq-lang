@@ -158,14 +158,14 @@ func Fail(message : strslice):
 endfunc
 
 func ExpectContains(text : strslice, expected : strslice):
-    if StrIndexOf(text, expected) >= 0:
+    if text.IndexOf(expected) >= 0:
         return
     endif
     Fail(Format('expected text was not found: "{}"', [expected]))
 endfunc
 
 func ExpectNotContains(text : strslice, unexpected : strslice):
-    if StrIndexOf(text, unexpected) < 0:
+    if text.IndexOf(unexpected) < 0:
         return
     endif
     Fail(Format('unexpected text was found: "{}"', [unexpected]))

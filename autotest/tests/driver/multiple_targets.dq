@@ -10,7 +10,7 @@ func ExpectOccurrenceCount(text : strslice, needle : strslice, expected : int):
     var count : int = 0
     var start : int = 0
     while true:
-        var index : int = StrIndexOf(text, needle, start)
+        var index : int = text.IndexOf(needle, start)
         if index < 0:
             break
         endif

@@ -123,7 +123,7 @@ func IsUrlPathSafe(auri : strslice) -> bool:
         return false
     endif
 
-    if @.StrIndexOf(auri, '/../') >= 0 or @.StrIndexOf(auri, '/..') >= 0 or @.StrIndexOf(auri, '../') >= 0:
+    if auri.IndexOf('/../') >= 0  or auri.IndexOf('/..') >= 0  or auri.IndexOf('../') >= 0:
         return false
     endif
 
@@ -161,7 +161,7 @@ func ParseHttpDateRFC1123(adatestr : strslice) -> int64:
         return
     endif
     var monthnames : embstr(64) = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,'
-    var monpos : int = StrIndexOf(monthnames, sp.PrevStr() + ',')
+    var monpos : int = monthnames.IndexOf(sp.PrevStr() + ',')
     if monpos < 0:
         return
     endif
@@ -332,7 +332,7 @@ func OSConnectionHttp.ParseRequestHeader() -> bool:
     endif
     url = sp.PrevStr()
 
-    var qpos : int = StrIndexOf(url, '?')
+    var qpos : int = url.IndexOf('?')
     if qpos >= 0:
         uri = url[:qpos]
         getstr = url[qpos + 1:]
@@ -446,13 +446,13 @@ func OSConnectionHttp.ParseGetString():
     use strutils
     var pos : int = 0
     while pos <= getstr.length:
-        var next : int = StrIndexOf(getstr, '&', pos)
+        var next : int = getstr.IndexOf('&', pos)
         if next < 0:
             next = getstr.length
         endif
 
         var s : str = getstr[pos:next]
-        var eqp : int = StrIndexOf(s, '=')
+        var eqp : int = s.IndexOf('=')
         var k : str
         var v : str
         if eqp >= 0:
@@ -634,7 +634,7 @@ endfunc
 func ONanoHttpServer.ContentTypeByExt(aext : rostr) -> str:
     use strutils
     var fext : str = StrLower(aext)
-    if StrStartsWith(fext, '.'):
+    if fext.StartsWith('.'):
         fext.Delete(0, 1)
     endif
 

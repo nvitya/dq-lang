@@ -76,10 +76,16 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
       {
         shadowed_pos = shadowed->declaration_position;
       }
-      g_compiler->Warning(DQWARN_SHADOW_VALSYM, avalsym->name,
+      string shadowed_desc = format("{} (type: {})",
+                                    shadowed_pos.empty() ? "an unknown position" : shadowed_pos,
+                                    shadowed_type);
+      const TDiagDefWarn & diag = (VSK_FUNCTION == avalsym->kind)
+          ? DQWARN_SHADOW_FUNCTION : DQWARN_SHADOW_VALSYM;
+      g_compiler->Warning(diag, avalsym->name,
                           avalsym->ptype ? avalsym->ptype->name : "?",
-                          format("\"{}\" declared at {}", shadowed_type,
-                                 shadowed_pos.empty() ? "an unknown position" : shadowed_pos),
+                          (VSK_FUNCTION == avalsym->kind ? shadowed_desc
+                                                         : format("\"{}\" declared at {}", shadowed_type,
+                                                                  shadowed_pos.empty() ? "an unknown position" : shadowed_pos)),
                           &avalsym->scpos);
     }
   }

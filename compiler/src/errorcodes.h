@@ -329,6 +329,7 @@ DEF_DQ_WARN(DQWARN_EMBSTR_STORAGE_SIZE,              "EmbStrStorageSize",       
 DEF_DQ_WARN(DQWARN_METHOD_USE_NO_EFFECT,           "MethodUseNoEffect",      "Method-body use \"$1\" has no effect");
 DEF_DQ_WARN(DQWARN_LOCAL_VAR_OBJECT_MEMBER,        "LocalVarObjectMember",  "Local variable \"$1\" hides an object member with the same name");
 DEF_DQ_WARN(DQWARN_SHADOW_VALSYM,                  "ShadowValSym",          "Value symbol \"$1\" with type \"$2\" shadows a value with type $3");
+DEF_DQ_WARN(DQWARN_SHADOW_FUNCTION,                "ShadowFunction",       "Function \"$1\" (type: $2) shadows the function declared at $3");
 
 //-----------------------------------------------------------------------------
 // HINTS

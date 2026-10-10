@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.88.2"
+#define DQ_COMPILER_VERSION  "0.88.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.88.3:
+  - More userfriendly function shadowing warning
 v0.88.2:
   - Duplicated string functions in strutils removed
 v0.88.1:

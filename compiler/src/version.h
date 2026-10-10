@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.88.3"
+#define DQ_COMPILER_VERSION  "0.89.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.89.0:
+  - msgchannel packaga with some multi-threaded messaging test
 v0.88.3:
   - More userfriendly function shadowing warning
 v0.88.2:

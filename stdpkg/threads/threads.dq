@@ -7,7 +7,7 @@
 
 //use rtl/mem
 
-type FThreadFunc = func(arg : pointer) -> pointer
+type FThreadFunc   = func(arg : pointer) -> pointer
 type FThreadMethod = func(arg : pointer) -> pointer of object
 
 object OThread:

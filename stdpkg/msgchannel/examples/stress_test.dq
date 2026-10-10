@@ -1,0 +1,311 @@
+// Standalone Linux stress test; see README.md for usage.
+use msgchannel
+use threads
+use print
+use time
+use rtl/prgargs
+use strutils
+
+#linklib('atomic')
+func get_nprocs() -> int32 [[external]] ..
+func sched_yield() -> int32 [[external]] ..
+func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
+func atomic_store(p : ^uint32, value : uint32, order : int32) [[external('__atomic_store_4')]] ..
+func atomic_add(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_fetch_add_4')]] ..
+const SEQ_CST : int32 = 5
+
+object OStressTest:
+    channel : OMsgChannel
+    producers : int
+    consumers : int
+    messages : int
+    total : int
+
+    // Only harness coordination uses atomics; Put/Get receive no outside lock.
+    started : uint32 = 0
+    ready : uint32 = 0
+    stopped : uint32 = 0
+    producers_done : uint32 = 0
+
+    func *Create(aproducers : int, aconsumers : int, amessages : int, slots : int) ..
+    func *Destroy() ..
+    func Message(id : uint64) -> SChMsg ..
+    func Valid(msg : SChMsg) -> bool ..
+    func CheckBasics(slots : int) -> bool ..
+    func Run(timeout_seconds : int) -> bool ..
+endobject
+
+object OWorker(OThread):
+    test : OStressTest
+    producer : bool
+    index : int
+    transferred : uint64 = 0
+    retries : uint64 = 0
+    corrupt : uint64 = 0
+    duplicates : uint64 = 0
+    unordered : uint64 = 0
+    seen : [*]byte
+    next_sequence : [*]uint64
+
+    func *Create(atest : OStressTest, aproducer : bool, aindex : int) ..
+    func Run(aarg : pointer) -> pointer [[override]] ..
+endobject
+
+func OStressTest.*Create(aproducers : int, aconsumers : int, amessages : int, slots : int):
+    producers = aproducers
+    consumers = aconsumers
+    messages = amessages
+    total = producers * messages
+    channel = new OMsgChannel(slots)
+    channel.locking = true
+endfunc
+
+func OStressTest.*Destroy():
+    delete channel
+endfunc
+
+func OStressTest.Message(id : uint64) -> SChMsg:
+    result = {}
+    result.msg = id div messages + 1
+    result.flags = (id rem 65536) xor 0x5A5A
+    result.par.u32 = id xor 0xA5A55A5A
+    result.data.u64 = id
+endfunc
+
+func OStressTest.Valid(msg : SChMsg) -> bool:
+    if msg.data.u64 >= total:
+        return false
+    endif
+    var expected : SChMsg = Message(msg.data.u64)
+    return msg.msg == expected.msg and msg.flags == expected.flags and msg.par.u32 == expected.par.u32
+endfunc
+
+func OStressTest.CheckBasics(slots : int) -> bool:
+    var msg : SChMsg
+    // The ring reserves one slot. Repeated fill/drain checks wraparound and FIFO.
+    for cycle : int = 0 count 32:
+        if channel.Get(msg): return false
+        endif
+        for id : int = 0 count slots - 1:
+            if not channel.Put(Message(id)): return false
+            endif
+        endfor
+        if channel.Put(Message(slots - 1)): return false
+        endif
+        for id : int = 0 count slots - 1:
+            if not channel.Get(msg): return false
+            endif
+            if not Valid(msg) or msg.data.u64 <> id: return false
+            endif
+        endfor
+    endfor
+    return not channel.Get(msg)
+endfunc
+
+func OWorker.*Create(atest : OStressTest, aproducer : bool, aindex : int):
+    test = atest
+    producer = aproducer
+    index = aindex
+    if not producer:
+        // Consumer-local bookkeeping avoids serializing concurrent dequeues.
+        seen.SetLength(test.total)
+        next_sequence.SetLength(test.producers)
+    endif
+endfunc
+
+func OWorker.Run(aarg : pointer) -> pointer [[override]]:
+    use *
+    atomic_add(%test.ready, 1, SEQ_CST)
+    while atomic_load(%test.started, SEQ_CST) == 0:
+        SleepMillis(1)
+    endwhile
+    var attempts : uint64 = 0
+    var done : bool = false
+    while true:
+        if attempts rem 1024 == 0:
+            if atomic_load(%test.stopped, SEQ_CST) <> 0: break
+            endif
+            if not producer:
+                done = atomic_load(%test.producers_done, SEQ_CST) == test.producers
+            endif
+        endif
+        ++attempts
+        if producer:
+            if transferred == test.messages: break
+            endif
+            var msg : SChMsg = test.Message(index * test.messages + transferred)
+            if test.channel.Put(msg):
+                ++transferred
+            else:
+                ++retries
+                sched_yield()
+            endif
+        else:
+            var msg : SChMsg
+            if test.channel.Get(msg):
+                ++transferred
+                if not test.Valid(msg):
+                    ++corrupt
+                    continue
+                endif
+                var id : uint64 = msg.data.u64
+                if seen[id] <> 0:
+                    ++duplicates
+                endif
+                seen[id] = 1
+                // With several consumers, observation order can differ from dequeue order.
+                if test.consumers == 1:
+                    var source : uint64 = id div test.messages
+                    var sequence : uint64 = id rem test.messages
+                    if sequence <> next_sequence[source]: ++unordered
+                    endif
+                    next_sequence[source] = sequence + 1
+                endif
+            else:
+                // 'done' was acquired before Get, so no producer can publish later.
+                if done: break
+                endif
+                ++retries
+                sched_yield()
+            endif
+        endif
+    endwhile
+    if producer:
+        atomic_add(%test.producers_done, 1, SEQ_CST)
+    endif
+    return nil
+endfunc
+
+func OStressTest.Run(timeout_seconds : int) -> bool:
+    use *
+    var workers : [*]OWorker
+    PrintLn('{} producers / {} consumers, {} messages', [producers, consumers, total])
+    for i : int = 0 count producers + consumers:
+        var worker = new OWorker(self, i < producers, iif(i < producers, i, i - producers))
+        workers.Append(worker)
+        if not worker.StartSelf(nil):
+            PrintLn('FAIL: cannot start worker {}', [i])
+            Exit(2)
+        endif
+    endfor
+    var start : int64 = MilliTime()
+    while atomic_load(%ready, SEQ_CST) <> producers + consumers:
+        if MilliTime() - start >= timeout_seconds * 1000:
+            PrintLn('FAIL: workers did not reach the start gate')
+            Exit(1)
+        endif
+        SleepMillis(1)
+    endwhile
+    start = MilliTime()
+    atomic_store(%started, 1, SEQ_CST)
+    var timed_out : bool = false
+    while true:
+        var running : bool = false
+        for worker : OWorker in workers:
+            if worker.IsRunning(): running = true
+            endif
+        endfor
+        if not running: break
+        endif
+        var elapsed : int64 = MilliTime() - start
+        if elapsed >= timeout_seconds * 1000:
+            timed_out = true
+            atomic_store(%stopped, 1, SEQ_CST)
+        endif
+        if elapsed >= timeout_seconds * 1000 + 2000:
+            PrintLn('FAIL: workers did not stop after timeout (possible deadlock)')
+            Exit(1)
+        endif
+        SleepMillis(10)
+    endwhile
+    var sent : uint64 = 0
+    var received : uint64 = 0
+    var retries : uint64 = 0
+    var corrupt : uint64 = 0
+    var duplicates : uint64 = 0
+    var unordered : uint64 = 0
+    for worker : OWorker in workers:
+        retries += worker.retries
+        if worker.producer:
+            sent += worker.transferred
+        else:
+            received += worker.transferred
+            corrupt += worker.corrupt
+            duplicates += worker.duplicates
+            unordered += worker.unordered
+        endif
+    endfor
+    var missing : uint64 = 0
+    for id : int = 0 count total:
+        var copies : int = 0
+        for i : int = producers count consumers:
+            copies += workers[i].seen[id]
+        endfor
+        if copies == 0: ++missing
+        elif copies > 1: duplicates += copies - 1
+        endif
+    endfor
+    var extra : SChMsg
+    var remaining : bool = channel.Get(extra)
+    var passed : bool = not timed_out and not remaining and sent == total and received == total
+                       and missing == 0 and duplicates == 0 and corrupt == 0 and unordered == 0
+    PrintLn('{}: sent={}, received={}, missing={}, duplicates={}, corrupt={}, FIFO errors={}',
+            [iif(passed, 'PASS', 'FAIL'), sent, received, missing, duplicates, corrupt, unordered])
+    PrintLn('  elapsed={} ms, retries={}, timeout={}, queue still contains data={}',
+            [MilliTime() - start, retries, timed_out, remaining])
+    for worker : OWorker in workers:
+        delete worker
+    endfor
+    return passed
+endfunc
+
+func *Main():
+    var cpus : int = get_nprocs()
+    var count : int = cpus
+    if count < 2: count = 2
+    endif
+    var messages : int = 50000
+    var slots : int = 257
+    var timeout_seconds : int = 15
+    if ArgCount() > 1: count = StrToInt(ArgStr(1), -1)
+    endif
+    if ArgCount() > 2: messages = StrToInt(ArgStr(2), -1)
+    endif
+    if ArgCount() > 3: slots = StrToInt(ArgStr(3), -1)
+    endif
+    if ArgCount() > 4: timeout_seconds = StrToInt(ArgStr(4), -1)
+    endif
+    if ArgCount() > 5 or not (2 <= count <= 256) or not (1 <= messages <= 1000000)
+       or not (2 <= slots <= 1000000) or not (1 <= timeout_seconds <= 3600):
+        PrintLn('Usage: stress_test [workers:2..256] [messages/producer:1..1000000] [slots:2..1000000] [timeout seconds:1..3600]')
+        Exit(2)
+    endif
+    PrintLn('OMsgChannel stress test: {} online processors, {} workers, {} slots (capacity {})',
+            [cpus, count, slots, slots - 1])
+    var passed : bool = true
+    for scenario : int = 0 count 2:
+        var size : int = iif(scenario == 0, 2, slots)
+        var basic = new OStressTest(1, 1, size, size)
+        var basic_passed : bool = basic.CheckBasics(size)
+        PrintLn('{}: empty/full/FIFO/wraparound, {} slots', [iif(basic_passed, 'PASS', 'FAIL'), size])
+        if not basic_passed: passed = false
+        endif
+        delete basic
+    endfor
+    for scenario : int = 0 count 4:
+        var producers : int = 1
+        var consumers : int = 1
+        if scenario == 1: producers = count - 1
+        elif scenario == 2: consumers = count - 1
+        elif scenario == 3:
+            producers = count div 2
+            consumers = count - producers
+        endif
+        var test = new OStressTest(producers, consumers, messages, slots)
+        if not test.Run(timeout_seconds): passed = false
+        endif
+        delete test
+    endfor
+    if not passed: Exit(1)
+    endif
+endfunc

@@ -1,0 +1,124 @@
+#linklib('atomic')
+
+// the Channel message is a fixed 16-byte struct
+
+struct SChMsg:
+    msg    : int16
+    flags  : uint16
+
+    union par:
+        bytes : [4]byte
+        i16   : [2]int16
+        u16   : [2]uint16
+        i32   : int32
+        u32   : uint32
+        f32   : float32
+    endunion
+
+    union data:
+        bytes : [8]byte
+        i16   : [4]int16
+        u16   : [4]uint16
+        i32   : [2]int32
+        u32   : [2]uint32
+        f32   : [2]float32
+        i64   : int64
+        u64   : uint64
+        f64   : float64
+        ptr   : pointer
+    endunion
+endstruct
+
+object OMsgChannel:
+protected
+    m_len   : uint32
+    msgs    : [*]SChMsg
+    idx_put : [[volatile]] uint32
+    idx_get : [[volatile]] uint32
+    m_lock  : uint32 = 0
+
+    func Lock()    [[inline]] ..
+    func Unlock()  [[inline]] ..
+public
+    // Configure these flags before sharing the channel between threads.
+    locking            : bool = true
+
+    func *Create(alength : uint32):
+        m_len   = alength
+        msgs.SetLength(m_len)
+        idx_put = 0
+        idx_get = 0
+    endfunc
+
+    func Put(amsg : SChMsg) -> bool  ..
+    func Get(rmsg : refout SChMsg) -> bool  ..
+
+    func PutWaitMillis(amsg : SChMsg, atimeoutms : int) -> bool  ..
+    func GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -> bool ..
+endobject
+
+
+implementation
+
+
+func atomic_exchange(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_exchange_4')]] ..
+func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
+func atomic_store(p : ^uint32, value : uint32, order : int32) [[external('__atomic_store_4')]] ..
+func sched_yield() -> int32 [[external]] ..
+
+const ATOMIC_RELAXED : int32 = 0
+const ATOMIC_ACQUIRE : int32 = 2
+const ATOMIC_RELEASE : int32 = 3
+
+func OMsgChannel.Lock()  [[inline]]:
+    if locking:
+        while @.atomic_exchange(%m_lock, 1, @.ATOMIC_ACQUIRE) <> 0:
+            // Read while contended instead of repeatedly invalidating the lock's cache line.
+            while @.atomic_load(%m_lock, @.ATOMIC_RELAXED) <> 0:
+                @.sched_yield()
+            endwhile
+        endwhile
+    endif
+endfunc
+
+func OMsgChannel.Unlock()  [[inline]]:
+    if locking:
+        @.atomic_store(%m_lock, 0, @.ATOMIC_RELEASE)
+    endif
+endfunc
+
+func OMsgChannel.Put(amsg : SChMsg) -> bool
+:
+    Lock()
+    result = false
+    var newidx : uint32 = (idx_put + 1) rem m_len
+    if newidx <> idx_get: // queue is not full ?
+        msgs[idx_put] = amsg
+        idx_put = newidx
+        result = true
+    endif
+    Unlock()
+endfunc
+
+func OMsgChannel.Get(rmsg : refout SChMsg) -> bool
+:
+    Lock()
+    result = false
+    if idx_get <> idx_put:  // queue is not empty ?
+        rmsg = msgs[idx_get]
+        idx_get = (idx_get + 1) rem m_len
+        result = true
+    endif
+    Unlock()
+endfunc
+
+func OMsgChannel.PutWaitMillis(amsg : SChMsg, atimeoutms : int) -> bool
+:
+    result = false
+endfunc
+
+func OMsgChannel.GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -> bool
+:
+    result = false
+endfunc
+

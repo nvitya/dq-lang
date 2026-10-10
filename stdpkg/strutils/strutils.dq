@@ -20,9 +20,6 @@ func Format(afmt : rostr, aargs : []anyvalue) -> str ..
 func StrToInt(sv : strslice, defvalue : int = 0) -> int ..
 func StrToFloat(sv : strslice, defvalue : float) -> float ..
 
-func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int ..
-func StrStartsWith(astr : strslice, aprefix : strslice) -> bool ..
-func StrEndsWith(astr : strslice, asuffix : strslice) -> bool ..
 #ifdef DYNSTRINGS
 func StrUpper(astr : strslice) -> str ..
 func StrLower(astr : strslice) -> str ..
@@ -113,52 +110,6 @@ func StrToFloat(sv : strslice, defvalue : float) -> float:
     endif
 
     return nsign * nv * Pow(10, esign * ev)
-endfunc
-
-
-func StrIndexOf(astr : strslice, aneedle : strslice, astart : int = 0) -> int:
-    if astart < 0:
-        astart = 0
-    endif
-
-    if aneedle.length == 0:
-        if astart > astr.length:
-            return astr.length
-        endif
-        return astart
-    endif
-
-    if aneedle.length > astr.length:
-        return -1
-    endif
-
-    var lastpos : int = astr.length - aneedle.length
-    for pos : int = astart to lastpos:
-        var match : bool = true
-        for i : int = 0 count aneedle.length:
-            if astr[pos + i] <> aneedle[i]:
-                match = false
-                break
-            endif
-        endfor
-        if match:
-            return pos
-        endif
-    endfor
-
-    return -1
-endfunc
-
-func StrStartsWith(astr : strslice, aprefix : strslice) -> bool:
-    return StrIndexOf(astr, aprefix) == 0
-endfunc
-
-func StrEndsWith(astr : strslice, asuffix : strslice) -> bool:
-    if asuffix.length > astr.length:
-        return false
-    endif
-
-    return StrIndexOf(astr, asuffix, astr.length - asuffix.length) >= 0
 endfunc
 
 #ifdef DYNSTRINGS

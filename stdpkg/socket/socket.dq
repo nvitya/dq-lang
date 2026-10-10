@@ -268,8 +268,6 @@ func libc_inet_ntop(af : int, src : pointer, dst : ^char, size : TSockLen) -> ^c
     func libc_epoll_create1(flags : int) -> int32 [[external('epoll_create1')]] ..
     func libc_epoll_ctl(epfd : int32, op : int, fd : TSocket, event : ^SEpollEvent) -> int32 [[external('epoll_ctl')]] ..
     func libc_epoll_wait(epfd : int32, events : ^SEpollEvent, maxevents : int, timeout : int) -> int32 [[external('epoll_wait')]] ..
-
-    func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
 #endif
 
 func SocketError() -> int ..
@@ -306,7 +304,7 @@ func SocketError() -> int:
     #ifdef WINDOWS
         return win_WSAGetLastError()
     #else
-        return libc___errno_location()^
+        return Errno()
     #endif
 endfunc
 

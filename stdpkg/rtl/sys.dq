@@ -40,7 +40,7 @@ func Exit(status : int):
     endwhile
 endfunc
 
-func Errno():
+func Errno() -> int32:
     return -1
 endfunc
 

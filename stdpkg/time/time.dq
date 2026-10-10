@@ -57,7 +57,6 @@ endstruct
     func clock_gettime(clk_id : int32, res : ^timespec) -> int32 [[external('clock_gettime')]] ..
     func libc_clock_nanosleep(clk_id : int32, flags : int32, req : ^timespec, remaining : ^timespec) -> int32 [[external('clock_nanosleep')]] ..
     func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
-    func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
     func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
     func libc_gmtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('gmtime_r')]] ..
 #endif
@@ -165,7 +164,7 @@ func SleepNanos(ansecs : int64):
 
         var remaining : timespec = {}
         while libc_nanosleep(%delay, %remaining) < 0:
-            if libc___errno_location()^ <> EINTR:
+            if Errno() <> EINTR:
                 return
             endif
             delay = remaining

@@ -134,7 +134,6 @@ endstruct
 func libc_stat(pathname : ^char, statbuf : ^SFileStat) -> int [[external('stat')]] ..
 func libc_getcwd(buffer : ^char, size : uint) -> ^char [[external('getcwd')]] ..
 func libc_chdir(path : ^char) -> int [[external('chdir')]] ..
-func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
 #endif
 
 //--------------------------------------------------------------------------
@@ -389,7 +388,7 @@ func GetCurrentPath() -> str:
                 endif
             endfor
         endif
-        if libc___errno_location()^ <> ERANGE:
+        if Errno() <> ERANGE:
             raise EFileError('Cannot get current directory')
         endif
         bufsize *= 2

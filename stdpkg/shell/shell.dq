@@ -71,7 +71,6 @@ func libc_poll(fds : ^SPollFd, nfds : uint, timeout : int32) -> int32 [[external
 func libc_waitpid(pid : int32, status : ^int32, options : int32) -> int32 [[external('waitpid')]] ..
 func libc_execvp(file : ^char, argv : ^^char) -> int32            [[external('execvp')]] ..
 func libc__exit(status : int32)                                  [[external('_exit')]] ..
-func libc___errno_location() -> ^int32                           [[external('__errno_location')]] ..
 func libc_fflush(stream : pointer) -> int32                      [[external('fflush')]] ..
 func libc_perror(message : ^char)                                [[external('perror')]] ..
 func libc_getenv(name : ^char) -> ^char                          [[external('getenv')]] ..
@@ -227,7 +226,7 @@ func OShellRunner.MonitorProcess():
 
         var poll_result : int32 = libc_poll(%fds[0], uint(nfds), -1)
         if poll_result < 0:
-            if libc___errno_location()^ == EINTR:
+            if Errno() == EINTR:
                 continue
             endif
             break
@@ -250,7 +249,7 @@ func OShellRunner.MonitorProcess():
                     libc_close(fds[i].fd)
                     fds[i].fd = -1
                 else:
-                    var read_errno : int32 = libc___errno_location()^
+                    var read_errno : int32 = Errno()
                     if read_errno <> EINTR  and read_errno <> EAGAIN:
                         libc_close(fds[i].fd)
                         fds[i].fd = -1
@@ -276,7 +275,7 @@ func OShellRunner.MonitorProcess():
                     if writelen > 0:
                         in_buffer_pos += int(writelen)
                     elif writelen < 0:
-                        var write_errno : int32 = libc___errno_location()^
+                        var write_errno : int32 = Errno()
                         if write_errno <> EINTR  and write_errno <> EAGAIN:
                             libc_close(fds[2].fd)
                             fds[2].fd = -1
@@ -317,7 +316,7 @@ func OShellRunner.MonitorProcess():
     while wait_result < 0:
         wait_result = libc_waitpid(pid, %status, 0)
         if wait_result < 0:
-            if libc___errno_location()^ <> EINTR:
+            if Errno() <> EINTR:
                 break
             endif
         endif
@@ -509,7 +508,7 @@ endfunc
 func SetEnv(name : rostr, value : rostr):
 
     if libc_setenv(name, value, 1) <> 0:
-        var errorcode : int = libc___errno_location()^
+        var errorcode : int = Errno()
         raise Exception('SetEnv failed (errno {})', [errorcode])
     endif
 endfunc

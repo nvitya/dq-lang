@@ -14,8 +14,8 @@ slots, timeout in seconds, and an optional operation wait timeout in millisecond
 
 ```sh
 build/dq-run stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 257 30
-build/dq-run -O3 stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 2 30
-build/dq-run -O3 stdpkg/msgchannel/examples/stress_test.dq -- 32 20000 2 30 100
+build/dq-run -O3 --lto stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 2 30
+build/dq-run -O3 --lto stdpkg/msgchannel/examples/stress_test.dq -- 32 20000 2 30 100
 ```
 
 The first checks exercise empty/full behavior and FIFO across repeated ring
@@ -69,3 +69,23 @@ process-private, so the channel is for threads sharing one process. Do not destr
 a channel while operations are still running. Scheduling and channel-lock
 contention can delay return past the deadline. On 32-bit Linux, waiting requires
 the `futex_time64` syscall (Linux 5.1 or later).
+
+The work-distribution example compares one worker with progressively larger
+worker pools, up to the detected processor count:
+
+```sh
+build/dq-run -O3 --lto stdpkg/msgchannel/examples/work_distribution.dq
+build/dq-run -O3 --lto stdpkg/msgchannel/examples/work_distribution.dq -- 32 256 1000000
+```
+
+Arguments are maximum workers, job count, and samples per job. Every run performs
+the same work: deterministic Monte Carlo jobs estimating pi. The main thread is
+the sole producer, feeding a bounded queue with 64 usable slots. Workers use
+`GetWaitMillis()`; the producer uses `PutWaitMillis()` for backpressure and sends
+one stop message per worker after all jobs. Neither side polls or sleeps.
+
+Elapsed time includes thread creation, dispatch, computation, and joining; result
+validation happens afterward. The table reports speedup over one worker and the
+range of job counts handled by individual workers. Every job must appear exactly
+once, and its result must match the one-worker reference. Use `-O3 --lto` for the timing
+comparison; smaller workloads and heavily loaded machines can limit speedup.

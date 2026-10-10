@@ -1,0 +1,213 @@
+// One producer distributes CPU work through a bounded queue to a worker pool.
+use msgchannel
+use threads
+use time
+use print
+use rtl/prgargs
+use strutils
+
+func get_nprocs() -> int32 [[external]] ..
+
+const MSG_WORK : int16 = 1
+const MSG_STOP : int16 = 2
+const WAIT_MS : int = 10000
+
+struct SJobResult:
+    id : uint32
+    hits : uint64
+endstruct
+
+object OWorker(OThread):
+    channel : OMsgChannel
+    results : [*]SJobResult
+    failed : bool = false
+
+    func *Create(achannel : OMsgChannel):
+        channel = achannel
+    endfunc
+
+    func Calculate(job : SChMsg) -> uint64:
+        // Monte Carlo integration of a quarter circle. Each job has its own
+        // reproducible xorshift stream, independent of which worker receives it.
+        var state : uint64 = job.par.u32 + 1
+        var hits : uint64 = 0
+        for i : uint64 = 0 count job.data.u64:
+            state = state xor (state << 13)
+            state = state xor (state >> 7)
+            state = state xor (state << 17)
+            var x : uint64 = state & 65535
+            var y : uint64 = (state >> 16) & 65535
+            if x * x + y * y < 4294967296:
+                ++hits
+            endif
+        endfor
+        return hits
+    endfunc
+
+    func Run(aarg : pointer) -> pointer [[override]]:
+        use *
+        while true:
+            var job : SChMsg
+            if not channel.GetWaitMillis(job, WAIT_MS):
+                failed = true
+                break
+            endif
+            if job.msg == MSG_STOP:
+                break
+            endif
+            if job.msg <> MSG_WORK:
+                failed = true
+                break
+            endif
+            var entry : SJobResult = {}
+            entry.id = job.par.u32
+            entry.hits = Calculate(job)
+            // Only this worker writes its result array. Main reads it after Join.
+            results.Append(entry)
+        endwhile
+        return nil
+    endfunc
+endobject
+
+object OWorkDistribution:
+    job_count : int
+    samples_per_job : uint64
+    reference : [*]uint64
+    reference_ready : bool = false
+
+    func *Create(ajobs : int, asamples : uint64):
+        job_count = ajobs
+        samples_per_job = asamples
+        reference.SetLength(job_count)
+    endfunc
+
+    func Fail(message : rostr):
+        use *
+        PrintLn('FAIL: {}', [message])
+        Exit(1)
+    endfunc
+
+    func Run(worker_count : int, baseline_us : int64 = 0) -> int64:
+        use *
+        var channel <- OMsgChannel(65) // bounded backlog: 64 jobs
+        var workers : [*]OWorker
+        var seen : [*]bool
+        seen.SetLength(job_count)
+        var start : int64 = MicroTime()
+        for i : int = 0 count worker_count:
+            var worker = new OWorker(channel)
+            workers.Append(worker)
+            if not worker.StartSelf(nil):
+                Fail('could not start a worker')
+            endif
+        endfor
+
+        // Main is the only producer. Backpressure blocks it when the queue fills.
+        var job : SChMsg = {}
+        job.msg = MSG_WORK
+        job.data.u64 = samples_per_job
+        for id : int = 0 count job_count:
+            job.par.u32 = id
+            if not channel.PutWaitMillis(job, WAIT_MS):
+                Fail('timed out submitting a job')
+            endif
+        endfor
+        // FIFO puts the stop messages after all jobs. Each worker consumes one.
+        job = {}
+        job.msg = MSG_STOP
+        for i : int = 0 count worker_count:
+            if not channel.PutWaitMillis(job, WAIT_MS):
+                Fail('timed out stopping the workers')
+            endif
+        endfor
+        for worker : OWorker in workers:
+            worker.Join()
+        endfor
+        var elapsed_us : int64 = MicroTime() - start
+
+        var completed : int = 0
+        var total_hits : uint64 = 0
+        var least_jobs : int = job_count
+        var most_jobs : int = 0
+        for worker : OWorker in workers:
+            if worker.failed:
+                Fail('a worker timed out or received an invalid message')
+            endif
+            if worker.results.length < least_jobs:
+                least_jobs = worker.results.length
+            endif
+            if worker.results.length > most_jobs:
+                most_jobs = worker.results.length
+            endif
+            for entry : SJobResult in worker.results:
+                if entry.id >= job_count:
+                    Fail('invalid job ID')
+                endif
+                if seen[entry.id]:
+                    Fail('a job was processed more than once')
+                endif
+                seen[entry.id] = true
+                if reference_ready:
+                    if entry.hits <> reference[entry.id]:
+                        Fail('parallel result differs from the one-worker result')
+                    endif
+                else:
+                    reference[entry.id] = entry.hits
+                endif
+                total_hits += entry.hits
+                ++completed
+            endfor
+            delete worker
+        endfor
+        if completed <> job_count:
+            Fail('some jobs were not processed')
+        endif
+        if channel.Get(job):
+            Fail('queue was not drained')
+        endif
+        reference_ready = true
+
+        var speedup : float64 = 1
+        if baseline_us > 0:
+            speedup = float64(baseline_us) / elapsed_us
+        endif
+        var pi : float64 = float64(total_hits) * 4 / (job_count * samples_per_job)
+        PrintLn('{:3d} workers | {:10.2f} ms | {:6.2f}x | jobs/worker {}..{} | pi={:.7f}',
+                [worker_count, float64(elapsed_us) / 1000, speedup, least_jobs, most_jobs, pi])
+        return elapsed_us
+    endfunc
+endobject
+
+func *Main():
+    var cpus : int = get_nprocs()
+    var max_workers : int = cpus
+    if max_workers < 1:
+        max_workers = 1
+    endif
+    var job_count : int = 256
+    var samples_per_job : int = 1000000
+    if ArgCount() > 1: max_workers = StrToInt(ArgStr(1), -1)
+    endif
+    if ArgCount() > 2: job_count = StrToInt(ArgStr(2), -1)
+    endif
+    if ArgCount() > 3: samples_per_job = StrToInt(ArgStr(3), -1)
+    endif
+    if ArgCount() > 4 or not (1 <= max_workers <= 256) or not (1 <= job_count <= 10000)
+       or not (1 <= samples_per_job <= 10000000):
+        PrintLn('Usage: work_distribution [max workers:1..256] [jobs:1..10000] [samples/job:1..10000000]')
+        Exit(2)
+    endif
+    PrintLn('Single producer, {} online processors, {} jobs of {} samples each',
+            [cpus, job_count, samples_per_job])
+    var demo <- OWorkDistribution(job_count, samples_per_job)
+    var baseline_us : int64 = demo.Run(1)
+    var count : int = 2
+    while count < max_workers:
+        demo.Run(count, baseline_us)
+        count *= 2
+    endwhile
+    if max_workers > 1:
+        demo.Run(max_workers, baseline_us)
+    endif
+    PrintLn('PASS: every job was processed once, with identical results at every worker count.')
+endfunc

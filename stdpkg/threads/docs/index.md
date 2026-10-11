@@ -401,4 +401,4 @@ afterward. Use `-O3 --lto` for speed comparisons.
 On a Linux host with llvm-mingw and Wine installed, `make test-windows`
 cross-compiles and runs thread lifecycle, atomic, event, channel capacity,
 wait, stress, and work-distribution checks at `-O0` and `-O3 --lto=full`.
-See [Windows application cross-compilation](../../../docs/compiler/using-dq-comp.md#windows-cross-compilation-from-linux).
+See [Windows application cross-compilation](../../compiler/using-dq-comp.md#windows-cross-compilation-from-linux).

@@ -3,8 +3,15 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/compiler/**",
+                "${workspaceFolder}/autotest/atrunner"
             ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/compiler",
+                    "${workspaceFolder}/autotest/atrunner"
+                ]
+            },
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",

@@ -1,0 +1,22 @@
+// Private external aliases must retain the same linker symbol, even when
+// their DQ signatures represent an address as a pointer or an integer.
+
+implementation
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+func malloc(size : uint) -> pointer [[external]] ..
+func malloc_address(size : uint) -> uint [[external('malloc')]] ..
+func free(p : pointer) [[external]] ..
+func free_address(address : uint) [[external('free')]] ..
+
+func *Main():
+    var p : pointer = malloc(SizeOf(uint32))
+    ^uint32(p)^ = 42
+    printf("pointer allocation = %u\n", ^uint32(p)^) //?check('pointer allocation', 42)
+    free_address(uint(p))
+
+    var address : uint = malloc_address(SizeOf(uint32))
+    ^uint32(address)^ = 77
+    printf("integer allocation = %u\n", ^uint32(address)^) //?check('integer allocation', 77)
+    free(pointer(address))
+endfunc

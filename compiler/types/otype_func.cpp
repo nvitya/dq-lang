@@ -711,7 +711,8 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
     ll_name = GetLinkageName(apublic, symbol_name);
   }
 
-  if (apublic)
+  // External aliases share a linker symbol even in an implementation scope.
+  if (apublic || is_external)
   {
     if (LlFunction * existing = ll_module->getFunction(ll_name))
     {

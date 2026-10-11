@@ -9,15 +9,32 @@
     "/workvc/dq-lang/stdpkg"
   ],
 
+  "C_Cpp.files.exclude": {
+    "**/build/**": true,
+    "**/build-cross/**": true,
+    "**/.dqbuild/**": true,
+    "**/.wine-dq/**": true,
+    "**/sysroots/**": true,
+    "**/CMakeFiles/**": true
+  },
   "files.watcherExclude": {
+    "**/build/**": true,
+    "**/.dqbuild/**": true,
+    "**/.wine-dq/**": true,
     "**/build-cross/**": true,
     "**/sysroots/**": true
   },
   "files.exclude": {
+    "**/build/**": true,
+    "**/.dqbuild/**": true,
+    "**/.wine-dq/**": true,
     "**/build-cross/**": true,
     "**/sysroots/**": true
   },
   "search.exclude": {
+    "**/build/**": true,
+    "**/.dqbuild/**": true,
+    "**/.wine-dq/**": true,
     "**/build-cross/**": true,
     "**/sysroots/**": true
   }

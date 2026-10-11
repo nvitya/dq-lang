@@ -3,8 +3,8 @@
 
 object OThreadEvent:
 protected
-    m_sequence : uint32 = 0
-    m_waiters  : uint32 = 0
+    m_sequence <- OAtomicUint32(0)
+    m_waiters  <- OAtomicUint32(0)
 public
     func Snapshot() -> uint32 [[inline]] ..
     func Signal() .. // notify one waiter

@@ -5,12 +5,6 @@ use print
 use rtl/prgargs
 use strutils
 
-#ifdef WINDOWS
-    func get_nprocs(group : uint16) -> uint32 [[external('GetActiveProcessorCount')]] ..
-#else
-    func get_nprocs() -> int32 [[external]] ..
-#endif
-
 const MSG_WORK : int16 = 1
 const MSG_STOP : int16 = 2
 const WAIT_MS : int = 10000
@@ -180,11 +174,7 @@ object OWorkDistribution:
 endobject
 
 func *Main():
-    #ifdef WINDOWS
-        var cpus : int = get_nprocs(0xFFFF)
-    #else
-        var cpus : int = get_nprocs()
-    #endif
+    var cpus : int = ProcessorCount()
     var max_workers : int = cpus
     if max_workers < 1:
         max_workers = 1

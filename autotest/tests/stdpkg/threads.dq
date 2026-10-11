@@ -112,12 +112,18 @@ func *Main():
     aptr.Store(token)
     Check(aptr.Load() == token)
 
-    var n32 : uint32 = 0xFFFFFFFF
-    var n64 : uint64 = 0xFFFFFFFFFFFFFFFF
-    Check(atomic_add_4(%n32, 2, ATOMIC_SEQ_CST) == 0xFFFFFFFF)
-    Check(atomic_load_4(%n32, ATOMIC_ACQUIRE) == 1)
-    Check(atomic_add_8(%n64, 2, ATOMIC_SEQ_CST) == 0xFFFFFFFFFFFFFFFF)
-    Check(atomic_load_8(%n64, ATOMIC_ACQUIRE) == 1)
+    Check(a32.Add(2) == 0xFFFFFFFF)
+    Check(a32.Load(ATOMIC_ACQUIRE) == 1)
+    Check(a64.Add(2) == 0xFFFFFFFFFFFFFFFF)
+    Check(a64.Load(ATOMIC_ACQUIRE) == 1)
+    Check(a32.Add(3, ATOMIC_RELAXED) == 1 and a32.Load() == 4)
+    Check(a64.Add(3, ATOMIC_RELAXED) == 1 and a64.Load() == 4)
+    a32.Store(9, ATOMIC_SEQ_CST)
+    a64.Store(9, ATOMIC_SEQ_CST)
+    aptr.Store(nil, ATOMIC_SEQ_CST)
+    Check(a32.Exchange(0, ATOMIC_ACQ_REL) == 9 and a32.Load(ATOMIC_SEQ_CST) == 0)
+    Check(a64.Exchange(0, ATOMIC_ACQ_REL) == 9 and a64.Load(ATOMIC_SEQ_CST) == 0)
+    Check(aptr.Exchange(token, ATOMIC_SEQ_CST) == nil and aptr.Load(ATOMIC_SEQ_CST) == token)
     PrintLn('atomics = passed') //?check('atomics', 'passed')
 
     var event <- OThreadEvent()

@@ -46,19 +46,19 @@ const EAGAIN : int32 = 11
 
 func OThreadEvent.Snapshot() -> uint32 [[inline]]:
     use .
-    return atomic_load_4(%m_sequence, ATOMIC_SEQ_CST)
+    return m_sequence.Load(ATOMIC_SEQ_CST)
 endfunc
 
 func OThreadEvent.Signal():
     use .
-    atomic_add_4(%m_sequence, 1, ATOMIC_SEQ_CST)
+    m_sequence.Add(1)
     // The sequence change and waiter registration are totally ordered: either
     // we wake a registered waiter, or its kernel comparison sees the change.
-    if atomic_load_4(%m_waiters, ATOMIC_SEQ_CST) <> 0:
+    if m_waiters.Load(ATOMIC_SEQ_CST) <> 0:
         #ifdef WINDOWS
-            win_WakeByAddressSingle(%m_sequence)
+            win_WakeByAddressSingle(m_sequence.Address())
         #else
-            futex(SYS_FUTEX, %m_sequence, FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
+            futex(SYS_FUTEX, m_sequence.Address(), FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
         #endif
     endif
 endfunc
@@ -81,10 +81,10 @@ func OThreadEvent.WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool:
                     milliseconds = remaining_ms
                 endif
             endif
-            atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
-            var rc : int32 = win_WaitOnAddress(%m_sequence, %asequence, 4, milliseconds)
+            m_waiters.Add(1)
+            var rc : int32 = win_WaitOnAddress(m_sequence.Address(), %asequence, 4, milliseconds)
             var error : uint32 = win_GetLastError()
-            atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST)
+            m_waiters.Add(0xFFFFFFFF)
             if rc <> 0:
                 return true
             endif
@@ -105,11 +105,11 @@ func OThreadEvent.WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool:
             timeout_ptr = %timeout
         endif
 
-        atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
-        var rc : int = futex(SYS_FUTEX, %m_sequence, FUTEX_WAIT_BITSET_PRIVATE,
+        m_waiters.Add(1)
+        var rc : int = futex(SYS_FUTEX, m_sequence.Address(), FUTEX_WAIT_BITSET_PRIVATE,
                               asequence, timeout_ptr, nil, FUTEX_BITSET_MATCH_ANY)
         var error : int32 = @sys.Errno()
-        atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST) // unregister, including on timeout
+        m_waiters.Add(0xFFFFFFFF) // unregister, including on timeout
         return rc == 0 or error == EAGAIN or error == EINTR
     #endif
 endfunc

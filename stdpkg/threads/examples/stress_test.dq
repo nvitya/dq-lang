@@ -5,12 +5,6 @@ use time
 use rtl/prgargs
 use strutils
 
-#ifdef WINDOWS
-    func get_nprocs(group : uint16) -> uint32 [[external('GetActiveProcessorCount')]] ..
-#else
-    func get_nprocs() -> int32 [[external]] ..
-#endif
-
 object OStressTest:
     channel : OMsgChannel
     producers : int
@@ -20,10 +14,10 @@ object OStressTest:
     wait_timeout_ms : int = 0
 
     // Only harness coordination uses atomics; Put/Get receive no outside lock.
-    started : uint32 = 0
-    ready : uint32 = 0
-    stopped : uint32 = 0
-    producers_done : uint32 = 0
+    started <- OAtomicUint32(0)
+    ready <- OAtomicUint32(0)
+    stopped <- OAtomicUint32(0)
+    producers_done <- OAtomicUint32(0)
 
     func *Create(aproducers : int, aconsumers : int, amessages : int, capacity : int) ..
     func *Destroy() ..
@@ -112,18 +106,18 @@ endfunc
 
 func OWorker.Run(aarg : pointer) -> pointer [[override]]:
     use *
-    atomic_add_4(%test.ready, 1, ATOMIC_SEQ_CST)
-    while atomic_load_4(%test.started, ATOMIC_SEQ_CST) == 0:
+    test.ready.Add(1)
+    while test.started.Load(ATOMIC_SEQ_CST) == 0:
         SleepMillis(1)
     endwhile
     var attempts : uint64 = 0
     var done : bool = false
     while true:
         if attempts rem 1024 == 0 or test.wait_timeout_ms > 0:
-            if atomic_load_4(%test.stopped, ATOMIC_SEQ_CST) <> 0: break
+            if test.stopped.Load(ATOMIC_SEQ_CST) <> 0: break
             endif
             if not producer:
-                done = atomic_load_4(%test.producers_done, ATOMIC_SEQ_CST) == test.producers
+                done = test.producers_done.Load(ATOMIC_SEQ_CST) == test.producers
             endif
         endif
         ++attempts
@@ -168,7 +162,7 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
         endif
     endwhile
     if producer:
-        atomic_add_4(%test.producers_done, 1, ATOMIC_SEQ_CST)
+        test.producers_done.Add(1)
     endif
     return nil
 endfunc
@@ -186,7 +180,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         endif
     endfor
     var start : int64 = MilliTime()
-    while atomic_load_4(%ready, ATOMIC_SEQ_CST) <> producers + consumers:
+    while ready.Load(ATOMIC_SEQ_CST) <> producers + consumers:
         if MilliTime() - start >= timeout_seconds * 1000:
             PrintLn('FAIL: workers did not reach the start gate')
             Exit(1)
@@ -194,7 +188,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         SleepMillis(1)
     endwhile
     start = MilliTime()
-    atomic_store_4(%started, 1, ATOMIC_SEQ_CST)
+    started.Store(1, ATOMIC_SEQ_CST)
     var timed_out : bool = false
     while true:
         var running : bool = false
@@ -207,7 +201,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         var elapsed : int64 = MilliTime() - start
         if elapsed >= timeout_seconds * 1000:
             timed_out = true
-            atomic_store_4(%stopped, 1, ATOMIC_SEQ_CST)
+            stopped.Store(1, ATOMIC_SEQ_CST)
         endif
         if elapsed >= timeout_seconds * 1000 + 2000:
             PrintLn('FAIL: workers did not stop after timeout (possible deadlock)')
@@ -257,11 +251,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
 endfunc
 
 func *Main():
-    #ifdef WINDOWS
-        var cpus : int = get_nprocs(0xFFFF)
-    #else
-        var cpus : int = get_nprocs()
-    #endif
+    var cpus : int = ProcessorCount()
     var count : int = cpus
     if count < 2: count = 2
     endif

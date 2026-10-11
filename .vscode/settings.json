@@ -32,6 +32,7 @@
     "**/sysroots/**": true
   },
   "search.exclude": {
+    "build/**": true,
     "**/build/**": true,
     "**/.dqbuild/**": true,
     "**/.wine-dq/**": true,

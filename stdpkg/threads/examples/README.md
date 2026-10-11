@@ -7,8 +7,7 @@ Run the standalone stress tester from the repository root:
 build/dq-run stdpkg/threads/examples/stress_test.dq
 ```
 
-It queries the online logical processor count with `get_nprocs()` on Linux or
-`GetActiveProcessorCount()` on Windows and uses that many workers. Defaults are
+It queries the online logical processor count with `ProcessorCount()` and uses that many workers. Defaults are
 50,000 messages per producer, a queue capacity of 256 messages, and a 15-second
 timeout per scenario. The tester uses `threads.OThread` for workers and the
 package's atomic operations for its own start/stop coordination.

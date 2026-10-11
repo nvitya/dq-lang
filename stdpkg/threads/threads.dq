@@ -60,7 +60,7 @@ endobject
 #include "msgchannel.dqh"
 #srcdep  "msgchannel.dqi"
 
-func ProcesorCount() -> int32 ..
+func ProcessorCount() -> int32 ..
 
 implementation
 
@@ -90,7 +90,7 @@ func WinThreadMain(arg : pointer) -> uint32:
     return 0
 endfunc
 
-func ProcesorCount() -> int32:
+func ProcessorCount() -> int32:
     return win_GetActiveProcessorCount(0xFFFF)
 endfunc
 
@@ -104,7 +104,7 @@ func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[extern
 
 func get_nprocs() -> int32 [[external]] ..
 
-func ProcesorCount() -> int32:
+func ProcessorCount() -> int32:
     return get_nprocs()
 endfunc
 

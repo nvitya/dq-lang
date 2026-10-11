@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.92.0"
+#define DQ_COMPILER_VERSION  "0.92.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.92.1:
+  - threads improvement: ProcessorCount(), atomics
 v0.92.0:
   - Full threads funktionality works on windows
 v0.91.2:

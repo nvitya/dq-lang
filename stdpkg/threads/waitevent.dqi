@@ -46,7 +46,7 @@ const EAGAIN : int32 = 11
 
 func OThreadEvent.Snapshot() -> uint32 [[inline]]:
     use .
-    return m_sequence.Load(ATOMIC_SEQ_CST)
+    return m_sequence.Load()
 endfunc
 
 func OThreadEvent.Signal():
@@ -54,7 +54,7 @@ func OThreadEvent.Signal():
     m_sequence.Add(1)
     // The sequence change and waiter registration are totally ordered: either
     // we wake a registered waiter, or its kernel comparison sees the change.
-    if m_waiters.Load(ATOMIC_SEQ_CST) <> 0:
+    if m_waiters.Load() <> 0:
         #ifdef WINDOWS
             win_WakeByAddressSingle(m_sequence.Address())
         #else

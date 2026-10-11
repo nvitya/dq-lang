@@ -5,6 +5,8 @@ use time
 use rtl/prgargs
 use strutils
 
+object OWorker ..
+
 object OStressTest:
     channel : OMsgChannel
     producers : int
@@ -24,6 +26,7 @@ object OStressTest:
     func Message(id : uint64) -> SChMsg ..
     func Valid(msg : SChMsg) -> bool ..
     func CheckBasics(capacity : int) -> bool ..
+    func RunWorker(worker : OWorker) ..
     func Run(timeout_seconds : int) -> bool ..
 endobject
 
@@ -105,66 +108,70 @@ func OWorker.*Create(atest : OStressTest, aproducer : bool, aindex : int):
 endfunc
 
 func OWorker.Run(aarg : pointer) -> pointer [[override]]:
+    test.RunWorker(self)
+    return nil
+endfunc
+
+func OStressTest.RunWorker(worker : OWorker):
     use *
-    test.ready.Add(1)
-    while test.started.Load(ATOMIC_SEQ_CST) == 0:
+    ready.Add(1)
+    while started.Load() == 0:
         SleepMillis(1)
     endwhile
     var attempts : uint64 = 0
     var done : bool = false
     while true:
-        if attempts rem 1024 == 0 or test.wait_timeout_ms > 0:
-            if test.stopped.Load(ATOMIC_SEQ_CST) <> 0: break
+        if attempts rem 1024 == 0 or wait_timeout_ms > 0:
+            if stopped.Load() <> 0: break
             endif
-            if not producer:
-                done = test.producers_done.Load(ATOMIC_SEQ_CST) == test.producers
+            if not worker.producer:
+                done = producers_done.Load() == producers
             endif
         endif
         ++attempts
-        if producer:
-            if transferred == test.messages: break
+        if worker.producer:
+            if worker.transferred == messages: break
             endif
-            var msg : SChMsg = test.Message(index * test.messages + transferred)
-            if test.channel.PutWaitMillis(msg, test.wait_timeout_ms):
-                ++transferred
+            var msg : SChMsg = Message(worker.index * messages + worker.transferred)
+            if channel.PutWaitMillis(msg, wait_timeout_ms):
+                ++worker.transferred
             else:
-                ++retries
+                ++worker.retries
                 SchedYield()
             endif
         else:
             var msg : SChMsg
-            if test.channel.GetWaitMillis(msg, test.wait_timeout_ms):
-                ++transferred
-                if not test.Valid(msg):
-                    ++corrupt
+            if channel.GetWaitMillis(msg, wait_timeout_ms):
+                ++worker.transferred
+                if not Valid(msg):
+                    ++worker.corrupt
                     continue
                 endif
                 var id : uint64 = msg.data.u64
-                if seen[id] <> 0:
-                    ++duplicates
+                if worker.seen[id] <> 0:
+                    ++worker.duplicates
                 endif
-                seen[id] = 1
+                worker.seen[id] = 1
                 // With several consumers, observation order can differ from dequeue order.
-                if test.consumers == 1:
-                    var source : uint64 = id div test.messages
-                    var sequence : uint64 = id rem test.messages
-                    if sequence <> next_sequence[source]: ++unordered
+                if consumers == 1:
+                    var source : uint64 = id div messages
+                    var sequence : uint64 = id rem messages
+                    if sequence <> worker.next_sequence[source]: ++worker.unordered
                     endif
-                    next_sequence[source] = sequence + 1
+                    worker.next_sequence[source] = sequence + 1
                 endif
             else:
                 // 'done' was acquired before Get, so no producer can publish later.
                 if done: break
                 endif
-                ++retries
+                ++worker.retries
                 SchedYield()
             endif
         endif
     endwhile
-    if producer:
-        test.producers_done.Add(1)
+    if worker.producer:
+        producers_done.Add(1)
     endif
-    return nil
 endfunc
 
 func OStressTest.Run(timeout_seconds : int) -> bool:
@@ -180,7 +187,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         endif
     endfor
     var start : int64 = MilliTime()
-    while ready.Load(ATOMIC_SEQ_CST) <> producers + consumers:
+    while ready.Load() <> producers + consumers:
         if MilliTime() - start >= timeout_seconds * 1000:
             PrintLn('FAIL: workers did not reach the start gate')
             Exit(1)
@@ -188,7 +195,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         SleepMillis(1)
     endwhile
     start = MilliTime()
-    started.Store(1, ATOMIC_SEQ_CST)
+    started.Store(1)
     var timed_out : bool = false
     while true:
         var running : bool = false
@@ -201,7 +208,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         var elapsed : int64 = MilliTime() - start
         if elapsed >= timeout_seconds * 1000:
             timed_out = true
-            stopped.Store(1, ATOMIC_SEQ_CST)
+            stopped.Store(1)
         endif
         if elapsed >= timeout_seconds * 1000 + 2000:
             PrintLn('FAIL: workers did not stop after timeout (possible deadlock)')

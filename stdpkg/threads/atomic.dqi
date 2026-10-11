@@ -60,48 +60,68 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-func OAtomicUint32.Add(avalue : uint32, aorder : int32 = @.ATOMIC_SEQ_CST) -> uint32:
-    result = @.atomic_add_4(%m_value, avalue, aorder)
+func OAtomicUint32.Add(avalue : uint32) -> uint32:
+    result = @.atomic_add_4(%m_value, avalue, @.ATOMIC_SEQ_CST)
 endfunc
 
-func OAtomicUint32.Exchange(avalue : uint32, aorder : int32 = @.ATOMIC_ACQUIRE) -> uint32:
-    result = @.atomic_exchange_4(%m_value, avalue, aorder)
+func OAtomicUint32.AddRelaxed(avalue : uint32) -> uint32:
+    result = @.atomic_add_4(%m_value, avalue, @.ATOMIC_RELAXED)
 endfunc
 
-func OAtomicUint32.Load(aorder : int32 = @.ATOMIC_RELAXED) -> uint32:
-    result = @.atomic_load_4(%m_value, aorder)
+func OAtomicUint32.Exchange(avalue : uint32) -> uint32:
+    result = @.atomic_exchange_4(%m_value, avalue, @.ATOMIC_SEQ_CST)
 endfunc
 
-func OAtomicUint32.Store(avalue : uint32, aorder : int32 = @.ATOMIC_RELEASE):
-    @.atomic_store_4(%m_value, avalue, aorder)
+func OAtomicUint32.Load() -> uint32:
+    result = @.atomic_load_4(%m_value, @.ATOMIC_SEQ_CST)
 endfunc
 
-
-func OAtomicUint64.Add(avalue : uint64, aorder : int32 = @.ATOMIC_SEQ_CST) -> uint64:
-    result = @.atomic_add_8(%m_value, avalue, aorder)
+func OAtomicUint32.LoadRelaxed() -> uint32:
+    result = @.atomic_load_4(%m_value, @.ATOMIC_RELAXED)
 endfunc
 
-func OAtomicUint64.Exchange(avalue : uint64, aorder : int32 = @.ATOMIC_ACQUIRE) -> uint64:
-    result = @.atomic_exchange_8(%m_value, avalue, aorder)
-endfunc
-
-func OAtomicUint64.Load(aorder : int32 = @.ATOMIC_RELAXED) -> uint64:
-    result = @.atomic_load_8(%m_value, aorder)
-endfunc
-
-func OAtomicUint64.Store(avalue : uint64, aorder : int32 = @.ATOMIC_RELEASE):
-    @.atomic_store_8(%m_value, avalue, aorder)
+func OAtomicUint32.Store(avalue : uint32):
+    @.atomic_store_4(%m_value, avalue, @.ATOMIC_SEQ_CST)
 endfunc
 
 
-func OAtomicPtr.Exchange(avalue : pointer, aorder : int32 = @.ATOMIC_ACQ_REL) -> pointer:
-    result = @.atomic_exchange_ptr(%m_value, avalue, aorder)
+func OAtomicUint64.Add(avalue : uint64) -> uint64:
+    result = @.atomic_add_8(%m_value, avalue, @.ATOMIC_SEQ_CST)
 endfunc
 
-func OAtomicPtr.Load(aorder : int32 = @.ATOMIC_ACQUIRE) -> pointer:
-    result = @.atomic_load_ptr(%m_value, aorder)
+func OAtomicUint64.AddRelaxed(avalue : uint64) -> uint64:
+    result = @.atomic_add_8(%m_value, avalue, @.ATOMIC_RELAXED)
 endfunc
 
-func OAtomicPtr.Store(avalue : pointer, aorder : int32 = @.ATOMIC_RELEASE):
-    @.atomic_store_ptr(%m_value, avalue, aorder)
+func OAtomicUint64.Exchange(avalue : uint64) -> uint64:
+    result = @.atomic_exchange_8(%m_value, avalue, @.ATOMIC_SEQ_CST)
+endfunc
+
+func OAtomicUint64.Load() -> uint64:
+    result = @.atomic_load_8(%m_value, @.ATOMIC_SEQ_CST)
+endfunc
+
+func OAtomicUint64.LoadRelaxed() -> uint64:
+    result = @.atomic_load_8(%m_value, @.ATOMIC_RELAXED)
+endfunc
+
+func OAtomicUint64.Store(avalue : uint64):
+    @.atomic_store_8(%m_value, avalue, @.ATOMIC_SEQ_CST)
+endfunc
+
+
+func OAtomicPtr.Exchange(avalue : pointer) -> pointer:
+    result = @.atomic_exchange_ptr(%m_value, avalue, @.ATOMIC_SEQ_CST)
+endfunc
+
+func OAtomicPtr.Load() -> pointer:
+    result = @.atomic_load_ptr(%m_value, @.ATOMIC_SEQ_CST)
+endfunc
+
+func OAtomicPtr.LoadRelaxed() -> pointer:
+    result = @.atomic_load_ptr(%m_value, @.ATOMIC_RELAXED)
+endfunc
+
+func OAtomicPtr.Store(avalue : pointer):
+    @.atomic_store_ptr(%m_value, avalue, @.ATOMIC_SEQ_CST)
 endfunc

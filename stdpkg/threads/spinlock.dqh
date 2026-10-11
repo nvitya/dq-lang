@@ -4,7 +4,7 @@ object OSpinLockVar(OAtomicUint32):
     func Lock()  [[inline]]:
         while Exchange(1) <> 0:
             // Read while contended instead of repeatedly invalidating the lock's cache line.
-            while Load() <> 0:
+            while LoadRelaxed() <> 0:
                 @.SchedYield()
             endwhile
         endwhile

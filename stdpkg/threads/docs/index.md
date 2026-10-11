@@ -271,36 +271,32 @@ All three types expose `Load()`, `Store(value)`, and `Exchange(value)`.
 wrappers also expose `Add(value)`, which returns the value **before** addition;
 unsigned overflow wraps.
 
-All value operations accept an optional `aorder : int32` argument, for example
-`flag.Load(ATOMIC_ACQUIRE)` or `flag.Add(1, ATOMIC_RELAXED)`.
-The default memory orders are:
+`Load()`, `Store(value)`, `Exchange(value)`, and `Add(value)` are sequentially
+consistent and take no memory-order argument. Loads acquire published data,
+stores release earlier writes, and exchanges and additions do both. These
+operations also participate in a single ordering across atomic variables.
 
-| Type | Value type | `Load()` | `Store()` | `Exchange()` | `Add()` |
-| --- | --- | --- | --- | --- | --- |
-| `OAtomicUint32` | `uint32` | relaxed | release | acquire | sequentially consistent |
-| `OAtomicUint64` | `uint64` | relaxed | release | acquire | sequentially consistent |
-| `OAtomicPtr` | `pointer` | acquire | release | acquire-release | — |
+All three types provide `LoadRelaxed()`. The integer types also provide
+`AddRelaxed(value)`, which returns the value before addition and wraps on unsigned
+overflow, just like `Add(value)`. For example, use `counter.AddRelaxed(1)` and
+`counter.LoadRelaxed()` for independent statistics. Relaxed operations remain
+atomic but do not synchronize other shared storage; do not use a relaxed load
+of a ready flag to acquire data published by another thread.
 
 On Windows, all these operations use interlocked functions with full memory
-barriers, providing stronger ordering when a weaker order is requested. Linux
-uses the requested orders. Do not rely on the stronger Windows behavior in
-portable code.
+barriers, providing stronger ordering for the relaxed methods. Linux uses
+the method's specified ordering. Do not rely on the stronger Windows behavior
+in portable code.
 
-By default, integer loads make the integer access atomic but do not acquire
-unrelated data published by another thread. Integer exchanges acquire but do not
-release earlier writes. Use a lock or pass the required memory order to the
-wrapper methods when coordinating other shared storage. Atomic pointer
-publication still requires separate management of the pointed-to allocation's
-lifetime.
+Each method call is atomic; a sequence of calls is not a single atomic operation.
+Use a lock when several accesses must happen together. Atomic pointer publication
+still requires separate management of the pointed-to allocation's lifetime.
 
 `OAtomicUint32.Address()` exposes the value's address for native address-based
 waits. Keep the wrapper alive while using this address, and access its value
 through the atomic methods.
 
-The order constants are `ATOMIC_RELAXED`, `ATOMIC_ACQUIRE`, `ATOMIC_RELEASE`,
-`ATOMIC_ACQ_REL`, and `ATOMIC_SEQ_CST`. Loads accept relaxed, acquire, or
-sequentially consistent order; stores accept relaxed, release, or sequentially
-consistent order; exchange and fetch-add accept all five. `SchedYield() -> int32`
+`SchedYield() -> int32`
 wraps `sched_yield` on Linux and `Sleep(0)` on Windows; it returns zero on Windows.
 Yielding does not synchronize shared data.
 

@@ -51,7 +51,7 @@ endstruct
 type FWinExceptionFilter = func(exception_info : pointer) -> int32
 
 func win_AddVectoredExceptionHandler(first : uint32, handler : FWinExceptionFilter) -> pointer [[external('AddVectoredExceptionHandler')]] ..
-func win_ExitProcess(exit_code : uint32) [[external('ExitProcess')]] ..
+func win_ExitProcess(aexit_code : uint32) [[external('ExitProcess')]] ..
 
 const EXCEPTION_ACCESS_VIOLATION : uint32 = 0xC0000005
 const EXCEPTION_CONTINUE_SEARCH  : int32 = 0

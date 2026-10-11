@@ -112,12 +112,34 @@ continue to reflect the selected target and feature settings.
 ### Windows cross-compilation from Linux
 
 When built with LLVM's X86 backend, the Linux compiler can produce Windows x64
-executables using a Linux-hosted llvm-mingw UCRT toolchain:
+executables using a Linux-hosted llvm-mingw UCRT toolchain. With the toolchain
+extracted under `sysroots/llvm-mingw-x86_64`, source the setup script in Bash
+before compiling and running:
 
 ```bash
+source tools/dqcrosswinsetup.sh
 build/dq-comp --target=x64-windows app.dq
 wine app.exe
 ```
+
+The script detects the repository root from its own location, sets
+`DQ_MINGW_ROOT`, and uses `winepath` to set `WINEPATH` to the toolchain's target
+runtime DLL directory. Wine loads the DLLs directly from that directory, so
+you do not need to copy them beside each executable. The script also sets
+`MESA_VK_IGNORE_CONFORMANCE_WARNING=1` to suppress Mesa's RADV Vulkan
+conformance warning. Wine and `winepath` must be installed.
+
+You can source the script by its absolute path from any working directory.
+For example, add this line to `~/.bashrc` to configure new Bash terminals
+automatically (adjust the path to your checkout):
+
+```bash
+source /lindata/workvc/dq-lang/tools/dqcrosswinsetup.sh
+```
+
+Source the script in the current terminal as well to apply the settings
+immediately. Running it as a separate process does not configure the current
+shell.
 
 Windows outputs default to `.exe`. An explicit `-o` filename is used exactly as
 given, including filenames without an extension. Object generation with `-c`
@@ -142,11 +164,12 @@ libraries, libc++, and libunwind. Full LTO also requires a toolchain with the
 same LLVM major version as DQ. Windows full-LTO links use LLD's default
 optimization pipeline rather than the ELF-specific O1 inlining pipeline.
 
-For Wine execution, copy the toolchain's target runtime DLLs beside the
-executable: `libc++.dll`, `libunwind.dll`, and `libwinpthread-1.dll` when
-provided. These are under `x86_64-w64-mingw32/bin` in llvm-mingw.
+As an alternative to setting `WINEPATH`, copy the toolchain's target runtime
+DLLs beside the executable: `libc++.dll`, `libunwind.dll`, and
+`libwinpthread-1.dll` when provided. These are under
+`x86_64-w64-mingw32/bin` in llvm-mingw.
 
-The opt-in compatibility suite performs this setup automatically:
+The opt-in compatibility suite copies the runtime DLLs automatically:
 
 ```bash
 make test-windows

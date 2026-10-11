@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------------
 v0.91.1:
   - Extenal symbol multiple alias fix
+  - windows cross compilation setup script: tools/dqcrosswinsetup.sh
 v0.91.0:
   - Cross-compiling to windows
 v0.90.1:

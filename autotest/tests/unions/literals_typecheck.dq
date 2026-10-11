@@ -1,0 +1,28 @@
+// A union field may select exactly one alternative per literal.
+
+union ULiteral:
+    integer : uint32
+    real : float32
+endunion
+
+struct SLiteral:
+    tag : int
+    value : ULiteral
+endstruct
+
+func *Main():
+    var repeated : SLiteral = {tag: 1, value.integer: 2, value.integer: 3} //?error(StructInitDuplicateField)
+    var alternatives : SLiteral = {tag: 1, value.integer: 2, value.real: 3} //?error(StructInitDuplicateField)
+    var whole_after : SLiteral = {tag: 1, value.integer: 2, value: {real: 3}} //?error(StructInitDuplicateField)
+    var whole_before : SLiteral = {tag: 1, value: {}, value.integer: 2} //?error(StructInitDuplicateField)
+    var positional_duplicate : SLiteral = {1, {integer: 2}, value.real: 3} //?error(StructInitDuplicateField)
+    var nested_duplicate : SLiteral = {tag: 1, value: {integer: 2, real: 3}} //?error(StructInitDuplicateField)
+    var union_duplicate : ULiteral = {integer: 1, real: 2} //?error(StructInitDuplicateField)
+    var unknown_union : SLiteral = {tag: 1, value.nope: 2} //?error(StructInitUnknownField)
+    var unknown_struct : SLiteral = {tag: 1, nope.integer: 2} //?error(StructInitUnknownField)
+    var scalar_path : SLiteral = {tag.nope: 1, value: {}} //?error(StructInitContext)
+    var incompatible : SLiteral = {tag: 1, value.integer: "text"} //?error(TypeMismatchAssign)
+    var missing : SLiteral = {value.integer: 1} //?error(StructInitMissing)
+    var redundant : SLiteral = {tag: 1, value.integer: 2, ?} //?error(StructInitFillRedundant)
+    var union_redundant : ULiteral = {integer: 1, ?} //?error(StructInitFillRedundant)
+endfunc

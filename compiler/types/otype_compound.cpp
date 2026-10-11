@@ -1561,7 +1561,7 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
     }
     return 0;
   }
-  if ((TK_STRUCT != kind) || IsUnion())
+  if ((TK_STRUCT != kind) && !IsUnion())
   {
     if (convert && (aflags & EXPCF_GENERATE_ERRORS))
     {
@@ -1578,6 +1578,16 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
 
   for (OStructLitEntry & entry : literal->entries)
   {
+    // All union alternatives share storage, so selecting any member completes
+    // the union and a second selection would initialize that storage twice.
+    if (IsUnion() && cursor)
+    {
+      if (convert && (aflags & EXPCF_GENERATE_ERRORS))
+      {
+        g_compiler->Error(DQERR_STRUCT_INIT_DUP_FIELD, fields[cursor - 1].field->name);
+      }
+      return -1;
+    }
     size_t field_index = fields.size();
     if (entry.name.empty())
     {
@@ -1652,7 +1662,7 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
   size_t missing_index = fields.size();
   for (size_t i = 0; i < assigned.size(); ++i)
   {
-    if (!assigned[i])
+    if (!assigned[i] && !(IsUnion() && !literal->entries.empty()))
     {
       missing_index = i;
       break;

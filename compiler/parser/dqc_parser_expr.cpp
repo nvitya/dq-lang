@@ -4032,18 +4032,32 @@ OExpr * ODqCompParserExpr::ParseStructLit()
     }
 
     OStructLitEntry entry;
+    vector<string> member_path;
     OScPosition entry_start;
     scf->SaveCurPos(entry_start);
     string possible_name;
     if (scf->ReadIdentifier(possible_name))
     {
+      member_path.push_back(possible_name);
       scf->SkipWhite();
-      if (scf->CheckSymbol(":"))
+      while (scf->CheckSymbol("."))
       {
-        entry.name = possible_name;
+        scf->SkipWhite();
+        if (!scf->ReadIdentifier(possible_name))
+        {
+          member_path.clear();
+          break;
+        }
+        member_path.push_back(possible_name);
+        scf->SkipWhite();
+      }
+      if (!member_path.empty() && scf->CheckSymbol(":"))
+      {
+        entry.name = member_path.front();
       }
       else
       {
+        member_path.clear();
         scf->SetCurPos(entry_start);
       }
     }
@@ -4052,6 +4066,17 @@ OExpr * ODqCompParserExpr::ParseStructLit()
     if (!entry.value)
     {
       break;
+    }
+    // A dotted selection is a nested contextual literal: value.member: x
+    // becomes value: {member: x}, sharing type checking and duplicate rules.
+    for (size_t i = member_path.size(); i > 1; --i)
+    {
+      OStructLitEntry member;
+      member.name = member_path[i - 1];
+      member.value = entry.value;
+      vector<OStructLitEntry> nested_entries;
+      nested_entries.push_back(std::move(member));
+      entry.value = new OStructLit(std::move(nested_entries), false);
     }
     entries.push_back(std::move(entry));
   }

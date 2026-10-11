@@ -4,8 +4,7 @@ use threads/waitevent
 // the Channel message is a fixed 16-byte struct
 
 struct SChMsg:
-    msg    : int16
-    flags  : uint16
+    msg    : uint32
 
     union par:
         bytes : [4]byte

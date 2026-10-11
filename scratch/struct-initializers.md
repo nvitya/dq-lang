@@ -178,7 +178,15 @@ Named lookup follows the normal most-derived member lookup.  If a derived field
 hides a base field with the same name, the hidden base field must be initialized
 positionally or defaulted by `?`.
 
-Nonempty literals are limited to structures.  They do not initialize objects or
-unions.  The existing empty `{}` form remains available wherever whole-
+Nonempty literals initialize structures and unions. A union literal selects
+one member, such as `{float32_value: 3.14}`. A containing structure may select
+that member with `value.float32_value: 3.14`, which is equivalent to
+`value: {float32_value: 3.14}`. The containing union field may only appear once,
+even when two entries name different alternatives. Selected members can contain
+nested literals, for example `{value.pair: {1, 2}, tag: 4}`. Compile-time union
+constants are not supported.
+
+Nonempty literals do not initialize objects. The existing empty `{}` form
+remains available wherever whole-
 aggregate default initialization was already supported.  A brace literal is an
 rvalue and does not bind directly to a reference parameter.

@@ -77,6 +77,7 @@ func *Main():
     var empty : SPoint = {}
     var explicit : ? = SPoint({ 11, 12, 13 })
     var nested : SNested = { { 14, 15, 16 }, [17, 18] }
+    var nested_named : SNested = { point: { x: 14, y: 15, z: 16 }, values: [17, 18] }
     var points : [2]SPoint = [{ 1, 1, 1 }, { 2, 2, 2 }]
     var zero_array : [2]SPoint = {}
     var derived : SDerivedInit = { 19, 20, 21 }
@@ -98,6 +99,7 @@ func *Main():
     printf("struct literal return=%d\n", SumPoint(MakePoint(2))) //?check("struct literal return", 9)
     printf("struct literal explicit=%d\n", SumPoint(explicit)) //?check("struct literal explicit", 36)
     printf("struct literal nested=%d\n", SumPoint(nested.point) + nested.values[1]) //?check("struct literal nested", 63)
+    printf("struct literal nested named=%d\n", SumPoint(nested_named.point) + nested_named.values[1]) //?check("struct literal nested named", 63)
     printf("struct literal array=%d\n", SumPoint(points[0]) + SumPoint(points[1]) + SumPoint(zero_array[0])) //?check("struct literal array", 9)
     printf("struct literal inherited=%d\n", derived.base_a + derived.base_b + derived.child) //?check("struct literal inherited", 60)
     printf("struct literal hidden=%d\n", hidden.value + hidden_fill.value) //?check("struct literal hidden", 5)

@@ -30,6 +30,8 @@ struct SNestedUnion:
     union value:
         unsigned_value : uint32
         signed_value   : int32
+        float32_value  : float32
+        bytes          : [4] byte
     endunion
 endstruct
 
@@ -78,6 +80,13 @@ func *Main():
     word.whole = 0xFFFFFFFFFFFFFFFF
     var copied : UWord = CopyWord(word)
     printf("union copy = %lu\n", copied.whole) //?check("union copy", "18446744073709551615")
+
+    var littest : SNestedUnion
+    littest = {tag: 11, value.float32_value: 3.14}
+    printf("union.literal.f32 = %.2f\n", littest.value.float32_value) //?check("union.literal.f32", "3.14")
+
+    littest = {tag: 22, value.bytes:[1,2,3,4]}
+    printf("union.literal.bytes[0] = %u\n", littest.value.bytes[0]) //?check("union.literal.bytes[0]", "1")
 
     global_word = copied
     printf("union global = %lu\n", global_word.whole) //?check("union global", "18446744073709551615")

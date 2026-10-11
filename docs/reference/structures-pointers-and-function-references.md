@@ -63,10 +63,27 @@ base field cannot be named through the derived type; initialize it positionally
 or leave it to `?`.
 
 Structure literals are rvalues and do not bind directly to reference
-parameters. Nonempty brace literals apply to structures, not objects or unions;
+parameters. Nonempty brace literals apply to structures and unions;
 `{}` retains its existing default-initialization uses for supported aggregates.
 They may also initialize compile-time structure constants, including public
 constants imported from another module.
+
+Nested structure fields accept contextual literals, for example
+`{point: {10, 20}, count: 4}`. A union field selects one alternative with a
+dotted name or a nested literal:
+
+```dq
+value = {tag: 11, value.float32_value: 3.14}
+value = {tag: 22, value.bytes: [1, 2, 3, 4]}
+value = {tag: 11, value: {float32_value: 3.14}}
+```
+
+`value.member: expression` is equivalent to `value: {member: expression}`.
+The union field may appear only once, even if the entries select different
+alternatives. A union literal initializes one alternative; its remaining
+storage receives the default initialization. Selected alternatives can
+themselves contain nested structure or union literals. Union constants are
+not supported.
 
 ## Typed Pointers
 

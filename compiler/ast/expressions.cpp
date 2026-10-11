@@ -3377,6 +3377,17 @@ void OArrayLit::DeleteChildTree()
 LlValue * OStructLit::Generate(OScope * scope)
 {
   LlValue * result = llvm::Constant::getNullValue(ptype->GetLlType());
+  if (auto * compound = dynamic_cast<OCompoundType *>(ResolvedType());
+      compound && compound->IsUnion() && !entries.empty())
+  {
+    // The selected member may have a different LLVM type from the union's
+    // storage anchor. Store through their shared address, then load the union.
+    auto * storage = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "union.literal");
+    storage->setAlignment(llvm::Align(compound->alignsize));
+    ll_builder.CreateStore(result, storage);
+    ll_builder.CreateStore(entries.front().value->Generate(scope), storage);
+    return ll_builder.CreateLoad(ptype->GetLlType(), storage, "union.value");
+  }
   for (OStructLitEntry & entry : entries)
   {
     result = ll_builder.CreateInsertValue(result, entry.value->Generate(scope), entry.ll_path);

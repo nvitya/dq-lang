@@ -1,0 +1,79 @@
+// Contextual union selections, nested struct literals, and shared storage.
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+struct SPair:
+    first : int32
+    second : int32
+endstruct
+
+union ULiteral:
+    integer : uint64
+    small : byte
+    real : float32
+    bytes : [8]byte
+    pair : SPair
+endunion
+
+union UOuter:
+    nested : ULiteral
+    integer : uint64
+endunion
+
+struct SLiteral:
+    tag : int
+    value : ULiteral
+    tail : int
+endstruct
+
+[[packed]] struct SPackedLiteral:
+    tag : byte
+    value : ULiteral
+endstruct
+
+struct SDerivedLiteral(SLiteral):
+    extra : int
+endstruct
+
+func MakeLiteral(value : int32) -> SLiteral:
+    return {value.pair: {first: value, second: value + 1}, tag: 3, tail: 4}
+endfunc
+
+func ReadLiteral(value : SLiteral) -> int:
+    return value.tag + value.value.pair.first + value.value.pair.second + value.tail
+endfunc
+
+func PickLiteral(value : ULiteral) -> int [[overload]]:
+    if value.real == 7:
+        return 7
+    endif
+    return 0
+endfunc
+
+func PickLiteral(value : SPair) -> int [[overload]]:
+    return value.first
+endfunc
+
+func *Main():
+    var value : SLiteral = {tag: 1, value.pair: {2, 3}, 4}
+    printf("union literal nested struct = %li\n", ReadLiteral(value)) //?check("union literal nested struct", 10)
+    value = {value: {pair: {first: 5, second: 6}}, tag: 7, tail: 8}
+    printf("union literal nested named = %li\n", ReadLiteral(value)) //?check("union literal nested named", 26)
+    printf("union literal call = %li\n", ReadLiteral({tag: 1, value.pair: {2, 3}, tail: 4})) //?check("union literal call", 10)
+    printf("union literal return = %li\n", ReadLiteral(MakeLiteral(9))) //?check("union literal return", 26)
+    printf("union literal overload = %li\n", PickLiteral({real: 7})) //?check("union literal overload", 7)
+
+    var outer : UOuter = {nested.real: 2.5}
+    printf("union literal deep path = %.1f\n", outer.nested.real) //?check("union literal deep path", "2.5")
+    var packed : SPackedLiteral = {tag: 1, value.pair: {2, 3}}
+    printf("union literal packed = %li\n", int(packed.tag) + int(packed.value.pair.second)) //?check("union literal packed", 4)
+    var derived : SDerivedLiteral = {tag: 1, value.pair: {2, 3}, tail: 4, extra: 5}
+    printf("union literal inherited = %li\n", ReadLiteral({derived.tag, {pair: {derived.value.pair.first, derived.value.pair.second}}, derived.tail}) + derived.extra) //?check("union literal inherited", 15)
+
+    var filled : SLiteral = {value.real: 1.5, ?}
+    printf("union literal fill = %li %.1f %li\n", filled.tag, filled.value.real, filled.tail) //?check("union literal fill", "0 1.5 0")
+    var bytes : ULiteral = {bytes: [1, 2, 3, 4, 5, 6, 7, 8]}
+    printf("union literal bytes = %u %u\n", bytes.bytes[0], bytes.bytes[7]) //?check("union literal bytes", "1 8")
+    bytes = {small: 9}
+    printf("union literal unused storage = %u %u\n", bytes.bytes[0], bytes.bytes[7]) //?check("union literal unused storage", "9 0")
+endfunc

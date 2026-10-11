@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.89.1"
+#define DQ_COMPILER_VERSION  "0.90.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.90.0:
+  - Struct literal union field support
 v0.89.1:
   - Improved msgchannel with waiting (using futexes)
 v0.89.0:

@@ -1,0 +1,102 @@
+
+#linklib('atomic')
+
+object OAtomicUint32:
+protected
+    m_value : uint32
+public
+    func *Create(avalue : uint32):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : uint32) -> uint32 ..
+    func Load() -> uint32 ..
+    func Store(avalue : uint32) ..
+endobject
+
+object OAtomicUint64:
+protected
+    m_value : uint64
+public
+    func *Create(avalue : uint64):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : uint64) -> uint64 ..
+    func Load() -> uint64 ..
+    func Store(avalue : uint64) ..
+endobject
+
+object OAtomicPtr:
+protected
+    m_value : pointer
+public
+    func *Create(avalue : pointer):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : pointer) -> pointer ..
+    func Load() -> pointer ..
+    func Store(avalue : pointer) ..
+endobject
+
+
+implementation
+
+
+const ATOMIC_RELAXED : int32 = 0
+const ATOMIC_ACQUIRE : int32 = 2
+const ATOMIC_RELEASE : int32 = 3
+const ATOMIC_ACQ_REL : int32 = 4
+
+func atomic_exchange_4(p : ^uint32, value : uint32, order : int32) -> uint32  [[external('__atomic_exchange_4')]] ..
+func atomic_load_4(p : ^uint32, order : int32) -> uint32                      [[external('__atomic_load_4')]] ..
+func atomic_store_4(p : ^uint32, value : uint32, order : int32)               [[external('__atomic_store_4')]] ..
+
+func atomic_exchange_8(p : ^uint64, value : uint64, order : int32) -> uint64  [[external('__atomic_exchange_8')]] ..
+func atomic_load_8(p : ^uint64, order : int32) -> uint32                      [[external('__atomic_load_8')]] ..
+func atomic_store_8(p : ^uint64, value : uint64, order : int32)               [[external('__atomic_store_8')]] ..
+
+func atomic_load_ptr(p : ^pointer, order : int32) -> pointer                       #{if PTRSIZE == 8} [[external('__atomic_load_8')]]     #{else} [[external('__atomic_load_4')]] #{endif} ..
+func atomic_store_ptr(p : ^pointer, value : pointer, order : int32)                #{if PTRSIZE == 8} [[external('__atomic_store_8')]]    #{else} [[external('__atomic_store_4')]] #{endif} ..
+func atomic_exchange_ptr(p : ^pointer, value : pointer, order : int32) -> pointer  #{if PTRSIZE == 8} [[external('__atomic_exchange_8')]] #{else} [[external('__atomic_exchange_4')]] #{endif}  ..
+
+//-----------------------------------------------------------------------------
+
+func OAtomicUint32.Exchange(avalue : uint32) -> uint32:
+    result = @.atomic_exchange_4(%m_value, avalue, @.ATOMIC_ACQUIRE)
+endfunc
+
+func OAtomicUint32.Load() -> uint32:
+    result = @.atomic_load_4(%m_value, @.ATOMIC_RELAXED)
+endfunc
+
+func OAtomicUint32.Store(avalue : uint32):
+    @.atomic_store_4(%m_value, avalue, @.ATOMIC_RELEASE)
+endfunc
+
+
+func OAtomicUint64.Exchange(avalue : uint64) -> uint64:
+    result = @.atomic_exchange_8(%m_value, avalue, @.ATOMIC_ACQUIRE)
+endfunc
+
+func OAtomicUint64.Load() -> uint64:
+    result = @.atomic_load_8(%m_value, @.ATOMIC_RELAXED)
+endfunc
+
+func OAtomicUint64.Store(avalue : uint64):
+    @.atomic_store_8(%m_value, avalue, @.ATOMIC_RELEASE)
+endfunc
+
+
+func OAtomicPtr.Exchange(avalue : pointer) -> pointer:
+    result = @.atomic_exchange_ptr(%m_value, avalue, @.ATOMIC_ACQ_REL)
+endfunc
+
+func OAtomicPtr.Load() -> pointer:
+    result = @.atomic_load_ptr(%m_value, @.ATOMIC_ACQUIRE)
+endfunc
+
+func OAtomicPtr.Store(avalue : pointer):
+    @.atomic_store_ptr(%m_value, avalue, @.ATOMIC_RELEASE)
+endfunc

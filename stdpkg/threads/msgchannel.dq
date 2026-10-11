@@ -1,4 +1,4 @@
-#linklib('atomic')
+use threads/atomic
 use threads/waitevent
 
 // the Channel message is a fixed 16-byte struct
@@ -35,7 +35,7 @@ protected
     msgs    : [*]SChMsg
     idx_put : [[volatile]] uint32
     idx_get : [[volatile]] uint32
-    m_lock  : uint32 = 0
+    m_lock  <- OAtomicUint32(0)
     put_event <- OThreadEvent()
     get_event <- OThreadEvent()
 
@@ -65,22 +65,14 @@ endobject
 implementation
 
 use time
-
-func atomic_exchange(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_exchange_4')]] ..
-func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
-func atomic_store(p : ^uint32, value : uint32, order : int32) [[external('__atomic_store_4')]] ..
-func sched_yield() -> int32 [[external]] ..
-
-const ATOMIC_RELAXED : int32 = 0
-const ATOMIC_ACQUIRE : int32 = 2
-const ATOMIC_RELEASE : int32 = 3
+use threads
 
 func OMsgChannel.Lock()  [[inline]]:
     if locking:
-        while @.atomic_exchange(%m_lock, 1, @.ATOMIC_ACQUIRE) <> 0:
+        while m_lock.Exchange(1) <> 0:
             // Read while contended instead of repeatedly invalidating the lock's cache line.
-            while @.atomic_load(%m_lock, @.ATOMIC_RELAXED) <> 0:
-                @.sched_yield()
+            while m_lock.Load() <> 0:
+                @.SchedYield()
             endwhile
         endwhile
     endif
@@ -88,7 +80,7 @@ endfunc
 
 func OMsgChannel.Unlock()  [[inline]]:
     if locking:
-        @.atomic_store(%m_lock, 0, @.ATOMIC_RELEASE)
+        m_lock.Store(0)
     endif
 endfunc
 

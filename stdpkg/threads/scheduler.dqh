@@ -1,2 +1,5 @@
-
-func SchedYield() -> int32  [[external('sched_yield')]] ..
+#ifdef WINDOWS
+    func SchedYield() -> int32 ..
+#else
+    func SchedYield() -> int32 [[external('sched_yield')]] ..
+#endif

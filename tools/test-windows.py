@@ -42,6 +42,10 @@ class WindowsTests:
         if self.cases.exists():
             shutil.rmtree(self.cases)
         shutil.copytree(self.root / "autotest" / "cross-windows", self.cases)
+        for source in ("autotest/tests/stdpkg/threads.dq", "autotest/tests/stdpkg/msgchannel.dq",
+                       "stdpkg/threads/examples/wait_test.dq", "stdpkg/threads/examples/stress_test.dq",
+                       "stdpkg/threads/examples/work_distribution.dq"):
+            shutil.copy2(self.root / source, self.cases)
         for dll in (target / "bin").glob("*.dll"):
             shutil.copy2(dll, self.cases / dll.name)
         self.run([self.wine, "--version"])
@@ -87,9 +91,9 @@ class WindowsTests:
         if struct.unpack_from("<H", data, offset)[0] != 0x8664:
             raise RuntimeError(f"{name} is not AMD64 COFF")
 
-    def execute(self, name, *, expected=0, contains=()):
+    def execute(self, name, *args, expected=0, contains=()):
         self.check_image(name, executable=True)
-        return self.run([self.wine, self.cases / name], expected=expected, contains=contains)
+        return self.run([self.wine, self.cases / name, *args], expected=expected, contains=contains)
 
     def test(self):
         self.prepare()
@@ -169,6 +173,21 @@ class WindowsTests:
             raise RuntimeError("Missing separate native module artifacts")
         self.execute("project.exe", contains=modules)
         print("PASS projects, module initialization/reuse, full LTO and artifact isolation", flush=True)
+        for options in (("-g", "-O0"), ("-O3", "--lto=full")):
+            self.compile("threads.dq", *options)
+            self.execute("threads.exe", contains=("threads = passed", "atomics = passed", "events = passed"))
+            self.compile("msgchannel.dq", *options)
+            self.execute("msgchannel.exe", contains=("capacity.256 = passed", "capacity.overflow ="))
+            self.compile("wait_test.dq", *options)
+            self.execute("wait_test.exe", contains=("All channel wait tests passed.",))
+            self.compile("stress_test.dq", *options)
+            for arguments in ((4, 5000, 1, 15), (4, 5000, 7, 15), (4, 5000, 1, 15, 100)):
+                self.execute("stress_test.exe", *arguments,
+                             contains=("missing=0, duplicates=0, corrupt=0, FIFO errors=0",))
+            self.compile("work_distribution.dq", *options)
+            self.execute("work_distribution.exe", 4, 16, 1000,
+                         contains=("PASS: every job was processed once, with identical results at every worker count.",))
+        print("PASS threads, atomics, events, channel waits and stress at O0/O3+LTO", flush=True)
         print(f"Windows cross-compilation tests passed ({self.command_count} commands). Logs: {self.logs}")
 
 

@@ -1,9 +1,13 @@
-// Minimal POSIX thread wrapper for hosted DQ programs.
+// Native thread wrapper for hosted Linux and Windows DQ programs.
 //
 // Threads share the process address space.  Synchronization of shared data and
 // output is deliberately left to the caller.
 
-#linklib('pthread')
+#ifdef WINDOWS
+    #linklib('kernel32')
+#else
+    #linklib('pthread')
+#endif
 
 #include "scheduler.dqh"
 #srcdep  "scheduler.dqi"
@@ -20,9 +24,22 @@
 type FThreadFunc   = func(arg : pointer) -> pointer
 type FThreadMethod = func(arg : pointer) -> pointer of object
 
+#ifdef WINDOWS
+// The native entry point returns only 32 bits; keep the DQ pointer result here.
+struct SWinThreadStart:
+    callback : FThreadFunc
+    arg      : pointer
+    retval   : ^pointer
+endstruct
+#endif
+
 object OThread:
 protected
     running   : bool = false
+    #ifdef WINDOWS
+        m_handle : uint = 0
+        m_start  : SWinThreadStart
+    #endif
 public
     m_method  : FThreadMethod  // these must be public to use it from outside
     m_arg     : pointer
@@ -43,6 +60,8 @@ endobject
 #include "msgchannel.dqh"
 #srcdep  "msgchannel.dqi"
 
+func ProcesorCount() -> int32 ..
+
 implementation
 
 use time
@@ -53,25 +72,66 @@ use time
 #include "waitevent.dqi"
 #include "msgchannel.dqi"
 
+#ifdef WINDOWS
+
+type FWinThreadFunc = func(arg : pointer) -> uint32
+func win_beginthreadex(security : pointer, stack_size : uint32, callback : FWinThreadFunc,
+                       arg : pointer, flags : uint32, thread_id : ^uint32) -> uint [[external('_beginthreadex')]] ..
+func win_WaitForSingleObject(handle : uint, milliseconds : uint32) -> uint32 [[external('WaitForSingleObject')]] ..
+func win_CloseHandle(handle : uint) -> int32 [[external('CloseHandle')]] ..
+
+func win_GetActiveProcessorCount(group : uint16) -> uint32 [[external('GetActiveProcessorCount')]] ..
+
+const WIN_INFINITE     : uint32 = 0xFFFFFFFF
+
+func WinThreadMain(arg : pointer) -> uint32:
+    var start : ^SWinThreadStart = ^SWinThreadStart(arg)
+    start.retval^ = start.callback(start.arg)
+    return 0
+endfunc
+
+func ProcesorCount() -> int32:
+    return win_GetActiveProcessorCount(0xFFFF)
+endfunc
+
+#else
+
 // pthread_t is unsigned long on the supported POSIX targets, which is the
 // native-width unsigned integer represented by DQ's uint type.
 func pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]] ..
 func pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]] ..
 func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]] ..  // Linux specific !
 
+func get_nprocs() -> int32 [[external]] ..
+
+func ProcesorCount() -> int32:
+    return get_nprocs()
+endfunc
+
 //-----------------------------------------------------------------------------
 
 const PTHREAD_EBUSY : int = 16
+
+#endif
 
 func OThread.StartFunc(afunc : FThreadFunc, aarg : pointer) -> bool:
     if running:
         return false
     endif
     retval = nil
-    var r : int = @.pthread_create(%thread_id, nil, afunc, aarg)
-    if r <> 0:
-        return false
-    endif
+    #ifdef WINDOWS
+        m_start = {callback: afunc, arg: aarg, retval: %retval}
+        var id : uint32 = 0
+        m_handle = @.win_beginthreadex(nil, 0, @.WinThreadMain, %m_start, 0, %id)
+        if m_handle == 0:
+            return false
+        endif
+        thread_id = id
+    #else
+        if @.pthread_create(%thread_id, nil, afunc, aarg) <> 0:
+            return false
+        endif
+    #endif
     running = true
     return true
 endfunc
@@ -80,10 +140,17 @@ func OThread.Join():
     if not running:
         return
     endif
-    if @.pthread_join(thread_id, %retval) <> 0:
-        // should we set running = false here ?
-        return
-    endif
+    #ifdef WINDOWS
+        if @.win_WaitForSingleObject(m_handle, @.WIN_INFINITE) <> 0:
+            return
+        endif
+        @.win_CloseHandle(m_handle)
+        m_handle = 0
+    #else
+        if @.pthread_join(thread_id, %retval) <> 0:
+            return
+        endif
+    #endif
     running = false
 endfunc
 
@@ -92,13 +159,20 @@ func OThread.IsRunning() -> bool:
         return false
     endif
 
-    // A successful try-join reaps the thread, just like Join().  Preserve its
-    // return value in retval so callers can inspect it after polling finishes.
-    var r : int = @.pthread_tryjoin_np(thread_id, %retval)
-    if r == @.PTHREAD_EBUSY:
-        return true  // surely still running
-    endif
-    // some other error or zero
+    #ifdef WINDOWS
+        var status : uint32 = @.win_WaitForSingleObject(m_handle, 0)
+        if status <> 0:
+            return true // still running, or a native wait error
+        endif
+        @.win_CloseHandle(m_handle)
+        m_handle = 0
+    #else
+        // A successful try-join reaps the thread and preserves its pointer result.
+        var r : int = @.pthread_tryjoin_np(thread_id, %retval)
+        if r == @.PTHREAD_EBUSY:
+            return true
+        endif
+    #endif
     running = false
     return false
 endfunc
@@ -112,15 +186,9 @@ func OThread.StartMethod(amethod : FThreadMethod, aarg : pointer) -> bool:
     if running:
         return false
     endif
-    retval = nil
     m_method = amethod
     m_arg = aarg
-    var r : int = @.pthread_create(%thread_id, nil, @.StartMethodThreadFunc, pointer(self))
-    if r <> 0:
-        return false
-    endif
-    running = true
-    return true
+    return StartFunc(@.StartMethodThreadFunc, pointer(self))
 endfunc
 
 func StartSelfThreadFunc(aarg : pointer) -> pointer:
@@ -132,14 +200,8 @@ func OThread.StartSelf(aarg : pointer) -> bool: // starts the Run()
     if running:
         return false
     endif
-    retval = nil
     m_arg = aarg
-    var r : int = @.pthread_create(%thread_id, nil, @.StartSelfThreadFunc, pointer(self))
-    if r <> 0:
-        return false
-    endif
-    running = true
-    return true
+    return StartFunc(@.StartSelfThreadFunc, pointer(self))
 endfunc
 
 func OThread.Run(aarg : pointer) -> pointer [[virtual]]:  // empty

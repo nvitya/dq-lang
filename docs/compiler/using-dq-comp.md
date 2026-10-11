@@ -181,9 +181,13 @@ python3 tools/test-windows.py --compiler build/dq-comp \
 ```
 
 It requires Linux, Python 3, llvm-mingw, and usable 64-bit Wine. Missing
-prerequisites fail the requested run; they are not silently skipped. Fixtures
-live outside `autotest/tests`, and normal `make test`, `make autotest`, and
-`make check` runs do not invoke the suite or require these dependencies.
+prerequisites fail the requested run; they are not silently skipped. Windows
+fixtures live in `autotest/cross-windows`; the suite also reuses the portable
+thread/channel autotests and the threads examples. It checks native thread
+lifecycle and handle cleanup, atomics, event deadlines, channel capacity and
+waits, producer/consumer stress, and work distribution at O0 and O3 with full
+LTO. Normal `make test`, `make autotest`, and `make check` runs do not invoke the
+Windows suite or require these dependencies.
 Executables, caches, runtime DLLs, command logs, and a dedicated Wine prefix
 are stored under `build/test-windows`. The suite leaves the user's Wine
 prefix untouched.

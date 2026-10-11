@@ -3,6 +3,7 @@ use threads
 use time
 use print
 
+#ifdef LINUX
 type FSignalHandler = func(signum : int32)
 func signal(signum : int32, handler : FSignalHandler) -> FSignalHandler [[external]] ..
 func pthread_self() -> uint [[external]] ..
@@ -10,6 +11,8 @@ func pthread_kill(thread : uint, signum : int32) -> int32 [[external]] ..
 
 func IgnoreSignal(signum : int32):
 endfunc
+
+#endif
 
 object OWaitTest(OThread):
     channel : OMsgChannel
@@ -39,16 +42,18 @@ object OWaitTest(OThread):
 
     func Run(aarg : pointer) -> pointer [[override]]:
         use *
-        if interrupting:
-            worker_ok = true
-            for i : int = 0 count 120:
-                SleepMillis(1)
-                if pthread_kill(target_thread, 10) <> 0:
-                    worker_ok = false
-                endif
-            endfor
-            return nil
-        endif
+        #ifdef LINUX
+            if interrupting:
+                worker_ok = true
+                for i : int = 0 count 120:
+                    SleepMillis(1)
+                    if pthread_kill(target_thread, 10) <> 0:
+                        worker_ok = false
+                    endif
+                endfor
+                return nil
+            endif
+        #endif
         SleepMillis(50)
         signal_time = NanoTime()
         if producing:
@@ -149,21 +154,23 @@ object OWaitTest(OThread):
               'notification before kernel wait is not lost')
         Check(MilliTime() - start < 100, 'changed sequence prevents sleeping')
 
-        // Interrupt the wait repeatedly for longer than its timeout. The deadline
-        // must not restart after each EINTR, and interruption is not queue readiness.
-        var previous_handler : FSignalHandler = signal(10, IgnoreSignal) // SIGUSR1 on Linux
-        target_thread = pthread_self()
-        interrupting = true
-        Check(StartSelf(nil), 'start interrupting worker')
-        start = MilliTime()
-        ok = channel.GetWaitMillis(received, 40)
-        elapsed = MilliTime() - start
-        Join()
-        interrupting = false
-        signal(10, previous_handler)
-        Check(worker_ok and not ok and 40 <= elapsed < 100,
-              'interruptions preserve the original timeout')
-        PrintLn('  interrupted Get elapsed={} ms', [elapsed])
+        #ifdef LINUX
+            // Interrupt the wait repeatedly for longer than its timeout. The deadline
+            // must not restart after each EINTR, and interruption is not queue readiness.
+            var previous_handler : FSignalHandler = signal(10, IgnoreSignal) // SIGUSR1 on Linux
+            target_thread = pthread_self()
+            interrupting = true
+            Check(StartSelf(nil), 'start interrupting worker')
+            start = MilliTime()
+            ok = channel.GetWaitMillis(received, 40)
+            elapsed = MilliTime() - start
+            Join()
+            interrupting = false
+            signal(10, previous_handler)
+            Check(worker_ok and not ok and 40 <= elapsed < 100,
+                  'interruptions preserve the original timeout')
+            PrintLn('  interrupted Get elapsed={} ms', [elapsed])
+        #endif
     endfunc
 endobject
 

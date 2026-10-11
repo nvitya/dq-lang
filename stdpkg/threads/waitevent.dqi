@@ -1,8 +1,18 @@
 //required: "use time"
 
-// Linux thread notification. Snapshot before testing the shared predicate;
+// Thread notification. Snapshot before testing the shared predicate;
 // WaitUntilNanos then sleeps only if no notification occurred in the meantime.
-#ifdef LINUX
+#ifdef WINDOWS
+#linklib('synchronization')
+
+func win_WaitOnAddress(address : ^uint32, compare : ^uint32, size : uint,
+                        milliseconds : uint32) -> int32 [[external('WaitOnAddress')]] ..
+func win_WakeByAddressSingle(address : ^uint32) [[external('WakeByAddressSingle')]] ..
+func win_GetLastError() -> uint32 [[external('GetLastError')]] ..
+
+const WIN_ERROR_TIMEOUT : uint32 = 1460
+
+#else
 
 struct SFutexTime:
     tv_sec  : int64
@@ -30,6 +40,8 @@ func futex(number : int, address : ^uint32, operation : int32, value : uint32,
 const EINTR  : int32 =  4
 const EAGAIN : int32 = 11
 
+#endif
+
 //-----------------------------------------------------------------------------
 
 func OThreadEvent.Snapshot() -> uint32 [[inline]]:
@@ -43,29 +55,61 @@ func OThreadEvent.Signal():
     // The sequence change and waiter registration are totally ordered: either
     // we wake a registered waiter, or its kernel comparison sees the change.
     if atomic_load_4(%m_waiters, ATOMIC_SEQ_CST) <> 0:
-        futex(SYS_FUTEX, %m_sequence, FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
+        #ifdef WINDOWS
+            win_WakeByAddressSingle(%m_sequence)
+        #else
+            futex(SYS_FUTEX, %m_sequence, FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
+        #endif
     endif
 endfunc
 
 func OThreadEvent.WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool:
     use .
-    var timeout     : SFutexTime
-    var timeout_ptr : ^SFutexTime = nil
-    if adeadline >= 0:
-        if @time.NanoTime() >= adeadline:
-            return false
+    #ifdef WINDOWS
+        // Windows takes a relative millisecond timeout. Round up and cap finite
+        // chunks below INFINITE, rechecking the original monotonic deadline.
+        while true:
+            var milliseconds : uint32 = 0xFFFFFFFF
+            if adeadline >= 0:
+                var now : int64 = @time.NanoTime()
+                if now >= adeadline:
+                    return false
+                endif
+                var remaining_ms : int64 = (adeadline - now - 1) div 1000000 + 1
+                milliseconds = 0xFFFFFFFE
+                if remaining_ms < milliseconds:
+                    milliseconds = remaining_ms
+                endif
+            endif
+            atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
+            var rc : int32 = win_WaitOnAddress(%m_sequence, %asequence, 4, milliseconds)
+            var error : uint32 = win_GetLastError()
+            atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST)
+            if rc <> 0:
+                return true
+            endif
+            if error <> WIN_ERROR_TIMEOUT or adeadline < 0:
+                return false
+            endif
+        endwhile
+        return false
+    #else
+        var timeout     : SFutexTime
+        var timeout_ptr : ^SFutexTime = nil
+        if adeadline >= 0:
+            if @time.NanoTime() >= adeadline:
+                return false
+            endif
+            timeout.tv_sec  = adeadline div 1000000000
+            timeout.tv_nsec = adeadline rem 1000000000
+            timeout_ptr = %timeout
         endif
-        timeout.tv_sec  = adeadline div 1000000000
-        timeout.tv_nsec = adeadline rem 1000000000
-        timeout_ptr = %timeout
-    endif
 
-    atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
-    var rc : int = futex(SYS_FUTEX, %m_sequence, FUTEX_WAIT_BITSET_PRIVATE,
-                          asequence, timeout_ptr, nil, FUTEX_BITSET_MATCH_ANY)
-    var error : int32 = @sys.Errno()
-    atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST) // unregister, including on timeout
-    return rc == 0 or error == EAGAIN or error == EINTR
+        atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
+        var rc : int = futex(SYS_FUTEX, %m_sequence, FUTEX_WAIT_BITSET_PRIVATE,
+                              asequence, timeout_ptr, nil, FUTEX_BITSET_MATCH_ANY)
+        var error : int32 = @sys.Errno()
+        atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST) // unregister, including on timeout
+        return rc == 0 or error == EAGAIN or error == EINTR
+    #endif
 endfunc
-
-#endif

@@ -1,0 +1,133 @@
+// Native lifecycle, pointer results, and atomic operations on Linux and Windows.
+use threads
+use time
+use print
+
+#ifdef WINDOWS
+func win_GetCurrentProcess() -> pointer [[external('GetCurrentProcess')]] ..
+func win_GetProcessHandleCount(process : pointer, count : ^uint32) -> int32 [[external('GetProcessHandleCount')]] ..
+#endif
+
+var gate <- OAtomicPtr(nil)
+
+func Check(ok : bool):
+    if not ok:
+        raise Exception('thread or atomic check failed')
+    endif
+endfunc
+
+func ThreadMain(arg : pointer) -> pointer:
+    while gate.Load() == nil:
+        SchedYield()
+    endwhile
+    return arg
+endfunc
+
+object OWorker(OThread):
+    calls : int = 0
+
+    func Method(arg : pointer) -> pointer:
+        ++calls
+        return @.ThreadMain(arg)
+    endfunc
+
+    func Run(arg : pointer) -> pointer [[override]]:
+        ++calls
+        return @.ThreadMain(arg)
+    endfunc
+endobject
+
+func *Main():
+    var worker <- OWorker()
+    var token : pointer
+    #if PTRSIZE == 8
+        token = pointer(0x123456789ABC)
+    #else
+        token = pointer(0x12345678)
+    #endif
+    worker.Join()
+    Check(not worker.IsRunning())
+
+    for mode : int = 0 count 3:
+        gate.Store(nil)
+        if mode == 0:
+            Check(worker.StartFunc(ThreadMain, token))
+        elif mode == 1:
+            Check(worker.StartMethod(worker.Method, token))
+        else:
+            Check(worker.StartSelf(token))
+        endif
+        Check(worker.thread_id <> 0 and worker.IsRunning())
+        Check(not worker.StartFunc(ThreadMain, nil))
+        Check(not worker.StartMethod(worker.Method, nil))
+        Check(not worker.StartSelf(nil))
+        gate.Store(token)
+        if mode == 1:
+            var deadline : int64 = MilliTime() + 5000
+            while worker.IsRunning():
+                Check(MilliTime() < deadline)
+                SchedYield()
+            endwhile
+        else:
+            worker.Join()
+        endif
+        Check(not worker.IsRunning() and worker.retval == token)
+        worker.Join()
+        Check(worker.retval == token)
+    endfor
+    Check(worker.calls == 2)
+    #ifdef WINDOWS
+        var handles_before : uint32 = 0
+        Check(win_GetProcessHandleCount(win_GetCurrentProcess(), %handles_before) <> 0)
+    #endif
+    // Reuse also exercises release of native thread resources after each join.
+    for iteration : int = 0 count 100:
+        Check(worker.StartFunc(ThreadMain, token))
+        worker.Join()
+        Check(worker.retval == token)
+    endfor
+    Check(worker.StartFunc(ThreadMain, nil))
+    worker.Join()
+    Check(worker.retval == nil)
+    #ifdef WINDOWS
+        var handles_after : uint32 = 0
+        Check(win_GetProcessHandleCount(win_GetCurrentProcess(), %handles_after) <> 0)
+        Check(handles_after == handles_before)
+    #endif
+    PrintLn('threads = passed') //?check('threads', 'passed')
+
+    var a32 <- OAtomicUint32(0x87654321)
+    Check(a32.Load() == 0x87654321)
+    Check(a32.Exchange(7) == 0x87654321 and a32.Load() == 7)
+    a32.Store(0xFFFFFFFF)
+    Check(a32.Load() == 0xFFFFFFFF)
+    var a64 <- OAtomicUint64(0xFEDCBA9876543210)
+    Check(a64.Load() == 0xFEDCBA9876543210)
+    Check(a64.Exchange(7) == 0xFEDCBA9876543210 and a64.Load() == 7)
+    a64.Store(0xFFFFFFFFFFFFFFFF)
+    Check(a64.Load() == 0xFFFFFFFFFFFFFFFF)
+    var aptr <- OAtomicPtr(token)
+    Check(aptr.Load() == token and aptr.Exchange(nil) == token)
+    Check(aptr.Load() == nil)
+    aptr.Store(token)
+    Check(aptr.Load() == token)
+
+    var n32 : uint32 = 0xFFFFFFFF
+    var n64 : uint64 = 0xFFFFFFFFFFFFFFFF
+    Check(atomic_add_4(%n32, 2, ATOMIC_SEQ_CST) == 0xFFFFFFFF)
+    Check(atomic_load_4(%n32, ATOMIC_ACQUIRE) == 1)
+    Check(atomic_add_8(%n64, 2, ATOMIC_SEQ_CST) == 0xFFFFFFFFFFFFFFFF)
+    Check(atomic_load_8(%n64, ATOMIC_ACQUIRE) == 1)
+    PrintLn('atomics = passed') //?check('atomics', 'passed')
+
+    var event <- OThreadEvent()
+    var snapshot : uint32 = event.Snapshot()
+    event.Signal()
+    Check(event.WaitUntilNanos(snapshot, NanoTime() + 100000000))
+    Check(not event.WaitUntilNanos(snapshot, NanoTime() - 1))
+    snapshot = event.Snapshot()
+    var deadline : int64 = NanoTime() + 500000
+    Check(not event.WaitUntilNanos(snapshot, deadline))
+    Check(NanoTime() >= deadline)
+    PrintLn('events = passed') //?check('events', 'passed')
+endfunc

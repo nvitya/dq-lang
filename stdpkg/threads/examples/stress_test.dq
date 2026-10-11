@@ -1,17 +1,15 @@
-// Standalone Linux stress test; see README.md for usage.
+// Standalone thread stress test; see README.md for usage.
 use threads
 use print
 use time
 use rtl/prgargs
 use strutils
 
-#linklib('atomic')
-func get_nprocs() -> int32 [[external]] ..
-func sched_yield() -> int32 [[external]] ..
-func atomic_load(p : ^uint32, order : int32) -> uint32 [[external('__atomic_load_4')]] ..
-func atomic_store(p : ^uint32, value : uint32, order : int32) [[external('__atomic_store_4')]] ..
-func atomic_add(p : ^uint32, value : uint32, order : int32) -> uint32 [[external('__atomic_fetch_add_4')]] ..
-const SEQ_CST : int32 = 5
+#ifdef WINDOWS
+    func get_nprocs(group : uint16) -> uint32 [[external('GetActiveProcessorCount')]] ..
+#else
+    func get_nprocs() -> int32 [[external]] ..
+#endif
 
 object OStressTest:
     channel : OMsgChannel
@@ -114,18 +112,18 @@ endfunc
 
 func OWorker.Run(aarg : pointer) -> pointer [[override]]:
     use *
-    atomic_add(%test.ready, 1, SEQ_CST)
-    while atomic_load(%test.started, SEQ_CST) == 0:
+    atomic_add_4(%test.ready, 1, ATOMIC_SEQ_CST)
+    while atomic_load_4(%test.started, ATOMIC_SEQ_CST) == 0:
         SleepMillis(1)
     endwhile
     var attempts : uint64 = 0
     var done : bool = false
     while true:
         if attempts rem 1024 == 0 or test.wait_timeout_ms > 0:
-            if atomic_load(%test.stopped, SEQ_CST) <> 0: break
+            if atomic_load_4(%test.stopped, ATOMIC_SEQ_CST) <> 0: break
             endif
             if not producer:
-                done = atomic_load(%test.producers_done, SEQ_CST) == test.producers
+                done = atomic_load_4(%test.producers_done, ATOMIC_SEQ_CST) == test.producers
             endif
         endif
         ++attempts
@@ -137,7 +135,7 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
                 ++transferred
             else:
                 ++retries
-                sched_yield()
+                SchedYield()
             endif
         else:
             var msg : SChMsg
@@ -165,12 +163,12 @@ func OWorker.Run(aarg : pointer) -> pointer [[override]]:
                 if done: break
                 endif
                 ++retries
-                sched_yield()
+                SchedYield()
             endif
         endif
     endwhile
     if producer:
-        atomic_add(%test.producers_done, 1, SEQ_CST)
+        atomic_add_4(%test.producers_done, 1, ATOMIC_SEQ_CST)
     endif
     return nil
 endfunc
@@ -188,7 +186,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         endif
     endfor
     var start : int64 = MilliTime()
-    while atomic_load(%ready, SEQ_CST) <> producers + consumers:
+    while atomic_load_4(%ready, ATOMIC_SEQ_CST) <> producers + consumers:
         if MilliTime() - start >= timeout_seconds * 1000:
             PrintLn('FAIL: workers did not reach the start gate')
             Exit(1)
@@ -196,7 +194,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         SleepMillis(1)
     endwhile
     start = MilliTime()
-    atomic_store(%started, 1, SEQ_CST)
+    atomic_store_4(%started, 1, ATOMIC_SEQ_CST)
     var timed_out : bool = false
     while true:
         var running : bool = false
@@ -209,7 +207,7 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
         var elapsed : int64 = MilliTime() - start
         if elapsed >= timeout_seconds * 1000:
             timed_out = true
-            atomic_store(%stopped, 1, SEQ_CST)
+            atomic_store_4(%stopped, 1, ATOMIC_SEQ_CST)
         endif
         if elapsed >= timeout_seconds * 1000 + 2000:
             PrintLn('FAIL: workers did not stop after timeout (possible deadlock)')
@@ -259,7 +257,11 @@ func OStressTest.Run(timeout_seconds : int) -> bool:
 endfunc
 
 func *Main():
-    var cpus : int = get_nprocs()
+    #ifdef WINDOWS
+        var cpus : int = get_nprocs(0xFFFF)
+    #else
+        var cpus : int = get_nprocs()
+    #endif
     var count : int = cpus
     if count < 2: count = 2
     endif

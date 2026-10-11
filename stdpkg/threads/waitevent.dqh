@@ -1,4 +1,4 @@
-// Linux thread notification. Snapshot before testing the shared predicate;
+// Thread notification. Snapshot before testing the shared predicate;
 // WaitUntilNanos then sleeps only if no notification occurred in the meantime.
 
 object OThreadEvent:

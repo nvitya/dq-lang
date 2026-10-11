@@ -1,2 +1,8 @@
+#ifdef WINDOWS
+func win_Sleep(milliseconds : uint32) [[external('Sleep')]] ..
 
-// empty so far
+func SchedYield() -> int32:
+    win_Sleep(0)
+    return 0
+endfunc
+#endif

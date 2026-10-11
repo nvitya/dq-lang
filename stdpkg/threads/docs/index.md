@@ -1,7 +1,7 @@
 # `threads`
 
 `threads` provides native threads, atomic values, spinlocks, thread notifications,
-and a bounded message channel for hosted Linux programs.
+and a bounded message channel for hosted Linux and x86_64 Windows programs.
 
 ```dq
 use threads
@@ -9,10 +9,16 @@ use threads
 
 All the types below are available through this import. The `.dqh` and `.dqi`
 files are parts of the `threads` module, not separate modules to import.
-The package links `pthread` and `atomic`; their libraries must be available to
-the linker. `OThread.IsRunning()` uses Linux `pthread_tryjoin_np`, and
-`OThreadEvent` and channel waits use Linux futexes. On 32-bit Linux, waits require
+On Linux, the package links `pthread` and `atomic`; their libraries must be
+available to the linker. `OThread.IsRunning()` uses `pthread_tryjoin_np`, and
+`OThreadEvent` and channel waits use futexes. On 32-bit Linux, waits require
 `futex_time64` (Linux 5.1 or later).
+
+On Windows, the package uses `_beginthreadex`, interlocked atomic operations,
+and `WaitOnAddress`/`WakeByAddressSingle`. It links `kernel32` and
+`synchronization` from the llvm-mingw toolchain, without requiring `pthread` or
+`libatomic`. Address-based waits require Windows 8 / Windows Server 2012 or later.
+The same thread, channel, spinlock, and event APIs work on both platforms.
 
 | Type / function | Purpose |
 | --- | --- |
@@ -46,8 +52,9 @@ type FThreadMethod = func(arg : pointer) -> pointer of object
 ```
 
 Each start method returns `false` if the wrapper still has an unjoined thread or
-`pthread_create` fails. A successful start sets `thread_id`; the callback's result
-is stored in `retval` after joining. `Join()` on an idle wrapper does nothing.
+native thread creation fails. A successful start sets `thread_id` (a pthread ID
+on Linux, a numeric thread ID on Windows); the callback's full pointer result
+is available in `retval` after joining. `Join()` on an idle wrapper does nothing.
 After a successful join, the same wrapper can start another thread.
 
 ```dq
@@ -74,9 +81,10 @@ subclass of `OThread`, override `Run` and call `worker.StartSelf(arg)` as shown
 in [the channel worker example](#distributing-work).
 
 `IsRunning()` has a side effect: it reaps a completed thread just as `Join()`
-does. Its current implementation also returns `false` on try-join errors other
-than “busy”, so it is not an error-reporting API. `Join()` returns no status; if
-the native join fails, the wrapper retains its running state.
+does, including closing the native thread handle on Windows. On Linux it also
+returns `false` on try-join errors other than “busy”; on Windows a native wait
+error retains the running state. It is not an error-reporting API. `Join()`
+returns no status; if the native join fails, the wrapper retains its running state.
 
 Threads share the process address space. The wrapper, bound-method receiver,
 and argument storage must remain alive until the thread finishes. `OThread`
@@ -177,8 +185,8 @@ overflowing it. Scheduling and internal lock contention can delay the return
 beyond the requested timeout, so it is not a strict bound on execution time.
 
 Successful enqueues signal a waiting consumer; successful dequeues signal a
-waiting producer. Waiters sleep using process-private Linux futexes rather than
-periodic polling. A sequence snapshot taken before checking the queue prevents
+waiting producer. Waiters sleep using process-private Linux futexes or Windows
+address-based waits. A sequence snapshot taken before checking the queue prevents
 a notification between that check and the kernel wait from being missed. A wake
 only causes another queue attempt; a different worker may already have taken
 the available message or space. Native wait errors other than an interruption
@@ -261,13 +269,18 @@ Construct an atomic wrapper with its initial value, for example
 All three types expose `Load()`, `Store(value)`, and `Exchange(value)`.
 `Exchange` replaces the value and returns its previous value.
 
-The current memory orders are:
+The minimum memory orders are:
 
 | Type | Value type | `Load()` | `Store()` | `Exchange()` |
 | --- | --- | --- | --- | --- |
 | `OAtomicUint32` | `uint32` | relaxed | release | acquire |
 | `OAtomicUint64` | `uint64` | relaxed | release | acquire |
 | `OAtomicPtr` | `pointer` | acquire | release | acquire-release |
+
+On Windows, all these operations use interlocked functions with full memory
+barriers, providing stronger ordering when a weaker order is requested. Linux
+uses the listed orders. Do not rely on the stronger Windows behavior in portable
+code.
 
 Relaxed integer loads make the integer access atomic but do not acquire unrelated
 data published by another thread. Integer exchanges acquire but do not release
@@ -286,7 +299,8 @@ The order constants are `ATOMIC_RELAXED`, `ATOMIC_ACQUIRE`, `ATOMIC_RELEASE`,
 `ATOMIC_ACQ_REL`, and `ATOMIC_SEQ_CST`. Loads accept relaxed, acquire, or
 sequentially consistent order; stores accept relaxed, release, or sequentially
 consistent order; exchange and fetch-add accept all five. `SchedYield() -> int32`
-wraps `sched_yield`; yielding does not synchronize shared data.
+wraps `sched_yield` on Linux and `Sleep(0)` on Windows; it returns zero on Windows.
+Yielding does not synchronize shared data.
 
 ## Spinlocks
 
@@ -381,3 +395,8 @@ job; defaults are the detected processor count, 256, and 1,000,000. It compares
 one worker with progressively larger pools, using the same work each time.
 Timing includes creation, dispatch, computation, and joining, with validation
 afterward. Use `-O3 --lto` for speed comparisons.
+
+On a Linux host with llvm-mingw and Wine installed, `make test-windows`
+cross-compiles and runs thread lifecycle, atomic, event, channel capacity,
+wait, stress, and work-distribution checks at `-O0` and `-O3 --lto=full`.
+See [Windows application cross-compilation](../../../docs/compiler/using-dq-comp.md#windows-cross-compilation-from-linux).

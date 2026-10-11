@@ -1,24 +1,62 @@
+#ifdef WINDOWS
+// llvm-mingw supplies these interlocked implementations in libkernel32.
+// Full barriers provide at least the requested ordering, including relaxed loads.
+func win_exchange_4(p : ^uint32, value : uint32) -> uint32 [[external('_InterlockedExchange')]] ..
+func win_compare_4(p : ^uint32, value : uint32, compare : uint32) -> uint32 [[external('_InterlockedCompareExchange')]] ..
+func win_add_4(p : ^uint32, value : uint32) -> uint32 [[external('_InterlockedExchangeAdd')]] ..
 
+func atomic_exchange_4(p : ^uint32, value : uint32, order : int32) -> uint32:
+    return win_exchange_4(p, value)
+endfunc
 
-const ATOMIC_RELAXED : int32 = 0
-const ATOMIC_ACQUIRE : int32 = 2
-const ATOMIC_RELEASE : int32 = 3
-const ATOMIC_ACQ_REL : int32 = 4
-const ATOMIC_SEQ_CST : int32 = 5
+func atomic_load_4(p : ^uint32, order : int32) -> uint32:
+    return win_compare_4(p, 0, 0)
+endfunc
 
-func atomic_exchange_4(p : ^uint32, value : uint32, order : int32) -> uint32  [[external('__atomic_exchange_4')]] ..
-func atomic_load_4(p : ^uint32, order : int32) -> uint32                      [[external('__atomic_load_4')]] ..
-func atomic_store_4(p : ^uint32, value : uint32, order : int32)               [[external('__atomic_store_4')]] ..
-func atomic_add_4(p : ^uint32, value : uint32, order : int32) -> uint32       [[external('__atomic_fetch_add_4')]] ..
+func atomic_store_4(p : ^uint32, value : uint32, order : int32):
+    win_exchange_4(p, value)
+endfunc
 
-func atomic_exchange_8(p : ^uint64, value : uint64, order : int32) -> uint64  [[external('__atomic_exchange_8')]] ..
-func atomic_load_8(p : ^uint64, order : int32) -> uint64                      [[external('__atomic_load_8')]] ..
-func atomic_store_8(p : ^uint64, value : uint64, order : int32)               [[external('__atomic_store_8')]] ..
-func atomic_add_8(p : ^uint64, value : uint64, order : int32) -> uint64       [[external('__atomic_fetch_add_8')]] ..
+func atomic_add_4(p : ^uint32, value : uint32, order : int32) -> uint32:
+    return win_add_4(p, value)
+endfunc
 
-func atomic_load_ptr(p : ^pointer, order : int32) -> pointer                       #{if PTRSIZE == 8} [[external('__atomic_load_8')]]     #{else} [[external('__atomic_load_4')]] #{endif} ..
-func atomic_store_ptr(p : ^pointer, value : pointer, order : int32)                #{if PTRSIZE == 8} [[external('__atomic_store_8')]]    #{else} [[external('__atomic_store_4')]] #{endif} ..
-func atomic_exchange_ptr(p : ^pointer, value : pointer, order : int32) -> pointer  #{if PTRSIZE == 8} [[external('__atomic_exchange_8')]] #{else} [[external('__atomic_exchange_4')]] #{endif}  ..
+func win_exchange_8(p : ^uint64, value : uint64) -> uint64 [[external('_InterlockedExchange64')]] ..
+func win_compare_8(p : ^uint64, value : uint64, compare : uint64) -> uint64 [[external('_InterlockedCompareExchange64')]] ..
+func win_add_8(p : ^uint64, value : uint64) -> uint64 [[external('_InterlockedExchangeAdd64')]] ..
+
+func atomic_exchange_8(p : ^uint64, value : uint64, order : int32) -> uint64:
+    return win_exchange_8(p, value)
+endfunc
+
+func atomic_load_8(p : ^uint64, order : int32) -> uint64:
+    return win_compare_8(p, 0, 0)
+endfunc
+
+func atomic_store_8(p : ^uint64, value : uint64, order : int32):
+    win_exchange_8(p, value)
+endfunc
+
+func atomic_add_8(p : ^uint64, value : uint64, order : int32) -> uint64:
+    return win_add_8(p, value)
+endfunc
+
+func win_exchange_ptr(p : ^pointer, value : pointer) -> pointer [[external('_InterlockedExchangePointer')]] ..
+func win_compare_ptr(p : ^pointer, value : pointer, compare : pointer) -> pointer [[external('_InterlockedCompareExchangePointer')]] ..
+
+func atomic_load_ptr(p : ^pointer, order : int32) -> pointer:
+    return win_compare_ptr(p, nil, nil)
+endfunc
+
+func atomic_store_ptr(p : ^pointer, value : pointer, order : int32):
+    win_exchange_ptr(p, value)
+endfunc
+
+func atomic_exchange_ptr(p : ^pointer, value : pointer, order : int32) -> pointer:
+    return win_exchange_ptr(p, value)
+endfunc
+
+#endif
 
 //-----------------------------------------------------------------------------
 

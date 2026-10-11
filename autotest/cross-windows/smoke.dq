@@ -1,0 +1,42 @@
+use ./defines
+use libc/stdio
+
+func c_abs(value : int32) -> int32 [[external('abs')]] ..
+func c_sqrt(value : float64) -> float64 [[external('sqrt')]] ..
+func win_GetCurrentProcessId() -> uint32 [[external('GetCurrentProcessId')]] ..
+func c_errno() -> ^int32 [[external('_errno')]] ..
+
+object OValue:
+    value : int32
+    func *Create(initial : int32):
+        value = initial
+    endfunc
+endobject
+
+func *Main():
+    if PointerSize() <> 8 or win_GetCurrentProcessId() == 0:
+        exit_code = 1
+    endif
+    printf("abi = %d %.2f %s %.2f\n", c_abs(-42), c_sqrt(16), "mixed", 2.5)
+    c_errno()^ = 123
+    printf("errno = %d\n", Errno())
+    var text : str = "cross"
+    text += "-windows"
+    if text <> "cross-windows":
+        exit_code = 2
+    endif
+    var value <- OValue(17)
+    printf("object = %d\n", value.value)
+    printf("strings = ok\n")
+#ifdef EXCEPTIONS
+    try:
+        raise Exception("caught")
+    except Exception as e:
+        printf("exception = ")
+        e.PrintMessage()
+        printf("\n")
+    endtry
+#else
+    printf("exceptions = disabled\n")
+#endif
+endfunc

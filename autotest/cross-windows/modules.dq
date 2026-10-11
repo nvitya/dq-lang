@@ -1,0 +1,6 @@
+use ./common
+use libc/stdio
+
+func *Main():
+    printf("modules = %d %d\n", initialized, Twice(21))
+endfunc

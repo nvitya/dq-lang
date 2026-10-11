@@ -1,0 +1,2 @@
+target = 'x64-windows'
+main = 'modules.dq'

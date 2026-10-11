@@ -1,0 +1,3 @@
+func *Main():
+    raise Exception("windows-uncaught")
+endfunc

@@ -180,7 +180,7 @@ string ODqCompiler::HostedRtlModuleName() const
   return "rtl/rtl_linux";
 }
 
-string ODqCompiler::DefaultLinkDriver() const
+string ODqCompiler::DefaultLinkDriver(string & rerror) const
 {
   const char * env_driver = getenv("DQ_LINKER_DRIVER");
   if (env_driver && env_driver[0])
@@ -190,6 +190,36 @@ string ODqCompiler::DefaultLinkDriver() const
 
   if (g_opt.target.IsWindows())
   {
+#if !defined(_WIN32)
+    const char * mingw_root = getenv("DQ_MINGW_ROOT");
+    if (mingw_root && mingw_root[0])
+    {
+      filesystem::path driver = filesystem::path(mingw_root) / "bin" / "x86_64-w64-mingw32-clang++";
+      error_code ec;
+      if (filesystem::is_regular_file(driver, ec) && !ec)
+      {
+        return driver.string();
+      }
+      rerror = format("DQ_MINGW_ROOT has no Windows cross-link driver: \"{}\"", driver.string());
+      return "";
+    }
+    if (!g_opt.compiler_executable_dir.empty())
+    {
+      filesystem::path root_dir = filesystem::path(g_opt.compiler_executable_dir).parent_path();
+      for (const filesystem::path & toolchain : {
+          root_dir / "toolchain" / "llvm-mingw", root_dir / "llvm-mingw",
+          root_dir / "sysroots" / "llvm-mingw-x86_64"})
+      {
+        filesystem::path driver = toolchain / "bin" / "x86_64-w64-mingw32-clang++";
+        error_code ec;
+        if (filesystem::is_regular_file(driver, ec) && !ec)
+        {
+          return driver.string();
+        }
+      }
+    }
+    return "x86_64-w64-mingw32-clang++";
+#else
     if (!g_opt.compiler_executable_dir.empty())
     {
       filesystem::path bin_dir = g_opt.compiler_executable_dir;
@@ -239,6 +269,7 @@ string ODqCompiler::DefaultLinkDriver() const
     }
 
     return "clang++.exe";
+#endif
   }
   else
   {
@@ -303,7 +334,9 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
                                 vector<string> & rargs, string & rerror) const
 {
   rargs.clear();
-  rargs.push_back(DefaultLinkDriver());
+  string driver = DefaultLinkDriver(rerror);
+  if (driver.empty()) return false;
+  rargs.push_back(driver);
   rargs.push_back("--target=" + g_opt.target.llvm_triple);
   if (!g_opt.sysroot_dir.empty())
   {
@@ -343,7 +376,7 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   {
     rargs.push_back("-flto=full");
     rargs.push_back(string("-O") + g_opt.OptimizationLevelName());
-    if (OPTLEVEL_O1 == g_opt.optlevel)
+    if (OPTLEVEL_O1 == g_opt.optlevel && !g_opt.target.IsWindows())
     {
       // LLD's regular full-LTO O1 pipeline does not run the cost-based
       // inliner.  Run it after the normal O1 pipeline so inline-hinted calls
@@ -395,6 +428,15 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   }
   rargs.push_back("-o");
   rargs.push_back(executable_filename);
+  if (g_opt.target.IsWindows() && !filesystem::path(executable_filename).has_extension())
+  {
+    // Clang's MinGW driver appends .exe to extensionless -o names. Tell LLD
+    // the exact output path as well so explicit DQ filenames stay unchanged.
+    rargs.push_back("-Xlinker");
+    rargs.push_back("-o");
+    rargs.push_back("-Xlinker");
+    rargs.push_back(executable_filename);
+  }
 
   // wasm-ld resolves archive members without the ELF linker's group options.
   bool use_archive_group = g_opt.target.IsBare() && !g_opt.target.IsWasm();

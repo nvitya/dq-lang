@@ -150,3 +150,12 @@ add_custom_target(check
 add_custom_target(comptest
   DEPENDS autotest
 )
+
+# Explicit opt-in: no Wine or Windows toolchain dependency in normal tests.
+add_custom_target(test-windows
+  COMMAND python3 "${CMAKE_SOURCE_DIR}/tools/test-windows.py" --compiler "$<TARGET_FILE:dq-comp>"
+  DEPENDS dq-comp
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+  VERBATIM
+)

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.90.1"
+#define DQ_COMPILER_VERSION  "0.91.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.91.0:
+  - Cross-compiling to windows
 v0.90.1:
   - threads package restructured to single-module containing atomic, msgchannel, spinlock etc.
 v0.90.0:

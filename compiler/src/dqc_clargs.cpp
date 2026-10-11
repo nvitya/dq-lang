@@ -102,6 +102,7 @@ void ODqCompClargs::PrepareOutputPaths()
     out_filename = default_artifact_path.string();
     interface_out_filename = default_interface_path.string();
     link_output = has_output ? explicit_output : base_name;
+    if (!has_output && g_opt.target.IsWindows()) link_output += ".exe";
     if (!has_output && g_opt.target.IsWasi()) link_output += ".wasm";
     if (!has_output && g_opt.target.IsBare()) link_output += ".elf";
   }

@@ -187,6 +187,22 @@ int main()
 
   vector<OCompTarget> canonical_targets = OCompTarget::CanonicalTargets();
   size_t canonical_target_count = 1;
+#ifdef DQ_LLVM_HAS_X86
+  OCompTarget windows_host;
+  windows_host.ConfigureHost();
+  if (windows_host.name != "x86_64-win") ++canonical_target_count;
+  for (const char * alias : {"x86_64-win", "x64-windows", "x64-win", "x86_64-windows"})
+  {
+    OCompTarget windows;
+    string error;
+    Expect(windows.Configure(alias, error), string("configure Windows alias ") + alias);
+    Expect(windows.name == "x86_64-win" && windows.arch == "x86_64"
+           && windows.platform_name == "win" && windows.IsWindows()
+           && windows.llvm_triple == "x86_64-w64-windows-gnu" && windows.pointer_size == 8
+           && windows.default_exceptions && windows.default_dynstrings
+           && !windows.static_relocation, "Windows target metadata");
+  }
+#endif
 #ifdef DQ_LLVM_HAS_ARM
   canonical_target_count += 8;
 #endif

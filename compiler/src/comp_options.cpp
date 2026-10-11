@@ -133,6 +133,16 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     return &result.back();
   };
 
+#ifdef DQ_LLVM_HAS_X86
+  if (host.name != "x86_64-win")
+  {
+    OCompTarget * windows = add_target("x86_64-win", "x86_64", "win",
+        "x86_64-w64-windows-gnu", "generic", "", "X86", TARGET_PLATFORM_WIN);
+    windows->pointer_size = 8;
+    windows->static_relocation = false;
+  }
+#endif
+
 #ifdef DQ_LLVM_HAS_ARM
   struct SArmBarePreset
   {
@@ -251,16 +261,21 @@ bool OCompTarget::Configure(const string & aname, string & rerror)
     return true;
   }
 
-  if ((aname == name)
-      || (("x64-linux" == aname) && ("x86_64-linux" == name))
-      || (("x64-win" == aname) && ("x86_64-win" == name)))
+  string canonical_name = aname;
+  if (aname == "x64-windows" || aname == "x64-win" || aname == "x86_64-windows")
+  {
+    canonical_name = "x86_64-win";
+  }
+
+  if ((canonical_name == name)
+      || (("x64-linux" == aname) && ("x86_64-linux" == name)))
   {
     return true;
   }
 
   for (const OCompTarget & target : CanonicalTargets())
   {
-    if (aname != target.name) continue;
+    if (canonical_name != target.name) continue;
     *this = target;
     return true;
   }

@@ -42,7 +42,7 @@ public:
                       OScope * merge_scope, bool is_private,
                       EModuleUseMergeMode merge_mode);
   string HostedRtlModuleName() const;
-  string DefaultLinkDriver() const;
+  string DefaultLinkDriver(string & rerror) const;
   bool LinkInputForArtifact(const string & artifact_filename, string & rinput_filename, string & rerror) const;
   bool BuildLinkArgs(const string & object_filename, const string & executable_filename,
                      vector<string> & rargs, string & rerror) const;

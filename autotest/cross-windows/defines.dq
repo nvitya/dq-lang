@@ -1,0 +1,16 @@
+#ifndef WINDOWS
+    var missing_windows : OMissingWindows
+#endif
+#ifdef LINUX
+    var unexpected_linux : OUnexpectedLinux
+#endif
+#ifndef X64
+    var missing_x64 : OMissingX64
+#endif
+#ifndef TARGET_64BIT
+    var missing_width : OMissingWidth
+#endif
+
+func PointerSize() -> int:
+    return PTRSIZE
+endfunc

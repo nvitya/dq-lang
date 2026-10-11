@@ -453,6 +453,17 @@ void ODqCompCodegen::GenerateIr()
 
 void ODqCompCodegen::PrepareTarget()
 {
+#ifdef DQ_LLVM_HAS_X86
+  if (g_opt.target.IsX64() || g_opt.target.IsX86())
+  {
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmParser();
+    LLVMInitializeX86AsmPrinter();
+  }
+  else
+#endif
 #ifdef DQ_LLVM_HAS_AARCH64
   if (g_opt.target.IsAArch64())
   {

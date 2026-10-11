@@ -2,7 +2,7 @@
 
 CM_GENERATED_MAKEFILE := Makefile
 
-.PHONY: all autotest test check comptest cleantest
+.PHONY: all autotest test test-windows check comptest cleantest
 
 all:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) all
@@ -12,6 +12,9 @@ autotest:
 
 test:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) test/fast
+
+test-windows: all
+	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) test-windows/fast
 
 check:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) check/fast

@@ -69,6 +69,7 @@ compiler supports:
 
 | Target | Behavior |
 | --- | --- |
+| `x64-windows` | Windows x64 GNU/UCRT executable; also accepts `x86_64-win`, `x64-win`, and `x86_64-windows` |
 | `armhf-linux` | ARMv7-A hard-float Linux executable |
 | `arm64-linux` | AArch64 Linux executable |
 | `rv64g-linux` | RV64G/LP64D Linux executable |
@@ -107,6 +108,62 @@ defines `ARMHF`. AArch64 defines `ARM_A`, `ARM64`, and `AARCH64`. RISC-V targets
 define `RISCV` plus `RV32` or `RV64`. Bare targets also define `BARE`, and
 `WASM`/`WASI`, `TARGET_32BIT`/`TARGET_64BIT`, `EXCEPTIONS`, and `DYNSTRINGS`
 continue to reflect the selected target and feature settings.
+
+### Windows cross-compilation from Linux
+
+When built with LLVM's X86 backend, the Linux compiler can produce Windows x64
+executables using a Linux-hosted llvm-mingw UCRT toolchain:
+
+```bash
+build/dq-comp --target=x64-windows app.dq
+wine app.exe
+```
+
+Windows outputs default to `.exe`. An explicit `-o` filename is used exactly as
+given, including filenames without an extension. Object generation with `-c`
+does not require the Windows libraries or Wine.
+
+Set `DQ_MINGW_ROOT` to the extracted llvm-mingw root when it is installed
+elsewhere:
+
+```bash
+DQ_MINGW_ROOT=/path/to/llvm-mingw build/dq-comp --target=x64-windows app.dq
+```
+
+The linker search order is `DQ_LINKER_DRIVER`, the cross driver under
+`DQ_MINGW_ROOT/bin`, compiler-relative `toolchain/llvm-mingw`, `llvm-mingw`,
+and `sysroots/llvm-mingw-x86_64` installations, then
+`x86_64-w64-mingw32-clang++` on `PATH`. An invalid explicit `DQ_MINGW_ROOT`
+fails when linking. Native Windows compiler installations retain their
+Windows-hosted driver discovery. `--sysroot` is still passed through when set.
+
+The toolchain must provide Clang/LLD, startup objects, UCRT and Windows import
+libraries, libc++, and libunwind. Full LTO also requires a toolchain with the
+same LLVM major version as DQ. Windows full-LTO links use LLD's default
+optimization pipeline rather than the ELF-specific O1 inlining pipeline.
+
+For Wine execution, copy the toolchain's target runtime DLLs beside the
+executable: `libc++.dll`, `libunwind.dll`, and `libwinpthread-1.dll` when
+provided. These are under `x86_64-w64-mingw32/bin` in llvm-mingw.
+
+The opt-in compatibility suite performs this setup automatically:
+
+```bash
+make test-windows
+# Custom installation:
+DQ_MINGW_ROOT=/path/to/llvm-mingw make test-windows
+# Direct invocation with explicit tool paths:
+python3 tools/test-windows.py --compiler build/dq-comp \
+    --mingw-root /path/to/llvm-mingw --wine /path/to/wine
+```
+
+It requires Linux, Python 3, llvm-mingw, and usable 64-bit Wine. Missing
+prerequisites fail the requested run; they are not silently skipped. Fixtures
+live outside `autotest/tests`, and normal `make test`, `make autotest`, and
+`make check` runs do not invoke the suite or require these dependencies.
+Executables, caches, runtime DLLs, command logs, and a dedicated Wine prefix
+are stored under `build/test-windows`. The suite leaves the user's Wine
+prefix untouched.
 
 ## `dq-run`
 

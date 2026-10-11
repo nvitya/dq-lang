@@ -47,14 +47,18 @@ endfunc
 #else
 
 func libc_exit(status : int)  [[external('exit')]] ..
-func libc___errno_location() -> ^int32 [[external('__errno_location')]] ..
+#ifdef WINDOWS
+func libc_errno_location() -> ^int32 [[external('_errno')]] ..
+#else
+func libc_errno_location() -> ^int32 [[external('__errno_location')]] ..
+#endif
 
 func Exit(status : int):
     libc_exit(status)
 endfunc
 
 func Errno() -> int32:
-    result = libc___errno_location()^
+    result = libc_errno_location()^
 endfunc
 
 #endif

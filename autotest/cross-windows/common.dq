@@ -1,0 +1,16 @@
+var initialized : int32 = 0
+
+func Twice(value : int32) -> int32 ..
+
+implementation
+
+use libc/stdio
+
+func *ModuleInit():
+    initialized = 1
+    printf("module = initialized\n")
+endfunc
+
+func Twice(value : int32) -> int32:
+    return value * 2
+endfunc

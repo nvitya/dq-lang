@@ -88,7 +88,7 @@ object OWorkDistribution:
 
     func Run(worker_count : int, baseline_us : int64 = 0) -> int64:
         use *
-        var channel <- OMsgChannel(65) // bounded backlog: 64 jobs
+        var channel <- OMsgChannel(64) // bounded backlog: 64 jobs
         var workers : [*]OWorker
         var seen : [*]bool
         seen.SetLength(job_count)

@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.91.1"
+#define DQ_COMPILER_VERSION  "0.91.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.91.2:
+  - OMsgChannel construcor change
+  - threads documentation
 v0.91.1:
   - Extenal symbol multiple alias fix
   - windows cross compilation setup script: tools/dqcrosswinsetup.sh

@@ -1,25 +1,28 @@
+See the [threads package documentation](../docs/index.md) for the thread,
+message-channel, atomic, spinlock, and event APIs.
+
 Run the standalone Linux stress tester from the repository root:
 
 ```sh
-build/dq-run stdpkg/msgchannel/examples/stress_test.dq
+build/dq-run stdpkg/threads/examples/stress_test.dq
 ```
 
 It queries the online logical processor count with `get_nprocs()` and uses that
-many workers. Defaults are 50,000 messages per producer, 257 ring slots (256
-usable), and a 15-second timeout per scenario. The tester uses `threads.OThread`
+many workers. Defaults are 50,000 messages per producer, a queue capacity of 256
+messages, and a 15-second timeout per scenario. The tester uses `threads.OThread`
 and requires `libatomic` for channel locking and its own start/stop coordination.
 
-Optional positional arguments are worker count, messages per producer, ring
-slots, timeout in seconds, and an optional operation wait timeout in milliseconds:
+Optional positional arguments are worker count, messages per producer, queue
+capacity, timeout in seconds, and an optional operation wait timeout in milliseconds:
 
 ```sh
-build/dq-run stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 257 30
-build/dq-run -O3 --lto stdpkg/msgchannel/examples/stress_test.dq -- 32 100000 2 30
-build/dq-run -O3 --lto stdpkg/msgchannel/examples/stress_test.dq -- 32 20000 2 30 100
+build/dq-run stdpkg/threads/examples/stress_test.dq -- 32 100000 256 30
+build/dq-run -O3 --lto stdpkg/threads/examples/stress_test.dq -- 32 100000 1 30
+build/dq-run -O3 --lto stdpkg/threads/examples/stress_test.dq -- 32 20000 1 30 100
 ```
 
 The first checks exercise empty/full behavior and FIFO across repeated ring
-wraparound, with both two slots and the requested size. Threaded scenarios use:
+wraparound, with both one-message capacity and the requested size. Threaded scenarios use:
 
 - One producer and one consumer.
 - All but one worker producing, with one consumer.
@@ -47,40 +50,35 @@ and message counts can require substantial memory.
 Run the simple wait-method tester with:
 
 ```sh
-build/dq-run stdpkg/msgchannel/examples/wait_test.dq
+build/dq-run stdpkg/threads/examples/wait_test.dq
 ```
 
 It checks immediate success, full/empty timeouts, unchanged messages on failure,
 and success after a delayed worker enqueues or dequeues, with both finite and
 indefinite waits. It also checks notifications preceding the kernel wait and
 repeated signal interruptions without restarting the deadline, and reports
-notification-to-return latency. It uses a queue with one usable slot and exits
+notification-to-return latency. It uses a queue with capacity one and exits
 with status 1 if a check fails.
 
 `PutWaitMillis(message, timeout_ms)` and `GetWaitMillis(message, timeout_ms)`
 return `true` on success and `false` on timeout. Zero makes one immediate attempt;
 any negative timeout waits indefinitely. Positive timeouts use monotonic time.
-Waiting uses Linux `FUTEX_WAIT_BITSET_PRIVATE` with an absolute monotonic deadline,
-and successful `Put`/`Get` operations wake one waiter on the opposite operation's
-event. No periodic polling or sleeps are used. Sequence counters prevent missed
-notifications between checking the queue and entering the kernel wait. The
-reusable primitive is `threads/waitevent.OThreadEvent`; its futex words are
-process-private, so the channel is for threads sharing one process. Do not destroy
-a channel while operations are still running. Scheduling and channel-lock
-contention can delay return past the deadline. On 32-bit Linux, waiting requires
-the `futex_time64` syscall (Linux 5.1 or later).
+See [Waiting and Timeouts](../docs/index.md#waiting-and-timeouts) for the exact
+deadline, notification, error, and lifetime rules, and
+[Thread Events](../docs/index.md#thread-events) for the reusable `OThreadEvent`
+primitive exported by `use threads`.
 
 The work-distribution example compares one worker with progressively larger
 worker pools, up to the detected processor count:
 
 ```sh
-build/dq-run -O3 --lto stdpkg/msgchannel/examples/work_distribution.dq
-build/dq-run -O3 --lto stdpkg/msgchannel/examples/work_distribution.dq -- 32 256 1000000
+build/dq-run -O3 --lto stdpkg/threads/examples/work_distribution.dq
+build/dq-run -O3 --lto stdpkg/threads/examples/work_distribution.dq -- 32 256 1000000
 ```
 
 Arguments are maximum workers, job count, and samples per job. Every run performs
 the same work: deterministic Monte Carlo jobs estimating pi. The main thread is
-the sole producer, feeding a bounded queue with 64 usable slots. Workers use
+the sole producer, feeding a bounded queue with capacity 64. Workers use
 `GetWaitMillis()`; the producer uses `PutWaitMillis()` for backpressure and sends
 one stop message per worker after all jobs. Neither side polls or sleeps.
 

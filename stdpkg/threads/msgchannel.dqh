@@ -43,8 +43,12 @@ public
     // Configure these flags before sharing the channel between threads.
     locking            : bool = true
 
-    func *Create(alength : uint32):
-        m_len   = alength
+    // The requested capacity excludes the ring's reserved slot.
+    func *Create(acapacity : uint32):
+        if acapacity == 0xFFFFFFFF:
+            raise Exception('OMsgChannel capacity is too large')
+        endif
+        m_len   = acapacity + 1
         msgs.SetLength(m_len)
         idx_put = 0
         idx_get = 0

@@ -27,11 +27,11 @@ object OStressTest:
     stopped : uint32 = 0
     producers_done : uint32 = 0
 
-    func *Create(aproducers : int, aconsumers : int, amessages : int, slots : int) ..
+    func *Create(aproducers : int, aconsumers : int, amessages : int, capacity : int) ..
     func *Destroy() ..
     func Message(id : uint64) -> SChMsg ..
     func Valid(msg : SChMsg) -> bool ..
-    func CheckBasics(slots : int) -> bool ..
+    func CheckBasics(capacity : int) -> bool ..
     func Run(timeout_seconds : int) -> bool ..
 endobject
 
@@ -51,12 +51,12 @@ object OWorker(OThread):
     func Run(aarg : pointer) -> pointer [[override]] ..
 endobject
 
-func OStressTest.*Create(aproducers : int, aconsumers : int, amessages : int, slots : int):
+func OStressTest.*Create(aproducers : int, aconsumers : int, amessages : int, capacity : int):
     producers = aproducers
     consumers = aconsumers
     messages = amessages
     total = producers * messages
-    channel = new OMsgChannel(slots)
+    channel = new OMsgChannel(capacity)
     channel.locking = true
 endfunc
 
@@ -79,19 +79,19 @@ func OStressTest.Valid(msg : SChMsg) -> bool:
     return msg.msg == expected.msg  and msg.par.u32 == expected.par.u32
 endfunc
 
-func OStressTest.CheckBasics(slots : int) -> bool:
+func OStressTest.CheckBasics(capacity : int) -> bool:
     var msg : SChMsg
-    // The ring reserves one slot. Repeated fill/drain checks wraparound and FIFO.
+    // Fill the requested capacity; repeated fill/drain checks wraparound and FIFO.
     for cycle : int = 0 count 32:
         if channel.Get(msg): return false
         endif
-        for id : int = 0 count slots - 1:
+        for id : int = 0 count capacity:
             if not channel.Put(Message(id)): return false
             endif
         endfor
-        if channel.Put(Message(slots - 1)): return false
+        if channel.Put(Message(capacity)): return false
         endif
-        for id : int = 0 count slots - 1:
+        for id : int = 0 count capacity:
             if not channel.Get(msg): return false
             endif
             if not Valid(msg) or msg.data.u64 <> id: return false
@@ -264,34 +264,34 @@ func *Main():
     if count < 2: count = 2
     endif
     var messages : int = 50000
-    var slots : int = 257
+    var capacity : int = 256
     var timeout_seconds : int = 15
     var wait_timeout_ms : int = 0
     if ArgCount() > 1: count = StrToInt(ArgStr(1), -1)
     endif
     if ArgCount() > 2: messages = StrToInt(ArgStr(2), -1)
     endif
-    if ArgCount() > 3: slots = StrToInt(ArgStr(3), -1)
+    if ArgCount() > 3: capacity = StrToInt(ArgStr(3), -1)
     endif
     if ArgCount() > 4: timeout_seconds = StrToInt(ArgStr(4), -1)
     endif
     if ArgCount() > 5: wait_timeout_ms = StrToInt(ArgStr(5), -1)
     endif
     if ArgCount() > 6 or not (2 <= count <= 256) or not (1 <= messages <= 1000000)
-       or not (2 <= slots <= 1000000) or not (1 <= timeout_seconds <= 3600)
+       or not (1 <= capacity <= 1000000) or not (1 <= timeout_seconds <= 3600)
        or not (0 <= wait_timeout_ms <= 1000):
-        PrintLn('Usage: stress_test [workers:2..256] [messages/producer:1..1000000] [slots:2..1000000] [timeout seconds:1..3600] [wait ms:0..1000]')
+        PrintLn('Usage: stress_test [workers:2..256] [messages/producer:1..1000000] [capacity:1..1000000] [timeout seconds:1..3600] [wait ms:0..1000]')
         Exit(2)
     endif
-    PrintLn('OMsgChannel stress test: {} online processors, {} workers, {} slots (capacity {})',
-            [cpus, count, slots, slots - 1])
+    PrintLn('OMsgChannel stress test: {} online processors, {} workers, capacity {}',
+            [cpus, count, capacity])
     PrintLn('Channel operation timeout: {} ms (0 = nonblocking)', [wait_timeout_ms])
     var passed : bool = true
     for scenario : int = 0 count 2:
-        var size : int = iif(scenario == 0, 2, slots)
+        var size : int = iif(scenario == 0, 1, capacity)
         var basic = new OStressTest(1, 1, size, size)
         var basic_passed : bool = basic.CheckBasics(size)
-        PrintLn('{}: empty/full/FIFO/wraparound, {} slots', [iif(basic_passed, 'PASS', 'FAIL'), size])
+        PrintLn('{}: empty/full/FIFO/wraparound, capacity {}', [iif(basic_passed, 'PASS', 'FAIL'), size])
         if not basic_passed: passed = false
         endif
         delete basic
@@ -305,7 +305,7 @@ func *Main():
             producers = count div 2
             consumers = count - producers
         endif
-        var test = new OStressTest(producers, consumers, messages, slots)
+        var test = new OStressTest(producers, consumers, messages, capacity)
         test.wait_timeout_ms = wait_timeout_ms
         if not test.Run(timeout_seconds): passed = false
         endif

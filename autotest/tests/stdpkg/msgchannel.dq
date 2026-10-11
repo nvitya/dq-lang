@@ -1,0 +1,51 @@
+// Constructor sizes are usable capacities, including zero and one.
+use threads
+use print
+
+func CheckCapacity(capacity : uint32):
+    var channel <- OMsgChannel(capacity)
+    var message : SChMsg = {}
+    var received : SChMsg = {msg: 99, par.u32: 123, data.u64: 456}
+
+    // Repeated full/drain cycles exercise FIFO across internal ring wraparound.
+    for cycle : int = 0 count 8:
+        for id : uint32 = 0 count capacity:
+            message.data.u64 = id
+            if not channel.Put(message):
+                raise Exception('queue filled before requested capacity')
+            endif
+        endfor
+        if channel.PutWaitMillis(message, 0):
+            raise Exception('queue exceeded requested capacity')
+        endif
+        for id : uint32 = 0 count capacity:
+            if not channel.Get(received) or received.data.u64 <> id:
+                raise Exception('queue lost FIFO data')
+            endif
+        endfor
+        received = {msg: 99, par.u32: 123, data.u64: 456}
+        if channel.GetWaitMillis(received, 0):
+            raise Exception('empty queue returned a message')
+        endif
+        if received.msg <> 99 or received.par.u32 <> 123 or received.data.u64 <> 456:
+            raise Exception('failed Get changed its output')
+        endif
+    endfor
+    PrintLn('capacity.{} = passed', [capacity])
+endfunc
+
+func *Main():
+    CheckCapacity(0) //?check('capacity.0', 'passed')
+    CheckCapacity(1) //?check('capacity.1', 'passed')
+    CheckCapacity(2) //?check('capacity.2', 'passed')
+    CheckCapacity(7) //?check('capacity.7', 'passed')
+    CheckCapacity(256) //?check('capacity.256', 'passed')
+
+    try:
+        var channel = new OMsgChannel(0xFFFFFFFF)
+        delete channel
+        PrintLn('capacity.overflow = accepted')
+    except Exception as error:
+        PrintLn('capacity.overflow = {}', [error.message]) //?check('capacity.overflow', 'OMsgChannel capacity is too large')
+    endtry
+endfunc

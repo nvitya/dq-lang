@@ -62,6 +62,7 @@ nav:
       - strutils: '!include stdpkg/strutils/mkdocs.yml'
       - json: '!include stdpkg/json/mkdocs.yml'
       - nanonet: '!include stdpkg/nanonet/mkdocs.yml'
+      - threads: '!include stdpkg/threads/mkdocs.yml'
   - Compiler:
       - Getting the DQ Compiler: compiler/getting-dq-comp.md
       - Using the DQ Compiler: compiler/using-dq-comp.md

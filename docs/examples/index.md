@@ -32,6 +32,18 @@ The repository contains small focused examples and larger demonstrations.
 | `examples/nanonet/simplebin_server.dq` | simple socket server |
 | `examples/nanonet/http_static_files.dq` | HTTP server, query parsing, static files |
 
+## Threads
+
+See the [`threads` package documentation](../packages/threads/index.md)
+for the APIs and example commands.
+
+| Example | Shows |
+| --- | --- |
+| `stdpkg/threads/examples/thread_test.dq` | starting threads and polling completion |
+| `stdpkg/threads/examples/wait_test.dq` | message-channel waits and timeout checks |
+| `stdpkg/threads/examples/stress_test.dq` | channel correctness with multiple producers and consumers |
+| `stdpkg/threads/examples/work_distribution.dq` | distributing CPU work through a bounded channel |
+
 Run an example with:
 
 ```bash

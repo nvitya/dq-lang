@@ -1,0 +1,4 @@
+site_name: packages/threads
+
+nav:
+  - Overview: index.md

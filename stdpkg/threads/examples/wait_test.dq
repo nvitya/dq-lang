@@ -21,7 +21,7 @@ object OWaitTest(OThread):
     target_thread : uint
 
     func *Create():
-        channel = new OMsgChannel(2) // one usable slot
+        channel = new OMsgChannel(1) // one message
     endfunc
 
     func *Destroy():

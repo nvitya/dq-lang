@@ -1,6 +1,5 @@
 // One producer distributes CPU work through a bounded queue to a worker pool.
 use threads
-use threads/msgchannel
 use time
 use print
 use rtl/prgargs

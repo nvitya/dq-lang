@@ -1,0 +1,25 @@
+
+object OSpinLockVar(OAtomicUint32):
+
+    func Lock()  [[inline]]:
+        while Exchange(1) <> 0:
+            // Read while contended instead of repeatedly invalidating the lock's cache line.
+            while Load() <> 0:
+                @.SchedYield()
+            endwhile
+        endwhile
+    endfunc
+
+    func Unlock()  [[inline]]:
+        Store(0)
+    endfunc
+
+endobject
+
+object OSpinLockHolder:
+protected
+    m_lockvar : OSpinLockVar
+public
+    func *Create(alockvar : OSpinLockVar) ..
+    func *Destroy() ..
+endobject

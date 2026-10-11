@@ -1,61 +1,20 @@
 
-#linklib('atomic')
-
-object OAtomicUint32:
-protected
-    m_value : uint32
-public
-    func *Create(avalue : uint32):
-        m_value = avalue
-    endfunc
-
-    func Exchange(avalue : uint32) -> uint32 ..
-    func Load() -> uint32 ..
-    func Store(avalue : uint32) ..
-endobject
-
-object OAtomicUint64:
-protected
-    m_value : uint64
-public
-    func *Create(avalue : uint64):
-        m_value = avalue
-    endfunc
-
-    func Exchange(avalue : uint64) -> uint64 ..
-    func Load() -> uint64 ..
-    func Store(avalue : uint64) ..
-endobject
-
-object OAtomicPtr:
-protected
-    m_value : pointer
-public
-    func *Create(avalue : pointer):
-        m_value = avalue
-    endfunc
-
-    func Exchange(avalue : pointer) -> pointer ..
-    func Load() -> pointer ..
-    func Store(avalue : pointer) ..
-endobject
-
-
-implementation
-
 
 const ATOMIC_RELAXED : int32 = 0
 const ATOMIC_ACQUIRE : int32 = 2
 const ATOMIC_RELEASE : int32 = 3
 const ATOMIC_ACQ_REL : int32 = 4
+const ATOMIC_SEQ_CST : int32 = 5
 
 func atomic_exchange_4(p : ^uint32, value : uint32, order : int32) -> uint32  [[external('__atomic_exchange_4')]] ..
 func atomic_load_4(p : ^uint32, order : int32) -> uint32                      [[external('__atomic_load_4')]] ..
 func atomic_store_4(p : ^uint32, value : uint32, order : int32)               [[external('__atomic_store_4')]] ..
+func atomic_add_4(p : ^uint32, value : uint32, order : int32) -> uint32       [[external('__atomic_fetch_add_4')]] ..
 
 func atomic_exchange_8(p : ^uint64, value : uint64, order : int32) -> uint64  [[external('__atomic_exchange_8')]] ..
-func atomic_load_8(p : ^uint64, order : int32) -> uint32                      [[external('__atomic_load_8')]] ..
+func atomic_load_8(p : ^uint64, order : int32) -> uint64                      [[external('__atomic_load_8')]] ..
 func atomic_store_8(p : ^uint64, value : uint64, order : int32)               [[external('__atomic_store_8')]] ..
+func atomic_add_8(p : ^uint64, value : uint64, order : int32) -> uint64       [[external('__atomic_fetch_add_8')]] ..
 
 func atomic_load_ptr(p : ^pointer, order : int32) -> pointer                       #{if PTRSIZE == 8} [[external('__atomic_load_8')]]     #{else} [[external('__atomic_load_4')]] #{endif} ..
 func atomic_store_ptr(p : ^pointer, value : pointer, order : int32)                #{if PTRSIZE == 8} [[external('__atomic_store_8')]]    #{else} [[external('__atomic_store_4')]] #{endif} ..

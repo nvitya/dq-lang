@@ -1,0 +1,2 @@
+
+func SchedYield() -> int32  [[external('sched_yield')]] ..

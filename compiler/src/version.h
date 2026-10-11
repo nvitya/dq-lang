@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.90.0"
+#define DQ_COMPILER_VERSION  "0.90.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.90.1:
+  - threads package restructured to single-module containing atomic, msgchannel, spinlock etc.
 v0.90.0:
   - Struct literal union field support
 v0.89.1:

@@ -1,0 +1,9 @@
+
+func OSpinLockHolder.*Create(alockvar : OSpinLockVar):
+    m_lockvar = alockvar
+    m_lockvar.Lock()
+endfunc
+
+func OSpinLockHolder.*Destroy():
+    m_lockvar.Store(0) // release the lock
+endfunc

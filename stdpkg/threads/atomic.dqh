@@ -1,0 +1,40 @@
+#linklib('atomic')
+
+object OAtomicUint32:
+protected
+    m_value : uint32
+public
+    func *Create(avalue : uint32):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : uint32) -> uint32 ..
+    func Load() -> uint32 ..
+    func Store(avalue : uint32) ..
+endobject
+
+object OAtomicUint64:
+protected
+    m_value : uint64
+public
+    func *Create(avalue : uint64):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : uint64) -> uint64 ..
+    func Load() -> uint64 ..
+    func Store(avalue : uint64) ..
+endobject
+
+object OAtomicPtr:
+protected
+    m_value : pointer
+public
+    func *Create(avalue : pointer):
+        m_value = avalue
+    endfunc
+
+    func Exchange(avalue : pointer) -> pointer ..
+    func Load() -> pointer ..
+    func Store(avalue : pointer) ..
+endobject

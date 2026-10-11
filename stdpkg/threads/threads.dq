@@ -5,7 +5,17 @@
 
 #linklib('pthread')
 
-//use rtl/mem
+#include "scheduler.dqh"
+#srcdep  "scheduler.dqi"
+
+#include "atomic.dqh"
+#srcdep  "atomic.dqi"
+
+#include "spinlock.dqh"
+#srcdep  "spinlock.dqi"
+
+#include "waitevent.dqh"
+#srcdep  "waitevent.dqi"
 
 type FThreadFunc   = func(arg : pointer) -> pointer
 type FThreadMethod = func(arg : pointer) -> pointer of object
@@ -30,21 +40,24 @@ public
     func Run(aarg : pointer) -> pointer [[virtual]] ..  // override this for StartSelf()
 endobject
 
-func SchedYield() ..
+#include "msgchannel.dqh"
+#srcdep  "msgchannel.dqi"
 
 implementation
+
+use time
+
+#include "scheduler.dqi"
+#include "atomic.dqi"
+#include "spinlock.dqi"
+#include "waitevent.dqi"
+#include "msgchannel.dqi"
 
 // pthread_t is unsigned long on the supported POSIX targets, which is the
 // native-width unsigned integer represented by DQ's uint type.
 func pthread_create(thread : ^uint, attr : pointer, start_func : FThreadFunc, arg : pointer) -> int  [[external]] ..
 func pthread_join(thread : uint, return_value : ^pointer) -> int  [[external]] ..
 func pthread_tryjoin_np(thread : uint, return_value : ^pointer) -> int  [[external]] ..  // Linux specific !
-
-func sched_yield() -> int32 [[external]] ..
-
-func SchedYield():
-    sched_yield()
-endfunc
 
 //-----------------------------------------------------------------------------
 

@@ -1,0 +1,71 @@
+//required: "use time"
+
+// Linux thread notification. Snapshot before testing the shared predicate;
+// WaitUntilNanos then sleeps only if no notification occurred in the meantime.
+#ifdef LINUX
+
+struct SFutexTime:
+    tv_sec  : int64
+    tv_nsec : int64
+endstruct
+
+// 32-bit Linux uses futex_time64 to keep the same timespec layout.
+#ifdef X64
+    const SYS_FUTEX : int = 202
+#elifdef X86
+    const SYS_FUTEX : int = 422
+#elifdef ARM
+    const SYS_FUTEX : int = 422
+#else // ARM64 and RISCV64 use the generic syscall table.
+    const SYS_FUTEX : int = 98
+#endif
+
+const FUTEX_WAIT_BITSET_PRIVATE : int32  = 137
+const FUTEX_WAKE_PRIVATE        : int32  = 129
+const FUTEX_BITSET_MATCH_ANY    : uint32 = 0xFFFFFFFF
+
+func futex(number : int, address : ^uint32, operation : int32, value : uint32,
+           timeout : ^SFutexTime, address2 : pointer, bitset : uint32) -> int [[external('syscall')]] ..
+
+const EINTR  : int32 =  4
+const EAGAIN : int32 = 11
+
+//-----------------------------------------------------------------------------
+
+func OThreadEvent.Snapshot() -> uint32 [[inline]]:
+    use .
+    return atomic_load_4(%m_sequence, ATOMIC_SEQ_CST)
+endfunc
+
+func OThreadEvent.Signal():
+    use .
+    atomic_add_4(%m_sequence, 1, ATOMIC_SEQ_CST)
+    // The sequence change and waiter registration are totally ordered: either
+    // we wake a registered waiter, or its kernel comparison sees the change.
+    if atomic_load_4(%m_waiters, ATOMIC_SEQ_CST) <> 0:
+        futex(SYS_FUTEX, %m_sequence, FUTEX_WAKE_PRIVATE, 1, nil, nil, 0)
+    endif
+endfunc
+
+func OThreadEvent.WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool:
+    use .
+    var timeout     : SFutexTime
+    var timeout_ptr : ^SFutexTime = nil
+    if adeadline >= 0:
+        if @time.NanoTime() >= adeadline:
+            return false
+        endif
+        timeout.tv_sec  = adeadline div 1000000000
+        timeout.tv_nsec = adeadline rem 1000000000
+        timeout_ptr = %timeout
+    endif
+
+    atomic_add_4(%m_waiters, 1, ATOMIC_SEQ_CST)
+    var rc : int = futex(SYS_FUTEX, %m_sequence, FUTEX_WAIT_BITSET_PRIVATE,
+                          asequence, timeout_ptr, nil, FUTEX_BITSET_MATCH_ANY)
+    var error : int32 = @sys.Errno()
+    atomic_add_4(%m_waiters, 0xFFFFFFFF, ATOMIC_SEQ_CST) // unregister, including on timeout
+    return rc == 0 or error == EAGAIN or error == EINTR
+endfunc
+
+#endif

@@ -1,0 +1,59 @@
+// the Channel message is a fixed 16-byte struct
+
+struct SChMsg:
+    msg : uint32
+
+    union par:
+        bytes : [4]byte
+        i16   : [2]int16
+        u16   : [2]uint16
+        i32   : int32
+        u32   : uint32
+        f32   : float32
+    endunion
+
+    union data:
+        bytes : [8]byte
+        i16   : [4]int16
+        u16   : [4]uint16
+        i32   : [2]int32
+        u32   : [2]uint32
+        f32   : [2]float32
+        i64   : int64
+        u64   : uint64
+        f64   : float64
+        ptr   : pointer
+    endunion
+endstruct
+
+object OMsgChannel:
+protected
+    m_len      : uint32
+    msgs       : [*]SChMsg
+    idx_put    : [[volatile]] uint32
+    idx_get    : [[volatile]] uint32
+
+    m_lockvar <- OSpinLockVar(0)
+
+    put_event <- OThreadEvent()
+    get_event <- OThreadEvent()
+
+    func WaitDeadline(atimeoutms : int) -> int64 ..
+public
+    // Configure these flags before sharing the channel between threads.
+    locking            : bool = true
+
+    func *Create(alength : uint32):
+        m_len   = alength
+        msgs.SetLength(m_len)
+        idx_put = 0
+        idx_get = 0
+    endfunc
+
+    func Put(amsg : SChMsg) -> bool  ..
+    func Get(rmsg : refout SChMsg) -> bool  ..
+
+    // Zero tries once; negative waits indefinitely; positive waits up to the timeout.
+    func PutWaitMillis(amsg : SChMsg, atimeoutms : int) -> bool  ..
+    func GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -> bool ..
+endobject

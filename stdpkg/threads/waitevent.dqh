@@ -1,0 +1,14 @@
+// Linux thread notification. Snapshot before testing the shared predicate;
+// WaitUntilNanos then sleeps only if no notification occurred in the meantime.
+
+object OThreadEvent:
+protected
+    m_sequence : uint32 = 0
+    m_waiters  : uint32 = 0
+public
+    func Snapshot() -> uint32 [[inline]] ..
+    func Signal() .. // notify one waiter
+    // Absolute time from NanoTime(); negative means no deadline.
+    // A true result means recheck the predicate (wake, interruption, or changed sequence).
+    func WaitUntilNanos(asequence : uint32, adeadline : int64) -> bool ..
+endobject

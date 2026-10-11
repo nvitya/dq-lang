@@ -1,6 +1,5 @@
 // Standalone Linux stress test; see README.md for usage.
 use threads
-use threads/msgchannel
 use print
 use time
 use rtl/prgargs

@@ -98,7 +98,7 @@ object OWaitTest(OThread):
 
     func Test():
         use *
-        var message : SChMsg = {}
+        var message  : SChMsg = {}
         var received : SChMsg = {}
         message.data.u64 = 12345
         Check(channel.PutWaitMillis(message, 0), 'Put with zero timeout succeeds immediately')

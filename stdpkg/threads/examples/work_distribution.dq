@@ -104,12 +104,7 @@ object OWorkDistribution:
 
         // Main is the only producer. Backpressure blocks it when the queue fills.
         var job : SChMsg
-        job = {msg: MSG_WORK, ?}
-        //job = {msg: MSG_WORK, data.u64: samples_per_job}
-
-        job.msg = MSG_WORK
-        job.data.u64 = samples_per_job
-
+        job = {msg: MSG_WORK, par.u32:0, data.u64: samples_per_job}
         for id : int = 0 count job_count:
             job.par.u32 = id
             if not channel.PutWaitMillis(job, WAIT_MS):

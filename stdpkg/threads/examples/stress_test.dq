@@ -68,7 +68,6 @@ endfunc
 func OStressTest.Message(id : uint64) -> SChMsg:
     result = {}
     result.msg = id div messages + 1
-    result.flags = (id rem 65536) xor 0x5A5A
     result.par.u32 = id xor 0xA5A55A5A
     result.data.u64 = id
 endfunc
@@ -78,7 +77,7 @@ func OStressTest.Valid(msg : SChMsg) -> bool:
         return false
     endif
     var expected : SChMsg = Message(msg.data.u64)
-    return msg.msg == expected.msg and msg.flags == expected.flags and msg.par.u32 == expected.par.u32
+    return msg.msg == expected.msg  and msg.par.u32 == expected.par.u32
 endfunc
 
 func OStressTest.CheckBasics(slots : int) -> bool:

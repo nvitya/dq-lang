@@ -1,6 +1,6 @@
 // Standalone tests for immediate, timed, and indefinite channel operations.
-use msgchannel
 use threads
+use threads/msgchannel
 use threads/waitevent
 use time
 use print

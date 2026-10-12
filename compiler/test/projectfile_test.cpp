@@ -320,6 +320,24 @@ int main()
   Expect(language_server_error.empty() && language_server_options.langserver,
          "VSCode language-server arguments should parse");
 
+  OCompOptions language_server_worker_options;
+  language_server_worker_options.target.ConfigureHost();
+  language_server_worker_options.project_filename = "project.dqproj";
+  language_server_worker_options.project_main_filename = "project-main.dq";
+  char language_server_worker_arg0[] = "dq-comp";
+  char language_server_worker_arg1[] = "--langserver-worker";
+  char language_server_worker_arg2[] = "--langserver-source";
+  char language_server_worker_arg3[] = "editor-file.dq";
+  char * language_server_worker_argv[] = {
+    language_server_worker_arg0, language_server_worker_arg1,
+    language_server_worker_arg2, language_server_worker_arg3
+  };
+  string language_server_worker_error = language_server_worker_options.ProcessCommandLineOpts(4, language_server_worker_argv);
+  Expect(language_server_worker_error.empty()
+         && language_server_worker_options.input_filename == "editor-file.dq"
+         && OCompOptions::CommandLineOptionHasValue("--langserver-source"),
+         "language-server worker source overrides the project main file");
+
   OCompOptions sysroot_options;
   sysroot_options.target.ConfigureHost();
   char sysroot_arg0[] = "dq-comp";

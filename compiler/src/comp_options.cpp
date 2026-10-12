@@ -509,6 +509,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing manifest path after --source-overlay";
       source_overlay_filename = value;
     }
+    else if ("--langserver-source" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing source path after --langserver-source";
+      langserver_source_filename = value;
+    }
     else if ("--langserver-result" == v)
     {
       const char * value = require_value(i);
@@ -671,6 +677,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     }
   }
   if (!build_tag_suffix.empty()) build_tag += "-" + build_tag_suffix;
+  if (!langserver_source_filename.empty()) input_filename = langserver_source_filename;
   if (ifgen && ifdump)
   {
     return "--ifgen and --ifdump can not be used together.";
@@ -729,6 +736,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--sysroot")
          || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
          || (option == "--source-overlay")
+         || (option == "--langserver-source")
          || (option == "--langserver-result")
          || (option == "--clientProcessId")
          || (option == "-o");

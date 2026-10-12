@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.92.2"
+#define DQ_COMPILER_VERSION  "0.92.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.92.3:
+  - Language server: project file support
 v0.92.2:
   - threads: atomic handling does not require ordering mode
 v0.92.1:

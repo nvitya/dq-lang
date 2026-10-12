@@ -167,6 +167,7 @@ public:
   string          module_root_dir;
   string          module_name;
   string          source_overlay_filename;
+  string          langserver_source_filename;
   string          langserver_result_filename;
 
   vector<OCmdLineDefine>  cmdline_defines;

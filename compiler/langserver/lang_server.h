@@ -49,6 +49,7 @@ struct SDocumentSymbol
 {
   string path;
   string name;
+  string type_name;
   int kind = 13;
   int line = 1;
   int column = 1;

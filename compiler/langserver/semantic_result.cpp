@@ -266,6 +266,8 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
       json_symbol.Add("name", name);
       json_symbol.Add("kind", ValSymKind(valsym->kind));
+      OType * type = valsym->ptype ? valsym->ptype->ResolveAlias() : nullptr;
+      if (type && !type->name.empty()) json_symbol.Add("type", type->name);
     }
   }
 

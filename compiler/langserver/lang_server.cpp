@@ -463,8 +463,10 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   runner.args = {g_opt.compiler_executable, "--langserver-worker", "--diagnostic-format=jsonl",
                  "--source-overlay", manifest.string(), "--build-root", build_root.string(),
                  "--package-build-root", build_root.string(), "--target=" + g_opt.target.name,
-                 "--langserver-result", result_path.string(),
-                 source.string()};
+                 "--langserver-result", result_path.string()};
+  if (!g_opt.project_filename.empty()) runner.args.push_back(g_opt.project_filename);
+  runner.args.push_back("--langserver-source");
+  runner.args.push_back(source.string());
   if (g_opt.no_use_sys) runner.args.push_back("--no-use-sys");
   for (const string & path : g_opt.package_paths)
   {
@@ -534,6 +536,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
         SDocumentSymbol symbol;
         symbol.name = symbol_name;
         symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
+        JsonString(object, "type", symbol.type_name);
         dst.push_back(std::move(symbol));
       }
     }
@@ -1022,16 +1025,23 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     }
     else
     {
-      const vector<SDocumentSymbol> * symbols = find_namespace(scope_name);
+      const vector<SDocumentSymbol> * symbols = nullptr;
+      string inferred_type = InferVariableType(document, scope_name, cursor);
+      if (!inferred_type.empty()) symbols = find_namespace(inferred_type);
       if (!symbols)
       {
-        // Try to infer type of the variable using simple regex
-        std::regex re("\\b" + scope_name + "\\s*(?::=|:|<-)\\s*([A-Za-z0-9_]+)");
-        std::smatch match;
-        if (std::regex_search(document.text, match, re))
+        const vector<SDocumentSymbol> * scope_symbols = find_namespace(scope_name);
+        if (scope_symbols)
         {
-          string inferred_type = match[1].str();
-          symbols = find_namespace(inferred_type);
+          for (const SDocumentSymbol & symbol : *scope_symbols)
+          {
+            if ((symbol.name == scope_name) && !symbol.type_name.empty())
+            {
+              symbols = find_namespace(symbol.type_name);
+              break;
+            }
+          }
+          if (!symbols) symbols = scope_symbols;
         }
       }
       

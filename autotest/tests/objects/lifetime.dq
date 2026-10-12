@@ -61,6 +61,15 @@ func ReturnWithLocalObjects() -> int:
     return 0
 endfunc
 
+func ReturnBeforeLocalObject(should_return : bool) -> int:
+    if should_return:
+        return 9
+    endif
+
+    var later <- OChild(99)
+    return later.id
+endfunc
+
 func *Main():
     printf("main = start\n") //?check("child.create.1", 9)
                           //?check("main", "start")
@@ -88,6 +97,9 @@ func *Main():
                                              //?check("child.destroy.12", 22)
                                              //?check("child.destroy.13", 21)
     printf("return.cleanup = %d\n", rr) //?check("return.cleanup", 5)
+
+    rr = ReturnBeforeLocalObject(true)
+    printf("return.before.object = %d\n", rr) //?check("return.before.object", 9)
 
     return            //?check("box.destroy.14", "5 7")
                          //?check("child.destroy.15", 7)

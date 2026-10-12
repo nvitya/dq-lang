@@ -55,7 +55,10 @@ void OScope::EmitOwnedObjectDestructors()
       continue;
     }
     auto * objvar = dynamic_cast<OVsObject *>(vs);
-    if (objvar && objvar->IsFixedObjectStorage())
+    // A return may occur before a later local object's declaration has been
+    // generated.  Its symbol is already in this scope, but it has no storage
+    // yet and therefore must not receive a destructor call.
+    if (objvar && objvar->IsFixedObjectStorage() && vs->ll_value)
     {
       objvar->GenerateDestructorCall(vs->ll_value);
       continue;

@@ -54,6 +54,7 @@ public: // root level items
   void ParseRootTypeDecl();
   void ParseEnumDecl();
   void ParseFunction();
+  void ParseSubFunction() override;
   void ParseStructDecl();
   void ParseUnionDecl();
   void ParseObjectDecl();

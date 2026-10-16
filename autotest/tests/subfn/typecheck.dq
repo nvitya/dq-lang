@@ -1,0 +1,72 @@
+subfn Global(): //?error(SubfnScope)
+endsubfn
+
+type Callback = func()
+
+func Test():
+    var a : int = 1
+    subfn Outer():
+        subfn Inner(): //?error(SubfnNesting)
+        endsubfn
+        if a == 1:
+            subfn InBlock(): //?error(SubfnNesting)
+            endsubfn
+        endif
+    endsubfn
+    subfn Capturing():
+        ++a
+    endsubfn
+    subfn Plain():
+    endsubfn
+    var address : ^int = %Capturing //?error(SubfnEscape)
+    var callback : Callback = nil
+    callback = Capturing //?error(SubfnEscape)
+    callback = Plain //?error(SubfnEscape)
+    const cb : Callback = Capturing //?error(SubfnEscape) //?error(ConstExprInvalid)
+endfunc
+
+func ReturnHelper() -> Callback:
+    subfn Helper():
+    endsubfn
+    result = nil
+    result = Helper //?error(SubfnEscape)
+endfunc
+
+func Outside():
+    Capturing() //?error(VsUnknown)
+endfunc
+
+func ResultScope() -> int:
+    subfn Void():
+        result = 1 //?error(VsUnknown)
+    endsubfn
+    result = 2
+endfunc
+
+func BeforeDeclaration():
+    Later() //?error(VsUnknown)
+    subfn Later():
+    endsubfn
+endfunc
+
+func LoopScope():
+    while true:
+        subfn Helper():
+            break //?error(StmtInvalid)
+            continue //?error(StmtInvalid)
+        endsubfn
+        break
+    endwhile
+endfunc
+
+func DeclarationDoesNotInitialize(flag : bool) -> int:
+    var x : int
+    subfn Initialize():
+        if flag:
+            x = 1
+        else:
+            x = 2
+        endif
+    endsubfn
+    result = x //?error(VarNotInit)
+endfunc

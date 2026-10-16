@@ -1,0 +1,135 @@
+use libc/stdio
+
+var global_count : int = 0
+
+func Basics(a : int) -> int:
+    const scale : int = 3
+    var x : int = 1
+    var unused : int = 999
+    subfn Add(left : int, right : int = 3) -> int:
+        result = left + right
+    endsubfn
+    subfn Get() -> int:
+        result = x
+    endsubfn
+    subfn Inc():
+        ++x
+        ++a
+        ++global_count
+    endsubfn
+    var first : int = Get()
+    x = 7
+    Inc()
+    result = first + Get() + Add(2) + a * scale
+endfunc
+
+func Arrays() -> int:
+    var a : [*]int
+    subfn Append(v : int):
+        a.Append(v)
+    endsubfn
+    subfn Sum() -> int:
+        result = 0
+        for v :? in a:
+            result += v
+        endfor
+    endsubfn
+    Append(10)
+    Append(20)
+    result = a[1] + Sum()
+endfunc
+
+func Siblings() -> int:
+    var x : int = 0
+    subfn Inc():
+        ++x
+    endsubfn
+    subfn Run():
+        var x : int = 100 //?warning(ShadowValSym)
+        Inc()
+        x += 10
+    endsubfn
+    subfn Start():
+        Run()
+        Inc()
+    endsubfn
+    Start()
+    result = x
+endfunc
+
+func Recursive() -> int:
+    var bias : int = 1
+    subfn Fact(n : int) -> int:
+        if n <= 1:
+            result = bias
+        else:
+            result = n * Fact(n - 1)
+        endif
+    endsubfn
+    subfn Plain(n : int) -> int:
+        if n <= 1:
+            result = 1
+        else:
+            result = n * Plain(n - 1)
+        endif
+    endsubfn
+    result = Fact(3) + Plain(5)
+endfunc
+
+func Shadow() -> int:
+    var x : int = 1
+    subfn Get() -> int:
+        var x : int = 2 //?warning(ShadowValSym)
+        result = x
+    endsubfn
+    result = Get() + x
+endfunc
+
+func RefCapture(x : ref int, y : refin int):
+    ref alias : int = x
+    subfn Update():
+        alias += y
+    endsubfn
+    Update()
+endfunc
+
+func Many(a : int, b : int) -> int:
+    var c : int = 3
+    var d : int = 4
+    var e : int = 5
+    var f : int = 6
+    var g : int = 7
+    var h : int = 8
+    var unused : int = 999
+    subfn Sum(i : int, j : int, k : int, l : int) -> int:
+        ++h
+        result = a + b + c + d + e + f + g + h + i + j + k + l
+    endsubfn
+    result = Sum(9, 10, 11, 12) + h
+endfunc
+
+func Blocks() -> int:
+    result = 0
+    for i : int = 1 to 3:
+        var v : int = i
+        subfn Get() -> int:
+            result = v
+        endsubfn
+        result += Get()
+    endfor
+endfunc
+
+func *Main():
+    printf("subfn.basics = %d\n", Basics(4)) //?check("subfn.basics", 29)
+    printf("subfn.global = %d\n", global_count) //?check("subfn.global", 1)
+    printf("subfn.arrays = %d\n", Arrays()) //?check("subfn.arrays", 50)
+    printf("subfn.siblings = %d\n", Siblings()) //?check("subfn.siblings", 2)
+    printf("subfn.recursive = %d\n", Recursive()) //?check("subfn.recursive", 126)
+    printf("subfn.shadow = %d\n", Shadow()) //?check("subfn.shadow", 3)
+    var x : int = 10
+    var y : int = 5
+    RefCapture(x, y)
+    printf("subfn.ref = %d\n", x) //?check("subfn.ref", 15)
+    printf("subfn.many = %d\n", Many(1, 2)) //?check("subfn.many", 88)
+    printf("subfn.blocks = %d\n", Blocks()) //?check("subfn.blocks", 6)
+endfunc

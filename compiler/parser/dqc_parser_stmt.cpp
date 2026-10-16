@@ -1076,7 +1076,12 @@ bool ODqCompParserStmt::ParseStatement(const string & block_closer)
   string sid;
   if (scf->ReadIdentifier(sid))
   {
-    if ("var" == sid)  // local variable declaration
+    if ("subfn" == sid)
+    {
+      ParseSubFunction();
+      return true;
+    }
+    else if ("var" == sid)  // local variable declaration
     {
       ParseStmtVar(false);
       return true;

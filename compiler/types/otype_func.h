@@ -168,6 +168,23 @@ private:
   using              super = OValSym;
 
 public:
+  struct Capture
+  {
+    OValSym * symbol;
+    LlValue * argument = nullptr;
+  };
+
+  OValSymFunc * parent_function = nullptr;
+  vector<OValSymFunc *> subfunctions; // Owned here, never module declarations.
+  vector<OValSymFunc *> sibling_calls;
+  vector<Capture> captures;
+
+  bool AddCapture(OValSym * symbol);
+  void FinalizeCaptures();
+  LlValue * CaptureArgument(OValSym * symbol) const;
+  bool CaptureIsSelf(OValSym * symbol) const;
+  LlFuncType * GetLlFunctionType();
+
   vector<OValSym *>  args;  // will be filled in GenerateFuncBody()
   OValSym *          vsresult = nullptr;
   OCompoundType *    owner_compound_type = nullptr;
@@ -196,10 +213,12 @@ public:
     super(apos, aname, atype, VSK_FUNCTION)
   {
     body  = new OStmtBlock(aparentscope, "function_"+aname);
+    body->scope->function = this;
   }
 
   virtual ~OValSymFunc()
   {
+    for (OValSymFunc * fn : subfunctions) delete fn;
     for (OValSym * a : args)
     {
       delete a;

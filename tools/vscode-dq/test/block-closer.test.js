@@ -8,6 +8,7 @@ test("finds closers for DQ block headers", () => {
     ["for item in items:", "endfor"],
     ["while running:", "endwhile"],
     ["func main() -> int:", "endfunc"],
+    ["subfn helper() -> int:", "endsubfn"],
     ["object Counter:", "endobject"],
     ["struct Point:", "endstruct"]
   ];

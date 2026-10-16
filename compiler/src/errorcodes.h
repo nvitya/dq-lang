@@ -285,6 +285,9 @@ DEF_DQ_ERR(DQERR_OBJ_FUNC_ABSTRACT,                "ObjFuncAbstract",        "In
 DEF_DQ_ERR(DQERR_VIRT_FUNC_CALL_INVALID,           "VirtFuncCallInvalid",    "Virtual function \"$1\" call is not allowed in $2");
 DEF_DQ_ERR(DQERR_INHERITED_CALL_INVALID,           "InheritedCallInvalid",   "Invalid inherited call");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_SIGNATURE,           "SpecialFuncSignature",   "Invalid signature for special function \"$1\"");
+DEF_DQ_ERR(DQERR_SUBFN_SCOPE,                     "SubfnScope",             "'subfn' is only allowed inside a function");
+DEF_DQ_ERR(DQERR_SUBFN_NESTING,                   "SubfnNesting",           "A 'subfn' cannot be declared inside another 'subfn'");
+DEF_DQ_ERR(DQERR_SUBFN_ESCAPE,                    "SubfnEscape",            "Subfunction '$1' cannot escape its enclosing function or have its address taken");
 DEF_DQ_ERR(DQERR_EXPR_NOT_CALLABLE,                "ExprNotCallable",        "Expression of type \"$1\" is not callable");
 
 DEF_DQ_ERR(DQERR_CONDEXPR_MISSING_FOR,             "CondExprMissing",        "Condition expression is mission for \"$1\"");

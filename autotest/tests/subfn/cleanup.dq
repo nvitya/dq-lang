@@ -1,0 +1,39 @@
+use libc/stdio
+
+var destroyed : int = 0
+object OMarker:
+    func *Create():
+    endfunc
+    func *Destroy():
+        ++@.destroyed
+    endfunc
+endobject
+
+func Test():
+    var outer <- OMarker()
+    var values : [*]int
+    subfn Add():
+        var local <- OMarker()
+        values.Append(7)
+    endsubfn
+    subfn Throw():
+        var local <- OMarker()
+        raise Exception("subfn")
+    endsubfn
+    subfn Run():
+        Throw()
+    endsubfn
+    Add()
+    printf("subfn.cleanup.add = %d\n", destroyed) //?check("subfn.cleanup.add", 1)
+    try:
+        Run()
+    except Exception as e:
+        printf("subfn.cleanup.throw = %d\n", destroyed) //?check("subfn.cleanup.throw", 2)
+    endtry
+    printf("subfn.cleanup.capture = %d\n", values[0]) //?check("subfn.cleanup.capture", 7)
+endfunc
+
+func *Main():
+    Test()
+    printf("subfn.cleanup.parent = %d\n", destroyed) //?check("subfn.cleanup.parent", 3)
+endfunc

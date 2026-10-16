@@ -108,6 +108,7 @@ LlBasicBlock * OScope::GetExceptionCleanupBB()
     {
       return cur->exception_cleanup_bb;
     }
+    if (cur->function) break;
   }
   return nullptr;
 }
@@ -120,6 +121,7 @@ LlBasicBlock * OScope::GetUnwindCleanupBB()
     {
       return cur->unwind_cleanup_bb;
     }
+    if (cur->function) break;
   }
   return nullptr;
 }

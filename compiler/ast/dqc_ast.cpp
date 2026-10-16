@@ -248,7 +248,11 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
   if (tfunc->rettype)
   {
     avsfunc->vsresult = tfunc->rettype->CreateValSym(scpos, "result");
-    avsfunc->body->scope->DefineValSym(avsfunc->vsresult);
+    OScope * scope = avsfunc->body->scope;
+    bool saved_warn = scope->warn_shadowing;
+    if (avsfunc->parent_function) scope->warn_shadowing = false;
+    scope->DefineValSym(avsfunc->vsresult);
+    scope->warn_shadowing = saved_warn;
   }
 }
 

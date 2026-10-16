@@ -670,6 +670,67 @@ void OValSymFunc::ApplyTargetImportAttributes()
   }
 }
 
+bool OValSymFunc::AddCapture(OValSym * symbol)
+{
+  if (!parent_function || !symbol || symbol->owner_function != parent_function
+      || symbol->kind == VSK_CONST || symbol->kind == VSK_FUNCTION
+      || symbol == parent_function->vsresult)
+  {
+    return false;
+  }
+  for (const Capture & capture : captures)
+  {
+    if (capture.symbol == symbol) return false;
+  }
+  captures.push_back({symbol});
+  return true;
+}
+
+void OValSymFunc::FinalizeCaptures()
+{
+  // Append in discovery order, so signatures and all call sites use the same
+  // deterministic order, including captures needed only by sibling calls.
+  bool changed;
+  do
+  {
+    changed = false;
+    for (OValSymFunc * fn : subfunctions)
+    {
+      for (OValSymFunc * callee : fn->sibling_calls)
+      {
+        if (callee == fn) continue;
+        for (const Capture & capture : callee->captures)
+        {
+          changed |= fn->AddCapture(capture.symbol);
+        }
+      }
+    }
+  } while (changed);
+}
+
+LlValue * OValSymFunc::CaptureArgument(OValSym * symbol) const
+{
+  for (const Capture & capture : captures)
+  {
+    if (capture.symbol == symbol) return capture.argument;
+  }
+  return nullptr;
+}
+
+bool OValSymFunc::CaptureIsSelf(OValSym * symbol) const
+{
+  return parent_function && symbol == parent_function->receiver_arg;
+}
+
+LlFuncType * OValSymFunc::GetLlFunctionType()
+{
+  auto * source_type = static_cast<LlFuncType *>(ptype->GetLlType());
+  if (captures.empty()) return source_type;
+  vector<LlType *> types(captures.size(), llvm::PointerType::get(ll_ctx, 0));
+  for (LlType * type : source_type->params()) types.push_back(type);
+  return LlFuncType::get(source_type->getReturnType(), types, source_type->isVarArg());
+}
+
 void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
 {
   if (IsInlineAsm())
@@ -698,7 +759,8 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
                         : llvm::GlobalValue::LinkageTypes::InternalLinkage);
   }
 
-  LlFuncType *  ll_functype = (LlFuncType *)(ptype->GetLlType());  // calls CreateLlType()
+  FinalizeCaptures();
+  LlFuncType * ll_functype = GetLlFunctionType();
 
   string ll_name;
   if (is_external)
@@ -759,7 +821,11 @@ void OValSymFunc::GenGlobalDecl(bool apublic, OValue * ainitval)
     PreserveUsedDefinition(ll_func);
   }
 
-  //ll_functions[ptfunc->name] = ll_func;
+  for (OValSymFunc * fn : subfunctions)
+  {
+    fn->generated_linkage_name = ll_name + "$" + fn->name + "$" + to_string(fn->scpos.line) + "$" + to_string(fn->scpos.col);
+    fn->GenGlobalDecl(false);
+  }
 }
 
 bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
@@ -861,6 +927,7 @@ void OValSymFunc::ResetBodyScope(OScope * aparentscope)
 
   delete body;
   body = new OStmtBlock(aparentscope, "function_"+name);
+  body->scope->function = this;
   has_body = false;
 }
 
@@ -1116,7 +1183,8 @@ void OValSymFunc::GenerateFuncBody()
   {
     llvm::DISubroutineType * di_func_type = static_cast<llvm::DISubroutineType *>(tfunc->GetDiType()); // debugFuncType = getDebugFuncType(f);
     di_func = di_builder->createFunction(
-        g_module->GetDiScope(), name, "", scpos.scfile->di_file, scpos.line,
+        parent_function && parent_function->di_func ? parent_function->di_func : g_module->GetDiScope(),
+        name, "", scpos.scfile->di_file, scpos.line,
         di_func_type, scpos.line,
         llvm::DINode::FlagZero, llvm::DISubprogram::SPFlagDefinition
     );
@@ -1167,10 +1235,19 @@ void OValSymFunc::GenerateFuncBody()
     }
   }
 
-  // Create allocas for parameters
-  int i = 0;
-  for (auto & arg : ll_func->args())
+  auto arg_iter = ll_func->arg_begin();
+  for (Capture & capture : captures)
   {
+    capture.argument = &*arg_iter++;
+    capture.argument->setName("capture." + capture.symbol->name);
+  }
+
+  // Create allocas for source parameters only. Captures borrow storage and
+  // must never be copied or registered for local cleanup.
+  int i = 0;
+  for (; arg_iter != ll_func->arg_end(); ++arg_iter)
+  {
+    auto & arg = *arg_iter;
     OFuncParam *  fpar  = tfunc->params[i];
     OValSym *     vsarg = args[i];
 
@@ -1250,6 +1327,7 @@ void OValSymFunc::GenerateFuncBody()
   }
 
   verifyFunction(*ll_func);
+  for (OValSymFunc * fn : subfunctions) fn->GenerateFuncBody();
 }
 
 void OValSymFunc::GenerateFuncRet()
@@ -1798,6 +1876,12 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
     target_func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
     if (target_func)
     {
+      if (target_func->parent_function)
+      {
+        if (emit_errors) g_compiler->Error(DQERR_SUBFN_ESCAPE, target_func->name);
+        target_func = nullptr;
+        return false;
+      }
       is_null = false;
       return true;
     }
@@ -1838,7 +1922,13 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
   };
   if (auto * varref = dynamic_cast<OLValueVar *>(src))
   {
-    if (reject_inline_asm(dynamic_cast<OValSymFunc *>(varref->pvalsym))) return false;
+    auto * func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
+    if (func && func->parent_function)
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_SUBFN_ESCAPE, func->name);
+      return false;
+    }
+    if (reject_inline_asm(func)) return false;
   }
 
   if (TK_FUNCREF != tks)

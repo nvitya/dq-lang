@@ -20,6 +20,7 @@ class ODqCompParserStmt : public ODqCompParserExpr
 public: // statement blocks
   void ReadStatementBlock(OStmtBlock * stblock, const string blockend, string * rendstr = nullptr);
   bool ParseStatement(const string & block_closer);
+  virtual void ParseSubFunction() = 0;
   void ParseStmtBreak();
   void ParseStmtContinue();
   void ParseAssignOrCallStmt();

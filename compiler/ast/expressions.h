@@ -607,23 +607,6 @@ public:
   void       DeleteChildTree() override;
 };
 
-// Extract length from an array slice: len(slice_var)
-class OSliceLengthExpr : public OExpr
-{
-public:
-  OValSym *  slicevalsym;
-  /* ctor */ OSliceLengthExpr(OValSym * aslice);
-  LlValue *  Generate(OScope * scope) override;
-};
-
-class ODynArrayLengthExpr : public OExpr
-{
-public:
-  OValSym *  dynvalsym;
-  /* ctor */ ODynArrayLengthExpr(OValSym * adyn);
-  LlValue *  Generate(OScope * scope) override;
-};
-
 enum ERoundMode
 {
   RNDMODE_ROUND,
@@ -867,15 +850,6 @@ class OEmbStrSizeExpr : public OExpr
 public:
   OValSym *  embstrvalsym;
   /* ctor */ OEmbStrSizeExpr(OValSym * avs);
-  LlValue *  Generate(OScope * scope) override;
-};
-
-// len() for embstr: runtime strlen (inline loop scanning for null terminator)
-class OEmbStrLenExpr : public OExpr
-{
-public:
-  OValSym *  embstrvalsym;
-  /* ctor */ OEmbStrLenExpr(OValSym * avs);
   LlValue *  Generate(OScope * scope) override;
 };
 

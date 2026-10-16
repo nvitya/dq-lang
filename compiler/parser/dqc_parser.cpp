@@ -493,6 +493,10 @@ void ODqCompParser::ParseModule()
     {
       ParseEnumDecl();
     }
+    else if ("subfn" == sid)
+    {
+      ParseSubFunction();
+    }
     else if ("func" == sid)
     {
       ParseFunction();
@@ -2916,6 +2920,67 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
   InjectObjectReceiver(vsfunc, compound_type);
   string owner_desc = compound_type->IsObject() ? "object method declaration" : "struct method declaration";
   FinishFunctionDecl(vsfunc, compound_type->Members(), compound_type->Members(), true, false, owner_desc);
+}
+
+void ODqCompParser::ParseSubFunction()
+{
+  OValSymFunc * parent = curvsfunc;
+  bool allowed = parent && !parent->parent_function;
+  if (!parent) Error(DQERR_SUBFN_SCOPE);
+  else if (parent->parent_function) Error(DQERR_SUBFN_NESTING);
+
+  string name;
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(name))
+  {
+    StatementError(DQERR_ID_EXP_AFTER, "subfn");
+    return;
+  }
+  auto * fn = new OValSymFunc(scpos_statement_start, name, new OTypeFunc(name), curscope);
+  fn->parent_function = parent;
+  // Retain the enclosing method's lexical member and access-control context;
+  // subfunctions do not introduce a source-level receiver parameter.
+  fn->owner_compound_type = parent ? parent->owner_compound_type : nullptr;
+  fn->receiver_arg = parent ? parent->receiver_arg : nullptr;
+  ParseFunctionSignature(fn->GetTypeFunc(), false, name, true);
+  if (IsReservedIntrinsicName(name)) Error(DQERR_INTRINSIC_NAME_RESERVED, name);
+  if (fn->GetTypeFunc()->has_varargs) Error(DQERR_VARARGS_NOT_ALLOWED);
+
+  if (allowed)
+  {
+    curscope->DefineValSym(fn);
+    parent->subfunctions.push_back(fn);
+  }
+  PrepareFuncDecl(fn->scpos, fn);
+
+  vector<OValSym *> uninitialized;
+  for (OScope * scope = curscope; parent && scope && scope->GetFunction() == parent; scope = scope->parent_scope)
+  {
+    for (const auto & [name, symbol] : scope->valsyms)
+    {
+      if (!symbol->initialized) uninitialized.push_back(symbol);
+    }
+  }
+  int saved_loop_depth = loop_depth;
+  int saved_except_depth = except_depth;
+  OScPosition saved_stmtpos = scpos_statement_start;
+  loop_depth = 0;
+  except_depth = 0;
+  curvsfunc = fn;
+  ReadStatementBlock(fn->body, "endsubfn");
+  fn->scpos_endfunc = scf->prevpos;
+  fn->has_body = true;
+  if (fn->vsresult && !fn->vsresult->initialized)
+  {
+    Error(DQERR_FUNC_RESULT_NOT_SET, name, &fn->scpos_endfunc);
+  }
+  // Defining a helper does not execute its writes to enclosing variables.
+  for (OValSym * symbol : uninitialized) symbol->initialized = false;
+  loop_depth = saved_loop_depth;
+  except_depth = saved_except_depth;
+  scpos_statement_start = saved_stmtpos;
+  curvsfunc = parent;
+  if (!allowed) delete fn;
 }
 
 void ODqCompParser::ParseFunction()

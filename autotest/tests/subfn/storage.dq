@@ -1,0 +1,73 @@
+use libc/stdio
+
+struct SPair:
+    x : int32
+    y : int32
+endstruct
+
+object OValue:
+    value : int = 10
+    func *Create():
+    endfunc
+endobject
+
+func Narrow(x : ref int32, y : refin int32):
+    subfn Update():
+        x += y
+    endsubfn
+    subfn Run():
+        Update()
+    endsubfn
+    Run()
+endfunc
+
+func Descriptors(a : ref [*]int):
+    subfn Append():
+        a.Append(42)
+    endsubfn
+    Append()
+endfunc
+
+func Objects() -> int:
+    var first <- OValue()
+    var second <- OValue()
+    second.value = 20
+    var obj : OValue = first
+    var pair : SPair
+    pair.x = 3
+    pair.y = 4
+    subfn Read() -> int:
+        result = obj.value + first.value + pair.x + pair.y
+    endsubfn
+    subfn Replace():
+        obj = second
+        pair.x = 5
+    endsubfn
+    var before : int = Read()
+    Replace()
+    result = before + Read()
+endfunc
+
+func Lengths() -> int:
+    var a : [*]int
+    a.Append(1)
+    a.Append(2)
+    var slice : []int = a[:]
+    var text : embstr(20) = "abc"
+    subfn Get() -> int:
+        result = Len(a) + Len(slice) + Len(text)
+    endsubfn
+    result = Get()
+endfunc
+
+func *Main():
+    printf("subfn.lengths = %d\n", Lengths()) //?check("subfn.lengths", 7)
+    var x : int32 = 2
+    var y : int32 = 3
+    Narrow(x, y)
+    printf("subfn.narrow = %d\n", x) //?check("subfn.narrow", 5)
+    var a : [*]int
+    Descriptors(a)
+    printf("subfn.refarray = %d\n", a[0]) //?check("subfn.refarray", 42)
+    printf("subfn.objects = %d\n", Objects()) //?check("subfn.objects", 66)
+endfunc

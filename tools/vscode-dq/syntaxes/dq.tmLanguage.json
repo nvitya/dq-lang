@@ -225,7 +225,7 @@
       "patterns": [
         {
           "name": "meta.function.dq",
-          "begin": "\\b(func)\\s+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)(\\*?[A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
+          "begin": "\\b(func|subfn)\\s+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)(\\*?[A-Za-z_][A-Za-z0-9_]*)\\s*(\\()",
           "beginCaptures": {
             "1": {
               "name": "keyword.control.dq"
@@ -307,7 +307,7 @@
       "patterns": [
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:func|if|elif|else|endif|while|endwhile|for|endfor|try|except|finally|endtry|return|break|continue|endfunc|result|new|delete|raise)\\b"
+          "match": "\\b(?:func|subfn|endsubfn|if|elif|else|endif|while|endwhile|for|endfor|try|except|finally|endtry|return|break|continue|endfunc|result|new|delete|raise)\\b"
         },
         {
           "name": "keyword.control.dq",

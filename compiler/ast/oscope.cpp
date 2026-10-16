@@ -24,6 +24,15 @@
 
 using namespace std;
 
+OValSymFunc * OScope::GetFunction() const
+{
+  for (const OScope * scope = this; scope; scope = scope->parent_scope)
+  {
+    if (scope->function) return scope->function;
+  }
+  return nullptr;
+}
+
 OType * OScope::DefineType(OType * atype)
 {
   auto found = typesyms.find(atype->name);
@@ -90,6 +99,7 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
     }
   }
 
+  avalsym->owner_function = GetFunction();
   valsyms[avalsym->name] = avalsym;
   auto * objsym = dynamic_cast<OVsObject *>(avalsym);
   if ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype && AsAutoFreeType(avalsym->ptype)
@@ -194,7 +204,7 @@ OValSym * OScope::FindValSymEx(const string & name, OScope ** rscope, bool arecu
       }
     }
 
-    if (!arecursive || !scope->vs_lookup_parent)
+    if (("result" == name && scope->function) || !arecursive || !scope->vs_lookup_parent)
     {
       break;
     }

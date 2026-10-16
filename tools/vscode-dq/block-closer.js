@@ -3,12 +3,13 @@ const blockClosers = {
   for: "endfor",
   while: "endwhile",
   func: "endfunc",
+  subfn: "endsubfn",
   object: "endobject",
   struct: "endstruct"
 };
 
 function blockCloserForHeader(line) {
-  const match = /^(\s*)(if|for|while|func|object|struct)\b.*:\s*$/.exec(line);
+  const match = /^(\s*)(if|for|while|func|subfn|object|struct)\b.*:\s*$/.exec(line);
   if (!match) return undefined;
 
   return {

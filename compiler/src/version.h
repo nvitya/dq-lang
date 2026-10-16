@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.92.4"
+#define DQ_COMPILER_VERSION  "0.93.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.0:
+  - New Feature: sub-functions with `subfn SubFunc(): ... endsubfn`
 v0.92.4:
   - Destructor call lowering fix
 v0.92.3:

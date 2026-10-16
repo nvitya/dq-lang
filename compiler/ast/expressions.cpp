@@ -232,11 +232,15 @@ LlValue * OLValueExpr::GenerateObjectAddress(OScope * scope)
 {
   ptype = avalsym->ptype;
   pvalsym = avalsym;
+  if (g_compiler->curvsfunc) g_compiler->curvsfunc->AddCapture(avalsym);
 }
 
 LlValue * OLValueVar::GenerateAddress(OScope * scope)
 {
-  (void)scope;
+  if (auto * fn = scope->GetFunction())
+  {
+    if (LlValue * capture = fn->CaptureArgument(pvalsym)) return capture;
+  }
 
   if (VSK_CONST == pvalsym->kind)
   {
@@ -289,6 +293,17 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
 
 LlValue * OLValueVar::Generate(OScope * scope)
 {
+  if (auto * fn = scope->GetFunction())
+  {
+    if (LlValue * capture = fn->CaptureArgument(pvalsym))
+    {
+      auto * object = dynamic_cast<OVsObject *>(pvalsym);
+      if ((fn->CaptureIsSelf(pvalsym) && pvalsym->IsObjectType())
+          || (object && object->IsFixedObjectStorage())) return capture;
+      OType * value_type = IsObjectReferenceExpr() ? pvalsym->GetStorageType() : ptype;
+      return GenerateMemoryLoad(value_type->GetLlType(), capture, pvalsym->name);
+    }
+  }
   if (VSK_CONST == pvalsym->kind)
   {
     OValSymConst * vsconst = dynamic_cast<OValSymConst *>(pvalsym);
@@ -2786,33 +2801,6 @@ void OArrayMetaFieldExpr::DeleteChildTree()
   target = nullptr;
 }
 
-/* ctor */ OSliceLengthExpr::OSliceLengthExpr(OValSym * aslice)
-{
-  slicevalsym = aslice;
-  ptype = g_builtins->type_int;
-}
-
-LlValue * OSliceLengthExpr::Generate(OScope * scope)
-{
-  // Use StructGEP to access the length field (index 1) of the slice struct
-  LlType * ll_slicetype = slicevalsym->ptype->GetLlType();
-  LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, slicevalsym->ll_value, 1, "slice.len.addr");
-  return ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
-}
-
-/* ctor */ ODynArrayLengthExpr::ODynArrayLengthExpr(OValSym * adyn)
-{
-  dynvalsym = adyn;
-  ptype = g_builtins->type_int;
-}
-
-LlValue * ODynArrayLengthExpr::Generate(OScope * scope)
-{
-  (void)scope;
-  auto * dyntype = static_cast<OTypeDynArray *>(dynvalsym->ptype->ResolveAlias());
-  return dyntype->GenerateLength(scope, dynvalsym->ll_value);
-}
-
 /* ctor */ OFloatRoundExpr::OFloatRoundExpr(ERoundMode amode, OExpr * asrc)
 {
   mode  = amode;
@@ -2887,6 +2875,12 @@ void OFloatRoundExpr::DeleteChildTree()
 
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
 {
+  auto * caller = g_compiler->curvsfunc;
+  if (caller && caller->parent_function && avsfunc->parent_function == caller->parent_function
+      && find(caller->sibling_calls.begin(), caller->sibling_calls.end(), avsfunc) == caller->sibling_calls.end())
+  {
+    caller->sibling_calls.push_back(avsfunc);
+  }
   vsfunc = avsfunc;
   ptype = static_cast<OTypeFunc *>(vsfunc->ptype)->rettype;
 }
@@ -2979,7 +2973,14 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
     throw runtime_error("OCallExpr::Generate(): Unknown function: " + vsfunc->name);
   }
 
-  LlValue * result = scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_func, ll_args);
+  vector<LlValue *> call_args;
+  for (const auto & capture : vsfunc->captures)
+  {
+    OLValueVar source(capture.symbol);
+    call_args.push_back(source.GenerateAddress(scope));
+  }
+  call_args.insert(call_args.end(), ll_args.begin(), ll_args.end());
+  LlValue * result = scope->GenerateCallOrInvoke(vsfunc->GetLlFunctionType(), ll_func, call_args);
 
   EmitExpressionExceptionCheck(scope);
   return result;
@@ -3526,74 +3527,6 @@ LlValue * OEmbStrSizeExpr::Generate(OScope * scope)
   OLValueVar embstrlval(embstrvalsym);
   return embstrtype->GenerateMetaField(scope, embstrlval.GenerateAddress(scope), ESMF_STORAGE_SIZE);
 }
-
-/* ctor */ OEmbStrLenExpr::OEmbStrLenExpr(OValSym * avs)
-{
-  embstrvalsym = avs;
-  ptype = g_builtins->type_int;
-}
-
-#define USE_INLINE_STRLEN 0
-
-#if USE_INLINE_STRLEN  // inline version
-
-LlValue * OEmbStrLenExpr::Generate(OScope * scope)
-{
-  LlValue * ll_charptr;
-  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
-
-  if (embstrtype->maxlen > 0)
-  {
-    // Fixed embstr(N): GEP to element 0
-    LlValue * ll_zero = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 0);
-    ll_charptr = ll_builder.CreateGEP(embstrtype->GetLlType(), embstrvalsym->ll_value,
-        {ll_zero, ll_zero}, "embstr.ptr");
-  }
-  else
-  {
-    // Unsized embstr param: extract pointer from descriptor
-    LlType * ll_desctype = embstrtype->GetLlType();
-    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_desctype, embstrvalsym->ll_value, 0, "embstr.ptr.addr");
-    ll_charptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "embstr.ptr");
-  }
-
-  // Inline strlen loop
-  LlFunction * func = ll_builder.GetInsertBlock()->getParent();
-  LlBasicBlock * entry_bb = ll_builder.GetInsertBlock();
-  LlBasicBlock * scan_bb = LlBasicBlock::Create(ll_ctx, "strlen.scan", func);
-  LlBasicBlock * done_bb = LlBasicBlock::Create(ll_ctx, "strlen.done", func);
-
-  LlType * ll_i64 = LlType::getInt64Ty(ll_ctx);
-  LlType * ll_i8  = LlType::getInt8Ty(ll_ctx);
-
-  ll_builder.CreateBr(scan_bb);
-  ll_builder.SetInsertPoint(scan_bb);
-
-  llvm::PHINode * ll_i = ll_builder.CreatePHI(ll_i64, 2, "strlen.i");
-  ll_i->addIncoming(llvm::ConstantInt::get(ll_i64, 0), entry_bb);
-
-  LlValue * ll_ch_ptr = ll_builder.CreateGEP(ll_i8, ll_charptr, {ll_i}, "strlen.ch.ptr");
-  LlValue * ll_ch = ll_builder.CreateLoad(ll_i8, ll_ch_ptr, "strlen.ch");
-  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_ch, llvm::ConstantInt::get(ll_i8, 0), "strlen.is_null");
-  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, llvm::ConstantInt::get(ll_i64, 1), "strlen.i.next");
-
-  ll_i->addIncoming(ll_i_next, scan_bb);
-  ll_builder.CreateCondBr(ll_is_null, done_bb, scan_bb);
-
-  ll_builder.SetInsertPoint(done_bb);
-  return ll_i;
-}
-
-#else  // call the strnlen from libc
-
-LlValue * OEmbStrLenExpr::Generate(OScope * scope)
-{
-  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
-  OLValueVar embstrlval(embstrvalsym);
-  return embstrtype->GenerateMetaField(scope, embstrlval.GenerateAddress(scope), ESMF_LENGTH);
-}
-
-#endif
 
 /* ctor */ OEmbStrMetaFieldExpr::OEmbStrMetaFieldExpr(OExpr * areceiver, EEmbStrMetaField afield)
 {

@@ -1,0 +1,10 @@
+use libc/stdio
+
+object OTest:
+    value : int
+    func Test():
+        subfn Helper():
+            printf("value = %d\n", value) //?error(ObjVsInModuleNs)
+        endsubfn
+    endfunc
+endobject

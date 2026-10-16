@@ -40,6 +40,7 @@ class OModuleUse;
 class ODqCompAst;
 class OExpr;
 class OTypeObject;
+class OValSymFunc;
 
 struct SScopeLookupOptions
 {
@@ -76,6 +77,8 @@ class OScope
 {
 public:
   OScope *    parent_scope;
+  OValSymFunc * function = nullptr; // Set only on a function body scope.
+  OValSymFunc * GetFunction() const;
   string      debugname; // Helpful for debugging (e.g., "Class Body", "Func Body")
   bool        vs_lookup_parent = true;
   bool        warn_shadowing = false;
@@ -736,6 +739,7 @@ private:
 
 public:
   EValSymKind  kind;
+  OValSymFunc * owner_function = nullptr;
   bool         initialized = false;  // reading of uninitialized results to an error
   LlValue *    ll_value = nullptr;
   EParamMode   param_mode = FPM_VALUE;

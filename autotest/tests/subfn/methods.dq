@@ -1,0 +1,31 @@
+use libc/stdio
+
+object OTest:
+    value : int = 10
+    func *Create():
+    endfunc
+    func Read() -> int:
+        result = value
+    endfunc
+    func Calc(a : int) -> int:
+        var count : int = 0
+        subfn Step():
+            ++value
+            ++count
+        endsubfn
+        subfn Run():
+            Step()
+        endsubfn
+        subfn ReadPlus() -> int:
+            result = self.value + a + Read()
+        endsubfn
+        Run()
+        result = ReadPlus() + count
+    endfunc
+endobject
+
+func *Main():
+    var obj <- OTest()
+    printf("subfn.method = %d\n", obj.Calc(3)) //?check("subfn.method", 26)
+    printf("subfn.member = %d\n", obj.value) //?check("subfn.member", 11)
+endfunc

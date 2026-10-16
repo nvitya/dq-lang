@@ -19,6 +19,28 @@ func Log(value : int):
 endfunc
 ```
 
+## Local Helpers
+
+Use `subfn` to keep a helper close to the function that uses it. It can read and
+modify enclosing locals and parameters, and access `self` inside a method.
+
+```dq
+func Total() -> int:
+    var values : [*]int
+    subfn Add(value : int):
+        values.Append(value)
+    endsubfn
+    Add(10)
+    Add(20)
+    result = values[0] + values[1]
+endfunc
+```
+
+Declare helpers before calling them. They can call themselves or earlier sibling
+helpers, but cannot contain another `subfn` or be used as function references.
+See [Local Subfunctions](../reference/functions.md#local-subfunctions) for scope
+and capture rules.
+
 ## Declarations and Definitions
 
 A function signature may be declared without a body.

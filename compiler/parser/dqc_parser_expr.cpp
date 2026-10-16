@@ -1676,6 +1676,12 @@ OLValueExpr * ODqCompParserExpr::ParseAddressableExpr()
   }
 
   OValSym * varref = dynamic_cast<OLValueVar *>(lval) ? static_cast<OLValueVar *>(lval)->pvalsym : nullptr;
+  if (auto * func = dynamic_cast<OValSymFunc *>(varref); func && func->parent_function)
+  {
+    Error(DQERR_SUBFN_ESCAPE, func->name);
+    delete expr;
+    return nullptr;
+  }
   if (auto * func = dynamic_cast<OValSymFunc *>(varref); func && func->IsInlineAsm())
   {
     Error(DQERR_ASM_FUNC_REF, func->name);
@@ -3657,7 +3663,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
 
   if (object_method_scope)
   {
-    OScope * stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+    OScope * stop_scope = curvsfunc->parent_function ? curvsfunc->parent_function->body->scope : curvsfunc->body->scope;
     lookup_options.fallback_stop_scope = stop_scope;
     lookup_options.use_method_fallback_scopes = true;
   }
@@ -4150,7 +4156,7 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
 
 OExpr * ODqCompParserExpr::ParseExprFuncCall(OValSymFunc * vsfunc)
 {
-  if (vsfunc && vsfunc->owner_compound_type)
+  if (vsfunc && vsfunc->owner_compound_type && !vsfunc->parent_function)
   {
     return ParseExprMethodCall(vsfunc, nullptr);
   }
@@ -4879,7 +4885,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name,
   bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
   if (object_method_scope)
   {
-    lookup_options.fallback_stop_scope = curvsfunc->body ? curvsfunc->body->scope : nullptr;
+    lookup_options.fallback_stop_scope = curvsfunc->parent_function ? curvsfunc->parent_function->body->scope : curvsfunc->body->scope;
     lookup_options.use_method_fallback_scopes = true;
   }
 
@@ -5049,17 +5055,13 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
     OTypeArray * arrtype = static_cast<OTypeArray *>(lenvs->ptype);
     return new OIntLit(arrtype->arraylength);
   }
-  else if (TK_ARRAY_SLICE == lenvs->ptype->kind)
+  else if (TK_ARRAY_SLICE == lenvs->ptype->kind || TK_DYN_ARRAY == lenvs->ptype->kind)
   {
-    return new OSliceLengthExpr(lenvs);
-  }
-  else if (TK_DYN_ARRAY == lenvs->ptype->kind)
-  {
-    return new ODynArrayLengthExpr(lenvs);
+    return new OArrayMetaFieldExpr(new OLValueVar(lenvs), lenvs->ptype, AMF_LENGTH);
   }
   else if (TK_EMBSTR == lenvs->ptype->kind)
   {
-    return new OEmbStrLenExpr(lenvs);
+    return new OEmbStrMetaFieldExpr(new OLValueVar(lenvs), ESMF_LENGTH);
   }
   else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRSLICE == lenvs->ptype->ResolveAlias()->kind || TK_ROSTR == lenvs->ptype->ResolveAlias()->kind)
   {

@@ -15,6 +15,45 @@ A signature consists of the function name, ordered parameter types and modes,
 return type, calling convention, object binding, and relevant attributes. A
 declaration without a body can be implemented later with the same signature.
 
+## Local Subfunctions
+
+A `subfn` declares a helper inside a function or object method:
+
+```dq
+func Count() -> int:
+    var count : int = 0
+    subfn Inc():
+        ++count
+    endsubfn
+    Inc()
+    result = count
+endfunc
+```
+
+Subfunctions follow declaration-before-use and lexical block visibility. They
+can access enclosing parameters, locals, constants, and the enclosing method's
+`self` and implicit members. Method namespace restrictions still apply: use
+`@.` for module-root values unless a method `use` makes them available.
+Parameters and locals can shadow enclosing names, with the usual warning.
+Each value-returning subfunction has its own `result`; an enclosing `result`
+is never implicitly accessible, including from a void subfunction.
+
+Captures of mutable variables refer to their original storage, including dynamic
+array descriptors and value parameters. Constants are resolved directly, and
+`self` uses the existing receiver pointer. A subfunction can call itself and
+previously declared sibling helpers. Captures needed by sibling calls are
+forwarded automatically, even when the caller has a local with the same name.
+
+A subfunction cannot declare another subfunction, including inside control-flow
+blocks. Subfunctions support direct calls only: their addresses cannot be taken,
+and they cannot be stored, returned, or passed as function references, even when
+they capture nothing. Captured storage and its cleanup remain owned by the
+enclosing invocation. Exceptions and local cleanup follow normal function rules.
+
+Each helper is emitted as an internal LLVM function with one hidden argument
+per required runtime capture, before its source parameters. There is no closure
+allocation or context structure.
+
 ## Result Values
 
 A function without `->` has no result value. A value-returning function can

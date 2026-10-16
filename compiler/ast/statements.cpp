@@ -125,7 +125,7 @@ void OStmtBlock::Generate()
     scope->EmitOwnedObjectDestructors();
     
     LlBasicBlock * target_cleanup_bb = nullptr;
-    for (OScope * cur = scope->parent_scope; cur && !target_cleanup_bb; cur = cur->parent_scope)
+    for (OScope * cur = scope->function ? nullptr : scope->parent_scope; cur && !target_cleanup_bb; cur = cur->function ? nullptr : cur->parent_scope)
     {
       target_cleanup_bb = cur->unwind_cleanup_bb;
     }

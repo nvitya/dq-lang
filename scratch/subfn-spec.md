@@ -2,13 +2,13 @@
 
 ## 1. Purpose
 
-`subfn` defines a lexically nested helper function inside another function or method.
+`subfn` defines a local helper function inside a normal function or object member function. A `subfn` may not contain another `subfn`.
 
 The main goals are:
 
 - allow short helper functions to be placed close to the code that uses them;
 - allow those helpers to access variables of the enclosing function;
-- allow nested helpers inside object member functions to access `self`;
+- allow helpers inside object member functions to access `self`;
 - keep the implementation efficient and compatible with LLVM;
 - avoid requiring heap-allocated closures for the initial implementation;
 - keep `subfn` lifetime strictly bounded by the execution of the enclosing function.
@@ -58,15 +58,12 @@ endsubfn
 
 The argument and return type rules are the same as for normal DQ functions unless explicitly stated otherwise in this specification.
 
-`subfn` declarations are only valid inside executable function-like scopes.
-
-Initially supported enclosing scopes:
+`subfn` declarations are only valid inside:
 
 - normal functions;
-- object member functions;
-- other subfunctions.
+- object member functions.
 
-A `subfn` must not be declared at module/global scope.
+A `subfn` must not be declared at module/global scope or anywhere within another `subfn` body, including inside its control-flow blocks. Only one level of subfunctions is allowed.
 
 ---
 
@@ -79,8 +76,8 @@ It may access:
 - its own parameters;
 - its own local variables;
 - constants visible from the enclosing scope;
-- local variables of enclosing functions/subfunctions;
-- parameters of enclosing functions/subfunctions;
+- local variables of the enclosing function or method;
+- parameters of the enclosing function or method;
 - `self`, when lexically available;
 - object members accessible through `self`;
 - module/global symbols normally visible at that location.
@@ -183,7 +180,7 @@ endobject
 
 ## 5. Capture Semantics
 
-A captured symbol is a symbol owned by an enclosing function-like scope and needed by the `subfn`, either for its own body or to supply another subfunction's hidden arguments.
+A captured symbol is a symbol owned by the enclosing normal function or method and needed by the `subfn`, either for its own body or to supply a sibling subfunction's hidden arguments.
 
 Every captured lexical variable is passed directly as an implicit hidden parameter.
 
@@ -253,7 +250,7 @@ For each resolved symbol reference inside a `subfn`:
 
 1. determine the symbol's owning scope;
 2. if it belongs to the current `subfn`, it is local and not captured;
-3. if it belongs to an enclosing function/subfunction scope, it is captured;
+3. if it belongs to the enclosing normal function or method, it is captured;
 4. if it is module/global/static storage, no closure capture is required;
 5. if the reference resolves to an object member through `self`, mark `self` as captured.
 
@@ -287,7 +284,7 @@ immutable value  -> by_value
 self             -> existing object pointer
 ```
 
-Capture analysis must also include enclosing symbols needed to supply hidden arguments to other called subfunctions, even when the caller does not otherwise reference those symbols. See sections 17, 19, and 20.
+Capture analysis must also include enclosing symbols needed to supply hidden arguments to called sibling subfunctions, even when the caller does not otherwise reference those symbols. A fixed-point pass over the sibling call graph computes these requirements. See sections 19 and 20.
 
 ---
 
@@ -299,10 +296,9 @@ Recommended lookup order inside a subfunction:
 
 1. local variables of the subfunction;
 2. parameters of the subfunction;
-3. symbols from immediately enclosing subfunction/function scope;
-4. progressively outer enclosing function-like scopes;
-5. object members through the enclosing `self`, when applicable;
-6. module/global/imported symbols according to normal DQ rules.
+3. symbols from the enclosing normal function or method scope;
+4. object members through the enclosing `self`, when applicable;
+5. module/global/imported symbols according to normal DQ rules.
 
 Normal shadowing rules apply.
 
@@ -377,7 +373,7 @@ For the initial implementation, a `subfn` must not outlive the invocation of its
 Therefore:
 
 - it may be called directly;
-- it may call another lexically visible `subfn`;
+- it may call a lexically visible sibling `subfn`;
 - its address must not be stored as an ordinary function pointer;
 - it must not be returned;
 - it must not be stored in an object, global variable, or heap object;
@@ -500,7 +496,7 @@ LLVM's `nest` attribute is not required for normal direct `subfn` calls.
 
 ## 14. Capture Parameter List
 
-Only values actually required by a subfunction, including those needed to call other subfunctions, belong in its hidden parameter list.
+Only values actually required by a subfunction, including those needed to call sibling subfunctions, belong in its hidden parameter list.
 
 Example:
 
@@ -585,52 +581,11 @@ No heap allocation is required under the initial lifetime restrictions.
 
 ---
 
-## 17. Nested `subfn`
+## 17. No Subfunction Nesting
 
-A `subfn` may itself contain another `subfn`.
+A `subfn` may not contain another `subfn`, even if neither captures any variables.
 
-Example:
-
-```dq
-func F():
-    var x : int
-
-    subfn A():
-        subfn B():
-            x += 1
-        endsubfn
-
-        B()
-    endsubfn
-
-    A()
-endfunc
-```
-
-`B()` may capture values from any lexically enclosing function-like scope.
-
-### 17.1 Direct capture forwarding
-
-`B()` receives a hidden reference to `x` directly. Because `A()` calls `B()`, `A()` must also receive that reference, even though its own body does not otherwise use `x`.
-
-Conceptually:
-
-```text
-F():
-    F$A(^x)
-
-F$A(^int x):
-    F$A$B(x)
-
-F$A$B(^int x):
-    increment the variable referenced by x
-```
-
-Here `x` inside the lowered `A()` and `B()` already denotes a reference. Forward it unchanged; do not take the address of the hidden parameter itself.
-
-If `B()` also captures a variable local to `A()`, `A()` passes a reference to its own local storage for that capture. That variable does not become a hidden parameter of `A()`.
-
-No static chain or traversal through enclosing contexts is needed.
+All subfunctions belonging to a normal function or method are siblings. Capture analysis only needs that one enclosing function or method and its sibling call graph; there are no intermediate subfunction scopes through which captures must propagate.
 
 ---
 
@@ -662,7 +617,7 @@ For a non-capturing subfunction, recursion requires no hidden capture parameters
 
 ## 19. Calls Between Sibling Subfunctions
 
-Sibling subfunctions may call each other if they are visible according to DQ's declaration rules.
+Sibling subfunctions share the same enclosing normal function or method. They may call each other if they are visible according to DQ's declaration rules.
 
 Example:
 
@@ -697,16 +652,18 @@ F$A(^int x):
     increment the variable referenced by x
 ```
 
+The hidden `x` parameter inside the lowered `B()` already holds the reference to the enclosing variable. Forward it unchanged; do not take the address of the hidden parameter itself.
+
 Sibling calls use direct hidden arguments, with no shared environment structure.
 
 ---
 
-## 20. Transitive Capture Analysis
+## 20. Required-Capture Propagation Between Siblings
 
 Each subfunction's capture list includes:
 
 - enclosing symbols referenced by its own body;
-- enclosing symbols needed to supply hidden arguments to subfunctions it calls.
+- enclosing symbols needed to supply hidden arguments to sibling subfunctions it calls.
 
 Example:
 
@@ -738,11 +695,28 @@ inside B: F$A(a, x)
 
 `B()` needs `a` only to call `A()`. `z` is not captured by either subfunction.
 
-Compute capture requirements across calls until no capture list changes. This also handles recursive call cycles where permitted by declaration rules.
+For each enclosing normal function or method, run a simple fixed-point pass over its sibling call graph:
 
-When a required symbol belongs to the caller itself, the caller supplies its own local storage or value instead of adding a hidden parameter for that symbol. Otherwise, propagate the requirement through the relevant enclosing callers until every call can supply the callee's arguments.
+1. initialize each subfunction's required-capture set with the enclosing symbols referenced by its own body;
+2. for every call from subfunction `Caller` to sibling `Callee`, add `Callee`'s required captures to `Caller`'s set;
+3. repeat step 2 until no set changes.
 
-Finalize capture lists and their ordering before generating LLVM signatures and calls. No environment type is generated.
+Conceptually:
+
+```text
+required[S] = direct_captures[S]
+repeat until unchanged:
+    for each sibling call Caller -> Callee:
+        required[Caller] |= required[Callee]
+```
+
+This handles multi-hop sibling calls and recursive call cycles where permitted by declaration rules. Every propagated symbol belongs to the same enclosing function or method; a sibling's own locals and parameters are never propagated as captures.
+
+Track captures by resolved symbol identity, so a caller's local with the same name does not replace an enclosing variable required by its callee.
+
+The enclosing function or method supplies its own storage, values, and `self` pointer when calling a subfunction. Sibling and recursive calls forward the corresponding hidden arguments.
+
+Finalize capture lists and their ordering before generating LLVM signatures and calls. No environment type or multi-level capture propagation is needed.
 
 ---
 
@@ -854,8 +828,10 @@ FunctionSymbol
     parameters
     locals
     captures
-    children_subfns
+    subfunctions
 ```
+
+Only normal functions and object member functions may have subfunctions; a subfunction's `subfunctions` list must be empty. Its `parent_function_scope` is the enclosing normal function or method.
 
 Each local symbol should identify its owning function scope:
 
@@ -872,7 +848,7 @@ During symbol resolution:
 resolve identifier
     -> obtain VariableSymbol
     -> compare current_function with symbol.owner_function
-    -> if different and owner is lexical ancestor:
+    -> if current_function is a subfn and owner is its parent_function_scope:
            register capture
 ```
 
@@ -896,18 +872,20 @@ Add:
 
 - `subfn` keyword;
 - `endsubfn` keyword;
-- AST node for nested function declaration;
-- parser support inside function bodies.
+- AST node for subfunction declaration;
+- parser support inside normal function and object member function bodies.
+
+Reject any `subfn` declaration encountered while parsing a subfunction body, including inside control-flow blocks.
 
 ### Phase 2: Symbol tables
 
-Add nested function scopes.
+Add one level of subfunction scopes under normal function and object member function scopes.
 
 A `subfn` symbol must be inserted into the enclosing function-local symbol table.
 
 ### Phase 3: Lexical symbol lookup
 
-Allow identifier resolution to continue through enclosing function scopes.
+Allow identifier resolution to continue into the enclosing normal function or method scope.
 
 Track the owning function for resolved locals and parameters.
 
@@ -915,7 +893,7 @@ Track the owning function for resolved locals and parameters.
 
 When an outer local/parameter/`self` is referenced, add it to the current subfunction's capture set.
 
-Propagate capture requirements through nested and sibling calls until every caller can supply the callee's captures.
+Run the fixed-point pass from section 20 over the sibling call graph of each enclosing function or method until no required-capture set changes.
 
 ### Phase 5: Capture parameter planning
 
@@ -935,11 +913,12 @@ When generating a call to a `subfn`:
 
 - emit normal source arguments;
 - prepend one hidden argument per capture in the callee's capture-list order;
-- use local storage/values or forward existing hidden parameters as appropriate.
+- supply the enclosing function's storage, values, and `self` pointer for calls from that function;
+- forward existing hidden arguments for sibling and recursive calls.
 
 ### Phase 8: Diagnostics
 
-Reject unsupported escaping/address-taking cases.
+Reject subfunction nesting and unsupported escaping/address-taking cases.
 
 ### Phase 9: Debug information
 
@@ -960,6 +939,21 @@ endsubfn
 
 ```text
 error: 'subfn' is only allowed inside a function
+```
+
+### Forbidden subfunction nesting
+
+```dq
+func F():
+    subfn Outer():
+        subfn Inner():
+        endsubfn
+    endsubfn
+endfunc
+```
+
+```text
+error: a 'subfn' cannot be declared inside another 'subfn'
 ```
 
 ### Escaping capturing subfunction
@@ -1015,7 +1009,8 @@ Recommended initial restrictions:
 - no capture-context structure is required;
 - direct calls are supported;
 - recursive calls are supported;
-- nested subfunctions are supported;
+- a `subfn` must not contain another `subfn`;
+- required captures propagate only through the one-level sibling call graph;
 - sibling subfunction calls are supported;
 - capturing subfunction addresses cannot be taken;
 - capturing subfunctions cannot be returned or stored;
@@ -1290,28 +1285,20 @@ Expected result: `6`.
 
 The recursive call must forward the hidden reference to `bias` unchanged.
 
-### 32.11 Nested subfunction
+### 32.11 Reject subfunction nesting
 
 ```dq
-func Test() -> int:
-    var a : int = 1
-
+func Test():
     subfn Outer():
         subfn Inner():
-            ++a
         endsubfn
-
-        Inner()
     endsubfn
-
-    Outer()
-    result = a
 endfunc
 ```
 
-Expected result: `2`.
+Expected: compilation error, even though neither subfunction captures anything. Also reject a `subfn` declared inside a control-flow block within `Outer()`.
 
-### 32.12 Sibling call
+### 32.12 Sibling call chain
 
 ```dq
 func Test() -> int:
@@ -1325,12 +1312,16 @@ func Test() -> int:
         Inc()
     endsubfn
 
-    Run()
+    subfn Start():
+        Run()
+    endsubfn
+
+    Start()
     result = a
 endfunc
 ```
 
-Expected result: `1`.
+Expected result: `1`. Both `Run()` and `Start()` require the hidden reference to `a` solely to forward it along the sibling call chain.
 
 ### 32.13 Separate `result`
 
@@ -1389,8 +1380,10 @@ Verify generated IR before optimization for the capture examples above:
 - each runtime capture has its own hidden parameter, with no context structure or context allocation;
 - multiple mutable captures are separate references, even when only read by the subfunction;
 - `self` is the existing object pointer, without an extra pointer to its storage;
-- nested, sibling, and recursive calls forward existing references unchanged;
-- a caller supplies its own local storage directly when a nested callee captures that local;
+- sibling and recursive calls forward existing references unchanged;
+- sibling capture propagation reaches a fixed point for multi-hop calls and call cycles where declaration rules permit them;
+- a caller's local that shadows an enclosing variable does not replace the capture required by a sibling callee;
+- the enclosing normal function or method supplies its own local storage directly when calling a capturing subfunction;
 - captures are deduplicated and supplied in the same order as the callee's hidden parameters.
 
 Also test enough captures and source arguments to exceed the target's argument-register capacity. The call must preserve the same semantics using the normal target ABI for stack arguments, without introducing a capture-context structure.
@@ -1401,16 +1394,16 @@ Also test enough captures and source arguments to exceed the target's argument-r
 
 For the first agentic implementation, use the following model:
 
-1. parse `subfn` as a nested function declaration;
+1. parse `subfn` inside normal functions and object member functions, rejecting declarations inside subfunctions;
 2. create a normal function scope for it;
-3. allow lexical lookup through parent function scopes;
+3. allow lexical lookup into the enclosing normal function or method scope;
 4. record every referenced enclosing local/parameter/`self`;
-5. propagate capture requirements through calls until every caller can supply all required captures;
+5. compute required captures with a fixed-point pass over each enclosing function's sibling call graph;
 6. finalize a deterministic hidden parameter list for each subfunction;
 7. pass mutable captures by reference, immutable runtime captures by value, and `self` as its existing object pointer;
 8. emit each `subfn` as an LLVM module-level `internal` function;
 9. prepend one hidden parameter per captured lexical variable;
-10. pass or forward the corresponding hidden arguments at every direct nested-function call, including recursive and sibling calls;
+10. supply hidden arguments from the enclosing function or method and forward them at recursive and sibling calls;
 11. reject escaping/address-taking of capturing subfunctions;
 12. rely on the normal target calling convention and LLVM optimization for argument placement and optimization.
 
@@ -1420,7 +1413,7 @@ No capture-context structure, shared environment, or static chain is needed for 
 
 ## 34. Summary
 
-`subfn` is a lexically nested function with access to its enclosing function environment.
+`subfn` is a local helper function with access to its enclosing normal function or method. Subfunctions cannot contain further subfunctions.
 
 Core semantics:
 
@@ -1433,7 +1426,9 @@ subfn
     + one direct hidden parameter per captured lexical variable
     + reference semantics for captured mutable variables
     + existing object pointer for captured self
+    + fixed-point capture propagation between siblings
     + stack-bounded lifetime
+    - no subfunctions inside subfunctions
     - no capture-context structure
     - no escaping closure in the initial implementation
 ```

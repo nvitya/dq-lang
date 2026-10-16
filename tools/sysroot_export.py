@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-sysroot_export_win.py
+sysroot_export.py
 
-Export the development files from a Linux sysroot to another filesystem
+Export the DQ linker inputs from a Linux sysroot to another filesystem
 (for example an NTFS drive mounted on Linux or a Windows drive under WSL).
 
-Only headers, libraries, startup objects, linker scripts, and pkg-config/CMake
-metadata are exported. Target executables, runtime configuration, package
-databases, caches, documentation, and other operating-system data are omitted.
+Only unversioned libraries (.so, .a, .lib, .dylib), startup objects, and linker
+scripts are exported. Numbered library files are omitted unless explicitly
+referenced by a linker script. Headers, build metadata, target executables,
+runtime configuration, package databases, caches, and documentation are omitted.
+In copy mode, merged-/usr directory aliases such as lib -> usr/lib are skipped
+to avoid exporting the same library tree twice.
 
 The source tree is never modified.
 
 Symlink modes:
 
-  copy
+  copy (default)
       Dereference symlinks using *sysroot semantics*.  In particular,
       an absolute Linux symlink such as
 
@@ -28,7 +31,7 @@ Symlink modes:
       This is the most portable mode and is recommended when the exported
       tree will be consumed by native Windows tools.
 
-  relative (default)
+  relative
       Preserve symlinks, rewriting their targets as relative paths to the
       resolved files/directories inside the sysroot. Referenced targets are
       included even when outside the normal development directories, so the
@@ -42,16 +45,16 @@ Symlink modes:
 Examples:
 
     # Robust export for native Windows compilation:
-    python3 sysroot_export_win.py \
-        /lindata/dev_riscv/sysroot_riscv64_trixie \
-        /mnt/windows/dq/sysroots/riscv64-trixie \
-        --link-mode copy --clean
-
-    # Preserve/rewrite symlinks (the default):
-    python3 sysroot_export_win.py \
+    python3 sysroot_export.py \
         /lindata/dev_riscv/sysroot_riscv64_trixie \
         /mnt/windows/dq/sysroots/riscv64-trixie \
         --clean
+
+    # Preserve/rewrite symlinks:
+    python3 sysroot_export.py \
+        /lindata/dev_riscv/sysroot_riscv64_trixie \
+        /mnt/windows/dq/sysroots/riscv64-trixie \
+        --link-mode relative --clean
 """
 
 from __future__ import annotations
@@ -59,6 +62,7 @@ from __future__ import annotations
 import argparse
 import os
 import posixpath
+import re
 import shutil
 import stat
 import sys
@@ -104,19 +108,17 @@ def normalize_rel_posix(path: str) -> str:
 
 
 class SysrootExporter:
-    # Keep entire header trees: C++ headers often have no filename extension.
-    HEADER_ROOTS = ("include", "usr/include", "usr/local/include")
+    LINK_SUFFIXES = (".so", ".a", ".lib", ".dylib", ".o", ".obj", ".ld", ".lds")
     LIBRARY_ROOTS = tuple(
         f"{prefix}{name}"
         for prefix in ("", "usr/", "usr/local/")
         for name in ("lib", "lib32", "lib64", "libx32")
     )
-    METADATA_ROOTS = ("usr/share/pkgconfig", "usr/local/share/pkgconfig",
-                      "usr/share/cmake", "usr/local/share/cmake")
-    # These contain target runtime plugins/data rather than link-time inputs.
-    RUNTIME_DIRS = {"apt", "dpkg", "gconv", "locale", "firmware", "modules",
-                    "systemd", "ssl", "security", "audit", "engines-3",
-                    "ossl-modules", "libmariadb3"}
+    # Skip runtime data and development files that DQ's linker never consumes.
+    EXCLUDED_DIRS = {"apt", "dpkg", "gconv", "locale", "firmware", "modules",
+                     "systemd", "ssl", "security", "audit", "engines-3",
+                     "ossl-modules", "libmariadb3", "include", "include-fixed",
+                     "linux", "cmake", "pkgconfig"}
 
     def __init__(
         self,
@@ -132,34 +134,29 @@ class SysrootExporter:
         self.verbose = verbose
         self.dry_run = dry_run
         self.stats = Stats()
-        self.exported: dict[Path, bool] = {}
+        self.exported: set[Path] = set()
+        self.exported_dirs: set[Path] = set()
         self.active_dirs: set[str] = set()
+        self.extra_library_roots: set[str] = set()
+        self.library_dirs: set[str] = set()
+        self.linker_scripts: list[tuple[Path, Path]] = []
 
     def should_export(self, rel: str, is_dir: bool) -> bool:
         path = PurePosixPath(rel)
-        if self.whole_tree(rel):
-            return True
-        roots = self.HEADER_ROOTS + self.LIBRARY_ROOTS + self.METADATA_ROOTS
+        roots = self.LIBRARY_ROOTS + tuple(self.extra_library_roots)
         if is_dir and any(path in PurePosixPath(root).parents for root in roots):
             return True
-        for root in self.LIBRARY_ROOTS:
+        for root in roots:
             if not path.is_relative_to(root):
                 continue
             parts = path.relative_to(root).parts
-            if any(p in self.RUNTIME_DIRS or p.startswith(("perl", "python"))
+            if any(p in self.EXCLUDED_DIRS or p.startswith(("perl", "python"))
                    for p in parts):
                 return False
             if is_dir:
                 return True
-            return (path.suffix in (".a", ".o", ".so", ".ld", ".lds", ".pc", ".cmake", ".h")
-                    or ".so." in path.name or path.name == "specs")
+            return path.suffix in self.LINK_SUFFIXES
         return False
-
-    def whole_tree(self, rel: str) -> bool:
-        path = PurePosixPath(rel)
-        return (any(path.is_relative_to(root) for root in self.HEADER_ROOTS + self.METADATA_ROOTS)
-                or (any(path.is_relative_to(root) for root in self.LIBRARY_ROOTS)
-                    and bool({"include", "include-fixed", "cmake", "pkgconfig"}.intersection(path.parts))))
 
     def log(self, msg: str) -> None:
         if self.verbose:
@@ -258,9 +255,7 @@ class SysrootExporter:
         return rewritten
 
     def ensure_parent(self, path: Path) -> None:
-        if self.dry_run:
-            return
-        path.parent.mkdir(parents=True, exist_ok=True)
+        self.ensure_dir(path.parent)
 
     def remove_existing(self, path: Path) -> None:
         if not os.path.lexists(path):
@@ -276,11 +271,19 @@ class SysrootExporter:
             shutil.rmtree(path)
 
     def ensure_dir(self, dst: Path) -> None:
+        if dst in self.exported_dirs:
+            return
+        if dst != self.dstroot:
+            self.ensure_dir(dst.parent)
+
         if os.path.lexists(dst) and (dst.is_symlink() or not dst.is_dir()):
             self.remove_existing(dst)
 
         if not self.dry_run:
             dst.mkdir(parents=True, exist_ok=True)
+        self.exported_dirs.add(dst)
+        if dst != self.dstroot:
+            self.stats.dirs += 1
 
     def copy_metadata(self, src: Path, dst: Path, follow_symlinks: bool = True) -> None:
         if self.dry_run:
@@ -315,6 +318,56 @@ class SysrootExporter:
 
         self.stats.files += 1
         self.stats.bytes_copied += size
+        if dst.suffix in (".so", ".ld", ".lds"):
+            self.linker_scripts.append((src, dst))
+
+    def export_script_inputs(self, src: Path, dst: Path) -> None:
+        """Keep explicit ld-script inputs, including required versioned files."""
+        with src.open("rb") as stream:
+            prefix = stream.read(4096)
+            if b"\0" in prefix:
+                return
+            data = prefix + stream.read()
+        try:
+            script = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return
+        script = re.sub(r"/\*.*?\*/|#[^\n]*", "", script, flags=re.DOTALL)
+        if not re.search(r"\b(?:GROUP|INPUT|INCLUDE)\b", script):
+            return
+
+        parent = src.relative_to(self.srcroot).parent.as_posix()
+        # Prefer the script's target architecture when several are installed.
+        target = next((p for p in PurePosixPath(parent).parts if "-linux-" in p), None)
+        search_dirs = sorted(self.library_dirs)
+        if target:
+            search_dirs.sort(key=lambda d: target not in PurePosixPath(d).parts)
+        for match in re.finditer(r'''"([^"]+)"|'([^']+)'|([^\s(){};,"']+)''', script):
+            name = next(group for group in match.groups() if group is not None)
+            name = name.removeprefix("-l:").removeprefix("=")
+            path = PurePosixPath(name)
+            if (path.suffix not in self.LINK_SUFFIXES
+                    and not re.search(r"\.(?:so|a|lib|dylib)(?:\.[0-9]+)+$", name)):
+                continue
+            candidates = ([name] if path.is_absolute() else
+                          [posixpath.join(parent, name)]
+                          + [posixpath.join(d, name) for d in search_dirs if "/" not in name])
+            for candidate in candidates:
+                try:
+                    resolved = self.resolve_sysroot_rel(candidate)
+                except ExportError:
+                    continue
+                if path.is_absolute():
+                    output = self.dst_path(normalize_rel_posix(name))
+                elif candidate == candidates[0]:
+                    output = self.dst_path(normalize_rel_posix(
+                        posixpath.join(dst.parent.relative_to(self.dstroot).as_posix(), name)))
+                else:
+                    output = self.dst_path(normalize_rel_posix(candidate))
+                self.export_entry(resolved, output, required=True)
+                break
+            else:
+                raise ExportError(f"cannot resolve linker script input {name!r} in {src}")
 
     def export_symlink_relative(self, src_rel: str, src: Path, dst: Path) -> None:
         target = os.readlink(src)
@@ -333,9 +386,11 @@ class SysrootExporter:
             # Link directly to the resolved target: intermediate links may
             # belong to runtime-only directories excluded from this export.
             new_target = posixpath.relpath(resolved_rel, start=str(PurePosixPath(src_rel).parent))
-            self.export_entry(resolved_rel, self.dst_path(resolved_rel),
-                              required=self.whole_tree(src_rel)
-                              or not self.should_export(resolved_rel, target_is_directory))
+            if target_is_directory:
+                self.extra_library_roots.add(resolved_rel)
+            self.export_entry(resolved_rel, self.dst_path(resolved_rel), required=True)
+            if target_is_directory and self.dst_path(resolved_rel) not in self.exported_dirs:
+                return
 
         self.ensure_parent(dst)
         if os.path.lexists(dst):
@@ -345,25 +400,29 @@ class SysrootExporter:
 
         if not self.dry_run:
             os.symlink(new_target, dst, target_is_directory=target_is_directory)
+        if target_is_directory:
+            # Later linker-script inputs may use this directory alias.
+            self.exported_dirs.add(dst)
 
         self.stats.symlinks += 1
 
-    def export_symlink_copy(self, src_rel: str, dst: Path, required: bool = False) -> None:
+    def export_symlink_copy(self, src_rel: str, dst: Path) -> None:
         resolved_rel = self.resolve_sysroot_rel(src_rel)
 
         if resolved_rel == src_rel:
             raise ExportError(f"internal error resolving symlink: {src_rel}")
 
         resolved_src = self.src_path(resolved_rel)
+        if (resolved_src.is_dir() and src_rel in self.LIBRARY_ROOTS
+                and resolved_rel in self.LIBRARY_ROOTS):
+            self.log(f"SKIP  {src_rel} => {resolved_rel} (library directory alias)")
+            return
         self.log(f"LINK* {src_rel} => {resolved_rel}")
 
         self.stats.links_materialized += 1
-        self.export_resolved_source(resolved_rel, resolved_src, dst,
-                                    required=required or self.whole_tree(src_rel)
-                                    or not self.should_export(resolved_rel, resolved_src.is_dir()))
+        self.export_resolved_source(resolved_rel, resolved_src, dst)
 
-    def export_resolved_source(self, src_rel: str, src: Path, dst: Path,
-                               required: bool = False) -> None:
+    def export_resolved_source(self, src_rel: str, src: Path, dst: Path) -> None:
         """
         Export a source path that is expected not to be a final symlink.
         """
@@ -374,15 +433,14 @@ class SysrootExporter:
             if self.link_mode == "relative":
                 self.export_symlink_relative(src_rel, src, dst)
             else:
-                self.export_symlink_copy(src_rel, dst, required=required)
+                self.export_symlink_copy(src_rel, dst)
             return
 
         if stat.S_ISDIR(st.st_mode):
             if src_rel in self.active_dirs:
                 raise ExportError(f"directory symlink cycle while exporting {src_rel!r}")
             self.active_dirs.add(src_rel)
-            self.ensure_dir(dst)
-            self.stats.dirs += 1
+            self.library_dirs.add(src_rel)
 
             with os.scandir(src) as it:
                 entries = sorted(it, key=lambda e: e.name)
@@ -394,9 +452,10 @@ class SysrootExporter:
                     else f"{src_rel}/{entry.name}"
                 )
                 child_dst = dst / entry.name
-                self.export_entry(child_rel, child_dst, required=required)
+                self.export_entry(child_rel, child_dst)
 
-            self.copy_metadata(src, dst)
+            if dst in self.exported_dirs:
+                self.copy_metadata(src, dst)
             self.active_dirs.remove(src_rel)
             return
 
@@ -411,39 +470,35 @@ class SysrootExporter:
         )
 
     def export_entry(self, src_rel: str, dst: Path, required: bool = False) -> None:
-        required = required or self.whole_tree(src_rel)
-        # A header-directory link may require files omitted during an earlier
-        # library-only traversal of the same directory.
-        if dst in self.exported and (self.exported[dst] or not required):
+        if dst in self.exported:
             return
+        dst_rel = dst.relative_to(self.dstroot).as_posix()
         src = self.src_path(src_rel)
         st = os.lstat(src)
         is_dir = stat.S_ISDIR(st.st_mode)
         if stat.S_ISLNK(st.st_mode):
             # Only inspect directory links that can contain development files.
             # Runtime links such as usr/lib/ssl/private must never be followed.
-            if not required and not self.should_export(src_rel, True):
+            if not required and not self.should_export(dst_rel, True):
                 return
             try:
                 is_dir = self.src_path(self.resolve_sysroot_rel(src_rel)).is_dir()
             except ExportError:
                 is_dir = False
-        if not required and not self.should_export(src_rel, is_dir):
+        if not required and not self.should_export(dst_rel, is_dir):
             return
-        self.exported[dst] = required or not is_dir
+        self.exported.add(dst)
 
         if stat.S_ISLNK(st.st_mode):
             if self.link_mode == "relative":
                 self.export_symlink_relative(src_rel, src, dst)
             else:
-                self.export_symlink_copy(src_rel, dst, required=required)
+                self.export_symlink_copy(src_rel, dst)
             return
 
-        self.export_resolved_source(src_rel, src, dst, required=required)
+        self.export_resolved_source(src_rel, src, dst)
 
     def export(self) -> None:
-        self.ensure_dir(self.dstroot)
-
         # Export root contents, rather than counting root itself as a copied
         # directory in logs.
         with os.scandir(self.srcroot) as it:
@@ -452,6 +507,11 @@ class SysrootExporter:
         for entry in entries:
             rel = entry.name
             self.export_entry(rel, self.dstroot / entry.name)
+
+        # Dependencies can live in library directories visited after a script.
+        # The list may grow when one linker script includes another.
+        for src, dst in self.linker_scripts:
+            self.export_script_inputs(src, dst)
 
 
 def clear_destination(dstroot: Path, dry_run: bool) -> None:
@@ -488,9 +548,9 @@ def is_within(path: Path, parent: Path) -> bool:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description=(
-            "Export only Linux cross-compilation development files (headers, "
-            "libraries, startup objects, linker scripts, and build metadata), "
-            "handling Linux absolute symlinks correctly."
+            "Export only DQ linker inputs: unversioned libraries, startup objects, "
+            "and linker scripts. Omit headers, build metadata, and numbered library "
+            "copies, except files explicitly required by linker scripts."
         )
     )
     p.add_argument("source", help="Linux sysroot directory")
@@ -498,10 +558,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--link-mode",
         choices=("copy", "relative"),
-        default="relative",
+        default="copy",
         help=(
-            "relative (default): preserve symlinks with relocatable relative targets; "
-            "copy: materialize symlink targets for filesystems without usable symlinks"
+            "copy (default): materialize symlink targets for NTFS/Windows; "
+            "relative: preserve symlinks with relocatable relative targets"
         ),
     )
     p.add_argument(

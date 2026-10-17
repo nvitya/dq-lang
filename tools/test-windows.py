@@ -42,7 +42,9 @@ class WindowsTests:
         if self.cases.exists():
             shutil.rmtree(self.cases)
         shutil.copytree(self.root / "autotest" / "cross-windows", self.cases)
-        for source in ("autotest/tests/stdpkg/threads.dq", "autotest/tests/stdpkg/msgchannel.dq",
+        for source in ("autotest/tests/exceptions/sigsegv_catch.dq",
+                       "autotest/tests/exceptions/sigsegv_top_level.dq",
+                       "autotest/tests/stdpkg/threads.dq", "autotest/tests/stdpkg/msgchannel.dq",
                        "stdpkg/threads/examples/wait_test.dq", "stdpkg/threads/examples/stress_test.dq",
                        "stdpkg/threads/examples/work_distribution.dq"):
             shutil.copy2(self.root / source, self.cases)
@@ -121,6 +123,23 @@ class WindowsTests:
         self.execute("uncaught.exe", expected=255,
                      contains=("UNCAUGHT EXCEPTION:", "windows-uncaught", "Backtrace ="))
         print("PASS O0/O1 execution, C ABI, strings, objects and exceptions", flush=True)
+
+        # Fault recovery is checked at O0; optimization limitations and tested
+        # platforms are documented in exceptions-and-backtraces.md.
+        self.compile("sigsegv_catch.dq", "-g", "-O0")
+        self.execute("sigsegv_catch.exe", contains=(
+            "sigsegv.memory = 1", "sigsegv.write = ESegFault 7", "sigsegv.finally = ran",
+            "sigsegv.after = 1", "sigsegv.float = ESegFault", "sigsegv.read = ESegFault",
+            "sigsegv.cleanup = 2", "sigsegv.callee = ESegFault", "sigsegv.nested.finally = ran",
+            "sigsegv.nested = ESegFault", "sigsegv.protected = ESegFault",
+            "sigsegv.return.finally = ran", "sigsegv.return = 42", "sigsegv.after.return = caught"))
+        self.compile("sigsegv_top_level.dq", "-g", "-O0")
+        output = self.execute("sigsegv_top_level.exe", expected=255, contains=(
+            "sigsegv.before = 1", "UNCAUGHT EXCEPTION: ESegFault: Segmentation fault",
+            "Backtrace =", "CauseSegv"))
+        if "sigsegv.after" in output:
+            raise RuntimeError("Execution continued after an uncaught access violation")
+        print("PASS local access-violation catches, cleanup, repeated faults and top-level reporting", flush=True)
 
         self.compile("smoke.dq", env=invalid, expected=1, contains=("DQ_MINGW_ROOT",))
         override = dict(invalid, DQ_LINKER_DRIVER=str(

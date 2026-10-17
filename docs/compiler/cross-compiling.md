@@ -240,7 +240,10 @@ The compiler sources now guard Linux-only backtrace support, use portable
 executable discovery, and provide a Windows implementation of the process
 runner and artifact locking. Application linking uses the bundled llvm-mingw
 toolchain, and hosted Windows programs use a minimal `rtl/rtl_windows.dq`
-runtime entry point. That runtime currently omits Linux-only SIGSEGV recovery.
+runtime entry point. On Windows x86-64, access violations are converted to
+catchable `ESegFault` exceptions through native SEH. Fault recovery is tested
+under Wine at `-O0`; see [Exceptions and Backtraces](../contributing/exceptions-and-backtraces.md)
+for implementation details and optimization limitations.
 
 ### Example: Building for aarch64
 

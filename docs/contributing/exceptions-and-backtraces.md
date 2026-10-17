@@ -43,8 +43,18 @@ backtrace, the handler advances its saved PC by a halfword so ARM EHABI's
 return-address lookup includes a fault at the start of an exception-table
 range. This adjustment runs only on the signal path.
 
-LLVM cannot attach unwind edges to ordinary loads and stores. On Linux
-with exceptions enabled, indirect memory accesses therefore use unwindable
+On Windows x86-64, a vectored exception handler converts access violations to
+`ESegFault` and propagates them through the native MinGW SEH unwinder. Local
+handlers and owned-scope cleanups run before control continues after `endtry`.
+The recursion guard is reset before throwing, allowing subsequent faults to
+be caught. A thin wrapper around the MinGW personality advances the faulting
+frame's lookup PC by one byte so its return-address lookup includes the faulting
+instruction at the start of an exception-table range. The original machine
+context and captured backtrace are preserved. Uncaught faults reach the hosted
+top-level exception reporter.
+
+LLVM cannot attach unwind edges to ordinary loads and stores. On Linux and
+Windows with exceptions enabled, indirect memory accesses therefore use unwindable
 inline assembly containing the corresponding memory instruction. This adds
 exception-table coverage without pointer checks, checkpoints, or helper calls
 on the normal path. Stack and global storage accesses retain ordinary LLVM
@@ -52,13 +62,19 @@ loads and stores. Aggregate accesses are lowered field by field. The unwind
 edges constrain optimizations around potentially faulting accesses, as they do
 for potentially throwing calls.
 
-Known limitation on x86-64: LLVM 21 and 22 can shrink-wrap an optimized leaf
+Known limitation on Linux x86-64: LLVM 21 and 22 can shrink-wrap an optimized leaf
 function's stack setup into its cleanup landing pad, placing the unwind entry
 after that setup.
 A SIGSEGV unwinding through such a function can therefore fail. Local signal
 handling is verified at `-O0` (including the `dq-run` default); optimized signal
 recovery is not yet reliable. No normal-path stack setup or checkpoints are
 added to work around this backend issue.
+
+Windows access-violation recovery is also verified at `-O0`, using Wine; native
+Windows execution and optimized fault recovery have not been validated. The
+opt-in `tools/test-windows.py` suite runs the shared local-fault and top-level
+fault tests, including reads, writes, repeated faults, cleanups, finally,
+non-nil protected memory, and normal scalar/aggregate accesses.
 
 ## Verification Areas
 

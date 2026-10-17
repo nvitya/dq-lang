@@ -58,7 +58,7 @@ class OSignalMemoryAccess
     }
     else
     {
-      throw logic_error("Unsupported Linux signal-memory target: " + g_opt.target.arch);
+      throw logic_error("Unsupported signal-memory target: " + g_opt.target.arch);
     }
     return instruction + " " + reg + ", " + memory;
   }
@@ -91,7 +91,7 @@ public:
     LlType * memory_type = is_bool ? ll_builder.getInt8Ty() : type;
     if (value && is_bool) value = ll_builder.CreateZExt(value, memory_type);
     const OInlineAsmTarget * target = InlineAsmTargetForArch(g_opt.target.arch);
-    if (!target) throw logic_error("Unsupported Linux signal-memory target: " + g_opt.target.arch);
+    if (!target) throw logic_error("Unsupported signal-memory target: " + g_opt.target.arch);
     string reg(target->RegisterConstraint(type->isFloatingPointTy()));
     string constraints = value ? "=*m," + reg : "=" + reg + ",*m";
     vector<LlValue *> args = {address};
@@ -128,7 +128,8 @@ public:
 
 void ODqCompCodegen::RecordSignalMemoryAccess(llvm::Instruction * inst)
 {
-  if (!ll_codegen_scope || !g_opt.exceptions || !g_opt.target.IsLinux()) return;
+  if (!ll_codegen_scope || !g_opt.exceptions
+      || !(g_opt.target.IsLinux() || g_opt.target.IsWindows())) return;
   LlValue * address = nullptr;
   if (auto * load = llvm::dyn_cast<llvm::LoadInst>(inst)) address = load->getPointerOperand();
   if (auto * store = llvm::dyn_cast<llvm::StoreInst>(inst)) address = store->getPointerOperand();

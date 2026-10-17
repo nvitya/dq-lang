@@ -1,4 +1,4 @@
-// Linux faults unwind through local handlers and owned scopes.
+// Linux and Windows faults unwind through local handlers and owned scopes.
 // Use -O0 for reliable cleanup coverage; LLVM 21's optimized leaf cleanup
 // limitation is documented in docs/contributing/exceptions-and-backtraces.md.
 
@@ -33,8 +33,13 @@ func ReturnFromTry() -> int:
     return 0
 endfunc
 
+#ifdef WINDOWS
+func VirtualAlloc(address : pointer, size : uint, allocation_type : uint32, protection : uint32) -> pointer [[external]] ..
+func VirtualFree(address : pointer, size : uint, free_type : uint32) -> int32 [[external]] ..
+#else
 func mmap(address : pointer, length : uint, prot : int32, flags : int32, fd : int32, offset : int) -> pointer [[external]] ..
 func munmap(address : pointer, length : uint) -> int32 [[external]] ..
+#endif
 
 struct SMemory:
     byte_value : uint8
@@ -66,7 +71,6 @@ func CheckMemory(p : ^SMemory) [[noinline]]:
 endfunc
 
 func *Main():
-  #ifdef LINUX
     var memory : SMemory = {}
     CheckMemory(%memory)
     var p : ^int = nil
@@ -120,15 +124,26 @@ func *Main():
         printf("sigsegv.nested = %s\n", TypeName(e)) //?check("sigsegv.nested", "ESegFault")
     endtry
 
-    // A mapped PROT_NONE page proves that this handles actual faults,
+    // A mapped inaccessible page proves that this handles actual faults,
     // including non-nil addresses, rather than checking pointers for nil.
+  #ifdef WINDOWS
+    var page : pointer = VirtualAlloc(nil, 4096, 0x3000, 1) // MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS
+  #else
     var page : pointer = mmap(nil, 4096, 0, 0x22, -1, 0)
+  #endif
+    if page == nil or page == pointer(-1):
+        raise Exception("Could not allocate protected page")
+    endif
     try:
         ^int(page)^ = 5
     except Exception as e:
         printf("sigsegv.protected = %s\n", TypeName(e)) //?check("sigsegv.protected", "ESegFault")
     endtry
+  #ifdef WINDOWS
+    VirtualFree(page, 0, 0x8000) // MEM_RELEASE
+  #else
     munmap(page, 4096)
+  #endif
 
     var value : int = ReturnFromTry()
     printf("sigsegv.return = %d\n", value) //?check("sigsegv.return", 42)
@@ -137,5 +152,4 @@ func *Main():
     except Exception:
         printf("sigsegv.after.return = caught\n") //?check("sigsegv.after.return", "caught")
     endtry
-  #endif
 endfunc

@@ -100,7 +100,7 @@ void ODqCompCodegen::EnsurePersonalityFn(LlFunction * func)
   }
 
   const char * personality_name = (g_opt.target.IsWindows()
-      ? "__gxx_personality_seh0" : "__gxx_personality_v0");
+      ? "DqWinPersonality" : "__gxx_personality_v0");
 
   llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction(personality_name,
       LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));

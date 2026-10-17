@@ -531,6 +531,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
     {
       if (string error = select_link_mode(DQC_LINK_FORCE, v); !error.empty()) return error;
     }
+    else if ("--static" == v) linker_args.push_back("-static");
     else if (v.starts_with("--linker-arg="))
     {
       string linker_arg = v.substr(13);
@@ -696,6 +697,7 @@ void OCompOptions::PrintUsage()
   print("  -o <file> : set output filename\n");
   print("  -c        : compile only (do not link)\n");
   print("  --link    : force linking even without a hosted Main function\n");
+  print("  --static  : link statically (same as --linker-arg=-static)\n");
   print("  --linker-arg=<arg> : pass one argument directly to the linker (repeatable)\n");
   print("  --ifgen   : generate module interface file (.dqm_if)\n");
   print("  --ifdump  : dump module interface artifact (.dqm_if)\n");

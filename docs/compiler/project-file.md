@@ -154,6 +154,7 @@ single-value properties are errors.
 | `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
 | `packagepath` | path string | repeatable | Add a DQ package search root. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
+| `static` | boolean | once, optional | Pass `-static` to the linker when `true`, equivalent to `--static` or `--linker-arg=-static`. Defaults to `false`, which adds no linker argument. |
 | `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; `wasm32-wasi` always disables and rejects enabling exceptions. |
 | `dynstrings` | boolean | once, optional | Enable or disable heap-backed dynamic strings. Defaults to enabled on hosted targets and disabled on bare targets. |
 | `compiler_runtime` | string | once, optional | Bare-target compiler support runtime: `libgcc` (default) or `none`. |
@@ -377,10 +378,10 @@ chain.
 
 ## Linker Argument Ordering
 
-`linkerpath`, `linkscript`, and `linkoption` produce linker arguments in their
-assembled project statement order. Included statements retain their position in
-that order. Command-line `--linker-arg=<arg>` entries follow all project linker
-arguments.
+`linkerpath`, `linkscript`, `linkoption`, and `static = true` produce linker
+arguments in their assembled project statement order. Included statements retain
+their position in that order. Command-line `--linker-arg=<arg>` and `--static`
+entries follow all project linker arguments.
 
 The compiler constructs linker inputs in this order:
 
@@ -415,7 +416,7 @@ explicit command-line selections are then applied on top.
 | Link mode | The first explicit `-c` or `--link` replaces the project mode. Conflicting subsequent command-line link modes are errors. |
 | Defines | The first command-line definition of a name removes the project definition of that name. |
 | Package roots | Command-line roots have higher lookup precedence than project and default roots. |
-| Linker arguments | Project arguments precede command-line `--linker-arg` entries. |
+| Linker arguments | Project arguments precede command-line `--linker-arg` and `--static` entries. |
 
 The project target is selected early enough to initialize target-dependent
 built-in types correctly. Imported child modules inherit the effective target,
@@ -459,7 +460,7 @@ statement     := property '=' property-value
                | 'include' string
 
 property      := 'main' | 'output' | 'target' | 'packagepath'
-               | 'link' | 'linkobject' | 'linkerpath' | 'linkoption'
+               | 'link' | 'static' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
                | 'exceptions' | 'dynstrings' | 'cpu_features'
 

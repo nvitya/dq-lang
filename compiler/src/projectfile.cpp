@@ -502,6 +502,12 @@ bool ODqProjectFile::ParseProperty(const string & name)
     if (!ReadBool(bvalue)) return false;
     g_opt.link_mode = (bvalue ? DQC_LINK_FORCE : DQC_LINK_COMPILE_ONLY);
   }
+  else if ("static" == name)
+  {
+    if (!CheckDuplicate(name)) return false;
+    if (!ReadBool(bvalue)) return false;
+    if (bvalue) g_opt.linker_args.push_back("-static");
+  }
   else if ("exceptions" == name)
   {
     if (!CheckDuplicate(name)) return false;

@@ -45,6 +45,7 @@ Useful options:
 | `-Dname=value` | define an integer or boolean symbol |
 | `-O0`..`-O3`, `-Os`, `-Oz` | optimization level |
 | `-g` | generate debug info |
+| `--static` | link statically; equivalent to `--linker-arg=-static` |
 | `-v`, `-vv`, `-vvv` | increasing compiler verbosity |
 | `-ir` | print generated LLVM IR |
 

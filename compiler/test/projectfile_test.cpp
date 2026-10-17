@@ -397,6 +397,7 @@ dynstrings = false
 compiler_runtime = 'libgcc'
 c_runtime = 'newlib-nano'
 link = true
+static = true
 optlevel = 2
 debuginfo = true
 define FEATURE
@@ -428,13 +429,29 @@ linkoption = '--gc-sections'
   Expect(g_opt.cmdline_defines.size() == 3, "included and local defines");
   Expect(g_opt.package_paths.size() == 1, "project package path");
   Expect(g_opt.link_objects.size() == 1, "link object");
-  Expect(g_opt.linker_args.size() == 3, "ordered linker arguments");
-  if (g_opt.linker_args.size() == 3)
+  Expect(g_opt.linker_args.size() == 4, "ordered linker arguments");
+  if (g_opt.linker_args.size() == 4)
   {
     Expect(g_opt.linker_args[0].starts_with("--library-path="), "linker path translation");
     Expect(g_opt.linker_args[1].starts_with("--script="), "linker script translation");
-    Expect(g_opt.linker_args[2] == "--gc-sections", "raw linker option");
+    Expect(g_opt.linker_args[2] == "-static", "static linking follows project statement order");
+    Expect(g_opt.linker_args[3] == "--gc-sections", "raw linker option");
   }
+
+  WriteFile(root / "dynamic.dqproj", "main='main.dq'\nstatic=false\n");
+  Expect(LoadProject(project, root / "dynamic.dqproj") && g_opt.linker_args.empty(),
+         "disabled static linking leaves linker arguments unchanged");
+  char static_arg0[] = "dq-comp";
+  char static_arg1[] = "--static";
+  char * static_argv[] = {static_arg0, static_arg1};
+  Expect(g_opt.ProcessCommandLineOpts(2, static_argv).empty()
+             && g_opt.linker_args == vector<string>{"-static"},
+         "command line static linking overrides project false");
+
+  WriteFile(root / "duplicate-static.dqproj", "main='main.dq'\nstatic=true\nstatic=false\n");
+  Expect(!LoadProject(project, root / "duplicate-static.dqproj")
+             && HasDiagnostic(project, "ProjectDuplicate"),
+         "duplicate static linking diagnostic");
 
   fs::create_directories(root / "project-packages" / "selected");
   fs::create_directories(root / "cli-packages" / "selected");

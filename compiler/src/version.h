@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.1"
+#define DQ_COMPILER_VERSION  "0.93.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.2:
+  - Fixed unsigned - unsigned to signed conversion with different operand widths
+  - improved examples/langdemo.dq
 v0.93.1:
   - Linux deployment: all the compiler parts, including the main binaries, are installed
     under /usr/local/lib/dq, symlinks for the executables are made in /usr/local/bin

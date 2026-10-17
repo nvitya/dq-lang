@@ -483,8 +483,7 @@ bool ODqCompAst::HarmonizeIntegerSubtractionOperands(OExpr ** rleft, OExpr ** rr
   }
 
   uint8_t bitlength = max(intl->bitlength, intr->bitlength);
-  bool result_signed = intl->issigned || intr->issigned;
-  OTypeInt * result_type = g_builtins->FindIntType(bitlength, result_signed);
+  OTypeInt * result_type = g_builtins->FindIntType(bitlength, true);
   if (!result_type)
   {
     return false;

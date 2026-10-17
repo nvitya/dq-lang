@@ -263,7 +263,7 @@ Then make sure the selected `bin` directory is on your `PATH`.
 Compile and run a single DQ file with the installed tools:
 
 ```bash
-dq-run examples/console/hello_libc.dq
+dq-run examples/langdemo.dq
 ```
 
 If you are working on your own file:

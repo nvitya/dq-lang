@@ -28,6 +28,8 @@ object OBase:
     endfunc
 
     func Print():
+        // The object method value-symbol scope is restricted to object members
+        // "@." (or "use *") is required to access the globals:
         @.PrintLn('{}: cnt1={}, cnt2={}', [name, cnt1, cnt2])
     endfunc
 endobject
@@ -41,10 +43,9 @@ endobject
 
 var obase   <- OBase('OBase')     // '<-' = embedded allocation (global data segment here)
                                    // no automatic destructor call for global embedded objects
-var ochild  : OChild = nil
-
 func ObjTest():
-    ochild = new OChild('OChild')
+    PrintLn('Object Test Begin')
+    var ochild = new autofree OChild('OChild')
 
     obase.Count()
     ochild.Count()
@@ -52,74 +53,87 @@ func ObjTest():
     obase.Print()
     ochild.Print()
 
-    PrintLn('ochild.name: {}', [iif(ochild == nil, "OChild is nil!", ochild.name)])
+    PrintLn('ochild.name: {}', [iif(ochild == nil, "ochild == nil!", ochild.name)])
 
-    delete ochild
-endfunc
+    ochild = new OChild('OChild2') // ochild is autofree type, previous object is destroyed !
 
-func embstr_add(dst : embstr, src : embstr):
-    var ps     : ^char = %src[0]
-    var psend  : ^char = ps[src.storage_size]  // [] does not dereference
-    var pd     : ^char = %dst[0]
-    var pdend  : ^char = pd + dst.storage_size - 1 // leave one char for the terminating
-    pd += Len(dst)
-    var pdstart : ^char = pd
+    PrintLn('ochild.name: {}', [iif(ochild == nil, "ochild == nil!", ochild.name)])
 
-    while pd < pdend  and ps < psend  and ps^ <> char(0):
-        pd^ = ps^
-        ++pd
-        ++ps
-    endwhile
-
-    if pd <> pdstart:
-        pd^ = char(0) // terminate
+    if true:
+        var embobj <- OChild('EmbChild') // allocated on stack
+        embobj.Print()
+        // destructor will be called automatically
     endif
-endfunc
 
-func putchar(c : char) -> int  [[external]] ..  // from libc
-
-func WriteStr(s : embstr):
-    var pc : ^char = s.pchar
-    if pc == nil:
-        return
+    if true:
+        var heapobj = new autofree OChild('HeapObj') // allocated on stack
+        heapobj.Print()
+        // heapobj will be freed automatically
     endif
-    while pc^ <> char(0):
-        putchar(pc^)
-        ++pc
-    endwhile
+
+    PrintLn('Object Test End')
+    // OChild2 is automatically destroyed here
 endfunc
 
 func *Main():
 
-    var s : embstr(128) = ""
-    embstr_add(s, "Hello")
-    embstr_add(s, " World!\n")
-    WriteStr(s)
+    var s : embstr(128) = ""  // embstr(n) is a fixed maximal storage string without heap usage
+                              // the storage for this string is allocated on the stack (128 bytes)
+                              // zero character terminated
+    s.Clear()
+    s.Add('Hello')
+    s.AddFmt(" {} {}, pi={}", ['World', "!", 3.14])
+    PrintLn(s)
 
-    if 3 / 2 * 10 == 10 * 3 / 2:
-        PrintLn('The language is friendly.')
+    if 3 / 2 == 1.5:
+        PrintLn('3 / 2 == 1.5')
     else:
-        PrintLn('The language is evil (like C).')
+        PrintLn('unfriendly division handling!')
+    endif
+
+    if uint32(3) - uint32(5) < 0:
+        PrintLn('substraction result is always signed')
+    else:
+        PrintLn('unfiendly unsigned handling!')
     endif
 
     if 3 div 2 * 10 == 10 * 3 div 2:
-        PrintLn('The language is very friendly.')
+        PrintLn('multiplications and divisons have different precedence.')
     else:
-        PrintLn('The language is not very friendly (like Pascal).')
+        PrintLn('div and * have the same precedence!')
     endif
+
 
     var x : int = 0xBEEF;
     x &= ~(0xF0F0)
     PrintLn('Bitwise op result: 0x{:04X}', [x])
 
+    ref xref = x
+    xref = 5
+    PrintLn('x (by ref) = {}', [x])
+    var xp :? = %x  // ? is for type inference
+    xp^ = 42
+    PrintLn('x (by ptr) = {}', [x])
+
+
     PrintLn("@langdemo_mod.CONST1 = {}", [CONST1])
     PrintLn("@langdemo_mod.CONST2 = {:.3f}", [@ldm.CONST2])  // CONST2 is not merged into the main scope,
                                                              // must be accessed with namespace qualification (@ldm.)
 
-    PrintLn("ochild.name: {}", [iif(ochild == nil, "OChild is nil!", ochild.name)])
+    var ds : str = 'This is a'
+    ds.Add(' dynamic string.')
+    var dpos : int = ds.IndexOf('dynamic')
+    PrintLn('ds = "{}", dynamic pos = {}', [ds, dpos])
+    ds.Insert(dpos, 'heap allocated ')
+    PrintLn('ds = "{}", ds[3:6]="{}", ds[:4]="{}"', [ds, ds[2:6], ds[:4]])
+    var ss : strslice = ds[$end - 5:]  // strslice is a borrowed string data pointer with length, without zero terminator
+                                       // the user is responsible not to invalidate (free or reallocate) the original
+                                       // during its strslice-es are used, recommended for function arguments
+    PrintLn('ds[$end-5:] = "{}"', [ ss ])
 
     ObjTest()
 
+    PrintLn('for .. to/count: ')
     for i : int = 0 to 5:
         Print(' {}:', [i])
         for j : int = 0  count i  step 2:
@@ -129,9 +143,15 @@ func *Main():
     endfor
 
     var arr : [?]int = [2, 3, 5, 7, 11]
-    Print('primes:')
+    Print('for .. while: ')
     for i : int = 0  while i < arr.length:
         Print(' {}', [ arr[i] ])
+    endfor
+    PrintLn()
+
+    Print('for .. in: ')
+    for v :? in arr:
+        Print(' {}', [ v ])
     endfor
     PrintLn()
 
@@ -139,22 +159,37 @@ endfunc
 
 /* OUTPUT:
 
-Hello World!
-The language is friendly.
+Hello World !, pi=3.14
+3 / 2 == 1.5
+substraction result is always signed
+multiplications and divisons have different precedence.
 Bitwise op result: 0x0E0F
+x (by ref) = 5
+x (by ptr) = 42
 @langdemo_mod.CONST1 = 42
 @langdemo_mod.CONST2 = 3.140
-ochild.name: OChild is nil!
+ds = "This is a dynamic string.", dynamic pos = 10
+ds = "This is a heap allocated dynamic string.", ds[3:6]="is i", ds[:4]="This"
+ds[$end-5:] = "ring."
+Object Test Begin
 OBase: cnt1=1, cnt2=10
 OChild: cnt1=1, cnt2=11
 ochild.name: OChild
 OChild destroy
+ochild.name: OChild2
+EmbChild: cnt1=0, cnt2=10
+EmbChild destroy
+HeapObj: cnt1=0, cnt2=10
+HeapObj destroy
+Object Test End
+OChild2 destroy
+for .. to/count:
  0:
  1: 0
  2: 0 2
  3: 0 2 4
  4: 0 2 4 6
  5: 0 2 4 6 8
-primes: 2 3 5 7 11
-
+for .. while:  2 3 5 7 11
+for .. in:  2 3 5 7 11
 */

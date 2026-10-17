@@ -96,18 +96,17 @@ calculation, store the intermediate in the desired narrow type at that point.
 ### Signed and unsigned operands
 
 Integer operands are converted to a common calculation width. Subtraction has
-an additional rule: if either operand is signed, its result is signed at the
-widest operand width. A bare whole-number literal is signed `int`, so unsigned
-subtraction with a literal can represent a negative result:
+an additional rule: its result is always signed at the widest operand width,
+even when both operands are unsigned:
 
 ```dq
 var available : uint = 3
-var remaining : int = available - 5 // -2
+var needed : uint = 5
+var remaining : int = available - needed // -2
 ```
 
-When intentionally relying on unsigned wraparound, use an unsigned operand of
-the appropriate width, for example a typed variable, rather than relying on a
-literal hint.
+Subtraction still wraps at its calculation width. Storing its result in an
+unsigned type interprets the low bits as an unsigned value.
 
 ### Division and shifts
 

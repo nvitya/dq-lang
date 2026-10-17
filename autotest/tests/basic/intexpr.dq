@@ -168,11 +168,7 @@ func *Main():
     printf("SizeOf(int32) = %d\n", SizeOf(int32))              //?check('SizeOf(int32)', 4)
     printf("SizeOf(embstr(12)) = %d\n", SizeOf(embstr(12)))  //?check('SizeOf(embstr(12))', 12)
 
-    // implicit uint -> int conversions at substractions
-
-    // uint - uint      -> unsigned result
-    // uint - int, int - uint       -> signed result
-    // uint - literal, literal - uint  -> signed result when the literal is not explicitly unsigned
+    // Integer subtraction always has a signed result at the widest operand width.
 
     var scuint  : uint = 3
     var scuint5 : uint = 5
@@ -184,7 +180,7 @@ func *Main():
     else:
         printf("scuint-scuint5 = negative\n")
     endif
-    //?check('scuint-scuint5', 'positive')
+    //?check('scuint-scuint5', 'negative')
 
     if scuint - 5 > 0:
         printf("scuint-5 = positive\n")
@@ -205,7 +201,7 @@ func *Main():
     else:
         printf("scuint-uint(5) = negative\n")
     endif
-    //?check('scuint-uint(5)', 'positive')
+    //?check('scuint-uint(5)', 'negative')
 
     if 3 - scuint5 > 0:
         printf("3-scuint5 = positive\n")
@@ -220,5 +216,39 @@ func *Main():
         printf("scsmall-scuint5 = negative\n")
     endif
     //?check('scsmall-scuint5', 'negative')
+
+    if uint32(3) - uint32(5) < 0:
+        printf("uint32(3)-uint32(5) = negative\n")
+    else:
+        printf("uint32(3)-uint32(5) = positive\n")
+    endif
+    //?check('uint32(3)-uint32(5)', 'negative')
+
+    var u8three : uint8 = 3
+    var u8five : uint8 = 5
+    var u16three : uint16 = 3
+    var u16five : uint16 = 5
+    var u32three : uint32 = 3
+    var u32five : uint32 = 5
+    var u64three : uint64 = 3
+    var u64five : uint64 = 5
+    printf("unsigned subtraction negative = %d,%d,%d,%d\n",
+        u8three - u8five < 0, u16three - u16five < 0,
+        u32three - u32five < 0, u64three - u64five < 0)
+    //?check('unsigned subtraction negative', '1,1,1,1')
+    printf("unsigned subtraction widened = %lld,%lld,%lld,%lld\n",
+        int64(u8three - u8five), int64(u16three - u16five),
+        int64(u32three - u32five), int64(u64three - u64five))
+    //?check('unsigned subtraction widened', '-2,-2,-2,-2')
+
+    var u8max : uint8 = 255
+    var u16next : uint16 = 256
+    printf("mixed unsigned subtraction = %d,%d,%d\n",
+        u8max - u16next, u16next - u8max, u16next - u16next)
+    //?check('mixed unsigned subtraction', '-1,1,0')
+
+    const folded_subtraction : int64 = uint32(3) - uint32(5)
+    printf("folded unsigned subtraction = %lld\n", folded_subtraction)
+    //?check('folded unsigned subtraction', -2)
 
 endfunc

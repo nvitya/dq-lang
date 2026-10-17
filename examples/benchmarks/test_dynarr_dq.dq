@@ -37,9 +37,17 @@ func CalcSumPtr() -> int64:
     result = 0
     var arrlen : int32  = darr.length
     var pi32   : ^int32 = %darr[0]
+  #if false
     for i : int = 0 count arrlen:
         result += pi32[i]^
     endfor
+  #else
+    var pi32end : ^int32 = pi32 + darr.length
+    while pi32 < pi32end:
+        result += pi32^
+        ++pi32
+    endwhile
+  #endif
 endfunc
 
 

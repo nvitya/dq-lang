@@ -1,11 +1,17 @@
 //?exitcode(0)
 
 use dqautotest
+use file
 
 var run <- OTestRun()
 
 func CheckTool(name : strslice):
-    run.RunTool([BinPath(name)])
+    var tool : str = BinPath(name)
+    if not FileExists(tool):
+        // Releases keep internal test tools beside the autotest data.
+        tool = SourcePath('../../bin/' + name)
+    endif
+    run.RunTool([tool])
     run.ExpectExitCode(0)
 endfunc
 

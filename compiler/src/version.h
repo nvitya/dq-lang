@@ -18,6 +18,8 @@
 v0.93.1:
   - Linux deployment: all the compiler parts, including the main binaries, are installed
     under /usr/local/lib/dq, symlinks for the executables are made in /usr/local/bin
+  - Autotest fixes for non-x64 architectures
+  - install.sh for the package releases
 v0.93.0:
   - New Feature: sub-functions with `subfn SubFunc(): ... endsubfn`
 v0.92.4:

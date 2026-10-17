@@ -1,3 +1,5 @@
+//?hostarch('x64')
+
 use libc/stdio
 
 func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:

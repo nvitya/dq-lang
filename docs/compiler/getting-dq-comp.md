@@ -73,6 +73,37 @@ dq-comp --version
 dq-run --help
 ```
 
+### Installing a Linux Release
+
+Both light and full Linux archives include `install.sh`. From the extracted
+archive, install system-wide with:
+
+```bash
+sudo ./install.sh
+dq-comp --version
+```
+
+The installer puts `dq-comp`, `dq-run`, and `dq-atrun` in
+`/usr/local/lib/dq/bin`, with relative symlinks in `/usr/local/bin`. It also
+installs `stdpkg`, `gcclibs`, and the bundled toolchain when present. Examples,
+documentation, autotests, and the VS Code extension remain in the archive.
+
+For an installation under your home directory:
+
+```bash
+./install.sh --prefix "$HOME/.local"
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Reinstalling replaces the shipped components and removes obsolete files, while
+preserving additional packages in `<prefix>/lib/dq/packages`. The light package
+continues to require the system compiler/linker and runtime dependencies.
+To prepare a filesystem tree for deployment without writing to the live prefix:
+
+```bash
+DESTDIR=/tmp/dq-root ./install.sh --prefix /usr/local
+```
+
 ## Building From Source
 
 Build from source when there is no release package for your platform, or when

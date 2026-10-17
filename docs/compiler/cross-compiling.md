@@ -185,7 +185,6 @@ It contains:
 - `bin/dq-comp.exe`
 - `bin/dq-run.exe`
 - `bin/dq-atrun.exe`
-- `bin/dq-pkg.exe`
 - the required llvm-mingw runtime DLLs
 - the Windows-hosted llvm-mingw linker SDK under `toolchain/llvm-mingw/`
 - `stdpkg/`
@@ -234,7 +233,6 @@ now build as Windows executables with the llvm-mingw toolchain:
 - `dq-comp.exe`
 - `dq-run.exe`
 - `dq-atrun.exe`
-- `dq-pkg.exe`
 
 The compiler sources now guard Linux-only backtrace support, use portable
 executable discovery, and provide a Windows implementation of the process
@@ -269,8 +267,15 @@ The repository provides these package targets:
 ```bash
 make -j"$(nproc)" package-linux-release
 make -j"$(nproc)" package-linux-full-release
+make -j"$(nproc)" package-arm64-linux
 make -j"$(nproc)" package-windows-release
 ```
+
+`package-arm64-linux` (alias `package-aarch64-linux`) cross-builds the tools using
+`cross-aarch64-linux` and creates `dist/dq-<version>-arm64-linux.tar.gz` without
+bundled LLVM tools. It accepts the same `CMAKE_EXTRA_ARGS`, including `LLVM_DIR`,
+as the cross-build target. The destination must provide the runtime dependencies
+and a compatible native Clang/linker.
 
 The compact Linux package omits bundled LLVM tools. The full Linux and Windows
 packages include the supported toolchain/runtime payload expected by their

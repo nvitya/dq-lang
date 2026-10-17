@@ -272,12 +272,14 @@ copy_vscode_extension() {
     done
 }
 
-require_file "$BUILD_DIR/dq-comp"
-require_file "$BUILD_DIR/dq-run"
-require_file "$BUILD_DIR/dq-atrun"
-require_file "$BUILD_DIR/dq-pkg"
+TOOLS=(dq-comp dq-run dq-atrun)
+TEST_TOOLS=(dq-inline-asm-test dq-projectfile-test)
+for tool in "${TOOLS[@]}" "${TEST_TOOLS[@]}"; do
+  require_file "$BUILD_DIR/$tool"
+done
 require_file "$ROOT_DIR/LICENSE"
 require_file "$ROOT_DIR/README.md"
+require_file "$ROOT_DIR/install.sh"
 require_file "$ROOT_DIR/tools/vscode-dq/dq-syntax-0.0.1.vsix"
 
 if [[ -e "$STAGE_PARENT" ]]; then
@@ -291,16 +293,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$STAGE/bin" "$OUT_DIR"
+mkdir -p "$STAGE/bin" "$STAGE/autotest/bin" "$OUT_DIR"
 
-cp -p "$BUILD_DIR/dq-comp" "$STAGE/bin/"
-cp -p "$BUILD_DIR/dq-run" "$STAGE/bin/"
-cp -p "$BUILD_DIR/dq-atrun" "$STAGE/bin/"
-cp -p "$BUILD_DIR/dq-pkg" "$STAGE/bin/"
+for tool in "${TOOLS[@]}"; do
+  cp -p "$BUILD_DIR/$tool" "$STAGE/bin/"
+done
+for tool in "${TEST_TOOLS[@]}"; do
+  cp -p "$BUILD_DIR/$tool" "$STAGE/autotest/bin/"
+done
 cp -p "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp -p "$ROOT_DIR/README.md" "$STAGE/README.md"
+install -m 755 "$ROOT_DIR/install.sh" "$STAGE/install.sh"
 
-copy_tracked_paths stdpkg gcclibs examples docs autotest/tests mkdocs.yml
+copy_tracked_paths stdpkg gcclibs examples docs autotest/tests autotest/packages \
+  compiler/test/project_linkobject.cpp mkdocs.yml
 copy_vscode_extension
 
 if [[ "$FULL_RELEASE" == "1" ]]; then
@@ -332,6 +338,24 @@ Quick start:
   2. Add the package bin directory to PATH, or run tools directly from bin/.
   3. Run:
        bin/dq-comp --version
+
+Install system-wide (optional):
+  sudo ./install.sh
+  dq-comp --version
+
+Install for the current user instead:
+  ./install.sh --prefix "\$HOME/.local"
+  Add \$HOME/.local/bin to PATH if needed.
+
+The installer uses <prefix>/lib/dq with relative command symlinks in <prefix>/bin.
+Run ./install.sh --help for staging and custom-prefix options.
+
+Autotests (run from this directory):
+  bin/dq-atrun --clean -c bin/dq-comp -r autotest/tests
+  Driver tests also need c++, nm, llvm-readobj, and wasm-objdump on PATH.
+  For versioned LLVM packages, add their bin directory to PATH.
+  The linklib test needs the zlib development library.
+  WASI tests require wasi-libc and the matching Clang wasm32 builtins.
 $(if [[ "$FULL_RELEASE" == "1" ]]; then cat <<'EOREADME'
 
 For the bundled LLVM/Clang toolchain environment:
@@ -341,17 +365,18 @@ EOREADME
 fi)
 
 Included:
-  bin/dq-comp
-  bin/dq-run
-  bin/dq-atrun
-  bin/dq-pkg
+  install.sh
+$(printf '  bin/%s\n' "${TOOLS[@]}")
 $(if [[ "$FULL_RELEASE" == "1" ]]; then printf "  toolchain/\n  dq-env.sh\n"; fi)
   stdpkg/
   gcclibs/
   examples/
   docs/
   VSCode/
+  autotest/bin/
+  autotest/packages/
   autotest/tests/
+  compiler/test/project_linkobject.cpp
 EOF
 
 (

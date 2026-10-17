@@ -1,3 +1,5 @@
+//?hostarch('x64')
+
 use libc/stdio
 
 func ConditionalAdd(value : int, value2 : int) -> int [[inline, asm]]:

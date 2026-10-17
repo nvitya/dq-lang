@@ -26,6 +26,7 @@ cleantest:
 	@$(MAKE) --no-print-directory -f $(CM_GENERATED_MAKEFILE) cleantest/fast
 
 .PHONY: cross-aarch64-linux cross-armhf-linux cross-rv64g-linux cross-x86_64-win package-x86_64-linux package-x86_64-linux-full package-x86_64-linux-full-release package-linux-release package-linux-full-release package-x86_64-win package-windows-release package-win-release
+.PHONY: package-arm64-linux package-aarch64-linux
 
 cross-aarch64-linux:
 	cmake -S . -B build-cross/aarch64-linux -DCMAKE_TOOLCHAIN_FILE=toolchains/aarch64-linux.cmake $(CMAKE_EXTRA_ARGS)
@@ -45,6 +46,13 @@ cross-x86_64-win:
 
 package-x86_64-linux: all
 	tools/package-linux-release.sh
+
+package-arm64-linux: cross-aarch64-linux
+	BUILD_DIR="$(CURDIR)/build-cross/aarch64-linux/bin" \
+	  DQ_LINUX_PACKAGE_ARCH=arm64 DQ_LINUX_PACKAGE_FULL=0 \
+	  tools/package-linux-release.sh
+
+package-aarch64-linux: package-arm64-linux
 
 package-x86_64-linux-full: all
 	DQ_LINUX_PACKAGE_FULL=1 \

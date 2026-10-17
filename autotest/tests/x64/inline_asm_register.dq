@@ -1,3 +1,5 @@
+//?hostarch('x64')
+
 use libc/stdio
 
 // Similar argument names ensure that $name substitution consumes a full name.

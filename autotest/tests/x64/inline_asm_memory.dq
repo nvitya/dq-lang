@@ -1,3 +1,5 @@
+//?hostarch('x64')
+
 use libc/stdio
 
 func Load32(address : ^int32) -> int32 [[inline, asm]]:

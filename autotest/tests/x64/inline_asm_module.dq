@@ -1,3 +1,5 @@
+//?hostarch('x64')
+
 use ./inline_asm_public
 use libc/stdio
 

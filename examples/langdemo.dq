@@ -11,8 +11,11 @@ const CONST2 : float = 3.14
 #endif
 
 object OBase:
+protected
     cnt1 : int = 0
     cnt2 : int = 10
+
+public
     name : embstr(32)
 
     func *Create(aname : embstr):  // constructor

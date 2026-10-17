@@ -364,7 +364,8 @@ bool ODqCompiler::BuildLinkArgs(const string & object_filename, const string & e
   }
   for (const string & linker_arg : g_opt.linker_args)
   {
-    rargs.push_back("-Xlinker");
+    // Clang must also see -static to select static startup files and runtimes.
+    if ("-static" != linker_arg) rargs.push_back("-Xlinker");
     rargs.push_back(linker_arg);
   }
   if ("newlib-nano" == c_runtime)

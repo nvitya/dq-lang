@@ -393,6 +393,8 @@ The compiler constructs linker inputs in this order:
 
 Each project or command-line linker argument is passed through the compiler
 driver as one linker argument before those positional inputs.
+`-static` is passed directly to the driver so it also selects static startup
+files and runtime libraries.
 
 Project parsing does not verify that linker objects, library paths, or linker
 scripts exist. Such errors are reported by the linker.

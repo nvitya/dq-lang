@@ -1,0 +1,41 @@
+//?exitcode(0)
+
+use dqautotest
+use file
+
+var run <- OTestRun()
+
+func CheckStatic(args : []rostr):
+    var binary : str = TempPath('.elf')
+    var command : [*]rostr = ['-o', binary]
+    for i : int = 0 count args.length:
+        command.Append(args[i])
+    endfor
+    run.RunCompiler(command)
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool(['readelf', '--program-headers', '--dynamic', binary])
+        run.ExpectExitCode(0)
+        run.ExpectOutputNotContains('INTERP')
+        run.ExpectOutputNotContains('DYNAMIC')
+        run.ExpectOutputNotContains('(NEEDED)')
+        run.RunTool([binary])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('Hello = World!')
+    endif
+    RemoveTemp(binary)
+endfunc
+
+func *Main():
+    var source : str = SourcePath('../basic/printf.dq')
+    CheckStatic(['--static', source])
+    CheckStatic(['--linker-arg=-static', source])
+
+    var project : str = TempPath('.dqproj')
+    var text : str
+    text.AddFmt("main = '{}'\nstatic = true\n", [source])
+    FileWriteText(project, text)
+    CheckStatic([project])
+    RemoveTemp(project)
+    exit_code = TestResult()
+endfunc

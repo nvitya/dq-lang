@@ -1,58 +1,68 @@
 # Windows Development Environment
 
-This guide sets up an x86_64 Windows machine for developing DQ applications
-with the Windows UCRT release package. DQ supplies the compiler and LLVM/MinGW
-toolchain; MSYS2 supplies optional native libraries such as SQLite and the
-MySQL-compatible MariaDB C client.
+In order to develop DQ applications on Windows you need the Windows version of the DQ compiler package.
+The DQ compiler translates DQ source code (.dq files) into executable machine code: .exe files on Windows.
 
-After setup, an application using SQLite can be built and run from a normal
-Windows Command Prompt with:
+## 1. Download and Extract the DQ Compiler
 
-```bat
-dq-run thdatasvr.dqproj
-```
+Download the **x86_64 Windows UCRT** archive from the [DQ releases page](https://github.com/nvitya/dq-lang/releases). Example file name: `dq-0.93.4-x86_64-windows-ucrt.zip`
 
-See [Using the DQ Compiler](using-dq-comp.md) for compiler options,
-[DQ Project Files](project-file.md) for project configuration, and
-[Attributes, Directives, and Interoperability](../reference/attributes-directives-and-interop.md)
-for the `#linklib` directive used by library bindings.
+Extract the complete archive into some local directory. Avoid directories with spaces, like "C:\Program Files" because the DQ compiler uses several external tools that might not handle the spaces in the path properly.
 
-## 1. Install DQ
+This guide uses `D:\PRG\dq` as the installation directory, but you can keep the original long directory name too, e.g. `D:\PRG\dq-0.93.4-x86_64-windows-ucrt`
 
-Download the **x86_64 Windows UCRT** archive from the
-[DQ releases page](https://github.com/nvitya/dq-lang/releases), and extract the
-complete archive. This guide uses `D:\PRG\dq` as the installation directory:
+## 2. Add the DQ Compiler to the PATH
 
-```text
-D:\PRG\dq\
-    bin\
-        dq-comp.exe
-        dq-run.exe
-        libc++.dll
-        libunwind.dll
-    toolchain\llvm-mingw\
-    stdpkg\
-    examples\
-```
-
-Keep the package directories together. The compiler finds its bundled
-toolchain relative to its installation; only `D:\PRG\dq\bin` needs to be on
-`PATH`. Visual Studio Build Tools and a
-separate GCC installation are not required to compile DQ applications with
-this package.
-
-For the current Command Prompt window, add the DQ tools:
-
+The next step is to add the `D:\PRG\dq\bin` directory to the `PATH` variable. This can be done temporarily from command line with this command:
 ```bat
 set "PATH=D:\PRG\dq\bin;%PATH%"
+```
+But it is recommended to make it permanent using the environment variable editor in Windows.
+
+1. Search the Start menu for **Edit environment variables for your account**.
+2. Under **User variables**, edit **Path** and add a `PATH` directory in the table above.
+
+After the path setup the newly opened command line windows should have the updated path settings.
+Test the DQ compiler accessibility from the command line:
+```
 dq-comp --version
 ```
+The response should be just the compiler version number, like `0.93.4`.
 
-Alternatively, run `D:\PRG\dq\dq-env.cmd` from Command Prompt to prepare the
-DQ tools for that window. The release script sets up DQ itself; configure the
-MSYS2 library directories separately as described below.
+Now your system is ready to compile and run basic DQ programs (that don't require external libraries).
 
-## 2. Install MSYS2 and SQLite
+## 3. Setup VSCode with DQ Extension
+
+For productive development you need an advanced source code editor with DQ programming language support.
+The DQ release package contains an extension file for Visual Studio Code (VSCode for short).
+
+If you don't have VSCode installed, download and install first from [https://code.visualstudio.com/download](https://code.visualstudio.com/download).
+
+Start VSCode, press `CTRL+SHIFT+P` and select/search for **Extensions: Install from VSIX...**.
+Then browse for the `D:\PRG\dq\VSCode\dq-syntax-0.1.4.vsix` (or higher version number).
+
+Restart the VSCode so the DQ extension gets fully working.
+
+### Run DQ Examples from VSCode
+
+Start VSCode and open the `D:\PRG\dq\examples` folder using `File/Open Folder...`.
+Open (double-click) on `langdemo.dq`. The file should appear syntax-highlighted.
+
+At the right top corner there is a small "Play" (triangle) symbol with the tooltip "Run Current File". Click on that, and the output of the `langdemo.dq` should appear.
+
+(Note: the "Run Current File" just executes `dq-run langdemo.dq`)
+
+### Debugging DQ Programs from VSCode
+
+To run DQ programs with breakpoints, stepping and variable inspections you need to set up the project for DQ debugging. See the ["Debugging DQ programs in VS Code on Windows"](windows-debugging.md) page for the setup details.
+
+## 4. Adding External Libraries using MSYS2
+
+Some programs require external libraries, like SQLite3, or MySQL/MariaDB. These libraries are not bundled with the DQ compiler release package.
+
+The recommended way is to get windows versions of these open-source libraries through MSYS2.
+
+### Install MSYS2 with SQLite and MySQL
 
 Install [MSYS2](https://www.msys2.org/) using its x86_64 installer. The examples
 use the default directory, `C:\msys64`.
@@ -86,137 +96,7 @@ includes:
 | `C:\msys64\ucrt64\lib\libsqlite3.a` | Static SQLite library |
 | `C:\msys64\ucrt64\bin\sqlite3.exe` | Command-line database tool |
 
-MSYS2 is used to install and update dependencies. Normal DQ development can
-continue in Windows Command Prompt, PowerShell, or VS Code.
-
-## 3. Configure the Windows environment
-
-Two environment variables are needed when using the MSYS2 libraries:
-
-| Variable | Directory | Purpose |
-| --- | --- | --- |
-| `PATH` | `D:\PRG\dq\bin` | Find DQ commands and DQ runtime DLLs |
-| `PATH` | `C:\msys64\ucrt64\bin` | Find third-party runtime DLLs and tools |
-| `LIBRARY_PATH` | `C:\msys64\ucrt64\lib` | Find third-party libraries during linking |
-
-`PATH` and `LIBRARY_PATH` have different jobs. Adding the DLL directory to
-`PATH` does not add the library directory to the linker search path. DQ's
-bundled Clang driver honors `LIBRARY_PATH`; no additional DQ compiler option
-or machine-specific project setting is needed.
-
-### Configure the current Command Prompt
-
-Run these commands in **Windows Command Prompt (`cmd.exe`)**:
-
-```bat
-set "PATH=D:\PRG\dq\bin;%PATH%;C:\msys64\ucrt64\bin"
-set "LIBRARY_PATH=C:\msys64\ucrt64\lib"
-```
-
-The second command assumes a fresh setup. If `LIBRARY_PATH` already contains
-directories needed by other projects, preserve them and add the MSYS2
-directory, separated by a semicolon. Enter paths without surrounding quotes
-inside either variable's value; the quotes in `set "NAME=value"` are command
-syntax.
-
-These commands affect only the current window and programs started from it.
-Replace the example paths if DQ or MSYS2 is installed elsewhere.
-
-### Save the settings permanently
-
-1. Search the Start menu for **Edit environment variables for your account**.
-2. Under **User variables**, edit **Path** and add the two `PATH` directories
-   in the table above. Keep the DQ entry ahead of the MSYS2 entry when
-   arranging these entries.
-3. Create a user variable named **LIBRARY_PATH** with the value
-   `C:\msys64\ucrt64\lib`. If it already exists, add this directory to its
-   semicolon-separated list while preserving the existing directories.
-4. Confirm the dialogs and open a new terminal. Completely close and reopen
-   VS Code if it was already running, so its terminals, build tasks, and
-   debugger inherit the new settings.
-
-For a new `LIBRARY_PATH` variable, Command Prompt also supports:
-
-```bat
-setx LIBRARY_PATH "C:\msys64\ucrt64\lib"
-```
-
-This replaces any existing user value and takes effect in future terminals.
-Use the environment-variable editor for permanent `Path` changes:
-[`setx`](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/setx)
-can truncate long values and expand embedded variable references.
-
-Only the MSYS2 `ucrt64\bin` directory is needed on the Windows `PATH` for these
-dependencies. Leave `C:\msys64\usr\bin` out of this setup; it contains tools
-for the MSYS2 shell environment.
-
-### PowerShell equivalent for the current window
-
-```powershell
-$env:Path = 'D:\PRG\dq\bin;' + $env:Path + ';C:\msys64\ucrt64\bin'
-$env:LIBRARY_PATH = 'C:\msys64\ucrt64\lib'
-```
-
-As with the Command Prompt example, preserve an existing `LIBRARY_PATH` value
-when adding this directory to a shared development environment.
-
-## 4. Verify SQLite development
-
-In a new **Windows Command Prompt**, check the tools and library files:
-
-```bat
-where dq-run
-where dq-comp
-where sqlite3
-echo %LIBRARY_PATH%
-dir C:\msys64\ucrt64\lib\libsqlite3.dll.a
-dq-comp --version
-sqlite3 --version
-```
-
-Create `sqlite_smoke.dq` in a writable working directory:
-
-```dq
-use db, sqlite3, print
-
-func *Main():
-    var conn <- OSqlite3Connection()
-    conn.filename = ':memory:'
-    conn.Open()
-    conn.Execute('create table smoke (value integer)')
-    conn.Execute('insert into smoke (value) values (42)')
-    PrintLn('Rows inserted: {}', [conn.Changes()])
-    conn.Close()
-endfunc
-```
-
-Build and run it:
-
-```bat
-dq-run sqlite_smoke.dq
-```
-
-Expected application output:
-
-```text
-Rows inserted: 1
-```
-
-This exercises compilation, linking, DLL loading, and a database operation
-without creating a database file. Existing projects can now run with their
-normal command, for example:
-
-```bat
-dq-run thdatasvr.dqproj
-```
-
-Run the command from the application's working directory if it uses relative
-paths for databases, configuration, or web content. For VS Code debugging,
-continue with [Windows Debugging](windows-debugging.md).
-
-## 5. Add the MySQL-compatible client library
-
-When needed, install the MariaDB C client in **MSYS2 UCRT64**:
+Install the MariaDB C client in **MSYS2 UCRT64**:
 
 ```sh
 pacman -S --needed mingw-w64-ucrt-x86_64-libmariadbclient
@@ -225,26 +105,95 @@ pacman -S --needed mingw-w64-ucrt-x86_64-libmariadbclient
 The [client package](https://packages.msys2.org/packages/mingw-w64-ucrt-x86_64-libmariadbclient)
 provides `ucrt64\lib\libmysqlclient.dll.a` for bindings that request
 `#linklib('mysqlclient')`, and `ucrt64\bin\libmariadb.dll` at runtime. Pacman
-also installs the package's dependencies. The same `PATH` and `LIBRARY_PATH`
-settings cover these directories.
+also installs the package's dependencies.
 
-This installs a client library, not a database server. Use an existing server,
-or install and configure a local MySQL or MariaDB server separately.
+### Add MSYS2 directories to PATH and LIBRARY_PATH
 
-Installing the client library does not establish that a DQ binding supports
-Win64 correctly. The current `stdpkg/mysql/mysql.dq` declarations for C
-`unsigned long` fields and arrays still need a Windows ABI review, including
-`MYSQL_FIELD` and `mysql_fetch_lengths()`. C `unsigned long` is 32 bits on
-Win64. Validate the binding with real query results before relying on it;
-the SQLite smoke test above does not validate MySQL support.
+Two environment variables are needed when using the MSYS2 libraries:
 
-## Troubleshooting
+| Variable | Directory | Purpose |
+| --- | --- | --- |
+| `PATH` | `C:\msys64\mingw64\bin` | Find the runtime DLLs during application execution |
+| `LIBRARY_PATH` | `C:\msys64\ucrt64\lib` | Find third-party libraries for DQ program linking |
 
-### `dq-run` is not recognized
+1. Search the Start menu for **Edit environment variables for your account**.
+2. Under **User variables**, edit **Path** and add the `PATH` directory `C:\msys64\mingw64\bin`
+3. Create a user variable named **LIBRARY_PATH** with the value
+   `C:\msys64\ucrt64\lib`. If it already exists, add this directory to its
+   semicolon-separated list while preserving the existing directories.
+4. Confirm the dialogs and open a new terminal. Completely close and reopen
+   VS Code if it was already running, so its terminals, build tasks, and
+   debugger inherit the new settings.
 
-Check `where dq-run`. Add the DQ `bin` directory to `PATH` and open a new
-terminal. If multiple DQ installations are listed, ensure the intended one
-appears first.
+
+### Verify SQLite development
+
+From command line:
+
+Open a terminal and navigate to `D:\PRG\dq`. Then execute the following command:
+```
+dq-run stdpkg\sqlite3\examples\sqlite_test.dq
+```
+
+With VSCode:
+
+Open the folder `D:\PRG\dq`. Browse the file `stdpkg\sqlite3\examples\sqlite_test.dq`.
+Run the file with the icon at the top-right corner ("Run Current File").
+
+
+## 5. Running the Compiled Executables on Other Computers
+
+However the .exe file produced by dq-comp is running fine on your developer Windows environment, other Windows computer probably won't have this setup. In order to run the compiled executable you need to supply the dlls that it requires to run. Two .dll-s are required for every DQ program (which is available at `D:\PRG\dq\bin`):
+
+ * libc++.dll
+ * libunwind.dll
+
+Further third-party libraries might be required from the MSYS2 like
+
+ * libsqlite3-0.dll
+
+Which can be found at `C:\msys64\mingw64\bin`.
+
+The bundled toolchain can list an executable's imported DLLs:
+
+```bat
+"D:\PRG\dq\toolchain\llvm-mingw\bin\llvm-readobj.exe" --coff-imports sqlite_test.exe
+```
+
+For a build linked to the SQLite DLL, put the required runtime
+DLLs beside the executable, preserving their names:
+
+```text
+MyApp\
+    myapp.exe
+    libsqlite3-0.dll
+    libc++.dll
+    libunwind.dll
+    licenses.txt
+    www\
+        ...web content...
+    data\
+        some_data.db
+```
+
+Note: Include the applicable third-party license notices with the distribution.
+
+### Static Linking
+
+Sometimes also possible to create a larger .exe file that does not need that much external dll files by "static linking". This way the .exe file will contain these third-party libraries.
+
+You can instruct the DQ compiler for static liking with the `--static` command line option:
+
+```
+dq-comp --static stdpkg\sqlite3\examples\sqlite_test.dq
+```
+
+Notes:
+  * The executable is significantly bigger this way
+  * Static linking might not be possible for every third-party library
+  * Static linking might be not allowed (or not for free) by third-party library license
+
+## 6. Troubleshooting
 
 ### `lld: error: unable to find library -lsqlite3`
 
@@ -259,7 +208,7 @@ If the file exists, set `LIBRARY_PATH` in the same terminal that runs DQ:
 
 ```bat
 set "LIBRARY_PATH=C:\msys64\ucrt64\lib"
-dq-run thdatasvr.dqproj
+dq-run stdpkg\sqlite3\examples\sqlite_test.dq
 ```
 
 If the file is missing, install the UCRT64 SQLite package. Installing only
@@ -269,7 +218,7 @@ linker's search directory.
 For a one-command diagnosis, an explicit search path is also supported:
 
 ```bat
-dq-run --linker-arg=-LC:/msys64/ucrt64/lib thdatasvr.dqproj
+dq-run --linker-arg=-LC:/msys64/ucrt64/lib stdpkg\sqlite3\examples\sqlite_test.dq
 ```
 
 Use `LIBRARY_PATH` for normal machine setup so projects remain independent of
@@ -277,7 +226,7 @@ the local installation directory.
 
 ### A DLL is missing when the program starts
 
-Check `where libsqlite3-0.dll` and the MSYS2 `ucrt64\bin` entry in `PATH`.
+Check `where libsqlite3-0.dll` and the MSYS2 `c:\msys64\mingw64\bin` entry in `PATH`.
 For missing `libc++.dll` or `libunwind.dll`, check the DQ `bin` entry.
 After changing persistent environment settings, restart the terminal or IDE
 that launches the program.
@@ -287,72 +236,3 @@ that launches the program.
 Use the x86_64 Windows UCRT DQ package with MSYS2 UCRT64 libraries. Libraries
 from MSYS2's MSYS environment, a different CPU architecture, or Linux/WSL
 cannot substitute for those libraries.
-
-## Deploy an application
-
-Build an executable for distribution with `dq-comp`, for example:
-
-```bat
-dq-comp thdatasvr.dqproj
-```
-
-End users run the resulting executable directly. They do not need DQ or MSYS2
-installed. For a build linked to the SQLite DLL, put the required runtime
-DLLs beside the executable, preserving their names:
-
-```text
-MyApp\
-    thdatasvr.exe
-    libsqlite3-0.dll
-    libc++.dll
-    libunwind.dll
-    start.cmd
-    www\
-        ...web content...
-    data\
-        terrace_data.db
-```
-
-Copy SQLite's DLL from `C:\msys64\ucrt64\bin`, and DQ's runtime DLLs from
-`D:\PRG\dq\bin`. This is the dependency set observed for the SQLite data
-server build; inspect each application's dependencies when packaging it.
-The headers, `.a` import libraries, and `sqlite3.exe` are development tools
-and do not belong in a normal runtime package.
-
-The bundled toolchain can list an executable's imported DLLs:
-
-```bat
-"D:\PRG\dq\toolchain\llvm-mingw\bin\llvm-readobj.exe" --coff-imports thdatasvr.exe
-```
-
-Inspect each non-system DLL's imports as well, and include its required
-non-system dependencies. Keep the DLL versions used to test the release.
-MySQL client deployments can also require authentication plugins and TLS
-configuration or certificate files that are loaded at runtime.
-
-Windows searches the executable's directory for ordinary application DLLs,
-so an application-local bundle needs no user `PATH` changes. See
-[DLL search order](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order)
-for the Windows loading rules. Windows supplies system libraries and the
-Universal C Runtime on supported Windows 10/11 installations.
-
-For applications that use relative paths, a `start.cmd` can select the correct
-working directory:
-
-```bat
-@echo off
-cd /d "%~dp0"
-thdatasvr.exe %*
-```
-
-For a portable application that writes to `data`, extract the package into a
-writable folder. An application installed under `Program Files` should store
-its writable database in an appropriate user or application-data directory.
-Supply a fresh initialized database, or initialize its schema on first run;
-preserve the user's database during upgrades. Use SQLite's backup facilities
-when taking a deployment copy of a database that is in use.
-
-Include the applicable third-party license notices with the distribution.
-Finally, test the complete package on a clean Windows machine or VM without
-DQ or MSYS2 installed. This detects dependencies that your development
-machine's environment might otherwise supply.

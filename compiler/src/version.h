@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.4"
+#define DQ_COMPILER_VERSION  "0.93.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.5:
+  - --static linking fix for linux
 v0.93.4:
   - --static dq-comp option for static linking
 v0.93.3:

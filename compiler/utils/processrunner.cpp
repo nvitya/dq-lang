@@ -432,7 +432,8 @@ string OProcessRunner::BuildCmdLine()
   return s;
 }
 
-bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text, const string & aworkdir)
+bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text,
+                           const string & aworkdir, const vector<pair<string, string>> & env_overrides)
 {
   aexit_code = -1;
   if (astderr_text)
@@ -457,8 +458,11 @@ bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, strin
   string cmd = BuildWindowsCommandLine(aargs);
   wstring wcmd = Utf8ToWide(cmd);
   wstring wworkdir = Utf8ToWide(aworkdir);
+  wstring wenvironment = BuildWindowsEnvironment(env_overrides);
 
-  BOOL created = CreateProcessW(nullptr, wcmd.data(), nullptr, nullptr, TRUE, 0, nullptr,
+  DWORD creation_flags = wenvironment.empty() ? 0 : CREATE_UNICODE_ENVIRONMENT;
+  void * environment = wenvironment.empty() ? nullptr : wenvironment.data();
+  BOOL created = CreateProcessW(nullptr, wcmd.data(), nullptr, nullptr, TRUE, creation_flags, environment,
                                 aworkdir.empty() ? nullptr : wworkdir.c_str(), &si, &pi);
   if (!created)
   {
@@ -900,7 +904,8 @@ string OProcessRunner::BuildCmdLine()
   return s;
 }
 
-bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text, const string & aworkdir)
+bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text,
+                           const string & aworkdir, const vector<pair<string, string>> & env_overrides)
 {
   aexit_code = -1;
   if (astderr_text)
@@ -941,6 +946,16 @@ bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, strin
   if (0 == pid)
   {
     CloseFd(execerrpipe[0]);
+
+    for (const auto & [name, value] : env_overrides)
+    {
+      if (setenv(name.c_str(), value.c_str(), 1) < 0)
+      {
+        SExecErrorInfo errinfo { PROCRUNERR_SETUP, errno };
+        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
+        _exit(127);
+      }
+    }
 
     if (!aworkdir.empty())
     {

@@ -58,4 +58,6 @@ protected:
   string BuildCmdLine();
 };
 
-bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, string * astderr_text = nullptr, const string & aworkdir = "");
+bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code,
+                           string * astderr_text = nullptr, const string & aworkdir = "",
+                           const vector<pair<string, string>> & env_overrides = {});

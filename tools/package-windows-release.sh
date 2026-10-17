@@ -83,6 +83,7 @@ install_windows_toolchain() {
   fi
 
   require_file "$dst/bin/clang.exe"
+  require_file "$dst/bin/clang++.exe"
   require_file "$dst/bin/clang-21.exe"
   require_file "$dst/bin/ld.lld.exe"
   require_file "$dst/lib/clang/21/lib/windows/libclang_rt.builtins-x86_64.a"
@@ -140,10 +141,10 @@ cp "$ROOT_DIR/docs/reference/modules-and-packages.md" "$STAGE/doc/"
 cat > "$STAGE/dq-env.cmd" <<'EOF'
 @echo off
 set "DQ_ROOT=%~dp0"
-set "PATH=%DQ_ROOT%bin;%DQ_ROOT%toolchain\llvm-mingw\bin;%PATH%"
+set "PATH=%DQ_ROOT%bin;%PATH%"
 echo DQ environment ready.
 echo   dq-comp: %DQ_ROOT%bin\dq-comp.exe
-echo   clang:   %DQ_ROOT%toolchain\llvm-mingw\bin\clang.exe
+echo   clang++: %DQ_ROOT%toolchain\llvm-mingw\bin\clang++.exe
 EOF
 
 cat > "$STAGE/README-WINDOWS.txt" <<EOF
@@ -155,6 +156,9 @@ Quick start:
   3. Run:
        dq-env.cmd
        dq-comp --version
+
+  For permanent setup, add only the extracted bin directory to PATH.
+  Keep the package directories together so dq-comp can find its toolchain.
 
 Included:
   bin/dq-comp.exe
@@ -171,7 +175,10 @@ Included:
 
 Linking:
   dq-comp links application executables with:
-    toolchain\llvm-mingw\bin\clang.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
+    toolchain\llvm-mingw\bin\clang++.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
+
+  The bundled driver is found relative to dq-comp.exe; the toolchain bin
+  directory does not need to be on PATH.
 
   Set DQ_LINKER_DRIVER to override the linker driver path.
 EOF

@@ -36,14 +36,15 @@ D:\PRG\dq\
 ```
 
 Keep the package directories together. The compiler finds its bundled
-toolchain relative to its installation. Visual Studio Build Tools and a
+toolchain relative to its installation; only `D:\PRG\dq\bin` needs to be on
+`PATH`. Visual Studio Build Tools and a
 separate GCC installation are not required to compile DQ applications with
 this package.
 
 For the current Command Prompt window, add the DQ tools:
 
 ```bat
-set "PATH=D:\PRG\dq\bin;D:\PRG\dq\toolchain\llvm-mingw\bin;%PATH%"
+set "PATH=D:\PRG\dq\bin;%PATH%"
 dq-comp --version
 ```
 
@@ -95,7 +96,6 @@ Two environment variables are needed when using the MSYS2 libraries:
 | Variable | Directory | Purpose |
 | --- | --- | --- |
 | `PATH` | `D:\PRG\dq\bin` | Find DQ commands and DQ runtime DLLs |
-| `PATH` | `D:\PRG\dq\toolchain\llvm-mingw\bin` | Find bundled toolchain commands |
 | `PATH` | `C:\msys64\ucrt64\bin` | Find third-party runtime DLLs and tools |
 | `LIBRARY_PATH` | `C:\msys64\ucrt64\lib` | Find third-party libraries during linking |
 
@@ -109,7 +109,7 @@ or machine-specific project setting is needed.
 Run these commands in **Windows Command Prompt (`cmd.exe`)**:
 
 ```bat
-set "PATH=D:\PRG\dq\bin;D:\PRG\dq\toolchain\llvm-mingw\bin;%PATH%;C:\msys64\ucrt64\bin"
+set "PATH=D:\PRG\dq\bin;%PATH%;C:\msys64\ucrt64\bin"
 set "LIBRARY_PATH=C:\msys64\ucrt64\lib"
 ```
 
@@ -125,8 +125,8 @@ Replace the example paths if DQ or MSYS2 is installed elsewhere.
 ### Save the settings permanently
 
 1. Search the Start menu for **Edit environment variables for your account**.
-2. Under **User variables**, edit **Path** and add the three `PATH` directories
-   in the table above. Keep the DQ entries ahead of the MSYS2 entry when
+2. Under **User variables**, edit **Path** and add the two `PATH` directories
+   in the table above. Keep the DQ entry ahead of the MSYS2 entry when
    arranging these entries.
 3. Create a user variable named **LIBRARY_PATH** with the value
    `C:\msys64\ucrt64\lib`. If it already exists, add this directory to its
@@ -153,7 +153,7 @@ for the MSYS2 shell environment.
 ### PowerShell equivalent for the current window
 
 ```powershell
-$env:Path = 'D:\PRG\dq\bin;D:\PRG\dq\toolchain\llvm-mingw\bin;' + $env:Path + ';C:\msys64\ucrt64\bin'
+$env:Path = 'D:\PRG\dq\bin;' + $env:Path + ';C:\msys64\ucrt64\bin'
 $env:LIBRARY_PATH = 'C:\msys64\ucrt64\lib'
 ```
 

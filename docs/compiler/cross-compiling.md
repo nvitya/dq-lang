@@ -209,10 +209,12 @@ At runtime, `dq-comp.exe` links application executables with the packaged
 toolchain:
 
 ```text
-toolchain\llvm-mingw\bin\clang.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
+toolchain\llvm-mingw\bin\clang++.exe --target=x86_64-w64-windows-gnu -fuse-ld=lld
 ```
 
-Set `DQ_LINKER_DRIVER` to override that driver path.
+The compiler locates this driver relative to `dq-comp.exe`, so only the
+package's `bin` directory needs to be added to `PATH`. Keep the package
+directories together. Set `DQ_LINKER_DRIVER` to override that driver path.
 
 If the helper needs a different native `llvm-tblgen`, set it explicitly:
 

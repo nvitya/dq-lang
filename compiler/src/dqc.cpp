@@ -533,7 +533,23 @@ bool ODqCompiler::LinkExecutable(const string & object_filename, const string & 
 
   int rc = -1;
   string errtxt;
-  bool exec_ok = RunInteractiveProcess(args, rc, &errtxt);
+  vector<pair<string, string>> env_overrides;
+#if defined(_WIN32)
+  filesystem::path driver_dir = filesystem::path(args.front()).parent_path();
+  if (!driver_dir.empty())
+  {
+    // Make companion tools available to the driver without changing the user's PATH.
+    string path = driver_dir.string();
+    const char * old_path = getenv("PATH");
+    if (old_path && old_path[0])
+    {
+      path += ";";
+      path += old_path;
+    }
+    env_overrides.emplace_back("PATH", path);
+  }
+#endif
+  bool exec_ok = RunInteractiveProcess(args, rc, &errtxt, "", env_overrides);
   if (!exec_ok && !errtxt.empty())
   {
     print("{}\n", errtxt);

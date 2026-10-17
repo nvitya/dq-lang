@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.2"
+#define DQ_COMPILER_VERSION  "0.93.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.3:
+  - Toolchain directory added to the PATH variable on Windows before linking
 v0.93.2:
   - Fixed unsigned - unsigned to signed conversion with different operand widths
   - improved examples/langdemo.dq

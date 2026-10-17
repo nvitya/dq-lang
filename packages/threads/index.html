@@ -1,0 +1,3088 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the DQ programming language">
+      
+      
+      
+      
+        <link rel="prev" href="../nanonet/">
+      
+      
+        <link rel="next" href="../../compiler/getting-dq-comp/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Overview - DQ Programming Language</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#threads" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="DQ Programming Language" class="md-header__button md-logo" aria-label="DQ Programming Language" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DQ Programming Language
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/nvitya/dq-lang" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="DQ Programming Language" class="md-nav__button md-logo" aria-label="DQ Programming Language" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DQ Programming Language
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/nvitya/dq-lang" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../motivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/basics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/expressions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expressions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/statements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/objects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/memory-and-pointers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory and Pointers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/attributes-and-directives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attributes and Directives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C Interoperability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../language/asm-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Language Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Language Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/lexical-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexical Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/declarations-and-scope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Declarations and Scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/types-and-conversions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Types and Conversions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/autofree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    autofree Ownership Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enumerations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/arrays-and-slices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arrays and Slices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/strings-and-characters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Strings and Characters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/anyvalue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    anyvalue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/structures-pointers-and-function-references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structures, Pointers, and Function References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/expressions-and-operators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expressions and Operators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/statements-and-control-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statements and Control Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/objects-and-properties/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objects and Properties
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/modules-and-packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules and Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/attributes-directives-and-interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Attributes, Directives, and Interoperability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/assembly-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Library
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Runtime Library
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/anyvalue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    anyvalue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/strings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    String Methods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rtl/textfmt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Text Formatting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standard Packages
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Standard Packages
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../file/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    file
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    file
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../strutils/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    strutils
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    strutils
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    json
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../nanonet/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    nanonet
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    nanonet
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="./" class="md-nav__link md-nav__link--active">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    threads
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    threads
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiler
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Compiler
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/getting-dq-comp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting the DQ Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/using-dq-comp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the DQ Compiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/project-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DQ Project Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/cross-compiling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-Compiling and Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/dqm-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/windows-devenv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows Development Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../compiler/windows-debugging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Windows Debugging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../contributing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributor Documentation
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributor Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/documentation-policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation Policy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/coverage-inventory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coverage Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/module-and-interface-internals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module and Interface Internals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/exceptions-and-backtraces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions and Backtraces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/release-and-cross-builds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release and Cross-Build Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/writing-current-dq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing Current DQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#threads_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Message Channels
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Message Channels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#capacity-and-nonblocking-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacity and Nonblocking Operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#message-layout-and-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Message Layout and Ownership
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waiting-and-timeouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Waiting and Timeouts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distributing-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distributing Work
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#atomic-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Atomic Values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spinlocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spinlocks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#thread-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples-and-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples and Checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="threads"><code>threads</code></h1>
+<p><code>threads</code> provides native threads, atomic values, spinlocks, thread notifications,
+and a bounded message channel for hosted Linux and x86_64 Windows programs.</p>
+<pre><code class="language-dq">use threads
+</code></pre>
+<p>All the types below are available through this import. The <code>.dqh</code> and <code>.dqi</code>
+files are parts of the <code>threads</code> module, not separate modules to import.
+On Linux, the package links <code>pthread</code> and <code>atomic</code>; their libraries must be
+available to the linker. <code>OThread.IsRunning()</code> uses <code>pthread_tryjoin_np</code>, and
+<code>OThreadEvent</code> and channel waits use futexes. On 32-bit Linux, waits require
+<code>futex_time64</code> (Linux 5.1 or later).</p>
+<p>On Windows, the package uses <code>_beginthreadex</code>, interlocked atomic operations,
+and <code>WaitOnAddress</code>/<code>WakeByAddressSingle</code>. It links <code>kernel32</code> and
+<code>synchronization</code> from the llvm-mingw toolchain, without requiring <code>pthread</code> or
+<code>libatomic</code>. Address-based waits require Windows 8 / Windows Server 2012 or later.
+The same thread, channel, spinlock, and event APIs work on both platforms.</p>
+<table>
+<thead>
+<tr>
+<th>Type / function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OThread</code></td>
+<td>start and join a native thread</td>
+</tr>
+<tr>
+<td><code>OMsgChannel</code></td>
+<td>bounded FIFO shared by producers and consumers</td>
+</tr>
+<tr>
+<td><code>SChMsg</code></td>
+<td>fixed 16-byte channel message</td>
+</tr>
+<tr>
+<td><code>OAtomicUint32</code>, <code>OAtomicUint64</code>, <code>OAtomicPtr</code></td>
+<td>atomic value access</td>
+</tr>
+<tr>
+<td><code>OSpinLockVar</code>, <code>OSpinLockHolder</code></td>
+<td>shared lock and scope-based lock holder</td>
+</tr>
+<tr>
+<td><code>OThreadEvent</code></td>
+<td>notification used when waiting for a shared condition</td>
+</tr>
+<tr>
+<td><code>SchedYield()</code></td>
+<td>give other runnable threads an opportunity to run</td>
+</tr>
+</tbody>
+</table>
+<h2 id="threads_1">Threads</h2>
+<p><code>OThread</code> starts one thread at a time. Choose a free function, a bound object
+method, or the thread object's virtual <code>Run</code> method:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StartFunc(afunc : FThreadFunc, aarg : pointer) -&gt; bool</code></td>
+<td>run a free function</td>
+</tr>
+<tr>
+<td><code>StartMethod(amethod : FThreadMethod, aarg : pointer) -&gt; bool</code></td>
+<td>run a bound object method</td>
+</tr>
+<tr>
+<td><code>StartSelf(aarg : pointer) -&gt; bool</code></td>
+<td>run this object's <code>Run(aarg)</code></td>
+</tr>
+<tr>
+<td><code>Run(aarg : pointer) -&gt; pointer</code></td>
+<td>virtual entry point for <code>StartSelf</code>; default returns <code>nil</code></td>
+</tr>
+<tr>
+<td><code>Join()</code></td>
+<td>wait for the thread to finish and collect its return value</td>
+</tr>
+<tr>
+<td><code>IsRunning() -&gt; bool</code></td>
+<td>try to join without waiting; collect the return value if finished</td>
+</tr>
+</tbody>
+</table>
+<p>The callback types are:</p>
+<pre><code class="language-dq">type FThreadFunc   = func(arg : pointer) -&gt; pointer
+type FThreadMethod = func(arg : pointer) -&gt; pointer of object
+</code></pre>
+<p>Each start method returns <code>false</code> if the wrapper still has an unjoined thread or
+native thread creation fails. A successful start sets <code>thread_id</code> (a pthread ID
+on Linux, a numeric thread ID on Windows); the callback's full pointer result
+is available in <code>retval</code> after joining. <code>Join()</code> on an idle wrapper does nothing.
+After a successful join, the same wrapper can start another thread.</p>
+<pre><code class="language-dq">use threads
+use print
+
+func ThreadMain(arg : pointer) -&gt; pointer:
+    return arg
+endfunc
+
+func *Main():
+    var value : int = 42
+    var thread &lt;- OThread()
+    if not thread.StartFunc(ThreadMain, %value):
+        Exit(1)
+    endif
+    thread.Join()
+    PrintLn('result = {}', [^int(thread.retval)^])
+endfunc
+</code></pre>
+<p>For a bound method, use <code>thread.StartMethod(worker.ThreadMain, arg)</code>. For a
+subclass of <code>OThread</code>, override <code>Run</code> and call <code>worker.StartSelf(arg)</code> as shown
+in <a href="#distributing-work">the channel worker example</a>.</p>
+<p><code>IsRunning()</code> has a side effect: it reaps a completed thread just as <code>Join()</code>
+does, including closing the native thread handle on Windows. On Linux it also
+returns <code>false</code> on try-join errors other than “busy”; on Windows a native wait
+error retains the running state. It is not an error-reporting API. <code>Join()</code>
+returns no status; if the native join fails, the wrapper retains its running state.</p>
+<p>Threads share the process address space. The wrapper, bound-method receiver,
+and argument storage must remain alive until the thread finishes. <code>OThread</code>
+does not automatically stop or join from a destructor. Manage each wrapper from
+one controlling thread; its lifecycle fields are not synchronized. Join before
+destroying a worker or reading results that only that worker writes.</p>
+<h2 id="message-channels">Message Channels</h2>
+<p><code>OMsgChannel</code> is a ring-buffer FIFO with a fixed size chosen at construction.
+It supports multiple producers and multiple consumers with its default
+<code>locking = true</code> setting. Each successful <code>Get</code> removes one message for one
+consumer; it does not broadcast a message to all workers.</p>
+<h3 id="capacity-and-nonblocking-operations">Capacity and Nonblocking Operations</h3>
+<pre><code class="language-dq">use threads
+use print
+
+func *Main():
+    var channel &lt;- OMsgChannel(64) // capacity: 64 messages
+    var message : SChMsg = {msg: 1, par.u32: 7, data.u64: 12345}
+    if not channel.Put(message):
+        Exit(1)
+    endif
+
+    var received : SChMsg = {}
+    if channel.Get(received):
+        PrintLn('message {}, job {}, value {}',
+                [received.msg, received.par.u32, received.data.u64])
+    endif
+endfunc
+</code></pre>
+<p>The constructor argument is the <strong>usable message capacity</strong>: <code>OMsgChannel(n)</code>
+holds at most <code>n</code> messages. The channel allocates one additional ring slot
+internally to distinguish a full queue from an empty queue. <code>OMsgChannel(1)</code>
+holds one message; <code>OMsgChannel(0)</code> always rejects puts and gets. The argument is
+<code>uint32</code>; <code>0xFFFFFFFF</code> raises <code>Exception</code> because the additional slot would
+overflow the internal slot count. Allocation must also fit available memory.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Success</th>
+<th>Failure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Put(amsg : SChMsg) -&gt; bool</code></td>
+<td>copy the message into the queue; return <code>true</code></td>
+<td>full queue; return <code>false</code> without changing queued messages</td>
+</tr>
+<tr>
+<td><code>Get(rmsg : refout SChMsg) -&gt; bool</code></td>
+<td>remove the oldest message into <code>rmsg</code>; return <code>true</code></td>
+<td>empty queue; return <code>false</code> and leave <code>rmsg</code> unchanged</td>
+</tr>
+<tr>
+<td><code>PutWaitMillis(amsg : SChMsg, atimeoutms : int) -&gt; bool</code></td>
+<td>enqueue, waiting for space if needed</td>
+<td>return <code>false</code> if waiting ends without space</td>
+</tr>
+<tr>
+<td><code>GetWaitMillis(rmsg : refout SChMsg, atimeoutms : int) -&gt; bool</code></td>
+<td>dequeue, waiting for a message if needed</td>
+<td>return <code>false</code> if waiting ends without a message; leave <code>rmsg</code> unchanged</td>
+</tr>
+</tbody>
+</table>
+<p><code>Put</code> and <code>Get</code> do not wait for queue space or data. They can still contend for
+the internal spinlock. FIFO describes the order of successful enqueues and
+dequeues; concurrent producers have no predetermined relative order, and
+workers can finish processing messages in a different order.</p>
+<p>Set <code>locking</code> before sharing the channel. Keep it <code>true</code> for concurrent use.
+Disabling it removes synchronization of the buffer and indices: it requires
+single-threaded access or external synchronization of every buffer operation.
+The volatile indices alone do not establish a safe lock-free channel, even with
+one producer and one consumer.</p>
+<h3 id="message-layout-and-ownership">Message Layout and Ownership</h3>
+<p><code>SChMsg</code> has a message identifier, a 4-byte parameter union, and an 8-byte data
+union. Choose the union view that matches your own message protocol:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Available views</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>msg</code></td>
+<td><code>uint32</code> identifier</td>
+</tr>
+<tr>
+<td><code>par</code></td>
+<td><code>bytes : [4]byte</code>, <code>i16 : [2]int16</code>, <code>u16 : [2]uint16</code>, <code>i32 : int32</code>, <code>u32 : uint32</code>, <code>f32 : float32</code></td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td><code>bytes : [8]byte</code>, <code>i16 : [4]int16</code>, <code>u16 : [4]uint16</code>, <code>i32 : [2]int32</code>, <code>u32 : [2]uint32</code>, <code>f32 : [2]float32</code>, <code>i64 : int64</code>, <code>u64 : uint64</code>, <code>f64 : float64</code>, <code>ptr : pointer</code></td>
+</tr>
+</tbody>
+</table>
+<p>The views of each union overlap; writing <code>data.u64</code> replaces the same storage
+as <code>data.f64</code> or <code>data.ptr</code>. There is no automatic payload type tag. Initialize
+the structure, for example with <code>var message : SChMsg = {}</code>, and agree on which
+fields each <code>msg</code> identifier uses.</p>
+<p>Messages are copied by value. A successful <code>Put</code> lets the sender reuse its
+local <code>SChMsg</code>, but <code>data.ptr</code> copies only an address. The channel neither copies
+the pointed-to data nor frees it. Keep payload storage alive until the consumer
+is done, and define who releases it. If enqueueing fails, no message or payload
+has been handed to a consumer. Destroying a channel also does not free payloads
+referenced by messages still in the queue.</p>
+<h3 id="waiting-and-timeouts">Waiting and Timeouts</h3>
+<p>The timeout argument has the same meaning for both waiting methods:</p>
+<table>
+<thead>
+<tr>
+<th><code>atimeoutms</code></th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>one immediate <code>Put</code> or <code>Get</code> attempt</td>
+</tr>
+<tr>
+<td>negative</td>
+<td>wait indefinitely until the operation succeeds or the wait fails</td>
+</tr>
+<tr>
+<td>positive</td>
+<td>attempt immediately, then wait using one monotonic deadline</td>
+</tr>
+</tbody>
+</table>
+<p>An available operation succeeds immediately even with a positive timeout.
+Failed attempts and signal interruptions reuse the original deadline; they do
+not restart the timeout. Very large timeouts saturate the deadline rather than
+overflowing it. Scheduling and internal lock contention can delay the return
+beyond the requested timeout, so it is not a strict bound on execution time.</p>
+<p>Successful enqueues signal a waiting consumer; successful dequeues signal a
+waiting producer. Waiters sleep using process-private Linux futexes or Windows
+address-based waits. A sequence snapshot taken before checking the queue prevents
+a notification between that check and the kernel wait from being missed. A wake
+only causes another queue attempt; a different worker may already have taken
+the available message or space. Native wait errors other than an interruption
+or changed sequence also produce <code>false</code>, so the result does not distinguish a
+timeout from such an error.</p>
+<h3 id="distributing-work">Distributing Work</h3>
+<p>This complete example sends jobs to one worker and then sends an explicit stop
+message. The worker's result is read after joining:</p>
+<pre><code class="language-dq">use threads
+use print
+
+const MSG_WORK : uint32 = 1
+const MSG_STOP : uint32 = 2
+
+object OWorker(OThread):
+    channel : OMsgChannel
+    total : uint64 = 0
+
+    func *Create(achannel : OMsgChannel):
+        channel = achannel
+    endfunc
+
+    func Run(arg : pointer) -&gt; pointer [[override]]:
+        use *
+        var job : SChMsg
+        while channel.GetWaitMillis(job, -1):
+            if job.msg == MSG_STOP:
+                break
+            endif
+            if job.msg == MSG_WORK:
+                total += job.data.u64
+            endif
+        endwhile
+        return nil
+    endfunc
+endobject
+
+func *Main():
+    var channel &lt;- OMsgChannel(4) // capacity: four messages
+    var worker &lt;- OWorker(channel)
+    if not worker.StartSelf(nil):
+        Exit(1)
+    endif
+    var job : SChMsg = {msg: MSG_WORK, par.u32: 0, data.u64: 0}
+    for i : int = 1 to 10:
+        job.data.u64 = i
+        if not channel.PutWaitMillis(job, 1000):
+            Exit(1)
+        endif
+    endfor
+    job.msg = MSG_STOP
+    if not channel.PutWaitMillis(job, 1000):
+        Exit(1)
+    endif
+    worker.Join()
+    PrintLn('total = {}', [worker.total]) // 55
+endfunc
+</code></pre>
+<p>Waiting on a full queue gives the producer backpressure. To use several workers,
+give each the same channel and enqueue one stop message per worker after all
+producers have finished enqueueing jobs. FIFO places those stops after the jobs;
+join every worker before inspecting its results or releasing the channel.
+Processing completion order and distribution among workers are not guaranteed.</p>
+<p>There is no channel close, cancellation, or broadcast API. An indefinite wait
+needs a cooperating producer or consumer to make progress. Use finite waits if
+workers need to check a separate shutdown condition. Do not destroy a channel
+while operations or waits are still running. Channels and events operate among
+threads in one process, not between processes.</p>
+<h2 id="atomic-values">Atomic Values</h2>
+<p>Construct an atomic wrapper with its initial value, for example
+<code>var flag &lt;- OAtomicUint32(0)</code> or <code>var current &lt;- OAtomicPtr(nil)</code>.
+All three types expose <code>Load()</code>, <code>Store(value)</code>, and <code>Exchange(value)</code>.
+<code>Exchange</code> replaces the value and returns its previous value. The integer
+wrappers also expose <code>Add(value)</code>, which returns the value <strong>before</strong> addition;
+unsigned overflow wraps.</p>
+<p><code>Load()</code>, <code>Store(value)</code>, <code>Exchange(value)</code>, and <code>Add(value)</code> are sequentially
+consistent and take no memory-order argument. Loads acquire published data,
+stores release earlier writes, and exchanges and additions do both. These
+operations also participate in a single ordering across atomic variables.</p>
+<p>All three types provide <code>LoadRelaxed()</code>. The integer types also provide
+<code>AddRelaxed(value)</code>, which returns the value before addition and wraps on unsigned
+overflow, just like <code>Add(value)</code>. For example, use <code>counter.AddRelaxed(1)</code> and
+<code>counter.LoadRelaxed()</code> for independent statistics. Relaxed operations remain
+atomic but do not synchronize other shared storage; do not use a relaxed load
+of a ready flag to acquire data published by another thread.</p>
+<p>On Windows, all these operations use interlocked functions with full memory
+barriers, providing stronger ordering for the relaxed methods. Linux uses
+the method's specified ordering. Do not rely on the stronger Windows behavior
+in portable code.</p>
+<p>Each method call is atomic; a sequence of calls is not a single atomic operation.
+Use a lock when several accesses must happen together. Atomic pointer publication
+still requires separate management of the pointed-to allocation's lifetime.</p>
+<p><code>OAtomicUint32.Address()</code> exposes the value's address for native address-based
+waits. Keep the wrapper alive while using this address, and access its value
+through the atomic methods.</p>
+<p><code>SchedYield() -&gt; int32</code>
+wraps <code>sched_yield</code> on Linux and <code>Sleep(0)</code> on Windows; it returns zero on Windows.
+Yielding does not synchronize shared data.</p>
+<h2 id="spinlocks">Spinlocks</h2>
+<p><code>OSpinLockVar</code> inherits the atomic integer constructor. Initialize an unlocked
+lock with <code>OSpinLockVar(0)</code>. <code>Lock()</code> acquires it, yielding while contended;
+<code>Unlock()</code> releases it. The lock is not recursive and has no timeout or fairness
+guarantee. Keep protected sections short.</p>
+<p><code>OSpinLockHolder(lock)</code> acquires in its constructor and releases in its
+destructor. An embedded local holder provides scope-based release, including
+early return and exception unwinding:</p>
+<pre><code class="language-dq">use threads
+
+var lock &lt;- OSpinLockVar(0)
+var counter : int = 0
+
+func IncrementCounter():
+    var holder &lt;- OSpinLockHolder(lock)
+    ++counter
+endfunc
+</code></pre>
+<p>Every concurrent access to the protected data must use the same lock. The lock
+must outlive all holders and users. A holder does not own the lock; explicitly
+delete a heap-allocated holder to release it, or use an embedded local as above.</p>
+<h2 id="thread-events">Thread Events</h2>
+<p><code>OThreadEvent</code> is a notification primitive used by the channel. It does not
+store a job or represent a persistent boolean condition.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Snapshot() -&gt; uint32</code></td>
+<td>read the notification sequence</td>
+</tr>
+<tr>
+<td><code>Signal()</code></td>
+<td>advance the sequence and wake at most one registered waiter</td>
+</tr>
+<tr>
+<td><code>WaitUntilNanos(asequence : uint32, adeadline : int64) -&gt; bool</code></td>
+<td>sleep only while the sequence still matches; negative deadline means indefinite wait</td>
+</tr>
+</tbody>
+</table>
+<p>For a finite deadline, pass an absolute monotonic time such as
+<code>NanoTime() + 100000000</code> for 100 ms, with <code>use time</code>.
+<code>true</code> means recheck the shared condition: the thread woke, the sequence changed,
+or a signal interrupted the wait. <code>false</code> means the deadline expired or another
+native wait error occurred. An already-expired deadline returns <code>false</code> before
+checking for a changed sequence.</p>
+<p>Use the event with a separately synchronized condition:</p>
+<ol>
+<li>Take a sequence snapshot.</li>
+<li>Check the condition under its lock or with the appropriate atomic operations.</li>
+<li>If satisfied, continue with the work.</li>
+<li>Otherwise, wait using that snapshot and the original absolute deadline.</li>
+<li>After a <code>true</code> result, repeat from the snapshot step.</li>
+</ol>
+<p>The thread changing the condition updates it first, then calls <code>Signal()</code>.
+Taking the snapshot before checking ensures a notification in between checking
+and sleeping is observed. A signal before the snapshot does not count as a
+pending notification; the shared condition is the source of truth. Keep the
+event alive until every waiter and signaler has finished.</p>
+<h2 id="examples-and-checks">Examples and Checks</h2>
+<p>The source examples are in
+<a href="https://github.com/nvitya/dq-lang/tree/main/stdpkg/threads/examples"><code>stdpkg/threads/examples/</code></a>.
+Run these commands from the repository root:</p>
+<table>
+<thead>
+<tr>
+<th>Example</th>
+<th>Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>thread_test.dq</code></td>
+<td>free-function threads, a <code>Run</code> override, completion polling; also includes a bound-method example</td>
+</tr>
+<tr>
+<td><code>wait_test.dq</code></td>
+<td>immediate, finite, indefinite, and very large waits; unchanged output on failure; notification races and signal interruptions</td>
+</tr>
+<tr>
+<td><code>stress_test.dq</code></td>
+<td>full/empty queues, FIFO and ring wraparound, one/many producers and consumers, corruption/duplicate/missing-message checks</td>
+</tr>
+<tr>
+<td><code>work_distribution.dq</code></td>
+<td>a bounded queue feeding a worker pool, stop messages, and deterministic Monte Carlo jobs compared against one worker</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sh">build/dq-run stdpkg/threads/examples/thread_test.dq
+build/dq-run stdpkg/threads/examples/wait_test.dq
+build/dq-run stdpkg/threads/examples/stress_test.dq -- 4 50000 256 15
+build/dq-run stdpkg/threads/examples/stress_test.dq -- 4 20000 1 15 100
+build/dq-run -O3 --lto stdpkg/threads/examples/work_distribution.dq -- 4 256 1000000
+</code></pre>
+<p>The stress tester's arguments are worker count, messages per producer, queue
+capacity, scenario timeout in seconds, and operation wait timeout in milliseconds.
+Defaults are the detected online processor count, 50,000 messages, capacity 256,
+15 seconds, and zero (nonblocking operations). Its consumer bookkeeping uses
+roughly <code>producers * consumers * messages_per_producer</code> bytes. Exit status is
+0 for success, 1 for failed checks or timeout, and 2 for invalid arguments or
+thread creation failure.</p>
+<p>The work-distribution arguments are maximum workers, job count, and samples per
+job; defaults are the detected processor count, 256, and 1,000,000. It compares
+one worker with progressively larger pools, using the same work each time.
+Timing includes creation, dispatch, computation, and joining, with validation
+afterward. Use <code>-O3 --lto</code> for speed comparisons.</p>
+<p>On a Linux host with llvm-mingw and Wine installed, <code>make test-windows</code>
+cross-compiles and runs thread lifecycle, atomic, event, channel capacity,
+wait, stress, and work-distribution checks at <code>-O0</code> and <code>-O3 --lto=full</code>.
+See <a href="../../compiler/using-dq-comp/#windows-cross-compilation-from-linux">Windows application cross-compilation</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

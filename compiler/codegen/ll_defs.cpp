@@ -17,7 +17,10 @@
 #include "comp_options.h"
 
 LlContext      ll_ctx;
-LlBuilder      ll_builder(ll_ctx);
+LlBuilder      ll_builder(ll_ctx, llvm::ConstantFolder(),
+    llvm::IRBuilderCallbackInserter([](llvm::Instruction * inst) {
+      if (g_compiler) g_compiler->RecordSignalMemoryAccess(inst);
+    }));
 LlModule *     ll_module;
 
 vector<SLoopContext>   ll_loop_stack;

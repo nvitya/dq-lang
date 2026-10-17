@@ -1,0 +1,106 @@
+// Linux x86-64 faults unwind through local handlers and owned scopes.
+// Use -O0 for reliable cleanup coverage; LLVM 21's optimized leaf cleanup
+// limitation is documented in docs/contributing/exceptions-and-backtraces.md.
+//?hostarch('x64')
+
+use libc/stdio
+
+var destroyed : int = 0
+
+object OMarker:
+    func *Destroy():
+        ++@.destroyed
+    endfunc
+endobject
+
+func FaultWithLocals(p : ^int) [[noinline]]:
+    var outer <- OMarker()
+    if true:
+        var inner <- OMarker()
+        p^ = 1234
+    endif
+endfunc
+
+func FaultWithoutLocals(p : ^int) [[noinline]]:
+    p^ = 1
+endfunc
+
+func ReturnFromTry() -> int:
+    try:
+        return 42
+    finally:
+        printf("sigsegv.return.finally = ran\n") //?check("sigsegv.return.finally", "ran")
+    endtry
+    return 0
+endfunc
+
+func mmap(address : pointer, length : uint64, prot : int32, flags : int32, fd : int32, offset : int64) -> pointer [[external]] ..
+func munmap(address : pointer, length : uint64) -> int32 [[external]] ..
+
+func *Main():
+  #ifdef LINUX
+  #ifdef X64
+    var p : ^int = nil
+    var changed : int = 0
+    try:
+        changed = 7
+        p^ = 1234
+        changed = 99
+    except Exception as e:
+        printf("sigsegv.write = %s %d\n", TypeName(e), changed) //?check("sigsegv.write", "ESegFault 7")
+    finally:
+        printf("sigsegv.finally = ran\n") //?check("sigsegv.finally", "ran")
+    endtry
+    printf("sigsegv.after = 1\n") //?check("sigsegv.after", 1)
+
+    try:
+        var n : int = p^
+        printf("unreachable = %d\n", n)
+    except Exception as e:
+        printf("sigsegv.read = %s\n", TypeName(e)) //?check("sigsegv.read", "ESegFault")
+    endtry
+
+    try:
+        FaultWithLocals(p)
+    except Exception:
+        printf("sigsegv.cleanup = %d\n", destroyed) //?check("sigsegv.cleanup", 2)
+    endtry
+
+    try:
+        FaultWithoutLocals(p)
+    except Exception as e:
+        printf("sigsegv.callee = %s\n", TypeName(e)) //?check("sigsegv.callee", "ESegFault")
+    endtry
+
+    try:
+        try:
+            p^ = 1
+        except EStrError:
+            printf("unreachable.handler = 1\n")
+        finally:
+            printf("sigsegv.nested.finally = ran\n") //?check("sigsegv.nested.finally", "ran")
+        endtry
+    except Exception as e:
+        printf("sigsegv.nested = %s\n", TypeName(e)) //?check("sigsegv.nested", "ESegFault")
+    endtry
+
+    // A mapped PROT_NONE page proves that this handles actual faults,
+    // including non-nil addresses, rather than checking pointers for nil.
+    var page : pointer = mmap(nil, 4096, 0, 0x22, -1, 0)
+    try:
+        ^int(page)^ = 5
+    except Exception as e:
+        printf("sigsegv.protected = %s\n", TypeName(e)) //?check("sigsegv.protected", "ESegFault")
+    endtry
+    munmap(page, 4096)
+
+    var value : int = ReturnFromTry()
+    printf("sigsegv.return = %d\n", value) //?check("sigsegv.return", 42)
+    try:
+        p^ = 6
+    except Exception:
+        printf("sigsegv.after.return = caught\n") //?check("sigsegv.after.return", "caught")
+    endtry
+  #endif
+  #endif
+endfunc

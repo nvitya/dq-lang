@@ -24,6 +24,7 @@
 #include "otype_anyvalue.h"
 #include "otype_array.h"
 #include <llvm/IR/InlineAsm.h>
+#include <llvm/Support/SaveAndRestore.h>
 
 ESpecialFuncKind SpecialFuncKindFromName(const string & aname)
 {
@@ -1176,6 +1177,7 @@ void OValSymFunc::GenerateFuncBody()
 
   g_compiler->ll_exn_storage = nullptr;
   g_compiler->ll_current_exc_storage = nullptr;
+  llvm::SaveAndRestore<OScope *> current_scope(g_compiler->ll_codegen_scope, body->scope);
 
   OTypeFunc * tfunc = (OTypeFunc *)ptype;
 

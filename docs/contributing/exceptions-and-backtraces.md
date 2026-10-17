@@ -33,6 +33,27 @@ then terminates with failure. Signal-to-exception behavior is platform/runtime
 specific and must not be generalized to bare targets without an implemented
 runtime contract.
 
+On Linux x86-64, SIGSEGV is converted to `ESegFault` in the signal handler and
+propagates through the native unwinder. The handler unblocks SIGSEGV before
+throwing, so subsequent faults can also be caught. Other Linux targets retain
+the top-level signal recovery path.
+
+LLVM cannot attach unwind edges to ordinary loads and stores. On Linux x86-64
+with exceptions enabled, indirect memory accesses therefore use unwindable
+inline assembly containing the corresponding memory instruction. This adds
+exception-table coverage without pointer checks, checkpoints, or helper calls
+on the normal path. Stack and global storage accesses retain ordinary LLVM
+loads and stores. Aggregate accesses are lowered field by field. The unwind
+edges constrain optimizations around potentially faulting accesses, as they do
+for potentially throwing calls.
+
+Known limitation: LLVM 21 can shrink-wrap an optimized leaf function's stack
+setup into its cleanup landing pad, placing the unwind entry after that setup.
+A SIGSEGV unwinding through such a function can therefore fail. Local signal
+handling is verified at `-O0` (including the `dq-run` default); optimized signal
+recovery is not yet reliable. No normal-path stack setup or checkpoints are
+added to work around this backend issue.
+
 ## Verification Areas
 
 The exception autotests cover typed matching, propagation and rethrow, finally

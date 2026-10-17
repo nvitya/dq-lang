@@ -443,6 +443,7 @@ void ODqCompCodegen::GenerateIr()
     }
   }
 
+  GenerateSignalMemoryAccesses();
   OptimizeIr();
 
   if (g_opt.dbg_info)

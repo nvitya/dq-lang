@@ -78,6 +78,17 @@ func ObjTest():
     // OChild2 is automatically destroyed here
 endfunc
 
+func ExceptionTest():
+    var pint : ^int = nil
+    try:
+        pint^ = 1234 // causes an exception !
+        //raise Exception('Forced exception test')
+    except Exception as e:
+        PrintLn('EXCEPTION: {}', [e.message])
+        e.PrintBacktrace()  // print stack trace with line infos
+    endtry
+endfunc
+
 func *Main():
 
     var s : embstr(128) = ""  // embstr(n) is a fixed maximal storage string without heap usage
@@ -135,6 +146,8 @@ func *Main():
     PrintLn('ds[$end-5:] = "{}"', [ ss ])
 
     ObjTest()
+
+    ExceptionTest()
 
     PrintLn('for .. to/count: ')
     for i : int = 0 to 5:

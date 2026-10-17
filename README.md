@@ -2,12 +2,21 @@
 
 The DQ is a general-purpose, human-friendly, beginner-friendly compiled programming language.
 
-This repository contains the DQ compiler, runtime, standard packages, and
-documentation.
+This repository contains the DQ compiler, runtime, standard packages, and documentation.
 
-__Warning: The compiler and the DQ language is under development, not recommended for production use yet__
+The DQ compiler and libraries are currently in __Pre-V1__ phase. The DQ compiler is already pretty reliable, because it uses LLVM for the code generation and libc for the low-level runtime functions. There are some applications running  developed in DQ already. More and more libraries and applications will be developed.
 
-The DQ compiler and libraries are currently in __Pre-V1__ phase. The language and the compiler is complete enough to develop libraries. A basic set of libraries are required to be developed first for the V1 release, including database access or graphics.
+The DQ compiler standard package already contains user-friendly interfaces for many tasks, including:
+ * files
+ * JSON
+ * async sockets
+ * http serving
+ * database
+ * threading
+
+It is very easy to use C libraries from DQ, so if there is no existing DQ standard function for a specific task, you can create a module with the missing C interface bindings.
+
+Any help welcomed in DQ standard package development too.
 
 # DQ Language Documentation
 

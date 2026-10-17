@@ -46,6 +46,11 @@ func libc_raise(signum : int) -> int [[external('raise')]] ..
 func libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]] ..
 func libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]] ..
 func libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]] ..
+#ifdef X64
+func libc_sigemptyset(mask : pointer) -> int [[external('sigemptyset')]] ..
+func libc_sigaddset(mask : pointer, signum : int) -> int [[external('sigaddset')]] ..
+func libc_sigprocmask(how : int, mask : pointer, oldmask : pointer) -> int [[external('sigprocmask')]] ..
+#endif
 
 const SIG_DFL  : FSignalHandler = nil
 const SIGSEGV  : int = 11
@@ -56,21 +61,45 @@ var dq_sigsegv_backtrace : [DQ_SIGNAL_BACKTRACE_MAX] pointer
 var dq_sigsegv_guard_active : int = 0
 var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
+#ifdef X64
+var dq_sigsegv_handling : bool = false
+#endif
+
+func RaiseSignalException() ..
 
 func OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
 func DqSigSegvHandler(signum : int):
+  #ifdef X64
+    if dq_sigsegv_handling:
+        libc_signal(signum, SIG_DFL)
+        libc_raise(signum)
+        return
+    endif
+    dq_sigsegv_handling = true
+  #endif
     dq_sigsegv_signal = signum
     dq_sigsegv_backtrace_count = libc_backtrace(%dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
     if dq_sigsegv_guard_active <> 0:
+      #ifdef X64
+        // Native unwinding preserves the faulting scopes and their cleanups.
+        // The kernel blocked SIGSEGV on entry; restore it before leaving the
+        // handler by exception so that a later fault can also be caught.
+        var mask : [16] uint64
+        libc_sigemptyset(%mask)
+        libc_sigaddset(%mask, signum)
+        libc_sigprocmask(1, %mask, nil) // SIG_UNBLOCK
+        RaiseSignalException()
+      #else
         dq_sigsegv_guard_active = 0
 
         // jump back where the libc___sigsetjmp(%dq_sigsegv_jmp, 1) was called
         // but return with 1 (non-zero) !
         libc_siglongjmp(%dq_sigsegv_jmp[0], 1)
+      #endif
     endif
 
     libc_signal(signum, SIG_DFL)  // set back the default signal handler
@@ -85,7 +114,11 @@ func SigSegvMessage() -> ^char:
 endfunc
 
 func RaiseSignalException():
-    DqExcRaiseWithBacktrace(new ESegFault(SigSegvMessage()), true,
+    var e = new ESegFault(SigSegvMessage())
+  #ifdef X64
+    dq_sigsegv_handling = false
+  #endif
+    DqExcRaiseWithBacktrace(e, true,
                                         %dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
 

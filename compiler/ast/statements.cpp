@@ -12,6 +12,7 @@
  */
 
 #include <format>
+#include <llvm/Support/SaveAndRestore.h>
 #include "scope_builtins.h"
 #include "statements.h"
 #include "otype_array.h"
@@ -62,6 +63,7 @@ void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
 
 void OStmtBlock::Generate()
 {
+  llvm::SaveAndRestore<OScope *> current_scope(g_compiler->ll_codegen_scope, scope);
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
 
   LlBasicBlock * saved_unwind_lpad_bb = scope->exception_cleanup_bb; // We repurpose exception_cleanup_bb as unwind_lpad_bb
@@ -89,6 +91,11 @@ void OStmtBlock::Generate()
     bstmt->Generate(scope);
     if (ll_builder.GetInsertBlock()->getTerminator()) break;
   }
+
+  // A cleanup failure propagates to the enclosing scope; it must not enter
+  // this block's cleanup again.
+  scope->exception_cleanup_bb = saved_unwind_lpad_bb;
+  scope->unwind_cleanup_bb = saved_unwind_cleanup_bb;
 
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {

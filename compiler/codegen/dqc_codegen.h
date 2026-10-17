@@ -46,6 +46,11 @@ public:
   LlValue *     ll_exn_storage = nullptr;
   LlValue *     ll_current_exc_storage = nullptr;
   vector<OStmtBlock *> ll_finally_stack;
+  OScope *      ll_codegen_scope = nullptr;
+  vector<pair<llvm::Instruction *, LlBasicBlock *>> ll_signal_memory_accesses;
+
+  void RecordSignalMemoryAccess(llvm::Instruction * inst);
+  void GenerateSignalMemoryAccesses();
 
   OValSymFunc * DqExceptionFunc(const string & name);
   LlValue *     DqExceptionActiveValue();

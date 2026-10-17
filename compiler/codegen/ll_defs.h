@@ -27,7 +27,7 @@ using namespace std;
 // Short Aliases
 using LlContext      = llvm::LLVMContext;
 using LlModule       = llvm::Module;
-using LlBuilder      = llvm::IRBuilder<>;
+using LlBuilder      = llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderCallbackInserter>;
 using LlMachine      = llvm::TargetMachine;
 
 using LlValue        = llvm::Value;

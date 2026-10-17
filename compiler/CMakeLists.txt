@@ -115,4 +115,4 @@ endif()
 
 target_link_libraries(dq-comp PRIVATE ${llvm_libs})
 
-install(TARGETS dq-comp dq-run DESTINATION bin)
+install(TARGETS dq-comp dq-run DESTINATION "${DQ_TOOL_INSTALL_DIR}")

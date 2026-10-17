@@ -51,8 +51,32 @@ if(CMAKE_CONFIGURATION_TYPES)
   endforeach()
 endif()
 
+set(DQ_TOOL_INSTALL_DIR bin)
+if(UNIX)
+  set(DQ_TOOL_INSTALL_DIR lib/dq/bin)
+endif()
+
 add_subdirectory(compiler build/compiler)
 add_subdirectory(autotest/atrunner build/autotest/atrunner)
+
+if(UNIX)
+  # Keep the tools beside their supporting files and expose relocatable links.
+  install(CODE [[
+    file(MAKE_DIRECTORY "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin")
+    foreach(tool dq-comp dq-run dq-atrun)
+      execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E create_symlink "../lib/dq/bin/${tool}"
+          "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/${tool}"
+        RESULT_VARIABLE link_result
+        ERROR_VARIABLE link_error
+      )
+      if(NOT link_result EQUAL 0)
+        message(FATAL_ERROR "Cannot install ${tool} symlink: ${link_error}")
+      endif()
+      list(APPEND CMAKE_INSTALL_MANIFEST_FILES "${CMAKE_INSTALL_PREFIX}/bin/${tool}")
+    endforeach()
+  ]])
+endif()
 
 #set(DQ_PKG_PROJECT "${CMAKE_SOURCE_DIR}/pkgtool/dq-pkg.dqproj")
 #set(DQ_PKG_OUTPUT "${DQ_BUILD_DIR}/dq-pkg")

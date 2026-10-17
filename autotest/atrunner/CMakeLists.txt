@@ -30,4 +30,4 @@ elseif(DQ_STDCXXEXP_LIBRARY)
   target_link_libraries(dq-atrun PRIVATE ${DQ_STDCXXEXP_LIBRARY})
 endif()
 
-install(TARGETS dq-atrun DESTINATION bin)
+install(TARGETS dq-atrun DESTINATION "${DQ_TOOL_INSTALL_DIR}")

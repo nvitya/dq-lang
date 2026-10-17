@@ -212,8 +212,9 @@ Install the built tools and standard packages:
 sudo make install
 ```
 
-The install target installs `dq-comp` and `dq-run` into `bin`, and installs the
-standard DQ packages into `lib/dq/stdpkg` under the chosen CMake install prefix.
+On Linux, the install target installs `dq-comp`, `dq-run`, and `dq-atrun` into
+`lib/dq/bin` and creates relative symlinks to them in `bin` under the chosen
+CMake install prefix. Standard DQ packages are installed into `lib/dq/stdpkg`.
 The default prefix is usually `/usr/local`.
 
 To install under a different prefix, configure with `CMAKE_INSTALL_PREFIX`:

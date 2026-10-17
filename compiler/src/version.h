@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.0"
+#define DQ_COMPILER_VERSION  "0.93.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.1:
+  - Linux deployment: all the compiler parts, including the main binaries, are installed
+    under /usr/local/lib/dq, symlinks for the executables are made in /usr/local/bin
 v0.93.0:
   - New Feature: sub-functions with `subfn SubFunc(): ... endsubfn`
 v0.92.4:
@@ -26,7 +29,7 @@ v0.92.2:
 v0.92.1:
   - threads improvement: ProcessorCount(), atomics
 v0.92.0:
-  - Full threads funktionality works on windows
+  - Full threads functionality works on windows
 v0.91.2:
   - OMsgChannel construcor change
   - threads documentation

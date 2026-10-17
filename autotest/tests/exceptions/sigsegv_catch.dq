@@ -1,7 +1,6 @@
-// Linux x86-64 faults unwind through local handlers and owned scopes.
+// Linux faults unwind through local handlers and owned scopes.
 // Use -O0 for reliable cleanup coverage; LLVM 21's optimized leaf cleanup
 // limitation is documented in docs/contributing/exceptions-and-backtraces.md.
-//?hostarch('x64')
 
 use libc/stdio
 
@@ -34,12 +33,42 @@ func ReturnFromTry() -> int:
     return 0
 endfunc
 
-func mmap(address : pointer, length : uint64, prot : int32, flags : int32, fd : int32, offset : int64) -> pointer [[external]] ..
-func munmap(address : pointer, length : uint64) -> int32 [[external]] ..
+func mmap(address : pointer, length : uint, prot : int32, flags : int32, fd : int32, offset : int) -> pointer [[external]] ..
+func munmap(address : pointer, length : uint) -> int32 [[external]] ..
+
+struct SMemory:
+    byte_value : uint8
+    word_value : uint16
+    dword_value : uint32
+    qword_value : uint64
+    single_value : float32
+    double_value : float64
+    bool_value : bool
+    pointer_value : pointer
+endstruct
+
+func CheckMemory(p : ^SMemory) [[noinline]]:
+    p.byte_value = 0xAB
+    p.word_value = 0xABCD
+    p.dword_value = 0xABCDEF12
+    p.qword_value = 0x123456789ABCDEF0
+    p.single_value = 1.5
+    p.double_value = 2.5
+    p.bool_value = true
+    p.pointer_value = p
+    var copy : SMemory = p^
+    p^ = copy
+    var ok : bool = (p.byte_value == 0xAB and p.word_value == 0xABCD
+        and p.dword_value == 0xABCDEF12 and p.qword_value == 0x123456789ABCDEF0
+        and p.single_value == 1.5 and p.double_value == 2.5
+        and p.bool_value and p.pointer_value == p)
+    printf("sigsegv.memory = %d\n", ok) //?check("sigsegv.memory", 1)
+endfunc
 
 func *Main():
   #ifdef LINUX
-  #ifdef X64
+    var memory : SMemory = {}
+    CheckMemory(%memory)
     var p : ^int = nil
     var changed : int = 0
     try:
@@ -52,6 +81,13 @@ func *Main():
         printf("sigsegv.finally = ran\n") //?check("sigsegv.finally", "ran")
     endtry
     printf("sigsegv.after = 1\n") //?check("sigsegv.after", 1)
+
+    try:
+        var fp : ^float64 = nil
+        fp^ = 3.5
+    except Exception as e:
+        printf("sigsegv.float = %s\n", TypeName(e)) //?check("sigsegv.float", "ESegFault")
+    endtry
 
     try:
         var n : int = p^
@@ -101,6 +137,5 @@ func *Main():
     except Exception:
         printf("sigsegv.after.return = caught\n") //?check("sigsegv.after.return", "caught")
     endtry
-  #endif
   #endif
 endfunc

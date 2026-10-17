@@ -33,12 +33,17 @@ then terminates with failure. Signal-to-exception behavior is platform/runtime
 specific and must not be generalized to bare targets without an implemented
 runtime contract.
 
-On Linux x86-64, SIGSEGV is converted to `ESegFault` in the signal handler and
-propagates through the native unwinder. The handler unblocks SIGSEGV before
-throwing, so subsequent faults can also be caught. Other Linux targets retain
-the top-level signal recovery path.
+On all supported Linux targets (x86-64, ARM64, armhf, and riscv64), SIGSEGV is
+converted to `ESegFault` in the signal handler and propagates through the native
+unwinder. The handler unblocks SIGSEGV before
+throwing, so subsequent faults can also be caught.
 
-LLVM cannot attach unwind edges to ordinary loads and stores. On Linux x86-64
+On armhf, `sigaction` supplies the saved signal context. After capturing the
+backtrace, the handler advances its saved PC by a halfword so ARM EHABI's
+return-address lookup includes a fault at the start of an exception-table
+range. This adjustment runs only on the signal path.
+
+LLVM cannot attach unwind edges to ordinary loads and stores. On Linux
 with exceptions enabled, indirect memory accesses therefore use unwindable
 inline assembly containing the corresponding memory instruction. This adds
 exception-table coverage without pointer checks, checkpoints, or helper calls
@@ -47,8 +52,9 @@ loads and stores. Aggregate accesses are lowered field by field. The unwind
 edges constrain optimizations around potentially faulting accesses, as they do
 for potentially throwing calls.
 
-Known limitation: LLVM 21 can shrink-wrap an optimized leaf function's stack
-setup into its cleanup landing pad, placing the unwind entry after that setup.
+Known limitation on x86-64: LLVM 21 and 22 can shrink-wrap an optimized leaf
+function's stack setup into its cleanup landing pad, placing the unwind entry
+after that setup.
 A SIGSEGV unwinding through such a function can therefore fail. Local signal
 handling is verified at `-O0` (including the `dq-run` default); optimized signal
 recovery is not yet reliable. No normal-path stack setup or checkpoints are

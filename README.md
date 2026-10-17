@@ -4,7 +4,7 @@ The DQ is a general-purpose, human-friendly, beginner-friendly compiled programm
 
 This repository contains the DQ compiler, runtime, standard packages, and documentation.
 
-The DQ compiler and libraries are currently in __Pre-V1__ phase. The DQ compiler is already pretty reliable, because it uses LLVM for the code generation and libc for the low-level runtime functions. There are some applications running  developed in DQ already. More and more libraries and applications will be developed.
+The DQ compiler and libraries are currently in __Pre-V1__ phase. The DQ compiler is already pretty reliable, because it uses LLVM for the code generation and libc for the low-level runtime functions. There are some applications running developed in DQ already. More and more libraries and applications will be developed, but the standard library set is still limited yet.
 
 The DQ compiler standard package already contains user-friendly interfaces for many tasks, including:
  * files

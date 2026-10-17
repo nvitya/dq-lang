@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.6"
+#define DQ_COMPILER_VERSION  "0.93.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.7:
+  - Enabling SIGSEGV catching on arm64, armhf and riscv64 too
 v0.93.6:
   - Catching SIGSEGV with try ... except on Linux (optimized code might not work due LLVM-21 unwind problem)
 v0.93.5:

@@ -36,33 +36,51 @@ func dq_module_init()  [[external('dq_module_init')]] ..
 object ESegFault(Exception):
 endobject
 
-const DQ_SIGSEGV_JMP_SIZE     : int = 32
 const DQ_SIGNAL_BACKTRACE_MAX : int = 32
 
 type FSignalHandler = func(signum : int)
 
 func libc_signal(signum : int, handler : FSignalHandler) -> FSignalHandler [[external('signal')]] ..
 func libc_raise(signum : int) -> int [[external('raise')]] ..
-func libc___sigsetjmp(env : pointer, savemask : int) -> int [[external('__sigsetjmp')]] ..
-func libc_siglongjmp(env : pointer, value : int) [[external('siglongjmp')]] ..
 func libc_backtrace(buffer : pointer, size : int) -> int [[external('backtrace')]] ..
-#ifdef X64
 func libc_sigemptyset(mask : pointer) -> int [[external('sigemptyset')]] ..
 func libc_sigaddset(mask : pointer, signum : int) -> int [[external('sigaddset')]] ..
 func libc_sigprocmask(how : int, mask : pointer, oldmask : pointer) -> int [[external('sigprocmask')]] ..
-#endif
 
 const SIG_DFL  : FSignalHandler = nil
 const SIGSEGV  : int = 11
 
-var dq_sigsegv_jmp       : [DQ_SIGSEGV_JMP_SIZE] pointer
 var dq_sigsegv_backtrace : [DQ_SIGNAL_BACKTRACE_MAX] pointer
 
 var dq_sigsegv_guard_active : int = 0
 var dq_sigsegv_signal : int = 0
 var dq_sigsegv_backtrace_count : int = 0
-#ifdef X64
 var dq_sigsegv_handling : bool = false
+
+#ifdef ARM
+type FSignalContextHandler = func(signum : int, info : pointer, context : pointer)
+
+// glibc's ARM sigaction, and the prefix of ucontext_t through arm_pc.
+struct SArmSigAction:
+    handler  : FSignalContextHandler
+    mask     : [32] uint32
+    flags    : int32
+    restorer : pointer
+endstruct
+
+struct SArmSignalContext:
+    flags         : uint32
+    link          : pointer
+    stack_pointer : pointer
+    stack_flags   : int32
+    stack_size    : uint32
+    trap_no       : uint32
+    error_code    : uint32
+    oldmask       : uint32
+    registers     : [16] uint32
+endstruct
+
+func libc_sigaction(signum : int, action : ^SArmSigAction, oldaction : pointer) -> int [[external('sigaction')]] ..
 #endif
 
 func RaiseSignalException() ..
@@ -71,20 +89,29 @@ func OsRtErrorHandler(emsg : ^char):
     DqExcRaise(new Exception(emsg), true)
 endfunc
 
+#ifdef ARM
+func DqSigSegvHandler(signum : int, info : pointer, raw_context : pointer):
+#else
 func DqSigSegvHandler(signum : int):
-  #ifdef X64
+#endif
     if dq_sigsegv_handling:
         libc_signal(signum, SIG_DFL)
         libc_raise(signum)
         return
     endif
     dq_sigsegv_handling = true
-  #endif
     dq_sigsegv_signal = signum
     dq_sigsegv_backtrace_count = libc_backtrace(%dq_sigsegv_backtrace, DQ_SIGNAL_BACKTRACE_MAX)
 
     if dq_sigsegv_guard_active <> 0:
-      #ifdef X64
+      #ifdef ARM
+        // ARM EHABI looks up the instruction before the saved PC, as for
+        // a call's return address. A signal saves the faulting PC instead.
+        // Advancing by a halfword keeps that lookup inside the faulting
+        // ARM or Thumb instruction, even at an exception range's start.
+        var context : ^SArmSignalContext = ^SArmSignalContext(raw_context)
+        context.registers[15] += 2
+      #endif
         // Native unwinding preserves the faulting scopes and their cleanups.
         // The kernel blocked SIGSEGV on entry; restore it before leaving the
         // handler by exception so that a later fault can also be caught.
@@ -93,13 +120,6 @@ func DqSigSegvHandler(signum : int):
         libc_sigaddset(%mask, signum)
         libc_sigprocmask(1, %mask, nil) // SIG_UNBLOCK
         RaiseSignalException()
-      #else
-        dq_sigsegv_guard_active = 0
-
-        // jump back where the libc___sigsetjmp(%dq_sigsegv_jmp, 1) was called
-        // but return with 1 (non-zero) !
-        libc_siglongjmp(%dq_sigsegv_jmp[0], 1)
-      #endif
     endif
 
     libc_signal(signum, SIG_DFL)  // set back the default signal handler
@@ -115,9 +135,7 @@ endfunc
 
 func RaiseSignalException():
     var e = new ESegFault(SigSegvMessage())
-  #ifdef X64
     dq_sigsegv_handling = false
-  #endif
     DqExcRaiseWithBacktrace(e, true,
                                         %dq_sigsegv_backtrace, dq_sigsegv_backtrace_count)
 endfunc
@@ -143,47 +161,29 @@ func RunHostedMain() -> int:
     result = 0
     dq_sigsegv_guard_active = 1
 
-    // the libc___sigsetjmp func takes a "snapshot" of the current CPU state
-    // (registers, stack pointer, instruction pointer, and the current signal mask)
-    // and stores it in the dq_sigsegv_jmp array.
-    // On the first pass it returns 0
-
-    if libc___sigsetjmp(%dq_sigsegv_jmp, 1) == 0:
-        try:
-            dq_module_init()
-        except Exception as e:
-            dq_sigsegv_guard_active = 0
-            return PrintException(e)
-        endtry
-
-        if DqExcActive():
-            dq_sigsegv_guard_active = 0
-            return PrintUncaughtException()
-        endif
-
-        try:
-            dq_main()
-            result = exit_code
-        except Exception as e:
-            dq_sigsegv_guard_active = 0
-            result = PrintException(e)
-        endtry
-
+    try:
+        dq_module_init()
+    except Exception as e:
         dq_sigsegv_guard_active = 0
-        if DqExcActive():
-            result = PrintUncaughtException()
-        endif
-    else:
-        // Jumped here from the signal handler
+        return PrintException(e)
+    endtry
+
+    if DqExcActive():
         dq_sigsegv_guard_active = 0
-        try:
-            RaiseSignalException()
-        except Exception as e:
-            result = PrintException(e)
-        endtry
-        if DqExcActive():
-            result = PrintUncaughtException()
-        endif
+        return PrintUncaughtException()
+    endif
+
+    try:
+        dq_main()
+        result = exit_code
+    except Exception as e:
+        dq_sigsegv_guard_active = 0
+        result = PrintException(e)
+    endtry
+
+    dq_sigsegv_guard_active = 0
+    if DqExcActive():
+        result = PrintUncaughtException()
     endif
 endfunc
 
@@ -193,7 +193,15 @@ func main(argc : int, argv : ^^char) -> int  [[cexport]]:
 
     rterror_handler = OsRtErrorHandler
 
+  #ifdef ARM
+    var action : SArmSigAction = {}
+    action.handler = DqSigSegvHandler
+    libc_sigemptyset(%action.mask)
+    action.flags = 4 // SA_SIGINFO
+    libc_sigaction(SIGSEGV, %action, nil)
+  #else
     libc_signal(SIGSEGV, DqSigSegvHandler)
+  #endif
 
     @prgargs.__sys_init_params(argc, argv)
 

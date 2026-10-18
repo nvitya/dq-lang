@@ -70,6 +70,7 @@ nav:
       - Cross-Compiling and Packaging: compiler/cross-compiling.md
       - Module Artifacts: compiler/dqm-format.md
       - Windows Development Environment: compiler/windows-devenv.md
+      - Linux Development Environment: compiler/linux-devenv.md
       - Windows Debugging: compiler/windows-debugging.md
   - Contributor Documentation:
       - Overview: contributing/index.md

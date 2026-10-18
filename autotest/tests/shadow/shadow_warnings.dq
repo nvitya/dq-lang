@@ -20,6 +20,30 @@ func TestProc3():
     var globalvar : int = 6  //?warning(ShadowValSym)
 endfunc
 
+// Imported external declarations may be shadowed by functions, variables, and parameters.
+func ExternalFunc():
+endfunc
+
+func TestExternalSymbols(externalvar : int):
+    var ExternalCallback : int = 1
+endfunc
+
+func TestExternalVariable():
+    var externalvar : int = 1
+    if true:
+        var externalvar : int = 2  //?warning(ShadowValSym)
+    endif
+endfunc
+
+// External declarations in the same module follow the same rule.
+func LocalExternalFunc() [[external]] ..
+var local_external_var : int [[external]]
+
+func TestLocalExternalSymbols():
+    var LocalExternalFunc : int = 1
+    var local_external_var : int = 2
+endfunc
+
 object OSome:
     member : int = 1
 

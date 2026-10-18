@@ -77,7 +77,8 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
       }
     }
 
-    if (shadowed)
+    auto * shadowed_func = dynamic_cast<OValSymFunc *>(shadowed);
+    if (shadowed && !shadowed->attr_is_external && (!shadowed_func || !shadowed_func->is_external))
     {
       string shadowed_type = shadowed->ptype ? shadowed->ptype->name : "?";
       string shadowed_pos = shadowed->scpos.Format();

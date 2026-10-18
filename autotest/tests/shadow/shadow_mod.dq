@@ -5,3 +5,7 @@ var globalvar : int = 1
 func GlobalFunc():
 
 endfunc
+
+func ExternalFunc() [[external('dq_shadow_external_func')]] ..
+func ExternalCallback() [[external('dq_shadow_external_callback')]] ..
+var externalvar : int [[external('dq_shadow_external_var')]]

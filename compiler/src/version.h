@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.9"
+#define DQ_COMPILER_VERSION  "0.93.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.10:
+  - No shadowing warning for symbols with [[external]] attribute
 v0.93.9:
   - Fixed dq-comp compiling problems with different LLVM versions
 v0.93.8:

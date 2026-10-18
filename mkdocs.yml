@@ -72,6 +72,7 @@ nav:
       - Windows Development Environment: compiler/windows-devenv.md
       - Linux Development Environment: compiler/linux-devenv.md
       - Windows Debugging: compiler/windows-debugging.md
+      - VSCode Setup: compiler/vscode-setup.md
   - Contributor Documentation:
       - Overview: contributing/index.md
       - Documentation Policy: contributing/documentation-policy.md

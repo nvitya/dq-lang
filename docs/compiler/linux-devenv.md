@@ -1,6 +1,6 @@
 # Linux Development Environment
 
-Setting up the development environment on Linux is relative simple. If you are new to Linux I recommend to install the latest LTS version (currently 26.04) of the KUbuntu (Ubuntu with KDE desktop). These guide is tested for Ubuntu systems, but it should work similar, deb-based systems like Debian, Mint.
+Setting up the development environment on Linux is relative simple. If you are new to Linux I recommend to install the latest LTS version (currently 26.04) of the KUbuntu (Ubuntu with KDE desktop). These guide is tested for Ubuntu systems, but it should work for similar, deb-based systems like Debian, Mint.
 
 ## 1. Install the required packages To Run the DQ Compiler
 

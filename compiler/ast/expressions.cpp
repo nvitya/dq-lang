@@ -2291,8 +2291,7 @@ LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_trap, bb_ok);
 
   ll_builder.SetInsertPoint(bb_trap);
-  auto trap_fn = llvm::Intrinsic::getOrInsertDeclaration(ll_module, llvm::Intrinsic::trap);
-  ll_builder.CreateCall(trap_fn, {});
+  ll_builder.CreateIntrinsic(llvm::Intrinsic::trap, llvm::ArrayRef<LlType *>{}, {});
   ll_builder.CreateUnreachable();
 
   ll_builder.SetInsertPoint(bb_ok);
@@ -3231,8 +3230,7 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, trap_bb, ok_bb);
 
   ll_builder.SetInsertPoint(trap_bb);
-  auto trap_fn = llvm::Intrinsic::getOrInsertDeclaration(ll_module, llvm::Intrinsic::trap);
-  ll_builder.CreateCall(trap_fn, {});
+  ll_builder.CreateIntrinsic(llvm::Intrinsic::trap, llvm::ArrayRef<LlType *>{}, {});
   ll_builder.CreateUnreachable();
 
   ll_builder.SetInsertPoint(ok_bb);

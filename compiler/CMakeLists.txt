@@ -23,7 +23,7 @@ else()
   message(WARNING "Could not find a matching clang++; dq-comp will require DQ_LINKER_DRIVER at runtime")
 endif()
 
-include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 

@@ -1,7 +1,7 @@
 # Windows Development Environment
 
 In order to develop DQ applications on Windows you need the Windows version of the DQ compiler package.
-The DQ compiler translates DQ source code (.dq files) into executable machine code: .exe files on Windows.
+The DQ compiler translates your DQ source code (.dq files) into executable machine code (.exe files on Windows).
 
 ## 1. Download and Extract the DQ Compiler
 
@@ -189,9 +189,10 @@ dq-comp --static stdpkg\sqlite3\examples\sqlite_test.dq
 ```
 
 Notes:
-  * The executable is significantly bigger this way
-  * Static linking might not be possible for every third-party library
-  * Static linking might be not allowed (or not for free) by third-party library license
+
+ * The executable is significantly bigger this way
+ * Static linking might not be possible for every third-party library
+ * Static linking might be not allowed (or not for free) by third-party library license
 
 ## 6. Troubleshooting
 

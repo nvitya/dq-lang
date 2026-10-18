@@ -512,6 +512,18 @@ struct SExecErrorInfo
 {
   int runner_exit_code;
   int sys_errno;
+
+  [[noreturn]] void ReportAndExit(int afd) const
+  {
+    // Reporting is best effort, but retry if a signal interrupts the write.
+    ssize_t written;
+    do
+    {
+      written = write(afd, this, sizeof(*this));
+    }
+    while ((written < 0) && (errno == EINTR));
+    _exit(127);
+  }
 };
 
 static void SetNonBlocking(int afd)
@@ -686,8 +698,7 @@ bool OProcessRunner::Run()
       if (setenv(name.c_str(), value.c_str(), 1) < 0)
       {
         SExecErrorInfo errinfo { PROCRUNERR_SETUP, errno };
-        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-        _exit(127);
+        errinfo.ReportAndExit(execerrpipe[1]);
       }
     }
 
@@ -696,8 +707,7 @@ bool OProcessRunner::Run()
       if (chdir(workdir.c_str()) < 0)
       {
         SExecErrorInfo errinfo { PROCRUNERR_CHDIR, errno };
-        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-        _exit(127);
+        errinfo.ReportAndExit(execerrpipe[1]);
       }
     }
 
@@ -719,9 +729,7 @@ bool OProcessRunner::Run()
 
     execvp(argv[0], argv.data());
     SExecErrorInfo errinfo { PROCRUNERR_EXEC, errno };
-    (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-    CloseFd(execerrpipe[1]);
-    _exit(127);
+    errinfo.ReportAndExit(execerrpipe[1]);
   }
 
   CloseFd(outpipe[1]);
@@ -952,8 +960,7 @@ bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, strin
       if (setenv(name.c_str(), value.c_str(), 1) < 0)
       {
         SExecErrorInfo errinfo { PROCRUNERR_SETUP, errno };
-        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-        _exit(127);
+        errinfo.ReportAndExit(execerrpipe[1]);
       }
     }
 
@@ -962,8 +969,7 @@ bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, strin
       if (chdir(aworkdir.c_str()) < 0)
       {
         SExecErrorInfo errinfo { PROCRUNERR_CHDIR, errno };
-        (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-        _exit(127);
+        errinfo.ReportAndExit(execerrpipe[1]);
       }
     }
 
@@ -977,9 +983,7 @@ bool RunInteractiveProcess(const vector<string> & aargs, int & aexit_code, strin
 
     execvp(argv[0], argv.data());
     SExecErrorInfo errinfo { PROCRUNERR_EXEC, errno };
-    (void)write(execerrpipe[1], &errinfo, sizeof(errinfo));
-    CloseFd(execerrpipe[1]);
-    _exit(127);
+    errinfo.ReportAndExit(execerrpipe[1]);
   }
 
   CloseFd(execerrpipe[1]);

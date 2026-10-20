@@ -1,0 +1,30 @@
+site_name: DQ Programming Language
+site_description: Documentation for the DQ programming language
+repo_url: https://github.com/nvitya/dq-lang
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - content.code.copy
+    - search.highlight
+
+plugins:
+  - search
+  - monorepo
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn

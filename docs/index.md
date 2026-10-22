@@ -6,7 +6,36 @@ DQ is a **general-purpose** and **human-friendly** programming language.
 
 **Human-friendly**, because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
 
-DQ is a mix of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
+The DQ programming language and compiler is designed to offer a serious alternative for Python and C++. The DQ syntax is a kind of mixture of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
+
+The DQ source code files (.dq files) are translated to directly executable machine code, so the DQ applications run very fast, matching the speed of C++, Rust. For the machine code translation the DQ compiler uses the well-tested LLVM framework, wich also allows to support numeorous different CPU architectures, like x86, ARM32, ARM64, ARM Cortex-M, Risc-V, WASM. The DQ compiler allows you to create Windows, Linux and bare-metal applications, also with cross-compiling.
+
+The compiled DQ programs on Windows and Linux use the standard and well-tested C library for low-level system functions. Combined with the reliable LLVM code generator and excessive compiler tests, the DQ compiler and its compiled applications are pretty stable already.
+
+The DQ standard library offers user-friendly, object based interface for several programming tasks, including database handling, threading, http serving, and JSON handling. As DQ is a new languge (2026) the library support is not complete though. DQ has a very flexible module system and simple way importing functions from external C compatible libraries, which provides unlimited possibilities at application development.
+
+# Features
+
+## Highlighted features
+
+* `3 / 2 == 1.5` and no number hintings are required (like 1.0, 1.0f, 2ul etc.)
+* Single purpose operator symbols and well-designed operator precedence. The need to use parentheses reduced drastically, e.g. <br> `if b & 0x80 == 0 and not 2 <= b < 10:  ...`
+* Statically, strictly typed, with no implicit number to boolean conversion
+* Objects with inheritance, virtual functions and properties
+* Object functions don't need to use `self.` for member accesses
+* Semi-automatic memory management with embeddable objects (`<-`) and `autofree` types
+* Exceptions for runtime error management, with no-cost happy path
+* Dynamic arrays and dynamic strings
+* Excessive built-in string functions, supporting no-heap strings for small embedded systems
+* Pointers, pointer arithmetic and inline assembly functions for low-level programming
+*
+
+
+[Feature Highlights](feature-highlights.dq)
+
+
+---
+
 
 ## Highlighted features
 * Compiled to machine code that can run at the same speed as C/C++
@@ -34,15 +63,24 @@ What was my motivation to create the DQ language? See the [Motivation](motivatio
 
 ## Current Status, Roadmap
 
-__Warning: The compiler and the DQ language is under development, not recommended for production use yet__
 
-The DQ compiler and libraries are currently in __Pre-V1__ phase. The language and the compiler is complete enough to develop libraries. A basic set of libraries are required to be developed first for the V1 release, including database access or graphics.
+The DQ compiler and libraries are currently in Pre-V1 phase. The DQ compiler is already pretty reliable, because it uses LLVM for the code generation and libc for the low-level runtime functions. There are some applications running developed in DQ already. More and more libraries and applications will be developed, but the standard library set is somewhat limited yet.
 
-This site documents the compiler checked into the repository's `main` branch.
-During Pre-V1 development it may therefore describe changes newer than the most
-recent release package.
+The DQ compiler standard package already contains user-friendly interfaces for many tasks, including:
 
-A bigger language and compiler extension is planned only for V2 like embedded target support and template classes.
+files
+JSON
+async sockets
+http serving
+database
+threading
+
+It is very easy to use C libraries from DQ, so if there is no existing DQ standard function for a specific task, you can create a module with the missing C interface bindings.
+
+Any help welcomed in DQ standard package development too.
+
+---
+
 
 ## DQ Compiler and Libraries
 
@@ -76,17 +114,3 @@ The DQ community subreddit is available at:
 Use it for questions, feedback, language-design discussions, examples, and general conversation about the DQ programming language and compiler.
 
 For confirmed bugs and concrete feature requests, please use the [GitHub issue tracker](https://github.com/nvitya/dq-lang/issues)
-
-## Documentation Paths
-
-Choose the level that matches what you are doing:
-
-* Start with [Getting Started](getting-started.md) to install DQ and run a first
-  program.
-* Use the [Language Basics](language/basics.md) and the other Language Guide
-  pages to learn normal DQ code.
-* Use the complete [Language Reference](reference/index.md) for exact typing,
-  lifetime, lookup, and edge-case rules.
-* Compiler and runtime maintainers can use the separate
-  [Contributor Documentation](contributing/index.md). It describes
-  implementation and is not part of the language contract.

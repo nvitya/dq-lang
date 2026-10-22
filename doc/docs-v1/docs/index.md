@@ -1,0 +1,92 @@
+# What is DQ?
+
+DQ is a **general-purpose** and **human-friendly** programming language.
+
+**General-purpose**, because it is intended to cover many use cases, including scripts and tools, server applications, embedded applications, GUI applications, and games.
+
+**Human-friendly**, because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
+
+DQ is a mix of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
+
+## Highlighted features
+* Compiled to machine code that can run at the same speed as C/C++
+* Statically, strictly typed
+* Mostly uses well-tested concepts from other popular languages
+* `3 / 2 * 10 == 10 * 3 / 2` is true
+* No implicit conversions between numbers and booleans
+* Pointers and pointer arithmetic
+* Manual memory management (no garbage collector)
+* Objects with inheritance, virtual functions and properties
+* Object functions don't need to use `self.` for member accesses
+* Exceptions for runtime error management
+* Dynamic arrays and dynamic strings
+* Simple, fast compile + run
+
+## Quick Look
+
+For a quick look at DQ syntax and features, start with the
+[`nanonet/nano_sockets.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/nanonet/nano_sockets.dq)
+module. It shows real DQ code in a compact, practical module.
+
+## Motivation
+
+What was my motivation to create the DQ language? See the [Motivation](motivation.md) page.
+
+## Current Status, Roadmap
+
+__Warning: The compiler and the DQ language is under development, not recommended for production use yet__
+
+The DQ compiler and libraries are currently in __Pre-V1__ phase. The language and the compiler is complete enough to develop libraries. A basic set of libraries are required to be developed first for the V1 release, including database access or graphics.
+
+This site documents the compiler checked into the repository's `main` branch.
+During Pre-V1 development it may therefore describe changes newer than the most
+recent release package.
+
+A bigger language and compiler extension is planned only for V2 like embedded target support and template classes.
+
+## DQ Compiler and Libraries
+
+I implemented a compiler for the DQ language in C++ using LLVM. As I am not an expert in compiler development,
+I used AI (GPT-5, Gemini pro, Opus) for the design and implementation, in a controlled way.
+
+The DQ compiler C++ code is restricted only to the source code parsing and machine code generation using the LLVM C++ interfaces.
+
+The compiled applications are linked against the libc to use the low-level system functions.
+
+The DQ specific runtime library is implemented in DQ (which can be found under the
+[stdpkg/rtl](https://github.com/nvitya/dq-lang/blob/main/stdpkg/rtl)).
+
+## Getting Started
+
+To get the DQ compiler and start experimenting with the language follow the instructions in the
+[Getting Started](getting-started.md) page.
+
+## Project Page
+
+The DQ language specification and the DQ compiler are available on GitHub:
+
+[github.com/nvitya/dq-lang](https://github.com/nvitya/dq-lang)
+
+## Discussions
+
+The DQ community subreddit is available at:
+
+[**https://www.reddit.com/r/dqlang/**](https://www.reddit.com/r/dqlang/)
+
+Use it for questions, feedback, language-design discussions, examples, and general conversation about the DQ programming language and compiler.
+
+For confirmed bugs and concrete feature requests, please use the [GitHub issue tracker](https://github.com/nvitya/dq-lang/issues)
+
+## Documentation Paths
+
+Choose the level that matches what you are doing:
+
+* Start with [Getting Started](getting-started.md) to install DQ and run a first
+  program.
+* Use the [Language Basics](language/basics.md) and the other Language Guide
+  pages to learn normal DQ code.
+* Use the complete [Language Reference](reference/index.md) for exact typing,
+  lifetime, lookup, and edge-case rules.
+* Compiler and runtime maintainers can use the separate
+  [Contributor Documentation](contributing/index.md). It describes
+  implementation and is not part of the language contract.

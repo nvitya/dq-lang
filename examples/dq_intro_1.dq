@@ -24,9 +24,8 @@ func *Main():
 
     var sarr : [5]int = [2, 3, 5, 7, 11]
     Print('sarr:')
-    for i : int = 0 count sarr.length:
-        Print(' {}', [sarr[i]])
-    endfor
+    // single line block is possible too, but semicolon is required to close the statements:
+    for i : int = 0 count sarr.length:  Print(' {}', [sarr[i]]);  endfor
     PrintLn()
 
     var darr : [*]float = [2, 3.14, 7 / 3]

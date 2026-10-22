@@ -23,6 +23,7 @@ enum ETypeKind
   TK_POINTER      =  4,
   TK_ENUM         =  5,
   TK_CHAR         =  6,
+  TK_WCHAR        =  7,
 
   TK_EMBSTR       =  8,
   TK_STRSLICE     =  9,

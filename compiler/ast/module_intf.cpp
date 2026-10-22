@@ -61,6 +61,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_BOOL:         return "bool";
     case TK_POINTER:      return "pointer";
     case TK_CHAR:         return "char";
+    case TK_WCHAR:        return "wchar";
     case TK_ARRAY:        return "array";
     case TK_ARRAY_SLICE:  return "array_slice";
     case TK_DYN_ARRAY:    return "dynamic_array";
@@ -2304,7 +2305,7 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
       rvalue = ptrvalue;
     }
   }
-  else if (TK_INT == rtype->kind || TK_CHAR == rtype->kind)
+  else if (TK_INT == rtype->kind || TK_CHAR == rtype->kind || TK_WCHAR == rtype->kind)
   {
     int64_t value = 0;
     if (!reader.ReadI64(value)) return false;

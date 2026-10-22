@@ -941,7 +941,7 @@ string OValSymFunc::InlineAsmRegisterConstraint(OType * type) const
   if (!resolved) return "";
   if (TK_FLOAT == resolved->kind) return string(asm_target->RegisterConstraint(true));
   if ((TK_INT == resolved->kind) || (TK_BOOL == resolved->kind) || (TK_POINTER == resolved->kind)
-      || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind))
+      || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_WCHAR == resolved->kind))
   {
     return string(asm_target->RegisterConstraint(false));
   }
@@ -997,7 +997,7 @@ bool OValSymFunc::ValidateInlineAsmSignature()
       OType * resolved = param->ptype ? param->ptype->ResolveAlias() : nullptr;
       if (param->IsRefLike() || !resolved
           || !((TK_INT == resolved->kind) || (TK_BOOL == resolved->kind)
-               || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind)))
+               || (TK_ENUM == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_WCHAR == resolved->kind)))
       {
         g_compiler->Error(DQERR_ASM_OPERAND_TYPE, param->name, &scpos);
         result = false;

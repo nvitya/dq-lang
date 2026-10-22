@@ -3,7 +3,7 @@
   "dq.debugTarget": "stdpkg/nanonet/examples/http_simple_server",
   "dq.debugCwd":    "stdpkg/nanonet/examples",
 
-  "dq.languageServerPath": "build/dq-comp",
+  "dq.languageServerPath": "dq-comp",
   "dq.languageServerArgs": [
     "--pkg-path",
     "stdpkg"

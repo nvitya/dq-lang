@@ -18,6 +18,7 @@
 #include "otype_embstr.h"
 #include "otype_float.h"
 #include "otype_int.h"
+#include "otype_char.h"
 #include "otype_compound.h"
 #include "otype_string.h"
 #include "scope_builtins.h"
@@ -165,6 +166,7 @@ bool IsAnyValueSourceType(OType * type)
     case TK_BOOL:
     case TK_INT:
     case TK_CHAR:
+    case TK_WCHAR:
     case TK_FLOAT:
     case TK_POINTER:
     case TK_EMBSTR:
@@ -266,7 +268,17 @@ bool GenerateAnyValueAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * va
     return true;
   }
 
-  if (TK_INT == srctype->kind || TK_CHAR == srctype->kind)
+  if (IsCharacterType(srctype))
+  {
+    // char16 is boxed as wchar; only the byte character keeps the char kind.
+    bool is_byte = (srctype->bytesize == 1);
+    LlType * chartype = is_byte ? g_builtins->type_char->GetLlType() : g_builtins->type_wchar->GetLlType();
+    LlValue * character = ll_builder.CreateZExtOrTrunc(value->Generate(scope), chartype);
+    CallAnyValueFunc(scope, is_byte ? "AnyValSetChar" : "AnyValSetWChar", {targetaddr, character});
+    return true;
+  }
+
+  if (TK_INT == srctype->kind)
   {
     auto * inttype = static_cast<OTypeInt *>(srctype);
     if (inttype->issigned)
@@ -343,6 +355,12 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_AS_UINT:    return CallAnyValueFunc(scope, "AnyValAsUint", {addr, ToNativeUInt(args[0]->Generate(scope))});
     case AVM_SET_INT:    CallAnyValueFunc(scope, "AnyValSetInt", {addr, ToNativeInt(args[0]->Generate(scope))}); return nullptr;
     case AVM_SET_UINT:   CallAnyValueFunc(scope, "AnyValSetUInt", {addr, ToNativeUInt(args[0]->Generate(scope))}); return nullptr;
+    case AVM_IS_CHAR:    return CallAnyValueFunc(scope, "AnyValIsChar", {addr});
+    case AVM_AS_CHAR:    return CallAnyValueFunc(scope, "AnyValAsChar", {addr, args[0]->Generate(scope)});
+    case AVM_SET_CHAR:   CallAnyValueFunc(scope, "AnyValSetChar", {addr, args[0]->Generate(scope)}); return nullptr;
+    case AVM_IS_WCHAR:   return CallAnyValueFunc(scope, "AnyValIsWChar", {addr});
+    case AVM_AS_WCHAR:   return CallAnyValueFunc(scope, "AnyValAsWChar", {addr, args[0]->Generate(scope)});
+    case AVM_SET_WCHAR:  CallAnyValueFunc(scope, "AnyValSetWChar", {addr, args[0]->Generate(scope)}); return nullptr;
     case AVM_IS_BOOL:    return CallAnyValueFunc(scope, "AnyValIsBool", {addr});
     case AVM_AS_BOOL:    return CallAnyValueFunc(scope, "AnyValAsBool", {addr, args[0]->Generate(scope)});
     case AVM_SET_BOOL:   CallAnyValueFunc(scope, "AnyValSetBool", {addr, args[0]->Generate(scope)}); return nullptr;
@@ -432,7 +450,7 @@ bool OTypeAnyValue::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     {
       if (!EnsureDynStringRtlUseForStringTypes()) return false;
     }
-    else if (IsTextSourceType(resolved_src) && TK_CHAR != tks)
+    else if (IsTextSourceType(resolved_src) && !IsCharacterType(resolved_src))
     {
       if (!EnsureStrFuncRtlUse()) return false;
     }

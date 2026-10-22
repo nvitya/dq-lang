@@ -36,6 +36,7 @@ func IntToChar(value : int, defvalue : char) -> char [[overload]] ..
 func IntToWchar(value : int) -> wchar [[overload]] ..
 func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
 func StrSlice(data : ^char, length : int) -> strslice ..
+func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int ..
 
 #ifdef DYNSTRINGS
 func StrFromWchars(chars : []wchar) -> str ..
@@ -233,33 +234,44 @@ func StrfDecodeUtf8(text : strslice, pos : ref int, wc : refout wchar,
     return StrfFailUtf8(report_error)
 endfunc
 
-#ifdef DYNSTRINGS
-func StrfAppendUtf8(dst : ref str, wc : wchar):
+// Encode into fixed storage so embedded zero bytes retain their exact length.
+func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int:
     if not IsValidWchar(wc):
 #ifdef EXCEPTIONS
         raise EStrError('Invalid Unicode scalar: {:x}', [wc])
 #else
         StrfRuntimeError('Invalid Unicode scalar')
 #endif
-        return
+        return 0
     endif
 
     var code : uint32 = Ord(wc)
     if code <= 0x7F:
-        dst.Append(char(int(code)))
+        dst[0] = char(int(code))
+        return 1
     elif code <= 0x7FF:
-        dst.Append(char(int(0xC0 | (code >> 6))))
-        dst.Append(char(int(0x80 | (code & 0x3F))))
+        dst[0] = char(int(0xC0 | (code >> 6)))
+        dst[1] = char(int(0x80 | (code & 0x3F)))
+        return 2
     elif code <= 0xFFFF:
-        dst.Append(char(int(0xE0 | (code >> 12))))
-        dst.Append(char(int(0x80 | ((code >> 6) & 0x3F))))
-        dst.Append(char(int(0x80 | (code & 0x3F))))
+        dst[0] = char(int(0xE0 | (code >> 12)))
+        dst[1] = char(int(0x80 | ((code >> 6) & 0x3F)))
+        dst[2] = char(int(0x80 | (code & 0x3F)))
+        return 3
     else:
-        dst.Append(char(int(0xF0 | (code >> 18))))
-        dst.Append(char(int(0x80 | ((code >> 12) & 0x3F))))
-        dst.Append(char(int(0x80 | ((code >> 6) & 0x3F))))
-        dst.Append(char(int(0x80 | (code & 0x3F))))
+        dst[0] = char(int(0xF0 | (code >> 18)))
+        dst[1] = char(int(0x80 | ((code >> 12) & 0x3F)))
+        dst[2] = char(int(0x80 | ((code >> 6) & 0x3F)))
+        dst[3] = char(int(0x80 | (code & 0x3F)))
+        return 4
     endif
+endfunc
+
+#ifdef DYNSTRINGS
+func StrfAppendUtf8(dst : ref str, wc : wchar):
+    var encoded : [4]char
+    var count : int = StrfEncodeUtf8(wc, encoded)
+    dst.Append(StrSlice(%encoded[0], count))
 endfunc
 #endif
 

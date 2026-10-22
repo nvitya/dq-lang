@@ -114,6 +114,11 @@ func RunAnyValueTests():
     PrintAnyState("copy-after-source-overwrite", copy) //?check("copy-after-source-overwrite", "kind:10 istext:1 isstr:1 len:5 ref:1")
     printf("source-overwrite-int = kind:%li val:%li\n", int(av.kind), AnyValAsInt(av, -1)) //?check("source-overwrite-int", "kind:1 val:123")
 
+    AnyValSetChar(copy, char(255))
+    printf("char-storage = kind:%li size:%li val:%li\n", int(copy.kind), int(copy.datasize), Ord(AnyValAsChar(copy, '?'))) //?check("char-storage", "kind:6 size:1 val:255")
+    AnyValSetWChar(copy, wchar(0x20AC))
+    printf("wchar-storage = kind:%li size:%li val:%li\n", int(copy.kind), int(copy.datasize), Ord(AnyValAsWChar(copy, '?'))) //?check("wchar-storage", "kind:7 size:4 val:8364")
+
     AnyValDestroy(copy)
     AnyValDestroy(av)
 endfunc

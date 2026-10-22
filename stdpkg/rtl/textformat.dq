@@ -130,6 +130,7 @@ protected
 
     func ParseSpec(afmt : rostr) ..
     func FormatAny(av : anyvalue) ..
+    func FormatWChar(wc : wchar) ..
 
     func WritePad(acount : int, ch : char) ..
     func UIntDigitChar(adigit : uint, aupper : bool) -> char ..
@@ -389,7 +390,17 @@ func OTextFormatter.FormatAny(av : anyvalue):
         return
     endif
 
-    if av.IsInt():
+    var is_character : bool = av.IsChar() or av.IsWChar()
+    if is_character and (fmtspec.kind == @.DQFMT_KIND_DEFAULT or fmtspec.kind == @.DQFMT_KIND_STRING):
+        if av.IsChar():
+            sink.WriteChar(av.AsChar(char(0)))
+        else:
+            FormatWChar(av.AsWChar(wchar(0)))
+        endif
+        return
+    endif
+
+    if av.IsInt() or is_character:
         if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_SIGNED == fmtspec.kind:
             FormatSInt(av.AsInt(0))
         elif @.DQFMT_KIND_UNSIGNED == fmtspec.kind:
@@ -443,6 +454,16 @@ func OTextFormatter.FormatAny(av : anyvalue):
 
     flags |= @.DQFMT_ARG_ERROR
     sink.Write("<arg-error>")
+endfunc
+
+func OTextFormatter.FormatWChar(wc : wchar):
+    if not @strfunc.IsValidWchar(wc):
+        flags |= @.DQFMT_ARG_ERROR
+        wc = wchar(0xFFFD)
+    endif
+    var encoded : [4]char
+    var count : int = @strfunc.StrfEncodeUtf8(wc, encoded)
+    sink.Write(@strfunc.StrSlice(%encoded[0], count))
 endfunc
 
 func OTextFormatter.WritePad(acount : int, ch : char):

@@ -11,6 +11,7 @@ An `anyvalue` can represent:
 
 - database null;
 - signed and unsigned integers;
+- `char` byte characters and `wchar` Unicode scalars (`char16` boxes as `wchar`);
 - Boolean values;
 - `float32`, `float64`, and `float`;
 - typed and generic pointers;

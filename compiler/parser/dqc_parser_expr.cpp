@@ -2556,6 +2556,12 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
   else if ("AsUint" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_UINT; argtypes = {g_builtins->type_uint}; rettype = g_builtins->type_uint; }
   else if ("SetInt" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_INT; argtypes = {g_builtins->type_int}; }
   else if ("SetUInt" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_UINT; argtypes = {g_builtins->type_uint}; }
+  else if ("IsChar" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_CHAR; rettype = g_builtins->type_bool; }
+  else if ("AsChar" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_CHAR; argtypes = {g_builtins->type_char}; rettype = g_builtins->type_char; }
+  else if ("SetChar" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_CHAR; argtypes = {g_builtins->type_char}; }
+  else if ("IsWChar" == membername)    { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_WCHAR; rettype = g_builtins->type_bool; }
+  else if ("AsWChar" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_WCHAR; argtypes = {g_builtins->type_wchar}; rettype = g_builtins->type_wchar; }
+  else if ("SetWChar" == membername)   { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_WCHAR; argtypes = {g_builtins->type_wchar}; }
   else if ("IsBool" == membername)     { if (!check_count(0, 0)) return free_and_fail(); method = AVM_IS_BOOL; rettype = g_builtins->type_bool; }
   else if ("AsBool" == membername)     { if (!check_count(1, 1)) return free_and_fail(); method = AVM_AS_BOOL; argtypes = {g_builtins->type_bool}; rettype = g_builtins->type_bool; }
   else if ("SetBool" == membername)    { if (!check_count(1, 1)) return free_and_fail(); method = AVM_SET_BOOL; argtypes = {g_builtins->type_bool}; }
@@ -2600,6 +2606,10 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
     OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
+      if (AVM_SET_WCHAR == method && argexpr->ResolvedType() == g_builtins->type_char16)
+      {
+        argexpr = new OExprTypeConv(g_builtins->type_wchar, argexpr);
+      }
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
       {
         OExpr::DeleteTree(argexpr);
@@ -5203,7 +5213,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinOrd()
     return nullptr;
   }
   OType * argtype = arg->ResolvedType();
-  if (argtype && TK_CHAR == argtype->kind)
+  if (IsCharacterType(argtype))
   {
     return new OExprTypeConv(g_builtins->type_int, arg);
   }

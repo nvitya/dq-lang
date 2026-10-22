@@ -1,0 +1,39 @@
+// Character boxing keeps byte characters distinct from Unicode scalars.
+
+use print
+
+func BoxWChar(value : wchar) -> anyvalue:
+    return value
+endfunc
+
+func *Main():
+    var c : char = char(255)
+    var wc : wchar = wchar(0x20AC)
+    var c16 : char16 = char16(0x20AC)
+    var av : anyvalue = c
+
+    PrintLn('char.kind = {} {} {} {}', [av.IsChar(), av.IsWChar(), av.IsInt(), av.IsNumber()]) //?check('char.kind', 'true false false false')
+    PrintLn('char.value = {} {} {} {}', [Ord(av.AsChar('?')), Ord(av.AsWChar('?')), av.AsInt(-1), av.AsUint(0)]) //?check('char.value', '255 255 255 255')
+
+    av = wc
+    PrintLn('wchar.kind = {} {} {} {}', [av.IsChar(), av.IsWChar(), av.IsInt(), av.IsNumber()]) //?check('wchar.kind', 'false true false false')
+    PrintLn('wchar.value = {} {} {} {}', [Ord(av.AsChar('?')), Ord(av.AsWChar('?')), av.AsInt(-1), av.AsUint(0)]) //?check('wchar.value', '63 8364 8364 8364')
+
+    var copy : anyvalue = av
+    av = c16
+    PrintLn('char16.kind = {} {} {}', [av.IsChar(), av.IsWChar(), Ord(av.AsWChar('?'))]) //?check('char16.kind', 'false true 8364')
+
+    av = 'owned string'
+    av.SetChar(c)
+    PrintLn('char.setter = {} {}', [av.IsChar(), Ord(av.AsChar('?'))]) //?check('char.setter', 'true 255')
+    av.SetWChar(wc)
+    PrintLn('wchar.setter = {} {}', [av.IsWChar(), Ord(av.AsWChar('?'))]) //?check('wchar.setter', 'true 8364')
+    av.SetWChar(c16)
+    PrintLn('char16.setter = {} {}', [av.IsWChar(), Ord(av.AsWChar('?'))]) //?check('char16.setter', 'true 8364')
+
+    av = 42
+    PrintLn('char.defaults = {} {} {} {}', [av.IsChar(), av.IsWChar(), Ord(av.AsChar('!')), Ord(av.AsWChar('€'))]) //?check('char.defaults', 'false false 33 8364')
+    PrintLn('wchar.copy = {}', [copy]) //?check('wchar.copy', '€')
+    var returned : anyvalue = BoxWChar(wchar(0x1F600))
+    PrintLn('wchar.returned = {}', [returned]) //?check('wchar.returned', '😀')
+endfunc

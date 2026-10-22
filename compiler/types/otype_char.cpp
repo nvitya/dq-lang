@@ -20,7 +20,7 @@
 bool IsCharacterType(OType * type)
 {
   OType * resolved = type ? type->ResolveAlias() : nullptr;
-  return resolved && TK_CHAR == resolved->kind;
+  return resolved && (TK_CHAR == resolved->kind || TK_WCHAR == resolved->kind);
 }
 
 bool IsValidWCharValue(int64_t value)

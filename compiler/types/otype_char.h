@@ -27,7 +27,7 @@ private:
 public:
   OTypeCharBase(const string aname, uint32_t abitlength)
   :
-    super(aname, abitlength, false, TK_CHAR)
+    super(aname, abitlength, false, abitlength == 32 ? TK_WCHAR : TK_CHAR)
   {
   }
 

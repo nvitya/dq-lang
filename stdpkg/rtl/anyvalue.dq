@@ -48,6 +48,13 @@ func AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint ..
 func AnyValSetInt(v : ref SDqAnyValue, value : int) ..
 func AnyValSetUInt(v : ref SDqAnyValue, value : uint) ..
 
+func AnyValIsChar(v : ref SDqAnyValue) -> bool ..
+func AnyValAsChar(v : ref SDqAnyValue, defval : char) -> char ..
+func AnyValSetChar(v : ref SDqAnyValue, value : char) ..
+func AnyValIsWChar(v : ref SDqAnyValue) -> bool ..
+func AnyValAsWChar(v : ref SDqAnyValue, defval : wchar) -> wchar ..
+func AnyValSetWChar(v : ref SDqAnyValue, value : wchar) ..
+
 func AnyValIsBool(v : ref SDqAnyValue) -> bool ..
 func AnyValAsBool(v : ref SDqAnyValue, defval : bool) -> bool ..
 func AnyValSetBool(v : ref SDqAnyValue, value : bool) ..
@@ -188,6 +195,10 @@ endfunc
 func AnyValAsInt(v : ref SDqAnyValue, defval : int) -> int:
     if v.kind == DQTK_INT:
         return ^int(%v.data[0])^
+    elif v.kind == DQTK_CHAR:
+        return Ord(^char(%v.data[0])^)
+    elif v.kind == DQTK_WCHAR:
+        return Ord(^wchar(%v.data[0])^)
     elif v.kind == DQTK_FLOAT:
         if v.datasize == 8:
             return Round(^float64(%v.data[0])^)
@@ -202,6 +213,10 @@ endfunc
 func AnyValAsUint(v : ref SDqAnyValue, defval : uint) -> uint:
     if v.kind == DQTK_INT:
         return ^uint(%v.data[0])^
+    elif v.kind == DQTK_CHAR:
+        return Ord(^char(%v.data[0])^)
+    elif v.kind == DQTK_WCHAR:
+        return Ord(^wchar(%v.data[0])^)
     elif v.kind == DQTK_FLOAT:
         if v.datasize == 8:
             return Round(^float64(%v.data[0])^)
@@ -223,6 +238,46 @@ func AnyValSetUInt(v : ref SDqAnyValue, value : uint):
     AnyValSetKind(v, DQTK_INT)
     v.subtype = 0
     ^uint(%v.data[0])^ = value
+endfunc
+
+// Characters
+
+func AnyValIsChar(v : ref SDqAnyValue) -> bool:
+    return v.kind == DQTK_CHAR
+endfunc
+
+func AnyValAsChar(v : ref SDqAnyValue, defval : char) -> char:
+    if v.kind == DQTK_CHAR:
+        return ^char(%v.data[0])^
+    else:
+        return defval
+    endif
+endfunc
+
+func AnyValSetChar(v : ref SDqAnyValue, value : char):
+    AnyValSetKind(v, DQTK_CHAR)
+    v.datasize = SizeOf(char)
+    ^char(%v.data[0])^ = value
+endfunc
+
+func AnyValIsWChar(v : ref SDqAnyValue) -> bool:
+    return v.kind == DQTK_WCHAR
+endfunc
+
+func AnyValAsWChar(v : ref SDqAnyValue, defval : wchar) -> wchar:
+    if v.kind == DQTK_WCHAR:
+        return ^wchar(%v.data[0])^
+    elif v.kind == DQTK_CHAR:
+        return wchar(Ord(^char(%v.data[0])^))
+    else:
+        return defval
+    endif
+endfunc
+
+func AnyValSetWChar(v : ref SDqAnyValue, value : wchar):
+    AnyValSetKind(v, DQTK_WCHAR)
+    v.datasize = SizeOf(wchar)
+    ^wchar(%v.data[0])^ = value
 endfunc
 
 // Boolean

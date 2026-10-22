@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.11"
+#define DQ_COMPILER_VERSION  "0.93.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.12:
+  - anyvalue, textformat supports char, wchar
 v0.93.11:
   - a < b <= c case handling was missing from the range comparison expressions
 v0.93.10:

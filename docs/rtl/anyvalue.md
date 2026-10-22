@@ -22,6 +22,8 @@ PrintLn("{}: {}", ["answer", 42])
 | --- | --- |
 | null | `v.SetNull()` |
 | integer | `int`, `uint`, fixed-width integers |
+| byte character | `char` |
+| Unicode character | `wchar`, `char16` (widened to `wchar`) |
 | boolean | `bool` |
 | pointer | `pointer` and pointer values |
 | floating point | `float`, `float32`, `float64` |
@@ -40,7 +42,9 @@ The builtin `anyvalue` type exposes convenience methods backed by the RTL
 | `IsNull()` / `SetNull()` | test or set the null value |
 | `IsNumber()` | true for integer or floating point values |
 | `IsInt()` / `IsSInt()` / `IsUint()` | test integer kind |
-| `AsInt(def)` / `AsUint(def)` | convert integer or float, otherwise return default |
+| `AsInt(def)` / `AsUint(def)` | convert integer, float, or character code, otherwise return default |
+| `IsChar()` / `AsChar(def)` / `SetChar(value)` | test, read, or set a byte character |
+| `IsWChar()` / `AsWChar(def)` / `SetWChar(value)` | test, read, or set a Unicode character; setter also accepts `char16` |
 | `IsBool()` / `AsBool(def)` | test/read boolean |
 | `IsPointer()` / `AsPointer(def)` | test/read pointer |
 | `IsFloat()` / `IsFloat32()` / `IsFloat64()` | test floating point kind |
@@ -68,3 +72,16 @@ endfunc
 
 The `As...` methods use their default argument when the stored kind cannot be
 converted by the runtime helper.
+
+`AsWChar` also widens a stored `char`. `AsChar` returns its default for a stored
+`wchar`. Characters are distinct from numbers: `IsNumber` and `IsInt` return false
+for them.
+
+Formatting with `{}`, `{:?}`, or `{:s}` writes a `char` byte directly and encodes
+a `wchar` as UTF-8. Explicit `{:d}`, `{:u}`, `{:x}`, and `{:X}` formats write the
+character code. An invalid Unicode scalar (including an isolated `char16`
+surrogate) produces the replacement character `�` and sets `DQFMT_ARG_ERROR`.
+
+```dq
+PrintLn('wchar="{}"', [wchar(0x20AC)])  // wchar="€"
+```

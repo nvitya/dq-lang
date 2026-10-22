@@ -1,4 +1,5 @@
 use rtl/textformat
+use print
 
 func *Main():
     var outs <- OTextSinkStdOut()
@@ -20,4 +21,28 @@ func *Main():
     fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',
                [fa[0], fa[1], fa[2], fa[3]]) //?check('tf-float-default', '|1|2|3|42|')
 
+    PrintLn('wchar="{}"', [wchar(0x20AC)]) //?check('wchar', '"€"')
+    fmt.Format('tf-char = {}|{:s}|{}|{}|{}\n',
+               [char(65), char(66), wchar(0xA2), wchar(0x20AC), wchar(0x1F600)]) //?check('tf-char', 'A|B|¢|€|😀')
+    fmt.Format('tf-char16 = {}|{:s}\n', [char16(0x20AC), wchar(0x1F600)]) //?check('tf-char16', '€|😀')
+    fmt.Format('tf-char-bytes = {}{}\n', [char(0xC3), char(0xA9)]) //?check('tf-char-bytes', 'é')
+    fmt.Format('tf-char-numeric = {:d}|{:u}|{:x}|{:X}\n',
+               [char(255), wchar(0x20AC), char16(0x20AC), wchar(0x1F600)]) //?check('tf-char-numeric', '255|8364|20ac|1F600')
+
+    var invalid : int = 0x110000
+    fmt.Format('tf-invalid-wchar = {}|{}\n', [char16(0xD800), wchar(invalid)]) //?check('tf-invalid-wchar', '�|�')
+    PrintLn('tf-invalid-flags = {}', [fmt.flags == DQFMT_ARG_ERROR]) //?check('tf-invalid-flags', 'true')
+
+    var text : embstr(32) = ''
+    text.AddFmt('{}|{}|{}', [char(65), wchar(0x20AC), wchar(0x1F600)])
+    PrintLn('tf-embstr-char = {}', [text]) //?check('tf-embstr-char', 'A|€|😀')
+#ifdef DYNSTRINGS
+    var dynamic_text : str = ''
+    dynamic_text.AddFmt('{}|{}', [wchar(0x20AC), wchar(0x1F600)])
+    PrintLn('tf-str-char = {}', [dynamic_text]) //?check('tf-str-char', '€|😀')
+#endif
+
+    text.Clear()
+    text.AddFmt('{}{}{}', [char(0), wchar(0), wchar(0x7F)])
+    PrintLn('tf-char-zero = {} {} {} {}', [text.length, Ord(text[0]), Ord(text[1]), Ord(text[2])]) //?check('tf-char-zero', '3 0 0 127')
 endfunc

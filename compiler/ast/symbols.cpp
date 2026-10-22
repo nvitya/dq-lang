@@ -518,6 +518,7 @@ bool OType::SupportsUnionStorage() const
     case TK_POINTER:
     case TK_ENUM:
     case TK_CHAR:
+    case TK_WCHAR:
     case TK_FUNCREF:
     case TK_ROSTR:
       return true;

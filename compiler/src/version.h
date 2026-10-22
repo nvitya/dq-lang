@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.10"
+#define DQ_COMPILER_VERSION  "0.93.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.11:
+  - a < b <= c case handling was missing from the range comparison expressions
 v0.93.10:
   - No shadowing warning for symbols with [[external]] attribute
 v0.93.9:

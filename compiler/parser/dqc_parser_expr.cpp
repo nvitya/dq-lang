@@ -1415,10 +1415,8 @@ OExpr * ODqCompParserExpr::ParseComparison()
 
   scf->SkipWhite();
   ECompareOp next_op = ParseCompareOp(false);
-  bool is_range = (COMPOP_LT == op && COMPOP_LT == next_op)
-      || (COMPOP_LE == op && (COMPOP_LT == next_op || COMPOP_LE == next_op))
-      || (COMPOP_GT == op && COMPOP_GT == next_op)
-      || (COMPOP_GE == op && (COMPOP_GT == next_op || COMPOP_GE == next_op));
+  bool is_range = ((COMPOP_LT == op || COMPOP_LE == op) && (COMPOP_LT == next_op || COMPOP_LE == next_op))
+      || ((COMPOP_GT == op || COMPOP_GE == op) && (COMPOP_GT == next_op || COMPOP_GE == next_op));
   if (!is_range)
   {
     return CreateCompareExpr(op, left, right);

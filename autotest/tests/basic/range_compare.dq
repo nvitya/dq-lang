@@ -20,7 +20,9 @@ func *Main():
     var range_value : NRange = middle
 
     printf("range.ascending = %li %li %li\n", 1 < 2 < 3, 1 <= 1 < 2, 1 <= 1 <= 1) //?check("range.ascending", "1 1 1")
+    printf("range.mixed_ascending = %li %li %li %li\n", 1 < 2 <= 3, 1 < 2 <= 2, 2 < 2 <= 3, 1 < 3 <= 2) //?check("range.mixed_ascending", "1 1 0 0")
     printf("range.descending = %li %li %li\n", 3 > 2 > 1, 3 >= 3 > 2, 3 >= 3 >= 3) //?check("range.descending", "1 1 1")
+    printf("range.mixed_descending = %li %li %li %li\n", 3 > 2 >= 1, 3 > 2 >= 2, 2 > 2 >= 1, 3 > 1 >= 2) //?check("range.mixed_descending", "1 1 0 0")
     printf("range.outside = %li %li\n", 1 < 3 < 2, 3 >= 2 > 3) //?check("range.outside", "0 0")
     printf("range.enum = %li\n", low < range_value < high) //?check("range.enum", 1)
 

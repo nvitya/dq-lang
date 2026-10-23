@@ -22,8 +22,9 @@ The DQ standard library offers user-friendly, object based interface for several
 use print
 
 func *Main():
+    PrintLn('Hello from DQ!')
     if 3 / 2 == 1.5  and 3 div 2 == 1  and uint32(3) - uint32(5) < 0:
-        PrintLn('Hello from DQ!')
+        PrintLn('DQ is human friendly.')
     endif
 
     var x : int = 7

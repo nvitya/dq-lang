@@ -1,100 +1,71 @@
 use print
 
-object OBase ..
-
-object OHelper:
-    base : OBase
-
-    func *Create(abase : OBase) ..
-    func *Destroy() ..
-endobject
-
-object OBase:
-    name   : embstr(64)
-    intval : int = 1
-    helper <- OHelper ..
-
-    func PrintExtra()  [[virtual]]:
-        @.Print(' intval={}', [intval])
-    endfunc
-
-    func *Create(aname : rostr):
-        name = aname
-        helper.Create(self)
-    endfunc
-
-    func *Destroy():
-        @.PrintLn('"{}" destroyed', [name])
-    endfunc
-
-    func Print()  [[virtual]]:
-        @print.Print('{}:', [name])
-        PrintExtra()
-        @.PrintLn()
-    endfunc
-endobject
-
-func OHelper.*Create(abase : OBase):
-    base = abase
-    @.PrintLn('Helper for "{}" created', [base.name])
-endfunc
-
-func OHelper.*Destroy():
-    @.PrintLn('Helper for "{}" destroyed', [base.name])
-endfunc
-
-
-object OChild(OBase):
-    flval : float
-
-    func *Create(aname : rostr, aflval : float):
-        inherited Create(aname)
-        flval = aflval
-    endfunc
-
-    func PrintExtra()  [[override]]:
-        inherited
-        @.Print(' flval={}', [flval])
-    endfunc
-endobject
-
-func Manipulate(aobj : ref autofree OBase):
-    aobj = new OChild('Child3-heap', 7 / 3)
-    aobj.Print()
-endfunc
-
-func ErrorTest():
-    PrintLn('Error test')
-    try:
-        var obj = new autofree OChild('ErrChild-heap', 8.3)
-        raise Exception('Some error happened!')
-    except Exception as e:
-        PrintLn('ERROR: {}', [e.message])
-        e.PrintBacktrace()
-    endtry
-endfunc
-
 func *Main():
+    PrintLn('DQ Expressions and String Handling Demo')
 
-    var ob = new autofree OBase('Base-heap')
-    ob.Print()
-
-    if true:
-        var oc1 <- OChild('Child1-stack', 3 / 2)
-        oc1.Print()
+    var x : int = 7
+    x |= 1 << 20
+    if x & 1 << 2 <> 0  and ~x & 1 == 0  and not 0x15 < x <= 0x1F:
+        PrintLn('The proper operator selection and precedence reduces the need of parentheses.')
     endif
 
-    ErrorTest()
+    if 3 div 2 * 10 == 10 * 3 div 2:
+        PrintLn('Multiplications and divisons have different precedence.')
+    endif
 
-    PrintLn('reassigning autofree type')
-    ob = new OChild('Child2-heap', 3.14)
-    ob.Print()
+    if SizeOf(int) == SizeOf(pointer)  and SizeOf(uint) == SizeOf(pointer):
+        PrintLn('int, uint are always pointer-sized')
+    endif
 
-    PrintLn('Autofree type as argument')
-    Manipulate(ob)
+    #ifdef x
+        PrintLn("C-Style conditionals without separated #if... namespace.")
+        #define SOMEDEF
+        #if 3 / 2 == 1.5  and Defined(SOMEDEF)  and Defined(@def.SOMEDEF)
+            PrintLn("Inline directives. Platform: {}",
+              [#{ifdef LINUX}'Linux'#{elifdef WINDOWS}'Windows'#{else}'Unknown'#{endif}] )
+        #endif
+    #endif
 
-    PrintLn('nil-ing autofree type')
-    ob = nil
+    var es : embstr(256) = ''
+    es.Add('No heap')
+    es.AddFmt(' is used for {}', ["embstr"])
+    PrintLn(es)
+    PrintLn("es.lenth = {}", [es.length])
 
-    PrintLn('Test finished.')
+    var ds : str = 'This is a'
+    ds.Reserve(1024) // reserve at least 1024 bytes to avoid re-allocations
+    ds.Add(' dynamic string.')
+    var dpos : int = ds.IndexOf('dynamic')
+    ds.Insert(dpos, 'heap allocated ')
+    PrintLn(ds)
+
+    var ss : strslice = ds[$end - 5:]  // strslice is a borrowed string data pointer with length
+    PrintLn('ds[$end-5:] = "{}"', [ ss ])
+
+    ds = 'str, embstr and rostr are zero terminated, C string (char *) compatible'
+    var pc : ^char = ds.pchar
+    PrintLn(pc)
+    ds = 'this text was copied into the embstr'
+    es = ds
+    es[0] = 'T' // capitalize the first letter
+    PrintLn(es)
+
+    ds = "€ΣΩ" // utf-8 text
+    PrintLn('ds="{}", ds.length={}, ds.wclen={}', [ds, ds.length, ds.wclen])
+    var wca : [*]wchar = ds.ToWchars()
+    for i : int = 0 count wca.length:
+        PrintLn('wca[{}] = "{}" = 0x{:04X}', [i, wca[i], Ord(wca[i])])
+    endfor
+    const n : uint = 2
+    PrintLn('ds.wchar[{}] = "{}" = 0x{:04X}', [n, ds.wchar[n], Ord(ds.wchar[n])])
+
+    subfn ManipulateEs(astr : rostr):
+        if es.length > 0:  es.Add(', ');  endif
+        es.AddFmt('ManipulateEs("{}")', [astr])
+    endsubfn
+
+    es.Clear()
+    ManipulateEs('abc')
+    ManipulateEs('123')
+    PrintLn(es)
 endfunc

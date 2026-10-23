@@ -2977,7 +2977,10 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
   for (const auto & capture : vsfunc->captures)
   {
     OLValueVar source(capture.symbol);
-    call_args.push_back(source.GenerateAddress(scope));
+    LlValue * address = source.GenerateAddress(scope);
+    auto * embstrtype = dynamic_cast<OTypeEmbStr *>(capture.symbol->ResolvedType());
+    call_args.push_back(embstrtype && embstrtype->maxlen > 0
+        ? embstrtype->GenerateDescriptor(scope, address) : address);
   }
   call_args.insert(call_args.end(), ll_args.begin(), ll_args.end());
   LlValue * result = scope->GenerateCallOrInvoke(vsfunc->GetLlFunctionType(), ll_func, call_args);

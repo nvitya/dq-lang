@@ -122,6 +122,7 @@ public:
   bool CanStoreFrom(OExpr * srcexpr) const;
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlValue * GenerateDescriptor(OScope * scope, LlValue * embstraddr);
+  LlValue * GenerateCapturedAddress(LlValue * descaddr);
   void ResetDescriptorLength(OScope * scope, LlValue * embstraddr);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;

@@ -23,6 +23,7 @@
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "otype_array.h"
+#include "otype_embstr.h"
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/Support/SaveAndRestore.h>
 
@@ -1242,6 +1243,11 @@ void OValSymFunc::GenerateFuncBody()
   {
     capture.argument = &*arg_iter++;
     capture.argument->setName("capture." + capture.symbol->name);
+    auto * embstrtype = dynamic_cast<OTypeEmbStr *>(capture.symbol->ResolvedType());
+    if (embstrtype && embstrtype->maxlen > 0)
+    {
+      capture.argument = embstrtype->GenerateCapturedAddress(capture.argument);
+    }
   }
 
   // Create allocas for source parameters only. Captures borrow storage and

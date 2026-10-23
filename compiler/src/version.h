@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.14"
+#define DQ_COMPILER_VERSION  "0.93.15"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.15:
+  - embstr cached metadata capture fix for subfn
 v0.93.14:
   - Allowing comments after #... directives
 v0.93.13:

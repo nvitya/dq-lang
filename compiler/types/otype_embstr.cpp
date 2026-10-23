@@ -194,6 +194,15 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
   return descaddr;
 }
 
+LlValue * OTypeEmbStr::GenerateCapturedAddress(LlValue * descaddr)
+{
+  LlValue * ptraddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.capture.ptr.addr");
+  LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.capture.ptr");
+  // Captures must share the owner's cached length as well as its character buffer.
+  descriptor_caches[dataptr] = descaddr;
+  return dataptr;
+}
+
 void OTypeEmbStr::ResetDescriptorLength(OScope * scope, LlValue * embstraddr)
 {
   LlValue * descaddr = GenerateDescriptor(scope, embstraddr);

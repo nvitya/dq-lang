@@ -1,0 +1,51 @@
+use print
+
+func *Main():
+    var text : embstr(128) = ""
+    var alias : embstr = text
+    subfn Append(value : rostr):
+        text.AddFmt("({})", [value])
+        PrintLn("subfn.embstr.inside = {}", [text]) //?check("subfn.embstr.inside", "(abc)")
+    endsubfn
+    subfn AppendAgain():
+        text.AddFmt("({})", ["123"])
+    endsubfn
+    subfn Run():
+        AppendAgain()
+    endsubfn
+    subfn Length() -> int:
+        result = text.length
+    endsubfn
+    subfn Truncate():
+        text[2] = char(0)
+    endsubfn
+    subfn Assign():
+        text = "assigned"
+    endsubfn
+    subfn Recurse(n : int):
+        if n > 0:
+            text.Add('!')
+            Recurse(n - 1)
+        endif
+    endsubfn
+    subfn AppendAlias():
+        alias.Add('?')
+    endsubfn
+
+    text.Clear()
+    Append("abc")
+    Run()
+    PrintLn("subfn.embstr.parent = {}", [text]) //?check("subfn.embstr.parent", "(abc)(123)")
+    PrintLn("subfn.embstr.alias = {}", [alias]) //?check("subfn.embstr.alias", "(abc)(123)")
+    PrintLn("subfn.embstr.length = {}", [Length()]) //?check("subfn.embstr.length", 10)
+    text = "parent"
+    PrintLn("subfn.embstr.parentassign = {}", [Length()]) //?check("subfn.embstr.parentassign", 6)
+    Truncate()
+    PrintLn("subfn.embstr.truncate = {}", [text]) //?check("subfn.embstr.truncate", "pa")
+    PrintLn("subfn.embstr.truncatelen = {}", [text.length]) //?check("subfn.embstr.truncatelen", 2)
+    Assign()
+    PrintLn("subfn.embstr.assign = {}", [text]) //?check("subfn.embstr.assign", "assigned")
+    Recurse(3)
+    AppendAlias()
+    PrintLn("subfn.embstr.recursive = {}", [text]) //?check("subfn.embstr.recursive", "assigned!!!?")
+endfunc

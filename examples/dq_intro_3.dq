@@ -10,12 +10,16 @@ object OHelper:
 endobject
 
 object OBase:
-    name   : embstr(64)
+protected
     intval : int = 1
+public
+    name   : embstr(64)
     helper <- OHelper ..
 
+    property value : int  read intval
+
     func PrintExtra()  [[virtual]]:
-        @.Print(' intval={}', [intval])
+        @.Print(' value={}', [value])
     endfunc
 
     func *Create(aname : rostr):
@@ -49,6 +53,7 @@ object OChild(OBase):
 
     func *Create(aname : rostr, aflval : float):
         inherited Create(aname)
+        intval = 2
         flval = aflval
     endfunc
 

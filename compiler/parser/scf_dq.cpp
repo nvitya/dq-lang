@@ -241,17 +241,13 @@ void OScFeederDq::SkipWhite(bool alookahead)
 
   // this is a pretty complex function
 
-  if (directive_expr_mode)
-  {
-    SkipSpaces(false);
-    return;
-  }
-
 repeat_skip:  // jumped here when returning from an include
 
   while (curp < bufend)
   {
-    SkipSpaces();
+    // Directive expressions share comment handling with ordinary code, but
+    // must stop at the line ending instead of consuming the following code.
+    SkipSpaces(!directive_expr_mode);
 
     // Comments are whitespace.  Keep the end line of the last real token so
     // statement-boundary checks can still see newlines crossed by a comment.
@@ -290,6 +286,10 @@ repeat_skip:  // jumped here when returning from an include
       }
       last_token_end_line = last_code_token_end_line;
     }
+    else if (directive_expr_mode)
+    {
+      return;
+    }
     else if (CheckSymbol("#"))  // compiler directive
     {
       bool saved_ppc_brace = preproc_closer_brace;
@@ -317,7 +317,7 @@ repeat_skip:  // jumped here when returning from an include
     }
   } // while
 
-  if (returnpos.size() > 0) // is there any return position recorded ?
+  if (!directive_expr_mode && returnpos.size() > 0) // is there any return position recorded ?
   {
     OScPosition rpos = returnpos.back();
     returnpos.pop_back();

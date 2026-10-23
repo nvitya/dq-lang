@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.13"
+#define DQ_COMPILER_VERSION  "0.93.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.14:
+  - Allowing comments after #... directives
 v0.93.13:
   - Defined() and #if... now see all symbols according the actual scope, including local variables
 v0.93.12:

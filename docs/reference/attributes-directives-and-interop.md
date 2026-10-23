@@ -95,6 +95,10 @@ Nested conditionals must be balanced. A definition has the Boolean or integer
 value supplied by its source; code should not assume that every defined name has
 only the value `true`.
 
+Directive expressions support ordinary `//` and `/* ... */` comments. A `//`
+comment ends at the line ending; it does not extend the directive expression
+onto the next line. Block comments can also separate tokens in an expression.
+
 Expressions in `#if` and `#elif` use ordinary DQ lexical name lookup at the
 directive location and must evaluate to a constant Boolean value. The `@def`
 scope is an outer scope of the module, so preprocessor definitions participate

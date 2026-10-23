@@ -1,0 +1,45 @@
+// Comments in directive expressions must not be parsed as division operators.
+#define RATIO = 3 / 2 // #endif and #{else} in comments are ignored
+#define TWO = /* leading comment */ 2 /* trailing comment */
+
+#if 3 / 2 == 1.5 // fractional division, with a trailing comment
+    const DIVISION_BRANCH : int = 11
+#else
+    const DIVISION_BRANCH : int = 0
+#endif // division branch
+
+#if false // inactive branch
+    const ELIF_BRANCH : int = 0
+#elif RATIO == 1.5 /* trailing block comment */
+    const ELIF_BRANCH : int = 12
+#else // fallback branch
+    const ELIF_BRANCH : int = 0
+#endif
+
+#if /* leading */ TWO /* between operands */ == 2 /* trailing */
+    const BLOCK_BRANCH : int = 13
+#else
+    const BLOCK_BRANCH : int = 0
+#endif
+
+#ifdef RATIO // existence checks also accept trailing comments
+    #if RATIO == 1.5 and TWO == 2 // nested condition
+        const NESTED_BRANCH : int = 14
+    #else
+        const NESTED_BRANCH : int = 0
+    #endif
+#else
+    const NESTED_BRANCH : int = 0
+#endif
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+func *Main():
+    var inline_branch : int = #{if /* leading */ RATIO == 1.5 /* } #{else} */} 15 #{else} 0 #{endif}
+
+    printf("division = %d\n", DIVISION_BRANCH) //?check("division", 11)
+    printf("elif = %d\n", ELIF_BRANCH) //?check("elif", 12)
+    printf("block = %d\n", BLOCK_BRANCH) //?check("block", 13)
+    printf("nested = %d\n", NESTED_BRANCH) //?check("nested", 14)
+    printf("inline = %d\n", inline_branch) //?check("inline", 15)
+endfunc

@@ -211,7 +211,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
       return;
     }
 
-    scf->SkipWhite();
+    scf->SkipWhite(true);
     if (scf->CheckSymbol("("))
     {
       fixed_ctor_call_at_decl = true;
@@ -272,7 +272,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     return;
   }
 
-  scf->SkipWhite();
+  scf->SkipWhite(true);
   if (infer_type && !scf->CheckSymbol("=", false))
   {
     StatementError(DQERR_TYPE_INFER_INIT_REQUIRED, sid);

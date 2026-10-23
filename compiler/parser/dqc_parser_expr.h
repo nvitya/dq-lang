@@ -73,6 +73,8 @@ public: // type parsing
 public: // utility from parser that are needed early
   bool ParseParamModeKeyword(const string & sid, EParamMode & rmode);
   bool ParseAttributes(bool areset);
+  bool IsSymbolDefined(const string & namespace_name, const string & symbol_name,
+                       bool & rok, OScPosition * position = nullptr);
 
 protected:
   struct BinOpEntry { const char * sym; EBinOp op; };
@@ -88,6 +90,7 @@ protected:
   bool    ParseAttrStringArg(const string & attrname, string & rvalue, string * roptional_value = nullptr);
 
   OValSym * ResolveNamespaceValSym();
+  OValSym * FindVisibleValSym(const string & name);
   OExpr *   ParseEnumTypeExpr(OTypeEnum * enum_type);
   bool      ParsePropertyIndices(OPropertyExpr * property_expr);
   void      CheckPropertyReadable(OPropertyExpr * property_expr);

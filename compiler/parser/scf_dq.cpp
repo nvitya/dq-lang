@@ -232,7 +232,7 @@ bool OScFeederDq::IsDirectIncludeSource() const
   return (current_path == main_source_path) || (current_path == header_source_path);
 }
 
-void OScFeederDq::SkipWhite()
+void OScFeederDq::SkipWhite(bool alookahead)
 {
   // jumps to the next normal token while:
   //  - processes the #{opt } directives
@@ -260,6 +260,14 @@ repeat_skip:  // jumped here when returning from an include
     if (curp >= bufend)
     {
       break;  // end of current file
+    }
+
+    // Optional syntax must not evaluate the next statement's directives before
+    // the parser has registered the current declaration in its enclosing scope.
+    if (alookahead && curline > last_code_token_end_line && *curp == '#'
+        && (curp + 1 >= bufend || curp[1] != '{'))
+    {
+      return;
     }
 
     if (CheckSymbol("//")) // single line comment
@@ -1018,21 +1026,6 @@ bool OScFeederDq::ReadConditionalSymbol(const string & adirective, string & rnam
   return true;
 }
 
-bool OScFeederDq::ConditionalSymbolDefined(const string & anamespace, const string & asymbol, bool & rok)
-{
-  rok = true;
-  string namespace_name = (anamespace.empty() ? "." : anamespace);
-  auto it = g_namespaces.find(namespace_name);
-  if (it == g_namespaces.end())
-  {
-    PreprocError2(DQERR_NS_UNKNOWN, "@" + namespace_name);
-    rok = false;
-    return false;
-  }
-  return (nullptr != it->second->FindValSym(asymbol, nullptr, true));
-}
-
-
 bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a conditional processed
 {
   string sid;
@@ -1052,7 +1045,7 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
     }
     else if (not inactive_code)
     {
-      bool isdefined = ConditionalSymbolDefined(nsname, sid, condok);
+      bool isdefined = g_compiler->IsSymbolDefined(nsname, sid, condok, &scpos_start_directive);
       if (condok)
       {
         ApplyConditionalResult((("ifdef" == aid) and isdefined) or (("ifndef" == aid) and not isdefined));
@@ -1160,7 +1153,7 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
     }
     else if (branch_active)
     {
-      bool isdefined = ConditionalSymbolDefined(nsname, sid, condok);
+      bool isdefined = g_compiler->IsSymbolDefined(nsname, sid, condok, &scpos_start_directive);
       if (condok)
       {
         ApplyConditionalResult((("elifdef" == aid) and isdefined) or (("elifndef" == aid) and not isdefined));

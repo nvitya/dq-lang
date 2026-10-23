@@ -526,7 +526,7 @@ bool ODqCompParserExpr::ParseAttributes(bool areset)
     OScPosition before_whitespace;
     scf->SaveCurPos(before_whitespace);
     int previous_token_line = scf->last_token_end_line;
-    scf->SkipWhite();
+    scf->SkipWhite(!areset);
     if (!areset && scf->curline > previous_token_line)
     {
       // Trailing attributes belong to the declaration on their physical line.
@@ -906,7 +906,7 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
 
   // Array suffixes are no longer part of the type grammar. Keep [[...]]
   // available for attributes after the type specifier.
-  scf->SkipWhite();
+  scf->SkipWhite(true);
   if (scf->CheckSymbol("[[", false))
   {
     return ptype;
@@ -1292,7 +1292,7 @@ OExpr * ODqCompParserExpr::ParseExprOr()
 
   while (not scf->Eof())
   {
-    scf->SkipWhite();
+    scf->SkipWhite(true);
     if (scf->CheckKeyword("or"))
     {
       OExpr * right = ParseExprAnd();
@@ -1316,7 +1316,7 @@ OExpr * ODqCompParserExpr::ParseExprAnd()
 
   while (not scf->Eof())
   {
-    scf->SkipWhite();
+    scf->SkipWhite(true);
     if (scf->CheckKeyword("and"))
     {
       OExpr * right = ParseExprNot(); // Fixed recursion to ParseExprNot (was ParseExprAnd in original logic, but usually it chains to next priority or self)
@@ -1368,7 +1368,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return nullptr;
   }
 
-  scf->SkipWhite();
+  scf->SkipWhite(true);
 
   // check first the ambigous expression terminators
   if (scf->CheckSymbol("<<=", false) or scf->CheckSymbol(">>=", false))
@@ -1413,7 +1413,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return FreeLeftRight(left, nullptr);
   }
 
-  scf->SkipWhite();
+  scf->SkipWhite(true);
   ECompareOp next_op = ParseCompareOp(false);
   bool is_range = ((COMPOP_LT == op || COMPOP_LE == op) && (COMPOP_LT == next_op || COMPOP_LE == next_op))
       || ((COMPOP_GT == op || COMPOP_GE == op) && (COMPOP_GT == next_op || COMPOP_GE == next_op));
@@ -3292,7 +3292,7 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
   while (true)
   {
     int previous_token_line = scf->last_token_end_line;
-    scf->SkipWhite();
+    scf->SkipWhite(true);
     bool crossed_line = scf->curline > previous_token_line;
 
     if (!result->ptype)
@@ -4889,28 +4889,11 @@ OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name,
     return nullptr;
   }
 
-  SScopeLookupOptions lookup_options;
-  bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
-  if (object_method_scope)
-  {
-    lookup_options.fallback_stop_scope = curvsfunc->parent_function ? curvsfunc->parent_function->body->scope : curvsfunc->body->scope;
-    lookup_options.use_method_fallback_scopes = true;
-  }
-
   OValSym * selected = nullptr;
   OScPosition selected_position;
   for (const SOptionalConstName & candidate : candidates)
   {
-    selected = curscope->FindValSymEx(candidate.name, nullptr, true, lookup_options);
-    if (!selected && object_method_scope)
-    {
-      OCompoundType * declaration_type = nullptr;
-      OValSym * member = curvsfunc->owner_compound_type->FindMemberSymbol(candidate.name, &declaration_type);
-      if (member && ObjectMemberAccessAllowed(declaration_type, member))
-      {
-        selected = member;
-      }
-    }
+    selected = FindVisibleValSym(candidate.name);
     if (selected)
     {
       selected_position = candidate.position;
@@ -4934,6 +4917,52 @@ OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name,
   return evaluate_constant(new OLValueVar(selected));
 }
 
+OValSym * ODqCompParserExpr::FindVisibleValSym(const string & name)
+{
+  SScopeLookupOptions lookup_options;
+  bool object_method_scope = (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg);
+  if (object_method_scope)
+  {
+    lookup_options.fallback_stop_scope = curvsfunc->parent_function ? curvsfunc->parent_function->body->scope : curvsfunc->body->scope;
+    lookup_options.use_method_fallback_scopes = true;
+  }
+
+  OValSym * symbol = curscope->FindValSymEx(name, nullptr, true, lookup_options);
+  if (!symbol && object_method_scope)
+  {
+    OCompoundType * declaration_type = nullptr;
+    OValSym * member = curvsfunc->owner_compound_type->FindMemberSymbol(name, &declaration_type);
+    if (member && ObjectMemberAccessAllowed(declaration_type, member))
+    {
+      symbol = member;
+    }
+  }
+  return symbol;
+}
+
+bool ODqCompParserExpr::IsSymbolDefined(const string & namespace_name, const string & symbol_name,
+                                       bool & rok, OScPosition * position)
+{
+  rok = true;
+  if (namespace_name.empty())
+  {
+    // Preprocessor definitions remain available even in isolated object scopes.
+    return FindVisibleValSym(symbol_name) || curscope->FindType(symbol_name)
+        || g_defines->FindValSym(symbol_name, nullptr, true);
+  }
+
+  auto namespace_it = g_namespaces.find(namespace_name);
+  if (namespace_it == g_namespaces.end())
+  {
+    Error(DQERR_NS_UNKNOWN, "@" + namespace_name, position);
+    rok = false;
+    return false;
+  }
+
+  OScope * scope = namespace_it->second;
+  return scope->FindValSym(symbol_name, nullptr, true) || scope->FindType(symbol_name);
+}
+
 OExpr * ODqCompParserExpr::ParseBuiltinDefined()
 {
   scf->SkipWhite();
@@ -4944,7 +4973,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinDefined()
   }
 
   scf->SkipWhite();
-  string namespace_name = ".";
+  string namespace_name;
   string symbol_name;
   if (scf->CheckSymbol("@"))
   {
@@ -4981,14 +5010,9 @@ OExpr * ODqCompParserExpr::ParseBuiltinDefined()
     return nullptr;
   }
 
-  auto namespace_it = g_namespaces.find(namespace_name);
-  if (namespace_it == g_namespaces.end())
-  {
-    Error(DQERR_NS_UNKNOWN, "@" + namespace_name);
-    return nullptr;
-  }
-
-  return new OBoolLit(nullptr != namespace_it->second->FindValSym(symbol_name, nullptr, true));
+  bool ok;
+  bool defined = IsSymbolDefined(namespace_name, symbol_name, ok);
+  return ok ? new OBoolLit(defined) : nullptr;
 }
 
 OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) const
@@ -5371,7 +5395,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
 bool ODqCompParserExpr::CheckStatementClose(bool emit_error)
 {
   int line_before = scf->last_token_end_line;
-  scf->SkipWhite();
+  scf->SkipWhite(true);
 
   if (scf->CheckSymbol(";"))
   {
@@ -5403,7 +5427,7 @@ OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_ne
 
   while (not scf->Eof())
   {
-    scf->SkipWhite();
+    scf->SkipWhite(true);
 
     // check first the ambigous expression terminators
     if (    scf->CheckSymbol("+=", false)

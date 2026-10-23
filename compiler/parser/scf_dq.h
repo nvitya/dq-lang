@@ -79,7 +79,7 @@ public: // parsing functions
   inline void SetDirectiveExprMode(bool avalue) { directive_expr_mode = avalue; }
   inline void SetAsmMode(bool avalue) { asm_mode = avalue; }
 
-  void SkipWhite(); // jumps to the first normal token
+  void SkipWhite(bool alookahead = false); // lookahead leaves next-line directives pending
   bool LineEndsBeforeNextToken() const;
   bool ReadAsmText(string & rtext);
 
@@ -110,7 +110,6 @@ protected:
   void ApplyConditionalResult(bool acondition_true);
   bool ContinueConditionalBranch(const string & adirective);
   bool ReadConditionalSymbol(const string & adirective, string & rnamespace, string & rsymbol);
-  bool ConditionalSymbolDefined(const string & anamespace, const string & asymbol, bool & rok);
 
   bool CheckConditionals(const string aid);  // processes if, ifdef, else, elif, elifdef, endif. Returns true, when one of those found
 

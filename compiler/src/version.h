@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.12"
+#define DQ_COMPILER_VERSION  "0.93.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.13:
+  - Defined() and #if... now see all symbols according the actual scope, including local variables
 v0.93.12:
   - anyvalue, textformat supports char, wchar
 v0.93.11:

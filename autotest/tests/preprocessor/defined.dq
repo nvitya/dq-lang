@@ -32,6 +32,9 @@ func *Main():
     var qualified_exists : bool = Defined(@.MODULE_CONSTANT)
     var qualified_missing : bool = Defined(@.MISSING_CONSTANT)
 
+    var local_defined : bool = Defined(definition_exists)
+    var local_defined2 : bool = #{ifdef definition_exists} true #{else} false #{endif}
+
     printf("combined = %d\n", COMBINED_RESULT) //?check("combined", 11)
     printf("false value exists = %d\n", FALSE_VALUE_IS_STILL_DEFINED) //?check("false value exists", 12)
     printf("qualified = %d\n", QUALIFIED_RESULT) //?check("qualified", 13)
@@ -40,4 +43,7 @@ func *Main():
     printf("unqualified module exists = %d\n", unqualified_module_exists) //?check("unqualified module exists", 1)
     printf("qualified exists = %d\n", qualified_exists) //?check("qualified exists", 1)
     printf("qualified missing = %d\n", qualified_missing) //?check("qualified missing", 0)
+    printf("local_defined = %d\n", local_defined) //?check("local_defined", 1)
+    printf("local_defined2 = %d\n", local_defined2) //?check("local_defined2", 1)
+
 endfunc

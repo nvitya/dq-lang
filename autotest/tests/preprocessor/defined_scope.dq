@@ -1,0 +1,115 @@
+// Existence tests use lexical visibility without reading symbol values.
+use libc/stdio
+
+type TNumber = int
+const MODULE_VALUE : int = 3
+#define METHOD_FEATURE = false
+
+func CheckParameter(parameter : int):
+    var uninitialized : int
+    #ifdef uninitialized
+        printf("immediate ifdef = 1\n") //?check("immediate ifdef", 1)
+    #else
+        printf("immediate ifdef = 0\n")
+    #endif
+    var local_value : int = parameter
+    #if Defined(local_value)
+        printf("immediate if = 1\n") //?check("immediate if", 1)
+    #else
+        printf("immediate if = 0\n")
+    #endif
+    const MODULE_VALUE : int = 4 //?warning(ShadowValSym)
+    #if MODULE_VALUE == 4 and Defined(MODULE_VALUE)
+        printf("local constant = 1\n") //?check("local constant", 1)
+    #else
+        printf("local constant = 0\n")
+    #endif
+    printf("parameter = %d\n", Defined(parameter)) //?check("parameter", 1)
+    printf("uninitialized = %d\n", Defined(uninitialized)) //?check("uninitialized", 1)
+    printf("function = %d\n", Defined(CheckParameter)) //?check("function", 1)
+    printf("type = %d\n", Defined(TNumber)) //?check("type", 1)
+    printf("qualified type = %d\n", Defined(@.TNumber)) //?check("qualified type", 1)
+    printf("builtin type = %d\n", Defined(int)) //?check("builtin type", 1)
+    printf("forward = %d\n", Defined(later)) //?check("forward", 0)
+    var later : int = 0
+
+    #if Defined(parameter) and Defined(uninitialized)
+        printf("local if = 1\n") //?check("local if", 1)
+    #else
+        printf("local if = 0\n")
+    #endif
+
+    if true:
+        var inner : int = 0
+        printf("parent = %d\n", Defined(parameter)) //?check("parent", 1)
+        #ifdef uninitialized
+            printf("parent ifdef = 1\n") //?check("parent ifdef", 1)
+        #else
+            printf("parent ifdef = 0\n")
+        #endif
+    endif
+
+    if true:
+        printf("sibling scope = %d\n", Defined(inner)) //?check("sibling scope", 0)
+    endif
+
+    printf("ended scope = %d\n", Defined(inner)) //?check("ended scope", 0)
+    printf("qualified local = %d\n", Defined(@.parameter)) //?check("qualified local", 0)
+    #ifndef inner
+        printf("local ifndef = 1\n") //?check("local ifndef", 1)
+    #else
+        printf("local ifndef = 0\n")
+    #endif
+
+    #ifdef MISSING_SYMBOL
+        printf("local elifdef = 0\n")
+    #elifdef parameter
+        printf("local elifdef = 1\n") //?check("local elifdef", 1)
+    #else
+        printf("local elifdef = 0\n")
+    #endif
+
+    #ifdef MISSING_SYMBOL
+        printf("local elifndef = 0\n")
+    #elifndef inner
+        printf("local elifndef = 1\n") //?check("local elifndef", 1)
+    #else
+        printf("local elifndef = 0\n")
+    #endif
+endfunc
+
+object OBase:
+private
+    secret : int = 1
+protected
+    inherited_value : int = 2
+endobject
+
+object OChild(OBase):
+    own_value : int = 3
+    func Check():
+        @.printf("own member = %d\n", Defined(own_value)) //?check("own member", 1)
+        @.printf("inherited member = %d\n", Defined(inherited_value)) //?check("inherited member", 1)
+        @.printf("private member = %d\n", Defined(secret)) //?check("private member", 0)
+        @.printf("hidden module value = %d\n", Defined(MODULE_VALUE)) //?check("hidden module value", 0)
+        @.printf("explicit module value = %d\n", Defined(@.MODULE_VALUE)) //?check("explicit module value", 1)
+        @.printf("method definition = %d\n", Defined(METHOD_FEATURE)) //?check("method definition", 1)
+        #ifdef inherited_value
+            @.printf("member ifdef = 1\n") //?check("member ifdef", 1)
+        #else
+            @.printf("member ifdef = 0\n")
+        #endif
+    endfunc
+
+    func CheckUse():
+        use .
+        @.printf("method use = %d\n", Defined(MODULE_VALUE)) //?check("method use", 1)
+    endfunc
+endobject
+
+func *Main():
+    CheckParameter(5)
+    var child <- OChild()
+    child.Check()
+    child.CheckUse()
+endfunc

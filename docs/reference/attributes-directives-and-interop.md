@@ -100,14 +100,20 @@ directive location and must evaluate to a constant Boolean value. The `@def`
 scope is an outer scope of the module, so preprocessor definitions participate
 in unqualified lookup; `@def.NAME` provides explicit access. The
 existence-testing directives (`#ifdef`, `#ifndef`, `#elifdef`, and `#elifndef`)
-search the merged current-module namespace for an unqualified name, including
-module declarations, symbols merged by `use`, and preprocessor definitions.
+use the same lexical lookup for an unqualified name, including local variables,
+parameters, visible object members, module declarations, symbols merged by
+`use`, preprocessor definitions, and types.
 
 `Defined(NAME)` provides the same existence test as a constant Boolean
 expression, allowing tests to be combined with `and`, `or`, and `not` in `#if`
-or ordinary code. A bare name searches the merged current-module namespace;
+or ordinary code. A bare name searches the enclosing lexical scope;
 namespace-qualified forms such as `Defined(@def.FEATURE)` or
 `Defined(@module.FEATURE)` search the specified scope.
+Existence tests do not read the symbol's value, so nonconstant and uninitialized
+variables can be tested. Only declarations already visible at the test location
+are available; declarations in inner or completed sibling scopes are excluded.
+Preprocessor definitions remain available in existence tests inside object
+methods, including methods without a module-scope `use`.
 
 ## Include and Source Dependencies
 

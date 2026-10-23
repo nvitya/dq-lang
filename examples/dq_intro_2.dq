@@ -1,0 +1,100 @@
+use print
+
+object OBase ..
+
+object OHelper:
+    base : OBase
+
+    func *Create(abase : OBase) ..
+    func *Destroy() ..
+endobject
+
+object OBase:
+    name   : embstr(64)
+    intval : int = 1
+    helper <- OHelper ..
+
+    func PrintExtra()  [[virtual]]:
+        @.Print(' intval={}', [intval])
+    endfunc
+
+    func *Create(aname : rostr):
+        name = aname
+        helper.Create(self)
+    endfunc
+
+    func *Destroy():
+        @.PrintLn('"{}" destroyed', [name])
+    endfunc
+
+    func Print()  [[virtual]]:
+        @print.Print('{}:', [name])
+        PrintExtra()
+        @.PrintLn()
+    endfunc
+endobject
+
+func OHelper.*Create(abase : OBase):
+    base = abase
+    @.PrintLn('Helper for "{}" created', [base.name])
+endfunc
+
+func OHelper.*Destroy():
+    @.PrintLn('Helper for "{}" destroyed', [base.name])
+endfunc
+
+
+object OChild(OBase):
+    flval : float
+
+    func *Create(aname : rostr, aflval : float):
+        inherited Create(aname)
+        flval = aflval
+    endfunc
+
+    func PrintExtra()  [[override]]:
+        inherited
+        @.Print(' flval={}', [flval])
+    endfunc
+endobject
+
+func Manipulate(aobj : ref autofree OBase):
+    aobj = new OChild('Child3-heap', 7 / 3)
+    aobj.Print()
+endfunc
+
+func ErrorTest():
+    PrintLn('Error test')
+    try:
+        var obj = new autofree OChild('ErrChild-heap', 8.3)
+        raise Exception('Some error happened!')
+    except Exception as e:
+        PrintLn('ERROR: {}', [e.message])
+        e.PrintBacktrace()
+    endtry
+endfunc
+
+func *Main():
+
+    var ob = new autofree OBase('Base-heap')
+    ob.Print()
+
+    if true:
+        var oc1 <- OChild('Child1-stack', 3 / 2)
+        oc1.Print()
+    endif
+
+    ErrorTest()
+
+    PrintLn('reassigning autofree type')
+    ob = new OChild('Child2-heap', 3.14)
+    ob.Print()
+
+    PrintLn('Autofree type as argument')
+    Manipulate(ob)
+
+    PrintLn('nil-ing autofree type')
+    ob = nil
+
+    PrintLn('Test finished.')
+endfunc

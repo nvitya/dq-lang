@@ -10,9 +10,101 @@ The DQ programming language and compiler is designed to offer a serious alternat
 
 The DQ source code files (.dq files) are translated to directly executable machine code, so the DQ applications run very fast, matching the speed of C++, Rust. For the machine code translation the DQ compiler uses the well-tested LLVM framework, wich also allows to support numeorous different CPU architectures, like x86, ARM32, ARM64, ARM Cortex-M, Risc-V, WASM. The DQ compiler allows you to create Windows, Linux and bare-metal applications, also with cross-compiling.
 
+## Current State
+
 The compiled DQ programs on Windows and Linux use the standard and well-tested C library for low-level system functions. Combined with the reliable LLVM code generator and excessive compiler tests, the DQ compiler and its compiled applications are pretty stable already.
 
 The DQ standard library offers user-friendly, object based interface for several programming tasks, including database handling, threading, http serving, and JSON handling. As DQ is a new languge (2026) the library support is not complete though. DQ has a very flexible module system and simple way importing functions from external C compatible libraries, which provides unlimited possibilities at application development.
+
+## Self-Introduction
+
+```
+use print
+
+func *Main():
+    if 3 / 2 == 1.5  and 3 div 2 == 1  and uint32(3) - uint32(5) < 0:
+        PrintLn('Hello from DQ!')
+    endif
+
+    var x : int = 7
+    x |= 1 << 20
+    if x & 1 << 2 <> 0  and ~x & 1 == 0  and not 0x15 < x <= 0x1F:
+        PrintLn('The proper operator selection and precedence reduces the need of parentheses.')
+    endif
+
+    if 3 div 2 * 10 == 10 * 3 div 2:
+        PrintLn('Multiplications and divisons have different precedence.')
+    endif
+
+    var xptr : ^int = %x   // % operator: address of x
+    ref xref = x
+    xref = 42
+    if xptr^ == x  and xref == x:
+        PrintLn('Supports pointers and references.')
+    endif
+
+    if SizeOf(int) == SizeOf(pointer)  and SizeOf(uint) == SizeOf(pointer):
+        PrintLn('int, uint are always pointer-sized')
+    endif
+
+    #ifdef x
+        PrintLn("C-Style conditionals without separated #if... namespace.")
+        #define SOMEDEF
+        #if 3 / 2 == 1.5  and Defined(SOMEDEF)  and Defined(@def.SOMEDEF)
+            PrintLn("Inline directives. Platform: {}",
+              [#{ifdef LINUX}'Linux'#{elifdef WINDOWS}'Windows'#{else}'Unknown'#{endif}] )
+        #endif
+    #endif
+
+    var sarr : [5]int = [2, 3, 5, 7, 11]
+    Print('sarr:')
+    for i : int = 0 count sarr.length:  Print(' {}', [sarr[i]]);  endfor
+    PrintLn()
+
+    var darr : [*]float = [2, 3.14, 7 / 3]
+    darr.Append(13 / 2)
+    darr.PopFirst()
+    Print('darr:')
+    for f :? in darr:
+        Print(' {}', [f])
+    endfor
+    PrintLn()
+
+    var es : embstr(256) = ''
+    es.Add('No heap')
+    es.AddFmt(' is used for {}', ["embstr"])
+    PrintLn(es)
+    PrintLn("es.lenth = {}", [es.length])
+
+    var ds : str = 'This is a'
+    ds.Reserve(1024) // reserve at least 1024 bytes to avoid re-allocations
+    ds.Add(' dynamic string.')
+    var dpos : int = ds.IndexOf('dynamic')
+    ds.Insert(dpos, 'heap allocated ')
+    PrintLn(ds)
+
+    PrintLn('ds[2:6]="{}", ds[:4]="{}"', [ds[2:6], ds[:4]])
+    var ss : strslice = ds[$end - 5:]  // strslice is a borrowed string data pointer with length
+    PrintLn('ds[$end-5:] = "{}"', [ ss ])
+
+    ds = 'str, embstr and rostr are zero terminated, C string (char *) compatible'
+    var pc : ^char = ds.pchar
+    PrintLn(pc)
+    ds = 'this text was copied into the embstr'
+    es = ds
+    es[0] = 'T' // capitalize the first letter
+    PrintLn(es)
+
+    ds = "€ΣΩ" // utf-8 text
+    PrintLn('ds="{}", ds.length={}, ds.wclen={}', [ds, ds.length, ds.wclen])
+    var wca : [*]wchar = ds.ToWchars()
+    for i : int = 0 count wca.length:
+        PrintLn('wca[{}] = "{}" = 0x{:04X}', [i, wca[i], Ord(wca[i])])
+    endfor
+    const n : uint = 2
+    PrintLn('ds.wchar[{}] = "{}" = 0x{:04X}', [n, ds.wchar[n], Ord(ds.wchar[n])])
+endfunc
+```
 
 # Features
 

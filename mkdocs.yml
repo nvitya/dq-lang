@@ -13,13 +13,17 @@ theme:
 plugins:
   - search
   - monorepo
-  - enumerate-headings
+  - to-pdf:
+      enabled_if_env: ENABLE_PDF_EXPORT
+      output_path: pdf/dq-lang-book.pdf
+      cover_subtitle: Language, Libraries and Tools
+      toc_title: Contents
+      toc_level: 2
+      # Keep the hierarchy numbers supplied by tools/mkdocs_hooks.py.
+      ordered_chapter_level: 0
 
 hooks:
   - tools/mkdocs_hooks.py
-
-extra_css:
-  - stylesheets/extra.css
 
 nav:
   - DQ Project:

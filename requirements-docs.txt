@@ -1,0 +1,5 @@
+mkdocs>=1.6.1,<2
+mkdocs-material==9.7.6
+mkdocs-monorepo-plugin==1.1.2
+beautifulsoup4>=4.9.3,<5
+mkdocs-to-pdf==0.12.1

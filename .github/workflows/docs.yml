@@ -8,6 +8,7 @@ on:
       - stdpkg/*/docs/**
       - stdpkg/*/mkdocs.yml
       - mkdocs.yml
+      - requirements-docs.txt
       - tools/mkdocs_hooks.py
       - .github/workflows/docs.yml
   pull_request:
@@ -16,12 +17,16 @@ on:
       - stdpkg/*/docs/**
       - stdpkg/*/mkdocs.yml
       - mkdocs.yml
+      - requirements-docs.txt
       - tools/mkdocs_hooks.py
       - .github/workflows/docs.yml
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  ENABLE_PDF_EXPORT: "1"
 
 jobs:
   validate:
@@ -33,7 +38,11 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material mkdocs-monorepo-plugin mkdocs-enumerate-headings-plugin
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core
+          python -m pip install -r requirements-docs.txt
 
       - run: mkdocs build --strict
 
@@ -50,6 +59,10 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material mkdocs-monorepo-plugin mkdocs-enumerate-headings-plugin
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core
+          python -m pip install -r requirements-docs.txt
 
       - run: mkdocs gh-deploy --force

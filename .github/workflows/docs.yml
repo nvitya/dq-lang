@@ -8,6 +8,7 @@ on:
       - stdpkg/*/docs/**
       - stdpkg/*/mkdocs.yml
       - mkdocs.yml
+      - tools/mkdocs_hooks.py
       - .github/workflows/docs.yml
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - stdpkg/*/docs/**
       - stdpkg/*/mkdocs.yml
       - mkdocs.yml
+      - tools/mkdocs_hooks.py
       - .github/workflows/docs.yml
   workflow_dispatch:
 
@@ -31,7 +33,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material mkdocs-monorepo-plugin
+      - run: pip install mkdocs-material mkdocs-monorepo-plugin mkdocs-enumerate-headings-plugin
 
       - run: mkdocs build --strict
 
@@ -48,6 +50,6 @@ jobs:
         with:
           python-version: "3.x"
 
-      - run: pip install mkdocs-material mkdocs-monorepo-plugin
+      - run: pip install mkdocs-material mkdocs-monorepo-plugin mkdocs-enumerate-headings-plugin
 
       - run: mkdocs gh-deploy --force

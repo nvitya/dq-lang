@@ -1,4 +1,4 @@
-# What is DQ?
+# DQ-lang Project Introduction
 
 DQ is a **general-purpose** and **human-friendly** programming language.
 
@@ -6,9 +6,9 @@ DQ is a **general-purpose** and **human-friendly** programming language.
 
 **Human-friendly**, because DQ syntax and library interfaces are designed to make code easy to read and easy to write by humans.
 
-The DQ programming language and compiler is designed to offer a serious alternative for Python and C++. The DQ syntax is a kind of mixture of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
+The DQ-lang Project is developed to offer a serious alternative for Python and C++. The DQ Language syntax is a kind of mixture of Pascal, Python and C/C++. The name comes from here: the D is the next letter after C and Q is the next after P.
 
-The DQ source code files (.dq files) are translated to directly executable machine code, so the DQ applications run very fast, matching the speed of C++, Rust. For the machine code translation the DQ compiler uses the well-tested LLVM framework, wich also allows to support numeorous different CPU architectures, like x86, ARM32, ARM64, ARM Cortex-M, Risc-V, WASM. The DQ compiler allows you to create Windows, Linux and bare-metal applications, also with cross-compiling.
+The DQ source code files (.dq files) are translated to directly executable machine code, so the DQ applications run very fast, matching the speed of C++, Rust. For the machine code translation the DQ compiler uses the well-tested LLVM framework, wich also allows to target different CPU architectures, like x86, ARM32, ARM64, ARM Cortex-M, Risc-V, WASM. The DQ compiler allows you to create Windows, Linux and bare-metal applications, also with cross-compiling.
 
 ## Current State
 
@@ -16,7 +16,7 @@ The compiled DQ programs on Windows and Linux use the standard and well-tested C
 
 The DQ standard library offers user-friendly, object based interface for several programming tasks, including database handling, threading, http serving, and JSON handling. As DQ is a new languge (2026) the library support is not complete though. DQ has a very flexible module system and simple way importing functions from external C compatible libraries, which provides unlimited possibilities at application development.
 
-## Self-Introduction
+## DQ Language Self-Introduction
 
 ```
 use print
@@ -70,7 +70,6 @@ DQ supports objects with inheritance and virtual functions. See this example:
 
 (dq_intro_3.dq)
 
-# Features
 
 ## Highlighted features
 

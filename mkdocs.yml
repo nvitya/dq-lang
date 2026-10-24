@@ -1,5 +1,5 @@
-site_name: DQ Programming Language
-site_description: Documentation for the DQ programming language
+site_name: DQ-lang Project
+site_description: Documentation for the DQ programming language, libraries and tools
 repo_url: https://github.com/nvitya/dq-lang
 
 theme:
@@ -13,12 +13,70 @@ theme:
 plugins:
   - search
   - monorepo
+  - enumerate-headings
+
+hooks:
+  - tools/mkdocs_hooks.py
 
 extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Home: index.md
+  - DQ Project:
+      - Introduction: 010-project/010-introduction.md
+      - Features and Design Goals: 010-project/020-features-and-goals.md
+      - Getting Started: 010-project/030-getting-started.md
+  - DQ Programming Language:
+      - Basic Syntax: 020-language/010-basic-syntax.md
+      - Basic Types and Conversions: 020-language/020-basic-types-and-conversions.md
+      - Variables, Constants, References, and Scope: 020-language/030-variables-constants-references-and-scope.md
+      - Expressions and Operators: 020-language/040-expressions-and-operators.md
+      - Statements and Control Flow: 020-language/050-statements-and-control-flow.md
+      - Functions: 020-language/060-functions.md
+      - Strings and Characters: 020-language/070-strings-and-characters.md
+      - Arrays and Slices: 020-language/080-arrays-and-slices.md
+      - Enumerations: 020-language/090-enumerations.md
+      - Structures and Unions: 020-language/100-structures-and-unions.md
+      - Pointers: 020-language/110-pointers.md
+      - Objects and Properties: 020-language/120-objects-and-properties.md
+      - Memory Management and Ownership: 020-language/130-memory-management-and-ownership.md
+      - Exceptions and Error Handling: 020-language/140-exceptions-and-error-handling.md
+      - anyvalue: 020-language/150-anyvalue.md
+      - Text Formatting: 020-language/160-text-formatting.md
+      - Modules and Packages: 020-language/170-modules-and-packages.md
+      - Attributes: 020-language/180-attributes.md
+      - Compiler Directives: 020-language/190-compiler-directives.md
+      - C Interoperability: 020-language/200-c-interoperability.md
+      - Assembly Functions: 020-language/210-assembly-functions.md
+  - DQ Compiler and Tools:
+      - Compiler and Tool Overview: 030-compiler/010-compiler-and-tool-overview.md
+      - Linux Development Environment: 030-compiler/020-linux-development-environment.md
+      - Windows Development Environment: 030-compiler/030-windows-development-environment.md
+      - Compiler Usage and Options: 030-compiler/040-compiler-usage-and-options.md
+      - Project Files: 030-compiler/050-project-files.md
+      - Build Process and Module Artifacts: 030-compiler/060-build-process-and-module-artifacts.md
+      - Targets and Cross-Compilation: 030-compiler/070-targets-and-cross-compilation.md
+      - VSCode Setup and Debugging: 030-compiler/080-vscode-setup-and-debugging.md
+  - Runtime and Standard Library:
+      - Library Overview and sys: 040-libraries/010-library-overview-and-sys.md
+      - print: 040-libraries/020-print.md
+      - strutils: 040-libraries/030-strutils.md
+      - file: 040-libraries/040-file.md
+      - json: 040-libraries/050-json.md
+      - threads: 040-libraries/060-threads.md
+      - nanonet: 040-libraries/070-nanonet.md
+      - Additional Standard Packages: 040-libraries/080-additional-standard-packages.md
+  - Appendices:
+      - Example Programs: 090-appendices/010-example-programs.md
+      - Building the Compiler from Source: 090-appendices/020-building-the-compiler-from-source.md
+      - Contributor and Implementation Notes: 090-appendices/030-contributor-and-implementation-notes.md
+      - Glossary and Index: 090-appendices/040-glossary-and-index.md
+
+# Preserve earlier material for migration without publishing it in the new book.
+exclude_docs: |
+  /index-saved.md
+  /feature-highlights.md
+  /feature-list.md
 
 validation:
   nav:

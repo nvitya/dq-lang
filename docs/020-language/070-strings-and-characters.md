@@ -12,14 +12,15 @@ func *Main():
     var original : str = "hello"
     var changed : str = original
     changed[0] = 'H'
-    var bounded : embstr(8) = "abcdefgh"
-    PrintLn("{} / {} / {}", [original, changed, bounded])
+    var fixbuf : embstr(8) = "abcdefgh"
+    PrintLn("{} / {} / {}", [original, changed, fixbuf])
 endfunc
 ```
 
-The output is `hello / Hello / abcdefg`: dynamic strings keep separate logical
-values, while the bounded string truncates its content to leave space for its
-terminator.
+The output is `hello / Hello / abcdefg`. Dynamic strings keep separate logical
+values. `fixbuf` is an embedded string. Its eight-byte fixed buffer holds seven bytes
+of text plus a zero byte marking the end of the text, so the final `h` is
+truncated.
 
 ## Character Types
 
@@ -41,7 +42,7 @@ integer; explicit or checked conversion creates a character from an integer.
 | `strslice` | read-only borrowed view of text bytes; termination is not guaranteed |
 | `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage |
 | `embstr` | unsized borrowed reference to a shared Embedded String descriptor |
-| `^char` | raw pointer to zero-terminated byte storage |
+| `^char` | C string = raw pointer to text byte storage with expected zero-termination |
 
 `str` stores bytes and always has a hidden trailing zero. `.length`, indexing,
 slicing, and capacity count bytes; the terminator is not included. A `str` may
@@ -49,7 +50,7 @@ contain internal zeroes and is not necessarily valid UTF-8.
 
 On targets built with dynamic strings disabled, `str` and operations that
 produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
-available for non-owning or bounded text processing.
+available for text processing with borrowed or fixed storage.
 
 ## Literals
 
@@ -91,13 +92,39 @@ var expected : rostr = "Hello, world!"
 var matches : bool = greeting == expected
 ```
 
-`==` and `<>` compare byte contents when at least one operand is a string-family
-value (`str`, `rostr`, `strslice`, or an Embedded String). The other operand may
-also be compatible text, including a C string pointer. Known lengths include
-embedded zero bytes; raw C strings end at their first zero. These operators do
-not perform Unicode normalization or case folding. Text ordering with `<`,
-`<=`, `>`, or `>=` is not supported. Comparing two raw pointers instead compares
-their addresses.
+## String Comparison
+
+Text values support `==`, `<>`, `<`, `<=`, `>`, and `>=`. You can compare
+different string types, including `str`, `rostr`, `strslice`, and embedded
+strings with or without an explicit capacity.
+
+Strings are compared byte by byte, from left to right. The first different byte
+determines which string comes first, using unsigned byte values. If one string
+is the beginning of the other, the shorter string comes first. For example,
+`"alpha" < "beta"` and `"app" < "apple"` are both true.
+
+```dq
+var name : str = "alpha"
+var limit : rostr = "beta"
+var before : bool = name < limit       // true
+var prefix : bool = "app" < "apple"    // true
+var inside : bool = "a" <= name < "z" // true
+```
+
+Comparison is case-sensitive: `"Hello"` and `"hello"` are different. It does
+not validate UTF-8, normalize Unicode, or apply language-specific sorting rules.
+Known string lengths include embedded zero bytes; raw C strings end at their
+first zero.
+
+`StrSliceCmp(a : strslice, b : strslice) -> int` from `rtl/strfunc` provides the
+same bytewise comparison as a function. It returns a negative value if `a`
+comes before `b`, zero if they are equal, and a positive value if `a` comes
+after `b`. It accepts the text types through their normal conversions and
+compares the entire known byte range, without requiring a zero terminator.
+
+A raw `^char` operand compares text when paired with a string value or, for
+ordering, a text literal. Two raw pointer variables compare their addresses;
+use `StrSliceCmp` to compare their text contents explicitly.
 
 ## Read-Only Zero-Terminated Strings
 
@@ -178,19 +205,20 @@ encoding errors. `ToUtf16` returns an array that includes a final zero code unit
 
 ## Embedded Strings
 
-`embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
-the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
-append-style operations truncate to fit rather than growing the value.
+An embedded string, `embstr(N)`, owns exactly `N` bytes of storage. Its final byte
+is reserved for the zero terminator, so it stores at most `N - 1` visible bytes.
+Assignment and append-style operations truncate to fit rather than growing the
+value.
 
 ```dq
-var name : embstr(8) = "abc"
-name.Append("defghi") // stores "abcdefg"
+var fixbuf : embstr(8) = "abc"
+fixbuf.Append("defghi") // stores "abcdefg"
 ```
 
-An unsized `embstr` borrows existing bounded C-string storage through a shared
-descriptor. Assigning or passing it preserves that descriptor reference, so
-length updates made through one alias are visible to the others. Its lifetime
-and writability come from the source.
+An unsized `embstr` borrows existing C-string storage with a fixed capacity
+through a shared descriptor. Assigning or passing it preserves that descriptor
+reference, so length updates made through one alias are visible to the others.
+Its lifetime and writability come from the source.
 
 ## Raw C String Pointers
 
@@ -343,8 +371,8 @@ character.
 | `str` | Owns/retains its text value; accepts compatible text views. |
 | `rostr` | Requires terminated storage, borrows it, and does not retain its owner. |
 | `strslice` | Borrows a byte range; no terminator is promised. |
-| `embstr(N)` | Copies into bounded storage and truncates to fit. |
-| Unsized `embstr` | Shares a writable bounded-string descriptor; requires suitable existing storage. |
+| `embstr(N)` | Copies into fixed storage and truncates to fit. |
+| Unsized `embstr` | Shares a writable embedded string descriptor; requires suitable existing storage. |
 | `^char` | A raw C pointer with no automatic lifetime extension. |
 
 Borrowed text must not outlive its source. Neither a cast nor storing a view in

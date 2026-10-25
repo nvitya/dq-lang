@@ -135,7 +135,7 @@ Every comparison returns `bool`.
 | --- | --- | --- |
 | `==` | Compatible values | Equality. |
 | `<>` | Compatible values | Inequality. |
-| `<`, `<=`, `>`, `>=` | Numbers, matching character types, or values of the same enum type | Less than, less than or equal, greater than, greater than or equal. |
+| `<`, `<=`, `>`, `>=` | Numbers, matching character types, values of the same enum type, or compatible text values | Less than, less than or equal, greater than, greater than or equal. |
 
 Numeric comparisons use the common numeric type rules above. Two integers
 compare as signed if either is signed, and as unsigned if both are unsigned.
@@ -156,8 +156,9 @@ var unchanged : bool = ready == true   // true
 
 Compatible pointers and object references support identity comparisons with
 `==` and `<>`, including comparison with `nil`; this does not compare pointed-to
-contents. Compatible string-family values support byte-content equality, but
-not ordering. See [Strings and Characters](070-strings-and-characters.md#text-operators).
+contents. Compatible text values support equality and ordering by unsigned byte
+value, with a shorter prefix coming first. Different string types can be
+compared; see [String Comparison](070-strings-and-characters.md#string-comparison).
 General array sequence equality is not implicit. Dynamic arrays and slices can
 be compared with `[]` to test emptiness.
 

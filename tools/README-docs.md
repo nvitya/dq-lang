@@ -37,6 +37,10 @@ parts, chapters, and subsections from that hierarchy: `1. DQ Project`,
 Language` for the next part. Navigation, headings, and contents use the same
 numbers; additional PDF heading numbering is disabled.
 
+A section's `index.md` is its overview page and shares the section number; it
+does not advance the chapter counter. The PDF hook removes its repeated heading
+and contents entry while retaining the overview text and links.
+
 The PDF plugin adds a download link to the generated website when PDF export is
 enabled. GitHub Actions enables PDF export for validation and deployment, so the
 published book is available at `pdf/dq-lang-book.pdf` relative to the site root.

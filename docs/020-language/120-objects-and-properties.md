@@ -112,3 +112,4 @@ func *Main():
     PrintLn('Test finished.')
 endfunc
 ```
+Source: [https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_3.dq](https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_3.dq)

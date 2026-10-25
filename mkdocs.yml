@@ -26,11 +26,13 @@ hooks:
   - tools/mkdocs_hooks.py
 
 nav:
-  - DQ Project:
-      - Introduction: 010-project/010-introduction.md
+  - DQ-lang Project:
+      - DQ-lang Project: 010-project/index.md
+      - DQ-lang Project Introduction: 010-project/010-introduction.md
       - Features and Design Goals: 010-project/020-features-and-goals.md
       - Getting Started: 010-project/030-getting-started.md
   - DQ Programming Language:
+      - DQ Programming Language: 020-language/index.md
       - Basic Syntax: 020-language/010-basic-syntax.md
       - Basic Types and Conversions: 020-language/020-basic-types-and-conversions.md
       - Variables, Constants, References, and Scope: 020-language/030-variables-constants-references-and-scope.md
@@ -53,7 +55,9 @@ nav:
       - C Interoperability: 020-language/200-c-interoperability.md
       - Assembly Functions: 020-language/210-assembly-functions.md
   - DQ Compiler and Tools:
+      - DQ Compiler and Tools: 030-compiler/index.md
       - Compiler and Tool Overview: 030-compiler/010-compiler-and-tool-overview.md
+      - Runtime and Program Execution: 030-compiler/015-runtime-and-program-execution.md
       - Linux Development Environment: 030-compiler/020-linux-development-environment.md
       - Windows Development Environment: 030-compiler/030-windows-development-environment.md
       - Compiler Usage and Options: 030-compiler/040-compiler-usage-and-options.md
@@ -61,15 +65,17 @@ nav:
       - Build Process and Module Artifacts: 030-compiler/060-build-process-and-module-artifacts.md
       - Targets and Cross-Compilation: 030-compiler/070-targets-and-cross-compilation.md
       - VSCode Setup and Debugging: 030-compiler/080-vscode-setup-and-debugging.md
-  - Runtime and Standard Library:
-      - Library Overview and sys: 040-libraries/010-library-overview-and-sys.md
-      - print: 040-libraries/020-print.md
-      - strutils: 040-libraries/030-strutils.md
-      - file: 040-libraries/040-file.md
-      - json: 040-libraries/050-json.md
-      - threads: 040-libraries/060-threads.md
-      - nanonet: 040-libraries/070-nanonet.md
-      - Additional Standard Packages: 040-libraries/080-additional-standard-packages.md
+  - Standard Packages:
+      - Standard Packages: 040-packages/index.md
+      - Library Overview: 040-packages/010-library-overview-and-sys.md
+      - sys: 040-packages/015-sys.md
+      - print: 040-packages/020-print.md
+      - strutils: 040-packages/030-strutils.md
+      - file: 040-packages/040-file.md
+      - json: 040-packages/050-json.md
+      - threads: 040-packages/060-threads.md
+      - nanonet: 040-packages/070-nanonet.md
+      - Additional Standard Packages: 040-packages/080-additional-standard-packages.md
   - Appendices:
       - Example Programs: 090-appendices/010-example-programs.md
       - Building the Compiler from Source: 090-appendices/020-building-the-compiler-from-source.md

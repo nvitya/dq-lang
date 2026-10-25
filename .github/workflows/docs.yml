@@ -10,6 +10,7 @@ on:
       - mkdocs.yml
       - requirements-docs.txt
       - tools/mkdocs_hooks.py
+      - pdf_event_hook.py
       - .github/workflows/docs.yml
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - mkdocs.yml
       - requirements-docs.txt
       - tools/mkdocs_hooks.py
+      - pdf_event_hook.py
       - .github/workflows/docs.yml
   workflow_dispatch:
 

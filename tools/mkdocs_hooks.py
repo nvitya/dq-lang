@@ -15,8 +15,14 @@ def on_files(files, **kwargs):
 def on_nav(nav, **kwargs):
     """Use the book hierarchy for part and chapter numbers in every output."""
     def number(items, prefix=()):
-        for index, item in enumerate(items, 1):
-            numbers = (*prefix, index)
+        index = 0
+        for item in items:
+            # A section's index represents the section, not an extra chapter.
+            if item.is_page and item.is_index and prefix:
+                numbers = prefix
+            else:
+                index += 1
+                numbers = (*prefix, index)
             item.title = f'{".".join(map(str, numbers))}. {item.title}'
             if item.is_section:
                 number(item.children, numbers)

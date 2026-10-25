@@ -11,11 +11,11 @@ func *Main():
     var quotient : int = 7 div 3
     var remainder : int = -7 rem 3
     var modulo : int = -7 mod 3
-    PrintLn("{} {} {} {}", [ratio, quotient, remainder, modulo])
+    PrintLn("{}, {}, {}, {}", [ratio, quotient, remainder, modulo])
 endfunc
 ```
 
-This prints `1.5 2 -1 2`.
+This prints `1.5, 2, -1, 2`.
 
 ## Assignments
 

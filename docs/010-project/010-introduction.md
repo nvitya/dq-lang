@@ -4,7 +4,7 @@ DQ is a **general-purpose** and **human-friendly** programming language.
 
 **General-purpose**, because it is intended to cover many use cases, including scripts and tools, server applications, embedded applications, GUI applications, and games.
 
-**Human-friendly**, because DQ syntax and library interfaces are designed to make code easy for people to read and write.
+**Human-friendly**, because DQ syntax and library interfaces are designed to make program source code easy to read and write for people.
 
 The DQ-lang Project is being developed to offer a serious alternative to Python and C++. The DQ language mostly uses established concepts from other programming languages. Its syntax combines elements of Pascal, Python, and C/C++. The name reflects these influences: D is the letter after C, and Q is the letter after P.
 

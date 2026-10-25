@@ -243,7 +243,7 @@ It is a diagnostic name, not a stable serialization or ABI identifier.
 A reference declared with `func(...) of object` stores a compatible method and
 its receiver. A virtual method is resolved for that receiver at assignment.
 Keep the receiver alive for every later call; the reference does not own it.
-See [Functions](060-functions.md#function-references).
+See [Object Method References](060-functions.md#object-method-references).
 
 ## Object Example Code
 

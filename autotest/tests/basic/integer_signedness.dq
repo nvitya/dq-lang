@@ -1,0 +1,228 @@
+// PLUOpS integer signedness: runtime expressions and constant folding.
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+func check8(u : uint8, s : int8):
+    printf("neg8 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg8", "int8,-3")
+    printf("runtime8 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(u + s), int64(s + u), int64(u - s), int64(s - u),
+        int64(u * s), int64(s * u), int64(u div s), int64(s div u),
+        int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
+    //?check("runtime8", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+    printf("types8 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
+        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
+        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
+    //?check("types8", "int8,int8,int8,int8,int8,int8,int8,int8,int8,int8,int8,int8")
+    var high : uint8 = s
+    var divisor : int8 = u
+    printf("signed division8 = %lld,%lld,%lld\n",
+        int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
+    //?check("signed division8", "-2,-1,2")
+    printf("compare8 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare8", "1,1,0,0")
+endfunc
+
+func check16(u : uint16, s : int16):
+    printf("neg16 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg16", "int16,-3")
+    printf("runtime16 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(u + s), int64(s + u), int64(u - s), int64(s - u),
+        int64(u * s), int64(s * u), int64(u div s), int64(s div u),
+        int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
+    //?check("runtime16", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+    printf("types16 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
+        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
+        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
+    //?check("types16", "int16,int16,int16,int16,int16,int16,int16,int16,int16,int16,int16,int16")
+    var high : uint16 = s
+    var divisor : int16 = u
+    printf("signed division16 = %lld,%lld,%lld\n",
+        int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
+    //?check("signed division16", "-2,-1,2")
+    printf("compare16 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare16", "1,1,0,0")
+endfunc
+
+func check32(u : uint32, s : int32):
+    printf("neg32 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg32", "int32,-3")
+    printf("runtime32 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(u + s), int64(s + u), int64(u - s), int64(s - u),
+        int64(u * s), int64(s * u), int64(u div s), int64(s div u),
+        int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
+    //?check("runtime32", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+    printf("types32 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
+        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
+        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
+    //?check("types32", "int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32")
+    var high : uint32 = s
+    var divisor : int32 = u
+    printf("signed division32 = %lld,%lld,%lld\n",
+        int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
+    //?check("signed division32", "-2,-1,2")
+    printf("compare32 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare32", "1,1,0,0")
+endfunc
+
+func check64(u : uint64, s : int64):
+    printf("neg64 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg64", "int64,-3")
+    printf("runtime64 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(u + s), int64(s + u), int64(u - s), int64(s - u),
+        int64(u * s), int64(s * u), int64(u div s), int64(s div u),
+        int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
+    //?check("runtime64", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+    printf("types64 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
+        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
+        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
+    //?check("types64", "int64,int64,int64,int64,int64,int64,int64,int64,int64,int64,int64,int64")
+    var high : uint64 = s
+    var divisor : int64 = u
+    printf("signed division64 = %lld,%lld,%lld\n",
+        int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
+    //?check("signed division64", "-2,-1,2")
+    printf("compare64 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare64", "1,1,0,0")
+endfunc
+
+func *Main():
+    check8(3, -7)
+    const neg8 : int64 = -uint8(7)
+    printf("const neg8 = %s,%lld\n", TypeName(-uint8(7)), int64(neg8)) //?check("const neg8", "int8,-7")
+    const div8 : int64 = uint8(-7) div int8(3)
+    const rem8 : int64 = uint8(-7) rem int8(3)
+    const mod8 : int64 = uint8(-7) mod int8(3)
+    printf("const signed division8 = %lld,%lld,%lld\n", div8, rem8, mod8)
+    //?check("const signed division8", "-2,-1,2")
+    const c8_0 : int64 = uint8(3) + int8(-7)
+    const c8_1 : int64 = int8(-7) + uint8(3)
+    const c8_2 : int64 = uint8(3) - int8(-7)
+    const c8_3 : int64 = int8(-7) - uint8(3)
+    const c8_4 : int64 = uint8(3) * int8(-7)
+    const c8_5 : int64 = int8(-7) * uint8(3)
+    const c8_6 : int64 = uint8(3) div int8(-7)
+    const c8_7 : int64 = int8(-7) div uint8(3)
+    const c8_8 : int64 = uint8(3) rem int8(-7)
+    const c8_9 : int64 = int8(-7) rem uint8(3)
+    const c8_10 : int64 = uint8(3) mod int8(-7)
+    const c8_11 : int64 = int8(-7) mod uint8(3)
+    printf("const8 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(c8_0), int64(c8_1), int64(c8_2), int64(c8_3),
+        int64(c8_4), int64(c8_5), int64(c8_6), int64(c8_7),
+        int64(c8_8), int64(c8_9), int64(c8_10), int64(c8_11))
+    //?check("const8", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+
+    check16(3, -7)
+    const neg16 : int64 = -uint16(7)
+    printf("const neg16 = %s,%lld\n", TypeName(-uint16(7)), int64(neg16)) //?check("const neg16", "int16,-7")
+    const div16 : int64 = uint16(-7) div int16(3)
+    const rem16 : int64 = uint16(-7) rem int16(3)
+    const mod16 : int64 = uint16(-7) mod int16(3)
+    printf("const signed division16 = %lld,%lld,%lld\n", div16, rem16, mod16)
+    //?check("const signed division16", "-2,-1,2")
+    const c16_0 : int64 = uint16(3) + int16(-7)
+    const c16_1 : int64 = int16(-7) + uint16(3)
+    const c16_2 : int64 = uint16(3) - int16(-7)
+    const c16_3 : int64 = int16(-7) - uint16(3)
+    const c16_4 : int64 = uint16(3) * int16(-7)
+    const c16_5 : int64 = int16(-7) * uint16(3)
+    const c16_6 : int64 = uint16(3) div int16(-7)
+    const c16_7 : int64 = int16(-7) div uint16(3)
+    const c16_8 : int64 = uint16(3) rem int16(-7)
+    const c16_9 : int64 = int16(-7) rem uint16(3)
+    const c16_10 : int64 = uint16(3) mod int16(-7)
+    const c16_11 : int64 = int16(-7) mod uint16(3)
+    printf("const16 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(c16_0), int64(c16_1), int64(c16_2), int64(c16_3),
+        int64(c16_4), int64(c16_5), int64(c16_6), int64(c16_7),
+        int64(c16_8), int64(c16_9), int64(c16_10), int64(c16_11))
+    //?check("const16", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+
+    check32(3, -7)
+    const neg32 : int64 = -uint32(7)
+    printf("const neg32 = %s,%lld\n", TypeName(-uint32(7)), int64(neg32)) //?check("const neg32", "int32,-7")
+    const div32 : int64 = uint32(-7) div int32(3)
+    const rem32 : int64 = uint32(-7) rem int32(3)
+    const mod32 : int64 = uint32(-7) mod int32(3)
+    printf("const signed division32 = %lld,%lld,%lld\n", div32, rem32, mod32)
+    //?check("const signed division32", "-2,-1,2")
+    const c32_0 : int64 = uint32(3) + int32(-7)
+    const c32_1 : int64 = int32(-7) + uint32(3)
+    const c32_2 : int64 = uint32(3) - int32(-7)
+    const c32_3 : int64 = int32(-7) - uint32(3)
+    const c32_4 : int64 = uint32(3) * int32(-7)
+    const c32_5 : int64 = int32(-7) * uint32(3)
+    const c32_6 : int64 = uint32(3) div int32(-7)
+    const c32_7 : int64 = int32(-7) div uint32(3)
+    const c32_8 : int64 = uint32(3) rem int32(-7)
+    const c32_9 : int64 = int32(-7) rem uint32(3)
+    const c32_10 : int64 = uint32(3) mod int32(-7)
+    const c32_11 : int64 = int32(-7) mod uint32(3)
+    printf("const32 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(c32_0), int64(c32_1), int64(c32_2), int64(c32_3),
+        int64(c32_4), int64(c32_5), int64(c32_6), int64(c32_7),
+        int64(c32_8), int64(c32_9), int64(c32_10), int64(c32_11))
+    //?check("const32", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+
+    check64(3, -7)
+    const neg64 : int64 = -uint64(7)
+    printf("const neg64 = %s,%lld\n", TypeName(-uint64(7)), int64(neg64)) //?check("const neg64", "int64,-7")
+    const div64 : int64 = uint64(-7) div int64(3)
+    const rem64 : int64 = uint64(-7) rem int64(3)
+    const mod64 : int64 = uint64(-7) mod int64(3)
+    printf("const signed division64 = %lld,%lld,%lld\n", div64, rem64, mod64)
+    //?check("const signed division64", "-2,-1,2")
+    const c64_0 : int64 = uint64(3) + int64(-7)
+    const c64_1 : int64 = int64(-7) + uint64(3)
+    const c64_2 : int64 = uint64(3) - int64(-7)
+    const c64_3 : int64 = int64(-7) - uint64(3)
+    const c64_4 : int64 = uint64(3) * int64(-7)
+    const c64_5 : int64 = int64(-7) * uint64(3)
+    const c64_6 : int64 = uint64(3) div int64(-7)
+    const c64_7 : int64 = int64(-7) div uint64(3)
+    const c64_8 : int64 = uint64(3) rem int64(-7)
+    const c64_9 : int64 = int64(-7) rem uint64(3)
+    const c64_10 : int64 = uint64(3) mod int64(-7)
+    const c64_11 : int64 = int64(-7) mod uint64(3)
+    printf("const64 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(c64_0), int64(c64_1), int64(c64_2), int64(c64_3),
+        int64(c64_4), int64(c64_5), int64(c64_6), int64(c64_7),
+        int64(c64_8), int64(c64_9), int64(c64_10), int64(c64_11))
+    //?check("const64", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
+
+    // Widening must sign-extend signed values and zero-extend unsigned values.
+    var u8 : uint8 = 255
+    var s8 : int8 = -7
+    var u16 : uint16 = 256
+    var s16 : int16 = -300
+    var u64 : uint64 = 1000
+    printf("widen values = %lld,%lld,%lld,%lld,%lld,%lld\n",
+        int64(u8 + s16), int64(s16 + u8), int64(u16 + s8),
+        int64(s8 + u16), int64(u64 + s8), int64(s8 + u64)) //?check("widen values", "-45,-45,249,249,993,993")
+    printf("widen types = %s,%s,%s,%s,%s,%s\n",
+        TypeName(u8 + s16), TypeName(s16 + u8), TypeName(u16 + s8),
+        TypeName(s8 + u16), TypeName(u64 + s8), TypeName(s8 + u64)) //?check("widen types", "int16,int16,int16,int16,int64,int64")
+
+    // Same-width conversion reinterprets bits; the result retains that width.
+    printf("high bit = %lld,%lld\n", int64(u8 + s8), int64(s8 + u8)) //?check("high bit", "-8,-8")
+
+    // Unsigned-only arithmetic and unary bitwise NOT retain unsigned types.
+    printf("unsigned types = %s,%s,%s,%s,%s,%s\n",
+        TypeName(u8 + u8), TypeName(u8 * u8), TypeName(u8 div u8),
+        TypeName(u8 rem u8), TypeName(u8 mod u8), TypeName(~u8)) //?check("unsigned types", "uint8,uint8,uint8,uint8,uint8,uint8")
+    var count : int16 = 1
+    printf("wide shift = %s,%lld,%s,%lld\n", TypeName(u8 >> count), int64(u8 >> count),
+        TypeName(s8 >> count), int64(s8 >> count)) //?check("wide shift", "uint8,127,int8,-4")
+    printf("shift = %s,%lld,%s,%lld\n", TypeName(u8 >> s8), int64(u8 >> int8(1)),
+        TypeName(s8 >> u8), int64(s8 >> uint8(1))) //?check("shift", "uint8,127,int8,-4")
+
+    var alias_byte : byte = 7
+    printf("byte negation = %s,%lld\n", TypeName(-alias_byte), int64(-alias_byte))
+    //?check("byte negation", "int8,-7")
+
+    // Floating division converts each operand directly to float.
+    var three : int8 = 3
+    var minus_one : int8 = -1
+    printf("float division = %.2f,%.2f,%.2f,%.2f\n",
+        u8 / minus_one, minus_one / u8, u16 / three, three / u16)
+    //?check("float division", "-255.00,-0.00,85.33,0.01")
+    const float_div : float = uint8(255) / int8(-1)
+    printf("const float division = %.2f\n", float_div) //?check("const float division", "-255.00")
+endfunc

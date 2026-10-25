@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.15"
+#define DQ_COMPILER_VERSION  "0.93.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.16:
+  - Corrected signedness handling
 v0.93.15:
   - embstr cached metadata capture fix for subfn
 v0.93.14:

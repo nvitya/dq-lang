@@ -2023,6 +2023,15 @@ void OBinNotExpr::DeleteChildTree()
 {
   operand = expr;
   ptype = operand->ptype;
+  OType * operand_type = operand->ResolvedType();
+  if (TK_INT == operand_type->kind)
+  {
+    auto * inttype = static_cast<OTypeInt *>(operand_type);
+    if (!inttype->issigned)
+    {
+      ptype = g_builtins->FindIntType(inttype->bitlength, true);
+    }
+  }
 }
 
 LlValue * ONegExpr::Generate(OScope * scope)

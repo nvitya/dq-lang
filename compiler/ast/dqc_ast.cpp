@@ -395,7 +395,7 @@ OValSym * ODqCompAst::GetAssignRootValSym(OLValueExpr * leftexpr)
   return nullptr;
 }
 
-bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright)
+bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright, bool force_signed)
 {
   if (!rleft || !rright || !*rleft || !*rright)
   {
@@ -423,12 +423,15 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright)
   {
     OTypeInt * intl = static_cast<OTypeInt *>(lefttype);
     OTypeInt * intr = static_cast<OTypeInt *>(righttype);
-    if (intl->bitlength != intr->bitlength)
+    OTypeInt * result_type = g_builtins->FindIntType(
+        max(intl->bitlength, intr->bitlength), force_signed || intl->issigned || intr->issigned);
+    if (lefttype != result_type)
     {
-      if (intl->bitlength > intr->bitlength)
-        right = new OExprTypeConv(left->ptype, right);
-      else
-        left = new OExprTypeConv(right->ptype, left);
+      left = new OExprTypeConv(result_type, left);
+    }
+    if (righttype != result_type)
+    {
+      right = new OExprTypeConv(result_type, right);
     }
 
     *rleft = left;
@@ -466,38 +469,6 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright)
   }
 
   return false;
-}
-
-bool ODqCompAst::HarmonizeIntegerSubtractionOperands(OExpr ** rleft, OExpr ** rright)
-{
-  if (!rleft || !rright || !*rleft || !*rright)
-  {
-    return false;
-  }
-
-  OTypeInt * intl = dynamic_cast<OTypeInt *>((*rleft)->ResolvedType());
-  OTypeInt * intr = dynamic_cast<OTypeInt *>((*rright)->ResolvedType());
-  if (!intl || !intr)
-  {
-    return false;
-  }
-
-  uint8_t bitlength = max(intl->bitlength, intr->bitlength);
-  OTypeInt * result_type = g_builtins->FindIntType(bitlength, true);
-  if (!result_type)
-  {
-    return false;
-  }
-
-  if ((*rleft)->ResolvedType() != result_type)
-  {
-    *rleft = new OExprTypeConv(result_type, *rleft);
-  }
-  if ((*rright)->ResolvedType() != result_type)
-  {
-    *rright = new OExprTypeConv(result_type, *rright);
-  }
-  return true;
 }
 
 bool ODqCompAst::ResolveCommonPointerType(OExpr * leftexpr, OExpr * rightexpr, OType ** rresulttype)
@@ -640,7 +611,18 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
       Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
       return nullptr;
     }
-    HarmonizeNumericOperands(&newleft, &newright);
+    if (BINOP_ISHL == op || BINOP_ISHR == op)
+    {
+      // The shift count must not change the left operand's type or signedness.
+      if (right->ResolvedType() != left->ResolvedType())
+      {
+        newright = new OExprTypeConv(left->ptype, right);
+      }
+    }
+    else
+    {
+      HarmonizeNumericOperands(&newleft, &newright);
+    }
   }
   else if ((TK_POINTER == tkl) and (TK_POINTER == tkr))
   {
@@ -675,21 +657,14 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   {
     if ((TK_INT == tkl) and (TK_INT == tkr))
     {
-      if (BINOP_SUB == op)
+      if (BINOP_DIV == op)
       {
-        HarmonizeIntegerSubtractionOperands(&newleft, &newright);
+        newleft  = new OExprTypeConv(g_builtins->type_float, newleft);
+        newright = new OExprTypeConv(g_builtins->type_float, newright);
       }
       else
       {
-        HarmonizeNumericOperands(&newleft, &newright);
-
-        OTypeInt * intl = static_cast<OTypeInt *>(left->ResolvedType());
-        OTypeInt * intr = static_cast<OTypeInt *>(right->ResolvedType());
-        if ((intl->bitlength == intr->bitlength) and (BINOP_DIV == op))
-        {
-          newleft  = new OExprTypeConv(g_builtins->type_float, newleft);
-          newright = new OExprTypeConv(g_builtins->type_float, newright);
-        }
+        HarmonizeNumericOperands(&newleft, &newright, BINOP_SUB == op);
       }
     }
     else

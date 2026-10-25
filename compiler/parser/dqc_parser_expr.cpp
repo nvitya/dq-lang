@@ -1300,7 +1300,7 @@ OExpr * ODqCompParserExpr::ParseExprOr()
       {
         return FreeLeftRight(left, nullptr);
       }
-      left = new OLogicalExpr(LOGIOP_OR, left, right);
+      left = CreateLogicalExpr(LOGIOP_OR, left, right);
       continue;
     }
 
@@ -1324,7 +1324,7 @@ OExpr * ODqCompParserExpr::ParseExprAnd()
       {
         return FreeLeftRight(left, nullptr);
       }
-      left = new OLogicalExpr(LOGIOP_AND, left, right);
+      left = CreateLogicalExpr(LOGIOP_AND, left, right);
       continue;
     }
 
@@ -1343,10 +1343,32 @@ OExpr * ODqCompParserExpr::ParseExprNot()
     {
       return nullptr;
     }
+    OType * valtype = val->ResolvedType();
+    if (!valtype || TK_BOOL != valtype->kind)
+    {
+      Error(DQERR_BOOL_EXPR_EXPECTED, valtype ? valtype->name : "void");
+      OExpr::DeleteTree(val);
+      return new OBoolLit(false);
+    }
     return new ONotExpr(val);
   }
 
   return ParseComparison();
+}
+
+OExpr * ODqCompParserExpr::CreateLogicalExpr(ELogicalOp op, OExpr * left, OExpr * right)
+{
+  OType * ltype = left->ResolvedType();
+  OType * rtype = right->ResolvedType();
+  if (!ltype || TK_BOOL != ltype->kind || !rtype || TK_BOOL != rtype->kind)
+  {
+    Error(DQERR_TYPEMISM_FOR_OP, ltype ? ltype->name : "void", GetLogiOpSymbol(op),
+          rtype ? rtype->name : "void");
+    OExpr::DeleteTree(left);
+    OExpr::DeleteTree(right);
+    return new OBoolLit(false);
+  }
+  return new OLogicalExpr(op, left, right);
 }
 
 ECompareOp ODqCompParserExpr::ParseCompareOp(bool consume)
@@ -1500,6 +1522,18 @@ OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr 
   };
   OType * ltype = left && left->ptype ? left->ptype->ResolveAlias() : nullptr;
   OType * rtype = right && right->ptype ? right->ptype->ResolveAlias() : nullptr;
+  if ((ltype && TK_BOOL == ltype->kind) || (rtype && TK_BOOL == rtype->kind))
+  {
+    if (ltype != rtype || (COMPOP_EQ != op && COMPOP_NE != op))
+    {
+      Error(DQERR_TYPEMISM_FOR_OP, ltype ? ltype->name : "void", compare_symbol(op),
+            rtype ? rtype->name : "void");
+      OExpr::DeleteTree(left);
+      OExpr::DeleteTree(right);
+      return new OBoolLit(false);
+    }
+    return new OCompareExpr(op, left, right);
+  }
   bool ltext = IsStringComparableTextType(ltype);
   bool rtext = IsStringComparableTextType(rtype);
   bool has_string_family = IsStringFamilyTextType(ltype) || IsStringFamilyTextType(rtype);

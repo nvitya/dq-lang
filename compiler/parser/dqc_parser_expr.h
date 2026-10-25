@@ -81,6 +81,7 @@ protected:
   OExpr * ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_next)(),
                           const BinOpEntry ops[], int nops);
   ECompareOp ParseCompareOp(bool consume = true);
+  OExpr * CreateLogicalExpr(ELogicalOp op, OExpr * left, OExpr * right);
   OExpr * CreateCompareExpr(ECompareOp op, OExpr * left, OExpr * right);
   bool    ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec, const string & aowner_name, bool aemit_errors = true);
 

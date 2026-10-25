@@ -2,6 +2,11 @@
 
 const GVBOOL0  : bool = false
 const GVBOOL1  : bool = true
+const BOOL_EQ : bool = (true == true) and (false == false) and not (true == false) and not (false == true)
+const BOOL_NE : bool = (true <> false) and (false <> true) and not (true <> true) and not (false <> false)
+const BOOL_NESTED : bool = (GVBOOL0 == false) == (GVBOOL1 <> false)
+
+type TBool = bool
 
 var g_bool : bool = GVBOOL1 or GVBOOL0
 
@@ -45,6 +50,27 @@ func *Main():
     var b0 : bool = false
     var b1 : bool = true
     var bexpr : bool
+
+    var ready : bool = true
+    var same : bool = ready == true
+    printbool("ready equality", same) //?check('ready equality', true)
+    printbool("constant equality", BOOL_EQ) //?check('constant equality', true)
+    printbool("constant inequality", BOOL_NE) //?check('constant inequality', true)
+    printbool("nested constant equality", BOOL_NESTED) //?check('nested constant equality', true)
+    printf("equality truth table = %d,%d,%d,%d\n", b0 == b0, b0 == b1, b1 == b0, b1 == b1)
+    //?check('equality truth table', '1,0,0,1')
+    printf("inequality truth table = %d,%d,%d,%d\n", b0 <> b0, b0 <> b1, b1 <> b0, b1 <> b1)
+    //?check('inequality truth table', '0,1,1,0')
+    var alias_bool : TBool = true
+    printbool("bool alias equality", alias_bool == b1) //?check('bool alias equality', true)
+    printbool("bool alias not", not alias_bool) //?check('bool alias not', false)
+    printbool("bool alias logic", alias_bool and b1 or b0) //?check('bool alias logic', true)
+    printbool("not comparison", not b0 == b1) //?check('not comparison', true)
+    printbool("double not", not not b1) //?check('double not', true)
+
+    g_short_circuit_hits = 0
+    printbool("call equality", CountedTrue() == CountedTrue()) //?check('call equality', true)
+    printf("call equality hits = %li\n", g_short_circuit_hits) //?check('call equality hits', 2)
 
     printbool("not false", not b0)    //?check('not false', true)
 

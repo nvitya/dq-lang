@@ -1,0 +1,45 @@
+// Logical operators require bool operands; bool comparisons support only == and <>.
+
+const BAD_NOT : bool = not 0 //?error(BoolExprExpected)
+const BAD_AND : bool = 1 and 2 //?error(TypeMismatchOp)
+const BAD_OR : bool = true or 1 //?error(TypeMismatchOp)
+const BAD_EQ : bool = true == 1 //?error(TypeMismatchOp)
+
+func NoValue():
+endfunc
+
+func *Main():
+    var ready : bool = true
+    var number : int = 1
+    var ptr : ^int = %number
+    var value : bool
+
+    value = not 0 //?error(BoolExprExpected)
+    value = not number //?error(BoolExprExpected)
+    value = not 0.5 //?error(BoolExprExpected)
+    value = not ptr //?error(BoolExprExpected)
+    value = not NoValue() //?error(BoolExprExpected)
+
+    value = 1 and 2 //?error(TypeMismatchOp)
+    value = 1 or 2 //?error(TypeMismatchOp)
+    value = number and ready //?error(TypeMismatchOp)
+    value = ready and number //?error(TypeMismatchOp)
+    value = number or ready //?error(TypeMismatchOp)
+    value = ready or number //?error(TypeMismatchOp)
+    value = false and 1 //?error(TypeMismatchOp)
+    value = true or 1 //?error(TypeMismatchOp)
+    value = ready and 0.5 //?error(TypeMismatchOp)
+    value = ptr or ready //?error(TypeMismatchOp)
+    value = ready and NoValue() //?error(TypeMismatchOp)
+
+    value = ready == 1 //?error(TypeMismatchOp)
+    value = 1 == ready //?error(TypeMismatchOp)
+    value = ready <> 0.5 //?error(TypeMismatchOp)
+    value = 0.5 <> ready //?error(TypeMismatchOp)
+    value = ready == ptr //?error(TypeMismatchOp)
+    value = ready == NoValue() //?error(TypeMismatchOp)
+    value = false < true //?error(TypeMismatchOp)
+    value = ready <= false //?error(TypeMismatchOp)
+    value = ready > false //?error(TypeMismatchOp)
+    value = ready >= false //?error(TypeMismatchOp)
+endfunc

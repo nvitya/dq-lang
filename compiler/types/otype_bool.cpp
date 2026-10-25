@@ -109,6 +109,19 @@ bool OValueBool::CalculateConstant(OExpr * expr, bool emit_errors)
     {
       ETypeKind exprkind = ex->left->ResolvedType()->kind;
 
+      if (TK_BOOL == exprkind && (COMPOP_EQ == ex->op || COMPOP_NE == ex->op))
+      {
+        OValueBool vleft(g_builtins->type_bool, false);
+        OValueBool vright(g_builtins->type_bool, false);
+        if (!vleft.CalculateConstant(ex->left, emit_errors) || !vright.CalculateConstant(ex->right, emit_errors))
+        {
+          return false;
+        }
+
+        value = (COMPOP_EQ == ex->op ? vleft.value == vright.value : vleft.value != vright.value);
+        return true;
+      }
+
       if (TK_INT == exprkind)
       {
         OValueInt vleft(g_builtins->type_int, 0);

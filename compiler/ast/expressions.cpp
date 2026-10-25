@@ -1661,6 +1661,11 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     else if (COMPOP_LE == op)   return ll_builder.CreateFCmpOLE(ll_left, ll_right);
     else if (COMPOP_GE == op)   return ll_builder.CreateFCmpOGE(ll_left, ll_right);
   }
+  else if (TK_BOOL == optype->kind)
+  {
+    if      (COMPOP_EQ == op)   return ll_builder.CreateICmpEQ(ll_left, ll_right);
+    else if (COMPOP_NE == op)   return ll_builder.CreateICmpNE(ll_left, ll_right);
+  }
   else if (TK_INT == optype->kind || IsCharacterType(optype) || TK_ENUM == optype->kind)
   {
     OType * resolved = left->ResolvedType();

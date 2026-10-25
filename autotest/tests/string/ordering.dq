@@ -1,0 +1,144 @@
+// Lexicographic ordering uses unsigned bytes and each string's logical length.
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+
+use libc/stdio
+use rtl/strfunc
+
+func CheckPair(a : strslice, b : strslice, expected : int) -> bool:
+    var cmp : int = StrSliceCmp(a, b)
+    return (cmp < 0) == (expected < 0) and (cmp == 0) == (expected == 0)
+       and (cmp > 0) == (expected > 0)
+       and (a < b) == (expected < 0) and (a <= b) == (expected <= 0)
+       and (a > b) == (expected > 0) and (a >= b) == (expected >= 0)
+       and (a == b) == (expected == 0) and (a <> b) == (expected <> 0)
+endfunc
+
+func CheckMixed(low : embstr, high : embstr) -> bool:
+    var owned : str = low
+    var borrowed : rostr = low
+    var view : strslice = low
+    var fixed : embstr(16) = low
+    var high_owned : str = high
+    var high_borrowed : rostr = high
+    var high_view : strslice = high
+    var pointer : ^char = low.pchar
+    return owned < high and borrowed < high and view < high and fixed < high and pointer < high
+       and low < high_owned and low < high_borrowed and low < high_view and low < high.pchar
+       and high > owned and high > borrowed and high > view and high > fixed and high > pointer
+       and owned <= borrowed and borrowed >= view and view <= fixed and fixed >= low
+       and StrSliceCmp(owned, high) < 0 and StrSliceCmp(borrowed, high) < 0
+       and StrSliceCmp(view, high) < 0 and StrSliceCmp(fixed, high) < 0
+       and StrSliceCmp(pointer, high) < 0
+endfunc
+
+var calls : int
+func MakeText() -> str:
+    ++calls
+    return "middle"
+endfunc
+
+var comparison_error <- Exception("comparison endpoint")
+func FailText() -> rostr:
+    raise comparison_error
+    return ""
+endfunc
+
+func ReplaceText(text : ref str) -> rostr:
+    text = "zulu"
+    return "zulu"
+endfunc
+
+func CheckRange(low : embstr, middle : embstr, high : embstr) -> bool:
+    var owned : str = middle
+    var borrowed : rostr = middle
+    var view : strslice = middle
+    var fixed : embstr(16) = middle
+    return low < owned < high and low < borrowed < high and low < view < high
+       and low < fixed < high and low < middle < high and high > owned > low
+endfunc
+
+func *Main():
+    printf("ordering_basic = %d\n",
+        CheckPair("alpha", "beta", -1) and CheckPair("beta", "alpha", 1)
+        and CheckPair("same", "same", 0) and CheckPair("abc", "abcd", -1)
+        and CheckPair("abcd", "abc", 1) and CheckPair("abcZ", "abd", -1)) //?check('ordering_basic', 1)
+
+    var empty : strslice
+    var empty_owned : str
+    var empty_ro : rostr
+    var empty_emb : embstr(8) = ""
+    printf("ordering_empty = %d\n",
+        CheckPair(empty, "", 0) and CheckPair(empty, "a", -1) and CheckPair("a", empty, 1)
+        and empty_owned <= empty_ro and empty_ro >= empty_emb
+        and StrSliceCmp(StrSlice(nil, 0), empty) == 0) //?check('ordering_empty', 1)
+
+    var low : embstr(16) = "alpha"
+    var high : embstr(16) = "beta"
+    printf("ordering_mixed = %d\n", CheckMixed(low, high)) //?check('ordering_mixed', 1)
+    printf("ordering_literals = %d\n",
+        "beta" > "alpha" and "alpha" < "beta" and "alpha" <= "alpha"
+        and "beta" >= "beta" and "alpha" < high and low < "beta") //?check('ordering_literals', 1)
+
+    var raw_a : [3]char = [char(0x7F), char(0), char(0xFF)]
+    var raw_b : [3]char = [char(0x80), char(0), char(0xFE)]
+    var a : strslice = StrSlice(%raw_a[0], 3)
+    var b : strslice = StrSlice(%raw_b[0], 3)
+    printf("ordering_unsigned = %d\n", CheckPair(a, b, -1) and CheckPair(b, a, 1)
+        and StrSliceCmp(a, b) == -1 and StrSliceCmp(b, a) == 1) //?check('ordering_unsigned', 1)
+    raw_b[0] = raw_a[0]
+    printf("ordering_internal_zero = %d\n", CheckPair(a, b, 1)
+        and CheckPair(a[:1], a[:2], -1) and CheckPair(a[:2], b[:2], 0)) //?check('ordering_internal_zero', 1)
+    var za : str = a
+    var zb : str = b
+    var ra : rostr = za
+    var rb : rostr = zb
+    printf("ordering_zero_types = %d\n", za > zb and ra > rb and ra > b
+        and a > rb and StrSliceCmp(ra, rb) > 0) //?check('ordering_zero_types', 1)
+
+    printf("ordering_utf8 = %d\n", CheckPair("z", "é", -1)
+        and CheckPair("é", "€", -1) and CheckPair("€", "😀", -1)) //?check('ordering_utf8', 1)
+
+    var middle : embstr(16) = "alpine"
+    printf("ordering_ranges = %d\n", CheckRange(low, middle, high)) //?check('ordering_ranges', 1)
+    var first : ^char = "alpha"
+    var last : ^char = "zulu"
+    printf("ordering_literal_middle = %d\n", first < "middle" < last) //?check('ordering_literal_middle', 1)
+    var retained : str = MakeText()
+    printf("ordering_range_snapshot = %d\n", "alpha" < retained < ReplaceText(retained)) //?check('ordering_range_snapshot', 1)
+
+    var baseline : int64 = heap_allocated_size
+    var ok : bool = true
+    calls = 0
+    for n : int = 0 count 1000:
+        ok = ok and (MakeText() < "zulu") and ("alpha" < MakeText())
+        ok = ok and ("alpha" < MakeText() < "zulu")
+        ok = ok and StrSliceCmp(MakeText(), MakeText()) == 0
+    endfor
+    printf("ordering_temporaries = %d calls:%li heap:%d\n", ok, calls,
+        heap_allocated_size == baseline) //?check('ordering_temporaries', '1 calls:5000 heap:1')
+
+    calls = 0
+    ok = not ("zulu" < MakeText() < MakeText())
+    printf("ordering_short_circuit = %d calls:%li heap:%d\n", ok, calls,
+        heap_allocated_size == baseline) //?check('ordering_short_circuit', '1 calls:1 heap:1')
+
+    var caught : int = 0
+    try:
+        ok = "alpha" < MakeText() < FailText()
+    except Exception:
+        ++caught
+    endtry
+    try:
+        ok = FailText() < MakeText() < "zulu"
+    except Exception:
+        ++caught
+    endtry
+    try:
+        ok = "alpha" < FailText() < "zulu"
+    except Exception:
+        ++caught
+    endtry
+    printf("ordering_exceptions = %li heap:%d\n", caught,
+        heap_allocated_size == baseline) //?check('ordering_exceptions', '3 heap:1')
+endfunc

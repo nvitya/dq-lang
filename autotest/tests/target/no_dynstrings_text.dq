@@ -21,3 +21,8 @@ endfunc
 func ParseText() -> int64:
     return StrToInt("42")
 endfunc
+
+func CompareText(a : rostr, b : embstr) -> bool:
+    var view : strslice = a
+    return a < b and b >= view and StrSliceCmp(a, b) <= 0
+endfunc

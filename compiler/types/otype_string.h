@@ -90,7 +90,7 @@ public:
                                OExpr * end_expr, bool end_inclusive);
   LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
 
-  static LlValue * GenerateEqual(OScope * scope, OExpr * left, OExpr * right);
+  static LlValue * GenerateCompare(OScope * scope, OExpr * left, OExpr * right);
 };
 
 class OTypeDynString : public OTypeString

@@ -44,7 +44,10 @@ Ordering comparisons can express a range without repeating its middle operand:
 The middle operand is evaluated once, and the upper/lower endpoint is evaluated
 only when the first comparison succeeds.
 
-Object references and pointers compare identity/address. General array sequence
+Text values compare lexicographically by unsigned bytes, with a shorter prefix
+sorting first. Mixed string types are supported; see [string comparison](strings-and-characters.md#comparison).
+
+Object references and raw pointer pairs compare identity/address. General array sequence
 equality is not implicitly defined.
 
 ## Boolean Logic

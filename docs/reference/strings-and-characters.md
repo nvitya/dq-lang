@@ -120,6 +120,31 @@ var view : strslice = StrSlice(data, data_length)
 buffer.Append(view)
 ```
 
+## Comparison
+
+Text values support `==`, `<>`, `<`, `<=`, `>`, and `>=`, including comparisons
+between `str`, `rostr`, `strslice`, and sized or unsized `embstr`. Ordering is
+lexicographic by unsigned byte value: the first unequal byte determines the
+order, and a shorter prefix sorts first. Known lengths include embedded zero
+bytes. Comparison does not validate UTF-8 or apply locale-specific collation.
+
+```dq
+var name : str = "alpha"
+var limit : rostr = "beta"
+var before : bool = name < limit  // true
+var inside : bool = "a" <= name < "z"
+```
+
+`StrSliceCmp(a : strslice, b : strslice) -> int` from `rtl/strfunc` accepts all
+text forms through their normal conversions. It returns a negative value, zero,
+or a positive value when `a` is less than, equal to, or greater than `b`, as
+with C `strcmp`. Unlike `strcmp`, it compares the entire known byte range,
+including internal zeroes, and does not require zero termination.
+
+Raw `^char` operands compare text when paired with a string value or, for
+ordering, a text literal. Two raw pointer variables retain address comparison;
+use `StrSliceCmp` to compare their contents explicitly.
+
 ## Byte Indexing and Slicing
 
 `text[index]` reads or writes one `char` byte. `text[start:end]` uses a half-open

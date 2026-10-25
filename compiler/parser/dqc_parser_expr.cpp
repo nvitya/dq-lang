@@ -1444,6 +1444,11 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return CreateCompareExpr(op, left, right);
   }
 
+  if (dynamic_cast<OEmbStrLit *>(right)
+      && !ConvertExprToType(g_builtins->type_strslice, &right, EXPCF_GENERATE_ERRORS))
+  {
+    return FreeLeftRight(left, right);
+  }
   auto * middle = new OCompareCachedExpr(right);
   OExpr * first_expr = CreateCompareExpr(op, left, middle);
   auto * first = dynamic_cast<OCompareExpr *>(first_expr);
@@ -1459,7 +1464,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
     return FreeLeftRight(first, nullptr);
   }
   OExpr * second = CreateCompareExpr(next_op, new OCompareCachedLoadExpr(middle), range_right);
-  return new OLogicalExpr(LOGIOP_AND, first, second);
+  return new ORangeCompareExpr(first, second, middle);
 }
 
 OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr * right)
@@ -1537,9 +1542,23 @@ OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr 
   bool ltext = IsStringComparableTextType(ltype);
   bool rtext = IsStringComparableTextType(rtype);
   bool has_string_family = IsStringFamilyTextType(ltype) || IsStringFamilyTextType(rtype);
+  // Text literals use ^char internally, but their ordering compares contents.
+  if (!has_string_family && COMPOP_EQ != op && COMPOP_NE != op)
+  {
+    if (dynamic_cast<OEmbStrLit *>(left))
+    {
+      ConvertExprToType(g_builtins->type_strslice, &left, EXPCF_GENERATE_ERRORS);
+      has_string_family = true;
+    }
+    else if (dynamic_cast<OEmbStrLit *>(right))
+    {
+      ConvertExprToType(g_builtins->type_strslice, &right, EXPCF_GENERATE_ERRORS);
+      has_string_family = true;
+    }
+  }
   if ((ltext || rtext) && has_string_family)
   {
-    if ((COMPOP_EQ != op && COMPOP_NE != op) || !ltext || !rtext)
+    if (!ltext || !rtext)
     {
       Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, compare_symbol(op), right->ptype->name);
       OExpr::DeleteTree(left);

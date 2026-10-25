@@ -29,6 +29,15 @@ copying, converts directly to C string pointers, and returns `strslice` slices.
 text views. See [Strings and Characters](../reference/strings-and-characters.md)
 for conversions and lifetime requirements.
 
+## Comparison
+
+`<`, `<=`, `>`, and `>=` compare text lexicographically by unsigned byte value.
+Mixed string types are supported, and a shorter prefix sorts first.
+`StrSliceCmp(a : strslice, b : strslice) -> int` in `rtl/strfunc` provides the
+same comparison as a negative, zero, or positive integer, like C `strcmp`.
+It accepts all text forms, preserves embedded zero bytes in known-length text,
+and works when dynamic strings are disabled. See [Comparison](../reference/strings-and-characters.md#comparison).
+
 ## Common Operations
 
 Dynamic strings expose:

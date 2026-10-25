@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.93.17"
+#define DQ_COMPILER_VERSION  "0.93.18"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.93.18:
+  - String comparisons (bytewise)
 v0.93.17:
   - Fixed compiler crashes and missing bool type checks
 v0.93.16:

@@ -36,6 +36,7 @@ func IntToChar(value : int, defvalue : char) -> char [[overload]] ..
 func IntToWchar(value : int) -> wchar [[overload]] ..
 func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
 func StrSlice(data : ^char, length : int) -> strslice ..
+func StrSliceCmp(a : strslice, b : strslice) -> int ..
 func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int ..
 
 #ifdef DYNSTRINGS
@@ -152,6 +153,21 @@ func StrSlice(data : ^char, length : int) -> strslice:
     endif
     DynStrSetTextInfo(info, data, uint32(length))
     return ^strslice(%info)^
+endfunc
+
+// Compare unsigned bytes, including embedded zeroes, without requiring termination.
+func StrSliceCmp(a : strslice, b : strslice) -> int:
+    var alen : int = a.length
+    var blen : int = b.length
+    var i : int = 0
+    while i < alen and i < blen:
+        var diff : int = Ord(a[i]) - Ord(b[i])
+        if diff <> 0:
+            return diff
+        endif
+        ++i
+    endwhile
+    return alen - blen
 endfunc
 
 func StrfByte(text : strslice, index : int) -> uint32:

@@ -1553,13 +1553,18 @@ LlValue * OCompareExpr::Generate(OScope * scope)
     return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
   }
 
-  if ((COMPOP_EQ == op || COMPOP_NE == op)
-      && left->ResolvedType() && left->ResolvedType()->IsStringComparable()
+  if (left->ResolvedType() && left->ResolvedType()->IsStringComparable()
       && right->ResolvedType() && right->ResolvedType()->IsStringComparable()
       && (left->ResolvedType()->IsStringFamily() || right->ResolvedType()->IsStringFamily()))
   {
-    LlValue * ll_eq = OTypeString::GenerateEqual(scope, left, right);
-    return (COMPOP_EQ == op ? ll_eq : ll_builder.CreateNot(ll_eq));
+    LlValue * cmp = OTypeString::GenerateCompare(scope, left, right);
+    LlValue * zero = LlNativeIntConst(0);
+    if (COMPOP_EQ == op) return ll_builder.CreateICmpEQ(cmp, zero);
+    if (COMPOP_NE == op) return ll_builder.CreateICmpNE(cmp, zero);
+    if (COMPOP_LT == op) return ll_builder.CreateICmpSLT(cmp, zero);
+    if (COMPOP_GT == op) return ll_builder.CreateICmpSGT(cmp, zero);
+    if (COMPOP_LE == op) return ll_builder.CreateICmpSLE(cmp, zero);
+    if (COMPOP_GE == op) return ll_builder.CreateICmpSGE(cmp, zero);
   }
 
   auto object_funcref_type = [](OExpr * expr) -> OTypeFuncRef *
@@ -1738,12 +1743,30 @@ void OCompareExpr::DeleteChildTree()
   ptype = source->ptype;
 }
 
-LlValue * OCompareCachedExpr::Generate(OScope * scope)
+void OCompareCachedExpr::PrepareStorage()
 {
-  LlValue * value = source->Generate(scope);
   ll_storage = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "range.middle");
-  ll_builder.CreateStore(value, ll_storage);
-  return value;
+  ll_builder.CreateStore(llvm::Constant::getNullValue(ptype->GetLlType()), ll_storage);
+}
+
+LlValue * OCompareCachedExpr::GenerateAddress(OScope * scope)
+{
+  ll_builder.CreateStore(source->Generate(scope), ll_storage);
+  if (NeedsCallCleanup() && source->IsStableStorageLValue())
+  {
+    g_builtins->type_str->GenerateIncRef(scope, ll_storage);
+  }
+  return ll_storage;
+}
+
+bool OCompareCachedExpr::NeedsCallCleanup() const
+{
+  return source->ResolvedType()->kind == TK_DYNSTR;
+}
+
+void OCompareCachedExpr::GenerateCallCleanup(OScope * scope)
+{
+  g_builtins->type_str->GenerateDestroy(scope, ll_storage);
 }
 
 void OCompareCachedExpr::FoldChildren()
@@ -1764,13 +1787,30 @@ void OCompareCachedExpr::DeleteChildTree()
   ptype = source->ptype;
 }
 
-LlValue * OCompareCachedLoadExpr::Generate(OScope * scope)
+LlValue * OCompareCachedLoadExpr::GenerateAddress(OScope * scope)
 {
   if (!source->ll_storage)
   {
     throw logic_error("Range comparison middle operand was not evaluated");
   }
-  return ll_builder.CreateLoad(ptype->GetLlType(), source->ll_storage, "range.middle");
+  return source->ll_storage;
+}
+
+ORangeCompareExpr::ORangeCompareExpr(OExpr * first, OExpr * second, OCompareCachedExpr * amiddle)
+  : OLogicalExpr(LOGIOP_AND, first, second), middle(amiddle)
+{
+}
+
+LlValue * ORangeCompareExpr::Generate(OScope * scope)
+{
+  // Keep an owned middle value alive through both comparisons, including
+  // short-circuit and exception paths.
+  middle->PrepareStorage();
+  OCallLifetimeCleanup cleanup(scope, {middle});
+  cleanup.Prepare();
+  LlValue * result = OLogicalExpr::Generate(scope);
+  cleanup.Cleanup();
+  return result;
 }
 
 /* ctor */ OIifExpr::OIifExpr(OExpr * acond, OExpr * atrue, OExpr * afalse, OType * aresult_type)

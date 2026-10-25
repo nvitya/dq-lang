@@ -329,25 +329,28 @@ public:
 };
 
 // A range comparison uses this pair to evaluate its shared middle operand once.
-class OCompareCachedExpr : public OExpr
+class OCompareCachedExpr : public OLValueExpr
 {
 public:
   OExpr *      source;
   LlValue *    ll_storage = nullptr;
 
   /* ctor */   OCompareCachedExpr(OExpr * asource);
-  LlValue *    Generate(OScope * scope) override;
+  void         PrepareStorage();
+  LlValue *    GenerateAddress(OScope * scope) override;
+  bool         NeedsCallCleanup() const override;
+  void         GenerateCallCleanup(OScope * scope) override;
   void         FoldChildren() override;
   void         DeleteChildTree() override;
 };
 
-class OCompareCachedLoadExpr : public OExpr
+class OCompareCachedLoadExpr : public OLValueExpr
 {
 public:
   OCompareCachedExpr * source;
 
   /* ctor */   OCompareCachedLoadExpr(OCompareCachedExpr * asource);
-  LlValue *    Generate(OScope * scope) override;
+  LlValue *    GenerateAddress(OScope * scope) override;
 };
 
 class OIifExpr : public OExpr
@@ -387,6 +390,14 @@ public:
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
   void         DeleteChildTree() override;
+};
+
+class ORangeCompareExpr : public OLogicalExpr
+{
+public:
+  OCompareCachedExpr * middle;
+  ORangeCompareExpr(OExpr * first, OExpr * second, OCompareCachedExpr * amiddle);
+  LlValue * Generate(OScope * scope) override;
 };
 
 class ONotExpr : public OExpr

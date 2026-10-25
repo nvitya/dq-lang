@@ -470,13 +470,13 @@ LlValue * OTypeString::GenerateToWchars(OScope * scope, OExpr * receiver)
   return result;
 }
 
-LlValue * OTypeString::GenerateEqual(OScope * scope, OExpr * left, OExpr * right)
+LlValue * OTypeString::GenerateCompare(OScope * scope, OExpr * left, OExpr * right)
 {
   LlValue * left_temporary = nullptr;
   LlValue * right_temporary = nullptr;
-  LlValue * ldesc = GenerateTextInfoAddress(scope, left, &left_temporary);
-  LlValue * rdesc = GenerateTextInfoAddress(scope, right, &right_temporary);
-  LlValue * result = CallDynStrFunc(scope, "TextInfoEqual", {ldesc, rdesc});
+  LlValue * ldesc = GenerateTextInfoValue(scope, left, &left_temporary);
+  LlValue * rdesc = GenerateTextInfoValue(scope, right, &right_temporary);
+  LlValue * result = CallDynStrFunc(scope, "StrSliceCmp", {ldesc, rdesc});
   if (right_temporary) g_builtins->type_str->GenerateDestroy(scope, right_temporary);
   if (left_temporary) g_builtins->type_str->GenerateDestroy(scope, left_temporary);
   return result;
@@ -948,7 +948,7 @@ LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * stra
 
 LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right)
 {
-  return OTypeString::GenerateEqual(scope, left, right);
+  return ll_builder.CreateICmpEQ(OTypeString::GenerateCompare(scope, left, right), LlNativeInt(0));
 }
 
 LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right)

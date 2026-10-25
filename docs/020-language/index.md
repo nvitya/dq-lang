@@ -1,6 +1,19 @@
-# DQ Programming Language Pages
+# DQ Programming Language
 
-Contents:
+This chapter is the complete DQ language reference, organized from basic syntax
+to platform access. Each topic introduces its concepts, then describes syntax,
+type rules, lifetime constraints, and examples in the same chapter.
+
+If DQ is new to you, begin with [Getting Started](../010-project/030-getting-started.md)
+to install the compiler and run a program. This reference describes DQ 0.93.15.
+DQ is still under development, so match the documentation to your compiler version.
+
+Most code blocks illustrate declarations or statements in their surrounding
+context; examples containing `func *Main()` are complete programs unless they
+explicitly import companion files. Copy a complete program into a `.dq` file
+and run it with `dq-run filename.dq`. Assembly examples identify their target.
+
+**Contents**
 
 - [Basic Syntax](010-basic-syntax.md)
 - [Basic Types and Conversions](020-basic-types-and-conversions.md)

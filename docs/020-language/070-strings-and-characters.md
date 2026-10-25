@@ -1,3 +1,353 @@
 # Strings and Characters
 
-Text types, literals, Unicode, slicing, built-in methods
+A string stores text as a sequence of bytes. A character represents one byte,
+one UTF-16 code unit, or one Unicode scalar, depending on its type. DQ provides
+owned strings, borrowed views, and fixed-capacity buffers so code can choose
+how storage is allocated and who keeps it alive.
+
+```dq
+use print
+
+func *Main():
+    var original : str = "hello"
+    var changed : str = original
+    changed[0] = 'H'
+    var bounded : embstr(8) = "abcdefgh"
+    PrintLn("{} / {} / {}", [original, changed, bounded])
+endfunc
+```
+
+The output is `hello / Hello / abcdefg`: dynamic strings keep separate logical
+values, while the bounded string truncates its content to leave space for its
+terminator.
+
+## Character Types
+
+| Type | Meaning |
+| --- | --- |
+| `char` | unsigned 8-bit byte or UTF-8 code unit |
+| `char16` | unsigned 16-bit UTF-16 code unit |
+| `wchar` | unsigned 32-bit Unicode scalar value |
+
+These are distinct types, not integer aliases. `Ord` converts a character to an
+integer; explicit or checked conversion creates a character from an integer.
+
+## Text Types
+
+| Type | Ownership and representation |
+| --- | --- |
+| `str` | owned, dynamic, reference-counted copy-on-write byte string |
+| `rostr` | read-only borrowed, zero-terminated byte string |
+| `strslice` | read-only borrowed view of text bytes; termination is not guaranteed |
+| `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage |
+| `embstr` | unsized borrowed reference to a shared Embedded String descriptor |
+| `^char` | raw pointer to zero-terminated byte storage |
+
+`str` stores bytes and always has a hidden trailing zero. `.length`, indexing,
+slicing, and capacity count bytes; the terminator is not included. A `str` may
+contain internal zeroes and is not necessarily valid UTF-8.
+
+On targets built with dynamic strings disabled, `str` and operations that
+produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
+available for non-owning or bounded text processing.
+
+## Literals
+
+Double quotes always represent text. A single-quoted literal containing exactly
+one Unicode scalar is `wchar`; empty or longer single-quoted literals are text.
+
+```dq
+var path : str = "/"
+var slash : wchar = '/'
+var byte_slash : char = '/'
+```
+
+The last initialization is accepted because the literal is a compile-time
+scalar below 256. In general, conversion from `wchar` to `char` is explicit.
+
+## Dynamic String Value Semantics
+
+Assigning a `str` shares storage. Mutation detaches when necessary so other
+string values retain their contents.
+
+```dq
+var a : str = "abc"
+var b : str = a
+b[0] = 'X'       // a remains "abc"
+```
+
+`Clone()` forces independent storage. Operations that can grow or detach a
+string invalidate borrowed pointers and views into its previous storage.
+
+## Text Operators
+
+`+` concatenates compatible text operands into a new `str`. `+=` appends to a
+dynamic string. These operations require dynamic-string support.
+
+```dq
+var greeting : str = "Hello, " + "world"
+greeting += "!"
+var expected : rostr = "Hello, world!"
+var matches : bool = greeting == expected
+```
+
+`==` and `<>` compare byte contents when at least one operand is a string-family
+value (`str`, `rostr`, `strslice`, or an Embedded String). The other operand may
+also be compatible text, including a C string pointer. Known lengths include
+embedded zero bytes; raw C strings end at their first zero. These operators do
+not perform Unicode normalization or case folding. Text ordering with `<`,
+`<=`, `>`, or `>=` is not supported. Comparing two raw pointers instead compares
+their addresses.
+
+## Read-Only Zero-Terminated Strings
+
+`rostr` borrows terminated storage from text literals, `str`, `embstr(N)`,
+unsized `embstr`, or `^char`. It does not copy bytes or retain the owner.
+The owner must stay alive and its storage and contents must remain stable while
+borrowed. Assigning a `rostr` copies its descriptor; the descriptor itself may
+be reassigned, but character writes and writable character references are rejected.
+
+```dq
+func strlen(text : ^char) -> uint [[external]]
+func Inspect(text : rostr):
+    var size : uint = strlen(text)  // passes the underlying pointer directly
+    var part : strslice = text[1:4]
+endfunc
+
+var owned : str = "hello"
+var borrowed : rostr = owned
+Inspect(borrowed)
+```
+
+`.length` counts bytes and `.pchar` exposes the borrowed pointer. Indexing,
+slicing, comparison, and Unicode access follow the existing string rules.
+Every byte slice returns `strslice`, including full-range and suffix slices.
+There is no direct conversion from `strslice` to `rostr`, even by a cast. When
+terminated storage is needed for a slice, first assign it to an owning `str`.
+A `rostr` converts to `strslice`, owned `str`, or fixed-capacity `embstr(N)`;
+it cannot become an unsized writable `embstr` alias.
+A `strslice` converts to owned `str` or fixed-capacity `embstr(N)`, copying its
+byte range into the destination and truncating only when the destination lacks capacity.
+
+Known lengths preserve embedded zero bytes. DQ text operations can process
+those bytes, while C functions see only the prefix before the first zero.
+`rostr` converts automatically to declared `^char` parameters and to `^char`
+in C variadic positions, so `printf("%s", borrowed)` passes a pointer.
+Raw pointers retain their existing mutability; callers must respect the
+borrowed storage's read-only contract.
+
+Standard-library paths, names, commands, messages, and format strings use
+`rostr`. Parser input, generic text algorithms, output chunks, and byte payloads
+continue to use `strslice` so they accept slices without allocating.
+
+Use `StrSlice(data, length)` to borrow a known-length byte range from a
+`^char`, including an unterminated range or one containing zero bytes. The
+caller keeps the storage alive and stable for as long as the view is used.
+
+```dq
+use rtl/strfunc
+
+var view : strslice = StrSlice(data, data_length)
+buffer.Append(view)
+```
+
+## Byte Indexing and Slicing
+
+`text[index]` reads one `char` byte; writable text storage also permits replacing it. `text[start:end]` uses a half-open
+byte range, while `text[start::end]` includes the end byte. These operations do
+not decode or validate UTF-8.
+
+An index must select an existing byte and an invalid index raises a runtime range
+error. Slice bounds are clamped to `[0, length]`; reversed normalized bounds
+produce an empty slice rather than an error. `$last` is the last existing byte
+index and `$end` is the one-past-end position.
+
+## Unicode Operations
+
+Unicode-oriented operations interpret `str` bytes as UTF-8:
+
+- `.wclen` counts decoded Unicode scalar values;
+- `.wchar[index]` selects a scalar;
+- `.wchar[start:end]` returns scalar values;
+- `.wcstr[start:end]` returns the selected scalars encoded as `str`;
+- `ToWchars` and `StrFromWchars` convert between UTF-8 and `[*]wchar`;
+- `ToUtf16` and `StrFromUtf16` convert between UTF-8 and UTF-16 code units.
+
+Malformed UTF-8, invalid scalar values, and malformed UTF-16 produce runtime
+encoding errors. `ToUtf16` returns an array that includes a final zero code unit.
+
+## Embedded Strings
+
+`embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
+the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
+append-style operations truncate to fit rather than growing the value.
+
+```dq
+var name : embstr(8) = "abc"
+name.Append("defghi") // stores "abcdefg"
+```
+
+An unsized `embstr` borrows existing bounded C-string storage through a shared
+descriptor. Assigning or passing it preserves that descriptor reference, so
+length updates made through one alias are visible to the others. Its lifetime
+and writability come from the source.
+
+## Raw C String Pointers
+
+`.pchar` returns a borrowed `^char` to compatible zero-terminated storage. It is
+valid only while the source is alive and unchanged in a way that can move its
+storage. C functions stop at the first zero byte even when the originating
+`str` contains later bytes.
+
+A nil `^char` is not valid where a C string is required unless the called API
+explicitly defines nil handling.
+
+## Overlap
+
+String mutation methods preserve the logical source when their source aliases
+the destination. This includes appending or inserting a view into the same
+string across a possible reallocation.
+
+## Common Operations
+
+Dynamic strings expose:
+
+| Member | Meaning |
+| --- | --- |
+| `.length` | current byte length |
+| `.capacity` | allocated capacity |
+| `Set(text)` | replace contents |
+| `Append(value)` / `Add(value)` | append text or a `char` byte |
+| `AppendChar(ch)` | append one `char` byte |
+| `Prepend(value)` | insert at the beginning |
+| `Insert(index, value)` | insert text or a `char` byte |
+| `Delete(index, count = 1)` | remove bytes |
+| `SetLength(length, fill)` | resize, filling new bytes |
+| `Truncate(length)` | shrink only |
+| `Pop(count)` / `PopFirst(count)` | remove and return text |
+| `Pop()` / `PopFirst()` | remove and return one `char` byte |
+| `Reserve(capacity)` | ensure capacity |
+| `Compact()` | set capacity to current length |
+| `Clear(free_storage = false)` | clear contents, optionally free storage |
+| `Clone()` | force an independent copy |
+| `AddFmt(fmt, args)` | append formatted text |
+
+```dq
+var s : str = "abc"
+s.Append("def")
+s.Insert(0, '>')
+s.Delete(0)
+s.AddFmt(" {}", [123])
+```
+
+String indexing and slicing use byte offsets and return or copy `char` values.
+They do not validate UTF-8.
+
+```dq
+var b : char = s[0]
+var part : str = s[3:10]
+```
+
+Indices are normalized by the runtime operations. For example, deleting past
+the end is clamped, and inserting with `$end` appends.
+
+## Utility Methods
+
+The following read-only methods are available on `str`, `rostr`, `strslice`,
+and `embstr` values. They accept a `char` or a text value where a search,
+prefix, suffix, trim set, or fill value is required. Search positions and
+lengths are byte-based, just like `.length` and normal indexing.
+
+| Member | Result | Meaning |
+| --- | --- | --- |
+| `Trim()` / `Trim(set)` | `str` | remove whitespace, or bytes in `set`, from both ends |
+| `LTrim()` / `LTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the left end |
+| `RTrim()` / `RTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the right end |
+| `LPad(length, fill)` | `str` | pad the left side to `length` bytes |
+| `RPad(length, fill)` | `str` | pad the right side to `length` bytes |
+| `IndexOf(needle, start = 0)` | `int` | first matching byte offset, or `-1` |
+| `LastIndexOf(needle)` | `int` | last matching byte offset, or `-1` |
+| `Contains(needle)` | `bool` | whether the value contains `needle` |
+| `StartsWith(prefix)` | `bool` | whether the value begins with `prefix` |
+| `EndsWith(suffix)` | `bool` | whether the value ends with `suffix` |
+
+These methods do not modify the receiver. Assign a returned `str` to retain a
+trimmed or padded value.
+
+```dq
+var text : str = "  abc  "
+text = text.Trim()  // "abc"
+```
+
+`Trim`, `LTrim`, and `RTrim` use the ASCII whitespace bytes space, tab,
+line feed, carriage return, vertical tab, and form feed by default. With an
+argument, that argument is a set of bytes rather than a substring pattern.
+
+```dq
+var marked : str = "---abc---"
+var name : str = marked.Trim("-")  // "abc"
+```
+
+Padding repeats the fill value and truncates the final repetition to produce
+exactly the requested length. A target length no greater than the receiver
+length returns an unchanged copy. An empty fill value raises a runtime error.
+
+```dq
+var code : str = "abc"
+code.LPad(8, "01")  // "01010abc"
+code.RPad(5, '.')   // "abc.."
+```
+
+`IndexOf` clamps `start` to `0 .. text.length`. An empty needle matches at the
+normalized start position. `LastIndexOf("")` returns `text.length`; an empty
+prefix or suffix matches every text value.
+
+```dq
+var text : str = "abcdefabc"
+text.IndexOf("abc", 1)  // 6
+text.IndexOf("", 100)   // 9
+text.LastIndexOf("abc")  // 6
+text.StartsWith("abc")   // true
+text.EndsWith("abc")     // true
+```
+
+The trim and padding methods create a `str`, so they are unavailable on
+targets built with dynamic strings disabled. The search methods only return
+scalar values and remain available for the supported text views.
+
+
+## Working with Unicode
+
+Byte length and character count differ for non-ASCII UTF-8:
+
+```dq
+use print
+
+func *Main():
+    var text : str = "Aé€"
+    var scalars : [*]wchar = text.ToWchars()
+    PrintLn("bytes={} scalars={} second={}", [text.length, text.wclen, scalars[1]])
+endfunc
+```
+
+This prints `bytes=6 scalars=3 second=é`. Repeated `.wchar[index]` lookup needs
+UTF-8 decoding; converting once to `[*]wchar` is useful for repeated indexed
+processing. An isolated `char16` surrogate is a code unit, not a complete Unicode
+scalar; UTF-16 conversion checks pairs rather than treating every unit as a
+character.
+
+## Conversion and Lifetime Summary
+
+| Destination | Relevant rule |
+| --- | --- |
+| `str` | Owns/retains its text value; accepts compatible text views. |
+| `rostr` | Requires terminated storage, borrows it, and does not retain its owner. |
+| `strslice` | Borrows a byte range; no terminator is promised. |
+| `embstr(N)` | Copies into bounded storage and truncates to fit. |
+| Unsized `embstr` | Shares a writable bounded-string descriptor; requires suitable existing storage. |
+| `^char` | A raw C pointer with no automatic lifetime extension. |
+
+Borrowed text must not outlive its source. Neither a cast nor storing a view in
+`anyvalue` makes its owner live longer. Returning a view into a local buffer is
+invalid. See [C Interoperability](200-c-interoperability.md) for C-string calls
+and [Text Formatting](160-text-formatting.md) for `AddFmt` and placeholders.

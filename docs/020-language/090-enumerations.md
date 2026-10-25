@@ -59,8 +59,16 @@ An enum is distinct from its storage type and every other enum. There is no
 implicit conversion to or from integers, and arithmetic is not defined on enum
 values.
 
-Equality and inequality compare values of the same enum type. Use `.ord` or
-`Ord(value)` explicitly when numeric ordering is intended.
+Equality, inequality, and ordering compare values of the same enum type.
+Ordering follows the enumerators' ordinal values:
+
+```dq
+var state : NState = running
+var before_stop : bool = state < stopped // true: 10 < 20
+```
+
+Use `.ord` or `Ord(value)` when the integer value itself is needed. Comparisons
+with an integer or a different enum type remain invalid.
 
 ## Ordinal Conversion
 

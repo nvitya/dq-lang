@@ -5,7 +5,7 @@ to platform access. Each topic introduces its concepts, then describes syntax,
 type rules, lifetime constraints, and examples in the same chapter.
 
 If DQ is new to you, begin with [Getting Started](../010-project/030-getting-started.md)
-to install the compiler and run a program. This reference describes DQ 0.93.15.
+to install the compiler and run a program. This reference describes DQ 0.93.16.
 DQ is still under development, so match the documentation to your compiler version.
 
 Most code blocks illustrate declarations or statements in their surrounding

@@ -76,11 +76,18 @@ To get the DQ compiler and start experimenting with the language follow the inst
 
 The compiled DQ programs on Windows and Linux use the standard and well-tested C library for low-level system functions. Combined with the reliable LLVM code generator and excessive compiler tests, the DQ compiler and its compiled applications are pretty stable already.
 
-The DQ standard library offers user-friendly, object based interface for several programming tasks, including database handling, threading, http serving, and JSON handling. As DQ is a new languge (2026) the library support is not complete though. DQ has a very flexible module system and simple way importing functions from external C compatible libraries, which provides unlimited possibilities at application development.
+During DQ application development some bugs and language defects were detected and fixed. For the compiler development AI assistance (with strict control) is used, which makes possible to fix bugs or apply changes very quickly.
+
+**It is not recommended yet to use DQ in critical applications, due the lack of enough field-testing.** (DQ-lang project started in January 2026, it became application ready only around September 2026.)
+**Every new project must start somewhere**, to build up the supporting community takes some time.
+
+You can already use - and I recommend to use - DQ for some less critical applications, or tools.
+
+The DQ [standard packages](../040-packages/index.md) offers user-friendly, object based interface for several programming tasks, including database handling, threading, http serving, and JSON handling. As DQ is a new languge (2026) the library support is not complete though. DQ has a very flexible module system and simple way importing functions from external C compatible libraries, which provides unlimited possibilities at application development.
 
 ## Project Page
 
-The DQ language specification and the DQ compiler are available on GitHub:
+The DQ-lang project is available on GitHub at:
 
 [github.com/nvitya/dq-lang](https://github.com/nvitya/dq-lang)
 
@@ -97,6 +104,10 @@ Or the DQ community subreddit:
 
 For confirmed bugs and concrete feature requests, please use the [GitHub issue tracker](https://github.com/nvitya/dq-lang/issues)
 
+
+## Supporting the DQ-lang Project
+
+**Please support the DQ-lang project by trying it out, writing and sharing DQ applications and giving feedback!**
 
 ## Further Readings
 

@@ -47,7 +47,7 @@ have object identity or virtual dispatch.
 Structures cannot contain managed fields such as `str` or dynamic arrays. For
 text owned by a structure, use `embstr(N)` to store a fixed buffer inline.
 Borrowed `rostr` and `strslice` fields are allowed, but do not keep their text
-alive. See [Choosing Storage](070-strings-and-characters.md#choosing-storage).
+alive. See [Choosing a String Type](070-strings-and-characters.md#choosing-a-string-type).
 
 ### Structure initializer literals
 

@@ -70,7 +70,6 @@ nav:
       - Library Overview: 040-packages/010-library-overview-and-sys.md
       - sys: 040-packages/015-sys.md
       - print: 040-packages/020-print.md
-      - strutils: 040-packages/030-strutils.md
       - file: 040-packages/040-file.md
       - json: 040-packages/050-json.md
       - threads: 040-packages/060-threads.md

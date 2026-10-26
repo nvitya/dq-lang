@@ -6,7 +6,6 @@ the same format language.
 
 ```dq
 use print
-use strutils
 
 func *Main():
     PrintLn("{} = {:0+8d}", ["answer", 42])
@@ -21,13 +20,15 @@ DQ text formatting is used by:
 
 | API | Result |
 | --- | --- |
-| `Format(fmt, args)` from `strutils` | returns a new `str` |
+| `Format(fmt, args)` from implicit `sys` | returns a new `str` |
 | `Print(fmt, args)` / `PrintLn(fmt, args)` from `print` | writes to stdout |
 | `str.AddFmt(fmt, args)` | appends formatted text to a dynamic string |
 | `embstr.AddFmt(fmt, args)` | appends formatted text to an Embedded String |
 | `Exception.Create(fmt, args)` | formats an exception message |
 
 Formatting arguments are passed as `[]anyvalue`.
+
+`Format()` needs no `use` declaration and requires dynamic-string support.
 
 ## Placeholders
 

@@ -94,7 +94,7 @@ The builtin `anyvalue` type exposes convenience methods backed by the RTL
 | `AsStr(def)` | return a dynamic string |
 | `AsText(def)` | return a text view-style value |
 
-Example (with `use strutils` for `Format`):
+Example (using `Format()` from implicit `sys`):
 
 ```dq
 func ToLabel(v : anyvalue) -> str:

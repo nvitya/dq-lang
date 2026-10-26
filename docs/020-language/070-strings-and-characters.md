@@ -8,19 +8,36 @@ how storage is allocated and who keeps it alive.
 ```dq
 use print
 
+func AppendField(buffer : embstr, key : rostr, value : strslice):
+    buffer.AddFmt('"{}":"{}"', [key, value])
+endfunc
+
 func *Main():
-    var original : str = "hello"
-    var changed : str = original
-    changed[0] = 'H'
-    var fixbuf : embstr(8) = "abcdefgh"
-    PrintLn("{} / {} / {}", [original, changed, fixbuf])
+    var name : rostr = "Ada Lovelace"
+    var first_name : strslice = name[0:3]
+    var field : embstr(32) = ""
+    AppendField(field, "name", first_name)
+    field.AddFmt(', "year":{}', [1979])
+
+    var json : str = ""
+    json.Reserve(field.length + 2)
+    json.Add('{')
+    json.Add(field)
+    var closing : ^char = "}"
+    json.Add(closing)
+    PrintLn(json)
 endfunc
 ```
 
-The output is `hello / Hello / abcdefg`. Dynamic strings keep separate logical
-values. `fixbuf` is an embedded string. Its eight-byte fixed buffer holds seven bytes
-of text plus a zero byte marking the end of the text, so the final `h` is
-truncated.
+The output is `{"name":"Ada", "year":1979}`. `name` borrows zero-terminated text as `rostr`,
+and `first_name` borrows a byte range as `strslice`. `field` owns a fixed buffer
+as `embstr(32)`; the unsized `embstr` parameter lets `AppendField` write into
+that buffer with a single `AddFmt()` call. The `Add()` accepts all string types, including `^char`.
+
+`Reserve()` is optional: a dynamic string grows automatically as text is added.
+Here it reserves enough capacity for the field and both braces before assembly,
+improving performance by avoiding heap reallocations and copying as the string
+grows. It does not change the string's length or contents.
 
 ## Character Types
 
@@ -33,6 +50,51 @@ truncated.
 These are distinct types, not integer aliases. `Ord` converts a character to an
 integer; explicit or checked conversion creates a character from an integer.
 
+A character literal can initialize any character type whose range includes its
+value. Character variables do not implicitly convert to integers or to other
+character types. To convert between character types, pass through the integer
+code returned by `Ord()`:
+
+```dq
+var c8  : char   = 'A'
+var c16 : char16 = '€'
+var c32 : wchar  = '😀'
+
+var code : int   = Ord(c8)             // 65
+var same : char  = char(code)          // 'A'
+var wide : wchar = wchar(Ord(c16))     // '€'
+var next : char  = char(Ord(c8) + 1)   // 'B'
+
+var checked  : char  = IntToChar(code)     // 'A'; checks the range at runtime
+var fallback : wchar = IntToWchar(0xD800, '?') // '?' for an invalid scalar
+```
+
+These conversions preserve the numeric code; they do not encode or decode UTF-8
+or UTF-16. Explicit casts reject invalid constant values at compile time, but
+runtime casts can truncate to the destination width and do not validate Unicode
+scalars. Use `IntToChar()` or `IntToWchar()` when runtime validation is needed.
+Without a fallback argument, an invalid value raises a runtime error.
+
+The following examples intentionally produce compiler errors:
+
+```dq
+var c8     : char = 'A'
+var c32    : wchar = 'A'
+var code   : int = 65
+
+c8 = code           // error: no implicit integer-to-character conversion
+code = c8           // error: use Ord(c8)
+code = int(c8)      // error: an integer cast cannot replace Ord()
+c32  = c8           // error: no implicit conversion between character types
+c8 = char(c32)      // error: use char(Ord(c32)) or IntToChar(Ord(c32))
+c8 = c8 + 1         // error: arithmetic requires Ord(c8)
+
+var too_large : char = '€'             // error: the literal does not fit in one byte
+var overflow  : char = char(256)       // error: constant is outside 0 .. 255
+var non_bmp   : char16 = '😀'          // error: the literal does not fit in one code unit
+var surrogate : wchar = wchar(0xD800)  // error: a surrogate is not a Unicode scalar
+```
+
 ## Text Types
 
 | Type | Ownership and representation |
@@ -41,7 +103,7 @@ integer; explicit or checked conversion creates a character from an integer.
 | `rostr` | read-only borrowed, zero-terminated byte string |
 | `strslice` | read-only borrowed view of text bytes; termination is not guaranteed |
 | `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage |
-| `embstr` | unsized borrowed reference to a shared Embedded String descriptor |
+| `embstr` | unsized borrowed reference to a shared Embedded String descriptor. Typically used at function arguments. |
 | `^char` | C string = raw pointer to text byte storage with expected zero-termination |
 
 `str` stores bytes and always has a hidden trailing zero. `.length`, indexing,
@@ -92,6 +154,21 @@ var expected : rostr = "Hello, world!"
 var matches : bool = greeting == expected
 ```
 
+Using `+` to assemble dynamic strings is not recommended: it creates temporary
+strings and can cause repeated heap allocations and copies. Prefer `Add()` for
+plain text and `AddFmt()` for formatted text. Call `Reserve()` first when the
+expected size is known or can be estimated. Reserving enough capacity improves
+performance by avoiding heap reallocations and the associated copying of existing
+text as the string grows. Appends reuse that storage until the reserved capacity
+is exceeded.
+
+```dq
+var text : str = ""
+text.Reserve(32)
+text.Add("Hello, ")
+text.AddFmt("{}!", ["world"])
+```
+
 ## String Comparison
 
 Text values support `==`, `<>`, `<`, `<=`, `>`, and `>=`. You can compare
@@ -116,10 +193,10 @@ not validate UTF-8, normalize Unicode, or apply language-specific sorting rules.
 Known string lengths include embedded zero bytes; raw C strings end at their
 first zero.
 
-`StrSliceCmp(a : strslice, b : strslice) -> int` from `rtl/strfunc` provides the
-same bytewise comparison as a function. It returns a negative value if `a`
-comes before `b`, zero if they are equal, and a positive value if `a` comes
-after `b`. It accepts the text types through their normal conversions and
+`StrSliceCmp(a : strslice, b : strslice) -> int`, available through implicit
+`sys`, provides the same bytewise comparison as a function. It returns a negative
+value if `a` comes before `b`, zero if they are equal, and a positive value if
+`a` comes after `b`. It accepts the text types through their normal conversions and
 compares the entire known byte range, without requiring a zero terminator.
 
 A raw `^char` operand compares text when paired with a string value or, for
@@ -172,8 +249,6 @@ Use `StrSlice(data, length)` to borrow a known-length byte range from a
 caller keeps the storage alive and stable for as long as the view is used.
 
 ```dq
-use rtl/strfunc
-
 var view : strslice = StrSlice(data, data_length)
 buffer.Append(view)
 ```
@@ -235,6 +310,36 @@ explicitly defines nil handling.
 String mutation methods preserve the logical source when their source aliases
 the destination. This includes appending or inserting a view into the same
 string across a possible reallocation.
+
+## Standalone String Helpers
+
+String helpers are available through the implicit `sys` runtime interface;
+ordinary modules need no `use` declaration.
+
+| Function | Result | Meaning |
+| --- | --- | --- |
+| `Format(fmt : rostr, args : []anyvalue)` | `str` | create text using [formatting placeholders](160-text-formatting.md) |
+| `StrToInt(text : strslice, defvalue : int = 0)` | `int` | parse decimal digits and a minus sign |
+| `StrToFloat(text : strslice, defvalue : float)` | `float` | parse a number with a dot or comma decimal separator and an optional `e`/`E` exponent |
+| `StrUpper(text : strslice)` | `str` | copy text, converting ASCII letters to uppercase |
+| `StrLower(text : strslice)` | `str` | copy text, converting ASCII letters to lowercase |
+
+The parsing functions return `defvalue` for empty input or an unrecognized
+character. `StrToFloat` requires an explicit default value. The case conversion
+functions leave non-ASCII bytes unchanged and do not modify the source.
+
+```dq
+var label : str = Format("value={:04X}", [255]) // "value=00FF"
+var count : int = StrToInt("42")               // 42
+var fallback : int = StrToInt("invalid", -1)   // -1
+var value : float = StrToFloat("1.25e2", 0)    // 125
+var upper : str = StrUpper("Hello, é!")       // "HELLO, é!"
+var lower : str = StrLower("Hello, é!")       // "hello, é!"
+```
+
+`Format`, `StrUpper`, and `StrLower` create dynamic strings and require
+dynamic-string support. `StrToInt` and `StrToFloat` remain available when
+dynamic strings are disabled.
 
 ## Common Operations
 

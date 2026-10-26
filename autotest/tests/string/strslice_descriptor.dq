@@ -1,0 +1,79 @@
+// Borrowing a slice resolves its length before any operation on the slice.
+use libc/stdio
+use rtl/rtlint
+use rtl/strfunc
+use rtl/anyvalue
+
+struct SSliceField:
+    lead : byte
+    text : strslice
+    tail : byte
+endstruct
+
+func DescriptorLength(text : strslice) -> int32:
+    var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%text)
+    return desc.charlen
+endfunc
+
+func BorrowEmbedded(text : embstr) -> strslice:
+    return text
+endfunc
+
+func Forward(text : strslice) -> strslice:
+    return text
+endfunc
+
+func *Main():
+    var empty : strslice
+    var raw_nil : ^char = nil
+    var from_nil : strslice = raw_nil
+    var from_literal : strslice = "literal"
+    var raw : ^char = "pointer"
+    var from_pointer : strslice = raw
+    var lazy : rostr = raw
+    var from_rostr : strslice = lazy
+    printf("basic = %i:%i:%i:%i:%i\n", DescriptorLength(empty), DescriptorLength(from_nil), DescriptorLength(from_literal), DescriptorLength(from_pointer), DescriptorLength(from_rostr)) //?check("basic", "0:0:7:7:7")
+    printf("forward = %i\n", DescriptorLength(Forward(raw))) //?check("forward", 7)
+
+    var storage : embstr(8) = "buffer"
+    var from_embedded : strslice = storage
+    var from_alias : strslice = BorrowEmbedded(storage)
+    printf("embedded = %i:%i\n", DescriptorLength(from_embedded), DescriptorLength(from_alias)) //?check("embedded", "6:6")
+    storage[2] = char(0)
+    var shortened : strslice = storage
+    printf("snapshot = %i:%i:%i\n", DescriptorLength(from_embedded), DescriptorLength(from_alias), DescriptorLength(shortened)) //?check("snapshot", "6:6:2")
+    var writable : ^char = storage.pchar
+    writable[1]^ = char(0)
+    var changed : strslice = BorrowEmbedded(storage)
+    printf("raw_mutation = %i\n", DescriptorLength(changed)) //?check("raw_mutation", 1)
+
+    // Embedded-string scans must still stop at capacity, even without a terminator.
+    var bounded : embstr(4) = "abc"
+    bounded.pchar[3]^ = 'x'
+    var bounded_view : strslice = BorrowEmbedded(bounded)
+    printf("bounded = %i:%i\n", DescriptorLength(bounded_view), bounded_view == "abc") //?check("bounded", "3:1")
+
+    var owned : str = "a_bc"
+    owned[1] = char(0)
+    var bytes : strslice = owned
+    var inner : strslice = bytes[1:3]
+    var data : [3]char = ['a', char(0), 'b']
+    var explicit : strslice = StrSlice(%data[0], 3)
+    var zerochar : strslice = char(0)
+    printf("binary = %i:%i:%i:%i:%i\n", DescriptorLength(bytes), DescriptorLength(inner), DescriptorLength(explicit), DescriptorLength(zerochar), inner[0] == char(0)) //?check("binary", "4:2:3:1:1")
+    printf("empty_slice = %i\n", DescriptorLength(bytes[3:1])) //?check("empty_slice", 0)
+
+    var boxed : anyvalue = inner
+    var unboxed : strslice = boxed.AsText("")
+    var boxed_info : ^SDqAnyValue = ^SDqAnyValue(%boxed)
+    printf("boxed = %i:%i:%i\n", DescriptorLength(unboxed), unboxed == inner, boxed_info.datasize == SizeOf(SDqRoStrInfo)) //?check("boxed", "2:1:1")
+    boxed.SetEmbStr(storage)
+    var boxed_embedded : strslice = boxed.AsText("")
+    var fallback : anyvalue = 42
+    var defaulted : strslice = fallback.AsText(raw)
+    printf("unbox = %i:%i\n", DescriptorLength(boxed_embedded), DescriptorLength(defaulted)) //?check("unbox", "1:7")
+
+    var values : [2]strslice
+    var fields : SSliceField = {}
+    printf("layout = %i:%i:%i:%i\n", SizeOf(strslice) == SizeOf(SDqRoStrInfo), uint(%values[1]) - uint(%values[0]) == SizeOf(strslice), OffsetOf(SSliceField, text) == SizeOf(pointer), DescriptorLength(fields.text)) //?check("layout", "1:1:1:0")
+endfunc

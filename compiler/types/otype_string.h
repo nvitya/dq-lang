@@ -76,6 +76,9 @@ public:
   {
   }
 
+  LlType * CreateLlType() override;
+  LlDiType * CreateDiType() override;
+
   virtual LlValue * GenerateLength(OScope * scope, LlValue * straddr) = 0;
   virtual LlValue * GeneratePChar(OScope * scope, LlValue * straddr) = 0;
   virtual LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) = 0;
@@ -144,12 +147,10 @@ public:
   :
     super("strslice", TK_STRSLICE)
   {
-    bytesize = TARGET_PTRSIZE + 8;
     alignsize = TARGET_PTRSIZE;
+    bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
   }
 
-  LlType * CreateLlType() override;
-  LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
 
@@ -180,8 +181,6 @@ public:
     bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
   }
 
-  LlType * CreateLlType() override;
-  LlDiType * CreateDiType() override;
   OValue * CreateValue() override { return new OValueRoStr(this); }
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
   int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;

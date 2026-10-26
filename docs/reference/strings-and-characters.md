@@ -197,8 +197,13 @@ and writability come from the source.
 The shared `SDqTextInfo` descriptor stores a pointer, an `int32` cached byte
 length, and unsigned `info` metadata. As with `SDqRoStrInfo`, a negative
 `charlen` means unknown length; length-dependent operations scan up to the
-capacity in `info` and cache the result. `strslice` uses the same descriptor
-layout, with known lengths preserving the full byte range.
+capacity in `info` and cache the result.
+
+`strslice` uses the compact `SDqRoStrInfo` layout, but its byte length is always
+known and nonnegative. Conversion from raw C-string pointers or embedded
+strings resolves the length before creating the slice; embedded strings use
+their capacity to bound that scan. Slices preserve the full byte range,
+including embedded zero bytes, without requiring a terminator.
 
 ## Raw C String Pointers
 

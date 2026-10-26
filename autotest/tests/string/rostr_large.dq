@@ -11,6 +11,9 @@ func *Main():
     var view : strslice = borrowed
     var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%borrowed)
     printf("large = %li:%li:%i:%i\n", source.length, view.length, desc.charlen, borrowed[$last] == 'x') //?check("large", "16777218:16777218:16777218:1")
+    var direct : strslice = raw
+    var direct_desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%direct)
+    printf("large_slice = %i:%i\n", direct_desc.charlen, direct[$last] == 'x') //?check("large_slice", "16777218:1")
     var known : rostr = source
     printf("large_known = %li\n", known.length) //?check("large_known", 16777218)
 endfunc

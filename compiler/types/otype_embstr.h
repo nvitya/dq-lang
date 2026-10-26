@@ -119,9 +119,13 @@ public:
     return new OValueEmbStr(this, maxlen);
   }
 
+  static LlType * GetDescriptorLlType();
+  static LlDiType * GetDescriptorDiType();
+
   bool CanStoreFrom(OExpr * srcexpr) const;
   bool GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr);
   LlValue * GenerateDescriptor(OScope * scope, LlValue * embstraddr);
+  LlValue * GenerateDescriptor(OScope * scope, OExpr * source);
   LlValue * GenerateCapturedAddress(LlValue * descaddr);
   void ResetDescriptorLength(OScope * scope, LlValue * embstraddr);
   LlType * CreateLlType() override;

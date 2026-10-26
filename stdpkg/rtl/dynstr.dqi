@@ -66,8 +66,8 @@ func DynStrOwnDataPtrOffset(dataptr : ^char, src : ^char, length : uint32) -> in
     result = srcaddr - baseaddr
 endfunc
 
-func DynStrSourceCount(asrc : ref SDqTextInfo, acount : int32) -> uint32:
-    var srclen : uint32 = TextInfoCharLen(asrc)
+func DynStrSourceCount(asrc : ref SDqRoStrInfo, acount : int32) -> uint32:
+    var srclen : uint32 = asrc.charlen
     if acount < 0:
         return srclen
     endif
@@ -242,7 +242,7 @@ func ODynStrMgr.Clear(free_storage : bool = false):
     endif
 endfunc
 
-func ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
+func ODynStrMgr.Append(asrc : ref SDqRoStrInfo, acount : int32):
     use ., mem
     var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
@@ -275,7 +275,7 @@ func ODynStrMgr.Append(asrc : ref SDqTextInfo, acount : int32):
     WriteTerminator()
 endfunc
 
-func ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
+func ODynStrMgr.Insert(index : int, asrc : ref SDqRoStrInfo, acount : int32):
     use ., mem
     var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
@@ -332,7 +332,7 @@ func ODynStrMgr.Insert(index : int, asrc : ref SDqTextInfo, acount : int32):
     WriteTerminator()
 endfunc
 
-func ODynStrMgr.Prepend(asrc : ref SDqTextInfo, acount : int32):
+func ODynStrMgr.Prepend(asrc : ref SDqRoStrInfo, acount : int32):
     Insert(0, asrc, acount)
 endfunc
 
@@ -434,8 +434,8 @@ func DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr):
     astr = asrc
 endfunc
 
-func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo):
-    var srclen : uint32 = TextInfoCharLen(ati)
+func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqRoStrInfo):
+    var srclen : uint32 = ati.charlen
     if srclen < 1:
         DynStrDecRef(astr)
         astr = nil
@@ -606,7 +606,7 @@ func DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false):
     endif
 endfunc
 
-func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32):
+func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqRoStrInfo, acount : int32):
     var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
         return
@@ -620,7 +620,7 @@ func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32)
     astr.Append(asrc, int32(add_count))
 endfunc
 
-func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32):
+func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqRoStrInfo, acount : int32):
     var add_count : uint32 = DynStrSourceCount(asrc, acount)
     if add_count < 1:
         return
@@ -643,7 +643,7 @@ func DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1):
     endif
 endfunc
 
-func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo):
+func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo):
     if astr == nil:
         DynStrSetTextInfo(rti, nil, 0)
     else:
@@ -651,7 +651,7 @@ func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo):
     endif
 endfunc
 
-func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int):
+func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo, startpos : int, endposex : int):
     if astr == nil:
         DynStrSetTextInfo(rti, nil, 0)
         return

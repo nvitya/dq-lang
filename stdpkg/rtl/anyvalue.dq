@@ -27,7 +27,7 @@ av.IsNull()
 const DQSUBT_INT_SIGNED : byte = 1
 
 struct SDqAnyValue:
-    data     : [16]byte [[align(8)]]  // The SDqTextInfo must fit into this, must be padded with zeroes
+    data     : [16]byte [[align(8)]]  // Borrowed text stores a compact descriptor with a known length
     kind     : byte      // one of the DQTK_xxx values
     subtype  : byte
     datasize : byte
@@ -74,16 +74,16 @@ func AnyValSetFloat32(v : ref SDqAnyValue, value : float32) ..
 func AnyValSetFloat64(v : ref SDqAnyValue, value : float64) ..
 
 func AnyValIsText(v : ref SDqAnyValue) -> bool ..
-func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo) ..
-func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo) ..
-func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo) ..
-func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqTextInfo) ..
+func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqRoStrInfo, rv : refout SDqRoStrInfo) ..
+func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqRoStrInfo) ..
+func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqRoStrInfo) ..
+func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqRoStrInfo) ..
 
 #ifdef DYNSTRINGS
 func AnyValIsStr(v : ref SDqAnyValue) -> bool ..  // true only when it is a dynamic string
-func AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str ..
+func AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqRoStrInfo) -> str ..
 func AnyValSetStr(v : ref SDqAnyValue, value : str) ..
-func AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo) ..
+func AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqRoStrInfo) ..
 #endif
 
 func AnyValDestroy(v : ref SDqAnyValue) ..
@@ -405,13 +405,13 @@ func AnyValIsStr(v : ref SDqAnyValue) -> bool:
     return v.kind == DQTK_DYNSTR
 endfunc
 
-func AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqTextInfo) -> str:
+func AnyValAsStr(v : ref SDqAnyValue, defval : refin SDqRoStrInfo) -> str:
     result = ''
     if v.kind == DQTK_DYNSTR:
         DynStrAssignOther(^ODynStrMgr(%result)^, AnyValDynStrRef(v)^)
     else:
-        var dti : SDqTextInfo = defval
-        var ti : SDqTextInfo = {}
+        var dti : SDqRoStrInfo = defval
+        var ti : SDqRoStrInfo = {}
         AnyValAsText(v, dti, ti)
         DynStrAssignData(^ODynStrMgr(%result)^, ti)
     endif
@@ -423,34 +423,36 @@ func AnyValSetStr(v : ref SDqAnyValue, value : str):
     v.datasize = @def.PTRSIZE
 endfunc
 
-func AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqTextInfo):
+func AnyValSetStrText(v : ref SDqAnyValue, ati : ref SDqRoStrInfo):
     AnyValSetKind(v, DQTK_DYNSTR)
     DynStrAssignData(AnyValDynStrRef(v)^, ati)
     v.datasize = @def.PTRSIZE
 endfunc
 #endif
 
-func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqTextInfo):
+func AnyValSetText(v : ref SDqAnyValue, ati : refin SDqRoStrInfo):
     AnyValSetKind(v, DQTK_STRSLICE)
-    ^SDqTextInfo(%v.data[0])^ = ati
-    v.datasize = SizeOf(SDqTextInfo)
+    ^SDqRoStrInfo(%v.data[0])^ = ati
+    v.datasize = SizeOf(SDqRoStrInfo)
 endfunc
 
-func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqTextInfo):
+func AnyValSetRoStr(v : ref SDqAnyValue, ati : refin SDqRoStrInfo):
     AnyValSetKind(v, DQTK_ROSTR)
-    ^SDqTextInfo(%v.data[0])^ = ati
-    v.datasize = SizeOf(SDqTextInfo)
+    ^SDqRoStrInfo(%v.data[0])^ = ati
+    v.datasize = SizeOf(SDqRoStrInfo)
 endfunc
 
-func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqTextInfo):
+func AnyValSetEmbStr(v : ref SDqAnyValue, ati : refin SDqRoStrInfo):
     AnyValSetKind(v, DQTK_EMBSTR)
-    ^SDqTextInfo(%v.data[0])^ = ati
-    v.datasize = SizeOf(SDqTextInfo)
+    ^SDqRoStrInfo(%v.data[0])^ = ati
+    v.datasize = SizeOf(SDqRoStrInfo)
 endfunc
 
-func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqTextInfo, rv : refout SDqTextInfo):
+func AnyValAsText(v : ref SDqAnyValue, defval : refin SDqRoStrInfo, rv : refout SDqRoStrInfo):
     if v.kind == DQTK_STRSLICE  or  v.kind == DQTK_ROSTR  or  v.kind == DQTK_EMBSTR:
-        rv = ^SDqTextInfo(%v.data[0])^
+        rv = ^SDqRoStrInfo(%v.data[0])^
+        // Also resolve lazy descriptors supplied through the low-level RTL API.
+        RoStrGetLength(rv)
 #ifdef DYNSTRINGS
     elif v.kind == DQTK_DYNSTR:
         DynStrGetFullView(AnyValDynStrRef(v)^, rv)

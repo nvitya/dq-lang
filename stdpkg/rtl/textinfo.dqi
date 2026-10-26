@@ -28,12 +28,12 @@ func TextInfoGetLength(ati : ref SDqTextInfo) -> uint32:
     result = TextInfoCharLen(ati)
 endfunc
 
-func TextInfoPChar(ati : ref SDqTextInfo) -> ^char:
+func TextInfoPChar(ati : ref SDqRoStrInfo) -> ^char:
     result = ati.dataptr
 endfunc
 
-func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
-    var alen : uint32 = TextInfoCharLen(ati)
+func TextInfoGetChar(ati : ref SDqRoStrInfo, index : int) -> char:
+    var alen : uint32 = ati.charlen
     DynStrCheckIndex(index, alen)
     if ati.dataptr == nil:
         DynStrRuntimeError('TextInfo nil text data')
@@ -42,8 +42,8 @@ func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char:
     result = ati.dataptr[index]^
 endfunc
 
-func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int):
-    var alen : uint32 = TextInfoCharLen(ati)
+func TextInfoGetView(ati : ref SDqRoStrInfo, rti : refout SDqRoStrInfo, startpos : int, endposex : int):
+    var alen : uint32 = ati.charlen
     var b : int = startpos
     if b < 0:
         b = 0
@@ -69,9 +69,9 @@ func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos :
     endif
 endfunc
 
-func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
-    var alen : uint32 = TextInfoCharLen(a)
-    var blen : uint32 = TextInfoCharLen(b)
+func TextInfoEqual(a : ref SDqRoStrInfo, b : ref SDqRoStrInfo) -> bool:
+    var alen : uint32 = a.charlen
+    var blen : uint32 = b.charlen
     if alen <> blen:
         return false
     endif
@@ -91,10 +91,9 @@ func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool:
     return true
 endfunc
 
-func DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32):
+func DynStrSetTextInfo(rti : refout SDqRoStrInfo, dataptr : ^char, charlen : uint32):
     rti.dataptr = dataptr
     rti.charlen = charlen
-    rti.info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY
 endfunc
 
 func DynStrCheckIndex(index : int, length : uint32):

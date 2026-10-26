@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.1"
+#define DQ_COMPILER_VERSION  "0.94.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.2:
+  - strslice uses the compact SDqRoStrInfo layout with an always-known byte length
 v0.94.1:
   - SDqTextInfo.charlen changed to int32, where negative means unknown length
 v0.94.0:

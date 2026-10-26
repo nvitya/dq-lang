@@ -71,9 +71,9 @@ struct SDqTextInfo:   // 12 or 16 Bytes
     info    : uint32   // bits[23:0]: maxlen, bits[31:24]: flags
 endstruct
 
-struct SDqRoStrInfo:   // 8 or 16 Bytes (natural alignment, including tail padding)
+struct SDqRoStrInfo:   // rostr / strslice: 8 or 16 Bytes (including tail padding)
     dataptr : ^char    // points to the first character
-    charlen : int32    // number of chars (without terminating zero); negative means unknown
+    charlen : int32    // byte length; negative means unknown for rostr, always known for strslice
 endstruct
 
 

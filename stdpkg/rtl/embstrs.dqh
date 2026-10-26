@@ -20,14 +20,14 @@ func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint ..
 func EmbStrClear(desc : ref SDqTextInfo) ..
 func EmbStrAssignChar(desc : ref SDqTextInfo, ch : char) ..
 func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char) ..
-func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo) ..
 func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char) ..
-func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo) ..
 func EmbStrAppendChar(desc : ref SDqTextInfo, ch : char) ..
 func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char) ..
-func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo) ..
+func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo) ..
 func EmbStrPrependChar(desc : ref SDqTextInfo, ch : char) ..
 func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char) ..
-func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo) ..
+func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqRoStrInfo) ..
 func EmbStrInsertChar(desc : ref SDqTextInfo, index : int, ch : char) ..
 func EmbStrDelete(desc : ref SDqTextInfo, index : int, count : int = 1) ..

@@ -5,14 +5,13 @@
 use libc/stdio
 use rtl/strfunc
 
-func MakeText(desc : refout SDqTextInfo, data : ^char, alen : uint32):
+func MakeText(desc : refout SDqRoStrInfo, data : ^char, alen : uint32):
     desc.dataptr = data
     desc.charlen = alen
-    desc.info = alen & DQTI_MAXCHLEN_MASK
 endfunc
 
 func PrintText(label : ^char, s : ref ODynStrMgr):
-    var view : SDqTextInfo = {}
+    var view : SDqRoStrInfo = {}
     DynStrGetFullView(s, view)
 
     printf("%s = len:%li cap:%li text: \"", label, int(DynStrGetLength(s)), int(DynStrGetCapacity(s)))
@@ -27,7 +26,7 @@ endfunc
 func RunCoreOps():
     var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
-    var desc : SDqTextInfo = {}
+    var desc : SDqRoStrInfo = {}
     MakeText(desc, %src[0], 3)
     DynStrAssignData(s, desc)
     PrintText("assign", s)
@@ -58,7 +57,7 @@ endfunc
 func RunOverlapClonePop():
     var s : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
-    var desc : SDqTextInfo = {}
+    var desc : SDqRoStrInfo = {}
     MakeText(desc, %src[0], 3)
     DynStrAssignData(s, desc)
 
@@ -90,7 +89,7 @@ func RunCopyOnWrite():
     var a : ODynStrMgr = nil
     var b : ODynStrMgr = nil
     var src : [3]char = [char(97), char(98), char(99)]
-    var desc : SDqTextInfo = {}
+    var desc : SDqRoStrInfo = {}
     MakeText(desc, %src[0], 3)
     DynStrAssignData(a, desc)
     DynStrAssignOther(b, a)

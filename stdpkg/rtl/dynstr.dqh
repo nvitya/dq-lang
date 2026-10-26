@@ -30,9 +30,9 @@ public
     func Clear(free_storage : bool = false) ..
     func WriteTerminator() ..
 
-    func Append(asrc : ref SDqTextInfo, acount : int32) ..
-    func Insert(index : int, asrc : ref SDqTextInfo, acount : int32) ..
-    func Prepend(asrc : ref SDqTextInfo, acount : int32) ..
+    func Append(asrc : ref SDqRoStrInfo, acount : int32) ..
+    func Insert(index : int, asrc : ref SDqRoStrInfo, acount : int32) ..
+    func Prepend(asrc : ref SDqRoStrInfo, acount : int32) ..
     func Delete(index : int, acount : int32 = 1) ..
     func Pop(acount : int32, adst : ref SDqTextInfo) ..
     func PopFirst(acount : int32, adst : ref SDqTextInfo) ..
@@ -45,7 +45,7 @@ func DynStrCreate(astr : ref ODynStrMgr) ..
 func DynStrIncRef(astr : ref ODynStrMgr) ..
 func DynStrDecRef(astr : ref ODynStrMgr) ..
 func DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr) ..
-func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqTextInfo) ..
+func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqRoStrInfo) ..
 
 //func DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 func DynStrGetLength(astr : ref ODynStrMgr) -> uint32 ..
@@ -63,12 +63,12 @@ func DynStrTruncate(astr : ref ODynStrMgr, new_length : uint32) ..
 func DynStrCompact(astr : ref ODynStrMgr) ..
 func DynStrClear(astr : ref ODynStrMgr, free_storage : bool = false) ..
 
-func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqTextInfo, acount : int32) ..
-func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqTextInfo, acount : int32) ..
+func DynStrAppend(astr : ref ODynStrMgr, asrc : ref SDqRoStrInfo, acount : int32) ..
+func DynStrInsert(astr : ref ODynStrMgr, index : int, asrc : ref SDqRoStrInfo, acount : int32) ..
 func DynStrDelete(astr : ref ODynStrMgr, index : int, acount : int32 = 1) ..
 
-func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqTextInfo) ..
-func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqTextInfo, startpos : int, endposex : int) ..
+func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo) ..
+func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo, startpos : int, endposex : int) ..
 
 // clone, create new str
 

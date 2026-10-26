@@ -219,12 +219,11 @@ static LlValue * TextInfoAlloca()
   return CreateEntryBlockAlloca(g_builtins->type_strslice->GetLlType(), nullptr, "text.desc");
 }
 
-static LlValue * TextInfoValue(LlValue * ptr, int32_t charlen, uint32_t info)
+static LlValue * TextInfoValue(LlValue * ptr, LlValue * charlen)
 {
   LlValue * desc = llvm::UndefValue::get(g_builtins->type_strslice->GetLlType());
   desc = ll_builder.CreateInsertValue(desc, ptr, 0, "text.desc.ptr");
-  desc = ll_builder.CreateInsertValue(desc, LlI32(charlen), 1, "text.desc.len");
-  desc = ll_builder.CreateInsertValue(desc, LlU32(info), 2, "text.desc.info");
+  desc = ll_builder.CreateInsertValue(desc, charlen, 1, "text.desc.len");
   return desc;
 }
 
@@ -237,16 +236,16 @@ static LlValue * StoreTextInfoValue(LlValue * desc)
 
 static LlValue * GeneratePointerTextInfo(OScope * scope, OExpr * expr)
 {
-  (void)scope;
   LlValue * ptr = expr->Generate(scope);
-  int32_t charlen = DQTI_CHARLEN_INVALID;
-  uint32_t info = DQTI_MAXCHLEN_MASK;
   if (auto * lit = dynamic_cast<OEmbStrLit *>(expr))
   {
-    charlen = int32_t(lit->value.size());
-    info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
+    return TextInfoValue(ptr, LlI32(lit->value.size()));
   }
-  return TextInfoValue(ptr, charlen, info);
+
+  // Raw pointers are terminated strings; resolve their length before borrowing a slice.
+  LlValue * descaddr = StoreTextInfoValue(TextInfoValue(ptr, LlI32(DQTI_CHARLEN_INVALID)));
+  CallDynStrFunc(scope, "RoStrGetLength", {descaddr});
+  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "text.view");
 }
 
 static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
@@ -255,7 +254,7 @@ static LlValue * GenerateCharTextInfo(OScope * scope, OExpr * expr)
   LlValue * ch = ToCharValue(expr->Generate(scope));
   LlValue * bch = CallDynStrFunc(scope, "DynStrCharToByte", {ch});
   ll_builder.CreateStore(bch, tmp);
-  return TextInfoValue(tmp, 1, DQTIF_READONLY | 1);
+  return TextInfoValue(tmp, LlI32(1));
 }
 
 static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr, LlValue ** temporary_string_address)
@@ -293,38 +292,6 @@ LlDiType * OTypeDynString::CreateDiType()
   return di_builder->createPointerType(mgr_di, TARGET_PTRSIZE * 8);
 }
 
-LlType * OTypeStrSlice::CreateLlType()
-{
-  vector<LlType *> fields = {
-    LlPtrType(),
-    LlU32Type(),
-    LlU32Type()
-  };
-  return llvm::StructType::get(ll_ctx, fields);
-}
-
-LlDiType * OTypeStrSlice::CreateDiType()
-{
-  LlDiType * ptr_di = di_builder->createPointerType(
-      di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char),
-      TARGET_PTRSIZE * 8);
-  LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
-  LlDiType * len_di = di_builder->createBasicType("int32", 32, llvm::dwarf::DW_ATE_signed);
-  llvm::Metadata * elements[] = {
-    di_builder->createMemberType(nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
-        0, llvm::DINode::FlagZero, ptr_di),
-    di_builder->createMemberType(nullptr, "charlen", nullptr, 0, 32, 0,
-        TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, len_di),
-    di_builder->createMemberType(nullptr, "info", nullptr, 0, 32, 0,
-        TARGET_PTRSIZE * 8 + 32, llvm::DINode::FlagZero, u32_di)
-  };
-  return di_builder->createStructType(
-      nullptr, name, nullptr, 0, bytesize * 8, 0,
-      llvm::DINode::FlagZero, nullptr,
-      di_builder->getOrCreateArray(elements));
-}
-
-
 static bool IsByteWCharLiteral(OExpr * expr)
 {
   int64_t value = 0;
@@ -357,22 +324,12 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** tempora
   if (TK_EMBSTR == srctype->kind)
   {
     OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(srctype);
-    if (embstrtype->maxlen == 0)
-    {
-      return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), expr->Generate(scope), "embstr.text");
-    }
+    LlValue * descaddr = embstrtype->GenerateDescriptor(scope, expr);
 
-    LlValue * embstraddr = nullptr;
-    if (auto * lval = dynamic_cast<OLValueExpr *>(expr))
-    {
-      embstraddr = lval->GenerateAddress(scope);
-    }
-    if (!embstraddr)
-    {
-      throw logic_error("embstr text source requires an lvalue");
-    }
-    LlValue * descaddr = embstrtype->GenerateDescriptor(scope, embstraddr);
-    return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "embstr.text");
+    // Scan with the embedded string's capacity before dropping its metadata.
+    LlValue * len = ToU32(CallDynStrFunc(scope, "EmbStrLen", {descaddr}));
+    LlValue * ptraddr = ll_builder.CreateStructGEP(OTypeEmbStr::GetDescriptorLlType(), descaddr, 0);
+    return TextInfoValue(ll_builder.CreateLoad(LlPtrType(), ptraddr), len);
   }
 
   if (IsCCharPointerType(srctype))
@@ -390,11 +347,6 @@ LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** tempora
 
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr, LlValue ** temporary_string_address)
 {
-  if (expr && expr->ResolvedType() && TK_EMBSTR == expr->ResolvedType()->kind
-      && static_cast<OTypeEmbStr *>(expr->ResolvedType())->maxlen == 0)
-  {
-    return expr->Generate(scope);
-  }
   if (auto * lval = dynamic_cast<OLValueExpr *>(expr);
       lval && lval->ResolvedType() && TK_STRSLICE == lval->ResolvedType()->kind)
   {
@@ -417,7 +369,7 @@ LlValue * OTypeString::GenerateMetaField(OScope * scope, OLValueExpr * receiver,
 LlValue * OTypeString::GenerateCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index)
 {
   LlValue * descaddr = GenerateTextInfoAddress(scope, receiver);
-  LlValue * len = ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {descaddr}));
+  LlValue * len = g_builtins->type_strslice->GenerateLength(scope, descaddr);
   LlValue * norm_index = NormalizeTextIndexValue(index, len);
 
   LlType * desctype = g_builtins->type_strslice->GetLlType();
@@ -751,13 +703,15 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
 LlValue * OTypeStrSlice::GenerateLength(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  return ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {straddr}));
+  LlValue * lenaddr = ll_builder.CreateStructGEP(GetLlType(), straddr, 1, "str.len.addr");
+  return ToNativeInt(ll_builder.CreateLoad(LlU32Type(), lenaddr, "str.len"));
 }
 
 LlValue * OTypeStrSlice::GeneratePChar(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  return CallDynStrFunc(scope, "TextInfoPChar", {straddr});
+  LlValue * ptraddr = ll_builder.CreateStructGEP(GetLlType(), straddr, 0, "str.ptr.addr");
+  return ll_builder.CreateLoad(LlPtrType(), ptraddr, "str.ptr");
 }
 
 LlValue * OTypeStrSlice::GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)
@@ -785,7 +739,7 @@ LlValue * OTypeStrSlice::GenerateSlice(OScope * scope, OLValueExpr * receiver, O
   }
   else
   {
-    end = ToNativeInt(CallDynStrFunc(scope, "TextInfoGetLength", {sourceaddr}));
+    end = GenerateLength(scope, sourceaddr);
     end = ToNativeInt(end);
   }
 
@@ -1122,13 +1076,13 @@ LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMeth
   return st->GenerateMethodCall(scope, lval, method, args);
 }
 
-// rostr keeps the zero-termination contract separately from arbitrary text views.
-LlType * OTypeRoStr::CreateLlType()
+// Borrowed strings share a compact layout; termination remains a type-level contract.
+LlType * OTypeString::CreateLlType()
 {
   return llvm::StructType::get(ll_ctx, {LlPtrType(), LlU32Type()});
 }
 
-LlDiType * OTypeRoStr::CreateDiType()
+LlDiType * OTypeString::CreateDiType()
 {
   LlDiType * ptr_di = di_builder->createPointerType(
       di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char), TARGET_PTRSIZE * 8);
@@ -1203,6 +1157,14 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source, LlValue ** 
     auto * literal = dynamic_cast<OEmbStrLit *>(source);
     len = LlI32(literal ? int32_t(literal->value.size()) : DQTI_CHARLEN_INVALID);
   }
+  else if (TK_EMBSTR == srctype->kind)
+  {
+    auto * embstrtype = static_cast<OTypeEmbStr *>(srctype);
+    LlValue * descaddr = embstrtype->GenerateDescriptor(scope, source);
+    LlValue * info = ll_builder.CreateLoad(OTypeEmbStr::GetDescriptorLlType(), descaddr);
+    ptr = ll_builder.CreateExtractValue(info, 0);
+    len = ll_builder.CreateExtractValue(info, 1);
+  }
   else
   {
     LlValue * info = GenerateTextInfoValue(scope, source, temporary_string_address);
@@ -1240,8 +1202,7 @@ LlValue * OTypeRoStr::GenerateTextInfo(OScope * scope, OExpr * source)
     ll_builder.CreateStore(source->Generate(scope), addr);
   }
   LlValue * len = ToU32(GenerateLength(scope, addr));
-  LlValue * info = TextInfoValue(GeneratePChar(scope, addr), 0, DQTIF_READONLY);
-  return ll_builder.CreateInsertValue(info, len, 1);
+  return TextInfoValue(GeneratePChar(scope, addr), len);
 }
 
 LlValue * OTypeRoStr::GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index)

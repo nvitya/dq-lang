@@ -265,7 +265,7 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
 endfunc
 
 func StrSlice(data : ^char, length : int) -> strslice:
-    var info : SDqTextInfo = {}
+    var info : SDqRoStrInfo = {}
     if length < 0  or  uint(length) > 0x7FFFFFFF:
         StrfRuntimeError('strslice length out of range')
         return ^strslice(%info)^

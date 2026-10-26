@@ -12,14 +12,14 @@
  */
 
 func DynStrRuntimeError(emsg : ^char) ..
-func DynStrSetTextInfo(rti : refout SDqTextInfo, dataptr : ^char, charlen : uint32) ..
+func DynStrSetTextInfo(rti : refout SDqRoStrInfo, dataptr : ^char, charlen : uint32) ..
 func DynStrCheckIndex(index : int, length : uint32) ..
 func DynStrCharToByte(ch : char) -> char ..
 
 func TextInfoGetLength(ati : ref SDqTextInfo) -> uint32 ..
-func TextInfoPChar(ati : ref SDqTextInfo) -> ^char ..
-func TextInfoGetChar(ati : ref SDqTextInfo, index : int) -> char ..
-func TextInfoGetView(ati : ref SDqTextInfo, rti : refout SDqTextInfo, startpos : int, endposex : int) ..
-func TextInfoEqual(a : ref SDqTextInfo, b : ref SDqTextInfo) -> bool ..
+func TextInfoPChar(ati : ref SDqRoStrInfo) -> ^char ..
+func TextInfoGetChar(ati : ref SDqRoStrInfo, index : int) -> char ..
+func TextInfoGetView(ati : ref SDqRoStrInfo, rti : refout SDqRoStrInfo, startpos : int, endposex : int) ..
+func TextInfoEqual(a : ref SDqRoStrInfo, b : ref SDqRoStrInfo) -> bool ..
 
 func RoStrGetLength(text : ref SDqRoStrInfo) -> uint32 ..

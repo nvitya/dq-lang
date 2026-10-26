@@ -35,9 +35,35 @@ static LlType * LlEmbStrLenType()
   return LlType::getInt32Ty(ll_ctx);
 }
 
-static LlType * LlEmbStrDescType()
+LlType * OTypeEmbStr::GetDescriptorLlType()
 {
-  return g_builtins->type_strslice->GetLlType();
+  vector<LlType *> fields = {
+    LlPtrType(),
+    LlEmbStrLenType(),
+    LlEmbStrLenType()
+  };
+  return llvm::StructType::get(ll_ctx, fields);
+}
+
+LlDiType * OTypeEmbStr::GetDescriptorDiType()
+{
+  LlDiType * ptr_di = di_builder->createPointerType(
+      di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char),
+      TARGET_PTRSIZE * 8);
+  LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
+  LlDiType * len_di = di_builder->createBasicType("int32", 32, llvm::dwarf::DW_ATE_signed);
+  llvm::Metadata * elements[] = {
+    di_builder->createMemberType(nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
+        0, llvm::DINode::FlagZero, ptr_di),
+    di_builder->createMemberType(nullptr, "charlen", nullptr, 0, 32, 0,
+        TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, len_di),
+    di_builder->createMemberType(nullptr, "info", nullptr, 0, 32, 0,
+        TARGET_PTRSIZE * 8 + 32, llvm::DINode::FlagZero, u32_di)
+  };
+  return di_builder->createStructType(
+      nullptr, "SDqTextInfo", nullptr, 0, (TARGET_PTRSIZE + 8) * 8, 0,
+      llvm::DINode::FlagZero, nullptr,
+      di_builder->getOrCreateArray(elements));
 }
 
 
@@ -124,7 +150,7 @@ LlDiType * OTypeEmbStr::CreateDiType()
   else
   {
     return di_builder->createPointerType(
-        g_builtins->type_strslice->GetDiType(), TARGET_PTRSIZE * 8);
+        GetDescriptorDiType(), TARGET_PTRSIZE * 8);
   }
 }
 
@@ -164,7 +190,7 @@ LlValue * OTypeEmbStr::GenerateDataPtr(OScope * scope, LlValue * embstraddr)
   }
 
   LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
-  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.ptr.addr");
+  LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(GetDescriptorLlType(), descaddr, 0, "embstr.ptr.addr");
   return ll_builder.CreateLoad(LlPtrType(), ll_ptr_addr, "embstr.ptr");
 }
 
@@ -181,9 +207,9 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
     return cache_it->second;
   }
 
-  LlValue * descaddr = CreateEntryBlockAlloca(LlEmbStrDescType(), nullptr, "embstr.desc.tmp");
+  LlValue * descaddr = CreateEntryBlockAlloca(GetDescriptorLlType(), nullptr, "embstr.desc.tmp");
   LlValue * dataptr = GenerateDataPtr(scope, embstraddr);
-  LlType * desctype = LlEmbStrDescType();
+  LlType * desctype = GetDescriptorLlType();
   LlValue * ptraddr = ll_builder.CreateStructGEP(desctype, descaddr, 0, "embstr.desc.ptr.addr");
   LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "embstr.desc.len.addr");
   LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "embstr.desc.info.addr");
@@ -196,7 +222,7 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
 
 LlValue * OTypeEmbStr::GenerateCapturedAddress(LlValue * descaddr)
 {
-  LlValue * ptraddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.capture.ptr.addr");
+  LlValue * ptraddr = ll_builder.CreateStructGEP(GetDescriptorLlType(), descaddr, 0, "embstr.capture.ptr.addr");
   LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.capture.ptr");
   // Captures must share the owner's cached length as well as its character buffer.
   descriptor_caches[dataptr] = descaddr;
@@ -206,26 +232,24 @@ LlValue * OTypeEmbStr::GenerateCapturedAddress(LlValue * descaddr)
 void OTypeEmbStr::ResetDescriptorLength(OScope * scope, LlValue * embstraddr)
 {
   LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
-  LlValue * lenaddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 1, "embstr.len.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(GetDescriptorLlType(), descaddr, 1, "embstr.len.addr");
   ll_builder.CreateStore(llvm::ConstantInt::getSigned(LlEmbStrLenType(), DQTI_CHARLEN_INVALID), lenaddr);
 }
 
-static LlValue * EmbStrSourceDescriptor(OScope * scope, OExpr * srcexpr)
+LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, OExpr * srcexpr)
 {
-  auto * srctype = dynamic_cast<OTypeEmbStr *>(srcexpr->ResolvedType());
-  if (!srctype)
+  if (maxlen == 0)
   {
-    return nullptr;
+    return srcexpr->Generate(scope);
   }
-
   if (auto * srclval = dynamic_cast<OLValueExpr *>(srcexpr))
   {
-    return srctype->GenerateDescriptor(scope, srclval->GenerateAddress(scope));
+    return GenerateDescriptor(scope, srclval->GenerateAddress(scope));
   }
 
-  LlValue * tmp = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "embstr.src.tmp");
+  LlValue * tmp = CreateEntryBlockAlloca(GetLlType(), nullptr, "embstr.src.tmp");
   ll_builder.CreateStore(srcexpr->Generate(scope), tmp);
-  return srctype->GenerateDescriptor(scope, tmp);
+  return GenerateDescriptor(scope, tmp);
 }
 
 LlValue * OTypeEmbStr::GenerateMetaField(OScope * scope, LlValue * embstraddr, EEmbStrMetaField field)
@@ -306,8 +330,8 @@ static void GetEmbStrCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrc
   }
 
   LlValue * descaddr = srcexpr->Generate(scope);
-  LlValue * ptraddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 0, "embstr.src.ptr.addr");
-  LlValue * lenaddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 1, "embstr.src.len.addr");
+  LlValue * ptraddr = ll_builder.CreateStructGEP(OTypeEmbStr::GetDescriptorLlType(), descaddr, 0, "embstr.src.ptr.addr");
+  LlValue * lenaddr = ll_builder.CreateStructGEP(OTypeEmbStr::GetDescriptorLlType(), descaddr, 1, "embstr.src.len.addr");
   rsrcptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.src.ptr");
   rsrclimit = ToNativeInt(ll_builder.CreateLoad(LlEmbStrLenType(), lenaddr, "embstr.src.size"));
 }
@@ -526,10 +550,10 @@ LlConst * OValueEmbStr::CreateLlConst()
     };
     auto * desc_gv = new llvm::GlobalVariable(
         *ll_module,
-        LlEmbStrDescType(),
+        OTypeEmbStr::GetDescriptorLlType(),
         true,
         llvm::GlobalValue::PrivateLinkage,
-        llvm::ConstantStruct::get(static_cast<llvm::StructType *>(LlEmbStrDescType()), fields),
+        llvm::ConstantStruct::get(static_cast<llvm::StructType *>(OTypeEmbStr::GetDescriptorLlType()), fields),
         ".embstr.desc.const");
     desc_gv->setAlignment(llvm::Align(TARGET_PTRSIZE));
     return desc_gv;

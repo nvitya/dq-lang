@@ -705,7 +705,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
       // Unsized embstr aliases point at their shared descriptor.
       LlValue * descaddr = embstrtype->GenerateDescriptor(scope, baseaddr);
       LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(
-          g_builtins->type_strslice->GetLlType(), descaddr, 0, "embstr.ptr.addr");
+          OTypeEmbStr::GetDescriptorLlType(), descaddr, 0, "embstr.ptr.addr");
       LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "embstr.ptr");
       return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_ptr, {ll_index}, "embstr.elem");
     }
@@ -3716,7 +3716,7 @@ LlValue * OEmbStrLitToDescExpr::Generate(OScope * scope)
   int32_t charlen = (litlen ? int32_t(litlen - 1) : DQTI_CHARLEN_INVALID);
   uint32_t info = (litlen ? charlen : DQTI_MAXCHLEN_MASK);
 
-  LlType * desc_type = g_builtins->type_strslice->GetLlType();
+  LlType * desc_type = OTypeEmbStr::GetDescriptorLlType();
   LlValue * descaddr = CreateEntryBlockAlloca(desc_type, nullptr, "strlit.desc");
   LlValue * ll_desc = llvm::UndefValue::get(desc_type);
   ll_desc = ll_builder.CreateInsertValue(ll_desc, ll_ptr, 0, "strlit.desc.ptr");

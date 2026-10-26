@@ -119,8 +119,8 @@ func EmbStrAssignPtr(desc : ref SDqTextInfo, src : ^char):
     EmbStrSetLenAndTerm(desc, copied)
 endfunc
 
-func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
-    var srclen : uint = EmbStrLen(src)
+func EmbStrAssignDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo):
+    var srclen : uint = src.charlen
     var maxlen : uint = EmbStrMaxLen(desc)
     if srclen > maxlen:
         srclen = maxlen
@@ -144,7 +144,7 @@ func EmbStrAppendPtr(desc : ref SDqTextInfo, src : ^char):
     EmbStrSetLenAndTerm(desc, clen)
 endfunc
 
-func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+func EmbStrAppendDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo):
     EmbStrInsertDesc(desc, EmbStrLen(desc), src)
 endfunc
 
@@ -165,7 +165,7 @@ func EmbStrPrependPtr(desc : ref SDqTextInfo, src : ^char):
     EmbStrInsertPtr(desc, 0, src)
 endfunc
 
-func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqTextInfo):
+func EmbStrPrependDesc(desc : ref SDqTextInfo, src : ref SDqRoStrInfo):
     EmbStrInsertDesc(desc, 0, src)
 endfunc
 
@@ -218,11 +218,11 @@ func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char):
     EmbStrSetLenAndTerm(desc, newlen)
 endfunc
 
-func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqTextInfo):
+func EmbStrInsertDesc(desc : ref SDqTextInfo, index : int, src : ref SDqRoStrInfo):
     var oldlen : uint = EmbStrLen(desc)
     var pos : uint = EmbStrClampIndex(index, oldlen)
     var maxlen : uint = EmbStrMaxLen(desc)
-    var addlen : uint = EmbStrLen(src)
+    var addlen : uint = src.charlen
     if addlen > maxlen - pos:
         addlen = maxlen - pos
     endif

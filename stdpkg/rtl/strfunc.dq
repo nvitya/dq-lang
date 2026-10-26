@@ -274,7 +274,8 @@ func StrSlice(data : ^char, length : int) -> strslice:
         StrfRuntimeError('strslice nil data')
         return ^strslice(%info)^
     endif
-    DynStrSetTextInfo(info, data, uint32(length))
+    info.dataptr = data
+    info.charlen = length
     return ^strslice(%info)^
 endfunc
 

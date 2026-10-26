@@ -63,9 +63,11 @@ func TextInfoGetView(ati : ref SDqRoStrInfo, rti : refout SDqRoStrInfo, startpos
 
     var viewlen : uint32 = e - b
     if viewlen == 0  or  ati.dataptr == nil:
-        DynStrSetTextInfo(rti, nil, 0)
+        rti.dataptr = nil
+        rti.charlen = 0
     else:
-        DynStrSetTextInfo(rti, ati.dataptr[b], viewlen)
+        rti.dataptr = ati.dataptr[b]
+        rti.charlen = viewlen
     endif
 endfunc
 
@@ -89,11 +91,6 @@ func TextInfoEqual(a : ref SDqRoStrInfo, b : ref SDqRoStrInfo) -> bool:
         ++i
     endwhile
     return true
-endfunc
-
-func DynStrSetTextInfo(rti : refout SDqRoStrInfo, dataptr : ^char, charlen : uint32):
-    rti.dataptr = dataptr
-    rti.charlen = charlen
 endfunc
 
 func DynStrCheckIndex(index : int, length : uint32):

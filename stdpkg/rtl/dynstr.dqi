@@ -645,15 +645,18 @@ endfunc
 
 func DynStrGetFullView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo):
     if astr == nil:
-        DynStrSetTextInfo(rti, nil, 0)
+        rti.dataptr = nil
+        rti.charlen = 0
     else:
-        DynStrSetTextInfo(rti, astr.dataptr, astr.length)
+        rti.dataptr = astr.dataptr
+        rti.charlen = astr.length
     endif
 endfunc
 
 func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo, startpos : int, endposex : int):
     if astr == nil:
-        DynStrSetTextInfo(rti, nil, 0)
+        rti.dataptr = nil
+        rti.charlen = 0
         return
     endif
 
@@ -678,9 +681,11 @@ func DynStrGetView(astr : ref ODynStrMgr, rti : refout SDqRoStrInfo, startpos : 
 
     var viewlen : uint32 = e - b
     if viewlen == 0:
-        DynStrSetTextInfo(rti, nil, 0)
+        rti.dataptr = nil
+        rti.charlen = 0
     else:
-        DynStrSetTextInfo(rti, astr.dataptr[b], viewlen)
+        rti.dataptr = astr.dataptr[b]
+        rti.charlen = viewlen
     endif
 endfunc
 

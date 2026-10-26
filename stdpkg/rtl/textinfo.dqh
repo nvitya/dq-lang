@@ -12,7 +12,6 @@
  */
 
 func DynStrRuntimeError(emsg : ^char) ..
-func DynStrSetTextInfo(rti : refout SDqRoStrInfo, dataptr : ^char, charlen : uint32) ..
 func DynStrCheckIndex(index : int, length : uint32) ..
 func DynStrCharToByte(ch : char) -> char ..
 

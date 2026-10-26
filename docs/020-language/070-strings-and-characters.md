@@ -43,12 +43,16 @@ grows. It does not change the string's length or contents.
 
 | Type | Meaning |
 | --- | --- |
-| `char` | unsigned 8-bit byte or UTF-8 code unit |
-| `char16` | unsigned 16-bit UTF-16 code unit |
+| `char` | unsigned 8-bit byte: one ASCII character, one character from a single-byte code page, or one UTF-8 code unit (one Unicode character uses 1...4 UTF-8 code units) |
+| `char16` | unsigned 16-bit UTF-16 code unit (one Unicode character uses 1...2 UTF-16 code units)<br>Recommended to use only for Windows API compatibility |
 | `wchar` | unsigned 32-bit Unicode scalar value |
 
-These are distinct types, not integer aliases. `Ord` converts a character to an
+`char`, `char16`, `wchar` are distinct types, not integer aliases. `Ord` converts a character to an
 integer; explicit or checked conversion creates a character from an integer.
+
+A **code unit** is one storage element of a text encoding. For example, `😀`
+uses four `char` bytes in UTF-8 or two `char16` values in UTF-16, but its
+character value fits in one `wchar`.
 
 A character literal can initialize any character type whose range includes its
 value. Character variables do not implicitly convert to integers or to other
@@ -99,12 +103,12 @@ var surrogate : wchar = wchar(0xD800)  // error: a surrogate is not a Unicode sc
 
 | Type | Ownership and representation |
 | --- | --- |
-| `str` | owned, dynamic, reference-counted copy-on-write byte string |
-| `rostr` | read-only borrowed, zero-terminated byte string |
-| `strslice` | read-only borrowed view of text bytes; termination is not guaranteed |
-| `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage |
-| `embstr` | unsized borrowed reference to a shared Embedded String descriptor. Typically used at function arguments. |
-| `^char` | C string = raw pointer to text byte storage with expected zero-termination |
+| `str` | Dynamic, heap-allocated, reference-counted copy-on-write byte string.<br>May contain internal zeroes and is not necessarily valid UTF-8.<br>Managed type, cannot be a `struct` field.<br>Length is always stored.  |
+| `rostr` | Read-only borrowed, zero-terminated byte string.<br>Zero-byte scan might be required for length calculation. |
+| `strslice` | Read-only borrowed view of text bytes. Zero-termination is not guaranteed.<br>Carries a length; borrowing raw or embedded storage can defer its calculation. |
+| `embstr(N)` | Embedded String: fixed-capacity, mutable, zero-terminated byte storage.<br>Zero-byte scan might be required for length calculation. |
+| `embstr` | Unsized borrowed reference to a shared Embedded String descriptor. Typically used for function arguments.<br>Zero-byte scan might be required for length calculation. |
+| `^char` | C string = raw pointer to text byte storage with expected zero-termination. |
 
 `str` stores bytes and always has a hidden trailing zero. `.length`, indexing,
 slicing, and capacity count bytes; the terminator is not included. A `str` may
@@ -113,6 +117,98 @@ contain internal zeroes and is not necessarily valid UTF-8.
 On targets built with dynamic strings disabled, `str` and operations that
 produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
 available for text processing with borrowed or fixed storage.
+
+### Choosing Storage
+
+The different string types let code control heap allocation, copying, and length
+calculation. Use `str` for owned text that needs to grow. It is a **managed type**:
+DQ maintains reference counts when values are copied or released and frees the
+heap storage when it is no longer used. A `struct` cannot contain managed fields,
+so it cannot contain a `str`.
+
+For text owned by a structure, use `embstr(N)`. Its bytes are stored directly
+inside the structure, with no heap allocation or reference counting. Copying the
+structure copies those bytes too:
+
+```dq
+struct SPerson:
+    name : embstr(32)  // 31 text bytes plus the terminating zero
+endstruct
+
+var person : SPerson = {}
+person.name = "Ada"
+var copy : SPerson = person
+copy.name = "Grace"    // person.name remains "Ada"
+```
+
+The following declaration is rejected:
+
+```dq
+struct SBadPerson:
+    name : str        // error: managed struct member
+endstruct
+```
+
+Use `rostr` or `strslice` to pass text for reading without copying its bytes or
+retaining its storage. Prefer `rostr` when zero-termination is required and
+`strslice` for byte ranges with explicit bounds. Both can also be structure
+fields, but the owner of their text must outlive the structure. Use an unsized
+`embstr` parameter to modify an existing fixed buffer through its shared
+descriptor. Use `^char` for raw C interfaces; the pointer carries no length or
+ownership information.
+
+See [Structures and Unions](100-structures-and-unions.md#structures) for structure
+storage and [Memory Management and Ownership](130-memory-management-and-ownership.md)
+for managed values and borrowed lifetimes.
+
+### Length Calculation and Zero-Byte Scanning
+
+A zero-byte scan reads successive bytes until the terminating zero is found.
+Its cost grows with the text length. Keeping or supplying a known byte length
+avoids this work:
+
+- `str` stores its current length and updates it during mutation, so `.length`
+  does not scan the text.
+- `rostr` carries a pointer and either a known length or an indication that the
+  length is unknown. Borrowing a literal or a `str` preserves its known length.
+  Borrowing a raw `^char` does not scan immediately; the first operation needing
+  the length, such as `.length`, scans and caches it in that `rostr` descriptor.
+- `strslice` can carry a known length, as with a byte slice or
+  `StrSlice(data, length)`. Such a view needs no zero-byte scan. Directly borrowing
+  raw or embedded storage can leave the length unknown until an operation needs
+  it; that operation scans and caches the result in the view's descriptor.
+- `embstr(N)` stores its bytes inline, without a length field in that storage.
+  Its working descriptor caches the length when available; otherwise `.length`
+  scans within the fixed capacity. An unsized `embstr` shares that descriptor,
+  including its cached length. Obtaining writable access, such as `.pchar`, can
+  invalidate the cache so a later operation must scan again.
+- `^char` carries only a pointer. Converting it to a borrowed string cannot
+  recover a known length from the pointer alone. If the length is already known,
+  use `StrSlice(data, length)` to pass it explicitly.
+
+For example, passing a literal to a `rostr` parameter does not cause a scan:
+
+```dq
+use print
+
+func GetLength(astr : rostr) -> int:
+    result = astr.length
+endfunc
+
+func *Main():
+    PrintLn("literal length = {}", [GetLength("asdfg")]) // known length: no scan
+    var raw : ^char = "asdfg"
+    PrintLn("pointer length = {}", [GetLength(raw)])     // scans at astr.length
+endfunc
+```
+
+Both calls return `5`. The literal's length is passed with its pointer, while
+the raw pointer has lost that length information. A `rostr` parameter receives
+a copy of the descriptor: a scan inside `GetLength()` caches the length only in
+that local copy. Repeated calls with the same raw pointer can therefore scan
+again. To reuse a computed length across calls, keep a `rostr` variable, read its
+`.length` once, and then pass that variable, or keep a view with an explicit length.
+Borrowed storage must remain alive and stable while these descriptors are used.
 
 ## Literals
 

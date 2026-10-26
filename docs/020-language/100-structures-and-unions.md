@@ -44,6 +44,11 @@ Structure assignment copies the value. `{}` default-initializes all fields.
 Structures may define methods and may inherit from a base structure, but do not
 have object identity or virtual dispatch.
 
+Structures cannot contain managed fields such as `str` or dynamic arrays. For
+text owned by a structure, use `embstr(N)` to store a fixed buffer inline.
+Borrowed `rostr` and `strslice` fields are allowed, but do not keep their text
+alive. See [Choosing Storage](070-strings-and-characters.md#choosing-storage).
+
 ### Structure initializer literals
 
 A brace literal obtains its structure type from its context. Entries may be

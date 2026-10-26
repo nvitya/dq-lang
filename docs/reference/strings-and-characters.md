@@ -97,9 +97,11 @@ it cannot become an unsized writable `embstr` alias.
 A `strslice` converts to owned `str` or fixed-capacity `embstr(N)`, copying its
 byte range into the destination and truncating only when the destination lacks capacity.
 
-The descriptor matches `SDqRoStrInfo`: a pointer and a `uint32` byte length,
-with bit 31 marking an unknown length. Its naturally aligned storage is 8 bytes
-on 32-bit targets and 16 bytes on 64-bit targets. Converting a `^char` builds
+The descriptor matches `SDqRoStrInfo`: a pointer and an `int32` byte length.
+Nonnegative lengths are cached byte counts; negative values mean unknown length
+(the compiler uses `-1`). The largest cached length is 2147483647 bytes.
+Its naturally aligned storage is 8 bytes on 32-bit targets and 16 bytes on
+64-bit targets. Converting a `^char` builds
 this descriptor without scanning or allocating; the first length-dependent
 operation scans and caches the length. Default values and nil-derived values
 expose a non-null pointer to a static zero byte, representing an empty string.
@@ -191,6 +193,12 @@ An unsized `embstr` borrows existing bounded C-string storage through a shared
 descriptor. Assigning or passing it preserves that descriptor reference, so
 length updates made through one alias are visible to the others. Its lifetime
 and writability come from the source.
+
+The shared `SDqTextInfo` descriptor stores a pointer, an `int32` cached byte
+length, and unsigned `info` metadata. As with `SDqRoStrInfo`, a negative
+`charlen` means unknown length; length-dependent operations scan up to the
+capacity in `info` and cache the result. `strslice` uses the same descriptor
+layout, with known lengths preserving the full byte range.
 
 ## Raw C String Pointers
 

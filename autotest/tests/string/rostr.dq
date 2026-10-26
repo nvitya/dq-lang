@@ -32,13 +32,13 @@ func *Main():
     var raw : ^char = "pointer"
     var text : rostr = raw
     var desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%text)
-    printf("lazy = %u\n", desc.charlen) //?check("lazy", 2147483648)
+    printf("lazy = %i\n", desc.charlen) //?check("lazy", -1)
     var forwarded : rostr = Forward(text)
     var forward_desc : ^SDqRoStrInfo = ^SDqRoStrInfo(%forwarded)
-    printf("forward_lazy = %u\n", forward_desc.charlen) //?check("forward_lazy", 2147483648)
+    printf("forward_lazy = %i\n", forward_desc.charlen) //?check("forward_lazy", -1)
     printf("ptr_identity = %i\n", text.pchar == raw) //?check("ptr_identity", 1)
     printf("length = %li\n", text.length) //?check("length", 7)
-    printf("cached = %u\n", desc.charlen) //?check("cached", 7)
+    printf("cached = %i\n", desc.charlen) //?check("cached", 7)
     printf("c_length = %lu\n", strlen(text)) //?check("c_length", 7)
     printf("varargs = %s:%i:%s\n", text, 42, GREETING) //?check("varargs", "pointer:42:hello")
     var indirect : FPrint = printf

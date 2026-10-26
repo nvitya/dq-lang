@@ -1,0 +1,42 @@
+use libc/stdio
+use rtl/rtlint
+use rtl/strfunc
+
+func *Main():
+    var bounded : SDqTextInfo = {}
+    bounded.dataptr = "abcdef"
+    bounded.info = 3
+    bounded.charlen = DQTI_CHARLEN_INVALID
+    printf("unknown = %i:%i\n", bounded.charlen, bounded.charlen < 0) //?check("unknown", "-1:1")
+    printf("bounded = %lu\n", EmbStrLen(bounded)) //?check("bounded", 3)
+    printf("bounded_cache = %i\n", bounded.charlen) //?check("bounded_cache", 3)
+
+    bounded.charlen = -7
+    printf("text = %u\n", TextInfoGetLength(bounded)) //?check("text", 3)
+    printf("text_cache = %i\n", bounded.charlen) //?check("text_cache", 3)
+    bounded.charlen = -2147483648
+    printf("minimum = %u\n", TextInfoGetLength(bounded)) //?check("minimum", 3)
+
+    var terminated : SDqRoStrInfo = {}
+    terminated.dataptr = bounded.dataptr
+    terminated.charlen = -7
+    printf("terminated = %u\n", RoStrGetLength(terminated)) //?check("terminated", 6)
+    printf("terminated_cache = %i\n", terminated.charlen) //?check("terminated_cache", 6)
+    terminated.charlen = -2147483648
+    printf("terminated_minimum = %u\n", RoStrGetLength(terminated)) //?check("terminated_minimum", 6)
+
+    // Valid cached lengths must not scan or truncate to the bounded scan limit.
+    bounded.charlen = 2147483647
+    terminated.charlen = bounded.charlen
+    printf("maximum = %lu:%u:%u\n", EmbStrLen(bounded), TextInfoGetLength(bounded), RoStrGetLength(terminated)) //?check("maximum", "2147483647:2147483647:2147483647")
+    bounded.charlen = 0
+    terminated.charlen = 0
+    printf("zero = %u:%u\n", TextInfoGetLength(bounded), RoStrGetLength(terminated)) //?check("zero", "0:0")
+
+    bounded.dataptr = nil
+    terminated.dataptr = nil
+    bounded.charlen = -7
+    terminated.charlen = -7
+    printf("nil = %u:%u\n", TextInfoGetLength(bounded), RoStrGetLength(terminated)) //?check("nil", "0:0")
+    printf("nil_cache = %i:%i\n", bounded.charlen, terminated.charlen) //?check("nil_cache", "0:0")
+endfunc

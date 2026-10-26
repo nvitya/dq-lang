@@ -48,7 +48,7 @@ enum ETypeKind
   TK_AUTOFREE     = 32,
 };
 
-// SDqTextInfo and SDqRoStrInfo charlen and info bits.
+// SDqTextInfo and SDqRoStrInfo unknown length sentinel and info bits.
 inline constexpr uint32_t DQTI_MAXCHLEN_MASK     = 0x00FFFFFF;
-inline constexpr uint32_t DQTIF_CHARLEN_INVALID  = 0x80000000;
+inline constexpr int32_t DQTI_CHARLEN_INVALID    = -1;
 inline constexpr uint32_t DQTIF_READONLY         = 0x02000000;

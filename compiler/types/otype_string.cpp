@@ -219,11 +219,11 @@ static LlValue * TextInfoAlloca()
   return CreateEntryBlockAlloca(g_builtins->type_strslice->GetLlType(), nullptr, "text.desc");
 }
 
-static LlValue * TextInfoValue(LlValue * ptr, uint32_t charlen, uint32_t info)
+static LlValue * TextInfoValue(LlValue * ptr, int32_t charlen, uint32_t info)
 {
   LlValue * desc = llvm::UndefValue::get(g_builtins->type_strslice->GetLlType());
   desc = ll_builder.CreateInsertValue(desc, ptr, 0, "text.desc.ptr");
-  desc = ll_builder.CreateInsertValue(desc, LlU32(charlen), 1, "text.desc.len");
+  desc = ll_builder.CreateInsertValue(desc, LlI32(charlen), 1, "text.desc.len");
   desc = ll_builder.CreateInsertValue(desc, LlU32(info), 2, "text.desc.info");
   return desc;
 }
@@ -239,11 +239,11 @@ static LlValue * GeneratePointerTextInfo(OScope * scope, OExpr * expr)
 {
   (void)scope;
   LlValue * ptr = expr->Generate(scope);
-  uint32_t charlen = DQTIF_CHARLEN_INVALID;
+  int32_t charlen = DQTI_CHARLEN_INVALID;
   uint32_t info = DQTI_MAXCHLEN_MASK;
   if (auto * lit = dynamic_cast<OEmbStrLit *>(expr))
   {
-    charlen = uint32_t(lit->value.size());
+    charlen = int32_t(lit->value.size());
     info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
   }
   return TextInfoValue(ptr, charlen, info);
@@ -309,11 +309,12 @@ LlDiType * OTypeStrSlice::CreateDiType()
       di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char),
       TARGET_PTRSIZE * 8);
   LlDiType * u32_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
+  LlDiType * len_di = di_builder->createBasicType("int32", 32, llvm::dwarf::DW_ATE_signed);
   llvm::Metadata * elements[] = {
     di_builder->createMemberType(nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8, 0,
         0, llvm::DINode::FlagZero, ptr_di),
     di_builder->createMemberType(nullptr, "charlen", nullptr, 0, 32, 0,
-        TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, u32_di),
+        TARGET_PTRSIZE * 8, llvm::DINode::FlagZero, len_di),
     di_builder->createMemberType(nullptr, "info", nullptr, 0, 32, 0,
         TARGET_PTRSIZE * 8 + 32, llvm::DINode::FlagZero, u32_di)
   };
@@ -1131,7 +1132,7 @@ LlDiType * OTypeRoStr::CreateDiType()
 {
   LlDiType * ptr_di = di_builder->createPointerType(
       di_builder->createBasicType("char", 8, llvm::dwarf::DW_ATE_unsigned_char), TARGET_PTRSIZE * 8);
-  LlDiType * len_di = di_builder->createBasicType("uint32", 32, llvm::dwarf::DW_ATE_unsigned);
+  LlDiType * len_di = di_builder->createBasicType("int32", 32, llvm::dwarf::DW_ATE_signed);
   llvm::Metadata * fields[] = {
     di_builder->createMemberType(nullptr, "dataptr", nullptr, 0, TARGET_PTRSIZE * 8,
         TARGET_PTRSIZE * 8, 0, llvm::DINode::FlagZero, ptr_di),
@@ -1200,16 +1201,15 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source, LlValue ** 
   {
     ptr = source->Generate(scope);
     auto * literal = dynamic_cast<OEmbStrLit *>(source);
-    len = LlU32(literal ? uint32_t(literal->value.size()) : DQTIF_CHARLEN_INVALID);
+    len = LlI32(literal ? int32_t(literal->value.size()) : DQTI_CHARLEN_INVALID);
   }
   else
   {
     LlValue * info = GenerateTextInfoValue(scope, source, temporary_string_address);
     ptr = ll_builder.CreateExtractValue(info, 0);
     LlValue * charlen = ll_builder.CreateExtractValue(info, 1);
-    LlValue * known = ll_builder.CreateICmpEQ(
-        ll_builder.CreateAnd(charlen, LlU32(DQTIF_CHARLEN_INVALID)), LlU32(0));
-    len = ll_builder.CreateSelect(known, charlen, LlU32(DQTIF_CHARLEN_INVALID));
+    LlValue * known = ll_builder.CreateICmpSGE(charlen, LlI32(0));
+    len = ll_builder.CreateSelect(known, charlen, LlI32(DQTI_CHARLEN_INVALID));
   }
   LlValue * value = llvm::UndefValue::get(GetLlType());
   value = ll_builder.CreateInsertValue(value, ptr, 0);

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.0"
+#define DQ_COMPILER_VERSION  "0.94.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.1:
+  - SDqTextInfo.charlen changed to int32, where negative means unknown length
 v0.94.0:
   - Previous `struitls` contents moved to `sys` (Format(), IntToStr(), StrUpper() etc.)
 v0.93.18:

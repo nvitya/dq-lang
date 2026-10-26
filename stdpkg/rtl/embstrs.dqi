@@ -46,7 +46,7 @@ func EmbStrScanLen(desc : ref SDqTextInfo) -> uint:
 endfunc
 
 func EmbStrLen(desc : ref SDqTextInfo) -> uint:
-    if desc.charlen & DQTIF_CHARLEN_INVALID == 0:
+    if desc.charlen >= 0:
         return desc.charlen
     endif
 

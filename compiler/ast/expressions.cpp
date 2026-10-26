@@ -3713,7 +3713,7 @@ void OEmbStrLValueToDescExpr::DeleteChildTree()
 LlValue * OEmbStrLitToDescExpr::Generate(OScope * scope)
 {
   LlValue * ll_ptr = litexpr->Generate(scope);
-  uint32_t charlen = (litlen ? litlen - 1 : DQTIF_CHARLEN_INVALID);
+  int32_t charlen = (litlen ? int32_t(litlen - 1) : DQTI_CHARLEN_INVALID);
   uint32_t info = (litlen ? charlen : DQTI_MAXCHLEN_MASK);
 
   LlType * desc_type = g_builtins->type_strslice->GetLlType();

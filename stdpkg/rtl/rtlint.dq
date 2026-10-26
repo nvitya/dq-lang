@@ -62,20 +62,18 @@ struct SArraySliceDesc:
 endstruct
 
 const DQTI_MAXCHLEN_MASK     : uint32 = 0x00FFFFFF
-const DQTIF_CHARLEN_INVALID  : uint32 = 0x80000000
+const DQTI_CHARLEN_INVALID   : int32 = -1
 const DQTIF_READONLY         : uint32 = 0x02000000
 
 struct SDqTextInfo:   // 12 or 16 Bytes
     dataptr : ^char    // points to the first character
-    charlen : uint32   // number of chars / bytes
-                       // invalid when bit31 is set!
+    charlen : int32    // number of chars / bytes; negative means unknown
     info    : uint32   // bits[23:0]: maxlen, bits[31:24]: flags
 endstruct
 
 struct SDqRoStrInfo:   // 8 or 16 Bytes (natural alignment, including tail padding)
     dataptr : ^char    // points to the first character
-    charlen : uint32   // number of chars (without terminating zero)
-                       // invalid when bit31 is set!
+    charlen : int32    // number of chars (without terminating zero); negative means unknown
 endstruct
 
 

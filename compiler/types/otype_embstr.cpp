@@ -188,7 +188,7 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
   LlValue * lenaddr = ll_builder.CreateStructGEP(desctype, descaddr, 1, "embstr.desc.len.addr");
   LlValue * infoaddr = ll_builder.CreateStructGEP(desctype, descaddr, 2, "embstr.desc.info.addr");
   ll_builder.CreateStore(dataptr, ptraddr);
-  ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
+  ll_builder.CreateStore(llvm::ConstantInt::getSigned(LlEmbStrLenType(), DQTI_CHARLEN_INVALID), lenaddr);
   ll_builder.CreateStore(LlU32((maxlen - 1) & DQTI_MAXCHLEN_MASK), infoaddr);
   descriptor_caches[embstraddr] = descaddr;
   return descaddr;
@@ -207,7 +207,7 @@ void OTypeEmbStr::ResetDescriptorLength(OScope * scope, LlValue * embstraddr)
 {
   LlValue * descaddr = GenerateDescriptor(scope, embstraddr);
   LlValue * lenaddr = ll_builder.CreateStructGEP(LlEmbStrDescType(), descaddr, 1, "embstr.len.addr");
-  ll_builder.CreateStore(LlU32(DQTIF_CHARLEN_INVALID), lenaddr);
+  ll_builder.CreateStore(llvm::ConstantInt::getSigned(LlEmbStrLenType(), DQTI_CHARLEN_INVALID), lenaddr);
 }
 
 static LlValue * EmbStrSourceDescriptor(OScope * scope, OExpr * srcexpr)
@@ -517,7 +517,7 @@ LlConst * OValueEmbStr::CreateLlConst()
         ".embstr.const");
     str_gv->setAlignment(llvm::Align(1));
 
-    uint32_t charlen = uint32_t(value.size());
+    int32_t charlen = int32_t(value.size());
     uint32_t info = (charlen & DQTI_MAXCHLEN_MASK) | DQTIF_READONLY;
     vector<llvm::Constant *> fields = {
       llvm::ConstantExpr::getBitCast(str_gv, LlPtrType()),

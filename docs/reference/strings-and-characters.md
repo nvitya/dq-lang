@@ -33,6 +33,12 @@ On targets built with dynamic strings disabled, `str` and operations that
 produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
 available for non-owning or bounded text processing.
 
+The standalone helpers `Format`, `StrToInt`, `StrToFloat`, `StrUpper`, and
+`StrLower` belong to `rtl/strfunc` and are reexported by implicit `sys`; ordinary
+modules need no `use` declaration. `Format`, `StrUpper`, and `StrLower` require
+dynamic strings. The empty `strutils` module is retained for compatibility with
+existing imports. See [Standalone Helpers](../rtl/strings.md#standalone-helpers).
+
 ## Literals
 
 Double quotes always represent text. A single-quoted literal containing exactly

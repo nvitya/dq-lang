@@ -1,0 +1,15 @@
+// Existing imports and qualified calls keep working with the empty module.
+
+use strutils
+use libc/stdio
+
+func *Main():
+    var formatted : str = @strutils.Format("{}:{}", ["value", 42])
+    printf("format = %s\n", formatted.pchar) //?check("format", "value:42")
+    printf("integer = %li\n", @strutils.StrToInt("42")) //?check("integer", 42)
+    printf("float = %.2f\n", @strutils.StrToFloat("1.25", 0)) //?check("float", 1.25)
+    var upper : str = @strutils.StrUpper("aZ")
+    var lower : str = @strutils.StrLower("aZ")
+    printf("upper = %s\n", upper.pchar) //?check("upper", "AZ")
+    printf("lower = %s\n", lower.pchar) //?check("lower", "az")
+endfunc

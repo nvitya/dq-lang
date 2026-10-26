@@ -38,8 +38,13 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
 func StrSlice(data : ^char, length : int) -> strslice ..
 func StrSliceCmp(a : strslice, b : strslice) -> int ..
 func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int ..
+func StrToInt(sv : strslice, defvalue : int = 0) -> int ..
+func StrToFloat(sv : strslice, defvalue : float) -> float ..
 
 #ifdef DYNSTRINGS
+func Format(afmt : rostr, aargs : []anyvalue) -> str ..
+func StrUpper(astr : strslice) -> str ..
+func StrLower(astr : strslice) -> str ..
 func StrFromWchars(chars : []wchar) -> str ..
 func StrFromUtf16(chars : []char16) -> str ..
 func StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str ..
@@ -71,6 +76,12 @@ use rtl/exception
 #endif
 //use rtl/embstr
 
+// Bare programs supply math support only if they use StrToFloat.
+#ifndef BARE
+#linklib('m')
+#endif
+func libc_pow(x : float64, y : float64) -> float64 [[external('pow')]] ..
+
 #include "embstrs.dqi"
 
 #include "textinfo.dqi"
@@ -80,6 +91,118 @@ use rtl/exception
 #endif
 
 #include "strmethods.dqi"
+
+#ifdef DYNSTRINGS
+func Format(afmt : rostr, aargs : []anyvalue) -> str:
+    var s : str
+    s.AddFmt(afmt, aargs)
+    return s
+endfunc
+#endif
+
+func StrToInt(sv : strslice, defvalue : int = 0) -> int:
+    if sv.length < 1:
+        return defvalue
+    endif
+
+    result = 0
+    var sign : int = 1
+    for i : int = 0 count sv.length:
+        var c : char = sv[i]
+        if c == '-':
+            sign = -1
+        elif '0' <= c <= '9':
+            result = result * 10 + int(Ord(c) - Ord('0'))
+        else:
+            return defvalue
+        endif
+    endfor
+    result = sign * result  // apply the sign
+endfunc
+
+func StrToFloat(sv : strslice, defvalue : float) -> float:
+    if sv.length < 1:
+        return defvalue
+    endif
+
+    var pc   : ^char = %sv[0]
+    var pend : ^char = pc + sv.length
+
+    var nsign   : float = 1
+    var esign   : float = 1
+    var fracmul : float = 1
+    var nv      : float = 0
+    var ev      : float = 0
+    var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
+
+    while pc < pend:
+        var c : char = char(pc^)
+
+        if c == '+':
+            if mode == 2:
+                esign = 1
+            else:
+                nsign = 1
+            endif
+        elif c == '-':
+            if mode == 2:
+                esign = -1
+            else:
+                nsign = -1
+            endif
+        elif '0' <= c <= '9':
+            var digit : int = Ord(c) - Ord('0')
+            if mode == 1:
+                fracmul *= 0.1
+                nv += digit * fracmul
+            elif mode == 2:
+                ev = ev * 10 + digit
+            else:
+                nv = nv * 10 + digit
+            endif
+        elif c == '.'  or c == ',':
+            mode = 1
+        elif c == 'e'  or c == 'E':
+            mode = 2
+        else:
+            break
+        endif
+
+        ++pc
+    endwhile
+
+    if pc < pend:  // early exit means invalid floating point value
+        return defvalue
+    endif
+
+    return nsign * nv * libc_pow(10, esign * ev)
+endfunc
+
+#ifdef DYNSTRINGS
+func StrUpper(astr : strslice) -> str:
+    result = ''
+    result.Reserve(astr.length)
+    for i : int = 0 count astr.length:
+        var ch : char = astr[i]
+        if 'a' <= ch <= 'z':
+            ch = char(Ord(ch) - Ord('a') + Ord('A'))
+        endif
+        result.Append(ch)
+    endfor
+endfunc
+
+func StrLower(astr : strslice) -> str:
+    result = ''
+    result.Reserve(astr.length)
+    for i : int = 0 count astr.length:
+        var ch : char = astr[i]
+        if 'A' <= ch <= 'Z':
+            ch = char(Ord(ch) - Ord('A') + Ord('a'))
+        endif
+        result.Append(ch)
+    endfor
+endfunc
+#endif
 
 func StrfRuntimeError(emsg : ^char):
 #ifdef EXCEPTIONS

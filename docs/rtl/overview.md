@@ -14,6 +14,7 @@ That module reexports:
 | `rtl/exception` | `Exception`, `raise`, runtime error support, backtraces |
 | `rtl/mem` | raw memory allocation and memory block helpers |
 | `rtl/prgargs` | process argument access |
+| `rtl/strfunc` | string methods, formatting, conversion, and slicing helpers |
 
 It also provides:
 

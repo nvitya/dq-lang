@@ -92,13 +92,15 @@ Standard modules are imported with `use`.
 
 ```dq
 use print
-use strutils
 use file
 use json
 ```
 
 The compiler searches its built-in standard package roots first, then any roots
 added with `--pkg-path`.
+
+Basic string helpers such as `Format`, `StrToInt`, `StrToFloat`, `StrUpper`, and
+`StrLower` are available through the implicit runtime interface without a `use`.
 
 ## Optimization and Debugging
 

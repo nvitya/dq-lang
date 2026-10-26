@@ -1,8 +1,6 @@
 //?notest
 // Heap-free text operations must remain available when dynamic strings are disabled.
 
-use strutils
-
 func TextLength(text : strslice) -> int:
     var slice : strslice = text[0:text.length]
     var first : wchar = slice.wchar[0]
@@ -20,6 +18,10 @@ endfunc
 
 func ParseText() -> int64:
     return StrToInt("42")
+endfunc
+
+func ParseFloat() -> float:
+    return StrToFloat("1.25e2", 0)
 endfunc
 
 func CompareText(a : rostr, b : embstr) -> bool:

@@ -4,7 +4,7 @@ DQ text formatting is used by:
 
 | API | Result |
 | --- | --- |
-| `Format(fmt, args)` from `strutils` | returns a new `str` |
+| `Format(fmt, args)` from the implicit runtime interface | returns a new `str` |
 | `Print(fmt, args)` / `PrintLn(fmt, args)` from `print` | writes to stdout |
 | `str.AddFmt(fmt, args)` | appends formatted text to a dynamic string |
 | `embstr.AddFmt(fmt, args)` | appends formatted text to an Embedded String |
@@ -14,12 +14,14 @@ Formatting arguments are passed as `[]anyvalue`.
 
 ```dq
 use print
-use strutils
 
 PrintLn("{} = {:+08d}", ["answer", 42])
 
 var s : str = Format("hex={:04X}", [255])
 ```
+
+`Format` is provided by `rtl/strfunc`, reexported by implicit `sys`, so it needs
+no `use` declaration. It is available when dynamic strings are enabled.
 
 ## Placeholders
 

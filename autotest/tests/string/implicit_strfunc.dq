@@ -1,0 +1,28 @@
+// All former strutils helpers are available through implicit sys, with no use.
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+func *Main():
+    var formatted : str = Format("{} = {:04X}", ["value", 255])
+    printf("format = %s\n", formatted.pchar) //?check("format", "value = 00FF")
+
+    printf("integers = %li %li %li %li\n",
+        StrToInt("42"), StrToInt("-42"), StrToInt("bad", 7), StrToInt("", 9))
+        //?check("integers", "42 -42 7 9")
+    printf("floats = %.3f %.3f %.3f %.3f %.3f\n",
+        StrToFloat("1.25e2", 0), StrToFloat("-1,25e-1", 0),
+        StrToFloat("bad", 7), StrToFloat("12x", 8), StrToFloat("", 9))
+        //?check("floats", "125.000 -0.125 7.000 8.000 9.000")
+
+    var text : str = "aZ-é!"
+    var upper : str = StrUpper(text)
+    var lower : str = StrLower(text)
+    printf("case = %s %s %s\n", upper.pchar, lower.pchar, text.pchar) //?check("case", "AZ-é! az-é! aZ-é!")
+    var empty_upper : str = StrUpper("")
+    var empty_lower : str = StrLower("")
+    printf("empty = %li %li\n", empty_upper.length, empty_lower.length) //?check("empty", "0 0")
+
+    var slice : strslice = text[0:2]
+    var slice_upper : str = StrUpper(slice)
+    printf("slice = %s\n", slice_upper.pchar) //?check("slice", "AZ")
+endfunc

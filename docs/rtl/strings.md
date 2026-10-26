@@ -40,6 +40,33 @@ and works when dynamic strings are disabled. See [Comparison](../reference/strin
 
 ## Common Operations
 
+### Standalone Helpers
+
+These functions are provided by `rtl/strfunc`, reexported by implicit `sys`.
+No `use` declaration is needed.
+
+```dq
+func Format(afmt : rostr, aargs : []anyvalue) -> str
+func StrToInt(sv : strslice, defvalue : int = 0) -> int
+func StrToFloat(sv : strslice, defvalue : float) -> float
+func StrUpper(astr : strslice) -> str
+func StrLower(astr : strslice) -> str
+```
+
+`Format` returns a new string using the [text formatting](textfmt.md) syntax.
+`StrToInt` parses decimal digits with a minus sign; `StrToFloat` accepts a dot
+or comma decimal separator and an optional `e`/`E` exponent. Both return
+`defvalue` for empty input or an unrecognized character.
+
+`StrUpper` and `StrLower` convert ASCII letters and copy other bytes unchanged.
+They and `Format` require dynamic strings; the two parsing functions also work
+when dynamic strings are disabled.
+
+The empty `strutils` module remains available for compatibility with existing
+`use strutils` declarations.
+
+### Methods
+
 Dynamic strings expose:
 
 | Member | Meaning |

@@ -39,7 +39,8 @@ nav:
       - Expressions and Operators: 020-language/040-expressions-and-operators.md
       - Statements and Control Flow: 020-language/050-statements-and-control-flow.md
       - Functions: 020-language/060-functions.md
-      - Strings and Characters: 020-language/070-strings-and-characters.md
+      - Character and String Types: 020-language/070-strings-and-characters.md
+      - String Functions: 020-language/075-string-functions.md
       - Arrays and Slices: 020-language/080-arrays-and-slices.md
       - Enumerations: 020-language/090-enumerations.md
       - Structures and Unions: 020-language/100-structures-and-unions.md

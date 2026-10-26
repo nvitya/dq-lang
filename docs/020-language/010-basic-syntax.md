@@ -105,7 +105,9 @@ var message : str = """
 Triple double quotes or triple single quotes delimit multiline text. Delimiter-only
 boundary lines are removed; the closing delimiter's indentation determines the
 common indentation removed from the content. Escape sequences are still processed.
-For byte and Unicode behavior, see [Strings and Characters](070-strings-and-characters.md).
+For character and string representations, see
+[Character and String Types](070-strings-and-characters.md). Byte and Unicode
+operations are described in [String Functions](075-string-functions.md).
 
 ## Declarations and Expressions
 

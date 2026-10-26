@@ -87,6 +87,25 @@ A C string pointer must refer to suitably terminated live storage. Text literals
 storage according to their lifetime rules. A `strslice` may be unterminated;
 copy it into a `str` or bounded buffer when a C string is required.
 
+`rostr` converts automatically to declared `^char` parameters and to `^char`
+in C variadic positions. These conversions pass the underlying text pointer,
+without copying the bytes or passing a DQ descriptor:
+
+```dq
+func strlen(text : ^char) -> uint [[external]] ..
+func printf(format : ^char, ...) -> int32 [[external]] ..
+
+func *Main():
+    var text : rostr = "hello"
+    var size : uint = strlen(text)
+    printf("%s (%zu bytes)\n", text, size)
+endfunc
+```
+
+This prints `hello (5 bytes)`. The raw pointer's type does not enforce the
+read-only contract of a borrowed `rostr`; C code must not write through it when
+the source is read-only or borrowed as read-only.
+
 `embstr(N)` has exactly `N` storage bytes, including its terminator, and a maximum
 content length of `N - 1`. `.pchar` is a borrowed pointer. A C function that
 writes into it must respect its capacity and any runtime descriptor invariants.
@@ -94,8 +113,11 @@ An owning dynamic string must not be mutated through a raw C pointer in a way
 that bypasses its copy-on-write or length management.
 
 C functions using termination see only the prefix before an embedded zero byte.
-Use a pointer-plus-length API for binary data. Raw pointers and borrowed text do
-not extend their owners' lifetimes when retained by C code.
+DQ text operations preserve embedded zero bytes when the length is known; use a
+pointer-plus-length API to pass such data to C. Raw pointers and borrowed text do
+not extend their owners' lifetimes when retained by C code. See
+[Conversions and Borrowed Lifetimes](070-strings-and-characters.md#conversions-and-borrowed-lifetimes)
+for DQ string conversion and lifetime rules.
 
 ## Structures, Unions, and Layout
 

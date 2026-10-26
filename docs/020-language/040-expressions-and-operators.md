@@ -61,7 +61,7 @@ pointers are separate categories; they are not implicitly treated as numbers.
 | `mod` | Two integers | Common integer type | Nonnegative modulo, including with a negative divisor. |
 
 `+` also concatenates compatible text into a `str`; see
-[Strings and Characters](070-strings-and-characters.md#text-operators).
+[String Functions](075-string-functions.md#text-operators).
 Typed pointers support separate address arithmetic described in
 [Pointers](110-pointers.md#pointer-arithmetic-and-indexing).
 
@@ -158,7 +158,7 @@ Compatible pointers and object references support identity comparisons with
 `==` and `<>`, including comparison with `nil`; this does not compare pointed-to
 contents. Compatible text values support equality and ordering by unsigned byte
 value, with a shorter prefix coming first. Different string types can be
-compared; see [String Comparison](070-strings-and-characters.md#string-comparison).
+compared; see [String Comparison](075-string-functions.md#string-comparison).
 General array sequence equality is not implicit. Dynamic arrays and slices can
 be compared with `[]` to test emptiness.
 

@@ -42,7 +42,7 @@ endfunc
 
 | Form | Purpose | Chapter |
 | --- | --- | --- |
-| `str`, `rostr`, `strslice`, `embstr(N)` | Text with different storage and borrowing rules. | [Strings](070-strings-and-characters.md) |
+| `str`, `rostr`, `strslice`, `embstr(N)` | Text with different storage and borrowing rules. | [Character and String Types](070-strings-and-characters.md) |
 | `[N]T`, `[*]T`, `[]T` | Fixed arrays, dynamic arrays, borrowed array views. | [Arrays](080-arrays-and-slices.md) |
 | `enum` | A distinct set of named values. | [Enumerations](090-enumerations.md) |
 | `struct`, `union` | Direct field storage or overlapping field storage. | [Structures and Unions](100-structures-and-unions.md) |

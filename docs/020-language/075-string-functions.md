@@ -50,12 +50,12 @@ except for the explicitly Unicode-oriented members `.wclen` and `.wchar[...]`.
 | [`.SetLength(length, fill)`](#setlength-and-truncate) | `str` | — | Resize, filling new bytes with a `char` |
 | [`.StartsWith(prefix)`](#contains-startswith-and-endswith) | `*` | `bool` | Test the beginning of the text |
 | [`.storage_size`](#embedded-storage-size) | `embstr` | `int` | Buffer size including space for the terminator |
-| [`.ToWchars()`](#towchars) | `str`, `rostr` | `[*]wchar` | Decode the whole UTF-8 string into Unicode characters |
+| [`.ToWchars()`](#towchars) | `*` | `[*]wchar` | Decode the whole UTF-8 string into Unicode characters |
 | [`.Trim()` / `.Trim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at either end |
 | [`.Truncate(length)`](#setlength-and-truncate) | `str` | — | Shorten without growing |
-| [`.wchar[index]`](#unicode-indexing-and-slicing) | `str`, `rostr`, `strslice` | `wchar` | Read one Unicode character |
-| [`.wchar[start:end]`](#unicode-indexing-and-slicing) | `str`, `rostr`, `strslice` | `[*]wchar` | Decode a range of Unicode characters |
-| [`.wclen`](#unicode-character-count) | `str`, `rostr`, `strslice` | `int` | Count Unicode characters in UTF-8 text |
+| [`.wchar[index]`](#unicode-indexing-and-slicing) | `*` | `wchar` | Read one Unicode character |
+| [`.wchar[start:end]`](#unicode-indexing-and-slicing) | `*` | `[*]wchar` | Decode a range of Unicode characters |
+| [`.wclen`](#unicode-character-count) | `*` | `int` | Count Unicode characters in UTF-8 text |
 
 Methods returning `str` require dynamic-string support even when called on an
 embedded string or borrowed view. Search methods, embedded-string mutations,
@@ -743,7 +743,8 @@ contents stable while using them. Assign a slice to `str` to make an owned copy.
 The following members decode UTF-8 and report a runtime encoding error for
 malformed input. A displayed symbol can combine multiple Unicode characters,
 for example a letter and a combining accent.
-Embedded strings can use these operations through a `rostr` or `strslice` view.
+`.wclen` and `.wchar[...]` are available on every string type, including
+`embstr(N)` and unsized `embstr`.
 
 ### Unicode Character Count
 
@@ -751,7 +752,7 @@ Embedded strings can use these operations through a `rostr` or `strslice` view.
 UTF-8 decoding rather than reading a stored byte count.
 
 ```dq
-var text : str = "Aé€"
+var text : embstr(16) = "Aé€"
 var bytes : int = text.length // 6
 var characters : int = text.wclen // 3
 ```
@@ -765,7 +766,7 @@ positions. Slice bounds are clamped; an invalid character index raises a
 runtime range error.
 
 ```dq
-var text : rostr = "Aé€"
+var text : embstr(16) = "Aé€"
 var second : wchar = text.wchar[1]          // 'é'
 var chars : [*]wchar = text.wchar[1:$end]   // ['é', '€']
 var part : str = StrFromWchars(chars[:])   // "é€": encode the selected characters
@@ -777,15 +778,15 @@ var part : str = StrFromWchars(chars[:])   // "é€": encode the selected chara
 .ToWchars() -> [*]wchar
 ```
 
-`.ToWchars()` decodes the whole string into `[*]wchar`. For repeated indexed
-Unicode processing, convert once and index the resulting array to avoid decoding
-the UTF-8 prefix for every lookup. On `strslice`, use `.wchar[:]` to decode the
-whole view.
+`.ToWchars()` decodes the whole string into `[*]wchar`. It works on every
+string type, including `strslice`, `embstr(N)`, and unsized `embstr`. For repeated
+indexed Unicode processing, convert once and index the resulting array to avoid
+decoding the UTF-8 prefix for every lookup.
 
 ```dq
-var text : str = "Aé€"
+var text : embstr(16) = "Aé€"
 var chars : [*]wchar = text.ToWchars()
 var second : wchar = chars[1] // 'é'
-var view : strslice = text[:]
-var from_view : [*]wchar = view.wchar[:] // ['A', 'é', '€']
+var view : strslice = text
+var from_view : [*]wchar = view.ToWchars() // ['A', 'é', '€']
 ```

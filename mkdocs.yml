@@ -41,6 +41,7 @@ nav:
       - Functions: 020-language/060-functions.md
       - Character and String Types: 020-language/070-strings-and-characters.md
       - String Functions: 020-language/075-string-functions.md
+      - Text Formatting: 020-language/077-text-formatting.md
       - Arrays and Slices: 020-language/080-arrays-and-slices.md
       - Enumerations: 020-language/090-enumerations.md
       - Structures and Unions: 020-language/100-structures-and-unions.md
@@ -49,7 +50,6 @@ nav:
       - Memory Management and Ownership: 020-language/130-memory-management-and-ownership.md
       - Exceptions and Error Handling: 020-language/140-exceptions-and-error-handling.md
       - anyvalue: 020-language/150-anyvalue.md
-      - Text Formatting: 020-language/160-text-formatting.md
       - Modules and Packages: 020-language/170-modules-and-packages.md
       - Attributes: 020-language/180-attributes.md
       - Compiler Directives: 020-language/190-compiler-directives.md

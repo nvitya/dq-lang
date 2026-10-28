@@ -153,6 +153,10 @@ tracks references and frees the memory when the string data is no longer used.
 A `str` cannot be a `struct` field. Its maximum text length is `2147483647` bytes.
 Its `.length` reads the stored byte count without scanning the text.
 
+An empty `str` may require no heap allocation. Internally, it can be represented
+by a `nil` pointer, indicating that no dynamic string handler object has been
+allocated for it yet.
+
 Assigning a `str` shares storage. Mutation detaches when necessary so other
 string values retain their contents.
 

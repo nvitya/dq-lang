@@ -31,4 +31,8 @@ func *Main():
     c16 = c16 + 1 //?error(TypeMismatchOp)
     c = char(wc) //?error(CastInvalid)
 
+    c.ord = 1 //?error(NotWriteable)
+    wc.ord = 1 //?error(NotWriteable)
+    c16.ord = 1 //?error(NotWriteable)
+
 endfunc

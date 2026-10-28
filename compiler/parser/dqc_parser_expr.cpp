@@ -2882,7 +2882,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     return EPostfixResult::Continue;
   }
 
-  if (TK_ENUM == tk && scf->CheckSymbol("."))
+  if ((TK_ENUM == tk || IsCharacterType(resolved_result_type)) && scf->CheckSymbol("."))
   {
     string membername;
     scf->SkipWhite();
@@ -2893,7 +2893,14 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     }
     if ("ord" == membername)
     {
-      result = new OEnumOrdExpr(result);
+      if (IsCharacterType(resolved_result_type))
+      {
+        result = new OExprTypeConv(g_builtins->type_int, result);
+      }
+      else
+      {
+        result = new OEnumOrdExpr(result);
+      }
       return EPostfixResult::Continue;
     }
     Error(DQERR_MEMBER_UNKNOWN, membername, result->ptype->name);

@@ -11,8 +11,9 @@ listed in the [String Methods guide](../rtl/strings.md).
 | `char16` | unsigned 16-bit UTF-16 code unit |
 | `wchar` | unsigned 32-bit Unicode scalar value |
 
-These are distinct types, not integer aliases. `Ord` converts a character to an
-integer; explicit or checked conversion creates a character from an integer.
+These are distinct types, not integer aliases. `Ord(c)` and the read-only `c.ord`
+member convert any character type to `int` with the same value; explicit or
+checked conversion creates a character from an integer.
 
 ## Text Types
 

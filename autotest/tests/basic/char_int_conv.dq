@@ -25,6 +25,24 @@ func *Main():
     printf("char_int.ord = %li %li %li %li\n", Ord(c), Ord(wc_ascii), Ord(wc_euro), Ord(c16))
     //?check("char_int.ord", "65 65 8364 55296")
 
+    printf("char_int.member_ord = %li %li %li %li\n", c.ord, wc_ascii.ord, wc_euro.ord, c16.ord)
+    //?check("char_int.member_ord", "65 65 8364 55296")
+
+    printf("char_int.member_ord_types = %s %s %s\n", TypeName(c.ord), TypeName(c16.ord), TypeName(wc_euro.ord))
+    //?check("char_int.member_ord_types", "int int int")
+
+    printf("char_int.member_ord_constants = %li %li %li %li\n",
+           char(0).ord, char(255).ord, char16(0xFFFF).ord, '€'.ord)
+    //?check("char_int.member_ord_constants", "0 255 65535 8364")
+
+    printf("char_int.member_ord_runtime = %li %li %li\n",
+           char(GetValue(255)).ord, char16(GetValue(0xFFFF)).ord, wchar(GetValue(0x10FFFF)).ord)
+    //?check("char_int.member_ord_runtime", "255 65535 1114111")
+
+    var text : str = "Az"
+    printf("char_int.member_ord_index = %li %li\n", text[0].ord, text.wchar[1].ord)
+    //?check("char_int.member_ord_index", "65 122")
+
     printf("char_int.casts = %li %li %li %li %li\n",
            Ord(char(65)), Ord(cmax), Ord(char16(0xFFFF)), Ord(wchar(0xFD00)), Ord(wc_smile))
     //?check("char_int.casts", "65 255 65535 64768 128512")

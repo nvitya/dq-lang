@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.2"
+#define DQ_COMPILER_VERSION  "0.94.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.3:
+  - added .ord property for the char, char16 and wchar types
 v0.94.2:
   - strslice uses the compact SDqRoStrInfo layout with an always-known byte length
 v0.94.1:

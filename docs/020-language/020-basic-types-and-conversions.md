@@ -108,11 +108,13 @@ Convert through explicit program logic, for example `iif(ready, 1, 0)` or `n <> 
 
 ## Characters, Enumerations, and Pointers
 
-Character types are distinct from integers. `Ord(ch)` obtains a character code;
+Character types are distinct from integers. Prefer the read-only `ch.ord`
+property to obtain a character code as `int`; `Ord(ch)` is equivalent.
 `char(code)`, `char16(code)`, and `wchar(code)` request explicit conversions.
 Checked `IntToChar`/`IntToWchar` helpers provide raising and fallback forms.
 A constant character literal below 256 can initialize a `char` directly.
-Perform character arithmetic on its ordinal value rather than the character.
+Perform character arithmetic on its integer code, for example
+`char(ch.ord + 1)`.
 
 Enums use `Ord`, `.ord`, `FromOrd`, and `TryFromOrd`; ordinary integer casts do
 not bypass enum membership checks. See [Enumerations](090-enumerations.md).

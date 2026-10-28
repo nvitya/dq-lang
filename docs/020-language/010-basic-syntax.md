@@ -102,9 +102,11 @@ var message : str = """
     """
 ```
 
-Triple double quotes or triple single quotes delimit multiline text. Delimiter-only
-boundary lines are removed; the closing delimiter's indentation determines the
-common indentation removed from the content. Escape sequences are still processed.
+You can use either triple double quotes or triple single quotes. The text has
+no extra empty line at the start or end. DQ removes the spaces used to line up
+the text with the closing quotes and keeps any extra indentation. Escape sequences
+still work. See [Multiline Text](070-strings-and-characters.md#multiline-text)
+for examples showing the resulting text.
 For character and string representations, see
 [Character and String Types](070-strings-and-characters.md). Byte and Unicode
 operations are described in [String Functions](075-string-functions.md).

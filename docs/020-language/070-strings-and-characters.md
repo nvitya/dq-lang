@@ -1,11 +1,12 @@
 # Character and String Types
 
 A string stores text as a sequence of bytes. A character represents one byte,
-one UTF-16 code unit, or one Unicode scalar, depending on its type. DQ provides
+one UTF-16 code unit, or one Unicode character, depending on its type. DQ provides
 owned strings, borrowed views, and fixed-capacity buffers so code can choose
 how storage is allocated and who keeps it alive. For methods, standalone helpers,
 and text operations, see [String Functions](075-string-functions.md).
 
+Example code using strings:
 ```dq
 use print
 
@@ -46,39 +47,46 @@ grows. It does not change the string's length or contents.
 | --- | --- |
 | `char` | unsigned 8-bit byte: one ASCII character, one character from a single-byte code page, or one UTF-8 code unit (one Unicode character uses 1...4 UTF-8 code units) |
 | `char16` | unsigned 16-bit UTF-16 code unit (one Unicode character uses 1...2 UTF-16 code units)<br>Recommended to use only for Windows API compatibility |
-| `wchar` | unsigned 32-bit Unicode scalar value |
+| `wchar` | unsigned 32-bit Unicode character value, excluding UTF-16 surrogate values |
 
-`char`, `char16`, `wchar` are distinct types, not integer aliases. `Ord` converts a character to an
-integer; explicit or checked conversion creates a character from an integer.
+UTF-16 uses pairs of surrogate values to encode some characters. A single
+surrogate value does not represent a complete character on its own.
 
-A **code unit** is one storage element of a text encoding. For example, `😀`
+`char`, `char16`, and `wchar` are distinct types, not integer aliases. The
+read-only `.ord` property returns a character's integer code as `int`. Prefer
+`c.ord`; `Ord(c)` returns the same value. Explicit or checked conversion creates
+a character from an integer.
+
+A **code unit** is one storage element of a text encoding. For example, the `😀` symbol
 uses four `char` bytes in UTF-8 or two `char16` values in UTF-16, but its
 character value fits in one `wchar`.
 
 A character literal can initialize any character type whose range includes its
 value. Character variables do not implicitly convert to integers or to other
 character types. To convert between character types, pass through the integer
-code returned by `Ord()`:
+code exposed by `.ord`:
 
 ```dq
 var c8  : char   = 'A'
 var c16 : char16 = '€'
 var c32 : wchar  = '😀'
 
-var code : int   = Ord(c8)             // 65
-var same : char  = char(code)          // 'A'
-var wide : wchar = wchar(Ord(c16))     // '€'
-var next : char  = char(Ord(c8) + 1)   // 'B'
+var code : int = c8.ord                 // 65
+var same_code : int = Ord(c8)           // 65: equivalent function form
+var emoji_code : int = c32.ord          // 128512
+var same : char = char(code)           // 'A'
+var wide : wchar = wchar(c16.ord)       // '€'
+var next : char = char(c8.ord + 1)      // 'B'
 
 var checked  : char  = IntToChar(code)     // 'A'; checks the range at runtime
-var fallback : wchar = IntToWchar(0xD800, '?') // '?' for an invalid scalar
+var fallback : wchar = IntToWchar(0xD800, '?') // '?' for an invalid character value
 ```
 
 These conversions preserve the numeric code; they do not encode or decode UTF-8
 or UTF-16. Explicit casts reject invalid constant values at compile time, but
 runtime casts can truncate to the destination width and do not validate Unicode
-scalars. Use `IntToChar()` or `IntToWchar()` when runtime validation is needed.
-Without a fallback argument, an invalid value raises a runtime error.
+character values. Use `IntToChar()` or `IntToWchar()` when runtime validation is
+needed. Without a fallback argument, an invalid value raises a runtime error.
 
 The following examples intentionally produce compiler errors:
 
@@ -88,16 +96,17 @@ var c32    : wchar = 'A'
 var code   : int = 65
 
 c8 = code           // error: no implicit integer-to-character conversion
-code = c8           // error: use Ord(c8)
-code = int(c8)      // error: an integer cast cannot replace Ord()
+code = c8           // error: use c8.ord
+code = int(c8)      // error: an integer cast cannot replace .ord
 c32  = c8           // error: no implicit conversion between character types
-c8 = char(c32)      // error: use char(Ord(c32)) or IntToChar(Ord(c32))
-c8 = c8 + 1         // error: arithmetic requires Ord(c8)
+c8 = char(c32)      // error: use char(c32.ord) or IntToChar(c32.ord)
+c8 = c8 + 1         // error: use char(c8.ord + 1)
+c8.ord = 66         // error: .ord is read-only
 
 var too_large : char = '€'             // error: the literal does not fit in one byte
 var overflow  : char = char(256)       // error: constant is outside 0 .. 255
 var non_bmp   : char16 = '😀'          // error: the literal does not fit in one code unit
-var surrogate : wchar = wchar(0xD800)  // error: a surrogate is not a Unicode scalar
+var surrogate : wchar = wchar(0xD800)  // error: wchar excludes UTF-16 surrogate values
 ```
 
 ## Text Types
@@ -115,6 +124,25 @@ On targets built with dynamic strings disabled, `str` and operations that
 produce it are unavailable. Text literals, `rostr`, `strslice`, and `embstr(N)` remain
 available for text processing with borrowed or fixed storage.
 
+### The Length Calculation Problem
+
+DQ maintains strong compatibility with C APIs, so its zero-terminated string
+buffers can be passed directly to C functions. C APIs that work with text usually
+accept a pointer to the start of a text buffer, written as `^char` in DQ. This
+pointer carries no information about the text's length.
+
+Zero-terminated strings mark the end of their text with a byte whose value is
+zero. This is different from the printable character `'0'`. The terminating byte
+is not counted in the text length: `"hello"` needs five text bytes plus one zero
+byte.
+
+To calculate the length from that pointer, the program must read from the start
+until it finds the zero byte. Longer text takes more work, and repeated length
+calculations can scan the same bytes again.
+
+Storing the byte count avoids this work. DQ's string types handle this in
+different ways, using stored or cached lengths where possible, as described below.
+
 ### `str`: Dynamic Strings
 
 `str` allocates heap memory for its contents. As the contents grow, the backing
@@ -124,6 +152,21 @@ binary data, including internal zero bytes. It is a **managed type**: the runtim
 tracks references and frees the memory when the string data is no longer used.
 A `str` cannot be a `struct` field. Its maximum text length is `2147483647` bytes.
 Its `.length` reads the stored byte count without scanning the text.
+
+Assigning a `str` shares storage. Mutation detaches when necessary so other
+string values retain their contents.
+
+```dq
+var a : str = "abc"
+var b : str = a
+b[0] = 'X'       // a remains "abc"
+
+var c : str = a.Clone() // independent storage immediately
+c[0] = 'Y'             // a remains "abc"; b remains "Xbc"
+
+c.Reserve(32)          // space for at least 32 text bytes; c is still "Ybc"
+c.Add("def")          // reuses the reserved storage; c is now "Ybcdef"
+```
 
 ### `embstr(N)` and `embstr`: Embedded Strings
 
@@ -144,22 +187,15 @@ fixbuf.Append("defghi") // stores "abcdefg"
 ```
 
 Use an unsized `embstr` parameter to modify an existing fixed buffer through its
-shared [`SDqTextInfo` descriptor](#text-descriptors). Assigning or passing it
-preserves the descriptor reference, so length updates made through one alias
-are visible to the others. It remains writable and appendable: character writes,
+shared [descriptor](#text-descriptors). It remains writable and appendable: character writes,
 assignment, `Add()`, and `AddFmt()` modify the original buffer within its fixed
-capacity. The descriptor carries that capacity across function calls even though
-the parameter's type is written without `N`.
-
-The inline storage has no length field. The descriptor carries the capacity and
-caches the current length when available; otherwise the runtime scans within
-the buffer's capacity to calculate it.
+capacity.
 
 ### `rostr`: Read-Only Zero-Terminated Strings
 
 Use `rostr` for read-only string parameters when zero-termination is required.
 It borrows text literals, `str`, `embstr(N)`, unsized `embstr`, or `^char` without
-copying the text bytes or retaining their storage. Its descriptor can be
+copying the text bytes or retaining their storage. Its [descriptor](#text-descriptors) can be
 reassigned, but character writes and writable character references through it
 are rejected.
 
@@ -194,45 +230,35 @@ known length from the pointer alone. If the length is already known, use
 `StrSlice(data, length)` to pass it explicitly.
 
 `.pchar` exposes a borrowed `^char` for compatible zero-terminated text storage.
-Operations that move or replace the source storage invalidate that pointer.
+
+```dq
+func puts(text : ^char) -> int32 [[external]] ..
+
+func *Main():
+    var owned : str = "dynamic text"
+    var readonly : rostr = "read-only text"
+    var buffer : embstr(16) = "fixed text"
+
+    var owned_ptr : ^char = owned.pchar
+    var readonly_ptr : ^char = readonly.pchar
+    var buffer_ptr : ^char = buffer.pchar
+    puts(owned_ptr)
+    puts(readonly_ptr)
+    puts(buffer_ptr)
+endfunc
+```
+
+This prints `dynamic text`, `read-only text`, and `fixed text` on separate lines.
+Each pointer refers to the source's existing text bytes; no text is copied.
+The `.pchar` property is also available on unsized `embstr` references.
+
+If the string's text moves to a different memory location, for example when a
+dynamic string grows, the old pointer must no longer be used. Get a new pointer
+with `.pchar` after making the change.
 A nil `^char` is not valid where a C string is required unless the called API
 explicitly defines nil handling. See
 [C Interoperability](200-c-interoperability.md#strings-buffers-and-borrowing)
 for passing text to C functions.
-
-### Length Calculation and Zero-Byte Scanning
-
-A zero-byte scan reads successive bytes until the terminating zero is found.
-Its cost grows with the text length. Keeping or supplying a known byte length
-avoids this work.
-
-The following example shows when scanning happens for `rostr` and `strslice`
-parameters:
-
-```dq
-use print
-
-func GetLength(astr : rostr) -> int:
-    result = astr.length
-endfunc
-
-func GetSliceLength(astr : strslice) -> int:
-    result = astr.length
-endfunc
-
-func *Main():
-    var sr : rostr = "asdfg";  // length calculated at compile time
-    PrintLn("rostr length = {}", [GetLength(sr)])   // uses the cached length at astr.length
-    var pc : ^char = "asdfg" // no length info
-    PrintLn("pointer length = {}", [GetLength(pc)])      // scans at astr.length
-    PrintLn("pointer length (second call) = {}", [GetLength(pc)]) // scans again
-    PrintLn("slice parameter length = {}", [GetSliceLength(pc)]) // scans before entry
-
-    var view : strslice = pc  // scans now; view stores the resulting length
-    PrintLn("slice length = {}", [view.length])          // no scan
-    PrintLn("saved slice length = {}", [GetSliceLength(view)]) // no scan
-endfunc
-```
 
 ### Text Descriptors
 
@@ -240,6 +266,9 @@ The compiler carries text pointers together with metadata in small structures
 called **descriptors**. For calls with `embstr`, `rostr`, or `strslice` arguments,
 it creates temporary descriptors as needed during argument conversion.
 The compiler may pass either a pointer to the descriptor or its members directly as function arguments.
+
+These descriptors are invisible to the user, the compiler creates,
+updates, and passes them automatically.
 
 For `embstr`, the runtime uses the following descriptor structure:
 
@@ -270,11 +299,11 @@ needed. For `strslice`, the length is always known and non-negative.
 | Destination | Relevant rule |
 | --- | --- |
 | `str` | Owns/retains its text value; accepts compatible text views. |
-| `rostr` | Requires terminated storage, borrows it, and does not retain its owner. |
-| `strslice` | Borrows a byte range with an always-known length; conversion resolves an unknown source length first. No terminator is promised. |
-| `embstr(N)` | Copies into fixed storage and truncates to fit. |
-| Unsized `embstr` | Shares a writable embedded string descriptor; requires suitable existing storage. |
-| `^char` | A raw C pointer with no automatic lifetime extension. |
+| `rostr` | Requires existing terminated storage (like a string literal), borrows it. |
+| `strslice` | Requires existing storage, borrows a byte range with an always-known length; conversion resolves an unknown source length first. No terminator is promised. |
+| `embstr(N)` | Creates an embedded fixed-storage of N bytes. Written texts are truncated to fit. |
+| Unsized `embstr` | Shares a fixed-storage, writeable embedded string. |
+| `^char` | A raw C pointer to an existing storage with no automatic lifetime extension. |
 
 Slicing a `rostr` by byte offsets returns `strslice`, including full-range and
 suffix slices. A `rostr` converts to `strslice`, resolving any unknown length
@@ -284,13 +313,13 @@ When terminated storage is needed for a slice, first copy it into an owning
 
 Both `rostr` and `strslice` convert to owned `str` or fixed-capacity `embstr(N)`.
 These conversions copy the byte range, truncating only when the fixed buffer
-lacks capacity. A `rostr` cannot become an unsized writable `embstr` alias.
+reached its capacity.
 
 ```dq
-var owned : str = "hello"
+var owned    : str = "hello"
 var borrowed : rostr = owned
-var part : strslice = borrowed[1:4]  // borrows "ell"
-var copied : str = part             // owns a copy of "ell"
+var part     : strslice = borrowed[1:4]  // borrows "ell"
+var copied   : str = part             // owns a copy of "ell"
 ```
 
 Borrowed text must not outlive its source. The owner must stay alive, and its
@@ -305,7 +334,7 @@ for managed values and borrowed lifetimes.
 ## Literals
 
 Double quotes always represent text. A single-quoted literal containing exactly
-one Unicode scalar is `wchar`; empty or longer single-quoted literals are text.
+one Unicode character is `wchar`; empty or longer single-quoted literals are text.
 
 ```dq
 var path       : str = "/"
@@ -315,13 +344,59 @@ var greeting   : rostr = "Hello, world!"
 var field      : rostr = '"name":"Ada"'
 ```
 
-The `byte_slash` initialization is accepted because the literal is a compile-time
-scalar below 256. In general, conversion from `wchar` to `char` is explicit.
+The `byte_slash` initialization is accepted because the literal's character code
+is known at compile time and is below 256. In general, conversion from `wchar` to
+`char` is explicit.
 Single quotes around longer text let it contain double quotes without escaping
 them, as in `field`.
 
-For longer text that spans several lines, use triple double quotes (`"""`) or
-triple single quotes (`'''`):
+### Multiline Text
+
+For text that spans several lines, put three double quotes (`"""`) or three
+single quotes (`'''`) around it:
+
+```dq
+var message : rostr = """
+    First line.
+    Second line.
+    """
+PrintLn(message)
+```
+
+This prints:
+
+```text
+First line.
+Second line.
+```
+
+The text starts with "F" and ends with the final ".". Putting the quotes on
+separate lines does not add an empty line before or after the text. The line
+break between `First line.` and `Second line.` is part of the string, just as
+if you had written `"First line.\nSecond line."`.
+
+You can indent the text to keep the source code readable. DQ uses the spaces
+before the closing quotes to decide how much indentation to remove. Extra
+spaces are kept:
+
+```dq
+var indented : rostr = '''
+    First line.
+      Indented second line.
+    '''
+PrintLn(indented)
+```
+
+There are four spaces before the closing quotes, so DQ removes four spaces
+from the start of each text line. The second line has six spaces, so two remain:
+
+```text
+First line.
+  Indented second line.
+```
+
+This also makes longer text, such as JSON, easier to write. Ordinary double
+quotes inside triple double quotes do not need a backslash:
 
 ```dq
 var document : rostr = """
@@ -330,28 +405,18 @@ var document : rostr = """
       "year": 1979
     }
     """
+PrintLn(document)
 ```
 
-The opening and closing lines containing only the delimiters are removed.
-The closing delimiter's indentation determines how much common indentation is
-removed from each content line. In this example, the two spaces before each JSON
-field remain, and there is no leading or trailing newline.
+This prints:
 
-Line breaks within the text are preserved. Escape sequences such as `\n`, `\t`,
-and `\\` are still processed. Double quotes inside a triple-double-quoted literal
-do not need escaping unless they form the closing delimiter. Triple-single-quoted
-literals follow the same rules with single quotes.
-
-## Dynamic String Value Semantics
-
-Assigning a `str` shares storage. Mutation detaches when necessary so other
-string values retain their contents.
-
-```dq
-var a : str = "abc"
-var b : str = a
-b[0] = 'X'       // a remains "abc"
+```json
+{
+  "name": "Ada",
+  "year": 1979
+}
 ```
 
-`Clone()` forces independent storage. Operations that can grow or detach a
-string invalidate borrowed pointers and views into its previous storage.
+Escape sequences still work inside multiline text: `\n` adds a line break,
+`\t` adds a tab, and `\\` adds one backslash. Three matching quotes end the text;
+the indentation and line-break rules are the same for both quote styles.

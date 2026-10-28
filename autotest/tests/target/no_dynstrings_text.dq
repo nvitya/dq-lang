@@ -1,5 +1,5 @@
 //?notest
-// Heap-free text operations must remain available when dynamic strings are disabled.
+// Text operations must remain available when dynamic strings are disabled.
 
 func TextLength(text : strslice) -> int:
     var slice : strslice = text[0:text.length]
@@ -31,4 +31,15 @@ endfunc
 
 func EmbeddedTextLength(text : embstr) -> int:
     return text.wclen + Ord(text.wchar[$last])
+endfunc
+
+func DecodeText(text : embstr) -> int:
+    var view : strslice = text
+    var readonly : rostr = text
+    var fixed : embstr(16) = text
+    var from_alias : [*]wchar = text.ToWchars()
+    var from_view : [*]wchar = view.ToWchars()
+    var from_readonly : [*]wchar = readonly.ToWchars()
+    var from_fixed : [*]wchar = fixed.ToWchars()
+    return from_alias.length + from_view.length + from_readonly.length + from_fixed.length
 endfunc

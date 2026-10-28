@@ -54,6 +54,10 @@ func SampleUtf8() -> str:
     result.Append(char(0x80))
 endfunc
 
+func SampleRoStr() -> rostr:
+    return "Aé€😀"
+endfunc
+
 func *Main():
     printf("string_strfunc_helpers = start\n") //?check("string_strfunc_helpers", "start")
 
@@ -84,6 +88,15 @@ func *Main():
     printf("strslice_syntax_wchar_at = %li\n", Ord(sample_view.wchar[2])) //?check("strslice_syntax_wchar_at", 8364)
     var view_slice : [*]wchar = sample_view.wchar[:2]
     PrintWCharArray("strslice_syntax_wchar_slice", view_slice[:]) //?check("strslice_syntax_wchar_slice", "len:2 data: 65 233")
+
+    var view_decoded : [*]wchar = sample_view.ToWchars()
+    PrintWCharArray("strslice_to_wchars", view_decoded[:]) //?check("strslice_to_wchars", "len:4 data: 65 233 8364 128512")
+    var slice_decoded : [*]wchar = sample_view[1:6].ToWchars()
+    PrintWCharArray("strslice_temporary_to_wchars", slice_decoded[:]) //?check("strslice_temporary_to_wchars", "len:2 data: 233 8364")
+    var rostr_decoded : [*]wchar = SampleRoStr().ToWchars()
+    PrintWCharArray("rostr_temporary_to_wchars", rostr_decoded[:]) //?check("rostr_temporary_to_wchars", "len:4 data: 65 233 8364 128512")
+    var temporary_decoded : [*]wchar = SampleUtf8().ToWchars()
+    PrintWCharArray("str_temporary_to_wchars", temporary_decoded[:]) //?check("str_temporary_to_wchars", "len:4 data: 65 233 8364 128512")
 
     var wchars : [*]wchar = [wchar(65), wchar(233), wchar(8364), wchar(128512)]
     PrintBytes("strf_from_wchars", StrFromWchars(wchars[:])) //?check("strf_from_wchars", "len:10 bytes: 65 195 169 226 130 172 240 159 152 128")

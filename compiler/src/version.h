@@ -16,7 +16,7 @@
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
 v0.94.4:
-  - .wclen and .wchars added to embstr, embstr(n)
+  - .wclen, .wchars and .ToWchars() added to embstr, embstr(n)
 v0.94.3:
   - added .ord property for the char, char16 and wchar types
 v0.94.2:

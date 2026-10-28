@@ -92,7 +92,7 @@ public:
   static LlValue * GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
   static LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                       OExpr * end_expr, bool end_inclusive);
-  LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
+  static LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
 
   static LlValue * GenerateCompare(OScope * scope, OExpr * left, OExpr * right);
 };

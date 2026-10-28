@@ -22,6 +22,8 @@ func CheckAlias(text : embstr):
     PrintWchars("param_all", all[:]) //?check("param_all", "4: 65 233 8364 128512")
     var inclusive : [*]wchar = text.wchar[1::$last]
     PrintWchars("param_inclusive", inclusive[:]) //?check("param_inclusive", "3: 233 8364 128512")
+    var decoded : [*]wchar = text.ToWchars()
+    PrintWchars("param_decoded", decoded[:]) //?check("param_decoded", "4: 65 233 8364 128512")
     text.Set("é€")
 endfunc
 
@@ -56,11 +58,16 @@ func *Main():
     var clamped : [*]wchar = text.wchar[-3:99]
     PrintWchars("fixed_clamped", clamped[:]) //?check("fixed_clamped", "4: 65 233 8364 128512")
 
+    var decoded : [*]wchar = text.ToWchars()
+    PrintWchars("fixed_decoded", decoded[:]) //?check("fixed_decoded", "4: 65 233 8364 128512")
     var alias : embstr = text
+    var alias_decoded : [*]wchar = alias.ToWchars()
+    PrintWchars("alias_decoded", alias_decoded[:]) //?check("alias_decoded", "4: 65 233 8364 128512")
     printf("alias = %li %li\n", alias.wclen, Ord(alias.wchar[$last])) //?check("alias", "4 128512")
     CheckAlias(alias)
     printf("mutated = %li %li %li %li\n", text.wclen, alias.wclen,
            Ord(text.wchar[$last]), Ord(alias.wchar[0])) //?check("mutated", "2 2 8364 233")
+    PrintWchars("decoded_snapshot", decoded[:]) //?check("decoded_snapshot", "4: 65 233 8364 128512")
     CheckBounds(text)
 
     text.Clear()
@@ -68,7 +75,12 @@ func *Main():
     var empty : [*]wchar = alias.wchar[:]
     PrintWchars("empty_slice", empty[:]) //?check("empty_slice", "0:")
 
+    var empty_decoded : [*]wchar = text.ToWchars()
+    PrintWchars("empty_decoded", empty_decoded[:]) //?check("empty_decoded", "0:")
+
     text = "éignored"
     text[2] = char(0)
+    var terminated : [*]wchar = alias.ToWchars()
+    PrintWchars("terminated_decoded", terminated[:]) //?check("terminated_decoded", "1: 233")
     printf("terminated = %li %li\n", text.wclen, Ord(text.wchar[0])) //?check("terminated", "1 233")
 endfunc

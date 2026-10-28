@@ -2920,7 +2920,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
     return result ? EPostfixResult::Continue : EPostfixResult::Stop;
   }
 
-  if (!lval && (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk) && scf->CheckSymbol("."))
+  if (!lval && IsStringFamilyTextType(result->ptype) && scf->CheckSymbol("."))
   {
     string membername;
     scf->SkipWhite();
@@ -2929,7 +2929,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       Error(DQERR_MEMBER_NAME_EXPECTED);
       return EPostfixResult::Stop;
     }
-    if (IsStringUtilityMethodName(membername) || (TK_DYNSTR == tk && "ToWchars" == membername))
+    if (IsStringUtilityMethodName(membername) || "ToWchars" == membername)
     {
       result = ParseStringMethod(result, nullptr, membername);
       return result ? EPostfixResult::Continue : EPostfixResult::Stop;
@@ -3102,7 +3102,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         result = new OEmbStrMetaFieldExpr(lval, ESMF_PCHAR);
         return EPostfixResult::Continue;
       }
-      if (IsStringUtilityMethodName(membername))
+      if (IsStringUtilityMethodName(membername) || "ToWchars" == membername)
       {
         result = ParseStringMethod(result, lval, membername);
         if (!result) return EPostfixResult::Stop;
@@ -3142,7 +3142,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         result = new OStringMetaFieldExpr(lval, SMF_REFCOUNT);
         return EPostfixResult::Continue;
       }
-      if (TK_DYNSTR == tk || (TK_ROSTR == tk && "ToWchars" == membername) || IsStringUtilityMethodName(membername))
+      if (TK_DYNSTR == tk || "ToWchars" == membername || IsStringUtilityMethodName(membername))
       {
         result = ParseStringMethod(result, lval, membername);
         if (!result) return EPostfixResult::Stop;

@@ -181,8 +181,8 @@ encoding errors. `ToUtf16` returns an array that includes a final zero code unit
 
 ## Embedded Strings
 
-Both `embstr` and `embstr(N)` support `.wclen`, `.wchar[index]`, and
-`.wchar[start:end]` with the same UTF-8 decoding and scalar indexing as `str`.
+Both `embstr` and `embstr(N)` support `.wclen`, `.wchar[index]`,
+`.wchar[start:end]`, and `.ToWchars()` with the same UTF-8 decoding and scalar indexing as `str`.
 The slice returns `[*]wchar`; `$last` and `$end` use scalar positions.
 
 `embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for

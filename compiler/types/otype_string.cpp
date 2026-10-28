@@ -963,9 +963,7 @@ LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr
 
 LlValue * GenerateStringToWchars(OScope * scope, OExpr * receiver)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ResolvedType());
-  if (!st) throw logic_error("GenerateStringToWchars requires string-family receiver");
-  return st->GenerateToWchars(scope, receiver);
+  return OTypeString::GenerateToWchars(scope, receiver);
 }
 
 LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,

@@ -3000,40 +3000,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Stop;
     }
 
-    if (TK_EMBSTR == tk)
-    {
-      if ("length" == membername)
-      {
-        result = new OEmbStrMetaFieldExpr(lval, ESMF_LENGTH);
-        return EPostfixResult::Continue;
-      }
-      if ("maxlength" == membername)
-      {
-        result = new OEmbStrMetaFieldExpr(lval, ESMF_MAXLENGTH);
-        return EPostfixResult::Continue;
-      }
-      if ("storage_size" == membername)
-      {
-        result = new OEmbStrMetaFieldExpr(lval, ESMF_STORAGE_SIZE);
-        return EPostfixResult::Continue;
-      }
-      if ("pchar" == membername)
-      {
-        result = new OEmbStrMetaFieldExpr(lval, ESMF_PCHAR);
-        return EPostfixResult::Continue;
-      }
-      if (IsStringUtilityMethodName(membername))
-      {
-        result = ParseStringMethod(result, lval, membername);
-        if (!result) return EPostfixResult::Stop;
-        return EPostfixResult::Continue;
-      }
-      result = ParseEmbStrMethod(result, lval, membername);
-      if (!result) return EPostfixResult::Stop;
-      return EPostfixResult::Continue;
-    }
-
-    if (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk)
+    if (IsStringFamilyTextType(lval->ptype) && ("wclen" == membername || "wchar" == membername))
     {
       if (!EnsureStrFuncRtlUse())
       {
@@ -3042,16 +3009,6 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         return EPostfixResult::Stop;
       }
 
-      if ("length" == membername)
-      {
-        result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
-        return EPostfixResult::Continue;
-      }
-      if ("pchar" == membername)
-      {
-        result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
-        return EPostfixResult::Continue;
-      }
       if ("wclen" == membername)
       {
         result = new OStringMetaFieldExpr(lval, SMF_WCLEN);
@@ -3119,6 +3076,60 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
         array_index_context_lval = prev_context_lval;
         array_index_context_wchar = prev_context_wchar;
         result = new OStringWCharIndexExpr(lval, indexexpr);
+        return EPostfixResult::Continue;
+      }
+    }
+
+    if (TK_EMBSTR == tk)
+    {
+      if ("length" == membername)
+      {
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_LENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("maxlength" == membername)
+      {
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_MAXLENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("storage_size" == membername)
+      {
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_STORAGE_SIZE);
+        return EPostfixResult::Continue;
+      }
+      if ("pchar" == membername)
+      {
+        result = new OEmbStrMetaFieldExpr(lval, ESMF_PCHAR);
+        return EPostfixResult::Continue;
+      }
+      if (IsStringUtilityMethodName(membername))
+      {
+        result = ParseStringMethod(result, lval, membername);
+        if (!result) return EPostfixResult::Stop;
+        return EPostfixResult::Continue;
+      }
+      result = ParseEmbStrMethod(result, lval, membername);
+      if (!result) return EPostfixResult::Stop;
+      return EPostfixResult::Continue;
+    }
+
+    if (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk)
+    {
+      if (!EnsureStrFuncRtlUse())
+      {
+        delete result;
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
+
+      if ("length" == membername)
+      {
+        result = new OStringMetaFieldExpr(lval, SMF_LENGTH);
+        return EPostfixResult::Continue;
+      }
+      if ("pchar" == membername)
+      {
+        result = new OStringMetaFieldExpr(lval, SMF_PCHAR);
         return EPostfixResult::Continue;
       }
       if (TK_DYNSTR == tk && "capacity" == membername)
@@ -3512,7 +3523,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         return nullptr;
       }
       OType * ctx_type = ctx_lval->ptype ? ctx_lval->ptype->ResolveAlias() : nullptr;
-      OExpr * lenexpr = (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRSLICE == ctx_type->kind || TK_ROSTR == ctx_type->kind))
+      OExpr * lenexpr = (array_index_context_wchar || (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRSLICE == ctx_type->kind || TK_ROSTR == ctx_type->kind)))
           ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, array_index_context_wchar ? SMF_WCLEN : SMF_LENGTH))
           : static_cast<OExpr *>(new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH));
       if ("end" == ctxname)

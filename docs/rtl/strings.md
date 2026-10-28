@@ -175,7 +175,9 @@ scalar values and remain available for the supported text views.
 ## Unicode Operations
 
 Unicode-oriented operations decode string bytes as UTF-8 and work with `wchar`,
-the 32-bit Unicode scalar type.
+the 32-bit Unicode scalar type. `.wclen`, `.wchar[index]`, and
+`.wchar[start:end]` are available on `str`, `rostr`, `strslice`, `embstr`, and
+`embstr(N)`. Within `.wchar[...]`, `$last` and `$end` refer to scalar positions.
 
 | Member | Meaning |
 | --- | --- |

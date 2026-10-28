@@ -1,0 +1,74 @@
+// Embedded strings share the UTF-8 scalar operations of str and strslice.
+
+use libc/stdio
+
+func PrintWchars(label : ^char, values : []wchar):
+    printf("%s = %li:", label, values.length)
+    var i : int = 0
+    while i < values.length:
+        printf(" %li", Ord(values[i]))
+        ++i
+    endwhile
+    printf("\n")
+endfunc
+
+func CheckAlias(text : embstr):
+    printf("param = %li %li %li %li %li\n", text.wclen,
+           Ord(text.wchar[0]), Ord(text.wchar[1]), Ord(text.wchar[2]), Ord(text.wchar[$last]))
+           //?check("param", "4 65 233 8364 128512")
+    var tail : [*]wchar = text.wchar[1:$end]
+    PrintWchars("param_tail", tail[:]) //?check("param_tail", "3: 233 8364 128512")
+    var all : [*]wchar = text.wchar[:]
+    PrintWchars("param_all", all[:]) //?check("param_all", "4: 65 233 8364 128512")
+    var inclusive : [*]wchar = text.wchar[1::$last]
+    PrintWchars("param_inclusive", inclusive[:]) //?check("param_inclusive", "3: 233 8364 128512")
+    text.Set("é€")
+endfunc
+
+func CheckBounds(text : embstr):
+    var caught : int = 0
+    try:
+        var value : wchar = text.wchar[text.wclen]
+    except Exception:
+        ++caught
+    endtry
+    try:
+        var value : wchar = text.wchar[-1]
+    except Exception:
+        ++caught
+    endtry
+    printf("bounds = %li\n", caught) //?check("bounds", 2)
+endfunc
+
+func *Main():
+    var text : embstr(32) = "Aé€😀"
+    printf("fixed = %li %li %li %li %li %li\n", text.length, text.wclen,
+           Ord(text.wchar[0]), Ord(text.wchar[1]), Ord(text.wchar[2]), Ord(text.wchar[$last]))
+           //?check("fixed", "10 4 65 233 8364 128512")
+    var middle : [*]wchar = text.wchar[1:3]
+    PrintWchars("fixed_middle", middle[:]) //?check("fixed_middle", "2: 233 8364")
+    var head : [*]wchar = text.wchar[:2]
+    PrintWchars("fixed_head", head[:]) //?check("fixed_head", "2: 65 233")
+    var tail : [*]wchar = text.wchar[2:]
+    PrintWchars("fixed_tail", tail[:]) //?check("fixed_tail", "2: 8364 128512")
+    var inclusive : [*]wchar = text.wchar[1::$last]
+    PrintWchars("fixed_inclusive", inclusive[:]) //?check("fixed_inclusive", "3: 233 8364 128512")
+    var clamped : [*]wchar = text.wchar[-3:99]
+    PrintWchars("fixed_clamped", clamped[:]) //?check("fixed_clamped", "4: 65 233 8364 128512")
+
+    var alias : embstr = text
+    printf("alias = %li %li\n", alias.wclen, Ord(alias.wchar[$last])) //?check("alias", "4 128512")
+    CheckAlias(alias)
+    printf("mutated = %li %li %li %li\n", text.wclen, alias.wclen,
+           Ord(text.wchar[$last]), Ord(alias.wchar[0])) //?check("mutated", "2 2 8364 233")
+    CheckBounds(text)
+
+    text.Clear()
+    printf("empty = %li %li\n", text.wclen, alias.wclen) //?check("empty", "0 0")
+    var empty : [*]wchar = alias.wchar[:]
+    PrintWchars("empty_slice", empty[:]) //?check("empty_slice", "0:")
+
+    text = "éignored"
+    text[2] = char(0)
+    printf("terminated = %li %li\n", text.wclen, Ord(text.wchar[0])) //?check("terminated", "1 233")
+endfunc

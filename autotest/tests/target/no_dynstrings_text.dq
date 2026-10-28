@@ -13,7 +13,7 @@ func FormatText() -> int:
     var view : strslice = text
     var value : anyvalue = text
     var copied : strslice = value.AsText("")
-    return view.length + copied.length
+    return view.length + copied.length + text.wclen + Ord(text.wchar[$last])
 endfunc
 
 func ParseText() -> int64:
@@ -27,4 +27,8 @@ endfunc
 func CompareText(a : rostr, b : embstr) -> bool:
     var view : strslice = a
     return a < b and b >= view and StrSliceCmp(a, b) <= 0
+endfunc
+
+func EmbeddedTextLength(text : embstr) -> int:
+    return text.wclen + Ord(text.wchar[$last])
 endfunc

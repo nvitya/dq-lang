@@ -87,10 +87,11 @@ public:
                                   OExpr * end_expr, bool end_inclusive) = 0;
   virtual LlValue * GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field);
 
-  LlValue * GenerateWcLen(OScope * scope, OLValueExpr * receiver);
-  LlValue * GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
-  LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                               OExpr * end_expr, bool end_inclusive);
+  // UTF-8 operations share the text descriptor path, including embstr receivers.
+  static LlValue * GenerateWcLen(OScope * scope, OLValueExpr * receiver);
+  static LlValue * GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
+  static LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                                      OExpr * end_expr, bool end_inclusive);
   LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
 
   static LlValue * GenerateCompare(OScope * scope, OExpr * left, OExpr * right);

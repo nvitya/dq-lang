@@ -947,24 +947,18 @@ LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * st
 
 LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWcLen requires str or strslice");
-  return st->GenerateWcLen(scope, receiver);
+  return OTypeString::GenerateWcLen(scope, receiver);
 }
 
 LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWCharAt requires str or strslice");
-  return st->GenerateWCharAt(scope, receiver, index);
+  return OTypeString::GenerateWCharAt(scope, receiver, index);
 }
 
 LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                    OExpr * end_expr, bool end_inclusive)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringWCharSlice requires str or strslice");
-  return st->GenerateWCharSlice(scope, receiver, start_expr, end_expr, end_inclusive);
+  return OTypeString::GenerateWCharSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 LlValue * GenerateStringToWchars(OScope * scope, OExpr * receiver)

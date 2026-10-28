@@ -1007,8 +1007,7 @@ void OStringSliceExpr::DeleteChildTree()
 
 LlValue * OStringWCharIndexExpr::Generate(OScope * scope)
 {
-  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
-  return strtype->GenerateWCharAt(scope, base, indexexpr);
+  return OTypeString::GenerateWCharAt(scope, base, indexexpr);
 }
 
 void OStringWCharIndexExpr::FoldChildren()
@@ -1039,8 +1038,7 @@ void OStringWCharIndexExpr::DeleteChildTree()
 
 LlValue * OStringWCharSliceExpr::Generate(OScope * scope)
 {
-  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
-  return strtype->GenerateWCharSlice(scope, base, startexpr, endexpr, end_inclusive);
+  return OTypeString::GenerateWCharSlice(scope, base, startexpr, endexpr, end_inclusive);
 }
 
 void OStringWCharSliceExpr::FoldChildren()
@@ -3828,6 +3826,7 @@ void OTextSourceToStringExpr::DeleteChildTree()
 
 LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
 {
+  if (SMF_WCLEN == field) return OTypeString::GenerateWcLen(scope, receiver);
   auto * strtype = static_cast<OTypeString *>(receiver->ptype->ResolveAlias());
   return strtype->GenerateMetaField(scope, receiver, field);
 }

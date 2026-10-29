@@ -32,6 +32,7 @@ except for the explicitly Unicode-oriented members `.wclen` and `.wchar[...]`.
 | [`.Insert(index, value)`](#prepend-and-insert) | `str`, `embstr` | — | Insert text or a byte at a byte position |
 | [`.LastIndexOf(needle)`](#indexof-and-lastindexof) | `*` | `int` | Last matching byte offset, or `-1` |
 | [`.length`](#length) | `*` | `int` | Current byte length, excluding the terminator |
+| [`.Lower()`](#upper-and-lower) | `*` | `str` | Copy with ASCII letters in lowercase |
 | [`.LPad(length, fill)`](#lpad-and-rpad) | `*` | `str` | Copy with padding on the left |
 | [`.LTrim()` / `.LTrim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at the left end |
 | [`.maxlength`](#embedded-storage-size) | `embstr` | `int` | Maximum number of text bytes that fit |
@@ -50,17 +51,20 @@ except for the explicitly Unicode-oriented members `.wclen` and `.wchar[...]`.
 | [`.SetLength(length, fill)`](#setlength-and-truncate) | `str` | — | Resize, filling new bytes with a `char` |
 | [`.StartsWith(prefix)`](#contains-startswith-and-endswith) | `*` | `bool` | Test the beginning of the text |
 | [`.storage_size`](#embedded-storage-size) | `embstr` | `int` | Buffer size including space for the terminator |
+| [`.ToFloat()` / `.ToFloat(defvalue)`](#toint-and-tofloat) | `*` | `float` | Parse a number; raise on invalid input or return a fallback |
+| [`.ToInt()` / `.ToInt(defvalue)`](#toint-and-tofloat) | `*` | `int` | Parse an integer; raise on invalid input or return a fallback |
 | [`.ToWchars()`](#towchars) | `*` | `[*]wchar` | Decode the whole UTF-8 string into Unicode characters |
 | [`.Trim()` / `.Trim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at either end |
 | [`.Truncate(length)`](#setlength-and-truncate) | `str` | — | Shorten without growing |
+| [`.Upper()`](#upper-and-lower) | `*` | `str` | Copy with ASCII letters in uppercase |
 | [`.wchar[index]`](#unicode-indexing-and-slicing) | `*` | `wchar` | Read one Unicode character |
 | [`.wchar[start:end]`](#unicode-indexing-and-slicing) | `*` | `[*]wchar` | Decode a range of Unicode characters |
 | [`.wclen`](#unicode-character-count) | `*` | `int` | Count Unicode characters in UTF-8 text |
 
 Methods returning `str` require dynamic-string support even when called on an
-embedded string or borrowed view. Search methods, embedded-string mutations,
-and Unicode decoding to Unicode characters remain available with dynamic strings
-disabled. Using `str` always requires dynamic-string support.
+embedded string or borrowed view. Numeric conversion, search methods,
+embedded-string mutations, and Unicode decoding remain available with dynamic
+strings disabled. Using `str` always requires dynamic-string support.
 
 ## Standalone String Helpers Listing
 
@@ -80,8 +84,8 @@ dynamic-string support.
 | [`StrLower(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in lowercase |
 | [`StrSlice(data : ^char, length : int)`](#strslice) | `strslice` | Borrow a pointer and an explicit byte count |
 | [`StrSliceCmp(a : strslice, b : strslice)`](#strslicecmp) | `int` | Compare two byte ranges |
-| [`StrToFloat(text : strslice, defvalue : float)`](#strtoint-and-strtofloat) | `float` | Parse a floating-point number |
-| [`StrToInt(text : strslice, defvalue : int = 0)`](#strtoint-and-strtofloat) | `int` | Parse a decimal integer |
+| [`StrToFloat(text : strslice)` / `StrToFloat(text : strslice, defvalue : float)`](#strtoint-and-strtofloat) | `float` | Parse a number; raise on invalid input or return a fallback |
+| [`StrToInt(text : strslice)` / `StrToInt(text : strslice, defvalue : int)`](#strtoint-and-strtofloat) | `int` | Parse an integer; raise on invalid input or return a fallback |
 | [`StrUpper(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in uppercase |
 
 ## Text Operators
@@ -161,21 +165,30 @@ var label : str = Format("value={:04X}", [255]) // "value=00FF"
 ### StrToInt and StrToFloat
 
 ```text
-StrToInt(text : strslice, defvalue : int = 0) -> int
+StrToInt(text : strslice) -> int
+StrToInt(text : strslice, defvalue : int) -> int
+StrToFloat(text : strslice) -> float
 StrToFloat(text : strslice, defvalue : float) -> float
 ```
 
-`StrToInt` accepts decimal digits and a minus sign. `StrToFloat` accepts a dot or
-comma decimal separator and an optional `e`/`E` exponent. Both return `defvalue`
-for empty input or an unrecognized character; neither trims surrounding spaces.
-`StrToFloat` requires an explicit default. These helpers are permissive parsers,
-so successful conversion does not imply strict validation of a numeric grammar.
+`StrToInt` parses decimal digits with an optional leading `+` or `-` and rejects
+values outside the range of `int`. `StrToFloat` accepts an optional leading sign,
+a dot or comma decimal separator, and an optional `e`/`E` exponent. An exponent
+may have a leading sign and must contain digits. The entire input must match;
+surrounding whitespace and internal zero bytes are rejected. Use `.Trim()` first
+when surrounding whitespace should be ignored.
+
+Without `defvalue`, invalid or empty input raises `EStrError`. Supplying
+`defvalue` returns that fallback on conversion errors. When exceptions are
+disabled, the no-fallback form reports a runtime error and returns zero if the
+error handler returns; the fallback form still returns `defvalue`.
 
 ```dq
-var count : int = StrToInt("42")               // 42
+var count : int = StrToInt("+42")              // 42
 var fallback : int = StrToInt("invalid", -1)   // -1
-var value : float = StrToFloat("1.25e2", 0)    // 125
-var comma : float = StrToFloat("1,5", 0)       // 1.5
+var value : float = StrToFloat("1.25e2")       // 125
+var comma : float = StrToFloat("1,5")          // 1.5
+var invalid : float = StrToFloat("1e+", -1)    // -1: missing exponent digits
 ```
 
 ### StrUpper and StrLower
@@ -186,7 +199,8 @@ StrLower(text : strslice) -> str
 ```
 
 These functions copy the text, converting only ASCII letters. They leave
-non-ASCII bytes unchanged and do not modify the source.
+non-ASCII bytes unchanged and do not modify the source. The methods `.Upper()`
+and `.Lower()` provide the same conversions.
 
 ```dq
 var text : rostr = "Hello, é!"
@@ -593,13 +607,58 @@ var copy : str = original.Clone()
 copy[0] = 'X'             // copy is "Xbc"; original is "abc"
 ```
 
-## Searching, Trimming, and Padding
+## String Utility Methods
 
 These methods work on every string type. They do not modify the original string.
 Needles, prefixes, suffixes, trim sets, and padding accept text or a `char` byte.
 Searches compare bytes exactly, with case sensitivity and no Unicode
-normalization. Trimming and padding return a new `str`; assign the result to
-keep it.
+normalization. Case conversion, trimming, and padding return a new `str`;
+assign the result to keep it.
+
+### .Upper and .Lower
+
+```text
+.Upper() -> str
+.Lower() -> str
+```
+
+`.Upper()` and `.Lower()` return a copy with ASCII letters converted to uppercase
+or lowercase. They preserve non-ASCII bytes, including UTF-8 characters, and do
+not modify the original string. They are equivalent to `StrUpper(text)` and
+`StrLower(text)` and require dynamic-string support.
+
+```dq
+var text : embstr(32) = "Hello, é!"
+var upper : str = text.Upper() // "HELLO, é!"
+var lower : str = text.Lower() // "hello, é!"; text is still "Hello, é!"
+```
+
+### .ToInt and .ToFloat
+
+```text
+.ToInt() -> int
+.ToInt(defvalue : int) -> int
+.ToFloat() -> float
+.ToFloat(defvalue : float) -> float
+```
+
+These methods parse a number using the same rules as
+[StrToInt and StrToFloat](#strtoint-and-strtofloat). Without a fallback, invalid
+or empty text raises `EStrError`; with `defvalue`, conversion errors return that
+value. Integer conversion also checks the range of `int`. Neither method skips
+surrounding whitespace. Both work without dynamic-string support.
+
+```dq
+var integer : embstr(16) = "-42"
+var count : int = integer.ToInt()        // -42
+var decimal : rostr = "1,25e2"
+var value : float = decimal.ToFloat()    // 125
+var invalid : strslice = "invalid"
+var fallback : int = invalid.ToInt(-1)   // -1
+var default_value : float = invalid.ToFloat(0) // 0
+var padded : rostr = " 42 "
+var trimmed : int = padded.Trim().ToInt() // 42
+```
 
 ### .IndexOf and .LastIndexOf
 

@@ -1,0 +1,67 @@
+use rtl/textformat
+use print
+
+func *Main():
+    var outs <- OTextSinkStdOut()
+    var fmt <- OTextFormatter(outs)
+
+    fmt.Format('align-text = |{:<6}|{:>6}|{:^6}|{:^7s}|\n',
+               ['abc', 'abc', 'abc', 'abc']) //?check('align-text', '|abc   |   abc| abc  |  abc  |')
+    fmt.Format('align-width = |{:<2}|{:>3}|{:^0}|{:<}|{:^4}|\n',
+               ['abc', 'abc', 'abc', 'abc', '']) //?check('align-width', '|abc|abc|abc|abc|    |')
+    fmt.Format('align-int = |{:<6d}|{:>6d}|{:^6d}|{:^7d}|\n',
+               [-12, -12, -12, -12]) //?check('align-int', '|-12   |   -12| -12  |  -12  |')
+    fmt.Format('align-sign = |{:<+6d}|{:>+6d}|{:^+6d}|\n',
+               [12, 12, 12]) //?check('align-sign', '|+12   |   +12| +12  |')
+    fmt.Format('align-bases = |{:<5u}|{:>5x}|{:^6X}|\n',
+               [uint(7), 0xAB, 0xAB]) //?check('align-bases', '|7    |   ab|  AB  |')
+    fmt.Format('align-float = |{:<8.2f}|{:>8.2f}|{:^8.2f}|\n',
+               [-3.5, -3.5, -3.5]) //?check('align-float', '|-3.50   |   -3.50| -3.50  |')
+    fmt.Format('align-round = |{:^6.2f}|{:^5.0f}|\n',
+               [9.999, 9.9]) //?check('align-round', '|10.00 | 10  |')
+    fmt.Format('align-zero = |{:>06d}|{:<06d}|{:^06d}|{:+06d}|{:-06d}|\n',
+               [-12, -12, -12, 12, 12]) //?check('align-zero', '|-00012|-12   | -12  |+00012|000012|')
+    fmt.Format('align-zero-float = |{:>08.2f}|{:^08.2f}|\n',
+               [-3.5, -3.5]) //?check('align-zero-float', '|-0003.50| -3.50  |')
+    fmt.Format('align-minus = |{:-6d}|{:-6d}|{:<-6d}|{:^-7d}|\n',
+               [12, -12, 12, -12]) //?check('align-minus', '|    12|   -12|12    |  -12  |')
+    fmt.Format('align-minus-float = |{:-8.2f}|{:-8.2f}|{:<-8.2f}|\n',
+               [3.5, -3.5, 3.5]) //?check('align-minus-float', '|    3.50|   -3.50|3.50    |')
+    fmt.Format('align-space-sign = |{: 6d}|{: 6d}|{: 06d}|{: 8.2f}|\n',
+               [12, -12, 12, 3.5]) //?check('align-space-sign', '|    12|   -12| 00012|    3.50|')
+    fmt.Format('align-char = |{:<4}|{:>4s}|{:^4}|\n',
+               [char(65), char(66), char(67)]) //?check('align-char', '|A   |   B| C  |')
+    fmt.Format('align-utf8 = |{:<5}|{:>5s}|{:^6}|\n',
+               [wchar(0x20AC), '€', wchar(0x20AC)]) //?check('align-utf8', '|€  |  €| €  |')
+    fmt.Format('align-bool = |{:<7}|{:>7}|{:^7}|\n',
+               [true, false, true]) //?check('align-bool', '|true   |  false| true  |')
+    var null_value : anyvalue
+    null_value.SetNull()
+    fmt.Format('align-null = |{:<7}|{:>7}|{:^7}|\n',
+               [null_value, null_value, null_value]) //?check('align-null', '|null   |   null| null  |')
+    var ptr : pointer = pointer(0x2A)
+    fmt.Format('align-pointer = |{:<6p}|{:>6p}|{:^6p}|\n',
+               [ptr, ptr, ptr]) //?check('align-pointer', '|^2A   |   ^2A| ^2A  |')
+    fmt.Format('align-reset = |{:<6}|{}|{:^6}|{}|\n',
+               ['abc', 7, 'abc', 8]) //?check('align-reset', '|abc   |7| abc  |8|')
+    PrintLn('align-flags = {}', [fmt.flags == DQFMT_OK]) //?check('align-flags', 'true')
+
+    fmt.Format('align-invalid-order = |{:0+6d}|\n', [12]) //?check('align-invalid-order', '|12|')
+    PrintLn('align-invalid-flags = {}', [fmt.flags == DQFMT_FMT_ERROR]) //?check('align-invalid-flags', 'true')
+
+    var text : embstr(128) = ''
+    text.AddFmt('|{:<30}|{:>30}|{:^30}|', ['abc', 'abc', 'abc'])
+    var view : rostr = text
+    PrintLn('align-30 = {} {} {} {}', [text.length,
+            view[1:31] == 'abc                           ',
+            view[32:62] == '                           abc',
+            view[63:93] == '             abc              ']) //?check('align-30', '94 true true true')
+
+    var bounded : embstr(8) = ''
+    bounded.AddFmt('{:^11}', ['abc'])
+    PrintLn('align-bounded = |{}|', [bounded]) //?check('align-bounded', '|    abc|')
+#ifdef DYNSTRINGS
+    var dynamic_text : str = Format('|{:<6}|{:>6}|{:^6}|', ['abc', 'abc', 'abc'])
+    PrintLn('align-str = {}', [dynamic_text]) //?check('align-str', '|abc   |   abc| abc  |')
+#endif
+endfunc

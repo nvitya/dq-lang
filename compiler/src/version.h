@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.5"
+#define DQ_COMPILER_VERSION  "0.94.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.6:
+  - Text formatting made more C++/Python compatible
 v0.94.5:
   - Added new string methods: .Upper(), .Lower(), .ToInt(), .ToFloat()
 v0.94.4:

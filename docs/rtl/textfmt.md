@@ -44,20 +44,38 @@ argument syntax.
 
 ## Width, Fill, Sign, Precision
 
-The formatter supports a small, printf-like subset:
+The formatter supports width, alignment, sign, zero fill, and float precision:
 
 ```dq
-PrintLn("[{:5d}] [{:-5d}] [{:05d}]", [7, 7, 7])
+PrintLn("[{:5d}] [{:<5d}] [{:05d}]", [7, 7, 7])
 PrintLn("{:+d} {:.2f} {:08X}", [12, 3.14159, 255])
+PrintLn("|{:<6}|{:>6}|{:^6}|", ["abc", "abc", "abc"])
+// Prints: |abc   |   abc| abc  |
 ```
 
 | Part | Example | Meaning |
 | --- | --- | --- |
 | `0` | `{:05d}` | use zero fill |
 | `+` | `{:+d}` | print a plus sign for positive signed numbers |
-| `-` | `{:-5d}` | left align within the width |
+| `-` | `{:-5d}` | print a sign only for negative numbers (the default) |
+| space | `{: 5d}` | reserve a leading space for non-negative signed numbers |
+| `<` | `{:<30}` | left align within the width |
+| `>` | `{:>30}` | right align within the width |
+| `^` | `{:^30}` | center within the width |
 | width | `{:8d}` | minimum field width |
 | precision | `{:.2f}` | digits after decimal for floats |
+
+Alignment precedes sign, zero fill, width, precision, and type, for example
+`{:^+10.2f}` or `{:+08.2f}`. As in C++ and Python, `-` is a sign option;
+use `<` for left alignment. The old DQ `-` alignment and zero-before-sign
+order (`{:0+8.2f}`) are no longer supported.
+
+Widths apply to text, characters, numbers, booleans, null values, and pointers.
+The default alignment is right. Width is a minimum measured in output bytes;
+values wider than the field are never truncated. Centering puts any extra padding
+byte on the right. Padding uses spaces, except numeric right alignment with `0`,
+which adds zeros after the sign or pointer prefix. Left and center alignment use
+spaces even when `0` is specified.
 
 Unsupported or mismatched format/type combinations do not throw. The formatter
 writes a short marker such as `<i-f!>` and records an internal formatter flag.

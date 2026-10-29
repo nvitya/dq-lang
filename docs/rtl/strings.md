@@ -47,16 +47,25 @@ No `use` declaration is needed.
 
 ```dq
 func Format(afmt : rostr, aargs : []anyvalue) -> str
-func StrToInt(sv : strslice, defvalue : int = 0) -> int
+func StrToInt(sv : strslice) -> int
+func StrToInt(sv : strslice, defvalue : int) -> int
+func StrToFloat(sv : strslice) -> float
 func StrToFloat(sv : strslice, defvalue : float) -> float
 func StrUpper(astr : strslice) -> str
 func StrLower(astr : strslice) -> str
 ```
 
 `Format` returns a new string using the [text formatting](textfmt.md) syntax.
-`StrToInt` parses decimal digits with a minus sign; `StrToFloat` accepts a dot
-or comma decimal separator and an optional `e`/`E` exponent. Both return
-`defvalue` for empty input or an unrecognized character.
+`StrToInt` parses decimal digits with an optional leading sign and rejects
+values outside the range of `int`. `StrToFloat` accepts an optional leading
+sign, a dot or comma decimal separator, and an optional `e`/`E` exponent with
+an optional sign and required digits. The entire input must match; whitespace
+is not skipped.
+
+Without `defvalue`, invalid or empty input raises `EStrError`. With `defvalue`,
+conversion errors return that fallback instead. When exceptions are disabled,
+the no-fallback overload reports a runtime error (returning zero if the handler
+returns), while the fallback overload still returns `defvalue`.
 
 `StrUpper` and `StrLower` convert ASCII letters and copy other bytes unchanged.
 They and `Format` require dynamic strings; the two parsing functions also work
@@ -114,9 +123,14 @@ The following read-only methods are available on `str`, `rostr`, `strslice`,
 and `embstr` values. They accept a `char` or a text value where a search,
 prefix, suffix, trim set, or fill value is required. Search positions and
 lengths are byte-based, just like `.length` and normal indexing.
+`Upper()` and `Lower()` leave the receiver unchanged and preserve non-ASCII
+bytes. Numeric methods use the same conversion rules as the standalone helpers.
 
 | Member | Result | Meaning |
 | --- | --- | --- |
+| `Upper()` / `Lower()` | `str` | return a copy with ASCII letters converted to upper/lower case |
+| `ToInt()` / `ToInt(defvalue)` | `int` | parse an integer; raise on invalid input or return the supplied fallback |
+| `ToFloat()` / `ToFloat(defvalue)` | `float` | parse a floating point value; raise on invalid input or return the supplied fallback |
 | `Trim()` / `Trim(set)` | `str` | remove whitespace, or bytes in `set`, from both ends |
 | `LTrim()` / `LTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the left end |
 | `RTrim()` / `RTrim(set)` | `str` | remove whitespace, or bytes in `set`, from the right end |
@@ -168,9 +182,10 @@ text.StartsWith("abc")   // true
 text.EndsWith("abc")     // true
 ```
 
-The trim and padding methods create a `str`, so they are unavailable on
-targets built with dynamic strings disabled. The search methods only return
-scalar values and remain available for the supported text views.
+The case conversion, trim, and padding methods create a `str`, so they are
+unavailable on targets built with dynamic strings disabled. Numeric conversion
+and search methods return scalar values and remain available for the supported
+text views.
 
 ## Unicode Operations
 

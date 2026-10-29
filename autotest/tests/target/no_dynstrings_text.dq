@@ -17,11 +17,15 @@ func FormatText() -> int:
 endfunc
 
 func ParseText() -> int64:
-    return StrToInt("42")
+    var good : rostr = "42"
+    var bad : rostr = "bad"
+    return good.ToInt() + bad.ToInt(7)
 endfunc
 
 func ParseFloat() -> float:
-    return StrToFloat("1.25e2", 0)
+    var good : rostr = "1.25e2"
+    var bad : rostr = "bad"
+    return good.ToFloat() + bad.ToFloat(7)
 endfunc
 
 func CompareText(a : rostr, b : embstr) -> bool:
@@ -42,4 +46,9 @@ func DecodeText(text : embstr) -> int:
     var from_readonly : [*]wchar = readonly.ToWchars()
     var from_fixed : [*]wchar = fixed.ToWchars()
     return from_alias.length + from_view.length + from_readonly.length + from_fixed.length
+endfunc
+
+func ParseBorrowed(a : rostr, b : strslice, c : embstr) -> float:
+    var fixed : embstr(16) = "12"
+    return a.ToInt() + b.ToInt(3) + c.ToFloat() + fixed.ToFloat(4)
 endfunc

@@ -2412,6 +2412,19 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     method = STRM_TO_WCHARS;
     rettype = g_builtins->type_wchar->GetDynArrayType();
   }
+  else if ("Upper" == membername || "Lower" == membername)
+  {
+    if (!check_count(0, 0)) return free_and_fail();
+    method = ("Upper" == membername ? STRM_UPPER : STRM_LOWER);
+    rettype = g_builtins->type_str;
+  }
+  else if ("ToInt" == membername || "ToFloat" == membername)
+  {
+    if (!check_count(0, 1)) return free_and_fail();
+    method = ("ToInt" == membername ? STRM_TO_INT : STRM_TO_FLOAT);
+    rettype = (STRM_TO_INT == method ? static_cast<OType *>(g_builtins->type_int) : g_builtins->type_float);
+    if (!rawargs.empty()) argtypes.push_back(rettype);
+  }
   else if ("Trim" == membername)
   {
     if (!check_count(0, 1)) return free_and_fail();
@@ -2514,7 +2527,8 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
   }
 
   bool needs_dynstrings = !IsStringUtilityMethod(method) && (STRM_TO_WCHARS != method);
-  if (STRM_TRIM == method || STRM_LTRIM == method || STRM_RTRIM == method
+  if (STRM_UPPER == method || STRM_LOWER == method
+      || STRM_TRIM == method || STRM_LTRIM == method || STRM_RTRIM == method
       || STRM_LPAD == method || STRM_RPAD == method)
   {
     needs_dynstrings = true;
@@ -2838,7 +2852,11 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
 
 static bool IsStringUtilityMethodName(const string & name)
 {
-  return name == "Trim"
+  return name == "Upper"
+      || name == "Lower"
+      || name == "ToInt"
+      || name == "ToFloat"
+      || name == "Trim"
       || name == "LTrim"
       || name == "RTrim"
       || name == "LPad"

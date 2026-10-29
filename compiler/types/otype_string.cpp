@@ -982,6 +982,18 @@ LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMeth
     LlValue * result = nullptr;
     switch (method)
     {
+      case STRM_UPPER:
+      case STRM_LOWER:
+        result = CallDynStrFunc(scope, (STRM_UPPER == method ? "StrUpper" : "StrLower"), {rec_info});
+        break;
+      case STRM_TO_INT:
+      case STRM_TO_FLOAT:
+      {
+        vector<LlValue *> call_args = {rec_info};
+        if (!args.empty()) call_args.push_back(args[0]->Generate(scope));
+        result = CallDynStrFunc(scope, (STRM_TO_INT == method ? "StrToInt" : "StrToFloat"), call_args);
+        break;
+      }
       case STRM_TRIM:
       case STRM_LTRIM:
       case STRM_RTRIM:

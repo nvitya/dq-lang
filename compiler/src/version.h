@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.4"
+#define DQ_COMPILER_VERSION  "0.94.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.5:
+  - Added new string methods: .Upper(), .Lower(), .ToInt(), .ToFloat()
 v0.94.4:
   - .wclen, .wchars and .ToWchars() added to embstr, embstr(n)
 v0.94.3:

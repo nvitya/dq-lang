@@ -27,6 +27,23 @@ func *Main():
         return
     endif
 
+    var invalid_number : rostr = "bad"
+    var bad_int : int = invalid_number.ToInt()
+    var bad_float : float = invalid_number.ToFloat()
+    if error_count <> 5 or bad_int <> 0 or bad_float <> 0:
+        exit_code = 4
+        return
+    endif
+    if StrToInt("bad", 7) <> 7 or StrToFloat("bad", 8) <> 8:
+        exit_code = 5
+        return
+    endif
+    var text : embstr(16) = "bad"
+    if text.ToInt(9) <> 9 or text.ToFloat(10) <> 10 or error_count <> 5:
+        exit_code = 6
+        return
+    endif
+
     var arr : [*]int32
     arr.Append(7)
     var past_end : ^int32 = %arr[1]
@@ -36,7 +53,7 @@ func *Main():
     var empty : ^int32 = %arr[0]
     arr.Clear(true)
     var unallocated : ^int32 = %arr[0]
-    if error_count <> 7 or past_end <> nil or before_start <> nil or empty <> nil or unallocated <> nil:
+    if error_count <> 9 or past_end <> nil or before_start <> nil or empty <> nil or unallocated <> nil:
         exit_code = 3
         return
     endif

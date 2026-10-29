@@ -47,6 +47,10 @@ enum EStringMethod
   STRM_POP_FIRST_CHAR,
   STRM_ADDFMT,
   STRM_TO_WCHARS,
+  STRM_UPPER,
+  STRM_LOWER,
+  STRM_TO_INT,
+  STRM_TO_FLOAT,
   STRM_TRIM,
   STRM_LTRIM,
   STRM_RTRIM,
@@ -61,7 +65,7 @@ enum EStringMethod
 
 inline bool IsStringUtilityMethod(EStringMethod method)
 {
-  return method >= STRM_TRIM && method <= STRM_ENDSWITH;
+  return method >= STRM_UPPER && method <= STRM_ENDSWITH;
 }
 
 class OTypeString : public OType

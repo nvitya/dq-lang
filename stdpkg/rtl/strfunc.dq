@@ -38,8 +38,10 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
 func StrSlice(data : ^char, length : int) -> strslice ..
 func StrSliceCmp(a : strslice, b : strslice) -> int ..
 func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int ..
-func StrToInt(sv : strslice, defvalue : int = 0) -> int ..
-func StrToFloat(sv : strslice, defvalue : float) -> float ..
+func StrToInt(sv : strslice) -> int [[overload]] ..
+func StrToInt(sv : strslice, defvalue : int) -> int [[overload]] ..
+func StrToFloat(sv : strslice) -> float [[overload]] ..
+func StrToFloat(sv : strslice, defvalue : float) -> float [[overload]] ..
 
 #ifdef DYNSTRINGS
 func Format(afmt : rostr, aargs : []anyvalue) -> str ..
@@ -100,82 +102,137 @@ func Format(afmt : rostr, aargs : []anyvalue) -> str:
 endfunc
 #endif
 
-func StrToInt(sv : strslice, defvalue : int = 0) -> int:
-    if sv.length < 1:
-        return defvalue
+// Parsers leave the output unchanged on failure, preserving caller-supplied defaults.
+func StrfParseInt(sv : strslice, value : refout int) -> bool:
+    if sv.length == 0:
+        return false
+    endif
+    var i : int = 0
+    var negative : bool = sv[0] == '-'
+    if negative or sv[0] == '+':
+        ++i
+    endif
+    if i == sv.length:
+        return false
     endif
 
-    result = 0
-    var sign : int = 1
-    for i : int = 0 count sv.length:
+    // Accumulate negatively so the minimum signed value is representable.
+    var maxvalue : uint = -1
+    maxvalue = maxvalue >> 1
+    var limit : int = -int(maxvalue)
+    if negative:
+        --limit
+    endif
+    var threshold : int = limit div 10
+    var magnitude : int = 0
+    while i < sv.length:
         var c : char = sv[i]
-        if c == '-':
-            sign = -1
-        elif '0' <= c <= '9':
-            result = result * 10 + int(Ord(c) - Ord('0'))
-        else:
-            return defvalue
+        if not ('0' <= c <= '9'):
+            return false
         endif
-    endfor
-    result = sign * result  // apply the sign
+        var digit : int = Ord(c) - Ord('0')
+        if magnitude < threshold:
+            return false
+        endif
+        magnitude *= 10
+        if magnitude < limit + digit:
+            return false
+        endif
+        magnitude -= digit
+        ++i
+    endwhile
+    if negative:
+        value = magnitude
+    else:
+        value = -magnitude
+    endif
+    return true
 endfunc
 
-func StrToFloat(sv : strslice, defvalue : float) -> float:
-    if sv.length < 1:
-        return defvalue
+func StrToInt(sv : strslice) -> int [[overload]]:
+    if not StrfParseInt(sv, result):
+        StrfRuntimeError('Invalid integer conversion')
+        return 0
+    endif
+endfunc
+
+func StrToInt(sv : strslice, defvalue : int) -> int [[overload]]:
+    result = defvalue
+    StrfParseInt(sv, result)
+endfunc
+
+func StrfParseFloat(sv : strslice, value : refout float) -> bool:
+    if sv.length == 0:
+        return false
+    endif
+    var i : int = 0
+    var nsign : float = 1
+    if sv[0] == '-' or sv[0] == '+':
+        if sv[0] == '-':
+            nsign = -1
+        endif
+        ++i
     endif
 
-    var pc   : ^char = %sv[0]
-    var pend : ^char = pc + sv.length
-
-    var nsign   : float = 1
     var esign   : float = 1
     var fracmul : float = 1
     var nv      : float = 0
     var ev      : float = 0
     var mode    : int = 0  // 0 = integer, 1 = fractional, 2 = exponent
+    var digits : bool = false
+    var expdigits : bool = false
 
-    while pc < pend:
-        var c : char = char(pc^)
-
-        if c == '+':
-            if mode == 2:
-                esign = 1
-            else:
-                nsign = 1
-            endif
-        elif c == '-':
-            if mode == 2:
-                esign = -1
-            else:
-                nsign = -1
-            endif
-        elif '0' <= c <= '9':
+    while i < sv.length:
+        var c : char = sv[i]
+        if '0' <= c <= '9':
             var digit : int = Ord(c) - Ord('0')
-            if mode == 1:
-                fracmul *= 0.1
-                nv += digit * fracmul
-            elif mode == 2:
+            if mode == 2:
                 ev = ev * 10 + digit
+                expdigits = true
             else:
-                nv = nv * 10 + digit
+                digits = true
+                if mode == 1:
+                    fracmul *= 0.1
+                    nv += digit * fracmul
+                else:
+                    nv = nv * 10 + digit
+                endif
             endif
-        elif c == '.'  or c == ',':
+        elif (c == '.' or c == ',') and mode == 0:
             mode = 1
-        elif c == 'e'  or c == 'E':
+        elif (c == 'e' or c == 'E') and mode < 2 and digits:
             mode = 2
+            if i + 1 < sv.length:
+                if sv[i + 1] == '-' or sv[i + 1] == '+':
+                    ++i
+                    if sv[i] == '-':
+                        esign = -1
+                    endif
+                endif
+            endif
         else:
-            break
+            return false
         endif
-
-        ++pc
+        ++i
     endwhile
 
-    if pc < pend:  // early exit means invalid floating point value
-        return defvalue
+    if not digits or (mode == 2 and not expdigits):
+        return false
     endif
+    value = nsign * nv * libc_pow(10, esign * ev)
+    return true
+endfunc
 
-    return nsign * nv * libc_pow(10, esign * ev)
+func StrToFloat(sv : strslice) -> float [[overload]]:
+    if not StrfParseFloat(sv, result):
+        StrfRuntimeError('Invalid floating point conversion')
+        return 0
+    endif
+endfunc
+
+func StrToFloat(sv : strslice, defvalue : float) -> float [[overload]]:
+    result = defvalue
+    StrfParseFloat(sv, result)
 endfunc
 
 #ifdef DYNSTRINGS

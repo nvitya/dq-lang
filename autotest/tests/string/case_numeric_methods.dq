@@ -1,0 +1,117 @@
+// Case conversion and numeric parsing on every string representation.
+use libc/stdio
+use rtl/exception
+use rtl/mem
+
+func PrintCase(label : ^char, upper : strslice, lower : strslice):
+    var up : str = upper
+    var low : str = lower
+    printf("%s = %s %s\n", label, up.pchar, low.pchar)
+endfunc
+
+func CheckBorrowed(text : embstr):
+    PrintCase("borrowed_case", text.Upper(), text.Lower()) //?check("borrowed_case", "AZ-é! az-é!")
+    text.Set("42")
+    printf("borrowed_numbers = %li %li %.2f %.2f\n", text.ToInt(), text.ToInt(9), text.ToFloat(), text.ToFloat(9)) //?check("borrowed_numbers", "42 42 42.00 42.00")
+endfunc
+
+func CheckInvalid(text : strslice) -> int:
+    var caught : int = 0
+    try:
+        var value : int = StrToInt(text)
+    except EStrError:
+        ++caught
+    endtry
+    try:
+        var value : int = text.ToInt()
+    except EStrError:
+        ++caught
+    endtry
+    try:
+        var value : float = StrToFloat(text)
+    except EStrError:
+        ++caught
+    endtry
+    try:
+        var value : float = text.ToFloat()
+    except EStrError:
+        ++caught
+    endtry
+    if StrToInt(text, 7) <> 7 or text.ToInt(8) <> 8:
+        return -100
+    endif
+    if StrToFloat(text, 9) <> 9 or text.ToFloat(10) <> 10:
+        return -100
+    endif
+    return caught
+endfunc
+
+func *Main():
+    var owned : str = "aZ-é!"
+    var readonly : rostr = owned
+    var view : strslice = owned[:]
+    var fixed : embstr(32) = owned
+    PrintCase("owned_case", owned.Upper(), owned.Lower()) //?check("owned_case", "AZ-é! az-é!")
+    PrintCase("readonly_case", readonly.Upper(), readonly.Lower()) //?check("readonly_case", "AZ-é! az-é!")
+    PrintCase("view_case", view.Upper(), view.Lower()) //?check("view_case", "AZ-é! az-é!")
+    PrintCase("fixed_case", fixed.Upper(), fixed.Lower()) //?check("fixed_case", "AZ-é! az-é!")
+    CheckBorrowed(fixed)
+    printf("unchanged = %s\n", owned.pchar) //?check("unchanged", "aZ-é!")
+    var empty : rostr = ""
+    var empty_upper : str = empty.Upper()
+    var empty_lower : str = empty.Lower()
+    printf("empty_case = %li %li\n", empty_upper.length, empty_lower.length) //?check("empty_case", "0 0")
+    var bytes : str = "a"
+    bytes.Append(char(0))
+    bytes.Append('Z')
+    var upper : str = bytes.Upper()
+    var lower : str = bytes.Lower()
+    printf("binary_case = %li %li %li %li\n", upper.length, Ord(upper[0]), Ord(upper[1]), Ord(lower[2])) //?check("binary_case", "3 65 0 122")
+
+    owned = "42"
+    readonly = owned
+    view = owned[:]
+    printf("owned_numbers = %li %li %.2f %.2f\n", owned.ToInt(), owned.ToInt(9), owned.ToFloat(), owned.ToFloat(9)) //?check("owned_numbers", "42 42 42.00 42.00")
+    printf("readonly_numbers = %li %li %.2f %.2f\n", readonly.ToInt(), readonly.ToInt(9), readonly.ToFloat(), readonly.ToFloat(9)) //?check("readonly_numbers", "42 42 42.00 42.00")
+    printf("view_numbers = %li %li %.2f %.2f\n", view.ToInt(), view.ToInt(9), view.ToFloat(), view.ToFloat(9)) //?check("view_numbers", "42 42 42.00 42.00")
+    printf("fixed_numbers = %li %li %.2f %.2f\n", fixed.ToInt(), fixed.ToInt(9), fixed.ToFloat(), fixed.ToFloat(9)) //?check("fixed_numbers", "42 42 42.00 42.00")
+    printf("signed_numbers = %li %li %.3f %.3f %.3f\n", StrToInt("+42"), StrToInt("-42"), StrToFloat("-1,25e-1"), StrToFloat("+.5E+2"), StrToFloat("1.")) //?check("signed_numbers", "42 -42 -0.125 50.000 1.000")
+    var padded_int : rostr = " 42 "
+    var padded_float : rostr = " 1.25 "
+    printf("chained = %li %.2f\n", padded_int.Trim().ToInt(), padded_float.Trim().ToFloat()) //?check("chained", "42 1.25")
+
+    var baseline : int64 = heap_allocated_size
+    var caught : int = 0
+    var invalid : [14]^char = ["", "bad", "-", "+", ".", "1-2", "--1", "1e", "1e+", "1e2e3", "1.2.3", "1e2.3", " 42", "42 "]
+    for i : int = 0 count invalid.length:
+        caught += CheckInvalid(invalid[i])
+    endfor
+    var binary : str = "1"
+    binary.Append(char(0))
+    binary.Append('2')
+    caught += CheckInvalid(binary)
+    binary.Clear(true)
+    printf("invalid_numbers = %li heap:%d\n", caught, heap_allocated_size == baseline) //?check("invalid_numbers", "60 heap:1")
+
+    var maxtext : rostr = "9223372036854775807"
+    var mintext : rostr = "-9223372036854775808"
+    var overflow : rostr = "9223372036854775808"
+    var underflow : rostr = "-9223372036854775809"
+    if SizeOf(int) == 4:
+        maxtext = "2147483647"
+        mintext = "-2147483648"
+        overflow = "2147483648"
+        underflow = "-2147483649"
+    endif
+    var maxvalue : uint = -1
+    maxvalue = maxvalue >> 1
+    var minvalue : int = -int(maxvalue) - 1
+    printf("int_limits = %d %d %li %li\n", StrToInt(maxtext) == int(maxvalue), StrToInt(mintext) == minvalue, StrToInt(overflow, 7), StrToInt(underflow, 8)) //?check("int_limits", "1 1 7 8")
+    var overflow_caught : int = 0
+    try:
+        var value : int = overflow.ToInt()
+    except EStrError:
+        ++overflow_caught
+    endtry
+    printf("overflow_raises = %li\n", overflow_caught) //?check("overflow_raises", 1)
+endfunc

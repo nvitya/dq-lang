@@ -25,8 +25,9 @@ b[0] = 'X'  // a is still "abc"
 
 `rostr` provides read-only byte and Unicode access. It borrows storage without
 copying, converts directly to C string pointers, and returns `strslice` slices.
-`AddFmt` format arguments use `rostr`; mutation sources still accept arbitrary
-text views. See [Strings and Characters](../reference/strings-and-characters.md)
+`AddFmt` format arguments use `strslice` and accept unterminated substring
+views directly. Mutation sources also accept arbitrary text views. See
+[Strings and Characters](../reference/strings-and-characters.md)
 for conversions and lifetime requirements.
 
 ## Common Operations
@@ -185,6 +186,9 @@ zero.
 `embstr(n)` owns exactly `n` bytes of fixed storage, including the zero
 terminator. Its maximum content length is `n - 1` bytes.
 Appending and assigning truncate to fit.
+An `embstr(N)` declaration without an initializer starts empty; `.Add()` and
+`.AddFmt()` can be called immediately. Only its first byte is guaranteed to be
+zero; bytes beyond the terminator are unspecified.
 
 ```dq
 var cs : embstr(6) = "abc"

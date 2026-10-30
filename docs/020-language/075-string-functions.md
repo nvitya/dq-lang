@@ -75,7 +75,7 @@ dynamic-string support.
 
 | Function | Result | Purpose |
 | --- | --- | --- |
-| [`Format(fmt : rostr, args : []anyvalue)`](#format) | `str` | Create formatted text |
+| [`Format(fmt : strslice, args : []anyvalue)`](#format) | `str` | Create formatted text |
 | [`StrFromUtf16(chars : []char16)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert a UTF-16 array to UTF-8 |
 | [`StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar)`](#utf16-fallback-conversion) | `str` | Convert UTF-16, replacing malformed sequences |
 | [`StrFromUtf16Ptr(chars : ^char16, count : int)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert an explicit number of UTF-16 code units |
@@ -152,11 +152,13 @@ use `StrSliceCmp` to compare their text contents explicitly.
 ### Format
 
 ```text
-Format(fmt : rostr, args : []anyvalue) -> str
+Format(fmt : strslice, args : []anyvalue) -> str
 ```
 
 `Format(fmt, args)` creates a new string using the same placeholders as
-`.AddFmt()`. See [Text Formatting](077-text-formatting.md) for the full syntax.
+`.AddFmt()`. Its `strslice` format parameter accepts substring views directly,
+including text without a terminating zero. See
+[Text Formatting](077-text-formatting.md) for the full syntax.
 
 ```dq
 var label : str = Format("value={:04X}", [255]) // "value=00FF"
@@ -381,7 +383,7 @@ same replacement syntax. Embedded destinations truncate the source to fit.
 var text : str = "old"
 text.Set("new")           // "new"
 text.Set('!')             // "!"
-var buffer : embstr(8) = ""
+var buffer : embstr(8)
 buffer.Set("abcdefghij")  // "abcdefg"
 ```
 
@@ -397,6 +399,7 @@ buffer.Set("abcdefghij")  // "abcdefg"
 
 `.Add(value)` and `.Append(value)` append text or a `char` byte. `.AppendChar(ch)`
 accepts only a `char`. These methods modify the string and return no value.
+An `embstr(N)` declaration starts empty, so it can be appended to immediately.
 
 ```dq
 var text : str = "abc"
@@ -408,17 +411,19 @@ text.AppendChar('?')      // "abcdef!?"
 ### .AddFmt
 
 ```text
-.AddFmt(fmt : rostr, args : []anyvalue)
+.AddFmt(fmt : strslice, args : []anyvalue)
 ```
 
 `.AddFmt(fmt, args)` appends text containing formatted
-values. Embedded destinations truncate the output to fit. Placeholder syntax
+values. The format parameter is `strslice`, so substring views can be passed
+directly. An `embstr(N)` declaration starts empty and can be used directly with
+`.AddFmt()`. Embedded destinations truncate the output to fit. Placeholder syntax
 and supported value types are explained in [Text Formatting](077-text-formatting.md).
 
 ```dq
 var text : str = "value="
 text.AddFmt("{:04X}", [255]) // "value=00FF"
-var buffer : embstr(16) = ""
+var buffer : embstr(16)
 buffer.AddFmt("{} items", [3]) // "3 items"
 ```
 

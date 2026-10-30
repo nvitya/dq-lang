@@ -33,6 +33,10 @@ Initialize scalar locals before reading them. A declaration such as
 compiler tracks definite assignment across branches and reports uninitialized
 uses. A function result must likewise be assigned on every normal exit path.
 
+Sized embedded strings are initialized automatically: `var s : embstr(32)`
+starts empty and can be read or appended to immediately. See
+[Embedded Strings](070-strings-and-characters.md#embstrn-and-embstr-embedded-strings).
+
 Global storage is zero/default-initialized before program startup. Types with
 managed lifetimes, including dynamic arrays and owning references, have their
 own empty/default initialization and cleanup rules. Use an explicit initializer

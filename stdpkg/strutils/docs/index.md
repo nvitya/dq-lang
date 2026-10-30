@@ -9,10 +9,11 @@ use strutils
 ## Formatting
 
 ```dq
-func Format(afmt : rostr, aargs : []anyvalue) -> str
+func Format(afmt : strslice, aargs : []anyvalue) -> str
 ```
 
-`Format` returns a new dynamic string using the runtime formatter.
+`Format` returns a new dynamic string using the runtime formatter. Its
+`strslice` format parameter accepts substring views without a terminating zero.
 
 ```dq
 var s : str = Format("{} = {:04X}", ["value", 255])

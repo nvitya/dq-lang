@@ -17,7 +17,7 @@ endfunc
 func *Main():
     var name : rostr = "Ada Lovelace"
     var first_name : strslice = name[0:3]
-    var field : embstr(32) = ""
+    var field : embstr(32)
     AppendField(field, "name", first_name)
     field.AddFmt(', "year":{}', [1979])
 
@@ -181,6 +181,18 @@ the length may require a scan at runtime. DQ can cache the length to avoid
 repeated scans. Embedded strings can be stored in the program's data segment,
 on the stack, or inside structures and objects. Their maximum text length is
 `16777215` bytes.
+
+A declaration without an initializer creates an empty string. `.Add()` and
+`.AddFmt()` can be called immediately after the declaration:
+
+```dq
+var s : embstr(16)
+s.Add("value=")           // = "value=": contents of s
+s.AddFmt("{}", [42])      // = "value=42": contents of s
+```
+
+For a declaration without an initializer, only the leading zero terminator is
+guaranteed; bytes beyond it are unspecified.
 
 For `embstr(N)`, `.storage_size` is `N` and `.maxlength` is `N - 1`.
 Assignment and append operations truncate to fit the fixed capacity:

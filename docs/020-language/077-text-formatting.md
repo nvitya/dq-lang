@@ -41,8 +41,8 @@ PrintLn("{} has {} messages.", [s, i]) // = "Amy has 42 messages."
 To print formatted text to the standard output use these functions from the `print` package:
 
 ```text
-Print(fmt : rostr, args : []anyvalue)
-PrintLn(fmt : rostr, args : []anyvalue)
+Print(fmt : strslice, args : []anyvalue)
+PrintLn(fmt : strslice, args : []anyvalue)
 ```
 
 `fmt` is the format string. `args` is an **array slice of `anyvalue`**.
@@ -162,16 +162,16 @@ representation; a colon introduces formatting options.
 
 | Form | Accepted values | Meaning |
 | --- | --- | --- |
-| `{}` / `{:?}` | Any supported value | Default representation. Use this for `bool` types |
-| `{:d}` | Integers, characters | Signed decimal number or character code |
-| `{:u}` | Integers, characters | Unsigned decimal number or character code |
-| `{:x}` | Integers, characters | Lowercase hexadecimal |
-| `{:X}` | Integers, characters | Uppercase hexadecimal |
-| `{:p}` | Pointer values | Hexadecimal address with a leading `^` |
-| `{:s}` | Text, characters | Text bytes or a character |
-| `{:f}` | Floating-point values | Decimal floating-point output |
-| `{{` | No argument | Literal `{` |
-| `}}` | No argument | Literal `}` |
+| [`{}` / `{:?}`](#booleans) | Any supported value | Default representation. Use this for `bool` types |
+| [`{:d}`](#signed-integers-d) | Integers, characters | Signed decimal number or character code |
+| [`{:u}`](#unsigned-integers-u) | Integers, characters | Unsigned decimal number or character code |
+| [`{:x}`](#hexadecimal-integers-x-and-x) | Integers, characters | Lowercase hexadecimal |
+| [`{:X}`](#hexadecimal-integers-x-and-x) | Integers, characters | Uppercase hexadecimal |
+| [`{:p}`](#pointers-p) | Pointer values | Hexadecimal address with a leading `^` |
+| [`{:s}`](#text-s) | Text, characters | Text bytes or a character |
+| [`{:f}`](#floating-point-numbers-f) | Floating-point values | Decimal floating-point output |
+| [`{{`](#literal-braces-and-escaping) | No argument | Literal `{` |
+| [`}}`](#literal-braces-and-escaping) | No argument | Literal `}` |
 
 ### Signed Integers: `{:d}`
 
@@ -260,7 +260,7 @@ PrintLn("[{:8s}]", [t])  // = "[abcdefghij]": longer text is not truncated
 ```
 
 The `s` kind is optional: `{:8}` and `{:8s}` both reserve a right-aligned field
-at least eight bytes wide. Width never truncates longer text.
+at least eight Unicode code points wide. Width never truncates longer text.
 
 ### Booleans: `{}`
 
@@ -365,7 +365,7 @@ in the placeholder. Each bracketed part is optional.
 | `-` | `{:-d}` | Show a sign only for negative values; this is the default |
 | Space | `{: d}` | Use a leading space for a non-negative signed number or float |
 | `0` | `{:06d}` | Use zeros for right-aligned numeric padding |
-| Width | `{:8s}` | Reserve at least eight output bytes |
+| Width | `{:8s}` | Reserve a field at least eight Unicode code points wide |
 | Precision | `{:.2f}` | Write two digits after the decimal point |
 
 Width and alignment work with text, characters, numbers, Boolean values, null,
@@ -374,14 +374,22 @@ on the right, `>` pads on the left, and `^` divides padding between both sides.
 If centering needs an odd number of spaces, the extra space goes on the right.
 
 Width is a minimum, not a maximum: longer values are never truncated to fit.
-Width counts output bytes, so a UTF-8 character can occupy more than one byte
-of the field:
+Width counts **Unicode code points**, not UTF-8 bytes. For example, `€` counts
+as one code point even though its UTF-8 encoding uses three bytes, and `café`
+counts as four:
 
 ```dq
 var w : wchar = '€'
+var s : rostr = "café"
 
-PrintLn("[{:>5s}]", [w]) // = "[  €]": two spaces plus three UTF-8 bytes
+PrintLn("[{:>5s}]", [w]) // = "[    €]": four spaces plus one code point
+PrintLn("[{:>6s}]", [s]) // = "[  café]": right alignment
+PrintLn("[{:<6s}]", [s]) // = "[café  ]": left alignment
+PrintLn("[{:^6s}]", [s]) // = "[ café ]": centered text
 ```
+
+Combining marks count separately. Width does not measure visual character
+groups or terminal display columns.
 
 A negative sign is written automatically. `+` also requests a sign for
 non-negative signed numbers and floating-point values. A space sign option
@@ -402,25 +410,30 @@ The same placeholders and `[]anyvalue` argument syntax work with each API:
 
 | API | Destination | Availability |
 | --- | --- | --- |
-| `Print(fmt, args)` / `PrintLn(fmt, args)` | Standard output | `use print` |
-| `Format(fmt, args)` | A new `str` | Implicit `sys`; requires dynamic-string support |
-| `.AddFmt(fmt, args)` on `str` | Appends to a dynamic string | Requires dynamic-string support |
-| `.AddFmt(fmt, args)` on `embstr` | Appends to a fixed buffer | Works without dynamic-string support |
-| `Exception(fmt, args)` | Exception message | Requires exception support |
+| [`Print(fmt, args)` / `PrintLn(fmt, args)`](#print-and-println) | Standard output | `use print` |
+| [`Format(fmt, args)`](#format) | A new `str` | Implicit `sys`; requires dynamic-string support |
+| [`.AddFmt(fmt, args)` on `str`](#addfmt) | Appends to a dynamic string | Requires dynamic-string support |
+| [`.AddFmt(fmt, args)` on `embstr`](#addfmt) | Appends to a fixed buffer | Works without dynamic-string support |
+| [`Exception(fmt, args)`](#exception-messages) | Exception message | Requires exception support |
 
-The format parameter is `rostr`: use a literal or existing zero-terminated text.
-A `strslice` is not implicitly converted to `rostr`; copy it to a terminated
-`str` or `embstr(N)` first when using it as the format string. Text argument
-values can still be unterminated `strslice` views.
+The `fmt` parameter is `strslice`: literals, `str`, `rostr`, `embstr`, and
+existing slices can be passed directly. Even a substring can be used as the format:
+
+```dq
+var i : int = 42
+var s : rostr = "{} ignored"
+
+PrintLn(s[0:2], [i]) // = "42": only the "{}" slice is parsed
+```
 
 ### Print and PrintLn
 
 ```text
 Print(text : strslice)
-Print(fmt : rostr, args : []anyvalue)
+Print(fmt : strslice, args : []anyvalue)
 PrintLn()
 PrintLn(text : strslice)
-PrintLn(fmt : rostr, args : []anyvalue)
+PrintLn(fmt : strslice, args : []anyvalue)
 ```
 
 `Print` writes without adding a newline. `PrintLn` adds a newline, and
@@ -445,24 +458,36 @@ PrintLn("{{}}", []) // = "{}"
 ### Format
 
 ```text
-Format(fmt : rostr, args : []anyvalue) -> str
+Format(fmt : strslice, args : []anyvalue) -> str
 ```
 
 Use `Format()` when the result should be stored or returned rather than
-immediately printed. It is available without a `use` declaration.
+immediately printed. `Format()` is included in the implicit `sys`, which
+means it is available without a `use` declaration.
 
 ```dq
 var s : str = Format("item-{:04d}", [i]) // = "item-0042": contents of s
 ```
 
+`Format()` is also useful when passing formatted text to a function that does
+not support formatting itself. For example, a database connection's
+`.Execute(sql)` method takes a complete SQL statement. Here, `dbconn` is an open
+database connection and `items` is a table with one integer column:
+
+```dq
+var i : int = 42
+dbconn.Execute(Format("INSERT INTO items VALUES ({:d})", [i]))
+```
+
 ### .AddFmt
 
 ```text
-.AddFmt(fmt : rostr, args : []anyvalue)
+.AddFmt(fmt : strslice, args : []anyvalue)
 ```
 
-`.AddFmt()` appends to the existing contents. Initialize an embedded buffer
-before the first append. `.Clear()` makes it empty when starting a new message.
+`.AddFmt()` appends to the existing contents. A sized embedded string starts
+empty on declaration, so `.AddFmt()` can be called immediately. `.Clear()`
+empties an existing string when starting a new message.
 
 For a dynamic string:
 
@@ -475,7 +500,7 @@ s.AddFmt("{}: {} items", [i, n]) // = "Order 42: 255 items": contents of s
 For an embedded string:
 
 ```dq
-var s : embstr(32) = ""
+var s : embstr(32)
 
 s.AddFmt("mask = {:04X}", [n]) // = "mask = 00FF": contents of s
 ```
@@ -484,7 +509,7 @@ A `str` grows as needed. An `embstr(N)` keeps its fixed buffer, including space
 for the terminating zero, so formatting can truncate the result:
 
 ```dq
-var s : embstr(8) = ""
+var s : embstr(8)
 
 s.AddFmt("{}", ["abcdefghij"]) // = "abcdefg": contents of s; seven bytes plus the terminator fit
 ```
@@ -497,7 +522,7 @@ Repeated `.AddFmt()` calls can assemble a larger message. Reserve space with
 The formatted `Exception` constructor takes the same format and argument types:
 
 ```text
-Exception(fmt : rostr, args : []anyvalue)
+Exception(fmt : strslice, args : []anyvalue)
 ```
 
 ```dq

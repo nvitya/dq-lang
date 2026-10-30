@@ -74,7 +74,8 @@ as a substitute for structured cleanup.
 
 `Exception` has a message and a captured backtrace. Common operations are
 `.message`, `GetMessage()`, `PrintMessage()`, and `PrintBacktrace()`.
-The formatted constructor accepts a format string and `[]anyvalue` arguments.
+The formatted constructor accepts a `strslice` format string and `[]anyvalue`
+arguments. Its format string can be an unterminated substring view.
 
 ```dq
 try:

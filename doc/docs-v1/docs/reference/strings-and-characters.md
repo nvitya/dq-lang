@@ -105,9 +105,10 @@ in C variadic positions, so `printf("%s", borrowed)` passes a pointer.
 Raw pointers retain their existing mutability; callers must respect the
 borrowed storage's read-only contract.
 
-Standard-library paths, names, commands, messages, and format strings use
-`rostr`. Parser input, generic text algorithms, output chunks, and byte payloads
-continue to use `strslice` so they accept slices without allocating.
+Standard-library paths, names, commands, and plain exception messages use
+`rostr`. Format strings use `strslice`, as do parser input, generic text
+algorithms, output chunks, and byte payloads, so they accept unterminated
+slices without allocating.
 
 Use `StrSlice(data, length)` to borrow a known-length byte range from a
 `^char`, including an unterminated range or one containing zero bytes. The
@@ -150,6 +151,9 @@ encoding errors. `ToUtf16` returns an array that includes a final zero code unit
 `embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
 the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
 append-style operations truncate to fit rather than growing the value.
+Without an initializer, `embstr(N)` starts empty and can be read or appended
+to immediately. Only its first byte is guaranteed to be zero; bytes beyond
+the terminator are unspecified.
 
 ```dq
 var name : embstr(6) = "abc"

@@ -69,9 +69,10 @@ fixed `embstr`, and dynamic `str`.
 var s : str = "value: "
 s.AddFmt("{}", [123])
 
-var cs : embstr(31) = ""
+var cs : embstr(31)
 cs.AddFmt("{}", [123])
 ```
 
 `embstr` formatting is bounded by the destination storage. Dynamic `str`
-formatting can allocate as needed.
+formatting can allocate as needed. A sized `embstr(N)` declaration starts
+empty, so `.AddFmt()` can be used immediately.

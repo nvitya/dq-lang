@@ -106,3 +106,6 @@ Detailed import, conflict, and reexport behavior is defined in
 Primitive and aggregate values can be initialized with type-appropriate
 expressions. `{}` performs zero/default initialization for supported aggregate
 types. Assignment is a statement and does not itself produce a value.
+
+Sized embedded string declarations such as `var s : embstr(32)` start empty
+without an explicit initializer and can be read or appended to immediately.

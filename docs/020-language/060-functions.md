@@ -156,7 +156,7 @@ argument list is an ordinary parameter that can be forwarded to other functions:
 ```dq
 use print
 
-func Log(format : rostr, values : []anyvalue):
+func Log(format : strslice, values : []anyvalue):
     PrintLn(format, values)
 endfunc
 

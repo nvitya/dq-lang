@@ -1,25 +1,63 @@
 # Arrays and Slices
 
 An array holds a sequence of values of the same element type. A fixed array
-stores a known number of elements directly. A dynamic array can grow, and a
-slice borrows part of an existing array without copying it.
+stores a known number of elements directly. A dynamic array can grow, and an
+array slice borrows part of an existing array without copying it.
 
 ```dq
 use print
 
+func PrintArray(arr : []int):
+    Print("[")
+    for i : int = 0 count arr.length:
+        if i > 0:
+            Print(", ")
+        endif
+        Print("{}", [arr[i]])
+    endfor
+    PrintLn("]")
+endfunc
+
 func *Main():
     var values : [*]int = [10, 20, 30]
+    Print("Initial values: ")
+    PrintArray(values)
+
     var alias : [*]int = values
     alias[0] = 99
+    Print("After alias[0] = 99, values: ")
+    PrintArray(values)
+
     alias.Append(40)
+    Print("After alias.Append(40), values: ")
+    PrintArray(values)
+
     var copy : [*]int = values.Clone()
+    Print("Cloned copy: ")
+    PrintArray(copy)
+
     copy[0] = 7
-    PrintLn("{} {} {}", [values.length, values[0], copy[0]])
+    Print("After copy[0] = 7, copy: ")
+    PrintArray(copy)
+    Print("After copy[0] = 7, values: ")
+    PrintArray(values)
 endfunc
 ```
 
-This prints `4 99 7`. Assignment shares the dynamic array; `Clone` makes an
-independent array.
+This prints:
+
+```text
+Initial values: [10, 20, 30]
+After alias[0] = 99, values: [99, 20, 30]
+After alias.Append(40), values: [99, 20, 30, 40]
+Cloned copy: [99, 20, 30, 40]
+After copy[0] = 7, copy: [7, 20, 30, 40]
+After copy[0] = 7, values: [99, 20, 30, 40]
+```
+
+Assignment shares the dynamic array; `Clone` makes an independent array.
+`PrintArray` borrows each array as a slice, so the same function can print fixed
+arrays, dynamic arrays, and slices.
 
 ## Array Forms
 
@@ -77,6 +115,11 @@ Increasing length initializes new elements. Decreasing length removes trailing
 elements. `SetCapacity(n)` truncates the length when `n` is smaller than the current
 length. Capacity is never less than length. `Reserve` only grows capacity;
 `Compact` reduces it to the current length; `Clear(true)` may release storage.
+
+An empty dynamic array may be represented by just a `nil` pointer, with no heap
+allocation. Non empty dynamic array variables contain an object pointer to the
+reference-counted dynamic array manager object, which separately manages the
+storage for the array elements.
 
 ## Slices
 

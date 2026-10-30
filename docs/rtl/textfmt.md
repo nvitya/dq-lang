@@ -51,6 +51,8 @@ PrintLn("[{:5d}] [{:<5d}] [{:05d}]", [7, 7, 7])
 PrintLn("{:+d} {:.2f} {:08X}", [12, 3.14159, 255])
 PrintLn("|{:<6}|{:>6}|{:^6}|", ["abc", "abc", "abc"])
 // Prints: |abc   |   abc| abc  |
+PrintLn("|{:<6}|{:>6}|{:^6}|", ["árvíz", "árvíz", "árvíz"])
+// Prints: |árvíz | árvíz|árvíz |
 ```
 
 | Part | Example | Meaning |
@@ -71,9 +73,12 @@ use `<` for left alignment. The old DQ `-` alignment and zero-before-sign
 order (`{:0+8.2f}`) are no longer supported.
 
 Widths apply to text, characters, numbers, booleans, null values, and pointers.
-The default alignment is right. Width is a minimum measured in output bytes;
-values wider than the field are never truncated. Centering puts any extra padding
-byte on the right. Padding uses spaces, except numeric right alignment with `0`,
+The default alignment is right. Width is a minimum measured in Unicode scalar
+values (the same count as `.wclen`), so UTF-8 text receives the same padding as
+ASCII text with the same character count. This counts scalars, not grapheme
+clusters or terminal display columns. Values wider than the field are never
+truncated. Centering puts any extra padding space on the right. Padding uses
+spaces, except numeric right alignment with `0`,
 which adds zeros after the sign or pointer prefix. Left and center alignment use
 spaces even when `0` is specified.
 

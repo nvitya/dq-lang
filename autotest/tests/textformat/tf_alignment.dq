@@ -32,7 +32,20 @@ func *Main():
     fmt.Format('align-char = |{:<4}|{:>4s}|{:^4}|\n',
                [char(65), char(66), char(67)]) //?check('align-char', '|A   |   B| C  |')
     fmt.Format('align-utf8 = |{:<5}|{:>5s}|{:^6}|\n',
-               [wchar(0x20AC), '€', wchar(0x20AC)]) //?check('align-utf8', '|€  |  €| €  |')
+               [wchar(0x20AC), '€', wchar(0x20AC)]) //?check('align-utf8', '|€    |    €|  €   |')
+    fmt.Format('align-unicode = |{:<6}|{:>6s}|{:^6}|{:^7}|\n',
+               ['é€😀', 'é€😀', 'é€😀', 'é€😀']) //?check('align-unicode', '|é€😀   |   é€😀| é€😀  |  é€😀  |')
+    fmt.Format('align-mixed = |{:<6}|{:>6}|{:^7}|\n',
+               ['Aé€😀', 'Aé€😀', 'Aé€😀']) //?check('align-mixed', '|Aé€😀  |  Aé€😀| Aé€😀  |')
+    fmt.Format('align-unicode-width = |{:<2}|{:>3}|{:^0}|{}|\n',
+               ['é€😀', 'é€😀', 'é€😀', 'é€😀']) //?check('align-unicode-width', '|é€😀|é€😀|é€😀|é€😀|')
+    fmt.Format('align-wchar = |{:<3}|{:>3s}|{:^4}|\n',
+               [wchar(0xE9), char16(0x20AC), wchar(0x1F600)]) //?check('align-wchar', '|é  |  €| 😀  |')
+    var unicode_text : embstr(32) = 'Aé€😀Z'
+    var unicode_view : rostr = unicode_text
+    var unicode_slice : strslice = unicode_view[1:10]
+    fmt.Format('align-text-types = |{:<7}|{:>7s}|{:^6}|\n',
+               [unicode_text, unicode_view, unicode_slice]) //?check('align-text-types', '|Aé€😀Z  |  Aé€😀Z| é€😀  |')
     fmt.Format('align-bool = |{:<7}|{:>7}|{:^7}|\n',
                [true, false, true]) //?check('align-bool', '|true   |  false| true  |')
     var null_value : anyvalue
@@ -60,8 +73,15 @@ func *Main():
     var bounded : embstr(8) = ''
     bounded.AddFmt('{:^11}', ['abc'])
     PrintLn('align-bounded = |{}|', [bounded]) //?check('align-bounded', '|    abc|')
+    text.Clear()
+    text.AddFmt('|{:<6}|{:>6}|{:^6}|', ['é€😀', 'é€😀', 'é€😀'])
+    PrintLn('align-embstr-unicode = {}', [text]) //?check('align-embstr-unicode', '|é€😀   |   é€😀| é€😀  |')
 #ifdef DYNSTRINGS
     var dynamic_text : str = Format('|{:<6}|{:>6}|{:^6}|', ['abc', 'abc', 'abc'])
     PrintLn('align-str = {}', [dynamic_text]) //?check('align-str', '|abc   |   abc| abc  |')
+    dynamic_text = Format('|{:<6}|{:>6}|{:^6}|', ['é€😀', 'é€😀', 'é€😀'])
+    PrintLn('align-str-unicode = {}', [dynamic_text]) //?check('align-str-unicode', '|é€😀   |   é€😀| é€😀  |')
+    dynamic_text = 'é€😀'
+    fmt.Format('align-str-arg = |{:>6}|\n', [dynamic_text]) //?check('align-str-arg', '|   é€😀|')
 #endif
 endfunc

@@ -101,7 +101,7 @@ endobject
 
 struct STextFmtSpec:
     kind       : char  // d/u/x/X/s/p/f/?
-    width      : int   // -1 means unspecified
+    width      : int   // minimum Unicode scalar count; -1 means unspecified
     precision  : int   // -1 means unspecified
     fill       : char  // normally ' ' or '0'
     align      : char  // <, >, or ^
@@ -489,9 +489,13 @@ func OTextFormatter.WriteFieldPad(alength : int, aafter : bool):
 endfunc
 
 func OTextFormatter.WriteFormattedText(atext : strslice):
-    WriteFieldPad(atext.length, false)
+    var text_length : int = 0
+    if fmtspec.width > 0:
+        text_length = atext.wclen
+    endif
+    WriteFieldPad(text_length, false)
     sink.Write(atext)
-    WriteFieldPad(atext.length, true)
+    WriteFieldPad(text_length, true)
 endfunc
 
 func OTextFormatter.WritePad(acount : int, ch : char):

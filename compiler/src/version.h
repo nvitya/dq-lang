@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.6"
+#define DQ_COMPILER_VERSION  "0.94.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.7:
+  - Textformatting use unicode aware padding
 v0.94.6:
   - Text formatting made more C++/Python compatible
 v0.94.5:

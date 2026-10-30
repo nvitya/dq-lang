@@ -5,6 +5,10 @@ The format string supplies the surrounding text; a separate argument list
 supplies the values. DQ uses this text formatting syntax in multiple places,
 such as printing or creating exception messages.
 
+DQ aims to be compatible with the brace-based formatting syntax of C++
+`std::format` and Python `str.format()`. This chapter describes the currently
+supported placeholders and options.
+
 ## A Simple Print Example
 
 The examples use `PrintLn` from `use print`. Unless stated otherwise, they
@@ -485,48 +489,60 @@ dbconn.Execute(Format("INSERT INTO items VALUES ({:d})", [i]))
 .AddFmt(fmt : strslice, args : []anyvalue)
 ```
 
-`.AddFmt()` appends to the existing contents. A sized embedded string starts
-empty on declaration, so `.AddFmt()` can be called immediately. `.Clear()`
-empties an existing string when starting a new message.
+`.AddFmt()` appends to the existing contents of the `str` or `embstr`.
 
-For a dynamic string:
-
-```dq
-var s : str = "Order "
-
-s.AddFmt("{}: {} items", [i, n]) // = "Order 42: 255 items": contents of s
-```
-
-For an embedded string:
+`str` and `embstr(n)` declarations without initializers initialize the string
+variables empty, so `.AddFmt()` can be called immediately (calling`.Clear()`
+before is not necessary):
 
 ```dq
-var s : embstr(32)
-
-s.AddFmt("mask = {:04X}", [n]) // = "mask = 00FF": contents of s
+var ds : str
+ds.AddFmt("Order {}: {} items", [i, n]) // = "Order 42: 255 items": contents of s
+var es : embstr(32)
+es.AddFmt("mask = {:04X}", [n]) // = "mask = 00FF": contents of s
 ```
 
-A `str` grows as needed. An `embstr(N)` keeps its fixed buffer, including space
+A `str` grows as needed by re-allocating its storage memory. An `embstr(N)` keeps its fixed buffer, including space
 for the terminating zero, so formatting can truncate the result:
 
 ```dq
-var s : embstr(8)
-
-s.AddFmt("{}", ["abcdefghij"]) // = "abcdefg": contents of s; seven bytes plus the terminator fit
+var es : embstr(8)
+es.AddFmt("{}", ["abcdefghij"]) // = "abcdefg": contents of s; seven bytes plus the terminator fit
 ```
 
 Repeated `.AddFmt()` calls can assemble a larger message. Reserve space with
-`.Reserve()` first when the expected size of a dynamic string is known.
+`.Reserve()` first when the expected size of a dynamic string is known. This
+avoids repeated buffer growth and can reduce heap fragmentation.
+
+The following example reserves 50000 bytes, enough for the numbers 1 through
+10000, each followed by a space:
+
+```dq
+use print
+
+func AppendNumbers(s : ref str):
+    for i : int = 1 to 10000:
+        s.AddFmt("{:d} ", [i])
+    endfor
+endfunc
+
+func *Main():
+    var s : str
+    s.Reserve(50000)
+    AppendNumbers(s)
+    PrintLn("String length: {}", [s.length]) // = "String length: 48894"
+endfunc
+```
 
 ### Exception Messages
 
-The formatted `Exception` constructor takes the same format and argument types:
-
-```text
-Exception(fmt : strslice, args : []anyvalue)
-```
+The text formatting can be used at rising exceptions too:
 
 ```dq
-raise Exception("invalid count: {}", [-i]) // = "invalid count: -42": exception message
+var i : int = -42
+if i < 1:
+    raise Exception("invalid count: {}", [i]) // = "invalid count: 42"
+endif
 ```
 
 See [Exceptions and Error Handling](140-exceptions-and-error-handling.md) for
@@ -551,9 +567,6 @@ PrintLn("{:f}", [i]) // = "<i-f!>": an integer with a float placeholder
 PrintLn("{:d}", [s]) // = "<s-f!>": text with a numeric placeholder
 PrintLn("{:d}", [b]) // = "<b-f!>": a Boolean with a numeric placeholder
 ```
-
-The format language is DQ-specific. C `printf` placeholders such as `%d` have
-no substitution meaning here. Use `{}` or a supported `{:...}` placeholder.
 
 ### Low-Level Formatter Flags
 

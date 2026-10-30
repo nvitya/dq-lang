@@ -345,7 +345,7 @@ var path       : str = "/"
 var slash      : wchar = '/'
 var byte_slash : char = '/'
 var greeting   : rostr = "Hello, world!"
-var field      : rostr = '"name":"Ada"'
+var field      : rostr = '"name":"Amy"'
 ```
 
 The `byte_slash` initialization is accepted because the literal's character code
@@ -405,8 +405,8 @@ quotes inside triple double quotes do not need a backslash:
 ```dq
 var document : rostr = """
     {
-      "name": "Ada",
-      "year": 1979
+      "name": "Amy",
+      "year": 1999
     }
     """
 PrintLn(document)
@@ -416,8 +416,8 @@ This prints:
 
 ```json
 {
-  "name": "Ada",
-  "year": 1979
+  "name": "Amy",
+  "year": 1999
 }
 ```
 

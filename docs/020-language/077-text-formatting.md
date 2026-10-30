@@ -2,44 +2,43 @@
 
 Text formatting inserts values into a string at placeholders such as `{}`.
 The format string supplies the surrounding text; a separate argument list
-supplies the values. DQ uses the same format language for printing, creating
-strings, appending text, and exception messages.
+supplies the values. DQ uses this text formatting syntax in multiple places,
+such as printing or creating exception messages.
 
-## A First Example
+## A Simple Print Example
 
-```dq
-use print
-
-func *Main():
-    PrintLn("Hello!")
-    PrintLn("Hello, {}!", ["Ada"])
-    PrintLn("You have {} messages.", [3])
-endfunc
-```
-
-Output:
-
-```text
-Hello!
-Hello, Ada!
-You have 3 messages.
-```
-
-In `PrintLn("Hello, {}!", ["Ada"])`, `{}` is replaced by the first value in
-`["Ada"]`. The square brackets belong to the DQ argument-list expression;
-they are not printed. `PrintLn` adds a newline after the result.
-
-Several placeholders consume values from left to right:
+The examples use `PrintLn` from `use print`. Unless stated otherwise, they
+use these single-letter variables. The type-specific subsections repeat the
+relevant declarations so their examples can be read independently.
 
 ```dq
-var name : rostr = "Ada"
-var count : int = 3
-PrintLn("{} has {} messages.", [name, count]) // Ada has 3 messages.
+var i : int = 42
+var n : uint = 255
+var f : float = 3.5
+var s : rostr = "Amy"
+var b : bool = true
+var c : char = 'A'
+var w : wchar = '€'
+var p : ^int = %i
+var v : anyvalue
+v.SetNull()
+```
+
+```dq
+PrintLn("Hello, {}!", [s]) // = "Hello, Amy!"
+```
+
+`{}` is replaced by the first value in `[s]`. The square brackets belong to
+the DQ argument-list expression; they are not printed. `PrintLn` adds a newline
+after the result. Multiple placeholders consume values from left to right:
+
+```dq
+PrintLn("{} has {} messages.", [s, i]) // = "Amy has 42 messages."
 ```
 
 ## Formatting Arguments: `[]anyvalue`
 
-To print formatted text to the standard output use these variants:
+To print formatted text to the standard output use these functions from the `print` package:
 
 ```text
 Print(fmt : rostr, args : []anyvalue)
@@ -52,39 +51,33 @@ whether to print text, a number, a Boolean, or a character.
 
 ### Writing the Argument List
 
-The usual syntax is `[value1, value2, ...]`. Separate elements with commas.
+The usual syntax is `[s, i, b]`. Separate the elements with commas.
 The compiler knows that the formatting call expects `[]anyvalue`, so it
 converts each element to `anyvalue` automatically. The elements can have
 different types; no explicit conversions to `anyvalue` are needed.
 
 ```dq
-var name : rostr = "Ada"
-var count : int = 3
-var active : bool = true
-PrintLn("name={}, count={}, active={}", [name, count, active])
-// name=Ada, count=3, active=true
+PrintLn("name={}, count={}, active={}", [s, i, b]) // = "name=Amy, count=42, active=true"
 ```
 
 Each element can also be an expression:
 
 ```dq
-var count : int = 3
-PrintLn("next={}, doubled={}", [count + 1, count * 2]) // next=4, doubled=6
+PrintLn("next={}, doubled={}", [i + 1, i * 2]) // = "next=43, doubled=84"
 ```
 
-Even a single value needs brackets, because the second parameter is an array,
+Even a single value needs brackets, because the second parameter must be an array,
 not one value:
 
 ```dq
-var count : int = 3
-PrintLn("count={}", [count]) // count=3
+PrintLn("count={}", [i]) // = "count=42"
 ```
 
 These calls have the wrong argument syntax and do not compile:
 
 ```text
-PrintLn("count={}", count)     // ERROR: second parameter must be []anyvalue
-PrintLn("{} {}", name, count)  // ERROR: values belong together in [name, count]
+PrintLn("count={}", i) // ERROR: second parameter must be []anyvalue
+PrintLn("{} {}", s, i) // ERROR: values belong together in [s, i]
 ```
 
 ### Which Values Can Be Passed?
@@ -110,84 +103,66 @@ can choose a representation, but it does not perform arbitrary conversions
 between these categories.
 
 ```dq
-var price : float = 3.5
-PrintLn("{} / {} / {} / {}", [42, price, true, '€']) // 42 / 3.5 / true / €
+PrintLn("{} / {} / {} / {}", [i, f, b, w]) // = "42 / 3.5 / true / €"
 ```
 
 Objects, structures, function references, and whole arrays cannot be passed as
-values for automatic formatting. Select their fields or elements instead:
+values for automatic formatting. Select their fields or elements instead.
 
 ```dq
-var values : [3]int = [10, 20, 30]
-PrintLn("first={}, count={}", [values[0], values.length]) // first=10, count=3
+var a : [3]int = [10, 20, 30]
+
+PrintLn("first={}, count={}", [a[0], a.length]) // = "first=10, count=3"
 ```
 
 See [anyvalue](150-anyvalue.md) for its accessors and lifetime rules.
 
 ### Reusing an Argument Array
 
-The argument array can be passed on to further functions like the following
-example shows:
+An existing argument slice can be passed on to further functions. Pass the
+slice directly:
 
 ```dq
-use print
+var m : rostr = "{} has {} messages."
+var a : []anyvalue = [s, i]
 
-func Log(fmt : rostr, args : []anyvalue):
-    Print("[info] ")
-    PrintLn(fmt, args)
-endfunc
-
-func *Main():
-    var name : rostr = "Ada"
-    var count : int = 3
-    Log("{} has {} messages.", [name, count])
-    Log("Next count: {}", [count + 1])
-endfunc
+PrintLn(m, a) // = "Amy has 42 messages."
 ```
 
-Output:
-
-```text
-[info] Ada has 3 messages.
-[info] Next count: 4
-```
-
-Inside `Log`, `args` is already a slice, so pass it directly as `PrintLn(fmt, args)`.
-There is no need to rebuild the list.
-
-Inside the `Log()` the line `PrintLn(fmt, [args])` would be wrong (compile error). The args is already the expected `[]anyvalue`,
-`[args]` is `[][]anyvalue` which is not compatible with the formatting functions.
+There is no need to rebuild the list. `PrintLn(m, [a])` would be a compile
+error: `[a]` is `[1][]anyvalue`, which is not compatible with `[]anyvalue`.
 
 ### Matching Values to Format String Placeholders
 
-Each placeholder uses the next value. To print the same value twice, include
-it twice. Escaped braces do not consume values.
+Each placeholder uses the next value. To print the same value multiple times, include
+it in the `args` multiple times:
 
 ```dq
-var count : int = 3
-PrintLn("{} + {} = {}", [count, count, count + count]) // 3 + 3 = 6
+PrintLn("{} + {} = {}", [i, i, i + i]) // = "42 + 42 = 84"
 ```
 
-Use one argument for each placeholder. There are no named or numbered argument
+One argument is used for each placeholder. There are no named or numbered argument
 references. The current formatter writes `null` for a missing argument and
 ignores arguments left over after the last placeholder:
 
 ```dq
-PrintLn("{} / {}", ["Ada"])      // Ada / null
-PrintLn("{}", ["Ada", 3])        // Ada
+PrintLn("{} / {}", [s]) // = "Amy / null"
+PrintLn("{}", [s, i])   // = "Amy"
 ```
 
-These mismatches are not compile-time argument-count errors: the function
-receives one slice, and the format string is interpreted at runtime.
+These mismatches do not generate compile-time or runtime errors.
 
 ## Format String Placeholders
 
-Ordinary characters in the format string are copied to the output. `{...}` in the format strings
-adds the next argument formatted to the output. `{}` uses the default representation, a colon introduces formatting options.
+Ordinary characters in the format string are copied to the output. Each
+`{...}` placeholder inserts the next argument. `{}` uses the default
+representation; a colon introduces formatting options.
+
+### Main Placeholder Variants
 
 | Form | Accepted values | Meaning |
 | --- | --- | --- |
-| `{}` / `{:?}` | Any supported value | Default representation |
+| `{}` / `{:?}` | Any supported value | Default representation. Use this for `bool` types |
 | `{:d}` | Integers, characters | Signed decimal number or character code |
 | `{:u}` | Integers, characters | Unsigned decimal number or character code |
 | `{:x}` | Integers, characters | Lowercase hexadecimal |
@@ -198,176 +173,228 @@ adds the next argument formatted to the output. `{}` uses the default representa
 | `{{` | No argument | Literal `{` |
 | `}}` | No argument | Literal `}` |
 
-For `bool` types just use `{}`.
+### Signed Integers: `{:d}`
 
-### Decimal and Hexadecimal Numbers
-
-```dq
-var value : int = 255
-var count : uint = 42
-PrintLn("decimal={}, hex={:x}, HEX={:X}", [value, value, value])
-// decimal=255, hex=ff, HEX=FF
-PrintLn("unsigned={:u}", [count]) // unsigned=42
-```
-
-### Characters and Character Codes
-
-Default formatting writes a character. Explicit numeric formats write its
-code. A `char` writes one byte; a `wchar` is encoded as UTF-8.
+Use `{:d}` for signed decimal output. `{}` gives the same result for a signed
+integer.
 
 ```dq
-var letter : char = 'A'
-PrintLn("letter={}, code={:d}, hex={:X}", [letter, letter, letter])
-// letter=A, code=65, hex=41
-PrintLn("symbol={}, code={:d}", ['€', '€']) // symbol=€, code=8364
+var i : int = 42
+
+PrintLn("{:d}", [i])     // = "42"
+PrintLn("[{:6d}]", [i])  // = "[    42]": minimum width
+PrintLn("{:06d}", [i])   // = "000042": zero padding
+PrintLn("{:+d}", [i])    // = "+42": explicit sign
+PrintLn("{:+06d}", [i])  // = "+00042": sign followed by zero padding
+PrintLn("[{: d}]", [i])  // = "[ 42]": reserve a sign position
+PrintLn("{:06d}", [-i])  // = "-00042": negative sign before the zeros
+PrintLn("[{:<6d}]", [i]) // = "[42    ]": left alignment
 ```
 
-A `char16` value is converted to `wchar` before formatting. A UTF-16 surrogate
-pair is not combined automatically when its two code units are passed as two
-arguments. Convert UTF-16 text with `StrFromUtf16()` first. An invalid Unicode
-character value, including an isolated surrogate, produces `�` and sets the
-low-level `DQFMT_ARG_ERROR` flag.
+### Unsigned Integers: `{:u}`
 
-### Pointers and Null
-
-A nil pointer and a null `anyvalue` are different values:
+Use `{:u}` for unsigned decimal output, including the full range of `uint`.
 
 ```dq
-var address : pointer = nil
-var missing : anyvalue
-missing.SetNull()
-PrintLn("address={:p}, missing={}", [address, missing]) // address=^0, missing=null
+var n : uint = 255
+
+PrintLn("{:u}", [n])     // = "255"
+PrintLn("[{:6u}]", [n])  // = "[   255]"
+PrintLn("{:06u}", [n])   // = "000255"
+PrintLn("[{:<6u}]", [n]) // = "[255   ]"
 ```
 
-A `^char` is treated as text. To format its address instead, first convert it
-to `pointer` or explicitly store it with `anyvalue.SetPointer()`.
+### Hexadecimal Integers: `{:x}` and `{:X}`
 
-### Literal Braces
-
-Double each brace in a format string to print one literal brace:
+Use `x` for lowercase digits and `X` for uppercase digits. These formats accept
+signed and unsigned integers.
 
 ```dq
-PrintLn("{{name: {}}}", ["Ada"]) // {name: Ada}
-PrintLn("{{}}", [])             // {}
+var n : uint = 255
+
+PrintLn("{:x}", [n])   // = "ff"
+PrintLn("{:X}", [n])   // = "FF"
+PrintLn("{:08X}", [n]) // = "000000FF": zero-padded hexadecimal
+PrintLn("0x{:x}", [n]) // = "0xff": add the prefix as literal text
 ```
 
-`[]` is an empty argument list. `Format()` and `.AddFmt()` also require their
-argument-list parameter even when no values are inserted.
+### Floating-Point Numbers: `{:f}`
+
+Use `{:f}` for decimal floating-point output.
+
+```dq
+var f : float = 3.5
+
+PrintLn("{:f}", [f])       // = "3.5"
+PrintLn("{:.2f}", [f])     // = "3.50": two fractional digits
+PrintLn("{:.0f}", [f])     // = "4": rounded to a whole number
+PrintLn("[{:8.2f}]", [f])  // = "[    3.50]": width includes the decimal point
+PrintLn("{:+.2f}", [f])    // = "+3.50"
+PrintLn("{:+08.2f}", [f])  // = "+0003.50"
+PrintLn("[{:<8.2f}]", [f]) // = "[3.50    ]"
+```
+
+An explicit precision fixes the number of digits after the decimal point,
+rounding as needed and retaining trailing zeros. The decimal separator is a
+dot. Without explicit precision, `{}` and `{:f}` use up to 15 fractional digits
+and remove trailing zeros. Explicit precision is limited to 18 fractional digits.
+
+The `f` placeholder requires a floating-point value; it does not convert an
+integer to a float.
+
+### Text: `{:s}`
+
+Use `{:s}` or `{}` for text. The same formats accept the other supported
+string types and `^char`. Here, `t` contains ten characters.
+
+```dq
+var s : rostr = "Amy"
+var t : rostr = "abcdefghij"
+
+PrintLn("{:s}", [s])     // = "Amy"
+PrintLn("[{:8s}]", [s])  // = "[     Amy]": right alignment is the default
+PrintLn("[{:<8s}]", [s]) // = "[Amy     ]": left-aligned text column
+PrintLn("[{:>8s}]", [s]) // = "[     Amy]": explicit right alignment
+PrintLn("[{:^8s}]", [s]) // = "[  Amy   ]": centered text
+PrintLn("[{:8s}]", [t])  // = "[abcdefghij]": longer text is not truncated
+```
+
+The `s` kind is optional: `{:8}` and `{:8s}` both reserve a right-aligned field
+at least eight bytes wide. Width never truncates longer text.
+
+### Booleans: `{}`
+
+Use `{}` or `{:?}` for `bool`; there is no separate Boolean format letter.
+
+```dq
+var b : bool = true
+
+PrintLn("{}", [b])     // = "true"
+PrintLn("{}", [not b]) // = "false"
+PrintLn("[{:6}]", [b]) // = "[  true]"
+```
+
+### Characters: `{:s}`
+
+Default formatting and `{:s}` write a character. Explicit numeric formats
+write its code.
+
+```dq
+var c : char  = 'A'
+var w : wchar = '€'
+
+PrintLn("{}", [c])     // = "A"
+PrintLn("{}", [w])     // = "€"
+PrintLn("{:s}", [w])   // = "€"
+PrintLn("{:d}", [c])   // = "65"
+PrintLn("{:u}", [w])   // = "8364"
+PrintLn("{:04X}", [c]) // = "0041"
+```
+
+A `char` writes one byte; a `wchar` is encoded as UTF-8. A `char16` value is
+converted to `wchar` before formatting. A UTF-16 surrogate pair is not combined
+automatically when its two code units are passed as two arguments. Convert
+UTF-16 text with `StrFromUtf16()` first. An invalid Unicode character value,
+including an isolated surrogate, produces `�`.
+
+### Pointers: `{:p}`
+
+Use `{:p}` or `{}` for an address in hexadecimal with a leading `^`.
+`%i` takes the address of `i`. The output below uses an example address;
+the actual address varies between runs.
+
+```dq
+var i  : int = 42
+var p  : ^int = %i
+var z  : pointer = nil
+var pc : ^char = "abc"
+
+PrintLn("{:p}", [p])           // = "^7FFC1234ABCD": address of i
+PrintLn("{}", [p])             // = "^7FFC1234ABCD": same address with default formatting
+PrintLn("{:p}", [z])           // = "^0": nil pointer
+PrintLn("{}", [pc])            // = "abc": ^char is treated as text
+PrintLn("{:p}", [pointer(pc)]) // = "^401234": convert to pointer to print the address
+```
+
+### Null Values: `{}`
+
+A null `anyvalue` prints `null`, which differs from the `^0` output of a nil
+pointer. Initialize a null value with `.SetNull()`.
+
+```dq
+var v : anyvalue
+v.SetNull()
+
+PrintLn("{}", [v]) // = "null"
+```
+
+### Literal Braces and Escaping
+
+Double each brace in a format string to print one literal brace. Escaped braces
+do not consume arguments. In a double-quoted string literal, escape embedded
+double quotes as `\"`:
+
+```dq
+var s : rostr = "Amy"
+
+PrintLn("{{{}}}", [s])              // = "{Amy}"
+PrintLn("{{\"name\":\"{}\"}}", [s]) // = '{"name":"Amy"}': escaped double quotes
+PrintLn('{{"name":"{}"}}', [s])     // = '{"name":"Amy"}': single outer quotes avoid internal escaping
+PrintLn("{{}}", [])                 // = "{}": just the literal braces
+PrintLn("{}")                       // = "{}": no doubling need at non-formatting print
+```
 
 ## Width, Fill, Sign, Precision
 
-A placeholder can specify alignment and a minimum field width. Numeric values
-can also request a sign, zero padding, and floating-point precision. The
-supported option order is:
+The type-specific examples above show the common combinations. The supported
+option order is:
 
 ```text
 {: [alignment] [sign] [0] [width] [.precision] [kind] }
 ```
 
 Spaces and square brackets in this diagram are explanatory; do not write them
-in the placeholder. Each bracketed part is optional. Alignment is `<`, `>`, or
-`^`; the sign option is `+`, `-`, or a space. For example, `{:+08.2f}` selects
-an explicit sign, zero fill, width eight, and two fractional digits.
+in the placeholder. Each bracketed part is optional.
 
 | Option | Example | Meaning |
 | --- | --- | --- |
-| `<` | `{:<30s}` | Left-align within the field |
-| `>` | `{:>30s}` | Right-align within the field |
-| `^` | `{:^30s}` | Center within the field |
+| `<` | `{:<8s}` | Left-align within the field |
+| `>` | `{:>8s}` | Right-align within the field |
+| `^` | `{:^8s}` | Center within the field |
 | `+` | `{:+d}` | Show `+` for a non-negative signed number or float |
 | `-` | `{:-d}` | Show a sign only for negative values; this is the default |
 | Space | `{: d}` | Use a leading space for a non-negative signed number or float |
-| `0` | `{:05d}` | Use zeros for right-aligned numeric padding |
-| Width | `{:30s}` | Reserve at least 30 output bytes |
+| `0` | `{:06d}` | Use zeros for right-aligned numeric padding |
+| Width | `{:8s}` | Reserve at least eight output bytes |
 | Precision | `{:.2f}` | Write two digits after the decimal point |
 
-### Width and Alignment
-
 Width and alignment work with text, characters, numbers, Boolean values, null,
-and pointers. `<` pads on the right, `>` pads on the left, and `^` divides the
-padding between both sides. If centering needs an odd number of padding spaces,
-the extra space goes on the right.
-
-Brackets in these examples make the padding spaces visible:
-
-```dq
-PrintLn("[{:<8s}] [{:>8s}] [{:^8s}]", ["Ada", "Ada", "Ada"])
-// [Ada     ] [     Ada] [  Ada   ]
-```
-
-The same alignment markers work with integers and floating-point values:
-
-```dq
-PrintLn("[{:<8d}] [{:>8d}] [{:^8d}]", [42, 42, 42])
-// [42      ] [      42] [   42   ]
-PrintLn("[{:<8.2f}] [{:>8.2f}] [{:^8.2f}]", [3.5, 3.5, 3.5])
-// [3.50    ] [    3.50] [  3.50  ]
-```
-
-DQ defaults to **right alignment for every value type**, including text. The
-`s` kind is optional for text, so `{:30s}` and `{:30}` both produce a
-right-aligned field at least 30 bytes wide. Use `<` explicitly for a left-aligned
-text column:
-
-```dq
-var name : rostr = "Ada"
-PrintLn("[{:6s}] [{:6d}]", [name, 7])  // [   Ada] [     7]
-PrintLn("[{:<6}] [{:3d}]", [name, 7])  // [Ada   ] [  7]
-```
+and pointers. DQ defaults to **right alignment for every value type**. `<` pads
+on the right, `>` pads on the left, and `^` divides padding between both sides.
+If centering needs an odd number of spaces, the extra space goes on the right.
 
 Width is a minimum, not a maximum: longer values are never truncated to fit.
 Width counts output bytes, so a UTF-8 character can occupy more than one byte
 of the field:
 
 ```dq
-PrintLn("[{:3d}] [{:3s}]", [12345, "abcdef"]) // [12345] [abcdef]
-PrintLn("[{:>5s}]", ["€"]) // [  €]: two spaces plus three UTF-8 bytes
-```
+var w : wchar = '€'
 
-### Signs and Zero Fill
+PrintLn("[{:>5s}]", [w]) // = "[  €]": two spaces plus three UTF-8 bytes
+```
 
 A negative sign is written automatically. `+` also requests a sign for
 non-negative signed numbers and floating-point values. A space sign option
 reserves a sign position without writing `+`. The `-` option requests the
 default sign behavior; use `<` for left alignment.
 
-```dq
-PrintLn("{:+d} {:+d} {:05d}", [12, -12, -7]) // +12 -12 -0007
-PrintLn("{:+08d}", [42])                    // +0000042
-PrintLn("[{: d}] [{: d}]", [12, -12])        // [ 12] [-12]
-PrintLn("{:08X}", [255])                    // 000000FF
-```
-
 Zero padding applies to right-aligned numbers and is written after the sign
 or pointer prefix. Left and center alignment use spaces even if `0` is present.
 Text and character output also use spaces.
 
-```dq
-PrintLn("[{:>06d}] [{:<06d}] [{:^06d}]", [-12, -12, -12])
-// [-00012] [-12   ] [ -12  ]
-```
-
 Write alignment first, followed by the sign, zero fill, and width. For example,
 `{:^+8d}` centers a signed number, and `{:+08d}` enables zero fill with a sign.
 The former zero-before-sign spelling `{:0+8d}` is no longer supported.
-
-### Floating-Point Precision
-
-An explicit precision fixes the number of digits after the decimal point,
-rounding as needed and retaining trailing zeros. The output decimal separator
-is a dot.
-
-```dq
-var price : float = 3.5
-PrintLn("default={}, fixed={:.2f}", [price, price]) // default=3.5, fixed=3.50
-PrintLn("{:.2f} {:.0f}", [3.14159, 3.5])          // 3.14 4
-PrintLn("[{:8.2f}] [{:+08.2f}]", [price, price])  // [    3.50] [+0003.50]
-```
-
-Without explicit precision, the formatter uses up to 15 fractional digits and
-removes trailing zeros. Explicit precision is limited to 18 fractional digits.
-The `f` placeholder requires a floating-point value; an integer does not become
-a float merely because the placeholder says `f`.
 
 ## Formatting APIs and Destinations
 
@@ -400,10 +427,9 @@ PrintLn(fmt : rostr, args : []anyvalue)
 `PrintLn()` writes a blank line.
 
 ```dq
-Print("Hello, {}", ["Ada"])
-PrintLn("!")
-PrintLn()
-// Hello, Ada! followed by a blank line
+Print("Hello, {}", [s]) // = "Hello, Amy": without a newline
+PrintLn("!")            // = "!": followed by a newline
+PrintLn()               // = "": a blank line
 ```
 
 The one-argument form writes its text **literally**, without interpreting
@@ -411,9 +437,9 @@ placeholders or escaped braces. Supplying the second argument selects the
 formatting overload:
 
 ```dq
-PrintLn("{}")        // {}
-PrintLn("{{}}")      // {{}}
-PrintLn("{{}}", [])  // {}
+PrintLn("{}")       // = "{}"
+PrintLn("{{}}")     // = "{{}}"
+PrintLn("{{}}", []) // = "{}"
 ```
 
 ### Format
@@ -426,8 +452,7 @@ Use `Format()` when the result should be stored or returned rather than
 immediately printed. It is available without a `use` declaration.
 
 ```dq
-var label : str = Format("item-{:04d}", [7]) // "item-0007"
-PrintLn(label)                             // item-0007
+var s : str = Format("item-{:04d}", [i]) // = "item-0042": contents of s
 ```
 
 ### .AddFmt
@@ -439,35 +464,33 @@ PrintLn(label)                             // item-0007
 `.AddFmt()` appends to the existing contents. Initialize an embedded buffer
 before the first append. `.Clear()` makes it empty when starting a new message.
 
-```dq
-var text : str = "Order "
-text.AddFmt("{}: {} items", [17, 3])
-PrintLn(text) // Order 17: 3 items
+For a dynamic string:
 
-var buffer : embstr(32) = ""
-buffer.AddFmt("{} = {:04X}", ["mask", 255])
-PrintLn(buffer) // mask = 00FF
+```dq
+var s : str = "Order "
+
+s.AddFmt("{}: {} items", [i, n]) // = "Order 42: 255 items": contents of s
+```
+
+For an embedded string:
+
+```dq
+var s : embstr(32) = ""
+
+s.AddFmt("mask = {:04X}", [n]) // = "mask = 00FF": contents of s
 ```
 
 A `str` grows as needed. An `embstr(N)` keeps its fixed buffer, including space
 for the terminating zero, so formatting can truncate the result:
 
 ```dq
-var buffer : embstr(8) = ""
-buffer.AddFmt("{}", ["abcdefghij"])
-PrintLn(buffer) // abcdefg: seven text bytes plus the terminating zero fit
+var s : embstr(8) = ""
+
+s.AddFmt("{}", ["abcdefghij"]) // = "abcdefg": contents of s; seven bytes plus the terminator fit
 ```
 
-Repeated `.AddFmt()` calls can assemble a larger message. Reserve space in a
-`str` first when its expected size is known:
-
-```dq
-var text : str = ""
-text.Reserve(64)
-text.AddFmt("name={}", ["Ada"])
-text.AddFmt(", count={:03d}", [3])
-PrintLn(text) // name=Ada, count=003
-```
+Repeated `.AddFmt()` calls can assemble a larger message. Reserve space with
+`.Reserve()` first when the expected size of a dynamic string is known.
 
 ### Exception Messages
 
@@ -478,11 +501,7 @@ Exception(fmt : rostr, args : []anyvalue)
 ```
 
 ```dq
-try:
-    raise Exception("invalid count: {}", [-3])
-except Exception as error:
-    PrintLn(error.message) // invalid count: -3
-endtry
+raise Exception("invalid count: {}", [-i]) // = "invalid count: -42": exception message
 ```
 
 See [Exceptions and Error Handling](140-exceptions-and-error-handling.md) for
@@ -495,18 +514,17 @@ while `{:d}` expects an integer or a character code. Convert the value explicitl
 before formatting when another category is needed:
 
 ```dq
-var count : int = 42
-PrintLn("{:.2f}", [float(count)])   // 42.00
-PrintLn("{:d}", [StrToInt("42")]) // 42
+PrintLn("{:.2f}", [float(i)])     // = "42.00"
+PrintLn("{:d}", [StrToInt("42")]) // = "42"
 ```
 
 A type/format mismatch produces a diagnostic marker instead of throwing a
 formatting exception:
 
 ```dq
-PrintLn("{:f}", [42])   // <i-f!>: an integer with a float placeholder
-PrintLn("{:d}", ["42"]) // <s-f!>: text with a numeric placeholder
-PrintLn("{:d}", [true]) // <b-f!>: a Boolean with a numeric placeholder
+PrintLn("{:f}", [i]) // = "<i-f!>": an integer with a float placeholder
+PrintLn("{:d}", [s]) // = "<s-f!>": text with a numeric placeholder
+PrintLn("{:d}", [b]) // = "<b-f!>": a Boolean with a numeric placeholder
 ```
 
 The format language is DQ-specific. C `printf` placeholders such as `%d` have
@@ -518,26 +536,14 @@ no substitution meaning here. Use `{}` or a supported `{:...}` placeholder.
 For direct control, `rtl/textformat` exposes `OTextFormatter`, which writes
 through an `OTextSink` such as `OTextSinkEmbStr`, `OTextSinkStr`, or
 `OTextSinkStdOut`. Its `.flags` records `DQFMT_FMT_ERROR` for malformed braces
-or unsupported format options, and `DQFMT_ARG_ERROR` for incompatible value types or invalid Unicode
-characters. Each formatting call resets the flags.
+or unsupported format options, and `DQFMT_ARG_ERROR` for incompatible value
+types or invalid Unicode characters. Each formatting call resets the flags.
+
+With `use rtl/textformat`, let `t` be an `OTextFormatter` connected to the
+desired sink:
 
 ```dq
-use print
-use rtl/textformat
-
-func *Main():
-    var buffer : embstr(32) = ""
-    var sink <- OTextSinkEmbStr(buffer)
-    var formatter <- OTextFormatter(sink)
-    formatter.Format("{:f}", [42])
-    PrintLn("{} / error={}", [buffer, formatter.flags == DQFMT_ARG_ERROR])
-endfunc
-```
-
-Output:
-
-```text
-<i-f!> / error=true
+t.Format("{:f}", [i]) // = "<i-f!>": sets t.flags to DQFMT_ARG_ERROR
 ```
 
 The runtime also defines `DQFMT_TRUNCATED` and `DQFMT_SINK_ERROR`, but the current

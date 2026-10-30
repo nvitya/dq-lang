@@ -8,6 +8,14 @@ var runner <- OShellRunner()
 func *Main():
     PrintLn('ShellRunner test')
 
+    var error_format : rostr = 'code={}ignored'
+    var slice_error <- EShellResult(17, error_format[0:7], [17])
+    if slice_error.code <> 17 or slice_error.message <> 'code=17':
+        PrintLn('Shell exception slice format failed')
+        exit_code = 1
+        return
+    endif
+
     var envname : str = 'DQ_SHELLRUNNER_TEST_39A8E1'
     if GetEnv(envname, 'missing') <> 'missing':
         PrintLn('GetEnv default value failed')

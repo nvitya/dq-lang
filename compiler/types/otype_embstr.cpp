@@ -517,7 +517,7 @@ LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
 
     case ESM_ADDFMT:
     {
-      LlValue * arg0_val = g_builtins->type_rostr->GenerateBorrow(scope, args[0]);
+      LlValue * arg0_val = args[0]->Generate(scope);
       LlValue * arg1_val = args[1]->Generate(scope);
       return CallTextFormatFunc(scope, "EmbStrAddFmt", {dstdesc, arg0_val, arg1_val});
     }

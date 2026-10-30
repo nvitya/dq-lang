@@ -1,0 +1,13 @@
+//?build_suffix('no-dynstrings')
+//?exitcode(0)
+//?check('slice-print', '|é   |0007|')
+//?check('slice-println', '|é   |0007|')
+//?check('slice-formatter', '|é   |0007| true')
+//?check('slice-embstr', '|é   |0007|')
+//?check('slice-embstr-alias', '|é   |0007|')
+//?check('slice-unterminated', '42!')
+//?check('slice-empty', '42!')
+//?check('slice-source-types', '567')
+//?check('slice-exception', '|é   |0007|')
+main = 'tf_slice.dq'
+dynstrings = false

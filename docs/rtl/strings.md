@@ -25,8 +25,8 @@ b[0] = 'X'  // a is still "abc"
 
 `rostr` provides read-only byte and Unicode access. It borrows storage without
 copying, converts directly to C string pointers, and returns `strslice` slices.
-`AddFmt` format arguments use `rostr`; mutation sources still accept arbitrary
-text views. See [Strings and Characters](../reference/strings-and-characters.md)
+Formatting APIs, including `AddFmt`, accept `strslice`, so format strings can
+be arbitrary text views. See [Strings and Characters](../reference/strings-and-characters.md)
 for conversions and lifetime requirements.
 
 ## Comparison
@@ -46,7 +46,7 @@ These functions are provided by `rtl/strfunc`, reexported by implicit `sys`.
 No `use` declaration is needed.
 
 ```dq
-func Format(afmt : rostr, aargs : []anyvalue) -> str
+func Format(afmt : strslice, aargs : []anyvalue) -> str
 func StrToInt(sv : strslice) -> int
 func StrToInt(sv : strslice, defvalue : int) -> int
 func StrToFloat(sv : strslice) -> float

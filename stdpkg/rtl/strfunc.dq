@@ -44,7 +44,7 @@ func StrToFloat(sv : strslice) -> float [[overload]] ..
 func StrToFloat(sv : strslice, defvalue : float) -> float [[overload]] ..
 
 #ifdef DYNSTRINGS
-func Format(afmt : rostr, aargs : []anyvalue) -> str ..
+func Format(afmt : strslice, aargs : []anyvalue) -> str ..
 func StrUpper(astr : strslice) -> str ..
 func StrLower(astr : strslice) -> str ..
 func StrFromWchars(chars : []wchar) -> str ..
@@ -95,7 +95,7 @@ func libc_pow(x : float64, y : float64) -> float64 [[external('pow')]] ..
 #include "strmethods.dqi"
 
 #ifdef DYNSTRINGS
-func Format(afmt : rostr, aargs : []anyvalue) -> str:
+func Format(afmt : strslice, aargs : []anyvalue) -> str:
     var s : str
     s.AddFmt(afmt, aargs)
     return s

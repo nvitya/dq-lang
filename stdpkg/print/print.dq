@@ -14,10 +14,10 @@
  */
 
 func Print(fmt : strslice) [[overload]] ..
-func Print(fmt : rostr, args : []anyvalue) [[overload]] ..
+func Print(fmt : strslice, args : []anyvalue) [[overload]] ..
 func PrintLn() [[overload]] ..
 func PrintLn(fmt : strslice) [[overload]] ..
-func PrintLn(fmt : rostr, args : []anyvalue) [[overload]] ..
+func PrintLn(fmt : strslice, args : []anyvalue) [[overload]] ..
 func PrintFlush() ..
 
 func PrintSetUnbuffered() ..
@@ -38,7 +38,7 @@ func Print(fmt : strslice) [[overload]]:
     std_out_sink.Write(fmt)
 endfunc
 
-func Print(fmt : rostr, args : []anyvalue) [[overload]]:
+func Print(fmt : strslice, args : []anyvalue) [[overload]]:
     std_out_formatter.Format(fmt, args)
 endfunc
 
@@ -51,7 +51,7 @@ func PrintLn(fmt : strslice) [[overload]]:
     std_out_sink.WriteChar('\n')
 endfunc
 
-func PrintLn(fmt : rostr, args : []anyvalue) [[overload]]:
+func PrintLn(fmt : strslice, args : []anyvalue) [[overload]]:
     std_out_formatter.Format(fmt, args)
     std_out_sink.WriteChar('\n')
 endfunc

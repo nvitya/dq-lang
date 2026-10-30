@@ -1,0 +1,80 @@
+use rtl/textformat
+use print
+
+func AppendSlice(dest : embstr, fmt : strslice):
+    dest.AddFmt(fmt, ['é', 7])
+endfunc
+
+#ifdef DYNSTRINGS
+var shared_format : str
+
+func ReturnedFormat() -> str:
+    return shared_format
+endfunc
+#endif
+
+func *Main():
+    // Both ends of the format are inside the source; the suffix must be ignored.
+    var source : rostr = 'skip|{:<4s}|{:04d}|ignored {'
+    var fmt : strslice = source[4:source.length - 9]
+    Print('slice-print = ')
+    Print(fmt, ['é', 7])
+    PrintLn() //?check('slice-print', '|é   |0007|')
+    Print('slice-println = ')
+    PrintLn(fmt, ['é', 7]) //?check('slice-println', '|é   |0007|')
+
+    var text : embstr(64) = ''
+    var sink <- OTextSinkEmbStr(text)
+    var formatter <- OTextFormatter(sink)
+    formatter.Format(fmt, ['é', 7])
+    PrintLn('slice-formatter = {} {}', [text, formatter.flags == DQFMT_OK]) //?check('slice-formatter', '|é   |0007| true')
+    text.Clear()
+    text.AddFmt(fmt, ['é', 7])
+    PrintLn('slice-embstr = {}', [text]) //?check('slice-embstr', '|é   |0007|')
+    text.Clear()
+    AppendSlice(text, fmt)
+    PrintLn('slice-embstr-alias = {}', [text]) //?check('slice-embstr-alias', '|é   |0007|')
+
+    // This buffer has no zero terminator anywhere in its storage.
+    var raw : [4]char = ['{', '}', '!', '!']
+    var raw_fmt : strslice = StrSlice(%raw[0], 3)
+    text.Clear()
+    text.AddFmt(raw_fmt, [42])
+    PrintLn('slice-unterminated = {}', [text]) //?check('slice-unterminated', '42!')
+    var empty : strslice = fmt[0:0]
+    text.AddFmt(empty, [])
+    PrintLn('slice-empty = {}', [text]) //?check('slice-empty', '42!')
+
+    var pointer_fmt : ^char = '{}'
+    var readonly_fmt : rostr = pointer_fmt
+    var embedded_fmt : embstr(8) = '{}'
+    text.Clear()
+    text.AddFmt(pointer_fmt, [5])
+    text.AddFmt(readonly_fmt, [6])
+    text.AddFmt(embedded_fmt, [7])
+    PrintLn('slice-source-types = {}', [text]) //?check('slice-source-types', '567')
+
+#ifdef EXCEPTIONS
+    try:
+        raise EStrError(fmt, ['é', 7])
+    except EStrError as e:
+        PrintLn('slice-exception = {}', [e.message]) //?check('slice-exception', '|é   |0007|')
+    endtry
+#endif
+
+#ifdef DYNSTRINGS
+    var dynamic_text : str = Format(fmt, ['é', 7])
+    PrintLn('slice-format = {}', [dynamic_text]) //?check('slice-format', '|é   |0007|')
+    dynamic_text.Clear()
+    dynamic_text.AddFmt(fmt, ['é', 7])
+    PrintLn('slice-str = {}', [dynamic_text]) //?check('slice-str', '|é   |0007|')
+
+    shared_format = '|{}|'
+    var refs : int = shared_format.refcount
+    dynamic_text = Format(ReturnedFormat(), [1])
+    dynamic_text.AddFmt(ReturnedFormat(), [2])
+    text.Clear()
+    text.AddFmt(ReturnedFormat(), [3])
+    PrintLn('slice-temporary = {} {} {}', [dynamic_text, text, shared_format.refcount == refs]) //?check('slice-temporary', '|1||2| |3| true')
+#endif
+endfunc

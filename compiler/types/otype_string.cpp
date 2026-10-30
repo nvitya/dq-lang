@@ -687,7 +687,7 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
       return checked_dynstr_call("DynStrPopFirstChar", {straddr});
     case STRM_ADDFMT:
     {
-      LlValue * arg0_val = g_builtins->type_rostr->GenerateBorrow(scope, args[0]);
+      LlValue * arg0_val = args[0]->Generate(scope);
       LlValue * arg1_val = args[1]->Generate(scope);
       checked_textformat_call("DynStrAddFmt", {straddr, arg0_val, arg1_val});
       return nullptr;

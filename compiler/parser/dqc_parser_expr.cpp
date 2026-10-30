@@ -2170,7 +2170,7 @@ OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr 
   {
     if (!check_count(2, 2)) return free_and_fail();
     method = ESM_ADDFMT;
-    argtypes.push_back(g_builtins->type_rostr);
+    argtypes.push_back(g_builtins->type_strslice);
     argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
@@ -2344,7 +2344,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
   {
     if (!check_count(2, 2)) return free_and_fail();
     method = STRM_ADDFMT;
-    argtypes.push_back(g_builtins->type_rostr);
+    argtypes.push_back(g_builtins->type_strslice);
     argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }

@@ -9,7 +9,7 @@ endobject
 object EShellResult(Exception):
     code : int
     func *Create(acode : int, amsg : rostr)                        [[overload]] ..
-    func *Create(acode : int, afmt : rostr, avalues : []anyvalue)  [[overload]] ..
+    func *Create(acode : int, afmt : strslice, avalues : []anyvalue)  [[overload]] ..
 endobject
 
 object OShellRunner(OThread):
@@ -96,7 +96,7 @@ func EShellResult.*Create(acode : int, amsg : rostr) [[overload]]:
     code = acode
 endfunc
 
-func EShellResult.*Create(acode : int, afmt : rostr,
+func EShellResult.*Create(acode : int, afmt : strslice,
                               avalues : []anyvalue) [[overload]]:
     inherited Create(afmt, avalues)
     code = acode

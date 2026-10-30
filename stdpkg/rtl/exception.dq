@@ -28,7 +28,7 @@ object Exception:
     backtrace       : [DQ_EXCEPTION_BACKTRACE_MAX] pointer
 
     func *Create(amsg : rostr) [[overload]] ..
-    func *Create(afmt : rostr, avalues : []anyvalue) [[overload]] ..
+    func *Create(afmt : strslice, avalues : []anyvalue) [[overload]] ..
     func *Destroy() ..
 
     func GetMessage() -> embstr [[virtual]] ..
@@ -70,7 +70,7 @@ func Exception.*Create(amsg : rostr) [[overload]]:
     message.Set(amsg)
 endfunc
 
-func Exception.*Create(afmt : rostr, avalues : []anyvalue) [[overload]]:
+func Exception.*Create(afmt : strslice, avalues : []anyvalue) [[overload]]:
     message.AddFmt(afmt, avalues)
 endfunc
 

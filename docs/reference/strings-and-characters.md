@@ -114,9 +114,11 @@ in C variadic positions, so `printf("%s", borrowed)` passes a pointer.
 Raw pointers retain their existing mutability; callers must respect the
 borrowed storage's read-only contract.
 
-Standard-library paths, names, commands, messages, and format strings use
-`rostr`. Parser input, generic text algorithms, output chunks, and byte payloads
-continue to use `strslice` so they accept slices without allocating.
+Standard-library paths, names, commands, and plain exception messages use
+`rostr`. Text formatting APIs (`Format`, `Print`/`PrintLn` with arguments,
+`AddFmt`, and formatted exception constructors) accept `strslice`, as do parser
+input, generic text algorithms, output chunks, and byte payloads. These APIs
+accept slices without allocating or requiring a trailing zero.
 
 Use `StrSlice(data, length)` to borrow a known-length byte range from a
 `^char`, including an unterminated range or one containing zero bytes. The

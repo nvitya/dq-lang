@@ -9,7 +9,8 @@ endfunc
 
 func FormatText() -> int:
     var text : embstr(16) = "value="
-    text.AddFmt("{}", [42])
+    var fmt : rostr = "{}ignored"
+    text.AddFmt(fmt[0:2], [42])
     var view : strslice = text
     var value : anyvalue = text
     var copied : strslice = value.AsText("")

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.7"
+#define DQ_COMPILER_VERSION  "0.94.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.8:
+  - Textformatting fmt argument changed from rostr to strslice
 v0.94.7:
   - Textformatting use unicode aware padding
 v0.94.6:

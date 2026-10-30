@@ -119,7 +119,7 @@ public
 
     func *Create(asink : OTextSink) ..
     func Reset() ..
-    func Format(afmt : rostr, aargs : []anyvalue) ..
+    func Format(afmt : strslice, aargs : []anyvalue) ..
 
 protected
     curpos : int32 = 0
@@ -127,7 +127,7 @@ protected
 
     lcsbuf : embstr(48)
 
-    func ParseSpec(afmt : rostr) ..
+    func ParseSpec(afmt : strslice) ..
     func FormatAny(av : anyvalue) ..
     func FormatWChar(wc : wchar) ..
 
@@ -147,9 +147,9 @@ protected
 
 endobject
 
-func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue) ..
+func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : []anyvalue) ..
 #ifdef DYNSTRINGS
-func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue) ..
+func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : []anyvalue) ..
 #endif
 
 implementation
@@ -238,7 +238,7 @@ func OTextFormatter.Reset():
     curpos = 0
 endfunc
 
-func OTextFormatter.Format(afmt : rostr, aargs : []anyvalue):
+func OTextFormatter.Format(afmt : strslice, aargs : []anyvalue):
     use .
     Reset()
 
@@ -308,7 +308,7 @@ func OTextFormatter.Format(afmt : rostr, aargs : []anyvalue):
     endif
 endfunc
 
-func OTextFormatter.ParseSpec(afmt : rostr):
+func OTextFormatter.ParseSpec(afmt : strslice):
     var p    : uint = curpos
     var flen : uint = afmt.length
 
@@ -651,14 +651,14 @@ endfunc
 
 //----------------------------------------------------------------------------------------
 
-func EmbStrAddFmt(adest : embstr, afmt : rostr, aargs : []anyvalue):
+func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : []anyvalue):
     var osink <- OTextSinkEmbStr(adest)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)
 endfunc
 
 #ifdef DYNSTRINGS
-func DynStrAddFmt(astr : ^str, afmt : rostr, aargs : []anyvalue):
+func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : []anyvalue):
     var osink <- OTextSinkStr(astr)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)

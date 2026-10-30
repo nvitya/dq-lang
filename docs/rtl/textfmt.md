@@ -11,6 +11,9 @@ DQ text formatting is used by:
 | `Exception.Create(fmt, args)` | formats an exception message |
 
 Formatting arguments are passed as `[]anyvalue`.
+The format string is a `strslice`: literals, `rostr`, dynamic and embedded
+strings, and slices are accepted without copying. A trailing zero is not
+required; formatting reads only the supplied byte range.
 
 ```dq
 use print
@@ -18,6 +21,8 @@ use print
 PrintLn("{} = {:+08d}", ["answer", 42])
 
 var s : str = Format("hex={:04X}", [255])
+var source : rostr = "hex={:04X}ignored"
+var sliced : str = Format(source[0:10], [255])  // hex=00FF
 ```
 
 `Format` is provided by `rtl/strfunc`, reexported by implicit `sys`, so it needs

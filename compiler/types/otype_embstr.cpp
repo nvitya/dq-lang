@@ -403,8 +403,9 @@ bool OTypeEmbStr::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srce
 
   if (!srcexpr)
   {
-    LlConst * ll_zero = llvm::ConstantAggregateZero::get(GetLlType());
-    ll_builder.CreateStore(ll_zero, dstdaddr);
+    // An empty embedded string only needs its leading terminator initialized.
+    LlValue * dataptr = GenerateDataPtr(scope, dstdaddr);
+    ll_builder.CreateStore(llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 0), dataptr);
     ResetDescriptorLength(scope, dstdaddr);
     return true;
   }

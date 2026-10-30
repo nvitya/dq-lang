@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.8"
+#define DQ_COMPILER_VERSION  "0.94.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.9:
+  - embstr(n) declarations are initialized to empty, no extra initialization is required,
+    .Add(), .AddFmt() can be used directly after the declaration without initialization
 v0.94.8:
   - Textformatting fmt argument changed from rostr to strslice
 v0.94.7:

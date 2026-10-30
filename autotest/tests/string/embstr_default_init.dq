@@ -1,0 +1,50 @@
+// Sized embedded strings start empty and can be read or mutated immediately.
+
+use libc/stdio
+
+type TBuffer = embstr(16)
+
+func ConditionalAppend(append : bool) -> int:
+    var text : embstr(16)
+    if append:
+        text.Append("abc")
+    endif
+    result = text.length
+endfunc
+
+func *Main():
+    var empty : embstr(16)
+    printf("embstr_default = len:%li text:%s term:%li\n", empty.length, empty.pchar, Ord(empty.pchar[0]^)) //?check("embstr_default", "len:0 text: term:0")
+
+    var appended : embstr(16)
+    appended.Append("abc")
+    printf("embstr_default_append = %s\n", appended.pchar) //?check("embstr_default_append", "abc")
+
+    var cleared : embstr(16)
+    cleared.Clear()
+    printf("embstr_default_clear = %li\n", cleared.length) //?check("embstr_default_clear", 0)
+
+    var assigned : embstr(16)
+    assigned.Set("abc")
+    printf("embstr_default_set = %s\n", assigned.pchar) //?check("embstr_default_set", "abc")
+
+    var storage : TBuffer
+    var alias : embstr = storage
+    printf("embstr_default_alias = %li\n", alias.length) //?check("embstr_default_alias", 0)
+    alias.Append("abc")
+    printf("embstr_default_alias_append = %li %s\n", storage.length, storage.pchar) //?check("embstr_default_alias_append", "3 abc")
+
+    var minimal : [[nowarn]] embstr(1)
+    printf("embstr_default_minimal = len:%li term:%li\n", minimal.length, Ord(minimal.pchar[0]^)) //?check("embstr_default_minimal", "len:0 term:0")
+
+    printf("embstr_default_branch = %li %li\n", ConditionalAppend(false), ConditionalAppend(true)) //?check("embstr_default_branch", "0 3")
+
+    // Each execution of the declaration resets both the text and cached length.
+    var total_length : int = 0
+    for i : int = 0 count 3:
+        var repeated : embstr(16)
+        total_length += repeated.length
+        repeated.Append("abc")
+    endfor
+    printf("embstr_default_loop = %li\n", total_length) //?check("embstr_default_loop", 0)
+endfunc

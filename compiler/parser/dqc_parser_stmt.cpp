@@ -462,6 +462,11 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       pvalsym->initialized = true;
     }
+    if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(pvalsym->ptype ? pvalsym->ptype->ResolveAlias() : nullptr);
+        embstrtype && embstrtype->maxlen > 0)
+    {
+      pvalsym->initialized = true;
+    }
     if (pvalsym->ptype && (TK_ANYVALUE == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;

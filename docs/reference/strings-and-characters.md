@@ -190,6 +190,8 @@ The slice returns `[*]wchar`; `$last` and `$end` use scalar positions.
 `embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
 the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
 append-style operations truncate to fit rather than growing the value.
+Without an initializer, `embstr(N)` starts as an empty string. Only its first
+byte is guaranteed to be zero; bytes beyond the terminator are unspecified.
 
 ```dq
 var name : embstr(6) = "abc"

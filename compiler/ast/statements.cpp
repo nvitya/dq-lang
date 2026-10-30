@@ -358,15 +358,10 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (TK_EMBSTR == variable->ptype->kind)
+  if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(variable->ptype->ResolveAlias()))
   {
-    OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(variable->ptype);
     if (embstrtype->GenerateStore(scope, variable->ll_value, initvalue))
     {
-      if (!initvalue)
-      {
-        variable->initialized = true;
-      }
       return;
     }
   }

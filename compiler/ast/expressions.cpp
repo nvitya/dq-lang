@@ -975,8 +975,7 @@ void OArrayIndexOfExpr::DeleteChildTree()
 
 LlValue * OStringSliceExpr::Generate(OScope * scope)
 {
-  auto * strtype = static_cast<OTypeString *>(base->ptype->ResolveAlias());
-  return strtype->GenerateSlice(scope, base, startexpr, endexpr, end_inclusive);
+  return OTypeString::GenerateSlice(scope, base, startexpr, endexpr, end_inclusive);
 }
 
 void OStringSliceExpr::FoldChildren()

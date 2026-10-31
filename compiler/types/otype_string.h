@@ -87,11 +87,11 @@ public:
   virtual LlValue * GeneratePChar(OScope * scope, LlValue * straddr) = 0;
   virtual LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) = 0;
   virtual LlValue * GenerateCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
-  virtual LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                                  OExpr * end_expr, bool end_inclusive) = 0;
   virtual LlValue * GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field);
 
-  // UTF-8 operations share the text descriptor path, including embstr receivers.
+  // Slicing and UTF-8 operations share the text descriptor path, including embstr receivers.
+  static LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                                 OExpr * end_expr, bool end_inclusive);
   static LlValue * GenerateWcLen(OScope * scope, OLValueExpr * receiver);
   static LlValue * GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
   static LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
@@ -124,8 +124,6 @@ public:
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
-  LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                          OExpr * end_expr, bool end_inclusive) override;
   LlValue * GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field) override;
 
   LlValue * GenerateCapacity(OScope * scope, LlValue * straddr);
@@ -162,8 +160,6 @@ public:
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
-  LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                          OExpr * end_expr, bool end_inclusive) override;
 };
 
 // Literal-backed rostr constants reuse relocatable C string literal storage.
@@ -192,8 +188,6 @@ public:
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
-  LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                          OExpr * end_expr, bool end_inclusive) override;
 
   LlValue * GenerateBorrow(OScope * scope, OExpr * source, LlValue ** temporary_string_address = nullptr);
   LlValue * GenerateTextInfo(OScope * scope, OExpr * source);

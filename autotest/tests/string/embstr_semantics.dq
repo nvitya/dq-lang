@@ -155,14 +155,6 @@ func *Main():
     AppendName(item)
     PrintText("embstr_struct_field", item.name) //?check("embstr_struct_field", '[7] "one two"')
 
-    //var slice_source : embstr(15) = "abcdef";
-    //var slice_copy : str = slice_source[1:4];
-    //var slice_view : strslice = slice_source[1:4];
-//  PrintText("embstring_slice_copy", slice_copy); //-?check("embstring_slice_copy", '[3] "bcd"')
-//  PrintText("embstring_slice_view", slice_view); //-?check("embstring_slice_view", '[3] "bcd"')
-//  PrintText("embstring_slice_clamp", slice_source[-5:100]); //-?check("embstring_slice_clamp", '[6] "abcdef"')
-//  PrintText("embstring_slice_last", slice_source[$last:]); //-?check("embstring_slice_last", '[1] "f"')
-
     //var csdest : embstr(31) = "storage: ";
     var csdest : embstr = storage
     csdest.Set("csdest:")

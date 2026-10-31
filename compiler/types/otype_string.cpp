@@ -378,6 +378,33 @@ LlValue * OTypeString::GenerateCharAddress(OScope * scope, OLValueExpr * receive
   return ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), dataptr, {norm_index}, "str.elem");
 }
 
+LlValue * OTypeString::GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
+                                    OExpr * end_expr, bool end_inclusive)
+{
+  LlValue * descaddr = TextInfoAlloca();
+  LlValue * zero = LlNativeInt(0);
+  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
+  LlValue * end = nullptr;
+  if (end_expr)
+  {
+    end = ToNativeInt(end_expr->Generate(scope));
+    if (end_inclusive)
+    {
+      end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.slice.end.incl");
+    }
+  }
+
+  // Bounds can mutate the receiver, so borrow its storage after evaluating them.
+  LlValue * sourceaddr = GenerateTextInfoAddress(scope, receiver);
+  if (!end)
+  {
+    end = g_builtins->type_strslice->GenerateLength(scope, sourceaddr);
+  }
+
+  CallDynStrFunc(scope, "TextInfoGetView", {sourceaddr, descaddr, start, end});
+  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.slice");
+}
+
 LlValue * OTypeString::GenerateWcLen(OScope * scope, OLValueExpr * receiver)
 {
   return CallDynStrFunc(scope, "StrfWcLen", {GenerateTextInfoValue(scope, receiver)});
@@ -471,31 +498,6 @@ LlValue * OTypeDynString::GenerateGetChar(OScope * scope, OLValueExpr * receiver
 void OTypeDynString::GenerateSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value)
 {
   CallDynStrFunc(scope, "DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope)), value->Generate(scope)});
-}
-
-LlValue * OTypeDynString::GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                                        OExpr * end_expr, bool end_inclusive)
-{
-  LlValue * descaddr = TextInfoAlloca();
-  LlValue * zero = LlNativeInt(0);
-  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
-  LlValue * end = nullptr;
-  if (end_expr)
-  {
-    end = ToNativeInt(end_expr->Generate(scope));
-    if (end_inclusive)
-    {
-      end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.slice.end.incl");
-    }
-  }
-  else
-  {
-    end = GenerateLength(scope, receiver->GenerateAddress(scope));
-    end = ToNativeInt(end);
-  }
-
-  CallDynStrFunc(scope, "DynStrGetView", {receiver->GenerateAddress(scope), descaddr, start, end});
-  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.slice");
 }
 
 LlValue * OTypeDynString::GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field)
@@ -721,32 +723,6 @@ LlValue * OTypeStrSlice::GenerateGetChar(OScope * scope, OLValueExpr * receiver,
   return result;
 }
 
-LlValue * OTypeStrSlice::GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                                      OExpr * end_expr, bool end_inclusive)
-{
-  LlValue * sourceaddr = GenerateTextInfoAddress(scope, receiver);
-  LlValue * descaddr = TextInfoAlloca();
-  LlValue * zero = LlNativeInt(0);
-  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
-  LlValue * end = nullptr;
-  if (end_expr)
-  {
-    end = ToNativeInt(end_expr->Generate(scope));
-    if (end_inclusive)
-    {
-      end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.slice.end.incl");
-    }
-  }
-  else
-  {
-    end = GenerateLength(scope, sourceaddr);
-    end = ToNativeInt(end);
-  }
-
-  CallDynStrFunc(scope, "TextInfoGetView", {sourceaddr, descaddr, start, end});
-  return ll_builder.CreateLoad(g_builtins->type_strslice->GetLlType(), descaddr, "str.slice");
-}
-
 // Free function helpers
 
 void GenerateStringCreate(OScope * scope, LlValue * straddr)
@@ -940,9 +916,7 @@ void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index
 LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                               OExpr * end_expr, bool end_inclusive)
 {
-  auto * st = dynamic_cast<OTypeString *>(receiver->ptype ? receiver->ptype->ResolveAlias() : nullptr);
-  if (!st) throw logic_error("GenerateStringSlice requires str or strslice");
-  return st->GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
+  return OTypeString::GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver)
@@ -1215,12 +1189,6 @@ LlValue * OTypeRoStr::GenerateGetChar(OScope * scope, OLValueExpr * receiver, Ll
       {GenerateTextInfoAddress(scope, receiver), ToNativeInt(index)});
   EmitExpressionExceptionCheck(scope);
   return value;
-}
-
-LlValue * OTypeRoStr::GenerateSlice(OScope * scope, OLValueExpr * receiver,
-    OExpr * start_expr, OExpr * end_expr, bool end_inclusive)
-{
-  return g_builtins->type_strslice->GenerateSlice(scope, receiver, start_expr, end_expr, end_inclusive);
 }
 
 OValueRoStr::OValueRoStr(OType * atype)

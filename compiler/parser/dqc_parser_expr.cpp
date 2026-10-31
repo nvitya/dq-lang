@@ -2757,7 +2757,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
       result = nullptr;
       return EPostfixResult::Stop;
     }
-    if ((TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk) && !EnsureStrFuncRtlUse())
+    if (lval->ResolvedType()->IsString() && !EnsureStrFuncRtlUse())
     {
       delete result;
       result = nullptr;
@@ -2796,15 +2796,6 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
     if (scf->CheckSymbol(":"))
     {
       inclusive_slice = scf->CheckSymbol(":");
-      if (TK_EMBSTR == tk)
-      {
-        Error(DQERR_NOT_SUPPORTED, "embstr slicing");
-        OExpr::DeleteTree(indexexpr);
-        array_index_context_len = prev_context_len;
-        array_index_context_lval = prev_context_lval;
-        array_index_context_wchar = prev_context_wchar;
-        return EPostfixResult::Stop;
-      }
       scf->SkipWhite();
       if (!scf->CheckSymbol("]", false))
       {
@@ -2818,7 +2809,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
       array_index_context_len = prev_context_len;
       array_index_context_lval = prev_context_lval;
       array_index_context_wchar = prev_context_wchar;
-      if (TK_DYNSTR == tk || TK_STRSLICE == tk || TK_ROSTR == tk)
+      if (lval->ResolvedType()->IsString())
       {
         result = new OStringSliceExpr(lval, indexexpr, endexpr, inclusive_slice);
       }
@@ -3541,9 +3532,19 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         return nullptr;
       }
       OType * ctx_type = ctx_lval->ptype ? ctx_lval->ptype->ResolveAlias() : nullptr;
-      OExpr * lenexpr = (array_index_context_wchar || (ctx_type && (TK_DYNSTR == ctx_type->kind || TK_STRSLICE == ctx_type->kind || TK_ROSTR == ctx_type->kind)))
-          ? static_cast<OExpr *>(new OStringMetaFieldExpr(ctx_lval, array_index_context_wchar ? SMF_WCLEN : SMF_LENGTH))
-          : static_cast<OExpr *>(new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH));
+      OExpr * lenexpr;
+      if (array_index_context_wchar || (ctx_type && dynamic_cast<OTypeString *>(ctx_type)))
+      {
+        lenexpr = new OStringMetaFieldExpr(ctx_lval, array_index_context_wchar ? SMF_WCLEN : SMF_LENGTH);
+      }
+      else if (ctx_type && TK_EMBSTR == ctx_type->kind)
+      {
+        lenexpr = new OEmbStrMetaFieldExpr(ctx_lval, ESMF_LENGTH);
+      }
+      else
+      {
+        lenexpr = new OArrayMetaFieldExpr(ctx_lval, ctx_lval->ptype, AMF_LENGTH);
+      }
       if ("end" == ctxname)
       {
         return lenexpr;

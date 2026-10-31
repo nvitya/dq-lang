@@ -1,0 +1,15 @@
+//?build_suffix('no-dynstrings')
+//?exitcode(0)
+//?check("alias_ranges", "1 1 1 1 1 1")
+//?check("alias_bounds", "1 1 1 1 1 1 1")
+//?check("fixed_ranges", "1 1 1 1 1 1")
+//?check("fixed_bounds", "1 1 1 1 1 1 1")
+//?check("borrowed", "1 1 1")
+//?check("terminated", "1 1 3")
+//?check("rescanned", "1 1")
+//?check("bounded", "1 1")
+//?check("empty", "1 1 1")
+//?check("unicode", "5 2 1 1 2 233 8364 3 128512")
+//?check("utf8_fragment", "1 1")
+main = 'embstr_slicing.dq'
+dynstrings = false

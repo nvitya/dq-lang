@@ -183,6 +183,12 @@ encoding errors. `ToUtf16` returns an array that includes a final zero code unit
 
 ## Embedded Strings
 
+Both `embstr` and `embstr(N)` support byte slicing with the same bounds and
+`$last`/`$end` rules as other strings. A byte slice returns a borrowed `strslice`
+into the embedded storage; assigning it to `str` copies the selected bytes.
+The embedded storage must outlive the view, and mutations are visible through it.
+The logical length is scanned within the embedded string's capacity before slicing.
+
 Both `embstr` and `embstr(N)` support `.wclen`, `.wchar[index]`,
 `.wchar[start:end]`, and `.ToWchars()` with the same UTF-8 decoding and scalar indexing as `str`.
 The slice returns `[*]wchar`; `$last` and `$end` use scalar positions.

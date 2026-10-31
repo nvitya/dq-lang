@@ -1,0 +1,77 @@
+// Byte slices borrow embedded storage; Unicode slices decode scalar positions.
+
+use libc/stdio
+
+func CheckAlias(text : embstr):
+    printf("alias_ranges = %i %i %i %i %i %i\n",
+        text[:] == "abcdef", text[2:] == "cdef", text[:3] == "abc",
+        text[1:4] == "bcd", text[1::3] == "bcd", text[2::] == "cdef")
+        //?check("alias_ranges", "1 1 1 1 1 1")
+    printf("alias_bounds = %i %i %i %i %i %i %i\n",
+        text[-5:100] == "abcdef", text[$last:] == "f", text[:$end] == "abcdef",
+        text[$end:] == "", text[4:2] == "", text[100:] == "", text[:-2] == "")
+        //?check("alias_bounds", "1 1 1 1 1 1 1")
+endfunc
+
+func BorrowTail(text : embstr) -> strslice:
+    return text[1:]
+endfunc
+
+func *Main():
+    var text : embstr(16) = "abcdef"
+    var alias : embstr = text
+    var view : strslice = text[1:4]
+    printf("fixed_ranges = %i %i %i %i %i %i\n",
+        text[:] == "abcdef", text[2:] == "cdef", text[:3] == "abc",
+        view == "bcd", text[1::3] == "bcd", text[2::] == "cdef")
+        //?check("fixed_ranges", "1 1 1 1 1 1")
+    printf("fixed_bounds = %i %i %i %i %i %i %i\n",
+        text[-5:100] == "abcdef", text[$last:] == "f", text[:$end] == "abcdef",
+        text[$end:] == "", text[4:2] == "", text[100:] == "", text[:-2] == "")
+        //?check("fixed_bounds", "1 1 1 1 1 1 1")
+    CheckAlias(alias)
+
+#ifdef DYNSTRINGS
+    var copy : str = text[1:4]
+#endif
+    text[1] = 'B'
+    printf("borrowed = %i %i %i\n", view == "Bcd", view.pchar == text.pchar[1], BorrowTail(alias) == "Bcdef")
+        //?check("borrowed", "1 1 1")
+#ifdef DYNSTRINGS
+    printf("owned = %i\n", copy == "bcd") //?check("owned", 1)
+#endif
+    text[3] = char(0)
+    printf("terminated = %i %i %li\n", text[:] == "aBc", alias[:] == "aBc", view.length)
+        //?check("terminated", "1 1 3")
+    alias.pchar[1]^ = char(0)
+    printf("rescanned = %i %i\n", text[:] == "a", alias[:] == "a") //?check("rescanned", "1 1")
+
+    var bounded : embstr(4) = "abc"
+    bounded.pchar[3]^ = 'x'
+    printf("bounded = %i %i\n", bounded[-5:100] == "abc", BorrowTail(bounded) == "bc")
+        //?check("bounded", "1 1")
+    var empty : [[nowarn]] embstr(1)
+    printf("empty = %i %i %i\n", empty[:] == "", empty[$last:] == "", BorrowTail(empty) == "")
+        //?check("empty", "1 1 1")
+
+    var unicode : embstr(32) = "Aé€😀"
+    var unicode_alias : embstr = unicode
+    var middle : strslice = unicode[1:6]
+    var nested : strslice = middle[2:]
+    var scalars : [*]wchar = unicode.wchar[1:3]
+    var tail : [*]wchar = unicode_alias.wchar[1::$last]
+    printf("unicode = %li %li %i %i %li %li %li %li %li\n",
+        middle.length, middle.wclen, middle == "é€", nested == "€",
+        scalars.length, Ord(scalars[0]), Ord(scalars[1]), tail.length, Ord(tail[$last]))
+        //?check("unicode", "5 2 1 1 2 233 8364 3 128512")
+
+    // Byte slicing permits UTF-8 fragments; Unicode operations validate them.
+    var fragment : strslice = unicode[1:2]
+    var caught : int = 0
+    try:
+        var count : int = fragment.wclen
+    except Exception:
+        ++caught
+    endtry
+    printf("utf8_fragment = %li %li\n", fragment.length, caught) //?check("utf8_fragment", "1 1")
+endfunc

@@ -34,7 +34,7 @@ except for the explicitly Unicode-oriented members `.wclen` and `.wchar[...]`.
 | [`.length`](#length) | `*` | `int` | Current byte length, excluding the terminator |
 | [`.Lower()`](#upper-and-lower) | `*` | `str` | Copy with ASCII letters in lowercase |
 | [`.LPad(length, fill)`](#lpad-and-rpad) | `*` | `str` | Copy with padding on the left |
-| [`.LTrim()` / `.LTrim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at the left end |
+| [`.LTrim()`](#trim-ltrim-and-rtrim)<br>[`.LTrim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at the left end |
 | [`.maxlength`](#embedded-storage-size) | `embstr` | `int` | Maximum number of text bytes that fit |
 | [`.pchar`](#raw-byte-pointer) | `*` | `^char` | Borrow a pointer to the text bytes |
 | [`.Pop()`](#pop-and-popfirst) | `str` | `char` | Remove and return the last byte |
@@ -45,16 +45,16 @@ except for the explicitly Unicode-oriented members `.wclen` and `.wchar[...]`.
 | [`.refcount`](#reference-count) | `str` | `int` | Number of references sharing the string handler |
 | [`.Reserve(capacity)`](#reserve) | `str` | — | Ensure room for at least this many text bytes |
 | [`.RPad(length, fill)`](#lpad-and-rpad) | `*` | `str` | Copy with padding on the right |
-| [`.RTrim()` / `.RTrim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at the right end |
+| [`.RTrim()`](#trim-ltrim-and-rtrim)<br>[`.RTrim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at the right end |
 | [`.Set(value)`](#set) | `str`, `embstr` | — | Replace the contents |
 | [`.SetCapacity(capacity)`](#setcapacity-and-compact) | `str` | — | Set capacity, shortening the text if necessary |
 | [`.SetLength(length, fill)`](#setlength-and-truncate) | `str` | — | Resize, filling new bytes with a `char` |
 | [`.StartsWith(prefix)`](#contains-startswith-and-endswith) | `*` | `bool` | Test the beginning of the text |
 | [`.storage_size`](#embedded-storage-size) | `embstr` | `int` | Buffer size including space for the terminator |
-| [`.ToFloat()` / `.ToFloat(defvalue)`](#toint-and-tofloat) | `*` | `float` | Parse a number; raise on invalid input or return a fallback |
-| [`.ToInt()` / `.ToInt(defvalue)`](#toint-and-tofloat) | `*` | `int` | Parse an integer; raise on invalid input or return a fallback |
+| [`.ToFloat()`](#toint-and-tofloat)<br>[`.ToFloat(defvalue)`](#toint-and-tofloat) | `*` | `float` | Parse a number; raise on invalid input or return a fallback |
+| [`.ToInt()`](#toint-and-tofloat)<br>[`.ToInt(defvalue)`](#toint-and-tofloat) | `*` | `int` | Parse an integer; raise on invalid input or return a fallback |
 | [`.ToWchars()`](#towchars) | `*` | `[*]wchar` | Decode the whole UTF-8 string into Unicode characters |
-| [`.Trim()` / `.Trim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at either end |
+| [`.Trim()`](#trim-ltrim-and-rtrim)<br>[`.Trim(set)`](#trim-ltrim-and-rtrim) | `*` | `str` | Copy without matching bytes at either end |
 | [`.Truncate(length)`](#setlength-and-truncate) | `str` | — | Shorten without growing |
 | [`.Upper()`](#upper-and-lower) | `*` | `str` | Copy with ASCII letters in uppercase |
 | [`.wchar[index]`](#unicode-indexing-and-slicing) | `*` | `wchar` | Read one Unicode character |
@@ -65,6 +65,13 @@ Methods returning `str` require dynamic-string support even when called on an
 embedded string or borrowed view. Numeric conversion, search methods,
 embedded-string mutations, and Unicode decoding remain available with dynamic
 strings disabled. Using `str` always requires dynamic-string support.
+
+For equivalents of `substring()`, `substr()`, `slice()`, `Left()`, `Right()`, or
+`Mid()` from other languages, see [Byte Indexing and Slicing](#byte-indexing-and-slicing).
+Use `text[start:end]` to extract a substring, or `text[start:start + count]`
+when you have a starting position and a byte count. Positions are zero-based
+byte offsets, and `end` is excluded. For Unicode character positions, see
+[Unicode Indexing and Slicing](#unicode-indexing-and-slicing).
 
 ## Standalone String Helpers Listing
 
@@ -84,8 +91,8 @@ dynamic-string support.
 | [`StrLower(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in lowercase |
 | [`StrSlice(data : ^char, length : int)`](#strslice) | `strslice` | Borrow a pointer and an explicit byte count |
 | [`StrSliceCmp(a : strslice, b : strslice)`](#strslicecmp) | `int` | Compare two byte ranges |
-| [`StrToFloat(text : strslice)` / `StrToFloat(text : strslice, defvalue : float)`](#strtoint-and-strtofloat) | `float` | Parse a number; raise on invalid input or return a fallback |
-| [`StrToInt(text : strslice)` / `StrToInt(text : strslice, defvalue : int)`](#strtoint-and-strtofloat) | `int` | Parse an integer; raise on invalid input or return a fallback |
+| [`StrToFloat(text : strslice)`](#strtoint-and-strtofloat)<br>[`StrToFloat(text : strslice, defvalue : float)`](#strtoint-and-strtofloat) | `float` | Parse a number; raise on invalid input or return a fallback |
+| [`StrToInt(text : strslice)`](#strtoint-and-strtofloat)<br>[`StrToInt(text : strslice, defvalue : int)`](#strtoint-and-strtofloat) | `int` | Parse an integer; raise on invalid input or return a fallback |
 | [`StrUpper(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in uppercase |
 
 ## Text Operators
@@ -776,8 +783,8 @@ Indices are zero-based. An index outside the existing bytes raises a runtime
 range error. These operations do not decode or validate UTF-8.
 
 `text[start:end]` borrows a half-open byte range as `strslice`, while
-`text[start::end]` includes the end byte. Slicing is supported on `str`, `rostr`,
-and `strslice`. For embedded strings, first create a `rostr` or `strslice` view.
+`text[start::end]` includes the end byte. Slicing is supported on every string
+type: `str`, `rostr`, `strslice`, `embstr(N)`, and unsized `embstr`.
 Slice bounds are clamped to `[0, length]`; reversed normalized bounds produce
 an empty slice.
 
@@ -797,6 +804,8 @@ var head : strslice = text[:2]         // "Ab"
 var tail : strslice = text[$end - 2:]  // "ef"
 var all : strslice = text[-5:100]      // "Abcdef": bounds clamped
 var empty : strslice = text[4:2]       // ""
+var buffer : embstr(16) = "abcdef"
+var from_buffer : strslice = buffer[1:4] // "bcd": borrows embedded storage
 ```
 
 Slices borrow the source bytes. Keep the owner alive and its storage and

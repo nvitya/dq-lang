@@ -97,6 +97,9 @@ public:
     alignsize = TARGET_PTRSIZE;
   }
 
+  static bool EnsureRuntimeUse();
+  static LlValue * CallRuntimeFunc(OScope * scope, const string & name, vector<LlValue *> args);
+  LlValue * GenerateElementAddress(LlValue * sliceaddr, LlValue * index);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
   bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
@@ -145,7 +148,7 @@ public:
   LlValue * GenerateCapacity(OScope * scope, LlValue * dynaddr);
   LlValue * GenerateRefCount(OScope * scope, LlValue * dynaddr);
   LlValue * GenerateElementAddress(OScope * scope, LlValue * dynaddr, LlValue * index);
-  LlValue * GenerateSlice(OScope * scope, LlValue * dynaddr, OExpr * start_expr, OExpr * end_expr, OType * slicetype);
+  LlValue * GenerateSlice(OScope * scope, LlValue * dynaddr, OExpr * start_expr, OExpr * end_expr, OType * slicetype, bool end_inclusive = false);
   void      GenerateCreate(OScope * scope, LlValue * dynaddr);
   void      GenerateDestroy(OScope * scope, LlValue * dynaddr);
   LlValue * GenerateManagerValue(OScope * scope, LlValue * dynaddr);

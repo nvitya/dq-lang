@@ -2043,6 +2043,12 @@ OExpr * ODqCompParserExpr::ParseArrayIndexOfMethod(OExpr * receiver_expr, OLValu
     return nullptr;
   }
 
+  if (!OTypeArraySlice::EnsureRuntimeUse())
+  {
+    delete receiver_expr;
+    return nullptr;
+  }
+
   vector<TRawCallArg> rawargs;
   if (!ParseRawCallArguments(membername, rawargs))
   {
@@ -2795,6 +2801,13 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixIndexOrSlice(
     scf->SkipWhite();
     if (scf->CheckSymbol(":"))
     {
+      if ((TK_ARRAY == tk || TK_ARRAY_SLICE == tk) && !OTypeArraySlice::EnsureRuntimeUse())
+      {
+        delete result;
+        OExpr::DeleteTree(indexexpr);
+        result = nullptr;
+        return EPostfixResult::Stop;
+      }
       inclusive_slice = scf->CheckSymbol(":");
       scf->SkipWhite();
       if (!scf->CheckSymbol("]", false))

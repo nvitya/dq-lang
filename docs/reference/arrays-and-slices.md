@@ -82,13 +82,15 @@ lifetime would end before the slice.
 ## Indexing
 
 `array[index]` selects one element. The index must be in the half-open range
-`[0, length)`. An invalid access raises a runtime range error; ordinary indexing
-does not clamp.
+`[0, length)`. Negative indices do not count from the end. Like strings,
+ordinary indexing does not clamp. Fixed arrays and slices omit bounds checks
+for speed; accessing outside their bounds is invalid and may crash or corrupt
+memory. Dynamic arrays raise a runtime range error for invalid indices.
 
-`$end` denotes the end position in index/slice syntax. Negative and end-relative
-indices are normalized according to the operation. Operations that require an
-existing element reject the one-past-end position; insertion may accept it to
-append.
+`$last` denotes `length - 1` and `$end` denotes `length` in index/slice syntax.
+Use `array[$last]` or `array[$end - 1]` for the last element. Operations that
+require an existing element reject the one-past-end position; insertion may
+accept it to append.
 
 ## Iteration
 

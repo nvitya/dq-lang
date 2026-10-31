@@ -1,0 +1,60 @@
+// Arrays use the same indices and clamped slice bounds as strings.
+use print
+
+func SameText(arr : []int, text : strslice) -> bool:
+    if arr.length <> text.length:
+        return false
+    endif
+    for i : int = 0 count arr.length:
+        if arr[i] <> text[i].ord:
+            return false
+        endif
+    endfor
+    return true
+endfunc
+
+func *Main():
+    var fixed : [?]int = [97, 98, 99, 100, 101, 102]
+    var view : []int = fixed[:]
+    var dyn : [*]int = [97, 98, 99, 100, 101, 102]
+    var text : strslice = "abcdef"
+
+    PrintLn('whole = {} {} {}', [SameText(fixed[:], text[:]), SameText(view[:], text[:]), SameText(dyn[:], text[:])]) //?check('whole', 'true true true')
+    PrintLn('middle = {} {} {}', [SameText(fixed[1:4], text[1:4]), SameText(view[1:4], text[1:4]), SameText(dyn[1:4], text[1:4])]) //?check('middle', 'true true true')
+    PrintLn('inclusive = {} {} {}', [SameText(fixed[1::3], text[1::3]), SameText(view[1::3], text[1::3]), SameText(dyn[1::3], text[1::3])]) //?check('inclusive', 'true true true')
+    PrintLn('open = {} {} {}', [SameText(fixed[2::], text[2::]), SameText(view[2::], text[2::]), SameText(dyn[2::], text[2::])]) //?check('open', 'true true true')
+    PrintLn('negative_start = {} {} {}', [SameText(fixed[-1:], text[-1:]), SameText(view[-1:], text[-1:]), SameText(dyn[-1:], text[-1:])]) //?check('negative_start', 'true true true')
+    PrintLn('negative_end = {} {} {}', [SameText(fixed[:-1], text[:-1]), SameText(view[:-1], text[:-1]), SameText(dyn[:-1], text[:-1])]) //?check('negative_end', 'true true true')
+    PrintLn('negative_inclusive = {} {} {}', [SameText(fixed[::-1], text[::-1]), SameText(view[::-1], text[::-1]), SameText(dyn[::-1], text[::-1])]) //?check('negative_inclusive', 'true true true')
+    PrintLn('large_start = {} {} {}', [SameText(fixed[100:], text[100:]), SameText(view[100:], text[100:]), SameText(dyn[100:], text[100:])]) //?check('large_start', 'true true true')
+    PrintLn('large_end = {} {} {}', [SameText(fixed[:100], text[:100]), SameText(view[:100], text[:100]), SameText(dyn[:100], text[:100])]) //?check('large_end', 'true true true')
+    PrintLn('reversed = {} {} {}', [SameText(fixed[4:2], text[4:2]), SameText(view[4:2], text[4:2]), SameText(dyn[4:2], text[4:2])]) //?check('reversed', 'true true true')
+    PrintLn('last = {} {} {}', [SameText(fixed[$last:], text[$last:]), SameText(view[$last:], text[$last:]), SameText(dyn[$last:], text[$last:])]) //?check('last', 'true true true')
+    PrintLn('end = {} {} {}', [SameText(fixed[$end:], text[$end:]), SameText(view[$end:], text[$end:]), SameText(dyn[$end:], text[$end:])]) //?check('end', 'true true true')
+
+#if PTRSIZE == 8
+    var maxindex : int = 0x7FFFFFFFFFFFFFFF
+#else
+    var maxindex : int = 0x7FFFFFFF
+#endif
+    PrintLn('max_inclusive = {} {} {}', [SameText(fixed[::maxindex], text[::maxindex]), SameText(view[::maxindex], text[::maxindex]), SameText(dyn[::maxindex], text[::maxindex])]) //?check('max_inclusive', 'true true true')
+    var maxfixed : []int = fixed[::maxindex]
+    var maxview : []int = view[::maxindex]
+    var maxdyn : []int = dyn[::maxindex]
+    var maxtext : strslice = text[::maxindex]
+    PrintLn('max_length = {} {} {} {}', [maxfixed.length, maxview.length, maxdyn.length, maxtext.length]) //?check('max_length', '6 6 6 6')
+
+    // Check addresses only: dereferencing an invalid fixed-array index is unsafe.
+    var first : ^int = %fixed[0]
+    var negative : int32 = -1
+    PrintLn('fixed_negative_address = {} {}', [%fixed[-1] == first - 1, %fixed[negative] == first - 1]) //?check('fixed_negative_address', 'true true')
+    PrintLn('index_context = {} {} {}', [fixed[$last], view[$end - 1], dyn[$last]]) //?check('index_context', '102 102 102')
+    view[1] = 120
+    var addr : ^int = %view[2]
+    addr^ = 121
+    PrintLn('slice_writes = {} {}', [fixed[1], fixed[2]]) //?check('slice_writes', '120 121')
+
+    // Address calculations use the index directly, including negative values.
+    var tail : []int = fixed[1:]
+    PrintLn('slice_negative_address = {} {}', [%tail[-1] == first, %tail[negative] == first]) //?check('slice_negative_address', 'true true')
+endfunc

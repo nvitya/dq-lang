@@ -23,6 +23,7 @@
 #include "scope_builtins.h"
 #include <cctype>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Intrinsics.h>
 #include "otype_string.h"
 #include "otype_anyvalue.h"
 #include "statements.h"
@@ -590,6 +591,41 @@ LlDiType * OTypeArray::CreateDiType()
 
 // OTypeArraySlice -- Array descriptor {ptr, target-native uint}
 
+bool OTypeArraySlice::EnsureRuntimeUse()
+{
+  if (g_namespaces.contains("__dq_rawarray"))
+  {
+    return true;
+  }
+  return g_compiler->AddImplicitUse("rtl/rtlint", "__dq_rawarray", nullptr, true, MUM_NONE);
+}
+
+LlValue * OTypeArraySlice::CallRuntimeFunc(OScope * scope, const string & name, vector<LlValue *> args)
+{
+  auto nsit = g_namespaces.find("__dq_rawarray");
+  if (nsit == g_namespaces.end() || !nsit->second)
+  {
+    throw runtime_error("Raw array RTL module is not loaded");
+  }
+  auto * fn = dynamic_cast<OValSymFunc *>(nsit->second->FindValSym(name, nullptr, false));
+  if (!fn || !fn->ll_func)
+  {
+    throw runtime_error("rtl/rtlint." + name + " function is not available");
+  }
+  LlValue * result = scope->GenerateCallOrInvoke(
+      static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
+  EmitExpressionExceptionCheck(scope);
+  return result;
+}
+
+LlValue * OTypeArraySlice::GenerateElementAddress(LlValue * sliceaddr, LlValue * index)
+{
+  LlValue * ptraddr = ll_builder.CreateStructGEP(GetLlType(), sliceaddr, 0, "slice.ptr.addr");
+  LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "slice.ptr");
+  index = ll_builder.CreateSExtOrTrunc(index, g_builtins->native_int->GetLlType());
+  return ll_builder.CreateGEP(elemtype->GetLlType(), dataptr, {index}, "slice.elem");
+}
+
 LlType * OTypeArraySlice::CreateLlType()
 {
   vector<LlType *> fields = {
@@ -720,7 +756,7 @@ LlValue * OTypeDynArray::GenerateElementAddress(OScope * scope, LlValue * dynadd
 }
 
 LlValue * OTypeDynArray::GenerateSlice(OScope * scope, LlValue * dynaddr,
-                                       OExpr * start_expr, OExpr * end_expr, OType * slicetype)
+                                       OExpr * start_expr, OExpr * end_expr, OType * slicetype, bool end_inclusive)
 {
   LlValue * descaddr = CreateEntryBlockAlloca(slicetype->GetLlType(), nullptr, "dyn.slice.desc");
   if (!start_expr && !end_expr)
@@ -732,6 +768,10 @@ LlValue * OTypeDynArray::GenerateSlice(OScope * scope, LlValue * dynaddr,
   {
     LlValue * start = start_expr ? IntExprValue(scope, start_expr) : LlZero();
     LlValue * end = end_expr ? IntExprValue(scope, end_expr) : GenerateLength(scope, dynaddr);
+    if (end_inclusive && end_expr)
+    {
+      end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, end, LlOne(), nullptr, "dyn.slice.end.inclusive");
+    }
     CallDynArrayFunc(scope, "DynArrGetSlice", {dynaddr, descaddr, start, end});
     EmitExpressionExceptionCheck(scope);
   }

@@ -1,5 +1,5 @@
-// These expressions are specified as runtime bounds errors when executed.
-// The test keeps them uncalled so the compiler must accept them as runtime checks.
+// Invalid indices are accepted at compile time. Dynamic arrays check them at
+// runtime; fixed arrays and slices omit checks. Leave these accesses uncalled.
 
 use libc/stdio
 

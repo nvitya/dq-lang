@@ -12,6 +12,7 @@
  */
 
 #include <vector>
+#include <llvm/IR/Intrinsics.h>
 #include "dqc_ast.h"
 #include "otype_string.h"
 #include "otype_embstr.h"
@@ -390,7 +391,7 @@ LlValue * OTypeString::GenerateSlice(OScope * scope, OLValueExpr * receiver, OEx
     end = ToNativeInt(end_expr->Generate(scope));
     if (end_inclusive)
     {
-      end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.slice.end.incl");
+      end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, end, LlNativeInt(1), nullptr, "str.slice.end.incl");
     }
   }
 

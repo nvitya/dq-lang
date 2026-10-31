@@ -163,7 +163,8 @@ byte range, while `text[start::end]` includes the end byte. These operations do
 not decode or validate UTF-8.
 
 An index must select an existing byte and an invalid index raises a runtime range
-error. Slice bounds are clamped to `[0, length]`; reversed normalized bounds
+error; negative indices do not count from the end. Slice bounds are clamped to
+`[0, length]`; reversed normalized bounds
 produce an empty slice rather than an error. `$last` is the last existing byte
 index and `$end` is the one-past-end position.
 

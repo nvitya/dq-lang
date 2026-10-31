@@ -632,28 +632,6 @@ OLValueExpr * OLValueMember::Clone() const
 }
 
 
-static LlValue * NormalizeIndexValue(LlValue * index, LlValue * len)
-{
-  LlType * native_int = LlNativeIntType();
-  if (index->getType()->isIntegerTy() && index->getType() != native_int)
-  {
-    unsigned srcbits = index->getType()->getIntegerBitWidth();
-    unsigned dstbits = native_int->getIntegerBitWidth();
-    if (srcbits < dstbits)
-    {
-      index = ll_builder.CreateSExt(index, native_int);
-    }
-    else if (srcbits > dstbits)
-    {
-      index = ll_builder.CreateTrunc(index, native_int);
-    }
-  }
-  LlValue * zero = LlNativeIntConst(0);
-  //TODO: change behaviour: negative index is invalid (runtime error)
-  LlValue * is_neg = ll_builder.CreateICmpSLT(index, zero, "idx.neg");
-  return ll_builder.CreateSelect(is_neg, ll_builder.CreateAdd(len, index, "idx.from_end"), index, "idx.norm");
-}
-
 LlValue * OLValueIndex::GenerateAddress(OScope * scope)
 {
   LlValue * ll_index = indexexpr->Generate(scope);
@@ -661,8 +639,7 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   if (TK_ARRAY == containertype->kind)
   {
     // Fixed array: GEP with {0, index} into [N x T]
-    OTypeArray * arrtype = static_cast<OTypeArray *>(containertype);
-    ll_index = NormalizeIndexValue(ll_index, LlNativeIntConst(arrtype->arraylength));
+    ll_index = ll_builder.CreateSExtOrTrunc(ll_index, LlNativeIntType());
     LlValue * baseaddr = base->GenerateAddress(scope);
     LlValue * ll_zero = LlNativeIntConst(0);
     return ll_builder.CreateGEP(
@@ -671,15 +648,8 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
   else if (TK_ARRAY_SLICE == containertype->kind)
   {
-    // Slice: extract pointer from descriptor, then GEP into the data
-    LlValue * baseaddr = base->GenerateAddress(scope);
-    LlType * ll_slicetype = containertype->GetLlType();
-    LlValue * ll_len_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 1, "slice.len.addr");
-    LlValue * ll_len = ll_builder.CreateLoad(LlNativeIntType(), ll_len_addr, "slice.len");
-    ll_index = NormalizeIndexValue(ll_index, ll_len);
-    LlValue * ll_ptr_addr = ll_builder.CreateStructGEP(ll_slicetype, baseaddr, 0, "slice.ptr.addr");
-    LlValue * ll_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_ptr_addr, "slice.ptr");
-    return ll_builder.CreateGEP(ptype->GetLlType(), ll_ptr, {ll_index}, "slice.elem");
+    return static_cast<OTypeArraySlice *>(containertype)->GenerateElementAddress(
+        base->GenerateAddress(scope), ll_index);
   }
   else if (TK_DYN_ARRAY == containertype->kind)
   {
@@ -792,46 +762,12 @@ LlValue * OLValueIndex::GenerateObjectAddress(OScope * scope)
 
 
 
-static OValSymFunc * SysRawArrayGetSliceFunc()
-{
-  auto nsit = g_namespaces.find("sys");
-  if (nsit == g_namespaces.end() || !nsit->second)
-  {
-    throw runtime_error("sys module is not loaded");
-  }
-
-  OValSym * vs = nsit->second->FindValSym("RawArrayGetSlice", nullptr, false);
-  auto * fn = dynamic_cast<OValSymFunc *>(vs);
-  if (!fn || !fn->ll_func)
-  {
-    throw runtime_error("sys.RawArrayGetSlice function is not available");
-  }
-  return fn;
-}
-
-static OValSymFunc * SysRawArrayIndexOfFunc()
-{
-  auto nsit = g_namespaces.find("sys");
-  if (nsit == g_namespaces.end() || !nsit->second)
-  {
-    throw runtime_error("sys module is not loaded");
-  }
-
-  OValSym * vs = nsit->second->FindValSym("RawArrayIndexOf", nullptr, false);
-  auto * fn = dynamic_cast<OValSymFunc *>(vs);
-  if (!fn || !fn->ll_func)
-  {
-    throw runtime_error("sys.RawArrayIndexOf function is not available");
-  }
-  return fn;
-}
-
 LlValue * OArraySliceExpr::Generate(OScope * scope)
 {
   if (TK_DYN_ARRAY == containertype->kind)
   {
     return static_cast<OTypeDynArray *>(containertype)->GenerateSlice(scope, base->GenerateAddress(scope),
-        startexpr, endexpr, ptype);
+        startexpr, endexpr, ptype, end_inclusive);
   }
 
   LlValue * baseaddr = base->GenerateAddress(scope);
@@ -862,12 +798,12 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
   LlValue * end   = (endexpr   ? endexpr->Generate(scope) : len);
   if (end_inclusive && endexpr)
   {
-    end = ll_builder.CreateAdd(ToNativeInt(end),
-        llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), 1), "slice.end.inclusive");
+    end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, ToNativeInt(end),
+        LlNativeIntConst(1), nullptr, "slice.end.inclusive");
   }
 
   LlValue * descaddr = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
-  ll_builder.CreateCall(SysRawArrayGetSliceFunc()->ll_func, {
+  OTypeArraySlice::CallRuntimeFunc(scope, "RawArrayGetSlice", {
       data_ptr,
       ToNativeInt(len),
       llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),
@@ -941,7 +877,7 @@ LlValue * OArrayIndexOfExpr::Generate(OScope * scope)
 
   LlValue * valueaddr = CreateEntryBlockAlloca(elemtype->GetLlType(), nullptr, "arr.indexof.value");
   ll_builder.CreateStore(value->Generate(scope), valueaddr);
-  return ll_builder.CreateCall(SysRawArrayIndexOfFunc()->ll_func, {
+  return OTypeArraySlice::CallRuntimeFunc(scope, "RawArrayIndexOf", {
       dataptr,
       ToNativeInt(length),
       llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),

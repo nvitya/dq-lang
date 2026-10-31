@@ -145,13 +145,22 @@ func *Main():
     del.Delete(2, 0)
     PrintText("delete_zero_count", del) //?check("delete_zero_count", '[4] "bcde"')
 
-    var sized : str = "abc"
+    var sized : str
+    sized.SetLength(3, 'x')
+    printf("setlength_initial = len:%li cap:%li term:%li\n", sized.length, sized.capacity, TermAtLen(sized)) //?check("setlength_initial", "len:3 cap:3 term:0")
+    sized = "abc"
     sized.SetLength(5, ' ')
     PrintText("setlength_grow", sized) //?check("setlength_grow", '[5] "abc  "')
+    printf("setlength_grow_capacity = %li\n", sized.capacity) //?check("setlength_grow_capacity", 5)
     sized.SetLength(2, ' ')
     PrintText("setlength_shrink", sized) //?check("setlength_shrink", '[2] "ab"')
+    printf("setlength_shrink_capacity = %li\n", sized.capacity) //?check("setlength_shrink_capacity", 5)
+    sized.SetLength(4, 'x')
+    PrintText("setlength_reuse", sized) //?check("setlength_reuse", '[4] "abxx"')
+    printf("setlength_reuse_capacity = %li\n", sized.capacity) //?check("setlength_reuse_capacity", 5)
     sized.SetLength(0, ' ')
     PrintText("setlength_zero", sized) //?check("setlength_zero", '[0] ""')
+    printf("setlength_zero_capacity = %li\n", sized.capacity) //?check("setlength_zero_capacity", 5)
 
     sized = "abcdef"
     sized.Truncate(3)

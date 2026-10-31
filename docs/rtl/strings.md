@@ -98,6 +98,10 @@ Dynamic strings expose:
 | `Clone()` | force an independent copy |
 | `AddFmt(fmt, args)` | append formatted text |
 
+When `SetLength(n, fill)` needs more capacity, it allocates exactly `n` bytes
+plus the trailing zero; otherwise it keeps the existing capacity. Internal growth
+for operations such as `Append` and `Insert` may double capacity.
+
 ```dq
 var s : str = "abc"
 s.Append("def")

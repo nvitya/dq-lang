@@ -75,11 +75,21 @@ func *Main():
     printf("dynamic_pop_values = first:%li last:%li\n", first, last) //?check("dynamic_pop_values", "first:1 last:4")
     PrintArray("dynamic_pop_remaining", poparr[:]) //?check("dynamic_pop_remaining", "len:2 data: 2 3")
 
-    var sized : [*]int = [1, 2]
+    var sized : [*]int
+    sized.SetLength(3)
+    printf("dynamic_setlength_initial = len:%li cap:%li\n", sized.length, sized.capacity) //?check("dynamic_setlength_initial", "len:3 cap:3")
+    sized = [1, 2]
     sized.SetLength(5)
     PrintArray("dynamic_setlength_grow_zero", sized[:]) //?check("dynamic_setlength_grow_zero", "len:5 data: 1 2 0 0 0")
+    printf("dynamic_setlength_grow_capacity = %li\n", sized.capacity) //?check("dynamic_setlength_grow_capacity", 5)
     sized.SetLength(1)
     PrintArray("dynamic_setlength_shrink", sized[:]) //?check("dynamic_setlength_shrink", "len:1 data: 1")
+    printf("dynamic_setlength_shrink_capacity = %li\n", sized.capacity) //?check("dynamic_setlength_shrink_capacity", 5)
+    sized.SetLength(4)
+    PrintArray("dynamic_setlength_reuse_zero", sized[:]) //?check("dynamic_setlength_reuse_zero", "len:4 data: 1 0 0 0")
+    printf("dynamic_setlength_reuse_capacity = %li\n", sized.capacity) //?check("dynamic_setlength_reuse_capacity", 5)
+    sized.SetLength(0)
+    printf("dynamic_setlength_zero = len:%li cap:%li\n", sized.length, sized.capacity) //?check("dynamic_setlength_zero", "len:0 cap:5")
 
     sized = [1, 2, 3, 4, 5]
     sized.SetCapacity(3)

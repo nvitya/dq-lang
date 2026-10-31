@@ -55,7 +55,10 @@ The dynamic operations include `Append`, `Prepend`, `Insert`, `Delete`, `Pop`,
 removes or inserts elements.
 
 Increasing length initializes new elements. Decreasing length removes trailing
-elements. Capacity is never less than length. `Reserve` only grows capacity;
+elements. When `SetLength(n)` needs more capacity, it allocates exactly `n`
+elements; otherwise it keeps the existing capacity. Internal growth for operations
+such as `Append` and `Insert` may double capacity.
+Capacity is never less than length. `Reserve` only grows capacity;
 `Compact` reduces it to the current length; `Clear(true)` may release storage.
 
 ## Slices

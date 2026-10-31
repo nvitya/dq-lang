@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.11"
+#define DQ_COMPILER_VERSION  "0.94.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.12:
+  - Direct called .SetLength(n) on `str` or dynamic arrays allocate only the requested length
 v0.94.11:
   - Fixed array and array slice indexing and slicing synchronised to string behaviour
 v0.94.10:

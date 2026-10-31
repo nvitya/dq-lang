@@ -212,7 +212,9 @@ func ODynStrMgr.SetLength(new_length : uint32):
     endif
 
     var old_length : uint32 = length
-    Reserve(new_length)
+    if new_length > capacity:
+        SetCapacity(new_length)
+    endif
     if capacity < new_length:
         return
     endif

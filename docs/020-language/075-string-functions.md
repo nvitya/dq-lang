@@ -780,7 +780,9 @@ var same : str = code.LPad(2, ' ')  // "abc": no truncation
 `text[index]` reads one `char` byte from any string type. `str` and embedded
 strings also permit replacing a byte; `rostr` and `strslice` are read-only.
 Indices are zero-based. An index outside the existing bytes raises a runtime
-range error. These operations do not decode or validate UTF-8.
+range error. Negative indices do not count backward from the end; use
+`text[$last]` or `text[$end - 1]` for the last byte. These operations do not
+decode or validate UTF-8.
 
 `text[start:end]` borrows a half-open byte range as `strslice`, while
 `text[start::end]` includes the end byte. Slicing is supported on every string

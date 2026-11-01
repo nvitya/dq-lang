@@ -99,7 +99,7 @@ hardware address.
 `[[align(n)]]` requests alignment on supported global storage or fields:
 
 ```dq
-[[packed]] struct SHeader:
+struct SHeader [[packed]]:
     kind : uint8
     length : uint32
 endstruct

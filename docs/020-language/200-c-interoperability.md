@@ -82,9 +82,9 @@ This prints `5 bytes`. DQ passes the underlying text address without copying
 it. Although the C parameter is written `^char`, do not let C write through
 it when the source is read-only.
 
-For a dynamic `str` or bounded `embstr(N)`, use `.pchar` to obtain a borrowed
+For a dynamic `str` or fixed-storage `embstr(N)`, use `.pchar` to obtain a borrowed
 pointer to terminated text. A `strslice` may not end in a zero byte; copy it
-into a `str` or bounded buffer before passing it to a C string function:
+into a `str` or fixed-storage buffer before passing it to a C string function:
 
 ```dq
 var message : str = "hello world"

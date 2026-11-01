@@ -39,7 +39,7 @@ is responsible for releasing it. Choose a form that fits how you use the value:
 
 | Form | Lifetime and responsibility |
 | --- | --- |
-| Number, fixed array, structure, bounded embedded string | Lives directly in its containing variable or object. |
+| Number, fixed array, structure, fixed-storage embedded string | Lives directly in its containing variable or object. |
 | `str` | Manages its text storage; changing a shared string makes an independent value. |
 | `[*]T` | Manages shared array storage; aliases see changes to the same array. |
 | `var task <- OTask(...)` | Fixed object; lives with its scope or containing object. |

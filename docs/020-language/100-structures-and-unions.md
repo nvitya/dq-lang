@@ -4,6 +4,8 @@ A **structure** keeps related values together. For example, a point has an `x`
 and a `y` coordinate, and a measurement might have a reading and a timestamp.
 Each named value inside a structure is a **field**.
 
+Structure type names conventionally start with a capital `S`, as in `SPoint`.
+
 ```dq
 use print
 
@@ -32,16 +34,24 @@ Declare fields between `struct Name:` and `endstruct`. Use a dot to read or
 change a field:
 
 ```dq
-var point : SPoint = {x: 10, y: 20}
+struct SPoint:
+    x : int
+    y : int
+endstruct
+
+var point : SPoint
+point.x = 10
+point.y = 20
 point.y += 5 // point is now {x: 10, y: 25}
 var origin : SPoint = {} // both coordinates are zero
 ```
 
-A structure stores its fields directly in the variable that contains it. Each
-structure declaration defines a separate type: two structures with the same
-fields are still different types.
+A structure stores its fields directly in the variable that contains it.
 
-For short text stored inside a structure, use a bounded embedded string:
+Structures cannot contain managed strings, dynamic arrays, object references, embedded objects,
+or aggregates with managed fields. Use an [object](120-objects-and-properties.md) when you need those fields.
+
+For short text stored inside a structure, use a fixed-storage [embedded string](070-strings-and-characters.md#embstrn-and-embstr-embedded-strings):
 
 ```dq
 struct SProduct:
@@ -54,10 +64,25 @@ product.name = "Bread"
 product.price = 2.5
 ```
 
-Structures cannot contain managed fields such as `str` or dynamic arrays.
-Use an [object](120-objects-and-properties.md) when you need those fields.
-Borrowed `rostr` and `strslice` fields are allowed, but their source text must
-remain alive. See [Embedded Strings](070-strings-and-characters.md#embstrn-and-embstr-embedded-strings).
+Each structure declaration defines a separate type: two structures with the same
+fields are still different types.
+
+### Structure Initialization
+
+A local structure variable declared without an initializer starts uninitialized.
+Reading it immediately produces a `VarNotInit` compiler error. Use `= {}` to
+explicitly initialize all fields to their zero/default values:
+
+```dq
+func Example():
+    var point : SPoint       // uninitialized local variable
+    var origin : SPoint = {} // x and y are zero
+    point = {10, 20}         // initialize before reading
+endfunc
+```
+
+Global structure variables and structure fields embedded in objects are
+zero-initialized by default when no initializer is supplied.
 
 ### Structure Initializer Literals
 
@@ -78,11 +103,13 @@ var origin : SPoint = {}       // all fields use their defaults
 ```
 
 Without `?`, supply every field exactly once. `{?}` also initializes the whole
-structure to its defaults.
+structure to its defaults. The `?` fill marker always have to be the last.
 
-The surrounding declaration, assignment, parameter, or return type tells the
-compiler which structure the braces describe. Nested structure fields and
-fixed-array elements also provide that context:
+The compiler checks and interprets the structure literals according the
+expected structure type supplied by a variable or function argument.
+
+Nested initialization literals can be used for structures containing structure fields.
+Here, `start` and `finish` are both `SPoint` fields, so each inner pair of braces creates an `SPoint`:
 
 ```dq
 struct SLine:
@@ -91,18 +118,69 @@ struct SLine:
 endstruct
 
 var line : SLine = {start: {0, 0}, finish: {10, 20}}
+```
+
+You can initialize a fixed array of structures with a single literal:
+
+```dq
 var points : [2]SPoint = [{0, 0}, {10, 20}]
 ```
 
-If the surrounding code does not supply a type, write it explicitly:
+You can mix positional and named structure entries. After a named entry, the
+next positional entry fills the field following it in declaration order:
 
 ```dq
-var point : ? = SPoint({10, 20})
+var point : SPoint = {x: 10, 20} // x is 10; y is 20
 ```
 
-`var point : ? = {10, 20}` cannot infer a structure type from the fields alone.
+A structure literal is a temporary value and cannot be passed directly to a
+reference parameter; put it in a variable first. Structure literals may also
+initialize compile-time constants, including public constants imported from
+another module. Union constants are not supported.
 
-## Structure Methods and Inheritance
+## Storage Size with `SizeOf()`
+
+`SizeOf(Type)` returns a type's storage size in bytes. You can also pass a
+variable name as `SizeOf(variable)`. Both forms produce a compile-time integer
+constant:
+
+```dq
+const POINT_SIZE : int = SizeOf(SPoint)
+var point : SPoint = {}
+var bytes : int = SizeOf(point) // same as SizeOf(SPoint)
+```
+
+For a structure, the size includes all fields and any padding between or after
+them. For a union, it is the size of the shared storage, including any padding.
+Alignment and `[[packed]]` can affect the result; see
+[Layout and External Interfaces](#layout-and-external-interfaces).
+
+## Field Offsets with `OffsetOf()`
+
+`OffsetOf(Type, field)` returns the number of bytes from the start of a
+structure to the named field. Pass the type name and the field name without
+quotes. The result is a compile-time integer constant; no structure variable
+is needed:
+
+```dq
+struct SHeader [[packed]]:
+    kind : uint8
+    length : uint32
+endstruct
+
+const KIND_OFFSET : int = OffsetOf(SHeader, kind)     // 0
+const LENGTH_OFFSET : int = OffsetOf(SHeader, length) // 1
+```
+
+Here, `length` starts one byte after the start of the structure. `OffsetOf()`
+includes any padding before a field, so removing `[[packed]]` may change the
+result. See [Layout and External Interfaces](#layout-and-external-interfaces)
+for alignment and padding rules.
+
+Use `OffsetOf()` when checking a binary layout or matching an external record.
+`OffsetOf()` also accepts union types, where every field has offset zero.
+
+## Structure Methods
 
 A method is a function that belongs to a type. Use one to perform an operation
 on the structure's fields:
@@ -125,9 +203,19 @@ Inside the method, fields are available by name. Methods can also be declared
 inside the structure and defined later with a qualified name, such as
 `func SSize.Area() -> int:`.
 
+Structure methods do not have the virtual dispatch described for objects.
+
+## Structure Inheritance
+
 A structure can inherit fields and methods from one base structure:
 
 ```dq
+
+struct SPoint:
+    x : int
+    y : int
+endstruct
+
 struct SPoint3D(SPoint):
     z : int
 endstruct
@@ -135,8 +223,7 @@ endstruct
 var point : SPoint3D = {x: 10, y: 20, z: 30}
 ```
 
-A derived structure is still a value that is copied on assignment. Structure
-methods do not have the virtual dispatch described for objects.
+When inintializing a derived structure base fields come first, followed by derived fields.
 
 ## Storage Unions
 
@@ -159,9 +246,11 @@ order.
 
 Initialize a union with exactly one field, or use `{}` to zero all its storage.
 Storage beyond the chosen field receives default initialization. Assignment
-copies the complete union storage. DQ does not record which field
-you last wrote or check which field you read. Read a different field only when
-you know those bytes form a valid value of its type.
+copies the complete union storage.
+
+A union must contain at least one field. Unions do not support inheritance,
+methods, properties, field initializers, automatic conversion to a field's type,
+or union-valued constants. Each union declaration defines a distinct type.
 
 ### Nested Union Fields
 
@@ -186,48 +275,76 @@ maintain this field automatically. `data.integer: 42` is a shorter spelling of
 `data: {integer: 42}`. Select only one alternative for each union field in an
 initializer; alternatives may themselves contain nested structures or unions.
 
-## Initializer Details and Restrictions
+## Structure Field Alignment and Padding
 
-You can mix positional and named structure entries. After a named entry, the
-next positional entry fills the field following it in declaration order:
+Fields are stored in declaration order. Each field normally starts at an offset
+that satisfies its type's **alignment requirement**. For example, an `uint32`
+field starts at an offset divisible by four. The compiler inserts
+unused bytes, called **padding**, between fields when needed.
+
+A structure's alignment is the largest alignment required by any of its fields
+or its base structure. For example, if that alignment is four bytes, the
+structure must start at an address divisible by four.
+
+Its size must also be a multiple of four in that example. If the fields and
+the padding between them take 10 bytes, the compiler adds 2 unused bytes at the
+end, making the size 12 bytes. In an array, the next structure then starts 12
+bytes later, again at an address divisible by four.
+
+### Packed Structures
+
+Put `[[packed]]` after the structure name, before the colon, to store fields
+consecutively without adding padding between them or after the last field.
+A packed structure has one-byte alignment:
 
 ```dq
-var point : SPoint = {x: 10, 20} // x is 10; y is 20
+struct SRecord:
+    tag : byte
+    count : uint32
+    code : uint16
+endstruct
+
+struct SPackedRecord [[packed]]:
+    tag : byte
+    count : uint32
+    code : uint16
+endstruct
 ```
 
-Field order follows the source declaration, regardless of storage padding.
-For inherited fields, base fields come first, followed by derived fields.
-If a derived field hides a base field with the same name, named initialization
-selects the derived field; fill the base field positionally or leave it to `?`.
+On a target where `uint32` has four-byte alignment and `uint16` has two-byte
+alignment, these declarations have the following layouts:
 
-A fill marker `?` must be last and must have at least one remaining field to
-initialize. Trailing commas are not supported.
+| Query | Normal structure | Packed structure |
+| --- | --- | --- |
+| `OffsetOf(Type, tag)` | 0 | 0 |
+| `OffsetOf(Type, count)` | 4 | 1 |
+| `OffsetOf(Type, code)` | 8 | 5 |
+| `SizeOf(Type)` | 12 | 7 |
 
-A structure literal is a temporary value and cannot be passed directly to a
-reference parameter; put it in a variable first. Structure literals may also
-initialize compile-time constants, including public constants imported from
-another module. Union constants are not supported.
+Packing an outer structure does not change the internal layout of a nested
+structure field. That field retains its own size and any internal padding.
+Packed fields may have unaligned addresses; this matters when passing their
+addresses to external code or hardware.
 
-### Permitted Members and Restrictions
+### Explicit Field Alignment
 
-Unions accept numbers, characters, enums, pointers, function references, and
-fixed arrays, structures, or unions made from permitted members. They cannot
-contain managed strings, dynamic arrays, object references, embedded objects,
-or aggregates with managed fields.
+Use `[[align(n)]]` after a field declaration to request a larger alignment in
+bytes:
 
-A union must contain at least one field. Unions do not support inheritance,
-methods, properties, field initializers, automatic conversion to a field's type,
-or union-valued constants. Each union declaration defines a distinct type.
+```dq
+struct SAlignedRecord:
+    tag : byte
+    value : uint16 [[align(8)]]
+endstruct
+```
 
-## Layout and External Interfaces
+Here, `value` starts at offset `8`, the structure has eight-byte alignment, and
+its size is `16` bytes. A smaller alignment request does not reduce a field's
+natural alignment. In a packed structure, field alignment attributes are ignored.
 
-A structure may have unused bytes between fields to meet the target's alignment
-requirements. A union is large enough for its largest field, rounded up for
-alignment, and uses the strictest alignment required by any field.
-
-`[[packed]]` requests packed layout; `[[align(n)]]` requests alignment on
-supported declarations. Packing can leave fields at unaligned addresses, which
-matters when passing their addresses to external code or hardware.
+A union uses the strictest alignment required by any field and is large enough
+for its largest field, rounded up to that alignment. `[[packed]]` is not
+supported on unions.
 
 Use fixed-width fields and check `SizeOf` and `OffsetOf` when matching a C
 record or hardware interface. These queries, member access, and address-taking

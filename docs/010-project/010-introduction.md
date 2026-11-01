@@ -61,7 +61,7 @@ endfunc
 ```
 Source: [https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_1.dq](https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_1.dq)
 
-This example covers only a small subset of the capabilities of the DQ language. One very important feature is support for **objects with inheritance and virtual functions**. For a quick example, see the [Object Example Code](../020-language/120-objects-and-properties.md#object-example-code) in the [Objects and Properties](../020-language/120-objects-and-properties.md) chapter.
+This example covers only a small subset of the capabilities of the DQ language. One very important feature is support for **objects with inheritance and virtual functions**. For a quick example, see the [inheritance example](../020-language/120-objects-and-properties.md#inheritance-and-virtual-dispatch) in the [Objects and Properties](../020-language/120-objects-and-properties.md) chapter.
 
 For a more complete list of features, read [Features and Goals](../010-project/020-features-and-goals.md).
 

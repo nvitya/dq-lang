@@ -1,19 +1,11 @@
 # Assembly Functions
 
-Assembly functions give direct access to target instructions. Use them for a
-specific machine operation when DQ expressions or external functions are not
-suitable. The instruction set, register names, ABI, and available CPU features
-are target-specific.
+An assembly function lets you write machine instructions and call them like a
+DQ function. Use one when you need a specific processor instruction that DQ
+expressions or library functions do not provide. You will need to know the
+assembly language for your target processor.
 
-| Attributes | Meaning |
-| --- | --- |
-| `[[asm]]` | A complete native function, responsible for its whole ABI. |
-| `[[inline, asm]]` | A typed instruction template emitted at a direct call site. |
-
-Both forms require a colon body closed by `endfunc`; a bodyless declaration or
-brace body is not accepted.
-
-A complete x86-64 example:
+Here is a complete **x86-64** example that adds two numbers:
 
 ```dq
 use print
@@ -27,67 +19,39 @@ func *Main():
 endfunc
 ```
 
-This prints `42` on x86-64. Other architectures require their own instructions.
+This prints `42`. `$left` and `$right` stand for the function arguments, and
+`$result` stands for its return value. The compiler chooses the actual
+registers. For ordinary addition, use a DQ expression; this small example
+shows how an assembly operation connects to a normal function call.
 
-## Complete Assembly Functions
+There are two forms:
 
-With `[[asm]]`, the assembly body implements the complete function, including
-returning to its caller.
+| Attributes | What you write |
+| --- | --- |
+| `[[inline, asm]]` | Instructions inserted at each direct call; the compiler connects arguments and results. |
+| `[[asm]]` | A complete native function, including argument handling and return instructions. |
 
-```dq
-func Return42() -> int [[asm]]:
-    mov     eax, 42
-    ret
-endfunc
-```
-
-This example uses x86-64 Intel syntax. DQ uses the unified
-`instruction destination, source` operand order and does not support AT&T
-syntax.
-
-The declared DQ signature determines the function's calling ABI. The assembly
-implementation is responsible for obeying that ABI: it must read arguments from
-the correct registers or stack locations, place a return value in the correct
-location, preserve all required registers, and return to the caller. Parameter
-names and `result` are not available as operands in a complete assembly
-func.
-
-The compiler emits an `[[asm]]` function as naked and non-inline. Consequently,
-it does not generate a prologue, epilogue, or DQ `return` operation. `[[asm]]`
-cannot be combined with `[[external]]`, `[[abstract]]`, or `[[always_inline]]`.
+Both use a colon body closed by `endfunc`. They do not accept a bodyless
+declaration or a brace body. Instructions and register names depend on the
+target; the x86-64 examples do not work unchanged on ARM or RISC-V.
 
 ## Inline Assembly Functions
 
-Combining `inline` and `asm` defines an assembly operation with a DQ function
-signature:
+`[[inline, asm]]` is useful for a small operation that should become part of
+the caller's code. Declare its input and result types just as for an ordinary
+function, then use named operands in the instructions.
 
-```dq
-func Add(a : int, b : int) -> int [[inline, asm]]:
-    lea     $result, [$a + $b]
-endfunc
-
-var sum : int = Add(19, 23)
-```
-
-On x86-64, inline assembly uses Intel syntax. ARM, AArch64, and RISC-V use their
-native assembly syntax. DQ does not reorder instruction operands or translate
-architecture-specific syntax.
-
-An inline assembly function does not produce a separately callable function.
-Every direct call emits the assembly template at the call site. It therefore
-cannot be converted to a function reference or have its address taken.
-
-Inline assembly functions must be ordinary module-level functions. Methods and
-special functions such as `*Main` and `*ModuleInit` are not supported. They also
-cannot use `[[external]]`, `[[noinline]]`, `[[weak]]`, `[[section]]`, or native
-export attributes. `[[overload]]` is allowed, and inline assembly definitions in
-a module's public interface remain available to importing modules.
+On x86-64, use Intel syntax. ARM, AArch64, and RISC-V use their native syntax.
+DQ does not translate instructions or reorder their operands.
 
 ### Named Operands
 
 Use `$result` for the return value and `$parameter` for a function parameter.
 The compiler replaces these names with the target assembly operands allocated
 for the call.
+
+For example, ARM targets with the `rbit` instruction can reverse the bits of
+a 32-bit value:
 
 ```dq
 func ReverseBits(value : uint32) -> uint32 [[inline, asm]]:
@@ -99,18 +63,14 @@ endfunc
 a compile error. A literal dollar sign in assembly text must be written as `$$`
 because the underlying assembly template syntax reserves `$`.
 
-Without an operand hint, each parameter is a register input. Integer, Boolean,
-character, enumeration, pointer, and floating-point scalar operands are
-supported. The result is always a register output and must also have a supported
-scalar type. Integer and pointer values use the target's general-purpose
-register class; floating-point values use its native floating-point register
-class. Availability of a particular floating-point register class may depend on
-the selected CPU features.
+By default, parameters are register inputs and the result is a register output.
+Use the hints below for constant operands, memory access, or additional effects.
 
 ### Operand Hints
 
-An inline assembly function may have one trailing hint list immediately before
-`endfunc`:
+The compiler must know what your instructions read or change. Put one hint list
+immediately before `endfunc` to describe those effects. For example, this
+x86-64 function multiplies by a compile-time constant:
 
 ```dq
 func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
@@ -119,7 +79,8 @@ func MulImmediate(value : int32, factor : int32) -> int32 [[inline, asm]]:
 endfunc
 ```
 
-The hint list is DQ metadata, not assembly text. It supports these clauses:
+The hint list tells the compiler about the instructions; it is not assembly
+text. It supports these clauses:
 
 | Hint | Meaning |
 | --- | --- |
@@ -142,14 +103,17 @@ the accessed element type. The reference mode must permit the described access:
 `ref` supports all three memory hints. The programmer remains responsible for
 passing a valid address.
 
-The special clobber `memory` is supported on every inline-assembly target and can
-be used for a compiler barrier:
+A **clobber** names a register or other resource changed by the instructions.
+`clobber(memory)` is supported on every inline-assembly target. It acts as a
+compiler barrier, preventing memory operations from being moved across it:
 
 ```dq
 func CompilerBarrier() [[inline, asm]]:
     [[clobber(memory)]]
 endfunc
 ```
+
+This does not emit a processor memory-barrier instruction.
 
 `clobber(flags)` declares the condition-code state on x86, ARM, and AArch64
 targets. It is not available on RISC-V. A physical register can also be named as
@@ -167,10 +131,11 @@ Declare every memory access and every modified resource that is not already an
 output. The optimizer can only account for effects described by the signature,
 memory hints, and clobbers.
 
-### Memory Examples
+## Reading and Writing Memory
 
-Memory hints make a named parameter expand as an assembly memory operand rather
-than a register containing an address.
+Use memory hints for instructions that access a pointed-to value. With these
+hints, `$address` means the memory at that address, rather than a register
+containing the pointer. These examples use x86-64 Intel syntax:
 
 ```dq
 func Load32(address : ^int32) -> int32 [[inline, asm]]:
@@ -189,8 +154,7 @@ func AddTo32(address : ^int32, value : int32) [[inline, asm]]:
 endfunc
 ```
 
-These examples use x86-64 Intel syntax. An instruction may still require an
-explicit size qualifier when its other operands do not determine the access
+An instruction may still require an explicit size qualifier when its other operands do not determine the access
 width:
 
 ```dq
@@ -199,6 +163,61 @@ func Inc32(address : ^int32) [[inline, asm]]:
     [[memreadwrite(address), clobber(flags)]]
 endfunc
 ```
+
+## Complete Assembly Functions
+
+Use `[[asm]]` when you need to control the whole native function. Unlike the
+inline form, its body must include the instruction that returns to the caller.
+
+```dq
+use print
+
+func Return42() -> int [[asm]]:
+    mov     eax, 42
+    ret
+endfunc
+
+func *Main():
+    PrintLn("{}", [Return42()])
+endfunc
+```
+
+This prints `42` on x86-64 and uses Intel syntax. DQ uses the unified
+`instruction destination, source` operand order and does not support AT&T
+syntax.
+
+The DQ signature determines the calling convention: the rules for passing
+arguments and returning values. The assembly implementation must read arguments
+from the correct registers or stack locations, place a return value in the correct
+location, preserve all required registers, and return to the caller. Parameter
+names and `result` are not available as operands in a complete assembly
+function.
+
+The compiler emits an `[[asm]]` function as naked and non-inline. Consequently,
+it does not generate a prologue, epilogue, or DQ `return` operation. `[[asm]]`
+cannot be combined with `[[external]]`, `[[abstract]]`, or `[[always_inline]]`.
+
+## Inline Assembly Restrictions
+
+An inline assembly function does not produce a separately callable function.
+Every direct call emits the assembly template at the call site. It therefore
+cannot be converted to a function reference or have its address taken.
+
+Inline assembly functions must be ordinary module-level functions. Methods and
+special functions such as `*Main` and `*ModuleInit` are not supported. They also
+cannot use `[[external]]`, `[[noinline]]`, `[[weak]]`, `[[section]]`, or native
+export attributes. `[[overload]]` is allowed, and inline assembly definitions in
+a module's public interface remain available to importing modules.
+
+### Operand Types and Registers
+
+Without an operand hint, each parameter is a register input. Integer, Boolean,
+character, enumeration, pointer, and floating-point scalar operands are
+supported. The result is always a register output and must also have a supported
+scalar type. Integer and pointer values use the target's general-purpose
+register class; floating-point values use its native floating-point register
+class. Availability of a particular floating-point register class may depend on
+the selected CPU features.
 
 ## Source Processing
 

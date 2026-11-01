@@ -1,96 +1,130 @@
 # Enumerations
 
-An enumeration gives names to a set of alternatives, such as colors or states.
-The enum type prevents unrelated numbers or other enums from being used in its
-place.
+An enumeration, or **enum**, gives names to a set of choices. Use one for values
+such as an order's status, a traffic light's color, or a game's difficulty.
+Each choice is called an **enumerator**.
+
+Enum type names conventionally start with a capital `N`, as in `NOrderStatus`.
+
+Here is a small program that changes an order's status:
 
 ```dq
 use print
 
-enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
+enum NOrderStatus = (pending, shipped, delivered)
 
 func *Main():
-    var state : NState = running
-    var next : NState = idle
-    if NState.TryFromOrd(20, next):
-        PrintLn("{} {}", [state.ord, next.ord])
+    var status : NOrderStatus = pending
+    status = shipped
+    if status == shipped:
+        PrintLn("Your order is on its way.")
     endif
 endfunc
 ```
 
-This prints `10 20`.
+This prints `Your order is on its way.`. The enum makes the choices clear and
+prevents an unrelated number or a value from another enum being assigned to
+`status`.
 
 ## Declaration
 
-An enum declares a closed set of named values backed by an integer storage
-type.
+Write `enum`, a type name, and the choices in parentheses:
 
 ```dq
 enum NColor = (red, green, blue)
-enum NState : uint8 = (idle = 0, running = 10, stopped = 20)
 ```
 
-When no storage type is written, the storage type is `uint8`. An explicit
-storage type must be one of the fixed-width signed or unsigned integer types
-from `int8` through `uint64`, and every enumerator value must fit that type.
+The choices have integer values behind the scenes. By default, the first is
+zero and each following choice adds one: `red` is `0`, `green` is `1`, and
+`blue` is `2`. You normally work with the names rather than these numbers.
 
-Implicit values begin at zero and increment from the previous value. An
-explicit value changes the value from which following implicit enumerators are
-calculated. After the first enumerator, an explicit value cannot move backward.
-Every enumerator value must be unique. A duplicate is a compile error, and a
-numeric value not assigned to an enumerator is not a valid member of the enum.
+### Explicit Values and Storage
+
+In the declaration, assign an integer value with `=` after a choice's name.
+You can also select the storage type with `: type` after the enum type name:
+
+```dq
+enum NState : uint16 = (
+    idle = 0,
+    running = 10,
+    stopped = 20,
+)
+
+enum NSigned : int8 = (negative = -1, zero, positive)
+```
+
+Explicit values must be compile-time integer constants. After an explicit
+value, the next implicit value is one higher: `NSigned.zero` is `0` and
+`NSigned.positive` is `1`. Values must be unique and increase in declaration
+order; a later explicit value cannot move backward.
+
+Only declared values belong to the enum. For example, `NState` has values
+`0`, `10`, and `20`; `11` is not an enum member. Explicit values are useful
+when matching a file format or an external interface.
+
+The default storage type is `uint8`. You can select `int8`, `uint8`, `int16`,
+`uint16`, `int32`, `uint32`, `int64`, or `uint64` to fit the required range.
+For example, `NState` above occupies two bytes, while `NSigned` occupies one
+byte and allows negative values. Every choice, including an implicit value,
+must fit the storage type. The enum remains a separate type from the integer
+used to store it.
 
 ## Naming and Lookup
 
-Qualification uses the enum type name.
+When the expected enum type is clear, use the choice's name directly. You can
+also include the enum type name:
 
 ```dq
-var color : NColor = NColor.green
+var color : NColor = green
+color = NColor.blue
+var is_blue : bool = color == blue // true
 ```
 
-An enumerator may be unqualified when contextual typing identifies exactly one
-enum type, including initialization, assignment, argument, return, comparison,
-and compatible conditional contexts. Otherwise it must be
-qualified.
+The shorter form works in assignments, function arguments, return values, and
+comparisons when the compiler can identify one expected enum type. Write
+`NColor.green` when that context is missing or the name could be ambiguous.
 
 ## Type Safety
 
-An enum is distinct from its storage type and every other enum. There is no
-implicit conversion to or from integers, and arithmetic is not defined on enum
-values.
+Compare values of the same enum with `==`, `<>`, `<`, `<=`, `>`, or `>=`.
+Ordering follows their integer values, so `red < blue` when both are used as
+`NColor` values.
 
-Equality, inequality, and ordering compare values of the same enum type.
-Ordering follows the enumerators' ordinal values:
-
-```dq
-var state : NState = running
-var before_stop : bool = state < stopped // true: 10 < 20
-```
-
-Use `.ord` or `Ord(value)` when the integer value itself is needed. Comparisons
-with an integer or a different enum type remain invalid.
+Enums do not support arithmetic or automatic conversion to integers. For
+example, assigning `1` to an `NColor` variable is an error even though `green`
+has that integer value. Use the conversion helpers below when reading numbers
+from a file or another program.
 
 ## Ordinal Conversion
 
-The read-only `.ord` property and `Ord(value)` return the stored integer value.
-Checked construction uses the enum type's helpers:
+Use the read-only `.ord` property or `Ord(value)` to get a choice's integer
+value:
 
 ```dq
-var state : NState = NState.FromOrd(10)
-var fallback : NState = NState.FromOrd(11, idle)
+var color : NColor = green
+var code : uint8 = color.ord // 1
+```
 
-var output : NState = idle
-if NState.TryFromOrd(20, output):
-    // output is stopped
+To turn a number into an enum, use the enum type's methods. These methods check
+that the number belongs to a declared choice:
+
+| Method | Use it when |
+| --- | --- |
+| `NColor.FromOrd(number)` | The number must be valid; an unknown value raises a runtime error. |
+| `NColor.FromOrd(number, fallback)` | An unknown value should use a fallback choice. |
+| `NColor.TryFromOrd(number, output)` | You want to check success before using the result. |
+
+For example, decode a saved color with a fallback:
+
+```dq
+var saved_code : int = 99
+var color : NColor = NColor.FromOrd(saved_code, red) // red: 99 is unknown
+
+if NColor.TryFromOrd(2, color):
+    // color is now blue
 endif
 ```
 
-`FromOrd(value)` raises a runtime error if no enumerator has that value. The
-two-argument overload returns its fallback instead. `TryFromOrd` returns `true`
-and updates the output only for a valid value.
-
-## Forward Compatibility
-
-When persistent or wire formats may gain new values, decode with `TryFromOrd` or
-the fallback overload rather than assuming every stored integer is currently
-known.
+`TryFromOrd` returns `true` and updates `output` for a valid number. Otherwise it
+returns `false` and leaves `output` unchanged. Use this method or a fallback
+when a file or message might contain choices added by a newer program.

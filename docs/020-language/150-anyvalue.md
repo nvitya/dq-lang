@@ -1,81 +1,107 @@
 # anyvalue
 
-`anyvalue` stores a value together with enough type information for a generic
-API to inspect it. This allows a single parameter list to contain numbers,
-Boolean values, characters, text, pointers, or database null. It does not turn
-DQ into a dynamically typed language or box arbitrary objects and structures.
+`anyvalue` holds one value that can be a number, text, a boolean, or another
+supported basic type. It remembers which kind of value it holds. Use it when a
+function needs to accept different kinds of input, as formatting functions do.
 
 ```dq
 use print
 
 func *Main():
     var value : anyvalue = 42
-    var text : anyvalue = "hello"
-    PrintLn("{} {} {}", [value.IsInt(), value.AsInt(0), text.AsStr("")])
+    PrintLn("{}", [value.AsInt(0)])
+
+    value = "hello"
+    PrintLn("{}", [value.AsStr("")])
 endfunc
 ```
 
-This prints `true 42 hello`.
-
-## Supported Values
-
-An `anyvalue` can represent:
-
-- database null;
-- signed and unsigned integers;
-- `char` byte characters and `wchar` Unicode scalars (`char16` boxes as `wchar`);
-- Boolean values;
-- `float32`, `float64`, and `float`;
-- typed and generic pointers;
-- `str`, `rostr`, `strslice`, and `embstr` text values.
-
-Objects, structures, function references, and arbitrary arrays are not boxed as
-general secondary values. An array literal may nevertheless convert element by
-element to `[]anyvalue` or another accepted array context.
-
-```dq
-PrintLn("{}: {}", ["answer", 42])
-```
-
-## Runtime Type Information
-
-The value records a broad kind, a subtype describing width or representation,
-and data sufficient for the stored value. The public contract is exposed through
-predicates and accessors; programs must not depend on the private bit layout.
-
-## Lifetime
-
-Boxing a managed `str` retains the string storage correctly. Borrowed text and
-pointer values do not extend the lifetime of the storage they refer to. The
-caller must ensure such storage remains valid for every use of the boxed value.
-
-Copying or destroying an `anyvalue` performs the corresponding handler action
-for its stored kind.
-
-## Null
-
-Database null is distinct from numeric zero, Boolean false, an empty string, and
-a nil pointer. Use `SetNull()` and `IsNull()`.
+This prints `42` and then `hello`. The same variable first holds an integer,
+then text. The accessor methods, such as `AsInt`, let you read a value in the
+form you need.
 
 ## Checked Access
 
-Predicates such as `IsInt`, `IsFloat`, `IsPointer`, and `IsText` inspect the
-stored category. `As...` methods return a permitted conversion or the supplied
-default value. They do not define unrestricted casts between unrelated kinds.
+Use an `Is...` method to check the kind of value. Use an `As...` method to read
+it, supplying a default for values that cannot be converted:
 
-For APIs that need to distinguish failure from a legitimate default value, test
-the kind before calling the accessor.
+```dq
+var value : anyvalue = "hello"
+var number : int = value.AsInt(-1) // -1: text is not converted to a number
+var text : str = value.AsStr("")  // "hello"
+```
+
+The default is also a possible real value. If you need to distinguish a stored
+`-1` from a failed conversion, check the kind first:
+
+```dq
+if value.IsInt():
+    var number : int = value.AsInt(0)
+    // use the stored integer
+endif
+```
+
+Some accessors accept more than one related kind; for example, `AsFloat` can
+read an integer as a floating-point value. They do not perform arbitrary
+conversions such as parsing text into numbers.
 
 ## Array Parameters
 
-Formatting-style functions normally accept `[]anyvalue`. A contextual array
-literal creates the temporary boxed elements for the duration of the call.
-Retaining a view of that temporary array beyond the call is invalid.
+A `[]anyvalue` parameter accepts a list containing different kinds of values.
+This is how `PrintLn` and `Format` receive their formatting arguments:
+
+```dq
+use print
+
+func Log(format : rostr, values : []anyvalue):
+    PrintLn(format, values)
+endfunc
+
+func *Main():
+    Log("{}: {} items, ready={}", ["Shopping", 3, true])
+endfunc
+```
+
+This prints `Shopping: 3 items, ready=true`. The bracketed list supplies a
+temporary array whose elements are converted to `anyvalue`. `Log` can pass that
+list to another function directly. Do not keep its slice for use after the
+call returns, because the temporary array will no longer exist.
+
+## Null
+
+`anyvalue` can also represent **null**, meaning a missing value. Use `SetNull`
+to set it and `IsNull` to test it:
+
+```dq
+var reading : anyvalue = 21.5
+reading.SetNull()
+var missing : bool = reading.IsNull() // true
+```
+
+Null is different from zero, `false`, an empty string, and a nil pointer.
+
+## Supported Values
+
+An `anyvalue` can hold these basic values:
+
+| Values | Notes |
+| --- | --- |
+| Signed and unsigned integers | Integer width and signedness are recorded. |
+| Floating-point numbers | `float32`, `float64`, and `float`. |
+| Booleans | `true` or `false`. |
+| Characters | `char` and `wchar`; `char16` is stored as `wchar`. |
+| Text | `str`, `rostr`, `strslice`, and `embstr`. |
+| Pointers | Typed pointers and generic `pointer` values. |
+| Null | A missing value, set with `SetNull()`. |
+
+Objects, structures, function references, and arbitrary arrays cannot be stored
+as general values inside it. The temporary array in a `[]anyvalue` call works
+because each supported element is converted separately.
 
 ## Methods
 
-The builtin `anyvalue` type exposes convenience methods backed by the RTL
-`AnyVal...` functions.
+Use this table to choose a check or accessor. `def` means the default value
+to return when the requested conversion is unavailable.
 
 | Method | Meaning |
 | --- | --- |
@@ -94,42 +120,29 @@ The builtin `anyvalue` type exposes convenience methods backed by the RTL
 | `AsStr(def)` | return a dynamic string |
 | `AsText(def)` | return a text view-style value |
 
-Example (using `Format()` from implicit `sys`):
+A helper can use these methods to produce a label for different kinds of data:
 
 ```dq
-func ToLabel(v : anyvalue) -> str:
-    if v.IsNull():
-        return "<null>"
-    elif v.IsText():
-        return v.AsStr("")
-    elif v.IsNumber():
-        return Format("{}", [v])
+use strutils
+
+func ToLabel(value : anyvalue) -> str:
+    if value.IsNull():
+        return "<missing>"
+    elif value.IsText():
+        return value.AsStr("")
+    elif value.IsNumber():
+        return Format("{}", [value])
     else:
         return "<value>"
     endif
 endfunc
 ```
 
-The `As...` methods use their default argument when the stored kind cannot be
-converted by the runtime helper.
-
-`AsWChar` also widens a stored `char`. `AsChar` returns its default for a stored
-`wchar`. Characters are distinct from numbers: `IsNumber` and `IsInt` return false
-for them.
-
-Formatting with `{}`, `{:?}`, or `{:s}` writes a `char` byte directly and encodes
-a `wchar` as UTF-8. Explicit `{:d}`, `{:u}`, `{:x}`, and `{:X}` formats write the
-character code. An invalid Unicode scalar (including an isolated `char16`
-surrogate) produces the replacement character `�` and sets `DQFMT_ARG_ERROR`.
-
-```dq
-PrintLn('wchar="{}"', [wchar(0x20AC)])  // wchar="€"
-```
-
+`Format` comes from the `strutils` package.
 
 ## Setters and Text Views
 
-In addition to assignment, explicit setters select the stored kind:
+In addition to assignment, explicit setters choose what kind of value to store:
 
 | Methods | Stored category |
 | --- | --- |
@@ -146,3 +159,37 @@ text view returned by an accessor still depends on the stored/source value's
 lifetime. `SetStr`, `AsStr`, and `IsStr` require dynamic-string support.
 Method names are case-sensitive; in particular the unsigned setter is
 `SetUInt`, while its predicate and accessor are `IsUint` and `AsUint`.
+
+## Lifetime
+
+Storing a managed `str` keeps its text alive. Storing borrowed text or a pointer
+does not keep the source alive. For example, a slice into a local buffer must
+not be used after that buffer has disappeared, even if stored in an `anyvalue`.
+
+A view returned by `AsText` or `AsStrSlice` is also borrowed. Keep its source
+valid for as long as you use the view. Copying and destroying an `anyvalue`
+automatically performs the appropriate storage handling for its current kind.
+
+## Character Details
+
+Characters have their own kind: `IsNumber` and `IsInt` return `false` for them.
+`AsWChar` can widen a stored `char`; `AsChar` returns its default for a stored
+`wchar`.
+
+Formatting with `{}`, `{:?}`, or `{:s}` writes a `char` byte directly and
+encodes a `wchar` as UTF-8. The formats `{:d}`, `{:u}`, `{:x}`, and `{:X}`
+instead write the character code:
+
+```dq
+PrintLn('wchar="{}"', [wchar(0x20AC)]) // wchar="€"
+```
+
+An invalid Unicode scalar, including an isolated `char16` surrogate, produces
+`�` and sets `DQFMT_ARG_ERROR`.
+
+## Runtime Type Information
+
+Internally, each value records a broad kind, a more specific representation,
+and its data. Use the public predicates and accessors rather than depending on
+the private memory layout. The methods are backed by the runtime's `AnyVal...`
+functions.

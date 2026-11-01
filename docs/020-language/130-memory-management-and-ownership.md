@@ -1,206 +1,258 @@
 # Memory Management and Ownership
 
-Lifetime is the period during which storage exists. Ownership identifies who
-must release it. DQ has no tracing garbage collector: ordinary objects and raw
-allocations need explicit ownership, while strings and dynamic arrays manage
-their backing storage and `autofree` provides scoped cleanup for heap references.
+Most local values in DQ clean themselves up when you leave their scope. Strings
+and dynamic arrays manage their storage, and fixed objects created with `<-`
+are destroyed automatically. Objects created with `new` need someone to release
+them: either your code calls `delete`, or an **owner** does it automatically.
+
+Use `autofree` to make a variable own a heap object:
 
 ```dq
 use print
 
-object OResource:
+object OTask:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+
     func *Destroy():
-        @.PrintLn("resource destroyed")
+        @.PrintLn("Finished: {}", [name])
     endfunc
 endobject
 
 func *Main():
-    var first = new autofree OResource()
-    var second : autofree OResource = first
-    PrintLn("moved={}", [first == nil])
+    var task = new autofree OTask("download")
+    PrintLn("Working on {}", [task.name])
 endfunc
 ```
 
-The first owner becomes `nil` after the move. The second owner destroys the
-resource at scope exit, including when the scope is left by an exception.
+This prints `Working on download` followed by `Finished: download`. The owner
+releases the object when `Main` ends. Cleanup also happens on an early `return`
+or when an exception leaves the scope.
 
 ## Choose a Storage Form
 
+**Lifetime** means how long a value's storage exists. **Ownership** means who
+is responsible for releasing it. Choose a form that fits how you use the value:
+
 | Form | Lifetime and responsibility |
 | --- | --- |
-| Scalar, fixed array, structure, bounded string | Stored directly in the containing variable or aggregate. |
-| `str` | Managed string value; sharing detaches on mutation. |
-| `[*]T` | Shared managed array; aliases observe mutations. |
-| `var object <- OType(...)` | Fixed object storage; follows its containing scope/aggregate. |
-| Ordinary `new OType(...)` | Heap allocation requiring explicit destruction or transfer to an owner. |
-| `autofree OType`, `autofree ^T`, `autofree pointer` | Storage that owns and releases a heap reference. |
-| Pointer, `rostr`, `strslice`, `[]T`, ordinary object alias | Borrows existing storage; does not by itself keep it alive. |
+| Number, fixed array, structure, bounded embedded string | Lives directly in its containing variable or object. |
+| `str` | Manages its text storage; changing a shared string makes an independent value. |
+| `[*]T` | Manages shared array storage; aliases see changes to the same array. |
+| `var task <- OTask(...)` | Fixed object; lives with its scope or containing object. |
+| `new OTask(...)` | Heap object; needs an explicit `delete` or an owner. |
+| `autofree OTask`, `autofree ^T`, `autofree pointer` | Owns a heap reference and releases it automatically. |
+| Pointer, `rostr`, `strslice`, `[]T`, ordinary object alias | Borrows existing storage; does not keep it alive. |
 
-Copying a structure copies its fields according to their own types; it is not a
-recursive copy of every object or managed array they reference. Returning or
-retaining a borrow into a local is invalid even if the compiler accepts a
-particular low-level conversion.
+A **borrow** lets you use a value owned elsewhere. Keep the original value alive
+for as long as you use the borrow. For example, a slice of a local array cannot
+be returned for use after that local array has disappeared.
 
-## Explicit Allocation and Release
-
-`new` allocates an object or typed storage. `delete` destroys a heap object (if
-applicable) and releases the allocation. Use `delete value = nil` when an ordinary
-variable must also be cleared. Other aliases remain invalid after release.
-Never delete fixed object storage created with `<-`.
-
-The implicit runtime also provides `MemAlloc`, `MemFree`, and `MemFreeRef` for
-raw storage. Pair allocation and release correctly; an `autofree` pointer must
-refer to an allocation compatible with the runtime's memory release operation,
-not a stack address, interior address, or arbitrary external resource handle.
-
-## Managed Values and Scope Cleanup
-
-Strings, dynamic arrays, fixed objects, and owner variables run their required
-cleanup on normal block exit, `return`, loop transfers, and exception unwinding.
-Locally owned values are cleaned up in reverse construction order. Borrowed
-references and views must not be used after that cleanup.
-
-Reference counting of strings and dynamic arrays does not make arbitrary object
-reference graphs automatically owned. Global/module shutdown is not a general
-automatic destruction pass; plan global resource shutdown explicitly.
+DQ has no tracing garbage collector. Copying an ordinary object reference does
+not make it an owner, and reference counting for strings and dynamic arrays
+does not automatically manage every object they refer to.
 
 ## Declaration and Construction
 
-`autofree` may decorate an object type, a typed pointer type, or `pointer`:
+These two declarations both create an automatically owned heap object:
 
 ```dq
-var object_owner : autofree OThing = new OThing()
-var buffer_owner : autofree ^byte = ^byte(MemAlloc(256))
-var generic_owner : autofree pointer = MemAlloc(256)
+var first = new autofree OTask("download")
+var second : autofree OTask = new OTask("resize")
 ```
 
-It cannot decorate a numeric/Boolean/character primitive, structure, union, function-reference,
-or array type directly. It may instead be the element type of a fixed or dynamic
-array:
+In the second form, ordinary `new OTask(...)` creates the object and the
+`autofree` destination takes ownership of it. An owner can also hold a typed
+pointer or a raw allocation:
 
 ```dq
-var fixed : [2]autofree OThing
-var dynamic : [*]autofree OThing
+var number : autofree ^int = new int
+var buffer : autofree pointer = MemAlloc(256)
 ```
 
-Use `new autofree T` to declare an owning variable directly:
-
-```dq
-var owner = new autofree OThing()
-```
-
-Ordinary `new T` still produces `T`. Assigning that normal result to an
-`autofree T` destination claims it.
-
-Bare `:?` inference always produces the normal, non-owning type. It cannot be
-combined with `new autofree T`; omit `:?` as above, or write `autofree ?` when
-the destination's ownership must be explicit. The same rule applies to inferred
-`for ... in` variables.
-
-Type aliases may name an `autofree` type, but all placement restrictions still
-apply where the alias is used.
+An owner must refer to a compatible heap allocation. Do not give it a local
+variable's address, an address inside another allocation, or an external
+resource handle such as a file handle.
 
 ## Cleanup
 
-When an `autofree` value is destroyed or overwritten, its current value is
-released if it is non-`nil`:
-
-- `autofree O` calls `O.*Destroy()` and then releases the object's heap storage.
-- `autofree ^T` and `autofree pointer` release the pointed-to allocation without
-  an object destructor call.
-
-The owner storage is set to `nil` after cleanup. Local owners are initialized to
-`nil` before their initializer is evaluated and are cleaned up on scope exit,
-early control-flow exit, and exception unwinding. Object fields are initialized
-the same way and are cleaned up in reverse declaration order when their object
-is destroyed.
-
-Global owners are zero-initialized. Reassignment cleans up their previous value,
-but DQ does not currently run automatic global/module de-initialization at
-program shutdown.
-
-`delete` is valid for an `autofree` object or pointer and always leaves
-that owner `nil`:
+An owner releases its current value when it is overwritten or leaves its scope.
+Assigning `nil` releases it early:
 
 ```dq
-delete object_owner
-if object_owner == nil:
-    // true
-endif
+var task = new autofree OTask("download")
+task = new OTask("resize") // destroys download before taking the new object
+task = nil                 // destroys resize; task is now empty
 ```
 
-For ordinary object and pointer values, use the existing `delete value = nil`
-form when the source variable must also be cleared.
+For objects, cleanup calls `*Destroy` and releases the heap storage. For
+`autofree ^T` and `autofree pointer`, it releases the allocation without calling
+an object destructor. A `nil` owner has nothing to release.
+
+`delete` also works on an owner and leaves it `nil`:
+
+```dq
+var task = new autofree OTask("download")
+delete task // task is now nil; leaving the scope will not delete it again
+```
+
+Local owners start as `nil`, and local values are cleaned up in reverse
+construction order. Managed values, fixed objects, and owners receive cleanup
+on normal block exit, `return`, loop transfers, and exception propagation.
+Owned object fields are cleaned up in reverse declaration order when their
+containing object is destroyed.
+
+Global owners start as `nil`. Replacing them releases their old values, but DQ
+does not automatically destroy globals at program shutdown. Release global
+resources explicitly.
 
 ## Assignment and Moves
 
-Assignment to an `autofree T` first cleans up its previous value. The source
-then determines whether the assignment claims, moves, or borrows:
-
-| Source | Assignment to `autofree T` | Assignment to normal `T` |
-| --- | --- | --- |
-| normal `T` | claims the reference; the normal source remains an ordinary alias | ordinary copy/borrow |
-| `autofree T` lvalue | moves the reference and clears the source | borrows/copies the reference; the source stays owner |
-
-For example:
+Only one owner should be responsible for a given allocation. Assigning one
+owner to another **moves** that responsibility and clears the source:
 
 ```dq
-var first : autofree OThing = new OThing()
-var second : autofree OThing = first
-// first is nil; second owns the allocation
+var first = new autofree OTask("download")
+var second : autofree OTask = first
+// first is now nil; second owns the download task
 ```
 
-Assigning an owner to itself is a no-op. A normal alias whose value has been
-claimed by an owner must not later be deleted or otherwise treated as an owner;
-it becomes invalid once the `autofree` destination releases the allocation.
+Assigning an owner to an ordinary reference instead **borrows** the object:
 
-## Placement Restrictions
+```dq
+var owner = new autofree OTask("download")
+var borrowed : OTask = owner
+borrowed.name = "resize" // changes the same object; owner still owns it
+```
 
-`autofree` is allowed for variables, object fields, fixed-array elements,
-dynamic-array elements, and `ref` parameters. It is not allowed for:
+The borrow becomes invalid when the owner releases the object. Do not delete it
+separately or give it to another owner.
 
-- embedded (`<-`) object fields;
-- structure or union members;
-- properties or property indices;
-- function return types;
-- `refin` or `refout` parameters.
+| Source | Assign to `autofree T` | Assign to ordinary `T` |
+| --- | --- | --- |
+| Ordinary `T` | Take ownership; the source remains an alias. | Copy the reference. |
+| `autofree T` variable | Move ownership; set the source to `nil`. | Borrow; the source stays owner. |
 
-These restrictions prevent ownership cleanup from being hidden in storage forms
-that do not have a unique, well-defined destruction path.
+Replacing an owner first releases its previous value. Assigning an owner to
+itself leaves it unchanged.
 
 ## Functions
 
-A normal value parameter borrows both normal and `autofree` object/pointer
-arguments. Passing an owner to such a parameter does not transfer or clear it.
+An ordinary object or pointer parameter borrows its argument, including when
+the caller passes an owner. The call does not clear or transfer the owner:
 
-A `ref` parameter preserves ownership qualification exactly: `ref autofree T`
-requires an `autofree T` argument, while `ref T` requires normal `T` storage.
-`autofree` return types, `refin autofree T`, and `refout autofree T` are rejected.
+```dq
+func Rename(task : OTask, name : strslice):
+    task.name = name
+endfunc
+
+var task = new autofree OTask("download")
+Rename(task, "resize") // task still owns the renamed object
+```
+
+Use `ref autofree T` when the function needs to replace the caller's owner:
+
+```dq
+func ReplaceTask(task : ref autofree OTask):
+    task = new OTask("save") // releases the caller's previous task
+endfunc
+```
+
+A `ref autofree T` parameter requires an owning variable; a `ref T` parameter
+requires ordinary reference storage. Their ownership qualifications must match.
+To return a new object, use an ordinary object result and let the caller assign
+it to an owner. `autofree` return types are not supported.
 
 ## Arrays
 
-For `[N]autofree T`, whole-array assignment moves every element: each target
-element is cleaned up, each source owner is transferred, and the source cells
-are cleared. Self-assignment is a no-op.
+An array can own its objects by using `autofree` as the element type:
 
-`[*]autofree T` keeps normal dynamic-array manager sharing: assigning the array
-shares its manager, and its elements are destroyed exactly once when the final
-manager reference is released. Element assignment uses the normal owner rules.
+```dq
+var tasks : [*]autofree OTask
+tasks.Append(new OTask("download"))
+tasks.Append(new OTask("resize"))
+tasks.Delete(0) // destroys download; resize remains in the array
+```
 
-Single-element `Append`, `Prepend`, and `Insert` claim a normal source or move
-an `autofree` lvalue source. They also support a source element from the same
-destination array, including when the operation reallocates or shifts elements.
+Replacing or removing an element destroys its previous object. New empty
+elements are `nil`. Assigning a dynamic array to another variable still shares
+the same array; its remaining objects are destroyed when the last reference to
+that array is released.
 
-`Clone()`, `Append`/`Prepend`/`Insert` with a range source, and the corresponding
-slice insertion operations are rejected for `[*]autofree T`, because copying an
-array range would duplicate ownership. Borrowed `[]autofree T` views remain
-usable for indexing, iteration, and read-only APIs.
+Single-element `.Append()`, `.Prepend()`, and `.Insert()` take ownership of an
+ordinary source or move an owning source. `.Pop()` and `.PopFirst()` remove
+an object without destroying it and return an ordinary reference. Give the
+result an owner or delete it explicitly:
 
-Use `for item : ref in owners` to replace an owning array element in place. The
-reference preserves the element's ownership qualification, so assigning a new
-value cleans up the previous element and leaves the array as the owner.
+```dq
+var tasks : [*]autofree OTask
+tasks.Append(new OTask("download"))
+var next : autofree OTask = tasks.Pop() // next now owns the removed task
+```
 
-`Pop()` and `PopFirst()` are ownership extraction operations for an
-`[*]autofree T`: they remove an element without destroying it and return normal
-`T`. The caller must explicitly `delete` the result or assign it to an
-`autofree T` destination.
+Use `for item : ref in tasks` to replace array elements in place. The reference
+keeps the element's ownership, so replacement frees the previous object.
+See [Dynamic Array `autofree` Elements](080-arrays-and-slices.md#dynamic-array-autofree-elements)
+for more examples.
+
+### Array Copying Restrictions
+
+Assigning a fixed array of owners moves every element: each destination's
+previous value is released, and each source element becomes `nil`.
+Self-assignment leaves the array unchanged.
+
+Dynamic arrays of owners cannot use `.Clone()` or copy a range with
+`.Append()`, `.Prepend()`, `.Insert()`, or the slice variants. Copying those
+objects into separate owning elements would duplicate ownership. Borrowed
+`[]autofree T` views can still be indexed, iterated, and passed to read-only
+APIs. Single-element insertion can move an element from the same array even
+when the operation moves the array's storage.
+
+## Explicit Allocation and Release
+
+For manual lifetime management, use `new` and `delete`:
+
+```dq
+var task : OTask = new OTask("download")
+// use task
+delete task = nil
+```
+
+`delete task = nil` clears this ordinary variable as well as destroying the
+object. Other aliases are left invalid. Never delete fixed storage created
+with `<-`.
+
+The implicit runtime also provides `MemAlloc`, `MemFree`, and `MemFreeRef` for
+raw storage. Match each allocation to the correct release operation. External
+resources often have their own close or release function and cannot be managed
+by an `autofree` pointer alone.
+
+## Placement Restrictions and Type Inference
+
+`autofree` can qualify an object type, a typed pointer, or `pointer`. It can be
+used for variables, object fields, fixed- or dynamic-array elements, and `ref`
+parameters. It cannot be used directly on numbers, booleans, characters,
+structures, unions, function references, or whole array types.
+
+It is also not supported on embedded `<-` fields, structure or union fields,
+properties or their indices, function results, or `refin` and `refout`
+parameters. Type aliases may name owning types, with the same placement rules.
+
+Bare `:?` inference produces an ordinary, non-owning type. For
+`new autofree T`, omit `:?` as in the opening example, or explicitly use
+`autofree ?` for ownership-preserving inference. The same distinction applies
+to inferred `for ... in` variables.
+
+## Managed Values and Scope Cleanup
+
+Cleanup does not turn every copy into an independent value. A copied structure
+copies its fields according to their types; references in allowed fields still
+refer to the original storage. Slices, raw pointers, borrowed text, and ordinary
+object references must not outlive the values they refer to.
+
+String and dynamic-array storage uses reference counting. Cycles of ordinary
+object references do not become automatically owned as a result. Plan an owner
+and a shutdown path for resources that outlive a local scope.

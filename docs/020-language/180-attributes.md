@@ -1,9 +1,11 @@
 # Attributes
 
-Attributes attach metadata to declarations, changing layout, linkage, access,
-or code generation. They are written inside `[[...]]`, before a declaration or
-at its supported trailing attribute position. A comma-separated list combines
-attributes that are valid together.
+An **attribute** gives the compiler extra instructions about a declaration.
+You have already seen examples such as `[[overload]]` for functions with the
+same name and `[[virtual]]` for object methods. Other attributes control
+optimization, memory layout, or access to external code.
+
+Write attributes inside `[[...]]` next to the declaration they affect:
 
 ```dq
 use print
@@ -17,23 +19,23 @@ func *Main():
 endfunc
 ```
 
-The function still follows the normal DQ signature and type rules. The attribute
-controls optimization, not what values can be passed.
+This prints `42`. `[[inline]]` asks the compiler to consider putting the
+function's code directly at its call sites. It does not change how you call
+`Double` or the values it accepts.
 
 ## Syntax and Attribute Summary
 
-Attributes use `[[...]]` and attach to the declaration they precede or follow.
-Multiple attributes may share one list.
+An attribute can go before a declaration or in its supported trailing position.
+Combine attributes in one list, separated by commas:
 
 ```dq
-[[weak]] func Hook()
-func Run() [[inline]]:
+func DefaultHandler() [[weak, cexport]]:
+    // fallback implementation
 endfunc
 ```
 
-Unknown, unsupported, or inapplicable attributes are diagnosed as warnings or
-errors depending on whether compilation can continue safely. They never acquire
-an undocumented effect. Important implemented attributes include:
+Not every attribute applies to every declaration. Use the table to find the
+attribute for your task; less common details follow the examples.
 
 | Attribute | Purpose and applicable declarations |
 | --- | --- |
@@ -54,25 +56,64 @@ an undocumented effect. Important implemented attributes include:
 | `regrw`, `regro`, `regwo` | Volatile register read/write, read-only, and write-only shorthands. |
 | `nowarn` | Suppress warnings on supported declarations/statements. |
 
-An attribute cannot override an incompatible language contract. For example, an
-external function has no DQ body.
+## Function Inlining
 
-`inline` is an LLVM inlining hint, not a guarantee. It is considered at `-O1`
-and higher when compiling a module. Cross-module inlining additionally requires
-full LTO (`--lto=full`), which makes the callee body available during linking.
-At `-O1`, only definitions marked `inline` or `always_inline` are eligible for
-inlining; unmarked definitions receive LLVM's `noinline` attribute, including
-in full LTO builds. `noinline` still prevents inlining of an `inline` function.
-Higher optimization levels can also inline unmarked functions.
+Inlining can avoid the cost of a function call, but can also increase program
+size. `[[inline]]` is a hint; `[[always_inline]]` makes a stronger request, and
+`[[noinline]]` prevents inlining. Normal `[[inline]]` is considered at `-O1`
+and above.
 
-`used` applies to functions and global storage. It preserves the emitted
-definition through compilation and linking, including LTO. Use it when a symbol
-is reached only through assembly, a linker script, a hardware table, or another
-mechanism that is not represented by ordinary DQ references.
+Inlining across module boundaries requires full link-time optimization
+(`--lto=full`), which lets the optimizer see function bodies from other modules.
+
+## Linkage and Placement
+
+Use `[[external]]` for a function or global variable supplied by native code.
+Use `[[cexport]]` to expose a DQ declaration under its own name, or
+`[[export('native_name')]]` to choose another name:
+
+```dq
+var counter : uint32 = 0 [[export('dq_counter'), align(4), used]]
+
+func ReadCounter() -> uint32 [[cexport]]:
+    return counter
+endfunc
+```
+
+Native code can refer to `dq_counter` and `ReadCounter` using the corresponding
+C declarations. Match the types and calling convention described in
+[C Interoperability](200-c-interoperability.md).
+
+`[[used]]` retains a function or global value even when ordinary DQ code does
+not refer to it. Use it for names reached through assembly, a linker script,
+or a hardware table. It preserves the definition through compilation and
+linking, including link-time optimization.
+
+`[[section('name')]]` puts a function or global in a named native section. A
+linker script or other build setup may be needed to place it at a particular
+hardware address.
+
+## Layout Attributes
+
+`[[packed]]` removes ordinary layout padding from a structure or compound type.
+`[[align(n)]]` requests alignment on supported global storage or fields:
+
+```dq
+[[packed]] struct SHeader:
+    kind : uint8
+    length : uint32
+endstruct
+```
+
+Use packed layout only when the file format, hardware, or external declaration
+requires it. Packed fields may be unaligned. Check `SizeOf` and `OffsetOf`
+instead of assuming a particular layout, and choose alignment values supported
+by the target. See [Structures and Unions](100-structures-and-unions.md#layout-and-external-interfaces).
 
 ## Volatile and Register Access
 
-The register attributes provide concise declarations for memory-mapped I/O:
+Hardware registers often live at fixed memory addresses. Register attributes
+let a declaration say whether each register can be read, written, or both:
 
 ```dq
 struct SDeviceRegisters:
@@ -96,62 +137,47 @@ both operations to be allowed. `noread` and `nowrite` cannot be combined on the
 same declaration. These restrictions apply to direct global, field, and
 fixed-array-element access and are retained through module interfaces.
 
+## Weak Attribute
+
+`[[weak]]` provides a fallback function that native code can replace with a
+strong definition of the same linker name. Combine it with `[[cexport]]` when
+C or assembly code should use the function's plain DQ name:
+
+```dq
+func DefaultHandler() [[weak, cexport]]:
+    // used unless another linked definition replaces DefaultHandler
+endfunc
+```
+
+`weak` does not change the name by itself. It takes no arguments and applies
+only to module-level function definitions, not external declarations or methods.
+
+## Optimization Details
+
+At `-O1`, only functions marked `inline` or `always_inline` are eligible for
+inlining. Unmarked definitions receive LLVM's `noinline` attribute, including
+in full LTO builds. An explicit `noinline` still prevents inlining of a function
+marked `inline`. Higher optimization levels can also inline unmarked functions.
+
+## Access Details and Limitations
+
 Volatile accesses are observable compiler operations, but they are not atomic
 and do not imply a CPU or compiler memory barrier. Taking an address or binding
 a reference currently discards `noread` and `nowrite`; this is an explicit
 low-level escape. Whole-structure initialization and copying also do not yet
 apply the access restrictions of individual fields.
 
-## Weak Attribute
-
-`[[weak]]` gives a module-level function definition weak linker binding, allowing
-a strong definition with the same linker name to replace it. It does not change
-the function's linker name. Combine it with `[[cexport]]` when C or assembly code
-must override the function by its unmangled DQ name.
-
-```dq
-func DefaultHandler() [[weak, cexport]]:
-    // fallback implementation
-endfunc
-```
-
-The attribute does not take arguments and is not valid on external declarations
-or object and struct methods.
-
-
-## Linkage and Placement
-
-`external` imports an existing definition. `cexport` exports under the DQ name;
-`export('native_name')` chooses an explicit native name. Exporting does not
-replace the need to match an external caller's signature and ABI.
-`section('name')` controls native placement; a linker script or native build
-may be needed to place that section at an intended hardware address.
-
-```dq
-var counter : uint32 = 0 [[export('dq_counter'), align(4), used]]
-
-func ReadCounter() -> uint32 [[cexport]]:
-    return counter
-endfunc
-```
-
-An explicit alignment must be valid for the target. `packed` can introduce
-unaligned fields; use layout queries rather than assuming offsets.
-
 ## Validity and Conflicts
 
-Attributes have declaration-specific applicability. A function attribute on a
-variable, or a storage attribute on an unsupported type, does not create that
-behavior. The compiler diagnoses ignored or invalid attributes; resolve warnings
-rather than relying on them.
+Unknown, unsupported, or misplaced attributes produce warnings or errors.
+Resolve those diagnostics rather than relying on an attribute the compiler
+could not apply. An attribute cannot bypass a language rule: for example, an
+`external` function cannot also have a DQ body.
 
-`weak` requires a module-level definition and cannot decorate an external
-function or a method. Assembly and inline-assembly functions impose additional
-combinations in [Assembly Functions](210-assembly-functions.md). `external`
-functions have no DQ body. `noread` plus `nowrite` is an error, and a modify
-assignment requires both access modes.
+Some combinations have additional restrictions. `weak` requires a module-level
+definition; assembly functions have the combinations described in
+[Assembly Functions](210-assembly-functions.md). Access restrictions apply to
+reads and writes individually, so an operation such as `+=` requires both.
 
-Memory-access attributes are not a synchronization API. They do not replace
-atomics, locks, or the platform's memory barriers. See
-[Objects and Properties](120-objects-and-properties.md) for dispatch attributes
-and [C Interoperability](200-c-interoperability.md) for native declarations.
+For object method attributes, see
+[Inheritance and Virtual Dispatch](120-objects-and-properties.md#inheritance-and-virtual-dispatch).

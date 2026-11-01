@@ -1,8 +1,12 @@
 # Pointers
 
-A pointer stores an address. A typed pointer `^T` points to storage holding a
-value of type `T`; the generic `pointer` stores an address without describing
-what is there. Pointers do not automatically keep their targets alive.
+A **pointer** stores the address of a value. It lets you access that value
+through its location in memory. Pointers are useful when working with C
+libraries, raw buffers, or hardware. For an ordinary function that updates a
+caller's variable, a `ref` parameter is usually simpler.
+
+Write `^T` for a pointer to a value of type `T`. Use `%` to get a variable's
+address and a trailing `^` to read or change the value at that address:
 
 ```dq
 use print
@@ -11,94 +15,128 @@ func *Main():
     var value : int = 10
     var address : ^int = %value
     address^ = 42
-    var values : [3]int = [10, 20, 30]
-    var first : ^int = %values[0]
-    PrintLn("{} {}", [value, first[1]^])
+    PrintLn("{}", [value])
 endfunc
 ```
 
-This prints `42 20`. `%` obtains an address; postfix `^` accesses the value at
-that address. Pointer indexing returns a pointer, so the final `^` is essential.
+This prints `42`: `address^` and `value` access the same integer.
 
 ## Typed Pointers
 
-`^T` points to storage containing `T`. `%value` obtains an address and `pointer^`
-dereferences a typed pointer.
+The type after `^` tells the compiler what the pointer points to. For example,
+`^int` points to an integer, and `^byte` points to a byte.
+
+A pointer may be `nil`, meaning it has no target. Check for `nil` before using
+a pointer that might be empty:
 
 ```dq
 var value : int = 10
-var p : ^int = %value
-p^ = 11
+var address : ^int = %value
+if address <> nil:
+    address^ += 1 // value is now 11
+endif
 ```
 
-`nil` is compatible with pointer types. Dereferencing requires live, suitably
-aligned storage of the correct type. DQ does not generally validate raw pointer
-addresses or track their targets' lifetimes; an invalid dereference may fault
-or produce undefined behavior.
-
-`autofree ^T` owns a heap allocation represented by a typed pointer and releases
-it when the owner is overwritten or destroyed. See
-[`autofree` Ownership Types](130-memory-management-and-ownership.md).
+A non-`nil` pointer must still refer to a live value of the correct type.
+Copying a pointer does not copy its target or keep that target alive. DQ does
+not generally check raw addresses for you.
 
 ## Pointer Member Access
 
-A pointer to a structure is implicitly dereferenced for member access.
+A pointer to a structure can access fields directly with a dot:
 
 ```dq
-var point : SPoint = {}
-var pp : ^SPoint = %point
-pp.x = 10       // equivalent target to pp^.x
+struct SPoint:
+    x : int
+    y : int
+endstruct
+
+var point : SPoint = {x: 10, y: 20}
+var address : ^SPoint = %point
+address.x = 30 // changes point.x; equivalent to address^.x = 30
 ```
 
-This convenience does not make the pointer own or extend the lifetime of the
-structure.
+This convenience does not change who owns the structure or how long it exists.
 
 ## Pointer Arithmetic and Indexing
 
-Adding or subtracting an integer moves by elements of the pointed-to type.
-`p[offset]` returns the pointer at that offset; unlike C indexing, it does not
-dereference. Write `p[offset]^` to access the element. Subtracting compatible
-pointers produces an element distance.
+Adding an integer to a typed pointer moves by that many elements. Pointer
+indexing also returns a **pointer**, so add `^` to access the selected value:
 
-Pointer arithmetic is valid only within an allocation or its one-past-end
-position. The one-past-end pointer may be compared or subtracted but not
-dereferenced.
+```dq
+var readings : [3]int = [10, 20, 30]
+var first : ^int = %readings[0]
+var second : ^int = first + 1
+var value : int = first[1]^ // 20
+second^ = 25                // readings is now [10, 25, 30]
+var distance : int = second - first // 1 element
+```
 
-## Generic Pointers
-
-`pointer` carries an address without a pointee type. It must be explicitly cast
-to a suitable typed pointer before dereference or scaled arithmetic. No runtime
-type or lifetime information is attached.
-
+`first[1]` selects the address of the second integer; `first[1]^` reads it.
+Unlike array indexing, pointer indexing carries no length information and does
+not check bounds. Keep accesses within the original allocation.
 
 ## Allocation and Lifetime
 
-`new` can allocate typed storage. Initialize it before reading its contents:
+Use `new` when the pointed-to value needs separately allocated storage, and
+initialize it before reading it. Use `delete` when finished:
 
 ```dq
 var number : ^int = new int
 number^ = 42
-delete number = nil
+delete number = nil // release the allocation and clear this variable
 ```
 
-`delete value = nil` also clears the variable. Ordinary `delete value` does not
-clear every alias to the address. `autofree ^T` and `autofree pointer` add scoped
-ownership; see [Memory Management and Ownership](130-memory-management-and-ownership.md).
+Other pointers to the same allocation become invalid after `delete`; they are
+not cleared automatically. To release an allocation automatically when leaving
+a scope, use `autofree ^T`. See
+[Memory Management and Ownership](130-memory-management-and-ownership.md).
 
-A pointer obtained from a local, fixed object, array element, string, or view
-remains valid only while that storage exists and stays at the same address.
-Resizing a dynamic array or growing/detaching a string can invalidate pointers
-into it. Neither copying the pointer nor passing it through a function extends
-the target's lifetime.
+Pointers into local variables or fixed arrays are valid only while that storage
+exists. Resizing a dynamic array or growing or changing a string's storage can
+also invalidate pointers into it. Obtain a fresh pointer after such a change.
+Never return a pointer to a function's local variable.
+
+## Generic Pointers
+
+The type `pointer` stores an address without saying what is there. Use it when
+an external API accepts an unspecified address. Cast it to the correct typed
+pointer before reading or writing:
+
+```dq
+var value : int = 10
+var raw : pointer = %value
+var address : ^int = ^int(raw)
+address^ = 20 // value is now 20
+```
+
+The cast tells the compiler how to interpret the address; it does not check the
+actual value stored there. Generic pointers do not support typed element
+arithmetic until converted to a suitable typed pointer.
 
 ## Pointers, References, and Objects
 
-A local `ref` alias names an existing variable; a pointer is a separate nullable
-value. An object variable is also a reference, but carries the object's declared
-member interface and object runtime behavior. Casting between these categories
-requires the defined explicit conversions and does not create ownership.
+A local `ref` alias gives another name to an existing variable. A pointer is a
+separate value that can be changed to point elsewhere or set to `nil`. An
+object variable is also a reference, with the fields and methods of its object
+type. Casting between these forms requires the supported explicit conversions
+and does not create ownership.
 
-For callable addresses use a typed function reference, described in
-[Functions](060-functions.md#function-references). For C strings, use a suitable
-borrowed `.pchar` or `rostr` conversion; a raw address alone carries neither a
-length nor a terminator guarantee.
+Use a typed [function reference](060-functions.md#function-references) to store
+a callable function. For a C string, follow the
+[string conversion rules](200-c-interoperability.md#strings-buffers-and-borrowing):
+an address alone does not tell you the string's length or guarantee a terminator.
+
+## Low-Level Details
+
+The target storage must have the alignment required by its type. An incorrect
+address or type can read unrelated memory, corrupt data, or crash the program.
+A `nil` check alone cannot establish that an address is safe to use.
+
+Pointer arithmetic and subtraction must stay within the same allocation or its
+one-past-end position. You may form, compare, or subtract a pointer just past
+the last element, but must not dereference it.
+
+`autofree pointer` also supports scoped release of raw storage. Its address
+must come from a compatible allocator; a local variable's address or an address
+inside another allocation cannot be made an owner this way.

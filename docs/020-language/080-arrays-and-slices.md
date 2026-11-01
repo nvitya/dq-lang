@@ -11,23 +11,32 @@ Here is a small program that builds a shopping list of strings and prints it:
 ```dq
 use print
 
+func PrintList(list : []str):
+    for item :? in list:
+        PrintLn("{}", [item])
+    endfor
+endfunc
+
 func *Main():
     var shopping : [*]str = ["bread", "milk"]
     shopping.Append("apples")
-    shopping[0] = "rice"
-
-    for item :? in shopping:
-        PrintLn("{}", [item])
-    endfor
+    shopping.Append(["potatoes", "tomatoes"])
+    var i : int = shopping.IndexOf("potatoes")
+    if i >= 0:
+        shopping[i] = "rice"
+    endif
+    PrintList(shopping)
 endfunc
 ```
 
 This prints:
 
 ```text
-rice
+bread
 milk
 apples
+rice
+tomatoes
 ```
 
 ## Array Forms
@@ -66,7 +75,7 @@ A result of `—` means the method returns no value; `T` is the element type.
 | [`.Pop()`](#pop-and-popfirst) | D | `T` | Remove and return the last element. |
 | [`.PopFirst()`](#pop-and-popfirst) | D | `T` | Remove and return the first element. |
 | [`.Prepend(value)`](#append-and-prepend)<br>[`.Prepend(values)`](#append-and-prepend) | D | — | Add one or more elements at the beginning. |
-| [`.refcount`](#reference-count) | D | `int` | Number of references sharing the array. |
+| [`.refcount`](#refcount-reference-count) | D | `int` | Number of references sharing the array. |
 | [`.Reserve(capacity)`](#reserve) | D | — | Make room for later additions. |
 | [`.SetCapacity(capacity)`](#setcapacity-and-compact) | D | — | Set storage size, removing excess elements if needed. |
 | [`.SetLength(length)`](#setlength) | D | — | Change the number of elements. |
@@ -603,22 +612,19 @@ var middle : []int = data[1:3]          // [20, 30]
 var position : int = middle.IndexOf(30) // 1, rather than 2
 ```
 
-The search compares the bytes stored for each element. This works directly for
-values such as integers and bytes. For `str` elements, use a loop with `==` to
-compare text; `.IndexOf()` does not compare string contents:
+For `str` elements, `.IndexOf()` compares the text contents, just like `==`.
+The comparison is case-sensitive and works on fixed arrays, dynamic arrays,
+and slices of `str`. Separate strings containing the same text match:
 
 ```dq
-var names : [*]str = ["Amy", "Lin", "Sam"]
-var found : bool = false
-for name :? in names:
-    if name == "Lin":
-        found = true
-        break
-    endif
-endfor
-// found is true
+var names : [*]str = ["Amy", "Lin", "Sam", "Lin"]
+var wanted : str = "Lin"
+var position : int = names.IndexOf(wanted) // 1: the first matching name
+var missing : int = names.IndexOf("lin")  // -1: case matters
 ```
 
+For other element types, the search compares the bytes stored for each element.
+This works directly for values such as integers and bytes.
 Object references match only when they point to the same object; the search
 does not compare object contents. For structures, floating-point values, or
 other types that need a custom comparison, use a loop
@@ -627,14 +633,19 @@ bit patterns can otherwise affect the result.
 
 ### Equality
 
-For a dynamic array, `== []` checks whether it is empty and `<> []` checks whether
-it has any elements:
+For dynamic arrays and array slices, `== []` checks whether the length is zero
+and `<> []` checks whether there are any elements:
 
 ```dq
 var jobs : [*]str
 var empty : bool = jobs == [] // true
 jobs.Append("download")
 var has_jobs : bool = jobs <> [] // true
+
+var pending : []str = jobs[:]
+var has_pending : bool = pending <> [] // true
+var finished : []str = jobs[1:]
+var all_done : bool = finished == [] // true
 ```
 
 To compare the contents of two arrays, compare their lengths and then their

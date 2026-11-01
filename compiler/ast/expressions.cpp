@@ -875,6 +875,11 @@ LlValue * OArrayIndexOfExpr::Generate(OScope * scope)
     length = dyntype->GenerateLength(scope, dynaddr);
   }
 
+  if (TK_DYNSTR == elemtype->ResolveAlias()->kind)
+  {
+    return g_builtins->type_str->GenerateArrayIndexOf(scope, dataptr, ToNativeInt(length), value);
+  }
+
   LlValue * valueaddr = CreateEntryBlockAlloca(elemtype->GetLlType(), nullptr, "arr.indexof.value");
   ll_builder.CreateStore(value->Generate(scope), valueaddr);
   return OTypeArraySlice::CallRuntimeFunc(scope, "RawArrayIndexOf", {

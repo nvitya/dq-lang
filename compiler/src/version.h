@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.12"
+#define DQ_COMPILER_VERSION  "0.94.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.94.13:
+  - .IndexOf() works on array of dynamic strings ([*]str, [n]str and []str)
 v0.94.12:
   - Direct called .SetLength(n) on `str` or dynamic arrays allocate only the requested length
 v0.94.11:

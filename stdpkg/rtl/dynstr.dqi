@@ -13,6 +13,16 @@
  * brief:   DQ dynamic string handling implementations
  */
 
+func DynStrArrayIndexOf(dataptr : ^str, length : int, value : strslice) -> int:
+    for i : int = 0 count length:
+        var item : strslice = dataptr[i]^
+        if item.length == value.length and StrSliceCmp(item, value) == 0:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
 func DynStrAddLength(length : uint32, acount : int32) -> uint32:
     if acount < 1:
         return length

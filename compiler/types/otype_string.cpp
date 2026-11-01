@@ -465,6 +465,15 @@ LlValue * OTypeString::GenerateCompare(OScope * scope, OExpr * left, OExpr * rig
 
 // OTypeDynString
 
+LlValue * OTypeDynString::GenerateArrayIndexOf(OScope * scope, LlValue * dataptr, LlValue * length, OExpr * value)
+{
+  LlValue * temporary = nullptr;
+  LlValue * needle = GenerateTextInfoValue(scope, value, &temporary);
+  LlValue * result = CallDynStrFunc(scope, "DynStrArrayIndexOf", {dataptr, length, needle});
+  if (temporary) GenerateDestroy(scope, temporary);
+  return result;
+}
+
 LlValue * OTypeDynString::GenerateLength(OScope * scope, LlValue * straddr)
 {
   (void)scope;

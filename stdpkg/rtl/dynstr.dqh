@@ -46,6 +46,7 @@ func DynStrIncRef(astr : ref ODynStrMgr) ..
 func DynStrDecRef(astr : ref ODynStrMgr) ..
 func DynStrAssignOther(astr : ref ODynStrMgr, asrc : ODynStrMgr) ..
 func DynStrAssignData(astr : ref ODynStrMgr, ati : ref SDqRoStrInfo) ..
+func DynStrArrayIndexOf(dataptr : ^str, length : int, value : strslice) -> int ..
 
 //func DynStrGetElemPtr(astr : ref ODynStrMgr, index : int) -> ^char
 func DynStrGetLength(astr : ref ODynStrMgr) -> uint32 ..

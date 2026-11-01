@@ -133,6 +133,7 @@ public:
   void GenerateDestroy(OScope * scope, LlValue * straddr);
   bool GenerateAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * value);
   void GenerateSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value);
+  LlValue * GenerateArrayIndexOf(OScope * scope, LlValue * dataptr, LlValue * length, OExpr * value);
   LlValue * GenerateMethodCall(OScope * scope, OLValueExpr * receiver, EStringMethod method,
                                const vector<OExpr *> & args);
 

@@ -1,0 +1,49 @@
+// Dynamic string elements compare contents; other elements retain raw comparison.
+
+use print
+
+type TString = str
+
+var needle_calls : int = 0
+
+func MakeNeedle() -> str:
+    ++needle_calls
+    return "pot" + "atoes"
+endfunc
+
+func *Main():
+    var fixed : [5]str = ["bread", "potatoes", "milk", "potatoes", ""]
+    var needle : str = fixed[1].Clone()
+    PrintLn("fixed = first:{} missing:{} empty:{}", [fixed.IndexOf(needle), fixed.IndexOf("rice"), fixed.IndexOf("")]) //?check("fixed", "first:1 missing:-1 empty:4")
+
+    var view : []str = fixed[2:]
+    PrintLn("slice = first:{} missing:{} empty:{} expr:{}", [view.IndexOf(needle), view.IndexOf("rice"), fixed[0:0].IndexOf(needle), fixed[1:].IndexOf(needle)]) //?check("slice", "first:1 missing:-1 empty:-1 expr:0")
+
+    var shopping : [*]str = ["bread", "milk"]
+    shopping.Append("apples")
+    shopping.Append(["potatoes", "tomatoes"])
+    var i : int = shopping.IndexOf("potatoes")
+    if i >= 0:
+        shopping[i] = "rice"
+    endif
+    PrintLn("shopping = index:{} item:{} missing:{}", [i, shopping[3], shopping.IndexOf("potatoes")]) //?check("shopping", "index:3 item:rice missing:-1")
+
+    var dynamic : [*]str = fixed
+    var empty : [*]str
+    PrintLn("dynamic = first:{} missing:{} empty:{}", [dynamic.IndexOf(needle), dynamic.IndexOf("rice"), empty.IndexOf(needle)]) //?check("dynamic", "first:1 missing:-1 empty:-1")
+
+    PrintLn("temporary = fixed:{} slice:{} dynamic:{} empty:{} calls:{}", [fixed.IndexOf(MakeNeedle()), view.IndexOf(MakeNeedle()), dynamic.IndexOf(MakeNeedle()), empty.IndexOf(MakeNeedle()), needle_calls]) //?check("temporary", "fixed:1 slice:1 dynamic:1 empty:-1 calls:4")
+    PrintLn("refcount = {}", [needle.refcount]) //?check("refcount", "1")
+
+    var aliases : [2]TString = ["bread", "potatoes"]
+    var alias_dynamic : [*]TString = aliases
+    var alias_view : []TString = aliases
+    PrintLn("aliases = fixed:{} slice:{} dynamic:{}", [aliases.IndexOf(needle), alias_view.IndexOf(needle), alias_dynamic.IndexOf(needle)]) //?check("aliases", "fixed:1 slice:1 dynamic:1")
+
+    var zeroed : [2]str
+    zeroed[1].Reserve(10)
+    PrintLn("empty_strings = zeroed:{} allocated:{}", [zeroed.IndexOf(""), zeroed[1:].IndexOf("")]) //?check("empty_strings", "zeroed:0 allocated:0")
+
+    var binary : [2]str = ["a\0b", "a\0c"]
+    PrintLn("binary = match:{} prefix:{} missing:{}", [binary.IndexOf("a\0c"), binary.IndexOf("a"), binary.IndexOf("a\0d")]) //?check("binary", "match:1 prefix:-1 missing:-1")
+endfunc

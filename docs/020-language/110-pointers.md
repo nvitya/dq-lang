@@ -19,7 +19,9 @@ func *Main():
 endfunc
 ```
 
-This prints `42`: `address^` and `value` access the same integer.
+This prints `42`.
+
+`address^` and `value` access the same integer.
 
 ## Typed Pointers
 
@@ -51,9 +53,10 @@ struct SPoint:
     y : int
 endstruct
 
-var point : SPoint = {x: 10, y: 20}
+var point   : SPoint = {x: 10, y: 20}
 var address : ^SPoint = %point
-address.x = 30 // changes point.x; equivalent to address^.x = 30
+address^.x = 30 // changes point.x
+address.x  = 30 // changes point.x, . dereferences automatically
 ```
 
 This convenience does not change who owns the structure or how long it exists.
@@ -65,9 +68,9 @@ indexing also returns a **pointer**, so add `^` to access the selected value:
 
 ```dq
 var readings : [3]int = [10, 20, 30]
-var first : ^int = %readings[0]
-var second : ^int = first + 1
-var value : int = first[1]^ // 20
+var first    : ^int = %readings[0]
+var second   : ^int = first + 1
+var value    : int = first[1]^ // 20
 second^ = 25                // readings is now [10, 25, 30]
 var distance : int = second - first // 1 element
 ```

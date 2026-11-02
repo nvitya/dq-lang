@@ -468,6 +468,211 @@ and does not create ownership.
 
 ## Pointer Examples
 
+### Double Pointers and an argv-Style Dynamic List
+
+A **double pointer**, such as `^^char`, points to a variable or array element
+that itself holds a `^char`. This is useful for a list of pointers, such as a
+C-style argument table (`argv`): each entry points to a zero-terminated string.
+The strings can have different lengths and do not need to be adjacent in memory.
+
+This example builds the strings in a dynamic array, then builds a separate
+dynamic array of pointers to their text. It passes the address of the first
+pointer slot as `^^char`, together with an argument count (`argc`). A final
+`nil` entry also allows traversal without using the count.
+
+```dq
+use print
+
+func PrintArgs(argc : int, argv : ^^char):
+    for i : int = 0 count argc:
+        var text : rostr = argv[i]^ // read a ^char from the pointer table
+        PrintLn("argv[{}] = {}", [i, text])
+    endfor
+
+    var cursor : ^^char = argv
+    Print("First characters:")
+    while cursor^ <> nil:
+        var textptr : ^char = cursor^
+        Print(" {}", [textptr^])
+        ++cursor // advance to the next ^char slot, not the next character
+    endwhile
+    PrintLn()
+endfunc
+
+func *Main():
+    var arguments : [*]str = ["demo", "--color"]
+    arguments.Append("blue")
+
+    var pointers : [*]^char
+    for i : int = 0 count arguments.length:
+        pointers.Append(arguments[i].pchar)
+    endfor
+    pointers.Append(nil) // the final slot marks the end of the list
+
+    var argv : ^^char = %pointers[0]
+    PrintArgs(arguments.length, argv)
+
+    var replacement : str = "green"
+    argv[2]^ = replacement.pchar // replace a pointer in the table
+    var selected : rostr = pointers[2]
+    PrintLn("After replacement: {}", [selected])
+    PrintLn("Original string: {}", [arguments[2]])
+endfunc
+```
+
+Example output:
+
+```text
+argv[0] = demo
+argv[1] = --color
+argv[2] = blue
+First characters: d - b
+After replacement: green
+Original string: blue
+```
+
+There are two levels of storage between `argv` and a character:
+
+| Expression | Type | Meaning |
+| --- | --- | --- |
+| `argv` | `^^char` | Address of the first pointer slot |
+| `argv[i]` | `^^char` | Address of pointer slot `i` |
+| `argv[i]^` | `^char` | String address stored in slot `i` |
+| `textptr^` | `char` | One character at the selected string address |
+
+`++cursor` moves by `SizeOf(^char)`: one pointer slot, or 4 or 8 bytes depending
+on the target. It does not move through the string's characters. To do that,
+increment the inner `^char` pointer instead.
+
+Assigning `argv[2]^` replaces the pointer stored in `pointers[2]`. It does not
+copy text, modify the string `"blue"`, or replace `arguments[2]`. The `rostr`
+variables borrow the selected zero-terminated text so `PrintLn` can print it
+as a string rather than as an address.
+
+The dynamic arrays manage their own storage. The pointer table borrows the
+strings; it does not own them. Keep `arguments` and `replacement` alive while
+their text pointers are used, and obtain fresh `.pchar` values after changing
+the source strings. Finish building `pointers` before taking `%pointers[0]`:
+resizing it can invalidate `argv` and `cursor`. The function expects `argc`
+valid string pointers followed by a `nil` slot; a raw double pointer does not
+carry the table's length.
+
+### A Linked List with First and Last Pointers
+
+A **linked list** stores each value in a node with a pointer to the next node.
+The nodes can be allocated separately. Unlike an array, the list is traversed
+by following `next`, rather than by incrementing a pointer.
+
+`SList` keeps two addresses: `first` selects the first node and `last` selects
+the final node. Both are `nil` for an empty list. Keeping `last` lets `Append`
+add a node without walking through all the existing nodes. The last node's
+`next` is always `nil`.
+
+```dq
+use print
+
+struct SNode:
+    value : int
+    next  : ^SNode
+endstruct
+
+struct SList:
+    first : ^SNode
+    last  : ^SNode
+
+    func Append(value : int):
+        var node : ^SNode = new SNode
+        node.value = value
+        node.next = nil
+
+        if last == nil:
+            first = node // adding the first node to an empty list
+        else:
+            last.next = node
+        endif
+        last = node
+    endfunc
+
+    func PopFirst(value : ref int) -> bool:
+        if first == nil:
+            return false
+        endif
+
+        var node : ^SNode = first
+        value = node.value
+        first = node.next // save the next address before releasing the node
+        if first == nil:
+            last = nil // removing the only remaining node empties both ends
+        endif
+        delete node
+        return true
+    endfunc
+
+    func Clear():
+        var value : int = 0
+        while PopFirst(value):
+        endwhile
+    endfunc
+endstruct
+
+func *Main():
+    var list : SList = {} // both first and last start as nil
+    list.Append(10)
+    list.Append(20)
+    list.Append(30)
+    PrintLn("First: {}, last: {}", [list.first.value, list.last.value])
+
+    Print("Values:")
+    var current : ^SNode = list.first
+    while current <> nil:
+        Print(" {}", [current.value])
+        current = current.next // follow the link; nodes need not be adjacent
+    endwhile
+    PrintLn()
+
+    var value : int = 0
+    while list.PopFirst(value):
+        PrintLn("Removed: {}", [value])
+    endwhile
+    PrintLn("Empty: {}", [list.first == nil and list.last == nil])
+
+    list.Append(40) // the emptied list can be used again
+    PrintLn("Reused: first={}, last={}", [list.first.value, list.last.value])
+    list.Clear() // release every node still owned by the list
+    PrintLn("Cleared: {}", [list.first == nil and list.last == nil])
+endfunc
+```
+
+Example output:
+
+```text
+First: 10, last: 30
+Values: 10 20 30
+Removed: 10
+Removed: 20
+Removed: 30
+Empty: true
+Reused: first=40, last=40
+Cleared: true
+```
+
+When appending to an empty list, the new node becomes both `first` and `last`.
+Otherwise, `last.next` links the old tail to the new node, and `last` moves to
+that node. Appending changes links, without moving any existing nodes.
+
+`PopFirst` returns `false` for an empty list. Otherwise, it copies the first
+node's value into the caller's variable, advances `first` to `node.next`, and
+then deletes the removed node. It clears `last` when the last remaining node
+is removed, so a later `Append` correctly starts a new list. Both appending
+and removing the first node take a constant number of pointer operations.
+
+The list owns its allocated nodes. `Clear` reuses `PopFirst` to release all of
+them; deleting one node does not automatically follow and delete its `next`.
+Call `Clear` before the list leaves scope if it still contains nodes. Copying
+an `SList` structure copies only its two addresses, so it does not create an
+independent list and must not create a second owner of the same nodes. Any
+borrowed pointer to a removed node becomes invalid when that node is deleted.
+
 ### Processing a Sensor Packet
 
 This is a longer, somewhat practical example demonstrating using pointers.

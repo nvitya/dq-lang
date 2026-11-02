@@ -19,12 +19,12 @@ This is also called **dereferencing**:
 A simple example using the `%` to get the address of a variable:
 
 ```dq
-var u32value : uint32     // an ordinary variable whose storage is managed by the compiler
-u32value = 0x04030201     // assigns a value to the variable
+var u32value : uint32       // an ordinary variable whose storage is managed by the compiler
+u32value = 0x04030201       // assigns a value to the variable
 
-var byteptr : ^byte       // declares a pointer variable of type `^byte`
-byteptr = ^byte(%u32value) // points to the memory location where `u32value` is stored
-byteptr^ = 0x55           // updates the first byte at that address
+var byteptr : ^byte         // declares a pointer variable of type `^byte`
+byteptr = ^byte(%u32value)  // points to the memory location where `u32value` is stored
+byteptr^ = 0x55             // updates the first byte at that address
 
 PrintLn('u32value = 0x{:08X}', [u32value])  // = "u32value = 0x04030255"
 ```
@@ -43,7 +43,25 @@ For an ordinary function that updates a
 caller's variable, a `ref` parameter is usually simpler.
 
 For a more practical example for using pointers see the
-[Example: Processing a Sensor Packet](#example-processing-a-sensor-packet).
+[Example: Processing a Sensor Packet](#processing-a-sensor-packet).
+
+## Pointer Variables
+
+Assigning a pointer variable sets its pointing address. A pointer variable
+can be re-assigned to point a different address:
+
+```dq
+var first  : int = 10
+var second : int = 20
+var curptr : ^int
+
+curptr = %first    // setting the address of the pointer
+curptr^ = 15       // first is now 15; current^ also reads 15
+curptr = %second   // redirects curptr to second
+curptr^ = 25       // second is now 25; first remains 15
+
+var otherptr : ^int = current // assignment between two pointer variables
+```
 
 ## Pointer Size and Memory Addresses
 
@@ -106,8 +124,13 @@ how far to move during pointer arithmetic.
 
 The type after `^` describes the pointed-to value. For example, `^byte` accesses
 a single byte, `^int32` accesses a 4-byte signed integer, and `^float` accesses a
-floating-point number occupying 4 or 8 bytes, depending on the target. The size
-of the pointer itself is the same for all three types on a given target.
+floating-point number occupying 4 or 8 bytes, depending on the target. (The size
+of the pointer itself is the same for all three types, either 4 or 8 bytes depending
+on the target CPU architecture.)
+
+The pointed-to type also determines the step size of
+[pointer arithmetic and indexing](#pointer-arithmetic-and-indexing): adding
+1 to a `^byte` moves by 1 byte, while adding 1 to a `^uint32` moves by 4 bytes.
 
 **Casting** converts a value from one type to another, or tells the compiler
 to treat a value as a different type.
@@ -115,6 +138,9 @@ to treat a value as a different type.
 For pointers, casting usually changes the **pointer type** without changing
 the address stored in the pointer. The same memory address is then interpreted
 as pointing to a different data type.
+
+The cast tells the compiler how to interpret the address; it does not check the
+actual value stored there.
 
 Sometimes an address comes from an API without type information, or the same
 memory needs to be accessed through a different pointer type. An explicit cast
@@ -141,9 +167,9 @@ func ShowBuffer(acaption : strslice):
 endfunc
 
 func *Main():
-    var byteptr  : ^byte = %buffer[0]
-    var intptr   : ^int32 = ^int32(%buffer[0])
-    var floatptr : ^float = ^float(%buffer[0])
+    var byteptr  : ^byte   = %buffer[0]
+    var intptr   : ^int32  = ^int32(%buffer[0])
+    var floatptr : ^float  = ^float(%buffer[0])
     var u64ptr   : ^uint64 = ^uint64(%buffer[0])
 
     ShowBuffer("Initial")
@@ -179,101 +205,35 @@ u64ptr^ = 0x0102030405060708 at ^555512345678: 08 07 06 05 04 03 02 01
 ```
 
 `ShowBuffer` prints the starting address followed by all eight bytes in memory
-order. The global buffer starts with zeroes. The loop writes the pattern through
-`byteptr[i]^`, which accesses the byte at offset `i` without changing `byteptr`.
+order. The global buffer starts with zeroes.
+
+The "Set Pattern" loop writes the pattern using pointer indexing through `byteptr[i]^`,
+without changing `byteptr`.
+
 The following `byteptr^ = 42` changes only the first byte of that pattern.
 The `int32` write changes the first 4 bytes to the two's-complement representation
-of `-1000`, leaving `D4 D5 D6 D7` unchanged. On Linux x64, values are stored in
-little-endian byte order, with the least significant byte first. The
+of `-1000`, leaving `D4 D5 D6 D7` unchanged. Almost all current CPU architectures
+use little-endian byte order, with the least significant byte first. The
 floating-point write uses 8 bytes and shows the `float64` representation of
 `1.5`. On targets with a 4-byte `float`, that write changes only the first
-4 bytes. The final `uint64` write
-always uses 8 bytes: `08 07 06 05 04 03 02 01` in little-endian byte order.
+4 bytes. The final `0x0102030405060708` `uint64` write always uses
+8 bytes: `08 07 06 05 04 03 02 01` in little-endian byte order.
 
 The global buffer has eight-byte alignment, requested by `[[align(8)]]`, so it
-can hold any of these values at its starting address. `%buffer[0]` takes the
-address of its first byte. The casts `^int32(%buffer[0])`, `^float(%buffer[0])`,
-and `^uint64(%buffer[0])` keep that address and give it different pointer types.
+can hold any of these values at its starting address, as some CPU architectures
+cannot read/write multi-byte data types from unaligned addresses.
 
-All four pointers access the same storage. Each write overwrites the bytes
+`%buffer[0]` takes the
+address of its first byte. The casts `^int32(%buffer[0])`, `^float(%buffer[0])`,
+and `^uint64(%buffer[0])` take the same address and give it different pointer types.
+
+As all four pointers access the same storage, each write overwrites the bytes
 used by that type, and each read interprets those bytes according to the
 pointer's type. Reading through `intptr^` after the floating-point write would
-interpret the floating-point representation as an integer; it would not
+interpret the low 4 bytes of the floating-point representation as an integer (=0); it would not
 convert `1.5` to an integer.
 
-A generic `pointer` carries no information about the data it points to.
-Cast it to a typed pointer before accessing that data:
-
-```dq
-var value : uint32 = 10
-var raw   : pointer = %value
-
-var address :? = ^uint32(raw)
-address^ = 20 // value is now 20
-```
-
-Here, `^uint32(raw)` produces a pointer of type `^uint32`. The `:?` declaration
-infers that type for `address`, so it does not need to be written twice.
-The cast tells the compiler that the address refers to a `uint32`; it does
-not check whether that is actually true.
-
-A cast is also needed when changing between unrelated typed pointers. For
-example, a `^uint32` cannot be assigned directly to a `^byte` variable. Cast
-it explicitly to access individual bytes of the same storage:
-
-```dq
-var value : uint32 = 0x04030201
-var wordptr : ^uint32 = %value
-var byteptr :? = ^byte(wordptr)
-
-byteptr^ = 0x55 // changes the first byte of value
-```
-
-`wordptr` and `byteptr` hold the same address, but `wordptr^` accesses 4 bytes
-while `byteptr^` accesses 1 byte. On a little-endian system, `value` becomes
-`0x04030255`. This changes the original variable's storage; the cast does not
-create a separate byte variable.
-
-You must ensure that the target storage is valid, large enough, and
-properly aligned for the type used to access it. Casting does not extend the
-storage's lifetime or give the pointer ownership of it.
-
-Assigning a pointer copies its address. Both pointers then refer to the same
-value, but either pointer can later be redirected independently:
-
-```dq
-var first  : int = 10
-var second : int = 20
-var current : ^int = %first
-var other   : ^int = current
-
-other^ = 15        // first is now 15; current^ also reads 15
-current = %second  // redirects current; other still points to first
-current^ = 25      // second is now 25; first remains 15
-```
-
-The declared type of `current` remains `^int` when its address changes. Using
-a different pointed-to type requires an explicit cast.
-
-For a structure pointer, the type also determines which fields can be accessed.
-The dot operator dereferences the pointer automatically:
-
-```dq
-struct SReading:
-    channel : byte
-    value   : float32
-endstruct
-
-var reading : SReading = {channel: 1, value: 21.5}
-var sensor  : ^SReading = %reading
-
-var channel : byte = sensor.channel // reads reading.channel: 1
-sensor.value = 22                   // changes reading.value to 22
-```
-
-Here, `sensor.value` is equivalent to `sensor^.value`. The compiler knows
-the field's location and type because `sensor` has type `^SReading`.
-See [Pointer Member Access](#pointer-member-access) for more details.
+## Pointers as Function Parameters
 
 Typed pointers can also be function parameters. A pointer may be `nil`, meaning
 it has no target, so a function that accepts an optional target must check
@@ -297,31 +257,12 @@ A non-`nil` pointer must still refer to a live value of the correct type.
 Copying a pointer does not copy its target or keep that target alive. DQ does
 not generally check raw addresses for you.
 
-The pointed-to type also determines the step size of
-[pointer arithmetic and indexing](#pointer-arithmetic-and-indexing): adding
-1 to a `^byte` moves by 1 byte, while adding 1 to a `^uint32` moves by 4 bytes.
 
-## Pointer Arithmetic and Indexing
+## Structure Pointers
 
-Adding an integer to a typed pointer moves by that many elements. Pointer
-indexing also returns a **pointer**, so add `^` to access the selected value:
-
-```dq
-var readings : [3]int = [10, 20, 30]
-var first    : ^int = %readings[0]
-var second   : ^int = first + 1
-var value    : int = first[1]^ // 20
-second^ = 25                // readings is now [10, 25, 30]
-var distance : int = second - first // 1 element
-```
-
-`first[1]` selects the address of the second integer; `first[1]^` reads it.
-Unlike array indexing, pointer indexing carries no length information and does
-not check bounds. Keep accesses within the original allocation.
-
-## Pointer Member Access
-
-A pointer to a structure can access fields directly with a dot:
+Pointers tor structures are very useful to manipulate memory structures at arbitrary
+positions in the memory. Fields of the pointed structure can be accessed either
+with `^.` or `.` only.
 
 ```dq
 struct SPoint:
@@ -332,10 +273,167 @@ endstruct
 var point   : SPoint = {x: 10, y: 20}
 var address : ^SPoint = %point
 address^.x = 30 // changes point.x
-address.x  = 30 // changes point.x, . dereferences automatically
+address.x  = 30 // changes point.x, `.` dereferences automatically
 ```
 
-This convenience does not change who owns the structure or how long it exists.
+## Generic Pointers
+
+A generic `pointer` carries no information about the data it points to.
+Generic pointers do not support typed element arithmetic until
+converted to a suitable typed pointer.
+
+Cast it to a typed pointer before accessing that data:
+
+```dq
+var value  : uint32 = 0x01020304
+var rawptr : pointer = %value
+
+^byte(rawpr)^ = 0x55 // value is now 0x01020355
+```
+
+Here, `^byte(rawptr)` produces a pointer of type `^byte`, so the `^byte(rawpr)^`
+expression manipulates the lowest byte of the 4-byte `value`.
+
+
+## Pointer Arithmetic and Indexing
+
+Pointer arithmetic counts **elements of the pointed-to type**. For a pointer
+`ptr : ^T`, adding `n` moves the address by `n * SizeOf(T)` bytes.
+
+| Operation | Meaning | Changes `ptr`? |
+| --- | --- | --- |
+| `ptr + n` | Address `n` elements forward | No |
+| `ptr - n` | Address `n` elements backward | No |
+| `++ptr` / `--ptr` | Move forward / backward by one element | Yes |
+| `ptr += n` / `ptr -= n` | Move forward / backward by `n` elements | Yes |
+| `ptr[n]` | Same address as `ptr + n` | No |
+
+Pointer indexing returns a **pointer**, so `ptr[n]^` reads or writes the
+selected value. For a structure pointer, use `ptr[n]^.x` to access a field
+of the selected structure.
+
+### Stepping Through the Same Buffer
+
+This example uses a fixed `[16]byte` buffer. It first advances a byte pointer,
+then casts its current address to `^uint32` and continues in 4-byte steps.
+The structure writes start at byte offset 8. Here, `SPoint` uses `int16`
+coordinates so that each point occupies 4 bytes on both 32-bit and 64-bit targets.
+
+| Pointer type | Element size | Bytes moved by one `++` | Byte offset selected by `[1]` from the start |
+| --- | --- | --- | --- |
+| `^byte` | 1 byte | 1 | 1 |
+| `^uint32` | 4 bytes | 4 | 4 |
+| `^SPoint` | 4 bytes | 4 | 4 |
+
+The same 16 bytes can therefore hold 16 bytes, four `uint32` values, or four
+`SPoint` values. These are different views of the same storage; writes through
+any of the pointers change `buffer`.
+
+The `uint32` writes below use unaligned addresses, so run this example on a
+target that supports them, such as Linux x64.
+
+```dq
+use print
+
+struct SPoint:
+    x : int16
+    y : int16
+endstruct
+
+var buffer : [16]byte [[align(8)]]
+
+func ShowBuffer(caption : strslice):
+    Print("{:<18}:", [caption])
+    for i : int = 0 count buffer.length:
+        Print(" {:02X}", [buffer[i]])
+    endfor
+    PrintLn()
+endfunc
+
+func *Main():
+    var byteptr  : ^byte   = %buffer[0]
+    for i : int = 0 count buffer.length:
+        byteptr[i]^ = i // indexing leaves byteptr at the start
+    endfor
+    ShowBuffer("Initial")
+
+    byteptr^ = 0xAA // writes 1 byte at offset 0
+    ++byteptr       // moves 1 byte: now at buffer[1]
+    byteptr^ = 0xBB // writes 1 byte at offset 1
+    ++byteptr       // moves 1 byte: now at buffer[2]
+    ShowBuffer("After ++byteptr")
+
+    var u32ptr : ^uint32 = ^uint32(byteptr) // keeps byte offset 2
+    u32ptr^ = 0xD1D2D3D4 // writes 4 bytes at offsets 2..5
+    ++u32ptr             // moves 4 bytes: now at buffer[6]
+    u32ptr^ = 0xE1E2E3E4 // writes 4 bytes at offsets 6..9
+    ++u32ptr             // moves 4 bytes: now at buffer[10]
+    ShowBuffer("After ++u32ptr")
+
+    // Start at offset 8 so that two 4-byte points fit in the buffer.
+    var pointptr :? = ^SPoint(%buffer[8])
+    pointptr.x = 11 // writes 2 bytes at offsets 8..9
+    pointptr.y = 21 // writes 2 bytes at offsets 10..11
+    ++pointptr      // moves 4 bytes: now at buffer[12]
+    pointptr.x = 12 // writes 2 bytes at offsets 12..13
+    pointptr.y = 22 // writes 2 bytes at offsets 14..15
+    ShowBuffer("After ++pointptr")
+
+    // Reset all three pointers to the beginning before comparing indexing.
+    byteptr  = %buffer[0]
+    u32ptr   = ^uint32(%buffer[0])
+    pointptr = ^SPoint(%buffer[0])
+
+    byteptr[2]^ = 0xCC       // byte offset 2
+    u32ptr[1]^ = 0xA1A2A3A4  // byte offset 4: the second uint32
+    pointptr[2]^.x = 0x5353  // writes 2 bytes at offsets 4..5: the second point's x
+    pointptr[2]^.y = 0x5252  // writes 2 bytes at offsets 6..7: the second point's y
+    ShowBuffer("Indexed writes")
+
+    PrintLn("Second point: ({}, {})", [pointptr[1]^.x, pointptr[1]^.y])
+
+    var fourth : ^SPoint = pointptr + 3 // byte offset 12: the fourth point
+    PrintLn("Distance: {} points, {} bytes",
+        [fourth - pointptr, ^byte(fourth) - ^byte(pointptr)])
+endfunc
+```
+
+Example output on Linux x64 (little-endian):
+
+```text
+Initial           : 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+After ++byteptr   : AA BB 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+After ++u32ptr    : AA BB D4 D3 D2 D1 E4 E3 E2 E1 0A 0B 0C 0D 0E 0F
+After ++pointptr  : AA BB D4 D3 D2 D1 E4 E3 0B 00 15 00 0C 00 16 00
+Indexed writes    : AA BB CC D3 A4 A3 A2 A1 53 53 52 52 0C 00 16 00
+Second point: (41892, 41378)
+Distance: 3 points, 12 bytes
+```
+
+Each `++` changes only the pointer's address; the assignments through the
+pointers change the buffer. Casting `byteptr` to `^uint32` keeps its current
+byte offset, 2; the subsequent `++u32ptr` operations step to offsets 6 and 10.
+The structure writes at offsets 8..15 overwrite the last two bytes of the
+previous `uint32` write as well as the remaining initial bytes.
+
+After the reset, the `[]` expressions leave all three pointers at the beginning.
+For example, `u32ptr[1]^` writes the same four bytes as `(u32ptr + 1)^`.
+`pointptr[1]^.x` selects the second point, dereferences it, and accesses its `x` field.
+The indexed `SPoint` writes replace the same four bytes at offsets 4..7 that
+were just written through `u32ptr[1]^`.
+
+Subtracting two pointers of the same type gives their distance in **elements**.
+The two point addresses above are three `SPoint` elements apart. Casting both
+to `^byte` before subtracting gives the distance in bytes: 12.
+
+The buffer starts at an address aligned with `[[align(8)]]`, but offsets 2 and 6
+are still unaligned for `uint32`. On targets that require aligned accesses,
+start those writes at offsets divisible by 4. A cast alone does not provide
+alignment or make more storage available. Unlike array indexing, pointer indexing carries
+no length information and does not check bounds. Keep each entire value you
+read or write within the buffer. You may form a pointer just past the last
+element, but must not dereference it; subtract pointers only within the same
+allocation or its one-past-end position.
 
 ## Allocation and Lifetime
 
@@ -358,53 +456,19 @@ exists. Resizing a dynamic array or growing or changing a string's storage can
 also invalidate pointers into it. Obtain a fresh pointer after such a change.
 Never return a pointer to a function's local variable.
 
-## Generic Pointers
-
-The type `pointer` stores an address without saying what is there. Use it when
-an external API accepts an unspecified address. Cast it to the correct typed
-pointer before reading or writing:
-
-```dq
-var value : int = 10
-var raw : pointer = %value
-var address : ^int = ^int(raw)
-address^ = 20 // value is now 20
-```
-
-The cast tells the compiler how to interpret the address; it does not check the
-actual value stored there. Generic pointers do not support typed element
-arithmetic until converted to a suitable typed pointer.
-
-
-
 ## Pointers, References, and Objects
 
 A local `ref` alias gives another name to an existing variable. A pointer is a
 separate value that can be changed to point elsewhere or set to `nil`. An
 object variable is also a reference, with the fields and methods of its object
-type. Casting between these forms requires the supported explicit conversions
+type.
+
+Casting between these forms requires the supported explicit conversions
 and does not create ownership.
 
-Use a typed [function reference](060-functions.md#function-references) to store
-a callable function. For a C string, follow the
-[string conversion rules](200-c-interoperability.md#strings-buffers-and-borrowing):
-an address alone does not tell you the string's length or guarantee a terminator.
+## Pointer Examples
 
-## Low-Level Details
-
-The target storage must have the alignment required by its type. An incorrect
-address or type can read unrelated memory, corrupt data, or crash the program.
-A `nil` check alone cannot establish that an address is safe to use.
-
-Pointer arithmetic and subtraction must stay within the same allocation or its
-one-past-end position. You may form, compare, or subtract a pointer just past
-the last element, but must not dereference it.
-
-`autofree pointer` also supports scoped release of raw storage. Its address
-must come from a compatible allocator; a local variable's address or an address
-inside another allocation cannot be made an owner this way.
-
-## Example: Processing a Sensor Packet
+### Processing a Sensor Packet
 
 This is a longer, somewhat practical example demonstrating using pointers.
 

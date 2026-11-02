@@ -63,59 +63,6 @@ curptr^ = 25       // second is now 25; first remains 15
 var otherptr : ^int = current // assignment between two pointer variables
 ```
 
-## Pointer Size and Memory Addresses
-
-A pointer variable is either **32 bits (4 bytes)** or **64 bits (8 bytes)** wide,
-depending on the target CPU architecture. This is the size of the stored address;
-the data it points to can have a different size. For example, `^byte` and `^uint64`
-have the same size on a given target.
-
-In DQ, `int` and `uint` always have the same size as a pointer:
-`SizeOf(pointer)`, `SizeOf(int)`, and `SizeOf(uint)` are equal.
-
-| Target | Pointer size | `int` | `uint` |
-| --- | --- | --- | --- |
-| ARM_M (Arm Cortex-M) | 32 bits (4 bytes) | `int32` | `uint32` |
-| Linux x64 (`x86_64-linux`) | 64 bits (8 bytes) | `int64` | `uint64` |
-
-Memory addresses are usually written in **hexadecimal**, where each digit
-represents 4 bits. A full-width 32-bit address has 8 hexadecimal digits, while
-a full-width 64-bit address has 16. Leading zeroes are often omitted.
-
-For example, addresses might look like this:
-
-| Target | Example address | Meaning |
-| --- | --- | --- |
-| ARM_M | `0x20001234` | A location in the SRAM region |
-| ARM_M | `0x40001000` | A location in the peripheral region |
-| Linux x64 | `0x0000555512345678` | A location in a process's virtual address space |
-| Linux x64 | `0x00007FFC1234ABCD` | Another possible user-space virtual address |
-
-On ARM_M, addresses refer directly to memory or hardware registers. The
-[Cortex-M memory map](https://support.arm.com/documentation/100230/0100/Programmers-Model/Memory-model)
-defines regions such as SRAM and peripherals; the exact locations available
-depend on the microcontroller.
-
-On Linux x64, an ordinary program uses **virtual addresses**, which the operating
-system maps to physical memory. Addresses can vary between runs. A pointer still
-occupies 8 bytes even when its address uses fewer than 16 hexadecimal digits;
-the CPU and operating system do not make every possible 64-bit address usable.
-You can see the [Linux x64 memory map](https://docs.kernel.org/arch/x86/x86_64/mm.html)
-for more details.
-
-DQ's `PrintLn` displays pointer addresses in hexadecimal with a leading `^`
-instead of `0x`:
-
-```dq
-var value   : int = 42
-var address : ^int = %value
-PrintLn("{:p}", [address])
-```
-
-Example output could be `^20001234` on ARM_M or `^7FFC1234ABCD` on Linux x64.
-These are illustrative addresses; the actual address depends on where `value`
-is stored.
-
 ## Typed Pointers and Casting
 
 A pointer's type tells the compiler how to access the data at its address:
@@ -293,6 +240,59 @@ var rawptr : pointer = %value
 
 Here, `^byte(rawptr)` produces a pointer of type `^byte`, so the `^byte(rawpr)^`
 expression manipulates the lowest byte of the 4-byte `value`.
+
+## Pointer Size and Memory Addresses
+
+A pointer variable is either **32 bits (4 bytes)** or **64 bits (8 bytes)** wide,
+depending on the target CPU architecture. This is the size of the stored address;
+the data it points to can have a different size. For example, `^byte` and `^uint64`
+have the same size on a given target.
+
+In DQ, `int` and `uint` always have the same size as a pointer:
+`SizeOf(pointer)`, `SizeOf(int)`, and `SizeOf(uint)` are equal.
+
+| Target | Pointer size | `int` | `uint` |
+| --- | --- | --- | --- |
+| ARM_M (Arm Cortex-M) | 32 bits (4 bytes) | `int32` | `uint32` |
+| Linux x64 (`x86_64-linux`) | 64 bits (8 bytes) | `int64` | `uint64` |
+
+Memory addresses are usually written in **hexadecimal**, where each digit
+represents 4 bits. A full-width 32-bit address has 8 hexadecimal digits, while
+a full-width 64-bit address has 16. Leading zeroes are often omitted.
+
+For example, addresses might look like this:
+
+| Target | Example address | Meaning |
+| --- | --- | --- |
+| ARM_M | `0x20001234` | A location in the SRAM region |
+| ARM_M | `0x40001000` | A location in the peripheral region |
+| Linux x64 | `0x0000555512345678` | A location in a process's virtual address space |
+| Linux x64 | `0x00007FFC1234ABCD` | Another possible user-space virtual address |
+
+On ARM_M, addresses refer directly to memory or hardware registers. The
+[Cortex-M memory map](https://support.arm.com/documentation/100230/0100/Programmers-Model/Memory-model)
+defines regions such as SRAM and peripherals; the exact locations available
+depend on the microcontroller.
+
+On Linux x64, an ordinary program uses **virtual addresses**, which the operating
+system maps to physical memory. Addresses can vary between runs. A pointer still
+occupies 8 bytes even when its address uses fewer than 16 hexadecimal digits;
+the CPU and operating system do not make every possible 64-bit address usable.
+You can see the [Linux x64 memory map](https://docs.kernel.org/arch/x86/x86_64/mm.html)
+for more details.
+
+DQ's `PrintLn` displays pointer addresses in hexadecimal with a leading `^`
+instead of `0x`:
+
+```dq
+var value   : int = 42
+var address : ^int = %value
+PrintLn("{:p}", [address])
+```
+
+Example output could be `^20001234` on ARM_M or `^7FFC1234ABCD` on Linux x64.
+These are illustrative addresses; the actual address depends on where `value`
+is stored.
 
 
 ## Pointer Arithmetic and Indexing

@@ -1,36 +1,46 @@
 # Pointers
 
-A **pointer** stores the address of a value. It lets you access that value
-through its location in memory.
+A **pointer** is a data type containing a memory location called memory address.
+When the data type symbolized with `T`, pointer types are created putting `^`
+before the data type: `^T`, e.g. `^int`, `^float` etc.
 
-Pointers are used frequently and many ways, they can improve a the running
+When working with pointers, it is important to distinguish between **address operations**
+and **pointed-data operations**.
+
+**Address operations** work on the memory address where the pointer points to. DQ works on the address
+when **no `^` or `.`** symbol is written **after the name** of the pointer variable/constant:
+<br>&nbsp;&nbsp;`ptr = address`
+
+**Pointed-data operations** work on the data in the memory where the pointer points to. DQ works on the
+pointed data when **`^` or `.`** symbol **is** written **after the name** of the pointer variable/constant.
+This is also called **dereferencing**:
+<br>&nbsp;&nbsp;`ptr^ = value`
+
+A simple example:
+```dq
+var u32value : uint32    // a normal variable, it has some memory storage address selected
+                         // automatically by the compiler
+u32value = 0x04030201    // assigning some value to the normal variable
+
+var byteptr : ^byte      // declaring a pointer variable with `^byte` type
+byteptr = %value         // assigning an address to the pointer variable
+                         // pointing to the same memory location where the `u32value` stored
+byteptr^ = 0x55          // updating the memory pointed by the pointer variable
+                         // which changes only the lowest byte of the `u32value`
+
+PrintLn('u32value = 0x{}', [u32value])  // = "u32value = 0x04030255"
+```
+
+Pointers are used frequently and many ways, they can improve the running
 speed a lot.
 
-Using pointers can be dangerous too, there are many ways to get an invalid
-pointer, a pointer pointing to invalid memory location, and accessing data
+Using pointers can be dangerous too. There are many ways to get an invalid
+pointer (a pointer pointing to invalid memory location) and accessing data
 through this can deliver either invalid data or lead to application crash.
 
 Pointers are useful when working with C libraries, raw buffers, or hardware.
 For an ordinary function that updates a
 caller's variable, a `ref` parameter is usually simpler.
-
-Write `^T` for a pointer to a value of type `T`. Use `%` to get a variable's
-address and a trailing `^` to read or change the value at that address:
-
-```dq
-use print
-
-func *Main():
-    var value : int = 10
-    var address : ^int = %value
-    address^ = 42
-    PrintLn("{}", [value])
-endfunc
-```
-
-This prints `42`.
-
-`address^` and `value` access the same integer.
 
 ## Example: Processing a Sensor Packet
 

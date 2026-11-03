@@ -226,7 +226,7 @@ void ODqCompAst::PrepareFuncDecl(OScPosition & scpos, OValSymFunc * avsfunc)
     vsarg->kind = VSK_PARAMETER;
     vsarg->param_mode = fp->mode;
     vsarg->is_ref_alias = fp->IsRefLike();
-    vsarg->ref_nullable = (FPM_REFNULL == fp->mode);
+    vsarg->ref_nullable = (FPM_REFNIL == fp->mode);
     vsarg->initialized = (FPM_REFOUT != fp->mode);
     if (auto * objarg = dynamic_cast<OVsObject *>(vsarg); objarg && objarg->IsRefLike())
     {
@@ -1489,9 +1489,9 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
       bool is_null_arg = dynamic_cast<ONullLit *>(argexpr);
       if (is_null_arg)
       {
-        if (FPM_REFNULL != fparam->mode)
+        if (FPM_REFNIL != fparam->mode)
         {
-          Error(DQERR_FUNC_ARG_REF_NULL, to_string(pcnt + 1), callname);
+          Error(DQERR_FUNC_ARG_REF_NIL, to_string(pcnt + 1), callname);
           OExpr::DeleteTree(argexpr);
           bok = false;
           break;
@@ -1540,7 +1540,7 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
         }
 
         const TSuppressedLeftExprDiag * init_diag = rawarg.FindDiag(SLEDK_VAR_INIT);
-        if (init_diag && ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNULL == fparam->mode)))
+        if (init_diag && ((FPM_REF == fparam->mode) || (FPM_REFIN == fparam->mode) || (FPM_REFNIL == fparam->mode)))
         {
           Error(DQERR_FUNC_ARG_REF_UNINIT, init_diag->valsym->name);
           OExpr::DeleteTree(argexpr);

@@ -156,7 +156,7 @@ bool OFuncParam::WriteDqmIf(ODqmIfWriter & writer) const
     case FPM_REF:      if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REF)) return false; break;
     case FPM_REFIN:    if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFIN)) return false; break;
     case FPM_REFOUT:   if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) return false; break;
-    case FPM_REFNULL:  if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) return false; break;
+    case FPM_REFNIL:   if (!writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNIL)) return false; break;
   }
 
   if (!ptype->WriteDqmIfTypeSpec(writer)) return false;
@@ -395,7 +395,7 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
     bool is_null_arg = dynamic_cast<ONullLit *>(callarg.expr);
     if (is_null_arg)
     {
-      if (FPM_REFNULL != fparam->mode)
+      if (FPM_REFNIL != fparam->mode)
       {
         return false;
       }
@@ -1372,7 +1372,7 @@ string OFuncParam::ModeText(EParamMode amode)
     case FPM_REF:      return "ref ";
     case FPM_REFIN:    return "refin ";
     case FPM_REFOUT:   return "refout ";
-    case FPM_REFNULL:  return "refnull ";
+    case FPM_REFNIL:   return "refnil ";
   }
   return "";
 }

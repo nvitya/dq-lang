@@ -1096,7 +1096,7 @@ bool ODqCompParserStmt::ParseStatement(const string & block_closer)
       ParseStmtRef();
       return true;
     }
-    else if ("refin" == sid || "refout" == sid || "refnull" == sid)
+    else if ("refin" == sid || "refout" == sid || "refnil" == sid)
     {
       StatementError(DQERR_REF_LOCAL_MODE_UNSUPPORTED, sid);
       return true;

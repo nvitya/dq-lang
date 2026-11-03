@@ -255,7 +255,7 @@
             },
             {
               "name": "keyword.control.dq",
-              "match": "\\b(?:ref|refin|refout|refnull)\\b"
+              "match": "\\b(?:ref|refin|refout|refnil)\\b"
             },
             {
               "name": "variable.parameter.dq",
@@ -311,7 +311,7 @@
         },
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:use|implementation|var|const|endconst|type|struct|endstruct|union|endunion|object|endobject|private|public|protected|ref|refin|refout|refnull|autofree)\\b"
+          "match": "\\b(?:use|implementation|var|const|endconst|type|struct|endstruct|union|endunion|object|endobject|private|public|protected|ref|refin|refout|refnil|autofree)\\b"
         },
         {
           "name": "keyword.operator.word.dq",

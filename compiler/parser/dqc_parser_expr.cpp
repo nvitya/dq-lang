@@ -168,9 +168,9 @@ bool ODqCompParserExpr::ParseParamModeKeyword(const string & sid, EParamMode & r
     return true;
   }
 
-  if ("refnull" == sid)
+  if ("refnil" == sid)
   {
-    rmode = FPM_REFNULL;
+    rmode = FPM_REFNIL;
     return true;
   }
 

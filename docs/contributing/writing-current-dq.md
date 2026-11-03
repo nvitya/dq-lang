@@ -22,7 +22,7 @@ the repository. It is not another specification: follow the
   descriptors borrow storage.
 - Object variables are references. Use `new`/`delete` for heap objects and `<-`
   for fixed storage.
-- Use `name : ref T`, `refin`, `refout`, or `refnull` only when aliasing is part
+- Use `name : ref T`, `refin`, `refout`, or `refnil` only when aliasing is part
   of the function contract.
 
 ## Explicit Boundaries

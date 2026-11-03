@@ -724,7 +724,7 @@ enum EParamMode
   FPM_REF,
   FPM_REFIN,
   FPM_REFOUT,
-  FPM_REFNULL
+  FPM_REFNIL
 };
 
 inline bool ParamModeIsRefLike(EParamMode amode)
@@ -797,7 +797,7 @@ public:
 
   inline bool IsRefNullable() const
   {
-    return (IsRefLike() && (ref_nullable || (FPM_REFNULL == param_mode)));
+    return (IsRefLike() && (ref_nullable || (FPM_REFNIL == param_mode)));
   }
 
   inline bool IsRefWriteable() const

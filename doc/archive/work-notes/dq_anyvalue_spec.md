@@ -203,7 +203,7 @@ String literals used in an `anyvalue` context are boxed as `embstr` values. They
 The following values are not accepted as normal user-level `anyvalue` sources in the first version:
 
 ```text
-ref T / refnull T
+ref T / refnil T
 arrays / [N]T
 array slices / []T
 dynamic arrays / [*]T

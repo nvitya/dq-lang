@@ -98,7 +98,7 @@ Reference parameter modes are:
 | `ref` | Read/write reference |
 | `refin` | Read-only input reference |
 | `refout` | Output reference |
-| `refnull` | Nullable reference |
+| `refnil` | Nullable reference |
 
 ```dq
 func SetValue(value : ref int):
@@ -113,7 +113,7 @@ func MakeValue(value : refout int):
     value = 33
 endfunc
 
-func MaybeSet(value : refnull int):
+func MaybeSet(value : refnil int):
     if %value == nil:
         return
     endif
@@ -121,7 +121,7 @@ func MaybeSet(value : refnull int):
 endfunc
 ```
 
-`refnull` accepts `nil` as an argument. Inside the function, `%param == nil`
+`refnil` accepts `nil` as an argument. Inside the function, `%param == nil`
 tests whether a real storage location was supplied.
 
 ## Default Arguments

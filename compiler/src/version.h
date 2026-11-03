@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.94.13"
+#define DQ_COMPILER_VERSION  "0.95.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.0:
+  - refnull renamed to refnil
 v0.94.13:
   - .IndexOf() works on array of dynamic strings ([*]str, [n]str and []str)
 v0.94.12:
@@ -945,7 +947,7 @@ v0.8.4:
   - Function reference (callback) variables
 v0.8.3:
   - ref local variables
-  - ref/refin/refout/refnull function parameters
+  - ref/refin/refout/refnil function parameters
 v0.8.2:
   - Function default arguments
 v0.8.1:

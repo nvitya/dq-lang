@@ -207,7 +207,7 @@ TDqmIfRecId  DQMIF_FUNC_PARAM_BEGIN       = 0x0600;  // str
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REF    = 0x0613;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFIN  = 0x0611;  // 0
 TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFOUT = 0x0612;  // 0
-TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFNULL = 0x0614;  // 0
+TDqmIfRecId  DQMIF_FUNC_PARAM_MODE_REFNIL  = 0x0614;  // 0
 // exp.:     type spec
 // opt.:     DQMIF_VALUE_INLINE (for default value)
 TDqmIfRecId  DQMIF_FUNC_PARAM_END         = 0x06FF;  // 0

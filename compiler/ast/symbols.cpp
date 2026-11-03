@@ -1415,7 +1415,7 @@ EPropertyAccessorMismatch OValSymProperty::MatchMethod(OValSymFunc * method, boo
   if (write)
   {
     OFuncParam * value_param = sig->params.back();
-    if (FPM_REF == value_param->mode || FPM_REFOUT == value_param->mode || FPM_REFNULL == value_param->mode)
+    if (FPM_REF == value_param->mode || FPM_REFOUT == value_param->mode || FPM_REFNIL == value_param->mode)
     {
       return PAM_MODE;
     }

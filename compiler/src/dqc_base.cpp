@@ -58,7 +58,7 @@ ODqCompBase::~ODqCompBase()
 }
 
 const string dq_reserved_words =
-   "|var|ref|refin|refout|refnull|for|while|if|else|return|break|continue"
+   "|var|ref|refin|refout|refnil|for|while|if|else|return|break|continue"
    "|endfor|try|except|finally|endtry|raise"
    "|new|delete"
    "|and|not|or|is|as"

@@ -2570,10 +2570,10 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
       if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) { delete defvalue; return false; }
       mode = FPM_REFOUT;
     }
-    else if (DQMIF_FUNC_PARAM_MODE_REFNULL == reader.recid)
+    else if (DQMIF_FUNC_PARAM_MODE_REFNIL == reader.recid)
     {
-      if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) { delete defvalue; return false; }
-      mode = FPM_REFNULL;
+      if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_MODE_REFNIL)) { delete defvalue; return false; }
+      mode = FPM_REFNIL;
     }
     else if ((DQMIF_TYPE_SPEC_SIMPLE == reader.recid) || (DQMIF_TYPE_SPEC_BEGIN == reader.recid)
              || (DQMIF_TYPE_SPEC_NAME == reader.recid) || (DQMIF_TYPE_SPEC_QUALIFIED == reader.recid)
@@ -2986,7 +2986,7 @@ bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_t
       if (DQMIF_FUNC_PARAM_MODE_REF == reader.recid) index.mode = FPM_REF;
       else if (DQMIF_FUNC_PARAM_MODE_REFIN == reader.recid) index.mode = FPM_REFIN;
       else if (DQMIF_FUNC_PARAM_MODE_REFOUT == reader.recid) index.mode = FPM_REFOUT;
-      else if (DQMIF_FUNC_PARAM_MODE_REFNULL == reader.recid) index.mode = FPM_REFNULL;
+      else if (DQMIF_FUNC_PARAM_MODE_REFNIL == reader.recid) index.mode = FPM_REFNIL;
       if (FPM_VALUE != index.mode && !reader.NextRec())
       {
         delete property;

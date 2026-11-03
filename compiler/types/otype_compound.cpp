@@ -172,7 +172,7 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
 
       if (dynamic_cast<ONullLit *>(arg))
       {
-        if (FPM_REFNULL != fparam->mode)
+        if (FPM_REFNIL != fparam->mode)
         {
           match = false;
           break;
@@ -1420,7 +1420,7 @@ bool OCompoundType::WriteDqmIfDecl(ODqmIfWriter & writer)
       if (FPM_REF == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REF)) return false;
       if (FPM_REFIN == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFIN)) return false;
       if (FPM_REFOUT == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFOUT)) return false;
-      if (FPM_REFNULL == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNULL)) return false;
+      if (FPM_REFNIL == index.mode && !writer.AddRecEmpty(DQMIF_FUNC_PARAM_MODE_REFNIL)) return false;
       if (!index.ptype->WriteDqmIfTypeSpec(writer)) return false;
       if (!writer.AddRecEmpty(DQMIF_PROPERTY_INDEX_END)) return false;
     }

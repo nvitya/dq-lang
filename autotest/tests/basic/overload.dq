@@ -40,7 +40,7 @@ func oltest_int(b : refout int) -> int [[overload]]:  //?error(OverloadDupSignat
     return 0
 endfunc
 
-func oltest_int(b : refnull int) -> int [[overload]]:  //?error(OverloadDupSignature)
+func oltest_int(b : refnil int) -> int [[overload]]:  //?error(OverloadDupSignature)
     return 0
 endfunc
 

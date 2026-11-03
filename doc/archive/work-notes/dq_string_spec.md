@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** This draft includes superseded
-> character models. Use [Strings and Characters](../../../docs/reference/strings-and-characters.md).
+> character models. Use [Strings and Characters](../../../docs/020-language/070-strings-and-characters.md).
 
 # DQ Strings
 

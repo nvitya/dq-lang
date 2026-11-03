@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Modules and Packages](../../../docs/reference/modules-and-packages.md).
+> in [Modules and Packages](../../../docs/020-language/170-modules-and-packages.md).
 
 # DQ Module System Specification
 

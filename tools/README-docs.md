@@ -41,6 +41,16 @@ A section's `index.md` is its overview page and shares the section number; it
 does not advance the chapter counter. The PDF hook removes its repeated heading
 and contents entry while retaining the overview text and links.
 
+The Standard Packages chapters include the package-local `stdpkg/*/docs/index.md`
+manuals through `pymdownx.snippets`. Edit those manuals for API changes; the
+short files in `docs/040-packages/` select the source for each chapter. Missing
+includes fail the build, and `mkdocs serve` watches the package documentation.
+
+The [coverage inventory](../docs/090-appendices/050-documentation-coverage.md)
+maps the previous site and archived design notes to the current chapters.
+
 The PDF plugin adds a download link to the generated website when PDF export is
 enabled. GitHub Actions enables PDF export for validation and deployment, so the
 published book is available at `pdf/dq-lang-book.pdf` relative to the site root.
+PDF export uses installed fonts without fetching Google Fonts; the website
+retains its theme fonts.

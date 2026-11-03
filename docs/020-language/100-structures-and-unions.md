@@ -153,7 +153,7 @@ var bytes : int = SizeOf(point) // same as SizeOf(SPoint)
 For a structure, the size includes all fields and any padding between or after
 them. For a union, it is the size of the shared storage, including any padding.
 Alignment and `[[packed]]` can affect the result; see
-[Layout and External Interfaces](#layout-and-external-interfaces).
+[Structure Field Alignment and Padding](#structure-field-alignment-and-padding).
 
 ## Field Offsets with `OffsetOf()`
 
@@ -174,7 +174,7 @@ const LENGTH_OFFSET : int = OffsetOf(SHeader, length) // 1
 
 Here, `length` starts one byte after the start of the structure. `OffsetOf()`
 includes any padding before a field, so removing `[[packed]]` may change the
-result. See [Layout and External Interfaces](#layout-and-external-interfaces)
+result. See [Structure Field Alignment and Padding](#structure-field-alignment-and-padding)
 for alignment and padding rules.
 
 Use `OffsetOf()` when checking a binary layout or matching an external record.

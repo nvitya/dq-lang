@@ -25,6 +25,19 @@ plugins:
 hooks:
   - tools/mkdocs_hooks.py
 
+# Keep package API manuals with their source while publishing them as chapters.
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: [.]
+      check_paths: true
+
+watch:
+  - stdpkg/strutils/docs
+  - stdpkg/file/docs
+  - stdpkg/json/docs
+  - stdpkg/threads/docs
+  - stdpkg/nanonet/docs
+
 nav:
   - DQ-lang Project:
       - DQ-lang Project: 010-project/index.md
@@ -71,6 +84,7 @@ nav:
       - Library Overview: 040-packages/010-library-overview-and-sys.md
       - sys: 040-packages/015-sys.md
       - print: 040-packages/020-print.md
+      - strutils: 040-packages/030-strutils.md
       - file: 040-packages/040-file.md
       - json: 040-packages/050-json.md
       - threads: 040-packages/060-threads.md
@@ -80,7 +94,11 @@ nav:
       - Example Programs: 090-appendices/010-example-programs.md
       - Building the Compiler from Source: 090-appendices/020-building-the-compiler-from-source.md
       - Contributor and Implementation Notes: 090-appendices/030-contributor-and-implementation-notes.md
+      - Module and Interface Internals: 090-appendices/031-module-and-interface-internals.md
+      - Exceptions and Backtraces: 090-appendices/032-exceptions-and-backtraces.md
+      - Release and Cross-Build Notes: 090-appendices/033-release-and-cross-builds.md
       - Glossary and Index: 090-appendices/040-glossary-and-index.md
+      - Documentation Coverage: 090-appendices/050-documentation-coverage.md
 
 # Preserve earlier material for migration without publishing it in the new book.
 exclude_docs: |

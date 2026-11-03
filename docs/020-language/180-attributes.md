@@ -108,7 +108,7 @@ endstruct
 Use packed layout only when the file format, hardware, or external declaration
 requires it. Packed fields may be unaligned. Check `SizeOf` and `OffsetOf`
 instead of assuming a particular layout, and choose alignment values supported
-by the target. See [Structures and Unions](100-structures-and-unions.md#layout-and-external-interfaces).
+by the target. See [Structures and Unions](100-structures-and-unions.md#structure-field-alignment-and-padding).
 
 ## Volatile and Register Access
 

@@ -1,7 +1,7 @@
 > **Historical document — not authoritative.** This original draft is preserved
 > for design history and contains obsolete behavior. Use the current
-> [DQ Language Reference](../../../docs/reference/index.md) and
-> [coverage inventory](../../../docs/contributing/coverage-inventory.md).
+> [DQ Language Reference](../../../docs/020-language/index.md) and
+> [coverage inventory](../../../docs/090-appendices/050-documentation-coverage.md).
 
 # DQ Language Specification
 

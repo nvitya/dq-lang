@@ -1,5 +1,5 @@
 > **Archived work note — not maintained.** Use
-> [Cross-Compiling and Packaging](../../../docs/compiler/cross-compiling.md).
+> [Cross-Compiling and Packaging](../../../docs/090-appendices/033-release-and-cross-builds.md).
 
 # Cross-Compiling the DQ Compiler
 

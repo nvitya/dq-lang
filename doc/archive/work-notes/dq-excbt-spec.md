@@ -1,6 +1,6 @@
 > **Historical work note — not authoritative.** Current source behavior is in
-> [Statements and Control Flow](../../../docs/reference/statements-and-control-flow.md);
-> current internals are in [Exceptions and Backtraces](../../../docs/contributing/exceptions-and-backtraces.md).
+> [Statements and Control Flow](../../../docs/020-language/050-statements-and-control-flow.md);
+> current internals are in [Exceptions and Backtraces](../../../docs/090-appendices/032-exceptions-and-backtraces.md).
 
 # DQ Language Exception Handling and Backtrace Specification
 

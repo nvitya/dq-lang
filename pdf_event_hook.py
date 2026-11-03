@@ -1,5 +1,18 @@
 def pre_pdf_render(soup, logger):
-    """Keep the generated part heading when a section index repeats it."""
+    """Prepare the book for printing and remove repeated part headings."""
+    # Use installed fallback fonts so exporting the book works offline.
+    for stylesheet in soup.select('link[rel="stylesheet"]'):
+        if stylesheet.get("href", "").startswith("https://fonts.googleapis.com/"):
+            stylesheet.decompose()
+
+    # Long appendix indexes should continue across pages below their headings.
+    style = soup.new_tag("style")
+    style.string = """
+        [data-url^="/090-appendices/"] table { break-inside: auto; }
+        [data-url^="/090-appendices/"] tr { break-inside: avoid; }
+    """
+    soup.head.append(style)
+
     for article in soup.select("article[data-url]"):
         heading = article.find("h1", recursive=False)
         section = article.find("section", recursive=False)

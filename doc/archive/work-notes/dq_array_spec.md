@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Arrays and Slices](../../../docs/reference/arrays-and-slices.md).
+> in [Arrays and Slices](../../../docs/020-language/080-arrays-and-slices.md).
 
 # DQ Arrays
 

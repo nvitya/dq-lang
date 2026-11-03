@@ -1,6 +1,6 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Declarations and Scope](../../../docs/reference/declarations-and-scope.md)
-> and [Modules and Packages](../../../docs/reference/modules-and-packages.md).
+> in [Declarations and Scope](../../../docs/020-language/030-variables-constants-references-and-scope.md)
+> and [Modules and Packages](../../../docs/020-language/170-modules-and-packages.md).
 
 Currently the method context do not have direct access to the value symbols outside the object (type symbols are not restricted)
 

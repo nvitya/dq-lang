@@ -130,13 +130,11 @@ if [[ -f "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll
   cp "$STAGE/toolchain/llvm-mingw/x86_64-w64-mingw32/bin/libwinpthread-1.dll" "$STAGE/bin/"
 fi
 
-copy_tracked_paths stdpkg gcclibs examples autotest/tests
+copy_tracked_paths stdpkg gcclibs examples docs autotest/tests mkdocs.yml
 copy_vscode_extension
 cp "$ROOT_DIR/LICENSE" "$STAGE/LICENSE.txt"
 cp "$STAGE/toolchain/llvm-mingw/LICENSE.TXT" "$STAGE/doc/llvm-mingw-LICENSE.txt"
 cp "$ROOT_DIR/README.md" "$STAGE/doc/README-project.md"
-cp "$ROOT_DIR/docs/compiler/cross-compiling.md" "$STAGE/doc/"
-cp "$ROOT_DIR/docs/reference/modules-and-packages.md" "$STAGE/doc/"
 
 cat > "$STAGE/dq-env.cmd" <<'EOF'
 @echo off
@@ -170,6 +168,7 @@ Included:
   stdpkg/
   gcclibs/
   examples/
+  docs/
   VSCode/
   autotest/tests/
 

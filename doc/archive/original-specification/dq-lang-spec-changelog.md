@@ -1,5 +1,5 @@
 > **Historical document — not authoritative.** This changelog belongs to the
-> obsolete original draft. See the current [coverage inventory](../../../docs/contributing/coverage-inventory.md).
+> obsolete original draft. See the current [coverage inventory](../../../docs/090-appendices/050-documentation-coverage.md).
 
 ## Appendix B: Changelog
 

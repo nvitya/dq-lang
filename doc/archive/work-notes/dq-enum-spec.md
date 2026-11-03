@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Enumerations](../../../docs/reference/enums.md).
+> in [Enumerations](../../../docs/020-language/090-enumerations.md).
 
 # DQ Enum Specification
 

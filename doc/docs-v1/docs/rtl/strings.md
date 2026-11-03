@@ -242,6 +242,9 @@ zero.
 `embstr(n)` owns exactly `n` bytes of fixed storage, including the zero
 terminator. Its maximum content length is `n - 1` bytes.
 Appending and assigning truncate to fit.
+An `embstr(N)` declaration without an initializer starts empty; `.Add()` and
+`.AddFmt()` can be called immediately. Only its first byte is guaranteed to be
+zero; bytes beyond the terminator are unspecified.
 
 ```dq
 var cs : embstr(6) = "abc"

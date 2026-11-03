@@ -2,6 +2,9 @@ build
 build-cross
 .wine-dq
 dist
+/site/
+/output/pdf/
+/tmp/pdfs/
 sysroots
 toolchains/*.tar.xz
 toolchains/*.zip

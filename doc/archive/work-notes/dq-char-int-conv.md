@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Types and Conversions](../../../docs/reference/types-and-conversions.md).
+> in [Types and Conversions](../../../docs/020-language/020-basic-types-and-conversions.md).
 
 # DQ Character–Integer Conversion Specification
 

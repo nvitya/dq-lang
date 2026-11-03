@@ -1,6 +1,6 @@
 > **Archived checklist — not authoritative.** Use
-> [Writing Current DQ](../../../docs/contributing/writing-current-dq.md) and the
-> [Language Reference](../../../docs/reference/index.md).
+> [Writing Current DQ](../../../docs/090-appendices/030-contributor-and-implementation-notes.md) and the
+> [Language Reference](../../../docs/020-language/index.md).
 
 # DQ Writing Hints for AI Agents
 

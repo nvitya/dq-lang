@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Objects and Properties](../../../docs/reference/objects-and-properties.md).
+> in [Objects and Properties](../../../docs/020-language/120-objects-and-properties.md).
 
 # DQ Property Specification
 

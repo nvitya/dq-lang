@@ -1,6 +1,6 @@
 > **Historical format design — not current.** Use
-> [DQ Module Artifacts](../../../docs/compiler/dqm-format.md) and
-> [Module and Interface Internals](../../../docs/contributing/module-and-interface-internals.md).
+> [DQ Module Artifacts](../../../docs/030-compiler/060-build-process-and-module-artifacts.md) and
+> [Module and Interface Internals](../../../docs/090-appendices/031-module-and-interface-internals.md).
 
 # DQM Interface Format (`.dqm_if`)
 

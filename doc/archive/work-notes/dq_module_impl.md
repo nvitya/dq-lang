@@ -1,5 +1,5 @@
 > **Historical implementation design — not current.** Use
-> [Module and Interface Internals](../../../docs/contributing/module-and-interface-internals.md).
+> [Module and Interface Internals](../../../docs/090-appendices/031-module-and-interface-internals.md).
 
 # DQ Module Implementation Notes
 

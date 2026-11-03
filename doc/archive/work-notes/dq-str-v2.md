@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in [Strings and Characters](../../../docs/reference/strings-and-characters.md).
+> in [Strings and Characters](../../../docs/020-language/070-strings-and-characters.md).
 
 # DQ String Handling v2
 

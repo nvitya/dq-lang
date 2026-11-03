@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Its artifact model is
-> superseded. Use [Using the Compiler](../../../docs/compiler/using-dq-comp.md).
+> superseded. Use [Using the Compiler](../../../docs/030-compiler/040-compiler-usage-and-options.md).
 
 # DQ Build Specification
 

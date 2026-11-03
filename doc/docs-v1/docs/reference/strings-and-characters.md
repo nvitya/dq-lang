@@ -115,10 +115,9 @@ Raw pointers retain their existing mutability; callers must respect the
 borrowed storage's read-only contract.
 
 Standard-library paths, names, commands, and plain exception messages use
-`rostr`. Text formatting APIs (`Format`, `Print`/`PrintLn` with arguments,
-`AddFmt`, and formatted exception constructors) accept `strslice`, as do parser
-input, generic text algorithms, output chunks, and byte payloads. These APIs
-accept slices without allocating or requiring a trailing zero.
+`rostr`. Format strings use `strslice`, as do parser input, generic text
+algorithms, output chunks, and byte payloads, so they accept unterminated
+slices without allocating.
 
 Use `StrSlice(data, length)` to borrow a known-length byte range from a
 `^char`, including an unterminated range or one containing zero bytes. The
@@ -197,8 +196,9 @@ The slice returns `[*]wchar`; `$last` and `$end` use scalar positions.
 `embstr(N)` owns exactly `N` bytes of storage. Its final byte is reserved for
 the zero terminator, so it stores at most `N - 1` visible bytes. Assignment and
 append-style operations truncate to fit rather than growing the value.
-Without an initializer, `embstr(N)` starts as an empty string. Only its first
-byte is guaranteed to be zero; bytes beyond the terminator are unspecified.
+Without an initializer, `embstr(N)` starts empty and can be read or appended
+to immediately. Only its first byte is guaranteed to be zero; bytes beyond
+the terminator are unspecified.
 
 ```dq
 var name : embstr(6) = "abc"

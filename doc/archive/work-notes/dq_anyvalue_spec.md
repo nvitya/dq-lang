@@ -1,5 +1,5 @@
 > **Historical work note — not authoritative.** Current behavior is documented
-> in the [`anyvalue` reference](../../../docs/reference/anyvalue.md).
+> in the [`anyvalue` reference](../../../docs/020-language/150-anyvalue.md).
 
 # DQ `anyvalue` and Runtime Type Information Specification
 

@@ -1,6 +1,9 @@
 # Pointers
 
 A **pointer** stores a memory address, which identifies a location in memory.
+
+## Pointer Basics
+
 For a data type `T`, write `^T` to create the corresponding pointer type,
 such as `^int` or `^float`.
 
@@ -32,9 +35,9 @@ PrintLn('u32value = 0x{:08X}', [u32value])  // = "u32value = 0x04030255"
 On a little-endian system, the first byte is the least significant byte of
 `u32value`, so the example prints the result shown above.
 
-Pointers are widely used and can improve performance significantly.
+Pointers are widely used and can **improve performance** significantly.
 
-Using pointers can also be dangerous. There are many ways to end up with an invalid
+Using pointers also **can be dangerous**. There are many ways to end up with an invalid
 pointer (one that points to an invalid memory location). Accessing data
 through an invalid pointer can return invalid data or cause the application to crash.
 
@@ -179,6 +182,38 @@ used by that type, and each read interprets those bytes according to the
 pointer's type. Reading through `intptr^` after the floating-point write would
 interpret the low 4 bytes of the floating-point representation as an integer (=0); it would not
 convert `1.5` to an integer.
+
+## The `nil` Value
+
+`nil` is the special pointer value meaning **no target**. It is also called a
+**null-pointer** and represents address zero. Both typed pointers, such as
+`^int`, and generic `pointer` variables can be assigned `nil`.
+
+A `nil` pointer is **always invalid for accessing data**. Dereferencing it to
+read or write data, either with `ptr^` or through a structure field such as
+`ptr.field`, usually causes the program to crash with a **Segmentation Fault**.
+The exact failure depends on the target system; never dereference `nil`.
+
+Assigning, copying, and comparing `nil` are safe address operations. Use `==`
+or `<>` to check whether a pointer has a target before accessing its data:
+
+```dq
+var value : int = 10
+var ptr   : ^int = nil // no target yet
+
+if ptr == nil:
+    ptr = %value      // give the pointer a valid target
+endif
+
+if ptr <> nil:
+    ptr^ += 1         // value is now 11
+endif
+
+ptr = nil             // clear the pointer; value remains 11
+```
+
+Setting a pointer to `nil` clears its stored address; it does not change or
+free the pointed-to data, unless it is an `autofree` pointer.
 
 ## Pointers as Function Parameters
 
@@ -456,106 +491,28 @@ exists. Resizing a dynamic array or growing or changing a string's storage can
 also invalidate pointers into it. Obtain a fresh pointer after such a change.
 Never return a pointer to a function's local variable.
 
-## Pointers, References, and Objects
+## Dangling Pointers
 
-A local `ref` alias gives another name to an existing variable. A pointer is a
-separate value that can be changed to point elsewhere or set to `nil`. An
-object variable is also a reference, with the fields and methods of its object
-type.
-
-Casting between these forms requires the supported explicit conversions
-and does not create ownership.
-
-## Pointer Examples
-
-### Double Pointers and an argv-Style Dynamic List
-
-A **double pointer**, such as `^^char`, points to a variable or array element
-that itself holds a `^char`. This is useful for a list of pointers, such as a
-C-style argument table (`argv`): each entry points to a zero-terminated string.
-The strings can have different lengths and do not need to be adjacent in memory.
-
-This example builds the strings in a dynamic array, then builds a separate
-dynamic array of pointers to their text. It passes the address of the first
-pointer slot as `^^char`, together with an argument count (`argc`). A final
-`nil` entry also allows traversal without using the count.
+A non-`nil` address does not always guarantee
+that a pointer is valid: it might refer to memory that has already been freed
+or to a variable that has gone out of scope, like a local variable.
+Such pointers are called **dangling pointers**.
 
 ```dq
-use print
+var number : ^int = new int
+number^ = 42
+var borrowed : ^int = number // both pointers refer to the same allocation
 
-func PrintArgs(argc : int, argv : ^^char):
-    for i : int = 0 count argc:
-        var text : rostr = argv[i]^ // read a ^char from the pointer table
-        PrintLn("argv[{}] = {}", [i, text])
-    endfor
-
-    var cursor : ^^char = argv
-    Print("First characters:")
-    while cursor^ <> nil:
-        var textptr : ^char = cursor^
-        Print(" {}", [textptr^])
-        ++cursor // advance to the next ^char slot, not the next character
-    endwhile
-    PrintLn()
-endfunc
-
-func *Main():
-    var arguments : [*]str = ["demo", "--color"]
-    arguments.Append("blue")
-
-    var pointers : [*]^char
-    for i : int = 0 count arguments.length:
-        pointers.Append(arguments[i].pchar)
-    endfor
-    pointers.Append(nil) // the final slot marks the end of the list
-
-    var argv : ^^char = %pointers[0]
-    PrintArgs(arguments.length, argv)
-
-    var replacement : str = "green"
-    argv[2]^ = replacement.pchar // replace a pointer in the table
-    var selected : rostr = pointers[2]
-    PrintLn("After replacement: {}", [selected])
-    PrintLn("Original string: {}", [arguments[2]])
-endfunc
+delete number = nil         // free the allocation and clear number
+// borrowed is still non-nil, but is now dangling:
+// borrowed^ = 10           // invalid: the target has already been freed
+borrowed = nil              // clear the dangling pointer
 ```
 
-Example output:
+**Never dereference `nil` or dangling pointers.**
 
-```text
-argv[0] = demo
-argv[1] = --color
-argv[2] = blue
-First characters: d - b
-After replacement: green
-Original string: blue
-```
 
-There are two levels of storage between `argv` and a character:
-
-| Expression | Type | Meaning |
-| --- | --- | --- |
-| `argv` | `^^char` | Address of the first pointer slot |
-| `argv[i]` | `^^char` | Address of pointer slot `i` |
-| `argv[i]^` | `^char` | String address stored in slot `i` |
-| `textptr^` | `char` | One character at the selected string address |
-
-`++cursor` moves by `SizeOf(^char)`: one pointer slot, or 4 or 8 bytes depending
-on the target. It does not move through the string's characters. To do that,
-increment the inner `^char` pointer instead.
-
-Assigning `argv[2]^` replaces the pointer stored in `pointers[2]`. It does not
-copy text, modify the string `"blue"`, or replace `arguments[2]`. The `rostr`
-variables borrow the selected zero-terminated text so `PrintLn` can print it
-as a string rather than as an address.
-
-The dynamic arrays manage their own storage. The pointer table borrows the
-strings; it does not own them. Keep `arguments` and `replacement` alive while
-their text pointers are used, and obtain fresh `.pchar` values after changing
-the source strings. Finish building `pointers` before taking `%pointers[0]`:
-resizing it can invalidate `argv` and `cursor`. The function expects `argc`
-valid string pointers followed by a `nil` slot; a raw double pointer does not
-carry the table's length.
+## Pointer Examples
 
 ### A Linked List with First and Last Pointers
 
@@ -819,3 +776,168 @@ The pointers borrow `packet`'s storage and are used only during the call, while
 `packet` is alive. No allocation or `delete` is needed. A binary format with a
 different byte order or floating-point representation needs explicit decoding
 rather than these direct pointer casts.
+
+### Double Pointers and an argv-Style Dynamic List
+
+A **double pointer**, such as `^^char`, points to a variable or array element
+that itself holds a `^char`. This is useful for a list of pointers, such as a
+C-style argument table (`argv`): each entry points to a zero-terminated string.
+The strings can have different lengths and do not need to be adjacent in memory.
+
+This example builds the strings in a dynamic array, then builds a separate
+dynamic array of pointers to their text. It passes the address of the first
+pointer slot as `^^char`, together with an argument count (`argc`). A final
+`nil` entry also allows traversal without using the count.
+
+```dq
+use print
+
+func PrintArgs(argc : int, argv : ^^char):
+    for i : int = 0 count argc:
+        var text : rostr = argv[i]^ // read a ^char from the pointer table
+        PrintLn("argv[{}] = {}", [i, text])
+    endfor
+
+    var cursor : ^^char = argv
+    Print("First characters:")
+    while cursor^ <> nil:
+        var textptr : ^char = cursor^
+        Print(" {}", [textptr^])
+        ++cursor // advance to the next ^char slot, not the next character
+    endwhile
+    PrintLn()
+endfunc
+
+func *Main():
+    var arguments : [*]str = ["demo", "--color"]
+    arguments.Append("blue")
+
+    var pointers : [*]^char
+    for i : int = 0 count arguments.length:
+        pointers.Append(arguments[i].pchar)
+    endfor
+    pointers.Append(nil) // the final slot marks the end of the list
+
+    var argv : ^^char = %pointers[0]
+    PrintArgs(arguments.length, argv)
+
+    var replacement : str = "green"
+    argv[2]^ = replacement.pchar // replace a pointer in the table
+    var selected : rostr = pointers[2]
+    PrintLn("After replacement: {}", [selected])
+    PrintLn("Original string: {}", [arguments[2]])
+endfunc
+```
+
+Example output:
+
+```text
+argv[0] = demo
+argv[1] = --color
+argv[2] = blue
+First characters: d - b
+After replacement: green
+Original string: blue
+```
+
+There are two levels of storage between `argv` and a character:
+
+| Expression | Type | Meaning |
+| --- | --- | --- |
+| `argv` | `^^char` | Address of the first pointer slot |
+| `argv[i]` | `^^char` | Address of pointer slot `i` |
+| `argv[i]^` | `^char` | String address stored in slot `i` |
+| `textptr^` | `char` | One character at the selected string address |
+
+`++cursor` moves by `SizeOf(^char)`: one pointer slot, or 4 or 8 bytes depending
+on the target. It does not move through the string's characters. To do that,
+increment the inner `^char` pointer instead.
+
+Assigning `argv[2]^` replaces the pointer stored in `pointers[2]`. It does not
+copy text, modify the string `"blue"`, or replace `arguments[2]`. The `rostr`
+variables borrow the selected zero-terminated text so `PrintLn` can print it
+as a string rather than as an address.
+
+The dynamic arrays manage their own storage. The pointer table borrows the
+strings; it does not own them. Keep `arguments` and `replacement` alive while
+their text pointers are used, and obtain fresh `.pchar` values after changing
+the source strings. Finish building `pointers` before taking `%pointers[0]`:
+resizing it can invalidate `argv` and `cursor`. The function expects `argc`
+valid string pointers followed by a `nil` slot; a raw double pointer does not
+carry the table's length.
+
+### Using Double Pointers for Return Values
+
+A function can return a value normally and supply another result through a
+pointer parameter. To return a `^SList` this way, the parameter must be
+`^^SList`: the address of the caller's pointer variable.
+
+For example, `CollectHighReadings` builds a list of temperature readings at or
+above a threshold. It returns the number of matching readings and writes the
+new list's address through its last parameter, `outlist`.
+
+Reuse `SNode` and `SList` from
+[A Linked List with First and Last Pointers](#a-linked-list-with-first-and-last-pointers),
+and replace that example's `Main` with the following code:
+
+```dq
+func CollectHighReadings(readings : []int, threshold : int, outlist : ^^SList) -> int:
+    if outlist == nil or outlist^ <> nil:
+        return -1 // require an output pointer whose current value is nil
+    endif
+
+    var list : ^SList = new SList
+    list^ = {} // initialize first and last to nil
+    var count : int = 0
+    for reading : int in readings:
+        if reading >= threshold:
+            list.Append(reading)
+            ++count
+        endif
+    endfor
+
+    outlist^ = list // update the caller's pointer variable
+    return count
+endfunc
+
+func *Main():
+    var readings : [?]int = [22, 31, 24, 35]
+    var alerts : ^SList = nil
+    var count : int = CollectHighReadings(readings, 30, %alerts)
+    if count < 0:
+        PrintLn("Invalid output pointer")
+        return
+    endif
+
+    PrintLn("High readings: {}", [count])
+    var current : ^SNode = alerts.first
+    while current <> nil:
+        PrintLn("Reading: {}", [current.value])
+        current = current.next
+    endwhile
+
+    alerts.Clear()      // release the list's nodes
+    delete alerts = nil // release the SList itself and clear the pointer
+endfunc
+```
+
+Example output:
+
+```text
+High readings: 2
+Reading: 31
+Reading: 35
+```
+
+`alerts` has type `^SList`, so `%alerts` has type `^^SList`. Inside the function,
+`outlist^` accesses the caller's `alerts` variable. Assigning `outlist^ = list`
+therefore changes `alerts` itself. A parameter of type `^SList` would only
+receive a copy of its address; reassigning that parameter would not update
+the caller's pointer.
+
+The caller must initialize `alerts` to `nil`. The function returns `-1` without
+changing it if the output parameter is `nil` or the pointer slot is already
+occupied, avoiding overwriting an existing list. On success, the caller owns
+the new list and its nodes, even when no readings match and the list is empty.
+Call `Clear` before deleting the list, because deleting an `SList` alone does
+not free its nodes.

@@ -63,7 +63,7 @@ Inferred array length from array literal: `var a : [?]int = [1, 2, 3]`
 * Constants defined with `const`: `const MAXLEN : int = 3`
 * Function references: `type FCallBack = function(a1 : int, a2 : ref SDataStruct) -> int`
 * Object function references: `type FObjCallBack = function(a1 : int, a2 : ref SDataStruct) -> int of object`
-* Function argument modes: by-value, `ref`, `refin`, `refout`, `refnull`
+* Function argument modes: by-value, `ref`, `refin`, `refout`, `refnil`
 * Pointers to a structure automatically dereferenced when its members addressed with the `.`
 
 ### DQ Compiler Features

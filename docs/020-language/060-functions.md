@@ -57,14 +57,14 @@ an object or its data. Dynamic-array parameters require a reference mode; use
 | `value : ref T` | A readable and writable alias to caller storage. |
 | `value : refin T` | A read-only input alias. |
 | `value : refout T` | An output alias whose input value is not part of the contract. |
-| `value : refnull T` | A reference that may be omitted by passing `nil`. |
+| `value : refnil T` | A reference that may be omitted by passing `nil`. |
 
 ```dq
 func SetValue(value : ref int):
     value = 5
 endfunc
 
-func MaybeSet(value : refnull int):
+func MaybeSet(value : refnil int):
     if %value == nil:
         return
     endif
@@ -73,7 +73,7 @@ endfunc
 ```
 
 A reference argument needs compatible addressable storage with sufficient
-lifetime. A property is not itself addressable. For `refnull`, test `%value`
+lifetime. A property is not itself addressable. For `refnil`, test `%value`
 before reading or writing when the caller may have supplied `nil`.
 
 `[]T`, `rostr`, `strslice`, and unsized `embstr` borrow storage even when their

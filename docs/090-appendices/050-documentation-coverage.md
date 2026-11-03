@@ -100,7 +100,9 @@ these files directly, so a correction is published in both forms.
 | `stdpkg/file/docs/index.md` | [`file`](../040-packages/040-file.md) |
 | `stdpkg/json/docs/index.md` | [`json`](../040-packages/050-json.md) |
 | `stdpkg/threads/docs/index.md` | [`threads`](../040-packages/060-threads.md) |
+| `stdpkg/time/docs/index.md` | [`time`](../040-packages/065-time.md) |
 | `stdpkg/nanonet/docs/index.md` | [`nanonet`](../040-packages/070-nanonet.md) |
+| `stdpkg/shell/docs/index.md` | [`shell`](../040-packages/075-shell.md) |
 
 ## Archived Design Coverage
 

@@ -1,0 +1,13 @@
+use print
+use time
+
+func *Main():
+    const period_ms : int64 = 100
+    var deadline : int64 = MilliTime()
+    for tick : int = 0 count 5:
+        deadline += period_ms
+        SleepToMilliTime(deadline)
+        PrintLn('Tick {} at {}',
+                [tick + 1, FormatTime1('hh:nn:ss.zzz', Time())])
+    endfor
+endfunc

@@ -1,0 +1,29 @@
+use print
+use shell
+
+func *Main():
+    var runner <- OShellRunner()
+#ifdef WINDOWS
+    var command : rostr = 'echo finished'
+#else
+    var command : rostr = 'sleep 0.05; printf finished'
+#endif
+    if runner.StartBg(command) <> 0:
+        PrintLn('Could not start background command')
+        Exit(1)
+    endif
+
+    // Other work can run here while the command executes.
+    if not runner.WaitFinishMs(1000):
+        PrintLn('Timed out; stopping the command')
+        runner.Kill()
+    endif
+    runner.Join()
+    PrintLn('exit: {}, stdout: {}', [runner.exitcode, runner.out])
+
+    if runner.StartBgWithInput(['sort'], 'pear\napple\n') <> 0:
+        Exit(1)
+    endif
+    runner.Join()
+    PrintLn(runner.out)
+endfunc

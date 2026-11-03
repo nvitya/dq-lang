@@ -36,7 +36,9 @@ watch:
   - stdpkg/file/docs
   - stdpkg/json/docs
   - stdpkg/threads/docs
+  - stdpkg/time/docs
   - stdpkg/nanonet/docs
+  - stdpkg/shell/docs
 
 nav:
   - DQ-lang Project:
@@ -88,7 +90,9 @@ nav:
       - file: 040-packages/040-file.md
       - json: 040-packages/050-json.md
       - threads: 040-packages/060-threads.md
+      - time: 040-packages/065-time.md
       - nanonet: 040-packages/070-nanonet.md
+      - shell: 040-packages/075-shell.md
       - Additional Standard Packages: 040-packages/080-additional-standard-packages.md
   - Appendices:
       - Example Programs: 090-appendices/010-example-programs.md

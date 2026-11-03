@@ -1,0 +1,11 @@
+use print
+use shell
+
+func *Main():
+    var runner <- OShellRunner()
+    runner.RunWithInput(['sort'], 'pear\napple\n')
+    PrintLn('Sorted input:\n{}', [runner.out])
+
+    runner.RunWithInput(['sort'], '')
+    PrintLn('Empty input produced {} bytes', [runner.out.length])
+endfunc

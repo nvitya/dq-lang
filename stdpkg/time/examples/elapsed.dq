@@ -1,0 +1,9 @@
+use print
+use time
+
+func *Main():
+    var started : int64 = MicroTime()
+    SleepMillis(20) // Replace with the operation to measure.
+    var elapsed : int64 = MicroTime() - started
+    PrintLn('Elapsed: {} us ({:.3f} ms)', [elapsed, elapsed / 1000])
+endfunc

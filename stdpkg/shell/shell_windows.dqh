@@ -1,0 +1,11 @@
+// Parent and child pipe endpoints. Only the child's endpoint is inheritable.
+struct SShellPipe:
+    read_handle : uint
+    write_handle : uint
+
+    func Open(parent_reads : bool) ..
+    func CloseRead() ..
+    func CloseWrite() ..
+    func Close() ..
+    func ReadAvailable(captured : ref str, merged : ref str) -> bool ..
+endstruct

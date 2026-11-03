@@ -1,0 +1,4 @@
+site_name: packages/shell
+
+nav:
+  - Overview: index.md

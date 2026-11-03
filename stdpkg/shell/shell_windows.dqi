@@ -1,0 +1,379 @@
+#linklib('kernel32')
+
+const INVALID_HANDLE_VALUE : uint = -1
+
+struct SSecurityAttributes:
+    length : uint32
+    descriptor : pointer
+    inherit_handle : int32
+endstruct
+
+struct SStartupInfo:
+    cb : uint32
+    reserved : pointer
+    desktop : pointer
+    title : pointer
+    x : uint32
+    y : uint32
+    x_size : uint32
+    y_size : uint32
+    x_chars : uint32
+    y_chars : uint32
+    fill_attribute : uint32
+    flags : uint32
+    show_window : uint16
+    reserved_size : uint16
+    reserved_bytes : pointer
+    stdin_handle : uint
+    stdout_handle : uint
+    stderr_handle : uint
+endstruct
+
+struct SStartupInfoEx:
+    startup : SStartupInfo
+    attributes : pointer
+endstruct
+
+struct SProcessInfo:
+    process_handle : uint
+    thread_handle : uint
+    process_id : uint32
+    thread_id : uint32
+endstruct
+
+func win_CreatePipe(read_handle : ^uint, write_handle : ^uint, attributes : ^SSecurityAttributes, size : uint32) -> int32 [[external('CreatePipe')]] ..
+func win_SetHandleInformation(handle : uint, mask : uint32, flags : uint32) -> int32 [[external('SetHandleInformation')]] ..
+func win_CloseHandle(handle : uint) -> int32 [[external('CloseHandle')]] ..
+func win_GetLastError() -> uint32 [[external('GetLastError')]] ..
+func win_SetLastError(error : uint32) [[external('SetLastError')]] ..
+func win_GetStdHandle(kind : uint32) -> uint [[external('GetStdHandle')]] ..
+func win_GetCurrentProcess() -> uint [[external('GetCurrentProcess')]] ..
+func win_DuplicateHandle(source_process : uint, source : uint, target_process : uint, target : ^uint, access : uint32, inherit_handle : int32, options : uint32) -> int32 [[external('DuplicateHandle')]] ..
+func win_CreateFileW(name : ^char16, access : uint32, share : uint32, attributes : ^SSecurityAttributes, creation : uint32, flags : uint32, template_handle : uint) -> uint [[external('CreateFileW')]] ..
+func win_InitializeProcThreadAttributeList(attributes : pointer, count : uint32, flags : uint32, size : ^uint) -> int32 [[external('InitializeProcThreadAttributeList')]] ..
+func win_UpdateProcThreadAttribute(attributes : pointer, flags : uint32, attribute : uint, value : pointer, size : uint, previous : pointer, returned_size : ^uint) -> int32 [[external('UpdateProcThreadAttribute')]] ..
+func win_DeleteProcThreadAttributeList(attributes : pointer) [[external('DeleteProcThreadAttributeList')]] ..
+func win_CreateProcessW(application : ^char16, command : ^char16, process_attributes : pointer, thread_attributes : pointer, inherit_handles : int32, flags : uint32, environment : pointer, directory : ^char16, startup : ^SStartupInfoEx, info : ^SProcessInfo) -> int32 [[external('CreateProcessW')]] ..
+func win_CreateJobObjectW(attributes : pointer, name : ^char16) -> uint [[external('CreateJobObjectW')]] ..
+func win_AssignProcessToJobObject(job : uint, process_handle : uint) -> int32 [[external('AssignProcessToJobObject')]] ..
+func win_TerminateJobObject(job : uint, code : uint32) -> int32 [[external('TerminateJobObject')]] ..
+func win_TerminateProcess(process_handle : uint, code : uint32) -> int32 [[external('TerminateProcess')]] ..
+func win_ResumeThread(thread_handle : uint) -> uint32 [[external('ResumeThread')]] ..
+func win_WaitForSingleObject(handle : uint, milliseconds : uint32) -> uint32 [[external('WaitForSingleObject')]] ..
+func win_GetExitCodeProcess(process_handle : uint, code : ^uint32) -> int32 [[external('GetExitCodeProcess')]] ..
+func win_PeekNamedPipe(handle : uint, buffer : pointer, size : uint32, read_count : ^uint32, available : ^uint32, left : ^uint32) -> int32 [[external('PeekNamedPipe')]] ..
+func win_ReadFile(handle : uint, buffer : pointer, size : uint32, read_count : ^uint32, overlapped : pointer) -> int32 [[external('ReadFile')]] ..
+func win_WriteFile(handle : uint, buffer : pointer, size : uint32, written : ^uint32, overlapped : pointer) -> int32 [[external('WriteFile')]] ..
+func win_GetEnvironmentVariableW(name : ^char16, value : ^char16, size : uint32) -> uint32 [[external('GetEnvironmentVariableW')]] ..
+func win_SetEnvironmentVariableW(name : ^char16, value : ^char16) -> int32 [[external('SetEnvironmentVariableW')]] ..
+
+func SShellPipe.CloseRead():
+    if read_handle <> 0:
+        @.win_CloseHandle(read_handle)
+        read_handle = 0
+    endif
+endfunc
+
+func SShellPipe.CloseWrite():
+    if write_handle <> 0:
+        @.win_CloseHandle(write_handle)
+        write_handle = 0
+    endif
+endfunc
+
+func SShellPipe.Close():
+    CloseRead()
+    CloseWrite()
+endfunc
+
+func SShellPipe.Open(parent_reads : bool):
+    use *
+    var attributes : SSecurityAttributes = {}
+    attributes.length = SizeOf(SSecurityAttributes)
+    attributes.inherit_handle = 1
+    var ok : int32 = win_CreatePipe(%read_handle, %write_handle, %attributes, 0)
+    if ok <> 0:
+        var parent_handle : uint = iif(parent_reads, read_handle, write_handle)
+        ok = win_SetHandleInformation(parent_handle, 1, 0) // HANDLE_FLAG_INHERIT
+    endif
+    if ok == 0:
+        var error : uint32 = win_GetLastError()
+        Close()
+        raise EShellStart('Could not create Windows pipe (error {})', [error])
+    endif
+endfunc
+
+func SShellPipe.ReadAvailable(captured : ref str, merged : ref str) -> bool:
+    use *
+    if read_handle == 0:
+        return false
+    endif
+    var available : uint32 = 0
+    if win_PeekNamedPipe(read_handle, nil, 0, nil, %available, nil) == 0:
+        CloseRead()
+        return false
+    endif
+    if available == 0:
+        return false
+    endif
+    var chunk : str = ''
+    chunk.SetLength(iif(available > 4096, 4096, available), char(0))
+    var read_count : uint32 = 0
+    if win_ReadFile(read_handle, chunk.pchar, chunk.length, %read_count, nil) == 0 or read_count == 0:
+        CloseRead()
+        return false
+    endif
+    chunk.SetLength(read_count, char(0))
+    captured.Append(chunk)
+    merged.Append(chunk)
+    return true
+endfunc
+
+func OShellRunner.WindowsCommandLine(args : []rostr) -> str:
+    result = ''
+    var arg_count : int = iif(shell_command, 1, args.length)
+    for index : int = 0 count arg_count:
+        if index > 0:
+            result.Append(' ')
+        endif
+        result.Append('"')
+        var backslashes : int = 0
+        for pos : int = 0 count args[index].length:
+            var ch : char = args[index][pos]
+            if ch == '\\':
+                ++backslashes
+                continue
+            endif
+            if ch == '"':
+                backslashes = backslashes * 2 + 1
+            endif
+            for i : int = 0 count backslashes:
+                result.Append('\\')
+            endfor
+            result.Append(ch)
+            backslashes = 0
+        endfor
+        // Backslashes before the closing quote must be doubled as well.
+        for i : int = 0 count backslashes * 2:
+            result.Append('\\')
+        endfor
+        result.Append('"')
+    endfor
+    if shell_command:
+        // cmd options must be unquoted. /s /c strips the command's outer pair;
+        // embedded quotes belong to cmd syntax, rather than CRT argv escaping.
+        result.Append(' /d /s /c "')
+        result.Append(args[args.length - 1])
+        result.Append('"')
+    endif
+endfunc
+
+func OShellRunner.CloseProcessHandles():
+    in_pipe.Close()
+    out_pipe.Close()
+    err_pipe.Close()
+    if process_handle <> 0:
+        @.win_CloseHandle(process_handle)
+        process_handle = 0
+    endif
+    if job_handle <> 0:
+        @.win_CloseHandle(job_handle)
+        job_handle = 0
+    endif
+endfunc
+
+func OShellRunner.*Destroy():
+    CloseProcessHandles()
+endfunc
+
+func OShellRunner.StartProcess(args : []rostr) -> int:
+    use *
+    CloseProcessHandles()
+    var command : [*]char16 = StrfToUtf16(WindowsCommandLine(args))
+    var child_stdin : uint = 0
+    var info : SProcessInfo = {}
+    var startup : SStartupInfoEx = {}
+    var attribute_size : uint = 0
+    var attribute_buffer : [*]byte
+    var attributes_ready : bool = false
+    var started : bool = false
+
+    try:
+        out_pipe.Open(true)
+        err_pipe.Open(true)
+        if provide_stdin:
+            in_pipe.Open(false)
+            child_stdin = in_pipe.read_handle
+        else:
+            var current : uint = win_GetCurrentProcess()
+            var source : uint = win_GetStdHandle(0xFFFFFFF6) // STD_INPUT_HANDLE
+            if source <> 0 and source <> INVALID_HANDLE_VALUE:
+                win_DuplicateHandle(current, source, current, %child_stdin, 0, 1, 2)
+            endif
+            if child_stdin == 0:
+                var attributes : SSecurityAttributes = {}
+                attributes.length = SizeOf(SSecurityAttributes)
+                attributes.inherit_handle = 1
+                var nul : [*]char16 = StrfToUtf16('NUL')
+                child_stdin = win_CreateFileW(%nul[0], 0x80000000, 3, %attributes, 3, 0, 0)
+                if child_stdin == INVALID_HANDLE_VALUE:
+                    child_stdin = 0
+                    raise EShellStart('Could not open Windows stdin (error {})', [win_GetLastError()])
+                endif
+            endif
+        endif
+
+        // Limit inheritance to this child's streams, including concurrent launches.
+        win_InitializeProcThreadAttributeList(nil, 1, 0, %attribute_size)
+        if attribute_size == 0:
+            raise EShellStart('Could not size Windows process attributes (error {})', [win_GetLastError()])
+        endif
+        attribute_buffer.SetLength(attribute_size)
+        startup.attributes = %attribute_buffer[0]
+        if win_InitializeProcThreadAttributeList(startup.attributes, 1, 0, %attribute_size) == 0:
+            raise EShellStart('Could not initialize Windows process attributes (error {})', [win_GetLastError()])
+        endif
+        attributes_ready = true
+        var handles : [3]uint = [child_stdin, out_pipe.write_handle, err_pipe.write_handle]
+        if win_UpdateProcThreadAttribute(startup.attributes, 0, 0x20002, %handles[0], SizeOf(handles), nil, nil) == 0:
+            raise EShellStart('Could not set Windows inherited handles (error {})', [win_GetLastError()])
+        endif
+        startup.startup.cb = SizeOf(SStartupInfoEx)
+        startup.startup.flags = 0x100 // STARTF_USESTDHANDLES
+        startup.startup.stdin_handle = child_stdin
+        startup.startup.stdout_handle = out_pipe.write_handle
+        startup.startup.stderr_handle = err_pipe.write_handle
+        job_handle = win_CreateJobObjectW(nil, nil)
+        if job_handle == 0:
+            raise EShellStart('Could not create Windows job (error {})', [win_GetLastError()])
+        endif
+        // Suspend until job assignment, so descendants cannot escape Kill().
+        if win_CreateProcessW(nil, %command[0], nil, nil, 1, 0x80004, nil, nil, %startup, %info) == 0:
+            raise EShellStart('Could not create Windows process (error {})', [win_GetLastError()])
+        endif
+        process_handle = info.process_handle
+        if win_AssignProcessToJobObject(job_handle, process_handle) == 0:
+            raise EShellStart('Could not assign Windows process to job (error {})', [win_GetLastError()])
+        endif
+        if win_ResumeThread(info.thread_handle) == 0xFFFFFFFF:
+            raise EShellStart('Could not resume Windows process (error {})', [win_GetLastError()])
+        endif
+        started = true
+    finally:
+        if attributes_ready:
+            win_DeleteProcThreadAttributeList(startup.attributes)
+        endif
+        if info.thread_handle <> 0:
+            win_CloseHandle(info.thread_handle)
+        endif
+        if provide_stdin:
+            in_pipe.CloseRead()
+        elif child_stdin <> 0:
+            win_CloseHandle(child_stdin)
+        endif
+        out_pipe.CloseWrite()
+        err_pipe.CloseWrite()
+        if not started:
+            if process_handle <> 0:
+                win_TerminateProcess(process_handle, 0xFFFFFFFF)
+                win_WaitForSingleObject(process_handle, 0xFFFFFFFF)
+            endif
+            CloseProcessHandles()
+        endif
+    endtry
+    return 0
+endfunc
+
+func OShellRunner.WriteInput(aarg : pointer) -> pointer:
+    while in_buffer_pos < in_buffer.length:
+        var written : uint32 = 0
+        var count : int = in_buffer.length - in_buffer_pos
+        if count > 4096:
+            count = 4096
+        endif
+        if @.win_WriteFile(in_pipe.write_handle, in_buffer.pchar + in_buffer_pos, count, %written, nil) == 0 or written == 0:
+            break
+        endif
+        in_buffer_pos += written
+    endwhile
+    in_pipe.CloseWrite()
+    return nil
+endfunc
+
+func OShellRunner.MonitorProcess():
+    // Anonymous pipe writes can block. Feed stdin independently while draining
+    // both output streams, even for foreground calls and large duplex transfers.
+    var writer <- OThread()
+    if provide_stdin:
+        if in_buffer.length == 0:
+            in_pipe.CloseWrite()
+        elif not writer.StartMethod(self.WriteInput, nil):
+            TerminateChild()
+            in_pipe.CloseWrite()
+        endif
+    endif
+    while out_pipe.read_handle <> 0 or err_pipe.read_handle <> 0:
+        var progress : bool = out_pipe.ReadAvailable(out, output)
+        if err_pipe.ReadAvailable(err, output):
+            progress = true
+        endif
+        if not progress:
+            @.SleepMillis(1)
+        endif
+    endwhile
+    writer.Join()
+    if @.win_WaitForSingleObject(process_handle, 0xFFFFFFFF) == 0:
+        var code : uint32 = 0
+        if @.win_GetExitCodeProcess(process_handle, %code) <> 0:
+            if code == 0xFFFFFFFF:
+                exitcode = -1
+            else:
+                exitcode = code
+            endif
+        endif
+    endif
+    // Retain process/job handles until reuse or destruction on the controlling
+    // thread, so Kill() cannot race a CloseHandle in this monitor thread.
+endfunc
+
+func OShellRunner.TerminateChild():
+    if job_handle <> 0:
+        @.win_TerminateJobObject(job_handle, 0xFFFFFFFF)
+    endif
+endfunc
+
+func GetEnv(name : rostr, default_value : rostr) -> str:
+    var wide_name : [*]char16 = StrfToUtf16(name)
+    var buffer : [*]char16
+    while true:
+        win_SetLastError(0)
+        var size : uint32 = win_GetEnvironmentVariableW(%wide_name[0], nil, 0)
+        if size == 0:
+            if win_GetLastError() == 203: // ERROR_ENVVAR_NOT_FOUND
+                return default_value
+            endif
+            return ''
+        endif
+        buffer.SetLength(size)
+        var written : uint32 = win_GetEnvironmentVariableW(%wide_name[0], %buffer[0], size)
+        if written > 0 and written < size:
+            return StrFromUtf16Ptr(%buffer[0], written)
+        endif
+        if written == 0:
+            if win_GetLastError() == 203:
+                return default_value
+            endif
+            return ''
+        endif
+        // Another thread enlarged the variable between the two calls.
+    endwhile
+    return ''
+endfunc
+
+func SetEnv(name : rostr, value : rostr):
+    var wide_name : [*]char16 = StrfToUtf16(name)
+    var wide_value : [*]char16 = StrfToUtf16(value)
+    if win_SetEnvironmentVariableW(%wide_name[0], %wide_value[0]) == 0:
+        raise Exception('SetEnv failed (Windows error {})', [win_GetLastError()])
+    endif
+endfunc

@@ -4,13 +4,15 @@ The following modules are also shipped in `stdpkg`. They have focused source
 interfaces and examples rather than separate API manuals. Check each module's
 public declarations for exact signatures and supported platforms.
 
+For timestamps, date/time formatting, and sleeps, see the dedicated
+[`time` package manual](065-time.md). For child processes and environment
+variables, see the [`shell` package manual](075-shell.md).
+
 | Import | Purpose | Source or example |
 | --- | --- | --- |
 | `math` | Mathematical functions backed by the native math library. | [`math.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/math/math.dq) |
-| `time` | Time values and time-related helpers. | [`time.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/time/time.dq) |
 | `strparse` | Cursor-based text parsing. | [`test_strparse.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/strparse/examples/test_strparse.dq) |
 | `collections/strstrmap` | String-to-string map. | [`strstrmap.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/collections/strstrmap.dq) |
-| `shell` | Hosted shell/process helpers. | [`shell examples`](https://github.com/nvitya/dq-lang/tree/main/stdpkg/shell/examples) |
 | `db` | Shared database abstractions. | [`db.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/db/db.dq) |
 | `sqlite3` | SQLite binding using the SQLite library. | [`sqlite_test.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/sqlite3/examples/sqlite_test.dq) |
 | `mysql` | MySQL client binding. | [`mysql_test.dq`](https://github.com/nvitya/dq-lang/blob/main/stdpkg/mysql/examples/mysql_test.dq) |

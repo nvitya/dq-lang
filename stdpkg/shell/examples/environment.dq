@@ -1,0 +1,16 @@
+use print
+use shell
+
+func *Main():
+    PrintLn('HOME: {}', [GetEnv('HOME', '(not set)')])
+    SetEnv('DQ_SHELL_EXAMPLE', 'hello from DQ')
+    PrintLn('Current process: {}', [GetEnv('DQ_SHELL_EXAMPLE', '')])
+
+    var runner <- OShellRunner()
+#ifdef WINDOWS
+    runner.Run('echo %DQ_SHELL_EXAMPLE%')
+#else
+    runner.Run('printf "%s" "$DQ_SHELL_EXAMPLE"')
+#endif
+    PrintLn('Child process: {}', [runner.out])
+endfunc

@@ -1,0 +1,254 @@
+//?exitcode(0)
+
+use shell
+use print
+use time
+use libc/stdio
+
+func c_fread(buffer : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fread')]] ..
+func c_fwrite(buffer : pointer, size : uint, count : uint, stream : pointer) -> uint [[external('fwrite')]] ..
+
+#ifdef WINDOWS
+    #linklib('shell32')
+    func c_iob(index : uint32) -> pointer [[external('__acrt_iob_func')]] ..
+    func c_setmode(fd : int32, mode : int32) -> int32 [[external('_setmode')]] ..
+    func test_GetCommandLineW() -> ^char16 [[external('GetCommandLineW')]] ..
+    func test_GetModuleFileNameW(module_handle : uint, name : ^char16, size : uint32) -> uint32 [[external('GetModuleFileNameW')]] ..
+    func test_CommandLineToArgvW(command : ^char16, count : ^int32) -> ^^char16 [[external('CommandLineToArgvW')]] ..
+    func test_LocalFree(memory : pointer) -> pointer [[external('LocalFree')]] ..
+    func test_GetCurrentProcess() -> uint [[external('GetCurrentProcess')]] ..
+    func test_GetProcessHandleCount(process_handle : uint, count : ^uint32) -> int32 [[external('GetProcessHandleCount')]] ..
+#else
+    var c_stdin : pointer [[external('stdin')]]
+    var c_stderr : pointer [[external('stderr')]]
+#endif
+
+func Check(ok : bool, message : rostr):
+    if not ok:
+        PrintLn('FAILED: {}', [message])
+        Exit(1)
+    endif
+endfunc
+
+func TestArg(index : int) -> str:
+#ifdef WINDOWS
+    // Read Unicode arguments independently of the CRT's narrow argv code page.
+    var count : int32 = 0
+    var args : ^^char16 = test_CommandLineToArgvW(test_GetCommandLineW(), %count)
+    Check(args <> nil and index < count, 'CommandLineToArgvW')
+    var item : ^char16 = args[index]^
+    var length : int = 0
+    while item[length]^ <> char16(0):
+        ++length
+    endwhile
+    result = StrFromUtf16Ptr(item, length)
+    test_LocalFree(args)
+#else
+    return ArgStr(index)
+#endif
+endfunc
+
+func TestExecutable() -> str:
+#ifdef WINDOWS
+    var buffer : [32768]char16
+    var length : uint32 = test_GetModuleFileNameW(0, %buffer[0], buffer.length)
+    Check(length > 0 and length < buffer.length, 'GetModuleFileNameW')
+    return StrFromUtf16Ptr(%buffer[0], length)
+#else
+    return ArgStr(0)
+#endif
+endfunc
+
+func Child(mode : rostr):
+    if mode == 'args':
+        for index : int = 2 to ArgCount() - 1:
+            PrintLn('{}:{}', [index - 2, TestArg(index)])
+        endfor
+    elif mode == 'env':
+        Print(GetEnv('DQ_SHELL_PORTABLE_TEST_12C8', 'missing'))
+    elif mode == 'sleep':
+        SleepMillis(5000)
+    elif mode == 'duplex' or mode == 'echo':
+#ifdef WINDOWS
+        c_setmode(0, 0x8000)
+        c_setmode(1, 0x8000)
+        c_setmode(2, 0x8000)
+        var input_stream : pointer = c_iob(0)
+        var error_stream : pointer = c_iob(2)
+#else
+        var input_stream : pointer = c_stdin
+        var error_stream : pointer = c_stderr
+#endif
+        if mode == 'duplex':
+            var banner : str = ''
+            banner.SetLength(200000, 'o')
+            c_fwrite(banner.pchar, 1, banner.length, StdOut())
+            banner = ''
+            banner.SetLength(200000, 'e')
+            c_fwrite(banner.pchar, 1, banner.length, error_stream)
+        endif
+        var buffer : [4096]byte
+        while true:
+            var count : uint = c_fread(%buffer[0], 1, buffer.length, input_stream)
+            if count == 0:
+                break
+            endif
+            Check(c_fwrite(%buffer[0], 1, count, StdOut()) == count, 'child write')
+        endwhile
+    endif
+endfunc
+
+func *Main():
+    if ArgCount() > 1:
+        Child(TestArg(1))
+        return
+    endif
+    var executable : str = TestExecutable()
+    var runner <- OShellRunner()
+#ifdef WINDOWS
+    const fail_command : rostr = '<nul set /p "=failing-out" & <nul set /p "=failing-err" >&2 & exit /b 17'
+    const exit_command : rostr = 'exit /b 29'
+    const env_command : rostr = '<nul set /p "=%DQ_SHELL_PORTABLE_TEST_12C8%"'
+#else
+    const fail_command : rostr = 'printf failing-out; printf failing-err >&2; exit 17'
+    const exit_command : rostr = 'exit 29'
+    const env_command : rostr = 'printf "%s" "$DQ_SHELL_PORTABLE_TEST_12C8"'
+#endif
+    var caught : bool = false
+    try:
+        runner.Run(fail_command)
+    except EShellResult as e:
+        caught = e.code == 17
+    endtry
+    Check(caught and runner.exitcode == 17, 'foreground exception')
+    Check(runner.out == 'failing-out' and runner.err == 'failing-err', 'separate output')
+    Check(runner.output.length == runner.out.length + runner.err.length, 'merged output')
+    Check(runner.Run(exit_command, false) == 29, 'nonzero exit without exception')
+    caught = false
+    try:
+        runner.RunWithInput(exit_command, '')
+    except EShellResult as e:
+        caught = e.code == 29
+    endtry
+    Check(caught, 'input exception')
+    Check(runner.RunWithInput(exit_command, '', false) == 29, 'input exit without exception')
+
+    // Empty args, embedded quotes, runs of backslashes, whitespace, metacharacters
+    // and Unicode must all survive direct process creation.
+    var args : [*]rostr = [executable, 'args', '', 'two words', 'a"b', 'C:\\path with space\\',
+                          'slashes\\"quoted', '\\', '% & | < > ^ !', 'árvíz € 😀']
+    var expected : str = ''
+    for index : int = 2 count args.length - 2:
+        expected.AddFmt('{}:{}\n', [index - 2, args[index]])
+    endfor
+#ifdef WINDOWS
+    // The child uses text-mode stdout for argument diagnostics.
+    var expected_lines : str = expected
+    expected = ''
+    for index : int = 0 count expected_lines.length:
+        if expected_lines[index] == '\n':
+            expected.Append('\r')
+        endif
+        expected.Append(expected_lines[index])
+    endfor
+#endif
+    runner.Run(args[:])
+    Check(runner.out == expected, 'argument quoting and Unicode')
+    Check(runner.StartBg(args[:]) == 0, 'background arguments start')
+    runner.Join()
+    Check(runner.exitcode == 0 and runner.out == expected, 'background arguments result')
+
+    var input : str = 'header\n\r\0árvíz € 😀'
+    input.SetLength(200000, 'x')
+    var banner : str = ''
+    banner.SetLength(200000, 'o')
+    var errors : str = ''
+    errors.SetLength(200000, 'e')
+    runner.RunWithInput([executable, 'duplex'], input)
+    Check(runner.out == banner + input and runner.err == errors, 'large foreground duplex')
+    Check(runner.StartBgWithInput([executable, 'duplex'], input) == 0, 'background duplex start')
+    Check(runner.WaitFinishMs(5000), 'background duplex timeout')
+    runner.Join()
+    Check(runner.out == banner + input and runner.err == errors, 'large background duplex')
+    runner.RunWithInput([executable, 'echo'], '')
+    Check(runner.out == '' and runner.exitcode == 0, 'empty stdin EOF')
+    Check(runner.StartBgWithInput([executable, 'echo'], '') == 0, 'background EOF start')
+    runner.Join()
+    Check(runner.out == '' and runner.exitcode == 0, 'background EOF result')
+
+    // Exercise raw command quoting when the executable and arguments are quoted.
+    var echo_command : str = Format('"{}" echo', [executable])
+    runner.RunWithInput(echo_command, input)
+    Check(runner.out == input, 'command string quoting and stdin')
+    Check(runner.StartBgWithInput(echo_command, input) == 0, 'background command stdin start')
+    runner.Join()
+    Check(runner.out == input, 'background command stdin result')
+
+    Check(GetEnv('DQ_SHELL_PORTABLE_TEST_12C8', 'missing') == 'missing', 'environment default')
+    SetEnv('DQ_SHELL_PORTABLE_TEST_12C8', '')
+    Check(GetEnv('DQ_SHELL_PORTABLE_TEST_12C8', 'missing') == '', 'empty environment value')
+    SetEnv('DQ_SHELL_PORTABLE_TEST_12C8', 'inherited value')
+    runner.Run(env_command)
+    Check(runner.out == 'inherited value', 'shell environment inheritance')
+    SetEnv('DQ_SHELL_PORTABLE_TEST_12C8', 'árvíz € 😀')
+    runner.Run([executable, 'env'])
+    Check(runner.out == 'árvíz € 😀', 'Unicode environment inheritance')
+    caught = false
+    try:
+        SetEnv('invalid=name', 'value')
+    except Exception:
+        caught = true
+    endtry
+    Check(caught, 'invalid environment name')
+
+    caught = false
+    try:
+        runner.Run(['dq-shell-missing-executable-12C8'])
+#ifdef WINDOWS
+    except EShellStart:
+        caught = true
+#else
+    except EShellResult as e:
+        caught = e.code == 127
+#endif
+    endtry
+    Check(caught and runner.finished, 'launch failure and runner recovery')
+    caught = false
+    var empty_args : [*]rostr = []
+    try:
+        runner.StartBg(empty_args[:])
+    except EShellStart:
+        caught = true
+    endtry
+    Check(caught and runner.finished, 'empty argument list')
+    runner.Run([executable, 'args', 'recovered'])
+    Check(runner.exitcode == 0, 'reuse after failure')
+
+    // Kill the shell and its child, including a writer blocked on a full stdin pipe.
+    var sleep_command : str = Format('"{}" sleep', [executable])
+    Check(runner.StartBgWithInput(sleep_command, input) == 0, 'process tree start')
+    Check(not runner.WaitFinishMs(100), 'process tree timeout')
+    Check(runner.StartBg(args[:]) == -1, 'busy runner')
+    runner.Kill()
+    Check(runner.WaitFinishMs(2000), 'process tree kill and blocked writer cleanup')
+    runner.Join()
+    Check(runner.exitcode == -1, 'killed exit code')
+    runner.Run([executable, 'args', 'reused'])
+    Check(runner.exitcode == 0, 'reuse after kill')
+#ifdef WINDOWS
+    var before : uint32 = 0
+    var after : uint32 = 0
+    Check(test_GetProcessHandleCount(test_GetCurrentProcess(), %before) <> 0, 'handle baseline')
+    for index : int = 0 count 12:
+        var short_runner <- OShellRunner()
+        short_runner.RunWithInput([executable, 'echo'], '')
+        try:
+            short_runner.StartBg(['dq-shell-missing-executable-12C8'])
+        except EShellStart:
+        endtry
+    endfor
+    Check(test_GetProcessHandleCount(test_GetCurrentProcess(), %after) <> 0, 'handle result')
+    Check(after <= before + 1, 'Windows handle cleanup')
+#endif
+    PrintLn('portable shell tests passed')
+endfunc

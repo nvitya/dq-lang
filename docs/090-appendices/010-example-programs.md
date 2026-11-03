@@ -25,6 +25,30 @@ The repository contains small focused examples and larger demonstrations.
 | --- | --- |
 | `stdpkg/file/examples/fileiotest.dq` | file IO, directory helpers |
 
+## Time
+
+See the [`time` package documentation](../040-packages/065-time.md)
+for clock selection, formatting tokens, and sleep behavior.
+
+| Example | Shows |
+| --- | --- |
+| `stdpkg/time/examples/elapsed.dq` | measuring a duration with a monotonic clock |
+| `stdpkg/time/examples/formatting.dq` | local and UTC timestamps, milliseconds and microseconds |
+| `stdpkg/time/examples/periodic.dq` | periodic work using absolute deadlines |
+
+## Shell Commands
+
+See the [`shell` package documentation](../040-packages/075-shell.md)
+for process execution, output capture, and background command lifetimes.
+These examples support Linux and Windows.
+
+| Example | Shows |
+| --- | --- |
+| `stdpkg/shell/examples/capture.dq` | stdout/stderr capture, argument arrays, and exit-code handling |
+| `stdpkg/shell/examples/input.dq` | supplying stdin and closing it with EOF |
+| `stdpkg/shell/examples/background.dq` | background execution, timeouts, and cleanup |
+| `stdpkg/shell/examples/environment.dq` | reading, setting, and inheriting environment variables |
+
 ## Networking
 
 | Example | Shows |

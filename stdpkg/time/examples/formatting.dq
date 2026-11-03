@@ -1,0 +1,13 @@
+use print
+use time
+
+func *Main():
+    var now : float64 = Time()
+    PrintLn('Local: {}', [FormatTime1('yyyy-mm-dd hh:nn:ss.zzz', now)])
+    PrintLn('Local with microseconds: {}',
+            [FormatTime2('%Y-%m-%d %H:%M:%S.%f', now)])
+    PrintLn('UTC: {}', [FormatTimeUtc('%Y-%m-%dT%H:%M:%SZ', now)])
+
+    // Fixed timestamp: 2024-01-01 00:00:00 UTC.
+    PrintLn(FormatTimeUtc('%Y-%m-%d %H:%M:%S', 1704067200))
+endfunc

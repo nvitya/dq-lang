@@ -45,6 +45,7 @@ class WindowsTests:
         for source in ("autotest/tests/exceptions/sigsegv_catch.dq",
                        "autotest/tests/exceptions/sigsegv_top_level.dq",
                        "autotest/tests/stdpkg/threads.dq", "autotest/tests/stdpkg/msgchannel.dq",
+                       "autotest/tests/shell/process.dq",
                        "stdpkg/threads/examples/wait_test.dq", "stdpkg/threads/examples/stress_test.dq",
                        "stdpkg/threads/examples/work_distribution.dq"):
             shutil.copy2(self.root / source, self.cases)
@@ -193,6 +194,11 @@ class WindowsTests:
         self.execute("project.exe", contains=modules)
         print("PASS projects, module initialization/reuse, full LTO and artifact isolation", flush=True)
         for options in (("-g", "-O0"), ("-O3", "--lto=full")):
+            self.compile("process.dq", *options)
+            self.execute("process.exe", contains=("portable shell tests passed",))
+            # Exercise an executable path containing spaces and non-ASCII text.
+            shutil.copy2(self.cases / "process.exe", self.cases / "shell árvíz test.exe")
+            self.execute("shell árvíz test.exe", contains=("portable shell tests passed",))
             self.compile("threads.dq", *options)
             self.execute("threads.exe", contains=("threads = passed", "atomics = passed", "events = passed"))
             self.compile("msgchannel.dq", *options)
@@ -206,7 +212,7 @@ class WindowsTests:
             self.compile("work_distribution.dq", *options)
             self.execute("work_distribution.exe", 4, 16, 1000,
                          contains=("PASS: every job was processed once, with identical results at every worker count.",))
-        print("PASS threads, atomics, events, channel waits and stress at O0/O3+LTO", flush=True)
+        print("PASS shell, threads, atomics, events, channel waits and stress at O0/O3+LTO", flush=True)
         print(f"Windows cross-compilation tests passed ({self.command_count} commands). Logs: {self.logs}")
 
 

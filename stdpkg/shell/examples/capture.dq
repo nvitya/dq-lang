@@ -1,0 +1,32 @@
+use print
+use shell
+
+func *Main():
+    var runner <- OShellRunner()
+#ifdef WINDOWS
+    var code : int = runner.Run('echo hello& echo warning >&2& exit /b 7', false)
+#else
+    var code : int = runner.Run('printf hello; printf warning >&2; exit 7', false)
+#endif
+    PrintLn('exit: {}', [code])
+    PrintLn('stdout: {}', [runner.out])
+    PrintLn('stderr: {}', [runner.err])
+
+    // Argument arrays launch an executable directly.
+#ifdef WINDOWS
+    runner.RunWithInput(['sort'], 'pear\napple\n')
+#else
+    runner.Run(['printf', '%s', 'literal $HOME; *.dq'])
+#endif
+    PrintLn(runner.out)
+
+    try:
+#ifdef WINDOWS
+        runner.Run('exit /b 3')
+#else
+        runner.Run('exit 3')
+#endif
+    except EShellResult as e:
+        PrintLn('Caught exit {}: {}', [e.code, e.message])
+    endtry
+endfunc

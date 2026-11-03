@@ -31,8 +31,10 @@ belong to the runtime.
 | Files, directories, paths | [`file`](040-file.md) |
 | JSON trees | [`json`](050-json.md) |
 | Native threads and channels | [`threads`](060-threads.md) |
+| Timestamps, elapsed time, date formatting, sleeps | [`time`](065-time.md) |
 | Event-driven sockets and HTTP | [`nanonet`](070-nanonet.md) |
-| Math, time, parsing, databases, C bindings | [Additional Standard Packages](080-additional-standard-packages.md) |
+| Child processes, captured output, environment variables | [`shell`](075-shell.md) |
+| Math, parsing, databases, C bindings | [Additional Standard Packages](080-additional-standard-packages.md) |
 
 ## Package Discovery and Platform Dependencies
 

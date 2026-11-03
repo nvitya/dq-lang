@@ -5,7 +5,6 @@ The runtime and standard packages ship as DQ source. Begin with the
 
 - [`sys`](015-sys.md): implicit runtime services, memory, and process arguments.
 - [`print`](020-print.md): console output.
-- [`strutils`](030-strutils.md): formatting, searching, and text helpers.
 - [`file`](040-file.md): files, directories, and paths.
 - [`json`](050-json.md): JSON trees, parsing, and serialization.
 - [`threads`](060-threads.md): native threads, atomics, and channels.

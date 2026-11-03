@@ -49,4 +49,5 @@ the runtime; configure buffering before normal output begins.
 
 These functions use the shared stdout sink and formatter. For custom output
 sinks or building a string instead of printing, see
-[Text Formatting](../020-language/077-text-formatting.md) and [`strutils`](030-strutils.md).
+[Text Formatting](../020-language/077-text-formatting.md) and
+[String Functions](../020-language/075-string-functions.md).

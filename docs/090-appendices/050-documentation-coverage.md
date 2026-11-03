@@ -96,7 +96,6 @@ these files directly, so a correction is published in both forms.
 
 | Source | Book chapter |
 | --- | --- |
-| `stdpkg/strutils/docs/index.md` | [`strutils`](../040-packages/030-strutils.md) |
 | `stdpkg/file/docs/index.md` | [`file`](../040-packages/040-file.md) |
 | `stdpkg/json/docs/index.md` | [`json`](../040-packages/050-json.md) |
 | `stdpkg/threads/docs/index.md` | [`threads`](../040-packages/060-threads.md) |

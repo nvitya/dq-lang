@@ -123,7 +123,6 @@ to return when the requested conversion is unavailable.
 A helper can use these methods to produce a label for different kinds of data:
 
 ```dq
-use strutils
 
 func ToLabel(value : anyvalue) -> str:
     if value.IsNull():
@@ -138,7 +137,8 @@ func ToLabel(value : anyvalue) -> str:
 endfunc
 ```
 
-`Format` comes from the `strutils` package.
+`Format` is available through the implicit `sys` runtime interface. See
+[String Functions](075-string-functions.md#format).
 
 ## Setters and Text Views
 

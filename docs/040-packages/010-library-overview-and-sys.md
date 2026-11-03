@@ -11,7 +11,6 @@ Other packages are imported explicitly:
 
 ```dq
 use print
-use strutils
 
 func *Main():
     var message : str = Format("{} items", [3])
@@ -19,15 +18,14 @@ func *Main():
 endfunc
 ```
 
-`print` writes to standard output. `strutils` provides `Format` and small
-text helpers. The formatter and the string/array implementations themselves
-belong to the runtime.
+`print` writes to standard output. `Format` and the string helpers are available
+through the implicit `sys` runtime interface, so they need no explicit import.
 
 | Need | Documentation |
 | --- | --- |
 | Process arguments, memory blocks, runtime helpers | [`sys`](015-sys.md) |
 | Console output | [`print`](020-print.md) |
-| Formatting and text helpers | [`strutils`](030-strutils.md), [Text Formatting](../020-language/077-text-formatting.md) |
+| Formatting and text helpers | [String Functions](../020-language/075-string-functions.md), [Text Formatting](../020-language/077-text-formatting.md) |
 | Files, directories, paths | [`file`](040-file.md) |
 | JSON trees | [`json`](050-json.md) |
 | Native threads and channels | [`threads`](060-threads.md) |

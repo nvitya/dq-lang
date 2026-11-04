@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.3"
+#define DQ_COMPILER_VERSION  "0.95.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.4:
+  - Code refactoring: fixed incosistent OExpr and OStmt destruction
 v0.95.3:
   - Code refactoring: removed unused functions (left over after exception rework)
 v0.95.2:

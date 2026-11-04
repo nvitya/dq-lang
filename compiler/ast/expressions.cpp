@@ -113,17 +113,6 @@ bool OExpr::TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement)
   return true;
 }
 
-void OExpr::DeleteTree(OExpr * expr)
-{
-  if (!expr)
-  {
-    return;
-  }
-
-  expr->DeleteChildTree();
-  delete expr;
-}
-
 void OExpr::FoldTree(OExpr ** rexpr)
 {
   OExpr * expr = (rexpr ? *rexpr : nullptr);
@@ -148,6 +137,11 @@ void OExpr::FoldTree(OExpr ** rexpr)
   src   = asrc;
 }
 
+OExprTypeConv::~OExprTypeConv()
+{
+  delete src;
+}
+
 LlValue * OExprTypeConv::Generate(OScope * scope)
 {
   return ptype->GenerateConversion(scope, src);
@@ -160,20 +154,7 @@ void OExprTypeConv::FoldChildren()
 
 bool OExprTypeConv::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!OExpr::TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(src);
-  src = nullptr;
-  return true;
-}
-
-void OExprTypeConv::DeleteChildTree()
-{
-  OExpr::DeleteTree(src);
-  src = nullptr;
+  return OExpr::TryFoldScalarReplacement(this, rreplacement);
 }
 
 /* ctor */ OIntLit::OIntLit(int64_t v, OType * atype)
@@ -469,10 +450,9 @@ void OLValueDeref::FoldChildren()
   OExpr::FoldTree(&ptrexpr);
 }
 
-void OLValueDeref::DeleteChildTree()
+OLValueDeref::~OLValueDeref()
 {
-  OExpr::DeleteTree(ptrexpr);
-  ptrexpr = nullptr;
+  delete ptrexpr;
 }
 
 /* ctor */ OLValueMember::OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype)
@@ -587,10 +567,9 @@ void OLValueMember::FoldChildren()
   base = static_cast<OLValueExpr *>(tmp);
 }
 
-void OLValueMember::DeleteChildTree()
+OLValueMember::~OLValueMember()
 {
-  OExpr::DeleteTree(base);
-  base = nullptr;
+  delete base;
 }
 
 OLValueExpr * OLValueMember::Clone() const
@@ -823,14 +802,11 @@ void OArraySliceExpr::FoldChildren()
   OExpr::FoldTree(&endexpr);
 }
 
-void OArraySliceExpr::DeleteChildTree()
+OArraySliceExpr::~OArraySliceExpr()
 {
-  OExpr::DeleteTree(base);
-  OExpr::DeleteTree(startexpr);
-  OExpr::DeleteTree(endexpr);
-  base = nullptr;
-  startexpr = nullptr;
-  endexpr = nullptr;
+  delete base;
+  delete startexpr;
+  delete endexpr;
 }
 
 /* ctor */ OArrayIndexOfExpr::OArrayIndexOfExpr(OExpr * areceiver, OExpr * avalue)
@@ -896,12 +872,10 @@ void OArrayIndexOfExpr::FoldChildren()
   OExpr::FoldTree(&value);
 }
 
-void OArrayIndexOfExpr::DeleteChildTree()
+OArrayIndexOfExpr::~OArrayIndexOfExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  OExpr::DeleteTree(value);
-  value = nullptr;
+  delete receiver;
+  delete value;
 }
 
 /* ctor */ OStringSliceExpr::OStringSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
@@ -928,14 +902,11 @@ void OStringSliceExpr::FoldChildren()
   OExpr::FoldTree(&endexpr);
 }
 
-void OStringSliceExpr::DeleteChildTree()
+OStringSliceExpr::~OStringSliceExpr()
 {
-  OExpr::DeleteTree(base);
-  OExpr::DeleteTree(startexpr);
-  OExpr::DeleteTree(endexpr);
-  base = nullptr;
-  startexpr = nullptr;
-  endexpr = nullptr;
+  delete base;
+  delete startexpr;
+  delete endexpr;
 }
 
 /* ctor */ OStringWCharIndexExpr::OStringWCharIndexExpr(OLValueExpr * abase, OExpr * aindex)
@@ -958,12 +929,10 @@ void OStringWCharIndexExpr::FoldChildren()
   OExpr::FoldTree(&indexexpr);
 }
 
-void OStringWCharIndexExpr::DeleteChildTree()
+OStringWCharIndexExpr::~OStringWCharIndexExpr()
 {
-  OExpr::DeleteTree(base);
-  OExpr::DeleteTree(indexexpr);
-  base = nullptr;
-  indexexpr = nullptr;
+  delete base;
+  delete indexexpr;
 }
 
 /* ctor */ OStringWCharSliceExpr::OStringWCharSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
@@ -990,14 +959,11 @@ void OStringWCharSliceExpr::FoldChildren()
   OExpr::FoldTree(&endexpr);
 }
 
-void OStringWCharSliceExpr::DeleteChildTree()
+OStringWCharSliceExpr::~OStringWCharSliceExpr()
 {
-  OExpr::DeleteTree(base);
-  OExpr::DeleteTree(startexpr);
-  OExpr::DeleteTree(endexpr);
-  base = nullptr;
-  startexpr = nullptr;
-  endexpr = nullptr;
+  delete base;
+  delete startexpr;
+  delete endexpr;
 }
 
 void OLValueIndex::FoldChildren()
@@ -1008,12 +974,10 @@ void OLValueIndex::FoldChildren()
   OExpr::FoldTree(&indexexpr);
 }
 
-void OLValueIndex::DeleteChildTree()
+OLValueIndex::~OLValueIndex()
 {
-  OExpr::DeleteTree(base);
-  OExpr::DeleteTree(indexexpr);
-  base = nullptr;
-  indexexpr = nullptr;
+  delete base;
+  delete indexexpr;
 }
 
 /* ctor */ OPropertyExpr::OPropertyExpr(OExpr * areceiver, OValSymProperty * aproperty)
@@ -1268,14 +1232,12 @@ void OPropertyExpr::FoldChildren()
   }
 }
 
-void OPropertyExpr::DeleteChildTree()
+OPropertyExpr::~OPropertyExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  for (OExpr *& index : indices)
+  delete receiver;
+  for (OExpr * index : indices)
   {
-    OExpr::DeleteTree(index);
-    index = nullptr;
+    delete index;
   }
   indices.clear();
 }
@@ -1406,24 +1368,13 @@ void OBinExpr::FoldChildren()
 
 bool OBinExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void OBinExpr::DeleteChildTree()
+OBinExpr::~OBinExpr()
 {
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
+  delete left;
+  delete right;
 }
 
 /* ctor */ OCompareExpr::OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright)
@@ -1655,24 +1606,13 @@ void OCompareExpr::FoldChildren()
 
 bool OCompareExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void OCompareExpr::DeleteChildTree()
+OCompareExpr::~OCompareExpr()
 {
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
+  delete left;
+  delete right;
 }
 
 /* ctor */ OCompareCachedExpr::OCompareCachedExpr(OExpr * asource)
@@ -1713,10 +1653,9 @@ void OCompareCachedExpr::FoldChildren()
   ptype = source->ptype;
 }
 
-void OCompareCachedExpr::DeleteChildTree()
+OCompareCachedExpr::~OCompareCachedExpr()
 {
-  OExpr::DeleteTree(source);
-  source = nullptr;
+  delete source;
 }
 
 /* ctor */ OCompareCachedLoadExpr::OCompareCachedLoadExpr(OCompareCachedExpr * asource)
@@ -1827,21 +1766,11 @@ bool OIifExpr::TryFoldSelf(OExpr ** rreplacement)
   true_expr = nullptr;
   false_expr = nullptr;
 
-  OExpr::DeleteTree(cond);
-  OExpr::DeleteTree(discarded);
+  delete cond;
+  delete discarded;
   OExpr::FoldTree(&selected);
   *rreplacement = selected;
   return true;
-}
-
-void OIifExpr::DeleteChildTree()
-{
-  OExpr::DeleteTree(condition);
-  OExpr::DeleteTree(true_expr);
-  OExpr::DeleteTree(false_expr);
-  condition = nullptr;
-  true_expr = nullptr;
-  false_expr = nullptr;
 }
 
 /* ctor */ OLogicalExpr::OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright)
@@ -1908,24 +1837,13 @@ void OLogicalExpr::FoldChildren()
 
 bool OLogicalExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void OLogicalExpr::DeleteChildTree()
+OLogicalExpr::~OLogicalExpr()
 {
-  OExpr::DeleteTree(left);
-  OExpr::DeleteTree(right);
-  left = nullptr;
-  right = nullptr;
+  delete left;
+  delete right;
 }
 
 /* ctor */ ONotExpr::ONotExpr(OExpr * expr)
@@ -1947,20 +1865,12 @@ void ONotExpr::FoldChildren()
 
 bool ONotExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void ONotExpr::DeleteChildTree()
+ONotExpr::~ONotExpr()
 {
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
+  delete operand;
 }
 
 /* ctor */ OBinNotExpr::OBinNotExpr(OExpr * expr)
@@ -1986,20 +1896,12 @@ void OBinNotExpr::FoldChildren()
 
 bool OBinNotExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void OBinNotExpr::DeleteChildTree()
+OBinNotExpr::~OBinNotExpr()
 {
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
+  delete operand;
 }
 
 /* ctor */ ONegExpr::ONegExpr(OExpr * expr)
@@ -2035,20 +1937,12 @@ void ONegExpr::FoldChildren()
 
 bool ONegExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
-  return true;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
-void ONegExpr::DeleteChildTree()
+ONegExpr::~ONegExpr()
 {
-  OExpr::DeleteTree(operand);
-  operand = nullptr;
+  delete operand;
 }
 
 /* ctor */ OAddrOfExpr::OAddrOfExpr(OLValueExpr * atarget)
@@ -2069,10 +1963,9 @@ void OAddrOfExpr::FoldChildren()
   target = static_cast<OLValueExpr *>(tmp);
 }
 
-void OAddrOfExpr::DeleteChildTree()
+OAddrOfExpr::~OAddrOfExpr()
 {
-  OExpr::DeleteTree(target);
-  target = nullptr;
+  delete target;
 }
 
 /* ctor */ OObjectAddrExpr::OObjectAddrExpr(OLValueExpr * atarget)
@@ -2093,10 +1986,9 @@ void OObjectAddrExpr::FoldChildren()
   target = static_cast<OLValueExpr *>(tmp);
 }
 
-void OObjectAddrExpr::DeleteChildTree()
+OObjectAddrExpr::~OObjectAddrExpr()
 {
-  OExpr::DeleteTree(target);
-  target = nullptr;
+  delete target;
 }
 
 /* ctor */ OObjectUpcastExpr::OObjectUpcastExpr(OType * adsttype, OExpr * asrc)
@@ -2116,10 +2008,9 @@ void OObjectUpcastExpr::FoldChildren()
   OExpr::FoldTree(&src);
 }
 
-void OObjectUpcastExpr::DeleteChildTree()
+OObjectUpcastExpr::~OObjectUpcastExpr()
 {
-  OExpr::DeleteTree(src);
-  src = nullptr;
+  delete src;
 }
 
 /* ctor */ ONullLit::ONullLit()
@@ -2174,12 +2065,10 @@ void OPointerIndexExpr::FoldChildren()
   OExpr::FoldTree(&indexexpr);
 }
 
-void OPointerIndexExpr::DeleteChildTree()
+OPointerIndexExpr::~OPointerIndexExpr()
 {
-  OExpr::DeleteTree(ptrexpr);
-  OExpr::DeleteTree(indexexpr);
-  ptrexpr = nullptr;
-  indexexpr = nullptr;
+  delete ptrexpr;
+  delete indexexpr;
 }
 
 /* ctor */ ONewExpr::ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func)
@@ -2244,14 +2133,12 @@ void ONewExpr::FoldChildren()
   }
 }
 
-void ONewExpr::DeleteChildTree()
+ONewExpr::~ONewExpr()
 {
-  OExpr::DeleteTree(initexpr);
-  initexpr = nullptr;
-  for (OExpr *& arg : ctor_args)
+  delete initexpr;
+  for (OExpr * arg : ctor_args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   ctor_args.clear();
 }
@@ -2346,14 +2233,12 @@ void ODynamicNewObjectExpr::FoldChildren()
   }
 }
 
-void ODynamicNewObjectExpr::DeleteChildTree()
+ODynamicNewObjectExpr::~ODynamicNewObjectExpr()
 {
-  OExpr::DeleteTree(type_expr);
-  type_expr = nullptr;
-  for (OExpr *& arg : ctor_args)
+  delete type_expr;
+  for (OExpr * arg : ctor_args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   ctor_args.clear();
 }
@@ -2390,10 +2275,9 @@ void OArrayToSliceExpr::FoldChildren()
   arrayexpr = static_cast<OLValueExpr *>(tmp);
 }
 
-void OArrayToSliceExpr::DeleteChildTree()
+OArrayToSliceExpr::~OArrayToSliceExpr()
 {
-  OExpr::DeleteTree(arrayexpr);
-  arrayexpr = nullptr;
+  delete arrayexpr;
 }
 
 /* ctor */ OArrayLitToSliceExpr::OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype)
@@ -2447,10 +2331,9 @@ void OArrayLitToSliceExpr::FoldChildren()
   arraylit = static_cast<OArrayLit *>(tmp);
 }
 
-void OArrayLitToSliceExpr::DeleteChildTree()
+OArrayLitToSliceExpr::~OArrayLitToSliceExpr()
 {
-  OExpr::DeleteTree(arraylit);
-  arraylit = nullptr;
+  delete arraylit;
 }
 
 void OCallLifetimeCleanup::RestoreScope()
@@ -2625,10 +2508,9 @@ void OArrayLitToDynArrayExpr::FoldChildren()
   arraylit = static_cast<OArrayLit *>(tmp);
 }
 
-void OArrayLitToDynArrayExpr::DeleteChildTree()
+OArrayLitToDynArrayExpr::~OArrayLitToDynArrayExpr()
 {
-  OExpr::DeleteTree(arraylit);
-  arraylit = nullptr;
+  delete arraylit;
 }
 
 /* ctor */ OArrayToDynArrayExpr::OArrayToDynArrayExpr(OLValueExpr * aarray, OType * adyntype)
@@ -2664,10 +2546,9 @@ void OArrayToDynArrayExpr::FoldChildren()
   arrayexpr = static_cast<OLValueExpr *>(tmp);
 }
 
-void OArrayToDynArrayExpr::DeleteChildTree()
+OArrayToDynArrayExpr::~OArrayToDynArrayExpr()
 {
-  OExpr::DeleteTree(arrayexpr);
-  arrayexpr = nullptr;
+  delete arrayexpr;
 }
 
 /* ctor */ OSliceToDynArrayExpr::OSliceToDynArrayExpr(OExpr * aslice, OType * adyntype)
@@ -2697,10 +2578,9 @@ void OSliceToDynArrayExpr::FoldChildren()
   OExpr::FoldTree(&sliceexpr);
 }
 
-void OSliceToDynArrayExpr::DeleteChildTree()
+OSliceToDynArrayExpr::~OSliceToDynArrayExpr()
 {
-  OExpr::DeleteTree(sliceexpr);
-  sliceexpr = nullptr;
+  delete sliceexpr;
 }
 
 /* ctor */ ODynArrayToSliceExpr::ODynArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype)
@@ -2722,10 +2602,9 @@ void ODynArrayToSliceExpr::FoldChildren()
   arrayexpr = static_cast<OLValueExpr *>(tmp);
 }
 
-void ODynArrayToSliceExpr::DeleteChildTree()
+ODynArrayToSliceExpr::~ODynArrayToSliceExpr()
 {
-  OExpr::DeleteTree(arrayexpr);
-  arrayexpr = nullptr;
+  delete arrayexpr;
 }
 
 /* ctor */ OArrayMetaFieldExpr::OArrayMetaFieldExpr(OLValueExpr * atarget, OType * acontainertype, EArrayMetaField afield)
@@ -2785,10 +2664,9 @@ void OArrayMetaFieldExpr::FoldChildren()
   target = static_cast<OLValueExpr *>(tmp);
 }
 
-void OArrayMetaFieldExpr::DeleteChildTree()
+OArrayMetaFieldExpr::~OArrayMetaFieldExpr()
 {
-  OExpr::DeleteTree(target);
-  target = nullptr;
+  delete target;
 }
 
 /* ctor */ OFloatRoundExpr::OFloatRoundExpr(ERoundMode amode, OExpr * asrc)
@@ -2847,20 +2725,7 @@ void OFloatRoundExpr::FoldChildren()
 
 bool OFloatRoundExpr::TryFoldSelf(OExpr ** rreplacement)
 {
-  if (!TryFoldScalarReplacement(this, rreplacement))
-  {
-    return false;
-  }
-
-  OExpr::DeleteTree(src);
-  src = nullptr;
-  return true;
-}
-
-void OFloatRoundExpr::DeleteChildTree()
-{
-  OExpr::DeleteTree(src);
-  src = nullptr;
+  return TryFoldScalarReplacement(this, rreplacement);
 }
 
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
@@ -2981,16 +2846,6 @@ void OCallExpr::FoldChildren()
   }
 }
 
-void OCallExpr::DeleteChildTree()
-{
-  for (OExpr *& arg : args)
-  {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
-  }
-  args.clear();
-}
-
 OCallExpr::~OCallExpr()
 {
   for (OExpr * arg : args)
@@ -3049,14 +2904,12 @@ void ODynArrayMethodCallExpr::FoldChildren()
   }
 }
 
-void ODynArrayMethodCallExpr::DeleteChildTree()
+ODynArrayMethodCallExpr::~ODynArrayMethodCallExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  for (OExpr *& arg : args)
+  delete receiver;
+  for (OExpr * arg : args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   args.clear();
 }
@@ -3145,10 +2998,9 @@ void OBoundMethodExpr::FoldChildren()
   receiver = static_cast<OLValueExpr *>(tmp);
 }
 
-void OBoundMethodExpr::DeleteChildTree()
+OBoundMethodExpr::~OBoundMethodExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
+  delete receiver;
 }
 
 /* ctor */ OBoundMethodOverloadExpr::OBoundMethodOverloadExpr(OValSymOverloadSet * aovset, OLValueExpr * areceiver)
@@ -3171,10 +3023,9 @@ void OBoundMethodOverloadExpr::FoldChildren()
   receiver = static_cast<OLValueExpr *>(tmp);
 }
 
-void OBoundMethodOverloadExpr::DeleteChildTree()
+OBoundMethodOverloadExpr::~OBoundMethodOverloadExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
+  delete receiver;
 }
 
 /* ctor */ OIndirectCallExpr::OIndirectCallExpr(OExpr * acallee, OTypeFuncRef * acalltype)
@@ -3276,24 +3127,9 @@ void OIndirectCallExpr::FoldChildren()
   }
 }
 
-void OIndirectCallExpr::DeleteChildTree()
-{
-  OExpr::DeleteTree(callee);
-  callee = nullptr;
-
-  for (OExpr *& arg : args)
-  {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
-  }
-  args.clear();
-}
-
 OIndirectCallExpr::~OIndirectCallExpr()
 {
-  OExpr::DeleteTree(callee);
-  callee = nullptr;
-
+  delete callee;
   for (OExpr * arg : args)
   {
     delete arg;
@@ -3341,12 +3177,11 @@ void OArrayLit::FoldChildren()
   }
 }
 
-void OArrayLit::DeleteChildTree()
+OArrayLit::~OArrayLit()
 {
-  for (OExpr *& elem : elements)
+  for (OExpr * elem : elements)
   {
-    OExpr::DeleteTree(elem);
-    elem = nullptr;
+    delete elem;
   }
   elements.clear();
 }
@@ -3388,12 +3223,11 @@ void OStructLit::FoldChildren()
   }
 }
 
-void OStructLit::DeleteChildTree()
+OStructLit::~OStructLit()
 {
   for (OStructLitEntry & entry : entries)
   {
-    OExpr::DeleteTree(entry.value);
-    entry.value = nullptr;
+    delete entry.value;
   }
   entries.clear();
 }
@@ -3416,10 +3250,9 @@ void OAnyValueBoxExpr::FoldChildren()
   OExpr::FoldTree(&source);
 }
 
-void OAnyValueBoxExpr::DeleteChildTree()
+OAnyValueBoxExpr::~OAnyValueBoxExpr()
 {
-  OExpr::DeleteTree(source);
-  source = nullptr;
+  delete source;
 }
 
 /* ctor */ OAnyValueMethodCallExpr::OAnyValueMethodCallExpr(OLValueExpr * areceiver, EAnyValueMethod amethod, OType * arettype)
@@ -3449,14 +3282,12 @@ void OAnyValueMethodCallExpr::FoldChildren()
   }
 }
 
-void OAnyValueMethodCallExpr::DeleteChildTree()
+OAnyValueMethodCallExpr::~OAnyValueMethodCallExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  for (OExpr *& arg : args)
+  delete receiver;
+  for (OExpr * arg : args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   args.clear();
 }
@@ -3531,10 +3362,9 @@ void OEmbStrMetaFieldExpr::FoldChildren()
   OExpr::FoldTree(&receiver);
 }
 
-void OEmbStrMetaFieldExpr::DeleteChildTree()
+OEmbStrMetaFieldExpr::~OEmbStrMetaFieldExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
+  delete receiver;
 }
 
 /* ctor */ OEmbStrMethodCallExpr::OEmbStrMethodCallExpr(OLValueExpr * areceiver, EEmbStrMethod amethod)
@@ -3565,14 +3395,12 @@ void OEmbStrMethodCallExpr::FoldChildren()
   }
 }
 
-void OEmbStrMethodCallExpr::DeleteChildTree()
+OEmbStrMethodCallExpr::~OEmbStrMethodCallExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  for (OExpr *& arg : args)
+  delete receiver;
+  for (OExpr * arg : args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   args.clear();
 }
@@ -3597,10 +3425,9 @@ void OEmbStrLValueToDescExpr::FoldChildren()
   embstrlval = static_cast<OLValueExpr *>(tmp);
 }
 
-void OEmbStrLValueToDescExpr::DeleteChildTree()
+OEmbStrLValueToDescExpr::~OEmbStrLValueToDescExpr()
 {
-  OExpr::DeleteTree(embstrlval);
-  embstrlval = nullptr;
+  delete embstrlval;
 }
 
 /* ctor */ OEmbStrLitToDescExpr::OEmbStrLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype)
@@ -3635,10 +3462,9 @@ void OEmbStrLitToDescExpr::FoldChildren()
   OExpr::FoldTree(&litexpr);
 }
 
-void OEmbStrLitToDescExpr::DeleteChildTree()
+OEmbStrLitToDescExpr::~OEmbStrLitToDescExpr()
 {
-  OExpr::DeleteTree(litexpr);
-  litexpr = nullptr;
+  delete litexpr;
 }
 
 // --- borrowed text expressions ---
@@ -3675,10 +3501,9 @@ void OTextBorrowExpr::FoldChildren()
   OExpr::FoldTree(&source);
 }
 
-void OTextBorrowExpr::DeleteChildTree()
+OTextBorrowExpr::~OTextBorrowExpr()
 {
-  OExpr::DeleteTree(source);
-  source = nullptr;
+  delete source;
 }
 
 /* ctor */ OTextSourceToStringExpr::OTextSourceToStringExpr(OExpr * asource, OType * atype)
@@ -3706,10 +3531,9 @@ void OTextSourceToStringExpr::FoldChildren()
   source = source_tmp;
 }
 
-void OTextSourceToStringExpr::DeleteChildTree()
+OTextSourceToStringExpr::~OTextSourceToStringExpr()
 {
-  OExpr::DeleteTree(source);
-  source = nullptr;
+  delete source;
 }
 
 /* ctor */ OStringMetaFieldExpr::OStringMetaFieldExpr(OLValueExpr * areceiver, EStringMetaField afield)
@@ -3740,10 +3564,9 @@ void OStringMetaFieldExpr::FoldChildren()
   receiver = static_cast<OLValueExpr *>(tmp);
 }
 
-void OStringMetaFieldExpr::DeleteChildTree()
+OStringMetaFieldExpr::~OStringMetaFieldExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
+  delete receiver;
 }
 
 /* ctor */ OStringMethodCallExpr::OStringMethodCallExpr(OExpr * areceiver, EStringMethod amethod, OType * arettype)
@@ -3771,14 +3594,12 @@ void OStringMethodCallExpr::FoldChildren()
   }
 }
 
-void OStringMethodCallExpr::DeleteChildTree()
+OStringMethodCallExpr::~OStringMethodCallExpr()
 {
-  OExpr::DeleteTree(receiver);
-  receiver = nullptr;
-  for (OExpr *& arg : args)
+  delete receiver;
+  for (OExpr * arg : args)
   {
-    OExpr::DeleteTree(arg);
-    arg = nullptr;
+    delete arg;
   }
   args.clear();
 }
@@ -3857,10 +3678,9 @@ void OTryCastExpr::FoldChildren()
   OExpr::FoldTree(&source_expr);
 }
 
-void OTryCastExpr::DeleteChildTree()
+OTryCastExpr::~OTryCastExpr()
 {
-  OExpr::DeleteTree(source_expr);
-  source_expr = nullptr;
+  delete source_expr;
 }
 
 /* ctor */ OIsExpr::OIsExpr(OExpr * asource_expr, OType * atarget_type)
@@ -3884,10 +3704,9 @@ void OIsExpr::FoldChildren()
   OExpr::FoldTree(&source_expr);
 }
 
-void OIsExpr::DeleteChildTree()
+OIsExpr::~OIsExpr()
 {
-  OExpr::DeleteTree(source_expr);
-  source_expr = nullptr;
+  delete source_expr;
 }
 
 OTypeNameExpr::OTypeNameExpr(OExpr * aexpr)
@@ -3957,8 +3776,7 @@ void OTypeNameExpr::FoldChildren()
   if (expr) { OExpr::FoldTree(&expr); }
 }
 
-void OTypeNameExpr::DeleteChildTree()
+OTypeNameExpr::~OTypeNameExpr()
 {
-  OExpr::DeleteTree(expr);
-  expr = nullptr;
+  delete expr;
 }

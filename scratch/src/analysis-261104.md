@@ -17,11 +17,11 @@
    - [1.8 Diagnostic Method Overload Explosion in `ODqCompBase`](#18-diagnostic-method-overload-explosion-in-odqcompbase)
    - [1.9 Atomic Compilation Artifact Publishing](#19-atomic-compilation-artifact-publishing)
 2. [Unclear Solutions, Inconsistencies & Dead Remnants](#2-unclear-solutions-inconsistencies--dead-remnants)
-   - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
 3. [Harder-to-Maintain Parts & Architectural Bottlenecks](#3-harder-to-maintain-parts--architectural-bottlenecks)
    - [3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State](#31-single-inheritance-god-object-compiler-hierarchy--global-state)
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
 4. [Fixed Issues](#4-fixed-issues)
+   - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
    - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
    - [2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers](#23-unused-legacy-free-function-wrappers--dead-astcodegen-helpers)
    - [2.4 Subtle Bugs & Inconsistencies](#24-subtle-bugs--inconsistencies)
@@ -145,21 +145,7 @@ In `compiler/src/dqc_base.h:48-87` and `compiler/src/dqc_base.cpp:138-368`, `Err
 
 ## 2. Unclear Solutions, Inconsistencies & Dead Remnants
 
-### 2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)
-The AST currently has two conflicting conventions for freeing `OExpr` trees:
-- `OExpr::DeleteTree(OExpr * expr)` (`compiler/ast/expressions.cpp:107-115`) calls `expr->DeleteChildTree()` and then `delete expr;`.
-- Most `OExpr` subclasses only free their children inside `DeleteChildTree()` and have a default trivial `~OExpr()` destructor.
-- However, **four `OExpr` subclasses** also define custom destructors:
-  - `OIifExpr::~OIifExpr()` (`expressions.cpp:1058-1063`) calls `delete condition; delete true_expr; delete false_expr;`
-  - `OFloatRoundExpr::~OFloatRoundExpr()` (`expressions.cpp:1286-1289`) calls `delete src;`
-  - `OCallExpr::~OCallExpr()` (`expressions.cpp:1447-1454`) calls `for (OExpr * arg : args) delete arg;`
-  - `OIndirectCallExpr::~OIndirectCallExpr()` (`expressions.cpp:1691-1700`) calls `OExpr::DeleteTree(callee); for (OExpr * arg : args) delete arg;`
-- Meanwhile, `ODqCompAst::FreeLeftRight(OExpr * left, OExpr * right)` (`compiler/ast/dqc_ast.cpp:395-400`) and dozens of error recovery paths in `dqc_parser_expr.cpp`, `dqc_parser_stmt.cpp`, and `dqc_ast.cpp` (`FinalizeStmtAssign`, `ParseStmtVar`, `ParseComparison`, etc.) call raw `delete expr;` instead of `OExpr::DeleteTree(expr);`.
-  - When `delete expr;` is called on an `OBinExpr`, `OCompareExpr`, `OLValueMember`, `OLValueIndex`, etc., `DeleteChildTree()` is **never called**, leaking all child expressions.
-  - Even inside `OIifExpr::~OIifExpr()` and `OCallExpr::~OCallExpr()`, calling raw `delete` on a child `OBinExpr` leaks the grandchildren.
-- Similarly, in `compiler/ast/statements.h`, `OStmtFor`, `OStmtRaise`, `OStmtObjectCall`, `OStmtInheritedCall`, and `OStmtPropertyAssign` free their owned `OExpr *` members in their destructors, whereas `OStmtReturn`, `OStmtVarDecl`, `OStmtAssign`, `OStmtModifyAssign`, `OStmtVoidCall`, `OStmtDelete`, `OStmtWhile`, and `OIfBranch` do **not** delete their `OExpr *` members in their destructors.
-
-**Recommendation:** Move child destruction into `virtual ~OExpr()` overrides on each `OExpr` subclass (or make `~OExpr` / subclass destructors call `DeleteTree` on children), remove `DeleteChildTree()`, make `OExpr::DeleteTree(expr)` a simple alias for `delete expr;`, and add destructors to the remaining `OStmt` / `OIfBranch` classes.
+*(All items in this section have been resolved; see [Fixed Issues](#4-fixed-issues).)*
 
 ---
 
@@ -182,6 +168,9 @@ Several files and functions have grown very large and mix distinct responsibilit
 ---
 
 ## 4. Fixed Issues
+
+### 2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)
+- **Resolution:** Moved child expression cleanup into `virtual ~OExpr()` overrides across all `OExpr` subclasses in `compiler/ast/expressions.{h,cpp}` and `compiler/types/otype_enum.{h,cpp}`, removed `DeleteChildTree()`, made `OExpr::DeleteTree(OExpr * expr)` an inline alias for `delete expr;` in `compiler/ast/symbols.h`, simplified `TryFoldSelf` implementations in `compiler/ast/expressions.cpp` that previously called `DeleteChildTree()`, fixed receiver double-free paths in builtin method parsers in `compiler/parser/dqc_parser_expr.cpp`, and added owned-expression cleanup to destructors of `OStmtReturn`, `OStmtVarDecl`, `OStmtAssign`, `OStmtModifyAssign`, `OStmtVoidCall`, `OStmtDelete`, `OStmtWhile`, and `OIfBranch` in `compiler/ast/statements.h`.
 
 ### 2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)
 1. **`OScope::EmitExpressionExceptionCheck()`**:

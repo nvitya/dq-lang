@@ -177,10 +177,9 @@ void OEnumOrdExpr::FoldChildren()
   OExpr::FoldTree(&source);
 }
 
-void OEnumOrdExpr::DeleteChildTree()
+OEnumOrdExpr::~OEnumOrdExpr()
 {
-  OExpr::DeleteTree(source);
-  source = nullptr;
+  delete source;
 }
 
 OEnumFromOrdExpr::OEnumFromOrdExpr(EEnumFromOrdKind akind, OTypeEnum * atype, OExpr * avalue)
@@ -304,12 +303,9 @@ void OEnumFromOrdExpr::FoldChildren()
   OExpr::FoldTree(&default_expr);
 }
 
-void OEnumFromOrdExpr::DeleteChildTree()
+OEnumFromOrdExpr::~OEnumFromOrdExpr()
 {
-  OExpr::DeleteTree(value_expr);
-  OExpr::DeleteTree(default_expr);
-  OExpr::DeleteTree(output_expr);
-  value_expr = nullptr;
-  default_expr = nullptr;
-  output_expr = nullptr;
+  delete value_expr;
+  delete default_expr;
+  delete output_expr;
 }

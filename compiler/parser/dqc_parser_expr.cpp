@@ -2026,9 +2026,9 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     }
     if (!ConvertExprToType(argtypes[i], &argexpr, conv_flags))
     {
-      OExpr::DeleteTree(argexpr);
+      delete argexpr;
       delete callexpr;
-      return free_and_fail();
+      return nullptr;
     }
     callexpr->args.push_back(argexpr);
   }
@@ -2222,18 +2222,18 @@ OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr 
     {
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS))
       {
-        OExpr::DeleteTree(argexpr);
+        delete argexpr;
         delete callexpr;
-        return free_and_fail();
+        return nullptr;
       }
     }
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_EMBSTR_CONVERSION, "embstr method source must be char, str, rostr, strslice, embstr, or ^char");
-      OExpr::DeleteTree(argexpr);
+      delete argexpr;
       delete callexpr;
-      return free_and_fail();
+      return nullptr;
     }
     callexpr->args.push_back(argexpr);
   }
@@ -2562,18 +2562,18 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     {
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
       {
-        OExpr::DeleteTree(argexpr);
+        delete argexpr;
         delete callexpr;
-        return free_and_fail();
+        return nullptr;
       }
     }
     if ((i == source_arg_index) && !IsTextSourceType(argexpr->ResolvedType())
         && !ConvertByteWCharLiteralToChar(&argexpr))
     {
       ErrorTxt(DQERR_TYPEMISM, "string method source must be char, str, rostr, strslice, embstr, or ^char");
-      OExpr::DeleteTree(argexpr);
+      delete argexpr;
       delete callexpr;
-      return free_and_fail();
+      return nullptr;
     }
     callexpr->args.push_back(argexpr);
   }
@@ -2685,17 +2685,17 @@ OExpr * ODqCompParserExpr::ParseAnyValueMethod(OExpr * receiver_expr, OLValueExp
       }
       if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
       {
-        OExpr::DeleteTree(argexpr);
+        delete argexpr;
         delete callexpr;
-        return free_and_fail();
+        return nullptr;
       }
     }
     if ((i == text_arg_index) && !IsTextSourceType(argexpr->ResolvedType()))
     {
       ErrorTxt(DQERR_TYPEMISM, "anyvalue text method source must be char, str, rostr, strslice, embstr, or ^char");
-      OExpr::DeleteTree(argexpr);
+      delete argexpr;
       delete callexpr;
-      return free_and_fail();
+      return nullptr;
     }
     callexpr->args.push_back(argexpr);
   }

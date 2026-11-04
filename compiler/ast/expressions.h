@@ -35,10 +35,10 @@ public:
   OExpr *    src;
 
   /* ctor */ OExprTypeConv(OType * dsttype, OExpr * asrc);
+  ~OExprTypeConv() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
-  void       DeleteChildTree() override;
 };
 
 class OIntLit : public OExpr
@@ -111,6 +111,7 @@ class OLValueDeref : public OLValueExpr
 public:
   OExpr *  ptrexpr;
   /* ctor */ OLValueDeref(OExpr * aptr);
+  ~OLValueDeref() override;
   LlValue *  GenerateAddress(OScope * scope) override;
   bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
@@ -118,7 +119,6 @@ public:
   bool       RequiresVolatileMemoryAccess() const override { return true; }
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OLValueMember : public OLValueExpr
@@ -128,6 +128,7 @@ public:
   OType *        structtype;
   uint32_t       memberindex;
   /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
+  ~OLValueMember() override;
   OValSym *  MemberSymbol() const;
   LlValue *  GenerateAddress(OScope * scope) override;
   bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
@@ -139,7 +140,6 @@ public:
   OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
   OLValueExpr * Clone() const override;
 };
 
@@ -150,6 +150,7 @@ public:
   OType *        containertype;  // array, slice, dynamic array, or embstr type
   OExpr *        indexexpr;
   /* ctor */ OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex);
+  ~OLValueIndex() override;
   bool IsReadOnlyTextElement() const override
   {
     OType * type = containertype ? containertype->ResolveAlias() : nullptr;
@@ -163,7 +164,6 @@ public:
   OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // A property can be an assignment target, but it is never addressable storage.
@@ -175,6 +175,7 @@ public:
   vector<OExpr *>    indices;
 
   /* ctor */ OPropertyExpr(OExpr * areceiver, OValSymProperty * aproperty);
+  ~OPropertyExpr() override;
   LlValue * GenerateAddress(OScope * scope) override;
   LlValue * Generate(OScope * scope) override;
   bool IsObjectReferenceExpr() const override;
@@ -188,7 +189,6 @@ public:
   LlValue * GenerateFieldAddress(OScope * scope, OValSym * accessor, OCompoundType * decl_type,
                                  LlValue * ll_receiver = nullptr);
   void FoldChildren() override;
-  void DeleteChildTree() override;
 };
 
 class OArraySliceExpr : public OExpr
@@ -202,9 +202,9 @@ public:
 
   /* ctor */ OArraySliceExpr(OLValueExpr * abase, OType * acontainertype, OExpr * astart, OExpr * aend,
                              bool aend_inclusive = false);
+  ~OArraySliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OArrayIndexOfExpr : public OExpr
@@ -214,9 +214,9 @@ public:
   OExpr *  value;
 
   /* ctor */ OArrayIndexOfExpr(OExpr * areceiver, OExpr * avalue);
+  ~OArrayIndexOfExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OStringSliceExpr : public OExpr
@@ -229,9 +229,9 @@ public:
 
   /* ctor */ OStringSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
                               bool aend_inclusive = false);
+  ~OStringSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OStringWCharIndexExpr : public OExpr
@@ -241,9 +241,9 @@ public:
   OExpr *        indexexpr = nullptr;
 
   /* ctor */ OStringWCharIndexExpr(OLValueExpr * abase, OExpr * aindex);
+  ~OStringWCharIndexExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OStringWCharSliceExpr : public OExpr
@@ -256,9 +256,9 @@ public:
 
   /* ctor */ OStringWCharSliceExpr(OLValueExpr * abase, OExpr * astart, OExpr * aend,
                                    bool aend_inclusive = false);
+  ~OStringWCharSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 enum EBinOp : int
@@ -289,10 +289,10 @@ public:
   OExpr *      right;
 
   /* ctor */ OBinExpr(EBinOp aop, OExpr * aleft, OExpr * aright);
+  ~OBinExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
-  void       DeleteChildTree() override;
 };
 
 enum ECompareOp
@@ -315,10 +315,10 @@ public:
   OExpr *      left;
   OExpr *      right;
   /* ctor */   OCompareExpr(ECompareOp aop, OExpr * aleft, OExpr * aright);
+  ~OCompareExpr() override;
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
-  void         DeleteChildTree() override;
 };
 
 // A range comparison uses this pair to evaluate its shared middle operand once.
@@ -329,12 +329,12 @@ public:
   LlValue *    ll_storage = nullptr;
 
   /* ctor */   OCompareCachedExpr(OExpr * asource);
+  ~OCompareCachedExpr() override;
   void         PrepareStorage();
   LlValue *    GenerateAddress(OScope * scope) override;
   bool         NeedsCallCleanup() const override;
   void         GenerateCallCleanup(OScope * scope) override;
   void         FoldChildren() override;
-  void         DeleteChildTree() override;
 };
 
 class OCompareCachedLoadExpr : public OLValueExpr
@@ -358,7 +358,6 @@ public:
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
-  void         DeleteChildTree() override;
 };
 
 enum ELogicalOp
@@ -379,10 +378,10 @@ public:
   OExpr *      left;
   OExpr *      right;
   /* ctor */   OLogicalExpr(ELogicalOp aop, OExpr * aleft, OExpr * aright);
+  ~OLogicalExpr() override;
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
-  void         DeleteChildTree() override;
 };
 
 class ORangeCompareExpr : public OLogicalExpr
@@ -398,10 +397,10 @@ class ONotExpr : public OExpr
 public:
   OExpr *    operand;
   /* ctor */ ONotExpr(OExpr * expr);
+  ~ONotExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
-  void       DeleteChildTree() override;
 };
 
 class OBinNotExpr : public OExpr
@@ -409,10 +408,10 @@ class OBinNotExpr : public OExpr
 public:
   OExpr *    operand;
   /* ctor */ OBinNotExpr(OExpr * expr);
+  ~OBinNotExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
-  void       DeleteChildTree() override;
 };
 
 class ONegExpr : public OExpr
@@ -420,10 +419,10 @@ class ONegExpr : public OExpr
 public:
   OExpr *    operand;
   /* ctor */ ONegExpr(OExpr * expr);
+  ~ONegExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
-  void       DeleteChildTree() override;
 };
 
 class OAddrOfExpr : public OExpr
@@ -431,9 +430,9 @@ class OAddrOfExpr : public OExpr
 public:
   OLValueExpr *  target;
   /* ctor */ OAddrOfExpr(OLValueExpr * atarget);
+  ~OAddrOfExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OObjectAddrExpr : public OExpr
@@ -441,9 +440,9 @@ class OObjectAddrExpr : public OExpr
 public:
   OLValueExpr * target;
   /* ctor */ OObjectAddrExpr(OLValueExpr * atarget);
+  ~OObjectAddrExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OObjectUpcastExpr : public OExpr
@@ -452,9 +451,9 @@ public:
   OExpr * src;
   OType * dst_object_type;
   /* ctor */ OObjectUpcastExpr(OType * adsttype, OExpr * asrc);
+  ~OObjectUpcastExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class ONullLit : public OExpr
@@ -481,9 +480,9 @@ public:
   OExpr *  ptrexpr;
   OExpr *  indexexpr;
   /* ctor */ OPointerIndexExpr(OExpr * aptr, OExpr * aindex);
+  ~OPointerIndexExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class OValSymFunc;
@@ -500,9 +499,9 @@ public:
   OValSymFunc *  memalloc_func;
 
   /* ctor */ ONewExpr(OType * aalloc_type, OExpr * ainitexpr, OValSymFunc * amemalloc_func);
+  ~ONewExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 class ODynamicNewObjectExpr : public OExpr
@@ -517,9 +516,9 @@ public:
 
   /* ctor */ ODynamicNewObjectExpr(OExpr * atype_expr, OTypeObject * abase_object_type,
                                    OValSymFunc * amemalloc_func);
+  ~ODynamicNewObjectExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Implicit conversion from fixed array lvalue to slice when passing/storing []int.
@@ -528,9 +527,9 @@ class OArrayToSliceExpr : public OExpr
 public:
   OLValueExpr *  arrayexpr;  // source fixed-size array lvalue
   /* ctor */ OArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype);
+  ~OArrayToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Convert an array literal to a call-lifetime slice temporary.
@@ -540,11 +539,11 @@ public:
   OArrayLit *  arraylit;
   LlValue *    temporary_address = nullptr;
   /* ctor */ OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype);
+  ~OArrayLitToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   bool       NeedsCallCleanup() const override;
   void       GenerateCallCleanup(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Convert an array literal to a dynamic array temporary.
@@ -553,9 +552,9 @@ class OArrayLitToDynArrayExpr : public OExpr
 public:
   OArrayLit *  arraylit;
   /* ctor */ OArrayLitToDynArrayExpr(OArrayLit * alit, OType * dyntype);
+  ~OArrayLitToDynArrayExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Convert a fixed array lvalue to a dynamic array temporary.
@@ -564,9 +563,9 @@ class OArrayToDynArrayExpr : public OExpr
 public:
   OLValueExpr *  arrayexpr;
   /* ctor */ OArrayToDynArrayExpr(OLValueExpr * aarray, OType * dyntype);
+  ~OArrayToDynArrayExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Convert an array slice to a dynamic array temporary.
@@ -575,9 +574,9 @@ class OSliceToDynArrayExpr : public OExpr
 public:
   OExpr *  sliceexpr;
   /* ctor */ OSliceToDynArrayExpr(OExpr * aslice, OType * dyntype);
+  ~OSliceToDynArrayExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // Implicit conversion from dynamic array manager reference to a full slice.
@@ -586,9 +585,9 @@ class ODynArrayToSliceExpr : public OExpr
 public:
   OLValueExpr *  arrayexpr;
   /* ctor */ ODynArrayToSliceExpr(OLValueExpr * aarray, OType * slicetype);
+  ~ODynArrayToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 enum EArrayMetaField
@@ -606,9 +605,9 @@ public:
   OType *          containertype;
   EArrayMetaField  field;
   /* ctor */ OArrayMetaFieldExpr(OLValueExpr * atarget, OType * acontainertype, EArrayMetaField afield);
+  ~OArrayMetaFieldExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 enum ERoundMode
@@ -627,11 +626,10 @@ public:
   ERoundMode  mode;
   OExpr *     src;
   /* ctor */  OFloatRoundExpr(ERoundMode amode, OExpr * asrc);
-             ~OFloatRoundExpr();
+             ~OFloatRoundExpr() override;
   LlValue *   Generate(OScope * scope) override;
   void        FoldChildren() override;
   bool        TryFoldSelf(OExpr ** rreplacement) override;
-  void        DeleteChildTree() override;
 };
 
 class OTypeFuncRef;
@@ -644,10 +642,9 @@ public:
   vector<OExpr *>   args;
   bool              force_direct = false;
   /* ctor */        OCallExpr(OValSymFunc * avsfunc);
-                   ~OCallExpr();
+                   ~OCallExpr() override;
   LlValue *         Generate(OScope * scope) override;
   void              FoldChildren() override;
-  void              DeleteChildTree() override;
 
 public:
   void AddArgument(OExpr * aarg)
@@ -683,10 +680,9 @@ public:
   vector<OExpr *>   args;
 
   /* ctor */ ODynArrayMethodCallExpr(EDynArrayMethod amethod, OLValueExpr * areceiver, OType * arettype);
-  ~ODynArrayMethodCallExpr() override = default;
+  ~ODynArrayMethodCallExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OFuncRefExpr : public OExpr
@@ -704,10 +700,9 @@ public:
   OLValueExpr *   receiver;
 
   /* ctor */      OBoundMethodExpr(OValSymFunc * avsfunc, OLValueExpr * areceiver);
-                 ~OBoundMethodExpr() override = default;
+                 ~OBoundMethodExpr() override;
   LlValue *       Generate(OScope * scope) override;
   void            FoldChildren() override;
-  void            DeleteChildTree() override;
 };
 
 class OBoundMethodOverloadExpr : public OExpr
@@ -718,10 +713,9 @@ public:
   OLValueExpr *        receiver;
 
   /* ctor */      OBoundMethodOverloadExpr(OValSymOverloadSet * aovset, OLValueExpr * areceiver);
-                 ~OBoundMethodOverloadExpr() override = default;
+                 ~OBoundMethodOverloadExpr() override;
   LlValue *       Generate(OScope * scope) override;
   void            FoldChildren() override;
-  void            DeleteChildTree() override;
 };
 
 class OIndirectCallExpr : public OExpr
@@ -736,7 +730,6 @@ public:
                   ~OIndirectCallExpr() override;
   LlValue *       Generate(OScope * scope) override;
   void            FoldChildren() override;
-  void            DeleteChildTree() override;
 
 public:
   void AddArgument(OExpr * aarg)
@@ -751,10 +744,9 @@ public:
   OExpr *         expr;
 
   /* ctor */      OTypeNameExpr(OExpr * aexpr);
-                  ~OTypeNameExpr() override = default;
+                  ~OTypeNameExpr() override;
   LlValue *       Generate(OScope * scope) override;
   void            FoldChildren() override;
-  void            DeleteChildTree() override;
 };
 
 class OArrayLit : public OExpr
@@ -763,9 +755,9 @@ public:
   vector<OExpr *> elements;
 
   /* ctor */ OArrayLit(const vector<OExpr *> & aelements);
+  ~OArrayLit() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 struct OStructLitEntry
@@ -785,9 +777,9 @@ public:
   bool fill_missing = false;
 
   /* ctor */ OStructLit(vector<OStructLitEntry> && aentries, bool afill_missing);
+  ~OStructLit() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // --- anyvalue expressions ---
@@ -798,10 +790,9 @@ public:
   OExpr * source;
 
   /* ctor */ OAnyValueBoxExpr(OExpr * asource, OType * atype);
-  ~OAnyValueBoxExpr() override = default;
+  ~OAnyValueBoxExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OAnyValueMethodCallExpr : public OExpr
@@ -812,10 +803,9 @@ public:
   vector<OExpr *>    args;
 
   /* ctor */ OAnyValueMethodCallExpr(OLValueExpr * areceiver, EAnyValueMethod amethod, OType * arettype = nullptr);
-  ~OAnyValueMethodCallExpr() override = default;
+  ~OAnyValueMethodCallExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 // Parser recovery placeholder for erroneous call-like member expressions.
@@ -855,10 +845,9 @@ public:
   EEmbStrMetaField field;
 
   /* ctor */ OEmbStrMetaFieldExpr(OExpr * areceiver, EEmbStrMetaField afield);
-  ~OEmbStrMetaFieldExpr() override = default;
+  ~OEmbStrMetaFieldExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OEmbStrMethodCallExpr : public OExpr
@@ -869,10 +858,9 @@ public:
   vector<OExpr *>  args;
 
   /* ctor */ OEmbStrMethodCallExpr(OLValueExpr * areceiver, EEmbStrMethod amethod);
-  ~OEmbStrMethodCallExpr() override = default;
+  ~OEmbStrMethodCallExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OEmbStrLValueToDescExpr : public OExpr
@@ -881,10 +869,9 @@ public:
   OLValueExpr * embstrlval;
 
   /* ctor */ OEmbStrLValueToDescExpr(OLValueExpr * alval, OType * desctype);
-  ~OEmbStrLValueToDescExpr() override = default;
+  ~OEmbStrLValueToDescExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 // Convert a ^char expression to an SDqTextInfo-compatible embstr descriptor.
@@ -895,9 +882,9 @@ public:
   OExpr *    litexpr;
   uint32_t   litlen;  // known buffer size: strlen + 1, or zero for unknown ^char
   /* ctor */ OEmbStrLitToDescExpr(OExpr * alit, uint32_t alen, OType * desctype);
+  ~OEmbStrLitToDescExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
-  void       DeleteChildTree() override;
 };
 
 // --- str / strslice expressions ---
@@ -909,12 +896,11 @@ public:
   LlValue * temporary_string_address = nullptr;
 
   /* ctor */ OTextBorrowExpr(OExpr * asource, OType * atype);
-  ~OTextBorrowExpr() override = default;
+  ~OTextBorrowExpr() override;
   LlValue * Generate(OScope * scope) override;
   bool      NeedsCallCleanup() const override;
   void      GenerateCallCleanup(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OTextSourceToStringExpr : public OExpr
@@ -923,10 +909,9 @@ public:
   OExpr * source;
 
   /* ctor */ OTextSourceToStringExpr(OExpr * asource, OType * atype);
-  ~OTextSourceToStringExpr() override = default;
+  ~OTextSourceToStringExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OStringMetaFieldExpr : public OExpr
@@ -936,10 +921,9 @@ public:
   EStringMetaField  field;
 
   /* ctor */ OStringMetaFieldExpr(OLValueExpr * areceiver, EStringMetaField afield);
-  ~OStringMetaFieldExpr() override = default;
+  ~OStringMetaFieldExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OStringMethodCallExpr : public OExpr
@@ -950,10 +934,9 @@ public:
   vector<OExpr *>  args;
 
   /* ctor */ OStringMethodCallExpr(OExpr * areceiver, EStringMethod amethod, OType * arettype = nullptr);
-  ~OStringMethodCallExpr() override = default;
+  ~OStringMethodCallExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 // --- type casting expressions ---
@@ -965,10 +948,9 @@ public:
   OExpr *   source_expr;
 
   /* ctor */ OTryCastExpr(OType * atarget_type, OExpr * asource_expr);
-  ~OTryCastExpr() override = default;
+  ~OTryCastExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OIsExpr : public OExpr
@@ -978,10 +960,9 @@ public:
   OType *   target_type;
 
   /* ctor */ OIsExpr(OExpr * asource_expr, OType * atarget_type);
-  ~OIsExpr() override = default;
+  ~OIsExpr() override;
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
-  void      DeleteChildTree() override;
 };
 
 class OCallLifetimeCleanup

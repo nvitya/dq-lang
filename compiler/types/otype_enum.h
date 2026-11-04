@@ -83,9 +83,9 @@ public:
   OExpr * source;
 
   explicit OEnumOrdExpr(OExpr * asource);
+  ~OEnumOrdExpr() override;
   LlValue * Generate(OScope * scope) override;
   void FoldChildren() override;
-  void DeleteChildTree() override;
 };
 
 enum EEnumFromOrdKind
@@ -105,9 +105,9 @@ public:
   OLValueExpr * output_expr = nullptr;
 
   OEnumFromOrdExpr(EEnumFromOrdKind akind, OTypeEnum * atype, OExpr * avalue);
+  ~OEnumFromOrdExpr() override;
   LlValue * Generate(OScope * scope) override;
   void FoldChildren() override;
-  void DeleteChildTree() override;
 };
 
 bool EnsureEnumRtlUse();

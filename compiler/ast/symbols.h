@@ -665,9 +665,9 @@ public:
 
   OExpr();
 
-  virtual ~OExpr() {};
+  virtual ~OExpr() = default;
 
-  static void DeleteTree(OExpr * expr);
+  static void DeleteTree(OExpr * expr) { delete expr; }
   static void FoldTree(OExpr ** rexpr);
   static OExpr * FoldScalarExpr(OExpr * expr);
   static bool TryFoldScalarReplacement(OExpr * expr, OExpr ** rreplacement);
@@ -692,10 +692,6 @@ public:
   {
     (void)rreplacement;
     return false;
-  }
-
-  virtual void DeleteChildTree()
-  {
   }
 
   inline OType * ResolvedType() const

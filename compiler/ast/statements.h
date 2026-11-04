@@ -65,6 +65,11 @@ public:
     vsfunc(avsfunc)
   {}
 
+  ~OStmtReturn() override
+  {
+    delete value;
+  }
+
   void Generate(OScope * scope) override;
 };
 
@@ -120,6 +125,11 @@ public:
     {
       variable->initialized = true;
     }
+  }
+
+  ~OStmtVarDecl() override
+  {
+    delete initvalue;
   }
 
   void Generate(OScope * scope) override;
@@ -217,6 +227,12 @@ public:
     value(avalue)
   {}
 
+  ~OStmtAssign() override
+  {
+    delete target;
+    delete value;
+  }
+
   void Generate(OScope * scope) override;
 };
 
@@ -235,6 +251,12 @@ public:
     op(aop),
     value(avalue)
   {}
+
+  ~OStmtModifyAssign() override
+  {
+    delete target;
+    delete value;
+  }
 
   void Generate(OScope * scope) override;
 };
@@ -270,6 +292,11 @@ public:
     callexpr(acallexpr)
   {}
 
+  ~OStmtVoidCall() override
+  {
+    delete callexpr;
+  }
+
   void Generate(OScope * scope) override;
 };
 
@@ -290,6 +317,11 @@ public:
     clear_after_free(aclear_after_free),
     memfree_func(amemfree_func)
   {}
+
+  ~OStmtDelete() override
+  {
+    delete ptrexpr;
+  }
 
   void Generate(OScope * scope) override;
 };
@@ -327,8 +359,9 @@ public:
     body = new OStmtBlock(ascope, "while");
   }
 
-  ~OStmtWhile()
+  ~OStmtWhile() override
   {
+    delete condition;
     delete body;
   }
 
@@ -354,9 +387,9 @@ public:
     step = new OStmtBlock(init->scope, "forstep");
   }
 
-  ~OStmtFor()
+  ~OStmtFor() override
   {
-    OExpr::DeleteTree(condition);
+    delete condition;
     delete init;
     delete body;
     delete step;
@@ -379,6 +412,7 @@ public:
 
   ~OIfBranch()
   {
+    delete condition;
     delete body;
   }
 };

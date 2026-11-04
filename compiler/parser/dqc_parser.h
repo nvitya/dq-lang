@@ -65,6 +65,20 @@ public: // utility
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
 
 protected:
+  struct SCompoundDeclHeader
+  {
+    OCompoundType * compound_type = nullptr;
+    bool is_forward_def = false;
+    ECompoundDeclStart decl_start = CDS_INVALID;
+
+    void Discard();
+    void Finish();
+  };
+
+  bool BeginCompoundDecl(ETypeKind akind,
+                         const char * decl_keyword,
+                         const TDiagDefErr & missing_body_err,
+                         SCompoundDeclHeader & header);
   ECompoundDeclStart ParseCompoundDeclStart(bool is_forward_def, const TDiagDefErr & missing_error);
   void    ParseCompoundBlockStart(const string & end_keyword, string & rblock_closer);
   bool    CheckCompoundBlockEnd(const string & block_closer);

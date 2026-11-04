@@ -357,50 +357,6 @@ int OTypeObject::FindConstructorContractSlot(OValSymFunc * acontract_ctor) const
   return -1;
 }
 
-OValSym * OTypeObject::FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
-{
-  for (const OTypeObject * cur = this; cur; cur = cur->GetBaseObject())
-  {
-    OValSym * vs = const_cast<OTypeObject *>(cur)->member_scope.FindValSym(aname, nullptr, false);
-    if (vs)
-    {
-      if (rdecl_type)
-      {
-        *rdecl_type = const_cast<OTypeObject *>(cur);
-      }
-      return vs;
-    }
-  }
-  return nullptr;
-}
-
-OValSym * OTypeObject::FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type) const
-{
-  return FindObjectMemberSymbol(aname, rdecl_type);
-}
-
-int OTypeObject::FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
-{
-  for (const OTypeObject * cur = this; cur; cur = cur->GetBaseObject())
-  {
-    int idx = const_cast<OTypeObject *>(cur)->FindMemberIndex(aname);
-    if (idx >= 0)
-    {
-      if (rdecl_type)
-      {
-        *rdecl_type = const_cast<OTypeObject *>(cur);
-      }
-      return idx;
-    }
-  }
-  return -1;
-}
-
-int OTypeObject::FindFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
-{
-  return FindObjectFieldIndex(aname, rdecl_type);
-}
-
 OValSymFunc * OTypeObject::FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type) const
 {
   OTypeFunc * fsig = dynamic_cast<OTypeFunc *>(afunc ? afunc->ptype : nullptr);
@@ -507,62 +463,47 @@ void OTypeObject::UpdateObjectInheritanceFlags()
   is_polymorphic = (base_type && base_type->is_polymorphic);
   is_abstract = false;
 
+  auto register_method = [&](OValSymFunc * fn)
+  {
+    if (!fn)
+    {
+      return;
+    }
+    if (fn->attr_is_virtual || fn->attr_is_override)
+    {
+      is_polymorphic = true;
+      if (fn->attr_is_override)
+      {
+        OValSymFunc * base_virtual = FindVirtualBaseMethod(fn);
+        int slot = FindVirtualSlot(base_virtual);
+        if (slot >= 0)
+        {
+          virtual_methods[size_t(slot)] = fn;
+        }
+      }
+      else
+      {
+        virtual_methods.push_back(fn);
+      }
+    }
+    if (fn->attr_is_abstract)
+    {
+      is_abstract = true;
+    }
+  };
+
   for (auto & [name, vs] : member_scope.valsyms)
   {
     (void)name;
     if (auto * fn = dynamic_cast<OValSymFunc *>(vs))
     {
-      if (fn->attr_is_virtual || fn->attr_is_override)
-      {
-        is_polymorphic = true;
-        if (fn->attr_is_override)
-        {
-          OValSymFunc * base_virtual = FindVirtualBaseMethod(fn);
-          int slot = FindVirtualSlot(base_virtual);
-          if (slot >= 0)
-          {
-            virtual_methods[size_t(slot)] = fn;
-          }
-        }
-        else
-        {
-          virtual_methods.push_back(fn);
-        }
-      }
-      if (fn->attr_is_abstract)
-      {
-        is_abstract = true;
-      }
+      register_method(fn);
     }
     else if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(vs))
     {
       for (OValSymFunc * fn : ovset->funcs)
       {
-        if (!fn)
-        {
-          continue;
-        }
-        if (fn->attr_is_virtual || fn->attr_is_override)
-        {
-          is_polymorphic = true;
-          if (fn->attr_is_override)
-          {
-            OValSymFunc * base_virtual = FindVirtualBaseMethod(fn);
-            int slot = FindVirtualSlot(base_virtual);
-            if (slot >= 0)
-            {
-              virtual_methods[size_t(slot)] = fn;
-            }
-          }
-          else
-          {
-            virtual_methods.push_back(fn);
-          }
-        }
-        if (fn->attr_is_abstract)
-        {
-          is_abstract = true;
-        }
+        register_method(fn);
       }
     }
   }
@@ -874,6 +815,14 @@ void OVsObject::SetObjectCtorArgs(vector<OExpr *> aargs)
   object_ctor_args = std::move(aargs);
 }
 
+void OVsObject::ConfigureFixedStorage(vector<OExpr *> aargs, bool actor_call_at_decl)
+{
+  SetObjectStorage(OSK_OBJECT_FIXED);
+  SetObjectCtorArgs(std::move(aargs));
+  SetObjectCtorCallAtDecl(actor_call_at_decl);
+  initialized = true;
+}
+
 OType * OVsObject::GetStorageType() const
 {
   return ((IsRefLike() || IsObjectReference()) ? ptype->GetPointerType() : ptype);
@@ -994,11 +943,6 @@ OValSymProperty * OCompoundType::FindDefaultProperty(OCompoundType ** rdecl_type
     }
   }
   return nullptr;
-}
-
-OValSym * OCompoundType::CreateValSym(OScPosition & apos, const string aname)
-{
-  return OType::CreateValSym(apos, aname);
 }
 
 int OCompoundType::FindMemberIndex(const string & aname)

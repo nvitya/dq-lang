@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.6"
+#define DQ_COMPILER_VERSION  "0.95.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.7:
+  - Code refactoring: joined member handling at OTypeObject and OCompoundType
 v0.95.6:
   - Code refactoring: joining ConvertFromExpr and GetConversionCostFromExpr
 v0.95.5:

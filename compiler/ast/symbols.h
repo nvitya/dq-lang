@@ -829,6 +829,19 @@ enum EPropertyAccessorMismatch
   PAM_MODE
 };
 
+enum EPropertyAccessorStatus
+{
+  PAS_OK = 0,
+  PAS_NOT_FOUND,
+  PAS_NOT_VISIBLE,
+  PAS_IS_PROPERTY,
+  PAS_INDEXED_REQUIRES_METHOD,
+  PAS_TYPE_MISMATCH,
+  PAS_MODE_MISMATCH,
+  PAS_SIGNATURE_MISMATCH,
+  PAS_AMBIGUOUS
+};
+
 class OValSymProperty : public OValSym
 {
 private:
@@ -855,6 +868,12 @@ public:
     return ptype && other_type && (ptype->ResolveAlias() == other_type->ResolveAlias());
   }
   EPropertyAccessorMismatch MatchMethod(OValSymFunc * method, bool write) const;
+  EPropertyAccessorStatus ResolveAccessor(OCompoundType * owner_type,
+                                          const string & accessor_name,
+                                          bool write,
+                                          OValSym *& raccessor,
+                                          OCompoundType *& rdecl_type,
+                                          OTypeObject * context_owner = nullptr) const;
 };
 
 class OValSymConst : public OValSym

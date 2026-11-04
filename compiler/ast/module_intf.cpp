@@ -3041,56 +3041,10 @@ bool OModuleIntf::ReadPropertyDecl(ODqmIfReader & reader, OTypeObject * aowner_t
   }
   ApplyDqmIfAttributes(property, attrs);
 
-  auto resolve_accessor = [&](const string & name, bool write,
-                              OValSym *& raccessor, OCompoundType *& rdecl_type) -> bool
-  {
-    if (name.empty())
-    {
-      return true;
-    }
-    OValSym * symbol = aowner_type->FindMemberSymbol(name, &rdecl_type);
-    if (!symbol)
-    {
-      return false;
-    }
-    if (VSK_FUNCTION != symbol->kind)
-    {
-      if (property->IsIndexed() || !property->SameType(symbol->ptype))
-      {
-        return false;
-      }
-      raccessor = symbol;
-      return true;
-    }
-
-    OValSymFunc * match = nullptr;
-    bool ambiguous = false;
-    auto consider = [&](OValSymFunc * candidate)
-    {
-      if (property->MatchMethod(candidate, write) == PAM_NONE)
-      {
-        ambiguous = (match != nullptr);
-        match = candidate;
-      }
-    };
-    if (auto * method = dynamic_cast<OValSymFunc *>(symbol))
-    {
-      consider(method);
-    }
-    else if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
-    {
-      for (OValSymFunc * method : overloads->funcs) consider(method);
-    }
-    if (!match || ambiguous)
-    {
-      return false;
-    }
-    raccessor = match;
-    return true;
-  };
-
-  if (!resolve_accessor(read_name, false, property->read_accessor, property->read_decl_type)
-      || !resolve_accessor(write_name, true, property->write_accessor, property->write_decl_type))
+  if ((!read_name.empty() && property->ResolveAccessor(aowner_type, read_name, false,
+                                                      property->read_accessor, property->read_decl_type) != PAS_OK)
+      || (!write_name.empty() && property->ResolveAccessor(aowner_type, write_name, true,
+                                                           property->write_accessor, property->write_decl_type) != PAS_OK))
   {
     delete property;
     return reader.Fail(format("Invalid DQM interface property accessor for {}.{}",

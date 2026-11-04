@@ -16,6 +16,19 @@
 #include "dqc_ast.h"
 #include "otype_enum.h"
 
+struct SEmbeddedObjectBinding
+{
+  OType * ptype = nullptr;
+  OTypeObject * object_type = nullptr;
+  vector<OExpr *> ctor_args;
+  bool ctor_call_at_decl = false;
+
+  ~SEmbeddedObjectBinding();
+
+  void ApplyTo(OValSym * sym);
+  bool ValidateConstructor(ODqCompAst * ast);
+};
+
 class ODqCompParserExpr : public ODqCompAst
 {
 public: // expressions
@@ -46,6 +59,7 @@ public: // expressions
 
   bool ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs);
   bool ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs);
+  bool ParseEmbeddedObjectBinding(const string & name, SEmbeddedObjectBinding & binding);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
   OExpr * ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);

@@ -1354,3 +1354,100 @@ EPropertyAccessorMismatch OValSymProperty::MatchMethod(OValSymFunc * method, boo
   }
   return PAM_NONE;
 }
+
+EPropertyAccessorStatus OValSymProperty::ResolveAccessor(OCompoundType * owner_type,
+                                                         const string & accessor_name,
+                                                         bool write,
+                                                         OValSym *& raccessor,
+                                                         OCompoundType *& rdecl_type,
+                                                         OTypeObject * context_owner) const
+{
+  if (accessor_name.empty())
+  {
+    return PAS_OK;
+  }
+  if (!owner_type)
+  {
+    return PAS_NOT_FOUND;
+  }
+
+  OCompoundType * decl_type = nullptr;
+  OValSym * symbol = owner_type->FindMemberSymbol(accessor_name, &decl_type);
+  if (!symbol || !decl_type)
+  {
+    return PAS_NOT_FOUND;
+  }
+  if (context_owner && !decl_type->IsAccessorVisible(symbol, context_owner))
+  {
+    return PAS_NOT_VISIBLE;
+  }
+  if (dynamic_cast<OValSymProperty *>(symbol))
+  {
+    return PAS_IS_PROPERTY;
+  }
+
+  if (VSK_FUNCTION != symbol->kind)
+  {
+    if (IsIndexed())
+    {
+      return PAS_INDEXED_REQUIRES_METHOD;
+    }
+    if (!SameType(symbol->ptype))
+    {
+      return PAS_TYPE_MISMATCH;
+    }
+    raccessor = symbol;
+    rdecl_type = decl_type;
+    return PAS_OK;
+  }
+
+  vector<OValSymFunc *> candidates;
+  if (auto * method = dynamic_cast<OValSymFunc *>(symbol))
+  {
+    candidates.push_back(method);
+  }
+  else if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
+  {
+    candidates = overloads->funcs;
+  }
+
+  OValSymFunc * match = nullptr;
+  EPropertyAccessorMismatch best_mismatch = PAM_SIGNATURE;
+  for (OValSymFunc * candidate : candidates)
+  {
+    if (!candidate)
+    {
+      continue;
+    }
+    EPropertyAccessorMismatch mismatch = MatchMethod(candidate, write);
+    if (PAM_NONE == mismatch)
+    {
+      if (match)
+      {
+        return PAS_AMBIGUOUS;
+      }
+      match = candidate;
+    }
+    else if (PAM_MODE == mismatch || (PAM_TYPE == mismatch && PAM_MODE != best_mismatch))
+    {
+      best_mismatch = mismatch;
+    }
+  }
+
+  if (!match)
+  {
+    if (PAM_MODE == best_mismatch)
+    {
+      return PAS_MODE_MISMATCH;
+    }
+    if (PAM_TYPE == best_mismatch)
+    {
+      return PAS_TYPE_MISMATCH;
+    }
+    return PAS_SIGNATURE_MISMATCH;
+  }
+
+  raccessor = match;
+  rdecl_type = decl_type;
+  return PAS_OK;
+}

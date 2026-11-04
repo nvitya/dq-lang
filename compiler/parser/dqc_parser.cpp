@@ -1199,28 +1199,50 @@ bool ODqCompParser::CheckCompoundBlockEnd(const string & block_closer)
   return !block_closer.empty() && scf->CheckSymbol(block_closer.c_str());
 }
 
-void ODqCompParser::ParseStructDecl()
+void ODqCompParser::SCompoundDeclHeader::Discard()
 {
-  // note: "struct" is already consumed
-  // syntax form: "struct Name:\n  field : type;\n  ...\nendstruct" or "struct Name { ... }"
+  if (compound_type && !is_forward_def)
+  {
+    g_module->DiscardTypeDeclaration(compound_type);
+    delete compound_type;
+    compound_type = nullptr;
+  }
+}
 
+void ODqCompParser::SCompoundDeclHeader::Finish()
+{
+  if (compound_type)
+  {
+    compound_type->incomplete = false;
+    if (is_forward_def)
+    {
+      g_module->OModuleBase::declarations.push_back(new OIntfDecl(compound_type, false));
+    }
+  }
+}
+
+bool ODqCompParser::BeginCompoundDecl(ETypeKind akind,
+                                      const char * decl_keyword,
+                                      const TDiagDefErr & missing_body_err,
+                                      SCompoundDeclHeader & header)
+{
   string sname;
   scf->SkipWhite();
-  if (not scf->ReadIdentifier(sname))
+  if (!scf->ReadIdentifier(sname))
   {
-    RootStatementError(DQERR_ID_EXP_AFTER, "struct");
-    return;
+    RootStatementError(DQERR_ID_EXP_AFTER, decl_keyword);
+    return false;
   }
-  OScPosition struct_name_pos = scf->prevpos;
+  OScPosition name_pos = scf->prevpos;
   if (!CheckSpecialReservedRootName(sname))
   {
-    return;
+    return false;
   }
 
   if (!ParseAttributes(false))
   {
     SkipToModuleStatementStart();
-    return;
+    return false;
   }
 
   OType * existing = cur_mod_scope->FindType(sname, nullptr, false);
@@ -1229,95 +1251,118 @@ void ODqCompParser::ParseStructDecl()
     existing = g_module->scope_pub->FindType(sname, nullptr, false);
   }
 
-  OCompoundType * ctype = nullptr;
-  bool is_forward_def = false;
-
   if (existing)
   {
-    if (existing->incomplete && (TK_STRUCT == existing->kind))
+    if (existing->incomplete && (akind == existing->kind))
     {
-      ctype = static_cast<OCompoundType *>(existing);
-      is_forward_def = true;
+      header.compound_type = static_cast<OCompoundType *>(existing);
+      header.is_forward_def = true;
     }
     else
     {
       RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, sname, existing->module ? existing->module->name : "");
-      return;
+      return false;
     }
   }
   else
   {
-    ctype = new OCompoundType(sname, cur_mod_scope);
-    ctype->scpos.Assign(struct_name_pos);
-    ctype->incomplete = true;
-    g_module->DeclareType(section_public, ctype);
+    if (TK_OBJECT == akind)
+    {
+      header.compound_type = new OTypeObject(sname, cur_mod_scope);
+    }
+    else
+    {
+      header.compound_type = new OCompoundType(sname, cur_mod_scope, akind);
+    }
+    header.compound_type->scpos.Assign(name_pos);
+    header.compound_type->incomplete = true;
+    g_module->DeclareType(section_public, header.compound_type);
   }
 
   if (attr->flags)
   {
     attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
-    ctype->is_packed = attr->IsSet(ATTF_PACKED);
+    if (TK_UNION == akind)
+    {
+      if (attr->IsSet(ATTF_PACKED))
+      {
+        ErrorTxt(DQERR_NOT_SUPPORTED, "packed union");
+      }
+    }
+    else
+    {
+      header.compound_type->is_packed = attr->IsSet(ATTF_PACKED);
+    }
   }
 
-
-  auto discard_failed_new_decl = [&]()
-  {
-    if (!is_forward_def)
-    {
-      g_module->DiscardTypeDeclaration(ctype);
-      delete ctype;
-    }
-  };
-
   scf->SkipWhite();
-  if (scf->CheckSymbol("("))
+  if (TK_UNION != akind && scf->CheckSymbol("("))
   {
     OType * basetype = ParseTypeSpec();
-    OCompoundType * base_struct = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
-    if (!base_struct || (TK_STRUCT != base_struct->kind))
+    OCompoundType * base_compound = dynamic_cast<OCompoundType *>(basetype ? basetype->ResolveAlias() : nullptr);
+    if (!base_compound || (akind != base_compound->kind))
     {
-      Error(DQERR_TYPE_EXPECTED, "struct", basetype ? basetype->name : "?");
+      Error(DQERR_TYPE_EXPECTED, decl_keyword, basetype ? basetype->name : "?");
       SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
+      header.Discard();
+      return false;
     }
-    if (base_struct->ContainsManagedStorage())
+    if (TK_STRUCT == akind && base_compound->ContainsManagedStorage())
     {
       ErrorTxt(DQERR_NOT_SUPPORTED, "managed struct base");
       SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
+      header.Discard();
+      return false;
     }
-    ctype->base_type = base_struct;
+    header.compound_type->base_type = base_compound;
 
     scf->SkipWhite();
     if (scf->CheckSymbol(","))
     {
-      ErrorTxt(DQERR_NOT_SUPPORTED, "multiple struct inheritance");
+      ErrorTxt(DQERR_NOT_SUPPORTED, format("multiple {} inheritance", decl_keyword));
       SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
+      header.Discard();
+      return false;
     }
     if (!scf->CheckSymbol(")"))
     {
-      Error(DQERR_MISSING_CLOSE_PAREN_FOR, "struct base");
+      Error(DQERR_MISSING_CLOSE_PAREN_FOR, format("{} base", decl_keyword));
       SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
+      header.Discard();
+      return false;
     }
   }
 
-  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_STRUCT_BODY_OR_FORWARD_EXPECTED);
-  if (CDS_FORWARD == decl_start)
+  header.decl_start = ParseCompoundDeclStart(header.is_forward_def, missing_body_err);
+  if (CDS_FORWARD == header.decl_start)
+  {
+    return true;
+  }
+  if (CDS_INVALID == header.decl_start)
+  {
+    header.Discard();
+    return false;
+  }
+
+  return true;
+}
+
+void ODqCompParser::ParseStructDecl()
+{
+  // note: "struct" is already consumed
+  // syntax form: "struct Name:\n  field : type;\n  ...\nendstruct" or "struct Name { ... }"
+
+  SCompoundDeclHeader header;
+  if (!BeginCompoundDecl(TK_STRUCT, "struct", DQERR_STRUCT_BODY_OR_FORWARD_EXPECTED, header))
   {
     return;
   }
-  if (CDS_INVALID == decl_start)
+  if (CDS_FORWARD == header.decl_start)
   {
-    discard_failed_new_decl();
     return;
   }
 
+  auto * ctype = header.compound_type;
   string block_closer;
   ParseCompoundBlockStart("endstruct", block_closer);
 
@@ -1404,13 +1449,8 @@ void ODqCompParser::ParseStructDecl()
   }
 
   ctype->EnsureLayout();
-  ctype->incomplete = false;
   ctype->layout_ready = true;
-
-  if (is_forward_def)
-  {
-    g_module->OModuleBase::declarations.push_back(new OIntfDecl(ctype, false));
-  }
+  header.Finish();
 }
 
 bool ODqCompParser::ParseUnionMembers(OCompoundType * union_type)
@@ -1506,88 +1546,23 @@ bool ODqCompParser::ParseUnionMembers(OCompoundType * union_type)
 
 void ODqCompParser::ParseUnionDecl()
 {
-  string union_name;
-  scf->SkipWhite();
-  if (!scf->ReadIdentifier(union_name))
-  {
-    RootStatementError(DQERR_ID_EXP_AFTER, "union");
-    return;
-  }
-  OScPosition union_name_pos = scf->prevpos;
-  if (!CheckSpecialReservedRootName(union_name))
+  SCompoundDeclHeader header;
+  if (!BeginCompoundDecl(TK_UNION, "union", DQERR_UNION_BODY_OR_FORWARD_EXPECTED, header))
   {
     return;
   }
-  if (!ParseAttributes(false))
+  if (CDS_FORWARD == header.decl_start)
   {
-    SkipToModuleStatementStart();
     return;
   }
 
-  OType * existing = cur_mod_scope->FindType(union_name, nullptr, false);
-  if (!existing && !section_public)
+  auto * union_type = header.compound_type;
+  if (!ParseUnionMembers(union_type))
   {
-    existing = g_module->scope_pub->FindType(union_name, nullptr, false);
-  }
-
-  OCompoundType * union_type = nullptr;
-  bool is_forward_def = false;
-  if (existing)
-  {
-    if (existing->incomplete && TK_UNION == existing->kind)
-    {
-      union_type = static_cast<OCompoundType *>(existing);
-      is_forward_def = true;
-    }
-    else
-    {
-      RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, union_name,
-                         existing->module ? existing->module->name : "");
-      return;
-    }
-  }
-  else
-  {
-    union_type = new OCompoundType(union_name, cur_mod_scope, TK_UNION);
-    union_type->scpos.Assign(union_name_pos);
-    union_type->incomplete = true;
-    g_module->DeclareType(section_public, union_type);
-  }
-
-  if (attr->flags)
-  {
-    attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
-    if (attr->IsSet(ATTF_PACKED))
-    {
-      ErrorTxt(DQERR_NOT_SUPPORTED, "packed union");
-    }
-  }
-
-  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_UNION_BODY_OR_FORWARD_EXPECTED);
-  if (CDS_FORWARD == decl_start)
-  {
+    header.Discard();
     return;
   }
-  if (CDS_INVALID == decl_start)
-  {
-    if (!is_forward_def)
-    {
-      g_module->DiscardTypeDeclaration(union_type);
-      delete union_type;
-    }
-    return;
-  }
-
-  if (!ParseUnionMembers(union_type) && !is_forward_def)
-  {
-    g_module->DiscardTypeDeclaration(union_type);
-    delete union_type;
-    return;
-  }
-  if (is_forward_def)
-  {
-    g_module->OModuleBase::declarations.push_back(new OIntfDecl(union_type, false));
-  }
+  header.Finish();
 }
 
 bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
@@ -2391,86 +2366,30 @@ bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibil
     {
       return;
     }
-    OCompoundType * decl_type = nullptr;
-    OValSym * symbol = object_type->FindMemberSymbol(accessor_name, &decl_type);
-    if (!symbol || !decl_type || !decl_type->IsAccessorVisible(symbol, object_type))
+    switch (property->ResolveAccessor(object_type, accessor_name, write,
+                                      raccessor, rdecl_type, object_type))
     {
-      Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
-      return;
-    }
-
-    if (auto * field = dynamic_cast<OValSymProperty *>(symbol))
-    {
-      (void)field;
-      Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
-      return;
-    }
-
-    if (VSK_FUNCTION != symbol->kind)
-    {
-      if (property->IsIndexed())
-      {
+      case PAS_OK:
+        break;
+      case PAS_NOT_FOUND:
+      case PAS_NOT_VISIBLE:
+      case PAS_IS_PROPERTY:
+        Error(DQERR_PROPERTY_ACCESSOR_UNKNOWN, accessor_name, &property->scpos);
+        break;
+      case PAS_INDEXED_REQUIRES_METHOD:
         Error(DQERR_PROPERTY_INDEXED_ACCESSOR_METHOD, accessor_name, &property->scpos);
-      }
-      else if (!property->SameType(symbol->ptype))
-      {
+        break;
+      case PAS_TYPE_MISMATCH:
         Error(DQERR_PROPERTY_ACCESSOR_TYPE, accessor_name, &property->scpos);
-      }
-      else
-      {
-        raccessor = symbol;
-        rdecl_type = decl_type;
-      }
-      return;
-    }
-
-    vector<OValSymFunc *> candidates;
-    if (auto * method = dynamic_cast<OValSymFunc *>(symbol))
-    {
-      candidates.push_back(method);
-    }
-    else if (auto * overloads = dynamic_cast<OValSymOverloadSet *>(symbol))
-    {
-      candidates = overloads->funcs;
-    }
-
-    OValSymFunc * match = nullptr;
-    EPropertyAccessorMismatch best_mismatch = PAM_SIGNATURE;
-    for (OValSymFunc * candidate : candidates)
-    {
-      EPropertyAccessorMismatch mismatch = property->MatchMethod(candidate, write);
-      if (PAM_NONE == mismatch)
-      {
-        if (match)
-        {
-          Error(DQERR_PROPERTY_ACCESSOR_SIGNATURE, accessor_name, &property->scpos);
-          return;
-        }
-        match = candidate;
-      }
-      else if (PAM_MODE == mismatch || (PAM_TYPE == mismatch && PAM_MODE != best_mismatch))
-      {
-        best_mismatch = mismatch;
-      }
-    }
-    if (!match)
-    {
-      if (PAM_MODE == best_mismatch)
-      {
+        break;
+      case PAS_MODE_MISMATCH:
         Error(DQERR_PROPERTY_ACCESSOR_MODE, accessor_name, &property->scpos);
-      }
-      else if (PAM_TYPE == best_mismatch)
-      {
-        Error(DQERR_PROPERTY_ACCESSOR_TYPE, accessor_name, &property->scpos);
-      }
-      else
-      {
+        break;
+      case PAS_SIGNATURE_MISMATCH:
+      case PAS_AMBIGUOUS:
         Error(DQERR_PROPERTY_ACCESSOR_SIGNATURE, accessor_name, &property->scpos);
-      }
-      return;
+        break;
     }
-    raccessor = match;
-    rdecl_type = decl_type;
   };
 
   resolve_accessor(read_name, false, property->read_accessor, property->read_decl_type);
@@ -2485,113 +2404,17 @@ void ODqCompParser::ParseObjectDecl()
   // note: "object" is already consumed
   // syntax form: "object Name:\n  field : type;  func Method(...): ... endfunc\nendobject" or "object Name { ... }"
 
-  string sname;
-  scf->SkipWhite();
-  if (not scf->ReadIdentifier(sname))
+  SCompoundDeclHeader header;
+  if (!BeginCompoundDecl(TK_OBJECT, "object", DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED, header))
   {
-    RootStatementError(DQERR_ID_EXP_AFTER, "object");
     return;
   }
-  OScPosition object_name_pos = scf->prevpos;
-  if (!CheckSpecialReservedRootName(sname))
+  if (CDS_FORWARD == header.decl_start)
   {
     return;
   }
 
-  if (!ParseAttributes(false))
-  {
-    SkipToModuleStatementStart();
-    return;
-  }
-
-  OType * existing = cur_mod_scope->FindType(sname, nullptr, false);
-  if (!existing && !section_public)
-  {
-    existing = g_module->scope_pub->FindType(sname, nullptr, false);
-  }
-
-  OTypeObject * object_type = nullptr;
-  bool is_forward_def = false;
-
-  if (existing)
-  {
-    if (existing->incomplete && (TK_OBJECT == existing->kind))
-    {
-      object_type = static_cast<OTypeObject *>(existing);
-      is_forward_def = true;
-    }
-    else
-    {
-      RootStatementError(DQERR_TYPE_ALREADY_DEFINED_IN, sname, existing->module ? existing->module->name : "");
-      return;
-    }
-  }
-  else
-  {
-    object_type = new OTypeObject(sname, cur_mod_scope);
-    object_type->scpos.Assign(object_name_pos);
-    object_type->incomplete = true;
-    g_module->DeclareType(section_public, object_type);
-  }
-
-  if (attr->flags)
-  {
-    attr->CheckInvalidAttributes(ATGT_COMPOUND_TYPE);
-    object_type->is_packed = attr->IsSet(ATTF_PACKED);
-  }
-
-
-  auto discard_failed_new_decl = [&]()
-  {
-    if (!is_forward_def)
-    {
-      g_module->DiscardTypeDeclaration(object_type);
-      delete object_type;
-    }
-  };
-
-  scf->SkipWhite();
-  if (scf->CheckSymbol("("))
-  {
-    OType * basetype = ParseTypeSpec();
-    OTypeObject * base_object = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr);
-    if (!base_object)
-    {
-      Error(DQERR_TYPE_EXPECTED, "object", basetype ? basetype->name : "?");
-      SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
-    }
-    object_type->base_type = base_object;
-
-    scf->SkipWhite();
-    if (scf->CheckSymbol(","))
-    {
-      ErrorTxt(DQERR_NOT_SUPPORTED, "multiple object inheritance");
-      SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
-    }
-    if (!scf->CheckSymbol(")"))
-    {
-      Error(DQERR_MISSING_CLOSE_PAREN_FOR, "object base");
-      SkipToModuleStatementStart();
-      discard_failed_new_decl();
-      return;
-    }
-  }
-
-  ECompoundDeclStart decl_start = ParseCompoundDeclStart(is_forward_def, DQERR_OBJECT_BODY_OR_FORWARD_EXPECTED);
-  if (CDS_FORWARD == decl_start)
-  {
-    return;
-  }
-  if (CDS_INVALID == decl_start)
-  {
-    discard_failed_new_decl();
-    return;
-  }
-
+  auto * object_type = static_cast<OTypeObject *>(header.compound_type);
   string block_closer;
   ParseCompoundBlockStart("endobject", block_closer);
 
@@ -2671,45 +2494,12 @@ void ODqCompParser::ParseObjectDecl()
     }
 
     scf->SkipWhite();
-    bool fixed_object = false;
-    bool fixed_ctor_call_at_decl = false;
-    vector<OExpr *> ctor_args;
     OExpr * field_init_expr = nullptr;
     if (scf->CheckSymbol("<-"))
     {
-      fixed_object = true;
-      OType * named_type = ParseTypeSpec();
-      if (!named_type) break;
-
-      OTypeObject * named_object = dynamic_cast<OTypeObject *>(named_type->ResolveAlias());
-      if (!named_object)
+      SEmbeddedObjectBinding embedded_binding;
+      if (!ParseEmbeddedObjectBinding(membername, embedded_binding))
       {
-        Error(DQERR_TYPE_EXPECTED, "object", named_type->name);
-        break;
-      }
-      if (named_object->is_abstract)
-      {
-        ErrorTxt(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", named_object->name));
-        break;
-      }
-
-      scf->SkipWhite();
-      if (scf->CheckSymbol("("))
-      {
-        fixed_ctor_call_at_decl = true;
-        vector<TRawCallArg> rawargs;
-        if (!ParseRawCallArguments(membername, rawargs))
-        {
-          break;
-        }
-        for (TRawCallArg & rawarg : rawargs)
-        {
-          ctor_args.push_back(rawarg.TakeExpr());
-        }
-      }
-      else if (!scf->CheckSymbol(".."))
-      {
-        Error(DQERR_OBJ_CTOR_CALL_OR_DEFERRED);
         SkipCurStatement();
         continue;
       }
@@ -2720,27 +2510,15 @@ void ODqCompParser::ParseObjectDecl()
         continue;
       }
 
-      if (fixed_ctor_call_at_decl)
+      if (!embedded_binding.ValidateConstructor(this))
       {
-        OValSymFunc * ctor = nullptr;
-        if (!CheckObjectCtorArgs(named_object, ctor_args, ctor))
-        {
-          break;
-        }
+        break;
       }
 
       CheckStatementClose();
 
-      OValSym * mvsym = named_type->CreateValSym(mempos, membername);
-      mvsym->initialized = true;
-      auto * objsym = dynamic_cast<OVsObject *>(mvsym);
-      if (!objsym)
-      {
-        throw logic_error(format("Embedded object member \"{}\" was not created as OVsObject", membername));
-      }
-      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
-      objsym->SetObjectCtorArgs(std::move(ctor_args));
-      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
+      OValSym * mvsym = embedded_binding.ptype->CreateValSym(mempos, membername);
+      embedded_binding.ApplyTo(mvsym);
       mvsym->member_visibility = current_visibility;
       mvsym->ApplyAttributes(attr, ATGT_STRUCT_MEMBER);
       object_type->AddMember(mvsym);
@@ -2836,12 +2614,7 @@ void ODqCompParser::ParseObjectDecl()
 
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
-  object_type->incomplete = false;
-
-  if (is_forward_def)
-  {
-    g_module->OModuleBase::declarations.push_back(new OIntfDecl(object_type, false));
-  }
+  header.Finish();
 }
 
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)

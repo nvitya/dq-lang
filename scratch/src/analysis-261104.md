@@ -11,7 +11,6 @@
    - [1.2 RTTI TypeInfo Hierarchy Walk & VTable Slot Lookup](#12-rtti-typeinfo-hierarchy-walk--vtable-slot-lookup)
    - [1.3 Builtin Type Method & Slice Parsing/Lowering Boilerplate](#13-builtin-type-method--slice-parsinglowering-boilerplate)
    - [1.4 RTL Function Lookup & LLVM Integer Cast Helpers](#14-rtl-function-lookup--llvm-integer-cast-helpers)
-   - [1.5 Compound Type Declarations, Member Lookup & Property Accessors](#15-compound-type-declarations-member-lookup--property-accessors)
    - [1.6 Overload Candidate Analysis & Call Argument Lowering](#16-overload-candidate-analysis--call-argument-lowering)
    - [1.8 Diagnostic Method Overload Explosion in `ODqCompBase`](#18-diagnostic-method-overload-explosion-in-odqcompbase)
    - [1.9 Atomic Compilation Artifact Publishing](#19-atomic-compilation-artifact-publishing)
@@ -21,6 +20,7 @@
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
 4. [Fixed Issues](#4-fixed-issues)
    - [1.1 Managed/Owned Type Cleanup & Initialization Dispatch](#11-managedowned-type-cleanup--initialization-dispatch-duplicated-in-5-places)
+   - [1.5 Compound Type Declarations, Member Lookup & Property Accessors](#15-compound-type-declarations-member-lookup--property-accessors)
    - [1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic](#17-parallel-convertfromexpr-and-getconversioncostfromexpr-logic)
    - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
    - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
@@ -80,25 +80,6 @@
 
 ---
 
-### 1.5 Compound Type Declarations, Member Lookup & Property Accessors
-- **100% Identical Member Lookup Methods on `OTypeObject` vs `OCompoundType`**:
-  In `compiler/types/otype_compound.cpp:299-339`, `OTypeObject::FindObjectMemberSymbol`, `OTypeObject::FindMemberSymbol`, `OTypeObject::FindObjectFieldIndex`, and `OTypeObject::FindFieldIndex` are line-for-line identical to `OCompoundType::FindMemberSymbol` and `OCompoundType::FindFieldIndex` (`otype_compound.cpp:923-953`), because `OTypeObject::GetBaseObject()` is simply `static_cast<OTypeObject *>(base_type)`.
-  Also, `OCompoundType::CreateValSym` (`otype_compound.cpp:909-912`) is a trivial override that just calls `OType::CreateValSym`.
-- **Compound Declaration Parser Duplication**:
-  `ParseStructDecl` (`compiler/parser/dqc_parser.cpp:896-1088`), `ParseUnionDecl` (`dqc_parser.cpp:1174-1255`), and `ParseObjectDecl` (`dqc_parser.cpp:1985-2315`) duplicate:
-  - Identifier + `CheckSpecialReservedRootName` + `ParseAttributes(false)`
-  - Lookup of existing incomplete forward declaration in `cur_mod_scope` / `g_module->scope_pub`
-  - Creation of `OCompoundType` / `OTypeObject` with `incomplete = true`, `DeclareType`, `discard_failed_new_decl`
-  - Base type `(BaseType)` parsing (`ParseStructDecl` lines 959-997 vs `ParseObjectDecl` lines 2048-2079)
-  - Completion of forward declarations (`if (is_forward_def) g_module->OModuleBase::declarations.push_back(new OIntfDecl(..., false));`)
-- **Fixed Embedded Object Declaration (`<- Type(...)` / `<- Type ..`)**:
-  Duplicated between `ODqCompParser::ParseObjectDecl` (`compiler/parser/dqc_parser.cpp:2151-2218`) and `ODqCompParserStmt::ParseStmtVar` (`compiler/parser/dqc_parser_stmt.cpp:166-222, 337-408`).
-- **Property Accessor Resolution (`resolve_accessor`)**:
-  `ODqCompParser::ReadObjectProperty` (`compiler/parser/dqc_parser.cpp:2320-2412`) and `OModuleIntf::ReadPropertyDecl` (`compiler/ast/module_intf.cpp:2697-2745`) both implement `resolve_accessor` lambdas that look up the member symbol on `object_type`, validate field vs method/overload-set accessors using `property->MatchMethod(candidate, write)`, and assign `raccessor` and `rdecl_type`.
-- **Virtual Method Registration in `OTypeObject::UpdateObjectInheritanceFlags`**:
-  In `compiler/types/otype_compound.cpp:436-492`, the 24-line block handling `attr_is_virtual`, `attr_is_override`, `FindVirtualBaseMethod`, `FindVirtualSlot`, and `attr_is_abstract` is duplicated for single `OValSymFunc *` members and `OValSymOverloadSet *` members.
-
----
 
 ### 1.6 Overload Candidate Analysis & Call Argument Lowering
 - **Constructor vs Function Overload Resolution**:
@@ -147,6 +128,14 @@ Several files and functions have grown very large and mix distinct responsibilit
 
 ### 1.1 Managed/Owned Type Cleanup & Initialization Dispatch (Duplicated in 5+ Places)
 - **Resolution:** Added `RequiresCleanup()` and `GenerateCleanup(OScope *, LlValue *)` overrides to `OTypeDynArray` (`compiler/types/otype_array.h`) and `OTypeDynString` (`compiler/types/otype_string.h`), added virtual `OValSym::RequiresCleanup()` and `OValSym::GenerateCleanup(OScope *, LlValue *)` (`compiler/ast/symbols.{h,cpp}`) overridden by `OVsObject` for fixed-storage objects (`compiler/types/otype_compound.{h,cpp}`), and collapsed the duplicated multi-branch cleanup/initialization dispatch across `OScope::DefineValSym`, `OScope::EmitOwnedObjectDestructors`, `OTypeObject::GenerateFieldInitializers`, `OTypeObject::GenerateFieldDestructors`, `OValSym::GenerateFieldInitStore`, `GenerateElementDestructor`, `OTypeArray::GenerateAssignment`, `OStmtReturn::Generate`, `OStmtVarDecl::Generate`, and `ODqCompParserStmt::ParseStmtVar`.
+
+### 1.5 Compound Type Declarations, Member Lookup & Property Accessors
+- **Resolution:**
+  1. **Member Lookup & Value Symbol Creation**: Removed identical duplicated overrides `FindObjectMemberSymbol`, `FindMemberSymbol`, `FindObjectFieldIndex`, and `FindFieldIndex` from `OTypeObject` (`compiler/types/otype_compound.{h,cpp}`), relying on the inherited implementations in `OCompoundType`. Removed the trivial forwarding override `OCompoundType::CreateValSym`, inheriting directly from `OType::CreateValSym`.
+  2. **Virtual Method Registration**: Deduplicated the virtual method registration logic for single `OValSymFunc *` and `OValSymOverloadSet *` members in `OTypeObject::UpdateObjectInheritanceFlags` (`compiler/types/otype_compound.cpp`) into a unified lambda.
+  3. **Property Accessor Resolution**: Added `enum EPropertyAccessorStatus` and `OValSymProperty::ResolveAccessor` (`compiler/ast/symbols.{h,cpp}`) to encapsulate accessor symbol lookup, visibility validation, method vs field accessor checks, overload candidate matching via `MatchMethod`, and mismatch diagnostic reporting, replacing the duplicated lambdas in `ODqCompParser::ReadObjectProperty` (`compiler/parser/dqc_parser.cpp`) and `OModuleIntf::ReadPropertyDecl` (`compiler/ast/module_intf.cpp`).
+  4. **Fixed Embedded Object Declaration**: Added `OVsObject::ConfigureFixedStorage` (`compiler/types/otype_compound.{h,cpp}`), `struct SEmbeddedObjectBinding`, and `ODqCompParserExpr::ParseEmbeddedObjectBinding` (`compiler/parser/dqc_parser_expr.{h,cpp}`) to unify parsing, validation, constructor checking, and `OVsObject` setup for embedded object declarations (`<- Type(...)` / `<- Type ..`) between `ODqCompParser::ParseObjectDecl` and `ODqCompParserStmt::ParseStmtVar`.
+  5. **Compound Declaration Header Parsing**: Added `struct SCompoundDeclHeader` and `ODqCompParser::BeginCompoundDecl` (`compiler/parser/dqc_parser.{h,cpp}`) to unify identifier parsing, special root name checking, attribute validation, forward declaration lookup/creation, base type `(BaseType)` inheritance parsing, block/forward start detection, and failure discard / success completion across `ParseStructDecl`, `ParseUnionDecl`, and `ParseObjectDecl`.
 
 ### 1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic
 - **Resolution:** Replaced the parallel virtual `ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)` and `GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)` pairs across `OType` and all 16 subclasses (`OTypeAlias`, `OTypeAutoFree`, `OTypePointer`, `OTypeInt`, `OTypeFloat`, `OTypeCharBase`, `OTypeArray`, `OTypeArraySlice`, `OTypeDynArray`, `OTypeEmbStr`, `OTypeString`/`OTypeStrSlice`/`OTypeDynString`, `OTypeRoStr`, `OCompoundType`, `OTypeObject`, `OTypeObjectTypeRef`, `OTypeFuncRef`, `OTypeEnum`, and `OTypeAnyValue`) with a single virtual `OType::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)` (plus `OType::ConversionError` and `OType::WrapTypeConv` helpers, `ODqCompAst::AnalyzeExprConversion`, and `AnalyzeArrayLiteralElements`), making `ConvertFromExpr` and `GetConversionCostFromExpr` non-virtual wrappers on `OType`.

@@ -181,56 +181,16 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   bool infer_type = false;
   bool infer_autofree = false;
   bool fixed_object = false;
-  bool fixed_ctor_call_at_decl = false;
-  vector<OExpr *> fixed_ctor_args;
+  SEmbeddedObjectBinding embedded_binding;
   scf->SkipWhite();
   if (scf->CheckSymbol("<-"))
   {
     fixed_object = true;
-    ptype = ParseTypeSpec();
-    if (not ptype)
+    if (!ParseEmbeddedObjectBinding(sid, embedded_binding))
     {
-      SkipToModuleStatementStart();
       return;
     }
-    if (AsAutoFreeType(ptype))
-    {
-      StatementError(DQERR_NOT_SUPPORTED, "autofree embedded object");
-      return;
-    }
-
-    OTypeObject * object_type = dynamic_cast<OTypeObject *>(ptype->ResolveAlias());
-    if (!object_type)
-    {
-      StatementError(DQERR_TYPE_EXPECTED, "object", ptype->name);
-      return;
-    }
-    if (object_type->is_abstract)
-    {
-      StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", object_type->name));
-      return;
-    }
-
-    scf->SkipWhite(true);
-    if (scf->CheckSymbol("("))
-    {
-      fixed_ctor_call_at_decl = true;
-      vector<TRawCallArg> rawargs;
-      if (!ParseRawCallArguments(sid, rawargs))
-      {
-        return;
-      }
-      for (TRawCallArg & rawarg : rawargs)
-      {
-        fixed_ctor_args.push_back(rawarg.TakeExpr());
-      }
-    }
-    else if (!scf->CheckSymbol(".."))
-    {
-      StatementError(DQERR_OBJ_CTOR_CALL_OR_DEFERRED);
-      SkipToStatementEnd();
-      return;
-    }
+    ptype = embedded_binding.ptype;
   }
   else if (scf->CheckSymbol(":"))
   {
@@ -352,19 +312,9 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
 
   CheckStatementClose();
 
-  OTypeObject * decl_object_type = dynamic_cast<OTypeObject *>(ptype ? ptype->ResolveAlias() : nullptr);
-  if (fixed_object && decl_object_type && decl_object_type->is_abstract)
+  if (fixed_object && !embedded_binding.ValidateConstructor(this))
   {
-    StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", decl_object_type->name));
     return;
-  }
-  if (fixed_object && fixed_ctor_call_at_decl)
-  {
-    OValSymFunc * ctor = nullptr;
-    if (!CheckObjectCtorArgs(decl_object_type, fixed_ctor_args, ctor))
-    {
-      return;
-    }
   }
 
   if (initexpr and (not CheckAssignType(ptype, &initexpr, "Assignment")))  // might add implicit conversion
@@ -386,14 +336,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     ODecl * vdecl = AddDeclVar(scpos_statement_start, sid, ptype);
     if (fixed_object)
     {
-      auto * objsym = dynamic_cast<OVsObject *>(vdecl->pvalsym);
-      if (!objsym)
-      {
-        throw logic_error(format("Fixed object variable \"{}\" was not created as OVsObject", sid));
-      }
-      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
-      objsym->SetObjectCtorArgs(std::move(fixed_ctor_args));
-      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
+      embedded_binding.ApplyTo(vdecl->pvalsym);
       g_module->EnsureModuleInitFunc(scpos_statement_start);
     }
     else if (vdecl->pvalsym->ptype && (TK_DYN_ARRAY == vdecl->pvalsym->ptype->ResolveAlias()->kind))
@@ -436,15 +379,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     pvalsym = ptype->CreateValSym(scpos_statement_start, sid);
     if (fixed_object)
     {
-      auto * objsym = dynamic_cast<OVsObject *>(pvalsym);
-      if (!objsym)
-      {
-        throw logic_error(format("Fixed object variable \"{}\" was not created as OVsObject", sid));
-      }
-      objsym->SetObjectStorage(OSK_OBJECT_FIXED);
-      objsym->SetObjectCtorArgs(std::move(fixed_ctor_args));
-      objsym->SetObjectCtorCallAtDecl(fixed_ctor_call_at_decl);
-      pvalsym->initialized = true;
+      embedded_binding.ApplyTo(pvalsym);
     }
     else if (auto * objsym = dynamic_cast<OVsObject *>(pvalsym))
     {

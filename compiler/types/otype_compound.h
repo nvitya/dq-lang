@@ -73,7 +73,6 @@ public:
 
   inline OScope * Members() { return &member_scope; }
 
-  OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   void AddMember(OValSym * amember);
   void AddProperty(OValSymProperty * aproperty);
   OValSymProperty * FindDefaultProperty(OCompoundType ** rdecl_type = nullptr) const;
@@ -131,10 +130,6 @@ public:
   bool SupportsConstructorContractFrom(OTypeObject * abase) const;
   vector<OValSymFunc *> ConstructorContractSlots() const;
   int FindConstructorContractSlot(OValSymFunc * acontract_ctor) const;
-  OValSym * FindObjectMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  int FindObjectFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
-  OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const override;
-  int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const override;
   OValSymFunc * FindVirtualBaseMethod(OValSymFunc * afunc, OCompoundType ** rdecl_type = nullptr) const;
   int FindVirtualSlot(OValSymFunc * afunc) const;
   void UpdateObjectInheritanceFlags();
@@ -203,6 +198,7 @@ public:
   vector<OExpr *> & ObjectCtorArgs() { return object_ctor_args; }
   const vector<OExpr *> & ObjectCtorArgs() const { return object_ctor_args; }
   void SetObjectCtorArgs(vector<OExpr *> aargs);
+  void ConfigureFixedStorage(vector<OExpr *> aargs, bool actor_call_at_decl);
   OType * GetStorageType() const override;
   bool RequiresCleanup() const override;
   void GenerateCleanup(OScope * scope, LlValue * addr = nullptr) override;

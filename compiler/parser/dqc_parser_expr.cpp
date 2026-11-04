@@ -4265,6 +4265,84 @@ bool ODqCompParserExpr::ParseRawCallArguments(const string & callname, vector<TR
   return true;
 }
 
+SEmbeddedObjectBinding::~SEmbeddedObjectBinding()
+{
+  for (OExpr * arg : ctor_args)
+  {
+    delete arg;
+  }
+}
+
+void SEmbeddedObjectBinding::ApplyTo(OValSym * sym)
+{
+  auto * objsym = dynamic_cast<OVsObject *>(sym);
+  if (!objsym)
+  {
+    throw logic_error(format("Embedded object \"{}\" was not created as OVsObject", sym ? sym->name : ""));
+  }
+  objsym->ConfigureFixedStorage(std::move(ctor_args), ctor_call_at_decl);
+  ctor_args.clear();
+}
+
+bool SEmbeddedObjectBinding::ValidateConstructor(ODqCompAst * ast)
+{
+  if (ctor_call_at_decl)
+  {
+    OValSymFunc * ctor = nullptr;
+    return ast->CheckObjectCtorArgs(object_type, ctor_args, ctor);
+  }
+  return true;
+}
+
+bool ODqCompParserExpr::ParseEmbeddedObjectBinding(const string & name, SEmbeddedObjectBinding & binding)
+{
+  binding.ptype = ParseTypeSpec();
+  if (!binding.ptype)
+  {
+    return false;
+  }
+  if (AsAutoFreeType(binding.ptype))
+  {
+    StatementError(DQERR_NOT_SUPPORTED, "autofree embedded object");
+    return false;
+  }
+
+  binding.object_type = dynamic_cast<OTypeObject *>(binding.ptype->ResolveAlias());
+  if (!binding.object_type)
+  {
+    StatementError(DQERR_TYPE_EXPECTED, "object", binding.ptype->name);
+    return false;
+  }
+  if (binding.object_type->is_abstract)
+  {
+    StatementError(DQERR_NOT_SUPPORTED, format("constructing abstract object \"{}\"", binding.object_type->name));
+    return false;
+  }
+
+  scf->SkipWhite(true);
+  if (scf->CheckSymbol("("))
+  {
+    binding.ctor_call_at_decl = true;
+    vector<TRawCallArg> rawargs;
+    if (!ParseRawCallArguments(name, rawargs))
+    {
+      return false;
+    }
+    for (TRawCallArg & rawarg : rawargs)
+    {
+      binding.ctor_args.push_back(rawarg.TakeExpr());
+    }
+  }
+  else if (!scf->CheckSymbol(".."))
+  {
+    StatementError(DQERR_OBJ_CTOR_CALL_OR_DEFERRED);
+    SkipToStatementEnd();
+    return false;
+  }
+
+  return true;
+}
+
 OExpr * ODqCompParserExpr::ParseExprFuncCall(OValSymFunc * vsfunc)
 {
   if (vsfunc && vsfunc->owner_compound_type && !vsfunc->parent_function)

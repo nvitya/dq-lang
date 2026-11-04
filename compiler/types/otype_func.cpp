@@ -1917,12 +1917,11 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
 }
 
 
-bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeFuncRef::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
   auto reject_inline_asm = [&](OValSymFunc * func)
   {
@@ -1936,37 +1935,36 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     if (func && func->parent_function)
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_SUBFN_ESCAPE, func->name);
-      return false;
+      return -1;
     }
-    if (reject_inline_asm(func)) return false;
+    if (reject_inline_asm(func)) return -1;
   }
 
   if (TK_FUNCREF != tks)
   {
-    if (is_explicit_cast && !object_ref && (TK_POINTER == tks))
+    if ((aflags & EXPCF_EXPLICIT_CAST) && !object_ref && (TK_POINTER == tks))
     {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
 
     OValSymFunc * matched_func = nullptr;
     EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(src, matched_func);
     if (OFRM_UNIQUE_MATCH == ovmatch)
     {
-      if (reject_inline_asm(matched_func)) return false;
-      if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
+      if (reject_inline_asm(matched_func)) return -1;
+      if (convert)
       {
-        bound_ov->matched_func = matched_func;
-        *rexpr = new OExprTypeConv(this, src);
+        if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(src))
+        {
+          bound_ov->matched_func = matched_func;
+        }
+        else
+        {
+          delete src;
+          *rexpr = new OLValueVar(matched_func);
+        }
       }
-      else
-      {
-        delete src;
-        *rexpr = new OExprTypeConv(this, new OLValueVar(matched_func));
-      }
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
 
     if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch))
@@ -1984,56 +1982,23 @@ bool OTypeFuncRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
           g_compiler->ErrorTxt(DQERR_OVERLOAD_NO_MATCH, format("No overload of function \"{}\" matches callback type \"{}\"", srcname, this->name));
         }
       }
-      return false;
+      return -1;
     }
 
     if (CanAccept(resolved_src))
     {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
 
     if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
-    return false;
+    return -1;
   }
 
   if (!CanAccept(resolved_src))
   {
     if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, this->name, resolved_src->name);
-    return false;
+    return -1;
   }
 
-  if (this != resolved_src)
-  {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-  }
-
-  return true;
-}
-
-int OTypeFuncRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-
-  if (TK_FUNCREF != tks)
-  {
-    if (auto * varref = dynamic_cast<OLValueVar *>(expr))
-    {
-      auto * func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
-      if (func && func->IsInlineAsm()) return -1;
-    }
-    if ((aflags & EXPCF_EXPLICIT_CAST) && !object_ref && (TK_POINTER == tks)) return 1;
-
-    OValSymFunc * matched_func = nullptr;
-    EOverloadFuncRefMatch ovmatch = FindAcceptingOverload(expr, matched_func);
-    if (OFRM_UNIQUE_MATCH == ovmatch) return (matched_func->IsInlineAsm() ? -1 : 1);
-    if ((OFRM_NO_MATCH == ovmatch) || (OFRM_AMBIGUOUS == ovmatch)) return -1;
-    return (CanAccept(resolved_src) ? 1 : -1);
-  }
-
-  if (!CanAccept(resolved_src)) return -1;
-  return ((this == resolved_src) ? 0 : 1);
+  return (this == resolved_src) ? 0 : WrapTypeConv(rexpr, convert);
 }

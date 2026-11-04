@@ -1685,134 +1685,62 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
   return total_cost;
 }
 
-bool OCompoundType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OCompoundType::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   if (auto * literal = dynamic_cast<OStructLit *>(*rexpr); literal && !literal->ptype)
   {
-    return AnalyzeLiteral(literal, aflags, true) >= 0;
+    return AnalyzeLiteral(literal, aflags, convert);
   }
   OType * source_type = (*rexpr)->ResolvedType();
-  if (source_type == this)
-  {
-    return true;
-  }
-  if (aflags & EXPCF_GENERATE_ERRORS)
-  {
-    if (aflags & EXPCF_EXPLICIT_CAST)
-    {
-      g_compiler->Error(DQERR_CAST_INVALID, source_type->name, name);
-    }
-    else
-    {
-      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, source_type->name);
-    }
-  }
-  return false;
-}
-
-int OCompoundType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  if (auto * literal = dynamic_cast<OStructLit *>(expr); literal && !literal->ptype)
-  {
-    return AnalyzeLiteral(literal, aflags, false);
-  }
-  if (IsUnion())
-  {
-    return expr->ResolvedType() == this ? 0 : -1;
-  }
-  return expr->ResolvedType() == this ? 0 : -1;
+  return (source_type == this) ? 0 : ConversionError(source_type, aflags);
 }
 
 
-bool OTypeObject::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeObject::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
-  if (dynamic_cast<OStructLit *>(*rexpr) && !(*rexpr)->ptype)
-  {
-    return OCompoundType::ConvertFromExpr(rexpr, aflags);
-  }
   OExpr * src = *rexpr;
+  if (dynamic_cast<OStructLit *>(src) && !src->ptype)
+  {
+    return OCompoundType::AnalyzeConversion(rexpr, aflags, convert);
+  }
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (TK_OBJECT != tks)
+  OTypePointer * ptrsrc = (TK_POINTER == tks) ? static_cast<OTypePointer *>(resolved_src) : nullptr;
+  OTypeObject * src_object = nullptr;
+  if (TK_OBJECT == tks)
   {
-    if (TK_POINTER == tks)
+    src_object = dynamic_cast<OTypeObject *>(resolved_src);
+  }
+  else if (ptrsrc)
+  {
+    src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
+  }
+  else
+  {
+    return OType::AnalyzeConversion(rexpr, aflags, convert);
+  }
+
+  if ((ptrsrc && ptrsrc->IsNullPointer()) || (src_object && src_object->IsSameOrDerivedFrom(this)))
+  {
+    if (convert)
     {
-      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
-      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this)))
+      if (src_object && (src_object != this))
       {
-        if (src_object && src_object != this)
-        {
-          *rexpr = new OObjectUpcastExpr(this, src);
-        }
-        else if (is_explicit_cast)
-        {
-          *rexpr = new OExprTypeConv(this, src);
-          FoldExprTreeAfterTypeRewrite(rexpr);
-        }
-        return true;
+        *rexpr = new OObjectUpcastExpr(this, src);
       }
-      if (is_explicit_cast)
+      else if (ptrsrc && is_explicit_cast)
       {
-        *rexpr = new OExprTypeConv(this, src);
-        FoldExprTreeAfterTypeRewrite(rexpr);
-        return true;
+        WrapTypeConv(rexpr, true);
       }
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-      return false;
     }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return 0;
   }
 
-  OTypeObject * src_object = dynamic_cast<OTypeObject *>(resolved_src);
-  if (src_object && src_object->IsSameOrDerivedFrom(this))
-  {
-    if (src_object != this)
-    {
-      *rexpr = new OObjectUpcastExpr(this, src);
-    }
-    return true;
-  }
-
-  if (is_explicit_cast)
-  {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-
-  if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-  return false;
+  return is_explicit_cast ? WrapTypeConv(rexpr, convert) : ConversionError(resolved_src, aflags);
 }
 
-int OTypeObject::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  if (dynamic_cast<OStructLit *>(expr) && !expr->ptype)
-  {
-    return OCompoundType::GetConversionCostFromExpr(expr, aflags);
-  }
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_OBJECT != tks)
-  {
-    if (TK_POINTER == tks)
-    {
-      OTypePointer * ptrsrc = static_cast<OTypePointer *>(resolved_src);
-      OTypeObject * src_object = dynamic_cast<OTypeObject *>(ptrsrc->basetype ? ptrsrc->basetype->ResolveAlias() : nullptr);
-      if (ptrsrc->IsNullPointer() || (src_object && src_object->IsSameOrDerivedFrom(this))) return 0;
-      return is_explicit_cast ? 1 : -1;
-    }
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  OTypeObject * src_object = dynamic_cast<OTypeObject *>(resolved_src);
-  if (src_object && src_object->IsSameOrDerivedFrom(this)) return 0;
-  return is_explicit_cast ? 1 : -1;
-}
 
 class OValueObjectTypeRef : public OValue
 {
@@ -1849,51 +1777,10 @@ LlValue * OTypeObjectTypeRef::GenerateConversion(OScope * scope, OExpr * src)
   return src->Generate(scope);
 }
 
-bool OTypeObjectTypeRef::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeObjectTypeRef::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = (rexpr ? *rexpr : nullptr);
-  OType * resolved_src = src ? src->ResolvedType() : nullptr;
-  auto * srctype = dynamic_cast<OTypeObjectTypeRef *>(resolved_src);
-  auto * srcptr = dynamic_cast<OTypePointer *>(resolved_src);
-  bool is_null = srcptr && srcptr->IsNullPointer();
-
-  if (is_null)
-  {
-    return true;
-  }
-
-  if (!srctype || !srctype->object_type || !object_type)
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, resolved_src ? resolved_src->name : "?");
-    }
-    return false;
-  }
-
-  OTypeObject * src_obj = srctype->object_type;
-  if (src_obj->is_abstract || !src_obj->IsSameOrDerivedFrom(object_type)
-      || !src_obj->SupportsConstructorContractFrom(object_type))
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, srctype->name);
-    }
-    return false;
-  }
-
-  if (src->ptype != this)
-  {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-  }
-  return true;
-}
-
-int OTypeObjectTypeRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  (void)aflags;
-  OType * resolved_src = expr ? expr->ResolvedType() : nullptr;
+  OType * resolved_src = (src ? src->ResolvedType() : nullptr);
   auto * srcptr = dynamic_cast<OTypePointer *>(resolved_src);
   if (srcptr && srcptr->IsNullPointer())
   {
@@ -1901,14 +1788,19 @@ int OTypeObjectTypeRef::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
   }
 
   auto * srctype = dynamic_cast<OTypeObjectTypeRef *>(resolved_src);
-  if (!srctype || !srctype->object_type || !object_type)
+  OTypeObject * src_obj = (srctype ? srctype->object_type : nullptr);
+  if (!src_obj || !object_type || src_obj->is_abstract
+      || !src_obj->IsSameOrDerivedFrom(object_type)
+      || !src_obj->SupportsConstructorContractFrom(object_type))
   {
-    return -1;
+    return ConversionError(resolved_src, aflags & ~EXPCF_EXPLICIT_CAST);
   }
 
-  OTypeObject * src_obj = srctype->object_type;
-  return (!src_obj->is_abstract && src_obj->IsSameOrDerivedFrom(object_type)
-          && src_obj->SupportsConstructorContractFrom(object_type)) ? 0 : -1;
+  if (src->ptype != this)
+  {
+    WrapTypeConv(rexpr, convert, 0);
+  }
+  return 0;
 }
 
 bool OTypeObjectTypeRef::WriteDqmIfTypeSpec(ODqmIfWriter & writer)

@@ -196,44 +196,20 @@ LlValue * OTypeFloat::GenerateConversion(OScope * scope, OExpr * src)
 }
 
 
-bool OTypeFloat::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeFloat::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
-  OExpr * src = *rexpr;
-  OType * resolved_src = src->ResolvedType();
+  OType * resolved_src = (*rexpr)->ResolvedType();
   ETypeKind tks = resolved_src->kind;
 
+  if (TK_INT == tks)
+  {
+    return WrapTypeConv(rexpr, convert);
+  }
   if (TK_FLOAT != tks)
   {
-    if (TK_INT == tks)
-    {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
-    }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return OType::AnalyzeConversion(rexpr, aflags, convert);
   }
 
   OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
-  if (this->bitlength != floatsrc->bitlength)
-  {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-  return true;
-}
-
-int OTypeFloat::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-
-  if (TK_FLOAT != tks)
-  {
-    if (TK_INT == tks) return 1;
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  OTypeFloat * floatsrc = static_cast<OTypeFloat *>(resolved_src);
-  return ((this->bitlength == floatsrc->bitlength) ? 0 : 1);
+  return (this->bitlength == floatsrc->bitlength) ? 0 : WrapTypeConv(rexpr, convert);
 }

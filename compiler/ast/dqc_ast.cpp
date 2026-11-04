@@ -676,121 +676,81 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   return new OBinExpr(op, newleft, newright);
 }
 
-bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t aflags)
+// Dispatches the conversion of *rexpr to dsttype (see OType::AnalyzeConversion): returns the
+// conversion cost (>= 0) or -1. *rexpr is rewritten only when convert is true.
+int ODqCompAst::AnalyzeExprConversion(OType * dsttype, OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   if (!dsttype || !src)
   {
-    return false;
+    return -1;
   }
 
   OType * resolved_dst = dsttype->ResolveAlias();
-  if (dynamic_cast<OUnresolvedEnumItemExpr *>(src))
+  if (auto * unresolved = dynamic_cast<OUnresolvedEnumItemExpr *>(src))
   {
-    auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst);
-    if (enum_dst)
+    if (auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst))
     {
-      return enum_dst->ConvertFromExpr(rexpr, aflags);
+      return enum_dst->AnalyzeConversion(rexpr, aflags, convert);
     }
     if (aflags & EXPCF_GENERATE_ERRORS)
     {
-      g_compiler->Error(DQERR_ENUM_TYPE_INFER,
-          static_cast<OUnresolvedEnumItemExpr *>(src)->item_name);
+      Error(DQERR_ENUM_TYPE_INFER, unresolved->item_name);
     }
-    return false;
+    return -1;
   }
-  if (dynamic_cast<OStructLit *>(src) && !src->ptype)
+  if (auto * literal = dynamic_cast<OStructLit *>(src); literal && !src->ptype)
   {
-    auto * literal = static_cast<OStructLit *>(src);
     if (literal->entries.empty() && !literal->fill_missing
         && resolved_dst && (TK_ARRAY == resolved_dst->kind))
     {
-      literal->ptype = dsttype;
-      return true;
+      if (convert)
+      {
+        literal->ptype = dsttype;
+      }
+      return 0;
     }
-    auto * compound_dst = dynamic_cast<OCompoundType *>(resolved_dst);
-    if (compound_dst)
+    if (auto * compound_dst = dynamic_cast<OCompoundType *>(resolved_dst))
     {
-      return compound_dst->ConvertFromExpr(rexpr, aflags);
+      return compound_dst->AnalyzeConversion(rexpr, aflags, convert);
     }
     if (aflags & EXPCF_GENERATE_ERRORS)
     {
-      g_compiler->Error(DQERR_STRUCT_INIT_CONTEXT);
+      Error(DQERR_STRUCT_INIT_CONTEXT);
     }
-    return false;
+    return -1;
   }
-  if (auto * arrlit = dynamic_cast<OArrayLit *>(src); arrlit && !src->ptype)
+  if (dynamic_cast<OArrayLit *>(src) && !src->ptype)
   {
     auto * array_dst = dynamic_cast<OTypeArray *>(resolved_dst);
-    return array_dst ? array_dst->ConvertFromExpr(rexpr, aflags) : false;
+    return array_dst ? array_dst->AnalyzeConversion(rexpr, aflags, convert) : -1;
   }
-  if (!src->ptype)
-  {
-    return false;
-  }
-  OType * resolved_src = src->ResolvedType();
+  OType * resolved_src = (src->ptype ? src->ResolvedType() : nullptr);
   if (!resolved_dst || !resolved_src)
   {
-    return false;
+    return -1;
   }
 
   if (resolved_dst == resolved_src)
   {
-    if (!g_opt.ifgen && (TK_DYNSTR == resolved_dst->kind) && !EnsureDynStringRtlUse())
+    if (convert && !g_opt.ifgen && (TK_DYNSTR == resolved_dst->kind) && !EnsureDynStringRtlUse())
     {
-      return false;
+      return -1;
     }
-    return true;
+    return 0;
   }
 
-  return resolved_dst->ConvertFromExpr(rexpr, aflags);
+  return resolved_dst->AnalyzeConversion(rexpr, aflags, convert);
+}
+
+bool ODqCompAst::ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t aflags)
+{
+  return AnalyzeExprConversion(dsttype, rexpr, aflags, true) >= 0;
 }
 
 int ODqCompAst::GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags)
 {
-  if (!dsttype || !expr)
-  {
-    return -1;
-  }
-
-  OType * resolved_dst = dsttype->ResolveAlias();
-  if (dynamic_cast<OUnresolvedEnumItemExpr *>(expr))
-  {
-    auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst);
-    return enum_dst ? enum_dst->GetConversionCostFromExpr(expr, aflags) : -1;
-  }
-  if (dynamic_cast<OStructLit *>(expr) && !expr->ptype)
-  {
-    auto * literal = static_cast<OStructLit *>(expr);
-    if (literal->entries.empty() && !literal->fill_missing
-        && resolved_dst && (TK_ARRAY == resolved_dst->kind))
-    {
-      return 0;
-    }
-    auto * compound_dst = dynamic_cast<OCompoundType *>(resolved_dst);
-    return compound_dst ? compound_dst->GetConversionCostFromExpr(expr, aflags) : -1;
-  }
-  if (auto * arrlit = dynamic_cast<OArrayLit *>(expr); arrlit && !expr->ptype)
-  {
-    auto * array_dst = dynamic_cast<OTypeArray *>(resolved_dst);
-    return array_dst ? array_dst->GetConversionCostFromExpr(expr, aflags) : -1;
-  }
-  if (!expr->ptype)
-  {
-    return -1;
-  }
-  OType * resolved_src = expr->ResolvedType();
-  if (!resolved_dst || !resolved_src)
-  {
-    return -1;
-  }
-
-  if (resolved_dst == resolved_src)
-  {
-    return 0;
-  }
-
-  return resolved_dst->GetConversionCostFromExpr(expr, aflags);
+  return AnalyzeExprConversion(dsttype, &expr, aflags & ~EXPCF_GENERATE_ERRORS, false);
 }
 
 // ---- Virtual Implementations of ConvertFromExpr ----

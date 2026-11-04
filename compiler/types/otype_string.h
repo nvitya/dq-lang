@@ -82,6 +82,7 @@ public:
 
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 
   virtual LlValue * GenerateLength(OScope * scope, LlValue * straddr) = 0;
   virtual LlValue * GeneratePChar(OScope * scope, LlValue * straddr) = 0;
@@ -121,8 +122,6 @@ public:
   LlDiType * CreateDiType() override;
   bool RequiresCleanup() const override { return true; }
   void GenerateCleanup(OScope * scope, LlValue * addr) override { GenerateDestroy(scope, addr); }
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
   bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
 
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
@@ -159,9 +158,6 @@ public:
     bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
   }
 
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
-
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
@@ -188,8 +184,7 @@ public:
   }
 
   OValue * CreateValue() override { return new OValueRoStr(this); }
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;

@@ -340,10 +340,9 @@ LlValue * OTypeInt::GenerateConversion(OScope * scope, OExpr * src)
 }
 
 
-bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeInt::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
-  OExpr * src = *rexpr;
-  OType * resolved_src = src->ResolvedType();
+  OType * resolved_src = (*rexpr)->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
@@ -352,74 +351,35 @@ bool OTypeInt::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     if (is_explicit_cast && (TK_ENUM == tks))
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM, this->name, resolved_src->name);
-      return false;
+      return -1;
     }
     if (is_explicit_cast && (TK_BOOL == tks))
     {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
     if (is_explicit_cast && (TK_FLOAT == tks))
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_FLOAT_TO_INT, resolved_src->name, this->name);
-      return false;
+      return -1;
     }
     if (is_explicit_cast && (TK_POINTER == tks))
     {
       if (!g_compiler->IsPointerWidthIntegerType(this))
       {
         if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, this->name);
-        return false;
+        return -1;
       }
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return OType::AnalyzeConversion(rexpr, aflags, convert);
   }
 
   OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
   if (IsCharacterType(this) || IsCharacterType(intsrc))
   {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      if (is_explicit_cast)
-      {
-        g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-      }
-      else
-      {
-        g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-      }
-    }
-    return false;
+    return ConversionError(resolved_src, aflags);
   }
 
-  if ((this->bitlength != intsrc->bitlength) or (this->issigned != intsrc->issigned))
-  {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-  return true;
-}
-
-int OTypeInt::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_INT != tks)
-  {
-    if (is_explicit_cast && (TK_BOOL == tks)) return 1;
-    if (is_explicit_cast && (TK_FLOAT == tks)) return -1;
-    if (is_explicit_cast && (TK_POINTER == tks)) return (g_compiler->IsPointerWidthIntegerType(this) ? 1 : -1);
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-  if (IsCharacterType(this) || IsCharacterType(intsrc)) return -1;
-  return (((this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned)) ? 0 : 1);
+  bool is_same = (this->bitlength == intsrc->bitlength) && (this->issigned == intsrc->issigned);
+  return is_same ? 0 : WrapTypeConv(rexpr, convert);
 }

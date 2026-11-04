@@ -90,8 +90,7 @@ public:
   LlDiType *  CreateDiType() override;
   OValue *    CreateValue() override;
   bool        WriteDqmIfDecl(ODqmIfWriter & writer) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 
   void CollectInitFields(const vector<unsigned> & prefix, vector<SStructInitField> & result);
   int  AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool do_convert);
@@ -147,8 +146,7 @@ public:
   LlValue * GenerateDynamicCast(OScope * scope, OTypeObject * src_obj, LlValue * ll_src);
 
   LlValue *   GenerateConversion(OScope * scope, OExpr * src) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 };
 
 class OTypeObjectTypeRef : public OType
@@ -172,8 +170,7 @@ public:
   LlDiType * CreateDiType() override;
   OValue * CreateValue() override;
   LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
   bool WriteDqmIfTypeSpec(ODqmIfWriter & writer) override;
 };
 

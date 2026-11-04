@@ -72,8 +72,7 @@ public:
   bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false) override;
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 };
 
 // Array slice / descriptor type, e.g. []int
@@ -102,8 +101,7 @@ public:
   LlValue * GenerateElementAddress(LlValue * sliceaddr, LlValue * index);
   LlType * CreateLlType() override;
   LlDiType * CreateDiType() override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 };
 
 // Owning dynamic array type, e.g. [*]int
@@ -139,8 +137,7 @@ public:
   LlDiType * CreateDiType() override;
   bool RequiresCleanup() const override { return true; }
   void GenerateCleanup(OScope * scope, LlValue * addr) override { GenerateDestroy(scope, addr); }
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 
   OType *   ElementStorageType() const;
   LlValue * GetTypeInfo();

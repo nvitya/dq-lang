@@ -59,74 +59,28 @@ static bool CharConstantAccepted(OType * dsttype, int64_t value)
   return false;
 }
 
-static bool CharConvertFromExpr(OType * dsttype, OExpr ** rexpr, uint32_t aflags)
+int OTypeCharBase::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  int64_t literal_value = 0;
-  if (TryGetDirectWCharLiteralValue(src, literal_value) && CharConstantAccepted(dsttype, literal_value))
-  {
-    *rexpr = new OExprTypeConv(dsttype, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-
-  if (is_explicit_cast)
-  {
-    if (!resolved_src || resolved_src->kind != TK_INT)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src ? resolved_src->name : "?", dsttype->name);
-      return false;
-    }
-
-    int64_t const_value = 0;
-    if (g_compiler->TryCalculateIntConstant(src, const_value) && !CharConstantAccepted(dsttype, const_value))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, dsttype->name);
-      return false;
-    }
-
-    *rexpr = new OExprTypeConv(dsttype, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
-  }
-
-  if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", dsttype->name, resolved_src ? resolved_src->name : "?");
-  return false;
-}
-
-static int CharConversionCostFromExpr(OType * dsttype, OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
   int64_t const_value = 0;
-  if (TryGetDirectWCharLiteralValue(expr, const_value) && CharConstantAccepted(dsttype, const_value)) return 1;
-
-  if (is_explicit_cast)
+  if (TryGetDirectWCharLiteralValue(src, const_value) && CharConstantAccepted(this, const_value))
   {
-    if (!resolved_src || resolved_src->kind != TK_INT) return -1;
-
-    if (g_compiler->TryCalculateIntConstant(expr, const_value) && !CharConstantAccepted(dsttype, const_value)) return -1;
-    return 1;
+    return WrapTypeConv(rexpr, convert);
   }
 
-  return -1;
+  // Other sources need an explicit cast from an integer whose constant value (if known) fits the char type
+  if (!(aflags & EXPCF_EXPLICIT_CAST) || !resolved_src || (TK_INT != resolved_src->kind)
+      || (g_compiler->TryCalculateIntConstant(src, const_value) && !CharConstantAccepted(this, const_value)))
+  {
+    return ConversionError(resolved_src, aflags);
+  }
+
+  return WrapTypeConv(rexpr, convert);
 }
 
 LlDiType * OTypeCharBase::CreateDiType()
 {
   return di_builder->createBasicType(name, bitlength, llvm::dwarf::DW_ATE_UTF);
-}
-
-bool OTypeCharBase::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  return CharConvertFromExpr(this, rexpr, aflags);
-}
-
-int OTypeCharBase::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return CharConversionCostFromExpr(this, expr, aflags);
 }

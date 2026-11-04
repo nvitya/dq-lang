@@ -433,41 +433,33 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
 }
 
 
-bool OTypeAnyValue::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeAnyValue::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
 
-  if (TK_ANYVALUE != tks)
+  if (TK_ANYVALUE == tks)
   {
-    if (!IsAnyValueSourceType(resolved_src))
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-      return false;
-    }
+    return 0;
+  }
+  if (!IsAnyValueSourceType(resolved_src))
+  {
+    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
+    return -1;
+  }
+  if (convert)
+  {
     if (TK_DYNSTR == tks)
     {
-      if (!EnsureDynStringRtlUseForStringTypes()) return false;
+      if (!EnsureDynStringRtlUseForStringTypes()) return -1;
     }
     else if (IsTextSourceType(resolved_src) && !IsCharacterType(resolved_src))
     {
-      if (!EnsureStrFuncRtlUse()) return false;
+      if (!EnsureStrFuncRtlUse()) return -1;
     }
-    if (!EnsureAnyValueRtlUse()) return false;
+    if (!EnsureAnyValueRtlUse()) return -1;
     *rexpr = new OAnyValueBoxExpr(src, this);
-    return true;
   }
-  return true;
-}
-
-int OTypeAnyValue::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  if (TK_ANYVALUE != tks)
-  {
-    return IsAnyValueSourceType(resolved_src) ? 1 : -1;
-  }
-  return 0;
+  return 1;
 }

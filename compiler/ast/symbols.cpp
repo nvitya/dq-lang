@@ -269,16 +269,6 @@ LlValue * OTypeAutoFree::GenerateConversion(OScope * scope, OExpr * src)
   return basetype ? basetype->GenerateConversion(scope, src) : nullptr;
 }
 
-bool OTypeAutoFree::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  return basetype && basetype->ConvertFromExpr(rexpr, aflags);
-}
-
-int OTypeAutoFree::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return basetype ? basetype->GetConversionCostFromExpr(expr, aflags) : -1;
-}
-
 LlType * OTypeAutoFree::GetLlType()
 {
   if (auto * object_type = dynamic_cast<OTypeObject *>(basetype ? basetype->ResolveAlias() : nullptr))
@@ -1182,182 +1172,119 @@ OTypeObject * OExpr::GetExceptionObjectType() const
 }
 
 
-bool OTypePointer::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypePointer::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
+  bool is_cchar_ptr = IsCCharPointerType(this);
 
-  if (IsCCharPointerType(this) && TK_ROSTR == tks)
+  if (is_cchar_ptr && TK_ROSTR == tks)
   {
-    *rexpr = new OExprTypeConv(this, src);
-    return true;
+    return WrapTypeConv(rexpr, convert);
   }
 
-  if (IsCCharPointerType(this) && (TK_EMBSTR == tks))
+  if (is_cchar_ptr && (TK_EMBSTR == tks))
   {
-    *rexpr = new OEmbStrMetaFieldExpr(src, ESMF_PCHAR);
-    return true;
+    if (convert) *rexpr = new OEmbStrMetaFieldExpr(src, ESMF_PCHAR);
+    return 1;
   }
 
   if (TK_POINTER != tks)
   {
     if (is_explicit_cast && (TK_INT == tks))
     {
-      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-      int64_t const_value = 0;
-      bool is_const = g_compiler->TryCalculateIntConstant(src, const_value);
       if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
       {
-        if (!is_const)
+        int64_t const_value = 0;
+        if (!g_compiler->TryCalculateIntConstant(src, const_value))
         {
           if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_PTR_WIDTH_MISM, resolved_src->name);
-          return false;
+          return -1;
         }
-
-        if (!g_compiler->FitsPointerWidthConstant(intsrc, const_value))
+        if (!g_compiler->FitsPointerWidthConstant(static_cast<OTypeInt *>(resolved_src), const_value))
         {
           if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_CAST_PTR_CONST_RANGE, to_string(const_value));
-          return false;
+          return -1;
         }
       }
-
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
 
-    if (TK_INT == tks)
+    uint8_t charlit = 0;
+    if ((TK_INT == tks) && is_cchar_ptr && IsCharLiteralExpr(src, charlit))
     {
-      uint8_t charlit = 0;
-      if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
-      {
-        *rexpr = new OCharLitToEmbStrPtrExpr(charlit);
-        return true;
-      }
+      if (convert) *rexpr = new OCharLitToEmbStrPtrExpr(charlit);
+      return 1;
     }
 
     if (is_explicit_cast && (TK_OBJECT == tks))
     {
-      *rexpr = new OExprTypeConv(this, src);
-      FoldExprTreeAfterTypeRewrite(rexpr);
-      return true;
+      return WrapTypeConv(rexpr, convert);
     }
 
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return OType::AnalyzeConversion(rexpr, aflags, convert);
   }
-
-  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
 
   if (is_explicit_cast)
   {
-    *rexpr = new OExprTypeConv(this, src);
-    FoldExprTreeAfterTypeRewrite(rexpr);
-    return true;
+    return WrapTypeConv(rexpr, convert);
   }
 
-  uint8_t charlit = 0;
-  if (IsCCharPointerType(this) && IsCharLiteralExpr(src, charlit))
-  {
-    *rexpr = new OCharLitToEmbStrPtrExpr(charlit);
-    return true;
-  }
-
-  if (!ptrsrc)
+  if (!g_compiler->CanAssignPointerImplicitly(this, static_cast<OTypePointer *>(resolved_src)))
   {
     if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, resolved_src->name);
-    return false;
+    return -1;
   }
 
-  if (!g_compiler->CanAssignPointerImplicitly(this, ptrsrc))
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_PTR_TYPEMISM, this->name, ptrsrc->name);
-    return false;
-  }
-
-  return true;
+  return 0;
 }
 
-int OTypePointer::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+int OType::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (IsCCharPointerType(this) && (TK_EMBSTR == tks || TK_ROSTR == tks)) return 1;
-
-  if (TK_POINTER != tks)
-  {
-    if (is_explicit_cast && (TK_INT == tks))
-    {
-      OTypeInt * intsrc = static_cast<OTypeInt *>(resolved_src);
-      int64_t const_value = 0;
-      bool is_const = g_compiler->TryCalculateIntConstant(expr, const_value);
-      if (!g_compiler->IsPointerWidthIntegerType(resolved_src))
-      {
-        if (!is_const || !g_compiler->FitsPointerWidthConstant(intsrc, const_value)) return -1;
-      }
-      return 1;
-    }
-    if (TK_INT == tks)
-    {
-      uint8_t charlit = 0;
-      return (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) ? 1 : -1;
-    }
-    if (is_explicit_cast && (TK_OBJECT == tks)) return 1;
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  OTypePointer * ptrsrc = dynamic_cast<OTypePointer *>(resolved_src);
-  if (is_explicit_cast) return 1;
-
-  uint8_t charlit = 0;
-  if (IsCCharPointerType(this) && IsCharLiteralExpr(expr, charlit)) return 1;
-  if (!ptrsrc) return -1;
-  return (g_compiler->CanAssignPointerImplicitly(this, ptrsrc) ? 0 : -1);
+  OType * resolved_src = (*rexpr)->ResolvedType();
+  return (kind == resolved_src->kind) ? 0 : ConversionError(resolved_src, aflags);
 }
 
 bool OType::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
 {
-  OExpr * src = *rexpr;
-  OType * resolved_src = src->ResolvedType();
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-  
-  if (this->kind == resolved_src->kind) return true;
-  
-  if (is_explicit_cast)
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-    }
-  }
-  else
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS)
-    {
-      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-    }
-  }
-  return false;
+  return AnalyzeConversion(rexpr, aflags, true) >= 0;
 }
 
 int OType::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
 {
-  OType * resolved_src = expr->ResolvedType();
-  if (this->kind == resolved_src->kind) return 0;
+  // Cost queries only probe the rules: they never rewrite the expression or report errors.
+  return AnalyzeConversion(&expr, aflags & ~EXPCF_GENERATE_ERRORS, false);
+}
+
+// Reports the generic "invalid cast" / "assignment type mismatch" error and returns the -1 failure cost.
+int OType::ConversionError(OType * srctype, uint32_t aflags)
+{
+  if (aflags & EXPCF_GENERATE_ERRORS)
+  {
+    string srcname = (srctype ? srctype->name : "?");
+    if (aflags & EXPCF_EXPLICIT_CAST)
+    {
+      g_compiler->Error(DQERR_CAST_INVALID, srcname, name);
+    }
+    else
+    {
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, srcname);
+    }
+  }
   return -1;
 }
 
-bool OTypeAlias::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+// Wraps *rexpr into a type conversion node to this type (only when converting) and returns the given cost.
+int OType::WrapTypeConv(OExpr ** rexpr, bool convert, int cost)
 {
-  return (ptype ? ptype->ConvertFromExpr(rexpr, aflags) : false);
-}
-
-int OTypeAlias::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  return (ptype ? ptype->GetConversionCostFromExpr(expr, aflags) : -1);
+  if (convert)
+  {
+    *rexpr = new OExprTypeConv(this, *rexpr);
+    FoldExprTreeAfterTypeRewrite(rexpr);
+  }
+  return cost;
 }
 
 bool OType::IsStringFamily()

@@ -81,6 +81,5 @@ public:
   }
 
   LlValue *  GenerateConversion(OScope * scope, OExpr * src)  override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 };

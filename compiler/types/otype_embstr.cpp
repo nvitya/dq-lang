@@ -501,98 +501,61 @@ bool OValueEmbStr::CalculateConstant(OExpr * expr, bool emit_errors)
 }
 
 
-bool OTypeEmbStr::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeEmbStr::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
   bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)
-      && CanStoreFrom(src)) return true;
+  if (!is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_EMBSTR) && CanStoreFrom(src))
+  {
+    return (TK_EMBSTR == tks || TK_POINTER == tks) ? 0 : 1;
+  }
 
   if (TK_EMBSTR != tks)
   {
     if (TK_POINTER == tks)
     {
-      if (is_explicit_cast)
+      if (!is_explicit_cast && (this->maxlen == 0) && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)
+          && IsCCharPointerType(resolved_src))
       {
-        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-        return false;
+        if (convert)
+        {
+          auto * strlit = dynamic_cast<OEmbStrLit *>(src);
+          uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
+          *rexpr = new OEmbStrLitToDescExpr(src, known_len, this);
+        }
+        return 1;
       }
-      if (this->maxlen != 0)
-      {
-        if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(src)) return true;
-        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-        return false;
-      }
-      if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && IsCCharPointerType(resolved_src))
-      {
-        auto * strlit = dynamic_cast<OEmbStrLit *>(src);
-        uint32_t known_len = (strlit ? uint32_t(strlit->value.size() + 1) : 0);
-        *rexpr = new OEmbStrLitToDescExpr(src, known_len, this);
-        return true;
-      }
-      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", this->name, resolved_src->name);
-      return false;
+      return ConversionError(resolved_src, aflags);
     }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return OType::AnalyzeConversion(rexpr, aflags, convert);
   }
 
   if (is_explicit_cast)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-    return false;
+    return ConversionError(resolved_src, aflags);
   }
 
   OTypeEmbStr * embstrsrc = static_cast<OTypeEmbStr *>(resolved_src);
-  if ((this->maxlen == 0) and (embstrsrc->maxlen > 0))
+  if ((this->maxlen == 0) && (embstrsrc->maxlen > 0))
   {
     OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
     if (!lval)
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_EMBSTR_CONVERSION, "cannot convert non-lvalue embstr to descriptor");
-      return false;
+      return -1;
     }
-    *rexpr = new OEmbStrLValueToDescExpr(lval, this);
-    return true;
+    if (convert) *rexpr = new OEmbStrLValueToDescExpr(lval, this);
+    return 1;
   }
-
-  if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(src)) return true;
 
   if (this->maxlen != embstrsrc->maxlen)
   {
     if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->ErrorTxt(DQERR_EMBSTR_CONVERSION, "embstr sizes do not match");
-    return false;
+    return -1;
   }
 
-  return true;
-}
-
-int OTypeEmbStr::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_ROSTR == tks)
-    return (maxlen > 0 && !is_explicit_cast && (aflags & EXPCF_ALLOW_LAZY_EMBSTR)) ? 1 : -1;
-
-  if (TK_EMBSTR != tks)
-  {
-    if (TK_POINTER == tks)
-    {
-      if (is_explicit_cast) return -1;
-      if (this->maxlen != 0) return ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(expr)) ? 0 : -1;
-      return ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && IsCCharPointerType(resolved_src)) ? 1 : -1;
-    }
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  if (is_explicit_cast) return -1;
-
-  OTypeEmbStr * embstrsrc = static_cast<OTypeEmbStr *>(resolved_src);
-  if ((this->maxlen == 0) && (embstrsrc->maxlen > 0)) return (dynamic_cast<OLValueExpr *>(expr) ? 1 : -1);
-  if ((aflags & EXPCF_ALLOW_LAZY_EMBSTR) && this->CanStoreFrom(expr)) return 0;
-  return (this->maxlen == embstrsrc->maxlen) ? 0 : -1;
+  return 0;
 }

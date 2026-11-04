@@ -364,8 +364,14 @@ public:
   virtual OValSym *  CreateValSym(OScPosition & apos, const string aname);
   virtual OValue *   CreateValue()  { return nullptr; }
   virtual LlValue *  GenerateConversion(OScope * scope, OExpr * src)  { return nullptr; }
-  virtual bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags);
-  virtual int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags);
+  // Single source of the conversion rules: returns the conversion cost (>= 0) or -1 when *rexpr
+  // can not be converted to this type. Only when convert is true *rexpr is rewritten and side effects
+  // (RTL usage, diagnostics with EXPCF_GENERATE_ERRORS) are performed.
+  virtual int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert);
+  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags);
+  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags);
+  int  ConversionError(OType * srctype, uint32_t aflags);
+  int  WrapTypeConv(OExpr ** rexpr, bool convert, int cost = 1);
   virtual bool GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store = false);
   virtual bool RequiresCleanup() const { return false; }
   virtual void GenerateCleanup(OScope * scope, LlValue * addr) {}
@@ -469,8 +475,10 @@ public:
   {
     return (ptype ? ptype->GenerateConversion(scope, src) : nullptr);
   }
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override
+  {
+    return (ptype ? ptype->AnalyzeConversion(rexpr, aflags, convert) : -1);
+  }
 
   LlType * GetLlType() override
   {
@@ -538,8 +546,7 @@ public:
 
   OValue * CreateValue() override;
   LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int  GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
 
   static OTypePointer * GetNullPtrType()
   {
@@ -575,8 +582,10 @@ public:
   OValSym * CreateValSym(OScPosition & apos, const string aname) override;
   OValue * CreateValue() override;
   LlValue * GenerateConversion(OScope * scope, OExpr * src) override;
-  bool ConvertFromExpr(OExpr ** rexpr, uint32_t aflags) override;
-  int GetConversionCostFromExpr(OExpr * expr, uint32_t aflags) override;
+  int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override
+  {
+    return (basetype ? basetype->AnalyzeConversion(rexpr, aflags, convert) : -1);
+  }
   LlType * GetLlType() override;
   LlDiType * CreateDiType() override;
   bool RequiresCleanup() const override { return true; }

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.5"
+#define DQ_COMPILER_VERSION  "0.95.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.6:
+  - Code refactoring: joining ConvertFromExpr and GetConversionCostFromExpr
 v0.95.5:
   - Code refactoring: Managed/Owned Type Cleanup & Initialization simplification
 v0.95.4:

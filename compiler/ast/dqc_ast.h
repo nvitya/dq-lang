@@ -65,6 +65,7 @@ public:
   OValSym * GetAssignRootValSym(OLValueExpr * leftexpr);
   OExpr * FreeLeftRight(OExpr * left, OExpr * right);
   OExpr * CreateBinExpr(EBinOp op, OExpr * left, OExpr * right);
+  int     AnalyzeExprConversion(OType * dsttype, OExpr ** rexpr, uint32_t aflags, bool convert);
   bool    ConvertExprToType(OType * dsttype, OExpr ** rexpr, uint32_t aflags = 0);
   int     GetAssignTypeConversionCost(OType * dsttype, OExpr * expr, uint32_t aflags = 0);
   bool    ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType ** rresulttype);

@@ -97,7 +97,7 @@ OValue * OTypeEnum::CreateValue()
   return new OValueEnum(this, items.empty() ? 0 : items.front().value);
 }
 
-bool OTypeEnum::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+int OTypeEnum::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   if (auto * unresolved = dynamic_cast<OUnresolvedEnumItemExpr *>(*rexpr))
   {
@@ -105,30 +105,26 @@ bool OTypeEnum::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
     if (!item)
     {
       if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ENUM_TYPE_INFER, unresolved->item_name);
-      return false;
+      return -1;
     }
-    delete unresolved;
-    *rexpr = new OEnumValueExpr(this, item->value);
-    return true;
+    if (convert)
+    {
+      delete unresolved;
+      *rexpr = new OEnumValueExpr(this, item->value);
+    }
+    return 0;
   }
 
-  if (aflags & EXPCF_EXPLICIT_CAST)
+  if (aflags & EXPCF_GENERATE_ERRORS)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_TYPEMISM, name, (*rexpr)->ptype->name);
-  }
-  else if (aflags & EXPCF_GENERATE_ERRORS)
-  {
-    g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, (*rexpr)->ptype->name);
-  }
-  return false;
-}
-
-int OTypeEnum::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  (void)aflags;
-  if (auto * unresolved = dynamic_cast<OUnresolvedEnumItemExpr *>(expr))
-  {
-    return FindItem(unresolved->item_name) ? 0 : -1;
+    if (aflags & EXPCF_EXPLICIT_CAST)
+    {
+      g_compiler->Error(DQERR_TYPEMISM, name, (*rexpr)->ptype->name);
+    }
+    else
+    {
+      g_compiler->Error(DQERR_TYPEMISM_STMT_ASSIGN, "Assignment", name, (*rexpr)->ptype->name);
+    }
   }
   return -1;
 }

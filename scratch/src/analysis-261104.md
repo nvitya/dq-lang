@@ -13,7 +13,6 @@
    - [1.4 RTL Function Lookup & LLVM Integer Cast Helpers](#14-rtl-function-lookup--llvm-integer-cast-helpers)
    - [1.5 Compound Type Declarations, Member Lookup & Property Accessors](#15-compound-type-declarations-member-lookup--property-accessors)
    - [1.6 Overload Candidate Analysis & Call Argument Lowering](#16-overload-candidate-analysis--call-argument-lowering)
-   - [1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic](#17-parallel-convertfromexpr-and-getconversioncostfromexpr-logic)
    - [1.8 Diagnostic Method Overload Explosion in `ODqCompBase`](#18-diagnostic-method-overload-explosion-in-odqcompbase)
    - [1.9 Atomic Compilation Artifact Publishing](#19-atomic-compilation-artifact-publishing)
 2. [Unclear Solutions, Inconsistencies & Dead Remnants](#2-unclear-solutions-inconsistencies--dead-remnants)
@@ -21,6 +20,8 @@
    - [3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State](#31-single-inheritance-god-object-compiler-hierarchy--global-state)
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
 4. [Fixed Issues](#4-fixed-issues)
+   - [1.1 Managed/Owned Type Cleanup & Initialization Dispatch](#11-managedowned-type-cleanup--initialization-dispatch-duplicated-in-5-places)
+   - [1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic](#17-parallel-convertfromexpr-and-getconversioncostfromexpr-logic)
    - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
    - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
    - [2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers](#23-unused-legacy-free-function-wrappers--dead-astcodegen-helpers)
@@ -108,12 +109,6 @@
 
 ---
 
-### 1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic
-In 14 `OType` subclasses (`OTypePointer`, `OTypeInt`, `OTypeFloat`, `OTypeCharBase`, `OTypeArray`, `OTypeArraySlice`, `OTypeDynArray`, `OTypeEmbStr`, `OTypeStrSlice`, `OTypeDynString`, `OTypeRoStr`, `OTypeObject`, `OTypeObjectTypeRef`, `OTypeFuncRef`), `ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)` and `GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)` maintain parallel condition trees that must stay in sync whenever conversion rules change.
-*(Note: `OCompoundType::AnalyzeLiteral` in `otype_compound.cpp:1182` solved this cleanly by taking a `bool convert` parameter and returning `-1` on failure or `>= 0` cost on success.)*
-
----
-
 ### 1.8 Diagnostic Method Overload Explosion in `ODqCompBase`
 In `compiler/src/dqc_base.h:48-87` and `compiler/src/dqc_base.cpp:138-368`, `Error`, `ErrorTxt`, `RootStatementError`, `StatementError`, `Warning`, and `Hint` each declare 4 overloads (24 methods total, ~130 lines of forwarding boilerplate) just to supply default `""` values for `par1`, `par2`, and `par3`. Using default parameter values reduces these 24 declarations and 18 forwarding bodies to 6 methods. Also, the `bool atryrecover = true` parameter on all 8 `RootStatementError` and `StatementError` overloads is completely unused in `dqc_base.cpp`.
 
@@ -152,6 +147,9 @@ Several files and functions have grown very large and mix distinct responsibilit
 
 ### 1.1 Managed/Owned Type Cleanup & Initialization Dispatch (Duplicated in 5+ Places)
 - **Resolution:** Added `RequiresCleanup()` and `GenerateCleanup(OScope *, LlValue *)` overrides to `OTypeDynArray` (`compiler/types/otype_array.h`) and `OTypeDynString` (`compiler/types/otype_string.h`), added virtual `OValSym::RequiresCleanup()` and `OValSym::GenerateCleanup(OScope *, LlValue *)` (`compiler/ast/symbols.{h,cpp}`) overridden by `OVsObject` for fixed-storage objects (`compiler/types/otype_compound.{h,cpp}`), and collapsed the duplicated multi-branch cleanup/initialization dispatch across `OScope::DefineValSym`, `OScope::EmitOwnedObjectDestructors`, `OTypeObject::GenerateFieldInitializers`, `OTypeObject::GenerateFieldDestructors`, `OValSym::GenerateFieldInitStore`, `GenerateElementDestructor`, `OTypeArray::GenerateAssignment`, `OStmtReturn::Generate`, `OStmtVarDecl::Generate`, and `ODqCompParserStmt::ParseStmtVar`.
+
+### 1.7 Parallel `ConvertFromExpr` and `GetConversionCostFromExpr` Logic
+- **Resolution:** Replaced the parallel virtual `ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)` and `GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)` pairs across `OType` and all 16 subclasses (`OTypeAlias`, `OTypeAutoFree`, `OTypePointer`, `OTypeInt`, `OTypeFloat`, `OTypeCharBase`, `OTypeArray`, `OTypeArraySlice`, `OTypeDynArray`, `OTypeEmbStr`, `OTypeString`/`OTypeStrSlice`/`OTypeDynString`, `OTypeRoStr`, `OCompoundType`, `OTypeObject`, `OTypeObjectTypeRef`, `OTypeFuncRef`, `OTypeEnum`, and `OTypeAnyValue`) with a single virtual `OType::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)` (plus `OType::ConversionError` and `OType::WrapTypeConv` helpers, `ODqCompAst::AnalyzeExprConversion`, and `AnalyzeArrayLiteralElements`), making `ConvertFromExpr` and `GetConversionCostFromExpr` non-virtual wrappers on `OType`.
 
 ### 2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)
 - **Resolution:** Moved child expression cleanup into `virtual ~OExpr()` overrides across all `OExpr` subclasses in `compiler/ast/expressions.{h,cpp}` and `compiler/types/otype_enum.{h,cpp}`, removed `DeleteChildTree()`, made `OExpr::DeleteTree(OExpr * expr)` an inline alias for `delete expr;` in `compiler/ast/symbols.h`, simplified `TryFoldSelf` implementations in `compiler/ast/expressions.cpp` that previously called `DeleteChildTree()`, fixed receiver double-free paths in builtin method parsers in `compiler/parser/dqc_parser_expr.cpp`, and added owned-expression cleanup to destructors of `OStmtReturn`, `OStmtVarDecl`, `OStmtAssign`, `OStmtModifyAssign`, `OStmtVoidCall`, `OStmtDelete`, `OStmtWhile`, and `OIfBranch` in `compiler/ast/statements.h`.

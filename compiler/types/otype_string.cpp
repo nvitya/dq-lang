@@ -709,107 +709,39 @@ LlValue * OTypeStrSlice::GenerateGetChar(OScope * scope, OLValueExpr * receiver,
 }
 
 
-bool OTypeStrSlice::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
+// Shared conversion for str and strslice: accepts the same kind or any text source / byte wchar literal
+int OTypeString::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
   OExpr * src = *rexpr;
   OType * resolved_src = src->ResolvedType();
   ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
 
-  if (TK_STRSLICE != tks)
+  if (aflags & EXPCF_EXPLICIT_CAST)
   {
-    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
+    return ConversionError(resolved_src, aflags);
+  }
+  if (kind == tks)
+  {
+    return 0;
+  }
+
+  if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
+  {
+    if (convert)
     {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-        return false;
-      }
-      if (!EnsureStrFuncRtlUse()) return false;
+      bool ok = (TK_DYNSTR == kind) ? EnsureDynStringRtlUse() : EnsureStrFuncRtlUse();
+      if (!ok) return -1;
       if (!IsTextSourceType(resolved_src))
       {
         src = new OExprTypeConv(g_builtins->type_char, src);
       }
-      *rexpr = new OTextBorrowExpr(src, this);
-      return true;
+      *rexpr = (TK_DYNSTR == kind) ? static_cast<OExpr *>(new OTextSourceToStringExpr(src, this))
+                                   : static_cast<OExpr *>(new OTextBorrowExpr(src, this));
     }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return 1;
   }
 
-  if (is_explicit_cast)
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-    return false;
-  }
-  return true;
-}
-
-int OTypeStrSlice::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_STRSLICE != tks)
-  {
-    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(expr)) return is_explicit_cast ? -1 : 1;
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  return is_explicit_cast ? -1 : 0;
-}
-
-bool OTypeDynString::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  OExpr * src = *rexpr;
-  OType * resolved_src = src->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_DYNSTR != tks)
-  {
-    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(src))
-    {
-      if (is_explicit_cast)
-      {
-        if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-        return false;
-      }
-      if (!EnsureDynStringRtlUse())
-      {
-        return false;
-      }
-      if (!IsTextSourceType(resolved_src))
-      {
-        src = new OExprTypeConv(g_builtins->type_char, src);
-      }
-      *rexpr = new OTextSourceToStringExpr(src, this);
-      return true;
-    }
-    return OType::ConvertFromExpr(rexpr, aflags);
-  }
-
-  if (is_explicit_cast)
-  {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_CAST_INVALID, resolved_src->name, this->name);
-    return false;
-  }
-  return true;
-}
-
-int OTypeDynString::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
-{
-  OType * resolved_src = expr->ResolvedType();
-  ETypeKind tks = resolved_src->kind;
-  bool is_explicit_cast = (aflags & EXPCF_EXPLICIT_CAST);
-
-  if (TK_DYNSTR != tks)
-  {
-    if (IsTextSourceType(resolved_src) || IsByteWCharLiteral(expr)) return is_explicit_cast ? -1 : 1;
-    return OType::GetConversionCostFromExpr(expr, aflags);
-  }
-
-  return is_explicit_cast ? -1 : 0;
+  return OType::AnalyzeConversion(rexpr, aflags, convert);
 }
 
 LlValue * OTypeString::GenerateMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,
@@ -946,37 +878,37 @@ LlDiType * OTypeString::CreateDiType()
       alignsize * 8, llvm::DINode::FlagZero, nullptr, di_builder->getOrCreateArray(fields));
 }
 
-int OTypeRoStr::GetConversionCostFromExpr(OExpr * expr, uint32_t aflags)
+int OTypeRoStr::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 {
-  if (aflags & EXPCF_EXPLICIT_CAST) return -1;
-  OType * source = expr->ResolvedType();
-  if (TK_ROSTR == source->kind) return 0;
-  uint8_t ch;
-  return (TK_DYNSTR == source->kind || TK_EMBSTR == source->kind
-          || IsCCharPointerType(source) || IsCharLiteralExpr(expr, ch)) ? 1 : -1;
-}
+  OExpr * src = *rexpr;
+  OType * source = src->ResolvedType();
 
-bool OTypeRoStr::ConvertFromExpr(OExpr ** rexpr, uint32_t aflags)
-{
-  if (GetConversionCostFromExpr(*rexpr, aflags) < 0)
+  if (aflags & EXPCF_EXPLICIT_CAST)
   {
-    if (aflags & EXPCF_EXPLICIT_CAST)
-    {
-      if (aflags & EXPCF_GENERATE_ERRORS)
-        g_compiler->Error(DQERR_CAST_INVALID, (*rexpr)->ResolvedType()->name, name);
-      return false;
-    }
-    return OType::ConvertFromExpr(rexpr, aflags);
+    return ConversionError(source, aflags);
   }
-  if (TK_ROSTR == (*rexpr)->ResolvedType()->kind) return true;
+  if (TK_ROSTR == source->kind)
+  {
+    return 0;
+  }
+
   uint8_t ch;
-  if (IsCharLiteralExpr(*rexpr, ch))
+  if (TK_DYNSTR == source->kind || TK_EMBSTR == source->kind
+      || IsCCharPointerType(source) || IsCharLiteralExpr(src, ch))
   {
-    OExpr::DeleteTree(*rexpr);
-    *rexpr = new OEmbStrLit(string(1, char(ch)));
+    if (convert)
+    {
+      if (IsCharLiteralExpr(src, ch))
+      {
+        OExpr::DeleteTree(src);
+        src = new OEmbStrLit(string(1, char(ch)));
+      }
+      *rexpr = new OTextBorrowExpr(src, this);
+    }
+    return 1;
   }
-  *rexpr = new OTextBorrowExpr(*rexpr, this);
-  return true;
+
+  return OType::AnalyzeConversion(rexpr, aflags, convert);
 }
 
 LlValue * OTypeRoStr::ExtractPChar(LlValue * value)

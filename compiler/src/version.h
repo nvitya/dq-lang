@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.1"
+#define DQ_COMPILER_VERSION  "0.95.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.2:
+  - Code refactoring: OValSymFunc::GenerateFuncBody, Checking for reserved words
 v0.95.1:
   - Code refactoring: dqm_if file use constants for attribute flags
 v0.95.0:

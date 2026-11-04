@@ -45,9 +45,9 @@ public:
   ODqCompBase();
   virtual ~ODqCompBase();
 
-  bool ReservedWord(const string aname);
-  bool RootStatementWord(const string aname);
-  bool IsBlockCloserWord(const string aname);
+  bool ReservedWord(string_view aname);
+  bool RootStatementWord(string_view aname);
+  bool IsBlockCloserWord(string_view aname);
 
   string FormatDiagMsg(string_view atext, string_view par1, string_view par2, string_view par3);
 

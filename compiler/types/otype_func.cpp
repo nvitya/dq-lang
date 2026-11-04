@@ -1206,7 +1206,9 @@ void OValSymFunc::GenerateFuncBody()
   if (is_asm)
   {
     LlFuncType * asm_type = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), false);
-    llvm::InlineAsm::AsmDialect dialect = ("x86_64" == g_opt.target.arch
+    const OInlineAsmTarget * asm_target = InlineAsmTargetForArch(g_opt.target.arch);
+    if (!asm_target) throw logic_error("Unsupported inline-assembly target");
+    llvm::InlineAsm::AsmDialect dialect = (INLINE_ASM_DIALECT_INTEL == asm_target->dialect
         ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
     llvm::InlineAsm * inline_asm = llvm::InlineAsm::get(
         asm_type, asm_body, "", true, false, dialect);

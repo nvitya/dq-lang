@@ -31,11 +31,13 @@ const(uint8):
     DQTK_ANYVALUE     = 15
     DQTK_STRUCT       = 16
     DQTK_OBJECT       = 17
+    DQTK_UNION        = 18
     DQTK_ARRAY        = 20
     DQTK_ARRAY_SLICE  = 21   // array descriptor {ptr, length} for func parameters
     DQTK_DYN_ARRAY    = 22   // owning dynamic array [*]T: ORawDynArray-compatible layout
     DQTK_FUNCTION     = 28
     DQTK_FUNCREF      = 29   // func variable (func pointer)
+    DQTK_OBJECT_TYPE  = 30
     DQTK_ALIAS        = 31
     DQTK_AUTOFREE     = 32
 endconst

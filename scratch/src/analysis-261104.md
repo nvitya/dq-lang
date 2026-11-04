@@ -20,11 +20,11 @@
    - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
    - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
    - [2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers](#23-unused-legacy-free-function-wrappers--dead-astcodegen-helpers)
-   - [2.4 Subtle Bugs & Inconsistencies](#24-subtle-bugs--inconsistencies)
 3. [Harder-to-Maintain Parts & Architectural Bottlenecks](#3-harder-to-maintain-parts--architectural-bottlenecks)
    - [3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State](#31-single-inheritance-god-object-compiler-hierarchy--global-state)
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
 4. [Fixed Issues](#4-fixed-issues)
+   - [2.4 Subtle Bugs & Inconsistencies](#24-subtle-bugs--inconsistencies)
    - [3.3 Hardcoded Magic Bitflags in DQM Interface Serialization](#33-hardcoded-magic-bitflags-in-dqm-interface-serialization)
 
 ---
@@ -195,23 +195,6 @@ The compiler now uses zero-cost DWARF/SEH unwinding (`invoke` + `landingpad` + `
 
 ---
 
-### 2.4 Subtle Bugs & Inconsistencies
-1. **Inline Assembly Dialect Hardcoding in `OValSymFunc::GenerateFuncBody`**:
-   In `compiler/types/otype_func.cpp:1203-1204`, naked `[[asm]]` function generation checks:
-   ```cpp
-   llvm::InlineAsm::AsmDialect dialect = ("x86_64" == g_opt.target.arch
-       ? llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT);
-   ```
-   whereas `OValSymFunc::GenerateInlineAsmCall` (`otype_func.cpp:1154-1156`) queries `InlineAsmTargetForArch(g_opt.target.arch)->dialect`. On 32-bit `x86` (`g_opt.target.arch == "x86"`), `GenerateFuncBody` wrongly selects AT&T dialect instead of Intel dialect.
-2. **Double Allocation (Memory Leak) of `di_builder` in `ll_defs.cpp`**:
-   In `compiler/codegen/ll_defs.cpp:26`, `ll_defs_init()` allocates `di_builder = new LlDiBuilder(*ll_module);`, and then `ll_init_debug_info()` (`ll_defs.cpp:39`) overwrites `di_builder = new LlDiBuilder(*ll_module);` without deleting the first instance.
-3. **`compiler/src/rtlint.h` vs `stdpkg/rtl/rtlint.dq` Out of Sync**:
-   `ETypeKind` in `compiler/src/rtlint.h` defines `TK_UNION = 18` and `TK_OBJECT_TYPE = 30`, which are missing from the `DQTK_*` constants in `stdpkg/rtl/rtlint.dq:19-40`.
-4. **String Allocation on Every Identifier Check in `ODqCompBase`**:
-   `ReservedWord`, `RootStatementWord`, and `IsBlockCloserWord` (`compiler/src/dqc_base.cpp:59-118`) allocate a temporary `string search_target = "|" + aname + "|";` and scan a pipe-delimited string on every identifier token. Also, `dq_block_closer_words` includes `"endclass"` which is not a DQ keyword, while `dq_root_statement_words` omits `"enum"`. A `static const unordered_set<string_view>` avoids heap allocations per token.
-
----
-
 ## 3. Harder-to-Maintain Parts & Architectural Bottlenecks
 
 ### 3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State
@@ -231,6 +214,16 @@ Several files and functions have grown very large and mix distinct responsibilit
 ---
 
 ## 4. Fixed Issues
+
+### 2.4 Subtle Bugs & Inconsistencies
+1. **Inline Assembly Dialect Hardcoding in `OValSymFunc::GenerateFuncBody`**:
+   - **Resolution:** Updated `OValSymFunc::GenerateFuncBody` (`compiler/types/otype_func.cpp`) to query `InlineAsmTargetForArch(g_opt.target.arch)->dialect` instead of checking `"x86_64" == g_opt.target.arch`.
+2. **Double Allocation (Memory Leak) of `di_builder` in `ll_defs.cpp`**:
+   - **Resolution:** Removed the redundant `di_builder = new LlDiBuilder(*ll_module);` allocation from `ll_init_debug_info()` (`compiler/codegen/ll_defs.cpp`), reusing the instance created in `ll_defs_init()`.
+3. **`compiler/src/rtlint.h` vs `stdpkg/rtl/rtlint.dq` Out of Sync**:
+   - **Resolution:** Added `DQTK_UNION = 18` and `DQTK_OBJECT_TYPE = 30` to `stdpkg/rtl/rtlint.dq`.
+4. **String Allocation on Every Identifier Check in `ODqCompBase`**:
+   - **Resolution:** Replaced the pipe-delimited string searches in `ReservedWord`, `RootStatementWord`, and `IsBlockCloserWord` (`compiler/src/dqc_base.h`, `compiler/src/dqc_base.cpp`) with `string_view` parameters and `static const unordered_set<string_view>` lookups, adding `"enum"` to `RootStatementWord` and removing `"endclass"` from `IsBlockCloserWord`.
 
 ### 3.3 Hardcoded Magic Bitflags in DQM Interface Serialization
 Symbol attribute flags in `.dqm` interface files (`1u << 0` through `1ull << 19`) were written and read using raw shift literals in three separate files:

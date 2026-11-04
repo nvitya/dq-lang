@@ -44,7 +44,6 @@ void ll_init_debug_info()
 
   ll_module->addModuleFlag(llvm::Module::Warning, "Debug Info Version", llvm::DEBUG_METADATA_VERSION);
   ll_module->addModuleFlag(llvm::Module::Warning, "Dwarf Version", 4);
-  di_builder = new LlDiBuilder(*ll_module);
 
   OScFile * pfile = g_compiler->scf->curfile;
   if (!pfile->di_file)

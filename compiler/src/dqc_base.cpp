@@ -13,6 +13,7 @@
 
 #include <print>
 #include <format>
+#include <unordered_set>
 #include "dqc_base.h"
 #include "dq_utils.h"
 
@@ -57,68 +58,38 @@ ODqCompBase::~ODqCompBase()
   delete scf;
 }
 
-const string dq_reserved_words =
-   "|var|ref|refin|refout|refnil|for|while|if|else|return|break|continue"
-   "|endfor|try|except|finally|endtry|raise"
-   "|new|delete"
-   "|and|not|or|is|as"
-   "|xor|div|rem|mod"
-   "|nil"
-   "|func|subfn|endsubfn|use|implementation"
-   "|struct|endstruct|union|endunion|object|endobject"
-   "|"
-;
-
-bool ODqCompBase::ReservedWord(const string aname)
+bool ODqCompBase::ReservedWord(string_view aname)
 {
-  string search_target = "|" + aname + "|";
-  if (dq_reserved_words.find(search_target) != string::npos)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  static const unordered_set<string_view> words = {
+    "var", "ref", "refin", "refout", "refnil", "for", "while", "if", "else", "return", "break", "continue",
+    "endfor", "try", "except", "finally", "endtry", "raise",
+    "new", "delete",
+    "and", "not", "or", "is", "as",
+    "xor", "div", "rem", "mod",
+    "nil",
+    "func", "subfn", "endsubfn", "use", "implementation",
+    "struct", "endstruct", "union", "endunion", "object", "endobject",
+  };
+  return words.contains(aname);
 }
 
-const string dq_root_statement_words =
-   "|var|const|type"
-   "|func|subfn|use|implementation"
-   "|struct|union|object"
-   "|"
-;
-
-bool ODqCompBase::RootStatementWord(const string aname)
+bool ODqCompBase::RootStatementWord(string_view aname)
 {
-  string search_target = "|" + aname + "|";
-  if (dq_root_statement_words.find(search_target) != string::npos)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  static const unordered_set<string_view> words = {
+    "var", "const", "type", "enum",
+    "func", "subfn", "use", "implementation",
+    "struct", "union", "object",
+  };
+  return words.contains(aname);
 }
 
-const string dq_block_closer_words =
-   "|endfor|endwhile|endif|endfunc|endsubfn|endtry|except|finally|else|elif"
-   "|endstruct|endobject|endconst|endenum|endunion|endclass"
-   "|"
-;
-
-bool ODqCompBase::IsBlockCloserWord(const string aname)
+bool ODqCompBase::IsBlockCloserWord(string_view aname)
 {
-  string search_target = "|" + aname + "|";
-  if (dq_block_closer_words.find(search_target) != string::npos)
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  static const unordered_set<string_view> words = {
+    "endfor", "endwhile", "endif", "endfunc", "endsubfn", "endtry", "except", "finally", "else", "elif",
+    "endstruct", "endobject", "endconst", "endenum", "endunion",
+  };
+  return words.contains(aname);
 }
 
 string ODqCompBase::FormatDiagMsg(string_view atext, string_view par1, string_view par2, string_view par3)

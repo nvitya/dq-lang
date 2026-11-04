@@ -801,6 +801,8 @@ public:
   }
 
   virtual OType * GetStorageType() const;
+  virtual bool RequiresCleanup() const;
+  virtual void GenerateCleanup(OScope * scope, LlValue * addr = nullptr);
 };
 
 struct OPropertyIndex

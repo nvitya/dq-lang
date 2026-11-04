@@ -1027,31 +1027,32 @@ bool OValSym::IsObjectType() const
 
 bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)
 {
-  if (!field_init_expr)
-  {
-    return false;
-  }
-
-  OType * storage_type = GetStorageType()->ResolveAlias();
-  if (TK_ANYVALUE == storage_type->kind)
-  {
-    return GenerateAnyValueAssignExpr(scope, ll_field_addr, field_init_expr);
-  }
-
-  if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(storage_type))
-  {
-    return embstrtype->GenerateStore(scope, ll_field_addr, field_init_expr);
-  }
-
-  LlValue * ll_value = field_init_expr->Generate(scope);
-  llvm::StoreInst * store = ll_builder.CreateStore(ll_value, ll_field_addr);
-  store->setVolatile(attr_is_volatile);
-  return true;
+  return field_init_expr && ptype
+      && ptype->GenerateAssignment(scope, ll_field_addr, field_init_expr, attr_is_volatile);
 }
 
 OType * OValSym::GetStorageType() const
 {
   return (IsRefLike() ? ptype->GetPointerType() : ptype);
+}
+
+bool OValSym::RequiresCleanup() const
+{
+  return (VSK_VARIABLE == kind || VSK_PARAMETER == kind)
+      && ptype && ptype->RequiresCleanup()
+      && !IsRefLike() && ("result" != name);
+}
+
+void OValSym::GenerateCleanup(OScope * scope, LlValue * addr)
+{
+  if (!addr)
+  {
+    addr = ll_value;
+  }
+  if (addr && ptype && ptype->RequiresCleanup())
+  {
+    ptype->GenerateCleanup(scope, addr);
+  }
 }
 
 bool OValSym::WriteDqmIfDecl(ODqmIfWriter & writer)

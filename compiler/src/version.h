@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.4"
+#define DQ_COMPILER_VERSION  "0.95.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.5:
+  - Code refactoring: Managed/Owned Type Cleanup & Initialization simplification
 v0.95.4:
   - Code refactoring: fixed incosistent OExpr and OStmt destruction
 v0.95.3:

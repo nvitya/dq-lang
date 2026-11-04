@@ -163,27 +163,16 @@ static string SanitizeLlName(const string & src)
 
 static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
 {
-  if (elemtype && elemtype->RequiresCleanup())
+  if (!elemtype)
+  {
+    return;
+  }
+  if (elemtype->RequiresCleanup())
   {
     elemtype->GenerateCleanup(nullptr, elem_addr);
     return;
   }
-  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(elemtype))
-  {
-    LlValue * ll_mgr = ll_builder.CreateLoad(dyntype->GetLlType(), elem_addr, "dynarr.mgr");
-    dyntype->GenerateDestroy(nullptr, ll_mgr);
-  }
-  else if (auto * strtype = dynamic_cast<OTypeDynString *>(elemtype))
-  {
-    LlValue * ll_str = ll_builder.CreateLoad(strtype->GetLlType(), elem_addr, "dynstr");
-    strtype->GenerateDestroy(nullptr, ll_str);
-  }
-  else if (auto * anytype = dynamic_cast<OTypeAnyValue *>(elemtype))
-  {
-    LlValue * ll_any = ll_builder.CreateLoad(anytype->GetLlType(), elem_addr, "anyval");
-    GenerateAnyValueDestroy(nullptr, ll_any);
-  }
-  else if (TK_OBJECT == elemtype->kind)
+  if (TK_OBJECT == elemtype->kind)
   {
     OTypeObject * objtype = static_cast<OTypeObject *>(elemtype);
     OValSymFunc * dtor = objtype->FindSpecialMethod(OSF_DESTROY);
@@ -237,27 +226,48 @@ void OTypeArray::GenerateCleanup(OScope * scope, LlValue * addr)
 
 bool OTypeArray::GenerateAssignment(OScope * scope, LlValue * targetaddr, OExpr * value, bool volatile_store)
 {
-  auto * source = dynamic_cast<OLValueExpr *>(value);
-  auto * source_array = dynamic_cast<OTypeArray *>(source && source->ptype ? source->ptype->ResolveAlias() : nullptr);
-  if (!elemtype || !elemtype->RequiresCleanup() || !source || !source_array || source_array->arraylength != arraylength)
+  if (!elemtype || !elemtype->RequiresCleanup())
   {
     return OType::GenerateAssignment(scope, targetaddr, value, volatile_store);
   }
+
+  if (auto * arrlit = dynamic_cast<OArrayLit *>(value); arrlit && arrlit->elements.size() == arraylength)
+  {
+    for (uint32_t i = 0; i < arraylength; ++i)
+    {
+      LlValue * targetelem = ll_builder.CreateInBoundsGEP(GetLlType(), targetaddr, {LlZero(), LlConstUInt(i)}, "autofree.array.target");
+      if (!elemtype->GenerateAssignment(scope, targetelem, arrlit->elements[i], volatile_store))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  auto * source = dynamic_cast<OLValueExpr *>(value);
+  auto * source_array = dynamic_cast<OTypeArray *>(source && source->ptype ? source->ptype->ResolveAlias() : nullptr);
+  if (!source || !source_array || source_array->arraylength != arraylength)
+  {
+    return OType::GenerateAssignment(scope, targetaddr, value, volatile_store);
+  }
+
+  class OLValueArrayElem : public OLValueExpr
+  {
+  public:
+    LlValue * address;
+    OLValueArrayElem(LlValue * aaddr, OType * atype) : address(aaddr) { ptype = atype; }
+    LlValue * GenerateAddress(OScope *) override { return address; }
+  };
 
   LlValue * sourceaddr = source->GenerateAddress(scope);
   for (uint32_t i = 0; i < arraylength; ++i)
   {
     LlValue * targetelem = ll_builder.CreateInBoundsGEP(GetLlType(), targetaddr, {LlZero(), LlConstUInt(i)}, "autofree.array.target");
     LlValue * sourceelem = ll_builder.CreateInBoundsGEP(GetLlType(), sourceaddr, {LlZero(), LlConstUInt(i)}, "autofree.array.source");
-    if (auto * autofree = AsAutoFreeType(elemtype))
+    OLValueArrayElem elem_lvalue(sourceelem, elemtype);
+    if (!elemtype->GenerateAssignment(scope, targetelem, &elem_lvalue, volatile_store))
     {
-      autofree->GenerateMoveAssignment(scope, targetelem, sourceelem, volatile_store);
-    }
-    else
-    {
-      LlValue * sourceval = ll_builder.CreateLoad(elemtype->GetLlType(), sourceelem, "autofree.array.value");
-      elemtype->GenerateCleanup(scope, targetelem);
-      ll_builder.CreateStore(sourceval, targetelem);
+      return false;
     }
   }
   return true;

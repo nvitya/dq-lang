@@ -43,41 +43,11 @@ void OScope::EmitOwnedObjectDestructors()
 {
   for (auto it = owned_objects.rbegin(); it != owned_objects.rend(); ++it)
   {
-    OValSym * vs = *it;
-    if (auto * autofree = AsAutoFreeType(vs ? vs->ptype : nullptr); autofree && vs->ll_value)
+    // A return may occur before a later local variable's declaration has been
+    // generated; GenerateCleanup skips symbols without allocated storage.
+    if (OValSym * vs = *it)
     {
-      autofree->GenerateCleanup(this, vs->ll_value);
-      continue;
-    }
-    if (vs && vs->ptype && vs->ptype->RequiresCleanup() && vs->ll_value)
-    {
-      vs->ptype->GenerateCleanup(this, vs->ll_value);
-      continue;
-    }
-    auto * objvar = dynamic_cast<OVsObject *>(vs);
-    // A return may occur before a later local object's declaration has been
-    // generated.  Its symbol is already in this scope, but it has no storage
-    // yet and therefore must not receive a destructor call.
-    if (objvar && objvar->IsFixedObjectStorage() && vs->ll_value)
-    {
-      objvar->GenerateDestructorCall(vs->ll_value);
-      continue;
-    }
-
-    auto * dyntype = dynamic_cast<OTypeDynArray *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
-    if (dyntype && vs->ll_value)
-    {
-      dyntype->GenerateDestroy(this, vs->ll_value);
-    }
-    auto * strtype = dynamic_cast<OTypeDynString *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
-    if (strtype && vs->ll_value)
-    {
-      strtype->GenerateDestroy(this, vs->ll_value);
-    }
-    auto * anytype = dynamic_cast<OTypeAnyValue *>(vs && vs->ptype ? vs->ptype->ResolveAlias() : nullptr);
-    if (anytype && vs->ll_value)
-    {
-      GenerateAnyValueDestroy(this, vs->ll_value);
+      vs->GenerateCleanup(this);
     }
   }
 }

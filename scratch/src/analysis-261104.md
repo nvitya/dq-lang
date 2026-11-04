@@ -31,25 +31,6 @@
 
 ## 1. Code Duplications
 
-### 1.1 Managed/Owned Type Cleanup & Initialization Dispatch (Duplicated in 5+ Places)
-`OType` already defines virtual hooks `RequiresCleanup()`, `GenerateCleanup(OScope *, LlValue *)`, and `GenerateAssignment(OScope *, LlValue *, OExpr *, bool)` (`compiler/ast/symbols.h:350-352`). However, only `OTypeAutoFree`, `OTypeAnyValue`, and `OTypeArray` currently implement `RequiresCleanup()` / `GenerateCleanup()`. Because `OTypeDynArray` (`TK_DYN_ARRAY`), `OTypeDynString` (`TK_DYNSTR`), and fixed-storage `OVsObject` are not unified under those virtual hooks, manual `dynamic_cast` chains are repeated across five separate subsystems:
-
-1. **`OScope::DefineValSym`** (`compiler/ast/oscope.cpp:104-142`):
-   5 `if / else if` branches checking `AsAutoFreeType`, `RequiresCleanup()`, `objsym->IsFixedObjectStorage() || TK_DYN_ARRAY`, `TK_DYNSTR`, and `TK_ANYVALUE`.
-   *(Note: Both `AsAutoFreeType` and `OTypeAnyValue` already return `RequiresCleanup() == true`, making the 1st and 5th branches redundant with the 2nd branch.)*
-2. **`OScope::EmitOwnedObjectDestructors`** (`compiler/codegen/oscope_codegen.cpp:36-78`):
-   Repeats the same 6-way dispatch (`AsAutoFreeType`, `RequiresCleanup()`, `OVsObject::IsFixedObjectStorage()`, `OTypeDynArray`, `OTypeDynString`, `OTypeAnyValue`).
-3. **`OTypeObject::GenerateFieldDestructors`** (`compiler/types/otype_compound.cpp:693-730`):
-   Repeats the same 5-way dispatch for object fields.
-4. **`GenerateElementDestructor`** (`compiler/types/otype_array.cpp:146-200`):
-   Repeats the same dispatch (`RequiresCleanup()`, `OTypeDynArray`, `OTypeDynString`, `OTypeAnyValue`, `TK_OBJECT`, `TK_ARRAY`, `IsCompound()`) for dynamic array elements.
-5. **`OStmtVarDecl::Generate` & `OStmtReturn::Generate`** (`compiler/ast/statements.cpp:158-198, 253-325`):
-   Manually branches on `AsAutoFreeType`, `RequiresCleanup()`, `OTypeDynArray`, `OTypeDynString`, and `OTypeAnyValue` even though all of them already override `OType::GenerateAssignment`.
-
-**Recommendation:** Have `OTypeDynArray` and `OTypeDynString` override `RequiresCleanup()` and `GenerateCleanup()`, and add `OValSym::RequiresScopeCleanup()` / `OValSym::GenerateScopeCleanup(OScope *)` (overridden by `OVsObject` for fixed storage). All 5 sites collapse into a single virtual call.
-
----
-
 ### 1.2 RTTI TypeInfo Hierarchy Walk & VTable Slot Lookup
 - **Duplicate RTTI Loop Emission**:
   `OTypeObject::GenerateInstanceOf` (`compiler/types/otype_compound.cpp:735-805`) and `ODqCompCodegen::GenerateExceptBranchMatch` (`compiler/codegen/dqc_codegen.cpp:163-242`) emit the exact same ~60-line LLVM IR loop: null-checking the object pointer, loading `vtable` from `vtable_field_index`, loading `TypeInfo` from `vtable[0]`, and looping over parent `TypeInfo` pointers at `phi_ti[1]` until `phi_ti == target_ti` or `null`.
@@ -168,6 +149,9 @@ Several files and functions have grown very large and mix distinct responsibilit
 ---
 
 ## 4. Fixed Issues
+
+### 1.1 Managed/Owned Type Cleanup & Initialization Dispatch (Duplicated in 5+ Places)
+- **Resolution:** Added `RequiresCleanup()` and `GenerateCleanup(OScope *, LlValue *)` overrides to `OTypeDynArray` (`compiler/types/otype_array.h`) and `OTypeDynString` (`compiler/types/otype_string.h`), added virtual `OValSym::RequiresCleanup()` and `OValSym::GenerateCleanup(OScope *, LlValue *)` (`compiler/ast/symbols.{h,cpp}`) overridden by `OVsObject` for fixed-storage objects (`compiler/types/otype_compound.{h,cpp}`), and collapsed the duplicated multi-branch cleanup/initialization dispatch across `OScope::DefineValSym`, `OScope::EmitOwnedObjectDestructors`, `OTypeObject::GenerateFieldInitializers`, `OTypeObject::GenerateFieldDestructors`, `OValSym::GenerateFieldInitStore`, `GenerateElementDestructor`, `OTypeArray::GenerateAssignment`, `OStmtReturn::Generate`, `OStmtVarDecl::Generate`, and `ODqCompParserStmt::ParseStmtVar`.
 
 ### 2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)
 - **Resolution:** Moved child expression cleanup into `virtual ~OExpr()` overrides across all `OExpr` subclasses in `compiler/ast/expressions.{h,cpp}` and `compiler/types/otype_enum.{h,cpp}`, removed `DeleteChildTree()`, made `OExpr::DeleteTree(OExpr * expr)` an inline alias for `delete expr;` in `compiler/ast/symbols.h`, simplified `TryFoldSelf` implementations in `compiler/ast/expressions.cpp` that previously called `DeleteChildTree()`, fixed receiver double-free paths in builtin method parsers in `compiler/parser/dqc_parser_expr.cpp`, and added owned-expression cleanup to destructors of `OStmtReturn`, `OStmtVarDecl`, `OStmtAssign`, `OStmtModifyAssign`, `OStmtVoidCall`, `OStmtDelete`, `OStmtWhile`, and `OIfBranch` in `compiler/ast/statements.h`.

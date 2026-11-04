@@ -207,6 +207,8 @@ public:
   const vector<OExpr *> & ObjectCtorArgs() const { return object_ctor_args; }
   void SetObjectCtorArgs(vector<OExpr *> aargs);
   OType * GetStorageType() const override;
+  bool RequiresCleanup() const override;
+  void GenerateCleanup(OScope * scope, LlValue * addr = nullptr) override;
 
   OTypeObject * ObjectType() const;
   OValSymFunc * FindConstructor() const;

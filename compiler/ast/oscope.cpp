@@ -102,37 +102,7 @@ OValSym * OScope::DefineValSym(OValSym * avalsym)
 
   avalsym->owner_function = GetFunction();
   valsyms[avalsym->name] = avalsym;
-  auto * objsym = dynamic_cast<OVsObject *>(avalsym);
-  if ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype && AsAutoFreeType(avalsym->ptype)
-      && !avalsym->IsRefLike() && ("result" != avalsym->name))
-  {
-    owned_objects.push_back(avalsym);
-  }
-  else if ((VSK_VARIABLE == avalsym->kind) && avalsym->ptype
-           && avalsym->ptype->RequiresCleanup() && !avalsym->IsRefLike()
-           && ("result" != avalsym->name))
-  {
-    owned_objects.push_back(avalsym);
-  }
-  else if ((objsym && objsym->IsFixedObjectStorage())
-      || ((VSK_VARIABLE == avalsym->kind)
-          && avalsym->ptype
-          && (TK_DYN_ARRAY == avalsym->ptype->ResolveAlias()->kind)
-          && ("result" != avalsym->name)))
-  {
-    owned_objects.push_back(avalsym);
-  }
-  else if (avalsym->ptype
-           && (TK_DYNSTR == avalsym->ptype->ResolveAlias()->kind)
-           && !avalsym->IsRefLike()
-           && ("result" != avalsym->name))
-  {
-    owned_objects.push_back(avalsym);
-  }
-  else if (avalsym->ptype
-           && (TK_ANYVALUE == avalsym->ptype->ResolveAlias()->kind)
-           && !avalsym->IsRefLike()
-           && ("result" != avalsym->name))
+  if (avalsym->RequiresCleanup())
   {
     owned_objects.push_back(avalsym);
   }

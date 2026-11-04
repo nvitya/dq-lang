@@ -450,24 +450,16 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     {
       objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
-    if (AsAutoFreeType(pvalsym->ptype))
+    if (pvalsym->ptype && pvalsym->ptype->RequiresCleanup())
     {
       pvalsym->initialized = true;
     }
-    if (pvalsym->ptype && (TK_DYN_ARRAY == pvalsym->ptype->ResolveAlias()->kind))
-    {
-      pvalsym->initialized = true;
-    }
-    if (pvalsym->ptype && (TK_DYNSTR == pvalsym->ptype->ResolveAlias()->kind || TK_STRSLICE == pvalsym->ptype->ResolveAlias()->kind || TK_ROSTR == pvalsym->ptype->ResolveAlias()->kind))
+    if (pvalsym->ptype && (TK_STRSLICE == pvalsym->ptype->ResolveAlias()->kind || TK_ROSTR == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }
     if (auto * embstrtype = dynamic_cast<OTypeEmbStr *>(pvalsym->ptype ? pvalsym->ptype->ResolveAlias() : nullptr);
         embstrtype && embstrtype->maxlen > 0)
-    {
-      pvalsym->initialized = true;
-    }
-    if (pvalsym->ptype && (TK_ANYVALUE == pvalsym->ptype->ResolveAlias()->kind))
     {
       pvalsym->initialized = true;
     }

@@ -2293,8 +2293,7 @@ LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
   // An element expression may throw before the literal is complete. Its unwind
   // cleanup must still be able to safely destroy this call-lifetime storage.
   ll_builder.CreateStore(llvm::ConstantAggregateZero::get(arrtype->GetLlType()), temporary_address);
-  LlValue * ll_arr = arraylit->Generate(scope);
-  ll_builder.CreateStore(ll_arr, temporary_address);
+  arrtype->GenerateAssignment(scope, temporary_address, arraylit);
 
   LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(

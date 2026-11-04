@@ -31,16 +31,11 @@ bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
                                  LlValue * targetaddr, OExpr * value,
                                  bool volatile_store)
 {
-  OType * resolved_type = AsAutoFreeType(targettype);
-  if (!resolved_type)
-  {
-    resolved_type = targettype ? targettype->ResolveAlias() : nullptr;
-  }
-  if (!resolved_type || !targetaddr || !value)
+  if (!targettype || !targetaddr || !value)
   {
     return false;
   }
-  return resolved_type->GenerateAssignment(scope, targetaddr, value, volatile_store);
+  return targettype->GenerateAssignment(scope, targetaddr, value, volatile_store);
 }
 
 void OStmt::EmitDebugLocation(OScope * scope, OScPosition * ascpos)
@@ -157,51 +152,15 @@ void OStmtBlock::Generate()
 
 void OStmtReturn::Generate(OScope * scope)
 {
-  LlValue * ll_value = nullptr;
   if (value)
   {
     if (not vsfunc->vsresult)
     {
       throw logic_error("OStmtReturn::Generate(): return value provided for void function");
     }
-    if (auto * strtype = dynamic_cast<OTypeDynString *>(vsfunc->vsresult->ptype->ResolveAlias()))
+    if (!GenerateAssignmentToAddress(scope, vsfunc->vsresult->ptype, vsfunc->vsresult->ll_value, value))
     {
-      if (!strtype->GenerateAssignExpr(scope, vsfunc->vsresult->ll_value, value))
-      {
-        throw logic_error("Unsupported string return value");
-      }
-    }
-    else if (auto * dyntype = dynamic_cast<OTypeDynArray *>(vsfunc->vsresult->ptype->ResolveAlias()))
-    {
-      if (!dyntype->GenerateAssignExpr(scope, vsfunc->vsresult->ll_value, value))
-      {
-        throw logic_error("Unsupported dynamic array return value");
-      }
-    }
-    else if (TK_ANYVALUE == vsfunc->vsresult->ptype->ResolveAlias()->kind)
-    {
-      if (!GenerateAnyValueAssignExpr(scope, vsfunc->vsresult->ll_value, value))
-      {
-        throw logic_error("Unsupported anyvalue return value");
-      }
-    }
-    else
-    {
-      auto * result_object_type = dynamic_cast<OTypeObject *>(vsfunc->vsresult->ptype ? vsfunc->vsresult->ptype->ResolveAlias() : nullptr);
-      if (result_object_type)
-      {
-        ll_value = value->Generate(scope);
-        OType * storage_type = vsfunc->vsresult->GetStorageType();
-        if (ll_value->getType() != storage_type->GetLlType())
-        {
-          ll_value = ll_builder.CreateBitCast(ll_value, storage_type->GetLlType());
-        }
-      }
-      else
-      {
-        ll_value = value->Generate(scope);
-      }
-      ll_builder.CreateStore(ll_value, vsfunc->vsresult->ll_value);
+      throw logic_error("Unsupported return value");
     }
   }
 
@@ -243,66 +202,12 @@ void OStmtVarDecl::Generate(OScope * scope)
     return;
   }
 
-  if (auto * autofree = AsAutoFreeType(variable->ptype))
-  {
-    ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), variable->ll_value);
-    if (initvalue && !autofree->GenerateAssignment(scope, variable->ll_value, initvalue))
-    {
-      throw logic_error(std::format("Unsupported autofree initializer for \"{}\"", variable->name));
-    }
-    variable->initialized = true;
-    return;
-  }
-
   if (variable->ptype && variable->ptype->RequiresCleanup())
   {
     ll_builder.CreateStore(llvm::Constant::getNullValue(storage_type->GetLlType()), variable->ll_value);
     if (initvalue && !GenerateAssignmentToAddress(scope, variable->ptype, variable->ll_value, initvalue))
     {
       throw logic_error(std::format("Unsupported managed initializer for \"{}\"", variable->name));
-    }
-    variable->initialized = true;
-    return;
-  }
-
-  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
-  {
-    dyntype->GenerateCreate(scope, variable->ll_value);
-    if (initvalue)
-    {
-      if (!dyntype->GenerateAssignExpr(scope, variable->ll_value, initvalue))
-      {
-        throw logic_error(std::format("Unsupported dynamic array initializer for \"{}\"", variable->name));
-      }
-    }
-    variable->initialized = true;
-    return;
-  }
-
-  if (auto * strtype = dynamic_cast<OTypeDynString *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
-  {
-    strtype->GenerateCreate(scope, variable->ll_value);
-    if (initvalue)
-    {
-      if (!strtype->GenerateAssignExpr(scope, variable->ll_value, initvalue))
-      {
-        throw logic_error(std::format("Unsupported string initializer for \"{}\"", variable->name));
-      }
-    }
-    variable->initialized = true;
-    return;
-  }
-
-  if (auto * anytype = dynamic_cast<OTypeAnyValue *>(variable->ptype ? variable->ptype->ResolveAlias() : nullptr))
-  {
-    (void)anytype;
-    GenerateAnyValueCreate(scope, variable->ll_value);
-    if (initvalue)
-    {
-      if (!GenerateAnyValueAssignExpr(scope, variable->ll_value, initvalue))
-      {
-        throw logic_error(std::format("Unsupported anyvalue initializer for \"{}\"", variable->name));
-      }
     }
     variable->initialized = true;
     return;

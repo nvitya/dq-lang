@@ -116,11 +116,6 @@ func PrintException(e : Exception) -> int:
     return -1
 endfunc
 
-func PrintUncaughtException() -> int:
-    result = PrintException(DqExcCurrent())
-    DqExcClear()
-endfunc
-
 func DqWinFaultHandler(exception_info : pointer) -> int32:
     if dq_win_fault_handling <> 0  or  not DqWinFaultIsAccessViolation(exception_info):
         return EXCEPTION_CONTINUE_SEARCH
@@ -150,20 +145,12 @@ func RunHostedMain() -> int:
         return PrintException(e)
     endtry
 
-    if DqExcActive():
-        return PrintUncaughtException()
-    endif
-
     try:
         dq_main()
         result = exit_code
     except Exception as e:
         result = PrintException(e)
     endtry
-
-    if DqExcActive():
-        result = PrintUncaughtException()
-    endif
 endfunc
 
 // libc entry point 'main()'

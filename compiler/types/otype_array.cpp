@@ -612,10 +612,8 @@ LlValue * OTypeArraySlice::CallRuntimeFunc(OScope * scope, const string & name, 
   {
     throw runtime_error("rtl/rtlint." + name + " function is not available");
   }
-  LlValue * result = scope->GenerateCallOrInvoke(
+  return scope->GenerateCallOrInvoke(
       static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
-  EmitExpressionExceptionCheck(scope);
-  return result;
 }
 
 LlValue * OTypeArraySlice::GenerateElementAddress(LlValue * sliceaddr, LlValue * index)
@@ -744,7 +742,6 @@ LlValue * OTypeDynArray::GenerateElementAddress(OScope * scope, LlValue * dynadd
   ll_builder.SetInsertPoint(bb_error);
   // Retain the runtime's error handling, including handlers that return normally.
   CallDynArrayFunc(scope, "DynArrBoundsError");
-  EmitExpressionExceptionCheck(scope);
   bb_error = ll_builder.GetInsertBlock();
   ll_builder.CreateBr(bb_end);
 
@@ -762,7 +759,6 @@ LlValue * OTypeDynArray::GenerateSlice(OScope * scope, LlValue * dynaddr,
   if (!start_expr && !end_expr)
   {
     CallDynArrayFunc(scope, "DynArrGetFullSlice", {dynaddr, descaddr});
-    EmitExpressionExceptionCheck(scope);
   }
   else
   {
@@ -773,7 +769,6 @@ LlValue * OTypeDynArray::GenerateSlice(OScope * scope, LlValue * dynaddr,
       end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, end, LlOne(), nullptr, "dyn.slice.end.inclusive");
     }
     CallDynArrayFunc(scope, "DynArrGetSlice", {dynaddr, descaddr, start, end});
-    EmitExpressionExceptionCheck(scope);
   }
   return ll_builder.CreateLoad(slicetype->GetLlType(), descaddr, "dyn.slice");
 }

@@ -23,13 +23,6 @@
 
 using namespace std;
 
-inline void EmitExpressionExceptionCheck(OScope * scope)
-{
-  if (scope)
-  {
-    scope->EmitExpressionExceptionCheck();
-  }
-}
 LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
                                const vector<LlValue *> & ll_args, bool force_direct = false);
 
@@ -855,15 +848,6 @@ public:
   LlValue * Generate(OScope * scope) override;
 };
 
-// sizeof() for unsized embstr parameter: reads SDqTextInfo-compatible descriptor metadata
-class OEmbStrSizeExpr : public OExpr
-{
-public:
-  OValSym *  embstrvalsym;
-  /* ctor */ OEmbStrSizeExpr(OValSym * avs);
-  LlValue *  Generate(OScope * scope) override;
-};
-
 class OEmbStrMetaFieldExpr : public OExpr
 {
 public:
@@ -889,15 +873,6 @@ public:
   LlValue * Generate(OScope * scope) override;
   void      FoldChildren() override;
   void      DeleteChildTree() override;
-};
-
-// Convert embstr(N) variable to an SDqTextInfo-compatible embstr descriptor.
-class OEmbStrToDescExpr : public OExpr
-{
-public:
-  OValSym *  embstrvalsym;
-  /* ctor */ OEmbStrToDescExpr(OValSym * avs, OType * desctype);
-  LlValue *  Generate(OScope * scope) override;
 };
 
 class OEmbStrLValueToDescExpr : public OExpr

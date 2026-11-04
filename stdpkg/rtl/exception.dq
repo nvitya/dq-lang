@@ -43,14 +43,6 @@ object EStrError(Exception):
 endobject
 
 func DqExcRaise(e : Exception, owned_ref : bool) ..
-func DqExcRethrow() ..
-func DqExcActive() -> bool ..
-func DqExcCurrent() -> Exception ..
-func DqExcClear() ..
-func DqExcBeginCatch() ..
-func DqExcEndCatch() ..
-func DqExcPrintTypeName() ..
-
 func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_count : int) ..
 
 implementation
@@ -135,16 +127,6 @@ endfunc
 
 func DqExcNativeThrow(e : Exception) [[external]] ..
 
-var active_exception  : Exception = nil
-var handled_exception : Exception = nil
-
-func DqSetActiveException(e : Exception):
-    if active_exception <> nil:
-        DqExcRelease(active_exception)
-    endif
-    active_exception = e
-endfunc
-
 func DqExcRaise(e : Exception, owned_ref : bool):
     if not DqPrepareExceptionRef(e, owned_ref):
         return
@@ -173,53 +155,4 @@ func DqExcRaiseWithBacktrace(e : Exception, owned_ref : bool, bt : pointer, bt_c
     endwhile
 
     DqExcNativeThrow(e)
-endfunc
-
-func DqExcRethrow():
-    if handled_exception == nil:
-        RuntimeError("re-raise without active exception")
-        return
-    endif
-    DqExcNativeThrow(handled_exception)
-endfunc
-
-func DqExcActive() -> bool:
-    return active_exception <> nil
-endfunc
-
-func DqExcCurrent() -> Exception:
-    return active_exception
-endfunc
-
-func DqExcClear():
-    if active_exception <> nil:
-        DqExcRelease(active_exception)
-    endif
-    active_exception = nil
-endfunc
-
-func DqExcBeginCatch():
-    if handled_exception <> nil:
-        DqExcRelease(handled_exception)
-    endif
-    handled_exception = active_exception
-    active_exception = nil
-endfunc
-
-func DqExcEndCatch():
-    if handled_exception <> nil:
-        DqExcRelease(handled_exception)
-    endif
-    handled_exception = nil
-endfunc
-
-
-func DqExcPrintTypeName():
-  #ifndef BARE
-    if active_exception <> nil:
-        printf("%s", TypeName(active_exception))
-    else:
-        printf("Exception")
-    endif
-  #endif
 endfunc

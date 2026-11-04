@@ -18,12 +18,12 @@
    - [1.9 Atomic Compilation Artifact Publishing](#19-atomic-compilation-artifact-publishing)
 2. [Unclear Solutions, Inconsistencies & Dead Remnants](#2-unclear-solutions-inconsistencies--dead-remnants)
    - [2.1 Inconsistent `OExpr` & `OStmt` Destruction (`delete` vs `OExpr::DeleteTree`)](#21-inconsistent-oexpr--ostmt-destruction-delete-vs-oexprdeletetree)
-   - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
-   - [2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers](#23-unused-legacy-free-function-wrappers--dead-astcodegen-helpers)
 3. [Harder-to-Maintain Parts & Architectural Bottlenecks](#3-harder-to-maintain-parts--architectural-bottlenecks)
    - [3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State](#31-single-inheritance-god-object-compiler-hierarchy--global-state)
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
 4. [Fixed Issues](#4-fixed-issues)
+   - [2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)](#22-leftover-polling-based-exception-machinery-compiler--stdpkgrtlexceptiondq)
+   - [2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers](#23-unused-legacy-free-function-wrappers--dead-astcodegen-helpers)
    - [2.4 Subtle Bugs & Inconsistencies](#24-subtle-bugs--inconsistencies)
    - [3.3 Hardcoded Magic Bitflags in DQM Interface Serialization](#33-hardcoded-magic-bitflags-in-dqm-interface-serialization)
 
@@ -163,38 +163,6 @@ The AST currently has two conflicting conventions for freeing `OExpr` trees:
 
 ---
 
-### 2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)
-The compiler now uses zero-cost DWARF/SEH unwinding (`invoke` + `landingpad` + `__cxa_allocate_exception` / `__cxa_throw` / `__cxa_begin_catch` / `__cxa_end_catch` / `__cxa_rethrow`). However, remnants of the earlier polling/flag-based exception mechanism remain in both `compiler/` and `stdpkg/rtl/exception.dq`:
-1. **`OScope::EmitExpressionExceptionCheck()`** (`compiler/ast/oscope.cpp:299-302`) is a documented no-op (`// No-op: zero-cost exceptions handle unwinding natively via invoke and landingpad.`), yet `EmitExpressionExceptionCheck(scope)` (`compiler/ast/expressions.h:22`) is still called at 20 call sites across `expressions.cpp`, `otype_string.cpp`, `otype_array.cpp`, and `otype_enum.cpp`.
-2. **`ODqCompCodegen::DqExceptionActiveValue()`** (`compiler/codegen/dqc_codegen.cpp:74-77`) unconditionally returns `nullptr`. Nevertheless, 6 places in `compiler/ast/statements.cpp` still call `LlValue * active = g_compiler->DqExceptionActiveValue(); if (active) { ... }`:
-   - `OStmtReturn::Generate` (`statements.cpp:208-221`)
-   - `OStmtWhile::Generate` (`statements.cpp:537-545`)
-   - `OStmtFor::Generate` (`statements.cpp:577-585, 591-599`)
-   - `OBreakStmt::Generate` (`statements.cpp:620-628` — where both branches of `CreateCondBr` target `end_bb`)
-   - `OContinueStmt::Generate` (`statements.cpp:646-654`)
-3. **Unused methods on `ODqCompCodegen`** (`compiler/codegen/dqc_codegen.cpp:102-135`):
-   `DqClearException()`, `DqBeginCatch()`, `DqEndCatch()`, and `EmitExceptionEscapeCheck()` have zero callers anywhere in the codebase.
-4. **Unused runtime state and functions in `stdpkg/rtl/exception.dq`** (`stdpkg/rtl/exception.dq:44-50, 128-206`):
-   `active_exception`, `handled_exception`, `DqSetActiveException`, `DqExcRethrow`, `DqExcActive`, `DqExcCurrent`, `DqExcClear`, `DqExcBeginCatch`, `DqExcEndCatch`, and `DqExcPrintTypeName` are never called by the compiler or tests.
-
----
-
-### 2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers
-1. **18 Redundant Free Functions in `otype_string.{h,cpp}`** (`compiler/types/otype_string.h:198-219`, `otype_string.cpp:693-711, 796-875`):
-   After `OTypeString` and `OTypeDynString` received member methods (`GenerateCreate`, `GenerateDestroy`, `GenerateLength`, `GeneratePChar`, `GenerateCapacity`, `GenerateRefCount`, `GenerateSlice`, `GenerateWcLen`, `GenerateWCharAt`, `GenerateWCharSlice`, `GenerateToWchars`, `GenerateCompare`, `GenerateConcat`, `GenerateConcatFromStringValue`), 17 of the 18 free functions `GenerateString*` in `otype_string.h` became unused 3-line forwarding stubs (only `GenerateStringMethodCall` has a single caller in `OStringMethodCallExpr::Generate`).
-2. **Unused AST Node Classes in `expressions.{h,cpp}`**:
-   - `OEmbStrSizeExpr` (`compiler/ast/expressions.h:595`, `expressions.cpp:1798-1810`) — never instantiated anywhere.
-   - `OEmbStrToDescExpr` (`compiler/ast/expressions.h:631`, `expressions.cpp:1859-1872`) — never instantiated anywhere (superseded by `OEmbStrLValueToDescExpr`).
-3. **Unused ~95-Line IR Generator in `otype_embstr.cpp`**:
-   - `GetEmbStrCopySource` and `EmitSizedEmbStrCopy` (`compiler/types/otype_embstr.cpp:283-376`) are static functions with zero callers (superseded by `CallEmbStrStore`).
-4. **Duplicate Mid-File `#include` Directives in `dqc_ast.cpp`**:
-   - `compiler/ast/dqc_ast.cpp:536-539` has `#include "otype_anyvalue.h"` and `#include "../types/otype_anyvalue.h"` in the middle of the file, even though `"otype_anyvalue.h"` is already included at line 23.
-5. **Redundant Implicit Constructor/Destructor Logic in `ODqCompParser::ParseObjectDecl`**:
-   - In `compiler/parser/dqc_parser.cpp:2284-2295`, `ParseObjectDecl` calls `AddGeneratedObjectConstructor(object_type, nullptr, scpos_statement_start, 1)` and then manually creates and appends `OStmtInheritedCall`, even though passing `inherited_ctor` directly to `AddGeneratedObjectConstructor` (`dqc_ast.cpp:940-949`) already builds that exact `OStmtInheritedCall`.
-   - Right below (`dqc_parser.cpp:2302-2307`), `bool needs_implicit_dtor = true; if (needs_implicit_dtor)` is a constant `true` check.
-
----
-
 ## 3. Harder-to-Maintain Parts & Architectural Bottlenecks
 
 ### 3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State
@@ -214,6 +182,28 @@ Several files and functions have grown very large and mix distinct responsibilit
 ---
 
 ## 4. Fixed Issues
+
+### 2.2 Leftover Polling-Based Exception Machinery (Compiler & `stdpkg/rtl/exception.dq`)
+1. **`OScope::EmitExpressionExceptionCheck()`**:
+   - **Resolution:** Removed `OScope::EmitExpressionExceptionCheck()`, the `EmitExpressionExceptionCheck(scope)` wrapper in `compiler/ast/expressions.h`, and all call sites across `expressions.cpp`, `otype_string.cpp`, `otype_array.cpp`, and `otype_enum.cpp`.
+2. **`ODqCompCodegen::DqExceptionActiveValue()`**:
+   - **Resolution:** Removed `ODqCompCodegen::DqExceptionActiveValue()` and the 6 dead `if (active)` branches in `compiler/ast/statements.cpp` (`OStmtReturn::Generate`, `OStmtWhile::Generate`, `OStmtFor::Generate`, `OBreakStmt::Generate`, `OContinueStmt::Generate`).
+3. **Unused methods on `ODqCompCodegen`**:
+   - **Resolution:** Removed `DqClearException()`, `DqBeginCatch()`, `DqEndCatch()`, and `EmitExceptionEscapeCheck()` from `compiler/codegen/dqc_codegen.h` and `compiler/codegen/dqc_codegen.cpp`.
+4. **Unused runtime state and functions in `stdpkg/rtl/exception.dq`**:
+   - **Resolution:** Removed `active_exception`, `handled_exception`, `DqSetActiveException`, `DqExcRethrow`, `DqExcActive`, `DqExcCurrent`, `DqExcClear`, `DqExcBeginCatch`, `DqExcEndCatch`, and `DqExcPrintTypeName` from `stdpkg/rtl/exception.dq`, along with the dead `PrintUncaughtException()` / `if DqExcActive():` checks in `stdpkg/rtl/rtl_linux.dq` and `stdpkg/rtl/rtl_windows.dq`.
+
+### 2.3 Unused Legacy Free-Function Wrappers & Dead AST/Codegen Helpers
+1. **Redundant Free Functions in `otype_string.{h,cpp}`**:
+   - **Resolution:** Removed all unused `GenerateString*` forwarding stubs from `compiler/types/otype_string.h` and `compiler/types/otype_string.cpp`, and moved `GenerateStringMethodCall` to `OTypeString::GenerateMethodCall` (called by `OStringMethodCallExpr::Generate`).
+2. **Unused AST Node Classes in `expressions.{h,cpp}`**:
+   - **Resolution:** Removed unused `OEmbStrSizeExpr` and `OEmbStrToDescExpr` from `compiler/ast/expressions.h` and `compiler/ast/expressions.cpp`.
+3. **Unused ~95-Line IR Generator in `otype_embstr.cpp`**:
+   - **Resolution:** Removed unused static functions `GetEmbStrCopySource`, `EmitSizedEmbStrCopy`, and `LlNativeIntType` from `compiler/types/otype_embstr.cpp`.
+4. **Duplicate Mid-File `#include` Directives in `dqc_ast.cpp`**:
+   - **Resolution:** Removed the duplicate mid-file `#include "otype_anyvalue.h"` and `#include "../types/otype_anyvalue.h"` from `compiler/ast/dqc_ast.cpp`.
+5. **Redundant Implicit Constructor/Destructor Logic in `ODqCompParser::ParseObjectDecl`**:
+   - **Resolution:** Simplified implicit constructor generation in `ODqCompParser::ParseObjectDecl` (`compiler/parser/dqc_parser.cpp`) to pass `inherited_ctor` directly to `AddGeneratedObjectConstructor`, and removed the redundant `needs_implicit_dtor` constant check around `AddGeneratedObjectDestructor`.
 
 ### 2.4 Subtle Bugs & Inconsistencies
 1. **Inline Assembly Dialect Hardcoding in `OValSymFunc::GenerateFuncBody`**:

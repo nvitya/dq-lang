@@ -53,12 +53,7 @@ public:
   void GenerateSignalMemoryAccesses();
 
   OValSymFunc * DqExceptionFunc(const string & name);
-  LlValue *     DqExceptionActiveValue();
   LlValue *     DqCurrentExceptionValue();
-  void          DqClearException();
-  void          DqBeginCatch();
-  void          DqEndCatch();
-  void          EmitExceptionEscapeCheck(LlBasicBlock * active_bb, LlBasicBlock * normal_bb);
   void          EmitActiveFinallyBlocks();
   void          GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBlock * bb_match, LlBasicBlock * bb_next);
   void          EnsurePersonalityFn(LlFunction * func);

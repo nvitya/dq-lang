@@ -97,6 +97,8 @@ public:
   static LlValue * GenerateWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
                                       OExpr * end_expr, bool end_inclusive);
   static LlValue * GenerateToWchars(OScope * scope, OExpr * receiver);
+  static LlValue * GenerateMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,
+                                      const vector<OExpr *> & args);
 
   static LlValue * GenerateCompare(OScope * scope, OExpr * left, OExpr * right);
 };
@@ -206,28 +208,3 @@ LlValue * CallTextFormatFunc(OScope * scope, const string & name, vector<LlValue
 LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr,
                                   LlValue ** temporary_string_address = nullptr);
 LlValue * GenerateTextInfoValue(OScope * scope, OExpr * expr, LlValue ** temporary_string_address = nullptr);
-
-void GenerateStringCreate(OScope * scope, LlValue * straddr);
-void GenerateStringIncRef(OScope * scope, LlValue * straddr);
-void GenerateStringDestroy(OScope * scope, LlValue * straddr);
-bool GenerateStringAssignExpr(OScope * scope, LlValue * targetaddr, OExpr * value);
-
-LlValue * GenerateStringLength(OScope * scope, OType * strtype, LlValue * straddr);
-LlValue * GenerateStringPChar(OScope * scope, OType * strtype, LlValue * straddr);
-LlValue * GenerateStringCapacity(OScope * scope, OType * strtype, LlValue * straddr);
-LlValue * GenerateStringRefCount(OScope * scope, OType * strtype, LlValue * straddr);
-LlValue * GenerateStringEqual(OScope * scope, OExpr * left, OExpr * right);
-LlValue * GenerateStringConcat(OScope * scope, OExpr * left, OExpr * right);
-LlValue * GenerateStringConcatFromStringValue(OScope * scope, LlValue * leftvalue, OExpr * right);
-LlValue * GenerateStringGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index);
-LlValue * GenerateStringCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
-void GenerateStringSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value);
-LlValue * GenerateStringSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                              OExpr * end_expr, bool end_inclusive);
-LlValue * GenerateStringWcLen(OScope * scope, OLValueExpr * receiver);
-LlValue * GenerateStringWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index);
-LlValue * GenerateStringWCharSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
-                                   OExpr * end_expr, bool end_inclusive);
-LlValue * GenerateStringToWchars(OScope * scope, OExpr * receiver);
-LlValue * GenerateStringMethodCall(OScope * scope, OExpr * receiver, EStringMethod method,
-                                   const vector<OExpr *> & args);

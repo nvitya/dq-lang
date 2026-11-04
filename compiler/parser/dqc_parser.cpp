@@ -2811,29 +2811,18 @@ void ODqCompParser::ParseObjectDecl()
     need_generated_ctors = false;
   }
 
-  bool needs_implicit_ctor = need_generated_ctors;
-
-  if (needs_implicit_ctor)
+  if (need_generated_ctors)
   {
-    if (object_type->base_type)
+    OValSymFunc * inherited_ctor = (object_type->base_type
+        ? object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0)
+        : nullptr);
+    if (object_type->base_type && !inherited_ctor)
     {
-      if (!object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0))
-      {
-        Error(DQERR_OVERLOAD_NO_MATCH, "Create");
-        needs_implicit_ctor = false;
-      }
+      Error(DQERR_OVERLOAD_NO_MATCH, "Create");
     }
-  }
-
-  if (needs_implicit_ctor)
-  {
-    OValSymFunc * ctor = AddGeneratedObjectConstructor(object_type, nullptr, scpos_statement_start, 1);
-    if (object_type->base_type)
+    else
     {
-      OValSymFunc * inherited_ctor = object_type->GetBaseObject()->FindSpecialMethod(OSF_CREATE, 0);
-      auto * stmt = new OStmtInheritedCall(scpos_statement_start, ctor, inherited_ctor);
-      stmt->emit_derived_field_init = true;
-      ctor->body->stlist.push_back(stmt);
+      AddGeneratedObjectConstructor(object_type, inherited_ctor, scpos_statement_start, 1);
     }
   }
 
@@ -2842,12 +2831,7 @@ void ODqCompParser::ParseObjectDecl()
     OValSymFunc * inherited_dtor = (object_type->base_type
         ? object_type->GetBaseObject()->FindSpecialMethod(OSF_DESTROY)
         : nullptr);
-    bool needs_implicit_dtor = true;
-
-    if (needs_implicit_dtor)
-    {
-      AddGeneratedObjectDestructor(object_type, inherited_dtor, scpos_statement_start);
-    }
+    AddGeneratedObjectDestructor(object_type, inherited_dtor, scpos_statement_start);
   }
 
   object_type->UpdateObjectInheritanceFlags();

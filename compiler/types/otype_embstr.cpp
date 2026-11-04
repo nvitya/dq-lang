@@ -77,13 +77,6 @@ static LlValue * LlNativeInt(uint64_t value)
   return llvm::ConstantInt::get(g_builtins->type_int->GetLlType(), value);
 }
 
-static LlType * LlNativeIntType()
-{
-  return g_builtins->type_int->GetLlType();
-}
-
-
-
 static OValSymFunc * EmbStrFunc(const string & name)
 {
   auto nsit = g_namespaces.find("__dq_strfunc");
@@ -296,102 +289,6 @@ static void CallEmbStrStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
   }
 
   CallEmbStrFunc("EmbStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
-}
-
-static void GetEmbStrCopySource(OScope * scope, OExpr * srcexpr, LlValue *& rsrcptr, LlValue *& rsrclimit)
-{
-  OTypeEmbStr * srctype = dynamic_cast<OTypeEmbStr *>(srcexpr->ResolvedType());
-  if (!srctype)
-  {
-    rsrcptr = srcexpr->Generate(scope);
-    rsrclimit = llvm::ConstantInt::getSigned(LlNativeIntType(), -1);
-    return;
-  }
-
-  if (srctype->maxlen > 0)
-  {
-    LlValue * srcaddr = nullptr;
-    if (auto * srclval = dynamic_cast<OLValueExpr *>(srcexpr))
-    {
-      srcaddr = srclval->GenerateAddress(scope);
-    }
-    else
-    {
-      auto * src_alloca = CreateEntryBlockAlloca(srctype->GetLlType(), nullptr, "embstr.src.tmp");
-      src_alloca->setAlignment(llvm::Align(EffectiveStorageAlign(srctype)));
-      srcaddr = src_alloca;
-      ll_builder.CreateStore(srcexpr->Generate(scope), srcaddr);
-    }
-
-    LlValue * ll_zero = LlNativeInt(0);
-    rsrcptr = ll_builder.CreateGEP(srctype->GetLlType(), srcaddr, {ll_zero, ll_zero}, "embstr.src.ptr");
-    rsrclimit = LlNativeInt(srctype->maxlen - 1);
-    return;
-  }
-
-  LlValue * descaddr = srcexpr->Generate(scope);
-  LlValue * ptraddr = ll_builder.CreateStructGEP(OTypeEmbStr::GetDescriptorLlType(), descaddr, 0, "embstr.src.ptr.addr");
-  LlValue * lenaddr = ll_builder.CreateStructGEP(OTypeEmbStr::GetDescriptorLlType(), descaddr, 1, "embstr.src.len.addr");
-  rsrcptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.src.ptr");
-  rsrclimit = ToNativeInt(ll_builder.CreateLoad(LlEmbStrLenType(), lenaddr, "embstr.src.size"));
-}
-
-static void EmitSizedEmbStrCopy(OScope * scope, LlValue * dstdaddr, OTypeEmbStr * dsttype, OExpr * srcexpr)
-{
-  LlValue * ll_zero = LlNativeInt(0);
-  LlValue * ll_one = LlNativeInt(1);
-  LlValue * ll_i8_zero = llvm::ConstantInt::get(LlType::getInt8Ty(ll_ctx), 0);
-  LlValue * ll_dstptr = ll_builder.CreateGEP(dsttype->GetLlType(), dstdaddr, {ll_zero, ll_zero}, "embstr.dst.ptr");
-
-  if (dsttype->maxlen <= 1)
-  {
-    LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_zero}, "embstr.dst.null");
-    ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
-    return;
-  }
-
-  LlValue * ll_srcptr = nullptr;
-  LlValue * ll_srclimit = nullptr;
-  GetEmbStrCopySource(scope, srcexpr, ll_srcptr, ll_srclimit);
-
-  LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
-  LlBasicBlock * entry_bb = ll_builder.GetInsertBlock();
-  LlBasicBlock * cond_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.cond", ll_func);
-  LlBasicBlock * load_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.load", ll_func);
-  LlBasicBlock * store_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.store", ll_func);
-  LlBasicBlock * end_bb = LlBasicBlock::Create(ll_ctx, "embstr.copy.end", ll_func);
-
-  LlValue * ll_copy_limit = LlNativeInt(dsttype->maxlen - 1);
-
-  ll_builder.CreateBr(cond_bb);
-
-  ll_builder.SetInsertPoint(cond_bb);
-  llvm::PHINode * ll_i = ll_builder.CreatePHI(LlNativeIntType(), 2, "embstr.copy.i");
-  ll_i->addIncoming(ll_zero, entry_bb);
-  LlValue * ll_dst_room = ll_builder.CreateICmpULT(ll_i, ll_copy_limit, "embstr.copy.dst_room");
-  LlValue * ll_src_room = ll_builder.CreateICmpULT(ll_i, ll_srclimit, "embstr.copy.src_room");
-  LlValue * ll_can_copy = ll_builder.CreateAnd(ll_dst_room, ll_src_room, "embstr.copy.can_copy");
-  ll_builder.CreateCondBr(ll_can_copy, load_bb, end_bb);
-
-  ll_builder.SetInsertPoint(load_bb);
-  LlValue * ll_srcchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_srcptr, {ll_i}, "embstr.src.ch.ptr");
-  LlValue * ll_srcch = ll_builder.CreateLoad(LlType::getInt8Ty(ll_ctx), ll_srcchptr, "embstr.src.ch");
-  LlValue * ll_is_null = ll_builder.CreateICmpEQ(ll_srcch, ll_i8_zero, "embstr.src.is_null");
-  ll_builder.CreateCondBr(ll_is_null, end_bb, store_bb);
-
-  ll_builder.SetInsertPoint(store_bb);
-  LlValue * ll_dstchptr = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_i}, "embstr.dst.ch.ptr");
-  ll_builder.CreateStore(ll_srcch, ll_dstchptr);
-  LlValue * ll_i_next = ll_builder.CreateAdd(ll_i, ll_one, "embstr.copy.i.next");
-  ll_i->addIncoming(ll_i_next, store_bb);
-  ll_builder.CreateBr(cond_bb);
-
-  ll_builder.SetInsertPoint(end_bb);
-  llvm::PHINode * ll_term_index = ll_builder.CreatePHI(LlNativeIntType(), 2, "embstr.term.i");
-  ll_term_index->addIncoming(ll_i, cond_bb);
-  ll_term_index->addIncoming(ll_i, load_bb);
-  LlValue * ll_dstnull = ll_builder.CreateGEP(LlType::getInt8Ty(ll_ctx), ll_dstptr, {ll_term_index}, "embstr.dst.null");
-  ll_builder.CreateStore(ll_i8_zero, ll_dstnull);
 }
 
 bool OTypeEmbStr::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr)

@@ -78,11 +78,6 @@ OValSymFunc * ODqCompCodegen::DqExceptionFunc(const string & name)
   return nullptr;
 }
 
-LlValue * ODqCompCodegen::DqExceptionActiveValue()
-{
-  return nullptr;
-}
-
 LlValue * ODqCompCodegen::DqCurrentExceptionValue()
 {
   if (!ll_current_exc_storage)
@@ -105,44 +100,6 @@ void ODqCompCodegen::EnsurePersonalityFn(LlFunction * func)
   llvm::FunctionCallee pers_fn = ll_module->getOrInsertFunction(personality_name,
       LlFuncType::get(llvm::Type::getInt32Ty(ll_ctx), {}, true));
   func->setPersonalityFn(llvm::cast<llvm::Constant>(pers_fn.getCallee()));
-}
-
-void ODqCompCodegen::DqClearException()
-{
-  OValSymFunc * fn = DqExceptionFunc("DqExcClear");
-  if (fn && fn->ll_func)
-  {
-    ll_builder.CreateCall(fn->ll_func, {});
-  }
-}
-
-void ODqCompCodegen::DqBeginCatch()
-{
-  OValSymFunc * fn = DqExceptionFunc("DqExcBeginCatch");
-  if (fn && fn->ll_func)
-  {
-    ll_builder.CreateCall(fn->ll_func, {});
-  }
-}
-
-void ODqCompCodegen::DqEndCatch()
-{
-  OValSymFunc * fn = DqExceptionFunc("DqExcEndCatch");
-  if (fn && fn->ll_func)
-  {
-    ll_builder.CreateCall(fn->ll_func, {});
-  }
-}
-
-void ODqCompCodegen::EmitExceptionEscapeCheck(LlBasicBlock * active_bb, LlBasicBlock * normal_bb)
-{
-  LlValue * active = DqExceptionActiveValue();
-  if (!active)
-  {
-    ll_builder.CreateBr(normal_bb);
-    return;
-  }
-  ll_builder.CreateCondBr(active, active_bb, normal_bb);
 }
 
 void ODqCompCodegen::EmitActiveFinallyBlocks()

@@ -2229,7 +2229,6 @@ LlValue * ONewExpr::Generate(OScope * scope)
     }
     cleanup.Prepare();
     scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()), ctor_func->ll_func, ll_args);
-    EmitExpressionExceptionCheck(scope);
     cleanup.Cleanup();
   }
 
@@ -2330,7 +2329,6 @@ LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
       ll_calltype = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
     }
     scope->GenerateCallOrInvoke(ll_calltype, ll_ctor, ll_args);
-    EmitExpressionExceptionCheck(scope);
     ll_builder.CreateBr(bb_done);
 
     ll_builder.SetInsertPoint(bb_done);
@@ -2952,11 +2950,7 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
     LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
         {ll_slot_index}, "vslot.addr");
     LlValue * ll_callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "vcallee");
-    
-    LlValue * result = scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
-    
-    EmitExpressionExceptionCheck(scope);
-    return result;
+    return scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(tfunc->GetLlType()), ll_callee, ll_args);
   }
 
   LlFunction * ll_func = vsfunc->ll_func;
@@ -2975,10 +2969,7 @@ LlValue * GenerateFunctionCall(OScope * scope, OValSymFunc * vsfunc,
         ? embstrtype->GenerateDescriptor(scope, address) : address);
   }
   call_args.insert(call_args.end(), ll_args.begin(), ll_args.end());
-  LlValue * result = scope->GenerateCallOrInvoke(vsfunc->GetLlFunctionType(), ll_func, call_args);
-
-  EmitExpressionExceptionCheck(scope);
-  return result;
+  return scope->GenerateCallOrInvoke(vsfunc->GetLlFunctionType(), ll_func, call_args);
 }
 
 
@@ -3272,7 +3263,6 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   LlFuncType * ll_calltype = (object_ref ? sigtype->CreateObjectRefLlCallType()
                                          : static_cast<LlFuncType *>(sigtype->GetLlType()));
   LlValue * result = scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
-  EmitExpressionExceptionCheck(scope);
   cleanup.Cleanup();
   return result;
 }
@@ -3509,19 +3499,6 @@ LlValue * OCharLitToEmbStrPtrExpr::Generate(OScope * scope)
   return ll_builder.CreateGlobalString(s, ".embstr.ch");
 }
 
-/* ctor */ OEmbStrSizeExpr::OEmbStrSizeExpr(OValSym * avs)
-{
-  embstrvalsym = avs;
-  ptype = g_builtins->type_int;
-}
-
-LlValue * OEmbStrSizeExpr::Generate(OScope * scope)
-{
-  auto * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
-  OLValueVar embstrlval(embstrvalsym);
-  return embstrtype->GenerateMetaField(scope, embstrlval.GenerateAddress(scope), ESMF_STORAGE_SIZE);
-}
-
 /* ctor */ OEmbStrMetaFieldExpr::OEmbStrMetaFieldExpr(OExpr * areceiver, EEmbStrMetaField afield)
 {
   receiver = areceiver;
@@ -3598,21 +3575,6 @@ void OEmbStrMethodCallExpr::DeleteChildTree()
     arg = nullptr;
   }
   args.clear();
-}
-
-/* ctor */ OEmbStrToDescExpr::OEmbStrToDescExpr(OValSym * avs, OType * desctype)
-{
-  embstrvalsym = avs;
-  ptype = desctype;
-}
-
-LlValue * OEmbStrToDescExpr::Generate(OScope * scope)
-{
-  OTypeEmbStr * embstrtype = static_cast<OTypeEmbStr *>(embstrvalsym->ptype);
-  OLValueVar embstrlval(embstrvalsym);
-
-  LlValue * descaddr = embstrtype->GenerateDescriptor(scope, embstrlval.GenerateAddress(scope));
-  return descaddr;
 }
 
 /* ctor */ OEmbStrLValueToDescExpr::OEmbStrLValueToDescExpr(OLValueExpr * alval, OType * desctype)
@@ -3795,7 +3757,7 @@ LlValue * OStringMethodCallExpr::Generate(OScope * scope)
 {
   OCallLifetimeCleanup cleanup(scope, args);
   cleanup.Prepare();
-  LlValue * result = GenerateStringMethodCall(scope, receiver, method, args);
+  LlValue * result = OTypeString::GenerateMethodCall(scope, receiver, method, args);
   cleanup.Cleanup();
   return result;
 }

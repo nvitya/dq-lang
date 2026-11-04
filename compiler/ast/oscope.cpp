@@ -338,8 +338,3 @@ OTypeObject * OScope::GetExceptionBaseType()
   OType * type = FindType("Exception");
   return dynamic_cast<OTypeObject *>(type ? type->ResolveAlias() : nullptr);
 }
-
-void OScope::EmitExpressionExceptionCheck()
-{
-  // No-op: zero-cost exceptions handle unwinding natively via invoke and landingpad.
-}

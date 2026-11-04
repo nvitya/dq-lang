@@ -119,7 +119,6 @@ public:
   void        AddMethodUseScope(OScope * ascope);
   void        AddMethodUseRootScopes(OScope * root_scope);
   OTypeObject * GetExceptionBaseType();
-  void        EmitExpressionExceptionCheck();
 
   LlDiScope *  GetDiScope();
 

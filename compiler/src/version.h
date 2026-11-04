@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.2"
+#define DQ_COMPILER_VERSION  "0.95.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.3:
+  - Code refactoring: removed unused functions (left over after exception rework)
 v0.95.2:
   - Code refactoring: OValSymFunc::GenerateFuncBody, Checking for reserved words
 v0.95.1:

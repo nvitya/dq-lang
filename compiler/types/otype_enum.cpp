@@ -287,8 +287,7 @@ LlValue * OEnumFromOrdExpr::Generate(OScope * scope)
   {
     ll_builder.CreateCall(fn->ll_func, {});
   }
-  
-  EmitExpressionExceptionCheck(scope);
+
   if (!ll_builder.GetInsertBlock()->getTerminator()) ll_builder.CreateBr(done_bb);
   ll_builder.SetInsertPoint(done_bb);
   if (!g_opt.exceptions && !enum_type->items.empty())

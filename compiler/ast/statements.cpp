@@ -211,21 +211,6 @@ void OStmtReturn::Generate(OScope * scope)
     return;
   }
 
-  LlValue * active = g_compiler->DqExceptionActiveValue();
-  if (active)
-  {
-    LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
-    LlBasicBlock * bb_exception = LlBasicBlock::Create(ll_ctx, "return.exception", ll_func);
-    LlBasicBlock * bb_return = LlBasicBlock::Create(ll_ctx, "return.normal", ll_func);
-    ll_builder.CreateCondBr(active, bb_exception, bb_return);
-
-    ll_builder.SetInsertPoint(bb_exception);
-    scope->EmitOwnedObjectDestructorsForReturn(vsfunc);
-    vsfunc->GenerateFuncRet();
-
-    ll_builder.SetInsertPoint(bb_return);
-  }
-
   scope->EmitOwnedObjectDestructorsForReturn(vsfunc);
   vsfunc->GenerateFuncRet();
 }
@@ -740,15 +725,7 @@ void OStmtWhile::Generate(OScope * scope)
   // Jump back to condition
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    LlValue * active = g_compiler->DqExceptionActiveValue();
-    if (active)
-    {
-      ll_builder.CreateCondBr(active, ll_end_bb, ll_cond_bb);
-    }
-    else
-    {
-      ll_builder.CreateBr(ll_cond_bb);
-    }
+    ll_builder.CreateBr(ll_cond_bb);
   }
 
   ll_loop_stack.pop_back();
@@ -789,30 +766,14 @@ void OStmtFor::Generate(OScope * scope)
   body->Generate();
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    LlValue * active = g_compiler->DqExceptionActiveValue();
-    if (active)
-    {
-      ll_builder.CreateCondBr(active, ll_end_bb, ll_step_bb);
-    }
-    else
-    {
-      ll_builder.CreateBr(ll_step_bb);
-    }
+    ll_builder.CreateBr(ll_step_bb);
   }
 
   ll_builder.SetInsertPoint(ll_step_bb);
   step->Generate();
   if (!ll_builder.GetInsertBlock()->getTerminator())
   {
-    LlValue * active = g_compiler->DqExceptionActiveValue();
-    if (active)
-    {
-      ll_builder.CreateCondBr(active, ll_end_bb, ll_cond_bb);
-    }
-    else
-    {
-      ll_builder.CreateBr(ll_cond_bb);
-    }
+    ll_builder.CreateBr(ll_cond_bb);
   }
 
   ll_loop_stack.pop_back();
@@ -834,16 +795,7 @@ void OBreakStmt::Generate(OScope * scope)
   }
 
   scope->EmitOwnedObjectDestructorsUntil(ll_loop_stack.back().cleanup_scope);
-
-  LlValue * active = g_compiler->DqExceptionActiveValue();
-  if (active)
-  {
-    ll_builder.CreateCondBr(active, ll_loop_stack.back().end_bb, ll_loop_stack.back().end_bb);
-  }
-  else
-  {
-    ll_builder.CreateBr(ll_loop_stack.back().end_bb);
-  }
+  ll_builder.CreateBr(ll_loop_stack.back().end_bb);
 }
 
 void OContinueStmt::Generate(OScope * scope)
@@ -860,16 +812,7 @@ void OContinueStmt::Generate(OScope * scope)
   }
 
   scope->EmitOwnedObjectDestructorsUntil(ll_loop_stack.back().cleanup_scope);
-
-  LlValue * active = g_compiler->DqExceptionActiveValue();
-  if (active)
-  {
-    ll_builder.CreateCondBr(active, ll_loop_stack.back().end_bb, ll_loop_stack.back().cond_bb);
-  }
-  else
-  {
-    ll_builder.CreateBr(ll_loop_stack.back().cond_bb);
-  }
+  ll_builder.CreateBr(ll_loop_stack.back().cond_bb);
 }
 
 void OStmtIf::Generate(OScope * scope)
@@ -1081,7 +1024,6 @@ void OStmtTry::Generate(OScope * scope)
         }
       }
       
-      // We don't need DqBeginCatch anymore, we already have the exception
       if (finally_body)
       {
         g_compiler->ll_finally_stack.push_back(finally_body);

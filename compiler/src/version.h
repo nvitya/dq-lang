@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.0"
+#define DQ_COMPILER_VERSION  "0.95.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.1:
+  - Code refactoring: dqm_if file use constants for attribute flags
 v0.95.0:
   - refnull renamed to refnil
 v0.94.13:

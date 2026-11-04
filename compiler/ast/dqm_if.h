@@ -142,6 +142,30 @@ TDqmIfRecId  DQMIF_ATTR_LINK_NAME         = 0x8204;  // str
 TDqmIfRecId  DQMIF_ATTR_EXT_MODULE_NAME   = 0x8205;  // str
 TDqmIfRecId  DQMIF_DECL_SOURCE_POS        = 0x8206;  // str: formatted declaration source position
 
+enum EDqmIfAttrFlag : uint64_t
+{
+  DQMIF_ATTRF_OVERLOAD          = (1ull <<  0),
+  DQMIF_ATTRF_OVERRIDE          = (1ull <<  1),
+  DQMIF_ATTRF_VIRTUAL           = (1ull <<  2),
+  DQMIF_ATTRF_VOLATILE          = (1ull <<  3),
+  DQMIF_ATTRF_REF_ALIAS         = (1ull <<  4),
+  DQMIF_ATTRF_REF_NULLABLE      = (1ull <<  5),
+  DQMIF_ATTRF_EXTERNAL          = (1ull <<  6),
+  DQMIF_ATTRF_HAS_LINKAGE_NAME  = (1ull <<  7),
+  DQMIF_ATTRF_OBJECT_REF        = (1ull <<  8),
+  DQMIF_ATTRF_OBJECT_FIXED      = (1ull <<  9),
+  DQMIF_ATTRF_PRIVATE           = (1ull << 10),
+  DQMIF_ATTRF_PROTECTED         = (1ull << 11),
+  DQMIF_ATTRF_ABSTRACT          = (1ull << 12),
+  DQMIF_ATTRF_FINAL             = (1ull << 13),
+  DQMIF_ATTRF_INLINE            = (1ull << 14),
+  DQMIF_ATTRF_ALWAYS_INLINE     = (1ull << 15),
+  DQMIF_ATTRF_NOINLINE          = (1ull << 16),
+  DQMIF_ATTRF_NOREAD            = (1ull << 17),
+  DQMIF_ATTRF_NOWRITE           = (1ull << 18),
+  DQMIF_ATTRF_USED              = (1ull << 19),
+};
+
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
 TDqmIfRecId  DQMIF_ALIGN_SPEC             = 0x8305;  // int32: storage alignment (structs / objects)
 

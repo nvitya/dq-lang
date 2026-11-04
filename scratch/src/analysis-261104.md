@@ -24,6 +24,7 @@
 3. [Harder-to-Maintain Parts & Architectural Bottlenecks](#3-harder-to-maintain-parts--architectural-bottlenecks)
    - [3.1 Single-Inheritance "God Object" Compiler Hierarchy & Global State](#31-single-inheritance-god-object-compiler-hierarchy--global-state)
    - [3.2 Oversized Translation Units & Very Long Functions](#32-oversized-translation-units--very-long-functions)
+4. [Fixed Issues](#4-fixed-issues)
    - [3.3 Hardcoded Magic Bitflags in DQM Interface Serialization](#33-hardcoded-magic-bitflags-in-dqm-interface-serialization)
 
 ---
@@ -227,10 +228,14 @@ Several files and functions have grown very large and mix distinct responsibilit
   - `ODqCompParserStmt::ParseStmtVar` (`dqc_parser_stmt.cpp:136-456`, ~320 lines) interleaves embedded object construction (`<-`), type inference (`?`), `tryfrom`, global constant-init evaluation, and local variable initialization.
   - `ODqCompParserExpr::ParseExprPrimary` (`dqc_parser_expr.cpp:3245-3618`, ~373 lines) and `ParsePostfixDotMember` (`dqc_parser_expr.cpp:2865-3153`, ~288 lines).
 
-### 3.3 Hardcoded Magic Bitflags in DQM Interface Serialization
-Symbol attribute flags in `.dqm` interface files (`1u << 0` through `1ull << 19`) are written and read using raw shift literals in three separate files:
-- `OValSym::WriteDqmIfAttributes` (`compiler/ast/symbols.cpp:681-700`)
-- `OValSymFunc::WriteDqmIfFunction` (`compiler/types/otype_func.cpp:94` — `if (is_external) flags |= 1u << 6;`)
-- `ApplyDqmIfAttributes` and `OModuleIntf::ReadFunctionDecl` (`compiler/ast/module_intf.cpp:2150-2175, 2557`)
+---
 
-Defining named `DQMIF_ATTRF_*` constants in `compiler/ast/dqm_if.h` will make the binary format self-documenting and prevent silent bit-mismatch bugs.
+## 4. Fixed Issues
+
+### 3.3 Hardcoded Magic Bitflags in DQM Interface Serialization
+Symbol attribute flags in `.dqm` interface files (`1u << 0` through `1ull << 19`) were written and read using raw shift literals in three separate files:
+- `OValSym::WriteDqmIfAttributes` (`compiler/ast/symbols.cpp`)
+- `OValSymFunc::WriteDqmIfFunction` (`compiler/types/otype_func.cpp`)
+- `ApplyDqmIfAttributes` and `OModuleIntf::ReadFunctionDecl` (`compiler/ast/module_intf.cpp`)
+
+**Resolution:** Defined `enum EDqmIfAttrFlag : uint64_t` (`DQMIF_ATTRF_*`) in `compiler/ast/dqm_if.h` and replaced all raw bit-shift literals across serialization and deserialization sites.

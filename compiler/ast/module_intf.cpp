@@ -2205,33 +2205,33 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
     return false;
   }
 
-  avalsym->attr_is_overload = (attrs.flags & (1u << 0));
-  avalsym->attr_is_override = (attrs.flags & (1u << 1));
-  avalsym->attr_is_virtual  = (attrs.flags & (1u << 2));
-  avalsym->attr_is_volatile = (attrs.flags & (1u << 3));
-  avalsym->is_ref_alias     = (attrs.flags & (1u << 4));
-  avalsym->ref_nullable     = (attrs.flags & (1u << 5));
-  avalsym->attr_is_external = (!dynamic_cast<OValSymFunc *>(avalsym) && (attrs.flags & (1u << 6)));
-  avalsym->attr_has_linkage_name = (attrs.flags & (1u << 7));
-  if (attrs.flags & (1u << 8))
+  avalsym->attr_is_overload = (attrs.flags & DQMIF_ATTRF_OVERLOAD);
+  avalsym->attr_is_override = (attrs.flags & DQMIF_ATTRF_OVERRIDE);
+  avalsym->attr_is_virtual  = (attrs.flags & DQMIF_ATTRF_VIRTUAL);
+  avalsym->attr_is_volatile = (attrs.flags & DQMIF_ATTRF_VOLATILE);
+  avalsym->is_ref_alias     = (attrs.flags & DQMIF_ATTRF_REF_ALIAS);
+  avalsym->ref_nullable     = (attrs.flags & DQMIF_ATTRF_REF_NULLABLE);
+  avalsym->attr_is_external = (!dynamic_cast<OValSymFunc *>(avalsym) && (attrs.flags & DQMIF_ATTRF_EXTERNAL));
+  avalsym->attr_has_linkage_name = (attrs.flags & DQMIF_ATTRF_HAS_LINKAGE_NAME);
+  if (attrs.flags & DQMIF_ATTRF_OBJECT_REF)
   {
     if (auto * objsym = dynamic_cast<OVsObject *>(avalsym))
     {
       objsym->SetObjectStorage(OSK_OBJECT_REF);
     }
   }
-  else if (attrs.flags & (1u << 9))
+  else if (attrs.flags & DQMIF_ATTRF_OBJECT_FIXED)
   {
     if (auto * objsym = dynamic_cast<OVsObject *>(avalsym))
     {
       objsym->SetObjectStorage(OSK_OBJECT_FIXED);
     }
   }
-  if (attrs.flags & (1u << 10))
+  if (attrs.flags & DQMIF_ATTRF_PRIVATE)
   {
     avalsym->member_visibility = MV_PRIVATE;
   }
-  else if (attrs.flags & (1u << 11))
+  else if (attrs.flags & DQMIF_ATTRF_PROTECTED)
   {
     avalsym->member_visibility = MV_PROTECTED;
   }
@@ -2239,14 +2239,14 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   {
     avalsym->member_visibility = MV_PUBLIC;
   }
-  avalsym->attr_is_abstract = (attrs.flags & (1u << 12));
-  avalsym->attr_is_final    = (attrs.flags & (1u << 13));
-  avalsym->attr_is_inline        = (attrs.flags & (1ull << 14));
-  avalsym->attr_is_always_inline = (attrs.flags & (1ull << 15));
-  avalsym->attr_is_noinline      = (attrs.flags & (1ull << 16));
-  avalsym->attr_no_read          = (attrs.flags & (1ull << 17));
-  avalsym->attr_no_write         = (attrs.flags & (1ull << 18));
-  avalsym->attr_is_used          = (attrs.flags & (1ull << 19));
+  avalsym->attr_is_abstract = (attrs.flags & DQMIF_ATTRF_ABSTRACT);
+  avalsym->attr_is_final    = (attrs.flags & DQMIF_ATTRF_FINAL);
+  avalsym->attr_is_inline        = (attrs.flags & DQMIF_ATTRF_INLINE);
+  avalsym->attr_is_always_inline = (attrs.flags & DQMIF_ATTRF_ALWAYS_INLINE);
+  avalsym->attr_is_noinline      = (attrs.flags & DQMIF_ATTRF_NOINLINE);
+  avalsym->attr_no_read          = (attrs.flags & DQMIF_ATTRF_NOREAD);
+  avalsym->attr_no_write         = (attrs.flags & DQMIF_ATTRF_NOWRITE);
+  avalsym->attr_is_used          = (attrs.flags & DQMIF_ATTRF_USED);
   avalsym->attr_external_linkage_name = (dynamic_cast<OValSymFunc *>(avalsym) ? "" : attrs.external_linkage_name);
   avalsym->attr_linkage_name = attrs.linkage_name;
   avalsym->attr_align = attrs.align;
@@ -2807,7 +2807,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   fn->owner_module_name = name;
   fn->special_kind = special_kind;
   ApplyDqmIfAttributes(fn, attrs);
-  fn->is_external = (attrs.flags & (1u << 6));
+  fn->is_external = (attrs.flags & DQMIF_ATTRF_EXTERNAL);
   fn->external_linkage_name = attrs.external_linkage_name;
   fn->external_module_name = attrs.external_module_name;
   if (is_inline_asm)

@@ -101,7 +101,7 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
   if (!declaration_pos.empty() && !writer.AddRecStr(DQMIF_DECL_SOURCE_POS, declaration_pos)) return false;
 
   uint64_t flags = 0;
-  if (is_external) flags |= 1u << 6;
+  if (is_external) flags |= DQMIF_ATTRF_EXTERNAL;
   if (!WriteDqmIfAttributes(writer, flags)) return false;
   if (!external_linkage_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;

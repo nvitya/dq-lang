@@ -815,27 +815,27 @@ uint32_t EffectiveStorageAlign(OType * atype, uint32_t aattr_align)
 bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
 {
   uint64_t flags = aextra_flags;
-  if (attr_is_overload) flags |= 1u << 0;
-  if (attr_is_override) flags |= 1u << 1;
-  if (attr_is_virtual)  flags |= 1u << 2;
-  if (attr_is_volatile) flags |= 1u << 3;
-  if (is_ref_alias)     flags |= 1u << 4;
-  if (ref_nullable)     flags |= 1u << 5;
-  if (attr_is_external) flags |= 1u << 6;
-  if (attr_has_linkage_name) flags |= 1u << 7;
+  if (attr_is_overload) flags |= DQMIF_ATTRF_OVERLOAD;
+  if (attr_is_override) flags |= DQMIF_ATTRF_OVERRIDE;
+  if (attr_is_virtual)  flags |= DQMIF_ATTRF_VIRTUAL;
+  if (attr_is_volatile) flags |= DQMIF_ATTRF_VOLATILE;
+  if (is_ref_alias)     flags |= DQMIF_ATTRF_REF_ALIAS;
+  if (ref_nullable)     flags |= DQMIF_ATTRF_REF_NULLABLE;
+  if (attr_is_external) flags |= DQMIF_ATTRF_EXTERNAL;
+  if (attr_has_linkage_name) flags |= DQMIF_ATTRF_HAS_LINKAGE_NAME;
   auto * objsym = dynamic_cast<OVsObject *>(this);
-  if (objsym && objsym->IsObjectReference())   flags |= 1u << 8;
-  if (objsym && objsym->IsFixedObjectStorage()) flags |= 1u << 9;
-  if (MV_PRIVATE == member_visibility)   flags |= 1u << 10;
-  if (MV_PROTECTED == member_visibility) flags |= 1u << 11;
-  if (attr_is_abstract) flags |= 1u << 12;
-  if (attr_is_final)    flags |= 1u << 13;
-  if (attr_is_inline)        flags |= 1ull << 14;
-  if (attr_is_always_inline) flags |= 1ull << 15;
-  if (attr_is_noinline)      flags |= 1ull << 16;
-  if (attr_no_read)          flags |= 1ull << 17;
-  if (attr_no_write)         flags |= 1ull << 18;
-  if (attr_is_used)          flags |= 1ull << 19;
+  if (objsym && objsym->IsObjectReference())   flags |= DQMIF_ATTRF_OBJECT_REF;
+  if (objsym && objsym->IsFixedObjectStorage()) flags |= DQMIF_ATTRF_OBJECT_FIXED;
+  if (MV_PRIVATE == member_visibility)   flags |= DQMIF_ATTRF_PRIVATE;
+  if (MV_PROTECTED == member_visibility) flags |= DQMIF_ATTRF_PROTECTED;
+  if (attr_is_abstract) flags |= DQMIF_ATTRF_ABSTRACT;
+  if (attr_is_final)    flags |= DQMIF_ATTRF_FINAL;
+  if (attr_is_inline)        flags |= DQMIF_ATTRF_INLINE;
+  if (attr_is_always_inline) flags |= DQMIF_ATTRF_ALWAYS_INLINE;
+  if (attr_is_noinline)      flags |= DQMIF_ATTRF_NOINLINE;
+  if (attr_no_read)          flags |= DQMIF_ATTRF_NOREAD;
+  if (attr_no_write)         flags |= DQMIF_ATTRF_NOWRITE;
+  if (attr_is_used)          flags |= DQMIF_ATTRF_USED;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;

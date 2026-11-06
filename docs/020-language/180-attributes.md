@@ -3,7 +3,8 @@
 An **attribute** gives the compiler extra instructions about a declaration.
 You have already seen examples such as `[[overload]]` for functions with the
 same name and `[[virtual]]` for object methods. Other attributes control
-optimization, memory layout, or access to external code.
+optimization, memory layout, or access to external code. Most ordinary DQ code
+needs no attributes; add one when a declaration needs a specific behavior.
 
 Write attributes inside `[[...]]` next to the declaration they affect:
 
@@ -23,16 +24,24 @@ This prints `42`. `[[inline]]` asks the compiler to consider putting the
 function's code directly at its call sites. It does not change how you call
 `Double` or the values it accepts.
 
-## Syntax and Attribute Summary
+## Writing Attributes
 
-An attribute can go before a declaration or in its supported trailing position.
-Combine attributes in one list, separated by commas:
+An attribute belongs to the declaration beside it; it does not set a mode for
+the rest of the file. Function attributes go after the parameter list and
+optional result type, before `:` for a body or `..` for a declaration. An
+attribute can also go before a declaration or in another supported trailing
+position, as the field and global examples below show.
+
+Some attributes take arguments, such as the symbol name in
+`[[external('puts')]]`. Combine attributes in one list, separated by commas:
 
 ```dq
 func DefaultHandler() [[weak, cexport]]:
     // fallback implementation
 endfunc
 ```
+
+## Attribute Summary
 
 Not every attribute applies to every declaration. Use the table to find the
 attribute for your task; less common details follow the examples.
@@ -65,6 +74,13 @@ and above.
 
 Inlining across module boundaries requires full link-time optimization
 (`--lto=full`), which lets the optimizer see function bodies from other modules.
+
+### Optimization Levels
+
+At `-O1`, only functions marked `inline` or `always_inline` are eligible for
+inlining. Unmarked definitions receive LLVM's `noinline` attribute, including
+in full LTO builds. An explicit `noinline` still prevents inlining of a function
+marked `inline`. Higher optimization levels can also inline unmarked functions.
 
 ## Linkage and Placement
 
@@ -112,6 +128,11 @@ by the target. See [Structures and Unions](100-structures-and-unions.md#structur
 
 ## Volatile and Register Access
 
+A hardware register is a memory location through which a program communicates
+with a device. Reading it may observe changing device state; writing it may
+start an operation. `volatile` tells the compiler to preserve those accesses
+even when ordinary memory optimizations could remove them.
+
 Hardware registers often live at fixed memory addresses. Register attributes
 let a declaration say whether each register can be read, written, or both:
 
@@ -123,7 +144,11 @@ struct SDeviceRegisters:
 endstruct
 ```
 
-They expand to the fundamental access attributes:
+This structure describes the register layout; declaring the type alone does
+not connect it to a device. Code for a particular board must obtain the correct
+base address before accessing its fields through a pointer.
+
+The register attributes expand to the fundamental access attributes:
 
 | Register attribute | Equivalent attributes | Allowed operations |
 | --- | --- | --- |
@@ -136,6 +161,14 @@ A modify-assignment such as `|=` reads and writes its target and therefore needs
 both operations to be allowed. `noread` and `nowrite` cannot be combined on the
 same declaration. These restrictions apply to direct global, field, and
 fixed-array-element access and are retained through module interfaces.
+
+### Access Limitations
+
+Volatile accesses are observable compiler operations, but they are not atomic
+and do not imply a CPU or compiler memory barrier. Taking an address or binding
+a reference currently discards `noread` and `nowrite`; this is an explicit
+low-level escape. Whole-structure initialization and copying also do not yet
+apply the access restrictions of individual fields.
 
 ## Weak Attribute
 
@@ -151,21 +184,6 @@ endfunc
 
 `weak` does not change the name by itself. It takes no arguments and applies
 only to module-level function definitions, not external declarations or methods.
-
-## Optimization Details
-
-At `-O1`, only functions marked `inline` or `always_inline` are eligible for
-inlining. Unmarked definitions receive LLVM's `noinline` attribute, including
-in full LTO builds. An explicit `noinline` still prevents inlining of a function
-marked `inline`. Higher optimization levels can also inline unmarked functions.
-
-## Access Details and Limitations
-
-Volatile accesses are observable compiler operations, but they are not atomic
-and do not imply a CPU or compiler memory barrier. Taking an address or binding
-a reference currently discards `noread` and `nowrite`; this is an explicit
-low-level escape. Whole-structure initialization and copying also do not yet
-apply the access restrictions of individual fields.
 
 ## Validity and Conflicts
 

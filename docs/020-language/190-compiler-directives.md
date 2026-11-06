@@ -42,7 +42,9 @@ target settings.
 Definitions belong to the `@def` namespace and are normally available by their
 short names. Use `@def.BUFFER_SIZE` if a local declaration has the same name.
 DQ definitions provide constant values; they do not perform C-style textual
-macro substitution.
+macro substitution. For ordinary program constants, use `const`. Definitions
+are useful when the build configuration and conditional compilation need to
+refer to the same setting.
 
 ## Conditional Compilation
 
@@ -65,7 +67,8 @@ endfunc
 
 Only the selected branch becomes part of the program. Other branches are
 skipped before normal DQ parsing, although their nested conditional directives
-must still balance.
+must still balance. This lets a source file contain declarations or assembly
+instructions that are valid only for the selected platform.
 
 | Directive | Effect |
 | --- | --- |
@@ -134,6 +137,17 @@ is relative to the module root.
 Put `#include_once` at the start of an included fragment when it should be
 processed only once. Later inclusions skip the rest of that file. This is
 separate from `use`, which already imports a module as one shared instance.
+For example, save this fragment as `shared.dqi` beside your main file:
+
+```dq
+#include_once
+const MAX_ITEMS : int = 16
+```
+
+The main file can include it more than once, directly or through other
+fragments, without declaring `MAX_ITEMS` twice. Included declarations appear
+in the scope where the include occurs; the fragment has no separate module
+namespace.
 
 ### Separate Header Files
 
@@ -244,9 +258,19 @@ If an implementation include affects the compiled module, declare it before
 
 ```dq
 #srcdep "somefunc_impl.dqi"
+
+func Calculate(value : int) -> int ..
+
+implementation
+
+#include "somefunc_impl.dqi"
 ```
 
-This records the dependency without inserting its contents there. `#srcdep`
+Here `somefunc_impl.dqi` contains the body of `Calculate`. `#include` inserts
+that body where it belongs, while the earlier `#srcdep` tells the build system
+that a change to the fragment can require recompiling the module.
+
+`#srcdep` records the dependency without inserting its contents there. It
 uses the same path lookup as `#include` and records only the named file; it does
 not parse that file or discover its dependencies.
 

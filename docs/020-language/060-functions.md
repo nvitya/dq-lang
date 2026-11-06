@@ -78,9 +78,9 @@ before reading or writing when the caller may have supplied `nil`.
 
 `[]T`, `rostr`, `strslice`, and unsized `embstr` borrow storage even when their
 descriptors are passed by value. A normal object/pointer parameter borrows an
-`autofree` argument; `ref` parameters preserve its ownership qualification
-exactly. Ownership restrictions are in
-[Memory Management and Ownership](130-memory-management-and-ownership.md).
+autofree variable; `ref` parameters preserve its `autofree` qualification
+exactly. Autofree type restrictions are in
+[Memory Management and Autofree](130-memory-management-and-ownership.md).
 
 ## Default Arguments
 

@@ -241,14 +241,16 @@ In `OConnection("example.com")`, the argument `"example.com"` is passed to
 `*Create`. If an object does not declare a constructor, you create it with empty
 parentheses: `OType()`.
 
-### Heap Objects and Owners (`new` and `autofree`)
+### Heap Objects and Autofree Variables (`new` and `autofree`)
 
 The **heap** is general memory where values can live independently of any
 single function call. Using `new` allocates memory for the object on the heap.
 
-Adding `autofree` makes the variable an **owner**. The owner is responsible for
-the heap object and destroys it automatically when the variable goes out of
-scope, when it is set to `nil`, or when a new object is assigned to it:
+Adding `autofree` gives the variable an **autofree type**. An **autofree
+variable** destroys its heap object automatically when the variable goes out of
+scope, when it is set to `nil`, or when a new object is assigned to it. The
+variable is responsible for releasing the object, so it is also called its
+**owner**:
 
 ```dq
 var counter = new autofree OCounter()
@@ -271,8 +273,9 @@ to the object leaves those variables pointing to invalid memory, which is
 dangerous (see [dangling pointers](110-pointers.md#dangling-pointers)).
 
 Global objects are not destroyed automatically when the program finishes. See
-[Memory Management and Ownership](130-memory-management-and-ownership.md) for
-details on transferring ownership, owning arrays, and `ref autofree` parameters.
+[Memory Management and Autofree](130-memory-management-and-ownership.md) for
+details on transferring ownership, autofree array elements, and `ref autofree`
+parameters.
 
 ### Automatic Field Initialization and Cleanup
 
@@ -283,7 +286,7 @@ When an object is destroyed, the destructor body runs first. After that, DQ
 automatically cleans up the object's fields in reverse declaration order:
 - Managed strings (`str`) and dynamic arrays release their allocated storage.
 - Embedded objects are destroyed.
-- Owning fields (`autofree`) destroy the heap objects they own.
+- Autofree fields destroy the heap objects they hold.
 
 Because of this automatic cleanup, you only need to write a `*Destroy` method
 when you have custom cleanup work to do, such as closing external handles or
@@ -859,7 +862,7 @@ Calling `new` on the type variable constructs an object of whichever type was
 stored in it. The selected type must accept the constructor arguments of the
 base type. Unrelated types, abstract types, and types with incompatible
 constructors are rejected by the compiler. The returned heap object still needs
-an owner or an explicit `delete`.
+an autofree variable or an explicit `delete`.
 
 #### Querying Type Names
 
@@ -1090,7 +1093,7 @@ Method-local `use` supports the following forms:
 ### A Short Object Demo
 
 This example combines inheritance, a read-only property, an embedded helper,
-and automatic ownership. `OChild` changes a protected field and extends a
+and autofree variables. `OChild` changes a protected field and extends a
 virtual method, while `OBase` manages the helper's construction and cleanup.
 
 ```dq
@@ -1145,9 +1148,9 @@ so they can access `base.name`. The name uses `embstr(64)`, keeping its text
 storage inside the object. Because `helper` is declared after `name`, it is
 destroyed first and can still read the name during cleanup.
 
-`ErrorTest` shows that the local owner destroys its object before the exception
+`ErrorTest` shows that the local autofree variable destroys its object before the exception
 handler runs. The handler then calls `e.PrintBacktrace()`; its frames depend on
-the build and source location. The rest of `Main` demonstrates owner replacement,
+the build and source location. The rest of `Main` demonstrates autofree variable replacement,
 replacement through a `ref autofree OBase` parameter, and early destruction by
 assigning `nil`.
 
@@ -1268,7 +1271,7 @@ properties are accessed naturally by name, such as `count` and `reading[i]`.
 Because `readings` is private, external code cannot modify the array directly or
 bypass the validation logic in `Add` and `SetCapacity`.
 
-### Shapes in an Owning Array
+### Shapes in an Array with Autofree Elements
 
 This example builds a shape hierarchy. `OShape` declares an abstract `Area`
 method, and each derived shape provides its own calculation. A dynamic array of
@@ -1482,7 +1485,7 @@ func *Main():
         local.Run()
     endif
 
-    PrintLn("-- owner replacement")
+    PrintLn("-- autofree variable replacement")
     var current = new autofree OMachine("mixer")
     current.Run()
     ReplaceMachine(current)
@@ -1510,7 +1513,7 @@ pump-1: engine running
 pump-1: pumping 25 l/min
 pump-1: destroyed
 pump-1: engine destroyed
--- owner replacement
+-- autofree variable replacement
 mixer: created
 mixer: engine created
 mixer: engine running
@@ -1549,7 +1552,7 @@ up in reverse declaration order, so `engine` is destroyed before `name`, ensurin
 
 The three sections illustrate the different ways objects are cleaned up:
 - `local` is destroyed when the `if` block ends.
-- `ReplaceMachine` replaces the caller's owner via a `ref autofree` parameter,
+- `ReplaceMachine` replaces the caller's autofree variable via a `ref autofree` parameter,
   which automatically destroys `"mixer"` before assigning `"pump-2"`.
 - `temporary` is destroyed when the exception escapes the `try` block, before
   the `except` handler begins executing.

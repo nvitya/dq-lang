@@ -33,7 +33,11 @@ Run `dq-run main.dq` to compile both files and print `5`. `use` imports the
 module, `as math` gives it a short name, and `@math.Add` calls its public
 function. The trailing `--` keeps that module's names qualified.
 
-## Source Module
+The import connects two separate scopes. `Add` belongs to `math_extra.dq`;
+`Main` belongs to `main.dq`. The alias `math` is the name the importing file
+uses to reach the other module, not a rename of its source file.
+
+## Public and Private Declarations
 
 Declarations before `implementation` are public: other modules can use them.
 Declarations after it are private, except for definitions of functions already
@@ -96,7 +100,10 @@ choose which public names are available without qualification:
 | `use ./helpers exclude(Debug)` | All eligible public names except `Debug`. |
 
 `--`, `only`, and `exclude` are alternatives; do not combine them on one import.
-Qualification through the namespace remains available.
+Qualification through the namespace remains available. For example,
+`only(Read)` makes `Read` available by its short name, but does not make other
+public declarations private: they can still be reached as `@helpers.Name`.
+Use `implementation` in the defining module to hide a declaration from callers.
 
 ## Relative and Root Paths
 
@@ -111,6 +118,22 @@ Use these forms to find files within your project:
 A path cannot go above the established root. To put a main file in a
 subdirectory while importing siblings from a shared project root, see
 [Source Root Option](190-compiler-directives.md#source-root-option).
+
+For example, consider this project layout:
+
+```text
+project/
+    main.dq
+    helpers.dq
+    tools/
+        report.dq
+```
+
+From `main.dq`, `use ./helpers` imports `helpers.dq`, and `use ./tools/report`
+imports `report.dq`. From `tools/report.dq`, `use ../helpers` reaches the same
+helper module, provided `project` is the established root. If `report.dq` is
+compiled as the main file itself, set `#opt module_root_depth = 1` before its
+imports so that its parent directory is included in the root.
 
 Bare imports such as `use json` search for installed packages. The root module
 conventionally has the package name, for example `json/json.dq`.
@@ -172,8 +195,23 @@ use ./leaf only(Value, Run) reexport
 
 Use this to provide one convenient entry point for a group of modules.
 Selection and alias rules apply before reexporting, and conflicting names are
-reported as errors. Private implementation imports are not automatically part
-of your public interface.
+reported as errors. Put a reexport in the public section, before
+`implementation`.
+
+For example, a library can keep its work in `reader.dq` and `writer.dq`, and
+provide a single `storage.dq` entry point:
+
+```dq
+// storage.dq
+use ./reader only(Read) reexport
+use ./writer only(Write) reexport
+```
+
+A caller can then write `use ./storage` and use `Read` and `Write` without
+importing the two implementation modules separately. The functions still
+belong to their original modules; reexporting does not copy their code or run
+their initialization again. This fragment assumes the two companion modules
+provide those public functions.
 
 ## Method-Local Use
 

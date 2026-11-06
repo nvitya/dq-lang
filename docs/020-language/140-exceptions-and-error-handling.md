@@ -36,7 +36,19 @@ Ready for another value
 `try` block and enters the matching `except` handler. `as error` gives the
 handler a name for the exception, so it can read the message.
 
-## Raise and Match
+## Choosing How to Report Failure
+
+Use an ordinary result when the caller is expected to make a routine choice:
+for example, a search can return `false` when it finds no match. Use an exception
+when the current operation cannot continue and the caller needs to handle the
+failure or pass it on. An exception can travel through several function calls
+without every intermediate function checking and returning an error result.
+
+Place a `try` block around the operation you can recover from. After its handler
+finishes, execution continues after `endtry`; it does not retry the failed
+statement or resume the rest of the `try` body.
+
+## Raising and Matching Exceptions
 
 `Exception` is supplied by the implicit runtime when exception support is
 enabled. Its constructor accepts a message, optionally with formatting
@@ -88,7 +100,7 @@ Raising it again this way preserves the original context and backtrace. Do not
 call `delete` on the handler's exception variable; the exception machinery
 manages that object.
 
-## Finally and Lifetime
+## Cleanup with `finally`
 
 A `finally` block performs an action whenever execution leaves a `try` block.
 It runs after normal completion or a handled error, and also when an exception
@@ -116,9 +128,51 @@ handling the exception there.
 `finally` also runs when `return`, `break`, or `continue` leaves the protected
 block. It is useful for an explicit action such as restoring a setting or
 releasing an external resource. For objects owned by your code, prefer
-[automatic cleanup](130-memory-management-and-ownership.md): local owners,
+[automatic cleanup](130-memory-management-and-ownership.md): local autofree variables,
 managed values, and embedded objects already clean themselves up during exception
 propagation.
+
+### Restoring State Without Handling the Error
+
+A `finally` block is useful even when cleanup does not involve memory. This
+complete program temporarily changes a setting and restores it before a caller
+handles the error:
+
+```dq
+use print
+
+var quiet : bool = false
+
+func RunQuietly():
+    var previous : bool = quiet
+    quiet = true
+    try:
+        raise Exception("work failed")
+    finally:
+        quiet = previous
+        PrintLn("Setting restored")
+    endtry
+endfunc
+
+func *Main():
+    try:
+        RunQuietly()
+    except Exception as error:
+        PrintLn("Error: {}; quiet={}", [error.message, quiet])
+    endtry
+endfunc
+```
+
+Output:
+
+```text
+Setting restored
+Error: work failed; quiet=false
+```
+
+`RunQuietly` has no `except` handler, so the exception continues to `Main`.
+Its `finally` block runs first. Saving the previous setting also makes this
+work when `quiet` was already `true` before the call.
 
 ## Messages and Backtraces
 
@@ -145,7 +199,7 @@ and backtrace, then ends the program with a failure status.
 
 Initialized local values are cleaned up in reverse construction order as an
 exception leaves their scope. If a constructor fails, already initialized
-owned fields and base state are also cleaned up.
+autofree fields and base state are also cleaned up.
 
 Catching an exception does not undo changes made before the failure. Restore
 or discard partially updated data as appropriate for the operation. If a

@@ -65,6 +65,9 @@ because the underlying assembly template syntax reserves `$`.
 
 By default, parameters are register inputs and the result is a register output.
 Use the hints below for constant operands, memory access, or additional effects.
+The input and output registers may overlap. Write instructions that remain
+correct if `$result` uses the same register as an input, and do not modify an
+input register unless that change is represented by an output or clobber.
 
 ### Operand Hints
 
@@ -154,8 +157,25 @@ func AddTo32(address : ^int32, value : int32) [[inline, asm]]:
 endfunc
 ```
 
-An instruction may still require an explicit size qualifier when its other operands do not determine the access
-width:
+To try these three functions, place `use print` before them and add:
+
+```dq
+func *Main():
+    var value : int32 = 10
+    Store32(%value, 20)
+    AddTo32(%value, 3)
+    PrintLn("{}", [Load32(%value)])
+endfunc
+```
+
+This prints `23`. `%value` supplies the address of the local variable.
+`memwrite` describes the store, `memreadwrite` describes the addition, and
+`memread` describes the load. These hints tell the optimizer how the assembly
+interacts with the surrounding DQ code; the instructions perform the actual
+reads and writes.
+
+An instruction may still require an explicit size qualifier when its other
+operands do not determine the access width:
 
 ```dq
 func Inc32(address : ^int32) [[inline, asm]]:
@@ -194,7 +214,8 @@ names and `result` are not available as operands in a complete assembly
 function.
 
 The compiler emits an `[[asm]]` function as naked and non-inline. Consequently,
-it does not generate a prologue, epilogue, or DQ `return` operation. `[[asm]]`
+it does not generate a prologue or epilogue (the instructions that normally
+set up and restore a function's stack and registers), or a DQ `return` operation. `[[asm]]`
 cannot be combined with `[[external]]`, `[[abstract]]`, or `[[always_inline]]`.
 
 ## Inline Assembly Restrictions
@@ -231,7 +252,8 @@ Assembly bodies participate in normal DQ source processing:
   and instructions.
 
 This permits target-specific implementations selected with conditional
-compilation:
+compilation. This x86-64 example uses a build-supplied `TARGET_HAS_PAUSE`
+definition to choose the instruction:
 
 ```dq
 func Pause() [[inline, asm]]:

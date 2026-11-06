@@ -344,7 +344,7 @@ unsized `embstr` requires live, writable source storage. Neither a cast nor
 storing a view in `anyvalue` extends the owner's lifetime. Returning a view into
 a local buffer is invalid.
 
-See [Memory Management and Ownership](130-memory-management-and-ownership.md)
+See [Memory Management and Autofree](130-memory-management-and-ownership.md)
 for managed values and borrowed lifetimes.
 
 ## Literals

@@ -38,7 +38,7 @@ directives, and C interoperability are separate topics.
 | `language/memory-and-pointers.md` | [Pointers](../020-language/110-pointers.md) |
 | `language/objects.md` | [Objects and Properties](../020-language/120-objects-and-properties.md) |
 | `reference/objects-and-properties.md` | [Objects and Properties](../020-language/120-objects-and-properties.md) |
-| `reference/autofree.md` | [Memory Management and Ownership](../020-language/130-memory-management-and-ownership.md) |
+| `reference/autofree.md` | [Memory Management and Autofree](../020-language/130-memory-management-and-ownership.md) |
 | `reference/anyvalue.md` | [anyvalue](../020-language/150-anyvalue.md) |
 | `rtl/anyvalue.md` | [anyvalue](../020-language/150-anyvalue.md) |
 | `language/modules.md` | [Modules and Packages](../020-language/170-modules-and-packages.md) |

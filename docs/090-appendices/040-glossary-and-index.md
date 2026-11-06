@@ -8,7 +8,7 @@ common terms to their detailed descriptions and also works in the PDF book.
 | Addressable value | Storage whose address can be taken with `%`; see [Pointers](../020-language/110-pointers.md). |
 | `anyvalue` | A tagged value for supported scalars and text; see [`anyvalue`](../020-language/150-anyvalue.md). |
 | Attribute | Declaration metadata written `[[...]]`; see [Attributes](../020-language/180-attributes.md). |
-| `autofree` | An owner that releases its object or pointer; see [Memory Management and Ownership](../020-language/130-memory-management-and-ownership.md). |
+| `autofree` | An owner that releases its object or pointer; see [Memory Management and Autofree](../020-language/130-memory-management-and-ownership.md). |
 | Borrowed view | A reference to storage whose lifetime is managed elsewhere; see [Arrays and Slices](../020-language/080-arrays-and-slices.md) and [Character and String Types](../020-language/070-strings-and-characters.md). |
 | C ABI | Native calling and layout conventions used by external declarations; see [C Interoperability](../020-language/200-c-interoperability.md). |
 | Canonical module identity | A module's identity within its module/package root; see [Modules and Packages](../020-language/170-modules-and-packages.md). |
@@ -24,7 +24,7 @@ common terms to their detailed descriptions and also works in the PDF book.
 | LTO | Link-time optimization across compiled modules; see [Compiler Usage and Options](../030-compiler/040-compiler-usage-and-options.md). |
 | Module | One `.dq` source file with public and implementation regions; see [Modules and Packages](../020-language/170-modules-and-packages.md). |
 | Namespace | A qualified scope reached with `@name`; see [Modules and Packages](../020-language/170-modules-and-packages.md). |
-| Ownership | Responsibility for releasing an allocation; see [Memory Management and Ownership](../020-language/130-memory-management-and-ownership.md). |
+| Ownership | Responsibility for releasing an allocation; see [Memory Management and Autofree](../020-language/130-memory-management-and-ownership.md). |
 | Package | A source-module tree found through package roots; see [Library Overview](../040-packages/010-library-overview-and-sys.md). |
 | Prelude | The implicit `rtl/sys` interface; see [`sys`](../040-packages/015-sys.md). |
 | Project file | A `.dqproj` collection of compiler/build settings; see [Project Files](../030-compiler/050-project-files.md). |

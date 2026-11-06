@@ -51,9 +51,9 @@ endfunc
 | `func(...)` | A function reference with a particular signature. | [Functions](060-functions.md#function-references) |
 | `anyvalue` | A boxed scalar/text value for heterogeneous APIs. | [anyvalue](150-anyvalue.md) |
 
-`autofree T` qualifies object-reference and pointer types with cleanup ownership;
+`autofree T` qualifies object-reference and pointer types with automatic cleanup;
 it does not change the underlying pointer representation. See
-[Memory Management and Ownership](130-memory-management-and-ownership.md).
+[Memory Management and Autofree](130-memory-management-and-ownership.md).
 
 ## Type Aliases
 

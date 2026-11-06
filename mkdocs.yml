@@ -62,7 +62,7 @@ nav:
       - Structures and Unions: 020-language/100-structures-and-unions.md
       - Pointers: 020-language/110-pointers.md
       - Objects and Properties: 020-language/120-objects-and-properties.md
-      - Memory Management and Ownership: 020-language/130-memory-management-and-ownership.md
+      - Memory Management and Autofree: 020-language/130-memory-management-and-ownership.md
       - Exceptions and Error Handling: 020-language/140-exceptions-and-error-handling.md
       - anyvalue: 020-language/150-anyvalue.md
       - Modules and Packages: 020-language/170-modules-and-packages.md

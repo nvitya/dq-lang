@@ -18,7 +18,9 @@ endfunc
 
 This prints `42` and then `hello`. The same variable first holds an integer,
 then text. The accessor methods, such as `AsInt`, let you read a value in the
-form you need.
+form you need. Unlike an ordinary `int` or `str`, an `anyvalue` does not have
+one fixed kind of content throughout its lifetime. Use a specific type when the
+kind is known in advance; use `anyvalue` at interfaces that need mixed values.
 
 ## Checked Access
 
@@ -123,6 +125,7 @@ to return when the requested conversion is unavailable.
 A helper can use these methods to produce a label for different kinds of data:
 
 ```dq
+use print
 
 func ToLabel(value : anyvalue) -> str:
     if value.IsNull():
@@ -136,6 +139,26 @@ func ToLabel(value : anyvalue) -> str:
     endif
 endfunc
 ```
+
+Add this entry point after `ToLabel` to try each branch:
+
+```dq
+func *Main():
+    var value : anyvalue = 42
+    PrintLn("{}", [ToLabel(value)])
+    value = "hello"
+    PrintLn("{}", [ToLabel(value)])
+    value.SetNull()
+    PrintLn("{}", [ToLabel(value)])
+    value = true
+    PrintLn("{}", [ToLabel(value)])
+endfunc
+```
+
+This prints `42`, `hello`, `<missing>`, and `<value>`, each on its own line.
+`ToLabel` checks the stored kind before choosing how to represent it. The final
+branch is this function's policy for values such as booleans, rather than a
+limitation of DQ's formatting functions.
 
 `Format` is available through the implicit `sys` runtime interface. See
 [String Functions](075-string-functions.md#format).
@@ -152,7 +175,7 @@ In addition to assignment, explicit setters choose what kind of value to store:
 | `SetChar(value)`, `SetWChar(value)` | Byte character or Unicode scalar. |
 | `SetText(value)`, `SetEmbStr(value)` | Borrowed text representation. |
 | `SetStr(value)` | Managed dynamic string. |
-| `SetNull()` | Database null. |
+| `SetNull()` | Missing value (null). |
 
 `AsStrSlice(default)` is the text-view alias of `AsText(default)`. A borrowed
 text view returned by an accessor still depends on the stored/source value's
@@ -165,6 +188,17 @@ Method names are case-sensitive; in particular the unsigned setter is
 Storing a managed `str` keeps its text alive. Storing borrowed text or a pointer
 does not keep the source alive. For example, a slice into a local buffer must
 not be used after that buffer has disappeared, even if stored in an `anyvalue`.
+
+To retain text independently of a borrowed source, copy it into managed string
+storage before keeping it:
+
+```dq
+var buffer : embstr(32) = "ready"
+var saved : anyvalue
+saved.SetStr(buffer) // stores a managed string copy of the buffer's text
+buffer = "changed"
+// saved.AsStr("") is still "ready"
+```
 
 A view returned by `AsText` or `AsStrSlice` is also borrowed. Keep its source
 valid for as long as you use the view. Copying and destroying an `anyvalue`

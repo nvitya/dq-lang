@@ -2,8 +2,10 @@
 
 DQ can call functions from C libraries and let C code call DQ functions. This
 is useful for reusing existing libraries or working with an operating system's
-native APIs. Declare the function's name, parameter types, and result in DQ,
-then mark it `[[external]]`.
+native APIs. There are two parts to calling a C function: **declare** its
+interface so DQ can compile the call, and **link** its implementation so the
+finished program can run it. Declare the function's name, parameter types,
+and result in DQ, then mark it `[[external]]`.
 
 For example, call the C library's `puts` function to print a line:
 
@@ -100,7 +102,7 @@ write beyond the capacity or bypass DQ's string length and sharing rules. See
 [Buffer and String Details](#buffer-and-string-details) before passing writable
 string storage.
 
-## Variadic Functions and Callbacks
+## Variadic Functions
 
 A C function with `...` accepts extra arguments. For example, `printf` uses its
 format string to interpret those arguments:
@@ -119,11 +121,55 @@ This prints `value = 42`. Here `%d` expects a C `int`, so the argument is
 arguments follow the target's C argument-promotion rules. DQ's own formatting
 instead uses a checked list of [`anyvalue`](150-anyvalue.md) values.
 
+## Callbacks
+
 A **callback** is a function you give to a library for it to call. Use a plain
 function reference with the exact signature the C API expects. A bound
 `of object` method reference also stores its receiver, so it is not a plain C
 function pointer. Keep any callback context alive for as long as the library
 may use it.
+
+For example, the C library's `qsort` function sorts a buffer by repeatedly
+calling a comparison function supplied by the caller:
+
+```dq
+use print
+
+type FCompare = func(left : pointer, right : pointer) -> int32
+
+func qsort(base : pointer, count : uint, size : uint,
+    compare : FCompare) [[external]] ..
+
+func CompareInts(left : pointer, right : pointer) -> int32:
+    var a : int32 = ^int32(left)^
+    var b : int32 = ^int32(right)^
+    if a < b:
+        return -1
+    elif a > b:
+        return 1
+    endif
+    return 0
+endfunc
+
+func *Main():
+    var values : [4]int32 = [30, 10, 40, 20]
+    qsort(%values[0], values.length, SizeOf(int32), CompareInts)
+    for value : int32 in values:
+        PrintLn("{}", [value])
+    endfor
+endfunc
+```
+
+This prints `10`, `20`, `30`, and `40`, each on its own line. `qsort` receives
+the address of the first element, the number of elements, and the size of each
+one in bytes. It passes two element addresses to `CompareInts`, which reads
+them as `int32` values and returns a negative, zero, or positive C `int`.
+Explicit comparisons avoid the overflow that subtracting the values could cause.
+
+`qsort` rearranges the caller's array during the call and does not retain its
+address afterward. The local array therefore lives long enough. This example
+uses plain fixed-width numbers; do not use raw C byte-copying operations to
+rearrange DQ values that require managed copying or cleanup.
 
 ## Linking and Native Ownership
 
@@ -166,8 +212,17 @@ func Add(left : int32, right : int32) -> int32 [[cexport]]:
 endfunc
 ```
 
-C code can declare this as `int32_t Add(int32_t left, int32_t right);` when
-using the matching target and calling convention. See
+The corresponding C declaration includes the header for fixed-width integers:
+
+```c
+#include <stdint.h>
+
+int32_t Add(int32_t left, int32_t right);
+```
+
+The C and DQ files must be compiled for the same target and linked together.
+The export attribute supplies the symbol name; it does not itself build a
+shared library or arrange runtime initialization for a C-owned entry point. See
 [Attributes](180-attributes.md#linkage-and-placement) for exported globals and
 symbol retention.
 

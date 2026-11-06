@@ -29,7 +29,7 @@ and run it with `dq-run filename.dq`. Assembly examples identify their target.
 - [Structures and Unions](100-structures-and-unions.md)
 - [Pointers](110-pointers.md)
 - [Objects and Properties](120-objects-and-properties.md)
-- [Memory Management and Ownership](130-memory-management-and-ownership.md)
+- [Memory Management and Autofree](130-memory-management-and-ownership.md)
 - [Exceptions and Error Handling](140-exceptions-and-error-handling.md)
 - [anyvalue](150-anyvalue.md)
 - [Modules and Packages](170-modules-and-packages.md)

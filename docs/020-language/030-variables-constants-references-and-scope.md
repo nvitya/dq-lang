@@ -38,7 +38,7 @@ starts empty and can be read or appended to immediately. See
 [Embedded Strings](070-strings-and-characters.md#embstrn-and-embstr-embedded-strings).
 
 Global storage is zero/default-initialized before program startup. Types with
-managed lifetimes, including dynamic arrays and owning references, have their
+managed lifetimes, including dynamic arrays and autofree references, have their
 own empty/default initialization and cleanup rules. Use an explicit initializer
 when the intended value matters. `{}` explicitly zero/default-initializes a
 supported aggregate such as a structure or fixed array.
@@ -69,12 +69,12 @@ array notation `[?]T` infers a fixed array's length, not its element type.
 
 For local variables initialized by `new` or `TryCast(...)`, the type annotation
 can be omitted entirely. For example, `var child = TryCast(OChild, base)` infers
-`OChild` from the first argument and creates an ordinary, non-owning reference.
+`OChild` from the first argument and creates an ordinary reference without `autofree`.
 See [Checked Object Casts](120-objects-and-properties.md#converting-references-with-trycast).
 
-`new autofree T` provides a separate owning declaration shorthand; ordinary `?`
-inference does not add ownership. See
-[Memory Management and Ownership](130-memory-management-and-ownership.md).
+`new autofree T` provides a shorthand for declaring an autofree variable;
+ordinary `?` inference does not add `autofree`. See
+[Memory Management and Autofree](130-memory-management-and-ownership.md).
 
 ## Local References
 

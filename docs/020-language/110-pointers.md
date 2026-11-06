@@ -476,15 +476,20 @@ Use `new` when the pointed-to value needs separately allocated storage, and
 initialize it before reading it. Use `delete` when finished:
 
 ```dq
-var number : ^int = new int
-number^ = 42
-delete number = nil // release the allocation and clear this variable
+struct SPoint:
+    x : int
+    y : int
+endstruct
+
+var point : ^SPoint = new SPoint
+point^ = {x: 10, y: 20}
+delete point = nil // release the allocation and clear this variable
 ```
 
 Other pointers to the same allocation become invalid after `delete`; they are
 not cleared automatically. To release an allocation automatically when leaving
 a scope, use `autofree ^T`. See
-[Memory Management and Ownership](130-memory-management-and-ownership.md).
+[Memory Management and Autofree](130-memory-management-and-ownership.md).
 
 Pointers into local variables or fixed arrays are valid only while that storage
 exists. Resizing a dynamic array or growing or changing a string's storage can
@@ -498,14 +503,16 @@ that a pointer is valid: it might refer to memory that has already been freed
 or to a variable that has gone out of scope, like a local variable.
 Such pointers are called **dangling pointers**.
 
-```dq
-var number : ^int = new int
-number^ = 42
-var borrowed : ^int = number // both pointers refer to the same allocation
+Using `SPoint` from the allocation example above:
 
-delete number = nil         // free the allocation and clear number
+```dq
+var point : ^SPoint = new SPoint
+point^ = {x: 10, y: 20}
+var borrowed : ^SPoint = point // both pointers refer to the same allocation
+
+delete point = nil          // free the allocation and clear point
 // borrowed is still non-nil, but is now dangling:
-// borrowed^ = 10           // invalid: the target has already been freed
+// borrowed.x = 30          // invalid: the target has already been freed
 borrowed = nil              // clear the dangling pointer
 ```
 

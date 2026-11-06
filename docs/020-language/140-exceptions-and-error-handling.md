@@ -5,12 +5,17 @@ cannot be completed. It stops the current work and looks for code that handles
 the problem. Use `try` and `except` to handle a failure without ending the whole
 program.
 
+Custom exception type names conventionally start with a capital `E`, as in `EInput`.
+
 ```dq
 use print
 
+object EInput(Exception):
+endobject
+
 func RequirePositive(value : int):
     if value <= 0:
-        raise Exception("expected a positive value, got {}", [value])
+        raise EInput("expected a positive value, got {}", [value])
     endif
 endfunc
 
@@ -18,8 +23,8 @@ func *Main():
     try:
         RequirePositive(0)
         PrintLn("Value accepted")
-    except Exception as error:
-        PrintLn("Error: {}", [error.message])
+    except EInput as error:
+        PrintLn("Input Error: {}", [error.message])
     endtry
     PrintLn("Ready for another value")
 endfunc

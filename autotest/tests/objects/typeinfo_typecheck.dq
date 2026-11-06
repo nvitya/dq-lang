@@ -1,0 +1,10 @@
+// checked casts require TryCast; omitted declaration types remain restricted
+
+object OTest:
+endobject
+
+func *Main():
+    var source <- OTest()
+    var old_form : OTest tryfrom source //?error(Semicolon)
+    var plain_alias = source //?error(TypeSpecExpected)
+endfunc

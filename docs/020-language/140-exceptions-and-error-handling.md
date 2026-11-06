@@ -117,7 +117,7 @@ handling the exception there.
 block. It is useful for an explicit action such as restoring a setting or
 releasing an external resource. For objects owned by your code, prefer
 [automatic cleanup](130-memory-management-and-ownership.md): local owners,
-managed values, and fixed objects already clean themselves up during exception
+managed values, and embedded objects already clean themselves up during exception
 propagation.
 
 ## Messages and Backtraces

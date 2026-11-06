@@ -244,7 +244,8 @@ exception propagation. The full rules and examples are in
 
 ## Method-Local Use
 
-Object methods may use `use .` or an already imported module namespace to opt
-module-scope values into unqualified lookup. This is a restricted method feature,
-not a general import statement for arbitrary function bodies. See
-[Modules and Packages](170-modules-and-packages.md#method-local-use).
+Object methods may use `use .`, `use *`, or imported module namespaces to opt
+outside variables, constants, and functions into unqualified lookup. This is a
+restricted method feature, not a general import statement for arbitrary
+function bodies. See
+[Objects and Properties](120-objects-and-properties.md#method-local-use).

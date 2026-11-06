@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.7"
+#define DQ_COMPILER_VERSION  "0.95.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.8:
+  - removed tryfrom, TryCast() without :? added to variable declarations
+  - documentation updates
 v0.95.7:
   - Code refactoring: joined member handling at OTypeObject and OCompoundType
 v0.95.6:

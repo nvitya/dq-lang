@@ -44,7 +44,7 @@ when the intended value matters. `{}` explicitly zero/default-initializes a
 supported aggregate such as a structure or fixed array.
 
 Object fixed storage uses `<-` rather than `=`; see
-[Objects and Properties](120-objects-and-properties.md#storage-forms).
+[Objects and Properties](120-objects-and-properties.md#creating-and-destroying-objects).
 
 ## Restricted Type Inference
 
@@ -66,6 +66,11 @@ Inference requires `=` and preserves the initializer's static type. Numeric,
 Boolean, text, enum, raw `pointer`, and other unlisted types are not inferred.
 In particular, `var n : ? = 3` and `var p : ? = nil` are errors. The separate
 array notation `[?]T` infers a fixed array's length, not its element type.
+
+For local variables initialized by `new` or `TryCast(...)`, the type annotation
+can be omitted entirely. For example, `var child = TryCast(OChild, base)` infers
+`OChild` from the first argument and creates an ordinary, non-owning reference.
+See [Checked Object Casts](120-objects-and-properties.md#converting-references-with-trycast).
 
 `new autofree T` provides a separate owning declaration shorthand; ordinary `?`
 inference does not add ownership. See
@@ -131,6 +136,6 @@ method-local `use` makes them available. Type names remain available for type
 annotations and casts.
 
 Object members have `public`, `protected`, and `private` visibility; their rules
-are in [Objects and Properties](120-objects-and-properties.md#members-and-visibility).
+are in [Objects and Properties](120-objects-and-properties.md#member-visibility).
 See [Modules and Packages](170-modules-and-packages.md) for import aliases,
 merged symbols, and reexports.

@@ -462,15 +462,15 @@ endfunc
 
 func ODrawable.*Create(parent : ODrawable):
     self.parent = parent
-    if parent is ODrawGroup:
-        var group : ODrawGroup tryfrom parent
+    var group = TryCast(ODrawGroup, parent)
+    if group <> nil:
         group.AddChild(self)
     endif
 endfunc
 
 func ODrawable.*Destroy():
-    if parent is ODrawGroup:
-        var group : ODrawGroup tryfrom parent
+    var group = TryCast(ODrawGroup, parent)
+    if group <> nil:
         group.RemoveChild(self)
     endif
 endfunc
@@ -905,7 +905,7 @@ func OClonedGroup.*Create(parent : ODrawable, original : ODrawable):
 endfunc
 
 func OClonedGroup.Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[override]]:
-    var group : ODrawGroup tryfrom original
+    var group = TryCast(ODrawGroup, original)
     if group == nil:
         return
     endif

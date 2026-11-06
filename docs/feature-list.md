@@ -54,7 +54,7 @@ Inferred array length from array literal: `var a : [?]int = [1, 2, 3]`
 * Flexible `use` statement for module "import" and namespace merging. By default `use mymod` merges all interface symbols of the `@mymod` into the current scope. `use mymod --` does not merge. Furthermore `only`, `exclude` and `reexport` options are also supported.
 * Every used module gets its own namespace identified by a single word (selectable with `as`). The `@mymod.` prefix can be used for fully qualified access
 * Object member functions use a restricted value-symbol scope. Symbols outside of the object scope must be addressed with the `@` namespace qualifier (`@.` can be used to access the global scope of the current module)
-* Dynamic object casting with `TryCast(OSecond, x)` and `var o2 : OSecond tryfrom x`. (The result is null if the x is not compatible with OSecond)
+* Dynamic object casting with `TryCast(OSecond, x)`, including `var o2 = TryCast(OSecond, x)`. The result is `nil` if `x` is not compatible with `OSecond`.
 * Type inference is not implemented, but, if it will be implemented, it will be marked with the `?` symbol:
   `var x : ? = 3` or `var x ?= 3`
 * Built-in integer types: `int`, `uint`. These are always the with of the `pointer`. Use `int32`, `uint16` etc. for specific widths. The `byte` alias also available and same as `uint8`.

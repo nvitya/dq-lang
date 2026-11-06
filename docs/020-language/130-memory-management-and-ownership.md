@@ -1,7 +1,7 @@
 # Memory Management and Ownership
 
 Most local values in DQ clean themselves up when you leave their scope. Strings
-and dynamic arrays manage their storage, and fixed objects created with `<-`
+and dynamic arrays manage their storage, and embedded objects created with `<-`
 are destroyed automatically. Objects created with `new` need someone to release
 them: either your code calls `delete`, or an **owner** does it automatically.
 
@@ -42,7 +42,7 @@ is responsible for releasing it. Choose a form that fits how you use the value:
 | Number, fixed array, structure, fixed-storage embedded string | Lives directly in its containing variable or object. |
 | `str` | Manages its text storage; changing a shared string makes an independent value. |
 | `[*]T` | Manages shared array storage; aliases see changes to the same array. |
-| `var task <- OTask(...)` | Fixed object; lives with its scope or containing object. |
+| `var task <- OTask(...)` | Embedded object; lives with its scope or containing object. |
 | `new OTask(...)` | Heap object; needs an explicit `delete` or an owner. |
 | `autofree OTask`, `autofree ^T`, `autofree pointer` | Owns a heap reference and releases it automatically. |
 | Pointer, `rostr`, `strslice`, `[]T`, ordinary object alias | Borrows existing storage; does not keep it alive. |
@@ -100,7 +100,7 @@ delete task // task is now nil; leaving the scope will not delete it again
 ```
 
 Local owners start as `nil`, and local values are cleaned up in reverse
-construction order. Managed values, fixed objects, and owners receive cleanup
+construction order. Managed values, embedded objects, and owners receive cleanup
 on normal block exit, `return`, loop transfers, and exception propagation.
 Owned object fields are cleaned up in reverse declaration order when their
 containing object is destroyed.

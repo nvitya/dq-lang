@@ -180,4 +180,4 @@ definition; assembly functions have the combinations described in
 reads and writes individually, so an operation such as `+=` requires both.
 
 For object method attributes, see
-[Inheritance and Virtual Dispatch](120-objects-and-properties.md#inheritance-and-virtual-dispatch).
+[Inheritance and Virtual Dispatch](120-objects-and-properties.md#virtual-methods).

@@ -82,33 +82,43 @@ func test_is():
     delete o3
 endfunc
 
-func test_tryfrom():
+func test_trycast():
     var o1 : OBase = new OFirst(2)
     var o3 : OBase = new OThird(4)
 
-    var t1 : OFirst tryfrom o1
+    var t1 : OFirst = TryCast(OFirst, o1)
     if t1 <> nil:
         @.printf("t1.id = %d\n", t1.id()) //?check("t1.id", 2)
     endif
 
-    var t2 : OSecond tryfrom o1
+    var t2 :? = TryCast(OSecond, o1)
     if t2 == nil:
         @.printf("t2.isnull = 1\n") //?check("t2.isnull", 1)
     endif
 
-    var t3 : OSecond tryfrom o3
+    var t3 = TryCast(OSecond, o3)
     if t3 <> nil:
         @.printf("t3.id = %d\n", t3.id()) //?check("t3.id", 4)
+        t3.s = 23
+        @.printf("t3.s = %li\n", t3.s) //?check("t3.s", 23)
     endif
 
-    var t4 : OFirst = TryCast(OFirst, o1)
+    var t4 :? = TryCast(OFirst, o1)
     if t4 <> nil:
         @.printf("t4.notnull = 1\n") //?check("t4.notnull", 1)
     endif
 
-    var t5 : OSecond = TryCast(OSecond, o1)
+    var t5 = TryCast(OSecond, o1)
     if t5 == nil:
         @.printf("t5.isnull = 1\n") //?check("t5.isnull", 1)
+    endif
+
+    var missing : OBase = nil
+    var t6 : OFirst = TryCast(OFirst, missing)
+    var t7 :? = TryCast(OFirst, missing)
+    var t8 = TryCast(OFirst, missing)
+    if (t6 == nil) and (t7 == nil) and (t8 == nil):
+        @.printf("nil casts = 1\n") //?check("nil casts", 1)
     endif
 
     delete o1
@@ -117,5 +127,5 @@ endfunc
 
 func *Main():
     test_is()
-    test_tryfrom()
+    test_trycast()
 endfunc

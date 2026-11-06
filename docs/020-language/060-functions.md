@@ -247,7 +247,7 @@ Keep the object alive for every call through the reference; storing its method
 does not extend the object's lifetime. A virtual method's implementation is
 resolved for that object when the reference is assigned. Pointer casts to
 `of object` references are not supported. See
-[Objects and Properties](120-objects-and-properties.md#object-function-references).
+[Objects and Properties](120-objects-and-properties.md#object-method-references).
 
 ## Local Subfunctions
 

@@ -155,7 +155,7 @@ endfunc
 ```
 
 This prints `Ready`. A used module initializes before the module that uses it,
-and each module initializes once. Global fixed objects are also initialized
+and each module initializes once. Global embedded objects are also initialized
 before the application starts.
 
 There is no automatic module/global finalization phase. Explicitly release
@@ -177,29 +177,15 @@ of your public interface.
 
 ## Method-Local Use
 
-An object method normally accesses module functions with a qualifier such as
-`@.PrintLn`. A method-local `use` lets you use names directly. For example,
-`use print` makes that already imported namespace available in the method:
+Inside an object method, outside variables, constants, and functions (including
+those from the runtime `sys` module and imported modules) are not directly
+accessible by their bare names. Placing a method-local `use` statement at the
+start of a method body allows direct, unqualified access to outside symbols—such
+as `use socket, sys`, `use .`, or `use *`.
 
-```dq
-use print
-
-object OGreeter:
-    func Greet():
-        use print
-        PrintLn("Hello")
-    endfunc
-endobject
-
-func *Main():
-    var greeter <- OGreeter()
-    greeter.Greet()
-endfunc
-```
-
-Use `use .` for declarations belonging to the current module itself. These
-forms change name lookup in the method; they do not load an arbitrary new source
-module from inside the method body.
+Because this feature specifically controls name resolution inside object
+methods, its full description, rules, and practical examples are documented in
+[Objects and Properties](120-objects-and-properties.md#method-local-use).
 
 ## Interface Loading and Cycles
 

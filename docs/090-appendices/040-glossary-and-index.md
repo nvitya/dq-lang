@@ -15,7 +15,7 @@ common terms to their detailed descriptions and also works in the PDF book.
 | Copy-on-write | Shared string storage becomes independent when modified; see [Character and String Types](../020-language/070-strings-and-characters.md). |
 | Directive | A compiler instruction such as `#if` or `#include`; see [Compiler Directives](../020-language/190-compiler-directives.md). |
 | Dynamic array | Managed `[*]T` storage shared by assignments; see [Arrays and Slices](../020-language/080-arrays-and-slices.md). |
-| Embedded object | Fixed object storage declared with `<-`; see [Objects and Properties](../020-language/120-objects-and-properties.md). |
+| Embedded object | An object stored directly in local storage, the global data segment, or a containing object, declared with `<-`; see [Objects and Properties](../020-language/120-objects-and-properties.md). |
 | Embedded string | A bounded string descriptor or fixed `embstr(N)` storage; see [Character and String Types](../020-language/070-strings-and-characters.md). |
 | Enumeration | A named set of ordinal values; see [Enumerations](../020-language/090-enumerations.md). |
 | Exception | A failure propagated to a matching handler; see [Exceptions and Error Handling](../020-language/140-exceptions-and-error-handling.md). |

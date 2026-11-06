@@ -359,7 +359,7 @@ See [Pointers](110-pointers.md) for address arithmetic and lifetime rules, and
 comparison-level operator. Parenthesize its result before further operations.
 
 `value is OType` tests an object's runtime type and returns `false` for `nil`.
-`TryCast` and `tryfrom` perform checked object casts; see
+`TryCast(TargetType, value)` performs a checked object cast; see
 [Objects and Properties](120-objects-and-properties.md#runtime-type-tests-and-casts).
 A cast does not validate an arbitrary pointer, encoding, or enum ordinal.
 

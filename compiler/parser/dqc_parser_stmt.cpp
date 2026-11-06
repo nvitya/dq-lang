@@ -210,20 +210,24 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     }
 
     auto * newexpr = dynamic_cast<ONewExpr *>(initexpr);
-    if (!newexpr)
+    if (dynamic_cast<OTryCastExpr *>(initexpr))
+    {
+      ptype = initexpr->ptype;
+    }
+    else if (!newexpr)
     {
       delete initexpr;
       StatementError(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
       return;
     }
-    if (AsAutoFreeType(newexpr->ptype))
+    else if (AsAutoFreeType(newexpr->ptype))
     {
       ptype = newexpr->ptype;
     }
     else
     {
-    OTypeObject * new_object_type = dynamic_cast<OTypeObject *>(newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr);
-    ptype = (new_object_type ? newexpr->alloc_type : newexpr->ptype);
+      OTypeObject * new_object_type = dynamic_cast<OTypeObject *>(newexpr->alloc_type ? newexpr->alloc_type->ResolveAlias() : nullptr);
+      ptype = (new_object_type ? newexpr->alloc_type : newexpr->ptype);
     }
   }
   else
@@ -238,16 +242,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     StatementError(DQERR_TYPE_INFER_INIT_REQUIRED, sid);
     return;
   }
-  if (scf->CheckSymbol("tryfrom"))
-  {
-    scf->SkipWhite();
-    OExpr * src_expr = ParseExpression();
-    if (src_expr)
-    {
-      initexpr = new OTryCastExpr(ptype, src_expr);
-    }
-  }
-  else if (scf->CheckSymbol("="))  // variable initializer specified
+  if (scf->CheckSymbol("="))  // variable initializer specified
   {
     scf->SkipWhite();
     initexpr = ParseExpression();

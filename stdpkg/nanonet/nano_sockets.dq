@@ -851,7 +851,7 @@ func ONanoDatagram.SetRemoteAddr(aaddr : rostr, aport : uint16):
 endfunc
 
 func ONanoDatagram.GetRemoteAddrStr() -> str:
-    use socket, strutils
+    use socket, sys
     var buf : [INET_ADDRSTRLEN]char
     var addr : ^char = libc_inet_ntop(AF_INET, %remote_addr.sin_addr, %buf[0], SizeOf(buf))
     if addr == nil:

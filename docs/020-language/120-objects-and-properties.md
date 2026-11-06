@@ -822,6 +822,7 @@ can be declared in any of these three forms:
 
 The last two forms infer the variable's type from the target type passed to
 `TryCast`. All three forms check the actual object at runtime:
+
 - If the object is an `ODog` (or a type derived from `ODog`), the new variable
   receives a reference to that object.
 - If the object is something else (such as an `OCat`), or if `animal` is `nil`,
@@ -883,6 +884,7 @@ storing a method requires an **object method reference**, written as
 `func(...) of object`.
 
 An object method reference bundles two things together:
+
 1. The method to call.
 2. The specific object instance to call it on.
 
@@ -901,12 +903,13 @@ prefixes or method-local `use` control access to outside names.
 ### Declaring Methods Separately
 
 Every method has two parts:
+
 1. **The declaration (the header):** tells the compiler the method's name, its
    parameters, and what type it returns.
 2. **The definition (the body):** the actual lines of code that run when the
    method is called.
 
-Usually, both parts are written together directly inside the `object ... endobject`
+Both parts can be written together directly inside the `object ... endobject`
 block. However, when an object has many methods or long code, keeping everything
 inside the object can make it difficult to read. DQ lets you separate them:
 
@@ -968,6 +971,7 @@ Inside an object method, bare names always refer to the object's own members
 (its fields, methods, and properties). Variables, constants, and functions
 outside of the object scope are **not** directly available by their bare names.
 This restriction applies to:
+
 - Global variables and constants declared in the same module.
 - Functions declared in the same module.
 - Symbols from imported modules, including the runtime's built-in `sys` module
@@ -1040,6 +1044,7 @@ endfunc
 ```
 
 In this method:
+
 - `SizeOf(remote_addr)` needs no prefix because `SizeOf()` is a compiler
   internal function available everywhere.
 - `MemSet` comes from the `sys` module, while `AF_INET`, `libc_htons`, and
@@ -1081,6 +1086,70 @@ Method-local `use` supports the following forms:
   explicit `@module.Name` or `@.Name` prefix.
 
 ## Object Examples
+
+### A Short Object Demo
+
+This example combines inheritance, a read-only property, an embedded helper,
+and automatic ownership. `OChild` changes a protected field and extends a
+virtual method, while `OBase` manages the helper's construction and cleanup.
+
+```dq
+--8<-- "examples/dq_intro_3.dq"
+```
+
+Source: [dq_intro_3.dq](https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_3.dq).
+
+This test outputs:
+
+```text
+DQ Objects Demo
+Helper for "Base-heap" created
+Base-heap: value=1
+Helper for "Child1-stack" created
+Child1-stack: value=2 flval=1.5
+"Child1-stack" destroyed
+Helper for "Child1-stack" destroyed
+Error test
+Helper for "ErrChild-heap" created
+"ErrChild-heap" destroyed
+Helper for "ErrChild-heap" destroyed
+ERROR: Some error happened!
+Backtrace =
+  #0 ErrorTest @ /workvc/dq-lang/examples/dq_intro_3.dq:75
+  #1 Main @ /workvc/dq-lang/examples/dq_intro_3.dq:93
+reassigning autofree type
+"Base-heap" destroyed
+Helper for "Base-heap" destroyed
+Helper for "Child2-heap" created
+Child2-heap: value=2 flval=3.14
+Autofree type as argument
+"Child2-heap" destroyed
+Helper for "Child2-heap" destroyed
+Helper for "Child3-heap" created
+Child3-heap: value=2 flval=2.333333333333334
+nil-ing autofree type
+"Child3-heap" destroyed
+Helper for "Child3-heap" destroyed
+Test finished.
+```
+
+`OChild` can change the protected `intval` field, while outside callers can
+only read it through the inherited `value` property. Calling `Print()` runs
+`OBase.Print`, whose virtual call to `PrintExtra()` selects the child's
+override. The bare `inherited` in that override prints the base value before
+the child adds `flval`.
+
+`helper.Create(self)` gives the embedded helper a borrowed reference to its
+container. The helper's method bodies appear after the full `OBase` definition
+so they can access `base.name`. The name uses `embstr(64)`, keeping its text
+storage inside the object. Because `helper` is declared after `name`, it is
+destroyed first and can still read the name during cleanup.
+
+`ErrorTest` shows that the local owner destroys its object before the exception
+handler runs. The handler then calls `e.PrintBacktrace()`; its frames depend on
+the build and source location. The rest of `Main` demonstrates owner replacement,
+replacement through a `ref autofree OBase` parameter, and early destruction by
+assigning `nil`.
 
 ### A Temperature Log with Properties
 

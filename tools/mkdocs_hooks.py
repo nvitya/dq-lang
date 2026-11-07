@@ -8,6 +8,8 @@ def on_files(files, **kwargs):
     """Publish the numbered introduction chapter at the site root."""
     introduction = files.get_file_from_path("010-project/010-introduction.md")
     introduction.dest_uri = "index.html"
+    # The PDF exporter needs ".", not "./", to match root-page heading IDs to links.
+    introduction.url = "."
     return files
 
 
